@@ -2,6 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import type sqlite from "node-sqlite3-wasm"
 import type { ExtractedPage, ExtractedImage, PdfMetadata } from "@adt/pdf"
+import { BookLabel } from "@adt/types"
 import type { Storage } from "./storage.js"
 import { openBookDb } from "./db.js"
 
@@ -12,10 +13,15 @@ export interface BookPaths {
 }
 
 export function resolveBookPaths(label: string, booksRoot: string): BookPaths {
-  const bookDir = path.resolve(booksRoot, label)
+  const safeLabel = validateLabel(label)
+  const resolvedRoot = path.resolve(booksRoot)
+  const bookDir = path.resolve(resolvedRoot, safeLabel)
+
+  ensureWithinRoot(bookDir, resolvedRoot)
+
   return {
     bookDir,
-    dbPath: path.join(bookDir, `${label}.db`),
+    dbPath: path.join(bookDir, `${safeLabel}.db`),
     imagesDir: path.join(bookDir, "images"),
   }
 }
@@ -29,6 +35,26 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
   const db = openBookDb(paths.dbPath)
 
   return {
+    clearExtractedData(): void {
+      db.exec("BEGIN IMMEDIATE")
+      try {
+        db.run("DELETE FROM images")
+        db.run("DELETE FROM pages")
+        db.exec("COMMIT")
+      } catch (err) {
+        db.exec("ROLLBACK")
+        throw err
+      }
+
+      const imageFiles = fs.readdirSync(paths.imagesDir)
+      for (const file of imageFiles) {
+        fs.rmSync(path.join(paths.imagesDir, file), {
+          recursive: true,
+          force: true,
+        })
+      }
+    },
+
     putPdfMetadata(data: PdfMetadata): void {
       db.run(
         `INSERT INTO pdf_metadata (id, data) VALUES (1, ?)
@@ -71,9 +97,16 @@ function writeImage(
   fs.writeFileSync(path.join(imagesDir, filename), image.pngBuffer)
 
   db.run(
-    `INSERT OR IGNORE INTO images
+    `INSERT INTO images
        (image_id, page_id, path, hash, width, height, source)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (image_id) DO UPDATE SET
+       page_id = excluded.page_id,
+       path = excluded.path,
+       hash = excluded.hash,
+       width = excluded.width,
+       height = excluded.height,
+       source = excluded.source`,
     [
       image.imageId,
       pageId,
@@ -84,4 +117,18 @@ function writeImage(
       source,
     ]
   )
+}
+
+function validateLabel(label: string): string {
+  const parsed = BookLabel.safeParse(label)
+  if (!parsed.success) {
+    throw new Error("Invalid book label: label must be filesystem-safe")
+  }
+  return parsed.data
+}
+
+function ensureWithinRoot(target: string, root: string): void {
+  if (target !== root && !target.startsWith(root + path.sep)) {
+    throw new Error("Resolved path escapes books root")
+  }
 }

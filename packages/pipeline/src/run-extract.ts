@@ -34,6 +34,7 @@ export async function runExtract(
       }
     )
 
+    storage.clearExtractedData()
     storage.putPdfMetadata(result.pdfMetadata)
 
     for (const page of result.pages) {

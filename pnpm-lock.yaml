@@ -51,6 +51,9 @@ importers:
       listr2:
         specifier: ^9.0.0
         version: 9.0.5
+      zod:
+        specifier: ^3.24.0
+        version: 3.25.76
 
   packages/storage:
     dependencies:

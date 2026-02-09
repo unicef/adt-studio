@@ -119,6 +119,8 @@ describe("createBookStorage", () => {
     expect(imageRows).toHaveLength(2)
     expect(imageRows[0].image_id).toBe("pg001_im001")
     expect(imageRows[1].image_id).toBe("pg001_page")
+    expect(imageRows[0].source).toBe("extract")
+    expect(imageRows[1].source).toBe("extract")
 
     // Verify PNG files on disk
     expect(
@@ -149,21 +151,67 @@ describe("createBookStorage", () => {
     storage.close()
   })
 
-  it("is idempotent for re-extraction", () => {
+  it("upserts image metadata for re-extraction", () => {
     const { storage, paths } = createTempStorage()
 
     const page = makePage(1)
     storage.putExtractedPage(page)
-    storage.putExtractedPage(page) // re-run
+    const updatedPage = {
+      ...page,
+      pageImage: {
+        ...page.pageImage,
+        hash: "updated-hash",
+        width: 999,
+        height: 888,
+      },
+    }
+    storage.putExtractedPage(updatedPage) // re-run
 
     const db = openBookDb(paths.dbPath)
     const pageRows = db.all("SELECT * FROM pages")
     expect(pageRows).toHaveLength(1) // ON CONFLICT updates
 
-    const imageRows = db.all("SELECT * FROM images")
-    expect(imageRows).toHaveLength(2) // INSERT OR IGNORE keeps originals
+    const imageRows = db.all(
+      "SELECT image_id, hash, width, height FROM images ORDER BY image_id"
+    ) as Array<{
+      image_id: string
+      hash: string
+      width: number
+      height: number
+    }>
+    expect(imageRows).toHaveLength(2) // upsert updates existing image metadata
+    expect(imageRows[1].image_id).toBe("pg001_page")
+    expect(imageRows[1].hash).toBe("updated-hash")
+    expect(imageRows[1].width).toBe(999)
+    expect(imageRows[1].height).toBe(888)
 
     db.close()
     storage.close()
+  })
+
+  it("clears pages and images for a fresh extraction run", () => {
+    const { storage, paths } = createTempStorage()
+
+    storage.putExtractedPage(makePage(1))
+    storage.putExtractedPage(makePage(2))
+    storage.clearExtractedData()
+
+    const db = openBookDb(paths.dbPath)
+    const pageRows = db.all("SELECT * FROM pages")
+    const imageRows = db.all("SELECT * FROM images")
+    expect(pageRows).toHaveLength(0)
+    expect(imageRows).toHaveLength(0)
+    expect(fs.readdirSync(paths.imagesDir)).toHaveLength(0)
+
+    db.close()
+    storage.close()
+  })
+
+  it("rejects unsafe labels", () => {
+    const booksRoot = makeTempDir()
+    dirs.push(booksRoot)
+    expect(() => createBookStorage("../escape", booksRoot)).toThrow(
+      "Invalid book label"
+    )
   })
 })

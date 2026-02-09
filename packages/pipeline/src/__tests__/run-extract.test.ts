@@ -99,6 +99,25 @@ describe("runExtract", () => {
         }
 
         db.close()
+
+        // Re-run with a smaller range; previous pages/images should be cleared first.
+        await runExtract(
+          { pdfPath: RAVEN_PDF, startPage: 1, endPage: 1 },
+          storage,
+          progress
+        )
+
+        const dbAfterRerun = openBookDb(paths.dbPath)
+        const pageRowsAfterRerun = dbAfterRerun.all(
+          "SELECT page_id FROM pages ORDER BY page_number"
+        ) as Array<{ page_id: string }>
+        expect(pageRowsAfterRerun).toEqual([{ page_id: "pg001" }])
+
+        const imagePageIds = dbAfterRerun.all(
+          "SELECT DISTINCT page_id FROM images ORDER BY page_id"
+        ) as Array<{ page_id: string }>
+        expect(imagePageIds).toEqual([{ page_id: "pg001" }])
+        dbAfterRerun.close()
       } finally {
         storage.close()
       }
