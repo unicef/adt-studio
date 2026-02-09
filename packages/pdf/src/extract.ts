@@ -121,14 +121,33 @@ function hashBuffer(buf: Buffer): string {
   return createHash("sha256").update(buf).digest("hex").slice(0, 16);
 }
 
+// Ref-counted stderr suppressor — safe for overlapping extractPdf() calls.
+let _origStderrWrite: typeof process.stderr.write | null = null;
+let _stderrSuppressCount = 0;
+
+function suppressStderr(): void {
+  if (_stderrSuppressCount++ === 0) {
+    _origStderrWrite = process.stderr.write;
+    process.stderr.write = ((_chunk: unknown, _enc?: unknown, cb?: unknown) => {
+      if (typeof cb === "function") cb(null);
+      return true;
+    }) as typeof process.stderr.write;
+  }
+}
+
+function restoreStderr(): void {
+  if (--_stderrSuppressCount === 0 && _origStderrWrite) {
+    process.stderr.write = _origStderrWrite;
+    _origStderrWrite = null;
+  }
+}
+
 function openPdfFromBuffer(buffer: Buffer): MupdfDocument {
-  // Suppress mupdf stderr warnings
-  const origWrite = process.stderr.write;
-  process.stderr.write = () => true;
+  suppressStderr();
   try {
     return mupdf.Document.openDocument(buffer, "application/pdf");
   } finally {
-    process.stderr.write = origWrite;
+    restoreStderr();
   }
 }
 
