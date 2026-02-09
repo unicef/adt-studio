@@ -37,6 +37,8 @@ These principles are non-negotiable and must guide every decision:
 
 5. **Minimize Dependencies**: If you can avoid adding a new dependency, do so. Flat files > database when sufficient. In-memory queues > external queue services.
 
+6. **Pure JS/TS Over Native**: Always prefer pure JavaScript/TypeScript or WASM-based libraries over native C/C++ bindings. Native bindings break cross-platform builds, complicate CI, and conflict with Tauri packaging. If a native binding is the only option, document why.
+
 ---
 
 ## Architecture Overview
@@ -261,76 +263,53 @@ app.use("*", cors({ origin: "*" }))  // DANGEROUS
 ### Component Structure
 
 ```typescript
-// Standard component template
-import { useState, useEffect, useCallback } from "react"
-import { useNavigate, useParams } from "react-router-dom"
+// Standard component template using TanStack
+import { useSuspenseQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useNavigate, useParams, Link } from "@tanstack/react-router"
 import { api } from "../api/client"
 import type { Job } from "@adt/types"
 
 interface ComponentNameProps {
-  initialData?: Job
   onSave?: (job: Job) => void
 }
 
-export default function ComponentName({ initialData, onSave }: ComponentNameProps) {
-  // 1. Hooks at the top
+export default function ComponentName({ onSave }: ComponentNameProps) {
+  // 1. Router hooks
   const navigate = useNavigate()
-  const { id } = useParams()
+  const { id } = useParams({ strict: false })
+  const queryClient = useQueryClient()
 
-  // 2. State declarations
-  const [data, setData] = useState<Job | null>(initialData ?? null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  // 2. Data fetching via TanStack Query
+  const { data } = useSuspenseQuery({
+    queryKey: ["job", id],
+    queryFn: () => api.getJob(id!),
+    enabled: !!id,
+  })
 
-  // 3. Effects
-  useEffect(() => {
-    if (id && !initialData) {
-      fetchData(id)
-    }
-  }, [id, initialData])
+  // 3. Mutations
+  const updateMutation = useMutation({
+    mutationFn: (job: Job) => api.updateJob(job.id, job),
+    onSuccess: (_, job) => {
+      queryClient.invalidateQueries({ queryKey: ["job", job.id] })
+      onSave?.(job)
+    },
+  })
 
-  // 4. Callbacks (memoized when passed to children)
-  const fetchData = useCallback(async (jobId: string) => {
-    try {
-      setLoading(true)
-      setError(null)
-      const result = await api.getJob(jobId)
-      setData(result)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch")
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  // 5. Event handlers
-  const handleSubmit = async (e: React.FormEvent) => {
+  // 4. Event handlers
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!data) return
-
-    try {
-      setLoading(true)
-      await api.updateJob(data.id, data)
-      onSave?.(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save")
-    } finally {
-      setLoading(false)
-    }
+    updateMutation.mutate(data)
   }
 
-  // 6. Early returns for loading/error states
-  if (loading && !data) {
-    return <div className="p-4">Loading...</div>
-  }
-
-  if (error) {
-    return <div className="p-4 text-red-600">{error}</div>
-  }
-
-  // 7. Main render
+  // 5. Main render (loading/error handled by TanStack Query + ErrorBoundary)
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      {updateMutation.error && (
+        <div className="p-4 text-red-700 bg-red-100 rounded-lg">
+          {updateMutation.error.message}
+        </div>
+      )}
       {/* Component JSX */}
     </form>
   )
@@ -340,43 +319,45 @@ export default function ComponentName({ initialData, onSave }: ComponentNameProp
 ### State Management Rules
 
 **DO**:
-- Use local `useState` for component-specific state
-- Use `useEffect` for data fetching with cleanup
-- Use polling for real-time updates (5-second intervals)
-- Implement optimistic updates for better UX
+- Use **TanStack Query** for all server state (fetching, caching, mutations)
+- Use local `useState` for UI-only state (modals, form inputs, toggles)
+- Use TanStack Query's `refetchInterval` for real-time polling
+- Use TanStack Query's optimistic updates via `onMutate`
 
 **DON'T**:
 - Add Redux, Zustand, or other state management libraries
 - Create global state stores
-- Share state between unrelated components via context
-- Use useReducer for simple state
+- Use raw `useEffect` for data fetching — use TanStack Query instead
+- Use `fetch()` directly — go through the API client + Query
 
 ```typescript
-// CORRECT: Polling pattern
-useEffect(() => {
-  const fetchJobs = async () => {
-    const jobs = await api.getJobs()
-    setJobs(jobs)
-  }
+// CORRECT: Polling with TanStack Query
+const { data: jobs } = useQuery({
+  queryKey: ["jobs"],
+  queryFn: () => api.getJobs(),
+  refetchInterval: 5000,  // Auto-poll every 5 seconds
+})
 
-  fetchJobs()
-  const interval = setInterval(fetchJobs, 5000)
+// CORRECT: Optimistic update with TanStack Query
+const queryClient = useQueryClient()
 
-  return () => clearInterval(interval)
-}, [])
-
-// CORRECT: Optimistic update
-const handleDelete = async (id: string) => {
-  const previousJobs = jobs
-  setJobs(prev => prev.filter(j => j.id !== id))  // Optimistic
-
-  try {
-    await api.deleteJob(id)
-  } catch (err) {
-    setJobs(previousJobs)  // Rollback on failure
-    setError(err.message)
-  }
-}
+const deleteMutation = useMutation({
+  mutationFn: (id: string) => api.deleteJob(id),
+  onMutate: async (id) => {
+    await queryClient.cancelQueries({ queryKey: ["jobs"] })
+    const previous = queryClient.getQueryData<Job[]>(["jobs"])
+    queryClient.setQueryData<Job[]>(["jobs"], (old) =>
+      old?.filter((j) => j.id !== id)
+    )
+    return { previous }
+  },
+  onError: (_err, _id, context) => {
+    queryClient.setQueryData(["jobs"], context?.previous)  // Rollback
+  },
+  onSettled: () => {
+    queryClient.invalidateQueries({ queryKey: ["jobs"] })
+  },
+})
 ```
 
 ### Styling with Tailwind
@@ -489,23 +470,71 @@ const handleAction = async () => {
 )}
 ```
 
-### Navigation
+### Navigation (TanStack Router)
 
 ```typescript
-// CORRECT: React Router navigation
-import { useNavigate, Link } from "react-router-dom"
+// CORRECT: TanStack Router navigation (type-safe)
+import { useNavigate, Link } from "@tanstack/react-router"
 
 function Component() {
   const navigate = useNavigate()
 
-  // Programmatic navigation
+  // Programmatic navigation (type-safe)
   const handleClick = () => {
-    navigate(`/jobs/${id}`)
+    navigate({ to: "/jobs/$id", params: { id } })
   }
 
-  // Declarative navigation
-  return <Link to={`/jobs/${id}`}>View Job</Link>
+  // Declarative navigation (type-safe)
+  return <Link to="/jobs/$id" params={{ id }}>View Job</Link>
 }
+```
+
+### Forms (TanStack Form)
+
+```typescript
+// CORRECT: TanStack Form with Zod validation
+import { useForm } from "@tanstack/react-form"
+import { zodValidator } from "@tanstack/zod-form-adapter"
+import { CreateJobSchema } from "@adt/types"
+
+function CreateJobForm() {
+  const form = useForm({
+    defaultValues: { name: "", pdfPath: "" },
+    validatorAdapter: zodValidator(),
+    validators: { onChange: CreateJobSchema },
+    onSubmit: async ({ value }) => {
+      await api.createJob(value)
+    },
+  })
+
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit() }}>
+      <form.Field name="name" children={(field) => (
+        <input
+          value={field.state.value}
+          onChange={(e) => field.handleChange(e.target.value)}
+          className="border rounded px-3 py-2"
+        />
+      )} />
+    </form>
+  )
+}
+```
+
+### Tables (TanStack Table)
+
+```typescript
+// CORRECT: TanStack Table — headless, bring your own UI
+import { useReactTable, getCoreRowModel, flexRender } from "@tanstack/react-table"
+
+const table = useReactTable({
+  data: jobs,
+  columns,
+  getCoreRowModel: getCoreRowModel(),
+  getSortedRowModel: getSortedRowModel(),
+  getFilteredRowModel: getFilteredRowModel(),
+  getPaginationRowModel: getPaginationRowModel(),
+})
 ```
 
 ---
@@ -575,13 +604,13 @@ jobs.push(newJob)
 await saveJobs(jobs)  // Could overwrite other changes
 ```
 
-### Database Operations (SQLite)
+### Database Operations (SQLite via WASM)
 
 ```typescript
-// Use better-sqlite3 with parameterized queries
-import Database from "better-sqlite3"
+// Use node-sqlite3-wasm — pure WASM, no native bindings
+import { DatabaseSync } from "node-sqlite3-wasm"
 
-const db = new Database(dbPath)
+const db = new DatabaseSync(dbPath)
 
 // CORRECT: Parameterized query
 const stmt = db.prepare(`
@@ -592,13 +621,20 @@ const stmt = db.prepare(`
 const versions = stmt.all(resourceType, resourceId)
 
 // CORRECT: Transactions for multiple operations
-const insertMany = db.transaction((items: Item[]) => {
+db.exec("BEGIN")
+try {
   const insert = db.prepare("INSERT INTO items (id, data) VALUES (?, ?)")
   for (const item of items) {
     insert.run(item.id, JSON.stringify(item.data))
   }
-})
-insertMany(items)
+  db.exec("COMMIT")
+} catch (err) {
+  db.exec("ROLLBACK")
+  throw err
+}
+
+// IMPORTANT: Always close the database when done to prevent memory leaks
+db.close()
 ```
 
 ### Pipeline Functions
@@ -1007,8 +1043,9 @@ Before adding ANY new dependency:
 - [ ] Used Tailwind utilities only (no custom CSS)
 - [ ] Error states handled and displayed
 - [ ] Loading states for async operations
-- [ ] API calls through `api/client.ts`
+- [ ] API calls through `api/client.ts` + TanStack Query
 - [ ] No new state management libraries
+- [ ] Pure JS/TS dependencies only — no native C/C++ bindings
 
 ### Documentation
 
@@ -1073,7 +1110,16 @@ import { createLLMClient, createCostTracker } from "@adt/llm"
 import { z } from "zod"
 
 // Routing (frontend)
-import { useNavigate, useParams, Link } from "react-router-dom"
+import { useNavigate, useParams, Link } from "@tanstack/react-router"
+
+// Data fetching (frontend)
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+
+// Forms (frontend)
+import { useForm } from "@tanstack/react-form"
+
+// Tables (frontend)
+import { useReactTable, getCoreRowModel } from "@tanstack/react-table"
 
 // HTTP errors (backend)
 import { HTTPException } from "hono/http-exception"
