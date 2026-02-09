@@ -235,34 +235,38 @@ async function extractRasterImages(
   const images: ExtractedImage[] = [];
   const { contentWithoutDefs, svgDefs, pageWidth, pageHeight } = svg;
 
-  // Find <image> elements
-  const imageRegex = /<image[^>]*\/?>/gi;
-  let match;
+  // Single-pass: scan all <g>, </g>, and <image> tags to build stack snapshots.
+  // This avoids re-parsing from the start for every <image> element (was O(N*M)).
+  interface ImageHit { elem: string; stack: string[]; }
+  const imageHits: ImageHit[] = [];
+  {
+    const tagRegex = /<(\/?)(g|image)([^>]*)\/?>/gi;
+    const stack: string[] = [];
+    let m;
+    while ((m = tagRegex.exec(contentWithoutDefs)) !== null) {
+      const isClose = m[1] === "/";
+      const tagName = m[2].toLowerCase();
+      if (tagName === "g") {
+        if (isClose) {
+          stack.pop();
+        } else {
+          stack.push(m[0]);
+        }
+      } else if (tagName === "image" && !isClose) {
+        imageHits.push({ elem: m[0], stack: [...stack] });
+      }
+    }
+  }
+
   let imgIndex = 0;
 
-  while ((match = imageRegex.exec(contentWithoutDefs)) !== null) {
-    const elem = match[0];
-
+  for (const { elem, stack } of imageHits) {
     // Get image dimensions
     const widthM = /\swidth="([^"]+)"/.exec(elem);
     const heightM = /\sheight="([^"]+)"/.exec(elem);
     if (!widthM || !heightM) continue;
     const imgW = parseFloat(widthM[1]);
     const imgH = parseFloat(heightM[1]);
-
-    // Find all enclosing <g> groups using a stack parser
-    const tagRegex = /<(\/?)g([^>]*)>/gi;
-    const stack: string[] = [];
-    let m;
-    tagRegex.lastIndex = 0;
-    while ((m = tagRegex.exec(contentWithoutDefs)) !== null) {
-      if (m.index >= match.index) break;
-      if (m[1] === "/") {
-        stack.pop();
-      } else {
-        stack.push(m[0]);
-      }
-    }
 
     // Compute bbox by applying transforms from innermost to outermost
     let bbox: BBox = [0, 0, imgW, imgH];
