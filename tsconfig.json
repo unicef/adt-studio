@@ -16,6 +16,10 @@
   },
   "exclude": ["adt-studio"],
   "references": [
-    { "path": "packages/pdf" }
+    { "path": "packages/types" },
+    { "path": "packages/pdf" },
+    { "path": "packages/llm" },
+    { "path": "packages/storage" },
+    { "path": "packages/pipeline" }
   ]
 }

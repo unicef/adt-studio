@@ -1,0 +1,15 @@
+{
+  "name": "@adt/storage",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "dependencies": {
+    "@adt/pdf": "workspace:*",
+    "@adt/types": "workspace:*",
+    "node-sqlite3-wasm": "^0.8.0"
+  }
+}

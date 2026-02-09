@@ -5,6 +5,9 @@ node_modules/
 dist/
 .output/
 *.tsbuildinfo
+books/
+.cache/
+.DS_Store
 
 # Reference project
 adt-studio/

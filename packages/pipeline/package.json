@@ -1,0 +1,22 @@
+{
+  "name": "@adt/pipeline",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "bin": {
+    "pipeline": "./dist/cli.js"
+  },
+  "dependencies": {
+    "@adt/pdf": "workspace:*",
+    "@adt/types": "workspace:*",
+    "@adt/storage": "workspace:*",
+    "@adt/llm": "workspace:*",
+    "js-yaml": "^4.1.0",
+    "listr2": "^9.0.0",
+    "zod": "^3.24.0"
+  }
+}

@@ -1,0 +1,38 @@
+text_types:
+  book_title: Main title of the book
+  book_subtitle: Subtitle of the book
+  book_author: Author name(s)
+  book_metadata: Publisher, copyright, ISBN, edition info
+  section_heading: Chapter or section headings
+  section_text: Main body/narrative text
+  instruction_text: Instructions for activities or exercises
+  activity_number: Numbering for activities/exercises (e.g., "1.", "A)")
+  activity_title: Title of an activity or exercise
+  activity_option: Multiple choice or selectable options
+  activity_input_placeholder_text: Placeholder text in input fields
+  fill_in_the_blank: Text with blanks to fill in (use ___ for blanks)
+  image_associated_text: Captions, labels, or descriptions tied to images
+  image_overlay: Text overlaid directly on images
+  math: Mathematical expressions (use LaTeX notation)
+  standalone_text: Text that doesn't fit other categories
+  header_text: Running headers
+  footer_text: Running footers
+  page_number: Page numbers
+  other: Any text not covered above
+
+text_group_types:
+  heading: A heading or title block
+  paragraph: A block of continuous prose
+  stanza: A verse or stanza of poetry
+  list: A list of items (ordered or unordered)
+  other: Anything that doesn't fit the above
+
+text_classification:
+  prompt: text_classification
+  model: openai:gpt-4o
+  concurrency: 5
+
+pruned_text_types:
+  - header_text
+  - footer_text
+  - page_number
