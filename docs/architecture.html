@@ -434,7 +434,7 @@
       <div class="arch-boxes">
         <div class="arch-box">
           apps/studio
-          <div class="tooltip">React SPA via Vite<br>Tailwind CSS, React Router<br>Communicates via HTTP only</div>
+          <div class="tooltip">React SPA via Vite<br>TanStack (Router, Query, Table, Form)<br>Tailwind CSS — HTTP only</div>
         </div>
         <div class="arch-box">
           apps/desktop
@@ -627,16 +627,23 @@
         <span class="lib-name">React + Vite</span>
         <span class="lib-category">Frontend</span>
       </div>
-      <div class="lib-why">SPA with lightning-fast dev server</div>
+      <div class="lib-why">SPA with lightning-fast dev server — desktop-first, no SSR needed</div>
       <div class="lib-over"><strong>Over:</strong> Next.js, Create React App</div>
       <div class="lib-details">
+        <strong style="color: var(--text); display: block; margin-bottom: 0.5rem;">Why NOT Next.js:</strong>
         <ul>
-          <li>SPA-only needed — no SSR/SSG, making Next.js overkill</li>
-          <li>Vite provides near-instant HMR via native ES modules</li>
-          <li>Simpler for desktop embedding in Tauri webview</li>
-          <li>Smaller bundle than Next.js runtime</li>
+          <li>ADT Studio is a <strong>desktop app in Tauri</strong> — Tauri serves static files from disk, not from a Node.js server</li>
+          <li>Next.js brings SSR, server components, API routes — none apply to a local desktop SPA</li>
+          <li>Next.js output (<code>.next/</code>) expects a Node.js runtime to serve it; Vite outputs a static <code>dist/</code></li>
+          <li>Next.js in a monorepo requires <code>transpilePackages</code>, <code>serverComponentsExternalPackages</code> config</li>
+          <li>No SEO needed (desktop app), no initial page load from remote server</li>
+        </ul>
+        <strong style="color: var(--text); display: block; margin: 0.5rem 0;">Why Vite:</strong>
+        <ul>
+          <li>Near-instant HMR via native ES modules</li>
+          <li>Simple config, minimal build output</li>
           <li>First-class TypeScript and JSX support</li>
-          <li>Easy to configure for monorepo with workspace packages</li>
+          <li>Easy monorepo setup with workspace packages</li>
         </ul>
       </div>
     </div>
@@ -719,37 +726,41 @@
 
     <div class="lib-card" onclick="this.classList.toggle('expanded')">
       <div class="lib-header">
-        <span class="lib-name">better-sqlite3</span>
+        <span class="lib-name">node-sqlite3-wasm</span>
         <span class="lib-category">Database</span>
       </div>
-      <div class="lib-why">Embedded, synchronous SQLite for desktop apps</div>
-      <div class="lib-over"><strong>Over:</strong> Prisma, TypeORM, Drizzle</div>
+      <div class="lib-why">Pure WASM SQLite — no native compilation, cross-platform</div>
+      <div class="lib-over"><strong>Over:</strong> better-sqlite3, sql.js, Prisma</div>
       <div class="lib-details">
         <ul>
-          <li>Synchronous API — simpler code, no async overhead</li>
-          <li>Embedded — no separate database server needed</li>
+          <li>Pure WASM — no <code>node-gyp</code>, no C++ compiler, no platform-specific binaries</li>
+          <li>File system persistence via Node.js VFS (unlike sql.js which is in-memory only)</li>
+          <li>Synchronous API — same DX as better-sqlite3</li>
+          <li>Based on SQLite 3.51.1 — current and maintained</li>
+          <li>Cross-platform by default — works on any OS without recompilation</li>
           <li>File-based = portable (lives inside book directory)</li>
-          <li>Perfect for desktop apps with local data</li>
-          <li>Direct SQL control — no ORM abstraction overhead</li>
-          <li>Aligns with "minimize dependencies" and "book-level storage"</li>
+          <li>Aligns with "pure JS/TS over native" and "book-level storage" principles</li>
         </ul>
       </div>
     </div>
 
     <div class="lib-card" onclick="this.classList.toggle('expanded')">
       <div class="lib-header">
-        <span class="lib-name">React Router</span>
-        <span class="lib-category">Routing</span>
+        <span class="lib-name">TanStack (Full Ecosystem)</span>
+        <span class="lib-category">Frontend Core</span>
       </div>
-      <div class="lib-why">Mature, well-documented SPA routing</div>
-      <div class="lib-over"><strong>Over:</strong> TanStack Router</div>
+      <div class="lib-why">Unified, type-safe ecosystem: Router + Query + Table + Form</div>
+      <div class="lib-over"><strong>Over:</strong> React Router, SWR, react-hook-form, react-table</div>
       <div class="lib-details">
+        <strong style="color: var(--text);">Router</strong> — Type-safe routes, search params as state, integrated loaders. React Router v7 only has type safety in framework mode, not SPA mode.<br><br>
+        <strong style="color: var(--text);">Query</strong> — Caching, stale-while-revalidate, auto-refetch, mutations with optimistic updates. Replaces manual useEffect + polling patterns.<br><br>
+        <strong style="color: var(--text);">Table</strong> — Headless sorting, filtering, pagination, virtualization. We provide Tailwind-styled UI.<br><br>
+        <strong style="color: var(--text);">Form</strong> — Type-safe forms with native Zod adapter. Same schemas used at API boundary validate forms at the UI layer.<br><br>
         <ul>
-          <li>Mature ecosystem with extensive documentation</li>
-          <li>Simpler API for SPA routing use cases</li>
-          <li>Large community — easy to find solutions</li>
-          <li>useNavigate, useParams, Link — clean ergonomics</li>
-          <li>Nested routes and layouts support</li>
+          <li>One team, one philosophy — libraries designed to work together</li>
+          <li>Type safety flows from Router → Query → Table → Form</li>
+          <li>No glue code between different library paradigms</li>
+          <li>Millions of weekly downloads, actively maintained by Tanner Linsley</li>
         </ul>
       </div>
     </div>
@@ -776,7 +787,7 @@
 
 <!-- ==================== PRINCIPLES ==================== -->
 <div id="principles" class="tab-content">
-  <h2 style="margin-bottom: 1.5rem;">5 Core Design Principles</h2>
+  <h2 style="margin-bottom: 1.5rem;">6 Core Design Principles</h2>
   <p style="color: var(--text-muted); margin-bottom: 1.5rem;">These are non-negotiable and must guide every architectural decision.</p>
 
   <div class="principles-grid">
@@ -809,6 +820,12 @@
       <div class="p-icon">🪶</div>
       <div class="p-title">Minimize Dependencies</div>
       <div class="p-desc">Avoid new deps when possible. Flat files over databases when sufficient. In-memory queues over external services. Keep it simple.</div>
+    </div>
+
+    <div class="principle-card">
+      <div class="p-icon">🧩</div>
+      <div class="p-title">Pure JS/TS Over Native</div>
+      <div class="p-desc">Always prefer pure JS/WASM libraries over native C/C++ bindings. No node-gyp, no platform-specific builds. Cross-platform by default.</div>
     </div>
 
   </div>
