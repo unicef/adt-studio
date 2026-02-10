@@ -11,16 +11,6 @@ CREATE TABLE IF NOT EXISTS schema_version (
   version INTEGER NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS book_metadata (
-  source TEXT PRIMARY KEY CHECK (source IN ('stub', 'llm')),
-  data TEXT NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS pdf_metadata (
-  id INTEGER PRIMARY KEY CHECK (id = 1),
-  data TEXT NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS pages (
   page_id TEXT PRIMARY KEY,
   page_number INTEGER NOT NULL,

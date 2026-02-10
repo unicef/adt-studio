@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { ImageFilters } from "./image-classification.js"
 
 export const StepConfig = z.object({
   prompt: z.string().optional(),
@@ -12,6 +13,8 @@ export const AppConfig = z.object({
   text_group_types: z.record(z.string(), z.string()),
   pruned_text_types: z.array(z.string()).optional(),
   text_classification: StepConfig.optional(),
+  metadata: StepConfig.optional(),
+  image_filters: ImageFilters.optional(),
 })
 export type AppConfig = z.infer<typeof AppConfig>
 

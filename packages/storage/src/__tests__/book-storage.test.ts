@@ -3,7 +3,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { openBookDb } from "../db.js"
-import type { ExtractedPage, PdfMetadata } from "@adt/pdf"
+import type { ExtractedPage } from "@adt/pdf"
 import { createBookStorage, resolveBookPaths } from "../book-storage.js"
 
 function makeTempDir(): string {
@@ -70,25 +70,21 @@ describe("createBookStorage", () => {
     storage.close()
   })
 
-  it("stores and retrieves pdf metadata", () => {
-    const { storage, paths } = createTempStorage()
+  it("stores metadata via putNodeData", () => {
+    const { storage } = createTempStorage()
 
-    const metadata: PdfMetadata = {
+    const metadata = {
       title: "Test Book",
       author: "Test Author",
       format: "PDF 1.5",
     }
 
-    storage.putPdfMetadata(metadata)
+    const version = storage.putNodeData("metadata", "book", metadata)
+    expect(version).toBe(1)
 
-    // Verify by reading DB directly
-    const db = openBookDb(paths.dbPath)
-    const rows = db.all("SELECT data FROM pdf_metadata WHERE id = 1") as Array<{
-      data: string
-    }>
-    expect(rows).toHaveLength(1)
-    expect(JSON.parse(rows[0].data)).toEqual(metadata)
-    db.close()
+    const latest = storage.getLatestNodeData("metadata", "book")
+    expect(latest).not.toBeNull()
+    expect(latest!.data).toEqual(metadata)
 
     storage.close()
   })
@@ -190,18 +186,22 @@ describe("createBookStorage", () => {
     storage.close()
   })
 
-  it("clears pages and images for a fresh extraction run", () => {
+  it("clears pages, images, and node_data for a fresh extraction run", () => {
     const { storage, paths } = createTempStorage()
 
     storage.putExtractedPage(makePage(1))
     storage.putExtractedPage(makePage(2))
+    storage.putNodeData("metadata", "book", { title: "Test" })
+    storage.putNodeData("text-classification", "pg001", { reasoning: "test" })
     storage.clearExtractedData()
 
     const db = openBookDb(paths.dbPath)
     const pageRows = db.all("SELECT * FROM pages")
     const imageRows = db.all("SELECT * FROM images")
+    const nodeRows = db.all("SELECT * FROM node_data")
     expect(pageRows).toHaveLength(0)
     expect(imageRows).toHaveLength(0)
+    expect(nodeRows).toHaveLength(0)
     expect(fs.readdirSync(paths.imagesDir)).toHaveLength(0)
 
     db.close()

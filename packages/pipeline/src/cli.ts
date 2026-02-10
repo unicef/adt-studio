@@ -8,9 +8,13 @@ import type { Storage } from "@adt/storage"
 import type { ExtractResult } from "@adt/pdf"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
 import { parseCliArgs, USAGE } from "./cli-args.js"
-import { runExtract } from "./run-extract.js"
-import { classifyPage, buildClassifyConfig } from "./run-classify.js"
+import { extractPDF } from "./pdf-extraction.js"
+import { extractMetadata, buildMetadataConfig } from "./metadata-extraction.js"
+import { classifyPageText, buildClassifyConfig } from "./text-classification.js"
+import { classifyPageImages, buildImageClassifyConfig } from "./image-classification.js"
 import { loadBookConfig } from "./config.js"
+
+const DEFAULT_METADATA_PAGES = 3
 
 interface PipelineContext {
   storage?: Storage
@@ -42,7 +46,7 @@ async function main(): Promise<void> {
           activeStorage = createBookStorage(label, booksRoot)
           ctx.storage = activeStorage
 
-          ctx.result = await runExtract(
+          ctx.result = await extractPDF(
             { pdfPath, startPage, endPage },
             ctx.storage,
             {
@@ -63,56 +67,114 @@ async function main(): Promise<void> {
         rendererOptions: { persistentOutput: false },
       },
       {
-        title: "Classify Text",
+        title: "Extract Metadata",
+        task: async (ctx) => {
+          const storage = ctx.storage!
+          const config = loadBookConfig(label, booksRoot)
+          const metadataConfig = buildMetadataConfig(config)
+
+          const cacheDir = path.join(booksRoot, label, ".cache")
+
+          const promptsDir = path.resolve(process.cwd(), "prompts")
+          const promptEngine = createPromptEngine(promptsDir)
+
+          const llmModel = createLLMModel({
+            modelId: metadataConfig.modelId,
+            cacheDir,
+            promptEngine,
+            onLog: (entry) => storage.appendLlmLog(entry),
+          })
+
+          const pages = storage.getPages()
+          const metadataPages = pages.slice(0, DEFAULT_METADATA_PAGES)
+
+          const pageInputs = metadataPages.map((page) => ({
+            pageNumber: page.pageNumber,
+            text: page.text,
+            imageBase64: storage.getPageImageBase64(page.pageId),
+          }))
+
+          const result = await extractMetadata(
+            pageInputs,
+            metadataConfig,
+            llmModel
+          )
+
+          storage.putNodeData("metadata", "book", result)
+        },
+        rendererOptions: { persistentOutput: false },
+      },
+      {
+        title: "Classify Pages",
         task: async (ctx, task) => {
           const storage = ctx.storage!
 
           const config = loadBookConfig(label, booksRoot)
-          const classifyConfig = buildClassifyConfig(config)
-
-          const modelId =
-            config.text_classification?.model ?? "openai:gpt-4o"
-
+          const textClassifyConfig = buildClassifyConfig(config)
+          const imageClassifyConfig = buildImageClassifyConfig(config)
           const cacheDir = path.join(booksRoot, label, ".cache")
-          const llmModel = createLLMModel({
-            modelId,
-            cacheDir,
-            onLog: (entry) => storage.appendLlmLog(entry),
-          })
-
           const promptsDir = path.resolve(process.cwd(), "prompts")
           const promptEngine = createPromptEngine(promptsDir)
+          const llmModel = createLLMModel({
+            modelId: textClassifyConfig.modelId,
+            cacheDir,
+            promptEngine,
+            onLog: (entry) => storage.appendLlmLog(entry),
+          })
 
           const pages = storage.getPages()
           const effectiveConcurrency =
             concurrency ?? config.text_classification?.concurrency ?? 5
 
-          let completed = 0
-
           return task.newListr(
             pages.map((page) => ({
               title: `Page ${page.pageNumber}`,
-              task: async () => {
+              task: (_, pageTask) => {
                 const imageBase64 = storage.getPageImageBase64(page.pageId)
-                const result = await classifyPage(
-                  {
-                    pageId: page.pageId,
-                    pageNumber: page.pageNumber,
-                    text: page.text,
-                    imageBase64,
-                  },
-                  classifyConfig,
-                  llmModel,
-                  promptEngine
+                const images = storage.getPageImages(page.pageId)
+
+                return pageTask.newListr(
+                  [
+                    {
+                      title: "Classify Text",
+                      task: async () => {
+                        const result = await classifyPageText(
+                          {
+                            pageId: page.pageId,
+                            pageNumber: page.pageNumber,
+                            text: page.text,
+                            imageBase64,
+                          },
+                          textClassifyConfig,
+                          llmModel
+                        )
+                        storage.putNodeData(
+                          "text-classification",
+                          page.pageId,
+                          result
+                        )
+                      },
+                    },
+                    {
+                      title: "Classify Images",
+                      task: () => {
+                        const result = classifyPageImages(
+                          page.pageId,
+                          images,
+                          imageClassifyConfig
+                        )
+                        storage.putNodeData(
+                          "image-classification",
+                          page.pageId,
+                          result
+                        )
+                      },
+                    },
+                  ],
+                  { concurrent: true }
                 )
-                storage.putNodeData(
-                  "text-classification",
-                  page.pageId,
-                  result
-                )
-                completed++
-                task.title = `Classify Text [${completed}/${pages.length}]`
               },
+              exitOnError: false,
             })),
             { concurrent: effectiveConcurrency }
           )

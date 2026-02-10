@@ -3,11 +3,22 @@ export {
   nullProgress,
   createConsoleProgress,
 } from "./progress.js"
-export { runExtract, type ExtractOptions } from "./run-extract.js"
+export { extractPDF, type ExtractOptions } from "./pdf-extraction.js"
 export {
-  classifyPage,
+  classifyPageText,
   buildClassifyConfig,
   type ClassifyConfig,
   type PageInput,
-} from "./run-classify.js"
+} from "./text-classification.js"
+export {
+  classifyPageImages,
+  buildImageClassifyConfig,
+  type ImageClassifyConfig,
+} from "./image-classification.js"
+export {
+  extractMetadata,
+  buildMetadataConfig,
+  type MetadataConfig,
+  type MetadataPageInput,
+} from "./metadata-extraction.js"
 export { loadConfig, loadBookConfig, deepMerge } from "./config.js"

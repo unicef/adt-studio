@@ -4,13 +4,14 @@ import {
   type TypeDef,
   type AppConfig,
 } from "@adt/types"
-import type { LLMModel, PromptEngine } from "@adt/llm"
+import type { LLMModel } from "@adt/llm"
 
 export interface ClassifyConfig {
   textTypes: TypeDef[]
   textGroupTypes: TypeDef[]
   prunedTextTypes: string[]
   promptName: string
+  modelId: string
 }
 
 export interface PageInput {
@@ -24,11 +25,10 @@ export interface PageInput {
  * Classify text on a single page. Pure function — no side effects.
  * The caller handles concurrency, storage writes, and progress.
  */
-export async function classifyPage(
+export async function classifyPageText(
   page: PageInput,
   config: ClassifyConfig,
-  llmModel: LLMModel,
-  promptEngine: PromptEngine
+  llmModel: LLMModel
 ): Promise<TextClassificationOutput> {
   const textTypeKeys = config.textTypes.map((t) => t.key)
   const groupTypeKeys = config.textGroupTypes.map((t) => t.key)
@@ -45,23 +45,6 @@ export async function classifyPage(
     groupTypeKeys as [string, ...string[]]
   )
 
-  const promptContext = {
-    page: {
-      pageNumber: page.pageNumber,
-      text: page.text,
-      imageBase64: page.imageBase64,
-    },
-    text_types: config.textTypes,
-    text_group_types: config.textGroupTypes,
-  }
-
-  const allMessages = await promptEngine.renderPrompt(config.promptName, promptContext)
-
-  // Extract system message to pass separately (AI SDK expects it as a top-level field)
-  const systemMsg = allMessages.find((m) => m.role === "system")
-  const system = typeof systemMsg?.content === "string" ? systemMsg.content : undefined
-  const messages = allMessages.filter((m) => m.role !== "system")
-
   const result = await llmModel.generateObject<{
     reasoning: string
     groups: Array<{
@@ -70,8 +53,18 @@ export async function classifyPage(
     }>
   }>({
     schema,
-    system,
-    messages,
+    prompt: {
+      name: config.promptName,
+      context: {
+        page: {
+          pageNumber: page.pageNumber,
+          text: page.text,
+          imageBase64: page.imageBase64,
+        },
+        text_types: config.textTypes,
+        text_group_types: config.textGroupTypes,
+      },
+    },
     maxRetries: 2,
     maxTokens: 16384,
     log: {
@@ -115,5 +108,6 @@ export function buildClassifyConfig(appConfig: AppConfig): ClassifyConfig {
     textGroupTypes,
     prunedTextTypes: appConfig.pruned_text_types ?? [],
     promptName: appConfig.text_classification?.prompt ?? "text_classification",
+    modelId: appConfig.text_classification?.model ?? "openai:gpt-4o",
   }
 }

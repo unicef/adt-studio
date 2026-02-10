@@ -2,9 +2,9 @@ import { describe, it, expect, afterEach } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import type { ProgressEvent } from "@adt/types"
+import { BookMetadata, type ProgressEvent } from "@adt/types"
 import { createBookStorage, resolveBookPaths, openBookDb } from "@adt/storage"
-import { runExtract } from "../run-extract.js"
+import { extractPDF } from "../pdf-extraction.js"
 import type { Progress } from "../progress.js"
 
 const RAVEN_PDF = path.resolve(
@@ -32,7 +32,7 @@ function collectingProgress(): { progress: Progress; events: ProgressEvent[] } {
   }
 }
 
-describe("runExtract", () => {
+describe("extractPDF", () => {
   it(
     "extracts pages from raven.pdf and writes to storage",
     { timeout: 60_000 },
@@ -47,7 +47,7 @@ describe("runExtract", () => {
       const { progress, events } = collectingProgress()
 
       try {
-        const result = await runExtract(
+        const result = await extractPDF(
           { pdfPath: RAVEN_PDF, startPage: 1, endPage: 3 },
           storage,
           progress
@@ -83,11 +83,13 @@ describe("runExtract", () => {
         // Each page has a page image + extracted images
         expect(imageRows.length).toBeGreaterThanOrEqual(3)
 
-        // Verify PDF metadata stored
-        const metaRows = db.all("SELECT data FROM pdf_metadata") as Array<{
-          data: string
-        }>
+        // Verify PDF metadata stored in node_data
+        const metaRows = db.all(
+          "SELECT data FROM node_data WHERE node = 'metadata' AND item_id = 'book'"
+        ) as Array<{ data: string }>
         expect(metaRows).toHaveLength(1)
+        const metadata = BookMetadata.parse(JSON.parse(metaRows[0].data))
+        expect(metadata.reasoning).toBe("Extracted from embedded PDF metadata.")
 
         // Verify image files exist on disk
         for (const row of imageRows) {
@@ -101,7 +103,7 @@ describe("runExtract", () => {
         db.close()
 
         // Re-run with a smaller range; previous pages/images should be cleared first.
-        await runExtract(
+        await extractPDF(
           { pdfPath: RAVEN_PDF, startPage: 1, endPage: 1 },
           storage,
           progress

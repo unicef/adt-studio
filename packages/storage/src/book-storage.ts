@@ -1,9 +1,9 @@
 import fs from "node:fs"
 import path from "node:path"
 import type sqlite from "node-sqlite3-wasm"
-import type { ExtractedPage, ExtractedImage, PdfMetadata } from "@adt/pdf"
+import type { ExtractedPage, ExtractedImage } from "@adt/pdf"
 import { parseBookLabel } from "@adt/types"
-import type { Storage, PageData, NodeDataRow } from "./storage.js"
+import type { Storage, PageData, ImageData, NodeDataRow } from "./storage.js"
 import { openBookDb } from "./db.js"
 
 export interface BookPaths {
@@ -38,14 +38,6 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
     clearExtractedData(): void {
       clearImageFiles(paths.imagesDir)
       clearExtractedRows(db)
-    },
-
-    putPdfMetadata(data: PdfMetadata): void {
-      db.run(
-        `INSERT INTO pdf_metadata (id, data) VALUES (1, ?)
-         ON CONFLICT (id) DO UPDATE SET data = excluded.data`,
-        [JSON.stringify(data)]
-      )
     },
 
     putExtractedPage(page: ExtractedPage): void {
@@ -87,6 +79,18 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       const filePath = path.resolve(paths.bookDir, rows[0].path)
       ensureWithinRoot(filePath, paths.bookDir)
       return fs.readFileSync(filePath).toString("base64")
+    },
+
+    getPageImages(pageId: string): ImageData[] {
+      const rows = db.all(
+        "SELECT image_id, width, height FROM images WHERE page_id = ? ORDER BY image_id",
+        [pageId]
+      ) as Array<{ image_id: string; width: number; height: number }>
+      return rows.map((r) => ({
+        imageId: r.image_id,
+        width: r.width,
+        height: r.height,
+      }))
     },
 
     putNodeData(node: string, itemId: string, data: unknown): number {
@@ -140,6 +144,7 @@ function clearImageFiles(imagesDir: string): void {
 function clearExtractedRows(db: sqlite.Database): void {
   db.exec("BEGIN IMMEDIATE")
   try {
+    db.run("DELETE FROM node_data")
     db.run("DELETE FROM images")
     db.run("DELETE FROM pages")
     db.exec("COMMIT")

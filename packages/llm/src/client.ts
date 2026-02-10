@@ -7,12 +7,14 @@ import type {
   Message,
   TokenUsage,
 } from "./types.js"
+import type { PromptEngine } from "./prompt.js"
 import { computeHash, readCache, writeCache, bustCache } from "./cache.js"
 import { sanitizeMessages, type LlmLogEntry } from "./log.js"
 
 export interface CreateLLMModelOptions {
   modelId: string // "openai:gpt-4o" format
   cacheDir?: string
+  promptEngine?: PromptEngine
   onLog?: (entry: LlmLogEntry) => void
 }
 
@@ -23,19 +25,40 @@ export interface CreateLLMModelOptions {
  * - Disk-based response caching (SHA-256 hash of inputs)
  * - Validation with retry loops
  * - Structured logging (images replaced with hash placeholders)
+ * - Optional prompt rendering (pass promptEngine + use prompt option)
  */
 export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
-  const { modelId, cacheDir, onLog } = options
+  const { modelId, cacheDir, promptEngine, onLog } = options
   const languageModel = resolveModel(modelId)
 
   return {
     async generateObject<T>(
       opts: GenerateObjectOptions
     ): Promise<GenerateObjectResult<T>> {
+      // Resolve prompt to system + messages if needed
+      let system = opts.system
+      let messages = opts.messages ?? []
+
+      if (opts.prompt) {
+        if (!promptEngine) {
+          throw new Error("promptEngine required when using prompt option")
+        }
+        const allMessages = await promptEngine.renderPrompt(
+          opts.prompt.name,
+          opts.prompt.context
+        )
+        const systemMsg = allMessages.find((m) => m.role === "system")
+        system =
+          typeof systemMsg?.content === "string"
+            ? systemMsg.content
+            : undefined
+        messages = allMessages.filter((m) => m.role !== "system")
+      }
+
       const maxRetries = opts.maxRetries ?? 0
       const t0 = Date.now()
 
-      let currentMessages = opts.messages
+      let currentMessages = messages
       let allErrors: string[] = []
       let lastCacheHit = false
       let totalUsage: TokenUsage = { inputTokens: 0, outputTokens: 0 }
@@ -43,7 +66,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         const hash = computeHash({
           modelId,
-          system: opts.system,
+          system,
           messages: currentMessages,
           schema: opts.schema,
         })
@@ -61,6 +84,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
               const generated = await callLLM<T>(
                 languageModel,
                 opts,
+                system,
                 currentMessages
               )
               result = generated.object
@@ -73,6 +97,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
             const generated = await callLLM<T>(
               languageModel,
               opts,
+              system,
               currentMessages
             )
             result = generated.object
@@ -112,7 +137,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
                   ? totalUsage
                   : undefined,
               validationErrors: allErrors.length > 0 ? allErrors : undefined,
-              system: opts.system,
+              system,
               messages: sanitizeMessages(currentMessages),
             })
           }
@@ -143,7 +168,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
                     ? totalUsage
                     : undefined,
                 validationErrors: allErrors,
-                system: opts.system,
+                system,
                 messages: sanitizeMessages(currentMessages),
               })
             }
@@ -175,13 +200,14 @@ function resolveModel(modelId: string): LanguageModel {
 async function callLLM<T>(
   model: LanguageModel,
   opts: GenerateObjectOptions,
+  system: string | undefined,
   messages: Message[]
 ): Promise<{ object: T; usage: TokenUsage }> {
   const coreMessages = convertMessages(messages)
   const generateOpts: Record<string, unknown> = {
     model,
     schema: opts.schema,
-    system: opts.system,
+    system,
     messages: coreMessages,
   }
   if (opts.maxTokens) {

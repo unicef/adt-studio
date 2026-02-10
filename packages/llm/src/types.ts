@@ -4,8 +4,12 @@ export interface LLMModel {
 
 export interface GenerateObjectOptions {
   schema: unknown
+
+  /** Provide either prompt (rendered via prompt engine) or system + messages directly */
+  prompt?: { name: string; context: Record<string, unknown> }
   system?: string
-  messages: Message[]
+  messages?: Message[]
+
   validate?: (result: unknown) => ValidationResult
   maxRetries?: number
   maxTokens?: number

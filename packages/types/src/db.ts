@@ -1,12 +1,9 @@
 import { z } from "zod"
 
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 
 export const ImageSource = z.enum(["page", "extract", "crop"])
 export type ImageSource = z.infer<typeof ImageSource>
-
-export const MetadataSource = z.enum(["stub", "llm"])
-export type MetadataSource = z.infer<typeof MetadataSource>
 
 export const PageRow = z.object({
   page_id: z.string(),

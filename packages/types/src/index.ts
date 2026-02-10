@@ -1,7 +1,6 @@
 export {
   SCHEMA_VERSION,
   ImageSource,
-  MetadataSource,
   PageRow,
   ImageRow,
 } from "./db.js"
@@ -22,3 +21,11 @@ export {
   TextClassificationOutput,
   buildTextClassificationLLMSchema,
 } from "./text-classification.js"
+
+export {
+  ImageFilters,
+  ImageClassificationResult,
+  ImageClassificationOutput,
+} from "./image-classification.js"
+
+export { BookMetadata } from "./metadata.js"

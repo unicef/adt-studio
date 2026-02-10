@@ -74,7 +74,7 @@ describe("openBookDb", () => {
     raw.close()
   })
 
-  it("throws when migrated legacy schema version does not match", () => {
+  it("throws when schema version does not match", () => {
     const dbPath = makeDbPath("mismatch.db")
     const legacyDb = new sqlite.Database(dbPath)
     legacyDb.run("CREATE TABLE schema_version (version INTEGER NOT NULL)")
