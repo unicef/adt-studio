@@ -81,6 +81,19 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       return fs.readFileSync(filePath).toString("base64")
     },
 
+    getImageBase64(imageId: string): string {
+      const rows = db.all(
+        "SELECT path FROM images WHERE image_id = ?",
+        [imageId]
+      ) as Array<{ path: string }>
+      if (rows.length === 0) {
+        throw new Error(`No image found for ${imageId}`)
+      }
+      const filePath = path.resolve(paths.bookDir, rows[0].path)
+      ensureWithinRoot(filePath, paths.bookDir)
+      return fs.readFileSync(filePath).toString("base64")
+    },
+
     getPageImages(pageId: string): ImageData[] {
       const rows = db.all(
         "SELECT image_id, width, height FROM images WHERE page_id = ? ORDER BY image_id",
@@ -118,10 +131,10 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       }
     },
 
-    appendLlmLog(entry: unknown): void {
+    appendLlmLog(step: string, itemId: string, entry: unknown): void {
       db.run(
-        "INSERT INTO llm_log (timestamp, data) VALUES (?, ?)",
-        [new Date().toISOString(), JSON.stringify(entry)]
+        "INSERT INTO llm_log (timestamp, step, item_id, data) VALUES (?, ?, ?, ?)",
+        [new Date().toISOString(), step, itemId, JSON.stringify(entry)]
       )
     },
 

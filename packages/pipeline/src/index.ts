@@ -21,4 +21,22 @@ export {
   type MetadataConfig,
   type MetadataPageInput,
 } from "./metadata-extraction.js"
+export {
+  sectionPage,
+  buildSectioningConfig,
+  buildGroupSummaries,
+  type SectioningConfig,
+  type SectionPageInput,
+} from "./page-sectioning.js"
+export {
+  renderPage,
+  renderSection,
+  buildRenderConfig,
+  type RenderConfig,
+  type RenderPageInput,
+  type RenderSectionInput,
+  type TextInput,
+  type ImageInput,
+} from "./web-rendering.js"
+export { validateSectionHtml } from "./validate-html.js"
 export { loadConfig, loadBookConfig, deepMerge } from "./config.js"

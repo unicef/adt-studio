@@ -23,12 +23,13 @@ export interface Storage {
 
   getPages(): PageData[]
   getPageImageBase64(pageId: string): string
+  getImageBase64(imageId: string): string
   getPageImages(pageId: string): ImageData[]
 
   putNodeData(node: string, itemId: string, data: unknown): number
   getLatestNodeData(node: string, itemId: string): NodeDataRow | null
 
-  appendLlmLog(entry: unknown): void
+  appendLlmLog(step: string, itemId: string, entry: unknown): void
 
   close(): void
 }

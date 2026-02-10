@@ -38,6 +38,8 @@ CREATE TABLE IF NOT EXISTS images (
 CREATE TABLE IF NOT EXISTS llm_log (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   timestamp TEXT NOT NULL,
+  step TEXT NOT NULL DEFAULT '',
+  item_id TEXT NOT NULL DEFAULT '',
   data TEXT NOT NULL
 );
 `
@@ -67,12 +69,16 @@ function initSchema(db: sqlite.Database): void {
   }>
   const existing = rows[0]?.version ?? 0
 
-  if (existing !== SCHEMA_VERSION) {
+  if (existing === SCHEMA_VERSION) return
+
+  if (existing > SCHEMA_VERSION) {
     db.close()
     throw new Error(
       `Schema version mismatch: found v${existing}, expected v${SCHEMA_VERSION}`
     )
   }
+
+  migrate(db, existing)
 }
 
 function upsertSchemaVersion(db: sqlite.Database, version: number): void {
@@ -81,6 +87,28 @@ function upsertSchemaVersion(db: sqlite.Database, version: number): void {
      ON CONFLICT (id) DO UPDATE SET version = excluded.version`,
     [version]
   )
+}
+
+function migrate(db: sqlite.Database, from: number): void {
+  db.exec("BEGIN IMMEDIATE")
+  try {
+    if (from < 3) {
+      // v2 → v3: add step + item_id columns to llm_log
+      const cols = db.all("PRAGMA table_info(llm_log)") as Array<{ name: string }>
+      const colNames = new Set(cols.map((c) => c.name))
+      if (!colNames.has("step")) {
+        db.run("ALTER TABLE llm_log ADD COLUMN step TEXT NOT NULL DEFAULT ''")
+      }
+      if (!colNames.has("item_id")) {
+        db.run("ALTER TABLE llm_log ADD COLUMN item_id TEXT NOT NULL DEFAULT ''")
+      }
+    }
+    upsertSchemaVersion(db, SCHEMA_VERSION)
+    db.exec("COMMIT")
+  } catch (err) {
+    db.exec("ROLLBACK")
+    throw err
+  }
 }
 
 function migrateLegacySchemaVersionTable(db: sqlite.Database): void {

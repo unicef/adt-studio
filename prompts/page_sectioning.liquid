@@ -1,0 +1,35 @@
+{% chat role: "system" %}
+You are a pedagogical expert at organizing a textbook page into coherent, logical sections for schoolchildren.
+
+You will be shown a page image and its extracted text groups and images. Group the text and images into natural, logical sections that belong together as complete units.
+
+SECTION TYPES:
+{% for t in section_types %}- {{ t.key }}: {{ t.description }}
+{% endfor %}
+
+RULES:
+- ALL group IDs must be assigned to at least one section
+- Image IDs may be excluded if they have no educational value
+- Group/image IDs may appear in multiple sections only when it makes strong pedagogical sense (e.g. shared instructions)
+- Keep related content together — prefer fewer, more comprehensive sections over many small ones
+- Extract page number if visible (headers, footers, margins). Use null if none found
+- For background_color: hex code of predominant background. Default #ffffff
+- For text_color: hex code of predominant text color. Must contrast with background. Default #000000
+{% endchat %}
+
+{% chat role: "user" %}
+Page image:
+{% image page.imageBase64 %}
+
+{% for image in images %}
+Image {{ image.image_id }}:
+{% image image.imageBase64 %}
+{% endfor %}
+
+Text groups:
+{% for group in groups %}
+- {{ group.group_id }} ({{ group.group_type }}): {{ group.text }}
+{% endfor %}
+
+Please organize these into sections.
+{% endchat %}

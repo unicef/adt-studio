@@ -27,6 +27,28 @@ text_group_types:
   list: A list of items (ordered or unordered)
   other: Anything that doesn't fit the above
 
+section_types:
+  front_cover: Front cover page (first page only)
+  inside_cover: Inside cover page
+  back_cover: Back cover page (last page only)
+  separator: Separator page between logical sections
+  credits: Credits and acknowledgements
+  foreword: Introduction, overview, or author's note
+  table_of_contents: Table of contents
+  boxed_text: Text in a box or callout
+  text_only: Reading section with only text
+  text_and_single_image: Section with text and a single image
+  text_and_images: Reading section with text and multiple images
+  images_only: Section with only images
+  activity_matching: Matching activity
+  activity_fill_in_a_table: Table fill-in activity
+  activity_multiple_choice: Multiple choice activity
+  activity_true_false: True or false activity
+  activity_open_ended_answer: Open-ended text response activity
+  activity_fill_in_the_blank: Fill in the blank activity
+  activity_sorting: Sorting activity
+  other: Any other section type
+
 metadata:
   prompt: metadata_extraction
   model: openai:gpt-4o
@@ -34,12 +56,27 @@ metadata:
 text_classification:
   prompt: text_classification
   model: openai:gpt-4o
-  concurrency: 5
+  concurrency: 16
+
+page_sectioning:
+  prompt: page_sectioning
+  model: openai:gpt-4o
+
+web_rendering:
+  prompt: web_generation_html
+  model: openai:gpt-4o
+  concurrency: 16
+  max_retries: 8
 
 pruned_text_types:
   - header_text
   - footer_text
   - page_number
+
+pruned_section_types:
+  - back_cover
+  - credits
+  - inside_cover
 
 image_filters:
   min_side: 100

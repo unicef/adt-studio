@@ -29,3 +29,15 @@ export {
 } from "./image-classification.js"
 
 export { BookMetadata } from "./metadata.js"
+
+export {
+  PageSection,
+  PageSectioningOutput,
+  buildPageSectioningLLMSchema,
+} from "./page-sectioning.js"
+
+export {
+  SectionRendering,
+  WebRenderingOutput,
+  webRenderingLLMSchema,
+} from "./web-rendering.js"

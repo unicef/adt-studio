@@ -345,21 +345,26 @@ describe("putNodeData / getLatestNodeData", () => {
 })
 
 describe("appendLlmLog", () => {
-  it("appends log entries", () => {
+  it("appends log entries with step and item_id", () => {
     const { storage, paths } = createTempStorage()
 
-    storage.appendLlmLog({ taskType: "test", modelId: "gpt-4o" })
-    storage.appendLlmLog({ taskType: "test2", modelId: "gpt-4o" })
+    storage.appendLlmLog("text-classification", "pg001", { taskType: "text-classification", modelId: "gpt-4o" })
+    storage.appendLlmLog("web-rendering", "pg002", { taskType: "web-rendering", modelId: "gpt-4o" })
 
     const db = openBookDb(paths.dbPath)
     const rows = db.all("SELECT * FROM llm_log ORDER BY id") as Array<{
       id: number
       timestamp: string
+      step: string
+      item_id: string
       data: string
     }>
     expect(rows).toHaveLength(2)
-    expect(JSON.parse(rows[0].data).taskType).toBe("test")
-    expect(JSON.parse(rows[1].data).taskType).toBe("test2")
+    expect(rows[0].step).toBe("text-classification")
+    expect(rows[0].item_id).toBe("pg001")
+    expect(JSON.parse(rows[0].data).taskType).toBe("text-classification")
+    expect(rows[1].step).toBe("web-rendering")
+    expect(rows[1].item_id).toBe("pg002")
     expect(rows[0].timestamp).toBeTruthy()
     db.close()
 
