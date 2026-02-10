@@ -23,17 +23,17 @@ describe("deepMerge", () => {
   it("deep-merges plain objects and overrides arrays", () => {
     const merged = deepMerge(
       {
-        text_classification: { prompt: "base", concurrency: 2 },
+        text_classification: { prompt: "base", max_retries: 2 },
         pruned_text_types: ["header_text"],
       },
       {
-        text_classification: { concurrency: 5 },
+        text_classification: { max_retries: 5 },
         pruned_text_types: ["footer_text"],
       }
     )
 
     expect(merged).toEqual({
-      text_classification: { prompt: "base", concurrency: 5 },
+      text_classification: { prompt: "base", max_retries: 5 },
       pruned_text_types: ["footer_text"],
     })
   })
@@ -56,7 +56,7 @@ text_group_types:
 text_classification:
   prompt: text_classification
   model: openai:gpt-4o
-  concurrency: 2
+concurrency: 2
 pruned_text_types:
   - header_text
 `
@@ -64,8 +64,7 @@ pruned_text_types:
 
     fs.writeFileSync(
       path.join(bookDir, "config.yaml"),
-      `text_classification:
-  concurrency: 7
+      `concurrency: 7
 pruned_text_types:
   - footer_text
 `
@@ -75,7 +74,7 @@ pruned_text_types:
 
     expect(config.text_classification?.prompt).toBe("text_classification")
     expect(config.text_classification?.model).toBe("openai:gpt-4o")
-    expect(config.text_classification?.concurrency).toBe(7)
+    expect(config.concurrency).toBe(7)
     expect(config.pruned_text_types).toEqual(["footer_text"])
   })
 

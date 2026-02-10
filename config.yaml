@@ -56,7 +56,6 @@ metadata:
 text_classification:
   prompt: text_classification
   model: openai:gpt-4o
-  concurrency: 16
 
 page_sectioning:
   prompt: page_sectioning
@@ -65,8 +64,8 @@ page_sectioning:
 web_rendering:
   prompt: web_generation_html
   model: openai:gpt-4o
-  concurrency: 16
   max_retries: 8
+  timeout: 180
 
 pruned_text_types:
   - header_text
@@ -78,6 +77,11 @@ pruned_section_types:
   - credits
   - inside_cover
 
+concurrency: 32
+
 image_filters:
   min_side: 100
   max_side: 5000
+
+# rate_limit:
+#   requests_per_minute: 60

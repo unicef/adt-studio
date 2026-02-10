@@ -27,15 +27,13 @@ export async function extractMetadata(
 
   const result = await llmModel.generateObject<BookMetadata>({
     schema: BookMetadata,
-    prompt: {
-      name: config.promptName,
-      context: {
-        pages: pages.map((p) => ({
-          pageNumber: p.pageNumber,
-          text: p.text,
-          imageBase64: p.imageBase64,
-        })),
-      },
+    prompt: config.promptName,
+    context: {
+      pages: pages.map((p) => ({
+        pageNumber: p.pageNumber,
+        text: p.text,
+        imageBase64: p.imageBase64,
+      })),
     },
     maxRetries: 2,
     maxTokens: 4096,

@@ -179,7 +179,7 @@ describe("renderPage", () => {
 
     const fakeLlm: LLMModel = {
       generateObject: async <T>(opts: GenerateObjectOptions) => {
-        capturedContext = opts.prompt?.context
+        capturedContext = opts.context
         return { object: imgResponse as T } as GenerateObjectResult<T>
       },
     }
@@ -225,7 +225,7 @@ describe("renderPage", () => {
 
     const fakeLlm: LLMModel = {
       generateObject: async <T>(opts: GenerateObjectOptions) => {
-        capturedContext = opts.prompt?.context
+        capturedContext = opts.context
         return {
           object: {
             reasoning: "test",
@@ -288,7 +288,7 @@ describe("renderPage", () => {
 
     const fakeLlm: LLMModel = {
       generateObject: async <T>(opts: GenerateObjectOptions) => {
-        capturedContext = opts.prompt?.context
+        capturedContext = opts.context
         return {
           object: {
             reasoning: "test",

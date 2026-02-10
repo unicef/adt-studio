@@ -21,21 +21,20 @@ export const TextClassificationOutput = z.object({
 export type TextClassificationOutput = z.infer<typeof TextClassificationOutput>
 
 /**
- * Build an LLM-facing schema with enum-constrained types.
- * The LLM sees restricted enums; we store with string types for flexibility.
+ * Build an LLM-facing schema for text classification.
+ * Enum fields use z.string() so invalid values are caught by our validate
+ * callback (which feeds errors back to the LLM) instead of causing a
+ * NoObjectGeneratedError that retries blindly.
  */
-export function buildTextClassificationLLMSchema(
-  textTypes: [string, ...string[]],
-  groupTypes: [string, ...string[]]
-) {
+export function buildTextClassificationLLMSchema() {
   return z.object({
     reasoning: z.string(),
     groups: z.array(
       z.object({
-        group_type: z.enum(groupTypes),
+        group_type: z.string(),
         texts: z.array(
           z.object({
-            text_type: z.enum(textTypes),
+            text_type: z.string(),
             text: z.string(),
           })
         ),

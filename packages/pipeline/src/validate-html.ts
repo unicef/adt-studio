@@ -1,11 +1,26 @@
-import { parseDocument } from "htmlparser2"
+import { parseDocument, DomUtils } from "htmlparser2"
 
 export interface HtmlValidationResult {
   valid: boolean
   errors: string[]
+  /** The cleaned HTML (section inner HTML if a <section> tag was found) */
+  sectionHtml?: string
 }
 
 const EXEMPT_TAGS = new Set(["style", "script"])
+
+/**
+ * Find the first <section> element in the parsed document.
+ * Returns null if no <section> tag exists.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function findSectionElement(doc: any): any | null {
+  return DomUtils.findOne(
+    (el) => el.type === "tag" && el.name === "section",
+    doc.children ?? [],
+    true
+  )
+}
 
 export function validateSectionHtml(
   html: string,
@@ -17,9 +32,19 @@ export function validateSectionHtml(
   const seenIds = new Set<string>()
   const doc = parseDocument(html)
 
-  walkNode(doc, allowedIds, seenIds, errors)
+  const section = findSectionElement(doc)
+  if (!section) {
+    errors.push("No <section> tag found in HTML output")
+    return { valid: false, errors }
+  }
 
-  return { valid: errors.length === 0, errors }
+  walkNode(section, allowedIds, seenIds, errors)
+
+  return {
+    valid: errors.length === 0,
+    errors,
+    sectionHtml: DomUtils.getOuterHTML(section),
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

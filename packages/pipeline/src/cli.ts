@@ -168,7 +168,7 @@ async function main(): Promise<void> {
     })
 
     const effectiveConcurrency =
-      concurrency ?? config.text_classification?.concurrency ?? 16
+      concurrency ?? config.concurrency ?? 32
     const totalPages = pages.length
 
     const multibar = new cliProgress.MultiBar(

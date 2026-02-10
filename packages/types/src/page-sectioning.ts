@@ -17,18 +17,18 @@ export const PageSectioningOutput = z.object({
 export type PageSectioningOutput = z.infer<typeof PageSectioningOutput>
 
 /**
- * Build an LLM-facing schema with enum-constrained section types and part IDs.
+ * Build an LLM-facing schema for page sectioning.
+ * Enum fields use z.string() so invalid values are caught by our validate
+ * callback (which feeds errors back to the LLM) instead of causing a
+ * NoObjectGeneratedError that retries blindly.
  */
-export function buildPageSectioningLLMSchema(
-  sectionTypes: [string, ...string[]],
-  validPartIds: [string, ...string[]]
-) {
+export function buildPageSectioningLLMSchema() {
   return z.object({
     reasoning: z.string(),
     sections: z.array(
       z.object({
-        section_type: z.enum(sectionTypes),
-        part_ids: z.array(z.enum(validPartIds)),
+        section_type: z.string(),
+        part_ids: z.array(z.string()),
         background_color: z.string(),
         text_color: z.string(),
         page_number: z.number().int().nullable(),

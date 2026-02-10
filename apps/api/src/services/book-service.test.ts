@@ -206,7 +206,7 @@ describe("createBook", () => {
 
   it("writes config overrides when provided", () => {
     createBook("configured", fakePdf, tmpDir, {
-      text_classification: { concurrency: 4 },
+      concurrency: 4,
     })
 
     const configPath = path.join(tmpDir, "configured", "config.yaml")

@@ -120,7 +120,7 @@ describe("POST /books", () => {
     )
     formData.append(
       "config",
-      JSON.stringify({ text_classification: { concurrency: 4 } })
+      JSON.stringify({ concurrency: 4 })
     )
 
     const res = await app.request("/books", {

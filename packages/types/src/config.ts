@@ -1,11 +1,16 @@
 import { z } from "zod"
 import { ImageFilters } from "./image-classification.js"
 
+export const RateLimitConfig = z.object({
+  requests_per_minute: z.number().int().min(1),
+})
+export type RateLimitConfig = z.infer<typeof RateLimitConfig>
+
 export const StepConfig = z.object({
   prompt: z.string().optional(),
   model: z.string().optional(),
-  concurrency: z.number().int().min(1).optional(),
   max_retries: z.number().int().min(0).optional(),
+  timeout: z.number().int().min(1).optional(),
 })
 export type StepConfig = z.infer<typeof StepConfig>
 
@@ -20,6 +25,8 @@ export const AppConfig = z.object({
   page_sectioning: StepConfig.optional(),
   web_rendering: StepConfig.optional(),
   image_filters: ImageFilters.optional(),
+  concurrency: z.number().int().min(1).optional(),
+  rate_limit: RateLimitConfig.optional(),
 })
 export type AppConfig = z.infer<typeof AppConfig>
 

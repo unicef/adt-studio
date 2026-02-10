@@ -262,7 +262,7 @@ describe("sectionPage", () => {
 
     const fakeLlm: LLMModel = {
       generateObject: async <T>(opts: GenerateObjectOptions) => {
-        capturedContext = opts.prompt?.context
+        capturedContext = opts.context
         return {
           object: { reasoning: "test", sections: [] } as T,
         } as GenerateObjectResult<T>

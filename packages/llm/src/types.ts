@@ -6,13 +6,15 @@ export interface GenerateObjectOptions {
   schema: unknown
 
   /** Provide either prompt (rendered via prompt engine) or system + messages directly */
-  prompt?: { name: string; context: Record<string, unknown> }
+  prompt?: string
+  context?: Record<string, unknown>
   system?: string
   messages?: Message[]
 
-  validate?: (result: unknown) => ValidationResult
+  validate?: (result: unknown, context: Record<string, unknown>) => ValidationResult
   maxRetries?: number
   maxTokens?: number
+  timeoutMs?: number
   log?: {
     taskType: string
     pageId?: string
@@ -51,4 +53,6 @@ export interface TokenUsage {
 export interface ValidationResult {
   valid: boolean
   errors: string[]
+  /** If set, replaces the result object when validation passes */
+  cleaned?: unknown
 }

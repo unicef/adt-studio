@@ -6,7 +6,7 @@ import type {
   TypeDef,
 } from "@adt/types"
 import { buildPageSectioningLLMSchema } from "@adt/types"
-import type { LLMModel } from "@adt/llm"
+import type { LLMModel, ValidationResult } from "@adt/llm"
 
 export interface SectioningConfig {
   sectionTypes: TypeDef[]
@@ -83,10 +83,7 @@ export async function sectionPage(
     throw new Error("No section types configured")
   }
 
-  const schema = buildPageSectioningLLMSchema(
-    sectionTypeKeys as [string, ...string[]],
-    validPartIds as [string, ...string[]]
-  )
+  const schema = buildPageSectioningLLMSchema()
 
   const result = await llmModel.generateObject<{
     reasoning: string
@@ -99,22 +96,21 @@ export async function sectionPage(
     }>
   }>({
     schema,
-    prompt: {
-      name: config.promptName,
-      context: {
-        page: { imageBase64: input.pageImageBase64 },
-        images: unprunedImages.map((img) => ({
-          image_id: img.imageId,
-          imageBase64: img.imageBase64,
-        })),
-        groups: groupSummaries.map((g) => ({
-          group_id: g.groupId,
-          group_type: g.groupType,
-          text: g.text,
-        })),
-        section_types: config.sectionTypes,
-      },
+    prompt: config.promptName,
+    context: {
+      page: { imageBase64: input.pageImageBase64 },
+      images: unprunedImages.map((img) => ({
+        image_id: img.imageId,
+        imageBase64: img.imageBase64,
+      })),
+      groups: groupSummaries.map((g) => ({
+        group_id: g.groupId,
+        group_type: g.groupType,
+        text: g.text,
+      })),
+      section_types: config.sectionTypes,
     },
+    validate: validatePageSectioning,
     maxRetries: 2,
     maxTokens: 16384,
     log: {
@@ -140,6 +136,41 @@ export async function sectionPage(
     reasoning: result.object.reasoning,
     sections,
   }
+}
+
+function validatePageSectioning(
+  result: unknown,
+  context: Record<string, unknown>
+): ValidationResult {
+  const r = result as {
+    sections: Array<{ section_type: string; part_ids: string[] }>
+  }
+  const sectionTypes = context.section_types as TypeDef[]
+  const groups = context.groups as Array<{ group_id: string }>
+  const images = context.images as Array<{ image_id: string }>
+
+  const sectionTypeKeys = new Set(sectionTypes.map((s) => s.key))
+  const validPartIds = new Set([
+    ...groups.map((g) => g.group_id),
+    ...images.map((img) => img.image_id),
+  ])
+
+  const errors: string[] = []
+  for (const section of r.sections) {
+    if (!sectionTypeKeys.has(section.section_type)) {
+      errors.push(
+        `Invalid section_type "${section.section_type}". Must be one of: ${sectionTypes.map((s) => s.key).join(", ")}`
+      )
+    }
+    for (const partId of section.part_ids) {
+      if (!validPartIds.has(partId)) {
+        errors.push(
+          `Invalid part_id "${partId}". Must be one of: ${[...validPartIds].join(", ")}`
+        )
+      }
+    }
+  }
+  return { valid: errors.length === 0, errors }
 }
 
 /**

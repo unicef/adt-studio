@@ -4,7 +4,7 @@ import {
   type TypeDef,
   type AppConfig,
 } from "@adt/types"
-import type { LLMModel } from "@adt/llm"
+import type { LLMModel, ValidationResult } from "@adt/llm"
 
 export interface ClassifyConfig {
   textTypes: TypeDef[]
@@ -40,10 +40,7 @@ export async function classifyPageText(
     throw new Error("No text group types configured")
   }
 
-  const schema = buildTextClassificationLLMSchema(
-    textTypeKeys as [string, ...string[]],
-    groupTypeKeys as [string, ...string[]]
-  )
+  const schema = buildTextClassificationLLMSchema()
 
   const result = await llmModel.generateObject<{
     reasoning: string
@@ -53,18 +50,17 @@ export async function classifyPageText(
     }>
   }>({
     schema,
-    prompt: {
-      name: config.promptName,
-      context: {
-        page: {
-          pageNumber: page.pageNumber,
-          text: page.text,
-          imageBase64: page.imageBase64,
-        },
-        text_types: config.textTypes,
-        text_group_types: config.textGroupTypes,
+    prompt: config.promptName,
+    context: {
+      page: {
+        pageNumber: page.pageNumber,
+        text: page.text,
+        imageBase64: page.imageBase64,
       },
+      text_types: config.textTypes,
+      text_group_types: config.textGroupTypes,
     },
+    validate: validateTextClassification,
     maxRetries: 2,
     maxTokens: 16384,
     log: {
@@ -90,6 +86,39 @@ export async function classifyPageText(
     reasoning: result.object.reasoning,
     groups,
   }
+}
+
+function validateTextClassification(
+  result: unknown,
+  context: Record<string, unknown>
+): ValidationResult {
+  const r = result as {
+    groups: Array<{
+      group_type: string
+      texts: Array<{ text_type: string }>
+    }>
+  }
+  const textTypes = context.text_types as TypeDef[]
+  const groupTypes = context.text_group_types as TypeDef[]
+  const textTypeKeys = new Set(textTypes.map((t) => t.key))
+  const groupTypeKeys = new Set(groupTypes.map((t) => t.key))
+
+  const errors: string[] = []
+  for (const group of r.groups) {
+    if (!groupTypeKeys.has(group.group_type)) {
+      errors.push(
+        `Invalid group_type "${group.group_type}". Must be one of: ${groupTypes.map((t) => t.key).join(", ")}`
+      )
+    }
+    for (const text of group.texts) {
+      if (!textTypeKeys.has(text.text_type)) {
+        errors.push(
+          `Invalid text_type "${text.text_type}". Must be one of: ${textTypes.map((t) => t.key).join(", ")}`
+        )
+      }
+    }
+  }
+  return { valid: errors.length === 0, errors }
 }
 
 /**
