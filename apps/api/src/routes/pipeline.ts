@@ -1,7 +1,7 @@
 import { Hono } from "hono"
 import { streamSSE } from "hono/streaming"
 import { HTTPException } from "hono/http-exception"
-import type { PipelineService } from "../services/pipeline-service.js"
+import type { PipelineService, PipelineSSEEvent } from "../services/pipeline-service.js"
 
 export function createPipelineRoutes(
   service: PipelineService,
@@ -91,47 +91,75 @@ export function createPipelineRoutes(
           return
         }
 
-        // Stream real-time events
-        let closed = false
+        // Queue-based SSE: listener pushes events, loop drains with awaited writes
+        const queue: PipelineSSEEvent[] = []
+        let done = false
+
         const unsubscribe = service.addListener(label, (event) => {
-          if (closed) return
-          try {
-            if (event.type === "progress") {
-              stream.writeSSE({
-                event: "progress",
-                data: JSON.stringify(event.data),
-              })
-            } else if (event.type === "pipeline-complete") {
-              stream.writeSSE({
-                event: "complete",
-                data: JSON.stringify({ label: event.label }),
-              })
-              closed = true
-            } else if (event.type === "pipeline-error") {
-              stream.writeSSE({
-                event: "error",
-                data: JSON.stringify({
-                  label: event.label,
-                  error: event.error,
-                }),
-              })
-              closed = true
-            }
-          } catch {
-            // Stream write failed (client disconnected)
-            closed = true
-          }
+          if (done) return
+          queue.push(event)
         })
 
-        // Keep stream alive until pipeline completes or client disconnects
+        // Re-check status after subscribing to avoid race where pipeline
+        // completes between the initial check and listener registration
+        const jobAfterSubscribe = service.getStatus(label)
+        if (
+          jobAfterSubscribe?.status === "completed" ||
+          jobAfterSubscribe?.status === "failed"
+        ) {
+          const event =
+            jobAfterSubscribe.status === "completed" ? "complete" : "error"
+          const data =
+            jobAfterSubscribe.status === "completed"
+              ? { label }
+              : { label, error: jobAfterSubscribe.error }
+          await stream.writeSSE({ event, data: JSON.stringify(data) })
+          unsubscribe()
+          return
+        }
+
         stream.onAbort(() => {
-          closed = true
+          done = true
           unsubscribe()
         })
 
-        // Wait for completion
-        while (!closed) {
-          await new Promise((r) => setTimeout(r, 100))
+        // Drain queue with proper await on each write
+        while (!done) {
+          while (queue.length > 0) {
+            const event = queue.shift()!
+            try {
+              if (event.type === "progress") {
+                await stream.writeSSE({
+                  event: "progress",
+                  data: JSON.stringify(event.data),
+                })
+              } else if (event.type === "pipeline-complete") {
+                await stream.writeSSE({
+                  event: "complete",
+                  data: JSON.stringify({ label: event.label }),
+                })
+                done = true
+                break
+              } else if (event.type === "pipeline-error") {
+                await stream.writeSSE({
+                  event: "error",
+                  data: JSON.stringify({
+                    label: event.label,
+                    error: event.error,
+                  }),
+                })
+                done = true
+                break
+              }
+            } catch {
+              // Stream write failed (client disconnected)
+              done = true
+              break
+            }
+          }
+          if (!done) {
+            await new Promise((r) => setTimeout(r, 50))
+          }
         }
 
         unsubscribe()

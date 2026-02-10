@@ -209,6 +209,7 @@ async function callLLM<T>(
     schema: opts.schema,
     system,
     messages: coreMessages,
+    abortSignal: AbortSignal.timeout(90_000),
   }
   if (opts.maxTokens) {
     generateOpts.maxTokens = opts.maxTokens

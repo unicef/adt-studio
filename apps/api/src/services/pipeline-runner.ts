@@ -150,67 +150,85 @@ export function createPipelineRunner(): PipelineRunner {
         let completedSection = 0
         let completedRender = 0
 
+        const failedPages: string[] = []
+
         await processWithConcurrency(
           pages,
           effectiveConcurrency,
           async (page: PageData) => {
-            await processPage(
-              page,
-              storage,
-              {
-                textClassifyConfig,
-                imageClassifyConfig,
-                sectioningConfig,
-                renderConfig,
-              },
-              llmModel,
-              progress,
-              totalPages,
-              {
-                onClassifyImages: () => {
-                  completedClassifyImages++
-                  progress.emit({
-                    type: "step-progress",
-                    step: "image-classification",
-                    message: `${completedClassifyImages}/${totalPages}`,
-                    page: completedClassifyImages,
-                    totalPages,
-                  })
+            try {
+              await processPage(
+                page,
+                storage,
+                {
+                  textClassifyConfig,
+                  imageClassifyConfig,
+                  sectioningConfig,
+                  renderConfig,
                 },
-                onClassifyText: () => {
-                  completedClassifyText++
-                  progress.emit({
-                    type: "step-progress",
-                    step: "text-classification",
-                    message: `${completedClassifyText}/${totalPages}`,
-                    page: completedClassifyText,
-                    totalPages,
-                  })
-                },
-                onSection: () => {
-                  completedSection++
-                  progress.emit({
-                    type: "step-progress",
-                    step: "page-sectioning",
-                    message: `${completedSection}/${totalPages}`,
-                    page: completedSection,
-                    totalPages,
-                  })
-                },
-                onRender: () => {
-                  completedRender++
-                  progress.emit({
-                    type: "step-progress",
-                    step: "web-rendering",
-                    message: `${completedRender}/${totalPages}`,
-                    page: completedRender,
-                    totalPages,
-                  })
-                },
-              }
-            )
+                llmModel,
+                progress,
+                totalPages,
+                {
+                  onClassifyImages: () => {
+                    completedClassifyImages++
+                    progress.emit({
+                      type: "step-progress",
+                      step: "image-classification",
+                      message: `${completedClassifyImages}/${totalPages}`,
+                      page: completedClassifyImages,
+                      totalPages,
+                    })
+                  },
+                  onClassifyText: () => {
+                    completedClassifyText++
+                    progress.emit({
+                      type: "step-progress",
+                      step: "text-classification",
+                      message: `${completedClassifyText}/${totalPages}`,
+                      page: completedClassifyText,
+                      totalPages,
+                    })
+                  },
+                  onSection: () => {
+                    completedSection++
+                    progress.emit({
+                      type: "step-progress",
+                      step: "page-sectioning",
+                      message: `${completedSection}/${totalPages}`,
+                      page: completedSection,
+                      totalPages,
+                    })
+                  },
+                  onRender: () => {
+                    completedRender++
+                    progress.emit({
+                      type: "step-progress",
+                      step: "web-rendering",
+                      message: `${completedRender}/${totalPages}`,
+                      page: completedRender,
+                      totalPages,
+                    })
+                  },
+                }
+              )
+            } catch (err) {
+              const msg = err instanceof Error ? err.message : String(err)
+              failedPages.push(`${page.pageId}: ${msg}`)
+              progress.emit({
+                type: "step-error",
+                step: "web-rendering",
+                error: `${page.pageId} failed: ${msg}`,
+              })
+            }
           }
         )
+
+        if (failedPages.length > 0) {
+          throw new Error(
+            `${failedPages.length} page(s) failed:\n${failedPages.join("\n")}`
+          )
+        }
 
         // Emit completion for all per-page steps
         progress.emit({

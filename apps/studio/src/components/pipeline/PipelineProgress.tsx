@@ -27,6 +27,7 @@ function getStepState(
   progress: PipelineProgressState
 ): "pending" | "active" | "completed" | "error" {
   if (progress.completedSteps.has(step)) return "completed"
+  if (progress.stepProgress.has(step)) return "active"
   if (progress.currentStep === step) return "active"
   if (progress.error?.startsWith(step)) return "error"
   return "pending"
@@ -62,7 +63,7 @@ export function PipelineProgress({
       </CardHeader>
       <CardContent>
         {(isRunning || isComplete || error) && (
-          <div className="mb-4 space-y-0.5">
+          <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
             {STEP_ORDER.map((step) => (
               <StepIndicator
                 key={step}

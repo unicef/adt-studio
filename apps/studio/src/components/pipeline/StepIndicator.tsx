@@ -40,7 +40,7 @@ function StepIcon({ state }: { state: StepState }) {
     case "error":
       return <AlertCircle className="h-4 w-4 text-destructive" />
     default:
-      return <Circle className="h-4 w-4 text-muted-foreground/40" />
+      return <Circle className="h-4 w-4 text-muted-foreground/30" />
   }
 }
 
@@ -49,44 +49,64 @@ export function StepIndicator({
   state,
   progress,
 }: StepIndicatorProps) {
+  const pct =
+    state === "active" && progress?.totalPages
+      ? Math.round(((progress.page ?? 0) / progress.totalPages) * 100)
+      : state === "completed"
+        ? 100
+        : 0
+
   return (
-    <div className="flex items-center gap-3 py-1.5">
-      <StepIcon state={state} />
-      <div className="flex-1">
-        <div
+    <div
+      className={cn(
+        "rounded-lg border p-3 transition-all",
+        state === "active" && "border-blue-200 bg-blue-50/50",
+        state === "completed" && "border-green-200 bg-green-50/30",
+        state === "error" && "border-destructive/30 bg-destructive/5",
+        state === "pending" && "border-border/50 bg-muted/20 opacity-60"
+      )}
+    >
+      <div className="mb-2 flex items-center justify-between">
+        <span
           className={cn(
-            "text-sm",
-            state === "active" && "font-medium text-foreground",
-            state === "completed" && "text-muted-foreground",
-            state === "pending" && "text-muted-foreground/60",
-            state === "error" && "text-destructive"
+            "text-sm font-medium",
+            state === "completed" && "text-green-700",
+            state === "error" && "text-destructive",
+            state === "pending" && "text-muted-foreground"
           )}
         >
           {label}
-        </div>
+        </span>
+        <StepIcon state={state} />
+      </div>
+
+      {/* Progress bar — always visible for active/completed */}
+      <div className="h-1.5 rounded-full bg-muted/60">
+        <div
+          className={cn(
+            "h-full rounded-full transition-all duration-300",
+            state === "active" && "bg-blue-600",
+            state === "completed" && "bg-green-500",
+            state === "error" && "bg-destructive",
+            state === "pending" && "bg-transparent"
+          )}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+
+      {/* Status text */}
+      <div className="mt-1.5 text-xs text-muted-foreground">
         {state === "active" && progress?.totalPages && (
-          <div className="mt-1">
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>
-                {progress.page ?? 0} / {progress.totalPages} pages
-              </span>
-              <span>
-                {Math.round(
-                  ((progress.page ?? 0) / progress.totalPages) * 100
-                )}
-                %
-              </span>
-            </div>
-            <div className="mt-0.5 h-1.5 rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-blue-600 transition-all"
-                style={{
-                  width: `${((progress.page ?? 0) / progress.totalPages) * 100}%`,
-                }}
-              />
-            </div>
-          </div>
+          <span>
+            {progress.page ?? 0} / {progress.totalPages} pages
+          </span>
         )}
+        {state === "active" && !progress?.totalPages && (
+          <span>Processing...</span>
+        )}
+        {state === "completed" && <span>Done</span>}
+        {state === "error" && <span>Failed</span>}
+        {state === "pending" && <span>Waiting</span>}
       </div>
     </div>
   )
