@@ -20,6 +20,8 @@
     { "path": "packages/pdf" },
     { "path": "packages/llm" },
     { "path": "packages/storage" },
-    { "path": "packages/pipeline" }
+    { "path": "packages/pipeline" },
+    { "path": "apps/api" },
+    { "path": "apps/studio" }
   ]
 }

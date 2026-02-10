@@ -1,0 +1,19 @@
+{
+  "name": "@adt/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "@adt/llm": "workspace:*",
+    "@adt/pdf": "workspace:*",
+    "@adt/pipeline": "workspace:*",
+    "@adt/storage": "workspace:*",
+    "@adt/types": "workspace:*",
+    "@hono/node-server": "^1.14.0",
+    "hono": "^4.7.0",
+    "js-yaml": "^4.1.0"
+  }
+}

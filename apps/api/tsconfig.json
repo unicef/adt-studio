@@ -1,0 +1,18 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "rootDir": "src",
+    "outDir": "dist",
+    "noEmit": false
+  },
+  "include": ["src"],
+  "exclude": ["src/**/*.test.ts"],
+  "references": [
+    { "path": "../../packages/types" },
+    { "path": "../../packages/storage" },
+    { "path": "../../packages/pipeline" },
+    { "path": "../../packages/llm" },
+    { "path": "../../packages/pdf" }
+  ]
+}

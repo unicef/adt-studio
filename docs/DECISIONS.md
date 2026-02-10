@@ -17,6 +17,8 @@ This document records all significant technology and architecture decisions made
 9. [Database: node-sqlite3-wasm](#009-node-sqlite3-wasm-over-better-sqlite3)
 10. [Testing: Vitest](#010-vitest-over-jest)
 11. [Conditional Classes: clsx](#011-clsx-over-classnames)
+12. [UI Components: shadcn/ui](#012-shadcnui-for-ui-components)
+13. [Progress Streaming: SSE](#013-sse-for-pipeline-progress)
 
 ---
 
@@ -387,6 +389,59 @@ Use clsx for conditional CSS class composition.
 
 ---
 
+## 012: shadcn/ui for UI Components
+
+**Status**: Decided
+**Date**: 2026-02-10
+
+### Decision
+
+Use shadcn/ui as the component library for the React frontend (Default style, Neutral base, UNICEF blue accent).
+
+### Reasoning
+
+- **Not a dependency**: shadcn/ui is a copy-paste system. Components are copied into `src/components/ui/`, not installed as a package. We own the code.
+- **Tailwind-native**: Built entirely on Tailwind CSS. No conflicting styling systems.
+- **Radix primitives**: Uses Radix UI headless primitives for accessibility (keyboard nav, ARIA, focus management).
+- **Consistent design**: Pre-built Button, Dialog, Select, Input, Table, Form, Card etc. prevents subtly-different components for similar needs.
+- **Customizable**: CSS variables for theming via Tailwind v4's `@theme` directive.
+
+### Alternatives Considered
+
+| Option | Why Not |
+|--------|---------|
+| Raw Tailwind only | Slower to build, more code to maintain, higher risk of inconsistent components |
+| MUI / Ant Design | Heavy, opinionated, JS runtime for styling, conflicts with Tailwind approach |
+| Headless UI | Fewer components, would need to build more from scratch |
+| Radix directly | shadcn is already built on Radix — gives us the styled layer for free |
+
+---
+
+## 013: SSE for Pipeline Progress
+
+**Status**: Decided
+**Date**: 2026-02-10
+
+### Decision
+
+Use Server-Sent Events (SSE) for streaming real-time pipeline progress from API to frontend.
+
+### Reasoning
+
+- **One-way stream**: Pipeline progress is server→client only. SSE is purpose-built for this.
+- **Native browser support**: `EventSource` API with automatic reconnection.
+- **Hono built-in**: `streamSSE()` helper, zero extra dependencies.
+- **Matches pipeline design**: Pipeline already emits `ProgressEvent` (discriminated union). We serialize and send.
+
+### Alternatives Considered
+
+| Option | Why Not |
+|--------|---------|
+| Polling | Higher latency, unnecessary requests, less responsive UI |
+| WebSocket | Full duplex overkill for one-way progress, more complex server setup |
+
+---
+
 ## Decision Log Summary
 
 | # | Decision | Chosen | Over |
@@ -402,3 +457,5 @@ Use clsx for conditional CSS class composition.
 | 009 | Database | node-sqlite3-wasm | better-sqlite3, sql.js |
 | 010 | Testing | Vitest | Jest |
 | 011 | Class utility | clsx | classnames |
+| 012 | UI components | shadcn/ui | MUI, Headless UI, raw Tailwind |
+| 013 | Progress streaming | SSE | Polling, WebSocket |

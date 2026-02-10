@@ -44,3 +44,6 @@ coverage/
 
 # pnpm
 .pnpm-store/
+
+# Local working docs (not tracked)
+.local-docs/
