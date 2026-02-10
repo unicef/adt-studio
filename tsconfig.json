@@ -14,6 +14,7 @@
     "declarationMap": true,
     "sourceMap": true
   },
+  "include": [],
   "exclude": ["adt-studio"],
   "references": [
     { "path": "packages/types" },

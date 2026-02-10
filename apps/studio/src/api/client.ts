@@ -5,7 +5,9 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(url, {
     ...options,
     headers: {
-      "Content-Type": "application/json",
+      ...(!options?.body || options.body instanceof FormData
+        ? {}
+        : { "Content-Type": "application/json" }),
       ...options?.headers,
     },
   })
@@ -18,14 +20,43 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   return res.json()
 }
 
+export interface BookSummary {
+  label: string
+  title: string | null
+  authors: string[]
+  pageCount: number
+  hasSourcePdf: boolean
+}
+
+export interface BookDetail extends BookSummary {
+  metadata: {
+    title: string | null
+    authors: string[]
+    publisher: string | null
+    language_code: string | null
+    cover_page_number: number | null
+    reasoning: string
+  } | null
+}
+
 export const api = {
-  get: <T>(path: string) => request<T>(path),
+  getBooks: () => request<BookSummary[]>("/books"),
 
-  post: <T>(path: string, body?: unknown) =>
-    request<T>(path, {
+  getBook: (label: string) => request<BookDetail>(`/books/${label}`),
+
+  createBook: (label: string, pdf: File, config?: Record<string, unknown>) => {
+    const formData = new FormData()
+    formData.append("label", label)
+    formData.append("pdf", pdf)
+    if (config) {
+      formData.append("config", JSON.stringify(config))
+    }
+    return request<BookSummary>("/books", {
       method: "POST",
-      body: body ? JSON.stringify(body) : undefined,
-    }),
+      body: formData,
+    })
+  },
 
-  delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
+  deleteBook: (label: string) =>
+    request<{ ok: boolean }>(`/books/${label}`, { method: "DELETE" }),
 }

@@ -1,9 +1,12 @@
+import path from "node:path"
 import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { logger } from "hono/logger"
 import { errorHandler } from "./middleware/error-handler.js"
 import { healthRoutes } from "./routes/health.js"
-import { bookRoutes } from "./routes/books.js"
+import { createBookRoutes } from "./routes/books.js"
+
+const booksDir = path.resolve(process.env.BOOKS_DIR ?? "books")
 
 const app = new Hono()
 
@@ -17,6 +20,6 @@ app.use(
 app.onError(errorHandler)
 
 app.route("/api", healthRoutes)
-app.route("/api", bookRoutes)
+app.route("/api", createBookRoutes(booksDir))
 
 export default app

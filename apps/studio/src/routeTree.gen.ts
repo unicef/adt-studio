@@ -10,33 +10,53 @@
 
 import { Route as rootRouteImport } from "./routes/__root"
 import { Route as IndexRouteImport } from "./routes/index"
+import { Route as BooksNewRouteImport } from "./routes/books.new"
+import { Route as BooksLabelRouteImport } from "./routes/books.$label"
 
 const IndexRoute = IndexRouteImport.update({
   id: "/",
   path: "/",
   getParentRoute: () => rootRouteImport,
 } as any)
+const BooksNewRoute = BooksNewRouteImport.update({
+  id: "/books/new",
+  path: "/books/new",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BooksLabelRoute = BooksLabelRouteImport.update({
+  id: "/books/$label",
+  path: "/books/$label",
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
+  "/books/$label": typeof BooksLabelRoute
+  "/books/new": typeof BooksNewRoute
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
+  "/books/$label": typeof BooksLabelRoute
+  "/books/new": typeof BooksNewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   "/": typeof IndexRoute
+  "/books/$label": typeof BooksLabelRoute
+  "/books/new": typeof BooksNewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/"
+  fullPaths: "/" | "/books/$label" | "/books/new"
   fileRoutesByTo: FileRoutesByTo
-  to: "/"
-  id: "__root__" | "/"
+  to: "/" | "/books/$label" | "/books/new"
+  id: "__root__" | "/" | "/books/$label" | "/books/new"
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BooksLabelRoute: typeof BooksLabelRoute
+  BooksNewRoute: typeof BooksNewRoute
 }
 
 declare module "@tanstack/react-router" {
@@ -48,11 +68,27 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    "/books/new": {
+      id: "/books/new"
+      path: "/books/new"
+      fullPath: "/books/new"
+      preLoaderRoute: typeof BooksNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/books/$label": {
+      id: "/books/$label"
+      path: "/books/$label"
+      fullPath: "/books/$label"
+      preLoaderRoute: typeof BooksLabelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BooksLabelRoute: BooksLabelRoute,
+  BooksNewRoute: BooksNewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
