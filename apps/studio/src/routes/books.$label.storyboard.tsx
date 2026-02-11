@@ -1,9 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useState, useMemo, useEffect, useCallback, useRef } from "react"
-import { Check, Clock, CheckCircle2, ChevronLeft, ChevronRight, ImageOff, Loader2, ExternalLink, RefreshCw, Settings2, AlertCircle, HelpCircle, Lightbulb, BookOpen } from "lucide-react"
+import { Check, Clock, CheckCircle2, ChevronLeft, ChevronRight, ImageOff, Loader2, ExternalLink, RefreshCw, Settings2, AlertCircle, HelpCircle, Lightbulb, BookOpen, FileDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { useBook } from "@/hooks/use-books"
+import { useBook, useExportBook } from "@/hooks/use-books"
 import { usePages, usePage, usePageImage } from "@/hooks/use-pages"
 import { usePipelineSSE, usePipelineStatus, useRunPipeline } from "@/hooks/use-pipeline"
 import { useApiKey } from "@/hooks/use-api-key"
@@ -148,7 +148,9 @@ function StoryboardPage() {
   const totalCount = pages?.length ?? 0
   const pendingCount = totalCount - renderedCount
 
-  const canAccept = renderedCount > 0 && renderedCount === totalCount && !progress.isRunning
+  const isAccepted = book?.storyboardAccepted ?? false
+  const canAccept = !isAccepted && renderedCount > 0 && renderedCount === totalCount && !progress.isRunning
+  const exportBook = useExportBook()
 
   // Auto-select page: prefer initialPageId from search param, then first page
   useEffect(() => {
@@ -251,19 +253,40 @@ function StoryboardPage() {
             <Settings2 className="mr-1.5 h-4 w-4" />
             Settings
           </Button>
-          <Button
-            size="sm"
-            disabled={!canAccept}
-            onClick={() => setAcceptDialogOpen(true)}
-          >
-            <CheckCircle2 className="mr-1.5 h-4 w-4" />
-            Accept Storyboard
-            {pendingCount > 0 && (
-              <Badge variant="secondary" className="ml-1.5 text-[10px]">
-                {pendingCount} pending
-              </Badge>
-            )}
-          </Button>
+          {isAccepted ? (
+            <>
+              <Button variant="outline" size="sm" disabled>
+                <CheckCircle2 className="mr-1.5 h-4 w-4 text-green-600" />
+                Accepted
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => exportBook.mutate(label)}
+                disabled={exportBook.isPending}
+              >
+                {exportBook.isPending ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : (
+                  <FileDown className="mr-1.5 h-4 w-4" />
+                )}
+                Export
+              </Button>
+            </>
+          ) : (
+            <Button
+              size="sm"
+              disabled={!canAccept}
+              onClick={() => setAcceptDialogOpen(true)}
+            >
+              <CheckCircle2 className="mr-1.5 h-4 w-4" />
+              Accept Storyboard
+              {pendingCount > 0 && (
+                <Badge variant="secondary" className="ml-1.5 text-[10px]">
+                  {pendingCount} pending
+                </Badge>
+              )}
+            </Button>
+          )}
         </div>
       </div>
 

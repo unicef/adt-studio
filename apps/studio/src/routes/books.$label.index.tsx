@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { BookOpen, LayoutGrid } from "lucide-react"
+import { BookOpen, LayoutGrid, FileDown, CheckCircle2, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -10,7 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { useBook } from "@/hooks/use-books"
+import { useBook, useExportBook } from "@/hooks/use-books"
 import { usePipelineSSE, usePipelineStatus, useRunPipeline } from "@/hooks/use-pipeline"
 import { useApiKey } from "@/hooks/use-api-key"
 import { PipelineProgress } from "@/components/pipeline/PipelineProgress"
@@ -33,6 +33,7 @@ function BookDetailPage() {
   const { data: book, isLoading, error } = useBook(label)
   const { apiKey, hasApiKey } = useApiKey()
 
+  const exportBook = useExportBook()
   const runPipeline = useRunPipeline()
   const [sseEnabled, setSseEnabled] = useState(false)
   const { progress, reset } = usePipelineSSE(label, sseEnabled)
@@ -131,6 +132,12 @@ function BookDetailPage() {
         ) : (
           <Badge variant={book.pageCount > 0 ? "default" : "secondary"}>
             {book.pageCount > 0 ? `${book.pageCount} pages` : "New"}
+          </Badge>
+        )}
+        {book.storyboardAccepted && (
+          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+            <CheckCircle2 className="mr-1 h-3 w-3" />
+            Accepted
           </Badge>
         )}
         {book.pageCount > 0 && (
@@ -242,6 +249,30 @@ function BookDetailPage() {
                 Review Storyboard
               </Button>
             </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Export ZIP CTA */}
+      {book.storyboardAccepted && (
+        <Card className="border-green-200 bg-green-50/50">
+          <CardContent className="flex items-center justify-between py-3">
+            <div>
+              <p className="text-sm font-medium">Storyboard accepted</p>
+              <p className="text-xs text-muted-foreground">Download the book as an HTML + images bundle</p>
+            </div>
+            <Button
+              size="sm"
+              onClick={() => exportBook.mutate(label)}
+              disabled={exportBook.isPending}
+            >
+              {exportBook.isPending ? (
+                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+              ) : (
+                <FileDown className="mr-1.5 h-4 w-4" />
+              )}
+              Export ZIP
+            </Button>
           </CardContent>
         </Card>
       )}
