@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router"
-import { useState, useCallback, useEffect, useRef } from "react"
+import { useState, useCallback, useEffect, useMemo, useRef } from "react"
 import { ArrowLeft, ArrowRight, FileText, Image, Layers, Loader2, AlertCircle, ImageOff } from "lucide-react"
+import DOMPurify from "dompurify"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -22,6 +23,10 @@ export const Route = createFileRoute("/books/$label/pages/$pageId")({
  */
 function RenderedHtml({ html, className }: { html: string; className?: string }) {
   const ref = useRef<HTMLDivElement>(null)
+  const sanitizedHtml = useMemo(
+    () => DOMPurify.sanitize(html),
+    [html]
+  )
 
   useEffect(() => {
     if (!ref.current) return
@@ -76,13 +81,13 @@ function RenderedHtml({ html, className }: { html: string; className?: string })
         img.replaceWith(placeholder)
       }
     }
-  }, [html])
+  }, [sanitizedHtml])
 
   return (
     <div
       ref={ref}
       className={className}
-      dangerouslySetInnerHTML={{ __html: html }}
+      dangerouslySetInnerHTML={{ __html: sanitizedHtml }}
     />
   )
 }

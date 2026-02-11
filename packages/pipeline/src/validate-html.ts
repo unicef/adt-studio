@@ -8,6 +8,8 @@ export interface HtmlValidationResult {
 }
 
 const EXEMPT_TAGS = new Set(["style", "script"])
+const DISALLOWED_TAGS = new Set(["script", "iframe", "object", "embed"])
+const URL_ATTRS = new Set(["src", "href", "xlink:href", "formaction"])
 
 /**
  * Find the first <section> element in the parsed document.
@@ -65,7 +67,30 @@ function walkNode(node: any, allowedIds: Set<string>, errors: string[]): void {
     return
   }
 
-  if (node.type === "tag") {
+  if (
+    node.type === "tag" ||
+    node.type === "script" ||
+    node.type === "style"
+  ) {
+    const tagName = (node.name ?? node.type ?? "").toLowerCase()
+    if (DISALLOWED_TAGS.has(tagName)) {
+      errors.push(`Disallowed tag: <${tagName}>`)
+    }
+
+    const attribs = node.attribs ?? {}
+    for (const [name, value] of Object.entries(attribs) as Array<[string, string]>) {
+      const attr = name.toLowerCase()
+      if (attr.startsWith("on")) {
+        errors.push(`Event handler attribute not allowed: "${name}"`)
+      }
+      if (URL_ATTRS.has(attr) && isUnsafeUrl(value)) {
+        errors.push(`Unsafe URL in attribute "${name}"`)
+      }
+      if (attr === "style" && hasUnsafeCss(value)) {
+        errors.push("Unsafe CSS in style attribute")
+      }
+    }
+
     const dataId = node.attribs?.["data-id"]
     if (dataId !== undefined && !allowedIds.has(dataId)) {
       errors.push(`Unknown data-id: "${dataId}"`)
@@ -101,7 +126,16 @@ function rewriteImageSrcs(node: any, imageIds: Set<string>, urlPrefix: string): 
 function isInsideExemptTag(node: any): boolean {
   let current = node.parent
   while (current) {
-    if ((current.type === "tag" || current.type === "style" || current.type === "script") && EXEMPT_TAGS.has(current.name)) {
+    if (current.type === "style" && EXEMPT_TAGS.has("style")) {
+      return true
+    }
+    if (current.type === "script" && EXEMPT_TAGS.has("script")) {
+      return true
+    }
+    if (
+      current.type === "tag" &&
+      EXEMPT_TAGS.has((current.name ?? "").toLowerCase())
+    ) {
       return true
     }
     current = current.parent
@@ -119,4 +153,22 @@ function hasAncestorWithDataId(node: any): boolean {
     current = current.parent
   }
   return false
+}
+
+function isUnsafeUrl(value: string): boolean {
+  const normalized = value.trim().toLowerCase()
+  return (
+    normalized.startsWith("javascript:") ||
+    normalized.startsWith("vbscript:") ||
+    normalized.startsWith("data:text/html")
+  )
+}
+
+function hasUnsafeCss(value: string): boolean {
+  const normalized = value.toLowerCase()
+  return (
+    normalized.includes("expression(") ||
+    normalized.includes("url(javascript:") ||
+    normalized.includes("url(vbscript:")
+  )
 }

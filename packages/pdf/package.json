@@ -6,9 +6,6 @@
   "exports": {
     ".": "./dist/index.js"
   },
-  "bin": {
-    "pdf-extract": "./dist/cli.js"
-  },
   "dependencies": {
     "@resvg/resvg-wasm": "^2.6.2",
     "mupdf": "^1.27.0",

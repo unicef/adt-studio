@@ -48,7 +48,9 @@ export function ConfigTab({ label }: ConfigTabProps) {
     { key: "text_classification", title: "Text Classification" },
     { key: "image_classification", title: "Image Classification" },
     { key: "page_sectioning", title: "Page Sectioning" },
-    { key: "web_rendering", title: "Web Rendering" },
+    { key: "default_render_strategy", title: "Default Render Strategy" },
+    { key: "render_strategies", title: "Render Strategies" },
+    { key: "section_render_strategies", title: "Section Render Strategies" },
   ]
 
   const knownKeys = new Set(sections.map((s) => s.key))

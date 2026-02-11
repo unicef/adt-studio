@@ -61,11 +61,23 @@ page_sectioning:
   prompt: page_sectioning
   model: openai:gpt-5.2
 
-web_rendering:
-  prompt: web_generation_html
-  model: openai:gpt-5.2
-  max_retries: 25
-  timeout: 180
+default_render_strategy: two_column
+
+render_strategies:
+  llm:
+    render_type: llm
+    config:
+      prompt: web_generation_html
+      model: openai:gpt-5.2
+      max_retries: 25
+      timeout: 180
+  two_column:
+    render_type: template
+    config:
+      template: two_column_render
+
+# section_render_strategies:
+#   front_cover: two_column
 
 pruned_text_types:
   - header_text

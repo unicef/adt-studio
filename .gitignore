@@ -10,8 +10,9 @@ apps/api/books/
 .cache/
 .DS_Store
 
-# Reference project
+# Reference projects
 adt-studio/
+adt-press/
 
 # Environment & secrets
 .env

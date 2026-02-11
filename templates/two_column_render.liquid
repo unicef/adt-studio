@@ -1,0 +1,112 @@
+<div class="container content mx-auto w-full min-h-screen px-8 py-8 flex items-center justify-center" id="content" style="background-color: {{ background_color | escape }};">
+    <section id="simple-main" role="article" data-section-type="{{ section_type | escape }}">
+        <div class="flex flex-col lg:flex-row px-8 items-start gap-8 max-w-none w-full">
+            {% assign img_count = 0 %}
+            {% assign text_count = 0 %}
+            {% for part in parts %}
+                {% if part.type == "image" %}
+                    {% assign img_count = img_count | plus: 1 %}
+                {% else %}
+                    {% assign text_count = text_count | plus: 1 %}
+                {% endif %}
+            {% endfor %}
+
+            {% if img_count == 2 and text_count == 0 %}
+                {% for part in parts %}
+                <div class="basis-full lg:basis-1/2 p-4 flex flex-col items-center lg:justify-center">
+                    <img class="mb-8 w-full rounded-lg" data-id="{{ part.image_id | escape }}" src="{{ part.image_url | escape }}" style="max-height: 80vh; object-fit: contain;">
+                </div>
+                {% endfor %}
+
+            {% elsif parts.size == 1 %}
+                <div class="basis-full p-4 flex flex-col justify-center items-center" style="color: {{ text_color | escape }};">
+                    {% assign part = parts[0] %}
+                    {% if part.type == "image" %}
+                    <img class="mb-8 w-full rounded-lg" data-id="{{ part.image_id | escape }}" src="{{ part.image_url | escape }}" style="max-height: 80vh; object-fit: contain;">
+                    {% else %}
+                        {% for text in part.texts %}
+                        <p class="mb-8 text-2xl lg:text-3xl leading-relaxed text-center font-normal max-w-4xl" data-id="{{ text.text_id | escape }}">{{ text.text | escape }}</p>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+
+            {% elsif img_count == 0 and text_count == 2 %}
+                {% for part in parts %}
+                <div class="basis-full lg:basis-1/2 p-4 flex flex-col items-center" style="color: {{ text_color | escape }};">
+                    {% for text in part.texts %}
+                        {% if part.group_type == "heading" %}
+                            {% if text.text_type == "book_title" or text.text_type == "chapter_title" %}
+                    <h1 class="mb-6 w-full max-w-2xl font-bold text-left text-4xl" data-id="{{ text.text_id | escape }}">{{ text.text | escape }}</h1>
+                            {% elsif text.text_type == "section_heading" %}
+                    <h2 class="mb-6 w-full max-w-2xl font-bold text-left text-2xl" data-id="{{ text.text_id | escape }}">{{ text.text | escape }}</h2>
+                            {% else %}
+                    <p class="mb-8 w-full max-w-2xl"><span class="leading-relaxed font-normal w-full block text-left" data-id="{{ text.text_id | escape }}">{{ text.text | escape }}</span></p>
+                            {% endif %}
+                        {% else %}
+                    <p class="mb-8 w-full max-w-2xl"><span class="leading-relaxed font-normal w-full inline text-left" data-id="{{ text.text_id | escape }}">{{ text.text | escape }}</span></p>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+                {% endfor %}
+
+            {% else %}
+                {% assign first_type = parts[0].type %}
+                {% if first_type == "group" %}
+                    <div class="basis-full lg:basis-1/2 p-4 flex flex-col items-center" style="color: {{ text_color | escape }};">
+                        {% for part in parts %}
+                            {% if part.type == "group" %}
+                                {% for text in part.texts %}
+                                    {% if part.group_type == "heading" %}
+                                        {% if text.text_type == "book_title" or text.text_type == "chapter_title" %}
+                        <h1 class="mb-6 w-full max-w-2xl font-bold text-left text-4xl" data-id="{{ text.text_id | escape }}">{{ text.text | escape }}</h1>
+                                        {% elsif text.text_type == "section_heading" %}
+                        <h2 class="mb-6 w-full max-w-2xl font-bold text-left text-2xl" data-id="{{ text.text_id | escape }}">{{ text.text | escape }}</h2>
+                                        {% else %}
+                        <p class="mb-8 w-full max-w-2xl"><span class="leading-relaxed font-normal w-full block text-left" data-id="{{ text.text_id | escape }}">{{ text.text | escape }}</span></p>
+                                        {% endif %}
+                                    {% else %}
+                        <p class="mb-8 w-full max-w-2xl"><span class="leading-relaxed font-normal w-full inline text-left" data-id="{{ text.text_id | escape }}">{{ text.text | escape }}</span></p>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="basis-full lg:basis-1/2 p-4 flex flex-col items-center lg:justify-center lg:min-h-screen" style="color: {{ text_color | escape }};">
+                        {% for part in parts %}
+                            {% if part.type == "image" %}
+                        <img class="mb-8 max-w-full rounded-lg" data-id="{{ part.image_id | escape }}" src="{{ part.image_url | escape }}" style="height: 100%; width: auto; object-fit: contain;">
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="basis-full lg:basis-1/2 p-4 flex flex-col items-center lg:justify-center lg:min-h-screen" style="color: {{ text_color | escape }};">
+                        {% for part in parts %}
+                            {% if part.type == "image" %}
+                        <img class="mb-8 max-w-full rounded-lg" data-id="{{ part.image_id | escape }}" src="{{ part.image_url | escape }}" style="height: 100%; width: auto; object-fit: contain;">
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <div class="basis-full lg:basis-1/2 p-4 flex flex-col items-center" style="color: {{ text_color | escape }};">
+                        {% for part in parts %}
+                            {% if part.type == "group" %}
+                                {% for text in part.texts %}
+                                    {% if part.group_type == "heading" %}
+                                        {% if text.text_type == "book_title" or text.text_type == "chapter_title" %}
+                        <h1 class="mb-6 w-full max-w-2xl font-bold text-left text-4xl" data-id="{{ text.text_id | escape }}">{{ text.text | escape }}</h1>
+                                        {% elsif text.text_type == "section_heading" %}
+                        <h2 class="mb-6 w-full max-w-2xl font-bold text-left text-2xl" data-id="{{ text.text_id | escape }}">{{ text.text | escape }}</h2>
+                                        {% else %}
+                        <p class="mb-8 w-full max-w-2xl"><span class="leading-relaxed font-normal w-full block text-left" data-id="{{ text.text_id | escape }}">{{ text.text | escape }}</span></p>
+                                        {% endif %}
+                                    {% else %}
+                        <p class="mb-8 w-full max-w-2xl"><span class="leading-relaxed font-normal w-full inline text-left" data-id="{{ text.text_id | escape }}">{{ text.text | escape }}</span></p>
+                                    {% endif %}
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </section>
+</div>

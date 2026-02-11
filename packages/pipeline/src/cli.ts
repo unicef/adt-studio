@@ -6,13 +6,15 @@ import cliProgress from "cli-progress"
 import { createBookStorage } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import { createLLMModel, createPromptEngine, createRateLimiter } from "@adt/llm"
+import type { LLMModel } from "@adt/llm"
 import { parseCliArgs, USAGE } from "./cli-args.js"
 import { extractPDF } from "./pdf-extraction.js"
 import { extractMetadata, buildMetadataConfig } from "./metadata-extraction.js"
 import { classifyPageText, buildClassifyConfig } from "./text-classification.js"
 import { classifyPageImages, buildImageClassifyConfig } from "./image-classification.js"
 import { sectionPage, buildSectioningConfig } from "./page-sectioning.js"
-import { renderPage, buildRenderConfig } from "./web-rendering.js"
+import { renderPage, buildRenderStrategyResolver } from "./web-rendering.js"
+import { createTemplateEngine, type TemplateEngine } from "./render-template.js"
 import { loadBookConfig } from "./config.js"
 import type {
   TextClassificationOutput,
@@ -123,6 +125,8 @@ async function main(): Promise<void> {
     const metadataConfig = buildMetadataConfig(config)
     const cacheDir = path.join(booksRoot, label, ".cache")
     const promptsDir = path.resolve(process.cwd(), "prompts")
+    const templatesDir = path.resolve(process.cwd(), "templates")
+    const templateEngine = createTemplateEngine(templatesDir)
     const promptEngine = createPromptEngine(promptsDir)
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
@@ -163,7 +167,7 @@ async function main(): Promise<void> {
     const textClassifyConfig = buildClassifyConfig(config)
     const imageClassifyConfig = buildImageClassifyConfig(config)
     const sectioningConfig = buildSectioningConfig(config)
-    const renderConfig = buildRenderConfig(config)
+    const resolveRenderConfig = buildRenderStrategyResolver(config)
     const llmModel = createLLMModel({
       modelId: textClassifyConfig.modelId,
       cacheDir,
@@ -171,6 +175,20 @@ async function main(): Promise<void> {
       rateLimiter,
       onLog: (entry) => storage.appendLlmLog(entry),
     })
+    const renderModels = new Map<string, LLMModel>()
+    const resolveRenderModel = (modelId: string): LLMModel => {
+      const existing = renderModels.get(modelId)
+      if (existing) return existing
+      const model = createLLMModel({
+        modelId,
+        cacheDir,
+        promptEngine,
+        rateLimiter,
+        onLog: (entry) => storage.appendLlmLog(entry),
+      })
+      renderModels.set(modelId, model)
+      return model
+    }
 
     const effectiveConcurrency =
       concurrency ?? config.concurrency ?? 32
@@ -211,9 +229,11 @@ async function main(): Promise<void> {
               textClassifyConfig,
               imageClassifyConfig,
               sectioningConfig,
-              renderConfig,
+              resolveRenderConfig,
             },
-            llmModel
+            llmModel,
+            resolveRenderModel,
+            templateEngine
           )
         }
       )
@@ -231,7 +251,7 @@ interface StepConfigs {
   textClassifyConfig: ReturnType<typeof buildClassifyConfig>
   imageClassifyConfig: ReturnType<typeof buildImageClassifyConfig>
   sectioningConfig: ReturnType<typeof buildSectioningConfig>
-  renderConfig: ReturnType<typeof buildRenderConfig>
+  resolveRenderConfig: ReturnType<typeof buildRenderStrategyResolver>
 }
 
 async function processPage(
@@ -240,9 +260,11 @@ async function processPage(
   bars: StepBars,
   storage: Storage,
   configs: StepConfigs,
-  llmModel: ReturnType<typeof createLLMModel>
+  llmModel: ReturnType<typeof createLLMModel>,
+  resolveRenderModel: (modelId: string) => LLMModel,
+  templateEngine: TemplateEngine
 ): Promise<void> {
-  const { textClassifyConfig, imageClassifyConfig, sectioningConfig, renderConfig } =
+  const { textClassifyConfig, imageClassifyConfig, sectioningConfig, resolveRenderConfig } =
     configs
 
   // --- Classify ---
@@ -319,8 +341,9 @@ async function processPage(
       textClassification,
       images: renderImages,
     },
-    renderConfig,
-    llmModel
+    resolveRenderConfig,
+    resolveRenderModel,
+    templateEngine
   )
   storage.putNodeData("web-rendering", page.pageId, renderResult)
   bars.render.increment()

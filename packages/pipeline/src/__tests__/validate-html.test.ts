@@ -64,7 +64,7 @@ describe("validateSectionHtml", () => {
     expect(result.valid).toBe(true)
   })
 
-  it("exempts text inside script tags", () => {
+  it("rejects script tags", () => {
     const html = `
       <section>
         <script>console.log("hello")</script>
@@ -72,7 +72,10 @@ describe("validateSectionHtml", () => {
       </section>
     `
     const result = validateSectionHtml(html, ["pg001_gp001"], [])
-    expect(result.valid).toBe(true)
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining("Disallowed tag: <script>")
+    )
   })
 
   it("accepts image data-ids", () => {
@@ -165,5 +168,31 @@ describe("validateSectionHtml", () => {
     expect(result.sectionHtml).toContain("pg001_gp001")
     expect(result.sectionHtml).not.toContain("<html>")
     expect(result.sectionHtml).not.toContain("<body>")
+  })
+
+  it("rejects event handler attributes", () => {
+    const html = `
+      <section>
+        <img data-id="pg001_im001" src="placeholder" onerror="alert(1)" />
+      </section>
+    `
+    const result = validateSectionHtml(html, [], ["pg001_im001"])
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining('Event handler attribute not allowed: "onerror"')
+    )
+  })
+
+  it("rejects javascript URLs", () => {
+    const html = `
+      <section>
+        <a data-id="pg001_gp001" href="javascript:alert(1)">Click</a>
+      </section>
+    `
+    const result = validateSectionHtml(html, ["pg001_gp001"], [])
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining('Unsafe URL in attribute "href"')
+    )
   })
 })

@@ -1,7 +1,8 @@
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
-import { renderPage, buildRenderConfig, loadBookConfig } from "@adt/pipeline"
+import type { LLMModel } from "@adt/llm"
+import { renderPage, buildRenderStrategyResolver, createTemplateEngine, loadBookConfig } from "@adt/pipeline"
 import type {
   TextClassificationOutput,
   ImageClassificationOutput,
@@ -63,19 +64,28 @@ export async function reRenderPage(
       }
     }
 
-    // Load config and build render config
+    // Load config and build render strategy resolver
     const config = loadBookConfig(label, booksDir, configPath)
-    const renderConfig = buildRenderConfig(config)
+    const resolveRenderConfig = buildRenderStrategyResolver(config)
 
-    // Create LLM model
+    // Create LLM model resolver (model-specific, cached)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const promptEngine = createPromptEngine(promptsDir)
-    const llmModel = createLLMModel({
-      modelId: renderConfig.modelId,
-      cacheDir,
-      promptEngine,
-      onLog: (entry) => storage.appendLlmLog(entry),
-    })
+    const templatesDir = path.join(path.dirname(promptsDir), "templates")
+    const templateEngine = createTemplateEngine(templatesDir)
+    const renderModels = new Map<string, LLMModel>()
+    const resolveRenderModel = (modelId: string): LLMModel => {
+      const existing = renderModels.get(modelId)
+      if (existing) return existing
+      const model = createLLMModel({
+        modelId,
+        cacheDir,
+        promptEngine,
+        onLog: (entry) => storage.appendLlmLog(entry),
+      })
+      renderModels.set(modelId, model)
+      return model
+    }
 
     // Get page image
     const pageImageBase64 = storage.getPageImageBase64(pageId)
@@ -90,8 +100,9 @@ export async function reRenderPage(
         textClassification,
         images: renderImages,
       },
-      renderConfig,
-      llmModel
+      resolveRenderConfig,
+      resolveRenderModel,
+      templateEngine
     )
 
     // Store result

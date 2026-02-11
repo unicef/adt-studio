@@ -11,6 +11,8 @@ export { BookLabel, parseBookLabel } from "./book.js"
 
 export {
   StepConfig,
+  RenderType,
+  RenderStrategyConfig,
   AppConfig,
   type TypeDef,
 } from "./config.js"

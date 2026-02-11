@@ -30,13 +30,19 @@ export {
 } from "./page-sectioning.js"
 export {
   renderPage,
-  renderSection,
-  buildRenderConfig,
+  buildRenderStrategyResolver,
   type RenderConfig,
   type RenderPageInput,
   type RenderSectionInput,
+  type SectionPart,
   type TextInput,
   type ImageInput,
 } from "./web-rendering.js"
+export { renderSectionLlm } from "./render-llm.js"
+export {
+  createTemplateEngine,
+  renderSectionTemplate,
+  type TemplateEngine,
+} from "./render-template.js"
 export { validateSectionHtml } from "./validate-html.js"
 export { loadConfig, loadBookConfig, deepMerge } from "./config.js"

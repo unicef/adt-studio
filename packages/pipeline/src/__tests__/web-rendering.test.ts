@@ -1,36 +1,147 @@
 import { describe, expect, it } from "vitest"
 import type { AppConfig } from "@adt/types"
 import type { LLMModel, GenerateObjectResult, GenerateObjectOptions } from "@adt/llm"
-import { buildRenderConfig, renderPage } from "../web-rendering.js"
+import { buildRenderStrategyResolver, renderPage, type RenderConfig } from "../web-rendering.js"
+import type { TemplateEngine } from "../render-template.js"
 
-describe("buildRenderConfig", () => {
-  it("extracts web rendering config from AppConfig", () => {
+const defaultResolveConfig = (): RenderConfig => ({
+  renderType: "llm",
+  promptName: "web_generation_html",
+  modelId: "openai:gpt-4o",
+  maxRetries: 8,
+  timeoutMs: 180000,
+  templateName: "",
+})
+
+describe("buildRenderStrategyResolver", () => {
+  it("resolves default strategy from config", () => {
     const appConfig: AppConfig = {
       text_types: { heading: "Heading" },
       text_group_types: { paragraph: "Paragraph" },
-      web_rendering: {
-        prompt: "custom_render",
-        model: "openai:gpt-4.1-mini",
-        max_retries: 8,
+      default_render_strategy: "llm",
+      render_strategies: {
+        llm: {
+          render_type: "llm",
+          config: {
+            prompt: "custom_render",
+            model: "openai:gpt-4.1-mini",
+            max_retries: 8,
+          },
+        },
       },
     }
 
-    const config = buildRenderConfig(appConfig)
+    const resolve = buildRenderStrategyResolver(appConfig)
+    const config = resolve("text_only")
+    expect(config.renderType).toBe("llm")
     expect(config.promptName).toBe("custom_render")
     expect(config.modelId).toBe("openai:gpt-4.1-mini")
     expect(config.maxRetries).toBe(8)
+    expect(config.timeoutMs).toBe(180000)
+    expect(config.templateName).toBe("")
   })
 
-  it("defaults prompt, model, and maxRetries when not specified", () => {
+  it("resolves section-specific strategy", () => {
+    const appConfig: AppConfig = {
+      text_types: { heading: "Heading" },
+      text_group_types: { paragraph: "Paragraph" },
+      default_render_strategy: "llm",
+      render_strategies: {
+        llm: {
+          render_type: "llm",
+          config: { prompt: "default_prompt", model: "openai:gpt-5.2" },
+        },
+        custom: {
+          render_type: "llm",
+          config: { prompt: "custom_prompt", model: "openai:gpt-4.1-mini", max_retries: 3 },
+        },
+      },
+      section_render_strategies: {
+        front_cover: "custom",
+      },
+    }
+
+    const resolve = buildRenderStrategyResolver(appConfig)
+
+    const frontCover = resolve("front_cover")
+    expect(frontCover.promptName).toBe("custom_prompt")
+    expect(frontCover.modelId).toBe("openai:gpt-4.1-mini")
+    expect(frontCover.maxRetries).toBe(3)
+
+    const textOnly = resolve("text_only")
+    expect(textOnly.promptName).toBe("default_prompt")
+    expect(textOnly.modelId).toBe("openai:gpt-5.2")
+  })
+
+  it("falls back to hardcoded defaults when no config provided", () => {
     const appConfig: AppConfig = {
       text_types: { heading: "Heading" },
       text_group_types: { paragraph: "Paragraph" },
     }
 
-    const config = buildRenderConfig(appConfig)
+    const resolve = buildRenderStrategyResolver(appConfig)
+    const config = resolve("anything")
+    expect(config.renderType).toBe("llm")
     expect(config.promptName).toBe("web_generation_html")
     expect(config.modelId).toBe("openai:gpt-5.2")
     expect(config.maxRetries).toBe(25)
+    expect(config.timeoutMs).toBe(180000)
+    expect(config.templateName).toBe("")
+  })
+
+  it("falls back to default strategy when section strategy name is missing", () => {
+    const appConfig: AppConfig = {
+      text_types: { heading: "Heading" },
+      text_group_types: { paragraph: "Paragraph" },
+      default_render_strategy: "llm_default",
+      render_strategies: {
+        llm_default: {
+          render_type: "llm",
+          config: { prompt: "default_prompt", model: "openai:gpt-5.2" },
+        },
+      },
+      section_render_strategies: {
+        front_cover: "missing_strategy",
+      },
+    }
+
+    const resolve = buildRenderStrategyResolver(appConfig)
+    const config = resolve("front_cover")
+
+    expect(config.renderType).toBe("llm")
+    expect(config.promptName).toBe("default_prompt")
+    expect(config.modelId).toBe("openai:gpt-5.2")
+  })
+
+  it("resolves template strategy with render type and template name", () => {
+    const appConfig: AppConfig = {
+      text_types: { heading: "Heading" },
+      text_group_types: { paragraph: "Paragraph" },
+      default_render_strategy: "llm",
+      render_strategies: {
+        llm: {
+          render_type: "llm",
+          config: { prompt: "default_prompt", model: "openai:gpt-5.2" },
+        },
+        two_column: {
+          render_type: "template",
+          config: { template: "two_column_render" },
+        },
+      },
+      section_render_strategies: {
+        front_cover: "two_column",
+      },
+    }
+
+    const resolve = buildRenderStrategyResolver(appConfig)
+
+    const frontCover = resolve("front_cover")
+    expect(frontCover.renderType).toBe("template")
+    expect(frontCover.templateName).toBe("two_column_render")
+
+    const textOnly = resolve("text_only")
+    expect(textOnly.renderType).toBe("llm")
+    expect(textOnly.promptName).toBe("default_prompt")
   })
 })
 
@@ -104,7 +215,7 @@ describe("renderPage", () => {
         },
         images: new Map(),
       },
-      { promptName: "web_generation_html", modelId: "openai:gpt-4o", maxRetries: 8 },
+      defaultResolveConfig,
       fakeLlm
     )
 
@@ -162,7 +273,7 @@ describe("renderPage", () => {
         },
         images: new Map(),
       },
-      { promptName: "web_generation_html", modelId: "openai:gpt-4o", maxRetries: 8 },
+      defaultResolveConfig,
       fakeLlm
     )
 
@@ -210,7 +321,7 @@ describe("renderPage", () => {
         },
         images: new Map([["pg001_im001", "imagedata"]]),
       },
-      { promptName: "web_generation_html", modelId: "openai:gpt-4o", maxRetries: 8 },
+      defaultResolveConfig,
       fakeLlm
     )
 
@@ -273,7 +384,7 @@ describe("renderPage", () => {
         },
         images: new Map(),
       },
-      { promptName: "web_generation_html", modelId: "openai:gpt-4o", maxRetries: 8 },
+      defaultResolveConfig,
       fakeLlm
     )
 
@@ -335,7 +446,7 @@ describe("renderPage", () => {
         },
         images: new Map(),
       },
-      { promptName: "web_generation_html", modelId: "openai:gpt-4o", maxRetries: 8 },
+      defaultResolveConfig,
       fakeLlm
     )
 
@@ -407,12 +518,235 @@ describe("renderPage", () => {
         },
         images: new Map(),
       },
-      { promptName: "web_generation_html", modelId: "openai:gpt-4o", maxRetries: 8 },
+      defaultResolveConfig,
       fakeLlm
     )
 
     expect(result.sections).toHaveLength(2)
     expect(result.sections[0].sectionIndex).toBe(0)
     expect(result.sections[1].sectionIndex).toBe(1)
+  })
+
+  it("dispatches to template renderer when renderType is template", async () => {
+    let templateCalled = false
+    let capturedTemplateName = ""
+    let capturedContext: Record<string, unknown> | undefined
+
+    const fakeTemplateEngine: TemplateEngine = {
+      async render(templateName: string, context: Record<string, unknown>) {
+        templateCalled = true
+        capturedTemplateName = templateName
+        capturedContext = context
+        return '<section><p data-id="pg001_gp001_tx001">Hello</p></section>'
+      },
+    }
+
+    const templateResolveConfig = (): RenderConfig => ({
+      renderType: "template",
+      promptName: "",
+      modelId: "",
+      maxRetries: 0,
+      timeoutMs: 0,
+      templateName: "two_column_render",
+    })
+
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>() => {
+        throw new Error("LLM should not be called for template rendering")
+      },
+    }
+
+    const result = await renderPage(
+      {
+        label: "test-book",
+        pageId: "pg001",
+        pageImageBase64: "base64img",
+        sectioning: {
+          reasoning: "test",
+          sections: [
+            {
+              sectionType: "text_only",
+              partIds: ["pg001_gp001"],
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+        textClassification: {
+          reasoning: "test",
+          groups: [
+            {
+              groupId: "pg001_gp001",
+              groupType: "paragraph",
+              texts: [
+                { textType: "section_text", text: "Hello", isPruned: false },
+              ],
+            },
+          ],
+        },
+        images: new Map(),
+      },
+      templateResolveConfig,
+      fakeLlm,
+      fakeTemplateEngine
+    )
+
+    expect(templateCalled).toBe(true)
+    expect(capturedTemplateName).toBe("two_column_render")
+    expect(result.sections).toHaveLength(1)
+    expect(result.sections[0].reasoning).toBe("template-based rendering")
+    expect(result.sections[0].html).toContain("data-id")
+
+    // Check template context shape
+    const parts = capturedContext?.parts as Array<{ type: string }>
+    expect(parts).toHaveLength(1)
+    expect(parts[0].type).toBe("group")
+  })
+
+  it("throws when template renderType but no template engine", async () => {
+    const templateResolveConfig = (): RenderConfig => ({
+      renderType: "template",
+      promptName: "",
+      modelId: "",
+      maxRetries: 0,
+      timeoutMs: 0,
+      templateName: "two_column_render",
+    })
+
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>() => {
+        throw new Error("should not be called")
+      },
+    }
+
+    await expect(
+      renderPage(
+        {
+          label: "test-book",
+          pageId: "pg001",
+          pageImageBase64: "base64img",
+          sectioning: {
+            reasoning: "test",
+            sections: [
+              {
+                sectionType: "text_only",
+                partIds: ["pg001_gp001"],
+                backgroundColor: "#ffffff",
+                textColor: "#000000",
+                pageNumber: 1,
+                isPruned: false,
+              },
+            ],
+          },
+          textClassification: {
+            reasoning: "test",
+            groups: [
+              {
+                groupId: "pg001_gp001",
+                groupType: "paragraph",
+                texts: [
+                  { textType: "section_text", text: "Hello", isPruned: false },
+                ],
+              },
+            ],
+          },
+          images: new Map(),
+        },
+        templateResolveConfig,
+        fakeLlm
+        // no template engine passed
+      )
+    ).rejects.toThrow("Template engine required")
+  })
+
+  it("resolves LLM model per section render config", async () => {
+    const calls: string[] = []
+    const llmResolver = (modelId: string): LLMModel => ({
+      generateObject: async <T>() => {
+        calls.push(modelId)
+        const content =
+          modelId === "openai:model-a"
+            ? '<div id="content" class="container"><section role="article" data-section-type="text_only"><p data-id="pg001_gp001_tx001">First</p></section></div>'
+            : '<div id="content" class="container"><section role="article" data-section-type="text_only"><p data-id="pg001_gp002_tx001">Second</p></section></div>'
+        return {
+          object: { reasoning: "test", content } as T,
+        } as GenerateObjectResult<T>
+      },
+    })
+
+    const resolveConfig = (sectionType: string): RenderConfig =>
+      sectionType === "cover"
+        ? {
+            renderType: "llm",
+            promptName: "prompt_a",
+            modelId: "openai:model-a",
+            maxRetries: 2,
+            timeoutMs: 180000,
+            templateName: "",
+          }
+        : {
+            renderType: "llm",
+            promptName: "prompt_b",
+            modelId: "openai:model-b",
+            maxRetries: 2,
+            timeoutMs: 180000,
+            templateName: "",
+          }
+
+    const result = await renderPage(
+      {
+        label: "test-book",
+        pageId: "pg001",
+        pageImageBase64: "base64img",
+        sectioning: {
+          reasoning: "test",
+          sections: [
+            {
+              sectionType: "cover",
+              partIds: ["pg001_gp001"],
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+            {
+              sectionType: "body",
+              partIds: ["pg001_gp002"],
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+        textClassification: {
+          reasoning: "test",
+          groups: [
+            {
+              groupId: "pg001_gp001",
+              groupType: "paragraph",
+              texts: [
+                { textType: "section_text", text: "First", isPruned: false },
+              ],
+            },
+            {
+              groupId: "pg001_gp002",
+              groupType: "paragraph",
+              texts: [
+                { textType: "section_text", text: "Second", isPruned: false },
+              ],
+            },
+          ],
+        },
+        images: new Map(),
+      },
+      resolveConfig,
+      llmResolver
+    )
+
+    expect(result.sections).toHaveLength(2)
+    expect(calls).toEqual(["openai:model-a", "openai:model-b"])
   })
 })
