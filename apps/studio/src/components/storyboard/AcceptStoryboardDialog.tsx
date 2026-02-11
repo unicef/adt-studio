@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router"
-import { CheckCircle2, BookOpen, Languages, HelpCircle, FileDown } from "lucide-react"
+import { CheckCircle2, BookOpen, Languages, HelpCircle, FileDown, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { useAcceptStoryboard } from "@/hooks/use-books"
 
 interface AcceptStoryboardDialogProps {
   open: boolean
@@ -20,10 +21,10 @@ interface AcceptStoryboardDialogProps {
 }
 
 const NEXT_STEPS = [
-  { icon: BookOpen, label: "Glossary Generation", description: "Extract and define key terms" },
-  { icon: Languages, label: "Easy Read Version", description: "Simplified language variant" },
-  { icon: HelpCircle, label: "Quiz Generation", description: "Comprehension questions per section" },
-  { icon: FileDown, label: "Export Bundle", description: "Package for print and digital distribution" },
+  { icon: BookOpen, label: "Glossary Generation", description: "Extract and define key terms", ready: false },
+  { icon: Languages, label: "Easy Read Version", description: "Simplified language variant", ready: false },
+  { icon: HelpCircle, label: "Quiz Generation", description: "Comprehension questions per section", ready: false },
+  { icon: FileDown, label: "Export Bundle", description: "Package for print and digital distribution", ready: true },
 ]
 
 export function AcceptStoryboardDialog({
@@ -34,13 +35,18 @@ export function AcceptStoryboardDialog({
   label,
 }: AcceptStoryboardDialogProps) {
   const navigate = useNavigate()
+  const acceptMutation = useAcceptStoryboard()
 
   const handleAccept = () => {
-    onOpenChange(false)
-    navigate({
-      to: "/books/$label",
-      params: { label },
-      search: { autoRun: undefined, startPage: undefined, endPage: undefined },
+    acceptMutation.mutate(label, {
+      onSuccess: () => {
+        onOpenChange(false)
+        navigate({
+          to: "/books/$label",
+          params: { label },
+          search: { autoRun: undefined, startPage: undefined, endPage: undefined },
+        })
+      },
     })
   }
 
@@ -65,13 +71,15 @@ export function AcceptStoryboardDialog({
             {NEXT_STEPS.map((step) => (
               <div
                 key={step.label}
-                className="flex items-center gap-3 rounded-lg border p-3 opacity-60"
+                className={`flex items-center gap-3 rounded-lg border p-3${step.ready ? "" : " opacity-60"}`}
               >
                 <step.icon className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">{step.label}</span>
-                    <Badge variant="secondary" className="text-[10px]">Coming Soon</Badge>
+                    {!step.ready && (
+                      <Badge variant="secondary" className="text-[10px]">Coming Soon</Badge>
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground">{step.description}</p>
                 </div>
@@ -84,11 +92,18 @@ export function AcceptStoryboardDialog({
           </p>
         </div>
 
+        {acceptMutation.error && (
+          <p className="text-sm text-destructive">
+            {acceptMutation.error.message}
+          </p>
+        )}
+
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={acceptMutation.isPending}>
             Cancel
           </Button>
-          <Button onClick={handleAccept}>
+          <Button onClick={handleAccept} disabled={acceptMutation.isPending}>
+            {acceptMutation.isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
             Accept & Continue
           </Button>
         </DialogFooter>

@@ -4,6 +4,7 @@ import os from "node:os"
 import path from "node:path"
 import { openBookDb, createBookStorage } from "@adt/storage"
 import { SCHEMA_VERSION } from "@adt/types"
+import { createBookStorage } from "@adt/storage"
 import { createBookRoutes } from "./books.js"
 
 let tmpDir: string
@@ -329,6 +330,138 @@ describe("PUT /books/:label/config", () => {
       body: JSON.stringify({}),
     })
     expect(res.status).toBe(400)
+  })
+})
+
+function addPagesAndRenderings(label: string, count: number): void {
+  const storage = createBookStorage(label, tmpDir)
+  try {
+    for (let i = 1; i <= count; i++) {
+      const pageId = `${label}_p${i}`
+      storage.putExtractedPage({
+        pageId,
+        pageNumber: i,
+        text: `Page ${i}`,
+        pageImage: {
+          imageId: `${pageId}_page`,
+          pngBuffer: Buffer.from("fake-png"),
+          hash: `hash${i}`,
+          width: 800,
+          height: 600,
+        },
+        images: [],
+      })
+      storage.putNodeData("web-rendering", pageId, {
+        sections: [{ html: `<p>Rendered page ${i}</p>` }],
+      })
+    }
+  } finally {
+    storage.close()
+  }
+}
+
+function acceptBook(label: string): void {
+  const storage = createBookStorage(label, tmpDir)
+  try {
+    storage.putNodeData("storyboard-acceptance", "book", {
+      acceptedAt: new Date().toISOString(),
+      renderedPageCount: 1,
+    })
+  } finally {
+    storage.close()
+  }
+}
+
+describe("POST /books/:label/accept-storyboard", () => {
+  it("accepts storyboard when all pages rendered", async () => {
+    createTestBook("accept-me")
+    addPagesAndRenderings("accept-me", 2)
+    const app = createBookRoutes(tmpDir)
+    const res = await app.request("/books/accept-me/accept-storyboard", {
+      method: "POST",
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.version).toBeGreaterThanOrEqual(1)
+    expect(body.acceptedAt).toBeDefined()
+  })
+
+  it("returns 400 when pages not fully rendered", async () => {
+    createTestBook("partial-render")
+    // Has no pages with renderings by default
+    const app = createBookRoutes(tmpDir)
+    const res = await app.request("/books/partial-render/accept-storyboard", {
+      method: "POST",
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it("returns 404 for missing book", async () => {
+    const app = createBookRoutes(tmpDir)
+    const res = await app.request("/books/ghost/accept-storyboard", {
+      method: "POST",
+    })
+    expect(res.status).toBe(404)
+  })
+
+  it("reflects storyboardAccepted in GET /books", async () => {
+    createTestBook("accepted-list")
+    addPagesAndRenderings("accepted-list", 1)
+    const app = createBookRoutes(tmpDir)
+
+    // Accept
+    await app.request("/books/accepted-list/accept-storyboard", {
+      method: "POST",
+    })
+
+    // Verify in list
+    const listRes = await app.request("/books")
+    const books = await listRes.json()
+    const book = books.find((b: { label: string }) => b.label === "accepted-list")
+    expect(book.storyboardAccepted).toBe(true)
+  })
+
+  it("reflects storyboardAccepted in GET /books/:label", async () => {
+    createTestBook("accepted-detail")
+    addPagesAndRenderings("accepted-detail", 1)
+    const app = createBookRoutes(tmpDir)
+
+    await app.request("/books/accepted-detail/accept-storyboard", {
+      method: "POST",
+    })
+
+    const detailRes = await app.request("/books/accepted-detail")
+    const book = await detailRes.json()
+    expect(book.storyboardAccepted).toBe(true)
+  })
+})
+
+describe("GET /books/:label/export", () => {
+  it("returns ZIP when storyboard accepted", async () => {
+    createTestBook("export-book")
+    addPagesAndRenderings("export-book", 2)
+    acceptBook("export-book")
+    const app = createBookRoutes(tmpDir)
+    const res = await app.request("/books/export-book/export")
+    expect(res.status).toBe(200)
+    expect(res.headers.get("Content-Type")).toBe("application/zip")
+    expect(res.headers.get("Content-Disposition")).toContain("export-book.zip")
+    const buf = await res.arrayBuffer()
+    expect(buf.byteLength).toBeGreaterThan(0)
+  })
+
+  it("returns 400 when storyboard not accepted", async () => {
+    createTestBook("not-accepted-export")
+    addPagesAndRenderings("not-accepted-export", 1)
+    const app = createBookRoutes(tmpDir)
+    const res = await app.request("/books/not-accepted-export/export")
+    expect(res.status).toBe(400)
+  })
+
+  it("returns 404 for missing book", async () => {
+    const app = createBookRoutes(tmpDir)
+    const res = await app.request("/books/ghost/export")
+    expect(res.status).toBe(404)
   })
 })
 
