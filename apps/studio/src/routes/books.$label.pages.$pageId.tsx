@@ -205,7 +205,7 @@ function PageDetailPage() {
       <div className="grid min-h-0 flex-1 grid-cols-[1fr_1.2fr_1.2fr] gap-0 divide-x">
         {/* Left: Pipeline inputs (text classification + image classification) */}
         <div className="flex flex-col overflow-hidden">
-          <div className="flex shrink-0 items-center gap-2 border-b bg-muted/30 px-4 py-2">
+          <div className="flex shrink-0 items-center gap-2 border-b bg-muted/50 px-4 py-2">
             <FileText className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium">Pipeline Inputs</span>
             {isEditing && <Badge variant="secondary" className="text-xs">Editing</Badge>}
@@ -213,18 +213,18 @@ function PageDetailPage() {
           <div className="flex-1 overflow-auto p-4">
             {/* Workflow hint card — view mode only */}
             {!isEditing && !pageGuideDismissed && (
-              <div className="mb-4 rounded-lg border border-blue-200 bg-blue-50/50 p-3">
+              <div className="mb-4 rounded-lg border border-primary/20 bg-primary/5 p-3">
                 <div className="mb-1 flex items-center justify-between">
-                  <p className="text-xs font-medium text-blue-900">Editing workflow</p>
+                  <p className="text-xs font-medium text-primary">Editing workflow</p>
                   <button
                     type="button"
                     onClick={dismissPageGuide}
-                    className="rounded p-0.5 text-blue-400 hover:text-blue-600"
+                    className="rounded p-0.5 text-primary/50 hover:text-primary"
                   >
                     <X className="h-3 w-3" />
                   </button>
                 </div>
-                <ol className="list-inside list-decimal space-y-0.5 text-xs text-blue-800">
+                <ol className="list-inside list-decimal space-y-0.5 text-xs text-foreground">
                   <li>Click <strong>Edit Text & Images</strong> to modify inputs</li>
                   <li><strong>Save</strong> your changes</li>
                   <li>Click <strong>Re-render</strong> to regenerate this page</li>
@@ -316,7 +316,7 @@ function PageDetailPage() {
 
         {/* Center: Pipeline Output — tabs for Preview vs By Section */}
         <Tabs defaultValue="preview" className="flex flex-col overflow-hidden">
-          <div className="flex shrink-0 items-center gap-2 border-b bg-muted/30 px-4 py-1.5">
+          <div className="flex shrink-0 items-center gap-2 border-b bg-muted/50 px-4 py-1.5">
             <Layers className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium">Pipeline Output</span>
             {reRender.isPending && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
@@ -411,7 +411,7 @@ function PageDetailPage() {
 
         {/* Right: Original page image */}
         <div className="flex flex-col overflow-hidden">
-          <div className="flex shrink-0 items-center gap-2 border-b bg-muted/30 px-4 py-2">
+          <div className="flex shrink-0 items-center gap-2 border-b bg-muted/50 px-4 py-2">
             <Image className="h-4 w-4 text-muted-foreground" />
             <span className="text-sm font-medium">Original Page</span>
           </div>

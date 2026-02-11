@@ -62,8 +62,8 @@ export function PageCard({
           )}
           <div className="absolute right-1 top-1">
             <Badge
-              variant={hasRendering ? "default" : "secondary"}
-              className="text-[10px] px-1.5 py-0"
+              variant="secondary"
+              className={cn("text-[10px] px-1.5 py-0", hasRendering && "bg-green-100 text-green-700")}
             >
               {hasRendering ? (
                 <Check className="mr-0.5 h-3 w-3" />

@@ -47,7 +47,7 @@ function MiniPageTile({ label, page }: { label: string; page: PageSummaryItem })
           <div className="mb-1 flex items-center gap-2">
             <span className="text-xs font-medium">Page {page.pageNumber}</span>
             {page.hasRendering && (
-              <Badge variant="default" className="px-1 py-0 text-[10px]">
+              <Badge variant="secondary" className="px-1 py-0 text-[10px] bg-green-100 text-green-700">
                 Rendered
               </Badge>
             )}

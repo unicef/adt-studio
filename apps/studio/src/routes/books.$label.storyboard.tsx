@@ -269,7 +269,7 @@ function StoryboardPage() {
 
       {/* Rebuild progress banner */}
       {progress.isRunning && (
-        <div className="flex shrink-0 items-center gap-2 border-b bg-blue-50 px-4 py-2 text-sm text-blue-800">
+        <div className="flex shrink-0 items-center gap-2 border-b bg-primary/5 px-4 py-2 text-sm text-primary">
           <Loader2 className="h-4 w-4 animate-spin shrink-0" />
           <span className="flex-1">
             Rebuilding storyboard{currentStepLabel ? ` \u2014 ${currentStepLabel}` : ""}...

@@ -80,7 +80,7 @@ function BookRow({
 }) {
   const hasMetadata = book.title || book.authors.length > 0
   return (
-    <div className="group rounded-xl border bg-card transition-all hover:shadow-md hover:border-primary/30">
+    <div className="group rounded-xl border bg-card transition-all duration-200 hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5">
       <div className="flex items-stretch">
         {/* Main content — clickable */}
         <Link
@@ -220,7 +220,7 @@ function HomePage() {
       {/* Left — workflow guide (30%) */}
       <div className="w-[30%] shrink-0 border-r bg-muted/30 flex flex-col overflow-auto">
         <div className="p-5 pb-3">
-          <h1 className="text-lg font-bold tracking-tight">ADT Studio</h1>
+          <h1 className="text-lg font-bold tracking-tight text-primary">ADT Studio</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             Accessible Digital Textbooks
           </p>
@@ -259,7 +259,7 @@ function HomePage() {
 
           <Link
             to="/books/new"
-            className="mt-4 flex items-center justify-center gap-1.5 rounded-lg border bg-background px-4 py-2 text-sm font-medium text-primary hover:bg-primary/5 transition-colors"
+            className="mt-4 flex items-center justify-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 shadow-sm transition-colors"
           >
             Get started <ArrowRight className="h-3.5 w-3.5" />
           </Link>
@@ -289,7 +289,7 @@ function HomePage() {
           ))}
           {bookList.length === 0 && (
             <Link to="/books/new" className="block">
-              <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed bg-muted/30 py-16 transition-all hover:border-primary/40 hover:bg-muted/50 cursor-pointer">
+              <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed bg-muted/30 py-16 transition-all hover:border-primary/40 hover:bg-primary/5 cursor-pointer">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 mb-3">
                   <Plus className="h-6 w-6 text-primary" />
                 </div>
