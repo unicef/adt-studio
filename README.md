@@ -28,6 +28,9 @@ cd adt-studio
 # Install dependencies
 pnpm install
 
+# Build packages
+pnpm build
+
 # Start development servers (API + Studio)
 pnpm dev
 ```
