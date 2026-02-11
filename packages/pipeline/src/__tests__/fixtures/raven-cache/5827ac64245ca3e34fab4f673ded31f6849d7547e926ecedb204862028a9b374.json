@@ -1,0 +1,15 @@
+{
+  "reasoning": "This page contains a single narrative sentence paired with one illustration that directly depicts the scene (Hyena speaking to a bird). They form one coherent reading unit. The page number '2' is visible at the bottom.",
+  "sections": [
+    {
+      "section_type": "text_and_single_image",
+      "part_ids": [
+        "pg003_gp001",
+        "pg003_im001"
+      ],
+      "background_color": "#ffffff",
+      "text_color": "#000000",
+      "page_number": 2
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+{
+  "title": "Hyena and Raven",
+  "authors": [
+    "Tony Lelliott",
+    "Wiehan de Jager"
+  ],
+  "publisher": "African Storybook",
+  "language_code": "en",
+  "cover_page_number": 1,
+  "reasoning": "Page 1 functions as the front cover: it has the prominent title text, two creator names, and a publisher/website mark (“African Storybook.org”) plus the language label. Pages 2–3 contain the narrative text and page numbering (1, 2), indicating they are interior story pages. The book title and author/creator names are explicitly shown on page 1. The only publisher/imprint information visible is the African Storybook logo/URL on the cover. The narrative text is in English, so the language code is 'en'."
+}

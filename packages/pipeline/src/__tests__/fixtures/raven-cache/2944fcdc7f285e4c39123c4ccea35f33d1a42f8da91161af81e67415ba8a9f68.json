@@ -1,0 +1,23 @@
+{
+  "reasoning": "The page contains one block of narrative text on the right side and a page number centered at the bottom. No other visible text appears on the illustration.",
+  "groups": [
+    {
+      "group_type": "paragraph",
+      "texts": [
+        {
+          "text_type": "section_text",
+          "text": "One day Hyena said to his friend, \"I would love to fly into the sky with you.\""
+        }
+      ]
+    },
+    {
+      "group_type": "other",
+      "texts": [
+        {
+          "text_type": "page_number",
+          "text": "2"
+        }
+      ]
+    }
+  ]
+}

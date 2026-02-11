@@ -46,3 +46,4 @@ export {
 } from "./render-template.js"
 export { validateSectionHtml } from "./validate-html.js"
 export { loadConfig, loadBookConfig, deepMerge } from "./config.js"
+export { runPipeline, type RunPipelineOptions } from "./pipeline.js"
