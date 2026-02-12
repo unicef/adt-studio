@@ -10,6 +10,8 @@ import { useApiKey } from "@/hooks/use-api-key"
 import { useReRenderPage } from "@/hooks/use-page-mutations"
 import { STEP_LABELS } from "@/components/pipeline/StepIndicator"
 import { RenderedHtml } from "@/components/storyboard/RenderedHtml"
+import { ActivityAnswerPanel } from "@/components/storyboard/ActivityAnswerPanel"
+import { isActivitySection, formatSectionType } from "@/lib/activity-utils"
 import { StoryboardSettingsSheet } from "@/components/storyboard/StoryboardSettingsSheet"
 import { AcceptStoryboardDialog } from "@/components/storyboard/AcceptStoryboardDialog"
 import { StoryboardGuideDialog } from "@/components/storyboard/StoryboardGuideDialog"
@@ -463,6 +465,7 @@ function PreviewPanel({
   const { data: page, isLoading } = usePage(label, pageId)
   const { apiKey, hasApiKey } = useApiKey()
   const reRender = useReRenderPage(label, pageId)
+  const [showAnswers, setShowAnswers] = useState(false)
 
   const combinedHtml = useMemo(
     () => page?.rendering?.sections.map((s) => s.html).join("\n"),
@@ -470,6 +473,7 @@ function PreviewPanel({
   )
 
   const sectionCount = page?.rendering?.sections.length ?? 0
+  const activityCount = page?.rendering?.sections.filter((s) => isActivitySection(s.sectionType)).length ?? 0
   const hasRenderingData = !!page?.textClassification
 
   const reRenderTitle = !hasApiKey
@@ -487,10 +491,22 @@ function PreviewPanel({
         <div className="flex items-center gap-2">
           <span className="text-sm font-medium">Page {page?.pageNumber ?? "..."}</span>
           {sectionCount > 0 && (
-            <Badge variant="secondary" className="text-xs">{sectionCount} sections</Badge>
+            <Badge variant="secondary" className="text-xs">
+              {sectionCount} section{sectionCount !== 1 && "s"}
+              {activityCount > 0 && ` \u00b7 ${activityCount} activity`}
+            </Badge>
           )}
         </div>
         <div className="flex items-center gap-2">
+          {activityCount > 0 && combinedHtml && (
+            <Button
+              variant={showAnswers ? "secondary" : "outline"}
+              size="sm"
+              onClick={() => setShowAnswers((v) => !v)}
+            >
+              {showAnswers ? "Hide Answers" : "Show Answers"}
+            </Button>
+          )}
           <div className="flex gap-1">
             <Button variant="outline" size="sm" disabled={!hasPrev} onClick={onPrev}>
               <ChevronLeft className="h-3 w-3" />
@@ -527,6 +543,7 @@ function PreviewPanel({
         <div className="flex shrink-0 items-center gap-2 border-b bg-green-50 px-5 py-1.5 text-xs text-green-800">
           <CheckCircle2 className="h-3 w-3 shrink-0" />
           Page re-rendered successfully.
+          {activityCount > 0 && " Activity answers were also regenerated."}
         </div>
       )}
 
@@ -559,11 +576,30 @@ function PreviewPanel({
               <p className="text-sm">Re-rendering page...</p>
             </div>
           </div>
-        ) : combinedHtml ? (
+        ) : combinedHtml && !showAnswers ? (
           <RenderedHtml
             html={combinedHtml}
             className="prose prose-sm max-w-none rounded-lg border bg-white p-6 shadow-sm"
           />
+        ) : combinedHtml && showAnswers && page?.rendering ? (
+          <div className="space-y-4">
+            {page.rendering.sections.map((section, i) => (
+              <div key={i}>
+                <RenderedHtml
+                  html={section.html}
+                  className="prose prose-sm max-w-none rounded-lg border bg-white p-6 shadow-sm"
+                />
+                {isActivitySection(section.sectionType) && section.activityAnswers && Object.keys(section.activityAnswers).length > 0 && (
+                  <div className="mt-2">
+                    <ActivityAnswerPanel
+                      answers={section.activityAnswers}
+                      reasoning={section.activityReasoning}
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
             <ImageOff className="h-8 w-8" />

@@ -52,7 +52,7 @@ export function EditToolbar({
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={onEdit} disabled={!hasRenderingData} title={editTitle}>
             <Pencil className="mr-1 h-3 w-3" />
-            Edit Text & Images
+            Edit
           </Button>
           <Button
             variant="outline"
@@ -71,7 +71,7 @@ export function EditToolbar({
         </div>
         {hasRenderingData && (
           <p className="text-[11px] text-muted-foreground">
-            Modify text groups or toggle image pruning, then re-render.
+            Modify text, images, or sections, then re-render.
           </p>
         )}
       </div>

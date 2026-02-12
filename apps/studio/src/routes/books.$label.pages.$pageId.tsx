@@ -9,9 +9,12 @@ import { EditToolbar } from "@/components/page-edit/EditToolbar"
 import { TextGroupEditor } from "@/components/page-edit/TextGroupEditor"
 import { ImagePruningEditor } from "@/components/page-edit/ImagePruningEditor"
 import { RenderedHtml } from "@/components/storyboard/RenderedHtml"
-import { useSaveTextClassification, useSaveImageClassification, useReRenderPage } from "@/hooks/use-page-mutations"
+import { useSaveTextClassification, useSaveImageClassification, useSaveSectioning, useReRenderPage } from "@/hooks/use-page-mutations"
+import { SectionEditor } from "@/components/page-edit/SectionEditor"
 import { useApiKey } from "@/hooks/use-api-key"
 import { useGuideDismissed } from "@/hooks/use-guide-dismissed"
+import { ActivityAnswerPanel } from "@/components/storyboard/ActivityAnswerPanel"
+import { isActivitySection, formatSectionType } from "@/lib/activity-utils"
 import type { PageDetail } from "@/api/client"
 
 export const Route = createFileRoute("/books/$label/pages/$pageId")({
@@ -30,9 +33,11 @@ function PageDetailPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [editedGroups, setEditedGroups] = useState<PageDetail["textClassification"]>(null)
   const [editedImages, setEditedImages] = useState<PageDetail["imageClassification"]>(null)
+  const [editedSectioning, setEditedSectioning] = useState<PageDetail["sectioning"]>(null)
 
   const saveText = useSaveTextClassification(label, pageId)
   const saveImages = useSaveImageClassification(label, pageId)
+  const saveSectioning = useSaveSectioning(label, pageId)
   const reRender = useReRenderPage(label, pageId)
 
   const handleEdit = useCallback(() => {
@@ -42,6 +47,9 @@ function PageDetailPage() {
     if (page?.imageClassification) {
       setEditedImages(structuredClone(page.imageClassification))
     }
+    if (page?.sectioning) {
+      setEditedSectioning(structuredClone(page.sectioning))
+    }
     setIsEditing(true)
   }, [page])
 
@@ -49,6 +57,7 @@ function PageDetailPage() {
     setIsEditing(false)
     setEditedGroups(null)
     setEditedImages(null)
+    setEditedSectioning(null)
   }, [])
 
   const handleSave = useCallback(async () => {
@@ -60,12 +69,16 @@ function PageDetailPage() {
     if (editedImages && JSON.stringify(editedImages) !== JSON.stringify(page?.imageClassification)) {
       promises.push(saveImages.mutateAsync(editedImages))
     }
+    if (editedSectioning && JSON.stringify(editedSectioning) !== JSON.stringify(page?.sectioning)) {
+      promises.push(saveSectioning.mutateAsync(editedSectioning))
+    }
 
     await Promise.all(promises)
     setIsEditing(false)
     setEditedGroups(null)
     setEditedImages(null)
-  }, [editedGroups, editedImages, page, saveText, saveImages])
+    setEditedSectioning(null)
+  }, [editedGroups, editedImages, editedSectioning, page, saveText, saveImages, saveSectioning])
 
   const handleReRender = useCallback(() => {
     if (hasApiKey) {
@@ -74,6 +87,7 @@ function PageDetailPage() {
   }, [apiKey, hasApiKey, reRender])
 
   const [isSaveAndReRendering, setIsSaveAndReRendering] = useState(false)
+  const [expandedAnswers, setExpandedAnswers] = useState<Set<number>>(new Set())
 
   const handleSaveAndReRender = useCallback(async () => {
     setIsSaveAndReRendering(true)
@@ -90,7 +104,42 @@ function PageDetailPage() {
   const hasChanges =
     (editedGroups && JSON.stringify(editedGroups) !== JSON.stringify(page?.textClassification)) ||
     (editedImages && JSON.stringify(editedImages) !== JSON.stringify(page?.imageClassification)) ||
+    (editedSectioning && JSON.stringify(editedSectioning) !== JSON.stringify(page?.sectioning)) ||
     false
+
+  // Find prev/next pages for navigation (computed before hooks that depend on them)
+  const currentIndex = allPages?.findIndex((p) => p.pageId === pageId) ?? -1
+  const prevPage = currentIndex > 0 ? allPages?.[currentIndex - 1] : null
+  const nextPage =
+    allPages && currentIndex < allPages.length - 1
+      ? allPages[currentIndex + 1]
+      : null
+
+  // Keyboard navigation: arrow keys for prev/next page
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Skip when focus is in an editable element
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return
+      if ((e.target as HTMLElement)?.isContentEditable) return
+
+      if (e.key === "ArrowLeft" && prevPage) {
+        e.preventDefault()
+        navigate({
+          to: "/books/$label/pages/$pageId",
+          params: { label, pageId: prevPage.pageId },
+        })
+      } else if (e.key === "ArrowRight" && nextPage) {
+        e.preventDefault()
+        navigate({
+          to: "/books/$label/pages/$pageId",
+          params: { label, pageId: nextPage.pageId },
+        })
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [navigate, label, prevPage, nextPage])
 
   if (isLoading) {
     return <div className="p-4 text-muted-foreground">Loading page...</div>
@@ -105,14 +154,6 @@ function PageDetailPage() {
   }
 
   if (!page) return null
-
-  // Find prev/next pages for navigation
-  const currentIndex = allPages?.findIndex((p) => p.pageId === pageId) ?? -1
-  const prevPage = currentIndex > 0 ? allPages?.[currentIndex - 1] : null
-  const nextPage =
-    allPages && currentIndex < allPages.length - 1
-      ? allPages[currentIndex + 1]
-      : null
 
   // Combine all section HTMLs into a single preview
   const combinedHtml = page.rendering?.sections
@@ -166,7 +207,7 @@ function PageDetailPage() {
         <EditToolbar
           isEditing={isEditing}
           hasChanges={hasChanges}
-          isSaving={saveText.isPending || saveImages.isPending}
+          isSaving={saveText.isPending || saveImages.isPending || saveSectioning.isPending}
           isReRendering={reRender.isPending}
           hasApiKey={hasApiKey}
           hasRenderingData={!!page.textClassification}
@@ -183,7 +224,11 @@ function PageDetailPage() {
       {reRender.isSuccess && (
         <div className="flex shrink-0 items-center gap-2 border-b bg-green-50 px-4 py-2 text-sm text-green-800">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
-          <span className="flex-1">Page re-rendered successfully.</span>
+          <span className="flex-1">
+            Page re-rendered successfully.
+            {page.rendering?.sections.some((s) => isActivitySection(s.sectionType) && s.sectionType !== "activity_open_ended_answer") &&
+              " Activity answers were also regenerated."}
+          </span>
           <Button variant="ghost" size="sm" onClick={() => reRender.reset()}>
             Dismiss
           </Button>
@@ -225,7 +270,7 @@ function PageDetailPage() {
                   </button>
                 </div>
                 <ol className="list-inside list-decimal space-y-0.5 text-xs text-foreground">
-                  <li>Click <strong>Edit Text & Images</strong> to modify inputs</li>
+                  <li>Click <strong>Edit</strong> to modify text, images, and sections</li>
                   <li><strong>Save</strong> your changes</li>
                   <li>Click <strong>Re-render</strong> to regenerate this page</li>
                 </ol>
@@ -352,7 +397,24 @@ function PageDetailPage() {
           </TabsContent>
 
           <TabsContent value="sections" className="mt-0 flex-1 overflow-auto p-4">
-            {page.rendering && page.sectioning ? (
+            {isEditing && editedSectioning ? (
+              <SectionEditor
+                sections={editedSectioning.sections}
+                reasoning={editedSectioning.reasoning}
+                onChange={(sections) =>
+                  setEditedSectioning({ ...editedSectioning, sections })
+                }
+                textGroups={
+                  (editedGroups ?? page.textClassification)?.groups.map((g) => ({
+                    groupId: g.groupId,
+                    groupType: g.groupType,
+                  })) ?? []
+                }
+                images={
+                  (editedImages ?? page.imageClassification)?.images ?? []
+                }
+              />
+            ) : page.rendering && page.sectioning ? (
               <div className="space-y-4">
                 {page.rendering.sections.map((section, i) => {
                   const sectionMeta = page.sectioning?.sections[i]
@@ -363,8 +425,15 @@ function PageDetailPage() {
                           Section {i + 1}
                         </span>
                         <Badge variant="outline" className="text-xs">
-                          {section.sectionType}
+                          {formatSectionType(section.sectionType)}
                         </Badge>
+                        {isActivitySection(section.sectionType) && (
+                          <Badge className="bg-green-100 text-green-800 hover:bg-green-100 text-xs">
+                            Activity
+                            {section.activityAnswers && Object.keys(section.activityAnswers).length > 0 &&
+                              ` (${Object.keys(section.activityAnswers).length})`}
+                          </Badge>
+                        )}
                         {sectionMeta && (
                           <div className="flex gap-1">
                             <span
@@ -392,6 +461,38 @@ function PageDetailPage() {
                           <p className="mt-2 text-xs text-muted-foreground">
                             {section.reasoning}
                           </p>
+                        )}
+                        {section.activityReasoning && (
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            {section.activityReasoning}
+                          </p>
+                        )}
+                        {section.activityAnswers && Object.keys(section.activityAnswers).length > 0 && (
+                          <div className="mt-3">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs text-green-700"
+                              onClick={() => {
+                                setExpandedAnswers((prev) => {
+                                  const next = new Set(prev)
+                                  if (next.has(i)) next.delete(i)
+                                  else next.add(i)
+                                  return next
+                                })
+                              }}
+                            >
+                              {expandedAnswers.has(i) ? "Hide Answers" : "Show Answers"}
+                            </Button>
+                            {expandedAnswers.has(i) && (
+                              <div className="mt-2">
+                                <ActivityAnswerPanel
+                                  answers={section.activityAnswers}
+                                  reasoning={section.activityReasoning}
+                                />
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>

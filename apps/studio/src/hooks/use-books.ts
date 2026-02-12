@@ -49,6 +49,7 @@ export function useAcceptStoryboard() {
   return useMutation({
     mutationFn: (label: string) => api.acceptStoryboard(label),
     onSuccess: (_data, label) => {
+      queryClient.invalidateQueries({ queryKey: ["pipeline-status", label] })
       queryClient.invalidateQueries({ queryKey: ["books"] })
       queryClient.invalidateQueries({ queryKey: ["books", label] })
     },

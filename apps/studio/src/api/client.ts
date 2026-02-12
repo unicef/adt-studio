@@ -70,6 +70,8 @@ export interface SectionRendering {
   sectionType: string
   reasoning: string
   html: string
+  activityReasoning?: string
+  activityAnswers?: Record<string, string | boolean | number>
 }
 
 export interface PageDetail {
@@ -246,6 +248,12 @@ export const api = {
 
   updateImageClassification: (label: string, pageId: string, data: unknown) =>
     request<{ version: number }>(`/books/${label}/pages/${pageId}/image-classification`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  updateSectioning: (label: string, pageId: string, data: unknown) =>
+    request<{ version: number }>(`/books/${label}/pages/${pageId}/sectioning`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),

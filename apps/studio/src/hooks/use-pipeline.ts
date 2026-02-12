@@ -133,6 +133,7 @@ export function usePipelineSSE(label: string, enabled: boolean) {
         isComplete: true,
         currentStep: null,
       }))
+      queryClient.invalidateQueries({ queryKey: ["pipeline-status", label] })
       queryClient.invalidateQueries({ queryKey: ["books", label] })
       queryClient.invalidateQueries({ queryKey: ["books"] })
       queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
@@ -182,6 +183,7 @@ export function usePipelineSSE(label: string, enabled: boolean) {
               currentStep: null,
             }
           })
+          queryClient.invalidateQueries({ queryKey: ["pipeline-status", label] })
           queryClient.invalidateQueries({ queryKey: ["books", label] })
           queryClient.invalidateQueries({ queryKey: ["books"] })
           queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })

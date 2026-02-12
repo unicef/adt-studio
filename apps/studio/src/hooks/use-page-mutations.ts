@@ -21,6 +21,16 @@ export function useSaveImageClassification(label: string, pageId: string) {
   })
 }
 
+export function useSaveSectioning(label: string, pageId: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (data: unknown) => api.updateSectioning(label, pageId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["books", label, "pages", pageId] })
+    },
+  })
+}
+
 export function useReRenderPage(label: string, pageId: string) {
   const queryClient = useQueryClient()
   return useMutation({

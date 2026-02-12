@@ -148,6 +148,21 @@ function BookDetailPage() {
             </Button>
           </Link>
         )}
+        {book.storyboardAccepted && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => exportBook.mutate(label)}
+            disabled={exportBook.isPending}
+          >
+            {exportBook.isPending ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <FileDown className="mr-2 h-4 w-4" />
+            )}
+            Export ZIP
+          </Button>
+        )}
       </div>
 
       {/* Rebuild warning */}
@@ -249,30 +264,6 @@ function BookDetailPage() {
                 Review Storyboard
               </Button>
             </Link>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Export ZIP CTA */}
-      {book.storyboardAccepted && (
-        <Card className="border-green-200 bg-green-50/50">
-          <CardContent className="flex items-center justify-between py-3">
-            <div>
-              <p className="text-sm font-medium">Storyboard accepted</p>
-              <p className="text-xs text-muted-foreground">Download the book as an HTML + images bundle</p>
-            </div>
-            <Button
-              size="sm"
-              onClick={() => exportBook.mutate(label)}
-              disabled={exportBook.isPending}
-            >
-              {exportBook.isPending ? (
-                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-              ) : (
-                <FileDown className="mr-1.5 h-4 w-4" />
-              )}
-              Export ZIP
-            </Button>
           </CardContent>
         </Card>
       )}
