@@ -1,5 +1,5 @@
 {
-  "reasoning": "I read the page top-to-bottom. The only visible text is the two narrative sentences on the right side and the page number centered at the bottom. No header/footer text or captions are present on the illustration.",
+  "reasoning": "The page contains two short narrative sentences set as separate text blocks on the right side, and a single page number centered at the bottom. No headers, titles, captions, or other text appear on the illustration.",
   "groups": [
     {
       "group_type": "paragraph",
@@ -7,7 +7,12 @@
         {
           "text_type": "section_text",
           "text": "Hyena and Raven were once great friends."
-        },
+        }
+      ]
+    },
+    {
+      "group_type": "paragraph",
+      "texts": [
         {
           "text_type": "section_text",
           "text": "They played together all the time."
