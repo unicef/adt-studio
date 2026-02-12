@@ -1,0 +1,37 @@
+{
+  "$schema": "https://raw.githubusercontent.com/nicpottier/tauri/refs/heads/dev/crates/tauri-cli/schema.json",
+  "productName": "ADT Studio",
+  "version": "0.1.0",
+  "identifier": "org.unicef.adt-studio",
+  "build": {
+    "beforeDevCommand": "",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "",
+    "frontendDist": "../../studio/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "ADT Studio",
+        "width": 1400,
+        "height": 900,
+        "resizable": true,
+        "fullscreen": false
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ]
+  }
+}
