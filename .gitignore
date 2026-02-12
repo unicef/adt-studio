@@ -33,7 +33,7 @@ Thumbs.db
 .claude/settings.local.json
 
 # Tauri build output
-src-tauri/target/
+**/src-tauri/target/
 
 # Vitest
 coverage/
