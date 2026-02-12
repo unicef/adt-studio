@@ -77,7 +77,7 @@ export function createBookRoutes(booksDir: string): Hono {
     }
   })
 
-  // GET /books/:label/images/:imageId — Serve extracted image as PNG
+  // GET /books/:label/images/:imageId — Serve extracted image binary
   app.get("/books/:label/images/:imageId", (c) => {
     const { label, imageId } = c.req.param()
     let safeLabel: string
@@ -130,7 +130,9 @@ export function createBookRoutes(booksDir: string): Hono {
       }
 
       const imageBuffer = fs.readFileSync(imagePath)
-      const contentType = imagePath.endsWith(".jpg") ? "image/jpeg" : "image/png"
+      const ext = path.extname(imagePath).toLowerCase()
+      const contentType =
+        ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "image/png"
       c.header("Content-Type", contentType)
       c.header("Cache-Control", "public, max-age=86400")
       return c.body(imageBuffer)

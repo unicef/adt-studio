@@ -45,7 +45,7 @@ IMPORTANT: Your reasoning MUST be written in English, regardless of the activity
 - Minimum width for consistency: `min-w-[60px] text-center`
 
 **Required attributes:**
-- Each radio input needs `data-activity-item` attribute with unique identifier
+- Each question needs one statement identifier (e.g., `item-1`) and BOTH radio inputs for that question must share that same `data-activity-item`
 - Use same `data-id` for "Yes" and "No" text across all questions (reusable text)
 - Proper `name` attributes to group radio buttons per question
 
@@ -74,7 +74,7 @@ Example true/false activity:
 
       <div class="flex space-x-4 ml-8">
         <label for="question1-yes" class="relative flex items-center cursor-pointer group">
-          <input id="question1-yes" name="question1" tabindex="0" type="radio" value="yes"
+          <input id="question1-yes" name="question1" tabindex="0" type="radio" value="true"
                  data-activity-item="item-1" class="sr-only peer">
           <div class="px-4 py-2 rounded-full bg-gray-200 peer-checked:bg-blue-500 peer-checked:text-white peer-focus:ring-2 peer-focus:ring-blue-400 peer-focus:ring-offset-2 transition-colors min-w-[60px] text-center relative">
             <span data-id="text-19-25">Yes</span>
@@ -82,7 +82,7 @@ Example true/false activity:
           </div>
         </label>
         <label for="question1-no" class="relative flex items-center cursor-pointer group">
-          <input id="question1-no" name="question1" tabindex="0" type="radio" value="no"
+          <input id="question1-no" name="question1" tabindex="0" type="radio" value="false"
                  data-activity-item="item-1" class="sr-only peer">
           <div class="px-4 py-2 rounded-full bg-gray-200 peer-checked:bg-blue-500 peer-checked:text-white peer-focus:ring-2 peer-focus:ring-blue-400 peer-focus:ring-offset-2 transition-colors min-w-[60px] text-center relative">
             <span data-id="text-19-26">No</span>

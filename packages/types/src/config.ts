@@ -17,22 +17,32 @@ export type StepConfig = z.infer<typeof StepConfig>
 export const RenderType = z.enum(["llm", "template", "activity"])
 export type RenderType = z.infer<typeof RenderType>
 
-export const RenderStrategyConfig = z.object({
-  render_type: RenderType,
-  config: z
-    .object({
-      // llm / activity render type
-      prompt: z.string().optional(),
-      model: z.string().optional(),
-      max_retries: z.number().int().min(0).optional(),
-      timeout: z.number().int().min(1).optional(),
-      // activity render type — answer generation prompt
-      answer_prompt: z.string().optional(),
-      // template render type
-      template: z.string().optional(),
-    })
-    .optional(),
-})
+export const RenderStrategyConfig = z
+  .object({
+    render_type: RenderType,
+    config: z
+      .object({
+        // llm / activity render type
+        prompt: z.string().optional(),
+        model: z.string().optional(),
+        max_retries: z.number().int().min(0).optional(),
+        timeout: z.number().int().min(1).optional(),
+        // activity render type — answer generation prompt
+        answer_prompt: z.string().optional(),
+        // template render type
+        template: z.string().optional(),
+      })
+      .optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.render_type !== "activity" && value.config?.answer_prompt !== undefined) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "answer_prompt is only supported for render_type: activity",
+        path: ["config", "answer_prompt"],
+      })
+    }
+  })
 export type RenderStrategyConfig = z.infer<typeof RenderStrategyConfig>
 
 export const AppConfig = z.object({
