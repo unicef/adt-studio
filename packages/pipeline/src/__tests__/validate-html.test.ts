@@ -195,4 +195,62 @@ describe("validateSectionHtml", () => {
       expect.stringContaining('Unsafe URL in attribute "href"')
     )
   })
+
+  it("rejects activity_gen_ IDs by default", () => {
+    const html = `
+      <section>
+        <p data-id="pg001_gp001">Question</p>
+        <div data-id="activity_gen_opt1">Option A</div>
+      </section>
+    `
+    const result = validateSectionHtml(html, ["pg001_gp001"], [])
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining('Unknown data-id: "activity_gen_opt1"')
+    )
+  })
+
+  it("allows activity_gen_ IDs when allowActivityGeneratedIds is true", () => {
+    const html = `
+      <section>
+        <p data-id="pg001_gp001">Question</p>
+        <div data-id="activity_gen_opt1">Option A</div>
+        <div data-id="activity_gen_opt2">Option B</div>
+      </section>
+    `
+    const result = validateSectionHtml(
+      html,
+      ["pg001_gp001"],
+      [],
+      undefined,
+      { allowActivityGeneratedIds: true }
+    )
+    expect(result.valid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+  })
+
+  it("still rejects non-activity_gen_ unknown IDs even with allowActivityGeneratedIds", () => {
+    const html = `
+      <section>
+        <p data-id="pg001_gp001">Question</p>
+        <div data-id="activity_gen_opt1">Option A</div>
+        <div data-id="totally_unknown">Bad</div>
+      </section>
+    `
+    const result = validateSectionHtml(
+      html,
+      ["pg001_gp001"],
+      [],
+      undefined,
+      { allowActivityGeneratedIds: true }
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining('Unknown data-id: "totally_unknown"')
+    )
+    // The activity_gen_ one should not appear in errors
+    expect(result.errors).not.toContainEqual(
+      expect.stringContaining("activity_gen_opt1")
+    )
+  })
 })

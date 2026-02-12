@@ -88,7 +88,7 @@ describe("extractPdf", () => {
     expect(page.pageId).toBe("pg001");
     expect(page.text).toBe("");
     expect(page.pageImage).toBeDefined();
-    expect(page.pageImage.pngBuffer).toBeInstanceOf(Buffer);
+    expect(page.pageImage.buffer).toBeInstanceOf(Buffer);
     expect(page.pageImage.width).toBeGreaterThan(0);
     expect(page.pageImage.height).toBeGreaterThan(0);
     expect(page.pageImage.hash).toMatch(/^[a-f0-9]{16}$/);
@@ -216,7 +216,7 @@ describe("extractPdf", () => {
 
     const vecImage = page.images[0];
     expect(vecImage.imageId).toBe("pg001_im001");
-    expect(vecImage.pngBuffer).toBeInstanceOf(Buffer);
+    expect(vecImage.buffer).toBeInstanceOf(Buffer);
     expect(vecImage.width).toBeGreaterThan(0);
     expect(vecImage.height).toBeGreaterThan(0);
     expect(vecImage.hash).toMatch(/^[a-f0-9]{16}$/);

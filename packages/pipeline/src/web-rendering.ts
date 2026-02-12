@@ -25,12 +25,14 @@ export type SectionPart =
   | { type: "image"; imageId: string; imageBase64: string }
 
 export interface RenderConfig {
-  renderType: "llm" | "template"
-  // llm fields
+  renderType: "llm" | "template" | "activity"
+  // llm / activity fields
   promptName: string
   modelId: string
   maxRetries: number
   timeoutMs: number
+  // activity fields — answer generation prompt
+  answerPromptName: string
   // template fields
   templateName: string
 }
@@ -165,6 +167,9 @@ export async function renderPage(
         templateEngine
       )
     } else {
+      // Both "llm" and "activity" use the LLM renderer.
+      // Activity-specific behaviour (looser validation, answer generation)
+      // is driven by config fields (renderType, answerPromptName).
       rendering = await renderSectionLlm(
         sectionInput,
         config,
@@ -217,6 +222,7 @@ export function buildRenderStrategyResolver(
       modelId: cfg?.model ?? DEFAULT_RENDER_CONFIG.model,
       maxRetries: cfg?.max_retries ?? DEFAULT_RENDER_CONFIG.max_retries,
       timeoutMs: (cfg?.timeout ?? DEFAULT_RENDER_CONFIG.timeout) * 1000,
+      answerPromptName: cfg?.answer_prompt ?? "",
       templateName: cfg?.template ?? "",
     }
   }

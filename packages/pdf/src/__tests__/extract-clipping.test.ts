@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { getPngMetadata, decodePng } from "../png-utils.js";
+import { getPngMetadata } from "../png-utils.js";
 import { extractPdf, _testing } from "../extract.js";
 import { createTestPdf, createSmallGroupTestPdf } from "./create-test-pdf.js";
 
@@ -8,7 +8,6 @@ const {
   applyMatrixTransformToBbox,
   parseClipPathBounds,
   isPageLevelClip,
-  computeImageViewportBbox,
 } = _testing;
 
 describe("SVG Path Bbox Parsing", () => {
@@ -100,21 +99,6 @@ describe("Matrix Transform Application", () => {
   });
 });
 
-describe("Raster Image Bbox Computation", () => {
-  it("respects x/y positioning on image elements", () => {
-    const elem = '<image x="100" y="50" width="20" height="10"/>';
-    const bbox = computeImageViewportBbox(elem, []);
-    expect(bbox).toEqual([100, 50, 120, 60]);
-  });
-
-  it("applies image-level transform before ancestor group transforms", () => {
-    const elem = '<image x="100" y="50" width="20" height="10" transform="matrix(1,0,0,1,10,20)"/>';
-    const stack = ['<g transform="matrix(2,0,0,2,0,0)">'];
-    const bbox = computeImageViewportBbox(elem, stack);
-    expect(bbox).toEqual([220, 140, 260, 160]);
-  });
-});
-
 describe("Clip Path Bounds Parsing", () => {
   it("parses simple path clip with transform", () => {
     const clipContent = '<path transform="matrix(1,0,0,1,10,20)" d="M0 0H100V100H0Z"/>';
@@ -202,7 +186,7 @@ describe("Vector Image Extraction with Clipping", () => {
     for (const img of page.images) {
       expect(img.width).toBeGreaterThan(0);
       expect(img.height).toBeGreaterThan(0);
-      expect(img.pngBuffer[0]).toBe(0x89); // PNG magic
+      expect(img.buffer[0]).toBe(0x89); // PNG magic
     }
   });
 
@@ -230,55 +214,29 @@ describe("Vector Image Extraction with Clipping", () => {
 
     // All images should be valid PNGs with transparency
     for (const img of page.images) {
-      const meta = getPngMetadata(img.pngBuffer);
+      const meta = getPngMetadata(img.buffer);
       expect(meta.channels).toBe(4); // RGBA
     }
   });
 });
 
-describe("Raster Image Extraction with Clipping", () => {
+describe("Raster Image Extraction from PDF Objects", () => {
   const pdfBuffer = createTestPdf();
 
-  it("extracts raster image with clip-path applied", async () => {
-    // Page 3: image clipped by a rectangle
-    const result = await extractPdf({ pdfBuffer, startPage: 3, endPage: 3 });
-    const page = result.pages[0];
-
-    // Should have at least 1 raster image (the clipped one)
-    const rasterImages = page.images.filter((img) => img.imageId.startsWith("pg003_im"));
-    expect(rasterImages.length).toBeGreaterThanOrEqual(1);
-
-    // The clipped image should have an alpha channel
-    const meta = getPngMetadata(rasterImages[0].pngBuffer);
-    expect(meta.channels).toBe(4);
-    expect(meta.hasAlpha).toBe(true);
-  });
-
-  it("clipped raster image is auto-cropped to opaque bounds", async () => {
-    // Page 3: 200x200pt image clipped to 100x100pt rect
-    // Rendered at 2x → 400x400px, clip = 200x200px, then auto-cropped to 200x200
+  it("extracts raster image directly from PDF XObject dictionary", async () => {
+    // Page 3 has one XObject image (Im1) used twice in the content stream.
+    // Direct extraction finds one unique image from the Resources dict.
     const result = await extractPdf({ pdfBuffer, startPage: 3, endPage: 3 });
     const page = result.pages[0];
 
     const rasterImages = page.images.filter((img) => img.imageId.startsWith("pg003_im"));
-    expect(rasterImages.length).toBeGreaterThanOrEqual(1);
+    expect(rasterImages.length).toBe(1);
 
-    const decoded = decodePng(rasterImages[0].pngBuffer);
-
-    // After auto-crop, image should be smaller than the full 400px rendered size
-    expect(decoded.width).toBeLessThan(400);
-    expect(decoded.height).toBeLessThan(400);
-
-    // Should have only opaque pixels (transparent padding was cropped away)
-    let hasOpaque = false;
-    let hasTransparent = false;
-    for (let i = 3; i < decoded.data.length; i += 4) {
-      if (decoded.data[i] === 255) hasOpaque = true;
-      if (decoded.data[i] === 0) hasTransparent = true;
-      if (hasOpaque && hasTransparent) break;
-    }
-    expect(hasOpaque).toBe(true);
-    expect(hasTransparent).toBe(false);
+    // Should be a valid PNG (mupdf encodes raw pixel images as FlateDecode → PNG path)
+    expect(rasterImages[0].buffer[0]).toBe(0x89); // PNG magic
+    expect(rasterImages[0].format).toBe("png");
+    expect(rasterImages[0].width).toBe(20);
+    expect(rasterImages[0].height).toBe(20);
   });
 
   it("extracts all pages without errors", async () => {
@@ -286,7 +244,7 @@ describe("Raster Image Extraction with Clipping", () => {
     expect(result.pages).toHaveLength(3);
 
     for (const page of result.pages) {
-      expect(page.pageImage.pngBuffer.length).toBeGreaterThan(0);
+      expect(page.pageImage.buffer.length).toBeGreaterThan(0);
       expect(page.text).toBeDefined();
     }
   });

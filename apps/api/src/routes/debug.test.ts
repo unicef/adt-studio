@@ -101,7 +101,8 @@ describe("Debug routes", () => {
         text: "Page one text",
         pageImage: {
           imageId: `${label}_p1_page`,
-          pngBuffer: Buffer.from("fake-png"),
+          buffer: Buffer.from("fake-png"),
+          format: "png" as const,
           hash: "abc123",
           width: 800,
           height: 600,
@@ -114,7 +115,8 @@ describe("Debug routes", () => {
         text: "Page two text",
         pageImage: {
           imageId: `${label}_p2_page`,
-          pngBuffer: Buffer.from("fake-png-2"),
+          buffer: Buffer.from("fake-png-2"),
+          format: "png" as const,
           hash: "def456",
           width: 800,
           height: 600,

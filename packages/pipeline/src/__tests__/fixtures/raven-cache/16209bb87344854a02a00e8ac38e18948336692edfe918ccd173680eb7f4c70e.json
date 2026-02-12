@@ -1,0 +1,15 @@
+{
+  "reasoning": "This page contains a single story sentence paired with one illustration of Hyena and a bird, forming one coherent reading unit. The page number 2 is visible at the bottom center. Background is predominantly white with black text.",
+  "sections": [
+    {
+      "section_type": "text_and_single_image",
+      "part_ids": [
+        "pg003_gp001",
+        "pg003_im002"
+      ],
+      "background_color": "#ffffff",
+      "text_color": "#000000",
+      "page_number": 2
+    }
+  ]
+}

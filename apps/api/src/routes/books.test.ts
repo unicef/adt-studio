@@ -344,7 +344,8 @@ function addPagesAndRenderings(label: string, count: number): void {
         text: `Page ${i}`,
         pageImage: {
           imageId: `${pageId}_page`,
-          pngBuffer: Buffer.from("fake-png"),
+          buffer: Buffer.from("fake-png"),
+          format: "png",
           hash: `hash${i}`,
           width: 800,
           height: 600,
@@ -475,7 +476,8 @@ describe("GET /books/:label/images/:imageId", () => {
         text: "Page one",
         pageImage: {
           imageId: `${label}_p1_page`,
-          pngBuffer: Buffer.from("fake-png-data"),
+          buffer: Buffer.from("fake-png-data"),
+          format: "png" as const,
           hash: "abc123",
           width: 800,
           height: 600,
@@ -534,6 +536,32 @@ describe("GET /books/:label/images/:imageId", () => {
     const app = createBookRoutes(tmpDir)
     const res = await app.request("/books/-bad/images/some-image")
     expect(res.status).toBe(400)
+  })
+
+  it("returns image/jpeg content type for .jpeg paths", async () => {
+    createBookWithImagePath("img-book-jpeg", "img-book-jpeg_p1_page", "images/photo.jpeg")
+    const jpegPath = path.join(tmpDir, "img-book-jpeg", "images", "photo.jpeg")
+    fs.mkdirSync(path.dirname(jpegPath), { recursive: true })
+    fs.writeFileSync(jpegPath, Buffer.from("fake-jpeg-data"))
+
+    const app = createBookRoutes(tmpDir)
+    const res = await app.request("/books/img-book-jpeg/images/img-book-jpeg_p1_page")
+
+    expect(res.status).toBe(200)
+    expect(res.headers.get("Content-Type")).toBe("image/jpeg")
+  })
+
+  it("returns image/jpeg content type for uppercase .JPG paths", async () => {
+    createBookWithImagePath("img-book-jpg-up", "img-book-jpg-up_p1_page", "images/photo.JPG")
+    const jpgPath = path.join(tmpDir, "img-book-jpg-up", "images", "photo.JPG")
+    fs.mkdirSync(path.dirname(jpgPath), { recursive: true })
+    fs.writeFileSync(jpgPath, Buffer.from("fake-jpg-data"))
+
+    const app = createBookRoutes(tmpDir)
+    const res = await app.request("/books/img-book-jpg-up/images/img-book-jpg-up_p1_page")
+
+    expect(res.status).toBe(200)
+    expect(res.headers.get("Content-Type")).toBe("image/jpeg")
   })
 
   it("returns 400 for escaped image paths from DB", async () => {

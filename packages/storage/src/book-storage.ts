@@ -183,8 +183,9 @@ function writeImage(
   pageId: string,
   source: "page" | "extract" | "crop"
 ): void {
-  const filename = `${image.imageId}.png`
-  fs.writeFileSync(path.join(imagesDir, filename), image.pngBuffer)
+  const ext = image.format === "jpeg" ? "jpg" : "png"
+  const filename = `${image.imageId}.${ext}`
+  fs.writeFileSync(path.join(imagesDir, filename), image.buffer)
 
   db.run(
     `INSERT INTO images

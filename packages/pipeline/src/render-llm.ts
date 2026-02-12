@@ -1,12 +1,16 @@
 import type { SectionRendering } from "@adt/types"
-import { webRenderingLLMSchema } from "@adt/types"
+import { webRenderingLLMSchema, activityAnswersLLMSchema } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import { validateSectionHtml } from "./validate-html.js"
 import type { RenderConfig, RenderSectionInput, TextInput, ImageInput } from "./web-rendering.js"
 
 /**
  * Render a single section as HTML using an LLM.
- * Flattens `parts` to texts/images arrays for the LLM context.
+ * Handles both regular "llm" and "activity" render types.
+ *
+ * For activity sections (config.renderType === "activity"):
+ * - Validation allows activity_gen_* prefixed data-ids
+ * - If config.answerPromptName is set, a second LLM call generates correct answers
  */
 export async function renderSectionLlm(
   input: RenderSectionInput,
@@ -24,42 +28,83 @@ export async function renderSectionLlm(
     }
   }
 
+  const isActivity = config.renderType === "activity"
+  const taskType = isActivity ? "activity-rendering" : "web-rendering"
+
+  const context = {
+    label: input.label,
+    page_image_base64: input.pageImageBase64,
+    section_type: input.sectionType,
+    texts: texts.map((t) => ({
+      text_id: t.textId,
+      text_type: t.textType,
+      text: t.text,
+    })),
+    images: images.map((img) => ({
+      image_id: img.imageId,
+      image_base64: img.imageBase64,
+    })),
+    _isActivity: isActivity,
+  }
+
   const result = await llmModel.generateObject<{
     reasoning: string
     content: string
   }>({
     schema: webRenderingLLMSchema,
     prompt: config.promptName,
-    context: {
-      label: input.label,
-      page_image_base64: input.pageImageBase64,
-      section_type: input.sectionType,
-      texts: texts.map((t) => ({
-        text_id: t.textId,
-        text_type: t.textType,
-        text: t.text,
-      })),
-      images: images.map((img) => ({
-        image_id: img.imageId,
-        image_base64: img.imageBase64,
-      })),
-    },
+    context,
     validate: validateWebRendering,
     maxRetries: config.maxRetries,
     maxTokens: 16384,
     timeoutMs: config.timeoutMs,
     log: {
-      taskType: "web-rendering",
+      taskType,
       pageId: input.pageId,
       promptName: config.promptName,
     },
   })
 
+  const generatedHtml = result.object.content
+
+  // Optional: generate activity answers via a second LLM call
+  let activityReasoning: string | undefined
+  let activityAnswers: Record<string, string | boolean | number> | undefined
+
+  if (isActivity && config.answerPromptName) {
+    const answersResult = await llmModel.generateObject<{
+      reasoning: string
+      answers: Array<{ id: string; value: string | boolean | number }>
+    }>({
+      schema: activityAnswersLLMSchema,
+      prompt: config.answerPromptName,
+      context: {
+        ...context,
+        activity_html: generatedHtml,
+      },
+      maxRetries: config.maxRetries,
+      maxTokens: 4096,
+      timeoutMs: config.timeoutMs,
+      log: {
+        taskType: "activity-answers",
+        pageId: input.pageId,
+        promptName: config.answerPromptName,
+      },
+    })
+    activityReasoning = answersResult.object.reasoning
+    // Convert array of {id, value} to record for storage
+    activityAnswers = Object.fromEntries(
+      answersResult.object.answers.map((a) => [a.id, a.value])
+    )
+  }
+
   return {
     sectionIndex: input.sectionIndex,
     sectionType: input.sectionType,
     reasoning: result.object.reasoning,
-    html: result.object.content,
+    html: generatedHtml,
+    ...(activityReasoning !== undefined && { activityReasoning }),
+    ...(activityAnswers !== undefined && { activityAnswers }),
   }
 }
 
@@ -71,11 +116,18 @@ function validateWebRendering(
   const label = context.label as string
   const texts = context.texts as Array<{ text_id: string }>
   const images = context.images as Array<{ image_id: string }>
+  const isActivity = context._isActivity as boolean | undefined
   const allowedTextIds = texts.map((t) => t.text_id)
   const allowedImageIds = images.map((img) => img.image_id)
   const imageUrlPrefix = `/api/books/${label}/images`
 
-  const check = validateSectionHtml(r.content, allowedTextIds, allowedImageIds, imageUrlPrefix)
+  const check = validateSectionHtml(
+    r.content,
+    allowedTextIds,
+    allowedImageIds,
+    imageUrlPrefix,
+    isActivity ? { allowActivityGeneratedIds: true } : undefined
+  )
   if (check.valid && check.sectionHtml) {
     return {
       valid: true,

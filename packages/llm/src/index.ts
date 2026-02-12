@@ -16,6 +16,7 @@ export { computeHash, readCache, writeCache, bustCache } from "./cache.js"
 
 export {
   sanitizeMessages,
+  imageDimensions,
   pngDimensions,
   type LlmLogEntry,
   type LlmLogMessage,

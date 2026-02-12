@@ -41,7 +41,8 @@ function makePage(pageNumber: number): ExtractedPage {
     pageImage: {
       imageId: `${pageId}_page`,
       pageId,
-      pngBuffer: fakePng(800, 1200),
+      buffer: fakePng(800, 1200),
+      format: "png" as const,
       width: 800,
       height: 1200,
       hash: `hash_page_${pageNumber}`,
@@ -50,7 +51,8 @@ function makePage(pageNumber: number): ExtractedPage {
       {
         imageId: `${pageId}_im001`,
         pageId,
-        pngBuffer: fakePng(200, 150),
+        buffer: fakePng(200, 150),
+        format: "png" as const,
         width: 200,
         height: 150,
         hash: `hash_im001_${pageNumber}`,

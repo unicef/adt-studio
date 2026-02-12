@@ -10,6 +10,7 @@ const defaultResolveConfig = (): RenderConfig => ({
   modelId: "openai:gpt-4o",
   maxRetries: 8,
   timeoutMs: 180000,
+  answerPromptName: "",
   templateName: "",
 })
 
@@ -547,6 +548,7 @@ describe("renderPage", () => {
       modelId: "",
       maxRetries: 0,
       timeoutMs: 0,
+      answerPromptName: "",
       templateName: "two_column_render",
     })
 
@@ -612,6 +614,7 @@ describe("renderPage", () => {
       modelId: "",
       maxRetries: 0,
       timeoutMs: 0,
+      answerPromptName: "",
       templateName: "two_column_render",
     })
 
@@ -684,6 +687,7 @@ describe("renderPage", () => {
             modelId: "openai:model-a",
             maxRetries: 2,
             timeoutMs: 180000,
+            answerPromptName: "",
             templateName: "",
           }
         : {
@@ -692,6 +696,7 @@ describe("renderPage", () => {
             modelId: "openai:model-b",
             maxRetries: 2,
             timeoutMs: 180000,
+            answerPromptName: "",
             templateName: "",
           }
 
@@ -748,5 +753,290 @@ describe("renderPage", () => {
 
     expect(result.sections).toHaveLength(2)
     expect(calls).toEqual(["openai:model-a", "openai:model-b"])
+  })
+
+  it("routes activity renderType through LLM renderer with answer generation", async () => {
+    const llmCalls: Array<{ prompt?: string; taskType?: string }> = []
+    const activityHtmlResponse = {
+      reasoning: "activity reasoning",
+      content:
+        '<div id="content" class="container"><section role="article" data-section-type="activity_multiple_choice"><div data-id="pg001_gp001_tx001">Question</div><div data-id="activity_gen_opt1">Option A</div></section></div>',
+    }
+    const activityAnswersResponse = {
+      reasoning: "answer reasoning",
+      answers: [{ id: "activity_gen_opt1", value: "A" }],
+    }
+
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        llmCalls.push({
+          prompt: opts.prompt,
+          taskType: opts.log?.taskType,
+        })
+        if (opts.log?.taskType === "activity-answers") {
+          return { object: activityAnswersResponse as T } as GenerateObjectResult<T>
+        }
+        return { object: activityHtmlResponse as T } as GenerateObjectResult<T>
+      },
+    }
+
+    const activityResolveConfig = (): RenderConfig => ({
+      renderType: "activity",
+      promptName: "activity_multiple_choice",
+      modelId: "openai:gpt-5.2",
+      maxRetries: 25,
+      timeoutMs: 180000,
+      answerPromptName: "activity_multiple_choice_answers",
+      templateName: "",
+    })
+
+    const result = await renderPage(
+      {
+        label: "test-book",
+        pageId: "pg001",
+        pageImageBase64: "base64img",
+        sectioning: {
+          reasoning: "test",
+          sections: [
+            {
+              sectionType: "activity_multiple_choice",
+              partIds: ["pg001_gp001"],
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+        textClassification: {
+          reasoning: "test",
+          groups: [
+            {
+              groupId: "pg001_gp001",
+              groupType: "paragraph",
+              texts: [
+                { textType: "instruction_text", text: "Question", isPruned: false },
+              ],
+            },
+          ],
+        },
+        images: new Map(),
+      },
+      activityResolveConfig,
+      fakeLlm
+    )
+
+    // Two LLM calls: HTML generation + answer generation
+    expect(llmCalls).toHaveLength(2)
+    expect(llmCalls[0].prompt).toBe("activity_multiple_choice")
+    expect(llmCalls[0].taskType).toBe("activity-rendering")
+    expect(llmCalls[1].prompt).toBe("activity_multiple_choice_answers")
+    expect(llmCalls[1].taskType).toBe("activity-answers")
+
+    expect(result.sections).toHaveLength(1)
+    expect(result.sections[0].activityReasoning).toBe("answer reasoning")
+    expect(result.sections[0].activityAnswers).toEqual({ activity_gen_opt1: "A" })
+  })
+
+  it("skips answer generation when answerPromptName is empty", async () => {
+    const llmCalls: string[] = []
+    const activityHtmlResponse = {
+      reasoning: "open ended reasoning",
+      content:
+        '<div id="content" class="container"><section role="article" data-section-type="activity_open_ended_answer"><div data-id="pg001_gp001_tx001">Question</div><textarea data-id="activity_gen_input1"></textarea></section></div>',
+    }
+
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        llmCalls.push(opts.log?.taskType ?? "unknown")
+        return { object: activityHtmlResponse as T } as GenerateObjectResult<T>
+      },
+    }
+
+    const activityResolveConfig = (): RenderConfig => ({
+      renderType: "activity",
+      promptName: "activity_open_ended_answer",
+      modelId: "openai:gpt-5.2",
+      maxRetries: 25,
+      timeoutMs: 180000,
+      answerPromptName: "",
+      templateName: "",
+    })
+
+    const result = await renderPage(
+      {
+        label: "test-book",
+        pageId: "pg001",
+        pageImageBase64: "base64img",
+        sectioning: {
+          reasoning: "test",
+          sections: [
+            {
+              sectionType: "activity_open_ended_answer",
+              partIds: ["pg001_gp001"],
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+        textClassification: {
+          reasoning: "test",
+          groups: [
+            {
+              groupId: "pg001_gp001",
+              groupType: "paragraph",
+              texts: [
+                { textType: "instruction_text", text: "Question", isPruned: false },
+              ],
+            },
+          ],
+        },
+        images: new Map(),
+      },
+      activityResolveConfig,
+      fakeLlm
+    )
+
+    // Only one LLM call (no answer generation)
+    expect(llmCalls).toHaveLength(1)
+    expect(llmCalls[0]).toBe("activity-rendering")
+
+    expect(result.sections).toHaveLength(1)
+    expect(result.sections[0].activityReasoning).toBeUndefined()
+    expect(result.sections[0].activityAnswers).toBeUndefined()
+  })
+
+  it("does not generate activity answers for non-activity render types", async () => {
+    const llmCalls: string[] = []
+    const llmHtmlResponse = {
+      reasoning: "normal section reasoning",
+      content:
+        '<div id="content" class="container"><section role="article" data-section-type="text"><div data-id="pg001_gp001_tx001">Body text</div></section></div>',
+    }
+
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        llmCalls.push(opts.log?.taskType ?? "unknown")
+        return { object: llmHtmlResponse as T } as GenerateObjectResult<T>
+      },
+    }
+
+    const nonActivityConfig = (): RenderConfig => ({
+      renderType: "llm",
+      promptName: "web_generation_html",
+      modelId: "openai:gpt-5.2",
+      maxRetries: 25,
+      timeoutMs: 180000,
+      answerPromptName: "activity_true_false_answers",
+      templateName: "",
+    })
+
+    const result = await renderPage(
+      {
+        label: "test-book",
+        pageId: "pg001",
+        pageImageBase64: "base64img",
+        sectioning: {
+          reasoning: "test",
+          sections: [
+            {
+              sectionType: "text",
+              partIds: ["pg001_gp001"],
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+        textClassification: {
+          reasoning: "test",
+          groups: [
+            {
+              groupId: "pg001_gp001",
+              groupType: "paragraph",
+              texts: [
+                { textType: "body_text", text: "Body text", isPruned: false },
+              ],
+            },
+          ],
+        },
+        images: new Map(),
+      },
+      nonActivityConfig,
+      fakeLlm
+    )
+
+    expect(llmCalls).toEqual(["web-rendering"])
+    expect(result.sections).toHaveLength(1)
+    expect(result.sections[0].activityReasoning).toBeUndefined()
+    expect(result.sections[0].activityAnswers).toBeUndefined()
+  })
+})
+
+describe("buildRenderStrategyResolver — activity", () => {
+  it("resolves activity strategy with answerPromptName", () => {
+    const appConfig: AppConfig = {
+      text_types: { heading: "Heading" },
+      text_group_types: { paragraph: "Paragraph" },
+      default_render_strategy: "two_column",
+      render_strategies: {
+        two_column: {
+          render_type: "template",
+          config: { template: "two_column_render" },
+        },
+        activity_multiple_choice: {
+          render_type: "activity",
+          config: {
+            prompt: "activity_multiple_choice",
+            answer_prompt: "activity_multiple_choice_answers",
+            model: "openai:gpt-5.2",
+            max_retries: 25,
+            timeout: 180,
+          },
+        },
+      },
+      section_render_strategies: {
+        activity_multiple_choice: "activity_multiple_choice",
+      },
+    }
+
+    const resolve = buildRenderStrategyResolver(appConfig)
+    const config = resolve("activity_multiple_choice")
+
+    expect(config.renderType).toBe("activity")
+    expect(config.promptName).toBe("activity_multiple_choice")
+    expect(config.answerPromptName).toBe("activity_multiple_choice_answers")
+    expect(config.modelId).toBe("openai:gpt-5.2")
+    expect(config.maxRetries).toBe(25)
+    expect(config.timeoutMs).toBe(180000)
+  })
+
+  it("resolves activity strategy without answer_prompt to empty answerPromptName", () => {
+    const appConfig: AppConfig = {
+      text_types: { heading: "Heading" },
+      text_group_types: { paragraph: "Paragraph" },
+      render_strategies: {
+        activity_open_ended: {
+          render_type: "activity",
+          config: {
+            prompt: "activity_open_ended_answer",
+            model: "openai:gpt-5.2",
+          },
+        },
+      },
+      section_render_strategies: {
+        activity_open_ended_answer: "activity_open_ended",
+      },
+    }
+
+    const resolve = buildRenderStrategyResolver(appConfig)
+    const config = resolve("activity_open_ended_answer")
+
+    expect(config.renderType).toBe("activity")
+    expect(config.promptName).toBe("activity_open_ended_answer")
+    expect(config.answerPromptName).toBe("")
   })
 })

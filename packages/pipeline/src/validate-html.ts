@@ -24,11 +24,17 @@ function findSectionElement(doc: any): any | null {
   )
 }
 
+export interface HtmlValidationOptions {
+  /** When true, data-ids prefixed with "activity_gen_" are allowed even if not in the allowed set */
+  allowActivityGeneratedIds?: boolean
+}
+
 export function validateSectionHtml(
   html: string,
   allowedTextIds: string[],
   allowedImageIds: string[],
-  imageUrlPrefix?: string
+  imageUrlPrefix?: string,
+  options?: HtmlValidationOptions
 ): HtmlValidationResult {
   const allowedIds = new Set([...allowedTextIds, ...allowedImageIds])
   const imageIdSet = new Set(allowedImageIds)
@@ -41,7 +47,7 @@ export function validateSectionHtml(
     return { valid: false, errors }
   }
 
-  walkNode(section, allowedIds, errors)
+  walkNode(section, allowedIds, errors, options)
 
   if (imageUrlPrefix) {
     rewriteImageSrcs(section, imageIdSet, imageUrlPrefix)
@@ -55,7 +61,7 @@ export function validateSectionHtml(
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function walkNode(node: any, allowedIds: Set<string>, errors: string[]): void {
+function walkNode(node: any, allowedIds: Set<string>, errors: string[], options?: HtmlValidationOptions): void {
   if (node.type === "text") {
     if (node.data.trim().length > 0) {
       if (isInsideExemptTag(node)) return
@@ -93,13 +99,15 @@ function walkNode(node: any, allowedIds: Set<string>, errors: string[]): void {
 
     const dataId = node.attribs?.["data-id"]
     if (dataId !== undefined && !allowedIds.has(dataId)) {
-      errors.push(`Unknown data-id: "${dataId}"`)
+      if (!(options?.allowActivityGeneratedIds && dataId.startsWith("activity_gen_"))) {
+        errors.push(`Unknown data-id: "${dataId}"`)
+      }
     }
   }
 
   if (node.children) {
     for (const child of node.children) {
-      walkNode(child, allowedIds, errors)
+      walkNode(child, allowedIds, errors, options)
     }
   }
 }

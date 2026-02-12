@@ -3,6 +3,7 @@ export type {
   ExtractInput,
   ExtractedPage,
   ExtractedImage,
+  ImageFormat,
   PdfMetadata,
   ExtractResult,
   ExtractProgress,

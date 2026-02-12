@@ -5,6 +5,10 @@ export const SectionRendering = z.object({
   sectionType: z.string(),
   reasoning: z.string(),
   html: z.string(),
+  activityReasoning: z.string().optional(),
+  activityAnswers: z
+    .record(z.string(), z.union([z.string(), z.boolean(), z.number()]))
+    .optional(),
 })
 export type SectionRendering = z.infer<typeof SectionRendering>
 
@@ -16,4 +20,14 @@ export type WebRenderingOutput = z.infer<typeof WebRenderingOutput>
 export const webRenderingLLMSchema = z.object({
   reasoning: z.string(),
   content: z.string(),
+})
+
+export const activityAnswersLLMSchema = z.object({
+  reasoning: z.string(),
+  answers: z.array(
+    z.object({
+      id: z.string(),
+      value: z.union([z.string(), z.boolean(), z.number()]),
+    })
+  ),
 })

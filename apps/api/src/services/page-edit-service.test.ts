@@ -17,7 +17,8 @@ describe("page-edit-service", () => {
     try {
       const fakeImage = {
         imageId: `${label}_p1_page`,
-        pngBuffer: Buffer.from("fake-png-data"),
+        buffer: Buffer.from("fake-png-data"),
+        format: "png" as const,
         hash: "abc123",
         width: 800,
         height: 600,

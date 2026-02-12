@@ -21,7 +21,8 @@ describe("Page routes", () => {
       // Simulate extracted pages
       const fakeImage = {
         imageId: `${label}_p1_page`,
-        pngBuffer: Buffer.from("fake-png-data"),
+        buffer: Buffer.from("fake-png-data"),
+        format: "png" as const,
         hash: "abc123",
         width: 800,
         height: 600,
@@ -36,7 +37,8 @@ describe("Page routes", () => {
 
       const fakeImage2 = {
         imageId: `${label}_p2_page`,
-        pngBuffer: Buffer.from("fake-png-data-2"),
+        buffer: Buffer.from("fake-png-data-2"),
+        format: "png" as const,
         hash: "def456",
         width: 800,
         height: 600,

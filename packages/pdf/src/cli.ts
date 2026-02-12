@@ -79,14 +79,14 @@ const payload = {
       width: page.pageImage.width,
       height: page.pageImage.height,
       hash: page.pageImage.hash,
-      dataUrl: `data:image/png;base64,${page.pageImage.pngBuffer.toString("base64")}`,
+      dataUrl: `data:image/png;base64,${page.pageImage.buffer.toString("base64")}`,
     },
     images: page.images.map((img) => ({
       imageId: img.imageId,
       width: img.width,
       height: img.height,
       hash: img.hash,
-      dataUrl: `data:image/png;base64,${img.pngBuffer.toString("base64")}`,
+      dataUrl: `data:image/${img.format};base64,${img.buffer.toString("base64")}`,
     })),
   })),
 };

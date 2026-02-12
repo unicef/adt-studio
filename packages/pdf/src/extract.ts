@@ -5,7 +5,12 @@
  */
 
 import { createHash } from "crypto";
-import mupdf, { type Document as MupdfDocument } from "mupdf";
+import mupdf, {
+  type Document as MupdfDocument,
+  type PDFDocument,
+  type PDFPage,
+  type PDFObject,
+} from "mupdf";
 import { cropPng, decodePng } from "./png-utils.js";
 import { renderSvgToPng } from "./svg-render.js";
 
@@ -29,10 +34,13 @@ export interface ExtractedPage {
   images: ExtractedImage[];
 }
 
+export type ImageFormat = "png" | "jpeg";
+
 export interface ExtractedImage {
   imageId: string;
   pageId: string;
-  pngBuffer: Buffer;
+  buffer: Buffer;
+  format: ImageFormat;
   width: number;
   height: number;
   hash: string;
@@ -137,6 +145,24 @@ function hashBuffer(buf: Buffer): string {
   return createHash("sha256").update(buf).digest("hex").slice(0, 16);
 }
 
+/** Read width and height from a JPEG buffer by finding the SOF0/SOF2 marker. */
+function jpegDimensions(buf: Buffer): { width: number; height: number } {
+  let i = 2; // skip SOI (0xFFD8)
+  while (i < buf.length - 9) {
+    if (buf[i] !== 0xff) break;
+    const marker = buf[i + 1];
+    if (marker === 0xc0 || marker === 0xc2) {
+      return { height: buf.readUInt16BE(i + 5), width: buf.readUInt16BE(i + 7) };
+    }
+    i += 2 + buf.readUInt16BE(i + 2);
+  }
+  return { width: 0, height: 0 };
+}
+
+function pngDimensions(buf: Buffer): { width: number; height: number } {
+  return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
+}
+
 /** Returns true if every pixel in the RGBA PNG is fully transparent (alpha === 0). */
 function isFullyTransparent(pngBuffer: Buffer): boolean {
   const { data } = decodePng(pngBuffer);
@@ -239,7 +265,8 @@ async function extractPage(doc: MupdfDocument, pageIndex: number): Promise<Extra
   const pageImage: ExtractedImage = {
     imageId: `${pageId}_page`,
     pageId,
-    pngBuffer: pagePngBuf,
+    buffer: pagePngBuf,
+    format: "png",
     width: pagePngBuf.readUInt32BE(16),
     height: pagePngBuf.readUInt32BE(20),
     hash: hashBuffer(pagePngBuf),
@@ -249,11 +276,13 @@ async function extractPage(doc: MupdfDocument, pageIndex: number): Promise<Extra
   const stext = page.toStructuredText();
   const text = stext.asText();
 
-  // Generate page SVG once for both raster and vector extraction
-  const pageSvg = getPageSvg(page);
+  // Extract raster images directly from PDF objects (not SVG)
+  const pdfDoc = doc as unknown as PDFDocument;
+  const pdfPage = page as unknown as PDFPage;
+  const rasterImages = extractRasterImagesFromPdf(pdfDoc, pdfPage, pageId);
 
-  // Extract raster images and vector graphics from SVG
-  const rasterImages = await extractRasterImages(pageSvg, pageId);
+  // SVG only needed for vector extraction
+  const pageSvg = getPageSvg(page);
   const vectorImages = await extractVectorImagesFromSvg(pageSvg, pageId, rasterImages.length);
 
   return {
@@ -273,173 +302,133 @@ interface PageSvgData {
   pageHeight: number;
 }
 
-function computeImageViewportBbox(elem: string, stack: string[]): BBox | null {
-  const widthM = /\swidth="([^"]+)"/.exec(elem);
-  const heightM = /\sheight="([^"]+)"/.exec(elem);
-  if (!widthM || !heightM) return null;
-
-  const imgW = parseFloat(widthM[1]);
-  const imgH = parseFloat(heightM[1]);
-  if (!Number.isFinite(imgW) || !Number.isFinite(imgH) || imgW <= 0 || imgH <= 0) return null;
-
-  const xM = /\sx="([^"]+)"/.exec(elem);
-  const yM = /\sy="([^"]+)"/.exec(elem);
-  const x = xM ? parseFloat(xM[1]) : 0;
-  const y = yM ? parseFloat(yM[1]) : 0;
-  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
-
-  // Start from image-local bounds positioned by x/y.
-  let bbox: BBox = [x, y, x + imgW, y + imgH];
-
-  // Apply image-level transform first, then ancestor groups from inner -> outer.
-  const imageTransform = /\stransform="([^"]+)"/.exec(elem);
-  if (imageTransform) {
-    bbox = applyMatrixTransformToBbox(bbox, imageTransform[1]);
-  }
-
-  for (let i = stack.length - 1; i >= 0; i--) {
-    const t = /transform="([^"]+)"/.exec(stack[i]);
-    if (t) {
-      bbox = applyMatrixTransformToBbox(bbox, t[1]);
-    }
-  }
-
-  return bbox;
-}
-
 /**
- * Extract raster images from the SVG representation of a PDF page.
- * Renders <image> elements with their clip-paths and masks applied,
- * preserving transparency from both masks and clipping.
+ * Extract raster images directly from the PDF page's Resources/XObject dictionary.
+ * JPEG images are extracted as raw bytes (DCTDecode); others go through mupdf → PNG.
+ * Recurses into Form XObjects to find nested images.
  */
-async function extractRasterImages(
-  svg: PageSvgData,
+function extractRasterImagesFromPdf(
+  doc: PDFDocument,
+  page: PDFPage,
   pageId: string
-): Promise<ExtractedImage[]> {
+): ExtractedImage[] {
   const images: ExtractedImage[] = [];
-  const { contentWithoutDefs, svgDefs, pageWidth, pageHeight } = svg;
-
-  // Single-pass: scan all <g>, </g>, and <image> tags to build stack snapshots.
-  // This avoids re-parsing from the start for every <image> element (was O(N*M)).
-  interface ImageHit { elem: string; stack: string[]; }
-  const imageHits: ImageHit[] = [];
-  {
-    const tagRegex = /<(\/?)(g|image)([^>]*)\/?>/gi;
-    const stack: string[] = [];
-    let m;
-    while ((m = tagRegex.exec(contentWithoutDefs)) !== null) {
-      const isClose = m[1] === "/";
-      const tagName = m[2].toLowerCase();
-      if (tagName === "g") {
-        if (isClose) {
-          stack.pop();
-        } else {
-          stack.push(m[0]);
-        }
-      } else if (tagName === "image" && !isClose) {
-        imageHits.push({ elem: m[0], stack: [...stack] });
-      }
-    }
-  }
-
+  const seen = new Set<number>(); // Track object numbers to avoid duplicates
   let imgIndex = 0;
 
-  for (const { elem, stack } of imageHits) {
-    const bbox = computeImageViewportBbox(elem, stack);
-    if (!bbox) continue;
+  function extractFromXObjectDict(xobject: PDFObject): void {
+    // Collect and sort XObject keys for deterministic ordering
+    const entries: { key: string; obj: PDFObject }[] = [];
+    xobject.forEach((obj: PDFObject, key: string | number) => {
+      entries.push({ key: String(key), obj });
+    });
+    entries.sort((a, b) => a.key.localeCompare(b.key));
 
-    const [minX, minY, maxX, maxY] = bbox;
-    const vbW = maxX - minX;
-    const vbH = maxY - minY;
-    if (vbW <= 0 || vbH <= 0) continue;
+    for (const { obj } of entries) {
+      const resolved = obj.isIndirect() ? obj.resolve() : obj;
 
-    // Collect clip-path and mask IDs from enclosing groups
-    const clipIds: string[] = [];
-    const maskIds: string[] = [];
-    for (const group of stack) {
-      const clipM = /clip-path="url\(#([^)]+)\)"/.exec(group);
-      if (clipM) clipIds.push(clipM[1]);
-      const maskM = /\smask="url\(#([^)]+)\)"/.exec(group);
-      if (maskM) maskIds.push(maskM[1]);
-    }
+      const subtype = resolved.get("Subtype");
+      if (subtype.isNull()) continue;
+      const subtypeName = subtype.asName();
 
-    // Determine which clips to include (skip page-level when alone)
-    const appliedClipIds = new Set<string>();
-    const pageLevelClipIds = new Set<string>();
-
-    for (const clipId of clipIds) {
-      const clipRegex = new RegExp(`<clipPath[^>]*id="${clipId}"[^>]*>[\\s\\S]*?</clipPath>`, "i");
-      const cm = clipRegex.exec(svgDefs);
-      if (cm) {
-        const clipBounds = parseClipPathBounds(cm[0]);
-        if (isPageLevelClip(clipBounds, pageWidth, pageHeight)) {
-          pageLevelClipIds.add(clipId);
+      if (subtypeName === "Form") {
+        // Recurse into Form XObjects to find nested images
+        const formResources = resolved.get("Resources");
+        if (!formResources.isNull()) {
+          const formXObject = formResources.get("XObject");
+          if (!formXObject.isNull() && formXObject.isDictionary()) {
+            extractFromXObjectDict(formXObject);
+          }
         }
+        continue;
       }
-    }
 
-    const shouldIncludePageLevel = clipIds.length > 1 || pageLevelClipIds.size === 0;
+      if (subtypeName !== "Image") continue;
 
-    // Build defs: clips + masks
-    const defParts: string[] = [];
-
-    for (const clipId of clipIds) {
-      if (pageLevelClipIds.has(clipId) && !shouldIncludePageLevel) continue;
-      const clipRegex = new RegExp(`<clipPath[^>]*id="${clipId}"[^>]*>[\\s\\S]*?</clipPath>`, "i");
-      const cm = clipRegex.exec(svgDefs);
-      if (cm) {
-        defParts.push(cm[0]);
-        appliedClipIds.add(clipId);
+      // Deduplicate by PDF object number (same image referenced multiple times)
+      if (obj.isIndirect()) {
+        const objNum = obj.asIndirect();
+        if (seen.has(objNum)) continue;
+        seen.add(objNum);
       }
-    }
 
-    for (const maskId of maskIds) {
-      const maskRegex = new RegExp(`<mask[^>]*id="${maskId}"[^>]*>[\\s\\S]*?</mask>`, "i");
-      const mm = maskRegex.exec(svgDefs);
-      if (mm) defParts.push(mm[0]);
-    }
+      const dictWidth = resolved.get("Width").asNumber();
+      const dictHeight = resolved.get("Height").asNumber();
 
-    // Reconstruct group hierarchy around the image element
-    // Only include groups with relevant attributes (transform, clip, mask)
-    let imageContent = elem;
-    for (let i = stack.length - 1; i >= 0; i--) {
-      const group = stack[i];
-      const hasTransform = /transform="/.test(group);
-      const hasClip = /clip-path="url\(#([^)]+)\)"/.exec(group);
-      const hasMask = /mask="url\(#([^)]+)\)"/.exec(group);
+      try {
+        // Check filter to determine format
+        const filter = resolved.get("Filter");
+        const filterName = filter.isNull()
+          ? ""
+          : filter.isArray()
+            ? filter.get(filter.length - 1).asName()
+            : filter.asName();
+        let buf: Buffer;
+        let format: ImageFormat;
 
-      // Skip clip groups for clips we're not including
-      if (hasClip && !appliedClipIds.has(hasClip[1])) continue;
+        // Use the original (indirect) obj for stream access — resolve() strips the stream
+        const streamObj = obj.isIndirect() ? obj : resolved;
 
-      if (hasTransform || hasClip || hasMask) {
-        imageContent = group + imageContent + "</g>";
+        if (filterName === "DCTDecode") {
+          // Check colorspace — CMYK JPEGs need conversion (browsers can't display them)
+          const cs = resolved.get("ColorSpace");
+          const isCmyk =
+            (!cs.isNull() && cs.isName() && cs.asName() === "DeviceCMYK") ||
+            (!cs.isNull() && cs.isArray() && cs.get(0).asName() === "ICCBased" &&
+              cs.get(1).resolve().get("N").asNumber() === 4);
+
+          if (isCmyk) {
+            // CMYK JPEG: decode through mupdf for color conversion → re-encode as JPEG
+            const image = doc.loadImage(streamObj);
+            const pixmap = image.toPixmap();
+            buf = Buffer.from(pixmap.asJPEG(90, true));
+            format = "jpeg";
+          } else {
+            // RGB/Gray JPEG: extract raw bytes directly
+            buf = Buffer.from(streamObj.readRawStream().asUint8Array());
+            format = "jpeg";
+          }
+        } else {
+          // Everything else: decode through mupdf → PNG
+          const image = doc.loadImage(streamObj);
+          const pixmap = image.toPixmap();
+          buf = Buffer.from(pixmap.asPNG());
+          format = "png";
+        }
+
+        if (buf.length === 0) continue;
+
+        imgIndex++;
+        const imgId = pageId + "_im" + String(imgIndex).padStart(3, "0");
+        const dims =
+          format === "jpeg" ? jpegDimensions(buf) : pngDimensions(buf);
+
+        images.push({
+          imageId: imgId,
+          pageId,
+          buffer: buf,
+          format,
+          width: dims.width || dictWidth,
+          height: dims.height || dictHeight,
+          hash: hashBuffer(buf),
+        });
+      } catch (err) {
+        console.warn(
+          `[extractRasterImagesFromPdf] Failed to extract image on ${pageId}:`,
+          err instanceof Error ? err.message : err
+        );
       }
-    }
-
-    const defsStr = defParts.length > 0 ? `<defs>${defParts.join("\n")}</defs>` : "";
-    const svgStr = `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="${minX} ${minY} ${vbW} ${vbH}">\n${defsStr}\n${imageContent}\n</svg>`;
-
-    try {
-      const rawPng = await renderSvgToPng(svgStr);
-      if (isFullyTransparent(rawPng)) continue;
-      const pngBuf = autoCropPng(rawPng);
-
-      imgIndex++;
-      const imgId = pageId + "_im" + String(imgIndex).padStart(3, "0");
-
-      images.push({
-        imageId: imgId,
-        pageId,
-        pngBuffer: pngBuf,
-        width: pngBuf.readUInt32BE(16),
-        height: pngBuf.readUInt32BE(20),
-        hash: hashBuffer(pngBuf),
-      });
-    } catch (err) {
-      console.warn(`[extractRasterImages] Failed to render image ${imgIndex + 1} on ${pageId}:`, err instanceof Error ? err.message : err);
     }
   }
 
+  const pageObj = page.getObject();
+  const resources = pageObj.get("Resources");
+  if (resources.isNull()) return images;
+
+  const xobject = resources.get("XObject");
+  if (xobject.isNull() || !xobject.isDictionary()) return images;
+
+  extractFromXObjectDict(xobject);
   return images;
 }
 
@@ -1394,7 +1383,8 @@ ${shapeElements}
     return {
       imageId: imgId,
       pageId,
-      pngBuffer: pngBuf,
+      buffer: pngBuf,
+      format: "png" as const,
       width: pngBuf.readUInt32BE(16),
       height: pngBuf.readUInt32BE(20),
       hash: hashBuffer(pngBuf),
@@ -1465,5 +1455,4 @@ export const _testing = {
   applyMatrixTransformToBbox,
   parseClipPathBounds,
   isPageLevelClip,
-  computeImageViewportBbox,
 };
