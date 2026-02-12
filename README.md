@@ -10,13 +10,41 @@ Desktop-first application for automated book production — extract content from
 | Language | TypeScript (strict mode) |
 | Backend | Hono, node-sqlite3-wasm, Zod |
 | Frontend | React + Vite, TanStack (Router, Query, Table, Form), Tailwind CSS |
-| Desktop | Tauri or Electron (TBD) |
+| Desktop | Tauri v2 |
 | Testing | Vitest |
 
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/) >= 20
 - [pnpm](https://pnpm.io/) >= 9
+- [Rust](https://www.rust-lang.org/tools/install) (for desktop app only)
+
+### Desktop app — platform-specific requirements
+
+<details>
+<summary><strong>macOS</strong></summary>
+
+- Xcode Command Line Tools:
+  ```bash
+  xcode-select --install
+  ```
+</details>
+
+<details>
+<summary><strong>Windows</strong></summary>
+
+- [Microsoft C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/) — install the "Desktop development with C++" workload
+- [WebView2](https://developer.microsoft.com/en-us/microsoft-edge/webview2/) — pre-installed on Windows 10 (version 1803+) and Windows 11
+</details>
+
+<details>
+<summary><strong>Linux</strong></summary>
+
+- System dependencies (Debian/Ubuntu):
+  ```bash
+  sudo apt install libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+  ```
+</details>
 
 ## Getting Started
 
@@ -37,6 +65,16 @@ pnpm dev
 
 The API server runs at `http://localhost:3000` and the Studio frontend at `http://localhost:5173`.
 
+### Running the desktop app
+
+With the dev servers running (`pnpm dev`), open a separate terminal:
+
+```bash
+pnpm dev:desktop
+```
+
+This launches the Tauri desktop window pointing at the Vite dev server. First run will compile the Rust backend which takes a few minutes — subsequent runs are fast.
+
 ## Project Structure
 
 ```
@@ -51,7 +89,7 @@ adt-studio/
 ├── apps/                    # Application tier
 │   ├── api/                 # Hono HTTP server
 │   ├── studio/              # React SPA (Vite + TanStack)
-│   └── desktop/             # Desktop wrapper (Tauri or Electron — TBD)
+│   └── desktop/             # Tauri v2 desktop wrapper
 │
 ├── templates/               # Layout templates
 ├── config/                  # Global configuration
@@ -90,6 +128,7 @@ Frontend apps communicate with the API over HTTP only — they never import from
 ```bash
 pnpm install          # Install all dependencies
 pnpm dev              # Start dev servers (API + Studio)
+pnpm dev:desktop      # Launch Tauri desktop app (requires pnpm dev running)
 pnpm build            # Build all packages and apps
 pnpm test             # Run tests
 pnpm test:coverage    # Run tests with coverage
