@@ -55,7 +55,6 @@ export interface PipelineStatus {
 export interface RunPipelineOptions {
   startPage?: number
   endPage?: number
-  concurrency?: number
 }
 
 export interface PageSummaryItem {

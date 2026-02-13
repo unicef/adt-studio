@@ -49,6 +49,13 @@ export {
   buildTranslationConfig,
   type TranslationConfig,
 } from "./translation.js"
+export {
+  captionPageImages,
+  buildCaptionConfig,
+  extractImageIds,
+  type CaptionConfig,
+  type CaptionPageInput,
+} from "./image-captioning.js"
 export { validateSectionHtml } from "./validate-html.js"
 export { loadConfig, loadBookConfig, deepMerge } from "./config.js"
 export { runPipeline, type RunPipelineOptions } from "./pipeline.js"

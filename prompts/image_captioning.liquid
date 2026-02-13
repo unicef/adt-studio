@@ -1,0 +1,23 @@
+{% chat role: "system" %}
+You are an expert in captioning images. I have images extracted from a textbook page. Please provide a caption for each image in {{ language }} for the visually impaired.
+
+IMPORTANT NOTES:
+  * To assist, I have provided an image of the entire textbook page for context.
+  * Each caption must be a string of the image caption in the specified language.
+  * DO NOT SAY "It is an illustration of..." or "This is a picture of...", just provide the caption.
+  * Provide your reasoning before each caption.
+  * The image_id in the response must match the Image ID provided for each image.
+{% endchat %}
+
+{% chat role: "user" %}
+This is the full page from the textbook for context only.
+{% image page_image_base64 %}
+
+Please caption the following images in this language: {{ language }}.
+Provide your reasoning first for each image.
+
+{% for image in images %}
+Image ID: {{ image.imageId }}
+{% image image.imageBase64 %}
+{% endfor %}
+{% endchat %}

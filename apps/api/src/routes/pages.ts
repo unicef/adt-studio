@@ -22,6 +22,7 @@ interface PageDetail {
   imageClassification: unknown | null
   sectioning: unknown | null
   rendering: unknown | null
+  imageCaptioning: unknown | null
 }
 
 function getDbPath(label: string, booksDir: string): string {
@@ -123,6 +124,7 @@ export function createPageRoutes(
         imageClassification: getNodeData("image-classification"),
         sectioning: getNodeData("page-sectioning"),
         rendering: getNodeData("web-rendering"),
+        imageCaptioning: getNodeData("image-captioning"),
       }
 
       return c.json(result)

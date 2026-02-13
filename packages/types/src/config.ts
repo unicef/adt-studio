@@ -70,6 +70,7 @@ export const AppConfig = z.object({
   editing_language: z.string().optional(),
   output_languages: z.array(z.string()).optional(),
   book_format: z.array(BookFormat).optional(),
+  image_captioning: StepConfig.optional(),
   layout_type: LayoutType.optional(),
 })
 export type AppConfig = z.infer<typeof AppConfig>

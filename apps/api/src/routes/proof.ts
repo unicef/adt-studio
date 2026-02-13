@@ -2,38 +2,20 @@ import { Hono } from "hono"
 import { streamSSE } from "hono/streaming"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
-import type { PipelineService, PipelineSSEEvent } from "../services/pipeline-service.js"
+import type { ProofService, ProofSSEEvent } from "../services/proof-service.js"
 
-const PipelineRunBody = z
-  .object({
-    startPage: z.number().int().min(1).optional(),
-    endPage: z.number().int().min(1).optional(),
-  })
-  .strict()
-  .superRefine((value, ctx) => {
-    if (
-      value.startPage !== undefined &&
-      value.endPage !== undefined &&
-      value.endPage < value.startPage
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["endPage"],
-        message: "endPage must be greater than or equal to startPage",
-      })
-    }
-  })
+const ProofRunBody = z.object({}).strict()
 
-export function createPipelineRoutes(
-  service: PipelineService,
+export function createProofRoutes(
+  service: ProofService,
   booksDir: string,
   promptsDir: string,
   configPath?: string
 ): Hono {
   const app = new Hono()
 
-  // POST /books/:label/pipeline/run — Start pipeline execution
-  app.post("/books/:label/pipeline/run", async (c) => {
+  // POST /books/:label/proof/run — Start proof generation (post-storyboard steps)
+  app.post("/books/:label/proof/run", async (c) => {
     const { label } = c.req.param()
     const apiKey = c.req.header("X-OpenAI-Key")
 
@@ -43,17 +25,12 @@ export function createPipelineRoutes(
       })
     }
 
-    // Check if already running
     const existing = service.getStatus(label)
     if (existing?.status === "running") {
       throw new HTTPException(409, {
-        message: `Pipeline already running for book: ${label}`,
+        message: `Proof generation already running for book: ${label}`,
       })
     }
-
-    // Parse optional body params
-    let startPage: number | undefined
-    let endPage: number | undefined
 
     const contentType = c.req.header("content-type")
     if (contentType?.includes("application/json")) {
@@ -66,45 +43,37 @@ export function createPipelineRoutes(
         })
       }
 
-      const parsed = PipelineRunBody.safeParse(body)
+      const parsed = ProofRunBody.safeParse(body)
       if (!parsed.success) {
         throw new HTTPException(400, {
-          message: `Invalid pipeline run options: ${parsed.error.message}`,
+          message: `Invalid proof run options: ${parsed.error.message}`,
         })
       }
-
-      startPage = parsed.data.startPage
-      endPage = parsed.data.endPage
     }
 
-    // Fire-and-forget: startPipeline runs async, we return immediately
     service
-      .startPipeline(label, {
+      .startProof(label, {
         booksDir,
         apiKey,
         promptsDir,
         configPath,
-        startPage,
-        endPage,
       })
       .catch(() => {
-        // Error is tracked in job status, no need to handle here
+        // Error is tracked in job status
       })
 
     return c.json({ status: "started", label })
   })
 
-  // GET /books/:label/pipeline/status — Get pipeline status (JSON or SSE)
-  app.get("/books/:label/pipeline/status", (c) => {
+  // GET /books/:label/proof/status — Get proof generation status (JSON or SSE)
+  app.get("/books/:label/proof/status", (c) => {
     const { label } = c.req.param()
     const accept = c.req.header("accept") ?? ""
 
-    // If client accepts SSE, stream events
     if (accept.includes("text/event-stream")) {
       return streamSSE(c, async (stream) => {
         const job = service.getStatus(label)
 
-        // If already completed or failed, send the final state and close
         if (job?.status === "completed") {
           await stream.writeSSE({
             event: "complete",
@@ -120,8 +89,7 @@ export function createPipelineRoutes(
           return
         }
 
-        // Queue-based SSE: listener pushes events, loop drains with awaited writes
-        const queue: PipelineSSEEvent[] = []
+        const queue: ProofSSEEvent[] = []
         let done = false
 
         const unsubscribe = service.addListener(label, (event) => {
@@ -129,8 +97,6 @@ export function createPipelineRoutes(
           queue.push(event)
         })
 
-        // Re-check status after subscribing to avoid race where pipeline
-        // completes between the initial check and listener registration
         const jobAfterSubscribe = service.getStatus(label)
         if (
           jobAfterSubscribe?.status === "completed" ||
@@ -152,7 +118,6 @@ export function createPipelineRoutes(
           unsubscribe()
         })
 
-        // Drain queue with proper await on each write
         while (!done) {
           while (queue.length > 0) {
             const event = queue.shift()!
@@ -162,14 +127,14 @@ export function createPipelineRoutes(
                   event: "progress",
                   data: JSON.stringify(event.data),
                 })
-              } else if (event.type === "pipeline-complete") {
+              } else if (event.type === "proof-complete") {
                 await stream.writeSSE({
                   event: "complete",
                   data: JSON.stringify({ label: event.label }),
                 })
                 done = true
                 break
-              } else if (event.type === "pipeline-error") {
+              } else if (event.type === "proof-error") {
                 await stream.writeSSE({
                   event: "error",
                   data: JSON.stringify({
@@ -181,7 +146,6 @@ export function createPipelineRoutes(
                 break
               }
             } catch {
-              // Stream write failed (client disconnected)
               done = true
               break
             }
@@ -195,7 +159,6 @@ export function createPipelineRoutes(
       })
     }
 
-    // JSON status endpoint
     const job = service.getStatus(label)
     if (!job) {
       return c.json({ status: "idle", label })

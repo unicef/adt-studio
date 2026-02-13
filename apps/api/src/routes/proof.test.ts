@@ -1,42 +1,42 @@
 import { describe, it, expect, vi, beforeEach } from "vitest"
 import { Hono } from "hono"
 import {
-  createPipelineService,
-  type PipelineRunner,
-} from "../services/pipeline-service.js"
-import { createPipelineRoutes } from "./pipeline.js"
+  createProofService,
+  type ProofRunner,
+} from "../services/proof-service.js"
+import { createProofRoutes } from "./proof.js"
 import { errorHandler } from "../middleware/error-handler.js"
 
 function createMockRunner(behavior?: {
   delay?: number
   shouldFail?: boolean
   errorMessage?: string
-}): PipelineRunner {
+}): ProofRunner {
   return {
     run: vi.fn(async (_label, _options, progress) => {
       if (behavior?.delay) {
         await new Promise((r) => setTimeout(r, behavior.delay))
       }
       if (behavior?.shouldFail) {
-        throw new Error(behavior.errorMessage ?? "Pipeline failed")
+        throw new Error(behavior.errorMessage ?? "Proof failed")
       }
-      progress.emit({ type: "step-start", step: "extract" })
-      progress.emit({ type: "step-complete", step: "extract" })
+      progress.emit({ type: "step-start", step: "image-captioning" })
+      progress.emit({ type: "step-complete", step: "image-captioning" })
     }),
   }
 }
 
-function createTestApp(runner: PipelineRunner): { app: Hono; runner: PipelineRunner } {
-  const service = createPipelineService(runner)
-  const routes = createPipelineRoutes(service, "/tmp/books", "/tmp/prompts")
+function createTestApp(runner: ProofRunner): { app: Hono; runner: ProofRunner } {
+  const service = createProofService(runner)
+  const routes = createProofRoutes(service, "/tmp/books", "/tmp/prompts")
   const app = new Hono()
   app.onError(errorHandler)
   app.route("/api", routes)
   return { app, runner }
 }
 
-describe("Pipeline routes", () => {
-  let runner: PipelineRunner
+describe("Proof routes", () => {
+  let runner: ProofRunner
   let app: Hono
 
   beforeEach(() => {
@@ -46,10 +46,10 @@ describe("Pipeline routes", () => {
     runner = result.runner
   })
 
-  describe("POST /api/books/:label/pipeline/run", () => {
-    it("starts pipeline and returns status", async () => {
+  describe("POST /api/books/:label/proof/run", () => {
+    it("starts proof generation and returns status", async () => {
       const res = await app.request(
-        "/api/books/my-book/pipeline/run",
+        "/api/books/my-book/proof/run",
         {
           method: "POST",
           headers: {
@@ -61,11 +61,12 @@ describe("Pipeline routes", () => {
       expect(res.status).toBe(200)
       const body = await res.json()
       expect(body.status).toBe("started")
+      expect(body.label).toBe("my-book")
     })
 
     it("requires API key header", async () => {
       const res = await app.request(
-        "/api/books/my-book/pipeline/run",
+        "/api/books/my-book/proof/run",
         { method: "POST" }
       )
 
@@ -78,9 +79,8 @@ describe("Pipeline routes", () => {
       const slowRunner = createMockRunner({ delay: 500 })
       const { app: testApp } = createTestApp(slowRunner)
 
-      // First run
       const res1 = await testApp.request(
-        "/api/books/my-book/pipeline/run",
+        "/api/books/my-book/proof/run",
         {
           method: "POST",
           headers: { "X-OpenAI-Key": "sk-test" },
@@ -88,12 +88,10 @@ describe("Pipeline routes", () => {
       )
       expect(res1.status).toBe(200)
 
-      // Wait for the first run to be registered
       await new Promise((r) => setTimeout(r, 20))
 
-      // Second run while first is still running
       const res2 = await testApp.request(
-        "/api/books/my-book/pipeline/run",
+        "/api/books/my-book/proof/run",
         {
           method: "POST",
           headers: { "X-OpenAI-Key": "sk-test" },
@@ -102,40 +100,25 @@ describe("Pipeline routes", () => {
       expect(res2.status).toBe(409)
     })
 
-    it("accepts optional run config in body", async () => {
+    it("accepts empty JSON body", async () => {
       const res = await app.request(
-        "/api/books/my-book/pipeline/run",
+        "/api/books/my-book/proof/run",
         {
           method: "POST",
           headers: {
             "X-OpenAI-Key": "sk-test-key",
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            startPage: 1,
-            endPage: 5,
-          }),
+          body: JSON.stringify({}),
         }
       )
 
       expect(res.status).toBe(200)
-
-      // Wait for async pipeline to complete
-      await new Promise((r) => setTimeout(r, 50))
-
-      expect(runner.run).toHaveBeenCalledWith(
-        "my-book",
-        expect.objectContaining({
-          startPage: 1,
-          endPage: 5,
-        }),
-        expect.anything()
-      )
     })
 
     it("rejects unsupported run options", async () => {
       const res = await app.request(
-        "/api/books/my-book/pipeline/run",
+        "/api/books/my-book/proof/run",
         {
           method: "POST",
           headers: {
@@ -150,33 +133,12 @@ describe("Pipeline routes", () => {
 
       expect(res.status).toBe(400)
       const body = await res.json()
-      expect(body.error).toContain("Invalid pipeline run options")
-    })
-
-    it("rejects invalid page range", async () => {
-      const res = await app.request(
-        "/api/books/my-book/pipeline/run",
-        {
-          method: "POST",
-          headers: {
-            "X-OpenAI-Key": "sk-test-key",
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            startPage: 5,
-            endPage: 1,
-          }),
-        }
-      )
-
-      expect(res.status).toBe(400)
-      const body = await res.json()
-      expect(body.error).toContain("endPage")
+      expect(body.error).toContain("Invalid proof run options")
     })
 
     it("rejects invalid JSON body", async () => {
       const res = await app.request(
-        "/api/books/my-book/pipeline/run",
+        "/api/books/my-book/proof/run",
         {
           method: "POST",
           headers: {
@@ -193,19 +155,17 @@ describe("Pipeline routes", () => {
     })
   })
 
-  describe("GET /api/books/:label/pipeline/status", () => {
+  describe("GET /api/books/:label/proof/status", () => {
     it("returns status for a book", async () => {
-      // Start a pipeline first
-      await app.request("/api/books/my-book/pipeline/run", {
+      await app.request("/api/books/my-book/proof/run", {
         method: "POST",
         headers: { "X-OpenAI-Key": "sk-test" },
       })
 
-      // Wait for completion
       await new Promise((r) => setTimeout(r, 50))
 
       const res = await app.request(
-        "/api/books/my-book/pipeline/status"
+        "/api/books/my-book/proof/status"
       )
 
       expect(res.status).toBe(200)
@@ -216,7 +176,7 @@ describe("Pipeline routes", () => {
 
     it("returns idle for unknown book", async () => {
       const res = await app.request(
-        "/api/books/unknown/pipeline/status"
+        "/api/books/unknown/proof/status"
       )
 
       expect(res.status).toBe(200)

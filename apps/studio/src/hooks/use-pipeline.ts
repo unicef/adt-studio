@@ -238,7 +238,7 @@ export function useRunPipeline() {
     }: {
       label: string
       apiKey: string
-      options?: { startPage?: number; endPage?: number; concurrency?: number }
+      options?: { startPage?: number; endPage?: number }
     }) => api.runPipeline(label, apiKey, options),
     onSuccess: (_data, { label }) => {
       queryClient.invalidateQueries({

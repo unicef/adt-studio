@@ -1,76 +1,74 @@
 import type { ProgressEvent } from "@adt/types"
 
-export type PipelineStatus = "idle" | "running" | "completed" | "failed"
+export type ProofStatus = "idle" | "running" | "completed" | "failed"
 
-export interface PipelineJob {
+export interface ProofJob {
   label: string
-  status: PipelineStatus
+  status: ProofStatus
   error?: string
   startedAt?: number
   completedAt?: number
 }
 
-export type PipelineSSEEvent =
+export type ProofSSEEvent =
   | { type: "progress"; data: ProgressEvent }
-  | { type: "pipeline-complete"; label: string }
-  | { type: "pipeline-error"; label: string; error: string }
+  | { type: "proof-complete"; label: string }
+  | { type: "proof-error"; label: string; error: string }
 
-export type PipelineEventListener = (event: PipelineSSEEvent) => void
+export type ProofEventListener = (event: ProofSSEEvent) => void
 
-export interface StartPipelineOptions {
+export interface StartProofOptions {
   booksDir: string
   apiKey: string
   promptsDir: string
   configPath?: string
-  startPage?: number
-  endPage?: number
 }
 
-export interface PipelineProgress {
+export interface ProofProgress {
   emit(event: ProgressEvent): void
 }
 
-export interface PipelineRunner {
+export interface ProofRunner {
   run(
     label: string,
-    options: StartPipelineOptions,
-    progress: PipelineProgress
+    options: StartProofOptions,
+    progress: ProofProgress
   ): Promise<void>
 }
 
-export interface PipelineService {
-  getStatus(label: string): PipelineJob | null
-  addListener(label: string, listener: PipelineEventListener): () => void
-  startPipeline(
+export interface ProofService {
+  getStatus(label: string): ProofJob | null
+  addListener(label: string, listener: ProofEventListener): () => void
+  startProof(
     label: string,
-    options: StartPipelineOptions
+    options: StartProofOptions
   ): Promise<void>
 }
 
-export function createPipelineService(runner: PipelineRunner): PipelineService {
-  const jobs = new Map<string, PipelineJob>()
-  const listeners = new Map<string, Set<PipelineEventListener>>()
+export function createProofService(runner: ProofRunner): ProofService {
+  const jobs = new Map<string, ProofJob>()
+  const listeners = new Map<string, Set<ProofEventListener>>()
 
-  function emit(label: string, event: PipelineSSEEvent): void {
+  function emit(label: string, event: ProofSSEEvent): void {
     const set = listeners.get(label)
     if (!set) return
     for (const listener of set) {
       try {
         listener(event)
       } catch {
-        // Listener errors should not crash the pipeline
+        // Listener errors should not crash the runner
       }
     }
   }
 
   return {
-    getStatus(label: string): PipelineJob | null {
+    getStatus(label: string): ProofJob | null {
       return jobs.get(label) ?? null
     },
 
     addListener(
       label: string,
-      listener: PipelineEventListener
+      listener: ProofEventListener
     ): () => void {
       let set = listeners.get(label)
       if (!set) {
@@ -87,23 +85,23 @@ export function createPipelineService(runner: PipelineRunner): PipelineService {
       }
     },
 
-    async startPipeline(
+    async startProof(
       label: string,
-      options: StartPipelineOptions
+      options: StartProofOptions
     ): Promise<void> {
       const existing = jobs.get(label)
       if (existing?.status === "running") {
-        throw new Error(`Pipeline already running for book: ${label}`)
+        throw new Error(`Proof generation already running for book: ${label}`)
       }
 
-      const job: PipelineJob = {
+      const job: ProofJob = {
         label,
         status: "running",
         startedAt: Date.now(),
       }
       jobs.set(label, job)
 
-      const progress: PipelineProgress = {
+      const progress: ProofProgress = {
         emit(event: ProgressEvent) {
           emit(label, { type: "progress", data: event })
         },
@@ -113,13 +111,13 @@ export function createPipelineService(runner: PipelineRunner): PipelineService {
         await runner.run(label, options, progress)
         job.status = "completed"
         job.completedAt = Date.now()
-        emit(label, { type: "pipeline-complete", label })
+        emit(label, { type: "proof-complete", label })
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
         job.status = "failed"
         job.error = message
         job.completedAt = Date.now()
-        emit(label, { type: "pipeline-error", label, error: message })
+        emit(label, { type: "proof-error", label, error: message })
       }
     },
   }

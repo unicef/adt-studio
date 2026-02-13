@@ -224,8 +224,7 @@ export function createPipelineRunner(): PipelineRunner {
             })
           : null
 
-        const effectiveConcurrency =
-          options.concurrency ?? config.concurrency ?? 32
+        const effectiveConcurrency = config.concurrency ?? 32
 
         const totalPages = pages.length
         let completedClassifyText = 0

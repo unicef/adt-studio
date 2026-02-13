@@ -165,7 +165,6 @@ describe("PipelineService", () => {
         promptsDir: "/tmp/prompts",
         startPage: 1,
         endPage: 5,
-        concurrency: 4,
       })
 
       expect(runner.run).toHaveBeenCalledWith(
@@ -176,7 +175,6 @@ describe("PipelineService", () => {
           promptsDir: "/tmp/prompts",
           startPage: 1,
           endPage: 5,
-          concurrency: 4,
         }),
         expect.anything() // progress
       )

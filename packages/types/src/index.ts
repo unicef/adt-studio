@@ -46,3 +46,9 @@ export {
   webRenderingLLMSchema,
   activityAnswersLLMSchema,
 } from "./web-rendering.js"
+
+export {
+  ImageCaption,
+  ImageCaptioningOutput,
+  imageCaptioningLLMSchema,
+} from "./image-captioning.js"
