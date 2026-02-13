@@ -297,10 +297,10 @@ function PageDetailPage() {
                 </h3>
                 <div className="space-y-3">
                   {page.textClassification.groups.map((group) => (
-                    <div key={group.groupId} className="rounded border p-3">
+                    <div key={group.groupId} className="group/card rounded border p-3">
                       <div className="mb-1 flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs">{group.groupType}</Badge>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-muted-foreground/70">{group.groupType}</span>
+                        <span className="text-xs text-muted-foreground/40 opacity-0 transition-opacity group-hover/card:opacity-100">
                           {group.groupId}
                         </span>
                       </div>
@@ -308,12 +308,12 @@ function PageDetailPage() {
                         {group.texts.map((t, i) => (
                           <div
                             key={i}
-                            className={`text-sm ${t.isPruned ? "text-muted-foreground line-through" : ""}`}
+                            className={`group/text flex items-baseline gap-1 text-sm ${t.isPruned ? "text-muted-foreground line-through" : ""}`}
                           >
-                            <span className="mr-1 text-xs text-muted-foreground">
-                              [{t.textType}]
+                            <span className="flex-1">{t.text}</span>
+                            <span className="shrink-0 text-xs text-muted-foreground/40 opacity-0 transition-opacity group-hover/text:opacity-100">
+                              {t.textType}
                             </span>
-                            {t.text}
                           </div>
                         ))}
                       </div>
