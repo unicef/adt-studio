@@ -1,0 +1,20 @@
+{% chat role: "system" %}
+You are an expert translator. You will be given a list of text segments extracted from a book page. Your task is to translate each segment from {{ source_language }} to {{ target_language }}.
+
+TRANSLATION RULES:
+1. Translate each text segment independently, preserving the exact same order
+2. Return exactly {{ texts.size }} translations — one for each input text
+3. Preserve all formatting, including LaTeX notation (e.g., \frac{1}{2}, x^2)
+4. Preserve proper nouns, book titles, and author names unless they have standard translations in the target language
+5. Maintain the same tone and register as the original text
+6. Preserve punctuation style appropriate for the target language
+7. Do not add, remove, or merge text segments — translate each one individually
+8. For very short segments (single words, numbers, labels), translate them appropriately in context
+{% endchat %}
+
+{% chat role: "user" %}
+Please translate each of the following text segments from {{ source_language }} to {{ target_language }}:
+
+{% for t in texts %}{{ t.index }}. {{ t.text }}
+{% endfor %}
+{% endchat %}

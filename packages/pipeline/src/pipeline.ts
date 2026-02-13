@@ -10,6 +10,7 @@ import { classifyPageText, buildClassifyConfig } from "./text-classification.js"
 import { classifyPageImages, buildImageClassifyConfig } from "./image-classification.js"
 import { sectionPage, buildSectioningConfig } from "./page-sectioning.js"
 import { renderPage, buildRenderStrategyResolver } from "./web-rendering.js"
+import { translatePageText, buildTranslationConfig, type TranslationConfig } from "./translation.js"
 import { createTemplateEngine, type TemplateEngine } from "./render-template.js"
 import { loadBookConfig } from "./config.js"
 import { nullProgress, type Progress } from "./progress.js"
@@ -17,6 +18,7 @@ import type {
   TextClassificationOutput,
   ImageClassificationOutput,
   PageSectioningOutput,
+  BookMetadata,
 } from "@adt/types"
 import type { PageData } from "@adt/storage"
 
@@ -94,8 +96,9 @@ export async function runPipeline(
     }))
 
     progress.emit({ type: "step-start", step: "metadata" })
+    let metadataResult: BookMetadata
     try {
-      const metadataResult = await extractMetadata(
+      metadataResult = await extractMetadata(
         pageInputs,
         metadataConfig,
         metadataModel
@@ -110,6 +113,21 @@ export async function runPipeline(
       })
       throw err
     }
+
+    // Determine if translation is needed
+    const translationConfig = buildTranslationConfig(
+      config,
+      metadataResult.language_code
+    )
+    const translationModel = translationConfig
+      ? createLLMModel({
+          modelId: translationConfig.modelId,
+          cacheDir,
+          promptEngine,
+          rateLimiter,
+          onLog: (entry) => storage.appendLlmLog(entry),
+        })
+      : null
 
     // Step 3: Create Storyboard (per-page classification, sectioning, rendering)
     const textClassifyConfig = buildClassifyConfig(config)
@@ -159,7 +177,9 @@ export async function runPipeline(
           llmModel,
           resolveRenderModel,
           templateEngine,
-          progress
+          progress,
+          translationConfig,
+          translationModel
         )
       }
     )
@@ -186,7 +206,9 @@ async function processPage(
   llmModel: ReturnType<typeof createLLMModel>,
   resolveRenderModel: (modelId: string) => LLMModel,
   templateEngine: TemplateEngine,
-  progress: Progress
+  progress: Progress,
+  translationConfig: TranslationConfig | null,
+  translationModel: LLMModel | null
 ): Promise<void> {
   const { textClassifyConfig, imageClassifyConfig, sectioningConfig, resolveRenderConfig } =
     configs
@@ -226,8 +248,24 @@ async function processPage(
     totalPages,
   })
 
-  // --- Section ---
-  const textClassification = textResult as TextClassificationOutput
+  // --- Translate (if needed) ---
+  let textClassification = textResult as TextClassificationOutput
+  if (translationConfig && translationModel) {
+    textClassification = await translatePageText(
+      page.pageId,
+      textClassification,
+      translationConfig,
+      translationModel
+    )
+    storage.putNodeData("text-classification", page.pageId, textClassification)
+    progress.emit({
+      type: "step-progress",
+      step: "translation",
+      message: page.pageId,
+      page: pageIndex,
+      totalPages,
+    })
+  }
   const imageClassification = imageResult as ImageClassificationOutput
 
   const allImages = storage.getPageImages(page.pageId)

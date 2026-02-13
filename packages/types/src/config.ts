@@ -58,6 +58,7 @@ export const AppConfig = z.object({
   pruned_text_types: z.array(z.string()).optional(),
   pruned_section_types: z.array(z.string()).optional(),
   text_classification: StepConfig.optional(),
+  translation: StepConfig.optional(),
   metadata: StepConfig.optional(),
   page_sectioning: StepConfig.optional(),
   default_render_strategy: z.string().optional(),

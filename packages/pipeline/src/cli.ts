@@ -34,6 +34,7 @@ function createCliProgress(pdfBasename: string): Progress {
   const counters = {
     classifyImages: 0,
     classifyText: 0,
+    translate: 0,
     section: 0,
     render: 0,
   }
@@ -41,6 +42,7 @@ function createCliProgress(pdfBasename: string): Progress {
   let bars: {
     classifyImages: cliProgress.SingleBar
     classifyText: cliProgress.SingleBar
+    translate?: cliProgress.SingleBar
     section: cliProgress.SingleBar
     render: cliProgress.SingleBar
   } | undefined
@@ -102,6 +104,7 @@ function createCliProgress(pdfBasename: string): Progress {
         event.type === "step-error" &&
         (event.step === "image-classification" ||
           event.step === "text-classification" ||
+          event.step === "translation" ||
           event.step === "page-sectioning" ||
           event.step === "web-rendering")
       ) {
@@ -130,11 +133,21 @@ function createCliProgress(pdfBasename: string): Progress {
           )
         }
 
+        const barFormat = (label: string) =>
+          ` ${label.padEnd(16)} [{bar}] {value}/{total}`
+
+        const syncBarTotals = () => {
+          if (!bars) return
+          bars.classifyImages.setTotal(totalPages)
+          bars.classifyText.setTotal(totalPages)
+          bars.translate?.setTotal(totalPages)
+          bars.section.setTotal(totalPages)
+          bars.render.setTotal(totalPages)
+        }
+
         if (event.step === "image-classification") {
           counters.classifyImages++
           if (!bars) {
-            const barFormat = (label: string) =>
-              ` ${label.padEnd(16)} [{bar}] {value}/{total}`
             bars = {
               classifyImages: multibar.create(0, 0, {}, { format: barFormat("Classify Images") }),
               classifyText: multibar.create(0, 0, {}, { format: barFormat("Classify Text") }),
@@ -142,19 +155,31 @@ function createCliProgress(pdfBasename: string): Progress {
               render: multibar.create(0, 0, {}, { format: barFormat("Render Pages") }),
             }
           }
-          bars.classifyImages.setTotal(totalPages)
-          bars.classifyText.setTotal(totalPages)
-          bars.section.setTotal(totalPages)
-          bars.render.setTotal(totalPages)
+          syncBarTotals()
           bars.classifyImages.update(counters.classifyImages)
         } else if (event.step === "text-classification") {
           counters.classifyText++
+          syncBarTotals()
           bars?.classifyText.update(counters.classifyText)
+        } else if (event.step === "translation") {
+          counters.translate++
+          if (bars && !bars.translate) {
+            bars.translate = multibar.create(
+              0,
+              totalPages,
+              {},
+              { format: barFormat("Translate Text") }
+            )
+          }
+          syncBarTotals()
+          bars?.translate?.update(counters.translate)
         } else if (event.step === "page-sectioning") {
           counters.section++
+          syncBarTotals()
           bars?.section.update(counters.section)
         } else if (event.step === "web-rendering") {
           counters.render++
+          syncBarTotals()
           bars?.render.update(counters.render)
         }
       }

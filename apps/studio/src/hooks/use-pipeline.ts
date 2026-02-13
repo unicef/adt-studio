@@ -6,6 +6,7 @@ export type StepName =
   | "extract"
   | "metadata"
   | "text-classification"
+  | "translation"
   | "image-classification"
   | "page-sectioning"
   | "web-rendering"

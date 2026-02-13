@@ -44,6 +44,11 @@ export {
   renderSectionTemplate,
   type TemplateEngine,
 } from "./render-template.js"
+export {
+  translatePageText,
+  buildTranslationConfig,
+  type TranslationConfig,
+} from "./translation.js"
 export { validateSectionHtml } from "./validate-html.js"
 export { loadConfig, loadBookConfig, deepMerge } from "./config.js"
 export { runPipeline, type RunPipelineOptions } from "./pipeline.js"

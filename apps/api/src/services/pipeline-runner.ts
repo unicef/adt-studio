@@ -15,10 +15,12 @@ import {
   buildSectioningConfig,
   renderPage,
   buildRenderStrategyResolver,
+  translatePageText,
+  buildTranslationConfig,
   createTemplateEngine,
   loadBookConfig,
 } from "@adt/pipeline"
-import type { TemplateEngine } from "@adt/pipeline"
+import type { TemplateEngine, TranslationConfig } from "@adt/pipeline"
 import type {
   TextClassificationOutput,
   ImageClassificationOutput,
@@ -33,6 +35,27 @@ import type {
 } from "./pipeline-service.js"
 
 const DEFAULT_METADATA_PAGES = 3
+
+class PipelineStepError extends Error {
+  readonly step: StepName
+
+  constructor(step: StepName, message: string) {
+    super(message)
+    this.name = "PipelineStepError"
+    this.step = step
+  }
+}
+
+function toErrorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err)
+}
+
+function wrapStepError(step: StepName, err: unknown): never {
+  if (err instanceof PipelineStepError) {
+    throw err
+  }
+  throw new PipelineStepError(step, toErrorMessage(err))
+}
 
 async function processWithConcurrency<T>(
   items: T[],
@@ -140,6 +163,12 @@ export function createPipelineRunner(): PipelineRunner {
         storage.putNodeData("metadata", "book", metadataResult)
         progress.emit({ type: "step-complete", step: "metadata" })
 
+        // Determine if translation is needed
+        const translationConfig = buildTranslationConfig(
+          config,
+          metadataResult.language_code
+        )
+
         // Step 3: Per-page processing (classify → section → render)
         const textClassifyConfig = buildClassifyConfig(config)
         const imageClassifyConfig = buildImageClassifyConfig(config)
@@ -185,12 +214,23 @@ export function createPipelineRunner(): PipelineRunner {
           return model
         }
 
+        const translationModel = translationConfig
+          ? createLLMModel({
+              modelId: translationConfig.modelId,
+              cacheDir,
+              promptEngine,
+              rateLimiter,
+              onLog: onLlmLog,
+            })
+          : null
+
         const effectiveConcurrency =
           options.concurrency ?? config.concurrency ?? 32
 
         const totalPages = pages.length
         let completedClassifyText = 0
         let completedClassifyImages = 0
+        let completedTranslation = 0
         let completedSection = 0
         let completedRender = 0
 
@@ -237,6 +277,16 @@ export function createPipelineRunner(): PipelineRunner {
                       totalPages,
                     })
                   },
+                  onTranslate: () => {
+                    completedTranslation++
+                    progress.emit({
+                      type: "step-progress",
+                      step: "translation",
+                      message: `${completedTranslation}/${totalPages}`,
+                      page: completedTranslation,
+                      totalPages,
+                    })
+                  },
                   onSection: () => {
                     completedSection++
                     progress.emit({
@@ -257,14 +307,19 @@ export function createPipelineRunner(): PipelineRunner {
                       totalPages,
                     })
                   },
-                }
+                },
+                translationConfig,
+                translationModel
               )
             } catch (err) {
-              const msg = err instanceof Error ? err.message : String(err)
-              failedPages.push(`${page.pageId}: ${msg}`)
+              const msg = toErrorMessage(err)
+              const step = err instanceof PipelineStepError
+                ? err.step
+                : "web-rendering"
+              failedPages.push(`${page.pageId} [${step}]: ${msg}`)
               progress.emit({
                 type: "step-error",
-                step: "web-rendering",
+                step,
                 error: `${page.pageId} failed: ${msg}`,
               })
             }
@@ -282,6 +337,12 @@ export function createPipelineRunner(): PipelineRunner {
           type: "step-complete",
           step: "text-classification",
         })
+        if (translationConfig) {
+          progress.emit({
+            type: "step-complete",
+            step: "translation",
+          })
+        }
         progress.emit({
           type: "step-complete",
           step: "image-classification",
@@ -311,6 +372,7 @@ interface StepConfigs {
 interface PageCallbacks {
   onClassifyImages: () => void
   onClassifyText: () => void
+  onTranslate: () => void
   onSection: () => void
   onRender: () => void
 }
@@ -325,7 +387,9 @@ async function processPage(
   templateEngine: TemplateEngine,
   _progress: PipelineProgress,
   _totalPages: number,
-  callbacks: PageCallbacks
+  callbacks: PageCallbacks,
+  translationConfig: TranslationConfig | null,
+  translationModel: LLMModel | null
 ): Promise<void> {
   const {
     textClassifyConfig,
@@ -349,20 +413,45 @@ async function processPage(
     llmModel
   )
 
-  const imageResult = classifyPageImages(
-    page.pageId,
-    images,
-    imageClassifyConfig
-  )
-  storage.putNodeData("image-classification", page.pageId, imageResult)
-  callbacks.onClassifyImages()
+  let imageResult: ReturnType<typeof classifyPageImages>
+  try {
+    imageResult = classifyPageImages(
+      page.pageId,
+      images,
+      imageClassifyConfig
+    )
+    storage.putNodeData("image-classification", page.pageId, imageResult)
+    callbacks.onClassifyImages()
+  } catch (err) {
+    await textPromise.catch(() => undefined)
+    wrapStepError("image-classification", err)
+  }
 
-  const textResult = await textPromise
-  storage.putNodeData("text-classification", page.pageId, textResult)
-  callbacks.onClassifyText()
+  let textResult: Awaited<ReturnType<typeof classifyPageText>>
+  try {
+    textResult = await textPromise
+    storage.putNodeData("text-classification", page.pageId, textResult)
+    callbacks.onClassifyText()
+  } catch (err) {
+    wrapStepError("text-classification", err)
+  }
 
-  // Section page
-  const textClassification = textResult as TextClassificationOutput
+  // Translate (if needed)
+  let textClassification = textResult as TextClassificationOutput
+  if (translationConfig && translationModel) {
+    try {
+      textClassification = await translatePageText(
+        page.pageId,
+        textClassification,
+        translationConfig,
+        translationModel
+      )
+      storage.putNodeData("text-classification", page.pageId, textClassification)
+      callbacks.onTranslate()
+    } catch (err) {
+      wrapStepError("translation", err)
+    }
+  }
   const imageClassification = imageResult as ImageClassificationOutput
 
   const allImages = storage.getPageImages(page.pageId)
@@ -379,20 +468,25 @@ async function processPage(
     }))
 
   const pageImageBase64 = storage.getPageImageBase64(page.pageId)
-  const sectionResult = await sectionPage(
-    {
-      pageId: page.pageId,
-      pageNumber: page.pageNumber,
-      pageImageBase64,
-      textClassification,
-      imageClassification,
-      images: sectionImages,
-    },
-    sectioningConfig,
-    llmModel
-  )
-  storage.putNodeData("page-sectioning", page.pageId, sectionResult)
-  callbacks.onSection()
+  let sectionResult: Awaited<ReturnType<typeof sectionPage>>
+  try {
+    sectionResult = await sectionPage(
+      {
+        pageId: page.pageId,
+        pageNumber: page.pageNumber,
+        pageImageBase64,
+        textClassification,
+        imageClassification,
+        images: sectionImages,
+      },
+      sectioningConfig,
+      llmModel
+    )
+    storage.putNodeData("page-sectioning", page.pageId, sectionResult)
+    callbacks.onSection()
+  } catch (err) {
+    wrapStepError("page-sectioning", err)
+  }
 
   // Render page
   const sectioning = sectionResult as PageSectioningOutput
@@ -403,19 +497,23 @@ async function processPage(
     }
   }
 
-  const renderResult = await renderPage(
-    {
-      label,
-      pageId: page.pageId,
-      pageImageBase64,
-      sectioning,
-      textClassification,
-      images: renderImages,
-    },
-    resolveRenderConfig,
-    resolveRenderModel,
-    templateEngine
-  )
-  storage.putNodeData("web-rendering", page.pageId, renderResult)
-  callbacks.onRender()
+  try {
+    const renderResult = await renderPage(
+      {
+        label,
+        pageId: page.pageId,
+        pageImageBase64,
+        sectioning,
+        textClassification,
+        images: renderImages,
+      },
+      resolveRenderConfig,
+      resolveRenderModel,
+      templateEngine
+    )
+    storage.putNodeData("web-rendering", page.pageId, renderResult)
+    callbacks.onRender()
+  } catch (err) {
+    wrapStepError("web-rendering", err)
+  }
 }
