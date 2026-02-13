@@ -34,7 +34,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          LATEST=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          LATEST=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1 || true)
           if [ -z "$LATEST" ]; then
             NEXT="0.1.0"
           else
