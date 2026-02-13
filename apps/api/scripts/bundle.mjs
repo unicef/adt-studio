@@ -53,7 +53,7 @@ const replaceDynamicImports = {
 
       return {
         contents: source,
-        loader: args.path.endsWith(".mjs") ? "js" : "js",
+        loader: "js",
       }
     })
   },

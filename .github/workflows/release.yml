@@ -1,29 +1,21 @@
-name: Release Desktop App
+name: Release Windows
 
 on:
   push:
-    tags:
-      - "v*"
+    branches: [deploy]
   workflow_dispatch:
 
 permissions:
   contents: write
 
 jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - platform: macos-latest # arm64 (Apple Silicon)
-          - platform: macos-13 # x86_64 (Intel)
-          - platform: windows-latest
-          - platform: ubuntu-22.04
-
-    runs-on: ${{ matrix.platform }}
+  release:
+    runs-on: windows-latest
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Need full history for version tag detection
 
       - uses: pnpm/action-setup@v4
 
@@ -38,26 +30,45 @@ jobs:
         with:
           workspaces: apps/desktop/src-tauri -> target
 
-      - name: Install Linux dependencies
-        if: matrix.platform == 'ubuntu-22.04'
+      - name: Determine next version
+        id: version
+        shell: bash
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          LATEST=$(git tag --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -1)
+          if [ -z "$LATEST" ]; then
+            NEXT="0.1.0"
+          else
+            VERSION="${LATEST#v}"
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+            PATCH=$((PATCH + 1))
+            NEXT="$MAJOR.$MINOR.$PATCH"
+          fi
+          echo "version=$NEXT" >> "$GITHUB_OUTPUT"
+          echo "tag=v$NEXT" >> "$GITHUB_OUTPUT"
+          echo "Next version: $NEXT"
+
+      - name: Set version in tauri.conf.json
+        shell: bash
+        run: |
+          node -e "
+            const fs = require('fs');
+            const p = 'apps/desktop/src-tauri/tauri.conf.json';
+            const conf = JSON.parse(fs.readFileSync(p, 'utf-8'));
+            conf.version = '${{ steps.version.outputs.version }}';
+            fs.writeFileSync(p, JSON.stringify(conf, null, 2) + '\n');
+          "
 
       - run: pnpm install --frozen-lockfile
 
-      # Build TypeScript workspace packages (needed before sidecar bundling)
       - run: pnpm build
 
-      # tauri-action runs beforeBuildCommand (studio build + sidecar compile),
-      # then `tauri build` to produce the installer.
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: apps/desktop
-          tagName: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
-          releaseName: "ADT Studio ${{ github.ref_name }}"
-          releaseBody: "Download the installer for your platform below."
-          releaseDraft: true
+          tagName: ${{ steps.version.outputs.tag }}
+          releaseName: "ADT Studio ${{ steps.version.outputs.tag }}"
+          releaseBody: "Download the Windows installer (.exe) below."
+          releaseDraft: false
           prerelease: false

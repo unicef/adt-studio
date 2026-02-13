@@ -56,7 +56,7 @@ pnpm build         # Build all packages
 
 ### Desktop Development
 
-Prerequisites: [Rust toolchain](https://rustup.rs/) and Tauri v2 CLI (`pnpm add -g @tauri-apps/cli`).
+Prerequisites: [Rust toolchain](https://rustup.rs/) (Tauri CLI is already a local devDependency).
 
 ```bash
 # Dev mode — build sidecar once, then iterate on Rust/frontend
@@ -78,6 +78,14 @@ Key files:
 - `apps/desktop/src-tauri/src/lib.rs` — Sidecar spawn, env vars, lifecycle
 - `apps/desktop/src-tauri/tauri.conf.json` — `externalBin`, `resources` mapping
 - `apps/studio/src/api/client.ts` — Tauri base URL detection
+
+### Releasing
+
+Push to the `deploy` branch triggers a GitHub Actions workflow that builds a Windows installer and creates a GitHub Release with auto-incremented patch version (v0.1.0 → v0.1.1 → ...).
+
+```bash
+git checkout deploy && git merge main && git push   # Creates next release
+```
 
 ## Key Rules
 

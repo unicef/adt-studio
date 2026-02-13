@@ -1,5 +1,5 @@
 {
-  "$schema": "https://raw.githubusercontent.com/nicpottier/tauri/refs/heads/dev/crates/tauri-cli/schema.json",
+  "$schema": "https://schema.tauri.app/config/2",
   "productName": "ADT Studio",
   "version": "0.1.0",
   "identifier": "org.unicef.adt-studio",

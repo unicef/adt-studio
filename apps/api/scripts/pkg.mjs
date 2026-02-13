@@ -61,7 +61,7 @@ const pkgJson = {
   name: "api-server",
   bin: "api-server.mjs",
   pkg: {
-    assets: wasmFiles.map((f) => f),
+    assets: wasmFiles,
   },
 }
 
