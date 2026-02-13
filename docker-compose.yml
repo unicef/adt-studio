@@ -1,0 +1,25 @@
+services:
+  api:
+    build:
+      context: .
+      target: api
+    volumes:
+      - ./books:/app/books
+      - ./prompts:/app/prompts
+      - ./config.yaml:/app/config.yaml:ro
+    environment:
+      - PROJECT_ROOT=/app
+      - BOOKS_DIR=/app/books
+      - PROMPTS_DIR=/app/prompts
+      - CONFIG_PATH=/app/config.yaml
+    restart: unless-stopped
+
+  studio:
+    build:
+      context: .
+      target: studio
+    ports:
+      - "${PORT:-8080}:80"
+    depends_on:
+      - api
+    restart: unless-stopped
