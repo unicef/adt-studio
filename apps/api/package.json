@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts"
+    "dev": "tsx watch src/index.ts",
+    "bundle": "node scripts/bundle.mjs",
+    "compile": "node scripts/pkg.mjs",
+    "build:sidecar": "pnpm bundle && pnpm compile"
   },
   "dependencies": {
     "@adt/llm": "workspace:*",
@@ -16,5 +19,9 @@
     "hono": "^4.7.0",
     "fflate": "^0.8.2",
     "js-yaml": "^4.1.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "@yao-pkg/pkg": "^6.0.0"
   }
 }

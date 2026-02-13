@@ -1,1 +1,1 @@
-{"default":{"identifier":"default","description":"Default capabilities for the main window","local":true,"windows":["main"],"permissions":["core:default"]}}
+{"default":{"identifier":"default","description":"Default capabilities for the main window","local":true,"windows":["main"],"permissions":["core:default",{"identifier":"shell:allow-spawn","allow":[{"name":"api-server","sidecar":true}]},"shell:allow-kill","shell:allow-stdin-write"]}}

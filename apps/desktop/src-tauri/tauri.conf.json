@@ -6,7 +6,7 @@
   "build": {
     "beforeDevCommand": "",
     "devUrl": "http://localhost:5173",
-    "beforeBuildCommand": "",
+    "beforeBuildCommand": "pnpm --filter @adt/studio build && pnpm --filter @adt/api build:sidecar",
     "frontendDist": "../../studio/dist"
   },
   "app": {
@@ -32,6 +32,12 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "externalBin": ["binaries/api-server"],
+    "resources": {
+      "../../../prompts/**/*": "prompts/",
+      "../../../templates/**/*": "templates/",
+      "../../../config.yaml": "."
+    }
   }
 }

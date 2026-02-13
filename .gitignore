@@ -35,6 +35,10 @@ Thumbs.db
 # Tauri build output
 **/src-tauri/target/
 
+# Sidecar build artifacts
+apps/api/dist-pkg/
+apps/desktop/src-tauri/binaries/
+
 # Vitest
 coverage/
 

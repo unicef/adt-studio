@@ -1,4 +1,14 @@
-const BASE_URL = "/api"
+function resolveBaseUrl(): string {
+  if (
+    window.location.protocol === "tauri:" ||
+    window.location.hostname === "tauri.localhost"
+  ) {
+    return "http://localhost:3001/api"
+  }
+  return "/api"
+}
+
+const BASE_URL = resolveBaseUrl()
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${BASE_URL}${path}`
