@@ -15,6 +15,7 @@
     "dev:api": "pnpm --filter @adt/api dev",
     "dev:studio": "pnpm --filter @adt/studio dev",
     "dev:desktop": "pnpm --filter @adt/desktop dev",
+    "build:desktop": "pnpm build && pnpm --filter @adt/desktop build",
     "pdf-extract": "tsx packages/pdf/src/cli.ts",
     "pipeline": "tsx packages/pipeline/src/cli.ts"
   },

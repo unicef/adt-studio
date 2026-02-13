@@ -7,7 +7,7 @@ ADT Studio is a desktop-first application for automated book production — extr
 - **Monorepo**: pnpm workspaces
 - **Backend**: Hono (HTTP server), node-sqlite3-wasm (pure WASM SQLite), Zod
 - **Frontend**: React + Vite SPA, TanStack (Router, Query, Table, Form), Tailwind CSS
-- **Desktop**: Tauri or Electron (TBD)
+- **Desktop**: Tauri v2 (sidecar-based — API server compiled to standalone binary)
 - **Language**: TypeScript (strict mode)
 - **Testing**: Vitest
 
@@ -33,7 +33,7 @@ packages/          # Shared libraries (@adt/* workspace packages)
 apps/              # Application tier
   api/             # Hono HTTP server
   studio/          # React SPA (Vite)
-  desktop/         # Desktop wrapper (Tauri or Electron — TBD)
+  desktop/         # Tauri v2 desktop wrapper
 
 templates/         # Layout templates
 config/            # Global configuration
@@ -47,11 +47,44 @@ Frontend MUST NOT import from packages directly. All data flows through the API.
 
 ```bash
 pnpm install       # Install dependencies
-pnpm dev           # Run development servers
+pnpm dev           # Run API + Studio dev servers
 pnpm test          # Run tests
 pnpm typecheck     # TypeScript strict check
 pnpm lint          # Lint
 pnpm build         # Build all packages
+```
+
+### Desktop Development
+
+Prerequisites: [Rust toolchain](https://rustup.rs/) (Tauri CLI is already a local devDependency).
+
+```bash
+# Dev mode — build sidecar once, then iterate on Rust/frontend
+pnpm --filter @adt/api build:sidecar   # Compile API → standalone binary
+pnpm dev                                # Start API + Studio dev servers (terminal 1)
+pnpm dev:desktop                        # Start Tauri dev window (terminal 2)
+
+# Production build — single command, outputs .app/.dmg/.msi
+pnpm build:desktop
+```
+
+#### How the sidecar works
+
+The API server is compiled into a standalone Node.js binary (`@yao-pkg/pkg`) and bundled inside the Tauri app as a **sidecar**. On launch, `lib.rs` spawns the sidecar, passing resource paths (prompts, config) via environment variables. The frontend detects the Tauri environment and routes API calls to `localhost:3001`.
+
+Key files:
+- `apps/api/scripts/bundle.mjs` — esbuild bundle (JS + WASM assets)
+- `apps/api/scripts/pkg.mjs` — Compile bundle → standalone binary, copy to `desktop/src-tauri/binaries/`
+- `apps/desktop/src-tauri/src/lib.rs` — Sidecar spawn, env vars, lifecycle
+- `apps/desktop/src-tauri/tauri.conf.json` — `externalBin`, `resources` mapping
+- `apps/studio/src/api/client.ts` — Tauri base URL detection
+
+### Releasing
+
+Push to the `deploy` branch triggers a GitHub Actions workflow that builds a Windows installer and creates a GitHub Release with auto-incremented patch version (v0.1.0 → v0.1.1 → ...).
+
+```bash
+git checkout deploy && git merge main && git push   # Creates next release
 ```
 
 ## Key Rules

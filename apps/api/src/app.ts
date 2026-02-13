@@ -27,10 +27,17 @@ const pipelineService = createPipelineService(pipelineRunner)
 const app = new Hono()
 
 app.use("*", logger())
+const ALLOWED_ORIGINS = [
+  "http://localhost:5173",    // Vite dev
+  "tauri://localhost",        // Tauri macOS
+  "https://tauri.localhost",  // Tauri Windows
+  "http://tauri.localhost",   // Tauri Linux
+]
+
 app.use(
   "*",
   cors({
-    origin: "http://localhost:5173",
+    origin: ALLOWED_ORIGINS,
   })
 )
 app.onError(errorHandler)

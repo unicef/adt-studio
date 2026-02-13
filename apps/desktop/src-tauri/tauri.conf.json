@@ -1,12 +1,12 @@
 {
-  "$schema": "https://raw.githubusercontent.com/nicpottier/tauri/refs/heads/dev/crates/tauri-cli/schema.json",
+  "$schema": "https://schema.tauri.app/config/2",
   "productName": "ADT Studio",
   "version": "0.1.0",
   "identifier": "org.unicef.adt-studio",
   "build": {
     "beforeDevCommand": "",
     "devUrl": "http://localhost:5173",
-    "beforeBuildCommand": "",
+    "beforeBuildCommand": "pnpm --filter @adt/studio build && pnpm --filter @adt/api build:sidecar",
     "frontendDist": "../../studio/dist"
   },
   "app": {
@@ -32,6 +32,12 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "externalBin": ["binaries/api-server"],
+    "resources": {
+      "../../../prompts/**/*": "prompts/",
+      "../../../templates/**/*": "templates/",
+      "../../../config.yaml": "."
+    }
   }
 }
