@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -176,6 +177,53 @@ export function createDebugRoutes(
     const hasBookOverride = fs.existsSync(path.join(bookDir, "config.yaml"))
 
     return c.json({ merged, hasBookOverride })
+  })
+
+  // GET /books/:label/debug/llm-image/:hash — resolve LLM log image hash to binary
+  app.get("/books/:label/debug/llm-image/:hash", (c) => {
+    const { label, hash } = c.req.param()
+
+    if (!/^[0-9a-f]{16}$/.test(hash)) {
+      throw new HTTPException(400, { message: "Invalid hash format" })
+    }
+
+    const { safeLabel, dbPath } = requireDb(label, booksDir)
+    const bookDir = path.join(path.resolve(booksDir), safeLabel)
+
+    const db = openBookDb(dbPath)
+    try {
+      const rows = db.all(
+        "SELECT image_id, path FROM images",
+        []
+      ) as Array<{ image_id: string; path: string }>
+
+      for (const row of rows) {
+        const imagePath = path.resolve(bookDir, row.path)
+        if (!imagePath.startsWith(bookDir + path.sep)) continue
+
+        let buf: Buffer
+        try {
+          buf = fs.readFileSync(imagePath)
+        } catch {
+          continue
+        }
+
+        const base64 = buf.toString("base64")
+        const logHash = createHash("sha256").update(base64).digest("hex").slice(0, 16)
+        if (logHash === hash) {
+          const ext = path.extname(imagePath).toLowerCase()
+          const contentType =
+            ext === ".jpg" || ext === ".jpeg" ? "image/jpeg" : "image/png"
+          c.header("Content-Type", contentType)
+          c.header("Cache-Control", "public, max-age=86400")
+          return c.body(new Uint8Array(buf))
+        }
+      }
+
+      throw new HTTPException(404, { message: `Image not found for hash: ${hash}` })
+    } finally {
+      db.close()
+    }
   })
 
   // GET /books/:label/debug/versions/:node/:itemId — version history
