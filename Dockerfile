@@ -32,11 +32,28 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 # =============================================================================
 FROM deps AS build
 
-# Copy full source (node_modules already present from deps stage)
+# Copy full source (preserve node_modules from deps stage)
 COPY tsconfig.json ./
-COPY packages/ packages/
-COPY apps/api/ apps/api/
-COPY apps/studio/ apps/studio/
+
+# Copy package sources (exclude node_modules to preserve installed deps)
+COPY packages/types/src packages/types/src
+COPY packages/types/tsconfig.json packages/types/tsconfig.json
+COPY packages/llm/src packages/llm/src
+COPY packages/llm/tsconfig.json packages/llm/tsconfig.json
+COPY packages/pdf/src packages/pdf/src
+COPY packages/pdf/tsconfig.json packages/pdf/tsconfig.json
+COPY packages/storage/src packages/storage/src
+COPY packages/storage/tsconfig.json packages/storage/tsconfig.json
+COPY packages/pipeline/src packages/pipeline/src
+COPY packages/pipeline/tsconfig.json packages/pipeline/tsconfig.json
+
+COPY apps/api/src apps/api/src
+COPY apps/api/tsconfig.json apps/api/tsconfig.json
+COPY apps/studio/src apps/studio/src
+COPY apps/studio/tsconfig.json apps/studio/tsconfig.json
+COPY apps/studio/index.html apps/studio/index.html
+COPY apps/studio/vite.config.ts apps/studio/vite.config.ts
+COPY apps/studio/components.json apps/studio/components.json
 
 # Build all TypeScript packages (tsc --build)
 RUN pnpm build
