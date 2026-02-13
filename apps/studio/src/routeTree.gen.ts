@@ -14,6 +14,7 @@ import { Route as BooksNewRouteImport } from "./routes/books.new"
 import { Route as BooksLabelRouteImport } from "./routes/books.$label"
 import { Route as BooksLabelIndexRouteImport } from "./routes/books.$label.index"
 import { Route as BooksLabelStoryboardRouteImport } from "./routes/books.$label.storyboard"
+import { Route as BooksLabelDebugRouteImport } from "./routes/books.$label.debug"
 import { Route as BooksLabelPagesPageIdRouteImport } from "./routes/books.$label.pages.$pageId"
 
 const IndexRoute = IndexRouteImport.update({
@@ -41,6 +42,11 @@ const BooksLabelStoryboardRoute = BooksLabelStoryboardRouteImport.update({
   path: "/storyboard",
   getParentRoute: () => BooksLabelRoute,
 } as any)
+const BooksLabelDebugRoute = BooksLabelDebugRouteImport.update({
+  id: "/debug",
+  path: "/debug",
+  getParentRoute: () => BooksLabelRoute,
+} as any)
 const BooksLabelPagesPageIdRoute = BooksLabelPagesPageIdRouteImport.update({
   id: "/pages/$pageId",
   path: "/pages/$pageId",
@@ -51,6 +57,7 @@ export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/new": typeof BooksNewRoute
+  "/books/$label/debug": typeof BooksLabelDebugRoute
   "/books/$label/storyboard": typeof BooksLabelStoryboardRoute
   "/books/$label/": typeof BooksLabelIndexRoute
   "/books/$label/pages/$pageId": typeof BooksLabelPagesPageIdRoute
@@ -58,6 +65,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
   "/books/new": typeof BooksNewRoute
+  "/books/$label/debug": typeof BooksLabelDebugRoute
   "/books/$label/storyboard": typeof BooksLabelStoryboardRoute
   "/books/$label": typeof BooksLabelIndexRoute
   "/books/$label/pages/$pageId": typeof BooksLabelPagesPageIdRoute
@@ -67,6 +75,7 @@ export interface FileRoutesById {
   "/": typeof IndexRoute
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/new": typeof BooksNewRoute
+  "/books/$label/debug": typeof BooksLabelDebugRoute
   "/books/$label/storyboard": typeof BooksLabelStoryboardRoute
   "/books/$label/": typeof BooksLabelIndexRoute
   "/books/$label/pages/$pageId": typeof BooksLabelPagesPageIdRoute
@@ -77,6 +86,7 @@ export interface FileRouteTypes {
     | "/"
     | "/books/$label"
     | "/books/new"
+    | "/books/$label/debug"
     | "/books/$label/storyboard"
     | "/books/$label/"
     | "/books/$label/pages/$pageId"
@@ -84,6 +94,7 @@ export interface FileRouteTypes {
   to:
     | "/"
     | "/books/new"
+    | "/books/$label/debug"
     | "/books/$label/storyboard"
     | "/books/$label"
     | "/books/$label/pages/$pageId"
@@ -92,6 +103,7 @@ export interface FileRouteTypes {
     | "/"
     | "/books/$label"
     | "/books/new"
+    | "/books/$label/debug"
     | "/books/$label/storyboard"
     | "/books/$label/"
     | "/books/$label/pages/$pageId"
@@ -140,6 +152,13 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof BooksLabelStoryboardRouteImport
       parentRoute: typeof BooksLabelRoute
     }
+    "/books/$label/debug": {
+      id: "/books/$label/debug"
+      path: "/debug"
+      fullPath: "/books/$label/debug"
+      preLoaderRoute: typeof BooksLabelDebugRouteImport
+      parentRoute: typeof BooksLabelRoute
+    }
     "/books/$label/pages/$pageId": {
       id: "/books/$label/pages/$pageId"
       path: "/pages/$pageId"
@@ -151,12 +170,14 @@ declare module "@tanstack/react-router" {
 }
 
 interface BooksLabelRouteChildren {
+  BooksLabelDebugRoute: typeof BooksLabelDebugRoute
   BooksLabelStoryboardRoute: typeof BooksLabelStoryboardRoute
   BooksLabelIndexRoute: typeof BooksLabelIndexRoute
   BooksLabelPagesPageIdRoute: typeof BooksLabelPagesPageIdRoute
 }
 
 const BooksLabelRouteChildren: BooksLabelRouteChildren = {
+  BooksLabelDebugRoute: BooksLabelDebugRoute,
   BooksLabelStoryboardRoute: BooksLabelStoryboardRoute,
   BooksLabelIndexRoute: BooksLabelIndexRoute,
   BooksLabelPagesPageIdRoute: BooksLabelPagesPageIdRoute,

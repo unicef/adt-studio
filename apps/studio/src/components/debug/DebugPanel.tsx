@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react"
-import { X, GripHorizontal } from "lucide-react"
+import { X, GripHorizontal, ExternalLink } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { StatsTab } from "./StatsTab"
@@ -99,6 +99,23 @@ export function DebugPanel({ label, progress, onClose }: DebugPanelProps) {
           <span className="text-xs text-muted-foreground">
             Debug Panel
           </span>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            title="Pop out to new window"
+            onClick={() => {
+              window.open(
+                `/books/${label}/debug`,
+                `debug-${label}`,
+                "width=900,height=700",
+              )
+              onClose()
+            }}
+          >
+            <ExternalLink className="h-3 w-3" />
+          </Button>
 
           <Button
             variant="ghost"

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
-import { createFileRoute, Outlet } from "@tanstack/react-router"
+import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router"
 import { Terminal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DebugPanel } from "@/components/debug/DebugPanel"
@@ -11,6 +11,8 @@ export const Route = createFileRoute("/books/$label")({
 
 function BookLayout() {
   const { label } = Route.useParams()
+  const matchRoute = useMatchRoute()
+  const isDebugRoute = !!matchRoute({ to: "/books/$label/debug", params: { label } })
   const [debugOpen, setDebugOpen] = useState(false)
 
   // SSE connection for debug panel — only active when debug panel is open
@@ -18,13 +20,14 @@ function BookLayout() {
   const isRunning = pipelineStatus?.status === "running"
   const { progress } = usePipelineSSE(label, debugOpen && isRunning)
 
-  // Cmd+Shift+D toggle
+  // Cmd+Shift+D toggle (disabled on debug route — that page IS the debug view)
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (isDebugRoute) return
     if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "d") {
       e.preventDefault()
       setDebugOpen((prev) => !prev)
     }
-  }, [])
+  }, [isDebugRoute])
 
   useEffect(() => {
     document.addEventListener("keydown", handleKeyDown)
@@ -38,8 +41,8 @@ function BookLayout() {
         <Outlet />
       </div>
 
-      {/* Debug panel */}
-      {debugOpen && (
+      {/* Debug panel (hidden on debug route — rendered full-page there) */}
+      {debugOpen && !isDebugRoute && (
         <DebugPanel
           label={label}
           progress={progress}
@@ -48,7 +51,7 @@ function BookLayout() {
       )}
 
       {/* Floating toggle button */}
-      {!debugOpen && (
+      {!debugOpen && !isDebugRoute && (
         <Button
           variant="outline"
           size="icon"
