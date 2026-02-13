@@ -3,6 +3,8 @@ services:
     build:
       context: .
       target: api
+    # ports:
+    #   - "3001:3001"  # uncomment for direct API access (debugging)
     volumes:
       - ./books:/app/books
       - ./prompts:/app/prompts
@@ -12,7 +14,10 @@ services:
       - PROJECT_ROOT=/app
       - BOOKS_DIR=/app/books
       - PROMPTS_DIR=/app/prompts
+      - TEMPLATES_DIR=/app/templates
       - CONFIG_PATH=/app/config.yaml
+    networks:
+      - internal
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://localhost:3001/api/health').then(r => { if (!r.ok) process.exit(1) })"]
       interval: 5s
@@ -27,7 +32,13 @@ services:
       target: studio
     ports:
       - "${PORT:-8080}:80"
+    networks:
+      - internal
     depends_on:
       api:
         condition: service_healthy
     restart: unless-stopped
+
+networks:
+  internal:
+    driver: bridge

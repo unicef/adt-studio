@@ -4,8 +4,11 @@ dist/
 .git/
 .gitignore
 
-# Data directories (mounted as volumes)
+# Data directories (mounted as volumes at runtime)
 books/
+prompts/
+templates/
+config.yaml
 
 # Build caches
 .cache/
@@ -26,8 +29,10 @@ Thumbs.db
 *.swp
 *.swo
 
-# Claude Code
+# Claude Code / AI config
 .claude/
+CLAUDE.md
+AGENTS.md
 
 # Logs
 *.log
@@ -35,7 +40,8 @@ Thumbs.db
 # Tauri build output
 **/src-tauri/target/
 
-# Local docs
+# Documentation (not needed in build)
+docs/
 .local-docs/
 
 # Reference projects

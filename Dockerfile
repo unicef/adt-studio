@@ -21,6 +21,7 @@ COPY packages/llm/package.json packages/llm/package.json
 COPY packages/pdf/package.json packages/pdf/package.json
 COPY packages/storage/package.json packages/storage/package.json
 COPY packages/pipeline/package.json packages/pipeline/package.json
+# COPY packages/output/package.json packages/output/package.json  # uncomment when package is initialized
 COPY apps/api/package.json apps/api/package.json
 COPY apps/studio/package.json apps/studio/package.json
 
@@ -46,6 +47,8 @@ COPY packages/storage/src packages/storage/src
 COPY packages/storage/tsconfig.json packages/storage/tsconfig.json
 COPY packages/pipeline/src packages/pipeline/src
 COPY packages/pipeline/tsconfig.json packages/pipeline/tsconfig.json
+# COPY packages/output/src packages/output/src                    # uncomment when package is initialized
+# COPY packages/output/tsconfig.json packages/output/tsconfig.json
 
 COPY apps/api/src apps/api/src
 COPY apps/api/tsconfig.json apps/api/tsconfig.json
@@ -79,6 +82,7 @@ COPY --from=deps /app/packages/llm/node_modules ./packages/llm/node_modules
 COPY --from=deps /app/packages/pdf/node_modules ./packages/pdf/node_modules
 COPY --from=deps /app/packages/storage/node_modules ./packages/storage/node_modules
 COPY --from=deps /app/packages/pipeline/node_modules ./packages/pipeline/node_modules
+# COPY --from=deps /app/packages/output/node_modules ./packages/output/node_modules  # uncomment when package is initialized
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
 
 # Copy built output
@@ -89,13 +93,14 @@ COPY --from=build /app/apps/api/ ./apps/api/
 COPY package.json pnpm-workspace.yaml ./
 
 # Create data directories (will be mounted as volumes)
-RUN mkdir -p /app/books /app/prompts && \
+RUN mkdir -p /app/books /app/prompts /app/templates && \
     chown -R appuser:nodejs /app/books
 
 ENV NODE_ENV=production
 ENV PROJECT_ROOT=/app
 ENV BOOKS_DIR=/app/books
 ENV PROMPTS_DIR=/app/prompts
+ENV TEMPLATES_DIR=/app/templates
 ENV CONFIG_PATH=/app/config.yaml
 ENV PORT=3001
 
