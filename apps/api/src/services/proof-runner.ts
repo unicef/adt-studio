@@ -9,9 +9,16 @@ import {
   extractImageIds,
   generateGlossary,
   buildGlossaryConfig,
+  generateAllQuizzes,
+  buildQuizGenerationConfig,
   loadBookConfig,
+  type QuizPageInput,
 } from "@adt/pipeline"
-import { WebRenderingOutput, type StepName } from "@adt/types"
+import {
+  WebRenderingOutput,
+  type StepName,
+  type PageSectioningOutput,
+} from "@adt/types"
 import type { PageData } from "@adt/storage"
 import type {
   ProofRunner,
@@ -43,7 +50,7 @@ async function processWithConcurrency<T>(
 
 /**
  * Creates the proof runner that executes post-storyboard steps.
- * Runs: image captioning, glossary generation.
+ * Runs in parallel: image captioning, glossary generation, quiz generation.
  */
 export function createProofRunner(): ProofRunner {
   return {
@@ -73,7 +80,6 @@ export function createProofRunner(): ProofRunner {
 
         // Load config
         const config = loadBookConfig(label, booksDir, configPath)
-        const captionConfig = buildCaptionConfig(config)
         const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
         const promptEngine = createPromptEngine(promptsDir)
         const rateLimiter = config.rate_limit
@@ -107,7 +113,12 @@ export function createProofRunner(): ProofRunner {
           })
         }
 
-        const llmModel = createLLMModel({
+        const pages = storage.getPages()
+        const effectiveConcurrency = config.concurrency ?? 32
+
+        // Build configs and models upfront
+        const captionConfig = buildCaptionConfig(config)
+        const captionModel = createLLMModel({
           modelId: captionConfig.modelId,
           cacheDir,
           promptEngine,
@@ -115,90 +126,68 @@ export function createProofRunner(): ProofRunner {
           onLog: onLlmLog,
         })
 
-        // Step: Image Captioning
-        const pages = storage.getPages()
-        const effectiveConcurrency = config.concurrency ?? 32
-        const totalPages = pages.length
-        let completedCaptions = 0
-        const failedPages: string[] = []
+        const glossaryConfig = buildGlossaryConfig(config, language)
+        const glossaryModel = createLLMModel({
+          modelId: glossaryConfig.modelId,
+          cacheDir,
+          promptEngine,
+          rateLimiter,
+          onLog: onLlmLog,
+        })
 
-        progress.emit({ type: "step-start", step: "image-captioning" })
+        const quizConfig = buildQuizGenerationConfig(config, language)
+        const quizModel = quizConfig
+          ? createLLMModel({
+              modelId: quizConfig.modelId,
+              cacheDir,
+              promptEngine,
+              rateLimiter,
+              onLog: onLlmLog,
+            })
+          : null
 
-        await processWithConcurrency(
-          pages,
-          effectiveConcurrency,
-          async (page: PageData) => {
-            try {
-              await captionPage(
-                page,
-                storage,
-                llmModel,
-                captionConfig,
-                language
-              )
-              completedCaptions++
-              progress.emit({
-                type: "step-progress",
-                step: "image-captioning",
-                message: `${completedCaptions}/${totalPages}`,
-                page: completedCaptions,
-                totalPages,
-              })
-            } catch (err) {
-              const msg = toErrorMessage(err)
-              failedPages.push(`${page.pageId}: ${msg}`)
-              progress.emit({
-                type: "step-error",
-                step: "image-captioning",
-                error: `${page.pageId} failed: ${msg}`,
-              })
-            }
-          }
-        )
+        // Run all three steps in parallel
+        const [captionResult, glossaryResult, quizResult] =
+          await Promise.allSettled([
+            runImageCaptioning(
+              pages,
+              storage,
+              captionModel,
+              captionConfig,
+              language,
+              effectiveConcurrency,
+              progress
+            ),
+            runGlossary(
+              pages,
+              storage,
+              glossaryModel,
+              glossaryConfig,
+              progress
+            ),
+            runQuizGeneration(
+              pages,
+              storage,
+              quizModel,
+              quizConfig,
+              progress
+            ),
+          ])
 
-        if (failedPages.length > 0) {
-          throw new Error(
-            `${failedPages.length} page(s) failed captioning:\n${failedPages.join("\n")}`
-          )
+        // Collect errors from all steps
+        const errors: string[] = []
+        if (captionResult.status === "rejected") {
+          errors.push(toErrorMessage(captionResult.reason))
+        }
+        if (glossaryResult.status === "rejected") {
+          errors.push(toErrorMessage(glossaryResult.reason))
+        }
+        if (quizResult.status === "rejected") {
+          errors.push(toErrorMessage(quizResult.reason))
         }
 
-        progress.emit({ type: "step-complete", step: "image-captioning" })
-
-        // Step: Glossary Generation
-        progress.emit({ type: "step-start", step: "glossary" })
-        try {
-          const glossaryConfig = buildGlossaryConfig(config, language)
-          const glossaryModel = createLLMModel({
-            modelId: glossaryConfig.modelId,
-            cacheDir,
-            promptEngine,
-            rateLimiter,
-            onLog: onLlmLog,
-          })
-
-          const glossary = await generateGlossary({
-            storage,
-            pages,
-            config: glossaryConfig,
-            llmModel: glossaryModel,
-          })
-
-          storage.putNodeData("glossary", "book", glossary)
-
-          progress.emit({
-            type: "step-progress",
-            step: "glossary",
-            message: `${glossary.items.length} terms from ${glossary.pageCount} pages`,
-          })
-          progress.emit({ type: "step-complete", step: "glossary" })
-        } catch (err) {
-          const msg = toErrorMessage(err)
-          progress.emit({
-            type: "step-error",
-            step: "glossary",
-            error: msg,
-          })
-          throw new Error(`Glossary generation failed: ${msg}`)
+        if (errors.length > 0) {
+          throw new Error(errors.join("\n"))
         }
       } finally {
         storage.close()
@@ -209,6 +198,178 @@ export function createProofRunner(): ProofRunner {
         }
       }
     },
+  }
+}
+
+async function runImageCaptioning(
+  pages: PageData[],
+  storage: Storage,
+  llmModel: ReturnType<typeof createLLMModel>,
+  captionConfig: ReturnType<typeof buildCaptionConfig>,
+  language: string,
+  concurrency: number,
+  progress: ProofProgress
+): Promise<void> {
+  const totalPages = pages.length
+  let completedCaptions = 0
+  const failedPages: string[] = []
+
+  progress.emit({ type: "step-start", step: "image-captioning" })
+  progress.emit({
+    type: "step-progress",
+    step: "image-captioning",
+    message: `0/${totalPages}`,
+    page: 0,
+    totalPages,
+  })
+
+  await processWithConcurrency(
+    pages,
+    concurrency,
+    async (page: PageData) => {
+      try {
+        await captionPage(
+          page,
+          storage,
+          llmModel,
+          captionConfig,
+          language
+        )
+        completedCaptions++
+        progress.emit({
+          type: "step-progress",
+          step: "image-captioning",
+          message: `${completedCaptions}/${totalPages}`,
+          page: completedCaptions,
+          totalPages,
+        })
+      } catch (err) {
+        const msg = toErrorMessage(err)
+        failedPages.push(`${page.pageId}: ${msg}`)
+        progress.emit({
+          type: "step-error",
+          step: "image-captioning",
+          error: `${page.pageId} failed: ${msg}`,
+        })
+      }
+    }
+  )
+
+  if (failedPages.length > 0) {
+    throw new Error(
+      `${failedPages.length} page(s) failed captioning:\n${failedPages.join("\n")}`
+    )
+  }
+
+  progress.emit({ type: "step-complete", step: "image-captioning" })
+}
+
+async function runGlossary(
+  pages: PageData[],
+  storage: Storage,
+  llmModel: ReturnType<typeof createLLMModel>,
+  glossaryConfig: ReturnType<typeof buildGlossaryConfig>,
+  progress: ProofProgress
+): Promise<void> {
+  progress.emit({ type: "step-start", step: "glossary" })
+  progress.emit({
+    type: "step-progress",
+    step: "glossary",
+    message: "Generating glossary...",
+  })
+
+  try {
+    const glossary = await generateGlossary({
+      storage,
+      pages,
+      config: glossaryConfig,
+      llmModel,
+    })
+
+    storage.putNodeData("glossary", "book", glossary)
+
+    progress.emit({
+      type: "step-progress",
+      step: "glossary",
+      message: `${glossary.items.length} terms from ${glossary.pageCount} pages`,
+    })
+    progress.emit({ type: "step-complete", step: "glossary" })
+  } catch (err) {
+    const msg = toErrorMessage(err)
+    progress.emit({
+      type: "step-error",
+      step: "glossary",
+      error: msg,
+    })
+    throw new Error(`Glossary generation failed: ${msg}`)
+  }
+}
+
+async function runQuizGeneration(
+  pages: PageData[],
+  storage: Storage,
+  llmModel: ReturnType<typeof createLLMModel> | null,
+  quizConfig: ReturnType<typeof buildQuizGenerationConfig>,
+  progress: ProofProgress
+): Promise<void> {
+  progress.emit({ type: "step-start", step: "quiz-generation" })
+
+  if (!quizConfig || !llmModel) {
+    progress.emit({ type: "step-skip", step: "quiz-generation" })
+    return
+  }
+
+  progress.emit({
+    type: "step-progress",
+    step: "quiz-generation",
+    message: "Generating quizzes...",
+  })
+
+  try {
+    // Gather page data for quiz generation
+    const quizPages: QuizPageInput[] = []
+    for (const page of pages) {
+      const renderingRow = storage.getLatestNodeData(
+        "web-rendering",
+        page.pageId
+      )
+      const sectioningRow = storage.getLatestNodeData(
+        "page-sectioning",
+        page.pageId
+      )
+      if (!renderingRow || !sectioningRow) continue
+
+      quizPages.push({
+        pageId: page.pageId,
+        rendering: renderingRow.data as WebRenderingOutput,
+        sectioning: sectioningRow.data as PageSectioningOutput,
+      })
+    }
+
+    if (quizPages.length > 0) {
+      const quizResult = await generateAllQuizzes(
+        quizPages,
+        quizConfig,
+        llmModel
+      )
+      storage.putNodeData("quiz-generation", "book", quizResult)
+
+      progress.emit({
+        type: "step-progress",
+        step: "quiz-generation",
+        message: `${quizResult.quizzes.length} quizzes from ${quizPages.length} pages`,
+      })
+    }
+
+    progress.emit({ type: "step-complete", step: "quiz-generation" })
+  } catch (err) {
+    const msg = toErrorMessage(err)
+    progress.emit({
+      type: "step-error",
+      step: "quiz-generation",
+      error: msg,
+    })
+    throw new Error(`Quiz generation failed: ${msg}`)
   }
 }
 

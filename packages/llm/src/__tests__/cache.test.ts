@@ -36,6 +36,21 @@ describe("computeHash", () => {
     const h2 = computeHash({ modelId: "openai:gpt-4o-mini", messages, schema: {} })
     expect(h1).not.toBe(h2)
   })
+
+  it("ignores _cached property in schema for stable hashing", () => {
+    const messages: Message[] = [{ role: "user", content: "hello" }]
+    const schemaWithoutCached = {
+      _def: { typeName: "ZodObject" },
+      _cached: null,
+    }
+    const schemaWithCached = {
+      _def: { typeName: "ZodObject" },
+      _cached: { shape: { a: { _def: { typeName: "ZodString" } } } },
+    }
+    const h1 = computeHash({ modelId: "openai:gpt-4o", messages, schema: schemaWithoutCached })
+    const h2 = computeHash({ modelId: "openai:gpt-4o", messages, schema: schemaWithCached })
+    expect(h1).toBe(h2)
+  })
 })
 
 describe("readCache / writeCache / bustCache", () => {

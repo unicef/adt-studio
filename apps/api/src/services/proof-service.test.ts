@@ -74,6 +74,7 @@ describe("ProofService", () => {
       const status = service.getStatus("my-book")
       expect(status!.status).toBe("completed")
       expect(status!.completedAt).toBeDefined()
+      expect(Object.hasOwn(status!, "events")).toBe(false)
     })
 
     it("returns failed status after proof error", async () => {
@@ -188,6 +189,24 @@ describe("ProofService", () => {
       if (lastEvent.type === "proof-error") {
         expect(lastEvent.error).toBe("Bad key")
       }
+    })
+
+    it("does not replay buffered events after terminal state", async () => {
+      const service = createProofService(runner)
+
+      await service.startProof("my-book", {
+        booksDir: "/tmp/books",
+        apiKey: "sk-test",
+        promptsDir: "/tmp/prompts",
+      })
+
+      const replayed: ProofSSEEvent[] = []
+      const unsubscribe = service.addListener("my-book", (event) => {
+        replayed.push(event)
+      })
+
+      unsubscribe()
+      expect(replayed).toEqual([])
     })
   })
 })

@@ -65,5 +65,15 @@ export {
   type GenerateGlossaryOptions,
 } from "./glossary.js"
 export { validateSectionHtml } from "./validate-html.js"
+export {
+  generateQuiz,
+  generateAllQuizzes,
+  buildQuizGenerationConfig,
+  extractTextFromHtml,
+  isContentPage,
+  batchPages,
+  type QuizConfig,
+  type QuizPageInput,
+} from "./quiz-generation.js"
 export { loadConfig, loadBookConfig, deepMerge } from "./config.js"
 export { runPipeline, type RunPipelineOptions } from "./pipeline.js"

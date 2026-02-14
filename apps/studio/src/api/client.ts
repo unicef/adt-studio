@@ -129,6 +129,35 @@ export interface PageDetail {
   } | null
 }
 
+// --- Quiz types ---
+
+export interface QuizOption {
+  text: string
+  explanation: string
+}
+
+export interface QuizItem {
+  quizIndex: number
+  afterPageId: string
+  pageIds: string[]
+  question: string
+  options: QuizOption[]
+  answerIndex: number
+  reasoning: string
+}
+
+export interface QuizGenerationOutput {
+  generatedAt: string
+  language: string
+  pagesPerQuiz: number
+  quizzes: QuizItem[]
+}
+
+export interface QuizzesResponse {
+  quizzes: QuizGenerationOutput | null
+  version: number | null
+}
+
 // --- Debug types ---
 
 export interface LlmLogEntry {
@@ -341,6 +370,9 @@ export const api = {
       `/books/${label}/accept-storyboard`,
       { method: "POST" }
     ),
+
+  getQuizzes: (label: string) =>
+    request<QuizzesResponse>(`/books/${label}/quizzes`),
 
   exportBook: async (label: string): Promise<Blob> => {
     const url = `${BASE_URL}/books/${label}/export`
