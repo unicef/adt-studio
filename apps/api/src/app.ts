@@ -8,6 +8,7 @@ import { createBookRoutes } from "./routes/books.js"
 import { createPipelineRoutes } from "./routes/pipeline.js"
 import { createPageRoutes } from "./routes/pages.js"
 import { createDebugRoutes } from "./routes/debug.js"
+import { createGlossaryRoutes } from "./routes/glossary.js"
 import { createPipelineService } from "./services/pipeline-service.js"
 import { createPipelineRunner } from "./services/pipeline-runner.js"
 import { createProofService } from "./services/proof-service.js"
@@ -52,6 +53,7 @@ app.route("/api", createBookRoutes(booksDir))
 app.route("/api", createPipelineRoutes(pipelineService, booksDir, promptsDir, configPath))
 app.route("/api", createPageRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createProofRoutes(proofService, booksDir, promptsDir, configPath))
+app.route("/api", createGlossaryRoutes(booksDir))
 app.route("/api", createDebugRoutes(pipelineService, booksDir, promptsDir, configPath))
 
 export default app

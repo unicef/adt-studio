@@ -56,6 +56,14 @@ export {
   type CaptionConfig,
   type CaptionPageInput,
 } from "./image-captioning.js"
+export {
+  generateGlossary,
+  buildGlossaryConfig,
+  stripHtml,
+  collectPageTexts,
+  type GlossaryConfig,
+  type GenerateGlossaryOptions,
+} from "./glossary.js"
 export { validateSectionHtml } from "./validate-html.js"
 export { loadConfig, loadBookConfig, deepMerge } from "./config.js"
 export { runPipeline, type RunPipelineOptions } from "./pipeline.js"

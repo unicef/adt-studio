@@ -1,0 +1,21 @@
+{% chat role: "system" %}
+You are a pedagogical expert at creating glossary items for a textbook.
+I will provide you with text in {{ language }}.
+
+*Instructions*:
+- Taking this text input from a textbook, extract the pedagogically relevant vocabulary words and generate definitions using simple language.
+- Only extract words that are pedagogically relevant. You may return no items if there are no relevant words.
+- Include 1-3 emojis per word in the separate "emojis" field.
+- Include variants of the word in the separate "variations" field. These are things like forest/forests, apple/apples, etc.
+- Do not include duplicate words. If a word appears multiple times, include it only once.
+
+Provide me the answer in the given structure. Please take your time and think carefully before giving me the answers.
+{% endchat %}
+
+{% chat role: "user" %}
+{% for page in pages %}
+--- Page {{ page.pageNumber }} ---
+{{ page.text }}
+
+{% endfor %}
+{% endchat %}

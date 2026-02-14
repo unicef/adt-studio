@@ -52,3 +52,9 @@ export {
   ImageCaptioningOutput,
   imageCaptioningLLMSchema,
 } from "./image-captioning.js"
+
+export {
+  GlossaryItem,
+  GlossaryOutput,
+  glossaryLLMSchema,
+} from "./glossary.js"

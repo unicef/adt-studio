@@ -11,6 +11,7 @@ const INITIAL_PROGRESS: PipelineProgress = {
   error: null,
   currentStep: null,
   completedSteps: new Set(),
+  skippedSteps: new Set(),
   stepProgress: new Map(),
   liveLlmLogs: [],
 }
@@ -48,6 +49,7 @@ export function useProofSSE(label: string, enabled: boolean) {
         const next = { ...prev }
         const stepProgress = new Map(prev.stepProgress)
         const completedSteps = new Set(prev.completedSteps)
+        const skippedSteps = new Set(prev.skippedSteps)
 
         if (data.type === "step-start") {
           next.currentStep = data.step as StepName
@@ -62,6 +64,8 @@ export function useProofSSE(label: string, enabled: boolean) {
         } else if (data.type === "step-complete") {
           completedSteps.add(data.step as StepName)
           stepProgress.delete(data.step as StepName)
+        } else if (data.type === "step-skip") {
+          skippedSteps.add(data.step as StepName)
         } else if (data.type === "step-error") {
           next.error = `${data.step}: ${data.error}`
         } else if (data.type === "llm-log") {
@@ -83,6 +87,7 @@ export function useProofSSE(label: string, enabled: boolean) {
 
         next.stepProgress = stepProgress
         next.completedSteps = completedSteps
+        next.skippedSteps = skippedSteps
         return next
       })
     })
