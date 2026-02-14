@@ -62,6 +62,14 @@ export interface PipelineStatus {
   completedAt?: number
 }
 
+export interface ProofStatus {
+  label: string
+  status: "idle" | "running" | "completed" | "failed"
+  error?: string
+  startedAt?: number
+  completedAt?: number
+}
+
 export interface RunPipelineOptions {
   startPage?: number
   endPage?: number
@@ -115,6 +123,9 @@ export interface PageDetail {
   } | null
   rendering: {
     sections: SectionRendering[]
+  } | null
+  imageCaptioning: {
+    captions: Array<{ imageId: string; reasoning: string; caption: string }>
   } | null
 }
 
@@ -315,6 +326,15 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ config }),
     }),
+
+  runProof: (label: string, apiKey: string) =>
+    request<{ status: string; label: string }>(
+      `/books/${label}/proof/run`,
+      { method: "POST", headers: { "X-OpenAI-Key": apiKey } }
+    ),
+
+  getProofStatus: (label: string) =>
+    request<ProofStatus>(`/books/${label}/proof/status`),
 
   acceptStoryboard: (label: string) =>
     request<{ version: number; acceptedAt: string }>(

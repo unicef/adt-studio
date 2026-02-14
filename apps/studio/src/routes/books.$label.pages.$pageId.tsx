@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router"
 import { useState, useCallback, useEffect, useRef } from "react"
-import { ArrowLeft, ArrowRight, FileText, Image, Layers, Loader2, AlertCircle, CheckCircle2, ImageOff, RefreshCw } from "lucide-react"
+import { ArrowLeft, ArrowRight, FileText, Image, Layers, Loader2, AlertCircle, CheckCircle2, ImageOff, RefreshCw, ChevronDown, ChevronRight, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -20,6 +20,70 @@ import { isActivitySection, formatSectionType } from "@/lib/activity-utils"
 export const Route = createFileRoute("/books/$label/pages/$pageId")({
   component: PageDetailPage,
 })
+
+function ImageCaptionList({
+  captions,
+  bookLabel,
+}: {
+  captions: Array<{ imageId: string; reasoning: string; caption: string }>
+  bookLabel: string
+}) {
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+
+  const toggleReasoning = (imageId: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(imageId)) next.delete(imageId)
+      else next.add(imageId)
+      return next
+    })
+  }
+
+  return (
+    <div className="mt-6">
+      <h3 className="mb-3 flex items-center gap-2 text-sm font-medium">
+        <MessageSquare className="h-4 w-4" />
+        Image Captions ({captions.length})
+      </h3>
+      <div className="space-y-3">
+        {captions.map((cap) => (
+          <div key={cap.imageId} className="rounded border p-3">
+            <div className="flex items-start gap-3">
+              <img
+                src={`/api/books/${bookLabel}/images/${cap.imageId}`}
+                alt={cap.caption}
+                className="h-16 w-16 shrink-0 rounded border object-cover"
+                onError={(e) => {
+                  ;(e.target as HTMLImageElement).style.display = "none"
+                }}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm">{cap.caption}</p>
+                <button
+                  type="button"
+                  className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  onClick={() => toggleReasoning(cap.imageId)}
+                >
+                  {expandedIds.has(cap.imageId) ? (
+                    <ChevronDown className="h-3 w-3" />
+                  ) : (
+                    <ChevronRight className="h-3 w-3" />
+                  )}
+                  Reasoning
+                </button>
+                {expandedIds.has(cap.imageId) && (
+                  <p className="mt-1 text-xs text-muted-foreground whitespace-pre-wrap">
+                    {cap.reasoning}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 function PageDetailPage() {
   const { label, pageId } = Route.useParams()
@@ -317,6 +381,14 @@ function PageDetailPage() {
                   Not yet rendered. Run the pipeline first.
                 </div>
               </div>
+            )}
+
+            {/* Image Captions from proof phase */}
+            {page.imageCaptioning && page.imageCaptioning.captions.length > 0 && (
+              <ImageCaptionList
+                captions={page.imageCaptioning.captions}
+                bookLabel={label}
+              />
             )}
           </TabsContent>
 

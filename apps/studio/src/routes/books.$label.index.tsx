@@ -12,8 +12,10 @@ import {
 } from "@/components/ui/card"
 import { useBook, useExportBook } from "@/hooks/use-books"
 import { usePipelineSSE, usePipelineStatus, useRunPipeline } from "@/hooks/use-pipeline"
+import { useProofSSE, useProofStatus, useRunProof } from "@/hooks/use-proof"
 import { useApiKey } from "@/hooks/use-api-key"
 import { PipelineProgress } from "@/components/pipeline/PipelineProgress"
+import { ProofProgress } from "@/components/proof/ProofProgress"
 import { PagePreviewGrid } from "@/components/pipeline/PagePreviewGrid"
 import { ConfigEditor } from "@/components/config/ConfigEditor"
 
@@ -39,6 +41,12 @@ function BookDetailPage() {
   const { progress, reset } = usePipelineSSE(label, sseEnabled)
   const { data: pipelineStatus } = usePipelineStatus(label)
 
+  // Proof hooks
+  const runProof = useRunProof()
+  const [proofSseEnabled, setProofSseEnabled] = useState(false)
+  const { progress: proofProgress, reset: proofReset } = useProofSSE(label, proofSseEnabled)
+  const { data: proofStatus } = useProofStatus(label)
+
   // Auto-run guard
   const hasAutoRun = useRef(false)
 
@@ -48,6 +56,13 @@ function BookDetailPage() {
       setSseEnabled(true)
     }
   }, [pipelineStatus?.status, sseEnabled])
+
+  // Auto-reconnect to SSE if proof is already running
+  useEffect(() => {
+    if (proofStatus?.status === "running" && !proofSseEnabled) {
+      setProofSseEnabled(true)
+    }
+  }, [proofStatus?.status, proofSseEnabled])
 
   // Auto-run pipeline when navigated from wizard
   useEffect(() => {
@@ -93,6 +108,23 @@ function BookDetailPage() {
       {
         onError: () => {
           setSseEnabled(false)
+        },
+      }
+    )
+  }
+
+  const handleRunProof = () => {
+    proofReset()
+    setProofSseEnabled(false)
+
+    runProof.mutate(
+      { label, apiKey },
+      {
+        onSuccess: () => {
+          setProofSseEnabled(true)
+        },
+        onError: () => {
+          setProofSseEnabled(false)
         },
       }
     )
@@ -266,6 +298,16 @@ function BookDetailPage() {
             </Link>
           </CardContent>
         </Card>
+      )}
+
+      {/* Proof Phase — shown after storyboard is accepted */}
+      {book.storyboardAccepted && (
+        <ProofProgress
+          progress={proofProgress}
+          onRun={handleRunProof}
+          isStarting={runProof.isPending}
+          hasApiKey={hasApiKey}
+        />
       )}
 
       {/* Full-width page preview grid */}
