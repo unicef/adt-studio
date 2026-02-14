@@ -7,6 +7,8 @@ import {
   captionPageImages,
   buildCaptionConfig,
   extractImageIds,
+  generateGlossary,
+  buildGlossaryConfig,
   loadBookConfig,
 } from "@adt/pipeline"
 import { WebRenderingOutput, type StepName } from "@adt/types"
@@ -41,8 +43,7 @@ async function processWithConcurrency<T>(
 
 /**
  * Creates the proof runner that executes post-storyboard steps.
- * Currently runs: image captioning.
- * Future steps (glossary, easy read, etc.) will be added here.
+ * Runs: image captioning, glossary generation.
  */
 export function createProofRunner(): ProofRunner {
   return {
@@ -163,10 +164,42 @@ export function createProofRunner(): ProofRunner {
 
         progress.emit({ type: "step-complete", step: "image-captioning" })
 
-        // Future steps would go here:
-        // - glossary generation
-        // - easy read generation
-        // - etc.
+        // Step: Glossary Generation
+        progress.emit({ type: "step-start", step: "glossary" })
+        try {
+          const glossaryConfig = buildGlossaryConfig(config, language)
+          const glossaryModel = createLLMModel({
+            modelId: glossaryConfig.modelId,
+            cacheDir,
+            promptEngine,
+            rateLimiter,
+            onLog: onLlmLog,
+          })
+
+          const glossary = await generateGlossary({
+            storage,
+            pages,
+            config: glossaryConfig,
+            llmModel: glossaryModel,
+          })
+
+          storage.putNodeData("glossary", "book", glossary)
+
+          progress.emit({
+            type: "step-progress",
+            step: "glossary",
+            message: `${glossary.items.length} terms from ${glossary.pageCount} pages`,
+          })
+          progress.emit({ type: "step-complete", step: "glossary" })
+        } catch (err) {
+          const msg = toErrorMessage(err)
+          progress.emit({
+            type: "step-error",
+            step: "glossary",
+            error: msg,
+          })
+          throw new Error(`Glossary generation failed: ${msg}`)
+        }
       } finally {
         storage.close()
         if (previousKey !== undefined) {

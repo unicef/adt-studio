@@ -341,6 +341,11 @@ export function createPipelineRunner(): PipelineRunner {
             type: "step-complete",
             step: "translation",
           })
+        } else {
+          progress.emit({
+            type: "step-skip",
+            step: "translation",
+          })
         }
         progress.emit({
           type: "step-complete",
