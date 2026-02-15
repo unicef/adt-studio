@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-export const StepName = z.enum(["extract", "metadata", "text-classification", "translation", "image-classification", "page-sectioning", "web-rendering", "image-captioning", "glossary"])
+export const StepName = z.enum(["extract", "metadata", "text-classification", "translation", "image-classification", "page-sectioning", "web-rendering", "image-captioning", "glossary", "quiz-generation"])
 export type StepName = z.infer<typeof StepName>
 
 export const ProgressEvent = z.discriminatedUnion("type", [

@@ -11,6 +11,8 @@ export type StepName =
   | "page-sectioning"
   | "web-rendering"
   | "image-captioning"
+  | "glossary"
+  | "quiz-generation"
 
 export interface StepProgress {
   step: StepName

@@ -13,6 +13,7 @@ export {
   BookFormat,
   LayoutType,
   StepConfig,
+  QuizGenerationConfig,
   RenderType,
   RenderStrategyConfig,
   AppConfig,
@@ -58,3 +59,10 @@ export {
   GlossaryOutput,
   glossaryLLMSchema,
 } from "./glossary.js"
+
+export {
+  QuizOption,
+  Quiz,
+  QuizGenerationOutput,
+  quizLLMSchema,
+} from "./quiz.js"

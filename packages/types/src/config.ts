@@ -14,6 +14,11 @@ export const StepConfig = z.object({
 })
 export type StepConfig = z.infer<typeof StepConfig>
 
+export const QuizGenerationConfig = StepConfig.extend({
+  pages_per_quiz: z.number().int().min(1).optional(),
+})
+export type QuizGenerationConfig = z.infer<typeof QuizGenerationConfig>
+
 export const BookFormat = z.enum(["web", "epub", "webpub"])
 export type BookFormat = z.infer<typeof BookFormat>
 
@@ -61,6 +66,7 @@ export const AppConfig = z.object({
   translation: StepConfig.optional(),
   metadata: StepConfig.optional(),
   page_sectioning: StepConfig.optional(),
+  quiz_generation: QuizGenerationConfig.optional(),
   default_render_strategy: z.string().optional(),
   render_strategies: z.record(z.string(), RenderStrategyConfig).optional(),
   section_render_strategies: z.record(z.string(), z.string()).optional(),

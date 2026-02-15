@@ -18,6 +18,7 @@ import { PipelineProgress } from "@/components/pipeline/PipelineProgress"
 import { ProofProgress } from "@/components/proof/ProofProgress"
 import { PagePreviewGrid } from "@/components/pipeline/PagePreviewGrid"
 import { ConfigEditor } from "@/components/config/ConfigEditor"
+import { QuizPanel } from "@/components/storyboard/QuizPanel"
 
 export const Route = createFileRoute("/books/$label/")({
   component: BookDetailPage,
@@ -308,6 +309,11 @@ function BookDetailPage() {
           isStarting={runProof.isPending}
           hasApiKey={hasApiKey}
         />
+      )}
+
+      {/* Quiz results — shown after proof generates quizzes */}
+      {book.storyboardAccepted && (
+        <QuizPanel label={label} />
       )}
 
       {/* Full-width page preview grid */}

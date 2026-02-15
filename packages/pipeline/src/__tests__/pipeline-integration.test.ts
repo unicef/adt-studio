@@ -22,9 +22,12 @@ import {
   ImageClassificationOutput,
   PageSectioningOutput,
   WebRenderingOutput,
+  GlossaryOutput,
+  QuizGenerationOutput,
 } from "@adt/types"
-import { resolveBookPaths, openBookDb } from "@adt/storage"
+import { resolveBookPaths, openBookDb, createBookStorage } from "@adt/storage"
 import { runPipeline } from "../pipeline.js"
+import { runProof } from "../proof.js"
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../../..")
 const RAVEN_PDF = path.join(REPO_ROOT, "assets/raven.pdf")
@@ -161,6 +164,61 @@ describe("pipeline integration (raven.pdf, pages 1-3)", () => {
         }
       } finally {
         db.close()
+      }
+
+      // --- Proof Stage ---
+      // Accept storyboard (required before proof can run)
+      const storage = createBookStorage(label, booksRoot)
+      try {
+        storage.putNodeData("storyboard-acceptance", "book", {
+          acceptedAt: new Date().toISOString(),
+          renderedPageCount: 3,
+        })
+      } finally {
+        storage.close()
+      }
+
+      await runProof({
+        label,
+        booksRoot,
+        promptsDir: PROMPTS_DIR,
+        configPath: CONFIG_PATH,
+        cacheDir: FIXTURE_CACHE_DIR,
+      })
+
+      // Re-open DB for proof assertions
+      const db2 = openBookDb(paths.dbPath)
+      try {
+        // --- Image captioning ---
+        for (const pageId of ["pg001", "pg002", "pg003"]) {
+          const captionRows = db2.all(
+            "SELECT data FROM node_data WHERE node = 'image-captioning' AND item_id = ? ORDER BY version DESC LIMIT 1",
+            [pageId]
+          ) as Array<{ data: string }>
+          expect(captionRows).toHaveLength(1)
+          const captions = JSON.parse(captionRows[0].data)
+          expect(captions).toHaveProperty("captions")
+        }
+
+        // --- Glossary ---
+        const glossaryRows = db2.all(
+          "SELECT data FROM node_data WHERE node = 'glossary' AND item_id = 'book' ORDER BY version DESC LIMIT 1"
+        ) as Array<{ data: string }>
+        expect(glossaryRows).toHaveLength(1)
+        const glossary = GlossaryOutput.parse(JSON.parse(glossaryRows[0].data))
+        expect(glossary.items.length).toBeGreaterThan(0)
+
+        // --- Quiz generation ---
+        const quizRows = db2.all(
+          "SELECT data FROM node_data WHERE node = 'quiz-generation' AND item_id = 'book' ORDER BY version DESC LIMIT 1"
+        ) as Array<{ data: string }>
+        expect(quizRows).toHaveLength(1)
+        const quizOutput = QuizGenerationOutput.parse(
+          JSON.parse(quizRows[0].data)
+        )
+        expect(quizOutput.quizzes.length).toBeGreaterThan(0)
+      } finally {
+        db2.close()
       }
     }
   )

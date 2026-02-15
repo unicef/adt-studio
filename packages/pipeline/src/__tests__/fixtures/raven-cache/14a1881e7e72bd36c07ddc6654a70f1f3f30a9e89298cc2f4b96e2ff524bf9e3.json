@@ -1,0 +1,16 @@
+{
+  "reasoning": "This page is a single story spread: one illustration of the characters (Hyena and Raven) and two short narrative sentences introducing their friendship. These belong together as one coherent reading unit with a single image.",
+  "sections": [
+    {
+      "section_type": "text_and_single_image",
+      "part_ids": [
+        "pg002_im002",
+        "pg002_gp001",
+        "pg002_gp002"
+      ],
+      "background_color": "#ffffff",
+      "text_color": "#000000",
+      "page_number": 1
+    }
+  ]
+}
