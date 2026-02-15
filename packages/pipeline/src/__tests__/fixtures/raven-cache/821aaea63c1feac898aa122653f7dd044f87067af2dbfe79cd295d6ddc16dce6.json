@@ -1,0 +1,14 @@
+{
+  "captions": [
+    {
+      "image_id": "pg001_im001",
+      "reasoning": "Caption should name the main characters and their action/setting: a spotted hyena on the ground and a raven flying above, in a dry landscape.",
+      "caption": "A spotted hyena looks up warily as a black raven flies overhead in a dry, brown landscape."
+    },
+    {
+      "image_id": "pg001_im002",
+      "reasoning": "This image is a logo; caption should state the visible text and the book icon.",
+      "caption": "African Storybook.org logo with an open orange book above the words “African Storybook.org” in blue."
+    }
+  ]
+}

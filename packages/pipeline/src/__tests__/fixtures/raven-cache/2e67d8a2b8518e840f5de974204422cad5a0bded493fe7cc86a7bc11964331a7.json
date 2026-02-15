@@ -1,5 +1,5 @@
 {
-  "reasoning": "Identify all visible text on the cover page: title, author/illustrator names, language label, and publisher/website mark. Group by logical blocks (title/credits, language label, publisher logo text).",
+  "reasoning": "Single illustrated cover-like page with title/author text on the right orange panel, language label at bottom left, and site logo text at bottom right. No other visible text.",
   "groups": [
     {
       "group_type": "heading",
@@ -31,7 +31,7 @@
       "group_type": "other",
       "texts": [
         {
-          "text_type": "book_metadata",
+          "text_type": "image_associated_text",
           "text": "African Storybook.org"
         }
       ]

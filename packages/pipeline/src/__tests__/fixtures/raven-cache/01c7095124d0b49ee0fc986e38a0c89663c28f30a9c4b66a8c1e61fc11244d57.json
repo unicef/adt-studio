@@ -1,0 +1,112 @@
+{
+  "reasoning": "Selected key story and language-learning words (characters, relationship, actions, and setting) that are likely useful for comprehension and retelling. Avoided proper names and website/title details.",
+  "items": [
+    {
+      "word": "hyena",
+      "definition": "a wild animal that looks like a dog and lives in Africa and other places",
+      "variations": [
+        "hyena",
+        "hyenas"
+      ],
+      "emojis": [
+        "🐾",
+        "🐕",
+        "🌍"
+      ]
+    },
+    {
+      "word": "raven",
+      "definition": "a large black bird",
+      "variations": [
+        "raven",
+        "ravens"
+      ],
+      "emojis": [
+        "🐦",
+        "⚫",
+        "🌤️"
+      ]
+    },
+    {
+      "word": "friends",
+      "definition": "people (or animals) who like each other and spend time together",
+      "variations": [
+        "friend",
+        "friends",
+        "friendship"
+      ],
+      "emojis": [
+        "👫",
+        "🤝",
+        "❤️"
+      ]
+    },
+    {
+      "word": "played",
+      "definition": "did something for fun",
+      "variations": [
+        "play",
+        "plays",
+        "played",
+        "playing"
+      ],
+      "emojis": [
+        "🎲",
+        "⚽",
+        "😄"
+      ]
+    },
+    {
+      "word": "together",
+      "definition": "with each other; in the same place or at the same time",
+      "variations": [
+        "together"
+      ],
+      "emojis": [
+        "👭",
+        "🧩",
+        "🤝"
+      ]
+    },
+    {
+      "word": "once",
+      "definition": "at a time in the past",
+      "variations": [
+        "once"
+      ],
+      "emojis": [
+        "⏳",
+        "🕰️",
+        "📖"
+      ]
+    },
+    {
+      "word": "sky",
+      "definition": "the space above the Earth where you see clouds, the sun, and stars",
+      "variations": [
+        "sky",
+        "skies"
+      ],
+      "emojis": [
+        "☁️",
+        "🌤️",
+        "⭐"
+      ]
+    },
+    {
+      "word": "fly",
+      "definition": "to move through the air",
+      "variations": [
+        "fly",
+        "flies",
+        "flew",
+        "flying"
+      ],
+      "emojis": [
+        "🪽",
+        "🐦",
+        "🌬️"
+      ]
+    }
+  ]
+}

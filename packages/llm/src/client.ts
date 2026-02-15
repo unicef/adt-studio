@@ -12,6 +12,7 @@ import type { PromptEngine } from "./prompt.js"
 import type { RateLimiter } from "./rate-limiter.js"
 import { computeHash, readCache, writeCache, bustCache } from "./cache.js"
 import { sanitizeMessages, type LlmLogEntry } from "./log.js"
+import { createLogger, type LogLevel } from "./logger.js"
 
 export interface CreateLLMModelOptions {
   modelId: string // "openai:gpt-5.2" format
@@ -19,6 +20,8 @@ export interface CreateLLMModelOptions {
   promptEngine?: PromptEngine
   onLog?: (entry: LlmLogEntry) => void
   rateLimiter?: RateLimiter
+  /** Console log level. Defaults to "info" (show all). Use "silent" to suppress. */
+  logLevel?: LogLevel
 }
 
 /**
@@ -31,8 +34,9 @@ export interface CreateLLMModelOptions {
  * - Optional prompt rendering (pass promptEngine + use prompt option)
  */
 export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
-  const { modelId, cacheDir, promptEngine, onLog, rateLimiter } = options
+  const { modelId, cacheDir, promptEngine, onLog, rateLimiter, logLevel } = options
   const languageModel = resolveModel(modelId)
+  const log = createLogger(logLevel)
 
   return {
     async generateObject<T>(
@@ -129,7 +133,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
                 result,
                 check.errors
               )
-              console.log(
+              log.info(
                 `[LLM] ${label} | validation failed (attempt ${attempt + 1}/${maxRetries + 1}) | retrying`
               )
               if (opts.log && onLog) {
@@ -164,10 +168,10 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
 
           const durationMs = Date.now() - t0
           if (lastCacheHit) {
-            console.log(`[LLM] ${label} | cached | ${durationMs}ms`)
+            log.info(`[LLM] ${label} | cached | ${durationMs}ms`)
           } else {
             const tokens = `${totalUsage.inputTokens}+${totalUsage.outputTokens} tokens`
-            console.log(
+            log.info(
               `[LLM] ${label} | ok${attempt > 0 ? ` (attempt ${attempt + 1}/${maxRetries + 1})` : ""} | ${durationMs}ms | ${tokens}`
             )
           }
@@ -209,7 +213,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
 
           if (attempt < maxRetries) {
             const delayMs = backoffDelay(attempt)
-            console.error(
+            log.error(
               `[LLM] ${label} | error (attempt ${attempt + 1}/${maxRetries + 1}) | ${errMsg} | retrying in ${delayMs}ms`
             )
             if (opts.log && onLog) {
@@ -239,7 +243,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
             continue
           }
 
-          console.error(
+          log.error(
             `[LLM] ${label} | error (attempt ${attempt + 1}/${maxRetries + 1}) | ${errMsg}`
           )
 

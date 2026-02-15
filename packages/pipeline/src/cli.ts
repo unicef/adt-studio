@@ -3,7 +3,9 @@
 import path from "node:path"
 import cliProgress from "cli-progress"
 import { parseCliArgs, USAGE } from "./cli-args.js"
+import { createBookStorage } from "@adt/storage"
 import { runPipeline } from "./pipeline.js"
+import { runProof } from "./proof.js"
 import type { Progress } from "./progress.js"
 
 function log(msg: string): void {
@@ -23,6 +25,78 @@ function startSpinner(label: string): () => void {
     i++
   }, 80)
   return () => clearInterval(id)
+}
+
+function createProofProgress(): Progress & { stop(): void } {
+  let multibar: cliProgress.MultiBar | undefined
+  let captionBar: cliProgress.SingleBar | undefined
+  let glossaryBar: cliProgress.SingleBar | undefined
+  let quizBar: cliProgress.SingleBar | undefined
+
+  const barFormat = (label: string) =>
+    ` ${label.padEnd(16)} [{bar}] {value}/{total}`
+
+  function ensureMultibar() {
+    if (!multibar) {
+      multibar = new cliProgress.MultiBar(
+        {
+          clearOnComplete: false,
+          hideCursor: true,
+          barsize: 30,
+          linewrap: false,
+          forceRedraw: true,
+        },
+        cliProgress.Presets.shades_grey
+      )
+    }
+    return multibar
+  }
+
+  return {
+    emit(event) {
+      if (event.type === "step-start") {
+        const mb = ensureMultibar()
+        if (event.step === "image-captioning") {
+          captionBar = mb.create(1, 0, {}, { format: barFormat("Caption Images") })
+        } else if (event.step === "glossary") {
+          glossaryBar = mb.create(1, 0, {}, { format: barFormat("Glossary") })
+        } else if (event.step === "quiz-generation") {
+          quizBar = mb.create(1, 0, {}, { format: barFormat("Quizzes") })
+        }
+      }
+
+      if (event.type === "step-progress" && event.step === "image-captioning") {
+        if (event.page !== undefined && event.totalPages !== undefined && captionBar) {
+          captionBar.setTotal(event.totalPages)
+          captionBar.update(event.page)
+        }
+      }
+
+      if (event.type === "step-complete") {
+        if (event.step === "image-captioning" && captionBar) {
+          captionBar.update(captionBar.getTotal())
+        } else if (event.step === "glossary" && glossaryBar) {
+          glossaryBar.update(1)
+        } else if (event.step === "quiz-generation" && quizBar) {
+          quizBar.update(1)
+        }
+      }
+
+      if (event.type === "step-skip") {
+        if (event.step === "quiz-generation" && quizBar) {
+          quizBar.update(quizBar.getTotal())
+        }
+      }
+
+      if (event.type === "step-error") {
+        multibar?.stop()
+      }
+    },
+
+    stop() {
+      multibar?.stop()
+    },
+  }
 }
 
 function createCliProgress(pdfBasename: string): Progress {
@@ -212,9 +286,45 @@ async function main(): Promise<void> {
       concurrency,
       promptsDir,
       templatesDir,
+      logLevel: "silent",
     },
     progress
   )
+
+  // Accept storyboard
+  const storage = createBookStorage(label, booksRoot)
+  try {
+    const pages = storage.getPages()
+    for (const page of pages) {
+      const rendering = storage.getLatestNodeData("web-rendering", page.pageId)
+      if (!rendering) {
+        throw new Error(
+          `Not all pages have been rendered (missing: ${page.pageId})`
+        )
+      }
+    }
+    storage.putNodeData("storyboard-acceptance", "book", {
+      acceptedAt: new Date().toISOString(),
+      renderedPageCount: pages.length,
+    })
+  } finally {
+    storage.close()
+  }
+
+  // Proof stage
+  log("\nGenerating Proof:\n")
+  const proofProgress = createProofProgress()
+
+  await runProof(
+    {
+      label,
+      booksRoot,
+      promptsDir,
+      logLevel: "silent",
+    },
+    proofProgress
+  )
+  proofProgress.stop()
 
   log(`\nOutput: ${path.join(booksRoot, label)}/\n`)
 }

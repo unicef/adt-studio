@@ -77,3 +77,4 @@ export {
 } from "./quiz-generation.js"
 export { loadConfig, loadBookConfig, deepMerge } from "./config.js"
 export { runPipeline, type RunPipelineOptions } from "./pipeline.js"
+export { runProof, type RunProofOptions } from "./proof.js"
