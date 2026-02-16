@@ -3,8 +3,7 @@ import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import yaml from "js-yaml"
-
-const ALLOWED_PRESETS = new Set(["textbook", "storybook", "reference"])
+import { PresetName } from "@adt/types"
 
 export function createPresetRoutes(configPath: string): Hono {
   const app = new Hono()
@@ -12,12 +11,13 @@ export function createPresetRoutes(configPath: string): Hono {
 
   // GET /presets/:name — Return preset config overrides
   app.get("/presets/:name", (c) => {
-    const { name } = c.req.param()
+    const result = PresetName.safeParse(c.req.param("name"))
 
-    if (!ALLOWED_PRESETS.has(name)) {
-      throw new HTTPException(404, { message: `Unknown preset: ${name}` })
+    if (!result.success) {
+      throw new HTTPException(404, { message: `Unknown preset: ${c.req.param("name")}` })
     }
 
+    const name = result.data
     const presetPath = path.join(presetsDir, `${name}.yaml`)
     if (!fs.existsSync(presetPath)) {
       throw new HTTPException(404, { message: `Preset not found: ${name}` })

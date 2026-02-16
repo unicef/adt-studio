@@ -21,7 +21,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { useCreateBook } from "@/hooks/use-books"
 import { useApiKey } from "@/hooks/use-api-key"
-import { api } from "@/api/client"
+import { usePreset, useGlobalConfig } from "@/hooks/use-presets"
 import {
   AdvancedLayoutPanel,
   type RenderStrategyState,
@@ -352,117 +352,104 @@ function AddBookPage() {
   const [textGroupTypes, setTextGroupTypes] = useState<Record<string, string>>({})
   const [sectionTypes, setSectionTypes] = useState<Record<string, string>>({})
 
-  // Load preset config when layout type changes
+  // Fetch preset + global config via TanStack Query
+  const presetName = layoutType === "custom" ? null : layoutType
+  const { data: presetData } = usePreset(presetName)
+  const { data: globalConfigData } = useGlobalConfig()
+
+  // Populate local state when query data or layout type changes
   useEffect(() => {
-    let cancelled = false
+    if (!globalConfigData) return
+    if (layoutType !== "custom" && !presetData) return
 
-    async function loadPreset() {
-      try {
-        // Always fetch global config for type definitions
-        const [presetResult, globalResult] = await Promise.all([
-          layoutType === "custom"
-            ? Promise.resolve(null)
-            : api.getPreset(layoutType),
-          api.getGlobalConfig(),
-        ])
-        if (cancelled) return
+    const config = presetData?.config ?? globalConfigData.config
+    const globalConfig = globalConfigData.config
 
-        const config = presetResult?.config ?? globalResult.config
-        const globalConfig = globalResult.config
+    // Type definitions always come from global config
+    setTextTypes(
+      globalConfig.text_types && typeof globalConfig.text_types === "object"
+        ? (globalConfig.text_types as Record<string, string>)
+        : {}
+    )
+    setTextGroupTypes(
+      globalConfig.text_group_types && typeof globalConfig.text_group_types === "object"
+        ? (globalConfig.text_group_types as Record<string, string>)
+        : {}
+    )
+    setSectionTypes(
+      globalConfig.section_types && typeof globalConfig.section_types === "object"
+        ? (globalConfig.section_types as Record<string, string>)
+        : {}
+    )
 
-        // Type definitions always come from global config
-        setTextTypes(
-          globalConfig.text_types && typeof globalConfig.text_types === "object"
-            ? (globalConfig.text_types as Record<string, string>)
-            : {}
-        )
-        setTextGroupTypes(
-          globalConfig.text_group_types && typeof globalConfig.text_group_types === "object"
-            ? (globalConfig.text_group_types as Record<string, string>)
-            : {}
-        )
-        setSectionTypes(
-          globalConfig.section_types && typeof globalConfig.section_types === "object"
-            ? (globalConfig.section_types as Record<string, string>)
-            : {}
-        )
+    // Default to "dynamic" — picks the best strategy per section type
+    setDefaultRenderStrategy("dynamic")
 
-        // Populate state from loaded preset/config
-        // Default to "dynamic" — picks the best strategy per section type
-        setDefaultRenderStrategy("dynamic")
-
-        // Render strategies
-        if (config.render_strategies && typeof config.render_strategies === "object") {
-          const loaded: Record<string, RenderStrategyState> = {}
-          for (const [name, raw] of Object.entries(
-            config.render_strategies as Record<string, Record<string, unknown>>
-          )) {
-            const cfg = (raw.config ?? {}) as Record<string, unknown>
-            loaded[name] = {
-              render_type: String(raw.render_type ?? "llm"),
-              config: {
-                prompt: cfg.prompt != null ? String(cfg.prompt) : undefined,
-                model: cfg.model != null ? String(cfg.model) : undefined,
-                max_retries: cfg.max_retries != null ? String(cfg.max_retries) : undefined,
-                timeout: cfg.timeout != null ? String(cfg.timeout) : undefined,
-                answer_prompt: cfg.answer_prompt != null ? String(cfg.answer_prompt) : undefined,
-                template: cfg.template != null ? String(cfg.template) : undefined,
-              },
-            }
-          }
-          setRenderStrategies(loaded)
-        } else {
-          setRenderStrategies({})
+    // Render strategies
+    if (config.render_strategies && typeof config.render_strategies === "object") {
+      const loaded: Record<string, RenderStrategyState> = {}
+      for (const [name, raw] of Object.entries(
+        config.render_strategies as Record<string, Record<string, unknown>>
+      )) {
+        const cfg = (raw.config ?? {}) as Record<string, unknown>
+        loaded[name] = {
+          render_type: String(raw.render_type ?? "llm"),
+          config: {
+            prompt: cfg.prompt != null ? String(cfg.prompt) : undefined,
+            model: cfg.model != null ? String(cfg.model) : undefined,
+            max_retries: cfg.max_retries != null ? String(cfg.max_retries) : undefined,
+            timeout: cfg.timeout != null ? String(cfg.timeout) : undefined,
+            answer_prompt: cfg.answer_prompt != null ? String(cfg.answer_prompt) : undefined,
+            template: cfg.template != null ? String(cfg.template) : undefined,
+          },
         }
-
-        // Section render strategies
-        if (config.section_render_strategies && typeof config.section_render_strategies === "object") {
-          setSectionRenderStrategies(
-            config.section_render_strategies as Record<string, string>
-          )
-        } else {
-          setSectionRenderStrategies({})
-        }
-
-        // Pruned types
-        setPrunedTextTypes(
-          Array.isArray(config.pruned_text_types)
-            ? new Set(config.pruned_text_types as string[])
-            : new Set()
-        )
-        setPrunedSectionTypes(
-          Array.isArray(config.pruned_section_types)
-            ? new Set(config.pruned_section_types as string[])
-            : new Set()
-        )
-
-        // Image filters
-        if (config.image_filters && typeof config.image_filters === "object") {
-          const f = config.image_filters as Record<string, unknown>
-          setImageMinSide(f.min_side != null ? String(f.min_side) : "")
-          setImageMaxSide(f.max_side != null ? String(f.max_side) : "")
-        } else {
-          setImageMinSide("")
-          setImageMaxSide("")
-        }
-
-        // Spread mode from preset
-        if (typeof config.spread_mode === "boolean") {
-          setSpreadMode(config.spread_mode)
-        }
-
-        // Custom layout auto-expands advanced panel
-        if (layoutType === "custom") {
-          setShowAdvancedLayout(true)
-        }
-      } catch (err) {
-        console.warn("Failed to load preset:", layoutType, err)
       }
+      setRenderStrategies(loaded)
+    } else {
+      setRenderStrategies({})
     }
 
-    loadPreset()
-    return () => { cancelled = true }
-  }, [layoutType])
+    // Section render strategies
+    if (config.section_render_strategies && typeof config.section_render_strategies === "object") {
+      setSectionRenderStrategies(
+        config.section_render_strategies as Record<string, string>
+      )
+    } else {
+      setSectionRenderStrategies({})
+    }
+
+    // Pruned types
+    setPrunedTextTypes(
+      Array.isArray(config.pruned_text_types)
+        ? new Set(config.pruned_text_types as string[])
+        : new Set()
+    )
+    setPrunedSectionTypes(
+      Array.isArray(config.pruned_section_types)
+        ? new Set(config.pruned_section_types as string[])
+        : new Set()
+    )
+
+    // Image filters
+    if (config.image_filters && typeof config.image_filters === "object") {
+      const f = config.image_filters as Record<string, unknown>
+      setImageMinSide(f.min_side != null ? String(f.min_side) : "")
+      setImageMaxSide(f.max_side != null ? String(f.max_side) : "")
+    } else {
+      setImageMinSide("")
+      setImageMaxSide("")
+    }
+
+    // Spread mode from preset
+    if (typeof config.spread_mode === "boolean") {
+      setSpreadMode(config.spread_mode)
+    }
+
+    // Custom layout auto-expands advanced panel
+    if (layoutType === "custom") {
+      setShowAdvancedLayout(true)
+    }
+  }, [layoutType, presetData, globalConfigData])
 
   // Step 3 — Settings
   const [editingLanguage, setEditingLanguage] = useState("en")

@@ -12,6 +12,7 @@ export { BookLabel, parseBookLabel } from "./book.js"
 export {
   BookFormat,
   LayoutType,
+  PresetName,
   StepConfig,
   QuizGenerationConfig,
   RenderType,

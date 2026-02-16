@@ -201,6 +201,11 @@ function RenderStrategyEditor({
   onRemove: () => void
 }) {
   const [expanded, setExpanded] = useState(false)
+  const [localName, setLocalName] = useState(name)
+
+  useEffect(() => {
+    setLocalName(name)
+  }, [name])
 
   const updateConfig = (field: string, value: string) => {
     onChange({
@@ -226,8 +231,15 @@ function RenderStrategyEditor({
           />
         </button>
         <Input
-          value={name}
-          onChange={(e) => onNameChange(e.target.value)}
+          value={localName}
+          onChange={(e) => setLocalName(e.target.value)}
+          onBlur={() => {
+            const trimmed = localName.trim()
+            if (trimmed && trimmed !== name) {
+              onNameChange(trimmed)
+            }
+            setLocalName(name)
+          }}
           placeholder="strategy name"
           className="h-7 text-xs font-medium flex-1"
         />
@@ -372,8 +384,12 @@ export function AdvancedLayoutPanel({
     const next = { ...renderStrategies }
     delete next[name]
     onRenderStrategiesChange(next)
-    if (defaultRenderStrategy === name && Object.keys(next).length > 0) {
-      onDefaultRenderStrategyChange(Object.keys(next)[0])
+    if (defaultRenderStrategy === name) {
+      if (Object.keys(next).length > 0) {
+        onDefaultRenderStrategyChange(Object.keys(next)[0])
+      } else {
+        onDefaultRenderStrategyChange("dynamic")
+      }
     }
   }
 
