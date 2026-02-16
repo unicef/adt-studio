@@ -1,0 +1,7 @@
+export { ExtractView } from "./ExtractView"
+export { StoryboardView } from "./StoryboardView"
+export { QuizzesView } from "./QuizzesView"
+export { CaptionsView } from "./CaptionsView"
+export { GlossaryView } from "./GlossaryView"
+export { TranslationsView } from "./TranslationsView"
+export { TextToSpeechView } from "./TextToSpeechView"

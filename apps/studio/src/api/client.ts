@@ -93,6 +93,8 @@ export interface PageSummaryItem {
   pageNumber: number
   hasRendering: boolean
   textPreview: string
+  imageCount: number
+  wordCount: number
 }
 
 export interface SectionRendering {
@@ -140,6 +142,13 @@ export interface PageDetail {
   imageCaptioning: {
     captions: Array<{ imageId: string; reasoning: string; caption: string }>
   } | null
+  versions: {
+    textClassification: number | null
+    imageClassification: number | null
+    sectioning: number | null
+    rendering: number | null
+    imageCaptioning: number | null
+  }
 }
 
 // --- Quiz types ---
@@ -368,6 +377,9 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ config }),
     }),
+
+  getPrompt: (name: string) =>
+    request<{ name: string; content: string }>(`/prompts/${name}`),
 
   runProof: (label: string, apiKey: string) =>
     request<{ status: string; label: string }>(

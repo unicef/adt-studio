@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { BookOpen, LayoutGrid, FileDown, CheckCircle2, Loader2, Package, ExternalLink } from "lucide-react"
+import { BookOpen, LayoutGrid, FileDown, CheckCircle2, Loader2, Package, ExternalLink, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -226,6 +226,12 @@ function BookDetailPage() {
             </Button>
           </Link>
         )}
+        <Link to="/books/$label/v2/$step" params={{ label, step: "extract" }}>
+          <Button variant="outline" size="sm">
+            <Sparkles className="mr-2 h-4 w-4" />
+            Try New UI
+          </Button>
+        </Link>
         {book.storyboardAccepted && (
           <Button
             variant="outline"
