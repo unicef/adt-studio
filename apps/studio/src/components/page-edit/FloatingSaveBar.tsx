@@ -21,7 +21,7 @@ export function FloatingSaveBar({
   if (changedEntities.length === 0) return null
 
   return (
-    <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 animate-in slide-in-from-bottom-4 fade-in duration-200">
+    <div className="absolute bottom-4 left-1/2 z-50 -translate-x-1/2 animate-in slide-in-from-bottom-4 fade-in duration-200">
       <div className="flex items-center gap-3 rounded-lg border bg-background px-4 py-2.5 shadow-lg">
         <span className="text-sm text-muted-foreground">
           Modified: <span className="font-medium text-foreground">{changedEntities.join(", ")}</span>
