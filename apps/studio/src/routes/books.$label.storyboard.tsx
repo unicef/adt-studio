@@ -1,21 +1,30 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useState, useMemo, useEffect, useCallback, useRef } from "react"
-import { Check, Clock, CheckCircle2, ChevronLeft, ChevronRight, ImageOff, Loader2, ExternalLink, RefreshCw, Settings2, AlertCircle, HelpCircle, Lightbulb, BookOpen, FileDown } from "lucide-react"
+import {
+  Check,
+  Clock,
+  CheckCircle2,
+  Loader2,
+  Settings2,
+  AlertCircle,
+  HelpCircle,
+  BookOpen,
+  FileDown,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useBook, useExportBook } from "@/hooks/use-books"
-import { usePages, usePage, usePageImage } from "@/hooks/use-pages"
+import { usePages, usePageImage } from "@/hooks/use-pages"
 import { usePipelineSSE, usePipelineStatus, useRunPipeline } from "@/hooks/use-pipeline"
 import { useApiKey } from "@/hooks/use-api-key"
-import { useReRenderPage } from "@/hooks/use-page-mutations"
 import { STEP_LABELS } from "@/components/pipeline/StepIndicator"
-import { RenderedHtml } from "@/components/storyboard/RenderedHtml"
-import { ActivityAnswerPanel } from "@/components/storyboard/ActivityAnswerPanel"
-import { isActivitySection, formatSectionType } from "@/lib/activity-utils"
 import { StoryboardSettingsSheet } from "@/components/storyboard/StoryboardSettingsSheet"
 import { AcceptStoryboardDialog } from "@/components/storyboard/AcceptStoryboardDialog"
 import { StoryboardGuideDialog } from "@/components/storyboard/StoryboardGuideDialog"
+import { PageEditPanel } from "@/components/storyboard/PageEditPanel"
+import { UnsavedChangesDialog } from "@/components/storyboard/UnsavedChangesDialog"
 import { useGuideDismissed } from "@/hooks/use-guide-dismissed"
+import type { PageEditPanelHandle } from "@/components/storyboard/PageEditPanel"
 import type { StepName } from "@/hooks/use-pipeline"
 
 export const Route = createFileRoute("/books/$label/storyboard")({
@@ -106,6 +115,13 @@ function StoryboardPage() {
   const [acceptDialogOpen, setAcceptDialogOpen] = useState(false)
   const [guideDismissed, dismissGuide] = useGuideDismissed("storyboard")
   const [guideOpen, setGuideOpen] = useState(!guideDismissed)
+  const [showOriginalImage, setShowOriginalImage] = useState(false)
+  const [sidebarExpanded, setSidebarExpanded] = useState(true)
+
+  // Unsaved changes dialog state
+  const [pendingPageSwitch, setPendingPageSwitch] = useState<string | null>(null)
+
+  const editPanelRef = useRef<PageEditPanelHandle>(null)
 
   // Track whether we've consumed the initial page search param
   const initialPageConsumed = useRef(false)
@@ -177,23 +193,57 @@ function StoryboardPage() {
     }
   }, [filteredPages, selectedPageId, initialPageId])
 
-  // Keyboard navigation
+  // Guard page switching with unsaved-changes check
+  const requestPageSwitch = useCallback(
+    (targetPageId: string) => {
+      if (targetPageId === selectedPageId) return
+      if (editPanelRef.current?.hasChanges) {
+        setPendingPageSwitch(targetPageId)
+      } else {
+        setSelectedPageId(targetPageId)
+      }
+    },
+    [selectedPageId]
+  )
+
+  const handleSaveAndSwitch = useCallback(async () => {
+    if (editPanelRef.current && pendingPageSwitch) {
+      await editPanelRef.current.save()
+      setSelectedPageId(pendingPageSwitch)
+      setPendingPageSwitch(null)
+    }
+  }, [pendingPageSwitch])
+
+  const handleDiscardAndSwitch = useCallback(() => {
+    if (editPanelRef.current && pendingPageSwitch) {
+      editPanelRef.current.discard()
+      setSelectedPageId(pendingPageSwitch)
+      setPendingPageSwitch(null)
+    }
+  }, [pendingPageSwitch])
+
+  const handleCancelSwitch = useCallback(() => {
+    setPendingPageSwitch(null)
+  }, [])
+
+  // Keyboard navigation with unsaved-changes guard
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement).tagName
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return
+      if ((e.target as HTMLElement)?.isContentEditable) return
 
       if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
         e.preventDefault()
         const idx = filteredPages.findIndex((p) => p.pageId === selectedPageId)
-        if (idx > 0) setSelectedPageId(filteredPages[idx - 1].pageId)
+        if (idx > 0) requestPageSwitch(filteredPages[idx - 1].pageId)
       } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
         e.preventDefault()
         const idx = filteredPages.findIndex((p) => p.pageId === selectedPageId)
-        if (idx < filteredPages.length - 1) setSelectedPageId(filteredPages[idx + 1].pageId)
+        if (idx < filteredPages.length - 1) requestPageSwitch(filteredPages[idx + 1].pageId)
       }
     },
-    [filteredPages, selectedPageId]
+    [filteredPages, selectedPageId, requestPageSwitch]
   )
 
   useEffect(() => {
@@ -201,14 +251,14 @@ function StoryboardPage() {
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [handleKeyDown])
 
-  const selectedIndex = filteredPages.findIndex((p) => p.pageId === selectedPageId)
-  const hasPrev = selectedIndex > 0
-  const hasNext = selectedIndex < filteredPages.length - 1
-
   // Current step label for rebuild banner
   const currentStepLabel = progress.currentStep
     ? STEP_LABELS[progress.currentStep as StepName] ?? progress.currentStep
     : null
+
+  // Find selected page's number
+  const selectedPage = filteredPages.find((p) => p.pageId === selectedPageId)
+  const selectedPageNumber = selectedPage?.pageNumber ?? 0
 
   if (isLoading) {
     return <div className="p-4 text-muted-foreground">Loading pages...</div>
@@ -308,84 +358,89 @@ function StoryboardPage() {
         </div>
       )}
 
-      {/* Two-panel layout */}
+      {/* Main layout: Sidebar + Edit Panel */}
       <div className="flex flex-1 min-h-0">
-        {/* Sidebar */}
-        <div className="flex w-[272px] shrink-0 flex-col border-r">
-          {/* Progress bar */}
-          <div className="shrink-0 border-b bg-muted/30 px-3 py-2">
-            <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-              <span>{renderedCount} of {totalCount} rendered</span>
-              <span>{totalCount > 0 ? Math.round((renderedCount / totalCount) * 100) : 0}%</span>
-            </div>
-            <div className="h-1 w-full rounded-full bg-muted">
-              <div
-                className="h-1 rounded-full bg-green-600 transition-all"
-                style={{ width: totalCount > 0 ? `${(renderedCount / totalCount) * 100}%` : "0%" }}
-              />
-            </div>
-          </div>
-
-          {/* Filter chips */}
-          <div className="flex shrink-0 gap-1 border-b px-3 py-2">
-            <Button
-              variant={filter === "all" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => setFilter("all")}
-            >
-              All ({totalCount})
-            </Button>
-            <Button
-              variant={filter === "rendered" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => setFilter("rendered")}
-            >
-              Rendered ({renderedCount})
-            </Button>
-            <Button
-              variant={filter === "pending" ? "secondary" : "ghost"}
-              size="sm"
-              className="h-7 text-xs"
-              onClick={() => setFilter("pending")}
-            >
-              Pending ({pendingCount})
-            </Button>
-          </div>
-
-          {/* Page list */}
-          <div className="flex-1 overflow-y-auto">
-            {filteredPages.map((page) => (
-              <MiniPageCard
-                key={page.pageId}
-                label={label}
-                pageId={page.pageId}
-                pageNumber={page.pageNumber}
-                textPreview={page.textPreview}
-                hasRendering={page.hasRendering}
-                isSelected={page.pageId === selectedPageId}
-                onClick={() => setSelectedPageId(page.pageId)}
-              />
-            ))}
-            {filteredPages.length === 0 && (
-              <div className="px-3 py-6 text-center text-xs text-muted-foreground">
-                No pages match this filter.
+        {/* Sidebar — fully collapsible */}
+        {sidebarExpanded && (
+          <div className="flex w-[272px] shrink-0 flex-col border-r">
+            {/* Progress bar */}
+            <div className="shrink-0 border-b bg-muted/30 px-3 py-2">
+              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                <span>{renderedCount} of {totalCount} rendered</span>
+                <span>{totalCount > 0 ? Math.round((renderedCount / totalCount) * 100) : 0}%</span>
               </div>
-            )}
-          </div>
-        </div>
+              <div className="h-1 w-full rounded-full bg-muted">
+                <div
+                  className="h-1 rounded-full bg-green-600 transition-all"
+                  style={{ width: totalCount > 0 ? `${(renderedCount / totalCount) * 100}%` : "0%" }}
+                />
+              </div>
+            </div>
 
-        {/* Preview panel */}
+            {/* Filter chips */}
+            <div className="flex shrink-0 gap-1 border-b px-3 py-2">
+              <Button
+                variant={filter === "all" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => setFilter("all")}
+              >
+                All ({totalCount})
+              </Button>
+              <Button
+                variant={filter === "rendered" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => setFilter("rendered")}
+              >
+                Rendered ({renderedCount})
+              </Button>
+              <Button
+                variant={filter === "pending" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 text-xs"
+                onClick={() => setFilter("pending")}
+              >
+                Pending ({pendingCount})
+              </Button>
+            </div>
+
+            {/* Page list */}
+            <div className="flex-1 overflow-y-auto">
+              {filteredPages.map((page) => (
+                <MiniPageCard
+                  key={page.pageId}
+                  label={label}
+                  pageId={page.pageId}
+                  pageNumber={page.pageNumber}
+                  textPreview={page.textPreview}
+                  hasRendering={page.hasRendering}
+                  isSelected={page.pageId === selectedPageId}
+                  onClick={() => requestPageSwitch(page.pageId)}
+                />
+              ))}
+              {filteredPages.length === 0 && (
+                <div className="px-3 py-6 text-center text-xs text-muted-foreground">
+                  No pages match this filter.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Edit panel */}
         <div className="flex flex-1 min-w-0 flex-col">
           {selectedPageId ? (
-            <PreviewPanel
+            <PageEditPanel
+              key={selectedPageId}
+              ref={editPanelRef}
               label={label}
               pageId={selectedPageId}
-              hasPrev={hasPrev}
-              hasNext={hasNext}
-              onPrev={() => hasPrev && setSelectedPageId(filteredPages[selectedIndex - 1].pageId)}
-              onNext={() => hasNext && setSelectedPageId(filteredPages[selectedIndex + 1].pageId)}
+              pageNumber={selectedPageNumber}
+              showOriginalImage={showOriginalImage}
+              onToggleOriginalImage={() => setShowOriginalImage((v) => !v)}
+              sidebarVisible={sidebarExpanded}
+              onToggleSidebar={() => setSidebarExpanded((v) => !v)}
             />
           ) : (
             <div className="flex flex-1 items-center justify-center">
@@ -409,12 +464,22 @@ function StoryboardPage() {
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">Select a page to preview.</p>
+                <p className="text-sm text-muted-foreground">Select a page to edit.</p>
               )}
             </div>
           )}
         </div>
       </div>
+
+      {/* Unsaved changes dialog */}
+      <UnsavedChangesDialog
+        open={!!pendingPageSwitch}
+        changedEntities={editPanelRef.current?.changedEntities ?? []}
+        isSaving={false}
+        onSaveAndContinue={handleSaveAndSwitch}
+        onDiscard={handleDiscardAndSwitch}
+        onCancel={handleCancelSwitch}
+      />
 
       {/* Settings Sheet */}
       <StoryboardSettingsSheet
@@ -444,181 +509,5 @@ function StoryboardPage() {
         }}
       />
     </div>
-  )
-}
-
-function PreviewPanel({
-  label,
-  pageId,
-  hasPrev,
-  hasNext,
-  onPrev,
-  onNext,
-}: {
-  label: string
-  pageId: string
-  hasPrev: boolean
-  hasNext: boolean
-  onPrev: () => void
-  onNext: () => void
-}) {
-  const { data: page, isLoading } = usePage(label, pageId)
-  const { apiKey, hasApiKey } = useApiKey()
-  const reRender = useReRenderPage(label, pageId)
-  const [showAnswers, setShowAnswers] = useState(false)
-
-  const combinedHtml = useMemo(
-    () => page?.rendering?.sections.map((s) => s.html).join("\n"),
-    [page]
-  )
-
-  const sectionCount = page?.rendering?.sections.length ?? 0
-  const activityCount = page?.rendering?.sections.filter((s) => isActivitySection(s.sectionType)).length ?? 0
-  const hasRenderingData = !!page?.textClassification
-
-  const reRenderTitle = !hasApiKey
-    ? "Set your API key first"
-    : !hasRenderingData
-      ? "Run the pipeline first"
-      : reRender.isPending
-        ? "Re-rendering..."
-        : ""
-
-  return (
-    <>
-      {/* Preview header */}
-      <div className="flex shrink-0 items-center justify-between border-b px-5 py-2.5">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium">Page {page?.pageNumber ?? "..."}</span>
-          {sectionCount > 0 && (
-            <Badge variant="secondary" className="text-xs">
-              {sectionCount} section{sectionCount !== 1 && "s"}
-              {activityCount > 0 && ` \u00b7 ${activityCount} activity`}
-            </Badge>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {activityCount > 0 && combinedHtml && (
-            <Button
-              variant={showAnswers ? "secondary" : "outline"}
-              size="sm"
-              onClick={() => setShowAnswers((v) => !v)}
-            >
-              {showAnswers ? "Hide Answers" : "Show Answers"}
-            </Button>
-          )}
-          <div className="flex gap-1">
-            <Button variant="outline" size="sm" disabled={!hasPrev} onClick={onPrev}>
-              <ChevronLeft className="h-3 w-3" />
-            </Button>
-            <Button variant="outline" size="sm" disabled={!hasNext} onClick={onNext}>
-              <ChevronRight className="h-3 w-3" />
-            </Button>
-          </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => hasApiKey && reRender.mutate(apiKey)}
-            disabled={!hasApiKey || reRender.isPending || !hasRenderingData}
-            title={reRenderTitle}
-          >
-            {reRender.isPending ? (
-              <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-            ) : (
-              <RefreshCw className="mr-1.5 h-3 w-3" />
-            )}
-            Re-render
-          </Button>
-          <Link to="/books/$label/pages/$pageId" params={{ label, pageId }}>
-            <Button variant="outline" size="sm">
-              Edit Page
-              <ExternalLink className="ml-1.5 h-3 w-3" />
-            </Button>
-          </Link>
-        </div>
-      </div>
-
-      {/* Success banner after re-render */}
-      {reRender.isSuccess && (
-        <div className="flex shrink-0 items-center gap-2 border-b bg-green-50 px-5 py-1.5 text-xs text-green-800">
-          <CheckCircle2 className="h-3 w-3 shrink-0" />
-          Page re-rendered successfully.
-          {activityCount > 0 && " Activity answers were also regenerated."}
-        </div>
-      )}
-
-      {/* Error banner after re-render */}
-      {reRender.error && !reRender.isPending && (
-        <div className="flex shrink-0 items-center gap-2 border-b bg-destructive/10 px-5 py-1.5 text-xs text-destructive">
-          <AlertCircle className="h-3 w-3 shrink-0" />
-          Re-render failed: {reRender.error.message}
-        </div>
-      )}
-
-      {/* Inline hint */}
-      {combinedHtml && !reRender.isSuccess && (
-        <div className="flex shrink-0 items-center gap-2 border-b bg-muted/30 px-5 py-1.5 text-xs text-muted-foreground">
-          <Lightbulb className="h-3 w-3 shrink-0" />
-          Edit text and images on the <strong className="font-medium">Edit Page</strong>, or re-render directly from here.
-        </div>
-      )}
-
-      {/* Preview content */}
-      <div className="flex-1 overflow-auto p-6">
-        {isLoading ? (
-          <div className="flex h-full items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : reRender.isPending ? (
-          <div className="flex h-full items-center justify-center">
-            <div className="flex flex-col items-center gap-2 text-muted-foreground">
-              <Loader2 className="h-6 w-6 animate-spin" />
-              <p className="text-sm">Re-rendering page...</p>
-            </div>
-          </div>
-        ) : combinedHtml && !showAnswers ? (
-          <RenderedHtml
-            html={combinedHtml}
-            className="prose prose-sm max-w-none rounded-lg border bg-white p-6 shadow-sm"
-          />
-        ) : combinedHtml && showAnswers && page?.rendering ? (
-          <div className="space-y-4">
-            {page.rendering.sections.map((section, i) => (
-              <div key={i}>
-                <RenderedHtml
-                  html={section.html}
-                  className="prose prose-sm max-w-none rounded-lg border bg-white p-6 shadow-sm"
-                />
-                {isActivitySection(section.sectionType) && section.activityAnswers && Object.keys(section.activityAnswers).length > 0 && (
-                  <div className="mt-2">
-                    <ActivityAnswerPanel
-                      answers={section.activityAnswers}
-                      reasoning={section.activityReasoning}
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="flex h-full flex-col items-center justify-center gap-2 text-muted-foreground">
-            <ImageOff className="h-8 w-8" />
-            <p className="text-sm font-medium">Not yet rendered</p>
-            <p className="text-xs text-center max-w-xs">
-              Open <strong className="font-medium">Settings → Save & Rebuild</strong> to run the pipeline, or go to the{" "}
-              <Link
-                to="/books/$label"
-                params={{ label }}
-                search={{ autoRun: undefined, startPage: undefined, endPage: undefined }}
-                className="underline hover:text-foreground"
-              >
-                book detail page
-              </Link>{" "}
-              for full pipeline controls.
-            </p>
-          </div>
-        )}
-      </div>
-    </>
   )
 }
