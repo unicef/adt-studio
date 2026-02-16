@@ -10,6 +10,7 @@ import {
   HelpCircle,
   BookOpen,
   FileDown,
+  PanelLeftClose,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -33,8 +34,6 @@ export const Route = createFileRoute("/books/$label/storyboard")({
     page: typeof search.page === "string" ? search.page : undefined,
   }),
 })
-
-type Filter = "all" | "rendered" | "pending"
 
 function MiniPageCard({
   label,
@@ -110,7 +109,6 @@ function StoryboardPage() {
   const { data: pipelineStatus } = usePipelineStatus(label)
 
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null)
-  const [filter, setFilter] = useState<Filter>("all")
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [acceptDialogOpen, setAcceptDialogOpen] = useState(false)
   const [guideDismissed, dismissGuide] = useGuideDismissed("storyboard")
@@ -147,17 +145,7 @@ function StoryboardPage() {
     )
   }, [label, apiKey, hasApiKey, reset, runPipeline])
 
-  const filteredPages = useMemo(() => {
-    if (!pages) return []
-    switch (filter) {
-      case "rendered":
-        return pages.filter((p) => p.hasRendering)
-      case "pending":
-        return pages.filter((p) => !p.hasRendering)
-      default:
-        return pages
-    }
-  }, [pages, filter])
+  const allPages = useMemo(() => pages ?? [], [pages])
 
   const renderedCount = useMemo(
     () => pages?.filter((p) => p.hasRendering).length ?? 0,
@@ -172,14 +160,14 @@ function StoryboardPage() {
 
   // Auto-select page: prefer initialPageId from search param, then first page
   useEffect(() => {
-    if (filteredPages.length === 0) {
+    if (allPages.length === 0) {
       setSelectedPageId(null)
       return
     }
 
     // Use search param page on first load
     if (initialPageId && !initialPageConsumed.current) {
-      const found = filteredPages.some((p) => p.pageId === initialPageId)
+      const found = allPages.some((p) => p.pageId === initialPageId)
       if (found) {
         setSelectedPageId(initialPageId)
         initialPageConsumed.current = true
@@ -187,11 +175,11 @@ function StoryboardPage() {
       }
     }
 
-    const currentStillVisible = selectedPageId && filteredPages.some((p) => p.pageId === selectedPageId)
+    const currentStillVisible = selectedPageId && allPages.some((p) => p.pageId === selectedPageId)
     if (!currentStillVisible) {
-      setSelectedPageId(filteredPages[0].pageId)
+      setSelectedPageId(allPages[0].pageId)
     }
-  }, [filteredPages, selectedPageId, initialPageId])
+  }, [allPages, selectedPageId, initialPageId])
 
   // Guard page switching with unsaved-changes check
   const requestPageSwitch = useCallback(
@@ -235,15 +223,15 @@ function StoryboardPage() {
 
       if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
         e.preventDefault()
-        const idx = filteredPages.findIndex((p) => p.pageId === selectedPageId)
-        if (idx > 0) requestPageSwitch(filteredPages[idx - 1].pageId)
+        const idx = allPages.findIndex((p) => p.pageId === selectedPageId)
+        if (idx > 0) requestPageSwitch(allPages[idx - 1].pageId)
       } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
         e.preventDefault()
-        const idx = filteredPages.findIndex((p) => p.pageId === selectedPageId)
-        if (idx < filteredPages.length - 1) requestPageSwitch(filteredPages[idx + 1].pageId)
+        const idx = allPages.findIndex((p) => p.pageId === selectedPageId)
+        if (idx < allPages.length - 1) requestPageSwitch(allPages[idx + 1].pageId)
       }
     },
-    [filteredPages, selectedPageId, requestPageSwitch]
+    [allPages, selectedPageId, requestPageSwitch]
   )
 
   useEffect(() => {
@@ -257,7 +245,7 @@ function StoryboardPage() {
     : null
 
   // Find selected page's number
-  const selectedPage = filteredPages.find((p) => p.pageId === selectedPageId)
+  const selectedPage = allPages.find((p) => p.pageId === selectedPageId)
   const selectedPageNumber = selectedPage?.pageNumber ?? 0
 
   if (isLoading) {
@@ -363,51 +351,34 @@ function StoryboardPage() {
         {/* Sidebar — fully collapsible */}
         {sidebarExpanded && (
           <div className="flex w-[272px] shrink-0 flex-col border-r">
-            {/* Progress bar */}
-            <div className="shrink-0 border-b bg-muted/30 px-3 py-2">
-              <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                <span>{renderedCount} of {totalCount} rendered</span>
-                <span>{totalCount > 0 ? Math.round((renderedCount / totalCount) * 100) : 0}%</span>
+            {/* Sidebar header with progress + collapse */}
+            <div className="flex shrink-0 items-center gap-2 border-b bg-muted/30 px-3 py-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
+                  <span>{renderedCount}/{totalCount}</span>
+                  <span>{totalCount > 0 ? Math.round((renderedCount / totalCount) * 100) : 0}%</span>
+                </div>
+                <div className="h-1 w-full rounded-full bg-muted">
+                  <div
+                    className="h-1 rounded-full bg-green-600 transition-all"
+                    style={{ width: totalCount > 0 ? `${(renderedCount / totalCount) * 100}%` : "0%" }}
+                  />
+                </div>
               </div>
-              <div className="h-1 w-full rounded-full bg-muted">
-                <div
-                  className="h-1 rounded-full bg-green-600 transition-all"
-                  style={{ width: totalCount > 0 ? `${(renderedCount / totalCount) * 100}%` : "0%" }}
-                />
-              </div>
-            </div>
-
-            {/* Filter chips */}
-            <div className="flex shrink-0 gap-1 border-b px-3 py-2">
               <Button
-                variant={filter === "all" ? "secondary" : "ghost"}
+                variant="ghost"
                 size="sm"
-                className="h-7 text-xs"
-                onClick={() => setFilter("all")}
+                className="h-7 w-7 p-0 shrink-0"
+                onClick={() => setSidebarExpanded(false)}
+                title="Collapse sidebar"
               >
-                All ({totalCount})
-              </Button>
-              <Button
-                variant={filter === "rendered" ? "secondary" : "ghost"}
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => setFilter("rendered")}
-              >
-                Rendered ({renderedCount})
-              </Button>
-              <Button
-                variant={filter === "pending" ? "secondary" : "ghost"}
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => setFilter("pending")}
-              >
-                Pending ({pendingCount})
+                <PanelLeftClose className="h-4 w-4" />
               </Button>
             </div>
 
             {/* Page list */}
             <div className="flex-1 overflow-y-auto">
-              {filteredPages.map((page) => (
+              {allPages.map((page) => (
                 <MiniPageCard
                   key={page.pageId}
                   label={label}
@@ -419,7 +390,7 @@ function StoryboardPage() {
                   onClick={() => requestPageSwitch(page.pageId)}
                 />
               ))}
-              {filteredPages.length === 0 && (
+              {allPages.length === 0 && (
                 <div className="px-3 py-6 text-center text-xs text-muted-foreground">
                   No pages match this filter.
                 </div>
@@ -440,7 +411,7 @@ function StoryboardPage() {
               showOriginalImage={showOriginalImage}
               onToggleOriginalImage={() => setShowOriginalImage((v) => !v)}
               sidebarVisible={sidebarExpanded}
-              onToggleSidebar={() => setSidebarExpanded((v) => !v)}
+              onExpandSidebar={() => setSidebarExpanded(true)}
             />
           ) : (
             <div className="flex flex-1 items-center justify-center">

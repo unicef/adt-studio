@@ -13,7 +13,6 @@ import {
   MessageSquare,
   FileImage,
   PanelLeftOpen,
-  PanelLeftClose,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -45,7 +44,7 @@ interface PageEditPanelProps {
   showOriginalImage: boolean
   onToggleOriginalImage: () => void
   sidebarVisible: boolean
-  onToggleSidebar: () => void
+  onExpandSidebar: () => void
 }
 
 function ImageCaptionList({
@@ -114,7 +113,7 @@ function ImageCaptionList({
 
 export const PageEditPanel = forwardRef<PageEditPanelHandle, PageEditPanelProps>(
   function PageEditPanel(
-    { label, pageId, pageNumber, showOriginalImage, onToggleOriginalImage, sidebarVisible, onToggleSidebar },
+    { label, pageId, pageNumber, showOriginalImage, onToggleOriginalImage, sidebarVisible, onExpandSidebar },
     ref
   ) {
     const { data: page, isLoading, error } = usePage(label, pageId)
@@ -179,65 +178,6 @@ export const PageEditPanel = forwardRef<PageEditPanelHandle, PageEditPanelProps>
 
     return (
       <div className="relative flex flex-1 min-h-0 flex-col">
-        {/* Edit toolbar */}
-        <div className="flex shrink-0 items-center justify-between border-b px-4 py-1.5">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 w-7 p-0"
-              onClick={onToggleSidebar}
-              title={sidebarVisible ? "Hide page list" : "Show page list"}
-            >
-              {sidebarVisible ? (
-                <PanelLeftClose className="h-4 w-4" />
-              ) : (
-                <PanelLeftOpen className="h-4 w-4" />
-              )}
-            </Button>
-            <span className="text-sm font-semibold">Page {pageNumber}</span>
-            {page.rendering && (
-              <Badge variant="secondary" className="text-xs">
-                {page.rendering.sections.length} section
-                {page.rendering.sections.length !== 1 && "s"}
-              </Badge>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant={showOriginalImage ? "secondary" : "outline"}
-              size="sm"
-              onClick={onToggleOriginalImage}
-              title={showOriginalImage ? "Hide original page" : "Show original page"}
-            >
-              <FileImage className="mr-1.5 h-3 w-3" />
-              Original
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleReRender}
-              disabled={!hasApiKey || reRender.isPending || !hasRenderingData}
-              title={
-                !hasApiKey
-                  ? "Set your API key first"
-                  : !hasRenderingData
-                    ? "Run the pipeline first"
-                    : reRender.isPending
-                      ? "Re-rendering..."
-                      : ""
-              }
-            >
-              {reRender.isPending ? (
-                <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-              ) : (
-                <RefreshCw className="mr-1 h-3 w-3" />
-              )}
-              Re-render
-            </Button>
-          </div>
-        </div>
-
         {/* Success banner */}
         {reRender.isSuccess && (
           <div className="flex shrink-0 items-center gap-2 border-b bg-green-50 px-4 py-1.5 text-xs text-green-800">
@@ -274,11 +214,22 @@ export const PageEditPanel = forwardRef<PageEditPanelHandle, PageEditPanelProps>
         <div className="flex min-h-0 flex-1">
           {/* Inputs + Output grid */}
           <div className="grid min-h-0 flex-1 grid-cols-[1fr_3fr] gap-0 divide-x">
-            {/* Left: Pipeline inputs */}
+            {/* Left: Inputs */}
             <div className="flex flex-col overflow-hidden">
-              <div className="flex shrink-0 items-center gap-2 border-b bg-muted/50 px-4 py-2">
+              <div className="flex shrink-0 items-center gap-2 border-b bg-muted/50 px-4 py-1.5">
+                {!sidebarVisible && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 -ml-1"
+                    onClick={onExpandSidebar}
+                    title="Show page list"
+                  >
+                    <PanelLeftOpen className="h-4 w-4" />
+                  </Button>
+                )}
                 <FileText className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Pipeline Inputs</span>
+                <span className="text-sm font-medium">Inputs</span>
               </div>
               <div className="flex-1 overflow-auto p-4">
                 {/* Text classification */}
@@ -350,13 +301,13 @@ export const PageEditPanel = forwardRef<PageEditPanelHandle, PageEditPanelProps>
               </div>
             </div>
 
-            {/* Right: Pipeline Output — tabs for Preview vs By Section */}
+            {/* Right: Output — tabs for Preview vs By Section */}
             <Tabs defaultValue="preview" className="flex flex-col overflow-hidden">
               <div className="flex shrink-0 items-center gap-2 border-b bg-muted/50 px-4 py-1.5">
                 <Layers className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium">Pipeline Output</span>
+                <span className="text-sm font-medium">Output</span>
                 {reRender.isPending && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
-                <TabsList className="ml-auto h-7">
+                <TabsList className="h-7">
                   <TabsTrigger value="preview" className="px-2.5 py-1 text-xs">
                     Preview
                   </TabsTrigger>
@@ -364,6 +315,41 @@ export const PageEditPanel = forwardRef<PageEditPanelHandle, PageEditPanelProps>
                     By Section{page.rendering ? ` (${page.rendering.sections.length})` : ""}
                   </TabsTrigger>
                 </TabsList>
+                <div className="ml-auto flex items-center gap-1.5">
+                  <Button
+                    variant={showOriginalImage ? "secondary" : "ghost"}
+                    size="sm"
+                    className="h-7"
+                    onClick={onToggleOriginalImage}
+                    title={showOriginalImage ? "Hide original page" : "Show original page"}
+                  >
+                    <FileImage className="mr-1 h-3 w-3" />
+                    Original
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7"
+                    onClick={handleReRender}
+                    disabled={!hasApiKey || reRender.isPending || !hasRenderingData}
+                    title={
+                      !hasApiKey
+                        ? "Set your API key first"
+                        : !hasRenderingData
+                          ? "Run the pipeline first"
+                          : reRender.isPending
+                            ? "Re-rendering..."
+                            : ""
+                    }
+                  >
+                    {reRender.isPending ? (
+                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                    ) : (
+                      <RefreshCw className="mr-1 h-3 w-3" />
+                    )}
+                    Re-render
+                  </Button>
+                </div>
               </div>
 
               <TabsContent value="preview" className="mt-0 flex-1 overflow-auto p-4">
