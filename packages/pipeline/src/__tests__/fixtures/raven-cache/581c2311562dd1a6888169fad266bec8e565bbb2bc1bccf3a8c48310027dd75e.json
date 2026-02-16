@@ -1,0 +1,32 @@
+{
+  "reasoning": "The page contains two short narrative paragraphs on the right side and a centered page number at the bottom. No headers, captions, or other text appears within the illustration.",
+  "groups": [
+    {
+      "group_type": "paragraph",
+      "texts": [
+        {
+          "text_type": "section_text",
+          "text": "Hyena and Raven were once great friends."
+        }
+      ]
+    },
+    {
+      "group_type": "paragraph",
+      "texts": [
+        {
+          "text_type": "section_text",
+          "text": "They played together all the time."
+        }
+      ]
+    },
+    {
+      "group_type": "other",
+      "texts": [
+        {
+          "text_type": "page_number",
+          "text": "1"
+        }
+      ]
+    }
+  ]
+}

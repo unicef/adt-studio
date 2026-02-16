@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import mupdf from "mupdf";
 import { extractPdf } from "../extract.js";
+import { stitchPngsHorizontally, decodePng } from "../png-utils.js";
+import { PNG } from "pngjs";
 
 // Minimal valid PDF with one blank page (no content stream)
 const MINIMAL_PDF = `%PDF-1.4
@@ -220,5 +222,162 @@ describe("extractPdf", () => {
     expect(vecImage.width).toBeGreaterThan(0);
     expect(vecImage.height).toBeGreaterThan(0);
     expect(vecImage.hash).toMatch(/^[a-f0-9]{16}$/);
+  });
+});
+
+// Helper: create an N-page PDF using mupdf
+function createNPagePdf(n: number): Buffer {
+  const doc = new mupdf.PDFDocument();
+  for (let i = 0; i < n; i++) {
+    const resources = doc.newDictionary();
+    const pageObj = doc.addPage(
+      [0, 0, 612, 792],
+      0,
+      resources,
+      `BT /F1 12 Tf 100 700 Td (Page ${i + 1}) Tj ET`
+    );
+    doc.insertPage(-1, pageObj);
+  }
+  return Buffer.from(doc.saveToBuffer("").asUint8Array());
+}
+
+// Helper: create a tiny PNG of given dimensions
+function createTestPng(width: number, height: number): Buffer {
+  const png = new PNG({ width, height });
+  // Fill with opaque red
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const idx = (y * width + x) * 4;
+      png.data[idx] = 255;     // R
+      png.data[idx + 1] = 0;   // G
+      png.data[idx + 2] = 0;   // B
+      png.data[idx + 3] = 255; // A
+    }
+  }
+  return PNG.sync.write(png);
+}
+
+describe("stitchPngsHorizontally", () => {
+  it("produces correct combined dimensions", () => {
+    const left = createTestPng(100, 200);
+    const right = createTestPng(150, 200);
+    const result = stitchPngsHorizontally(left, right);
+    const decoded = decodePng(result);
+    expect(decoded.width).toBe(250);
+    expect(decoded.height).toBe(200);
+  });
+
+  it("uses max height when pages differ", () => {
+    const left = createTestPng(100, 150);
+    const right = createTestPng(100, 200);
+    const result = stitchPngsHorizontally(left, right);
+    const decoded = decodePng(result);
+    expect(decoded.width).toBe(200);
+    expect(decoded.height).toBe(200);
+  });
+});
+
+describe("extractPdf spread mode", () => {
+  it("merges 5 pages into 3 logical pages (cover + 2 spreads)", async () => {
+    const pdfBuffer = createNPagePdf(5);
+    const result = await extractPdf({ pdfBuffer, spreadMode: true });
+
+    expect(result.totalPagesInPdf).toBe(5);
+    expect(result.pages).toHaveLength(3);
+
+    // Page 1: cover (standalone)
+    expect(result.pages[0].pageId).toBe("pg001");
+    expect(result.pages[0].pageNumber).toBe(1);
+
+    // Pages 2+3: first spread
+    expect(result.pages[1].pageId).toBe("pg002003");
+    expect(result.pages[1].pageNumber).toBe(2);
+
+    // Pages 4+5: second spread
+    expect(result.pages[2].pageId).toBe("pg004005");
+    expect(result.pages[2].pageNumber).toBe(4);
+  });
+
+  it("handles even page count (last page unpaired)", async () => {
+    const pdfBuffer = createNPagePdf(6);
+    const result = await extractPdf({ pdfBuffer, spreadMode: true });
+
+    // cover + spreads 2+3, 4+5 + standalone 6
+    expect(result.pages).toHaveLength(4);
+    expect(result.pages[0].pageId).toBe("pg001");
+    expect(result.pages[1].pageId).toBe("pg002003");
+    expect(result.pages[2].pageId).toBe("pg004005");
+    expect(result.pages[3].pageId).toBe("pg006");
+    expect(result.pages[3].pageNumber).toBe(6);
+  });
+
+  it("spread page image is wider than a single page", async () => {
+    const pdfBuffer = createNPagePdf(3);
+    const result = await extractPdf({ pdfBuffer, spreadMode: true });
+
+    const coverWidth = result.pages[0].pageImage.width;
+    const spreadWidth = result.pages[1].pageImage.width;
+    // Spread should be roughly 2x the width of a single page
+    expect(spreadWidth).toBeGreaterThan(coverWidth * 1.5);
+  });
+
+  it("spreadMode false (default) produces normal pages", async () => {
+    const pdfBuffer = createNPagePdf(4);
+    const result = await extractPdf({ pdfBuffer });
+
+    expect(result.pages).toHaveLength(4);
+    expect(result.pages[0].pageId).toBe("pg001");
+    expect(result.pages[1].pageId).toBe("pg002");
+    expect(result.pages[2].pageId).toBe("pg003");
+    expect(result.pages[3].pageId).toBe("pg004");
+  });
+
+  it("spread page image ids use the spread pageId", async () => {
+    const pdfBuffer = createNPagePdf(3);
+    const result = await extractPdf({ pdfBuffer, spreadMode: true });
+
+    expect(result.pages[1].pageImage.imageId).toBe("pg002003_page");
+  });
+
+  it("reports correct progress for spread mode", async () => {
+    const pdfBuffer = createNPagePdf(5);
+    const progressCalls: { page: number; totalPages: number }[] = [];
+    await extractPdf({ pdfBuffer, spreadMode: true }, (p) => {
+      progressCalls.push({ ...p });
+    });
+
+    expect(progressCalls).toEqual([
+      { page: 1, totalPages: 3 },
+      { page: 2, totalPages: 3 },
+      { page: 3, totalPages: 3 },
+    ]);
+  });
+
+  it("anchors grouping to the selected start page", async () => {
+    const pdfBuffer = createNPagePdf(7);
+    const result = await extractPdf({
+      pdfBuffer,
+      spreadMode: true,
+      startPage: 3,
+    });
+
+    expect(result.pages).toHaveLength(3);
+    expect(result.pages[0].pageId).toBe("pg003");
+    expect(result.pages[1].pageId).toBe("pg004005");
+    expect(result.pages[2].pageId).toBe("pg006007");
+  });
+
+  it("still starts with a standalone page for even start pages", async () => {
+    const pdfBuffer = createNPagePdf(7);
+    const result = await extractPdf({
+      pdfBuffer,
+      spreadMode: true,
+      startPage: 4,
+    });
+
+    expect(result.pages).toHaveLength(3);
+    expect(result.pages[0].pageId).toBe("pg004");
+    expect(result.pages[1].pageId).toBe("pg005006");
+    expect(result.pages[2].pageId).toBe("pg007");
   });
 });

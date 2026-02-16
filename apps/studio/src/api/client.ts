@@ -10,6 +10,10 @@ function resolveBaseUrl(): string {
 
 const BASE_URL = resolveBaseUrl()
 
+export function getAdtUrl(label: string): string {
+  return `${BASE_URL}/books/${label}/adt`
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${BASE_URL}${path}`
   const res = await fetch(url, {
@@ -41,6 +45,7 @@ export interface BookSummary {
   needsRebuild: boolean
   rebuildReason: string | null
   storyboardAccepted: boolean
+  proofCompleted: boolean
 }
 
 export interface BookDetail extends BookSummary {
@@ -63,6 +68,14 @@ export interface PipelineStatus {
 }
 
 export interface ProofStatus {
+  label: string
+  status: "idle" | "running" | "completed" | "failed"
+  error?: string
+  startedAt?: number
+  completedAt?: number
+}
+
+export interface MasterStatus {
   label: string
   status: "idle" | "running" | "completed" | "failed"
   error?: string
@@ -127,6 +140,35 @@ export interface PageDetail {
   imageCaptioning: {
     captions: Array<{ imageId: string; reasoning: string; caption: string }>
   } | null
+}
+
+// --- Quiz types ---
+
+export interface QuizOption {
+  text: string
+  explanation: string
+}
+
+export interface QuizItem {
+  quizIndex: number
+  afterPageId: string
+  pageIds: string[]
+  question: string
+  options: QuizOption[]
+  answerIndex: number
+  reasoning: string
+}
+
+export interface QuizGenerationOutput {
+  generatedAt: string
+  language: string
+  pagesPerQuiz: number
+  quizzes: QuizItem[]
+}
+
+export interface QuizzesResponse {
+  quizzes: QuizGenerationOutput | null
+  version: number | null
 }
 
 // --- Debug types ---
@@ -336,10 +378,33 @@ export const api = {
   getProofStatus: (label: string) =>
     request<ProofStatus>(`/books/${label}/proof/status`),
 
+  runMaster: (label: string, apiKey: string) =>
+    request<{ status: string; label: string }>(
+      `/books/${label}/master/run`,
+      { method: "POST", headers: { "X-OpenAI-Key": apiKey } }
+    ),
+
+  getMasterStatus: (label: string) =>
+    request<MasterStatus>(`/books/${label}/master/status`),
+
   acceptStoryboard: (label: string) =>
     request<{ version: number; acceptedAt: string }>(
       `/books/${label}/accept-storyboard`,
       { method: "POST" }
+    ),
+
+  getQuizzes: (label: string) =>
+    request<QuizzesResponse>(`/books/${label}/quizzes`),
+
+  packageAdt: (label: string) =>
+    request<{ status: string; label: string }>(
+      `/books/${label}/package-adt`,
+      { method: "POST" }
+    ),
+
+  getPackageAdtStatus: (label: string) =>
+    request<{ label: string; hasAdt: boolean }>(
+      `/books/${label}/package-adt/status`
     ),
 
   exportBook: async (label: string): Promise<Blob> => {

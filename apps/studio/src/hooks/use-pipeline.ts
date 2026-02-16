@@ -11,6 +11,12 @@ export type StepName =
   | "page-sectioning"
   | "web-rendering"
   | "image-captioning"
+  | "glossary"
+  | "quiz-generation"
+  | "text-catalog"
+  | "catalog-translation"
+  | "tts"
+  | "package-web"
 
 export interface StepProgress {
   step: StepName
@@ -38,6 +44,7 @@ export interface PipelineProgress {
   error: string | null
   currentStep: StepName | null
   completedSteps: Set<StepName>
+  skippedSteps: Set<StepName>
   stepProgress: Map<StepName, StepProgress>
   liveLlmLogs: LlmLogSummary[]
 }
@@ -50,6 +57,7 @@ const INITIAL_PROGRESS: PipelineProgress = {
   error: null,
   currentStep: null,
   completedSteps: new Set(),
+  skippedSteps: new Set(),
   stepProgress: new Map(),
   liveLlmLogs: [],
 }
@@ -89,9 +97,12 @@ export function usePipelineSSE(label: string, enabled: boolean) {
         const next = { ...prev }
         const stepProgress = new Map(prev.stepProgress)
         const completedSteps = new Set(prev.completedSteps)
+        const skippedSteps = new Set(prev.skippedSteps)
 
         if (data.type === "step-start") {
           next.currentStep = data.step
+        } else if (data.type === "step-skip") {
+          skippedSteps.add(data.step)
         } else if (data.type === "step-progress") {
           stepProgress.set(data.step, {
             step: data.step,
@@ -124,6 +135,7 @@ export function usePipelineSSE(label: string, enabled: boolean) {
 
         next.stepProgress = stepProgress
         next.completedSteps = completedSteps
+        next.skippedSteps = skippedSteps
         return next
       })
     })

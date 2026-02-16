@@ -103,18 +103,20 @@ export function createPipelineRunner(): PipelineRunner {
         )
 
         // Step 1: Extract PDF
+        const config = loadBookConfig(label, booksDir, configPath)
+
         await extractPDF(
           {
             pdfPath,
             startPage: options.startPage,
             endPage: options.endPage,
+            spreadMode: config.spread_mode,
           },
           storage,
           progress
         )
 
         // Step 2: Extract Metadata
-        const config = loadBookConfig(label, booksDir, configPath)
         const metadataConfig = buildMetadataConfig(config)
         const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
         const promptEngine = createPromptEngine(promptsDir)
@@ -339,6 +341,11 @@ export function createPipelineRunner(): PipelineRunner {
         if (translationConfig) {
           progress.emit({
             type: "step-complete",
+            step: "translation",
+          })
+        } else {
+          progress.emit({
+            type: "step-skip",
             step: "translation",
           })
         }

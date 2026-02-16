@@ -56,6 +56,46 @@ export {
   type CaptionConfig,
   type CaptionPageInput,
 } from "./image-captioning.js"
+export {
+  generateGlossary,
+  buildGlossaryConfig,
+  stripHtml,
+  collectPageTexts,
+  type GlossaryConfig,
+  type GenerateGlossaryOptions,
+} from "./glossary.js"
 export { validateSectionHtml } from "./validate-html.js"
+export {
+  generateQuiz,
+  generateAllQuizzes,
+  buildQuizGenerationConfig,
+  extractTextFromHtml,
+  isContentPage,
+  batchPages,
+  type QuizConfig,
+  type QuizPageInput,
+} from "./quiz-generation.js"
+export { buildTextCatalog } from "./text-catalog.js"
+export {
+  resolveVoice,
+  resolveInstructions,
+  isSpeakableText,
+  stripEmojis,
+  loadVoicesConfig,
+  loadSpeechInstructions,
+  generateSpeechFile,
+  type VoiceMaps,
+  type InstructionsMap,
+  type GenerateSpeechFileOptions,
+} from "./speech.js"
+export {
+  translateCatalogBatch,
+  buildCatalogTranslationConfig,
+  getTargetLanguages,
+  type CatalogTranslationConfig,
+} from "./catalog-translation.js"
 export { loadConfig, loadBookConfig, deepMerge } from "./config.js"
 export { runPipeline, type RunPipelineOptions } from "./pipeline.js"
+export { runProof, type RunProofOptions } from "./proof.js"
+export { runMaster, type RunMasterOptions } from "./master.js"
+export { packageAdtWeb, type PackageAdtWebOptions } from "./package-web.js"

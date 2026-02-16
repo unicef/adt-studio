@@ -1,0 +1,59 @@
+# TTS accent/pronunciation instructions per locale
+# These are passed as the "instructions" parameter to OpenAI TTS models.
+#
+# Resolution order: exact match (en-tz) → base language (en) → default
+# Users can add or modify entries to customize TTS pronunciation.
+
+default: "Speak in a cheerful and positive tone."
+
+en: "Speak in a cheerful and positive tone."
+
+en-tz: |
+  Speak it in a Tanzanian English accent. Use the pronunciation and
+  intonation typical of Tanzania. Maintain a calm, conversational tone.
+  Speak in a cheerful and positive tone.
+
+sw-tz: |
+  Speak it in Tanzanian Swahili (Kiswahili cha Tanzania). Use the
+  pronunciation and intonation typical of mainland Tanzania, not Kenyan Swahili.
+  Speak in a cheerful and positive tone.
+
+pt: |
+  Speak it in a European Portuguese (Portugal) accent. Use the pronunciation
+  and intonation typical of Portugal, not Brazilian Portuguese. Key differences include:
+  - Pronounce 's' at the end of words (e.g., "português" sounds like "portuguesh")
+  - Use the closed vowel sounds characteristic of European Portuguese
+  - Maintain the rhythm and stress patterns of European Portuguese
+  DO NOT CHANGE THE TEXT ITSELF. Pronounce the words as written, but with
+  European Portuguese pronunciation.
+  Speak in a cheerful and positive tone.
+
+pt-br: |
+  Speak it in a Brazilian Portuguese accent. Use the pronunciation and
+  intonation typical of Brazil.
+  Speak in a cheerful and positive tone.
+
+es-uy: |
+  Speak it in an Uruguayan Rioplatense accent. For example, pronounce
+  the 'y' sound in yacaré like 'sh' in 'shoe'. Pronounce the 'll' sound
+  in lluvia like 'sh' in 'shoe'.
+
+  DO NOT CHANGE THE TEXT ITSELF. For example if the text is written as
+  'escribe' then DO NOT SAY 'escribí' say it as 'escribe'.
+  If the text says Relee don't say Releé
+  If the text says Presta don't say Prestá say Presta
+  If the text says Describe say Describe don't say Describí
+
+  The Spanish word "puedes" ("you can") is pronounced approximately as:
+
+      PWEH-des
+
+      In IPA (International Phonetic Alphabet), it is written as:
+
+      [ˈpwe.ðes]
+
+      Phoneme breakdown:
+      pue → [pwe] (similar to English "pweh," with a glide from 'u' to 'e')
+      des → [ðes] (soft 'd', like 'th' in English "this," followed by "ess")
+
+  Speak in a cheerful and positive tone.

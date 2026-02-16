@@ -15,6 +15,7 @@ export interface BookSummary {
   needsRebuild: boolean
   rebuildReason: string | null
   storyboardAccepted: boolean
+  proofCompleted: boolean
 }
 
 export interface BookDetail extends BookSummary {
@@ -31,6 +32,20 @@ function isStoryboardAccepted(db: ReturnType<typeof openBookDb>): boolean {
     ["storyboard-acceptance", "book"]
   ) as Array<{ data: string }>
   return rows.length > 0
+}
+
+function isProofCompleted(db: ReturnType<typeof openBookDb>): boolean {
+  const rows = db.all(
+    "SELECT data FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
+    ["proof-status", "book"]
+  ) as Array<{ data: string }>
+  if (rows.length === 0) return false
+  try {
+    const data = JSON.parse(rows[0].data) as { status?: string }
+    return data.status === "completed"
+  } catch {
+    return false
+  }
 }
 
 export function listBooks(booksDir: string): BookSummary[] {
@@ -57,6 +72,7 @@ export function listBooks(booksDir: string): BookSummary[] {
     let needsRebuild = false
     let rebuildReason: string | null = null
     let storyboardAccepted = false
+    let proofCompleted = false
 
     if (fs.existsSync(dbPath)) {
       try {
@@ -83,6 +99,7 @@ export function listBooks(booksDir: string): BookSummary[] {
           }
 
           storyboardAccepted = isStoryboardAccepted(db)
+          proofCompleted = isProofCompleted(db)
         } finally {
           db.close()
         }
@@ -108,6 +125,7 @@ export function listBooks(booksDir: string): BookSummary[] {
       needsRebuild,
       rebuildReason,
       storyboardAccepted,
+      proofCompleted,
     })
   }
 
@@ -136,6 +154,7 @@ export function getBook(label: string, booksDir: string): BookDetail {
   let needsRebuild = false
   let rebuildReason: string | null = null
   let storyboardAccepted = false
+  let proofCompleted = false
 
   if (fs.existsSync(dbPath)) {
     try {
@@ -163,6 +182,7 @@ export function getBook(label: string, booksDir: string): BookDetail {
         }
 
         storyboardAccepted = isStoryboardAccepted(db)
+        proofCompleted = isProofCompleted(db)
       } finally {
         db.close()
       }
@@ -188,6 +208,7 @@ export function getBook(label: string, booksDir: string): BookDetail {
     needsRebuild,
     rebuildReason,
     storyboardAccepted,
+    proofCompleted,
     metadata,
   }
 }
@@ -227,6 +248,7 @@ export function createBook(
     needsRebuild: false,
     rebuildReason: null,
     storyboardAccepted: false,
+    proofCompleted: false,
   }
 }
 

@@ -8,6 +8,7 @@ export interface ExtractOptions {
   pdfPath: string
   startPage?: number
   endPage?: number
+  spreadMode?: boolean
 }
 
 export async function extractPDF(
@@ -15,7 +16,7 @@ export async function extractPDF(
   storage: Storage,
   progress: Progress
 ): Promise<ExtractResult> {
-  const { pdfPath, startPage, endPage } = options
+  const { pdfPath, startPage, endPage, spreadMode } = options
 
   progress.emit({ type: "step-start", step: "extract" })
 
@@ -23,7 +24,7 @@ export async function extractPDF(
     const pdfBuffer = fs.readFileSync(pdfPath)
 
     const result = await extractPdf(
-      { pdfBuffer, startPage, endPage },
+      { pdfBuffer, startPage, endPage, spreadMode },
       (p) => {
         progress.emit({
           type: "step-progress",

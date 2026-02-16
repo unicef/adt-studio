@@ -29,7 +29,7 @@ function getStepState(
   return "pending"
 }
 
-const PROOF_STEP: StepName = "image-captioning"
+const PROOF_STEPS: StepName[] = ["image-captioning", "glossary", "quiz-generation"]
 
 export function ProofProgress({
   progress,
@@ -55,9 +55,9 @@ export function ProofProgress({
             </CardTitle>
             <CardDescription className="mt-1">
               {!isRunning && !isComplete && !error &&
-                "Generate image captions using LLM analysis."}
+                "Generate image captions, glossary, and comprehension quizzes."}
               {isRunning && "Proof phase is running..."}
-              {isComplete && "Proof phase completed. Check captions in page detail."}
+              {isComplete && "Proof phase completed."}
               {error && !isRunning && `Proof failed: ${error}`}
             </CardDescription>
           </div>
@@ -81,13 +81,16 @@ export function ProofProgress({
       </CardHeader>
       <CardContent>
         {(isRunning || isComplete || error) && (
-          <div className="mb-4">
-            <StepIndicator
-              step={PROOF_STEP}
-              label={STEP_LABELS[PROOF_STEP]}
-              state={getStepState(PROOF_STEP, progress)}
-              progress={progress.stepProgress.get(PROOF_STEP)}
-            />
+          <div className="mb-4 space-y-2">
+            {PROOF_STEPS.map((step) => (
+              <StepIndicator
+                key={step}
+                step={step}
+                label={STEP_LABELS[step]}
+                state={getStepState(step, progress)}
+                progress={progress.stepProgress.get(step)}
+              />
+            ))}
           </div>
         )}
 

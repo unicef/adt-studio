@@ -128,6 +128,7 @@ describe("listBooks", () => {
       needsRebuild: false,
       rebuildReason: null,
       storyboardAccepted: false,
+      proofCompleted: false,
     })
   })
 
@@ -147,6 +148,7 @@ describe("listBooks", () => {
       needsRebuild: false,
       rebuildReason: null,
       storyboardAccepted: false,
+      proofCompleted: false,
     })
   })
 
@@ -168,6 +170,7 @@ describe("listBooks", () => {
       needsRebuild: false,
       rebuildReason: null,
       storyboardAccepted: false,
+      proofCompleted: false,
     })
   })
 

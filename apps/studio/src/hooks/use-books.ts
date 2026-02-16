@@ -71,3 +71,21 @@ export function useExportBook() {
     },
   })
 }
+
+export function usePackageAdt() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (label: string) => api.packageAdt(label),
+    onSuccess: (_data, label) => {
+      queryClient.invalidateQueries({ queryKey: ["package-adt-status", label] })
+    },
+  })
+}
+
+export function usePackageAdtStatus(label: string) {
+  return useQuery({
+    queryKey: ["package-adt-status", label],
+    queryFn: () => api.getPackageAdtStatus(label),
+    enabled: !!label,
+  })
+}

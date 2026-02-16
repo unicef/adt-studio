@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
 import { useCreateBook } from "@/hooks/use-books"
 import { useApiKey } from "@/hooks/use-api-key"
 
@@ -306,6 +307,7 @@ function AddBookPage() {
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [startPage, setStartPage] = useState("")
   const [endPage, setEndPage] = useState("")
+  const [spreadMode, setSpreadMode] = useState(false)
 
   // Step 2 — Layout
   const [layoutType, setLayoutType] = useState<LayoutType>("textbook")
@@ -372,6 +374,9 @@ function AddBookPage() {
     configOverrides.editing_language = editingLanguage
     if (outputLanguages.size > 0) {
       configOverrides.output_languages = Array.from(outputLanguages)
+    }
+    if (spreadMode) {
+      configOverrides.spread_mode = true
     }
 
     createMutation.mutate(
@@ -511,6 +516,21 @@ function AddBookPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Leave empty to process all pages.
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="spread-mode"
+                        checked={spreadMode}
+                        onCheckedChange={setSpreadMode}
+                      />
+                      <Label htmlFor="spread-mode" className="text-xs">
+                        Spread Mode
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Merge facing pages as spreads (cover + page pairs).
                     </p>
                   </div>
                 </div>

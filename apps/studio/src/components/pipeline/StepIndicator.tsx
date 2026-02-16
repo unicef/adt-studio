@@ -31,6 +31,12 @@ const STEP_LABELS: Record<StepName, string> = {
   "page-sectioning": "Section Pages",
   "web-rendering": "Render Pages",
   "image-captioning": "Caption Images",
+  glossary: "Generate Glossary",
+  "quiz-generation": "Generate Quizzes",
+  "text-catalog": "Build Text Catalog",
+  "catalog-translation": "Translate Catalog",
+  tts: "Generate Speech",
+  "package-web": "Package ADT",
 }
 
 export { STEP_ORDER, STEP_LABELS }

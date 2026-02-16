@@ -15,6 +15,23 @@ import {
 } from "../services/book-service.js"
 import { exportBook } from "../services/export-service.js"
 
+const MIME_TYPES: Record<string, string> = {
+  ".html": "text/html; charset=utf-8",
+  ".js": "application/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".mp3": "audio/mpeg",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".ttf": "font/ttf",
+  ".ico": "image/x-icon",
+  ".webp": "image/webp",
+}
+
 export function createBookRoutes(booksDir: string): Hono {
   const app = new Hono()
 
@@ -215,6 +232,66 @@ export function createBookRoutes(booksDir: string): Hono {
     } finally {
       db.close()
     }
+  })
+
+  // GET /books/:label/adt/* — Serve packaged ADT static files
+  // When no file path is given, redirect to the first page.
+  app.get("/books/:label/adt/*", (c) => {
+    const { label } = c.req.param()
+    let safeLabel: string
+    try {
+      safeLabel = parseBookLabel(label)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      throw new HTTPException(400, { message })
+    }
+    const adtDir = path.join(path.resolve(booksDir), safeLabel, "adt")
+    if (!fs.existsSync(adtDir)) {
+      throw new HTTPException(404, {
+        message: `ADT not packaged for book: ${safeLabel}`,
+      })
+    }
+
+    // Extract file path from URL — c.req.param("*") is unreliable in sub-routers
+    const adtPrefix = `/books/${safeLabel}/adt/`
+    const reqPath = c.req.path
+    const prefixIdx = reqPath.indexOf(adtPrefix)
+    const filePath = prefixIdx >= 0 ? reqPath.slice(prefixIdx + adtPrefix.length) : ""
+    if (!filePath) {
+      // Root request — redirect to first page
+      const pagesPath = path.join(adtDir, "content", "pages.json")
+      if (!fs.existsSync(pagesPath)) {
+        throw new HTTPException(404, {
+          message: `ADT not packaged for book: ${safeLabel}`,
+        })
+      }
+      const pages = JSON.parse(fs.readFileSync(pagesPath, "utf-8")) as Array<{ href: string }>
+      if (pages.length === 0) {
+        throw new HTTPException(404, { message: "ADT has no pages" })
+      }
+      return c.redirect(`/api/books/${safeLabel}/adt/${pages[0].href}`)
+    }
+
+    const resolvedPath = path.resolve(adtDir, filePath)
+    if (!resolvedPath.startsWith(adtDir + path.sep)) {
+      throw new HTTPException(400, { message: "Invalid path" })
+    }
+
+    let stat: fs.Stats
+    try {
+      stat = fs.statSync(resolvedPath)
+    } catch {
+      throw new HTTPException(404, { message: `Not found: ${filePath}` })
+    }
+    if (!stat.isFile()) {
+      throw new HTTPException(404, { message: `Not found: ${filePath}` })
+    }
+
+    const fileBuffer = fs.readFileSync(resolvedPath)
+    const ext = path.extname(resolvedPath).toLowerCase()
+    c.header("Content-Type", MIME_TYPES[ext] ?? "application/octet-stream")
+    c.header("Cache-Control", "public, max-age=3600")
+    return c.body(fileBuffer)
   })
 
   return app

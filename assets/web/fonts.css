@@ -1,0 +1,20 @@
+@font-face {
+  font-family: 'Merriweather';
+  src: url('./fonts/Merriweather-VariableFont_opsz,wdth,wght.woff2') format('woff2');
+  font-weight: 300 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Merriweather';
+  src: url('./fonts/Merriweather-Italic-VariableFont_opsz,wdth,wght.woff2') format('woff2');
+  font-weight: 300 800;
+  font-style: italic;
+  font-display: swap;
+}
+
+/* Apply the font globally */
+body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select {
+  font-family: "Merriweather", serif;
+}

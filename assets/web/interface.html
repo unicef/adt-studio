@@ -1,0 +1,462 @@
+<!-- The Content Index menu bar -->
+<div class="fixed bottom-0 left-0 right-0 py-3 z-50">
+    <div class="flex flex-row-reverse items-center px-2 sm:px-5 relative z-50">
+
+        <!-- Container for centered content -->
+        <div class="container mx-auto relative flex items-center justify-center flex-1">
+            <!-- Submit + Reset button -->
+            <div class="absolute right-0 flex flex-row-reverse gap-2 scale-90 sm:scale-100" id="submit-reset-container">
+                <button aria-label="Submit"
+                    class="px-5 py-2 bg-blue-600 text-white rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 hidden"
+                    id="submit-button" type="button" data-id="submit-text" data-aria-id="submit-text">Submit
+                </button>
+                <button aria-label="Reset"
+                    class="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg shadow-md hover:bg-blue-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 hidden"
+                    id="reset-button" type="button" data-aria-id="reset-text"><i class="fa fa-refresh"></i>
+                </button>
+
+            </div>
+
+            <!-- Centered navigation buttons (back, forward, and page number) -->
+            <div class="scale-90 sm:scale-100 absolute left-20 sm:left-1/2 mx-auto transform -translate-x-1/2 flex flex-row-reverse items-center bg-white border border-gray-300 rounded-2xl shadow-md"
+                id="back-forward-buttons">
+                <button id="forward-button" aria-label="Next page" data-aria-id="next-page"
+                    class="text-2xl no-underline text-gray-800 px-4 py-2" type="button"><i
+                        class="fas fa-chevron-right"></i>
+                </button>
+                <span id="page-section-id"
+                    class="align-text-bottom no-underline text-gray-800 px-4 py-2 text-2xl border-r border-gray-300"></span>
+                <button id="back-button" aria-label="Previous page" data-aria-id="previous-page"
+                    class="text-2xl no-underline text-gray-800 px-4 py-2 border-r border-gray-300" type="button"><i
+                        class="fas fa-chevron-left"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Left button (hamburger menu) - outside container -->
+        <button id="nav-popup" aria-controls="navPopup" aria-expanded="false" aria-label="Navigation menu"
+            data-aria-id="nav-label"
+            class="nav__toggle px-4 py-2 bg-white text-gray-800 rounded-lg shadow-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-300 focus:ring-opacity-50 aria-expanded:bg-blue-700 aria-expanded:text-white scale-90 sm:scale-100"
+            type="button">
+            <i aria-hidden="true" class="fas fa-list"></i>
+        </button>
+    </div>
+</div>
+
+<!-- Button to quick toggle TTS -->
+<button id="tts-quick-toggle-button" aria-label="Activate text to speech" aria-expanded="false"
+    data-aria-id="activate-tts-label"
+    class="fixed bottom-20 right-4 w-12 h-12 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 focus:outline-none focus:ring-4 focus:ring-blue-500 shadow-lg transition-all duration-200 z-100">
+    <i class="fa-solid fa-volume-high text-2xl text-gray-600"></i>
+</button>
+
+<!-- New floating play bar -->
+<div id="play-bar"
+    class="z--1 fixed bottom-16 right-20 bg-gray-100 rounded-lg shadow-lg mb-3 py-0 px-2 flex items-center space-x-6 border border-gray-200 hidden">
+    <!-- Settings Panel (hidden by default) -->
+    <div class="opacity-0 h-0 pointer-events-none absolute bottom-full right-0 bg-[#083149] rounded-lg mb-2 w-32"
+        id="read-aloud-settings" role="menu" aria-hidden="true" inert>
+        <ul class="flex flex-col items-stretch p-1">
+            <li class="w-full">
+                <button type="button" role="menuitem"
+                    class="text-white rounded text-sm py-2 px-4 w-full hover:bg-[#1a3952] hover:text-white text-left read-aloud-change-speed speed-0-5">
+                    <span data-id="read-aloud-speed-slow">Slow</span>
+                </button>
+            </li>
+            <li class="w-full">
+                <button type="button" role="menuitem"
+                    class="text-white rounded text-sm py-2 px-4 w-full hover:bg-[#1a3952] hover:text-white text-left read-aloud-change-speed speed-1">
+                    <span data-id="read-aloud-speed-normal">Normal</span>
+                </button>
+            </li>
+            <li class="w-full">
+                <button type="button" role="menuitem"
+                    class="text-white rounded text-sm py-2 px-4 w-full hover:bg-[#1a3952] hover:text-white text-left read-aloud-change-speed speed-1-5">
+                    <span data-id="read-aloud-speed-fast">Fast</span>
+                </button>
+            </li>
+            <li class="w-full">
+                <button type="button" role="menuitem"
+                    class="text-white rounded text-sm py-2 px-4 w-full hover:bg-[#1a3952] hover:text-white text-left read-aloud-change-speed speed-2">
+                    <span data-id="read-aloud-speed-very-fast">Very Fast</span>
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Controls -->
+    <button type="button" id="audio-previous" class="text-gray-700 hover:text-gray-900"
+        aria-label="Go to previous audio" data-aria-id="previous-audio">
+        <i class="fas fa-backward-step text-lg"></i>
+    </button>
+
+    <!-- Play/Pause button with circle -->
+    <button id="play-pause-button"
+        class="bg-white rounded-full p-3 shadow-md w-12 h-12 flex items-center justify-center text-gray-700 hover:text-gray-900"
+        aria-label="Activate text to speech">
+        <i class="fas fa-play text-xl ml-1" id="read-aloud-play-icon" aria-hidden="false"></i>
+        <i class="fas fa-pause text-xl" id="read-aloud-pause-icon" style="display: none;" aria-hidden="true"></i>
+    </button>
+
+    <button type="button" id="audio-next" class="text-gray-700 hover:text-gray-900" aria-label="Go to next audio"
+        data-aria-id="next-audio">
+        <i class="fas fa-forward-step text-lg"></i>
+    </button>
+
+    <button type="button" id="read-aloud-speed"
+        class="text-gray-700 hover:text-gray-900 text-sm font-medium border border-gray-300 rounded px-2"
+        aria-label="Playback speed: Normal" aria-haspopup="menu" aria-expanded="false" 
+        aria-controls="read-aloud-settings" data-aria-id="read-aloud-speed-label">
+        <span data-id="read-aloud-speed-normal" aria-hidden="true">Normal</span>
+    </button>
+</div>
+
+<!-- Button to quick toggle SL Video -->
+<button id="sl-quick-toggle-button" aria-label="Sign language quick toggle button" aria-expanded="false"
+    data-aria-id="sign-language-quick-toggle-label"
+    class="fixed bottom-36 right-4 w-12 h-12 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 focus:outline-none focus:ring-4 focus:ring-blue-500 shadow-lg transition-all duration-200 z-100 hidden">
+    <i class="fas fa-sign-language text-2xl text-gray-600"></i>
+</button>
+
+<!-- Video Container -->
+<div id="sign-language-video"
+    class="fixed bottom-16 right-20 w-80 h-48 bg-black rounded-lg shadow-lg overflow-hidden z--1 hidden">
+</div>
+
+<!-- Button to show AI explain me explanation -->
+<button id="explain-me-button" aria-label="AI Explain Me Explanation" aria-expanded="false" aria-controls="eli5-content"
+    data-aria-id="eli5-aria-label"
+    class="fixed bottom-[272px] right-4 w-12 h-12 flex items-center justify-center rounded-full bg-yellow-100 hover:bg-gray-100 focus:outline-none focus:ring-4 focus:ring-blue-500 shadow-lg transition-all duration-200 z-100 hidden">
+    <i class="fa-solid fa-wand-magic-sparkles text-2xl text-yellow-600"></i>
+</button>
+
+<!-- Pop-up with explain me explanation -->
+<div id="eli5-content"
+    class="fixed bottom-32 right-12 bg-white border border-gray-300 rounded-lg shadow-lg p-4 w-4/5 lg:w-1/2 hidden z-50">
+    <div class="flex justify-between items-center mb-2">
+        <h3 class="text-xl font-bold sr-only" data-id="eli5-label">Explain to me</h3>
+        <h3 class="text-4xl font-bold rounded-full bg-yellow-100 w-16 h-16 flex items-center justify-center">✨</h3>
+        <button id="close-eli5-content" aria-label="Close explanation" class="text-gray-700 text-xl"
+            data-aria-id="eli5-close-label">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+    <div class="text-left mt-4 text-lg" id="eli5-content-text" data-id="eli5-no-content">
+        No explanation available.
+    </div>
+</div>
+
+<!-- Button to show notepad -->
+<button id="notepad-button" aria-label="Open the notepad" aria-expanded="false" aria-controls="notepad-content"
+    data-aria-id="notepad-open-label"
+    class="fixed bottom-52 right-4 w-12 h-12 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-100 focus:outline-none focus:ring-4 focus:ring-blue-500 shadow-lg transition-all duration-200 z-100">
+    <i class="fas fa-pencil-alt text-2xl text-gray-600"></i>
+</button>
+
+<!-- Pop-up with notepad to write in -->
+<div id="notepad-content"
+    class="fixed bottom-32 right-12 bg-white border border-gray-300 rounded-lg shadow-lg p-4 w-4/5 md:w-1/2 lg:w-1/3 hidden z-50">
+    <div class="flex justify-between items-center mb-4">
+        <h3 class="text-xl font-bold"><i class="fas fa-pencil-alt mr-2 text-blue-600"></i><span
+                data-id="notepad-label">Notepad</span></h3>
+        <div class="flex gap-2">
+            <button id="save-notepad" aria-label="Save notes" data-aria-id="notepad-save-button"
+                class="text-gray-700 text-xl bg-blue-100 hover:bg-blue-200 p-2 rounded-lg"></button>
+            <i class="fas fa-save"></i>
+            </button>
+            <button id="close-notepad" aria-label="Close notepad" class="text-gray-700 text-xl"
+                data-aria-id="notepad-close-label">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+    <textarea id="notepad-textarea"
+        class="w-full h-64 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        placeholder="Write your notes here..." data-placeholder-id="notepad-placeholder"></textarea>
+    <div id="notepad-save-status" class="mt-2 text-green-600 opacity-0 transition-opacity duration-500"></div>
+</div>
+
+<!-- Smart Utility Sidebar -->
+<div id="keyboard-shortcuts-announcement" class="sr-only" role="status" aria-live="polite"></div>
+<aside id="sidebar" role="complementary" aria-hidden="true" inert
+    class="z-60 w-96 bg-white shadow-lg border-l border-gray-300 fixed right-0 top-0 rounded-lg min-h-0 flex flex-col"
+    style="opacity:0; visibility:hidden; pointer-events:none; transition: opacity 0.3s ease;">
+    <div id="sidebar-content" class="max-h-[calc(100vh-5rem)] flex-shrink-0">
+        <!-- Fixed Header -->
+        <div class="p-4 relative z-50">
+            <div class="flex justify-center items-center mt-8 mb-2">
+                <h3 class="text-2xl font-bold">
+                    <!-- <i class="fas fa-universal-access mr-2 mt-2"></i> -->
+                    <span data-id="sidebar-title">Accessible AI</span>
+                </h3>
+            </div>
+        </div>
+        <!-- Tab Navigation -->
+        <div class="flex border-b-4 border-gray-300">
+            <button id="assistant-tab"
+                class="flex-1 py-2 text-center focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-opacity-50 text-blue-700 border-b-4 border-blue-700"
+                aria-selected="true" data-id="sidebar-assistant">Assistant</button>
+            <button id="settings-tab"
+                class="flex-1 py-2 text-center focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-opacity-50"
+                aria-selected="false" data-id="sidebar-settings">Settings</button>
+        </div>
+        <!-- Scrollable Content -->
+        <div class="overflow-y-auto p-4 ml-4 relative z-40">
+            <!-- Assistant Content -->
+            <div id="assistant-content" class="tab-content">
+                <div class="flex justify-between items-left">
+                    <button
+                        class="flex items-center cursor-pointer mb-4 md:mb-0 w-full focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-opacity-50 rounded-lg p-0"
+                        id="toggle-easy-read" type="button" aria-checked="false" role="switch"
+                        aria-labelledby="easy-read-label">
+                        <span class="text-xl text-left m-4 ml-0 sidebar-item flex-grow" id="easy-read-label"
+                            data-id="easy-read-label">Easy Read</span>
+                        <div class="relative">
+                            <div class="block w-12 h-7 rounded-full transition-colors duration-200 ease-in-out bg-gray-400"
+                                id="toggle-background"></div>
+                            <div class="dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform duration-200 ease-in-out"
+                                id="toggle-dot"></div>
+                        </div>
+                    </button>
+                </div>
+                <div class="flex justify-between items-left border-t border-gray-300">
+                    <button
+                        class="flex items-center cursor-pointer mb-4 md:mb-0 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 rounded-lg p-0"
+                        id="toggle-read-aloud" type="button" aria-checked="false" role="switch"
+                        aria-labelledby="tts-label">
+                        <span class="text-xl text-left m-4 ml-0 sidebar-item flex-grow" id="tts-label"
+                            data-id="tts-label">Text
+                            to speech</span>
+                        <div class="relative">
+                            <div class="block w-12 h-7 rounded-full transition-colors duration-200 ease-in-out bg-gray-400"
+                                id="toggle-background"></div>
+                            <div class="dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform duration-200 ease-in-out transform"
+                                id="toggle-dot"></div>
+                        </div>
+                    </button>
+                </div>
+
+                <div id="tts-options-container" class=" bg-gray-50 rounded-lg border border-gray-200 hidden"
+                    aria-expanded="false">
+                    <div id="autoplay-container" class="flex justify-between items-left hidden">
+                        <button
+                            class="pr-4 pl-4 flex items-center cursor-pointer mb-4 md:mb-0 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 rounded-lg p-0"
+                            id="toggle-autoplay" type="button" aria-checked="false" role="switch"
+                            aria-labelledby="autoplay-label">
+                            <span class="text-xl text-left m-4 ml-0 sidebar-item flex-grow" id="autoplay-label"
+                                data-id="autoplay-label">Autoplay</span>
+                            <div class="relative">
+                                <div class="block w-12 h-7 rounded-full transition-colors duration-200 ease-in-out bg-gray-400"
+                                    id="toggle-background"></div>
+                                <div class="dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform duration-200 ease-in-out transform"
+                                    id="toggle-dot"></div>
+                            </div>
+                        </button>
+                    </div>
+
+                    <div id="describe-images-container"
+                        class="flex justify-between items-left border-t border-gray-300 hidden">
+                        <button
+                            class="pr-4 pl-4 flex items-center cursor-pointer mb-4 md:mb-0 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 rounded-lg p-0"
+                            id="toggle-describe-images" type="button" aria-checked="false" role="switch"
+                            aria-labelledby="describe-images-label">
+                            <span class="text-xl text-left m-4 ml-0 sidebar-item flex-grow" id="describe-images-label"
+                                data-id="describe-images-label">Describe images</span>
+                            <div class="relative">
+                                <div class="block w-12 h-7 rounded-full transition-colors duration-200 ease-in-out bg-gray-400"
+                                    id="toggle-background"></div>
+                                <div class="dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform duration-200 ease-in-out transform"
+                                    id="toggle-dot"></div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+                <!--
+                <button id="play-button-shortcut" class="sr-only">Saltar al botón de reproducción</button>
+                -->
+                <div class="flex justify-between items-left border-t border-gray-300">
+                    <button
+                        class="flex items-center cursor-pointer mb-4 md:mb-0 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 rounded-lg p-0"
+                        id="toggle-sign-language" type="button" aria-checked="false" role="switch"
+                        aria-labelledby="sign-language-label">
+                        <span class="text-xl text-left m-4 ml-0 sidebar-item flex-grow" id="tts-label"
+                            data-id="sign-language-label">Sign language</span>
+                        <div class="relative">
+                            <div class="block w-12 h-7 rounded-full transition-colors duration-200 ease-in-out bg-gray-400"
+                                id="toggle-background"></div>
+                            <div class="dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform duration-200 ease-in-out transform"
+                                id="toggle-dot"></div>
+                        </div>
+                    </button>
+                </div>
+                <div id="eli5-container" class="flex justify-between items-left border-t border-gray-300 hidden">
+                    <button
+                        class="flex items-center cursor-pointer mb-4 md:mb-0 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-opacity-50 rounded-lg p-0"
+                        id="toggle-eli5" type="button" role="switch" aria-checked="false" aria-labelledby="eli5-label"
+                        aria-description="Use the down arrow key to access the Explain Me content.">
+                        <span class="text-xl text-left m-4 ml-0 sidebar-item flex-grow" id="eli5-label"
+                            data-id="eli5-label">Explícamelo</span>
+                        <div class="relative">
+                            <div class="block w-12 h-7 rounded-full transition-colors duration-200 ease-in-out bg-gray-400"
+                                id="toggle-background"></div>
+                            <div class="dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform duration-200 ease-in-out transform"
+                                id="toggle-dot"></div>
+                        </div>
+                    </button>
+                </div>
+                <div class="flex justify-between items-left border-t border-gray-300 hidden">
+                    <button
+                        class="flex items-center cursor-pointer mb-4 md:mb-0 w-full focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-opacity-50 rounded-lg p-0"
+                        id="glossary-button" type="button" aria-labelledby="glossary-label">
+                        <span class="text-xl text-left m-4 ml-0 sidebar-item flex-grow" id="glossary-label"
+                            data-id="glossary-label">Glossary</span>
+                        <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="20" height="20"
+                            viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                            stroke-linecap="round" stroke-linejoin="round" class="text-gray-600 ml-1">
+                            <path d="M9 18l6-6-6-6" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <!-- Settings Content -->
+            <div id="settings-content" class="tab-content hidden">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <h3 class="text-xl text-left m-4 ml-0 sidebar-item" id="language-label"
+                            data-id="language-label">
+                            Language</h3>
+                    </div>
+                    <select data-id="language-dropdown" id="language-dropdown"
+                        class="ml-4 p-2 border border-gray-300 rounded-md bg-white text-gray-700"></select>
+                    <div id="language-change-announcement" aria-live="polite" class="sr-only"></div>
+                </div>
+                <div class="flex justify-between items-left">
+                    <button
+                        class="flex items-center cursor-pointer mb-4 md:mb-0 w-full focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-opacity-50 rounded-lg p-0"
+                        id="toggle-state" type="button" aria-checked="true" role="switch" aria-labelledby="state-label">
+                        <span class="text-xl text-left m-4 ml-0 sidebar-item flex-grow" id="state-label"
+                            data-id="state-label">Hide Menus</span>
+                        <div class="relative">
+                            <div class="block w-12 h-7 rounded-full transition-colors duration-200 ease-in-out bg-gray-400"
+                                id="toggle-background"></div>
+                            <div class="dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform duration-200 ease-in-out transform"
+                                id="toggle-dot"></div>
+                        </div>
+                    </button>
+                </div>
+
+                <div id="character-profile-row" class="flex justify-between items-center text-right hidden">
+                    <div>
+                        <h3 class="text-xl text-left m-4 ml-0 sidebar-item" id="username-label"
+                            data-id="username-label">Username</h3>
+                    </div>
+                    <div id="character-profile" class="flex items-center gap-3 mb-0">
+                        <div class="flex flex-col items-end">
+                            <p id="settings-character-name" class="font-bold text-xl text-green-700"></p>
+                            <p class="text-xs text-gray-500">ID: <span id="student-id" class="font-mono"></span></p>
+                        </div>
+                        <span id="settings-character-emoji" class="text-4xl text-right" role="img"
+                            aria-label="Profile emoji" data-aria-id="character-profile-emoji"></span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    <!-- Glossary block -->
+    <div id="glossary-content" class="hidden h-[calc(100vh-5rem)] flex flex-col">
+        <!-- Fixed Header - Matched with sidebar header -->
+        <div class="p-4 relative z-50">
+            <div class="flex justify-center items-center mt-8 mb-2">
+                <button id="back-to-sidebar"
+                    class="absolute left-0 top-0 p-4 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-opacity-50 rounded-lg">
+                    <i class="fas fa-chevron-left text-xl"></i>
+                </button>
+                <h3 class="text-2xl font-bold">
+                    <span data-id="glossary-label">Glossary</span>
+                </h3>
+            </div>
+        </div>
+
+        <!-- Tab Navigation - Now matches the sidebar tabs -->
+        <div class="flex border-b-4 border-gray-300">
+            <button id="page-tab"
+                class="flex-1 py-2 text-center focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-opacity-50 text-blue-700 border-b-4 border-blue-700"
+                aria-selected="true" data-id="glossary-page"><span data-id="glossary-page-label">On this
+                    page</span></button>
+            <button id="book-tab"
+                class="flex-1 py-2 text-center focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-opacity-50"
+                aria-selected="false" data-id="glossary-chapter"><span data-id="glossary-book-label">Book
+                    glossary</span></button>
+        </div>
+
+        <!-- Toggle for highlighting words - now matches spacing pattern -->
+        <div class="flex justify-between items-left border-b border-gray-300">
+            <button
+                class="flex items-center cursor-pointer m-4 md:mb-0 w-full focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-opacity-50 rounded-lg p-0"
+                id="toggle-glossary" type="button" aria-checked="false" role="switch" aria-labelledby="glossary-label">
+                <span class="text-xl text-left m-4 sidebar-item flex-grow" id="glossary-label"
+                    data-id="glossary-highlight-words">Highlight words</span>
+                <div class="relative">
+                    <div class="block w-12 h-7 rounded-full transition-colors duration-200 ease-in-out bg-gray-400"
+                        id="toggle-background"></div>
+                    <div class="dot absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform duration-200 ease-in-out"
+                        id="toggle-dot"></div>
+                </div>
+            </button>
+        </div>
+        <!-- Scrollable content area for Glossary -->
+        <div class="overflow-y-auto relative z-40 h-full">
+            <!-- On this page Content -->
+            <div id="page-content" class="tab-content">
+                <div class="p-4" id="glossary-terms-page"></div>
+            </div>
+            <!-- On this chapter Content -->
+            <div id="book-content" class="tab-content hidden h-full flex flex-col">
+                <!-- Filter input -->
+                <div class="p-4 flex-shrink-0">
+                    <input type="text" id="filter-input"
+                        class="w-full p-2 border border-gray-300 rounded-md pr-10 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-opacity-50"
+                        data-placeholder-id="filter-terms" placeholder="Filter terms..." autocomplete="off"
+                        name="filter-input">
+                </div>
+                <!-- Scrollable glossary terms -->
+                <div class="p-4 overflow-y-auto flex-grow" id="glossary-terms-book"></div>
+            </div>
+        </div>
+
+    </div>
+    <!-- Glossary term details container -->
+    <div id="glossary-term-details" class="hidden max-h-[calc(100vh-5rem)] flex-shrink-0">
+        <div class="p-4 relative z-50">
+            <button id="close-glossary-term-details"
+                class="absolute top-0 left-0 p-4 rounded-lg text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-opacity-50">
+                <i class="fas fa-chevron-left text-xl"></i>
+            </button>
+            <!-- Make the content area focusable and navigable -->
+            <div id="glossary-term-content"
+                class="mt-12 p-4 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 rounded-lg"
+                tabindex="0" role="region" aria-label="Glossary term details" data-aria-id="glossary-term-details">
+            </div>
+        </div>
+    </div>
+    </div>
+</aside>
+
+<!-- Pop-up toast -->
+<div id="toast"
+    class="fixed top-10 left-1/2 transform -translate-x-1/2 px-8 py-4 min-h-[60px] rounded-lg shadow-lg hidden z-50 bg-white border border-gray-100 flex items-center gap-3"
+    role="alert" aria-live="assertive">
+    <p class="text-gray-800 font-medium" data-id="success-try-next-activity">Great job! Try the next activity!</p>
+</div>
+
+<span id="sidebar-label" class="sr-only" data-id="sidebar-title">Accesibility menu</span>
+
+<!-- Floating AI sidebar toggle button -->
+<button id="open-sidebar" aria-label="Accesibility menu" aria-expanded="false" aria-controls="sidebar"
+    aria-labelledby="sidebar-label" data-aria-id="sidebar-title"
+    class="fixed top-2 right-4 w-12 h-12 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 focus:outline-none focus:ring-4 focus:ring-blue-500 shadow-lg transition-all duration-200 z-50">
+    <i class="fa fa-universal-access text-4xl text-gray-800"></i>
+</button>
+
+</body>

@@ -28,6 +28,36 @@ export function decodePng(pngBuffer: Buffer): {
   return { data: png.data as Buffer, width: png.width, height: png.height };
 }
 
+/**
+ * Stitch two PNG images side by side (left | right).
+ * Height is the max of both; shorter image is top-aligned with transparent padding.
+ */
+export function stitchPngsHorizontally(left: Buffer, right: Buffer): Buffer {
+  const l = decodePng(left);
+  const r = decodePng(right);
+  const width = l.width + r.width;
+  const height = Math.max(l.height, r.height);
+  const data = Buffer.alloc(width * height * 4); // RGBA, zero-filled (transparent)
+
+  // Copy left image
+  for (let y = 0; y < l.height; y++) {
+    const srcOffset = y * l.width * 4;
+    const dstOffset = y * width * 4;
+    l.data.copy(data, dstOffset, srcOffset, srcOffset + l.width * 4);
+  }
+
+  // Copy right image
+  for (let y = 0; y < r.height; y++) {
+    const srcOffset = y * r.width * 4;
+    const dstOffset = y * width * 4 + l.width * 4;
+    r.data.copy(data, dstOffset, srcOffset, srcOffset + r.width * 4);
+  }
+
+  const png = new PNG({ width, height });
+  png.data = data;
+  return PNG.sync.write(png);
+}
+
 export function cropPng(
   pngBuffer: Buffer,
   region: { left: number; top: number; width: number; height: number }

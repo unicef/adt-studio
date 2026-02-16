@@ -21,9 +21,9 @@ interface AcceptStoryboardDialogProps {
 }
 
 const NEXT_STEPS = [
-  { icon: BookOpen, label: "Glossary Generation", description: "Extract and define key terms", ready: false },
+  { icon: BookOpen, label: "Glossary Generation", description: "Extract and define key terms", ready: true },
+  { icon: HelpCircle, label: "Quiz Generation", description: "Comprehension questions per section", ready: true },
   { icon: Languages, label: "Easy Read Version", description: "Simplified language variant", ready: false },
-  { icon: HelpCircle, label: "Quiz Generation", description: "Comprehension questions per section", ready: false },
   { icon: FileDown, label: "Export Bundle", description: "Package for print and digital distribution", ready: true },
 ]
 

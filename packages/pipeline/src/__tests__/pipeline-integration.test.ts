@@ -12,7 +12,7 @@
  * When the cache exists, the test runs with no API calls.
  * When the cache is missing and no API key is set, the test fails with instructions.
  */
-import { describe, it, expect, afterEach } from "vitest"
+import { describe, it, expect, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -22,15 +22,33 @@ import {
   ImageClassificationOutput,
   PageSectioningOutput,
   WebRenderingOutput,
+  GlossaryOutput,
+  QuizGenerationOutput,
+  TextCatalogOutput,
+  TTSOutput,
 } from "@adt/types"
-import { resolveBookPaths, openBookDb } from "@adt/storage"
+import { resolveBookPaths, openBookDb, createBookStorage } from "@adt/storage"
 import { runPipeline } from "../pipeline.js"
+import { runProof } from "../proof.js"
+import { runMaster } from "../master.js"
+
+// Mock TTS synthesizer to avoid real OpenAI speech calls and large cached mp3 files
+vi.mock("@adt/llm", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@adt/llm")>()
+  return {
+    ...actual,
+    createTTSSynthesizer: () => ({
+      synthesize: async () => new Uint8Array(Buffer.from("fake-audio")),
+    }),
+  }
+})
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../../..")
 const RAVEN_PDF = path.join(REPO_ROOT, "assets/raven.pdf")
 const CONFIG_PATH = path.join(REPO_ROOT, "config.yaml")
 const PROMPTS_DIR = path.join(REPO_ROOT, "prompts")
 const TEMPLATES_DIR = path.join(REPO_ROOT, "templates")
+const CONFIG_DIR = path.join(REPO_ROOT, "config")
 const FIXTURE_CACHE_DIR = path.resolve(
   import.meta.dirname,
   "fixtures/raven-cache"
@@ -161,6 +179,111 @@ describe("pipeline integration (raven.pdf, pages 1-3)", () => {
         }
       } finally {
         db.close()
+      }
+
+      // --- Proof Stage ---
+      // Accept storyboard (required before proof can run)
+      const storage = createBookStorage(label, booksRoot)
+      try {
+        storage.putNodeData("storyboard-acceptance", "book", {
+          acceptedAt: new Date().toISOString(),
+          renderedPageCount: 3,
+        })
+      } finally {
+        storage.close()
+      }
+
+      await runProof({
+        label,
+        booksRoot,
+        promptsDir: PROMPTS_DIR,
+        configPath: CONFIG_PATH,
+        cacheDir: FIXTURE_CACHE_DIR,
+      })
+
+      // Re-open DB for proof assertions
+      const db2 = openBookDb(paths.dbPath)
+      try {
+        // --- Image captioning ---
+        for (const pageId of ["pg001", "pg002", "pg003"]) {
+          const captionRows = db2.all(
+            "SELECT data FROM node_data WHERE node = 'image-captioning' AND item_id = ? ORDER BY version DESC LIMIT 1",
+            [pageId]
+          ) as Array<{ data: string }>
+          expect(captionRows).toHaveLength(1)
+          const captions = JSON.parse(captionRows[0].data)
+          expect(captions).toHaveProperty("captions")
+        }
+
+        // --- Glossary ---
+        const glossaryRows = db2.all(
+          "SELECT data FROM node_data WHERE node = 'glossary' AND item_id = 'book' ORDER BY version DESC LIMIT 1"
+        ) as Array<{ data: string }>
+        expect(glossaryRows).toHaveLength(1)
+        const glossary = GlossaryOutput.parse(JSON.parse(glossaryRows[0].data))
+        expect(glossary.items.length).toBeGreaterThan(0)
+
+        // --- Quiz generation ---
+        const quizRows = db2.all(
+          "SELECT data FROM node_data WHERE node = 'quiz-generation' AND item_id = 'book' ORDER BY version DESC LIMIT 1"
+        ) as Array<{ data: string }>
+        expect(quizRows).toHaveLength(1)
+        const quizOutput = QuizGenerationOutput.parse(
+          JSON.parse(quizRows[0].data)
+        )
+        expect(quizOutput.quizzes.length).toBeGreaterThan(0)
+      } finally {
+        db2.close()
+      }
+
+      // --- Master Stage ---
+      await runMaster({
+        label,
+        booksRoot,
+        promptsDir: PROMPTS_DIR,
+        configPath: CONFIG_PATH,
+        configDir: CONFIG_DIR,
+        cacheDir: FIXTURE_CACHE_DIR,
+        logLevel: "silent",
+      })
+
+      // Re-open DB for master assertions
+      const db3 = openBookDb(paths.dbPath)
+      try {
+        // --- Text catalog ---
+        const catalogRows = db3.all(
+          "SELECT data FROM node_data WHERE node = 'text-catalog' AND item_id = 'book' ORDER BY version DESC LIMIT 1"
+        ) as Array<{ data: string }>
+        expect(catalogRows).toHaveLength(1)
+        const catalog = TextCatalogOutput.parse(
+          JSON.parse(catalogRows[0].data)
+        )
+        expect(catalog.entries.length).toBeGreaterThan(0)
+
+        // --- TTS ---
+        const ttsRows = db3.all(
+          "SELECT item_id, data FROM node_data WHERE node = 'tts' ORDER BY version DESC"
+        ) as Array<{ item_id: string; data: string }>
+        expect(ttsRows.length).toBeGreaterThanOrEqual(1)
+
+        for (const row of ttsRows) {
+          const ttsOutput = TTSOutput.parse(JSON.parse(row.data))
+          expect(ttsOutput.entries.length).toBeGreaterThan(0)
+
+          // Verify audio files exist on disk
+          const bookDir = path.join(booksRoot, label)
+          for (const entry of ttsOutput.entries) {
+            const audioPath = path.join(
+              bookDir,
+              "audio",
+              entry.language,
+              entry.fileName
+            )
+            expect(fs.existsSync(audioPath)).toBe(true)
+          }
+        }
+      } finally {
+        db3.close()
       }
     }
   )
