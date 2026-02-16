@@ -12,9 +12,10 @@ interface TextGroupListProps {
   draftGroups: TextClassification | null
   serverGroups: TextClassification | null
   onUpdate: (updater: (prev: TextClassification) => TextClassification) => void
+  audioMap?: Map<string, string>
 }
 
-export function TextGroupList({ groups, draftGroups, serverGroups, onUpdate }: TextGroupListProps) {
+export function TextGroupList({ groups, draftGroups, serverGroups, onUpdate, audioMap }: TextGroupListProps) {
   const [editingIds, setEditingIds] = useState<Set<string>>(new Set())
 
   const startEdit = useCallback((groupId: string) => {
@@ -96,6 +97,7 @@ export function TextGroupList({ groups, draftGroups, serverGroups, onUpdate }: T
           onStopEdit={() => stopEdit(group.groupId)}
           onUpdate={(updated) => updateGroup(group.groupId, updated)}
           onRemove={() => removeGroup(group.groupId)}
+          audioMap={audioMap}
         />
       ))}
       <Button
