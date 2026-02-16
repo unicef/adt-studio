@@ -11,7 +11,7 @@ import mupdf, {
   type PDFPage,
   type PDFObject,
 } from "mupdf";
-import { cropPng, decodePng } from "./png-utils.js";
+import { cropPng, decodePng, stitchPngsHorizontally } from "./png-utils.js";
 import { renderSvgToPng } from "./svg-render.js";
 
 // ============================================================================
@@ -24,6 +24,8 @@ export interface ExtractInput {
   /** Page range to extract (1-indexed, inclusive) */
   startPage?: number;
   endPage?: number;
+  /** When true, merge pairs of pages as spreads (page 1 = cover, 2+3, 4+5, etc.) */
+  spreadMode?: boolean;
 }
 
 export interface ExtractedPage {
@@ -85,7 +87,7 @@ export async function extractPdf(
   input: ExtractInput,
   onProgress?: (progress: ExtractProgress) => void
 ): Promise<ExtractResult> {
-  const { pdfBuffer, startPage = 1, endPage } = input;
+  const { pdfBuffer, startPage = 1, endPage, spreadMode = false } = input;
   validatePageRange(startPage, endPage);
 
   // Open PDF (suppressing mupdf stderr spam)
@@ -98,22 +100,35 @@ export async function extractPdf(
   const totalPagesInPdf = doc.countPages();
   const start = startPage - 1; // Convert to 0-indexed
   const end = Math.min(endPage ?? totalPagesInPdf, totalPagesInPdf);
-  const rangeSize = end - start;
 
   const pages: ExtractedPage[] = [];
 
-  for (let i = start; i < end; i++) {
-    const page = await extractPage(doc, i);
-    pages.push(page);
+  if (spreadMode) {
+    // Build logical page groups: page 1 = cover (standalone),
+    // then pairs 2+3, 4+5, etc. Only pair pages that are both in range.
+    const logicalGroups = computeSpreadGroups(start, end);
+    const totalLogical = logicalGroups.length;
 
-    onProgress?.({
-      page: i - start + 1,
-      totalPages: rangeSize,
-    });
+    for (let g = 0; g < totalLogical; g++) {
+      const group = logicalGroups[g];
+      const page =
+        group.length === 2
+          ? await extractSpreadPage(doc, group[0], group[1])
+          : await extractPage(doc, group[0]);
+      pages.push(page);
 
-    // Yield to event loop so progress streams can flush to clients.
-    // (resvg-wasm renders synchronously, unlike sharp which used a worker thread)
-    await new Promise((resolve) => setTimeout(resolve, 0));
+      onProgress?.({ page: g + 1, totalPages: totalLogical });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
+  } else {
+    const rangeSize = end - start;
+    for (let i = start; i < end; i++) {
+      const page = await extractPage(doc, i);
+      pages.push(page);
+
+      onProgress?.({ page: i - start + 1, totalPages: rangeSize });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
   }
 
   return {
@@ -121,6 +136,37 @@ export async function extractPdf(
     pdfMetadata,
     totalPagesInPdf,
   };
+}
+
+/**
+ * Compute spread page groups from a 0-indexed page range.
+ * The first selected page is always standalone, then subsequent pages pair
+ * sequentially: start, (start+1,start+2), (start+3,start+4), etc.
+ * Returns arrays of 0-indexed page indices (1 or 2 elements each).
+ */
+function computeSpreadGroups(start: number, end: number): number[][] {
+  const groups: number[][] = [];
+
+  let i = start;
+  let first = true;
+  while (i < end) {
+    if (first) {
+      groups.push([i]);
+      i++;
+      first = false;
+      continue;
+    }
+
+    if (i + 1 < end) {
+      groups.push([i, i + 1]);
+      i += 2;
+    } else {
+      groups.push([i]);
+      i++;
+    }
+  }
+
+  return groups;
 }
 
 function validatePageRange(startPage: number, endPage?: number): void {
@@ -294,6 +340,77 @@ async function extractPage(doc: MupdfDocument, pageIndex: number): Promise<Extra
   };
 }
 
+/**
+ * Extract a spread (two adjacent pages merged side by side).
+ * PageId is the concatenation of both physical page numbers, e.g. "pg002003".
+ */
+async function extractSpreadPage(
+  doc: MupdfDocument,
+  leftIndex: number,
+  rightIndex: number
+): Promise<ExtractedPage> {
+  const leftNum = leftIndex + 1;
+  const rightNum = rightIndex + 1;
+  const pageId =
+    "pg" +
+    String(leftNum).padStart(3, "0") +
+    String(rightNum).padStart(3, "0");
+
+  const leftPage = doc.loadPage(leftIndex);
+  const rightPage = doc.loadPage(rightIndex);
+
+  // Render both pages and stitch side by side
+  const matrix = mupdf.Matrix.scale(2, 2);
+  const leftPng = Buffer.from(
+    leftPage.toPixmap(matrix, mupdf.ColorSpace.DeviceRGB, false).asPNG()
+  );
+  const rightPng = Buffer.from(
+    rightPage.toPixmap(matrix, mupdf.ColorSpace.DeviceRGB, false).asPNG()
+  );
+  const pagePngBuf = stitchPngsHorizontally(leftPng, rightPng);
+
+  const pageImage: ExtractedImage = {
+    imageId: `${pageId}_page`,
+    pageId,
+    buffer: pagePngBuf,
+    format: "png",
+    width: pagePngBuf.readUInt32BE(16),
+    height: pagePngBuf.readUInt32BE(20),
+    hash: hashBuffer(pagePngBuf),
+  };
+
+  // Concatenate text from both pages
+  const leftText = leftPage.toStructuredText().asText();
+  const rightText = rightPage.toStructuredText().asText();
+  const text = leftText + "\n" + rightText;
+
+  // Extract raster images from both pages
+  const pdfDoc = doc as unknown as PDFDocument;
+  const leftPdfPage = leftPage as unknown as PDFPage;
+  const rightPdfPage = rightPage as unknown as PDFPage;
+  const leftRaster = extractRasterImagesFromPdf(pdfDoc, leftPdfPage, pageId);
+  const rightRaster = extractRasterImagesFromPdf(pdfDoc, rightPdfPage, pageId, leftRaster.length);
+
+  // Extract vector images from both pages
+  const leftSvg = getPageSvg(leftPage);
+  const rightSvg = getPageSvg(rightPage);
+  const rasterCount = leftRaster.length + rightRaster.length;
+  const leftVector = await extractVectorImagesFromSvg(leftSvg, pageId, rasterCount);
+  const rightVector = await extractVectorImagesFromSvg(
+    rightSvg,
+    pageId,
+    rasterCount + leftVector.length
+  );
+
+  return {
+    pageId,
+    pageNumber: leftNum,
+    text,
+    pageImage,
+    images: [...leftRaster, ...rightRaster, ...leftVector, ...rightVector],
+  };
+}
+
 interface PageSvgData {
   svgContent: string;
   contentWithoutDefs: string;
@@ -310,11 +427,12 @@ interface PageSvgData {
 function extractRasterImagesFromPdf(
   doc: PDFDocument,
   page: PDFPage,
-  pageId: string
+  pageId: string,
+  startIndex: number = 0
 ): ExtractedImage[] {
   const images: ExtractedImage[] = [];
   const seen = new Set<number>(); // Track object numbers to avoid duplicates
-  let imgIndex = 0;
+  let imgIndex = startIndex;
 
   function extractFromXObjectDict(xobject: PDFObject): void {
     // Collect and sort XObject keys for deterministic ordering

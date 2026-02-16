@@ -1,0 +1,79 @@
+{% assign img_count = 0 %}
+{% assign text_count = 0 %}
+{% assign total_text_length = 0 %}
+{% for part in parts %}
+    {% if part.type == "image" %}
+        {% assign img_count = img_count | plus: 1 %}
+    {% else %}
+        {% assign text_count = text_count | plus: 1 %}
+        {% for text in part.texts %}
+            {% assign total_text_length = total_text_length | plus: text.text.size %}
+        {% endfor %}
+    {% endif %}
+{% endfor %}
+
+{% if total_text_length > 500 %}
+    {% assign body_text_class = "text-2xl md:text-[28px] leading-relaxed tracking-tight" %}
+{% else %}
+    {% assign body_text_class = "text-[32px] md:text-[36px] leading-relaxed tracking-tight" %}
+{% endif %}
+
+<div id="content" class="container content mx-auto flex min-h-screen w-full items-center justify-center px-6 py-12" style="background-color: #FFFAF5;">
+    <section id="simple-main" role="article" data-section-type="{{ section_type | escape }}" style="color: {{ text_color | escape }};" class="w-full">
+        <div class="mx-auto flex w-full max-w-6xl flex-col items-center gap-12 rounded-[32px] px-6 py-10 lg:flex-row lg:items-stretch lg:px-10 lg:py-16">
+            {% if img_count > 0 %}
+                <div class="flex w-full max-w-xl flex-shrink-0 items-center justify-center">
+                    {% if img_count == 1 %}
+                        {% for part in parts %}
+                            {% if part.type == "image" %}
+                                <img data-id="{{ part.image_id | escape }}" src="{{ part.image_url | escape }}" class="h-auto w-full rounded-[28px] object-contain shadow-lg">
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        {% if img_count > 1 %}
+                            {% assign grid_cols = "sm:grid-cols-2" %}
+                        {% else %}
+                            {% assign grid_cols = "sm:grid-cols-1" %}
+                        {% endif %}
+                        <div class="grid w-full gap-6 {{ grid_cols }}">
+                            {% for part in parts %}
+                                {% if part.type == "image" %}
+                                    <img data-id="{{ part.image_id | escape }}" src="{{ part.image_url | escape }}" class="h-auto w-full rounded-[24px] object-cover shadow-md" style="max-height: 26rem;">
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            {% if text_count > 0 %}
+                <div class="flex w-full flex-col justify-center">
+                    <div class="space-y-8 text-center lg:text-left">
+                        {% for part in parts %}
+                            {% if part.type == "group" %}
+                                {% if part.group_type == "stanza" or part.group_type == "list" or part.group_type == "heading" %}
+                                    {% assign line_style = "block" %}
+                                {% else %}
+                                    {% assign line_style = "inline" %}
+                                {% endif %}
+                                <div class="space-y-4">
+                                    {% for text in part.texts %}
+                                        {% if text.text_type == "book_title" or text.text_type == "chapter_title" %}
+                                            <h1 class="font-bold text-4xl md:text-[44px]" data-id="{{ text.text_id | escape }}">{{ text.text | escape }}</h1>
+                                        {% elsif text.text_type == "section_heading" %}
+                                            <h2 class="font-bold text-3xl" data-id="{{ text.text_id | escape }}">{{ text.text | escape }}</h2>
+                                        {% elsif text.text_type == "book_subtitle" %}
+                                            <h3 class="font-semibold text-2xl" data-id="{{ text.text_id | escape }}">{{ text.text | escape }}</h3>
+                                        {% else %}
+                                            <span class="{{ body_text_class }} {{ line_style }} font-medium" data-id="{{ text.text_id | escape }}">{{ text.text | escape }}</span>
+                                        {% endif %}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </section>
+</div>

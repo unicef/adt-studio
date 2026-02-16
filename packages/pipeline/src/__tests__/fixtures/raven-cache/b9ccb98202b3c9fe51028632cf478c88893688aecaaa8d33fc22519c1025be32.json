@@ -1,0 +1,23 @@
+{
+  "reasoning": "The page contains one narrative sentence split across multiple lines on the right side, plus a page number at the bottom center.",
+  "groups": [
+    {
+      "group_type": "paragraph",
+      "texts": [
+        {
+          "text_type": "section_text",
+          "text": "One day Hyena said to his friend, \"I would love to fly into the sky with you.\""
+        }
+      ]
+    },
+    {
+      "group_type": "other",
+      "texts": [
+        {
+          "text_type": "page_number",
+          "text": "2"
+        }
+      ]
+    }
+  ]
+}

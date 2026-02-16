@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo, useRef, useEffect } from "react"
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router"
 import {
   Upload,
@@ -6,6 +6,7 @@ import {
   ChevronDown,
   Check,
   Search,
+  X,
   GraduationCap,
   BookHeart,
   Library,
@@ -13,7 +14,9 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
+import { Switch } from "@/components/ui/switch"
 import { useCreateBook } from "@/hooks/use-books"
 import { useApiKey } from "@/hooks/use-api-key"
 
@@ -25,26 +28,28 @@ const LAYOUT_TYPES = ["textbook", "storybook", "reference"] as const
 type LayoutType = (typeof LAYOUT_TYPES)[number]
 
 const SUPPORTED_LANGUAGES = [
+  { code: "ar", name: "Arabic" },
+  { code: "bn", name: "Bengali" },
+  { code: "zh", name: "Chinese" },
+  { code: "nl", name: "Dutch" },
   { code: "en", name: "English" },
   { code: "fr", name: "French" },
-  { code: "es", name: "Spanish" },
-  { code: "pt", name: "Portuguese" },
-  { code: "ar", name: "Arabic" },
-  { code: "zh", name: "Chinese" },
-  { code: "hi", name: "Hindi" },
-  { code: "bn", name: "Bengali" },
-  { code: "ru", name: "Russian" },
-  { code: "ja", name: "Japanese" },
   { code: "de", name: "German" },
-  { code: "ko", name: "Korean" },
+  { code: "hi", name: "Hindi" },
+  { code: "id", name: "Indonesian" },
   { code: "it", name: "Italian" },
+  { code: "ja", name: "Japanese" },
+  { code: "ko", name: "Korean" },
+  { code: "pl", name: "Polish" },
+  { code: "pt", name: "Portuguese" },
+  { code: "ru", name: "Russian" },
+  { code: "si", name: "Sinhala" },
+  { code: "es", name: "Spanish" },
+  { code: "sw", name: "Swahili" },
+  { code: "ta", name: "Tamil" },
+  { code: "th", name: "Thai" },
   { code: "tr", name: "Turkish" },
   { code: "vi", name: "Vietnamese" },
-  { code: "th", name: "Thai" },
-  { code: "nl", name: "Dutch" },
-  { code: "pl", name: "Polish" },
-  { code: "sw", name: "Swahili" },
-  { code: "id", name: "Indonesian" },
 ] as const
 
 const STEPS = [
@@ -130,6 +135,10 @@ function Stepper({ currentStep }: { currentStep: number }) {
   )
 }
 
+const LANG_MAP = new Map<string, string>(
+  SUPPORTED_LANGUAGES.map((l) => [l.code, l.name])
+)
+
 function LanguagePicker({
   selected,
   onSelect,
@@ -144,6 +153,9 @@ function LanguagePicker({
   hint?: string
 }) {
   const [search, setSearch] = useState("")
+  const [open, setOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
   const filtered = useMemo(() => {
     if (!search) return SUPPORTED_LANGUAGES
@@ -157,6 +169,40 @@ function LanguagePicker({
   const isSelected = (code: string) =>
     typeof selected === "string" ? selected === code : selected.has(code)
 
+  const selectedSet =
+    typeof selected === "string" ? null : selected
+
+  const displayValue =
+    typeof selected === "string"
+      ? LANG_MAP.get(selected) ?? selected
+      : null
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
+      ) {
+        setOpen(false)
+        setSearch("")
+      }
+    }
+    document.addEventListener("mousedown", handler)
+    return () => document.removeEventListener("mousedown", handler)
+  }, [])
+
+  const handleSelect = (code: string) => {
+    onSelect(code)
+    if (!multiple) {
+      setOpen(false)
+      setSearch("")
+    } else {
+      // Keep focus on input for continued selection
+      inputRef.current?.focus()
+    }
+  }
+
   return (
     <div className="space-y-2">
       <div>
@@ -165,41 +211,82 @@ function LanguagePicker({
           <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>
         )}
       </div>
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+
+      {/* Selected badges for multi-select */}
+      {multiple && selectedSet && selectedSet.size > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {Array.from(selectedSet).map((code) => (
+            <Badge
+              key={code}
+              variant="secondary"
+              className="gap-1 pr-1 text-xs font-normal"
+            >
+              {LANG_MAP.get(code) ?? code}
+              <button
+                type="button"
+                onClick={() => onSelect(code)}
+                className="ml-0.5 rounded-full p-0.5 hover:bg-muted-foreground/20"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </Badge>
+          ))}
+        </div>
+      )}
+
+      <div ref={containerRef} className="relative">
+        <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground z-10" />
         <Input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search languages..."
+          ref={inputRef}
+          value={open ? search : search || (!multiple ? displayValue ?? "" : "")}
+          onChange={(e) => {
+            setSearch(e.target.value)
+            setOpen(true)
+          }}
+          onFocus={() => setOpen(true)}
+          placeholder={
+            multiple
+              ? "Search languages..."
+              : displayValue
+                ? `${displayValue} — type to change`
+                : "Search languages..."
+          }
           className="pl-8 h-8 text-xs"
         />
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {filtered.map((lang) => {
-          const active = isSelected(lang.code)
-          return (
-            <button
-              key={lang.code}
-              type="button"
-              onClick={() => onSelect(lang.code)}
-              className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition-colors ${
-                active
-                  ? "border-primary bg-primary text-primary-foreground"
-                  : "border-border text-foreground hover:border-primary/40 hover:bg-accent"
-              }`}
-            >
-              {active && multiple && <Check className="h-3 w-3" />}
-              {lang.name}
-              <span className={`text-[10px] ${active ? "opacity-70" : "opacity-40"}`}>
-                {lang.code}
-              </span>
-            </button>
-          )
-        })}
-        {filtered.length === 0 && (
-          <p className="text-xs text-muted-foreground py-1">
-            No languages match &ldquo;{search}&rdquo;
-          </p>
+
+        {open && (
+          <div className="absolute z-50 mt-1 w-full rounded-md border bg-popover shadow-md">
+            <div className="max-h-48 overflow-y-auto p-1">
+              {filtered.map((lang) => {
+                const active = isSelected(lang.code)
+                return (
+                  <button
+                    key={lang.code}
+                    type="button"
+                    onClick={() => handleSelect(lang.code)}
+                    className={`flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs outline-none transition-colors ${
+                      active
+                        ? "bg-accent text-accent-foreground"
+                        : "hover:bg-accent hover:text-accent-foreground"
+                    }`}
+                  >
+                    <span className="flex h-4 w-4 items-center justify-center">
+                      {active && <Check className="h-3.5 w-3.5" />}
+                    </span>
+                    <span>{lang.name}</span>
+                    <span className="text-[10px] text-muted-foreground ml-auto">
+                      {lang.code}
+                    </span>
+                  </button>
+                )
+              })}
+              {filtered.length === 0 && (
+                <p className="px-2 py-1.5 text-xs text-muted-foreground">
+                  No languages match &ldquo;{search}&rdquo;
+                </p>
+              )}
+            </div>
+          </div>
         )}
       </div>
     </div>
@@ -220,6 +307,7 @@ function AddBookPage() {
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [startPage, setStartPage] = useState("")
   const [endPage, setEndPage] = useState("")
+  const [spreadMode, setSpreadMode] = useState(false)
 
   // Step 2 — Layout
   const [layoutType, setLayoutType] = useState<LayoutType>("textbook")
@@ -287,6 +375,9 @@ function AddBookPage() {
     if (outputLanguages.size > 0) {
       configOverrides.output_languages = Array.from(outputLanguages)
     }
+    if (spreadMode) {
+      configOverrides.spread_mode = true
+    }
 
     createMutation.mutate(
       { label, pdf: file, config: configOverrides },
@@ -321,7 +412,7 @@ function AddBookPage() {
 
       <Card>
         <Stepper currentStep={step} />
-        <CardContent className="pt-4 space-y-4">
+        <CardContent className="pt-4 space-y-4 max-h-[calc(100vh-10rem)] overflow-y-auto">
           {/* Step 1 — Upload */}
           {step === 1 && (
             <div key={1} className="animate-wizard-enter space-y-4">
@@ -425,6 +516,21 @@ function AddBookPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Leave empty to process all pages.
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="spread-mode"
+                        checked={spreadMode}
+                        onCheckedChange={setSpreadMode}
+                      />
+                      <Label htmlFor="spread-mode" className="text-xs">
+                        Spread Mode
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Merge facing pages as spreads (cover + page pairs).
                     </p>
                   </div>
                 </div>

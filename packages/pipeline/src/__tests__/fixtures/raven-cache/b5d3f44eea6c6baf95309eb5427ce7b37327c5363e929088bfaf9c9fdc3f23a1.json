@@ -1,0 +1,19 @@
+{
+  "reasoning": "The pages introduce the characters Hyena and Raven, explain that they were great friends who played together often, and show Hyena expressing a wish to fly with Raven. A key comprehension point is their friendship and what Hyena wants to do.",
+  "question": "What did Hyena want to do with Raven?",
+  "options": [
+    {
+      "text": "1) Fly",
+      "explanation": "✅ Correct! Hyena said he would love to fly into the sky with Raven."
+    },
+    {
+      "text": "2) Swim",
+      "explanation": "❌ Not quite. The story talks about flying into the sky, not swimming."
+    },
+    {
+      "text": "3) Sleep",
+      "explanation": "❌ Not quite. The story says they played together, and Hyena wanted to fly, not sleep."
+    }
+  ],
+  "answer_index": 0
+}

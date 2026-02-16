@@ -1,5 +1,6 @@
 import { z } from "zod"
 import { ImageFilters } from "./image-classification.js"
+import { SpeechConfig } from "./speech.js"
 
 export const RateLimitConfig = z.object({
   requests_per_minute: z.number().int().min(1),
@@ -13,6 +14,11 @@ export const StepConfig = z.object({
   timeout: z.number().int().min(1).optional(),
 })
 export type StepConfig = z.infer<typeof StepConfig>
+
+export const QuizGenerationConfig = StepConfig.extend({
+  pages_per_quiz: z.number().int().min(1).optional(),
+})
+export type QuizGenerationConfig = z.infer<typeof QuizGenerationConfig>
 
 export const BookFormat = z.enum(["web", "epub", "webpub"])
 export type BookFormat = z.infer<typeof BookFormat>
@@ -61,10 +67,12 @@ export const AppConfig = z.object({
   translation: StepConfig.optional(),
   metadata: StepConfig.optional(),
   page_sectioning: StepConfig.optional(),
+  quiz_generation: QuizGenerationConfig.optional(),
   default_render_strategy: z.string().optional(),
   render_strategies: z.record(z.string(), RenderStrategyConfig).optional(),
   section_render_strategies: z.record(z.string(), z.string()).optional(),
   image_filters: ImageFilters.optional(),
+  glossary: StepConfig.optional(),
   concurrency: z.number().int().min(1).optional(),
   rate_limit: RateLimitConfig.optional(),
   editing_language: z.string().optional(),
@@ -72,6 +80,8 @@ export const AppConfig = z.object({
   book_format: z.array(BookFormat).optional(),
   image_captioning: StepConfig.optional(),
   layout_type: LayoutType.optional(),
+  spread_mode: z.boolean().optional(),
+  speech: SpeechConfig.optional(),
 })
 export type AppConfig = z.infer<typeof AppConfig>
 

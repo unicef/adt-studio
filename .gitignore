@@ -12,7 +12,7 @@ apps/api/books/
 
 # Reference projects
 adt-studio/
-adt-press/
+adt-press
 
 # Environment & secrets
 .env

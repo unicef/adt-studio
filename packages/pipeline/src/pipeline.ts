@@ -3,7 +3,7 @@ import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import { createLLMModel, createPromptEngine, createRateLimiter } from "@adt/llm"
-import type { LLMModel } from "@adt/llm"
+import type { LLMModel, LogLevel } from "@adt/llm"
 import { extractPDF } from "./pdf-extraction.js"
 import { extractMetadata, buildMetadataConfig } from "./metadata-extraction.js"
 import { classifyPageText, buildClassifyConfig } from "./text-classification.js"
@@ -36,6 +36,8 @@ export interface RunPipelineOptions {
   templatesDir: string
   /** Override cache directory. Defaults to {booksRoot}/{label}/.cache */
   cacheDir?: string
+  /** LLM console log level. Defaults to "info". Use "silent" for no output. */
+  logLevel?: LogLevel
 }
 
 export async function runPipeline(
@@ -52,6 +54,7 @@ export async function runPipeline(
     configPath,
     promptsDir,
     templatesDir,
+    logLevel,
   } = options
 
   if (!fs.existsSync(pdfPath)) {
@@ -62,14 +65,15 @@ export async function runPipeline(
 
   try {
     // Step 1: Extract PDF
+    const config = loadBookConfig(label, booksRoot, configPath)
+
     const result = await extractPDF(
-      { pdfPath, startPage, endPage },
+      { pdfPath, startPage, endPage, spreadMode: config.spread_mode },
       storage,
       progress
     )
 
     // Step 2: Extract Metadata
-    const config = loadBookConfig(label, booksRoot, configPath)
     const metadataConfig = buildMetadataConfig(config)
     const cacheDir =
       options.cacheDir ?? path.join(booksRoot, label, ".cache")
@@ -84,6 +88,7 @@ export async function runPipeline(
       cacheDir,
       promptEngine,
       rateLimiter,
+      logLevel,
       onLog: (entry) => storage.appendLlmLog(entry),
     })
 
@@ -125,6 +130,7 @@ export async function runPipeline(
           cacheDir,
           promptEngine,
           rateLimiter,
+          logLevel,
           onLog: (entry) => storage.appendLlmLog(entry),
         })
       : null
@@ -139,6 +145,7 @@ export async function runPipeline(
       cacheDir,
       promptEngine,
       rateLimiter,
+      logLevel,
       onLog: (entry) => storage.appendLlmLog(entry),
     })
     const renderModels = new Map<string, LLMModel>()
@@ -150,6 +157,7 @@ export async function runPipeline(
         cacheDir,
         promptEngine,
         rateLimiter,
+        logLevel,
         onLog: (entry) => storage.appendLlmLog(entry),
       })
       renderModels.set(modelId, model)

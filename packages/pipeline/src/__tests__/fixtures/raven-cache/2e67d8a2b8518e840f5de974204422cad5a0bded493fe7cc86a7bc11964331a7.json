@@ -1,0 +1,40 @@
+{
+  "reasoning": "Single illustrated cover-like page with title/author text on the right orange panel, language label at bottom left, and site logo text at bottom right. No other visible text.",
+  "groups": [
+    {
+      "group_type": "heading",
+      "texts": [
+        {
+          "text_type": "book_title",
+          "text": "Hyena and Raven"
+        },
+        {
+          "text_type": "book_author",
+          "text": "Tony Lelliott"
+        },
+        {
+          "text_type": "book_author",
+          "text": "Wiehan de Jager"
+        }
+      ]
+    },
+    {
+      "group_type": "other",
+      "texts": [
+        {
+          "text_type": "standalone_text",
+          "text": "English"
+        }
+      ]
+    },
+    {
+      "group_type": "other",
+      "texts": [
+        {
+          "text_type": "image_associated_text",
+          "text": "African Storybook.org"
+        }
+      ]
+    }
+  ]
+}

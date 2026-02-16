@@ -1,0 +1,71 @@
+# TTS Voice Mappings for OpenAI
+# Resolution order: exact match (en-tz) → base language (en) → default
+
+openai:
+  default: alloy
+  en: alloy
+
+  # Spanish variants
+  es: coral
+  es-es: coral
+  es-mx: coral
+  es-ar: coral
+  es-uy: coral
+
+  # French variants
+  fr: coral
+  fr-ca: coral
+
+  # Portuguese variants
+  pt: coral
+  pt-br: coral
+
+  # Other European
+  de: coral
+  it: coral
+  nl: coral
+  pl: coral
+  ru: coral
+  sv: coral
+  no: coral
+  da: coral
+  fi: coral
+  cs: coral
+  hu: coral
+  ro: coral
+  el: coral
+  tr: coral
+  uk: coral
+
+  # Asian languages
+  zh: coral
+  ja: coral
+  ko: coral
+  hi: coral
+  bn: coral
+  ta: coral
+  te: coral
+  si: coral
+  ur: coral
+
+  # Arabic
+  ar: coral
+
+  # African languages
+  sw: coral
+  sw-tz: coral
+  sw-ke: coral
+  am: coral
+  af: coral
+  zu: coral
+
+  # Southeast Asian
+  th: coral
+  vi: coral
+  id: coral
+  ms: coral
+  fil: coral
+
+  # Hebrew / Persian
+  he: coral
+  fa: coral

@@ -52,7 +52,8 @@ export function PipelineProgress({
   isStarting,
   hasApiKey,
 }: PipelineProgressProps) {
-  const { isRunning, isComplete, error } = progress
+  const { isRunning, isComplete, error, skippedSteps } = progress
+  const visibleSteps = STEP_ORDER.filter((s) => !skippedSteps.has(s))
 
   return (
     <Card>
@@ -97,7 +98,7 @@ export function PipelineProgress({
       <CardContent>
         {(isRunning || isComplete || error) && (
           <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-            {STEP_ORDER.map((step) => (
+            {visibleSteps.map((step) => (
               <StepIndicator
                 key={step}
                 step={step}

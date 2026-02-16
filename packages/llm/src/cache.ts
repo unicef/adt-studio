@@ -3,13 +3,23 @@ import path from "node:path"
 import crypto from "node:crypto"
 import type { Message } from "./types.js"
 
+/**
+ * JSON replacer that strips Zod's internal `_cached` property.
+ * Zod lazily populates `_cached` after the first `.parse()` call,
+ * which changes JSON.stringify output and breaks hash stability.
+ */
+function stableReplacer(key: string, value: unknown): unknown {
+  if (key === "_cached") return undefined
+  return value
+}
+
 export function computeHash(data: {
   modelId: string
   system?: string
   messages: Message[]
   schema: unknown
 }): string {
-  const json = JSON.stringify(data)
+  const json = JSON.stringify(data, stableReplacer)
   return crypto.createHash("sha256").update(json).digest("hex")
 }
 

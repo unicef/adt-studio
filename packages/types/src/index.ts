@@ -13,6 +13,7 @@ export {
   BookFormat,
   LayoutType,
   StepConfig,
+  QuizGenerationConfig,
   RenderType,
   RenderStrategyConfig,
   AppConfig,
@@ -52,3 +53,27 @@ export {
   ImageCaptioningOutput,
   imageCaptioningLLMSchema,
 } from "./image-captioning.js"
+
+export {
+  GlossaryItem,
+  GlossaryOutput,
+  glossaryLLMSchema,
+} from "./glossary.js"
+
+export {
+  QuizOption,
+  Quiz,
+  QuizGenerationOutput,
+  quizLLMSchema,
+} from "./quiz.js"
+
+export {
+  TextCatalogEntry,
+  TextCatalogOutput,
+} from "./text-catalog.js"
+
+export {
+  SpeechConfig,
+  SpeechFileEntry,
+  TTSOutput,
+} from "./speech.js"

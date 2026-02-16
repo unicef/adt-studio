@@ -45,11 +45,26 @@ export interface ProofService {
   ): Promise<void>
 }
 
+interface ProofJobState extends ProofJob {
+  events: ProofSSEEvent[]
+}
+
+const MAX_REPLAY_EVENTS = 500
+
 export function createProofService(runner: ProofRunner): ProofService {
-  const jobs = new Map<string, ProofJob>()
+  const jobs = new Map<string, ProofJobState>()
   const listeners = new Map<string, Set<ProofEventListener>>()
 
   function emit(label: string, event: ProofSSEEvent): void {
+    // Buffer event for late-connecting SSE listeners
+    const job = jobs.get(label)
+    if (job) {
+      job.events.push(event)
+      if (job.events.length > MAX_REPLAY_EVENTS) {
+        job.events.splice(0, job.events.length - MAX_REPLAY_EVENTS)
+      }
+    }
+
     const set = listeners.get(label)
     if (!set) return
     for (const listener of set) {
@@ -63,13 +78,28 @@ export function createProofService(runner: ProofRunner): ProofService {
 
   return {
     getStatus(label: string): ProofJob | null {
-      return jobs.get(label) ?? null
+      const job = jobs.get(label)
+      if (!job) return null
+      const { events: _events, ...publicJob } = job
+      return publicJob
     },
 
     addListener(
       label: string,
       listener: ProofEventListener
     ): () => void {
+      // Replay buffered events so late-connecting listeners catch up
+      const job = jobs.get(label)
+      if (job) {
+        for (const event of job.events) {
+          try {
+            listener(event)
+          } catch {
+            // Listener errors should not crash the runner
+          }
+        }
+      }
+
       let set = listeners.get(label)
       if (!set) {
         set = new Set()
@@ -94,10 +124,11 @@ export function createProofService(runner: ProofRunner): ProofService {
         throw new Error(`Proof generation already running for book: ${label}`)
       }
 
-      const job: ProofJob = {
+      const job: ProofJobState = {
         label,
         status: "running",
         startedAt: Date.now(),
+        events: [],
       }
       jobs.set(label, job)
 
@@ -112,12 +143,14 @@ export function createProofService(runner: ProofRunner): ProofService {
         job.status = "completed"
         job.completedAt = Date.now()
         emit(label, { type: "proof-complete", label })
+        job.events = []
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
         job.status = "failed"
         job.error = message
         job.completedAt = Date.now()
         emit(label, { type: "proof-error", label, error: message })
+        job.events = []
       }
     },
   }
