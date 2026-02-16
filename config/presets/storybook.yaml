@@ -1,0 +1,46 @@
+# Storybook preset — Storybook Quiz
+# Template-driven rendering, spread pages, quizzes enabled, no activities
+# Based on adt-press "storybook_quiz" preset
+
+default_render_strategy: two_column
+
+spread_mode: true
+
+render_strategies:
+  two_column:
+    render_type: template
+    config:
+      template: two_column_render
+  llm:
+    render_type: llm
+    config:
+      prompt: web_generation_html
+      model: openai:gpt-5.2
+      max_retries: 25
+      timeout: 180
+
+section_render_strategies: {}
+
+pruned_text_types:
+  - header_text
+  - footer_text
+  - page_number
+
+pruned_section_types:
+  - back_cover
+  - credits
+  - inside_cover
+  - activity_multiple_choice
+  - activity_true_false
+  - activity_fill_in_the_blank
+  - activity_fill_in_a_table
+  - activity_matching
+  - activity_sorting
+  - activity_open_ended_answer
+
+image_filters:
+  min_side: 150
+  max_side: 3500
+
+quiz_generation:
+  pages_per_quiz: 3

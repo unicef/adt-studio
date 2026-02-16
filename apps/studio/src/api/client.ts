@@ -407,6 +407,12 @@ export const api = {
       `/books/${label}/package-adt/status`
     ),
 
+  getPreset: (name: string) =>
+    request<{ config: Record<string, unknown> }>(`/presets/${name}`),
+
+  getGlobalConfig: () =>
+    request<{ config: Record<string, unknown> }>(`/config`),
+
   exportBook: async (label: string): Promise<Blob> => {
     const url = `${BASE_URL}/books/${label}/export`
     const res = await fetch(url)

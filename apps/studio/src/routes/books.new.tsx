@@ -10,6 +10,7 @@ import {
   GraduationCap,
   BookHeart,
   Library,
+  SlidersHorizontal,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,12 +20,17 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
 import { useCreateBook } from "@/hooks/use-books"
 import { useApiKey } from "@/hooks/use-api-key"
+import { api } from "@/api/client"
+import {
+  AdvancedLayoutPanel,
+  type RenderStrategyState,
+} from "@/components/config/AdvancedLayoutPanel"
 
 export const Route = createFileRoute("/books/new")({
   component: AddBookPage,
 })
 
-const LAYOUT_TYPES = ["textbook", "storybook", "reference"] as const
+const LAYOUT_TYPES = ["textbook", "storybook", "reference", "custom"] as const
 type LayoutType = (typeof LAYOUT_TYPES)[number]
 
 const SUPPORTED_LANGUAGES = [
@@ -88,6 +94,14 @@ const LAYOUT_CARDS: {
     selectedBg: "bg-emerald-500/5",
     description:
       "Dense text, tables, glossaries. Best for technical material.",
+  },
+  {
+    type: "custom",
+    icon: SlidersHorizontal,
+    color: "bg-violet-500",
+    selectedBg: "bg-violet-500/5",
+    description:
+      "Full control over render strategies, pruning, and filters.",
   },
 ]
 
@@ -311,6 +325,129 @@ function AddBookPage() {
 
   // Step 2 — Layout
   const [layoutType, setLayoutType] = useState<LayoutType>("textbook")
+  const [showAdvancedLayout, setShowAdvancedLayout] = useState(false)
+  const [defaultRenderStrategy, setDefaultRenderStrategy] = useState("")
+  const [renderStrategies, setRenderStrategies] = useState<Record<string, RenderStrategyState>>({})
+  const [sectionRenderStrategies, setSectionRenderStrategies] = useState<Record<string, string>>({})
+  const [prunedTextTypes, setPrunedTextTypes] = useState<Set<string>>(new Set())
+  const [prunedSectionTypes, setPrunedSectionTypes] = useState<Set<string>>(new Set())
+  const [imageMinSide, setImageMinSide] = useState("")
+  const [imageMaxSide, setImageMaxSide] = useState("")
+  const [textTypes, setTextTypes] = useState<Record<string, string>>({})
+  const [textGroupTypes, setTextGroupTypes] = useState<Record<string, string>>({})
+  const [sectionTypes, setSectionTypes] = useState<Record<string, string>>({})
+
+  // Load preset config when layout type changes
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadPreset() {
+      try {
+        // Always fetch global config for type definitions
+        const [presetResult, globalResult] = await Promise.all([
+          layoutType === "custom"
+            ? Promise.resolve(null)
+            : api.getPreset(layoutType),
+          api.getGlobalConfig(),
+        ])
+        if (cancelled) return
+
+        const config = presetResult?.config ?? globalResult.config
+        const globalConfig = globalResult.config
+
+        // Type definitions always come from global config
+        setTextTypes(
+          globalConfig.text_types && typeof globalConfig.text_types === "object"
+            ? (globalConfig.text_types as Record<string, string>)
+            : {}
+        )
+        setTextGroupTypes(
+          globalConfig.text_group_types && typeof globalConfig.text_group_types === "object"
+            ? (globalConfig.text_group_types as Record<string, string>)
+            : {}
+        )
+        setSectionTypes(
+          globalConfig.section_types && typeof globalConfig.section_types === "object"
+            ? (globalConfig.section_types as Record<string, string>)
+            : {}
+        )
+
+        // Populate state from loaded preset/config
+        // Default to "dynamic" — picks the best strategy per section type
+        setDefaultRenderStrategy("dynamic")
+
+        // Render strategies
+        if (config.render_strategies && typeof config.render_strategies === "object") {
+          const loaded: Record<string, RenderStrategyState> = {}
+          for (const [name, raw] of Object.entries(
+            config.render_strategies as Record<string, Record<string, unknown>>
+          )) {
+            const cfg = (raw.config ?? {}) as Record<string, unknown>
+            loaded[name] = {
+              render_type: String(raw.render_type ?? "llm"),
+              config: {
+                prompt: cfg.prompt != null ? String(cfg.prompt) : undefined,
+                model: cfg.model != null ? String(cfg.model) : undefined,
+                max_retries: cfg.max_retries != null ? String(cfg.max_retries) : undefined,
+                timeout: cfg.timeout != null ? String(cfg.timeout) : undefined,
+                answer_prompt: cfg.answer_prompt != null ? String(cfg.answer_prompt) : undefined,
+                template: cfg.template != null ? String(cfg.template) : undefined,
+              },
+            }
+          }
+          setRenderStrategies(loaded)
+        } else {
+          setRenderStrategies({})
+        }
+
+        // Section render strategies
+        if (config.section_render_strategies && typeof config.section_render_strategies === "object") {
+          setSectionRenderStrategies(
+            config.section_render_strategies as Record<string, string>
+          )
+        } else {
+          setSectionRenderStrategies({})
+        }
+
+        // Pruned types
+        setPrunedTextTypes(
+          Array.isArray(config.pruned_text_types)
+            ? new Set(config.pruned_text_types as string[])
+            : new Set()
+        )
+        setPrunedSectionTypes(
+          Array.isArray(config.pruned_section_types)
+            ? new Set(config.pruned_section_types as string[])
+            : new Set()
+        )
+
+        // Image filters
+        if (config.image_filters && typeof config.image_filters === "object") {
+          const f = config.image_filters as Record<string, unknown>
+          setImageMinSide(f.min_side != null ? String(f.min_side) : "")
+          setImageMaxSide(f.max_side != null ? String(f.max_side) : "")
+        } else {
+          setImageMinSide("")
+          setImageMaxSide("")
+        }
+
+        // Spread mode from preset
+        if (typeof config.spread_mode === "boolean") {
+          setSpreadMode(config.spread_mode)
+        }
+
+        // Custom layout auto-expands advanced panel
+        if (layoutType === "custom") {
+          setShowAdvancedLayout(true)
+        }
+      } catch (err) {
+        console.warn("Failed to load preset:", layoutType, err)
+      }
+    }
+
+    loadPreset()
+    return () => { cancelled = true }
+  }, [layoutType])
 
   // Step 3 — Settings
   const [editingLanguage, setEditingLanguage] = useState("en")
@@ -377,6 +514,55 @@ function AddBookPage() {
     }
     if (spreadMode) {
       configOverrides.spread_mode = true
+    }
+
+    // Advanced layout settings
+    // "dynamic" means use section_render_strategies mapping with two_column fallback
+    const effectiveStrategy = defaultRenderStrategy === "dynamic" ? "two_column" : defaultRenderStrategy
+    if (effectiveStrategy.trim()) {
+      configOverrides.default_render_strategy = effectiveStrategy.trim()
+    }
+    if (Object.keys(renderStrategies).length > 0) {
+      const strategies: Record<string, unknown> = {}
+      for (const [name, strategy] of Object.entries(renderStrategies)) {
+        const config: Record<string, unknown> = {}
+        if (strategy.config.prompt) config.prompt = strategy.config.prompt
+        if (strategy.config.model) config.model = strategy.config.model
+        if (strategy.config.max_retries) config.max_retries = Number(strategy.config.max_retries)
+        if (strategy.config.timeout) config.timeout = Number(strategy.config.timeout)
+        if (strategy.config.answer_prompt) config.answer_prompt = strategy.config.answer_prompt
+        if (strategy.config.template) config.template = strategy.config.template
+        strategies[name] = {
+          render_type: strategy.render_type,
+          ...(Object.keys(config).length > 0 ? { config } : {}),
+        }
+      }
+      configOverrides.render_strategies = strategies
+    }
+    if (Object.keys(sectionRenderStrategies).length > 0) {
+      configOverrides.section_render_strategies = sectionRenderStrategies
+    }
+    if (prunedTextTypes.size > 0) {
+      configOverrides.pruned_text_types = Array.from(prunedTextTypes)
+    }
+    if (prunedSectionTypes.size > 0) {
+      configOverrides.pruned_section_types = Array.from(prunedSectionTypes)
+    }
+    const imageFilters: Record<string, number> = {}
+    if (imageMinSide.trim()) imageFilters.min_side = Number(imageMinSide)
+    if (imageMaxSide.trim()) imageFilters.max_side = Number(imageMaxSide)
+    if (Object.keys(imageFilters).length > 0) {
+      configOverrides.image_filters = imageFilters
+    }
+    // Type definitions
+    if (Object.keys(textTypes).length > 0) {
+      configOverrides.text_types = textTypes
+    }
+    if (Object.keys(textGroupTypes).length > 0) {
+      configOverrides.text_group_types = textGroupTypes
+    }
+    if (Object.keys(sectionTypes).length > 0) {
+      configOverrides.section_types = sectionTypes
     }
 
     createMutation.mutate(
@@ -559,7 +745,7 @@ function AddBookPage() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 {LAYOUT_CARDS.map((card) => {
                   const Icon = card.icon
                   const selected = layoutType === card.type
@@ -588,6 +774,53 @@ function AddBookPage() {
                   )
                 })}
               </div>
+
+              {/* Advanced layout settings toggle */}
+              <button
+                type="button"
+                onClick={() => setShowAdvancedLayout(!showAdvancedLayout)}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ChevronDown
+                  className={`h-3.5 w-3.5 transition-transform ${showAdvancedLayout ? "" : "-rotate-90"}`}
+                />
+                Advanced layout settings
+              </button>
+
+              {showAdvancedLayout && (
+                <div className="space-y-4 rounded-lg border bg-muted/30 p-3">
+                  <AdvancedLayoutPanel
+                    defaultRenderStrategy={defaultRenderStrategy}
+                    onDefaultRenderStrategyChange={setDefaultRenderStrategy}
+                    renderStrategies={renderStrategies}
+                    onRenderStrategiesChange={setRenderStrategies}
+                    textTypes={textTypes}
+                    onTextTypesChange={setTextTypes}
+                    textGroupTypes={textGroupTypes}
+                    onTextGroupTypesChange={setTextGroupTypes}
+                    sectionTypes={sectionTypes}
+                    onSectionTypesChange={setSectionTypes}
+                    prunedTextTypes={prunedTextTypes}
+                    onTogglePrunedText={(t) => {
+                      setPrunedTextTypes((prev) => {
+                        const next = new Set(prev)
+                        if (next.has(t)) next.delete(t)
+                        else next.add(t)
+                        return next
+                      })
+                    }}
+                    prunedSectionTypes={prunedSectionTypes}
+                    onTogglePrunedSection={(t) => {
+                      setPrunedSectionTypes((prev) => {
+                        const next = new Set(prev)
+                        if (next.has(t)) next.delete(t)
+                        else next.add(t)
+                        return next
+                      })
+                    }}
+                  />
+                </div>
+              )}
 
               {/* Navigation */}
               <div className="flex justify-between pt-1">

@@ -1,0 +1,98 @@
+# Textbook preset — Interactive Textbook
+# LLM-driven rendering, single pages, activities enabled, glossary enabled
+# Based on adt-press "interactive_textbook" preset
+
+default_render_strategy: llm
+
+spread_mode: false
+
+render_strategies:
+  llm:
+    render_type: llm
+    config:
+      prompt: web_generation_html
+      model: openai:gpt-5.2
+      max_retries: 25
+      timeout: 180
+  two_column:
+    render_type: template
+    config:
+      template: two_column_render
+  activity_multiple_choice:
+    render_type: activity
+    config:
+      prompt: activity_multiple_choice
+      answer_prompt: activity_multiple_choice_answers
+      model: openai:gpt-5.2
+      max_retries: 25
+      timeout: 180
+  activity_true_false:
+    render_type: activity
+    config:
+      prompt: activity_true_false
+      answer_prompt: activity_true_false_answers
+      model: openai:gpt-5.2
+      max_retries: 25
+      timeout: 180
+  activity_fill_in_the_blank:
+    render_type: activity
+    config:
+      prompt: activity_fill_in_the_blank
+      answer_prompt: activity_fill_in_the_blank_answers
+      model: openai:gpt-5.2
+      max_retries: 25
+      timeout: 180
+  activity_fill_in_a_table:
+    render_type: activity
+    config:
+      prompt: activity_fill_in_a_table
+      answer_prompt: activity_fill_in_a_table_answers
+      model: openai:gpt-5.2
+      max_retries: 25
+      timeout: 180
+  activity_matching:
+    render_type: activity
+    config:
+      prompt: activity_matching
+      answer_prompt: activity_matching_answers
+      model: openai:gpt-5.2
+      max_retries: 25
+      timeout: 180
+  activity_sorting:
+    render_type: activity
+    config:
+      prompt: activity_sorting
+      answer_prompt: activity_sorting_answers
+      model: openai:gpt-5.2
+      max_retries: 25
+      timeout: 180
+  activity_open_ended_answer:
+    render_type: activity
+    config:
+      prompt: activity_open_ended_answer
+      model: openai:gpt-5.2
+      max_retries: 25
+      timeout: 180
+
+section_render_strategies:
+  activity_multiple_choice: activity_multiple_choice
+  activity_true_false: activity_true_false
+  activity_fill_in_the_blank: activity_fill_in_the_blank
+  activity_fill_in_a_table: activity_fill_in_a_table
+  activity_matching: activity_matching
+  activity_sorting: activity_sorting
+  activity_open_ended_answer: activity_open_ended_answer
+
+pruned_text_types:
+  - header_text
+  - footer_text
+  - page_number
+
+pruned_section_types:
+  - back_cover
+  - credits
+  - inside_cover
+
+image_filters:
+  min_side: 150
+  max_side: 3500

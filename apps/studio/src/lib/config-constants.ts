@@ -7,6 +7,8 @@ export const ALL_TEXT_TYPES = [
   "standalone_text", "header_text", "footer_text", "page_number", "other",
 ]
 
+export const RENDER_TYPES = ["llm", "template", "activity"] as const
+
 export const ALL_SECTION_TYPES = [
   "front_cover", "inside_cover", "back_cover", "separator", "credits",
   "foreword", "table_of_contents", "boxed_text",
