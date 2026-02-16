@@ -14,6 +14,10 @@ export function getAdtUrl(label: string): string {
   return `${BASE_URL}/books/${label}/adt`
 }
 
+export function getAudioUrl(label: string, language: string, fileName: string): string {
+  return `${BASE_URL}/books/${label}/audio/${language}/${fileName}`
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${BASE_URL}${path}`
   const res = await fetch(url, {
@@ -169,6 +173,18 @@ export interface QuizGenerationOutput {
 export interface QuizzesResponse {
   quizzes: QuizGenerationOutput | null
   version: number | null
+}
+
+// --- TTS types ---
+
+export interface TTSEntry {
+  textId: string
+  fileName: string
+  language: string
+}
+
+export interface TTSResponse {
+  entries: TTSEntry[]
 }
 
 // --- Debug types ---
@@ -395,6 +411,9 @@ export const api = {
 
   getQuizzes: (label: string) =>
     request<QuizzesResponse>(`/books/${label}/quizzes`),
+
+  getTTS: (label: string) =>
+    request<TTSResponse>(`/books/${label}/tts`),
 
   packageAdt: (label: string) =>
     request<{ status: string; label: string }>(

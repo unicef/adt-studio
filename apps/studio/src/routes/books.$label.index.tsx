@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { BookOpen, LayoutGrid, FileDown, CheckCircle2, Loader2, Package, ExternalLink } from "lucide-react"
+import { BookOpen, ArrowRight, CheckCircle2, Loader2, Package, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -10,17 +10,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { useBook, useExportBook, usePackageAdt, usePackageAdtStatus } from "@/hooks/use-books"
+import { useBook, usePackageAdt, usePackageAdtStatus } from "@/hooks/use-books"
 import { usePipelineSSE, usePipelineStatus, useRunPipeline } from "@/hooks/use-pipeline"
-import { useProofSSE, useProofStatus, useRunProof } from "@/hooks/use-proof"
-import { useMasterSSE, useMasterStatus, useRunMaster } from "@/hooks/use-master"
+import { useProofStatus } from "@/hooks/use-proof"
+import { useMasterStatus } from "@/hooks/use-master"
 import { useApiKey } from "@/hooks/use-api-key"
 import { PipelineProgress } from "@/components/pipeline/PipelineProgress"
-import { ProofProgress } from "@/components/proof/ProofProgress"
-import { MasterProgress } from "@/components/master/MasterProgress"
 import { PagePreviewGrid } from "@/components/pipeline/PagePreviewGrid"
-import { ConfigEditor } from "@/components/config/ConfigEditor"
-import { QuizPanel } from "@/components/storyboard/QuizPanel"
 import { getAdtUrl } from "@/api/client"
 
 export const Route = createFileRoute("/books/$label/")({
@@ -32,6 +28,14 @@ export const Route = createFileRoute("/books/$label/")({
   }),
 })
 
+function currentStage(book: { pageCount: number; storyboardAccepted: boolean; proofCompleted: boolean }, masterCompleted: boolean) {
+  if (masterCompleted) return "Complete"
+  if (book.proofCompleted) return "Master"
+  if (book.storyboardAccepted) return "Proof"
+  if (book.pageCount > 0) return "Storyboard"
+  return "New"
+}
+
 function BookDetailPage() {
   const { label } = Route.useParams()
   const { autoRun, startPage: searchStartPage, endPage: searchEndPage } = Route.useSearch()
@@ -39,22 +43,13 @@ function BookDetailPage() {
   const { data: book, isLoading, error } = useBook(label)
   const { apiKey, hasApiKey } = useApiKey()
 
-  const exportBook = useExportBook()
   const runPipeline = useRunPipeline()
   const [sseEnabled, setSseEnabled] = useState(false)
   const { progress, reset } = usePipelineSSE(label, sseEnabled)
   const { data: pipelineStatus } = usePipelineStatus(label)
 
-  // Proof hooks
-  const runProof = useRunProof()
-  const [proofSseEnabled, setProofSseEnabled] = useState(false)
-  const { progress: proofProgress, reset: proofReset } = useProofSSE(label, proofSseEnabled)
+  // Status queries for stage badge + Package ADT gating
   const { data: proofStatus } = useProofStatus(label)
-
-  // Master hooks
-  const runMaster = useRunMaster()
-  const [masterSseEnabled, setMasterSseEnabled] = useState(false)
-  const { progress: masterProgress, reset: masterReset } = useMasterSSE(label, masterSseEnabled)
   const { data: masterStatus } = useMasterStatus(label)
 
   // Package ADT hooks
@@ -70,20 +65,6 @@ function BookDetailPage() {
       setSseEnabled(true)
     }
   }, [pipelineStatus?.status, sseEnabled])
-
-  // Auto-reconnect to SSE if proof is already running
-  useEffect(() => {
-    if (proofStatus?.status === "running" && !proofSseEnabled) {
-      setProofSseEnabled(true)
-    }
-  }, [proofStatus?.status, proofSseEnabled])
-
-  // Auto-reconnect to SSE if master is already running
-  useEffect(() => {
-    if (masterStatus?.status === "running" && !masterSseEnabled) {
-      setMasterSseEnabled(true)
-    }
-  }, [masterStatus?.status, masterSseEnabled])
 
   // Auto-run pipeline when navigated from wizard
   useEffect(() => {
@@ -120,49 +101,15 @@ function BookDetailPage() {
     )
   }, [autoRun, hasApiKey, book, label, apiKey, searchStartPage, searchEndPage, navigate, reset, runPipeline])
 
-  const handleRun = (options: { startPage?: number; endPage?: number }) => {
+  const handleRun = () => {
     reset()
     setSseEnabled(true)
 
     runPipeline.mutate(
-      { label, apiKey, options: Object.keys(options).length > 0 ? options : undefined },
+      { label, apiKey },
       {
         onError: () => {
           setSseEnabled(false)
-        },
-      }
-    )
-  }
-
-  const handleRunProof = () => {
-    proofReset()
-    setProofSseEnabled(false)
-
-    runProof.mutate(
-      { label, apiKey },
-      {
-        onSuccess: () => {
-          setProofSseEnabled(true)
-        },
-        onError: () => {
-          setProofSseEnabled(false)
-        },
-      }
-    )
-  }
-
-  const handleRunMaster = () => {
-    masterReset()
-    setMasterSseEnabled(false)
-
-    runMaster.mutate(
-      { label, apiKey },
-      {
-        onSuccess: () => {
-          setMasterSseEnabled(true)
-        },
-        onError: () => {
-          setMasterSseEnabled(false)
         },
       }
     )
@@ -182,15 +129,23 @@ function BookDetailPage() {
 
   if (!book) return null
 
-  const showPipelineRunning = progress.isRunning || progress.isComplete || progress.error
+  const masterCompleted = masterStatus?.status === "completed"
   const canRunMaster =
     book.storyboardAccepted &&
-    (book.proofCompleted ||
-      proofProgress.isComplete ||
-      proofStatus?.status === "completed")
-  const masterCompleted =
-    masterProgress.isComplete || masterStatus?.status === "completed"
+    (book.proofCompleted || proofStatus?.status === "completed")
   const hasAdt = packageAdtStatus?.hasAdt ?? false
+  const stage = currentStage(book, masterCompleted ?? false)
+
+  // Show pipeline as complete when server confirms OR when pages exist (server
+  // status is ephemeral/in-memory, so after restart it returns "idle" even if
+  // the pipeline completed previously).
+  const serverCompleted = pipelineStatus?.status === "completed"
+  const impliedCompleted = !serverCompleted && book.pageCount > 0
+  const effectiveProgress =
+    !progress.isRunning && !progress.isComplete && !progress.error &&
+    (serverCompleted || impliedCompleted)
+      ? { ...progress, isComplete: true }
+      : progress
 
   return (
     <div className="p-4 space-y-4">
@@ -212,35 +167,19 @@ function BookDetailPage() {
             {book.pageCount > 0 ? `${book.pageCount} pages` : "New"}
           </Badge>
         )}
-        {book.storyboardAccepted && (
-          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
-            <CheckCircle2 className="mr-1 h-3 w-3" />
-            Accepted
-          </Badge>
-        )}
-        {book.pageCount > 0 && (
-          <Link to="/books/$label/storyboard" params={{ label }} search={{ page: undefined }}>
-            <Button variant="outline" size="sm">
-              <LayoutGrid className="mr-2 h-4 w-4" />
-              Storyboard
-            </Button>
-          </Link>
-        )}
-        {book.storyboardAccepted && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => exportBook.mutate(label)}
-            disabled={exportBook.isPending}
-          >
-            {exportBook.isPending ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <FileDown className="mr-2 h-4 w-4" />
-            )}
-            Export ZIP
-          </Button>
-        )}
+        <Badge
+          variant="outline"
+          className={
+            stage === "Complete"
+              ? "border-green-300 bg-green-50 text-green-800"
+              : stage === "New"
+                ? ""
+                : "border-primary/30 bg-primary/5 text-primary"
+          }
+        >
+          {stage === "Complete" && <CheckCircle2 className="mr-1 h-3 w-3" />}
+          {stage}
+        </Badge>
       </div>
 
       {/* Rebuild warning */}
@@ -303,79 +242,25 @@ function BookDetailPage() {
                 No metadata extracted yet. Run the pipeline to extract book details.
               </p>
             )}
+            {book.pageCount > 0 && (
+              <Link to="/books/$label/storyboard" params={{ label }} search={{ page: undefined }} className="mt-4 block">
+                <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
+                  Go to Storyboard
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+            )}
           </CardContent>
         </Card>
 
-        {/* Right: Pipeline Config or Pipeline Progress */}
-        {showPipelineRunning ? (
-          <div className="h-full">
-            <PipelineProgress
-              progress={progress}
-              onRun={() => handleRun({})}
-              isStarting={runPipeline.isPending}
-              hasApiKey={hasApiKey}
-            />
-          </div>
-        ) : (
-          <ConfigEditor
-            label={label}
-            onRun={handleRun}
-            isRunning={progress.isRunning}
-            isPipelineStarting={runPipeline.isPending}
-            hasApiKey={hasApiKey}
-            pageCount={book.pageCount}
-          />
-        )}
+        {/* Right: Pipeline Progress */}
+        <PipelineProgress
+          progress={effectiveProgress}
+          onRun={handleRun}
+          isStarting={runPipeline.isPending}
+          hasApiKey={hasApiKey}
+        />
       </div>
-
-      {/* Review Storyboard CTA */}
-      {progress.isComplete && (
-        <Card className="border-green-200 bg-green-50/50">
-          <CardContent className="flex items-center justify-between py-3">
-            <div>
-              <p className="text-sm font-medium">Pipeline complete</p>
-              <p className="text-xs text-muted-foreground">Review the generated storyboard</p>
-            </div>
-            <Link to="/books/$label/storyboard" params={{ label }} search={{ page: undefined }}>
-              <Button size="sm">
-                <LayoutGrid className="mr-1.5 h-4 w-4" />
-                Review Storyboard
-              </Button>
-            </Link>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Proof Phase — shown after storyboard is accepted */}
-      {book.storyboardAccepted && (
-        <ProofProgress
-          progress={proofProgress}
-          onRun={handleRunProof}
-          isStarting={runProof.isPending}
-          hasApiKey={hasApiKey}
-        />
-      )}
-
-      {/* Master Phase — shown after storyboard is accepted */}
-      {canRunMaster && (
-        <MasterProgress
-          progress={masterProgress}
-          onRun={handleRunMaster}
-          isStarting={runMaster.isPending}
-          hasApiKey={hasApiKey}
-        />
-      )}
-
-      {book.storyboardAccepted && !canRunMaster && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Master Phase</CardTitle>
-            <CardDescription>
-              Complete the proof phase before running master.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      )}
 
       {/* Package ADT — shown after master completes */}
       {canRunMaster && masterCompleted && (
@@ -437,14 +322,9 @@ function BookDetailPage() {
         </Card>
       )}
 
-      {/* Quiz results — shown after proof generates quizzes */}
-      {book.storyboardAccepted && (
-        <QuizPanel label={label} />
-      )}
-
       {/* Full-width page preview grid */}
-      {(progress.isRunning || progress.isComplete || book.pageCount > 0) && (
-        <PagePreviewGrid label={label} isRunning={progress.isRunning} />
+      {(effectiveProgress.isRunning || effectiveProgress.isComplete || book.pageCount > 0) && (
+        <PagePreviewGrid label={label} isRunning={effectiveProgress.isRunning} />
       )}
     </div>
   )

@@ -1,6 +1,5 @@
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
-import { Badge } from "@/components/ui/badge"
 import type { PageDetail } from "@/api/client"
 
 type ImageClassification = NonNullable<PageDetail["imageClassification"]>
@@ -28,23 +27,23 @@ export function ImageList({ images, bookLabel, onUpdate }: ImageListProps) {
       {images.map((img, i) => (
         <div
           key={img.imageId}
-          className={`flex items-center gap-3 rounded border p-2 ${img.isPruned ? "opacity-60" : ""}`}
+          className={`flex items-center gap-2.5 rounded border p-2 ${img.isPruned ? "opacity-60" : ""}`}
         >
           <img
             src={`/api/books/${bookLabel}/images/${img.imageId}`}
             alt={img.imageId}
-            className="h-16 w-16 shrink-0 rounded border object-cover bg-muted"
+            className="h-12 w-12 shrink-0 rounded border object-cover bg-muted"
           />
           <div className="flex flex-1 flex-col gap-0.5 min-w-0">
-            <span className={`text-sm truncate ${img.isPruned ? "line-through" : ""}`}>
+            <span className={`text-xs truncate ${img.isPruned ? "line-through" : ""}`}>
               {img.imageId}
             </span>
             {img.reason && (
               <span className="text-xs text-muted-foreground">{img.reason}</span>
             )}
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <Label htmlFor={`img-prune-${i}`} className="text-xs">
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Label htmlFor={`img-prune-${i}`} className="text-xs text-muted-foreground">
               Pruned
             </Label>
             <Switch
@@ -53,11 +52,6 @@ export function ImageList({ images, bookLabel, onUpdate }: ImageListProps) {
               onCheckedChange={() => togglePruned(i)}
             />
           </div>
-          {img.isPruned && (
-            <Badge variant="outline" className="text-xs shrink-0">
-              Pruned
-            </Badge>
-          )}
         </div>
       ))}
     </div>

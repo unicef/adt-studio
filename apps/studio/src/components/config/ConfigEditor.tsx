@@ -1,10 +1,19 @@
 import { useState, useEffect } from "react"
-import { Play, Save, Settings2 } from "lucide-react"
+import { Check, Play, Save, Settings2 } from "lucide-react"
+import * as SelectPrimitive from "@radix-ui/react-select"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Switch } from "@/components/ui/switch"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Card,
   CardContent,
@@ -195,7 +204,7 @@ export function ConfigEditor({
       if (bc.layout_type) overrides.layout_type = bc.layout_type
       if (bc.render_strategies) overrides.render_strategies = bc.render_strategies
       if (bc.section_render_strategies) overrides.section_render_strategies = bc.section_render_strategies
-      if (!defaultRenderStrategy.trim() && bc.default_render_strategy) overrides.default_render_strategy = bc.default_render_strategy
+      if (!configDirty && !defaultRenderStrategy.trim() && bc.default_render_strategy) overrides.default_render_strategy = bc.default_render_strategy
       if (bc.translation) overrides.translation = bc.translation
     }
 
@@ -476,31 +485,16 @@ export function ConfigEditor({
                 {/* Rendering */}
                 <div>
                   <h4 className="mb-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Rendering</h4>
-                  <div className="space-y-3">
-                    <div className="space-y-1">
-                      <Label className="text-xs">Default Render Strategy</Label>
-                      <Input
-                        value={defaultRenderStrategy}
-                        onChange={(e) => { setDefaultRenderStrategy(e.target.value); setConfigDirty(true) }}
-                        placeholder={getPlaceholder("default_render_strategy") || "two_column"}
-                        className="text-xs w-48"
-                      />
-                    </div>
-                    {activeConfigData?.merged && !!(activeConfigData.merged as Record<string, unknown>).render_strategies && typeof (activeConfigData.merged as Record<string, unknown>).render_strategies === "object" && (
-                      <div className="space-y-1">
-                        <Label className="text-xs">Available Strategies</Label>
-                        <div className="flex flex-wrap gap-1.5">
-                          {Object.entries((activeConfigData.merged as Record<string, unknown>).render_strategies as Record<string, unknown>).map(([name, strategy]) => {
-                            const renderType = strategy && typeof strategy === "object" && "type" in strategy ? String((strategy as Record<string, unknown>).type) : "unknown"
-                            return (
-                              <Badge key={name} variant="outline" className="text-xs">
-                                {name} <span className="ml-1 text-muted-foreground">[{renderType}]</span>
-                              </Badge>
-                            )
-                          })}
-                        </div>
-                      </div>
-                    )}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Render Strategy</Label>
+                    <RenderStrategySelect
+                      value={defaultRenderStrategy}
+                      placeholder={getPlaceholder("default_render_strategy")}
+                      strategies={activeConfigData?.merged
+                        ? ((activeConfigData.merged as Record<string, unknown>).render_strategies as Record<string, Record<string, unknown>> | undefined)
+                        : undefined}
+                      onChange={(v) => { setDefaultRenderStrategy(v); setConfigDirty(true) }}
+                    />
                   </div>
                 </div>
 
@@ -585,5 +579,96 @@ export function ConfigEditor({
         </DialogContent>
       </Dialog>
     </>
+  )
+}
+
+/* ── Render Strategy Dropdown ────────────────────────────────── */
+
+const STRATEGY_META: Record<string, { label: string; description: string }> = {
+  two_column: {
+    label: "Two Column",
+    description: "Responsive two-column layout for general text and image content",
+  },
+  two_column_story: {
+    label: "Two Column Story",
+    description: "Storybook-optimized layout with warm background and large typography",
+  },
+  llm: {
+    label: "LLM",
+    description: "AI-generated HTML layout — flexible but non-deterministic",
+  },
+}
+
+function humanLabel(key: string): string {
+  return STRATEGY_META[key]?.label ?? key.replace(/_/g, " ")
+}
+
+function RenderStrategySelect({
+  value,
+  placeholder,
+  strategies,
+  onChange,
+}: {
+  value: string
+  placeholder: string
+  strategies?: Record<string, Record<string, unknown>>
+  onChange: (value: string) => void
+}) {
+  // Build options from config, filtering out activity strategies
+  const options: { value: string; label: string; description: string }[] = []
+
+  if (strategies) {
+    for (const [name, strategy] of Object.entries(strategies)) {
+      if (strategy.render_type === "activity") continue
+      const meta = STRATEGY_META[name]
+      options.push({
+        value: name,
+        label: meta?.label ?? name.replace(/_/g, " "),
+        description: meta?.description ?? `${String(strategy.render_type)} render strategy`,
+      })
+    }
+  } else {
+    // Fallback when active config isn't loaded yet
+    for (const [key, meta] of Object.entries(STRATEGY_META)) {
+      options.push({ value: key, label: meta.label, description: meta.description })
+    }
+  }
+
+  return (
+    <Select
+      value={value || undefined}
+      onValueChange={(v) => onChange(v === "__inherit__" ? "" : v)}
+    >
+      <SelectTrigger className="h-9 w-64 text-xs">
+        <SelectValue placeholder={placeholder ? `${humanLabel(placeholder)} (default)` : "Select strategy"} />
+      </SelectTrigger>
+      <SelectContent>
+        {value && (
+          <>
+            <SelectItem value="__inherit__" className="text-xs text-muted-foreground">
+              Use global default
+            </SelectItem>
+            <SelectSeparator />
+          </>
+        )}
+        {options.map((opt) => (
+          <SelectPrimitive.Item
+            key={opt.value}
+            value={opt.value}
+            className="relative flex w-full cursor-default select-none items-start rounded-sm py-2 pl-8 pr-3 text-sm outline-none focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+          >
+            <span className="absolute left-2 top-2.5 flex h-3.5 w-3.5 items-center justify-center">
+              <SelectPrimitive.ItemIndicator>
+                <Check className="h-4 w-4" />
+              </SelectPrimitive.ItemIndicator>
+            </span>
+            <div>
+              <SelectPrimitive.ItemText>{opt.label}</SelectPrimitive.ItemText>
+              <p className="text-xs text-muted-foreground mt-0.5">{opt.description}</p>
+            </div>
+          </SelectPrimitive.Item>
+        ))}
+      </SelectContent>
+    </Select>
   )
 }

@@ -75,6 +75,10 @@ render_strategies:
     render_type: template
     config:
       template: two_column_render
+  two_column_story:
+    render_type: template
+    config:
+      template: two_column_story
   activity_multiple_choice:
     render_type: activity
     config:

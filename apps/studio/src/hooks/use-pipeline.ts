@@ -63,18 +63,34 @@ const INITIAL_PROGRESS: PipelineProgress = {
 }
 
 /**
+ * Module-level cache of pipeline progress per book label.
+ * Survives component unmount/navigation so progress isn't lost.
+ */
+const progressCache = new Map<string, PipelineProgress>()
+
+/**
  * Hook to subscribe to real-time pipeline progress via SSE.
  * Connects to the SSE endpoint when `enabled` is true.
  * Includes a polling fallback to catch completion if SSE misses it.
  */
 export function usePipelineSSE(label: string, enabled: boolean) {
-  const [progress, setProgress] = useState<PipelineProgress>(INITIAL_PROGRESS)
+  const [progress, _setProgress] = useState<PipelineProgress>(
+    () => progressCache.get(label) ?? INITIAL_PROGRESS
+  )
+
+  // Wrap setProgress to also persist to module-level cache
+  const setProgress: typeof _setProgress = useCallback((action) => {
+    _setProgress((prev) => {
+      const next = typeof action === "function" ? action(prev) : action
+      progressCache.set(label, next)
+      return next
+    })
+  }, [label])
   const queryClient = useQueryClient()
   const eventSourceRef = useRef<EventSource | null>(null)
 
   useEffect(() => {
     if (!enabled || !label) {
-      setProgress(INITIAL_PROGRESS)
       return
     }
 
@@ -229,11 +245,12 @@ export function usePipelineSSE(label: string, enabled: boolean) {
 
   const reset = useCallback(() => {
     setProgress(INITIAL_PROGRESS)
+    progressCache.delete(label)
     if (eventSourceRef.current) {
       eventSourceRef.current.close()
       eventSourceRef.current = null
     }
-  }, [])
+  }, [label, setProgress])
 
   return { progress, reset }
 }

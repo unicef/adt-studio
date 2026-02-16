@@ -7,6 +7,7 @@ import {
   Check,
   Search,
   X,
+  Plus,
   GraduationCap,
   BookHeart,
   Library,
@@ -294,10 +295,24 @@ function LanguagePicker({
                   </button>
                 )
               })}
-              {filtered.length === 0 && (
-                <p className="px-2 py-1.5 text-xs text-muted-foreground">
-                  No languages match &ldquo;{search}&rdquo;
-                </p>
+              {filtered.length === 0 && search.trim().length > 0 && (
+                <div className="px-2 py-1.5 space-y-1">
+                  <p className="text-xs text-muted-foreground">
+                    No languages match &ldquo;{search}&rdquo;
+                  </p>
+                  {/^[a-z]{2}(-[a-z]{2,})?$/i.test(search.trim()) && (
+                    <button
+                      type="button"
+                      onClick={() => handleSelect(search.trim().toLowerCase())}
+                      className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-xs hover:bg-accent hover:text-accent-foreground transition-colors"
+                    >
+                      <span className="flex h-4 w-4 items-center justify-center">
+                        <Plus className="h-3.5 w-3.5" />
+                      </span>
+                      <span>Use &ldquo;{search.trim().toLowerCase()}&rdquo; as custom locale</span>
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>
