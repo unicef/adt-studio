@@ -29,6 +29,17 @@ const EXTRACT_SETTINGS_TABS = [
   { key: "prompt", label: "Extraction Prompt" },
 ]
 
+const STORYBOARD_SETTINGS_TABS = [
+  { key: "general", label: "General" },
+  { key: "sectioning-prompt", label: "Sectioning Prompt" },
+  { key: "rendering-prompt", label: "Rendering Prompt" },
+]
+
+const SETTINGS_TABS: Record<string, { key: string; label: string }[]> = {
+  extract: EXTRACT_SETTINGS_TABS,
+  storyboard: STORYBOARD_SETTINGS_TABS,
+}
+
 export function StepSidebar({ bookLabel, activeStep }: { bookLabel: string; activeStep: string }) {
   const matchRoute = useMatchRoute()
   const search = useSearch({ strict: false }) as { tab?: string }
@@ -45,7 +56,8 @@ export function StepSidebar({ bookLabel, activeStep }: { bookLabel: string; acti
       {STEPS.map((step, index) => {
         const isActive = step.slug === activeStep
         const Icon = step.icon
-        const showSubTabs = isActive && isSettings && step.slug === "extract"
+        const settingsTabs = SETTINGS_TABS[step.slug]
+        const showSubTabs = isActive && isSettings && !!settingsTabs
 
         return (
           <div key={step.slug} className="relative">
@@ -102,7 +114,7 @@ export function StepSidebar({ bookLabel, activeStep }: { bookLabel: string; acti
             {/* Settings sub-tabs (extract only, when settings active) */}
             {showSubTabs && (
               <div className="ml-[52px] mr-2 mt-0.5 mb-1 flex flex-col gap-0.5">
-                {EXTRACT_SETTINGS_TABS.map((tab) => (
+                {settingsTabs!.map((tab) => (
                   <Link
                     key={tab.key}
                     to="/books/$label/v2/$step/settings"

@@ -2,6 +2,7 @@ import { useState } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { STEPS } from "@/components/v2/StepSidebar"
 import { ExtractSettings } from "@/components/v2/steps/ExtractSettings"
+import { StoryboardSettings } from "@/components/v2/steps/StoryboardSettings"
 import { cn } from "@/lib/utils"
 
 export const Route = createFileRoute("/books/$label/v2/$step/settings")({
@@ -42,6 +43,8 @@ function StepSettingsPage() {
       <div className="flex-1 min-h-0 overflow-auto">
         {step === "extract" ? (
           <ExtractSettings bookLabel={label} headerTarget={headerTarget} tab={tab} />
+        ) : step === "storyboard" ? (
+          <StoryboardSettings bookLabel={label} headerTarget={headerTarget} tab={tab} />
         ) : (
           <div className="p-4 max-w-2xl">
             <p className="text-sm text-muted-foreground">
