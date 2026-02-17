@@ -240,7 +240,17 @@ describe("sectionPage", () => {
 
     expect(result.sections[0]).toEqual({
       sectionType: "text_only",
-      partIds: ["pg001_gp001"],
+      parts: [
+        {
+          type: "text_group",
+          groupId: "pg001_gp001",
+          groupType: "paragraph",
+          texts: [
+            { textType: "section_text", text: "Body text", isPruned: false },
+          ],
+          isPruned: false,
+        },
+      ],
       backgroundColor: "#ffffff",
       textColor: "#000000",
       pageNumber: 1,
@@ -249,7 +259,17 @@ describe("sectionPage", () => {
 
     expect(result.sections[1]).toEqual({
       sectionType: "credits",
-      partIds: ["pg001_gp002"],
+      parts: [
+        {
+          type: "text_group",
+          groupId: "pg001_gp002",
+          groupType: "paragraph",
+          texts: [
+            { textType: "section_text", text: "Credits info", isPruned: false },
+          ],
+          isPruned: false,
+        },
+      ],
       backgroundColor: "#f0f0f0",
       textColor: "#333333",
       pageNumber: null,
@@ -314,6 +334,90 @@ describe("sectionPage", () => {
     const images = capturedContext?.images as Array<{ image_id: string }>
     expect(images).toHaveLength(1)
     expect(images[0].image_id).toBe("pg001_im002")
+  })
+
+  it("adds unassigned parts as pruned to last non-pruned section", async () => {
+    const response = {
+      reasoning: "Only used first group",
+      sections: [
+        {
+          section_type: "text_only",
+          part_ids: ["pg001_gp001"],
+          background_color: "#ffffff",
+          text_color: "#000000",
+          page_number: 1,
+        },
+      ],
+    }
+
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>() =>
+        ({ object: response as T }) as GenerateObjectResult<T>,
+    }
+
+    const result = await sectionPage(
+      {
+        pageId: "pg001",
+        pageNumber: 1,
+        pageImageBase64: "base64img",
+        textClassification: {
+          reasoning: "test",
+          groups: [
+            {
+              groupId: "pg001_gp001",
+              groupType: "paragraph",
+              texts: [
+                { textType: "section_text", text: "Body", isPruned: false },
+              ],
+            },
+            {
+              groupId: "pg001_gp002",
+              groupType: "heading",
+              texts: [
+                { textType: "header_text", text: "Header", isPruned: true },
+              ],
+            },
+          ],
+        },
+        imageClassification: {
+          images: [
+            { imageId: "pg001_im001", isPruned: true, reason: "too small" },
+          ],
+        },
+        images: [],
+      },
+      {
+        sectionTypes: [{ key: "text_only", description: "Text only" }],
+        prunedSectionTypes: [],
+        promptName: "page_sectioning",
+        modelId: "openai:gpt-4o",
+      },
+      fakeLlm
+    )
+
+    // Section should have the assigned group + unassigned group and image as pruned
+    expect(result.sections).toHaveLength(1)
+    expect(result.sections[0].parts).toHaveLength(3)
+    expect(result.sections[0].parts[0]).toEqual({
+      type: "text_group",
+      groupId: "pg001_gp001",
+      groupType: "paragraph",
+      texts: [{ textType: "section_text", text: "Body", isPruned: false }],
+      isPruned: false,
+    })
+    expect(result.sections[0].parts[1]).toEqual({
+      type: "text_group",
+      groupId: "pg001_gp002",
+      groupType: "heading",
+      texts: [{ textType: "header_text", text: "Header", isPruned: true }],
+      isPruned: true,
+    })
+    expect(result.sections[0].parts[2]).toEqual({
+      type: "image",
+      imageId: "pg001_im001",
+      isPruned: true,
+      reason: "too small",
+    })
   })
 
   it("throws when no section types configured", async () => {

@@ -2,7 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel, TextClassificationOutput, ImageClassificationOutput, PageSectioningOutput } from "@adt/types"
+import { parseBookLabel, TextClassificationOutput, ImageClassificationOutput, PageSectioningOutput, WebRenderingOutput, ImageCaptioningOutput } from "@adt/types"
 import { openBookDb } from "@adt/storage"
 import { createBookStorage } from "@adt/storage"
 import { reRenderPage } from "../services/page-edit-service.js"
@@ -11,7 +11,10 @@ interface PageSummary {
   pageId: string
   pageNumber: number
   hasRendering: boolean
+  hasCaptioning: boolean
   textPreview: string
+  imageCount: number
+  wordCount: number
 }
 
 interface PageDetail {
@@ -23,6 +26,13 @@ interface PageDetail {
   sectioning: unknown | null
   rendering: unknown | null
   imageCaptioning: unknown | null
+  versions: {
+    textClassification: number | null
+    imageClassification: number | null
+    sectioning: number | null
+    rendering: number | null
+    imageCaptioning: number | null
+  }
 }
 
 function getDbPath(label: string, booksDir: string): string {
@@ -65,11 +75,67 @@ export function createPageRoutes(
         rendered.add(row.item_id)
       }
 
+      // Check which pages have image-captioning output
+      const captioned = new Set<string>()
+      const captionRows = db.all(
+        "SELECT DISTINCT item_id FROM node_data WHERE node = ?",
+        ["image-captioning"]
+      ) as Array<{ item_id: string }>
+      for (const row of captionRows) {
+        captioned.add(row.item_id)
+      }
+
+      // Get image counts per page from image-classification node data
+      const imageCounts = new Map<string, number>()
+      const imageRows = db.all(
+        "SELECT item_id, data FROM node_data WHERE node = ? ORDER BY version DESC",
+        ["image-classification"]
+      ) as Array<{ item_id: string; data: string }>
+      for (const row of imageRows) {
+        if (!imageCounts.has(row.item_id)) {
+          try {
+            const parsed = JSON.parse(row.data)
+            const images = parsed.images as Array<{ imageId: string }>
+            // Exclude page image from count
+            const count = images.filter((img) => img.imageId !== `${row.item_id}_page`).length
+            imageCounts.set(row.item_id, count)
+          } catch {
+            imageCounts.set(row.item_id, 0)
+          }
+        }
+      }
+
+      // Get classified text per page from text-classification node data
+      const classifiedText = new Map<string, string>()
+      const textClassRows = db.all(
+        "SELECT item_id, data FROM node_data WHERE node = ? ORDER BY version DESC",
+        ["text-classification"]
+      ) as Array<{ item_id: string; data: string }>
+      for (const row of textClassRows) {
+        if (!classifiedText.has(row.item_id)) {
+          try {
+            const parsed = JSON.parse(row.data) as {
+              groups: Array<{ texts: Array<{ text: string; isPruned: boolean }> }>
+            }
+            const texts = parsed.groups
+              .flatMap((g) => g.texts)
+              .filter((t) => !t.isPruned)
+              .map((t) => t.text)
+            classifiedText.set(row.item_id, texts.join("\n"))
+          } catch {
+            // ignore parse errors
+          }
+        }
+      }
+
       const result: PageSummary[] = pages.map((p) => ({
         pageId: p.page_id,
         pageNumber: p.page_number,
         hasRendering: rendered.has(p.page_id),
-        textPreview: p.text.slice(0, 150),
+        hasCaptioning: captioned.has(p.page_id),
+        textPreview: classifiedText.get(p.page_id) ?? p.text.slice(0, 150),
+        imageCount: imageCounts.get(p.page_id) ?? 0,
+        wordCount: p.text.trim() ? p.text.trim().split(/\s+/).length : 0,
       }))
 
       return c.json(result)
@@ -106,25 +172,38 @@ export function createPageRoutes(
 
       const page = pageRows[0]
 
-      // Get pipeline outputs
-      const getNodeData = (node: string): unknown | null => {
+      // Get pipeline outputs (data + version)
+      const getNodeData = (node: string): { data: unknown; version: number } | null => {
         const rows = db.all(
-          "SELECT data FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
+          "SELECT data, version FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
           [node, pageId]
-        ) as Array<{ data: string }>
+        ) as Array<{ data: string; version: number }>
         if (rows.length === 0) return null
-        return JSON.parse(rows[0].data)
+        return { data: JSON.parse(rows[0].data), version: rows[0].version }
       }
+
+      const textClassNode = getNodeData("text-classification")
+      const imageClassNode = getNodeData("image-classification")
+      const sectioningNode = getNodeData("page-sectioning")
+      const renderingNode = getNodeData("web-rendering")
+      const imageCaptioningNode = getNodeData("image-captioning")
 
       const result: PageDetail = {
         pageId: page.page_id,
         pageNumber: page.page_number,
         text: page.text,
-        textClassification: getNodeData("text-classification"),
-        imageClassification: getNodeData("image-classification"),
-        sectioning: getNodeData("page-sectioning"),
-        rendering: getNodeData("web-rendering"),
-        imageCaptioning: getNodeData("image-captioning"),
+        textClassification: textClassNode?.data ?? null,
+        imageClassification: imageClassNode?.data ?? null,
+        sectioning: sectioningNode?.data ?? null,
+        rendering: renderingNode?.data ?? null,
+        imageCaptioning: imageCaptioningNode?.data ?? null,
+        versions: {
+          textClassification: textClassNode?.version ?? null,
+          imageClassification: imageClassNode?.version ?? null,
+          sectioning: sectioningNode?.version ?? null,
+          rendering: renderingNode?.version ?? null,
+          imageCaptioning: imageCaptioningNode?.version ?? null,
+        },
       }
 
       return c.json(result)
@@ -253,6 +332,62 @@ export function createPageRoutes(
       }
 
       const version = storage.putNodeData("page-sectioning", pageId, parsed.data)
+      return c.json({ version })
+    } finally {
+      storage.close()
+    }
+  })
+
+  // PUT /books/:label/pages/:pageId/rendering — Update web rendering
+  app.put("/books/:label/pages/:pageId/rendering", async (c) => {
+    const { label, pageId } = c.req.param()
+    const safeLabel = parseBookLabel(label)
+
+    const body = await c.req.json()
+    const parsed = WebRenderingOutput.safeParse(body)
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid web-rendering data: ${parsed.error.message}`,
+      })
+    }
+
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const pages = storage.getPages()
+      const page = pages.find((p) => p.pageId === pageId)
+      if (!page) {
+        throw new HTTPException(404, { message: `Page not found: ${pageId}` })
+      }
+
+      const version = storage.putNodeData("web-rendering", pageId, parsed.data)
+      return c.json({ version })
+    } finally {
+      storage.close()
+    }
+  })
+
+  // PUT /books/:label/pages/:pageId/image-captioning — Update image captioning
+  app.put("/books/:label/pages/:pageId/image-captioning", async (c) => {
+    const { label, pageId } = c.req.param()
+    const safeLabel = parseBookLabel(label)
+
+    const body = await c.req.json()
+    const parsed = ImageCaptioningOutput.safeParse(body)
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid image-captioning data: ${parsed.error.message}`,
+      })
+    }
+
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const pages = storage.getPages()
+      const page = pages.find((p) => p.pageId === pageId)
+      if (!page) {
+        throw new HTTPException(404, { message: `Page not found: ${pageId}` })
+      }
+
+      const version = storage.putNodeData("image-captioning", pageId, parsed.data)
       return c.json({ version })
     } finally {
       storage.close()

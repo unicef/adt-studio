@@ -66,21 +66,25 @@ function createProofProgress(): Progress & { stop(): void } {
         }
       }
 
-      if (event.type === "step-progress" && event.step === "image-captioning") {
-        if (event.page !== undefined && event.totalPages !== undefined && captionBar) {
-          captionBar.setTotal(event.totalPages)
-          captionBar.update(event.page)
+      if (event.type === "step-progress") {
+        const bar =
+          event.step === "image-captioning" ? captionBar :
+          event.step === "glossary" ? glossaryBar :
+          event.step === "quiz-generation" ? quizBar :
+          undefined
+        if (bar && event.page !== undefined && event.totalPages !== undefined) {
+          bar.setTotal(event.totalPages)
+          bar.update(event.page)
         }
       }
 
       if (event.type === "step-complete") {
-        if (event.step === "image-captioning" && captionBar) {
-          captionBar.update(captionBar.getTotal())
-        } else if (event.step === "glossary" && glossaryBar) {
-          glossaryBar.update(1)
-        } else if (event.step === "quiz-generation" && quizBar) {
-          quizBar.update(1)
-        }
+        const bar =
+          event.step === "image-captioning" ? captionBar :
+          event.step === "glossary" ? glossaryBar :
+          event.step === "quiz-generation" ? quizBar :
+          undefined
+        if (bar) bar.update(bar.getTotal())
       }
 
       if (event.type === "step-skip") {

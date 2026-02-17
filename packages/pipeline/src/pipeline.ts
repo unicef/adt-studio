@@ -63,6 +63,14 @@ export async function runPipeline(
 
   const storage = createBookStorage(label, booksRoot)
 
+  // Copy source PDF into book directory so re-extraction can find it
+  const bookDir = path.join(booksRoot, label)
+  const destPdf = path.join(bookDir, `${label}.pdf`)
+  const resolvedPdf = path.resolve(pdfPath)
+  if (resolvedPdf !== path.resolve(destPdf)) {
+    fs.copyFileSync(resolvedPdf, destPdf)
+  }
+
   try {
     // Step 1: Extract PDF
     const config = loadBookConfig(label, booksRoot, configPath)
@@ -326,7 +334,6 @@ async function processPage(
       pageId: page.pageId,
       pageImageBase64,
       sectioning,
-      textClassification,
       images: renderImages,
     },
     resolveRenderConfig,

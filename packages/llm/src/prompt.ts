@@ -20,9 +20,10 @@ export interface PromptEngine {
  * Create a prompt engine that renders Liquid templates from a directory.
  * Supports custom {% chat %} and {% image %} tags.
  */
-export function createPromptEngine(promptsDir: string): PromptEngine {
+export function createPromptEngine(promptsDir: string | string[]): PromptEngine {
+  const roots = Array.isArray(promptsDir) ? promptsDir : [promptsDir]
   const engine = new Liquid({
-    root: [promptsDir],
+    root: roots,
     extname: ".liquid",
     strictVariables: false,
   })

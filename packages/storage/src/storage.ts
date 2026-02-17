@@ -20,6 +20,7 @@ export interface NodeDataRow {
 
 export interface Storage {
   clearExtractedData(): void
+  clearNodesByType(nodes: string[]): void
   putExtractedPage(page: ExtractedPage): void
 
   getPages(): PageData[]

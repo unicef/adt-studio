@@ -18,59 +18,51 @@ function safeParseLabel(label: string): string {
 export function createTTSRoutes(booksDir: string): Hono {
   const app = new Hono()
 
-  // GET /books/:label/tts — Get all TTS entries (all languages)
+  // GET /books/:label/tts — Get all TTS data grouped by language
   app.get("/books/:label/tts", (c) => {
     const { label } = c.req.param()
     const safeLabel = safeParseLabel(label)
-    const dbPath = path.join(
-      path.resolve(booksDir),
-      safeLabel,
-      `${safeLabel}.db`
-    )
+    const dbPath = path.join(path.resolve(booksDir), safeLabel, `${safeLabel}.db`)
 
     if (!fs.existsSync(dbPath)) {
-      throw new HTTPException(404, {
-        message: `Book not found: ${safeLabel}`,
-      })
+      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
     }
 
     const db = openBookDb(dbPath)
     try {
       // TTS is stored per language: node="tts", item_id=language code
+      // Get latest version per language
       const rows = db.all(
-        `SELECT item_id, data FROM node_data
-         WHERE node = 'tts'
-         ORDER BY version DESC`,
-      ) as Array<{ item_id: string; data: string }>
+        `SELECT item_id, data, version FROM node_data
+         WHERE node = ? AND (item_id, version) IN (
+           SELECT item_id, MAX(version) FROM node_data WHERE node = ? GROUP BY item_id
+         )`,
+        ["tts", "tts"]
+      ) as Array<{ item_id: string; data: string; version: number }>
 
-      // Deduplicate by language (take latest version)
-      const seen = new Set<string>()
-      const entries: Array<{ textId: string; fileName: string; language: string }> = []
-
+      const languages: Record<string, { entries: Array<{ textId: string; fileName: string; voice: string; model: string; cached: boolean }>; generatedAt: string; version: number }> = {}
       for (const row of rows) {
-        if (seen.has(row.item_id)) continue
-        seen.add(row.item_id)
-
-        let parsed: unknown
         try {
-          parsed = JSON.parse(row.data)
+          const parsed = JSON.parse(row.data)
+          const validated = TTSOutput.safeParse(parsed)
+          if (!validated.success) continue
+          languages[row.item_id] = {
+            entries: validated.data.entries.map((e) => ({
+              textId: e.textId,
+              fileName: e.fileName,
+              voice: e.voice,
+              model: e.model,
+              cached: e.cached,
+            })),
+            generatedAt: validated.data.generatedAt,
+            version: row.version,
+          }
         } catch {
-          continue
-        }
-
-        const validated = TTSOutput.safeParse(parsed)
-        if (!validated.success) continue
-
-        for (const entry of validated.data.entries) {
-          entries.push({
-            textId: entry.textId,
-            fileName: entry.fileName,
-            language: entry.language,
-          })
+          // skip corrupted
         }
       }
 
-      return c.json({ entries })
+      return c.json({ languages })
     } finally {
       db.close()
     }

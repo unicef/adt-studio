@@ -16,9 +16,13 @@ import {
 import { SECTION_TYPE_GROUPS, getSectionTypeLabel } from "@/lib/section-constants"
 import { InlineEditCard } from "./InlineEditCard"
 
+type SectionPart =
+  | { type: "text_group"; groupId: string; groupType: string; texts: Array<{ textType: string; text: string; isPruned: boolean }>; isPruned: boolean }
+  | { type: "image"; imageId: string; isPruned: boolean; reason?: string }
+
 interface Section {
   sectionType: string
-  partIds: string[]
+  parts: SectionPart[]
   backgroundColor: string
   textColor: string
   pageNumber: number | null
@@ -60,12 +64,14 @@ export function SectionCard({
   onAddPart,
   onRemovePart,
 }: SectionCardProps) {
-  const getPartInfo = (partId: string) => {
-    const found = allPartIds.find((p) => p.id === partId)
-    return found ?? { id: partId, label: partId, kind: "text" as const }
-  }
+  const getPartId = (part: SectionPart) =>
+    part.type === "image" ? part.imageId : part.groupId
 
-  const availableParts = allPartIds.filter((p) => !section.partIds.includes(p.id))
+  const getPartLabel = (part: SectionPart) =>
+    part.type === "image" ? part.imageId : `${part.groupId} (${part.groupType})`
+
+  const assignedIds = new Set(section.parts.map(getPartId))
+  const availableParts = allPartIds.filter((p) => !assignedIds.has(p.id))
 
   const viewContent = (
     <div className={section.isPruned ? "opacity-60" : ""}>
@@ -92,21 +98,21 @@ export function SectionCard({
           <Badge variant="secondary" className="text-xs">Pruned</Badge>
         )}
       </div>
-      {section.partIds.length > 0 && (
+      {section.parts.length > 0 && (
         <div className="mt-1.5 flex flex-wrap gap-1">
-          {section.partIds.map((partId) => {
-            const info = getPartInfo(partId)
+          {section.parts.map((part) => {
+            const partId = getPartId(part)
             return (
               <span
                 key={partId}
                 className="inline-flex items-center gap-1 rounded bg-muted/50 px-1.5 py-0.5 text-xs text-muted-foreground"
               >
-                {info.kind === "image" ? (
+                {part.type === "image" ? (
                   <Image className="h-2.5 w-2.5" />
                 ) : (
                   <FileText className="h-2.5 w-2.5" />
                 )}
-                {info.label}
+                {getPartLabel(part)}
               </span>
             )
           })}
@@ -198,24 +204,24 @@ export function SectionCard({
       {/* Parts */}
       <div>
         <p className="mb-1 text-xs font-medium text-muted-foreground">
-          Parts ({section.partIds.length})
+          Parts ({section.parts.length})
         </p>
-        {section.partIds.length > 0 ? (
+        {section.parts.length > 0 ? (
           <div className="space-y-1">
-            {section.partIds.map((partId) => {
-              const info = getPartInfo(partId)
+            {section.parts.map((part) => {
+              const partId = getPartId(part)
               return (
                 <div
                   key={partId}
                   className="flex items-center justify-between rounded bg-muted/30 px-2 py-1"
                 >
                   <span className="flex items-center gap-1.5 text-xs">
-                    {info.kind === "image" ? (
+                    {part.type === "image" ? (
                       <Image className="h-3 w-3 text-muted-foreground" />
                     ) : (
                       <FileText className="h-3 w-3 text-muted-foreground" />
                     )}
-                    {info.label}
+                    {getPartLabel(part)}
                   </span>
                   <Button
                     variant="ghost"

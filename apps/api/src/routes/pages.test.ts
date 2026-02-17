@@ -72,7 +72,7 @@ describe("Page routes", () => {
         sections: [
           {
             sectionType: "content",
-            partIds: ["g1"],
+            parts: [{ type: "text_group", groupId: "g1", groupType: "paragraph", texts: [{ textType: "section_text", text: "Hello world", isPruned: false }], isPruned: false }],
             backgroundColor: "#ffffff",
             textColor: "#000000",
             pageNumber: 1,
@@ -114,7 +114,7 @@ describe("Page routes", () => {
       expect(body[0].pageId).toBe(`${label}_p1`)
       expect(body[0].pageNumber).toBe(1)
       expect(body[0].hasRendering).toBe(true)
-      expect(body[0].textPreview).toBe("Page one text content")
+      expect(body[0].textPreview).toBe("Hello world")
       expect(body[1].pageId).toBe(`${label}_p2`)
       expect(body[1].pageNumber).toBe(2)
       expect(body[1].hasRendering).toBe(false)

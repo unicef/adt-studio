@@ -19,7 +19,7 @@ import {
 } from "./speech.js"
 import { loadBookConfig } from "./config.js"
 import { nullProgress, type Progress } from "./progress.js"
-import { processWithConcurrency } from "./proof.js"
+import { processWithConcurrency } from "./concurrency.js"
 import { packageAdtWeb } from "./package-web.js"
 import type { StepName, TextCatalogOutput, TextCatalogEntry, SpeechFileEntry, TTSOutput } from "@adt/types"
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { BookOpen, ArrowRight, CheckCircle2, Loader2, Package, ExternalLink } from "lucide-react"
+import { BookOpen, LayoutGrid, FileDown, ArrowRight, CheckCircle2, Loader2, Package, ExternalLink, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -180,6 +180,20 @@ function BookDetailPage() {
           {stage === "Complete" && <CheckCircle2 className="mr-1 h-3 w-3" />}
           {stage}
         </Badge>
+        {book.pageCount > 0 && (
+          <Link to="/books/$label/storyboard" params={{ label }} search={{ page: undefined }}>
+            <Button variant="outline" size="sm">
+              <LayoutGrid className="mr-2 h-4 w-4" />
+              Storyboard
+            </Button>
+          </Link>
+        )}
+        <Link to="/books/$label/v2/$step" params={{ label, step: "extract" }}>
+          <Button variant="outline" size="sm">
+            <Sparkles className="mr-2 h-4 w-4" />
+            Try New UI
+          </Button>
+        </Link>
       </div>
 
       {/* Rebuild warning */}

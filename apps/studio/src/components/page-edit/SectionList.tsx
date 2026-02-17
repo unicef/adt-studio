@@ -54,7 +54,9 @@ export function SectionList({
   const assignedPartIds = useMemo(() => {
     const set = new Set<string>()
     for (const s of sections) {
-      for (const id of s.partIds) set.add(id)
+      for (const part of s.parts) {
+        set.add(part.type === "image" ? part.imageId : part.groupId)
+      }
     }
     return set
   }, [sections])
@@ -122,7 +124,7 @@ export function SectionList({
       onUpdate((prev) => {
         const merged: Section = {
           ...prev.sections[index],
-          partIds: [...prev.sections[index].partIds, ...prev.sections[index + 1].partIds],
+          parts: [...prev.sections[index].parts, ...prev.sections[index + 1].parts],
         }
         return {
           ...prev,
@@ -139,21 +141,52 @@ export function SectionList({
 
   const addPart = useCallback(
     (sectionIndex: number, partId: string) => {
-      onUpdate((prev) => ({
-        ...prev,
-        sections: prev.sections.map((s, i) => {
-          if (i === sectionIndex) {
-            return { ...s, partIds: [...s.partIds, partId] }
-          }
-          // Auto-move from other sections
-          if (s.partIds.includes(partId)) {
-            return { ...s, partIds: s.partIds.filter((id) => id !== partId) }
-          }
-          return s
-        }),
-      }))
+      // Build a SectionPart object from the available text groups / images
+      const textGroup = textGroups.find((g) => g.groupId === partId)
+      const image = images.find((img) => img.imageId === partId)
+
+      // Try to reuse the existing part object if it's being moved from another section
+      const findExistingPart = (sections: Section[]) => {
+        for (const s of sections) {
+          const existing = s.parts.find((p) =>
+            p.type === "image" ? p.imageId === partId : p.groupId === partId
+          )
+          if (existing) return existing
+        }
+        return null
+      }
+
+      onUpdate((prev) => {
+        const existingPart = findExistingPart(prev.sections)
+        const newPart: Section["parts"][number] = existingPart
+          ? existingPart
+          : textGroup
+            ? { type: "text_group" as const, groupId: textGroup.groupId, groupType: textGroup.groupType, texts: [], isPruned: false }
+            : image
+              ? { type: "image" as const, imageId: image.imageId, isPruned: image.isPruned }
+              : { type: "text_group" as const, groupId: partId, groupType: "unknown", texts: [], isPruned: false }
+
+        return {
+          ...prev,
+          sections: prev.sections.map((s, i) => {
+            if (i === sectionIndex) {
+              return { ...s, parts: [...s.parts, newPart] }
+            }
+            // Auto-move from other sections
+            const hasIt = s.parts.some((p) =>
+              p.type === "image" ? p.imageId === partId : p.groupId === partId
+            )
+            if (hasIt) {
+              return { ...s, parts: s.parts.filter((p) =>
+                p.type === "image" ? p.imageId !== partId : p.groupId !== partId
+              ) }
+            }
+            return s
+          }),
+        }
+      })
     },
-    [onUpdate]
+    [onUpdate, textGroups, images]
   )
 
   const removePart = useCallback(
@@ -162,7 +195,9 @@ export function SectionList({
         ...prev,
         sections: prev.sections.map((s, i) =>
           i === sectionIndex
-            ? { ...s, partIds: s.partIds.filter((id) => id !== partId) }
+            ? { ...s, parts: s.parts.filter((p) =>
+                p.type === "image" ? p.imageId !== partId : p.groupId !== partId
+              ) }
             : s
         ),
       }))
@@ -177,7 +212,7 @@ export function SectionList({
         ...prev.sections,
         {
           sectionType: "text_only",
-          partIds: [],
+          parts: [],
           backgroundColor: "#ffffff",
           textColor: "#333333",
           pageNumber: null,

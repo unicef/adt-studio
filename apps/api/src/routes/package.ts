@@ -40,11 +40,14 @@ export function createPackageRoutes(
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const masterStatusRow = storage.getLatestNodeData("master-status", "book")
-      const masterStatus = masterStatusRow?.data as { status?: string } | undefined
-      if (masterStatus?.status !== "completed") {
+      // Require at least one rendered page
+      const pages = storage.getPages()
+      const hasRendering = pages.some(
+        (p) => storage.getLatestNodeData("web-rendering", p.pageId) !== null,
+      )
+      if (!hasRendering) {
         throw new HTTPException(409, {
-          message: "Master phase must be completed before packaging ADT",
+          message: "At least one page must have a web rendering before packaging",
         })
       }
 

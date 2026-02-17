@@ -3,7 +3,7 @@ import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel, QuizGenerationOutput } from "@adt/types"
-import { openBookDb } from "@adt/storage"
+import { openBookDb, createBookStorage } from "@adt/storage"
 
 function safeParseLabel(label: string): string {
   try {
@@ -67,6 +67,28 @@ export function createQuizRoutes(booksDir: string): Hono {
       })
     } finally {
       db.close()
+    }
+  })
+
+  // PUT /books/:label/quizzes — Update quizzes
+  app.put("/books/:label/quizzes", async (c) => {
+    const { label } = c.req.param()
+    const safeLabel = safeParseLabel(label)
+
+    const body = await c.req.json()
+    const parsed = QuizGenerationOutput.safeParse(body)
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid quiz data: ${parsed.error.message}`,
+      })
+    }
+
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const version = storage.putNodeData("quiz-generation", "book", parsed.data)
+      return c.json({ version })
+    } finally {
+      storage.close()
     }
   })
 

@@ -3,11 +3,7 @@ import { createBookStorage } from "@adt/storage"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
 import type { LLMModel } from "@adt/llm"
 import { renderPage, buildRenderStrategyResolver, createTemplateEngine, loadBookConfig } from "@adt/pipeline"
-import type {
-  TextClassificationOutput,
-  ImageClassificationOutput,
-  PageSectioningOutput,
-} from "@adt/types"
+import type { PageSectioningOutput } from "@adt/types"
 
 export interface ReRenderOptions {
   label: string
@@ -36,32 +32,21 @@ export async function reRenderPage(
 
   try {
     // Read latest pipeline data
-    const textRow = storage.getLatestNodeData("text-classification", pageId)
-    const imageRow = storage.getLatestNodeData("image-classification", pageId)
     const sectionRow = storage.getLatestNodeData("page-sectioning", pageId)
 
-    if (!textRow || !imageRow || !sectionRow) {
+    if (!sectionRow) {
       throw new Error(
-        "Page must have text-classification, image-classification, and page-sectioning data before re-rendering"
+        "Page must have page-sectioning data before re-rendering"
       )
     }
 
-    const textClassification = textRow.data as TextClassificationOutput
-    const imageClassification = imageRow.data as ImageClassificationOutput
     const sectioning = sectionRow.data as PageSectioningOutput
 
-    // Build image map (non-pruned images)
+    // Build image map (all page images — expandParts filters by pruned status)
     const allImages = storage.getPageImages(pageId)
-    const prunedImageIds = new Set(
-      imageClassification.images
-        .filter((img) => img.isPruned)
-        .map((img) => img.imageId)
-    )
     const renderImages = new Map<string, string>()
     for (const img of allImages) {
-      if (!prunedImageIds.has(img.imageId)) {
-        renderImages.set(img.imageId, storage.getImageBase64(img.imageId))
-      }
+      renderImages.set(img.imageId, storage.getImageBase64(img.imageId))
     }
 
     // Load config and build render strategy resolver
@@ -70,7 +55,8 @@ export async function reRenderPage(
 
     // Create LLM model resolver (model-specific, cached)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
-    const promptEngine = createPromptEngine(promptsDir)
+    const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
     const templatesDir = path.join(path.dirname(promptsDir), "templates")
     const templateEngine = createTemplateEngine(templatesDir)
     const renderModels = new Map<string, LLMModel>()
@@ -97,7 +83,6 @@ export async function reRenderPage(
         pageId,
         pageImageBase64,
         sectioning,
-        textClassification,
         images: renderImages,
       },
       resolveRenderConfig,

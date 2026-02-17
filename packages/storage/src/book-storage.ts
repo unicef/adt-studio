@@ -41,6 +41,19 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       clearExtractedRows(db)
     },
 
+    clearNodesByType(nodes: string[]): void {
+      if (nodes.length === 0) return
+      const placeholders = nodes.map(() => "?").join(", ")
+      db.exec("BEGIN IMMEDIATE")
+      try {
+        db.run(`DELETE FROM node_data WHERE node IN (${placeholders})`, nodes)
+        db.exec("COMMIT")
+      } catch (err) {
+        db.exec("ROLLBACK")
+        throw err
+      }
+    },
+
     putExtractedPage(page: ExtractedPage): void {
       db.run(
         `INSERT INTO pages (page_id, page_number, text)

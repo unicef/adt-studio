@@ -1,6 +1,5 @@
 import type {
   PageSectioningOutput,
-  TextClassificationOutput,
   AppConfig,
   SectionRendering,
   WebRenderingOutput,
@@ -53,7 +52,6 @@ export interface RenderPageInput {
   pageId: string
   pageImageBase64: string
   sectioning: PageSectioningOutput
-  textClassification: TextClassificationOutput
   images: Map<string, string> // imageId → base64
 }
 
@@ -69,42 +67,39 @@ function getLLMModel(
 }
 
 /**
- * Resolve section part IDs to an ordered array of groups and images.
- * Groups are expanded to their non-pruned text entries.
+ * Expand inline section parts into the render-ready SectionPart format.
+ * Filters to non-pruned parts, expands text groups to TextInput with generated IDs,
+ * and resolves image base64 from the images map.
  */
-function resolveParts(
-  partIds: string[],
-  textClassification: TextClassificationOutput,
+function expandParts(
+  sectionParts: import("@adt/types").SectionPart[],
   images: Map<string, string>
 ): SectionPart[] {
-  const groupMap = new Map(
-    textClassification.groups.map((g) => [g.groupId, g])
-  )
   const parts: SectionPart[] = []
 
-  for (const partId of partIds) {
-    const group = groupMap.get(partId)
-    if (group) {
-      const nonPruned = group.texts.filter((t) => !t.isPruned)
+  for (const part of sectionParts) {
+    if (part.isPruned) continue
+
+    if (part.type === "text_group") {
+      const nonPruned = part.texts.filter((t) => !t.isPruned)
       const texts = nonPruned.map((t, i) => ({
-        textId: `${partId}_tx${String(i + 1).padStart(3, "0")}`,
+        textId: `${part.groupId}_tx${String(i + 1).padStart(3, "0")}`,
         textType: t.textType,
         text: t.text,
       }))
       if (texts.length > 0) {
         parts.push({
           type: "group",
-          groupId: partId,
-          groupType: group.groupType,
+          groupId: part.groupId,
+          groupType: part.groupType,
           texts,
         })
       }
-      continue
-    }
-
-    const imageBase64 = images.get(partId)
-    if (imageBase64) {
-      parts.push({ type: "image", imageId: partId, imageBase64 })
+    } else if (part.type === "image") {
+      const imageBase64 = images.get(part.imageId)
+      if (imageBase64) {
+        parts.push({ type: "image", imageId: part.imageId, imageBase64 })
+      }
     }
   }
 
@@ -131,12 +126,8 @@ export async function renderPage(
     // Skip pruned sections
     if (section.isPruned) continue
 
-    // Resolve parts from part IDs
-    const parts = resolveParts(
-      section.partIds,
-      input.textClassification,
-      input.images
-    )
+    // Expand inline parts to render-ready format
+    const parts = expandParts(section.parts, input.images)
 
     // Skip sections with no content
     if (parts.length === 0) continue

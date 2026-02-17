@@ -1,8 +1,35 @@
 import { z } from "zod"
 
+export const SectionTextEntry = z.object({
+  textType: z.string(),
+  text: z.string(),
+  isPruned: z.boolean(),
+})
+export type SectionTextEntry = z.infer<typeof SectionTextEntry>
+
+export const SectionTextPart = z.object({
+  type: z.literal("text_group"),
+  groupId: z.string(),
+  groupType: z.string(),
+  texts: z.array(SectionTextEntry),
+  isPruned: z.boolean(),
+})
+export type SectionTextPart = z.infer<typeof SectionTextPart>
+
+export const SectionImagePart = z.object({
+  type: z.literal("image"),
+  imageId: z.string(),
+  isPruned: z.boolean(),
+  reason: z.string().optional(),
+})
+export type SectionImagePart = z.infer<typeof SectionImagePart>
+
+export const SectionPart = z.discriminatedUnion("type", [SectionTextPart, SectionImagePart])
+export type SectionPart = z.infer<typeof SectionPart>
+
 export const PageSection = z.object({
   sectionType: z.string(),
-  partIds: z.array(z.string()),
+  parts: z.array(SectionPart),
   backgroundColor: z.string(),
   textColor: z.string(),
   pageNumber: z.number().int().nullable(),

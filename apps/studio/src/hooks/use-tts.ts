@@ -14,9 +14,11 @@ export function useTTS(label: string) {
 
   const audioMap = useMemo(() => {
     const map = new Map<string, string>()
-    if (!data?.entries) return map
-    for (const entry of data.entries) {
-      map.set(entry.textId, getAudioUrl(label, entry.language, entry.fileName))
+    if (!data?.languages) return map
+    for (const [language, langData] of Object.entries(data.languages)) {
+      for (const entry of langData.entries) {
+        map.set(entry.textId, getAudioUrl(label, language, entry.fileName))
+      }
     }
     return map
   }, [data, label])

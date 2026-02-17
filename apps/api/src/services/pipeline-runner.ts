@@ -119,7 +119,8 @@ export function createPipelineRunner(): PipelineRunner {
         // Step 2: Extract Metadata
         const metadataConfig = buildMetadataConfig(config)
         const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
-        const promptEngine = createPromptEngine(promptsDir)
+        const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
+        const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
         const templatesDir = path.join(path.dirname(promptsDir), "templates")
         const templateEngine = createTemplateEngine(templatesDir)
         const rateLimiter = config.rate_limit
@@ -510,7 +511,6 @@ async function processPage(
         pageId: page.pageId,
         pageImageBase64,
         sectioning,
-        textClassification,
         images: renderImages,
       },
       resolveRenderConfig,

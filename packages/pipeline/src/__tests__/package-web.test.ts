@@ -90,7 +90,7 @@ describe("packageAdtWeb", () => {
           sections: [
             {
               sectionType: "content",
-              partIds: [],
+              parts: [],
               backgroundColor: "#fff",
               textColor: "#000",
               pageNumber: 10,
@@ -103,7 +103,7 @@ describe("packageAdtWeb", () => {
           sections: [
             {
               sectionType: "content",
-              partIds: [],
+              parts: [],
               backgroundColor: "#fff",
               textColor: "#000",
               pageNumber: null,

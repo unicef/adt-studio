@@ -155,6 +155,63 @@ export function createBookRoutes(
     }
   })
 
+  // GET /books/:label/step-status — Which pipeline steps have data
+  app.get("/books/:label/step-status", (c) => {
+    const { label } = c.req.param()
+    let safeLabel: string
+    try {
+      safeLabel = parseBookLabel(label)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      throw new HTTPException(400, { message })
+    }
+    const resolvedDir = path.resolve(booksDir)
+    const dbPath = path.join(resolvedDir, safeLabel, `${safeLabel}.db`)
+
+    if (!fs.existsSync(dbPath)) {
+      return c.json({ steps: {} })
+    }
+
+    const db = openBookDb(dbPath)
+    try {
+      // Check if pages exist (extract step)
+      const pageRows = db.all("SELECT COUNT(*) as count FROM pages") as Array<{ count: number }>
+      const hasPages = (pageRows[0]?.count ?? 0) > 0
+
+      // Get all distinct nodes that have data
+      const nodeRows = db.all("SELECT DISTINCT node FROM node_data") as Array<{ node: string }>
+      const nodes = new Set(nodeRows.map((r) => r.node))
+
+      // Map nodes → step slugs
+      const NODE_TO_STEP: Record<string, string> = {
+        "page-sectioning": "storyboard",
+        "web-rendering": "storyboard",
+        "storyboard-acceptance": "storyboard",
+        "quiz-generation": "quizzes",
+        "image-captioning": "captions",
+        glossary: "glossary",
+        "text-catalog": "translations",
+        "text-catalog-translation": "translations",
+        tts: "text-to-speech",
+      }
+
+      const steps: Record<string, boolean> = {}
+      if (hasPages) steps.extract = true
+      for (const node of nodes) {
+        const step = NODE_TO_STEP[node]
+        if (step) steps[step] = true
+      }
+
+      // Check if ADT is packaged (preview step)
+      const adtDir = path.join(resolvedDir, safeLabel, "adt")
+      if (fs.existsSync(adtDir)) steps.preview = true
+
+      return c.json({ steps })
+    } finally {
+      db.close()
+    }
+  })
+
   // GET /books/:label/export — Download book as ZIP or EPUB
   app.get("/books/:label/export", async (c) => {
     const { label } = c.req.param()
@@ -281,7 +338,8 @@ export function createBookRoutes(
       if (pages.length === 0) {
         throw new HTTPException(404, { message: "ADT has no pages" })
       }
-      return c.redirect(`/api/books/${safeLabel}/adt/${pages[0].href}`)
+      const qs = new URL(c.req.url).search
+      return c.redirect(`/api/books/${safeLabel}/adt/${pages[0].href}${qs}`)
     }
 
     const resolvedPath = path.resolve(adtDir, filePath)
@@ -302,7 +360,7 @@ export function createBookRoutes(
     const fileBuffer = fs.readFileSync(resolvedPath)
     const ext = path.extname(resolvedPath).toLowerCase()
     c.header("Content-Type", MIME_TYPES[ext] ?? "application/octet-stream")
-    c.header("Cache-Control", "public, max-age=3600")
+    c.header("Cache-Control", "no-cache")
     return c.body(fileBuffer)
   })
 

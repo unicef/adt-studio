@@ -3,6 +3,7 @@ import type { AppConfig, GlossaryItem, GlossaryOutput } from "@adt/types"
 import { glossaryLLMSchema, WebRenderingOutput } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
 import type { Storage, PageData } from "@adt/storage"
+import { processWithConcurrency } from "./concurrency.js"
 
 export interface GlossaryConfig {
   promptName: string
@@ -68,12 +69,14 @@ export interface GenerateGlossaryOptions {
   pages: PageData[]
   config: GlossaryConfig
   llmModel: LLMModel
+  concurrency?: number
+  onBatchComplete?: (completed: number, total: number) => void
 }
 
 export async function generateGlossary(
   options: GenerateGlossaryOptions
 ): Promise<GlossaryOutput> {
-  const { storage, pages, config, llmModel } = options
+  const { storage, pages, config, llmModel, concurrency = 1, onBatchComplete } = options
 
   const pageTexts = collectPageTexts(storage, pages)
   if (pageTexts.length === 0) {
@@ -92,7 +95,9 @@ export async function generateGlossary(
 
   // Generate glossary items per batch
   const allItems: GlossaryItem[] = []
-  for (const batch of batches) {
+  let completed = 0
+
+  await processWithConcurrency(batches, concurrency, async (batch) => {
     const result = await llmModel.generateObject<{
       reasoning: string
       items: GlossaryItem[]
@@ -112,7 +117,9 @@ export async function generateGlossary(
     })
 
     allItems.push(...result.object.items)
-  }
+    completed++
+    onBatchComplete?.(completed, batches.length)
+  })
 
   // Deduplicate: first definition wins, case-insensitive
   const seen = new Map<string, GlossaryItem>()

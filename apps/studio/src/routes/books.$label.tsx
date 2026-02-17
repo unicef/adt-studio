@@ -37,7 +37,7 @@ function BookLayout() {
   return (
     <div className="flex flex-col flex-1 min-h-0">
       {/* Main content area */}
-      <div className="flex-1 min-h-0 overflow-auto">
+      <div className="flex-1 min-h-0 flex flex-col">
         <Outlet />
       </div>
 

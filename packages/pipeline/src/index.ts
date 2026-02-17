@@ -3,6 +3,7 @@ export {
   nullProgress,
   createConsoleProgress,
 } from "./progress.js"
+export { processWithConcurrency } from "./concurrency.js"
 export { extractPDF, type ExtractOptions } from "./pdf-extraction.js"
 export {
   classifyPageText,

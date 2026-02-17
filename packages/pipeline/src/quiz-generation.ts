@@ -9,6 +9,7 @@ import type {
 } from "@adt/types"
 import { quizLLMSchema } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
+import { processWithConcurrency } from "./concurrency.js"
 
 export interface QuizConfig {
   language: string
@@ -166,15 +167,30 @@ export async function generateQuiz(
 export async function generateAllQuizzes(
   pages: QuizPageInput[],
   config: QuizConfig,
-  llmModel: LLMModel
+  llmModel: LLMModel,
+  options?: {
+    concurrency?: number
+    onQuizComplete?: (completed: number, total: number) => void
+  }
 ): Promise<QuizGenerationOutput> {
   const batches = batchPages(pages, config.pagesPerQuiz)
   const quizzes: Quiz[] = []
+  const concurrency = options?.concurrency ?? 1
+  let completed = 0
 
-  for (let i = 0; i < batches.length; i++) {
-    const quiz = await generateQuiz(batches[i], i, config, llmModel)
-    quizzes.push(quiz)
-  }
+  await processWithConcurrency(
+    batches.map((batch, index) => ({ batch, index })),
+    concurrency,
+    async ({ batch, index }) => {
+      const quiz = await generateQuiz(batch, index, config, llmModel)
+      quizzes.push(quiz)
+      completed++
+      options?.onQuizComplete?.(completed, batches.length)
+    }
+  )
+
+  // Sort by index since parallel execution may complete out of order
+  quizzes.sort((a, b) => a.quizIndex - b.quizIndex)
 
   return {
     generatedAt: new Date().toISOString(),

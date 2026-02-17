@@ -3,7 +3,7 @@ import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { GlossaryOutput, parseBookLabel } from "@adt/types"
-import { openBookDb } from "@adt/storage"
+import { openBookDb, createBookStorage } from "@adt/storage"
 
 function safeParseLabel(label: string): string {
   try {
@@ -37,9 +37,9 @@ export function createGlossaryRoutes(booksDir: string): Hono {
     const db = openBookDb(dbPath)
     try {
       const rows = db.all(
-        "SELECT data FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
+        "SELECT data, version FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
         ["glossary", "book"]
-      ) as Array<{ data: string }>
+      ) as Array<{ data: string; version: number }>
 
       if (rows.length === 0) {
         return c.json(null)
@@ -61,9 +61,31 @@ export function createGlossaryRoutes(booksDir: string): Hono {
         })
       }
 
-      return c.json(validated.data)
+      return c.json({ ...validated.data, version: rows[0].version })
     } finally {
       db.close()
+    }
+  })
+
+  // PUT /books/:label/glossary — Update glossary
+  app.put("/books/:label/glossary", async (c) => {
+    const { label } = c.req.param()
+    const safeLabel = safeParseLabel(label)
+
+    const body = await c.req.json()
+    const parsed = GlossaryOutput.safeParse(body)
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid glossary data: ${parsed.error.message}`,
+      })
+    }
+
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const version = storage.putNodeData("glossary", "book", parsed.data)
+      return c.json({ version })
+    } finally {
+      storage.close()
     }
   })
 

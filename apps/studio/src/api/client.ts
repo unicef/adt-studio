@@ -92,11 +92,29 @@ export interface RunPipelineOptions {
   endPage?: number
 }
 
+export interface RunStepsOptions {
+  fromStep: string
+  toStep: string
+}
+
+export interface StepRunStatus {
+  label: string
+  status: "idle" | "running" | "completed" | "failed"
+  fromStep?: string
+  toStep?: string
+  error?: string
+  startedAt?: number
+  completedAt?: number
+}
+
 export interface PageSummaryItem {
   pageId: string
   pageNumber: number
   hasRendering: boolean
+  hasCaptioning: boolean
   textPreview: string
+  imageCount: number
+  wordCount: number
 }
 
 export interface SectionRendering {
@@ -131,7 +149,21 @@ export interface PageDetail {
     reasoning: string
     sections: Array<{
       sectionType: string
-      partIds: string[]
+      parts: Array<
+        | {
+            type: "text_group"
+            groupId: string
+            groupType: string
+            texts: Array<{ textType: string; text: string; isPruned: boolean }>
+            isPruned: boolean
+          }
+        | {
+            type: "image"
+            imageId: string
+            isPruned: boolean
+            reason?: string
+          }
+      >
       backgroundColor: string
       textColor: string
       pageNumber: number | null
@@ -144,6 +176,29 @@ export interface PageDetail {
   imageCaptioning: {
     captions: Array<{ imageId: string; reasoning: string; caption: string }>
   } | null
+  versions: {
+    textClassification: number | null
+    imageClassification: number | null
+    sectioning: number | null
+    rendering: number | null
+    imageCaptioning: number | null
+  }
+}
+
+// --- Glossary types ---
+
+export interface GlossaryItem {
+  word: string
+  definition: string
+  variations: string[]
+  emojis: string[]
+}
+
+export interface GlossaryOutput {
+  items: GlossaryItem[]
+  pageCount: number
+  generatedAt: string
+  version: number
 }
 
 // --- Quiz types ---
@@ -175,16 +230,38 @@ export interface QuizzesResponse {
   version: number | null
 }
 
+// --- Text Catalog types ---
+
+export interface TextCatalogEntry {
+  id: string
+  text: string
+}
+
+export interface TextCatalogResponse {
+  entries: TextCatalogEntry[]
+  generatedAt: string
+  version: number
+  translations: Record<string, { entries: TextCatalogEntry[]; version: number }>
+}
+
 // --- TTS types ---
 
 export interface TTSEntry {
   textId: string
   fileName: string
-  language: string
+  voice: string
+  model: string
+  cached: boolean
+}
+
+export interface TTSLanguageData {
+  entries: TTSEntry[]
+  generatedAt: string
+  version: number
 }
 
 export interface TTSResponse {
-  entries: TTSEntry[]
+  languages: Record<string, TTSLanguageData>
 }
 
 // --- Debug types ---
@@ -309,6 +386,23 @@ export const api = {
   getPipelineStatus: (label: string) =>
     request<PipelineStatus>(`/books/${label}/pipeline/status`),
 
+  runSteps: (
+    label: string,
+    apiKey: string,
+    options: RunStepsOptions
+  ) =>
+    request<{ status: string; label: string; fromStep: string; toStep: string }>(
+      `/books/${label}/steps/run`,
+      {
+        method: "POST",
+        headers: { "X-OpenAI-Key": apiKey },
+        body: JSON.stringify(options),
+      }
+    ),
+
+  getStepsStatus: (label: string) =>
+    request<StepRunStatus>(`/books/${label}/steps/status`),
+
   getPages: (label: string) =>
     request<PageSummaryItem[]>(`/books/${label}/pages`),
 
@@ -332,6 +426,18 @@ export const api = {
 
   updateSectioning: (label: string, pageId: string, data: unknown) =>
     request<{ version: number }>(`/books/${label}/pages/${pageId}/sectioning`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  updateRendering: (label: string, pageId: string, data: unknown) =>
+    request<{ version: number }>(`/books/${label}/pages/${pageId}/rendering`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  updateImageCaptioning: (label: string, pageId: string, data: unknown) =>
+    request<{ version: number }>(`/books/${label}/pages/${pageId}/image-captioning`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
@@ -385,6 +491,17 @@ export const api = {
       body: JSON.stringify({ config }),
     }),
 
+  getPrompt: (name: string, bookLabel?: string) =>
+    request<{ name: string; content: string; source?: string }>(
+      bookLabel ? `/books/${bookLabel}/prompts/${name}` : `/prompts/${name}`
+    ),
+
+  updatePrompt: (name: string, content: string, bookLabel?: string) =>
+    request<{ name: string; content: string; source?: string }>(
+      bookLabel ? `/books/${bookLabel}/prompts/${name}` : `/prompts/${name}`,
+      { method: "PUT", body: JSON.stringify({ content }) },
+    ),
+
   runProof: (label: string, apiKey: string) =>
     request<{ status: string; label: string }>(
       `/books/${label}/proof/run`,
@@ -411,6 +528,33 @@ export const api = {
 
   getQuizzes: (label: string) =>
     request<QuizzesResponse>(`/books/${label}/quizzes`),
+
+  updateQuizzes: (label: string, data: unknown) =>
+    request<{ version: number }>(`/books/${label}/quizzes`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  getGlossary: (label: string) =>
+    request<GlossaryOutput | null>(`/books/${label}/glossary`),
+
+  updateGlossary: (label: string, data: unknown) =>
+    request<{ version: number }>(`/books/${label}/glossary`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  getTextCatalog: (label: string) =>
+    request<TextCatalogResponse | null>(`/books/${label}/text-catalog`),
+
+  updateTranslation: (label: string, language: string, data: unknown) =>
+    request<{ version: number }>(`/books/${label}/text-catalog-translation/${language}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  getStepStatus: (label: string) =>
+    request<{ steps: Record<string, boolean> }>(`/books/${label}/step-status`),
 
   getTTS: (label: string) =>
     request<TTSResponse>(`/books/${label}/tts`),

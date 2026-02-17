@@ -19,8 +19,13 @@ import { createMasterService } from "./services/master-service.js"
 import { createMasterRunner } from "./services/master-runner.js"
 import { createMasterRoutes } from "./routes/master.js"
 import { createPackageRoutes } from "./routes/package.js"
-import { createPresetRoutes } from "./routes/presets.js"
+import { createPromptRoutes } from "./routes/prompts.js"
+import { createTextCatalogRoutes } from "./routes/text-catalog.js"
 import { createTTSRoutes } from "./routes/tts.js"
+import { createStepRoutes } from "./routes/steps.js"
+import { createStepService } from "./services/step-service.js"
+import { createStepRunner } from "./services/step-runner.js"
+import { createPresetRoutes } from "./routes/presets.js"
 import { createAdtPreviewRoutes } from "./routes/adt-preview.js"
 
 // Resolve paths relative to monorepo root (2 levels up from apps/api/)
@@ -42,6 +47,8 @@ const proofRunner = createProofRunner()
 const proofService = createProofService(proofRunner)
 const masterRunner = createMasterRunner()
 const masterService = createMasterService(masterRunner)
+const stepRunner = createStepRunner()
+const stepService = createStepService(stepRunner, pipelineService)
 
 const app = new Hono()
 
@@ -71,8 +78,11 @@ app.route("/api", createGlossaryRoutes(booksDir))
 app.route("/api", createDebugRoutes(pipelineService, booksDir, promptsDir, configPath))
 app.route("/api", createQuizRoutes(booksDir))
 app.route("/api", createPackageRoutes(booksDir, webAssetsDir, configPath))
-app.route("/api", createPresetRoutes(configPath))
+app.route("/api", createPromptRoutes(promptsDir, booksDir))
+app.route("/api", createTextCatalogRoutes(booksDir))
 app.route("/api", createTTSRoutes(booksDir))
+app.route("/api", createStepRoutes(stepService, pipelineService, booksDir, promptsDir, configPath))
+app.route("/api", createPresetRoutes(configPath))
 app.route("/api", createAdtPreviewRoutes(booksDir, webAssetsDir))
 
 export default app

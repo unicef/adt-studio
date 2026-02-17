@@ -146,6 +146,16 @@ describe("buildRenderStrategyResolver", () => {
   })
 })
 
+// Helper to build inline text group part
+function textPart(groupId: string, groupType: string, texts: Array<{ textType: string; text: string; isPruned: boolean }>, isPruned = false) {
+  return { type: "text_group" as const, groupId, groupType, texts, isPruned }
+}
+
+// Helper to build inline image part
+function imagePart(imageId: string, isPruned = false) {
+  return { type: "image" as const, imageId, isPruned }
+}
+
 describe("renderPage", () => {
   const htmlResponse = {
     reasoning: "test",
@@ -171,7 +181,11 @@ describe("renderPage", () => {
           sections: [
             {
               sectionType: "text_only",
-              partIds: ["pg001_gp001"],
+              parts: [
+                textPart("pg001_gp001", "paragraph", [
+                  { textType: "section_text", text: "Hello", isPruned: false },
+                ]),
+              ],
               backgroundColor: "#ffffff",
               textColor: "#000000",
               pageNumber: 1,
@@ -179,38 +193,15 @@ describe("renderPage", () => {
             },
             {
               sectionType: "credits",
-              partIds: ["pg001_gp002"],
+              parts: [
+                textPart("pg001_gp002", "paragraph", [
+                  { textType: "section_text", text: "Credits info", isPruned: false },
+                ]),
+              ],
               backgroundColor: "#ffffff",
               textColor: "#000000",
               pageNumber: null,
               isPruned: true,
-            },
-          ],
-        },
-        textClassification: {
-          reasoning: "test",
-          groups: [
-            {
-              groupId: "pg001_gp001",
-              groupType: "paragraph",
-              texts: [
-                {
-                  textType: "section_text",
-                  text: "Hello",
-                  isPruned: false,
-                },
-              ],
-            },
-            {
-              groupId: "pg001_gp002",
-              groupType: "paragraph",
-              texts: [
-                {
-                  textType: "section_text",
-                  text: "Credits info",
-                  isPruned: false,
-                },
-              ],
             },
           ],
         },
@@ -247,28 +238,16 @@ describe("renderPage", () => {
           sections: [
             {
               sectionType: "text_only",
-              partIds: ["pg001_gp001"],
+              parts: [
+                textPart("pg001_gp001", "paragraph", [
+                  // All texts pruned — section has no content
+                  { textType: "header_text", text: "Header", isPruned: true },
+                ]),
+              ],
               backgroundColor: "#ffffff",
               textColor: "#000000",
               pageNumber: 1,
               isPruned: false,
-            },
-          ],
-        },
-        textClassification: {
-          reasoning: "test",
-          groups: [
-            {
-              groupId: "pg001_gp001",
-              groupType: "paragraph",
-              texts: [
-                // All texts pruned — section has no content
-                {
-                  textType: "header_text",
-                  text: "Header",
-                  isPruned: true,
-                },
-              ],
             },
           ],
         },
@@ -308,17 +287,13 @@ describe("renderPage", () => {
           sections: [
             {
               sectionType: "images_only",
-              partIds: ["pg001_im001"],
+              parts: [imagePart("pg001_im001")],
               backgroundColor: "#ffffff",
               textColor: "#000000",
               pageNumber: 1,
               isPruned: false,
             },
           ],
-        },
-        textClassification: {
-          reasoning: "test",
-          groups: [],
         },
         images: new Map([["pg001_im001", "imagedata"]]),
       },
@@ -361,25 +336,17 @@ describe("renderPage", () => {
           sections: [
             {
               sectionType: "text_only",
-              partIds: ["pg001_gp001"],
+              parts: [
+                textPart("pg001_gp001", "paragraph", [
+                  { textType: "section_text", text: "Hello", isPruned: false },
+                  { textType: "section_text", text: "World", isPruned: false },
+                  { textType: "header_text", text: "Pruned", isPruned: true },
+                ]),
+              ],
               backgroundColor: "#ffffff",
               textColor: "#000000",
               pageNumber: 1,
               isPruned: false,
-            },
-          ],
-        },
-        textClassification: {
-          reasoning: "test",
-          groups: [
-            {
-              groupId: "pg001_gp001",
-              groupType: "paragraph",
-              texts: [
-                { textType: "section_text", text: "Hello", isPruned: false },
-                { textType: "section_text", text: "World", isPruned: false },
-                { textType: "header_text", text: "Pruned", isPruned: true },
-              ],
             },
           ],
         },
@@ -425,23 +392,15 @@ describe("renderPage", () => {
           sections: [
             {
               sectionType: "text_only",
-              partIds: ["pg001_gp001"],
+              parts: [
+                textPart("pg001_gp001", "paragraph", [
+                  { textType: "section_text", text: "Hello", isPruned: false },
+                ]),
+              ],
               backgroundColor: "#ffffff",
               textColor: "#000000",
               pageNumber: 1,
               isPruned: false,
-            },
-          ],
-        },
-        textClassification: {
-          reasoning: "test",
-          groups: [
-            {
-              groupId: "pg001_gp001",
-              groupType: "paragraph",
-              texts: [
-                { textType: "section_text", text: "Hello", isPruned: false },
-              ],
             },
           ],
         },
@@ -482,7 +441,11 @@ describe("renderPage", () => {
           sections: [
             {
               sectionType: "text_only",
-              partIds: ["pg001_gp001"],
+              parts: [
+                textPart("pg001_gp001", "paragraph", [
+                  { textType: "section_text", text: "First", isPruned: false },
+                ]),
+              ],
               backgroundColor: "#ffffff",
               textColor: "#000000",
               pageNumber: 1,
@@ -490,30 +453,15 @@ describe("renderPage", () => {
             },
             {
               sectionType: "text_only",
-              partIds: ["pg001_gp002"],
+              parts: [
+                textPart("pg001_gp002", "paragraph", [
+                  { textType: "section_text", text: "Second", isPruned: false },
+                ]),
+              ],
               backgroundColor: "#ffffff",
               textColor: "#000000",
               pageNumber: 1,
               isPruned: false,
-            },
-          ],
-        },
-        textClassification: {
-          reasoning: "test",
-          groups: [
-            {
-              groupId: "pg001_gp001",
-              groupType: "paragraph",
-              texts: [
-                { textType: "section_text", text: "First", isPruned: false },
-              ],
-            },
-            {
-              groupId: "pg001_gp002",
-              groupType: "paragraph",
-              texts: [
-                { textType: "section_text", text: "Second", isPruned: false },
-              ],
             },
           ],
         },
@@ -568,23 +516,15 @@ describe("renderPage", () => {
           sections: [
             {
               sectionType: "text_only",
-              partIds: ["pg001_gp001"],
+              parts: [
+                textPart("pg001_gp001", "paragraph", [
+                  { textType: "section_text", text: "Hello", isPruned: false },
+                ]),
+              ],
               backgroundColor: "#ffffff",
               textColor: "#000000",
               pageNumber: 1,
               isPruned: false,
-            },
-          ],
-        },
-        textClassification: {
-          reasoning: "test",
-          groups: [
-            {
-              groupId: "pg001_gp001",
-              groupType: "paragraph",
-              texts: [
-                { textType: "section_text", text: "Hello", isPruned: false },
-              ],
             },
           ],
         },
@@ -635,23 +575,15 @@ describe("renderPage", () => {
             sections: [
               {
                 sectionType: "text_only",
-                partIds: ["pg001_gp001"],
+                parts: [
+                  textPart("pg001_gp001", "paragraph", [
+                    { textType: "section_text", text: "Hello", isPruned: false },
+                  ]),
+                ],
                 backgroundColor: "#ffffff",
                 textColor: "#000000",
                 pageNumber: 1,
                 isPruned: false,
-              },
-            ],
-          },
-          textClassification: {
-            reasoning: "test",
-            groups: [
-              {
-                groupId: "pg001_gp001",
-                groupType: "paragraph",
-                texts: [
-                  { textType: "section_text", text: "Hello", isPruned: false },
-                ],
               },
             ],
           },
@@ -710,7 +642,11 @@ describe("renderPage", () => {
           sections: [
             {
               sectionType: "cover",
-              partIds: ["pg001_gp001"],
+              parts: [
+                textPart("pg001_gp001", "paragraph", [
+                  { textType: "section_text", text: "First", isPruned: false },
+                ]),
+              ],
               backgroundColor: "#ffffff",
               textColor: "#000000",
               pageNumber: 1,
@@ -718,30 +654,15 @@ describe("renderPage", () => {
             },
             {
               sectionType: "body",
-              partIds: ["pg001_gp002"],
+              parts: [
+                textPart("pg001_gp002", "paragraph", [
+                  { textType: "section_text", text: "Second", isPruned: false },
+                ]),
+              ],
               backgroundColor: "#ffffff",
               textColor: "#000000",
               pageNumber: 1,
               isPruned: false,
-            },
-          ],
-        },
-        textClassification: {
-          reasoning: "test",
-          groups: [
-            {
-              groupId: "pg001_gp001",
-              groupType: "paragraph",
-              texts: [
-                { textType: "section_text", text: "First", isPruned: false },
-              ],
-            },
-            {
-              groupId: "pg001_gp002",
-              groupType: "paragraph",
-              texts: [
-                { textType: "section_text", text: "Second", isPruned: false },
-              ],
             },
           ],
         },
@@ -800,23 +721,15 @@ describe("renderPage", () => {
           sections: [
             {
               sectionType: "activity_multiple_choice",
-              partIds: ["pg001_gp001"],
+              parts: [
+                textPart("pg001_gp001", "paragraph", [
+                  { textType: "instruction_text", text: "Question", isPruned: false },
+                ]),
+              ],
               backgroundColor: "#ffffff",
               textColor: "#000000",
               pageNumber: 1,
               isPruned: false,
-            },
-          ],
-        },
-        textClassification: {
-          reasoning: "test",
-          groups: [
-            {
-              groupId: "pg001_gp001",
-              groupType: "paragraph",
-              texts: [
-                { textType: "instruction_text", text: "Question", isPruned: false },
-              ],
             },
           ],
         },
@@ -873,23 +786,15 @@ describe("renderPage", () => {
           sections: [
             {
               sectionType: "activity_open_ended_answer",
-              partIds: ["pg001_gp001"],
+              parts: [
+                textPart("pg001_gp001", "paragraph", [
+                  { textType: "instruction_text", text: "Question", isPruned: false },
+                ]),
+              ],
               backgroundColor: "#ffffff",
               textColor: "#000000",
               pageNumber: 1,
               isPruned: false,
-            },
-          ],
-        },
-        textClassification: {
-          reasoning: "test",
-          groups: [
-            {
-              groupId: "pg001_gp001",
-              groupType: "paragraph",
-              texts: [
-                { textType: "instruction_text", text: "Question", isPruned: false },
-              ],
             },
           ],
         },
@@ -943,23 +848,15 @@ describe("renderPage", () => {
           sections: [
             {
               sectionType: "text",
-              partIds: ["pg001_gp001"],
+              parts: [
+                textPart("pg001_gp001", "paragraph", [
+                  { textType: "body_text", text: "Body text", isPruned: false },
+                ]),
+              ],
               backgroundColor: "#ffffff",
               textColor: "#000000",
               pageNumber: 1,
               isPruned: false,
-            },
-          ],
-        },
-        textClassification: {
-          reasoning: "test",
-          groups: [
-            {
-              groupId: "pg001_gp001",
-              groupType: "paragraph",
-              texts: [
-                { textType: "body_text", text: "Body text", isPruned: false },
-              ],
             },
           ],
         },
@@ -973,6 +870,62 @@ describe("renderPage", () => {
     expect(result.sections).toHaveLength(1)
     expect(result.sections[0].activityReasoning).toBeUndefined()
     expect(result.sections[0].activityAnswers).toBeUndefined()
+  })
+
+  it("skips pruned parts within a section", async () => {
+    let capturedContext: Record<string, unknown> | undefined
+
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        capturedContext = opts.context
+        return {
+          object: {
+            reasoning: "test",
+            content: '<div id="content" class="container"><section role="article"><p data-id="pg001_gp001_tx001">Hello</p></section></div>',
+          } as T,
+        } as GenerateObjectResult<T>
+      },
+    }
+
+    await renderPage(
+      {
+        label: "test-book",
+        pageId: "pg001",
+        pageImageBase64: "base64img",
+        sectioning: {
+          reasoning: "test",
+          sections: [
+            {
+              sectionType: "text_only",
+              parts: [
+                textPart("pg001_gp001", "paragraph", [
+                  { textType: "section_text", text: "Hello", isPruned: false },
+                ]),
+                textPart("pg001_gp002", "heading", [
+                  { textType: "header_text", text: "Pruned group", isPruned: false },
+                ], true), // part-level pruned
+                imagePart("pg001_im001", true), // pruned image
+              ],
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+        images: new Map([["pg001_im001", "imagedata"]]),
+      },
+      defaultResolveConfig,
+      fakeLlm
+    )
+
+    // Only unpruned parts should be passed to the renderer
+    const texts = capturedContext?.texts as Array<{ text_id: string }>
+    expect(texts).toHaveLength(1)
+    expect(texts[0].text_id).toBe("pg001_gp001_tx001")
+
+    const images = capturedContext?.images as Array<{ image_id: string }>
+    expect(images).toHaveLength(0)
   })
 })
 

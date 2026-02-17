@@ -50,7 +50,7 @@ describe("page-edit-service", () => {
           apiKey: "test-key",
         })
       ).rejects.toThrow(
-        "Page must have text-classification, image-classification, and page-sectioning data before re-rendering"
+        "Page must have page-sectioning data before re-rendering"
       )
     })
   })

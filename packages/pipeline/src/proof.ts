@@ -8,6 +8,7 @@ import { generateGlossary, buildGlossaryConfig } from "./glossary.js"
 import { generateAllQuizzes, buildQuizGenerationConfig, type QuizPageInput } from "./quiz-generation.js"
 import { loadBookConfig } from "./config.js"
 import { nullProgress, type Progress } from "./progress.js"
+import { processWithConcurrency } from "./concurrency.js"
 import { WebRenderingOutput, type StepName, type PageSectioningOutput } from "@adt/types"
 
 export interface RunProofOptions {
@@ -142,6 +143,7 @@ export async function runProof(
             storage,
             glossaryModel,
             glossaryConfig,
+            effectiveConcurrency,
             progress
           ),
           runQuizGeneration(
@@ -149,6 +151,7 @@ export async function runProof(
             storage,
             quizModel,
             quizConfig,
+            effectiveConcurrency,
             progress
           ),
         ])
@@ -188,24 +191,6 @@ export async function runProof(
 
 function toErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
-}
-
-export async function processWithConcurrency<T>(
-  items: T[],
-  concurrency: number,
-  fn: (item: T) => Promise<void>
-): Promise<void> {
-  const executing = new Set<Promise<void>>()
-  for (const item of items) {
-    const p = fn(item).finally(() => {
-      executing.delete(p)
-    })
-    executing.add(p)
-    if (executing.size >= concurrency) {
-      await Promise.race(executing)
-    }
-  }
-  await Promise.all(executing)
 }
 
 async function runImageCaptioning(
@@ -276,14 +261,10 @@ async function runGlossary(
   storage: Storage,
   llmModel: ReturnType<typeof createLLMModel>,
   glossaryConfig: ReturnType<typeof buildGlossaryConfig>,
+  concurrency: number,
   progress: Progress
 ): Promise<void> {
   progress.emit({ type: "step-start", step: "glossary" })
-  progress.emit({
-    type: "step-progress",
-    step: "glossary",
-    message: "Generating glossary...",
-  })
 
   try {
     const glossary = await generateGlossary({
@@ -291,6 +272,16 @@ async function runGlossary(
       pages,
       config: glossaryConfig,
       llmModel,
+      concurrency,
+      onBatchComplete: (completed, total) => {
+        progress.emit({
+          type: "step-progress",
+          step: "glossary",
+          message: `${completed}/${total}`,
+          page: completed,
+          totalPages: total,
+        })
+      },
     })
 
     storage.putNodeData("glossary", "book", glossary)
@@ -317,6 +308,7 @@ async function runQuizGeneration(
   storage: Storage,
   llmModel: ReturnType<typeof createLLMModel> | null,
   quizConfig: ReturnType<typeof buildQuizGenerationConfig>,
+  concurrency: number,
   progress: Progress
 ): Promise<void> {
   progress.emit({ type: "step-start", step: "quiz-generation" })
@@ -325,12 +317,6 @@ async function runQuizGeneration(
     progress.emit({ type: "step-skip", step: "quiz-generation" })
     return
   }
-
-  progress.emit({
-    type: "step-progress",
-    step: "quiz-generation",
-    message: "Generating quizzes...",
-  })
 
   try {
     // Gather page data for quiz generation
@@ -357,7 +343,19 @@ async function runQuizGeneration(
       const quizResult = await generateAllQuizzes(
         quizPages,
         quizConfig,
-        llmModel
+        llmModel,
+        {
+          concurrency,
+          onQuizComplete: (completed, total) => {
+            progress.emit({
+              type: "step-progress",
+              step: "quiz-generation",
+              message: `${completed}/${total}`,
+              page: completed,
+              totalPages: total,
+            })
+          },
+        }
       )
       storage.putNodeData("quiz-generation", "book", quizResult)
 

@@ -39,7 +39,7 @@ describe("Package routes", () => {
       expect(res.status).toBe(404)
     })
 
-    it("returns 409 when master is not completed", async () => {
+    it("returns 409 when no pages have web rendering", async () => {
       createTestBook("book1")
 
       const res = await app.request("/api/books/book1/package-adt", {
@@ -48,7 +48,7 @@ describe("Package routes", () => {
 
       expect(res.status).toBe(409)
       const body = await res.json()
-      expect(body.error).toContain("Master phase must be completed")
+      expect(body.error).toContain("web rendering")
     })
   })
 
