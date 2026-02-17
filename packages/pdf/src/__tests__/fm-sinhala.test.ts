@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { isFMFont, convertFMToUnicode } from "../fm-sinhala.js";
+import type { StructuredText } from "mupdf";
+import {
+  isFMFont,
+  convertFMToUnicode,
+  extractTextFromStructuredText,
+} from "../fm-sinhala.js";
 
 describe("isFMFont", () => {
   it("detects FM Sinhala font names", () => {
@@ -42,5 +47,100 @@ describe("convertFMToUnicode", () => {
     // "l%d" → "ක්‍රා" (conjunct: ka + virama + ZWJ + ra + aa)
     const result = convertFMToUnicode("l%d");
     expect(result).toBe("ක්‍රා");
+  });
+});
+
+interface MockLine {
+  fontName: string;
+  text: string;
+}
+
+function createMockStructuredText(input: {
+  asText: string;
+  walkFontNames: string[];
+  blocks: Array<{ type: string; lines: MockLine[] }>;
+}): StructuredText {
+  return {
+    asText() {
+      return input.asText;
+    },
+    asJSON() {
+      return JSON.stringify({
+        blocks: input.blocks.map((block) => ({
+          type: block.type,
+          lines: block.lines.map((line) => ({
+            font: { name: line.fontName },
+            text: line.text,
+          })),
+        })),
+      });
+    },
+    walk(walker) {
+      for (const fontName of input.walkFontNames) {
+        walker.onChar?.(
+          "x",
+          { x: 0, y: 0 },
+          { getName: () => fontName },
+          12,
+          { ul: { x: 0, y: 0 }, ur: { x: 0, y: 0 }, ll: { x: 0, y: 0 }, lr: { x: 0, y: 0 } },
+          [0, 0, 0]
+        );
+      }
+    },
+  } as unknown as StructuredText;
+}
+
+describe("extractTextFromStructuredText", () => {
+  it("collapses extra newlines in non-FM text", () => {
+    const stext = createMockStructuredText({
+      asText: "alpha\n\n\n\nbeta",
+      walkFontNames: ["TimesNewRomanPSMT"],
+      blocks: [],
+    });
+
+    expect(extractTextFromStructuredText(stext)).toBe("alpha\n\nbeta");
+  });
+
+  it("converts FM text and collapses extra newlines", () => {
+    const stext = createMockStructuredText({
+      asText: "",
+      walkFontNames: ["DJCUQE+FMSamanthax"],
+      blocks: [
+        {
+          type: "text",
+          lines: [
+            { fontName: "DJCUQE+FMSamanthax", text: "Y%S" },
+            { fontName: "DJCUQE+FMSamanthax", text: "" },
+            { fontName: "DJCUQE+FMSamanthax", text: "" },
+            { fontName: "DJCUQE+FMSamanthax", text: "" },
+          ],
+        },
+        {
+          type: "text",
+          lines: [{ fontName: "DJCUQE+FMSamanthax", text: "l%d" }],
+        },
+      ],
+    });
+
+    expect(extractTextFromStructuredText(stext)).toBe("ශ්‍රී\n\nක්‍රා");
+  });
+
+  it("converts only FM lines when a page has mixed fonts", () => {
+    const stext = createMockStructuredText({
+      asText: "",
+      walkFontNames: ["DJCUQE+FMSamanthax", "TimesNewRomanPSMT"],
+      blocks: [
+        {
+          type: "text",
+          lines: [
+            { fontName: "DJCUQE+FMSamanthax", text: "Y%S" },
+            { fontName: "TimesNewRomanPSMT", text: "Chapter 1" },
+            { fontName: "DJCUQE+FMSamanthax", text: "l%d" },
+          ],
+        },
+      ],
+    });
+
+    expect(extractTextFromStructuredText(stext)).toBe("ශ්‍රී\nChapter 1\nක්‍රා");
   });
 });

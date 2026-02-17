@@ -48,10 +48,23 @@ interface StextJson {
 }
 
 /**
+ * Normalize extracted text spacing:
+ * - Normalize CRLF/CR to LF
+ * - Remove trailing spaces/tabs on each line
+ * - Collapse 3+ consecutive newlines to 2
+ */
+function normalizeExtractedText(text: string): string {
+  return text
+    .replace(/\r\n?/g, "\n")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n");
+}
+
+/**
  * Extract text from a StructuredText object, remapping legacy FM Sinhala fonts
  * to proper Unicode when detected.
  *
- * For pages that don't use FM fonts, falls back to the default asText() output.
+ * For pages that don't use FM fonts, uses the default asText() output path.
  */
 export function extractTextFromStructuredText(stext: StructuredText): string {
   // Quick check: scan for FM fonts via the walker
@@ -65,23 +78,27 @@ export function extractTextFromStructuredText(stext: StructuredText): string {
     },
   });
 
-  // No FM fonts — use default extraction (preserves existing behavior exactly)
+  // No FM fonts — use default extraction, then normalize whitespace.
   if (!hasFMFont) {
-    return stext.asText();
+    return normalizeExtractedText(stext.asText());
   }
 
-  // FM fonts detected — walk JSON and remap per-line
+  // FM fonts detected — walk JSON, remap per-line, preserve block boundaries.
   const json: StextJson = JSON.parse(stext.asJSON());
-  const parts: string[] = [];
+  const textBlocks: string[] = [];
 
   for (const block of json.blocks) {
     if (block.type !== "text" || !block.lines) continue;
+    const lines: string[] = [];
     for (const line of block.lines) {
       const fontName = line.font?.name ?? "";
       const text = line.text ?? "";
-      parts.push(isFMFont(fontName) ? convertFMToUnicode(text) : text);
+      lines.push(isFMFont(fontName) ? convertFMToUnicode(text) : text);
+    }
+    if (lines.length > 0) {
+      textBlocks.push(lines.join("\n"));
     }
   }
 
-  return parts.join("\n");
+  return normalizeExtractedText(textBlocks.join("\n\n"));
 }
