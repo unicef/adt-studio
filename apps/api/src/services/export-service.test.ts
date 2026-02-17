@@ -77,12 +77,12 @@ function addConfigYaml(label: string): void {
 }
 
 describe("exportBook", () => {
-  it("produces a valid ZIP containing the db file", () => {
+  it("produces a valid ZIP containing the db file", async () => {
     createTestDb("export-test")
     addPages("export-test", 1)
     addAcceptance("export-test")
 
-    const result = exportBook("export-test", tmpDir)
+    const result = await exportBook("export-test", tmpDir, "")
     expect(result.zipBuffer).toBeInstanceOf(Uint8Array)
     expect(result.filename).toBe("export-test.zip")
 
@@ -90,57 +90,57 @@ describe("exportBook", () => {
     expect(files["export-test.db"]).toBeDefined()
   })
 
-  it("includes PDF in the ZIP", () => {
+  it("includes PDF in the ZIP", async () => {
     createTestDb("with-pdf")
     addPages("with-pdf", 1)
     addAcceptance("with-pdf")
     addPdf("with-pdf")
 
-    const result = exportBook("with-pdf", tmpDir)
+    const result = await exportBook("with-pdf", tmpDir, "")
     const files = unzipSync(result.zipBuffer)
     expect(files["with-pdf.pdf"]).toBeDefined()
     expect(Buffer.from(files["with-pdf.pdf"]).toString()).toContain("%PDF")
   })
 
-  it("includes images directory", () => {
+  it("includes images directory", async () => {
     createTestDb("with-imgs")
     addPages("with-imgs", 1)
     addAcceptance("with-imgs")
     addImageFile("with-imgs", "my-img")
 
-    const result = exportBook("with-imgs", tmpDir)
+    const result = await exportBook("with-imgs", tmpDir, "")
     const files = unzipSync(result.zipBuffer)
     expect(files["images/my-img.png"]).toBeDefined()
     expect(Buffer.from(files["images/my-img.png"]).toString()).toBe("fake-png-data")
   })
 
-  it("includes config.yaml when present", () => {
+  it("includes config.yaml when present", async () => {
     createTestDb("with-config")
     addPages("with-config", 1)
     addAcceptance("with-config")
     addConfigYaml("with-config")
 
-    const result = exportBook("with-config", tmpDir)
+    const result = await exportBook("with-config", tmpDir, "")
     const files = unzipSync(result.zipBuffer)
     expect(files["config.yaml"]).toBeDefined()
     const content = new TextDecoder().decode(files["config.yaml"])
     expect(content).toContain("concurrency: 4")
   })
 
-  it("throws when storyboard is not accepted", () => {
+  it("throws when storyboard is not accepted", async () => {
     createTestDb("not-accepted")
     addPages("not-accepted", 1)
 
-    expect(() => exportBook("not-accepted", tmpDir)).toThrow(
+    await expect(exportBook("not-accepted", tmpDir, "")).rejects.toThrow(
       "Storyboard must be accepted"
     )
   })
 
-  it("throws for non-existent book", () => {
-    expect(() => exportBook("ghost", tmpDir)).toThrow("not found")
+  it("throws for non-existent book", async () => {
+    await expect(exportBook("ghost", tmpDir, "")).rejects.toThrow("not found")
   })
 
-  it("includes all book directory contents recursively", () => {
+  it("includes all book directory contents recursively", async () => {
     createTestDb("full-book")
     addPages("full-book", 2)
     addAcceptance("full-book")
@@ -149,7 +149,7 @@ describe("exportBook", () => {
     addImageFile("full-book", "img-b")
     addConfigYaml("full-book")
 
-    const result = exportBook("full-book", tmpDir)
+    const result = await exportBook("full-book", tmpDir, "")
     const files = unzipSync(result.zipBuffer)
     const paths = Object.keys(files).sort()
 
