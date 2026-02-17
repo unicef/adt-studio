@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, createContext, useContext } from "react"
-import { useQueryClient } from "@tanstack/react-query"
+import { useQueryClient, type QueryClient } from "@tanstack/react-query"
 import { api } from "@/api/client"
 import type { StepName } from "./use-pipeline"
 import { getTargetStepsForRange, isFinalPipelineStepForUiStep } from "./step-run-range"
@@ -59,6 +59,30 @@ const INITIAL: StepRunProgress = {
   subSteps: new Map(),
 }
 
+/** Invalidate the query keys relevant to a completed UI step */
+function invalidateForStep(qc: QueryClient, label: string, uiStep: string) {
+  switch (uiStep) {
+    case "extract":
+    case "storyboard":
+    case "captions":
+      qc.invalidateQueries({ queryKey: ["books", label, "pages"] })
+      qc.invalidateQueries({ queryKey: ["books", label] })
+      qc.invalidateQueries({ queryKey: ["books"] })
+      break
+    case "quizzes":
+      qc.invalidateQueries({ queryKey: ["books", label, "quizzes"] })
+      break
+    case "glossary":
+      qc.invalidateQueries({ queryKey: ["books", label, "glossary"] })
+      break
+    case "translations":
+      qc.invalidateQueries({ queryKey: ["books", label, "text-catalog"] })
+      break
+  }
+  qc.invalidateQueries({ queryKey: ["books", label, "step-status"] })
+  qc.invalidateQueries({ queryKey: ["steps-status", label] })
+}
+
 export function useStepRunSSE(label: string, enabled: boolean) {
   const [progress, setProgress] = useState<StepRunProgress>(INITIAL)
   const queryClient = useQueryClient()
@@ -108,8 +132,15 @@ export function useStepRunSSE(label: string, enabled: boolean) {
         } else if (data.type === "step-complete") {
           if (isFinalPipelineStepForUiStep(uiStep, pipelineStep)) {
             steps.set(uiStep, { state: "done", progress: 1 })
+            // Invalidate relevant queries as each UI step completes
+            invalidateForStep(queryClient, label, uiStep)
           }
           subSteps.set(pipelineStep, { state: "done" })
+          // Refresh book data as soon as metadata is available (before extract finishes)
+          if (pipelineStep === "metadata") {
+            queryClient.invalidateQueries({ queryKey: ["books", label] })
+            queryClient.invalidateQueries({ queryKey: ["books"] })
+          }
         } else if (data.type === "step-skip") {
           if (isFinalPipelineStepForUiStep(uiStep, pipelineStep)) {
             steps.set(uiStep, { state: "done", progress: 1 })
