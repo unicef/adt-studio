@@ -1,6 +1,11 @@
 import { z } from "zod"
 import type { TextClassificationOutput, AppConfig } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
+import {
+  buildTranslationLanguageContext,
+  getBaseLanguage,
+  normalizeLocale,
+} from "./language-context.js"
 
 export interface TranslationConfig {
   sourceLanguage: string
@@ -9,13 +14,7 @@ export interface TranslationConfig {
   modelId: string
 }
 
-/**
- * Extract the base language from a locale code.
- * "en_US" → "en", "pt-br" → "pt", "en" → "en"
- */
-export function getBaseLanguage(code: string): string {
-  return code.split(/[-_]/)[0].toLowerCase()
-}
+export { normalizeLocale, getBaseLanguage } from "./language-context.js"
 
 /**
  * Determine whether translation is needed based on source and editing languages.
@@ -39,8 +38,8 @@ export function buildTranslationConfig(
 ): TranslationConfig | null {
   if (!shouldTranslate(sourceLanguage, appConfig.editing_language)) return null
   return {
-    sourceLanguage: sourceLanguage!,
-    targetLanguage: appConfig.editing_language!,
+    sourceLanguage: normalizeLocale(sourceLanguage!),
+    targetLanguage: normalizeLocale(appConfig.editing_language!),
     promptName: appConfig.translation?.prompt ?? "translation",
     modelId:
       appConfig.translation?.model ??
@@ -80,8 +79,7 @@ export async function translatePageText(
     schema: translationSchema,
     prompt: config.promptName,
     context: {
-      source_language: config.sourceLanguage,
-      target_language: config.targetLanguage,
+      ...buildTranslationLanguageContext(config.sourceLanguage, config.targetLanguage),
       texts,
     },
     validate: (raw: unknown): ValidationResult => {

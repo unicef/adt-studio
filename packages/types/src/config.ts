@@ -79,7 +79,6 @@ export const AppConfig = z
     glossary: StepConfig.optional(),
     concurrency: z.number().int().min(1).optional(),
     rate_limit: RateLimitConfig.optional(),
-    book_language: z.string().optional(),
     editing_language: z.string().optional(),
     output_languages: z.array(z.string()).optional(),
     book_format: z.array(BookFormat).optional(),

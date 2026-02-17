@@ -14,6 +14,7 @@ import type {
 import { WebRenderingOutput as WebRenderingOutputSchema } from "@adt/types"
 import type { Progress } from "./progress.js"
 import { nullProgress } from "./progress.js"
+import { getBaseLanguage, normalizeLocale } from "./language-context.js"
 
 export interface PackageAdtWebOptions {
   bookDir: string
@@ -48,12 +49,14 @@ export async function packageAdtWeb(
   const {
     bookDir,
     label,
-    language,
-    outputLanguages,
+    language: rawLanguage,
+    outputLanguages: rawOutputLanguages,
     title,
     webAssetsDir,
     bundleVersion = "1",
   } = options
+  const language = normalizeLocale(rawLanguage)
+  const outputLanguages = Array.from(new Set(rawOutputLanguages.map((code) => normalizeLocale(code))))
 
   const step = "package-web" as const
   progress.emit({ type: "step-start", step })
@@ -240,14 +243,14 @@ export async function packageAdtWeb(
   // ------------------------------------------------------------------
   progress.emit({ type: "step-progress", step, message: "Packaging translations and audio..." })
 
-  const sourceLanguage = language.toLowerCase().split("-")[0]
+  const sourceLanguage = getBaseLanguage(language)
 
   for (const lang of outputLanguages) {
     const localeDir = path.join(contentDir, "i18n", lang)
     fs.mkdirSync(localeDir, { recursive: true })
 
     // texts.json
-    const baseLang = lang.toLowerCase().split("-")[0]
+    const baseLang = getBaseLanguage(lang)
     let textsMap: Record<string, string> = {}
     if (baseLang === sourceLanguage) {
       // Source language — use original catalog
@@ -256,7 +259,10 @@ export async function packageAdtWeb(
       }
     } else {
       // Translated language
-      const transRow = storage.getLatestNodeData("text-catalog-translation", lang)
+      const legacyLang = lang.replace("-", "_")
+      const transRow =
+        storage.getLatestNodeData("text-catalog-translation", lang) ??
+        storage.getLatestNodeData("text-catalog-translation", legacyLang)
       if (transRow) {
         const translated = transRow.data as TextCatalogOutput
         for (const e of translated.entries) textsMap[e.id] = e.text
@@ -268,16 +274,21 @@ export async function packageAdtWeb(
     const audioDir = path.join(localeDir, "audio")
     fs.mkdirSync(audioDir, { recursive: true })
 
-    const ttsRow = storage.getLatestNodeData("tts", lang)
+    const legacyLang = lang.replace("-", "_")
+    const ttsRow =
+      storage.getLatestNodeData("tts", lang) ??
+      storage.getLatestNodeData("tts", legacyLang)
     const ttsData = ttsRow?.data as TTSOutput | undefined
     const audioMap: Record<string, string> = {}
 
     if (ttsData?.entries) {
       for (const entry of ttsData.entries) {
         const srcFile = path.join(bookDir, "audio", lang, entry.fileName)
-        if (fs.existsSync(srcFile)) {
+        const legacySrcFile = path.join(bookDir, "audio", legacyLang, entry.fileName)
+        const resolvedSrcFile = fs.existsSync(srcFile) ? srcFile : legacySrcFile
+        if (fs.existsSync(resolvedSrcFile)) {
           const destFile = path.join(audioDir, entry.fileName)
-          fs.copyFileSync(srcFile, destFile)
+          fs.copyFileSync(resolvedSrcFile, destFile)
           audioMap[entry.textId] = entry.fileName
         }
       }
@@ -298,7 +309,13 @@ export async function packageAdtWeb(
   const hasGlossary = glossary !== undefined && glossary.items.length > 0
   const hasQuiz = quizData !== undefined && quizData.quizzes.length > 0
   const hasTTS = outputLanguages.some(
-    (lang) => storage.getLatestNodeData("tts", lang) !== null,
+    (lang) => {
+      const legacyLang = lang.replace("-", "_")
+      return (
+        storage.getLatestNodeData("tts", lang) !== null ||
+        storage.getLatestNodeData("tts", legacyLang) !== null
+      )
+    },
   )
 
   const configJson = {
@@ -347,7 +364,7 @@ export async function packageAdtWeb(
     fs.mkdirSync(itDest, { recursive: true })
     for (const lang of outputLanguages) {
       const langSrc = path.join(itSrc, lang)
-      const baseLangSrc = path.join(itSrc, lang.split("-")[0])
+      const baseLangSrc = path.join(itSrc, getBaseLanguage(lang))
       const src = fs.existsSync(langSrc) ? langSrc : fs.existsSync(baseLangSrc) ? baseLangSrc : null
       if (src) {
         copyDirRecursive(src, path.join(itDest, lang))
@@ -851,9 +868,9 @@ function pickDefaultLanguage(
   if (availableLanguages.includes(preferredLanguage)) {
     return preferredLanguage
   }
-  const preferredBase = preferredLanguage.toLowerCase().split("-")[0]
+  const preferredBase = getBaseLanguage(preferredLanguage)
   const matchingBase = availableLanguages.find(
-    (lang) => lang.toLowerCase().split("-")[0] === preferredBase,
+    (lang) => getBaseLanguage(lang) === preferredBase,
   )
   return matchingBase ?? availableLanguages[0] ?? preferredLanguage
 }

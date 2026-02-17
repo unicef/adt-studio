@@ -23,6 +23,7 @@ import { api } from "@/api/client"
 import { PromptViewer } from "@/components/v2/PromptViewer"
 import { PruneToggle } from "@/components/v2/PruneToggle"
 import { useStepRun } from "@/hooks/use-step-run"
+import { normalizeLocale } from "@/lib/languages"
 
 export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
   const { data: bookConfigData } = useBookConfig(bookLabel)
@@ -38,7 +39,6 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
   const [startPage, setStartPage] = useState("")
   const [endPage, setEndPage] = useState("")
   const [spreadMode, setSpreadMode] = useState(false)
-  const [bookLanguage, setBookLanguage] = useState("")
   const [editingLanguage, setEditingLanguage] = useState("")
   const [textTypes, setTextTypes] = useState<Record<string, string>>({})
   const [prunedTextTypes, setPrunedTextTypes] = useState<Set<string>>(new Set())
@@ -58,8 +58,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
     if (!bookConfigData) return
     const c = bookConfigData.config
     setSpreadMode(c.spread_mode === true)
-    if (c.book_language) setBookLanguage(String(c.book_language))
-    if (c.editing_language) setEditingLanguage(String(c.editing_language))
+    if (c.editing_language) setEditingLanguage(normalizeLocale(String(c.editing_language)))
   }, [bookConfigData])
 
   // Load text types, pruned types, and image filters from active (merged) config
@@ -145,11 +144,9 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
     if (shouldWrite("spread_mode")) {
       overrides.spread_mode = spreadMode
     }
-    if (shouldWrite("book_language") || bookLanguage.trim()) {
-      overrides.book_language = bookLanguage.trim() || undefined
-    }
     if (shouldWrite("editing_language") || editingLanguage.trim()) {
-      overrides.editing_language = editingLanguage.trim() || undefined
+      const normalized = normalizeLocale(editingLanguage.trim())
+      overrides.editing_language = normalized || undefined
     }
     if (shouldWrite("text_types")) {
       overrides.text_types = textTypes
@@ -258,23 +255,13 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
             </p>
           </div>
 
-          {/* Book Language */}
-          <div className="max-w-sm">
-            <LanguagePicker
-              selected={bookLanguage}
-              onSelect={(v) => { setBookLanguage(v); markDirty("book_language") }}
-              label="Book Language"
-              hint="The language of the book content. Leave empty to auto-detect."
-            />
-          </div>
-
           {/* Editing Language */}
           <div className="max-w-sm">
             <LanguagePicker
               selected={editingLanguage}
               onSelect={(v) => { setEditingLanguage(v); markDirty("editing_language") }}
               label="Editing Language"
-              hint="The language displayed while editing"
+              hint="Leave empty to use the book language."
             />
           </div>
 

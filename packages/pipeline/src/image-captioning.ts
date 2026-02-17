@@ -2,6 +2,7 @@ import { parseDocument, DomUtils } from "htmlparser2"
 import type { AppConfig, ImageCaptioningOutput } from "@adt/types"
 import { imageCaptioningLLMSchema } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
+import { buildLanguageContext } from "./language-context.js"
 
 export interface CaptionPageInput {
   pageId: string
@@ -64,6 +65,7 @@ export async function captionPageImages(
   }
 
   const inputImageIds = input.images.map((img) => img.imageId)
+  const languageContext = buildLanguageContext(input.language)
 
   const result = await llmModel.generateObject<{
     captions: Array<{ image_id: string; reasoning: string; caption: string }>
@@ -73,7 +75,7 @@ export async function captionPageImages(
     context: {
       page_image_base64: input.pageImageBase64,
       images: input.images,
-      language: input.language,
+      ...languageContext,
     },
     validate: (
       raw: unknown

@@ -4,6 +4,7 @@ import path from "node:path"
 import { afterEach, describe, expect, it } from "vitest"
 import { createBookStorage } from "@adt/storage"
 import { createPromptEngine, computeHash, writeCache } from "@adt/llm"
+import { buildLanguageContext } from "@adt/pipeline"
 import { glossaryLLMSchema } from "@adt/types"
 import { createProofRunner } from "./proof-runner.js"
 
@@ -160,8 +161,9 @@ describe("ProofRunner", () => {
     // Pre-populate LLM cache so test doesn't need a real API key
     const pageTexts = [{ pageNumber: 1, text: "The forest is green" }]
     const promptEngine = createPromptEngine(promptsDir)
+    const languageContext = buildLanguageContext("en")
     const rendered = await promptEngine.renderPrompt("glossary", {
-      language: "en",
+      ...languageContext,
       pages: pageTexts,
     })
     const systemMsg = rendered.find((m) => m.role === "system")

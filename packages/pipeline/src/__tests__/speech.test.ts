@@ -113,6 +113,11 @@ describe("resolveVoice", () => {
     expect(resolveVoice("openai", "ES-UY", voiceMaps)).toBe("nova")
     expect(resolveVoice("openai", "EN", voiceMaps)).toBe("alloy")
   })
+
+  it("treats underscore locales as dash locales", () => {
+    expect(resolveVoice("openai", "es_UY", voiceMaps)).toBe("nova")
+    expect(resolveVoice("openai", "es_MX", voiceMaps)).toBe("coral")
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -149,6 +154,12 @@ describe("resolveInstructions", () => {
 
   it("normalizes language code to lowercase", () => {
     expect(resolveInstructions("EN-TZ", instructions)).toBe(
+      "Speak in Tanzanian English."
+    )
+  })
+
+  it("treats underscore locales as dash locales", () => {
+    expect(resolveInstructions("en_TZ", instructions)).toBe(
       "Speak in Tanzanian English."
     )
   })
@@ -281,6 +292,25 @@ describe("generateSpeechFile", () => {
       responseFormat: "mp3",
       instructions: "Speak cheerfully.",
     })
+  })
+
+  it("writes locale audio using normalized locale casing", async () => {
+    const result = await generateSpeechFile({
+      textId: "p001_t001",
+      text: "Hello world",
+      language: "en_us",
+      model: "gpt-4o-mini-tts",
+      voice: "alloy",
+      instructions: "",
+      format: "mp3",
+      bookDir,
+      cacheDir,
+      ttsSynthesizer: mockSynthesizer,
+    })
+
+    expect(result?.language).toBe("en-US")
+    expect(fs.existsSync(path.join(bookDir, "audio", "en-US", "p001_t001.mp3"))).toBe(true)
+    expect(fs.readdirSync(path.join(bookDir, "audio"))).toContain("en-US")
   })
 
   it("returns cached result on second call", async () => {

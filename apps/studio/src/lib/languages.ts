@@ -229,14 +229,32 @@ export const ALL_COUNTRIES: Country[] = [
 
 const ALL_COUNTRIES_MAP = new Map(ALL_COUNTRIES.map((c) => [c.code, c]))
 
-/** Map language/locale codes to display names. Handles "en", "en_US", etc. */
+/** Normalize a locale code to dash format: lowercase lang + uppercase country (e.g., "en-US"). */
+export function normalizeLocale(code: string): string {
+  const normalized = code.trim().replace(/_/g, "-")
+  const parts = normalized.split("-")
+  if (parts.length === 2) {
+    return `${parts[0].toLowerCase()}-${parts[1].toUpperCase()}`
+  }
+  return normalized.toLowerCase()
+}
+
+/** Extract the base language from a locale code (e.g., "en-US" -> "en"). */
+export function getBaseLanguage(code: string): string {
+  return normalizeLocale(code).split("-")[0]
+}
+
+/** Map language/locale codes to display names. Handles "en", "en-US", etc. */
 export const LANG_MAP = new Map<string, string>()
 
 for (const lang of SUPPORTED_LANGUAGES) {
   LANG_MAP.set(lang.code, lang.name)
   if (lang.countries) {
     for (const c of lang.countries) {
-      LANG_MAP.set(`${lang.code}_${c.code.toUpperCase()}`, `${lang.name} (${c.name})`)
+      const locale = `${lang.code}-${c.code.toUpperCase()}`
+      // Keep underscore aliases for backward compatibility with old saved values.
+      LANG_MAP.set(locale, `${lang.name} (${c.name})`)
+      LANG_MAP.set(locale.replace("-", "_"), `${lang.name} (${c.name})`)
     }
   }
 }
@@ -248,22 +266,15 @@ export function getDisplayName(code: string): string {
   const normalized = normalizeLocale(code)
   const known = LANG_MAP.get(normalized)
   if (known) return known
-  // Try to resolve unknown locale codes like "en_TZ" from parts
-  const parts = normalized.split("_")
+  // Try to resolve unknown locale codes like "en-TZ" from parts
+  const parts = normalized.split("-")
   if (parts.length === 2) {
     const langName = LANG_MAP.get(parts[0])
     const country = ALL_COUNTRIES_MAP.get(parts[1].toLowerCase())
     if (langName && country) return `${langName} (${country.name})`
     if (langName) return `${langName} (${parts[1]})`
   }
-  return code
-}
-
-/** Normalize a locale code to standard format: lowercase lang, uppercase country (e.g., "en_US"). */
-function normalizeLocale(code: string): string {
-  const parts = code.split("_")
-  if (parts.length === 2) return `${parts[0].toLowerCase()}_${parts[1].toUpperCase()}`
-  return code.toLowerCase()
+  return normalized
 }
 
 /** Get countries for phase 2 of the picker. Suggested countries first, then all others. */

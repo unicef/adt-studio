@@ -10,6 +10,7 @@ import type {
 import { quizLLMSchema } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import { processWithConcurrency } from "./concurrency.js"
+import { buildLanguageContext, normalizeLocale } from "./language-context.js"
 
 export interface QuizConfig {
   language: string
@@ -38,7 +39,7 @@ export function buildQuizGenerationConfig(
   if (!language) return null
 
   return {
-    language,
+    language: normalizeLocale(language),
     pagesPerQuiz: appConfig.quiz_generation?.pages_per_quiz ?? 3,
     promptName: appConfig.quiz_generation?.prompt ?? "quiz_generation",
     modelId:
@@ -108,7 +109,7 @@ export async function generateQuiz(
     schema: quizLLMSchema,
     prompt: config.promptName,
     context: {
-      language: config.language,
+      ...buildLanguageContext(config.language),
       page_texts: pageTexts,
     },
     validate: (raw: unknown): ValidationResult => {

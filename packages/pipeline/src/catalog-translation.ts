@@ -1,7 +1,11 @@
 import { z } from "zod"
 import type { AppConfig, TextCatalogEntry, TextCatalogOutput } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
-import { getBaseLanguage } from "./translation.js"
+import {
+  buildTranslationLanguageContext,
+  getBaseLanguage,
+  normalizeLocale,
+} from "./language-context.js"
 
 export interface CatalogTranslationConfig {
   sourceLanguage: string
@@ -15,7 +19,7 @@ export function buildCatalogTranslationConfig(
   sourceLanguage: string
 ): CatalogTranslationConfig {
   return {
-    sourceLanguage,
+    sourceLanguage: normalizeLocale(sourceLanguage),
     promptName: appConfig.translation?.prompt ?? "translation",
     modelId:
       appConfig.translation?.model ??
@@ -56,6 +60,7 @@ export async function translateCatalogBatch(
   if (entries.length === 0) return []
 
   const texts = entries.map((e, i) => ({ index: i, text: e.text }))
+  const normalizedTargetLanguage = normalizeLocale(targetLanguage)
 
   const result = await llmModel.generateObject<{
     translations: string[]
@@ -63,8 +68,10 @@ export async function translateCatalogBatch(
     schema: translationSchema,
     prompt: config.promptName,
     context: {
-      source_language: config.sourceLanguage,
-      target_language: targetLanguage,
+      ...buildTranslationLanguageContext(
+        config.sourceLanguage,
+        normalizedTargetLanguage
+      ),
       texts,
     },
     validate: (raw: unknown): ValidationResult => {

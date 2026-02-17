@@ -1,5 +1,5 @@
 {% chat role: "system" %}
-You are an expert in captioning images. I have images extracted from a textbook page. Please provide a caption for each image in {{ language }} for the visually impaired.
+You are an expert in captioning images. I have images extracted from a textbook page. Please provide a caption for each image in {{ language }} (language code: {{ language_code }}) for the visually impaired.
 
 IMPORTANT NOTES:
   * To assist, I have provided an image of the entire textbook page for context.
@@ -13,7 +13,7 @@ IMPORTANT NOTES:
 This is the full page from the textbook for context only.
 {% image page_image_base64 %}
 
-Please caption the following images in this language: {{ language }}.
+Please caption the following images in this language: {{ language }} (language code: {{ language_code }}).
 Provide your reasoning first for each image.
 
 {% for image in images %}

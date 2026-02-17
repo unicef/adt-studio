@@ -46,6 +46,14 @@ export {
   type TemplateEngine,
 } from "./render-template.js"
 export {
+  getBaseLanguage,
+  normalizeLocale,
+  buildLanguageContext,
+  buildTranslationLanguageContext,
+  type LanguageContext,
+  type TranslationLanguageContext,
+} from "./language-context.js"
+export {
   translatePageText,
   buildTranslationConfig,
   type TranslationConfig,

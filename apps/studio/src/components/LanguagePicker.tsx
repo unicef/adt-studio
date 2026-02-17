@@ -8,6 +8,7 @@ import {
   getDisplayName,
   findLanguage,
   getCountriesForLanguage,
+  normalizeLocale,
   type Language,
 } from "@/lib/languages"
 
@@ -39,12 +40,24 @@ export function LanguagePicker({
   const inputRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
 
-  const isSelected = (code: string) =>
-    typeof selected === "string" ? selected === code : selected.has(code)
+  const normalizedSelected = useMemo(
+    () =>
+      typeof selected === "string"
+        ? normalizeLocale(selected)
+        : new Set(Array.from(selected).map((code) => normalizeLocale(code))),
+    [selected]
+  )
 
   const selectedSet = typeof selected === "string" ? null : selected
 
-  const selectedCode = typeof selected === "string" ? selected : null
+  const selectedCode = typeof selected === "string" ? normalizeLocale(selected) : null
+
+  const isSelected = (code: string) => {
+    const normalized = normalizeLocale(code)
+    return typeof normalizedSelected === "string"
+      ? normalizedSelected === normalized
+      : normalizedSelected.has(normalized)
+  }
 
   const displayValue = selectedCode ? getDisplayName(selectedCode) || selectedCode : null
 
@@ -59,7 +72,7 @@ export function LanguagePicker({
       ]
       const addCountry = (c: { code: string; name: string }) => {
         if (!q || c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)) {
-          const locale = `${lockedLang.code}_${c.code.toUpperCase()}`
+          const locale = `${lockedLang.code}-${c.code.toUpperCase()}`
           result.push({
             code: locale,
             label: `${lockedLang.name} (${c.name})`,
@@ -115,7 +128,7 @@ export function LanguagePicker({
 
   const commit = useCallback(
     (code: string) => {
-      onSelect(code)
+      onSelect(normalizeLocale(code))
       if (!multiple) {
         close()
       } else {
@@ -136,6 +149,16 @@ export function LanguagePicker({
       setHighlighted(0)
     },
     []
+  )
+
+  const clearSelection = useCallback(
+    (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault()
+      e.stopPropagation()
+      onSelect("")
+      close()
+    },
+    [onSelect, close]
   )
 
   const handleItemClick = (item: DropdownItem) => {
@@ -267,18 +290,29 @@ export function LanguagePicker({
           onFocus={() => setOpen(true)}
           onKeyDown={handleKeyDown}
           placeholder={placeholderText()}
-          className={`h-8 text-xs ${lockedLang && open ? "pl-[calc(var(--chip-offset,5rem)+0.75rem)]" : "pl-8"}`}
+          className={`h-8 text-xs ${lockedLang && open ? "pl-[calc(var(--chip-offset,5rem)+0.75rem)]" : "pl-8"} ${!multiple && selectedCode ? "pr-16" : ""}`}
           style={
             lockedLang && open
               ? { paddingLeft: `calc(${lockedLang.name.length * 0.55}rem + 2.5rem)` }
               : undefined
           }
         />
-        {/* Right-aligned code when not focused and a value is selected */}
-        {!open && selectedCode && (
-          <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground pointer-events-none">
-            {selectedCode}
-          </span>
+        {!multiple && selectedCode && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+            {!open && (
+              <span className="text-[10px] text-muted-foreground pointer-events-none">
+                {selectedCode}
+              </span>
+            )}
+            <button
+              type="button"
+              aria-label="Clear language"
+              onClick={clearSelection}
+              className="rounded-full p-0.5 text-muted-foreground hover:bg-muted-foreground/20 hover:text-foreground"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
         )}
 
         {open && (

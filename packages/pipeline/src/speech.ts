@@ -4,6 +4,7 @@ import crypto from "node:crypto"
 import yaml from "js-yaml"
 import type { SpeechFileEntry } from "@adt/types"
 import type { TTSSynthesizer } from "@adt/llm"
+import { getBaseLanguage, normalizeLocale } from "./language-context.js"
 
 // ---------------------------------------------------------------------------
 // Emoji stripping
@@ -56,13 +57,13 @@ export function resolveVoice(
   const providerConfig = voiceMaps[provider]
   if (!providerConfig) return "alloy"
 
-  const normalized = languageCode.toLowerCase()
+  const normalized = normalizeLocale(languageCode).toLowerCase()
 
   // Exact match (e.g. "es-uy")
   if (normalized in providerConfig) return providerConfig[normalized]
 
   // Base language (e.g. "es" from "es-uy")
-  const baseLang = normalized.split("-")[0]
+  const baseLang = getBaseLanguage(normalized)
   if (baseLang in providerConfig) return providerConfig[baseLang]
 
   // Default
@@ -89,11 +90,11 @@ export function resolveInstructions(
   languageCode: string,
   instructionsMap: InstructionsMap
 ): string {
-  const normalized = languageCode.toLowerCase()
+  const normalized = normalizeLocale(languageCode).toLowerCase()
 
   if (normalized in instructionsMap) return instructionsMap[normalized]
 
-  const baseLang = normalized.split("-")[0]
+  const baseLang = getBaseLanguage(normalized)
   if (baseLang in instructionsMap) return instructionsMap[baseLang]
 
   return instructionsMap["default"] ?? ""
@@ -184,7 +185,7 @@ export async function generateSpeechFile(
     "audio format"
   )
   const normalizedLanguage = assertSafeSegment(
-    language.toLowerCase(),
+    normalizeLocale(language),
     SAFE_LANGUAGE_RE,
     "language code"
   )
@@ -212,7 +213,7 @@ export async function generateSpeechFile(
     fs.copyFileSync(cachePath, outputPath)
     return {
       textId: safeTextId,
-      language,
+      language: normalizedLanguage,
       fileName,
       voice,
       model,
@@ -241,7 +242,7 @@ export async function generateSpeechFile(
 
   return {
     textId: safeTextId,
-    language,
+    language: normalizedLanguage,
     fileName,
     voice,
     model,

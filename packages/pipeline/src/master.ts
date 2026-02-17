@@ -10,6 +10,7 @@ import {
 import type { LlmLogEntry, LogLevel } from "@adt/llm"
 import { buildTextCatalog } from "./text-catalog.js"
 import { translateCatalogBatch, buildCatalogTranslationConfig, getTargetLanguages } from "./catalog-translation.js"
+import { getBaseLanguage, normalizeLocale } from "./language-context.js"
 import {
   loadVoicesConfig,
   loadSpeechInstructions,
@@ -83,10 +84,11 @@ export async function runMaster(
     const metadata = metadataRow?.data as {
       language_code?: string | null
     } | null
-    const language =
+    const language = normalizeLocale(
       config.editing_language ??
       metadata?.language_code ??
       "en"
+    )
 
     const onLlmLog = (entry: LlmLogEntry) => {
       storage.appendLlmLog(entry)
@@ -109,10 +111,13 @@ export async function runMaster(
     const effectiveConcurrency = config.concurrency ?? 32
 
     // Output languages default to editing language if not set
-    const outputLanguages =
-      config.output_languages && config.output_languages.length > 0
-        ? config.output_languages
-        : [language]
+    const outputLanguages = Array.from(
+      new Set(
+        (config.output_languages && config.output_languages.length > 0
+          ? config.output_languages
+          : [language]).map((code) => normalizeLocale(code))
+      )
+    )
 
     // Build text catalog from whatever data is available
     runTextCatalog(pages, storage, progress)
@@ -260,14 +265,17 @@ async function runTTS(
 
   for (const lang of outputLanguages) {
     // For output languages that differ from source, use translated catalog
-    const baseSource = sourceLanguage.toLowerCase().split("-")[0]
-    const baseLang = lang.toLowerCase().split("-")[0]
+    const baseSource = getBaseLanguage(sourceLanguage)
+    const baseLang = getBaseLanguage(lang)
 
     let entries: TextCatalogEntry[]
     if (baseLang === baseSource) {
       entries = sourceCatalog.entries
     } else {
-      const translatedRow = storage.getLatestNodeData("text-catalog-translation", lang)
+      const legacyLang = lang.replace("-", "_")
+      const translatedRow =
+        storage.getLatestNodeData("text-catalog-translation", lang) ??
+        storage.getLatestNodeData("text-catalog-translation", legacyLang)
       if (translatedRow) {
         entries = (translatedRow.data as TextCatalogOutput).entries
       } else {

@@ -13,6 +13,8 @@ import {
   buildImageClassifyConfig,
   translatePageText,
   buildTranslationConfig,
+  getBaseLanguage,
+  normalizeLocale,
   loadBookConfig,
   sectionPage,
   buildSectioningConfig,
@@ -608,7 +610,7 @@ async function runQuizzesStep(
     // Get book language from metadata
     const metadataRow = storage.getLatestNodeData("metadata", "book")
     const metadata = metadataRow?.data as { language_code?: string | null } | null
-    const language = config.editing_language ?? metadata?.language_code ?? "en"
+    const language = normalizeLocale(config.editing_language ?? metadata?.language_code ?? "en")
 
     const onLlmLog = (entry: LlmLogEntry) => {
       storage.appendLlmLog(entry)
@@ -721,7 +723,7 @@ async function runCaptionsStep(
     // Get book language from metadata
     const metadataRow = storage.getLatestNodeData("metadata", "book")
     const metadata = metadataRow?.data as { language_code?: string | null } | null
-    const language = config.editing_language ?? metadata?.language_code ?? "en"
+    const language = normalizeLocale(config.editing_language ?? metadata?.language_code ?? "en")
 
     const onLlmLog = (entry: LlmLogEntry) => {
       storage.appendLlmLog(entry)
@@ -883,7 +885,7 @@ async function runGlossaryStep(
     // Get book language from metadata
     const metadataRow = storage.getLatestNodeData("metadata", "book")
     const metadata = metadataRow?.data as { language_code?: string | null } | null
-    const language = config.editing_language ?? metadata?.language_code ?? "en"
+    const language = normalizeLocale(config.editing_language ?? metadata?.language_code ?? "en")
 
     const onLlmLog = (entry: LlmLogEntry) => {
       storage.appendLlmLog(entry)
@@ -981,7 +983,7 @@ async function runTranslationsStep(
     // Get book language from metadata
     const metadataRow = storage.getLatestNodeData("metadata", "book")
     const metadata = metadataRow?.data as { language_code?: string | null } | null
-    const language = config.editing_language ?? metadata?.language_code ?? "en"
+    const language = normalizeLocale(config.editing_language ?? metadata?.language_code ?? "en")
 
     const onLlmLog = (entry: LlmLogEntry) => {
       storage.appendLlmLog(entry)
@@ -1004,10 +1006,13 @@ async function runTranslationsStep(
     const effectiveConcurrency = config.concurrency ?? 32
 
     // Output languages default to editing language if not set
-    const outputLanguages =
-      config.output_languages && config.output_languages.length > 0
-        ? config.output_languages
-        : [language]
+    const outputLanguages = Array.from(
+      new Set(
+        (config.output_languages && config.output_languages.length > 0
+          ? config.output_languages
+          : [language]).map((code) => normalizeLocale(code))
+      )
+    )
 
     // Step 1: Build text catalog (synchronous)
     progress.emit({ type: "step-start", step: "text-catalog" })
@@ -1159,16 +1164,19 @@ async function runTextToSpeechStep(
     // Get book language from metadata
     const metadataRow = storage.getLatestNodeData("metadata", "book")
     const metadata = metadataRow?.data as { language_code?: string | null } | null
-    const language = config.editing_language ?? metadata?.language_code ?? "en"
+    const language = normalizeLocale(config.editing_language ?? metadata?.language_code ?? "en")
 
     const pages = storage.getPages()
     const effectiveConcurrency = config.concurrency ?? 32
 
     // Output languages default to editing language if not set
-    const outputLanguages =
-      config.output_languages && config.output_languages.length > 0
-        ? config.output_languages
-        : [language]
+    const outputLanguages = Array.from(
+      new Set(
+        (config.output_languages && config.output_languages.length > 0
+          ? config.output_languages
+          : [language]).map((code) => normalizeLocale(code))
+      )
+    )
 
     // Step 1: Build text catalog (synchronous)
     progress.emit({ type: "step-start", step: "text-catalog" })
@@ -1216,14 +1224,17 @@ async function runTextToSpeechStep(
     const workItems: TTSWorkItem[] = []
 
     for (const lang of outputLanguages) {
-      const baseSource = sourceLanguage.toLowerCase().split("-")[0]
-      const baseLang = lang.toLowerCase().split("-")[0]
+      const baseSource = getBaseLanguage(sourceLanguage)
+      const baseLang = getBaseLanguage(lang)
 
       let entries: TextCatalogEntry[]
       if (baseLang === baseSource) {
         entries = catalog.entries
       } else {
-        const translatedRow = storage.getLatestNodeData("text-catalog-translation", lang)
+        const legacyLang = lang.replace("-", "_")
+        const translatedRow =
+          storage.getLatestNodeData("text-catalog-translation", lang) ??
+          storage.getLatestNodeData("text-catalog-translation", legacyLang)
         if (translatedRow) {
           entries = (translatedRow.data as TextCatalogOutput).entries
         } else {

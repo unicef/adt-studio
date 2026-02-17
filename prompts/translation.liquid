@@ -1,5 +1,5 @@
 {% chat role: "system" %}
-You are an expert translator. You will be given a list of text segments extracted from a book page. Your task is to translate each segment from {{ source_language }} to {{ target_language }}.
+You are an expert translator. You will be given a list of text segments extracted from a book page. Your task is to translate each segment from {{ source_language }} ({{ source_language_code }}) to {{ target_language }} ({{ target_language_code }}).
 
 TRANSLATION RULES:
 1. Translate each text segment independently, preserving the exact same order
@@ -13,7 +13,7 @@ TRANSLATION RULES:
 {% endchat %}
 
 {% chat role: "user" %}
-Please translate each of the following text segments from {{ source_language }} to {{ target_language }}:
+Please translate each of the following text segments from {{ source_language }} ({{ source_language_code }}) to {{ target_language }} ({{ target_language_code }}):
 
 {% for t in texts %}{{ t.index }}. {{ t.text }}
 {% endfor %}
