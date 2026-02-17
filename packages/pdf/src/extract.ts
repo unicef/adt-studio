@@ -12,6 +12,7 @@ import mupdf, {
   type PDFObject,
 } from "mupdf";
 import { cropPng, decodePng, stitchPngsHorizontally } from "./png-utils.js";
+import { extractTextFromStructuredText } from "./fm-sinhala.js";
 import { renderSvgToPng } from "./svg-render.js";
 
 // ============================================================================
@@ -318,9 +319,9 @@ async function extractPage(doc: MupdfDocument, pageIndex: number): Promise<Extra
     hash: hashBuffer(pagePngBuf),
   };
 
-  // Extract text
+  // Extract text (handles legacy FM Sinhala font remapping when detected)
   const stext = page.toStructuredText();
-  const text = stext.asText();
+  const text = extractTextFromStructuredText(stext);
 
   // Extract raster images directly from PDF objects (not SVG)
   const pdfDoc = doc as unknown as PDFDocument;
@@ -379,9 +380,9 @@ async function extractSpreadPage(
     hash: hashBuffer(pagePngBuf),
   };
 
-  // Concatenate text from both pages
-  const leftText = leftPage.toStructuredText().asText();
-  const rightText = rightPage.toStructuredText().asText();
+  // Concatenate text from both pages (handles legacy FM Sinhala font remapping)
+  const leftText = extractTextFromStructuredText(leftPage.toStructuredText());
+  const rightText = extractTextFromStructuredText(rightPage.toStructuredText());
   const text = leftText + "\n" + rightText;
 
   // Extract raster images from both pages
