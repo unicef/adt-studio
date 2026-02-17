@@ -432,8 +432,8 @@ export const api = {
   getGlobalConfig: () =>
     request<{ config: Record<string, unknown> }>(`/config`),
 
-  exportBook: async (label: string): Promise<Blob> => {
-    const url = `${BASE_URL}/books/${label}/export`
+  exportBook: async (label: string, format: "web" | "epub" = "web"): Promise<Blob> => {
+    const url = `${BASE_URL}/books/${label}/export?format=${format}`
     const res = await fetch(url)
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: res.statusText }))
