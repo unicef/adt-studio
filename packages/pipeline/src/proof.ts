@@ -7,6 +7,7 @@ import { captionPageImages, buildCaptionConfig, extractImageIds } from "./image-
 import { generateGlossary, buildGlossaryConfig } from "./glossary.js"
 import { generateAllQuizzes, buildQuizGenerationConfig, type QuizPageInput } from "./quiz-generation.js"
 import { loadBookConfig } from "./config.js"
+import { normalizeLocale } from "./language-context.js"
 import { nullProgress, type Progress } from "./progress.js"
 import { processWithConcurrency } from "./concurrency.js"
 import { WebRenderingOutput, type StepName, type PageSectioningOutput } from "@adt/types"
@@ -62,10 +63,11 @@ export async function runProof(
     const metadata = metadataRow?.data as {
       language_code?: string | null
     } | null
-    const language =
+    const language = normalizeLocale(
       config.editing_language ??
       metadata?.language_code ??
       "en"
+    )
 
     const onLlmLog = (entry: LlmLogEntry) => {
       storage.appendLlmLog(entry)

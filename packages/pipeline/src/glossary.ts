@@ -4,6 +4,7 @@ import { glossaryLLMSchema, WebRenderingOutput } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
 import type { Storage, PageData } from "@adt/storage"
 import { processWithConcurrency } from "./concurrency.js"
+import { buildLanguageContext } from "./language-context.js"
 
 export interface GlossaryConfig {
   promptName: string
@@ -77,6 +78,7 @@ export async function generateGlossary(
   options: GenerateGlossaryOptions
 ): Promise<GlossaryOutput> {
   const { storage, pages, config, llmModel, concurrency = 1, onBatchComplete } = options
+  const languageContext = buildLanguageContext(config.language)
 
   const pageTexts = collectPageTexts(storage, pages)
   if (pageTexts.length === 0) {
@@ -105,7 +107,7 @@ export async function generateGlossary(
       schema: glossaryLLMSchema,
       prompt: config.promptName,
       context: {
-        language: config.language,
+        ...languageContext,
         pages: batch,
       },
       maxRetries: config.maxRetries,

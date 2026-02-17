@@ -19,6 +19,7 @@ import { api } from "@/api/client"
 import { PromptViewer } from "@/components/v2/PromptViewer"
 import { LanguagePicker } from "@/components/LanguagePicker"
 import { useStepRun } from "@/hooks/use-step-run"
+import { normalizeLocale } from "@/lib/languages"
 
 export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
   const { data: bookConfigData } = useBookConfig(bookLabel)
@@ -45,7 +46,8 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
       if (t.model) setModel(String(t.model))
     }
     if (Array.isArray(merged.output_languages)) {
-      setOutputLanguages(new Set(merged.output_languages as string[]))
+      const normalized = (merged.output_languages as string[]).map((code) => normalizeLocale(code))
+      setOutputLanguages(new Set(normalized))
     }
   }, [activeConfigData])
 
@@ -64,16 +66,18 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
       }
     }
     if (shouldWrite("output_languages")) {
-      overrides.output_languages = outputLanguages.size > 0 ? Array.from(outputLanguages) : undefined
+      const normalized = Array.from(outputLanguages).map((code) => normalizeLocale(code))
+      overrides.output_languages = normalized.length > 0 ? normalized : undefined
     }
     return overrides
   }
 
   const toggleLanguage = (code: string) => {
+    const normalizedCode = normalizeLocale(code)
     setOutputLanguages((prev) => {
       const next = new Set(prev)
-      if (next.has(code)) next.delete(code)
-      else next.add(code)
+      if (next.has(normalizedCode)) next.delete(normalizedCode)
+      else next.add(normalizedCode)
       return next
     })
     markDirty("output_languages")
@@ -111,7 +115,7 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
           onSelect={toggleLanguage}
           multiple
           label="Output Languages"
-          hint="Languages to translate the text catalog into for final output."
+          hint="Leave empty to output only in the book language."
         />
       )}
 

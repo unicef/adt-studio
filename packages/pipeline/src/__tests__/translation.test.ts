@@ -6,6 +6,7 @@ import type {
   LLMModel,
 } from "@adt/llm"
 import {
+  normalizeLocale,
   getBaseLanguage,
   shouldTranslate,
   buildTranslationConfig,
@@ -42,6 +43,12 @@ function makeFakeLLMModel(
 }
 
 describe("translation", () => {
+  it("normalizes locale variants to dash format", () => {
+    expect(normalizeLocale("en_US")).toBe("en-US")
+    expect(normalizeLocale("pt-br")).toBe("pt-BR")
+    expect(normalizeLocale("ES")).toBe("es")
+  })
+
   it("extracts base language from locale variants", () => {
     expect(getBaseLanguage("en_US")).toBe("en")
     expect(getBaseLanguage("pt-br")).toBe("pt")

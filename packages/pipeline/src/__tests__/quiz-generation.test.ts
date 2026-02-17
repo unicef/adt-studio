@@ -231,7 +231,8 @@ describe("generateQuiz", () => {
     const quiz = await generateQuiz(batch, 0, config, llmModel)
 
     expect(capturedOptions?.prompt).toBe("quiz_generation")
-    expect(capturedOptions?.context?.language).toBe("en")
+    expect(capturedOptions?.context?.language_code).toBe("en")
+    expect(capturedOptions?.context?.language).toBe("English")
     const pageTexts = capturedOptions?.context?.page_texts as Array<{
       pageId: string
       text: string

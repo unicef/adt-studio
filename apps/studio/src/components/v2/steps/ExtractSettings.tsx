@@ -23,6 +23,7 @@ import { api } from "@/api/client"
 import { PromptViewer } from "@/components/v2/PromptViewer"
 import { PruneToggle } from "@/components/v2/PruneToggle"
 import { useStepRun } from "@/hooks/use-step-run"
+import { normalizeLocale } from "@/lib/languages"
 
 export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
   const { data: bookConfigData } = useBookConfig(bookLabel)
@@ -58,7 +59,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
     if (!bookConfigData) return
     const c = bookConfigData.config
     setSpreadMode(c.spread_mode === true)
-    if (c.editing_language) setEditingLanguage(String(c.editing_language))
+    if (c.editing_language) setEditingLanguage(normalizeLocale(String(c.editing_language)))
   }, [bookConfigData])
 
   // Load text types, pruned types, and image filters from active (merged) config
@@ -146,7 +147,8 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
       overrides.spread_mode = spreadMode
     }
     if (shouldWrite("editing_language") || editingLanguage.trim()) {
-      overrides.editing_language = editingLanguage.trim() || undefined
+      const normalized = normalizeLocale(editingLanguage.trim())
+      overrides.editing_language = normalized || undefined
     }
     if (shouldWrite("text_types")) {
       overrides.text_types = textTypes
@@ -204,7 +206,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
   }
 
   return (
-    <div className={tab === "metadata-prompt" || tab === "prompt" ? "h-full max-w-4xl" : "p-4 max-w-2xl space-y-6"}>
+    <div className={tab === "metadata-prompt" || tab === "prompt" ? "h-full max-w-4xl" : "p-4 space-y-6"}>
       {tab === "general" && (
         <>
           {/* Page Range */}
@@ -257,12 +259,12 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
           </div>
 
           {/* Editing Language */}
-          <div className="max-w-xs">
+          <div className="max-w-sm">
             <LanguagePicker
               selected={editingLanguage}
               onSelect={(v) => { setEditingLanguage(v); markDirty("editing_language") }}
               label="Editing Language"
-              hint="The primary language of the book content."
+              hint="Leave empty to use the book language."
             />
           </div>
 

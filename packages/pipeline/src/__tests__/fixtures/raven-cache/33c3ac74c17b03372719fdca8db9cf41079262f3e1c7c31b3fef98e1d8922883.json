@@ -1,0 +1,19 @@
+{
+  "reasoning": "The pages introduce the characters (Hyena and Raven), explain they were great friends who played together, and show Hyena expressing a wish to fly with Raven. A simple key-idea question is who Hyena wants to fly with.",
+  "question": "Who did Hyena want to fly into the sky with?",
+  "options": [
+    {
+      "text": "1) Raven",
+      "explanation": "✅ Correct! Hyena told his friend Raven that he wanted to fly into the sky with him."
+    },
+    {
+      "text": "2) Lion",
+      "explanation": "❌ Not quite. The story only talks about Hyena and Raven, not Lion."
+    },
+    {
+      "text": "3) Elephant",
+      "explanation": "❌ Try again. Hyena wanted to fly with Raven, not an elephant."
+    }
+  ],
+  "answer_index": 0
+}

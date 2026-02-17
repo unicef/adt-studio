@@ -10,6 +10,7 @@ import { useApiKey } from "@/hooks/use-api-key"
 import { StepRunCard } from "../StepRunCard"
 import { STEP_DESCRIPTIONS } from "../StepSidebar"
 import { cn } from "@/lib/utils"
+import { getBaseLanguage, normalizeLocale } from "@/lib/languages"
 
 const langNames = new Intl.DisplayNames(["en"], { type: "language" })
 function displayLang(code: string): string {
@@ -162,8 +163,10 @@ export function TranslationsView({ bookLabel }: { bookLabel: string }) {
   })
 
   const merged = activeConfigData?.merged as Record<string, unknown> | undefined
-  const outputLanguages = (merged?.output_languages as string[] | undefined) ?? []
-  const editingLanguage = (merged?.editing_language as string | undefined) ?? "English"
+  const outputLanguages = Array.from(
+    new Set(((merged?.output_languages as string[] | undefined) ?? []).map((code) => normalizeLocale(code)))
+  )
+  const editingLanguage = normalizeLocale((merged?.editing_language as string | undefined) ?? "en")
 
   const [selectedLang, setSelectedLang] = useState<string | null>(null)
 
@@ -178,7 +181,9 @@ export function TranslationsView({ bookLabel }: { bookLabel: string }) {
   const hasTranslations = outputLanguages.length > 0
 
   // The editing language code from config (e.g. "fr")
-  const editingLangCode = (merged?.editing_language as string | undefined) ?? null
+  const editingLangCode = (merged?.editing_language as string | undefined) != null
+    ? normalizeLocale(merged?.editing_language as string)
+    : null
 
   // Pending state for edits (keyed by language)
   const [pendingEntries, setPendingEntries] = useState<TextCatalogEntry[] | null>(null)
@@ -186,7 +191,7 @@ export function TranslationsView({ bookLabel }: { bookLabel: string }) {
 
   // When the selected language IS the source/editing language, there is no
   // separate translation — the source catalog entries are already in that language.
-  const isSourceLang = selectedLang != null && editingLangCode != null && selectedLang === editingLangCode
+  const isSourceLang = selectedLang != null && editingLangCode != null && getBaseLanguage(selectedLang) === getBaseLanguage(editingLangCode)
 
   // Get translated entries for selected language
   const translationData = selectedLang ? catalog?.translations?.[selectedLang] : undefined
@@ -324,7 +329,9 @@ export function TranslationsView({ bookLabel }: { bookLabel: string }) {
       {/* Side-by-side */}
       <div className="space-y-1">
         <div className="grid grid-cols-2 gap-3 px-3 py-1.5">
-          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{editingLanguage}</span>
+          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+            {displayLang(editingLanguage)}
+          </span>
           <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{selectedLang ? displayLang(selectedLang) : selectedLang}</span>
         </div>
         {entries.map((entry) => {

@@ -42,14 +42,14 @@ const STEPS = [
 const LAYOUT_CARDS: {
   type: LayoutType
   icon: typeof GraduationCap
-  color: string
+  iconColor: string
   selectedBg: string
   description: string
 }[] = [
   {
     type: "textbook",
     icon: GraduationCap,
-    color: "bg-blue-500",
+    iconColor: "text-blue-500",
     selectedBg: "bg-blue-500/5",
     description:
       "Structured chapters, exercises. Best for educational content.",
@@ -57,7 +57,7 @@ const LAYOUT_CARDS: {
   {
     type: "storybook",
     icon: BookHeart,
-    color: "bg-amber-500",
+    iconColor: "text-amber-500",
     selectedBg: "bg-amber-500/5",
     description:
       "Large images, narrative flow. Best for illustrated books.",
@@ -65,7 +65,7 @@ const LAYOUT_CARDS: {
   {
     type: "reference",
     icon: Library,
-    color: "bg-emerald-500",
+    iconColor: "text-emerald-500",
     selectedBg: "bg-emerald-500/5",
     description:
       "Dense text, tables, glossaries. Best for technical material.",
@@ -73,7 +73,7 @@ const LAYOUT_CARDS: {
   {
     type: "custom",
     icon: SlidersHorizontal,
-    color: "bg-violet-500",
+    iconColor: "text-violet-500",
     selectedBg: "bg-violet-500/5",
     description:
       "Full control over render strategies, pruning, and filters.",
@@ -81,21 +81,35 @@ const LAYOUT_CARDS: {
 ]
 
 function Stepper({ currentStep }: { currentStep: number }) {
+  const clampedStep = Math.min(Math.max(currentStep, 1), STEPS.length)
+  const progressPercent =
+    STEPS.length > 1
+      ? ((clampedStep - 1) / (STEPS.length - 1)) * 100
+      : 0
+
   return (
-    <div className="flex items-center px-6 pt-5 pb-2">
-      {STEPS.map((step, i) => (
-        <div key={step.number} className="flex flex-1 items-center">
-          <div className="flex flex-col items-center gap-1">
+    <div className="px-6 pt-5 pb-2">
+      <div className="relative">
+        <div className="pointer-events-none absolute left-[16.6667%] right-[16.6667%] top-3.5 h-0.5 bg-border">
+          <div
+            className="h-full bg-primary transition-all"
+            style={{ width: `${progressPercent}%` }}
+          />
+        </div>
+
+        <div className="grid grid-cols-3">
+          {STEPS.map((step) => (
+            <div key={step.number} className="relative z-10 flex flex-col items-center gap-1">
             <div
               className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium transition-colors ${
-                currentStep > step.number
+                clampedStep > step.number
                   ? "bg-primary text-primary-foreground"
-                  : currentStep === step.number
+                  : clampedStep === step.number
                     ? "bg-primary text-primary-foreground"
-                    : "border-2 border-muted-foreground/30 text-muted-foreground"
+                    : "border-2 border-muted-foreground/30 text-muted-foreground bg-card"
               }`}
             >
-              {currentStep > step.number ? (
+              {clampedStep > step.number ? (
                 <Check className="h-3.5 w-3.5" />
               ) : (
                 step.number
@@ -103,23 +117,17 @@ function Stepper({ currentStep }: { currentStep: number }) {
             </div>
             <span
               className={`text-xs ${
-                currentStep >= step.number
+                clampedStep >= step.number
                   ? "text-foreground font-medium"
                   : "text-muted-foreground"
               }`}
             >
               {step.label}
             </span>
+            </div>
+          ))}
           </div>
-          {i < STEPS.length - 1 && (
-            <div
-              className={`mx-2 h-0.5 flex-1 transition-colors ${
-                currentStep > step.number ? "bg-primary" : "bg-border"
-              }`}
-            />
-          )}
-        </div>
-      ))}
+      </div>
     </div>
   )
 }
@@ -255,9 +263,9 @@ function AddBookPage() {
   }, [layoutType, presetData, globalConfigData])
 
   // Step 3 — Settings
-  const [editingLanguage, setEditingLanguage] = useState("en")
+  const [editingLanguage, setEditingLanguage] = useState("")
   const [outputLanguages, setOutputLanguages] = useState<Set<string>>(
-    () => new Set(["en"])
+    () => new Set()
   )
 
   const suggestLabel = useCallback((filename: string) => {
@@ -336,8 +344,12 @@ function AddBookPage() {
 
     const configOverrides: Record<string, unknown> = {}
     configOverrides.layout_type = layoutType
-    configOverrides.editing_language = editingLanguage
-    configOverrides.output_languages = Array.from(outputLanguages)
+    if (editingLanguage.trim()) {
+      configOverrides.editing_language = editingLanguage.trim()
+    }
+    if (outputLanguages.size > 0) {
+      configOverrides.output_languages = Array.from(outputLanguages)
+    }
     configOverrides.spread_mode = spreadMode
     if (parsedStartPage !== undefined) {
       configOverrides.start_page = parsedStartPage
@@ -416,7 +428,7 @@ function AddBookPage() {
   }
 
   return (
-    <div className="mx-auto max-w-xl p-4">
+    <div className="mx-auto w-[36rem] max-w-[calc(100vw-2rem)] p-4">
       <div className="mb-3 flex items-center gap-2">
         <Link
           to="/"
@@ -428,7 +440,7 @@ function AddBookPage() {
         <h1 className="text-lg font-semibold">Add Book</h1>
       </div>
 
-      <Card>
+      <Card className="w-full">
         <Stepper currentStep={step} />
         <CardContent className="pt-4 space-y-4 max-h-[calc(100vh-10rem)] overflow-y-auto">
           {/* Step 1 — Upload */}
@@ -592,10 +604,7 @@ function AddBookPage() {
                           : "hover:border-primary/40 hover:shadow-sm"
                       }`}
                     >
-                      <div
-                        className={`absolute inset-x-0 top-0 h-0.5 rounded-t-xl ${card.color}`}
-                      />
-                      <Icon className="h-6 w-6 text-muted-foreground mt-1" />
+                      <Icon className={`mt-1 h-6 w-6 ${card.iconColor}`} />
                       <span className="mt-2 text-sm font-semibold capitalize">
                         {card.type}
                       </span>
@@ -671,14 +680,14 @@ function AddBookPage() {
             <div key={3} className="animate-wizard-enter space-y-5">
               <LanguagePicker
                 label="Editing Language"
-                hint="The primary language of your book"
+                hint="Leave empty to use the book language."
                 selected={editingLanguage}
                 onSelect={setEditingLanguage}
               />
 
               <LanguagePicker
                 label="Output Languages"
-                hint="Select languages for translated versions"
+                hint="Leave empty to output only in the book language."
                 selected={outputLanguages}
                 onSelect={toggleOutputLanguage}
                 multiple

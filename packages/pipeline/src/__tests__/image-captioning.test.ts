@@ -168,7 +168,8 @@ describe("captionPageImages", () => {
     )
 
     expect(capturedOptions?.prompt).toBe("image_captioning")
-    expect(capturedOptions?.context?.language).toBe("en")
+    expect(capturedOptions?.context?.language_code).toBe("en")
+    expect(capturedOptions?.context?.language).toBe("English")
     expect(capturedOptions?.context?.page_image_base64).toBe("base64pageimage")
     expect(capturedOptions?.log?.taskType).toBe("image-captioning")
     expect(capturedOptions?.log?.pageId).toBe("pg001")

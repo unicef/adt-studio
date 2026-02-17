@@ -16,6 +16,8 @@ import {
   NAV_HTML,
   buildPreviewTailwindCss,
   buildGlossaryJson,
+  getBaseLanguage,
+  normalizeLocale,
 } from "@adt/pipeline"
 
 // ---------------------------------------------------------------------------
@@ -61,7 +63,7 @@ const tailwindCssCache = new Map<string, string>()
 function getBookLanguage(storage: Storage): string {
   const configRow = storage.getLatestNodeData("config", "book")
   const config = configRow?.data as { language?: string } | undefined
-  return config?.language ?? "en"
+  return normalizeLocale(config?.language ?? "en")
 }
 
 function getBookTitle(storage: Storage): string {
@@ -86,7 +88,8 @@ function buildTextsMap(
   sourceLanguage: string,
   catalog: TextCatalogOutput | undefined,
 ): Record<string, string> {
-  const baseLang = lang.toLowerCase().split("-")[0]
+  const normalizedLang = normalizeLocale(lang)
+  const baseLang = getBaseLanguage(normalizedLang)
   const textsMap: Record<string, string> = {}
 
   if (baseLang === sourceLanguage) {
@@ -94,7 +97,10 @@ function buildTextsMap(
       for (const e of catalog.entries) textsMap[e.id] = e.text
     }
   } else {
-    const transRow = storage.getLatestNodeData("text-catalog-translation", lang)
+    const legacyLang = normalizedLang.replace("-", "_")
+    const transRow =
+      storage.getLatestNodeData("text-catalog-translation", normalizedLang) ??
+      storage.getLatestNodeData("text-catalog-translation", legacyLang)
     if (transRow) {
       const translated = transRow.data as TextCatalogOutput
       for (const e of translated.entries) textsMap[e.id] = e.text
@@ -121,7 +127,10 @@ function buildPreviewConfig(storage: Storage, language: string) {
   const glossary = getGlossary(storage)
   const hasGlossary = glossary !== undefined && glossary.items.length > 0
 
-  const ttsRow = storage.getLatestNodeData("tts", language)
+  const legacyLanguage = language.replace("-", "_")
+  const ttsRow =
+    storage.getLatestNodeData("tts", language) ??
+    storage.getLatestNodeData("tts", legacyLanguage)
   const hasTTS = ttsRow !== null
 
   const quizRow = storage.getLatestNodeData("quiz-generation", "book")
@@ -279,7 +288,7 @@ export function createAdtPreviewRoutes(
     const lang = c.req.param("lang")
     const textsMap = withStorage(c.req.param("label"), (storage) => {
       const language = getBookLanguage(storage)
-      const sourceLanguage = language.toLowerCase().split("-")[0]
+      const sourceLanguage = getBaseLanguage(language)
       const catalog = getTextCatalog(storage)
       return buildTextsMap(storage, lang, sourceLanguage, catalog)
     })
@@ -292,11 +301,11 @@ export function createAdtPreviewRoutes(
     const lang = c.req.param("lang")
     const glossaryJson = withStorage(c.req.param("label"), (storage) => {
       const language = getBookLanguage(storage)
-      const sourceLanguage = language.toLowerCase().split("-")[0]
+      const sourceLanguage = getBaseLanguage(language)
       const catalog = getTextCatalog(storage)
       const glossary = getGlossary(storage)
       const textsMap = buildTextsMap(storage, lang, sourceLanguage, catalog)
-      const baseLang = lang.toLowerCase().split("-")[0]
+      const baseLang = getBaseLanguage(lang)
       return buildGlossaryJson(glossary, catalog, textsMap, baseLang === sourceLanguage)
     })
     c.header("Content-Type", "application/json")
@@ -305,9 +314,12 @@ export function createAdtPreviewRoutes(
 
   // /content/i18n/:lang/audios.json — Audio file mapping
   app.get("/books/:label/adt-preview/content/i18n/:lang/audios.json", (c) => {
-    const lang = c.req.param("lang")
+    const lang = normalizeLocale(c.req.param("lang"))
     const audioMap = withStorage(c.req.param("label"), (storage) => {
-      const ttsRow = storage.getLatestNodeData("tts", lang)
+      const legacyLang = lang.replace("-", "_")
+      const ttsRow =
+        storage.getLatestNodeData("tts", lang) ??
+        storage.getLatestNodeData("tts", legacyLang)
       const ttsData = ttsRow?.data as TTSOutput | undefined
       const map: Record<string, string> = {}
       if (ttsData?.entries) {
@@ -329,13 +341,16 @@ export function createAdtPreviewRoutes(
   // /content/i18n/:lang/audio/* — Serve audio files
   app.get("/books/:label/adt-preview/content/i18n/:lang/audio/*", (c) => {
     const { label } = c.req.param()
-    const lang = c.req.param("lang")
+    const lang = normalizeLocale(c.req.param("lang"))
+    const legacyLang = lang.replace("-", "_")
     const { bookDir } = resolveBook(label)
 
     const audioFile = c.req.path.split(`/audio/`).pop()
     if (!audioFile) throw new HTTPException(400, { message: "Missing audio path" })
 
-    const audioDir = path.join(bookDir, "audio", lang)
+    const preferredAudioDir = path.join(bookDir, "audio", lang)
+    const legacyAudioDir = path.join(bookDir, "audio", legacyLang)
+    const audioDir = fs.existsSync(preferredAudioDir) ? preferredAudioDir : legacyAudioDir
     const resolved = path.resolve(audioDir, audioFile)
     if (!resolved.startsWith(path.resolve(audioDir))) {
       throw new HTTPException(403, { message: "Forbidden" })

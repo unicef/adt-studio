@@ -114,8 +114,10 @@ describe("translateCatalogBatch", () => {
     await translateCatalogBatch(entries, "fr", config, model)
 
     expect(capturedContext).toEqual({
-      source_language: "en",
-      target_language: "fr",
+      source_language_code: "en",
+      source_language: "English",
+      target_language_code: "fr",
+      target_language: "French",
       texts: [{ index: 0, text: "Hello" }],
     })
   })

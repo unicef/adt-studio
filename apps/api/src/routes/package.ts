@@ -4,7 +4,7 @@ import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
-import { packageAdtWeb, loadBookConfig } from "@adt/pipeline"
+import { packageAdtWeb, loadBookConfig, normalizeLocale } from "@adt/pipeline"
 
 export function createPackageRoutes(
   booksDir: string,
@@ -60,12 +60,16 @@ export function createPackageRoutes(
         title?: string | null
         language_code?: string | null
       } | null
-      const language =
+      const language = normalizeLocale(
         config.editing_language ?? metadata?.language_code ?? "en"
-      const outputLanguages =
-        config.output_languages && config.output_languages.length > 0
-          ? config.output_languages
-          : [language]
+      )
+      const outputLanguages = Array.from(
+        new Set(
+          (config.output_languages && config.output_languages.length > 0
+            ? config.output_languages
+            : [language]).map((code) => normalizeLocale(code))
+        )
+      )
       const title = metadata?.title ?? safeLabel
 
       await packageAdtWeb(storage, {
