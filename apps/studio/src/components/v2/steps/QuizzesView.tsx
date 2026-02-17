@@ -1,15 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Check, CheckCircle2, XCircle, ChevronDown, Loader2 } from "lucide-react"
+import { Check, CheckCircle2, XCircle, ChevronDown, Loader2, ImageOff } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
 import { api } from "@/api/client"
 import type { QuizGenerationOutput, VersionEntry } from "@/api/client"
 import { useQuizzes } from "@/hooks/use-quizzes"
 import { usePageImage } from "@/hooks/use-pages"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { useStepHeader } from "../StepViewRouter"
 import { useStepRun } from "@/hooks/use-step-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { StepRunCard } from "../StepRunCard"
 import { STEP_DESCRIPTIONS } from "../StepSidebar"
+import { getRequestedPageId, getQuizImageRenderState } from "./quizzes-image-state"
 
 const QUIZZES_SUB_STEPS = [
   { key: "quiz-generation", label: "Generate Quizzes" },
@@ -141,21 +143,67 @@ function PageThumb({
   pageId: string
   onClick: () => void
 }) {
-  const { data: imageData } = usePageImage(bookLabel, pageId)
+  const [requestImage, setRequestImage] = useState(false)
+  const ref = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (requestImage) return
+    if (typeof IntersectionObserver === "undefined") {
+      setRequestImage(true)
+      return
+    }
+    const element = ref.current
+    if (!element) return
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setRequestImage(true)
+          observer.disconnect()
+        }
+      },
+      { rootMargin: "200px" }
+    )
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [requestImage])
+
+  const { data: imageData, isLoading, isError } = usePageImage(
+    bookLabel,
+    getRequestedPageId(pageId, requestImage)
+  )
+  const imageState = getQuizImageRenderState({
+    isRequested: requestImage,
+    isLoading,
+    isError,
+    hasImage: !!imageData,
+  })
+
   return (
     <button
+      ref={ref}
       type="button"
       onClick={onClick}
+      onMouseEnter={() => setRequestImage(true)}
+      onFocus={() => setRequestImage(true)}
+      aria-label={`Open page preview for ${pageId}`}
       className="shrink-0 rounded border border-border bg-muted/40 overflow-hidden hover:ring-2 hover:ring-ring transition-shadow cursor-pointer"
     >
-      {imageData ? (
+      {imageState === "ready" ? (
         <img
-          src={`data:image/png;base64,${imageData.imageBase64}`}
-          alt={pageId}
+          src={`data:image/png;base64,${imageData!.imageBase64}`}
+          alt={`Page ${pageId}`}
+          loading="lazy"
           className="h-44 w-auto block"
         />
+      ) : imageState === "error" ? (
+        <div className="h-44 w-32 flex flex-col items-center justify-center gap-1 text-[10px] text-muted-foreground">
+          <ImageOff className="h-4 w-4" />
+          <span>No image</span>
+        </div>
       ) : (
-        <div className="h-44 w-32" />
+        <div className="h-44 w-32 flex items-center justify-center px-2 text-[10px] text-muted-foreground">
+          Page {pageId}
+        </div>
       )}
     </button>
   )
@@ -164,44 +212,61 @@ function PageThumb({
 function PageLightbox({
   bookLabel,
   pageId,
-  onClose,
+  open,
+  onOpenChange,
 }: {
   bookLabel: string
-  pageId: string
-  onClose: () => void
+  pageId: string | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
 }) {
-  const { data: imageData } = usePageImage(bookLabel, pageId)
-
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose()
-    }
-    document.addEventListener("keydown", handleKey)
-    return () => document.removeEventListener("keydown", handleKey)
-  }, [onClose])
+  const isRequested = open && !!pageId
+  const queryPageId = getRequestedPageId(pageId ?? "", isRequested)
+  const { data: imageData, isLoading, isError, refetch } = usePageImage(bookLabel, queryPageId)
+  const imageState = getQuizImageRenderState({
+    isRequested,
+    isLoading,
+    isError,
+    hasImage: !!imageData,
+  })
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-      onClick={onClose}
-    >
-      <div
-        className="max-h-[90vh] max-w-[90vw] rounded-lg overflow-hidden shadow-2xl bg-white"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {imageData ? (
-          <img
-            src={`data:image/png;base64,${imageData.imageBase64}`}
-            alt={pageId}
-            className="max-h-[90vh] max-w-[90vw] object-contain"
-          />
-        ) : (
-          <div className="flex items-center justify-center h-64 w-48 text-muted-foreground text-sm">
-            Loading...
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      {pageId && (
+        <DialogContent className="w-auto max-w-[95vw] overflow-hidden gap-2 p-2 sm:max-w-[90vw] bg-white">
+          <DialogTitle className="sr-only">Page preview {pageId}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Full-size source page preview for the selected quiz.
+          </DialogDescription>
+          <div className="flex max-h-[90vh] max-w-[90vw] items-center justify-center overflow-hidden rounded-md bg-muted/20">
+            {imageState === "ready" ? (
+              <img
+                src={`data:image/png;base64,${imageData!.imageBase64}`}
+                alt={`Page ${pageId}`}
+                className="max-h-[90vh] max-w-[90vw] object-contain"
+              />
+            ) : imageState === "error" ? (
+              <div className="flex h-64 w-52 flex-col items-center justify-center gap-2 text-sm text-muted-foreground">
+                <ImageOff className="h-5 w-5" />
+                <span>Image unavailable</span>
+                <button
+                  type="button"
+                  onClick={() => void refetch()}
+                  className="rounded border px-2 py-0.5 text-xs hover:bg-muted transition-colors cursor-pointer"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : (
+              <div className="flex h-64 w-52 items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Loading image...</span>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-    </div>
+        </DialogContent>
+      )}
+    </Dialog>
   )
 }
 
@@ -334,9 +399,13 @@ export function QuizzesView({ bookLabel }: { bookLabel: string }) {
       {quizzes.map((quiz, idx) => (
         <div key={idx} className="rounded-md border bg-card overflow-hidden">
           <div className="flex flex-wrap items-center gap-1.5 px-4 py-2 bg-muted/20 border-b">
-            {quiz.pageIds.map((pageId) => (
-              <PageThumb key={pageId} bookLabel={bookLabel} pageId={pageId} onClick={() => setLightboxPageId(pageId)} />
-            ))}
+            {quiz.pageIds.length > 0 ? (
+              quiz.pageIds.map((pageId) => (
+                <PageThumb key={pageId} bookLabel={bookLabel} pageId={pageId} onClick={() => setLightboxPageId(pageId)} />
+              ))
+            ) : (
+              <span className="text-xs text-muted-foreground">After {quiz.afterPageId}</span>
+            )}
           </div>
           <div className="px-4 py-3">
             <textarea
@@ -345,6 +414,9 @@ export function QuizzesView({ bookLabel }: { bookLabel: string }) {
               className="w-full text-sm font-medium resize-none rounded border border-transparent bg-transparent p-1 -m-1 hover:border-border hover:bg-muted/30 focus:border-ring focus:bg-white focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
               rows={1}
             />
+            <span className="text-[10px] text-muted-foreground mt-1 inline-block">
+              After {quiz.afterPageId}
+            </span>
           </div>
           <div className="px-4 pb-3 space-y-1.5">
             {quiz.options.map((option, i) => (
@@ -383,9 +455,14 @@ export function QuizzesView({ bookLabel }: { bookLabel: string }) {
           </div>
         </div>
       ))}
-      {lightboxPageId && (
-        <PageLightbox bookLabel={bookLabel} pageId={lightboxPageId} onClose={() => setLightboxPageId(null)} />
-      )}
+      <PageLightbox
+        bookLabel={bookLabel}
+        pageId={lightboxPageId}
+        open={lightboxPageId != null}
+        onOpenChange={(open) => {
+          if (!open) setLightboxPageId(null)
+        }}
+      />
     </div>
   )
 }
