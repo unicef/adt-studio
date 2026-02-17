@@ -409,6 +409,7 @@ function AddBookPage() {
           navigate({
             to: "/books/$label/v2/$step",
             params: { label: book.label, step: "book" },
+            search: hasApiKey ? { fromStep: "extract", toStep: "storyboard" } : {},
           })
         },
       }

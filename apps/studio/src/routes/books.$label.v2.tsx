@@ -1,28 +1,54 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { createFileRoute, Outlet, useParams, Link } from "@tanstack/react-router"
 import { Home } from "lucide-react"
 import { StepSidebar } from "@/components/v2/StepSidebar"
 import { useBook } from "@/hooks/use-books"
 import { useStepRunSSE, StepRunContext } from "@/hooks/use-step-run"
 import { api } from "@/api/client"
+import { z } from "zod"
+
+const v2SearchSchema = z.object({
+  fromStep: z.string().optional(),
+  toStep: z.string().optional(),
+})
 
 export const Route = createFileRoute("/books/$label/v2")({
   component: V2Layout,
+  validateSearch: v2SearchSchema,
 })
 
 function V2Layout() {
   const { label } = Route.useParams()
+  const { fromStep: searchFromStep, toStep: searchToStep } = Route.useSearch()
   const { step } = useParams({ strict: false }) as { step?: string }
   const { data: book } = useBook(label)
 
   const activeStep = step ?? "book"
 
-  // Step run SSE state
-  const [sseEnabled, setSseEnabled] = useState(false)
+  // Capture the run hint from search params on first render, then strip them
+  const runHint = useRef(
+    searchFromStep && searchToStep
+      ? { fromStep: searchFromStep, toStep: searchToStep }
+      : null
+  )
+  const [sseEnabled, setSseEnabled] = useState(!!runHint.current)
   const { progress, startRun, reset } = useStepRunSSE(label, sseEnabled)
 
-  // Auto-reconnect if a step run is already in progress on mount
+  // Apply the run hint once on mount and strip search params from URL
   useEffect(() => {
+    if (runHint.current) {
+      startRun(runHint.current.fromStep, runHint.current.toStep)
+      // Strip hint params from URL so they don't persist on refresh
+      const url = new URL(window.location.href)
+      url.searchParams.delete("fromStep")
+      url.searchParams.delete("toStep")
+      window.history.replaceState(null, "", url.pathname + url.hash)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps -- run once on mount
+
+  // Auto-reconnect if a step run is already in progress on mount (no hint)
+  useEffect(() => {
+    if (runHint.current) return // already handled above
     let cancelled = false
     api.getStepsStatus(label).then((status) => {
       if (!cancelled && status.status === "running") {
