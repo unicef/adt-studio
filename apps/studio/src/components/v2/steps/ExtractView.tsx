@@ -149,7 +149,8 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
   const selectedPageId = selectedPageIdProp ?? null
   const setSelectedPageId = onSelectPage ?? (() => {})
   const { setExtra, setOnLabelClick } = useStepHeader()
-  const extractRunning = stepProgress.isRunning && stepProgress.targetSteps.has("extract")
+  const extractState = stepProgress.steps.get("extract")?.state
+  const extractRunning = extractState === "running" || extractState === "queued"
 
   const pageList = pages ?? []
   const currentIndex = selectedPageId ? pageList.findIndex((p) => p.pageId === selectedPageId) : -1

@@ -137,7 +137,8 @@ export function QuizzesView({ bookLabel }: { bookLabel: string }) {
   const { setExtra } = useStepHeader()
   const { progress: stepProgress, startRun, setSseEnabled } = useStepRun()
   const { apiKey, hasApiKey } = useApiKey()
-  const quizzesRunning = stepProgress.isRunning && stepProgress.targetSteps.has("quizzes")
+  const quizzesState = stepProgress.steps.get("quizzes")?.state
+  const quizzesRunning = quizzesState === "running" || quizzesState === "queued"
 
   const handleRunQuizzes = useCallback(async () => {
     if (!hasApiKey || quizzesRunning) return

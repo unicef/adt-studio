@@ -22,7 +22,8 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const { progress: stepProgress, startRun, setSseEnabled } = useStepRun()
   const { apiKey, hasApiKey } = useApiKey()
   const queryClient = useQueryClient()
-  const storyboardRunning = stepProgress.isRunning && stepProgress.targetSteps.has("storyboard")
+  const storyboardState = stepProgress.steps.get("storyboard")?.state
+  const storyboardRunning = storyboardState === "running" || storyboardState === "queued"
 
   const handleRunStoryboard = useCallback(async () => {
     if (!hasApiKey || storyboardRunning) return

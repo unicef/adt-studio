@@ -224,7 +224,8 @@ export function CaptionsView({ bookLabel }: { bookLabel: string }) {
   const { progress: stepProgress, startRun, setSseEnabled } = useStepRun()
   const { apiKey, hasApiKey } = useApiKey()
   const queryClient = useQueryClient()
-  const captionsRunning = stepProgress.isRunning && stepProgress.targetSteps.has("captions")
+  const captionsState = stepProgress.steps.get("captions")?.state
+  const captionsRunning = captionsState === "running" || captionsState === "queued"
 
   const handleRunCaptions = useCallback(async () => {
     if (!hasApiKey || captionsRunning) return

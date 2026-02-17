@@ -19,7 +19,8 @@ export function TextToSpeechView({ bookLabel }: { bookLabel: string }) {
   const queryClient = useQueryClient()
   const { progress: stepProgress, startRun, setSseEnabled } = useStepRun()
   const { apiKey, hasApiKey } = useApiKey()
-  const ttsRunning = stepProgress.isRunning && stepProgress.targetSteps.has("text-to-speech")
+  const ttsState = stepProgress.steps.get("text-to-speech")?.state
+  const ttsRunning = ttsState === "running" || ttsState === "queued"
 
   const handleRunTTS = useCallback(async () => {
     if (!hasApiKey || ttsRunning) return

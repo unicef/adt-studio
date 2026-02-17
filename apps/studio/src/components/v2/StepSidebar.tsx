@@ -147,7 +147,7 @@ export function StepSidebar({ bookLabel, activeStep }: { bookLabel: string; acti
                   <div
                     className={cn(
                       "flex items-center justify-center w-7 h-7 rounded-full transition-colors",
-                      isActive || step.slug === "book" || completedSteps[step.slug]
+                      isActive || step.slug === "book" || completedSteps[step.slug] || ringState === "done"
                         ? cn(step.color, "text-white")
                         : "bg-muted text-muted-foreground"
                     )}

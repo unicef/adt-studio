@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef, createContext, useContext } f
 import { useQueryClient } from "@tanstack/react-query"
 import { api } from "@/api/client"
 import type { StepName } from "./use-pipeline"
+import { getTargetStepsForRange, isFinalPipelineStepForUiStep } from "./step-run-range"
 
 /** Maps internal pipeline step names to UI step slugs */
 const PIPELINE_TO_UI_STEP: Record<string, string> = {
@@ -105,14 +106,14 @@ export function useStepRunSSE(label: string, enabled: boolean) {
           }
           subSteps.set(pipelineStep, { state: "running", page, totalPages: total })
         } else if (data.type === "step-complete") {
-          const existing = steps.get(uiStep)
-          // Only mark done when all sub-steps in this UI step are complete
-          // We set progress to 1 but keep as "running" until all sub-steps done
-          if (existing) {
-            steps.set(uiStep, { ...existing, progress: 1 })
+          if (isFinalPipelineStepForUiStep(uiStep, pipelineStep)) {
+            steps.set(uiStep, { state: "done", progress: 1 })
           }
           subSteps.set(pipelineStep, { state: "done" })
         } else if (data.type === "step-skip") {
+          if (isFinalPipelineStepForUiStep(uiStep, pipelineStep)) {
+            steps.set(uiStep, { state: "done", progress: 1 })
+          }
           subSteps.set(pipelineStep, { state: "done" })
         } else if (data.type === "step-error") {
           steps.set(uiStep, { state: "error", progress: 0 })
@@ -143,6 +144,7 @@ export function useStepRunSSE(label: string, enabled: boolean) {
       queryClient.invalidateQueries({ queryKey: ["books", label] })
       queryClient.invalidateQueries({ queryKey: ["books"] })
       queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
+      queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"] })
       queryClient.invalidateQueries({ queryKey: ["debug"] })
       queryClient.invalidateQueries({ queryKey: ["steps-status", label] })
       es.close()
@@ -199,6 +201,7 @@ export function useStepRunSSE(label: string, enabled: boolean) {
           queryClient.invalidateQueries({ queryKey: ["books", label] })
           queryClient.invalidateQueries({ queryKey: ["books"] })
           queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
+          queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"] })
           queryClient.invalidateQueries({ queryKey: ["steps-status", label] })
           es.close()
           clearInterval(pollInterval)
@@ -225,10 +228,7 @@ export function useStepRunSSE(label: string, enabled: boolean) {
   const startRun = useCallback(
     (fromStep: string, toStep: string) => {
       // Set target steps and mark them as queued
-      const targetSteps = new Set<string>()
-      // For now, fromStep === toStep for single-step runs
-      targetSteps.add(fromStep)
-      if (fromStep !== toStep) targetSteps.add(toStep)
+      const targetSteps = getTargetStepsForRange(fromStep, toStep)
 
       const steps = new Map<string, UIStepProgress>()
       for (const s of targetSteps) {

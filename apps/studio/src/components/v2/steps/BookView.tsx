@@ -47,7 +47,7 @@ interface ViewProps {
 
 export function BookView({ bookLabel }: ViewProps) {
   const pipelineSteps = STEPS.filter((s) => s.slug !== "book")
-  const { progress: stepRunProgress, startRun, setSseEnabled } = useStepRun()
+  const { progress: stepRunProgress, startRun, reset, setSseEnabled } = useStepRun()
   const { apiKey, hasApiKey } = useApiKey()
   const queryClient = useQueryClient()
   const { data: stepStatusData } = useQuery({
@@ -58,12 +58,17 @@ export function BookView({ bookLabel }: ViewProps) {
 
   const handleRun = useCallback(async (slug: string) => {
     if (!hasApiKey || stepRunProgress.isRunning) return
-    startRun(slug, slug)
-    setSseEnabled(true)
-    await api.runSteps(bookLabel, apiKey, { fromStep: slug, toStep: slug })
-    queryClient.removeQueries({ queryKey: ["books", bookLabel, "pages"] })
-    queryClient.removeQueries({ queryKey: ["books", bookLabel] })
-  }, [bookLabel, apiKey, hasApiKey, stepRunProgress.isRunning, startRun, setSseEnabled, queryClient])
+    try {
+      startRun(slug, slug)
+      setSseEnabled(true)
+      await api.runSteps(bookLabel, apiKey, { fromStep: slug, toStep: slug })
+      queryClient.removeQueries({ queryKey: ["books", bookLabel, "pages"] })
+      queryClient.removeQueries({ queryKey: ["books", bookLabel] })
+    } catch {
+      setSseEnabled(false)
+      reset()
+    }
+  }, [bookLabel, apiKey, hasApiKey, stepRunProgress.isRunning, startRun, reset, setSseEnabled, queryClient])
 
   return (
     <div className="flex flex-col items-start max-w-xl">
@@ -87,6 +92,7 @@ export function BookView({ bookLabel }: ViewProps) {
                 description={STEP_DESCRIPTIONS[step.slug]}
                 isRunning={isRunning}
                 completed={!!completedSteps[step.slug]}
+                showRunButton={step.slug !== "preview"}
                 onRun={() => handleRun(step.slug)}
                 disabled={!hasApiKey || stepRunProgress.isRunning}
               />

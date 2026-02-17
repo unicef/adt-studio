@@ -57,6 +57,8 @@ text_classification:
   prompt: text_classification
   model: openai:gpt-4o
 concurrency: 2
+start_page: 1
+end_page: 20
 pruned_text_types:
   - header_text
 `
@@ -65,6 +67,8 @@ pruned_text_types:
     fs.writeFileSync(
       path.join(bookDir, "config.yaml"),
       `concurrency: 7
+start_page: 3
+end_page: 8
 pruned_text_types:
   - footer_text
 `
@@ -75,7 +79,37 @@ pruned_text_types:
     expect(config.text_classification?.prompt).toBe("text_classification")
     expect(config.text_classification?.model).toBe("openai:gpt-4o")
     expect(config.concurrency).toBe(7)
+    expect(config.start_page).toBe(3)
+    expect(config.end_page).toBe(8)
     expect(config.pruned_text_types).toEqual(["footer_text"])
+  })
+
+  it("rejects invalid persisted page ranges", () => {
+    const booksRoot = makeTempDir()
+    const label = "bad-range"
+    const baseConfigPath = path.join(booksRoot, "config.yaml")
+    const bookDir = path.join(booksRoot, label)
+    fs.mkdirSync(bookDir, { recursive: true })
+
+    fs.writeFileSync(
+      baseConfigPath,
+      `text_types:
+  heading: Heading
+text_group_types:
+  paragraph: Paragraph
+`
+    )
+
+    fs.writeFileSync(
+      path.join(bookDir, "config.yaml"),
+      `start_page: 9
+end_page: 2
+`
+    )
+
+    expect(() => loadBookConfig(label, booksRoot, baseConfigPath)).toThrow(
+      "end_page must be greater than or equal to start_page"
+    )
   })
 
   it("rejects unsafe labels before resolving book config path", () => {

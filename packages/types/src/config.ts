@@ -60,32 +60,48 @@ export const RenderStrategyConfig = z
   })
 export type RenderStrategyConfig = z.infer<typeof RenderStrategyConfig>
 
-export const AppConfig = z.object({
-  text_types: z.record(z.string(), z.string()),
-  text_group_types: z.record(z.string(), z.string()),
-  section_types: z.record(z.string(), z.string()).optional(),
-  pruned_text_types: z.array(z.string()).optional(),
-  pruned_section_types: z.array(z.string()).optional(),
-  text_classification: StepConfig.optional(),
-  translation: StepConfig.optional(),
-  metadata: StepConfig.optional(),
-  page_sectioning: StepConfig.optional(),
-  quiz_generation: QuizGenerationConfig.optional(),
-  default_render_strategy: z.string().optional(),
-  render_strategies: z.record(z.string(), RenderStrategyConfig).optional(),
-  section_render_strategies: z.record(z.string(), z.string()).optional(),
-  image_filters: ImageFilters.optional(),
-  glossary: StepConfig.optional(),
-  concurrency: z.number().int().min(1).optional(),
-  rate_limit: RateLimitConfig.optional(),
-  editing_language: z.string().optional(),
-  output_languages: z.array(z.string()).optional(),
-  book_format: z.array(BookFormat).optional(),
-  image_captioning: StepConfig.optional(),
-  layout_type: LayoutType.optional(),
-  spread_mode: z.boolean().optional(),
-  speech: SpeechConfig.optional(),
-})
+export const AppConfig = z
+  .object({
+    text_types: z.record(z.string(), z.string()),
+    text_group_types: z.record(z.string(), z.string()),
+    section_types: z.record(z.string(), z.string()).optional(),
+    pruned_text_types: z.array(z.string()).optional(),
+    pruned_section_types: z.array(z.string()).optional(),
+    text_classification: StepConfig.optional(),
+    translation: StepConfig.optional(),
+    metadata: StepConfig.optional(),
+    page_sectioning: StepConfig.optional(),
+    quiz_generation: QuizGenerationConfig.optional(),
+    default_render_strategy: z.string().optional(),
+    render_strategies: z.record(z.string(), RenderStrategyConfig).optional(),
+    section_render_strategies: z.record(z.string(), z.string()).optional(),
+    image_filters: ImageFilters.optional(),
+    glossary: StepConfig.optional(),
+    concurrency: z.number().int().min(1).optional(),
+    rate_limit: RateLimitConfig.optional(),
+    editing_language: z.string().optional(),
+    output_languages: z.array(z.string()).optional(),
+    book_format: z.array(BookFormat).optional(),
+    image_captioning: StepConfig.optional(),
+    layout_type: LayoutType.optional(),
+    spread_mode: z.boolean().optional(),
+    start_page: z.number().int().min(1).optional(),
+    end_page: z.number().int().min(1).optional(),
+    speech: SpeechConfig.optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (
+      value.start_page !== undefined &&
+      value.end_page !== undefined &&
+      value.end_page < value.start_page
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["end_page"],
+        message: "end_page must be greater than or equal to start_page",
+      })
+    }
+  })
 export type AppConfig = z.infer<typeof AppConfig>
 
 export interface TypeDef {

@@ -76,7 +76,12 @@ export async function runPipeline(
     const config = loadBookConfig(label, booksRoot, configPath)
 
     const result = await extractPDF(
-      { pdfPath, startPage, endPage, spreadMode: config.spread_mode },
+      {
+        pdfPath,
+        startPage: startPage ?? config.start_page,
+        endPage: endPage ?? config.end_page,
+        spreadMode: config.spread_mode,
+      },
       storage,
       progress
     )

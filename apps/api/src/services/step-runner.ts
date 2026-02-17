@@ -170,7 +170,12 @@ async function runExtractStep(
     // Step 1: Extract PDF
     console.log(`[step-run] ${label}: extracting PDF from ${pdfPath}`)
     await extractPDF(
-      { pdfPath, spreadMode: config.spread_mode },
+      {
+        pdfPath,
+        startPage: config.start_page,
+        endPage: config.end_page,
+        spreadMode: config.spread_mode,
+      },
       storage,
       progress
     )

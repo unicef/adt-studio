@@ -130,6 +130,7 @@ function AddBookPage() {
   const { apiKey, hasApiKey } = useApiKey()
 
   const [step, setStep] = useState(1)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   // Step 1 — Upload
   const [label, setLabel] = useState("")
@@ -309,15 +310,40 @@ function AddBookPage() {
 
   const handleSubmit = () => {
     if (!file || !label) return
+    setSubmitError(null)
+
+    const parsedStartPage = startPage.trim() ? Number(startPage) : undefined
+    const parsedEndPage = endPage.trim() ? Number(endPage) : undefined
+    const hasInvalidStart =
+      parsedStartPage !== undefined &&
+      (!Number.isInteger(parsedStartPage) || parsedStartPage < 1)
+    const hasInvalidEnd =
+      parsedEndPage !== undefined &&
+      (!Number.isInteger(parsedEndPage) || parsedEndPage < 1)
+
+    if (hasInvalidStart || hasInvalidEnd) {
+      setSubmitError("Page range must use whole numbers greater than or equal to 1.")
+      return
+    }
+    if (
+      parsedStartPage !== undefined &&
+      parsedEndPage !== undefined &&
+      parsedEndPage < parsedStartPage
+    ) {
+      setSubmitError("Last page must be greater than or equal to first page.")
+      return
+    }
 
     const configOverrides: Record<string, unknown> = {}
     configOverrides.layout_type = layoutType
     configOverrides.editing_language = editingLanguage
-    if (outputLanguages.size > 0) {
-      configOverrides.output_languages = Array.from(outputLanguages)
+    configOverrides.output_languages = Array.from(outputLanguages)
+    configOverrides.spread_mode = spreadMode
+    if (parsedStartPage !== undefined) {
+      configOverrides.start_page = parsedStartPage
     }
-    if (spreadMode) {
-      configOverrides.spread_mode = true
+    if (parsedEndPage !== undefined) {
+      configOverrides.end_page = parsedEndPage
     }
 
     // Advanced layout settings
@@ -372,9 +398,13 @@ function AddBookPage() {
     createMutation.mutate(
       { label, pdf: file, config: configOverrides },
       {
-        onSuccess: (book) => {
-          if (hasApiKey) {
-            api.runSteps(book.label, apiKey, { fromStep: "extract", toStep: "storyboard" })
+        onSuccess: async (book) => {
+          if (hasApiKey && apiKey) {
+            try {
+              await api.runSteps(book.label, apiKey, { fromStep: "extract", toStep: "storyboard" })
+            } catch {
+              // Book creation already succeeded; user can retry the run from v2.
+            }
           }
           navigate({
             to: "/books/$label/v2/$step",
@@ -655,9 +685,9 @@ function AddBookPage() {
               />
 
               {/* Error */}
-              {createMutation.isError && (
+              {(submitError || createMutation.isError) && (
                 <p className="text-sm text-destructive">
-                  {createMutation.error.message}
+                  {submitError ?? createMutation.error?.message ?? "Failed to create book."}
                 </p>
               )}
 

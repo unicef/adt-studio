@@ -144,7 +144,8 @@ export function TranslationsView({ bookLabel }: { bookLabel: string }) {
   const queryClient = useQueryClient()
   const { progress: stepProgress, startRun, setSseEnabled } = useStepRun()
   const { apiKey, hasApiKey } = useApiKey()
-  const translationsRunning = stepProgress.isRunning && stepProgress.targetSteps.has("translations")
+  const translationsState = stepProgress.steps.get("translations")?.state
+  const translationsRunning = translationsState === "running" || translationsState === "queued"
 
   const handleRunTranslations = useCallback(async () => {
     if (!hasApiKey || translationsRunning) return

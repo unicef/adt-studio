@@ -108,8 +108,8 @@ export function createPipelineRunner(): PipelineRunner {
         await extractPDF(
           {
             pdfPath,
-            startPage: options.startPage,
-            endPage: options.endPage,
+            startPage: options.startPage ?? config.start_page,
+            endPage: options.endPage ?? config.end_page,
             spreadMode: config.spread_mode,
           },
           storage,
