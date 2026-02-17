@@ -1,0 +1,154 @@
+{
+  "reasoning": "Selected key story vocabulary that a learner may need: character names (as animal nouns), time expressions, relationship words, common actions, and simple setting/preposition phrases. Excluded author/title/source lines as not needed for comprehension.",
+  "items": [
+    {
+      "word": "hyena",
+      "definition": "a wild animal like a dog that lives in Africa and laughs or makes loud sounds",
+      "variations": [
+        "hyena",
+        "hyenas"
+      ],
+      "emojis": [
+        "🐾",
+        "🦴"
+      ]
+    },
+    {
+      "word": "raven",
+      "definition": "a large black bird",
+      "variations": [
+        "raven",
+        "ravens"
+      ],
+      "emojis": [
+        "🐦",
+        "⬛"
+      ]
+    },
+    {
+      "word": "once",
+      "definition": "at a time in the past; before now",
+      "variations": [
+        "once"
+      ],
+      "emojis": [
+        "⏳",
+        "🕰️"
+      ]
+    },
+    {
+      "word": "friends",
+      "definition": "people or animals who like each other and enjoy being together",
+      "variations": [
+        "friend",
+        "friends"
+      ],
+      "emojis": [
+        "🤝",
+        "🫂"
+      ]
+    },
+    {
+      "word": "played",
+      "definition": "did fun activities; did games for enjoyment",
+      "variations": [
+        "play",
+        "plays",
+        "played",
+        "playing"
+      ],
+      "emojis": [
+        "🎲",
+        "⚽"
+      ]
+    },
+    {
+      "word": "together",
+      "definition": "with someone else; in the same place or at the same time",
+      "variations": [
+        "together"
+      ],
+      "emojis": [
+        "👫",
+        "🤝"
+      ]
+    },
+    {
+      "word": "all the time",
+      "definition": "very often; almost always",
+      "variations": [
+        "all the time"
+      ],
+      "emojis": [
+        "🕰️",
+        "🔁"
+      ]
+    },
+    {
+      "word": "one day",
+      "definition": "on a certain day (often used to start a story event)",
+      "variations": [
+        "one day"
+      ],
+      "emojis": [
+        "📅",
+        "🌞"
+      ]
+    },
+    {
+      "word": "said",
+      "definition": "spoke; told something using words",
+      "variations": [
+        "say",
+        "says",
+        "said",
+        "saying"
+      ],
+      "emojis": [
+        "🗣️",
+        "💬"
+      ]
+    },
+    {
+      "word": "love (would love)",
+      "definition": "to like something very much; to really want to do something",
+      "variations": [
+        "love",
+        "loves",
+        "loved",
+        "loving",
+        "would love"
+      ],
+      "emojis": [
+        "❤️",
+        "✨"
+      ]
+    },
+    {
+      "word": "fly",
+      "definition": "to move through the air like a bird",
+      "variations": [
+        "fly",
+        "flies",
+        "flew",
+        "flying"
+      ],
+      "emojis": [
+        "🪽",
+        "🌬️"
+      ]
+    },
+    {
+      "word": "sky",
+      "definition": "the space above the earth where you see clouds and the sun",
+      "variations": [
+        "sky",
+        "skies"
+      ],
+      "emojis": [
+        "☁️",
+        "🌤️"
+      ]
+    }
+  ]
+}
