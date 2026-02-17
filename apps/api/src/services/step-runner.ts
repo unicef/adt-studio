@@ -98,9 +98,31 @@ async function processWithConcurrency<T>(
   await Promise.all(executing)
 }
 
+const STEP_ORDER = [
+  "extract",
+  "storyboard",
+  "quizzes",
+  "captions",
+  "glossary",
+  "translations",
+  "text-to-speech",
+] as const
+
+type RunFn = (label: string, options: StepRunOptions, progress: StepRunProgress) => Promise<void>
+
+const STEP_RUNNERS: Record<string, RunFn> = {
+  "extract": runExtractStep,
+  "storyboard": runStoryboardStep,
+  "quizzes": runQuizzesStep,
+  "captions": runCaptionsStep,
+  "glossary": runGlossaryStep,
+  "translations": runTranslationsStep,
+  "text-to-speech": runTextToSpeechStep,
+}
+
 /**
- * Creates a step runner that executes individual pipeline steps.
- * Currently supports: "extract" (PDF extraction + metadata + classification).
+ * Creates a step runner that executes pipeline steps.
+ * Supports single steps (fromStep === toStep) and ranges (e.g. extract → storyboard).
  */
 export function createStepRunner(): StepRunner {
   return {
@@ -112,22 +134,16 @@ export function createStepRunner(): StepRunner {
       const { fromStep, toStep } = options
       console.log(`[step-run] ${label}: starting ${fromStep}→${toStep}`)
 
-      if (fromStep === "extract" && toStep === "extract") {
-        await runExtractStep(label, options, progress)
-      } else if (fromStep === "storyboard" && toStep === "storyboard") {
-        await runStoryboardStep(label, options, progress)
-      } else if (fromStep === "quizzes" && toStep === "quizzes") {
-        await runQuizzesStep(label, options, progress)
-      } else if (fromStep === "captions" && toStep === "captions") {
-        await runCaptionsStep(label, options, progress)
-      } else if (fromStep === "glossary" && toStep === "glossary") {
-        await runGlossaryStep(label, options, progress)
-      } else if (fromStep === "translations" && toStep === "translations") {
-        await runTranslationsStep(label, options, progress)
-      } else if (fromStep === "text-to-speech" && toStep === "text-to-speech") {
-        await runTextToSpeechStep(label, options, progress)
-      } else {
-        throw new Error(`Step range "${fromStep}" to "${toStep}" is not yet implemented`)
+      const fromIndex = STEP_ORDER.indexOf(fromStep as typeof STEP_ORDER[number])
+      const toIndex = STEP_ORDER.indexOf(toStep as typeof STEP_ORDER[number])
+
+      if (fromIndex === -1 || toIndex === -1 || fromIndex > toIndex) {
+        throw new Error(`Invalid step range "${fromStep}" to "${toStep}"`)
+      }
+
+      for (let i = fromIndex; i <= toIndex; i++) {
+        const stepSlug = STEP_ORDER[i]
+        await STEP_RUNNERS[stepSlug](label, options, progress)
       }
 
       console.log(`[step-run] ${label}: completed ${fromStep}→${toStep}`)

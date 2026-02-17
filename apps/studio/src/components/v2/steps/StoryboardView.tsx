@@ -11,8 +11,8 @@ import { STEP_DESCRIPTIONS } from "../StepSidebar"
 import { StoryboardSectionDetail } from "./StoryboardSectionDetail"
 
 const STORYBOARD_SUB_STEPS = [
-  { key: "page-sectioning", label: "Sectioning Pages" },
-  { key: "web-rendering", label: "Rendering Pages" },
+  { key: "page-sectioning", label: "Section Pages" },
+  { key: "web-rendering", label: "Render Pages" },
 ]
 
 export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {

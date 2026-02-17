@@ -1,7 +1,42 @@
+import { useCallback } from "react"
 import { Link } from "@tanstack/react-router"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { STEPS, STEP_DESCRIPTIONS } from "../StepSidebar"
 import { useStepRun } from "@/hooks/use-step-run"
-import { StepProgressRing } from "../StepProgressRing"
+import { useApiKey } from "@/hooks/use-api-key"
+import { api } from "@/api/client"
+import { StepRunCard, type StepRunCardSubStep } from "../StepRunCard"
+
+const STEP_SUB_STEPS: Record<string, StepRunCardSubStep[]> = {
+  extract: [
+    { key: "extract", label: "Extract PDF" },
+    { key: "metadata", label: "Extract Metadata" },
+    { key: "image-classification", label: "Classify Images" },
+    { key: "text-classification", label: "Classify Text" },
+    { key: "translation", label: "Translate" },
+  ],
+  storyboard: [
+    { key: "page-sectioning", label: "Section Pages" },
+    { key: "web-rendering", label: "Render Pages" },
+  ],
+  quizzes: [
+    { key: "quiz-generation", label: "Generate Quizzes" },
+  ],
+  captions: [
+    { key: "image-captioning", label: "Caption Images" },
+  ],
+  glossary: [
+    { key: "glossary", label: "Generate Glossary" },
+  ],
+  translations: [
+    { key: "text-catalog", label: "Build Text Catalog" },
+    { key: "catalog-translation", label: "Translate Entries" },
+  ],
+  "text-to-speech": [
+    { key: "text-catalog", label: "Build Text Catalog" },
+    { key: "tts", label: "Generate Audio" },
+  ],
+}
 
 interface ViewProps {
   bookLabel: string
@@ -12,50 +47,55 @@ interface ViewProps {
 
 export function BookView({ bookLabel }: ViewProps) {
   const pipelineSteps = STEPS.filter((s) => s.slug !== "book")
-  const { progress: stepRunProgress } = useStepRun()
+  const { progress: stepRunProgress, startRun, setSseEnabled } = useStepRun()
+  const { apiKey, hasApiKey } = useApiKey()
+  const queryClient = useQueryClient()
+  const { data: stepStatusData } = useQuery({
+    queryKey: ["books", bookLabel, "step-status"],
+    queryFn: () => api.getStepStatus(bookLabel),
+  })
+  const completedSteps = stepStatusData?.steps ?? {}
+
+  const handleRun = useCallback(async (slug: string) => {
+    if (!hasApiKey || stepRunProgress.isRunning) return
+    startRun(slug, slug)
+    setSseEnabled(true)
+    await api.runSteps(bookLabel, apiKey, { fromStep: slug, toStep: slug })
+    queryClient.removeQueries({ queryKey: ["books", bookLabel, "pages"] })
+    queryClient.removeQueries({ queryKey: ["books", bookLabel] })
+  }, [bookLabel, apiKey, hasApiKey, stepRunProgress.isRunning, startRun, setSseEnabled, queryClient])
 
   return (
     <div className="flex flex-col items-start max-w-xl">
       {pipelineSteps.map((step, index) => {
-        const Icon = step.icon
         const isLast = index === pipelineSteps.length - 1
-
         const stepProgress = stepRunProgress.steps.get(step.slug)
         const ringState = stepProgress?.state ?? "idle"
+        const isRunning = ringState === "running" || ringState === "queued"
+        const subSteps = STEP_SUB_STEPS[step.slug]
 
         return (
           <div key={step.slug} className="w-full">
             <Link
               to="/books/$label/v2/$step"
               params={{ label: bookLabel, step: step.slug }}
-              className={`rounded-lg border ${step.borderColor} ${step.bgLight} p-3 flex gap-3 items-center h-[76px] overflow-hidden hover:shadow-sm transition-shadow w-full`}
+              className="block"
             >
-              <div className="relative shrink-0">
-                <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step.color} text-white`}>
-                  <Icon className="w-4 h-4" />
-                </div>
-                <StepProgressRing
-                  size={32}
-                  state={ringState}
-                  colorClass={step.color}
-                />
-              </div>
-              <div className="min-w-0 flex-1">
-                <h3 className={`text-sm font-semibold ${step.textColor}`}>{step.label}</h3>
-                <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed line-clamp-2">
-                  {ringState === "running" && stepProgress?.totalPages
-                    ? `Processing ${stepProgress.page ?? 0} / ${stepProgress.totalPages} pages...`
-                    : ringState === "queued"
-                      ? "Queued..."
-                      : STEP_DESCRIPTIONS[step.slug]}
-                </p>
-              </div>
+              <StepRunCard
+                stepSlug={step.slug}
+                subSteps={subSteps ?? []}
+                description={STEP_DESCRIPTIONS[step.slug]}
+                isRunning={isRunning}
+                completed={!!completedSteps[step.slug]}
+                onRun={() => handleRun(step.slug)}
+                disabled={!hasApiKey || stepRunProgress.isRunning}
+              />
             </Link>
             {!isLast && (
-              <div className="flex flex-col items-center w-8 ml-3 mb-1">
-                <div className={`w-1.5 h-2 ${step.color} opacity-25`} />
-                <svg viewBox="0 0 12 8" className="w-3 h-2 opacity-40" fill="currentColor">
-                  <path d="M6 8L0 0h12z" className={step.textColor} />
+              <div className={`flex flex-col items-center w-8 ml-3 mb-1 ${step.textColor} opacity-40`}>
+                <div className="w-1.5 h-2 bg-current" />
+                <svg viewBox="0 0 12 8" className="w-3 h-2" fill="currentColor">
+                  <path d="M6 8L0 0h12z" />
                 </svg>
               </div>
             )}

@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch"
 import { LanguagePicker } from "@/components/LanguagePicker"
 import { useCreateBook } from "@/hooks/use-books"
 import { useApiKey } from "@/hooks/use-api-key"
+import { api } from "@/api/client"
 import { usePreset, useGlobalConfig } from "@/hooks/use-presets"
 import {
   AdvancedLayoutPanel,
@@ -126,7 +127,7 @@ function Stepper({ currentStep }: { currentStep: number }) {
 function AddBookPage() {
   const navigate = useNavigate()
   const createMutation = useCreateBook()
-  const { hasApiKey } = useApiKey()
+  const { apiKey, hasApiKey } = useApiKey()
 
   const [step, setStep] = useState(1)
 
@@ -372,14 +373,12 @@ function AddBookPage() {
       { label, pdf: file, config: configOverrides },
       {
         onSuccess: (book) => {
+          if (hasApiKey) {
+            api.runSteps(book.label, apiKey, { fromStep: "extract", toStep: "storyboard" })
+          }
           navigate({
-            to: "/books/$label",
-            params: { label: book.label },
-            search: {
-              autoRun: hasApiKey ? true : undefined,
-              startPage: startPage ? Number(startPage) : undefined,
-              endPage: endPage ? Number(endPage) : undefined,
-            },
+            to: "/books/$label/v2/$step",
+            params: { label: book.label, step: "book" },
           })
         },
       }

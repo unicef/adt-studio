@@ -11,7 +11,7 @@ import { StepRunCard } from "../StepRunCard"
 import { STEP_DESCRIPTIONS } from "../StepSidebar"
 
 const CAPTIONS_SUB_STEPS = [
-  { key: "image-captioning", label: "Captioning Images" },
+  { key: "image-captioning", label: "Caption Images" },
 ]
 
 type CaptioningData = NonNullable<PageDetail["imageCaptioning"]>

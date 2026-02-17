@@ -11,7 +11,7 @@ import { StepRunCard } from "../StepRunCard"
 import { STEP_DESCRIPTIONS } from "../StepSidebar"
 
 const QUIZZES_SUB_STEPS = [
-  { key: "quiz-generation", label: "Generating Quizzes" },
+  { key: "quiz-generation", label: "Generate Quizzes" },
 ]
 
 type QuizData = QuizGenerationOutput

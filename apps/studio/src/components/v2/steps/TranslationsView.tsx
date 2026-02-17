@@ -17,8 +17,8 @@ function displayLang(code: string): string {
 }
 
 const TRANSLATIONS_SUB_STEPS = [
-  { key: "text-catalog", label: "Building Text Catalog" },
-  { key: "catalog-translation", label: "Translating Entries" },
+  { key: "text-catalog", label: "Build Text Catalog" },
+  { key: "catalog-translation", label: "Translate Entries" },
 ]
 
 function VersionPicker({

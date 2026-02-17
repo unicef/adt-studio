@@ -13,11 +13,12 @@ interface StepRunCardProps {
   subSteps: StepRunCardSubStep[]
   description?: string
   isRunning: boolean
+  completed?: boolean
   onRun: () => void
   disabled: boolean
 }
 
-export function StepRunCard({ stepSlug, subSteps, description, isRunning, onRun, disabled }: StepRunCardProps) {
+export function StepRunCard({ stepSlug, subSteps, description, isRunning, completed, onRun, disabled }: StepRunCardProps) {
   const stepConfig = STEPS.find((s) => s.slug === stepSlug)
   const { progress } = useStepRun()
   const { subSteps: subStepProgress, error, targetSteps } = progress
@@ -25,29 +26,30 @@ export function StepRunCard({ stepSlug, subSteps, description, isRunning, onRun,
   const Icon = stepConfig?.icon ?? Play
   const bgDark = stepConfig?.bgDark ?? "bg-gray-700"
   const color = stepConfig?.color ?? "bg-gray-500"
+  const borderColor = stepConfig?.borderColor ?? "border-gray-200"
   const hasError = !!error && targetSteps.has(stepSlug)
 
   return (
-    <div className="rounded-lg border bg-card overflow-hidden max-w-xl">
+    <div className={cn("rounded-lg border bg-card overflow-hidden max-w-xl", borderColor)}>
       {/* Colored header */}
-      <div className={cn("px-4 py-3 flex items-center gap-2.5 text-white", bgDark)}>
+      <div className={cn("px-4 py-2 flex items-center gap-2.5 text-white", bgDark)}>
         <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white/20">
           <Icon className="w-3 h-3" />
         </div>
         <span className="text-sm font-semibold">
           {isRunning
-            ? `Running ${stepConfig?.label?.toLowerCase() ?? stepSlug}...`
+            ? `${stepConfig?.runningLabel ?? stepSlug}...`
             : stepConfig?.label ?? stepSlug}
         </span>
       </div>
 
       {/* Main row: sub-steps | button | description */}
-      <div className="flex items-center gap-5 p-5">
+      <div className="flex items-center gap-5 px-5 py-3">
         {/* Sub-steps */}
-        <div className="space-y-2.5 shrink-0">
+        <div className="space-y-1.5 w-48 shrink-0">
           {subSteps.map(({ key, label }) => {
             const sub = subStepProgress.get(key)
-            const isDone = sub?.state === "done"
+            const isDone = sub?.state === "done" || (completed && !sub)
             const isSubRunning = sub?.state === "running"
             const isError = sub?.state === "error"
             const hasPages = sub?.page != null && sub?.totalPages != null && sub.totalPages > 0
@@ -96,7 +98,7 @@ export function StepRunCard({ stepSlug, subSteps, description, isRunning, onRun,
                 color, "text-white",
               )}
               disabled={disabled}
-              onClick={onRun}
+              onClick={(e) => { e.stopPropagation(); e.preventDefault(); onRun() }}
               title={hasError ? "Retry" : `Run ${stepConfig?.label?.toLowerCase() ?? stepSlug}`}
             >
               {hasError ? <RotateCcw className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}

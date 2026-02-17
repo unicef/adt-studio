@@ -26,11 +26,14 @@ function V2Layout() {
     let cancelled = false
     api.getStepsStatus(label).then((status) => {
       if (!cancelled && status.status === "running") {
+        if (status.fromStep && status.toStep) {
+          startRun(status.fromStep, status.toStep)
+        }
         setSseEnabled(true)
       }
     }).catch(() => {})
     return () => { cancelled = true }
-  }, [label])
+  }, [label, startRun])
 
   // Disable SSE when run completes
   useEffect(() => {

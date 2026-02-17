@@ -12,7 +12,7 @@ import { StepRunCard } from "../StepRunCard"
 import { STEP_DESCRIPTIONS } from "../StepSidebar"
 
 const GLOSSARY_SUB_STEPS = [
-  { key: "glossary", label: "Generating Glossary" },
+  { key: "glossary", label: "Generate Glossary" },
 ]
 
 type GlossaryData = Omit<GlossaryOutput, "version">

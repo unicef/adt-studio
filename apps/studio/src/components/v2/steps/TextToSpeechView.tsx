@@ -10,8 +10,8 @@ import { STEP_DESCRIPTIONS } from "../StepSidebar"
 import { cn } from "@/lib/utils"
 
 const TTS_SUB_STEPS = [
-  { key: "text-catalog", label: "Building Text Catalog" },
-  { key: "tts", label: "Generating Audio" },
+  { key: "text-catalog", label: "Build Text Catalog" },
+  { key: "tts", label: "Generate Audio" },
 ]
 
 export function TextToSpeechView({ bookLabel }: { bookLabel: string }) {
