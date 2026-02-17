@@ -1,20 +1,22 @@
 import type { ImageFilters, ImageClassificationOutput, AppConfig } from "@adt/types"
 import type { ImageData } from "@adt/storage"
+import { grayscaleStdDev } from "./image-complexity.js"
 
 export interface ImageClassifyConfig {
   filters: ImageFilters
+  getImageBytes?: (imageId: string) => Buffer
 }
 
 /**
  * Classify images on a single page. Pure function — no side effects.
- * Filters images by size constraints and prunes full-page renders.
+ * Filters images by size constraints, pixel complexity, and prunes full-page renders.
  */
 export function classifyPageImages(
   pageId: string,
   images: ImageData[],
   config: ImageClassifyConfig
 ): ImageClassificationOutput {
-  const { min_side, max_side } = config.filters
+  const { min_side, max_side, min_stddev } = config.filters
 
   return {
     images: images.map((img) => {
@@ -39,6 +41,19 @@ export function classifyPageImages(
           imageId: img.imageId,
           isPruned: true,
           reason: `longest side ${longSide}px > max_side ${max_side}px`,
+        }
+      }
+
+      // Complexity filter — runs after size filters (more expensive, needs pixel data)
+      if (min_stddev !== undefined && config.getImageBytes) {
+        const imageBytes = config.getImageBytes(img.imageId)
+        const stddev = grayscaleStdDev(imageBytes)
+        if (stddev < min_stddev) {
+          return {
+            imageId: img.imageId,
+            isPruned: true,
+            reason: `stddev ${stddev.toFixed(1)} < min_stddev ${min_stddev}`,
+          }
         }
       }
 

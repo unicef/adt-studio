@@ -250,7 +250,7 @@ export function CaptionsView({ bookLabel }: { bookLabel: string }) {
     return () => setExtra(null)
   }, [pages, totalImages, pagesWithImages.length, setExtra])
 
-  if (isLoading) {
+  if (isLoading && !captionsRunning) {
     return (
       <div className="flex items-center justify-center py-12 text-muted-foreground">
         <Loader2 className="w-4 h-4 animate-spin mr-2" />

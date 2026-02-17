@@ -258,7 +258,7 @@ export function TranslationsView({ bookLabel }: { bookLabel: string }) {
     return () => setExtra(null)
   }, [catalog, entries.length, outputLanguages.length, hasTranslations, selectedLang, translationVersion, saving, dirty, bookLabel, isSourceLang])
 
-  if (isLoading) {
+  if (isLoading && !translationsRunning) {
     return (
       <div className="flex items-center justify-center py-12 text-muted-foreground">
         <Loader2 className="w-4 h-4 animate-spin mr-2" />

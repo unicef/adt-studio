@@ -181,7 +181,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [selectedPageId, sectionIndex, sectionCount, canGoPrev, canGoNext, prevPageId, nextPageId])
 
-  if (pagesLoading) {
+  if (pagesLoading && !storyboardRunning) {
     return (
       <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />

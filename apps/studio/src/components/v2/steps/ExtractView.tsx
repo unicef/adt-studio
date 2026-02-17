@@ -217,7 +217,7 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
     return () => window.removeEventListener("keydown", handleKeyDown)
   }, [selectedPageId, prevPageId, nextPageId])
 
-  if (isLoading) {
+  if (isLoading && !extractRunning) {
     return (
       <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />

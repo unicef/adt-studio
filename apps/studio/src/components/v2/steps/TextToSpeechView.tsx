@@ -86,7 +86,7 @@ export function TextToSpeechView({ bookLabel }: { bookLabel: string }) {
 
   const isLoading = ttsLoading || catalogLoading
 
-  if (isLoading) {
+  if (isLoading && !ttsRunning) {
     return (
       <div className="flex items-center justify-center py-12 text-muted-foreground">
         <Loader2 className="w-4 h-4 animate-spin mr-2" />

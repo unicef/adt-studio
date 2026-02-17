@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest"
+import { PNG } from "pngjs"
 import { classifyPageImages, buildImageClassifyConfig } from "../image-classification.js"
 import type { ImageClassifyConfig } from "../image-classification.js"
 import type { ImageData } from "@adt/storage"
@@ -167,6 +168,103 @@ describe("classifyPageImages", () => {
 
     // Exactly 5000 is not > 5000, so kept
     expect(result.images[0].isPruned).toBe(false)
+  })
+
+  // --- Complexity filter (min_stddev) ---
+
+  function makeSolidPng(width: number, height: number, r: number, g: number, b: number): Buffer {
+    const png = new PNG({ width, height })
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 4
+        png.data[idx] = r
+        png.data[idx + 1] = g
+        png.data[idx + 2] = b
+        png.data[idx + 3] = 255
+      }
+    }
+    return PNG.sync.write(png)
+  }
+
+  function makeGradientPng(width: number, height: number): Buffer {
+    const png = new PNG({ width, height })
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const idx = (y * width + x) * 4
+        const val = Math.floor((x / width) * 255)
+        png.data[idx] = val
+        png.data[idx + 1] = val
+        png.data[idx + 2] = val
+        png.data[idx + 3] = 255
+      }
+    }
+    return PNG.sync.write(png)
+  }
+
+  it("prunes blank images when min_stddev is configured", () => {
+    const blankPng = makeSolidPng(200, 200, 255, 255, 255)
+    const config: ImageClassifyConfig = {
+      filters: { min_stddev: 2 },
+      getImageBytes: () => blankPng,
+    }
+    const images = [makeImage("pg001_im001", 200, 200)]
+    const result = classifyPageImages("pg001", images, config)
+
+    expect(result.images[0].isPruned).toBe(true)
+    expect(result.images[0].reason).toContain("min_stddev")
+  })
+
+  it("keeps complex images when min_stddev is configured", () => {
+    const gradientPng = makeGradientPng(256, 10)
+    const config: ImageClassifyConfig = {
+      filters: { min_stddev: 2 },
+      getImageBytes: () => gradientPng,
+    }
+    const images = [makeImage("pg001_im001", 256, 10)]
+    const result = classifyPageImages("pg001", images, config)
+
+    expect(result.images[0].isPruned).toBe(false)
+  })
+
+  it("skips complexity filter when min_stddev is not configured", () => {
+    const config: ImageClassifyConfig = {
+      filters: { min_side: 100 },
+      getImageBytes: () => {
+        throw new Error("should not be called")
+      },
+    }
+    const images = [makeImage("pg001_im001", 200, 200)]
+    const result = classifyPageImages("pg001", images, config)
+
+    expect(result.images[0].isPruned).toBe(false)
+  })
+
+  it("skips complexity filter when getImageBytes is not provided", () => {
+    const config: ImageClassifyConfig = {
+      filters: { min_stddev: 2 },
+    }
+    const images = [makeImage("pg001_im001", 200, 200)]
+    const result = classifyPageImages("pg001", images, config)
+
+    expect(result.images[0].isPruned).toBe(false)
+  })
+
+  it("does not run complexity filter on images already pruned by size", () => {
+    let getImageBytesCalled = false
+    const config: ImageClassifyConfig = {
+      filters: { min_side: 100, min_stddev: 2 },
+      getImageBytes: () => {
+        getImageBytesCalled = true
+        return makeSolidPng(10, 10, 255, 255, 255)
+      },
+    }
+    // Image is too small — should be pruned by size filter, never reaching complexity
+    const images = [makeImage("pg001_im001", 50, 50)]
+    const result = classifyPageImages("pg001", images, config)
+
+    expect(result.images[0].isPruned).toBe(true)
+    expect(result.images[0].reason).toContain("min_side")
+    expect(getImageBytesCalled).toBe(false)
   })
 })
 
