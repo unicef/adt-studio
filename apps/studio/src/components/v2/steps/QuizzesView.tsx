@@ -4,6 +4,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { api } from "@/api/client"
 import type { QuizGenerationOutput, VersionEntry } from "@/api/client"
 import { useQuizzes } from "@/hooks/use-quizzes"
+import { usePageImage } from "@/hooks/use-pages"
 import { useStepHeader } from "../StepViewRouter"
 import { useStepRun } from "@/hooks/use-step-run"
 import { useApiKey } from "@/hooks/use-api-key"
@@ -131,6 +132,79 @@ function VersionPicker({
   )
 }
 
+function PageThumb({
+  bookLabel,
+  pageId,
+  onClick,
+}: {
+  bookLabel: string
+  pageId: string
+  onClick: () => void
+}) {
+  const { data: imageData } = usePageImage(bookLabel, pageId)
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="shrink-0 rounded border border-border bg-muted/40 overflow-hidden hover:ring-2 hover:ring-ring transition-shadow cursor-pointer"
+    >
+      {imageData ? (
+        <img
+          src={`data:image/png;base64,${imageData.imageBase64}`}
+          alt={pageId}
+          className="h-44 w-auto block"
+        />
+      ) : (
+        <div className="h-44 w-32" />
+      )}
+    </button>
+  )
+}
+
+function PageLightbox({
+  bookLabel,
+  pageId,
+  onClose,
+}: {
+  bookLabel: string
+  pageId: string
+  onClose: () => void
+}) {
+  const { data: imageData } = usePageImage(bookLabel, pageId)
+
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose()
+    }
+    document.addEventListener("keydown", handleKey)
+    return () => document.removeEventListener("keydown", handleKey)
+  }, [onClose])
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[90vh] max-w-[90vw] rounded-lg overflow-hidden shadow-2xl bg-white"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {imageData ? (
+          <img
+            src={`data:image/png;base64,${imageData.imageBase64}`}
+            alt={pageId}
+            className="max-h-[90vh] max-w-[90vw] object-contain"
+          />
+        ) : (
+          <div className="flex items-center justify-center h-64 w-48 text-muted-foreground text-sm">
+            Loading...
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function QuizzesView({ bookLabel }: { bookLabel: string }) {
   const queryClient = useQueryClient()
   const { data, isLoading } = useQuizzes(bookLabel)
@@ -150,6 +224,7 @@ export function QuizzesView({ bookLabel }: { bookLabel: string }) {
 
   const [pending, setPending] = useState<QuizData | null>(null)
   const [saving, setSaving] = useState(false)
+  const [lightboxPageId, setLightboxPageId] = useState<string | null>(null)
 
   // Reset pending when data changes
   useEffect(() => {
@@ -258,16 +333,18 @@ export function QuizzesView({ bookLabel }: { bookLabel: string }) {
     <div className="space-y-2">
       {quizzes.map((quiz, idx) => (
         <div key={idx} className="rounded-md border bg-card overflow-hidden">
-          <div className="px-4 py-3 flex items-start justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-1.5 px-4 py-2 bg-muted/20 border-b">
+            {quiz.pageIds.map((pageId) => (
+              <PageThumb key={pageId} bookLabel={bookLabel} pageId={pageId} onClick={() => setLightboxPageId(pageId)} />
+            ))}
+          </div>
+          <div className="px-4 py-3">
             <textarea
               value={quiz.question}
               onChange={(e) => updateQuestion(idx, e.target.value)}
-              className="flex-1 text-sm font-medium resize-none rounded border border-transparent bg-transparent p-1 -m-1 hover:border-border hover:bg-muted/30 focus:border-ring focus:bg-white focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
+              className="w-full text-sm font-medium resize-none rounded border border-transparent bg-transparent p-1 -m-1 hover:border-border hover:bg-muted/30 focus:border-ring focus:bg-white focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
               rows={1}
             />
-            <span className="text-[10px] text-muted-foreground shrink-0 mt-1.5">
-              After {quiz.afterPageId}
-            </span>
           </div>
           <div className="px-4 pb-3 space-y-1.5">
             {quiz.options.map((option, i) => (
@@ -300,9 +377,15 @@ export function QuizzesView({ bookLabel }: { bookLabel: string }) {
                 </div>
               </div>
             ))}
+            {quiz.reasoning && (
+              <p className="text-xs italic text-muted-foreground px-1 pt-1">{quiz.reasoning}</p>
+            )}
           </div>
         </div>
       ))}
+      {lightboxPageId && (
+        <PageLightbox bookLabel={bookLabel} pageId={lightboxPageId} onClose={() => setLightboxPageId(null)} />
+      )}
     </div>
   )
 }
