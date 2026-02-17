@@ -371,7 +371,7 @@ export async function packageAdtWeb(
 // HTML generation
 // ---------------------------------------------------------------------------
 
-interface RenderPageOptions {
+export interface RenderPageOptions {
   content: string
   language: string
   sectionId: string
