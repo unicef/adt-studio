@@ -98,4 +98,13 @@ export { loadConfig, loadBookConfig, deepMerge } from "./config.js"
 export { runPipeline, type RunPipelineOptions } from "./pipeline.js"
 export { runProof, type RunProofOptions } from "./proof.js"
 export { runMaster, type RunMasterOptions } from "./master.js"
-export { packageAdtWeb, type PackageAdtWebOptions } from "./package-web.js"
+export {
+  packageAdtWeb,
+  type PackageAdtWebOptions,
+  renderPageHtml,
+  combineSections,
+  NAV_HTML,
+  type RenderPageOptions,
+  buildPreviewTailwindCss,
+  buildGlossaryJson,
+} from "./package-web.js"
