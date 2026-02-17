@@ -382,8 +382,12 @@ function AddBookPage() {
         : {}
     )
 
-    // Default to "dynamic" — picks the best strategy per section type
-    setDefaultRenderStrategy("dynamic")
+    // Use preset's default render strategy, or fall back to "dynamic"
+    setDefaultRenderStrategy(
+      typeof config.default_render_strategy === "string"
+        ? config.default_render_strategy
+        : "dynamic"
+    )
 
     // Render strategies
     if (config.render_strategies && typeof config.render_strategies === "object") {
@@ -706,21 +710,6 @@ function AddBookPage() {
                       Leave empty to process all pages.
                     </p>
                   </div>
-                  <div className="space-y-1.5">
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        id="spread-mode"
-                        checked={spreadMode}
-                        onCheckedChange={setSpreadMode}
-                      />
-                      <Label htmlFor="spread-mode" className="text-xs">
-                        Spread Mode
-                      </Label>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Merge facing pages as spreads (cover + page pairs).
-                    </p>
-                  </div>
                 </div>
               )}
 
@@ -791,6 +780,21 @@ function AddBookPage() {
 
               {showAdvancedLayout && (
                 <div className="space-y-4 rounded-lg border bg-muted/30 p-3">
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="spread-mode"
+                        checked={spreadMode}
+                        onCheckedChange={setSpreadMode}
+                      />
+                      <Label htmlFor="spread-mode" className="text-xs">
+                        Spread Mode
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Merge facing pages as spreads (cover + page pairs).
+                    </p>
+                  </div>
                   <AdvancedLayoutPanel
                     defaultRenderStrategy={defaultRenderStrategy}
                     onDefaultRenderStrategyChange={setDefaultRenderStrategy}

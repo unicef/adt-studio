@@ -2,11 +2,15 @@
 # Template-driven rendering, spread pages, quizzes enabled, no activities
 # Based on adt-press "storybook_quiz" preset
 
-default_render_strategy: two_column
+default_render_strategy: two_column_story
 
 spread_mode: true
 
 render_strategies:
+  two_column_story:
+    render_type: template
+    config:
+      template: two_column_story
   two_column:
     render_type: template
     config:

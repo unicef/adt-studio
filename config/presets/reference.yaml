@@ -4,7 +4,7 @@
 
 default_render_strategy: two_column
 
-spread_mode: true
+spread_mode: false
 
 render_strategies:
   two_column:
