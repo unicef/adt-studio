@@ -62,7 +62,7 @@ app.use(
 app.onError(errorHandler)
 
 app.route("/api", healthRoutes)
-app.route("/api", createBookRoutes(booksDir))
+app.route("/api", createBookRoutes(booksDir, webAssetsDir, configPath))
 app.route("/api", createPipelineRoutes(pipelineService, booksDir, promptsDir, configPath))
 app.route("/api", createPageRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createProofRoutes(proofService, booksDir, promptsDir, configPath))
