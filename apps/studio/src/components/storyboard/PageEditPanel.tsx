@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useImperativeHandle, forwardRef } from "react"
+import { useState, useCallback, useMemo, useImperativeHandle, useRef, forwardRef } from "react"
 import {
   Loader2,
   AlertCircle,
@@ -12,6 +12,7 @@ import {
   PanelLeftOpen,
   PanelRightClose,
   PanelRightOpen,
+  MonitorPlay,
   XCircle,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -48,6 +49,7 @@ interface PageEditPanelProps {
   onToggleOriginalImage: () => void
   sidebarVisible: boolean
   onExpandSidebar: () => void
+  onCollapseSidebar: () => void
 }
 
 function ImageCaptionList({
@@ -192,7 +194,7 @@ function PageQuizList({ quizzes }: { quizzes: QuizItem[] }) {
 
 export const PageEditPanel = forwardRef<PageEditPanelHandle, PageEditPanelProps>(
   function PageEditPanel(
-    { label, pageId, pageNumber, showOriginalImage, onToggleOriginalImage, sidebarVisible, onExpandSidebar },
+    { label, pageId, pageNumber, showOriginalImage, onToggleOriginalImage, sidebarVisible, onExpandSidebar, onCollapseSidebar },
     ref
   ) {
     const { data: page, isLoading, error } = usePage(label, pageId)
@@ -209,6 +211,32 @@ export const PageEditPanel = forwardRef<PageEditPanelHandle, PageEditPanelProps>
 
     const [expandedAnswers, setExpandedAnswers] = useState<Set<number>>(new Set())
     const [inputsExpanded, setInputsExpanded] = useState(true)
+    const [adtPreview, setAdtPreview] = useState(false)
+
+    // Track pre-ADT state so we can restore on toggle off
+    const preAdtState = useRef({ inputsExpanded: true, showOriginalImage: false, sidebarVisible: true })
+
+    const handleToggleAdtPreview = useCallback(() => {
+      setAdtPreview((prev) => {
+        if (!prev) {
+          // Entering ADT mode — save current state and collapse all panels
+          preAdtState.current = { inputsExpanded, showOriginalImage, sidebarVisible }
+          setInputsExpanded(false)
+          if (showOriginalImage) onToggleOriginalImage()
+          if (sidebarVisible) onCollapseSidebar()
+        } else {
+          // Leaving ADT mode — restore previous state
+          setInputsExpanded(preAdtState.current.inputsExpanded)
+          if (preAdtState.current.showOriginalImage && !showOriginalImage) {
+            onToggleOriginalImage()
+          }
+          if (preAdtState.current.sidebarVisible && !sidebarVisible) {
+            onExpandSidebar()
+          }
+        }
+        return !prev
+      })
+    }, [inputsExpanded, showOriginalImage, sidebarVisible, onToggleOriginalImage, onCollapseSidebar, onExpandSidebar])
 
     useImperativeHandle(
       ref,
@@ -444,6 +472,17 @@ export const PageEditPanel = forwardRef<PageEditPanelHandle, PageEditPanelProps>
                     Original
                   </Button>
                   <Button
+                    variant={adtPreview ? "secondary" : "ghost"}
+                    size="sm"
+                    className="h-7"
+                    onClick={handleToggleAdtPreview}
+                    disabled={!combinedHtml}
+                    title={adtPreview ? "Switch to HTML view" : "Switch to ADT bundle view"}
+                  >
+                    <MonitorPlay className="mr-1 h-3 w-3" />
+                    {adtPreview ? "HTML View" : "ADT View"}
+                  </Button>
+                  <Button
                     variant="ghost"
                     size="sm"
                     className="h-7"
@@ -477,6 +516,13 @@ export const PageEditPanel = forwardRef<PageEditPanelHandle, PageEditPanelProps>
                       Re-rendering page...
                     </div>
                   </div>
+                ) : adtPreview && combinedHtml ? (
+                  <iframe
+                    src={`/api/books/${label}/adt-preview/${pageId}.html`}
+                    className="h-full min-h-[600px] w-full rounded border"
+                    title="ADT Preview"
+                    allow="autoplay"
+                  />
                 ) : combinedHtml ? (
                   <RenderedHtml
                     html={combinedHtml}
