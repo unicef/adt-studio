@@ -58,12 +58,14 @@ export function useAcceptStoryboard() {
 
 export function useExportBook() {
   return useMutation({
-    mutationFn: (label: string) => api.exportBook(label),
-    onSuccess: (blob, label) => {
+    mutationFn: ({ label, format }: { label: string; format: "web" | "epub" }) =>
+      api.exportBook(label, format),
+    onSuccess: (blob, { label, format }) => {
+      const ext = format === "epub" ? ".epub" : ".zip"
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `${label}.zip`
+      a.download = `${label}${ext}`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)

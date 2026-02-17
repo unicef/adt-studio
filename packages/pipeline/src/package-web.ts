@@ -569,7 +569,7 @@ function buildQuizAnswers(quiz: Quiz, quizId: string): Record<string, boolean> {
 // ---------------------------------------------------------------------------
 
 /** Scan the images directory and build imageId → filename map */
-function buildImageMap(imagesDir: string): Map<string, string> {
+export function buildImageMap(imagesDir: string): Map<string, string> {
   const map = new Map<string, string>()
   if (!fs.existsSync(imagesDir)) return map
 
@@ -584,7 +584,7 @@ function buildImageMap(imagesDir: string): Map<string, string> {
 }
 
 /** Rewrite image URLs from /api/books/{label}/images/{id} to images/{filename} */
-function rewriteImageUrls(
+export function rewriteImageUrls(
   html: string,
   label: string,
   imageMap: Map<string, string>,
@@ -620,6 +620,28 @@ function rewriteImageUrls(
   }
 
   return { html: DomUtils.getOuterHTML(doc), referencedImages }
+}
+
+/**
+ * Convert an HTML fragment to well-formed XHTML.
+ * Uses htmlparser2 to parse and re-serialize in XML mode, and replaces
+ * HTML named entities with their numeric equivalents.
+ */
+export function htmlToXhtml(html: string): string {
+  const doc = parseDocument(html)
+  let xhtml = DomUtils.getOuterHTML(doc, { xmlMode: true })
+  // Replace common HTML named entities not valid in XML
+  xhtml = xhtml.replace(/&nbsp;/g, "&#160;")
+  xhtml = xhtml.replace(/&mdash;/g, "&#8212;")
+  xhtml = xhtml.replace(/&ndash;/g, "&#8211;")
+  xhtml = xhtml.replace(/&lsquo;/g, "&#8216;")
+  xhtml = xhtml.replace(/&rsquo;/g, "&#8217;")
+  xhtml = xhtml.replace(/&ldquo;/g, "&#8220;")
+  xhtml = xhtml.replace(/&rdquo;/g, "&#8221;")
+  xhtml = xhtml.replace(/&hellip;/g, "&#8230;")
+  xhtml = xhtml.replace(/&bull;/g, "&#8226;")
+  xhtml = xhtml.replace(/&copy;/g, "&#169;")
+  return xhtml
 }
 
 // ---------------------------------------------------------------------------

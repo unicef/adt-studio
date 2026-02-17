@@ -107,4 +107,7 @@ export {
   type RenderPageOptions,
   buildPreviewTailwindCss,
   buildGlossaryJson,
+  buildImageMap,
+  rewriteImageUrls,
+  htmlToXhtml,
 } from "./package-web.js"

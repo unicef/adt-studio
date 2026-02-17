@@ -10,6 +10,7 @@ import {
   HelpCircle,
   BookOpen,
   FileDown,
+  ChevronDown,
   PanelLeftClose,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -96,6 +97,71 @@ function MiniPageCard({
         )}
       </div>
     </button>
+  )
+}
+
+function ExportDropdown({
+  isPending,
+  onExport,
+}: {
+  isPending: boolean
+  onExport: (format: "web" | "epub") => void
+}) {
+  const [open, setOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    if (open) {
+      document.addEventListener("mousedown", handleClickOutside)
+      return () => document.removeEventListener("mousedown", handleClickOutside)
+    }
+  }, [open])
+
+  const handleSelect = (format: "web" | "epub") => {
+    setOpen(false)
+    onExport(format)
+  }
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setOpen(!open)}
+        disabled={isPending}
+      >
+        {isPending ? (
+          <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+        ) : (
+          <FileDown className="mr-1.5 h-4 w-4" />
+        )}
+        Export
+        <ChevronDown className="ml-1 h-3 w-3" />
+      </Button>
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-1 w-44 rounded-md border bg-popover py-1 shadow-md">
+          <button
+            type="button"
+            className="flex w-full items-center px-3 py-1.5 text-sm hover:bg-muted transition-colors"
+            onClick={() => handleSelect("web")}
+          >
+            ADT Web (.zip)
+          </button>
+          <button
+            type="button"
+            className="flex w-full items-center px-3 py-1.5 text-sm hover:bg-muted transition-colors"
+            onClick={() => handleSelect("epub")}
+          >
+            EPUB (.epub)
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -394,19 +460,10 @@ function StoryboardPage() {
             Settings
           </Button>
           {isAccepted && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => exportBook.mutate(label)}
-              disabled={exportBook.isPending}
-            >
-              {exportBook.isPending ? (
-                <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-              ) : (
-                <FileDown className="mr-1.5 h-4 w-4" />
-              )}
-              Export
-            </Button>
+            <ExportDropdown
+              isPending={exportBook.isPending}
+              onExport={(format) => exportBook.mutate({ label, format })}
+            />
           )}
         </div>
       </div>
