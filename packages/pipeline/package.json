@@ -21,9 +21,12 @@
     "js-yaml": "^4.1.0",
     "postcss": "^8.5.0",
     "tailwindcss": "^3.4.0",
+    "jpeg-js": "^0.4.4",
     "zod": "^3.24.0"
   },
   "devDependencies": {
-    "@types/cli-progress": "^3.11.6"
+    "@types/cli-progress": "^3.11.6",
+    "pngjs": "^7.0.0",
+    "@types/pngjs": "^6.0.5"
   }
 }

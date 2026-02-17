@@ -16,6 +16,7 @@ export {
   buildImageClassifyConfig,
   type ImageClassifyConfig,
 } from "./image-classification.js"
+export { grayscaleStdDev } from "./image-complexity.js"
 export {
   extractMetadata,
   buildMetadataConfig,

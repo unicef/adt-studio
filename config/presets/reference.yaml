@@ -41,3 +41,4 @@ pruned_section_types:
 image_filters:
   min_side: 100
   max_side: 5000
+  min_stddev: 2

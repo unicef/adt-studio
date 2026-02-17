@@ -150,7 +150,11 @@ export async function runPipeline(
 
     // Step 3: Create Storyboard (per-page classification, sectioning, rendering)
     const textClassifyConfig = buildClassifyConfig(config)
-    const imageClassifyConfig = buildImageClassifyConfig(config)
+    const imageClassifyConfig = {
+      ...buildImageClassifyConfig(config),
+      getImageBytes: (imageId: string) =>
+        Buffer.from(storage.getImageBase64(imageId), "base64"),
+    }
     const sectioningConfig = buildSectioningConfig(config)
     const resolveRenderConfig = buildRenderStrategyResolver(config)
     const llmModel = createLLMModel({

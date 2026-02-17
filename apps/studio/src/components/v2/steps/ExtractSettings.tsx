@@ -43,6 +43,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
   const [prunedTextTypes, setPrunedTextTypes] = useState<Set<string>>(new Set())
   const [minSide, setMinSide] = useState("")
   const [maxSide, setMaxSide] = useState("")
+  const [minStddev, setMinStddev] = useState("")
   const [metadataModel, setMetadataModel] = useState("")
   const [extractionModel, setExtractionModel] = useState("")
   const [metadataPromptDraft, setMetadataPromptDraft] = useState<string | null>(null)
@@ -74,6 +75,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
       const filters = merged.image_filters as Record<string, unknown>
       if (filters.min_side != null) setMinSide(String(filters.min_side))
       if (filters.max_side != null) setMaxSide(String(filters.max_side))
+      if (filters.min_stddev != null) setMinStddev(String(filters.min_stddev))
     }
     if (merged.metadata && typeof merged.metadata === "object") {
       const md = merged.metadata as Record<string, unknown>
@@ -156,6 +158,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
       const filters: Record<string, number> = {}
       if (minSide) filters.min_side = Number(minSide)
       if (maxSide) filters.max_side = Number(maxSide)
+      if (minStddev) filters.min_stddev = Number(minStddev)
       overrides.image_filters = Object.keys(filters).length > 0 ? filters : undefined
     }
     if (shouldWrite("metadata")) {
@@ -263,10 +266,10 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
             />
           </div>
 
-          {/* Image Pruning */}
+          {/* Image Filters */}
           <div>
             <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-              Image Size Filters
+              Image Filters
             </h3>
             <div className="flex items-center gap-2">
               <div className="space-y-1">
@@ -294,6 +297,21 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
             </div>
             <p className="text-xs text-muted-foreground mt-1.5">
               Images with shortest side below min or longest side above max are pruned.
+            </p>
+            <div className="space-y-1 mt-3">
+              <Label className="text-xs">Min complexity</Label>
+              <Input
+                type="number"
+                min={0}
+                step={0.1}
+                value={minStddev}
+                onChange={(e) => { setMinStddev(e.target.value); markDirty("image_filters") }}
+                placeholder="2"
+                className="w-28"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Higher values filter out simple or blank images.
             </p>
           </div>
         </>

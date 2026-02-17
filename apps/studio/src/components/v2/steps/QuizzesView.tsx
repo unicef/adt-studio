@@ -230,7 +230,7 @@ export function QuizzesView({ bookLabel }: { bookLabel: string }) {
     })
   }
 
-  if (isLoading) {
+  if (isLoading && !quizzesRunning) {
     return (
       <div className="flex items-center justify-center py-12 text-muted-foreground">
         <Loader2 className="w-4 h-4 animate-spin mr-2" />

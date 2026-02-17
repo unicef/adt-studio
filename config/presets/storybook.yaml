@@ -41,6 +41,7 @@ pruned_section_types:
 image_filters:
   min_side: 150
   max_side: 3500
+  min_stddev: 2
 
 quiz_generation:
   pages_per_quiz: 3
