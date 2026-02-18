@@ -14,6 +14,7 @@ import {
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/api/client"
 import { cn } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 import { useStepRun } from "@/hooks/use-step-run"
 import { StepProgressRing } from "./StepProgressRing"
 
@@ -89,6 +90,17 @@ const SETTINGS_TABS: Record<string, { key: string; label: string }[]> = {
   captions: CAPTIONS_SETTINGS_TABS,
   translations: TRANSLATIONS_SETTINGS_TABS,
   "text-to-speech": TTS_SETTINGS_TABS,
+}
+
+const HOVER_BG_BY_COLOR: Record<string, string> = {
+  "bg-gray-500": "hover:bg-gray-500",
+  "bg-blue-500": "hover:bg-blue-500",
+  "bg-violet-500": "hover:bg-violet-500",
+  "bg-orange-500": "hover:bg-orange-500",
+  "bg-teal-500": "hover:bg-teal-500",
+  "bg-lime-500": "hover:bg-lime-500",
+  "bg-pink-500": "hover:bg-pink-500",
+  "bg-amber-500": "hover:bg-amber-500",
 }
 
 export function StepSidebar({ bookLabel, activeStep }: { bookLabel: string; activeStep: string }) {
@@ -167,20 +179,26 @@ export function StepSidebar({ bookLabel, activeStep }: { bookLabel: string; acti
 
               {/* Settings gear icon (only for active step, not for book) */}
               {isActive && step.slug !== "book" && (
-                <Link
-                  to="/books/$label/v2/$step/settings"
-                  params={{ label: bookLabel, step: step.slug }}
-                  search={{ tab: "general" }}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  asChild
                   className={cn(
-                    "items-center justify-center w-6 h-6 rounded shrink-0 transition-colors hidden lg:flex group-hover/sidebar:flex",
+                    "w-6 h-6 rounded shrink-0 hidden lg:inline-flex group-hover/sidebar:inline-flex [&_svg]:size-3.5",
                     isSettings
-                      ? cn(step.color, "text-white")
+                      ? cn(step.color, "text-white hover:text-white", HOVER_BG_BY_COLOR[step.color])
                       : "hover:bg-black/5 text-current opacity-50 hover:opacity-100"
                   )}
-                  title={`${step.label} settings`}
                 >
-                  <Settings className="w-3.5 h-3.5" />
-                </Link>
+                  <Link
+                    to="/books/$label/v2/$step/settings"
+                    params={{ label: bookLabel, step: step.slug }}
+                    search={{ tab: "general" }}
+                    title={`${step.label} settings`}
+                  >
+                    <Settings className="w-3.5 h-3.5" />
+                  </Link>
+                </Button>
               )}
             </div>
 
@@ -188,20 +206,26 @@ export function StepSidebar({ bookLabel, activeStep }: { bookLabel: string; acti
             {showSubTabs && (
               <div className="ml-[52px] mr-2 mt-0.5 mb-1 flex-col gap-0.5 hidden lg:flex group-hover/sidebar:flex">
                 {settingsTabs!.map((tab) => (
-                  <Link
+                  <Button
                     key={tab.key}
-                    to="/books/$label/v2/$step/settings"
-                    params={{ label: bookLabel, step: step.slug }}
-                    search={{ tab: tab.key }}
+                    variant="ghost"
+                    size="sm"
+                    asChild
                     className={cn(
-                      "text-xs px-2 py-1 rounded transition-colors whitespace-nowrap",
+                      "h-auto justify-start rounded text-xs px-2 py-1 whitespace-nowrap",
                       activeTab === tab.key
                         ? cn(step.textColor, "font-medium", step.bgLight)
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                        : "font-normal text-muted-foreground hover:text-foreground hover:bg-muted/50"
                     )}
                   >
-                    {tab.label}
-                  </Link>
+                    <Link
+                      to="/books/$label/v2/$step/settings"
+                      params={{ label: bookLabel, step: step.slug }}
+                      search={{ tab: tab.key }}
+                    >
+                      {tab.label}
+                    </Link>
+                  </Button>
                 ))}
               </div>
             )}
