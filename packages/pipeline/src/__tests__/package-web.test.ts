@@ -3,7 +3,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import type { Storage, PageData } from "@adt/storage"
-import { packageAdtWeb } from "../package-web.js"
+import { packageAdtWeb, renderPageHtml } from "../package-web.js"
 
 function createMockStorage(
   pages: PageData[],
@@ -38,6 +38,32 @@ function createWebAssets(webAssetsDir: string): void {
     "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n",
   )
 }
+
+describe("renderPageHtml", () => {
+  it("includes font preload links before stylesheet links", () => {
+    const html = renderPageHtml({
+      content: "<p>Hello</p>",
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Test",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+    })
+
+    expect(html).toContain(
+      '<link rel="preload" href="./assets/fonts/Merriweather-VariableFont_opsz,wdth,wght.woff2" as="font" type="font/woff2" crossorigin>',
+    )
+    expect(html).toContain(
+      '<link rel="preload" href="./assets/fonts/Merriweather-Italic-VariableFont_opsz,wdth,wght.woff2" as="font" type="font/woff2" crossorigin>',
+    )
+
+    // Preloads should appear before the fonts.css stylesheet
+    const preloadPos = html.indexOf('rel="preload"')
+    const stylesheetPos = html.indexOf('href="./assets/fonts.css"')
+    expect(preloadPos).toBeLessThan(stylesheetPos)
+  })
+})
 
 describe("packageAdtWeb", () => {
   let tmpDir: string
