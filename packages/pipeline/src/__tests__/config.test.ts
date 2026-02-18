@@ -37,6 +37,30 @@ describe("deepMerge", () => {
       pruned_text_types: ["footer_text"],
     })
   })
+
+  it("removes keys when override value is null", () => {
+    const merged = deepMerge(
+      {
+        section_types: { title: "Title section", header: "Header", footer: "Footer" },
+      },
+      {
+        section_types: { title: "Title section", footer: null },
+      }
+    )
+
+    expect(merged).toEqual({
+      section_types: { title: "Title section", header: "Header" },
+    })
+  })
+
+  it("removes top-level keys when override value is null", () => {
+    const merged = deepMerge(
+      { a: 1, b: 2, c: 3 },
+      { b: null }
+    )
+
+    expect(merged).toEqual({ a: 1, c: 3 })
+  })
 })
 
 describe("loadBookConfig", () => {

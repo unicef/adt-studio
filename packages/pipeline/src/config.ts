@@ -6,6 +6,7 @@ import { AppConfig, parseBookLabel } from "@adt/types"
 /**
  * Deep-merge two plain objects. Plain objects recurse;
  * arrays and primitives: override wins.
+ * Explicit `null` in overrides deletes the key from the result.
  */
 export function deepMerge<T extends Record<string, unknown>>(
   base: T,
@@ -15,9 +16,10 @@ export function deepMerge<T extends Record<string, unknown>>(
   for (const key of Object.keys(overrides)) {
     const baseVal = result[key]
     const overVal = overrides[key]
-    if (
+    if (overVal === null) {
+      delete result[key]
+    } else if (
       baseVal !== null &&
-      overVal !== null &&
       typeof baseVal === "object" &&
       typeof overVal === "object" &&
       !Array.isArray(baseVal) &&

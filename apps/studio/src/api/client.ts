@@ -502,6 +502,17 @@ export const api = {
       { method: "PUT", body: JSON.stringify({ content }) },
     ),
 
+  getTemplate: (name: string, bookLabel?: string) =>
+    request<{ name: string; content: string; source?: string }>(
+      bookLabel ? `/books/${bookLabel}/templates/${name}` : `/templates/${name}`
+    ),
+
+  updateTemplate: (name: string, content: string, bookLabel?: string) =>
+    request<{ name: string; content: string; source?: string }>(
+      bookLabel ? `/books/${bookLabel}/templates/${name}` : `/templates/${name}`,
+      { method: "PUT", body: JSON.stringify({ content }) },
+    ),
+
   runProof: (label: string, apiKey: string) =>
     request<{ status: string; label: string }>(
       `/books/${label}/proof/run`,
