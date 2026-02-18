@@ -101,37 +101,44 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     }
   }, [selectedPageId])
 
-  // Header: "Page N / Section M" + prev/next arrows
+  // Navigation elements for the purple header — passed to StoryboardSectionDetail
+  // which controls the full header content (nav + version + AI + panel toggle)
+  const navigationExtra = selectedPageSummary && sectionCount > 0 ? (
+    <>
+      <span className="text-white/40 text-sm">/</span>
+      <span className="text-sm font-medium">
+        Page {selectedPageSummary.pageNumber} / Section {sectionIndex + 1}
+      </span>
+    </>
+  ) : null
+
+  const navigationArrows = (
+    <div className="flex gap-1">
+      <button
+        type="button"
+        className="flex items-center justify-center w-7 h-7 rounded bg-white/15 hover:bg-white/25 transition-colors disabled:opacity-30 disabled:cursor-default"
+        disabled={!canGoPrev}
+        onClick={goPrev}
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+      </button>
+      <button
+        type="button"
+        className="flex items-center justify-center w-7 h-7 rounded bg-white/15 hover:bg-white/25 transition-colors disabled:opacity-30 disabled:cursor-default"
+        disabled={!canGoNext}
+        onClick={goNext}
+      >
+        <ArrowRight className="h-3.5 w-3.5" />
+      </button>
+    </div>
+  )
+
+  // Header: for non-section views (no sectioning data, or loading states)
   useEffect(() => {
-    if (selectedPageSummary && sectionCount > 0) {
-      setOnLabelClick(null)
-      setExtra(
-        <>
-          <span className="text-white/40 text-sm">/</span>
-          <span className="text-sm font-medium">
-            Page {selectedPageSummary.pageNumber} / Section {sectionIndex + 1}
-          </span>
-          <div className="ml-auto flex gap-1">
-            <button
-              type="button"
-              className="flex items-center justify-center w-7 h-7 rounded bg-white/15 hover:bg-white/25 transition-colors disabled:opacity-30 disabled:cursor-default"
-              disabled={!canGoPrev}
-              onClick={goPrev}
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-            </button>
-            <button
-              type="button"
-              className="flex items-center justify-center w-7 h-7 rounded bg-white/15 hover:bg-white/25 transition-colors disabled:opacity-30 disabled:cursor-default"
-              disabled={!canGoNext}
-              onClick={goNext}
-            >
-              <ArrowRight className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </>
-      )
-    } else if (selectedPageSummary) {
+    // When StoryboardSectionDetail is rendered, it manages the header itself
+    if (page?.sectioning && sectionCount > 0 && !storyboardRunning) return
+
+    if (selectedPageSummary) {
       setOnLabelClick(null)
       setExtra(
         <>
@@ -165,7 +172,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
       setExtra(null)
       setOnLabelClick(null)
     }
-  }, [selectedPageId, selectedPageSummary?.pageNumber, sectionIndex, sectionCount, canGoPrev, canGoNext, prevPageId, nextPageId, setExtra, setOnLabelClick])
+  }, [selectedPageId, selectedPageSummary?.pageNumber, sectionIndex, sectionCount, canGoPrev, canGoNext, prevPageId, nextPageId, setExtra, setOnLabelClick, page?.sectioning, storyboardRunning])
 
   // Keyboard arrow navigation
   useEffect(() => {
@@ -238,6 +245,8 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
       pageId={selectedPageId!}
       sectionIndex={sectionIndex}
       page={page}
+      navigationExtra={navigationExtra}
+      navigationArrows={navigationArrows}
     />
   )
 }

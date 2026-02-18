@@ -5,7 +5,7 @@ import { HTTPException } from "hono/http-exception"
 import { parseBookLabel, TextClassificationOutput, ImageClassificationOutput, PageSectioningOutput, WebRenderingOutput, ImageCaptioningOutput } from "@adt/types"
 import { openBookDb } from "@adt/storage"
 import { createBookStorage } from "@adt/storage"
-import { reRenderPage } from "../services/page-edit-service.js"
+import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
 
 interface PageSummary {
   pageId: string
@@ -420,6 +420,42 @@ export function createPageRoutes(
     const result = await reRenderPage({
       label: safeLabel,
       pageId,
+      booksDir,
+      promptsDir,
+      configPath,
+      apiKey,
+    })
+
+    return c.json(result)
+  })
+
+  // POST /books/:label/pages/:pageId/sections/:sectionIndex/ai-edit — AI-edit a section's HTML
+  app.post("/books/:label/pages/:pageId/sections/:sectionIndex/ai-edit", async (c) => {
+    const { label, pageId, sectionIndex } = c.req.param()
+    const safeLabel = parseBookLabel(label)
+    const idx = parseInt(sectionIndex, 10)
+
+    if (isNaN(idx) || idx < 0) {
+      throw new HTTPException(400, { message: "Invalid section index" })
+    }
+
+    const apiKey = c.req.header("X-OpenAI-Key")
+    if (!apiKey) {
+      throw new HTTPException(400, { message: "Missing X-OpenAI-Key header" })
+    }
+
+    const body = await c.req.json()
+    const instruction = body?.instruction
+    if (!instruction || typeof instruction !== "string") {
+      throw new HTTPException(400, { message: "Missing instruction in request body" })
+    }
+
+    const result = await aiEditSection({
+      label: safeLabel,
+      pageId,
+      sectionIndex: idx,
+      instruction,
+      currentHtml: typeof body.currentHtml === "string" ? body.currentHtml : undefined,
       booksDir,
       promptsDir,
       configPath,

@@ -452,6 +452,24 @@ export const api = {
       }
     ),
 
+  aiEditSection: (
+    label: string,
+    pageId: string,
+    sectionIndex: number,
+    instruction: string,
+    apiKey: string,
+    currentHtml?: string
+  ) =>
+    request<{ html: string; reasoning: string }>(
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/ai-edit`,
+      {
+        method: "POST",
+        headers: { "X-OpenAI-Key": apiKey },
+        body: JSON.stringify({ instruction, currentHtml }),
+        signal: AbortSignal.timeout(120_000),
+      }
+    ),
+
   // --- Debug endpoints ---
 
   getLlmLogs: (label: string, params?: LlmLogsParams) => {
