@@ -71,7 +71,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
   const [defaultRenderStrategy, setDefaultRenderStrategy] = useState("")
   const [allStrategyNames, setAllStrategyNames] = useState<string[]>([])
   const [renderStrategyNames, setRenderStrategyNames] = useState<string[]>([])
-  const [strategyRenderTypes, setStrategyRenderTypes] = useState<Record<string, string>>({})
+  const [activityModel, setActivityModel] = useState("")
   const [sectioningModel, setSectioningModel] = useState("")
   const [renderingModel, setRenderingModel] = useState("")
   const [renderingPromptName, setRenderingPromptName] = useState("web_generation_html")
@@ -107,6 +107,19 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     return activityMap
   }, [activeConfigData])
   const selectedActivity = activityStrategies[activityStrategyName]
+
+  // Derive render types from merged config (synchronous)
+  const strategyRenderTypes = useMemo(() => {
+    if (!activeConfigData) return {} as Record<string, string>
+    const merged = activeConfigData.merged as Record<string, unknown>
+    const strategies = merged.render_strategies as Record<string, { render_type?: string }> | undefined
+    if (!strategies || typeof strategies !== "object") return {} as Record<string, string>
+    const typeMap: Record<string, string> = {}
+    for (const [name, strat] of Object.entries(strategies)) {
+      typeMap[name] = strat.render_type ?? "llm"
+    }
+    return typeMap
+  }, [activeConfigData])
 
   const { data: styleguidesData } = useStyleguides()
   const { data: templatesData } = useTemplates()
@@ -150,11 +163,6 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
       setRenderStrategyNames(
         Object.keys(strategies).filter((name) => !name.startsWith("activity_"))
       )
-      const typeMap: Record<string, string> = {}
-      for (const [name, strat] of Object.entries(strategies)) {
-        typeMap[name] = strat.render_type ?? "llm"
-      }
-      setStrategyRenderTypes(typeMap)
     }
     if (merged.page_sectioning && typeof merged.page_sectioning === "object") {
       const ps = merged.page_sectioning as Record<string, unknown>
@@ -294,6 +302,18 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
         overrides.render_strategies = stratCopy
       }
     }
+    // Write activity model into the activity render strategy config
+    if (shouldWrite("activity_model") && activityStrategyName) {
+      if (!overrides.render_strategies) {
+        overrides.render_strategies = JSON.parse(JSON.stringify(merged?.render_strategies ?? {}))
+      }
+      const stratCopy = overrides.render_strategies as Record<string, Record<string, unknown>>
+      if (stratCopy[activityStrategyName]) {
+        const cfg = (stratCopy[activityStrategyName].config ?? {}) as Record<string, unknown>
+        cfg.model = activityModel.trim() || undefined
+        stratCopy[activityStrategyName].config = cfg
+      }
+    }
 
     return overrides
   }
@@ -354,12 +374,22 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
                 const merged = activeConfigData?.merged as Record<string, unknown> | undefined
                 const strategies = (merged?.render_strategies ?? {}) as Record<string, { render_type?: string; config?: { model?: string; prompt?: string; template?: string } }>
                 const strat = strategies[v]
-                if (strat?.render_type) setRenderingRenderType(strat.render_type)
-                if (strat?.config?.prompt) setRenderingPromptName(strat.config.prompt)
-                if (strat?.config?.model) setRenderingModel(strat.config.model)
-                if (strat?.config?.template) {
-                  setRenderingTemplateName(strat.config.template)
-                  setTemplateTabName(strat.config.template)
+                if (strat) {
+                  if (strat.render_type) setRenderingRenderType(strat.render_type)
+                  if (strat.config?.prompt) setRenderingPromptName(strat.config.prompt)
+                  if (strat.config?.model) setRenderingModel(strat.config.model)
+                  if (strat.config?.template) {
+                    setRenderingTemplateName(strat.config.template)
+                    setTemplateTabName(strat.config.template)
+                    setTemplateTabDraft(null)
+                  }
+                } else {
+                  // Synthetic option like "dynamic" — clear stale rendering config
+                  setRenderingRenderType("")
+                  setRenderingModel("")
+                  setRenderingPromptName("")
+                  setRenderingTemplateName("")
+                  setTemplateTabName("")
                   setTemplateTabDraft(null)
                 }
               }}
@@ -377,7 +407,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
                 </SelectValue>
               </SelectTrigger>
               <SelectContent align="start">
-                {["dynamic", ...renderStrategyNames].map((name) => {
+                {["dynamic", ...renderStrategyNames.filter((n) => n !== "dynamic")].map((name) => {
                   const isTemplate = strategyRenderTypes[name] === "template"
                   return (
                     <SelectItem key={name} value={name}>
@@ -724,9 +754,11 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
             <Select
               value={activityStrategyName || "__none__"}
               onValueChange={(v) => {
-                setActivityStrategyName(v === "__none__" ? "" : v)
+                const name = v === "__none__" ? "" : v
+                setActivityStrategyName(name)
                 setActivityPromptDraft(null)
                 setActivityAnswerDraft(null)
+                setActivityModel(name ? (activityStrategies[name]?.model ?? "") : "")
               }}
             >
               <SelectTrigger className="w-72">
@@ -752,8 +784,8 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
                   bookLabel={bookLabel}
                   title="Generation Prompt"
                   description="Generates the interactive HTML for this activity type."
-                  model={selectedActivity.model ?? ""}
-                  onModelChange={() => {}}
+                  model={activityModel}
+                  onModelChange={(v) => { setActivityModel(v); markDirty("activity_model") }}
                   onContentChange={setActivityPromptDraft}
                 />
               </div>
@@ -765,8 +797,8 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
                     bookLabel={bookLabel}
                     title="Answer Prompt"
                     description="Extracts the correct answer key from the generated activity HTML."
-                    model={selectedActivity.model ?? ""}
-                    onModelChange={() => {}}
+                    model={activityModel}
+                    onModelChange={(v) => { setActivityModel(v); markDirty("activity_model") }}
                     onContentChange={setActivityAnswerDraft}
                   />
                 </div>
