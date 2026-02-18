@@ -215,11 +215,10 @@ export function createAdtPreviewRoutes(
 ): Hono {
   const app = new Hono()
 
-  // Disable browser caching for all preview responses — this is a dev tool
-  app.use("*", async (c, next) => {
-    await next()
-    c.header("Cache-Control", "no-store")
-  })
+  // Allow browser caching — the iframe URL includes a cache-busting version
+  // parameter (v-{timestamp}) that changes on repackage, so stale content
+  // is never served while repeat requests within the same session are fast.
+
 
   // Helper: resolve book + validate
   function resolveBook(label: string) {

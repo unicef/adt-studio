@@ -370,7 +370,9 @@ export function createBookRoutes(
     const fileBuffer = fs.readFileSync(resolvedPath)
     const ext = path.extname(resolvedPath).toLowerCase()
     c.header("Content-Type", MIME_TYPES[ext] ?? "application/octet-stream")
-    c.header("Cache-Control", "no-cache")
+    // Cache indefinitely — the iframe URL includes a cache-busting version
+    // segment (v-{timestamp}) that changes on every repackage.
+    c.header("Cache-Control", "public, max-age=31536000, immutable")
     return c.body(fileBuffer)
   })
 

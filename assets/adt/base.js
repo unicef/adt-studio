@@ -271,19 +271,6 @@ function restoreNavAndSidebar() {
   if (sidebar) sidebar.classList.remove("hidden");
 }
 
-function hideMainContent() {
-  // Instead of adding hidden class, use opacity
-  const mainContent = document.body;
-  if (mainContent) {
-    mainContent.classList.add("opacity-0");
-    mainContent.classList.add("z-30");
-    // Set a maximum time to stay hidden
-    setTimeout(() => {
-      mainContent.classList.remove("opacity-0");
-    }, 3000); // Failsafe timeout
-  }
-}
-
 async function initializeCoreFunctionality() {
   try {
     // First ensure the DOM is fully loaded

@@ -117,7 +117,8 @@ export const showMainContent = () => {
 // Force show content after a timeout as a fallback
 const SHOW_CONTENT_TIMEOUT = 2000; // 2 seconds
 setTimeout(() => {
-    if (document.body.classList.contains('hidden')) {
+    const content = document.getElementById('content');
+    if (document.body.classList.contains('hidden') || (content && content.classList.contains('opacity-0'))) {
         console.warn('Forcing content display after timeout');
         showMainContent();
     }
