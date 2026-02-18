@@ -209,7 +209,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     )
   }
 
-  if (sectionCount === 0 || storyboardRunning) {
+  if (!page.sectioning || storyboardRunning) {
     return (
       <div className="p-4">
         <StepRunCard
@@ -220,6 +220,14 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
           onRun={handleRunStoryboard}
           disabled={!hasApiKey || storyboardRunning}
         />
+      </div>
+    )
+  }
+
+  if (sectionCount === 0) {
+    return (
+      <div className="p-4 text-sm text-muted-foreground">
+        This page has no sections.
       </div>
     )
   }
