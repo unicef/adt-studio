@@ -663,40 +663,6 @@ function AddBookPage() {
                       Merge facing pages as spreads (cover + page pairs).
                     </p>
                   </div>
-                  {availableStyleguides.length > 0 && (
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Styleguide</Label>
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={styleguide}
-                          onChange={(e) => setStyleguide(e.target.value)}
-                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        >
-                          <option value="">None</option>
-                          {availableStyleguides.map((sg) => (
-                            <option key={sg} value={sg}>
-                              {sg}
-                            </option>
-                          ))}
-                        </select>
-                        {styleguide && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-9 px-2.5 shrink-0"
-                            onClick={openStyleguidePreview}
-                          >
-                            <Eye className="h-3.5 w-3.5 mr-1" />
-                            Preview
-                          </Button>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Provides consistent HTML/CSS patterns for LLM-generated pages.
-                      </p>
-                    </div>
-                  )}
                   <AdvancedLayoutPanel
                     defaultRenderStrategy={defaultRenderStrategy}
                     onDefaultRenderStrategyChange={setDefaultRenderStrategy}
@@ -726,6 +692,42 @@ function AddBookPage() {
                         return next
                       })
                     }}
+                    afterStrategySlot={
+                      availableStyleguides.length > 0 && renderStrategies[defaultRenderStrategy]?.render_type !== "template" ? (
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Styleguide</Label>
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={styleguide}
+                              onChange={(e) => setStyleguide(e.target.value)}
+                              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            >
+                              <option value="">None</option>
+                              {availableStyleguides.map((sg) => (
+                                <option key={sg} value={sg}>
+                                  {sg}
+                                </option>
+                              ))}
+                            </select>
+                            {styleguide && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-9 px-2.5 shrink-0"
+                                onClick={openStyleguidePreview}
+                              >
+                                <Eye className="h-3.5 w-3.5 mr-1" />
+                                Preview
+                              </Button>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Provides consistent HTML/CSS patterns for LLM-generated pages.
+                          </p>
+                        </div>
+                      ) : undefined
+                    }
                   />
                 </div>
               )}

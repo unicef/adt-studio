@@ -41,6 +41,8 @@ export interface AdvancedLayoutPanelProps {
   onTogglePrunedText: (type: string) => void
   prunedSectionTypes: Set<string>
   onTogglePrunedSection: (type: string) => void
+  /** Rendered right after the render strategy dropdown (e.g. styleguide selector) */
+  afterStrategySlot?: React.ReactNode
 }
 
 function CollapsibleSection({
@@ -374,6 +376,7 @@ export function AdvancedLayoutPanel({
   onTogglePrunedText,
   prunedSectionTypes,
   onTogglePrunedSection,
+  afterStrategySlot,
 }: AdvancedLayoutPanelProps) {
   const strategyNames = Object.keys(renderStrategies)
   const dropdownOptions = [
@@ -438,14 +441,22 @@ export function AdvancedLayoutPanel({
           onValueChange={onDefaultRenderStrategyChange}
         >
           <SelectTrigger className="h-8 w-52 text-xs">
-            <SelectValue placeholder="Select strategy..." />
+            <SelectValue placeholder="Select strategy...">
+              {defaultRenderStrategy.replace(/_/g, " ")}
+              {renderStrategies[defaultRenderStrategy]?.render_type === "template" && (
+                <span className="text-muted-foreground ml-1">(template)</span>
+              )}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {dropdownOptions.map((name) => (
-              <SelectItem key={name} value={name} className="text-xs">
-                {name.replace(/_/g, " ")}
-              </SelectItem>
-            ))}
+            {dropdownOptions.map((name) => {
+              const isTemplate = renderStrategies[name]?.render_type === "template"
+              return (
+                <SelectItem key={name} value={name} className="text-xs">
+                  {name.replace(/_/g, " ")}{isTemplate ? " (template)" : ""}
+                </SelectItem>
+              )
+            })}
           </SelectContent>
         </Select>
         <p className="text-[10px] text-muted-foreground mt-1">
@@ -454,6 +465,8 @@ export function AdvancedLayoutPanel({
             : "All sections rendered with this strategy"}
         </p>
       </div>
+
+      {afterStrategySlot}
 
       {/* 2. Available Render Strategies — collapsed */}
       <CollapsibleSection title="Available Render Strategies">
