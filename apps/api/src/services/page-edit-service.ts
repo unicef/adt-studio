@@ -3,6 +3,7 @@ import { createBookStorage } from "@adt/storage"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
 import type { LLMModel } from "@adt/llm"
 import { renderPage, buildRenderStrategyResolver, createTemplateEngine, loadBookConfig } from "@adt/pipeline"
+import { loadStyleguideContent } from "./pipeline-runner"
 import type { PageSectioningOutput } from "@adt/types"
 
 export interface ReRenderOptions {
@@ -53,6 +54,8 @@ export async function reRenderPage(
     const config = loadBookConfig(label, booksDir, configPath)
     const resolveRenderConfig = buildRenderStrategyResolver(config)
 
+    const styleguideContent = loadStyleguideContent(config.styleguide, configPath)
+
     // Create LLM model resolver (model-specific, cached)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
@@ -84,6 +87,7 @@ export async function reRenderPage(
         pageImageBase64,
         sectioning,
         images: renderImages,
+        styleguide: styleguideContent,
       },
       resolveRenderConfig,
       resolveRenderModel,

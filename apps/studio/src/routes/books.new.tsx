@@ -9,17 +9,24 @@ import {
   BookHeart,
   Library,
   SlidersHorizontal,
+  Eye,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { Switch } from "@/components/ui/switch"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { LanguagePicker } from "@/components/LanguagePicker"
 import { useCreateBook } from "@/hooks/use-books"
 import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
-import { usePreset, useGlobalConfig } from "@/hooks/use-presets"
+import { usePreset, useGlobalConfig, useStyleguides, useStyleguidePreview } from "@/hooks/use-presets"
 import {
   AdvancedLayoutPanel,
   type RenderStrategyState,
@@ -151,6 +158,7 @@ function AddBookPage() {
 
   // Step 2 — Layout
   const [layoutType, setLayoutType] = useState<LayoutType>("textbook")
+  const [styleguide, setStyleguide] = useState("")
   const [showAdvancedLayout, setShowAdvancedLayout] = useState(false)
   const [defaultRenderStrategy, setDefaultRenderStrategy] = useState("")
   const [renderStrategies, setRenderStrategies] = useState<Record<string, RenderStrategyState>>({})
@@ -163,10 +171,23 @@ function AddBookPage() {
   const [textGroupTypes, setTextGroupTypes] = useState<Record<string, string>>({})
   const [sectionTypes, setSectionTypes] = useState<Record<string, string>>({})
 
-  // Fetch preset + global config via TanStack Query
+  // Styleguide preview
+  const [styleguidePreviewOpen, setStyleguidePreviewOpen] = useState(false)
+  const [previewName, setPreviewName] = useState<string | null>(null)
+  const { data: previewData, isLoading: styleguidePreviewLoading } = useStyleguidePreview(previewName)
+
+  const openStyleguidePreview = () => {
+    if (!styleguide) return
+    setPreviewName(styleguide)
+    setStyleguidePreviewOpen(true)
+  }
+
+  // Fetch preset + global config + styleguides via TanStack Query
   const presetName = layoutType === "custom" ? null : layoutType
   const { data: presetData } = usePreset(presetName)
   const { data: globalConfigData } = useGlobalConfig()
+  const { data: styleguidesData } = useStyleguides()
+  const availableStyleguides = styleguidesData?.styleguides ?? []
 
   // Populate local state when query data or layout type changes
   useEffect(() => {
@@ -214,6 +235,7 @@ function AddBookPage() {
             model: cfg.model != null ? String(cfg.model) : undefined,
             max_retries: cfg.max_retries != null ? String(cfg.max_retries) : undefined,
             timeout: cfg.timeout != null ? String(cfg.timeout) : undefined,
+            temperature: cfg.temperature != null ? String(cfg.temperature) : undefined,
             answer_prompt: cfg.answer_prompt != null ? String(cfg.answer_prompt) : undefined,
             template: cfg.template != null ? String(cfg.template) : undefined,
           },
@@ -259,6 +281,9 @@ function AddBookPage() {
     if (typeof config.spread_mode === "boolean") {
       setSpreadMode(config.spread_mode)
     }
+
+    // Styleguide from preset
+    setStyleguide(typeof config.styleguide === "string" ? config.styleguide : "")
 
     // Custom layout auto-expands advanced panel
     if (layoutType === "custom") {
@@ -348,6 +373,9 @@ function AddBookPage() {
 
     const configOverrides: Record<string, unknown> = {}
     configOverrides.layout_type = layoutType
+    if (styleguide) {
+      configOverrides.styleguide = styleguide
+    }
     if (editingLanguage.trim()) {
       configOverrides.editing_language = editingLanguage.trim()
     }
@@ -376,6 +404,7 @@ function AddBookPage() {
         if (strategy.config.model) config.model = strategy.config.model
         if (strategy.config.max_retries) config.max_retries = Number(strategy.config.max_retries)
         if (strategy.config.timeout) config.timeout = Number(strategy.config.timeout)
+        if (strategy.config.temperature) config.temperature = Number(strategy.config.temperature)
         if (strategy.config.answer_prompt) config.answer_prompt = strategy.config.answer_prompt
         if (strategy.config.template) config.template = strategy.config.template
         strategies[name] = {
@@ -634,6 +663,40 @@ function AddBookPage() {
                       Merge facing pages as spreads (cover + page pairs).
                     </p>
                   </div>
+                  {availableStyleguides.length > 0 && (
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Styleguide</Label>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={styleguide}
+                          onChange={(e) => setStyleguide(e.target.value)}
+                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                        >
+                          <option value="">None</option>
+                          {availableStyleguides.map((sg) => (
+                            <option key={sg} value={sg}>
+                              {sg}
+                            </option>
+                          ))}
+                        </select>
+                        {styleguide && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-9 px-2.5 shrink-0"
+                            onClick={openStyleguidePreview}
+                          >
+                            <Eye className="h-3.5 w-3.5 mr-1" />
+                            Preview
+                          </Button>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Provides consistent HTML/CSS patterns for LLM-generated pages.
+                      </p>
+                    </div>
+                  )}
                   <AdvancedLayoutPanel
                     defaultRenderStrategy={defaultRenderStrategy}
                     onDefaultRenderStrategyChange={setDefaultRenderStrategy}
@@ -723,6 +786,28 @@ function AddBookPage() {
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={styleguidePreviewOpen} onOpenChange={setStyleguidePreviewOpen}>
+        <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-0">
+            <DialogTitle>Styleguide Preview — {styleguide}</DialogTitle>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 px-6 pb-6">
+            {styleguidePreviewLoading ? (
+              <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                Loading preview...
+              </div>
+            ) : (
+              <iframe
+                srcDoc={previewData?.html ?? ""}
+                className="w-full h-full rounded-md border"
+                sandbox="allow-scripts"
+                title="Styleguide Preview"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

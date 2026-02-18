@@ -30,6 +30,7 @@ export interface RenderConfig {
   modelId: string
   maxRetries: number
   timeoutMs: number
+  temperature: number
   // activity fields — answer generation prompt
   answerPromptName: string
   // template fields
@@ -45,6 +46,7 @@ export interface RenderSectionInput {
   backgroundColor: string
   textColor: string
   parts: SectionPart[]
+  styleguide?: string
 }
 
 export interface RenderPageInput {
@@ -53,6 +55,7 @@ export interface RenderPageInput {
   pageImageBase64: string
   sectioning: PageSectioningOutput
   images: Map<string, string> // imageId → base64
+  styleguide?: string
 }
 
 export type ResolveLLMModel = LLMModel | ((modelId: string) => LLMModel)
@@ -143,6 +146,7 @@ export async function renderPage(
       backgroundColor: section.backgroundColor,
       textColor: section.textColor,
       parts,
+      styleguide: input.styleguide,
     }
 
     let rendering: SectionRendering
@@ -179,6 +183,7 @@ const DEFAULT_RENDER_CONFIG = {
   model: "openai:gpt-5.2",
   max_retries: 25,
   timeout: 180,
+  temperature: 0.3,
 }
 
 /**
@@ -213,6 +218,7 @@ export function buildRenderStrategyResolver(
       modelId: cfg?.model ?? DEFAULT_RENDER_CONFIG.model,
       maxRetries: cfg?.max_retries ?? DEFAULT_RENDER_CONFIG.max_retries,
       timeoutMs: (cfg?.timeout ?? DEFAULT_RENDER_CONFIG.timeout) * 1000,
+      temperature: cfg?.temperature ?? DEFAULT_RENDER_CONFIG.temperature,
       answerPromptName: cfg?.answer_prompt ?? "",
       templateName: cfg?.template ?? "",
     }

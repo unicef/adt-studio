@@ -20,6 +20,7 @@ export interface RenderStrategyState {
     model?: string
     max_retries?: string
     timeout?: string
+    temperature?: string
     answer_prompt?: string
     template?: string
   }
@@ -291,7 +292,7 @@ function RenderStrategyEditor({
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <div className="space-y-1">
                   <Label className="text-[10px] text-muted-foreground">Max Retries</Label>
                   <Input
@@ -311,6 +312,19 @@ function RenderStrategyEditor({
                     value={strategy.config.timeout ?? ""}
                     onChange={(e) => updateConfig("timeout", e.target.value)}
                     placeholder="180"
+                    className="h-7 text-xs"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">Temperature</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={2}
+                    step={0.1}
+                    value={strategy.config.temperature ?? ""}
+                    onChange={(e) => updateConfig("temperature", e.target.value)}
+                    placeholder="0.3"
                     className="h-7 text-xs"
                   />
                 </div>

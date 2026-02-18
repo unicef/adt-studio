@@ -14,6 +14,7 @@ export interface GenerateObjectOptions {
   validate?: (result: unknown, context: Record<string, unknown>) => ValidationResult
   maxRetries?: number
   maxTokens?: number
+  temperature?: number
   timeoutMs?: number
   log?: {
     taskType: string

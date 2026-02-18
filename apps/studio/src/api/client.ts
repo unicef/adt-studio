@@ -584,6 +584,12 @@ export const api = {
   getPreset: (name: string) =>
     request<{ config: Record<string, unknown> }>(`/presets/${name}`),
 
+  getStyleguides: () =>
+    request<{ styleguides: string[] }>(`/styleguides`),
+
+  getStyleguidePreview: (name: string) =>
+    request<{ name: string; html: string }>(`/styleguides/${name}/preview`),
+
   getGlobalConfig: () =>
     request<{ config: Record<string, unknown> }>(`/config`),
 

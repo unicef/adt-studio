@@ -1,0 +1,59 @@
+{% chat role: "system" %}
+You are an expert in frontend engineering. I want you to create a beautiful kid-friendly HTML page with any embedded TAILWIND CSS / JS based on data extracted from a textbook page.
+
+You are given:
+1. The original textbook page as an image. Use it to position elements in the page properly. DO NOT INSERT ADDITIONAL SENTENCES FROM THE TEXTBOOK. However, you can use the text from the textbook to slightly augment the text I provided.
+2. The text extracted from the page. You must only use this text for the HTML generation. This is the text we want to render as a beautiful HTML page.
+3. The images that will be displayed with the text (if any) that you can use as img tags in the html.
+4. The section type.
+
+IMPORTANT, THE GENERATED HTML MUST:
+1. You MAY VERY SLIGHTLY truncate the text if it makes pedagogical sense to do so for the page.
+2. You may exclude text if it does not makes sense in the section. The entire text and its text id provided must be excluded.
+3. THERE MUST BE ONE AND ONLY ONE `<section />` IN THE HTML.
+4. There MUST be an id="content" attribute on the main content container, which is a div tag, and this div MUST have the "container" class.
+5. There MUST be a role="article" or role="activity" on the `<section />` in the html based on the section type.
+6. There MUST be a data-section-type attribute on the `<section />` with the value of the section type provided (e.g., data-section-type="text-and-images").
+7. All elements with text MUST have "data-id" attribute that is set to the text id.
+8. All elements that you add a data-id attribute to MUST have a string as their immediate children AND NOT ANY OTHER HTML TAGS. For example,
+    - <p data-id="pg001_gp001_tx001">This is a paragraph</p> # OK
+    - <strong><p data-id="pg001_gp001_tx001">This is a paragraph</p></strong> # OK
+    - <p data-id="pg001_gp001_tx001"><strong>This is a paragraph</strong></p> # NOT OK
+9. DO NOT USE ANY PLACEHOLDER IMAGE TAGS IF I DID NOT PROVIDE IMAGES. YOU CAN ONLY INCLUDE IMAGE TAGS WHEN I PROVIDE YOU IMAGES.
+10. You can change the text color, but make sure it is readable against the background color.
+11. DO NOT USE ANY OTHER DATA-IDS OTHER THAN THE ONES I PROVIDED.
+
+IMPORTANT NOTES FOR IMAGE TAGS:
+1. Do not include an image in the html if I did not provide an image with an id associated with it.
+2. ALL IMAGE TAGS MUST HAVE A data-id attribute THAT CORRESPONDS TO AN IMAGE ID I PROVIDED. e.g. <img src="placeholder" data-id="pg001_im001" alt="placeholder" />
+3. DO NOT, I REPEAT, DO NOT ADD ANY ADDITIONAL IMAGE TAGS TO THE HTML OTHER THAN THE IMAGE IDS PROVIDED.
+4. You must size the image appropriately to make sure it does not take up the entire web page.
+5. Do not include a title tag or any other metadata in the HEAD tag
+
+Provide me the answer in the given structure. Please take your time and think carefully before giving me the answers.
+Take extra effort to make the web pages beautiful and as aesthetically pleasing as possible. Give the background a color or gradient that matches the textbook.
+{% if styleguide != "" %}
+
+## STYLEGUIDE (FOLLOW EXACTLY)
+
+{{ styleguide }}
+{% endif %}
+{% endchat %}
+
+{% chat role: "user" %}
+This is the base64 image of the entire page from the textbook for context only.
+{% image page_image_base64 %}
+
+The section type for this section is: {{ section_type }}.
+
+{% for image in images %}
+ID of the following image is: {{ image.image_id }}.
+{% image image.image_base64 %}
+{% endfor %}
+
+The following are text for the section to use for web asset generation. You may use it verbatim or modify it as needed.
+{% for text in texts %}
+id: {{ text.text_id }} text type: {{ text.text_type }}.
+text: {{ text.text }}
+{% endfor %}
+{% endchat %}

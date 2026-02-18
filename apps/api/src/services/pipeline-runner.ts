@@ -1,3 +1,4 @@
+import fs from "node:fs"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import type { Storage } from "@adt/storage"
@@ -57,6 +58,19 @@ function wrapStepError(step: StepName, err: unknown): never {
   throw new PipelineStepError(step, toErrorMessage(err))
 }
 
+export function loadStyleguideContent(
+  styleguideName: string | undefined,
+  configPath: string | undefined
+): string | undefined {
+  if (!styleguideName) return undefined
+  const projectRoot = configPath ? path.dirname(configPath) : process.cwd()
+  const styleguidesDir = path.resolve(projectRoot, "assets", "styleguides")
+  const filePath = path.resolve(styleguidesDir, `${styleguideName}.md`)
+  if (!filePath.startsWith(styleguidesDir + path.sep)) return undefined
+  if (!fs.existsSync(filePath)) return undefined
+  return fs.readFileSync(filePath, "utf-8")
+}
+
 async function processWithConcurrency<T>(
   items: T[],
   concurrency: number,
@@ -104,6 +118,7 @@ export function createPipelineRunner(): PipelineRunner {
 
         // Step 1: Extract PDF
         const config = loadBookConfig(label, booksDir, configPath)
+        const styleguideContent = loadStyleguideContent(config.styleguide, configPath)
 
         await extractPDF(
           {
@@ -311,7 +326,8 @@ export function createPipelineRunner(): PipelineRunner {
                   },
                 },
                 translationConfig,
-                translationModel
+                translationModel,
+                styleguideContent
               )
             } catch (err) {
               const msg = toErrorMessage(err)
@@ -396,7 +412,8 @@ async function processPage(
   _totalPages: number,
   callbacks: PageCallbacks,
   translationConfig: TranslationConfig | null,
-  translationModel: LLMModel | null
+  translationModel: LLMModel | null,
+  styleguideContent?: string
 ): Promise<void> {
   const {
     textClassifyConfig,
@@ -512,6 +529,7 @@ async function processPage(
         pageImageBase64,
         sectioning,
         images: renderImages,
+        styleguide: styleguideContent,
       },
       resolveRenderConfig,
       resolveRenderModel,

@@ -12,6 +12,7 @@ export const StepConfig = z.object({
   model: z.string().optional(),
   max_retries: z.number().int().min(0).optional(),
   timeout: z.number().int().min(1).optional(),
+  temperature: z.number().min(0).max(2).optional(),
 })
 export type StepConfig = z.infer<typeof StepConfig>
 
@@ -29,6 +30,9 @@ export type LayoutType = z.infer<typeof LayoutType>
 export const PresetName = z.enum(["textbook", "storybook", "reference"])
 export type PresetName = z.infer<typeof PresetName>
 
+export const StyleguideName = z.string().regex(/^[a-zA-Z0-9_-]+$/)
+export type StyleguideName = z.infer<typeof StyleguideName>
+
 export const RenderType = z.enum(["llm", "template", "activity"])
 export type RenderType = z.infer<typeof RenderType>
 
@@ -42,6 +46,7 @@ export const RenderStrategyConfig = z
         model: z.string().optional(),
         max_retries: z.number().int().min(0).optional(),
         timeout: z.number().int().min(1).optional(),
+        temperature: z.number().min(0).max(2).optional(),
         // activity render type — answer generation prompt
         answer_prompt: z.string().optional(),
         // template render type
@@ -88,6 +93,7 @@ export const AppConfig = z
     start_page: z.number().int().min(1).optional(),
     end_page: z.number().int().min(1).optional(),
     speech: SpeechConfig.optional(),
+    styleguide: z.string().regex(/^[a-zA-Z0-9_-]+$/).optional(),
   })
   .superRefine((value, ctx) => {
     if (

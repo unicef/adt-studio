@@ -13,6 +13,7 @@ export {
   BookFormat,
   LayoutType,
   PresetName,
+  StyleguideName,
   StepConfig,
   QuizGenerationConfig,
   RenderType,

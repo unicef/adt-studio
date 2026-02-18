@@ -18,6 +18,7 @@ export function computeHash(data: {
   system?: string
   messages: Message[]
   schema: unknown
+  temperature?: number
 }): string {
   const json = JSON.stringify(data, stableReplacer)
   return crypto.createHash("sha256").update(json).digest("hex")

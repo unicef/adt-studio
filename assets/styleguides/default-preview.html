@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <title>Style Guide Preview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .preview-label {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: #6b7280;
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 0.25rem;
+      margin-bottom: 1rem;
+    }
+    .preview-section {
+      border: 2px dashed #d1d5db;
+      border-radius: 1rem;
+      padding: 2rem;
+      margin-bottom: 2.5rem;
+      background: #fafafa;
+    }
+    .preview-divider {
+      border-top: 3px solid #7c3aed;
+      margin: 3rem 0;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 py-12 px-4">
+
+  <div class="mx-auto max-w-6xl">
+
+    <!-- Header -->
+    <div class="mb-12 text-center">
+      <h1 class="text-5xl font-extrabold text-purple-700 mb-2">Style Guide Preview</h1>
+      <p class="text-xl text-gray-500">Visual reference for publishers &mdash; default theme</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- TEXT STYLES                                                    -->
+    <!-- ============================================================ -->
+    <h2 class="text-3xl font-bold text-gray-800 mb-6">Text Styles</h2>
+
+    <div class="preview-section">
+      <p class="preview-label">book_title &mdash; h1</p>
+      <h1 class="text-4xl md:text-5xl font-extrabold leading-tight">The Great Journey Begins</h1>
+    </div>
+
+    <div class="preview-section">
+      <p class="preview-label">book_subtitle &mdash; h2</p>
+      <h2 class="text-2xl md:text-3xl font-semibold text-gray-700">A story of discovery and wonder</h2>
+    </div>
+
+    <div class="preview-section">
+      <p class="preview-label">chapter_title &mdash; h1</p>
+      <h1 class="text-3xl md:text-4xl font-bold leading-tight">Chapter Title Example</h1>
+    </div>
+
+    <div class="preview-section">
+      <p class="preview-label">section_heading &mdash; h1</p>
+      <h1 class="text-3xl md:text-4xl font-bold leading-tight">Section Heading Example</h1>
+    </div>
+
+    <div class="preview-section">
+      <p class="preview-label">activity_title &mdash; h2</p>
+      <h2 class="text-2xl md:text-3xl font-bold leading-tight">Activity Title Example</h2>
+    </div>
+
+    <div class="preview-section">
+      <p class="preview-label">section_text &mdash; p</p>
+      <p class="text-lg md:text-xl leading-relaxed">This is section text. It uses a comfortable reading size with relaxed line-height, ideal for body paragraphs in educational content. Listening and speaking skills are important for effective communication.</p>
+    </div>
+
+    <div class="preview-section">
+      <p class="preview-label">instruction_text &mdash; p</p>
+      <p class="text-base md:text-lg leading-relaxed text-gray-700 italic">Look at the following pictures and answer the questions below.</p>
+    </div>
+
+    <div class="preview-section">
+      <p class="preview-label">standalone_text &mdash; p</p>
+      <p class="text-base md:text-lg leading-relaxed">This is standalone text used for general-purpose content outside of cards or specific sections.</p>
+    </div>
+
+    <div class="preview-section">
+      <p class="preview-label">image_associated_text &mdash; p</p>
+      <p class="text-sm md:text-base text-gray-600 italic mt-2">Caption: A photo of the Serengeti National Park at sunrise.</p>
+    </div>
+
+    <div class="preview-divider"></div>
+
+    <!-- ============================================================ -->
+    <!-- COMPONENTS                                                    -->
+    <!-- ============================================================ -->
+    <h2 class="text-3xl font-bold text-gray-800 mb-6">Components</h2>
+
+    <!-- Chapter Badge -->
+    <div class="preview-section">
+      <p class="preview-label">Chapter Badge</p>
+      <div class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+        <div class="flex items-start gap-6">
+          <div class="shrink-0 rounded-3xl bg-purple-200 px-6 py-5 shadow-sm">
+            <h1 class="text-3xl md:text-4xl font-bold leading-tight">CHAPTER</h1>
+            <h1 class="text-3xl md:text-4xl font-bold leading-tight">1</h1>
+          </div>
+          <div class="pt-2">
+            <h1 class="text-3xl md:text-4xl font-bold leading-tight">The Nile River</h1>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content Card -->
+    <div class="preview-section">
+      <p class="preview-label">Content Card (for body text)</p>
+      <div class="space-y-4 rounded-3xl bg-white/80 p-6 shadow-sm ring-1 ring-black/5">
+        <p class="text-lg md:text-xl leading-relaxed">Listening and speaking skills are important for effective communication. In this unit, you will learn to listen to and communicate information orally in English.</p>
+        <p class="text-lg md:text-xl leading-relaxed">The competencies developed will enable you to communicate with friends, teachers, parents and other people in different situations.</p>
+      </div>
+    </div>
+
+    <!-- Text Group -->
+    <div class="preview-section">
+      <p class="preview-label">Text Group (paragraphs without card)</p>
+      <div class="space-y-3">
+        <p class="text-lg md:text-xl leading-relaxed">First paragraph in a text group. No card background, just clean stacked text.</p>
+        <p class="text-lg md:text-xl leading-relaxed">Second paragraph in the same text group, separated by consistent spacing.</p>
+      </div>
+    </div>
+
+    <div class="preview-divider"></div>
+
+    <!-- ============================================================ -->
+    <!-- IMAGE STYLES                                                  -->
+    <!-- ============================================================ -->
+    <h2 class="text-3xl font-bold text-gray-800 mb-6">Image Styles</h2>
+
+    <div class="preview-section">
+      <p class="preview-label">Single Image &mdash; w-full rounded-2xl shadow-lg</p>
+      <div class="bg-gradient-to-br from-purple-100 to-blue-100 w-full h-56 rounded-2xl shadow-lg flex items-center justify-center">
+        <span class="text-gray-400 text-lg font-medium">Single Image Placeholder</span>
+      </div>
+    </div>
+
+    <div class="preview-section">
+      <p class="preview-label">Image Grid (2 columns) &mdash; grid grid-cols-2 gap-4</p>
+      <div class="grid grid-cols-2 gap-4">
+        <div class="bg-gradient-to-br from-amber-100 to-orange-100 h-40 rounded-xl shadow-md flex items-center justify-center">
+          <span class="text-gray-400 text-sm font-medium">Image 1</span>
+        </div>
+        <div class="bg-gradient-to-br from-green-100 to-teal-100 h-40 rounded-xl shadow-md flex items-center justify-center">
+          <span class="text-gray-400 text-sm font-medium">Image 2</span>
+        </div>
+        <div class="bg-gradient-to-br from-blue-100 to-indigo-100 h-40 rounded-xl shadow-md flex items-center justify-center">
+          <span class="text-gray-400 text-sm font-medium">Image 3</span>
+        </div>
+        <div class="bg-gradient-to-br from-pink-100 to-rose-100 h-40 rounded-xl shadow-md flex items-center justify-center">
+          <span class="text-gray-400 text-sm font-medium">Image 4</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="preview-section">
+      <p class="preview-label">Text and Image Side by Side</p>
+      <div class="flex flex-col md:flex-row gap-8">
+        <div class="flex-1 space-y-4">
+          <p class="text-lg md:text-xl leading-relaxed">This layout places text and an image side by side on wider screens. On mobile, the image stacks below the text.</p>
+          <p class="text-lg md:text-xl leading-relaxed">It is useful when text directly relates to a single accompanying image.</p>
+        </div>
+        <div class="flex-1">
+          <div class="bg-gradient-to-br from-violet-100 to-purple-100 w-full h-48 rounded-2xl shadow-lg flex items-center justify-center">
+            <span class="text-gray-400 text-sm font-medium">Side Image</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="preview-divider"></div>
+
+    <!-- ============================================================ -->
+    <!-- PAGE TEMPLATES                                                -->
+    <!-- ============================================================ -->
+    <h2 class="text-3xl font-bold text-gray-800 mb-6">Page Templates</h2>
+
+    <!-- Template: Chapter Start Page -->
+    <div class="preview-section">
+      <p class="preview-label">Template: Chapter Start Page</p>
+      <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+        <div class="container content mx-auto flex min-h-[480px] w-full items-center justify-center px-6 py-12" style="background-color:#ffffff">
+          <section class="w-full" role="article">
+            <div class="mx-auto w-full max-w-5xl space-y-8">
+              <!-- Chapter Badge -->
+              <div class="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+                <div class="flex items-start gap-6">
+                  <div class="shrink-0 rounded-3xl bg-purple-200 px-6 py-5 shadow-sm">
+                    <h1 class="text-3xl md:text-4xl font-bold leading-tight">CHAPTER</h1>
+                    <h1 class="text-3xl md:text-4xl font-bold leading-tight">1</h1>
+                  </div>
+                  <div class="pt-2">
+                    <h1 class="text-3xl md:text-4xl font-bold leading-tight">The Nile River</h1>
+                  </div>
+                </div>
+              </div>
+              <!-- Content Card -->
+              <div class="space-y-4 rounded-3xl bg-white/80 p-6 shadow-sm ring-1 ring-black/5">
+                <p class="text-lg md:text-xl leading-relaxed">The Nile is the longest river in Africa, stretching over 6,600 kilometres through multiple countries.</p>
+                <p class="text-lg md:text-xl leading-relaxed">It has been a source of life for civilisations for thousands of years, providing water, food, and fertile land.</p>
+              </div>
+              <!-- Image -->
+              <div class="bg-gradient-to-br from-blue-100 to-cyan-100 w-full h-48 rounded-2xl shadow-lg flex items-center justify-center">
+                <span class="text-gray-400 text-sm font-medium">Chapter Image</span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <!-- Template: Regular Content Page -->
+    <div class="preview-section">
+      <p class="preview-label">Template: Regular Content Page (text and images)</p>
+      <div class="bg-white rounded-2xl shadow-md overflow-hidden">
+        <div class="container content mx-auto flex min-h-[480px] w-full items-center justify-center px-6 py-12" style="background-color:#ffffff">
+          <section class="w-full" role="article">
+            <div class="mx-auto w-full max-w-5xl space-y-8">
+              <!-- Text Group -->
+              <div class="space-y-3">
+                <p class="text-lg md:text-xl leading-relaxed">Mrs Mashaka is our Geography and the Environment teacher. One day, she taught us about the national parks in Tanzania.</p>
+                <p class="text-lg md:text-xl leading-relaxed">She said, "The Serengeti is among the largest national parks in the country. It has many animals, birds and insects."</p>
+              </div>
+              <!-- Image -->
+              <div class="bg-gradient-to-br from-green-100 to-emerald-100 w-full h-48 rounded-2xl shadow-lg flex items-center justify-center">
+                <span class="text-gray-400 text-sm font-medium">Content Image 1</span>
+              </div>
+              <!-- More Text -->
+              <div class="space-y-3">
+                <p class="text-lg md:text-xl leading-relaxed">She asked, "How many of you have been to the Serengeti?" The whole class replied, "No one!"</p>
+              </div>
+              <!-- Another Image -->
+              <div class="bg-gradient-to-br from-amber-100 to-yellow-100 w-full h-48 rounded-2xl shadow-lg flex items-center justify-center">
+                <span class="text-gray-400 text-sm font-medium">Content Image 2</span>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <!-- Template: Table of Contents -->
+    <div class="preview-section">
+      <p class="preview-label">Template: Table of Contents</p>
+      <div class="rounded-2xl shadow-md overflow-hidden">
+        <div class="container content mx-auto flex min-h-[520px] w-full items-center justify-center px-6 py-12" style="background-color:#f3f0f7">
+          <section class="w-full" role="article">
+            <div class="mx-auto w-full max-w-3xl space-y-8">
+              <div class="relative rounded-3xl overflow-hidden shadow-lg">
+                <!-- Background placeholder -->
+                <div class="bg-gradient-to-br from-purple-200 to-indigo-200 w-full h-[420px]"></div>
+                <!-- Overlay card -->
+                <div class="absolute inset-0 flex items-center justify-center p-6">
+                  <div class="w-full max-w-2xl rounded-2xl bg-white/90 backdrop-blur-sm p-8 shadow-lg">
+                    <!-- Title -->
+                    <div class="text-center mb-8">
+                      <h1 class="text-3xl md:text-4xl font-extrabold leading-tight text-purple-700">English for Primary Schools</h1>
+                      <h2 class="text-xl md:text-2xl font-semibold text-purple-600 mt-2">Table of Contents</h2>
+                    </div>
+                    <!-- Entries -->
+                    <div class="space-y-3">
+                      <div class="flex items-baseline gap-2">
+                        <p class="text-base font-medium text-gray-700 whitespace-nowrap">Chapter 1</p>
+                        <p class="text-base font-medium text-gray-800">Listening and Speaking</p>
+                        <span class="border-b border-dotted border-gray-400 flex-1 mx-2"></span>
+                        <p class="text-base font-medium text-gray-600">1</p>
+                      </div>
+                      <div class="flex items-baseline gap-2">
+                        <p class="text-base font-medium text-gray-700 whitespace-nowrap">Chapter 2</p>
+                        <p class="text-base font-medium text-gray-800">Reading and Writing</p>
+                        <span class="border-b border-dotted border-gray-400 flex-1 mx-2"></span>
+                        <p class="text-base font-medium text-gray-600">15</p>
+                      </div>
+                      <div class="flex items-baseline gap-2">
+                        <p class="text-base font-medium text-gray-700 whitespace-nowrap">Chapter 3</p>
+                        <p class="text-base font-medium text-gray-800">Grammar and Vocabulary</p>
+                        <span class="border-b border-dotted border-gray-400 flex-1 mx-2"></span>
+                        <p class="text-base font-medium text-gray-600">28</p>
+                      </div>
+                      <div class="flex items-baseline gap-2">
+                        <p class="text-base font-medium text-gray-700 whitespace-nowrap">Chapter 4</p>
+                        <p class="text-base font-medium text-gray-800">Geography and Environment</p>
+                        <span class="border-b border-dotted border-gray-400 flex-1 mx-2"></span>
+                        <p class="text-base font-medium text-gray-600">42</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+
+    <div class="preview-divider"></div>
+
+    <!-- ============================================================ -->
+    <!-- REQUIRED STRUCTURE REFERENCE                                  -->
+    <!-- ============================================================ -->
+    <h2 class="text-3xl font-bold text-gray-800 mb-6">Required Structure Reference</h2>
+
+    <div class="preview-section">
+      <p class="preview-label">Outer Container &mdash; every page uses this</p>
+      <div class="bg-white rounded-lg p-4 font-mono text-sm text-gray-700 overflow-x-auto">
+        <pre>&lt;div class="container content mx-auto flex min-h-screen w-full
+     items-center justify-center px-6 py-12"
+    data-background-color="<span class="text-purple-600">BACKGROUND_COLOR</span>" id="content"&gt;
+  &lt;section class="w-full"
+      data-id="<span class="text-purple-600">SECTION_ID</span>"
+      data-section-type="<span class="text-purple-600">SECTION_TYPE</span>"
+      data-text-color="<span class="text-purple-600">TEXT_COLOR</span>"
+      id="simple-main" role="article"&gt;
+    &lt;div class="mx-auto w-full max-w-5xl space-y-8"&gt;
+      <span class="text-gray-400">&lt;!-- Page content here --&gt;</span>
+    &lt;/div&gt;
+  &lt;/section&gt;
+&lt;/div&gt;</pre>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="text-center text-gray-400 text-sm mt-12 pb-8">
+      Generated from <code>assets/styleguides/default.md</code>
+    </div>
+
+  </div>
+</body>
+</html>

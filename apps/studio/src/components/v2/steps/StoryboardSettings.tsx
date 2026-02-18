@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
 import { useNavigate } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
-import { Play, Plus, X } from "lucide-react"
+import { Play, Plus, X, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PruneToggle } from "@/components/v2/PruneToggle"
@@ -21,9 +21,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
+import { useStyleguides, useStyleguidePreview } from "@/hooks/use-presets"
 import { api } from "@/api/client"
 import { PromptViewer } from "@/components/v2/PromptViewer"
 import { TemplateViewer } from "@/components/v2/TemplateViewer"
@@ -62,9 +64,25 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
   const [renderingPromptName, setRenderingPromptName] = useState("web_generation_html")
   const [renderingRenderType, setRenderingRenderType] = useState<string>("llm")
   const [renderingTemplateName, setRenderingTemplateName] = useState("")
+  const [renderingTemperature, setRenderingTemperature] = useState("")
+  const [styleguide, setStyleguide] = useState("")
   const [sectioningPromptDraft, setSectioningPromptDraft] = useState<string | null>(null)
   const [renderingPromptDraft, setRenderingPromptDraft] = useState<string | null>(null)
   const [renderingTemplateDraft, setRenderingTemplateDraft] = useState<string | null>(null)
+
+  const { data: styleguidesData } = useStyleguides()
+  const availableStyleguides = styleguidesData?.styleguides ?? []
+
+  // Styleguide preview
+  const [styleguidePreviewOpen, setStyleguidePreviewOpen] = useState(false)
+  const [previewName, setPreviewName] = useState<string | null>(null)
+  const { data: previewData, isLoading: styleguidePreviewLoading } = useStyleguidePreview(previewName)
+
+  const openStyleguidePreview = () => {
+    if (!styleguide) return
+    setPreviewName(styleguide)
+    setStyleguidePreviewOpen(true)
+  }
 
   // Track which field groups the user has actually touched
   const [dirty, setDirty] = useState<Record<string, boolean>>({})
@@ -97,14 +115,17 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
       const ps = merged.page_sectioning as Record<string, unknown>
       if (ps.model) setSectioningModel(String(ps.model))
     }
+    // Styleguide
+    setStyleguide(typeof merged.styleguide === "string" ? merged.styleguide : "")
     // Rendering config comes from the default render strategy
     if (merged.render_strategies && merged.default_render_strategy) {
-      const strategies = merged.render_strategies as Record<string, { render_type?: string; config?: { model?: string; prompt?: string; template?: string } }>
+      const strategies = merged.render_strategies as Record<string, { render_type?: string; config?: { model?: string; prompt?: string; template?: string; temperature?: number } }>
       const defaultStrategy = strategies[String(merged.default_render_strategy)]
       if (defaultStrategy?.render_type) setRenderingRenderType(defaultStrategy.render_type)
       if (defaultStrategy?.config?.model) setRenderingModel(String(defaultStrategy.config.model))
       if (defaultStrategy?.config?.prompt) setRenderingPromptName(String(defaultStrategy.config.prompt))
       if (defaultStrategy?.config?.template) setRenderingTemplateName(String(defaultStrategy.config.template))
+      setRenderingTemperature(defaultStrategy?.config?.temperature != null ? String(defaultStrategy.config.temperature) : "")
     }
   }, [activeConfigData])
 
@@ -211,6 +232,20 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
       const existing = (bookConfigData?.config?.page_sectioning ?? {}) as Record<string, unknown>
       overrides.page_sectioning = { ...existing, model: sectioningModel.trim() || undefined }
     }
+    if (shouldWrite("styleguide")) {
+      overrides.styleguide = styleguide || undefined
+    }
+    // Write rendering temperature into the default render strategy config
+    if (shouldWrite("rendering_temperature") && defaultRenderStrategy) {
+      const existingStrategies = (overrides.render_strategies ?? merged?.render_strategies ?? {}) as Record<string, Record<string, unknown>>
+      const stratCopy = JSON.parse(JSON.stringify(existingStrategies)) as Record<string, Record<string, unknown>>
+      if (stratCopy[defaultRenderStrategy]) {
+        const cfg = (stratCopy[defaultRenderStrategy].config ?? {}) as Record<string, unknown>
+        cfg.temperature = renderingTemperature.trim() ? Number(renderingTemperature) : undefined
+        stratCopy[defaultRenderStrategy].config = cfg
+        overrides.render_strategies = stratCopy
+      }
+    }
 
     return overrides
   }
@@ -251,6 +286,55 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     <div className={tab === "sectioning-prompt" || tab === "rendering-prompt" || tab === "rendering-template" ? "h-full max-w-4xl" : "p-4 space-y-6"}>
       {tab === "general" && (
         <>
+          {/* Styleguide */}
+          {availableStyleguides.length > 0 && (
+            <div>
+              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
+                Styleguide
+              </h3>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={styleguide || "__none__"}
+                  onValueChange={(v) => {
+                    setStyleguide(v === "__none__" ? "" : v)
+                    markDirty("styleguide")
+                  }}
+                >
+                  <SelectTrigger className="w-72">
+                    <SelectValue placeholder="Select styleguide...">
+                      {styleguide ? titleCase(styleguide) : "None"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent align="start">
+                    <SelectItem value="__none__">
+                      <span className="text-muted-foreground">None</span>
+                    </SelectItem>
+                    {availableStyleguides.map((sg) => (
+                      <SelectItem key={sg} value={sg}>
+                        {titleCase(sg)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {styleguide && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 px-2.5 shrink-0"
+                    onClick={openStyleguidePreview}
+                  >
+                    <Eye className="h-3.5 w-3.5 mr-1" />
+                    Preview
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1.5">
+                Provides consistent HTML/CSS patterns for LLM-generated pages.
+              </p>
+            </div>
+          )}
+
           {/* Default Render Strategy */}
           <div>
             <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
@@ -293,6 +377,34 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
             </Select>
             <p className="text-xs text-muted-foreground mt-1.5">
               The rendering strategy used for sections without an explicit mapping.
+            </p>
+          </div>
+
+          {/* Rendering Temperature */}
+          <div>
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
+              Rendering Temperature
+            </h3>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min={0}
+                max={2}
+                step={0.1}
+                value={renderingTemperature}
+                onChange={(e) => {
+                  setRenderingTemperature(e.target.value)
+                  markDirty("rendering_temperature")
+                }}
+                placeholder="0.3"
+                className="h-9 w-24 text-sm"
+              />
+              <Label className="text-xs text-muted-foreground">
+                0 = deterministic, 2 = max creativity
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Lower values produce more consistent styling across pages.
             </p>
           </div>
 
@@ -440,6 +552,31 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
         </Button>,
         headerTarget
       )}
+
+      <Dialog open={styleguidePreviewOpen} onOpenChange={setStyleguidePreviewOpen}>
+        <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0">
+          <DialogHeader className="px-6 pt-6 pb-0">
+            <DialogTitle>Styleguide Preview — {styleguide}</DialogTitle>
+            <DialogDescription>
+              Preview of the HTML/CSS patterns used for LLM-generated pages.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 px-6 pb-6">
+            {styleguidePreviewLoading ? (
+              <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                Loading preview...
+              </div>
+            ) : (
+              <iframe
+                srcDoc={previewData?.html ?? ""}
+                className="w-full h-full rounded-md border"
+                sandbox="allow-scripts"
+                title="Styleguide Preview"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showRerunDialog} onOpenChange={setShowRerunDialog}>
         <DialogContent>

@@ -44,6 +44,7 @@ export async function renderSectionLlm(
       image_id: img.imageId,
       image_base64: img.imageBase64,
     })),
+    styleguide: input.styleguide ?? "",
     _isActivity: isActivity,
   }
 
@@ -57,6 +58,7 @@ export async function renderSectionLlm(
     validate: validateWebRendering,
     maxRetries: config.maxRetries,
     maxTokens: 16384,
+    temperature: config.temperature,
     timeoutMs: config.timeoutMs,
     log: {
       taskType,
@@ -84,6 +86,7 @@ export async function renderSectionLlm(
       },
       maxRetries: config.maxRetries,
       maxTokens: 4096,
+      temperature: config.temperature,
       timeoutMs: config.timeoutMs,
       log: {
         taskType: "activity-answers",

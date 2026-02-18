@@ -83,6 +83,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
           system,
           messages: currentMessages,
           schema: opts.schema,
+          temperature: opts.temperature,
         })
 
         try {
@@ -339,6 +340,9 @@ async function callLLM<T>(
   }
   if (opts.maxTokens) {
     generateOpts.maxTokens = opts.maxTokens
+  }
+  if (opts.temperature !== undefined) {
+    generateOpts.temperature = opts.temperature
   }
   const generated = await (generateObject as Function)(
     generateOpts

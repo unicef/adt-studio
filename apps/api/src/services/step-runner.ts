@@ -41,6 +41,7 @@ import {
   generateSpeechFile,
 } from "@adt/pipeline"
 import type { TranslationConfig, QuizPageInput } from "@adt/pipeline"
+import { loadStyleguideContent } from "./pipeline-runner"
 import { createTTSSynthesizer } from "@adt/llm"
 import type {
   TextClassificationOutput,
@@ -371,6 +372,8 @@ async function runStoryboardStep(
   try {
     const config = loadBookConfig(label, booksDir, configPath)
 
+    const styleguideContent = loadStyleguideContent(config.styleguide, configPath)
+
     // Build configs
     const sectioningConfig = buildSectioningConfig(config)
     const resolveRenderConfig = buildRenderStrategyResolver(config)
@@ -531,6 +534,7 @@ async function runStoryboardStep(
               pageImageBase64,
               sectioning,
               images: renderImages,
+              styleguide: styleguideContent,
             },
             resolveRenderConfig,
             resolveRenderModel,
