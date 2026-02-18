@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from "react"
-import { Loader2, RotateCcw } from "lucide-react"
+import { useState, useEffect, useRef, useCallback } from "react"
+import { Loader2 } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
 import { api, getAdtUrl } from "@/api/client"
 
@@ -11,7 +11,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   const [version, setVersion] = useState(0)
   const ranRef = useRef(false)
 
-  const runPackage = async () => {
+  const runPackage = useCallback(async () => {
     setPackaging(true)
     setError(null)
     setReady(false)
@@ -25,13 +25,20 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     } finally {
       setPackaging(false)
     }
-  }
+  }, [bookLabel, queryClient])
 
   useEffect(() => {
     if (ranRef.current) return
     ranRef.current = true
     runPackage()
   }, [bookLabel])
+
+  // Listen for re-package requests from the sidebar refresh button
+  useEffect(() => {
+    const handler = () => { runPackage() }
+    window.addEventListener("adt:repackage", handler)
+    return () => window.removeEventListener("adt:repackage", handler)
+  }, [runPackage])
 
   if (packaging) {
     return (
@@ -54,24 +61,11 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
 
   if (ready) {
     return (
-      <div className="flex flex-col h-full">
-        <div className="shrink-0 px-4 py-2 flex items-center gap-2 border-b bg-muted/30">
-          <button
-            type="button"
-            onClick={runPackage}
-            className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            title="Re-package ADT"
-          >
-            <RotateCcw className="w-3 h-3" />
-            Re-package
-          </button>
-        </div>
-        <iframe
-          src={`${getAdtUrl(bookLabel)}?v=${version}`}
-          className="flex-1 w-full border-0"
-          title="ADT Preview"
-        />
-      </div>
+      <iframe
+        src={`${getAdtUrl(bookLabel)}/v-${Date.now()}/`}
+        className="w-full h-full border-0"
+        title="ADT Preview"
+      />
     )
   }
 

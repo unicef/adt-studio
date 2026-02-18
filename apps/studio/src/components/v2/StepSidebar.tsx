@@ -10,6 +10,7 @@ import {
   Languages,
   Eye,
   Settings,
+  RotateCcw,
   FileDown,
   ChevronDown,
   Loader2,
@@ -243,8 +244,8 @@ export function StepSidebar({
                 </span>
               </Link>
 
-              {/* Settings gear icon (only for active step, not for book) */}
-              {isActive && step.slug !== "book" && (
+              {/* Action button (only for active step, not for book) */}
+              {isActive && step.slug !== "book" && step.slug !== "preview" && (
                 <Button
                   variant="ghost"
                   size="icon"
@@ -264,6 +265,20 @@ export function StepSidebar({
                   >
                     <Settings className="w-3.5 h-3.5" />
                   </Link>
+                </Button>
+              )}
+              {isActive && step.slug === "preview" && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "w-6 h-6 rounded shrink-0 hidden lg:inline-flex group-hover/sidebar:inline-flex [&_svg]:size-3.5",
+                    "hover:bg-black/5 text-current opacity-50 hover:opacity-100"
+                  )}
+                  onClick={() => window.dispatchEvent(new CustomEvent("adt:repackage"))}
+                  title="Re-package ADT"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
                 </Button>
               )}
             </div>

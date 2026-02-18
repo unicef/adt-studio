@@ -171,7 +171,7 @@ describe("buildTextCatalog", () => {
     const result = buildTextCatalog(storage, [])
 
     expect(result.entries).toEqual([
-      { id: "qz001", text: "What is 2+2?" },
+      { id: "qz001_que", text: "What is 2+2?" },
       { id: "qz001_o0", text: "3" },
       { id: "qz001_o0_exp", text: "Too low" },
       { id: "qz001_o1", text: "4" },
@@ -297,7 +297,7 @@ describe("buildTextCatalog", () => {
     expect(result.entries[2]).toEqual({ id: "gl001", text: "Hello" })
     expect(result.entries[3]).toEqual({ id: "gl001_def", text: "A greeting" })
     // Quiz
-    expect(result.entries[4]).toEqual({ id: "qz001", text: "What is hello?" })
+    expect(result.entries[4]).toEqual({ id: "qz001_que", text: "What is hello?" })
   })
 
   it("includes generatedAt timestamp", () => {

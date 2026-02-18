@@ -518,7 +518,7 @@ export const PageEditPanel = forwardRef<PageEditPanelHandle, PageEditPanelProps>
                   </div>
                 ) : adtPreview && combinedHtml ? (
                   <iframe
-                    src={`/api/books/${label}/adt-preview/${pageId}.html`}
+                    src={`/api/books/${label}/adt/v-${Date.now()}/${pageId}.html`}
                     className="h-full min-h-[600px] w-full rounded border"
                     title="ADT Preview"
                     allow="autoplay"

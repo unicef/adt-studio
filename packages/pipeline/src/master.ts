@@ -35,7 +35,7 @@ export interface RunMasterOptions {
   cacheDir?: string
   /** LLM console log level. Defaults to "info". Use "silent" for no output. */
   logLevel?: LogLevel
-  /** Path to the web runner assets directory (assets/web/). */
+  /** Path to the ADT runner assets directory (assets/adt/). */
   webAssetsDir?: string
 }
 

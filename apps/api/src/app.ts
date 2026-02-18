@@ -38,7 +38,7 @@ const configPath = path.resolve(
   process.env.CONFIG_PATH ?? path.join(projectRoot, "config.yaml")
 )
 const webAssetsDir = path.resolve(
-  process.env.WEB_ASSETS_DIR ?? path.join(projectRoot, "assets", "web")
+  process.env.WEB_ASSETS_DIR ?? path.join(projectRoot, "assets", "adt")
 )
 
 const pipelineRunner = createPipelineRunner()

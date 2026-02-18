@@ -120,4 +120,7 @@ export {
   buildImageMap,
   rewriteImageUrls,
   htmlToXhtml,
+  renderQuizHtml,
+  buildQuizAnswers,
+  pad3,
 } from "./package-web.js"
