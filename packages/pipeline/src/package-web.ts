@@ -446,6 +446,8 @@ export function renderPageHtml(opts: RenderPageOptions): string {
     <title>${escapeHtml(opts.pageTitle)}</title>
     <meta name="title-id" content="${escapeAttr(opts.sectionId)}" />
     <meta name="page-section-id" content="${opts.pageIndex}" />
+    <link rel="preload" href="./assets/fonts/Merriweather-VariableFont_opsz,wdth,wght.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="./assets/fonts/Merriweather-Italic-VariableFont_opsz,wdth,wght.woff2" as="font" type="font/woff2" crossorigin>
     <link href="./content/tailwind_output.css" rel="stylesheet">
     <link href="./assets/libs/fontawesome/css/all.min.css" rel="stylesheet">
     <link href="./assets/fonts.css" rel="stylesheet">

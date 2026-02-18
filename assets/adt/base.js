@@ -638,6 +638,10 @@ async function initializeUIComponents() {
         setupAudioListeners();
         initializeTtsQuickToggle();
 
+        // Show the sidebar TTS toggle section
+        const ttsSidebarSection = document.getElementById("tts-sidebar-section");
+        if (ttsSidebarSection) ttsSidebarSection.classList.remove("hidden");
+
         // Show play bar if needed
         if (state.readAloudMode) {
           initializeAudioElements();
@@ -675,10 +679,16 @@ async function initializeUIComponents() {
       // Load state modes - only if features are enabled
       const stateInitTasks = [];
 
-      if (isFeatureEnabled('easyRead')) stateInitTasks.push(loadEasyReadMode);
+      if (isFeatureEnabled('easyRead')) {
+        const easyReadSection = document.getElementById("easy-read-section");
+        if (easyReadSection) easyReadSection.classList.remove("hidden");
+        stateInitTasks.push(loadEasyReadMode);
+      }
       // Always load state mode to maintain consistency, regardless of button visibility
       stateInitTasks.push(loadStateMode);
       if (isFeatureEnabled('signLanguage')) {
+        const signLanguageSection = document.getElementById("sign-language-section");
+        if (signLanguageSection) signLanguageSection.classList.remove("hidden");
         initializeSignLanguage();
         stateInitTasks.push(loadSignLanguageMode);
       }
@@ -705,6 +715,29 @@ async function initializeUIComponents() {
       if (isFeatureEnabled('eli5')) {
         handleEli5Popup();
       }
+
+      // Hide assistant tab if no assistant features are enabled
+      const hasAssistantFeatures =
+        isFeatureEnabled('easyRead') ||
+        isFeatureEnabled('readAloud') ||
+        isFeatureEnabled('signLanguage') ||
+        isFeatureEnabled('eli5') ||
+        isFeatureEnabled('glossary');
+      if (!hasAssistantFeatures) {
+        const assistantTab = document.getElementById("assistant-tab");
+        if (assistantTab) assistantTab.classList.add("hidden");
+        // Default to settings tab
+        const settingsTab = document.getElementById("settings-tab");
+        const assistantContent = document.getElementById("assistant-content");
+        const settingsContent = document.getElementById("settings-content");
+        if (settingsTab && assistantContent && settingsContent) {
+          settingsTab.setAttribute("aria-selected", "true");
+          settingsTab.classList.add("text-blue-700", "border-b-4", "-mb-1", "border-blue-700");
+          assistantContent.classList.add("hidden");
+          settingsContent.classList.remove("hidden");
+        }
+      }
+
       if (stateInitTasks.length > 0) {
         await Promise.all(stateInitTasks.map(task => Promise.resolve().then(task)));
       }
