@@ -1,5 +1,8 @@
 import { Check, Loader2, Play, RotateCcw, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { STEPS } from "./StepSidebar"
 import { useStepRun } from "@/hooks/use-step-run"
 
@@ -53,25 +56,25 @@ export function StepRunCard({
   const hasSubSteps = subSteps.length > 0
   const hoverColorClass = HOVER_BG_BY_COLOR[color] ?? "hover:bg-gray-500"
   const buttonToneClass = isCompleted
-    ? cn(color, "text-white")
+    ? cn(color, "text-white", hoverColorClass, "hover:text-white")
     : cn("bg-gray-200 text-gray-700", hoverColorClass, "hover:text-white")
 
   return (
-    <div className={cn("rounded-lg border bg-card overflow-hidden max-w-xl", borderColor)}>
+    <Card className={cn("overflow-hidden max-w-xl shadow-none", borderColor)}>
       {/* Colored header */}
-      <div className={cn("px-4 py-2 flex items-center gap-2.5 text-white", bgDark)}>
+      <CardHeader className={cn("flex-row items-center gap-2.5 space-y-0 px-4 py-2 text-white", bgDark)}>
         <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white/20">
           <Icon className="w-3 h-3" />
         </div>
-        <span className="text-sm font-semibold">
+        <CardTitle className="text-sm leading-normal tracking-normal">
           {isRunning
             ? `${stepConfig?.runningLabel ?? stepSlug}...`
             : stepConfig?.label ?? stepSlug}
-        </span>
-      </div>
+        </CardTitle>
+      </CardHeader>
 
       {/* Main row: sub-steps | button | description */}
-      <div
+      <CardContent
         className={cn(
           "flex items-center px-5 py-3",
           showRunButton || hasSubSteps ? "gap-5" : "justify-center"
@@ -125,10 +128,11 @@ export function StepRunCard({
                 <Loader2 className="w-5 h-5 animate-spin" />
               </div>
             ) : (
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="icon"
                 className={cn(
-                  "flex items-center justify-center w-12 h-12 rounded-full transition-all cursor-pointer",
+                  "w-12 h-12 rounded-full transition-all cursor-pointer [&_svg]:size-5",
                   "hover:scale-105 active:scale-95 disabled:opacity-30 disabled:cursor-default disabled:hover:scale-100",
                   buttonToneClass,
                 )}
@@ -143,7 +147,7 @@ export function StepRunCard({
                 }
               >
                 {hasError || isCompleted ? <RotateCcw className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -159,16 +163,18 @@ export function StepRunCard({
             {description}
           </p>
         )}
-      </div>
+      </CardContent>
 
       {/* Error footer */}
       {hasError && (
-        <div className="px-5 pb-5 -mt-1">
-          <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2">
-            <p className="text-xs text-red-700 whitespace-pre-wrap break-words">{error}</p>
-          </div>
-        </div>
+        <CardFooter className="px-5 pb-5 -mt-1">
+          <Alert variant="destructive" className="rounded-md px-3 py-2">
+            <AlertDescription className="text-xs whitespace-pre-wrap break-words">
+              {error}
+            </AlertDescription>
+          </Alert>
+        </CardFooter>
       )}
-    </div>
+    </Card>
   )
 }
