@@ -118,7 +118,9 @@ function walkNode(node: any, allowedIds: Set<string>, errors: string[], options?
     }
 
     const dataId = node.attribs?.["data-id"]
-    if (dataId !== undefined && !allowedIds.has(dataId)) {
+    // Skip data-id validation on <section> elements — their data-id is a
+    // section identifier (e.g. "pg028_section"), not a content element ID.
+    if (dataId !== undefined && tagName !== "section" && !allowedIds.has(dataId)) {
       if (!(options?.allowActivityGeneratedIds && dataId.startsWith("activity_gen_"))) {
         errors.push(`Unknown data-id: "${dataId}"`)
       }

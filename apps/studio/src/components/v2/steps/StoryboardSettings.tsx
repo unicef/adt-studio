@@ -72,6 +72,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
   const [allStrategyNames, setAllStrategyNames] = useState<string[]>([])
   const [renderStrategyNames, setRenderStrategyNames] = useState<string[]>([])
   const [activityModel, setActivityModel] = useState("")
+  const [sectioningMode, setSectioningMode] = useState("section")
   const [sectioningModel, setSectioningModel] = useState("")
   const [renderingModel, setRenderingModel] = useState("")
   const [renderingPromptName, setRenderingPromptName] = useState("web_generation_html")
@@ -167,6 +168,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     if (merged.page_sectioning && typeof merged.page_sectioning === "object") {
       const ps = merged.page_sectioning as Record<string, unknown>
       if (ps.model) setSectioningModel(String(ps.model))
+      if (ps.mode) setSectioningMode(String(ps.mode))
     }
     // Styleguide
     setStyleguide(typeof merged.styleguide === "string" ? merged.styleguide : "")
@@ -286,7 +288,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     }
     if (shouldWrite("page_sectioning")) {
       const existing = (bookConfigData?.config?.page_sectioning ?? {}) as Record<string, unknown>
-      overrides.page_sectioning = { ...existing, model: sectioningModel.trim() || undefined }
+      overrides.page_sectioning = { ...existing, model: sectioningModel.trim() || undefined, mode: sectioningMode }
     }
     if (shouldWrite("styleguide")) {
       overrides.styleguide = styleguide || undefined
@@ -531,15 +533,58 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
       )}
 
       {tab === "sectioning-prompt" && (
-        <PromptViewer
-          promptName="page_sectioning"
-          bookLabel={bookLabel}
-          title="Page Sectioning Prompt"
-          description="The prompt template used to split each page into logical sections. This is a Liquid template processed with page context."
-          model={sectioningModel}
-          onModelChange={(v) => { setSectioningModel(v); markDirty("page_sectioning") }}
-          onContentChange={setSectioningPromptDraft}
-        />
+        <div className="flex flex-col h-full">
+          <div className="shrink-0 p-4 pb-0 space-y-4">
+            <div>
+              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Sectioning Mode
+              </h3>
+              <Select
+                value={sectioningMode}
+                onValueChange={(v) => {
+                  setSectioningMode(v)
+                  markDirty("page_sectioning")
+                }}
+              >
+                <SelectTrigger className="w-72">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent align="start">
+                  <SelectItem value="section">
+                    <div className="flex flex-col items-start">
+                      <span>By Section</span>
+                      <span className="text-xs text-muted-foreground">
+                        Groups content into logical sections
+                      </span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="page">
+                    <div className="flex flex-col items-start">
+                      <span>By Page</span>
+                      <span className="text-xs text-muted-foreground">
+                        Treats each page as a single section
+                      </span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1.5">
+                Controls how page content is grouped during the sectioning step.
+              </p>
+            </div>
+          </div>
+          <div className="flex-1 min-h-0">
+            <PromptViewer
+              promptName="page_sectioning"
+              bookLabel={bookLabel}
+              title="Page Sectioning Prompt"
+              description="The prompt template used to split each page into logical sections. This is a Liquid template processed with page context."
+              model={sectioningModel}
+              onModelChange={(v) => { setSectioningModel(v); markDirty("page_sectioning") }}
+              onContentChange={setSectioningPromptDraft}
+            />
+          </div>
+        </div>
       )}
 
       {tab === "rendering-prompt" && (

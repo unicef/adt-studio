@@ -16,6 +16,8 @@ export {
   StyleguideName,
   StepConfig,
   QuizGenerationConfig,
+  SectioningMode,
+  PageSectioningConfig,
   RenderType,
   RenderStrategyConfig,
   AppConfig,

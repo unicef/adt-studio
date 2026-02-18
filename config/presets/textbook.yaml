@@ -8,6 +8,9 @@ styleguide: default
 
 spread_mode: false
 
+page_sectioning:
+  mode: section
+
 render_strategies:
   llm:
     render_type: llm

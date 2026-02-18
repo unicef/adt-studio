@@ -170,6 +170,7 @@ function AddBookPage() {
   const [textTypes, setTextTypes] = useState<Record<string, string>>({})
   const [textGroupTypes, setTextGroupTypes] = useState<Record<string, string>>({})
   const [sectionTypes, setSectionTypes] = useState<Record<string, string>>({})
+  const [sectioningMode, setSectioningMode] = useState("section")
 
   // Styleguide preview
   const [styleguidePreviewOpen, setStyleguidePreviewOpen] = useState(false)
@@ -280,6 +281,14 @@ function AddBookPage() {
     // Spread mode from preset
     if (typeof config.spread_mode === "boolean") {
       setSpreadMode(config.spread_mode)
+    }
+
+    // Sectioning mode from preset
+    if (config.page_sectioning && typeof config.page_sectioning === "object") {
+      const ps = config.page_sectioning as Record<string, unknown>
+      setSectioningMode(ps.mode ? String(ps.mode) : "section")
+    } else {
+      setSectioningMode("section")
     }
 
     // Styleguide from preset
@@ -439,6 +448,7 @@ function AddBookPage() {
     if (Object.keys(sectionTypes).length > 0) {
       configOverrides.section_types = sectionTypes
     }
+    configOverrides.page_sectioning = { mode: sectioningMode }
 
     createMutation.mutate(
       { label, pdf: file, config: configOverrides },
@@ -666,6 +676,8 @@ function AddBookPage() {
                   <AdvancedLayoutPanel
                     defaultRenderStrategy={defaultRenderStrategy}
                     onDefaultRenderStrategyChange={setDefaultRenderStrategy}
+                    sectioningMode={sectioningMode}
+                    onSectioningModeChange={setSectioningMode}
                     renderStrategies={renderStrategies}
                     onRenderStrategiesChange={setRenderStrategies}
                     textTypes={textTypes}

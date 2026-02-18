@@ -60,7 +60,7 @@ const EXTRACT_SETTINGS_TABS = [
 
 const STORYBOARD_SETTINGS_TABS = [
   { key: "general", label: "General" },
-  { key: "sectioning-prompt", label: "Sectioning Prompt" },
+  { key: "sectioning-prompt", label: "Sectioning Mode" },
   { key: "rendering-prompt", label: "AI Rendering" },
   { key: "rendering-template", label: "Template Rendering" },
   { key: "activity-prompts", label: "Activity Rendering" },
