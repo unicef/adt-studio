@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react"
-import { createFileRoute, Outlet, useParams, Link } from "@tanstack/react-router"
+import { useState, useEffect, useCallback } from "react"
+import { createFileRoute, Outlet, useParams, useNavigate, Link } from "@tanstack/react-router"
 import { Home } from "lucide-react"
 import { StepSidebar } from "@/components/v2/StepSidebar"
 import { useBook } from "@/hooks/use-books"
@@ -12,10 +12,28 @@ export const Route = createFileRoute("/books/$label/v2")({
 
 function V2Layout() {
   const { label } = Route.useParams()
-  const { step } = useParams({ strict: false }) as { step?: string }
+  const { step, pageId } = useParams({ strict: false }) as { step?: string; pageId?: string }
+  const navigate = useNavigate()
   const { data: book } = useBook(label)
 
   const activeStep = step ?? "book"
+
+  const onSelectPage = useCallback(
+    (pid: string | null) => {
+      if (pid) {
+        navigate({
+          to: "/books/$label/v2/$step/$pageId",
+          params: { label, step: activeStep, pageId: pid },
+        })
+      } else {
+        navigate({
+          to: "/books/$label/v2/$step",
+          params: { label, step: activeStep },
+        })
+      }
+    },
+    [navigate, label, activeStep]
+  )
 
   // Step run SSE state
   const [sseEnabled, setSseEnabled] = useState(false)
@@ -63,9 +81,9 @@ function V2Layout() {
               </span>
             </Link>
 
-            {/* Steps */}
-            <div className="flex-1 overflow-y-auto border-r border-gray-300">
-              <StepSidebar bookLabel={label} activeStep={activeStep} />
+            {/* Steps / Pages */}
+            <div className="flex-1 min-h-0 flex flex-col border-r border-gray-300">
+              <StepSidebar bookLabel={label} activeStep={activeStep} selectedPageId={pageId} onSelectPage={onSelectPage} />
             </div>
           </div>
         </div>
