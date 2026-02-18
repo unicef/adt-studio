@@ -71,10 +71,12 @@ export async function renderSectionTemplate(
   // Validate the template output using the same validator as LLM output
   const allowedTextIds: string[] = []
   const allowedImageIds: string[] = []
+  const expectedTexts = new Map<string, string>()
   for (const part of input.parts) {
     if (part.type === "group") {
       for (const t of part.texts) {
         allowedTextIds.push(t.textId)
+        expectedTexts.set(t.textId, t.text)
       }
     } else {
       allowedImageIds.push(part.imageId)
@@ -85,7 +87,8 @@ export async function renderSectionTemplate(
     html,
     allowedTextIds,
     allowedImageIds,
-    imageUrlPrefix
+    imageUrlPrefix,
+    { expectedTexts }
   )
   if (!check.valid) {
     throw new Error(

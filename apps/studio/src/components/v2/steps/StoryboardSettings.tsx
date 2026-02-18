@@ -26,6 +26,7 @@ import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
 import { PromptViewer } from "@/components/v2/PromptViewer"
+import { TemplateViewer } from "@/components/v2/TemplateViewer"
 import { useStepRun } from "@/hooks/use-step-run"
 
 /** "two_column_story" → "Two Column Story" */
@@ -59,8 +60,11 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
   const [sectioningModel, setSectioningModel] = useState("")
   const [renderingModel, setRenderingModel] = useState("")
   const [renderingPromptName, setRenderingPromptName] = useState("web_generation_html")
+  const [renderingRenderType, setRenderingRenderType] = useState<string>("llm")
+  const [renderingTemplateName, setRenderingTemplateName] = useState("")
   const [sectioningPromptDraft, setSectioningPromptDraft] = useState<string | null>(null)
   const [renderingPromptDraft, setRenderingPromptDraft] = useState<string | null>(null)
+  const [renderingTemplateDraft, setRenderingTemplateDraft] = useState<string | null>(null)
 
   // Track which field groups the user has actually touched
   const [dirty, setDirty] = useState<Record<string, boolean>>({})
@@ -93,16 +97,14 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
       const ps = merged.page_sectioning as Record<string, unknown>
       if (ps.model) setSectioningModel(String(ps.model))
     }
-    // Rendering model + prompt come from the default render strategy's config
+    // Rendering config comes from the default render strategy
     if (merged.render_strategies && merged.default_render_strategy) {
-      const strategies = merged.render_strategies as Record<string, { config?: { model?: string; prompt?: string } }>
+      const strategies = merged.render_strategies as Record<string, { render_type?: string; config?: { model?: string; prompt?: string; template?: string } }>
       const defaultStrategy = strategies[String(merged.default_render_strategy)]
-      if (defaultStrategy?.config?.model) {
-        setRenderingModel(String(defaultStrategy.config.model))
-      }
-      if (defaultStrategy?.config?.prompt) {
-        setRenderingPromptName(String(defaultStrategy.config.prompt))
-      }
+      if (defaultStrategy?.render_type) setRenderingRenderType(defaultStrategy.render_type)
+      if (defaultStrategy?.config?.model) setRenderingModel(String(defaultStrategy.config.model))
+      if (defaultStrategy?.config?.prompt) setRenderingPromptName(String(defaultStrategy.config.prompt))
+      if (defaultStrategy?.config?.template) setRenderingTemplateName(String(defaultStrategy.config.template))
     }
   }, [activeConfigData])
 
@@ -172,6 +174,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
 
   const buildOverrides = () => {
     const overrides: Record<string, unknown> = {}
+    const merged = (activeConfigData?.merged as Record<string, unknown> | undefined)
 
     // Preserve all existing book config keys we don't manage
     if (bookConfigData?.config) {
@@ -180,7 +183,13 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
 
     // Only write managed fields if touched or already in book config
     if (shouldWrite("section_types")) {
-      overrides.section_types = sectionTypes
+      // Explicitly null-out deleted keys so deepMerge removes them from base
+      const baseSectionTypes = (merged?.section_types ?? {}) as Record<string, string>
+      const withDeletions: Record<string, string | null> = { ...sectionTypes }
+      for (const key of Object.keys(baseSectionTypes)) {
+        if (!(key in sectionTypes)) withDeletions[key] = null
+      }
+      overrides.section_types = withDeletions
     }
     if (shouldWrite("pruned_section_types")) {
       overrides.pruned_section_types = Array.from(prunedSectionTypes)
@@ -189,8 +198,13 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
       overrides.default_render_strategy = defaultRenderStrategy || undefined
     }
     if (shouldWrite("section_render_strategies")) {
-      overrides.section_render_strategies = Object.keys(sectionRenderStrategies).length > 0
-        ? sectionRenderStrategies
+      const baseStrategies = (merged?.section_render_strategies ?? {}) as Record<string, string>
+      const stratWithDeletions: Record<string, string | null> = { ...sectionRenderStrategies }
+      for (const key of Object.keys(baseStrategies)) {
+        if (!(key in sectionRenderStrategies)) stratWithDeletions[key] = null
+      }
+      overrides.section_render_strategies = Object.keys(stratWithDeletions).length > 0
+        ? stratWithDeletions
         : undefined
     }
     if (shouldWrite("page_sectioning")) {
@@ -202,11 +216,12 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
   }
 
   const confirmSaveAndRerun = async () => {
-    // Save any edited prompts first
-    const promptSaves: Promise<unknown>[] = []
-    if (sectioningPromptDraft != null) promptSaves.push(api.updatePrompt("page_sectioning", sectioningPromptDraft, bookLabel))
-    if (renderingPromptDraft != null) promptSaves.push(api.updatePrompt(renderingPromptName, renderingPromptDraft, bookLabel))
-    if (promptSaves.length > 0) await Promise.all(promptSaves)
+    // Save any edited prompts/templates first
+    const contentSaves: Promise<unknown>[] = []
+    if (sectioningPromptDraft != null) contentSaves.push(api.updatePrompt("page_sectioning", sectioningPromptDraft, bookLabel))
+    if (renderingPromptDraft != null) contentSaves.push(api.updatePrompt(renderingPromptName, renderingPromptDraft, bookLabel))
+    if (renderingTemplateDraft != null) contentSaves.push(api.updateTemplate(renderingTemplateName, renderingTemplateDraft, bookLabel))
+    if (contentSaves.length > 0) await Promise.all(contentSaves)
 
     const overrides = buildOverrides()
     updateConfig.mutate(
@@ -216,6 +231,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
           setDirty({})
           setSectioningPromptDraft(null)
           setRenderingPromptDraft(null)
+          setRenderingTemplateDraft(null)
           setShowRerunDialog(false)
           // Start step-scoped storyboard run — blocks until data is cleared on backend
           startRun("storyboard", "storyboard")
@@ -232,7 +248,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
   }
 
   return (
-    <div className={tab === "sectioning-prompt" || tab === "rendering-prompt" ? "h-full max-w-4xl" : "p-4 space-y-6"}>
+    <div className={tab === "sectioning-prompt" || tab === "rendering-prompt" || tab === "rendering-template" ? "h-full max-w-4xl" : "p-4 space-y-6"}>
       {tab === "general" && (
         <>
           {/* Default Render Strategy */}
@@ -242,7 +258,18 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
             </h3>
             <Select
               value={defaultRenderStrategy}
-              onValueChange={(v) => { setDefaultRenderStrategy(v); markDirty("default_render_strategy") }}
+              onValueChange={(v) => {
+                setDefaultRenderStrategy(v)
+                markDirty("default_render_strategy")
+                // Update rendering config to match the newly selected strategy
+                const merged = activeConfigData?.merged as Record<string, unknown> | undefined
+                const strategies = (merged?.render_strategies ?? {}) as Record<string, { render_type?: string; config?: { model?: string; prompt?: string; template?: string } }>
+                const strat = strategies[v]
+                if (strat?.render_type) setRenderingRenderType(strat.render_type)
+                if (strat?.config?.prompt) setRenderingPromptName(strat.config.prompt)
+                if (strat?.config?.model) setRenderingModel(strat.config.model)
+                if (strat?.config?.template) setRenderingTemplateName(strat.config.template)
+              }}
             >
               <SelectTrigger className="w-72">
                 <SelectValue placeholder="Select strategy...">
@@ -379,7 +406,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
         />
       )}
 
-      {tab === "rendering-prompt" && (
+      {tab === "rendering-prompt" && renderingRenderType === "llm" && (
         <PromptViewer
           promptName={renderingPromptName}
           bookLabel={bookLabel}
@@ -388,6 +415,16 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
           model={renderingModel}
           onModelChange={(v) => { setRenderingModel(v); markDirty("rendering_model") }}
           onContentChange={setRenderingPromptDraft}
+        />
+      )}
+
+      {tab === "rendering-prompt" && renderingRenderType === "template" && (
+        <TemplateViewer
+          templateName={renderingTemplateName}
+          bookLabel={bookLabel}
+          title="Rendering Template"
+          description="The Liquid/HTML template used to render each section. Template-based rendering is deterministic with no LLM calls."
+          onContentChange={setRenderingTemplateDraft}
         />
       )}
 

@@ -3,7 +3,7 @@ import { parseDocument, DomUtils } from "htmlparser2"
 export interface HtmlValidationResult {
   valid: boolean
   errors: string[]
-  /** The cleaned HTML (section inner HTML if a <section> tag was found) */
+  /** The cleaned HTML — includes <div id="content"> wrapper when present, otherwise just the <section> */
   sectionHtml?: string
 }
 
@@ -24,9 +24,24 @@ function findSectionElement(doc: any): any | null {
   )
 }
 
+/**
+ * Find the <div id="content"> container in the parsed document.
+ * Returns null if no such element exists.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function findContentContainer(doc: any): any | null {
+  return DomUtils.findOne(
+    (el) => el.type === "tag" && el.name === "div" && el.attribs?.id === "content",
+    doc.children ?? [],
+    true
+  )
+}
+
 export interface HtmlValidationOptions {
   /** When true, data-ids prefixed with "activity_gen_" are allowed even if not in the allowed set */
   allowActivityGeneratedIds?: boolean
+  /** Map of text data-id → expected text content. Validates rendered text matches the source. */
+  expectedTexts?: Map<string, string>
 }
 
 export function validateSectionHtml(
@@ -53,10 +68,15 @@ export function validateSectionHtml(
     rewriteImageSrcs(section, imageIdSet, imageUrlPrefix)
   }
 
+  // Prefer the <div id="content"> wrapper when present so background colors
+  // and other container-level styling are preserved in the stored HTML.
+  const contentContainer = findContentContainer(doc)
+  const outputNode = contentContainer ?? section
+
   return {
     valid: errors.length === 0,
     errors,
-    sectionHtml: DomUtils.getOuterHTML(section),
+    sectionHtml: DomUtils.getOuterHTML(outputNode),
   }
 }
 
@@ -101,6 +121,17 @@ function walkNode(node: any, allowedIds: Set<string>, errors: string[], options?
     if (dataId !== undefined && !allowedIds.has(dataId)) {
       if (!(options?.allowActivityGeneratedIds && dataId.startsWith("activity_gen_"))) {
         errors.push(`Unknown data-id: "${dataId}"`)
+      }
+    }
+
+    // Verify text content matches expected text for this data-id
+    if (dataId !== undefined && options?.expectedTexts?.has(dataId)) {
+      const actualText = normalizeText(DomUtils.getText(node))
+      const expectedText = normalizeText(options.expectedTexts.get(dataId)!)
+      if (actualText !== expectedText) {
+        errors.push(
+          `Text mismatch for data-id "${dataId}": expected "${expectedText.slice(0, 80)}" but got "${actualText.slice(0, 80)}"`
+        )
       }
     }
   }
@@ -161,6 +192,10 @@ function hasAncestorWithDataId(node: any): boolean {
     current = current.parent
   }
   return false
+}
+
+function normalizeText(text: string): string {
+  return text.replace(/\s+/g, " ").trim()
 }
 
 function isUnsafeUrl(value: string): boolean {

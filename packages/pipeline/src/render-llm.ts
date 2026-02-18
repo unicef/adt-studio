@@ -114,19 +114,23 @@ function validateWebRendering(
 ): ValidationResult {
   const r = result as { reasoning: string; content: string }
   const label = context.label as string
-  const texts = context.texts as Array<{ text_id: string }>
+  const texts = context.texts as Array<{ text_id: string; text: string }>
   const images = context.images as Array<{ image_id: string }>
   const isActivity = context._isActivity as boolean | undefined
   const allowedTextIds = texts.map((t) => t.text_id)
   const allowedImageIds = images.map((img) => img.image_id)
   const imageUrlPrefix = `/api/books/${label}/images`
+  const expectedTexts = new Map(texts.map((t) => [t.text_id, t.text]))
 
   const check = validateSectionHtml(
     r.content,
     allowedTextIds,
     allowedImageIds,
     imageUrlPrefix,
-    isActivity ? { allowActivityGeneratedIds: true } : undefined
+    {
+      ...(isActivity && { allowActivityGeneratedIds: true }),
+      expectedTexts,
+    }
   )
   if (check.valid && check.sectionHtml) {
     return {

@@ -18,8 +18,18 @@
     {% assign body_text_class = "text-[32px] md:text-[36px] leading-relaxed tracking-tight" %}
 {% endif %}
 
-<div id="content" class="container content mx-auto flex min-h-screen w-full items-center justify-center px-6 py-12" style="background-color: #FFFAF5;">
-    <section id="simple-main" role="article" data-section-type="{{ section_type | escape }}" style="color: {{ text_color | escape }};" class="w-full">
+{% assign container_bg = "#FFFAF5" %}
+{% if background_color and background_color != "" and background_color != "#ffffff" and background_color != "#FFFFFF" %}
+    {% assign container_bg = background_color %}
+{% endif %}
+
+{% assign content_color = "#2d2a26" %}
+{% if text_color and text_color != "" and text_color != "#000000" %}
+    {% assign content_color = text_color %}
+{% endif %}
+
+<div id="content" class="container mx-auto flex min-h-screen w-full items-center justify-center px-6 py-12" style="background-color: {{ container_bg | escape }};">
+    <section role="article" data-section-type="{{ section_type | escape }}" style="color: {{ content_color | escape }};" class="w-full">
         <div class="mx-auto flex w-full max-w-6xl flex-col items-center gap-12 rounded-[32px] px-6 py-10 lg:flex-row lg:items-stretch lg:px-10 lg:py-16">
             {% if img_count > 0 %}
                 <div class="flex w-full max-w-xl flex-shrink-0 items-center justify-center">

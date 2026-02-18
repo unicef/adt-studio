@@ -154,7 +154,7 @@ describe("validateSectionHtml", () => {
     expect(result.sectionHtml).toContain('src="placeholder"')
   })
 
-  it("returns sectionHtml with outer section tag", () => {
+  it("returns sectionHtml with outer section tag when no content container", () => {
     const html = `
       <html><body>
         <section role="article">
@@ -166,6 +166,25 @@ describe("validateSectionHtml", () => {
     expect(result.valid).toBe(true)
     expect(result.sectionHtml).toContain("<section")
     expect(result.sectionHtml).toContain("pg001_gp001")
+    expect(result.sectionHtml).not.toContain("<html>")
+    expect(result.sectionHtml).not.toContain("<body>")
+  })
+
+  it("preserves div#content container when present", () => {
+    const html = `
+      <html><body>
+        <div id="content" class="container" style="background-color: #FFFAF5;">
+          <section role="article">
+            <p data-id="pg001_gp001">Hello</p>
+          </section>
+        </div>
+      </body></html>
+    `
+    const result = validateSectionHtml(html, ["pg001_gp001"], [])
+    expect(result.valid).toBe(true)
+    expect(result.sectionHtml).toContain('<div id="content"')
+    expect(result.sectionHtml).toContain("background-color")
+    expect(result.sectionHtml).toContain("<section")
     expect(result.sectionHtml).not.toContain("<html>")
     expect(result.sectionHtml).not.toContain("<body>")
   })
@@ -227,6 +246,95 @@ describe("validateSectionHtml", () => {
     )
     expect(result.valid).toBe(true)
     expect(result.errors).toHaveLength(0)
+  })
+
+  it("detects text content mismatch for a data-id", () => {
+    const html = `
+      <section>
+        <p data-id="pg001_gp001_tx001">The cat sat on the mat</p>
+      </section>
+    `
+    const expectedTexts = new Map([["pg001_gp001_tx001", "The dog ran in the park"]])
+    const result = validateSectionHtml(
+      html,
+      ["pg001_gp001_tx001"],
+      [],
+      undefined,
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining('Text mismatch for data-id "pg001_gp001_tx001"')
+    )
+  })
+
+  it("passes when text content matches expected", () => {
+    const html = `
+      <section>
+        <p data-id="pg001_gp001_tx001">Hello world</p>
+      </section>
+    `
+    const expectedTexts = new Map([["pg001_gp001_tx001", "Hello world"]])
+    const result = validateSectionHtml(
+      html,
+      ["pg001_gp001_tx001"],
+      [],
+      undefined,
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(true)
+  })
+
+  it("normalizes whitespace when comparing text content", () => {
+    const html = `
+      <section>
+        <p data-id="pg001_gp001_tx001">  Hello   world  </p>
+      </section>
+    `
+    const expectedTexts = new Map([["pg001_gp001_tx001", "Hello world"]])
+    const result = validateSectionHtml(
+      html,
+      ["pg001_gp001_tx001"],
+      [],
+      undefined,
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(true)
+  })
+
+  it("skips text check for image data-ids not in expectedTexts", () => {
+    const html = `
+      <section>
+        <p data-id="pg001_gp001_tx001">Hello</p>
+        <img data-id="pg001_im001" src="placeholder" alt="test" />
+      </section>
+    `
+    const expectedTexts = new Map([["pg001_gp001_tx001", "Hello"]])
+    const result = validateSectionHtml(
+      html,
+      ["pg001_gp001_tx001"],
+      ["pg001_im001"],
+      undefined,
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(true)
+  })
+
+  it("handles HTML entities in text comparison", () => {
+    const html = `
+      <section>
+        <p data-id="pg001_gp001_tx001">Tom &amp; Jerry</p>
+      </section>
+    `
+    const expectedTexts = new Map([["pg001_gp001_tx001", "Tom & Jerry"]])
+    const result = validateSectionHtml(
+      html,
+      ["pg001_gp001_tx001"],
+      [],
+      undefined,
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(true)
   })
 
   it("still rejects non-activity_gen_ unknown IDs even with allowActivityGeneratedIds", () => {
