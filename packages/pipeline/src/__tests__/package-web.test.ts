@@ -28,7 +28,10 @@ function createMockStorage(
 
 function createWebAssets(webAssetsDir: string): void {
   fs.mkdirSync(webAssetsDir, { recursive: true })
-  fs.writeFileSync(path.join(webAssetsDir, "base.bundle.min.js"), "// bundle")
+  fs.writeFileSync(
+    path.join(webAssetsDir, "base.js"),
+    'window.__ADT_BUNDLE_TEST__ = "ok";\n',
+  )
   fs.writeFileSync(path.join(webAssetsDir, "fonts.css"), "body { font-family: serif; }")
   fs.writeFileSync(
     path.join(webAssetsDir, "tailwind_css.css"),
@@ -146,5 +149,95 @@ describe("packageAdtWeb", () => {
     expect(pageHtml).toContain("window.correctAnswers = JSON.parse(")
     expect(pageHtml).not.toContain("</script><script>alert('x')</script>")
     expect(pageHtml).toContain("\\u003c/script\\u003e\\u003cscript\\u003e")
+
+    const bundlePath = path.join(bookDir, "adt", "assets", "base.bundle.min.js")
+    expect(fs.existsSync(bundlePath)).toBe(true)
+    expect(fs.readFileSync(bundlePath, "utf-8")).toContain("__ADT_BUNDLE_TEST__")
+    expect(fs.existsSync(`${bundlePath}.map`)).toBe(true)
+  })
+
+  it("inserts quiz pages even when the anchor page has no rendered sections", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    const pages: PageData[] = [
+      { pageId: "pg001", pageNumber: 1, text: "Page one" },
+      { pageId: "pg002", pageNumber: 2, text: "Page two" },
+    ]
+
+    const storage = createMockStorage(pages, {
+      "web-rendering": {
+        pg001: {
+          sections: [],
+        },
+        pg002: {
+          sections: [
+            {
+              sectionIndex: 0,
+              sectionType: "content",
+              reasoning: "ok",
+              html: "<div>Second page</div>",
+            },
+          ],
+        },
+      },
+      "page-sectioning": {
+        pg001: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionType: "content",
+              parts: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 10,
+              isPruned: false,
+            },
+          ],
+        },
+      },
+      "quiz-generation": {
+        book: {
+          generatedAt: "2026-01-01T00:00:00.000Z",
+          language: "en",
+          pagesPerQuiz: 3,
+          quizzes: [
+            {
+              quizIndex: 0,
+              afterPageId: "pg001",
+              pageIds: ["pg001"],
+              question: "What is 2+2?",
+              options: [
+                { text: "3", explanation: "Nope" },
+                { text: "4", explanation: "Yes" },
+              ],
+              answerIndex: 1,
+              reasoning: "...",
+            },
+          ],
+        },
+      },
+    })
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+    })
+
+    const pagesJson = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "content", "pages.json"), "utf-8"),
+    ) as Array<{ section_id: string; href: string; page_number?: number }>
+
+    expect(pagesJson).toEqual([
+      { section_id: "qz001", href: "qz001.html", page_number: 10 },
+      { section_id: "pg002", href: "pg002.html" },
+    ])
+    expect(fs.existsSync(path.join(bookDir, "adt", "qz001.html"))).toBe(true)
   })
 })

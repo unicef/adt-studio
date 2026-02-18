@@ -116,17 +116,8 @@ export async function packageAdtWeb(
     }
   }
 
-  for (let pi = 0; pi < pages.length; pi++) {
-    const page = pages[pi]
-    const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
-    if (!renderRow) continue
-
-    const parsed = WebRenderingOutputSchema.safeParse(renderRow.data)
-    if (!parsed.success) continue
-    const rendering = parsed.data
-
-    // Skip pages with no rendered sections (all pruned)
-    if (rendering.sections.length === 0) continue
+  for (const page of pages) {
+    const quizzes = quizzesByAfterPageId.get(page.pageId) ?? []
 
     const sectioningRow = storage.getLatestNodeData("page-sectioning", page.pageId)
     const sectioning = sectioningRow?.data as PageSectioningOutput | undefined
@@ -139,78 +130,86 @@ export async function packageAdtWeb(
       }
     }
 
-    // Concatenate section HTML and merge activity answers
-    const { html: sectionHtml, activityAnswers } = combineSections(rendering)
+    const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
+    if (renderRow) {
+      const parsed = WebRenderingOutputSchema.safeParse(renderRow.data)
+      if (parsed.success) {
+        const rendering = parsed.data
 
-    // Rewrite image URLs and copy referenced images
-    const { html: rewrittenHtml, referencedImages } = rewriteImageUrls(
-      sectionHtml,
-      label,
-      imageMap,
-    )
+        // Skip pages with no rendered sections (all pruned)
+        if (rendering.sections.length > 0) {
+          // Concatenate section HTML and merge activity answers
+          const { html: sectionHtml, activityAnswers } = combineSections(rendering)
 
-    for (const imageId of referencedImages) {
-      if (!copiedImages.has(imageId)) {
-        const filename = imageMap.get(imageId)
-        if (filename) {
-          fs.copyFileSync(
-            path.join(bookDir, "images", filename),
-            path.join(imageDir, filename),
+          // Rewrite image URLs and copy referenced images
+          const { html: rewrittenHtml, referencedImages } = rewriteImageUrls(
+            sectionHtml,
+            label,
+            imageMap,
           )
-          copiedImages.add(imageId)
+
+          for (const imageId of referencedImages) {
+            if (!copiedImages.has(imageId)) {
+              const filename = imageMap.get(imageId)
+              if (filename) {
+                fs.copyFileSync(
+                  path.join(bookDir, "images", filename),
+                  path.join(imageDir, filename),
+                )
+                copiedImages.add(imageId)
+              }
+            }
+          }
+
+          // Check for math content
+          if (containsMathContent(rewrittenHtml)) hasMath = true
+
+          // Generate page HTML
+          const pageHtml = renderPageHtml({
+            content: rewrittenHtml,
+            language,
+            sectionId: page.pageId,
+            pageTitle: title,
+            pageIndex: pageList.length + 1,
+            activityAnswers,
+            hasMath: containsMathContent(rewrittenHtml),
+            bundleVersion,
+          })
+
+          fs.writeFileSync(path.join(adtDir, `${page.pageId}.html`), pageHtml)
+
+          const entry: PageEntry = {
+            section_id: page.pageId,
+            href: `${page.pageId}.html`,
+          }
+          if (pageNumber !== undefined) entry.page_number = pageNumber
+          pageList.push(entry)
         }
       }
     }
 
-    // Check for math content
-    if (containsMathContent(rewrittenHtml)) hasMath = true
+    // Insert quiz pages after this page (even if page content was skipped)
+    for (const quiz of quizzes) {
+      const quizIndex = quizData!.quizzes.indexOf(quiz)
+      const quizId = `qz${pad3(quizIndex + 1)}`
 
-    // Generate page HTML
-    const pageHtml = renderPageHtml({
-      content: rewrittenHtml,
-      language,
-      sectionId: page.pageId,
-      pageTitle: title,
-      pageIndex: pi + 1,
-      activityAnswers,
-      hasMath: containsMathContent(rewrittenHtml),
-      bundleVersion,
-    })
+      const quizHtmlContent = renderQuizHtml(quiz, quizId, catalog)
+      const quizPageHtml = renderPageHtml({
+        content: quizHtmlContent,
+        language,
+        sectionId: quizId,
+        pageTitle: title,
+        pageIndex: pageList.length + 1,
+        activityAnswers: buildQuizAnswers(quiz, quizId),
+        hasMath: false,
+        bundleVersion,
+        skipContentWrapper: true,
+      })
 
-    fs.writeFileSync(path.join(adtDir, `${page.pageId}.html`), pageHtml)
-
-    const entry: PageEntry = {
-      section_id: page.pageId,
-      href: `${page.pageId}.html`,
-    }
-    if (pageNumber !== undefined) entry.page_number = pageNumber
-    pageList.push(entry)
-
-    // Insert quiz pages after this page
-    const quizzes = quizzesByAfterPageId.get(page.pageId)
-    if (quizzes) {
-      for (const quiz of quizzes) {
-        const quizIndex = quizData!.quizzes.indexOf(quiz)
-        const quizId = `qz${pad3(quizIndex + 1)}`
-
-        const quizHtmlContent = renderQuizHtml(quiz, quizId, catalog)
-        const quizPageHtml = renderPageHtml({
-          content: quizHtmlContent,
-          language,
-          sectionId: quizId,
-          pageTitle: title,
-          pageIndex: pageList.length + 1,
-          activityAnswers: buildQuizAnswers(quiz, quizId),
-          hasMath: false,
-          bundleVersion,
-          skipContentWrapper: true,
-        })
-
-        fs.writeFileSync(path.join(adtDir, `${quizId}.html`), quizPageHtml)
-        const quizEntry: PageEntry = { section_id: quizId, href: `${quizId}.html` }
-        if (pageNumber !== undefined) quizEntry.page_number = pageNumber
-        pageList.push(quizEntry)
-      }
+      fs.writeFileSync(path.join(adtDir, `${quizId}.html`), quizPageHtml)
+      const quizEntry: PageEntry = { section_id: quizId, href: `${quizId}.html` }
+      if (pageNumber !== undefined) quizEntry.page_number = pageNumber
+      pageList.push(quizEntry)
     }
   }
 
