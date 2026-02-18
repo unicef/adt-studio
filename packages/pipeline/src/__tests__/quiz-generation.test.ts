@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import type { AppConfig, PageSectioningOutput, WebRenderingOutput } from "@adt/types"
 import type {
   GenerateObjectOptions,
@@ -228,7 +228,12 @@ describe("generateQuiz", () => {
       timeoutMs: 90_000,
     }
 
+    const randomSpy = vi
+      .spyOn(Math, "random")
+      .mockReturnValueOnce(0.99)
+      .mockReturnValueOnce(0.99)
     const quiz = await generateQuiz(batch, 0, config, llmModel)
+    randomSpy.mockRestore()
 
     expect(capturedOptions?.prompt).toBe("quiz_generation")
     expect(capturedOptions?.context?.language_code).toBe("en")
@@ -247,6 +252,37 @@ describe("generateQuiz", () => {
     expect(quiz.question).toBe(validQuizResponse.question)
     expect(quiz.options).toEqual(validQuizResponse.options)
     expect(quiz.answerIndex).toBe(0)
+  })
+
+  it("shuffles options and renumbers answer labels", async () => {
+    const llmModel = makeFakeLLMModel(validQuizResponse)
+
+    const batch = [makePageInput("pg001", "<p>Content</p>")]
+    const config = {
+      language: "en",
+      pagesPerQuiz: 1,
+      promptName: "quiz_generation",
+      modelId: "openai:gpt-5.2",
+      maxRetries: 0,
+      timeoutMs: 90_000,
+    }
+
+    const randomSpy = vi
+      .spyOn(Math, "random")
+      .mockReturnValueOnce(0.9)
+      .mockReturnValueOnce(0.0)
+    const quiz = await generateQuiz(batch, 0, config, llmModel)
+    randomSpy.mockRestore()
+
+    expect(quiz.options.map((opt) => opt.text)).toEqual([
+      "1) Darkness",
+      "2) Sunlight",
+      "3) Sand",
+    ])
+    expect(quiz.options[0].explanation).toBe(
+      "❌ Not quite. Plants need light."
+    )
+    expect(quiz.answerIndex).toBe(1)
   })
 
   it("validation catches wrong option count", async () => {

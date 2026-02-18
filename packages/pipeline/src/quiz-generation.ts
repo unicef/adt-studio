@@ -27,6 +27,37 @@ export interface QuizPageInput {
   sectioning: PageSectioningOutput
 }
 
+function renumberOptionText(text: string, index: number): string {
+  const stripped = text.replace(/^\s*\d+\)\s*/u, "").trim()
+  const label = `${index + 1})`
+  return stripped ? `${label} ${stripped}` : label
+}
+
+function shuffleQuizOptions(
+  options: Array<{ text: string; explanation: string }>,
+  answerIndex: number,
+  rng: () => number = Math.random
+): { options: Array<{ text: string; explanation: string }>; answerIndex: number } {
+  const withCorrect = options.map((option, index) => ({
+    option,
+    isCorrect: index === answerIndex,
+  }))
+  const shuffled = withCorrect.slice()
+
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+
+  const newAnswerIndex = shuffled.findIndex((entry) => entry.isCorrect)
+  const renumbered = shuffled.map((entry, index) => ({
+    text: renumberOptionText(entry.option.text, index),
+    explanation: entry.option.explanation,
+  }))
+
+  return { options: renumbered, answerIndex: newAnswerIndex }
+}
+
 /**
  * Build quiz generation config from AppConfig and detected language.
  * Returns null if no language is available.
@@ -150,13 +181,18 @@ export async function generateQuiz(
     },
   })
 
+  const shuffled = shuffleQuizOptions(
+    result.object.options,
+    result.object.answer_index
+  )
+
   return {
     quizIndex,
     afterPageId: batch[batch.length - 1].pageId,
     pageIds: batch.map((p) => p.pageId),
     question: result.object.question,
-    options: result.object.options,
-    answerIndex: result.object.answer_index,
+    options: shuffled.options,
+    answerIndex: shuffled.answerIndex,
     reasoning: result.object.reasoning,
   }
 }
