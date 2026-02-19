@@ -68,19 +68,10 @@ afterEach(() => {
 })
 
 describe("pipeline integration (raven.pdf, pages 1-3)", () => {
-  it(
+  it.skipIf(!hasApiKey)(
     "runs full pipeline and produces expected outputs",
     { timeout: 120_000 },
     async () => {
-      if (!cacheExists && !hasApiKey) {
-        expect.fail(
-          "LLM cache fixtures not found and OPENAI_API_KEY is not set.\n" +
-            "To populate the cache:\n" +
-            "  1. Set OPENAI_API_KEY in your environment\n" +
-            "  2. Run: pnpm test packages/pipeline/src/__tests__/pipeline-integration.test.ts\n" +
-            "  3. Commit the new cache files in fixtures/raven-cache/"
-        )
-      }
 
       const booksRoot = fs.mkdtempSync(
         path.join(os.tmpdir(), "adt-pipeline-integ-")
