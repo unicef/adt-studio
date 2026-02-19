@@ -81,11 +81,13 @@ Key files:
 
 ### Releasing
 
-Push to the `deploy` branch triggers a GitHub Actions workflow that builds a Windows installer and creates a GitHub Release with auto-incremented patch version (v0.1.0 → v0.1.1 → ...).
+Pushing a version tag triggers a GitHub Actions workflow that builds a Windows installer and creates a GitHub Release with auto-generated changelog.
 
 ```bash
-git checkout deploy && git merge main && git push   # Creates next release
+git tag v0.2.0 && git push --tags   # Creates next release
 ```
+
+Or create a new tag in the GitHub UI pointing at `main`.
 
 ## Key Rules
 
