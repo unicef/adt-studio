@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useCallback, type ReactNode } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from "react"
 import { createPortal } from "react-dom"
-import { Check, Eye, EyeOff, Layers, Loader2, ChevronDown, Sparkles, ChevronRight, PanelRightOpen, PanelRightClose, X } from "lucide-react"
+import { Check, Eye, EyeOff, Layers, Loader2, ChevronDown, Sparkles, ChevronRight, PanelRightOpen, PanelRightClose, Save, X } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/api/client"
 import type { PageDetail, VersionEntry } from "@/api/client"
@@ -8,6 +8,8 @@ import { useApiKey } from "@/hooks/use-api-key"
 import { useStepHeader } from "../StepViewRouter"
 import { BookPreviewFrame, type BookPreviewFrameHandle } from "@/components/storyboard/BookPreviewFrame"
 import { SectionEditToolbar } from "./SectionEditToolbar"
+import { ImageCropDialog } from "./ImageCropDialog"
+import { AiImageDialog } from "./AiImageDialog"
 import {
   Select,
   SelectContent,
@@ -16,6 +18,21 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
+
+// -- AI loading messages --
+
+const AI_MESSAGES = [
+  "Rewriting the story of this section...",
+  "Teaching the pixels new tricks...",
+  "Asking the AI to put on its creative hat...",
+  "Rearranging atoms of HTML...",
+  "Consulting the style council...",
+  "Sprinkling some digital fairy dust...",
+  "The AI is having a think...",
+  "Brewing a fresh batch of HTML...",
+  "Polishing paragraphs to perfection...",
+  "Untangling nested divs with care...",
+]
 
 // -- VersionPicker (same as ExtractPageDetail) --
 
@@ -158,7 +175,7 @@ function ImageCard({ imageId, bookLabel, isPruned, reason }: { imageId: string; 
 
   return (
     <div
-      className={`relative rounded border overflow-hidden bg-card flex flex-col items-center min-h-[80px] ${isPruned ? "opacity-40" : ""}`}
+      className={`relative rounded border overflow-hidden bg-card flex flex-col items-center min-h-[80px] transition-opacity duration-300 ${isPruned ? "opacity-40" : ""}`}
       title={isPruned ? `Pruned: ${reason}` : undefined}
     >
       <img
@@ -307,12 +324,42 @@ export function StoryboardSectionDetail({
   // Section data panel state
   const [panelOpen, setPanelOpen] = useState(false)
 
+  // Image crop state
+  const [cropTarget, setCropTarget] = useState<string | null>(null)
+
+  // Image replace / AI image state
+  const [aiImageDialogTarget, setAiImageDialogTarget] = useState<string | null>(null)
+  const [aiImageGen, setAiImageGen] = useState<{
+    targetImageId: string
+    status: "generating" | "done" | "error"
+    error?: string
+  } | null>(null)
+  const aiImageAbortRef = useRef<AbortController | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const replaceTargetRef = useRef<string | null>(null)
+
   // AI edit state
   const [aiInstruction, setAiInstruction] = useState("")
   const [aiLoading, setAiLoading] = useState(false)
   const [aiReasoning, setAiReasoning] = useState<string | null>(null)
   const [aiReasoningOpen, setAiReasoningOpen] = useState(false)
   const [aiError, setAiError] = useState<string | null>(null)
+  const aiAbortRef = useRef<AbortController | null>(null)
+
+  const [aiMessageIdx, setAiMessageIdx] = useState(0)
+
+  // Rotating witty messages during AI generation
+  useEffect(() => {
+    if (!aiLoading) {
+      setAiMessageIdx(Math.floor(Math.random() * AI_MESSAGES.length))
+      return
+    }
+    const rotate = setInterval(
+      () => setAiMessageIdx((i) => (i + 1) % AI_MESSAGES.length),
+      3000
+    )
+    return () => clearInterval(rotate)
+  }, [aiLoading])
 
   // Fetch active config for type dropdowns
   const configQuery = useQuery({
@@ -329,6 +376,10 @@ export function StoryboardSectionDetail({
     setPendingSectioning(null)
     setPendingRendering(null)
     setSelectedElement(null)
+    setCropTarget(null)
+    setAiImageDialogTarget(null)
+    aiImageAbortRef.current?.abort()
+    setAiImageGen(null)
     setAiInstruction("")
     setAiReasoning(null)
     setAiError(null)
@@ -368,19 +419,24 @@ export function StoryboardSectionDetail({
   const saveSectioning = async () => {
     if (!pendingSectioning) return
     setSaving(true)
-    const minDelay = new Promise((r) => setTimeout(r, 400))
-    await api.updateSectioning(bookLabel, pageId, pendingSectioning)
-    setPendingSectioning(null)
-    await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
-    await minDelay
-    setSaving(false)
+    try {
+      const minDelay = new Promise((r) => setTimeout(r, 400))
+      await api.updateSectioning(bookLabel, pageId, pendingSectioning)
+      setPendingSectioning(null)
+      await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
+      await minDelay
 
-    // Automatically re-render with the updated sectioning
-    if (hasApiKey) {
-      api.reRenderPage(bookLabel, pageId, apiKey).then(() => {
-        queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
-        queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
-      })
+      // Automatically re-render with the updated sectioning
+      if (hasApiKey) {
+        api.reRenderPage(bookLabel, pageId, apiKey).then(() => {
+          queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
+          queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
+        })
+      }
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : "Save failed")
+    } finally {
+      setSaving(false)
     }
   }
 
@@ -392,28 +448,33 @@ export function StoryboardSectionDetail({
   const saveRendering = async () => {
     if (!pendingRendering) return
     setSaving(true)
-    const minDelay = new Promise((r) => setTimeout(r, 400))
+    try {
+      const minDelay = new Promise((r) => setTimeout(r, 400))
 
-    // Save the rendering
-    await api.updateRendering(bookLabel, pageId, pendingRendering)
+      // Save the rendering
+      await api.updateRendering(bookLabel, pageId, pendingRendering)
 
-    // Back-propagate: if we have sectioning data and edited HTML, update sectioning too
-    const editedHtml = pendingRendering.sections[sectionIndex]?.html
-    if (editedHtml && page.sectioning) {
-      const updatedSectioning = backPropagateTextChanges(
-        pendingSectioning ?? page.sectioning,
-        sectionIndex,
-        editedHtml
-      )
-      await api.updateSectioning(bookLabel, pageId, updatedSectioning)
+      // Back-propagate: if we have sectioning data and edited HTML, update sectioning too
+      const editedHtml = pendingRendering.sections[sectionIndex]?.html
+      if (editedHtml && page.sectioning) {
+        const updatedSectioning = backPropagateTextChanges(
+          pendingSectioning ?? page.sectioning,
+          sectionIndex,
+          editedHtml
+        )
+        await api.updateSectioning(bookLabel, pageId, updatedSectioning)
+      }
+
+      setPendingRendering(null)
+      setPendingSectioning(null)
+      setAiReasoning(null)
+      await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
+      await minDelay
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : "Save failed")
+    } finally {
+      setSaving(false)
     }
-
-    setPendingRendering(null)
-    setPendingSectioning(null)
-    setAiReasoning(null)
-    await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
-    await minDelay
-    setSaving(false)
   }
 
   // Toggle isPruned on a part within the current section
@@ -562,12 +623,256 @@ export function StoryboardSectionDetail({
     [parts, pendingSectioning, page.sectioning, sectionIndex]
   )
 
+  // Handle crop apply: upload cropped image, update sectioning + rendering HTML
+  const handleCropApply = useCallback(
+    async (blob: Blob) => {
+      if (!cropTarget) return
+      const result = await api.uploadCroppedImage(bookLabel, pageId, cropTarget, blob)
+
+      // 1. Update sectioning to replace old imageId with new one
+      const sBase = pendingSectioning ?? page.sectioning
+      if (sBase) {
+        const updatedSectioning: SectioningData = {
+          ...sBase,
+          sections: sBase.sections.map((s, si) => {
+            if (si !== sectionIndex) return s
+            return {
+              ...s,
+              parts: s.parts.map((p) => {
+                if (p.type === "image" && p.imageId === cropTarget) {
+                  return { ...p, imageId: result.imageId }
+                }
+                return p
+              }),
+            }
+          }),
+        }
+        setPendingSectioning(updatedSectioning)
+      }
+
+      // 2. Update rendered HTML to swap image references so preview reflects the crop
+      const rBase = pendingRendering ?? page.rendering
+      if (rBase) {
+        const oldSrc = `/api/books/${bookLabel}/images/${cropTarget}`
+        const newSrc = `/api/books/${bookLabel}/images/${result.imageId}`
+        const updatedRendering: RenderingData = {
+          ...rBase,
+          sections: rBase.sections.map((s, si) => {
+            if (si !== sectionIndex) return s
+            // Replace data-id and src references to the old imageId
+            let html = s.html
+            html = html.replace(
+              new RegExp(`data-id="${cropTarget.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, "g"),
+              `data-id="${result.imageId}"`
+            )
+            html = html.replace(
+              new RegExp(oldSrc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "g"),
+              newSrc
+            )
+            return { ...s, html }
+          }),
+        }
+        setPendingRendering(updatedRendering)
+      }
+
+      setCropTarget(null)
+      setSelectedElement(null)
+    },
+    [cropTarget, bookLabel, pageId, pendingSectioning, page.sectioning, pendingRendering, page.rendering, sectionIndex]
+  )
+
+  // Image replace: open native file picker
+  const handleImageReplace = useCallback((dataId: string) => {
+    replaceTargetRef.current = dataId
+    fileInputRef.current?.click()
+    setSelectedElement(null)
+  }, [])
+
+  // Process uploaded file: upload to API, swap image in sectioning + rendering
+  const handleImageUpload = useCallback(
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0]
+      const targetId = replaceTargetRef.current
+      if (!file || !targetId) return
+      e.target.value = "" // reset so same file can be re-selected
+      replaceTargetRef.current = null
+
+      let result: { imageId: string; width: number; height: number }
+      try {
+        result = await api.uploadCroppedImage(bookLabel, pageId, targetId, file)
+      } catch (err) {
+        setAiError(err instanceof Error ? err.message : "Image upload failed")
+        return
+      }
+
+      // Update sectioning
+      const sBase = pendingSectioning ?? page.sectioning
+      if (sBase) {
+        const updatedSectioning: SectioningData = {
+          ...sBase,
+          sections: sBase.sections.map((s, si) => {
+            if (si !== sectionIndex) return s
+            return {
+              ...s,
+              parts: s.parts.map((p) => {
+                if (p.type === "image" && p.imageId === targetId) {
+                  return { ...p, imageId: result.imageId }
+                }
+                return p
+              }),
+            }
+          }),
+        }
+        setPendingSectioning(updatedSectioning)
+      }
+
+      // Update rendering HTML
+      const rBase = pendingRendering ?? page.rendering
+      if (rBase) {
+        const oldSrc = `/api/books/${bookLabel}/images/${targetId}`
+        const newSrc = `/api/books/${bookLabel}/images/${result.imageId}`
+        const updatedRendering: RenderingData = {
+          ...rBase,
+          sections: rBase.sections.map((s, si) => {
+            if (si !== sectionIndex) return s
+            let html = s.html
+            html = html.replace(
+              new RegExp(`data-id="${targetId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, "g"),
+              `data-id="${result.imageId}"`
+            )
+            html = html.replace(
+              new RegExp(oldSrc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "g"),
+              newSrc
+            )
+            return { ...s, html }
+          }),
+        }
+        setPendingRendering(updatedRendering)
+      }
+    },
+    [bookLabel, pageId, pendingSectioning, page.sectioning, pendingRendering, page.rendering, sectionIndex]
+  )
+
+  // Open AI image dialog for a specific image
+  const handleAiImage = useCallback((dataId: string) => {
+    setAiImageDialogTarget(dataId)
+    setSelectedElement(null)
+  }, [])
+
+  // Swap a generated/edited image into pending sectioning + rendering.
+  // Uses functional setState to avoid stale closures from async callers (e.g. AI generation).
+  const pageDataRef = useRef({ sectioning: page.sectioning, rendering: page.rendering })
+  pageDataRef.current = { sectioning: page.sectioning, rendering: page.rendering }
+
+  const swapImage = useCallback(
+    (targetId: string, newImageId: string, originalDims?: { w: number; h: number }) => {
+      // Update sectioning using functional form to read latest state
+      setPendingSectioning((prev) => {
+        const sBase = prev ?? pageDataRef.current.sectioning
+        if (!sBase) return prev
+        return {
+          ...sBase,
+          sections: sBase.sections.map((s, si) => {
+            if (si !== sectionIndex) return s
+            return {
+              ...s,
+              parts: s.parts.map((p) => {
+                if (p.type === "image" && p.imageId === targetId) {
+                  return { ...p, imageId: newImageId }
+                }
+                return p
+              }),
+            }
+          }),
+        }
+      })
+
+      // Update rendering HTML using functional form
+      setPendingRendering((prev) => {
+        const rBase = prev ?? pageDataRef.current.rendering
+        if (!rBase) return prev
+        const oldSrc = `/api/books/${bookLabel}/images/${targetId}`
+        const newSrc = `/api/books/${bookLabel}/images/${newImageId}`
+        return {
+          ...rBase,
+          sections: rBase.sections.map((s, si) => {
+            if (si !== sectionIndex) return s
+            let html = s.html
+            html = html.replace(
+              new RegExp(`data-id="${targetId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, "g"),
+              `data-id="${newImageId}"`
+            )
+            html = html.replace(
+              new RegExp(oldSrc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "g"),
+              newSrc
+            )
+            // Set width/height to match original so the display size is preserved
+            if (originalDims) {
+              const escaped = newImageId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+              html = html.replace(
+                new RegExp(`(<img[^>]*data-id="${escaped}"[^>]*?)(/?>)`, "g"),
+                (_, before, close) => {
+                  let tag = before as string
+                  tag = tag.replace(/\s+width="[^"]*"/, "")
+                  tag = tag.replace(/\s+height="[^"]*"/, "")
+                  return `${tag} width="${originalDims.w}" height="${originalDims.h}"${close}`
+                }
+              )
+            }
+            return { ...s, html }
+          }),
+        }
+      })
+    },
+    [bookLabel, sectionIndex]
+  )
+
+  // Submit from AI image dialog: close dialog, run generation in background
+  const handleAiImageSubmit = useCallback(
+    (prompt: string, referenceImageId?: string) => {
+      const targetId = aiImageDialogTarget
+      if (!targetId) return
+      setAiImageDialogTarget(null)
+      setAiImageGen({ targetImageId: targetId, status: "generating" })
+
+      const controller = new AbortController()
+      aiImageAbortRef.current = controller
+
+      api
+        .aiGenerateImage(bookLabel, pageId, prompt, apiKey, targetId, referenceImageId, controller.signal)
+        .then((result) => {
+          swapImage(targetId, result.imageId, { w: result.originalWidth, h: result.originalHeight })
+          setAiImageGen({ targetImageId: targetId, status: "done" })
+          // Auto-dismiss success after 3s
+          setTimeout(() => setAiImageGen((prev) => prev?.status === "done" ? null : prev), 3000)
+        })
+        .catch((err) => {
+          if (err instanceof DOMException && err.name === "AbortError") {
+            setAiImageGen(null)
+          } else {
+            setAiImageGen({
+              targetImageId: targetId,
+              status: "error",
+              error: err instanceof Error ? err.message : "Image generation failed",
+            })
+          }
+        })
+        .finally(() => {
+          aiImageAbortRef.current = null
+        })
+    },
+    [aiImageDialogTarget, bookLabel, pageId, apiKey, swapImage]
+  )
+
   // AI edit handler
   const handleAiEdit = async () => {
     if (!aiInstruction.trim() || !hasApiKey || aiLoading) return
     setAiLoading(true)
     setAiError(null)
     setAiReasoning(null)
+
+    const controller = new AbortController()
+    aiAbortRef.current = controller
 
     try {
       // Send current HTML so successive AI edits build on pending changes
@@ -578,7 +883,8 @@ export function StoryboardSectionDetail({
         sectionIndex,
         aiInstruction.trim(),
         apiKey,
-        currentHtml
+        currentHtml,
+        controller.signal
       )
 
       // Apply the AI edit as pending rendering
@@ -595,8 +901,13 @@ export function StoryboardSectionDetail({
       setAiReasoning(result.reasoning)
       setAiInstruction("")
     } catch (err) {
-      setAiError(err instanceof Error ? err.message : "AI edit failed")
+      if (err instanceof DOMException && err.name === "AbortError") {
+        // User cancelled — not an error
+      } else {
+        setAiError(err instanceof Error ? err.message : "AI edit failed")
+      }
     } finally {
+      aiAbortRef.current = null
       setAiLoading(false)
     }
   }
@@ -611,14 +922,98 @@ export function StoryboardSectionDetail({
       ? (parts[loc.partIndex] as Extract<typeof parts[0], { type: "text_group" }>).texts[loc.textIndex]
       : null
 
+    // For images, find matching part
+    const imagePart = isImage
+      ? (parts.find((p) => p.type === "image" && p.imageId === dataId) as Extract<typeof parts[0], { type: "image" }> | undefined)
+      : null
+
     return {
       isImage,
       textType: textEntry?.textType,
-      isPruned: textEntry?.isPruned ?? false,
+      isPruned: isImage ? imagePart?.isPruned ?? false : textEntry?.isPruned ?? false,
+      imageSrc: isImage ? `/api/books/${bookLabel}/images/${dataId}` : undefined,
     }
   }
 
   const selectedInfo = selectedElement ? getSelectedElementInfo() : null
+
+  // Compute pruned data-ids for optimistic preview feedback
+  const prunedDataIds = useMemo(() => {
+    const ids: string[] = []
+    for (const p of parts) {
+      if (p.type === "image" && p.isPruned) {
+        ids.push(p.imageId)
+      } else if (p.type === "text_group") {
+        // If the whole group is pruned, mark all its text entries
+        if (p.isPruned) {
+          p.texts.forEach((_, ti) => {
+            ids.push(`${p.groupId}_tx${String(ti + 1).padStart(3, "0")}`)
+          })
+        } else {
+          // Individual text entries
+          p.texts.forEach((t, ti) => {
+            if (t.isPruned) {
+              ids.push(`${p.groupId}_tx${String(ti + 1).padStart(3, "0")}`)
+            }
+          })
+        }
+      }
+    }
+    return ids
+  }, [parts])
+
+  // Compute changed elements by diffing pending vs saved state
+  const changedElements = useMemo(() => {
+    if (!pendingRendering && !pendingSectioning) return []
+    const changes: Array<{ dataId: string; originalText?: string }> = []
+    const seen = new Set<string>()
+
+    // Diff rendered HTML for text edits + image src swaps
+    if (pendingRendering && page.rendering) {
+      const savedHtml = page.rendering.sections[sectionIndex]?.html ?? ""
+      const pendingHtml = pendingRendering.sections[sectionIndex]?.html ?? ""
+      if (savedHtml !== pendingHtml) {
+        const parser = new DOMParser()
+        const savedDoc = parser.parseFromString(savedHtml, "text/html")
+        const pendingDoc = parser.parseFromString(pendingHtml, "text/html")
+
+        pendingDoc.querySelectorAll("[data-id]").forEach((el) => {
+          const dataId = el.getAttribute("data-id")
+          if (!dataId || seen.has(dataId)) return
+          const savedEl = savedDoc.querySelector(`[data-id="${dataId}"]`)
+          if (!savedEl) return // new element — skip (it's an image swap, handled below)
+          const isImg = el.tagName === "IMG"
+          if (isImg) {
+            if (el.getAttribute("src") !== savedEl.getAttribute("src")) {
+              seen.add(dataId)
+              changes.push({ dataId })
+            }
+          } else if (el.textContent?.trim() !== savedEl.textContent?.trim()) {
+            seen.add(dataId)
+            changes.push({ dataId, originalText: savedEl.textContent?.trim() })
+          }
+        })
+      }
+    }
+
+    // Diff sectioning for image swaps (imageId changed)
+    if (pendingSectioning && page.sectioning) {
+      const savedParts = page.sectioning.sections[sectionIndex]?.parts ?? []
+      const pendingParts = pendingSectioning.sections[sectionIndex]?.parts ?? []
+      for (let i = 0; i < Math.min(savedParts.length, pendingParts.length); i++) {
+        const saved = savedParts[i]
+        const pending = pendingParts[i]
+        if (saved.type === "image" && pending.type === "image" && saved.imageId !== pending.imageId) {
+          if (!seen.has(pending.imageId)) {
+            seen.add(pending.imageId)
+            changes.push({ dataId: pending.imageId, originalText: `Was: ${saved.imageId}` })
+          }
+        }
+      }
+    }
+
+    return changes
+  }, [pendingRendering, pendingSectioning, page.rendering, page.sectioning, sectionIndex])
 
   // Check if this section has any text groups or images
   const hasTextParts = parts.some((p) => p.type === "text_group")
@@ -655,13 +1050,10 @@ export function StoryboardSectionDetail({
                 handleAiEdit()
               }
             }}
-            placeholder="Ask AI to edit..."
+            placeholder={aiLoading ? "Generating..." : "Ask AI to edit..."}
             disabled={aiLoading}
-            className="pl-7 h-7 text-[11px] bg-white border-white/40 text-gray-900 placeholder:text-gray-400 focus-visible:ring-white/50"
+            className={`pl-7 h-7 text-[11px] bg-white border-white/40 text-gray-900 placeholder:text-gray-400 focus-visible:ring-white/50 ${aiLoading ? "opacity-60" : ""}`}
           />
-          {aiLoading && (
-            <Loader2 className="absolute right-2 top-1/2 -translate-y-1/2 h-3 w-3 animate-spin text-gray-400" />
-          )}
         </div>
       ) : (
         <div className="flex-1" />
@@ -717,13 +1109,15 @@ export function StoryboardSectionDetail({
       )}
 
       {/* Preview — fills remaining space, scrolls independently */}
-      <div className="flex-1 overflow-auto px-4 py-4" ref={scrollContainerRef}>
+      <div className="flex-1 overflow-auto px-4 py-4 relative" ref={scrollContainerRef}>
         {renderedSection?.html ? (
           <BookPreviewFrame
             ref={previewFrameRef}
             html={renderedSection.html}
             className="w-full rounded border"
-            editable
+            editable={!aiLoading}
+            prunedDataIds={prunedDataIds}
+            changedElements={changedElements}
             onSelectElement={handleSelectElement}
             onTextChanged={handleTextChanged}
           />
@@ -732,9 +1126,122 @@ export function StoryboardSectionDetail({
             No rendered content for this section.
           </div>
         )}
+
+        {/* AI loading overlay — blocks all interaction during HTML edit */}
+        {aiLoading && (
+          <div className="absolute inset-0 z-40 bg-background/70 backdrop-blur-[2px] flex items-center justify-center">
+            <div className="flex flex-col items-center gap-5 text-center max-w-xs">
+              {/* Bouncing dots */}
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-purple-500 animate-bounce [animation-delay:0ms]" />
+                <span className="w-2.5 h-2.5 rounded-full bg-purple-400 animate-bounce [animation-delay:150ms]" />
+                <span className="w-2.5 h-2.5 rounded-full bg-purple-300 animate-bounce [animation-delay:300ms]" />
+              </div>
+              <p className="text-sm font-medium text-foreground animate-pulse">
+                {AI_MESSAGES[aiMessageIdx]}
+              </p>
+              <button
+                type="button"
+                onClick={() => aiAbortRef.current?.abort()}
+                className="text-xs font-medium rounded px-3 py-1.5 bg-muted hover:bg-accent transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Background image generation indicator (non-blocking) */}
+        {aiImageGen && (
+          <div className="absolute top-3 right-3 z-40 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div
+              className={`flex items-center gap-2 rounded-full px-3.5 py-2 shadow-lg text-white text-xs font-medium ${
+                aiImageGen.status === "generating"
+                  ? "bg-purple-600"
+                  : aiImageGen.status === "done"
+                    ? "bg-green-600"
+                    : "bg-destructive"
+              }`}
+            >
+              {aiImageGen.status === "generating" && (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  <span>Generating image...</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      aiImageAbortRef.current?.abort()
+                      setAiImageGen(null)
+                    }}
+                    className="p-0.5 rounded-full hover:bg-white/20 transition-colors cursor-pointer"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </>
+              )}
+              {aiImageGen.status === "done" && (
+                <>
+                  <Sparkles className="h-3 w-3" />
+                  <span>Image generated</span>
+                </>
+              )}
+              {aiImageGen.status === "error" && (
+                <>
+                  <span>{aiImageGen.error ?? "Generation failed"}</span>
+                  <button
+                    type="button"
+                    onClick={() => setAiImageGen(null)}
+                    className="p-0.5 rounded-full hover:bg-white/20 transition-colors cursor-pointer"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Floating toolbar for selected element */}
+      {/* Floating save/discard bar */}
+      {(dirty || renderingDirty) && !saving && (
+        <div className="absolute bottom-4 left-1/2 z-40 -translate-x-1/2 animate-in slide-in-from-bottom-4 fade-in duration-200">
+          <div className="flex items-center gap-3 rounded-lg border bg-background px-4 py-2.5 shadow-lg">
+            <span className="text-sm text-muted-foreground">
+              Unsaved:{" "}
+              <span className="font-medium text-foreground">
+                {[dirty && "sections", renderingDirty && "rendering"].filter(Boolean).join(", ")}
+              </span>
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  if (pendingRendering) await saveRendering()
+                  else if (pendingSectioning) await saveSectioning()
+                }}
+                className="flex items-center gap-1 text-xs font-medium rounded px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white cursor-pointer transition-colors"
+              >
+                <Save className="h-3 w-3" />
+                Save
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPendingSectioning(null)
+                  setPendingRendering(null)
+                  setAiReasoning(null)
+                }}
+                className="flex items-center gap-1 text-xs font-medium rounded px-3 py-1.5 bg-muted hover:bg-accent hover:text-accent-foreground cursor-pointer transition-colors"
+              >
+                <X className="h-3 w-3" />
+                Discard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Floating popover for selected element */}
       {selectedElement && selectedInfo && (
         <SectionEditToolbar
           dataId={selectedElement.dataId}
@@ -744,8 +1251,12 @@ export function StoryboardSectionDetail({
           textType={selectedInfo.textType}
           isPruned={selectedInfo.isPruned}
           textTypes={textTypes}
+          imageSrc={selectedInfo.imageSrc}
           onChangeTextType={handleToolbarChangeTextType}
           onTogglePrune={handleToolbarPrune}
+          onCrop={selectedInfo.isImage ? (dataId) => setCropTarget(dataId) : undefined}
+          onReplace={selectedInfo.isImage ? handleImageReplace : undefined}
+          onAiImage={selectedInfo.isImage && hasApiKey ? handleAiImage : undefined}
         />
       )}
 
@@ -825,7 +1336,7 @@ export function StoryboardSectionDetail({
                 {parts.map((p, partIndex) => {
                   if (p.type !== "text_group") return null
                   return (
-                    <div key={p.groupId} className={`rounded border overflow-hidden transition-opacity ${p.isPruned ? "opacity-40" : ""}`}>
+                    <div key={p.groupId} className={`rounded border overflow-hidden transition-opacity duration-300 ${p.isPruned ? "opacity-40" : ""}`}>
                       <div className="px-3 py-1.5 bg-muted/50 border-b flex items-center gap-1.5">
                         <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{p.groupType}</span>
                         <button
@@ -843,7 +1354,7 @@ export function StoryboardSectionDetail({
                       </div>
                       <div className="divide-y">
                         {p.texts.map((t, i) => (
-                          <div key={i} className={`px-3 py-1.5 flex items-start gap-2 text-sm ${t.isPruned ? "opacity-40" : ""}`}>
+                          <div key={i} className={`px-3 py-1.5 flex items-start gap-2 text-sm transition-opacity duration-300 ${t.isPruned ? "opacity-40" : ""}`}>
                             {textTypes ? (
                               <Select
                                 value={t.textType}
@@ -920,6 +1431,34 @@ export function StoryboardSectionDetail({
         </div>
       </div>
     </div>
+
+    {/* Hidden file input for image replace */}
+    <input
+      ref={fileInputRef}
+      type="file"
+      accept="image/*"
+      className="hidden"
+      onChange={handleImageUpload}
+    />
+
+    {/* Image crop dialog */}
+    {cropTarget && (
+      <ImageCropDialog
+        imageSrc={`/api/books/${bookLabel}/images/${cropTarget}`}
+        onApply={handleCropApply}
+        onClose={() => setCropTarget(null)}
+      />
+    )}
+
+    {/* AI image prompt dialog */}
+    {aiImageDialogTarget && (
+      <AiImageDialog
+        currentImageSrc={`/api/books/${bookLabel}/images/${aiImageDialogTarget}`}
+        imageId={aiImageDialogTarget}
+        onSubmit={handleAiImageSubmit}
+        onClose={() => setAiImageDialogTarget(null)}
+      />
+    )}
     </>
   )
 }
