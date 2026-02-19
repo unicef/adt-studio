@@ -465,7 +465,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
           promptName="image_meaningfulness"
           bookLabel={bookLabel}
           title="Image Meaningfulness Prompt"
-          description="LLM-based filter to determine if extracted images are meaningful. This runs when a model is set and General > Image Filters > LLM meaningfulness filter is enabled. Images that fail are pruned from downstream steps."
+          description="LLM-based filter to determine if extracted images are meaningful."
           model={meaningfulnessModel}
           onModelChange={(v) => { setMeaningfulnessModel(v); markDirty("image_meaningfulness") }}
           onContentChange={setMeaningfulnessPromptDraft}
