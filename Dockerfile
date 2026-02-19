@@ -51,6 +51,7 @@ COPY packages/pipeline/tsconfig.json packages/pipeline/tsconfig.json
 # COPY packages/output/tsconfig.json packages/output/tsconfig.json
 
 COPY apps/api/src apps/api/src
+COPY apps/api/scripts apps/api/scripts
 COPY apps/api/tsconfig.json apps/api/tsconfig.json
 COPY apps/studio/src apps/studio/src
 COPY apps/studio/tsconfig.json apps/studio/tsconfig.json
@@ -58,8 +59,16 @@ COPY apps/studio/index.html apps/studio/index.html
 COPY apps/studio/vite.config.ts apps/studio/vite.config.ts
 COPY apps/studio/components.json apps/studio/components.json
 
-# Build all TypeScript packages (tsc --build)
+# Copy read-only code assets (prompts, templates, global config)
+COPY prompts/ ./prompts/
+COPY templates/ ./templates/
+COPY config.yaml ./config.yaml
+
+# Build all TypeScript packages (tsc --build — type-checks + compiles shared packages)
 RUN pnpm build
+
+# Bundle the API with esbuild (produces dist/api-server.mjs with correct ESM imports)
+RUN pnpm --filter @adt/api build:server
 
 # Build the studio SPA (Vite)
 RUN pnpm --filter @adt/studio build
@@ -92,8 +101,13 @@ COPY --from=build /app/apps/api/ ./apps/api/
 # Copy root package.json (needed for workspace resolution)
 COPY package.json pnpm-workspace.yaml ./
 
-# Create data directories (will be mounted as volumes)
-RUN mkdir -p /app/books /app/prompts /app/templates && \
+# Copy baked-in defaults (overridable via volume mounts at runtime)
+COPY --from=build /app/prompts/ ./prompts/
+COPY --from=build /app/templates/ ./templates/
+COPY --from=build /app/config.yaml ./config.yaml
+
+# Create books directory (mounted as volume for user data)
+RUN mkdir -p /app/books && \
     chown -R appuser:nodejs /app/books
 
 ENV NODE_ENV=production
@@ -108,7 +122,7 @@ EXPOSE 3001
 
 USER appuser
 
-CMD ["node", "apps/api/dist/index.js"]
+CMD ["node", "apps/api/dist/api-server.mjs"]
 
 # =============================================================================
 # Stage 5: Studio — nginx serving the built SPA

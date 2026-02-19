@@ -7,9 +7,10 @@ services:
     #   - "3001:3001"  # uncomment for direct API access (debugging)
     volumes:
       - ./books:/app/books
-      - ./prompts:/app/prompts
-      - ./templates:/app/templates:ro
-      - ./config.yaml:/app/config.yaml:ro
+      # Uncomment to override baked-in defaults (requires files on host):
+      # - ./prompts:/app/prompts
+      # - ./templates:/app/templates:ro
+      # - ./config.yaml:/app/config.yaml:ro
     environment:
       - PROJECT_ROOT=/app
       - BOOKS_DIR=/app/books

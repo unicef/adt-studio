@@ -46,27 +46,26 @@ Desktop-first application for automated book production — extract content from
 
 ## Getting Started
 
-### Option A: Docker (recommended for quick setup)
+### Docker (recommended)
 
-Run ADT Studio with no local dependencies — just [Docker](https://docs.docker.com/get-docker/).
+Run ADT Studio with no local Node.js or pnpm needed — just [Docker](https://docs.docker.com/get-docker/).
 
 ```bash
 # Clone the repository
 git clone git@github.com:unicef/adt-studio.git
 cd adt-studio
 
-# Build and start
+# Build and start (first build takes ~5 min)
 docker compose up --build
 ```
 
 Open `http://localhost:8080` in the browser. Book data persists in the local `./books/` directory.
 
+To change the port, copy `.env.example` to `.env` and set `PORT=<your port>`.
+
 ```bash
 # Run in background
 docker compose up --build -d
-
-# Custom port
-PORT=3000 docker compose up --build -d
 
 # View logs
 docker compose logs -f
@@ -75,7 +74,7 @@ docker compose logs -f
 docker compose down
 ```
 
-### Option B: Local development
+### Local development
 
 Prerequisites: [Node.js](https://nodejs.org/) >= 20, [pnpm](https://pnpm.io/) >= 9.
 
@@ -84,17 +83,15 @@ Prerequisites: [Node.js](https://nodejs.org/) >= 20, [pnpm](https://pnpm.io/) >=
 git clone git@github.com:unicef/adt-studio.git
 cd adt-studio
 
-# Install dependencies
+# Install dependencies (first time only)
 pnpm install
 
-# Build packages
-pnpm build
-
-# Start development servers (API + Studio)
+# Start dev servers — builds automatically, opens browser
 pnpm dev
 ```
 
-The API server runs at `http://localhost:3001` and the Studio frontend at `http://localhost:5173`.
+The browser opens automatically at `http://localhost:5173`. The API runs at `http://localhost:3001`.
+On first run, `pnpm dev` compiles all packages (~1 min). Subsequent runs are fast (incremental build).
 
 ### Running the desktop app
 

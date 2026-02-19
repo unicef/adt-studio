@@ -4,11 +4,8 @@ dist/
 .git/
 .gitignore
 
-# Data directories (mounted as volumes at runtime)
+# User data (mounted as volumes at runtime)
 books/
-prompts/
-templates/
-config.yaml
 
 # Build caches
 .cache/
