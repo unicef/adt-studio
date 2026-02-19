@@ -148,6 +148,7 @@ export interface PageDetail {
   sectioning: {
     reasoning: string
     sections: Array<{
+      sectionId: string
       sectionType: string
       parts: Array<
         | {
@@ -448,6 +449,24 @@ export const api = {
       {
         method: "POST",
         headers: { "X-OpenAI-Key": apiKey },
+        signal: AbortSignal.timeout(120_000),
+      }
+    ),
+
+  aiEditSection: (
+    label: string,
+    pageId: string,
+    sectionIndex: number,
+    instruction: string,
+    apiKey: string,
+    currentHtml?: string
+  ) =>
+    request<{ html: string; reasoning: string }>(
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/ai-edit`,
+      {
+        method: "POST",
+        headers: { "X-OpenAI-Key": apiKey },
+        body: JSON.stringify({ instruction, currentHtml }),
         signal: AbortSignal.timeout(120_000),
       }
     ),

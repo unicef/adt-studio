@@ -5,6 +5,7 @@ import type {
   SectionPart,
   AppConfig,
   TypeDef,
+  SectioningMode,
 } from "@adt/types"
 import { buildPageSectioningLLMSchema } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
@@ -14,6 +15,7 @@ export interface SectioningConfig {
   prunedSectionTypes: string[]
   promptName: string
   modelId: string
+  mode: SectioningMode
 }
 
 export interface SectionPageInput {
@@ -99,6 +101,7 @@ export async function sectionPage(
     schema,
     prompt: config.promptName,
     context: {
+      sectioning_mode: config.mode,
       page: { imageBase64: input.pageImageBase64 },
       images: unprunedImages.map((img) => ({
         image_id: img.imageId,
@@ -135,7 +138,8 @@ export async function sectionPage(
   // Post-process: mark pruned sections, expand part_ids to inline parts
   const prunedSet = new Set(config.prunedSectionTypes)
 
-  const sections = result.object.sections.map((s) => {
+  const sections = result.object.sections.map((s, idx) => {
+    const sectionId = `${input.pageId}_sec${String(idx + 1).padStart(3, "0")}`
     const parts: SectionPart[] = s.part_ids.map((partId) => {
       assignedPartIds.add(partId)
 
@@ -164,6 +168,7 @@ export async function sectionPage(
     })
 
     return {
+      sectionId,
       sectionType: s.section_type,
       parts,
       backgroundColor: s.background_color,
@@ -263,5 +268,6 @@ export function buildSectioningConfig(appConfig: AppConfig): SectioningConfig {
     prunedSectionTypes: appConfig.pruned_section_types ?? [],
     promptName: appConfig.page_sectioning?.prompt ?? "page_sectioning",
     modelId: appConfig.page_sectioning?.model ?? "openai:gpt-5.2",
+    mode: appConfig.page_sectioning?.mode ?? "section",
   }
 }

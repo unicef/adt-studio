@@ -60,6 +60,7 @@ function makePageInput(
       reasoning: "",
       sections: [
         {
+          sectionId: `${pageId}_sec001`,
           sectionType: isPruned ? "front_cover" : "text_only",
           parts: [],
           backgroundColor: "#ffffff",
@@ -93,8 +94,8 @@ describe("isContentPage", () => {
     const sectioning: PageSectioningOutput = {
       reasoning: "",
       sections: [
-        { sectionType: "front_cover", parts: [], backgroundColor: "#fff", textColor: "#000", pageNumber: null, isPruned: true },
-        { sectionType: "text_only", parts: [], backgroundColor: "#fff", textColor: "#000", pageNumber: null, isPruned: false },
+        { sectionId: "pg_sec001", sectionType: "front_cover", parts: [], backgroundColor: "#fff", textColor: "#000", pageNumber: null, isPruned: true },
+        { sectionId: "pg_sec002", sectionType: "text_only", parts: [], backgroundColor: "#fff", textColor: "#000", pageNumber: null, isPruned: false },
       ],
     }
     expect(isContentPage(sectioning)).toBe(true)
@@ -104,7 +105,7 @@ describe("isContentPage", () => {
     const sectioning: PageSectioningOutput = {
       reasoning: "",
       sections: [
-        { sectionType: "front_cover", parts: [], backgroundColor: "#fff", textColor: "#000", pageNumber: null, isPruned: true },
+        { sectionId: "pg_sec001", sectionType: "front_cover", parts: [], backgroundColor: "#fff", textColor: "#000", pageNumber: null, isPruned: true },
       ],
     }
     expect(isContentPage(sectioning)).toBe(false)

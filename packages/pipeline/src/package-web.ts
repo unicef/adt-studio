@@ -15,6 +15,7 @@ import { WebRenderingOutput as WebRenderingOutputSchema } from "@adt/types"
 import type { Progress } from "./progress.js"
 import { nullProgress } from "./progress.js"
 import { getBaseLanguage, normalizeLocale } from "./language-context.js"
+import { buildTextCatalog } from "./text-catalog.js"
 
 export interface PackageAdtWebOptions {
   bookDir: string
@@ -77,8 +78,15 @@ export async function packageAdtWeb(
   const pages = storage.getPages()
   const imageMap = buildImageMap(path.join(bookDir, "images"))
 
+  // Always rebuild the text catalog to avoid staleness; only persist if changed
+  const catalog = buildTextCatalog(storage, pages)
   const catalogRow = storage.getLatestNodeData("text-catalog", "book")
-  const catalog = catalogRow?.data as TextCatalogOutput | undefined
+  const storedEntries = catalogRow
+    ? JSON.stringify((catalogRow.data as TextCatalogOutput).entries)
+    : null
+  if (JSON.stringify(catalog.entries) !== storedEntries) {
+    storage.putNodeData("text-catalog", "book", catalog)
+  }
 
   const glossaryRow = storage.getLatestNodeData("glossary", "book")
   const glossary = glossaryRow?.data as GlossaryOutput | undefined
@@ -108,14 +116,8 @@ export async function packageAdtWeb(
     }
   }
 
-  for (let pi = 0; pi < pages.length; pi++) {
-    const page = pages[pi]
-    const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
-    if (!renderRow) continue
-
-    const parsed = WebRenderingOutputSchema.safeParse(renderRow.data)
-    if (!parsed.success) continue
-    const rendering = parsed.data
+  for (const page of pages) {
+    const quizzes = quizzesByAfterPageId.get(page.pageId) ?? []
 
     const sectioningRow = storage.getLatestNodeData("page-sectioning", page.pageId)
     const sectioning = sectioningRow?.data as PageSectioningOutput | undefined
@@ -128,75 +130,84 @@ export async function packageAdtWeb(
       }
     }
 
-    // Concatenate section HTML and merge activity answers
-    const { html: sectionHtml, activityAnswers } = combineSections(rendering)
+    const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
+    if (renderRow) {
+      const parsed = WebRenderingOutputSchema.safeParse(renderRow.data)
+      if (parsed.success) {
+        const rendering = parsed.data
 
-    // Rewrite image URLs and copy referenced images
-    const { html: rewrittenHtml, referencedImages } = rewriteImageUrls(
-      sectionHtml,
-      label,
-      imageMap,
-    )
+        // Skip pages with no rendered sections (all pruned)
+        if (rendering.sections.length > 0) {
+          // Concatenate section HTML and merge activity answers
+          const { html: sectionHtml, activityAnswers } = combineSections(rendering)
 
-    for (const imageId of referencedImages) {
-      if (!copiedImages.has(imageId)) {
-        const filename = imageMap.get(imageId)
-        if (filename) {
-          fs.copyFileSync(
-            path.join(bookDir, "images", filename),
-            path.join(imageDir, filename),
+          // Rewrite image URLs and copy referenced images
+          const { html: rewrittenHtml, referencedImages } = rewriteImageUrls(
+            sectionHtml,
+            label,
+            imageMap,
           )
-          copiedImages.add(imageId)
+
+          for (const imageId of referencedImages) {
+            if (!copiedImages.has(imageId)) {
+              const filename = imageMap.get(imageId)
+              if (filename) {
+                fs.copyFileSync(
+                  path.join(bookDir, "images", filename),
+                  path.join(imageDir, filename),
+                )
+                copiedImages.add(imageId)
+              }
+            }
+          }
+
+          // Check for math content
+          if (containsMathContent(rewrittenHtml)) hasMath = true
+
+          const pageHtml = renderPageHtml({
+            content: rewrittenHtml,
+            language,
+            sectionId: page.pageId,
+            pageTitle: title,
+            pageIndex: pageList.length + 1,
+            activityAnswers,
+            hasMath: containsMathContent(rewrittenHtml),
+            bundleVersion,
+          })
+          fs.writeFileSync(path.join(adtDir, `${page.pageId}.html`), pageHtml)
+
+          const entry: PageEntry = {
+            section_id: page.pageId,
+            href: `${page.pageId}.html`,
+          }
+          if (pageNumber !== undefined) entry.page_number = pageNumber
+          pageList.push(entry)
         }
       }
     }
 
-    // Check for math content
-    if (containsMathContent(rewrittenHtml)) hasMath = true
+    // Insert quiz pages after this page (even if page content was skipped)
+    for (const quiz of quizzes) {
+      const quizIndex = quizData!.quizzes.indexOf(quiz)
+      const quizId = `qz${pad3(quizIndex + 1)}`
 
-    // Generate page HTML
-    const pageHtml = renderPageHtml({
-      content: rewrittenHtml,
-      language,
-      sectionId: page.pageId,
-      pageTitle: title,
-      pageIndex: pi + 1,
-      activityAnswers,
-      hasMath: containsMathContent(rewrittenHtml),
-      bundleVersion,
-    })
+      const quizHtmlContent = renderQuizHtml(quiz, quizId, catalog)
+      const quizPageHtml = renderPageHtml({
+        content: quizHtmlContent,
+        language,
+        sectionId: quizId,
+        pageTitle: title,
+        pageIndex: pageList.length + 1,
+        activityAnswers: buildQuizAnswers(quiz, quizId),
+        hasMath: false,
+        bundleVersion,
+        skipContentWrapper: true,
+      })
+      fs.writeFileSync(path.join(adtDir, `${quizId}.html`), quizPageHtml)
 
-    fs.writeFileSync(path.join(adtDir, `${page.pageId}.html`), pageHtml)
-
-    const entry: PageEntry = {
-      section_id: page.pageId,
-      href: `${page.pageId}.html`,
-    }
-    if (pageNumber !== undefined) entry.page_number = pageNumber
-    pageList.push(entry)
-
-    // Insert quiz pages after this page
-    const quizzes = quizzesByAfterPageId.get(page.pageId)
-    if (quizzes) {
-      for (const quiz of quizzes) {
-        const quizIndex = quizData!.quizzes.indexOf(quiz)
-        const quizId = `qz${pad3(quizIndex + 1)}`
-
-        const quizHtmlContent = renderQuizHtml(quiz, quizId, catalog)
-        const quizPageHtml = renderPageHtml({
-          content: quizHtmlContent,
-          language,
-          sectionId: quizId,
-          pageTitle: title,
-          pageIndex: pageList.length + 1,
-          activityAnswers: buildQuizAnswers(quiz, quizId),
-          hasMath: false,
-          bundleVersion,
-        })
-
-        fs.writeFileSync(path.join(adtDir, `${quizId}.html`), quizPageHtml)
-        pageList.push({ section_id: quizId, href: `${quizId}.html` })
-      }
+      const quizEntry: PageEntry = { section_id: quizId, href: `${quizId}.html` }
+      if (pageNumber !== undefined) quizEntry.page_number = pageNumber
+      pageList.push(quizEntry)
     }
   }
 
@@ -376,6 +387,12 @@ export async function packageAdtWeb(
   writeJson(path.join(assetsDir, "config.json"), configJson)
 
   // ------------------------------------------------------------------
+  // Build JS bundle (base.js → base.bundle.min.js)
+  // ------------------------------------------------------------------
+  progress.emit({ type: "step-progress", step, message: "Building JS bundle..." })
+  await buildJsBundle(webAssetsDir, assetsDir)
+
+  // ------------------------------------------------------------------
   // Build Tailwind CSS
   // ------------------------------------------------------------------
   progress.emit({ type: "step-progress", step, message: "Building Tailwind CSS..." })
@@ -397,6 +414,9 @@ export interface RenderPageOptions {
   activityAnswers?: Record<string, string | boolean | number>
   hasMath: boolean
   bundleVersion: string
+  /** When true, content is placed directly in <body> without a <div id="content"> wrapper.
+   *  Used for quiz pages whose template provides its own #content element. */
+  skipContentWrapper?: boolean
 }
 
 export function renderPageHtml(opts: RenderPageOptions): string {
@@ -409,6 +429,12 @@ export function renderPageHtml(opts: RenderPageOptions): string {
       ? `\n    <script type="text/javascript">\n        window.correctAnswers = JSON.parse('${escapeInlineScriptJson(JSON.stringify(opts.activityAnswers))}');\n    </script>`
       : ""
 
+  const contentBlock = opts.skipContentWrapper
+    ? `    ${opts.content}`
+    : `    <div id="content" class="opacity-0">
+    ${opts.content}
+    </div>`
+
   return `<!DOCTYPE html>
 <html lang="${escapeAttr(opts.language)}">
 
@@ -418,15 +444,15 @@ export function renderPageHtml(opts: RenderPageOptions): string {
     <title>${escapeHtml(opts.pageTitle)}</title>
     <meta name="title-id" content="${escapeAttr(opts.sectionId)}" />
     <meta name="page-section-id" content="${opts.pageIndex}" />
+    <link rel="preload" href="./assets/fonts/Merriweather-VariableFont_opsz,wdth,wght.woff2" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="./assets/fonts/Merriweather-Italic-VariableFont_opsz,wdth,wght.woff2" as="font" type="font/woff2" crossorigin>
     <link href="./content/tailwind_output.css" rel="stylesheet">
     <link href="./assets/libs/fontawesome/css/all.min.css" rel="stylesheet">
     <link href="./assets/fonts.css" rel="stylesheet">
 ${mathScript}</head>
 
 <body class="min-h-screen flex items-center justify-center">
-    <div id="content">
-    ${opts.content}
-    </div>
+${contentBlock}
 ${answersScript}
     <div class="relative z-50" id="interface-container"></div>
     <div class="relative z-50" id="nav-container"></div>
@@ -441,16 +467,16 @@ ${answersScript}
 // Quiz HTML generation
 // ---------------------------------------------------------------------------
 
-function pad3(n: number): string {
+export function pad3(n: number): string {
   return String(n).padStart(3, "0")
 }
 
-function renderQuizHtml(
+export function renderQuizHtml(
   quiz: Quiz,
   quizId: string,
   catalog: TextCatalogOutput | undefined,
 ): string {
-  const questionId = quizId
+  const questionId = `${quizId}_que`
   const texts = new Map<string, string>()
   if (catalog?.entries) {
     for (const e of catalog.entries) texts.set(e.id, e.text)
@@ -526,7 +552,7 @@ function renderQuizHtml(
     }
 </style>
 
-<div class="container content mx-auto w-full min-h-screen px-8 py-8 flex items-center justify-center" id="content">
+<div id="content" class="container content mx-auto w-full min-h-screen px-8 py-8 flex items-center justify-center opacity-0">
     <section
         id="simple-main"
         role="activity"
@@ -573,7 +599,7 @@ ${JSON.stringify(explanationMapping)}
 </script>`
 }
 
-function buildQuizAnswers(quiz: Quiz, quizId: string): Record<string, boolean> {
+export function buildQuizAnswers(quiz: Quiz, quizId: string): Record<string, boolean> {
   const answers: Record<string, boolean> = {}
   for (let i = 0; i < quiz.options.length; i++) {
     answers[`${quizId}_o${i}`] = i === quiz.answerIndex
@@ -851,6 +877,29 @@ export async function buildPreviewTailwindCss(
   })
 
   return result.css
+}
+
+// ---------------------------------------------------------------------------
+// JS bundle build (base.js → base.bundle.min.js via esbuild)
+// ---------------------------------------------------------------------------
+
+async function buildJsBundle(
+  webAssetsDir: string,
+  outputAssetsDir: string,
+): Promise<void> {
+  const esbuild = await import("esbuild")
+  const entryPoint = path.join(webAssetsDir, "base.js")
+  if (!fs.existsSync(entryPoint)) return // skip if no source
+
+  await esbuild.build({
+    entryPoints: [entryPoint],
+    bundle: true,
+    minify: true,
+    sourcemap: true,
+    format: "esm",
+    target: "es2020",
+    outfile: path.join(outputAssetsDir, "base.bundle.min.js"),
+  })
 }
 
 // ---------------------------------------------------------------------------

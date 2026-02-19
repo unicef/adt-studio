@@ -518,7 +518,7 @@ export const PageEditPanel = forwardRef<PageEditPanelHandle, PageEditPanelProps>
                   </div>
                 ) : adtPreview && combinedHtml ? (
                   <iframe
-                    src={`/api/books/${label}/adt-preview/${pageId}.html`}
+                    src={`/api/books/${label}/adt/v-${Date.now()}/${pageId}.html`}
                     className="h-full min-h-[600px] w-full rounded border"
                     title="ADT Preview"
                     allow="autoplay"
@@ -549,6 +549,7 @@ export const PageEditPanel = forwardRef<PageEditPanelHandle, PageEditPanelProps>
               <TabsContent value="sections" className="mt-0 flex-1 overflow-auto p-4">
                 {edit.effectiveSectioning ? (
                   <SectionList
+                    pageId={pageId}
                     sections={edit.effectiveSectioning.sections}
                     draftSectioning={edit.draftSectioning}
                     serverSectioning={page.sectioning}

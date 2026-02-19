@@ -29,7 +29,7 @@
 {% endif %}
 
 <div id="content" class="container mx-auto flex min-h-screen w-full items-center justify-center px-6 py-12" style="background-color: {{ container_bg | escape }};">
-    <section role="article" data-section-type="{{ section_type | escape }}" style="color: {{ content_color | escape }};" class="w-full">
+    <section role="article" data-section-type="{{ section_type | escape }}" data-section-id="{{ section_id | escape }}" style="color: {{ content_color | escape }};" class="w-full">
         <div class="mx-auto flex w-full max-w-6xl flex-col items-center gap-12 rounded-[32px] px-6 py-10 lg:flex-row lg:items-stretch lg:px-10 lg:py-16">
             {% if img_count > 0 %}
                 <div class="flex w-full max-w-xl flex-shrink-0 items-center justify-center">

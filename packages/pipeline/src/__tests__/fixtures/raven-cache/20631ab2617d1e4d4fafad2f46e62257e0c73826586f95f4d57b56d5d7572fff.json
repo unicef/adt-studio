@@ -1,0 +1,16 @@
+{
+  "reasoning": "This page presents a single story moment: two short narrative paragraphs accompanied by one illustration of Hyena and Raven. These elements naturally form one unified reading section with a single image. The page number '1' is visible at the bottom.",
+  "sections": [
+    {
+      "section_type": "text_and_single_image",
+      "part_ids": [
+        "pg002_gp001",
+        "pg002_gp002",
+        "pg002_im002"
+      ],
+      "background_color": "#ffffff",
+      "text_color": "#000000",
+      "page_number": 1
+    }
+  ]
+}

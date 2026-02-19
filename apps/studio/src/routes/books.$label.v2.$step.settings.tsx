@@ -7,7 +7,6 @@ import { QuizzesSettings } from "@/components/v2/steps/QuizzesSettings"
 import { GlossarySettings } from "@/components/v2/steps/GlossarySettings"
 import { CaptionsSettings } from "@/components/v2/steps/CaptionsSettings"
 import { TranslationsSettings } from "@/components/v2/steps/TranslationsSettings"
-import { TextToSpeechSettings } from "@/components/v2/steps/TextToSpeechSettings"
 import { cn } from "@/lib/utils"
 
 export const Route = createFileRoute("/books/$label/v2/$step/settings")({
@@ -58,8 +57,6 @@ function StepSettingsPage() {
           <CaptionsSettings bookLabel={label} headerTarget={headerTarget} tab={tab} />
         ) : step === "translations" ? (
           <TranslationsSettings bookLabel={label} headerTarget={headerTarget} tab={tab} />
-        ) : step === "text-to-speech" ? (
-          <TextToSpeechSettings bookLabel={label} headerTarget={headerTarget} tab={tab} />
         ) : (
           <div className="p-4 max-w-2xl">
             <p className="text-sm text-muted-foreground">

@@ -159,7 +159,7 @@ function imagePart(imageId: string, isPruned = false) {
 describe("renderPage", () => {
   const htmlResponse = {
     reasoning: "test",
-    content: '<div id="content" class="container"><section role="article" data-section-type="text_only"><p data-id="pg001_gp001_tx001">Hello</p></section></div>',
+    content: '<div id="content" class="container"><section role="article" data-section-type="text_only" data-section-id="pg001_sec001"><p data-id="pg001_gp001_tx001">Hello</p></section></div>',
   }
 
   it("skips pruned sections", async () => {
@@ -180,6 +180,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "text_only",
               parts: [
                 textPart("pg001_gp001", "paragraph", [
@@ -192,6 +193,7 @@ describe("renderPage", () => {
               isPruned: false,
             },
             {
+              sectionId: "pg001_sec002",
               sectionType: "credits",
               parts: [
                 textPart("pg001_gp002", "paragraph", [
@@ -237,6 +239,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "text_only",
               parts: [
                 textPart("pg001_gp001", "paragraph", [
@@ -267,7 +270,7 @@ describe("renderPage", () => {
     const imgResponse = {
       reasoning: "test",
       content:
-        '<div id="content" class="container"><section role="article" data-section-type="images_only"><img data-id="pg001_im001" src="placeholder" alt="test" /></section></div>',
+        '<div id="content" class="container"><section role="article" data-section-type="images_only" data-section-id="pg001_sec001"><img data-id="pg001_im001" src="placeholder" alt="test" /></section></div>',
     }
 
     const fakeLlm: LLMModel = {
@@ -286,6 +289,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "images_only",
               parts: [imagePart("pg001_im001")],
               backgroundColor: "#ffffff",
@@ -320,7 +324,7 @@ describe("renderPage", () => {
           object: {
             reasoning: "test",
             content:
-              '<div id="content" class="container"><section role="article" data-section-type="text_only"><p data-id="pg001_gp001_tx001">Hello</p><p data-id="pg001_gp001_tx002">World</p></section></div>',
+              '<div id="content" class="container"><section role="article" data-section-type="text_only" data-section-id="pg001_sec001"><p data-id="pg001_gp001_tx001">Hello</p><p data-id="pg001_gp001_tx002">World</p></section></div>',
           } as T,
         } as GenerateObjectResult<T>
       },
@@ -335,6 +339,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "text_only",
               parts: [
                 textPart("pg001_gp001", "paragraph", [
@@ -376,7 +381,7 @@ describe("renderPage", () => {
           object: {
             reasoning: "test",
             content:
-              '<div id="content" class="container"><section role="article" data-section-type="text_only"><p data-id="pg001_gp001_tx001">Hello</p></section></div>',
+              '<div id="content" class="container"><section role="article" data-section-type="text_only" data-section-id="pg001_sec001"><p data-id="pg001_gp001_tx001">Hello</p></section></div>',
           } as T,
         } as GenerateObjectResult<T>
       },
@@ -391,6 +396,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "text_only",
               parts: [
                 textPart("pg001_gp001", "paragraph", [
@@ -425,7 +431,7 @@ describe("renderPage", () => {
         return {
           object: {
             reasoning: `section ${callCount}`,
-            content: `<div id="content" class="container"><section role="article" data-section-type="text_only"><p data-id="pg001_gp00${callCount}_tx001">Text ${callCount}</p></section></div>`,
+            content: `<div id="content" class="container"><section role="article" data-section-type="text_only" data-section-id="pg001_sec00${callCount}"><p data-id="pg001_gp00${callCount}_tx001">Text ${callCount}</p></section></div>`,
           } as T,
         } as GenerateObjectResult<T>
       },
@@ -440,6 +446,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "text_only",
               parts: [
                 textPart("pg001_gp001", "paragraph", [
@@ -452,6 +459,7 @@ describe("renderPage", () => {
               isPruned: false,
             },
             {
+              sectionId: "pg001_sec002",
               sectionType: "text_only",
               parts: [
                 textPart("pg001_gp002", "paragraph", [
@@ -486,7 +494,7 @@ describe("renderPage", () => {
         templateCalled = true
         capturedTemplateName = templateName
         capturedContext = context
-        return '<section><p data-id="pg001_gp001_tx001">Hello</p></section>'
+        return '<section role="article" data-section-type="text_only" data-section-id="pg001_sec001"><p data-id="pg001_gp001_tx001">Hello</p></section>'
       },
     }
 
@@ -515,6 +523,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "text_only",
               parts: [
                 textPart("pg001_gp001", "paragraph", [
@@ -532,7 +541,7 @@ describe("renderPage", () => {
       },
       templateResolveConfig,
       fakeLlm,
-      fakeTemplateEngine
+      fakeTemplateEngine,
     )
 
     expect(templateCalled).toBe(true)
@@ -574,6 +583,7 @@ describe("renderPage", () => {
             reasoning: "test",
             sections: [
               {
+                sectionId: "pg001_sec001",
                 sectionType: "text_only",
                 parts: [
                   textPart("pg001_gp001", "paragraph", [
@@ -603,8 +613,8 @@ describe("renderPage", () => {
         calls.push(modelId)
         const content =
           modelId === "openai:model-a"
-            ? '<div id="content" class="container"><section role="article" data-section-type="text_only"><p data-id="pg001_gp001_tx001">First</p></section></div>'
-            : '<div id="content" class="container"><section role="article" data-section-type="text_only"><p data-id="pg001_gp002_tx001">Second</p></section></div>'
+            ? '<div id="content" class="container"><section role="article" data-section-type="text_only" data-section-id="pg001_sec001"><p data-id="pg001_gp001_tx001">First</p></section></div>'
+            : '<div id="content" class="container"><section role="article" data-section-type="text_only" data-section-id="pg001_sec002"><p data-id="pg001_gp002_tx001">Second</p></section></div>'
         return {
           object: { reasoning: "test", content } as T,
         } as GenerateObjectResult<T>
@@ -641,6 +651,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "cover",
               parts: [
                 textPart("pg001_gp001", "paragraph", [
@@ -653,6 +664,7 @@ describe("renderPage", () => {
               isPruned: false,
             },
             {
+              sectionId: "pg001_sec002",
               sectionType: "body",
               parts: [
                 textPart("pg001_gp002", "paragraph", [
@@ -681,7 +693,7 @@ describe("renderPage", () => {
     const activityHtmlResponse = {
       reasoning: "activity reasoning",
       content:
-        '<div id="content" class="container"><section role="article" data-section-type="activity_multiple_choice"><div data-id="pg001_gp001_tx001">Question</div><div data-id="activity_gen_opt1">Option A</div></section></div>',
+        '<div id="content" class="container"><section role="article" data-section-type="activity_multiple_choice" data-section-id="pg001_sec001"><div data-id="pg001_gp001_tx001">Question</div><div data-id="activity_gen_opt1">Option A</div></section></div>',
     }
     const activityAnswersResponse = {
       reasoning: "answer reasoning",
@@ -720,6 +732,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "activity_multiple_choice",
               parts: [
                 textPart("pg001_gp001", "paragraph", [
@@ -756,7 +769,7 @@ describe("renderPage", () => {
     const activityHtmlResponse = {
       reasoning: "open ended reasoning",
       content:
-        '<div id="content" class="container"><section role="article" data-section-type="activity_open_ended_answer"><div data-id="pg001_gp001_tx001">Question</div><textarea data-id="activity_gen_input1"></textarea></section></div>',
+        '<div id="content" class="container"><section role="article" data-section-type="activity_open_ended_answer" data-section-id="pg001_sec001"><div data-id="pg001_gp001_tx001">Question</div><textarea data-id="activity_gen_input1"></textarea></section></div>',
     }
 
     const fakeLlm: LLMModel = {
@@ -785,6 +798,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "activity_open_ended_answer",
               parts: [
                 textPart("pg001_gp001", "paragraph", [
@@ -818,7 +832,7 @@ describe("renderPage", () => {
     const llmHtmlResponse = {
       reasoning: "normal section reasoning",
       content:
-        '<div id="content" class="container"><section role="article" data-section-type="text"><div data-id="pg001_gp001_tx001">Body text</div></section></div>',
+        '<div id="content" class="container"><section role="article" data-section-type="text" data-section-id="pg001_sec001"><div data-id="pg001_gp001_tx001">Body text</div></section></div>',
     }
 
     const fakeLlm: LLMModel = {
@@ -847,6 +861,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "text",
               parts: [
                 textPart("pg001_gp001", "paragraph", [
@@ -896,6 +911,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "text_only",
               parts: [
                 textPart("pg001_gp001", "paragraph", [

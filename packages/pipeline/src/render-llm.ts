@@ -34,6 +34,7 @@ export async function renderSectionLlm(
   const context = {
     label: input.label,
     page_image_base64: input.pageImageBase64,
+    section_id: input.sectionId,
     section_type: input.sectionType,
     texts: texts.map((t) => ({
       text_id: t.textId,
@@ -120,6 +121,8 @@ function validateWebRendering(
   const texts = context.texts as Array<{ text_id: string; text: string }>
   const images = context.images as Array<{ image_id: string }>
   const isActivity = context._isActivity as boolean | undefined
+  const sectionId = context.section_id as string
+  const sectionType = context.section_type as string
   const allowedTextIds = texts.map((t) => t.text_id)
   const allowedImageIds = images.map((img) => img.image_id)
   const imageUrlPrefix = `/api/books/${label}/images`
@@ -133,6 +136,8 @@ function validateWebRendering(
     {
       ...(isActivity && { allowActivityGeneratedIds: true }),
       expectedTexts,
+      expectedSectionType: sectionType,
+      expectedSectionId: sectionId,
     }
   )
   if (check.valid && check.sectionHtml) {

@@ -7,7 +7,9 @@ import {
   WebRenderingOutput,
   type TextCatalogOutput,
   type GlossaryOutput,
+  type QuizGenerationOutput,
   type TTSOutput,
+  type Quiz,
 } from "@adt/types"
 import { createBookStorage, type Storage } from "@adt/storage"
 import {
@@ -18,6 +20,10 @@ import {
   buildGlossaryJson,
   getBaseLanguage,
   normalizeLocale,
+  renderQuizHtml,
+  buildQuizAnswers,
+  buildTextCatalog,
+  pad3,
 } from "@adt/pipeline"
 
 // ---------------------------------------------------------------------------
@@ -44,6 +50,7 @@ const MIME_TYPES: Record<string, string> = {
   ".wav": "audio/wav",
   ".ogg": "audio/ogg",
   ".map": "application/json",
+  ".dic": "application/octet-stream",
 }
 
 function getMimeType(filePath: string): string {
@@ -54,7 +61,7 @@ function getMimeType(filePath: string): string {
 // Caches (built lazily per book)
 // ---------------------------------------------------------------------------
 
-const tailwindCssCache = new Map<string, string>()
+// No Tailwind cache — preview is a dev tool; staleness causes more pain than rebuild cost
 
 // ---------------------------------------------------------------------------
 // Helpers to read book data from storage
@@ -72,14 +79,19 @@ function getBookTitle(storage: Storage): string {
   return metadata?.title ?? "ADT Preview"
 }
 
-function getTextCatalog(storage: Storage): TextCatalogOutput | undefined {
-  const row = storage.getLatestNodeData("text-catalog", "book")
-  return row?.data as TextCatalogOutput | undefined
+function getTextCatalog(storage: Storage): TextCatalogOutput {
+  const pages = storage.getPages()
+  return buildTextCatalog(storage, pages)
 }
 
 function getGlossary(storage: Storage): GlossaryOutput | undefined {
   const row = storage.getLatestNodeData("glossary", "book")
   return row?.data as GlossaryOutput | undefined
+}
+
+function getQuizData(storage: Storage): QuizGenerationOutput | undefined {
+  const row = storage.getLatestNodeData("quiz-generation", "book")
+  return row?.data as QuizGenerationOutput | undefined
 }
 
 function buildTextsMap(
@@ -109,14 +121,38 @@ function buildTextsMap(
   return textsMap
 }
 
-/** Build the pages.json manifest from all rendered pages */
+/** Build the pages.json manifest from all rendered pages, interleaving quiz pages */
 function buildPagesManifest(storage: Storage): Array<{ section_id: string; href: string }> {
   const pages = storage.getPages()
+  const quizData = getQuizData(storage)
+
+  // Build a map from afterPageId -> quizzes for interleaving
+  const quizzesByAfterPageId = new Map<string, Quiz[]>()
+  if (quizData?.quizzes) {
+    for (const quiz of quizData.quizzes) {
+      const existing = quizzesByAfterPageId.get(quiz.afterPageId) ?? []
+      existing.push(quiz)
+      quizzesByAfterPageId.set(quiz.afterPageId, existing)
+    }
+  }
+
   const list: Array<{ section_id: string; href: string }> = []
   for (const page of pages) {
     const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
-    if (renderRow) {
-      list.push({ section_id: page.pageId, href: `${page.pageId}.html` })
+    if (!renderRow) continue
+    const parsed = WebRenderingOutput.safeParse(renderRow.data)
+    if (!parsed.success || parsed.data.sections.length === 0) continue
+
+    list.push({ section_id: page.pageId, href: `${page.pageId}.html` })
+
+    // Insert quiz pages after this page
+    const quizzes = quizzesByAfterPageId.get(page.pageId)
+    if (quizzes) {
+      for (const quiz of quizzes) {
+        const quizIndex = quizData!.quizzes.indexOf(quiz)
+        const quizId = `qz${pad3(quizIndex + 1)}`
+        list.push({ section_id: quizId, href: `${quizId}.html` })
+      }
     }
   }
   return list
@@ -178,6 +214,11 @@ export function createAdtPreviewRoutes(
   webAssetsDir: string,
 ): Hono {
   const app = new Hono()
+
+  // Allow browser caching — the iframe URL includes a cache-busting version
+  // parameter (v-{timestamp}) that changes on repackage, so stale content
+  // is never served while repeat requests within the same session are fast.
+
 
   // Helper: resolve book + validate
   function resolveBook(label: string) {
@@ -252,31 +293,39 @@ export function createAdtPreviewRoutes(
     return c.body(NAV_HTML)
   })
 
-  // /content/tailwind_output.css
+  // /content/tailwind_output.css — rebuilt on every request (no cache, dev tool)
   app.get("/books/:label/adt-preview/content/tailwind_output.css", async (c) => {
     const { safeLabel } = resolveBook(c.req.param("label"))
 
-    let css = tailwindCssCache.get(safeLabel)
-    if (!css) {
-      const storage = createBookStorage(safeLabel, booksDir)
-      try {
-        const pages = storage.getPages()
-        let allHtml = ""
-        for (const page of pages) {
-          const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
-          if (renderRow) {
-            const parsed = WebRenderingOutput.safeParse(renderRow.data)
-            if (parsed.success) {
-              const { html } = combineSections(parsed.data)
-              allHtml += html + "\n"
-            }
+    const storage = createBookStorage(safeLabel, booksDir)
+    let css: string
+    try {
+      const pages = storage.getPages()
+      let allHtml = ""
+      for (const page of pages) {
+        const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
+        if (renderRow) {
+          const parsed = WebRenderingOutput.safeParse(renderRow.data)
+          if (parsed.success) {
+            const { html } = combineSections(parsed.data)
+            allHtml += html + "\n"
           }
         }
-        css = await buildPreviewTailwindCss(allHtml, webAssetsDir)
-        tailwindCssCache.set(safeLabel, css)
-      } finally {
-        storage.close()
       }
+
+      // Include quiz HTML so Tailwind scans quiz classes
+      const quizData = getQuizData(storage)
+      const catalog = getTextCatalog(storage)
+      if (quizData?.quizzes) {
+        for (let i = 0; i < quizData.quizzes.length; i++) {
+          const quizId = `qz${pad3(i + 1)}`
+          allHtml += renderQuizHtml(quizData.quizzes[i], quizId, catalog) + "\n"
+        }
+      }
+
+      css = await buildPreviewTailwindCss(allHtml, webAssetsDir)
+    } finally {
+      storage.close()
     }
 
     c.header("Content-Type", "text/css")
@@ -393,6 +442,42 @@ export function createAdtPreviewRoutes(
     const pageId = filename.replace(/\.html$/, "")
 
     return withStorage(label, (storage) => {
+      const title = getBookTitle(storage)
+      const language = getBookLanguage(storage)
+
+      // Check if this is a quiz page (qzNNN)
+      const quizMatch = pageId.match(/^qz(\d{3})$/)
+      if (quizMatch) {
+        const quizIndex = parseInt(quizMatch[1], 10) - 1
+        const quizData = getQuizData(storage)
+        if (!quizData?.quizzes || quizIndex < 0 || quizIndex >= quizData.quizzes.length) {
+          throw new HTTPException(404, { message: `No quiz data for: ${pageId}` })
+        }
+        const quiz = quizData.quizzes[quizIndex]
+        const catalog = getTextCatalog(storage)
+
+        const quizHtmlContent = renderQuizHtml(quiz, pageId, catalog)
+        // Determine page index from the manifest
+        const manifest = buildPagesManifest(storage)
+        const manifestIndex = manifest.findIndex((e) => e.section_id === pageId)
+
+        const html = renderPageHtml({
+          content: quizHtmlContent,
+          language,
+          sectionId: pageId,
+          pageTitle: title,
+          pageIndex: manifestIndex >= 0 ? manifestIndex + 1 : 1,
+          activityAnswers: buildQuizAnswers(quiz, pageId),
+          hasMath: false,
+          bundleVersion: "1",
+          skipContentWrapper: true,
+        })
+
+        c.header("Content-Type", "text/html; charset=utf-8")
+        return c.body(html)
+      }
+
+      // Regular content page
       const renderRow = storage.getLatestNodeData("web-rendering", pageId)
       if (!renderRow) {
         throw new HTTPException(404, { message: `No rendering data for page: ${pageId}` })
@@ -404,30 +489,17 @@ export function createAdtPreviewRoutes(
       }
 
       const { html: sectionHtml, activityAnswers } = combineSections(parsed.data)
-      const title = getBookTitle(storage)
-      const language = getBookLanguage(storage)
 
-      // Determine page index from all rendered pages
-      const pages = storage.getPages()
-      let pageIndex = 1
-      let idx = 0
-      for (const p of pages) {
-        const row = storage.getLatestNodeData("web-rendering", p.pageId)
-        if (row) {
-          idx++
-          if (p.pageId === pageId) {
-            pageIndex = idx
-            break
-          }
-        }
-      }
+      // Determine page index from manifest (includes quiz pages)
+      const manifest = buildPagesManifest(storage)
+      const manifestIndex = manifest.findIndex((e) => e.section_id === pageId)
 
       const html = renderPageHtml({
         content: sectionHtml,
         language,
         sectionId: pageId,
         pageTitle: title,
-        pageIndex,
+        pageIndex: manifestIndex >= 0 ? manifestIndex + 1 : 1,
         activityAnswers,
         hasMath: false,
         bundleVersion: "1",

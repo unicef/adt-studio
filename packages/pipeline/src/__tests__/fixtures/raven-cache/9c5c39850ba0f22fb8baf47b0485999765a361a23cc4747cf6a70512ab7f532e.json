@@ -1,0 +1,18 @@
+{
+  "reasoning": "This is a single front cover page: it contains the story title and author/illustrator names, a cover illustration, language label, and publisher/website logo text. All elements belong together as one coherent cover section.",
+  "sections": [
+    {
+      "section_type": "front_cover",
+      "part_ids": [
+        "pg001_gp001",
+        "pg001_gp002",
+        "pg001_gp003",
+        "pg001_im001",
+        "pg001_im002"
+      ],
+      "background_color": "#d98f2e",
+      "text_color": "#000000",
+      "page_number": null
+    }
+  ]
+}

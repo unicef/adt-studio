@@ -302,7 +302,7 @@ function BookDetailPage() {
               <div className="flex items-center gap-2">
                 {(packageAdt.isSuccess || hasAdt) && !packageAdt.isPending && (
                   <a
-                    href={getAdtUrl(label)}
+                    href={`${getAdtUrl(label)}/v-${Date.now()}/`}
                     target="_blank"
                     rel="noopener noreferrer"
                   >

@@ -119,7 +119,7 @@ function buildQuizEntries(storage: Storage): TextCatalogEntry[] {
   for (let i = 0; i < data.quizzes.length; i++) {
     const quiz = data.quizzes[i]
     const qid = `qz${pad3(i + 1)}`
-    entries.push({ id: qid, text: quiz.question })
+    entries.push({ id: `${qid}_que`, text: quiz.question })
 
     for (let j = 0; j < quiz.options.length; j++) {
       const option = quiz.options[j]

@@ -420,7 +420,7 @@ async function main(): Promise<void> {
   log("\nMastering:\n")
   const masterProgress = createMasterProgress()
 
-  const webAssetsDir = path.resolve(process.cwd(), "assets", "web")
+  const webAssetsDir = path.resolve(process.cwd(), "assets", "adt")
 
   await runMaster(
     {

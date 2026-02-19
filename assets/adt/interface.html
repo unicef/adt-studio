@@ -46,7 +46,7 @@
 <!-- Button to quick toggle TTS -->
 <button id="tts-quick-toggle-button" aria-label="Activate text to speech" aria-expanded="false"
     data-aria-id="activate-tts-label"
-    class="fixed bottom-20 right-4 w-12 h-12 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 focus:outline-none focus:ring-4 focus:ring-blue-500 shadow-lg transition-all duration-200 z-100">
+    class="hidden fixed bottom-20 right-4 w-12 h-12 flex items-center justify-center rounded-full bg-gray-200 hover:bg-gray-300 focus:outline-none focus:ring-4 focus:ring-blue-500 shadow-lg transition-all duration-200 z-100">
     <i class="fa-solid fa-volume-high text-2xl text-gray-600"></i>
 </button>
 
@@ -204,7 +204,7 @@
         <div class="overflow-y-auto p-4 ml-4 relative z-40">
             <!-- Assistant Content -->
             <div id="assistant-content" class="tab-content">
-                <div class="flex justify-between items-left">
+                <div id="easy-read-section" class="hidden flex justify-between items-left">
                     <button
                         class="flex items-center cursor-pointer mb-4 md:mb-0 w-full focus:outline-none focus:ring-2 focus:ring-blue-700 focus:ring-opacity-50 rounded-lg p-0"
                         id="toggle-easy-read" type="button" aria-checked="false" role="switch"
@@ -219,7 +219,7 @@
                         </div>
                     </button>
                 </div>
-                <div class="flex justify-between items-left border-t border-gray-300">
+                <div id="tts-sidebar-section" class="hidden flex justify-between items-left border-t border-gray-300">
                     <button
                         class="flex items-center cursor-pointer mb-4 md:mb-0 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 rounded-lg p-0"
                         id="toggle-read-aloud" type="button" aria-checked="false" role="switch"
@@ -274,7 +274,7 @@
                 <!--
                 <button id="play-button-shortcut" class="sr-only">Saltar al botón de reproducción</button>
                 -->
-                <div class="flex justify-between items-left border-t border-gray-300">
+                <div id="sign-language-section" class="hidden flex justify-between items-left border-t border-gray-300">
                     <button
                         class="flex items-center cursor-pointer mb-4 md:mb-0 w-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 rounded-lg p-0"
                         id="toggle-sign-language" type="button" aria-checked="false" role="switch"

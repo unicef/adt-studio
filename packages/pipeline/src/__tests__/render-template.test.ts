@@ -20,6 +20,7 @@ function makeInput(overrides?: Partial<RenderSectionInput>): RenderSectionInput 
     pageId: "pg001",
     pageImageBase64: "base64img",
     sectionIndex: 0,
+    sectionId: "pg001_sec001",
     sectionType: "text_only",
     backgroundColor: "#ffffff",
     textColor: "#000000",
@@ -112,7 +113,7 @@ describe("renderSectionTemplate", () => {
   it("renders a section and validates the output", async () => {
     fs.writeFileSync(
       path.join(tmpDir, "test_render.liquid"),
-      '<section>{% for part in parts %}{% if part.type == "group" %}{% for text in part.texts %}<p data-id="{{ text.text_id }}">{{ text.text }}</p>{% endfor %}{% endif %}{% endfor %}</section>'
+      '<section data-section-type="{{ section_type }}" data-section-id="{{ section_id }}">{% for part in parts %}{% if part.type == "group" %}{% for text in part.texts %}<p data-id="{{ text.text_id }}">{{ text.text }}</p>{% endfor %}{% endif %}{% endfor %}</section>'
     )
 
     const engine = createTemplateEngine(tmpDir)
@@ -123,13 +124,13 @@ describe("renderSectionTemplate", () => {
     expect(result.reasoning).toBe("template-based rendering")
     expect(result.html).toContain('data-id="pg001_gp001_tx001"')
     expect(result.html).toContain("Hello world")
-    expect(result.html).toContain("<section>")
+    expect(result.html).toContain("<section")
   })
 
   it("renders images with rewritten src URLs", async () => {
     fs.writeFileSync(
       path.join(tmpDir, "test_render.liquid"),
-      '<section>{% for part in parts %}{% if part.type == "image" %}<img data-id="{{ part.image_id }}" src="{{ part.image_url }}">{% endif %}{% endfor %}</section>'
+      '<section data-section-type="{{ section_type }}" data-section-id="{{ section_id }}">{% for part in parts %}{% if part.type == "image" %}<img data-id="{{ part.image_id }}" src="{{ part.image_url }}">{% endif %}{% endfor %}</section>'
     )
 
     const input = makeInput({
@@ -148,13 +149,14 @@ describe("renderSectionTemplate", () => {
   it("passes section metadata to the template context", async () => {
     fs.writeFileSync(
       path.join(tmpDir, "test_render.liquid"),
-      '<section data-section-type="{{ section_type }}" style="background: {{ background_color }}; color: {{ text_color }};"><p data-id="{{ parts[0].texts[0].text_id }}">{{ parts[0].texts[0].text }}</p></section>'
+      '<section data-section-type="{{ section_type }}" data-section-id="{{ section_id }}" style="background: {{ background_color }}; color: {{ text_color }};"><p data-id="{{ parts[0].texts[0].text_id }}">{{ parts[0].texts[0].text }}</p></section>'
     )
 
     const engine = createTemplateEngine(tmpDir)
     const result = await renderSectionTemplate(makeInput(), templateConfig, engine)
 
     expect(result.html).toContain('data-section-type="text_only"')
+    expect(result.html).toContain('data-section-id="pg001_sec001"')
     expect(result.html).toContain("background: #ffffff")
     expect(result.html).toContain("color: #000000")
   })
@@ -174,7 +176,7 @@ describe("renderSectionTemplate", () => {
   it("throws when template produces text outside data-id elements", async () => {
     fs.writeFileSync(
       path.join(tmpDir, "test_render.liquid"),
-      '<section>Loose text here<p data-id="{{ parts[0].texts[0].text_id }}">{{ parts[0].texts[0].text }}</p></section>'
+      '<section data-section-type="{{ section_type }}" data-section-id="{{ section_id }}">Loose text here<p data-id="{{ parts[0].texts[0].text_id }}">{{ parts[0].texts[0].text }}</p></section>'
     )
 
     const engine = createTemplateEngine(tmpDir)
@@ -186,7 +188,7 @@ describe("renderSectionTemplate", () => {
   it("handles mixed text groups and images", async () => {
     fs.writeFileSync(
       path.join(tmpDir, "test_render.liquid"),
-      '<section>{% for part in parts %}{% if part.type == "group" %}{% for text in part.texts %}<p data-id="{{ text.text_id }}">{{ text.text }}</p>{% endfor %}{% elsif part.type == "image" %}<img data-id="{{ part.image_id }}" src="{{ part.image_url }}">{% endif %}{% endfor %}</section>'
+      '<section data-section-type="{{ section_type }}" data-section-id="{{ section_id }}">{% for part in parts %}{% if part.type == "group" %}{% for text in part.texts %}<p data-id="{{ text.text_id }}">{{ text.text }}</p>{% endfor %}{% elsif part.type == "image" %}<img data-id="{{ part.image_id }}" src="{{ part.image_url }}">{% endif %}{% endfor %}</section>'
     )
 
     const input = makeInput({

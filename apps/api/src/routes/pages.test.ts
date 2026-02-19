@@ -71,6 +71,7 @@ describe("Page routes", () => {
         reasoning: "sectioned",
         sections: [
           {
+            sectionId: `${label}_p1_sec001`,
             sectionType: "content",
             parts: [{ type: "text_group", groupId: "g1", groupType: "paragraph", texts: [{ textType: "section_text", text: "Hello world", isPruned: false }], isPruned: false }],
             backgroundColor: "#ffffff",

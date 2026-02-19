@@ -29,6 +29,8 @@ export interface RenderStrategyState {
 export interface AdvancedLayoutPanelProps {
   defaultRenderStrategy: string
   onDefaultRenderStrategyChange: (value: string) => void
+  sectioningMode: string
+  onSectioningModeChange: (value: string) => void
   renderStrategies: Record<string, RenderStrategyState>
   onRenderStrategiesChange: (strategies: Record<string, RenderStrategyState>) => void
   textTypes: Record<string, string>
@@ -364,6 +366,8 @@ function RenderStrategyEditor({
 export function AdvancedLayoutPanel({
   defaultRenderStrategy,
   onDefaultRenderStrategyChange,
+  sectioningMode,
+  onSectioningModeChange,
   renderStrategies,
   onRenderStrategiesChange,
   textTypes,
@@ -467,6 +471,34 @@ export function AdvancedLayoutPanel({
       </div>
 
       {afterStrategySlot}
+
+      {/* Sectioning Mode */}
+      <div>
+        <h4 className="mb-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          Sectioning Mode
+        </h4>
+        <Select
+          value={sectioningMode}
+          onValueChange={onSectioningModeChange}
+        >
+          <SelectTrigger className="h-8 w-52 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="section" className="text-xs">
+              By Section
+            </SelectItem>
+            <SelectItem value="page" className="text-xs">
+              By Page
+            </SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-[10px] text-muted-foreground mt-1">
+          {sectioningMode === "page"
+            ? "Each page is treated as a single section"
+            : "Content is grouped into logical sections per page"}
+        </p>
+      </div>
 
       {/* 2. Available Render Strategies — collapsed */}
       <CollapsibleSection title="Available Render Strategies">

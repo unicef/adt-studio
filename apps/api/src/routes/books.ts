@@ -31,6 +31,7 @@ const MIME_TYPES: Record<string, string> = {
   ".ttf": "font/ttf",
   ".ico": "image/x-icon",
   ".webp": "image/webp",
+  ".dic": "application/octet-stream",
 }
 
 export function createBookRoutes(
@@ -304,6 +305,9 @@ export function createBookRoutes(
   })
 
   // GET /books/:label/adt/* — Serve packaged ADT static files
+  // Supports an optional cache-bust version segment: /adt/v-{ts}/page.html
+  // The version segment is stripped before resolving files, so all relative
+  // URLs (pages, assets, content) carry the same bust automatically.
   // When no file path is given, redirect to the first page.
   app.get("/books/:label/adt/*", (c) => {
     const { label } = c.req.param()
@@ -325,7 +329,11 @@ export function createBookRoutes(
     const adtPrefix = `/books/${safeLabel}/adt/`
     const reqPath = c.req.path
     const prefixIdx = reqPath.indexOf(adtPrefix)
-    const filePath = prefixIdx >= 0 ? reqPath.slice(prefixIdx + adtPrefix.length) : ""
+    let filePath = prefixIdx >= 0 ? reqPath.slice(prefixIdx + adtPrefix.length) : ""
+
+    // Strip optional cache-bust version segment (e.g. "v-1708300000000/" or "v-1708300000000")
+    filePath = filePath.replace(/^v-[^/]+\/?/, "")
+
     if (!filePath) {
       // Root request — redirect to first page
       const pagesPath = path.join(adtDir, "content", "pages.json")
@@ -338,8 +346,10 @@ export function createBookRoutes(
       if (pages.length === 0) {
         throw new HTTPException(404, { message: "ADT has no pages" })
       }
-      const qs = new URL(c.req.url).search
-      return c.redirect(`/api/books/${safeLabel}/adt/${pages[0].href}${qs}`)
+      // Preserve the version segment in the redirect
+      const versionMatch = reqPath.match(/\/adt\/(v-[^/]+)/)
+      const versionPrefix = versionMatch ? `${versionMatch[1]}/` : ""
+      return c.redirect(`/api/books/${safeLabel}/adt/${versionPrefix}${pages[0].href}`)
     }
 
     const resolvedPath = path.resolve(adtDir, filePath)
@@ -360,7 +370,9 @@ export function createBookRoutes(
     const fileBuffer = fs.readFileSync(resolvedPath)
     const ext = path.extname(resolvedPath).toLowerCase()
     c.header("Content-Type", MIME_TYPES[ext] ?? "application/octet-stream")
-    c.header("Cache-Control", "no-cache")
+    // Cache indefinitely — the iframe URL includes a cache-busting version
+    // segment (v-{timestamp}) that changes on every repackage.
+    c.header("Cache-Control", "public, max-age=31536000, immutable")
     return c.body(fileBuffer)
   })
 

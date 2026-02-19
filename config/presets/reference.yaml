@@ -6,6 +6,9 @@ default_render_strategy: two_column
 
 spread_mode: false
 
+page_sectioning:
+  mode: page
+
 render_strategies:
   two_column:
     render_type: template
