@@ -10,7 +10,7 @@ import { loadBookConfig } from "./config.js"
 import { normalizeLocale } from "./language-context.js"
 import { nullProgress, type Progress } from "./progress.js"
 import { processWithConcurrency } from "./concurrency.js"
-import { WebRenderingOutput, type StepName, type PageSectioningOutput } from "@adt/types"
+import { WebRenderingOutput, type StepName, type PageSectioningOutput, type BookSummaryOutput } from "@adt/types"
 
 export interface RunProofOptions {
   label: string
@@ -68,6 +68,10 @@ export async function runProof(
       metadata?.language_code ??
       "en"
     )
+
+    // Load book summary for captioning context
+    const summaryRow = storage.getLatestNodeData("book-summary", "book")
+    const bookSummary = (summaryRow?.data as BookSummaryOutput | undefined)?.summary
 
     const onLlmLog = (entry: LlmLogEntry) => {
       storage.appendLlmLog(entry)
@@ -137,6 +141,7 @@ export async function runProof(
             captionModel,
             captionConfig,
             language,
+            bookSummary,
             effectiveConcurrency,
             progress
           ),
@@ -201,6 +206,7 @@ async function runImageCaptioning(
   llmModel: ReturnType<typeof createLLMModel>,
   captionConfig: ReturnType<typeof buildCaptionConfig>,
   language: string,
+  bookSummary: string | undefined,
   concurrency: number,
   progress: Progress
 ): Promise<void> {
@@ -227,7 +233,8 @@ async function runImageCaptioning(
           storage,
           llmModel,
           captionConfig,
-          language
+          language,
+          bookSummary
         )
         completedCaptions++
         progress.emit({
@@ -385,7 +392,8 @@ async function captionPage(
   storage: Storage,
   llmModel: ReturnType<typeof createLLMModel>,
   captionConfig: ReturnType<typeof buildCaptionConfig>,
-  language: string
+  language: string,
+  bookSummary: string | undefined
 ): Promise<void> {
   // Get rendered HTML for this page
   const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
@@ -424,6 +432,7 @@ async function captionPage(
       pageImageBase64,
       images,
       language,
+      bookSummary,
     },
     captionConfig,
     llmModel

@@ -61,6 +61,7 @@ import type {
   SpeechFileEntry,
   TTSOutput,
   StepName,
+  BookSummaryOutput,
 } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
 import type { PageData } from "@adt/storage"
@@ -794,6 +795,10 @@ async function runCaptionsStep(
     const metadata = metadataRow?.data as { language_code?: string | null } | null
     const language = normalizeLocale(config.editing_language ?? metadata?.language_code ?? "en")
 
+    // Load book summary for captioning context
+    const summaryRow = storage.getLatestNodeData("book-summary", "book")
+    const bookSummary = (summaryRow?.data as BookSummaryOutput | undefined)?.summary
+
     const onLlmLog = (entry: LlmLogEntry) => {
       storage.appendLlmLog(entry)
       const step = entry.taskType as StepName
@@ -882,7 +887,7 @@ async function runCaptionsStep(
           const pageImageBase64 = storage.getPageImageBase64(page.pageId)
 
           const result = await captionPageImages(
-            { pageId: page.pageId, pageImageBase64, images, language },
+            { pageId: page.pageId, pageImageBase64, images, language, bookSummary },
             captionConfig,
             captionModel
           )

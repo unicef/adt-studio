@@ -2,31 +2,64 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import type { AppConfig } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
-import {
-  buildStepRunnerImageClassifyConfig,
-  createStepRunner,
-} from "./step-runner.js"
+import { runProof } from "../proof.js"
 
-const { capturedCaptionInputs, captionPageImagesMock } = vi.hoisted(() => {
+const {
+  capturedCaptionInputs,
+  captionPageImagesMock,
+  generateGlossaryMock,
+  generateAllQuizzesMock,
+} = vi.hoisted(() => {
   const capturedCaptionInputs: unknown[] = []
+
   return {
     capturedCaptionInputs,
     captionPageImagesMock: vi.fn(async (input: unknown) => {
       capturedCaptionInputs.push(input)
       return { captions: [] }
     }),
+    generateGlossaryMock: vi.fn(async () => ({
+      items: [],
+      pageCount: 0,
+      generatedAt: new Date(0).toISOString(),
+    })),
+    generateAllQuizzesMock: vi.fn(async () => ({
+      generatedAt: new Date(0).toISOString(),
+      language: "en",
+      pagesPerQuiz: 3,
+      quizzes: [],
+    })),
   }
 })
 
-vi.mock("@adt/pipeline", async () => {
-  const actual = await vi.importActual<typeof import("@adt/pipeline")>(
-    "@adt/pipeline"
+vi.mock("../image-captioning.js", async () => {
+  const actual = await vi.importActual<typeof import("../image-captioning.js")>(
+    "../image-captioning.js"
   )
   return {
     ...actual,
     captionPageImages: captionPageImagesMock,
+  }
+})
+
+vi.mock("../glossary.js", async () => {
+  const actual = await vi.importActual<typeof import("../glossary.js")>(
+    "../glossary.js"
+  )
+  return {
+    ...actual,
+    generateGlossary: generateGlossaryMock,
+  }
+})
+
+vi.mock("../quiz-generation.js", async () => {
+  const actual = await vi.importActual<typeof import("../quiz-generation.js")>(
+    "../quiz-generation.js"
+  )
+  return {
+    ...actual,
+    generateAllQuizzes: generateAllQuizzesMock,
   }
 })
 
@@ -41,12 +74,12 @@ text_group_types:
   )
 }
 
-function seedCaptionBook(
-  booksDir: string,
+function seedProofBook(
+  booksRoot: string,
   label: string,
   bookSummary?: string
 ): void {
-  const storage = createBookStorage(label, booksDir)
+  const storage = createBookStorage(label, booksRoot)
   try {
     storage.putExtractedPage({
       pageId: "pg001",
@@ -72,6 +105,11 @@ function seedCaptionBook(
       ],
     })
 
+    storage.putNodeData("storyboard-acceptance", "book", {
+      acceptedAt: new Date().toISOString(),
+      renderedPageCount: 1,
+    })
+
     storage.putNodeData("web-rendering", "pg001", {
       sections: [
         {
@@ -91,40 +129,14 @@ function seedCaptionBook(
   }
 }
 
-describe("buildStepRunnerImageClassifyConfig", () => {
-  it("injects getImageBytes so min_stddev filtering can decode image bytes", () => {
-    const config: AppConfig = {
-      text_types: { section_text: "Main body text" },
-      text_group_types: { paragraph: "Paragraph" },
-      image_filters: {
-        min_side: 100,
-        min_stddev: 2,
-        meaningfulness: true,
-      },
-    }
-    const expectedBytes = Buffer.from("fake-image-bytes")
-    const storage = {
-      getImageBase64: (_imageId: string) => expectedBytes.toString("base64"),
-    }
-
-    const imageConfig = buildStepRunnerImageClassifyConfig(config, storage)
-
-    expect(imageConfig.filters).toEqual({
-      min_side: 100,
-      min_stddev: 2,
-      meaningfulness: true,
-    })
-    expect(imageConfig.getImageBytes).toBeTypeOf("function")
-    expect(imageConfig.getImageBytes?.("pg001_im001")).toEqual(expectedBytes)
-  })
-})
-
-describe("createStepRunner captions step", () => {
+describe("runProof", () => {
   let tmpDir = ""
 
   beforeEach(() => {
     capturedCaptionInputs.length = 0
     captionPageImagesMock.mockClear()
+    generateGlossaryMock.mockClear()
+    generateAllQuizzesMock.mockClear()
   })
 
   afterEach(() => {
@@ -134,33 +146,26 @@ describe("createStepRunner captions step", () => {
     }
   })
 
-  it("passes book summary to captionPageImages when summary exists", async () => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "step-runner-captions-"))
-    const booksDir = path.join(tmpDir, "books")
+  it("passes book summary to captioning context when available", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "proof-summary-"))
+    const booksRoot = path.join(tmpDir, "books")
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
     writeBaseConfig(configPath)
 
-    seedCaptionBook(
-      booksDir,
+    seedProofBook(
+      booksRoot,
       "with-summary",
       "A grade 3 science textbook about the water cycle."
     )
 
-    const runner = createStepRunner()
-    await runner.run(
-      "with-summary",
-      {
-        booksDir,
-        apiKey: "sk-test",
-        promptsDir,
-        configPath,
-        fromStep: "captions",
-        toStep: "captions",
-      },
-      { emit: () => {} }
-    )
+    await runProof({
+      label: "with-summary",
+      booksRoot,
+      promptsDir,
+      configPath,
+    })
 
     expect(captionPageImagesMock).toHaveBeenCalledTimes(1)
     const firstInput = capturedCaptionInputs[0] as { bookSummary?: string }
@@ -169,29 +174,22 @@ describe("createStepRunner captions step", () => {
     )
   })
 
-  it("omits book summary when summary node is missing", async () => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "step-runner-captions-"))
-    const booksDir = path.join(tmpDir, "books")
+  it("omits book summary when no summary node exists", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "proof-summary-"))
+    const booksRoot = path.join(tmpDir, "books")
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
     fs.mkdirSync(promptsDir, { recursive: true })
     writeBaseConfig(configPath)
 
-    seedCaptionBook(booksDir, "without-summary")
+    seedProofBook(booksRoot, "without-summary")
 
-    const runner = createStepRunner()
-    await runner.run(
-      "without-summary",
-      {
-        booksDir,
-        apiKey: "sk-test",
-        promptsDir,
-        configPath,
-        fromStep: "captions",
-        toStep: "captions",
-      },
-      { emit: () => {} }
-    )
+    await runProof({
+      label: "without-summary",
+      booksRoot,
+      promptsDir,
+      configPath,
+    })
 
     expect(captionPageImagesMock).toHaveBeenCalledTimes(1)
     const firstInput = capturedCaptionInputs[0] as { bookSummary?: string }
