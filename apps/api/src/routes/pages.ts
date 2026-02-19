@@ -1,3 +1,4 @@
+import crypto from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
@@ -38,6 +39,14 @@ interface PageDetail {
 function getDbPath(label: string, booksDir: string): string {
   const safeLabel = parseBookLabel(label)
   return path.join(path.resolve(booksDir), safeLabel, `${safeLabel}.db`)
+}
+
+/** Validate that an image/page ID is filesystem-safe (no path traversal). */
+function validateImageId(id: string): string {
+  if (!id || !/^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(id)) {
+    throw new HTTPException(400, { message: `Invalid image ID: ${id}` })
+  }
+  return id
 }
 
 export function createPageRoutes(
@@ -463,6 +472,92 @@ export function createPageRoutes(
     })
 
     return c.json(result)
+  })
+
+  // POST /books/:label/images — Upload a cropped image
+  app.post("/books/:label/images", async (c) => {
+    const { label } = c.req.param()
+    const safeLabel = parseBookLabel(label)
+    const resolvedDir = path.resolve(booksDir)
+    const bookDir = path.join(resolvedDir, safeLabel)
+    const dbPath = path.join(bookDir, `${safeLabel}.db`)
+
+    if (!fs.existsSync(dbPath)) {
+      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
+    }
+
+    const formData = await c.req.formData()
+    const imageFile = formData.get("image")
+    const pageId = formData.get("pageId")
+    const sourceImageId = formData.get("sourceImageId")
+
+    if (!imageFile || !(imageFile instanceof File)) {
+      throw new HTTPException(400, { message: "Missing image file" })
+    }
+    if (!pageId || typeof pageId !== "string") {
+      throw new HTTPException(400, { message: "Missing pageId" })
+    }
+    if (!sourceImageId || typeof sourceImageId !== "string") {
+      throw new HTTPException(400, { message: "Missing sourceImageId" })
+    }
+    validateImageId(pageId)
+    validateImageId(sourceImageId)
+
+    const buffer = Buffer.from(await imageFile.arrayBuffer())
+    const hash = crypto.createHash("sha256").update(buffer).digest("hex").slice(0, 16)
+
+    // Generate new imageId: {sourceImageId}_crop{N}
+    const db = openBookDb(dbPath)
+    try {
+      // Find the highest existing _crop{N} suffix to avoid collisions
+      const existing = db.all(
+        "SELECT image_id FROM images WHERE image_id LIKE ? AND source = 'crop'",
+        [`${sourceImageId}_crop%`]
+      ) as Array<{ image_id: string }>
+      let maxN = 0
+      for (const row of existing) {
+        const m = row.image_id.match(/_crop(\d+)$/)
+        if (m) maxN = Math.max(maxN, parseInt(m[1], 10))
+      }
+      const newImageId = `${sourceImageId}_crop${maxN + 1}`
+
+      // Detect format from file type
+      const isPng = imageFile.type === "image/png"
+      const ext = isPng ? "png" : "jpg"
+      const filename = `${newImageId}.${ext}`
+
+      // Ensure images directory exists
+      const imagesDir = path.join(bookDir, "images")
+      fs.mkdirSync(imagesDir, { recursive: true })
+      fs.writeFileSync(path.join(imagesDir, filename), buffer)
+
+      // Get dimensions from the image (basic approach: read from the buffer)
+      // For PNG: width at bytes 16-19, height at 20-23
+      // For JPEG: more complex, use a simpler approach
+      let width = 0
+      let height = 0
+      if (isPng && buffer.length > 24) {
+        width = buffer.readUInt32BE(16)
+        height = buffer.readUInt32BE(20)
+      }
+
+      db.run(
+        `INSERT INTO images (image_id, page_id, path, hash, width, height, source)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT (image_id) DO UPDATE SET
+           page_id = excluded.page_id,
+           path = excluded.path,
+           hash = excluded.hash,
+           width = excluded.width,
+           height = excluded.height,
+           source = excluded.source`,
+        [newImageId, pageId, `images/${filename}`, hash, width, height, "crop"]
+      )
+
+      return c.json({ imageId: newImageId, width, height })
+    } finally {
+      db.close()
+    }
   })
 
   return app
