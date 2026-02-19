@@ -20,6 +20,7 @@ import {
   BookMetadata,
   TextClassificationOutput,
   ImageClassificationOutput,
+  ImageCroppingOutput,
   PageSectioningOutput,
   WebRenderingOutput,
   GlossaryOutput,
@@ -166,6 +167,14 @@ describe("pipeline integration (raven.pdf, pages 1-3)", () => {
           ) as Array<{ data: string }>
           expect(icRows).toHaveLength(1)
           ImageClassificationOutput.parse(JSON.parse(icRows[0].data))
+
+          // Image cropping (enabled in config)
+          const cropRows = db.all(
+            "SELECT data FROM node_data WHERE node = 'image-cropping' AND item_id = ? ORDER BY version DESC LIMIT 1",
+            [pageId]
+          ) as Array<{ data: string }>
+          expect(cropRows).toHaveLength(1)
+          ImageCroppingOutput.parse(JSON.parse(cropRows[0].data))
 
           // Page sectioning
           const psRows = db.all(
