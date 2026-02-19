@@ -16,6 +16,13 @@ export function useStyleguides() {
   })
 }
 
+export function useTemplates() {
+  return useQuery({
+    queryKey: ["templates"],
+    queryFn: api.getTemplates,
+  })
+}
+
 export function useStyleguidePreview(name: string | null) {
   return useQuery({
     queryKey: ["styleguide-preview", name],

@@ -12,6 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
@@ -35,6 +37,11 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
   const [outputLanguages, setOutputLanguages] = useState<Set<string>>(new Set())
   const [promptDraft, setPromptDraft] = useState<string | null>(null)
 
+  // Speech settings
+  const [speechModel, setSpeechModel] = useState("")
+  const [voice, setVoice] = useState("")
+  const [format, setFormat] = useState("")
+
   const [dirty, setDirty] = useState<Record<string, boolean>>({})
   const markDirty = (field: string) => setDirty((prev) => ({ ...prev, [field]: true }))
 
@@ -48,6 +55,12 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
     if (Array.isArray(merged.output_languages)) {
       const normalized = (merged.output_languages as string[]).map((code) => normalizeLocale(code))
       setOutputLanguages(new Set(normalized))
+    }
+    if (merged.speech && typeof merged.speech === "object") {
+      const s = merged.speech as Record<string, unknown>
+      if (s.model) setSpeechModel(String(s.model))
+      if (s.voice) setVoice(String(s.voice))
+      if (s.format) setFormat(String(s.format))
     }
   }, [activeConfigData])
 
@@ -68,6 +81,15 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
     if (shouldWrite("output_languages")) {
       const normalized = Array.from(outputLanguages).map((code) => normalizeLocale(code))
       overrides.output_languages = normalized.length > 0 ? normalized : undefined
+    }
+    if (shouldWrite("speech")) {
+      const existing = (bookConfigData?.config?.speech ?? {}) as Record<string, unknown>
+      overrides.speech = {
+        ...existing,
+        model: speechModel.trim() || undefined,
+        voice: voice.trim() || undefined,
+        format: format.trim() || undefined,
+      }
     }
     return overrides
   }
@@ -96,10 +118,11 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
           setDirty({})
           setPromptDraft(null)
           setShowRerunDialog(false)
-          startRun("translations", "translations")
+          startRun("translations", "text-to-speech")
           setSseEnabled(true)
-          await api.runSteps(bookLabel, apiKey, { fromStep: "translations", toStep: "translations" })
+          await api.runSteps(bookLabel, apiKey, { fromStep: "translations", toStep: "text-to-speech" })
           queryClient.removeQueries({ queryKey: ["books", bookLabel, "text-catalog"] })
+          queryClient.removeQueries({ queryKey: ["books", bookLabel, "tts"] })
           queryClient.removeQueries({ queryKey: ["books", bookLabel] })
           navigate({ to: "/books/$label/v2/$step", params: { label: bookLabel, step: "translations" } })
         },
@@ -132,6 +155,43 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
         />
       )}
 
+      {tab === "speech" && (
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Model</Label>
+            <Input
+              value={speechModel}
+              onChange={(e) => { setSpeechModel(e.target.value); markDirty("speech") }}
+              placeholder="e.g. gpt-4o-mini-tts"
+              className="w-72 h-8 text-xs"
+            />
+            <p className="text-xs text-muted-foreground">The TTS model used for speech generation.</p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Voice</Label>
+            <Input
+              value={voice}
+              onChange={(e) => { setVoice(e.target.value); markDirty("speech") }}
+              placeholder="e.g. alloy"
+              className="w-72 h-8 text-xs"
+            />
+            <p className="text-xs text-muted-foreground">Default voice for speech generation.</p>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Audio Format</Label>
+            <Input
+              value={format}
+              onChange={(e) => { setFormat(e.target.value); markDirty("speech") }}
+              placeholder="e.g. mp3"
+              className="w-48 h-8 text-xs"
+            />
+            <p className="text-xs text-muted-foreground">Output audio format (mp3, opus, aac, flac).</p>
+          </div>
+        </div>
+      )}
+
       {headerTarget && createPortal(
         <Button
           size="sm"
@@ -148,10 +208,10 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
       <Dialog open={showRerunDialog} onOpenChange={setShowRerunDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Save &amp; Rerun Translations</DialogTitle>
+            <DialogTitle>Save &amp; Rerun Translations + Audio</DialogTitle>
             <DialogDescription>
-              This will save your settings and re-run translations,
-              rebuilding the text catalog and translating to output languages.
+              This will save your settings and re-run translations and audio generation,
+              rebuilding the text catalog, translating to output languages, and generating speech.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

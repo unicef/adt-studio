@@ -4,7 +4,8 @@ import { createLLMModel, createPromptEngine } from "@adt/llm"
 import type { LLMModel } from "@adt/llm"
 import { renderPage, buildRenderStrategyResolver, createTemplateEngine, loadBookConfig } from "@adt/pipeline"
 import { loadStyleguideContent } from "./pipeline-runner"
-import type { PageSectioningOutput } from "@adt/types"
+import type { PageSectioningOutput, WebRenderingOutput } from "@adt/types"
+import { webRenderingLLMSchema } from "@adt/types"
 
 export interface ReRenderOptions {
   label: string
@@ -18,6 +19,24 @@ export interface ReRenderOptions {
 export interface ReRenderResult {
   version: number
   rendering: unknown
+}
+
+export interface AiEditSectionOptions {
+  label: string
+  pageId: string
+  sectionIndex: number
+  instruction: string
+  /** Optional: current HTML from the frontend (for successive edits on unsaved changes) */
+  currentHtml?: string
+  booksDir: string
+  promptsDir: string
+  configPath?: string
+  apiKey: string
+}
+
+export interface AiEditSectionResult {
+  html: string
+  reasoning: string
 }
 
 export async function reRenderPage(
@@ -101,6 +120,96 @@ export async function reRenderPage(
   } finally {
     storage.close()
     // Restore previous key
+    if (previousKey !== undefined) {
+      process.env.OPENAI_API_KEY = previousKey
+    } else {
+      delete process.env.OPENAI_API_KEY
+    }
+  }
+}
+
+/**
+ * Use LLM to edit a single section's HTML based on a natural language instruction.
+ * Returns the edited HTML and reasoning without saving — the frontend previews first.
+ */
+export async function aiEditSection(
+  options: AiEditSectionOptions
+): Promise<AiEditSectionResult> {
+  const { label, pageId, sectionIndex, instruction, currentHtml: providedHtml, booksDir, promptsDir, configPath, apiKey } = options
+
+  const previousKey = process.env.OPENAI_API_KEY
+  process.env.OPENAI_API_KEY = apiKey
+
+  const storage = createBookStorage(label, booksDir)
+
+  try {
+    // Use provided HTML (from frontend pending state) or read from DB
+    let currentHtml: string
+    if (providedHtml) {
+      currentHtml = providedHtml
+    } else {
+      const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
+      if (!renderingRow) {
+        throw new Error("Page must have web-rendering data before AI editing")
+      }
+      const rendering = renderingRow.data as WebRenderingOutput
+      const section = rendering.sections[sectionIndex]
+      if (!section) {
+        throw new Error(`Section ${sectionIndex} not found in rendering`)
+      }
+      currentHtml = section.html
+    }
+
+    // Load config to get model ID for editing
+    const config = loadBookConfig(label, booksDir, configPath)
+    const modelId = (config as Record<string, unknown>).page_sectioning
+      ? ((config as Record<string, unknown>).page_sectioning as Record<string, unknown>).model as string
+      : "openai:gpt-4o"
+
+    // Build LLM model
+    const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
+    const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const model = createLLMModel({
+      modelId,
+      cacheDir,
+      promptEngine,
+      onLog: (entry) => storage.appendLlmLog(entry),
+    })
+
+    // Extract existing data-ids for validation
+    const dataIdRegex = /data-id="([^"]+)"/g
+    const existingIds = new Set<string>()
+    let match
+    while ((match = dataIdRegex.exec(currentHtml)) !== null) {
+      existingIds.add(match[1])
+    }
+
+    const result = await model.generateObject<{ reasoning: string; content: string }>({
+      schema: webRenderingLLMSchema,
+      prompt: "html_edit",
+      context: { current_html: currentHtml, instruction },
+      validate: (obj) => {
+        const r = obj as { content: string }
+        const errors: string[] = []
+        if (!r.content.includes("<section")) {
+          errors.push("Result must contain a <section> element")
+        }
+        // Verify all existing data-ids are preserved
+        for (const id of existingIds) {
+          if (!r.content.includes(`data-id="${id}"`)) {
+            errors.push(`Missing data-id="${id}" in result`)
+          }
+        }
+        return { valid: errors.length === 0, errors }
+      },
+      maxRetries: 3,
+      log: { taskType: "web-rendering", pageId, promptName: "html_edit" },
+    })
+
+    return { html: result.object.content, reasoning: result.object.reasoning }
+  } finally {
+    storage.close()
     if (previousKey !== undefined) {
       process.env.OPENAI_API_KEY = previousKey
     } else {

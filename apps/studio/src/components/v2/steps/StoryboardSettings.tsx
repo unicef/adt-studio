@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { createPortal } from "react-dom"
 import { useNavigate } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
@@ -6,6 +6,7 @@ import { Play, Plus, X, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PruneToggle } from "@/components/v2/PruneToggle"
+import { Switch } from "@/components/ui/switch"
 import {
   Dialog,
   DialogContent,
@@ -25,7 +26,7 @@ import { Label } from "@/components/ui/label"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
-import { useStyleguides, useStyleguidePreview } from "@/hooks/use-presets"
+import { useStyleguides, useStyleguidePreview, useTemplates } from "@/hooks/use-presets"
 import { api } from "@/api/client"
 import { PromptViewer } from "@/components/v2/PromptViewer"
 import { TemplateViewer } from "@/components/v2/TemplateViewer"
@@ -36,7 +37,18 @@ function titleCase(slug: string): string {
   return slug.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
 }
 
+/** Human-friendly display names for strategy keys */
+const STRATEGY_DISPLAY_NAMES: Record<string, string> = {
+  llm: "AI Generated",
+  dynamic: "Dynamic",
+}
+
+function strategyDisplayName(slug: string): string {
+  return STRATEGY_DISPLAY_NAMES[slug] ?? titleCase(slug)
+}
+
 const RENDER_STRATEGY_DESCRIPTIONS: Record<string, string> = {
+  dynamic: "Automatically picks the best strategy per section type",
   llm: "LLM generates HTML from section content",
   two_column: "Fixed two-column template layout",
   two_column_story: "Two-column template for story content",
@@ -59,6 +71,8 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
   const [defaultRenderStrategy, setDefaultRenderStrategy] = useState("")
   const [allStrategyNames, setAllStrategyNames] = useState<string[]>([])
   const [renderStrategyNames, setRenderStrategyNames] = useState<string[]>([])
+  const [activityModel, setActivityModel] = useState("")
+  const [sectioningMode, setSectioningMode] = useState("section")
   const [sectioningModel, setSectioningModel] = useState("")
   const [renderingModel, setRenderingModel] = useState("")
   const [renderingPromptName, setRenderingPromptName] = useState("web_generation_html")
@@ -69,8 +83,48 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
   const [sectioningPromptDraft, setSectioningPromptDraft] = useState<string | null>(null)
   const [renderingPromptDraft, setRenderingPromptDraft] = useState<string | null>(null)
   const [renderingTemplateDraft, setRenderingTemplateDraft] = useState<string | null>(null)
+  const [templateTabName, setTemplateTabName] = useState("")
+  const [templateTabDraft, setTemplateTabDraft] = useState<string | null>(null)
+  const [activityStrategyName, setActivityStrategyName] = useState("")
+  const [activityPromptDraft, setActivityPromptDraft] = useState<string | null>(null)
+  const [activityAnswerDraft, setActivityAnswerDraft] = useState<string | null>(null)
+
+  // Derive activity strategies directly from merged config (synchronous)
+  const activityStrategies = useMemo(() => {
+    if (!activeConfigData) return {} as Record<string, { prompt: string; answer_prompt?: string; model?: string }>
+    const merged = activeConfigData.merged as Record<string, unknown>
+    const strategies = merged.render_strategies as Record<string, { render_type?: string; config?: { prompt?: string; answer_prompt?: string; model?: string } }> | undefined
+    if (!strategies || typeof strategies !== "object") return {} as Record<string, { prompt: string; answer_prompt?: string; model?: string }>
+    const activityMap: Record<string, { prompt: string; answer_prompt?: string; model?: string }> = {}
+    for (const [name, strat] of Object.entries(strategies)) {
+      if (strat.render_type === "activity" && strat.config?.prompt) {
+        activityMap[name] = {
+          prompt: strat.config.prompt,
+          answer_prompt: strat.config.answer_prompt,
+          model: strat.config.model,
+        }
+      }
+    }
+    return activityMap
+  }, [activeConfigData])
+  const selectedActivity = activityStrategies[activityStrategyName]
+
+  // Derive render types from merged config (synchronous)
+  const strategyRenderTypes = useMemo(() => {
+    if (!activeConfigData) return {} as Record<string, string>
+    const merged = activeConfigData.merged as Record<string, unknown>
+    const strategies = merged.render_strategies as Record<string, { render_type?: string }> | undefined
+    if (!strategies || typeof strategies !== "object") return {} as Record<string, string>
+    const typeMap: Record<string, string> = {}
+    for (const [name, strat] of Object.entries(strategies)) {
+      typeMap[name] = strat.render_type ?? "llm"
+    }
+    return typeMap
+  }, [activeConfigData])
 
   const { data: styleguidesData } = useStyleguides()
+  const { data: templatesData } = useTemplates()
+  const availableTemplates = templatesData?.templates ?? []
   const availableStyleguides = styleguidesData?.styleguides ?? []
 
   // Styleguide preview
@@ -105,7 +159,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
       setSectionRenderStrategies(merged.section_render_strategies as Record<string, string>)
     }
     if (merged.render_strategies && typeof merged.render_strategies === "object") {
-      const strategies = merged.render_strategies as Record<string, { render_type?: string }>
+      const strategies = merged.render_strategies as Record<string, { render_type?: string; config?: { prompt?: string; answer_prompt?: string; model?: string } }>
       setAllStrategyNames(Object.keys(strategies))
       setRenderStrategyNames(
         Object.keys(strategies).filter((name) => !name.startsWith("activity_"))
@@ -114,6 +168,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     if (merged.page_sectioning && typeof merged.page_sectioning === "object") {
       const ps = merged.page_sectioning as Record<string, unknown>
       if (ps.model) setSectioningModel(String(ps.model))
+      if (ps.mode) setSectioningMode(String(ps.mode))
     }
     // Styleguide
     setStyleguide(typeof merged.styleguide === "string" ? merged.styleguide : "")
@@ -124,7 +179,10 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
       if (defaultStrategy?.render_type) setRenderingRenderType(defaultStrategy.render_type)
       if (defaultStrategy?.config?.model) setRenderingModel(String(defaultStrategy.config.model))
       if (defaultStrategy?.config?.prompt) setRenderingPromptName(String(defaultStrategy.config.prompt))
-      if (defaultStrategy?.config?.template) setRenderingTemplateName(String(defaultStrategy.config.template))
+      if (defaultStrategy?.config?.template) {
+        setRenderingTemplateName(String(defaultStrategy.config.template))
+        setTemplateTabName(String(defaultStrategy.config.template))
+      }
       setRenderingTemperature(defaultStrategy?.config?.temperature != null ? String(defaultStrategy.config.temperature) : "")
     }
   }, [activeConfigData])
@@ -230,7 +288,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     }
     if (shouldWrite("page_sectioning")) {
       const existing = (bookConfigData?.config?.page_sectioning ?? {}) as Record<string, unknown>
-      overrides.page_sectioning = { ...existing, model: sectioningModel.trim() || undefined }
+      overrides.page_sectioning = { ...existing, model: sectioningModel.trim() || undefined, mode: sectioningMode }
     }
     if (shouldWrite("styleguide")) {
       overrides.styleguide = styleguide || undefined
@@ -246,6 +304,18 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
         overrides.render_strategies = stratCopy
       }
     }
+    // Write activity model into the activity render strategy config
+    if (shouldWrite("activity_model") && activityStrategyName) {
+      if (!overrides.render_strategies) {
+        overrides.render_strategies = JSON.parse(JSON.stringify(merged?.render_strategies ?? {}))
+      }
+      const stratCopy = overrides.render_strategies as Record<string, Record<string, unknown>>
+      if (stratCopy[activityStrategyName]) {
+        const cfg = (stratCopy[activityStrategyName].config ?? {}) as Record<string, unknown>
+        cfg.model = activityModel.trim() || undefined
+        stratCopy[activityStrategyName].config = cfg
+      }
+    }
 
     return overrides
   }
@@ -256,6 +326,9 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     if (sectioningPromptDraft != null) contentSaves.push(api.updatePrompt("page_sectioning", sectioningPromptDraft, bookLabel))
     if (renderingPromptDraft != null) contentSaves.push(api.updatePrompt(renderingPromptName, renderingPromptDraft, bookLabel))
     if (renderingTemplateDraft != null) contentSaves.push(api.updateTemplate(renderingTemplateName, renderingTemplateDraft, bookLabel))
+    if (templateTabDraft != null && templateTabName) contentSaves.push(api.updateTemplate(templateTabName, templateTabDraft, bookLabel))
+    if (activityPromptDraft != null && selectedActivity?.prompt) contentSaves.push(api.updatePrompt(selectedActivity.prompt, activityPromptDraft, bookLabel))
+    if (activityAnswerDraft != null && selectedActivity?.answer_prompt) contentSaves.push(api.updatePrompt(selectedActivity.answer_prompt, activityAnswerDraft, bookLabel))
     if (contentSaves.length > 0) await Promise.all(contentSaves)
 
     const overrides = buildOverrides()
@@ -267,6 +340,9 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
           setSectioningPromptDraft(null)
           setRenderingPromptDraft(null)
           setRenderingTemplateDraft(null)
+          setTemplateTabDraft(null)
+          setActivityPromptDraft(null)
+          setActivityAnswerDraft(null)
           setShowRerunDialog(false)
           // Start step-scoped storyboard run — blocks until data is cleared on backend
           startRun("storyboard", "storyboard")
@@ -283,58 +359,9 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
   }
 
   return (
-    <div className={tab === "sectioning-prompt" || tab === "rendering-prompt" || tab === "rendering-template" ? "h-full max-w-4xl" : "p-4 space-y-6"}>
+    <div className={tab === "sectioning-prompt" || tab === "rendering-prompt" || tab === "rendering-template" || tab === "activity-prompts" ? "h-full" : "p-4 space-y-6"}>
       {tab === "general" && (
         <>
-          {/* Styleguide */}
-          {availableStyleguides.length > 0 && (
-            <div>
-              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-                Styleguide
-              </h3>
-              <div className="flex items-center gap-2">
-                <Select
-                  value={styleguide || "__none__"}
-                  onValueChange={(v) => {
-                    setStyleguide(v === "__none__" ? "" : v)
-                    markDirty("styleguide")
-                  }}
-                >
-                  <SelectTrigger className="w-72">
-                    <SelectValue placeholder="Select styleguide...">
-                      {styleguide ? titleCase(styleguide) : "None"}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent align="start">
-                    <SelectItem value="__none__">
-                      <span className="text-muted-foreground">None</span>
-                    </SelectItem>
-                    {availableStyleguides.map((sg) => (
-                      <SelectItem key={sg} value={sg}>
-                        {titleCase(sg)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {styleguide && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-9 px-2.5 shrink-0"
-                    onClick={openStyleguidePreview}
-                  >
-                    <Eye className="h-3.5 w-3.5 mr-1" />
-                    Preview
-                  </Button>
-                )}
-              </div>
-              <p className="text-xs text-muted-foreground mt-1.5">
-                Provides consistent HTML/CSS patterns for LLM-generated pages.
-              </p>
-            </div>
-          )}
-
           {/* Default Render Strategy */}
           <div>
             <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
@@ -349,62 +376,61 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
                 const merged = activeConfigData?.merged as Record<string, unknown> | undefined
                 const strategies = (merged?.render_strategies ?? {}) as Record<string, { render_type?: string; config?: { model?: string; prompt?: string; template?: string } }>
                 const strat = strategies[v]
-                if (strat?.render_type) setRenderingRenderType(strat.render_type)
-                if (strat?.config?.prompt) setRenderingPromptName(strat.config.prompt)
-                if (strat?.config?.model) setRenderingModel(strat.config.model)
-                if (strat?.config?.template) setRenderingTemplateName(strat.config.template)
+                if (strat) {
+                  if (strat.render_type) setRenderingRenderType(strat.render_type)
+                  if (strat.config?.prompt) setRenderingPromptName(strat.config.prompt)
+                  if (strat.config?.model) setRenderingModel(strat.config.model)
+                  if (strat.config?.template) {
+                    setRenderingTemplateName(strat.config.template)
+                    setTemplateTabName(strat.config.template)
+                    setTemplateTabDraft(null)
+                  }
+                } else {
+                  // Synthetic option like "dynamic" — clear stale rendering config
+                  setRenderingRenderType("")
+                  setRenderingModel("")
+                  setRenderingPromptName("")
+                  setRenderingTemplateName("")
+                  setTemplateTabName("")
+                  setTemplateTabDraft(null)
+                }
               }}
             >
               <SelectTrigger className="w-72">
                 <SelectValue placeholder="Select strategy...">
-                  {defaultRenderStrategy && titleCase(defaultRenderStrategy)}
+                  {defaultRenderStrategy && (
+                    <>
+                      {strategyDisplayName(defaultRenderStrategy)}
+                      {strategyRenderTypes[defaultRenderStrategy] === "template" && (
+                        <span className="text-muted-foreground ml-1">(template)</span>
+                      )}
+                    </>
+                  )}
                 </SelectValue>
               </SelectTrigger>
               <SelectContent align="start">
-                {renderStrategyNames.map((name) => (
-                  <SelectItem key={name} value={name}>
-                    <div className="flex flex-col items-start">
-                      <span>{titleCase(name)}</span>
-                      {RENDER_STRATEGY_DESCRIPTIONS[name] && (
-                        <span className="text-xs text-muted-foreground">
-                          {RENDER_STRATEGY_DESCRIPTIONS[name]}
+                {["dynamic", ...renderStrategyNames.filter((n) => n !== "dynamic")].map((name) => {
+                  const isTemplate = strategyRenderTypes[name] === "template"
+                  return (
+                    <SelectItem key={name} value={name}>
+                      <div className="flex flex-col items-start">
+                        <span>
+                          {strategyDisplayName(name)}
+                          {isTemplate && <span className="text-muted-foreground ml-1">(template)</span>}
                         </span>
-                      )}
-                    </div>
-                  </SelectItem>
-                ))}
+                        {RENDER_STRATEGY_DESCRIPTIONS[name] && (
+                          <span className="text-xs text-muted-foreground">
+                            {RENDER_STRATEGY_DESCRIPTIONS[name]}
+                          </span>
+                        )}
+                      </div>
+                    </SelectItem>
+                  )
+                })}
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground mt-1.5">
               The rendering strategy used for sections without an explicit mapping.
-            </p>
-          </div>
-
-          {/* Rendering Temperature */}
-          <div>
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-              Rendering Temperature
-            </h3>
-            <div className="flex items-center gap-2">
-              <Input
-                type="number"
-                min={0}
-                max={2}
-                step={0.1}
-                value={renderingTemperature}
-                onChange={(e) => {
-                  setRenderingTemperature(e.target.value)
-                  markDirty("rendering_temperature")
-                }}
-                placeholder="0.3"
-                className="h-9 w-24 text-sm"
-              />
-              <Label className="text-xs text-muted-foreground">
-                0 = deterministic, 2 = max creativity
-              </Label>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1.5">
-              Lower values produce more consistent styling across pages.
             </p>
           </div>
 
@@ -449,7 +475,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
                     >
                       <SelectTrigger className="h-7 w-48 shrink-0 text-xs text-left">
                         <SelectValue>
-                          {renderOverride ? titleCase(renderOverride) : "Default"}
+                          {renderOverride ? strategyDisplayName(renderOverride) : "Default"}
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent align="start">
@@ -458,7 +484,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
                         </SelectItem>
                         {allStrategyNames.map((name) => (
                           <SelectItem key={name} value={name}>
-                            {titleCase(name)}
+                            {strategyDisplayName(name)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -507,38 +533,326 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
       )}
 
       {tab === "sectioning-prompt" && (
-        <PromptViewer
-          promptName="page_sectioning"
-          bookLabel={bookLabel}
-          title="Page Sectioning Prompt"
-          description="The prompt template used to split each page into logical sections. This is a Liquid template processed with page context."
-          model={sectioningModel}
-          onModelChange={(v) => { setSectioningModel(v); markDirty("page_sectioning") }}
-          onContentChange={setSectioningPromptDraft}
-        />
+        <div className="flex flex-col h-full">
+          <div className="shrink-0 p-4 pb-0 space-y-4">
+            <div>
+              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Sectioning Mode
+              </h3>
+              <Select
+                value={sectioningMode}
+                onValueChange={(v) => {
+                  setSectioningMode(v)
+                  markDirty("page_sectioning")
+                }}
+              >
+                <SelectTrigger className="w-72">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent align="start">
+                  <SelectItem value="section">
+                    <div className="flex flex-col items-start">
+                      <span>By Section</span>
+                      <span className="text-xs text-muted-foreground">
+                        Groups content into logical sections
+                      </span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="page">
+                    <div className="flex flex-col items-start">
+                      <span>By Page</span>
+                      <span className="text-xs text-muted-foreground">
+                        Treats each page as a single section
+                      </span>
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1.5">
+                Controls how page content is grouped during the sectioning step.
+              </p>
+            </div>
+          </div>
+          <div className="flex-1 min-h-0">
+            <PromptViewer
+              promptName="page_sectioning"
+              bookLabel={bookLabel}
+              title="Page Sectioning Prompt"
+              description="The prompt template used to split each page into logical sections. This is a Liquid template processed with page context."
+              model={sectioningModel}
+              onModelChange={(v) => { setSectioningModel(v); markDirty("page_sectioning") }}
+              onContentChange={setSectioningPromptDraft}
+            />
+          </div>
+        </div>
       )}
 
-      {tab === "rendering-prompt" && renderingRenderType === "llm" && (
-        <PromptViewer
-          promptName={renderingPromptName}
-          bookLabel={bookLabel}
-          title="Rendering Prompt"
-          description="The prompt template used to generate HTML for each section. This is a Liquid template processed with section context."
-          model={renderingModel}
-          onModelChange={(v) => { setRenderingModel(v); markDirty("rendering_model") }}
-          onContentChange={setRenderingPromptDraft}
-        />
+      {tab === "rendering-prompt" && (
+        <div className="flex flex-col h-full">
+          {/* Styleguide + Temperature settings */}
+          <div className="shrink-0 p-4 pb-0 space-y-4">
+            {availableStyleguides.length > 0 && (
+              <div>
+                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                  Styleguide
+                </h3>
+                <div className="flex items-center gap-2">
+                  <Select
+                    value={styleguide || "__none__"}
+                    onValueChange={(v) => {
+                      setStyleguide(v === "__none__" ? "" : v)
+                      markDirty("styleguide")
+                    }}
+                  >
+                    <SelectTrigger className="w-72">
+                      <SelectValue placeholder="Select styleguide...">
+                        {styleguide ? titleCase(styleguide) : "None"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent align="start">
+                      <SelectItem value="__none__">
+                        <span className="text-muted-foreground">None</span>
+                      </SelectItem>
+                      {availableStyleguides.map((sg) => (
+                        <SelectItem key={sg} value={sg}>
+                          {titleCase(sg)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {styleguide && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-9 px-2.5 shrink-0"
+                      onClick={openStyleguidePreview}
+                    >
+                      <Eye className="h-3.5 w-3.5 mr-1" />
+                      Preview
+                    </Button>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-1.5">
+                  Provides consistent HTML/CSS patterns for LLM-generated pages.
+                </p>
+              </div>
+            )}
+
+            <div>
+              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Temperature
+              </h3>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min={0}
+                  max={2}
+                  step={0.1}
+                  value={renderingTemperature}
+                  onChange={(e) => {
+                    setRenderingTemperature(e.target.value)
+                    markDirty("rendering_temperature")
+                  }}
+                  placeholder="0.3"
+                  className="h-9 w-24 text-sm"
+                />
+                <Label className="text-xs text-muted-foreground">
+                  0 = deterministic, 2 = max creativity
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1.5">
+                Lower values produce more consistent styling across pages.
+              </p>
+            </div>
+          </div>
+
+          {/* Prompt editor */}
+          <div className="flex-1 min-h-0">
+            <PromptViewer
+              promptName={renderingPromptName}
+              bookLabel={bookLabel}
+              title="Rendering Prompt"
+              description="The prompt template used to generate HTML for each section. This is a Liquid template processed with section context."
+              model={renderingModel}
+              onModelChange={(v) => { setRenderingModel(v); markDirty("rendering_model") }}
+              onContentChange={setRenderingPromptDraft}
+            />
+          </div>
+        </div>
       )}
 
-      {tab === "rendering-prompt" && renderingRenderType === "template" && (
-        <TemplateViewer
-          templateName={renderingTemplateName}
-          bookLabel={bookLabel}
-          title="Rendering Template"
-          description="The Liquid/HTML template used to render each section. Template-based rendering is deterministic with no LLM calls."
-          onContentChange={setRenderingTemplateDraft}
-        />
+      {tab === "rendering-template" && (
+        <div className="flex flex-col h-full p-4 gap-4">
+          <div className="shrink-0">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+              Template Rendering
+            </h3>
+            <p className="text-xs text-muted-foreground mb-3">
+              Browse and edit Liquid templates used for template-based rendering strategies.
+            </p>
+            <Select
+              value={templateTabName || "__none__"}
+              onValueChange={(v) => {
+                setTemplateTabName(v === "__none__" ? "" : v)
+                setTemplateTabDraft(null)
+              }}
+            >
+              <SelectTrigger className="w-72">
+                <SelectValue placeholder="Select template...">
+                  {templateTabName ? (
+                    <>
+                      {titleCase(templateTabName)}
+                      {renderingRenderType === "template" && templateTabName === renderingTemplateName && (
+                        <span className="text-emerald-600 ml-1">(active)</span>
+                      )}
+                    </>
+                  ) : "Select template..."}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent align="start">
+                {availableTemplates.map((name) => {
+                  const isActive = renderingRenderType === "template" && name === renderingTemplateName
+                  return (
+                    <SelectItem key={name} value={name}>
+                      {titleCase(name)}
+                      {isActive && <span className="text-emerald-600 ml-1">(active)</span>}
+                    </SelectItem>
+                  )
+                })}
+              </SelectContent>
+            </Select>
+          </div>
+          {templateTabName && (
+            <div className="flex-1 min-h-0">
+              <TemplateViewer
+                templateName={templateTabName}
+                bookLabel={bookLabel}
+                title={titleCase(templateTabName)}
+                description="Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
+                onContentChange={setTemplateTabDraft}
+              />
+            </div>
+          )}
+        </div>
       )}
+
+      {tab === "activity-prompts" && (() => {
+        const activityNames = Object.keys(activityStrategies)
+        // Activities are enabled when their section types are NOT pruned and render strategies are mapped
+        const allEnabled = activityNames.length > 0 &&
+          activityNames.every((name) => sectionRenderStrategies[name] === name) &&
+          !activityNames.some((name) => prunedSectionTypes.has(name))
+        return (
+        <div className="flex flex-col h-full">
+          <div className="shrink-0 p-4 pb-2">
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+              Activity Rendering
+            </h3>
+
+            {/* Universal enable/disable toggle */}
+            <div className="flex items-center gap-3 mb-4">
+              <Switch
+                checked={allEnabled}
+                onCheckedChange={(checked) => {
+                  // 1. Toggle section_render_strategies — maps activity section types to their strategies
+                  markDirty("section_render_strategies")
+                  setSectionRenderStrategies((prev) => {
+                    const next = { ...prev }
+                    for (const name of activityNames) {
+                      if (checked) {
+                        next[name] = name
+                      } else {
+                        delete next[name]
+                      }
+                    }
+                    return next
+                  })
+                  // 2. Toggle pruned_section_types — hides activity types from the page classifier
+                  markDirty("pruned_section_types")
+                  setPrunedSectionTypes((prev) => {
+                    const next = new Set(prev)
+                    for (const name of activityNames) {
+                      if (checked) {
+                        next.delete(name)
+                      } else {
+                        next.add(name)
+                      }
+                    }
+                    return next
+                  })
+                }}
+              />
+              <Label className="text-xs">
+                {allEnabled ? "Activities enabled" : "Activities disabled"}
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {allEnabled
+                  ? "Activity section types are available for classification and rendering."
+                  : "Activity section types are hidden from the classifier and skipped during rendering."}
+              </p>
+            </div>
+
+            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+              Edit Prompts
+            </h3>
+            <Select
+              value={activityStrategyName || "__none__"}
+              onValueChange={(v) => {
+                const name = v === "__none__" ? "" : v
+                setActivityStrategyName(name)
+                setActivityPromptDraft(null)
+                setActivityAnswerDraft(null)
+                setActivityModel(name ? (activityStrategies[name]?.model ?? "") : "")
+              }}
+            >
+              <SelectTrigger className="w-72">
+                <SelectValue placeholder="Select activity type...">
+                  {activityStrategyName ? titleCase(activityStrategyName.replace(/^activity_/, "")) : "Select activity type..."}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent align="start">
+                {activityNames.map((name) => (
+                  <SelectItem key={name} value={name}>
+                    {titleCase(name.replace(/^activity_/, ""))}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {selectedActivity && (
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <div className="min-h-[400px] h-[50vh]">
+                <PromptViewer
+                  key={`${activityStrategyName}-gen`}
+                  promptName={selectedActivity.prompt}
+                  bookLabel={bookLabel}
+                  title="Generation Prompt"
+                  description="Generates the interactive HTML for this activity type."
+                  model={activityModel}
+                  onModelChange={(v) => { setActivityModel(v); markDirty("activity_model") }}
+                  onContentChange={setActivityPromptDraft}
+                />
+              </div>
+              {selectedActivity.answer_prompt && (
+                <div className="min-h-[400px] h-[50vh] border-t">
+                  <PromptViewer
+                    key={`${activityStrategyName}-ans`}
+                    promptName={selectedActivity.answer_prompt}
+                    bookLabel={bookLabel}
+                    title="Answer Prompt"
+                    description="Extracts the correct answer key from the generated activity HTML."
+                    model={activityModel}
+                    onModelChange={(v) => { setActivityModel(v); markDirty("activity_model") }}
+                    onContentChange={setActivityAnswerDraft}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        )
+      })()}
 
       {headerTarget && createPortal(
         <Button

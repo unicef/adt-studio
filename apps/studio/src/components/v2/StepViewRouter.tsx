@@ -8,7 +8,6 @@ import {
   CaptionsView,
   GlossaryView,
   TranslationsView,
-  TextToSpeechView,
   PreviewView,
 } from "./steps"
 import { cn } from "@/lib/utils"
@@ -17,10 +16,13 @@ import { cn } from "@/lib/utils"
 interface StepHeaderControls {
   setExtra: (node: ReactNode) => void
   setOnLabelClick: (handler: (() => void) | null) => void
+  /** DOM element for portal-based header injection (avoids setExtra re-render loops) */
+  headerSlotEl: HTMLElement | null
 }
 const StepHeaderContext = createContext<StepHeaderControls>({
   setExtra: () => {},
   setOnLabelClick: () => {},
+  headerSlotEl: null,
 })
 export function useStepHeader() {
   return useContext(StepHeaderContext)
@@ -45,7 +47,6 @@ const VIEW_MAP: Record<string, ViewEntry> = {
   captions: { component: CaptionsView },
   glossary: { component: GlossaryView },
   translations: { component: TranslationsView },
-  "text-to-speech": { component: TextToSpeechView },
   preview: { component: PreviewView, fullHeight: true },
 }
 
@@ -54,12 +55,13 @@ export function StepViewRouter({ step, bookLabel, selectedPageId, onSelectPage }
   const stepConfig = STEPS.find((s) => s.slug === step)
   const [headerExtra, setHeaderExtra] = useState<ReactNode>(null)
   const [labelClickHandler, setLabelClickHandler] = useState<{ fn: () => void } | null>(null)
+  const [headerSlotEl, setHeaderSlotEl] = useState<HTMLElement | null>(null)
 
   const setOnLabelClick = useCallback((handler: (() => void) | null) => {
     setLabelClickHandler(handler ? { fn: handler } : null)
   }, [])
 
-  const controls: StepHeaderControls = { setExtra: setHeaderExtra, setOnLabelClick }
+  const controls: StepHeaderControls = { setExtra: setHeaderExtra, setOnLabelClick, headerSlotEl }
 
   if (!entry || !stepConfig) {
     return (
@@ -76,7 +78,7 @@ export function StepViewRouter({ step, bookLabel, selectedPageId, onSelectPage }
     <StepHeaderContext.Provider value={controls}>
       <div className="flex flex-col h-full">
         {/* Step header */}
-        <div className={cn("shrink-0 h-10 px-4 flex items-center gap-2 text-white", stepConfig.bgDark)}>
+        <div className={cn("shrink-0 h-10 px-4 flex items-center gap-3 text-white", stepConfig.bgDark)}>
           <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white/20">
             <Icon className="w-3 h-3" />
           </div>
@@ -91,6 +93,7 @@ export function StepViewRouter({ step, bookLabel, selectedPageId, onSelectPage }
           ) : (
             <h2 className="text-sm font-semibold">{step === "book" ? toCamelLabel(bookLabel) : stepConfig.label}</h2>
           )}
+          <div ref={setHeaderSlotEl} className="contents" />
           {headerExtra}
         </div>
 

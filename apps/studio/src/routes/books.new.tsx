@@ -170,6 +170,7 @@ function AddBookPage() {
   const [textTypes, setTextTypes] = useState<Record<string, string>>({})
   const [textGroupTypes, setTextGroupTypes] = useState<Record<string, string>>({})
   const [sectionTypes, setSectionTypes] = useState<Record<string, string>>({})
+  const [sectioningMode, setSectioningMode] = useState("section")
 
   // Styleguide preview
   const [styleguidePreviewOpen, setStyleguidePreviewOpen] = useState(false)
@@ -280,6 +281,14 @@ function AddBookPage() {
     // Spread mode from preset
     if (typeof config.spread_mode === "boolean") {
       setSpreadMode(config.spread_mode)
+    }
+
+    // Sectioning mode from preset
+    if (config.page_sectioning && typeof config.page_sectioning === "object") {
+      const ps = config.page_sectioning as Record<string, unknown>
+      setSectioningMode(ps.mode ? String(ps.mode) : "section")
+    } else {
+      setSectioningMode("section")
     }
 
     // Styleguide from preset
@@ -439,6 +448,7 @@ function AddBookPage() {
     if (Object.keys(sectionTypes).length > 0) {
       configOverrides.section_types = sectionTypes
     }
+    configOverrides.page_sectioning = { mode: sectioningMode }
 
     createMutation.mutate(
       { label, pdf: file, config: configOverrides },
@@ -663,43 +673,11 @@ function AddBookPage() {
                       Merge facing pages as spreads (cover + page pairs).
                     </p>
                   </div>
-                  {availableStyleguides.length > 0 && (
-                    <div className="space-y-1.5">
-                      <Label className="text-xs">Styleguide</Label>
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={styleguide}
-                          onChange={(e) => setStyleguide(e.target.value)}
-                          className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                        >
-                          <option value="">None</option>
-                          {availableStyleguides.map((sg) => (
-                            <option key={sg} value={sg}>
-                              {sg}
-                            </option>
-                          ))}
-                        </select>
-                        {styleguide && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-9 px-2.5 shrink-0"
-                            onClick={openStyleguidePreview}
-                          >
-                            <Eye className="h-3.5 w-3.5 mr-1" />
-                            Preview
-                          </Button>
-                        )}
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Provides consistent HTML/CSS patterns for LLM-generated pages.
-                      </p>
-                    </div>
-                  )}
                   <AdvancedLayoutPanel
                     defaultRenderStrategy={defaultRenderStrategy}
                     onDefaultRenderStrategyChange={setDefaultRenderStrategy}
+                    sectioningMode={sectioningMode}
+                    onSectioningModeChange={setSectioningMode}
                     renderStrategies={renderStrategies}
                     onRenderStrategiesChange={setRenderStrategies}
                     textTypes={textTypes}
@@ -726,6 +704,42 @@ function AddBookPage() {
                         return next
                       })
                     }}
+                    afterStrategySlot={
+                      availableStyleguides.length > 0 && renderStrategies[defaultRenderStrategy]?.render_type !== "template" ? (
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Styleguide</Label>
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={styleguide}
+                              onChange={(e) => setStyleguide(e.target.value)}
+                              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            >
+                              <option value="">None</option>
+                              {availableStyleguides.map((sg) => (
+                                <option key={sg} value={sg}>
+                                  {sg}
+                                </option>
+                              ))}
+                            </select>
+                            {styleguide && (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-9 px-2.5 shrink-0"
+                                onClick={openStyleguidePreview}
+                              >
+                                <Eye className="h-3.5 w-3.5 mr-1" />
+                                Preview
+                              </Button>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Provides consistent HTML/CSS patterns for LLM-generated pages.
+                          </p>
+                        </div>
+                      ) : undefined
+                    }
                   />
                 </div>
               )}

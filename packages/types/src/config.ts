@@ -21,6 +21,14 @@ export const QuizGenerationConfig = StepConfig.extend({
 })
 export type QuizGenerationConfig = z.infer<typeof QuizGenerationConfig>
 
+export const SectioningMode = z.enum(["section", "page"])
+export type SectioningMode = z.infer<typeof SectioningMode>
+
+export const PageSectioningConfig = StepConfig.extend({
+  mode: SectioningMode.optional(),
+})
+export type PageSectioningConfig = z.infer<typeof PageSectioningConfig>
+
 export const BookFormat = z.enum(["web", "epub", "webpub"])
 export type BookFormat = z.infer<typeof BookFormat>
 
@@ -75,7 +83,7 @@ export const AppConfig = z
     text_classification: StepConfig.optional(),
     translation: StepConfig.optional(),
     metadata: StepConfig.optional(),
-    page_sectioning: StepConfig.optional(),
+    page_sectioning: PageSectioningConfig.optional(),
     quiz_generation: QuizGenerationConfig.optional(),
     default_render_strategy: z.string().optional(),
     render_strategies: z.record(z.string(), RenderStrategyConfig).optional(),

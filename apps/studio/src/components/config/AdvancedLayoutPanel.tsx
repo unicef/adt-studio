@@ -29,6 +29,8 @@ export interface RenderStrategyState {
 export interface AdvancedLayoutPanelProps {
   defaultRenderStrategy: string
   onDefaultRenderStrategyChange: (value: string) => void
+  sectioningMode: string
+  onSectioningModeChange: (value: string) => void
   renderStrategies: Record<string, RenderStrategyState>
   onRenderStrategiesChange: (strategies: Record<string, RenderStrategyState>) => void
   textTypes: Record<string, string>
@@ -41,6 +43,8 @@ export interface AdvancedLayoutPanelProps {
   onTogglePrunedText: (type: string) => void
   prunedSectionTypes: Set<string>
   onTogglePrunedSection: (type: string) => void
+  /** Rendered right after the render strategy dropdown (e.g. styleguide selector) */
+  afterStrategySlot?: React.ReactNode
 }
 
 function CollapsibleSection({
@@ -362,6 +366,8 @@ function RenderStrategyEditor({
 export function AdvancedLayoutPanel({
   defaultRenderStrategy,
   onDefaultRenderStrategyChange,
+  sectioningMode,
+  onSectioningModeChange,
   renderStrategies,
   onRenderStrategiesChange,
   textTypes,
@@ -374,6 +380,7 @@ export function AdvancedLayoutPanel({
   onTogglePrunedText,
   prunedSectionTypes,
   onTogglePrunedSection,
+  afterStrategySlot,
 }: AdvancedLayoutPanelProps) {
   const strategyNames = Object.keys(renderStrategies)
   const dropdownOptions = [
@@ -438,20 +445,58 @@ export function AdvancedLayoutPanel({
           onValueChange={onDefaultRenderStrategyChange}
         >
           <SelectTrigger className="h-8 w-52 text-xs">
-            <SelectValue placeholder="Select strategy..." />
+            <SelectValue placeholder="Select strategy...">
+              {defaultRenderStrategy.replace(/_/g, " ")}
+              {renderStrategies[defaultRenderStrategy]?.render_type === "template" && (
+                <span className="text-muted-foreground ml-1">(template)</span>
+              )}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {dropdownOptions.map((name) => (
-              <SelectItem key={name} value={name} className="text-xs">
-                {name.replace(/_/g, " ")}
-              </SelectItem>
-            ))}
+            {dropdownOptions.map((name) => {
+              const isTemplate = renderStrategies[name]?.render_type === "template"
+              return (
+                <SelectItem key={name} value={name} className="text-xs">
+                  {name.replace(/_/g, " ")}{isTemplate ? " (template)" : ""}
+                </SelectItem>
+              )
+            })}
           </SelectContent>
         </Select>
         <p className="text-[10px] text-muted-foreground mt-1">
           {defaultRenderStrategy === "dynamic"
             ? "Automatically picks the best strategy per section type"
             : "All sections rendered with this strategy"}
+        </p>
+      </div>
+
+      {afterStrategySlot}
+
+      {/* Sectioning Mode */}
+      <div>
+        <h4 className="mb-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          Sectioning Mode
+        </h4>
+        <Select
+          value={sectioningMode}
+          onValueChange={onSectioningModeChange}
+        >
+          <SelectTrigger className="h-8 w-52 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="section" className="text-xs">
+              By Section
+            </SelectItem>
+            <SelectItem value="page" className="text-xs">
+              By Page
+            </SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-[10px] text-muted-foreground mt-1">
+          {sectioningMode === "page"
+            ? "Each page is treated as a single section"
+            : "Content is grouped into logical sections per page"}
         </p>
       </div>
 

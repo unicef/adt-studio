@@ -1,7 +1,7 @@
 import { useCallback } from "react"
 import { Link } from "@tanstack/react-router"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { STEPS, STEP_DESCRIPTIONS } from "../StepSidebar"
+import { STEPS, STEP_DESCRIPTIONS, isStepCompleted } from "../StepSidebar"
 import { useStepRun } from "@/hooks/use-step-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
@@ -31,9 +31,6 @@ const STEP_SUB_STEPS: Record<string, StepRunCardSubStep[]> = {
   translations: [
     { key: "text-catalog", label: "Build Text Catalog" },
     { key: "catalog-translation", label: "Translate Entries" },
-  ],
-  "text-to-speech": [
-    { key: "text-catalog", label: "Build Text Catalog" },
     { key: "tts", label: "Generate Audio" },
   ],
 }
@@ -58,12 +55,17 @@ export function BookView({ bookLabel }: ViewProps) {
 
   const handleRun = useCallback(async (slug: string) => {
     if (!hasApiKey || stepRunProgress.isRunning) return
+    // Translations step runs both translations + TTS
+    const toStep = slug === "translations" ? "text-to-speech" : slug
     try {
-      startRun(slug, slug)
+      startRun(slug, toStep)
       setSseEnabled(true)
-      await api.runSteps(bookLabel, apiKey, { fromStep: slug, toStep: slug })
+      await api.runSteps(bookLabel, apiKey, { fromStep: slug, toStep })
       queryClient.removeQueries({ queryKey: ["books", bookLabel, "pages"] })
       queryClient.removeQueries({ queryKey: ["books", bookLabel] })
+      if (slug === "translations") {
+        queryClient.removeQueries({ queryKey: ["books", bookLabel, "tts"] })
+      }
     } catch {
       setSseEnabled(false)
       reset()
@@ -76,7 +78,11 @@ export function BookView({ bookLabel }: ViewProps) {
         const isLast = index === pipelineSteps.length - 1
         const stepProgress = stepRunProgress.steps.get(step.slug)
         const ringState = stepProgress?.state ?? "idle"
+        // For translations, also check TTS running state
+        const ttsProgress = step.slug === "translations" ? stepRunProgress.steps.get("text-to-speech") : undefined
+        const ttsRingState = ttsProgress?.state ?? "idle"
         const isRunning = ringState === "running" || ringState === "queued"
+          || ttsRingState === "running" || ttsRingState === "queued"
         const subSteps = STEP_SUB_STEPS[step.slug]
 
         return (
@@ -91,7 +97,7 @@ export function BookView({ bookLabel }: ViewProps) {
                 subSteps={subSteps ?? []}
                 description={STEP_DESCRIPTIONS[step.slug]}
                 isRunning={isRunning}
-                completed={!!completedSteps[step.slug]}
+                completed={isStepCompleted(step.slug, completedSteps)}
                 showRunButton={step.slug !== "preview"}
                 onRun={() => handleRun(step.slug)}
                 disabled={!hasApiKey || stepRunProgress.isRunning}

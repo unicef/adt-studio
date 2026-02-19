@@ -99,6 +99,18 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
 
   // --- Render templates (Liquid layout templates used by template-based strategies) ---
 
+  // GET /templates — list available template names
+  app.get("/templates", (c) => {
+    if (!fs.existsSync(templatesDir)) {
+      return c.json({ templates: [] })
+    }
+    const files = fs.readdirSync(templatesDir)
+    const names = files
+      .filter((f) => f.endsWith(".liquid"))
+      .map((f) => f.replace(/\.liquid$/, ""))
+    return c.json({ templates: names })
+  })
+
   // GET /templates/:name — read global template
   app.get("/templates/:name", (c) => {
     const name = c.req.param("name")
