@@ -549,6 +549,7 @@ export const PageEditPanel = forwardRef<PageEditPanelHandle, PageEditPanelProps>
               <TabsContent value="sections" className="mt-0 flex-1 overflow-auto p-4">
                 {edit.effectiveSectioning ? (
                   <SectionList
+                    pageId={pageId}
                     sections={edit.effectiveSectioning.sections}
                     draftSectioning={edit.draftSectioning}
                     serverSectioning={page.sectioning}

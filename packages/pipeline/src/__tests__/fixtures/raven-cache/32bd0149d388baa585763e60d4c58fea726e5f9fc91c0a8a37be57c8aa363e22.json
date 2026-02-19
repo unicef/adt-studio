@@ -1,0 +1,15 @@
+{
+  "reasoning": "This page is a story-reading page with one narrative paragraph paired with a single illustrative image of Hyena talking to a bird. They belong together as one coherent unit.",
+  "sections": [
+    {
+      "section_type": "text_and_single_image",
+      "part_ids": [
+        "pg003_gp001",
+        "pg003_im002"
+      ],
+      "background_color": "#ffffff",
+      "text_color": "#000000",
+      "page_number": 2
+    }
+  ]
+}

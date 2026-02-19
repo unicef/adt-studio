@@ -11,16 +11,11 @@ const EXEMPT_TAGS = new Set(["style", "script"])
 const DISALLOWED_TAGS = new Set(["script", "iframe", "object", "embed"])
 const URL_ATTRS = new Set(["src", "href", "xlink:href", "formaction"])
 
-/**
- * Find the first <section> element in the parsed document.
- * Returns null if no <section> tag exists.
- */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function findSectionElement(doc: any): any | null {
-  return DomUtils.findOne(
+function findSectionElements(doc: any): any[] {
+  return DomUtils.findAll(
     (el) => el.type === "tag" && el.name === "section",
-    doc.children ?? [],
-    true
+    doc.children ?? []
   )
 }
 
@@ -42,6 +37,10 @@ export interface HtmlValidationOptions {
   allowActivityGeneratedIds?: boolean
   /** Map of text data-id → expected text content. Validates rendered text matches the source. */
   expectedTexts?: Map<string, string>
+  /** Expected value for the section's data-section-type attribute. */
+  expectedSectionType?: string
+  /** Expected value for the section's data-section-id attribute. */
+  expectedSectionId?: string
 }
 
 export function validateSectionHtml(
@@ -56,11 +55,17 @@ export function validateSectionHtml(
   const errors: string[] = []
   const doc = parseDocument(html)
 
-  const section = findSectionElement(doc)
-  if (!section) {
+  const sections = findSectionElements(doc)
+  if (sections.length === 0) {
     errors.push("No <section> tag found in HTML output")
     return { valid: false, errors }
   }
+  if (sections.length > 1) {
+    errors.push(`Expected exactly one <section> tag, found ${sections.length}`)
+  }
+
+  const section = sections[0]
+  validateRequiredSectionAttributes(section, options, errors)
 
   walkNode(section, allowedIds, errors, options)
 
@@ -77,6 +82,38 @@ export function validateSectionHtml(
     valid: errors.length === 0,
     errors,
     sectionHtml: DomUtils.getOuterHTML(outputNode),
+  }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function validateRequiredSectionAttributes(
+  section: any,
+  options: HtmlValidationOptions | undefined,
+  errors: string[]
+): void {
+  if (!options) return
+
+  const actualSectionType = section.attribs?.["data-section-type"]
+  const actualSectionId = section.attribs?.["data-section-id"]
+
+  if (options.expectedSectionType !== undefined) {
+    if (actualSectionType === undefined) {
+      errors.push('Missing required section attribute "data-section-type"')
+    } else if (actualSectionType !== options.expectedSectionType) {
+      errors.push(
+        `Invalid data-section-type: expected "${options.expectedSectionType}" but got "${actualSectionType}"`
+      )
+    }
+  }
+
+  if (options.expectedSectionId !== undefined) {
+    if (actualSectionId === undefined) {
+      errors.push('Missing required section attribute "data-section-id"')
+    } else if (actualSectionId !== options.expectedSectionId) {
+      errors.push(
+        `Invalid data-section-id: expected "${options.expectedSectionId}" but got "${actualSectionId}"`
+      )
+    }
   }
 }
 

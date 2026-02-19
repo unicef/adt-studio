@@ -28,6 +28,7 @@ export const SectionPart = z.discriminatedUnion("type", [SectionTextPart, Sectio
 export type SectionPart = z.infer<typeof SectionPart>
 
 export const PageSection = z.object({
+  sectionId: z.string(),
   sectionType: z.string(),
   parts: z.array(SectionPart),
   backgroundColor: z.string(),

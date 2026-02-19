@@ -138,7 +138,8 @@ export async function sectionPage(
   // Post-process: mark pruned sections, expand part_ids to inline parts
   const prunedSet = new Set(config.prunedSectionTypes)
 
-  const sections = result.object.sections.map((s) => {
+  const sections = result.object.sections.map((s, idx) => {
+    const sectionId = `${input.pageId}_sec${String(idx + 1).padStart(3, "0")}`
     const parts: SectionPart[] = s.part_ids.map((partId) => {
       assignedPartIds.add(partId)
 
@@ -167,6 +168,7 @@ export async function sectionPage(
     })
 
     return {
+      sectionId,
       sectionType: s.section_type,
       parts,
       backgroundColor: s.background_color,

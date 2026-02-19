@@ -8,6 +8,7 @@ type Sectioning = NonNullable<PageDetail["sectioning"]>
 type Section = Sectioning["sections"][number]
 
 interface SectionListProps {
+  pageId: string
   sections: Sectioning["sections"]
   draftSectioning: Sectioning | null
   serverSectioning: Sectioning | null
@@ -16,7 +17,25 @@ interface SectionListProps {
   images: Array<{ imageId: string; isPruned: boolean }>
 }
 
+function buildNextSectionId(pageId: string, sections: Sectioning["sections"]): string {
+  const prefix = `${pageId}_sec`
+  let maxIndex = 0
+
+  for (const section of sections) {
+    if (!section.sectionId.startsWith(prefix)) continue
+    const suffix = section.sectionId.slice(prefix.length)
+    const parsed = Number.parseInt(suffix, 10)
+    if (Number.isFinite(parsed) && parsed > maxIndex) {
+      maxIndex = parsed
+    }
+  }
+
+  const nextIndex = maxIndex > 0 ? maxIndex + 1 : sections.length + 1
+  return `${prefix}${String(nextIndex).padStart(3, "0")}`
+}
+
 export function SectionList({
+  pageId,
   sections,
   draftSectioning,
   serverSectioning,
@@ -211,6 +230,7 @@ export function SectionList({
       sections: [
         ...prev.sections,
         {
+          sectionId: buildNextSectionId(pageId, prev.sections),
           sectionType: "text_only",
           parts: [],
           backgroundColor: "#ffffff",
@@ -222,7 +242,7 @@ export function SectionList({
     }))
     // Auto-open the new section
     setEditingIndices((prev) => new Set(prev).add(sections.length))
-  }, [sections.length, onUpdate])
+  }, [pageId, sections.length, onUpdate])
 
   return (
     <div className="space-y-3">

@@ -239,6 +239,7 @@ describe("sectionPage", () => {
     expect(result.sections).toHaveLength(2)
 
     expect(result.sections[0]).toEqual({
+      sectionId: "pg001_sec001",
       sectionType: "text_only",
       parts: [
         {
@@ -258,6 +259,7 @@ describe("sectionPage", () => {
     })
 
     expect(result.sections[1]).toEqual({
+      sectionId: "pg001_sec002",
       sectionType: "credits",
       parts: [
         {

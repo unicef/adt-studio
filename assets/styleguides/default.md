@@ -7,7 +7,7 @@ Every page MUST use this exact outer container:
 ```html
 <div class="container content mx-auto flex min-h-screen w-full items-center justify-center px-6 py-12"
     data-background-color="BACKGROUND_COLOR" id="content">
-  <section class="w-full" data-id="SECTION_ID" data-section-type="SECTION_TYPE" data-text-color="TEXT_COLOR"
+  <section class="w-full" data-section-id="SECTION_ID" data-section-type="SECTION_TYPE" data-text-color="TEXT_COLOR"
       id="simple-main" role="article">
     <!-- Content goes here -->
   </section>
@@ -100,7 +100,7 @@ Use when page has "CHAPTER" and a number:
 ```html
 <div class="container content mx-auto flex min-h-screen w-full items-center justify-center px-6 py-12"
     data-background-color="#ffffff" id="content">
-  <section class="w-full" data-id="SECTION_ID" data-section-type="text_and_single_image" data-text-color="#000000"
+  <section class="w-full" data-section-id="SECTION_ID" data-section-type="text_and_single_image" data-text-color="#000000"
       id="simple-main" role="article">
     <div class="mx-auto w-full max-w-5xl space-y-8">
       <!-- Chapter Badge -->
@@ -134,7 +134,7 @@ Use for pages with just text and images (no chapter header):
 ```html
 <div class="container content mx-auto flex min-h-screen w-full items-center justify-center px-6 py-12"
     data-background-color="#ffffff" id="content">
-  <section class="w-full" data-id="SECTION_ID" data-section-type="text_and_images" data-text-color="#000000"
+  <section class="w-full" data-section-id="SECTION_ID" data-section-type="text_and_images" data-text-color="#000000"
       id="simple-main" role="article">
     <div class="mx-auto w-full max-w-5xl space-y-8">
       <!-- Text Group -->
@@ -177,7 +177,7 @@ Use this EXACT structure for table of contents pages:
 ```html
 <div class="container content mx-auto flex min-h-screen w-full items-center justify-center px-6 py-12"
     data-background-color="#f3f0f7" id="content">
-  <section class="w-full" data-id="SECTION_ID" data-section-type="table_of_contents" data-text-color="#2c2c2c"
+  <section class="w-full" data-section-id="SECTION_ID" data-section-type="table_of_contents" data-text-color="#2c2c2c"
       id="simple-main" role="article">
     <div class="mx-auto w-full max-w-3xl space-y-8">
       <!-- Background image (if provided) -->
