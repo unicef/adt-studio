@@ -34,6 +34,9 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const [sectionIndex, setSectionIndex] = useState(0)
   // When navigating backward across page boundary, resolve to last section
   const pendingLastSection = useRef(false)
+  // Guard: prevent silent navigation while AI image is generating
+  const isGeneratingRef = useRef(false)
+  const handleGeneratingChange = useCallback((g: boolean) => { isGeneratingRef.current = g }, [])
 
   // Auto-select first page when no page is selected
   useEffect(() => {
@@ -73,6 +76,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const canGoNext = sectionIndex < sectionCount - 1 || !!nextPageId
 
   const goPrev = () => {
+    if (isGeneratingRef.current && !window.confirm("An AI image is being generated. Cancel it and navigate?")) return
     if (sectionIndex > 0) {
       setSectionIndex(sectionIndex - 1)
     } else if (prevPageId) {
@@ -82,6 +86,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   }
 
   const goNext = () => {
+    if (isGeneratingRef.current && !window.confirm("An AI image is being generated. Cancel it and navigate?")) return
     if (sectionIndex < sectionCount - 1) {
       setSectionIndex(sectionIndex + 1)
     } else if (nextPageId) {
@@ -242,6 +247,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
       page={page}
       navigationExtra={navigationExtra}
       navigationArrows={navigationArrows}
+      onGeneratingChange={handleGeneratingChange}
     />
   )
 }

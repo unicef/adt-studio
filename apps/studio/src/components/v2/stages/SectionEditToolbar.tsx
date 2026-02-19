@@ -24,8 +24,6 @@ export interface SectionEditToolbarProps {
   textTypes?: Record<string, string>
   /** Image src URL for image elements */
   imageSrc?: string
-  /** Image dimensions string (e.g. "400×300") */
-  imageDimensions?: string
   /** Called when text type changes */
   onChangeTextType?: (dataId: string, newType: string) => void
   /** Called when prune is toggled */
@@ -52,7 +50,6 @@ export function SectionEditToolbar({
   isPruned,
   textTypes,
   imageSrc,
-  imageDimensions,
   onChangeTextType,
   onTogglePrune,
   onCrop,
@@ -62,8 +59,9 @@ export function SectionEditToolbar({
   if (!dataId) return null
 
   if (isImage) {
-    // Image popover: positioned ABOVE the element
-    const top = containerOffset.top + rect.top - 110
+    // Image popover: positioned ABOVE the element (card height ~110px: thumbnail 48 + info + padding + actions)
+    const IMAGE_POPOVER_H = 110
+    const top = containerOffset.top + rect.top - IMAGE_POPOVER_H
     const left = containerOffset.left + rect.left
 
     return (
@@ -88,12 +86,7 @@ export function SectionEditToolbar({
               <span className="text-[10px] text-muted-foreground font-mono block truncate">
                 {dataId}
               </span>
-              {imageDimensions && (
-                <span className="text-[10px] text-muted-foreground block">
-                  {imageDimensions}
-                </span>
-              )}
-            </div>
+              </div>
           </div>
           {/* Actions row */}
           <div className="flex items-center gap-1 border-t pt-2 flex-wrap">
@@ -153,8 +146,11 @@ export function SectionEditToolbar({
     )
   }
 
-  // Text toolbar: compact single-row bar positioned BELOW the element
-  const top = containerOffset.top + rect.bottom + 4
+  // Text toolbar: compact single-row bar positioned BELOW the element (flips ABOVE if near viewport bottom)
+  const TOOLBAR_H = 34
+  const topBelow = containerOffset.top + rect.bottom + 4
+  const topAbove = containerOffset.top + rect.top - TOOLBAR_H - 4
+  const top = window.innerHeight - topBelow >= TOOLBAR_H + 8 ? topBelow : Math.max(4, topAbove)
   const left = containerOffset.left + rect.left
 
   return (
@@ -172,7 +168,7 @@ export function SectionEditToolbar({
           onValueChange={(val) => onChangeTextType(dataId, val)}
         >
           <SelectTrigger className="h-6 text-[10px] px-1.5 py-0 min-w-[80px] border-0 bg-muted/50">
-            <SelectValue />
+            <SelectValue>{textType ?? ""}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             {Object.entries(textTypes).map(([key, desc]) => (

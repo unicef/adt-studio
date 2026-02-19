@@ -210,6 +210,10 @@ type RenderingData = NonNullable<PageDetail["rendering"]>
 
 // -- Helpers --
 
+function escapeRegex(s: string) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
 /**
  * Parse a data-id like "pg001_gp001_tx001" to find the matching text entry
  * in the sectioning data. Returns { groupIndex, textIndex } within the section's parts.
@@ -293,6 +297,7 @@ export function StoryboardSectionDetail({
   page,
   navigationExtra,
   navigationArrows,
+  onGeneratingChange,
 }: {
   bookLabel: string
   pageId: string
@@ -302,12 +307,15 @@ export function StoryboardSectionDetail({
   navigationExtra?: ReactNode
   /** Prev/next arrow buttons rendered at the far right of the purple header */
   navigationArrows?: ReactNode
+  /** Called when AI image generation starts/stops so parent can guard navigation */
+  onGeneratingChange?: (generating: boolean) => void
 }) {
   const queryClient = useQueryClient()
   const { apiKey, hasApiKey } = useApiKey()
   const { headerSlotEl } = useStepHeader()
 
   const [saving, setSaving] = useState(false)
+  const [rerendering, setRerendering] = useState(false)
   const [pendingSectioning, setPendingSectioning] = useState<SectioningData | null>(null)
   const [pendingRendering, setPendingRendering] = useState<RenderingData | null>(null)
 
@@ -337,6 +345,11 @@ export function StoryboardSectionDetail({
   const aiImageAbortRef = useRef<AbortController | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const replaceTargetRef = useRef<string | null>(null)
+
+  // Notify parent when AI image generation starts/stops
+  useEffect(() => {
+    onGeneratingChange?.(aiImageGen?.status === "generating")
+  }, [aiImageGen?.status])
 
   // AI edit state
   const [aiInstruction, setAiInstruction] = useState("")
@@ -370,6 +383,14 @@ export function StoryboardSectionDetail({
 
   const textTypes = configQuery.data?.merged?.text_types as Record<string, string> | undefined
   const sectionTypes = configQuery.data?.merged?.section_types as Record<string, string> | undefined
+
+  // Abort in-flight requests when the component unmounts
+  useEffect(() => {
+    return () => {
+      aiAbortRef.current?.abort()
+      aiImageAbortRef.current?.abort()
+    }
+  }, [])
 
   // Clear pending state when page changes
   useEffect(() => {
@@ -428,10 +449,13 @@ export function StoryboardSectionDetail({
 
       // Automatically re-render with the updated sectioning
       if (hasApiKey) {
-        api.reRenderPage(bookLabel, pageId, apiKey).then(() => {
-          queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
-          queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
-        })
+        setRerendering(true)
+        api.reRenderPage(bookLabel, pageId, apiKey)
+          .then(() => {
+            queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
+            queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
+          })
+          .finally(() => setRerendering(false))
       }
     } catch (err) {
       setAiError(err instanceof Error ? err.message : "Save failed")
@@ -661,14 +685,8 @@ export function StoryboardSectionDetail({
             if (si !== sectionIndex) return s
             // Replace data-id and src references to the old imageId
             let html = s.html
-            html = html.replace(
-              new RegExp(`data-id="${cropTarget.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, "g"),
-              `data-id="${result.imageId}"`
-            )
-            html = html.replace(
-              new RegExp(oldSrc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "g"),
-              newSrc
-            )
+            html = html.replace(new RegExp(`data-id="${escapeRegex(cropTarget)}"`, "g"), `data-id="${result.imageId}"`)
+            html = html.replace(new RegExp(escapeRegex(oldSrc), "g"), newSrc)
             return { ...s, html }
           }),
         }
@@ -736,14 +754,8 @@ export function StoryboardSectionDetail({
           sections: rBase.sections.map((s, si) => {
             if (si !== sectionIndex) return s
             let html = s.html
-            html = html.replace(
-              new RegExp(`data-id="${targetId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, "g"),
-              `data-id="${result.imageId}"`
-            )
-            html = html.replace(
-              new RegExp(oldSrc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "g"),
-              newSrc
-            )
+            html = html.replace(new RegExp(`data-id="${escapeRegex(targetId)}"`, "g"), `data-id="${result.imageId}"`)
+            html = html.replace(new RegExp(escapeRegex(oldSrc), "g"), newSrc)
             return { ...s, html }
           }),
         }
@@ -798,17 +810,11 @@ export function StoryboardSectionDetail({
           sections: rBase.sections.map((s, si) => {
             if (si !== sectionIndex) return s
             let html = s.html
-            html = html.replace(
-              new RegExp(`data-id="${targetId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, "g"),
-              `data-id="${newImageId}"`
-            )
-            html = html.replace(
-              new RegExp(oldSrc.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), "g"),
-              newSrc
-            )
+            html = html.replace(new RegExp(`data-id="${escapeRegex(targetId)}"`, "g"), `data-id="${newImageId}"`)
+            html = html.replace(new RegExp(escapeRegex(oldSrc), "g"), newSrc)
             // Set width/height to match original so the display size is preserved
             if (originalDims) {
-              const escaped = newImageId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+              const escaped = escapeRegex(newImageId)
               html = html.replace(
                 new RegExp(`(<img[^>]*data-id="${escaped}"[^>]*?)(/?>)`, "g"),
                 (_, before, close) => {
@@ -1115,7 +1121,7 @@ export function StoryboardSectionDetail({
             ref={previewFrameRef}
             html={renderedSection.html}
             className="w-full rounded border"
-            editable={!aiLoading}
+            editable={!aiLoading && !rerendering}
             prunedDataIds={prunedDataIds}
             changedElements={changedElements}
             onSelectElement={handleSelectElement}
@@ -1147,6 +1153,22 @@ export function StoryboardSectionDetail({
               >
                 Cancel
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* Re-rendering overlay — shown while reRenderPage is running after a sectioning save */}
+        {rerendering && !saving && (
+          <div className="absolute inset-0 z-40 bg-background/70 backdrop-blur-[2px] flex items-center justify-center">
+            <div className="flex flex-col items-center gap-5 text-center max-w-xs">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-muted-foreground/60 animate-bounce [animation-delay:0ms]" />
+                <span className="w-2.5 h-2.5 rounded-full bg-muted-foreground/40 animate-bounce [animation-delay:150ms]" />
+                <span className="w-2.5 h-2.5 rounded-full bg-muted-foreground/20 animate-bounce [animation-delay:300ms]" />
+              </div>
+              <p className="text-sm font-medium text-foreground animate-pulse">
+                Re-rendering page...
+              </p>
             </div>
           </div>
         )}
@@ -1241,6 +1263,7 @@ export function StoryboardSectionDetail({
         </div>
       )}
 
+
       {/* Floating popover for selected element */}
       {selectedElement && selectedInfo && (
         <SectionEditToolbar
@@ -1272,7 +1295,7 @@ export function StoryboardSectionDetail({
           {sectionTypes ? (
             <Select value={section.sectionType} onValueChange={changeSectionType}>
               <SelectTrigger className="h-6 text-[10px] font-medium px-1.5 py-0 w-auto min-w-[80px] border-0 bg-muted/50">
-                <SelectValue />
+                <SelectValue>{section.sectionType}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {Object.entries(sectionTypes).map(([key, desc]) => (
@@ -1361,7 +1384,7 @@ export function StoryboardSectionDetail({
                                 onValueChange={(val) => changeTextType(partIndex, i, val)}
                               >
                                 <SelectTrigger className="shrink-0 h-5 text-[10px] font-medium px-1.5 py-0 w-auto min-w-[60px] border-0 bg-muted/50">
-                                  <SelectValue />
+                                  <SelectValue>{t.textType}</SelectValue>
                                 </SelectTrigger>
                                 <SelectContent>
                                   {Object.entries(textTypes).map(([key, desc]) => (
