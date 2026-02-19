@@ -15,6 +15,7 @@ const UI_STEP_PIPELINE_STEPS = {
     "extract",
     "metadata",
     "image-classification",
+    "image-cropping",
     "text-classification",
     "translation",
     "book-summary",

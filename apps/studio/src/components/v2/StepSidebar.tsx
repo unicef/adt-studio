@@ -57,6 +57,7 @@ const EXTRACT_SETTINGS_TABS = [
   { key: "metadata-prompt", label: "Metadata Prompt" },
   { key: "prompt", label: "Extraction Prompt" },
   { key: "meaningfulness-prompt", label: "Meaningfulness Prompt" },
+  { key: "cropping-prompt", label: "Cropping Prompt" },
   { key: "book-summary-prompt", label: "Summary Prompt" },
 ]
 

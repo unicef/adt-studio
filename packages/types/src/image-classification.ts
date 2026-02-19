@@ -5,6 +5,7 @@ export const ImageFilters = z.object({
   max_side: z.number().int().min(0).optional(),
   min_stddev: z.number().min(0).optional(),
   meaningfulness: z.boolean().optional(),
+  cropping: z.boolean().optional(),
 })
 export type ImageFilters = z.infer<typeof ImageFilters>
 

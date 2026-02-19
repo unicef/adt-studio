@@ -18,6 +18,15 @@ export interface NodeDataRow {
   data: unknown
 }
 
+export interface CroppedImageInput {
+  imageId: string
+  pageId: string
+  version: number
+  buffer: Buffer
+  width: number
+  height: number
+}
+
 export interface Storage {
   clearExtractedData(): void
   clearNodesByType(nodes: string[]): void
@@ -27,6 +36,9 @@ export interface Storage {
   getPageImageBase64(pageId: string): string
   getImageBase64(imageId: string): string
   getPageImages(pageId: string): ImageData[]
+
+  /** Write a cropped image to disk as {imageId}_crop_v{version}.png and register it in the DB with source="crop". */
+  putCroppedImage(input: CroppedImageInput): void
 
   putNodeData(node: string, itemId: string, data: unknown): number
   getLatestNodeData(node: string, itemId: string): NodeDataRow | null

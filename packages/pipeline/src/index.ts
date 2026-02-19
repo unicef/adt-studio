@@ -22,6 +22,16 @@ export {
   type MeaningfulnessConfig,
   type MeaningfulnessPageInput,
 } from "./image-meaningfulness.js"
+export {
+  cropPageImages,
+  applyCrops,
+  applyCrop,
+  buildCroppingConfig,
+  getCroppedImageId,
+  type AppliedCrop,
+  type CroppingConfig,
+  type CroppingPageInput,
+} from "./image-cropping.js"
 export { grayscaleStdDev } from "./image-complexity.js"
 export {
   extractMetadata,

@@ -41,6 +41,12 @@ export {
   imageMeaningfulnessLLMSchema,
 } from "./image-meaningfulness.js"
 
+export {
+  ImageCropResult,
+  ImageCroppingOutput,
+  imageCroppingLLMSchema,
+} from "./image-cropping.js"
+
 export { BookMetadata } from "./metadata.js"
 
 export { BookSummaryOutput } from "./book-summary.js"

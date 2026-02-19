@@ -4,7 +4,7 @@ import type sqlite from "node-sqlite3-wasm"
 import type { ExtractedPage, ExtractedImage } from "@adt/pdf"
 import type { LlmLogEntry } from "@adt/llm"
 import { parseBookLabel } from "@adt/types"
-import type { Storage, PageData, ImageData, NodeDataRow } from "./storage.js"
+import type { Storage, PageData, ImageData, NodeDataRow, CroppedImageInput } from "./storage.js"
 import { openBookDb } from "./db.js"
 
 export interface BookPaths {
@@ -118,6 +118,34 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
         width: r.width,
         height: r.height,
       }))
+    },
+
+    putCroppedImage(input: CroppedImageInput): void {
+      const cropId = `${input.imageId}_crop_v${input.version}`
+      const filename = `${cropId}.png`
+      fs.writeFileSync(path.join(paths.imagesDir, filename), input.buffer)
+
+      db.run(
+        `INSERT INTO images
+           (image_id, page_id, path, hash, width, height, source)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT (image_id) DO UPDATE SET
+           page_id = excluded.page_id,
+           path = excluded.path,
+           hash = excluded.hash,
+           width = excluded.width,
+           height = excluded.height,
+           source = excluded.source`,
+        [
+          cropId,
+          input.pageId,
+          `images/${filename}`,
+          "",
+          input.width,
+          input.height,
+          "crop",
+        ]
+      )
     },
 
     putNodeData(node: string, itemId: string, data: unknown): number {

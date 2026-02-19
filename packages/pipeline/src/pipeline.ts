@@ -10,6 +10,7 @@ import { generateBookSummary, buildBookSummaryConfig } from "./book-summary.js"
 import { classifyPageText, buildClassifyConfig } from "./text-classification.js"
 import { classifyPageImages, buildImageClassifyConfig } from "./image-classification.js"
 import { filterPageImageMeaningfulness, buildMeaningfulnessConfig } from "./image-meaningfulness.js"
+import { cropPageImages, applyCrops, buildCroppingConfig, getCroppedImageId } from "./image-cropping.js"
 import { sectionPage, buildSectioningConfig } from "./page-sectioning.js"
 import { renderPage, buildRenderStrategyResolver } from "./web-rendering.js"
 import { translatePageText, buildTranslationConfig, type TranslationConfig } from "./translation.js"
@@ -190,11 +191,22 @@ export async function runPipeline(
         Buffer.from(storage.getImageBase64(imageId), "base64"),
     }
     const meaningfulnessConfig = buildMeaningfulnessConfig(config)
+    const croppingConfig = buildCroppingConfig(config)
     const sectioningConfig = buildSectioningConfig(config)
     const resolveRenderConfig = buildRenderStrategyResolver(config)
     const meaningfulnessModel = meaningfulnessConfig
       ? createLLMModel({
           modelId: meaningfulnessConfig.modelId,
+          cacheDir,
+          promptEngine,
+          rateLimiter,
+          logLevel,
+          onLog: (entry) => storage.appendLlmLog(entry),
+        })
+      : null
+    const croppingModel = croppingConfig
+      ? createLLMModel({
+          modelId: croppingConfig.modelId,
           cacheDir,
           promptEngine,
           rateLimiter,
@@ -242,6 +254,7 @@ export async function runPipeline(
             textClassifyConfig,
             imageClassifyConfig,
             meaningfulnessConfig,
+            croppingConfig,
             sectioningConfig,
             resolveRenderConfig,
           },
@@ -251,7 +264,8 @@ export async function runPipeline(
           progress,
           translationConfig,
           translationModel,
-          meaningfulnessModel
+          meaningfulnessModel,
+          croppingModel
         )
       }
     )
@@ -266,6 +280,7 @@ interface StepConfigs {
   textClassifyConfig: ReturnType<typeof buildClassifyConfig>
   imageClassifyConfig: ReturnType<typeof buildImageClassifyConfig>
   meaningfulnessConfig: ReturnType<typeof buildMeaningfulnessConfig>
+  croppingConfig: ReturnType<typeof buildCroppingConfig>
   sectioningConfig: ReturnType<typeof buildSectioningConfig>
   resolveRenderConfig: ReturnType<typeof buildRenderStrategyResolver>
 }
@@ -283,9 +298,10 @@ async function processPage(
   progress: Progress,
   translationConfig: TranslationConfig | null,
   translationModel: LLMModel | null,
-  meaningfulnessModel: LLMModel | null
+  meaningfulnessModel: LLMModel | null,
+  croppingModel: LLMModel | null
 ): Promise<void> {
-  const { textClassifyConfig, imageClassifyConfig, meaningfulnessConfig, sectioningConfig, resolveRenderConfig } =
+  const { textClassifyConfig, imageClassifyConfig, meaningfulnessConfig, croppingConfig, sectioningConfig, resolveRenderConfig } =
     configs
 
   // --- Classify ---
@@ -379,18 +395,90 @@ async function processPage(
   }
   const imageClassification = imageResult as ImageClassificationOutput
 
-  const allImages = storage.getPageImages(page.pageId)
-  const prunedImageIds = new Set(
-    imageClassification.images
-      .filter((img) => img.isPruned)
-      .map((img) => img.imageId)
-  )
-  const sectionImages = allImages
-    .filter((img) => !prunedImageIds.has(img.imageId))
-    .map((img) => ({
-      imageId: img.imageId,
-      imageBase64: storage.getImageBase64(img.imageId),
-    }))
+  // --- Crop images (if enabled) ---
+  if (croppingConfig && croppingModel) {
+    try {
+      const allImages = storage.getPageImages(page.pageId)
+      const prunedImageIds = new Set(
+        imageClassification.images
+          .filter((img) => img.isPruned)
+          .map((img) => img.imageId)
+      )
+      const unprunedImages = allImages
+        .filter((img) => !prunedImageIds.has(img.imageId))
+        .map((img) => ({
+          imageId: img.imageId,
+          imageBase64: storage.getImageBase64(img.imageId),
+          width: img.width,
+          height: img.height,
+        }))
+
+      if (unprunedImages.length > 0) {
+        const croppingResult = await cropPageImages(
+          {
+            pageId: page.pageId,
+            pageImageBase64: imageBase64,
+            images: unprunedImages,
+          },
+          croppingConfig,
+          croppingModel
+        )
+        const croppingVersion = storage.putNodeData("image-cropping", page.pageId, croppingResult)
+        const applied = applyCrops(
+          croppingResult,
+          (imageId) => storage.getImageBase64(imageId)
+        )
+        for (const crop of applied) {
+          storage.putCroppedImage({
+            imageId: crop.imageId,
+            pageId: page.pageId,
+            version: croppingVersion,
+            buffer: crop.buffer,
+            width: crop.width,
+            height: crop.height,
+          })
+          // Mark original as pruned in classification
+          const origEntry = imageClassification.images.find((i) => i.imageId === crop.imageId)
+          if (origEntry) {
+            origEntry.isPruned = true
+            origEntry.reason = "cropped"
+          }
+          // Add crop as new unpruned image
+          imageClassification.images.push({
+            imageId: getCroppedImageId(crop.imageId, croppingVersion),
+            isPruned: false,
+          })
+        }
+        if (applied.length > 0) {
+          storage.putNodeData("image-classification", page.pageId, imageClassification)
+        }
+        progress.emit({
+          type: "step-progress",
+          step: "image-cropping",
+          message: page.pageId,
+          page: pageIndex,
+          totalPages,
+        })
+      }
+    } catch (err) {
+      // Cropping is non-fatal — log and continue with originals
+      progress.emit({
+        type: "step-error",
+        step: "image-cropping",
+        error: err instanceof Error ? err.message : String(err),
+      })
+    }
+  }
+
+  // Build downstream image lists from classification
+  const unprunedImageIds = imageClassification.images
+    .filter((img) => !img.isPruned)
+    .map((img) => img.imageId)
+
+  const sectionImages = unprunedImageIds.map((imageId) => ({
+    imageId,
+    imageBase64: storage.getImageBase64(imageId),
+  }))
 
   const pageImageBase64 = storage.getPageImageBase64(page.pageId)
   const sectionResult = await sectionPage(
@@ -417,10 +505,8 @@ async function processPage(
   // --- Render ---
   const sectioning = sectionResult as PageSectioningOutput
   const renderImages = new Map<string, string>()
-  for (const img of allImages) {
-    if (!prunedImageIds.has(img.imageId)) {
-      renderImages.set(img.imageId, storage.getImageBase64(img.imageId))
-    }
+  for (const imageId of unprunedImageIds) {
+    renderImages.set(imageId, storage.getImageBase64(imageId))
   }
 
   const renderResult = await renderPage(

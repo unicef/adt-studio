@@ -1,4 +1,4 @@
-export type { Storage, PageData, ImageData, NodeDataRow } from "./storage.js"
+export type { Storage, PageData, ImageData, NodeDataRow, CroppedImageInput } from "./storage.js"
 export {
   createBookStorage,
   resolveBookPaths,

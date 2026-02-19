@@ -46,13 +46,16 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
   const [maxSide, setMaxSide] = useState("")
   const [minStddev, setMinStddev] = useState("")
   const [meaningfulness, setMeaningfulness] = useState(true)
+  const [cropping, setCropping] = useState(false)
   const [metadataModel, setMetadataModel] = useState("")
   const [extractionModel, setExtractionModel] = useState("")
   const [meaningfulnessModel, setMeaningfulnessModel] = useState("")
+  const [croppingModel, setCroppingModel] = useState("")
   const [bookSummaryModel, setBookSummaryModel] = useState("")
   const [metadataPromptDraft, setMetadataPromptDraft] = useState<string | null>(null)
   const [extractionPromptDraft, setExtractionPromptDraft] = useState<string | null>(null)
   const [meaningfulnessPromptDraft, setMeaningfulnessPromptDraft] = useState<string | null>(null)
+  const [croppingPromptDraft, setCroppingPromptDraft] = useState<string | null>(null)
   const [bookSummaryPromptDraft, setBookSummaryPromptDraft] = useState<string | null>(null)
 
   // Track which field groups the user has actually touched
@@ -83,6 +86,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
       if (filters.max_side != null) setMaxSide(String(filters.max_side))
       if (filters.min_stddev != null) setMinStddev(String(filters.min_stddev))
       if (filters.meaningfulness != null) setMeaningfulness(filters.meaningfulness !== false)
+      if (filters.cropping != null) setCropping(filters.cropping === true)
     }
     if (merged.metadata && typeof merged.metadata === "object") {
       const md = merged.metadata as Record<string, unknown>
@@ -95,6 +99,10 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
     if (merged.image_meaningfulness && typeof merged.image_meaningfulness === "object") {
       const im = merged.image_meaningfulness as Record<string, unknown>
       if (im.model) setMeaningfulnessModel(String(im.model))
+    }
+    if (merged.image_cropping && typeof merged.image_cropping === "object") {
+      const ic = merged.image_cropping as Record<string, unknown>
+      if (ic.model) setCroppingModel(String(ic.model))
     }
     if (merged.book_summary && typeof merged.book_summary === "object") {
       const bs = merged.book_summary as Record<string, unknown>
@@ -176,6 +184,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
       if (maxSide) filters.max_side = Number(maxSide)
       if (minStddev) filters.min_stddev = Number(minStddev)
       filters.meaningfulness = meaningfulness
+      filters.cropping = cropping
       overrides.image_filters = filters
     }
     if (shouldWrite("metadata")) {
@@ -189,6 +198,10 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
     if (shouldWrite("image_meaningfulness")) {
       const existing = (bookConfigData?.config?.image_meaningfulness ?? {}) as Record<string, unknown>
       overrides.image_meaningfulness = { ...existing, model: meaningfulnessModel.trim() || undefined }
+    }
+    if (shouldWrite("image_cropping")) {
+      const existing = (bookConfigData?.config?.image_cropping ?? {}) as Record<string, unknown>
+      overrides.image_cropping = { ...existing, model: croppingModel.trim() || undefined }
     }
     if (shouldWrite("book_summary")) {
       const existing = (bookConfigData?.config?.book_summary ?? {}) as Record<string, unknown>
@@ -204,6 +217,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
     if (metadataPromptDraft != null) promptSaves.push(api.updatePrompt("metadata_extraction", metadataPromptDraft, bookLabel))
     if (extractionPromptDraft != null) promptSaves.push(api.updatePrompt("text_classification", extractionPromptDraft, bookLabel))
     if (meaningfulnessPromptDraft != null) promptSaves.push(api.updatePrompt("image_meaningfulness", meaningfulnessPromptDraft, bookLabel))
+    if (croppingPromptDraft != null) promptSaves.push(api.updatePrompt("image_cropping", croppingPromptDraft, bookLabel))
     if (bookSummaryPromptDraft != null) promptSaves.push(api.updatePrompt("book_summary", bookSummaryPromptDraft, bookLabel))
     if (promptSaves.length > 0) await Promise.all(promptSaves)
 
@@ -216,6 +230,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
           setMetadataPromptDraft(null)
           setExtractionPromptDraft(null)
           setMeaningfulnessPromptDraft(null)
+          setCroppingPromptDraft(null)
           setBookSummaryPromptDraft(null)
           setShowRerunDialog(false)
           // Start step-scoped extract run — blocks until data is cleared on backend
@@ -233,7 +248,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
   }
 
   return (
-    <div className={tab === "metadata-prompt" || tab === "prompt" || tab === "meaningfulness-prompt" || tab === "book-summary-prompt" ? "h-full max-w-4xl" : "p-4 space-y-6"}>
+    <div className={tab === "metadata-prompt" || tab === "prompt" || tab === "meaningfulness-prompt" || tab === "cropping-prompt" || tab === "book-summary-prompt" ? "h-full max-w-4xl" : "p-4 space-y-6"}>
       {tab === "general" && (
         <>
           {/* Page Range */}
@@ -358,6 +373,22 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
             <p className="text-xs text-muted-foreground mt-1.5">
               Use an LLM to filter out decorative or non-educational images.
             </p>
+            <div className="flex items-center gap-2 mt-4">
+              <Switch
+                id="cropping-filter"
+                checked={cropping}
+                onCheckedChange={(v) => {
+                  setCropping(v)
+                  markDirty("image_filters")
+                }}
+              />
+              <Label htmlFor="cropping-filter" className="text-sm font-normal">
+                LLM image cropping
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Use an LLM to crop away stray text, artifacts, and excessive whitespace from image edges.
+            </p>
           </div>
         </>
       )}
@@ -470,6 +501,19 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
           onModelChange={(v) => { setMeaningfulnessModel(v); markDirty("image_meaningfulness") }}
           onContentChange={setMeaningfulnessPromptDraft}
           enabled={tab === "meaningfulness-prompt"}
+        />
+      )}
+
+      {tab === "cropping-prompt" && (
+        <PromptViewer
+          promptName="image_cropping"
+          bookLabel={bookLabel}
+          title="Image Cropping Prompt"
+          description="LLM-based cropping to remove stray text, artifacts, and excessive whitespace from extracted images."
+          model={croppingModel}
+          onModelChange={(v) => { setCroppingModel(v); markDirty("image_cropping") }}
+          onContentChange={setCroppingPromptDraft}
+          enabled={tab === "cropping-prompt"}
         />
       )}
 

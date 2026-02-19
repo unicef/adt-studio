@@ -28,6 +28,7 @@ const STEP_LABELS: Record<StepName, string> = {
   "text-classification": "Classify Text",
   translation: "Translate Text",
   "image-classification": "Classify Images",
+  "image-cropping": "Crop Images",
   "page-sectioning": "Section Pages",
   "web-rendering": "Render Pages",
   "image-captioning": "Caption Images",

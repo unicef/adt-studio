@@ -75,6 +75,7 @@ const EXTRACT_SUB_STEPS = [
   { key: "extract", label: "Extract PDF" },
   { key: "metadata", label: "Extract Metadata" },
   { key: "image-classification", label: "Classify Images" },
+  { key: "image-cropping", label: "Crop Images" },
   { key: "text-classification", label: "Classify Text" },
   { key: "translation", label: "Translate" },
   { key: "book-summary", label: "Book Summary" },

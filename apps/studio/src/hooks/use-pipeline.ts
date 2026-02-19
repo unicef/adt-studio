@@ -10,6 +10,7 @@ export type StepName =
   | "book-summary"
   | "translation"
   | "image-classification"
+  | "image-cropping"
   | "page-sectioning"
   | "web-rendering"
   | "image-captioning"

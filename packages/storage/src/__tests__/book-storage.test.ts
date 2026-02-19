@@ -133,6 +133,28 @@ describe("createBookStorage", () => {
     storage.close()
   })
 
+  it("includes cropped images in getPageImages", () => {
+    const { storage } = createTempStorage()
+    storage.putExtractedPage(makePage(1))
+
+    storage.putCroppedImage({
+      imageId: "pg001_im001",
+      pageId: "pg001",
+      version: 1,
+      buffer: fakePng(180, 140),
+      width: 180,
+      height: 140,
+    })
+
+    const images = storage.getPageImages("pg001")
+    const ids = images.map((img) => img.imageId)
+    expect(ids).toContain("pg001_im001")
+    expect(ids).toContain("pg001_im001_crop_v1")
+    expect(ids).toContain("pg001_page")
+
+    storage.close()
+  })
+
   it("handles multiple pages", () => {
     const { storage, paths } = createTempStorage()
 
