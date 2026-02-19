@@ -149,7 +149,8 @@ export async function sectionPage(
           type: "text_group" as const,
           groupId: group.groupId,
           groupType: group.groupType,
-          texts: group.texts.map((t) => ({
+          texts: group.texts.map((t, tIdx) => ({
+            textId: `${group.groupId}_tx${String(tIdx + 1).padStart(3, "0")}`,
             textType: t.textType,
             text: t.text,
             isPruned: t.isPruned,
@@ -187,7 +188,8 @@ export async function sectionPage(
         type: "text_group",
         groupId: group.groupId,
         groupType: group.groupType,
-        texts: group.texts.map((t) => ({
+        texts: group.texts.map((t, tIdx) => ({
+          textId: `${group.groupId}_tx${String(tIdx + 1).padStart(3, "0")}`,
           textType: t.textType,
           text: t.text,
           isPruned: t.isPruned,

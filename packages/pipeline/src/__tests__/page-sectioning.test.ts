@@ -247,7 +247,7 @@ describe("sectionPage", () => {
           groupId: "pg001_gp001",
           groupType: "paragraph",
           texts: [
-            { textType: "section_text", text: "Body text", isPruned: false },
+            { textId: "pg001_gp001_tx001", textType: "section_text", text: "Body text", isPruned: false },
           ],
           isPruned: false,
         },
@@ -267,7 +267,7 @@ describe("sectionPage", () => {
           groupId: "pg001_gp002",
           groupType: "paragraph",
           texts: [
-            { textType: "section_text", text: "Credits info", isPruned: false },
+            { textId: "pg001_gp002_tx001", textType: "section_text", text: "Credits info", isPruned: false },
           ],
           isPruned: false,
         },
@@ -404,14 +404,14 @@ describe("sectionPage", () => {
       type: "text_group",
       groupId: "pg001_gp001",
       groupType: "paragraph",
-      texts: [{ textType: "section_text", text: "Body", isPruned: false }],
+      texts: [{ textId: "pg001_gp001_tx001", textType: "section_text", text: "Body", isPruned: false }],
       isPruned: false,
     })
     expect(result.sections[0].parts[1]).toEqual({
       type: "text_group",
       groupId: "pg001_gp002",
       groupType: "heading",
-      texts: [{ textType: "header_text", text: "Header", isPruned: true }],
+      texts: [{ textId: "pg001_gp002_tx001", textType: "header_text", text: "Header", isPruned: true }],
       isPruned: true,
     })
     expect(result.sections[0].parts[2]).toEqual({

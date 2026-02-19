@@ -1,6 +1,7 @@
 import { z } from "zod"
 
 export const SectionTextEntry = z.object({
+  textId: z.string(),
   textType: z.string(),
   text: z.string(),
   isPruned: z.boolean(),

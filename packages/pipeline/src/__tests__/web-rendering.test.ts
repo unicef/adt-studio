@@ -148,7 +148,16 @@ describe("buildRenderStrategyResolver", () => {
 
 // Helper to build inline text group part
 function textPart(groupId: string, groupType: string, texts: Array<{ textType: string; text: string; isPruned: boolean }>, isPruned = false) {
-  return { type: "text_group" as const, groupId, groupType, texts, isPruned }
+  return {
+    type: "text_group" as const,
+    groupId,
+    groupType,
+    texts: texts.map((t, i) => ({
+      textId: `${groupId}_tx${String(i + 1).padStart(3, "0")}`,
+      ...t,
+    })),
+    isPruned,
+  }
 }
 
 // Helper to build inline image part
@@ -369,6 +378,63 @@ describe("renderPage", () => {
     expect(texts).toHaveLength(2)
     expect(texts[0].text_id).toBe("pg001_gp001_tx001")
     expect(texts[1].text_id).toBe("pg001_gp001_tx002")
+  })
+
+  it("preserves original text IDs when earlier entries are pruned", async () => {
+    let capturedContext: Record<string, unknown> | undefined
+
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        capturedContext = opts.context
+        return {
+          object: {
+            reasoning: "test",
+            content:
+              '<div id="content" class="container"><section role="article" data-section-type="text_only" data-section-id="pg001_sec001"><p data-id="pg001_gp001_tx002">Second</p><p data-id="pg001_gp001_tx003">Third</p></section></div>',
+          } as T,
+        } as GenerateObjectResult<T>
+      },
+    }
+
+    await renderPage(
+      {
+        label: "test-book",
+        pageId: "pg001",
+        pageImageBase64: "base64img",
+        sectioning: {
+          reasoning: "test",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "text_only",
+              parts: [
+                textPart("pg001_gp001", "paragraph", [
+                  { textType: "header_text", text: "First (pruned)", isPruned: true },
+                  { textType: "section_text", text: "Second", isPruned: false },
+                  { textType: "section_text", text: "Third", isPruned: false },
+                ]),
+              ],
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+        images: new Map(),
+      },
+      defaultResolveConfig,
+      fakeLlm
+    )
+
+    const texts = capturedContext?.texts as Array<{
+      text_id: string
+      text_type: string
+      text: string
+    }>
+    expect(texts).toHaveLength(2)
+    expect(texts[0].text_id).toBe("pg001_gp001_tx002")
+    expect(texts[1].text_id).toBe("pg001_gp001_tx003")
   })
 
   it("generates tx ID for single-text groups", async () => {

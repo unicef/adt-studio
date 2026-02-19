@@ -72,7 +72,7 @@ function getLLMModel(
 
 /**
  * Expand inline section parts into the render-ready SectionPart format.
- * Filters to non-pruned parts, expands text groups to TextInput with generated IDs,
+ * Filters to non-pruned parts, expands text groups to TextInput while preserving text IDs,
  * and resolves image base64 from the images map.
  */
 function expandParts(
@@ -86,8 +86,8 @@ function expandParts(
 
     if (part.type === "text_group") {
       const nonPruned = part.texts.filter((t) => !t.isPruned)
-      const texts = nonPruned.map((t, i) => ({
-        textId: `${part.groupId}_tx${String(i + 1).padStart(3, "0")}`,
+      const texts = nonPruned.map((t) => ({
+        textId: t.textId,
         textType: t.textType,
         text: t.text,
       }))
