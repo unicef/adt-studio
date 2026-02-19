@@ -361,4 +361,74 @@ describe("validateSectionHtml", () => {
       expect.stringContaining("activity_gen_opt1")
     )
   })
+
+  it("validates required section attributes when expected values are provided", () => {
+    const html = `
+      <div id="content" class="container">
+        <section role="article" data-section-type="text_only" data-section-id="pg001_sec001">
+          <p data-id="pg001_gp001_tx001">Hello</p>
+        </section>
+      </div>
+    `
+    const result = validateSectionHtml(
+      html,
+      ["pg001_gp001_tx001"],
+      [],
+      undefined,
+      {
+        expectedSectionType: "text_only",
+        expectedSectionId: "pg001_sec001",
+      }
+    )
+    expect(result.valid).toBe(true)
+  })
+
+  it("rejects missing section attributes when expected values are provided", () => {
+    const html = `
+      <section role="article" data-section-type="text_only">
+        <p data-id="pg001_gp001_tx001">Hello</p>
+      </section>
+    `
+    const result = validateSectionHtml(
+      html,
+      ["pg001_gp001_tx001"],
+      [],
+      undefined,
+      {
+        expectedSectionType: "text_only",
+        expectedSectionId: "pg001_sec001",
+      }
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining('Missing required section attribute "data-section-id"')
+    )
+  })
+
+  it("rejects multiple section tags", () => {
+    const html = `
+      <div id="content" class="container">
+        <section data-section-type="text_only" data-section-id="pg001_sec001">
+          <p data-id="pg001_gp001_tx001">First</p>
+        </section>
+        <section data-section-type="text_only" data-section-id="pg001_sec002">
+          <p data-id="pg001_gp002_tx001">Second</p>
+        </section>
+      </div>
+    `
+    const result = validateSectionHtml(
+      html,
+      ["pg001_gp001_tx001", "pg001_gp002_tx001"],
+      [],
+      undefined,
+      {
+        expectedSectionType: "text_only",
+        expectedSectionId: "pg001_sec001",
+      }
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining("Expected exactly one <section> tag")
+    )
+  })
 })

@@ -148,6 +148,7 @@ export interface PageDetail {
   sectioning: {
     reasoning: string
     sections: Array<{
+      sectionId: string
       sectionType: string
       parts: Array<
         | {

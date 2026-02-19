@@ -89,7 +89,11 @@ export async function renderSectionTemplate(
     allowedTextIds,
     allowedImageIds,
     imageUrlPrefix,
-    { expectedTexts }
+    {
+      expectedTexts,
+      expectedSectionType: input.sectionType,
+      expectedSectionId: input.sectionId,
+    }
   )
   if (!check.valid) {
     throw new Error(
