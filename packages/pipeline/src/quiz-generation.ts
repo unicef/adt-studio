@@ -15,6 +15,7 @@ import { buildLanguageContext, normalizeLocale } from "./language-context.js"
 export interface QuizConfig {
   language: string
   pagesPerQuiz: number
+  quizSectionTypes: string[]
   promptName: string
   modelId: string
   maxRetries: number
@@ -72,6 +73,7 @@ export function buildQuizGenerationConfig(
   return {
     language: normalizeLocale(language),
     pagesPerQuiz: appConfig.quiz_generation?.pages_per_quiz ?? 3,
+    quizSectionTypes: appConfig.quiz_generation?.quiz_section_types ?? [],
     promptName: appConfig.quiz_generation?.prompt ?? "quiz_generation",
     modelId:
       appConfig.quiz_generation?.model ??
@@ -93,20 +95,33 @@ export function extractTextFromHtml(html: string): string {
 
 /**
  * Determine if a page has at least one non-pruned section.
+ * When quizSectionTypes is provided and non-empty, only sections
+ * matching those types are considered.
  */
-export function isContentPage(sectioning: PageSectioningOutput): boolean {
-  return sectioning.sections.some((s) => !s.isPruned)
+export function isContentPage(
+  sectioning: PageSectioningOutput,
+  quizSectionTypes?: string[]
+): boolean {
+  return sectioning.sections.some((s) => {
+    if (s.isPruned) return false
+    if (quizSectionTypes && quizSectionTypes.length > 0) {
+      return quizSectionTypes.includes(s.sectionType)
+    }
+    return true
+  })
 }
 
 /**
  * Batch content pages into groups of N for quiz generation.
  * Non-content pages (all sections pruned) are skipped.
+ * When quizSectionTypes is provided, only pages with matching section types count.
  */
 export function batchPages(
   pages: QuizPageInput[],
-  pagesPerQuiz: number
+  pagesPerQuiz: number,
+  quizSectionTypes?: string[]
 ): QuizPageInput[][] {
-  const contentPages = pages.filter((p) => isContentPage(p.sectioning))
+  const contentPages = pages.filter((p) => isContentPage(p.sectioning, quizSectionTypes))
   const batches: QuizPageInput[][] = []
   for (let i = 0; i < contentPages.length; i += pagesPerQuiz) {
     batches.push(contentPages.slice(i, i + pagesPerQuiz))
@@ -210,7 +225,7 @@ export async function generateAllQuizzes(
     onQuizComplete?: (completed: number, total: number) => void
   }
 ): Promise<QuizGenerationOutput> {
-  const batches = batchPages(pages, config.pagesPerQuiz)
+  const batches = batchPages(pages, config.pagesPerQuiz, config.quizSectionTypes)
   const quizzes: Quiz[] = []
   const concurrency = options?.concurrency ?? 1
   let completed = 0

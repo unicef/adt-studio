@@ -49,19 +49,20 @@ const validQuizResponse = {
 function makePageInput(
   pageId: string,
   html: string,
-  isPruned = false
+  isPruned = false,
+  sectionType?: string
 ): QuizPageInput {
   return {
     pageId,
     rendering: {
-      sections: [{ sectionIndex: 0, sectionType: "text_only", reasoning: "", html }],
+      sections: [{ sectionIndex: 0, sectionType: sectionType ?? (isPruned ? "front_cover" : "text_only"), reasoning: "", html }],
     },
     sectioning: {
       reasoning: "",
       sections: [
         {
           sectionId: `${pageId}_sec001`,
-          sectionType: isPruned ? "front_cover" : "text_only",
+          sectionType: sectionType ?? (isPruned ? "front_cover" : "text_only"),
           parts: [],
           backgroundColor: "#ffffff",
           textColor: "#000000",
@@ -72,6 +73,17 @@ function makePageInput(
     },
   }
 }
+
+const DEFAULT_QUIZ_SECTION_TYPES = [
+  "boxed_text",
+  "text_only",
+  "text_and_single_image",
+  "text_and_images",
+  "images_only",
+]
+
+/** When no quiz_section_types is in the config, the pipeline falls back to empty (all non-pruned count). */
+const FALLBACK_QUIZ_SECTION_TYPES: string[] = []
 
 describe("extractTextFromHtml", () => {
   it("strips HTML tags and returns plain text", () => {
@@ -110,6 +122,37 @@ describe("isContentPage", () => {
     }
     expect(isContentPage(sectioning)).toBe(false)
   })
+
+  it("filters by section type when quizSectionTypes provided", () => {
+    const sectioning: PageSectioningOutput = {
+      reasoning: "",
+      sections: [
+        { sectionId: "pg_sec001", sectionType: "activity_multiple_choice", parts: [], backgroundColor: "#fff", textColor: "#000", pageNumber: null, isPruned: false },
+      ],
+    }
+    expect(isContentPage(sectioning, ["text_only", "text_and_images"])).toBe(false)
+    expect(isContentPage(sectioning, ["activity_multiple_choice"])).toBe(true)
+  })
+
+  it("treats empty quizSectionTypes as no filter", () => {
+    const sectioning: PageSectioningOutput = {
+      reasoning: "",
+      sections: [
+        { sectionId: "pg_sec001", sectionType: "activity_multiple_choice", parts: [], backgroundColor: "#fff", textColor: "#000", pageNumber: null, isPruned: false },
+      ],
+    }
+    expect(isContentPage(sectioning, [])).toBe(true)
+  })
+
+  it("still excludes pruned sections even when type matches", () => {
+    const sectioning: PageSectioningOutput = {
+      reasoning: "",
+      sections: [
+        { sectionId: "pg_sec001", sectionType: "text_only", parts: [], backgroundColor: "#fff", textColor: "#000", pageNumber: null, isPruned: true },
+      ],
+    }
+    expect(isContentPage(sectioning, ["text_only"])).toBe(false)
+  })
 })
 
 describe("batchPages", () => {
@@ -147,6 +190,30 @@ describe("batchPages", () => {
     const pages = [makePageInput("pg001", "<p>Cover</p>", true)]
     expect(batchPages(pages, 3)).toEqual([])
   })
+
+  it("filters pages by quiz section types", () => {
+    const pages = [
+      makePageInput("pg001", "<p>Text</p>", false, "text_only"),
+      makePageInput("pg002", "<p>Activity</p>", false, "activity_multiple_choice"),
+      makePageInput("pg003", "<p>More text</p>", false, "text_and_images"),
+      makePageInput("pg004", "<p>Another activity</p>", false, "activity_true_false"),
+    ]
+
+    const batches = batchPages(pages, 2, ["text_only", "text_and_images"])
+    expect(batches).toHaveLength(1)
+    expect(batches[0].map((p) => p.pageId)).toEqual(["pg001", "pg003"])
+  })
+
+  it("includes all non-pruned pages when quizSectionTypes is empty", () => {
+    const pages = [
+      makePageInput("pg001", "<p>Text</p>", false, "text_only"),
+      makePageInput("pg002", "<p>Activity</p>", false, "activity_multiple_choice"),
+    ]
+
+    const batches = batchPages(pages, 2, [])
+    expect(batches).toHaveLength(1)
+    expect(batches[0].map((p) => p.pageId)).toEqual(["pg001", "pg002"])
+  })
 })
 
 describe("buildQuizGenerationConfig", () => {
@@ -159,6 +226,7 @@ describe("buildQuizGenerationConfig", () => {
     expect(config).toEqual({
       language: "en",
       pagesPerQuiz: 3,
+      quizSectionTypes: FALLBACK_QUIZ_SECTION_TYPES,
       promptName: "quiz_generation",
       modelId: "openai:gpt-5.2",
       maxRetries: 2,
@@ -186,12 +254,14 @@ describe("buildQuizGenerationConfig", () => {
         prompt: "custom_quiz",
         max_retries: 4,
         timeout: 120,
+        quiz_section_types: ["text_only"],
       },
     }
     const config = buildQuizGenerationConfig(appConfig, "en")
     expect(config).toEqual({
       language: "en",
       pagesPerQuiz: 5,
+      quizSectionTypes: ["text_only"],
       promptName: "custom_quiz",
       modelId: "openai:gpt-4.1",
       maxRetries: 4,
@@ -223,6 +293,7 @@ describe("generateQuiz", () => {
     const config = {
       language: "en",
       pagesPerQuiz: 2,
+      quizSectionTypes: DEFAULT_QUIZ_SECTION_TYPES,
       promptName: "quiz_generation",
       modelId: "openai:gpt-5.2",
       maxRetries: 2,
@@ -262,6 +333,7 @@ describe("generateQuiz", () => {
     const config = {
       language: "en",
       pagesPerQuiz: 1,
+      quizSectionTypes: DEFAULT_QUIZ_SECTION_TYPES,
       promptName: "quiz_generation",
       modelId: "openai:gpt-5.2",
       maxRetries: 0,
@@ -300,6 +372,7 @@ describe("generateQuiz", () => {
     const config = {
       language: "en",
       pagesPerQuiz: 1,
+      quizSectionTypes: DEFAULT_QUIZ_SECTION_TYPES,
       promptName: "quiz_generation",
       modelId: "openai:gpt-5.2",
       maxRetries: 0,
@@ -332,6 +405,7 @@ describe("generateAllQuizzes", () => {
     const config = {
       language: "en",
       pagesPerQuiz: 2,
+      quizSectionTypes: DEFAULT_QUIZ_SECTION_TYPES,
       promptName: "quiz_generation",
       modelId: "openai:gpt-5.2",
       maxRetries: 2,
