@@ -53,3 +53,7 @@ coverage/
 
 # Local working docs (not tracked)
 .local-docs/
+
+# Auto-generated TTS cache artifacts from pipeline test runs
+packages/pipeline/src/__tests__/fixtures/raven-cache/tts/0d13d8e4ac6b89df54fe6d2beeed2589fbb8d1c0f0f3cd75394c1b09755b5dd2.mp3
+packages/pipeline/src/__tests__/fixtures/raven-cache/tts/8df88b7cf0abd2d2a8bcf241db1c4d211deee3ef79ad8ff46034c5fe19f77e5b.mp3
