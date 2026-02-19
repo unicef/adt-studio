@@ -132,6 +132,11 @@ export function createStepRoutes(
       }
     }
 
+    const azureSpeechKey = c.req.header("X-Azure-Speech-Key") || undefined
+    const azureSpeechRegion = c.req.header("X-Azure-Speech-Region") || undefined
+
+    console.log(`[steps] ${label}: ${fromStep}→${toStep} azureKey=${azureSpeechKey ? "set" : "NOT SET"} azureRegion=${azureSpeechRegion ?? "NOT SET"}`)
+
     stepService
       .startStepRun(label, {
         booksDir,
@@ -140,6 +145,8 @@ export function createStepRoutes(
         configPath,
         fromStep,
         toStep,
+        azureSpeechKey,
+        azureSpeechRegion,
       })
       .catch(() => {
         // Error is tracked in job status

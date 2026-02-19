@@ -27,7 +27,7 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
   const { startRun, setSseEnabled } = useStepRun()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -41,6 +41,13 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
   const [speechModel, setSpeechModel] = useState("")
   const [voice, setVoice] = useState("")
   const [format, setFormat] = useState("")
+  const [defaultProvider, setDefaultProvider] = useState("openai")
+  const [openaiModel, setOpenaiModel] = useState("")
+  const [openaiLanguages, setOpenaiLanguages] = useState("")
+  const [azureModel, setAzureModel] = useState("")
+  const [azureLanguages, setAzureLanguages] = useState("")
+  const [bitRate, setBitRate] = useState("")
+  const [sampleRate, setSampleRate] = useState("")
 
   const [dirty, setDirty] = useState<Record<string, boolean>>({})
   const markDirty = (field: string) => setDirty((prev) => ({ ...prev, [field]: true }))
@@ -61,6 +68,20 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
       if (s.model) setSpeechModel(String(s.model))
       if (s.voice) setVoice(String(s.voice))
       if (s.format) setFormat(String(s.format))
+      if (s.default_provider) setDefaultProvider(String(s.default_provider))
+      if (s.bit_rate) setBitRate(String(s.bit_rate))
+      if (s.sample_rate) setSampleRate(String(s.sample_rate))
+      if (s.providers && typeof s.providers === "object") {
+        const providers = s.providers as Record<string, Record<string, unknown>>
+        if (providers.openai) {
+          if (providers.openai.model) setOpenaiModel(String(providers.openai.model))
+          if (Array.isArray(providers.openai.languages)) setOpenaiLanguages((providers.openai.languages as string[]).join(", "))
+        }
+        if (providers.azure) {
+          if (providers.azure.model) setAzureModel(String(providers.azure.model))
+          if (Array.isArray(providers.azure.languages)) setAzureLanguages((providers.azure.languages as string[]).join(", "))
+        }
+      }
     }
   }, [activeConfigData])
 
@@ -84,11 +105,30 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
     }
     if (shouldWrite("speech")) {
       const existing = (bookConfigData?.config?.speech ?? {}) as Record<string, unknown>
+      const openaiLangs = openaiLanguages.split(",").map((s) => s.trim()).filter(Boolean)
+      const azureLangs = azureLanguages.split(",").map((s) => s.trim()).filter(Boolean)
+      const providers: Record<string, unknown> = {}
+      if (openaiModel.trim() || openaiLangs.length > 0) {
+        providers.openai = {
+          model: openaiModel.trim() || undefined,
+          languages: openaiLangs.length > 0 ? openaiLangs : undefined,
+        }
+      }
+      if (azureModel.trim() || azureLangs.length > 0) {
+        providers.azure = {
+          model: azureModel.trim() || undefined,
+          languages: azureLangs.length > 0 ? azureLangs : undefined,
+        }
+      }
       overrides.speech = {
         ...existing,
         model: speechModel.trim() || undefined,
         voice: voice.trim() || undefined,
         format: format.trim() || undefined,
+        default_provider: defaultProvider || undefined,
+        providers: Object.keys(providers).length > 0 ? providers : undefined,
+        bit_rate: bitRate.trim() || undefined,
+        sample_rate: sampleRate.trim() ? Number(sampleRate.trim()) : undefined,
       }
     }
     return overrides
@@ -120,7 +160,7 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
           setShowRerunDialog(false)
           startRun("translations", "text-to-speech")
           setSseEnabled(true)
-          await api.runSteps(bookLabel, apiKey, { fromStep: "translations", toStep: "text-to-speech" })
+          await api.runSteps(bookLabel, apiKey, { fromStep: "translations", toStep: "text-to-speech" }, { key: azureKey, region: azureRegion })
           queryClient.removeQueries({ queryKey: ["books", bookLabel, "text-catalog"] })
           queryClient.removeQueries({ queryKey: ["books", bookLabel, "tts"] })
           queryClient.removeQueries({ queryKey: ["books", bookLabel] })
@@ -156,38 +196,115 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
       )}
 
       {tab === "speech" && (
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <Label className="text-xs">Model</Label>
-            <Input
-              value={speechModel}
-              onChange={(e) => { setSpeechModel(e.target.value); markDirty("speech") }}
-              placeholder="e.g. gpt-4o-mini-tts"
-              className="w-72 h-8 text-xs"
-            />
-            <p className="text-xs text-muted-foreground">The TTS model used for speech generation.</p>
+        <div className="space-y-6">
+          {/* Provider Routing */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Provider Routing</h3>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Default Provider</Label>
+              <select
+                value={defaultProvider}
+                onChange={(e) => { setDefaultProvider(e.target.value); markDirty("speech") }}
+                className="flex h-8 w-48 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm"
+              >
+                <option value="openai">OpenAI</option>
+                <option value="azure">Azure</option>
+              </select>
+              <p className="text-xs text-muted-foreground">Provider used for languages not assigned to a specific provider.</p>
+            </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs">Voice</Label>
-            <Input
-              value={voice}
-              onChange={(e) => { setVoice(e.target.value); markDirty("speech") }}
-              placeholder="e.g. alloy"
-              className="w-72 h-8 text-xs"
-            />
-            <p className="text-xs text-muted-foreground">Default voice for speech generation.</p>
+          {/* OpenAI Provider */}
+          <div className="space-y-3 rounded-md border p-3">
+            <h3 className="text-xs font-semibold">OpenAI</h3>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Model</Label>
+              <Input
+                value={openaiModel}
+                onChange={(e) => { setOpenaiModel(e.target.value); markDirty("speech") }}
+                placeholder="e.g. gpt-4o-mini-tts"
+                className="w-72 h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Languages</Label>
+              <Input
+                value={openaiLanguages}
+                onChange={(e) => { setOpenaiLanguages(e.target.value); markDirty("speech") }}
+                placeholder="e.g. en, fr"
+                className="w-72 h-8 text-xs"
+              />
+              <p className="text-xs text-muted-foreground">Comma-separated language codes routed to OpenAI.</p>
+            </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label className="text-xs">Audio Format</Label>
-            <Input
-              value={format}
-              onChange={(e) => { setFormat(e.target.value); markDirty("speech") }}
-              placeholder="e.g. mp3"
-              className="w-48 h-8 text-xs"
-            />
-            <p className="text-xs text-muted-foreground">Output audio format (mp3, opus, aac, flac).</p>
+          {/* Azure Provider */}
+          <div className="space-y-3 rounded-md border p-3">
+            <h3 className="text-xs font-semibold">Azure Speech</h3>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Model</Label>
+              <Input
+                value={azureModel}
+                onChange={(e) => { setAzureModel(e.target.value); markDirty("speech") }}
+                placeholder="e.g. azure-tts"
+                className="w-72 h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Languages</Label>
+              <Input
+                value={azureLanguages}
+                onChange={(e) => { setAzureLanguages(e.target.value); markDirty("speech") }}
+                placeholder="e.g. es, ta, si, sw"
+                className="w-72 h-8 text-xs"
+              />
+              <p className="text-xs text-muted-foreground">Comma-separated language codes routed to Azure.</p>
+            </div>
+          </div>
+
+          {/* Audio Settings */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Audio Settings</h3>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Default Voice</Label>
+              <Input
+                value={voice}
+                onChange={(e) => { setVoice(e.target.value); markDirty("speech") }}
+                placeholder="e.g. alloy"
+                className="w-72 h-8 text-xs"
+              />
+              <p className="text-xs text-muted-foreground">Override voice (leave blank to use voices.yaml per-language mappings).</p>
+            </div>
+
+            <div className="flex gap-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Format</Label>
+                <Input
+                  value={format}
+                  onChange={(e) => { setFormat(e.target.value); markDirty("speech") }}
+                  placeholder="mp3"
+                  className="w-32 h-8 text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Bit Rate</Label>
+                <Input
+                  value={bitRate}
+                  onChange={(e) => { setBitRate(e.target.value); markDirty("speech") }}
+                  placeholder="64k"
+                  className="w-32 h-8 text-xs"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Sample Rate</Label>
+                <Input
+                  value={sampleRate}
+                  onChange={(e) => { setSampleRate(e.target.value); markDirty("speech") }}
+                  placeholder="24000"
+                  className="w-32 h-8 text-xs"
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}

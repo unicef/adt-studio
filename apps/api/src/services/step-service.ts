@@ -27,6 +27,8 @@ export interface StepRunOptions {
   configPath?: string
   fromStep: string
   toStep: string
+  azureSpeechKey?: string
+  azureSpeechRegion?: string
 }
 
 export interface StepRunProgress {

@@ -31,6 +31,9 @@ export { createLogger, type LogLevel, type Logger } from "./logger.js"
 
 export {
   createTTSSynthesizer,
+  createAzureTTSSynthesizer,
   type TTSSynthesizer,
   type SynthesizeSpeechOptions,
+  type AzureTTSConfig,
+  type AzureAudioOptions,
 } from "./speech.js"

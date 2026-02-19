@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/api/client"
+import { useApiKey } from "@/hooks/use-api-key"
 import type { PipelineProgress, StepProgress, LlmLogSummary, StepName } from "./use-pipeline"
 
 const MAX_LIVE_LOGS = 500
@@ -189,9 +190,10 @@ export function useMasterSSE(label: string, enabled: boolean) {
  */
 export function useRunMaster() {
   const queryClient = useQueryClient()
+  const { azureKey, azureRegion } = useApiKey()
   return useMutation({
     mutationFn: ({ label, apiKey }: { label: string; apiKey: string }) =>
-      api.runMaster(label, apiKey),
+      api.runMaster(label, apiKey, { key: azureKey, region: azureRegion }),
     onSuccess: (_data, { label }) => {
       queryClient.invalidateQueries({ queryKey: ["master-status", label] })
     },

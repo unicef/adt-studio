@@ -145,7 +145,7 @@ export function TranslationsView({ bookLabel, selectedPageId }: { bookLabel: str
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const queryClient = useQueryClient()
   const { progress: stepProgress, startRun, setSseEnabled } = useStepRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
   const translationsState = stepProgress.steps.get("translations")?.state
   const ttsState = stepProgress.steps.get("text-to-speech")?.state
   const isRunning = translationsState === "running" || translationsState === "queued"
@@ -155,10 +155,10 @@ export function TranslationsView({ bookLabel, selectedPageId }: { bookLabel: str
     if (!hasApiKey || isRunning) return
     startRun("translations", "text-to-speech")
     setSseEnabled(true)
-    await api.runSteps(bookLabel, apiKey, { fromStep: "translations", toStep: "text-to-speech" })
+    await api.runSteps(bookLabel, apiKey, { fromStep: "translations", toStep: "text-to-speech" }, { key: azureKey, region: azureRegion })
     queryClient.removeQueries({ queryKey: ["books", bookLabel, "text-catalog"] })
     queryClient.removeQueries({ queryKey: ["books", bookLabel, "tts"] })
-  }, [bookLabel, apiKey, hasApiKey, isRunning, startRun, setSseEnabled, queryClient])
+  }, [bookLabel, apiKey, hasApiKey, azureKey, azureRegion, isRunning, startRun, setSseEnabled, queryClient])
 
   const { data: catalog, isLoading } = useQuery({
     queryKey: ["books", bookLabel, "text-catalog"],

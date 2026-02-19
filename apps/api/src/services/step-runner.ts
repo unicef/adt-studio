@@ -38,11 +38,13 @@ import {
   loadSpeechInstructions,
   resolveVoice,
   resolveInstructions,
+  resolveProviderForLanguage,
   generateSpeechFile,
 } from "@adt/pipeline"
-import type { TranslationConfig, QuizPageInput } from "@adt/pipeline"
+import type { TranslationConfig, QuizPageInput, ProviderRouting } from "@adt/pipeline"
 import { loadStyleguideContent } from "./pipeline-runner"
-import { createTTSSynthesizer } from "@adt/llm"
+import { createTTSSynthesizer, createAzureTTSSynthesizer } from "@adt/llm"
+import type { TTSSynthesizer } from "@adt/llm"
 import type {
   TextClassificationOutput,
   ImageClassificationOutput,
@@ -1213,8 +1215,34 @@ async function runTextToSpeechStep(
 
     const speechModel = config.speech?.model ?? "gpt-4o-mini-tts"
     const speechFormat = config.speech?.format ?? "mp3"
-    const provider = "openai"
-    const ttsSynthesizer = createTTSSynthesizer()
+    const defaultProvider = config.speech?.default_provider ?? "openai"
+    const providerConfigs = config.speech?.providers ?? {}
+    const routing: ProviderRouting = { providers: providerConfigs, defaultProvider }
+
+    console.log(`[step-run] ${label}: TTS config — defaultProvider=${defaultProvider} model=${speechModel} format=${speechFormat}`)
+    console.log(`[step-run] ${label}: TTS providers=${JSON.stringify(providerConfigs)}`)
+    console.log(`[step-run] ${label}: TTS azureKey=${options.azureSpeechKey ? "set" : "NOT SET"} azureRegion=${options.azureSpeechRegion ?? "NOT SET"}`)
+
+    // Lazy per-provider synthesizer cache
+    const synthesizers = new Map<string, TTSSynthesizer>()
+    function getSynthesizer(providerName: string): TTSSynthesizer {
+      if (synthesizers.has(providerName)) return synthesizers.get(providerName)!
+      console.log(`[step-run] ${label}: creating TTS synthesizer for provider="${providerName}"`)
+      if (providerName === "azure") {
+        if (!options.azureSpeechKey || !options.azureSpeechRegion) {
+          throw new Error("Azure Speech key and region are required for Azure TTS provider. Set them in the API Keys dialog (gear icon).")
+        }
+        const synth = createAzureTTSSynthesizer(
+          { subscriptionKey: options.azureSpeechKey, region: options.azureSpeechRegion },
+          { sampleRate: config.speech?.sample_rate, bitRate: config.speech?.bit_rate }
+        )
+        synthesizers.set("azure", synth)
+        return synth
+      }
+      const synth = createTTSSynthesizer()
+      synthesizers.set(providerName, synth)
+      return synth
+    }
 
     // For output languages that differ from source, we need translated catalogs
     // Check if translations exist; if running TTS separately they should already exist
@@ -1270,40 +1298,66 @@ async function runTextToSpeechStep(
       resultsByLang.set(lang, [])
     }
 
+    const failedItems: string[] = []
+
     await processWithConcurrency(
       workItems,
       effectiveConcurrency,
       async (item: TTSWorkItem) => {
-        const voice = config.speech?.voice ?? resolveVoice(provider, item.language, voiceMaps)
-        const instructions = resolveInstructions(item.language, instructionsMap)
+        try {
+          const provider = resolveProviderForLanguage(item.language, routing)
+          const providerModel = providerConfigs[provider]?.model ?? speechModel
+          const voice = config.speech?.voice ?? resolveVoice(provider, item.language, voiceMaps)
+          const instructions = provider === "openai"
+            ? resolveInstructions(item.language, instructionsMap)
+            : ""
 
-        const entry = await generateSpeechFile({
-          textId: item.textId,
-          text: item.text,
-          language: item.language,
-          model: speechModel,
-          voice,
-          instructions,
-          format: speechFormat,
-          bookDir,
-          cacheDir,
-          ttsSynthesizer,
-        })
+          console.log(`[step-run] ${label}: TTS ${item.textId} → provider=${provider} voice=${voice} model=${providerModel}`)
 
-        if (entry) {
-          resultsByLang.get(item.language)?.push(entry)
+          const ttsSynthesizer = getSynthesizer(provider)
+
+          const entry = await generateSpeechFile({
+            textId: item.textId,
+            text: item.text,
+            language: item.language,
+            model: providerModel,
+            voice,
+            instructions,
+            format: speechFormat,
+            bookDir,
+            cacheDir,
+            ttsSynthesizer,
+            provider,
+          })
+
+          if (entry) {
+            resultsByLang.get(item.language)?.push(entry)
+          }
+        } catch (err) {
+          const msg = toErrorMessage(err)
+          console.error(`[step-run] ${label}: TTS failed for ${item.textId} (${item.language}): ${msg}`)
+          failedItems.push(`${item.textId}: ${msg}`)
+          progress.emit({
+            type: "step-error",
+            step: "tts",
+            error: `${item.textId} failed: ${msg}`,
+          })
         }
 
         completedItems++
         progress.emit({
           type: "step-progress",
           step: "tts",
-          message: `${completedItems}/${totalItems} entries`,
+          message: `${completedItems}/${totalItems} entries${failedItems.length > 0 ? ` (${failedItems.length} failed)` : ""}`,
           page: completedItems,
           totalPages: totalItems,
         })
       }
     )
+
+    if (failedItems.length > 0) {
+      console.error(`[step-run] ${label}: ${failedItems.length} TTS item(s) failed:\n${failedItems.join("\n")}`)
+    }
 
     // Store per-language TTS metadata
     for (const lang of outputLanguages) {

@@ -22,6 +22,8 @@ export interface StartMasterOptions {
   apiKey: string
   promptsDir: string
   configPath?: string
+  azureSpeechKey?: string
+  azureSpeechRegion?: string
 }
 
 export interface MasterProgress {

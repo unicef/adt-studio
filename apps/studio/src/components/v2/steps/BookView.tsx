@@ -45,7 +45,7 @@ interface ViewProps {
 export function BookView({ bookLabel }: ViewProps) {
   const pipelineSteps = STEPS.filter((s) => s.slug !== "book")
   const { progress: stepRunProgress, startRun, reset, setSseEnabled } = useStepRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
   const queryClient = useQueryClient()
   const { data: stepStatusData } = useQuery({
     queryKey: ["books", bookLabel, "step-status"],
@@ -60,7 +60,7 @@ export function BookView({ bookLabel }: ViewProps) {
     try {
       startRun(slug, toStep)
       setSseEnabled(true)
-      await api.runSteps(bookLabel, apiKey, { fromStep: slug, toStep })
+      await api.runSteps(bookLabel, apiKey, { fromStep: slug, toStep }, { key: azureKey, region: azureRegion })
       queryClient.removeQueries({ queryKey: ["books", bookLabel, "pages"] })
       queryClient.removeQueries({ queryKey: ["books", bookLabel] })
       if (slug === "translations") {
@@ -70,7 +70,7 @@ export function BookView({ bookLabel }: ViewProps) {
       setSseEnabled(false)
       reset()
     }
-  }, [bookLabel, apiKey, hasApiKey, stepRunProgress.isRunning, startRun, reset, setSseEnabled, queryClient])
+  }, [bookLabel, apiKey, hasApiKey, azureKey, azureRegion, stepRunProgress.isRunning, startRun, reset, setSseEnabled, queryClient])
 
   return (
     <div className="flex flex-col items-start max-w-xl">

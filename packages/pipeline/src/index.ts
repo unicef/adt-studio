@@ -89,6 +89,7 @@ export { buildTextCatalog } from "./text-catalog.js"
 export {
   resolveVoice,
   resolveInstructions,
+  resolveProviderForLanguage,
   isSpeakableText,
   stripEmojis,
   loadVoicesConfig,
@@ -97,6 +98,7 @@ export {
   type VoiceMaps,
   type InstructionsMap,
   type GenerateSpeechFileOptions,
+  type ProviderRouting,
 } from "./speech.js"
 export {
   translateCatalogBatch,

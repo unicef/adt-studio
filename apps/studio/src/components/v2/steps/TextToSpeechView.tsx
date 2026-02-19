@@ -18,7 +18,7 @@ export function TextToSpeechView({ bookLabel }: { bookLabel: string }) {
   const { setExtra } = useStepHeader()
   const queryClient = useQueryClient()
   const { progress: stepProgress, startRun, setSseEnabled } = useStepRun()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
   const ttsState = stepProgress.steps.get("text-to-speech")?.state
   const ttsRunning = ttsState === "running" || ttsState === "queued"
 
@@ -26,10 +26,10 @@ export function TextToSpeechView({ bookLabel }: { bookLabel: string }) {
     if (!hasApiKey || ttsRunning) return
     startRun("text-to-speech", "text-to-speech")
     setSseEnabled(true)
-    await api.runSteps(bookLabel, apiKey, { fromStep: "text-to-speech", toStep: "text-to-speech" })
+    await api.runSteps(bookLabel, apiKey, { fromStep: "text-to-speech", toStep: "text-to-speech" }, { key: azureKey, region: azureRegion })
     queryClient.removeQueries({ queryKey: ["books", bookLabel, "tts"] })
     queryClient.removeQueries({ queryKey: ["books", bookLabel, "text-catalog"] })
-  }, [bookLabel, apiKey, hasApiKey, ttsRunning, startRun, setSseEnabled, queryClient])
+  }, [bookLabel, apiKey, hasApiKey, azureKey, azureRegion, ttsRunning, startRun, setSseEnabled, queryClient])
 
   const { data: ttsData, isLoading: ttsLoading } = useQuery({
     queryKey: ["books", bookLabel, "tts"],

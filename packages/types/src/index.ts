@@ -81,6 +81,7 @@ export {
 } from "./text-catalog.js"
 
 export {
+  TTSProviderConfig,
   SpeechConfig,
   SpeechFileEntry,
   TTSOutput,

@@ -26,6 +26,8 @@ export function createMasterRunner(): MasterRunner {
             booksRoot: options.booksDir,
             promptsDir: options.promptsDir,
             configPath: options.configPath,
+            azureSpeechKey: options.azureSpeechKey,
+            azureSpeechRegion: options.azureSpeechRegion,
           },
           progress
         )

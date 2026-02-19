@@ -77,6 +77,9 @@ export function createPipelineRoutes(
       endPage = parsed.data.endPage
     }
 
+    const azureSpeechKey = c.req.header("X-Azure-Speech-Key") || undefined
+    const azureSpeechRegion = c.req.header("X-Azure-Speech-Region") || undefined
+
     // Fire-and-forget: startPipeline runs async, we return immediately
     service
       .startPipeline(label, {
@@ -86,6 +89,8 @@ export function createPipelineRoutes(
         configPath,
         startPage,
         endPage,
+        azureSpeechKey,
+        azureSpeechRegion,
       })
       .catch(() => {
         // Error is tracked in job status, no need to handle here

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/api/client"
+import { useApiKey } from "@/hooks/use-api-key"
 
 export type StepName =
   | "extract"
@@ -260,6 +261,7 @@ export function usePipelineSSE(label: string, enabled: boolean) {
  */
 export function useRunPipeline() {
   const queryClient = useQueryClient()
+  const { azureKey, azureRegion } = useApiKey()
   return useMutation({
     mutationFn: ({
       label,
@@ -269,7 +271,7 @@ export function useRunPipeline() {
       label: string
       apiKey: string
       options?: { startPage?: number; endPage?: number }
-    }) => api.runPipeline(label, apiKey, options),
+    }) => api.runPipeline(label, apiKey, options, { key: azureKey, region: azureRegion }),
     onSuccess: (_data, { label }) => {
       queryClient.invalidateQueries({
         queryKey: ["pipeline-status", label],

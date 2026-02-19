@@ -2,7 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import crypto from "node:crypto"
 import yaml from "js-yaml"
-import type { SpeechFileEntry } from "@adt/types"
+import type { SpeechFileEntry, TTSProviderConfig } from "@adt/types"
 import type { TTSSynthesizer } from "@adt/llm"
 import { getBaseLanguage, normalizeLocale } from "./language-context.js"
 
@@ -101,6 +101,39 @@ export function resolveInstructions(
 }
 
 // ---------------------------------------------------------------------------
+// Provider routing
+// ---------------------------------------------------------------------------
+
+export interface ProviderRouting {
+  providers: Record<string, TTSProviderConfig>
+  defaultProvider: string
+}
+
+/**
+ * Resolve which TTS provider handles a given language code.
+ * Checks each provider's `languages` list for exact match, then base language.
+ * Falls back to defaultProvider.
+ */
+export function resolveProviderForLanguage(
+  languageCode: string,
+  routing: ProviderRouting
+): string {
+  const normalized = normalizeLocale(languageCode).toLowerCase()
+  const baseLang = getBaseLanguage(normalized)
+
+  for (const [providerName, config] of Object.entries(routing.providers)) {
+    if (!config.languages || config.languages.length === 0) continue
+    const normalizedLangs = config.languages.map((l: string) =>
+      normalizeLocale(l).toLowerCase()
+    )
+    if (normalizedLangs.includes(normalized)) return providerName
+    if (normalizedLangs.includes(baseLang)) return providerName
+  }
+
+  return routing.defaultProvider
+}
+
+// ---------------------------------------------------------------------------
 // Cache helpers
 // ---------------------------------------------------------------------------
 
@@ -109,6 +142,7 @@ function computeSpeechHash(data: {
   voice: string
   model: string
   instructions: string
+  provider?: string
 }): string {
   const json = JSON.stringify(data)
   return crypto.createHash("sha256").update(json).digest("hex")
@@ -151,10 +185,11 @@ export interface GenerateSpeechFileOptions {
   bookDir: string
   cacheDir: string
   ttsSynthesizer: TTSSynthesizer
+  provider?: string
 }
 
 /**
- * Generate a single speech file from text using OpenAI TTS.
+ * Generate a single speech file from text using the configured TTS provider.
  * Returns null if text is not speakable.
  * Uses cache to skip re-generation when inputs match.
  */
@@ -172,6 +207,7 @@ export async function generateSpeechFile(
     bookDir,
     cacheDir,
     ttsSynthesizer,
+    provider,
   } = options
 
   // Strip emojis and validate
@@ -195,6 +231,7 @@ export async function generateSpeechFile(
     voice,
     model,
     instructions,
+    provider,
   })
 
   const fileName = `${safeTextId}.${safeFormat}`
@@ -218,6 +255,7 @@ export async function generateSpeechFile(
       voice,
       model,
       cached: true,
+      provider,
     }
   }
 
@@ -247,5 +285,6 @@ export async function generateSpeechFile(
     voice,
     model,
     cached: false,
+    provider,
   }
 }

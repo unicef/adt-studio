@@ -1,4 +1,4 @@
-# TTS Voice Mappings for OpenAI
+# TTS Voice Mappings
 # Resolution order: exact match (en-tz) → base language (en) → default
 
 openai:
@@ -69,3 +69,75 @@ openai:
   # Hebrew / Persian
   he: coral
   fa: coral
+
+azure:
+  default: en-US-JennyNeural
+
+  # English variants
+  en: en-US-JennyNeural
+  en-tz: en-US-JennyNeural
+
+  # Spanish variants
+  es: es-MX-DaliaNeural
+  es-es: es-ES-ElviraNeural
+  es-mx: es-MX-DaliaNeural
+  es-ar: es-AR-ElenaNeural
+  es-uy: es-UY-ValentinaNeural
+
+  # French variants
+  fr: fr-FR-DeniseNeural
+  fr-ca: fr-CA-SylvieNeural
+
+  # Portuguese variants
+  pt: pt-PT-RaquelNeural
+  pt-br: pt-BR-FranciscaNeural
+
+  # Other European
+  de: de-DE-KatjaNeural
+  it: it-IT-ElsaNeural
+  nl: nl-NL-ColetteNeural
+  pl: pl-PL-AgnieszkaNeural
+  ru: ru-RU-SvetlanaNeural
+  sv: sv-SE-SofieNeural
+  no: nb-NO-PernilleNeural
+  da: da-DK-ChristelNeural
+  fi: fi-FI-NooraNeural
+  cs: cs-CZ-VlastaNeural
+  hu: hu-HU-NoemiNeural
+  ro: ro-RO-AlinaNeural
+  el: el-GR-AthinaNeural
+  tr: tr-TR-EmelNeural
+  uk: uk-UA-PolinaNeural
+
+  # Asian languages
+  zh: zh-CN-XiaoxiaoNeural
+  ja: ja-JP-NanamiNeural
+  ko: ko-KR-SunHiNeural
+  hi: hi-IN-SwaraNeural
+  bn: bn-IN-TanishaaNeural
+  ta: ta-IN-PallaviNeural
+  te: te-IN-ShrutiNeural
+  si: si-LK-ThiliniNeural
+  ur: ur-PK-UzmaNeural
+
+  # Arabic
+  ar: ar-SA-ZariyahNeural
+
+  # African languages
+  sw: sw-KE-ZuriNeural
+  sw-tz: sw-TZ-RehemaNeural
+  sw-ke: sw-KE-ZuriNeural
+  am: am-ET-MekdesNeural
+  af: af-ZA-AdriNeural
+  zu: zu-ZA-ThandoNeural
+
+  # Southeast Asian
+  th: th-TH-PremwadeeNeural
+  vi: vi-VN-HoaiMyNeural
+  id: id-ID-GadisNeural
+  ms: ms-MY-YasminNeural
+  fil: fil-PH-BlessicaNeural
+
+  # Hebrew / Persian
+  he: he-IL-HilaNeural
+  fa: fa-IR-DilaraNeural

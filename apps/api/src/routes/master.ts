@@ -120,12 +120,17 @@ export function createMasterRoutes(
       }
     }
 
+    const azureSpeechKey = c.req.header("X-Azure-Speech-Key") || undefined
+    const azureSpeechRegion = c.req.header("X-Azure-Speech-Region") || undefined
+
     service
       .startMaster(label, {
         booksDir,
         apiKey,
         promptsDir,
         configPath,
+        azureSpeechKey,
+        azureSpeechRegion,
       })
       .catch(() => {
         // Error is tracked in job status
