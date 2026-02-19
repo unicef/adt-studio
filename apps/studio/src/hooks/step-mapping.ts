@@ -24,7 +24,7 @@ const UI_STEP_PIPELINE_STEPS = {
   captions: ["image-captioning"],
   glossary: ["glossary"],
   translations: ["text-catalog", "catalog-translation"],
-  "text-to-speech": ["tts", "package-web"],
+  "text-to-speech": ["tts"],
 } as const satisfies Record<string, readonly StepName[]>
 
 export type UIStepSlug = keyof typeof UI_STEP_PIPELINE_STEPS
@@ -36,7 +36,7 @@ export const PIPELINE_TO_UI_STEP = Object.fromEntries(
   Object.entries(UI_STEP_PIPELINE_STEPS).flatMap(([uiStep, steps]) =>
     steps.map((step) => [step, uiStep])
   )
-) as Record<StepName, UIStepSlug>
+) as Partial<Record<StepName, UIStepSlug>>
 
 /** The last pipeline sub-step in each UI step — used to detect completion. */
 export const UI_FINAL_PIPELINE_STEP = Object.fromEntries(

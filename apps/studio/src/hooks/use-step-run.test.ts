@@ -8,9 +8,9 @@ import {
 } from "./step-run-invalidation"
 
 /**
- * All StepName values — keep in sync with the StepName type in use-pipeline.ts.
- * If a new step is added to StepName, add it here and the test below will
- * tell you to add it to step-mapping.ts.
+ * Pipeline steps emitted by step-run flows.
+ * `package-web` is intentionally excluded because packaging is standalone and
+ * not part of step-run TTS.
  */
 const ALL_STEP_NAMES: StepName[] = [
   "extract",
@@ -27,11 +27,10 @@ const ALL_STEP_NAMES: StepName[] = [
   "text-catalog",
   "catalog-translation",
   "tts",
-  "package-web",
 ]
 
 describe("step mapping exhaustiveness", () => {
-  it("every StepName is mapped to a UI step", () => {
+  it("every step-run StepName is mapped to a UI step", () => {
     for (const step of ALL_STEP_NAMES) {
       expect(
         ALL_MAPPED_STEP_NAMES.has(step),
@@ -40,7 +39,7 @@ describe("step mapping exhaustiveness", () => {
     }
   })
 
-  it("PIPELINE_TO_UI_STEP covers every StepName", () => {
+  it("PIPELINE_TO_UI_STEP covers every step-run StepName", () => {
     for (const step of ALL_STEP_NAMES) {
       expect(
         PIPELINE_TO_UI_STEP[step],
