@@ -34,19 +34,40 @@ export function QuizzesSettings({ bookLabel, headerTarget, tab = "general" }: { 
   const [model, setModel] = useState("")
   const [pagesPerQuiz, setPagesPerQuiz] = useState("")
   const [promptDraft, setPromptDraft] = useState<string | null>(null)
+  const [sectionTypes, setSectionTypes] = useState<Record<string, string>>({})
+  const [quizSectionTypes, setQuizSectionTypes] = useState<Set<string>>(new Set())
 
   const [dirty, setDirty] = useState<Record<string, boolean>>({})
   const markDirty = (field: string) => setDirty((prev) => ({ ...prev, [field]: true }))
 
   useEffect(() => {
     if (!activeConfigData) return
+    setSectionTypes({})
+    setQuizSectionTypes(new Set())
     const merged = activeConfigData.merged as Record<string, unknown>
     if (merged.quiz_generation && typeof merged.quiz_generation === "object") {
       const qg = merged.quiz_generation as Record<string, unknown>
       if (qg.model) setModel(String(qg.model))
       if (qg.pages_per_quiz != null) setPagesPerQuiz(String(qg.pages_per_quiz))
+      if (Array.isArray(qg.quiz_section_types)) {
+        setQuizSectionTypes(new Set(qg.quiz_section_types as string[]))
+      }
+    }
+    if (merged.section_types && typeof merged.section_types === "object") {
+      setSectionTypes(merged.section_types as Record<string, string>)
     }
   }, [activeConfigData])
+
+  const toggleQuizSectionType = (key: string) => {
+    markDirty("quiz_generation")
+    markDirty("quiz_section_types")
+    setQuizSectionTypes((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   const shouldWrite = (field: string) =>
     dirty[field] || (bookConfigData?.config && field in bookConfigData.config)
@@ -57,11 +78,15 @@ export function QuizzesSettings({ bookLabel, headerTarget, tab = "general" }: { 
 
     if (shouldWrite("quiz_generation")) {
       const existing = (bookConfigData?.config?.quiz_generation ?? {}) as Record<string, unknown>
-      overrides.quiz_generation = {
+      const nextQuizGeneration: Record<string, unknown> = {
         ...existing,
         model: model.trim() || undefined,
         pages_per_quiz: pagesPerQuiz ? Number(pagesPerQuiz) : undefined,
       }
+      if (dirty.quiz_section_types || "quiz_section_types" in existing) {
+        nextQuizGeneration.quiz_section_types = Array.from(quizSectionTypes)
+      }
+      overrides.quiz_generation = nextQuizGeneration
     }
     return overrides
   }
@@ -90,23 +115,56 @@ export function QuizzesSettings({ bookLabel, headerTarget, tab = "general" }: { 
     )
   }
 
+  const sectionTypeKeys = Object.keys(sectionTypes).filter((k) => !k.startsWith("activity_"))
+
   return (
     <div className={tab === "prompt" ? "h-full max-w-4xl" : "p-4 max-w-2xl space-y-6"}>
       {tab === "general" && (
-        <div className="space-y-1.5">
-          <Label className="text-xs">Pages per Quiz</Label>
-          <Input
-            type="number"
-            min={1}
-            value={pagesPerQuiz}
-            onChange={(e) => { setPagesPerQuiz(e.target.value); markDirty("quiz_generation") }}
-            placeholder="3"
-            className="w-32 h-8 text-xs"
-          />
-          <p className="text-xs text-muted-foreground">
-            Number of pages of content to include per quiz question.
-          </p>
-        </div>
+        <>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Pages per Quiz</Label>
+            <Input
+              type="number"
+              min={1}
+              value={pagesPerQuiz}
+              onChange={(e) => { setPagesPerQuiz(e.target.value); markDirty("quiz_generation") }}
+              placeholder="3"
+              className="w-32 h-8 text-xs"
+            />
+            <p className="text-xs text-muted-foreground">
+              Number of pages of content to include per quiz question.
+            </p>
+          </div>
+
+          {sectionTypeKeys.length > 0 && (
+            <div className="space-y-2">
+              <Label className="text-xs">Quiz Section Types</Label>
+              <p className="text-xs text-muted-foreground">
+                Only pages containing these section types are counted when grouping pages for quiz generation.
+              </p>
+              <div className="rounded-md border divide-y">
+                {sectionTypeKeys.map((key) => {
+                  const checked = quizSectionTypes.has(key)
+                  return (
+                    <label
+                      key={key}
+                      className="flex items-center gap-2.5 px-3 py-1.5 cursor-pointer hover:bg-muted/50 transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleQuizSectionType(key)}
+                        className="h-3.5 w-3.5 rounded border-border accent-primary"
+                      />
+                      <span className="text-xs font-mono">{key}</span>
+                      <span className="text-xs text-muted-foreground truncate">{sectionTypes[key]}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {tab === "prompt" && (

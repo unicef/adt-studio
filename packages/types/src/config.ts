@@ -18,6 +18,7 @@ export type StepConfig = z.infer<typeof StepConfig>
 
 export const QuizGenerationConfig = StepConfig.extend({
   pages_per_quiz: z.number().int().min(1).optional(),
+  quiz_section_types: z.array(z.string()).optional(),
 })
 export type QuizGenerationConfig = z.infer<typeof QuizGenerationConfig>
 
