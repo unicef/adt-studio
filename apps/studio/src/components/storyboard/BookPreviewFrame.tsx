@@ -11,6 +11,10 @@ export interface BookPreviewFrameProps {
   className?: string
   /** Enable interactive mode — click/edit elements with data-id attributes */
   editable?: boolean
+  /** data-id values of pruned elements — shown faded/greyed in the preview */
+  prunedDataIds?: string[]
+  /** Elements that have been edited — shows subtle indicator + original on hover */
+  changedElements?: Array<{ dataId: string; originalText?: string }>
   /** Called when a data-id element is clicked (single click) */
   onSelectElement?: (dataId: string, rect: DOMRect) => void
   /** Called when a text element is edited (blur/Enter after contenteditable) */
@@ -33,6 +37,8 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   html,
   className,
   editable = false,
+  prunedDataIds,
+  changedElements,
   onSelectElement,
   onTextChanged,
 }, ref) {
@@ -42,6 +48,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
     getIframeRect: () => iframeRef.current?.getBoundingClientRect() ?? null,
   }))
   const [height, setHeight] = useState(300)
+  const [iframeReady, setIframeReady] = useState(false)
   const readyRef = useRef(false)
   const latestHtmlRef = useRef("")
   const settledRef = useRef(false)
@@ -253,6 +260,73 @@ ${interactiveScript}
     if (readyRef.current) injectAndMeasure(sanitizedHtml)
   }, [sanitizedHtml])
 
+  // Inject/update pruned element styles into the iframe
+  useEffect(() => {
+    const doc = iframeRef.current?.contentDocument
+    if (!doc?.head) return
+    const styleId = "adt-pruned-styles"
+    let styleEl = doc.getElementById(styleId) as HTMLStyleElement | null
+    if (!prunedDataIds?.length) {
+      styleEl?.remove()
+      return
+    }
+    if (!styleEl) {
+      styleEl = doc.createElement("style")
+      styleEl.id = styleId
+      doc.head.appendChild(styleEl)
+    }
+    const selectors = prunedDataIds.map((id) => `[data-id="${id}"]`).join(",\n")
+    styleEl.textContent = `${selectors} { opacity: 0.3; filter: grayscale(1); transition: opacity 0.3s, filter 0.3s; }`
+  }, [prunedDataIds, iframeReady])
+
+  // Inject/update changed-element indicators + hover tooltips
+  useEffect(() => {
+    const doc = iframeRef.current?.contentDocument
+    if (!doc?.head) return
+    const styleId = "adt-changed-styles"
+    let styleEl = doc.getElementById(styleId) as HTMLStyleElement | null
+
+    // Clean up previous title attributes
+    doc.querySelectorAll("[data-adt-changed]").forEach((el) => {
+      el.removeAttribute("title")
+      el.removeAttribute("data-adt-changed")
+    })
+
+    if (!changedElements?.length) {
+      styleEl?.remove()
+      return
+    }
+
+    if (!styleEl) {
+      styleEl = doc.createElement("style")
+      styleEl.id = styleId
+      doc.head.appendChild(styleEl)
+    }
+
+    const selectors = changedElements.map((c) => `[data-id="${c.dataId}"]`).join(",\n")
+    styleEl.textContent = `
+${selectors} {
+  position: relative;
+  box-shadow: -3px 0 0 0 rgba(245, 158, 11, 0.6);
+  transition: box-shadow 0.3s;
+}
+${selectors}:hover {
+  box-shadow: -3px 0 0 0 rgba(245, 158, 11, 1);
+}`
+
+    // Set title attribute on changed elements for native hover tooltip
+    for (const { dataId, originalText } of changedElements) {
+      const el = doc.querySelector(`[data-id="${dataId}"]`)
+      if (el && originalText) {
+        el.setAttribute("data-adt-changed", "true")
+        const preview = originalText.length > 120 ? originalText.slice(0, 120) + "…" : originalText
+        el.setAttribute("title", `Original: ${preview}`)
+      } else if (el) {
+        el.setAttribute("data-adt-changed", "true")
+      }
+    }
+  }, [changedElements, iframeReady])
+
   // One-time iframe setup
   useEffect(() => {
     const iframe = iframeRef.current
@@ -265,6 +339,7 @@ ${interactiveScript}
       // Wait for Tailwind CDN + initial font CSS to load
       const start = () => {
         readyRef.current = true
+        setIframeReady(true)
         injectAndMeasure(latestHtmlRef.current)
       }
 
@@ -296,6 +371,7 @@ ${interactiveScript}
       iframe.removeEventListener("load", onLoad)
       window.removeEventListener("resize", onResize)
       readyRef.current = false
+      setIframeReady(false)
     }
   }, [])
 
