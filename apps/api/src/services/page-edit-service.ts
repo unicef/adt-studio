@@ -177,12 +177,26 @@ export async function aiEditSection(
       onLog: (entry) => storage.appendLlmLog(entry),
     })
 
-    // Extract existing data-ids for validation
+    // Extract existing data-ids and img tags for validation
     const dataIdRegex = /data-id="([^"]+)"/g
     const existingIds = new Set<string>()
     let match
     while ((match = dataIdRegex.exec(currentHtml)) !== null) {
       existingIds.add(match[1])
+    }
+
+    // Extract img tags with their data-ids and srcs
+    const imgTagRegex = /<img\s[^>]*data-id="([^"]+)"[^>]*src="([^"]+)"[^>]*>/g
+    const existingImgs = new Map<string, string>() // data-id → src
+    while ((match = imgTagRegex.exec(currentHtml)) !== null) {
+      existingImgs.set(match[1], match[2])
+    }
+    // Also catch imgs where src comes before data-id
+    const imgTagRegex2 = /<img\s[^>]*src="([^"]+)"[^>]*data-id="([^"]+)"[^>]*>/g
+    while ((match = imgTagRegex2.exec(currentHtml)) !== null) {
+      if (!existingImgs.has(match[2])) {
+        existingImgs.set(match[2], match[1])
+      }
     }
 
     const result = await model.generateObject<{ reasoning: string; content: string }>({
@@ -191,23 +205,51 @@ export async function aiEditSection(
       context: { current_html: currentHtml, instruction },
       validate: (obj) => {
         const r = obj as { content: string }
+        // Strip markdown fences before validation so checks run on clean HTML
+        const cleaned = r.content
+          .replace(/^```(?:html)?\s*\n?/i, "")
+          .replace(/\n?```\s*$/, "")
         const errors: string[] = []
-        if (!r.content.includes("<section")) {
+
+        if (!cleaned.includes("<section")) {
           errors.push("Result must contain a <section> element")
         }
+
         // Verify all existing data-ids are preserved
         for (const id of existingIds) {
-          if (!r.content.includes(`data-id="${id}"`)) {
+          if (!cleaned.includes(`data-id="${id}"`)) {
             errors.push(`Missing data-id="${id}" in result`)
           }
         }
+
+        // Verify all <img> tags are preserved as <img> (not replaced with another tag)
+        for (const [imgDataId, imgSrc] of existingImgs) {
+          // Check this data-id is still on an <img> tag, not a <div> or <p>
+          const imgCheck = new RegExp(`<img\\s[^>]*data-id="${imgDataId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>`)
+          if (!imgCheck.test(cleaned)) {
+            // Try reversed attribute order
+            const imgCheck2 = new RegExp(`<img\\s[^>]*src="[^"]*"[^>]*data-id="${imgDataId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>`)
+            if (!imgCheck2.test(cleaned)) {
+              errors.push(`Image data-id="${imgDataId}" must remain an <img> tag`)
+            }
+          }
+          // Check src is preserved
+          if (!cleaned.includes(imgSrc)) {
+            errors.push(`Image src="${imgSrc}" was removed or changed`)
+          }
+        }
+
         return { valid: errors.length === 0, errors }
       },
       maxRetries: 3,
       log: { taskType: "web-rendering", pageId, promptName: "html_edit" },
     })
 
-    return { html: result.object.content, reasoning: result.object.reasoning }
+    // Strip markdown fences if the LLM wrapped the content in ```html...```
+    let html = result.object.content
+    html = html.replace(/^```(?:html)?\s*\n?/i, "").replace(/\n?```\s*$/, "")
+
+    return { html, reasoning: result.object.reasoning }
   } finally {
     storage.close()
     if (previousKey !== undefined) {

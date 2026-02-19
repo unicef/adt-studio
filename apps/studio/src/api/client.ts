@@ -479,7 +479,8 @@ export const api = {
     sectionIndex: number,
     instruction: string,
     apiKey: string,
-    currentHtml?: string
+    currentHtml?: string,
+    signal?: AbortSignal
   ) =>
     request<{ html: string; reasoning: string }>(
       `/books/${label}/pages/${pageId}/sections/${sectionIndex}/ai-edit`,
@@ -487,7 +488,29 @@ export const api = {
         method: "POST",
         headers: { "X-OpenAI-Key": apiKey },
         body: JSON.stringify({ instruction, currentHtml }),
-        signal: AbortSignal.timeout(120_000),
+        signal: signal ?? AbortSignal.timeout(120_000),
+      }
+    ),
+
+  uploadCroppedImage: (label: string, pageId: string, sourceImageId: string, imageBlob: Blob) => {
+    const formData = new FormData()
+    formData.append("image", imageBlob, "crop.png")
+    formData.append("pageId", pageId)
+    formData.append("sourceImageId", sourceImageId)
+    return request<{ imageId: string; width: number; height: number }>(
+      `/books/${label}/images`,
+      { method: "POST", body: formData }
+    )
+  },
+
+  aiGenerateImage: (label: string, pageId: string, prompt: string, apiKey: string, targetImageId: string, referenceImageId?: string, signal?: AbortSignal) =>
+    request<{ imageId: string; width: number; height: number; originalWidth: number; originalHeight: number }>(
+      `/books/${label}/images/ai-generate?pageId=${pageId}`,
+      {
+        method: "POST",
+        headers: { "X-OpenAI-Key": apiKey },
+        body: JSON.stringify({ prompt, targetImageId, referenceImageId }),
+        signal: signal ?? AbortSignal.timeout(180_000),
       }
     ),
 

@@ -299,4 +299,249 @@ describe("Page routes", () => {
       expect(body.error).toContain("X-OpenAI-Key")
     })
   })
+
+  describe("POST /api/books/:label/images/ai-generate", () => {
+    const pageId = "test-book_p1"
+    const endpoint = `/api/books/${label}/images/ai-generate?pageId=${pageId}`
+
+    it("returns 400 when X-OpenAI-Key header is missing", async () => {
+      const res = await app.request(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: "a cat" }),
+      })
+
+      expect(res.status).toBe(400)
+      const body = await res.json()
+      expect(body.error).toContain("X-OpenAI-Key")
+    })
+
+    it("returns 400 when pageId query param is missing", async () => {
+      const res = await app.request(`/api/books/${label}/images/ai-generate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-OpenAI-Key": "sk-test",
+        },
+        body: JSON.stringify({ prompt: "a cat" }),
+      })
+
+      expect(res.status).toBe(400)
+      const body = await res.json()
+      expect(body.error).toContain("pageId")
+    })
+
+    it("returns 400 when prompt is missing", async () => {
+      const res = await app.request(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-OpenAI-Key": "sk-test",
+        },
+        body: JSON.stringify({}),
+      })
+
+      expect(res.status).toBe(400)
+      const body = await res.json()
+      expect(body.error).toContain("prompt")
+    })
+
+    it("returns 404 for nonexistent book", async () => {
+      const res = await app.request(
+        `/api/books/no-such-book/images/ai-generate?pageId=pg001`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-OpenAI-Key": "sk-test",
+          },
+          body: JSON.stringify({ prompt: "a cat" }),
+        }
+      )
+
+      expect(res.status).toBe(404)
+    })
+
+    it("rejects referenceImageId with path traversal characters", async () => {
+      const res = await app.request(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-OpenAI-Key": "sk-test",
+        },
+        body: JSON.stringify({
+          prompt: "a cat",
+          referenceImageId: "../../../etc/passwd",
+        }),
+      })
+
+      expect(res.status).toBe(400)
+      const body = await res.json()
+      expect(body.error).toContain("Invalid image ID")
+    })
+
+    it("rejects targetImageId with path traversal characters", async () => {
+      const res = await app.request(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-OpenAI-Key": "sk-test",
+        },
+        body: JSON.stringify({
+          prompt: "a cat",
+          targetImageId: "../../secret",
+        }),
+      })
+
+      expect(res.status).toBe(400)
+      const body = await res.json()
+      expect(body.error).toContain("Invalid image ID")
+    })
+
+    it("returns 404 when reference image file does not exist", async () => {
+      const res = await app.request(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-OpenAI-Key": "sk-test",
+        },
+        body: JSON.stringify({
+          prompt: "make it brighter",
+          referenceImageId: "nonexistent-image",
+        }),
+      })
+
+      expect(res.status).toBe(404)
+      const body = await res.json()
+      expect(body.error).toContain("Reference image not found")
+    })
+  })
+
+  describe("POST /api/books/:label/images (crop upload)", () => {
+    it("uploads a cropped image and returns new imageId", async () => {
+      // Create a minimal valid PNG (1x1 pixel)
+      const pngHeader = Buffer.from([
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, // PNG signature
+        0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52, // IHDR chunk
+        0x00, 0x00, 0x00, 0x01, // width: 1
+        0x00, 0x00, 0x00, 0x01, // height: 1
+        0x08, 0x02, 0x00, 0x00, 0x00, // bit depth, color type, etc.
+        0x90, 0x77, 0x53, 0xde, // CRC
+      ])
+
+      const formData = new FormData()
+      formData.append("image", new Blob([pngHeader], { type: "image/png" }), "crop.png")
+      formData.append("pageId", `${label}_p1`)
+      formData.append("sourceImageId", `${label}_p1_page`)
+
+      const res = await app.request(`/api/books/${label}/images`, {
+        method: "POST",
+        body: formData,
+      })
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.imageId).toBe(`${label}_p1_page_crop1`)
+      expect(body.width).toBe(1)
+      expect(body.height).toBe(1)
+    })
+
+    it("increments crop suffix for duplicate uploads", async () => {
+      const pngHeader = Buffer.from([
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+        0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+        0x00, 0x00, 0x00, 0x02,
+        0x00, 0x00, 0x00, 0x02,
+        0x08, 0x02, 0x00, 0x00, 0x00,
+        0xfd, 0xd4, 0x9a, 0x73,
+      ])
+
+      // First upload
+      const form1 = new FormData()
+      form1.append("image", new Blob([pngHeader], { type: "image/png" }), "crop.png")
+      form1.append("pageId", `${label}_p1`)
+      form1.append("sourceImageId", `${label}_p1_page`)
+      await app.request(`/api/books/${label}/images`, { method: "POST", body: form1 })
+
+      // Second upload
+      const form2 = new FormData()
+      form2.append("image", new Blob([pngHeader], { type: "image/png" }), "crop.png")
+      form2.append("pageId", `${label}_p1`)
+      form2.append("sourceImageId", `${label}_p1_page`)
+      const res = await app.request(`/api/books/${label}/images`, { method: "POST", body: form2 })
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.imageId).toBe(`${label}_p1_page_crop2`)
+    })
+
+    it("returns 400 when image file is missing", async () => {
+      const formData = new FormData()
+      formData.append("pageId", `${label}_p1`)
+      formData.append("sourceImageId", `${label}_p1_page`)
+
+      const res = await app.request(`/api/books/${label}/images`, {
+        method: "POST",
+        body: formData,
+      })
+
+      expect(res.status).toBe(400)
+    })
+
+    it("returns 400 when pageId is missing", async () => {
+      const formData = new FormData()
+      formData.append("image", new Blob([Buffer.alloc(10)], { type: "image/png" }), "crop.png")
+      formData.append("sourceImageId", `${label}_p1_page`)
+
+      const res = await app.request(`/api/books/${label}/images`, {
+        method: "POST",
+        body: formData,
+      })
+
+      expect(res.status).toBe(400)
+    })
+
+    it("returns 400 when sourceImageId is missing", async () => {
+      const formData = new FormData()
+      formData.append("image", new Blob([Buffer.alloc(10)], { type: "image/png" }), "crop.png")
+      formData.append("pageId", `${label}_p1`)
+
+      const res = await app.request(`/api/books/${label}/images`, {
+        method: "POST",
+        body: formData,
+      })
+
+      expect(res.status).toBe(400)
+    })
+
+    it("rejects sourceImageId with path traversal characters", async () => {
+      const formData = new FormData()
+      formData.append("image", new Blob([Buffer.alloc(10)], { type: "image/png" }), "crop.png")
+      formData.append("pageId", `${label}_p1`)
+      formData.append("sourceImageId", "../../../etc/passwd")
+
+      const res = await app.request(`/api/books/${label}/images`, {
+        method: "POST",
+        body: formData,
+      })
+
+      expect(res.status).toBe(400)
+      const body = await res.json()
+      expect(body.error).toContain("Invalid image ID")
+    })
+
+    it("returns 404 for nonexistent book", async () => {
+      const formData = new FormData()
+      formData.append("image", new Blob([Buffer.alloc(10)], { type: "image/png" }), "crop.png")
+      formData.append("pageId", "pg001")
+      formData.append("sourceImageId", "img001")
+
+      const res = await app.request(`/api/books/no-such-book/images`, {
+        method: "POST",
+        body: formData,
+      })
+
+      expect(res.status).toBe(404)
+    })
+  })
 })
