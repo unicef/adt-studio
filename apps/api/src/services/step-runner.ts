@@ -43,12 +43,15 @@ import {
   generateSpeechFile,
   generateBookSummary,
   buildBookSummaryConfig,
+  filterPageImageMeaningfulness,
+  buildMeaningfulnessConfig,
 } from "@adt/pipeline"
-import type { TranslationConfig, QuizPageInput, ProviderRouting } from "@adt/pipeline"
+import type { TranslationConfig, QuizPageInput, ProviderRouting, MeaningfulnessConfig } from "@adt/pipeline"
 import { loadStyleguideContent } from "./pipeline-runner"
 import { createTTSSynthesizer, createAzureTTSSynthesizer } from "@adt/llm"
 import type { TTSSynthesizer } from "@adt/llm"
 import type {
+  AppConfig,
   TextClassificationOutput,
   ImageClassificationOutput,
   PageSectioningOutput,
@@ -86,6 +89,17 @@ function toErrorMessage(err: unknown): string {
 function wrapStepError(step: StepName, err: unknown): never {
   if (err instanceof StepError) throw err
   throw new StepError(step, toErrorMessage(err))
+}
+
+export function buildStepRunnerImageClassifyConfig(
+  config: AppConfig,
+  storage: Pick<Storage, "getImageBase64">
+): ReturnType<typeof buildImageClassifyConfig> {
+  return {
+    ...buildImageClassifyConfig(config),
+    getImageBytes: (imageId: string) =>
+      Buffer.from(storage.getImageBase64(imageId), "base64"),
+  }
 }
 
 async function processWithConcurrency<T>(
@@ -250,7 +264,8 @@ async function runExtractStep(
 
     // Step 3: Per-page classification
     const textClassifyConfig = buildClassifyConfig(config)
-    const imageClassifyConfig = buildImageClassifyConfig(config)
+    const imageClassifyConfig = buildStepRunnerImageClassifyConfig(config, storage)
+    const meaningfulnessConfig = buildMeaningfulnessConfig(config)
 
     const llmModel = createLLMModel({
       modelId: textClassifyConfig.modelId,
@@ -259,6 +274,16 @@ async function runExtractStep(
       rateLimiter,
       onLog: onLlmLog,
     })
+
+    const meaningfulnessModel = meaningfulnessConfig
+      ? createLLMModel({
+          modelId: meaningfulnessConfig.modelId,
+          cacheDir,
+          promptEngine,
+          rateLimiter,
+          onLog: onLlmLog,
+        })
+      : null
 
     const translationModel = translationConfig
       ? createLLMModel({
@@ -286,7 +311,7 @@ async function runExtractStep(
           await classifyPage(
             page,
             storage,
-            { textClassifyConfig, imageClassifyConfig },
+            { textClassifyConfig, imageClassifyConfig, meaningfulnessConfig },
             llmModel,
             {
               onClassifyImages: () => {
@@ -321,7 +346,8 @@ async function runExtractStep(
               },
             },
             translationConfig,
-            translationModel
+            translationModel,
+            meaningfulnessModel
           )
         } catch (err) {
           const msg = toErrorMessage(err)
@@ -1489,6 +1515,7 @@ async function runTextToSpeechStep(
 interface ClassifyConfigs {
   textClassifyConfig: ReturnType<typeof buildClassifyConfig>
   imageClassifyConfig: ReturnType<typeof buildImageClassifyConfig>
+  meaningfulnessConfig: MeaningfulnessConfig | null
 }
 
 interface ClassifyCallbacks {
@@ -1504,9 +1531,10 @@ async function classifyPage(
   llmModel: ReturnType<typeof createLLMModel>,
   callbacks: ClassifyCallbacks,
   translationConfig: TranslationConfig | null,
-  translationModel: ReturnType<typeof createLLMModel> | null
+  translationModel: ReturnType<typeof createLLMModel> | null,
+  meaningfulnessModel: ReturnType<typeof createLLMModel> | null
 ): Promise<void> {
-  const { textClassifyConfig, imageClassifyConfig } = configs
+  const { textClassifyConfig, imageClassifyConfig, meaningfulnessConfig } = configs
 
   const imageBase64 = storage.getPageImageBase64(page.pageId)
   const images = storage.getPageImages(page.pageId)
@@ -1523,14 +1551,52 @@ async function classifyPage(
     llmModel
   )
 
+  let imageResult: ImageClassificationOutput
   try {
-    const imageResult = classifyPageImages(page.pageId, images, imageClassifyConfig)
-    storage.putNodeData("image-classification", page.pageId, imageResult)
+    imageResult = classifyPageImages(page.pageId, images, imageClassifyConfig)
     callbacks.onClassifyImages()
   } catch (err) {
     await textPromise.catch(() => undefined)
     wrapStepError("image-classification", err)
+    return // unreachable but satisfies TS
   }
+
+  // LLM meaningfulness filter (if enabled)
+  if (meaningfulnessConfig && meaningfulnessModel) {
+    try {
+      const unprunedImageIds = new Set(
+        imageResult.images
+          .filter((img) => !img.isPruned)
+          .map((img) => img.imageId)
+      )
+      const unprunedImages = images
+        .filter((img) => unprunedImageIds.has(img.imageId))
+        .map((img) => ({
+          imageId: img.imageId,
+          imageBase64: storage.getImageBase64(img.imageId),
+          width: img.width,
+          height: img.height,
+        }))
+
+      if (unprunedImages.length > 0) {
+        imageResult = await filterPageImageMeaningfulness(
+          {
+            pageId: page.pageId,
+            pageImageBase64: imageBase64,
+            images: unprunedImages,
+          },
+          imageResult,
+          meaningfulnessConfig,
+          meaningfulnessModel
+        )
+      }
+    } catch (err) {
+      await textPromise.catch(() => undefined)
+      wrapStepError("image-classification", err)
+    }
+  }
+
+  storage.putNodeData("image-classification", page.pageId, imageResult)
 
   let textResult: Awaited<ReturnType<typeof classifyPageText>>
   try {

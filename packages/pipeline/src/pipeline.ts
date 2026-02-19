@@ -9,6 +9,7 @@ import { extractMetadata, buildMetadataConfig } from "./metadata-extraction.js"
 import { generateBookSummary, buildBookSummaryConfig } from "./book-summary.js"
 import { classifyPageText, buildClassifyConfig } from "./text-classification.js"
 import { classifyPageImages, buildImageClassifyConfig } from "./image-classification.js"
+import { filterPageImageMeaningfulness, buildMeaningfulnessConfig } from "./image-meaningfulness.js"
 import { sectionPage, buildSectioningConfig } from "./page-sectioning.js"
 import { renderPage, buildRenderStrategyResolver } from "./web-rendering.js"
 import { translatePageText, buildTranslationConfig, type TranslationConfig } from "./translation.js"
@@ -188,8 +189,19 @@ export async function runPipeline(
       getImageBytes: (imageId: string) =>
         Buffer.from(storage.getImageBase64(imageId), "base64"),
     }
+    const meaningfulnessConfig = buildMeaningfulnessConfig(config)
     const sectioningConfig = buildSectioningConfig(config)
     const resolveRenderConfig = buildRenderStrategyResolver(config)
+    const meaningfulnessModel = meaningfulnessConfig
+      ? createLLMModel({
+          modelId: meaningfulnessConfig.modelId,
+          cacheDir,
+          promptEngine,
+          rateLimiter,
+          logLevel,
+          onLog: (entry) => storage.appendLlmLog(entry),
+        })
+      : null
     const llmModel = createLLMModel({
       modelId: textClassifyConfig.modelId,
       cacheDir,
@@ -229,6 +241,7 @@ export async function runPipeline(
           {
             textClassifyConfig,
             imageClassifyConfig,
+            meaningfulnessConfig,
             sectioningConfig,
             resolveRenderConfig,
           },
@@ -237,7 +250,8 @@ export async function runPipeline(
           templateEngine,
           progress,
           translationConfig,
-          translationModel
+          translationModel,
+          meaningfulnessModel
         )
       }
     )
@@ -251,6 +265,7 @@ export async function runPipeline(
 interface StepConfigs {
   textClassifyConfig: ReturnType<typeof buildClassifyConfig>
   imageClassifyConfig: ReturnType<typeof buildImageClassifyConfig>
+  meaningfulnessConfig: ReturnType<typeof buildMeaningfulnessConfig>
   sectioningConfig: ReturnType<typeof buildSectioningConfig>
   resolveRenderConfig: ReturnType<typeof buildRenderStrategyResolver>
 }
@@ -267,9 +282,10 @@ async function processPage(
   templateEngine: TemplateEngine,
   progress: Progress,
   translationConfig: TranslationConfig | null,
-  translationModel: LLMModel | null
+  translationModel: LLMModel | null,
+  meaningfulnessModel: LLMModel | null
 ): Promise<void> {
-  const { textClassifyConfig, imageClassifyConfig, sectioningConfig, resolveRenderConfig } =
+  const { textClassifyConfig, imageClassifyConfig, meaningfulnessConfig, sectioningConfig, resolveRenderConfig } =
     configs
 
   // --- Classify ---
@@ -287,8 +303,7 @@ async function processPage(
     llmModel
   )
 
-  const imageResult = classifyPageImages(page.pageId, images, imageClassifyConfig)
-  storage.putNodeData("image-classification", page.pageId, imageResult)
+  let imageResult = classifyPageImages(page.pageId, images, imageClassifyConfig)
   progress.emit({
     type: "step-progress",
     step: "image-classification",
@@ -296,6 +311,43 @@ async function processPage(
     page: pageIndex,
     totalPages,
   })
+
+  // LLM meaningfulness filter (if enabled)
+  if (meaningfulnessConfig && meaningfulnessModel) {
+    try {
+      const unprunedImageIds = new Set(
+        imageResult.images
+          .filter((img) => !img.isPruned)
+          .map((img) => img.imageId)
+      )
+      const unprunedImages = images
+        .filter((img) => unprunedImageIds.has(img.imageId))
+        .map((img) => ({
+          imageId: img.imageId,
+          imageBase64: storage.getImageBase64(img.imageId),
+          width: img.width,
+          height: img.height,
+        }))
+
+      if (unprunedImages.length > 0) {
+        imageResult = await filterPageImageMeaningfulness(
+          {
+            pageId: page.pageId,
+            pageImageBase64: imageBase64,
+            images: unprunedImages,
+          },
+          imageResult,
+          meaningfulnessConfig,
+          meaningfulnessModel
+        )
+      }
+    } catch (err) {
+      await textPromise.catch(() => undefined)
+      throw err
+    }
+  }
+
+  storage.putNodeData("image-classification", page.pageId, imageResult)
 
   const textResult = await textPromise
   storage.putNodeData("text-classification", page.pageId, textResult)

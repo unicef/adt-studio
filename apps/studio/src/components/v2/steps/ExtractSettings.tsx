@@ -45,11 +45,14 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
   const [minSide, setMinSide] = useState("")
   const [maxSide, setMaxSide] = useState("")
   const [minStddev, setMinStddev] = useState("")
+  const [meaningfulness, setMeaningfulness] = useState(true)
   const [metadataModel, setMetadataModel] = useState("")
   const [extractionModel, setExtractionModel] = useState("")
+  const [meaningfulnessModel, setMeaningfulnessModel] = useState("")
   const [bookSummaryModel, setBookSummaryModel] = useState("")
   const [metadataPromptDraft, setMetadataPromptDraft] = useState<string | null>(null)
   const [extractionPromptDraft, setExtractionPromptDraft] = useState<string | null>(null)
+  const [meaningfulnessPromptDraft, setMeaningfulnessPromptDraft] = useState<string | null>(null)
   const [bookSummaryPromptDraft, setBookSummaryPromptDraft] = useState<string | null>(null)
 
   // Track which field groups the user has actually touched
@@ -79,6 +82,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
       if (filters.min_side != null) setMinSide(String(filters.min_side))
       if (filters.max_side != null) setMaxSide(String(filters.max_side))
       if (filters.min_stddev != null) setMinStddev(String(filters.min_stddev))
+      if (filters.meaningfulness != null) setMeaningfulness(filters.meaningfulness !== false)
     }
     if (merged.metadata && typeof merged.metadata === "object") {
       const md = merged.metadata as Record<string, unknown>
@@ -87,6 +91,10 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
     if (merged.text_classification && typeof merged.text_classification === "object") {
       const tc = merged.text_classification as Record<string, unknown>
       if (tc.model) setExtractionModel(String(tc.model))
+    }
+    if (merged.image_meaningfulness && typeof merged.image_meaningfulness === "object") {
+      const im = merged.image_meaningfulness as Record<string, unknown>
+      if (im.model) setMeaningfulnessModel(String(im.model))
     }
     if (merged.book_summary && typeof merged.book_summary === "object") {
       const bs = merged.book_summary as Record<string, unknown>
@@ -163,11 +171,12 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
       overrides.pruned_text_types = Array.from(prunedTextTypes)
     }
     if (shouldWrite("image_filters")) {
-      const filters: Record<string, number> = {}
+      const filters: Record<string, unknown> = {}
       if (minSide) filters.min_side = Number(minSide)
       if (maxSide) filters.max_side = Number(maxSide)
       if (minStddev) filters.min_stddev = Number(minStddev)
-      overrides.image_filters = Object.keys(filters).length > 0 ? filters : undefined
+      filters.meaningfulness = meaningfulness
+      overrides.image_filters = filters
     }
     if (shouldWrite("metadata")) {
       const existing = (bookConfigData?.config?.metadata ?? {}) as Record<string, unknown>
@@ -176,6 +185,10 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
     if (shouldWrite("text_classification")) {
       const existing = (bookConfigData?.config?.text_classification ?? {}) as Record<string, unknown>
       overrides.text_classification = { ...existing, model: extractionModel.trim() || undefined }
+    }
+    if (shouldWrite("image_meaningfulness")) {
+      const existing = (bookConfigData?.config?.image_meaningfulness ?? {}) as Record<string, unknown>
+      overrides.image_meaningfulness = { ...existing, model: meaningfulnessModel.trim() || undefined }
     }
     if (shouldWrite("book_summary")) {
       const existing = (bookConfigData?.config?.book_summary ?? {}) as Record<string, unknown>
@@ -190,6 +203,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
     const promptSaves: Promise<unknown>[] = []
     if (metadataPromptDraft != null) promptSaves.push(api.updatePrompt("metadata_extraction", metadataPromptDraft, bookLabel))
     if (extractionPromptDraft != null) promptSaves.push(api.updatePrompt("text_classification", extractionPromptDraft, bookLabel))
+    if (meaningfulnessPromptDraft != null) promptSaves.push(api.updatePrompt("image_meaningfulness", meaningfulnessPromptDraft, bookLabel))
     if (bookSummaryPromptDraft != null) promptSaves.push(api.updatePrompt("book_summary", bookSummaryPromptDraft, bookLabel))
     if (promptSaves.length > 0) await Promise.all(promptSaves)
 
@@ -201,6 +215,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
           setDirty({})
           setMetadataPromptDraft(null)
           setExtractionPromptDraft(null)
+          setMeaningfulnessPromptDraft(null)
           setBookSummaryPromptDraft(null)
           setShowRerunDialog(false)
           // Start step-scoped extract run — blocks until data is cleared on backend
@@ -218,7 +233,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
   }
 
   return (
-    <div className={tab === "metadata-prompt" || tab === "prompt" || tab === "book-summary-prompt" ? "h-full max-w-4xl" : "p-4 space-y-6"}>
+    <div className={tab === "metadata-prompt" || tab === "prompt" || tab === "meaningfulness-prompt" || tab === "book-summary-prompt" ? "h-full max-w-4xl" : "p-4 space-y-6"}>
       {tab === "general" && (
         <>
           {/* Page Range */}
@@ -327,6 +342,22 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
             <p className="text-xs text-muted-foreground mt-1.5">
               Higher values filter out simple or blank images.
             </p>
+            <div className="flex items-center gap-2 mt-4">
+              <Switch
+                id="meaningfulness-filter"
+                checked={meaningfulness}
+                onCheckedChange={(v) => {
+                  setMeaningfulness(v)
+                  markDirty("image_filters")
+                }}
+              />
+              <Label htmlFor="meaningfulness-filter" className="text-sm font-normal">
+                LLM meaningfulness filter
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Use an LLM to filter out decorative or non-educational images.
+            </p>
           </div>
         </>
       )}
@@ -426,6 +457,19 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
           onModelChange={(v) => { setExtractionModel(v); markDirty("text_classification") }}
           onContentChange={setExtractionPromptDraft}
           enabled={tab === "prompt"}
+        />
+      )}
+
+      {tab === "meaningfulness-prompt" && (
+        <PromptViewer
+          promptName="image_meaningfulness"
+          bookLabel={bookLabel}
+          title="Image Meaningfulness Prompt"
+          description="LLM-based filter to determine if extracted images are meaningful. Set a model to enable this filter. Images that fail are pruned from downstream steps."
+          model={meaningfulnessModel}
+          onModelChange={(v) => { setMeaningfulnessModel(v); markDirty("image_meaningfulness") }}
+          onContentChange={setMeaningfulnessPromptDraft}
+          enabled={tab === "meaningfulness-prompt"}
         />
       )}
 

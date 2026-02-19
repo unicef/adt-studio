@@ -57,6 +57,10 @@ text_classification:
   prompt: text_classification
   model: openai:gpt-5.2
 
+image_meaningfulness:
+  prompt: image_meaningfulness
+  model: openai:gpt-5.2
+
 page_sectioning:
   prompt: page_sectioning
   model: openai:gpt-5.2
@@ -167,6 +171,8 @@ concurrency: 32
 image_filters:
   min_side: 100
   max_side: 5000
+  min_stddev: 2
+  meaningfulness: true
 
 # rate_limit:
 #   requests_per_minute: 60

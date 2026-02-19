@@ -161,12 +161,17 @@ function ImageCard({ imageId, bookLabel, isPruned, reason, onTogglePrune }: { im
           target.style.display = "none"
         }}
       />
-      <div className="px-2 py-1 flex items-center justify-between border-t bg-muted/30 w-full mt-auto">
-        <span className="text-[10px] text-muted-foreground truncate">{imageId}</span>
-        {dimensions && (
-          <span className="text-[10px] text-muted-foreground shrink-0 ml-1">
-            {dimensions.w}&times;{dimensions.h}
-          </span>
+      <div className="px-2 py-1 border-t bg-muted/30 w-full mt-auto">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] text-muted-foreground truncate">{imageId}</span>
+          {dimensions && (
+            <span className="text-[10px] text-muted-foreground shrink-0 ml-1">
+              {dimensions.w}&times;{dimensions.h}
+            </span>
+          )}
+        </div>
+        {isPruned && reason && (
+          <p className="text-[10px] text-destructive/70 truncate mt-0.5" title={reason}>{reason}</p>
         )}
       </div>
     </div>

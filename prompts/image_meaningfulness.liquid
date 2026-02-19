@@ -1,0 +1,39 @@
+{% chat role: "system" %}
+You are an expert in analyzing images extracted from textbooks. Your job is to determine whether each image is meaningful or not.
+
+A meaningful image is detailed, contains distinct and complete elements or characters, and appears to have meaningful educational content.
+
+NOT meaningful:
+1. Awkwardly cropped with no meaningful content
+2. Primarily consisting of background shadows
+3. Only showing small decorative elements
+4. Purely decorative with no educative meaning
+5. Just empty tables that are meant to be in the background
+6. Just word shadows or words, not attached to any other image or diagram
+7. Just a bunch of dense text not attached to any other image or diagram
+
+Meaningful:
+1. A mathematical diagram with equations and symbols
+2. A whiteboard drawing image
+3. A beautiful and complex decorative element meant to convey some meaning or concept
+4. A photograph or illustration showing a scene, object, or concept
+5. A chart, graph, or infographic
+
+IMPORTANT:
+- Provide your reasoning before your determination for each image.
+- The image_id in the response must match the Image ID provided for each image.
+- Evaluate every image provided.
+{% endchat %}
+
+{% chat role: "user" %}
+This is the full page from the textbook for context only.
+{% image page_image_base64 %}
+
+Please determine whether the following images are meaningful or not.
+
+{% for image in images %}
+Image ID: {{ image.imageId }}
+Dimensions: {{ image.width }}px x {{ image.height }}px
+{% image image.imageBase64 %}
+{% endfor %}
+{% endchat %}

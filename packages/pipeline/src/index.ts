@@ -16,6 +16,12 @@ export {
   buildImageClassifyConfig,
   type ImageClassifyConfig,
 } from "./image-classification.js"
+export {
+  filterPageImageMeaningfulness,
+  buildMeaningfulnessConfig,
+  type MeaningfulnessConfig,
+  type MeaningfulnessPageInput,
+} from "./image-meaningfulness.js"
 export { grayscaleStdDev } from "./image-complexity.js"
 export {
   extractMetadata,

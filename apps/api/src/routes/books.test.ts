@@ -283,6 +283,41 @@ describe("PUT /books/:label/config", () => {
     ).toBe(true)
   })
 
+  it("persists image meaningfulness settings", async () => {
+    createTestBook("meaningful-config")
+    const app = createBookRoutes(tmpDir)
+    const res = await app.request("/books/meaningful-config/config", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        config: {
+          image_filters: {
+            min_side: 100,
+            max_side: 5000,
+            min_stddev: 2,
+            meaningfulness: false,
+          },
+          image_meaningfulness: {
+            prompt: "image_meaningfulness",
+            model: "openai:gpt-5.2",
+          },
+        },
+      }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.config.image_filters).toEqual({
+      min_side: 100,
+      max_side: 5000,
+      min_stddev: 2,
+      meaningfulness: false,
+    })
+    expect(body.config.image_meaningfulness).toEqual({
+      prompt: "image_meaningfulness",
+      model: "openai:gpt-5.2",
+    })
+  })
+
   it("removes config file when empty overrides", async () => {
     createTestBook("clear-config")
     fs.writeFileSync(

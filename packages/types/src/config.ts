@@ -91,6 +91,7 @@ export const AppConfig = z
     render_strategies: z.record(z.string(), RenderStrategyConfig).optional(),
     section_render_strategies: z.record(z.string(), z.string()).optional(),
     image_filters: ImageFilters.optional(),
+    image_meaningfulness: StepConfig.optional(),
     glossary: StepConfig.optional(),
     concurrency: z.number().int().min(1).optional(),
     rate_limit: RateLimitConfig.optional(),
