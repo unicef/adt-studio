@@ -11,7 +11,7 @@ This document records all significant technology and architecture decisions made
 3. [HTTP Server: Hono](#003-hono-over-express-and-fastify)
 4. [Frontend Framework: React + Vite (not Next.js)](#004-react--vite-over-nextjs)
 5. [Frontend Ecosystem: TanStack (Router, Query, Table, Form)](#005-tanstack-ecosystem-over-mixed-libraries)
-6. [Desktop Runtime: Tauri or Electron (TBD)](#006-desktop-runtime-tauri-or-electron)
+6. [Desktop Runtime: Tauri v2](#006-desktop-runtime-tauri-v2)
 7. [Styling: Tailwind CSS](#007-tailwind-css-over-css-modules-and-css-in-js)
 8. [Validation: Zod](#008-zod-over-io-ts-yup-and-joi)
 9. [Database: node-sqlite3-wasm](#009-node-sqlite3-wasm-over-better-sqlite3)
@@ -22,6 +22,7 @@ This document records all significant technology and architecture decisions made
 14. [Developer Debug Panel](#014-developer-debug-panel-for-pipeline-observability)
 15. [Breadcrumb Navigation](#015-breadcrumb-navigation-over-global-header)
 16. [Home Page Split Layout](#016-home-page-split-layout)
+17. [Two-Level DAG Pipeline (Stage / Step Model)](#017-two-level-dag-pipeline-stage--step-model)
 
 ---
 
@@ -209,14 +210,14 @@ TanStack eliminates this by providing a unified ecosystem where type safety flow
 
 ---
 
-## 006: Desktop Runtime — Tauri or Electron
+## 006: Desktop Runtime — Tauri v2
 
-**Status**: Pending
+**Status**: Decided
 **Date**: 2026-02-09
 
 ### Decision
 
-Desktop runtime is **TBD**. The two candidates are Tauri and Electron. This decision will be made when desktop packaging work begins.
+Use Tauri v2 with a sidecar architecture — the API server is compiled into a standalone Node.js binary and bundled inside the Tauri app.
 
 ### Candidates
 
@@ -523,6 +524,83 @@ Home page uses a 30/70 vertical split: workflow guide on the left, books list on
 
 ---
 
+## 017: Two-Level DAG Pipeline (Stage / Step Model)
+
+**Status**: Decided
+**Date**: 2026-02-19
+
+### Decision
+
+Organize the pipeline as a two-level DAG with a single source of truth in `packages/types/src/pipeline.ts`. The two levels are:
+
+- **Stages** — High-level groupings visible in the UI (Extract, Storyboard, Quizzes, Captions, Glossary, Text & Speech, Package). Stages have inter-stage dependencies forming a DAG.
+- **Steps** — Atomic processing operations within a stage (e.g., `image-filtering`, `page-sectioning`, `tts`). Steps have intra-stage dependencies and can run in parallel when their dependencies are met.
+
+### Context
+
+Previously, the pipeline topology was duplicated in multiple places:
+- A hardcoded `STEP_ORDER` array in the API step runner
+- A separate `UI_STEP_ORDER` with step-to-UI mappings in the frontend hooks
+- Hardcoded sub-step lists in every view component
+- A flat step list in the CLI runner
+
+Each location had its own notion of ordering, grouping, and dependencies. Adding or reordering a step required changes across 5+ files, and inconsistencies crept in.
+
+### The `PIPELINE` Constant
+
+```typescript
+// packages/types/src/pipeline.ts
+export const PIPELINE: StageDef[] = [
+  {
+    name: "extract",
+    label: "Extract",
+    dependsOn: [],
+    steps: [
+      { name: "extract", label: "PDF Extraction" },
+      { name: "metadata", label: "Metadata", dependsOn: ["extract"] },
+      { name: "image-filtering", label: "Image Filtering", dependsOn: ["extract"] },
+      // ... more steps with intra-stage dependencies
+    ],
+  },
+  {
+    name: "storyboard",
+    label: "Storyboard",
+    dependsOn: ["extract"],   // inter-stage dependency
+    steps: [
+      { name: "page-sectioning", label: "Page Sectioning" },
+      { name: "web-rendering", label: "Web Rendering", dependsOn: ["page-sectioning"] },
+    ],
+  },
+  // ... more stages
+]
+```
+
+Derived lookups (`STAGE_ORDER`, `STEP_TO_STAGE`, `STAGE_BY_NAME`, `ALL_STEP_NAMES`) are computed once from `PIPELINE` and exported alongside it.
+
+### What Derives From PIPELINE
+
+| Consumer | What it derives |
+|----------|----------------|
+| CLI (`packages/pipeline/src/cli.ts`) | Progress bars grouped by stage, step labels |
+| DAG runner (`packages/pipeline/src/pipeline-dag.ts`) | Execution graph, parallelism |
+| API step runner (`apps/api/src/services/step-runner.ts`) | Stage ordering, step groupings |
+| API routes (`apps/api/src/routes/steps.ts`) | Topology for range-based execution |
+| UI sidebar (`StepSidebar.tsx`) | Stage list and navigation |
+| UI run cards (`StageRunCard.tsx`) | Sub-step list per stage |
+| UI step indicator (`StepIndicator.tsx`) | Step ordering and labels |
+| UI hooks (`step-mapping.ts`, `step-run-range.ts`) | Stage ordering, step-to-stage mapping |
+
+### Alternatives Considered
+
+| Approach | Why Not |
+|----------|---------|
+| Flat step list with hardcoded groupings | No DAG, no parallelism within groups, grouping logic duplicated everywhere |
+| Config file (JSON/YAML) | Loses TypeScript type safety, requires runtime parsing |
+| Database-driven pipeline | Over-engineered for a fixed pipeline, adds latency and complexity |
+| Separate definitions per consumer | What we had before — led to duplication and drift |
+
+---
+
 ## Decision Log Summary
 
 | # | Decision | Chosen | Over |
@@ -532,7 +610,7 @@ Home page uses a 30/70 vertical split: workflow guide on the left, books list on
 | 003 | HTTP server | Hono | Express, Fastify |
 | 004 | Frontend build | React + Vite (SPA) | Next.js, CRA |
 | 005 | Frontend ecosystem | TanStack (Router, Query, Table, Form) | React Router, SWR, react-hook-form |
-| 006 | Desktop runtime | Tauri or Electron (TBD) | — |
+| 006 | Desktop runtime | Tauri v2 (sidecar) | Electron |
 | 007 | Styling | Tailwind CSS | CSS Modules, styled-components |
 | 008 | Validation | Zod | io-ts, Yup, Joi |
 | 009 | Database | node-sqlite3-wasm | better-sqlite3, sql.js |
@@ -543,3 +621,4 @@ Home page uses a 30/70 vertical split: workflow guide on the left, books list on
 | 014 | Debug panel | Bottom drawer + REST + SSE | External viewer, console logs |
 | 015 | Navigation | Breadcrumb per page | Global header, sidebar |
 | 016 | Home layout | 30/70 split (guide + books) | Full-width grid, centered content |
+| 017 | Pipeline model | Two-level DAG (Stage / Step) | Flat step list, config file, per-consumer definitions |

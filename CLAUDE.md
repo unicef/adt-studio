@@ -43,6 +43,28 @@ docs/              # Documentation (guidelines, architecture)
 **Layer rule**: `studio/desktop` → (HTTP only) → `api` → (direct imports) → `packages/*`
 Frontend MUST NOT import from packages directly. All data flows through the API.
 
+**Exception**: `@adt/types` may be imported by `studio` for the shared `PIPELINE` definition and derived constants (stage/step names, ordering). No business logic — only type-level and constant data.
+
+## Pipeline Architecture
+
+The pipeline uses a **two-level DAG** model defined in a single source of truth: `packages/types/src/pipeline.ts`.
+
+### Terminology
+
+- **Stage** — A high-level grouping visible in the UI (e.g., Extract, Storyboard, Quizzes). Stages have inter-stage dependencies forming a DAG.
+- **Step** — An atomic processing operation within a stage (e.g., `image-filtering`, `page-sectioning`). Steps have intra-stage dependencies. Steps within the same stage can run in parallel if their dependencies are met.
+
+### Single Source of Truth
+
+The `PIPELINE` constant in `@adt/types` defines all stages, their steps, labels, and dependency graphs. Everything else is derived:
+
+- **CLI progress bars** — pre-created from `PIPELINE`
+- **API step runner** — stage ordering and step groupings from `STAGE_ORDER`
+- **UI sidebar, cards, indicators** — all derived from `PIPELINE`
+- **DAG execution engine** — reads `PIPELINE` to build the execution graph
+
+**Never hardcode stage/step ordering, names, or groupings outside of `PIPELINE`.** If you need a new derived lookup, add it to `packages/types/src/pipeline.ts` alongside the existing ones (`STAGE_ORDER`, `STEP_TO_STAGE`, `STAGE_BY_NAME`, `ALL_STEP_NAMES`).
+
 ## Commands
 
 ```bash

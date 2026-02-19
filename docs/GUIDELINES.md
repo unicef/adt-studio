@@ -57,7 +57,7 @@ adt/
 ├── apps/              # Application tier
 │   ├── api/           # Hono HTTP server
 │   ├── studio/        # React SPA (Vite)
-│   └── desktop/       # Desktop wrapper (Tauri or Electron — TBD)
+│   └── desktop/       # Tauri v2 desktop wrapper (sidecar architecture)
 │
 ├── templates/         # Layout templates
 ├── config/            # Global configuration
@@ -90,6 +90,8 @@ adt/
 
 **RULE**: Frontend apps MUST NOT import directly from packages. All data flows through the API.
 
+**Exception**: `@adt/types` may be imported by the studio app for the shared `PIPELINE` definition and derived constants (stage/step names, ordering). No business logic — only type-level and constant data.
+
 ---
 
 ## Code Organization
@@ -101,7 +103,8 @@ adt/
 | Zod schemas, TypeScript interfaces | `packages/types/src/` | Export from index.ts |
 | LLM prompts, calls, caching | `packages/llm/src/` | Use existing client |
 | PDF extraction logic | `packages/pdf/src/` | Pure functions |
-| Pipeline steps | `packages/pipeline/src/` | Use functional approach |
+| Pipeline step implementations | `packages/pipeline/src/` | Pure functions, one file per step |
+| Pipeline definition (stages/steps/DAG) | `packages/types/src/pipeline.ts` | Single source of truth |
 | Bundle/export logic | `packages/output/src/` | Archive creation |
 | API endpoints | `apps/api/src/index.ts` | Hono routes |
 | React components | `apps/studio/src/components/` | Reuse existing |
@@ -658,6 +661,29 @@ try {
 db.close()
 ```
 
+### Pipeline Architecture (Stage / Step Model)
+
+The pipeline is organized as a **two-level DAG** defined in `packages/types/src/pipeline.ts`:
+
+- **Stages** — High-level groupings visible in the UI (Extract, Storyboard, Quizzes, Captions, Glossary, Text & Speech, Package). Stages have inter-stage dependencies.
+- **Steps** — Atomic processing operations within a stage (e.g., `image-filtering`, `page-sectioning`). Steps have intra-stage dependencies and can run in parallel when dependencies are met.
+
+The `PIPELINE` constant is the **single source of truth**. All ordering, groupings, labels, and dependency graphs are derived from it. Never hardcode step/stage ordering elsewhere.
+
+```typescript
+// Derived lookups available from @adt/types:
+import { PIPELINE, STAGE_ORDER, STEP_TO_STAGE, STAGE_BY_NAME, ALL_STEP_NAMES } from "@adt/types"
+import type { StepName, StageName } from "@adt/types"
+```
+
+Key files:
+- `packages/types/src/pipeline.ts` — Pipeline definition and derived lookups
+- `packages/pipeline/src/dag.ts` — Generic DAG runner
+- `packages/pipeline/src/pipeline-dag.ts` — Pipeline-specific DAG executor
+- `apps/api/src/services/step-runner.ts` — API-side stage runners
+- `apps/studio/src/components/v2/StageRunCard.tsx` — UI card (sub-steps derived from PIPELINE)
+- `apps/studio/src/components/v2/stages/` — Per-stage view components
+
 ### Pipeline Functions
 
 ```typescript
@@ -887,24 +913,17 @@ const result = await client.complete({
 
 ### Progress Reporting
 
+Pipeline progress uses a `ProgressEvent` discriminated union streamed via SSE. Events are emitted per-step (not per-stage):
+
 ```typescript
-// Jobs report progress via the standard pattern
-interface Progress {
-  step: string      // Human-readable step name
-  percent: number   // 0-100
-}
+// ProgressEvent types (defined in @adt/types):
+// - step-start:    { step: StepName }
+// - step-progress: { step: StepName, page, totalPages }
+// - step-complete: { step: StepName }
+// - step-error:    { step: StepName, error }
 
-// Update progress during pipeline
-async function runPipeline(jobId: string, onProgress: (p: Progress) => void) {
-  onProgress({ step: "Extracting PDF", percent: 10 })
-  await extractPdf(...)
-
-  onProgress({ step: "Classifying text", percent: 30 })
-  await classifyText(...)
-
-  // ...
-  onProgress({ step: "Complete", percent: 100 })
-}
+// The DAG runner emits these automatically as steps execute.
+// The UI maps step events to their parent stage via STEP_TO_STAGE.
 ```
 
 ### Platform Detection
@@ -942,6 +961,8 @@ const checkJob = (job) => { ... }  // Same logic, different name!
 export const Job = z.object({ ... })
 // Use Job.parse() or Job.safeParse() everywhere
 ```
+
+**Pipeline topology is especially prone to duplication.** Stage ordering, step groupings, step-to-stage mappings, and dependency graphs must all be derived from the `PIPELINE` constant in `@adt/types`. Never hardcode these in the API, UI, or CLI.
 
 ### Bypassing the API
 
@@ -1111,11 +1132,15 @@ pnpm lint
 
 | Purpose | Location |
 |---------|----------|
-| API routes | `apps/api/src/index.ts` |
+| Pipeline definition (stages/steps) | `packages/types/src/pipeline.ts` |
+| API routes | `apps/api/src/routes/` |
 | API client | `apps/studio/src/api/client.ts` |
 | Type schemas | `packages/types/src/` |
-| Pipeline steps | `packages/pipeline/src/` |
+| Pipeline step implementations | `packages/pipeline/src/` |
+| DAG runner | `packages/pipeline/src/dag.ts` |
+| API stage runners | `apps/api/src/services/step-runner.ts` |
 | LLM client | `packages/llm/src/client.ts` |
+| Stage view components | `apps/studio/src/components/v2/stages/` |
 | Global config | `config/` |
 | Templates | `templates/` |
 
