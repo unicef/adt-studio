@@ -40,6 +40,7 @@ export async function renderSectionTemplate(
   const imageUrlPrefix = `/api/books/${input.label}/images`
 
   const context: Record<string, unknown> = {
+    section_id: input.sectionId,
     section_type: input.sectionType,
     background_color: input.backgroundColor,
     text_color: input.textColor,

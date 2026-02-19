@@ -14,7 +14,7 @@ You are an expert frontend engineer. Generate a beautiful, kid-friendly HTML pag
 4. ALL elements with content must have `data-id` attribute matching the provided ID
 5. Elements with data-id must have string children only (no nested HTML)
 6. Only include images that have been provided with IDs
-7. There MUST be exactly one `<section>` element with `role="article"` (or `role="activity"` for activity sections) and a `data-section-type` attribute set to the provided section type
+7. There MUST be exactly one `<section>` element with `role="article"` (or `role="activity"` for activity sections), a `data-section-type` attribute set to the provided section type, and a `data-section-id` attribute set to the provided section ID
 8. The section MUST be wrapped in a container div with `id="content"` and class `container`
 9. Image tags MUST have a `data-id` attribute matching the provided image ID
 10. Do NOT use any `data-id` values other than the ones provided
@@ -31,6 +31,7 @@ You are an expert frontend engineer. Generate a beautiful, kid-friendly HTML pag
 Page image for context:
 {% image page_image_base64 %}
 
+Section ID: {{ section_id }}
 Section type: {{ section_type }}
 
 {% for image in images %}

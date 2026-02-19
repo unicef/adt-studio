@@ -20,6 +20,7 @@ function makeInput(overrides?: Partial<RenderSectionInput>): RenderSectionInput 
     pageId: "pg001",
     pageImageBase64: "base64img",
     sectionIndex: 0,
+    sectionId: "pg001_sec001",
     sectionType: "text_only",
     backgroundColor: "#ffffff",
     textColor: "#000000",

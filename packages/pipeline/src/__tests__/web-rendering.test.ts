@@ -180,6 +180,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "text_only",
               parts: [
                 textPart("pg001_gp001", "paragraph", [
@@ -192,6 +193,7 @@ describe("renderPage", () => {
               isPruned: false,
             },
             {
+              sectionId: "pg001_sec002",
               sectionType: "credits",
               parts: [
                 textPart("pg001_gp002", "paragraph", [
@@ -237,6 +239,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "text_only",
               parts: [
                 textPart("pg001_gp001", "paragraph", [
@@ -286,6 +289,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "images_only",
               parts: [imagePart("pg001_im001")],
               backgroundColor: "#ffffff",
@@ -335,6 +339,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "text_only",
               parts: [
                 textPart("pg001_gp001", "paragraph", [
@@ -391,6 +396,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "text_only",
               parts: [
                 textPart("pg001_gp001", "paragraph", [
@@ -440,6 +446,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "text_only",
               parts: [
                 textPart("pg001_gp001", "paragraph", [
@@ -452,6 +459,7 @@ describe("renderPage", () => {
               isPruned: false,
             },
             {
+              sectionId: "pg001_sec002",
               sectionType: "text_only",
               parts: [
                 textPart("pg001_gp002", "paragraph", [
@@ -515,6 +523,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "text_only",
               parts: [
                 textPart("pg001_gp001", "paragraph", [
@@ -532,7 +541,7 @@ describe("renderPage", () => {
       },
       templateResolveConfig,
       fakeLlm,
-      fakeTemplateEngine
+      fakeTemplateEngine,
     )
 
     expect(templateCalled).toBe(true)
@@ -574,6 +583,7 @@ describe("renderPage", () => {
             reasoning: "test",
             sections: [
               {
+                sectionId: "pg001_sec001",
                 sectionType: "text_only",
                 parts: [
                   textPart("pg001_gp001", "paragraph", [
@@ -641,6 +651,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "cover",
               parts: [
                 textPart("pg001_gp001", "paragraph", [
@@ -653,6 +664,7 @@ describe("renderPage", () => {
               isPruned: false,
             },
             {
+              sectionId: "pg001_sec002",
               sectionType: "body",
               parts: [
                 textPart("pg001_gp002", "paragraph", [
@@ -720,6 +732,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "activity_multiple_choice",
               parts: [
                 textPart("pg001_gp001", "paragraph", [
@@ -785,6 +798,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "activity_open_ended_answer",
               parts: [
                 textPart("pg001_gp001", "paragraph", [
@@ -847,6 +861,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "text",
               parts: [
                 textPart("pg001_gp001", "paragraph", [
@@ -896,6 +911,7 @@ describe("renderPage", () => {
           reasoning: "test",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "text_only",
               parts: [
                 textPart("pg001_gp001", "paragraph", [

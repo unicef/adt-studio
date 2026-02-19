@@ -34,6 +34,7 @@ export async function renderSectionLlm(
   const context = {
     label: input.label,
     page_image_base64: input.pageImageBase64,
+    section_id: input.sectionId,
     section_type: input.sectionType,
     texts: texts.map((t) => ({
       text_id: t.textId,

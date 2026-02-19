@@ -42,6 +42,7 @@ export interface RenderSectionInput {
   pageId: string
   pageImageBase64: string
   sectionIndex: number
+  sectionId: string
   sectionType: string
   backgroundColor: string
   textColor: string
@@ -142,6 +143,7 @@ export async function renderPage(
       pageId: input.pageId,
       pageImageBase64: input.pageImageBase64,
       sectionIndex: i,
+      sectionId: section.sectionId,
       sectionType: section.sectionType,
       backgroundColor: section.backgroundColor,
       textColor: section.textColor,

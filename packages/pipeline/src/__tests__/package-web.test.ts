@@ -118,6 +118,7 @@ describe("packageAdtWeb", () => {
           reasoning: "ok",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "content",
               parts: [],
               backgroundColor: "#fff",
@@ -131,6 +132,7 @@ describe("packageAdtWeb", () => {
           reasoning: "ok",
           sections: [
             {
+              sectionId: "pg002_sec001",
               sectionType: "content",
               parts: [],
               backgroundColor: "#fff",
@@ -214,6 +216,7 @@ describe("packageAdtWeb", () => {
           reasoning: "ok",
           sections: [
             {
+              sectionId: "pg001_sec001",
               sectionType: "content",
               parts: [],
               backgroundColor: "#fff",
