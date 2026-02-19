@@ -349,7 +349,7 @@ async function runTTS(
       async (item: TTSWorkItem) => {
         try {
           const provider = resolveProviderForLanguage(item.language, routing)
-          const providerModel = providerConfigs[provider]?.model ?? speechModel
+          const providerModel = providerConfigs[provider]?.model ?? (provider === "azure" ? "azure-tts" : speechModel)
           const voice = config.speech?.voice ?? resolveVoice(provider, item.language, voiceMaps)
           const instructions = provider === "openai"
             ? resolveInstructions(item.language, instructionsMap)

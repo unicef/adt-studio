@@ -1,3 +1,4 @@
+import crypto from "node:crypto"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import type { Storage } from "@adt/storage"
@@ -1165,7 +1166,9 @@ async function runTextToSpeechStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookDir = path.join(path.resolve(booksDir), label)
-    const configDir = configPath ? path.dirname(configPath) : path.resolve(process.cwd(), "config")
+    const configDir = configPath
+      ? path.join(path.dirname(configPath), "config")
+      : path.resolve(process.cwd(), "config")
 
     // Get book language from metadata
     const metadataRow = storage.getLatestNodeData("metadata", "book")
@@ -1219,6 +1222,7 @@ async function runTextToSpeechStep(
     const providerConfigs = config.speech?.providers ?? {}
     const routing: ProviderRouting = { providers: providerConfigs, defaultProvider }
 
+    console.log(`[step-run] ${label}: TTS configDir=${configDir} voiceMaps=${Object.keys(voiceMaps).join(",")||"(empty)"}`)
     console.log(`[step-run] ${label}: TTS config — defaultProvider=${defaultProvider} model=${speechModel} format=${speechFormat}`)
     console.log(`[step-run] ${label}: TTS providers=${JSON.stringify(providerConfigs)}`)
     console.log(`[step-run] ${label}: TTS azureKey=${options.azureSpeechKey ? "set" : "NOT SET"} azureRegion=${options.azureSpeechRegion ?? "NOT SET"}`)
@@ -1291,7 +1295,8 @@ async function runTextToSpeechStep(
       totalPages: totalItems,
     })
 
-    console.log(`[step-run] ${label}: generating TTS for ${totalItems} entries across ${outputLanguages.length} languages`)
+    console.log(`[step-run] ${label}: generating TTS for ${totalItems} entries across ${outputLanguages.length} languages (${outputLanguages.join(", ")})`)
+    console.log(`[step-run] ${label}: TTS routing — for each language: ${outputLanguages.map((l) => `${l}→${resolveProviderForLanguage(l, routing)}`).join(", ")}`)
 
     const resultsByLang = new Map<string, SpeechFileEntry[]>()
     for (const lang of outputLanguages) {
@@ -1304,16 +1309,17 @@ async function runTextToSpeechStep(
       workItems,
       effectiveConcurrency,
       async (item: TTSWorkItem) => {
+        const startMs = Date.now()
+        const provider = resolveProviderForLanguage(item.language, routing)
+        const providerModel = providerConfigs[provider]?.model ?? (provider === "azure" ? "azure-tts" : speechModel)
+        const voice = config.speech?.voice ?? resolveVoice(provider, item.language, voiceMaps)
+        const instructions = provider === "openai"
+          ? resolveInstructions(item.language, instructionsMap)
+          : ""
+
+        console.log(`[step-run] ${label}: TTS ${item.textId} → provider=${provider} voice=${voice} model=${providerModel}`)
+
         try {
-          const provider = resolveProviderForLanguage(item.language, routing)
-          const providerModel = providerConfigs[provider]?.model ?? speechModel
-          const voice = config.speech?.voice ?? resolveVoice(provider, item.language, voiceMaps)
-          const instructions = provider === "openai"
-            ? resolveInstructions(item.language, instructionsMap)
-            : ""
-
-          console.log(`[step-run] ${label}: TTS ${item.textId} → provider=${provider} voice=${voice} model=${providerModel}`)
-
           const ttsSynthesizer = getSynthesizer(provider)
 
           const entry = await generateSpeechFile({
@@ -1330,13 +1336,75 @@ async function runTextToSpeechStep(
             provider,
           })
 
+          const durationMs = Date.now() - startMs
+          const cached = entry?.cached ?? false
+
+          // Log to debug panel
+          const logEntry: LlmLogEntry = {
+            requestId: crypto.randomUUID(),
+            timestamp: new Date().toISOString(),
+            taskType: "tts",
+            pageId: item.textId,
+            promptName: `tts-${provider}`,
+            modelId: `${provider}/${providerModel}`,
+            cacheHit: cached,
+            success: true,
+            errorCount: 0,
+            attempt: 1,
+            durationMs,
+            messages: [{
+              role: "user",
+              content: [{ type: "text" as const, text: `[${item.language}] voice=${voice}\n${item.text.slice(0, 300)}` }],
+            }],
+          }
+          storage.appendLlmLog(logEntry)
+          progress.emit({
+            type: "llm-log",
+            step: "tts",
+            itemId: item.textId,
+            promptName: logEntry.promptName,
+            modelId: logEntry.modelId,
+            cacheHit: cached,
+            durationMs,
+          })
+
           if (entry) {
             resultsByLang.get(item.language)?.push(entry)
           }
         } catch (err) {
           const msg = toErrorMessage(err)
+          const durationMs = Date.now() - startMs
           console.error(`[step-run] ${label}: TTS failed for ${item.textId} (${item.language}): ${msg}`)
           failedItems.push(`${item.textId}: ${msg}`)
+
+          // Log failure to debug panel
+          const logEntry: LlmLogEntry = {
+            requestId: crypto.randomUUID(),
+            timestamp: new Date().toISOString(),
+            taskType: "tts",
+            pageId: item.textId,
+            promptName: `tts-${provider}`,
+            modelId: `${provider}/${providerModel}`,
+            cacheHit: false,
+            success: false,
+            errorCount: 1,
+            attempt: 1,
+            durationMs,
+            messages: [{
+              role: "user",
+              content: [{ type: "text" as const, text: `[${item.language}] voice=${voice}\nERROR: ${msg}\n\n${item.text.slice(0, 300)}` }],
+            }],
+          }
+          storage.appendLlmLog(logEntry)
+          progress.emit({
+            type: "llm-log",
+            step: "tts",
+            itemId: item.textId,
+            promptName: logEntry.promptName,
+            modelId: logEntry.modelId,
+            cacheHit: false,
+            durationMs,
+          })
           progress.emit({
             type: "step-error",
             step: "tts",
