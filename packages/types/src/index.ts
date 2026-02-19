@@ -5,7 +5,19 @@ export {
   ImageRow,
 } from "./db.js"
 
-export { StepName, ProgressEvent } from "./progress.js"
+export {
+  StepName,
+  StageName,
+  type StepDef,
+  type StageDef,
+  PIPELINE,
+  STAGE_ORDER,
+  STEP_TO_STAGE,
+  STAGE_BY_NAME,
+  ALL_STEP_NAMES,
+} from "./pipeline.js"
+
+export { ProgressEvent } from "./progress.js"
 
 export { BookLabel, parseBookLabel } from "./book.js"
 

@@ -132,6 +132,16 @@ export { loadConfig, loadBookConfig, deepMerge } from "./config.js"
 export { runPipeline, type RunPipelineOptions } from "./pipeline.js"
 export { runProof, type RunProofOptions } from "./proof.js"
 export { runMaster, type RunMasterOptions } from "./master.js"
+export { runFullPipeline, type FullPipelineOptions } from "./pipeline-dag.js"
+export {
+  runDAG,
+  runPipelineDAG,
+  type DAGNode,
+  type DAGResult,
+  type NodeStatus,
+  type StepExecutor,
+  type PipelineDAGResult,
+} from "./dag.js"
 export {
   packageAdtWeb,
   type PackageAdtWebOptions,
