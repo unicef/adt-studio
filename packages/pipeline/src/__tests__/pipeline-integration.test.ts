@@ -26,6 +26,7 @@ import {
   QuizGenerationOutput,
   TextCatalogOutput,
   TTSOutput,
+  BookSummaryOutput,
 } from "@adt/types"
 import { resolveBookPaths, openBookDb, createBookStorage } from "@adt/storage"
 import { runPipeline } from "../pipeline.js"
@@ -66,6 +67,14 @@ afterEach(() => {
   }
   dirs.length = 0
 })
+
+function normalizeForContainment(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ")
+}
 
 describe("pipeline integration (raven.pdf, pages 1-3)", () => {
   it.skipIf(!hasApiKey)(
@@ -125,6 +134,17 @@ describe("pipeline integration (raven.pdf, pages 1-3)", () => {
         expect(metaRows.length).toBeGreaterThanOrEqual(1)
         const metadata = BookMetadata.parse(JSON.parse(metaRows[0].data))
         expect(metadata.title).toBeTruthy()
+
+        // --- Book summary ---
+        const summaryRows = db.all(
+          "SELECT data FROM node_data WHERE node = 'book-summary' AND item_id = 'book' ORDER BY version DESC LIMIT 1"
+        ) as Array<{ data: string }>
+        expect(summaryRows).toHaveLength(1)
+        const summary = BookSummaryOutput.parse(JSON.parse(summaryRows[0].data))
+        const normalizedSummary = normalizeForContainment(summary.summary)
+        const normalizedTitle = normalizeForContainment(metadata.title ?? "")
+        expect(normalizedTitle.length).toBeGreaterThan(0)
+        expect(normalizedSummary).toContain(normalizedTitle)
 
         // --- Per-page pipeline outputs ---
         for (const pageId of ["pg001", "pg002", "pg003"]) {
