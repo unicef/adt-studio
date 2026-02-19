@@ -84,22 +84,9 @@ RUN groupadd --system --gid 1001 nodejs && \
 
 WORKDIR /app
 
-# Copy node_modules (includes workspace symlinks)
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/types/node_modules ./packages/types/node_modules
-COPY --from=deps /app/packages/llm/node_modules ./packages/llm/node_modules
-COPY --from=deps /app/packages/pdf/node_modules ./packages/pdf/node_modules
-COPY --from=deps /app/packages/storage/node_modules ./packages/storage/node_modules
-COPY --from=deps /app/packages/pipeline/node_modules ./packages/pipeline/node_modules
-# COPY --from=deps /app/packages/output/node_modules ./packages/output/node_modules  # uncomment when package is initialized
-COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
-
-# Copy built output
-COPY --from=build /app/packages/ ./packages/
-COPY --from=build /app/apps/api/ ./apps/api/
-
-# Copy root package.json (needed for workspace resolution)
-COPY package.json pnpm-workspace.yaml ./
+# The esbuild bundle is self-contained — no node_modules or packages/ needed at runtime.
+# WASM files are copied into dist/ by the build:server script.
+COPY --from=build /app/apps/api/dist ./apps/api/dist
 
 # Copy baked-in defaults (overridable via volume mounts at runtime)
 COPY --from=build /app/prompts/ ./prompts/
@@ -141,3 +128,48 @@ COPY --from=build /app/apps/studio/dist /usr/share/nginx/html
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
+
+# =============================================================================
+# Stage 6: App — single combined image for registry distribution
+#
+# API (Node.js) + Studio (nginx) in one container.
+# Users run: docker run -p 8080:80 -v ./books:/app/books ghcr.io/unicef/adt-studio
+# No repo clone or docker-compose needed.
+# =============================================================================
+FROM node:22-alpine AS app
+
+RUN apk add --no-cache nginx
+
+WORKDIR /app
+
+# API bundle (self-contained — no node_modules needed)
+COPY --from=build /app/apps/api/dist ./apps/api/dist
+
+# Studio SPA
+COPY --from=build /app/apps/studio/dist /usr/share/nginx/html
+
+# nginx config — proxies /api/* to localhost:3001
+COPY docker/nginx-single.conf /etc/nginx/http.d/default.conf
+
+# Entrypoint — starts Node.js then nginx
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Baked-in defaults (overridable via volume mounts at runtime)
+COPY --from=build /app/prompts/ ./prompts/
+COPY --from=build /app/templates/ ./templates/
+COPY --from=build /app/config.yaml ./config.yaml
+
+RUN mkdir -p /app/books
+
+ENV NODE_ENV=production
+ENV PROJECT_ROOT=/app
+ENV BOOKS_DIR=/app/books
+ENV PROMPTS_DIR=/app/prompts
+ENV TEMPLATES_DIR=/app/templates
+ENV CONFIG_PATH=/app/config.yaml
+ENV PORT=3001
+
+EXPOSE 80
+
+CMD ["/entrypoint.sh"]

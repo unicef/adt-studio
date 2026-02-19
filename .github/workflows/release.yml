@@ -1,16 +1,18 @@
-name: Release Windows
+name: Release
 
 on:
   push:
     branches: [deploy]
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   release:
     runs-on: windows-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -57,7 +59,7 @@ jobs:
           else
             LOG=$(git log --pretty=format:"- %s" --no-merges -20)
           fi
-          BODY=$(printf "## What's Changed\n\n%s\n\n---\nDownload the Windows installer (.exe) below." "$LOG")
+          BODY=$(printf "## What's Changed\n\n%s\n\n---\n**Windows:** Download the installer (.exe) below.\n\n**Docker** (no install needed):\n\`\`\`\ndocker run -p 8080:80 -v ./books:/app/books ghcr.io/unicef/adt-studio:$NEXT\n\`\`\`" "$LOG")
           # Multiline output using delimiter
           echo "body<<RELEASE_EOF" >> "$GITHUB_OUTPUT"
           echo "$BODY" >> "$GITHUB_OUTPUT"
@@ -88,3 +90,56 @@ jobs:
           releaseBody: ${{ steps.notes.outputs.body }}
           releaseDraft: false
           prerelease: false
+
+  docker:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: app
+          push: true
+          tags: |
+            ghcr.io/unicef/adt-studio:latest
+            ghcr.io/unicef/adt-studio:${{ needs.release.outputs.tag }}
+
+      - name: Generate standalone docker-compose.yml
+        run: |
+          TAG="${{ needs.release.outputs.tag }}"
+          cat > docker-compose.yml << EOF
+          # ADT Studio $TAG
+          # Usage:  docker compose up
+          # Open:   http://localhost:8080
+          # Books persist in ./books/
+          services:
+            adt-studio:
+              image: ghcr.io/unicef/adt-studio:${TAG}
+              ports:
+                - "\${PORT:-8080}:80"
+              volumes:
+                - ./books:/app/books
+              restart: unless-stopped
+          EOF
+
+      - name: Upload docker-compose.yml to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload ${{ needs.release.outputs.tag }} docker-compose.yml \
+            --repo ${{ github.repository }} \
+            --clobber

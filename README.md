@@ -48,10 +48,32 @@ Desktop-first application for automated book production — extract content from
 
 ### Docker (recommended)
 
-Run ADT Studio with no local Node.js or pnpm needed — just [Docker](https://docs.docker.com/get-docker/).
+Just [Docker](https://docs.docker.com/get-docker/) — no Node.js, no cloning.
+
+**Option 1 — download `docker-compose.yml` from the [latest release](https://github.com/unicef/adt-studio/releases/latest):**
 
 ```bash
-# Clone the repository
+docker compose up          # starts on http://localhost:8080
+docker compose up -d       # background
+docker compose down        # stop
+```
+
+Set `PORT=9000` in a `.env` file next to `docker-compose.yml` to change the port.
+
+**Option 2 — single command:**
+
+```bash
+docker run -p 8080:80 -v ./books:/app/books ghcr.io/unicef/adt-studio:latest
+```
+
+Open `http://localhost:8080`. Book data persists in the local `./books/` directory.
+
+<details>
+<summary>Build from source</summary>
+
+Requires cloning the repo and [Docker](https://docs.docker.com/get-docker/).
+
+```bash
 git clone git@github.com:unicef/adt-studio.git
 cd adt-studio
 
@@ -59,20 +81,14 @@ cd adt-studio
 docker compose up --build
 ```
 
-Open `http://localhost:8080` in the browser. Book data persists in the local `./books/` directory.
-
 To change the port, copy `.env.example` to `.env` and set `PORT=<your port>`.
 
 ```bash
-# Run in background
-docker compose up --build -d
-
-# View logs
-docker compose logs -f
-
-# Stop
-docker compose down
+docker compose up --build -d   # background
+docker compose logs -f          # logs
+docker compose down             # stop
 ```
+</details>
 
 ### Local development
 
