@@ -27,6 +27,7 @@ import { createStepService } from "./services/step-service.js"
 import { createStepRunner } from "./services/step-runner.js"
 import { createPresetRoutes } from "./routes/presets.js"
 import { createAdtPreviewRoutes } from "./routes/adt-preview.js"
+import { createSpeechConfigRoutes } from "./routes/speech-config.js"
 
 // Resolve paths relative to monorepo root (2 levels up from apps/api/)
 const projectRoot = path.resolve(
@@ -84,5 +85,6 @@ app.route("/api", createTTSRoutes(booksDir))
 app.route("/api", createStepRoutes(stepService, pipelineService, booksDir, promptsDir, configPath))
 app.route("/api", createPresetRoutes(configPath))
 app.route("/api", createAdtPreviewRoutes(booksDir, webAssetsDir))
+app.route("/api", createSpeechConfigRoutes(configPath))
 
 export default app

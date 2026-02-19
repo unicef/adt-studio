@@ -22,6 +22,8 @@ import { PromptViewer } from "@/components/v2/PromptViewer"
 import { LanguagePicker } from "@/components/LanguagePicker"
 import { useStepRun } from "@/hooks/use-step-run"
 import { normalizeLocale } from "@/lib/languages"
+import { SpeechPromptsEditor } from "./SpeechPromptsEditor"
+import { VoiceMappingsEditor } from "./VoiceMappingsEditor"
 
 export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
   const { data: bookConfigData } = useBookConfig(bookLabel)
@@ -309,7 +311,15 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
         </div>
       )}
 
-      {headerTarget && createPortal(
+      {tab === "speech-prompts" && (
+        <SpeechPromptsEditor bookLabel={bookLabel} headerTarget={headerTarget} />
+      )}
+
+      {tab === "voices" && (
+        <VoiceMappingsEditor bookLabel={bookLabel} headerTarget={headerTarget} />
+      )}
+
+      {headerTarget && (tab === "general" || tab === "prompt" || tab === "speech") && createPortal(
         <Button
           size="sm"
           className="h-7 px-2.5 text-xs bg-black/15 text-white hover:bg-black/25"

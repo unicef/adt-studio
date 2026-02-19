@@ -631,6 +631,24 @@ export const api = {
   getGlobalConfig: () =>
     request<{ config: Record<string, unknown> }>(`/config`),
 
+  getSpeechInstructions: () =>
+    request<Record<string, string>>("/speech-config/instructions"),
+
+  updateSpeechInstructions: (data: Record<string, string>) =>
+    request<Record<string, string>>("/speech-config/instructions", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  getVoiceMappings: () =>
+    request<Record<string, Record<string, string>>>("/speech-config/voices"),
+
+  updateVoiceMappings: (data: Record<string, Record<string, string>>) =>
+    request<Record<string, Record<string, string>>>("/speech-config/voices", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
   exportBook: async (label: string, format: "web" | "epub" = "web"): Promise<Blob> => {
     const url = `${BASE_URL}/books/${label}/export?format=${format}`
     const res = await fetch(url)

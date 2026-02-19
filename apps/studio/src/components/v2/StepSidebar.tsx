@@ -83,6 +83,8 @@ const TRANSLATIONS_SETTINGS_TABS = [
   { key: "general", label: "Languages" },
   { key: "prompt", label: "Translation Prompt" },
   { key: "speech", label: "Speech" },
+  { key: "speech-prompts", label: "Speech Prompts" },
+  { key: "voices", label: "Voices" },
 ]
 
 const SETTINGS_TABS: Record<string, { key: string; label: string }[]> = {
