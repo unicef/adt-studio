@@ -300,7 +300,7 @@ export function ExtractPageDetail({
                 saving={savingImages}
                 dirty={imageDirty}
                 bookLabel={bookLabel}
-                node="image-classification"
+                node="image-filtering"
                 itemId={pageId}
                 onPreview={(data) => setPendingImageData(data as ImageClassData)}
                 onSave={saveImageChanges}

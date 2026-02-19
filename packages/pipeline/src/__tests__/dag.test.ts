@@ -369,13 +369,13 @@ describe("runPipelineDAG", () => {
       // metadata and text-classification both depend only on extract
       ["metadata", t.execute("metadata", 20)],
       ["text-classification", t.execute("text-classification", 20)],
-      ["image-classification", t.execute("image-classification", 20)],
+      ["image-filtering", t.execute("image-filtering", 20)],
     ])
     const { progress } = collectingProgress()
     await runPipelineDAG(executors, progress)
 
     // All three should start before any of them finishes
-    const parallelSteps = ["metadata", "text-classification", "image-classification"]
+    const parallelSteps = ["metadata", "text-classification", "image-filtering"]
     const starts = parallelSteps.map((id) => t.events.indexOf(`${id}:start`))
     const firstEnd = Math.min(
       ...parallelSteps.map((id) => t.events.indexOf(`${id}:end`))

@@ -426,7 +426,7 @@ function addExtractNodes(label: string, count: number, includeSummary = true): v
     for (let i = 1; i <= count; i++) {
       const pageId = `${label}_p${i}`
       storage.putNodeData("text-classification", pageId, { groups: [] })
-      storage.putNodeData("image-classification", pageId, { images: [] })
+      storage.putNodeData("image-filtering", pageId, { images: [] })
     }
     if (includeSummary) {
       storage.putNodeData("book-summary", "book", { summary: "Test summary" })

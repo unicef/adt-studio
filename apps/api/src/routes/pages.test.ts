@@ -64,7 +64,7 @@ describe("Page routes", () => {
           },
         ],
       })
-      storage.putNodeData("image-classification", `${label}_p1`, {
+      storage.putNodeData("image-filtering", `${label}_p1`, {
         images: [],
       })
       storage.putNodeData("page-sectioning", `${label}_p1`, {
@@ -251,7 +251,7 @@ describe("Page routes", () => {
     })
   })
 
-  describe("PUT /api/books/:label/pages/:pageId/image-classification", () => {
+  describe("PUT /api/books/:label/pages/:pageId/image-filtering", () => {
     it("saves image classification and returns version", async () => {
       const data = {
         images: [
@@ -260,7 +260,7 @@ describe("Page routes", () => {
       }
 
       const res = await app.request(
-        `/api/books/${label}/pages/${label}_p1/image-classification`,
+        `/api/books/${label}/pages/${label}_p1/image-filtering`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -275,7 +275,7 @@ describe("Page routes", () => {
 
     it("returns 400 for invalid body", async () => {
       const res = await app.request(
-        `/api/books/${label}/pages/${label}_p1/image-classification`,
+        `/api/books/${label}/pages/${label}_p1/image-filtering`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },

@@ -160,13 +160,13 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
           setDirty({})
           setPromptDraft(null)
           setShowRerunDialog(false)
-          startRun("translations", "text-to-speech")
+          startRun("text-and-speech", "text-and-speech")
           setSseEnabled(true)
-          await api.runSteps(bookLabel, apiKey, { fromStep: "translations", toStep: "text-to-speech" }, { key: azureKey, region: azureRegion })
+          await api.runSteps(bookLabel, apiKey, { fromStep: "text-and-speech", toStep: "text-and-speech" }, { key: azureKey, region: azureRegion })
           queryClient.removeQueries({ queryKey: ["books", bookLabel, "text-catalog"] })
           queryClient.removeQueries({ queryKey: ["books", bookLabel, "tts"] })
           queryClient.removeQueries({ queryKey: ["books", bookLabel] })
-          navigate({ to: "/books/$label/v2/$step", params: { label: bookLabel, step: "translations" } })
+          navigate({ to: "/books/$label/v2/$step", params: { label: bookLabel, step: "text-and-speech" } })
         },
       }
     )

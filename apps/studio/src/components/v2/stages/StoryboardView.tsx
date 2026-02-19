@@ -6,14 +6,10 @@ import { useStepHeader } from "../StepViewRouter"
 import { useStepRun } from "@/hooks/use-step-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
-import { StepRunCard } from "../StepRunCard"
+import { StageRunCard } from "../StageRunCard"
 import { STEP_DESCRIPTIONS } from "../StepSidebar"
 import { StoryboardSectionDetail } from "./StoryboardSectionDetail"
 
-const STORYBOARD_SUB_STEPS = [
-  { key: "page-sectioning", label: "Section Pages" },
-  { key: "web-rendering", label: "Render Pages" },
-]
 
 export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
   const { data: pages, isLoading: pagesLoading } = usePages(bookLabel)
@@ -219,9 +215,8 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   if (!page.sectioning || storyboardRunning) {
     return (
       <div className="p-4">
-        <StepRunCard
-          stepSlug="storyboard"
-          subSteps={STORYBOARD_SUB_STEPS}
+        <StageRunCard
+          stageSlug="storyboard"
           description={STEP_DESCRIPTIONS.storyboard}
           isRunning={storyboardRunning}
           onRun={handleRunStoryboard}

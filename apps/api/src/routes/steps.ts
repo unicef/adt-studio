@@ -3,58 +3,49 @@ import { streamSSE } from "hono/streaming"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage } from "@adt/storage"
+import { StageName, PIPELINE } from "@adt/types"
 import type { StepService, StepSSEEvent } from "../services/step-service.js"
 import type { PipelineService } from "../services/pipeline-service.js"
 
-const UIStepSlug = z.enum([
-  "extract",
-  "storyboard",
-  "quizzes",
-  "captions",
-  "glossary",
-  "translations",
-  "text-to-speech",
-])
-
 const StepRunBody = z
   .object({
-    fromStep: UIStepSlug,
-    toStep: UIStepSlug,
+    fromStep: StageName,
+    toStep: StageName,
   })
   .strict()
 
-/** Node types produced by each UI step */
-const STEP_NODES: Record<string, string[]> = {
-  storyboard: ["page-sectioning", "web-rendering", "storyboard-acceptance"],
-  quizzes: ["quiz-generation"],
-  captions: ["image-captioning"],
-  glossary: ["glossary"],
-  translations: ["text-catalog", "text-catalog-translation"],
-  "text-to-speech": ["tts"],
-}
+/** Node types produced by each stage — derived from PIPELINE step names.
+ *  storyboard-acceptance is an extra node type written by the storyboard runner. */
+const STAGE_NODES: Record<string, string[]> = Object.fromEntries(
+  PIPELINE.map((stage) => [
+    stage.name,
+    [
+      ...stage.steps.map((s) => s.name),
+      ...(stage.name === "storyboard" ? ["storyboard-acceptance"] : []),
+      ...(stage.name === "text-and-speech" ? ["text-catalog-translation"] : []),
+    ],
+  ]),
+)
 
-/** Direct downstream dependents of each UI step */
-const STEP_DEPENDENTS: Record<string, string[]> = {
-  extract: ["storyboard"],
-  storyboard: ["quizzes", "captions", "glossary"],
-  quizzes: ["translations"],
-  captions: ["translations"],
-  glossary: ["translations"],
-  translations: ["text-to-speech"],
-  "text-to-speech": [],
-}
+/** Direct downstream dependents — derived from PIPELINE dependsOn. */
+const STAGE_DEPENDENTS: Record<string, string[]> = Object.fromEntries(
+  PIPELINE.map((stage) => [
+    stage.name,
+    PIPELINE.filter((s) => s.dependsOn.includes(stage.name)).map((s) => s.name),
+  ]),
+)
 
-/** Collect node types for a step and all its transitive dependents. */
-function getNodesToClear(step: string): string[] {
-  const nodes = [...(STEP_NODES[step] ?? [])]
-  const queue = [...(STEP_DEPENDENTS[step] ?? [])]
+/** Collect node types for a stage and all its transitive dependents. */
+function getNodesToClear(stage: string): string[] {
+  const nodes = [...(STAGE_NODES[stage] ?? [])]
+  const queue = [...(STAGE_DEPENDENTS[stage] ?? [])]
   const visited = new Set<string>()
   while (queue.length > 0) {
     const current = queue.shift()!
     if (visited.has(current)) continue
     visited.add(current)
-    nodes.push(...(STEP_NODES[current] ?? []))
-    queue.push(...(STEP_DEPENDENTS[current] ?? []))
+    nodes.push(...(STAGE_NODES[current] ?? []))
+    queue.push(...(STAGE_DEPENDENTS[current] ?? []))
   }
   return nodes
 }

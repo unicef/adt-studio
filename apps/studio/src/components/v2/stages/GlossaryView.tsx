@@ -8,12 +8,9 @@ import { useGlossary } from "@/hooks/use-glossary"
 import { useStepHeader } from "../StepViewRouter"
 import { useStepRun } from "@/hooks/use-step-run"
 import { useApiKey } from "@/hooks/use-api-key"
-import { StepRunCard } from "../StepRunCard"
+import { StageRunCard } from "../StageRunCard"
 import { STEP_DESCRIPTIONS } from "../StepSidebar"
 
-const GLOSSARY_SUB_STEPS = [
-  { key: "glossary", label: "Generate Glossary" },
-]
 
 type GlossaryData = Omit<GlossaryOutput, "version">
 
@@ -218,9 +215,8 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
   if (items.length === 0 || glossaryRunning) {
     return (
       <div className="p-4">
-        <StepRunCard
-          stepSlug="glossary"
-          subSteps={GLOSSARY_SUB_STEPS}
+        <StageRunCard
+          stageSlug="glossary"
           description={STEP_DESCRIPTIONS.glossary}
           isRunning={glossaryRunning}
           onRun={handleRunGlossary}

@@ -206,7 +206,7 @@ describe("filterPageImageMeaningfulness", () => {
     expect(capturedOptions?.context?.page_image_base64).toBe("base64page")
     expect(capturedOptions?.context?.images).toHaveLength(1)
     expect(capturedOptions?.context?.images[0].imageId).toBe("pg001_im001")
-    expect(capturedOptions?.log?.taskType).toBe("image-classification")
+    expect(capturedOptions?.log?.taskType).toBe("image-filtering")
     expect(capturedOptions?.log?.pageId).toBe("pg001")
   })
 

@@ -13,7 +13,7 @@ import { useVersionHistory } from "@/hooks/use-debug"
 
 const NODE_TYPES = [
   "text-classification",
-  "image-classification",
+  "image-filtering",
   "page-sectioning",
   "web-rendering",
   "metadata",

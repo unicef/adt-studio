@@ -94,11 +94,11 @@ export function createPageRoutes(
         captioned.add(row.item_id)
       }
 
-      // Get image counts per page from image-classification node data
+      // Get image counts per page from image-filtering node data
       const imageCounts = new Map<string, number>()
       const imageRows = db.all(
         "SELECT item_id, data FROM node_data WHERE node = ? ORDER BY version DESC",
-        ["image-classification"]
+        ["image-filtering"]
       ) as Array<{ item_id: string; data: string }>
       for (const row of imageRows) {
         if (!imageCounts.has(row.item_id)) {
@@ -192,7 +192,7 @@ export function createPageRoutes(
       }
 
       const textClassNode = getNodeData("text-classification")
-      const imageClassNode = getNodeData("image-classification")
+      const imageClassNode = getNodeData("image-filtering")
       const sectioningNode = getNodeData("page-sectioning")
       const renderingNode = getNodeData("web-rendering")
       const imageCaptioningNode = getNodeData("image-captioning")
@@ -291,8 +291,8 @@ export function createPageRoutes(
     }
   })
 
-  // PUT /books/:label/pages/:pageId/image-classification — Update image classification
-  app.put("/books/:label/pages/:pageId/image-classification", async (c) => {
+  // PUT /books/:label/pages/:pageId/image-filtering — Update image classification
+  app.put("/books/:label/pages/:pageId/image-filtering", async (c) => {
     const { label, pageId } = c.req.param()
     const safeLabel = parseBookLabel(label)
 
@@ -300,7 +300,7 @@ export function createPageRoutes(
     const parsed = ImageClassificationOutput.safeParse(body)
     if (!parsed.success) {
       throw new HTTPException(400, {
-        message: `Invalid image-classification data: ${parsed.error.message}`,
+        message: `Invalid image-filtering data: ${parsed.error.message}`,
       })
     }
 
@@ -312,7 +312,7 @@ export function createPageRoutes(
         throw new HTTPException(404, { message: `Page not found: ${pageId}` })
       }
 
-      const version = storage.putNodeData("image-classification", pageId, parsed.data)
+      const version = storage.putNodeData("image-filtering", pageId, parsed.data)
       return c.json({ version })
     } finally {
       storage.close()

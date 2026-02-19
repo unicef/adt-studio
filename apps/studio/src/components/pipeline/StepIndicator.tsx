@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react"
 import { Check, Loader2, Circle, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { PIPELINE, ALL_STEP_NAMES } from "@adt/types"
 import type { StepName, StepProgress } from "@/hooks/use-pipeline"
 
 type StepState = "pending" | "active" | "completed" | "error"
@@ -12,34 +13,15 @@ interface StepIndicatorProps {
   progress?: StepProgress
 }
 
-const STEP_ORDER: StepName[] = [
-  "extract",
-  "metadata",
-  "text-classification",
-  "translation",
-  "image-classification",
-  "page-sectioning",
-  "web-rendering",
-]
+/** All step names in pipeline execution order */
+const STEP_ORDER: StepName[] = PIPELINE.flatMap((stage) =>
+  stage.steps.map((s) => s.name),
+)
 
-const STEP_LABELS: Record<StepName, string> = {
-  extract: "Extract PDF",
-  metadata: "Extract Metadata",
-  "text-classification": "Classify Text",
-  translation: "Translate Text",
-  "image-classification": "Classify Images",
-  "image-cropping": "Crop Images",
-  "page-sectioning": "Section Pages",
-  "web-rendering": "Render Pages",
-  "image-captioning": "Caption Images",
-  glossary: "Generate Glossary",
-  "quiz-generation": "Generate Quizzes",
-  "text-catalog": "Build Text Catalog",
-  "catalog-translation": "Translate Catalog",
-  "book-summary": "Book Summary",
-  tts: "Generate Speech",
-  "package-web": "Package ADT",
-}
+/** Step labels derived from the shared PIPELINE definition */
+const STEP_LABELS: Record<StepName, string> = Object.fromEntries(
+  PIPELINE.flatMap((stage) => stage.steps.map((s) => [s.name, s.label])),
+) as Record<StepName, string>
 
 export { STEP_ORDER, STEP_LABELS }
 

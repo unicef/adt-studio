@@ -47,7 +47,7 @@ export {
   ImageFilters,
   ImageClassificationResult,
   ImageClassificationOutput,
-} from "./image-classification.js"
+} from "./image-filtering.js"
 
 export {
   imageMeaningfulnessLLMSchema,

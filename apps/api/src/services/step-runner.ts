@@ -54,6 +54,7 @@ import type { TranslationConfig, QuizPageInput, ProviderRouting, MeaningfulnessC
 import { loadStyleguideContent } from "./pipeline-runner"
 import { createTTSSynthesizer, createAzureTTSSynthesizer } from "@adt/llm"
 import type { TTSSynthesizer } from "@adt/llm"
+import { STAGE_ORDER } from "@adt/types"
 import type {
   AppConfig,
   TextClassificationOutput,
@@ -65,6 +66,7 @@ import type {
   SpeechFileEntry,
   TTSOutput,
   StepName,
+  StageName,
   BookSummaryOutput,
 } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
@@ -125,31 +127,22 @@ async function processWithConcurrency<T>(
   await Promise.all(executing)
 }
 
-const STEP_ORDER = [
-  "extract",
-  "storyboard",
-  "quizzes",
-  "captions",
-  "glossary",
-  "translations",
-  "text-to-speech",
-] as const
-
 type RunFn = (label: string, options: StepRunOptions, progress: StepRunProgress) => Promise<void>
 
-const STEP_RUNNERS: Record<string, RunFn> = {
+const STAGE_RUNNERS: Record<StageName, RunFn> = {
   "extract": runExtractStep,
   "storyboard": runStoryboardStep,
   "quizzes": runQuizzesStep,
   "captions": runCaptionsStep,
   "glossary": runGlossaryStep,
-  "translations": runTranslationsStep,
-  "text-to-speech": runTextToSpeechStep,
+  "text-and-speech": runTextAndSpeechStep,
+  "package": async () => { /* packaging handled separately */ },
 }
 
 /**
- * Creates a step runner that executes pipeline steps.
- * Supports single steps (fromStep === toStep) and ranges (e.g. extract → storyboard).
+ * Creates a step runner that executes pipeline stages.
+ * Supports single stages (fromStep === toStep) and ranges (e.g. extract → storyboard).
+ * Stage ordering comes from the shared PIPELINE definition.
  */
 export function createStepRunner(): StepRunner {
   return {
@@ -161,16 +154,16 @@ export function createStepRunner(): StepRunner {
       const { fromStep, toStep } = options
       console.log(`[step-run] ${label}: starting ${fromStep}→${toStep}`)
 
-      const fromIndex = STEP_ORDER.indexOf(fromStep as typeof STEP_ORDER[number])
-      const toIndex = STEP_ORDER.indexOf(toStep as typeof STEP_ORDER[number])
+      const fromIndex = STAGE_ORDER.indexOf(fromStep as StageName)
+      const toIndex = STAGE_ORDER.indexOf(toStep as StageName)
 
       if (fromIndex === -1 || toIndex === -1 || fromIndex > toIndex) {
-        throw new Error(`Invalid step range "${fromStep}" to "${toStep}"`)
+        throw new Error(`Invalid stage range "${fromStep}" to "${toStep}"`)
       }
 
       for (let i = fromIndex; i <= toIndex; i++) {
-        const stepSlug = STEP_ORDER[i]
-        await STEP_RUNNERS[stepSlug](label, options, progress)
+        const stage = STAGE_ORDER[i]
+        await STAGE_RUNNERS[stage](label, options, progress)
       }
 
       console.log(`[step-run] ${label}: completed ${fromStep}→${toStep}`)
@@ -335,7 +328,7 @@ async function runExtractStep(
                 completedClassifyImages++
                 progress.emit({
                   type: "step-progress",
-                  step: "image-classification",
+                  step: "image-filtering",
                   message: `${completedClassifyImages}/${totalPages}`,
                   page: completedClassifyImages,
                   totalPages,
@@ -399,7 +392,7 @@ async function runExtractStep(
     }
 
     // Emit completion for classification steps
-    progress.emit({ type: "step-complete", step: "image-classification" })
+    progress.emit({ type: "step-complete", step: "image-filtering" })
     if (croppingConfig) {
       progress.emit({ type: "step-complete", step: "image-cropping" })
     } else {
@@ -560,9 +553,9 @@ async function runStoryboardStep(
           }
           const textClassification = textClassificationRow.data as TextClassificationOutput
 
-          // Get image-classification data
+          // Get image-filtering data
           const imageClassificationRow = storage.getLatestNodeData(
-            "image-classification",
+            "image-filtering",
             page.pageId
           )
           const imageClassification = (imageClassificationRow?.data as ImageClassificationOutput) ?? { images: [] }
@@ -1058,10 +1051,10 @@ async function runGlossaryStep(
 }
 
 // ---------------------------------------------------------------------------
-// Translations step (text catalog + catalog translation)
+// Text & Speech stage (text catalog + catalog translation + TTS)
 // ---------------------------------------------------------------------------
 
-async function runTranslationsStep(
+async function runTextAndSpeechStep(
   label: string,
   options: StepRunOptions,
   progress: StepRunProgress
@@ -1076,11 +1069,15 @@ async function runTranslationsStep(
   try {
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
+    const bookDir = path.join(path.resolve(booksDir), label)
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
     const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
+    const configDir = configPath
+      ? path.join(path.dirname(configPath), "config")
+      : path.resolve(process.cwd(), "config")
 
     // Get book language from metadata
     const metadataRow = storage.getLatestNodeData("metadata", "book")
@@ -1116,7 +1113,7 @@ async function runTranslationsStep(
       )
     )
 
-    // Step 1: Build text catalog (synchronous)
+    // ── Step 1: Build text catalog ──────────────────────────────────
     progress.emit({ type: "step-start", step: "text-catalog" })
     progress.emit({ type: "step-progress", step: "text-catalog", message: "Building text catalog..." })
 
@@ -1132,182 +1129,105 @@ async function runTranslationsStep(
     })
     progress.emit({ type: "step-complete", step: "text-catalog" })
 
-    // Step 2: Translate catalog to target languages
+    // ── Step 2: Translate catalog to target languages ────────────────
     const targetLanguages = getTargetLanguages(outputLanguages, language)
-    if (targetLanguages.length === 0) {
+    if (targetLanguages.length === 0 || catalog.entries.length === 0) {
       progress.emit({ type: "step-skip", step: "catalog-translation" })
-      console.log(`[step-run] ${label}: translations skipped (no target languages)`)
-      return
-    }
-
-    if (catalog.entries.length === 0) {
-      progress.emit({ type: "step-skip", step: "catalog-translation" })
-      console.log(`[step-run] ${label}: translations skipped (empty catalog)`)
-      return
-    }
-
-    progress.emit({ type: "step-start", step: "catalog-translation" })
-
-    const translationConfig = buildCatalogTranslationConfig(config, language)
-    const translationModel = createLLMModel({
-      modelId: translationConfig.modelId,
-      cacheDir,
-      promptEngine,
-      rateLimiter,
-      onLog: onLlmLog,
-    })
-
-    // Build flat list of batch work items
-    const batchSize = translationConfig.batchSize
-    interface WorkItem {
-      language: string
-      batchIndex: number
-      entries: TextCatalogEntry[]
-    }
-    const workItems: WorkItem[] = []
-    for (const lang of targetLanguages) {
-      for (let i = 0; i < catalog.entries.length; i += batchSize) {
-        workItems.push({
-          language: lang,
-          batchIndex: Math.floor(i / batchSize),
-          entries: catalog.entries.slice(i, i + batchSize),
-        })
-      }
-    }
-
-    const totalBatches = workItems.length
-    let completedBatches = 0
-
-    const resultsByLang = new Map<string, TextCatalogEntry[]>()
-    for (const lang of targetLanguages) {
-      resultsByLang.set(lang, [])
-    }
-
-    progress.emit({
-      type: "step-progress",
-      step: "catalog-translation",
-      message: `0/${totalBatches} batches (${targetLanguages.length} languages)`,
-      page: 0,
-      totalPages: totalBatches,
-    })
-
-    console.log(`[step-run] ${label}: translating ${catalog.entries.length} entries to ${targetLanguages.length} languages (${totalBatches} batches)`)
-
-    await processWithConcurrency(
-      workItems,
-      effectiveConcurrency,
-      async (item: WorkItem) => {
-        const translated = await translateCatalogBatch(
-          item.entries,
-          item.language,
-          translationConfig,
-          translationModel
-        )
-        resultsByLang.get(item.language)!.push(...translated)
-        completedBatches++
-        progress.emit({
-          type: "step-progress",
-          step: "catalog-translation",
-          message: `${completedBatches}/${totalBatches} batches`,
-          page: completedBatches,
-          totalPages: totalBatches,
-        })
-      }
-    )
-
-    // Store per-language results
-    for (const lang of targetLanguages) {
-      const entries = resultsByLang.get(lang)!
-      // Sort entries back to original catalog order
-      const idOrder = new Map(catalog.entries.map((e, i) => [e.id, i]))
-      entries.sort((a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0))
-
-      const output: TextCatalogOutput = {
-        entries,
-        generatedAt: new Date().toISOString(),
-      }
-      storage.putNodeData("text-catalog-translation", lang, output)
-    }
-
-    progress.emit({ type: "step-complete", step: "catalog-translation" })
-    console.log(`[step-run] ${label}: translations complete`)
-  } finally {
-    storage.close()
-    if (previousKey !== undefined) {
-      process.env.OPENAI_API_KEY = previousKey
+      console.log(`[step-run] ${label}: catalog translation skipped`)
     } else {
-      delete process.env.OPENAI_API_KEY
-    }
-  }
-}
+      progress.emit({ type: "step-start", step: "catalog-translation" })
 
-// ---------------------------------------------------------------------------
-// Text-to-Speech step (text catalog + TTS generation)
-// ---------------------------------------------------------------------------
+      const translationConfig = buildCatalogTranslationConfig(config, language)
+      const translationModel = createLLMModel({
+        modelId: translationConfig.modelId,
+        cacheDir,
+        promptEngine,
+        rateLimiter,
+        onLog: onLlmLog,
+      })
 
-async function runTextToSpeechStep(
-  label: string,
-  options: StepRunOptions,
-  progress: StepRunProgress
-): Promise<void> {
-  const { booksDir, apiKey, promptsDir, configPath } = options
+      const batchSize = translationConfig.batchSize
+      interface TranslationWorkItem {
+        language: string
+        batchIndex: number
+        entries: TextCatalogEntry[]
+      }
+      const workItems: TranslationWorkItem[] = []
+      for (const lang of targetLanguages) {
+        for (let i = 0; i < catalog.entries.length; i += batchSize) {
+          workItems.push({
+            language: lang,
+            batchIndex: Math.floor(i / batchSize),
+            entries: catalog.entries.slice(i, i + batchSize),
+          })
+        }
+      }
 
-  const previousKey = process.env.OPENAI_API_KEY
-  process.env.OPENAI_API_KEY = apiKey
+      const totalBatches = workItems.length
+      let completedBatches = 0
 
-  const storage = createBookStorage(label, booksDir)
+      const resultsByLang = new Map<string, TextCatalogEntry[]>()
+      for (const lang of targetLanguages) {
+        resultsByLang.set(lang, [])
+      }
 
-  try {
-    const config = loadBookConfig(label, booksDir, configPath)
-    const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
-    const bookDir = path.join(path.resolve(booksDir), label)
-    const configDir = configPath
-      ? path.join(path.dirname(configPath), "config")
-      : path.resolve(process.cwd(), "config")
+      progress.emit({
+        type: "step-progress",
+        step: "catalog-translation",
+        message: `0/${totalBatches} batches (${targetLanguages.length} languages)`,
+        page: 0,
+        totalPages: totalBatches,
+      })
 
-    // Get book language from metadata
-    const metadataRow = storage.getLatestNodeData("metadata", "book")
-    const metadata = metadataRow?.data as { language_code?: string | null } | null
-    const language = normalizeLocale(config.editing_language ?? metadata?.language_code ?? "en")
+      console.log(`[step-run] ${label}: translating ${catalog.entries.length} entries to ${targetLanguages.length} languages (${totalBatches} batches)`)
 
-    const pages = storage.getPages()
-    const effectiveConcurrency = config.concurrency ?? 32
-
-    // Output languages default to editing language if not set
-    const outputLanguages = Array.from(
-      new Set(
-        (config.output_languages && config.output_languages.length > 0
-          ? config.output_languages
-          : [language]).map((code) => normalizeLocale(code))
+      await processWithConcurrency(
+        workItems,
+        effectiveConcurrency,
+        async (item: TranslationWorkItem) => {
+          const translated = await translateCatalogBatch(
+            item.entries,
+            item.language,
+            translationConfig,
+            translationModel
+          )
+          resultsByLang.get(item.language)!.push(...translated)
+          completedBatches++
+          progress.emit({
+            type: "step-progress",
+            step: "catalog-translation",
+            message: `${completedBatches}/${totalBatches} batches`,
+            page: completedBatches,
+            totalPages: totalBatches,
+          })
+        }
       )
-    )
 
-    // Step 1: Build text catalog (synchronous)
-    progress.emit({ type: "step-start", step: "text-catalog" })
-    progress.emit({ type: "step-progress", step: "text-catalog", message: "Building text catalog..." })
+      for (const lang of targetLanguages) {
+        const entries = resultsByLang.get(lang)!
+        const idOrder = new Map(catalog.entries.map((e, i) => [e.id, i]))
+        entries.sort((a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0))
 
-    console.log(`[step-run] ${label}: building text catalog from ${pages.length} pages`)
+        const output: TextCatalogOutput = {
+          entries,
+          generatedAt: new Date().toISOString(),
+        }
+        storage.putNodeData("text-catalog-translation", lang, output)
+      }
 
-    const catalog = buildTextCatalog(storage, pages)
-    storage.putNodeData("text-catalog", "book", catalog)
+      progress.emit({ type: "step-complete", step: "catalog-translation" })
+      console.log(`[step-run] ${label}: catalog translation complete`)
+    }
 
-    progress.emit({
-      type: "step-progress",
-      step: "text-catalog",
-      message: `${catalog.entries.length} entries`,
-    })
-    progress.emit({ type: "step-complete", step: "text-catalog" })
-
+    // ── Step 3: Generate TTS ────────────────────────────────────────
     if (catalog.entries.length === 0) {
       progress.emit({ type: "step-skip", step: "tts" })
       console.log(`[step-run] ${label}: TTS skipped (empty catalog)`)
       return
     }
 
-    // Step 2: Generate TTS
     progress.emit({ type: "step-start", step: "tts" })
 
-    // Load voice/instruction configs
     const voiceMaps = loadVoicesConfig(configDir)
     const instructionsMap = loadSpeechInstructions(configDir)
 
@@ -1322,7 +1242,6 @@ async function runTextToSpeechStep(
     console.log(`[step-run] ${label}: TTS providers=${JSON.stringify(providerConfigs)}`)
     console.log(`[step-run] ${label}: TTS azureKey=${options.azureSpeechKey ? "set" : "NOT SET"} azureRegion=${options.azureSpeechRegion ?? "NOT SET"}`)
 
-    // Lazy per-provider synthesizer cache
     const synthesizers = new Map<string, TTSSynthesizer>()
     function getSynthesizer(providerName: string): TTSSynthesizer {
       if (synthesizers.has(providerName)) return synthesizers.get(providerName)!
@@ -1343,8 +1262,6 @@ async function runTextToSpeechStep(
       return synth
     }
 
-    // For output languages that differ from source, we need translated catalogs
-    // Check if translations exist; if running TTS separately they should already exist
     const sourceLanguage = language
 
     interface TTSWorkItem {
@@ -1352,7 +1269,7 @@ async function runTextToSpeechStep(
       text: string
       language: string
     }
-    const workItems: TTSWorkItem[] = []
+    const ttsWorkItems: TTSWorkItem[] = []
 
     for (const lang of outputLanguages) {
       const baseSource = getBaseLanguage(sourceLanguage)
@@ -1375,11 +1292,11 @@ async function runTextToSpeechStep(
       }
 
       for (const entry of entries) {
-        workItems.push({ textId: entry.id, text: entry.text, language: lang })
+        ttsWorkItems.push({ textId: entry.id, text: entry.text, language: lang })
       }
     }
 
-    const totalItems = workItems.length
+    const totalItems = ttsWorkItems.length
     let completedItems = 0
 
     progress.emit({
@@ -1393,15 +1310,15 @@ async function runTextToSpeechStep(
     console.log(`[step-run] ${label}: generating TTS for ${totalItems} entries across ${outputLanguages.length} languages (${outputLanguages.join(", ")})`)
     console.log(`[step-run] ${label}: TTS routing — for each language: ${outputLanguages.map((l) => `${l}→${resolveProviderForLanguage(l, routing)}`).join(", ")}`)
 
-    const resultsByLang = new Map<string, SpeechFileEntry[]>()
+    const ttsResultsByLang = new Map<string, SpeechFileEntry[]>()
     for (const lang of outputLanguages) {
-      resultsByLang.set(lang, [])
+      ttsResultsByLang.set(lang, [])
     }
 
     const failedItems: string[] = []
 
     await processWithConcurrency(
-      workItems,
+      ttsWorkItems,
       effectiveConcurrency,
       async (item: TTSWorkItem) => {
         const startMs = Date.now()
@@ -1434,7 +1351,6 @@ async function runTextToSpeechStep(
           const durationMs = Date.now() - startMs
           const cached = entry?.cached ?? false
 
-          // Log to debug panel
           const logEntry: LlmLogEntry = {
             requestId: crypto.randomUUID(),
             timestamp: new Date().toISOString(),
@@ -1464,7 +1380,7 @@ async function runTextToSpeechStep(
           })
 
           if (entry) {
-            resultsByLang.get(item.language)?.push(entry)
+            ttsResultsByLang.get(item.language)?.push(entry)
           }
         } catch (err) {
           const msg = toErrorMessage(err)
@@ -1472,7 +1388,6 @@ async function runTextToSpeechStep(
           console.error(`[step-run] ${label}: TTS failed for ${item.textId} (${item.language}): ${msg}`)
           failedItems.push(`${item.textId}: ${msg}`)
 
-          // Log failure to debug panel
           const logEntry: LlmLogEntry = {
             requestId: crypto.randomUUID(),
             timestamp: new Date().toISOString(),
@@ -1522,9 +1437,8 @@ async function runTextToSpeechStep(
       console.error(`[step-run] ${label}: ${failedItems.length} TTS item(s) failed:\n${failedItems.join("\n")}`)
     }
 
-    // Store per-language TTS metadata
     for (const lang of outputLanguages) {
-      const entries = resultsByLang.get(lang)
+      const entries = ttsResultsByLang.get(lang)
       if (!entries) continue
       const output: TTSOutput = {
         entries,
@@ -1534,7 +1448,7 @@ async function runTextToSpeechStep(
     }
 
     progress.emit({ type: "step-complete", step: "tts" })
-    console.log(`[step-run] ${label}: TTS complete`)
+    console.log(`[step-run] ${label}: text & speech complete`)
   } finally {
     storage.close()
     if (previousKey !== undefined) {
@@ -1593,7 +1507,7 @@ async function classifyPage(
     callbacks.onClassifyImages()
   } catch (err) {
     await textPromise.catch(() => undefined)
-    wrapStepError("image-classification", err)
+    wrapStepError("image-filtering", err)
     return // unreachable but satisfies TS
   }
 
@@ -1628,11 +1542,11 @@ async function classifyPage(
       }
     } catch (err) {
       await textPromise.catch(() => undefined)
-      wrapStepError("image-classification", err)
+      wrapStepError("image-filtering", err)
     }
   }
 
-  storage.putNodeData("image-classification", page.pageId, imageResult)
+  storage.putNodeData("image-filtering", page.pageId, imageResult)
 
   // LLM cropping (if enabled)
   if (croppingConfig && croppingModel) {
@@ -1688,7 +1602,7 @@ async function classifyPage(
           })
         }
         if (applied.length > 0) {
-          storage.putNodeData("image-classification", page.pageId, imageResult)
+          storage.putNodeData("image-filtering", page.pageId, imageResult)
         }
       }
     } catch (err) {

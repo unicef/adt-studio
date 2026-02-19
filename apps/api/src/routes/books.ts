@@ -190,7 +190,7 @@ export function createBookRoutes(
       const textClassificationCount = textClassificationRows[0]?.count ?? 0
 
       const imageClassificationRows = db.all(
-        "SELECT COUNT(DISTINCT item_id) as count FROM node_data WHERE node = 'image-classification'"
+        "SELECT COUNT(DISTINCT item_id) as count FROM node_data WHERE node = 'image-filtering'"
       ) as Array<{ count: number }>
       const imageClassificationCount = imageClassificationRows[0]?.count ?? 0
 
@@ -209,9 +209,9 @@ export function createBookRoutes(
         "quiz-generation": "quizzes",
         "image-captioning": "captions",
         glossary: "glossary",
-        "text-catalog": "translations",
-        "text-catalog-translation": "translations",
-        tts: "text-to-speech",
+        "text-catalog": "text-and-speech",
+        "text-catalog-translation": "text-and-speech",
+        tts: "text-and-speech",
       }
 
       const steps: Record<string, boolean> = {}

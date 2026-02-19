@@ -5,28 +5,24 @@ import { api, getAudioUrl } from "@/api/client"
 import { useStepHeader } from "../StepViewRouter"
 import { useStepRun } from "@/hooks/use-step-run"
 import { useApiKey } from "@/hooks/use-api-key"
-import { StepRunCard } from "../StepRunCard"
+import { StageRunCard } from "../StageRunCard"
 import { STEP_DESCRIPTIONS } from "../StepSidebar"
 import { cn } from "@/lib/utils"
 
-const TTS_SUB_STEPS = [
-  { key: "text-catalog", label: "Build Text Catalog" },
-  { key: "tts", label: "Generate Audio" },
-]
 
 export function TextToSpeechView({ bookLabel }: { bookLabel: string }) {
   const { setExtra } = useStepHeader()
   const queryClient = useQueryClient()
   const { progress: stepProgress, startRun, setSseEnabled } = useStepRun()
   const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
-  const ttsState = stepProgress.steps.get("text-to-speech")?.state
-  const ttsRunning = ttsState === "running" || ttsState === "queued"
+  const stageState = stepProgress.steps.get("text-and-speech")?.state
+  const ttsRunning = stageState === "running" || stageState === "queued"
 
   const handleRunTTS = useCallback(async () => {
     if (!hasApiKey || ttsRunning) return
-    startRun("text-to-speech", "text-to-speech")
+    startRun("text-and-speech", "text-and-speech")
     setSseEnabled(true)
-    await api.runSteps(bookLabel, apiKey, { fromStep: "text-to-speech", toStep: "text-to-speech" }, { key: azureKey, region: azureRegion })
+    await api.runSteps(bookLabel, apiKey, { fromStep: "text-and-speech", toStep: "text-and-speech" }, { key: azureKey, region: azureRegion })
     queryClient.removeQueries({ queryKey: ["books", bookLabel, "tts"] })
     queryClient.removeQueries({ queryKey: ["books", bookLabel, "text-catalog"] })
   }, [bookLabel, apiKey, hasApiKey, azureKey, azureRegion, ttsRunning, startRun, setSseEnabled, queryClient])
@@ -98,10 +94,9 @@ export function TextToSpeechView({ bookLabel }: { bookLabel: string }) {
   if (!ttsData || languages.length === 0 || ttsRunning) {
     return (
       <div className="p-4">
-        <StepRunCard
-          stepSlug="text-to-speech"
-          subSteps={TTS_SUB_STEPS}
-          description={STEP_DESCRIPTIONS["text-to-speech"]}
+        <StageRunCard
+          stageSlug="text-and-speech"
+          description={STEP_DESCRIPTIONS["text-and-speech"]}
           isRunning={ttsRunning}
           onRun={handleRunTTS}
           disabled={!hasApiKey || ttsRunning}

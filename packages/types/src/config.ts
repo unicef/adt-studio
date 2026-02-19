@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { ImageFilters } from "./image-classification.js"
+import { ImageFilters } from "./image-filtering.js"
 import { SpeechConfig } from "./speech.js"
 
 export const RateLimitConfig = z.object({

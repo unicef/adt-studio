@@ -31,7 +31,7 @@ export const STEPS = [
   { slug: "quizzes", label: "Quizzes", runningLabel: "Generating Quizzes", icon: HelpCircle, color: "bg-orange-500", textColor: "text-orange-600", bgLight: "bg-orange-50", bgDark: "bg-orange-700", borderColor: "border-orange-200" },
   { slug: "captions", label: "Captions", runningLabel: "Captioning Images", icon: Image, color: "bg-teal-500", textColor: "text-teal-600", bgLight: "bg-teal-50", bgDark: "bg-teal-700", borderColor: "border-teal-200" },
   { slug: "glossary", label: "Glossary", runningLabel: "Generating Glossary", icon: BookOpen, color: "bg-lime-500", textColor: "text-lime-600", bgLight: "bg-lime-50", bgDark: "bg-lime-700", borderColor: "border-lime-200" },
-  { slug: "translations", label: "Language & Voice", runningLabel: "Translating", icon: Languages, color: "bg-pink-500", textColor: "text-pink-600", bgLight: "bg-pink-50", bgDark: "bg-pink-700", borderColor: "border-pink-200" },
+  { slug: "text-and-speech", label: "Text & Speech", runningLabel: "Translating", icon: Languages, color: "bg-pink-500", textColor: "text-pink-600", bgLight: "bg-pink-50", bgDark: "bg-pink-700", borderColor: "border-pink-200" },
   { slug: "preview", label: "Preview", runningLabel: "Building Preview", icon: Eye, color: "bg-gray-500", textColor: "text-gray-600", bgLight: "bg-gray-50", bgDark: "bg-gray-700", borderColor: "border-gray-200" },
 ] as const
 
@@ -43,7 +43,7 @@ export const STEP_DESCRIPTIONS: Record<string, string> = {
   quizzes: "Generate comprehension quizzes and activities based on the book content.",
   captions: "Create descriptive captions for images to improve accessibility.",
   glossary: "Build a glossary of key terms and definitions found in the text.",
-  translations: "Translate the book content and generate audio narration.",
+  "text-and-speech": "Translate the book content and generate audio narration.",
   preview: "Package and preview the final ADT web application.",
 }
 
@@ -96,12 +96,10 @@ const SETTINGS_TABS: Record<string, { key: string; label: string }[]> = {
   quizzes: QUIZ_SETTINGS_TABS,
   glossary: GLOSSARY_SETTINGS_TABS,
   captions: CAPTIONS_SETTINGS_TABS,
-  translations: TRANSLATIONS_SETTINGS_TABS,
+  "text-and-speech": TRANSLATIONS_SETTINGS_TABS,
 }
 
-/** Translations step is "complete" only when both translations AND TTS are done. */
 export function isStepCompleted(slug: string, completedSteps: Record<string, boolean>): boolean {
-  if (slug === "translations") return !!completedSteps["translations"] && !!completedSteps["text-to-speech"]
   return !!completedSteps[slug]
 }
 
@@ -117,7 +115,7 @@ const HOVER_BG_BY_COLOR: Record<string, string> = {
 
 
 /** Steps that support per-page filtering in the Pages tab */
-const STEPS_WITH_PAGES = new Set(["storyboard", "quizzes", "captions", "translations"])
+const STEPS_WITH_PAGES = new Set(["storyboard", "quizzes", "captions", "text-and-speech"])
 
 export function StepSidebar({
   bookLabel,

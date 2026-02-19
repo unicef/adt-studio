@@ -7,7 +7,7 @@ import { useActiveConfig } from "@/hooks/use-debug"
 import { useStepHeader } from "../StepViewRouter"
 import { useStepRun } from "@/hooks/use-step-run"
 import { useApiKey } from "@/hooks/use-api-key"
-import { StepRunCard } from "../StepRunCard"
+import { StageRunCard } from "../StageRunCard"
 import { STEP_DESCRIPTIONS } from "../StepSidebar"
 import { cn } from "@/lib/utils"
 import { getBaseLanguage, normalizeLocale } from "@/lib/languages"
@@ -17,11 +17,6 @@ function displayLang(code: string): string {
   try { return langNames.of(code) ?? code } catch { return code }
 }
 
-const TRANSLATIONS_SUB_STEPS = [
-  { key: "text-catalog", label: "Build Text Catalog" },
-  { key: "catalog-translation", label: "Translate Entries" },
-  { key: "tts", label: "Generate Audio" },
-]
 
 function VersionPicker({
   currentVersion,
@@ -146,16 +141,14 @@ export function TranslationsView({ bookLabel, selectedPageId }: { bookLabel: str
   const queryClient = useQueryClient()
   const { progress: stepProgress, startRun, setSseEnabled } = useStepRun()
   const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
-  const translationsState = stepProgress.steps.get("translations")?.state
-  const ttsState = stepProgress.steps.get("text-to-speech")?.state
-  const isRunning = translationsState === "running" || translationsState === "queued"
-    || ttsState === "running" || ttsState === "queued"
+  const stageState = stepProgress.steps.get("text-and-speech")?.state
+  const isRunning = stageState === "running" || stageState === "queued"
 
   const handleRunTranslations = useCallback(async () => {
     if (!hasApiKey || isRunning) return
-    startRun("translations", "text-to-speech")
+    startRun("text-and-speech", "text-and-speech")
     setSseEnabled(true)
-    await api.runSteps(bookLabel, apiKey, { fromStep: "translations", toStep: "text-to-speech" }, { key: azureKey, region: azureRegion })
+    await api.runSteps(bookLabel, apiKey, { fromStep: "text-and-speech", toStep: "text-and-speech" }, { key: azureKey, region: azureRegion })
     queryClient.removeQueries({ queryKey: ["books", bookLabel, "text-catalog"] })
     queryClient.removeQueries({ queryKey: ["books", bookLabel, "tts"] })
   }, [bookLabel, apiKey, hasApiKey, azureKey, azureRegion, isRunning, startRun, setSseEnabled, queryClient])
@@ -302,9 +295,8 @@ export function TranslationsView({ bookLabel, selectedPageId }: { bookLabel: str
   if (!catalog || entries.length === 0 || isRunning) {
     return (
       <div className="p-4">
-        <StepRunCard
-          stepSlug="translations"
-          subSteps={TRANSLATIONS_SUB_STEPS}
+        <StageRunCard
+          stageSlug="text-and-speech"
           description={STEP_DESCRIPTIONS.translations}
           isRunning={isRunning}
           onRun={handleRunTranslations}

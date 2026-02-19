@@ -3,17 +3,23 @@ import { cn } from "@/lib/utils"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { PIPELINE } from "@adt/types"
+import type { StageName } from "@adt/types"
 import { STEPS } from "./StepSidebar"
 import { useStepRun } from "@/hooks/use-step-run"
 
-export interface StepRunCardSubStep {
+export interface StageSubStep {
   key: string
   label: string
 }
 
-interface StepRunCardProps {
-  stepSlug: string
-  subSteps: StepRunCardSubStep[]
+/** Sub-steps for each stage, derived from the shared PIPELINE definition */
+export const STAGE_SUB_STEPS: Record<StageName, StageSubStep[]> = Object.fromEntries(
+  PIPELINE.map((stage) => [stage.name, stage.steps.map((s) => ({ key: s.name, label: s.label }))])
+) as Record<StageName, StageSubStep[]>
+
+interface StageRunCardProps {
+  stageSlug: string
   description?: string
   isRunning: boolean
   completed?: boolean
@@ -33,26 +39,26 @@ const HOVER_BG_BY_COLOR: Record<string, string> = {
   "bg-amber-500": "hover:bg-amber-500",
 }
 
-export function StepRunCard({
-  stepSlug,
-  subSteps,
+export function StageRunCard({
+  stageSlug,
   description,
   isRunning,
   completed,
   showRunButton = true,
   onRun,
   disabled,
-}: StepRunCardProps) {
-  const stepConfig = STEPS.find((s) => s.slug === stepSlug)
+}: StageRunCardProps) {
+  const stepConfig = STEPS.find((s) => s.slug === stageSlug)
   const { progress } = useStepRun()
   const { subSteps: subStepProgress, error, targetSteps } = progress
 
+  const subSteps = STAGE_SUB_STEPS[stageSlug as StageName] ?? []
   const Icon = stepConfig?.icon ?? Play
   const bgDark = stepConfig?.bgDark ?? "bg-gray-700"
   const color = stepConfig?.color ?? "bg-gray-500"
   const borderColor = stepConfig?.borderColor ?? "border-gray-200"
-  const hasError = !!error && targetSteps.has(stepSlug)
-  const isCompleted = completed || progress.steps.get(stepSlug)?.state === "done"
+  const hasError = !!error && targetSteps.has(stageSlug)
+  const isCompleted = completed || progress.steps.get(stageSlug)?.state === "done"
   const hasSubSteps = subSteps.length > 0
   const hoverColorClass = HOVER_BG_BY_COLOR[color] ?? "hover:bg-gray-500"
   const buttonToneClass = isCompleted
@@ -68,8 +74,8 @@ export function StepRunCard({
         </div>
         <CardTitle className="text-sm leading-normal tracking-normal">
           {isRunning
-            ? `${stepConfig?.runningLabel ?? stepSlug}...`
-            : stepConfig?.label ?? stepSlug}
+            ? `${stepConfig?.runningLabel ?? stageSlug}...`
+            : stepConfig?.label ?? stageSlug}
         </CardTitle>
       </CardHeader>
 
@@ -142,8 +148,8 @@ export function StepRunCard({
                   hasError
                     ? "Retry"
                     : isCompleted
-                      ? `Re-run ${stepConfig?.label?.toLowerCase() ?? stepSlug}`
-                      : `Run ${stepConfig?.label?.toLowerCase() ?? stepSlug}`
+                      ? `Re-run ${stepConfig?.label?.toLowerCase() ?? stageSlug}`
+                      : `Run ${stepConfig?.label?.toLowerCase() ?? stageSlug}`
                 }
               >
                 {hasError || isCompleted ? <RotateCcw className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}

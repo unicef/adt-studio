@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, createContext, useContext } f
 import { useQueryClient, type QueryClient } from "@tanstack/react-query"
 import { api } from "@/api/client"
 import { getTargetStepsForRange, isFinalPipelineStepForUiStep } from "./step-run-range"
-import { PIPELINE_TO_UI_STEP } from "./step-mapping"
+import { STEP_TO_STAGE } from "@adt/types"
 import {
   getInvalidationKeysForUiStep,
   getMetadataInvalidationKeys,
@@ -76,7 +76,7 @@ export function useStepRunSSE(label: string, enabled: boolean) {
     es.addEventListener("progress", (e) => {
       const data = JSON.parse(e.data)
       const pipelineStep = data.step as string
-      const uiStep = (PIPELINE_TO_UI_STEP as Record<string, string>)[pipelineStep]
+      const uiStep = (STEP_TO_STAGE as Record<string, string>)[pipelineStep]
       if (!uiStep) return
 
       const isFinalCompletion =

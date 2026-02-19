@@ -278,7 +278,7 @@ export function createPipelineRunner(): PipelineRunner {
                     completedClassifyImages++
                     progress.emit({
                       type: "step-progress",
-                      step: "image-classification",
+                      step: "image-filtering",
                       message: `${completedClassifyImages}/${totalPages}`,
                       page: completedClassifyImages,
                       totalPages,
@@ -368,7 +368,7 @@ export function createPipelineRunner(): PipelineRunner {
         }
         progress.emit({
           type: "step-complete",
-          step: "image-classification",
+          step: "image-filtering",
         })
         progress.emit({ type: "step-complete", step: "page-sectioning" })
         progress.emit({ type: "step-complete", step: "web-rendering" })
@@ -444,11 +444,11 @@ async function processPage(
       images,
       imageClassifyConfig
     )
-    storage.putNodeData("image-classification", page.pageId, imageResult)
+    storage.putNodeData("image-filtering", page.pageId, imageResult)
     callbacks.onClassifyImages()
   } catch (err) {
     await textPromise.catch(() => undefined)
-    wrapStepError("image-classification", err)
+    wrapStepError("image-filtering", err)
   }
 
   let textResult: Awaited<ReturnType<typeof classifyPageText>>

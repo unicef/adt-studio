@@ -1,12 +1,12 @@
 import { useState } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { STEPS } from "@/components/v2/StepSidebar"
-import { ExtractSettings } from "@/components/v2/steps/ExtractSettings"
-import { StoryboardSettings } from "@/components/v2/steps/StoryboardSettings"
-import { QuizzesSettings } from "@/components/v2/steps/QuizzesSettings"
-import { GlossarySettings } from "@/components/v2/steps/GlossarySettings"
-import { CaptionsSettings } from "@/components/v2/steps/CaptionsSettings"
-import { TranslationsSettings } from "@/components/v2/steps/TranslationsSettings"
+import { ExtractSettings } from "@/components/v2/stages/ExtractSettings"
+import { StoryboardSettings } from "@/components/v2/stages/StoryboardSettings"
+import { QuizzesSettings } from "@/components/v2/stages/QuizzesSettings"
+import { GlossarySettings } from "@/components/v2/stages/GlossarySettings"
+import { CaptionsSettings } from "@/components/v2/stages/CaptionsSettings"
+import { TranslationsSettings } from "@/components/v2/stages/TranslationsSettings"
 import { cn } from "@/lib/utils"
 
 export const Route = createFileRoute("/books/$label/v2/$step/settings")({
@@ -55,7 +55,7 @@ function StepSettingsPage() {
           <GlossarySettings bookLabel={label} headerTarget={headerTarget} tab={tab} />
         ) : step === "captions" ? (
           <CaptionsSettings bookLabel={label} headerTarget={headerTarget} tab={tab} />
-        ) : step === "translations" ? (
+        ) : step === "text-and-speech" ? (
           <TranslationsSettings bookLabel={label} headerTarget={headerTarget} tab={tab} />
         ) : (
           <div className="p-4 max-w-2xl">

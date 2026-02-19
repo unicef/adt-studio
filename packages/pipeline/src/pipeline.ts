@@ -8,7 +8,7 @@ import { extractPDF } from "./pdf-extraction.js"
 import { extractMetadata, buildMetadataConfig } from "./metadata-extraction.js"
 import { generateBookSummary, buildBookSummaryConfig } from "./book-summary.js"
 import { classifyPageText, buildClassifyConfig } from "./text-classification.js"
-import { classifyPageImages, buildImageClassifyConfig } from "./image-classification.js"
+import { classifyPageImages, buildImageClassifyConfig } from "./image-filtering.js"
 import { filterPageImageMeaningfulness, buildMeaningfulnessConfig } from "./image-meaningfulness.js"
 import { cropPageImages, applyCrops, buildCroppingConfig, getCroppedImageId } from "./image-cropping.js"
 import { sectionPage, buildSectioningConfig } from "./page-sectioning.js"
@@ -322,7 +322,7 @@ async function processPage(
   let imageResult = classifyPageImages(page.pageId, images, imageClassifyConfig)
   progress.emit({
     type: "step-progress",
-    step: "image-classification",
+    step: "image-filtering",
     message: page.pageId,
     page: pageIndex,
     totalPages,
@@ -363,7 +363,7 @@ async function processPage(
     }
   }
 
-  storage.putNodeData("image-classification", page.pageId, imageResult)
+  storage.putNodeData("image-filtering", page.pageId, imageResult)
 
   const textResult = await textPromise
   storage.putNodeData("text-classification", page.pageId, textResult)
@@ -450,7 +450,7 @@ async function processPage(
           })
         }
         if (applied.length > 0) {
-          storage.putNodeData("image-classification", page.pageId, imageClassification)
+          storage.putNodeData("image-filtering", page.pageId, imageClassification)
         }
         progress.emit({
           type: "step-progress",

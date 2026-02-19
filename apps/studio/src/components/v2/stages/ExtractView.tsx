@@ -5,7 +5,7 @@ import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useStepRun } from "@/hooks/use-step-run"
 import { ExtractPageDetail } from "./ExtractPageDetail"
 import { useStepHeader } from "../StepViewRouter"
-import { StepRunCard } from "../StepRunCard"
+import { StageRunCard } from "../StageRunCard"
 import type { PageSummaryItem } from "@/api/client"
 
 function PageCard({
@@ -71,15 +71,6 @@ function PageCard({
   )
 }
 
-const EXTRACT_SUB_STEPS = [
-  { key: "extract", label: "Extract PDF" },
-  { key: "metadata", label: "Extract Metadata" },
-  { key: "image-classification", label: "Classify Images" },
-  { key: "image-cropping", label: "Crop Images" },
-  { key: "text-classification", label: "Classify Text" },
-  { key: "translation", label: "Translate" },
-  { key: "book-summary", label: "Book Summary" },
-]
 
 function BookBanner({ bookLabel, pages }: { bookLabel: string; pages: PageSummaryItem[] | undefined }) {
   const { data: book } = useBook(bookLabel)
@@ -249,9 +240,8 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
       {!extractRunning && pageList.length > 0 && <BookBanner bookLabel={bookLabel} pages={pages} />}
       <div className="p-4">
       {extractRunning ? (
-        <StepRunCard
-          stepSlug="extract"
-          subSteps={EXTRACT_SUB_STEPS}
+        <StageRunCard
+          stageSlug="extract"
           isRunning
           onRun={() => {}}
           disabled

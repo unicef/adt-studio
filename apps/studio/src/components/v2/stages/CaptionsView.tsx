@@ -7,12 +7,9 @@ import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../StepViewRouter"
 import { useStepRun } from "@/hooks/use-step-run"
 import { useApiKey } from "@/hooks/use-api-key"
-import { StepRunCard } from "../StepRunCard"
+import { StageRunCard } from "../StageRunCard"
 import { STEP_DESCRIPTIONS } from "../StepSidebar"
 
-const CAPTIONS_SUB_STEPS = [
-  { key: "image-captioning", label: "Caption Images" },
-]
 
 type CaptioningData = NonNullable<PageDetail["imageCaptioning"]>
 
@@ -266,9 +263,8 @@ export function CaptionsView({ bookLabel, selectedPageId }: { bookLabel: string;
   if (pagesWithImages.length === 0 || !hasCaptionData || captionsRunning) {
     return (
       <div className="p-4">
-        <StepRunCard
-          stepSlug="captions"
-          subSteps={CAPTIONS_SUB_STEPS}
+        <StageRunCard
+          stageSlug="captions"
           description={STEP_DESCRIPTIONS.captions}
           isRunning={captionsRunning}
           onRun={handleRunCaptions}

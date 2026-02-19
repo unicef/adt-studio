@@ -1,56 +1,34 @@
 import { describe, expect, it } from "vitest"
 import { getTargetStepsForRange, isFinalPipelineStepForUiStep } from "./step-run-range"
-import { PIPELINE_TO_UI_STEP, ALL_MAPPED_STEP_NAMES } from "./step-mapping"
-import type { StepName } from "./use-pipeline"
+import { ALL_MAPPED_STEP_NAMES, PIPELINE_TO_UI_STEP } from "./step-mapping"
+import { StepName } from "@adt/types"
 import {
   getInvalidationKeysForUiStep,
   getMetadataInvalidationKeys,
 } from "./step-run-invalidation"
 
-/**
- * Pipeline steps emitted by step-run flows.
- * `package-web` is intentionally excluded because packaging is standalone and
- * not part of step-run TTS.
- */
-const ALL_STEP_NAMES: StepName[] = [
-  "extract",
-  "metadata",
-  "text-classification",
-  "book-summary",
-  "translation",
-  "image-classification",
-  "page-sectioning",
-  "web-rendering",
-  "image-captioning",
-  "glossary",
-  "quiz-generation",
-  "text-catalog",
-  "catalog-translation",
-  "tts",
-]
-
 describe("step mapping exhaustiveness", () => {
-  it("every step-run StepName is mapped to a UI step", () => {
-    for (const step of ALL_STEP_NAMES) {
+  it("every pipeline StepName is mapped to a stage", () => {
+    for (const step of StepName.options) {
       expect(
         ALL_MAPPED_STEP_NAMES.has(step),
-        `StepName "${step}" is not mapped in step-mapping.ts — add it to UI_STEP_PIPELINE_STEPS`
+        `StepName "${step}" is not in ALL_STEP_NAMES`,
       ).toBe(true)
     }
   })
 
-  it("PIPELINE_TO_UI_STEP covers every step-run StepName", () => {
-    for (const step of ALL_STEP_NAMES) {
+  it("PIPELINE_TO_UI_STEP covers every StepName", () => {
+    for (const step of StepName.options) {
       expect(
         PIPELINE_TO_UI_STEP[step],
-        `StepName "${step}" has no entry in PIPELINE_TO_UI_STEP`
+        `StepName "${step}" has no entry in STEP_TO_STAGE`,
       ).toBeDefined()
     }
   })
 })
 
 describe("getTargetStepsForRange", () => {
-  it("returns all steps in an inclusive valid range", () => {
+  it("returns all stages in an inclusive valid range", () => {
     const steps = Array.from(getTargetStepsForRange("extract", "glossary"))
     expect(steps).toEqual([
       "extract",
@@ -61,9 +39,9 @@ describe("getTargetStepsForRange", () => {
     ])
   })
 
-  it("returns a single step for same from/to", () => {
-    const steps = Array.from(getTargetStepsForRange("translations", "translations"))
-    expect(steps).toEqual(["translations"])
+  it("returns a single stage for same from/to", () => {
+    const steps = Array.from(getTargetStepsForRange("text-and-speech", "text-and-speech"))
+    expect(steps).toEqual(["text-and-speech"])
   })
 
   it("falls back to endpoint set for invalid ranges", () => {
@@ -71,8 +49,8 @@ describe("getTargetStepsForRange", () => {
     expect(steps).toEqual(["preview", "extract"])
   })
 
-  it("recognizes terminal sub-steps for ui steps", () => {
-    expect(isFinalPipelineStepForUiStep("extract", "book-summary")).toBe(true)
+  it("recognizes terminal sub-steps for stages", () => {
+    expect(isFinalPipelineStepForUiStep("extract", "translation")).toBe(true)
     expect(isFinalPipelineStepForUiStep("storyboard", "web-rendering")).toBe(true)
     expect(isFinalPipelineStepForUiStep("extract", "metadata")).toBe(false)
   })

@@ -46,7 +46,7 @@ export function ConfigTab({ label }: ConfigTabProps) {
     { key: "section_types", title: "Section Types" },
     { key: "metadata_extraction", title: "Metadata Extraction" },
     { key: "text_classification", title: "Text Classification" },
-    { key: "image_classification", title: "Image Classification" },
+    { key: "image_filters", title: "Image Filtering" },
     { key: "page_sectioning", title: "Page Sectioning" },
     { key: "default_render_strategy", title: "Default Render Strategy" },
     { key: "render_strategies", title: "Render Strategies" },

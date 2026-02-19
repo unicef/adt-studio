@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest"
 import { PNG } from "pngjs"
-import { classifyPageImages, buildImageClassifyConfig } from "../image-classification.js"
-import type { ImageClassifyConfig } from "../image-classification.js"
+import { classifyPageImages, buildImageClassifyConfig } from "../image-filtering.js"
+import type { ImageClassifyConfig } from "../image-filtering.js"
 import type { ImageData } from "@adt/storage"
 import type { AppConfig } from "@adt/types"
 

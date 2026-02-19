@@ -9,7 +9,7 @@ import {
   GlossaryView,
   TranslationsView,
   PreviewView,
-} from "./steps"
+} from "./stages"
 import { cn } from "@/lib/utils"
 
 // Context for views to inject content into the step header
@@ -46,7 +46,7 @@ const VIEW_MAP: Record<string, ViewEntry> = {
   quizzes: { component: QuizzesView },
   captions: { component: CaptionsView },
   glossary: { component: GlossaryView },
-  translations: { component: TranslationsView },
+  "text-and-speech": { component: TranslationsView },
   preview: { component: PreviewView, fullHeight: true },
 }
 

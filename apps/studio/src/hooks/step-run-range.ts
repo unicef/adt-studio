@@ -1,13 +1,14 @@
-import { UI_STEP_ORDER, type UIStepSlug } from "./step-mapping"
+import { STAGE_ORDER } from "@adt/types"
+import type { StageName } from "@adt/types"
 
 // Re-export so existing imports still work
 export { isFinalPipelineStepForUiStep } from "./step-mapping"
 
 export function getTargetStepsForRange(fromStep: string, toStep: string): Set<string> {
-  const fromIndex = UI_STEP_ORDER.indexOf(fromStep as UIStepSlug)
-  const toIndex = UI_STEP_ORDER.indexOf(toStep as UIStepSlug)
+  const fromIndex = STAGE_ORDER.indexOf(fromStep as StageName)
+  const toIndex = STAGE_ORDER.indexOf(toStep as StageName)
   if (fromIndex !== -1 && toIndex !== -1 && fromIndex <= toIndex) {
-    return new Set(UI_STEP_ORDER.slice(fromIndex, toIndex + 1))
+    return new Set(STAGE_ORDER.slice(fromIndex, toIndex + 1))
   }
 
   // Fallback for unknown/reversed ranges to avoid dropping status entirely.

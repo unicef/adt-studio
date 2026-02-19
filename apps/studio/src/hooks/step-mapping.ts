@@ -1,60 +1,38 @@
-import type { StepName } from "./use-pipeline"
+import {
+  PIPELINE,
+  STEP_TO_STAGE,
+  STAGE_ORDER,
+  ALL_STEP_NAMES,
+} from "@adt/types"
+import type { StepName, StageName } from "@adt/types"
 
 /**
- * Single source of truth: pipeline sub-steps grouped by UI step, in execution order.
+ * UI step mapping derived from the shared PIPELINE definition.
  *
- * When adding a new pipeline step:
- * 1. Add it to StepName in use-pipeline.ts
- * 2. Add it to the appropriate group here
- *
- * `satisfies` catches invalid step names at compile time.
- * The test in use-step-run.test.ts catches missing step names.
+ * UIStepSlug = StageName — the pipeline definition is the single source of truth.
  */
-const UI_STEP_PIPELINE_STEPS = {
-  extract: [
-    "extract",
-    "metadata",
-    "image-classification",
-    "image-cropping",
-    "text-classification",
-    "translation",
-    "book-summary",
-  ],
-  storyboard: ["page-sectioning", "web-rendering"],
-  quizzes: ["quiz-generation"],
-  captions: ["image-captioning"],
-  glossary: ["glossary"],
-  translations: ["text-catalog", "catalog-translation"],
-  "text-to-speech": ["tts"],
-} as const satisfies Record<string, readonly StepName[]>
+export type UIStepSlug = StageName
 
-export type UIStepSlug = keyof typeof UI_STEP_PIPELINE_STEPS
+export const UI_STEP_ORDER = STAGE_ORDER
 
-export const UI_STEP_ORDER = Object.keys(UI_STEP_PIPELINE_STEPS) as UIStepSlug[]
+/** Maps every pipeline step name to its parent stage. */
+export const PIPELINE_TO_UI_STEP: Record<StepName, StageName> = STEP_TO_STAGE
 
-/** Maps every pipeline step name to its parent UI step slug. */
-export const PIPELINE_TO_UI_STEP = Object.fromEntries(
-  Object.entries(UI_STEP_PIPELINE_STEPS).flatMap(([uiStep, steps]) =>
-    steps.map((step) => [step, uiStep])
-  )
-) as Partial<Record<StepName, UIStepSlug>>
+/** The last pipeline step in each stage — used to detect completion. */
+export const UI_FINAL_PIPELINE_STEP: Record<StageName, StepName> =
+  Object.fromEntries(
+    PIPELINE.map((stage) => [
+      stage.name,
+      stage.steps[stage.steps.length - 1].name,
+    ]),
+  ) as Record<StageName, StepName>
 
-/** The last pipeline sub-step in each UI step — used to detect completion. */
-export const UI_FINAL_PIPELINE_STEP = Object.fromEntries(
-  Object.entries(UI_STEP_PIPELINE_STEPS).map(([uiStep, steps]) => [
-    uiStep,
-    steps[steps.length - 1],
-  ])
-) as Record<UIStepSlug, StepName>
-
-/** All pipeline step names that appear in the mapping, for test assertions. */
-export const ALL_MAPPED_STEP_NAMES = new Set(
-  Object.values(UI_STEP_PIPELINE_STEPS).flat()
-) as ReadonlySet<StepName>
+/** All pipeline step names that appear in the pipeline definition. */
+export const ALL_MAPPED_STEP_NAMES = ALL_STEP_NAMES
 
 export function isFinalPipelineStepForUiStep(
   uiStep: string,
-  pipelineStep: string
+  pipelineStep: string,
 ): boolean {
-  return UI_FINAL_PIPELINE_STEP[uiStep as UIStepSlug] === pipelineStep
+  return UI_FINAL_PIPELINE_STEP[uiStep as StageName] === pipelineStep
 }

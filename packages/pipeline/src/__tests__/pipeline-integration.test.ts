@@ -162,7 +162,7 @@ describe("pipeline integration (raven.pdf, pages 1-3)", () => {
 
           // Image classification
           const icRows = db.all(
-            "SELECT data FROM node_data WHERE node = 'image-classification' AND item_id = ? ORDER BY version DESC LIMIT 1",
+            "SELECT data FROM node_data WHERE node = 'image-filtering' AND item_id = ? ORDER BY version DESC LIMIT 1",
             [pageId]
           ) as Array<{ data: string }>
           expect(icRows).toHaveLength(1)

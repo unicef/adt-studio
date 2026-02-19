@@ -75,13 +75,13 @@ export function TextToSpeechSettings({ bookLabel, headerTarget }: { bookLabel: s
         onSuccess: async () => {
           setDirty({})
           setShowRerunDialog(false)
-          startRun("text-to-speech", "text-to-speech")
+          startRun("text-and-speech", "text-and-speech")
           setSseEnabled(true)
-          await api.runSteps(bookLabel, apiKey, { fromStep: "text-to-speech", toStep: "text-to-speech" }, { key: azureKey, region: azureRegion })
+          await api.runSteps(bookLabel, apiKey, { fromStep: "text-and-speech", toStep: "text-and-speech" }, { key: azureKey, region: azureRegion })
           queryClient.removeQueries({ queryKey: ["books", bookLabel, "tts"] })
           queryClient.removeQueries({ queryKey: ["books", bookLabel, "text-catalog"] })
           queryClient.removeQueries({ queryKey: ["books", bookLabel] })
-          navigate({ to: "/books/$label/v2/$step", params: { label: bookLabel, step: "text-to-speech" } })
+          navigate({ to: "/books/$label/v2/$step", params: { label: bookLabel, step: "text-and-speech" } })
         },
       }
     )

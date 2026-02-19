@@ -27,7 +27,7 @@ import { extractPDF } from "./pdf-extraction.js"
 import { extractMetadata, buildMetadataConfig } from "./metadata-extraction.js"
 import { generateBookSummary, buildBookSummaryConfig } from "./book-summary.js"
 import { classifyPageText, buildClassifyConfig } from "./text-classification.js"
-import { classifyPageImages, buildImageClassifyConfig } from "./image-classification.js"
+import { classifyPageImages, buildImageClassifyConfig } from "./image-filtering.js"
 import { filterPageImageMeaningfulness, buildMeaningfulnessConfig } from "./image-meaningfulness.js"
 import { cropPageImages, applyCrops, buildCroppingConfig, getCroppedImageId } from "./image-cropping.js"
 import { sectionPage, buildSectioningConfig } from "./page-sectioning.js"
@@ -220,7 +220,7 @@ export async function runFullPipeline(
       storage.putNodeData("book-summary", "book", result)
     })
 
-    executors.set("image-classification", async (p) => {
+    executors.set("image-filtering", async (p) => {
       const pages = storage.getPages()
       const totalPages = pages.length
       const classifyConfig = {
@@ -231,10 +231,10 @@ export async function runFullPipeline(
       await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
         const images = storage.getPageImages(page.pageId)
         const result = classifyPageImages(page.pageId, images, classifyConfig)
-        storage.putNodeData("image-classification", page.pageId, result)
+        storage.putNodeData("image-filtering", page.pageId, result)
         p.emit({
           type: "step-progress",
-          step: "image-classification",
+          step: "image-filtering",
           message: page.pageId,
           page: pages.indexOf(page) + 1,
           totalPages,
@@ -248,7 +248,7 @@ export async function runFullPipeline(
       const pages = storage.getPages()
       const totalPages = pages.length
       await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
-        const classRow = storage.getLatestNodeData("image-classification", page.pageId)
+        const classRow = storage.getLatestNodeData("image-filtering", page.pageId)
         if (!classRow) return
         let imageResult = classRow.data as ImageClassificationOutput
         const unprunedImageIds = new Set(
@@ -271,7 +271,7 @@ export async function runFullPipeline(
             meaningfulnessConfig,
             model,
           )
-          storage.putNodeData("image-classification", page.pageId, imageResult)
+          storage.putNodeData("image-filtering", page.pageId, imageResult)
         }
         p.emit({
           type: "step-progress",
@@ -289,7 +289,7 @@ export async function runFullPipeline(
       const pages = storage.getPages()
       const totalPages = pages.length
       await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
-        const classRow = storage.getLatestNodeData("image-classification", page.pageId)
+        const classRow = storage.getLatestNodeData("image-filtering", page.pageId)
         if (!classRow) return
         const imageClassification = classRow.data as ImageClassificationOutput
         const prunedImageIds = new Set(
@@ -336,7 +336,7 @@ export async function runFullPipeline(
             })
           }
           if (applied.length > 0) {
-            storage.putNodeData("image-classification", page.pageId, imageClassification)
+            storage.putNodeData("image-filtering", page.pageId, imageClassification)
           }
         }
         p.emit({
@@ -403,7 +403,7 @@ export async function runFullPipeline(
       const totalPages = pages.length
       await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
         const textClassRow = storage.getLatestNodeData("text-classification", page.pageId)
-        const imageClassRow = storage.getLatestNodeData("image-classification", page.pageId)
+        const imageClassRow = storage.getLatestNodeData("image-filtering", page.pageId)
         if (!textClassRow || !imageClassRow) return
         const textClassification = textClassRow.data as TextClassificationOutput
         const imageClassification = imageClassRow.data as ImageClassificationOutput
@@ -452,7 +452,7 @@ export async function runFullPipeline(
       const totalPages = pages.length
       await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
         const sectionRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-        const imageClassRow = storage.getLatestNodeData("image-classification", page.pageId)
+        const imageClassRow = storage.getLatestNodeData("image-filtering", page.pageId)
         if (!sectionRow || !imageClassRow) return
         const sectioning = sectionRow.data as PageSectioningOutput
         const imageClassification = imageClassRow.data as ImageClassificationOutput

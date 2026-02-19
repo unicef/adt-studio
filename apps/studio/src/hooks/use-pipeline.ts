@@ -3,23 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/api/client"
 import { useApiKey } from "@/hooks/use-api-key"
 
-export type StepName =
-  | "extract"
-  | "metadata"
-  | "text-classification"
-  | "book-summary"
-  | "translation"
-  | "image-classification"
-  | "image-cropping"
-  | "page-sectioning"
-  | "web-rendering"
-  | "image-captioning"
-  | "glossary"
-  | "quiz-generation"
-  | "text-catalog"
-  | "catalog-translation"
-  | "tts"
-  | "package-web"
+export type { StepName } from "@adt/types"
+import type { StepName } from "@adt/types"
 
 export interface StepProgress {
   step: StepName

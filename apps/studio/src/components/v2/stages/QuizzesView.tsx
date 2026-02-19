@@ -9,13 +9,10 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { useStepHeader } from "../StepViewRouter"
 import { useStepRun } from "@/hooks/use-step-run"
 import { useApiKey } from "@/hooks/use-api-key"
-import { StepRunCard } from "../StepRunCard"
+import { StageRunCard } from "../StageRunCard"
 import { STEP_DESCRIPTIONS } from "../StepSidebar"
 import { getRequestedPageId, getQuizImageRenderState } from "./quizzes-image-state"
 
-const QUIZZES_SUB_STEPS = [
-  { key: "quiz-generation", label: "Generate Quizzes" },
-]
 
 type QuizData = QuizGenerationOutput
 
@@ -386,9 +383,8 @@ export function QuizzesView({ bookLabel, selectedPageId }: { bookLabel: string; 
   if (quizzes.length === 0 || quizzesRunning) {
     return (
       <div className="p-4">
-        <StepRunCard
-          stepSlug="quizzes"
-          subSteps={QUIZZES_SUB_STEPS}
+        <StageRunCard
+          stageSlug="quizzes"
           description={STEP_DESCRIPTIONS.quizzes}
           isRunning={quizzesRunning}
           onRun={handleRunQuizzes}

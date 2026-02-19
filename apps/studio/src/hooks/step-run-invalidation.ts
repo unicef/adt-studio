@@ -21,7 +21,7 @@ export function getInvalidationKeysForUiStep(label: string, uiStep: string): Que
     case "glossary":
       keys.push(["books", label, "glossary"])
       break
-    case "translations":
+    case "text-and-speech":
       keys.push(["books", label, "text-catalog"])
       break
   }

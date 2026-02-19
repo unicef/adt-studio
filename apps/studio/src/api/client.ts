@@ -440,7 +440,7 @@ export const api = {
     }),
 
   updateImageClassification: (label: string, pageId: string, data: unknown) =>
-    request<{ version: number }>(`/books/${label}/pages/${pageId}/image-classification`, {
+    request<{ version: number }>(`/books/${label}/pages/${pageId}/image-filtering`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),

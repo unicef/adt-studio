@@ -15,7 +15,7 @@ export {
   classifyPageImages,
   buildImageClassifyConfig,
   type ImageClassifyConfig,
-} from "./image-classification.js"
+} from "./image-filtering.js"
 export {
   filterPageImageMeaningfulness,
   buildMeaningfulnessConfig,
