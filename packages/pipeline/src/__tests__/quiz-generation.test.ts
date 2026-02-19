@@ -82,8 +82,8 @@ const DEFAULT_QUIZ_SECTION_TYPES = [
   "images_only",
 ]
 
-/** When no quiz_section_types is in the config, the pipeline falls back to empty (all non-pruned count). */
-const FALLBACK_QUIZ_SECTION_TYPES: string[] = []
+/** When no quiz_section_types is in the config, the pipeline applies no section-type filter. */
+const FALLBACK_QUIZ_SECTION_TYPES = undefined
 
 describe("extractTextFromHtml", () => {
   it("strips HTML tags and returns plain text", () => {
@@ -134,14 +134,24 @@ describe("isContentPage", () => {
     expect(isContentPage(sectioning, ["activity_multiple_choice"])).toBe(true)
   })
 
-  it("treats empty quizSectionTypes as no filter", () => {
+  it("treats undefined quizSectionTypes as no filter", () => {
     const sectioning: PageSectioningOutput = {
       reasoning: "",
       sections: [
         { sectionId: "pg_sec001", sectionType: "activity_multiple_choice", parts: [], backgroundColor: "#fff", textColor: "#000", pageNumber: null, isPruned: false },
       ],
     }
-    expect(isContentPage(sectioning, [])).toBe(true)
+    expect(isContentPage(sectioning, undefined)).toBe(true)
+  })
+
+  it("treats empty quizSectionTypes as matching no sections", () => {
+    const sectioning: PageSectioningOutput = {
+      reasoning: "",
+      sections: [
+        { sectionId: "pg_sec001", sectionType: "activity_multiple_choice", parts: [], backgroundColor: "#fff", textColor: "#000", pageNumber: null, isPruned: false },
+      ],
+    }
+    expect(isContentPage(sectioning, [])).toBe(false)
   })
 
   it("still excludes pruned sections even when type matches", () => {
@@ -204,15 +214,24 @@ describe("batchPages", () => {
     expect(batches[0].map((p) => p.pageId)).toEqual(["pg001", "pg003"])
   })
 
-  it("includes all non-pruned pages when quizSectionTypes is empty", () => {
+  it("includes all non-pruned pages when quizSectionTypes is undefined", () => {
     const pages = [
       makePageInput("pg001", "<p>Text</p>", false, "text_only"),
       makePageInput("pg002", "<p>Activity</p>", false, "activity_multiple_choice"),
     ]
 
-    const batches = batchPages(pages, 2, [])
+    const batches = batchPages(pages, 2, undefined)
     expect(batches).toHaveLength(1)
     expect(batches[0].map((p) => p.pageId)).toEqual(["pg001", "pg002"])
+  })
+
+  it("returns no batches when quizSectionTypes is empty", () => {
+    const pages = [
+      makePageInput("pg001", "<p>Text</p>", false, "text_only"),
+      makePageInput("pg002", "<p>Activity</p>", false, "activity_multiple_choice"),
+    ]
+
+    expect(batchPages(pages, 2, [])).toEqual([])
   })
 })
 

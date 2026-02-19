@@ -15,7 +15,7 @@ import { buildLanguageContext, normalizeLocale } from "./language-context.js"
 export interface QuizConfig {
   language: string
   pagesPerQuiz: number
-  quizSectionTypes: string[]
+  quizSectionTypes?: string[]
   promptName: string
   modelId: string
   maxRetries: number
@@ -73,7 +73,7 @@ export function buildQuizGenerationConfig(
   return {
     language: normalizeLocale(language),
     pagesPerQuiz: appConfig.quiz_generation?.pages_per_quiz ?? 3,
-    quizSectionTypes: appConfig.quiz_generation?.quiz_section_types ?? [],
+    quizSectionTypes: appConfig.quiz_generation?.quiz_section_types,
     promptName: appConfig.quiz_generation?.prompt ?? "quiz_generation",
     modelId:
       appConfig.quiz_generation?.model ??
@@ -95,7 +95,8 @@ export function extractTextFromHtml(html: string): string {
 
 /**
  * Determine if a page has at least one non-pruned section.
- * When quizSectionTypes is provided and non-empty, only sections
+ * If quizSectionTypes is undefined, all non-pruned sections count.
+ * If quizSectionTypes is provided (including empty), only sections
  * matching those types are considered.
  */
 export function isContentPage(
@@ -104,10 +105,8 @@ export function isContentPage(
 ): boolean {
   return sectioning.sections.some((s) => {
     if (s.isPruned) return false
-    if (quizSectionTypes && quizSectionTypes.length > 0) {
-      return quizSectionTypes.includes(s.sectionType)
-    }
-    return true
+    if (quizSectionTypes === undefined) return true
+    return quizSectionTypes.includes(s.sectionType)
   })
 }
 

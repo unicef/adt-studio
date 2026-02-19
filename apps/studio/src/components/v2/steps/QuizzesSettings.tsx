@@ -42,6 +42,8 @@ export function QuizzesSettings({ bookLabel, headerTarget, tab = "general" }: { 
 
   useEffect(() => {
     if (!activeConfigData) return
+    setSectionTypes({})
+    setQuizSectionTypes(new Set())
     const merged = activeConfigData.merged as Record<string, unknown>
     if (merged.quiz_generation && typeof merged.quiz_generation === "object") {
       const qg = merged.quiz_generation as Record<string, unknown>
@@ -58,6 +60,7 @@ export function QuizzesSettings({ bookLabel, headerTarget, tab = "general" }: { 
 
   const toggleQuizSectionType = (key: string) => {
     markDirty("quiz_generation")
+    markDirty("quiz_section_types")
     setQuizSectionTypes((prev) => {
       const next = new Set(prev)
       if (next.has(key)) next.delete(key)
@@ -75,12 +78,15 @@ export function QuizzesSettings({ bookLabel, headerTarget, tab = "general" }: { 
 
     if (shouldWrite("quiz_generation")) {
       const existing = (bookConfigData?.config?.quiz_generation ?? {}) as Record<string, unknown>
-      overrides.quiz_generation = {
+      const nextQuizGeneration: Record<string, unknown> = {
         ...existing,
         model: model.trim() || undefined,
         pages_per_quiz: pagesPerQuiz ? Number(pagesPerQuiz) : undefined,
-        quiz_section_types: Array.from(quizSectionTypes),
       }
+      if (dirty.quiz_section_types || "quiz_section_types" in existing) {
+        nextQuizGeneration.quiz_section_types = Array.from(quizSectionTypes)
+      }
+      overrides.quiz_generation = nextQuizGeneration
     }
     return overrides
   }
