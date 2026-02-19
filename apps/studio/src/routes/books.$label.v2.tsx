@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react"
 import { createFileRoute, Outlet, useParams, useNavigate, Link } from "@tanstack/react-router"
-import { Home } from "lucide-react"
+import { Home, Settings } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { StepSidebar } from "@/components/v2/StepSidebar"
 import { useBook } from "@/hooks/use-books"
 import { useStepRunSSE, StepRunContext } from "@/hooks/use-step-run"
+import { useSettingsDialog } from "@/routes/__root"
 import { api } from "@/api/client"
 
 export const Route = createFileRoute("/books/$label/v2")({
@@ -62,6 +64,7 @@ function V2Layout() {
   }, [progress.isRunning, progress.isComplete, progress.error])
 
   const ctxValue = { progress, startRun, reset, setSseEnabled }
+  const { openSettings } = useSettingsDialog()
 
   return (
     <StepRunContext value={ctxValue}>
@@ -70,16 +73,27 @@ function V2Layout() {
         <div className="w-14 lg:w-[220px] shrink-0 relative">
           <div className="group/sidebar absolute inset-y-0 left-0 w-14 hover:w-[220px] lg:w-full bg-background flex flex-col z-30 overflow-hidden transition-[width] duration-150 hover:shadow-lg lg:hover:shadow-none">
             {/* App header */}
-            <Link
-              to="/"
-              className="shrink-0 h-10 px-2 group-hover/sidebar:px-4 lg:px-4 flex items-center justify-center group-hover/sidebar:justify-start lg:justify-start gap-0 group-hover/sidebar:gap-2.5 lg:gap-2.5 bg-gray-700 text-white border-r border-gray-700 hover:bg-gray-600 transition-colors"
-              title="Back to books"
-            >
-              <Home className="w-4 h-4 shrink-0" />
-              <span className="text-sm font-semibold truncate hidden group-hover/sidebar:block lg:block">
-                ADT Studio
-              </span>
-            </Link>
+            <div className="shrink-0 h-10 flex items-center bg-gray-700 text-white border-r border-gray-700">
+              <Link
+                to="/"
+                className="flex-1 min-w-0 h-full px-2 group-hover/sidebar:px-4 lg:px-4 flex items-center justify-center group-hover/sidebar:justify-start lg:justify-start gap-0 group-hover/sidebar:gap-2.5 lg:gap-2.5 hover:bg-gray-600 transition-colors"
+                title="Back to books"
+              >
+                <Home className="w-4 h-4 shrink-0" />
+                <span className="text-sm font-semibold truncate hidden group-hover/sidebar:block lg:block">
+                  ADT Studio
+                </span>
+              </Link>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 shrink-0 text-white/70 hover:text-white hover:bg-gray-600 hidden group-hover/sidebar:flex lg:flex"
+                onClick={openSettings}
+                title="API Key Settings"
+              >
+                <Settings className="h-3.5 w-3.5" />
+              </Button>
+            </div>
 
             {/* Steps / Pages */}
             <div className="flex-1 min-h-0 flex flex-col border-r border-gray-300">
