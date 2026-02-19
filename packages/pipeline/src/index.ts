@@ -24,6 +24,12 @@ export {
   type MetadataPageInput,
 } from "./metadata-extraction.js"
 export {
+  generateBookSummary,
+  buildBookSummaryConfig,
+  type BookSummaryConfig,
+  type BookSummaryPageInput,
+} from "./book-summary.js"
+export {
   sectionPage,
   buildSectioningConfig,
   buildGroupSummaries,

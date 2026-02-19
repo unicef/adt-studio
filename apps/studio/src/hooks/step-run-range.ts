@@ -1,24 +1,7 @@
-const UI_STEP_ORDER = [
-  "extract",
-  "storyboard",
-  "quizzes",
-  "captions",
-  "glossary",
-  "translations",
-  "text-to-speech",
-] as const
+import { UI_STEP_ORDER, type UIStepSlug } from "./step-mapping"
 
-type UIStepSlug = (typeof UI_STEP_ORDER)[number]
-
-const UI_FINAL_PIPELINE_STEP: Record<string, string> = {
-  extract: "translation",
-  storyboard: "web-rendering",
-  quizzes: "quiz-generation",
-  captions: "image-captioning",
-  glossary: "glossary",
-  translations: "catalog-translation",
-  "text-to-speech": "tts",
-}
+// Re-export so existing imports still work
+export { isFinalPipelineStepForUiStep } from "./step-mapping"
 
 export function getTargetStepsForRange(fromStep: string, toStep: string): Set<string> {
   const fromIndex = UI_STEP_ORDER.indexOf(fromStep as UIStepSlug)
@@ -32,8 +15,4 @@ export function getTargetStepsForRange(fromStep: string, toStep: string): Set<st
   targetSteps.add(fromStep)
   if (fromStep !== toStep) targetSteps.add(toStep)
   return targetSteps
-}
-
-export function isFinalPipelineStepForUiStep(uiStep: string, pipelineStep: string): boolean {
-  return UI_FINAL_PIPELINE_STEP[uiStep] === pipelineStep
 }

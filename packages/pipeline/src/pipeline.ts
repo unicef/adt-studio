@@ -6,6 +6,7 @@ import { createLLMModel, createPromptEngine, createRateLimiter } from "@adt/llm"
 import type { LLMModel, LogLevel } from "@adt/llm"
 import { extractPDF } from "./pdf-extraction.js"
 import { extractMetadata, buildMetadataConfig } from "./metadata-extraction.js"
+import { generateBookSummary, buildBookSummaryConfig } from "./book-summary.js"
 import { classifyPageText, buildClassifyConfig } from "./text-classification.js"
 import { classifyPageImages, buildImageClassifyConfig } from "./image-classification.js"
 import { sectionPage, buildSectioningConfig } from "./page-sectioning.js"
@@ -209,6 +210,38 @@ export async function runPipeline(
       }
     )
     progress.emit({ type: "step-complete", step: "web-rendering" })
+
+    // Step 4: Generate Book Summary
+    progress.emit({ type: "step-start", step: "book-summary" })
+    try {
+      const bookSummaryConfig = buildBookSummaryConfig(config)
+      const summaryModel = createLLMModel({
+        modelId: bookSummaryConfig.modelId,
+        cacheDir,
+        promptEngine,
+        rateLimiter,
+        logLevel,
+        onLog: (entry) => storage.appendLlmLog(entry),
+      })
+      const summaryPages = pages.map((page) => ({
+        pageNumber: page.pageNumber,
+        text: page.text,
+      }))
+      const summaryResult = await generateBookSummary(
+        summaryPages,
+        bookSummaryConfig,
+        summaryModel
+      )
+      storage.putNodeData("book-summary", "book", summaryResult)
+      progress.emit({ type: "step-complete", step: "book-summary" })
+    } catch (err) {
+      progress.emit({
+        type: "step-error",
+        step: "book-summary",
+        error: err instanceof Error ? err.message : String(err),
+      })
+      throw err
+    }
   } finally {
     storage.close()
   }

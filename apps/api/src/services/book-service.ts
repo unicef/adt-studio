@@ -1,7 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
 import yaml from "js-yaml"
-import { parseBookLabel, BookLabel, BookMetadata } from "@adt/types"
+import { parseBookLabel, BookLabel, BookMetadata, BookSummaryOutput } from "@adt/types"
 import { openBookDb, createBookStorage } from "@adt/storage"
 
 export interface BookSummary {
@@ -20,6 +20,7 @@ export interface BookSummary {
 
 export interface BookDetail extends BookSummary {
   metadata: BookMetadata | null
+  bookSummary: BookSummaryOutput | null
 }
 
 function isSchemaMismatchError(err: unknown): err is Error {
@@ -151,6 +152,7 @@ export function getBook(label: string, booksDir: string): BookDetail {
   let languageCode: string | null = null
   let pageCount = 0
   let metadata: BookMetadata | null = null
+  let bookSummary: BookSummaryOutput | null = null
   let needsRebuild = false
   let rebuildReason: string | null = null
   let storyboardAccepted = false
@@ -178,6 +180,18 @@ export function getBook(label: string, booksDir: string): BookDetail {
             authors = parsed.data.authors
             publisher = parsed.data.publisher
             languageCode = parsed.data.language_code
+          }
+        }
+
+        const summaryRows = db.all(
+          "SELECT data FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
+          ["book-summary", "book"]
+        ) as Array<{ data: string }>
+
+        if (summaryRows.length > 0) {
+          const parsed = BookSummaryOutput.safeParse(JSON.parse(summaryRows[0].data))
+          if (parsed.success) {
+            bookSummary = parsed.data
           }
         }
 
@@ -210,6 +224,7 @@ export function getBook(label: string, booksDir: string): BookDetail {
     storyboardAccepted,
     proofCompleted,
     metadata,
+    bookSummary,
   }
 }
 

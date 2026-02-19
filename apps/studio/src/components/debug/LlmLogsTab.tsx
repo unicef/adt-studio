@@ -45,6 +45,7 @@ const STEP_LABELS: Record<StepName, string> = {
   "quiz-generation": "Quizzes",
   "text-catalog": "Text Catalog",
   "catalog-translation": "Translate Catalog",
+  "book-summary": "Summary",
   tts: "Speech",
   "package-web": "Package",
 }

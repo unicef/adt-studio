@@ -39,6 +39,8 @@ export {
 
 export { BookMetadata } from "./metadata.js"
 
+export { BookSummaryOutput } from "./book-summary.js"
+
 export {
   SectionTextEntry,
   SectionTextPart,

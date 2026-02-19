@@ -61,6 +61,9 @@ export interface BookDetail extends BookSummary {
     cover_page_number: number | null
     reasoning: string
   } | null
+  bookSummary: {
+    summary: string
+  } | null
 }
 
 export interface PipelineStatus {

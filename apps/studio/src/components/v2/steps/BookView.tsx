@@ -14,6 +14,7 @@ const STEP_SUB_STEPS: Record<string, StepRunCardSubStep[]> = {
     { key: "image-classification", label: "Classify Images" },
     { key: "text-classification", label: "Classify Text" },
     { key: "translation", label: "Translate" },
+    { key: "book-summary", label: "Book Summary" },
   ],
   storyboard: [
     { key: "page-sectioning", label: "Section Pages" },

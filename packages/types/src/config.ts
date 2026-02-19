@@ -83,6 +83,7 @@ export const AppConfig = z
     text_classification: StepConfig.optional(),
     translation: StepConfig.optional(),
     metadata: StepConfig.optional(),
+    book_summary: StepConfig.optional(),
     page_sectioning: PageSectioningConfig.optional(),
     quiz_generation: QuizGenerationConfig.optional(),
     default_render_strategy: z.string().optional(),

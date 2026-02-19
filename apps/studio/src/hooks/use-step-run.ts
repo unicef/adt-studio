@@ -1,31 +1,13 @@
 import { useState, useEffect, useCallback, useRef, createContext, useContext } from "react"
 import { useQueryClient, type QueryClient } from "@tanstack/react-query"
 import { api } from "@/api/client"
-import type { StepName } from "./use-pipeline"
 import { getTargetStepsForRange, isFinalPipelineStepForUiStep } from "./step-run-range"
+import { PIPELINE_TO_UI_STEP } from "./step-mapping"
 import {
   getInvalidationKeysForUiStep,
   getMetadataInvalidationKeys,
   type QueryKey,
 } from "./step-run-invalidation"
-
-/** Maps internal pipeline step names to UI step slugs */
-const PIPELINE_TO_UI_STEP: Record<string, string> = {
-  extract: "extract",
-  metadata: "extract",
-  "text-classification": "extract",
-  "image-classification": "extract",
-  translation: "extract",
-  "page-sectioning": "storyboard",
-  "web-rendering": "storyboard",
-  "image-captioning": "captions",
-  glossary: "glossary",
-  "quiz-generation": "quizzes",
-  "text-catalog": "translations",
-  "catalog-translation": "translations",
-  tts: "text-to-speech",
-  "package-web": "text-to-speech",
-}
 
 export type UIStepState = "idle" | "queued" | "running" | "done" | "error"
 
@@ -94,7 +76,7 @@ export function useStepRunSSE(label: string, enabled: boolean) {
     es.addEventListener("progress", (e) => {
       const data = JSON.parse(e.data)
       const pipelineStep = data.step as string
-      const uiStep = PIPELINE_TO_UI_STEP[pipelineStep]
+      const uiStep = (PIPELINE_TO_UI_STEP as Record<string, string>)[pipelineStep]
       if (!uiStep) return
 
       const isFinalCompletion =

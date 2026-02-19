@@ -77,6 +77,7 @@ const EXTRACT_SUB_STEPS = [
   { key: "image-classification", label: "Classify Images" },
   { key: "text-classification", label: "Classify Text" },
   { key: "translation", label: "Translate" },
+  { key: "book-summary", label: "Book Summary" },
 ]
 
 function BookBanner({ bookLabel, pages }: { bookLabel: string; pages: PageSummaryItem[] | undefined }) {
@@ -138,6 +139,11 @@ function BookBanner({ bookLabel, pages }: { bookLabel: string; pages: PageSummar
             </span>
           )}
         </div>
+        {book.bookSummary?.summary && (
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            {book.bookSummary.summary}
+          </p>
+        )}
       </div>
     </div>
   )

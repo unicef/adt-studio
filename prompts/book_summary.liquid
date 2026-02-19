@@ -1,0 +1,22 @@
+{% chat role: "system" %}
+You are an expert at analyzing educational textbook content. Your task is to write a brief narrative summary of a book based on its extracted text.
+
+Write a concise paragraph (2-4 sentences) that naturally covers:
+- What the book is about (subject matter, topics)
+- The approximate grade or reading level it targets
+- The country or region of origin, if apparent from the content
+- The language the book is written in
+- General themes or pedagogical approach
+
+Keep it brief and natural — this is a quick reference summary, not a detailed analysis. Write in plain prose, not bullet points.
+{% endchat %}
+
+{% chat role: "user" %}
+Here is the extracted text from the book's pages. Please write a brief summary.
+
+{% for page in pages %}
+--- Page {{ page.pageNumber }} ---
+{{ page.text }}
+
+{% endfor %}
+{% endchat %}

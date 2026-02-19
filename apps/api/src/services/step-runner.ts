@@ -41,6 +41,8 @@ import {
   resolveInstructions,
   resolveProviderForLanguage,
   generateSpeechFile,
+  generateBookSummary,
+  buildBookSummaryConfig,
 } from "@adt/pipeline"
 import type { TranslationConfig, QuizPageInput, ProviderRouting } from "@adt/pipeline"
 import { loadStyleguideContent } from "./pipeline-runner"
@@ -349,6 +351,40 @@ async function runExtractStep(
       progress.emit({ type: "step-complete", step: "translation" })
     } else {
       progress.emit({ type: "step-skip", step: "translation" })
+    }
+
+    // Generate book summary from page text
+    progress.emit({ type: "step-start", step: "book-summary" })
+    try {
+      const bookSummaryConfig = buildBookSummaryConfig(config)
+      const summaryModel = createLLMModel({
+        modelId: bookSummaryConfig.modelId,
+        cacheDir,
+        promptEngine,
+        rateLimiter,
+        onLog: onLlmLog,
+      })
+      const summaryPages = pages.map((page) => ({
+        pageNumber: page.pageNumber,
+        text: page.text,
+      }))
+      const summaryResult = await generateBookSummary(
+        summaryPages,
+        bookSummaryConfig,
+        summaryModel
+      )
+      storage.putNodeData("book-summary", "book", summaryResult)
+      progress.emit({ type: "step-complete", step: "book-summary" })
+      console.log(`[step-run] ${label}: book summary complete`)
+    } catch (err) {
+      const msg = toErrorMessage(err)
+      console.error(`[step-run] ${label}: book summary failed: ${msg}`)
+      progress.emit({
+        type: "step-error",
+        step: "book-summary",
+        error: msg,
+      })
+      throw err
     }
   } finally {
     storage.close()

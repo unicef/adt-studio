@@ -7,6 +7,7 @@ export type StepName =
   | "extract"
   | "metadata"
   | "text-classification"
+  | "book-summary"
   | "translation"
   | "image-classification"
   | "page-sectioning"
