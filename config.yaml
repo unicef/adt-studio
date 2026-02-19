@@ -144,6 +144,14 @@ section_render_strategies:
   activity_sorting: activity_sorting
   activity_open_ended_answer: activity_open_ended_answer
 
+quiz_generation:
+  quiz_section_types:
+    - boxed_text
+    - text_only
+    - text_and_single_image
+    - text_and_images
+    - images_only
+
 pruned_text_types:
   - header_text
   - footer_text
