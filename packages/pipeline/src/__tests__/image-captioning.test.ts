@@ -171,6 +171,7 @@ describe("captionPageImages", () => {
     expect(capturedOptions?.context?.language_code).toBe("en")
     expect(capturedOptions?.context?.language).toBe("English")
     expect(capturedOptions?.context?.page_image_base64).toBe("base64pageimage")
+    expect(capturedOptions?.context?.book_summary).toBeUndefined()
     expect(capturedOptions?.log?.taskType).toBe("image-captioning")
     expect(capturedOptions?.log?.pageId).toBe("pg001")
 
@@ -180,6 +181,38 @@ describe("captionPageImages", () => {
       reasoning: "Shows a diagram of the water cycle",
       caption: "The water cycle showing evaporation and condensation",
     })
+  })
+
+  it("passes book summary to LLM context when provided", async () => {
+    let capturedOptions: GenerateObjectOptions | null = null
+    const llm = makeFakeLLMModel(
+      [
+        {
+          image_id: "pg001_im001",
+          reasoning: "A diagram",
+          caption: "Water cycle diagram",
+        },
+      ],
+      (options) => {
+        capturedOptions = options
+      }
+    )
+
+    await captionPageImages(
+      {
+        pageId: "pg001",
+        pageImageBase64: "base64pageimage",
+        images: [{ imageId: "pg001_im001", imageBase64: "base64img1" }],
+        language: "en",
+        bookSummary: "A grade 3 science textbook about the water cycle.",
+      },
+      { promptName: "image_captioning", modelId: "openai:gpt-4.1" },
+      llm
+    )
+
+    expect(capturedOptions?.context?.book_summary).toBe(
+      "A grade 3 science textbook about the water cycle."
+    )
   })
 
   it("handles multiple images per page", async () => {

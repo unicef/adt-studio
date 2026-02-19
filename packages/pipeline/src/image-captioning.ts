@@ -9,6 +9,7 @@ export interface CaptionPageInput {
   pageImageBase64: string
   images: { imageId: string; imageBase64: string }[]
   language: string
+  bookSummary?: string
 }
 
 export interface CaptionConfig {
@@ -76,6 +77,7 @@ export async function captionPageImages(
       page_image_base64: input.pageImageBase64,
       images: input.images,
       ...languageContext,
+      ...(input.bookSummary ? { book_summary: input.bookSummary } : {}),
     },
     validate: (
       raw: unknown
