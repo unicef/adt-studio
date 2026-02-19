@@ -47,8 +47,10 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
   const [minStddev, setMinStddev] = useState("")
   const [metadataModel, setMetadataModel] = useState("")
   const [extractionModel, setExtractionModel] = useState("")
+  const [bookSummaryModel, setBookSummaryModel] = useState("")
   const [metadataPromptDraft, setMetadataPromptDraft] = useState<string | null>(null)
   const [extractionPromptDraft, setExtractionPromptDraft] = useState<string | null>(null)
+  const [bookSummaryPromptDraft, setBookSummaryPromptDraft] = useState<string | null>(null)
 
   // Track which field groups the user has actually touched
   const [dirty, setDirty] = useState<Record<string, boolean>>({})
@@ -85,6 +87,10 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
     if (merged.text_classification && typeof merged.text_classification === "object") {
       const tc = merged.text_classification as Record<string, unknown>
       if (tc.model) setExtractionModel(String(tc.model))
+    }
+    if (merged.book_summary && typeof merged.book_summary === "object") {
+      const bs = merged.book_summary as Record<string, unknown>
+      if (bs.model) setBookSummaryModel(String(bs.model))
     }
   }, [activeConfigData])
 
@@ -171,6 +177,10 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
       const existing = (bookConfigData?.config?.text_classification ?? {}) as Record<string, unknown>
       overrides.text_classification = { ...existing, model: extractionModel.trim() || undefined }
     }
+    if (shouldWrite("book_summary")) {
+      const existing = (bookConfigData?.config?.book_summary ?? {}) as Record<string, unknown>
+      overrides.book_summary = { ...existing, model: bookSummaryModel.trim() || undefined }
+    }
 
     return overrides
   }
@@ -180,6 +190,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
     const promptSaves: Promise<unknown>[] = []
     if (metadataPromptDraft != null) promptSaves.push(api.updatePrompt("metadata_extraction", metadataPromptDraft, bookLabel))
     if (extractionPromptDraft != null) promptSaves.push(api.updatePrompt("text_classification", extractionPromptDraft, bookLabel))
+    if (bookSummaryPromptDraft != null) promptSaves.push(api.updatePrompt("book_summary", bookSummaryPromptDraft, bookLabel))
     if (promptSaves.length > 0) await Promise.all(promptSaves)
 
     const overrides = buildOverrides()
@@ -190,6 +201,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
           setDirty({})
           setMetadataPromptDraft(null)
           setExtractionPromptDraft(null)
+          setBookSummaryPromptDraft(null)
           setShowRerunDialog(false)
           // Start step-scoped extract run — blocks until data is cleared on backend
           startRun("extract", "extract")
@@ -206,7 +218,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
   }
 
   return (
-    <div className={tab === "metadata-prompt" || tab === "prompt" ? "h-full max-w-4xl" : "p-4 space-y-6"}>
+    <div className={tab === "metadata-prompt" || tab === "prompt" || tab === "book-summary-prompt" ? "h-full max-w-4xl" : "p-4 space-y-6"}>
       {tab === "general" && (
         <>
           {/* Page Range */}
@@ -414,6 +426,19 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
           onModelChange={(v) => { setExtractionModel(v); markDirty("text_classification") }}
           onContentChange={setExtractionPromptDraft}
           enabled={tab === "prompt"}
+        />
+      )}
+
+      {tab === "book-summary-prompt" && (
+        <PromptViewer
+          promptName="book_summary"
+          bookLabel={bookLabel}
+          title="Book Summary Prompt"
+          description="The prompt template used to generate a short book summary at the end of extract. The summary is generated in the configured editing language."
+          model={bookSummaryModel}
+          onModelChange={(v) => { setBookSummaryModel(v); markDirty("book_summary") }}
+          onContentChange={setBookSummaryPromptDraft}
+          enabled={tab === "book-summary-prompt"}
         />
       )}
 

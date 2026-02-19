@@ -175,13 +175,31 @@ export function createBookRoutes(
 
     const db = openBookDb(dbPath)
     try {
-      // Check if pages exist (extract step)
+      // Extract is only complete when all extract artifacts exist.
       const pageRows = db.all("SELECT COUNT(*) as count FROM pages") as Array<{ count: number }>
-      const hasPages = (pageRows[0]?.count ?? 0) > 0
+      const pageCount = pageRows[0]?.count ?? 0
+      const hasPages = pageCount > 0
 
       // Get all distinct nodes that have data
       const nodeRows = db.all("SELECT DISTINCT node FROM node_data") as Array<{ node: string }>
       const nodes = new Set(nodeRows.map((r) => r.node))
+
+      const textClassificationRows = db.all(
+        "SELECT COUNT(DISTINCT item_id) as count FROM node_data WHERE node = 'text-classification'"
+      ) as Array<{ count: number }>
+      const textClassificationCount = textClassificationRows[0]?.count ?? 0
+
+      const imageClassificationRows = db.all(
+        "SELECT COUNT(DISTINCT item_id) as count FROM node_data WHERE node = 'image-classification'"
+      ) as Array<{ count: number }>
+      const imageClassificationCount = imageClassificationRows[0]?.count ?? 0
+
+      const hasMetadata = nodes.has("metadata")
+      const hasBookSummary = nodes.has("book-summary")
+      const hasAllPageClassifications =
+        hasPages &&
+        textClassificationCount >= pageCount &&
+        imageClassificationCount >= pageCount
 
       // Map nodes → step slugs
       const NODE_TO_STEP: Record<string, string> = {
@@ -197,7 +215,9 @@ export function createBookRoutes(
       }
 
       const steps: Record<string, boolean> = {}
-      if (hasPages) steps.extract = true
+      if (hasMetadata && hasBookSummary && hasAllPageClassifications) {
+        steps.extract = true
+      }
       for (const node of nodes) {
         const step = NODE_TO_STEP[node]
         if (step) steps[step] = true

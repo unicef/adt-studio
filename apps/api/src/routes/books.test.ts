@@ -4,7 +4,6 @@ import os from "node:os"
 import path from "node:path"
 import { openBookDb, createBookStorage } from "@adt/storage"
 import { SCHEMA_VERSION } from "@adt/types"
-import { createBookStorage } from "@adt/storage"
 import { createBookRoutes } from "./books.js"
 
 let tmpDir: string
@@ -361,6 +360,47 @@ function addPagesAndRenderings(label: string, count: number): void {
   }
 }
 
+function addExtractPages(label: string, count: number): void {
+  const storage = createBookStorage(label, tmpDir)
+  try {
+    for (let i = 1; i <= count; i++) {
+      const pageId = `${label}_p${i}`
+      storage.putExtractedPage({
+        pageId,
+        pageNumber: i,
+        text: `Page ${i}`,
+        pageImage: {
+          imageId: `${pageId}_page`,
+          buffer: Buffer.from("fake-png"),
+          format: "png",
+          hash: `hash${i}`,
+          width: 800,
+          height: 600,
+        },
+        images: [],
+      })
+    }
+  } finally {
+    storage.close()
+  }
+}
+
+function addExtractNodes(label: string, count: number, includeSummary = true): void {
+  const storage = createBookStorage(label, tmpDir)
+  try {
+    for (let i = 1; i <= count; i++) {
+      const pageId = `${label}_p${i}`
+      storage.putNodeData("text-classification", pageId, { groups: [] })
+      storage.putNodeData("image-classification", pageId, { images: [] })
+    }
+    if (includeSummary) {
+      storage.putNodeData("book-summary", "book", { summary: "Test summary" })
+    }
+  } finally {
+    storage.close()
+  }
+}
+
 function acceptBook(label: string): void {
   const storage = createBookStorage(label, tmpDir)
   try {
@@ -434,6 +474,37 @@ describe("POST /books/:label/accept-storyboard", () => {
     const detailRes = await app.request("/books/accepted-detail")
     const book = await detailRes.json()
     expect(book.storyboardAccepted).toBe(true)
+  })
+})
+
+describe("GET /books/:label/step-status", () => {
+  it("does not mark extract complete when only pages exist", async () => {
+    createTestBook("extract-incomplete")
+    addExtractPages("extract-incomplete", 2)
+    const app = createBookRoutes(tmpDir)
+
+    const res = await app.request("/books/extract-incomplete/step-status")
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.steps.extract).not.toBe(true)
+  })
+
+  it("marks extract complete only when summary and per-page classifications exist", async () => {
+    createTestBook("extract-complete")
+    addExtractPages("extract-complete", 2)
+    addExtractNodes("extract-complete", 2, false)
+    const app = createBookRoutes(tmpDir)
+
+    const beforeSummaryRes = await app.request("/books/extract-complete/step-status")
+    expect(beforeSummaryRes.status).toBe(200)
+    const beforeSummaryBody = await beforeSummaryRes.json()
+    expect(beforeSummaryBody.steps.extract).not.toBe(true)
+
+    addExtractNodes("extract-complete", 2, true)
+    const afterSummaryRes = await app.request("/books/extract-complete/step-status")
+    expect(afterSummaryRes.status).toBe(200)
+    const afterSummaryBody = await afterSummaryRes.json()
+    expect(afterSummaryBody.steps.extract).toBe(true)
   })
 })
 

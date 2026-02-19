@@ -192,7 +192,7 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
           </div>
         </>
       )
-    } else if (pageList.length > 0) {
+    } else if (pageList.length > 0 && !extractRunning) {
       setOnLabelClick(null)
       setExtra(
         <span className="ml-auto text-[11px] font-medium bg-white/20 rounded-full px-2.5 py-0.5">
@@ -207,7 +207,7 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
       setExtra(null)
       setOnLabelClick(null)
     }
-  }, [selectedPageId, selectedPage?.pageNumber, pageList.length, prevPageId, nextPageId, setExtra, setOnLabelClick])
+  }, [selectedPageId, selectedPage?.pageNumber, pageList.length, prevPageId, nextPageId, extractRunning, setExtra, setOnLabelClick])
 
   // Keyboard arrow navigation
   useEffect(() => {
@@ -232,8 +232,8 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
     )
   }
 
-  // Page detail view
-  if (selectedPageId && pages) {
+  // Page detail view (only when extract run is not active)
+  if (selectedPageId && pages && !extractRunning) {
     return (
       <ExtractPageDetail
         bookLabel={bookLabel}
@@ -245,22 +245,20 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
   // Page grid view
   return (
     <div>
-      {pageList.length > 0 && <BookBanner bookLabel={bookLabel} pages={pages} />}
+      {!extractRunning && pageList.length > 0 && <BookBanner bookLabel={bookLabel} pages={pages} />}
       <div className="p-4">
-      {pageList.length === 0 ? (
-        extractRunning ? (
-          <StepRunCard
-            stepSlug="extract"
-            subSteps={EXTRACT_SUB_STEPS}
-            isRunning
-            onRun={() => {}}
-            disabled
-          />
-        ) : (
-          <p className="text-sm text-muted-foreground">
-            No pages extracted yet. Run the pipeline to extract content.
-          </p>
-        )
+      {extractRunning ? (
+        <StepRunCard
+          stepSlug="extract"
+          subSteps={EXTRACT_SUB_STEPS}
+          isRunning
+          onRun={() => {}}
+          disabled
+        />
+      ) : pageList.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          No pages extracted yet. Run the pipeline to extract content.
+        </p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
           {pageList.map((page) => (

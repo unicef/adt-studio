@@ -56,6 +56,7 @@ const EXTRACT_SETTINGS_TABS = [
   { key: "text-types", label: "Text Types" },
   { key: "metadata-prompt", label: "Metadata Prompt" },
   { key: "prompt", label: "Extraction Prompt" },
+  { key: "book-summary-prompt", label: "Summary Prompt" },
 ]
 
 const STORYBOARD_SETTINGS_TABS = [
