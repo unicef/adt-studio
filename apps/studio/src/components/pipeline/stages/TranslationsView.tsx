@@ -12,6 +12,11 @@ import { STAGE_DESCRIPTIONS } from "../stage-config"
 import { cn } from "@/lib/utils"
 import { getBaseLanguage, normalizeLocale } from "@/lib/languages"
 
+const IMAGE_ID_RE = /_im\d{3}/
+function isImageEntry(id: string): boolean {
+  return IMAGE_ID_RE.test(id)
+}
+
 const langNames = new Intl.DisplayNames(["en"], { type: "language" })
 function displayLang(code: string): string {
   try { return langNames.of(code) ?? code } catch { return code }
@@ -135,7 +140,7 @@ function VersionPicker({
   )
 }
 
-export function TranslationsView({ bookLabel, selectedPageId }: { bookLabel: string; selectedPageId?: string }) {
+export function TranslationsView({ bookLabel, selectedPageId, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
   const { setExtra } = useStepHeader()
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const queryClient = useQueryClient()
@@ -302,6 +307,18 @@ export function TranslationsView({ bookLabel, selectedPageId }: { bookLabel: str
     )
   }
 
+  const showAllButton = selectedPageId ? (
+    <div className="flex justify-center pt-2 pb-4">
+      <button
+        type="button"
+        onClick={() => onSelectPage?.(null)}
+        className="text-xs font-medium text-pink-600 hover:text-pink-700 hover:underline transition-colors"
+      >
+        Show all text &amp; speech
+      </button>
+    </div>
+  ) : null
+
   // No output languages — just show source entries
   if (!hasTranslations) {
     if (selectedPageId && displayEntries.length === 0 && entries.length > 0) {
@@ -318,7 +335,7 @@ export function TranslationsView({ bookLabel, selectedPageId }: { bookLabel: str
     return (
       <div className="space-y-1">
         {displayEntries.map((entry) => (
-          <EntryRow key={entry.id} entry={entry} />
+          <EntryRow key={entry.id} entry={entry} bookLabel={bookLabel} />
         ))}
       </div>
     )
@@ -372,11 +389,21 @@ export function TranslationsView({ bookLabel, selectedPageId }: { bookLabel: str
         {displayEntries.map((entry) => {
           const translated = translatedMap.get(entry.id)
           const audio = audioMap.get(entry.id)
+          const isImg = isImageEntry(entry.id)
           return (
             <div key={entry.id} className="grid grid-cols-2 gap-3 px-3 py-2.5 rounded-md border bg-card">
-              <div>
-                <span className="text-[10px] text-muted-foreground">{entry.id}</span>
-                <p className="text-sm leading-relaxed mt-0.5">{entry.text}</p>
+              <div className="flex items-start gap-3">
+                {isImg && (
+                  <img
+                    src={`/api/books/${bookLabel}/images/${entry.id}`}
+                    alt=""
+                    className="shrink-0 w-16 h-12 rounded object-cover ring-1 ring-border"
+                  />
+                )}
+                <div className="min-w-0">
+                  <span className="text-[10px] text-muted-foreground">{entry.id}</span>
+                  <p className="text-sm leading-relaxed mt-0.5">{entry.text}</p>
+                </div>
               </div>
               <div className="flex items-start gap-2">
                 <div className="flex-1 min-w-0">
@@ -403,6 +430,7 @@ export function TranslationsView({ bookLabel, selectedPageId }: { bookLabel: str
         })}
       </div>
       )}
+      {showAllButton}
     </div>
   )
 }
@@ -449,9 +477,17 @@ function PlayButton({ audioUrl }: { audioUrl: string }) {
   )
 }
 
-function EntryRow({ entry }: { entry: TextCatalogEntry }) {
+function EntryRow({ entry, bookLabel }: { entry: TextCatalogEntry; bookLabel: string }) {
+  const isImg = isImageEntry(entry.id)
   return (
     <div className="flex items-start gap-3 px-3 py-2.5 rounded-md border bg-card">
+      {isImg && (
+        <img
+          src={`/api/books/${bookLabel}/images/${entry.id}`}
+          alt=""
+          className="shrink-0 w-16 h-12 rounded object-cover ring-1 ring-border"
+        />
+      )}
       <span className="shrink-0 text-[10px] font-medium text-muted-foreground w-32 truncate pt-0.5" title={entry.id}>
         {entry.id}
       </span>

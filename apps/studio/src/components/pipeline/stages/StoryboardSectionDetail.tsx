@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from "react"
 import { createPortal } from "react-dom"
-import { Check, Eye, EyeOff, Layers, Loader2, ChevronDown, Sparkles, ChevronRight, PanelRightOpen, PanelRightClose, Save, X } from "lucide-react"
+import { Check, Eye, EyeOff, LayoutGrid, Layers, Loader2, ChevronDown, Sparkles, ChevronRight, PanelRightOpen, PanelRightClose, Save, X } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/api/client"
 import type { PageDetail, VersionEntry } from "@/api/client"
@@ -1271,8 +1271,12 @@ export function StoryboardSectionDetail({
             applyBodyBackground={applyBodyBackground}
           />
         ) : (
-          <div className="p-4 text-sm text-muted-foreground border rounded">
-            No rendered content for this section.
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+            <div className="w-12 h-12 rounded-full bg-violet-50 flex items-center justify-center mb-3">
+              <LayoutGrid className="w-6 h-6 text-violet-300" />
+            </div>
+            <p className="text-sm font-medium">No rendered content for this section</p>
+            <p className="text-xs mt-1">This section has no storyboard rendering yet</p>
           </div>
         )}
 

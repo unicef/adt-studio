@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react"
-import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react"
+import { ArrowLeft, ArrowRight, LayoutGrid, Loader2 } from "lucide-react"
 import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../StepViewRouter"
 import { useStepRun } from "@/hooks/use-step-run"
@@ -226,8 +226,12 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
 
   if (sectionCount === 0) {
     return (
-      <div className="p-4 text-sm text-muted-foreground">
-        This page has no sections.
+      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+        <div className="w-12 h-12 rounded-full bg-violet-50 flex items-center justify-center mb-3">
+          <LayoutGrid className="w-6 h-6 text-violet-300" />
+        </div>
+        <p className="text-sm font-medium">No sections for this page</p>
+        <p className="text-xs mt-1">This page has no storyboard sections</p>
       </div>
     )
   }

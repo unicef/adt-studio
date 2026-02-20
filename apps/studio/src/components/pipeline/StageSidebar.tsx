@@ -141,8 +141,10 @@ export function StageSidebar({
           )}
         >
           <Link
-            to="/books/$label/$step"
-            params={{ label: bookLabel, step: step.slug }}
+            to={selectedPageId && hasStagePages(step.slug) ? "/books/$label/$step/$pageId" : "/books/$label/$step"}
+            params={selectedPageId && hasStagePages(step.slug)
+              ? { label: bookLabel, step: step.slug, pageId: selectedPageId }
+              : { label: bookLabel, step: step.slug }}
             className={cn("flex items-center gap-2.5 min-w-0", x.flex1)}
             title={step.label}
           >
