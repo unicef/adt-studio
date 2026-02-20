@@ -1,15 +1,13 @@
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { createFileRoute, Outlet, useParams, useNavigate, Link, useMatchRoute } from "@tanstack/react-router"
-import { useQueryClient } from "@tanstack/react-query"
 import { Home, Settings, RotateCcw, Terminal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DebugPanel } from "@/components/debug/DebugPanel"
 import { StageSidebar } from "@/components/pipeline/StageSidebar"
 import { STAGES } from "@/components/pipeline/stage-config"
 import { useBook } from "@/hooks/use-books"
-import { useStageRunSSE, StageRunContext, type QueueRunOptions } from "@/hooks/use-stage-run"
+import { useBookRunStatus, BookRunProvider } from "@/hooks/use-book-run"
 import { useSettingsDialog } from "@/routes/__root"
-import { api } from "@/api/client"
 
 export const Route = createFileRoute("/books/$label")({
   component: BookLayout,
@@ -17,6 +15,16 @@ export const Route = createFileRoute("/books/$label")({
 
 function BookLayout() {
   const { label } = Route.useParams()
+  const bookRun = useBookRunStatus(label)
+
+  return (
+    <BookRunProvider value={bookRun}>
+      <BookLayoutInner label={label} isRunning={bookRun.isRunning} />
+    </BookRunProvider>
+  )
+}
+
+function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boolean }) {
   const { step, pageId } = useParams({ strict: false }) as { step?: string; pageId?: string }
   const matchRoute = useMatchRoute()
   const navigate = useNavigate()
@@ -45,66 +53,6 @@ function BookLayout() {
     [navigate, label, activeStep]
   )
 
-  // Step run SSE state
-  const [sseEnabled, setSseEnabled] = useState(false)
-  const { progress, startRun, reset } = useStageRunSSE(label, sseEnabled)
-
-  // Auto-reconnect if a step run is already in progress on mount
-  useEffect(() => {
-    let cancelled = false
-    api.getStagesStatus(label).then((status) => {
-      if (cancelled) return
-      if (status.status === "running") {
-        if (status.fromStage && status.toStage) {
-          startRun(status.fromStage, status.toStage)
-        }
-        // Also restore queued runs so UI shows them
-        for (const q of status.queue ?? []) {
-          startRun(q.fromStage, q.toStage)
-        }
-        setSseEnabled(true)
-      }
-    }).catch(() => {})
-    return () => { cancelled = true }
-  }, [label, startRun])
-
-  // Disable SSE when run completes
-  useEffect(() => {
-    if (!progress.isRunning && (progress.isComplete || progress.error)) {
-      // Keep SSE off, progress state preserved for "done" indicators
-      setSseEnabled(false)
-    }
-  }, [progress.isRunning, progress.isComplete, progress.error])
-
-  // Serialized run queue — chains API calls so they arrive in click order
-  const runChainRef = useRef<Promise<void>>(Promise.resolve())
-  const queryClient = useQueryClient()
-
-  const queueRun = useCallback(
-    (options: QueueRunOptions) => {
-      const { fromStage, toStage, apiKey, azure } = options
-
-      // Update UI immediately (synchronous, no race)
-      startRun(fromStage, toStage)
-      setSseEnabled(true)
-
-      // Chain the API call so it waits for any previous call to finish.
-      runChainRef.current = runChainRef.current.then(async () => {
-        try {
-          await api.runStages(label, apiKey, { fromStage, toStage }, azure)
-          // Backend cleared step_completions before responding — refetch
-          // to pick up the new DB state. invalidateQueries keeps stale
-          // data visible during the fetch so unrelated stages don't flash.
-          queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"] })
-        } catch {
-          // Don't reset — other stages may still be running/queued
-        }
-      })
-    },
-    [label, startRun, setSseEnabled, queryClient]
-  )
-
-  const ctxValue = { progress, startRun, reset, setSseEnabled, queueRun }
   const { openSettings } = useSettingsDialog()
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -122,19 +70,17 @@ function BookLayout() {
 
   if (isDebugRoute) {
     return (
-      <StageRunContext value={ctxValue}>
-        <div className="flex flex-1 min-h-0 flex-col">
-          <Outlet />
-        </div>
-      </StageRunContext>
+      <div className="flex flex-1 min-h-0 flex-col">
+        <Outlet />
+      </div>
     )
   }
 
   return (
-    <StageRunContext value={ctxValue}>
+    <>
       <div className="flex flex-1 min-h-0 flex-col">
         <div className="flex flex-1 min-h-0">
-          {/* Left sidebar — spacer reserves layout width, inner panel expands on hover */}
+          {/* Left sidebar */}
           <div className="w-[220px] shrink-0 relative">
             <div className="absolute inset-y-0 left-0 w-full bg-background flex flex-col z-30 overflow-hidden">
               {/* App header */}
@@ -197,7 +143,7 @@ function BookLayout() {
         {debugOpen && !isDebugRoute && (
           <DebugPanel
             label={label}
-            isRunning={progress.isRunning}
+            isRunning={isRunning}
             onClose={() => setDebugOpen(false)}
           />
         )}
@@ -214,6 +160,6 @@ function BookLayout() {
           <Terminal className="h-4 w-4" />
         </Button>
       )}
-    </StageRunContext>
+    </>
   )
 }

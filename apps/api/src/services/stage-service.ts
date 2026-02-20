@@ -1,4 +1,5 @@
-import type { ProgressEvent } from "@adt/types"
+import { STAGE_ORDER, type ProgressEvent } from "@adt/types"
+import type { StageName } from "@adt/types"
 
 export type StageRunStatus = "idle" | "running" | "completed" | "failed"
 
@@ -61,8 +62,12 @@ export interface StageRunner {
   ): Promise<void>
 }
 
+export type RunStageState = "running" | "queued" | "error"
+
 export interface StageService {
   getStatus(label: string): BookRunStatus
+  /** Get the run-derived state for each stage (running/queued/error). Stages not returned are idle from the run perspective. */
+  getStageStates(label: string): Partial<Record<StageName, RunStageState>>
   addListener(label: string, listener: StageEventListener): () => void
   startStageRun(
     label: string,
@@ -130,7 +135,13 @@ export function createStageService(
 
   function drainQueue(label: string): void {
     const state = books.get(label)
-    if (!state || state.queue.length === 0) return
+    if (!state) return
+    if (state.queue.length === 0) {
+      // Do not keep stale completed/failed jobs as active. Leaving them here
+      // makes a fresh SSE connection immediately emit complete/error and close.
+      state.active = null
+      return
+    }
 
     const next = state.queue.shift()!
     const job: StageRunJob = {
@@ -164,6 +175,45 @@ export function createStageService(
           toStage: q.toStage,
         })),
       }
+    },
+
+    getStageStates(label: string): Partial<Record<StageName, RunStageState>> {
+      const state = books.get(label)
+      if (!state) return {}
+      const out: Partial<Record<StageName, RunStageState>> = {}
+
+      // Active run — mark stages in its range
+      if (state.active) {
+        const { status, fromStage, toStage, error } = state.active
+        const from = STAGE_ORDER.indexOf(fromStage as StageName)
+        const to = STAGE_ORDER.indexOf(toStage as StageName)
+        if (from !== -1 && to !== -1) {
+          for (let i = from; i <= to; i++) {
+            if (status === "running") {
+              out[STAGE_ORDER[i]] = "running"
+            } else if (status === "failed") {
+              out[STAGE_ORDER[i]] = "error"
+            }
+            // completed → handled by DB step_completions, not here
+          }
+        }
+      }
+
+      // Queued runs — mark stages in their ranges
+      for (const q of state.queue) {
+        const from = STAGE_ORDER.indexOf(q.fromStage as StageName)
+        const to = STAGE_ORDER.indexOf(q.toStage as StageName)
+        if (from !== -1 && to !== -1) {
+          for (let i = from; i <= to; i++) {
+            // Don't overwrite "running" with "queued"
+            if (!out[STAGE_ORDER[i]]) {
+              out[STAGE_ORDER[i]] = "queued"
+            }
+          }
+        }
+      }
+
+      return out
     },
 
     addListener(

@@ -19,7 +19,7 @@ import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
 import { PromptViewer } from "@/components/pipeline/PromptViewer"
 import { LanguagePicker } from "@/components/LanguagePicker"
-import { useStageRun } from "@/hooks/use-stage-run"
+import { useBookRun } from "@/hooks/use-book-run"
 import { normalizeLocale } from "@/lib/languages"
 import { SpeechPromptsEditor } from "./SpeechPromptsEditor"
 import { VoiceMappingsEditor } from "./VoiceMappingsEditor"
@@ -29,7 +29,7 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
   const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
-  const { queueRun } = useStageRun()
+  const { queueRun } = useBookRun()
   const navigate = useNavigate()
   const [showRerunDialog, setShowRerunDialog] = useState(false)
 

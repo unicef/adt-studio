@@ -5,8 +5,7 @@ import { api, getAudioUrl } from "@/api/client"
 import type { TextCatalogEntry, VersionEntry } from "@/api/client"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useStepHeader } from "../StepViewRouter"
-import { useStageRun } from "@/hooks/use-stage-run"
-import { useIsStageDone } from "@/hooks/use-stage-completion"
+import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { StageRunCard } from "../StageRunCard"
 import { STAGE_DESCRIPTIONS } from "../stage-config"
@@ -140,11 +139,11 @@ export function TranslationsView({ bookLabel, selectedPageId }: { bookLabel: str
   const { setExtra } = useStepHeader()
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const queryClient = useQueryClient()
-  const { progress: stepProgress, queueRun } = useStageRun()
+  const { stageState, queueRun } = useBookRun()
   const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
-  const stageState = stepProgress.steps.get("text-and-speech")?.state
-  const textAndSpeechDone = useIsStageDone(bookLabel, "text-and-speech")
-  const isRunning = stageState === "running" || stageState === "queued"
+  const ttsState = stageState("text-and-speech")
+  const textAndSpeechDone = ttsState === "done"
+  const isRunning = ttsState === "running" || ttsState === "queued"
   const showRunCard = !textAndSpeechDone || isRunning
 
   const handleRunTranslations = useCallback(() => {
@@ -298,6 +297,7 @@ export function TranslationsView({ bookLabel, selectedPageId }: { bookLabel: str
           stageSlug="text-and-speech"
           description={STAGE_DESCRIPTIONS["text-and-speech"]}
           isRunning={isRunning}
+          completed={textAndSpeechDone}
           onRun={handleRunTranslations}
           disabled={!hasApiKey || isRunning}
         />

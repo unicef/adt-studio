@@ -2,8 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react"
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react"
 import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../StepViewRouter"
-import { useStageRun } from "@/hooks/use-stage-run"
-import { useIsStageDone } from "@/hooks/use-stage-completion"
+import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { StageRunCard } from "../StageRunCard"
 import { STAGE_DESCRIPTIONS } from "../stage-config"
@@ -14,10 +13,10 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const { data: pages, isLoading: pagesLoading } = usePages(bookLabel)
   const setSelectedPageId = onSelectPage ?? (() => {})
   const { setExtra, setOnLabelClick } = useStepHeader()
-  const { progress: stepProgress, queueRun } = useStageRun()
+  const { stageState, queueRun } = useBookRun()
   const { apiKey, hasApiKey } = useApiKey()
-  const storyboardState = stepProgress.steps.get("storyboard")?.state
-  const storyboardDone = useIsStageDone(bookLabel, "storyboard")
+  const storyboardState = stageState("storyboard")
+  const storyboardDone = storyboardState === "done"
   const storyboardRunning = storyboardState === "running" || storyboardState === "queued"
   const showRunCard = !storyboardDone || storyboardRunning
 
@@ -202,6 +201,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
           stageSlug="storyboard"
           description={STAGE_DESCRIPTIONS.storyboard}
           isRunning={storyboardRunning}
+          completed={storyboardDone}
           onRun={handleRunStoryboard}
           disabled={!hasApiKey || storyboardRunning}
         />
@@ -244,6 +244,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
           stageSlug="storyboard"
           description={STAGE_DESCRIPTIONS.storyboard}
           isRunning={storyboardRunning}
+          completed={storyboardDone}
           onRun={handleRunStoryboard}
           disabled={!hasApiKey || storyboardRunning}
         />

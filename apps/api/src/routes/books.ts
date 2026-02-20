@@ -156,47 +156,7 @@ export function createBookRoutes(
     }
   })
 
-  // GET /books/:label/step-status — Which pipeline steps are complete
-  app.get("/books/:label/step-status", (c) => {
-    const { label } = c.req.param()
-    let safeLabel: string
-    try {
-      safeLabel = parseBookLabel(label)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      throw new HTTPException(400, { message })
-    }
-    const resolvedDir = path.resolve(booksDir)
-    const dbPath = path.join(resolvedDir, safeLabel, `${safeLabel}.db`)
-
-    if (!fs.existsSync(dbPath)) {
-      return c.json({ steps: {}, completedNodes: [] })
-    }
-
-    const db = openBookDb(dbPath)
-    try {
-      // Read explicit step completion records (populated by the step runner)
-      const rows = db.all("SELECT step FROM step_completions") as Array<{ step: string }>
-      const completedSteps = new Set(rows.map((r) => r.step))
-
-      // A stage is complete when ALL its steps are complete
-      const steps: Record<string, boolean> = {}
-      for (const stage of PIPELINE) {
-        if (stage.steps.length === 0) continue
-        if (stage.steps.every((s) => completedSteps.has(s.name))) {
-          steps[stage.name] = true
-        }
-      }
-
-      // Check if ADT is packaged (preview step)
-      const adtDir = path.join(resolvedDir, safeLabel, "adt")
-      if (fs.existsSync(adtDir)) steps.preview = true
-
-      return c.json({ steps, completedNodes: [...completedSteps] })
-    } finally {
-      db.close()
-    }
-  })
+  // NOTE: step-status endpoint is now in stages.ts (needs StageService for run state)
 
   // GET /books/:label/export — Download book as ZIP or EPUB
   app.get("/books/:label/export", async (c) => {

@@ -6,8 +6,7 @@ import { api } from "@/api/client"
 import type { GlossaryOutput, VersionEntry } from "@/api/client"
 import { useGlossary } from "@/hooks/use-glossary"
 import { useStepHeader } from "../StepViewRouter"
-import { useStageRun } from "@/hooks/use-stage-run"
-import { useIsStageDone } from "@/hooks/use-stage-completion"
+import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { StageRunCard } from "../StageRunCard"
 import { STAGE_DESCRIPTIONS } from "../stage-config"
@@ -134,10 +133,10 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
   const queryClient = useQueryClient()
   const { data, isLoading } = useGlossary(bookLabel)
   const { setExtra } = useStepHeader()
-  const { progress: stepProgress, queueRun } = useStageRun()
+  const { stageState, queueRun } = useBookRun()
   const { apiKey, hasApiKey } = useApiKey()
-  const glossaryState = stepProgress.steps.get("glossary")?.state
-  const glossaryDone = useIsStageDone(bookLabel, "glossary")
+  const glossaryState = stageState("glossary")
+  const glossaryDone = glossaryState === "done"
   const glossaryRunning = glossaryState === "running" || glossaryState === "queued"
   const showRunCard = !glossaryDone || glossaryRunning
 
@@ -219,6 +218,7 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
           stageSlug="glossary"
           description={STAGE_DESCRIPTIONS.glossary}
           isRunning={glossaryRunning}
+          completed={glossaryDone}
           onRun={handleRunGlossary}
           disabled={!hasApiKey || glossaryRunning}
         />

@@ -6,18 +6,15 @@ import {
   ChevronDown,
   Loader2,
 } from "lucide-react"
-import { useQuery } from "@tanstack/react-query"
-import { api } from "@/api/client"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { useStageRun } from "@/hooks/use-stage-run"
+import { useBookRun } from "@/hooks/use-book-run"
 import { StepProgressRing } from "./StepProgressRing"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useExportBook } from "@/hooks/use-books"
 import {
   STAGES,
   hasStagePages,
-  isStageCompleted,
   toCamelLabel,
 } from "./stage-config"
 
@@ -84,21 +81,11 @@ export function StageSidebar({
 }) {
   const matchRoute = useMatchRoute()
   const search = useSearch({ strict: false }) as { tab?: string }
-  const { progress: stepRunProgress } = useStageRun()
-  const { data: stepStatusData } = useQuery({
-    queryKey: ["books", bookLabel, "step-status"],
-    queryFn: () => api.getStepStatus(bookLabel),
-    enabled: !!bookLabel,
-  })
-  const completedSteps = stepStatusData?.steps ?? {}
+  const { stageState } = useBookRun()
 
-  const activeStageState = stepRunProgress.steps.get(activeStep)?.state
-  const activeStageRunning =
-    activeStageState === "running" || activeStageState === "queued"
   const effectivePagesOpen =
     hasStagePages(activeStep) &&
-    isStageCompleted(activeStep, completedSteps) &&
-    !activeStageRunning
+    stageState(activeStep) === "done"
 
   const isSettings = !!matchRoute({
     to: "/books/$label/$step/settings",
@@ -125,11 +112,9 @@ export function StageSidebar({
     const Icon = step.icon
     const settingsTabs = SETTINGS_TABS[step.slug]
     const showSubTabs = isActive && isSettings && !!settingsTabs
-    const stepProgress = stepRunProgress.steps.get(step.slug)
-    const rawRingState = stepProgress?.state ?? "idle"
-    const stageCompleted = isStageCompleted(step.slug, completedSteps)
-    // DB says complete → stop the spinner, same logic as BookView
-    const ringState = stageCompleted && (rawRingState === "running" || rawRingState === "queued") ? "idle" : rawRingState
+    const state = stageState(step.slug)
+    const stageCompleted = state === "done"
+    const ringState = state
 
     return (
       <div key={step.slug} className="relative">

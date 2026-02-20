@@ -7,8 +7,7 @@ import { useQuizzes } from "@/hooks/use-quizzes"
 import { usePageImage } from "@/hooks/use-pages"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { useStepHeader } from "../StepViewRouter"
-import { useStageRun } from "@/hooks/use-stage-run"
-import { useIsStageDone } from "@/hooks/use-stage-completion"
+import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { StageRunCard } from "../StageRunCard"
 import { STAGE_DESCRIPTIONS } from "../stage-config"
@@ -272,10 +271,10 @@ export function QuizzesView({ bookLabel, selectedPageId }: { bookLabel: string; 
   const queryClient = useQueryClient()
   const { data, isLoading } = useQuizzes(bookLabel)
   const { setExtra } = useStepHeader()
-  const { progress: stepProgress, queueRun } = useStageRun()
+  const { stageState, queueRun } = useBookRun()
   const { apiKey, hasApiKey } = useApiKey()
-  const quizzesState = stepProgress.steps.get("quizzes")?.state
-  const quizzesDone = useIsStageDone(bookLabel, "quizzes")
+  const quizzesState = stageState("quizzes")
+  const quizzesDone = quizzesState === "done"
   const quizzesRunning = quizzesState === "running" || quizzesState === "queued"
   const showRunCard = !quizzesDone || quizzesRunning
 
@@ -387,6 +386,7 @@ export function QuizzesView({ bookLabel, selectedPageId }: { bookLabel: string; 
           stageSlug="quizzes"
           description={STAGE_DESCRIPTIONS.quizzes}
           isRunning={quizzesRunning}
+          completed={quizzesDone}
           onRun={handleRunQuizzes}
           disabled={!hasApiKey || quizzesRunning}
         />

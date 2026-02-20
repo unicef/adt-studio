@@ -1,9 +1,11 @@
+import fs from "node:fs"
+import path from "node:path"
 import { Hono } from "hono"
 import { streamSSE } from "hono/streaming"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
-import { createBookStorage } from "@adt/storage"
-import { StageName, PIPELINE, getStageClearNodes, getStageClearOrder } from "@adt/types"
+import { createBookStorage, openBookDb } from "@adt/storage"
+import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageClearNodes, getStageClearOrder } from "@adt/types"
 import type { StageService, StageSSEEvent } from "../services/stage-service.js"
 
 const StageRunBody = z
@@ -107,30 +109,85 @@ export function createStageRoutes(
     return c.json({ status: result.status, label, fromStage, toStage })
   })
 
-  // GET /books/:label/stages/status — Get stage run status (JSON or SSE)
+  // GET /books/:label/step-status — Unified stage + step status
+  // Merges DB step_completions with in-memory StageService run state.
+  app.get("/books/:label/step-status", (c) => {
+    const { label } = c.req.param()
+    let safeLabel: string
+    try {
+      safeLabel = parseBookLabel(label)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err)
+      throw new HTTPException(400, { message })
+    }
+    const resolvedDir = path.resolve(booksDir)
+    const dbPath = path.join(resolvedDir, safeLabel, `${safeLabel}.db`)
+
+    // Run-derived states from the in-memory service
+    const runStates = stageService.getStageStates(label)
+    const { active } = stageService.getStatus(label)
+
+    if (!fs.existsSync(dbPath)) {
+      // No DB yet — only return run states
+      const stages: Record<string, string> = {}
+      for (const stage of STAGE_ORDER) {
+        stages[stage] = runStates[stage] ?? "idle"
+      }
+      const steps: Record<string, string> = {}
+      for (const stage of PIPELINE) {
+        for (const step of stage.steps) {
+          steps[step.name] = "idle"
+        }
+      }
+      return c.json({ stages, steps, error: active?.error ?? null })
+    }
+
+    const db = openBookDb(dbPath)
+    try {
+      const rows = db.all("SELECT step FROM step_completions") as Array<{ step: string }>
+      const completedSteps = new Set(rows.map((r) => r.step))
+
+      // Compute per-stage state: run state takes priority over DB completion
+      const stages: Record<string, string> = {}
+      for (const stage of PIPELINE) {
+        const runState = runStates[stage.name]
+        if (runState) {
+          stages[stage.name] = runState
+        } else if (stage.steps.length > 0 && stage.steps.every((s) => completedSteps.has(s.name))) {
+          stages[stage.name] = "done"
+        } else {
+          stages[stage.name] = "idle"
+        }
+      }
+
+      // Check if ADT is packaged (preview stage)
+      const adtDir = path.join(resolvedDir, safeLabel, "adt")
+      if (fs.existsSync(adtDir)) stages.preview = "done"
+
+      // Compute per-step state: "done" from DB, "idle" otherwise
+      // (SSE will overlay "running" on the frontend side)
+      const steps: Record<string, string> = {}
+      for (const stage of PIPELINE) {
+        for (const step of stage.steps) {
+          steps[step.name] = completedSteps.has(step.name) ? "done" : "idle"
+        }
+      }
+
+      return c.json({ stages, steps, error: active?.error ?? null })
+    } finally {
+      db.close()
+    }
+  })
+
+  // GET /books/:label/stages/status — Always-on SSE stream for stage run events.
+  // The connection stays open until the client disconnects. Events are pushed
+  // whenever a stage run emits progress, completes, errors, or a queued run starts.
   app.get("/books/:label/stages/status", (c) => {
     const { label } = c.req.param()
     const accept = c.req.header("accept") ?? ""
 
     if (accept.includes("text/event-stream")) {
       return streamSSE(c, async (stream) => {
-        const { active: job } = stageService.getStatus(label)
-
-        if (job?.status === "completed") {
-          await stream.writeSSE({
-            event: "complete",
-            data: JSON.stringify({ label }),
-          })
-          return
-        }
-        if (job?.status === "failed") {
-          await stream.writeSSE({
-            event: "error",
-            data: JSON.stringify({ label, error: job.error }),
-          })
-          return
-        }
-
         const eventQueue: StageSSEEvent[] = []
         let done = false
 
@@ -139,28 +196,12 @@ export function createStageRoutes(
           eventQueue.push(event)
         })
 
-        // Re-check after subscribing to avoid race
-        const { active: jobAfterSubscribe } = stageService.getStatus(label)
-        if (
-          jobAfterSubscribe?.status === "completed" ||
-          jobAfterSubscribe?.status === "failed"
-        ) {
-          const event =
-            jobAfterSubscribe.status === "completed" ? "complete" : "error"
-          const data =
-            jobAfterSubscribe.status === "completed"
-              ? { label }
-              : { label, error: jobAfterSubscribe.error }
-          await stream.writeSSE({ event, data: JSON.stringify(data) })
-          unsubscribe()
-          return
-        }
-
         stream.onAbort(() => {
           done = true
           unsubscribe()
         })
 
+        // Keep streaming until the client disconnects
         while (!done) {
           while (eventQueue.length > 0) {
             const event = eventQueue.shift()!
@@ -183,14 +224,6 @@ export function createStageRoutes(
                   event: "complete",
                   data: JSON.stringify({ label: event.label }),
                 })
-                // Only close the stream if nothing else is running or queued
-                const { active, queue } = stageService.getStatus(label)
-                if (!active || active.status !== "running") {
-                  if (queue.length === 0) {
-                    done = true
-                    break
-                  }
-                }
               } else if (event.type === "stage-run-error") {
                 await stream.writeSSE({
                   event: "error",
@@ -199,14 +232,6 @@ export function createStageRoutes(
                     error: event.error,
                   }),
                 })
-                // Only close the stream if nothing else is running or queued
-                const { active, queue } = stageService.getStatus(label)
-                if (!active || active.status !== "running") {
-                  if (queue.length === 0) {
-                    done = true
-                    break
-                  }
-                }
               }
             } catch {
               done = true
@@ -222,6 +247,7 @@ export function createStageRoutes(
       })
     }
 
+    // JSON fallback for non-SSE requests
     const { active, queue } = stageService.getStatus(label)
     if (!active) {
       return c.json({ status: "idle", label, queue: [] })

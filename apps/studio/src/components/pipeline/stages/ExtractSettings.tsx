@@ -21,7 +21,7 @@ import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
 import { PromptViewer } from "@/components/pipeline/PromptViewer"
 import { PruneToggle } from "@/components/pipeline/PruneToggle"
-import { useStageRun } from "@/hooks/use-stage-run"
+import { useBookRun } from "@/hooks/use-book-run"
 import { normalizeLocale } from "@/lib/languages"
 
 export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
@@ -29,7 +29,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
   const { apiKey, hasApiKey } = useApiKey()
-  const { queueRun } = useStageRun()
+  const { queueRun } = useBookRun()
   const navigate = useNavigate()
   const [showRerunDialog, setShowRerunDialog] = useState(false)
 

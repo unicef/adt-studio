@@ -2,8 +2,7 @@ import { useEffect } from "react"
 import { AlignLeft, ArrowLeft, ArrowRight, BookOpen, Building2, FileText, Globe, Image, Loader2, User } from "lucide-react"
 import { useBook } from "@/hooks/use-books"
 import { usePages, usePageImage } from "@/hooks/use-pages"
-import { useStageRun } from "@/hooks/use-stage-run"
-import { useIsStageDone } from "@/hooks/use-stage-completion"
+import { useBookRun } from "@/hooks/use-book-run"
 import { ExtractPageDetail } from "./ExtractPageDetail"
 import { useStepHeader } from "../StepViewRouter"
 import { StageRunCard } from "../StageRunCard"
@@ -144,12 +143,12 @@ function BookBanner({ bookLabel, pages }: { bookLabel: string; pages: PageSummar
 
 export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
   const { data: pages, isLoading } = usePages(bookLabel)
-  const { progress: stepProgress } = useStageRun()
+  const { stageState } = useBookRun()
   const selectedPageId = selectedPageIdProp ?? null
   const setSelectedPageId = onSelectPage ?? (() => {})
   const { setExtra, setOnLabelClick } = useStepHeader()
-  const extractState = stepProgress.steps.get("extract")?.state
-  const extractDone = useIsStageDone(bookLabel, "extract")
+  const extractState = stageState("extract")
+  const extractDone = extractState === "done"
   const extractRunning = extractState === "running" || extractState === "queued"
   const showRunCard = !extractDone || extractRunning
 
@@ -255,6 +254,7 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
         <StageRunCard
           stageSlug="extract"
           isRunning={extractRunning}
+          completed={extractDone}
           onRun={() => {}}
           disabled
         />

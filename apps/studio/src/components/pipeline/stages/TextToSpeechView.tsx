@@ -3,8 +3,7 @@ import { Loader2, Play, Pause, Volume2 } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { api, getAudioUrl } from "@/api/client"
 import { useStepHeader } from "../StepViewRouter"
-import { useStageRun } from "@/hooks/use-stage-run"
-import { useIsStageDone } from "@/hooks/use-stage-completion"
+import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { StageRunCard } from "../StageRunCard"
 import { STAGE_DESCRIPTIONS } from "../stage-config"
@@ -13,11 +12,11 @@ import { cn } from "@/lib/utils"
 
 export function TextToSpeechView({ bookLabel }: { bookLabel: string }) {
   const { setExtra } = useStepHeader()
-  const { progress: stepProgress, queueRun } = useStageRun()
+  const { stageState, queueRun } = useBookRun()
   const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
-  const stageState = stepProgress.steps.get("text-and-speech")?.state
-  const textAndSpeechDone = useIsStageDone(bookLabel, "text-and-speech")
-  const ttsRunning = stageState === "running" || stageState === "queued"
+  const ttsState = stageState("text-and-speech")
+  const textAndSpeechDone = ttsState === "done"
+  const ttsRunning = ttsState === "running" || ttsState === "queued"
   const showRunCard = !textAndSpeechDone || ttsRunning
 
   const handleRunTTS = useCallback(() => {
@@ -96,6 +95,7 @@ export function TextToSpeechView({ bookLabel }: { bookLabel: string }) {
           stageSlug="text-and-speech"
           description={STAGE_DESCRIPTIONS["text-and-speech"]}
           isRunning={ttsRunning}
+          completed={textAndSpeechDone}
           onRun={handleRunTTS}
           disabled={!hasApiKey || ttsRunning}
         />

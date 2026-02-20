@@ -5,8 +5,7 @@ import { api } from "@/api/client"
 import type { PageDetail, VersionEntry } from "@/api/client"
 import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../StepViewRouter"
-import { useStageRun } from "@/hooks/use-stage-run"
-import { useIsStageDone } from "@/hooks/use-stage-completion"
+import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { StageRunCard } from "../StageRunCard"
 import { STAGE_DESCRIPTIONS } from "../stage-config"
@@ -219,10 +218,10 @@ function PageCaptions({ bookLabel, pageId, pageNumber }: { bookLabel: string; pa
 export function CaptionsView({ bookLabel, selectedPageId }: { bookLabel: string; selectedPageId?: string }) {
   const { data: pages, isLoading } = usePages(bookLabel)
   const { setExtra } = useStepHeader()
-  const { progress: stepProgress, queueRun } = useStageRun()
+  const { stageState, queueRun } = useBookRun()
   const { apiKey, hasApiKey } = useApiKey()
-  const captionsState = stepProgress.steps.get("captions")?.state
-  const captionsDone = useIsStageDone(bookLabel, "captions")
+  const captionsState = stageState("captions")
+  const captionsDone = captionsState === "done"
   const captionsRunning = captionsState === "running" || captionsState === "queued"
   const showRunCard = !captionsDone || captionsRunning
 
@@ -266,6 +265,7 @@ export function CaptionsView({ bookLabel, selectedPageId }: { bookLabel: string;
           stageSlug="captions"
           description={STAGE_DESCRIPTIONS.captions}
           isRunning={captionsRunning}
+          completed={captionsDone}
           onRun={handleRunCaptions}
           disabled={!hasApiKey || captionsRunning}
         />

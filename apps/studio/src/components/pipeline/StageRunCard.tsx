@@ -6,7 +6,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { PIPELINE } from "@adt/types"
 import type { StageName } from "@adt/types"
 import { STAGES } from "./stage-config"
-import { useStageRun } from "@/hooks/use-stage-run"
+import { useBookRun } from "@/hooks/use-book-run"
 
 export interface StageSubStep {
   key: string
@@ -23,8 +23,6 @@ interface StageRunCardProps {
   description?: string
   isRunning: boolean
   completed?: boolean
-  /** Nodes that have data on the server — used for explicit per-step completion */
-  completedNodes?: ReadonlySet<string>
   showRunButton?: boolean
   onRun: () => void
   disabled: boolean
@@ -46,20 +44,19 @@ export function StageRunCard({
   description,
   isRunning,
   completed,
-  completedNodes,
   showRunButton = true,
   onRun,
   disabled,
 }: StageRunCardProps) {
   const stage = STAGES.find((s) => s.slug === stageSlug) ?? STAGES[0]
-  const { progress } = useStageRun()
-  const { subSteps: subStepProgress, error, targetSteps } = progress
+  const { stageState, stepState, stepProgress, error } = useBookRun()
+  const stageStatus = stageState(stageSlug)
   const subSteps = STAGE_SUB_STEPS[stageSlug as StageName] ?? []
   const Icon = stage.icon
   const color = stage.color
   const borderColor = stage.borderDark
-  const hasError = !!error && targetSteps.has(stageSlug)
-  const isCompleted = completed || progress.steps.get(stageSlug)?.state === "done"
+  const hasError = stageStatus === "error"
+  const isCompleted = completed ?? (stageStatus === "done")
   const hasSubSteps = subSteps.length > 0
   const hoverColorClass = HOVER_BG_BY_COLOR[color] ?? "hover:bg-gray-600"
   const buttonToneClass = isCompleted
@@ -91,11 +88,12 @@ export function StageRunCard({
         {hasSubSteps && (
           <div className="space-y-1.5 w-48 shrink-0">
             {subSteps.map(({ key, label }) => {
-              const sub = subStepProgress.get(key)
-              const isDone = sub?.state === "done" || (!sub && completedNodes?.has(key))
-              const isSubRunning = sub?.state === "running"
-              const isError = sub?.state === "error"
-              const hasPages = sub?.page != null && sub?.totalPages != null && sub.totalPages > 0
+              const state = stepState(key)
+              const progress = stepProgress(key)
+              const isDone = state === "done"
+              const isSubRunning = state === "running"
+              const isError = state === "error"
+              const hasPages = isSubRunning && progress?.page != null && progress?.totalPages != null && progress.totalPages > 0
 
               return (
                 <div
@@ -116,7 +114,7 @@ export function StageRunCard({
                   )}
                   <span>{label}</span>
                   {isSubRunning && hasPages && (
-                    <span className="text-muted-foreground tabular-nums">{sub.page}/{sub.totalPages}</span>
+                    <span className="text-muted-foreground tabular-nums">{progress?.page}/{progress?.totalPages}</span>
                   )}
                 </div>
               )
