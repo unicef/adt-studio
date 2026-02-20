@@ -16,10 +16,10 @@ import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
-import { PromptViewer } from "@/components/v2/PromptViewer"
+import { PromptViewer } from "@/components/pipeline/PromptViewer"
 import { useStepRun } from "@/hooks/use-step-run"
 
-export function GlossarySettings({ bookLabel, headerTarget }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
+export function CaptionsSettings({ bookLabel, headerTarget }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
@@ -38,9 +38,9 @@ export function GlossarySettings({ bookLabel, headerTarget }: { bookLabel: strin
   useEffect(() => {
     if (!activeConfigData) return
     const merged = activeConfigData.merged as Record<string, unknown>
-    if (merged.glossary && typeof merged.glossary === "object") {
-      const g = merged.glossary as Record<string, unknown>
-      if (g.model) setModel(String(g.model))
+    if (merged.image_captioning && typeof merged.image_captioning === "object") {
+      const ic = merged.image_captioning as Record<string, unknown>
+      if (ic.model) setModel(String(ic.model))
     }
   }, [activeConfigData])
 
@@ -51,9 +51,9 @@ export function GlossarySettings({ bookLabel, headerTarget }: { bookLabel: strin
     const overrides: Record<string, unknown> = {}
     if (bookConfigData?.config) Object.assign(overrides, bookConfigData.config)
 
-    if (shouldWrite("glossary")) {
-      const existing = (bookConfigData?.config?.glossary ?? {}) as Record<string, unknown>
-      overrides.glossary = {
+    if (shouldWrite("image_captioning")) {
+      const existing = (bookConfigData?.config?.image_captioning ?? {}) as Record<string, unknown>
+      overrides.image_captioning = {
         ...existing,
         model: model.trim() || undefined,
       }
@@ -63,7 +63,7 @@ export function GlossarySettings({ bookLabel, headerTarget }: { bookLabel: strin
 
   const confirmSaveAndRerun = async () => {
     const promptSaves: Promise<unknown>[] = []
-    if (promptDraft != null) promptSaves.push(api.updatePrompt("glossary", promptDraft, bookLabel))
+    if (promptDraft != null) promptSaves.push(api.updatePrompt("image_captioning", promptDraft, bookLabel))
     if (promptSaves.length > 0) await Promise.all(promptSaves)
 
     const overrides = buildOverrides()
@@ -74,12 +74,12 @@ export function GlossarySettings({ bookLabel, headerTarget }: { bookLabel: strin
           setDirty({})
           setPromptDraft(null)
           setShowRerunDialog(false)
-          startRun("glossary", "glossary")
+          startRun("captions", "captions")
           setSseEnabled(true)
-          await api.runSteps(bookLabel, apiKey, { fromStep: "glossary", toStep: "glossary" })
-          queryClient.removeQueries({ queryKey: ["books", bookLabel, "glossary"] })
+          await api.runSteps(bookLabel, apiKey, { fromStep: "captions", toStep: "captions" })
+          queryClient.removeQueries({ queryKey: ["books", bookLabel, "pages"] })
           queryClient.removeQueries({ queryKey: ["books", bookLabel] })
-          navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "glossary" } })
+          navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "captions" } })
         },
       }
     )
@@ -88,12 +88,12 @@ export function GlossarySettings({ bookLabel, headerTarget }: { bookLabel: strin
   return (
     <div className="h-full max-w-4xl">
       <PromptViewer
-        promptName="glossary"
+        promptName="image_captioning"
         bookLabel={bookLabel}
-        title="Glossary Prompt"
-        description="The prompt template used to generate glossary terms from book content."
+        title="Caption Prompt"
+        description="The prompt template used to generate captions for images in the book."
         model={model}
-        onModelChange={(v) => { setModel(v); markDirty("glossary") }}
+        onModelChange={(v) => { setModel(v); markDirty("image_captioning") }}
         onContentChange={setPromptDraft}
       />
 
@@ -113,9 +113,9 @@ export function GlossarySettings({ bookLabel, headerTarget }: { bookLabel: strin
       <Dialog open={showRerunDialog} onOpenChange={setShowRerunDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Save &amp; Rerun Glossary</DialogTitle>
+            <DialogTitle>Save &amp; Rerun Captions</DialogTitle>
             <DialogDescription>
-              This will save your settings and re-run glossary generation.
+              This will save your settings and re-run image captioning.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

@@ -7,7 +7,7 @@ import { useStepRun } from "@/hooks/use-step-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
 import { StageRunCard } from "../StageRunCard"
-import { STEP_DESCRIPTIONS } from "../StepSidebar"
+import { STAGE_DESCRIPTIONS } from "../stage-config"
 import { StoryboardSectionDetail } from "./StoryboardSectionDetail"
 
 
@@ -222,7 +222,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
       <div className="p-4">
         <StageRunCard
           stageSlug="storyboard"
-          description={STEP_DESCRIPTIONS.storyboard}
+          description={STAGE_DESCRIPTIONS.storyboard}
           isRunning={storyboardRunning}
           onRun={handleRunStoryboard}
           disabled={!hasApiKey || storyboardRunning}

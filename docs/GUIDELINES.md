@@ -681,8 +681,8 @@ Key files:
 - `packages/pipeline/src/dag.ts` — Generic DAG runner
 - `packages/pipeline/src/pipeline-dag.ts` — Pipeline-specific DAG executor
 - `apps/api/src/services/step-runner.ts` — API-side stage runners
-- `apps/studio/src/components/v2/StageRunCard.tsx` — UI card (sub-steps derived from PIPELINE)
-- `apps/studio/src/components/v2/stages/` — Per-stage view components
+- `apps/studio/src/components/pipeline/StageRunCard.tsx` — UI card (sub-steps derived from PIPELINE)
+- `apps/studio/src/components/pipeline/stages/` — Per-stage view components
 
 ### Pipeline Functions
 
@@ -1140,7 +1140,7 @@ pnpm lint
 | DAG runner | `packages/pipeline/src/dag.ts` |
 | API stage runners | `apps/api/src/services/step-runner.ts` |
 | LLM client | `packages/llm/src/client.ts` |
-| Stage view components | `apps/studio/src/components/v2/stages/` |
+| Stage view components | `apps/studio/src/components/pipeline/stages/` |
 | Global config | `config/` |
 | Templates | `templates/` |
 

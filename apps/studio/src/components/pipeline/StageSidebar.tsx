@@ -1,14 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { Link, useMatchRoute, useSearch } from "@tanstack/react-router"
 import {
-  BookMarked,
-  FileText,
-  LayoutGrid,
-  HelpCircle,
-  Image,
-  BookOpen,
-  Languages,
-  Eye,
   Settings,
   RotateCcw,
   FileDown,
@@ -24,33 +16,12 @@ import { useStepRun } from "@/hooks/use-step-run"
 import { StepProgressRing } from "./StepProgressRing"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useExportBook } from "@/hooks/use-books"
-
-export const STEPS = [
-  { slug: "book", label: "Book", runningLabel: "Loading Book", icon: BookMarked, color: "bg-gray-500", textColor: "text-gray-600", bgLight: "bg-gray-50", bgDark: "bg-gray-700", borderColor: "border-gray-200" },
-  { slug: "extract", label: "Extract", runningLabel: "Extracting", icon: FileText, color: "bg-blue-500", textColor: "text-blue-600", bgLight: "bg-blue-50", bgDark: "bg-blue-700", borderColor: "border-blue-200" },
-  { slug: "storyboard", label: "Storyboard", runningLabel: "Building Storyboard", icon: LayoutGrid, color: "bg-violet-500", textColor: "text-violet-600", bgLight: "bg-violet-50", bgDark: "bg-violet-700", borderColor: "border-violet-200" },
-  { slug: "quizzes", label: "Quizzes", runningLabel: "Generating Quizzes", icon: HelpCircle, color: "bg-orange-500", textColor: "text-orange-600", bgLight: "bg-orange-50", bgDark: "bg-orange-700", borderColor: "border-orange-200" },
-  { slug: "captions", label: "Captions", runningLabel: "Captioning Images", icon: Image, color: "bg-teal-500", textColor: "text-teal-600", bgLight: "bg-teal-50", bgDark: "bg-teal-700", borderColor: "border-teal-200" },
-  { slug: "glossary", label: "Glossary", runningLabel: "Generating Glossary", icon: BookOpen, color: "bg-lime-500", textColor: "text-lime-600", bgLight: "bg-lime-50", bgDark: "bg-lime-700", borderColor: "border-lime-200" },
-  { slug: "text-and-speech", label: "Text & Speech", runningLabel: "Translating", icon: Languages, color: "bg-pink-500", textColor: "text-pink-600", bgLight: "bg-pink-50", bgDark: "bg-pink-700", borderColor: "border-pink-200" },
-  { slug: "preview", label: "Preview", runningLabel: "Building Preview", icon: Eye, color: "bg-gray-500", textColor: "text-gray-600", bgLight: "bg-gray-50", bgDark: "bg-gray-700", borderColor: "border-gray-200" },
-] as const
-
-export type StepSlug = (typeof STEPS)[number]["slug"]
-
-export const STEP_DESCRIPTIONS: Record<string, string> = {
-  extract: "Extract text and images from each page of the PDF using AI-powered analysis.",
-  storyboard: "Arrange extracted content into a structured storyboard with pages, sections, and layouts.",
-  quizzes: "Generate comprehension quizzes and activities based on the book content.",
-  captions: "Create descriptive captions for images to improve accessibility.",
-  glossary: "Build a glossary of key terms and definitions found in the text.",
-  "text-and-speech": "Translate the book content and generate audio narration.",
-  preview: "Package and preview the final ADT web application.",
-}
-
-export function toCamelLabel(label: string): string {
-  return label.split(/[-_]+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join("")
-}
+import {
+  STAGES,
+  hasStagePages,
+  isStageCompleted,
+  toCamelLabel,
+} from "./stage-config"
 
 const EXTRACT_SETTINGS_TABS = [
   { key: "general", label: "General" },
@@ -102,10 +73,6 @@ const SETTINGS_TABS: Record<string, { key: string; label: string }[]> = {
   "text-and-speech": TRANSLATIONS_SETTINGS_TABS,
 }
 
-export function isStepCompleted(slug: string, completedSteps: Record<string, boolean>): boolean {
-  return !!completedSteps[slug]
-}
-
 const HOVER_BG_BY_COLOR: Record<string, string> = {
   "bg-gray-500": "hover:bg-gray-500",
   "bg-blue-500": "hover:bg-blue-500",
@@ -116,10 +83,7 @@ const HOVER_BG_BY_COLOR: Record<string, string> = {
   "bg-pink-500": "hover:bg-pink-500",
 }
 
-/** Steps that have a per-page navigation panel */
-const STEPS_WITH_PAGES = new Set(["storyboard", "quizzes", "captions", "text-and-speech"])
-
-export function StepSidebar({
+export function StageSidebar({
   bookLabel,
   activeStep,
   selectedPageId,
@@ -140,7 +104,7 @@ export function StepSidebar({
   })
   const completedSteps = stepStatusData?.steps ?? {}
 
-  const hasPages = STEPS_WITH_PAGES.has(activeStep)
+  const hasPages = hasStagePages(activeStep)
   const [pagesOpen, setPagesOpen] = useState(true)
   const effectivePagesOpen = hasPages && pagesOpen
 
@@ -151,7 +115,7 @@ export function StepSidebar({
   const activeTab = search.tab ?? "general"
 
   // Icon rail: one Link per step, always navigates
-  const iconRailSteps = STEPS.map((step) => {
+  const iconRailSteps = STAGES.map((step) => {
     const isActive = step.slug === activeStep
     const Icon = step.icon
     const stepProgress = stepRunProgress.steps.get(step.slug)
@@ -172,7 +136,7 @@ export function StepSidebar({
           <div
             className={cn(
               "flex items-center justify-center w-7 h-7 rounded-full transition-colors",
-              isActive || step.slug === "book" || isStepCompleted(step.slug, completedSteps) || ringState === "done"
+              isActive || step.slug === "book" || isStageCompleted(step.slug, completedSteps) || ringState === "done"
                 ? cn(step.color, "text-white")
                 : "bg-muted text-muted-foreground"
             )}
@@ -230,7 +194,7 @@ export function StepSidebar({
         <div className="flex-1 min-h-0 flex flex-col">
           <div className="flex-1 overflow-y-auto flex flex-col">
             <div className="flex flex-col py-3 gap-0.5 flex-1">
-              {STEPS.map((step, index) => {
+              {STAGES.map((step, index) => {
                 const isActive = step.slug === activeStep
                 const Icon = step.icon
                 const settingsTabs = SETTINGS_TABS[step.slug]
@@ -241,7 +205,7 @@ export function StepSidebar({
                 return (
                   <div key={step.slug} className="relative">
                     {/* Connector line */}
-                    {index < STEPS.length - 1 && (
+                    {index < STAGES.length - 1 && (
                       <div className="absolute left-[33px] top-[34px] bottom-[-10px] w-0.5 bg-border hidden lg:block group-hover/sidebar:block" />
                     )}
 
@@ -264,7 +228,7 @@ export function StepSidebar({
                           <div
                             className={cn(
                               "flex items-center justify-center w-7 h-7 rounded-full transition-colors",
-                              isActive || step.slug === "book" || isStepCompleted(step.slug, completedSteps) || ringState === "done"
+                              isActive || step.slug === "book" || isStageCompleted(step.slug, completedSteps) || ringState === "done"
                                 ? cn(step.color, "text-white")
                                 : "bg-muted text-muted-foreground"
                             )}
@@ -386,7 +350,7 @@ function PageIndex({
   onSelectPage?: (pageId: string) => void
 }) {
   const { data: pages } = usePages(bookLabel)
-  const activeStepDef = STEPS.find((s) => s.slug === activeStep)
+  const activeStepDef = STAGES.find((s) => s.slug === activeStep)
 
   if (!pages?.length) {
     return (

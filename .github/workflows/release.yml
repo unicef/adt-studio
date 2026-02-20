@@ -45,7 +45,11 @@ jobs:
         run: |
           REF="${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}"
           VERSION="${REF#v}"
+          # Strip pre-release suffix (e.g. 0.2.1-rc1 → 0.2.1) — WiX/MSI requires
+          # numeric-only pre-release identifiers, so any alpha suffix breaks the build.
+          VERSION_MSI="${VERSION%%-*}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version_msi=$VERSION_MSI" >> "$GITHUB_OUTPUT"
           echo "tag=${REF}" >> "$GITHUB_OUTPUT"
 
       - name: Set version in tauri.conf.json
@@ -55,7 +59,7 @@ jobs:
             const fs = require('fs');
             const p = 'apps/desktop/src-tauri/tauri.conf.json';
             const conf = JSON.parse(fs.readFileSync(p, 'utf-8'));
-            conf.version = '${{ steps.version.outputs.version }}';
+            conf.version = '${{ steps.version.outputs.version_msi }}';
             fs.writeFileSync(p, JSON.stringify(conf, null, 2) + '\n');
           "
 

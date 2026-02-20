@@ -3,7 +3,7 @@ import { createFileRoute, Outlet, useParams, useNavigate, Link, useMatchRoute } 
 import { Home, Settings, Terminal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DebugPanel } from "@/components/debug/DebugPanel"
-import { StepSidebar } from "@/components/v2/StepSidebar"
+import { StageSidebar } from "@/components/pipeline/StageSidebar"
 import { useBook } from "@/hooks/use-books"
 import { useStepRunSSE, StepRunContext } from "@/hooks/use-step-run"
 import { useSettingsDialog } from "@/routes/__root"
@@ -125,7 +125,7 @@ function BookLayout() {
 
               {/* Steps / Pages */}
               <div className="flex-1 min-h-0 flex flex-col border-r border-gray-300">
-                <StepSidebar bookLabel={label} activeStep={activeStep} selectedPageId={pageId} onSelectPage={onSelectPage} />
+                <StageSidebar bookLabel={label} activeStep={activeStep} selectedPageId={pageId} onSelectPage={onSelectPage} />
               </div>
             </div>
           </div>

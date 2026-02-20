@@ -52,6 +52,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   const readyRef = useRef(false)
   const latestHtmlRef = useRef("")
   const settledRef = useRef(false)
+  const measureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const sanitizedHtml = useMemo(() => DOMPurify.sanitize(html), [html])
   latestHtmlRef.current = sanitizedHtml
@@ -162,7 +163,8 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   // Interactive hover styles
   const interactiveStyles = editable
     ? `[data-id] { cursor: pointer; transition: outline 0.1s; }
-    [data-id]:hover { outline: 2px solid rgba(59,130,246,0.3); outline-offset: 2px; }`
+    [data-id]:hover { outline: 2px solid rgba(59,130,246,0.3); outline-offset: 2px; }
+    img[data-id] { position: relative; z-index: 1; }`
     : ""
 
   // Stable shell — loaded once, never changes
@@ -239,9 +241,12 @@ ${interactiveScript}
       doc.body.appendChild(scriptEl)
     }
 
+    // Measure multiple times to catch late reflows from Tailwind CDN, fonts, and images.
     // Wait one frame so the browser queues font loads for the new content,
     // then wait for fonts.ready so we measure the final layout.
     requestAnimationFrame(() => {
+      measureHeight()
+
       const settle = () => {
         settledRef.current = true
         measureHeight()
@@ -253,6 +258,18 @@ ${interactiveScript}
         settle()
       }
     })
+
+    // Re-measure when images finish loading (they affect content height)
+    doc.querySelectorAll("img").forEach((img) => {
+      if (!img.complete) {
+        img.addEventListener("load", measureHeight, { once: true })
+        img.addEventListener("error", measureHeight, { once: true })
+      }
+    })
+
+    // Safety net for late reflows (e.g. Tailwind CDN processing injected classes)
+    if (measureTimerRef.current) clearTimeout(measureTimerRef.current)
+    measureTimerRef.current = setTimeout(measureHeight, 500)
   }
 
   // When html prop changes, update the body directly (no iframe reload)
@@ -370,6 +387,7 @@ ${selectors}:hover {
     return () => {
       iframe.removeEventListener("load", onLoad)
       window.removeEventListener("resize", onResize)
+      if (measureTimerRef.current) clearTimeout(measureTimerRef.current)
       readyRef.current = false
       setIframeReady(false)
     }

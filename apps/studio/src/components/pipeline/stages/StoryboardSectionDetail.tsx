@@ -330,6 +330,10 @@ export function StoryboardSectionDetail({
   const previewFrameRef = useRef<BookPreviewFrameHandle>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
+  // Track current pageId so async callbacks can detect stale closures
+  const pageIdRef = useRef(pageId)
+  pageIdRef.current = pageId
+
   // Section data panel state
   const [panelOpen, setPanelOpen] = useState(false)
 
@@ -403,19 +407,29 @@ export function StoryboardSectionDetail({
     }
   }, [])
 
-  // Clear pending state when page changes
+  // Clear pending state and abort ALL in-flight requests when page changes
   useEffect(() => {
     setPendingSectioning(null)
     setPendingRendering(null)
     setSelectedElement(null)
     setCropTarget(null)
     setAiImageDialogTarget(null)
+    aiAbortRef.current?.abort()
     aiImageAbortRef.current?.abort()
     setAiImageGen(null)
     setAiInstruction("")
+    setAiLoading(false)
     setAiReasoning(null)
+    setAiReasoningOpen(false)
     setAiError(null)
+    setRerendering(false)
+    setSaving(false)
   }, [pageId])
+
+  // Reset scroll position when page or section changes
+  useEffect(() => {
+    scrollContainerRef.current?.scrollTo(0, 0)
+  }, [pageId, sectionIndex])
 
   // Dismiss toolbar on scroll (position would be stale)
   useEffect(() => {
@@ -461,12 +475,17 @@ export function StoryboardSectionDetail({
       // Automatically re-render with the updated sectioning
       if (hasApiKey) {
         setRerendering(true)
+        const capturedPageId = pageId
         api.reRenderPage(bookLabel, pageId, apiKey)
           .then(() => {
-            queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
+            // Discard if user navigated to a different page
+            if (pageIdRef.current !== capturedPageId) return
+            queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", capturedPageId] })
             queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
           })
-          .finally(() => setRerendering(false))
+          .finally(() => {
+            if (pageIdRef.current === capturedPageId) setRerendering(false)
+          })
       }
     } catch (err) {
       setAiError(err instanceof Error ? err.message : "Save failed")
@@ -1009,6 +1028,9 @@ export function StoryboardSectionDetail({
         currentHtml,
         controller.signal
       )
+
+      // Discard result if user navigated to a different page during the request
+      if (pageIdRef.current !== pageId) return
 
       // Apply the AI edit as pending rendering
       const base = pendingRendering ?? page.rendering

@@ -2,11 +2,6 @@ import { useState } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import {
   Plus,
-  Upload,
-  Cpu,
-  LayoutGrid,
-  Pencil,
-  Package,
   ArrowRight,
   BookOpen,
   Trash2,
@@ -16,45 +11,23 @@ import {
   Globe,
   CheckCircle2,
   Settings,
+  Home,
+  Pencil,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useSettingsDialog } from "@/routes/__root"
 import { Badge } from "@/components/ui/badge"
 import { DeleteBookDialog } from "@/components/books/DeleteBookDialog"
 import { useBooks, useDeleteBook } from "@/hooks/use-books"
+import { getPipelineStages, STAGE_DESCRIPTIONS } from "@/components/pipeline/stage-config"
 import type { BookSummary } from "@/api/client"
 
 export const Route = createFileRoute("/")({
   component: HomePage,
 })
 
-const WORKFLOW = [
-  {
-    icon: Upload,
-    title: "Upload PDF",
-    desc: "Add your book as a PDF. Each page is extracted as an image ready for AI processing.",
-  },
-  {
-    icon: Cpu,
-    title: "Run Pipeline",
-    desc: "AI extracts text, classifies content, identifies images, and generates HTML pages.",
-  },
-  {
-    icon: LayoutGrid,
-    title: "Review Storyboard",
-    desc: "Browse all generated pages side-by-side in a visual grid with the originals.",
-  },
-  {
-    icon: Pencil,
-    title: "Edit & Refine",
-    desc: "Fine-tune text, prune images, and re-render pages until the output is perfect.",
-  },
-  {
-    icon: Package,
-    title: "Export",
-    desc: "Download your finished book as ADT, ePub, or WebPub — ready to distribute.",
-  },
-]
+/** Pipeline stages shown in the sidebar (skip the "book" overview entry) */
+const PIPELINE_STEPS = getPipelineStages()
 
 function DetailRow({
   icon: Icon,
@@ -225,56 +198,58 @@ function HomePage() {
   const bookList = books ?? []
 
   return (
-    <div className="flex flex-1 min-h-0">
-      {/* Left — workflow guide (30%) */}
-      <div className="w-[30%] shrink-0 border-r bg-muted/30 flex flex-col overflow-auto">
-        <div className="p-5 pb-3">
-          <div className="flex items-center justify-between">
-            <h1 className="text-lg font-bold tracking-tight text-primary">ADT Studio</h1>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-7 w-7 text-muted-foreground hover:text-foreground"
-              onClick={openSettings}
-              title="API Key Settings"
-            >
-              <Settings className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            Accessible Digital Textbooks
-          </p>
+    <div className="flex flex-1 min-h-0 flex-col">
+      {/* Top bar — matches book page header */}
+      <div className="shrink-0 h-10 flex items-center bg-gray-700 text-white px-4">
+        <div className="flex items-center gap-2.5">
+          <Home className="w-4 h-4 shrink-0" />
+          <span className="text-sm font-semibold">ADT Studio</span>
         </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10 shrink-0 text-white/70 hover:text-white hover:bg-gray-600 ml-auto"
+          onClick={openSettings}
+          title="API Key Settings"
+        >
+          <Settings className="h-3.5 w-3.5" />
+        </Button>
+      </div>
 
-        <div className="px-5 pb-5 flex-1">
+      <div className="flex flex-1 min-h-0">
+      {/* Left — pipeline stages (30%) */}
+      <div className="w-[30%] shrink-0 border-r bg-muted/30 flex flex-col overflow-auto">
+        <div className="px-5 pt-5 pb-5 flex-1">
           <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-            How it works
+            Pipeline Stages
           </h2>
           <div className="space-y-1">
-            {WORKFLOW.map((step, i) => (
-              <div
-                key={step.title}
-                className="flex gap-3 p-3 rounded-lg hover:bg-background/60 transition-colors"
-              >
-                <div className="flex flex-col items-center gap-1">
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                    {i + 1}
+            {PIPELINE_STEPS.map((step, i) => {
+              const Icon = step.icon
+              return (
+                <div
+                  key={step.slug}
+                  className="flex gap-3 p-2.5 rounded-lg"
+                >
+                  <div className="flex flex-col items-center gap-1">
+                    <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${step.color} text-white`}>
+                      <Icon className="h-3 w-3" />
+                    </div>
+                    {i < PIPELINE_STEPS.length - 1 && (
+                      <div className="w-px flex-1 bg-border" />
+                    )}
                   </div>
-                  {i < WORKFLOW.length - 1 && (
-                    <div className="w-px flex-1 bg-border" />
-                  )}
-                </div>
-                <div className="min-w-0 pb-2">
-                  <div className="flex items-center gap-1.5 mb-0.5">
-                    <step.icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                    <span className="text-sm font-medium">{step.title}</span>
+                  <div className="min-w-0 pb-1">
+                    <span className="text-sm font-medium">{step.label}</span>
+                    {STAGE_DESCRIPTIONS[step.slug] && (
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        {STAGE_DESCRIPTIONS[step.slug]}
+                      </p>
+                    )}
                   </div>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    {step.desc}
-                  </p>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
 
           <Link
@@ -323,6 +298,7 @@ function HomePage() {
             </Link>
           )}
         </div>
+      </div>
       </div>
 
       <DeleteBookDialog

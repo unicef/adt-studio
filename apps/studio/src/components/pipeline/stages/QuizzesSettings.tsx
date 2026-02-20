@@ -18,7 +18,7 @@ import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
-import { PromptViewer } from "@/components/v2/PromptViewer"
+import { PromptViewer } from "@/components/pipeline/PromptViewer"
 import { useStepRun } from "@/hooks/use-step-run"
 
 export function QuizzesSettings({ bookLabel, headerTarget, tab = "general" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {

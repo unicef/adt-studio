@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { PIPELINE } from "@adt/types"
 import type { StageName } from "@adt/types"
-import { STEPS } from "./StepSidebar"
+import { STAGES } from "./stage-config"
 import { useStepRun } from "@/hooks/use-step-run"
 
 export interface StageSubStep {
@@ -48,7 +48,7 @@ export function StageRunCard({
   onRun,
   disabled,
 }: StageRunCardProps) {
-  const stepConfig = STEPS.find((s) => s.slug === stageSlug)
+  const stepConfig = STAGES.find((s) => s.slug === stageSlug)
   const { progress } = useStepRun()
   const { subSteps: subStepProgress, error, targetSteps } = progress
 
