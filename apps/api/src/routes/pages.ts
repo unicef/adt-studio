@@ -509,6 +509,22 @@ export function createPageRoutes(
       const targetImageId =
         typeof body.targetImageId === "string" ? validateImageId(body.targetImageId) : referenceImageId
 
+      // Render the global image generation prompt template (book-level override takes priority).
+      // The template may contain {{ user_prompt }} where the per-image request is injected.
+      const bookPromptPath = path.join(bookDir, "prompts", "ai_image_generation.liquid")
+      const globalPromptPath = path.join(path.resolve(promptsDir), "ai_image_generation.liquid")
+      let templateContent: string | null = null
+      if (fs.existsSync(bookPromptPath)) {
+        templateContent = fs.readFileSync(bookPromptPath, "utf-8")
+      } else if (fs.existsSync(globalPromptPath)) {
+        templateContent = fs.readFileSync(globalPromptPath, "utf-8")
+      }
+      // Use a replacer function to avoid JS special replacement patterns ($&, $1, etc.)
+      // being interpreted if the user's prompt happens to contain them.
+      const finalPrompt = templateContent
+        ? templateContent.trim().replace(/\{\{\s*user_prompt\s*\}\}/g, () => prompt)
+        : prompt
+
       // Look up target image dimensions once — used for both aspect ratio size selection
       // and returning originalWidth/originalHeight to the frontend
       let originalWidth = 0
@@ -559,7 +575,7 @@ export function createPageRoutes(
 
         const formData = new FormData()
         formData.append("model", "gpt-image-1.5")
-        formData.append("prompt", prompt)
+        formData.append("prompt", finalPrompt)
         formData.append("size", size)
         formData.append("image[]", new Blob([imageBuffer], { type: "image/png" }), `${referenceImageId}.png`)
 
@@ -579,7 +595,7 @@ export function createPageRoutes(
           },
           body: JSON.stringify({
             model: "gpt-image-1.5",
-            prompt,
+            prompt: finalPrompt,
             size,
           }),
           signal: AbortSignal.timeout(180_000),
@@ -665,7 +681,7 @@ export function createPageRoutes(
             attempt: 1,
             durationMs: Date.now() - startTime,
             messages: [
-              { role: "user", content: [{ type: "text", text: prompt }] },
+              { role: "user", content: [{ type: "text", text: finalPrompt }] },
               { role: "assistant", content: [{ type: "text", text: `Generated image: ${newImageId} (${width}x${height})` }] },
             ],
           }

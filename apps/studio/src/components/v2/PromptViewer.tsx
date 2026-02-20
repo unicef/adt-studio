@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label"
 import { useQuery } from "@tanstack/react-query"
 import { api } from "@/api/client"
 
-interface PromptViewerProps {
+interface PromptViewerBaseProps {
   /** Prompt template name to fetch (e.g. "page_sectioning") */
   promptName: string
   /** Book label for book-scoped prompt overrides */
@@ -13,10 +13,6 @@ interface PromptViewerProps {
   title: string
   /** Short description shown above the prompt */
   description: string
-  /** Current model value */
-  model: string
-  /** Called when the user changes the model */
-  onModelChange: (model: string) => void
   /** Called when the user edits the prompt content (null = reverted to original) */
   onContentChange?: (content: string | null) => void
   /** Placeholder for the model input */
@@ -24,6 +20,10 @@ interface PromptViewerProps {
   /** Whether to fetch the prompt (set false to defer loading) */
   enabled?: boolean
 }
+
+type PromptViewerProps =
+  | (PromptViewerBaseProps & { hideModel: true; model?: never; onModelChange?: never })
+  | (PromptViewerBaseProps & { hideModel?: false; model: string; onModelChange: (model: string) => void })
 
 /** Simple Liquid template syntax highlighter */
 function highlightLiquid(text: string): string {
@@ -51,6 +51,7 @@ export function PromptViewer({
   onContentChange,
   modelPlaceholder = "openai:gpt-5.2",
   enabled = true,
+  hideModel = false,
 }: PromptViewerProps) {
   const { data: promptData, isLoading } = useQuery({
     queryKey: ["prompts", promptName, bookLabel],
@@ -98,15 +99,17 @@ export function PromptViewer({
       </div>
 
       {/* Model picker */}
-      <div className="shrink-0 max-w-xs">
-        <Label className="text-xs">Model</Label>
-        <Input
-          value={model}
-          onChange={(e) => onModelChange(e.target.value)}
-          placeholder={modelPlaceholder}
-          className="mt-1 text-xs"
-        />
-      </div>
+      {!hideModel && (
+        <div className="shrink-0 max-w-xs">
+          <Label className="text-xs">Model</Label>
+          <Input
+            value={model ?? ""}
+            onChange={(e) => onModelChange?.(e.target.value)}
+            placeholder={modelPlaceholder}
+            className="mt-1 text-xs"
+          />
+        </div>
+      )}
 
       {/* Prompt editor */}
       {isLoading ? (

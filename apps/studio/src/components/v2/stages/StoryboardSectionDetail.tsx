@@ -1173,56 +1173,57 @@ export function StoryboardSectionDetail({
           </div>
         )}
 
-        {/* Background image generation indicator (non-blocking) */}
-        {aiImageGen && (
-          <div className="absolute top-3 right-3 z-40 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div
-              className={`flex items-center gap-2 rounded-full px-3.5 py-2 shadow-lg text-white text-xs font-medium ${
-                aiImageGen.status === "generating"
-                  ? "bg-purple-600"
-                  : aiImageGen.status === "done"
-                    ? "bg-green-600"
-                    : "bg-destructive"
-              }`}
-            >
-              {aiImageGen.status === "generating" && (
-                <>
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  <span>Generating image...</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      aiImageAbortRef.current?.abort()
-                      setAiImageGen(null)
-                    }}
-                    className="p-0.5 rounded-full hover:bg-white/20 transition-colors cursor-pointer"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </>
-              )}
-              {aiImageGen.status === "done" && (
-                <>
-                  <Sparkles className="h-3 w-3" />
-                  <span>Image generated</span>
-                </>
-              )}
-              {aiImageGen.status === "error" && (
-                <>
-                  <span>{aiImageGen.error ?? "Generation failed"}</span>
-                  <button
-                    type="button"
-                    onClick={() => setAiImageGen(null)}
-                    className="p-0.5 rounded-full hover:bg-white/20 transition-colors cursor-pointer"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Background image generation indicator — absolute to outer panel so it stays visible while scrolling */}
+      {aiImageGen && (
+        <div className="absolute top-3 right-3 z-40 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div
+            className={`flex items-center gap-2 rounded-full px-3.5 py-2 shadow-lg text-white text-xs font-medium ${
+              aiImageGen.status === "generating"
+                ? "bg-purple-600"
+                : aiImageGen.status === "done"
+                  ? "bg-green-600"
+                  : "bg-destructive"
+            }`}
+          >
+            {aiImageGen.status === "generating" && (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span>Generating image...</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    aiImageAbortRef.current?.abort()
+                    setAiImageGen(null)
+                  }}
+                  className="p-0.5 rounded-full hover:bg-white/20 transition-colors cursor-pointer"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </>
+            )}
+            {aiImageGen.status === "done" && (
+              <>
+                <Sparkles className="h-3 w-3" />
+                <span>Image generated</span>
+              </>
+            )}
+            {aiImageGen.status === "error" && (
+              <>
+                <span>{aiImageGen.error ?? "Generation failed"}</span>
+                <button
+                  type="button"
+                  onClick={() => setAiImageGen(null)}
+                  className="p-0.5 rounded-full hover:bg-white/20 transition-colors cursor-pointer"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Floating save/discard bar */}
       {(dirty || renderingDirty) && !saving && (
