@@ -19,6 +19,8 @@ export interface BookPreviewFrameProps {
   onSelectElement?: (dataId: string, rect: DOMRect) => void
   /** Called when a text element is edited (blur/Enter after contenteditable) */
   onTextChanged?: (dataId: string, newText: string, fullHtml: string) => void
+  /** When true (default), applies data-background-color to the iframe body */
+  applyBodyBackground?: boolean
 }
 
 /**
@@ -41,6 +43,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   changedElements,
   onSelectElement,
   onTextChanged,
+  applyBodyBackground,
 }, ref) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
@@ -241,6 +244,14 @@ ${interactiveScript}
       doc.body.appendChild(scriptEl)
     }
 
+    // Apply data-background-color from content to iframe body
+    if (applyBodyBackground !== false) {
+      const bgEl = doc.querySelector("[data-background-color]")
+      doc.body.style.backgroundColor = bgEl?.getAttribute("data-background-color") ?? ""
+    } else {
+      doc.body.style.backgroundColor = ""
+    }
+
     // Measure multiple times to catch late reflows from Tailwind CDN, fonts, and images.
     // Wait one frame so the browser queues font loads for the new content,
     // then wait for fonts.ready so we measure the final layout.
@@ -275,7 +286,7 @@ ${interactiveScript}
   // When html prop changes, update the body directly (no iframe reload)
   useEffect(() => {
     if (readyRef.current) injectAndMeasure(sanitizedHtml)
-  }, [sanitizedHtml])
+  }, [sanitizedHtml, applyBodyBackground])
 
   // Inject/update pruned element styles into the iframe
   useEffect(() => {

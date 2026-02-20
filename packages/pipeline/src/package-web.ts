@@ -25,6 +25,7 @@ export interface PackageAdtWebOptions {
   title: string
   webAssetsDir: string
   bundleVersion?: string
+  applyBodyBackground?: boolean
 }
 
 interface PageEntry {
@@ -55,6 +56,7 @@ export async function packageAdtWeb(
     title,
     webAssetsDir,
     bundleVersion = "1",
+    applyBodyBackground,
   } = options
   const language = normalizeLocale(rawLanguage)
   const outputLanguages = Array.from(new Set(rawOutputLanguages.map((code) => normalizeLocale(code))))
@@ -173,6 +175,7 @@ export async function packageAdtWeb(
             activityAnswers,
             hasMath: containsMathContent(rewrittenHtml),
             bundleVersion,
+            applyBodyBackground,
           })
           fs.writeFileSync(path.join(adtDir, `${page.pageId}.html`), pageHtml)
 
@@ -202,6 +205,7 @@ export async function packageAdtWeb(
         hasMath: false,
         bundleVersion,
         skipContentWrapper: true,
+        applyBodyBackground,
       })
       fs.writeFileSync(path.join(adtDir, `${quizId}.html`), quizPageHtml)
 
@@ -417,6 +421,7 @@ export interface RenderPageOptions {
   /** When true, content is placed directly in <body> without a <div id="content"> wrapper.
    *  Used for quiz pages whose template provides its own #content element. */
   skipContentWrapper?: boolean
+  applyBodyBackground?: boolean
 }
 
 export function renderPageHtml(opts: RenderPageOptions): string {
@@ -435,6 +440,15 @@ export function renderPageHtml(opts: RenderPageOptions): string {
     ${opts.content}
     </div>`
 
+  // Extract data-background-color from content to apply on <body>
+  let bodyStyle = ""
+  if (opts.applyBodyBackground !== false) {
+    const bgMatch = opts.content.match(/data-background-color="([^"]*)"/)
+    bodyStyle = bgMatch?.[1]
+      ? ` style="background-color: ${escapeAttr(bgMatch[1])};"`
+      : ""
+  }
+
   return `<!DOCTYPE html>
 <html lang="${escapeAttr(opts.language)}">
 
@@ -451,7 +465,7 @@ export function renderPageHtml(opts: RenderPageOptions): string {
     <link href="./assets/fonts.css" rel="stylesheet">
 ${mathScript}</head>
 
-<body class="min-h-screen flex items-center justify-center">
+<body class="min-h-screen flex items-center justify-center"${bodyStyle}>
 ${contentBlock}
 ${answersScript}
     <div class="relative z-50" id="interface-container"></div>

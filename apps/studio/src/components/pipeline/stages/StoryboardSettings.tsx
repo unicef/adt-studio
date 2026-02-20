@@ -81,6 +81,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
   const [renderingTemplateName, setRenderingTemplateName] = useState("")
   const [renderingTemperature, setRenderingTemperature] = useState("")
   const [styleguide, setStyleguide] = useState("")
+  const [applyBodyBackground, setApplyBodyBackground] = useState(true)
   const [sectioningPromptDraft, setSectioningPromptDraft] = useState<string | null>(null)
   const [renderingPromptDraft, setRenderingPromptDraft] = useState<string | null>(null)
   const [renderingTemplateDraft, setRenderingTemplateDraft] = useState<string | null>(null)
@@ -174,6 +175,8 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     }
     // Styleguide
     setStyleguide(typeof merged.styleguide === "string" ? merged.styleguide : "")
+    // Body background
+    setApplyBodyBackground(merged.apply_body_background !== false)
     // Rendering config comes from the default render strategy
     if (merged.render_strategies && merged.default_render_strategy) {
       const strategies = merged.render_strategies as Record<string, { render_type?: string; config?: { model?: string; prompt?: string; template?: string; temperature?: number } }>
@@ -294,6 +297,9 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     }
     if (shouldWrite("styleguide")) {
       overrides.styleguide = styleguide || undefined
+    }
+    if (shouldWrite("apply_body_background")) {
+      overrides.apply_body_background = applyBodyBackground
     }
     // Write rendering temperature into the default render strategy config
     if (shouldWrite("rendering_temperature") && defaultRenderStrategy) {
@@ -679,6 +685,25 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
               </div>
               <p className="text-xs text-muted-foreground mt-1.5">
                 Lower values produce more consistent styling across pages.
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Display
+              </h3>
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="apply-body-background"
+                  checked={applyBodyBackground}
+                  onCheckedChange={(v) => { setApplyBodyBackground(v); markDirty("apply_body_background") }}
+                />
+                <Label htmlFor="apply-body-background" className="text-sm font-normal">
+                  Apply page background colors
+                </Label>
+              </div>
+              <p className="text-xs text-muted-foreground mt-1.5">
+                When enabled, background colors from the styleguide are applied to the full page body.
               </p>
             </div>
           </div>
