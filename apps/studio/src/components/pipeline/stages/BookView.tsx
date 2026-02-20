@@ -1,6 +1,6 @@
 import { useCallback } from "react"
 import { Link } from "@tanstack/react-router"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { getPipelineStages, STAGE_DESCRIPTIONS, isStageCompleted } from "../stage-config"
 import { useStepRun } from "@/hooks/use-step-run"
 import { useApiKey } from "@/hooks/use-api-key"
@@ -16,31 +16,21 @@ interface ViewProps {
 
 export function BookView({ bookLabel }: ViewProps) {
   const pipelineSteps = getPipelineStages()
-  const { progress: stepRunProgress, startRun, reset, setSseEnabled } = useStepRun()
+  const { progress: stepRunProgress, queueRun } = useStepRun()
   const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
-  const queryClient = useQueryClient()
   const { data: stepStatusData } = useQuery({
     queryKey: ["books", bookLabel, "step-status"],
     queryFn: () => api.getStepStatus(bookLabel),
   })
   const completedSteps = stepStatusData?.steps ?? {}
 
-  const handleRun = useCallback(async (slug: string) => {
-    if (!hasApiKey || stepRunProgress.isRunning) return
-    try {
-      startRun(slug, slug)
-      setSseEnabled(true)
-      await api.runSteps(bookLabel, apiKey, { fromStep: slug, toStep: slug }, { key: azureKey, region: azureRegion })
-      queryClient.removeQueries({ queryKey: ["books", bookLabel, "pages"] })
-      queryClient.removeQueries({ queryKey: ["books", bookLabel] })
-      if (slug === "text-and-speech") {
-        queryClient.removeQueries({ queryKey: ["books", bookLabel, "tts"] })
-      }
-    } catch {
-      setSseEnabled(false)
-      reset()
-    }
-  }, [bookLabel, apiKey, hasApiKey, azureKey, azureRegion, stepRunProgress.isRunning, startRun, reset, setSseEnabled, queryClient])
+  const handleRun = useCallback((slug: string) => {
+    if (!hasApiKey) return
+    // Prevent duplicate: don't queue if this stage is already running or queued
+    const state = stepRunProgress.steps.get(slug)?.state
+    if (state === "running" || state === "queued") return
+    queueRun({ fromStep: slug, toStep: slug, apiKey, azure: { key: azureKey, region: azureRegion } })
+  }, [hasApiKey, stepRunProgress.steps, apiKey, azureKey, azureRegion, queueRun])
 
   return (
     <div className="flex flex-col items-start max-w-xl">
@@ -63,7 +53,7 @@ export function BookView({ bookLabel }: ViewProps) {
                 completed={isStageCompleted(step.slug, completedSteps)}
                 showRunButton={step.slug !== "preview"}
                 onRun={() => handleRun(step.slug)}
-                disabled={!hasApiKey || stepRunProgress.isRunning}
+                disabled={!hasApiKey || isRunning}
               />
             </Link>
             {!isLast && (

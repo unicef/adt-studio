@@ -218,19 +218,15 @@ function PageCaptions({ bookLabel, pageId, pageNumber }: { bookLabel: string; pa
 export function CaptionsView({ bookLabel, selectedPageId }: { bookLabel: string; selectedPageId?: string }) {
   const { data: pages, isLoading } = usePages(bookLabel)
   const { setExtra } = useStepHeader()
-  const { progress: stepProgress, startRun, setSseEnabled } = useStepRun()
+  const { progress: stepProgress, queueRun } = useStepRun()
   const { apiKey, hasApiKey } = useApiKey()
-  const queryClient = useQueryClient()
   const captionsState = stepProgress.steps.get("captions")?.state
   const captionsRunning = captionsState === "running" || captionsState === "queued"
 
-  const handleRunCaptions = useCallback(async () => {
+  const handleRunCaptions = useCallback(() => {
     if (!hasApiKey || captionsRunning) return
-    startRun("captions", "captions")
-    setSseEnabled(true)
-    await api.runSteps(bookLabel, apiKey, { fromStep: "captions", toStep: "captions" })
-    queryClient.removeQueries({ queryKey: ["books", bookLabel, "pages"] })
-  }, [bookLabel, apiKey, hasApiKey, captionsRunning, startRun, setSseEnabled, queryClient])
+    queueRun({ fromStep: "captions", toStep: "captions", apiKey })
+  }, [hasApiKey, captionsRunning, apiKey, queueRun])
 
   const pagesWithImages = (pages ?? []).filter((p) => p.imageCount > 0)
   const hasCaptionData = pagesWithImages.some((p) => p.hasCaptioning)

@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from "react"
 import { createPortal } from "react-dom"
 import { useNavigate } from "@tanstack/react-router"
-import { useQueryClient } from "@tanstack/react-query"
 import { Play, Plus, X, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -59,9 +58,8 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
   const { apiKey, hasApiKey } = useApiKey()
-  const { startRun, setSseEnabled } = useStepRun()
+  const { queueRun } = useStepRun()
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const [showRerunDialog, setShowRerunDialog] = useState(false)
   const [savingImageGenPrompt, setSavingImageGenPrompt] = useState(false)
 
@@ -348,14 +346,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
           setActivityAnswerDraft(null)
           setImageGenPromptDraft(null)
           setShowRerunDialog(false)
-          // Start step-scoped storyboard run — blocks until data is cleared on backend
-          startRun("storyboard", "storyboard")
-          setSseEnabled(true)
-          await api.runSteps(bookLabel, apiKey, { fromStep: "storyboard", toStep: "storyboard" })
-          // Remove cached data so the storyboard page shows empty state (not stale pages)
-          queryClient.removeQueries({ queryKey: ["books", bookLabel, "pages"] })
-          queryClient.removeQueries({ queryKey: ["books", bookLabel] })
-          // Navigate to the storyboard view
+          queueRun({ fromStep: "storyboard", toStep: "storyboard", apiKey })
           navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "storyboard" } })
         },
       }

@@ -1,11 +1,13 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { createFileRoute, Outlet, useParams, useNavigate, Link, useMatchRoute } from "@tanstack/react-router"
+import { useQueryClient } from "@tanstack/react-query"
 import { Home, Settings, Terminal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DebugPanel } from "@/components/debug/DebugPanel"
 import { StageSidebar } from "@/components/pipeline/StageSidebar"
 import { useBook } from "@/hooks/use-books"
-import { useStepRunSSE, StepRunContext } from "@/hooks/use-step-run"
+import { useStepRunSSE, StepRunContext, type QueueRunOptions } from "@/hooks/use-step-run"
+import { getStartInvalidationKeysForUiStep } from "@/hooks/step-run-invalidation"
 import { useSettingsDialog } from "@/routes/__root"
 import { api } from "@/api/client"
 
@@ -49,9 +51,14 @@ function BookLayout() {
   useEffect(() => {
     let cancelled = false
     api.getStepsStatus(label).then((status) => {
-      if (!cancelled && status.status === "running") {
+      if (cancelled) return
+      if (status.status === "running") {
         if (status.fromStep && status.toStep) {
           startRun(status.fromStep, status.toStep)
+        }
+        // Also restore queued runs so UI shows them
+        for (const q of status.queue ?? []) {
+          startRun(q.fromStep, q.toStep)
         }
         setSseEnabled(true)
       }
@@ -67,7 +74,37 @@ function BookLayout() {
     }
   }, [progress.isRunning, progress.isComplete, progress.error])
 
-  const ctxValue = { progress, startRun, reset, setSseEnabled }
+  // Serialized run queue — chains API calls so they arrive in click order
+  const runChainRef = useRef<Promise<void>>(Promise.resolve())
+  const queryClient = useQueryClient()
+
+  const queueRun = useCallback(
+    (options: QueueRunOptions) => {
+      const { fromStep, toStep, apiKey, azure } = options
+
+      // Update UI immediately (synchronous, no race)
+      startRun(fromStep, toStep)
+      setSseEnabled(true)
+
+      // Chain the API call so it waits for any previous call to finish
+      runChainRef.current = runChainRef.current.then(async () => {
+        try {
+          const result = await api.runSteps(label, apiKey, { fromStep, toStep }, azure)
+          if (result.status === "started") {
+            const keys = getStartInvalidationKeysForUiStep(label, fromStep)
+            for (const key of keys) {
+              queryClient.removeQueries({ queryKey: key })
+            }
+          }
+        } catch {
+          // Don't reset — other stages may still be running/queued
+        }
+      })
+    },
+    [label, startRun, setSseEnabled, queryClient]
+  )
+
+  const ctxValue = { progress, startRun, reset, setSseEnabled, queueRun }
   const { openSettings } = useSettingsDialog()
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {

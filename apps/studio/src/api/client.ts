@@ -123,6 +123,7 @@ export interface StepRunStatus {
   error?: string
   startedAt?: number
   completedAt?: number
+  queue?: Array<{ id: string; fromStep: string; toStep: string }>
 }
 
 export interface PageSummaryItem {

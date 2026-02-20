@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
 import { useNavigate } from "@tanstack/react-router"
-import { useQueryClient } from "@tanstack/react-query"
 import { Play, Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,9 +29,8 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
   const { apiKey, hasApiKey } = useApiKey()
-  const { startRun, setSseEnabled } = useStepRun()
+  const { queueRun } = useStepRun()
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const [showRerunDialog, setShowRerunDialog] = useState(false)
 
   // Form state
@@ -233,14 +231,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
           setCroppingPromptDraft(null)
           setBookSummaryPromptDraft(null)
           setShowRerunDialog(false)
-          // Start step-scoped extract run — blocks until data is cleared on backend
-          startRun("extract", "extract")
-          setSseEnabled(true)
-          await api.runSteps(bookLabel, apiKey, { fromStep: "extract", toStep: "extract" })
-          // Remove cached data so the extract page shows empty state (not stale pages)
-          queryClient.removeQueries({ queryKey: ["books", bookLabel, "pages"] })
-          queryClient.removeQueries({ queryKey: ["books", bookLabel] })
-          // Navigate back to the main extract view after data is cleared
+          queueRun({ fromStep: "extract", toStep: "extract", apiKey })
           navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "extract" } })
         },
       }

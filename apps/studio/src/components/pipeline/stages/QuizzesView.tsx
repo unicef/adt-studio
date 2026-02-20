@@ -271,18 +271,15 @@ export function QuizzesView({ bookLabel, selectedPageId }: { bookLabel: string; 
   const queryClient = useQueryClient()
   const { data, isLoading } = useQuizzes(bookLabel)
   const { setExtra } = useStepHeader()
-  const { progress: stepProgress, startRun, setSseEnabled } = useStepRun()
+  const { progress: stepProgress, queueRun } = useStepRun()
   const { apiKey, hasApiKey } = useApiKey()
   const quizzesState = stepProgress.steps.get("quizzes")?.state
   const quizzesRunning = quizzesState === "running" || quizzesState === "queued"
 
-  const handleRunQuizzes = useCallback(async () => {
+  const handleRunQuizzes = useCallback(() => {
     if (!hasApiKey || quizzesRunning) return
-    startRun("quizzes", "quizzes")
-    setSseEnabled(true)
-    await api.runSteps(bookLabel, apiKey, { fromStep: "quizzes", toStep: "quizzes" })
-    queryClient.removeQueries({ queryKey: ["books", bookLabel, "quizzes"] })
-  }, [bookLabel, apiKey, hasApiKey, quizzesRunning, startRun, setSseEnabled, queryClient])
+    queueRun({ fromStep: "quizzes", toStep: "quizzes", apiKey })
+  }, [hasApiKey, quizzesRunning, apiKey, queueRun])
 
   const [pending, setPending] = useState<QuizData | null>(null)
   const [saving, setSaving] = useState(false)

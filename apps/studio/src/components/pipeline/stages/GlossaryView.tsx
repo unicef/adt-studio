@@ -133,18 +133,15 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
   const queryClient = useQueryClient()
   const { data, isLoading } = useGlossary(bookLabel)
   const { setExtra } = useStepHeader()
-  const { progress: stepProgress, startRun, setSseEnabled } = useStepRun()
+  const { progress: stepProgress, queueRun } = useStepRun()
   const { apiKey, hasApiKey } = useApiKey()
   const glossaryState = stepProgress.steps.get("glossary")?.state
   const glossaryRunning = glossaryState === "running" || glossaryState === "queued"
 
-  const handleRunGlossary = useCallback(async () => {
+  const handleRunGlossary = useCallback(() => {
     if (!hasApiKey || glossaryRunning) return
-    startRun("glossary", "glossary")
-    setSseEnabled(true)
-    await api.runSteps(bookLabel, apiKey, { fromStep: "glossary", toStep: "glossary" })
-    queryClient.removeQueries({ queryKey: ["books", bookLabel, "glossary"] })
-  }, [bookLabel, apiKey, hasApiKey, glossaryRunning, startRun, setSseEnabled, queryClient])
+    queueRun({ fromStep: "glossary", toStep: "glossary", apiKey })
+  }, [hasApiKey, glossaryRunning, apiKey, queueRun])
 
   const [pending, setPending] = useState<GlossaryData | null>(null)
   const [saving, setSaving] = useState(false)

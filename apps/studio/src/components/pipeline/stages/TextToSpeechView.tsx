@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Loader2, Play, Pause, Volume2 } from "lucide-react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { api, getAudioUrl } from "@/api/client"
 import { useStepHeader } from "../StepViewRouter"
 import { useStepRun } from "@/hooks/use-step-run"
@@ -12,20 +12,15 @@ import { cn } from "@/lib/utils"
 
 export function TextToSpeechView({ bookLabel }: { bookLabel: string }) {
   const { setExtra } = useStepHeader()
-  const queryClient = useQueryClient()
-  const { progress: stepProgress, startRun, setSseEnabled } = useStepRun()
+  const { progress: stepProgress, queueRun } = useStepRun()
   const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
   const stageState = stepProgress.steps.get("text-and-speech")?.state
   const ttsRunning = stageState === "running" || stageState === "queued"
 
-  const handleRunTTS = useCallback(async () => {
+  const handleRunTTS = useCallback(() => {
     if (!hasApiKey || ttsRunning) return
-    startRun("text-and-speech", "text-and-speech")
-    setSseEnabled(true)
-    await api.runSteps(bookLabel, apiKey, { fromStep: "text-and-speech", toStep: "text-and-speech" }, { key: azureKey, region: azureRegion })
-    queryClient.removeQueries({ queryKey: ["books", bookLabel, "tts"] })
-    queryClient.removeQueries({ queryKey: ["books", bookLabel, "text-catalog"] })
-  }, [bookLabel, apiKey, hasApiKey, azureKey, azureRegion, ttsRunning, startRun, setSseEnabled, queryClient])
+    queueRun({ fromStep: "text-and-speech", toStep: "text-and-speech", apiKey, azure: { key: azureKey, region: azureRegion } })
+  }, [hasApiKey, ttsRunning, apiKey, azureKey, azureRegion, queueRun])
 
   const { data: ttsData, isLoading: ttsLoading } = useQuery({
     queryKey: ["books", bookLabel, "tts"],

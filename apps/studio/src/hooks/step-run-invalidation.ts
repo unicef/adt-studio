@@ -1,39 +1,88 @@
+import {
+  getCacheResourcesForNode,
+  getCacheResourcesForStageClear,
+  getCacheResourcesForStageOutput,
+  STAGE_ORDER,
+} from "@adt/types"
+import type { PipelineCacheResource, StageName } from "@adt/types"
+
 export type QueryKey = ReadonlyArray<unknown>
 
-/**
- * Query keys to refresh after a UI step is fully completed.
- * Always includes step-status so completion state refreshes.
- */
-export function getInvalidationKeysForUiStep(label: string, uiStep: string): QueryKey[] {
-  const keys: QueryKey[] = []
-
-  switch (uiStep) {
-    case "extract":
-    case "storyboard":
-    case "captions":
-      keys.push(["books", label, "pages"])
-      keys.push(["books", label])
-      keys.push(["books"])
-      break
+function getQueryKeysForResource(
+  label: string,
+  resource: PipelineCacheResource
+): QueryKey[] {
+  switch (resource) {
+    case "books":
+      return [["books"]]
+    case "book":
+      return [["books", label]]
+    case "pages":
+      return [["books", label, "pages"]]
     case "quizzes":
-      keys.push(["books", label, "quizzes"])
-      break
+      return [["books", label, "quizzes"]]
     case "glossary":
-      keys.push(["books", label, "glossary"])
-      break
-    case "text-and-speech":
-      keys.push(["books", label, "text-catalog"])
-      break
+      return [["books", label, "glossary"]]
+    case "text-catalog":
+      return [["books", label, "text-catalog"]]
+    case "tts":
+      return [["books", label, "tts"]]
+    case "step-status":
+      return [["books", label, "step-status"]]
+    case "debug":
+      return [["debug"]]
   }
+}
 
-  keys.push(["books", label, "step-status"])
-  return keys
+function getQueryKeysForResources(
+  label: string,
+  resources: readonly PipelineCacheResource[]
+): QueryKey[] {
+  const out: QueryKey[] = []
+  const seen = new Set<string>()
+  for (const resource of resources) {
+    const keys = getQueryKeysForResource(label, resource)
+    for (const key of keys) {
+      const hash = JSON.stringify(key)
+      if (seen.has(hash)) continue
+      seen.add(hash)
+      out.push(key)
+    }
+  }
+  return out
+}
+
+function isStageName(stage: string): stage is StageName {
+  return (STAGE_ORDER as readonly string[]).includes(stage)
+}
+
+/** Query keys to refresh after a UI step fully completes. */
+export function getInvalidationKeysForUiStep(
+  label: string,
+  uiStep: string
+): QueryKey[] {
+  if (!isStageName(uiStep)) {
+    return [["books", label, "step-status"]]
+  }
+  const resources = getCacheResourcesForStageOutput(uiStep)
+  return getQueryKeysForResources(label, resources)
+}
+
+/** Query keys to clear when a run starts (and downstream data is cleared). */
+export function getStartInvalidationKeysForUiStep(
+  label: string,
+  fromStep: string
+): QueryKey[] {
+  if (!isStageName(fromStep)) {
+    return [["books", label, "step-status"]]
+  }
+  const resources = getCacheResourcesForStageClear(fromStep)
+  return getQueryKeysForResources(label, resources)
 }
 
 /** Refresh book metadata card/list as soon as metadata extraction completes. */
 export function getMetadataInvalidationKeys(label: string): QueryKey[] {
-  return [
-    ["books", label],
-    ["books"],
-  ]
+  const resources = getCacheResourcesForNode("metadata")
+  const keys = getQueryKeysForResources(label, resources)
+  return keys
 }

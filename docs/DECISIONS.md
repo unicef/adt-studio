@@ -23,6 +23,7 @@ This document records all significant technology and architecture decisions made
 15. [Breadcrumb Navigation](#015-breadcrumb-navigation-over-global-header)
 16. [Home Page Split Layout](#016-home-page-split-layout)
 17. [Two-Level DAG Pipeline (Stage / Step Model)](#017-two-level-dag-pipeline-stage--step-model)
+18. [Per-Book Step Run Queue](#018-per-book-step-run-queue)
 
 ---
 
@@ -602,6 +603,73 @@ Derived lookups (`STAGE_ORDER`, `STEP_TO_STAGE`, `STAGE_BY_NAME`, `ALL_STEP_NAME
 
 ---
 
+## 018: Per-Book Step Run Queue
+
+**Status**: Decided
+**Date**: 2026-02-20
+
+### Decision
+
+When a user starts a stage run while another is already running for the same book, queue it and execute sequentially rather than rejecting with HTTP 409. The frontend serializes API calls through a promise chain to guarantee ordering matches click order.
+
+### Context
+
+Previously, starting a stage run while another was active returned HTTP 409 ("step run already in progress"). The individual stage views only checked if *their own* stage was running (not any stage), so the Run button appeared enabled. Clicking it called `startRun()` which wiped global progress state, then the API call failed — leaving the UI corrupted with no progress indicators.
+
+The natural user intent is "run Extract, then run Storyboard" — this should just work without requiring them to wait for each stage to finish before clicking the next.
+
+### Architecture
+
+#### Backend Queue (`apps/api/src/services/step-service.ts`)
+
+Each book has a `BookRunState = { active: StepRunJob | null, queue: QueuedStepRun[] }`. When a run is requested:
+
+- **No active job**: Start immediately, return `{ status: "started" }`
+- **Active job exists**: Push to queue, return `{ status: "queued" }`
+
+An `executeJob()` → `drainQueue()` cycle ensures the next queued job starts automatically when the current one completes (success or failure). Stages are independent — a failure in one doesn't block the next.
+
+#### Deferred Data Clearing (`beforeRun` callback)
+
+Each job carries a `beforeRun` callback that clears downstream pipeline data. This runs when the job *starts executing*, not when enqueued. This is critical — if a user queues Storyboard while Extract is running, we must not clear storyboard data until Extract finishes and Storyboard actually starts. The callback is idempotent (guarded by a `ran` flag) to handle any edge cases.
+
+#### SSE Stream Continuity
+
+The SSE stream (`GET /steps/status`) stays open across queue transitions. A new `queue-next` event type tells the frontend when a queued run starts executing. The stream only closes when the active job finishes AND the queue is empty.
+
+#### Frontend Promise Chain (`apps/studio/src/routes/books.$label.tsx`)
+
+A `runChainRef` (ref to a `Promise<void>`) serializes API calls. Each `queueRun()` call chains onto the previous promise, ensuring HTTP POSTs arrive at the server in the exact order the user clicked — even if they click rapidly. Without this, concurrent `fetch()` calls could arrive out of order due to network timing.
+
+#### Centralized `queueRun` Context Function
+
+All 14 run handlers (7 View components + 7 Settings components) previously managed their own `startRun` + `setSseEnabled` + `api.runSteps` + `queryClient.removeQueries` sequence. This is now a single `queueRun(options)` function provided through `StepRunContext`, eliminating duplication and ensuring consistent behavior.
+
+#### Aggressive Query Invalidation
+
+On every stage start (`status === "started"`), all TanStack Query cache entries for the book are removed via `queryClient.removeQueries({ queryKey: ["books", label] })`. This is simpler than targeted per-stage invalidation and stage starts are infrequent enough that the cost is negligible. Queued runs (`status === "queued"`) skip invalidation since data hasn't been cleared yet.
+
+### Key Files
+
+| File | Role |
+|------|------|
+| `apps/api/src/services/step-service.ts` | Backend queue logic, `BookRunState`, `drainQueue()` |
+| `apps/api/src/routes/steps.ts` | Route changes, `beforeRun` closure, SSE continuity |
+| `apps/studio/src/hooks/use-step-run.ts` | `startRun` merges state, `queue-next` handler, `QueueRunOptions` |
+| `apps/studio/src/routes/books.$label.tsx` | `queueRun` with promise chain serialization |
+| `apps/studio/src/components/pipeline/stages/*` | All handlers use `queueRun` |
+
+### Alternatives Considered
+
+| Approach | Why Not |
+|----------|---------|
+| Fix the 409 guard (disable Run button globally) | Works but poor UX — users must wait for each stage before clicking the next |
+| Client-side queue only | Race conditions between tabs/reconnects, server doesn't know about ordering |
+| WebSocket for bidirectional control | Overkill — SSE already handles server→client; we only need client→server ordering |
+| External job queue (Bull, BullMQ) | Violates "minimize dependencies" principle, in-memory queue is sufficient for single-user desktop app |
+
+---
+
 ## Decision Log Summary
 
 | # | Decision | Chosen | Over |
@@ -623,3 +691,4 @@ Derived lookups (`STAGE_ORDER`, `STEP_TO_STAGE`, `STAGE_BY_NAME`, `ALL_STEP_NAME
 | 015 | Navigation | Breadcrumb per page | Global header, sidebar |
 | 016 | Home layout | 30/70 split (guide + books) | Full-width grid, centered content |
 | 017 | Pipeline model | Two-level DAG (Stage / Step) | Flat step list, config file, per-consumer definitions |
+| 018 | Concurrent stage runs | Per-book queue with promise chain serialization | 409 rejection, client-only queue, external job queue |

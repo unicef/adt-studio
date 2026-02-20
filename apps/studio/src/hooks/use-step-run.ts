@@ -6,6 +6,7 @@ import { STEP_TO_STAGE } from "@adt/types"
 import {
   getInvalidationKeysForUiStep,
   getMetadataInvalidationKeys,
+  getStartInvalidationKeysForUiStep,
   type QueryKey,
 } from "./step-run-invalidation"
 
@@ -50,6 +51,28 @@ function invalidateQueryKeys(qc: QueryClient, keys: QueryKey[]) {
   for (const key of keys) {
     qc.invalidateQueries({ queryKey: key })
   }
+}
+
+function removeQueryKeys(qc: QueryClient, keys: QueryKey[]) {
+  for (const key of keys) {
+    qc.removeQueries({ queryKey: key })
+  }
+}
+
+/** Check whether any steps are still queued in the progress state. */
+function hasQueuedSteps(steps: Map<string, UIStepProgress>): boolean {
+  for (const info of steps.values()) {
+    if (info.state === "queued") return true
+  }
+  return false
+}
+
+function invalidateBookQueries(qc: QueryClient, label: string) {
+  qc.invalidateQueries({ queryKey: ["books", label] })
+  qc.invalidateQueries({ queryKey: ["books"] })
+  qc.invalidateQueries({ queryKey: ["books", label, "pages"] })
+  qc.invalidateQueries({ queryKey: ["books", label, "step-status"] })
+  qc.invalidateQueries({ queryKey: ["debug"] })
 }
 
 export function useStepRunSSE(label: string, enabled: boolean) {
@@ -131,49 +154,81 @@ export function useStepRunSSE(label: string, enabled: boolean) {
       }
     })
 
-    es.addEventListener("complete", () => {
+    // A queued run has started executing
+    es.addEventListener("queue-next", (e) => {
+      const data = JSON.parse(e.data)
+      const rangeSteps = getTargetStepsForRange(data.fromStep, data.toStep)
+
       setProgress((prev) => {
-        // Mark all target steps as done
         const steps = new Map(prev.steps)
-        for (const uiStep of prev.targetSteps) {
-          const existing = steps.get(uiStep)
-          if (existing && existing.state !== "error") {
-            steps.set(uiStep, { state: "done", progress: 1 })
+        for (const s of rangeSteps) {
+          const existing = steps.get(s)
+          if (!existing || existing.state === "queued") {
+            steps.set(s, { state: "running", progress: 0 })
           }
         }
+        // Clear subSteps for the new run
+        return { ...prev, steps, subSteps: new Map() }
+      })
+
+      // Queued item now started; backend has cleared downstream data.
+      removeQueryKeys(
+        queryClient,
+        getStartInvalidationKeysForUiStep(label, data.fromStep)
+      )
+    })
+
+    es.addEventListener("complete", () => {
+      setProgress((prev) => {
+        // Mark currently-running steps as done
+        const steps = new Map(prev.steps)
+        for (const [step, info] of steps) {
+          if (info.state === "running") {
+            steps.set(step, { state: "done", progress: 1 })
+          }
+        }
+
+        const queued = hasQueuedSteps(steps)
         return {
           ...prev,
-          isRunning: false,
-          isComplete: true,
+          isRunning: queued,
+          isComplete: !queued,
           steps,
         }
       })
-      queryClient.invalidateQueries({ queryKey: ["books", label] })
-      queryClient.invalidateQueries({ queryKey: ["books"] })
-      queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
-      queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"] })
-      queryClient.invalidateQueries({ queryKey: ["debug"] })
-      es.close()
+
+      invalidateBookQueries(queryClient, label)
+
+      // Don't close the EventSource — the server keeps it open if more
+      // queued runs are pending, and closes it when the queue drains.
     })
 
     es.addEventListener("error", (e) => {
-      if (es.readyState === EventSource.CLOSED) return
+      if (es.readyState === EventSource.CLOSED) {
+        // Server closed the stream — all work is done
+        setProgress((prev) => {
+          if (!prev.isRunning) return prev
+          return { ...prev, isRunning: false, isComplete: !prev.error }
+        })
+        return
+      }
       const messageEvent = e as MessageEvent
       if (messageEvent.data) {
         try {
           const data = JSON.parse(messageEvent.data)
           setProgress((prev) => {
             const steps = new Map(prev.steps)
-            for (const uiStep of prev.targetSteps) {
-              const existing = steps.get(uiStep)
-              if (existing && existing.state !== "done") {
-                steps.set(uiStep, { state: "error", progress: 0 })
+            // Only mark currently-running steps as error, not queued ones
+            for (const [step, info] of steps) {
+              if (info.state === "running") {
+                steps.set(step, { state: "error", progress: 0 })
               }
             }
+            const queued = hasQueuedSteps(steps)
             return {
               ...prev,
-              isRunning: false,
-              error: data.error ?? "Step run failed",
+              isRunning: queued,
+              error: queued ? null : (data.error ?? "Step run failed"),
               steps,
             }
           })
@@ -184,7 +239,14 @@ export function useStepRunSSE(label: string, enabled: boolean) {
             error: "Connection lost",
           }))
         }
-        es.close()
+        // Don't close if there are queued items — server will keep streaming.
+        // Only close if we're done.
+        setProgress((prev) => {
+          if (!prev.isRunning) {
+            es.close()
+          }
+          return prev
+        })
       }
     })
 
@@ -192,7 +254,8 @@ export function useStepRunSSE(label: string, enabled: boolean) {
     const pollInterval = setInterval(async () => {
       try {
         const status = await api.getStepsStatus(label)
-        if (status.status === "completed") {
+        const queueEmpty = !status.queue || status.queue.length === 0
+        if (status.status === "completed" && queueEmpty) {
           setProgress((prev) => {
             if (!prev.isRunning) return prev
             const steps = new Map(prev.steps)
@@ -204,13 +267,10 @@ export function useStepRunSSE(label: string, enabled: boolean) {
             }
             return { ...prev, isRunning: false, isComplete: true, steps }
           })
-          queryClient.invalidateQueries({ queryKey: ["books", label] })
-          queryClient.invalidateQueries({ queryKey: ["books"] })
-          queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
-          queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"] })
+          invalidateBookQueries(queryClient, label)
           es.close()
           clearInterval(pollInterval)
-        } else if (status.status === "failed") {
+        } else if (status.status === "failed" && queueEmpty) {
           setProgress((prev) => {
             if (!prev.isRunning) return prev
             return { ...prev, isRunning: false, error: status.error ?? "Step run failed" }
@@ -232,21 +292,29 @@ export function useStepRunSSE(label: string, enabled: boolean) {
 
   const startRun = useCallback(
     (fromStep: string, toStep: string) => {
-      // Set target steps and mark them as queued
-      const targetSteps = getTargetStepsForRange(fromStep, toStep)
+      const newTargetSteps = getTargetStepsForRange(fromStep, toStep)
 
-      const steps = new Map<string, UIStepProgress>()
-      for (const s of targetSteps) {
-        steps.set(s, { state: "queued", progress: 0 })
-      }
+      setProgress((prev) => {
+        const targetSteps = new Set(prev.targetSteps)
+        const steps = new Map(prev.steps)
 
-      setProgress({
-        isRunning: true,
-        isComplete: false,
-        error: null,
-        targetSteps,
-        steps,
-        subSteps: new Map(),
+        for (const s of newTargetSteps) {
+          targetSteps.add(s)
+          // Only set to "queued" if not already running
+          const existing = steps.get(s)
+          if (!existing || existing.state === "idle" || existing.state === "done" || existing.state === "error") {
+            steps.set(s, { state: "queued", progress: 0 })
+          }
+        }
+
+        return {
+          ...prev,
+          isRunning: true,
+          isComplete: false,
+          error: null,
+          targetSteps,
+          steps,
+        }
       })
     },
     []
@@ -263,12 +331,21 @@ export function useStepRunSSE(label: string, enabled: boolean) {
   return { progress, startRun, reset }
 }
 
+export interface QueueRunOptions {
+  fromStep: string
+  toStep: string
+  apiKey: string
+  azure?: { key: string; region: string }
+}
+
 // Context for sharing step run state across the book layout
 export interface StepRunContextValue {
   progress: StepRunProgress
   startRun: (fromStep: string, toStep: string) => void
   reset: () => void
   setSseEnabled: (enabled: boolean) => void
+  /** Queue a stage run. Serializes API calls so they arrive in click order. */
+  queueRun: (options: QueueRunOptions) => void
 }
 
 export const StepRunContext = createContext<StepRunContextValue | null>(null)
