@@ -73,16 +73,6 @@ const SETTINGS_TABS: Record<string, { key: string; label: string }[]> = {
   "text-and-speech": TRANSLATIONS_SETTINGS_TABS,
 }
 
-const HOVER_BG_BY_COLOR: Record<string, string> = {
-  "bg-gray-500": "hover:bg-gray-500",
-  "bg-blue-500": "hover:bg-blue-500",
-  "bg-violet-500": "hover:bg-violet-500",
-  "bg-orange-500": "hover:bg-orange-500",
-  "bg-teal-500": "hover:bg-teal-500",
-  "bg-lime-500": "hover:bg-lime-500",
-  "bg-pink-500": "hover:bg-pink-500",
-}
-
 export function StageSidebar({
   bookLabel,
   activeStep,
@@ -114,221 +104,193 @@ export function StageSidebar({
   })
   const activeTab = search.tab ?? "general"
 
-  // Icon rail: one Link per step, always navigates
-  const iconRailSteps = STAGES.map((step) => {
+  // The rail collapses (icon-only, hover to expand) only when pages are showing
+  // and we're not in settings. Otherwise it's always expanded with labels visible.
+  const railCollapsed = effectivePagesOpen && !isSettings
+  const alwaysExpanded = !railCollapsed
+  const x = {
+    gap:       cn("group-hover/rail:gap-2.5",       alwaysExpanded && "gap-2.5"),
+    showLabel: cn("group-hover/rail:inline",     alwaysExpanded && "inline"),
+    showBtn:   cn("group-hover/rail:inline-flex", alwaysExpanded && "inline-flex"),
+    showFlex:  cn("group-hover/rail:flex",        alwaysExpanded && "flex"),
+    flex1:     cn("group-hover/rail:flex-1",      alwaysExpanded && "flex-1"),
+  }
+
+  const stageItems = STAGES.map((step, index) => {
     const isActive = step.slug === activeStep
     const Icon = step.icon
+    const settingsTabs = SETTINGS_TABS[step.slug]
+    const showSubTabs = isActive && isSettings && !!settingsTabs
     const stepProgress = stepRunProgress.steps.get(step.slug)
     const ringState = stepProgress?.state ?? "idle"
 
     return (
-      <Link
-        key={step.slug}
-        to="/books/$label/$step"
-        params={{ label: bookLabel, step: step.slug }}
-        title={step.label}
-        className={cn(
-          "flex items-center justify-center py-2 mx-1.5 rounded-md transition-colors",
-          isActive ? cn(step.bgLight) : "text-muted-foreground hover:bg-muted/50"
+      <div key={step.slug} className="relative">
+        {/* Connector line */}
+        {index < STAGES.length - 1 && (
+          <div className="absolute left-[24px] top-[36px] bottom-[-10px] w-0.5 bg-border z-10" />
         )}
-      >
-        <div className="relative shrink-0">
-          <div
-            className={cn(
-              "flex items-center justify-center w-7 h-7 rounded-full transition-colors",
-              isActive || step.slug === "book" || isStageCompleted(step.slug, completedSteps) || ringState === "done"
-                ? cn(step.color, "text-white")
-                : "bg-muted text-muted-foreground"
-            )}
+
+        {/* Step row */}
+        <div
+          className={cn(
+            "flex items-center gap-0 py-2 text-sm transition-colors",
+            x.gap,
+            "justify-start mx-0 px-0",
+            isActive
+              ? cn(step.color, "text-white font-medium rounded-l-[14px] ml-0.5 pl-2")
+              : "text-muted-foreground hover:text-foreground hover:bg-muted px-2.5"
+          )}
+        >
+          <Link
+            to="/books/$label/$step"
+            params={{ label: bookLabel, step: step.slug }}
+            className={cn("flex items-center gap-2.5 min-w-0", x.flex1)}
+            title={step.label}
           >
-            <Icon className="w-3.5 h-3.5" />
-          </div>
-          <StepProgressRing size={28} state={ringState} colorClass={step.color} />
+            <div className="relative shrink-0">
+              <div
+                className={cn(
+                  "flex items-center justify-center w-7 h-7 rounded-full transition-colors",
+                  step.slug === "book" || isStageCompleted(step.slug, completedSteps) || ringState === "done"
+                    ? isActive
+                      ? "bg-white/20 text-white"
+                      : cn(step.color, "text-white")
+                    : "bg-muted text-muted-foreground ring-1 ring-border"
+                )}
+              >
+                <Icon className="w-3.5 h-3.5" />
+              </div>
+              <StepProgressRing size={28} state={ringState} colorClass={isActive ? "bg-white" : step.color} />
+            </div>
+            <span className={cn("truncate hidden", x.showLabel)}>
+              {step.slug === "book" ? toCamelLabel(bookLabel) : step.label}
+            </span>
+          </Link>
+
+          {/* Settings gear */}
+          {isActive && step.slug !== "book" && step.slug !== "preview" && (
+            <Button
+              variant="ghost"
+              size="icon"
+              asChild
+              className={cn(
+                "w-6 h-6 rounded shrink-0 hidden [&_svg]:size-3.5",
+                x.showBtn,
+                isSettings
+                  ? "bg-white/20 text-white hover:text-white hover:bg-white/30"
+                  : "hover:bg-white/10 text-white/60 hover:text-white"
+              )}
+            >
+              <Link
+                to="/books/$label/$step/settings"
+                params={{ label: bookLabel, step: step.slug }}
+                search={{ tab: "general" }}
+                title={`${step.label} settings`}
+              >
+                <Settings className="w-3.5 h-3.5" />
+              </Link>
+            </Button>
+          )}
+          {isActive && step.slug === "preview" && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className={cn(
+                "w-6 h-6 rounded shrink-0 hidden [&_svg]:size-3.5",
+                x.showBtn,
+                "hover:bg-white/10 text-white/60 hover:text-white"
+              )}
+              onClick={() => window.dispatchEvent(new CustomEvent("adt:repackage"))}
+              title="Re-package ADT"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </Button>
+          )}
         </div>
-      </Link>
+
+        {/* Settings sub-tabs */}
+        {showSubTabs && (
+          <div className={cn("ml-[42px] mr-2 mt-0.5 mb-1 flex-col gap-0.5 hidden", x.showFlex)}>
+            {settingsTabs!.map((tab) => (
+              <Button
+                key={tab.key}
+                variant="ghost"
+                size="sm"
+                asChild
+                className={cn(
+                  "h-auto justify-start rounded text-xs px-2 py-1 whitespace-nowrap",
+                  activeTab === tab.key
+                    ? cn(step.textColor, "font-medium", step.bgLight)
+                    : "font-normal text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                )}
+              >
+                <Link
+                  to="/books/$label/$step/settings"
+                  params={{ label: bookLabel, step: step.slug }}
+                  search={{ tab: tab.key }}
+                >
+                  {tab.label}
+                </Link>
+              </Button>
+            ))}
+          </div>
+        )}
+      </div>
     )
   })
 
   return (
-    <nav className="flex flex-col h-full">
-      {effectivePagesOpen ? (
-        // ── Icon rail (56px) + pages panel ───────────────────────────────────
-        <div className="flex flex-1 min-h-0 hidden lg:flex group-hover/sidebar:flex">
-
-          {/* Icon rail */}
-          <div className="w-14 shrink-0 flex flex-col">
-            <div className="flex flex-col py-2 gap-0.5 flex-1 overflow-y-auto">
-              {iconRailSteps}
-            </div>
-            {/* Toggle button — closes the pages panel */}
-            <div className="shrink-0 border-t px-1.5 py-2 flex items-center justify-center">
+    <nav className="flex flex-1 min-h-0">
+      {/* Stage rail — always the same DOM structure, group/rail always present */}
+      <div className={cn(
+        "shrink-0 relative group/rail",
+        railCollapsed ? "w-12" : "flex-1"
+      )}>
+        <div className={cn(
+          "absolute inset-y-0 left-0 flex flex-col bg-background overflow-hidden",
+          railCollapsed
+            ? "w-12 group-hover/rail:w-[220px] z-20 transition-[width] duration-150 group-hover/rail:shadow-lg"
+            : "inset-x-0"
+        )}>
+          <div className="flex flex-col pt-1.5 pb-2 gap-0.5 flex-1 overflow-y-auto">
+            {stageItems}
+          </div>
+          <div className="shrink-0 border-t py-2 px-1.5 flex items-center justify-center gap-2">
+            {hasPages && (
               <button
                 type="button"
-                onClick={() => setPagesOpen(false)}
-                title="Close pages panel"
+                onClick={() => setPagesOpen(!pagesOpen)}
+                title={effectivePagesOpen ? "Close pages panel" : "Show pages"}
                 className="flex items-center justify-center w-7 h-7 rounded bg-muted text-foreground transition-colors hover:bg-muted/70"
               >
                 <PanelLeftOpen className="w-3.5 h-3.5" />
               </button>
-            </div>
-          </div>
-
-          {/* Pages panel */}
-          <div className="flex-1 min-w-0 flex flex-col overflow-hidden border-l">
-            <div className="flex-1 overflow-y-auto">
-              <PageIndex
-                bookLabel={bookLabel}
-                activeStep={activeStep}
-                selectedPageId={selectedPageId}
-                onSelectPage={onSelectPage}
-              />
-            </div>
-            <div className="shrink-0 border-t px-3 py-2">
-              <ExportButton bookLabel={bookLabel} />
-            </div>
-          </div>
-        </div>
-
-      ) : (
-        // ── Full step list with labels ────────────────────────────────────────
-        <div className="flex-1 min-h-0 flex flex-col">
-          <div className="flex-1 overflow-y-auto flex flex-col">
-            <div className="flex flex-col py-3 gap-0.5 flex-1">
-              {STAGES.map((step, index) => {
-                const isActive = step.slug === activeStep
-                const Icon = step.icon
-                const settingsTabs = SETTINGS_TABS[step.slug]
-                const showSubTabs = isActive && isSettings && !!settingsTabs
-                const stepProgress = stepRunProgress.steps.get(step.slug)
-                const ringState = stepProgress?.state ?? "idle"
-
-                return (
-                  <div key={step.slug} className="relative">
-                    {/* Connector line */}
-                    {index < STAGES.length - 1 && (
-                      <div className="absolute left-[33px] top-[34px] bottom-[-10px] w-0.5 bg-border hidden lg:block group-hover/sidebar:block" />
-                    )}
-
-                    {/* Step row */}
-                    <div
-                      className={cn(
-                        "flex items-center gap-0 lg:gap-2.5 group-hover/sidebar:gap-2.5 px-0 lg:px-3 group-hover/sidebar:px-3 py-2 mx-1 lg:mx-2 group-hover/sidebar:mx-2 rounded-md text-sm transition-colors relative justify-center lg:justify-start group-hover/sidebar:justify-start",
-                        isActive
-                          ? cn(step.bgLight, step.textColor, "font-medium")
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                      )}
-                    >
-                      <Link
-                        to="/books/$label/$step"
-                        params={{ label: bookLabel, step: step.slug }}
-                        className="flex items-center gap-2.5 lg:flex-1 group-hover/sidebar:flex-1 min-w-0"
-                        title={step.label}
-                      >
-                        <div className="relative shrink-0">
-                          <div
-                            className={cn(
-                              "flex items-center justify-center w-7 h-7 rounded-full transition-colors",
-                              isActive || step.slug === "book" || isStageCompleted(step.slug, completedSteps) || ringState === "done"
-                                ? cn(step.color, "text-white")
-                                : "bg-muted text-muted-foreground"
-                            )}
-                          >
-                            <Icon className="w-3.5 h-3.5" />
-                          </div>
-                          <StepProgressRing size={28} state={ringState} colorClass={step.color} />
-                        </div>
-                        <span className="truncate hidden lg:inline group-hover/sidebar:inline">
-                          {step.slug === "book" ? toCamelLabel(bookLabel) : step.label}
-                        </span>
-                      </Link>
-
-                      {/* Settings gear */}
-                      {isActive && step.slug !== "book" && step.slug !== "preview" && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          asChild
-                          className={cn(
-                            "w-6 h-6 rounded shrink-0 hidden lg:inline-flex group-hover/sidebar:inline-flex [&_svg]:size-3.5",
-                            isSettings
-                              ? cn(step.color, "text-white hover:text-white", HOVER_BG_BY_COLOR[step.color])
-                              : "hover:bg-black/5 text-current opacity-50 hover:opacity-100"
-                          )}
-                        >
-                          <Link
-                            to="/books/$label/$step/settings"
-                            params={{ label: bookLabel, step: step.slug }}
-                            search={{ tab: "general" }}
-                            title={`${step.label} settings`}
-                          >
-                            <Settings className="w-3.5 h-3.5" />
-                          </Link>
-                        </Button>
-                      )}
-                      {isActive && step.slug === "preview" && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className={cn(
-                            "w-6 h-6 rounded shrink-0 hidden lg:inline-flex group-hover/sidebar:inline-flex [&_svg]:size-3.5",
-                            "hover:bg-black/5 text-current opacity-50 hover:opacity-100"
-                          )}
-                          onClick={() => window.dispatchEvent(new CustomEvent("adt:repackage"))}
-                          title="Re-package ADT"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                        </Button>
-                      )}
-                    </div>
-
-                    {/* Settings sub-tabs */}
-                    {showSubTabs && (
-                      <div className="ml-[52px] mr-2 mt-0.5 mb-1 flex-col gap-0.5 hidden lg:flex group-hover/sidebar:flex">
-                        {settingsTabs!.map((tab) => (
-                          <Button
-                            key={tab.key}
-                            variant="ghost"
-                            size="sm"
-                            asChild
-                            className={cn(
-                              "h-auto justify-start rounded text-xs px-2 py-1 whitespace-nowrap",
-                              activeTab === tab.key
-                                ? cn(step.textColor, "font-medium", step.bgLight)
-                                : "font-normal text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                            )}
-                          >
-                            <Link
-                              to="/books/$label/$step/settings"
-                              params={{ label: bookLabel, step: step.slug }}
-                              search={{ tab: tab.key }}
-                            >
-                              {tab.label}
-                            </Link>
-                          </Button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-
-            {/* Export + open-pages toggle */}
-            <div className="shrink-0 border-t border-border px-3 py-2 hidden lg:flex group-hover/sidebar:flex items-center gap-2">
-              {hasPages && (
-                <button
-                  type="button"
-                  onClick={() => setPagesOpen(true)}
-                  title="Show pages"
-                  className="shrink-0 flex items-center justify-center w-7 h-7 rounded hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
-                >
-                  <PanelLeftOpen className="w-3.5 h-3.5" />
-                </button>
-              )}
+            )}
+            {!railCollapsed && (
               <div className="flex-1 min-w-0">
                 <ExportButton bookLabel={bookLabel} />
               </div>
-            </div>
+            )}
+          </div>
+          {/* Right edge — follows the expanding rail */}
+          <div className="absolute inset-y-0 right-0 w-px border-r" />
+        </div>
+      </div>
+
+      {/* Pages panel — only when pages are open and not in settings */}
+      {effectivePagesOpen && !isSettings && (
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden border-l">
+          <div className="flex-1 overflow-y-auto">
+            <PageIndex
+              bookLabel={bookLabel}
+              activeStep={activeStep}
+              selectedPageId={selectedPageId}
+              onSelectPage={onSelectPage}
+            />
+          </div>
+          <div className="shrink-0 border-t px-3 py-2">
+            <ExportButton bookLabel={bookLabel} />
           </div>
         </div>
       )}

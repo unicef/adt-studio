@@ -98,24 +98,24 @@ function BookLayout() {
       <div className="flex flex-1 min-h-0 flex-col">
         <div className="flex flex-1 min-h-0">
           {/* Left sidebar — spacer reserves layout width, inner panel expands on hover */}
-          <div className="w-14 lg:w-[220px] shrink-0 relative">
-            <div className="group/sidebar absolute inset-y-0 left-0 w-14 hover:w-[220px] lg:w-full bg-background flex flex-col z-30 overflow-hidden transition-[width] duration-150 hover:shadow-lg lg:hover:shadow-none">
+          <div className="w-[220px] shrink-0 relative">
+            <div className="absolute inset-y-0 left-0 w-full bg-background flex flex-col z-30 overflow-hidden">
               {/* App header */}
               <div className="shrink-0 h-10 flex items-center bg-gray-700 text-white border-r border-gray-700">
                 <Link
                   to="/"
-                  className="flex-1 min-w-0 h-full px-2 group-hover/sidebar:px-4 lg:px-4 flex items-center justify-center group-hover/sidebar:justify-start lg:justify-start gap-0 group-hover/sidebar:gap-2.5 lg:gap-2.5 hover:bg-gray-600 transition-colors"
+                  className="flex-1 min-w-0 h-full px-4 flex items-center justify-start gap-2.5 hover:bg-gray-800 transition-colors"
                   title="Back to books"
                 >
                   <Home className="w-4 h-4 shrink-0" />
-                  <span className="text-sm font-semibold truncate hidden group-hover/sidebar:block lg:block">
+                  <span className="text-sm font-semibold truncate">
                     ADT Studio
                   </span>
                 </Link>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-10 w-10 shrink-0 text-white/70 hover:text-white hover:bg-gray-600 hidden group-hover/sidebar:flex lg:flex"
+                  className="h-10 w-10 shrink-0 text-white/70 hover:text-white hover:bg-gray-800 flex"
                   onClick={openSettings}
                   title="API Key Settings"
                 >

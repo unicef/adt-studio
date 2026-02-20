@@ -19,6 +19,7 @@ const COLOR_MAP: Record<string, string> = {
   "bg-pink-500": "#ec4899",
   "bg-amber-500": "#f59e0b",
   "bg-gray-500": "#6b7280",
+  "bg-white": "#ffffff",
 }
 
 /** Gap between icon edge and ring center in px */
