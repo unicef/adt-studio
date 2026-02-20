@@ -39,6 +39,7 @@ const STORYBOARD_SETTINGS_TABS = [
   { key: "rendering-prompt", label: "AI Rendering" },
   { key: "rendering-template", label: "Template Rendering" },
   { key: "activity-prompts", label: "Activity Rendering" },
+  { key: "image-generation", label: "Image Generation" },
 ]
 
 const QUIZ_SETTINGS_TABS = [

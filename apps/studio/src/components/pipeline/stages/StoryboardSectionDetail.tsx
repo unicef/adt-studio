@@ -329,6 +329,10 @@ export function StoryboardSectionDetail({
   const previewFrameRef = useRef<BookPreviewFrameHandle>(null)
   const scrollContainerRef = useRef<HTMLDivElement>(null)
 
+  // Track current pageId so async callbacks can detect stale closures
+  const pageIdRef = useRef(pageId)
+  pageIdRef.current = pageId
+
   // Section data panel state
   const [panelOpen, setPanelOpen] = useState(false)
 
@@ -392,19 +396,29 @@ export function StoryboardSectionDetail({
     }
   }, [])
 
-  // Clear pending state when page changes
+  // Clear pending state and abort ALL in-flight requests when page changes
   useEffect(() => {
     setPendingSectioning(null)
     setPendingRendering(null)
     setSelectedElement(null)
     setCropTarget(null)
     setAiImageDialogTarget(null)
+    aiAbortRef.current?.abort()
     aiImageAbortRef.current?.abort()
     setAiImageGen(null)
     setAiInstruction("")
+    setAiLoading(false)
     setAiReasoning(null)
+    setAiReasoningOpen(false)
     setAiError(null)
+    setRerendering(false)
+    setSaving(false)
   }, [pageId])
+
+  // Reset scroll position when page or section changes
+  useEffect(() => {
+    scrollContainerRef.current?.scrollTo(0, 0)
+  }, [pageId, sectionIndex])
 
   // Dismiss toolbar on scroll (position would be stale)
   useEffect(() => {
@@ -450,12 +464,17 @@ export function StoryboardSectionDetail({
       // Automatically re-render with the updated sectioning
       if (hasApiKey) {
         setRerendering(true)
+        const capturedPageId = pageId
         api.reRenderPage(bookLabel, pageId, apiKey)
           .then(() => {
-            queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
+            // Discard if user navigated to a different page
+            if (pageIdRef.current !== capturedPageId) return
+            queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", capturedPageId] })
             queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
           })
-          .finally(() => setRerendering(false))
+          .finally(() => {
+            if (pageIdRef.current === capturedPageId) setRerendering(false)
+          })
       }
     } catch (err) {
       setAiError(err instanceof Error ? err.message : "Save failed")
@@ -893,6 +912,9 @@ export function StoryboardSectionDetail({
         controller.signal
       )
 
+      // Discard result if user navigated to a different page during the request
+      if (pageIdRef.current !== pageId) return
+
       // Apply the AI edit as pending rendering
       const base = pendingRendering ?? page.rendering
       if (!base) return
@@ -1173,56 +1195,57 @@ export function StoryboardSectionDetail({
           </div>
         )}
 
-        {/* Background image generation indicator (non-blocking) */}
-        {aiImageGen && (
-          <div className="absolute top-3 right-3 z-40 animate-in fade-in slide-in-from-top-2 duration-200">
-            <div
-              className={`flex items-center gap-2 rounded-full px-3.5 py-2 shadow-lg text-white text-xs font-medium ${
-                aiImageGen.status === "generating"
-                  ? "bg-purple-600"
-                  : aiImageGen.status === "done"
-                    ? "bg-green-600"
-                    : "bg-destructive"
-              }`}
-            >
-              {aiImageGen.status === "generating" && (
-                <>
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  <span>Generating image...</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      aiImageAbortRef.current?.abort()
-                      setAiImageGen(null)
-                    }}
-                    className="p-0.5 rounded-full hover:bg-white/20 transition-colors cursor-pointer"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </>
-              )}
-              {aiImageGen.status === "done" && (
-                <>
-                  <Sparkles className="h-3 w-3" />
-                  <span>Image generated</span>
-                </>
-              )}
-              {aiImageGen.status === "error" && (
-                <>
-                  <span>{aiImageGen.error ?? "Generation failed"}</span>
-                  <button
-                    type="button"
-                    onClick={() => setAiImageGen(null)}
-                    className="p-0.5 rounded-full hover:bg-white/20 transition-colors cursor-pointer"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Background image generation indicator — absolute to outer panel so it stays visible while scrolling */}
+      {aiImageGen && (
+        <div className="absolute top-3 right-3 z-40 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div
+            className={`flex items-center gap-2 rounded-full px-3.5 py-2 shadow-lg text-white text-xs font-medium ${
+              aiImageGen.status === "generating"
+                ? "bg-purple-600"
+                : aiImageGen.status === "done"
+                  ? "bg-green-600"
+                  : "bg-destructive"
+            }`}
+          >
+            {aiImageGen.status === "generating" && (
+              <>
+                <Loader2 className="h-3 w-3 animate-spin" />
+                <span>Generating image...</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    aiImageAbortRef.current?.abort()
+                    setAiImageGen(null)
+                  }}
+                  className="p-0.5 rounded-full hover:bg-white/20 transition-colors cursor-pointer"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </>
+            )}
+            {aiImageGen.status === "done" && (
+              <>
+                <Sparkles className="h-3 w-3" />
+                <span>Image generated</span>
+              </>
+            )}
+            {aiImageGen.status === "error" && (
+              <>
+                <span>{aiImageGen.error ?? "Generation failed"}</span>
+                <button
+                  type="button"
+                  onClick={() => setAiImageGen(null)}
+                  className="p-0.5 rounded-full hover:bg-white/20 transition-colors cursor-pointer"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Floating save/discard bar */}
       {(dirty || renderingDirty) && !saving && (

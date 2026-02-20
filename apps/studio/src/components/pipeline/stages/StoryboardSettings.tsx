@@ -63,6 +63,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const [showRerunDialog, setShowRerunDialog] = useState(false)
+  const [savingImageGenPrompt, setSavingImageGenPrompt] = useState(false)
 
   // Form state
   const [sectionTypes, setSectionTypes] = useState<Record<string, string>>({})
@@ -88,6 +89,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
   const [activityStrategyName, setActivityStrategyName] = useState("")
   const [activityPromptDraft, setActivityPromptDraft] = useState<string | null>(null)
   const [activityAnswerDraft, setActivityAnswerDraft] = useState<string | null>(null)
+  const [imageGenPromptDraft, setImageGenPromptDraft] = useState<string | null>(null)
 
   // Derive activity strategies directly from merged config (synchronous)
   const activityStrategies = useMemo(() => {
@@ -329,6 +331,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     if (templateTabDraft != null && templateTabName) contentSaves.push(api.updateTemplate(templateTabName, templateTabDraft, bookLabel))
     if (activityPromptDraft != null && selectedActivity?.prompt) contentSaves.push(api.updatePrompt(selectedActivity.prompt, activityPromptDraft, bookLabel))
     if (activityAnswerDraft != null && selectedActivity?.answer_prompt) contentSaves.push(api.updatePrompt(selectedActivity.answer_prompt, activityAnswerDraft, bookLabel))
+    if (imageGenPromptDraft != null) contentSaves.push(api.updatePrompt("ai_image_generation", imageGenPromptDraft, bookLabel))
     if (contentSaves.length > 0) await Promise.all(contentSaves)
 
     const overrides = buildOverrides()
@@ -343,6 +346,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
           setTemplateTabDraft(null)
           setActivityPromptDraft(null)
           setActivityAnswerDraft(null)
+          setImageGenPromptDraft(null)
           setShowRerunDialog(false)
           // Start step-scoped storyboard run — blocks until data is cleared on backend
           startRun("storyboard", "storyboard")
@@ -358,8 +362,20 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     )
   }
 
+  // Image gen prompt is on-demand (not pipeline) — save without triggering a rerun
+  const saveImageGenPrompt = async () => {
+    if (imageGenPromptDraft == null) return
+    setSavingImageGenPrompt(true)
+    try {
+      await api.updatePrompt("ai_image_generation", imageGenPromptDraft, bookLabel)
+      setImageGenPromptDraft(null)
+    } finally {
+      setSavingImageGenPrompt(false)
+    }
+  }
+
   return (
-    <div className={tab === "sectioning-prompt" || tab === "rendering-prompt" || tab === "rendering-template" || tab === "activity-prompts" ? "h-full" : "p-4 space-y-6"}>
+    <div className={tab === "sectioning-prompt" || tab === "rendering-prompt" || tab === "rendering-template" || tab === "activity-prompts" || tab === "image-generation" ? "h-full" : "p-4 space-y-6"}>
       {tab === "general" && (
         <>
           {/* Default Render Strategy */}
@@ -854,16 +870,40 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
         )
       })()}
 
+      {tab === "image-generation" && (
+        <div className="h-full">
+          <PromptViewer
+            promptName="ai_image_generation"
+            bookLabel={bookLabel}
+            title="Image Generation Prompt"
+            description="Wraps every AI image generation request — define style guidelines and rules here, then use {{ user_prompt }} where the per-image request should be injected."
+            hideModel
+            onContentChange={setImageGenPromptDraft}
+          />
+        </div>
+      )}
+
       {headerTarget && createPortal(
-        <Button
-          size="sm"
-          className="h-7 px-2.5 text-xs bg-black/15 text-white hover:bg-black/25"
-          onClick={() => setShowRerunDialog(true)}
-          disabled={updateConfig.isPending || !hasApiKey}
-        >
-          <Play className="mr-1.5 h-3.5 w-3.5" />
-          Save &amp; Rerun
-        </Button>,
+        tab === "image-generation" ? (
+          <Button
+            size="sm"
+            className="h-7 px-2.5 text-xs bg-black/15 text-white hover:bg-black/25"
+            onClick={saveImageGenPrompt}
+            disabled={savingImageGenPrompt || imageGenPromptDraft == null}
+          >
+            {savingImageGenPrompt ? "Saving..." : "Save"}
+          </Button>
+        ) : (
+          <Button
+            size="sm"
+            className="h-7 px-2.5 text-xs bg-black/15 text-white hover:bg-black/25"
+            onClick={() => setShowRerunDialog(true)}
+            disabled={updateConfig.isPending || !hasApiKey}
+          >
+            <Play className="mr-1.5 h-3.5 w-3.5" />
+            Save &amp; Rerun
+          </Button>
+        ),
         headerTarget
       )}
 

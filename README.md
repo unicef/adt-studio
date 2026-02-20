@@ -13,13 +13,11 @@ Desktop-first application for automated book production — extract content from
 | Desktop | Tauri v2 |
 | Testing | Vitest |
 
-## Prerequisites
+### Desktop app — additional requirements
 
-- [Node.js](https://nodejs.org/) >= 20
-- [pnpm](https://pnpm.io/) >= 9
-- [Rust](https://www.rust-lang.org/tools/install) (for desktop app only)
+[Rust](https://www.rust-lang.org/tools/install) is required for the Tauri desktop wrapper.
 
-### Desktop app — platform-specific requirements
+#### Platform-specific dependencies
 
 <details>
 <summary><strong>macOS</strong></summary>
@@ -48,22 +46,68 @@ Desktop-first application for automated book production — extract content from
 
 ## Getting Started
 
+### Docker (recommended)
+
+Just [Docker](https://docs.docker.com/get-docker/) — no Node.js, no cloning.
+
+**Option 1 — download `docker-compose.yml` from the [latest release](https://github.com/unicef/adt-studio/releases/latest):**
+
+```bash
+docker compose up          # starts on http://localhost:8080
+docker compose up -d       # background
+docker compose down        # stop
+```
+
+Set `PORT=9000` in a `.env` file next to `docker-compose.yml` to change the port.
+
+**Option 2 — single command:**
+
+```bash
+docker run -p 8080:80 -v ./books:/app/books ghcr.io/unicef/adt-studio:latest
+```
+
+Open `http://localhost:8080`. Book data persists in the local `./books/` directory.
+
+<details>
+<summary>Build from source</summary>
+
+Requires cloning the repo and [Docker](https://docs.docker.com/get-docker/).
+
+```bash
+git clone git@github.com:unicef/adt-studio.git
+cd adt-studio
+
+# Build and start (first build takes ~5 min)
+docker compose up --build
+```
+
+To change the port, copy `.env.example` to `.env` and set `PORT=<your port>`.
+
+```bash
+docker compose up --build -d   # background
+docker compose logs -f          # logs
+docker compose down             # stop
+```
+</details>
+
+### Local development
+
+Prerequisites: [Node.js](https://nodejs.org/) >= 20, [pnpm](https://pnpm.io/) >= 9.
+
 ```bash
 # Clone the repository
 git clone git@github.com:unicef/adt-studio.git
 cd adt-studio
 
-# Install dependencies
+# Install dependencies (first time only)
 pnpm install
 
-# Build packages
-pnpm build
-
-# Start development servers (API + Studio)
+# Start dev servers — builds automatically, opens browser
 pnpm dev
 ```
 
-The API server runs at `http://localhost:3000` and the Studio frontend at `http://localhost:5173`.
+The browser opens automatically at `http://localhost:5173`. The API runs at `http://localhost:3001`.
+On first run, `pnpm dev` compiles all packages (~1 min). Subsequent runs are fast (incremental build).
 
 ### Running the desktop app
 

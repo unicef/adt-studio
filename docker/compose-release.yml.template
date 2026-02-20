@@ -1,0 +1,12 @@
+# ADT Studio __TAG__
+# Usage:  docker compose up
+# Open:   http://localhost:8080
+# Books persist in ./books/
+services:
+  adt-studio:
+    image: ghcr.io/unicef/adt-studio:__TAG__
+    ports:
+      - "${PORT:-8080}:80"
+    volumes:
+      - ./books:/app/books
+    restart: unless-stopped

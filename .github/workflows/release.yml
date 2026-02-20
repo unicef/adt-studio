@@ -3,6 +3,11 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Version tag to release (e.g. v1.2.3)"
+        required: true
 
 permissions:
   contents: write
@@ -10,6 +15,11 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
 
     steps:
       - uses: actions/checkout@v4
@@ -33,8 +43,14 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          REF="${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}"
+          VERSION="${REF#v}"
+          # Strip pre-release suffix (e.g. 0.2.1-rc1 → 0.2.1) — WiX/MSI requires
+          # numeric-only pre-release identifiers, so any alpha suffix breaks the build.
+          VERSION_MSI="${VERSION%%-*}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "version_msi=$VERSION_MSI" >> "$GITHUB_OUTPUT"
+          echo "tag=${REF}" >> "$GITHUB_OUTPUT"
 
       - name: Set version in tauri.conf.json
         shell: bash
@@ -43,7 +59,7 @@ jobs:
             const fs = require('fs');
             const p = 'apps/desktop/src-tauri/tauri.conf.json';
             const conf = JSON.parse(fs.readFileSync(p, 'utf-8'));
-            conf.version = '${{ steps.version.outputs.version }}';
+            conf.version = '${{ steps.version.outputs.version_msi }}';
             fs.writeFileSync(p, JSON.stringify(conf, null, 2) + '\n');
           "
 
@@ -56,11 +72,51 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: apps/desktop
-          tagName: ${{ github.ref_name }}
-          releaseName: "ADT Studio ${{ github.ref_name }}"
+          tagName: ${{ steps.version.outputs.tag }}
+          releaseName: "ADT Studio ${{ steps.version.outputs.tag }}"
           releaseBody: ""
           releaseDraft: false
           prerelease: false
+
+  docker:
+    needs: release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: app
+          push: true
+          tags: |
+            ghcr.io/unicef/adt-studio:latest
+            ghcr.io/unicef/adt-studio:${{ needs.release.outputs.tag }}
+
+      - name: Generate standalone docker-compose.yml
+        run: |
+          TAG="${{ needs.release.outputs.tag }}"
+          sed "s/__TAG__/${TAG}/g" docker/compose-release.yml.template > docker-compose.yml
+
+      - name: Upload docker-compose.yml to release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release upload ${{ needs.release.outputs.tag }} docker-compose.yml \
+            --repo ${{ github.repository }} \
+            --clobber
 
       - name: Generate release notes
         env:
@@ -70,4 +126,4 @@ jobs:
           NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes \
             -f tag_name=${{ github.ref_name }} \
             --jq '.body')
-          gh release edit ${{ github.ref_name }} --notes "$NOTES"
+          gh release edit ${{ needs.release.outputs.tag }} --notes "$NOTES"

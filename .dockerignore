@@ -1,0 +1,46 @@
+node_modules/
+dist/
+*.tsbuildinfo
+.git/
+.gitignore
+
+# User data (mounted as volumes at runtime)
+books/
+
+# Build caches
+.cache/
+.turbo/
+.pnpm-store/
+coverage/
+
+# Desktop app (not needed in Docker)
+apps/desktop/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude Code / AI config
+.claude/
+CLAUDE.md
+AGENTS.md
+
+# Logs
+*.log
+
+# Tauri build output
+**/src-tauri/target/
+
+# Documentation (not needed in build)
+docs/
+.local-docs/
+
+# Reference projects
+adt-studio/
+adt-press/
