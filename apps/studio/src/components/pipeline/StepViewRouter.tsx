@@ -1,5 +1,5 @@
 import { createContext, useContext, useCallback, useState, type ReactNode } from "react"
-import { STEPS, toCamelLabel } from "./StepSidebar"
+import { STAGES, toCamelLabel } from "./stage-config"
 import {
   BookView,
   ExtractView,
@@ -52,7 +52,7 @@ const VIEW_MAP: Record<string, ViewEntry> = {
 
 export function StepViewRouter({ step, bookLabel, selectedPageId, onSelectPage }: { step: string; bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
   const entry = VIEW_MAP[step]
-  const stepConfig = STEPS.find((s) => s.slug === step)
+  const stepConfig = STAGES.find((s) => s.slug === step)
   const [headerExtra, setHeaderExtra] = useState<ReactNode>(null)
   const [labelClickHandler, setLabelClickHandler] = useState<{ fn: () => void } | null>(null)
   const [headerSlotEl, setHeaderSlotEl] = useState<HTMLElement | null>(null)

@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useCallback } from "react"
-import { StepViewRouter } from "@/components/v2/StepViewRouter"
+import { StepViewRouter } from "@/components/pipeline/StepViewRouter"
 
 export const Route = createFileRoute("/books/$label/$step/")({
   component: StepIndexPage,

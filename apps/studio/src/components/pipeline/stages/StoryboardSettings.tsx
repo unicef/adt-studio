@@ -5,7 +5,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { Play, Plus, X, Eye } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { PruneToggle } from "@/components/v2/PruneToggle"
+import { PruneToggle } from "@/components/pipeline/PruneToggle"
 import { Switch } from "@/components/ui/switch"
 import {
   Dialog,
@@ -28,8 +28,8 @@ import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
 import { useStyleguides, useStyleguidePreview, useTemplates } from "@/hooks/use-presets"
 import { api } from "@/api/client"
-import { PromptViewer } from "@/components/v2/PromptViewer"
-import { TemplateViewer } from "@/components/v2/TemplateViewer"
+import { PromptViewer } from "@/components/pipeline/PromptViewer"
+import { TemplateViewer } from "@/components/pipeline/TemplateViewer"
 import { useStepRun } from "@/hooks/use-step-run"
 
 /** "two_column_story" → "Two Column Story" */

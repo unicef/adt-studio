@@ -1,7 +1,7 @@
 import { useCallback } from "react"
 import { Link } from "@tanstack/react-router"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { STEPS, STEP_DESCRIPTIONS, isStepCompleted } from "../StepSidebar"
+import { getPipelineStages, STAGE_DESCRIPTIONS, isStageCompleted } from "../stage-config"
 import { useStepRun } from "@/hooks/use-step-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
@@ -15,7 +15,7 @@ interface ViewProps {
 
 
 export function BookView({ bookLabel }: ViewProps) {
-  const pipelineSteps = STEPS.filter((s) => s.slug !== "book")
+  const pipelineSteps = getPipelineStages()
   const { progress: stepRunProgress, startRun, reset, setSseEnabled } = useStepRun()
   const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
   const queryClient = useQueryClient()
@@ -58,9 +58,9 @@ export function BookView({ bookLabel }: ViewProps) {
             >
               <StageRunCard
                 stageSlug={step.slug}
-                description={STEP_DESCRIPTIONS[step.slug]}
+                description={STAGE_DESCRIPTIONS[step.slug]}
                 isRunning={isRunning}
-                completed={isStepCompleted(step.slug, completedSteps)}
+                completed={isStageCompleted(step.slug, completedSteps)}
                 showRunButton={step.slug !== "preview"}
                 onRun={() => handleRun(step.slug)}
                 disabled={!hasApiKey || stepRunProgress.isRunning}

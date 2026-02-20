@@ -495,12 +495,11 @@ function AddBookPage() {
         </Button>
       </div>
 
-    <div className="flex-1 min-h-0 overflow-auto">
-    <div className="mx-auto w-[36rem] max-w-[calc(100vw-2rem)] p-4">
-
-      <Card className="w-full">
-        <Stepper currentStep={step} />
-        <CardContent className="pt-4 space-y-4 max-h-[calc(100vh-10rem)] overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-auto">
+        <div className="mx-auto w-[36rem] max-w-[calc(100vw-2rem)] p-4">
+          <Card className="w-full">
+            <Stepper currentStep={step} />
+            <CardContent className="pt-4 space-y-4">
           {/* Step 1 — Upload */}
           {step === 1 && (
             <div key={1} className="animate-wizard-enter space-y-4">
@@ -813,32 +812,32 @@ function AddBookPage() {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
 
-      <Dialog open={styleguidePreviewOpen} onOpenChange={setStyleguidePreviewOpen}>
-        <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0">
-          <DialogHeader className="px-6 pt-6 pb-0">
-            <DialogTitle>Styleguide Preview — {styleguide}</DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 min-h-0 px-6 pb-6">
-            {styleguidePreviewLoading ? (
-              <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-                Loading preview...
+          <Dialog open={styleguidePreviewOpen} onOpenChange={setStyleguidePreviewOpen}>
+            <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0">
+              <DialogHeader className="px-6 pt-6 pb-0">
+                <DialogTitle>Styleguide Preview — {styleguide}</DialogTitle>
+              </DialogHeader>
+              <div className="flex-1 min-h-0 px-6 pb-6">
+                {styleguidePreviewLoading ? (
+                  <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+                    Loading preview...
+                  </div>
+                ) : (
+                  <iframe
+                    srcDoc={previewData?.html ?? ""}
+                    className="w-full h-full rounded-md border"
+                    sandbox="allow-scripts"
+                    title="Styleguide Preview"
+                  />
+                )}
               </div>
-            ) : (
-              <iframe
-                srcDoc={previewData?.html ?? ""}
-                className="w-full h-full rounded-md border"
-                sandbox="allow-scripts"
-                title="Styleguide Preview"
-              />
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-    </div>
+            </DialogContent>
+          </Dialog>
+        </div>
+      </div>
     </div>
   )
 }

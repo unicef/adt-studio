@@ -10,7 +10,7 @@ import { useStepHeader } from "../StepViewRouter"
 import { useStepRun } from "@/hooks/use-step-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { StageRunCard } from "../StageRunCard"
-import { STEP_DESCRIPTIONS } from "../StepSidebar"
+import { STAGE_DESCRIPTIONS } from "../stage-config"
 import { getRequestedPageId, getQuizImageRenderState } from "./quizzes-image-state"
 
 
@@ -385,7 +385,7 @@ export function QuizzesView({ bookLabel, selectedPageId }: { bookLabel: string; 
       <div className="p-4">
         <StageRunCard
           stageSlug="quizzes"
-          description={STEP_DESCRIPTIONS.quizzes}
+          description={STAGE_DESCRIPTIONS.quizzes}
           isRunning={quizzesRunning}
           onRun={handleRunQuizzes}
           disabled={!hasApiKey || quizzesRunning}

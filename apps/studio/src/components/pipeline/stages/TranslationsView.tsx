@@ -8,7 +8,7 @@ import { useStepHeader } from "../StepViewRouter"
 import { useStepRun } from "@/hooks/use-step-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { StageRunCard } from "../StageRunCard"
-import { STEP_DESCRIPTIONS } from "../StepSidebar"
+import { STAGE_DESCRIPTIONS } from "../stage-config"
 import { cn } from "@/lib/utils"
 import { getBaseLanguage, normalizeLocale } from "@/lib/languages"
 
@@ -297,7 +297,7 @@ export function TranslationsView({ bookLabel, selectedPageId }: { bookLabel: str
       <div className="p-4">
         <StageRunCard
           stageSlug="text-and-speech"
-          description={STEP_DESCRIPTIONS.translations}
+          description={STAGE_DESCRIPTIONS["text-and-speech"]}
           isRunning={isRunning}
           onRun={handleRunTranslations}
           disabled={!hasApiKey || isRunning}

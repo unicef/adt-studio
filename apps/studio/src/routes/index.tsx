@@ -19,7 +19,7 @@ import { useSettingsDialog } from "@/routes/__root"
 import { Badge } from "@/components/ui/badge"
 import { DeleteBookDialog } from "@/components/books/DeleteBookDialog"
 import { useBooks, useDeleteBook } from "@/hooks/use-books"
-import { STEPS, STEP_DESCRIPTIONS } from "@/components/v2/StepSidebar"
+import { getPipelineStages, STAGE_DESCRIPTIONS } from "@/components/pipeline/stage-config"
 import type { BookSummary } from "@/api/client"
 
 export const Route = createFileRoute("/")({
@@ -27,7 +27,7 @@ export const Route = createFileRoute("/")({
 })
 
 /** Pipeline stages shown in the sidebar (skip the "book" overview entry) */
-const PIPELINE_STEPS = STEPS.filter((s) => s.slug !== "book")
+const PIPELINE_STEPS = getPipelineStages()
 
 function DetailRow({
   icon: Icon,
@@ -241,9 +241,9 @@ function HomePage() {
                   </div>
                   <div className="min-w-0 pb-1">
                     <span className="text-sm font-medium">{step.label}</span>
-                    {STEP_DESCRIPTIONS[step.slug] && (
+                    {STAGE_DESCRIPTIONS[step.slug] && (
                       <p className="text-[11px] text-muted-foreground leading-relaxed">
-                        {STEP_DESCRIPTIONS[step.slug]}
+                        {STAGE_DESCRIPTIONS[step.slug]}
                       </p>
                     )}
                   </div>

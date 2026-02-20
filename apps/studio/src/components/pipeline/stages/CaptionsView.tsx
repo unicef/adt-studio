@@ -8,7 +8,7 @@ import { useStepHeader } from "../StepViewRouter"
 import { useStepRun } from "@/hooks/use-step-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { StageRunCard } from "../StageRunCard"
-import { STEP_DESCRIPTIONS } from "../StepSidebar"
+import { STAGE_DESCRIPTIONS } from "../stage-config"
 
 
 type CaptioningData = NonNullable<PageDetail["imageCaptioning"]>
@@ -265,7 +265,7 @@ export function CaptionsView({ bookLabel, selectedPageId }: { bookLabel: string;
       <div className="p-4">
         <StageRunCard
           stageSlug="captions"
-          description={STEP_DESCRIPTIONS.captions}
+          description={STAGE_DESCRIPTIONS.captions}
           isRunning={captionsRunning}
           onRun={handleRunCaptions}
           disabled={!hasApiKey || captionsRunning}
