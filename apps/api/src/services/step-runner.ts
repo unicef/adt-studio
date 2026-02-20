@@ -49,8 +49,12 @@ import {
   applyCrops,
   buildCroppingConfig,
   getCroppedImageId,
+  segmentPageImages,
+  applySegmentation,
+  buildSegmentationConfig,
+  getSegmentedImageId,
 } from "@adt/pipeline"
-import type { TranslationConfig, QuizPageInput, ProviderRouting, MeaningfulnessConfig, CroppingConfig } from "@adt/pipeline"
+import type { TranslationConfig, QuizPageInput, ProviderRouting, MeaningfulnessConfig, CroppingConfig, SegmentationConfig } from "@adt/pipeline"
 import { loadStyleguideContent } from "./pipeline-runner"
 import { createTTSSynthesizer, createAzureTTSSynthesizer } from "@adt/llm"
 import type { TTSSynthesizer } from "@adt/llm"
@@ -264,6 +268,7 @@ async function runExtractStep(
     const textClassifyConfig = buildClassifyConfig(config)
     const imageClassifyConfig = buildStepRunnerImageClassifyConfig(config, storage)
     const meaningfulnessConfig = buildMeaningfulnessConfig(config)
+    const segmentationConfig = buildSegmentationConfig(config)
     const croppingConfig = buildCroppingConfig(config)
 
     const llmModel = createLLMModel({
@@ -277,6 +282,16 @@ async function runExtractStep(
     const meaningfulnessModel = meaningfulnessConfig
       ? createLLMModel({
           modelId: meaningfulnessConfig.modelId,
+          cacheDir,
+          promptEngine,
+          rateLimiter,
+          onLog: onLlmLog,
+        })
+      : null
+
+    const segmentationModel = segmentationConfig
+      ? createLLMModel({
+          modelId: segmentationConfig.modelId,
           cacheDir,
           promptEngine,
           rateLimiter,
@@ -321,7 +336,7 @@ async function runExtractStep(
           await classifyPage(
             page,
             storage,
-            { textClassifyConfig, imageClassifyConfig, meaningfulnessConfig, croppingConfig },
+            { textClassifyConfig, imageClassifyConfig, meaningfulnessConfig, segmentationConfig, croppingConfig },
             llmModel,
             {
               onClassifyImages: () => {
@@ -368,6 +383,7 @@ async function runExtractStep(
             translationConfig,
             translationModel,
             meaningfulnessModel,
+            segmentationModel,
             croppingModel
           )
         } catch (err) {
@@ -393,10 +409,20 @@ async function runExtractStep(
 
     // Emit completion for classification steps
     progress.emit({ type: "step-complete", step: "image-filtering" })
+    if (segmentationConfig) {
+      progress.emit({ type: "step-complete", step: "image-segmentation" })
+    } else {
+      progress.emit({ type: "step-skip", step: "image-segmentation" })
+    }
     if (croppingConfig) {
       progress.emit({ type: "step-complete", step: "image-cropping" })
     } else {
       progress.emit({ type: "step-skip", step: "image-cropping" })
+    }
+    if (meaningfulnessConfig) {
+      progress.emit({ type: "step-complete", step: "image-meaningfulness" })
+    } else {
+      progress.emit({ type: "step-skip", step: "image-meaningfulness" })
     }
     progress.emit({ type: "step-complete", step: "text-classification" })
     if (translationConfig) {
@@ -1463,6 +1489,7 @@ interface ClassifyConfigs {
   textClassifyConfig: ReturnType<typeof buildClassifyConfig>
   imageClassifyConfig: ReturnType<typeof buildImageClassifyConfig>
   meaningfulnessConfig: MeaningfulnessConfig | null
+  segmentationConfig: SegmentationConfig | null
   croppingConfig: CroppingConfig | null
 }
 
@@ -1482,9 +1509,10 @@ async function classifyPage(
   translationConfig: TranslationConfig | null,
   translationModel: ReturnType<typeof createLLMModel> | null,
   meaningfulnessModel: ReturnType<typeof createLLMModel> | null,
+  segmentationModel: ReturnType<typeof createLLMModel> | null,
   croppingModel: ReturnType<typeof createLLMModel> | null
 ): Promise<void> {
-  const { textClassifyConfig, imageClassifyConfig, meaningfulnessConfig, croppingConfig } = configs
+  const { textClassifyConfig, imageClassifyConfig, meaningfulnessConfig, segmentationConfig, croppingConfig } = configs
 
   const imageBase64 = storage.getPageImageBase64(page.pageId)
   const images = storage.getPageImages(page.pageId)
@@ -1547,6 +1575,76 @@ async function classifyPage(
   }
 
   storage.putNodeData("image-filtering", page.pageId, imageResult)
+
+  // LLM segmentation (if enabled) — splits composited images into individual segments
+  if (segmentationConfig && segmentationModel) {
+    try {
+      const unprunedIds = new Set(
+        imageResult.images
+          .filter((img) => !img.isPruned)
+          .map((img) => img.imageId)
+      )
+      const segMinSide = segmentationConfig.minSide
+      const unprunedImages = images
+        .filter((img) => unprunedIds.has(img.imageId))
+        .filter((img) => segMinSide === undefined || Math.min(img.width, img.height) >= segMinSide)
+        .map((img) => ({
+          imageId: img.imageId,
+          imageBase64: storage.getImageBase64(img.imageId),
+          width: img.width,
+          height: img.height,
+        }))
+
+      if (unprunedImages.length > 0) {
+        const segmentationResult = await segmentPageImages(
+          {
+            pageId: page.pageId,
+            pageImageBase64: imageBase64,
+            images: unprunedImages,
+          },
+          segmentationConfig,
+          segmentationModel
+        )
+        const segVersion = storage.putNodeData("image-segmentation", page.pageId, segmentationResult)
+        const segDims = new Map(images.map((img) => [img.imageId, { width: img.width, height: img.height }]))
+        const applied = applySegmentation(
+          segmentationResult,
+          (imageId) => storage.getImageBase64(imageId),
+          segDims,
+        )
+        for (const seg of applied) {
+          storage.putSegmentedImage({
+            sourceImageId: seg.sourceImageId,
+            segmentIndex: seg.segmentIndex,
+            pageId: page.pageId,
+            version: segVersion,
+            buffer: seg.buffer,
+            width: seg.width,
+            height: seg.height,
+          })
+          imageResult.images.push({
+            imageId: getSegmentedImageId(seg.sourceImageId, seg.segmentIndex, segVersion),
+            isPruned: false,
+          })
+        }
+        // Mark segmented originals as pruned
+        if (applied.length > 0) {
+          const segmentedSourceIds = new Set(applied.map((s) => s.sourceImageId))
+          for (const sourceId of segmentedSourceIds) {
+            const origEntry = imageResult.images.find((i) => i.imageId === sourceId)
+            if (origEntry) {
+              origEntry.isPruned = true
+              origEntry.reason = "segmented"
+            }
+          }
+          storage.putNodeData("image-filtering", page.pageId, imageResult)
+        }
+      }
+    } catch (err) {
+      // Segmentation is non-fatal — log error but continue
+      console.error(`[step-run] image segmentation failed for ${page.pageId}: ${toErrorMessage(err)}`)
+    }
+  }
 
   // LLM cropping (if enabled)
   if (croppingConfig && croppingModel) {

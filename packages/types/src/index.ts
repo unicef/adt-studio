@@ -71,6 +71,13 @@ export {
   imageCroppingLLMSchema,
 } from "./image-cropping.js"
 
+export {
+  ImageSegmentRegion,
+  ImageSegmentResult,
+  ImageSegmentationOutput,
+  imageSegmentationLLMSchema,
+} from "./image-segmentation.js"
+
 export { BookMetadata } from "./metadata.js"
 
 export { BookSummaryOutput } from "./book-summary.js"

@@ -159,6 +159,9 @@ function AddBookPage() {
   const [startPage, setStartPage] = useState("")
   const [endPage, setEndPage] = useState("")
   const [spreadMode, setSpreadMode] = useState(false)
+  const [imageCropping, setImageCropping] = useState(false)
+  const [imageSegmentation, setImageSegmentation] = useState(true)
+  const [segMinSide, setSegMinSide] = useState("")
 
   // Step 2 — Layout
   const [layoutType, setLayoutType] = useState<LayoutType>("textbook")
@@ -277,9 +280,22 @@ function AddBookPage() {
       const f = config.image_filters as Record<string, unknown>
       setImageMinSide(f.min_side != null ? String(f.min_side) : "")
       setImageMaxSide(f.max_side != null ? String(f.max_side) : "")
+      setImageCropping(f.cropping === true)
+      // Default segmentation to true unless explicitly disabled
+      setImageSegmentation(f.segmentation !== false)
     } else {
       setImageMinSide("")
       setImageMaxSide("")
+      setImageCropping(false)
+      setImageSegmentation(true)
+    }
+
+    // Segmentation min side from preset
+    if (config.image_segmentation && typeof config.image_segmentation === "object") {
+      const s = config.image_segmentation as Record<string, unknown>
+      setSegMinSide(s.min_side != null ? String(s.min_side) : "")
+    } else {
+      setSegMinSide("")
     }
 
     // Spread mode from preset
@@ -436,11 +452,18 @@ function AddBookPage() {
     if (prunedSectionTypes.size > 0) {
       configOverrides.pruned_section_types = Array.from(prunedSectionTypes)
     }
-    const imageFilters: Record<string, number> = {}
+    const imageFilters: Record<string, unknown> = {}
     if (imageMinSide.trim()) imageFilters.min_side = Number(imageMinSide)
     if (imageMaxSide.trim()) imageFilters.max_side = Number(imageMaxSide)
+    imageFilters.cropping = imageCropping
+    imageFilters.segmentation = imageSegmentation
     if (Object.keys(imageFilters).length > 0) {
       configOverrides.image_filters = imageFilters
+    }
+    if (imageSegmentation && segMinSide.trim()) {
+      configOverrides.image_segmentation = {
+        min_side: Number(segMinSide),
+      }
     }
     // Type definitions
     if (Object.keys(textTypes).length > 0) {
@@ -604,6 +627,52 @@ function AddBookPage() {
                     <p className="text-xs text-muted-foreground">
                       Leave empty to process all pages.
                     </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="image-cropping"
+                        checked={imageCropping}
+                        onCheckedChange={setImageCropping}
+                      />
+                      <Label htmlFor="image-cropping" className="text-xs">
+                        LLM image cropping
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Use an LLM to crop away stray text, artifacts, and excessive whitespace from image edges.
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="image-segmentation"
+                        checked={imageSegmentation}
+                        onCheckedChange={setImageSegmentation}
+                      />
+                      <Label htmlFor="image-segmentation" className="text-xs">
+                        LLM image segmentation
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Use an LLM to detect and split composited images into individual segments.
+                    </p>
+                    {imageSegmentation && (
+                      <div className="pt-1">
+                        <Label className="text-xs">Min image dimension (px)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={segMinSide}
+                          onChange={(e) => setSegMinSide(e.target.value)}
+                          placeholder="None"
+                          className="w-28 mt-1"
+                        />
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Skip segmentation for images whose shortest side is below this threshold.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

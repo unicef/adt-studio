@@ -46,7 +46,7 @@ function createLegacySchemaBook(label: string): void {
   fs.mkdirSync(bookDir, { recursive: true })
   const db = openBookDb(path.join(bookDir, `${label}.db`))
   db.run("UPDATE schema_version SET version = ? WHERE id = 1", [
-    SCHEMA_VERSION - 1,
+    1,
   ])
   db.close()
   fs.writeFileSync(path.join(bookDir, `${label}.pdf`), "fake pdf")

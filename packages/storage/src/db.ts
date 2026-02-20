@@ -32,7 +32,7 @@ CREATE TABLE IF NOT EXISTS images (
   hash TEXT NOT NULL DEFAULT '',
   width INTEGER NOT NULL,
   height INTEGER NOT NULL,
-  source TEXT NOT NULL CHECK (source IN ('page', 'extract', 'crop'))
+  source TEXT NOT NULL CHECK (source IN ('page', 'extract', 'crop', 'segment'))
 );
 
 CREATE TABLE IF NOT EXISTS llm_log (
@@ -73,10 +73,45 @@ function initSchema(db: sqlite.Database): void {
 
   if (existing === SCHEMA_VERSION) return
 
+  // Migrate v5 → v6: add 'segment' to images.source CHECK constraint
+  if (existing === 5) {
+    migrateV5toV6(db)
+    upsertSchemaVersion(db, SCHEMA_VERSION)
+    return
+  }
+
   db.close()
   throw new Error(
     `Schema version mismatch: found v${existing}, expected v${SCHEMA_VERSION}`
   )
+}
+
+/**
+ * Migrate v5 → v6: widen images.source CHECK to include 'segment'.
+ * SQLite doesn't support ALTER CHECK, so we recreate the table.
+ */
+function migrateV5toV6(db: sqlite.Database): void {
+  db.exec("BEGIN IMMEDIATE")
+  try {
+    db.exec(`
+      CREATE TABLE images_new (
+        image_id TEXT PRIMARY KEY,
+        page_id TEXT NOT NULL REFERENCES pages(page_id),
+        path TEXT NOT NULL,
+        hash TEXT NOT NULL DEFAULT '',
+        width INTEGER NOT NULL,
+        height INTEGER NOT NULL,
+        source TEXT NOT NULL CHECK (source IN ('page', 'extract', 'crop', 'segment'))
+      );
+      INSERT INTO images_new SELECT * FROM images;
+      DROP TABLE images;
+      ALTER TABLE images_new RENAME TO images;
+    `)
+    db.exec("COMMIT")
+  } catch (err) {
+    db.exec("ROLLBACK")
+    throw err
+  }
 }
 
 function upsertSchemaVersion(db: sqlite.Database, version: number): void {

@@ -515,6 +515,37 @@ export const api = {
       }
     ),
 
+  segmentImage: (label: string, imageId: string, pageId: string, apiKey: string, signal?: AbortSignal) =>
+    request<{
+      segmented: boolean
+      imageWidth?: number
+      imageHeight?: number
+      regions?: Array<{ label: string; cropLeft: number; cropTop: number; cropRight: number; cropBottom: number }>
+    }>(
+      `/books/${label}/images/${imageId}/segment?pageId=${pageId}`,
+      {
+        method: "POST",
+        headers: { "X-OpenAI-Key": apiKey },
+        signal: signal ?? AbortSignal.timeout(120_000),
+      }
+    ),
+
+  applySegmentation: (
+    label: string,
+    imageId: string,
+    pageId: string,
+    regions: Array<{ label: string; cropLeft: number; cropTop: number; cropRight: number; cropBottom: number }>,
+    signal?: AbortSignal
+  ) =>
+    request<{ segments: Array<{ imageId: string; label: string; width: number; height: number }> }>(
+      `/books/${label}/images/${imageId}/segment/apply?pageId=${pageId}`,
+      {
+        method: "POST",
+        body: JSON.stringify({ regions }),
+        signal: signal ?? AbortSignal.timeout(120_000),
+      }
+    ),
+
   // --- Debug endpoints ---
 
   getLlmLogs: (label: string, params?: LlmLogsParams) => {

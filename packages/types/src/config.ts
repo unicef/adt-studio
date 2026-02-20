@@ -99,6 +99,9 @@ export const AppConfig = z
     output_languages: z.array(z.string()).optional(),
     book_format: z.array(BookFormat).optional(),
     image_captioning: StepConfig.optional(),
+    image_segmentation: StepConfig.extend({
+      min_side: z.number().int().min(0).optional(),
+    }).optional(),
     image_cropping: StepConfig.optional(),
     layout_type: LayoutType.optional(),
     spread_mode: z.boolean().optional(),
