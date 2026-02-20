@@ -309,13 +309,24 @@ function PageRow({
   const timerRef = useRef<ReturnType<typeof setTimeout>>(null)
 
   const handleEnter = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current)
     timerRef.current = setTimeout(() => {
       if (!rowRef.current) return
       const rect = rowRef.current.getBoundingClientRect()
       const previewH = 400
+      const previewW = 300
+      const gap = 20
       const margin = 8
       const top = Math.max(margin, Math.min(rect.top, window.innerHeight - previewH - margin))
-      setPreviewPos({ top, left: rect.right + 20 })
+      const rightEdge = window.innerWidth - margin
+      const rightSideLeft = rect.right + gap
+      const leftSideLeft = rect.left - previewW - gap
+      const unclampedLeft =
+        rightSideLeft + previewW <= rightEdge
+          ? rightSideLeft
+          : leftSideLeft
+      const left = Math.max(margin, Math.min(unclampedLeft, rightEdge - previewW))
+      setPreviewPos({ top, left })
       setShowPreview(true)
     }, 600)
   }, [])
@@ -323,6 +334,12 @@ function PageRow({
   const handleLeave = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current)
     setShowPreview(false)
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
   }, [])
 
   const imgSrc = data?.imageBase64 ? `data:image/png;base64,${data.imageBase64}` : null

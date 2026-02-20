@@ -384,6 +384,26 @@ All screens must follow these layout principles:
 
 **No scrolling when content fits**: If content can fit on screen by using available width, lay it out that way instead of stacking vertically and scrolling. Horizontal space is cheaper than vertical scroll.
 
+### Tailwind JIT Scanning Constraint
+
+Tailwind's JIT compiler scans source files for complete class name strings at build time. **Dynamic class generation will silently fail** — the classes won't be included in the CSS output.
+
+```typescript
+// WRONG: Dynamic template literals — Tailwind JIT can't detect these
+const cls = `bg-${color}-600`           // Not scanned
+const hover = `hover:${bgClass}`        // Not scanned
+const group = `group-hover/rail:${cls}` // Not scanned
+
+// CORRECT: Complete literal strings
+const cls = "bg-blue-600"                           // Scanned
+const hover = HOVER_MAP["bg-blue-600"]              // Value is literal in the map
+const group = cn("group-hover/rail:inline", flag && "inline")  // Both literals
+```
+
+For dynamic stage-colored hover states, use either:
+- **Static lookup map**: `{ "bg-blue-600": "hover:bg-blue-600" }` — each value is a complete literal
+- **CSS custom properties**: `style={{ '--clr': hex }}` + `className="text-[var(--clr)] hover:bg-[var(--clr)]"` — arbitrary value syntax with static class names
+
 ### Styling with Tailwind
 
 **ALWAYS use Tailwind utility classes**:
@@ -1163,6 +1183,8 @@ pnpm lint
 | Step run service (queue) | `apps/api/src/services/step-service.ts` |
 | Step run hook + context | `apps/studio/src/hooks/use-step-run.ts` |
 | Book layout (queueRun) | `apps/studio/src/routes/books.$label.tsx` |
+| Stage config (colors, icons, labels) | `apps/studio/src/components/pipeline/stage-config.ts` |
+| Stage sidebar | `apps/studio/src/components/pipeline/StageSidebar.tsx` |
 | Global config | `config/` |
 | Templates | `templates/` |
 

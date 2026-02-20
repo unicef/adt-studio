@@ -24,6 +24,9 @@ This document records all significant technology and architecture decisions made
 16. [Home Page Split Layout](#016-home-page-split-layout)
 17. [Two-Level DAG Pipeline (Stage / Step Model)](#017-two-level-dag-pipeline-stage--step-model)
 18. [Per-Book Step Run Queue](#018-per-book-step-run-queue)
+19. [Unified Stage Sidebar (Single Expandable Rail)](#019-unified-stage-sidebar-single-expandable-rail)
+20. [Stage Color System — Single Source of Truth](#020-stage-color-system--single-source-of-truth)
+21. [Context-Aware Top Bar Button](#021-context-aware-top-bar-button)
 
 ---
 
@@ -667,6 +670,90 @@ On every stage start (`status === "started"`), all TanStack Query cache entries 
 | Client-side queue only | Race conditions between tabs/reconnects, server doesn't know about ordering |
 | WebSocket for bidirectional control | Overkill — SSE already handles server→client; we only need client→server ordering |
 | External job queue (Bull, BullMQ) | Violates "minimize dependencies" principle, in-memory queue is sufficient for single-user desktop app |
+ 
+---
+
+## 019: Unified Stage Sidebar (Single Expandable Rail)
+
+**Status**: Decided
+**Date**: 2026-02-20
+
+### Decision
+
+The stage sidebar uses a single component with one shared DOM structure for both collapsed (icon-only) and expanded (labels visible) states. The rail overlays the pages panel on hover via CSS `group-hover` and `overflow-hidden`, with no JavaScript-driven show/hide logic for labels.
+
+### Context
+
+The sidebar originally had two completely separate code paths: an icon rail for when the pages panel was open, and a full labeled list for when it was closed. These diverged visually and structurally, leading to inconsistencies (different widths, different rounding, different hover states).
+
+### Key Design Choices
+
+- **Single DOM structure**: One `stageItems` array rendered in all modes. No conditional component swap.
+- **CSS-driven expansion**: The inner panel uses `w-12 group-hover/rail:w-[220px]` with `overflow-hidden`. Labels are always in the DOM — they're clipped by width, not toggled via `display`. This prevents flash-before-collapse when using transition delays.
+- **Transition delay**: `delay-150` on collapse, `group-hover/rail:delay-100` on expand. Prevents twitchy hover behavior.
+- **`railCollapsed`**: The rail collapses only when `effectivePagesOpen && !isSettings`. When settings are open, the rail expands to show settings sub-tabs.
+- **Fixed export button**: The export button sits outside the expanding overlay (below the `flex-1` rail area) so it doesn't resize during hover transitions.
+
+### Alternatives Considered
+
+| Approach | Why Not |
+|----------|---------|
+| Two separate components | Led to visual drift, double maintenance |
+| JavaScript hover state with `useState` | Adds re-renders, harder to coordinate with CSS transitions |
+| `display: none` / `inline` toggling for labels | Flashes on hover exit before the width transition starts — `overflow-hidden` clipping is smoother |
+
+---
+
+## 020: Stage Color System — Single Source of Truth
+
+**Status**: Decided
+**Date**: 2026-02-20
+
+### Decision
+
+All stage colors are defined once in `apps/studio/src/components/pipeline/stage-config.ts`. Each stage has:
+
+- `color` — Tailwind bg class (e.g. `bg-blue-600`), used for backgrounds, icon fills, card headers, step headers
+- `hex` — Same color as a hex string (e.g. `#2563eb`), used for SVG strokes (progress ring) and inline styles (top-bar button)
+- `borderDark` — Border variant (e.g. `border-blue-600`), used for card outlines
+- `textColor`, `bgLight`, `borderColor` — lighter variants for secondary uses
+
+No other file should define color hex values or Tailwind color mappings for stages. Consumers look up from `STAGES` via `STAGES.find(s => s.slug === slug) ?? STAGES[0]`, eliminating hardcoded fallback colors.
+
+### Context
+
+Stage colors were previously scattered across multiple files: a `COLOR_MAP` in `StepProgressRing.tsx`, a `STAGE_HEX` map in `books.$label.tsx`, a `HOVER_BG_BY_COLOR` map in `StageRunCard.tsx`, and the stage config itself. Changing a color shade required updating 4+ files. After unification, changing the shade from 500→700→600 required editing only `stage-config.ts` (plus the `HOVER_BG_BY_COLOR` in StageRunCard which maps `bg-*` to `hover:bg-*` for Tailwind JIT).
+
+### Tailwind JIT Constraint
+
+Tailwind's JIT compiler scans source files for complete class name strings. Dynamic class generation like `` `bg-${color}-600` `` or `` `hover:${bgClass}` `` will not be detected. All Tailwind classes must appear as complete literal strings in source code.
+
+For hover variants that depend on the stage color, use either:
+- A static lookup map (e.g. `HOVER_BG_BY_COLOR` mapping `"bg-blue-600"` → `"hover:bg-blue-600"`)
+- CSS custom properties with arbitrary value syntax: `style={{ '--stage-clr': hex }}` + `className="text-[var(--stage-clr)] hover:bg-[var(--stage-clr)]"`
+
+---
+
+## 021: Context-Aware Top Bar Button
+
+**Status**: Decided
+**Date**: 2026-02-20
+
+### Decision
+
+The top-right button in the sidebar header changes based on the active stage:
+
+| Stage | Button | Action |
+|-------|--------|--------|
+| Book | Settings gear | Opens API key settings dialog |
+| Preview | Rotate/refresh icon | Dispatches `adt:repackage` event |
+| All others | Settings gear | Navigates to that stage's settings page |
+
+The button is rendered as a round circle filled with the stage's `hex` color (via inline `backgroundColor` style), with a white icon. This provides a visual hint of which stage is active even in the header.
+
+### Context
+
+Previously, each stage row in the sidebar had its own settings gear or refresh button inline. This cluttered the stage list, especially when the rail was collapsed. Moving the action to the fixed header position keeps it always accessible and consistent.
 
 ---
 
@@ -692,3 +779,6 @@ On every stage start (`status === "started"`), all TanStack Query cache entries 
 | 016 | Home layout | 30/70 split (guide + books) | Full-width grid, centered content |
 | 017 | Pipeline model | Two-level DAG (Stage / Step) | Flat step list, config file, per-consumer definitions |
 | 018 | Concurrent stage runs | Per-book queue with promise chain serialization | 409 rejection, client-only queue, external job queue |
+| 019 | Stage sidebar | Single expandable rail with CSS hover | Two separate components, JS-driven hover |
+| 020 | Stage colors | Single source in stage-config.ts | Scattered hex/class maps across files |
+| 021 | Top bar button | Context-aware per stage | Per-stage inline buttons in sidebar |
