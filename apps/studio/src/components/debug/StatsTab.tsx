@@ -19,7 +19,6 @@ function formatTokens(n: number): string {
 }
 
 function estimateCost(inputTokens: number, outputTokens: number): string {
-  // gpt-4o pricing
   const cost = (inputTokens * 2.5 + outputTokens * 10) / 1_000_000
   return `$${cost.toFixed(4)}`
 }
@@ -50,7 +49,6 @@ export function StatsTab({ label, isRunning }: StatsTabProps) {
 
   return (
     <div className="p-6 space-y-6 text-sm">
-      {/* Summary cards row — full width grid */}
       <div className="grid grid-cols-3 lg:grid-cols-6 gap-4">
         <div className="rounded-lg border bg-card p-4">
           <div className="text-xs text-muted-foreground mb-1">LLM Calls</div>
@@ -76,7 +74,7 @@ export function StatsTab({ label, isRunning }: StatsTabProps) {
         ) : (
           <div className="rounded-lg border bg-card p-4">
             <div className="text-xs text-muted-foreground mb-1">Wall Clock</div>
-            <div className="text-2xl font-semibold text-muted-foreground">—</div>
+            <div className="text-2xl font-semibold text-muted-foreground">-</div>
           </div>
         )}
         <div className="rounded-lg border bg-card p-4">
@@ -93,7 +91,6 @@ export function StatsTab({ label, isRunning }: StatsTabProps) {
         </div>
       </div>
 
-      {/* Per-step table — full width */}
       {steps.length > 0 && (
         <div>
           <h4 className="text-xs font-medium text-muted-foreground mb-3">Per-Step Breakdown</h4>

@@ -1,0 +1,13 @@
+{
+  "images": [
+    {
+      "image_id": "pg001_im001",
+      "reasoning": "The image is a clean, square illustration (hyena and raven) with no stray page text, headers/footers, scan borders, or adjacent-page artifacts. The edges contain only intentional background texture and do not include excessive blank padding that would warrant trimming.",
+      "should_crop": false,
+      "crop_left": 0,
+      "crop_top": 0,
+      "crop_right": 546,
+      "crop_bottom": 546
+    }
+  ]
+}

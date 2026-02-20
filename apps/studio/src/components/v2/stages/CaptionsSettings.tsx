@@ -79,7 +79,7 @@ export function CaptionsSettings({ bookLabel, headerTarget }: { bookLabel: strin
           await api.runSteps(bookLabel, apiKey, { fromStep: "captions", toStep: "captions" })
           queryClient.removeQueries({ queryKey: ["books", bookLabel, "pages"] })
           queryClient.removeQueries({ queryKey: ["books", bookLabel] })
-          navigate({ to: "/books/$label/v2/$step", params: { label: bookLabel, step: "captions" } })
+          navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "captions" } })
         },
       }
     )

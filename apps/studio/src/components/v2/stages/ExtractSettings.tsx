@@ -241,7 +241,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
           queryClient.removeQueries({ queryKey: ["books", bookLabel, "pages"] })
           queryClient.removeQueries({ queryKey: ["books", bookLabel] })
           // Navigate back to the main extract view after data is cleared
-          navigate({ to: "/books/$label/v2/$step", params: { label: bookLabel, step: "extract" } })
+          navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "extract" } })
         },
       }
     )

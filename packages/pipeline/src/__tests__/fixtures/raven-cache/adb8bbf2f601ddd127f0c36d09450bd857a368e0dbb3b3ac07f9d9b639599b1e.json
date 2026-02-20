@@ -1,0 +1,13 @@
+{
+  "images": [
+    {
+      "image_id": "pg003_im002",
+      "reasoning": "The illustration is clean and fully bounded: no stray textbook text, page numbers, or adjacent-page artifacts appear at the edges. The content runs close to the borders (e.g., hyena on the left, bird on the right/bottom), so cropping risks cutting meaningful parts. No excessive whitespace/padding is present.",
+      "should_crop": false,
+      "crop_left": 0,
+      "crop_top": 0,
+      "crop_right": 546,
+      "crop_bottom": 546
+    }
+  ]
+}

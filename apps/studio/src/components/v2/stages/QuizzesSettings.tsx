@@ -109,7 +109,7 @@ export function QuizzesSettings({ bookLabel, headerTarget, tab = "general" }: { 
           await api.runSteps(bookLabel, apiKey, { fromStep: "quizzes", toStep: "quizzes" })
           queryClient.removeQueries({ queryKey: ["books", bookLabel, "quizzes"] })
           queryClient.removeQueries({ queryKey: ["books", bookLabel] })
-          navigate({ to: "/books/$label/v2/$step", params: { label: bookLabel, step: "quizzes" } })
+          navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "quizzes" } })
         },
       }
     )

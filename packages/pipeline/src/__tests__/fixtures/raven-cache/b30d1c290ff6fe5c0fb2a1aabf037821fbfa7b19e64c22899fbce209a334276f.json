@@ -1,0 +1,14 @@
+{
+  "images": [
+    {
+      "image_id": "pg001_im001",
+      "reasoning": "A complete, clear illustration showing a hyena on the ground and a raven flying above. The characters are distinct and appear to convey story content (scene/characters) rather than decoration or background texture.",
+      "is_meaningful": true
+    },
+    {
+      "image_id": "pg001_im002",
+      "reasoning": "This is a small publisher/website logo (African Storybook.org) with an icon of an open book. It serves branding rather than educational/diagrammatic content and is primarily decorative in the textbook context.",
+      "is_meaningful": false
+    }
+  ]
+}

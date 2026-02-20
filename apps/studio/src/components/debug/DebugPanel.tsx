@@ -6,7 +6,6 @@ import { StatsTab } from "./StatsTab"
 import { LlmLogsTab } from "./LlmLogsTab"
 import { ConfigTab } from "./ConfigTab"
 import { VersionsTab } from "./VersionsTab"
-import type { PipelineProgress } from "@/hooks/use-pipeline"
 
 const MIN_HEIGHT = 200
 const MAX_HEIGHT_VH = 0.8
@@ -14,11 +13,11 @@ const DEFAULT_HEIGHT_VH = 0.4
 
 interface DebugPanelProps {
   label: string
-  progress: PipelineProgress
+  isRunning: boolean
   onClose: () => void
 }
 
-export function DebugPanel({ label, progress, onClose }: DebugPanelProps) {
+export function DebugPanel({ label, isRunning, onClose }: DebugPanelProps) {
   const [height, setHeight] = useState(
     () => Math.floor(window.innerHeight * DEFAULT_HEIGHT_VH)
   )
@@ -50,7 +49,6 @@ export function DebugPanel({ label, progress, onClose }: DebugPanelProps) {
     document.addEventListener("mouseup", onUp)
   }, [height])
 
-  // Clean up on unmount
   useEffect(() => {
     return () => {
       dragging.current = false
@@ -63,7 +61,6 @@ export function DebugPanel({ label, progress, onClose }: DebugPanelProps) {
       className="border-t border-border bg-background flex flex-col"
       style={{ height }}
     >
-      {/* Drag handle */}
       <div
         className="flex items-center justify-center h-2 cursor-row-resize hover:bg-muted/50 shrink-0"
         onMouseDown={onDragStart}
@@ -72,7 +69,6 @@ export function DebugPanel({ label, progress, onClose }: DebugPanelProps) {
       </div>
 
       <Tabs defaultValue="stats" className="flex flex-col flex-1 min-h-0">
-        {/* Header bar */}
         <div className="flex items-center gap-2 px-3 py-1 border-b border-border shrink-0">
           <TabsList className="h-8">
             <TabsTrigger value="stats" className="text-xs px-2 py-1">
@@ -80,10 +76,8 @@ export function DebugPanel({ label, progress, onClose }: DebugPanelProps) {
             </TabsTrigger>
             <TabsTrigger value="logs" className="text-xs px-2 py-1">
               Logs
-              {progress.isRunning && progress.liveLlmLogs.length > 0 && (
-                <span className="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-green-500 text-[10px] text-white">
-                  {progress.liveLlmLogs.length > 99 ? "99+" : progress.liveLlmLogs.length}
-                </span>
+              {isRunning && (
+                <span className="ml-1 inline-flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
               )}
             </TabsTrigger>
             <TabsTrigger value="config" className="text-xs px-2 py-1">
@@ -95,10 +89,7 @@ export function DebugPanel({ label, progress, onClose }: DebugPanelProps) {
           </TabsList>
 
           <div className="flex-1" />
-
-          <span className="text-xs text-muted-foreground">
-            Debug Panel
-          </span>
+          <span className="text-xs text-muted-foreground">Debug Panel</span>
 
           <Button
             variant="ghost"
@@ -127,13 +118,12 @@ export function DebugPanel({ label, progress, onClose }: DebugPanelProps) {
           </Button>
         </div>
 
-        {/* Tab contents */}
         <div className="flex-1 min-h-0 overflow-auto">
           <TabsContent value="stats" className="m-0 h-full">
-            <StatsTab label={label} isRunning={progress.isRunning} />
+            <StatsTab label={label} isRunning={isRunning} />
           </TabsContent>
           <TabsContent value="logs" className="m-0 h-full">
-            <LlmLogsTab label={label} progress={progress} />
+            <LlmLogsTab label={label} isRunning={isRunning} />
           </TabsContent>
           <TabsContent value="config" className="m-0 h-full">
             <ConfigTab label={label} />

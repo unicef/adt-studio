@@ -52,7 +52,7 @@ export function BookView({ bookLabel }: ViewProps) {
         return (
           <div key={step.slug} className="w-full">
             <Link
-              to="/books/$label/v2/$step"
+              to="/books/$label/$step"
               params={{ label: bookLabel, step: step.slug }}
               className="block"
             >

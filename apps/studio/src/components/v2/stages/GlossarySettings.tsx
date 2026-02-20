@@ -79,7 +79,7 @@ export function GlossarySettings({ bookLabel, headerTarget }: { bookLabel: strin
           await api.runSteps(bookLabel, apiKey, { fromStep: "glossary", toStep: "glossary" })
           queryClient.removeQueries({ queryKey: ["books", bookLabel, "glossary"] })
           queryClient.removeQueries({ queryKey: ["books", bookLabel] })
-          navigate({ to: "/books/$label/v2/$step", params: { label: bookLabel, step: "glossary" } })
+          navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "glossary" } })
         },
       }
     )

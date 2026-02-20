@@ -1,0 +1,19 @@
+{
+  "reasoning": "The pages describe the friendship between Hyena and Raven and Hyena’s wish to fly with Raven. A key comprehension check is identifying what Hyena wants to do.",
+  "question": "What did Hyena want to do with Raven?",
+  "options": [
+    {
+      "text": "1) Fly into the sky",
+      "explanation": "✅ Correct! Hyena told Raven he would love to fly into the sky with him."
+    },
+    {
+      "text": "2) Swim in the river",
+      "explanation": "❌ Not quite. The story says Hyena wanted to fly, not swim."
+    },
+    {
+      "text": "3) Build a house",
+      "explanation": "❌ Not this time. The pages talk about playing together and Hyena wanting to fly."
+    }
+  ],
+  "answer_index": 0
+}

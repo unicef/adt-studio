@@ -81,7 +81,7 @@ export function TextToSpeechSettings({ bookLabel, headerTarget }: { bookLabel: s
           queryClient.removeQueries({ queryKey: ["books", bookLabel, "tts"] })
           queryClient.removeQueries({ queryKey: ["books", bookLabel, "text-catalog"] })
           queryClient.removeQueries({ queryKey: ["books", bookLabel] })
-          navigate({ to: "/books/$label/v2/$step", params: { label: bookLabel, step: "text-and-speech" } })
+          navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "text-and-speech" } })
         },
       }
     )

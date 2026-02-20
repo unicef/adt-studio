@@ -352,7 +352,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
           queryClient.removeQueries({ queryKey: ["books", bookLabel, "pages"] })
           queryClient.removeQueries({ queryKey: ["books", bookLabel] })
           // Navigate to the storyboard view
-          navigate({ to: "/books/$label/v2/$step", params: { label: bookLabel, step: "storyboard" } })
+          navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "storyboard" } })
         },
       }
     )

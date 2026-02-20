@@ -69,7 +69,6 @@ export function VersionsTab({ label }: VersionsTabProps) {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Selector bar */}
       <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border shrink-0">
         <Select value={node} onValueChange={setNode}>
           <SelectTrigger className="h-7 w-48 text-xs">
@@ -92,7 +91,6 @@ export function VersionsTab({ label }: VersionsTabProps) {
         />
       </div>
 
-      {/* Version list */}
       <div className="flex-1 overflow-auto min-h-0">
         {!node || !itemId ? (
           <div className="p-6 text-xs text-muted-foreground">

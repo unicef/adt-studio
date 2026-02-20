@@ -263,7 +263,7 @@ export function useStepRunSSE(label: string, enabled: boolean) {
   return { progress, startRun, reset }
 }
 
-// Context for sharing step run state across v2 layout
+// Context for sharing step run state across the book layout
 export interface StepRunContextValue {
   progress: StepRunProgress
   startRun: (fromStep: string, toStep: string) => void

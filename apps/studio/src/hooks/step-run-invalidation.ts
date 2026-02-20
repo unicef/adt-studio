@@ -2,7 +2,7 @@ export type QueryKey = ReadonlyArray<unknown>
 
 /**
  * Query keys to refresh after a UI step is fully completed.
- * Always includes step-status so v2 completion state refreshes.
+ * Always includes step-status so completion state refreshes.
  */
 export function getInvalidationKeysForUiStep(label: string, uiStep: string): QueryKey[] {
   const keys: QueryKey[] = []

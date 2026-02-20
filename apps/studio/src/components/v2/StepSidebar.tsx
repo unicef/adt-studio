@@ -143,7 +143,7 @@ export function StepSidebar({
   const effectivePagesOpen = hasPages && pagesOpen
 
   const isSettings = !!matchRoute({
-    to: "/books/$label/v2/$step/settings",
+    to: "/books/$label/$step/settings",
     params: { label: bookLabel, step: activeStep },
   })
   const activeTab = search.tab ?? "general"
@@ -158,7 +158,7 @@ export function StepSidebar({
     return (
       <Link
         key={step.slug}
-        to="/books/$label/v2/$step"
+        to="/books/$label/$step"
         params={{ label: bookLabel, step: step.slug }}
         title={step.label}
         className={cn(
@@ -253,7 +253,7 @@ export function StepSidebar({
                       )}
                     >
                       <Link
-                        to="/books/$label/v2/$step"
+                        to="/books/$label/$step"
                         params={{ label: bookLabel, step: step.slug }}
                         className="flex items-center gap-2.5 lg:flex-1 group-hover/sidebar:flex-1 min-w-0"
                         title={step.label}
@@ -290,7 +290,7 @@ export function StepSidebar({
                           )}
                         >
                           <Link
-                            to="/books/$label/v2/$step/settings"
+                            to="/books/$label/$step/settings"
                             params={{ label: bookLabel, step: step.slug }}
                             search={{ tab: "general" }}
                             title={`${step.label} settings`}
@@ -332,7 +332,7 @@ export function StepSidebar({
                             )}
                           >
                             <Link
-                              to="/books/$label/v2/$step/settings"
+                              to="/books/$label/$step/settings"
                               params={{ label: bookLabel, step: step.slug }}
                               search={{ tab: tab.key }}
                             >

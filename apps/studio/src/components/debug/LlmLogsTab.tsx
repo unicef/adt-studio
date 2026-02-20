@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react"
-import { RefreshCw, AlertTriangle, Check, Loader2, Circle } from "lucide-react"
+import { useState, useEffect } from "react"
+import { RefreshCw, AlertTriangle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -12,9 +12,7 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { useLlmLogs } from "@/hooks/use-debug"
-import type { PipelineProgress, LlmLogSummary, StepName } from "@/hooks/use-pipeline"
 import type { LlmLogEntry } from "@/api/client"
-import { api } from "@/api/client"
 
 const STEPS = [
   "extract",
@@ -22,6 +20,8 @@ const STEPS = [
   "text-classification",
   "translation",
   "image-filtering",
+  "image-cropping",
+  "image-meaningfulness",
   "page-sectioning",
   "web-rendering",
   "image-captioning",
@@ -29,71 +29,17 @@ const STEPS = [
   "quiz-generation",
   "text-catalog",
   "catalog-translation",
+  "book-summary",
   "tts",
+  "package-web",
 ] as const
-
-const STEP_LABELS: Record<StepName, string> = {
-  extract: "Extract",
-  metadata: "Metadata",
-  "text-classification": "Text",
-  translation: "Translate",
-  "image-filtering": "Images",
-  "image-cropping": "Cropping",
-  "image-meaningfulness": "Filtering",
-  "page-sectioning": "Sections",
-  "web-rendering": "Render",
-  "image-captioning": "Captions",
-  glossary: "Glossary",
-  "quiz-generation": "Quizzes",
-  "text-catalog": "Text Catalog",
-  "catalog-translation": "Translate Catalog",
-  "book-summary": "Summary",
-  tts: "Speech",
-  "package-web": "Package",
-}
 
 interface LlmLogsTabProps {
   label: string
-  progress: PipelineProgress
-}
-
-// --- Helpers ---
-
-function formatSeconds(ms: number): string {
-  if (ms < 1000) return `${(ms / 1000).toFixed(2)}s`
-  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`
-  return `${(ms / 60_000).toFixed(1)}m`
-}
-
-function formatRelativeTime(ts: number): string {
-  const diff = Date.now() - ts
-  if (diff < 1000) return "just now"
-  if (diff < 60_000) return `${Math.floor(diff / 1000)}s ago`
-  if (diff < 3600_000) return `${Math.floor(diff / 60_000)}m ago`
-  return `${Math.floor(diff / 3600_000)}h ago`
-}
-
-function formatTimestamp(iso: string): string {
-  const d = new Date(iso)
-  const diff = Date.now() - d.getTime()
-  if (diff < 60_000) return `${Math.floor(diff / 1000)}s ago`
-  if (diff < 3600_000) return `${Math.floor(diff / 60_000)}m ago`
-  return d.toLocaleTimeString()
+  isRunning: boolean
 }
 
 type RowStatus = "success" | "cached" | "error"
-
-function getStatusFromLive(entry: LlmLogSummary): RowStatus {
-  if (entry.validationErrors && entry.validationErrors.length > 0) return "error"
-  if (entry.cacheHit) return "cached"
-  return "success"
-}
-
-function getStatusFromHistory(entry: LlmLogEntry): RowStatus {
-  if (entry.data.validationErrors && entry.data.validationErrors.length > 0) return "error"
-  if (entry.data.cacheHit) return "cached"
-  return "success"
-}
 
 const STATUS_DOT: Record<RowStatus, string> = {
   success: "bg-green-500",
@@ -107,67 +53,30 @@ const STATUS_LABEL: Record<RowStatus, string> = {
   error: "Error",
 }
 
-// --- Step Tracker ---
-
-function StepTracker({ progress }: { progress: PipelineProgress }) {
-  return (
-    <div className="flex items-center gap-1 px-4 py-1.5 border-b bg-muted/20 shrink-0 overflow-x-auto">
-      {STEPS.map((step, i) => {
-        const completed = progress.completedSteps.has(step)
-        const running = progress.currentStep === step
-        const stepProg = progress.stepProgress.get(step)
-
-        return (
-          <div key={step} className="flex items-center gap-1 shrink-0">
-            {i > 0 && <div className="w-3 border-t border-border" />}
-            <div
-              className={cn(
-                "flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] transition-colors",
-                completed && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-                running && "bg-primary/10 text-primary font-medium",
-                !completed && !running && "text-muted-foreground",
-              )}
-            >
-              {completed && <Check className="h-3 w-3" />}
-              {running && <Loader2 className="h-3 w-3 animate-spin" />}
-              {!completed && !running && <Circle className="h-2.5 w-2.5 opacity-40" />}
-              {STEP_LABELS[step]}
-              {running && stepProg?.page != null && stepProg.totalPages != null && (
-                <span className="tabular-nums opacity-75">
-                  {stepProg.page}/{stepProg.totalPages}
-                </span>
-              )}
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
+function formatSeconds(ms: number): string {
+  if (ms < 1000) return `${(ms / 1000).toFixed(2)}s`
+  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`
+  return `${(ms / 60_000).toFixed(1)}m`
 }
 
-// --- Expanded Detail View ---
+function formatTimestamp(iso: string): string {
+  const d = new Date(iso)
+  const diff = Date.now() - d.getTime()
+  if (diff < 60_000) return `${Math.floor(diff / 1000)}s ago`
+  if (diff < 3600_000) return `${Math.floor(diff / 60_000)}m ago`
+  return d.toLocaleTimeString()
+}
 
-function LogDetail({ data, loading, label }: { data: LlmLogEntry["data"] | null; loading: boolean; label: string }) {
-  if (loading) {
-    return (
-      <td colSpan={9} className="px-4 py-3 bg-muted/20 text-xs text-muted-foreground">
-        Loading details...
-      </td>
-    )
-  }
+function getStatus(entry: LlmLogEntry): RowStatus {
+  if (entry.data.validationErrors && entry.data.validationErrors.length > 0) return "error"
+  if (entry.data.cacheHit) return "cached"
+  return "success"
+}
 
-  if (!data) {
-    return (
-      <td colSpan={9} className="px-4 py-3 bg-muted/20 text-xs text-muted-foreground">
-        Details not available yet.
-      </td>
-    )
-  }
-
+function LogDetail({ data, label }: { data: LlmLogEntry["data"]; label: string }) {
   return (
-    <td colSpan={9} className="p-0">
+    <td colSpan={8} className="p-0">
       <div className="px-4 py-3 bg-muted/20 space-y-3 text-xs">
-        {/* Summary grid */}
         <div className="grid grid-cols-4 lg:grid-cols-6 gap-3">
           <div>
             <div className="text-muted-foreground mb-0.5">Prompt</div>
@@ -203,7 +112,6 @@ function LogDetail({ data, loading, label }: { data: LlmLogEntry["data"] | null;
           )}
         </div>
 
-        {/* System prompt */}
         {data.system && (
           <div>
             <div className="font-medium text-muted-foreground mb-1">System Prompt</div>
@@ -213,7 +121,6 @@ function LogDetail({ data, loading, label }: { data: LlmLogEntry["data"] | null;
           </div>
         )}
 
-        {/* Messages */}
         {data.messages.length > 0 && (
           <div>
             <div className="font-medium text-muted-foreground mb-1">Messages</div>
@@ -233,12 +140,12 @@ function LogDetail({ data, loading, label }: { data: LlmLogEntry["data"] | null;
                         <div className="my-1">
                           <img
                             src={`/api/books/${label}/debug/llm-image/${part.hash}`}
-                            alt={`${part.width}×${part.height}`}
+                            alt={`${part.width}x${part.height}`}
                             className="max-h-48 rounded border bg-muted object-contain"
                             loading="lazy"
                           />
                           <div className="text-[10px] text-muted-foreground mt-0.5">
-                            {part.width}×{part.height}, {Math.round(part.byteLength / 1024)}KB
+                            {part.width}x{part.height}, {Math.round(part.byteLength / 1024)}KB
                           </div>
                         </div>
                       )}
@@ -250,7 +157,6 @@ function LogDetail({ data, loading, label }: { data: LlmLogEntry["data"] | null;
           </div>
         )}
 
-        {/* Validation errors */}
         {data.validationErrors && data.validationErrors.length > 0 && (
           <div>
             <div className="font-medium text-destructive mb-1 flex items-center gap-1">
@@ -267,82 +173,9 @@ function LogDetail({ data, loading, label }: { data: LlmLogEntry["data"] | null;
   )
 }
 
-// --- Live Log Row (from SSE) ---
-
-function LiveLogRow({ entry, label }: { entry: LlmLogSummary; label: string }) {
-  const [expanded, setExpanded] = useState(false)
-  const [detail, setDetail] = useState<LlmLogEntry["data"] | null>(null)
-  const [loading, setLoading] = useState(false)
-  const status = getStatusFromLive(entry)
-
-  const handleToggle = async () => {
-    if (!expanded && !detail) {
-      setLoading(true)
-      try {
-        const result = await api.getLlmLogs(label, {
-          step: entry.step,
-          itemId: entry.itemId,
-          limit: 10,
-        })
-        const match = result.logs.find(
-          (l) => l.data.promptName === entry.promptName,
-        )
-        if (match) setDetail(match.data)
-      } catch {
-        // Detail fetch failed — will show fallback message
-      } finally {
-        setLoading(false)
-      }
-    }
-    setExpanded(!expanded)
-  }
-
-  return (
-    <>
-      <tr
-        className="border-b border-border/50 cursor-pointer hover:bg-muted/30 transition-colors"
-        onClick={handleToggle}
-      >
-        <td className="py-1.5 pl-4 pr-1">
-          <span
-            className={cn("block h-2 w-2 rounded-full shrink-0", STATUS_DOT[status])}
-            title={STATUS_LABEL[status]}
-          />
-        </td>
-        <td className="py-1.5 px-2 text-muted-foreground tabular-nums whitespace-nowrap">
-          {formatRelativeTime(entry.receivedAt)}
-        </td>
-        <td className="py-1.5 px-2">
-          <Badge variant="outline" className="text-[10px] font-mono">
-            {entry.step}
-          </Badge>
-        </td>
-        <td className="py-1.5 px-2 text-muted-foreground">{entry.itemId}</td>
-        <td className="py-1.5 px-2 font-medium">{entry.promptName}</td>
-        <td className="py-1.5 px-2 text-muted-foreground">{entry.modelId}</td>
-        <td className="py-1.5 px-2 tabular-nums text-right">
-          {formatSeconds(entry.durationMs)}
-        </td>
-        <td className="py-1.5 px-2 pr-4 tabular-nums text-right text-muted-foreground whitespace-nowrap">
-          {entry.inputTokens != null
-            ? ((entry.inputTokens ?? 0) + (entry.outputTokens ?? 0)).toLocaleString()
-            : "\u2014"}
-        </td>
-      </tr>
-      {expanded && (
-        <tr className="border-b border-border/50">
-          <LogDetail data={detail} loading={loading} label={label} />
-        </tr>
-      )}
-    </>
-  )
-}
-
-// --- History Log Row (from REST) ---
-
 function HistoryLogRow({ entry, label }: { entry: LlmLogEntry; label: string }) {
   const [expanded, setExpanded] = useState(false)
-  const status = getStatusFromHistory(entry)
+  const status = getStatus(entry)
 
   return (
     <>
@@ -373,33 +206,23 @@ function HistoryLogRow({ entry, label }: { entry: LlmLogEntry; label: string }) 
         <td className="py-1.5 px-2 pr-4 tabular-nums text-right text-muted-foreground whitespace-nowrap">
           {entry.data.usage
             ? (entry.data.usage.inputTokens + entry.data.usage.outputTokens).toLocaleString()
-            : "\u2014"}
+            : "-"}
         </td>
       </tr>
       {expanded && (
         <tr className="border-b border-border/50">
-          <LogDetail data={entry.data} loading={false} label={label} />
+          <LogDetail data={entry.data} label={label} />
         </tr>
       )}
     </>
   )
 }
 
-// --- Main Component ---
-
-export function LlmLogsTab({ label, progress }: LlmLogsTabProps) {
+export function LlmLogsTab({ label, isRunning }: LlmLogsTabProps) {
   const [stepFilter, setStepFilter] = useState<string>("")
   const [itemIdFilter, setItemIdFilter] = useState("")
   const [offset, setOffset] = useState(0)
   const limit = 50
-
-  const scrollRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (progress.isRunning && scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
-  }, [progress.isRunning, progress.liveLlmLogs.length])
 
   const { data, isLoading, refetch } = useLlmLogs(label, {
     step: stepFilter || undefined,
@@ -408,24 +231,18 @@ export function LlmLogsTab({ label, progress }: LlmLogsTabProps) {
     offset,
   })
 
-  const filteredLive = progress.liveLlmLogs.filter((log) => {
-    if (stepFilter && log.step !== stepFilter) return false
-    if (itemIdFilter && !log.itemId.includes(itemIdFilter)) return false
-    return true
-  })
-
-  const hasLiveLogs = filteredLive.length > 0
+  useEffect(() => {
+    if (!isRunning) return
+    const id = window.setInterval(() => {
+      void refetch()
+    }, 3000)
+    return () => window.clearInterval(id)
+  }, [isRunning, refetch])
 
   return (
     <div className="flex flex-col h-full">
-      {/* Step tracker — visible when pipeline is running or just completed */}
-      {(progress.isRunning || progress.isComplete) && (
-        <StepTracker progress={progress} />
-      )}
-
-      {/* Filter bar */}
       <div className="flex items-center gap-2 px-4 py-1.5 border-b border-border shrink-0">
-        {progress.isRunning && (
+        {isRunning && (
           <span className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400 font-medium shrink-0">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
             Live
@@ -451,13 +268,12 @@ export function LlmLogsTab({ label, progress }: LlmLogsTabProps) {
           onChange={(e) => { setItemIdFilter(e.target.value); setOffset(0) }}
         />
 
-        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => refetch()}>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => void refetch()}>
           <RefreshCw className="h-3 w-3" />
         </Button>
 
         <div className="flex-1" />
 
-        {/* Status legend */}
         <div className="hidden lg:flex items-center gap-3 text-[10px] text-muted-foreground">
           <span className="flex items-center gap-1">
             <span className="h-2 w-2 rounded-full bg-green-500" /> Success
@@ -471,8 +287,7 @@ export function LlmLogsTab({ label, progress }: LlmLogsTabProps) {
         </div>
       </div>
 
-      {/* Log table */}
-      <div ref={scrollRef} className="flex-1 overflow-auto min-h-0">
+      <div className="flex-1 overflow-auto min-h-0">
         <table className="w-full text-xs">
           <thead className="sticky top-0 bg-muted/50 backdrop-blur-sm z-10">
             <tr className="border-b border-border/50 text-[10px] text-muted-foreground font-medium">
@@ -487,24 +302,7 @@ export function LlmLogsTab({ label, progress }: LlmLogsTabProps) {
             </tr>
           </thead>
           <tbody>
-            {/* Live SSE logs */}
-            {hasLiveLogs &&
-              filteredLive.map((entry, i) => (
-                <LiveLogRow key={`live-${i}`} entry={entry} label={label} />
-              ))
-            }
-
-            {/* Waiting state */}
-            {progress.isRunning && !hasLiveLogs && (
-              <tr>
-                <td colSpan={8} className="px-4 py-4 text-muted-foreground">
-                  Waiting for LLM calls...
-                </td>
-              </tr>
-            )}
-
-            {/* Loading state */}
-            {isLoading && !hasLiveLogs && (
+            {isLoading && (
               <tr>
                 <td colSpan={8} className="px-4 py-4 text-muted-foreground">
                   Loading logs...
@@ -512,27 +310,24 @@ export function LlmLogsTab({ label, progress }: LlmLogsTabProps) {
               </tr>
             )}
 
-            {/* Empty state */}
-            {data && data.logs.length === 0 && !hasLiveLogs && !progress.isRunning && (
+            {!isLoading && data && data.logs.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-4 py-4 text-muted-foreground">
-                  No log entries found. Run the pipeline to see LLM call logs.
+                  No log entries found yet.
                 </td>
               </tr>
             )}
 
-            {/* History logs from REST API */}
             {data?.logs.map((entry) => (
               <HistoryLogRow key={entry.id} entry={entry} label={label} />
             ))}
           </tbody>
         </table>
 
-        {/* Pagination */}
         {data && data.total > limit && (
           <div className="flex items-center justify-between px-4 py-2 border-t border-border text-xs sticky bottom-0 bg-background">
             <span className="text-muted-foreground tabular-nums">
-              {offset + 1}&ndash;{Math.min(offset + limit, data.total)} of {data.total}
+              {offset + 1}-{Math.min(offset + limit, data.total)} of {data.total}
             </span>
             <div className="flex gap-1">
               <Button

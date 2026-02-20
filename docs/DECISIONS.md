@@ -453,16 +453,17 @@ Use Server-Sent Events (SSE) for streaming real-time pipeline progress from API 
 
 ### Decision
 
-Add a browser-DevTools-style bottom drawer panel (toggled via `Cmd+Shift+D`) on all book routes for inspecting LLM logs, pipeline stats, active config, and entity version history.
+Add a browser-DevTools-style bottom drawer panel (toggled via `Cmd+Shift+D`) on book workflow routes for inspecting LLM logs, pipeline stats, active config, and entity version history. Also provide a dedicated popout route (`/books/$label/debug`) for detached debugging in a separate window.
 
 ### Reasoning
 
 - **Iteration speed**: Pipeline development requires seeing exactly what's happening — prompts sent, cache hits, token usage, validation failures. This data exists in `llm_log` but was only accessible via raw SQL.
 - **Zero external tools**: No need to open a separate DB viewer or log aggregator. Everything is in the browser, colocated with the pipeline output.
 - **Live + historical**: SSE `llm-log` events stream during a run (summary only, no full prompts in SSE). Full prompt/response detail fetched on demand from REST endpoints.
+- **Docked + detached workflows**: The bottom drawer supports in-context debugging, while `/books/$label/debug` supports dedicated multi-monitor or side-by-side debugging during long runs.
 - **Cost awareness**: Token counts and estimated cost displayed per step, helping catch expensive prompts early.
 - **Config visibility**: Merged config (global + book override) displayed in a structured read-only view, clarifying which settings are active.
-- **Minimal footprint**: 4 REST endpoints, 1 SSE event type, 5 React components. No new dependencies.
+- **Minimal footprint**: 4 REST endpoints, 1 SSE event type, and lightweight React route/components. No new dependencies.
 
 ### Alternatives Considered
 
@@ -470,7 +471,7 @@ Add a browser-DevTools-style bottom drawer panel (toggled via `Cmd+Shift+D`) on 
 |--------|---------|
 | External log viewer | Requires switching context, additional setup, not integrated with pipeline UI |
 | Browser console logging | Unstructured, lost on page refresh, no filtering/aggregation |
-| Separate /debug page | Less discoverable, doesn't coexist with the main pipeline view |
+| Dedicated debug-only app/shell | More routing and layout complexity than needed; a single popout route is sufficient |
 
 ---
 

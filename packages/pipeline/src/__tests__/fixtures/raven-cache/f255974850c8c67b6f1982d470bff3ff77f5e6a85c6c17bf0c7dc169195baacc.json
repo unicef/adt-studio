@@ -1,0 +1,17 @@
+{
+  "reasoning": "This is a single front cover page: it contains the story title, author/illustrator credits, language label, publisher/site mark, and a full-page cover illustration of the hyena and raven. All elements belong together as one coherent cover section.",
+  "sections": [
+    {
+      "section_type": "front_cover",
+      "part_ids": [
+        "pg001_im001",
+        "pg001_gp001",
+        "pg001_gp002",
+        "pg001_gp003"
+      ],
+      "background_color": "#e18a28",
+      "text_color": "#000000",
+      "page_number": null
+    }
+  ]
+}

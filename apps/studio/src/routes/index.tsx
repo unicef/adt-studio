@@ -87,7 +87,7 @@ function BookRow({
       <div className="flex items-stretch">
         {/* Main content — clickable */}
         <Link
-          to="/books/$label/v2/$step"
+          to="/books/$label/$step"
           params={{ label: book.label, step: "extract" }}
           className="flex-1 min-w-0 p-5"
         >
@@ -182,7 +182,7 @@ function BookRow({
             className="h-8 w-8 text-muted-foreground hover:text-primary"
             asChild
           >
-            <Link to="/books/$label/v2/$step" params={{ label: book.label, step: "extract" }}>
+            <Link to="/books/$label/$step" params={{ label: book.label, step: "extract" }}>
               <Pencil className="h-4 w-4" />
             </Link>
           </Button>

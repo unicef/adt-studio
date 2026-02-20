@@ -458,11 +458,11 @@ function AddBookPage() {
             try {
               await api.runSteps(book.label, apiKey, { fromStep: "extract", toStep: "storyboard" })
             } catch {
-              // Book creation already succeeded; user can retry the run from v2.
+              // Book creation already succeeded; user can retry the run from the book view.
             }
           }
           navigate({
-            to: "/books/$label/v2/$step",
+            to: "/books/$label/$step",
             params: { label: book.label, step: "book" },
           })
         },
