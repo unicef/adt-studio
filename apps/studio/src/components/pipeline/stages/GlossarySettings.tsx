@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
 import { useNavigate } from "@tanstack/react-router"
-import { useQueryClient } from "@tanstack/react-query"
 import { Play } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -24,9 +23,8 @@ export function GlossarySettings({ bookLabel, headerTarget }: { bookLabel: strin
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
   const { apiKey, hasApiKey } = useApiKey()
-  const { startRun, setSseEnabled } = useStepRun()
+  const { queueRun } = useStepRun()
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const [showRerunDialog, setShowRerunDialog] = useState(false)
 
   const [model, setModel] = useState("")
@@ -74,11 +72,7 @@ export function GlossarySettings({ bookLabel, headerTarget }: { bookLabel: strin
           setDirty({})
           setPromptDraft(null)
           setShowRerunDialog(false)
-          startRun("glossary", "glossary")
-          setSseEnabled(true)
-          await api.runSteps(bookLabel, apiKey, { fromStep: "glossary", toStep: "glossary" })
-          queryClient.removeQueries({ queryKey: ["books", bookLabel, "glossary"] })
-          queryClient.removeQueries({ queryKey: ["books", bookLabel] })
+          queueRun({ fromStep: "glossary", toStep: "glossary", apiKey })
           navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "glossary" } })
         },
       }

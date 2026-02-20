@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
 import { useNavigate } from "@tanstack/react-router"
-import { useQueryClient } from "@tanstack/react-query"
 import { Play } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
@@ -30,9 +29,8 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
   const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
-  const { startRun, setSseEnabled } = useStepRun()
+  const { queueRun } = useStepRun()
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const [showRerunDialog, setShowRerunDialog] = useState(false)
 
   const [model, setModel] = useState("")
@@ -160,12 +158,7 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
           setDirty({})
           setPromptDraft(null)
           setShowRerunDialog(false)
-          startRun("text-and-speech", "text-and-speech")
-          setSseEnabled(true)
-          await api.runSteps(bookLabel, apiKey, { fromStep: "text-and-speech", toStep: "text-and-speech" }, { key: azureKey, region: azureRegion })
-          queryClient.removeQueries({ queryKey: ["books", bookLabel, "text-catalog"] })
-          queryClient.removeQueries({ queryKey: ["books", bookLabel, "tts"] })
-          queryClient.removeQueries({ queryKey: ["books", bookLabel] })
+          queueRun({ fromStep: "text-and-speech", toStep: "text-and-speech", apiKey, azure: { key: azureKey, region: azureRegion } })
           navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "text-and-speech" } })
         },
       }

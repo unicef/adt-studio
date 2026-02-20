@@ -257,8 +257,10 @@ export async function runFullPipeline(
           imageClassification.images.filter((img) => !img.isPruned).map((img) => img.imageId)
         )
         const allImages = storage.getPageImages(page.pageId)
+        const segMinSide = segmentationConfig.minSide
         const unprunedImages = allImages
           .filter((img) => unprunedImageIds.has(img.imageId))
+          .filter((img) => segMinSide === undefined || Math.min(img.width, img.height) >= segMinSide)
           .map((img) => ({
             imageId: img.imageId,
             imageBase64: storage.getImageBase64(img.imageId),
@@ -274,9 +276,11 @@ export async function runFullPipeline(
               model,
             )
             const segVersion = storage.putNodeData("image-segmentation", page.pageId, segmentationResult)
+            const segDims = new Map(allImages.map((img) => [img.imageId, { width: img.width, height: img.height }]))
             const applied = applySegmentation(
               segmentationResult,
               (imageId) => storage.getImageBase64(imageId),
+              segDims,
             )
             for (const seg of applied) {
               storage.putSegmentedImage({

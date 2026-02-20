@@ -1,11 +1,9 @@
 import { useEffect, useState, useRef, useCallback } from "react"
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react"
-import { useQueryClient } from "@tanstack/react-query"
 import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../StepViewRouter"
 import { useStepRun } from "@/hooks/use-step-run"
 import { useApiKey } from "@/hooks/use-api-key"
-import { api } from "@/api/client"
 import { StageRunCard } from "../StageRunCard"
 import { STAGE_DESCRIPTIONS } from "../stage-config"
 import { StoryboardSectionDetail } from "./StoryboardSectionDetail"
@@ -15,20 +13,15 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const { data: pages, isLoading: pagesLoading } = usePages(bookLabel)
   const setSelectedPageId = onSelectPage ?? (() => {})
   const { setExtra, setOnLabelClick } = useStepHeader()
-  const { progress: stepProgress, startRun, setSseEnabled } = useStepRun()
+  const { progress: stepProgress, queueRun } = useStepRun()
   const { apiKey, hasApiKey } = useApiKey()
-  const queryClient = useQueryClient()
   const storyboardState = stepProgress.steps.get("storyboard")?.state
   const storyboardRunning = storyboardState === "running" || storyboardState === "queued"
 
-  const handleRunStoryboard = useCallback(async () => {
+  const handleRunStoryboard = useCallback(() => {
     if (!hasApiKey || storyboardRunning) return
-    startRun("storyboard", "storyboard")
-    setSseEnabled(true)
-    await api.runSteps(bookLabel, apiKey, { fromStep: "storyboard", toStep: "storyboard" })
-    // Remove cached page data so section data is cleared
-    queryClient.removeQueries({ queryKey: ["books", bookLabel, "pages"] })
-  }, [bookLabel, apiKey, hasApiKey, storyboardRunning, startRun, setSseEnabled, queryClient])
+    queueRun({ fromStep: "storyboard", toStep: "storyboard", apiKey })
+  }, [hasApiKey, storyboardRunning, apiKey, queueRun])
 
   const pageList = pages ?? []
   const [sectionIndex, setSectionIndex] = useState(0)

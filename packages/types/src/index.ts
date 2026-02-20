@@ -17,6 +17,18 @@ export {
   ALL_STEP_NAMES,
 } from "./pipeline.js"
 
+export {
+  type PipelineNodeName,
+  type PipelineCacheResource,
+  STAGE_OUTPUT_NODES,
+  getStageClearOrder,
+  getStageClearNodes,
+  getCacheResourcesForNode,
+  getCacheResourcesForNodes,
+  getCacheResourcesForStageOutput,
+  getCacheResourcesForStageClear,
+} from "./pipeline-effects.js"
+
 export { ProgressEvent } from "./progress.js"
 
 export { BookLabel, parseBookLabel } from "./book.js"

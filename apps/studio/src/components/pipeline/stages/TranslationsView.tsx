@@ -139,19 +139,15 @@ export function TranslationsView({ bookLabel, selectedPageId }: { bookLabel: str
   const { setExtra } = useStepHeader()
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const queryClient = useQueryClient()
-  const { progress: stepProgress, startRun, setSseEnabled } = useStepRun()
+  const { progress: stepProgress, queueRun } = useStepRun()
   const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
   const stageState = stepProgress.steps.get("text-and-speech")?.state
   const isRunning = stageState === "running" || stageState === "queued"
 
-  const handleRunTranslations = useCallback(async () => {
+  const handleRunTranslations = useCallback(() => {
     if (!hasApiKey || isRunning) return
-    startRun("text-and-speech", "text-and-speech")
-    setSseEnabled(true)
-    await api.runSteps(bookLabel, apiKey, { fromStep: "text-and-speech", toStep: "text-and-speech" }, { key: azureKey, region: azureRegion })
-    queryClient.removeQueries({ queryKey: ["books", bookLabel, "text-catalog"] })
-    queryClient.removeQueries({ queryKey: ["books", bookLabel, "tts"] })
-  }, [bookLabel, apiKey, hasApiKey, azureKey, azureRegion, isRunning, startRun, setSseEnabled, queryClient])
+    queueRun({ fromStep: "text-and-speech", toStep: "text-and-speech", apiKey, azure: { key: azureKey, region: azureRegion } })
+  }, [hasApiKey, isRunning, apiKey, azureKey, azureRegion, queueRun])
 
   const { data: catalog, isLoading } = useQuery({
     queryKey: ["books", bookLabel, "text-catalog"],

@@ -12,6 +12,7 @@ export interface SegmentationPageInput {
 export interface SegmentationConfig {
   promptName: string
   modelId: string
+  minSide?: number
 }
 
 const DEFAULT_SEGMENTATION_MODEL = "openai:gpt-5.2"
@@ -29,6 +30,7 @@ export function buildSegmentationConfig(
   return {
     promptName: appConfig.image_segmentation?.prompt ?? "image_segmentation",
     modelId: appConfig.image_segmentation?.model || DEFAULT_SEGMENTATION_MODEL,
+    minSide: appConfig.image_segmentation?.min_side,
   }
 }
 
@@ -182,13 +184,22 @@ export interface AppliedSegment {
   height: number
 }
 
+const DEFAULT_SEGMENT_PADDING = 10
+
 /**
  * Apply segmentation bounding boxes to images, returning cropped buffers.
  * Only returns entries for images that need segmentation.
+ *
+ * Each bounding box is expanded outward by `padding` pixels (default 10)
+ * and clamped to the image dimensions. When clamping reduces padding on
+ * one side (e.g. near an image edge), the lost space is added to the
+ * opposite side so the content stays centered in the crop box.
  */
 export function applySegmentation(
   segmentationOutput: ImageSegmentationOutput,
-  getImageBase64: (imageId: string) => string
+  getImageBase64: (imageId: string) => string,
+  imageDims?: Map<string, { width: number; height: number }>,
+  padding: number = DEFAULT_SEGMENT_PADDING,
 ): AppliedSegment[] {
   const results: AppliedSegment[] = []
 
@@ -199,18 +210,38 @@ export function applySegmentation(
 
     const originalBase64 = getImageBase64(result.imageId)
     const buffer = Buffer.from(originalBase64, "base64")
+    const dims = imageDims?.get(result.imageId)
 
     for (let i = 0; i < result.segments.length; i++) {
       const seg = result.segments[i]
-      const width = seg.cropRight - seg.cropLeft
-      const height = seg.cropBottom - seg.cropTop
+
+      // Expand bounding box outward by padding, clamped to image bounds
+      let left = Math.max(0, seg.cropLeft - padding)
+      let top = Math.max(0, seg.cropTop - padding)
+      let right = dims ? Math.min(dims.width, seg.cropRight + padding) : seg.cropRight + padding
+      let bottom = dims ? Math.min(dims.height, seg.cropBottom + padding) : seg.cropBottom + padding
+
+      // Compensate clamped padding on the opposite side to center content
+      if (dims) {
+        const leftLoss = Math.max(0, -(seg.cropLeft - padding))
+        const topLoss = Math.max(0, -(seg.cropTop - padding))
+        const rightLoss = Math.max(0, (seg.cropRight + padding) - dims.width)
+        const bottomLoss = Math.max(0, (seg.cropBottom + padding) - dims.height)
+        right = Math.min(dims.width, right + leftLoss)
+        left = Math.max(0, left - rightLoss)
+        bottom = Math.min(dims.height, bottom + topLoss)
+        top = Math.max(0, top - bottomLoss)
+      }
+
+      const width = right - left
+      const height = bottom - top
       if (width <= 0 || height <= 0) continue
 
       const cropped = applyCrop(buffer, {
-        cropLeft: seg.cropLeft,
-        cropTop: seg.cropTop,
-        cropRight: seg.cropRight,
-        cropBottom: seg.cropBottom,
+        cropLeft: left,
+        cropTop: top,
+        cropRight: right,
+        cropBottom: bottom,
       })
       results.push({
         sourceImageId: result.imageId,

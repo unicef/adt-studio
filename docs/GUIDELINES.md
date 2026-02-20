@@ -684,6 +684,25 @@ Key files:
 - `apps/studio/src/components/pipeline/StageRunCard.tsx` — UI card (sub-steps derived from PIPELINE)
 - `apps/studio/src/components/pipeline/stages/` — Per-stage view components
 
+### Step Run Queue
+
+Stage runs are queued per-book — if a run is already active, new runs wait and execute sequentially. Key patterns:
+
+- **Backend**: `step-service.ts` manages a `BookRunState` per book with an active job and a queue. Jobs drain automatically on completion/failure.
+- **Frontend**: All 14 run handlers (7 Views + 7 Settings) call `queueRun(options)` from `StepRunContext` — never `api.runSteps` directly. This function serializes API calls through a promise chain to preserve click ordering.
+- **Data clearing**: Happens via a `beforeRun` callback when the job *starts executing*, not when enqueued. This prevents clearing data for a stage that hasn't started yet.
+- **SSE continuity**: The progress stream stays open across queue transitions. A `queue-next` event signals when a queued run begins executing.
+- **Query invalidation**: On every `status === "started"` response, all TanStack Query cache entries for the book are blown away. Queued runs skip invalidation.
+
+```typescript
+// CORRECT: Use queueRun from context (handles startRun + SSE + API call + invalidation)
+const { queueRun } = useStepRun()
+queueRun({ fromStep: "storyboard", toStep: "storyboard", apiKey })
+
+// WRONG: Calling API directly from a handler
+await api.runSteps(label, apiKey, { fromStep, toStep })
+```
+
 ### Pipeline Functions
 
 ```typescript
@@ -1141,6 +1160,9 @@ pnpm lint
 | API stage runners | `apps/api/src/services/step-runner.ts` |
 | LLM client | `packages/llm/src/client.ts` |
 | Stage view components | `apps/studio/src/components/pipeline/stages/` |
+| Step run service (queue) | `apps/api/src/services/step-service.ts` |
+| Step run hook + context | `apps/studio/src/hooks/use-step-run.ts` |
+| Book layout (queueRun) | `apps/studio/src/routes/books.$label.tsx` |
 | Global config | `config/` |
 | Templates | `templates/` |
 

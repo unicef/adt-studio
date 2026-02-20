@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
 import { useNavigate } from "@tanstack/react-router"
-import { useQueryClient } from "@tanstack/react-query"
 import { Play, Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,9 +29,8 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
   const { apiKey, hasApiKey } = useApiKey()
-  const { startRun, setSseEnabled } = useStepRun()
+  const { queueRun } = useStepRun()
   const navigate = useNavigate()
-  const queryClient = useQueryClient()
   const [showRerunDialog, setShowRerunDialog] = useState(false)
 
   // Form state
@@ -53,6 +51,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
   const [meaningfulnessModel, setMeaningfulnessModel] = useState("")
   const [croppingModel, setCroppingModel] = useState("")
   const [segmentationModel, setSegmentationModel] = useState("")
+  const [segmentationMinSide, setSegmentationMinSide] = useState("")
   const [bookSummaryModel, setBookSummaryModel] = useState("")
   const [metadataPromptDraft, setMetadataPromptDraft] = useState<string | null>(null)
   const [extractionPromptDraft, setExtractionPromptDraft] = useState<string | null>(null)
@@ -111,6 +110,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
     if (merged.image_segmentation && typeof merged.image_segmentation === "object") {
       const is = merged.image_segmentation as Record<string, unknown>
       if (is.model) setSegmentationModel(String(is.model))
+      if (is.min_side != null) setSegmentationMinSide(String(is.min_side))
     }
     if (merged.book_summary && typeof merged.book_summary === "object") {
       const bs = merged.book_summary as Record<string, unknown>
@@ -214,7 +214,11 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
     }
     if (shouldWrite("image_segmentation")) {
       const existing = (bookConfigData?.config?.image_segmentation ?? {}) as Record<string, unknown>
-      overrides.image_segmentation = { ...existing, model: segmentationModel.trim() || undefined }
+      overrides.image_segmentation = {
+        ...existing,
+        model: segmentationModel.trim() || undefined,
+        min_side: segmentationMinSide.trim() ? Number(segmentationMinSide) : undefined,
+      }
     }
     if (shouldWrite("book_summary")) {
       const existing = (bookConfigData?.config?.book_summary ?? {}) as Record<string, unknown>
@@ -248,14 +252,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
           setSegmentationPromptDraft(null)
           setBookSummaryPromptDraft(null)
           setShowRerunDialog(false)
-          // Start step-scoped extract run — blocks until data is cleared on backend
-          startRun("extract", "extract")
-          setSseEnabled(true)
-          await api.runSteps(bookLabel, apiKey, { fromStep: "extract", toStep: "extract" })
-          // Remove cached data so the extract page shows empty state (not stale pages)
-          queryClient.removeQueries({ queryKey: ["books", bookLabel, "pages"] })
-          queryClient.removeQueries({ queryKey: ["books", bookLabel] })
-          // Navigate back to the main extract view after data is cleared
+          queueRun({ fromStep: "extract", toStep: "extract", apiKey })
           navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "extract" } })
         },
       }
@@ -549,16 +546,34 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
       )}
 
       {tab === "segmentation-prompt" && (
-        <PromptViewer
-          promptName="image_segmentation"
-          bookLabel={bookLabel}
-          title="Image Segmentation Prompt"
-          description="LLM-based segmentation to detect and split composited images into individual segments. Requires GPT-5.2+ for accurate bounding box coordinates."
-          model={segmentationModel}
-          onModelChange={(v) => { setSegmentationModel(v); markDirty("image_segmentation") }}
-          onContentChange={setSegmentationPromptDraft}
-          enabled={tab === "segmentation-prompt"}
-        />
+        <div className="flex flex-col h-full">
+          <div className="shrink-0 px-4 pt-4 pb-3 space-y-1.5 border-b">
+            <Label className="text-xs">Min image dimension (px)</Label>
+            <Input
+              type="number"
+              min={0}
+              value={segmentationMinSide}
+              onChange={(e) => { setSegmentationMinSide(e.target.value); markDirty("image_segmentation") }}
+              placeholder="None"
+              className="w-32"
+            />
+            <p className="text-xs text-muted-foreground">
+              Skip segmentation for images whose shortest side is below this threshold.
+            </p>
+          </div>
+          <div className="flex-1 min-h-0">
+            <PromptViewer
+              promptName="image_segmentation"
+              bookLabel={bookLabel}
+              title="Image Segmentation Prompt"
+              description="LLM-based segmentation to detect and split composited images into individual segments. Requires GPT-5.2+ for accurate bounding box coordinates."
+              model={segmentationModel}
+              onModelChange={(v) => { setSegmentationModel(v); markDirty("image_segmentation") }}
+              onContentChange={setSegmentationPromptDraft}
+              enabled={tab === "segmentation-prompt"}
+            />
+          </div>
+        </div>
       )}
 
       {tab === "book-summary-prompt" && (

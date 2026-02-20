@@ -5,6 +5,7 @@ import { StepName } from "@adt/types"
 import {
   getInvalidationKeysForUiStep,
   getMetadataInvalidationKeys,
+  getStartInvalidationKeysForUiStep,
 } from "./step-run-invalidation"
 
 describe("step mapping exhaustiveness", () => {
@@ -60,9 +61,9 @@ describe("step run invalidation keys", () => {
   it("includes pages/book/list and step-status when extract completes", () => {
     const keys = getInvalidationKeysForUiStep("sample-book", "extract")
     expect(keys).toEqual([
-      ["books", "sample-book", "pages"],
-      ["books", "sample-book"],
       ["books"],
+      ["books", "sample-book"],
+      ["books", "sample-book", "pages"],
       ["books", "sample-book", "step-status"],
     ])
   })
@@ -78,8 +79,18 @@ describe("step run invalidation keys", () => {
   it("refreshes book and books list when metadata completes", () => {
     const keys = getMetadataInvalidationKeys("sample-book")
     expect(keys).toEqual([
-      ["books", "sample-book"],
       ["books"],
+      ["books", "sample-book"],
+    ])
+  })
+
+  it("clears downstream cache keys when starting from quizzes", () => {
+    const keys = getStartInvalidationKeysForUiStep("sample-book", "quizzes")
+    expect(keys).toEqual([
+      ["books", "sample-book", "quizzes"],
+      ["books", "sample-book", "text-catalog"],
+      ["books", "sample-book", "tts"],
+      ["books", "sample-book", "step-status"],
     ])
   })
 })
