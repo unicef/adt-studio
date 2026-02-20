@@ -10,6 +10,8 @@ import {
   Library,
   SlidersHorizontal,
   Eye,
+  Home,
+  Settings,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,6 +25,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { LanguagePicker } from "@/components/LanguagePicker"
+import { useSettingsDialog } from "@/routes/__root"
 import { useCreateBook } from "@/hooks/use-books"
 import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
@@ -143,6 +146,7 @@ function AddBookPage() {
   const navigate = useNavigate()
   const createMutation = useCreateBook()
   const { apiKey, hasApiKey } = useApiKey()
+  const { openSettings } = useSettingsDialog()
 
   const [step, setStep] = useState(1)
   const [submitError, setSubmitError] = useState<string | null>(null)
@@ -471,17 +475,28 @@ function AddBookPage() {
   }
 
   return (
-    <div className="mx-auto w-[36rem] max-w-[calc(100vw-2rem)] p-4">
-      <div className="mb-3 flex items-center gap-2">
-        <Link
-          to="/"
-          className="text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          ADT Studio
+    <div className="flex flex-1 min-h-0 flex-col">
+      {/* Top bar — matches book page header */}
+      <div className="shrink-0 h-10 flex items-center bg-gray-700 text-white px-4">
+        <Link to="/" className="flex items-center gap-2.5 hover:bg-gray-600 -ml-2 px-2 h-10 transition-colors" title="Back to books">
+          <Home className="w-4 h-4 shrink-0" />
+          <span className="text-sm font-semibold">ADT Studio</span>
         </Link>
-        <span className="text-muted-foreground/50">/</span>
-        <h1 className="text-lg font-semibold">Add Book</h1>
+        <span className="text-white/40 text-sm mx-2">/</span>
+        <span className="text-sm font-semibold">Add Book</span>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-10 w-10 shrink-0 text-white/70 hover:text-white hover:bg-gray-600 ml-auto"
+          onClick={openSettings}
+          title="API Key Settings"
+        >
+          <Settings className="h-3.5 w-3.5" />
+        </Button>
       </div>
+
+    <div className="flex-1 min-h-0 overflow-auto">
+    <div className="mx-auto w-[36rem] max-w-[calc(100vw-2rem)] p-4">
 
       <Card className="w-full">
         <Stepper currentStep={step} />
@@ -822,6 +837,8 @@ function AddBookPage() {
           </div>
         </DialogContent>
       </Dialog>
+    </div>
+    </div>
     </div>
   )
 }
