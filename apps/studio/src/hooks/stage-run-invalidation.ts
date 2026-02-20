@@ -71,12 +71,12 @@ export function getInvalidationKeysForUiStep(
 /** Query keys to clear when a run starts (and downstream data is cleared). */
 export function getStartInvalidationKeysForUiStep(
   label: string,
-  fromStep: string
+  fromStage: string
 ): QueryKey[] {
-  if (!isStageName(fromStep)) {
+  if (!isStageName(fromStage)) {
     return [["books", label, "step-status"]]
   }
-  const resources = getCacheResourcesForStageClear(fromStep)
+  const resources = getCacheResourcesForStageClear(fromStage)
   return getQueryKeysForResources(label, resources)
 }
 

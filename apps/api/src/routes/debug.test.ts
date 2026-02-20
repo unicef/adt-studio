@@ -7,18 +7,6 @@ import { createBookStorage } from "@adt/storage"
 import { openBookDb } from "@adt/storage"
 import { errorHandler } from "../middleware/error-handler.js"
 import { createDebugRoutes } from "./debug.js"
-import type { PipelineService } from "../services/pipeline-service.js"
-
-function makeMockPipelineService(
-  overrides?: Partial<PipelineService>
-): PipelineService {
-  return {
-    getStatus: () => null,
-    addListener: () => () => {},
-    startPipeline: async () => {},
-    ...overrides,
-  }
-}
 
 describe("Debug routes", () => {
   let tmpDir: string
@@ -136,8 +124,7 @@ describe("Debug routes", () => {
     const dbPath = path.join(tmpDir, label, `${label}.db`)
     seedLlmLogs(dbPath)
 
-    const pipelineService = makeMockPipelineService()
-    const routes = createDebugRoutes(pipelineService, tmpDir, tmpDir)
+    const routes = createDebugRoutes(tmpDir, tmpDir)
     app = new Hono()
     app.onError(errorHandler)
     app.route("/api", routes)
@@ -228,26 +215,11 @@ describe("Debug routes", () => {
       expect(textStep.cacheHits).toBe(1)
     })
 
-    it("includes pipeline run timing when available", async () => {
-      const pipelineService = makeMockPipelineService({
-        getStatus: () => ({
-          label,
-          status: "completed",
-          startedAt: 1000,
-          completedAt: 5000,
-        }),
-      })
-      const routes = createDebugRoutes(pipelineService, tmpDir, tmpDir)
-      const appWithTiming = new Hono()
-      appWithTiming.onError(errorHandler)
-      appWithTiming.route("/api", routes)
-
-      const res = await appWithTiming.request(`/api/books/${label}/debug/stats`)
+    it("returns null pipeline run timing", async () => {
+      const res = await app.request(`/api/books/${label}/debug/stats`)
       expect(res.status).toBe(200)
       const body = await res.json()
-      expect(body.pipelineRun).toBeDefined()
-      expect(body.pipelineRun.status).toBe("completed")
-      expect(body.pipelineRun.wallClockMs).toBe(4000)
+      expect(body.pipelineRun).toBeNull()
     })
 
     it("returns 404 for nonexistent book", async () => {

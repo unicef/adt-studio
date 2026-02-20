@@ -5,7 +5,8 @@ import { api, getAudioUrl } from "@/api/client"
 import type { TextCatalogEntry, VersionEntry } from "@/api/client"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useStepHeader } from "../StepViewRouter"
-import { useStepRun } from "@/hooks/use-step-run"
+import { useStageRun } from "@/hooks/use-stage-run"
+import { useIsStageDone } from "@/hooks/use-stage-completion"
 import { useApiKey } from "@/hooks/use-api-key"
 import { StageRunCard } from "../StageRunCard"
 import { STAGE_DESCRIPTIONS } from "../stage-config"
@@ -139,14 +140,16 @@ export function TranslationsView({ bookLabel, selectedPageId }: { bookLabel: str
   const { setExtra } = useStepHeader()
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const queryClient = useQueryClient()
-  const { progress: stepProgress, queueRun } = useStepRun()
+  const { progress: stepProgress, queueRun } = useStageRun()
   const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
   const stageState = stepProgress.steps.get("text-and-speech")?.state
+  const textAndSpeechDone = useIsStageDone(bookLabel, "text-and-speech")
   const isRunning = stageState === "running" || stageState === "queued"
+  const showRunCard = !textAndSpeechDone || isRunning
 
   const handleRunTranslations = useCallback(() => {
     if (!hasApiKey || isRunning) return
-    queueRun({ fromStep: "text-and-speech", toStep: "text-and-speech", apiKey, azure: { key: azureKey, region: azureRegion } })
+    queueRun({ fromStage: "text-and-speech", toStage: "text-and-speech", apiKey, azure: { key: azureKey, region: azureRegion } })
   }, [hasApiKey, isRunning, apiKey, azureKey, azureRegion, queueRun])
 
   const { data: catalog, isLoading } = useQuery({
@@ -279,7 +282,7 @@ export function TranslationsView({ bookLabel, selectedPageId }: { bookLabel: str
     return () => setExtra(null)
   }, [catalog, displayEntries.length, outputLanguages.length, hasTranslations, selectedLang, translationVersion, saving, dirty, bookLabel, isSourceLang, totalAudioFiles, selectedPageId])
 
-  if (isLoading && !isRunning) {
+  if (!showRunCard && isLoading) {
     return (
       <div className="flex items-center justify-center py-12 text-muted-foreground">
         <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -288,7 +291,7 @@ export function TranslationsView({ bookLabel, selectedPageId }: { bookLabel: str
     )
   }
 
-  if (!catalog || entries.length === 0 || isRunning) {
+  if (showRunCard || !catalog || entries.length === 0) {
     return (
       <div className="p-4">
         <StageRunCard

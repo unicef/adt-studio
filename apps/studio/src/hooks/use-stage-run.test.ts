@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest"
-import { getTargetStepsForRange } from "./step-run-range"
+import { getTargetStagesForRange } from "./stage-run-range"
 import { ALL_MAPPED_STEP_NAMES, PIPELINE_TO_UI_STEP } from "./step-mapping"
 import { StepName } from "@adt/types"
 import {
   getInvalidationKeysForUiStep,
   getMetadataInvalidationKeys,
   getStartInvalidationKeysForUiStep,
-} from "./step-run-invalidation"
+} from "./stage-run-invalidation"
 
 describe("step mapping exhaustiveness", () => {
   it("every pipeline StepName is mapped to a stage", () => {
@@ -28,9 +28,9 @@ describe("step mapping exhaustiveness", () => {
   })
 })
 
-describe("getTargetStepsForRange", () => {
+describe("getTargetStagesForRange", () => {
   it("returns all stages in an inclusive valid range", () => {
-    const steps = Array.from(getTargetStepsForRange("extract", "glossary"))
+    const steps = Array.from(getTargetStagesForRange("extract", "glossary"))
     expect(steps).toEqual([
       "extract",
       "storyboard",
@@ -41,12 +41,12 @@ describe("getTargetStepsForRange", () => {
   })
 
   it("returns a single stage for same from/to", () => {
-    const steps = Array.from(getTargetStepsForRange("text-and-speech", "text-and-speech"))
+    const steps = Array.from(getTargetStagesForRange("text-and-speech", "text-and-speech"))
     expect(steps).toEqual(["text-and-speech"])
   })
 
   it("falls back to endpoint set for invalid ranges", () => {
-    const steps = Array.from(getTargetStepsForRange("preview", "extract"))
+    const steps = Array.from(getTargetStagesForRange("preview", "extract"))
     expect(steps).toEqual(["preview", "extract"])
   })
 

@@ -55,7 +55,7 @@ import {
   getSegmentedImageId,
 } from "@adt/pipeline"
 import type { TranslationConfig, QuizPageInput, ProviderRouting, MeaningfulnessConfig, CroppingConfig, SegmentationConfig } from "@adt/pipeline"
-import { loadStyleguideContent } from "./pipeline-runner"
+import { loadStyleguideContent } from "./styleguide.js"
 import { createTTSSynthesizer, createAzureTTSSynthesizer } from "@adt/llm"
 import type { TTSSynthesizer } from "@adt/llm"
 import { STAGE_ORDER } from "@adt/types"
@@ -76,10 +76,10 @@ import type {
 import type { LLMModel } from "@adt/llm"
 import type { PageData } from "@adt/storage"
 import type {
-  StepRunner,
-  StepRunProgress,
-  StepRunOptions,
-} from "./step-service.js"
+  StageRunner,
+  StageRunProgress,
+  StageRunOptions,
+} from "./stage-service.js"
 
 const DEFAULT_METADATA_PAGES = 3
 
@@ -102,7 +102,7 @@ function wrapStepError(step: StepName, err: unknown): never {
   throw new StepError(step, toErrorMessage(err))
 }
 
-export function buildStepRunnerImageClassifyConfig(
+export function buildStageRunnerImageClassifyConfig(
   config: AppConfig,
   storage: Pick<Storage, "getImageBase64">
 ): ReturnType<typeof buildImageClassifyConfig> {
@@ -131,7 +131,7 @@ async function processWithConcurrency<T>(
   await Promise.all(executing)
 }
 
-type RunFn = (label: string, options: StepRunOptions, progress: StepRunProgress) => Promise<void>
+type RunFn = (label: string, options: StageRunOptions, progress: StageRunProgress) => Promise<void>
 
 const STAGE_RUNNERS: Record<StageName, RunFn> = {
   "extract": runExtractStep,
@@ -144,25 +144,25 @@ const STAGE_RUNNERS: Record<StageName, RunFn> = {
 }
 
 /**
- * Creates a step runner that executes pipeline stages.
- * Supports single stages (fromStep === toStep) and ranges (e.g. extract → storyboard).
+ * Creates a stage runner that executes pipeline stages.
+ * Supports single stages (fromStage === toStage) and ranges (e.g. extract → storyboard).
  * Stage ordering comes from the shared PIPELINE definition.
  */
-export function createStepRunner(): StepRunner {
+export function createStageRunner(): StageRunner {
   return {
     async run(
       label: string,
-      options: StepRunOptions,
-      progress: StepRunProgress
+      options: StageRunOptions,
+      progress: StageRunProgress
     ): Promise<void> {
-      const { fromStep, toStep, booksDir } = options
-      console.log(`[step-run] ${label}: starting ${fromStep}→${toStep}`)
+      const { fromStage, toStage, booksDir } = options
+      console.log(`[stage-run] ${label}: starting ${fromStage}→${toStage}`)
 
-      const fromIndex = STAGE_ORDER.indexOf(fromStep as StageName)
-      const toIndex = STAGE_ORDER.indexOf(toStep as StageName)
+      const fromIndex = STAGE_ORDER.indexOf(fromStage as StageName)
+      const toIndex = STAGE_ORDER.indexOf(toStage as StageName)
 
       if (fromIndex === -1 || toIndex === -1 || fromIndex > toIndex) {
-        throw new Error(`Invalid stage range "${fromStep}" to "${toStep}"`)
+        throw new Error(`Invalid stage range "${fromStage}" to "${toStage}"`)
       }
 
       // Wrap progress to persist step completions to the DB.
@@ -171,7 +171,7 @@ export function createStepRunner(): StepRunner {
       // step_completions instead of inferring from node_data.
       const completionStorage = createBookStorage(label, booksDir)
       try {
-        const trackingProgress: StepRunProgress = {
+        const trackingProgress: StageRunProgress = {
           emit(event) {
             if (event.type === "step-complete" || event.type === "step-skip") {
               completionStorage.markStepComplete(event.step)
@@ -188,15 +188,15 @@ export function createStepRunner(): StepRunner {
         completionStorage.close()
       }
 
-      console.log(`[step-run] ${label}: completed ${fromStep}→${toStep}`)
+      console.log(`[stage-run] ${label}: completed ${fromStage}→${toStage}`)
     },
   }
 }
 
 async function runExtractStep(
   label: string,
-  options: StepRunOptions,
-  progress: StepRunProgress
+  options: StageRunOptions,
+  progress: StageRunProgress
 ): Promise<void> {
   const { booksDir, apiKey, promptsDir, configPath } = options
 
@@ -210,7 +210,7 @@ async function runExtractStep(
     const config = loadBookConfig(label, booksDir, configPath)
 
     // Step 1: Extract PDF
-    console.log(`[step-run] ${label}: extracting PDF from ${pdfPath}`)
+    console.log(`[stage-run] ${label}: extracting PDF from ${pdfPath}`)
     await extractPDF(
       {
         pdfPath,
@@ -221,7 +221,7 @@ async function runExtractStep(
       storage,
       progress
     )
-    console.log(`[step-run] ${label}: PDF extraction complete`)
+    console.log(`[stage-run] ${label}: PDF extraction complete`)
 
     // Step 2: Extract Metadata
     const metadataConfig = buildMetadataConfig(config)
@@ -265,7 +265,7 @@ async function runExtractStep(
       imageBase64: storage.getPageImageBase64(page.pageId),
     }))
 
-    console.log(`[step-run] ${label}: extracting metadata from ${metadataPages.length} pages`)
+    console.log(`[stage-run] ${label}: extracting metadata from ${metadataPages.length} pages`)
     progress.emit({ type: "step-start", step: "metadata" })
     const metadataResult = await extractMetadata(
       pageInputs,
@@ -274,7 +274,7 @@ async function runExtractStep(
     )
     storage.putNodeData("metadata", "book", metadataResult)
     progress.emit({ type: "step-complete", step: "metadata" })
-    console.log(`[step-run] ${label}: metadata complete (lang=${metadataResult.language_code})`)
+    console.log(`[stage-run] ${label}: metadata complete (lang=${metadataResult.language_code})`)
 
     // Determine if translation is needed
     const translationConfig = buildTranslationConfig(
@@ -284,7 +284,7 @@ async function runExtractStep(
 
     // Step 3: Per-page classification
     const textClassifyConfig = buildClassifyConfig(config)
-    const imageClassifyConfig = buildStepRunnerImageClassifyConfig(config, storage)
+    const imageClassifyConfig = buildStageRunnerImageClassifyConfig(config, storage)
     const meaningfulnessConfig = buildMeaningfulnessConfig(config)
     const segmentationConfig = buildSegmentationConfig(config)
     const croppingConfig = buildCroppingConfig(config)
@@ -339,7 +339,7 @@ async function runExtractStep(
 
     const effectiveConcurrency = config.concurrency ?? 32
     const totalPages = pages.length
-    console.log(`[step-run] ${label}: classifying ${totalPages} pages (concurrency=${effectiveConcurrency})`)
+    console.log(`[stage-run] ${label}: classifying ${totalPages} pages (concurrency=${effectiveConcurrency})`)
     let completedClassifyText = 0
     let completedClassifyImages = 0
     let completedCropping = 0
@@ -408,7 +408,7 @@ async function runExtractStep(
           const msg = toErrorMessage(err)
           const step =
             err instanceof StepError ? err.step : "text-classification"
-          console.error(`[step-run] ${label}: ${page.pageId} failed at ${step}: ${msg}`)
+          console.error(`[stage-run] ${label}: ${page.pageId} failed at ${step}: ${msg}`)
           failedPages.push(`${page.pageId} [${step}]: ${msg}`)
           progress.emit({
             type: "step-error",
@@ -471,10 +471,10 @@ async function runExtractStep(
       )
       storage.putNodeData("book-summary", "book", summaryResult)
       progress.emit({ type: "step-complete", step: "book-summary" })
-      console.log(`[step-run] ${label}: book summary complete`)
+      console.log(`[stage-run] ${label}: book summary complete`)
     } catch (err) {
       const msg = toErrorMessage(err)
-      console.error(`[step-run] ${label}: book summary failed: ${msg}`)
+      console.error(`[stage-run] ${label}: book summary failed: ${msg}`)
       progress.emit({
         type: "step-error",
         step: "book-summary",
@@ -494,8 +494,8 @@ async function runExtractStep(
 
 async function runStoryboardStep(
   label: string,
-  options: StepRunOptions,
-  progress: StepRunProgress
+  options: StageRunOptions,
+  progress: StageRunProgress
 ): Promise<void> {
   const { booksDir, apiKey, promptsDir, configPath } = options
 
@@ -572,7 +572,7 @@ async function runStoryboardStep(
     const effectiveConcurrency = config.concurrency ?? 32
 
     console.log(
-      `[step-run] ${label}: running storyboard for ${totalPages} pages (concurrency=${effectiveConcurrency})`
+      `[stage-run] ${label}: running storyboard for ${totalPages} pages (concurrency=${effectiveConcurrency})`
     )
 
     let completedSectioning = 0
@@ -591,7 +591,7 @@ async function runStoryboardStep(
           )
           if (!textClassificationRow) {
             console.log(
-              `[step-run] ${label}: skipping ${page.pageId} (no text-classification)`
+              `[stage-run] ${label}: skipping ${page.pageId} (no text-classification)`
             )
             return
           }
@@ -623,7 +623,7 @@ async function runStoryboardStep(
 
           // Page sectioning
           console.log(
-            `[step-run] ${label}: sectioning ${page.pageId}`
+            `[stage-run] ${label}: sectioning ${page.pageId}`
           )
           const sectionResult = await sectionPage(
             {
@@ -655,7 +655,7 @@ async function runStoryboardStep(
 
           // Web rendering
           console.log(
-            `[step-run] ${label}: rendering ${page.pageId}`
+            `[stage-run] ${label}: rendering ${page.pageId}`
           )
           const sectioning = sectionResult as PageSectioningOutput
           const renderResult = await renderPage(
@@ -685,7 +685,7 @@ async function runStoryboardStep(
           const step =
             err instanceof StepError ? err.step : "page-sectioning"
           console.error(
-            `[step-run] ${label}: ${page.pageId} failed at ${step}: ${msg}`
+            `[stage-run] ${label}: ${page.pageId} failed at ${step}: ${msg}`
           )
           failedPages.push(`${page.pageId} [${step}]: ${msg}`)
           progress.emit({
@@ -706,7 +706,7 @@ async function runStoryboardStep(
     // Emit completion for storyboard steps
     progress.emit({ type: "step-complete", step: "page-sectioning" })
     progress.emit({ type: "step-complete", step: "web-rendering" })
-    console.log(`[step-run] ${label}: storyboard complete`)
+    console.log(`[stage-run] ${label}: storyboard complete`)
   } finally {
     storage.close()
     if (previousKey !== undefined) {
@@ -723,8 +723,8 @@ async function runStoryboardStep(
 
 async function runQuizzesStep(
   label: string,
-  options: StepRunOptions,
-  progress: StepRunProgress
+  options: StageRunOptions,
+  progress: StageRunProgress
 ): Promise<void> {
   const { booksDir, apiKey, promptsDir, configPath } = options
 
@@ -767,7 +767,7 @@ async function runQuizzesStep(
     const quizConfig = buildQuizGenerationConfig(config, language)
     if (!quizConfig) {
       progress.emit({ type: "step-skip", step: "quiz-generation" })
-      console.log(`[step-run] ${label}: quizzes skipped (disabled in config)`)
+      console.log(`[stage-run] ${label}: quizzes skipped (disabled in config)`)
       return
     }
 
@@ -819,7 +819,7 @@ async function runQuizzesStep(
     }
 
     progress.emit({ type: "step-complete", step: "quiz-generation" })
-    console.log(`[step-run] ${label}: quizzes complete`)
+    console.log(`[stage-run] ${label}: quizzes complete`)
   } finally {
     storage.close()
     if (previousKey !== undefined) {
@@ -836,8 +836,8 @@ async function runQuizzesStep(
 
 async function runCaptionsStep(
   label: string,
-  options: StepRunOptions,
-  progress: StepRunProgress
+  options: StageRunOptions,
+  progress: StageRunProgress
 ): Promise<void> {
   const { booksDir, apiKey, promptsDir, configPath } = options
 
@@ -905,7 +905,7 @@ async function runCaptionsStep(
       totalPages,
     })
 
-    console.log(`[step-run] ${label}: captioning ${totalPages} pages (concurrency=${effectiveConcurrency})`)
+    console.log(`[stage-run] ${label}: captioning ${totalPages} pages (concurrency=${effectiveConcurrency})`)
 
     await processWithConcurrency(
       pages,
@@ -985,7 +985,7 @@ async function runCaptionsStep(
     }
 
     progress.emit({ type: "step-complete", step: "image-captioning" })
-    console.log(`[step-run] ${label}: captions complete`)
+    console.log(`[stage-run] ${label}: captions complete`)
   } finally {
     storage.close()
     if (previousKey !== undefined) {
@@ -1002,8 +1002,8 @@ async function runCaptionsStep(
 
 async function runGlossaryStep(
   label: string,
-  options: StepRunOptions,
-  progress: StepRunProgress
+  options: StageRunOptions,
+  progress: StageRunProgress
 ): Promise<void> {
   const { booksDir, apiKey, promptsDir, configPath } = options
 
@@ -1057,7 +1057,7 @@ async function runGlossaryStep(
 
     progress.emit({ type: "step-start", step: "glossary" })
 
-    console.log(`[step-run] ${label}: generating glossary from ${pages.length} pages`)
+    console.log(`[stage-run] ${label}: generating glossary from ${pages.length} pages`)
 
     const glossary = await generateGlossary({
       storage,
@@ -1083,7 +1083,7 @@ async function runGlossaryStep(
       message: `${glossary.items.length} terms from ${glossary.pageCount} pages`,
     })
     progress.emit({ type: "step-complete", step: "glossary" })
-    console.log(`[step-run] ${label}: glossary complete (${glossary.items.length} terms)`)
+    console.log(`[stage-run] ${label}: glossary complete (${glossary.items.length} terms)`)
   } finally {
     storage.close()
     if (previousKey !== undefined) {
@@ -1100,8 +1100,8 @@ async function runGlossaryStep(
 
 async function runTextAndSpeechStep(
   label: string,
-  options: StepRunOptions,
-  progress: StepRunProgress
+  options: StageRunOptions,
+  progress: StageRunProgress
 ): Promise<void> {
   const { booksDir, apiKey, promptsDir, configPath } = options
 
@@ -1161,7 +1161,7 @@ async function runTextAndSpeechStep(
     progress.emit({ type: "step-start", step: "text-catalog" })
     progress.emit({ type: "step-progress", step: "text-catalog", message: "Building text catalog..." })
 
-    console.log(`[step-run] ${label}: building text catalog from ${pages.length} pages`)
+    console.log(`[stage-run] ${label}: building text catalog from ${pages.length} pages`)
 
     const catalog = buildTextCatalog(storage, pages)
     storage.putNodeData("text-catalog", "book", catalog)
@@ -1177,7 +1177,7 @@ async function runTextAndSpeechStep(
     const targetLanguages = getTargetLanguages(outputLanguages, language)
     if (targetLanguages.length === 0 || catalog.entries.length === 0) {
       progress.emit({ type: "step-skip", step: "catalog-translation" })
-      console.log(`[step-run] ${label}: catalog translation skipped`)
+      console.log(`[stage-run] ${label}: catalog translation skipped`)
     } else {
       progress.emit({ type: "step-start", step: "catalog-translation" })
 
@@ -1223,7 +1223,7 @@ async function runTextAndSpeechStep(
         totalPages: totalBatches,
       })
 
-      console.log(`[step-run] ${label}: translating ${catalog.entries.length} entries to ${targetLanguages.length} languages (${totalBatches} batches)`)
+      console.log(`[stage-run] ${label}: translating ${catalog.entries.length} entries to ${targetLanguages.length} languages (${totalBatches} batches)`)
 
       await processWithConcurrency(
         workItems,
@@ -1260,13 +1260,13 @@ async function runTextAndSpeechStep(
       }
 
       progress.emit({ type: "step-complete", step: "catalog-translation" })
-      console.log(`[step-run] ${label}: catalog translation complete`)
+      console.log(`[stage-run] ${label}: catalog translation complete`)
     }
 
     // ── Step 3: Generate TTS ────────────────────────────────────────
     if (catalog.entries.length === 0) {
       progress.emit({ type: "step-skip", step: "tts" })
-      console.log(`[step-run] ${label}: TTS skipped (empty catalog)`)
+      console.log(`[stage-run] ${label}: TTS skipped (empty catalog)`)
       return
     }
 
@@ -1281,15 +1281,15 @@ async function runTextAndSpeechStep(
     const providerConfigs = config.speech?.providers ?? {}
     const routing: ProviderRouting = { providers: providerConfigs, defaultProvider }
 
-    console.log(`[step-run] ${label}: TTS configDir=${configDir} voiceMaps=${Object.keys(voiceMaps).join(",")||"(empty)"}`)
-    console.log(`[step-run] ${label}: TTS config — defaultProvider=${defaultProvider} model=${speechModel} format=${speechFormat}`)
-    console.log(`[step-run] ${label}: TTS providers=${JSON.stringify(providerConfigs)}`)
-    console.log(`[step-run] ${label}: TTS azureKey=${options.azureSpeechKey ? "set" : "NOT SET"} azureRegion=${options.azureSpeechRegion ?? "NOT SET"}`)
+    console.log(`[stage-run] ${label}: TTS configDir=${configDir} voiceMaps=${Object.keys(voiceMaps).join(",")||"(empty)"}`)
+    console.log(`[stage-run] ${label}: TTS config — defaultProvider=${defaultProvider} model=${speechModel} format=${speechFormat}`)
+    console.log(`[stage-run] ${label}: TTS providers=${JSON.stringify(providerConfigs)}`)
+    console.log(`[stage-run] ${label}: TTS azureKey=${options.azureSpeechKey ? "set" : "NOT SET"} azureRegion=${options.azureSpeechRegion ?? "NOT SET"}`)
 
     const synthesizers = new Map<string, TTSSynthesizer>()
     function getSynthesizer(providerName: string): TTSSynthesizer {
       if (synthesizers.has(providerName)) return synthesizers.get(providerName)!
-      console.log(`[step-run] ${label}: creating TTS synthesizer for provider="${providerName}"`)
+      console.log(`[stage-run] ${label}: creating TTS synthesizer for provider="${providerName}"`)
       if (providerName === "azure") {
         if (!options.azureSpeechKey || !options.azureSpeechRegion) {
           throw new Error("Azure Speech key and region are required for Azure TTS provider. Set them in the API Keys dialog (gear icon).")
@@ -1330,7 +1330,7 @@ async function runTextAndSpeechStep(
         if (translatedRow) {
           entries = (translatedRow.data as TextCatalogOutput).entries
         } else {
-          console.warn(`[step-run] ${label}: missing translated catalog for ${lang}, skipping TTS for this language`)
+          console.warn(`[stage-run] ${label}: missing translated catalog for ${lang}, skipping TTS for this language`)
           continue
         }
       }
@@ -1351,8 +1351,8 @@ async function runTextAndSpeechStep(
       totalPages: totalItems,
     })
 
-    console.log(`[step-run] ${label}: generating TTS for ${totalItems} entries across ${outputLanguages.length} languages (${outputLanguages.join(", ")})`)
-    console.log(`[step-run] ${label}: TTS routing — for each language: ${outputLanguages.map((l) => `${l}→${resolveProviderForLanguage(l, routing)}`).join(", ")}`)
+    console.log(`[stage-run] ${label}: generating TTS for ${totalItems} entries across ${outputLanguages.length} languages (${outputLanguages.join(", ")})`)
+    console.log(`[stage-run] ${label}: TTS routing — for each language: ${outputLanguages.map((l) => `${l}→${resolveProviderForLanguage(l, routing)}`).join(", ")}`)
 
     const ttsResultsByLang = new Map<string, SpeechFileEntry[]>()
     for (const lang of outputLanguages) {
@@ -1373,7 +1373,7 @@ async function runTextAndSpeechStep(
           ? resolveInstructions(item.language, instructionsMap)
           : ""
 
-        console.log(`[step-run] ${label}: TTS ${item.textId} → provider=${provider} voice=${voice} model=${providerModel}`)
+        console.log(`[stage-run] ${label}: TTS ${item.textId} → provider=${provider} voice=${voice} model=${providerModel}`)
 
         try {
           const ttsSynthesizer = getSynthesizer(provider)
@@ -1429,7 +1429,7 @@ async function runTextAndSpeechStep(
         } catch (err) {
           const msg = toErrorMessage(err)
           const durationMs = Date.now() - startMs
-          console.error(`[step-run] ${label}: TTS failed for ${item.textId} (${item.language}): ${msg}`)
+          console.error(`[stage-run] ${label}: TTS failed for ${item.textId} (${item.language}): ${msg}`)
           failedItems.push(`${item.textId}: ${msg}`)
 
           const logEntry: LlmLogEntry = {
@@ -1478,7 +1478,7 @@ async function runTextAndSpeechStep(
     )
 
     if (failedItems.length > 0) {
-      console.error(`[step-run] ${label}: ${failedItems.length} TTS item(s) failed:\n${failedItems.join("\n")}`)
+      console.error(`[stage-run] ${label}: ${failedItems.length} TTS item(s) failed:\n${failedItems.join("\n")}`)
     }
 
     for (const lang of outputLanguages) {
@@ -1492,7 +1492,7 @@ async function runTextAndSpeechStep(
     }
 
     progress.emit({ type: "step-complete", step: "tts" })
-    console.log(`[step-run] ${label}: text & speech complete`)
+    console.log(`[stage-run] ${label}: text & speech complete`)
   } finally {
     storage.close()
     if (previousKey !== undefined) {
@@ -1660,7 +1660,7 @@ async function classifyPage(
       }
     } catch (err) {
       // Segmentation is non-fatal — log error but continue
-      console.error(`[step-run] image segmentation failed for ${page.pageId}: ${toErrorMessage(err)}`)
+      console.error(`[stage-run] image segmentation failed for ${page.pageId}: ${toErrorMessage(err)}`)
     }
   }
 
@@ -1723,7 +1723,7 @@ async function classifyPage(
       }
     } catch (err) {
       // Cropping is non-fatal — log error but continue
-      console.error(`[step-run] image cropping failed for ${page.pageId}: ${toErrorMessage(err)}`)
+      console.error(`[stage-run] image cropping failed for ${page.pageId}: ${toErrorMessage(err)}`)
     } finally {
       callbacks.onCrop()
     }

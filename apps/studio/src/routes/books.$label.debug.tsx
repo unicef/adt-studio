@@ -15,9 +15,9 @@ export const Route = createFileRoute("/books/$label/debug")({
 function DebugPage() {
   const { label } = Route.useParams()
 
-  const { data: stepsStatus } = useQuery({
-    queryKey: ["books", label, "steps-status"],
-    queryFn: () => api.getStepsStatus(label),
+  const { data: stageStatus } = useQuery({
+    queryKey: ["books", label, "stage-status"],
+    queryFn: () => api.getStagesStatus(label),
     enabled: !!label,
     refetchInterval: (query) => {
       const status = query.state.data?.status
@@ -25,7 +25,7 @@ function DebugPage() {
     },
   })
 
-  const isRunning = stepsStatus?.status === "running"
+  const isRunning = stageStatus?.status === "running"
 
   return (
     <div className="flex flex-col h-full">

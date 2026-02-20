@@ -6,7 +6,8 @@ import { api } from "@/api/client"
 import type { GlossaryOutput, VersionEntry } from "@/api/client"
 import { useGlossary } from "@/hooks/use-glossary"
 import { useStepHeader } from "../StepViewRouter"
-import { useStepRun } from "@/hooks/use-step-run"
+import { useStageRun } from "@/hooks/use-stage-run"
+import { useIsStageDone } from "@/hooks/use-stage-completion"
 import { useApiKey } from "@/hooks/use-api-key"
 import { StageRunCard } from "../StageRunCard"
 import { STAGE_DESCRIPTIONS } from "../stage-config"
@@ -133,14 +134,16 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
   const queryClient = useQueryClient()
   const { data, isLoading } = useGlossary(bookLabel)
   const { setExtra } = useStepHeader()
-  const { progress: stepProgress, queueRun } = useStepRun()
+  const { progress: stepProgress, queueRun } = useStageRun()
   const { apiKey, hasApiKey } = useApiKey()
   const glossaryState = stepProgress.steps.get("glossary")?.state
+  const glossaryDone = useIsStageDone(bookLabel, "glossary")
   const glossaryRunning = glossaryState === "running" || glossaryState === "queued"
+  const showRunCard = !glossaryDone || glossaryRunning
 
   const handleRunGlossary = useCallback(() => {
     if (!hasApiKey || glossaryRunning) return
-    queueRun({ fromStep: "glossary", toStep: "glossary", apiKey })
+    queueRun({ fromStage: "glossary", toStage: "glossary", apiKey })
   }, [hasApiKey, glossaryRunning, apiKey, queueRun])
 
   const [pending, setPending] = useState<GlossaryData | null>(null)
@@ -200,7 +203,7 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
     })
   }
 
-  if (isLoading && !glossaryRunning) {
+  if (!showRunCard && isLoading) {
     return (
       <div className="flex items-center justify-center py-12 text-muted-foreground">
         <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -209,7 +212,7 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
     )
   }
 
-  if (items.length === 0 || glossaryRunning) {
+  if (showRunCard || items.length === 0) {
     return (
       <div className="p-4">
         <StageRunCard

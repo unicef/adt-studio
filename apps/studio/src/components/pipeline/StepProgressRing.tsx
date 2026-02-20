@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react"
-import type { UIStepState } from "@/hooks/use-step-run"
+import type { UIStepState } from "@/hooks/use-stage-run"
 import { STAGES } from "@/components/pipeline/stage-config"
 
 interface StepProgressRingProps {

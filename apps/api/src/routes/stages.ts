@@ -4,35 +4,34 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage } from "@adt/storage"
 import { StageName, PIPELINE, getStageClearNodes, getStageClearOrder } from "@adt/types"
-import type { StepService, StepSSEEvent } from "../services/step-service.js"
-import type { PipelineService } from "../services/pipeline-service.js"
+import type { StageService, StageSSEEvent } from "../services/stage-service.js"
 
-const StepRunBody = z
+const StageRunBody = z
   .object({
-    fromStep: StageName,
-    toStep: StageName,
+    fromStage: StageName,
+    toStage: StageName,
   })
   .strict()
 
 /** Build a beforeRun callback that clears downstream data for a stage.
  *  The returned function is idempotent — only runs once even if called multiple times. */
-function makeBeforeRun(label: string, fromStep: StageName, booksDir: string): () => void {
+function makeBeforeRun(label: string, fromStage: StageName, booksDir: string): () => void {
   let ran = false
   return () => {
     if (ran) return
     ran = true
     const storage = createBookStorage(label, booksDir)
     try {
-      if (fromStep === "extract") {
+      if (fromStage === "extract") {
         // clearExtractedData also clears step_completions
         storage.clearExtractedData()
       } else {
-        const nodes = getStageClearNodes(fromStep)
+        const nodes = getStageClearNodes(fromStage)
         if (nodes.length > 0) {
           storage.clearNodesByType(nodes)
         }
         // Clear step completion records for all downstream stages
-        const stagesToClear = getStageClearOrder(fromStep)
+        const stagesToClear = getStageClearOrder(fromStage)
         const stepsToClear = PIPELINE
           .filter((s) => stagesToClear.includes(s.name))
           .flatMap((s) => s.steps.map((step) => step.name))
@@ -44,31 +43,22 @@ function makeBeforeRun(label: string, fromStep: StageName, booksDir: string): ()
   }
 }
 
-export function createStepRoutes(
-  stepService: StepService,
-  pipelineService: PipelineService,
+export function createStageRoutes(
+  stageService: StageService,
   booksDir: string,
   promptsDir: string,
   configPath?: string
 ): Hono {
   const app = new Hono()
 
-  // POST /books/:label/steps/run — Start or queue a step-scoped run
-  app.post("/books/:label/steps/run", async (c) => {
+  // POST /books/:label/stages/run — Start or queue a stage-scoped run
+  app.post("/books/:label/stages/run", async (c) => {
     const { label } = c.req.param()
     const apiKey = c.req.header("X-OpenAI-Key")
 
     if (!apiKey) {
       throw new HTTPException(400, {
         message: "API key required. Set X-OpenAI-Key header.",
-      })
-    }
-
-    // Full pipeline conflict is still a hard block
-    const pipelineJob = pipelineService.getStatus(label)
-    if (pipelineJob?.status === "running") {
-      throw new HTTPException(409, {
-        message: `Full pipeline already running for book: ${label}`,
       })
     }
 
@@ -79,29 +69,29 @@ export function createStepRoutes(
       throw new HTTPException(400, { message: "Invalid JSON body" })
     }
 
-    const parsed = StepRunBody.safeParse(body)
+    const parsed = StageRunBody.safeParse(body)
     if (!parsed.success) {
       throw new HTTPException(400, {
-        message: `Invalid step run options: ${parsed.error.message}`,
+        message: `Invalid stage run options: ${parsed.error.message}`,
       })
     }
 
-    const { fromStep, toStep } = parsed.data
+    const { fromStage, toStage } = parsed.data
 
     const azureSpeechKey = c.req.header("X-Azure-Speech-Key") || undefined
     const azureSpeechRegion = c.req.header("X-Azure-Speech-Region") || undefined
 
-    console.log(`[steps] ${label}: ${fromStep}→${toStep} azureKey=${azureSpeechKey ? "set" : "NOT SET"} azureRegion=${azureSpeechRegion ?? "NOT SET"}`)
+    console.log(`[stages] ${label}: ${fromStage}→${toStage} azureKey=${azureSpeechKey ? "set" : "NOT SET"} azureRegion=${azureSpeechRegion ?? "NOT SET"}`)
 
-    const clearData = makeBeforeRun(label, fromStep, booksDir)
+    const clearData = makeBeforeRun(label, fromStage, booksDir)
 
-    const result = stepService.startStepRun(label, {
+    const result = stageService.startStageRun(label, {
       booksDir,
       apiKey,
       promptsDir,
       configPath,
-      fromStep,
-      toStep,
+      fromStage,
+      toStage,
       azureSpeechKey,
       azureSpeechRegion,
       // Queued jobs clear data when they start executing
@@ -114,17 +104,17 @@ export function createStepRoutes(
       clearData()
     }
 
-    return c.json({ status: result.status, label, fromStep, toStep })
+    return c.json({ status: result.status, label, fromStage, toStage })
   })
 
-  // GET /books/:label/steps/status — Get step run status (JSON or SSE)
-  app.get("/books/:label/steps/status", (c) => {
+  // GET /books/:label/stages/status — Get stage run status (JSON or SSE)
+  app.get("/books/:label/stages/status", (c) => {
     const { label } = c.req.param()
     const accept = c.req.header("accept") ?? ""
 
     if (accept.includes("text/event-stream")) {
       return streamSSE(c, async (stream) => {
-        const { active: job } = stepService.getStatus(label)
+        const { active: job } = stageService.getStatus(label)
 
         if (job?.status === "completed") {
           await stream.writeSSE({
@@ -141,16 +131,16 @@ export function createStepRoutes(
           return
         }
 
-        const eventQueue: StepSSEEvent[] = []
+        const eventQueue: StageSSEEvent[] = []
         let done = false
 
-        const unsubscribe = stepService.addListener(label, (event) => {
+        const unsubscribe = stageService.addListener(label, (event) => {
           if (done) return
           eventQueue.push(event)
         })
 
         // Re-check after subscribing to avoid race
-        const { active: jobAfterSubscribe } = stepService.getStatus(label)
+        const { active: jobAfterSubscribe } = stageService.getStatus(label)
         if (
           jobAfterSubscribe?.status === "completed" ||
           jobAfterSubscribe?.status === "failed"
@@ -184,24 +174,24 @@ export function createStepRoutes(
                 await stream.writeSSE({
                   event: "queue-next",
                   data: JSON.stringify({
-                    fromStep: event.fromStep,
-                    toStep: event.toStep,
+                    fromStage: event.fromStage,
+                    toStage: event.toStage,
                   }),
                 })
-              } else if (event.type === "step-run-complete") {
+              } else if (event.type === "stage-run-complete") {
                 await stream.writeSSE({
                   event: "complete",
                   data: JSON.stringify({ label: event.label }),
                 })
                 // Only close the stream if nothing else is running or queued
-                const { active, queue } = stepService.getStatus(label)
+                const { active, queue } = stageService.getStatus(label)
                 if (!active || active.status !== "running") {
                   if (queue.length === 0) {
                     done = true
                     break
                   }
                 }
-              } else if (event.type === "step-run-error") {
+              } else if (event.type === "stage-run-error") {
                 await stream.writeSSE({
                   event: "error",
                   data: JSON.stringify({
@@ -210,7 +200,7 @@ export function createStepRoutes(
                   }),
                 })
                 // Only close the stream if nothing else is running or queued
-                const { active, queue } = stepService.getStatus(label)
+                const { active, queue } = stageService.getStatus(label)
                 if (!active || active.status !== "running") {
                   if (queue.length === 0) {
                     done = true
@@ -232,7 +222,7 @@ export function createStepRoutes(
       })
     }
 
-    const { active, queue } = stepService.getStatus(label)
+    const { active, queue } = stageService.getStatus(label)
     if (!active) {
       return c.json({ status: "idle", label, queue: [] })
     }

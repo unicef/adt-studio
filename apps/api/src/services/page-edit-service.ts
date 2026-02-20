@@ -3,7 +3,7 @@ import { createBookStorage } from "@adt/storage"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
 import type { LLMModel } from "@adt/llm"
 import { renderPage, buildRenderStrategyResolver, createTemplateEngine, loadBookConfig } from "@adt/pipeline"
-import { loadStyleguideContent } from "./pipeline-runner"
+import { loadStyleguideContent } from "./styleguide.js"
 import type { PageSectioningOutput, WebRenderingOutput } from "@adt/types"
 import { webRenderingLLMSchema } from "@adt/types"
 

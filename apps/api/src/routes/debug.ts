@@ -5,7 +5,6 @@ import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel } from "@adt/types"
 import { openBookDb } from "@adt/storage"
-import type { PipelineService } from "../services/pipeline-service.js"
 
 function getDbPath(label: string, booksDir: string): string {
   const safeLabel = parseBookLabel(label)
@@ -34,7 +33,6 @@ function parseLogsQuery(query: Record<string, string>) {
 }
 
 export function createDebugRoutes(
-  pipelineService: PipelineService,
   booksDir: string,
   promptsDir: string,
   configPath?: string
@@ -94,7 +92,7 @@ export function createDebugRoutes(
   // GET /books/:label/debug/stats — aggregate pipeline metrics
   app.get("/books/:label/debug/stats", (c) => {
     const { label } = c.req.param()
-    const { safeLabel, dbPath } = requireDb(label, booksDir)
+    const { dbPath } = requireDb(label, booksDir)
 
     const db = openBookDb(dbPath)
     try {
@@ -141,19 +139,8 @@ export function createDebugRoutes(
         totals.errorCount += row.errorCount
       }
 
-      // Pipeline run timing
-      const job = pipelineService.getStatus(safeLabel)
-      const pipelineRun = job
-        ? {
-            status: job.status,
-            startedAt: job.startedAt,
-            completedAt: job.completedAt,
-            wallClockMs:
-              job.startedAt && job.completedAt
-                ? job.completedAt - job.startedAt
-                : undefined,
-          }
-        : null
+      // Full-pipeline job tracking was removed; keep nullable field for compatibility.
+      const pipelineRun = null
 
       return c.json({ steps: stepRows, totals, pipelineRun })
     } finally {

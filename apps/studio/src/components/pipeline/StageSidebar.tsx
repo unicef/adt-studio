@@ -10,7 +10,7 @@ import { useQuery } from "@tanstack/react-query"
 import { api } from "@/api/client"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { useStepRun } from "@/hooks/use-step-run"
+import { useStageRun } from "@/hooks/use-stage-run"
 import { StepProgressRing } from "./StepProgressRing"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useExportBook } from "@/hooks/use-books"
@@ -84,7 +84,7 @@ export function StageSidebar({
 }) {
   const matchRoute = useMatchRoute()
   const search = useSearch({ strict: false }) as { tab?: string }
-  const { progress: stepRunProgress } = useStepRun()
+  const { progress: stepRunProgress } = useStageRun()
   const { data: stepStatusData } = useQuery({
     queryKey: ["books", bookLabel, "step-status"],
     queryFn: () => api.getStepStatus(bookLabel),

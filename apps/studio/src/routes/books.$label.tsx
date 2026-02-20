@@ -7,7 +7,7 @@ import { DebugPanel } from "@/components/debug/DebugPanel"
 import { StageSidebar } from "@/components/pipeline/StageSidebar"
 import { STAGES } from "@/components/pipeline/stage-config"
 import { useBook } from "@/hooks/use-books"
-import { useStepRunSSE, StepRunContext, type QueueRunOptions } from "@/hooks/use-step-run"
+import { useStageRunSSE, StageRunContext, type QueueRunOptions } from "@/hooks/use-stage-run"
 import { useSettingsDialog } from "@/routes/__root"
 import { api } from "@/api/client"
 
@@ -47,20 +47,20 @@ function BookLayout() {
 
   // Step run SSE state
   const [sseEnabled, setSseEnabled] = useState(false)
-  const { progress, startRun, reset } = useStepRunSSE(label, sseEnabled)
+  const { progress, startRun, reset } = useStageRunSSE(label, sseEnabled)
 
   // Auto-reconnect if a step run is already in progress on mount
   useEffect(() => {
     let cancelled = false
-    api.getStepsStatus(label).then((status) => {
+    api.getStagesStatus(label).then((status) => {
       if (cancelled) return
       if (status.status === "running") {
-        if (status.fromStep && status.toStep) {
-          startRun(status.fromStep, status.toStep)
+        if (status.fromStage && status.toStage) {
+          startRun(status.fromStage, status.toStage)
         }
         // Also restore queued runs so UI shows them
         for (const q of status.queue ?? []) {
-          startRun(q.fromStep, q.toStep)
+          startRun(q.fromStage, q.toStage)
         }
         setSseEnabled(true)
       }
@@ -82,16 +82,16 @@ function BookLayout() {
 
   const queueRun = useCallback(
     (options: QueueRunOptions) => {
-      const { fromStep, toStep, apiKey, azure } = options
+      const { fromStage, toStage, apiKey, azure } = options
 
       // Update UI immediately (synchronous, no race)
-      startRun(fromStep, toStep)
+      startRun(fromStage, toStage)
       setSseEnabled(true)
 
       // Chain the API call so it waits for any previous call to finish.
       runChainRef.current = runChainRef.current.then(async () => {
         try {
-          await api.runSteps(label, apiKey, { fromStep, toStep }, azure)
+          await api.runStages(label, apiKey, { fromStage, toStage }, azure)
           // Backend cleared step_completions before responding — refetch
           // to pick up the new DB state. invalidateQueries keeps stale
           // data visible during the fetch so unrelated stages don't flash.
@@ -122,16 +122,16 @@ function BookLayout() {
 
   if (isDebugRoute) {
     return (
-      <StepRunContext value={ctxValue}>
+      <StageRunContext value={ctxValue}>
         <div className="flex flex-1 min-h-0 flex-col">
           <Outlet />
         </div>
-      </StepRunContext>
+      </StageRunContext>
     )
   }
 
   return (
-    <StepRunContext value={ctxValue}>
+    <StageRunContext value={ctxValue}>
       <div className="flex flex-1 min-h-0 flex-col">
         <div className="flex flex-1 min-h-0">
           {/* Left sidebar — spacer reserves layout width, inner panel expands on hover */}
@@ -214,6 +214,6 @@ function BookLayout() {
           <Terminal className="h-4 w-4" />
         </Button>
       )}
-    </StepRunContext>
+    </StageRunContext>
   )
 }

@@ -21,7 +21,7 @@ import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
 import { PromptViewer } from "@/components/pipeline/PromptViewer"
 import { PruneToggle } from "@/components/pipeline/PruneToggle"
-import { useStepRun } from "@/hooks/use-step-run"
+import { useStageRun } from "@/hooks/use-stage-run"
 import { normalizeLocale } from "@/lib/languages"
 
 export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
@@ -29,7 +29,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
   const { apiKey, hasApiKey } = useApiKey()
-  const { queueRun } = useStepRun()
+  const { queueRun } = useStageRun()
   const navigate = useNavigate()
   const [showRerunDialog, setShowRerunDialog] = useState(false)
 
@@ -252,7 +252,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
           setSegmentationPromptDraft(null)
           setBookSummaryPromptDraft(null)
           setShowRerunDialog(false)
-          queueRun({ fromStep: "extract", toStep: "extract", apiKey })
+          queueRun({ fromStage: "extract", toStage: "extract", apiKey })
           navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "extract" } })
         },
       }

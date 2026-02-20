@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, createContext, useContext } from "react"
 import { useQueryClient, type QueryClient } from "@tanstack/react-query"
 import { api } from "@/api/client"
-import { getTargetStepsForRange } from "./step-run-range"
+import { getTargetStagesForRange } from "./stage-run-range"
 import { STEP_TO_STAGE, getStageClearOrder } from "@adt/types"
 import type { StageName } from "@adt/types"
 import {
@@ -9,7 +9,7 @@ import {
   getMetadataInvalidationKeys,
   getStartInvalidationKeysForUiStep,
   type QueryKey,
-} from "./step-run-invalidation"
+} from "./stage-run-invalidation"
 
 export type UIStepState = "idle" | "queued" | "running" | "done" | "error"
 
@@ -27,11 +27,11 @@ export interface SubStepProgress {
   totalPages?: number
 }
 
-export interface StepRunProgress {
+export interface StageRunProgress {
   isRunning: boolean
   isComplete: boolean
   error: string | null
-  /** Which UI steps are part of this run (from fromStep..toStep) */
+  /** Which UI steps are part of this run (from fromStage..toStage) */
   targetSteps: Set<string>
   /** Per UI-step progress state */
   steps: Map<string, UIStepProgress>
@@ -39,7 +39,7 @@ export interface StepRunProgress {
   subSteps: Map<string, SubStepProgress>
 }
 
-const INITIAL: StepRunProgress = {
+const INITIAL: StageRunProgress = {
   isRunning: false,
   isComplete: false,
   error: null,
@@ -71,8 +71,8 @@ function invalidateBookQueries(qc: QueryClient, label: string) {
   qc.invalidateQueries({ queryKey: ["debug"] })
 }
 
-export function useStepRunSSE(label: string, enabled: boolean) {
-  const [progress, setProgress] = useState<StepRunProgress>(INITIAL)
+export function useStageRunSSE(label: string, enabled: boolean) {
+  const [progress, setProgress] = useState<StageRunProgress>(INITIAL)
   const queryClient = useQueryClient()
   const eventSourceRef = useRef<EventSource | null>(null)
 
@@ -88,7 +88,7 @@ export function useStepRunSSE(label: string, enabled: boolean) {
       error: null,
     }))
 
-    const url = `/api/books/${label}/steps/status`
+    const url = `/api/books/${label}/stages/status`
     const es = new EventSource(url)
     eventSourceRef.current = es
 
@@ -141,7 +141,7 @@ export function useStepRunSSE(label: string, enabled: boolean) {
     // A queued run has started executing
     es.addEventListener("queue-next", (e) => {
       const data = JSON.parse(e.data)
-      const rangeSteps = getTargetStepsForRange(data.fromStep, data.toStep)
+      const rangeSteps = getTargetStagesForRange(data.fromStage, data.toStage)
 
       setProgress((prev) => {
         const steps = new Map(prev.steps)
@@ -160,7 +160,7 @@ export function useStepRunSSE(label: string, enabled: boolean) {
       // — avoids a flash where unrelated stages briefly appear incomplete.
       invalidateQueryKeys(
         queryClient,
-        getStartInvalidationKeysForUiStep(label, data.fromStep)
+        getStartInvalidationKeysForUiStep(label, data.fromStage)
       )
     })
 
@@ -239,7 +239,7 @@ export function useStepRunSSE(label: string, enabled: boolean) {
     // Polling fallback
     const pollInterval = setInterval(async () => {
       try {
-        const status = await api.getStepsStatus(label)
+        const status = await api.getStagesStatus(label)
         const queueEmpty = !status.queue || status.queue.length === 0
         if (status.status === "completed" && queueEmpty) {
           setProgress((prev) => {
@@ -277,8 +277,8 @@ export function useStepRunSSE(label: string, enabled: boolean) {
   }, [label, enabled, queryClient])
 
   const startRun = useCallback(
-    (fromStep: string, toStep: string) => {
-      const newTargetSteps = getTargetStepsForRange(fromStep, toStep)
+    (fromStage: string, toStage: string) => {
+      const newTargetSteps = getTargetStagesForRange(fromStage, toStage)
 
       setProgress((prev) => {
         const targetSteps = new Set(prev.targetSteps)
@@ -288,7 +288,7 @@ export function useStepRunSSE(label: string, enabled: boolean) {
         // Clear downstream stages — the backend will wipe their data,
         // so stale "done"/"error" states from a previous run must go.
         // Uses the same DAG traversal as the backend (getStageClearOrder).
-        const stagesToClear: Set<string> = new Set(getStageClearOrder(fromStep as StageName))
+        const stagesToClear: Set<string> = new Set(getStageClearOrder(fromStage as StageName))
         for (const stage of stagesToClear) {
           if (newTargetSteps.has(stage)) continue // will be set to "queued" below
           const existing = steps.get(stage)
@@ -340,28 +340,28 @@ export function useStepRunSSE(label: string, enabled: boolean) {
 }
 
 export interface QueueRunOptions {
-  fromStep: string
-  toStep: string
+  fromStage: string
+  toStage: string
   apiKey: string
   azure?: { key: string; region: string }
 }
 
 // Context for sharing step run state across the book layout
-export interface StepRunContextValue {
-  progress: StepRunProgress
-  startRun: (fromStep: string, toStep: string) => void
+export interface StageRunContextValue {
+  progress: StageRunProgress
+  startRun: (fromStage: string, toStage: string) => void
   reset: () => void
   setSseEnabled: (enabled: boolean) => void
   /** Queue a stage run. Serializes API calls so they arrive in click order. */
   queueRun: (options: QueueRunOptions) => void
 }
 
-export const StepRunContext = createContext<StepRunContextValue | null>(null)
+export const StageRunContext = createContext<StageRunContextValue | null>(null)
 
-export function useStepRun(): StepRunContextValue {
-  const ctx = useContext(StepRunContext)
+export function useStageRun(): StageRunContextValue {
+  const ctx = useContext(StageRunContext)
   if (!ctx) {
-    throw new Error("useStepRun must be used within a StepRunContext provider")
+    throw new Error("useStageRun must be used within a StageRunContext provider")
   }
   return ctx
 }

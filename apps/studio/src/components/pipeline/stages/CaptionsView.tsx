@@ -5,7 +5,8 @@ import { api } from "@/api/client"
 import type { PageDetail, VersionEntry } from "@/api/client"
 import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../StepViewRouter"
-import { useStepRun } from "@/hooks/use-step-run"
+import { useStageRun } from "@/hooks/use-stage-run"
+import { useIsStageDone } from "@/hooks/use-stage-completion"
 import { useApiKey } from "@/hooks/use-api-key"
 import { StageRunCard } from "../StageRunCard"
 import { STAGE_DESCRIPTIONS } from "../stage-config"
@@ -218,14 +219,16 @@ function PageCaptions({ bookLabel, pageId, pageNumber }: { bookLabel: string; pa
 export function CaptionsView({ bookLabel, selectedPageId }: { bookLabel: string; selectedPageId?: string }) {
   const { data: pages, isLoading } = usePages(bookLabel)
   const { setExtra } = useStepHeader()
-  const { progress: stepProgress, queueRun } = useStepRun()
+  const { progress: stepProgress, queueRun } = useStageRun()
   const { apiKey, hasApiKey } = useApiKey()
   const captionsState = stepProgress.steps.get("captions")?.state
+  const captionsDone = useIsStageDone(bookLabel, "captions")
   const captionsRunning = captionsState === "running" || captionsState === "queued"
+  const showRunCard = !captionsDone || captionsRunning
 
   const handleRunCaptions = useCallback(() => {
     if (!hasApiKey || captionsRunning) return
-    queueRun({ fromStep: "captions", toStep: "captions", apiKey })
+    queueRun({ fromStage: "captions", toStage: "captions", apiKey })
   }, [hasApiKey, captionsRunning, apiKey, queueRun])
 
   const pagesWithImages = (pages ?? []).filter((p) => p.imageCount > 0)
@@ -247,7 +250,7 @@ export function CaptionsView({ bookLabel, selectedPageId }: { bookLabel: string;
     return () => setExtra(null)
   }, [pages, totalImages, displayPages.length, setExtra, selectedPageId])
 
-  if (isLoading && !captionsRunning) {
+  if (!showRunCard && isLoading) {
     return (
       <div className="flex items-center justify-center py-12 text-muted-foreground">
         <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -256,7 +259,7 @@ export function CaptionsView({ bookLabel, selectedPageId }: { bookLabel: string;
     )
   }
 
-  if (pagesWithImages.length === 0 || !hasCaptionData || captionsRunning) {
+  if (showRunCard || pagesWithImages.length === 0 || !hasCaptionData) {
     return (
       <div className="p-4">
         <StageRunCard

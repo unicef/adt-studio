@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react"
 import { Link } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import { getPipelineStages, STAGE_DESCRIPTIONS, isStageCompleted } from "../stage-config"
-import { useStepRun } from "@/hooks/use-step-run"
+import { useStageRun } from "@/hooks/use-stage-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
 import { StageRunCard } from "../StageRunCard"
@@ -16,7 +16,7 @@ interface ViewProps {
 
 export function BookView({ bookLabel }: ViewProps) {
   const pipelineSteps = getPipelineStages()
-  const { progress: stepRunProgress, queueRun } = useStepRun()
+  const { progress: stepRunProgress, queueRun } = useStageRun()
   const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
   const { data: stepStatusData } = useQuery({
     queryKey: ["books", bookLabel, "step-status"],
@@ -33,7 +33,7 @@ export function BookView({ bookLabel }: ViewProps) {
     // Prevent duplicate: don't queue if this stage is already running or queued
     const state = stepRunProgress.steps.get(slug)?.state
     if (state === "running" || state === "queued") return
-    queueRun({ fromStep: slug, toStep: slug, apiKey, azure: { key: azureKey, region: azureRegion } })
+    queueRun({ fromStage: slug, toStage: slug, apiKey, azure: { key: azureKey, region: azureRegion } })
   }, [hasApiKey, stepRunProgress.steps, apiKey, azureKey, azureRegion, queueRun])
 
   return (

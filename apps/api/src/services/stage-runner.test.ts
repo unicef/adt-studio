@@ -5,9 +5,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import type { AppConfig } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
 import {
-  buildStepRunnerImageClassifyConfig,
-  createStepRunner,
-} from "./step-runner.js"
+  buildStageRunnerImageClassifyConfig,
+  createStageRunner,
+} from "./stage-runner.js"
 
 const { capturedCaptionInputs, captionPageImagesMock } = vi.hoisted(() => {
   const capturedCaptionInputs: unknown[] = []
@@ -91,7 +91,7 @@ function seedCaptionBook(
   }
 }
 
-describe("buildStepRunnerImageClassifyConfig", () => {
+describe("buildStageRunnerImageClassifyConfig", () => {
   it("injects getImageBytes so min_stddev filtering can decode image bytes", () => {
     const config: AppConfig = {
       text_types: { section_text: "Main body text" },
@@ -107,7 +107,7 @@ describe("buildStepRunnerImageClassifyConfig", () => {
       getImageBase64: (_imageId: string) => expectedBytes.toString("base64"),
     }
 
-    const imageConfig = buildStepRunnerImageClassifyConfig(config, storage)
+    const imageConfig = buildStageRunnerImageClassifyConfig(config, storage)
 
     expect(imageConfig.filters).toEqual({
       min_side: 100,
@@ -119,7 +119,7 @@ describe("buildStepRunnerImageClassifyConfig", () => {
   })
 })
 
-describe("createStepRunner captions step", () => {
+describe("createStageRunner captions step", () => {
   let tmpDir = ""
 
   beforeEach(() => {
@@ -135,7 +135,7 @@ describe("createStepRunner captions step", () => {
   })
 
   it("passes book summary to captionPageImages when summary exists", async () => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "step-runner-captions-"))
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-captions-"))
     const booksDir = path.join(tmpDir, "books")
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
@@ -148,7 +148,7 @@ describe("createStepRunner captions step", () => {
       "A grade 3 science textbook about the water cycle."
     )
 
-    const runner = createStepRunner()
+    const runner = createStageRunner()
     await runner.run(
       "with-summary",
       {
@@ -156,8 +156,8 @@ describe("createStepRunner captions step", () => {
         apiKey: "sk-test",
         promptsDir,
         configPath,
-        fromStep: "captions",
-        toStep: "captions",
+        fromStage: "captions",
+        toStage: "captions",
       },
       { emit: () => {} }
     )
@@ -170,7 +170,7 @@ describe("createStepRunner captions step", () => {
   })
 
   it("omits book summary when summary node is missing", async () => {
-    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "step-runner-captions-"))
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-captions-"))
     const booksDir = path.join(tmpDir, "books")
     const promptsDir = path.join(tmpDir, "prompts")
     const configPath = path.join(tmpDir, "config.yaml")
@@ -179,7 +179,7 @@ describe("createStepRunner captions step", () => {
 
     seedCaptionBook(booksDir, "without-summary")
 
-    const runner = createStepRunner()
+    const runner = createStageRunner()
     await runner.run(
       "without-summary",
       {
@@ -187,8 +187,8 @@ describe("createStepRunner captions step", () => {
         apiKey: "sk-test",
         promptsDir,
         configPath,
-        fromStep: "captions",
-        toStep: "captions",
+        fromStage: "captions",
+        toStage: "captions",
       },
       { emit: () => {} }
     )

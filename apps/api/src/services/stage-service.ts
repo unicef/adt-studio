@@ -1,84 +1,82 @@
 import type { ProgressEvent } from "@adt/types"
-import type { PipelineService } from "./pipeline-service.js"
 
-export type StepRunStatus = "idle" | "running" | "completed" | "failed"
+export type StageRunStatus = "idle" | "running" | "completed" | "failed"
 
-export interface StepRunJob {
+export interface StageRunJob {
   label: string
-  status: StepRunStatus
-  fromStep: string
-  toStep: string
+  status: StageRunStatus
+  fromStage: string
+  toStage: string
   error?: string
   startedAt?: number
   completedAt?: number
 }
 
-export interface QueuedStepRun {
+export interface QueuedStageRun {
   id: string
-  fromStep: string
-  toStep: string
-  options: StepRunOptions
+  fromStage: string
+  toStage: string
+  options: StageRunOptions
 }
 
 interface BookRunState {
-  active: StepRunJob | null
-  queue: QueuedStepRun[]
+  active: StageRunJob | null
+  queue: QueuedStageRun[]
 }
 
 export interface BookRunStatus {
-  active: StepRunJob | null
-  queue: Array<{ id: string; fromStep: string; toStep: string }>
+  active: StageRunJob | null
+  queue: Array<{ id: string; fromStage: string; toStage: string }>
 }
 
-export type StepSSEEvent =
+export type StageSSEEvent =
   | { type: "progress"; data: ProgressEvent }
-  | { type: "step-run-complete"; label: string }
-  | { type: "step-run-error"; label: string; error: string }
-  | { type: "queue-next"; label: string; fromStep: string; toStep: string }
+  | { type: "stage-run-complete"; label: string }
+  | { type: "stage-run-error"; label: string; error: string }
+  | { type: "queue-next"; label: string; fromStage: string; toStage: string }
 
-export type StepEventListener = (event: StepSSEEvent) => void
+export type StageEventListener = (event: StageSSEEvent) => void
 
-export interface StepRunOptions {
+export interface StageRunOptions {
   booksDir: string
   apiKey: string
   promptsDir: string
   configPath?: string
-  fromStep: string
-  toStep: string
+  fromStage: string
+  toStage: string
   azureSpeechKey?: string
   azureSpeechRegion?: string
   beforeRun?: () => void
 }
 
-export interface StepRunProgress {
+export interface StageRunProgress {
   emit(event: ProgressEvent): void
 }
 
-export interface StepRunner {
+export interface StageRunner {
   run(
     label: string,
-    options: StepRunOptions,
-    progress: StepRunProgress
+    options: StageRunOptions,
+    progress: StageRunProgress
   ): Promise<void>
 }
 
-export interface StepService {
+export interface StageService {
   getStatus(label: string): BookRunStatus
-  addListener(label: string, listener: StepEventListener): () => void
-  startStepRun(
+  addListener(label: string, listener: StageEventListener): () => void
+  startStageRun(
     label: string,
-    options: StepRunOptions
+    options: StageRunOptions
   ): { status: "started" | "queued"; id: string }
 }
 
 let nextId = 1
 
-export function createStepService(
-  runner: StepRunner,
-  pipelineService: PipelineService
-): StepService {
+export function createStageService(
+  runner: StageRunner
+): StageService {
   const books = new Map<string, BookRunState>()
-  const listeners = new Map<string, Set<StepEventListener>>()
+  const listeners = new Map<string, Set<StageEventListener>>()
 
   function getOrCreateState(label: string): BookRunState {
     let state = books.get(label)
@@ -89,24 +87,24 @@ export function createStepService(
     return state
   }
 
-  function emit(label: string, event: StepSSEEvent): void {
+  function emit(label: string, event: StageSSEEvent): void {
     const set = listeners.get(label)
     if (!set) return
     for (const listener of set) {
       try {
         listener(event)
       } catch {
-        // Listener errors should not crash the step run
+        // Listener errors should not crash the stage run
       }
     }
   }
 
   async function executeJob(
     label: string,
-    job: StepRunJob,
-    options: StepRunOptions
+    job: StageRunJob,
+    options: StageRunOptions
   ): Promise<void> {
-    const progress: StepRunProgress = {
+    const progress: StageRunProgress = {
       emit(event: ProgressEvent) {
         emit(label, { type: "progress", data: event })
       },
@@ -117,14 +115,14 @@ export function createStepService(
       await runner.run(label, options, progress)
       job.status = "completed"
       job.completedAt = Date.now()
-      emit(label, { type: "step-run-complete", label })
+      emit(label, { type: "stage-run-complete", label })
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      console.error(`[step-run] ${label} failed:`, message)
+      console.error(`[stage-run] ${label} failed:`, message)
       job.status = "failed"
       job.error = message
       job.completedAt = Date.now()
-      emit(label, { type: "step-run-error", label, error: message })
+      emit(label, { type: "stage-run-error", label, error: message })
     }
 
     drainQueue(label)
@@ -135,11 +133,11 @@ export function createStepService(
     if (!state || state.queue.length === 0) return
 
     const next = state.queue.shift()!
-    const job: StepRunJob = {
+    const job: StageRunJob = {
       label,
       status: "running",
-      fromStep: next.fromStep,
-      toStep: next.toStep,
+      fromStage: next.fromStage,
+      toStage: next.toStage,
       startedAt: Date.now(),
     }
     state.active = job
@@ -147,8 +145,8 @@ export function createStepService(
     emit(label, {
       type: "queue-next",
       label,
-      fromStep: next.fromStep,
-      toStep: next.toStep,
+      fromStage: next.fromStage,
+      toStage: next.toStage,
     })
 
     executeJob(label, job, next.options).catch(() => {})
@@ -162,15 +160,15 @@ export function createStepService(
         active: state.active,
         queue: state.queue.map((q) => ({
           id: q.id,
-          fromStep: q.fromStep,
-          toStep: q.toStep,
+          fromStage: q.fromStage,
+          toStage: q.toStage,
         })),
       }
     },
 
     addListener(
       label: string,
-      listener: StepEventListener
+      listener: StageEventListener
     ): () => void {
       let set = listeners.get(label)
       if (!set) {
@@ -187,16 +185,10 @@ export function createStepService(
       }
     },
 
-    startStepRun(
+    startStageRun(
       label: string,
-      options: StepRunOptions
+      options: StageRunOptions
     ): { status: "started" | "queued"; id: string } {
-      // Check for conflicts with full pipeline
-      const pipelineJob = pipelineService.getStatus(label)
-      if (pipelineJob?.status === "running") {
-        throw new Error(`Full pipeline already running for book: ${label}`)
-      }
-
       const state = getOrCreateState(label)
       const id = String(nextId++)
 
@@ -204,19 +196,19 @@ export function createStepService(
         // Queue behind the active run
         state.queue.push({
           id,
-          fromStep: options.fromStep,
-          toStep: options.toStep,
+          fromStage: options.fromStage,
+          toStage: options.toStage,
           options,
         })
         return { status: "queued", id }
       }
 
       // Start immediately
-      const job: StepRunJob = {
+      const job: StageRunJob = {
         label,
         status: "running",
-        fromStep: options.fromStep,
-        toStep: options.toStep,
+        fromStage: options.fromStage,
+        toStage: options.toStage,
         startedAt: Date.now(),
       }
       state.active = job

@@ -16,14 +16,14 @@ import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
 import { PromptViewer } from "@/components/pipeline/PromptViewer"
-import { useStepRun } from "@/hooks/use-step-run"
+import { useStageRun } from "@/hooks/use-stage-run"
 
 export function GlossarySettings({ bookLabel, headerTarget }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
   const { apiKey, hasApiKey } = useApiKey()
-  const { queueRun } = useStepRun()
+  const { queueRun } = useStageRun()
   const navigate = useNavigate()
   const [showRerunDialog, setShowRerunDialog] = useState(false)
 
@@ -72,7 +72,7 @@ export function GlossarySettings({ bookLabel, headerTarget }: { bookLabel: strin
           setDirty({})
           setPromptDraft(null)
           setShowRerunDialog(false)
-          queueRun({ fromStep: "glossary", toStep: "glossary", apiKey })
+          queueRun({ fromStage: "glossary", toStage: "glossary", apiKey })
           navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "glossary" } })
         },
       }

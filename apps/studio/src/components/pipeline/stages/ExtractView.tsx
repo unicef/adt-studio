@@ -2,7 +2,8 @@ import { useEffect } from "react"
 import { AlignLeft, ArrowLeft, ArrowRight, BookOpen, Building2, FileText, Globe, Image, Loader2, User } from "lucide-react"
 import { useBook } from "@/hooks/use-books"
 import { usePages, usePageImage } from "@/hooks/use-pages"
-import { useStepRun } from "@/hooks/use-step-run"
+import { useStageRun } from "@/hooks/use-stage-run"
+import { useIsStageDone } from "@/hooks/use-stage-completion"
 import { ExtractPageDetail } from "./ExtractPageDetail"
 import { useStepHeader } from "../StepViewRouter"
 import { StageRunCard } from "../StageRunCard"
@@ -143,12 +144,14 @@ function BookBanner({ bookLabel, pages }: { bookLabel: string; pages: PageSummar
 
 export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
   const { data: pages, isLoading } = usePages(bookLabel)
-  const { progress: stepProgress } = useStepRun()
+  const { progress: stepProgress } = useStageRun()
   const selectedPageId = selectedPageIdProp ?? null
   const setSelectedPageId = onSelectPage ?? (() => {})
   const { setExtra, setOnLabelClick } = useStepHeader()
   const extractState = stepProgress.steps.get("extract")?.state
+  const extractDone = useIsStageDone(bookLabel, "extract")
   const extractRunning = extractState === "running" || extractState === "queued"
+  const showRunCard = !extractDone || extractRunning
 
   const pageList = pages ?? []
   const currentIndex = selectedPageId ? pageList.findIndex((p) => p.pageId === selectedPageId) : -1
@@ -158,6 +161,15 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
 
   // Header breadcrumb + navigation
   useEffect(() => {
+    if (showRunCard) {
+      setOnLabelClick(null)
+      setExtra(null)
+      return () => {
+        setExtra(null)
+        setOnLabelClick(null)
+      }
+    }
+
     if (selectedPage) {
       setOnLabelClick(() => setSelectedPageId(null))
       setExtra(
@@ -184,7 +196,7 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
           </div>
         </>
       )
-    } else if (pageList.length > 0 && !extractRunning) {
+    } else if (extractDone && pageList.length > 0 && !showRunCard) {
       setOnLabelClick(null)
       setExtra(
         <span className="ml-auto text-[11px] font-medium bg-white/20 rounded-full px-2.5 py-0.5">
@@ -199,11 +211,11 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
       setExtra(null)
       setOnLabelClick(null)
     }
-  }, [selectedPageId, selectedPage?.pageNumber, pageList.length, prevPageId, nextPageId, extractRunning, setExtra, setOnLabelClick])
+  }, [selectedPageId, selectedPage?.pageNumber, pageList.length, prevPageId, nextPageId, extractDone, showRunCard, setExtra, setOnLabelClick, setSelectedPageId])
 
   // Keyboard arrow navigation
   useEffect(() => {
-    if (!selectedPageId) return
+    if (!selectedPageId || showRunCard) return
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft" && prevPageId) {
         setSelectedPageId(prevPageId)
@@ -213,9 +225,9 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [selectedPageId, prevPageId, nextPageId])
+  }, [selectedPageId, prevPageId, nextPageId, showRunCard, setSelectedPageId])
 
-  if (isLoading && !extractRunning) {
+  if (!showRunCard && isLoading) {
     return (
       <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
@@ -225,7 +237,7 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
   }
 
   // Page detail view (only when extract run is not active)
-  if (selectedPageId && pages && !extractRunning) {
+  if (extractDone && selectedPageId && pages && !showRunCard) {
     return (
       <ExtractPageDetail
         bookLabel={bookLabel}
@@ -237,12 +249,12 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
   // Page grid view
   return (
     <div>
-      {!extractRunning && pageList.length > 0 && <BookBanner bookLabel={bookLabel} pages={pages} />}
+      {!showRunCard && pageList.length > 0 && <BookBanner bookLabel={bookLabel} pages={pages} />}
       <div className="p-4">
-      {extractRunning ? (
+      {showRunCard ? (
         <StageRunCard
           stageSlug="extract"
-          isRunning
+          isRunning={extractRunning}
           onRun={() => {}}
           disabled
         />
