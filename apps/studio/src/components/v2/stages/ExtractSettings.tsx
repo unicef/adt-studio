@@ -47,15 +47,18 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
   const [minStddev, setMinStddev] = useState("")
   const [meaningfulness, setMeaningfulness] = useState(true)
   const [cropping, setCropping] = useState(false)
+  const [segmentation, setSegmentation] = useState(false)
   const [metadataModel, setMetadataModel] = useState("")
   const [extractionModel, setExtractionModel] = useState("")
   const [meaningfulnessModel, setMeaningfulnessModel] = useState("")
   const [croppingModel, setCroppingModel] = useState("")
+  const [segmentationModel, setSegmentationModel] = useState("")
   const [bookSummaryModel, setBookSummaryModel] = useState("")
   const [metadataPromptDraft, setMetadataPromptDraft] = useState<string | null>(null)
   const [extractionPromptDraft, setExtractionPromptDraft] = useState<string | null>(null)
   const [meaningfulnessPromptDraft, setMeaningfulnessPromptDraft] = useState<string | null>(null)
   const [croppingPromptDraft, setCroppingPromptDraft] = useState<string | null>(null)
+  const [segmentationPromptDraft, setSegmentationPromptDraft] = useState<string | null>(null)
   const [bookSummaryPromptDraft, setBookSummaryPromptDraft] = useState<string | null>(null)
 
   // Track which field groups the user has actually touched
@@ -87,6 +90,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
       if (filters.min_stddev != null) setMinStddev(String(filters.min_stddev))
       if (filters.meaningfulness != null) setMeaningfulness(filters.meaningfulness !== false)
       if (filters.cropping != null) setCropping(filters.cropping === true)
+      if (filters.segmentation != null) setSegmentation(filters.segmentation === true)
     }
     if (merged.metadata && typeof merged.metadata === "object") {
       const md = merged.metadata as Record<string, unknown>
@@ -103,6 +107,10 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
     if (merged.image_cropping && typeof merged.image_cropping === "object") {
       const ic = merged.image_cropping as Record<string, unknown>
       if (ic.model) setCroppingModel(String(ic.model))
+    }
+    if (merged.image_segmentation && typeof merged.image_segmentation === "object") {
+      const is = merged.image_segmentation as Record<string, unknown>
+      if (is.model) setSegmentationModel(String(is.model))
     }
     if (merged.book_summary && typeof merged.book_summary === "object") {
       const bs = merged.book_summary as Record<string, unknown>
@@ -185,6 +193,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
       if (minStddev) filters.min_stddev = Number(minStddev)
       filters.meaningfulness = meaningfulness
       filters.cropping = cropping
+      filters.segmentation = segmentation
       overrides.image_filters = filters
     }
     if (shouldWrite("metadata")) {
@@ -203,6 +212,10 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
       const existing = (bookConfigData?.config?.image_cropping ?? {}) as Record<string, unknown>
       overrides.image_cropping = { ...existing, model: croppingModel.trim() || undefined }
     }
+    if (shouldWrite("image_segmentation")) {
+      const existing = (bookConfigData?.config?.image_segmentation ?? {}) as Record<string, unknown>
+      overrides.image_segmentation = { ...existing, model: segmentationModel.trim() || undefined }
+    }
     if (shouldWrite("book_summary")) {
       const existing = (bookConfigData?.config?.book_summary ?? {}) as Record<string, unknown>
       overrides.book_summary = { ...existing, model: bookSummaryModel.trim() || undefined }
@@ -218,6 +231,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
     if (extractionPromptDraft != null) promptSaves.push(api.updatePrompt("text_classification", extractionPromptDraft, bookLabel))
     if (meaningfulnessPromptDraft != null) promptSaves.push(api.updatePrompt("image_meaningfulness", meaningfulnessPromptDraft, bookLabel))
     if (croppingPromptDraft != null) promptSaves.push(api.updatePrompt("image_cropping", croppingPromptDraft, bookLabel))
+    if (segmentationPromptDraft != null) promptSaves.push(api.updatePrompt("image_segmentation", segmentationPromptDraft, bookLabel))
     if (bookSummaryPromptDraft != null) promptSaves.push(api.updatePrompt("book_summary", bookSummaryPromptDraft, bookLabel))
     if (promptSaves.length > 0) await Promise.all(promptSaves)
 
@@ -231,6 +245,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
           setExtractionPromptDraft(null)
           setMeaningfulnessPromptDraft(null)
           setCroppingPromptDraft(null)
+          setSegmentationPromptDraft(null)
           setBookSummaryPromptDraft(null)
           setShowRerunDialog(false)
           // Start step-scoped extract run — blocks until data is cleared on backend
@@ -248,7 +263,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
   }
 
   return (
-    <div className={tab === "metadata-prompt" || tab === "prompt" || tab === "meaningfulness-prompt" || tab === "cropping-prompt" || tab === "book-summary-prompt" ? "h-full max-w-4xl" : "p-4 space-y-6"}>
+    <div className={tab === "metadata-prompt" || tab === "prompt" || tab === "meaningfulness-prompt" || tab === "cropping-prompt" || tab === "segmentation-prompt" || tab === "book-summary-prompt" ? "h-full max-w-4xl" : "p-4 space-y-6"}>
       {tab === "general" && (
         <>
           {/* Page Range */}
@@ -389,6 +404,22 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
             <p className="text-xs text-muted-foreground mt-1.5">
               Use an LLM to crop away stray text, artifacts, and excessive whitespace from image edges.
             </p>
+            <div className="flex items-center gap-2 mt-4">
+              <Switch
+                id="segmentation-filter"
+                checked={segmentation}
+                onCheckedChange={(v) => {
+                  setSegmentation(v)
+                  markDirty("image_filters")
+                }}
+              />
+              <Label htmlFor="segmentation-filter" className="text-sm font-normal">
+                LLM image segmentation
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1.5">
+              Use an LLM to detect and split composited images (e.g., multiple photos in a single image layer) into individual segments. Requires GPT-5.2+.
+            </p>
           </div>
         </>
       )}
@@ -514,6 +545,19 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
           onModelChange={(v) => { setCroppingModel(v); markDirty("image_cropping") }}
           onContentChange={setCroppingPromptDraft}
           enabled={tab === "cropping-prompt"}
+        />
+      )}
+
+      {tab === "segmentation-prompt" && (
+        <PromptViewer
+          promptName="image_segmentation"
+          bookLabel={bookLabel}
+          title="Image Segmentation Prompt"
+          description="LLM-based segmentation to detect and split composited images into individual segments. Requires GPT-5.2+ for accurate bounding box coordinates."
+          model={segmentationModel}
+          onModelChange={(v) => { setSegmentationModel(v); markDirty("image_segmentation") }}
+          onContentChange={setSegmentationPromptDraft}
+          enabled={tab === "segmentation-prompt"}
         />
       )}
 

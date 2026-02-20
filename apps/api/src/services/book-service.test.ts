@@ -95,7 +95,7 @@ function createLegacySchemaDb(label: string): void {
   createTestDb(label)
   const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
   db.run("UPDATE schema_version SET version = ? WHERE id = 1", [
-    SCHEMA_VERSION - 1,
+    1,
   ])
   db.close()
 }

@@ -59,6 +59,7 @@ const EXTRACT_SETTINGS_TABS = [
   { key: "prompt", label: "Extraction Prompt" },
   { key: "meaningfulness-prompt", label: "Meaningfulness Prompt" },
   { key: "cropping-prompt", label: "Cropping Prompt" },
+  { key: "segmentation-prompt", label: "Segmentation Prompt" },
   { key: "book-summary-prompt", label: "Summary Prompt" },
 ]
 

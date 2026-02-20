@@ -10,6 +10,7 @@ import { BookPreviewFrame, type BookPreviewFrameHandle } from "./BookPreviewFram
 import { SectionEditToolbar } from "./SectionEditToolbar"
 import { ImageCropDialog } from "./ImageCropDialog"
 import { AiImageDialog } from "./AiImageDialog"
+import { SegmentPreviewDialog, type SegmentRegion } from "./SegmentPreviewDialog"
 import {
   Select,
   SelectContent,
@@ -345,6 +346,16 @@ export function StoryboardSectionDetail({
   const aiImageAbortRef = useRef<AbortController | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const replaceTargetRef = useRef<string | null>(null)
+
+  // Image segmentation state
+  const [segmenting, setSegmenting] = useState(false)
+  const [segmentPreview, setSegmentPreview] = useState<{
+    imageId: string
+    imageSrc: string
+    imageWidth: number
+    imageHeight: number
+    regions: SegmentRegion[]
+  } | null>(null)
 
   // Notify parent when AI image generation starts/stops
   useEffect(() => {
@@ -770,6 +781,112 @@ export function StoryboardSectionDetail({
     setAiImageDialogTarget(dataId)
     setSelectedElement(null)
   }, [])
+
+  // Run LLM segmentation analysis on a single image (phase 1: get bounding boxes)
+  const handleSegment = useCallback(
+    async (dataId: string) => {
+      if (!hasApiKey) return
+      setSegmenting(true)
+      setSelectedElement(null)
+
+      try {
+        const result = await api.segmentImage(bookLabel, dataId, pageId, apiKey)
+
+        if (!result.segmented || !result.regions || result.regions.length === 0) {
+          setAiError("No segmentation needed for this image")
+          setTimeout(() => setAiError((prev) => prev === "No segmentation needed for this image" ? null : prev), 3000)
+          return
+        }
+
+        // Show preview dialog with bounding boxes
+        setSegmentPreview({
+          imageId: dataId,
+          imageSrc: `/api/books/${bookLabel}/images/${dataId}`,
+          imageWidth: result.imageWidth!,
+          imageHeight: result.imageHeight!,
+          regions: result.regions,
+        })
+      } catch (err) {
+        setAiError(err instanceof Error ? err.message : "Segmentation failed")
+      } finally {
+        setSegmenting(false)
+      }
+    },
+    [bookLabel, pageId, apiKey, hasApiKey]
+  )
+
+  // Apply confirmed segmentation (phase 2: crop and save)
+  const handleSegmentApply = useCallback(
+    async (confirmedRegions: SegmentRegion[]) => {
+      if (!segmentPreview) return
+      const { imageId } = segmentPreview
+
+      // Close the dialog FIRST, before any async work or state updates.
+      // This ensures the dialog unmounts cleanly in its own render cycle,
+      // avoiding React DOM reconciliation conflicts with the sectioning/rendering updates.
+      setSegmentPreview(null)
+
+      try {
+        const result = await api.applySegmentation(bookLabel, imageId, pageId, confirmedRegions)
+
+        if (!result.segments || result.segments.length === 0) {
+          setAiError("Segmentation produced no valid segments")
+          return
+        }
+
+        // Replace the original image with segment images in sectioning
+        setPendingSectioning((prev) => {
+          const sBase = prev ?? page.sectioning
+          if (!sBase) return prev
+          return {
+            ...sBase,
+            sections: sBase.sections.map((s, si) => {
+              if (si !== sectionIndex) return s
+              const newParts: typeof s.parts = []
+              for (const p of s.parts) {
+                if (p.type === "image" && p.imageId === imageId) {
+                  for (const seg of result.segments) {
+                    newParts.push({ type: "image", imageId: seg.imageId, isPruned: false })
+                  }
+                } else {
+                  newParts.push(p)
+                }
+              }
+              return { ...s, parts: newParts }
+            }),
+          }
+        })
+
+        // Replace the original <img> tag with segment <img> tags in rendering HTML
+        setPendingRendering((prev) => {
+          const rBase = prev ?? page.rendering
+          if (!rBase) return prev
+          return {
+            ...rBase,
+            sections: rBase.sections.map((s, si) => {
+              if (si !== sectionIndex) return s
+              let html = s.html
+              const segImgs = result.segments
+                .map(
+                  (seg) =>
+                    `<img data-id="${seg.imageId}" src="/api/books/${bookLabel}/images/${seg.imageId}" width="${seg.width}" height="${seg.height}" alt="${seg.label}" class="w-full" />`
+                )
+                .join("\n")
+              const imgPattern = new RegExp(
+                `<img[^>]*data-id="${escapeRegex(imageId)}"[^>]*/?>`,
+                "g"
+              )
+              html = html.replace(imgPattern, segImgs)
+              return { ...s, html }
+            }),
+          }
+        })
+      } catch (err) {
+        setAiError(err instanceof Error ? err.message : "Segmentation apply failed")
+      }
+    },
+    [segmentPreview, bookLabel, pageId, page.sectioning, page.rendering, sectionIndex]
+  )
 
   // Swap a generated/edited image into pending sectioning + rendering.
   // Uses functional setState to avoid stale closures from async callers (e.g. AI generation).
@@ -1281,6 +1398,8 @@ export function StoryboardSectionDetail({
           onCrop={selectedInfo.isImage ? (dataId) => setCropTarget(dataId) : undefined}
           onReplace={selectedInfo.isImage ? handleImageReplace : undefined}
           onAiImage={selectedInfo.isImage && hasApiKey ? handleAiImage : undefined}
+          onSegment={selectedInfo.isImage && hasApiKey ? handleSegment : undefined}
+          segmenting={segmenting}
         />
       )}
 
@@ -1481,6 +1600,18 @@ export function StoryboardSectionDetail({
         imageId={aiImageDialogTarget}
         onSubmit={handleAiImageSubmit}
         onClose={() => setAiImageDialogTarget(null)}
+      />
+    )}
+
+    {/* Segment preview dialog */}
+    {segmentPreview && (
+      <SegmentPreviewDialog
+        imageSrc={segmentPreview.imageSrc}
+        imageWidth={segmentPreview.imageWidth}
+        imageHeight={segmentPreview.imageHeight}
+        regions={segmentPreview.regions}
+        onApply={handleSegmentApply}
+        onClose={() => setSegmentPreview(null)}
       />
     )}
     </>

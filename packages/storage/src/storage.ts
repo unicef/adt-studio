@@ -27,6 +27,16 @@ export interface CroppedImageInput {
   height: number
 }
 
+export interface SegmentedImageInput {
+  sourceImageId: string
+  segmentIndex: number
+  pageId: string
+  version: number
+  buffer: Buffer
+  width: number
+  height: number
+}
+
 export interface Storage {
   clearExtractedData(): void
   clearNodesByType(nodes: string[]): void
@@ -39,6 +49,9 @@ export interface Storage {
 
   /** Write a cropped image to disk as {imageId}_crop_v{version}.png and register it in the DB with source="crop". */
   putCroppedImage(input: CroppedImageInput): void
+
+  /** Write a segmented image to disk as {sourceImageId}_seg{NNN}_v{version}.png and register it in the DB with source="segment". */
+  putSegmentedImage(input: SegmentedImageInput): void
 
   putNodeData(node: string, itemId: string, data: unknown): number
   getLatestNodeData(node: string, itemId: string): NodeDataRow | null

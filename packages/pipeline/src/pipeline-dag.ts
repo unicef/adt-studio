@@ -30,6 +30,7 @@ import { classifyPageText, buildClassifyConfig } from "./text-classification.js"
 import { classifyPageImages, buildImageClassifyConfig } from "./image-filtering.js"
 import { filterPageImageMeaningfulness, buildMeaningfulnessConfig } from "./image-meaningfulness.js"
 import { cropPageImages, applyCrops, buildCroppingConfig, getCroppedImageId } from "./image-cropping.js"
+import { segmentPageImages, applySegmentation, buildSegmentationConfig, getSegmentedImageId } from "./image-segmentation.js"
 import { sectionPage, buildSectioningConfig } from "./page-sectioning.js"
 import { renderPage, buildRenderStrategyResolver } from "./web-rendering.js"
 import { translatePageText, buildTranslationConfig } from "./translation.js"
@@ -173,6 +174,7 @@ export async function runFullPipeline(
     const textClassifyConfig = buildClassifyConfig(config)
     const imageClassifyConfig = buildImageClassifyConfig(config)
     const meaningfulnessConfig = buildMeaningfulnessConfig(config)
+    const segmentationConfig = buildSegmentationConfig(config)
     const croppingConfig = buildCroppingConfig(config)
     const sectioningConfig = buildSectioningConfig(config)
     const resolveRenderConfig = buildRenderStrategyResolver(config)
@@ -235,6 +237,85 @@ export async function runFullPipeline(
         p.emit({
           type: "step-progress",
           step: "image-filtering",
+          message: page.pageId,
+          page: pages.indexOf(page) + 1,
+          totalPages,
+        })
+      })
+    })
+
+    executors.set("image-segmentation", async (p) => {
+      if (!segmentationConfig) return
+      const model = getModel(segmentationConfig.modelId)
+      const pages = storage.getPages()
+      const totalPages = pages.length
+      await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
+        const classRow = storage.getLatestNodeData("image-filtering", page.pageId)
+        if (!classRow) return
+        const imageClassification = classRow.data as ImageClassificationOutput
+        const unprunedImageIds = new Set(
+          imageClassification.images.filter((img) => !img.isPruned).map((img) => img.imageId)
+        )
+        const allImages = storage.getPageImages(page.pageId)
+        const unprunedImages = allImages
+          .filter((img) => unprunedImageIds.has(img.imageId))
+          .map((img) => ({
+            imageId: img.imageId,
+            imageBase64: storage.getImageBase64(img.imageId),
+            width: img.width,
+            height: img.height,
+          }))
+        if (unprunedImages.length > 0) {
+          try {
+            const pageImageBase64 = storage.getPageImageBase64(page.pageId)
+            const segmentationResult = await segmentPageImages(
+              { pageId: page.pageId, pageImageBase64, images: unprunedImages },
+              segmentationConfig,
+              model,
+            )
+            const segVersion = storage.putNodeData("image-segmentation", page.pageId, segmentationResult)
+            const applied = applySegmentation(
+              segmentationResult,
+              (imageId) => storage.getImageBase64(imageId),
+            )
+            for (const seg of applied) {
+              storage.putSegmentedImage({
+                sourceImageId: seg.sourceImageId,
+                segmentIndex: seg.segmentIndex,
+                pageId: page.pageId,
+                version: segVersion,
+                buffer: seg.buffer,
+                width: seg.width,
+                height: seg.height,
+              })
+              const segImageId = getSegmentedImageId(seg.sourceImageId, seg.segmentIndex, segVersion)
+              imageClassification.images.push({
+                imageId: segImageId,
+                isPruned: false,
+              })
+            }
+            // Mark segmented originals as pruned
+            if (applied.length > 0) {
+              const segmentedSourceIds = new Set(applied.map((s) => s.sourceImageId))
+              for (const sourceId of segmentedSourceIds) {
+                const origEntry = imageClassification.images.find((i) => i.imageId === sourceId)
+                if (origEntry) {
+                  origEntry.isPruned = true
+                  origEntry.reason = "segmented"
+                }
+              }
+              storage.putNodeData("image-filtering", page.pageId, imageClassification)
+            }
+          } catch (err) {
+            console.warn(
+              `[image-segmentation] Failed for ${page.pageId}:`,
+              err instanceof Error ? err.message : err
+            )
+          }
+        }
+        p.emit({
+          type: "step-progress",
+          step: "image-segmentation",
           message: page.pageId,
           page: pages.indexOf(page) + 1,
           totalPages,
