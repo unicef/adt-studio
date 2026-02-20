@@ -19,6 +19,11 @@ Return a JSON object with two fields:
 {% endchat %}
 
 {% chat role: "user" %}
+{% if page_image_base64 %}
+This is an image of the original textbook page for visual reference only — use it to understand the intended layout and appearance, but follow the HTML as the source of truth:
+{% image page_image_base64 %}
+{% endif %}
+
 Here is the current HTML for the section:
 
 {{ current_html }}
