@@ -92,7 +92,13 @@ export function StageSidebar({
   })
   const completedSteps = stepStatusData?.steps ?? {}
 
-  const effectivePagesOpen = hasStagePages(activeStep) && isStageCompleted(activeStep, completedSteps)
+  const activeStageState = stepRunProgress.steps.get(activeStep)?.state
+  const activeStageRunning =
+    activeStageState === "running" || activeStageState === "queued"
+  const effectivePagesOpen =
+    hasStagePages(activeStep) &&
+    isStageCompleted(activeStep, completedSteps) &&
+    !activeStageRunning
 
   const isSettings = !!matchRoute({
     to: "/books/$label/$step/settings",
