@@ -901,10 +901,23 @@ async function buildJsBundle(
   webAssetsDir: string,
   outputAssetsDir: string,
 ): Promise<void> {
-  const esbuild = await import("esbuild")
   const entryPoint = path.join(webAssetsDir, "base.js")
   if (!fs.existsSync(entryPoint)) return // skip if no source
 
+  // If a pre-built bundle is present in webAssetsDir (e.g. baked into a Docker
+  // image at build time), copy it rather than invoking esbuild at runtime.
+  // esbuild cannot run when it has been bundled into a single-file server bundle.
+  const preBuilt = path.join(webAssetsDir, "base.bundle.min.js")
+  if (fs.existsSync(preBuilt)) {
+    fs.copyFileSync(preBuilt, path.join(outputAssetsDir, "base.bundle.min.js"))
+    const preBuiltMap = preBuilt + ".map"
+    if (fs.existsSync(preBuiltMap)) {
+      fs.copyFileSync(preBuiltMap, path.join(outputAssetsDir, "base.bundle.min.js.map"))
+    }
+    return
+  }
+
+  const esbuild = await import("esbuild")
   await esbuild.build({
     entryPoints: [entryPoint],
     bundle: true,

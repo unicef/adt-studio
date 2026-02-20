@@ -24,6 +24,13 @@ await build({
   target: "node22",
   format: "esm",
   outfile: path.join(outDir, "api-server.mjs"),
+  // Packages that use __dirname-relative file lookups cannot be bundled — their
+  // paths would resolve against the bundle output dir instead of the package dir.
+  // These are installed into node_modules in the Docker runtime image.
+  //   esbuild    — needs its native binary (handled via pre-built base.bundle.min.js)
+  //   tailwindcss — reads css/preflight.css and other files from its package dir
+  //   postcss    — peer/transitive dep of tailwindcss, also uses __dirname lookups
+  external: ["esbuild", "tailwindcss", "postcss"],
   banner: {
     js: [
       // Polyfill __dirname, __filename, and require for ESM

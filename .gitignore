@@ -56,3 +56,7 @@ coverage/
 
 # Auto-generated TTS cache artifacts from pipeline test runs
 packages/pipeline/src/__tests__/fixtures/raven-cache/tts/*.mp3
+
+# Pre-built ADT web runner bundle (generated at Docker build time, not committed)
+assets/adt/base.bundle.min.js
+assets/adt/base.bundle.min.js.map
