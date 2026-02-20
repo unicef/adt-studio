@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { createFileRoute, Outlet, useParams, useNavigate, Link, useMatchRoute } from "@tanstack/react-router"
 import { useQueryClient } from "@tanstack/react-query"
-import { Home, Settings, Terminal } from "lucide-react"
+import { Home, Settings, RotateCcw, Terminal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DebugPanel } from "@/components/debug/DebugPanel"
 import { StageSidebar } from "@/components/pipeline/StageSidebar"
+import { STAGES } from "@/components/pipeline/stage-config"
 import { useBook } from "@/hooks/use-books"
 import { useStepRunSSE, StepRunContext, type QueueRunOptions } from "@/hooks/use-step-run"
 import { getStartInvalidationKeysForUiStep } from "@/hooks/step-run-invalidation"
@@ -25,6 +26,8 @@ function BookLayout() {
   const isDebugRoute = !!matchRoute({ to: "/books/$label/debug", params: { label } })
 
   const activeStep = step ?? "book"
+  const activeStage = STAGES.find((s) => s.slug === activeStep) ?? STAGES[0]
+  const stageHex = activeStage.hex
 
   const onSelectPage = useCallback(
     (pid: string | null) => {
@@ -135,29 +138,50 @@ function BookLayout() {
       <div className="flex flex-1 min-h-0 flex-col">
         <div className="flex flex-1 min-h-0">
           {/* Left sidebar — spacer reserves layout width, inner panel expands on hover */}
-          <div className="w-14 lg:w-[220px] shrink-0 relative">
-            <div className="group/sidebar absolute inset-y-0 left-0 w-14 hover:w-[220px] lg:w-full bg-background flex flex-col z-30 overflow-hidden transition-[width] duration-150 hover:shadow-lg lg:hover:shadow-none">
+          <div className="w-[220px] shrink-0 relative">
+            <div className="absolute inset-y-0 left-0 w-full bg-background flex flex-col z-30 overflow-hidden">
               {/* App header */}
               <div className="shrink-0 h-10 flex items-center bg-gray-700 text-white border-r border-gray-700">
                 <Link
                   to="/"
-                  className="flex-1 min-w-0 h-full px-2 group-hover/sidebar:px-4 lg:px-4 flex items-center justify-center group-hover/sidebar:justify-start lg:justify-start gap-0 group-hover/sidebar:gap-2.5 lg:gap-2.5 hover:bg-gray-600 transition-colors"
+                  className="flex-1 min-w-0 h-full px-4 flex items-center justify-start gap-2.5 hover:bg-gray-800 transition-colors"
                   title="Back to books"
                 >
                   <Home className="w-4 h-4 shrink-0" />
-                  <span className="text-sm font-semibold truncate hidden group-hover/sidebar:block lg:block">
+                  <span className="text-sm font-semibold truncate">
                     ADT Studio
                   </span>
                 </Link>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 shrink-0 text-white/70 hover:text-white hover:bg-gray-600 hidden group-hover/sidebar:flex lg:flex"
-                  onClick={openSettings}
-                  title="API Key Settings"
-                >
-                  <Settings className="h-3.5 w-3.5" />
-                </Button>
+                {activeStep === "preview" ? (
+                  <button
+                    onClick={() => window.dispatchEvent(new CustomEvent("adt:repackage"))}
+                    title="Re-package ADT"
+                    className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full text-white hover:brightness-110 transition-[filter] mx-1.5"
+                    style={{ backgroundColor: stageHex }}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                  </button>
+                ) : activeStep === "book" ? (
+                  <button
+                    onClick={openSettings}
+                    title="API Key Settings"
+                    className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full text-white hover:brightness-110 transition-[filter] mx-1.5"
+                    style={{ backgroundColor: stageHex }}
+                  >
+                    <Settings className="h-3.5 w-3.5" />
+                  </button>
+                ) : (
+                  <Link
+                    to="/books/$label/$step/settings"
+                    params={{ label, step: activeStep }}
+                    search={{ tab: "general" }}
+                    title={`${activeStage?.label ?? "Stage"} Settings`}
+                    className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full text-white hover:brightness-110 transition-[filter] mx-1.5"
+                    style={{ backgroundColor: stageHex }}
+                  >
+                    <Settings className="h-3.5 w-3.5" />
+                  </Link>
+                )}
               </div>
 
               {/* Steps / Pages */}

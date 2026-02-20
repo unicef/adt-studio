@@ -78,7 +78,7 @@ export function StepViewRouter({ step, bookLabel, selectedPageId, onSelectPage }
     <StepHeaderContext.Provider value={controls}>
       <div className="flex flex-col h-full">
         {/* Step header */}
-        <div className={cn("shrink-0 h-10 px-4 flex items-center gap-3 text-white", stepConfig.bgDark)}>
+        <div className={cn("shrink-0 h-10 px-4 flex items-center gap-3 text-white", stepConfig.color)}>
           <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white/20">
             <Icon className="w-3 h-3" />
           </div>

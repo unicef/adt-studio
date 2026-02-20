@@ -29,14 +29,14 @@ interface StageRunCardProps {
 }
 
 const HOVER_BG_BY_COLOR: Record<string, string> = {
-  "bg-gray-500": "hover:bg-gray-500",
-  "bg-blue-500": "hover:bg-blue-500",
-  "bg-violet-500": "hover:bg-violet-500",
-  "bg-orange-500": "hover:bg-orange-500",
-  "bg-teal-500": "hover:bg-teal-500",
-  "bg-lime-500": "hover:bg-lime-500",
-  "bg-pink-500": "hover:bg-pink-500",
-  "bg-amber-500": "hover:bg-amber-500",
+  "bg-gray-600": "hover:bg-gray-600",
+  "bg-blue-600": "hover:bg-blue-600",
+  "bg-violet-600": "hover:bg-violet-600",
+  "bg-orange-600": "hover:bg-orange-600",
+  "bg-teal-600": "hover:bg-teal-600",
+  "bg-lime-600": "hover:bg-lime-600",
+  "bg-pink-600": "hover:bg-pink-600",
+  "bg-amber-600": "hover:bg-amber-600",
 }
 
 export function StageRunCard({
@@ -48,19 +48,17 @@ export function StageRunCard({
   onRun,
   disabled,
 }: StageRunCardProps) {
-  const stepConfig = STAGES.find((s) => s.slug === stageSlug)
+  const stage = STAGES.find((s) => s.slug === stageSlug) ?? STAGES[0]
   const { progress } = useStepRun()
   const { subSteps: subStepProgress, error, targetSteps } = progress
-
   const subSteps = STAGE_SUB_STEPS[stageSlug as StageName] ?? []
-  const Icon = stepConfig?.icon ?? Play
-  const bgDark = stepConfig?.bgDark ?? "bg-gray-700"
-  const color = stepConfig?.color ?? "bg-gray-500"
-  const borderColor = stepConfig?.borderColor ?? "border-gray-200"
+  const Icon = stage.icon
+  const color = stage.color
+  const borderColor = stage.borderDark
   const hasError = !!error && targetSteps.has(stageSlug)
   const isCompleted = completed || progress.steps.get(stageSlug)?.state === "done"
   const hasSubSteps = subSteps.length > 0
-  const hoverColorClass = HOVER_BG_BY_COLOR[color] ?? "hover:bg-gray-500"
+  const hoverColorClass = HOVER_BG_BY_COLOR[color] ?? "hover:bg-gray-600"
   const buttonToneClass = isCompleted
     ? cn(color, "text-white", hoverColorClass, "hover:text-white")
     : cn("bg-gray-200 text-gray-700", hoverColorClass, "hover:text-white")
@@ -68,14 +66,14 @@ export function StageRunCard({
   return (
     <Card className={cn("overflow-hidden max-w-xl shadow-none", borderColor)}>
       {/* Colored header */}
-      <CardHeader className={cn("flex-row items-center gap-2.5 space-y-0 px-4 py-2 text-white", bgDark)}>
+      <CardHeader className={cn("flex-row items-center gap-2.5 space-y-0 px-4 py-2 text-white", color)}>
         <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white/20">
           <Icon className="w-3 h-3" />
         </div>
         <CardTitle className="text-sm leading-normal tracking-normal">
           {isRunning
-            ? `${stepConfig?.runningLabel ?? stageSlug}...`
-            : stepConfig?.label ?? stageSlug}
+            ? `${stage.runningLabel}...`
+            : stage.label}
         </CardTitle>
       </CardHeader>
 
@@ -148,8 +146,8 @@ export function StageRunCard({
                   hasError
                     ? "Retry"
                     : isCompleted
-                      ? `Re-run ${stepConfig?.label?.toLowerCase() ?? stageSlug}`
-                      : `Run ${stepConfig?.label?.toLowerCase() ?? stageSlug}`
+                      ? `Re-run ${stage.label.toLowerCase()}`
+                      : `Run ${stage.label.toLowerCase()}`
                 }
               >
                 {hasError || isCompleted ? <RotateCcw className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
