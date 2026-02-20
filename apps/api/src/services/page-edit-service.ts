@@ -199,10 +199,18 @@ export async function aiEditSection(
       }
     }
 
+    // Load the original page image so the LLM can see the intended layout
+    let pageImageBase64: string | undefined
+    try {
+      pageImageBase64 = storage.getPageImageBase64(pageId)
+    } catch {
+      // Page image not available — proceed without it
+    }
+
     const result = await model.generateObject<{ reasoning: string; content: string }>({
       schema: webRenderingLLMSchema,
       prompt: "html_edit",
-      context: { current_html: currentHtml, instruction },
+      context: { current_html: currentHtml, instruction, page_image_base64: pageImageBase64 },
       validate: (obj) => {
         const r = obj as { content: string }
         // Strip markdown fences before validation so checks run on clean HTML
