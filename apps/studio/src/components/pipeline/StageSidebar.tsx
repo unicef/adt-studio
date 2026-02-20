@@ -417,6 +417,11 @@ function ExportButton({ bookLabel }: { bookLabel: string }) {
 
   return (
     <div className="relative" ref={exportRef}>
+      {exportBook.error && (
+        <p className="mb-1 text-xs text-red-600 break-words">
+          {exportBook.error instanceof Error ? exportBook.error.message : "Export failed"}
+        </p>
+      )}
       <Button
         variant="outline"
         size="sm"

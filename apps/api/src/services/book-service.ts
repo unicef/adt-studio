@@ -105,13 +105,10 @@ export function listBooks(booksDir: string): BookSummary[] {
           db.close()
         }
       } catch (err) {
-        if (isSchemaMismatchError(err)) {
-          needsRebuild = true
-          rebuildReason =
-            "Book data uses an older storage schema and must be rebuilt."
-        } else {
-          throw err
-        }
+        needsRebuild = true
+        rebuildReason = isSchemaMismatchError(err)
+          ? "Book data uses an older storage schema and must be rebuilt."
+          : `Book database could not be opened: ${err instanceof Error ? err.message : String(err)}`
       }
     }
 
@@ -201,13 +198,10 @@ export function getBook(label: string, booksDir: string): BookDetail {
         db.close()
       }
     } catch (err) {
-      if (isSchemaMismatchError(err)) {
-        needsRebuild = true
-        rebuildReason =
-          "Book data uses an older storage schema and must be rebuilt."
-      } else {
-        throw err
-      }
+      needsRebuild = true
+      rebuildReason = isSchemaMismatchError(err)
+        ? "Book data uses an older storage schema and must be rebuilt."
+        : `Book database could not be opened: ${err instanceof Error ? err.message : String(err)}`
     }
   }
 

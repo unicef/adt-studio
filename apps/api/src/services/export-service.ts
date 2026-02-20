@@ -24,6 +24,8 @@ export async function exportBook(
     throw new Error(`Book not found: ${safeLabel}`)
   }
 
+  const adtDir = path.join(bookDir, "adt")
+
   // Verify storyboard is accepted
   const storage = createBookStorage(safeLabel, resolvedDir)
   try {
@@ -33,7 +35,6 @@ export async function exportBook(
     }
 
     // Build ADT package if not already built and web assets are available
-    const adtDir = path.join(bookDir, "adt")
     const pagesJson = path.join(adtDir, "content", "pages.json")
     if (!fs.existsSync(pagesJson) && webAssetsDir && fs.existsSync(webAssetsDir)) {
       const config = loadBookConfig(safeLabel, resolvedDir, configPath)
@@ -67,13 +68,17 @@ export async function exportBook(
     if (fs.existsSync(adtDir)) {
       ensureAdtIndexHtml(adtDir)
     }
+
+    if (!fs.existsSync(adtDir)) {
+      throw new Error("Web package not found. Run the Preview step first.")
+    }
   } finally {
     storage.close()
   }
 
-  // Recursively collect all files in the book directory
+  // Zip only the packaged ADT web bundle — not the raw book data (DB, images, audio)
   const zipFiles: Record<string, Uint8Array> = {}
-  collectFiles(bookDir, "", zipFiles)
+  collectFiles(adtDir, "", zipFiles)
 
   const zipBuffer = zipSync(zipFiles)
 
