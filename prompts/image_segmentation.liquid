@@ -29,11 +29,11 @@ Coordinates use a pixel coordinate system:
 - crop_bottom: y-coordinate of the bottom edge of the segment
 
 CRITICAL — Bounding box placement rules:
-- Each bounding box should tightly wrap the visual content of ONE sub-image, plus comfortable padding (10–20 pixels on each side). Do NOT extend boxes to fill the entire source image — ignore large whitespace regions between or around sub-images.
-- NEVER crop into the content of a figure, diagram, or photograph. It is far better to include a little extra whitespace than to cut off any part of an image.
-- When images are arranged in a grid or row, split along the natural gutters (whitespace between images). Each box should stop at the gutter, not extend through it.
-- Bounding boxes may overlap slightly at gutter boundaries — that is acceptable. What matters is that every sub-image is fully contained within its box with no content clipped.
-- When in doubt about where one image ends and another begins, include more space rather than less.
+- Each bounding box should GENEROUSLY wrap the visual content of ONE sub-image. Add at least 10–30 pixels of padding on every side beyond the visible content edge. Do NOT extend boxes to fill the entire source image — ignore large whitespace regions between or around sub-images.
+- ABSOLUTELY NEVER crop into the content of a figure, diagram, or photograph. This is the single most important rule. Extra whitespace around a segment is always acceptable; clipping even a single pixel of content is NOT.
+- When images are arranged in a grid or row, split along the natural gutters (whitespace between images). Place each box boundary at the MIDPOINT of the gutter rather than at the edge of the content, so both adjacent segments get a generous margin.
+- Bounding boxes may overlap at gutter boundaries — that is acceptable and preferred over tight crops.
+- When in doubt about where one image ends and another begins, always include MORE space rather than less. Err on the side of too much whitespace.
 
 IMPORTANT:
 - Provide reasoning before your determination for each image.

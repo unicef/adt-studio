@@ -409,10 +409,20 @@ async function runExtractStep(
 
     // Emit completion for classification steps
     progress.emit({ type: "step-complete", step: "image-filtering" })
+    if (segmentationConfig) {
+      progress.emit({ type: "step-complete", step: "image-segmentation" })
+    } else {
+      progress.emit({ type: "step-skip", step: "image-segmentation" })
+    }
     if (croppingConfig) {
       progress.emit({ type: "step-complete", step: "image-cropping" })
     } else {
       progress.emit({ type: "step-skip", step: "image-cropping" })
+    }
+    if (meaningfulnessConfig) {
+      progress.emit({ type: "step-complete", step: "image-meaningfulness" })
+    } else {
+      progress.emit({ type: "step-skip", step: "image-meaningfulness" })
     }
     progress.emit({ type: "step-complete", step: "text-classification" })
     if (translationConfig) {
@@ -1574,8 +1584,10 @@ async function classifyPage(
           .filter((img) => !img.isPruned)
           .map((img) => img.imageId)
       )
+      const segMinSide = segmentationConfig.minSide
       const unprunedImages = images
         .filter((img) => unprunedIds.has(img.imageId))
+        .filter((img) => segMinSide === undefined || Math.min(img.width, img.height) >= segMinSide)
         .map((img) => ({
           imageId: img.imageId,
           imageBase64: storage.getImageBase64(img.imageId),
@@ -1594,9 +1606,11 @@ async function classifyPage(
           segmentationModel
         )
         const segVersion = storage.putNodeData("image-segmentation", page.pageId, segmentationResult)
+        const segDims = new Map(images.map((img) => [img.imageId, { width: img.width, height: img.height }]))
         const applied = applySegmentation(
           segmentationResult,
-          (imageId) => storage.getImageBase64(imageId)
+          (imageId) => storage.getImageBase64(imageId),
+          segDims,
         )
         for (const seg of applied) {
           storage.putSegmentedImage({
