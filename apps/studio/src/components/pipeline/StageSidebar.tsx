@@ -1,11 +1,9 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
+import { createPortal } from "react-dom"
 import { Link, useMatchRoute, useSearch } from "@tanstack/react-router"
 import {
-  Settings,
-  RotateCcw,
   FileDown,
   ChevronDown,
-  PanelLeftOpen,
   Loader2,
 } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
@@ -94,9 +92,7 @@ export function StageSidebar({
   })
   const completedSteps = stepStatusData?.steps ?? {}
 
-  const hasPages = hasStagePages(activeStep)
-  const [pagesOpen, setPagesOpen] = useState(true)
-  const effectivePagesOpen = hasPages && pagesOpen
+  const effectivePagesOpen = hasStagePages(activeStep) && isStageCompleted(activeStep, completedSteps)
 
   const isSettings = !!matchRoute({
     to: "/books/$label/$step/settings",
@@ -107,13 +103,15 @@ export function StageSidebar({
   // The rail collapses (icon-only, hover to expand) only when pages are showing
   // and we're not in settings. Otherwise it's always expanded with labels visible.
   const railCollapsed = effectivePagesOpen && !isSettings
-  const alwaysExpanded = !railCollapsed
+  // When the rail is collapsed, labels/buttons are always in the DOM but clipped
+  // by overflow-hidden on the inner panel. This avoids display toggling which
+  // would flash before the width transition completes.
   const x = {
-    gap:       cn("group-hover/rail:gap-2.5",       alwaysExpanded && "gap-2.5"),
-    showLabel: cn("group-hover/rail:inline",     alwaysExpanded && "inline"),
-    showBtn:   cn("group-hover/rail:inline-flex", alwaysExpanded && "inline-flex"),
-    showFlex:  cn("group-hover/rail:flex",        alwaysExpanded && "flex"),
-    flex1:     cn("group-hover/rail:flex-1",      alwaysExpanded && "flex-1"),
+    gap:       "gap-2.5",
+    showLabel: "inline",
+    showBtn:   "inline-flex",
+    showFlex:  "flex",
+    flex1:     "flex-1",
   }
 
   const stageItems = STAGES.map((step, index) => {
@@ -168,45 +166,6 @@ export function StageSidebar({
             </span>
           </Link>
 
-          {/* Settings gear */}
-          {isActive && step.slug !== "book" && step.slug !== "preview" && (
-            <Button
-              variant="ghost"
-              size="icon"
-              asChild
-              className={cn(
-                "w-6 h-6 rounded shrink-0 hidden [&_svg]:size-3.5",
-                x.showBtn,
-                isSettings
-                  ? "bg-white/20 text-white hover:text-white hover:bg-white/30"
-                  : "hover:bg-white/10 text-white/60 hover:text-white"
-              )}
-            >
-              <Link
-                to="/books/$label/$step/settings"
-                params={{ label: bookLabel, step: step.slug }}
-                search={{ tab: "general" }}
-                title={`${step.label} settings`}
-              >
-                <Settings className="w-3.5 h-3.5" />
-              </Link>
-            </Button>
-          )}
-          {isActive && step.slug === "preview" && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn(
-                "w-6 h-6 rounded shrink-0 hidden [&_svg]:size-3.5",
-                x.showBtn,
-                "hover:bg-white/10 text-white/60 hover:text-white"
-              )}
-              onClick={() => window.dispatchEvent(new CustomEvent("adt:repackage"))}
-              title="Re-package ADT"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-            </Button>
-          )}
         </div>
 
         {/* Settings sub-tabs */}
@@ -241,59 +200,46 @@ export function StageSidebar({
   })
 
   return (
-    <nav className="flex flex-1 min-h-0">
-      {/* Stage rail — always the same DOM structure, group/rail always present */}
-      <div className={cn(
-        "shrink-0 relative group/rail",
-        railCollapsed ? "w-12" : "flex-1"
-      )}>
+    <nav className="flex flex-col flex-1 min-h-0">
+      <div className="flex flex-1 min-h-0">
+        {/* Stage rail */}
         <div className={cn(
-          "absolute inset-y-0 left-0 flex flex-col bg-background overflow-hidden",
-          railCollapsed
-            ? "w-12 group-hover/rail:w-[220px] z-20 transition-[width] duration-150 group-hover/rail:shadow-lg"
-            : "inset-x-0"
+          "shrink-0 relative group/rail",
+          railCollapsed ? "w-12" : "flex-1"
         )}>
-          <div className="flex flex-col pt-1.5 pb-2 gap-0.5 flex-1 overflow-y-auto">
-            {stageItems}
+          <div className={cn(
+            "absolute inset-y-0 left-0 flex flex-col bg-background overflow-hidden",
+            railCollapsed
+              ? "w-12 group-hover/rail:w-[220px] z-20 transition-[width] duration-150 delay-150 group-hover/rail:delay-100 group-hover/rail:shadow-lg"
+              : "inset-x-0"
+          )}>
+            <div className="flex flex-col pt-1.5 pb-2 gap-0.5 flex-1 overflow-y-auto overflow-x-hidden">
+              {stageItems}
+            </div>
+            {/* Right edge — follows the expanding rail */}
+            <div className="absolute inset-y-0 right-0 w-px border-r" />
           </div>
-          <div className="shrink-0 border-t py-2 px-1.5 flex items-center justify-center gap-2">
-            {hasPages && (
-              <button
-                type="button"
-                onClick={() => setPagesOpen(!pagesOpen)}
-                title={effectivePagesOpen ? "Close pages panel" : "Show pages"}
-                className="flex items-center justify-center w-7 h-7 rounded bg-muted text-foreground transition-colors hover:bg-muted/70"
-              >
-                <PanelLeftOpen className="w-3.5 h-3.5" />
-              </button>
-            )}
-            {!railCollapsed && (
-              <div className="flex-1 min-w-0">
-                <ExportButton bookLabel={bookLabel} />
-              </div>
-            )}
-          </div>
-          {/* Right edge — follows the expanding rail */}
-          <div className="absolute inset-y-0 right-0 w-px border-r" />
         </div>
+
+        {/* Pages panel — only when pages are open and not in settings */}
+        {effectivePagesOpen && !isSettings && (
+          <div className="flex-1 min-w-0 flex flex-col overflow-hidden border-l">
+            <div className="flex-1 overflow-y-auto">
+              <PageIndex
+                bookLabel={bookLabel}
+                activeStep={activeStep}
+                selectedPageId={selectedPageId}
+                onSelectPage={onSelectPage}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Pages panel — only when pages are open and not in settings */}
-      {effectivePagesOpen && !isSettings && (
-        <div className="flex-1 min-w-0 flex flex-col overflow-hidden border-l">
-          <div className="flex-1 overflow-y-auto">
-            <PageIndex
-              bookLabel={bookLabel}
-              activeStep={activeStep}
-              selectedPageId={selectedPageId}
-              onSelectPage={onSelectPage}
-            />
-          </div>
-          <div className="shrink-0 border-t px-3 py-2">
-            <ExportButton bookLabel={bookLabel} />
-          </div>
-        </div>
-      )}
+      {/* Export button — fixed at the bottom, outside the expanding rail */}
+      <div className="shrink-0 border-t py-2 px-1.5">
+        <ExportButton bookLabel={bookLabel} />
+      </div>
     </nav>
   )
 }
@@ -327,48 +273,105 @@ function PageIndex({
       {pages.map((page) => {
         const isActive = page.pageId === selectedPageId
         return (
-          <button
+          <PageRow
             key={page.pageId}
-            type="button"
-            onClick={() => onSelectPage?.(page.pageId)}
-            className={cn(
-              "flex items-start gap-2 px-2 py-1.5 text-left transition-colors",
-              isActive
-                ? cn(activeStepDef?.bgLight ?? "bg-violet-50", activeStepDef?.textColor ?? "text-violet-600", "font-medium")
-                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-            )}
-          >
-            <PageThumbnailPortrait bookLabel={bookLabel} pageId={page.pageId} />
-            <div className="flex flex-col gap-0.5 min-w-0 flex-1 pt-0.5">
-              <span className="text-[11px] leading-snug line-clamp-2">
-                {page.textPreview || "Untitled"}
-              </span>
-              <span className="text-[9px] font-mono opacity-50 leading-none mt-0.5">
-                pg {page.pageNumber}
-              </span>
-            </div>
-          </button>
+            bookLabel={bookLabel}
+            page={page}
+            isActive={isActive}
+            activeStepDef={activeStepDef}
+            onSelect={() => onSelectPage?.(page.pageId)}
+          />
         )
       })}
     </div>
   )
 }
 
-/* ---------- PageThumbnailPortrait ---------- */
+/* ---------- PageRow ---------- */
 
-function PageThumbnailPortrait({ bookLabel, pageId }: { bookLabel: string; pageId: string }) {
-  const { data, isLoading } = usePageImage(bookLabel, pageId)
+function PageRow({
+  bookLabel,
+  page,
+  isActive,
+  activeStepDef,
+  onSelect,
+}: {
+  bookLabel: string
+  page: { pageId: string; textPreview: string; pageNumber: number }
+  isActive: boolean
+  activeStepDef?: (typeof STAGES)[number]
+  onSelect: () => void
+}) {
+  const { data, isLoading } = usePageImage(bookLabel, page.pageId)
+  const [showPreview, setShowPreview] = useState(false)
+  const [previewPos, setPreviewPos] = useState({ top: 0, left: 0 })
+  const rowRef = useRef<HTMLButtonElement>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(null)
 
-  if (isLoading || !data?.imageBase64) {
-    return <div className="shrink-0 w-9 h-12 bg-muted rounded" />
-  }
+  const handleEnter = useCallback(() => {
+    timerRef.current = setTimeout(() => {
+      if (!rowRef.current) return
+      const rect = rowRef.current.getBoundingClientRect()
+      const previewH = 400
+      const margin = 8
+      const top = Math.max(margin, Math.min(rect.top, window.innerHeight - previewH - margin))
+      setPreviewPos({ top, left: rect.right + 20 })
+      setShowPreview(true)
+    }, 600)
+  }, [])
+
+  const handleLeave = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    setShowPreview(false)
+  }, [])
+
+  const imgSrc = data?.imageBase64 ? `data:image/png;base64,${data.imageBase64}` : null
 
   return (
-    <img
-      src={`data:image/png;base64,${data.imageBase64}`}
-      alt=""
-      className="shrink-0 w-9 h-12 rounded object-cover object-top"
-    />
+    <button
+      ref={rowRef}
+      type="button"
+      onClick={onSelect}
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+      className={cn(
+        "flex items-start gap-2 px-2 py-1.5 text-left transition-colors",
+        isActive
+          ? cn(activeStepDef?.bgLight ?? "bg-violet-50", activeStepDef?.textColor ?? "text-violet-600", "font-medium")
+          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+      )}
+    >
+      {isLoading || !imgSrc ? (
+        <div className="shrink-0 w-16 h-12 bg-muted rounded ring-1 ring-border" />
+      ) : (
+        <img
+          src={imgSrc}
+          alt=""
+          className="shrink-0 w-16 h-12 rounded object-cover object-center ring-1 ring-border"
+        />
+      )}
+      <div className="flex flex-col gap-0.5 min-w-0 flex-1 pt-0.5">
+        <span className="text-[11px] leading-snug line-clamp-2">
+          {page.textPreview || "Untitled"}
+        </span>
+        <span className="text-[9px] font-mono opacity-50 leading-none">
+          pg {page.pageNumber}
+        </span>
+      </div>
+      {showPreview && imgSrc && createPortal(
+        <div
+          className="fixed z-50 pointer-events-none animate-in fade-in duration-150"
+          style={{ top: previewPos.top, left: previewPos.left }}
+        >
+          <img
+            src={imgSrc}
+            alt=""
+            className="h-[400px] w-auto rounded-lg shadow-xl ring-1 ring-border"
+          />
+        </div>,
+        document.body
+      )}
+    </button>
   )
 }
 
