@@ -2,7 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel } from "@adt/types"
+import { parseBookLabel, PIPELINE } from "@adt/types"
 import { openBookDb } from "@adt/storage"
 import {
   listBooks,
@@ -156,7 +156,7 @@ export function createBookRoutes(
     }
   })
 
-  // GET /books/:label/step-status — Which pipeline steps have data
+  // GET /books/:label/step-status — Which pipeline steps are complete
   app.get("/books/:label/step-status", (c) => {
     const { label } = c.req.param()
     let safeLabel: string
@@ -170,64 +170,29 @@ export function createBookRoutes(
     const dbPath = path.join(resolvedDir, safeLabel, `${safeLabel}.db`)
 
     if (!fs.existsSync(dbPath)) {
-      return c.json({ steps: {} })
+      return c.json({ steps: {}, completedNodes: [] })
     }
 
     const db = openBookDb(dbPath)
     try {
-      // Extract is only complete when all extract artifacts exist.
-      const pageRows = db.all("SELECT COUNT(*) as count FROM pages") as Array<{ count: number }>
-      const pageCount = pageRows[0]?.count ?? 0
-      const hasPages = pageCount > 0
+      // Read explicit step completion records (populated by the step runner)
+      const rows = db.all("SELECT step FROM step_completions") as Array<{ step: string }>
+      const completedSteps = new Set(rows.map((r) => r.step))
 
-      // Get all distinct nodes that have data
-      const nodeRows = db.all("SELECT DISTINCT node FROM node_data") as Array<{ node: string }>
-      const nodes = new Set(nodeRows.map((r) => r.node))
-
-      const textClassificationRows = db.all(
-        "SELECT COUNT(DISTINCT item_id) as count FROM node_data WHERE node = 'text-classification'"
-      ) as Array<{ count: number }>
-      const textClassificationCount = textClassificationRows[0]?.count ?? 0
-
-      const imageClassificationRows = db.all(
-        "SELECT COUNT(DISTINCT item_id) as count FROM node_data WHERE node = 'image-filtering'"
-      ) as Array<{ count: number }>
-      const imageClassificationCount = imageClassificationRows[0]?.count ?? 0
-
-      const hasMetadata = nodes.has("metadata")
-      const hasBookSummary = nodes.has("book-summary")
-      const hasAllPageClassifications =
-        hasPages &&
-        textClassificationCount >= pageCount &&
-        imageClassificationCount >= pageCount
-
-      // Map nodes → step slugs
-      const NODE_TO_STEP: Record<string, string> = {
-        "page-sectioning": "storyboard",
-        "web-rendering": "storyboard",
-        "storyboard-acceptance": "storyboard",
-        "quiz-generation": "quizzes",
-        "image-captioning": "captions",
-        glossary: "glossary",
-        "text-catalog": "text-and-speech",
-        "text-catalog-translation": "text-and-speech",
-        tts: "text-and-speech",
-      }
-
+      // A stage is complete when ALL its steps are complete
       const steps: Record<string, boolean> = {}
-      if (hasMetadata && hasBookSummary && hasAllPageClassifications) {
-        steps.extract = true
-      }
-      for (const node of nodes) {
-        const step = NODE_TO_STEP[node]
-        if (step) steps[step] = true
+      for (const stage of PIPELINE) {
+        if (stage.steps.length === 0) continue
+        if (stage.steps.every((s) => completedSteps.has(s.name))) {
+          steps[stage.name] = true
+        }
       }
 
       // Check if ADT is packaged (preview step)
       const adtDir = path.join(resolvedDir, safeLabel, "adt")
       if (fs.existsSync(adtDir)) steps.preview = true
 
-      return c.json({ steps })
+      return c.json({ steps, completedNodes: [...completedSteps] })
     } finally {
       db.close()
     }

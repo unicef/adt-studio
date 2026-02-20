@@ -3,7 +3,7 @@ import { streamSSE } from "hono/streaming"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage } from "@adt/storage"
-import { StageName, getStageClearNodes } from "@adt/types"
+import { StageName, PIPELINE, getStageClearNodes, getStageClearOrder } from "@adt/types"
 import type { StepService, StepSSEEvent } from "../services/step-service.js"
 import type { PipelineService } from "../services/pipeline-service.js"
 
@@ -21,23 +21,25 @@ function makeBeforeRun(label: string, fromStep: StageName, booksDir: string): ()
   return () => {
     if (ran) return
     ran = true
-    if (fromStep === "extract") {
-      const storage = createBookStorage(label, booksDir)
-      try {
+    const storage = createBookStorage(label, booksDir)
+    try {
+      if (fromStep === "extract") {
+        // clearExtractedData also clears step_completions
         storage.clearExtractedData()
-      } finally {
-        storage.close()
-      }
-    } else {
-      const nodes = getStageClearNodes(fromStep)
-      if (nodes.length > 0) {
-        const storage = createBookStorage(label, booksDir)
-        try {
+      } else {
+        const nodes = getStageClearNodes(fromStep)
+        if (nodes.length > 0) {
           storage.clearNodesByType(nodes)
-        } finally {
-          storage.close()
         }
+        // Clear step completion records for all downstream stages
+        const stagesToClear = getStageClearOrder(fromStep)
+        const stepsToClear = PIPELINE
+          .filter((s) => stagesToClear.includes(s.name))
+          .flatMap((s) => s.steps.map((step) => step.name))
+        storage.clearStepCompletions(stepsToClear)
       }
+    } finally {
+      storage.close()
     }
   }
 }

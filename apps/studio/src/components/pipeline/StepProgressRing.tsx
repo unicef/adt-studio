@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react"
 import type { UIStepState } from "@/hooks/use-step-run"
 import { STAGES } from "@/components/pipeline/stage-config"
 
@@ -19,11 +20,50 @@ const COLOR_MAP: Record<string, string> = Object.fromEntries([
 /** Gap between icon edge and ring center in px */
 const GAP = 3
 
+const SPIN_DURATION_MS = 1500
+
+/* ---- Shared spin loop -------------------------------------------------- */
+/* A single rAF loop sets a CSS variable on :root. Every spinning ring reads */
+/* the same variable, so they are always perfectly in phase.                 */
+
+let spinSubscribers = 0
+let spinRafId: number | null = null
+
+function spinTick() {
+  const deg = ((performance.now() % SPIN_DURATION_MS) / SPIN_DURATION_MS) * 360
+  document.documentElement.style.setProperty("--sync-spin", `${deg}deg`)
+  spinRafId = requestAnimationFrame(spinTick)
+}
+
+function subscribeSpin() {
+  spinSubscribers++
+  if (spinSubscribers === 1) {
+    spinRafId = requestAnimationFrame(spinTick)
+  }
+  return () => {
+    spinSubscribers--
+    if (spinSubscribers === 0 && spinRafId !== null) {
+      cancelAnimationFrame(spinRafId)
+      spinRafId = null
+    }
+  }
+}
+
+/* ------------------------------------------------------------------------ */
+
 export function StepProgressRing({
   size,
   state,
   colorClass,
 }: StepProgressRingProps) {
+  const svgRef = useRef<SVGSVGElement>(null)
+
+  // Subscribe to the shared spin loop when spinning
+  useEffect(() => {
+    if (state !== "queued" && state !== "running") return
+    return subscribeSpin()
+  }, [state])
+
   if (state === "idle") return null
 
   const strokeWidth = size >= 32 ? 2.5 : 2
@@ -43,10 +83,14 @@ export function StepProgressRing({
   if (state === "queued" || state === "running") {
     return (
       <svg
+        ref={svgRef}
         width={svgSize}
         height={svgSize}
-        className="absolute animate-spin pointer-events-none"
-        style={{ ...svgStyle, animationDuration: "1.5s" }}
+        className="absolute pointer-events-none"
+        style={{
+          ...svgStyle,
+          transform: "rotate(var(--sync-spin, 0deg))",
+        }}
       >
         <circle
           cx={center}

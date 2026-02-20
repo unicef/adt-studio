@@ -8,7 +8,6 @@ import { StageSidebar } from "@/components/pipeline/StageSidebar"
 import { STAGES } from "@/components/pipeline/stage-config"
 import { useBook } from "@/hooks/use-books"
 import { useStepRunSSE, StepRunContext, type QueueRunOptions } from "@/hooks/use-step-run"
-import { getStartInvalidationKeysForUiStep } from "@/hooks/step-run-invalidation"
 import { useSettingsDialog } from "@/routes/__root"
 import { api } from "@/api/client"
 
@@ -89,16 +88,14 @@ function BookLayout() {
       startRun(fromStep, toStep)
       setSseEnabled(true)
 
-      // Chain the API call so it waits for any previous call to finish
+      // Chain the API call so it waits for any previous call to finish.
       runChainRef.current = runChainRef.current.then(async () => {
         try {
-          const result = await api.runSteps(label, apiKey, { fromStep, toStep }, azure)
-          if (result.status === "started") {
-            const keys = getStartInvalidationKeysForUiStep(label, fromStep)
-            for (const key of keys) {
-              queryClient.removeQueries({ queryKey: key })
-            }
-          }
+          await api.runSteps(label, apiKey, { fromStep, toStep }, azure)
+          // Backend cleared step_completions before responding — refetch
+          // to pick up the new DB state. invalidateQueries keeps stale
+          // data visible during the fetch so unrelated stages don't flash.
+          queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"] })
         } catch {
           // Don't reset — other stages may still be running/queued
         }

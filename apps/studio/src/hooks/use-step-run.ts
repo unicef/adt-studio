@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef, createContext, useContext } from "react"
 import { useQueryClient, type QueryClient } from "@tanstack/react-query"
 import { api } from "@/api/client"
-import { getTargetStepsForRange, isFinalPipelineStepForUiStep } from "./step-run-range"
-import { STEP_TO_STAGE } from "@adt/types"
+import { getTargetStepsForRange } from "./step-run-range"
+import { STEP_TO_STAGE, getStageClearOrder } from "@adt/types"
+import type { StageName } from "@adt/types"
 import {
   getInvalidationKeysForUiStep,
   getMetadataInvalidationKeys,
@@ -53,11 +54,6 @@ function invalidateQueryKeys(qc: QueryClient, keys: QueryKey[]) {
   }
 }
 
-function removeQueryKeys(qc: QueryClient, keys: QueryKey[]) {
-  for (const key of keys) {
-    qc.removeQueries({ queryKey: key })
-  }
-}
 
 /** Check whether any steps are still queued in the progress state. */
 function hasQueuedSteps(steps: Map<string, UIStepProgress>): boolean {
@@ -102,12 +98,6 @@ export function useStepRunSSE(label: string, enabled: boolean) {
       const uiStep = (STEP_TO_STAGE as Record<string, string>)[pipelineStep]
       if (!uiStep) return
 
-      const isFinalCompletion =
-        data.type === "step-complete" &&
-        isFinalPipelineStepForUiStep(uiStep, pipelineStep)
-      const isMetadataCompletion =
-        data.type === "step-complete" && pipelineStep === "metadata"
-
       setProgress((prev) => {
         const steps = new Map(prev.steps)
         const subSteps = new Map(prev.subSteps)
@@ -128,15 +118,7 @@ export function useStepRunSSE(label: string, enabled: boolean) {
             steps.set(uiStep, { state: "running", progress: pct, page, totalPages: total })
           }
           subSteps.set(pipelineStep, { state: "running", page, totalPages: total })
-        } else if (data.type === "step-complete") {
-          if (isFinalCompletion) {
-            steps.set(uiStep, { state: "done", progress: 1 })
-          }
-          subSteps.set(pipelineStep, { state: "done" })
-        } else if (data.type === "step-skip") {
-          if (isFinalPipelineStepForUiStep(uiStep, pipelineStep)) {
-            steps.set(uiStep, { state: "done", progress: 1 })
-          }
+        } else if (data.type === "step-complete" || data.type === "step-skip") {
           subSteps.set(pipelineStep, { state: "done" })
         } else if (data.type === "step-error") {
           steps.set(uiStep, { state: "error", progress: 0 })
@@ -146,10 +128,12 @@ export function useStepRunSSE(label: string, enabled: boolean) {
         return { ...prev, steps, subSteps }
       })
 
-      if (isFinalCompletion) {
+      // Step completed — the step runner wrote to step_completions,
+      // so refetch step-status to pick up stage completion from the DB.
+      if (data.type === "step-complete" || data.type === "step-skip") {
         invalidateQueryKeys(queryClient, getInvalidationKeysForUiStep(label, uiStep))
       }
-      if (isMetadataCompletion) {
+      if (data.type === "step-complete" && pipelineStep === "metadata") {
         invalidateQueryKeys(queryClient, getMetadataInvalidationKeys(label))
       }
     })
@@ -172,7 +156,9 @@ export function useStepRunSSE(label: string, enabled: boolean) {
       })
 
       // Queued item now started; backend has cleared downstream data.
-      removeQueryKeys(
+      // Invalidate (not remove) so stale data stays visible during refetch
+      // — avoids a flash where unrelated stages briefly appear incomplete.
+      invalidateQueryKeys(
         queryClient,
         getStartInvalidationKeysForUiStep(label, data.fromStep)
       )
@@ -297,6 +283,27 @@ export function useStepRunSSE(label: string, enabled: boolean) {
       setProgress((prev) => {
         const targetSteps = new Set(prev.targetSteps)
         const steps = new Map(prev.steps)
+        const subSteps = new Map(prev.subSteps)
+
+        // Clear downstream stages — the backend will wipe their data,
+        // so stale "done"/"error" states from a previous run must go.
+        // Uses the same DAG traversal as the backend (getStageClearOrder).
+        const stagesToClear: Set<string> = new Set(getStageClearOrder(fromStep as StageName))
+        for (const stage of stagesToClear) {
+          if (newTargetSteps.has(stage)) continue // will be set to "queued" below
+          const existing = steps.get(stage)
+          if (existing && (existing.state === "done" || existing.state === "error")) {
+            steps.delete(stage)
+          }
+        }
+
+        // Clear sub-step progress for all stages being cleared
+        for (const [stepName] of subSteps) {
+          const stage = (STEP_TO_STAGE as Record<string, string>)[stepName]
+          if (stage && stagesToClear.has(stage)) {
+            subSteps.delete(stepName)
+          }
+        }
 
         for (const s of newTargetSteps) {
           targetSteps.add(s)
@@ -314,6 +321,7 @@ export function useStepRunSSE(label: string, enabled: boolean) {
           error: null,
           targetSteps,
           steps,
+          subSteps,
         }
       })
     },

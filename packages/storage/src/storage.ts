@@ -56,6 +56,13 @@ export interface Storage {
   putNodeData(node: string, itemId: string, data: unknown): number
   getLatestNodeData(node: string, itemId: string): NodeDataRow | null
 
+  /** Record that a pipeline step completed successfully. Uses PIPELINE step names. */
+  markStepComplete(step: string): void
+  /** Get all completed pipeline step names. */
+  getCompletedSteps(): string[]
+  /** Clear completion records for specific steps (used when clearing downstream data). */
+  clearStepCompletions(steps: string[]): void
+
   appendLlmLog(entry: LlmLogEntry): void
 
   close(): void

@@ -1,8 +1,6 @@
 import { STAGE_ORDER } from "@adt/types"
 import type { StageName } from "@adt/types"
 
-// Re-export so existing imports still work
-export { isFinalPipelineStepForUiStep } from "./step-mapping"
 
 export function getTargetStepsForRange(fromStep: string, toStep: string): Set<string> {
   const fromIndex = STAGE_ORDER.indexOf(fromStep as StageName)

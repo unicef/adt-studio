@@ -23,6 +23,8 @@ interface StageRunCardProps {
   description?: string
   isRunning: boolean
   completed?: boolean
+  /** Nodes that have data on the server — used for explicit per-step completion */
+  completedNodes?: ReadonlySet<string>
   showRunButton?: boolean
   onRun: () => void
   disabled: boolean
@@ -44,6 +46,7 @@ export function StageRunCard({
   description,
   isRunning,
   completed,
+  completedNodes,
   showRunButton = true,
   onRun,
   disabled,
@@ -89,7 +92,7 @@ export function StageRunCard({
           <div className="space-y-1.5 w-48 shrink-0">
             {subSteps.map(({ key, label }) => {
               const sub = subStepProgress.get(key)
-              const isDone = sub?.state === "done" || (completed && !sub)
+              const isDone = sub?.state === "done" || (!sub && completedNodes?.has(key))
               const isSubRunning = sub?.state === "running"
               const isError = sub?.state === "error"
               const hasPages = sub?.page != null && sub?.totalPages != null && sub.totalPages > 0
@@ -125,8 +128,10 @@ export function StageRunCard({
         {showRunButton && (
           <div className="shrink-0">
             {isRunning ? (
-              <div className={cn(
-                "flex items-center justify-center w-12 h-12 rounded-full opacity-60",
+              <div
+                onClick={(e) => { e.stopPropagation(); e.preventDefault() }}
+                className={cn(
+                "flex items-center justify-center w-12 h-12 rounded-full opacity-60 cursor-default",
                 color, "text-white",
               )}>
                 <Loader2 className="w-5 h-5 animate-spin" />

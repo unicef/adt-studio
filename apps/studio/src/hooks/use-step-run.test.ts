@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { getTargetStepsForRange, isFinalPipelineStepForUiStep } from "./step-run-range"
+import { getTargetStepsForRange } from "./step-run-range"
 import { ALL_MAPPED_STEP_NAMES, PIPELINE_TO_UI_STEP } from "./step-mapping"
 import { StepName } from "@adt/types"
 import {
@@ -50,11 +50,7 @@ describe("getTargetStepsForRange", () => {
     expect(steps).toEqual(["preview", "extract"])
   })
 
-  it("recognizes terminal sub-steps for stages", () => {
-    expect(isFinalPipelineStepForUiStep("extract", "translation")).toBe(true)
-    expect(isFinalPipelineStepForUiStep("storyboard", "web-rendering")).toBe(true)
-    expect(isFinalPipelineStepForUiStep("extract", "metadata")).toBe(false)
-  })
+
 })
 
 describe("step run invalidation keys", () => {

@@ -1,4 +1,4 @@
-import { useCallback } from "react"
+import { useCallback, useMemo } from "react"
 import { Link } from "@tanstack/react-router"
 import { useQuery } from "@tanstack/react-query"
 import { getPipelineStages, STAGE_DESCRIPTIONS, isStageCompleted } from "../stage-config"
@@ -23,6 +23,10 @@ export function BookView({ bookLabel }: ViewProps) {
     queryFn: () => api.getStepStatus(bookLabel),
   })
   const completedSteps = stepStatusData?.steps ?? {}
+  const completedNodes = useMemo(
+    () => new Set(stepStatusData?.completedNodes ?? []),
+    [stepStatusData?.completedNodes]
+  )
 
   const handleRun = useCallback((slug: string) => {
     if (!hasApiKey) return
@@ -38,7 +42,9 @@ export function BookView({ bookLabel }: ViewProps) {
         const isLast = index === pipelineSteps.length - 1
         const stepProgress = stepRunProgress.steps.get(step.slug)
         const ringState = stepProgress?.state ?? "idle"
-        const isRunning = ringState === "running" || ringState === "queued"
+        const stageCompleted = isStageCompleted(step.slug, completedSteps)
+        // DB says complete → stop the spinner, even if SSE hasn't caught up
+        const isRunning = !stageCompleted && (ringState === "running" || ringState === "queued")
         return (
           <div key={step.slug} className="w-full">
             <Link
@@ -50,7 +56,8 @@ export function BookView({ bookLabel }: ViewProps) {
                 stageSlug={step.slug}
                 description={STAGE_DESCRIPTIONS[step.slug]}
                 isRunning={isRunning}
-                completed={isStageCompleted(step.slug, completedSteps)}
+                completed={stageCompleted}
+                completedNodes={completedNodes}
                 showRunButton={step.slug !== "preview"}
                 onRun={() => handleRun(step.slug)}
                 disabled={!hasApiKey || isRunning}

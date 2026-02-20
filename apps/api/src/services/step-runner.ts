@@ -155,7 +155,7 @@ export function createStepRunner(): StepRunner {
       options: StepRunOptions,
       progress: StepRunProgress
     ): Promise<void> {
-      const { fromStep, toStep } = options
+      const { fromStep, toStep, booksDir } = options
       console.log(`[step-run] ${label}: starting ${fromStep}→${toStep}`)
 
       const fromIndex = STAGE_ORDER.indexOf(fromStep as StageName)
@@ -165,9 +165,27 @@ export function createStepRunner(): StepRunner {
         throw new Error(`Invalid stage range "${fromStep}" to "${toStep}"`)
       }
 
-      for (let i = fromIndex; i <= toIndex; i++) {
-        const stage = STAGE_ORDER[i]
-        await STAGE_RUNNERS[stage](label, options, progress)
+      // Wrap progress to persist step completions to the DB.
+      // This is the single place where step-complete/step-skip events
+      // are recorded, so the step-status endpoint can read from
+      // step_completions instead of inferring from node_data.
+      const completionStorage = createBookStorage(label, booksDir)
+      try {
+        const trackingProgress: StepRunProgress = {
+          emit(event) {
+            if (event.type === "step-complete" || event.type === "step-skip") {
+              completionStorage.markStepComplete(event.step)
+            }
+            progress.emit(event)
+          },
+        }
+
+        for (let i = fromIndex; i <= toIndex; i++) {
+          const stage = STAGE_ORDER[i]
+          await STAGE_RUNNERS[stage](label, options, trackingProgress)
+        }
+      } finally {
+        completionStorage.close()
       }
 
       console.log(`[step-run] ${label}: completed ${fromStep}→${toStep}`)

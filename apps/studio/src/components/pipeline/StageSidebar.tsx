@@ -120,7 +120,10 @@ export function StageSidebar({
     const settingsTabs = SETTINGS_TABS[step.slug]
     const showSubTabs = isActive && isSettings && !!settingsTabs
     const stepProgress = stepRunProgress.steps.get(step.slug)
-    const ringState = stepProgress?.state ?? "idle"
+    const rawRingState = stepProgress?.state ?? "idle"
+    const stageCompleted = isStageCompleted(step.slug, completedSteps)
+    // DB says complete → stop the spinner, same logic as BookView
+    const ringState = stageCompleted && (rawRingState === "running" || rawRingState === "queued") ? "idle" : rawRingState
 
     return (
       <div key={step.slug} className="relative">
@@ -150,7 +153,7 @@ export function StageSidebar({
               <div
                 className={cn(
                   "flex items-center justify-center w-7 h-7 rounded-full transition-colors",
-                  step.slug === "book" || isStageCompleted(step.slug, completedSteps) || ringState === "done"
+                  step.slug === "book" || stageCompleted
                     ? isActive
                       ? "bg-white/20 text-white"
                       : cn(step.color, "text-white")
@@ -349,8 +352,6 @@ function PageRow({
       ref={rowRef}
       type="button"
       onClick={onSelect}
-      onMouseEnter={handleEnter}
-      onMouseLeave={handleLeave}
       className={cn(
         "flex items-start gap-2 px-2 py-1.5 text-left transition-colors",
         isActive
@@ -364,6 +365,8 @@ function PageRow({
         <img
           src={imgSrc}
           alt=""
+          onMouseEnter={handleEnter}
+          onMouseLeave={handleLeave}
           className="shrink-0 w-16 h-12 rounded object-cover object-center ring-1 ring-border"
         />
       )}

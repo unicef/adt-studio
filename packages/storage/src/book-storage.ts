@@ -190,6 +190,25 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       return nextVersion
     },
 
+    markStepComplete(step: string): void {
+      db.run(
+        `INSERT INTO step_completions (step, completed_at) VALUES (?, ?)
+         ON CONFLICT (step) DO UPDATE SET completed_at = excluded.completed_at`,
+        [step, new Date().toISOString()]
+      )
+    },
+
+    getCompletedSteps(): string[] {
+      const rows = db.all("SELECT step FROM step_completions") as Array<{ step: string }>
+      return rows.map((r) => r.step)
+    },
+
+    clearStepCompletions(steps: string[]): void {
+      if (steps.length === 0) return
+      const placeholders = steps.map(() => "?").join(", ")
+      db.run(`DELETE FROM step_completions WHERE step IN (${placeholders})`, steps)
+    },
+
     getLatestNodeData(node: string, itemId: string): NodeDataRow | null {
       const rows = db.all(
         "SELECT version, data FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
@@ -239,6 +258,7 @@ function clearExtractedRows(db: sqlite.Database): void {
     db.run("DELETE FROM node_data")
     db.run("DELETE FROM images")
     db.run("DELETE FROM pages")
+    db.run("DELETE FROM step_completions")
     db.exec("COMMIT")
   } catch (err) {
     db.exec("ROLLBACK")

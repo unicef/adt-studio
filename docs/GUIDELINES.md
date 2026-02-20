@@ -712,7 +712,7 @@ Stage runs are queued per-book — if a run is already active, new runs wait and
 - **Frontend**: All 14 run handlers (7 Views + 7 Settings) call `queueRun(options)` from `StepRunContext` — never `api.runSteps` directly. This function serializes API calls through a promise chain to preserve click ordering.
 - **Data clearing**: Happens via a `beforeRun` callback when the job *starts executing*, not when enqueued. This prevents clearing data for a stage that hasn't started yet.
 - **SSE continuity**: The progress stream stays open across queue transitions. A `queue-next` event signals when a queued run begins executing.
-- **Query invalidation**: On every `status === "started"` response, all TanStack Query cache entries for the book are blown away. Queued runs skip invalidation.
+- **Query invalidation**: Use `invalidateQueries` — never `removeQueries`. `removeQueries` deletes cached data, causing completed stages to flash to "unrun" while the refetch is in flight. `invalidateQueries` keeps stale data visible during the refetch, preventing visual glitches. Invalidation happens in two places: (1) `queueRun` invalidates `step-status` after the API call returns (backend has already cleared downstream data), and (2) the SSE handler invalidates on `queue-next` for queued runs.
 
 ```typescript
 // CORRECT: Use queueRun from context (handles startRun + SSE + API call + invalidation)
@@ -965,6 +965,31 @@ Pipeline progress uses a `ProgressEvent` discriminated union streamed via SSE. E
 // The UI maps step events to their parent stage via STEP_TO_STAGE.
 ```
 
+### Step Completion & Stage Status
+
+Step completion is tracked explicitly in the `step_completions` DB table — never inferred from the existence of output data. The step runner records completions on `step-complete` and `step-skip` events. The step-status API endpoint reads from this table.
+
+**DB is the single source of truth for completion.** The frontend SSE handler tracks only running/progress/error state and per-sub-step progress. It never marks a stage as "done". Stage completion comes solely from the `step-status` TanStack Query, which reads from the DB.
+
+**A stage is complete only when ALL its steps are done.** Steps within a stage run in parallel via the DAG runner, so the last-listed step is not necessarily the last to finish. Check `stage.steps.every(s => completedSteps.has(s.name))`.
+
+**DB completion overrides SSE running state.** When `step-status` says a stage is complete, stop the spinner even if SSE still says "running". Both `StageSidebar` and `BookView` must use this same pattern:
+
+```typescript
+// CORRECT: DB completion takes priority
+const stageCompleted = isStageCompleted(step.slug, completedSteps)
+const isRunning = !stageCompleted && (ringState === "running" || ringState === "queued")
+
+// WRONG: Using SSE state alone to determine completion
+const isDone = ringState === "done"  // SSE never sets "done" for stages
+```
+
+Key rules:
+- **Recording**: `step-runner.ts` wraps the progress emitter to call `storage.markStepComplete(step)` on every `step-complete`/`step-skip` event. This is the only place completions are recorded.
+- **Clearing**: `makeBeforeRun` in `steps.ts` clears `step_completions` for the target stage and all downstream stages (via `getStageClearOrder`).
+- **Schema migrations**: The `step_completions` table was added in schema v7. Migrations backfill from existing `node_data` so previously-processed books don't appear incomplete.
+- **UI consistency**: Both `StageSidebar` and `BookView` (and any future UI showing stage status) must follow the same pattern — DB completion overrides SSE running state.
+
 ### Platform Detection
 
 ```typescript
@@ -1181,7 +1206,10 @@ pnpm lint
 | LLM client | `packages/llm/src/client.ts` |
 | Stage view components | `apps/studio/src/components/pipeline/stages/` |
 | Step run service (queue) | `apps/api/src/services/step-service.ts` |
+| Book storage (DB schema, migrations) | `packages/storage/src/db.ts` |
+| Book storage interface | `packages/storage/src/storage.ts` |
 | Step run hook + context | `apps/studio/src/hooks/use-step-run.ts` |
+| Step run invalidation keys | `apps/studio/src/hooks/step-run-invalidation.ts` |
 | Book layout (queueRun) | `apps/studio/src/routes/books.$label.tsx` |
 | Stage config (colors, icons, labels) | `apps/studio/src/components/pipeline/stage-config.ts` |
 | Stage sidebar | `apps/studio/src/components/pipeline/StageSidebar.tsx` |
@@ -1225,4 +1253,5 @@ import { HTTPException } from "hono/http-exception"
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 0.2.0 | 2026-02-20 | Step completion tracking, DB-as-source-of-truth for stage status, query invalidation guidance |
 | 0.1.0 | 2025-02-04 | Initial comprehensive guidelines |

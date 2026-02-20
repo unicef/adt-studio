@@ -659,7 +659,7 @@ export const api = {
     }),
 
   getStepStatus: (label: string) =>
-    request<{ steps: Record<string, boolean> }>(`/books/${label}/step-status`),
+    request<{ steps: Record<string, boolean>; completedNodes?: string[] }>(`/books/${label}/step-status`),
 
   getTTS: (label: string) =>
     request<TTSResponse>(`/books/${label}/tts`),
