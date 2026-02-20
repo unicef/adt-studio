@@ -24,6 +24,7 @@ import {
   buildQuizAnswers,
   buildTextCatalog,
   pad3,
+  loadBookConfig,
 } from "@adt/pipeline"
 
 // ---------------------------------------------------------------------------
@@ -212,6 +213,7 @@ function buildPreviewConfig(storage: Storage, language: string) {
 export function createAdtPreviewRoutes(
   booksDir: string,
   webAssetsDir: string,
+  configPath?: string,
 ): Hono {
   const app = new Hono()
 
@@ -441,6 +443,10 @@ export function createAdtPreviewRoutes(
     if (!filename.endsWith(".html")) throw new HTTPException(404, { message: "Not found" })
     const pageId = filename.replace(/\.html$/, "")
 
+    const safeLabel = parseBookLabel(label)
+    const config = loadBookConfig(safeLabel, booksDir, configPath)
+    const applyBodyBackground = config.apply_body_background
+
     return withStorage(label, (storage) => {
       const title = getBookTitle(storage)
       const language = getBookLanguage(storage)
@@ -471,6 +477,7 @@ export function createAdtPreviewRoutes(
           hasMath: false,
           bundleVersion: "1",
           skipContentWrapper: true,
+          applyBodyBackground,
         })
 
         c.header("Content-Type", "text/html; charset=utf-8")
@@ -503,6 +510,7 @@ export function createAdtPreviewRoutes(
         activityAnswers,
         hasMath: false,
         bundleVersion: "1",
+        applyBodyBackground,
       })
 
       c.header("Content-Type", "text/html; charset=utf-8")

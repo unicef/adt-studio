@@ -105,6 +105,7 @@ export const AppConfig = z
     image_cropping: StepConfig.optional(),
     layout_type: LayoutType.optional(),
     spread_mode: z.boolean().optional(),
+    apply_body_background: z.boolean().optional(),
     start_page: z.number().int().min(1).optional(),
     end_page: z.number().int().min(1).optional(),
     speech: SpeechConfig.optional(),

@@ -847,6 +847,7 @@ export async function runFullPipeline(
         outputLanguages,
         title: bookTitle,
         webAssetsDir: options.webAssetsDir,
+        applyBodyBackground: config.apply_body_background,
       }, progressOnly(p))
     })
 

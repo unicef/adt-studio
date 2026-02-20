@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/api/client"
 import type { PageDetail, VersionEntry } from "@/api/client"
 import { useApiKey } from "@/hooks/use-api-key"
+import { useActiveConfig } from "@/hooks/use-debug"
 import { useStepHeader } from "../StepViewRouter"
 import { BookPreviewFrame, type BookPreviewFrameHandle } from "./BookPreviewFrame"
 import { SectionEditToolbar } from "./SectionEditToolbar"
@@ -314,6 +315,8 @@ export function StoryboardSectionDetail({
   const queryClient = useQueryClient()
   const { apiKey, hasApiKey } = useApiKey()
   const { headerSlotEl } = useStepHeader()
+  const { data: activeConfigData } = useActiveConfig(bookLabel)
+  const applyBodyBackground = (activeConfigData?.merged as Record<string, unknown> | undefined)?.apply_body_background !== false
 
   const [saving, setSaving] = useState(false)
   const [rerendering, setRerendering] = useState(false)
@@ -1265,6 +1268,7 @@ export function StoryboardSectionDetail({
             changedElements={changedElements}
             onSelectElement={handleSelectElement}
             onTextChanged={handleTextChanged}
+            applyBodyBackground={applyBodyBackground}
           />
         ) : (
           <div className="p-4 text-sm text-muted-foreground border rounded">

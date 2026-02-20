@@ -178,6 +178,7 @@ function AddBookPage() {
   const [textGroupTypes, setTextGroupTypes] = useState<Record<string, string>>({})
   const [sectionTypes, setSectionTypes] = useState<Record<string, string>>({})
   const [sectioningMode, setSectioningMode] = useState("section")
+  const [applyBodyBackground, setApplyBodyBackground] = useState(true)
 
   // Styleguide preview
   const [styleguidePreviewOpen, setStyleguidePreviewOpen] = useState(false)
@@ -314,6 +315,9 @@ function AddBookPage() {
     // Styleguide from preset
     setStyleguide(typeof config.styleguide === "string" ? config.styleguide : "")
 
+    // Body background from preset
+    setApplyBodyBackground(config.apply_body_background !== false)
+
     // Custom layout auto-expands advanced panel
     if (layoutType === "custom") {
       setShowAdvancedLayout(true)
@@ -412,6 +416,7 @@ function AddBookPage() {
       configOverrides.output_languages = Array.from(outputLanguages)
     }
     configOverrides.spread_mode = spreadMode
+    configOverrides.apply_body_background = applyBodyBackground
     if (parsedStartPage !== undefined) {
       configOverrides.start_page = parsedStartPage
     }
@@ -754,6 +759,21 @@ function AddBookPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">
                       Merge facing pages as spreads (cover + page pairs).
+                    </p>
+                  </div>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="apply-body-background"
+                        checked={applyBodyBackground}
+                        onCheckedChange={setApplyBodyBackground}
+                      />
+                      <Label htmlFor="apply-body-background" className="text-xs">
+                        Apply page background colors
+                      </Label>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      When enabled, background colors from the styleguide are applied to the full page body.
                     </p>
                   </div>
                   <AdvancedLayoutPanel

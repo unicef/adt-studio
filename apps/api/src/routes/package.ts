@@ -79,6 +79,7 @@ export function createPackageRoutes(
         outputLanguages,
         title,
         webAssetsDir,
+        applyBodyBackground: config.apply_body_background,
       })
 
       return c.json({ status: "completed", label: safeLabel })
