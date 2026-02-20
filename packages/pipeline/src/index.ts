@@ -32,6 +32,15 @@ export {
   type CroppingConfig,
   type CroppingPageInput,
 } from "./image-cropping.js"
+export {
+  segmentPageImages,
+  applySegmentation,
+  buildSegmentationConfig,
+  getSegmentedImageId,
+  type AppliedSegment,
+  type SegmentationConfig,
+  type SegmentationPageInput,
+} from "./image-segmentation.js"
 export { grayscaleStdDev } from "./image-complexity.js"
 export {
   extractMetadata,

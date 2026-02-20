@@ -1,12 +1,15 @@
 import crypto from "node:crypto"
 import fs from "node:fs"
 import path from "node:path"
+import { z } from "zod"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel, TextClassificationOutput, ImageClassificationOutput, PageSectioningOutput, WebRenderingOutput, ImageCaptioningOutput } from "@adt/types"
+import { parseBookLabel, TextClassificationOutput, ImageClassificationOutput, PageSectioningOutput, WebRenderingOutput, ImageCaptioningOutput, ImageSegmentRegion } from "@adt/types"
 import { openBookDb } from "@adt/storage"
 import { createBookStorage } from "@adt/storage"
 import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
+import { segmentPageImages, getSegmentedImageId, loadBookConfig, applyCrop } from "@adt/pipeline"
+import { createLLMModel, createPromptEngine } from "@adt/llm"
 
 interface PageSummary {
   pageId: string
@@ -789,6 +792,173 @@ export function createPageRoutes(
       return c.json({ imageId: newImageId, width, height })
     } finally {
       db.close()
+    }
+  })
+
+  // POST /books/:label/images/:imageId/segment — Analyze: run LLM segmentation, return bounding boxes only
+  app.post("/books/:label/images/:imageId/segment", async (c) => {
+    const { label, imageId } = c.req.param()
+    const safeLabel = parseBookLabel(label)
+    validateImageId(imageId)
+
+    const pageId = c.req.query("pageId")
+    if (!pageId) {
+      return c.json({ error: "Missing pageId query parameter" }, 400)
+    }
+    validateImageId(pageId)
+
+    const apiKey = c.req.header("X-OpenAI-Key")
+    if (!apiKey) {
+      return c.json({ error: "Missing X-OpenAI-Key header" }, 400)
+    }
+
+    const previousKey = process.env.OPENAI_API_KEY
+    process.env.OPENAI_API_KEY = apiKey
+
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const images = storage.getPageImages(pageId)
+      const imageMeta = images.find((img) => img.imageId === imageId)
+      if (!imageMeta) {
+        return c.json({ error: `Image not found: ${imageId}` }, 404)
+      }
+
+      // Build segmentation config — always use default model for manual segmentation
+      const config = loadBookConfig(safeLabel, booksDir, configPath)
+      const modelId = config.image_segmentation?.model || "openai:gpt-5.2"
+      const promptName = config.image_segmentation?.prompt ?? "image_segmentation"
+
+      const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
+      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+      const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
+      const llmModel = createLLMModel({
+        modelId,
+        cacheDir,
+        promptEngine,
+        onLog: (entry) => storage.appendLlmLog(entry),
+      })
+
+      const imageBase64 = storage.getImageBase64(imageId)
+      const pageImageBase64 = storage.getPageImageBase64(pageId)
+
+      const segResult = await segmentPageImages(
+        {
+          pageId,
+          pageImageBase64,
+          images: [{
+            imageId,
+            imageBase64,
+            width: imageMeta.width,
+            height: imageMeta.height,
+          }],
+        },
+        { promptName, modelId },
+        llmModel
+      )
+
+      const imgResult = segResult.results[0]
+      if (!imgResult || !imgResult.needsSegmentation || !imgResult.segments || imgResult.segments.length === 0) {
+        return c.json({ segmented: false })
+      }
+
+      return c.json({
+        segmented: true,
+        imageWidth: imageMeta.width,
+        imageHeight: imageMeta.height,
+        regions: imgResult.segments.map((seg) => ({
+          label: seg.label,
+          cropLeft: seg.cropLeft,
+          cropTop: seg.cropTop,
+          cropRight: seg.cropRight,
+          cropBottom: seg.cropBottom,
+        })),
+      })
+    } catch (err) {
+      console.error(`[segment] Error analyzing ${imageId}:`, err)
+      return c.json({ error: err instanceof Error ? err.message : "Segmentation failed" }, 500)
+    } finally {
+      storage.close()
+      if (previousKey !== undefined) {
+        process.env.OPENAI_API_KEY = previousKey
+      } else {
+        delete process.env.OPENAI_API_KEY
+      }
+    }
+  })
+
+  // POST /books/:label/images/:imageId/segment/apply — Apply confirmed bounding boxes, crop and save segments
+  app.post("/books/:label/images/:imageId/segment/apply", async (c) => {
+    const { label, imageId } = c.req.param()
+    const safeLabel = parseBookLabel(label)
+    validateImageId(imageId)
+
+    const pageId = c.req.query("pageId")
+    if (!pageId) {
+      return c.json({ error: "Missing pageId query parameter" }, 400)
+    }
+    validateImageId(pageId)
+
+    const body = await c.req.json()
+    const regionsSchema = z.object({ regions: z.array(ImageSegmentRegion).min(1) })
+    const parsed = regionsSchema.safeParse(body)
+    if (!parsed.success) {
+      return c.json({ error: "Invalid regions", details: parsed.error.flatten() }, 400)
+    }
+    const { regions } = parsed.data
+
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const imageBase64 = storage.getImageBase64(imageId)
+      const buffer = Buffer.from(imageBase64, "base64")
+
+      const version = storage.putNodeData("image-segmentation", pageId, {
+        results: [{
+          imageId,
+          reasoning: "User-confirmed segmentation",
+          needsSegmentation: true,
+          segments: regions,
+        }],
+      })
+
+      const segments: Array<{ imageId: string; label: string; width: number; height: number }> = []
+
+      for (let i = 0; i < regions.length; i++) {
+        const region = regions[i]
+        const width = region.cropRight - region.cropLeft
+        const height = region.cropBottom - region.cropTop
+        if (width <= 0 || height <= 0) continue
+
+        const cropped = applyCrop(buffer, {
+          cropLeft: region.cropLeft,
+          cropTop: region.cropTop,
+          cropRight: region.cropRight,
+          cropBottom: region.cropBottom,
+        })
+
+        const segIndex = i + 1
+        storage.putSegmentedImage({
+          sourceImageId: imageId,
+          segmentIndex: segIndex,
+          pageId,
+          version,
+          buffer: cropped,
+          width,
+          height,
+        })
+        segments.push({
+          imageId: getSegmentedImageId(imageId, segIndex, version),
+          label: region.label,
+          width,
+          height,
+        })
+      }
+
+      return c.json({ segments })
+    } catch (err) {
+      console.error(`[segment/apply] Error applying segmentation for ${imageId}:`, err)
+      return c.json({ error: err instanceof Error ? err.message : "Segmentation apply failed" }, 500)
+    } finally {
+      storage.close()
     }
   })
 

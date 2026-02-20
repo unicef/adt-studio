@@ -1,4 +1,4 @@
-import { Crop, Eye, EyeOff, Pencil, Sparkles, Type, Upload } from "lucide-react"
+import { Crop, Eye, EyeOff, Pencil, Scissors, Sparkles, Type, Upload } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -34,6 +34,10 @@ export interface SectionEditToolbarProps {
   onReplace?: (dataId: string) => void
   /** Called when AI image edit/generate is requested */
   onAiImage?: (dataId: string) => void
+  /** Called when image segmentation is requested */
+  onSegment?: (dataId: string) => void
+  /** Whether segmentation is currently running */
+  segmenting?: boolean
 }
 
 /**
@@ -55,6 +59,8 @@ export function SectionEditToolbar({
   onCrop,
   onReplace,
   onAiImage,
+  onSegment,
+  segmenting,
 }: SectionEditToolbarProps) {
   if (!dataId) return null
 
@@ -118,6 +124,17 @@ export function SectionEditToolbar({
               >
                 <Sparkles className="h-3 w-3" />
                 AI
+              </button>
+            )}
+            {onSegment && (
+              <button
+                type="button"
+                onClick={() => onSegment(dataId)}
+                disabled={segmenting}
+                className="flex items-center gap-1 text-[10px] font-medium rounded px-2 py-1 bg-orange-100 hover:bg-orange-200 text-orange-700 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                <Scissors className="h-3 w-3" />
+                {segmenting ? "Segmenting..." : "Segment"}
               </button>
             )}
             {onTogglePrune && (

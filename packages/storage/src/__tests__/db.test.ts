@@ -52,12 +52,12 @@ describe("openBookDb", () => {
         id INTEGER PRIMARY KEY CHECK (id = 1),
         version INTEGER NOT NULL
       );
-      INSERT INTO schema_version (id, version) VALUES (1, ${SCHEMA_VERSION - 1});
+      INSERT INTO schema_version (id, version) VALUES (1, 1);
     `)
     old.close()
 
     expect(() => openBookDb(dbPath)).toThrow(
-      `Schema version mismatch: found v${SCHEMA_VERSION - 1}, expected v${SCHEMA_VERSION}`
+      `Schema version mismatch: found v1, expected v${SCHEMA_VERSION}`
     )
   })
 })
