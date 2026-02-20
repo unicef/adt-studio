@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Version tag to release (e.g. v1.2.3)"
+        description: "Version tag to release (e.g. v1.2.3 or v1.2.3-1 for test)"
         required: true
 
 permissions:
@@ -72,10 +72,11 @@ jobs:
           releaseName: "ADT Studio ${{ steps.version.outputs.tag }}"
           releaseBody: ""
           releaseDraft: false
-          prerelease: false
+          prerelease: ${{ contains(steps.version.outputs.version, '-') }}
 
   docker:
     needs: release
+    if: ${{ !contains(needs.release.outputs.version, '-') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
