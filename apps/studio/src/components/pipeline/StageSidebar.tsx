@@ -5,21 +5,21 @@ import {
   FileDown,
   ChevronDown,
   Loader2,
+  RotateCcw,
+  Settings,
 } from "lucide-react"
-import { useQuery } from "@tanstack/react-query"
-import { api } from "@/api/client"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { useStepRun } from "@/hooks/use-step-run"
+import { useBookRun } from "@/hooks/use-book-run"
 import { StepProgressRing } from "./StepProgressRing"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useExportBook } from "@/hooks/use-books"
 import {
   STAGES,
   hasStagePages,
-  isStageCompleted,
   toCamelLabel,
 } from "./stage-config"
+import { useSettingsDialog } from "@/routes/__root"
 
 const EXTRACT_SETTINGS_TABS = [
   { key: "general", label: "General" },
@@ -84,15 +84,12 @@ export function StageSidebar({
 }) {
   const matchRoute = useMatchRoute()
   const search = useSearch({ strict: false }) as { tab?: string }
-  const { progress: stepRunProgress } = useStepRun()
-  const { data: stepStatusData } = useQuery({
-    queryKey: ["books", bookLabel, "step-status"],
-    queryFn: () => api.getStepStatus(bookLabel),
-    enabled: !!bookLabel,
-  })
-  const completedSteps = stepStatusData?.steps ?? {}
+  const { stageState } = useBookRun()
+  const { openSettings } = useSettingsDialog()
 
-  const effectivePagesOpen = hasStagePages(activeStep) && isStageCompleted(activeStep, completedSteps)
+  const effectivePagesOpen =
+    hasStagePages(activeStep) &&
+    stageState(activeStep) === "done"
 
   const isSettings = !!matchRoute({
     to: "/books/$label/$step/settings",
@@ -109,7 +106,6 @@ export function StageSidebar({
   const x = {
     gap:       "gap-2.5",
     showLabel: "inline",
-    showBtn:   "inline-flex",
     showFlex:  "flex",
     flex1:     "flex-1",
   }
@@ -119,8 +115,9 @@ export function StageSidebar({
     const Icon = step.icon
     const settingsTabs = SETTINGS_TABS[step.slug]
     const showSubTabs = isActive && isSettings && !!settingsTabs
-    const stepProgress = stepRunProgress.steps.get(step.slug)
-    const ringState = stepProgress?.state ?? "idle"
+    const state = stageState(step.slug)
+    const stageCompleted = state === "done"
+    const ringState = state
 
     return (
       <div key={step.slug} className="relative">
@@ -132,11 +129,10 @@ export function StageSidebar({
         {/* Step row */}
         <div
           className={cn(
-            "flex items-center gap-0 py-2 text-sm transition-colors",
+            "group/row flex items-center py-2 text-sm transition-colors overflow-hidden",
             x.gap,
-            "justify-start mx-0 px-0",
             isActive
-              ? cn(step.color, "text-white font-medium rounded-l-[14px] ml-0.5 pl-2")
+              ? cn(step.color, "text-white font-medium rounded-l-[14px] ml-0.5 pl-2 pr-2.5")
               : "text-muted-foreground hover:text-foreground hover:bg-muted px-2.5"
           )}
         >
@@ -145,14 +141,14 @@ export function StageSidebar({
             params={selectedPageId && hasStagePages(step.slug)
               ? { label: bookLabel, step: step.slug, pageId: selectedPageId }
               : { label: bookLabel, step: step.slug }}
-            className={cn("flex items-center gap-2.5 min-w-0", x.flex1)}
+            className={cn("flex items-center gap-2.5 min-w-7", x.flex1)}
             title={step.label}
           >
             <div className="relative shrink-0">
               <div
                 className={cn(
                   "flex items-center justify-center w-7 h-7 rounded-full transition-colors",
-                  step.slug === "book" || isStageCompleted(step.slug, completedSteps) || ringState === "done"
+                  step.slug === "book" || stageCompleted
                     ? isActive
                       ? "bg-white/20 text-white"
                       : cn(step.color, "text-white")
@@ -168,6 +164,50 @@ export function StageSidebar({
             </span>
           </Link>
 
+          {settingsTabs ? (
+            <Link
+              to="/books/$label/$step/settings"
+              params={{ label: bookLabel, step: step.slug }}
+              search={{ tab: "general" }}
+              title={`${step.label} Settings`}
+              className={cn(
+                "shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors",
+                isActive
+                  ? "text-white/60 hover:text-white hover:bg-white/20"
+                  : "opacity-0 group-hover/row:opacity-100 text-muted-foreground/50 group-hover/row:bg-muted hover:text-foreground hover:bg-muted-foreground/20"
+              )}
+            >
+              <Settings className="w-3.5 h-3.5" />
+            </Link>
+          ) : step.slug === "book" ? (
+            <button
+              type="button"
+              onClick={openSettings}
+              title="API Key Settings"
+              className={cn(
+                "shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors cursor-pointer",
+                isActive
+                  ? "text-white/60 hover:text-white hover:bg-white/20"
+                  : "opacity-0 group-hover/row:opacity-100 text-muted-foreground/50 group-hover/row:bg-muted hover:text-foreground hover:bg-muted-foreground/20"
+              )}
+            >
+              <Settings className="w-3.5 h-3.5" />
+            </button>
+          ) : step.slug === "preview" ? (
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent("adt:repackage"))}
+              title="Re-package ADT"
+              className={cn(
+                "shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors cursor-pointer",
+                isActive
+                  ? "text-white/60 hover:text-white hover:bg-white/20"
+                  : "opacity-0 group-hover/row:opacity-100 text-muted-foreground/50 group-hover/row:bg-muted hover:text-foreground hover:bg-muted-foreground/20"
+              )}
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          ) : null}
         </div>
 
         {/* Settings sub-tabs */}
@@ -351,8 +391,6 @@ function PageRow({
       ref={rowRef}
       type="button"
       onClick={onSelect}
-      onMouseEnter={handleEnter}
-      onMouseLeave={handleLeave}
       className={cn(
         "flex items-start gap-2 px-2 py-1.5 text-left transition-colors",
         isActive
@@ -366,6 +404,8 @@ function PageRow({
         <img
           src={imgSrc}
           alt=""
+          onMouseEnter={handleEnter}
+          onMouseLeave={handleLeave}
           className="shrink-0 w-16 h-12 rounded object-cover object-center ring-1 ring-border"
         />
       )}

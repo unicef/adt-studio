@@ -2,7 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel } from "@adt/types"
+import { parseBookLabel, PIPELINE } from "@adt/types"
 import { openBookDb } from "@adt/storage"
 import {
   listBooks,
@@ -156,82 +156,7 @@ export function createBookRoutes(
     }
   })
 
-  // GET /books/:label/step-status — Which pipeline steps have data
-  app.get("/books/:label/step-status", (c) => {
-    const { label } = c.req.param()
-    let safeLabel: string
-    try {
-      safeLabel = parseBookLabel(label)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      throw new HTTPException(400, { message })
-    }
-    const resolvedDir = path.resolve(booksDir)
-    const dbPath = path.join(resolvedDir, safeLabel, `${safeLabel}.db`)
-
-    if (!fs.existsSync(dbPath)) {
-      return c.json({ steps: {} })
-    }
-
-    const db = openBookDb(dbPath)
-    try {
-      // Extract is only complete when all extract artifacts exist.
-      const pageRows = db.all("SELECT COUNT(*) as count FROM pages") as Array<{ count: number }>
-      const pageCount = pageRows[0]?.count ?? 0
-      const hasPages = pageCount > 0
-
-      // Get all distinct nodes that have data
-      const nodeRows = db.all("SELECT DISTINCT node FROM node_data") as Array<{ node: string }>
-      const nodes = new Set(nodeRows.map((r) => r.node))
-
-      const textClassificationRows = db.all(
-        "SELECT COUNT(DISTINCT item_id) as count FROM node_data WHERE node = 'text-classification'"
-      ) as Array<{ count: number }>
-      const textClassificationCount = textClassificationRows[0]?.count ?? 0
-
-      const imageClassificationRows = db.all(
-        "SELECT COUNT(DISTINCT item_id) as count FROM node_data WHERE node = 'image-filtering'"
-      ) as Array<{ count: number }>
-      const imageClassificationCount = imageClassificationRows[0]?.count ?? 0
-
-      const hasMetadata = nodes.has("metadata")
-      const hasBookSummary = nodes.has("book-summary")
-      const hasAllPageClassifications =
-        hasPages &&
-        textClassificationCount >= pageCount &&
-        imageClassificationCount >= pageCount
-
-      // Map nodes → step slugs
-      const NODE_TO_STEP: Record<string, string> = {
-        "page-sectioning": "storyboard",
-        "web-rendering": "storyboard",
-        "storyboard-acceptance": "storyboard",
-        "quiz-generation": "quizzes",
-        "image-captioning": "captions",
-        glossary: "glossary",
-        "text-catalog": "text-and-speech",
-        "text-catalog-translation": "text-and-speech",
-        tts: "text-and-speech",
-      }
-
-      const steps: Record<string, boolean> = {}
-      if (hasMetadata && hasBookSummary && hasAllPageClassifications) {
-        steps.extract = true
-      }
-      for (const node of nodes) {
-        const step = NODE_TO_STEP[node]
-        if (step) steps[step] = true
-      }
-
-      // Check if ADT is packaged (preview step)
-      const adtDir = path.join(resolvedDir, safeLabel, "adt")
-      if (fs.existsSync(adtDir)) steps.preview = true
-
-      return c.json({ steps })
-    } finally {
-      db.close()
-    }
-  })
+  // NOTE: step-status endpoint is now in stages.ts (needs StageService for run state)
 
   // GET /books/:label/export — Download book as ZIP or EPUB
   app.get("/books/:label/export", async (c) => {

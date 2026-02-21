@@ -1,16 +1,11 @@
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { createFileRoute, Outlet, useParams, useNavigate, Link, useMatchRoute } from "@tanstack/react-router"
-import { useQueryClient } from "@tanstack/react-query"
-import { Home, Settings, RotateCcw, Terminal } from "lucide-react"
+import { Home, Terminal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DebugPanel } from "@/components/debug/DebugPanel"
 import { StageSidebar } from "@/components/pipeline/StageSidebar"
-import { STAGES } from "@/components/pipeline/stage-config"
 import { useBook } from "@/hooks/use-books"
-import { useStepRunSSE, StepRunContext, type QueueRunOptions } from "@/hooks/use-step-run"
-import { getStartInvalidationKeysForUiStep } from "@/hooks/step-run-invalidation"
-import { useSettingsDialog } from "@/routes/__root"
-import { api } from "@/api/client"
+import { useBookRunStatus, BookRunProvider } from "@/hooks/use-book-run"
 
 export const Route = createFileRoute("/books/$label")({
   component: BookLayout,
@@ -18,6 +13,16 @@ export const Route = createFileRoute("/books/$label")({
 
 function BookLayout() {
   const { label } = Route.useParams()
+  const bookRun = useBookRunStatus(label)
+
+  return (
+    <BookRunProvider value={bookRun}>
+      <BookLayoutInner label={label} isRunning={bookRun.isRunning} />
+    </BookRunProvider>
+  )
+}
+
+function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boolean }) {
   const { step, pageId } = useParams({ strict: false }) as { step?: string; pageId?: string }
   const matchRoute = useMatchRoute()
   const navigate = useNavigate()
@@ -26,8 +31,6 @@ function BookLayout() {
   const isDebugRoute = !!matchRoute({ to: "/books/$label/debug", params: { label } })
 
   const activeStep = step ?? "book"
-  const activeStage = STAGES.find((s) => s.slug === activeStep) ?? STAGES[0]
-  const stageHex = activeStage.hex
 
   const onSelectPage = useCallback(
     (pid: string | null) => {
@@ -46,70 +49,6 @@ function BookLayout() {
     [navigate, label, activeStep]
   )
 
-  // Step run SSE state
-  const [sseEnabled, setSseEnabled] = useState(false)
-  const { progress, startRun, reset } = useStepRunSSE(label, sseEnabled)
-
-  // Auto-reconnect if a step run is already in progress on mount
-  useEffect(() => {
-    let cancelled = false
-    api.getStepsStatus(label).then((status) => {
-      if (cancelled) return
-      if (status.status === "running") {
-        if (status.fromStep && status.toStep) {
-          startRun(status.fromStep, status.toStep)
-        }
-        // Also restore queued runs so UI shows them
-        for (const q of status.queue ?? []) {
-          startRun(q.fromStep, q.toStep)
-        }
-        setSseEnabled(true)
-      }
-    }).catch(() => {})
-    return () => { cancelled = true }
-  }, [label, startRun])
-
-  // Disable SSE when run completes
-  useEffect(() => {
-    if (!progress.isRunning && (progress.isComplete || progress.error)) {
-      // Keep SSE off, progress state preserved for "done" indicators
-      setSseEnabled(false)
-    }
-  }, [progress.isRunning, progress.isComplete, progress.error])
-
-  // Serialized run queue — chains API calls so they arrive in click order
-  const runChainRef = useRef<Promise<void>>(Promise.resolve())
-  const queryClient = useQueryClient()
-
-  const queueRun = useCallback(
-    (options: QueueRunOptions) => {
-      const { fromStep, toStep, apiKey, azure } = options
-
-      // Update UI immediately (synchronous, no race)
-      startRun(fromStep, toStep)
-      setSseEnabled(true)
-
-      // Chain the API call so it waits for any previous call to finish
-      runChainRef.current = runChainRef.current.then(async () => {
-        try {
-          const result = await api.runSteps(label, apiKey, { fromStep, toStep }, azure)
-          if (result.status === "started") {
-            const keys = getStartInvalidationKeysForUiStep(label, fromStep)
-            for (const key of keys) {
-              queryClient.removeQueries({ queryKey: key })
-            }
-          }
-        } catch {
-          // Don't reset — other stages may still be running/queued
-        }
-      })
-    },
-    [label, startRun, setSseEnabled, queryClient]
-  )
-
-  const ctxValue = { progress, startRun, reset, setSseEnabled, queueRun }
-  const { openSettings } = useSettingsDialog()
-
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (isDebugRoute) return
     if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "d") {
@@ -125,19 +64,17 @@ function BookLayout() {
 
   if (isDebugRoute) {
     return (
-      <StepRunContext value={ctxValue}>
-        <div className="flex flex-1 min-h-0 flex-col">
-          <Outlet />
-        </div>
-      </StepRunContext>
+      <div className="flex flex-1 min-h-0 flex-col">
+        <Outlet />
+      </div>
     )
   }
 
   return (
-    <StepRunContext value={ctxValue}>
+    <>
       <div className="flex flex-1 min-h-0 flex-col">
         <div className="flex flex-1 min-h-0">
-          {/* Left sidebar — spacer reserves layout width, inner panel expands on hover */}
+          {/* Left sidebar */}
           <div className="w-[220px] shrink-0 relative">
             <div className="absolute inset-y-0 left-0 w-full bg-background flex flex-col z-30 overflow-hidden">
               {/* App header */}
@@ -152,36 +89,6 @@ function BookLayout() {
                     ADT Studio
                   </span>
                 </Link>
-                {activeStep === "preview" ? (
-                  <button
-                    onClick={() => window.dispatchEvent(new CustomEvent("adt:repackage"))}
-                    title="Re-package ADT"
-                    className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full text-white hover:brightness-110 transition-[filter] mx-1.5"
-                    style={{ backgroundColor: stageHex }}
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                  </button>
-                ) : activeStep === "book" ? (
-                  <button
-                    onClick={openSettings}
-                    title="API Key Settings"
-                    className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full text-white hover:brightness-110 transition-[filter] mx-1.5"
-                    style={{ backgroundColor: stageHex }}
-                  >
-                    <Settings className="h-3.5 w-3.5" />
-                  </button>
-                ) : (
-                  <Link
-                    to="/books/$label/$step/settings"
-                    params={{ label, step: activeStep }}
-                    search={{ tab: "general" }}
-                    title={`${activeStage?.label ?? "Stage"} Settings`}
-                    className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full text-white hover:brightness-110 transition-[filter] mx-1.5"
-                    style={{ backgroundColor: stageHex }}
-                  >
-                    <Settings className="h-3.5 w-3.5" />
-                  </Link>
-                )}
               </div>
 
               {/* Steps / Pages */}
@@ -200,7 +107,7 @@ function BookLayout() {
         {debugOpen && !isDebugRoute && (
           <DebugPanel
             label={label}
-            isRunning={progress.isRunning}
+            isRunning={isRunning}
             onClose={() => setDebugOpen(false)}
           />
         )}
@@ -217,6 +124,6 @@ function BookLayout() {
           <Terminal className="h-4 w-4" />
         </Button>
       )}
-    </StepRunContext>
+    </>
   )
 }

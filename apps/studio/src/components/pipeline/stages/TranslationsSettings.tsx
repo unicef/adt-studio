@@ -19,7 +19,7 @@ import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
 import { PromptViewer } from "@/components/pipeline/PromptViewer"
 import { LanguagePicker } from "@/components/LanguagePicker"
-import { useStepRun } from "@/hooks/use-step-run"
+import { useBookRun } from "@/hooks/use-book-run"
 import { normalizeLocale } from "@/lib/languages"
 import { SpeechPromptsEditor } from "./SpeechPromptsEditor"
 import { VoiceMappingsEditor } from "./VoiceMappingsEditor"
@@ -29,7 +29,7 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
   const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
-  const { queueRun } = useStepRun()
+  const { queueRun } = useBookRun()
   const navigate = useNavigate()
   const [showRerunDialog, setShowRerunDialog] = useState(false)
 
@@ -158,7 +158,7 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
           setDirty({})
           setPromptDraft(null)
           setShowRerunDialog(false)
-          queueRun({ fromStep: "text-and-speech", toStep: "text-and-speech", apiKey, azure: { key: azureKey, region: azureRegion } })
+          queueRun({ fromStage: "text-and-speech", toStage: "text-and-speech", apiKey, azure: { key: azureKey, region: azureRegion } })
           navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "text-and-speech" } })
         },
       }

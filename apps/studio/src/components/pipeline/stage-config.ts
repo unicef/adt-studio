@@ -17,7 +17,7 @@ export const STAGES = [
   { slug: "quizzes", label: "Quizzes", runningLabel: "Generating Quizzes", icon: HelpCircle, color: "bg-orange-600", hex: "#ea580c", textColor: "text-orange-600", bgLight: "bg-orange-50", borderColor: "border-orange-200", borderDark: "border-orange-600" },
   { slug: "captions", label: "Captions", runningLabel: "Captioning Images", icon: Image, color: "bg-teal-600", hex: "#0d9488", textColor: "text-teal-600", bgLight: "bg-teal-50", borderColor: "border-teal-200", borderDark: "border-teal-600" },
   { slug: "glossary", label: "Glossary", runningLabel: "Generating Glossary", icon: BookOpen, color: "bg-lime-600", hex: "#65a30d", textColor: "text-lime-600", bgLight: "bg-lime-50", borderColor: "border-lime-200", borderDark: "border-lime-600" },
-  { slug: "text-and-speech", label: "Text & Speech", runningLabel: "Translating", icon: Languages, color: "bg-pink-600", hex: "#db2777", textColor: "text-pink-600", bgLight: "bg-pink-50", borderColor: "border-pink-200", borderDark: "border-pink-600" },
+  { slug: "text-and-speech", label: "Text & Speech", runningLabel: "Generating Text & Speech", icon: Languages, color: "bg-pink-600", hex: "#db2777", textColor: "text-pink-600", bgLight: "bg-pink-50", borderColor: "border-pink-200", borderDark: "border-pink-600" },
   { slug: "preview", label: "Preview", runningLabel: "Building Preview", icon: Eye, color: "bg-gray-600", hex: "#4b5563", textColor: "text-gray-600", bgLight: "bg-gray-50", borderColor: "border-gray-200", borderDark: "border-gray-600" },
 ] as const satisfies ReadonlyArray<{
   slug: string

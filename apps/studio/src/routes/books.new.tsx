@@ -145,7 +145,7 @@ function Stepper({ currentStep }: { currentStep: number }) {
 function AddBookPage() {
   const navigate = useNavigate()
   const createMutation = useCreateBook()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
   const { openSettings } = useSettingsDialog()
 
   const [step, setStep] = useState(1)
@@ -488,7 +488,12 @@ function AddBookPage() {
         onSuccess: async (book) => {
           if (hasApiKey && apiKey) {
             try {
-              await api.runSteps(book.label, apiKey, { fromStep: "extract", toStep: "storyboard" })
+              await api.runStages(
+                book.label,
+                apiKey,
+                { fromStage: "extract", toStage: "storyboard" },
+                { key: azureKey, region: azureRegion }
+              )
             } catch {
               // Book creation already succeeded; user can retry the run from the book view.
             }

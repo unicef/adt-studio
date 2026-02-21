@@ -66,23 +66,7 @@ export interface BookDetail extends BookSummary {
   } | null
 }
 
-export interface PipelineStatus {
-  label: string
-  status: "idle" | "running" | "completed" | "failed"
-  error?: string
-  startedAt?: number
-  completedAt?: number
-}
-
 export interface ProofStatus {
-  label: string
-  status: "idle" | "running" | "completed" | "failed"
-  error?: string
-  startedAt?: number
-  completedAt?: number
-}
-
-export interface MasterStatus {
   label: string
   status: "idle" | "running" | "completed" | "failed"
   error?: string
@@ -95,14 +79,9 @@ export interface AzureCredentials {
   region: string
 }
 
-export interface RunPipelineOptions {
-  startPage?: number
-  endPage?: number
-}
-
-export interface RunStepsOptions {
-  fromStep: string
-  toStep: string
+export interface RunStagesOptions {
+  fromStage: string
+  toStage: string
 }
 
 function buildApiHeaders(
@@ -115,15 +94,15 @@ function buildApiHeaders(
   return headers
 }
 
-export interface StepRunStatus {
+export interface StageRunStatus {
   label: string
   status: "idle" | "running" | "completed" | "failed"
-  fromStep?: string
-  toStep?: string
+  fromStage?: string
+  toStage?: string
   error?: string
   startedAt?: number
   completedAt?: number
-  queue?: Array<{ id: string; fromStep: string; toStep: string }>
+  queue?: Array<{ id: string; fromStage: string; toStage: string }>
 }
 
 export interface PageSummaryItem {
@@ -389,32 +368,14 @@ export const api = {
   deleteBook: (label: string) =>
     request<{ ok: boolean }>(`/books/${label}`, { method: "DELETE" }),
 
-  runPipeline: (
+  runStages: (
     label: string,
     apiKey: string,
-    options?: RunPipelineOptions,
+    options: RunStagesOptions,
     azure?: AzureCredentials
   ) =>
-    request<{ status: string; label: string }>(
-      `/books/${label}/pipeline/run`,
-      {
-        method: "POST",
-        headers: buildApiHeaders(apiKey, azure),
-        body: options ? JSON.stringify(options) : undefined,
-      }
-    ),
-
-  getPipelineStatus: (label: string) =>
-    request<PipelineStatus>(`/books/${label}/pipeline/status`),
-
-  runSteps: (
-    label: string,
-    apiKey: string,
-    options: RunStepsOptions,
-    azure?: AzureCredentials
-  ) =>
-    request<{ status: string; label: string; fromStep: string; toStep: string }>(
-      `/books/${label}/steps/run`,
+    request<{ status: string; label: string; fromStage: string; toStage: string }>(
+      `/books/${label}/stages/run`,
       {
         method: "POST",
         headers: buildApiHeaders(apiKey, azure),
@@ -422,8 +383,8 @@ export const api = {
       }
     ),
 
-  getStepsStatus: (label: string) =>
-    request<StepRunStatus>(`/books/${label}/steps/status`),
+  getStagesStatus: (label: string) =>
+    request<StageRunStatus>(`/books/${label}/stages/status`),
 
   getPages: (label: string) =>
     request<PageSummaryItem[]>(`/books/${label}/pages`),
@@ -616,15 +577,6 @@ export const api = {
   getProofStatus: (label: string) =>
     request<ProofStatus>(`/books/${label}/proof/status`),
 
-  runMaster: (label: string, apiKey: string, azure?: AzureCredentials) =>
-    request<{ status: string; label: string }>(
-      `/books/${label}/master/run`,
-      { method: "POST", headers: buildApiHeaders(apiKey, azure) }
-    ),
-
-  getMasterStatus: (label: string) =>
-    request<MasterStatus>(`/books/${label}/master/status`),
-
   acceptStoryboard: (label: string) =>
     request<{ version: number; acceptedAt: string }>(
       `/books/${label}/accept-storyboard`,
@@ -659,7 +611,7 @@ export const api = {
     }),
 
   getStepStatus: (label: string) =>
-    request<{ steps: Record<string, boolean> }>(`/books/${label}/step-status`),
+    request<{ stages: Record<string, string>; steps: Record<string, string>; error: string | null }>(`/books/${label}/step-status`),
 
   getTTS: (label: string) =>
     request<TTSResponse>(`/books/${label}/tts`),

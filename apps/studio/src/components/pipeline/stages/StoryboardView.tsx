@@ -2,7 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react"
 import { ArrowLeft, ArrowRight, LayoutGrid, Loader2 } from "lucide-react"
 import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../StepViewRouter"
-import { useStepRun } from "@/hooks/use-step-run"
+import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { StageRunCard } from "../StageRunCard"
 import { STAGE_DESCRIPTIONS } from "../stage-config"
@@ -13,14 +13,16 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const { data: pages, isLoading: pagesLoading } = usePages(bookLabel)
   const setSelectedPageId = onSelectPage ?? (() => {})
   const { setExtra, setOnLabelClick } = useStepHeader()
-  const { progress: stepProgress, queueRun } = useStepRun()
+  const { stageState, queueRun } = useBookRun()
   const { apiKey, hasApiKey } = useApiKey()
-  const storyboardState = stepProgress.steps.get("storyboard")?.state
+  const storyboardState = stageState("storyboard")
+  const storyboardDone = storyboardState === "done"
   const storyboardRunning = storyboardState === "running" || storyboardState === "queued"
+  const showRunCard = !storyboardDone || storyboardRunning
 
   const handleRunStoryboard = useCallback(() => {
     if (!hasApiKey || storyboardRunning) return
-    queueRun({ fromStep: "storyboard", toStep: "storyboard", apiKey })
+    queueRun({ fromStage: "storyboard", toStage: "storyboard", apiKey })
   }, [hasApiKey, storyboardRunning, apiKey, queueRun])
 
   const pageList = pages ?? []
@@ -33,11 +35,12 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
 
   // Auto-select first page when no page is selected
   useEffect(() => {
+    if (showRunCard) return
     if (!selectedPageIdProp && pageList.length > 0) {
       setSelectedPageId(pageList[0].pageId)
       setSectionIndex(0)
     }
-  }, [selectedPageIdProp, pageList.length])
+  }, [selectedPageIdProp, pageList.length, showRunCard, setSelectedPageId])
 
   const selectedPageId = selectedPageIdProp ?? null
   const currentPageIndex = selectedPageId ? pageList.findIndex((p) => p.pageId === selectedPageId) : -1
@@ -129,8 +132,17 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
 
   // Header: for non-section views (no sectioning data, or loading states)
   useEffect(() => {
+    if (showRunCard) {
+      setOnLabelClick(null)
+      setExtra(null)
+      return () => {
+        setExtra(null)
+        setOnLabelClick(null)
+      }
+    }
+
     // When StoryboardSectionDetail is rendered, it manages the header itself
-    if (page?.sectioning && sectionCount > 0 && !storyboardRunning) return
+    if (page?.sectioning && sectionCount > 0) return
 
     if (selectedPageSummary) {
       setOnLabelClick(null)
@@ -166,11 +178,11 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
       setExtra(null)
       setOnLabelClick(null)
     }
-  }, [selectedPageId, selectedPageSummary?.pageNumber, sectionIndex, sectionCount, canGoPrev, canGoNext, prevPageId, nextPageId, setExtra, setOnLabelClick, page?.sectioning, storyboardRunning])
+  }, [selectedPageId, selectedPageSummary?.pageNumber, sectionIndex, sectionCount, canGoPrev, canGoNext, prevPageId, nextPageId, setExtra, setOnLabelClick, page?.sectioning, showRunCard])
 
   // Keyboard arrow navigation
   useEffect(() => {
-    if (!selectedPageId) return
+    if (!selectedPageId || showRunCard) return
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowLeft" && canGoPrev) {
         goPrev()
@@ -180,9 +192,24 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [selectedPageId, sectionIndex, sectionCount, canGoPrev, canGoNext, prevPageId, nextPageId])
+  }, [selectedPageId, sectionIndex, sectionCount, canGoPrev, canGoNext, prevPageId, nextPageId, showRunCard])
 
-  if (pagesLoading && !storyboardRunning) {
+  if (showRunCard) {
+    return (
+      <div className="p-4">
+        <StageRunCard
+          stageSlug="storyboard"
+          description={STAGE_DESCRIPTIONS.storyboard}
+          isRunning={storyboardRunning}
+          completed={storyboardDone}
+          onRun={handleRunStoryboard}
+          disabled={!hasApiKey || storyboardRunning}
+        />
+      </div>
+    )
+  }
+
+  if (pagesLoading) {
     return (
       <div className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
@@ -210,13 +237,14 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     )
   }
 
-  if (!page.sectioning || storyboardRunning) {
+  if (!page.sectioning) {
     return (
       <div className="p-4">
         <StageRunCard
           stageSlug="storyboard"
           description={STAGE_DESCRIPTIONS.storyboard}
           isRunning={storyboardRunning}
+          completed={storyboardDone}
           onRun={handleRunStoryboard}
           disabled={!hasApiKey || storyboardRunning}
         />

@@ -16,14 +16,14 @@ import {
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
-import { useStepRun } from "@/hooks/use-step-run"
+import { useBookRun } from "@/hooks/use-book-run"
 
 export function TextToSpeechSettings({ bookLabel, headerTarget }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
   const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
-  const { queueRun } = useStepRun()
+  const { queueRun } = useBookRun()
   const navigate = useNavigate()
   const [showRerunDialog, setShowRerunDialog] = useState(false)
 
@@ -72,7 +72,7 @@ export function TextToSpeechSettings({ bookLabel, headerTarget }: { bookLabel: s
         onSuccess: async () => {
           setDirty({})
           setShowRerunDialog(false)
-          queueRun({ fromStep: "text-and-speech", toStep: "text-and-speech", apiKey, azure: { key: azureKey, region: azureRegion } })
+          queueRun({ fromStage: "text-and-speech", toStage: "text-and-speech", apiKey, azure: { key: azureKey, region: azureRegion } })
           navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "text-and-speech" } })
         },
       }

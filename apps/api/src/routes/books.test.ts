@@ -4,7 +4,9 @@ import os from "node:os"
 import path from "node:path"
 import { openBookDb, createBookStorage } from "@adt/storage"
 import { SCHEMA_VERSION } from "@adt/types"
+import type { StageService } from "../services/stage-service.js"
 import { createBookRoutes } from "./books.js"
+import { createStageRoutes } from "./stages.js"
 
 let tmpDir: string
 
@@ -513,33 +515,59 @@ describe("POST /books/:label/accept-storyboard", () => {
 })
 
 describe("GET /books/:label/step-status", () => {
-  it("does not mark extract complete when only pages exist", async () => {
+  /** Minimal mock StageService — no active runs, no queue */
+  function mockStageService(): StageService {
+    return {
+      getStatus: () => ({ active: null, queue: [] }),
+      getStageStates: () => ({}),
+      addListener: () => () => {},
+      startStageRun: () => ({ status: "started" as const, id: "mock" }),
+    }
+  }
+
+  it("does not mark extract complete when only some steps are done", async () => {
     createTestBook("extract-incomplete")
-    addExtractPages("extract-incomplete", 2)
-    const app = createBookRoutes(tmpDir)
+    const storage = createBookStorage("extract-incomplete", tmpDir)
+    try {
+      storage.markStepComplete("extract")
+      storage.markStepComplete("metadata")
+    } finally {
+      storage.close()
+    }
+    const app = createStageRoutes(mockStageService(), tmpDir, "")
 
     const res = await app.request("/books/extract-incomplete/step-status")
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.steps.extract).not.toBe(true)
+    // Extract stage should not be done — only 2 of its steps are complete
+    expect(body.stages.extract).not.toBe("done")
+    // Individual steps should be marked done
+    expect(body.steps.extract).toBe("done")
+    expect(body.steps.metadata).toBe("done")
   })
 
-  it("marks extract complete only when summary and per-page classifications exist", async () => {
+  it("marks extract complete when all extract steps are done", async () => {
     createTestBook("extract-complete")
-    addExtractPages("extract-complete", 2)
-    addExtractNodes("extract-complete", 2, false)
-    const app = createBookRoutes(tmpDir)
+    const storage = createBookStorage("extract-complete", tmpDir)
+    try {
+      // Mark all extract stage steps as complete
+      for (const step of [
+        "extract", "metadata", "image-filtering", "image-segmentation",
+        "image-cropping", "image-meaningfulness", "text-classification",
+        "book-summary", "translation",
+      ]) {
+        storage.markStepComplete(step)
+      }
+    } finally {
+      storage.close()
+    }
+    const app = createStageRoutes(mockStageService(), tmpDir, "")
 
-    const beforeSummaryRes = await app.request("/books/extract-complete/step-status")
-    expect(beforeSummaryRes.status).toBe(200)
-    const beforeSummaryBody = await beforeSummaryRes.json()
-    expect(beforeSummaryBody.steps.extract).not.toBe(true)
-
-    addExtractNodes("extract-complete", 2, true)
-    const afterSummaryRes = await app.request("/books/extract-complete/step-status")
-    expect(afterSummaryRes.status).toBe(200)
-    const afterSummaryBody = await afterSummaryRes.json()
-    expect(afterSummaryBody.steps.extract).toBe(true)
+    const res = await app.request("/books/extract-complete/step-status")
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    // All extract steps done → stage should be done
+    expect(body.stages.extract).toBe("done")
   })
 })
 

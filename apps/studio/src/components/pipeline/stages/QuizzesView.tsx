@@ -7,7 +7,7 @@ import { useQuizzes } from "@/hooks/use-quizzes"
 import { usePageImage } from "@/hooks/use-pages"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import { useStepHeader } from "../StepViewRouter"
-import { useStepRun } from "@/hooks/use-step-run"
+import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { StageRunCard } from "../StageRunCard"
 import { STAGE_DESCRIPTIONS } from "../stage-config"
@@ -271,14 +271,16 @@ export function QuizzesView({ bookLabel, selectedPageId }: { bookLabel: string; 
   const queryClient = useQueryClient()
   const { data, isLoading } = useQuizzes(bookLabel)
   const { setExtra } = useStepHeader()
-  const { progress: stepProgress, queueRun } = useStepRun()
+  const { stageState, queueRun } = useBookRun()
   const { apiKey, hasApiKey } = useApiKey()
-  const quizzesState = stepProgress.steps.get("quizzes")?.state
+  const quizzesState = stageState("quizzes")
+  const quizzesDone = quizzesState === "done"
   const quizzesRunning = quizzesState === "running" || quizzesState === "queued"
+  const showRunCard = !quizzesDone || quizzesRunning
 
   const handleRunQuizzes = useCallback(() => {
     if (!hasApiKey || quizzesRunning) return
-    queueRun({ fromStep: "quizzes", toStep: "quizzes", apiKey })
+    queueRun({ fromStage: "quizzes", toStage: "quizzes", apiKey })
   }, [hasApiKey, quizzesRunning, apiKey, queueRun])
 
   const [pending, setPending] = useState<QuizData | null>(null)
@@ -368,7 +370,7 @@ export function QuizzesView({ bookLabel, selectedPageId }: { bookLabel: string; 
     })
   }
 
-  if (isLoading && !quizzesRunning) {
+  if (!showRunCard && isLoading) {
     return (
       <div className="flex items-center justify-center py-12 text-muted-foreground">
         <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -377,13 +379,14 @@ export function QuizzesView({ bookLabel, selectedPageId }: { bookLabel: string; 
     )
   }
 
-  if (quizzes.length === 0 || quizzesRunning) {
+  if (showRunCard || quizzes.length === 0) {
     return (
       <div className="p-4">
         <StageRunCard
           stageSlug="quizzes"
           description={STAGE_DESCRIPTIONS.quizzes}
           isRunning={quizzesRunning}
+          completed={quizzesDone}
           onRun={handleRunQuizzes}
           disabled={!hasApiKey || quizzesRunning}
         />

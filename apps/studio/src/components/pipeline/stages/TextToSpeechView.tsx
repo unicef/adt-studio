@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Loader2, Play, Pause, Volume2 } from "lucide-react"
+import { Loader2, Play, Pause } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { api, getAudioUrl } from "@/api/client"
 import { useStepHeader } from "../StepViewRouter"
-import { useStepRun } from "@/hooks/use-step-run"
+import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { StageRunCard } from "../StageRunCard"
 import { STAGE_DESCRIPTIONS } from "../stage-config"
@@ -12,14 +12,16 @@ import { cn } from "@/lib/utils"
 
 export function TextToSpeechView({ bookLabel }: { bookLabel: string }) {
   const { setExtra } = useStepHeader()
-  const { progress: stepProgress, queueRun } = useStepRun()
+  const { stageState, queueRun } = useBookRun()
   const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
-  const stageState = stepProgress.steps.get("text-and-speech")?.state
-  const ttsRunning = stageState === "running" || stageState === "queued"
+  const ttsState = stageState("text-and-speech")
+  const textAndSpeechDone = ttsState === "done"
+  const ttsRunning = ttsState === "running" || ttsState === "queued"
+  const showRunCard = !textAndSpeechDone || ttsRunning
 
   const handleRunTTS = useCallback(() => {
     if (!hasApiKey || ttsRunning) return
-    queueRun({ fromStep: "text-and-speech", toStep: "text-and-speech", apiKey, azure: { key: azureKey, region: azureRegion } })
+    queueRun({ fromStage: "text-and-speech", toStage: "text-and-speech", apiKey, azure: { key: azureKey, region: azureRegion } })
   }, [hasApiKey, ttsRunning, apiKey, azureKey, azureRegion, queueRun])
 
   const { data: ttsData, isLoading: ttsLoading } = useQuery({
@@ -77,7 +79,7 @@ export function TextToSpeechView({ bookLabel }: { bookLabel: string }) {
 
   const isLoading = ttsLoading || catalogLoading
 
-  if (isLoading && !ttsRunning) {
+  if (!showRunCard && isLoading) {
     return (
       <div className="flex items-center justify-center py-12 text-muted-foreground">
         <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -86,13 +88,14 @@ export function TextToSpeechView({ bookLabel }: { bookLabel: string }) {
     )
   }
 
-  if (!ttsData || languages.length === 0 || ttsRunning) {
+  if (showRunCard || !ttsData || languages.length === 0) {
     return (
       <div className="p-4">
         <StageRunCard
           stageSlug="text-and-speech"
           description={STAGE_DESCRIPTIONS["text-and-speech"]}
           isRunning={ttsRunning}
+          completed={textAndSpeechDone}
           onRun={handleRunTTS}
           disabled={!hasApiKey || ttsRunning}
         />
