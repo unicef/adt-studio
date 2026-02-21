@@ -1,13 +1,11 @@
 import { useState, useEffect, useCallback } from "react"
 import { createFileRoute, Outlet, useParams, useNavigate, Link, useMatchRoute } from "@tanstack/react-router"
-import { Home, Settings, RotateCcw, Terminal } from "lucide-react"
+import { Home, Terminal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DebugPanel } from "@/components/debug/DebugPanel"
 import { StageSidebar } from "@/components/pipeline/StageSidebar"
-import { STAGES } from "@/components/pipeline/stage-config"
 import { useBook } from "@/hooks/use-books"
 import { useBookRunStatus, BookRunProvider } from "@/hooks/use-book-run"
-import { useSettingsDialog } from "@/routes/__root"
 
 export const Route = createFileRoute("/books/$label")({
   component: BookLayout,
@@ -33,8 +31,6 @@ function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boole
   const isDebugRoute = !!matchRoute({ to: "/books/$label/debug", params: { label } })
 
   const activeStep = step ?? "book"
-  const activeStage = STAGES.find((s) => s.slug === activeStep) ?? STAGES[0]
-  const stageHex = activeStage.hex
 
   const onSelectPage = useCallback(
     (pid: string | null) => {
@@ -52,8 +48,6 @@ function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boole
     },
     [navigate, label, activeStep]
   )
-
-  const { openSettings } = useSettingsDialog()
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (isDebugRoute) return
@@ -95,36 +89,6 @@ function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boole
                     ADT Studio
                   </span>
                 </Link>
-                {activeStep === "preview" ? (
-                  <button
-                    onClick={() => window.dispatchEvent(new CustomEvent("adt:repackage"))}
-                    title="Re-package ADT"
-                    className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full text-white hover:brightness-110 transition-[filter] mx-1.5"
-                    style={{ backgroundColor: stageHex }}
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                  </button>
-                ) : activeStep === "book" ? (
-                  <button
-                    onClick={openSettings}
-                    title="API Key Settings"
-                    className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full text-white hover:brightness-110 transition-[filter] mx-1.5"
-                    style={{ backgroundColor: stageHex }}
-                  >
-                    <Settings className="h-3.5 w-3.5" />
-                  </button>
-                ) : (
-                  <Link
-                    to="/books/$label/$step/settings"
-                    params={{ label, step: activeStep }}
-                    search={{ tab: "general" }}
-                    title={`${activeStage?.label ?? "Stage"} Settings`}
-                    className="shrink-0 flex items-center justify-center w-7 h-7 rounded-full text-white hover:brightness-110 transition-[filter] mx-1.5"
-                    style={{ backgroundColor: stageHex }}
-                  >
-                    <Settings className="h-3.5 w-3.5" />
-                  </Link>
-                )}
               </div>
 
               {/* Steps / Pages */}

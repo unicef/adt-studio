@@ -5,6 +5,8 @@ import {
   FileDown,
   ChevronDown,
   Loader2,
+  RotateCcw,
+  Settings,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -17,6 +19,7 @@ import {
   hasStagePages,
   toCamelLabel,
 } from "./stage-config"
+import { useSettingsDialog } from "@/routes/__root"
 
 const EXTRACT_SETTINGS_TABS = [
   { key: "general", label: "General" },
@@ -82,6 +85,7 @@ export function StageSidebar({
   const matchRoute = useMatchRoute()
   const search = useSearch({ strict: false }) as { tab?: string }
   const { stageState } = useBookRun()
+  const { openSettings } = useSettingsDialog()
 
   const effectivePagesOpen =
     hasStagePages(activeStep) &&
@@ -102,7 +106,6 @@ export function StageSidebar({
   const x = {
     gap:       "gap-2.5",
     showLabel: "inline",
-    showBtn:   "inline-flex",
     showFlex:  "flex",
     flex1:     "flex-1",
   }
@@ -126,11 +129,10 @@ export function StageSidebar({
         {/* Step row */}
         <div
           className={cn(
-            "flex items-center gap-0 py-2 text-sm transition-colors",
+            "group/row flex items-center py-2 text-sm transition-colors overflow-hidden",
             x.gap,
-            "justify-start mx-0 px-0",
             isActive
-              ? cn(step.color, "text-white font-medium rounded-l-[14px] ml-0.5 pl-2")
+              ? cn(step.color, "text-white font-medium rounded-l-[14px] ml-0.5 pl-2 pr-2.5")
               : "text-muted-foreground hover:text-foreground hover:bg-muted px-2.5"
           )}
         >
@@ -139,7 +141,7 @@ export function StageSidebar({
             params={selectedPageId && hasStagePages(step.slug)
               ? { label: bookLabel, step: step.slug, pageId: selectedPageId }
               : { label: bookLabel, step: step.slug }}
-            className={cn("flex items-center gap-2.5 min-w-0", x.flex1)}
+            className={cn("flex items-center gap-2.5 min-w-7", x.flex1)}
             title={step.label}
           >
             <div className="relative shrink-0">
@@ -162,6 +164,50 @@ export function StageSidebar({
             </span>
           </Link>
 
+          {settingsTabs ? (
+            <Link
+              to="/books/$label/$step/settings"
+              params={{ label: bookLabel, step: step.slug }}
+              search={{ tab: "general" }}
+              title={`${step.label} Settings`}
+              className={cn(
+                "shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors",
+                isActive
+                  ? "text-white/60 hover:text-white hover:bg-white/20"
+                  : "opacity-0 group-hover/row:opacity-100 text-muted-foreground/50 group-hover/row:bg-muted hover:text-foreground hover:bg-muted-foreground/20"
+              )}
+            >
+              <Settings className="w-3.5 h-3.5" />
+            </Link>
+          ) : step.slug === "book" ? (
+            <button
+              type="button"
+              onClick={openSettings}
+              title="API Key Settings"
+              className={cn(
+                "shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors cursor-pointer",
+                isActive
+                  ? "text-white/60 hover:text-white hover:bg-white/20"
+                  : "opacity-0 group-hover/row:opacity-100 text-muted-foreground/50 group-hover/row:bg-muted hover:text-foreground hover:bg-muted-foreground/20"
+              )}
+            >
+              <Settings className="w-3.5 h-3.5" />
+            </button>
+          ) : step.slug === "preview" ? (
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent("adt:repackage"))}
+              title="Re-package ADT"
+              className={cn(
+                "shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors cursor-pointer",
+                isActive
+                  ? "text-white/60 hover:text-white hover:bg-white/20"
+                  : "opacity-0 group-hover/row:opacity-100 text-muted-foreground/50 group-hover/row:bg-muted hover:text-foreground hover:bg-muted-foreground/20"
+              )}
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+            </button>
+          ) : null}
         </div>
 
         {/* Settings sub-tabs */}
