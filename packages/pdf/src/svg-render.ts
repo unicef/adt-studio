@@ -1,38 +1,26 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
-
-const esmRequire = createRequire(import.meta.url);
-
-const RESVG_PKG = "@resvg/resvg-wasm";
-
-interface ResvgRendered {
-  asPng(): Uint8Array;
-  free(): void;
-}
-
-interface ResvgInstance {
-  render(): ResvgRendered;
-  free(): void;
-}
-
-interface ResvgModule {
-  initWasm: (data: ArrayBufferView | ArrayBuffer) => Promise<void>;
-  Resvg: new (svg: string, options?: Record<string, unknown>) => ResvgInstance;
-}
+import { fileURLToPath } from "node:url";
+import { Resvg, initWasm } from "@resvg/resvg-wasm";
 
 // Promise-based singleton: avoids race conditions (concurrent callers await
 // the same promise) and retries on failure (promise is cleared on rejection).
-let initPromise: Promise<ResvgModule> | null = null;
+let initPromise: Promise<void> | null = null;
 
-function ensureWasm(): Promise<ResvgModule> {
+function findWasm(): string {
+  // After esbuild bundling, the WASM file sits next to the bundle.
+  const bundled = join(dirname(fileURLToPath(import.meta.url)), "index_bg.wasm");
+  if (existsSync(bundled)) return bundled;
+  // In dev (unbundled), resolve from node_modules via require.resolve.
+  const pkgMain = createRequire(import.meta.url).resolve("@resvg/resvg-wasm");
+  return join(dirname(pkgMain), "index_bg.wasm");
+}
+
+function ensureWasm(): Promise<void> {
   if (!initPromise) {
     initPromise = (async () => {
-      const mod = esmRequire(RESVG_PKG) as ResvgModule;
-      const pkgMain = esmRequire.resolve(RESVG_PKG);
-      const wasmPath = join(dirname(pkgMain), "index_bg.wasm");
-      await mod.initWasm(readFileSync(wasmPath));
-      return mod;
+      await initWasm(readFileSync(findWasm()));
     })();
     // If init fails, clear the promise so the next call retries.
     initPromise.catch(() => {
@@ -46,9 +34,9 @@ export async function renderSvgToPng(
   svgString: string,
   options?: { zoom?: number }
 ): Promise<Buffer> {
-  const mod = await ensureWasm();
+  await ensureWasm();
   const zoom = options?.zoom ?? 2;
-  const resvg = new mod.Resvg(svgString, {
+  const resvg = new Resvg(svgString, {
     fitTo: { mode: "zoom", value: zoom },
     font: { loadSystemFonts: false },
   });
