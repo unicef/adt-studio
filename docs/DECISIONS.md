@@ -27,6 +27,7 @@ This document records all significant technology and architecture decisions made
 19. [Unified Stage Sidebar (Single Expandable Rail)](#019-unified-stage-sidebar-single-expandable-rail)
 20. [Stage Color System — Single Source of Truth](#020-stage-color-system--single-source-of-truth)
 21. [Context-Aware Top Bar Button](#021-context-aware-top-bar-button)
+22. [Unified Stage/Step Status via useBookRun](#022-unified-stagestep-status-via-usebookrun)
 
 ---
 
@@ -432,14 +433,16 @@ Use shadcn/ui as the component library for the React frontend (Default style, Ne
 
 ### Decision
 
-Use Server-Sent Events (SSE) for streaming real-time pipeline progress from API to frontend.
+Use Server-Sent Events (SSE) for streaming real-time pipeline progress from API to frontend. The SSE connection is **always-on** — it opens when the book layout mounts and stays open until unmount. SSE events patch the TanStack Query cache directly via `setQueryData`, eliminating the need for a separate local state machine.
 
 ### Reasoning
 
 - **One-way stream**: Pipeline progress is server→client only. SSE is purpose-built for this.
-- **Native browser support**: `EventSource` API with automatic reconnection.
+- **Native browser support**: `EventSource` API with automatic reconnection — no toggle or manual reconnect logic needed.
 - **Hono built-in**: `streamSSE()` helper, zero extra dependencies.
 - **Matches pipeline design**: Pipeline already emits `ProgressEvent` (discriminated union). We serialize and send.
+- **Always-on eliminates race conditions**: No SSE enable/disable toggle means no missed events during connection setup. On `open` (including reconnection), a full `step-status` refetch runs to catch any events missed during the gap.
+- **Cache-patching avoids dual-source bugs**: SSE events update the same TanStack Query cache that the `step-status` endpoint populates. Components read from one source via `useBookRun()`.
 
 ### Alternatives Considered
 
@@ -447,6 +450,7 @@ Use Server-Sent Events (SSE) for streaming real-time pipeline progress from API 
 |--------|---------|
 | Polling | Higher latency, unnecessary requests, less responsive UI |
 | WebSocket | Full duplex overkill for one-way progress, more complex server setup |
+| SSE with local state machine | Dual-source (SSE state + query cache) required reconciliation everywhere, caused bugs |
 
 ---
 
@@ -640,27 +644,27 @@ Each job carries a `beforeRun` callback that clears downstream pipeline data. Th
 
 The SSE stream (`GET /steps/status`) stays open across queue transitions. A new `queue-next` event type tells the frontend when a queued run starts executing. The stream only closes when the active job finishes AND the queue is empty.
 
-#### Frontend Promise Chain (`apps/studio/src/routes/books.$label.tsx`)
+#### Frontend Promise Chain (`apps/studio/src/hooks/use-book-run.ts`)
 
 A `runChainRef` (ref to a `Promise<void>`) serializes API calls. Each `queueRun()` call chains onto the previous promise, ensuring HTTP POSTs arrive at the server in the exact order the user clicked — even if they click rapidly. Without this, concurrent `fetch()` calls could arrive out of order due to network timing.
 
 #### Centralized `queueRun` Context Function
 
-All 14 run handlers (7 View components + 7 Settings components) previously managed their own `startRun` + `setSseEnabled` + `api.runSteps` + `queryClient.removeQueries` sequence. This is now a single `queueRun(options)` function provided through `StepRunContext`, eliminating duplication and ensuring consistent behavior.
+All run handlers call `queueRun(options)` from `useBookRun()`. The function does an optimistic cache update (mark stage "queued", clear downstream steps via `getStageClearOrder`), then chains the API call. This is provided through `BookRunContext`, eliminating duplication and ensuring consistent behavior.
 
-#### Aggressive Query Invalidation
+#### Query Invalidation
 
-On every stage start (`status === "started"`), all TanStack Query cache entries for the book are removed via `queryClient.removeQueries({ queryKey: ["books", label] })`. This is simpler than targeted per-stage invalidation and stage starts are infrequent enough that the cost is negligible. Queued runs (`status === "queued"`) skip invalidation since data hasn't been cleared yet.
+`queueRun` invalidates `step-status` after the API call returns (backend has already cleared downstream data). SSE events trigger targeted invalidation on `step-complete` (per-stage data queries) and full refetch on `complete` / `queue-next`.
 
 ### Key Files
 
 | File | Role |
 |------|------|
-| `apps/api/src/services/step-service.ts` | Backend queue logic, `BookRunState`, `drainQueue()` |
-| `apps/api/src/routes/steps.ts` | Route changes, `beforeRun` closure, SSE continuity |
-| `apps/studio/src/hooks/use-step-run.ts` | `startRun` merges state, `queue-next` handler, `QueueRunOptions` |
-| `apps/studio/src/routes/books.$label.tsx` | `queueRun` with promise chain serialization |
-| `apps/studio/src/components/pipeline/stages/*` | All handlers use `queueRun` |
+| `apps/api/src/services/stage-service.ts` | Backend queue logic, `BookRunState`, `drainQueue()`, `getStageStates()` |
+| `apps/api/src/routes/stages.ts` | Route changes, `beforeRun` closure, SSE stream, `step-status` endpoint |
+| `apps/studio/src/hooks/use-book-run.ts` | Unified hook: TanStack Query + SSE cache-patching + `queueRun` + promise chain |
+| `apps/studio/src/routes/books.$label.tsx` | `BookRunProvider` wrapping book layout |
+| `apps/studio/src/components/pipeline/stages/*` | All handlers use `queueRun` from `useBookRun()` |
 
 ### Alternatives Considered
 
@@ -757,6 +761,53 @@ Previously, each stage row in the sidebar had its own settings gear or refresh b
 
 ---
 
+## 022: Unified Stage/Step Status via useBookRun
+
+**Status**: Decided
+**Date**: 2026-02-20
+
+### Decision
+
+Replace the dual-source stage/step status system (local React state from SSE + server TanStack Query cache) with a single unified `useBookRun()` hook that treats the TanStack Query cache as the sole source of truth, patched live by SSE events.
+
+### Context
+
+Previously, stage/step status came from two independent sources:
+
+1. **Local React state** (`use-stage-run.ts`) — SSE progress events populated `steps`, `subSteps`, `targetSteps` maps. Lost on page refresh.
+2. **Server query cache** (`step-status` via TanStack Query) — DB `step_completions` table. Survived refresh but lagged behind SSE.
+
+Every consumer had to consult both, with guards like `stageIsActive`, `completedNodes` fallback, manual `setQueryData` calls, and `sseEnabled` toggling with reconnection logic. Stage views each had 5-10 lines of boilerplate combining these sources. Bugs arose when the two sources disagreed — e.g., step statuses not clearing on rerun, spinners not stopping when DB said "done" but SSE said "running".
+
+### Architecture
+
+1. **Backend `step-status` endpoint** (`GET /books/:label/step-status`) merges `StageService.getStageStates()` (in-memory run state: running/queued/error) with DB `step_completions` (done) into a single response with per-stage and per-step states.
+
+2. **Always-on SSE** — one connection per book, open on mount, close on unmount. No toggle, no reconnect logic. `EventSource` handles reconnection natively. On `open`, a full refetch catches any missed events.
+
+3. **SSE patches query cache** — `step-start`, `step-complete`, `step-error` etc. directly call `setQueryData` on the `step-status` query. Sub-step progress (page X/Y) is stored in a `useRef<Map>` with a tick counter for reactivity.
+
+4. **Single hook API** — `useBookRun()` provides `stageState()`, `stepState()`, `stepProgress()`, `queueRun()`, `error`, `isRunning`. Stage views go from ~7 lines of status boilerplate to ~2.
+
+### Key Files
+
+| File | Role |
+|------|------|
+| `apps/api/src/services/stage-service.ts` | `getStageStates()` — merges in-memory run state |
+| `apps/api/src/routes/stages.ts` | Unified `step-status` endpoint, always-on SSE |
+| `apps/studio/src/hooks/use-book-run.ts` | TanStack Query + SSE cache-patching + `queueRun` |
+| `apps/studio/src/routes/books.$label.tsx` | `BookRunProvider` wrapping book layout |
+
+### Alternatives Considered
+
+| Approach | Why Not |
+|----------|---------|
+| Keep dual-source, fix reconciliation bugs | Fundamental complexity — every new consumer must correctly merge two sources |
+| Move all state to SSE (no query cache) | Loses state on page refresh, can't preload status before SSE connects |
+| Polling instead of SSE | Higher latency, unnecessary requests — SSE is already working well |
+
+---
+
 ## Decision Log Summary
 
 | # | Decision | Chosen | Over |
@@ -773,7 +824,7 @@ Previously, each stage row in the sidebar had its own settings gear or refresh b
 | 010 | Testing | Vitest | Jest |
 | 011 | Class utility | clsx | classnames |
 | 012 | UI components | shadcn/ui | MUI, Headless UI, raw Tailwind |
-| 013 | Progress streaming | SSE | Polling, WebSocket |
+| 013 | Progress streaming | Always-on SSE with cache-patching | Polling, WebSocket, SSE with local state machine |
 | 014 | Debug panel | Bottom drawer + REST + SSE | External viewer, console logs |
 | 015 | Navigation | Breadcrumb per page | Global header, sidebar |
 | 016 | Home layout | 30/70 split (guide + books) | Full-width grid, centered content |
@@ -782,3 +833,4 @@ Previously, each stage row in the sidebar had its own settings gear or refresh b
 | 019 | Stage sidebar | Single expandable rail with CSS hover | Two separate components, JS-driven hover |
 | 020 | Stage colors | Single source in stage-config.ts | Scattered hex/class maps across files |
 | 021 | Top bar button | Context-aware per stage | Per-stage inline buttons in sidebar |
+| 022 | Stage/step status | Unified `useBookRun()` with SSE cache-patching | Dual-source (local SSE state + query cache) |

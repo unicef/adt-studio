@@ -96,6 +96,11 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     const url = `/api/books/${label}/stages/status`
     const es = new EventSource(url)
 
+    // Refetch on (re)connection to catch up on any missed events
+    es.addEventListener("open", () => {
+      queryClient.invalidateQueries({ queryKey: stepStatusKey(label) })
+    })
+
     es.addEventListener("progress", (e) => {
       const d = JSON.parse(e.data)
       const pipelineStep = d.step as string

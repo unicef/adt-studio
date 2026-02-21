@@ -704,23 +704,23 @@ Key files:
 - `apps/studio/src/components/pipeline/StageRunCard.tsx` — UI card (sub-steps derived from PIPELINE)
 - `apps/studio/src/components/pipeline/stages/` — Per-stage view components
 
-### Step Run Queue
+### Stage Run Queue
 
 Stage runs are queued per-book — if a run is already active, new runs wait and execute sequentially. Key patterns:
 
-- **Backend**: `step-service.ts` manages a `BookRunState` per book with an active job and a queue. Jobs drain automatically on completion/failure.
-- **Frontend**: All 14 run handlers (7 Views + 7 Settings) call `queueRun(options)` from `StepRunContext` — never `api.runSteps` directly. This function serializes API calls through a promise chain to preserve click ordering.
+- **Backend**: `stage-service.ts` manages a `BookRunState` per book with an active job and a queue. Jobs drain automatically on completion/failure.
+- **Frontend**: All run handlers call `queueRun(options)` from `useBookRun()` — never `api.runStages` directly. This function does an optimistic cache update (mark stage "queued", clear downstream), then chains the API call through a promise chain to preserve click ordering.
 - **Data clearing**: Happens via a `beforeRun` callback when the job *starts executing*, not when enqueued. This prevents clearing data for a stage that hasn't started yet.
-- **SSE continuity**: The progress stream stays open across queue transitions. A `queue-next` event signals when a queued run begins executing.
-- **Query invalidation**: Use `invalidateQueries` — never `removeQueries`. `removeQueries` deletes cached data, causing completed stages to flash to "unrun" while the refetch is in flight. `invalidateQueries` keeps stale data visible during the refetch, preventing visual glitches. Invalidation happens in two places: (1) `queueRun` invalidates `step-status` after the API call returns (backend has already cleared downstream data), and (2) the SSE handler invalidates on `queue-next` for queued runs.
+- **SSE continuity**: The SSE stream is always-on (opens on book mount, closes on unmount). A `queue-next` event signals when a queued run begins executing, triggering a full refetch.
+- **Query invalidation**: Use `invalidateQueries` — never `removeQueries`. `removeQueries` deletes cached data, causing completed stages to flash to "unrun" while the refetch is in flight. `invalidateQueries` keeps stale data visible during the refetch, preventing visual glitches.
 
 ```typescript
-// CORRECT: Use queueRun from context (handles startRun + SSE + API call + invalidation)
-const { queueRun } = useStepRun()
-queueRun({ fromStep: "storyboard", toStep: "storyboard", apiKey })
+// CORRECT: Use queueRun from context (handles optimistic update + API call + invalidation)
+const { queueRun } = useBookRun()
+queueRun({ fromStage: "storyboard", toStage: "storyboard", apiKey })
 
 // WRONG: Calling API directly from a handler
-await api.runSteps(label, apiKey, { fromStep, toStep })
+await api.runStages(label, apiKey, { fromStage, toStage })
 ```
 
 ### Pipeline Functions
@@ -950,7 +950,7 @@ const result = await client.complete({
 })
 ```
 
-### Progress Reporting
+### Progress Reporting & SSE
 
 Pipeline progress uses a `ProgressEvent` discriminated union streamed via SSE. Events are emitted per-step (not per-stage):
 
@@ -959,36 +959,53 @@ Pipeline progress uses a `ProgressEvent` discriminated union streamed via SSE. E
 // - step-start:    { step: StepName }
 // - step-progress: { step: StepName, page, totalPages }
 // - step-complete: { step: StepName }
+// - step-skip:     { step: StepName }
 // - step-error:    { step: StepName, error }
 
 // The DAG runner emits these automatically as steps execute.
 // The UI maps step events to their parent stage via STEP_TO_STAGE.
 ```
 
-### Step Completion & Stage Status
+**Always-on SSE**: The SSE connection (`GET /api/books/:label/stages/status`) opens when the book layout mounts and stays open until unmount. There is no toggle or reconnection logic — `EventSource` handles reconnection automatically. On every `open` event (initial connection or reconnection), a full `step-status` refetch runs to catch any events missed during the gap.
 
-Step completion is tracked explicitly in the `step_completions` DB table — never inferred from the existence of output data. The step runner records completions on `step-complete` and `step-skip` events. The step-status API endpoint reads from this table.
+**SSE patches the TanStack Query cache**: SSE events directly update the `step-status` query data via `setQueryData`, keeping the cache in sync without local state machines:
 
-**DB is the single source of truth for completion.** The frontend SSE handler tracks only running/progress/error state and per-sub-step progress. It never marks a stage as "done". Stage completion comes solely from the `step-status` TanStack Query, which reads from the DB.
+- `step-start` → mark step and stage as `"running"`
+- `step-progress` → update a local progress ref (page X/Y, cosmetic) and ensure step is marked `"running"` (handles missed `step-start` on reconnect)
+- `step-complete` / `step-skip` → mark step as `"done"`, recompute parent stage (done if all steps done)
+- `step-error` → mark stage as `"error"`, set error message
+- `queue-next` → `invalidateQueries` (new run started, full refetch)
+- `complete` → `invalidateQueries` (run finished, reconcile with DB)
 
-**A stage is complete only when ALL its steps are done.** Steps within a stage run in parallel via the DAG runner, so the last-listed step is not necessarily the last to finish. Check `stage.steps.every(s => completedSteps.has(s.name))`.
+### Stage & Step Status
 
-**DB completion overrides SSE running state.** When `step-status` says a stage is complete, stop the spinner even if SSE still says "running". Both `StageSidebar` and `BookView` must use this same pattern:
+Stage/step status comes from a **single source of truth**: the `GET /books/:label/step-status` endpoint, cached via TanStack Query and patched live by SSE events. The backend computes stage states by merging two sources:
+
+1. **`step_completions` DB table** — persistent record of which steps have completed (survives page refresh)
+2. **`StageService` in-memory state** — which stages are currently running, queued, or errored
+
+The merged response:
+```json
+{
+  "stages": { "extract": "done", "storyboard": "running", "quizzes": "queued", ... },
+  "steps": { "extract": "done", "metadata": "done", "page-sectioning": "running", ... },
+  "error": null
+}
+```
+
+The frontend reads this via the `useBookRun()` hook. Stage views need only:
 
 ```typescript
-// CORRECT: DB completion takes priority
-const stageCompleted = isStageCompleted(step.slug, completedSteps)
-const isRunning = !stageCompleted && (ringState === "running" || ringState === "queued")
-
-// WRONG: Using SSE state alone to determine completion
-const isDone = ringState === "done"  // SSE never sets "done" for stages
+const { stageState, queueRun } = useBookRun()
+const state = stageState("storyboard")        // "idle" | "queued" | "running" | "done" | "error"
+const showRunCard = state !== "done"
 ```
 
 Key rules:
 - **Recording**: `step-runner.ts` wraps the progress emitter to call `storage.markStepComplete(step)` on every `step-complete`/`step-skip` event. This is the only place completions are recorded.
-- **Clearing**: `makeBeforeRun` in `steps.ts` clears `step_completions` for the target stage and all downstream stages (via `getStageClearOrder`).
+- **Clearing**: `makeBeforeRun` in `stages.ts` clears `step_completions` for the target stage and all downstream stages (via `getStageClearOrder`).
 - **Schema migrations**: The `step_completions` table was added in schema v7. Migrations backfill from existing `node_data` so previously-processed books don't appear incomplete.
-- **UI consistency**: Both `StageSidebar` and `BookView` (and any future UI showing stage status) must follow the same pattern — DB completion overrides SSE running state.
+- **Sub-step progress**: Page X/Y progress during running steps is stored in a `useRef<Map>` with a tick counter for reactivity, avoiding full re-renders on every progress event.
 
 ### Platform Detection
 
@@ -1205,12 +1222,11 @@ pnpm lint
 | API stage runners | `apps/api/src/services/step-runner.ts` |
 | LLM client | `packages/llm/src/client.ts` |
 | Stage view components | `apps/studio/src/components/pipeline/stages/` |
-| Step run service (queue) | `apps/api/src/services/step-service.ts` |
+| Stage run service (queue, SSE) | `apps/api/src/services/stage-service.ts` |
 | Book storage (DB schema, migrations) | `packages/storage/src/db.ts` |
 | Book storage interface | `packages/storage/src/storage.ts` |
-| Step run hook + context | `apps/studio/src/hooks/use-step-run.ts` |
-| Step run invalidation keys | `apps/studio/src/hooks/step-run-invalidation.ts` |
-| Book layout (queueRun) | `apps/studio/src/routes/books.$label.tsx` |
+| Unified book run hook + context | `apps/studio/src/hooks/use-book-run.ts` |
+| Book layout (BookRunProvider) | `apps/studio/src/routes/books.$label.tsx` |
 | Stage config (colors, icons, labels) | `apps/studio/src/components/pipeline/stage-config.ts` |
 | Stage sidebar | `apps/studio/src/components/pipeline/StageSidebar.tsx` |
 | Global config | `config/` |

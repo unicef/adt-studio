@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react"
-import { Loader2, Play, Pause, Volume2 } from "lucide-react"
+import { Loader2, Play, Pause } from "lucide-react"
 import { useQuery } from "@tanstack/react-query"
 import { api, getAudioUrl } from "@/api/client"
 import { useStepHeader } from "../StepViewRouter"
