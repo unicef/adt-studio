@@ -96,8 +96,7 @@ export interface FullPipelineOptions {
 /**
  * Run the full pipeline using the DAG runner.
  *
- * This replaces the old runPipeline → runProof → runMaster sequence
- * with a single DAG-driven execution.
+ * Run the full pipeline using the DAG runner for CLI use.
  */
 export async function runFullPipeline(
   options: FullPipelineOptions,
@@ -565,12 +564,6 @@ export async function runFullPipeline(
         })
       })
 
-      // Auto-accept storyboard for CLI / full-pipeline runs
-      const pages2 = storage.getPages()
-      storage.putNodeData("storyboard-acceptance", "book", {
-        acceptedAt: new Date().toISOString(),
-        renderedPageCount: pages2.length,
-      })
     })
 
     // ── Quizzes stage ───────────────────────────────────────────
@@ -683,12 +676,6 @@ export async function runFullPipeline(
       const pages = storage.getPages()
       const catalog = buildTextCatalog(storage, pages)
       storage.putNodeData("text-catalog", "book", catalog)
-
-      // Write proof-status for backward compatibility
-      storage.putNodeData("proof-status", "book", {
-        status: "completed",
-        completedAt: new Date().toISOString(),
-      })
     })
 
     executors.set("catalog-translation", async (p) => {

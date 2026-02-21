@@ -11,7 +11,6 @@ import {
   deleteBook,
   getBookConfig,
   updateBookConfig,
-  acceptStoryboard,
 } from "./book-service.js"
 
 let tmpDir: string
@@ -127,8 +126,6 @@ describe("listBooks", () => {
       hasSourcePdf: true,
       needsRebuild: false,
       rebuildReason: null,
-      storyboardAccepted: false,
-      proofCompleted: false,
     })
   })
 
@@ -147,8 +144,6 @@ describe("listBooks", () => {
       hasSourcePdf: false,
       needsRebuild: false,
       rebuildReason: null,
-      storyboardAccepted: false,
-      proofCompleted: false,
     })
   })
 
@@ -169,8 +164,6 @@ describe("listBooks", () => {
       hasSourcePdf: true,
       needsRebuild: false,
       rebuildReason: null,
-      storyboardAccepted: false,
-      proofCompleted: false,
     })
   })
 
@@ -377,75 +370,6 @@ describe("updateBookConfig", () => {
 
   it("throws for invalid label", () => {
     expect(() => updateBookConfig("-bad", tmpDir, {})).toThrow()
-  })
-})
-
-describe("acceptStoryboard", () => {
-  it("succeeds when all pages have renderings", () => {
-    createTestDb("accept-book")
-    addTestPages("accept-book", 3)
-    addTestRenderings("accept-book", 3)
-
-    const result = acceptStoryboard("accept-book", tmpDir)
-    expect(result.version).toBeGreaterThanOrEqual(1)
-    expect(result.acceptedAt).toBeTypeOf("string")
-  })
-
-  it("marks book as storyboardAccepted in listBooks", () => {
-    createTestDb("accepted")
-    addTestPages("accepted", 2)
-    addTestRenderings("accepted", 2)
-    addTestMetadata("accepted", { title: "Accepted Book", authors: [] })
-    createTestPdf("accepted")
-
-    acceptStoryboard("accepted", tmpDir)
-
-    const books = listBooks(tmpDir)
-    expect(books[0].storyboardAccepted).toBe(true)
-  })
-
-  it("marks book as storyboardAccepted in getBook", () => {
-    createTestDb("accepted-detail")
-    addTestPages("accepted-detail", 2)
-    addTestRenderings("accepted-detail", 2)
-    createTestPdf("accepted-detail")
-
-    acceptStoryboard("accepted-detail", tmpDir)
-
-    const book = getBook("accepted-detail", tmpDir)
-    expect(book.storyboardAccepted).toBe(true)
-  })
-
-  it("throws when some pages are not rendered", () => {
-    createTestDb("partial")
-    addTestPages("partial", 3)
-    addTestRenderings("partial", 1) // only 1 of 3 rendered
-
-    expect(() => acceptStoryboard("partial", tmpDir)).toThrow(
-      "Not all pages have been rendered"
-    )
-  })
-
-  it("throws when book has no pages", () => {
-    createTestDb("no-pages")
-
-    expect(() => acceptStoryboard("no-pages", tmpDir)).toThrow(
-      "No pages found"
-    )
-  })
-
-  it("increments version on re-accept", () => {
-    createTestDb("re-accept")
-    addTestPages("re-accept", 2)
-    addTestRenderings("re-accept", 2)
-
-    const first = acceptStoryboard("re-accept", tmpDir)
-    const second = acceptStoryboard("re-accept", tmpDir)
-    expect(second.version).toBe(first.version + 1)
-  })
-
-  it("throws for non-existent book", () => {
-    expect(() => acceptStoryboard("ghost", tmpDir)).toThrow("not found")
   })
 })
 

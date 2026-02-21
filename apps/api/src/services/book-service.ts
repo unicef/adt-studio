@@ -2,7 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import yaml from "js-yaml"
 import { parseBookLabel, BookLabel, BookMetadata, BookSummaryOutput } from "@adt/types"
-import { openBookDb, createBookStorage } from "@adt/storage"
+import { openBookDb } from "@adt/storage"
 
 export interface BookSummary {
   label: string
@@ -14,8 +14,6 @@ export interface BookSummary {
   hasSourcePdf: boolean
   needsRebuild: boolean
   rebuildReason: string | null
-  storyboardAccepted: boolean
-  proofCompleted: boolean
 }
 
 export interface BookDetail extends BookSummary {
@@ -25,28 +23,6 @@ export interface BookDetail extends BookSummary {
 
 function isSchemaMismatchError(err: unknown): err is Error {
   return err instanceof Error && err.message.includes("Schema version mismatch")
-}
-
-function isStoryboardAccepted(db: ReturnType<typeof openBookDb>): boolean {
-  const rows = db.all(
-    "SELECT data FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
-    ["storyboard-acceptance", "book"]
-  ) as Array<{ data: string }>
-  return rows.length > 0
-}
-
-function isProofCompleted(db: ReturnType<typeof openBookDb>): boolean {
-  const rows = db.all(
-    "SELECT data FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
-    ["proof-status", "book"]
-  ) as Array<{ data: string }>
-  if (rows.length === 0) return false
-  try {
-    const data = JSON.parse(rows[0].data) as { status?: string }
-    return data.status === "completed"
-  } catch {
-    return false
-  }
 }
 
 export function listBooks(booksDir: string): BookSummary[] {
@@ -72,8 +48,6 @@ export function listBooks(booksDir: string): BookSummary[] {
     let pageCount = 0
     let needsRebuild = false
     let rebuildReason: string | null = null
-    let storyboardAccepted = false
-    let proofCompleted = false
 
     if (fs.existsSync(dbPath)) {
       try {
@@ -99,8 +73,6 @@ export function listBooks(booksDir: string): BookSummary[] {
             }
           }
 
-          storyboardAccepted = isStoryboardAccepted(db)
-          proofCompleted = isProofCompleted(db)
         } finally {
           db.close()
         }
@@ -125,8 +97,6 @@ export function listBooks(booksDir: string): BookSummary[] {
       hasSourcePdf: fs.existsSync(pdfPath),
       needsRebuild,
       rebuildReason,
-      storyboardAccepted,
-      proofCompleted,
     })
   }
 
@@ -155,8 +125,6 @@ export function getBook(label: string, booksDir: string): BookDetail {
   let bookSummary: BookSummaryOutput | null = null
   let needsRebuild = false
   let rebuildReason: string | null = null
-  let storyboardAccepted = false
-  let proofCompleted = false
 
   if (fs.existsSync(dbPath)) {
     try {
@@ -194,9 +162,6 @@ export function getBook(label: string, booksDir: string): BookDetail {
             bookSummary = parsed.data
           }
         }
-
-        storyboardAccepted = isStoryboardAccepted(db)
-        proofCompleted = isProofCompleted(db)
       } finally {
         db.close()
       }
@@ -221,8 +186,6 @@ export function getBook(label: string, booksDir: string): BookDetail {
     hasSourcePdf: fs.existsSync(pdfPath),
     needsRebuild,
     rebuildReason,
-    storyboardAccepted,
-    proofCompleted,
     metadata,
     bookSummary,
   }
@@ -262,8 +225,6 @@ export function createBook(
     hasSourcePdf: true,
     needsRebuild: false,
     rebuildReason: null,
-    storyboardAccepted: false,
-    proofCompleted: false,
   }
 }
 
@@ -330,43 +291,3 @@ export function deleteBook(label: string, booksDir: string): void {
   fs.rmSync(bookDir, { recursive: true, force: true })
 }
 
-export function acceptStoryboard(
-  label: string,
-  booksDir: string
-): { version: number; acceptedAt: string } {
-  const safeLabel = parseBookLabel(label)
-  const resolvedDir = path.resolve(booksDir)
-  const bookDir = path.join(resolvedDir, safeLabel)
-
-  if (!fs.existsSync(bookDir)) {
-    throw new Error(`Book not found: ${safeLabel}`)
-  }
-
-  const storage = createBookStorage(safeLabel, resolvedDir)
-  try {
-    const pages = storage.getPages()
-    if (pages.length === 0) {
-      throw new Error("No pages found")
-    }
-
-    // Check that every page has a web-rendering
-    for (const page of pages) {
-      const rendering = storage.getLatestNodeData("web-rendering", page.pageId)
-      if (!rendering) {
-        throw new Error(
-          `Not all pages have been rendered (missing: ${page.pageId})`
-        )
-      }
-    }
-
-    const acceptedAt = new Date().toISOString()
-    const version = storage.putNodeData("storyboard-acceptance", "book", {
-      acceptedAt,
-      renderedPageCount: pages.length,
-    })
-
-    return { version, acceptedAt }
-  } finally {
-    storage.close()
-  }
-}

@@ -9,7 +9,6 @@ import {
   Building2,
   User,
   Globe,
-  CheckCircle2,
   Settings,
   Home,
   Pencil,
@@ -89,12 +88,6 @@ function BookRow({
                   className="text-[11px] px-2 py-0.5"
                 >
                   {book.pageCount > 0 ? `${book.pageCount} pages` : "New"}
-                </Badge>
-              )}
-              {book.storyboardAccepted && (
-                <Badge className="bg-green-100 text-green-800 hover:bg-green-100 text-[11px] px-2 py-0.5">
-                  <CheckCircle2 className="mr-1 h-3 w-3" />
-                  Accepted
                 </Badge>
               )}
               {!book.hasSourcePdf && (

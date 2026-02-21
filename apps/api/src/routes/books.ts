@@ -11,10 +11,8 @@ import {
   deleteBook,
   getBookConfig,
   updateBookConfig,
-  acceptStoryboard,
 } from "../services/book-service.js"
 import { exportBook } from "../services/export-service.js"
-import { exportBookEpub } from "../services/epub-service.js"
 
 const MIME_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -141,36 +139,14 @@ export function createBookRoutes(
     }
   })
 
-  // POST /books/:label/accept-storyboard — Accept the storyboard
-  app.post("/books/:label/accept-storyboard", (c) => {
-    const { label } = c.req.param()
-    try {
-      const result = acceptStoryboard(label, booksDir)
-      return c.json(result)
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err)
-      if (message.includes("not found")) {
-        throw new HTTPException(404, { message })
-      }
-      throw new HTTPException(400, { message })
-    }
-  })
-
   // NOTE: step-status endpoint is now in stages.ts (needs StageService for run state)
 
-  // GET /books/:label/export — Download book as ZIP or EPUB
+  // GET /books/:label/export — Download book as ZIP
   app.get("/books/:label/export", async (c) => {
     const { label } = c.req.param()
-    const format = c.req.query("format") ?? "web"
-    if (format !== "web" && format !== "epub") {
-      throw new HTTPException(400, { message: `Invalid format: ${format}. Must be "web" or "epub".` })
-    }
     try {
-      const result = format === "epub"
-        ? await exportBookEpub(label, booksDir, configPath)
-        : await exportBook(label, booksDir, webAssetsDir ?? "", configPath)
-      const contentType = format === "epub" ? "application/epub+zip" : "application/zip"
-      c.header("Content-Type", contentType)
+      const result = await exportBook(label, booksDir, webAssetsDir ?? "", configPath)
+      c.header("Content-Type", "application/zip")
       c.header(
         "Content-Disposition",
         `attachment; filename="${result.filename}"`

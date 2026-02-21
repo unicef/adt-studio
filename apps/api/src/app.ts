@@ -9,9 +9,6 @@ import { createPageRoutes } from "./routes/pages.js"
 import { createDebugRoutes } from "./routes/debug.js"
 import { createGlossaryRoutes } from "./routes/glossary.js"
 import { createQuizRoutes } from "./routes/quizzes.js"
-import { createProofService } from "./services/proof-service.js"
-import { createProofRunner } from "./services/proof-runner.js"
-import { createProofRoutes } from "./routes/proof.js"
 import { createPackageRoutes } from "./routes/package.js"
 import { createPromptRoutes } from "./routes/prompts.js"
 import { createTextCatalogRoutes } from "./routes/text-catalog.js"
@@ -36,8 +33,6 @@ const webAssetsDir = path.resolve(
   process.env.WEB_ASSETS_DIR ?? path.join(projectRoot, "assets", "adt")
 )
 
-const proofRunner = createProofRunner()
-const proofService = createProofService(proofRunner)
 const stageRunner = createStageRunner()
 const stageService = createStageService(stageRunner)
 
@@ -62,7 +57,6 @@ app.onError(errorHandler)
 app.route("/api", healthRoutes)
 app.route("/api", createBookRoutes(booksDir, webAssetsDir, configPath))
 app.route("/api", createPageRoutes(booksDir, promptsDir, configPath))
-app.route("/api", createProofRoutes(proofService, booksDir, promptsDir, configPath))
 app.route("/api", createGlossaryRoutes(booksDir))
 app.route("/api", createDebugRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createQuizRoutes(booksDir))

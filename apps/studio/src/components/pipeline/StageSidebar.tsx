@@ -3,7 +3,6 @@ import { createPortal } from "react-dom"
 import { Link, useMatchRoute, useSearch } from "@tanstack/react-router"
 import {
   FileDown,
-  ChevronDown,
   Loader2,
   RotateCcw,
   Settings,
@@ -438,60 +437,21 @@ function PageRow({
 
 function ExportButton({ bookLabel }: { bookLabel: string }) {
   const exportBook = useExportBook()
-  const [exportOpen, setExportOpen] = useState(false)
-  const exportRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!exportOpen) return
-    function handleClickOutside(e: MouseEvent) {
-      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
-        setExportOpen(false)
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [exportOpen])
-
-  const handleExport = (format: "web" | "epub") => {
-    setExportOpen(false)
-    exportBook.mutate({ label: bookLabel, format })
-  }
 
   return (
-    <div className="relative" ref={exportRef}>
-      <Button
-        variant="outline"
-        size="sm"
-        className="w-full h-7 text-xs bg-violet-50 text-violet-600 border-violet-200 hover:bg-violet-100"
-        onClick={() => setExportOpen(!exportOpen)}
-        disabled={exportBook.isPending}
-      >
-        {exportBook.isPending ? (
-          <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-        ) : (
-          <FileDown className="mr-1.5 h-3.5 w-3.5" />
-        )}
-        Export
-        <ChevronDown className="ml-1 h-3 w-3" />
-      </Button>
-      {exportOpen && (
-        <div className="absolute left-0 bottom-full z-50 mb-1 w-full rounded-md border bg-popover py-1 shadow-md">
-          <button
-            type="button"
-            className="flex w-full items-center px-3 py-1.5 text-xs hover:bg-muted transition-colors"
-            onClick={() => handleExport("web")}
-          >
-            ADT Web (.zip)
-          </button>
-          <button
-            type="button"
-            className="flex w-full items-center px-3 py-1.5 text-xs hover:bg-muted transition-colors"
-            onClick={() => handleExport("epub")}
-          >
-            EPUB (.epub)
-          </button>
-        </div>
+    <Button
+      variant="outline"
+      size="sm"
+      className="w-full h-7 text-xs bg-violet-50 text-violet-600 border-violet-200 hover:bg-violet-100"
+      onClick={() => exportBook.mutate(bookLabel)}
+      disabled={exportBook.isPending}
+    >
+      {exportBook.isPending ? (
+        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+      ) : (
+        <FileDown className="mr-1.5 h-3.5 w-3.5" />
       )}
-    </div>
+      Export
+    </Button>
   )
 }

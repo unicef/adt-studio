@@ -48,8 +48,6 @@ export interface BookSummary {
   hasSourcePdf: boolean
   needsRebuild: boolean
   rebuildReason: string | null
-  storyboardAccepted: boolean
-  proofCompleted: boolean
 }
 
 export interface BookDetail extends BookSummary {
@@ -64,14 +62,6 @@ export interface BookDetail extends BookSummary {
   bookSummary: {
     summary: string
   } | null
-}
-
-export interface ProofStatus {
-  label: string
-  status: "idle" | "running" | "completed" | "failed"
-  error?: string
-  startedAt?: number
-  completedAt?: number
 }
 
 export interface AzureCredentials {
@@ -568,21 +558,6 @@ export const api = {
       { method: "PUT", body: JSON.stringify({ content }) },
     ),
 
-  runProof: (label: string, apiKey: string) =>
-    request<{ status: string; label: string }>(
-      `/books/${label}/proof/run`,
-      { method: "POST", headers: { "X-OpenAI-Key": apiKey } }
-    ),
-
-  getProofStatus: (label: string) =>
-    request<ProofStatus>(`/books/${label}/proof/status`),
-
-  acceptStoryboard: (label: string) =>
-    request<{ version: number; acceptedAt: string }>(
-      `/books/${label}/accept-storyboard`,
-      { method: "POST" }
-    ),
-
   getQuizzes: (label: string) =>
     request<QuizzesResponse>(`/books/${label}/quizzes`),
 
@@ -660,8 +635,8 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  exportBook: async (label: string, format: "web" | "epub" = "web"): Promise<Blob> => {
-    const url = `${BASE_URL}/books/${label}/export?format=${format}`
+  exportBook: async (label: string): Promise<Blob> => {
+    const url = `${BASE_URL}/books/${label}/export`
     const res = await fetch(url)
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: res.statusText }))
