@@ -44,28 +44,14 @@ export function useDeleteBook() {
   })
 }
 
-export function useAcceptStoryboard() {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: (label: string) => api.acceptStoryboard(label),
-    onSuccess: (_data, label) => {
-      queryClient.invalidateQueries({ queryKey: ["pipeline-status", label] })
-      queryClient.invalidateQueries({ queryKey: ["books"] })
-      queryClient.invalidateQueries({ queryKey: ["books", label] })
-    },
-  })
-}
-
 export function useExportBook() {
   return useMutation({
-    mutationFn: ({ label, format }: { label: string; format: "web" | "epub" }) =>
-      api.exportBook(label, format),
-    onSuccess: (blob, { label, format }) => {
-      const ext = format === "epub" ? ".epub" : ".zip"
+    mutationFn: (label: string) => api.exportBook(label),
+    onSuccess: (blob, label) => {
       const url = URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = `${label}${ext}`
+      a.download = `${label}.zip`
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)

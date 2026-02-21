@@ -3,7 +3,6 @@ import type { StageName, StepName } from "./pipeline.js"
 
 export type PipelineNodeName =
   | StepName
-  | "storyboard-acceptance"
   | "text-catalog-translation"
 
 /**
@@ -22,7 +21,6 @@ export type PipelineCacheResource =
   | "debug"
 
 const EXTRA_STAGE_OUTPUT_NODES: Partial<Record<StageName, readonly PipelineNodeName[]>> = {
-  "storyboard": ["storyboard-acceptance"],
   "text-and-speech": ["text-catalog-translation"],
 }
 
@@ -78,7 +76,6 @@ const NODE_CACHE_RESOURCES: Record<PipelineNodeName, readonly PipelineCacheResou
   "catalog-translation": ["text-catalog"],
   "tts": ["tts"],
   "package-web": [],
-  "storyboard-acceptance": ["books", "book"],
   "text-catalog-translation": ["text-catalog"],
 }
 

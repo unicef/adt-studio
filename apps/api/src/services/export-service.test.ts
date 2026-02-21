@@ -35,20 +35,6 @@ function addPages(label: string, count: number): void {
   db.close()
 }
 
-function addAcceptance(label: string): void {
-  const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
-  db.run(
-    "INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)",
-    [
-      "storyboard-acceptance",
-      "book",
-      1,
-      JSON.stringify({ acceptedAt: new Date().toISOString(), renderedPageCount: 1 }),
-    ]
-  )
-  db.close()
-}
-
 function addPdf(label: string): void {
   fs.writeFileSync(
     path.join(tmpDir, label, `${label}.pdf`),
@@ -80,7 +66,6 @@ describe("exportBook", () => {
   it("produces a valid ZIP containing the db file", async () => {
     createTestDb("export-test")
     addPages("export-test", 1)
-    addAcceptance("export-test")
 
     const result = await exportBook("export-test", tmpDir, "")
     expect(result.zipBuffer).toBeInstanceOf(Uint8Array)
@@ -93,7 +78,6 @@ describe("exportBook", () => {
   it("includes PDF in the ZIP", async () => {
     createTestDb("with-pdf")
     addPages("with-pdf", 1)
-    addAcceptance("with-pdf")
     addPdf("with-pdf")
 
     const result = await exportBook("with-pdf", tmpDir, "")
@@ -105,7 +89,6 @@ describe("exportBook", () => {
   it("includes images directory", async () => {
     createTestDb("with-imgs")
     addPages("with-imgs", 1)
-    addAcceptance("with-imgs")
     addImageFile("with-imgs", "my-img")
 
     const result = await exportBook("with-imgs", tmpDir, "")
@@ -117,7 +100,6 @@ describe("exportBook", () => {
   it("includes config.yaml when present", async () => {
     createTestDb("with-config")
     addPages("with-config", 1)
-    addAcceptance("with-config")
     addConfigYaml("with-config")
 
     const result = await exportBook("with-config", tmpDir, "")
@@ -127,13 +109,13 @@ describe("exportBook", () => {
     expect(content).toContain("concurrency: 4")
   })
 
-  it("throws when storyboard is not accepted", async () => {
+  it("exports even when storyboard is not accepted", async () => {
     createTestDb("not-accepted")
     addPages("not-accepted", 1)
 
-    await expect(exportBook("not-accepted", tmpDir, "")).rejects.toThrow(
-      "Storyboard must be accepted"
-    )
+    const result = await exportBook("not-accepted", tmpDir, "")
+    expect(result.zipBuffer).toBeInstanceOf(Uint8Array)
+    expect(result.filename).toBe("not-accepted.zip")
   })
 
   it("throws for non-existent book", async () => {
@@ -143,7 +125,6 @@ describe("exportBook", () => {
   it("includes all book directory contents recursively", async () => {
     createTestDb("full-book")
     addPages("full-book", 2)
-    addAcceptance("full-book")
     addPdf("full-book")
     addImageFile("full-book", "img-a")
     addImageFile("full-book", "img-b")

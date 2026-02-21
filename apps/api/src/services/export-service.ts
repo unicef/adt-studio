@@ -24,18 +24,11 @@ export async function exportBook(
     throw new Error(`Book not found: ${safeLabel}`)
   }
 
-  // Verify storyboard is accepted
   const storage = createBookStorage(safeLabel, resolvedDir)
   try {
-    const acceptance = storage.getLatestNodeData("storyboard-acceptance", "book")
-    if (!acceptance) {
-      throw new Error("Storyboard must be accepted before export")
-    }
-
-    // Build ADT package if not already built and web assets are available
+    // Always rebuild ADT package before export to ensure compiled assets are fresh
     const adtDir = path.join(bookDir, "adt")
-    const pagesJson = path.join(adtDir, "content", "pages.json")
-    if (!fs.existsSync(pagesJson) && webAssetsDir && fs.existsSync(webAssetsDir)) {
+    if (webAssetsDir && fs.existsSync(webAssetsDir)) {
       const config = loadBookConfig(safeLabel, resolvedDir, configPath)
       const metadataRow = storage.getLatestNodeData("metadata", "book")
       const metadata = metadataRow?.data as {
