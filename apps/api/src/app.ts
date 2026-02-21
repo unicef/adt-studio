@@ -72,7 +72,7 @@ app.route("/api", createTextCatalogRoutes(booksDir))
 app.route("/api", createTTSRoutes(booksDir))
 app.route("/api", createStageRoutes(stageService, booksDir, promptsDir, configPath))
 app.route("/api", createPresetRoutes(configPath))
-app.route("/api", createAdtPreviewRoutes(booksDir, webAssetsDir))
+app.route("/api", createAdtPreviewRoutes(booksDir, webAssetsDir, configPath))
 app.route("/api", createSpeechConfigRoutes(configPath))
 
 export default app

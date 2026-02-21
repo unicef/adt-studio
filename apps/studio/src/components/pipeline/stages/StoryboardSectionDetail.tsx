@@ -1,10 +1,11 @@
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from "react"
 import { createPortal } from "react-dom"
-import { Check, Eye, EyeOff, Layers, Loader2, ChevronDown, Sparkles, ChevronRight, PanelRightOpen, PanelRightClose, Save, X } from "lucide-react"
+import { Check, Eye, EyeOff, LayoutGrid, Layers, Loader2, ChevronDown, Sparkles, ChevronRight, PanelRightOpen, PanelRightClose, Save, X } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/api/client"
 import type { PageDetail, VersionEntry } from "@/api/client"
 import { useApiKey } from "@/hooks/use-api-key"
+import { useActiveConfig } from "@/hooks/use-debug"
 import { useStepHeader } from "../StepViewRouter"
 import { BookPreviewFrame, type BookPreviewFrameHandle } from "./BookPreviewFrame"
 import { SectionEditToolbar } from "./SectionEditToolbar"
@@ -314,6 +315,8 @@ export function StoryboardSectionDetail({
   const queryClient = useQueryClient()
   const { apiKey, hasApiKey } = useApiKey()
   const { headerSlotEl } = useStepHeader()
+  const { data: activeConfigData } = useActiveConfig(bookLabel)
+  const applyBodyBackground = (activeConfigData?.merged as Record<string, unknown> | undefined)?.apply_body_background !== false
 
   const [saving, setSaving] = useState(false)
   const [rerendering, setRerendering] = useState(false)
@@ -1265,10 +1268,15 @@ export function StoryboardSectionDetail({
             changedElements={changedElements}
             onSelectElement={handleSelectElement}
             onTextChanged={handleTextChanged}
+            applyBodyBackground={applyBodyBackground}
           />
         ) : (
-          <div className="p-4 text-sm text-muted-foreground border rounded">
-            No rendered content for this section.
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+            <div className="w-12 h-12 rounded-full bg-violet-50 flex items-center justify-center mb-3">
+              <LayoutGrid className="w-6 h-6 text-violet-300" />
+            </div>
+            <p className="text-sm font-medium">No rendered content for this section</p>
+            <p className="text-xs mt-1">This section has no storyboard rendering yet</p>
           </div>
         )}
 

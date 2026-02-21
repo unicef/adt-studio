@@ -130,7 +130,7 @@ function VersionPicker({
   )
 }
 
-function PageCaptions({ bookLabel, pageId, pageNumber }: { bookLabel: string; pageId: string; pageNumber: number }) {
+function PageCaptions({ bookLabel, pageId, pageNumber, emptyState, largeImages }: { bookLabel: string; pageId: string; pageNumber: number; emptyState?: React.ReactNode; largeImages?: boolean }) {
   const queryClient = useQueryClient()
   const { data: page } = usePage(bookLabel, pageId)
 
@@ -146,7 +146,7 @@ function PageCaptions({ bookLabel, pageId, pageNumber }: { bookLabel: string; pa
   const captions = effective?.captions ?? []
   const dirty = pending != null
 
-  if (!page?.imageCaptioning || captions.length === 0) return null
+  if (!page?.imageCaptioning || captions.length === 0) return emptyState ?? null
 
   const updateCaption = (imageId: string, newCaption: string) => {
     const base = pending ?? page.imageCaptioning
@@ -196,7 +196,7 @@ function PageCaptions({ bookLabel, pageId, pageNumber }: { bookLabel: string; pa
           <img
             src={`/api/books/${bookLabel}/images/${cap.imageId}`}
             alt={cap.caption}
-            className="shrink-0 w-24 self-stretch bg-muted object-cover block"
+            className={`shrink-0 self-stretch bg-muted object-cover block ${largeImages ? "w-96" : "w-48"}`}
           />
           <div className="flex-1 min-w-0 py-2.5 pr-3">
             <div className="flex items-center gap-2 mb-1">
@@ -215,7 +215,7 @@ function PageCaptions({ bookLabel, pageId, pageNumber }: { bookLabel: string; pa
   )
 }
 
-export function CaptionsView({ bookLabel, selectedPageId }: { bookLabel: string; selectedPageId?: string }) {
+export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
   const { data: pages, isLoading } = usePages(bookLabel)
   const { setExtra } = useStepHeader()
   const { stageState, queueRun } = useBookRun()
@@ -279,11 +279,27 @@ export function CaptionsView({ bookLabel, selectedPageId }: { bookLabel: string;
         <div className="w-12 h-12 rounded-full bg-teal-50 flex items-center justify-center mb-3">
           <ImageIcon className="w-6 h-6 text-teal-300" />
         </div>
-        <p className="text-sm font-medium">No captions for this page</p>
-        <p className="text-xs mt-1">This page has no captioned images</p>
+        <p className="text-sm font-medium">No images on this page</p>
+        <button
+          type="button"
+          onClick={() => onSelectPage?.(null)}
+          className="mt-3 text-xs font-medium text-teal-600 hover:text-teal-700 hover:underline transition-colors"
+        >
+          Show all images
+        </button>
       </div>
     )
   }
+
+  const singlePageEmptyState = selectedPageId ? (
+    <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+      <div className="w-12 h-12 rounded-full bg-teal-50 flex items-center justify-center mb-3">
+        <ImageIcon className="w-6 h-6 text-teal-300" />
+      </div>
+      <p className="text-sm font-medium">No captions for this page</p>
+      <p className="text-xs mt-1">This page has no captioned images</p>
+    </div>
+  ) : undefined
 
   return (
     <div className="space-y-4">
@@ -293,8 +309,21 @@ export function CaptionsView({ bookLabel, selectedPageId }: { bookLabel: string;
           bookLabel={bookLabel}
           pageId={page.pageId}
           pageNumber={page.pageNumber}
+          emptyState={singlePageEmptyState}
+          largeImages={!!selectedPageId}
         />
       ))}
+      {selectedPageId && (
+        <div className="flex justify-center pt-2 pb-4">
+          <button
+            type="button"
+            onClick={() => onSelectPage?.(null)}
+            className="text-xs font-medium text-teal-600 hover:text-teal-700 hover:underline transition-colors"
+          >
+            Show all images
+          </button>
+        </div>
+      )}
     </div>
   )
 }

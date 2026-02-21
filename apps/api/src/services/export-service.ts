@@ -59,6 +59,7 @@ export async function exportBook(
         outputLanguages,
         title,
         webAssetsDir,
+        applyBodyBackground: config.apply_body_background,
       })
     }
 
