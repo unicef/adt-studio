@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { describe, it, expect, beforeAll } from "vitest";
 import { extractPdf, type ExtractResult } from "../extract.js";
 
-const RAVEN_PDF = resolve(import.meta.dirname, "../../../../assets/raven.pdf");
+const RAVEN_PDF = resolve(import.meta.dirname, "../../../../tests/fixtures/raven.pdf");
 
 describe("raven.pdf extraction", () => {
   let result: ExtractResult;

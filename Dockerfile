@@ -59,10 +59,12 @@ COPY apps/studio/index.html apps/studio/index.html
 COPY apps/studio/vite.config.ts apps/studio/vite.config.ts
 COPY apps/studio/components.json apps/studio/components.json
 
-# Copy read-only code assets (prompts, templates, global config)
+# Copy read-only code assets (prompts, templates, global config, presets, styleguides)
 COPY prompts/ ./prompts/
 COPY templates/ ./templates/
 COPY config.yaml ./config.yaml
+COPY config/ ./config/
+COPY assets/ ./assets/
 
 # Build all TypeScript packages (tsc --build — type-checks + compiles shared packages)
 RUN pnpm build
@@ -92,6 +94,8 @@ COPY --from=build /app/apps/api/dist ./apps/api/dist
 COPY --from=build /app/prompts/ ./prompts/
 COPY --from=build /app/templates/ ./templates/
 COPY --from=build /app/config.yaml ./config.yaml
+COPY --from=build /app/config/ ./config/
+COPY --from=build /app/assets/ ./assets/
 
 # Create books directory (mounted as volume for user data)
 RUN mkdir -p /app/books && \
@@ -159,6 +163,8 @@ RUN chmod +x /entrypoint.sh
 COPY --from=build /app/prompts/ ./prompts/
 COPY --from=build /app/templates/ ./templates/
 COPY --from=build /app/config.yaml ./config.yaml
+COPY --from=build /app/config/ ./config/
+COPY --from=build /app/assets/ ./assets/
 
 RUN mkdir -p /app/books && chown -R node:node /app/books
 
