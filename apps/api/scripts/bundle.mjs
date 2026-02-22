@@ -85,6 +85,8 @@ await build({
 // Search the pnpm store since these packages are transitive deps.
 const WASM_PACKAGES = ["node-sqlite3-wasm", "mupdf", "@resvg/resvg-wasm"]
 
+// Avoid stale .wasm artifacts causing false-positive verification passes.
+fs.rmSync(outDir, { recursive: true, force: true })
 fs.mkdirSync(outDir, { recursive: true })
 
 for (const pkg of WASM_PACKAGES) {
@@ -112,6 +114,19 @@ for (const pkg of WASM_PACKAGES) {
         }
       }
     }
+  }
+}
+
+// Verify all expected WASM files were copied — fail the build if any are missing
+const EXPECTED_WASM = {
+  "node-sqlite3-wasm": "node-sqlite3-wasm.wasm",
+  "mupdf": "mupdf-wasm.wasm",
+  "@resvg/resvg-wasm": "index_bg.wasm",
+}
+
+for (const [pkg, filename] of Object.entries(EXPECTED_WASM)) {
+  if (!fs.existsSync(path.join(outDir, filename))) {
+    throw new Error(`Missing WASM file for ${pkg}: ${filename} not found in ${outDir}`)
   }
 }
 

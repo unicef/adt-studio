@@ -29,7 +29,7 @@ import { resolveBookPaths, openBookDb } from "@adt/storage"
 import { runPipeline } from "../pipeline.js"
 
 const REPO_ROOT = path.resolve(import.meta.dirname, "../../../..")
-const RAVEN_PDF = path.join(REPO_ROOT, "assets/raven.pdf")
+const RAVEN_PDF = path.join(REPO_ROOT, "tests/fixtures/raven.pdf")
 const CONFIG_PATH = path.join(REPO_ROOT, "config.yaml")
 const PROMPTS_DIR = path.join(REPO_ROOT, "prompts")
 const TEMPLATES_DIR = path.join(REPO_ROOT, "templates")

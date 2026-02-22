@@ -9,7 +9,7 @@ import type { Progress } from "../progress.js"
 
 const RAVEN_PDF = path.resolve(
   import.meta.dirname,
-  "../../../../assets/raven.pdf"
+  "../../../../tests/fixtures/raven.pdf"
 )
 
 const dirs: string[] = []

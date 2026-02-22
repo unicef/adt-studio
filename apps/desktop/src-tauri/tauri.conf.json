@@ -37,7 +37,9 @@
     "resources": {
       "../../../prompts/**/*": "prompts/",
       "../../../templates/**/*": "templates/",
-      "../../../config.yaml": "."
+      "../../../config.yaml": ".",
+      "../../../config/**/*": "config/",
+      "../../../assets/**/*": "assets/"
     }
   }
 }
