@@ -72,6 +72,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: apps/desktop
+          args: --verbose
           tagName: ${{ steps.version.outputs.tag }}
           releaseName: "ADT Studio ${{ steps.version.outputs.tag }}"
           releaseBody: ""
