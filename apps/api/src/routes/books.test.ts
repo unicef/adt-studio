@@ -620,27 +620,50 @@ describe("GET /books/:label/step-status", () => {
     expect(body.steps.metadata).toBe("running")
   })
 
-  it("shows running over queued when a step is actively executing", async () => {
-    createTestBook("running-beats-queued")
-    const storage = createBookStorage("running-beats-queued", tmpDir)
+  it("shows active run range: running extract, queued storyboard", async () => {
+    createTestBook("active-range")
+    const storage = createBookStorage("active-range", tmpDir)
     try {
       storage.markStepStarted("extract")
     } finally {
       storage.close()
     }
-    // Extract is both in the queued set AND has a running step in DB
+    // Active run from extract→storyboard, extract step is running in DB
     const app = createStageRoutes(
-      mockStageService({ queuedStages: ["extract", "storyboard"] }),
+      mockStageService({
+        active: makeActiveRun({ fromStage: "extract", toStage: "storyboard" }),
+      }),
       tmpDir,
       ""
     )
 
-    const res = await app.request("/books/running-beats-queued/step-status")
+    const res = await app.request("/books/active-range/step-status")
     expect(res.status).toBe(200)
     const body = await res.json()
-    // Running DB state takes priority over queued for extract
+    // Running DB state takes priority for extract
     expect(body.stages.extract).toBe("running")
-    // Storyboard has no DB state but is in queued set → queued
+    // Storyboard in active range with idle steps → queued
+    expect(body.stages.storyboard).toBe("queued")
+  })
+
+  it("shows done for completed stage within active run range", async () => {
+    createTestBook("active-range-done")
+    markExtractStageComplete("active-range-done")
+    // Active run from extract→storyboard, but extract is already done in DB
+    const app = createStageRoutes(
+      mockStageService({
+        active: makeActiveRun({ fromStage: "extract", toStage: "storyboard" }),
+      }),
+      tmpDir,
+      ""
+    )
+
+    const res = await app.request("/books/active-range-done/step-status")
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    // Extract steps all done → "done" despite being in active run range
+    expect(body.stages.extract).toBe("done")
+    // Storyboard steps all idle + in active range → queued
     expect(body.stages.storyboard).toBe("queued")
   })
 

@@ -5,7 +5,7 @@ import { streamSSE } from "hono/streaming"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage, openBookDb } from "@adt/storage"
-import { StageName, PIPELINE, parseBookLabel, getStageClearNodes, getStageClearOrder } from "@adt/types"
+import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageClearNodes, getStageClearOrder } from "@adt/types"
 import type { StageService, StageSSEEvent } from "../services/stage-service.js"
 
 const StageRunBody = z
@@ -131,7 +131,21 @@ export function createStageRoutes(
     const dbPath = path.join(resolvedDir, safeLabel, `${safeLabel}.db`)
 
     const { active } = stageService.getStatus(label)
+    // Explicitly queued stages (waiting behind the active run) — always
+    // override "done" so re-runs show as queued before data is cleared.
     const queuedStages = new Set(stageService.getQueuedStages(label))
+    // Stages in the active run's range that haven't started yet — should
+    // show as "queued" only if their steps aren't already done.
+    const activeRunRange = new Set<string>()
+    if (active?.status === "running") {
+      const from = STAGE_ORDER.indexOf(active.fromStage as StageName)
+      const to = STAGE_ORDER.indexOf(active.toStage as StageName)
+      if (from !== -1 && to !== -1) {
+        for (let i = from; i <= to; i++) {
+          activeRunRange.add(STAGE_ORDER[i])
+        }
+      }
+    }
 
     // Read step_runs from DB (or empty if no DB)
     let stepRunRows: Array<{ step: string; status: string; error: string | null; message: string | null }> = []
@@ -160,21 +174,25 @@ export function createStageRoutes(
     }
 
     // Derive stage state from steps.
-    // "running" (from DB) takes priority over "queued" (from in-memory run
-    // range) so that a stage whose steps are actively executing shows as
-    // running, not queued.  "queued" still beats error/done so that re-runs
-    // and not-yet-started stages within the active run range show correctly.
+    // Two sources of "queued":
+    //   queuedStages — explicit queue items waiting behind the active run.
+    //     These always override done (re-run data not yet cleared).
+    //   activeRunRange — stages within the currently executing job.
+    //     These only show as queued if their steps haven't completed yet.
     const stages: Record<string, string> = {}
     for (const stage of PIPELINE) {
       const ss = stage.steps.map((s) => steps[s.name])
+      const allComplete = ss.length > 0 && ss.every((s) => s === "done" || s === "skipped")
       if (ss.some((s) => s === "running")) {
         stages[stage.name] = "running"
       } else if (queuedStages.has(stage.name)) {
         stages[stage.name] = "queued"
+      } else if (allComplete) {
+        stages[stage.name] = "done"
+      } else if (activeRunRange.has(stage.name)) {
+        stages[stage.name] = "queued"
       } else if (ss.some((s) => s === "error")) {
         stages[stage.name] = "error"
-      } else if (ss.length > 0 && ss.every((s) => s === "done" || s === "skipped")) {
-        stages[stage.name] = "done"
       } else {
         stages[stage.name] = "idle"
       }

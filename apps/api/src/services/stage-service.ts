@@ -182,18 +182,6 @@ export function createStageService(
       if (!state) return []
       const queued = new Set<StageName>()
 
-      // Include stages from the active run's range — stages that haven't
-      // started yet are effectively queued within the current job.
-      if (state.active?.status === "running") {
-        const from = STAGE_ORDER.indexOf(state.active.fromStage as StageName)
-        const to = STAGE_ORDER.indexOf(state.active.toStage as StageName)
-        if (from !== -1 && to !== -1) {
-          for (let i = from; i <= to; i++) {
-            queued.add(STAGE_ORDER[i])
-          }
-        }
-      }
-
       for (const q of state.queue) {
         const from = STAGE_ORDER.indexOf(q.fromStage as StageName)
         const to = STAGE_ORDER.indexOf(q.toStage as StageName)
