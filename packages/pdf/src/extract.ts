@@ -477,18 +477,25 @@ function extractRasterImagesFromPdf(
       try {
         // Check filter to determine format
         const filter = resolved.get("Filter");
-        const filterName = filter.isNull()
-          ? ""
+        const filterNames = filter.isNull()
+          ? []
           : filter.isArray()
-            ? filter.get(filter.length - 1).asName()
-            : filter.asName();
+            ? Array.from({ length: filter.length }, (_, i) => filter.get(i).asName())
+            : [filter.asName()];
+        const filterName =
+          filterNames.length > 0 ? filterNames[filterNames.length - 1] : "";
         let buf: Buffer;
         let format: ImageFormat;
 
         // Use the original (indirect) obj for stream access — resolve() strips the stream
         const streamObj = obj.isIndirect() ? obj : resolved;
 
-        if (filterName === "DCTDecode") {
+        // readRawStream() only works for single-filter streams. For chained
+        // filters (e.g. [FlateDecode, DCTDecode]) it returns bytes before
+        // filter decoding, so we must not treat those as raw JPEG bytes.
+        const isSingleFilter = filterNames.length === 1;
+
+        if (filterName === "DCTDecode" && isSingleFilter) {
           // Check colorspace — CMYK JPEGs need conversion (browsers can't display them)
           const cs = resolved.get("ColorSpace");
           const isCmyk =
@@ -508,7 +515,7 @@ function extractRasterImagesFromPdf(
             format = "jpeg";
           }
         } else {
-          // Everything else: decode through mupdf → PNG
+          // Multi-filter chains or non-JPEG: decode through mupdf → PNG
           const image = doc.loadImage(streamObj);
           const pixmap = image.toPixmap();
           buf = Buffer.from(pixmap.asPNG());

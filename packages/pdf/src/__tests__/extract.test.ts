@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { deflateSync } from "zlib";
 import mupdf from "mupdf";
 import { extractPdf } from "../extract.js";
 import { stitchPngsHorizontally, decodePng } from "../png-utils.js";
@@ -379,5 +380,134 @@ describe("extractPdf spread mode", () => {
     expect(result.pages[0].pageId).toBe("pg004");
     expect(result.pages[1].pageId).toBe("pg005006");
     expect(result.pages[2].pageId).toBe("pg007");
+  });
+});
+
+/**
+ * Create a minimal JPEG buffer (2x2 red pixels) using mupdf.
+ */
+function createTinyJpeg(): Buffer {
+  // Create a pixmap without alpha (JPEG doesn't support alpha)
+  const pixmap = new mupdf.Pixmap(mupdf.ColorSpace.DeviceRGB, [0, 0, 2, 2], false);
+  // Pixmap pixels are initialized to black by default, that's fine for a test image
+  return Buffer.from(pixmap.asJPEG(90, false));
+}
+
+/**
+ * Build a PDF with an image that has chained [FlateDecode, DCTDecode] filters.
+ * This simulates PDFs where JPEG data is additionally compressed with zlib.
+ */
+function createPdfWithChainedFilterImage(): Buffer {
+  const doc = new mupdf.PDFDocument();
+
+  // Create a tiny JPEG, then wrap it in zlib compression
+  const jpegBytes = createTinyJpeg();
+  const zlibBytes = deflateSync(jpegBytes);
+
+  // Build the image dictionary manually
+  const imgDict = doc.newDictionary();
+  imgDict.put("Type", doc.newName("XObject"));
+  imgDict.put("Subtype", doc.newName("Image"));
+  imgDict.put("Width", 2);
+  imgDict.put("Height", 2);
+  imgDict.put("BitsPerComponent", 8);
+  imgDict.put("ColorSpace", doc.newName("DeviceRGB"));
+
+  // Chained filter: data goes through FlateDecode first, then DCTDecode
+  const filters = doc.newArray();
+  filters.push(doc.newName("FlateDecode"));
+  filters.push(doc.newName("DCTDecode"));
+  imgDict.put("Filter", filters);
+
+  // addRawStream stores bytes without applying extra compression
+  const imgObj = doc.addRawStream(zlibBytes, imgDict);
+
+  // Wire the image into a page
+  const resources = doc.newDictionary();
+  const xobjects = doc.newDictionary();
+  xobjects.put("Im1", imgObj);
+  resources.put("XObject", xobjects);
+
+  const pageContent = "q 100 0 0 100 50 650 cm /Im1 Do Q";
+  const pageObj = doc.addPage([0, 0, 612, 792], 0, resources, pageContent);
+  doc.insertPage(-1, pageObj);
+
+  return Buffer.from(doc.saveToBuffer("").asUint8Array());
+}
+
+/**
+ * Build a PDF with an image that uses a single-element filter array [DCTDecode].
+ * This should still be treated as a plain JPEG stream.
+ */
+function createPdfWithSingleArrayDctFilterImage(): Buffer {
+  const doc = new mupdf.PDFDocument();
+  const jpegBytes = createTinyJpeg();
+
+  const imgDict = doc.newDictionary();
+  imgDict.put("Type", doc.newName("XObject"));
+  imgDict.put("Subtype", doc.newName("Image"));
+  imgDict.put("Width", 2);
+  imgDict.put("Height", 2);
+  imgDict.put("BitsPerComponent", 8);
+  imgDict.put("ColorSpace", doc.newName("DeviceRGB"));
+
+  const filters = doc.newArray();
+  filters.push(doc.newName("DCTDecode"));
+  imgDict.put("Filter", filters);
+
+  const imgObj = doc.addRawStream(jpegBytes, imgDict);
+
+  const resources = doc.newDictionary();
+  const xobjects = doc.newDictionary();
+  xobjects.put("Im1", imgObj);
+  resources.put("XObject", xobjects);
+
+  const pageContent = "q 100 0 0 100 50 650 cm /Im1 Do Q";
+  const pageObj = doc.addPage([0, 0, 612, 792], 0, resources, pageContent);
+  doc.insertPage(-1, pageObj);
+
+  return Buffer.from(doc.saveToBuffer("").asUint8Array());
+}
+
+describe("extractPdf chained image filters", () => {
+  it("extracts a valid image from a [FlateDecode, DCTDecode] filter chain", async () => {
+    const pdfBuffer = createPdfWithChainedFilterImage();
+    const result = await extractPdf({ pdfBuffer });
+
+    expect(result.pages).toHaveLength(1);
+    const page = result.pages[0];
+
+    // Should have extracted the raster image
+    const rasterImages = page.images.filter((img) => !img.imageId.endsWith("_page"));
+    expect(rasterImages).toHaveLength(1);
+
+    const img = rasterImages[0];
+    expect(img.buffer.length).toBeGreaterThan(0);
+    expect(img.format).toBe("png");
+
+    // Verify the output is actually a valid PNG (starts with PNG magic bytes)
+    expect(img.buffer[0]).toBe(0x89);
+    expect(img.buffer[1]).toBe(0x50); // 'P'
+    expect(img.buffer[2]).toBe(0x4e); // 'N'
+    expect(img.buffer[3]).toBe(0x47); // 'G'
+  });
+
+  it("keeps single-element [DCTDecode] filter arrays as jpeg", async () => {
+    const pdfBuffer = createPdfWithSingleArrayDctFilterImage();
+    const result = await extractPdf({ pdfBuffer });
+
+    expect(result.pages).toHaveLength(1);
+    const page = result.pages[0];
+    const rasterImages = page.images.filter((img) => !img.imageId.endsWith("_page"));
+    expect(rasterImages).toHaveLength(1);
+
+    const img = rasterImages[0];
+    expect(img.buffer.length).toBeGreaterThan(0);
+    expect(img.format).toBe("jpeg");
+
+    // Verify JPEG SOI signature
+    expect(img.buffer[0]).toBe(0xff);
+    expect(img.buffer[1]).toBe(0xd8);
+    expect(img.buffer[2]).toBe(0xff);
   });
 });
