@@ -24,6 +24,12 @@ await build({
   target: "node22",
   format: "esm",
   outfile: path.join(outDir, "api-server.mjs"),
+  // These packages cannot be bundled — they locate assets (native binaries, CSS files)
+  // via paths relative to their own package directory, which breaks when inlined.
+  // All three are installed into dist/node_modules/ by the `npm install --prefix dist/`
+  // step in the Dockerfile build stage. npm handles esbuild's platform binary
+  // (@esbuild/linux-x64) as an optional dependency automatically.
+  external: ["esbuild", "tailwindcss", "postcss"],
   banner: {
     js: [
       // Polyfill __dirname, __filename, and require for ESM

@@ -14,16 +14,14 @@ WORKDIR /app
 # =============================================================================
 FROM base AS deps
 
-# Copy only files needed for pnpm install (maximizes Docker layer cache)
+# Copy root manifests, then use a bind-mount + find to copy every workspace
+# package.json while preserving directory structure — no edits needed when
+# packages or apps are added to the workspace.
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY packages/types/package.json packages/types/package.json
-COPY packages/llm/package.json packages/llm/package.json
-COPY packages/pdf/package.json packages/pdf/package.json
-COPY packages/storage/package.json packages/storage/package.json
-COPY packages/pipeline/package.json packages/pipeline/package.json
-# COPY packages/output/package.json packages/output/package.json  # uncomment when package is initialized
-COPY apps/api/package.json apps/api/package.json
-COPY apps/studio/package.json apps/studio/package.json
+RUN --mount=type=bind,source=.,target=/ctx \
+    find /ctx/packages /ctx/apps -maxdepth 2 -name "package.json" \
+         -not -path "*/node_modules/*" \
+         -exec sh -c 'f="$1"; dst="${f#/ctx/}"; mkdir -p "$(dirname "$dst")"; cp "$f" "$dst"' _ {} \;
 
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
     pnpm install --frozen-lockfile
@@ -33,33 +31,15 @@ RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
 # =============================================================================
 FROM deps AS build
 
-# Copy full source (preserve node_modules from deps stage)
+# Copy full source (preserve node_modules from deps stage).
+# Directory-level copies: adding a new package or app requires no Dockerfile changes.
+# .dockerignore excludes node_modules/, dist/, apps/desktop/, and other build artifacts.
 COPY tsconfig.json ./
+COPY packages/ ./packages/
+COPY apps/api/ ./apps/api/
+COPY apps/studio/ ./apps/studio/
 
-# Copy package sources (exclude node_modules to preserve installed deps)
-COPY packages/types/src packages/types/src
-COPY packages/types/tsconfig.json packages/types/tsconfig.json
-COPY packages/llm/src packages/llm/src
-COPY packages/llm/tsconfig.json packages/llm/tsconfig.json
-COPY packages/pdf/src packages/pdf/src
-COPY packages/pdf/tsconfig.json packages/pdf/tsconfig.json
-COPY packages/storage/src packages/storage/src
-COPY packages/storage/tsconfig.json packages/storage/tsconfig.json
-COPY packages/pipeline/src packages/pipeline/src
-COPY packages/pipeline/tsconfig.json packages/pipeline/tsconfig.json
-# COPY packages/output/src packages/output/src                    # uncomment when package is initialized
-# COPY packages/output/tsconfig.json packages/output/tsconfig.json
-
-COPY apps/api/src apps/api/src
-COPY apps/api/scripts apps/api/scripts
-COPY apps/api/tsconfig.json apps/api/tsconfig.json
-COPY apps/studio/src apps/studio/src
-COPY apps/studio/tsconfig.json apps/studio/tsconfig.json
-COPY apps/studio/index.html apps/studio/index.html
-COPY apps/studio/vite.config.ts apps/studio/vite.config.ts
-COPY apps/studio/components.json apps/studio/components.json
-
-# Copy read-only code assets required during build (prompts, templates, global config)
+# Read-only code assets required during build (prompts, templates, global config)
 COPY prompts/ ./prompts/
 COPY templates/ ./templates/
 COPY config.yaml ./config.yaml
@@ -69,6 +49,28 @@ RUN pnpm build
 
 # Bundle the API with esbuild (produces dist/api-server.mjs with correct ESM imports)
 RUN pnpm --filter @adt/api build:server
+
+# esbuild, tailwindcss, and postcss are dynamically imported by the packaging stage and
+# cannot be bundled — they locate native binaries and CSS assets relative to their own
+# package directory, which breaks when inlined into the bundle. Install all three with
+# their full dependency tree into dist/node_modules/ using npm (not pnpm — npm ignores
+# the monorepo workspace config and installs freely into a non-workspace directory).
+# npm also installs @esbuild/linux-x64 automatically as esbuild's optional dependency.
+# Versions are read directly from packages/pipeline/package.json to avoid drift.
+RUN --mount=type=cache,target=/root/.npm \
+    node -e " \
+      const p = JSON.parse(require('fs').readFileSync('packages/pipeline/package.json', 'utf8')); \
+      require('fs').writeFileSync('apps/api/dist/package.json', JSON.stringify({ \
+        name: 'api-runtime', version: '0.0.0', \
+        dependencies: { \
+          esbuild: p.devDependencies.esbuild, \
+          tailwindcss: p.dependencies.tailwindcss, \
+          postcss: p.dependencies.postcss \
+        } \
+      })); \
+    " && \
+    npm install --prefix apps/api/dist --omit=dev --cache /root/.npm && \
+    rm -f apps/api/dist/package.json apps/api/dist/package-lock.json
 
 # Build the studio SPA (Vite)
 RUN pnpm --filter @adt/studio build
@@ -93,7 +95,9 @@ WORKDIR /app
 # WASM files are copied into dist/ by the build:server script.
 COPY --from=build /app/apps/api/dist ./apps/api/dist
 
-# Copy baked-in defaults (overridable via volume mounts at runtime)
+# Baked-in defaults (overridable via volume mounts at runtime).
+# If a NEW top-level runtime directory is added to the repo (e.g. voices/, styleguides/),
+# add a corresponding COPY --from=build line here and in the app stage below.
 COPY --from=build /app/prompts/ ./prompts/
 COPY --from=build /app/templates/ ./templates/
 COPY --from=build /app/config.yaml ./config.yaml
@@ -162,7 +166,9 @@ COPY docker/nginx-single.conf /etc/nginx/http.d/default.conf
 COPY docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
-# Baked-in defaults (overridable via volume mounts at runtime)
+# Baked-in defaults (overridable via volume mounts at runtime).
+# If a NEW top-level runtime directory is added to the repo (e.g. voices/, styleguides/),
+# add a corresponding COPY --from=build line here and in the api stage above.
 COPY --from=build /app/prompts/ ./prompts/
 COPY --from=build /app/templates/ ./templates/
 COPY --from=build /app/config.yaml ./config.yaml
