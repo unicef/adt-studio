@@ -180,6 +180,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   <script src="https://cdn.tailwindcss.com"><\/script>
   <style>
     @import url("https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300..800;1,300..800&display=swap");
+    :root { --page-height: 100vh; }
     body { margin: 0; }
     body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select {
       font-family: "Merriweather", serif;
@@ -243,6 +244,10 @@ ${interactiveScript}
     if (scriptEl && editable) {
       doc.body.appendChild(scriptEl)
     }
+
+    // Inject parent viewport height as CSS variable so overlay HTML can
+    // constrain images to fit without using vh (which doesn't work in iframes).
+    doc.documentElement.style.setProperty("--page-height", `${window.innerHeight}px`)
 
     // Apply data-background-color from content to iframe body
     if (applyBodyBackground !== false) {
@@ -390,6 +395,10 @@ ${selectors}:hover {
 
     // Re-measure on window resize (e.g. browser resize changes iframe width)
     const onResize = () => {
+      const doc = iframe.contentDocument
+      if (doc) {
+        doc.documentElement.style.setProperty("--page-height", `${window.innerHeight}px`)
+      }
       if (settledRef.current) measureHeight()
     }
     window.addEventListener("resize", onResize)

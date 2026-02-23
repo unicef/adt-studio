@@ -39,6 +39,7 @@ function titleCase(slug: string): string {
 /** Human-friendly display names for strategy keys */
 const STRATEGY_DISPLAY_NAMES: Record<string, string> = {
   llm: "AI Generated",
+  "llm-overlay": "AI Overlay",
   dynamic: "Dynamic",
 }
 
@@ -49,6 +50,7 @@ function strategyDisplayName(slug: string): string {
 const RENDER_STRATEGY_DESCRIPTIONS: Record<string, string> = {
   dynamic: "Automatically picks the best strategy per section type",
   llm: "LLM generates HTML from section content",
+  "llm-overlay": "LLM positions text over background images",
   two_column: "Fixed two-column template layout",
   two_column_story: "Two-column template for story content",
 }

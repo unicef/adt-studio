@@ -31,6 +31,52 @@ export async function renderSectionLlm(
   const isActivity = config.renderType === "activity"
   const taskType = isActivity ? "activity-rendering" : "web-rendering"
 
+  // Build structured groups (preserves groupId/groupType for prompts that need it)
+  const groups: Array<{
+    group_id: string
+    group_type: string
+    texts: Array<{ text_id: string; text_type: string; text: string }>
+  }> = []
+  for (const part of input.parts) {
+    if (part.type === "group") {
+      groups.push({
+        group_id: part.groupId,
+        group_type: part.groupType,
+        texts: part.texts.map((t) => ({
+          text_id: t.textId,
+          text_type: t.textType,
+          text: t.text,
+        })),
+      })
+    }
+  }
+
+  // Build ordered parts list preserving document flow (text groups + images interleaved).
+  // This helps overlay prompts understand spatial relationships between content.
+  const orderedParts: Array<
+    | { part_type: "text_group"; group_id: string; group_type: string; texts: Array<{ text_id: string; text_type: string; text: string }> }
+    | { part_type: "image"; image_id: string }
+  > = []
+  for (const part of input.parts) {
+    if (part.type === "group") {
+      orderedParts.push({
+        part_type: "text_group",
+        group_id: part.groupId,
+        group_type: part.groupType,
+        texts: part.texts.map((t) => ({
+          text_id: t.textId,
+          text_type: t.textType,
+          text: t.text,
+        })),
+      })
+    } else {
+      orderedParts.push({
+        part_type: "image",
+        image_id: part.imageId,
+      })
+    }
+  }
+
   const context = {
     label: input.label,
     page_image_base64: input.pageImageBase64,
@@ -41,6 +87,8 @@ export async function renderSectionLlm(
       text_type: t.textType,
       text: t.text,
     })),
+    groups,
+    ordered_parts: orderedParts,
     images: images.map((img) => ({
       image_id: img.imageId,
       image_base64: img.imageBase64,
