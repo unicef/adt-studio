@@ -165,16 +165,23 @@ export function createStageRunner(): StageRunner {
         throw new Error(`Invalid stage range "${fromStage}" to "${toStage}"`)
       }
 
-      // Wrap progress to persist step completions to the DB.
-      // This is the single place where step-complete/step-skip events
-      // are recorded, so the step-status endpoint can read from
-      // step_completions instead of inferring from node_data.
+      // Wrap progress to persist step lifecycle to the DB.
+      // This is the single place where step state transitions are recorded,
+      // so the step-status endpoint can read from step_runs.
       const completionStorage = createBookStorage(label, booksDir)
       try {
         const trackingProgress: StageRunProgress = {
           emit(event) {
-            if (event.type === "step-complete" || event.type === "step-skip") {
-              completionStorage.markStepComplete(event.step)
+            if (event.type === "step-start") {
+              completionStorage.markStepStarted(event.step)
+            } else if (event.type === "step-complete") {
+              completionStorage.markStepCompleted(event.step)
+            } else if (event.type === "step-skip") {
+              completionStorage.markStepSkipped(event.step)
+            } else if (event.type === "step-error") {
+              completionStorage.recordStepError(event.step, event.error)
+            } else if (event.type === "step-progress" && event.message) {
+              completionStorage.updateStepMessage(event.step, event.message)
             }
             progress.emit(event)
           },

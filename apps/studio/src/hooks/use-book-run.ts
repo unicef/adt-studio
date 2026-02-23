@@ -3,13 +3,14 @@ import { useQueryClient, useQuery } from "@tanstack/react-query"
 import { api } from "@/api/client"
 import { STEP_TO_STAGE, PIPELINE, getStageClearOrder } from "@adt/types"
 import type { StageName } from "@adt/types"
+import { isStageComplete } from "./run-state"
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
 export type StageState = "idle" | "queued" | "running" | "done" | "error"
-export type StepState = "idle" | "running" | "done" | "error"
+export type StepState = "idle" | "running" | "done" | "error" | "skipped"
 
 export interface StepProgress {
   page?: number
@@ -28,6 +29,7 @@ interface StepStatusResponse {
   stages: Record<string, string>
   steps: Record<string, string>
   error: string | null
+  stepErrors?: Record<string, string> | null
 }
 
 // ---------------------------------------------------------------------------
@@ -41,6 +43,8 @@ export interface BookRunContextValue {
   stepState(step: string): StepState
   /** Sub-step progress for running steps (page X/Y) */
   stepProgress(step: string): StepProgress | undefined
+  /** Per-step error message (if in error state) */
+  stepError(step: string): string | undefined
   /** Run error message */
   error: string | null
   /** Is any stage running or queued? */
@@ -109,7 +113,11 @@ export function useBookRunStatus(label: string): BookRunContextValue {
 
       // Cancel any in-flight step-status fetch — its response reflects a
       // point-in-time snapshot that is already stale relative to this SSE event.
-      queryClient.cancelQueries({ queryKey: stepStatusKey(label) })
+      // Only cancel if we already have baseline data; otherwise the initial
+      // fetch (on page load) would be killed and the UI would stay idle.
+      if (queryClient.getQueryData(stepStatusKey(label))) {
+        queryClient.cancelQueries({ queryKey: stepStatusKey(label) })
+      }
 
       if (d.type === "step-start") {
         // Mark step as running in the query cache
@@ -139,14 +147,15 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           }
         })
       } else if (d.type === "step-complete" || d.type === "step-skip") {
-        // Mark step as done, recompute stage state
+        // Mark step as done/skipped, recompute stage state
+        const nextStepState: StepState = d.type === "step-skip" ? "skipped" : "done"
         queryClient.setQueryData<StepStatusResponse>(stepStatusKey(label), (old) => {
           if (!old) return old
-          const steps = { ...old.steps, [pipelineStep]: "done" }
+          const steps = { ...old.steps, [pipelineStep]: nextStepState }
 
-          // Recompute the parent stage: if all steps are done, stage is done
+          // Recompute the parent stage: if all steps are done/skipped, stage is done
           const stageDef = PIPELINE.find((s) => s.name === uiStage)
-          const allDone = stageDef?.steps.every((s) => steps[s.name] === "done") ?? false
+          const allDone = isStageComplete(stageDef?.steps.map((s) => steps[s.name]) ?? [])
           const stages = {
             ...old.stages,
             [uiStage]: allDone ? "done" : old.stages[uiStage],
@@ -169,6 +178,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             ...old,
             stages: { ...old.stages, [uiStage]: "error" },
             steps: { ...old.steps, [pipelineStep]: "error" },
+            stepErrors: { ...old.stepErrors, [pipelineStep]: d.error ?? "Step failed" },
             error: d.error ?? "Step failed",
           }
         })
@@ -239,15 +249,22 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         return { ...old, stages, steps, error: null }
       })
 
-      // Clear cosmetic progress
-      progressRef.current.clear()
+      // Clear cosmetic progress only for downstream steps being reset
+      for (const stage of stagesToClear) {
+        const stageDef = PIPELINE.find((s) => s.name === stage)
+        if (stageDef) {
+          for (const step of stageDef.steps) {
+            progressRef.current.delete(step.name)
+          }
+        }
+      }
       setProgressTick((t) => t + 1)
 
       // Chain the API call so they arrive in click order
       runChainRef.current = runChainRef.current.then(async () => {
         try {
           await api.runStages(label, apiKey, { fromStage, toStage }, azure)
-          // Refetch to reconcile — backend cleared step_completions
+          // Refetch to reconcile — backend cleared step_runs
           queryClient.invalidateQueries({ queryKey: stepStatusKey(label) })
         } catch {
           // Don't reset — other stages may still be running/queued
@@ -283,6 +300,13 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     [progressTick]
   )
 
+  const stepErrorAccessor = useCallback(
+    (step: string): string | undefined => {
+      return data?.stepErrors?.[step]
+    },
+    [data]
+  )
+
   const isRunning = Object.values(data?.stages ?? {}).some(
     (s) => s === "running" || s === "queued"
   )
@@ -291,6 +315,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     stageState,
     stepState: stepStateAccessor,
     stepProgress: stepProgressAccessor,
+    stepError: stepErrorAccessor,
     error: data?.error ?? null,
     isRunning,
     queueRun,

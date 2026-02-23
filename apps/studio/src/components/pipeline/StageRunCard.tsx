@@ -1,4 +1,4 @@
-import { Check, Loader2, Play, RotateCcw, XCircle } from "lucide-react"
+import { Check, Loader2, Minus, Play, RotateCcw, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -49,7 +49,7 @@ export function StageRunCard({
   disabled,
 }: StageRunCardProps) {
   const stage = STAGES.find((s) => s.slug === stageSlug) ?? STAGES[0]
-  const { stageState, stepState, stepProgress, error } = useBookRun()
+  const { stageState, stepState, stepProgress, stepError, error } = useBookRun()
   const stageStatus = stageState(stageSlug)
   const subSteps = STAGE_SUB_STEPS[stageSlug as StageName] ?? []
   const Icon = stage.icon
@@ -90,31 +90,47 @@ export function StageRunCard({
             {subSteps.map(({ key, label }) => {
               const state = stepState(key)
               const progress = stepProgress(key)
+              const errorMsg = stepError(key)
               const isDone = state === "done"
+              const isSkipped = state === "skipped"
               const isSubRunning = state === "running"
               const isError = state === "error"
               const hasPages = isSubRunning && progress?.page != null && progress?.totalPages != null && progress.totalPages > 0
 
               return (
-                <div
-                  key={key}
-                  className={cn(
-                    "flex items-center gap-2.5 text-xs whitespace-nowrap",
-                    isDone ? "text-muted-foreground" : isError ? "text-red-500" : isSubRunning ? "text-foreground" : "text-muted-foreground/50",
-                  )}
-                >
-                  {isDone ? (
-                    <Check className="w-4 h-4 text-green-500 shrink-0" />
-                  ) : isError ? (
-                    <XCircle className="w-4 h-4 text-red-500 shrink-0" />
-                  ) : isSubRunning ? (
-                    <Loader2 className="w-4 h-4 animate-spin text-blue-500 shrink-0" />
-                  ) : (
-                    <div className="w-4 h-4 rounded-full border border-current opacity-30 shrink-0" />
-                  )}
-                  <span>{label}</span>
-                  {isSubRunning && hasPages && (
-                    <span className="text-muted-foreground tabular-nums">{progress?.page}/{progress?.totalPages}</span>
+                <div key={key}>
+                  <div
+                    className={cn(
+                      "flex items-center gap-2.5 text-xs whitespace-nowrap",
+                      isDone
+                        ? "text-muted-foreground"
+                        : isSkipped
+                          ? "text-muted-foreground"
+                          : isError
+                            ? "text-red-500"
+                            : isSubRunning
+                              ? "text-foreground"
+                              : "text-muted-foreground/50",
+                    )}
+                  >
+                    {isDone ? (
+                      <Check className="w-4 h-4 text-green-500 shrink-0" />
+                    ) : isSkipped ? (
+                      <Minus className="w-4 h-4 text-amber-500 shrink-0" strokeWidth={3} />
+                    ) : isError ? (
+                      <XCircle className="w-4 h-4 text-red-500 shrink-0" />
+                    ) : isSubRunning ? (
+                      <Loader2 className="w-4 h-4 animate-spin text-blue-500 shrink-0" />
+                    ) : (
+                      <div className="w-4 h-4 rounded-full border border-current opacity-30 shrink-0" />
+                    )}
+                    <span>{label}</span>
+                    {isSubRunning && hasPages && (
+                      <span className="text-muted-foreground tabular-nums">{progress?.page}/{progress?.totalPages}</span>
+                    )}
+                  </div>
+                  {isError && errorMsg && (
+                    <p className="text-[10px] text-red-400 pl-6.5 truncate" title={errorMsg}>{errorMsg}</p>
                   )}
                 </div>
               )

@@ -190,23 +190,56 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       return nextVersion
     },
 
-    markStepComplete(step: string): void {
+    markStepStarted(step: string): void {
       db.run(
-        `INSERT INTO step_completions (step, completed_at) VALUES (?, ?)
-         ON CONFLICT (step) DO UPDATE SET completed_at = excluded.completed_at`,
+        `INSERT INTO step_runs (step, status, started_at) VALUES (?, 'running', ?)
+         ON CONFLICT (step) DO UPDATE SET status='running', started_at=excluded.started_at, completed_at=NULL, error=NULL, message=NULL`,
         [step, new Date().toISOString()]
       )
     },
 
-    getCompletedSteps(): string[] {
-      const rows = db.all("SELECT step FROM step_completions") as Array<{ step: string }>
-      return rows.map((r) => r.step)
+    markStepCompleted(step: string): void {
+      db.run(
+        `INSERT INTO step_runs (step, status, completed_at) VALUES (?, 'done', ?)
+         ON CONFLICT (step) DO UPDATE SET status='done', completed_at=excluded.completed_at`,
+        [step, new Date().toISOString()]
+      )
     },
 
-    clearStepCompletions(steps: string[]): void {
+    markStepSkipped(step: string): void {
+      db.run(
+        `INSERT INTO step_runs (step, status, completed_at) VALUES (?, 'skipped', ?)
+         ON CONFLICT (step) DO UPDATE SET status='skipped', completed_at=excluded.completed_at`,
+        [step, new Date().toISOString()]
+      )
+    },
+
+    recordStepError(step: string, error: string): void {
+      db.run(
+        `INSERT INTO step_runs (step, status, error) VALUES (?, 'error', ?)
+         ON CONFLICT (step) DO UPDATE SET status='error', error=excluded.error`,
+        [step, error]
+      )
+    },
+
+    updateStepMessage(step: string, message: string): void {
+      db.run(
+        `INSERT INTO step_runs (step, status, message) VALUES (?, 'running', ?)
+         ON CONFLICT (step) DO UPDATE SET message=excluded.message`,
+        [step, message]
+      )
+    },
+
+    getStepRuns(): Array<{ step: string; status: string; error: string | null; message: string | null }> {
+      return db.all("SELECT step, status, error, message FROM step_runs") as Array<{
+        step: string; status: string; error: string | null; message: string | null
+      }>
+    },
+
+    clearStepRuns(steps: string[]): void {
       if (steps.length === 0) return
       const placeholders = steps.map(() => "?").join(", ")
-      db.run(`DELETE FROM step_completions WHERE step IN (${placeholders})`, steps)
+      db.run(`DELETE FROM step_runs WHERE step IN (${placeholders})`, steps)
     },
 
     getLatestNodeData(node: string, itemId: string): NodeDataRow | null {
@@ -258,7 +291,7 @@ function clearExtractedRows(db: sqlite.Database): void {
     db.run("DELETE FROM node_data")
     db.run("DELETE FROM images")
     db.run("DELETE FROM pages")
-    db.run("DELETE FROM step_completions")
+    db.run("DELETE FROM step_runs")
     db.exec("COMMIT")
   } catch (err) {
     db.exec("ROLLBACK")

@@ -62,14 +62,10 @@ export interface StageRunner {
   ): Promise<void>
 }
 
-export type RunStageState = "running" | "queued" | "error"
-
 export interface StageService {
   getStatus(label: string): BookRunStatus
-  /** Get the run-derived state for each stage (running/queued/error). Stages not returned are idle from the run perspective. */
-  getStageStates(label: string): Partial<Record<StageName, RunStageState>>
-  /** Get step names currently executing in memory (not persisted). */
-  getRunningSteps(label: string): ReadonlySet<string>
+  /** Get stage names that are queued (waiting to run). */
+  getQueuedStages(label: string): StageName[]
   addListener(label: string, listener: StageEventListener): () => void
   startStageRun(
     label: string,
@@ -84,7 +80,6 @@ export function createStageService(
 ): StageService {
   const books = new Map<string, BookRunState>()
   const listeners = new Map<string, Set<StageEventListener>>()
-  const runningSteps = new Map<string, Set<string>>()
 
   function getOrCreateState(label: string): BookRunState {
     let state = books.get(label)
@@ -112,16 +107,8 @@ export function createStageService(
     job: StageRunJob,
     options: StageRunOptions
   ): Promise<void> {
-    const steps = new Set<string>()
-    runningSteps.set(label, steps)
-
     const progress: StageRunProgress = {
       emit(event: ProgressEvent) {
-        if (event.type === "step-start") {
-          steps.add(event.step)
-        } else if (event.type === "step-complete" || event.type === "step-skip" || event.type === "step-error") {
-          steps.delete(event.step)
-        }
         emit(label, { type: "progress", data: event })
       },
     }
@@ -141,7 +128,6 @@ export function createStageService(
       emit(label, { type: "stage-run-error", label, error: message })
     }
 
-    runningSteps.delete(label)
     drainQueue(label)
   }
 
@@ -149,9 +135,11 @@ export function createStageService(
     const state = books.get(label)
     if (!state) return
     if (state.queue.length === 0) {
-      // Do not keep stale completed/failed jobs as active. Leaving them here
-      // makes a fresh SSE connection immediately emit complete/error and close.
-      state.active = null
+      // Keep failed jobs so active?.error survives page refresh.
+      // Only clear completed jobs — their state is fully captured in the DB.
+      if (state.active?.status !== "failed") {
+        state.active = null
+      }
       return
     }
 
@@ -189,47 +177,34 @@ export function createStageService(
       }
     },
 
-    getRunningSteps(label: string): ReadonlySet<string> {
-      return runningSteps.get(label) ?? new Set()
-    },
-
-    getStageStates(label: string): Partial<Record<StageName, RunStageState>> {
+    getQueuedStages(label: string): StageName[] {
       const state = books.get(label)
-      if (!state) return {}
-      const out: Partial<Record<StageName, RunStageState>> = {}
+      if (!state) return []
+      const queued = new Set<StageName>()
 
-      // Active run — mark stages in its range
-      if (state.active) {
-        const { status, fromStage, toStage, error } = state.active
-        const from = STAGE_ORDER.indexOf(fromStage as StageName)
-        const to = STAGE_ORDER.indexOf(toStage as StageName)
+      // Include stages from the active run's range — stages that haven't
+      // started yet are effectively queued within the current job.
+      if (state.active?.status === "running") {
+        const from = STAGE_ORDER.indexOf(state.active.fromStage as StageName)
+        const to = STAGE_ORDER.indexOf(state.active.toStage as StageName)
         if (from !== -1 && to !== -1) {
           for (let i = from; i <= to; i++) {
-            if (status === "running") {
-              out[STAGE_ORDER[i]] = "running"
-            } else if (status === "failed") {
-              out[STAGE_ORDER[i]] = "error"
-            }
-            // completed → handled by DB step_completions, not here
+            queued.add(STAGE_ORDER[i])
           }
         }
       }
 
-      // Queued runs — mark stages in their ranges
       for (const q of state.queue) {
         const from = STAGE_ORDER.indexOf(q.fromStage as StageName)
         const to = STAGE_ORDER.indexOf(q.toStage as StageName)
         if (from !== -1 && to !== -1) {
           for (let i = from; i <= to; i++) {
-            // Don't overwrite "running" with "queued"
-            if (!out[STAGE_ORDER[i]]) {
-              out[STAGE_ORDER[i]] = "queued"
-            }
+            queued.add(STAGE_ORDER[i])
           }
         }
       }
 
-      return out
+      return [...queued]
     },
 
     addListener(

@@ -4,4 +4,4 @@ export {
   resolveBookPaths,
   type BookPaths,
 } from "./book-storage.js"
-export { openBookDb } from "./db.js"
+export { openBookDb, cleanupInterruptedSteps } from "./db.js"

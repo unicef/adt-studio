@@ -1,3 +1,5 @@
+import fs from "node:fs"
+import path from "node:path"
 import sqlite from "node-sqlite3-wasm"
 import { SCHEMA_VERSION } from "@adt/types"
 
@@ -46,9 +48,13 @@ CREATE TABLE IF NOT EXISTS llm_log (
   data TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS step_completions (
+CREATE TABLE IF NOT EXISTS step_runs (
   step TEXT PRIMARY KEY,
-  completed_at TEXT NOT NULL
+  status TEXT NOT NULL CHECK (status IN ('running', 'done', 'error', 'skipped')),
+  started_at TEXT,
+  completed_at TEXT,
+  error TEXT,
+  message TEXT
 );
 `
 
@@ -90,6 +96,12 @@ function initSchema(db: sqlite.Database): void {
   if (version === 6) {
     migrateV6toV7(db)
     version = 7
+  }
+
+  // Migrate v7 → v8: replace step_completions with step_runs
+  if (version === 7) {
+    migrateV7toV8(db)
+    version = 8
   }
 
   if (version === SCHEMA_VERSION) {
@@ -193,10 +205,93 @@ function migrateV6toV7(db: sqlite.Database): void {
   }
 }
 
+/**
+ * Migrate v7 → v8: replace step_completions with step_runs.
+ * The new table tracks the full step lifecycle (running, done, error, skipped)
+ * with error messages and progress.
+ */
+function migrateV7toV8(db: sqlite.Database): void {
+  db.exec("BEGIN IMMEDIATE")
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS step_runs (
+        step TEXT PRIMARY KEY,
+        status TEXT NOT NULL CHECK (status IN ('running', 'done', 'error', 'skipped')),
+        started_at TEXT,
+        completed_at TEXT,
+        error TEXT,
+        message TEXT
+      )
+    `)
+
+    // Migrate existing completion data
+    const rows = db.all("SELECT name FROM sqlite_master WHERE type='table' AND name='step_completions'")
+    if (rows.length > 0) {
+      db.exec(`
+        INSERT INTO step_runs (step, status, completed_at)
+          SELECT step, 'done', completed_at FROM step_completions
+      `)
+      db.exec("DROP TABLE step_completions")
+    }
+
+    db.exec("COMMIT")
+  } catch (err) {
+    db.exec("ROLLBACK")
+    throw err
+  }
+}
+
 function upsertSchemaVersion(db: sqlite.Database, version: number): void {
   db.run(
     `INSERT INTO schema_version (id, version) VALUES (1, ?)
      ON CONFLICT (id) DO UPDATE SET version = excluded.version`,
     [version]
   )
+}
+
+/**
+ * On server startup, scan all book DBs and mark any steps left in 'running'
+ * state as 'error' with an 'Interrupted' message. This handles the case where
+ * the server was killed mid-run.
+ */
+export function cleanupInterruptedSteps(booksDir: string): void {
+  const resolvedDir = path.resolve(booksDir)
+  if (!fs.existsSync(resolvedDir)) return
+
+  let entries: string[]
+  try {
+    entries = fs.readdirSync(resolvedDir)
+  } catch {
+    return
+  }
+
+  const now = new Date().toISOString()
+
+  for (const entry of entries) {
+    const bookDir = path.join(resolvedDir, entry)
+    const dbPath = path.join(bookDir, `${entry}.db`)
+    if (!fs.existsSync(dbPath)) continue
+
+    let db: sqlite.Database | null = null
+    try {
+      db = openBookDb(dbPath)
+      // Check if step_runs table exists (handles pre-v8 DBs gracefully)
+      const tables = db.all(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='step_runs'"
+      )
+      if (tables.length === 0) continue
+
+      const result = db.run(
+        "UPDATE step_runs SET status = 'error', error = 'Interrupted', completed_at = ? WHERE status = 'running'",
+        [now]
+      )
+      if (result.changes > 0) {
+        console.log(`[startup] ${entry}: marked ${result.changes} interrupted step(s) as errored`)
+      }
+    } catch (err) {
+      console.error(`[startup] ${entry}: failed to clean up interrupted steps:`, err)
+    } finally {
+      db?.close()
+    }
+  }
 }

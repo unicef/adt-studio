@@ -56,12 +56,20 @@ export interface Storage {
   putNodeData(node: string, itemId: string, data: unknown): number
   getLatestNodeData(node: string, itemId: string): NodeDataRow | null
 
-  /** Record that a pipeline step completed successfully. Uses PIPELINE step names. */
-  markStepComplete(step: string): void
-  /** Get all completed pipeline step names. */
-  getCompletedSteps(): string[]
-  /** Clear completion records for specific steps (used when clearing downstream data). */
-  clearStepCompletions(steps: string[]): void
+  /** Mark a pipeline step as started (running). */
+  markStepStarted(step: string): void
+  /** Mark a pipeline step as completed successfully. */
+  markStepCompleted(step: string): void
+  /** Mark a pipeline step as skipped. */
+  markStepSkipped(step: string): void
+  /** Record a step error. Can be called multiple times (last error wins). */
+  recordStepError(step: string, error: string): void
+  /** Update the progress message for a running step (e.g., "5/120"). */
+  updateStepMessage(step: string, message: string): void
+  /** Get all step run records. */
+  getStepRuns(): Array<{ step: string; status: string; error: string | null; message: string | null }>
+  /** Clear step run records for specific steps (used when clearing downstream data). */
+  clearStepRuns(steps: string[]): void
 
   appendLlmLog(entry: LlmLogEntry): void
 

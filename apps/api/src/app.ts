@@ -14,6 +14,7 @@ import { createPromptRoutes } from "./routes/prompts.js"
 import { createTextCatalogRoutes } from "./routes/text-catalog.js"
 import { createTTSRoutes } from "./routes/tts.js"
 import { createStageRoutes } from "./routes/stages.js"
+import { cleanupInterruptedSteps } from "@adt/storage"
 import { createStageService } from "./services/stage-service.js"
 import { createStageRunner } from "./services/stage-runner.js"
 import { createPresetRoutes } from "./routes/presets.js"
@@ -32,6 +33,9 @@ const configPath = path.resolve(
 const webAssetsDir = path.resolve(
   process.env.WEB_ASSETS_DIR ?? path.join(projectRoot, "assets", "adt")
 )
+
+// Mark any steps left in 'running' state as errored (server was killed mid-run)
+cleanupInterruptedSteps(booksDir)
 
 const stageRunner = createStageRunner()
 const stageService = createStageService(stageRunner)
