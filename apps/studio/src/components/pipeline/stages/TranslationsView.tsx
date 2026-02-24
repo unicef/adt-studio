@@ -483,8 +483,8 @@ function PlayButton({ audioUrl }: { audioUrl: string }) {
       type="button"
       onClick={toggle}
       className={cn(
-        "shrink-0 flex items-center justify-center w-6 h-6 rounded-full transition-colors mt-3",
-        playing ? "bg-pink-500 text-white" : "bg-muted hover:bg-accent"
+        "shrink-0 flex items-center justify-center w-6 h-6 rounded-full transition-all mt-3 cursor-pointer",
+        playing ? "bg-pink-500 text-white hover:bg-pink-600 scale-110" : "bg-muted text-muted-foreground hover:bg-pink-100 hover:text-pink-600 hover:scale-110"
       )}
     >
       {playing ? <Pause className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5 ml-0.5" />}
