@@ -439,19 +439,26 @@ function ExportButton({ bookLabel }: { bookLabel: string }) {
   const exportBook = useExportBook()
 
   return (
-    <Button
-      variant="outline"
-      size="sm"
-      className="w-full h-7 text-xs bg-violet-50 text-violet-600 border-violet-200 hover:bg-violet-100"
-      onClick={() => exportBook.mutate(bookLabel)}
-      disabled={exportBook.isPending}
-    >
-      {exportBook.isPending ? (
-        <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-      ) : (
-        <FileDown className="mr-1.5 h-3.5 w-3.5" />
+    <div className="flex flex-col gap-1">
+      <Button
+        variant="outline"
+        size="sm"
+        className="w-full h-7 text-xs bg-violet-50 text-violet-600 border-violet-200 hover:bg-violet-100"
+        onClick={() => exportBook.mutate(bookLabel)}
+        disabled={exportBook.isPending}
+      >
+        {exportBook.isPending ? (
+          <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <FileDown className="mr-1.5 h-3.5 w-3.5" />
+        )}
+        Export
+      </Button>
+      {exportBook.error && (
+        <p className="text-xs text-red-500 break-words px-1">
+          {exportBook.error instanceof Error ? exportBook.error.message : "Export failed"}
+        </p>
       )}
-      Export
-    </Button>
+    </div>
   )
 }

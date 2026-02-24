@@ -10,6 +10,7 @@
  * standalone-binary compiler) doesn't support dynamic import() in its runtime.
  */
 import { build } from "esbuild"
+import { zipSync } from "fflate"
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
@@ -208,3 +209,33 @@ if (fs.existsSync(tailwindInputPath)) {
   fs.writeFileSync(path.join(webAssetsDir, "tailwind_output.css"), result.css)
   console.log("✓ Pre-processed Tailwind CSS → assets/adt/tailwind_output.css")
 }
+
+// ---------------------------------------------------------------------------
+// 3. Zip assets/adt/ → assets/adt-resources.zip
+//
+// Tauri's **/* resource glob flattens ALL subdirectory levels into the
+// destination directory. This means libs/fontawesome/css/all.min.css would
+// land at assets/adt/all.min.css (wrong path), and all 70+ language files in
+// interface_translations/{lang}/interface_translations.json would overwrite
+// each other. A single zip file avoids the flattening problem entirely — it is
+// included as a single resource and extracted to a temp dir by the sidecar at
+// startup, preserving the full directory tree.
+// ---------------------------------------------------------------------------
+
+function collectFilesForZip(dir, prefix, files) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name)
+    const zipPath = prefix ? `${prefix}/${entry.name}` : entry.name
+    if (entry.isDirectory()) {
+      collectFilesForZip(fullPath, zipPath, files)
+    } else {
+      files[zipPath] = new Uint8Array(fs.readFileSync(fullPath))
+    }
+  }
+  return files
+}
+
+const zipFiles = collectFilesForZip(webAssetsDir, "", {})
+const adtZipPath = path.resolve(monorepoRoot, "assets", "adt-resources.zip")
+fs.writeFileSync(adtZipPath, Buffer.from(zipSync(zipFiles)))
+console.log("✓ Zipped web assets → assets/adt-resources.zip")

@@ -43,6 +43,7 @@ apps/desktop/src-tauri/binaries/
 assets/adt/base.bundle.min.js
 assets/adt/base.bundle.min.js.map
 assets/adt/tailwind_output.css
+assets/adt-resources.zip
 
 # Vitest
 coverage/
