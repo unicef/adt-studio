@@ -21,6 +21,8 @@ export interface QueueRunOptions {
   fromStage: string
   toStage: string
   apiKey: string
+  /** When true, skip page-sectioning and only re-render from existing section data. */
+  renderOnly?: boolean
   azure?: { key: string; region: string }
 }
 
@@ -224,7 +226,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   // ------------------------------------------------------------------
   const queueRun = useCallback(
     (options: QueueRunOptions) => {
-      const { fromStage, toStage, apiKey, azure } = options
+      const { fromStage, toStage, apiKey, renderOnly, azure } = options
 
       // Optimistically mark target stage(s) as queued and clear downstream
       const stagesToClear = new Set(getStageClearOrder(fromStage as StageName))
@@ -237,6 +239,8 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           const stageDef = PIPELINE.find((s) => s.name === stage)
           if (stageDef) {
             for (const step of stageDef.steps) {
+              // Render-only: preserve page-sectioning step state
+              if (renderOnly && step.name === "page-sectioning") continue
               steps[step.name] = "idle"
             }
           }
@@ -254,6 +258,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         const stageDef = PIPELINE.find((s) => s.name === stage)
         if (stageDef) {
           for (const step of stageDef.steps) {
+            if (renderOnly && step.name === "page-sectioning") continue
             progressRef.current.delete(step.name)
           }
         }
@@ -263,7 +268,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       // Chain the API call so they arrive in click order
       runChainRef.current = runChainRef.current.then(async () => {
         try {
-          await api.runStages(label, apiKey, { fromStage, toStage }, azure)
+          await api.runStages(label, apiKey, { fromStage, toStage, renderOnly }, azure)
           // Refetch to reconcile — backend cleared step_runs
           queryClient.invalidateQueries({ queryKey: stepStatusKey(label) })
         } catch {

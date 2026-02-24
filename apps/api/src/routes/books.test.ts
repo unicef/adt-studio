@@ -5,7 +5,11 @@ import path from "node:path"
 import { openBookDb, createBookStorage } from "@adt/storage"
 import { SCHEMA_VERSION } from "@adt/types"
 import type { StageName } from "@adt/types"
-import type { StageService, StageRunJob } from "../services/stage-service.js"
+import type {
+  StageService,
+  StageRunJob,
+  StageRunOptions,
+} from "../services/stage-service.js"
 import { createBookRoutes } from "./books.js"
 import { createStageRoutes } from "./stages.js"
 
@@ -438,6 +442,66 @@ function addExtractNodes(label: string, count: number, includeSummary = true): v
     storage.close()
   }
 }
+
+describe("POST /books/:label/stages/run", () => {
+  it("passes renderOnly and preserves page sectioning data for storyboard reruns", async () => {
+    const label = "render-only-route"
+    createTestBook(label)
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putNodeData("page-sectioning", "pg001", {
+        reasoning: "existing",
+        sections: [],
+      })
+      storage.putNodeData("web-rendering", "pg001", {
+        sections: [{ sectionIndex: 0, sectionType: "content", reasoning: "", html: "<p>x</p>" }],
+      })
+      storage.markStepCompleted("page-sectioning")
+      storage.markStepCompleted("web-rendering")
+    } finally {
+      storage.close()
+    }
+
+    let receivedOptions: StageRunOptions | undefined
+    const stageService: StageService = {
+      getStatus: () => ({ active: null, queue: [] }),
+      getQueuedStages: () => [],
+      addListener: () => () => {},
+      startStageRun: (_label, options) => {
+        receivedOptions = options
+        return { status: "started" as const, id: "run-1" }
+      },
+    }
+
+    const app = createStageRoutes(stageService, tmpDir, "")
+    const res = await app.request(`/books/${label}/stages/run`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-OpenAI-Key": "sk-test",
+      },
+      body: JSON.stringify({
+        fromStage: "storyboard",
+        toStage: "storyboard",
+        renderOnly: true,
+      }),
+    })
+
+    expect(res.status).toBe(200)
+    expect(receivedOptions?.renderOnly).toBe(true)
+
+    const verifyStorage = createBookStorage(label, tmpDir)
+    try {
+      expect(verifyStorage.getLatestNodeData("page-sectioning", "pg001")).not.toBeNull()
+      expect(verifyStorage.getLatestNodeData("web-rendering", "pg001")).toBeNull()
+      const runs = new Map(verifyStorage.getStepRuns().map((r) => [r.step, r.status]))
+      expect(runs.get("page-sectioning")).toBe("done")
+      expect(runs.has("web-rendering")).toBe(false)
+    } finally {
+      verifyStorage.close()
+    }
+  })
+})
 
 describe("GET /books/:label/step-status", () => {
   const extractStageSteps = [

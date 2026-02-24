@@ -45,6 +45,8 @@ export interface StageRunOptions {
   configPath?: string
   fromStage: string
   toStage: string
+  /** When true, skip page-sectioning and only re-render from existing section data. */
+  renderOnly?: boolean
   azureSpeechKey?: string
   azureSpeechRegion?: string
   beforeRun?: () => void

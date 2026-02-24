@@ -31,6 +31,7 @@ import { PromptViewer } from "@/components/pipeline/PromptViewer"
 import { TemplateViewer } from "@/components/pipeline/TemplateViewer"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useStepConfig } from "@/hooks/use-step-config"
+import { hasSectioningChanges, hasSectioningData } from "./storyboard-rerun-policy"
 
 /** "two_column_story" → "Two Column Story" */
 function titleCase(slug: string): string {
@@ -61,7 +62,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
   const { apiKey, hasApiKey } = useApiKey()
-  const { queueRun } = useBookRun()
+  const { queueRun, stepState } = useBookRun()
   const navigate = useNavigate()
   const [showRerunDialog, setShowRerunDialog] = useState(false)
   const [savingImageGenPrompt, setSavingImageGenPrompt] = useState(false)
@@ -151,6 +152,9 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
 
   const merged = activeConfigData?.merged as Record<string, unknown> | undefined
   const sectioning = useStepConfig(merged, "page_sectioning", markDirty)
+
+  // Whether sectioning data already exists (storyboard has been run at least once)
+  const hasExistingSectioningData = hasSectioningData(stepState("page-sectioning"))
 
   // Load section types, pruned types, render strategy, and models from active (merged) config
   useEffect(() => {
@@ -332,6 +336,8 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     return overrides
   }
 
+  const needsResectioning = hasSectioningChanges(dirty, sectioningPromptDraft)
+
   const confirmSaveAndRerun = async () => {
     // Save any edited prompts/templates first
     const contentSaves: Promise<unknown>[] = []
@@ -343,6 +349,10 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     if (activityAnswerDraft != null && selectedActivity?.answer_prompt) contentSaves.push(api.updatePrompt(selectedActivity.answer_prompt, activityAnswerDraft, bookLabel))
     if (imageGenPromptDraft != null) contentSaves.push(api.updatePrompt("ai_image_generation", imageGenPromptDraft, bookLabel))
     if (contentSaves.length > 0) await Promise.all(contentSaves)
+
+    // Only re-render (preserve sections) when sectioning data exists and
+    // no sectioning-related settings were changed.
+    const renderOnly = hasExistingSectioningData && !needsResectioning
 
     const overrides = buildOverrides()
     updateConfig.mutate(
@@ -358,7 +368,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
           setActivityAnswerDraft(null)
           setImageGenPromptDraft(null)
           setShowRerunDialog(false)
-          queueRun({ fromStage: "storyboard", toStage: "storyboard", apiKey })
+          queueRun({ fromStage: "storyboard", toStage: "storyboard", apiKey, renderOnly })
           navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "storyboard" } })
         },
       }
@@ -955,7 +965,9 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
             <DialogTitle>Save &amp; Rerun Storyboard</DialogTitle>
             <DialogDescription>
               This will save your settings and re-run the storyboard pipeline.
-              Sectioning and rendering will be regenerated for all pages.
+              {hasExistingSectioningData && !needsResectioning
+                ? " Only rendering will be regenerated — your existing sections will be preserved."
+                : " Sectioning and rendering will be regenerated for all pages."}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

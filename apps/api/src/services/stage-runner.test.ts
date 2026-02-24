@@ -2,14 +2,19 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import type { AppConfig } from "@adt/types"
+import type { AppConfig, ProgressEvent } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
 import {
   buildStageRunnerImageClassifyConfig,
   createStageRunner,
 } from "./stage-runner.js"
 
-const { capturedCaptionInputs, captionPageImagesMock } = vi.hoisted(() => {
+const {
+  capturedCaptionInputs,
+  captionPageImagesMock,
+  renderPageMock,
+  sectionPageMock,
+} = vi.hoisted(() => {
   const capturedCaptionInputs: unknown[] = []
   return {
     capturedCaptionInputs,
@@ -17,6 +22,8 @@ const { capturedCaptionInputs, captionPageImagesMock } = vi.hoisted(() => {
       capturedCaptionInputs.push(input)
       return { captions: [] }
     }),
+    renderPageMock: vi.fn(async () => ({ sections: [] })),
+    sectionPageMock: vi.fn(async () => ({ reasoning: "", sections: [] })),
   }
 })
 
@@ -27,6 +34,8 @@ vi.mock("@adt/pipeline", async () => {
   return {
     ...actual,
     captionPageImages: captionPageImagesMock,
+    renderPage: renderPageMock,
+    sectionPage: sectionPageMock,
   }
 })
 
@@ -91,6 +100,52 @@ function seedCaptionBook(
   }
 }
 
+function seedStoryboardBook(booksDir: string, label: string): void {
+  const storage = createBookStorage(label, booksDir)
+  try {
+    storage.putExtractedPage({
+      pageId: "pg001",
+      pageNumber: 1,
+      text: "Page text",
+      pageImage: {
+        imageId: "pg001_page",
+        buffer: Buffer.from("fake-page-image"),
+        format: "png",
+        hash: "hash-page",
+        width: 800,
+        height: 600,
+      },
+      images: [
+        {
+          imageId: "pg001_im001",
+          buffer: Buffer.from("fake-image"),
+          format: "png",
+          hash: "hash-image",
+          width: 400,
+          height: 300,
+        },
+      ],
+    })
+
+    storage.putNodeData("page-sectioning", "pg001", {
+      reasoning: "existing sectioning",
+      sections: [
+        {
+          sectionId: "pg001_sec001",
+          sectionType: "content",
+          parts: [],
+          backgroundColor: "#ffffff",
+          textColor: "#000000",
+          pageNumber: 1,
+          isPruned: false,
+        },
+      ],
+    })
+  } finally {
+    storage.close()
+  }
+}
+
 describe("buildStageRunnerImageClassifyConfig", () => {
   it("injects getImageBytes so min_stddev filtering can decode image bytes", () => {
     const config: AppConfig = {
@@ -125,6 +180,8 @@ describe("createStageRunner captions step", () => {
   beforeEach(() => {
     capturedCaptionInputs.length = 0
     captionPageImagesMock.mockClear()
+    renderPageMock.mockClear()
+    sectionPageMock.mockClear()
   })
 
   afterEach(() => {
@@ -196,5 +253,62 @@ describe("createStageRunner captions step", () => {
     expect(captionPageImagesMock).toHaveBeenCalledTimes(1)
     const firstInput = capturedCaptionInputs[0] as { bookSummary?: string }
     expect(firstInput.bookSummary).toBeUndefined()
+  })
+})
+
+describe("createStageRunner storyboard render-only", () => {
+  let tmpDir = ""
+
+  afterEach(() => {
+    if (tmpDir) {
+      fs.rmSync(tmpDir, { recursive: true, force: true })
+      tmpDir = ""
+    }
+  })
+
+  it("skips page sectioning and re-renders from existing section data", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-storyboard-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    writeBaseConfig(configPath)
+    seedStoryboardBook(booksDir, "render-only")
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await runner.run(
+      "render-only",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "storyboard",
+        toStage: "storyboard",
+        renderOnly: true,
+      },
+      { emit: (event) => events.push(event) }
+    )
+
+    expect(sectionPageMock).not.toHaveBeenCalled()
+    expect(renderPageMock).toHaveBeenCalledTimes(1)
+    expect(
+      events.some(
+        (event) => event.type === "step-skip" && event.step === "page-sectioning"
+      )
+    ).toBe(true)
+    expect(
+      events.some(
+        (event) =>
+          event.type === "step-complete" && event.step === "web-rendering"
+      )
+    ).toBe(true)
+    expect(
+      events.some(
+        (event) =>
+          event.type === "step-complete" && event.step === "page-sectioning"
+      )
+    ).toBe(false)
   })
 })

@@ -72,6 +72,8 @@ export interface AzureCredentials {
 export interface RunStagesOptions {
   fromStage: string
   toStage: string
+  /** When true, skip page-sectioning and only re-render from existing section data. */
+  renderOnly?: boolean
 }
 
 function buildApiHeaders(
