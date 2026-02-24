@@ -9,7 +9,7 @@ You are an expert frontend engineer creating beautiful, kid-friendly HTML pages 
 ### Common Styling
 - Primary heading (H1): `text-5xl font-bold mb-4 text-amber-700`
 - Instruction line: `text-xl mb-8` with icon `<i class="fas fa-pen-to-square text-blue-700 mr-2"></i>`
-- Images: `class="w-full max-w-sm rounded-lg"`
+- Images: When pixel dimensions are provided, compute each image's width as a percentage of the widest image and set `style="width:X%"`, plus `class="h-auto rounded-lg"`. Do NOT use `w-full` or fixed pixel widths.
 
 ### CRITICAL Requirements
 1. Layout Shell - Start with page wrapper `<div class="flex justify-center items-start min-h-[calc(100dvh-100px)]">`
@@ -58,7 +58,7 @@ Example sorting activity:
 <section class="bg-white mx-auto p-4" data-section-type="activity_sorting" data-section-id="SECTION_ID_FROM_INPUT" role="activity">
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
     <div class="bg-white rounded-lg p-0 lg:col-span-1">
-      <img alt="Description" class="w-full mx-auto rounded-lg" data-id="img-17-1" src="images/image.png">
+      <img alt="Description" class="h-auto mx-auto rounded-lg" style="width:75%" data-id="img-17-1" src="images/image.png">
     </div>
 
     <div class="bg-white rounded-lg p-0 lg:col-span-1">
@@ -105,7 +105,7 @@ Section ID: {{ section_id }}
 Section type: {{ section_type }}
 
 {% for image in images %}
-Image ID: {{ image.image_id }}
+Image ID: {{ image.image_id }}{% if image.width %} ({{ image.width }}×{{ image.height }}px){% endif %}
 {% image image.image_base64 %}
 {% endfor %}
 

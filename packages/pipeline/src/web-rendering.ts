@@ -18,11 +18,13 @@ export interface TextInput {
 export interface ImageInput {
   imageId: string
   imageBase64: string
+  width?: number
+  height?: number
 }
 
 export type SectionPart =
   | { type: "group"; groupId: string; groupType: string; texts: TextInput[] }
-  | { type: "image"; imageId: string; imageBase64: string }
+  | { type: "image"; imageId: string; imageBase64: string; width?: number; height?: number }
 
 export interface RenderConfig {
   renderType: "llm" | "template" | "activity"
@@ -56,7 +58,7 @@ export interface RenderPageInput {
   pageId: string
   pageImageBase64: string
   sectioning: PageSectioningOutput
-  images: Map<string, string> // imageId → base64
+  images: Map<string, { base64: string; width?: number; height?: number }>
   styleguide?: string
 }
 
@@ -78,7 +80,7 @@ function getLLMModel(
  */
 function expandParts(
   sectionParts: import("@adt/types").SectionPart[],
-  images: Map<string, string>
+  images: Map<string, { base64: string; width?: number; height?: number }>
 ): SectionPart[] {
   const parts: SectionPart[] = []
 
@@ -101,9 +103,9 @@ function expandParts(
         })
       }
     } else if (part.type === "image") {
-      const imageBase64 = images.get(part.imageId)
-      if (imageBase64) {
-        parts.push({ type: "image", imageId: part.imageId, imageBase64 })
+      const imgData = images.get(part.imageId)
+      if (imgData) {
+        parts.push({ type: "image", imageId: part.imageId, imageBase64: imgData.base64, width: imgData.width, height: imgData.height })
       }
     }
   }
