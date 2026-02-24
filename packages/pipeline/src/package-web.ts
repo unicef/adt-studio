@@ -876,10 +876,23 @@ async function buildJsBundle(
   webAssetsDir: string,
   outputAssetsDir: string,
 ): Promise<void> {
-  const esbuild = await import("esbuild")
   const entryPoint = path.join(webAssetsDir, "base.js")
   if (!fs.existsSync(entryPoint)) return // skip if no source
 
+  // In Tauri/sidecar mode, base.bundle.min.js is pre-built at build time by
+  // bundle.mjs (esbuild's JS API cannot be called at runtime inside the pkg
+  // snapshot). Use the pre-built file when available.
+  const prebuilt = path.join(webAssetsDir, "base.bundle.min.js")
+  if (fs.existsSync(prebuilt)) {
+    fs.copyFileSync(prebuilt, path.join(outputAssetsDir, "base.bundle.min.js"))
+    const prebuiltMap = path.join(webAssetsDir, "base.bundle.min.js.map")
+    if (fs.existsSync(prebuiltMap)) {
+      fs.copyFileSync(prebuiltMap, path.join(outputAssetsDir, "base.bundle.min.js.map"))
+    }
+    return
+  }
+
+  const esbuild = await import("esbuild")
   await esbuild.build({
     entryPoints: [entryPoint],
     bundle: true,

@@ -131,3 +131,23 @@ for (const [pkg, filename] of Object.entries(EXPECTED_WASM)) {
 }
 
 console.log("✓ Bundled → dist-pkg/api-server.mjs")
+
+// Pre-bundle web assets for Tauri sidecar.
+// esbuild's JS API cannot be called at runtime inside the pkg snapshot, so we
+// bundle base.js here (at build time) and store the result in assets/adt/.
+// buildJsBundle() in package-web.ts will copy this pre-built file instead of
+// calling esbuild at runtime.
+const webAssetsDir = path.resolve(monorepoRoot, "assets", "adt")
+const baseJsEntry = path.join(webAssetsDir, "base.js")
+if (fs.existsSync(baseJsEntry)) {
+  await build({
+    entryPoints: [baseJsEntry],
+    bundle: true,
+    minify: true,
+    sourcemap: true,
+    format: "esm",
+    target: "es2020",
+    outfile: path.join(webAssetsDir, "base.bundle.min.js"),
+  })
+  console.log("✓ Pre-bundled web assets → assets/adt/base.bundle.min.js")
+}
