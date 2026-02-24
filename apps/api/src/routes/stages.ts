@@ -289,5 +289,18 @@ export function createStageRoutes(
     return c.json({ ...active, queue })
   })
 
+  // Removed Feb 2026: POST /books/:label/steps/run was renamed to /stages/run.
+  // Return 410 Gone with an actionable message so callers know exactly what changed.
+  app.post("/books/:label/steps/run", (c) => {
+    return c.json(
+      {
+        error:
+          "This endpoint was removed. Use POST /books/:label/stages/run " +
+          "with body { fromStage: string, toStage: string }.",
+      },
+      410
+    )
+  })
+
   return app
 }
