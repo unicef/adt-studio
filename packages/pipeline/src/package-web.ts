@@ -757,6 +757,16 @@ async function buildTailwindCss(
   adtDir: string,
   webAssetsDir: string,
 ): Promise<void> {
+  const outputPath = path.join(adtDir, "content", "tailwind_output.css")
+
+  // In Tauri/sidecar mode, CSS is pre-processed at build time by bundle.mjs
+  // (tailwindcss/postcss cannot be called at runtime inside the pkg snapshot).
+  const prebuilt = path.join(webAssetsDir, "tailwind_output.css")
+  if (fs.existsSync(prebuilt)) {
+    fs.copyFileSync(prebuilt, outputPath)
+    return
+  }
+
   // Dynamic imports to avoid issues if not installed
   const postcss = (await import("postcss")).default
   const tailwindcss = (await import("tailwindcss")).default
@@ -800,7 +810,6 @@ async function buildTailwindCss(
     from: undefined,
   })
 
-  const outputPath = path.join(adtDir, "content", "tailwind_output.css")
   fs.writeFileSync(outputPath, result.css)
 }
 
@@ -812,6 +821,13 @@ export async function buildPreviewTailwindCss(
   contentHtml: string,
   webAssetsDir: string,
 ): Promise<string> {
+  // In Tauri/sidecar mode, CSS is pre-processed at build time by bundle.mjs
+  // (tailwindcss/postcss cannot be called at runtime inside the pkg snapshot).
+  const prebuilt = path.join(webAssetsDir, "tailwind_output.css")
+  if (fs.existsSync(prebuilt)) {
+    return fs.readFileSync(prebuilt, "utf-8")
+  }
+
   const postcss = (await import("postcss")).default
   const tailwindcss = (await import("tailwindcss")).default
 

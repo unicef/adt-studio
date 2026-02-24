@@ -130,54 +130,23 @@ for (const [pkg, filename] of Object.entries(EXPECTED_WASM)) {
   }
 }
 
-// Copy CSS asset directories that bundled packages read via fs.readFileSync at runtime.
-// The bundled code resolves __dirname to dist-pkg/, so a package that reads
-// path.resolve(__dirname, '../css/preflight.css') will look at dist-pkg/css/preflight.css.
-// These files are NOT inlined by esbuild — they must be present on disk (and in the
-// pkg snapshot as assets via pkg.mjs's collectAssets).
-const CSS_ASSET_DIRS = [
-  // tailwindcss reads css/preflight.css at runtime during CSS processing
-  { pkg: "tailwindcss", subdir: "css" },
-]
-
-for (const { pkg: pkgName, subdir } of CSS_ASSET_DIRS) {
-  const pnpmDir = path.join(monorepoRoot, "node_modules/.pnpm")
-  const safeName = pkgName.replace(/\//g, "+").replace(/@/g, "")
-  const dirs = fs.readdirSync(pnpmDir).filter((d) => {
-    const normalized = d.replace(/@/g, "").replace(/\//g, "+")
-    return normalized.startsWith(safeName)
-  })
-
-  let copied = false
-  for (const dir of dirs) {
-    const pkgPath = path.join(pnpmDir, dir, "node_modules", pkgName)
-    if (!fs.existsSync(pkgPath)) continue
-
-    const srcDir = path.join(pkgPath, subdir)
-    if (!fs.existsSync(srcDir)) continue
-
-    const destDir = path.join(outDir, subdir)
-    fs.mkdirSync(destDir, { recursive: true })
-    for (const file of fs.readdirSync(srcDir)) {
-      fs.copyFileSync(path.join(srcDir, file), path.join(destDir, file))
-      console.log(`  Copied ${subdir}/${file}`)
-    }
-    copied = true
-    break
-  }
-  if (!copied) {
-    console.warn(`  Warning: ${pkgName}/${subdir} not found in pnpm store — skipping`)
-  }
-}
-
 console.log("✓ Bundled → dist-pkg/api-server.mjs")
 
-// Pre-bundle web assets for Tauri sidecar.
-// esbuild's JS API cannot be called at runtime inside the pkg snapshot, so we
-// bundle base.js here (at build time) and store the result in assets/adt/.
-// buildJsBundle() in package-web.ts will copy this pre-built file instead of
-// calling esbuild at runtime.
+// ---------------------------------------------------------------------------
+// Pre-process web assets for Tauri sidecar
+//
+// esbuild, tailwindcss, and postcss cannot be called at runtime inside the pkg
+// snapshot (they locate native binaries or CSS data files via paths relative to
+// their own package directory, which breaks when bundled). We pre-process all
+// three here at BUILD TIME and store the results in assets/adt/. The
+// corresponding functions in package-web.ts detect these pre-built files and
+// copy them instead of calling the tools at runtime.
+// ---------------------------------------------------------------------------
+
 const webAssetsDir = path.resolve(monorepoRoot, "assets", "adt")
+
+// 1. Pre-bundle base.js → base.bundle.min.js
+//    buildJsBundle() copies this at runtime instead of calling esbuild.
 const baseJsEntry = path.join(webAssetsDir, "base.js")
 if (fs.existsSync(baseJsEntry)) {
   await build({
@@ -190,4 +159,52 @@ if (fs.existsSync(baseJsEntry)) {
     outfile: path.join(webAssetsDir, "base.bundle.min.js"),
   })
   console.log("✓ Pre-bundled web assets → assets/adt/base.bundle.min.js")
+}
+
+// 2. Pre-process tailwind_css.css → tailwind_output.css
+//    buildTailwindCss() and buildPreviewTailwindCss() copy/read this at runtime
+//    instead of calling postcss+tailwindcss. Content is scanned from the static
+//    source files; any classes used only in dynamically generated book content
+//    are covered by the complete scan of all ADT HTML/JS assets.
+const tailwindInputPath = path.join(webAssetsDir, "tailwind_css.css")
+if (fs.existsSync(tailwindInputPath)) {
+  const { default: postcss } = await import("postcss")
+  const { default: tailwindcss } = await import("tailwindcss")
+
+  const inputCss = fs.readFileSync(tailwindInputPath, "utf-8")
+  const tailwindConfig = {
+    content: [
+      path.join(webAssetsDir, "**/*.html"),
+      path.join(webAssetsDir, "**/*.js"),
+    ],
+    theme: {
+      extend: {
+        keyframes: {
+          tutorialPopIn: {
+            "0%": { opacity: "0", transform: "scale(0.9)" },
+            "100%": { opacity: "1", transform: "scale(1)" },
+          },
+          pulseBorder: {
+            "0%": { boxShadow: "0 0 0 0 rgba(49,130,206,0.7)" },
+            "70%": { boxShadow: "0 0 0 10px rgba(49,130,206,0)" },
+            "100%": { boxShadow: "0 0 0 0 rgba(49,130,206,0)" },
+          },
+        },
+        animation: {
+          tutorialPopIn: "tutorialPopIn 0.3s ease-out forwards",
+          pulseBorder: "pulseBorder 2s infinite",
+        },
+        boxShadow: {
+          tutorial: "0 0 0 4px rgba(49,130,206,0.3)",
+        },
+      },
+    },
+    plugins: [],
+  }
+
+  const result = await postcss([tailwindcss(tailwindConfig)]).process(inputCss, {
+    from: undefined,
+  })
+  fs.writeFileSync(path.join(webAssetsDir, "tailwind_output.css"), result.css)
+  console.log("✓ Pre-processed Tailwind CSS → assets/adt/tailwind_output.css")
 }
