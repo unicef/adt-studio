@@ -1,5 +1,14 @@
 import { useRef, useMemo, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from "react"
 import DOMPurify from "dompurify"
+import { BASE_URL } from "@/api/client"
+
+// BASE_URL is "/api" in dev mode and "http://localhost:3001/api" in Tauri.
+// The iframe needs a <base> tag so that relative URLs like /api/books/... in
+// pipeline-generated HTML resolve to the actual API server, not tauri.localhost.
+const IFRAME_BASE = BASE_URL.startsWith("http")
+  ? BASE_URL.slice(0, BASE_URL.indexOf("/api"))
+  : ""
+
 
 export interface BookPreviewFrameHandle {
   /** Get the iframe element's bounding rect in the viewport */
@@ -175,6 +184,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
     () => `<!DOCTYPE html>
 <html>
 <head>
+  ${IFRAME_BASE ? `<base href="${IFRAME_BASE}">` : ""}
   <meta charset="utf-8" />
   <meta content="width=device-width, initial-scale=1" name="viewport" />
   <script src="https://cdn.tailwindcss.com"><\/script>

@@ -34,7 +34,7 @@ export function createPackageRoutes(
 
     if (!fs.existsSync(webAssetsDir)) {
       throw new HTTPException(500, {
-        message: "Web assets directory not found",
+        message: `Web assets directory not found: ${webAssetsDir}`,
       })
     }
 
