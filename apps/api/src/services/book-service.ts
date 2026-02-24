@@ -21,8 +21,9 @@ export interface BookDetail extends BookSummary {
   bookSummary: BookSummaryOutput | null
 }
 
-function isSchemaMismatchError(err: unknown): err is Error {
-  return err instanceof Error && err.message.includes("Schema version mismatch")
+function isRecoverableDbError(err: unknown): err is Error {
+  if (!(err instanceof Error)) return false
+  return err.message.includes("Schema version mismatch") || err.message.includes("database is locked")
 }
 
 export function listBooks(booksDir: string): BookSummary[] {
@@ -77,10 +78,11 @@ export function listBooks(booksDir: string): BookSummary[] {
           db.close()
         }
       } catch (err) {
-        if (isSchemaMismatchError(err)) {
+        if (isRecoverableDbError(err)) {
           needsRebuild = true
-          rebuildReason =
-            "Book data uses an older storage schema and must be rebuilt."
+          rebuildReason = err.message.includes("locked")
+            ? "Book database is temporarily locked. Try again shortly."
+            : "Book data uses an older storage schema and must be rebuilt."
         } else {
           throw err
         }
@@ -166,10 +168,11 @@ export function getBook(label: string, booksDir: string): BookDetail {
         db.close()
       }
     } catch (err) {
-      if (isSchemaMismatchError(err)) {
+      if (isRecoverableDbError(err)) {
         needsRebuild = true
-        rebuildReason =
-          "Book data uses an older storage schema and must be rebuilt."
+        rebuildReason = err.message.includes("locked")
+          ? "Book database is temporarily locked. Try again shortly."
+          : "Book data uses an older storage schema and must be rebuilt."
       } else {
         throw err
       }

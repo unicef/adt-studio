@@ -1,8 +1,9 @@
-import { useEffect } from "react"
+import { useCallback, useEffect } from "react"
 import { AlignLeft, ArrowLeft, ArrowRight, BookOpen, Building2, FileText, Globe, Image, Loader2, User } from "lucide-react"
 import { useBook } from "@/hooks/use-books"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useBookRun } from "@/hooks/use-book-run"
+import { useApiKey } from "@/hooks/use-api-key"
 import { ExtractPageDetail } from "./ExtractPageDetail"
 import { useStepHeader } from "../StepViewRouter"
 import { StageRunCard } from "../StageRunCard"
@@ -143,14 +144,21 @@ function BookBanner({ bookLabel, pages }: { bookLabel: string; pages: PageSummar
 
 export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
   const { data: pages, isLoading } = usePages(bookLabel)
-  const { stageState } = useBookRun()
+  const { stageState, queueRun } = useBookRun()
+  const { apiKey, hasApiKey } = useApiKey()
   const selectedPageId = selectedPageIdProp ?? null
   const setSelectedPageId = onSelectPage ?? (() => {})
   const { setExtra, setOnLabelClick } = useStepHeader()
   const extractState = stageState("extract")
   const extractDone = extractState === "done"
   const extractRunning = extractState === "running" || extractState === "queued"
+  const extractError = extractState === "error"
   const showRunCard = !extractDone || extractRunning
+
+  const handleRetryExtract = useCallback(() => {
+    if (!hasApiKey || extractRunning) return
+    queueRun({ fromStage: "extract", toStage: "extract", apiKey })
+  }, [hasApiKey, extractRunning, apiKey, queueRun])
 
   const pageList = pages ?? []
   const currentIndex = selectedPageId ? pageList.findIndex((p) => p.pageId === selectedPageId) : -1
@@ -255,8 +263,8 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
           stageSlug="extract"
           isRunning={extractRunning}
           completed={extractDone}
-          onRun={() => {}}
-          disabled
+          onRun={handleRetryExtract}
+          disabled={!extractError || !hasApiKey || extractRunning}
         />
       ) : pageList.length === 0 ? (
         <p className="text-sm text-muted-foreground">

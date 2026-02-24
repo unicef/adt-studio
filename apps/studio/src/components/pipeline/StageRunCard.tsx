@@ -59,9 +59,11 @@ export function StageRunCard({
   const isCompleted = completed ?? (stageStatus === "done")
   const hasSubSteps = subSteps.length > 0
   const hoverColorClass = HOVER_BG_BY_COLOR[color] ?? "hover:bg-gray-600"
-  const buttonToneClass = isCompleted
-    ? cn(color, "text-white", hoverColorClass, "hover:text-white")
-    : cn("bg-gray-200 text-gray-700", hoverColorClass, "hover:text-white")
+  const buttonToneClass = hasError
+    ? "bg-red-600 text-white hover:bg-red-700 hover:text-white"
+    : isCompleted
+      ? cn(color, "text-white", hoverColorClass, "hover:text-white")
+      : cn("bg-gray-200 text-gray-700", hoverColorClass, "hover:text-white")
 
   return (
     <Card className={cn("overflow-hidden max-w-xl shadow-none", borderColor)}>

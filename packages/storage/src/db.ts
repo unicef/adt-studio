@@ -60,9 +60,16 @@ CREATE TABLE IF NOT EXISTS step_runs (
 
 export function openBookDb(dbPath: string): sqlite.Database {
   const db = new Database(dbPath)
-  db.exec("PRAGMA foreign_keys = ON")
-  initSchema(db)
-  return db
+  try {
+    db.exec("PRAGMA busy_timeout = 1000")
+    db.exec("PRAGMA foreign_keys = ON")
+    initSchema(db)
+    return db
+  } catch (err) {
+    // Close the handle so it doesn't leak and hold a permanent lock
+    try { db.close() } catch { /* best-effort */ }
+    throw err
+  }
 }
 
 function initSchema(db: sqlite.Database): void {
@@ -272,6 +279,31 @@ export function cleanupInterruptedSteps(booksDir: string): void {
     const dbPath = path.join(bookDir, `${entry}.db`)
     if (!fs.existsSync(dbPath)) continue
 
+    // At startup there are no active writers, so stale lock/journal/WAL
+    // artifacts from a killed process can safely be removed. This must
+    // happen BEFORE the first open — once node-sqlite3-wasm hits a stale
+    // lock, its internal state can't be recovered even after close().
+    // node-sqlite3-wasm uses a .lock directory, plus standard SQLite
+    // -journal, -wal, and -shm files.
+    const staleFiles = [dbPath + "-wal", dbPath + "-shm", dbPath + "-journal"]
+    const staleDirs = [dbPath + ".lock"]
+    for (const f of staleFiles) {
+      try {
+        if (fs.existsSync(f)) {
+          fs.unlinkSync(f)
+          console.log(`[startup] ${entry}: removed stale ${path.basename(f)}`)
+        }
+      } catch { /* best-effort */ }
+    }
+    for (const d of staleDirs) {
+      try {
+        if (fs.existsSync(d)) {
+          fs.rmSync(d, { recursive: true })
+          console.log(`[startup] ${entry}: removed stale ${path.basename(d)}`)
+        }
+      } catch { /* best-effort */ }
+    }
+
     let db: sqlite.Database | null = null
     try {
       db = openBookDb(dbPath)
@@ -288,6 +320,7 @@ export function cleanupInterruptedSteps(booksDir: string): void {
       if (result.changes > 0) {
         console.log(`[startup] ${entry}: marked ${result.changes} interrupted step(s) as errored`)
       }
+
     } catch (err) {
       console.error(`[startup] ${entry}: failed to clean up interrupted steps:`, err)
     } finally {
