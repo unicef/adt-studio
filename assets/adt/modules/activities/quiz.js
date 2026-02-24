@@ -268,7 +268,7 @@ const clearQuizValidationStyling = () => {
 
     setLetterAppearance(
       option,
-      'w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center',
+      'w-8 h-8 aspect-square rounded-full border-2 border-gray-300 flex items-center justify-center',
       'option-letter text-gray-500'
     );
   });
@@ -289,7 +289,7 @@ const resetQuizOptions = (radioGroup) => {
 
     setLetterAppearance(
       option,
-      'w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center',
+      'w-8 h-8 aspect-square rounded-full border-2 border-gray-300 flex items-center justify-center',
       'option-letter text-gray-500'
     );
 
@@ -312,7 +312,7 @@ const markQuizSelection = (option) => {
 
   setLetterAppearance(
     option,
-    'w-8 h-8 rounded-full border-2 border-blue-500 bg-blue-500 flex items-center justify-center',
+    'w-8 h-8 aspect-square rounded-full border-2 border-blue-500 bg-blue-500 flex items-center justify-center',
     'option-letter text-white'
   );
 
@@ -793,7 +793,7 @@ const styleQuizOption = (option, isCorrect) => {
 
   setLetterAppearance(
     option,
-    `w-8 h-8 rounded-full border-2 flex items-center justify-center ${
+    `w-8 h-8 aspect-square rounded-full border-2 flex items-center justify-center ${
       isCorrect ? 'border-green-500 bg-green-500 text-white' : 'border-red-500 bg-red-500 text-white'
     }`,
     'option-letter text-white'

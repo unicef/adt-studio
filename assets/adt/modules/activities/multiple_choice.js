@@ -4,6 +4,9 @@ import { updateSubmitButtonAndToast, ActivityTypes } from '../utils.js';
 import { translateText } from '../translations.js';
 import { executeMail } from './send-email.js';
 import { updateResetButtonVisibility } from '../../activity.js';
+import { isTypingTarget } from './shortcut-utils.js';
+
+let multipleChoiceShortcutHandler = null;
 
 const restoreSubmitButtonToValidate = () => {
     const submitButton = document.getElementById("submit-button");
@@ -105,6 +108,32 @@ export const prepareMultipleChoice = (section) => {
 
         shortcutHint.textContent = translateText('quiz-shortcut-hint');
     }
+
+    // Allow digit keys (1-9) to select options, Enter to submit
+    const options = [...section.querySelectorAll(".activity-option")];
+    const keyHandler = (e) => {
+        if (isTypingTarget(e.target)) {
+            return;
+        }
+
+        const digit = parseInt(e.key, 10);
+        if (digit >= 1 && digit <= options.length) {
+            e.preventDefault();
+            selectOption(options[digit - 1]);
+        } else if (e.key === "Enter") {
+            const submitButton = document.getElementById("submit-button");
+            if (submitButton) {
+                e.preventDefault();
+                submitButton.click();
+            }
+        }
+    };
+    // Remove any previous handler before adding a new one
+    if (multipleChoiceShortcutHandler) {
+        document.removeEventListener("keydown", multipleChoiceShortcutHandler);
+    }
+    multipleChoiceShortcutHandler = keyHandler;
+    document.addEventListener("keydown", multipleChoiceShortcutHandler);
 };
 const saveSelectionState = (option) => {
     const activityId = location.pathname
@@ -258,7 +287,7 @@ const clearAllValidationStyling = () => {
         // Reset the letter appearance
         setLetterAppearance(
             option,
-            'w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center',
+            'w-8 h-8 aspect-square rounded-full border-2 border-gray-300 flex items-center justify-center',
             'option-letter text-gray-500'
         );
 
@@ -279,7 +308,7 @@ const resetOptions = (radioGroup) => {
 
         setLetterAppearance(
             opt,
-            'w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center',
+            'w-8 h-8 aspect-square rounded-full border-2 border-gray-300 flex items-center justify-center',
             'option-letter text-gray-500'
         );
 
@@ -306,7 +335,7 @@ const selectClickedOption = (option) => {
 
     setLetterAppearance(
         option,
-        'w-8 h-8 rounded-full border-2 border-blue-500 bg-blue-500 flex items-center justify-center',
+        'w-8 h-8 aspect-square rounded-full border-2 border-blue-500 bg-blue-500 flex items-center justify-center',
         'option-letter text-white'
     );
 
@@ -370,7 +399,7 @@ const styleSelectedOption = (option, isCorrect) => {
 
     setLetterAppearance(
         option,
-        `w-8 h-8 rounded-full border-2 flex items-center justify-center ${isCorrect
+        `w-8 h-8 aspect-square rounded-full border-2 flex items-center justify-center ${isCorrect
             ? 'border-green-500 bg-green-500 text-white'
             : 'border-red-500 bg-red-500 text-white'
             }`,

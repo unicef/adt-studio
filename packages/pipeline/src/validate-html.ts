@@ -128,6 +128,8 @@ function walkNode(
   if (node.type === "text") {
     if (node.data.trim().length > 0) {
       if (isInsideExemptTag(node)) return
+      // Allow single-digit numbers as bare text (used as option markers in activities)
+      if (/^\d$/.test(node.data.trim())) return
       if (!hasAncestorWithDataId(node)) {
         const snippet = node.data.trim().slice(0, 50)
         errors.push(`Text node outside any data-id element: "${snippet}"`)

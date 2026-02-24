@@ -136,7 +136,9 @@ export async function packageAdtWeb(
           const sectionMeta = sectioning?.sections[rs.sectionIndex]
           const sectionId = sectionMeta?.sectionId ?? `${page.pageId}_sec${String(rs.sectionIndex + 1).padStart(3, "0")}`
 
-          if (sectionMeta?.sectionType.startsWith("activity_")) hasActivitySections = true
+          if (rs.sectionType.startsWith("activity_") || sectionMeta?.sectionType.startsWith("activity_")) {
+            hasActivitySections = true
+          }
 
           // Rewrite image URLs and copy referenced images
           const { html: rewrittenHtml, referencedImages } = rewriteImageUrls(
