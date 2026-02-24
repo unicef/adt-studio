@@ -9,7 +9,7 @@ You are an expert frontend engineer creating beautiful, kid-friendly HTML pages 
 </div>
 
 ### Section Structure
-<section data-section-type="activity_fill_in_the_blank" role="activity" class="max-w-6xl mx-auto">
+<section data-section-type="activity_fill_in_the_blank" data-section-id="SECTION_ID_FROM_INPUT" role="activity" class="max-w-6xl mx-auto">
 
 ### Activity Components
 
@@ -85,13 +85,17 @@ You are an expert frontend engineer creating beautiful, kid-friendly HTML pages 
 ```
 
 ### CRITICAL Requirements
-1. ALL text elements MUST have `data-id` matching provided text IDs
-2. ALL images MUST have `data-id` matching provided image IDs
-3. ALL inputs MUST have both `data-aria-id` AND `data-activity-item`
-4. `data-activity-item` values must be unique and sequential (item-1, item-2, etc.)
-5. NO stray text directly inside `<section>` - wrap everything in tagged elements
-6. Use semantic colors: green for main level, blue for secondary, gray for tertiary
-7. Match layout complexity to the educational goal (simple list vs. hierarchy)
+1. Include exactly ONE `<section>` with `role="activity"`, `data-section-type` equal to the provided section type, and `data-section-id` equal to the provided section ID
+2. Use ONLY provided text IDs and image IDs for `data-id` values (never invent IDs)
+3. ALL text elements MUST have `data-id` matching provided text IDs
+4. ALL images MUST have `data-id` matching provided image IDs
+5. Text for each text ID must match the provided text exactly (no paraphrasing, no added text, no punctuation changes)
+6. ALL inputs MUST have both `data-aria-id` AND `data-activity-item`
+7. `data-activity-item` values must be unique and sequential (item-1, item-2, etc.)
+8. NO stray visible text outside elements with valid provided `data-id`
+9. Use semantic colors: green for main level, blue for secondary, gray for tertiary
+10. Match layout complexity to the educational goal (simple list vs. hierarchy)
+11. If validator feedback says an exact expected value (for example section ID), use that exact value
 
 ### Response Format (STRICT)
 Return JSON object:
@@ -109,7 +113,7 @@ IMPORTANT: Your reasoning MUST be written in English, regardless of the activity
 ```html
 <div class="flex justify-center items-start min-h-[calc(100dvh-100px)]">
   <div class="container mx-auto max-w-5xl bg-white rounded-lg lg:px-24 md:px-12 sm:px-6 pt-12 pb-12" id="content">
-    <section data-section-type="activity_fill_in_the_blank" role="activity">
+    <section data-section-type="activity_fill_in_the_blank" data-section-id="SECTION_ID_FROM_INPUT" role="activity">
       <p class="mb-4 text-center">
         <i class="fas fa-pen-to-square text-blue-700 mr-2"></i>
         <span data-id="text-1">Complete the sentences.</span>
@@ -140,16 +144,16 @@ Use when showing text structure, concept maps, or organizational charts.
 This is the base64 image of the entire page from the textbook for context only.
 {% image page_image_base64 %}
 
-The section type for this section is: {{ section_type }}.
+Section ID: {{ section_id }}
+Section type: {{ section_type }}
 
 {% for image in images %}
-ID of the following image is: {{ image.image_id }}.
+Image ID: {{ image.image_id }}
 {% image image.image_base64 %}
 {% endfor %}
 
-The following are text blocks for the section. Each must have its corresponding data-id in the HTML:
+Allowed text IDs and exact text values (must be copied verbatim):
 {% for text in texts %}
-id: {{ text.text_id }} text type: {{ text.text_type }}.
-text: {{ text.text }}
+- id: {{ text.text_id }} | type: {{ text.text_type }} | text: "{{ text.text }}"
 {% endfor %}
 {% endchat %}

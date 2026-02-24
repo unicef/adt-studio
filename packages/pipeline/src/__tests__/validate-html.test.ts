@@ -93,6 +93,45 @@ describe("validateSectionHtml", () => {
     expect(result.valid).toBe(true)
   })
 
+  it("rejects img tags without data-id", () => {
+    const html = `
+      <section>
+        <img src="placeholder" alt="test" />
+      </section>
+    `
+    const result = validateSectionHtml(html, [], ["pg001_im001"])
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining('<img> tag missing required "data-id" attribute')
+    )
+  })
+
+  it("rejects img tags whose data-id is not an allowed image id", () => {
+    const html = `
+      <section>
+        <img data-id="pg001_gp001" src="placeholder" alt="test" />
+      </section>
+    `
+    const result = validateSectionHtml(html, ["pg001_gp001"], ["pg001_im001"])
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining('Invalid image data-id: "pg001_gp001"')
+    )
+  })
+
+  it("rejects image data-ids on non-img elements", () => {
+    const html = `
+      <section>
+        <div data-id="pg001_im001">Not an image</div>
+      </section>
+    `
+    const result = validateSectionHtml(html, [], ["pg001_im001"])
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining('Image data-id "pg001_im001" must be used on an <img> tag')
+    )
+  })
+
   it("fails when no section tag is found", () => {
     const result = validateSectionHtml("<p>no section</p>", [], [])
     expect(result.valid).toBe(false)

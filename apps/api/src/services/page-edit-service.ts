@@ -4,12 +4,12 @@ import { createLLMModel, createPromptEngine } from "@adt/llm"
 import type { LLMModel } from "@adt/llm"
 import { renderPage, buildRenderStrategyResolver, createTemplateEngine, loadBookConfig } from "@adt/pipeline"
 import { loadStyleguideContent } from "./styleguide.js"
-import type { PageSectioningOutput, WebRenderingOutput } from "@adt/types"
-import { webRenderingLLMSchema } from "@adt/types"
+import { PageSectioningOutput, WebRenderingOutput, webRenderingLLMSchema } from "@adt/types"
 
 export interface ReRenderOptions {
   label: string
   pageId: string
+  sectionIndex?: number
   booksDir: string
   promptsDir: string
   configPath?: string
@@ -42,7 +42,7 @@ export interface AiEditSectionResult {
 export async function reRenderPage(
   options: ReRenderOptions
 ): Promise<ReRenderResult> {
-  const { label, pageId, booksDir, promptsDir, configPath, apiKey } = options
+  const { label, pageId, sectionIndex, booksDir, promptsDir, configPath, apiKey } = options
 
   // Set API key
   const previousKey = process.env.OPENAI_API_KEY
@@ -60,7 +60,11 @@ export async function reRenderPage(
       )
     }
 
-    const sectioning = sectionRow.data as PageSectioningOutput
+    const sectioningParsed = PageSectioningOutput.safeParse(sectionRow.data)
+    if (!sectioningParsed.success) {
+      throw new Error("Invalid page-sectioning data")
+    }
+    const sectioning = sectioningParsed.data
 
     // Build image map (all page images — expandParts filters by pruned status)
     const allImages = storage.getPageImages(pageId)
@@ -98,13 +102,28 @@ export async function reRenderPage(
     // Get page image
     const pageImageBase64 = storage.getPageImageBase64(pageId)
 
-    // Render page
+    if (sectionIndex !== undefined && (sectionIndex < 0 || sectionIndex >= sectioning.sections.length)) {
+      throw new Error(`Section index ${sectionIndex} out of range`)
+    }
+
+    // Render either a single section (preferred) or the full page.
+    // For section re-render we force all other sections to pruned in-memory so
+    // renderPage preserves the original sectionIndex while skipping extra LLM calls.
+    const sectioningForRender = sectionIndex === undefined
+      ? sectioning
+      : {
+          ...sectioning,
+          sections: sectioning.sections.map((section, idx) =>
+            idx === sectionIndex ? section : { ...section, isPruned: true }
+          ),
+        }
+
     const renderResult = await renderPage(
       {
         label,
         pageId,
         pageImageBase64,
-        sectioning,
+        sectioning: sectioningForRender,
         images: renderImages,
         styleguide: styleguideContent,
       },
@@ -113,10 +132,32 @@ export async function reRenderPage(
       templateEngine
     )
 
-    // Store result
-    const version = storage.putNodeData("web-rendering", pageId, renderResult)
+    if (sectionIndex === undefined) {
+      const version = storage.putNodeData("web-rendering", pageId, renderResult)
+      return { version, rendering: renderResult }
+    }
 
-    return { version, rendering: renderResult }
+    // Merge the newly rendered section back into existing rendering, preserving
+    // other sections as-is.
+    const existingRenderingRow = storage.getLatestNodeData("web-rendering", pageId)
+    const existingRenderingParsed = existingRenderingRow
+      ? WebRenderingOutput.safeParse(existingRenderingRow.data)
+      : null
+    if (existingRenderingRow && !existingRenderingParsed?.success) {
+      throw new Error("Invalid web-rendering data")
+    }
+    const existingSections = existingRenderingParsed?.success
+      ? existingRenderingParsed.data.sections
+      : []
+    const withoutTarget = existingSections.filter((s) => s.sectionIndex !== sectionIndex)
+    const newTarget = renderResult.sections.find((s) => s.sectionIndex === sectionIndex)
+    const mergedSections = newTarget
+      ? [...withoutTarget, newTarget].sort((a, b) => a.sectionIndex - b.sectionIndex)
+      : withoutTarget.sort((a, b) => a.sectionIndex - b.sectionIndex)
+    const mergedRendering = { sections: mergedSections }
+
+    const version = storage.putNodeData("web-rendering", pageId, mergedRendering)
+    return { version, rendering: mergedRendering }
   } finally {
     storage.close()
     // Restore previous key
@@ -152,8 +193,11 @@ export async function aiEditSection(
       if (!renderingRow) {
         throw new Error("Page must have web-rendering data before AI editing")
       }
-      const rendering = renderingRow.data as WebRenderingOutput
-      const section = rendering.sections[sectionIndex]
+      const renderingParsed = WebRenderingOutput.safeParse(renderingRow.data)
+      if (!renderingParsed.success) {
+        throw new Error("Invalid web-rendering data")
+      }
+      const section = renderingParsed.data.sections.find((s) => s.sectionIndex === sectionIndex)
       if (!section) {
         throw new Error(`Section ${sectionIndex} not found in rendering`)
       }

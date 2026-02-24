@@ -164,8 +164,8 @@ describe("packageAdtWeb", () => {
       fs.readFileSync(path.join(bookDir, "adt", "content", "pages.json"), "utf-8"),
     ) as Array<{ section_id: string; href: string; page_number?: number }>
     expect(pagesJson).toHaveLength(2)
-    expect(pagesJson[0].page_number).toBe(10)
-    expect(Object.prototype.hasOwnProperty.call(pagesJson[1], "page_number")).toBe(false)
+    expect(pagesJson[0]).toEqual({ section_id: "pg001_sec001", href: "pg001_sec001.html", page_number: 10 })
+    expect(pagesJson[1]).toEqual({ section_id: "pg002_sec001", href: "pg002_sec001.html" })
 
     const configJson = JSON.parse(
       fs.readFileSync(path.join(bookDir, "adt", "assets", "config.json"), "utf-8"),
@@ -173,7 +173,7 @@ describe("packageAdtWeb", () => {
     expect(configJson.languages.available).toEqual(["fr"])
     expect(configJson.languages.default).toBe("fr")
 
-    const pageHtml = fs.readFileSync(path.join(bookDir, "adt", "pg001.html"), "utf-8")
+    const pageHtml = fs.readFileSync(path.join(bookDir, "adt", "pg001_sec001.html"), "utf-8")
     expect(pageHtml).toContain("window.correctAnswers = JSON.parse(")
     expect(pageHtml).not.toContain("</script><script>alert('x')</script>")
     expect(pageHtml).toContain("\\u003c/script\\u003e\\u003cscript\\u003e")
@@ -264,9 +264,83 @@ describe("packageAdtWeb", () => {
     ) as Array<{ section_id: string; href: string; page_number?: number }>
 
     expect(pagesJson).toEqual([
-      { section_id: "qz001", href: "qz001.html", page_number: 10 },
-      { section_id: "pg002", href: "pg002.html" },
+      { section_id: "qz001", href: "qz001.html" },
+      { section_id: "pg002_sec001", href: "pg002_sec001.html" },
     ])
     expect(fs.existsSync(path.join(bookDir, "adt", "qz001.html"))).toBe(true)
+  })
+
+  it("orders rendered sections by sectionIndex before writing pages.json", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    const pages: PageData[] = [
+      { pageId: "pg001", pageNumber: 1, text: "Page one" },
+    ]
+
+    const storage = createMockStorage(pages, {
+      "web-rendering": {
+        pg001: {
+          sections: [
+            {
+              sectionIndex: 1,
+              sectionType: "content",
+              reasoning: "ok",
+              html: "<div>Second section</div>",
+            },
+            {
+              sectionIndex: 0,
+              sectionType: "content",
+              reasoning: "ok",
+              html: "<div>First section</div>",
+            },
+          ],
+        },
+      },
+      "page-sectioning": {
+        pg001: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "content",
+              parts: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+            {
+              sectionId: "pg001_sec002",
+              sectionType: "content",
+              parts: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+      },
+    })
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+    })
+
+    const pagesJson = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "content", "pages.json"), "utf-8"),
+    ) as Array<{ section_id: string; href: string; page_number?: number }>
+    expect(pagesJson).toEqual([
+      { section_id: "pg001_sec001", href: "pg001_sec001.html", page_number: 1 },
+      { section_id: "pg001_sec002", href: "pg001_sec002.html", page_number: 1 },
+    ])
   })
 })

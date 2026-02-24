@@ -5,6 +5,7 @@ import { HTTPException } from "hono/http-exception"
 import { parseBookLabel } from "@adt/types"
 import {
   WebRenderingOutput,
+  PageSectioningOutput,
   type TextCatalogOutput,
   type GlossaryOutput,
   type QuizGenerationOutput,
@@ -14,7 +15,6 @@ import {
 import { createBookStorage, type Storage } from "@adt/storage"
 import {
   renderPageHtml,
-  combineSections,
   NAV_HTML,
   buildPreviewTailwindCss,
   buildGlossaryJson,
@@ -122,8 +122,8 @@ function buildTextsMap(
   return textsMap
 }
 
-/** Build the pages.json manifest from all rendered pages, interleaving quiz pages */
-function buildPagesManifest(storage: Storage): Array<{ section_id: string; href: string }> {
+/** Build the pages.json manifest — one entry per rendered section, interleaving quiz pages */
+function buildPagesManifest(storage: Storage): Array<{ section_id: string; href: string; page_number?: number }> {
   const pages = storage.getPages()
   const quizData = getQuizData(storage)
 
@@ -137,14 +137,35 @@ function buildPagesManifest(storage: Storage): Array<{ section_id: string; href:
     }
   }
 
-  const list: Array<{ section_id: string; href: string }> = []
+  const list: Array<{ section_id: string; href: string; page_number?: number }> = []
   for (const page of pages) {
     const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
-    if (!renderRow) continue
-    const parsed = WebRenderingOutput.safeParse(renderRow.data)
-    if (!parsed.success || parsed.data.sections.length === 0) continue
+    if (renderRow) {
+      const parsed = WebRenderingOutput.safeParse(renderRow.data)
+      if (parsed.success && parsed.data.sections.length > 0) {
+        // Get sectioning data for sectionIds and page numbers
+        const sectioningRow = storage.getLatestNodeData("page-sectioning", page.pageId)
+        const sectioningParsed = sectioningRow
+          ? PageSectioningOutput.safeParse(sectioningRow.data)
+          : null
+        const sectioning = sectioningParsed?.success ? sectioningParsed.data : undefined
 
-    list.push({ section_id: page.pageId, href: `${page.pageId}.html` })
+        // One entry per rendered section (stable by sectionIndex)
+        const sections = [...parsed.data.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
+        for (const rs of sections) {
+          const sectionMeta = sectioning?.sections?.[rs.sectionIndex]
+          const sectionId = sectionMeta?.sectionId ?? `${page.pageId}_sec${String(rs.sectionIndex + 1).padStart(3, "0")}`
+          const entry: { section_id: string; href: string; page_number?: number } = {
+            section_id: sectionId,
+            href: `${sectionId}.html`,
+          }
+          if (sectionMeta?.pageNumber !== null && sectionMeta?.pageNumber !== undefined) {
+            entry.page_number = sectionMeta.pageNumber
+          }
+          list.push(entry)
+        }
+      }
+    }
 
     // Insert quiz pages after this page
     const quizzes = quizzesByAfterPageId.get(page.pageId)
@@ -309,8 +330,9 @@ export function createAdtPreviewRoutes(
         if (renderRow) {
           const parsed = WebRenderingOutput.safeParse(renderRow.data)
           if (parsed.success) {
-            const { html } = combineSections(parsed.data)
-            allHtml += html + "\n"
+            for (const section of parsed.data.sections) {
+              allHtml += section.html + "\n"
+            }
           }
         }
       }
@@ -484,10 +506,18 @@ export function createAdtPreviewRoutes(
         return c.body(html)
       }
 
-      // Regular content page
-      const renderRow = storage.getLatestNodeData("web-rendering", pageId)
+      // Content page — require sectionId format (e.g. pg001_sec001).
+      // This prevents ambiguous fallback to unrelated sections.
+      const sectionIdMatch = pageId.match(/^(.+)_sec(\d{3})$/)
+      if (!sectionIdMatch) {
+        throw new HTTPException(404, { message: `Section not found: ${pageId}` })
+      }
+      const ownerPageId = sectionIdMatch[1]
+      const fallbackSectionIndex = parseInt(sectionIdMatch[2], 10) - 1
+
+      const renderRow = storage.getLatestNodeData("web-rendering", ownerPageId)
       if (!renderRow) {
-        throw new HTTPException(404, { message: `No rendering data for page: ${pageId}` })
+        throw new HTTPException(404, { message: `No rendering data for page: ${ownerPageId}` })
       }
 
       const parsed = WebRenderingOutput.safeParse(renderRow.data)
@@ -495,19 +525,32 @@ export function createAdtPreviewRoutes(
         throw new HTTPException(500, { message: "Invalid rendering data" })
       }
 
-      const { html: sectionHtml, activityAnswers } = combineSections(parsed.data)
+      // Get sectioning to look up sectionId → sectionIndex mapping
+      const sectioningRow = storage.getLatestNodeData("page-sectioning", ownerPageId)
+      const sectioningParsed = sectioningRow
+        ? PageSectioningOutput.safeParse(sectioningRow.data)
+        : null
+      const resolvedIndex = sectioningParsed?.success
+        ? sectioningParsed.data.sections.findIndex((s) => s.sectionId === pageId)
+        : -1
+      const targetSectionIndex = resolvedIndex >= 0 ? resolvedIndex : fallbackSectionIndex
+      const renderedSection = parsed.data.sections.find((s) => s.sectionIndex === targetSectionIndex)
+
+      if (!renderedSection || targetSectionIndex < 0) {
+        throw new HTTPException(404, { message: `Section not found: ${pageId}` })
+      }
 
       // Determine page index from manifest (includes quiz pages)
       const manifest = buildPagesManifest(storage)
       const manifestIndex = manifest.findIndex((e) => e.section_id === pageId)
 
       const html = renderPageHtml({
-        content: sectionHtml,
+        content: renderedSection.html,
         language,
         sectionId: pageId,
         pageTitle: title,
         pageIndex: manifestIndex >= 0 ? manifestIndex + 1 : 1,
-        activityAnswers,
+        activityAnswers: renderedSection.activityAnswers,
         hasMath: false,
         bundleVersion: "1",
         applyBodyBackground,

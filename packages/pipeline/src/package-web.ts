@@ -3,7 +3,6 @@ import path from "node:path"
 import { parseDocument, DomUtils } from "htmlparser2"
 import type { Storage } from "@adt/storage"
 import type {
-  WebRenderingOutput,
   PageSectioningOutput,
   TextCatalogOutput,
   GlossaryOutput,
@@ -124,28 +123,21 @@ export async function packageAdtWeb(
     const sectioningRow = storage.getLatestNodeData("page-sectioning", page.pageId)
     const sectioning = sectioningRow?.data as PageSectioningOutput | undefined
 
-    // Determine page number from sectioning
-    let pageNumber: number | undefined
-    if (sectioning?.sections) {
-      for (const s of sectioning.sections) {
-        if (s.pageNumber !== null) pageNumber = s.pageNumber
-      }
-    }
-
     const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
     if (renderRow) {
       const parsed = WebRenderingOutputSchema.safeParse(renderRow.data)
       if (parsed.success) {
         const rendering = parsed.data
 
-        // Skip pages with no rendered sections (all pruned)
-        if (rendering.sections.length > 0) {
-          // Concatenate section HTML and merge activity answers
-          const { html: sectionHtml, activityAnswers } = combineSections(rendering)
+        // One HTML file per rendered section (stable by sectionIndex)
+        const sections = [...rendering.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
+        for (const rs of sections) {
+          const sectionMeta = sectioning?.sections[rs.sectionIndex]
+          const sectionId = sectionMeta?.sectionId ?? `${page.pageId}_sec${String(rs.sectionIndex + 1).padStart(3, "0")}`
 
           // Rewrite image URLs and copy referenced images
           const { html: rewrittenHtml, referencedImages } = rewriteImageUrls(
-            sectionHtml,
+            rs.html,
             label,
             imageMap,
           )
@@ -169,21 +161,23 @@ export async function packageAdtWeb(
           const pageHtml = renderPageHtml({
             content: rewrittenHtml,
             language,
-            sectionId: page.pageId,
+            sectionId,
             pageTitle: title,
             pageIndex: pageList.length + 1,
-            activityAnswers,
+            activityAnswers: rs.activityAnswers,
             hasMath: containsMathContent(rewrittenHtml),
             bundleVersion,
             applyBodyBackground,
           })
-          fs.writeFileSync(path.join(adtDir, `${page.pageId}.html`), pageHtml)
+          fs.writeFileSync(path.join(adtDir, `${sectionId}.html`), pageHtml)
 
           const entry: PageEntry = {
-            section_id: page.pageId,
-            href: `${page.pageId}.html`,
+            section_id: sectionId,
+            href: `${sectionId}.html`,
           }
-          if (pageNumber !== undefined) entry.page_number = pageNumber
+          if (sectionMeta?.pageNumber !== null && sectionMeta?.pageNumber !== undefined) {
+            entry.page_number = sectionMeta.pageNumber
+          }
           pageList.push(entry)
         }
       }
@@ -209,9 +203,7 @@ export async function packageAdtWeb(
       })
       fs.writeFileSync(path.join(adtDir, `${quizId}.html`), quizPageHtml)
 
-      const quizEntry: PageEntry = { section_id: quizId, href: `${quizId}.html` }
-      if (pageNumber !== undefined) quizEntry.page_number = pageNumber
-      pageList.push(quizEntry)
+      pageList.push({ section_id: quizId, href: `${quizId}.html` })
     }
   }
 
@@ -699,28 +691,6 @@ export function htmlToXhtml(html: string): string {
   xhtml = xhtml.replace(/&bull;/g, "&#8226;")
   xhtml = xhtml.replace(/&copy;/g, "&#169;")
   return xhtml
-}
-
-// ---------------------------------------------------------------------------
-// Section helpers
-// ---------------------------------------------------------------------------
-
-export function combineSections(rendering: WebRenderingOutput): {
-  html: string
-  activityAnswers?: Record<string, string | boolean | number>
-} {
-  let allHtml = ""
-  let mergedAnswers: Record<string, string | boolean | number> | undefined
-
-  for (const section of rendering.sections) {
-    allHtml += section.html + "\n"
-    if (section.activityAnswers) {
-      if (!mergedAnswers) mergedAnswers = {}
-      Object.assign(mergedAnswers, section.activityAnswers)
-    }
-  }
-
-  return { html: allHtml.trim(), activityAnswers: mergedAnswers }
 }
 
 // ---------------------------------------------------------------------------

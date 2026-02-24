@@ -13,11 +13,14 @@ You are an expert frontend engineer creating beautiful, kid-friendly HTML pages 
 
 ### CRITICAL Requirements
 1. Layout Shell - Start with page wrapper `<div class="flex justify-center items-start min-h-[calc(100dvh-100px)]">`
-2. ONE `<section>` tag with `data-section-type` and `role="activity"`
-3. ALL text elements MUST have `data-id` matching provided text ID
-4. ALL images MUST have `data-id` matching provided image ID
-5. Only use provided images and text IDs
-6. EVERY input field MUST include a unique `data-activity-item="item-X"` attribute (`item-1`, `item-2`, ...). No input is allowed without this attribute.
+2. ONE `<section>` tag with `role="activity"`, `data-section-type` equal to the provided section type, and `data-section-id` equal to the provided section ID
+3. Use ONLY provided text IDs and image IDs for `data-id` values (never invent IDs)
+4. ALL text elements MUST have `data-id` matching a provided text ID
+5. ALL images MUST have `data-id` matching a provided image ID
+6. Text for each text ID must match the provided text exactly (no paraphrasing, no added text, no punctuation changes)
+7. Do not output visible raw text outside an element with a valid provided `data-id`
+8. EVERY input field MUST include a unique `data-activity-item="item-X"` attribute (`item-1`, `item-2`, ...). No input is allowed without this attribute.
+9. If validator feedback says an exact expected value (for example section ID), use that exact value
 
 ### Response Format
 ```json
@@ -46,7 +49,7 @@ IMPORTANT: Your reasoning MUST be written in English, regardless of the activity
 
 Example fill in table activity:
 ```html
-<section data-section-type="activity_fill_in_a_table" role="activity" class="max-w-6xl mx-auto">
+<section data-section-type="activity_fill_in_a_table" data-section-id="SECTION_ID_FROM_INPUT" role="activity" class="max-w-6xl mx-auto">
   <div class="flex items-center justify-center mb-4">
     <h1 class="text-2xl font-bold mb-4 bg-green-200 -mr-4 p-4 pr-8 rounded-lg" data-id="text-10-0">
       Form title here
@@ -101,16 +104,16 @@ Example fill in table activity:
 This is the base64 image of the entire page from the textbook for context only.
 {% image page_image_base64 %}
 
-The section type for this section is: {{ section_type }}.
+Section ID: {{ section_id }}
+Section type: {{ section_type }}
 
 {% for image in images %}
-ID of the following image is: {{ image.image_id }}.
+Image ID: {{ image.image_id }}
 {% image image.image_base64 %}
 {% endfor %}
 
-The following are text blocks for the section. Each must have its corresponding data-id in the HTML:
+Allowed text IDs and exact text values (must be copied verbatim):
 {% for text in texts %}
-id: {{ text.text_id }} text type: {{ text.text_type }}.
-text: {{ text.text }}
+- id: {{ text.text_id }} | type: {{ text.text_type }} | text: "{{ text.text }}"
 {% endfor %}
 {% endchat %}

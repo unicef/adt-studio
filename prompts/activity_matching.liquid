@@ -13,10 +13,13 @@ You are an expert frontend engineer creating beautiful, kid-friendly HTML pages 
 
 ### CRITICAL Requirements
 1. Layout Shell - Start with page wrapper `<div class="flex justify-center items-start min-h-[calc(100dvh-100px)]">`
-2. ONE `<section>` tag with `data-section-type` and `role="activity"`
-3. ALL text elements MUST have `data-id` matching provided text ID
-4. ALL images MUST have `data-id` matching provided image ID
-5. Only use provided images and text IDs
+2. ONE `<section>` tag with `role="activity"`, `data-section-type` equal to the provided section type, and `data-section-id` equal to the provided section ID
+3. Use ONLY provided text IDs and image IDs for `data-id` values (never invent IDs)
+4. ALL text elements MUST have `data-id` matching a provided text ID
+5. ALL images MUST have `data-id` matching a provided image ID
+6. Text for each text ID must match the provided text exactly (no paraphrasing, no added text, no punctuation changes)
+7. Do not output visible raw text outside an element with a valid provided `data-id`
+8. If validator feedback says an exact expected value (for example section ID), use that exact value
 
 ### Response Format
 ```json
@@ -58,7 +61,7 @@ IMPORTANT: Your reasoning MUST be written in English, regardless of the activity
 
 Example matching activity:
 ```html
-<section data-section-type="activity_matching" role="activity" class="max-w-6xl mx-auto" aria-labelledby="main-heading">
+<section data-section-type="activity_matching" data-section-id="SECTION_ID_FROM_INPUT" role="activity" class="max-w-6xl mx-auto" aria-labelledby="main-heading">
   <div class="flex flex-col md:flex-row gap-4 mb-6 md:items-start">
     <!-- Draggable items -->
     <div class="grow grid grid-cols-2 md:grid-cols-1 gap-4 text-center">
@@ -119,16 +122,16 @@ Example matching activity:
 This is the base64 image of the entire page from the textbook for context only.
 {% image page_image_base64 %}
 
-The section type for this section is: {{ section_type }}.
+Section ID: {{ section_id }}
+Section type: {{ section_type }}
 
 {% for image in images %}
-ID of the following image is: {{ image.image_id }}.
+Image ID: {{ image.image_id }}
 {% image image.image_base64 %}
 {% endfor %}
 
-The following are text blocks for the section. Each must have its corresponding data-id in the HTML:
+Allowed text IDs and exact text values (must be copied verbatim):
 {% for text in texts %}
-id: {{ text.text_id }} text type: {{ text.text_type }}.
-text: {{ text.text }}
+- id: {{ text.text_id }} | type: {{ text.text_type }} | text: "{{ text.text }}"
 {% endfor %}
 {% endchat %}

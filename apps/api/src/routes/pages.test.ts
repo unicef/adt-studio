@@ -73,7 +73,13 @@ describe("Page routes", () => {
           {
             sectionId: `${label}_p1_sec001`,
             sectionType: "content",
-            parts: [{ type: "text_group", groupId: "g1", groupType: "paragraph", texts: [{ textType: "section_text", text: "Hello world", isPruned: false }], isPruned: false }],
+            parts: [{
+              type: "text_group",
+              groupId: "g1",
+              groupType: "paragraph",
+              texts: [{ textId: "g1_tx001", textType: "section_text", text: "Hello world", isPruned: false }],
+              isPruned: false,
+            }],
             backgroundColor: "#ffffff",
             textColor: "#000000",
             pageNumber: 1,
@@ -297,6 +303,88 @@ describe("Page routes", () => {
       expect(res.status).toBe(400)
       const body = await res.json()
       expect(body.error).toContain("X-OpenAI-Key")
+    })
+
+    it("returns 400 when sectionIndex query is out of range", async () => {
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/re-render?sectionIndex=99`,
+        {
+          method: "POST",
+          headers: { "X-OpenAI-Key": "sk-test" },
+        }
+      )
+
+      expect(res.status).toBe(400)
+      const body = await res.json()
+      expect(body.error).toContain("out of range")
+    })
+  })
+
+  describe("POST /api/books/:label/pages/:pageId/sections/:sectionIndex/clone", () => {
+    it("clones sectioning and rendering for a valid section index", async () => {
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
+        { method: "POST" }
+      )
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.clonedSectionIndex).toBe(1)
+
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        const sectioningRow = storage.getLatestNodeData("page-sectioning", `${label}_p1`)
+        const renderingRow = storage.getLatestNodeData("web-rendering", `${label}_p1`)
+
+        const sectioning = sectioningRow?.data as {
+          sections: Array<{ sectionId: string }>
+        }
+        const rendering = renderingRow?.data as {
+          sections: Array<{ sectionIndex: number }>
+        }
+
+        expect(sectioning.sections).toHaveLength(2)
+        expect(sectioning.sections[0].sectionId).toBe(`${label}_p1_sec001`)
+        expect(sectioning.sections[1].sectionId).toBe(`${label}_p1_sec002`)
+
+        expect(rendering.sections).toHaveLength(2)
+        expect(rendering.sections[0].sectionIndex).toBe(0)
+        expect(rendering.sections[1].sectionIndex).toBe(1)
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("returns 400 for invalid section index param", async () => {
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/not-a-number/clone`,
+        { method: "POST" }
+      )
+      expect(res.status).toBe(400)
+    })
+
+    it("fails before writing sectioning when rendering payload is invalid", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("web-rendering", `${label}_p1`, { bad: "payload" })
+      } finally {
+        storage.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
+        { method: "POST" }
+      )
+      expect(res.status).toBe(400)
+
+      const verifyStorage = createBookStorage(label, tmpDir)
+      try {
+        const sectioningRow = verifyStorage.getLatestNodeData("page-sectioning", `${label}_p1`)
+        const sectioning = sectioningRow?.data as { sections: unknown[] }
+        expect(sectioning.sections).toHaveLength(1)
+      } finally {
+        verifyStorage.close()
+      }
     })
   })
 

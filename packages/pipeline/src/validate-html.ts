@@ -67,7 +67,7 @@ export function validateSectionHtml(
   const section = sections[0]
   validateRequiredSectionAttributes(section, options, errors)
 
-  walkNode(section, allowedIds, errors, options)
+  walkNode(section, allowedIds, imageIdSet, errors, options)
 
   if (imageUrlPrefix) {
     rewriteImageSrcs(section, imageIdSet, imageUrlPrefix)
@@ -118,7 +118,13 @@ function validateRequiredSectionAttributes(
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function walkNode(node: any, allowedIds: Set<string>, errors: string[], options?: HtmlValidationOptions): void {
+function walkNode(
+  node: any,
+  allowedIds: Set<string>,
+  imageIds: Set<string>,
+  errors: string[],
+  options?: HtmlValidationOptions
+): void {
   if (node.type === "text") {
     if (node.data.trim().length > 0) {
       if (isInsideExemptTag(node)) return
@@ -155,6 +161,17 @@ function walkNode(node: any, allowedIds: Set<string>, errors: string[], options?
     }
 
     const dataId = node.attribs?.["data-id"]
+
+    if (tagName === "img") {
+      if (dataId === undefined) {
+        errors.push('<img> tag missing required "data-id" attribute')
+      } else if (!imageIds.has(dataId)) {
+        errors.push(`Invalid image data-id: "${dataId}"`)
+      }
+    } else if (dataId !== undefined && tagName !== "section" && imageIds.has(dataId)) {
+      errors.push(`Image data-id "${dataId}" must be used on an <img> tag`)
+    }
+
     // Skip data-id validation on <section> elements — their data-id is a
     // section identifier (e.g. "pg028_section"), not a content element ID.
     if (dataId !== undefined && tagName !== "section" && !allowedIds.has(dataId)) {
@@ -177,7 +194,7 @@ function walkNode(node: any, allowedIds: Set<string>, errors: string[], options?
 
   if (node.children) {
     for (const child of node.children) {
-      walkNode(child, allowedIds, errors, options)
+      walkNode(child, allowedIds, imageIds, errors, options)
     }
   }
 }
@@ -187,7 +204,7 @@ function walkNode(node: any, allowedIds: Set<string>, errors: string[], options?
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function rewriteImageSrcs(node: any, imageIds: Set<string>, urlPrefix: string): void {
-  if (node.type === "tag") {
+  if (node.type === "tag" && (node.name ?? "").toLowerCase() === "img") {
     const dataId = node.attribs?.["data-id"]
     if (dataId !== undefined && imageIds.has(dataId)) {
       node.attribs.src = `${urlPrefix}/${dataId}`

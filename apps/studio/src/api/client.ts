@@ -415,9 +415,9 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  reRenderPage: (label: string, pageId: string, apiKey: string) =>
+  reRenderPage: (label: string, pageId: string, apiKey: string, sectionIndex?: number) =>
     request<{ version: number; rendering: { sections: SectionRendering[] } }>(
-      `/books/${label}/pages/${pageId}/re-render`,
+      `/books/${label}/pages/${pageId}/re-render${sectionIndex !== undefined ? `?sectionIndex=${sectionIndex}` : ""}`,
       {
         method: "POST",
         headers: { "X-OpenAI-Key": apiKey },
@@ -442,6 +442,12 @@ export const api = {
         body: JSON.stringify({ instruction, currentHtml }),
         signal: signal ?? AbortSignal.timeout(120_000),
       }
+    ),
+
+  cloneSection: (label: string, pageId: string, sectionIndex: number) =>
+    request<{ clonedSectionIndex: number; sectioningVersion: number; renderingVersion: number | null }>(
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/clone`,
+      { method: "POST" }
     ),
 
   uploadCroppedImage: (label: string, pageId: string, sourceImageId: string, imageBlob: Blob) => {

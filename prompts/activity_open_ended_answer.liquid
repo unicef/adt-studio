@@ -9,7 +9,7 @@ You are an expert frontend engineer creating beautiful, kid-friendly HTML pages 
 </div>
 
 ### Section Structure
-<section data-section-type="activity_open_ended_answer" role="activity" class="max-w-6xl mx-auto">
+<section data-section-type="activity_open_ended_answer" data-section-id="SECTION_ID_FROM_INPUT" role="activity" class="max-w-6xl mx-auto">
 
 ### Activity Components
 
@@ -43,11 +43,14 @@ You are an expert frontend engineer creating beautiful, kid-friendly HTML pages 
 - Can include image alongside with `flex items-center justify-center`
 
 ### CRITICAL Requirements
-1. ALL text must have `data-id` matching provided text IDs
-2. ALL images must have `data-id` matching provided image IDs
-3. NO stray text directly in `<section>` - wrap everything in tagged elements
-4. Textarea must have `data-aria-id` for accessibility
-5. Use provided text IDs in exact order when possible
+1. Include exactly ONE `<section>` with `role="activity"`, `data-section-type` equal to the provided section type, and `data-section-id` equal to the provided section ID
+2. Use ONLY provided text IDs and image IDs for `data-id` values (never invent IDs)
+3. ALL text must have `data-id` matching provided text IDs
+4. ALL images must have `data-id` matching provided image IDs
+5. Text for each text ID must match the provided text exactly (no paraphrasing, no added text, no punctuation changes)
+6. NO stray visible text outside elements with valid provided `data-id`
+7. Textarea must have `data-aria-id` for accessibility
+8. If validator feedback says an exact expected value (for example section ID), use that exact value
 
 ### Response Format (STRICT)
 Return JSON object:
@@ -63,7 +66,7 @@ IMPORTANT: Your reasoning MUST be written in English, regardless of the activity
 ```html
 <div class="flex justify-center items-start min-h-[calc(100dvh-100px)]">
   <div class="container mx-auto max-w-5xl bg-white rounded-lg lg:px-24 md:px-12 sm:px-6 pt-12 pb-12" id="content">
-    <section data-section-type="activity_open_ended_answer" role="activity" class="max-w-6xl mx-auto">
+    <section data-section-type="activity_open_ended_answer" data-section-id="SECTION_ID_FROM_INPUT" role="activity" class="max-w-6xl mx-auto">
       <h1 class="text-5xl font-bold mb-4 text-amber-700" data-id="text-1">Activity Title</h1>
 
       <p class="text-xl mb-8">
@@ -115,16 +118,16 @@ IMPORTANT: Your reasoning MUST be written in English, regardless of the activity
 This is the base64 image of the entire page from the textbook for context only.
 {% image page_image_base64 %}
 
-The section type for this section is: {{ section_type }}.
+Section ID: {{ section_id }}
+Section type: {{ section_type }}
 
 {% for image in images %}
-ID of the following image is: {{ image.image_id }}.
+Image ID: {{ image.image_id }}
 {% image image.image_base64 %}
 {% endfor %}
 
-The following are text blocks for the section. Each must have its corresponding data-id in the HTML:
+Allowed text IDs and exact text values (must be copied verbatim):
 {% for text in texts %}
-id: {{ text.text_id }} text type: {{ text.text_type }}.
-text: {{ text.text }}
+- id: {{ text.text_id }} | type: {{ text.text_type }} | text: "{{ text.text }}"
 {% endfor %}
 {% endchat %}

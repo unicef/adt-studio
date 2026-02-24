@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from "react"
 import { createPortal } from "react-dom"
-import { Check, Eye, EyeOff, LayoutGrid, Layers, Loader2, ChevronDown, Sparkles, ChevronRight, PanelRightOpen, PanelRightClose, Save, X } from "lucide-react"
+import { Check, Copy, Eye, EyeOff, LayoutGrid, Layers, Loader2, ChevronDown, Sparkles, ChevronRight, PanelRightOpen, PanelRightClose, Save, X } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/api/client"
 import type { PageDetail, VersionEntry } from "@/api/client"
@@ -210,6 +210,13 @@ function ImageCard({ imageId, bookLabel, isPruned, reason }: { imageId: string; 
 type SectioningData = NonNullable<PageDetail["sectioning"]>
 type RenderingData = NonNullable<PageDetail["rendering"]>
 
+function getRenderedSectionByIndex(
+  rendering: RenderingData | null | undefined,
+  sectionIndex: number
+) {
+  return rendering?.sections.find((s) => s.sectionIndex === sectionIndex)
+}
+
 // -- Helpers --
 
 function escapeRegex(s: string) {
@@ -300,6 +307,7 @@ export function StoryboardSectionDetail({
   navigationExtra,
   navigationArrows,
   onGeneratingChange,
+  onNavigateSection,
 }: {
   bookLabel: string
   pageId: string
@@ -311,6 +319,8 @@ export function StoryboardSectionDetail({
   navigationArrows?: ReactNode
   /** Called when AI image generation starts/stops so parent can guard navigation */
   onGeneratingChange?: (generating: boolean) => void
+  /** Called to navigate to a different section index (e.g. after clone) */
+  onNavigateSection?: (index: number) => void
 }) {
   const queryClient = useQueryClient()
   const { apiKey, hasApiKey } = useApiKey()
@@ -319,6 +329,7 @@ export function StoryboardSectionDetail({
   const applyBodyBackground = (activeConfigData?.merged as Record<string, unknown> | undefined)?.apply_body_background !== false
 
   const [saving, setSaving] = useState(false)
+  const [cloning, setCloning] = useState(false)
   const [rerendering, setRerendering] = useState(false)
   const [pendingSectioning, setPendingSectioning] = useState<SectioningData | null>(null)
   const [pendingRendering, setPendingRendering] = useState<RenderingData | null>(null)
@@ -450,7 +461,7 @@ export function StoryboardSectionDetail({
   // Current section data
   const section = sectioningData?.sections[sectionIndex]
   const renderingData = pendingRendering ?? page.rendering
-  const renderedSection = renderingData?.sections[sectionIndex]
+  const renderedSection = getRenderedSectionByIndex(renderingData, sectionIndex)
   const renderingDirty = pendingRendering != null
 
   if (!section) {
@@ -479,15 +490,20 @@ export function StoryboardSectionDetail({
       if (hasApiKey) {
         setRerendering(true)
         const capturedPageId = pageId
-        api.reRenderPage(bookLabel, pageId, apiKey)
+        api.reRenderPage(bookLabel, pageId, apiKey, sectionIndex)
           .then(() => {
             // Discard if user navigated to a different page
             if (pageIdRef.current !== capturedPageId) return
             queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", capturedPageId] })
             queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
           })
+          .catch(() => {
+            // Re-render failed — overlay will be cleared by finally
+          })
           .finally(() => {
-            if (pageIdRef.current === capturedPageId) setRerendering(false)
+            if (pageIdRef.current === capturedPageId) {
+              setRerendering(false)
+            }
           })
       }
     } catch (err) {
@@ -512,7 +528,7 @@ export function StoryboardSectionDetail({
       await api.updateRendering(bookLabel, pageId, pendingRendering)
 
       // Back-propagate: if we have sectioning data and edited HTML, update sectioning too
-      const editedHtml = pendingRendering.sections[sectionIndex]?.html
+      const editedHtml = getRenderedSectionByIndex(pendingRendering, sectionIndex)?.html
       if (editedHtml && page.sectioning) {
         const updatedSectioning = backPropagateTextChanges(
           pendingSectioning ?? page.sectioning,
@@ -531,6 +547,22 @@ export function StoryboardSectionDetail({
       setAiError(err instanceof Error ? err.message : "Save failed")
     } finally {
       setSaving(false)
+    }
+  }
+
+  // Clone current section
+  const handleCloneSection = async () => {
+    if (cloning || dirty || renderingDirty || saving) return
+    setCloning(true)
+    try {
+      const result = await api.cloneSection(bookLabel, pageId, sectionIndex)
+      await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
+      await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
+      onNavigateSection?.(result.clonedSectionIndex)
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : "Clone failed")
+    } finally {
+      setCloning(false)
     }
   }
 
@@ -601,8 +633,8 @@ export function StoryboardSectionDetail({
       const base = pendingRendering ?? page.rendering
       const updated: RenderingData = {
         ...base,
-        sections: base.sections.map((s, si) => {
-          if (si !== sectionIndex) return s
+        sections: base.sections.map((s) => {
+          if (s.sectionIndex !== sectionIndex) return s
           return { ...s, html: fullHtml }
         }),
       }
@@ -714,8 +746,8 @@ export function StoryboardSectionDetail({
         const newSrc = `/api/books/${bookLabel}/images/${result.imageId}`
         const updatedRendering: RenderingData = {
           ...rBase,
-          sections: rBase.sections.map((s, si) => {
-            if (si !== sectionIndex) return s
+          sections: rBase.sections.map((s) => {
+            if (s.sectionIndex !== sectionIndex) return s
             // Replace data-id and src references to the old imageId
             let html = s.html
             html = html.replace(new RegExp(`data-id="${escapeRegex(cropTarget)}"`, "g"), `data-id="${result.imageId}"`)
@@ -784,8 +816,8 @@ export function StoryboardSectionDetail({
         const newSrc = `/api/books/${bookLabel}/images/${result.imageId}`
         const updatedRendering: RenderingData = {
           ...rBase,
-          sections: rBase.sections.map((s, si) => {
-            if (si !== sectionIndex) return s
+          sections: rBase.sections.map((s) => {
+            if (s.sectionIndex !== sectionIndex) return s
             let html = s.html
             html = html.replace(new RegExp(`data-id="${escapeRegex(targetId)}"`, "g"), `data-id="${result.imageId}"`)
             html = html.replace(new RegExp(escapeRegex(oldSrc), "g"), newSrc)
@@ -885,8 +917,8 @@ export function StoryboardSectionDetail({
           if (!rBase) return prev
           return {
             ...rBase,
-            sections: rBase.sections.map((s, si) => {
-              if (si !== sectionIndex) return s
+            sections: rBase.sections.map((s) => {
+              if (s.sectionIndex !== sectionIndex) return s
               let html = s.html
               const segImgs = result.segments
                 .map(
@@ -946,8 +978,8 @@ export function StoryboardSectionDetail({
         const newSrc = `/api/books/${bookLabel}/images/${newImageId}`
         return {
           ...rBase,
-          sections: rBase.sections.map((s, si) => {
-            if (si !== sectionIndex) return s
+          sections: rBase.sections.map((s) => {
+            if (s.sectionIndex !== sectionIndex) return s
             let html = s.html
             html = html.replace(new RegExp(`data-id="${escapeRegex(targetId)}"`, "g"), `data-id="${newImageId}"`)
             html = html.replace(new RegExp(escapeRegex(oldSrc), "g"), newSrc)
@@ -1040,8 +1072,8 @@ export function StoryboardSectionDetail({
       if (!base) return
       const updated: RenderingData = {
         ...base,
-        sections: base.sections.map((s, si) => {
-          if (si !== sectionIndex) return s
+        sections: base.sections.map((s) => {
+          if (s.sectionIndex !== sectionIndex) return s
           return { ...s, html: result.html }
         }),
       }
@@ -1118,8 +1150,8 @@ export function StoryboardSectionDetail({
 
     // Diff rendered HTML for text edits + image src swaps
     if (pendingRendering && page.rendering) {
-      const savedHtml = page.rendering.sections[sectionIndex]?.html ?? ""
-      const pendingHtml = pendingRendering.sections[sectionIndex]?.html ?? ""
+      const savedHtml = getRenderedSectionByIndex(page.rendering, sectionIndex)?.html ?? ""
+      const pendingHtml = getRenderedSectionByIndex(pendingRendering, sectionIndex)?.html ?? ""
       if (savedHtml !== pendingHtml) {
         const parser = new DOMParser()
         const savedDoc = parser.parseFromString(savedHtml, "text/html")
@@ -1476,6 +1508,20 @@ export function StoryboardSectionDetail({
           {section.isPruned && (
             <span className="text-destructive text-[10px] font-medium">(pruned)</span>
           )}
+          <div className="ml-auto flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={handleCloneSection}
+            disabled={cloning || dirty || renderingDirty || saving}
+            className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
+            title={dirty || renderingDirty ? "Save changes before cloning" : "Clone this section"}
+          >
+            {cloning ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Copy className="h-3.5 w-3.5" />
+            )}
+          </button>
           <VersionPicker
             currentVersion={page.versions.sectioning}
             saving={saving}
@@ -1483,17 +1529,24 @@ export function StoryboardSectionDetail({
             bookLabel={bookLabel}
             node="page-sectioning"
             itemId={pageId}
-            onPreview={(data) => setPendingSectioning(data as SectioningData)}
+            onPreview={(data) => {
+              const s = data as SectioningData
+              setPendingSectioning(s)
+              if (s.sections && sectionIndex >= s.sections.length) {
+                onNavigateSection?.(Math.max(0, s.sections.length - 1))
+              }
+            }}
             onSave={saveSectioning}
             onDiscard={discardSectioning}
           />
           <button
             type="button"
             onClick={() => setPanelOpen(false)}
-            className="ml-auto p-0.5 rounded hover:bg-accent transition-colors cursor-pointer"
+            className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer"
           >
             <X className="h-3.5 w-3.5" />
           </button>
+          </div>
         </div>
 
         {/* Panel body — scrollable */}

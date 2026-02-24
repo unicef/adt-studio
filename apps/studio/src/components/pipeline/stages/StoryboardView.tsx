@@ -52,7 +52,15 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
 
   const sectionCount = page?.sectioning?.sections.length ?? 0
 
+  // Reset section index when page changes externally (must run before resolve effect)
+  useEffect(() => {
+    if (!pendingLastSection.current) {
+      setSectionIndex(0)
+    }
+  }, [selectedPageId])
+
   // Resolve pending "last section" once page data loads
+  // Declared after the reset effect so it runs later and its setSectionIndex wins
   useEffect(() => {
     if (pendingLastSection.current && sectionCount > 0) {
       setSectionIndex(sectionCount - 1)
@@ -90,13 +98,6 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
       setSelectedPageId(nextPageId)
     }
   }
-
-  // Reset section index when page changes externally
-  useEffect(() => {
-    if (!pendingLastSection.current) {
-      setSectionIndex(0)
-    }
-  }, [selectedPageId])
 
   // Navigation elements for the purple header — passed to StoryboardSectionDetail
   // which controls the full header content (nav + version + AI + panel toggle)
@@ -273,6 +274,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
       navigationExtra={navigationExtra}
       navigationArrows={navigationArrows}
       onGeneratingChange={handleGeneratingChange}
+      onNavigateSection={setSectionIndex}
     />
   )
 }

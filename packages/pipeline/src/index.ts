@@ -153,7 +153,6 @@ export {
   packageAdtWeb,
   type PackageAdtWebOptions,
   renderPageHtml,
-  combineSections,
   NAV_HTML,
   type RenderPageOptions,
   buildPreviewTailwindCss,
