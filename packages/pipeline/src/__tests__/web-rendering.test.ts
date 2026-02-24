@@ -308,7 +308,7 @@ describe("renderPage", () => {
             },
           ],
         },
-        images: new Map([["pg001_im001", "imagedata"]]),
+        images: new Map([["pg001_im001", { base64: "imagedata" }]]),
       },
       defaultResolveConfig,
       fakeLlm
@@ -995,7 +995,7 @@ describe("renderPage", () => {
             },
           ],
         },
-        images: new Map([["pg001_im001", "imagedata"]]),
+        images: new Map([["pg001_im001", { base64: "imagedata" }]]),
       },
       defaultResolveConfig,
       fakeLlm

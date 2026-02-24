@@ -606,9 +606,9 @@ async function runStoryboardStep(
 
             // Build render images map from page images
             const allImages = storage.getPageImages(page.pageId)
-            const renderImages = new Map<string, string>()
+            const renderImages = new Map<string, { base64: string; width?: number; height?: number }>()
             for (const img of allImages) {
-              renderImages.set(img.imageId, storage.getImageBase64(img.imageId))
+              renderImages.set(img.imageId, { base64: storage.getImageBase64(img.imageId), width: img.width, height: img.height })
             }
 
             const pageImageBase64 = storage.getPageImageBase64(page.pageId)
@@ -751,9 +751,11 @@ async function runStoryboardStep(
             })
 
             // Build render images map from classification
-            const renderImages = new Map<string, string>()
+            const pageDims = new Map(storage.getPageImages(page.pageId).map((img) => [img.imageId, { width: img.width, height: img.height }]))
+            const renderImages = new Map<string, { base64: string; width?: number; height?: number }>()
             for (const imageId of unprunedImageIds) {
-              renderImages.set(imageId, storage.getImageBase64(imageId))
+              const dims = pageDims.get(imageId)
+              renderImages.set(imageId, { base64: storage.getImageBase64(imageId), width: dims?.width, height: dims?.height })
             }
 
             // Web rendering

@@ -68,9 +68,9 @@ export async function reRenderPage(
 
     // Build image map (all page images — expandParts filters by pruned status)
     const allImages = storage.getPageImages(pageId)
-    const renderImages = new Map<string, string>()
+    const renderImages = new Map<string, { base64: string; width?: number; height?: number }>()
     for (const img of allImages) {
-      renderImages.set(img.imageId, storage.getImageBase64(img.imageId))
+      renderImages.set(img.imageId, { base64: storage.getImageBase64(img.imageId), width: img.width, height: img.height })
     }
 
     // Load config and build render strategy resolver

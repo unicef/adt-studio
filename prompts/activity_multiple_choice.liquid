@@ -47,6 +47,7 @@ Use this exact outer shell:
 - Image-based choices are valid and encouraged when provided images are the actual options.
 - For image choices, place the option image inside the clickable `<label>` and set `data-id` on `<img>` using a provided image ID.
 - If there are not enough text IDs for per-option visible labels, keep options image-only and use `aria-label` for accessibility.
+- IMPORTANT: Preserve relative image sizes for image-based choices. When pixel dimensions are provided, compute each option image's width as a **percentage of the widest option image** and set `style="width:X%"`. For example, if images are 400px and 200px wide, use `style="width:100%"` and `style="width:50%"`. Also add `class="h-auto rounded"`. Do NOT use `w-full` or fixed pixel widths. This ensures both images scale proportionally when the container shrinks.
 
 ## Example Pattern (ID placeholders only - replace with provided IDs)
 ```html
@@ -94,7 +95,7 @@ Use this exact outer shell:
         </div>
         <div class="flex-grow">
           <input type="radio" name="question-group-1" value="item-1" data-activity-item="item-1" class="sr-only" tabindex="0" aria-label="Option 1" />
-          <img data-id="IMAGE_ID_FROM_INPUT" src="images/IMAGE_FILE.png" alt="Option image" class="w-full h-auto rounded" />
+          <img data-id="IMAGE_ID_FROM_INPUT" src="images/IMAGE_FILE.png" alt="Option image" style="width:100%" class="h-auto rounded" />
           <div class="feedback-container mt-2 hidden">
             <div class="flex items-center gap-2">
               <span class="feedback-icon w-5 h-5 rounded-full flex items-center justify-center text-sm"></span>
@@ -117,7 +118,7 @@ Section ID: {{ section_id }}
 Section type: {{ section_type }}
 
 {% for image in images %}
-Image ID: {{ image.image_id }}
+Image ID: {{ image.image_id }}{% if image.width %} ({{ image.width }}×{{ image.height }}px){% endif %}
 {% image image.image_base64 %}
 {% endfor %}
 

@@ -148,7 +148,7 @@ Section ID: {{ section_id }}
 Section type: {{ section_type }}
 
 {% for image in images %}
-Image ID: {{ image.image_id }}
+Image ID: {{ image.image_id }}{% if image.width %} ({{ image.width }}×{{ image.height }}px){% endif %}
 {% image image.image_base64 %}
 {% endfor %}
 

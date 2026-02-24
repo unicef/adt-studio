@@ -24,7 +24,7 @@ export async function renderSectionLlm(
     if (part.type === "group") {
       texts.push(...part.texts)
     } else {
-      images.push({ imageId: part.imageId, imageBase64: part.imageBase64 })
+      images.push({ imageId: part.imageId, imageBase64: part.imageBase64, width: part.width, height: part.height })
     }
   }
 
@@ -92,6 +92,8 @@ export async function renderSectionLlm(
     images: images.map((img) => ({
       image_id: img.imageId,
       image_base64: img.imageBase64,
+      ...(img.width != null && { width: img.width }),
+      ...(img.height != null && { height: img.height }),
     })),
     styleguide: input.styleguide ?? "",
     _isActivity: isActivity,
