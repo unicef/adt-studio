@@ -2,8 +2,10 @@
  * Compile the esbuild bundle into a standalone Node.js binary using @yao-pkg/pkg,
  * then rename to Tauri's target-triple convention and copy to desktop binaries/.
  *
- * The .wasm files in dist-pkg/ (copied there by bundle.mjs) are included as
- * pkg assets so they're embedded in the binary alongside the JS.
+ * All non-JS files in dist-pkg/ (wasm, css, etc.) are included as pkg assets
+ * so they're embedded in the binary and accessible via fs.readFileSync at runtime.
+ * esbuild may emit CSS files (e.g. css/preflight.css) when bundling packages like
+ * tailwindcss — these must be assets or pkg will throw at runtime.
  */
 import { exec as execPkg } from "@yao-pkg/pkg"
 import { execSync } from "node:child_process"
@@ -40,15 +42,29 @@ function rustTripleToPkgTarget(triple) {
 
 const pkgTarget = rustTripleToPkgTarget(targetTriple)
 
-// --- Collect WASM assets from dist-pkg/ ---
+// --- Collect ALL non-JS asset files from dist-pkg/ (wasm, css, etc.) ---
+// esbuild may emit CSS files (e.g. css/preflight.css) alongside the bundle when
+// packages like tailwindcss are bundled. All such files must be included as pkg
+// assets so they're embedded in the snapshot and readable at runtime.
 
-const wasmFiles = fs
-  .readdirSync(distDir)
-  .filter((f) => f.endsWith(".wasm"))
+function collectAssets(dir, baseDir, assets = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name)
+    const relPath = path.relative(baseDir, fullPath)
+    if (entry.isDirectory()) {
+      collectAssets(fullPath, baseDir, assets)
+    } else if (!entry.name.endsWith(".mjs") && entry.name !== "package.json") {
+      assets.push(relPath)
+    }
+  }
+  return assets
+}
+
+const allAssets = collectAssets(distDir, distDir)
 
 console.log(`Target: ${pkgTarget} (${targetTriple})`)
-console.log(`WASM assets (${wasmFiles.length}):`)
-for (const f of wasmFiles) console.log(`  ${f}`)
+console.log(`Assets (${allAssets.length}):`)
+for (const f of allAssets) console.log(`  ${f}`)
 
 // --- Write temporary package.json for pkg (configures assets) ---
 
@@ -61,7 +77,7 @@ const pkgJson = {
   name: "api-server",
   bin: "api-server.mjs",
   pkg: {
-    assets: wasmFiles,
+    assets: allAssets,
   },
 }
 
