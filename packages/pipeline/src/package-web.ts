@@ -105,6 +105,7 @@ export async function packageAdtWeb(
 
   const pageList: PageEntry[] = []
   let hasMath = false
+  let hasActivitySections = false
   const copiedImages = new Set<string>()
 
   // Build a map from afterPageId -> quizzes for interleaving
@@ -134,6 +135,8 @@ export async function packageAdtWeb(
         for (const rs of sections) {
           const sectionMeta = sectioning?.sections[rs.sectionIndex]
           const sectionId = sectionMeta?.sectionId ?? `${page.pageId}_sec${String(rs.sectionIndex + 1).padStart(3, "0")}`
+
+          if (sectionMeta?.sectionType.startsWith("activity_")) hasActivitySections = true
 
           // Rewrite image URLs and copy referenced images
           const { html: rewrittenHtml, referencedImages } = rewriteImageUrls(
@@ -346,7 +349,7 @@ export async function packageAdtWeb(
       state: true,
       characterDisplay: false,
       highlight: false,
-      activities: hasQuiz,
+      activities: hasQuiz || hasActivitySections,
     },
     analytics: {
       enabled: false,

@@ -270,6 +270,63 @@ describe("packageAdtWeb", () => {
     expect(fs.existsSync(path.join(bookDir, "adt", "qz001.html"))).toBe(true)
   })
 
+  it("sets activities true in config.json when a section has an activity type", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    const pages: PageData[] = [
+      { pageId: "pg001", pageNumber: 1, text: "Page one" },
+    ]
+
+    const storage = createMockStorage(pages, {
+      "web-rendering": {
+        pg001: {
+          sections: [
+            {
+              sectionIndex: 0,
+              sectionType: "activity_multiple_choice",
+              reasoning: "ok",
+              html: '<section role="activity"><div>Pick one</div></section>',
+              activityAnswers: { "item-1": true },
+            },
+          ],
+        },
+      },
+      "page-sectioning": {
+        pg001: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "activity_multiple_choice",
+              parts: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+      },
+    })
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+    })
+
+    const configJson = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "assets", "config.json"), "utf-8"),
+    ) as { features: { activities: boolean } }
+    expect(configJson.features.activities).toBe(true)
+  })
+
   it("orders rendered sections by sectionIndex before writing pages.json", async () => {
     const bookDir = path.join(tmpDir, "book")
     const webAssetsDir = path.join(tmpDir, "assets-web")

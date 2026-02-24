@@ -483,6 +483,7 @@ export function StoryboardSectionDetail({
   const saveSectioning = async () => {
     if (!pendingSectioning) return
     setSaving(true)
+    setPanelOpen(false)
     try {
       const minDelay = new Promise((r) => setTimeout(r, 400))
       await api.updateSectioning(bookLabel, pageId, pendingSectioning)
@@ -525,6 +526,7 @@ export function StoryboardSectionDetail({
   const saveRendering = async () => {
     if (!pendingRendering) return
     setSaving(true)
+    setPanelOpen(false)
     try {
       const minDelay = new Promise((r) => setTimeout(r, 400))
 
