@@ -4,13 +4,15 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, getAudioUrl } from "@/api/client"
 import type { TextCatalogEntry, VersionEntry } from "@/api/client"
 import { useActiveConfig } from "@/hooks/use-debug"
+import { useBook } from "@/hooks/use-books"
 import { useStepHeader } from "../StepViewRouter"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { StageRunCard } from "../StageRunCard"
 import { STAGE_DESCRIPTIONS } from "../stage-config"
 import { cn } from "@/lib/utils"
-import { getBaseLanguage, normalizeLocale } from "@/lib/languages"
+import { normalizeLocale } from "@/lib/languages"
+import { resolveTranslationLanguageState } from "./translations-view-state"
 
 const IMAGE_ID_RE = /_im\d{3}/
 function isImageEntry(id: string): boolean {
@@ -143,6 +145,7 @@ function VersionPicker({
 export function TranslationsView({ bookLabel, selectedPageId, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
   const { setExtra } = useStepHeader()
   const { data: activeConfigData } = useActiveConfig(bookLabel)
+  const { data: book, isLoading: isBookLoading } = useBook(bookLabel)
   const queryClient = useQueryClient()
   const { stageState, queueRun } = useBookRun()
   const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
@@ -172,35 +175,38 @@ export function TranslationsView({ bookLabel, selectedPageId, onSelectPage }: { 
   const outputLanguages = Array.from(
     new Set(((merged?.output_languages as string[] | undefined) ?? []).map((code) => normalizeLocale(code)))
   )
-  const editingLanguage = normalizeLocale((merged?.editing_language as string | undefined) ?? "en")
+  const bookLanguage = book?.languageCode ?? book?.metadata?.language_code ?? null
+  const configuredEditingLanguage = merged?.editing_language as string | undefined
+
+  const hasExplicitOutputLanguages = outputLanguages.length > 0
 
   const [selectedLang, setSelectedLang] = useState<string | null>(null)
 
   // Default to first output language when available
   useEffect(() => {
-    if (outputLanguages.length > 0 && !selectedLang) {
+    if (hasExplicitOutputLanguages && outputLanguages.length > 0 && !selectedLang) {
       setSelectedLang(outputLanguages[0])
     }
-  }, [outputLanguages.length])
+  }, [outputLanguages.length, hasExplicitOutputLanguages])
 
   const entries = catalog?.entries ?? []
   const displayEntries = selectedPageId
     ? entries.filter((e) => e.id.startsWith(selectedPageId + "_"))
     : entries
-  const hasTranslations = outputLanguages.length > 0
 
-  // The editing language code from config (e.g. "fr")
-  const editingLangCode = (merged?.editing_language as string | undefined) != null
-    ? normalizeLocale(merged?.editing_language as string)
-    : null
+  // When no output languages are configured, we're always viewing the source language.
+  // When explicit output languages exist, check if the selected one matches the editing language.
+  const { editingLanguage, isSourceLang: isSelectedSourceLang, isSourceLanguagePending } = resolveTranslationLanguageState({
+    selectedLang,
+    configuredEditingLanguage,
+    bookLanguage,
+    isBookLoading,
+  })
+  const isSourceLang = !hasExplicitOutputLanguages || isSelectedSourceLang
 
   // Pending state for edits (keyed by language)
   const [pendingEntries, setPendingEntries] = useState<TextCatalogEntry[] | null>(null)
   const [saving, setSaving] = useState(false)
-
-  // When the selected language IS the source/editing language, there is no
-  // separate translation — the source catalog entries are already in that language.
-  const isSourceLang = selectedLang != null && editingLangCode != null && getBaseLanguage(selectedLang) === getBaseLanguage(editingLangCode)
 
   // Get translated entries for selected language
   const translationData = selectedLang ? catalog?.translations?.[selectedLang] : undefined
@@ -244,10 +250,11 @@ export function TranslationsView({ bookLabel, selectedPageId, onSelectPage }: { 
     }
   }
 
-  // Build audio lookup for selected language
+  // Build audio lookup — use selected language, or editing language when no output languages
+  const audioLang = selectedLang ?? editingLanguage
   const audioMap = new Map<string, { fileName: string; voice: string }>()
-  if (ttsData && selectedLang && ttsData.languages[selectedLang]) {
-    for (const e of ttsData.languages[selectedLang].entries) {
+  if (ttsData && audioLang && ttsData.languages[audioLang]) {
+    for (const e of ttsData.languages[audioLang].entries) {
       audioMap.set(e.textId, { fileName: e.fileName, voice: e.voice })
     }
   }
@@ -260,13 +267,13 @@ export function TranslationsView({ bookLabel, selectedPageId, onSelectPage }: { 
     setExtra(
       <div className="flex items-center gap-1.5 ml-auto">
         <span className="text-[10px] bg-white/20 rounded-full px-2 py-0.5">{displayEntries.length} texts</span>
-        {hasTranslations && (
+        {outputLanguages.length > 1 && (
           <span className="text-[10px] bg-white/20 rounded-full px-2 py-0.5">{outputLanguages.length} languages</span>
         )}
         {totalAudioFiles > 0 && (
           <span className="text-[10px] bg-white/20 rounded-full px-2 py-0.5">{totalAudioFiles} audio</span>
         )}
-        {hasTranslations && selectedLang && translationVersion != null && !isSourceLang && (
+        {selectedLang && translationVersion != null && !isSourceLang && (
           <VersionPicker
             currentVersion={translationVersion}
             saving={saving}
@@ -284,7 +291,7 @@ export function TranslationsView({ bookLabel, selectedPageId, onSelectPage }: { 
       </div>
     )
     return () => setExtra(null)
-  }, [catalog, displayEntries.length, outputLanguages.length, hasTranslations, selectedLang, translationVersion, saving, dirty, bookLabel, isSourceLang, totalAudioFiles, selectedPageId])
+  }, [catalog, displayEntries.length, outputLanguages.length, selectedLang, translationVersion, saving, dirty, bookLabel, isSourceLang, totalAudioFiles, selectedPageId])
 
   if (!showRunCard && isLoading) {
     return (
@@ -322,32 +329,11 @@ export function TranslationsView({ bookLabel, selectedPageId, onSelectPage }: { 
     </div>
   ) : null
 
-  // No output languages — just show source entries
-  if (!hasTranslations) {
-    if (selectedPageId && displayEntries.length === 0 && entries.length > 0) {
-      return (
-        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-          <div className="w-12 h-12 rounded-full bg-pink-50 flex items-center justify-center mb-3">
-            <Languages className="w-6 h-6 text-pink-300" />
-          </div>
-          <p className="text-sm font-medium">No translations for this page</p>
-          <p className="text-xs mt-1">This page has no translatable text entries</p>
-        </div>
-      )
-    }
-    return (
-      <div className="space-y-1">
-        {displayEntries.map((entry) => (
-          <EntryRow key={entry.id} entry={entry} bookLabel={bookLabel} />
-        ))}
-      </div>
-    )
-  }
-
-  // With output languages — language tabs + side-by-side
+  // Language tabs + entries
   return (
     <div className="space-y-3">
-      {/* Language tabs */}
+      {/* Language tabs — only when there are multiple output languages */}
+      {outputLanguages.length > 1 && (
       <div className="flex gap-1.5">
         {outputLanguages.map((lang) => (
             <button
@@ -371,9 +357,15 @@ export function TranslationsView({ bookLabel, selectedPageId, onSelectPage }: { 
             </button>
         ))}
       </div>
+      )}
 
-      {/* Side-by-side */}
-      {selectedPageId && displayEntries.length === 0 && entries.length > 0 ? (
+      {/* Entries */}
+      {isSourceLanguagePending ? (
+        <div className="flex items-center justify-center py-12 text-muted-foreground">
+          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+          <span className="text-sm">Resolving source language...</span>
+        </div>
+      ) : selectedPageId && displayEntries.length === 0 && entries.length > 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
           <div className="w-12 h-12 rounded-full bg-pink-50 flex items-center justify-center mb-3">
             <Languages className="w-6 h-6 text-pink-300" />
@@ -383,16 +375,40 @@ export function TranslationsView({ bookLabel, selectedPageId, onSelectPage }: { 
         </div>
       ) : (
       <div className="space-y-1">
-        <div className="grid grid-cols-2 gap-3 px-3 py-1.5">
-          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
-            {displayLang(editingLanguage)}
-          </span>
-          <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{selectedLang ? displayLang(selectedLang) : selectedLang}</span>
-        </div>
+        {!isSourceLang && (
+          <div className="grid grid-cols-2 gap-3 px-3 py-1.5">
+            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+              {displayLang(editingLanguage)}
+            </span>
+            <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">{selectedLang ? displayLang(selectedLang) : selectedLang}</span>
+          </div>
+        )}
         {displayEntries.map((entry) => {
           const translated = translatedMap.get(entry.id)
           const audio = audioMap.get(entry.id)
           const isImg = isImageEntry(entry.id)
+
+          if (isSourceLang) {
+            return (
+              <div key={entry.id} className="flex items-start gap-3 px-3 py-2.5 rounded-md border bg-card">
+                {isImg && (
+                  <img
+                    src={`/api/books/${bookLabel}/images/${entry.id}`}
+                    alt=""
+                    className="shrink-0 w-16 h-12 rounded object-cover ring-1 ring-border"
+                  />
+                )}
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] text-muted-foreground">{entry.id}</span>
+                  <p className="text-sm leading-relaxed mt-0.5">{entry.text}</p>
+                </div>
+                {audio && audioLang && (
+                  <PlayButton key={audioLang} audioUrl={getAudioUrl(bookLabel, audioLang, audio.fileName)} />
+                )}
+              </div>
+            )
+          }
+
           return (
             <div key={entry.id} className="grid grid-cols-2 gap-3 px-3 py-2.5 rounded-md border bg-card">
               <div className="flex items-start gap-3">
@@ -411,21 +427,17 @@ export function TranslationsView({ bookLabel, selectedPageId, onSelectPage }: { 
               <div className="flex items-start gap-2">
                 <div className="flex-1 min-w-0">
                   <span className="text-[10px] text-muted-foreground">&nbsp;</span>
-                  {isSourceLang ? (
-                    <p className="text-sm leading-relaxed mt-0.5">{translated ?? ""}</p>
-                  ) : (
-                    <textarea
-                      value={translated ?? ""}
-                      onChange={(e) => updateEntry(entry.id, e.target.value)}
-                      placeholder="Pending..."
-                      className="w-full text-sm leading-relaxed mt-0.5 resize-none rounded border border-transparent bg-transparent p-1.5 -ml-1.5 hover:border-border hover:bg-muted/30 focus:border-ring focus:bg-white focus:outline-none focus:ring-1 focus:ring-ring transition-colors placeholder:text-muted-foreground placeholder:italic"
-                      style={{ fieldSizing: "content" } as React.CSSProperties}
-                      rows={1}
-                    />
-                  )}
+                  <textarea
+                    value={translated ?? ""}
+                    onChange={(e) => updateEntry(entry.id, e.target.value)}
+                    placeholder="Pending..."
+                    className="w-full text-sm leading-relaxed mt-0.5 resize-none rounded border border-transparent bg-transparent p-1.5 -ml-1.5 hover:border-border hover:bg-muted/30 focus:border-ring focus:bg-white focus:outline-none focus:ring-1 focus:ring-ring transition-colors placeholder:text-muted-foreground placeholder:italic"
+                    style={{ fieldSizing: "content" } as React.CSSProperties}
+                    rows={1}
+                  />
                 </div>
-                {audio && selectedLang && (
-                  <PlayButton key={selectedLang} audioUrl={getAudioUrl(bookLabel, selectedLang, audio.fileName)} />
+                {audio && audioLang && (
+                  <PlayButton key={audioLang} audioUrl={getAudioUrl(bookLabel, audioLang, audio.fileName)} />
                 )}
               </div>
             </div>
@@ -471,30 +483,11 @@ function PlayButton({ audioUrl }: { audioUrl: string }) {
       type="button"
       onClick={toggle}
       className={cn(
-        "shrink-0 flex items-center justify-center w-6 h-6 rounded-full transition-colors mt-3",
-        playing ? "bg-pink-500 text-white" : "bg-muted hover:bg-accent"
+        "shrink-0 flex items-center justify-center w-6 h-6 rounded-full transition-all mt-3 cursor-pointer",
+        playing ? "bg-pink-500 text-white hover:bg-pink-600 scale-110" : "bg-muted text-muted-foreground hover:bg-pink-100 hover:text-pink-600 hover:scale-110"
       )}
     >
       {playing ? <Pause className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5 ml-0.5" />}
     </button>
-  )
-}
-
-function EntryRow({ entry, bookLabel }: { entry: TextCatalogEntry; bookLabel: string }) {
-  const isImg = isImageEntry(entry.id)
-  return (
-    <div className="flex items-start gap-3 px-3 py-2.5 rounded-md border bg-card">
-      {isImg && (
-        <img
-          src={`/api/books/${bookLabel}/images/${entry.id}`}
-          alt=""
-          className="shrink-0 w-16 h-12 rounded object-cover ring-1 ring-border"
-        />
-      )}
-      <span className="shrink-0 text-[10px] font-medium text-muted-foreground w-32 truncate pt-0.5" title={entry.id}>
-        {entry.id}
-      </span>
-      <p className="text-sm leading-relaxed flex-1 min-w-0">{entry.text}</p>
-    </div>
   )
 }
