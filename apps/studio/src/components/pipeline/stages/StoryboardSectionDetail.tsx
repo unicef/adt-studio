@@ -411,7 +411,11 @@ export function StoryboardSectionDetail({
   })
 
   const textTypes = configQuery.data?.merged?.text_types as Record<string, string> | undefined
-  const sectionTypes = configQuery.data?.merged?.section_types as Record<string, string> | undefined
+  const allSectionTypes = configQuery.data?.merged?.section_types as Record<string, string> | undefined
+  const disabledSectionTypes = new Set(configQuery.data?.merged?.disabled_section_types as string[] ?? [])
+  const sectionTypes = allSectionTypes
+    ? Object.fromEntries(Object.entries(allSectionTypes).filter(([key]) => !disabledSectionTypes.has(key)))
+    : undefined
 
   // Abort in-flight requests when the component unmounts
   useEffect(() => {

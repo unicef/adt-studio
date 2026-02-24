@@ -35,6 +35,41 @@ describe("buildSectioningConfig", () => {
     expect(config.prunedSectionTypes).toEqual(["credits"])
   })
 
+  it("excludes disabled section types from sectionTypes", () => {
+    const appConfig: AppConfig = {
+      text_types: { heading: "Heading" },
+      text_group_types: { paragraph: "Paragraph" },
+      section_types: {
+        text_only: "Reading section with only text",
+        images_only: "Section with only images",
+        credits: "Credits section",
+      },
+      pruned_section_types: ["credits"],
+      disabled_section_types: ["images_only"],
+    }
+
+    const config = buildSectioningConfig(appConfig)
+    expect(config.sectionTypes).toEqual([
+      { key: "text_only", description: "Reading section with only text" },
+      { key: "credits", description: "Credits section" },
+    ])
+    expect(config.prunedSectionTypes).toEqual(["credits"])
+  })
+
+  it("handles empty disabled_section_types", () => {
+    const appConfig: AppConfig = {
+      text_types: { heading: "Heading" },
+      text_group_types: { paragraph: "Paragraph" },
+      section_types: { text_only: "Text" },
+      disabled_section_types: [],
+    }
+
+    const config = buildSectioningConfig(appConfig)
+    expect(config.sectionTypes).toEqual([
+      { key: "text_only", description: "Text" },
+    ])
+  })
+
   it("defaults prompt and model when not specified", () => {
     const appConfig: AppConfig = {
       text_types: { heading: "Heading" },

@@ -54,7 +54,9 @@ export function QuizzesSettings({ bookLabel, headerTarget, tab = "general" }: { 
       }
     }
     if (m.section_types && typeof m.section_types === "object") {
-      setSectionTypes(m.section_types as Record<string, string>)
+      const all = m.section_types as Record<string, string>
+      const disabled = new Set(Array.isArray(m.disabled_section_types) ? m.disabled_section_types as string[] : [])
+      setSectionTypes(Object.fromEntries(Object.entries(all).filter(([k]) => !disabled.has(k))))
     }
   }, [activeConfigData])
 

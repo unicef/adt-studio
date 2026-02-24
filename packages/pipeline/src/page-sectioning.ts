@@ -265,9 +265,12 @@ function validatePageSectioning(
  * Build SectioningConfig from AppConfig.
  */
 export function buildSectioningConfig(appConfig: AppConfig): SectioningConfig {
+  const disabledSet = new Set(appConfig.disabled_section_types ?? [])
   const sectionTypes: TypeDef[] = Object.entries(
     appConfig.section_types ?? {}
-  ).map(([key, description]) => ({ key, description }))
+  )
+    .filter(([key]) => !disabledSet.has(key))
+    .map(([key, description]) => ({ key, description }))
 
   return {
     sectionTypes,

@@ -69,6 +69,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
   // Form state
   const [sectionTypes, setSectionTypes] = useState<Record<string, string>>({})
   const [prunedSectionTypes, setPrunedSectionTypes] = useState<Set<string>>(new Set())
+  const [disabledSectionTypes, setDisabledSectionTypes] = useState<Set<string>>(new Set())
   const [sectionRenderStrategies, setSectionRenderStrategies] = useState<Record<string, string>>({})
   const [defaultRenderStrategy, setDefaultRenderStrategy] = useState("")
   const [allStrategyNames, setAllStrategyNames] = useState<string[]>([])
@@ -161,6 +162,9 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     if (Array.isArray(merged.pruned_section_types)) {
       setPrunedSectionTypes(new Set(merged.pruned_section_types as string[]))
     }
+    if (Array.isArray(merged.disabled_section_types)) {
+      setDisabledSectionTypes(new Set(merged.disabled_section_types as string[]))
+    }
     if (merged.default_render_strategy) {
       setDefaultRenderStrategy(String(merged.default_render_strategy))
     }
@@ -228,23 +232,12 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     })
   }
 
-  const removeSectionType = (key: string) => {
-    markDirty("section_types")
-    markDirty("pruned_section_types")
-    markDirty("section_render_strategies")
-    setSectionTypes((prev) => {
-      const next = { ...prev }
-      delete next[key]
-      return next
-    })
-    setPrunedSectionTypes((prev) => {
+  const toggleDisabled = (key: string) => {
+    markDirty("disabled_section_types")
+    setDisabledSectionTypes((prev) => {
       const next = new Set(prev)
-      next.delete(key)
-      return next
-    })
-    setSectionRenderStrategies((prev) => {
-      const next = { ...prev }
-      delete next[key]
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
       return next
     })
   }
@@ -283,6 +276,9 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     }
     if (shouldWrite("pruned_section_types")) {
       overrides.pruned_section_types = Array.from(prunedSectionTypes)
+    }
+    if (shouldWrite("disabled_section_types")) {
+      overrides.disabled_section_types = Array.from(disabledSectionTypes)
     }
     if (shouldWrite("default_render_strategy")) {
       overrides.default_render_strategy = defaultRenderStrategy || undefined
@@ -463,7 +459,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
               Section Types
             </h3>
             <p className="text-xs text-muted-foreground mb-3">
-              Types used during page sectioning. Pruned types are excluded from rendering.
+              Types used during page sectioning. Pruned types are classified but excluded from rendering. Disabled types are hidden from the LLM entirely.
             </p>
             <div className="rounded-md border divide-y">
               {/* Header */}
@@ -476,14 +472,15 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
               </div>
               {Object.entries(sectionTypes).map(([key, description]) => {
                 const pruned = prunedSectionTypes.has(key)
+                const disabled = disabledSectionTypes.has(key)
                 const renderOverride = sectionRenderStrategies[key] ?? ""
                 return (
                   <div
                     key={key}
-                    className={`flex items-center gap-2 px-3 py-1.5 group ${pruned ? "bg-muted/30" : ""}`}
+                    className={`flex items-center gap-2 px-3 py-1.5 group ${disabled ? "opacity-50" : pruned ? "bg-muted/30" : ""}`}
                   >
                     <PruneToggle pruned={pruned} onToggle={() => togglePruned(key)} />
-                    <span className={`text-xs shrink-0 w-40 truncate font-mono ${pruned ? "text-muted-foreground line-through" : "font-medium"}`}>
+                    <span className={`text-xs shrink-0 w-40 truncate font-mono ${disabled ? "text-muted-foreground line-through" : pruned ? "text-muted-foreground line-through" : "font-medium"}`}>
                       {key}
                     </span>
                     <Input
@@ -514,9 +511,9 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
                     </Select>
                     <button
                       type="button"
-                      onClick={() => removeSectionType(key)}
-                      className="shrink-0 p-0.5 rounded text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive transition-colors"
-                      title="Remove type"
+                      onClick={() => toggleDisabled(key)}
+                      className={`shrink-0 p-0.5 rounded transition-colors ${disabled ? "text-amber-500 hover:text-amber-600" : "text-muted-foreground/0 group-hover:text-muted-foreground hover:!text-destructive"}`}
+                      title={disabled ? "Re-enable type" : "Disable type"}
                     >
                       <X className="h-3.5 w-3.5" />
                     </button>
@@ -786,9 +783,8 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
       {tab === "activity-prompts" && (() => {
         const activityNames = Object.keys(activityStrategies)
         // Activities are enabled when their section types are NOT pruned and render strategies are mapped
-        const allEnabled = activityNames.length > 0 &&
-          activityNames.every((name) => sectionRenderStrategies[name] === name) &&
-          !activityNames.some((name) => prunedSectionTypes.has(name))
+        const anyEnabled = activityNames.length > 0 &&
+          activityNames.some((name) => !disabledSectionTypes.has(name))
         return (
         <div className="flex flex-col h-full">
           <div className="shrink-0 p-4 pb-2">
@@ -799,24 +795,10 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
             {/* Universal enable/disable toggle */}
             <div className="flex items-center gap-3 mb-4">
               <Switch
-                checked={allEnabled}
+                checked={anyEnabled}
                 onCheckedChange={(checked) => {
-                  // 1. Toggle section_render_strategies — maps activity section types to their strategies
-                  markDirty("section_render_strategies")
-                  setSectionRenderStrategies((prev) => {
-                    const next = { ...prev }
-                    for (const name of activityNames) {
-                      if (checked) {
-                        next[name] = name
-                      } else {
-                        delete next[name]
-                      }
-                    }
-                    return next
-                  })
-                  // 2. Toggle pruned_section_types — hides activity types from the page classifier
-                  markDirty("pruned_section_types")
-                  setPrunedSectionTypes((prev) => {
+                  markDirty("disabled_section_types")
+                  setDisabledSectionTypes((prev) => {
                     const next = new Set(prev)
                     for (const name of activityNames) {
                       if (checked) {
@@ -830,10 +812,10 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
                 }}
               />
               <Label className="text-xs">
-                {allEnabled ? "Activities enabled" : "Activities disabled"}
+                {anyEnabled ? "Activities enabled" : "Activities disabled"}
               </Label>
               <p className="text-xs text-muted-foreground">
-                {allEnabled
+                {anyEnabled
                   ? "Activity section types are available for classification and rendering."
                   : "Activity section types are hidden from the classifier and skipped during rendering."}
               </p>

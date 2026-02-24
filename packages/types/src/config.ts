@@ -83,6 +83,7 @@ export const AppConfig = z
     section_types: z.record(z.string(), z.string()).optional(),
     pruned_text_types: z.array(z.string()).optional(),
     pruned_section_types: z.array(z.string()).optional(),
+    disabled_section_types: z.array(z.string()).optional(),
     text_classification: StepConfig.optional(),
     translation: StepConfig.optional(),
     metadata: StepConfig.optional(),
