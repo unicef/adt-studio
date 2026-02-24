@@ -178,22 +178,33 @@ export function TranslationsView({ bookLabel, selectedPageId, onSelectPage }: { 
   const bookLanguage = book?.languageCode ?? book?.metadata?.language_code ?? null
   const configuredEditingLanguage = merged?.editing_language as string | undefined
 
+  const { editingLanguage, isSourceLanguagePending } = resolveTranslationLanguageState({
+    selectedLang: null,
+    configuredEditingLanguage,
+    bookLanguage,
+    isBookLoading,
+  })
+
+  // When no output languages configured, treat the editing language as the implicit output
+  const effectiveOutputLanguages = outputLanguages.length > 0
+    ? outputLanguages
+    : (editingLanguage ? [editingLanguage] : [])
+
   const [selectedLang, setSelectedLang] = useState<string | null>(null)
 
   // Default to first output language when available
   useEffect(() => {
-    if (outputLanguages.length > 0 && !selectedLang) {
-      setSelectedLang(outputLanguages[0])
+    if (effectiveOutputLanguages.length > 0 && !selectedLang) {
+      setSelectedLang(effectiveOutputLanguages[0])
     }
-  }, [outputLanguages.length])
+  }, [effectiveOutputLanguages.length])
 
   const entries = catalog?.entries ?? []
   const displayEntries = selectedPageId
     ? entries.filter((e) => e.id.startsWith(selectedPageId + "_"))
     : entries
-  const hasTranslations = outputLanguages.length > 0
 
-  const { editingLanguage, isSourceLang, isSourceLanguagePending } = resolveTranslationLanguageState({
+  const { isSourceLang } = resolveTranslationLanguageState({
     selectedLang,
     configuredEditingLanguage,
     bookLanguage,
@@ -262,13 +273,13 @@ export function TranslationsView({ bookLabel, selectedPageId, onSelectPage }: { 
     setExtra(
       <div className="flex items-center gap-1.5 ml-auto">
         <span className="text-[10px] bg-white/20 rounded-full px-2 py-0.5">{displayEntries.length} texts</span>
-        {hasTranslations && (
+        {outputLanguages.length > 1 && (
           <span className="text-[10px] bg-white/20 rounded-full px-2 py-0.5">{outputLanguages.length} languages</span>
         )}
         {totalAudioFiles > 0 && (
           <span className="text-[10px] bg-white/20 rounded-full px-2 py-0.5">{totalAudioFiles} audio</span>
         )}
-        {hasTranslations && selectedLang && translationVersion != null && !isSourceLang && (
+        {selectedLang && translationVersion != null && !isSourceLang && (
           <VersionPicker
             currentVersion={translationVersion}
             saving={saving}
@@ -286,7 +297,7 @@ export function TranslationsView({ bookLabel, selectedPageId, onSelectPage }: { 
       </div>
     )
     return () => setExtra(null)
-  }, [catalog, displayEntries.length, outputLanguages.length, hasTranslations, selectedLang, translationVersion, saving, dirty, bookLabel, isSourceLang, totalAudioFiles, selectedPageId])
+  }, [catalog, displayEntries.length, outputLanguages.length, selectedLang, translationVersion, saving, dirty, bookLabel, isSourceLang, totalAudioFiles, selectedPageId])
 
   if (!showRunCard && isLoading) {
     return (
@@ -324,32 +335,11 @@ export function TranslationsView({ bookLabel, selectedPageId, onSelectPage }: { 
     </div>
   ) : null
 
-  // No output languages — just show source entries
-  if (!hasTranslations) {
-    if (selectedPageId && displayEntries.length === 0 && entries.length > 0) {
-      return (
-        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-          <div className="w-12 h-12 rounded-full bg-pink-50 flex items-center justify-center mb-3">
-            <Languages className="w-6 h-6 text-pink-300" />
-          </div>
-          <p className="text-sm font-medium">No translations for this page</p>
-          <p className="text-xs mt-1">This page has no translatable text entries</p>
-        </div>
-      )
-    }
-    return (
-      <div className="space-y-1">
-        {displayEntries.map((entry) => (
-          <EntryRow key={entry.id} entry={entry} bookLabel={bookLabel} />
-        ))}
-      </div>
-    )
-  }
-
-  // With output languages — language tabs + side-by-side
+  // Language tabs + entries
   return (
     <div className="space-y-3">
-      {/* Language tabs */}
+      {/* Language tabs — only when there are multiple output languages */}
+      {outputLanguages.length > 1 && (
       <div className="flex gap-1.5">
         {outputLanguages.map((lang) => (
             <button
@@ -373,8 +363,9 @@ export function TranslationsView({ bookLabel, selectedPageId, onSelectPage }: { 
             </button>
         ))}
       </div>
+      )}
 
-      {/* Side-by-side */}
+      {/* Entries */}
       {isSourceLanguagePending ? (
         <div className="flex items-center justify-center py-12 text-muted-foreground">
           <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -504,24 +495,5 @@ function PlayButton({ audioUrl }: { audioUrl: string }) {
     >
       {playing ? <Pause className="w-2.5 h-2.5" /> : <Play className="w-2.5 h-2.5 ml-0.5" />}
     </button>
-  )
-}
-
-function EntryRow({ entry, bookLabel }: { entry: TextCatalogEntry; bookLabel: string }) {
-  const isImg = isImageEntry(entry.id)
-  return (
-    <div className="flex items-start gap-3 px-3 py-2.5 rounded-md border bg-card">
-      {isImg && (
-        <img
-          src={`/api/books/${bookLabel}/images/${entry.id}`}
-          alt=""
-          className="shrink-0 w-16 h-12 rounded object-cover ring-1 ring-border"
-        />
-      )}
-      <span className="shrink-0 text-[10px] font-medium text-muted-foreground w-32 truncate pt-0.5" title={entry.id}>
-        {entry.id}
-      </span>
-      <p className="text-sm leading-relaxed flex-1 min-w-0">{entry.text}</p>
-    </div>
   )
 }
