@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } fro
 import { createPortal } from "react-dom"
 import { Check, Copy, Eye, EyeOff, LayoutGrid, Layers, Loader2, ChevronDown, Sparkles, ChevronRight, PanelRightOpen, PanelRightClose, Save, X } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { api } from "@/api/client"
+import { api, BASE_URL } from "@/api/client"
 import type { PageDetail, VersionEntry } from "@/api/client"
 import { useApiKey } from "@/hooks/use-api-key"
 import { useActiveConfig } from "@/hooks/use-debug"
@@ -181,7 +181,7 @@ function ImageCard({ imageId, bookLabel, isPruned, reason }: { imageId: string; 
       title={isPruned ? `Pruned: ${reason}` : undefined}
     >
       <img
-        src={`/api/books/${bookLabel}/images/${imageId}`}
+        src={`${BASE_URL}/books/${bookLabel}/images/${imageId}`}
         alt={imageId}
         className={`max-w-full h-auto block my-auto ${isPruned ? "grayscale" : ""}`}
         onLoad={(e) => {
@@ -748,8 +748,8 @@ export function StoryboardSectionDetail({
       // 2. Update rendered HTML to swap image references so preview reflects the crop
       const rBase = pendingRendering ?? page.rendering
       if (rBase) {
-        const oldSrc = `/api/books/${bookLabel}/images/${cropTarget}`
-        const newSrc = `/api/books/${bookLabel}/images/${result.imageId}`
+        const oldSrc = `${BASE_URL}/books/${bookLabel}/images/${cropTarget}`
+        const newSrc = `${BASE_URL}/books/${bookLabel}/images/${result.imageId}`
         const updatedRendering: RenderingData = {
           ...rBase,
           sections: rBase.sections.map((s) => {
@@ -818,8 +818,8 @@ export function StoryboardSectionDetail({
       // Update rendering HTML
       const rBase = pendingRendering ?? page.rendering
       if (rBase) {
-        const oldSrc = `/api/books/${bookLabel}/images/${targetId}`
-        const newSrc = `/api/books/${bookLabel}/images/${result.imageId}`
+        const oldSrc = `${BASE_URL}/books/${bookLabel}/images/${targetId}`
+        const newSrc = `${BASE_URL}/books/${bookLabel}/images/${result.imageId}`
         const updatedRendering: RenderingData = {
           ...rBase,
           sections: rBase.sections.map((s) => {
@@ -861,7 +861,7 @@ export function StoryboardSectionDetail({
         // Show preview dialog with bounding boxes
         setSegmentPreview({
           imageId: dataId,
-          imageSrc: `/api/books/${bookLabel}/images/${dataId}`,
+          imageSrc: `${BASE_URL}/books/${bookLabel}/images/${dataId}`,
           imageWidth: result.imageWidth!,
           imageHeight: result.imageHeight!,
           regions: result.regions,
@@ -980,8 +980,8 @@ export function StoryboardSectionDetail({
       setPendingRendering((prev) => {
         const rBase = prev ?? pageDataRef.current.rendering
         if (!rBase) return prev
-        const oldSrc = `/api/books/${bookLabel}/images/${targetId}`
-        const newSrc = `/api/books/${bookLabel}/images/${newImageId}`
+        const oldSrc = `${BASE_URL}/books/${bookLabel}/images/${targetId}`
+        const newSrc = `${BASE_URL}/books/${bookLabel}/images/${newImageId}`
         return {
           ...rBase,
           sections: rBase.sections.map((s) => {
@@ -1117,7 +1117,7 @@ export function StoryboardSectionDetail({
       isImage,
       textType: textEntry?.textType,
       isPruned: isImage ? imagePart?.isPruned ?? false : textEntry?.isPruned ?? false,
-      imageSrc: isImage ? `/api/books/${bookLabel}/images/${dataId}` : undefined,
+      imageSrc: isImage ? `${BASE_URL}/books/${bookLabel}/images/${dataId}` : undefined,
     }
   }
 
@@ -1676,7 +1676,7 @@ export function StoryboardSectionDetail({
     {/* Image crop dialog */}
     {cropTarget && (
       <ImageCropDialog
-        imageSrc={`/api/books/${bookLabel}/images/${cropTarget}`}
+        imageSrc={`${BASE_URL}/books/${bookLabel}/images/${cropTarget}`}
         onApply={handleCropApply}
         onClose={() => setCropTarget(null)}
       />
@@ -1685,7 +1685,7 @@ export function StoryboardSectionDetail({
     {/* AI image prompt dialog */}
     {aiImageDialogTarget && (
       <AiImageDialog
-        currentImageSrc={`/api/books/${bookLabel}/images/${aiImageDialogTarget}`}
+        currentImageSrc={`${BASE_URL}/books/${bookLabel}/images/${aiImageDialogTarget}`}
         imageId={aiImageDialogTarget}
         onSubmit={handleAiImageSubmit}
         onClose={() => setAiImageDialogTarget(null)}

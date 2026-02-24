@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { useLlmLogs } from "@/hooks/use-debug"
+import { BASE_URL } from "@/api/client"
 import type { LlmLogEntry } from "@/api/client"
 
 const STEPS = [
@@ -139,7 +140,7 @@ function LogDetail({ data, label }: { data: LlmLogEntry["data"]; label: string }
                       ) : (
                         <div className="my-1">
                           <img
-                            src={`/api/books/${label}/debug/llm-image/${part.hash}`}
+                            src={`${BASE_URL}/books/${label}/debug/llm-image/${part.hash}`}
                             alt={`${part.width}x${part.height}`}
                             className="max-h-48 rounded border bg-muted object-contain"
                             loading="lazy"

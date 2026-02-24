@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Check, ChevronDown, Languages, Loader2, Play, Pause } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { api, getAudioUrl } from "@/api/client"
+import { api, getAudioUrl, BASE_URL } from "@/api/client"
 import type { TextCatalogEntry, VersionEntry } from "@/api/client"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useBook } from "@/hooks/use-books"
@@ -393,7 +393,7 @@ export function TranslationsView({ bookLabel, selectedPageId, onSelectPage }: { 
               <div key={entry.id} className="flex items-start gap-3 px-3 py-2.5 rounded-md border bg-card">
                 {isImg && (
                   <img
-                    src={`/api/books/${bookLabel}/images/${entry.id}`}
+                    src={`${BASE_URL}/books/${bookLabel}/images/${entry.id}`}
                     alt=""
                     className="shrink-0 w-16 h-12 rounded object-cover ring-1 ring-border"
                   />
@@ -414,7 +414,7 @@ export function TranslationsView({ bookLabel, selectedPageId, onSelectPage }: { 
               <div className="flex items-start gap-3">
                 {isImg && (
                   <img
-                    src={`/api/books/${bookLabel}/images/${entry.id}`}
+                    src={`${BASE_URL}/books/${bookLabel}/images/${entry.id}`}
                     alt=""
                     className="shrink-0 w-16 h-12 rounded object-cover ring-1 ring-border"
                   />

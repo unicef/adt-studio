@@ -1,6 +1,6 @@
 import { useEffect, useCallback, useRef, createContext, useContext, useState } from "react"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
-import { api } from "@/api/client"
+import { api, BASE_URL } from "@/api/client"
 import { STEP_TO_STAGE, PIPELINE, getStageClearOrder } from "@adt/types"
 import type { StageName } from "@adt/types"
 import { isStageComplete } from "./run-state"
@@ -99,7 +99,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   useEffect(() => {
     if (!label) return
 
-    const url = `/api/books/${label}/stages/status`
+    const url = `${BASE_URL}/books/${label}/stages/status`
     const es = new EventSource(url)
 
     // Refetch on (re)connection to catch up on any missed events

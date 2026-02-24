@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react"
 import { Check, ChevronDown, Image as ImageIcon, Loader2 } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
-import { api } from "@/api/client"
+import { api, BASE_URL } from "@/api/client"
 import type { PageDetail, VersionEntry } from "@/api/client"
 import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../StepViewRouter"
@@ -194,7 +194,7 @@ function PageCaptions({ bookLabel, pageId, pageNumber, emptyState, largeImages }
       {captions.map((cap) => (
         <div key={cap.imageId} className="flex items-start gap-4 rounded-md border bg-card overflow-hidden">
           <img
-            src={`/api/books/${bookLabel}/images/${cap.imageId}`}
+            src={`${BASE_URL}/books/${bookLabel}/images/${cap.imageId}`}
             alt={cap.caption}
             className={`shrink-0 self-stretch bg-muted object-cover block ${largeImages ? "w-96" : "w-48"}`}
           />
