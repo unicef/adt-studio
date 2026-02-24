@@ -39,7 +39,8 @@
       "../../../templates/**/*": "templates/",
       "../../../config.yaml": ".",
       "../../../config/**/*": "config/",
-      "../../../assets/**/*": "assets/"
+      "../../../assets/adt/**/*": "assets/adt/",
+      "../../../assets/styleguides/**/*": "assets/styleguides/"
     }
   }
 }
