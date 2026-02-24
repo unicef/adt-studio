@@ -130,6 +130,46 @@ for (const [pkg, filename] of Object.entries(EXPECTED_WASM)) {
   }
 }
 
+// Copy CSS asset directories that bundled packages read via fs.readFileSync at runtime.
+// The bundled code resolves __dirname to dist-pkg/, so a package that reads
+// path.resolve(__dirname, '../css/preflight.css') will look at dist-pkg/css/preflight.css.
+// These files are NOT inlined by esbuild — they must be present on disk (and in the
+// pkg snapshot as assets via pkg.mjs's collectAssets).
+const CSS_ASSET_DIRS = [
+  // tailwindcss reads css/preflight.css at runtime during CSS processing
+  { pkg: "tailwindcss", subdir: "css" },
+]
+
+for (const { pkg: pkgName, subdir } of CSS_ASSET_DIRS) {
+  const pnpmDir = path.join(monorepoRoot, "node_modules/.pnpm")
+  const safeName = pkgName.replace(/\//g, "+").replace(/@/g, "")
+  const dirs = fs.readdirSync(pnpmDir).filter((d) => {
+    const normalized = d.replace(/@/g, "").replace(/\//g, "+")
+    return normalized.startsWith(safeName)
+  })
+
+  let copied = false
+  for (const dir of dirs) {
+    const pkgPath = path.join(pnpmDir, dir, "node_modules", pkgName)
+    if (!fs.existsSync(pkgPath)) continue
+
+    const srcDir = path.join(pkgPath, subdir)
+    if (!fs.existsSync(srcDir)) continue
+
+    const destDir = path.join(outDir, subdir)
+    fs.mkdirSync(destDir, { recursive: true })
+    for (const file of fs.readdirSync(srcDir)) {
+      fs.copyFileSync(path.join(srcDir, file), path.join(destDir, file))
+      console.log(`  Copied ${subdir}/${file}`)
+    }
+    copied = true
+    break
+  }
+  if (!copied) {
+    console.warn(`  Warning: ${pkgName}/${subdir} not found in pnpm store — skipping`)
+  }
+}
+
 console.log("✓ Bundled → dist-pkg/api-server.mjs")
 
 // Pre-bundle web assets for Tauri sidecar.
