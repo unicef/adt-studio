@@ -178,38 +178,31 @@ export function TranslationsView({ bookLabel, selectedPageId, onSelectPage }: { 
   const bookLanguage = book?.languageCode ?? book?.metadata?.language_code ?? null
   const configuredEditingLanguage = merged?.editing_language as string | undefined
 
-  const { editingLanguage, isSourceLanguagePending } = resolveTranslationLanguageState({
-    selectedLang: null,
-    configuredEditingLanguage,
-    bookLanguage,
-    isBookLoading,
-  })
-
-  // When no output languages configured, treat the editing language as the implicit output
-  const effectiveOutputLanguages = outputLanguages.length > 0
-    ? outputLanguages
-    : (editingLanguage ? [editingLanguage] : [])
+  const hasExplicitOutputLanguages = outputLanguages.length > 0
 
   const [selectedLang, setSelectedLang] = useState<string | null>(null)
 
   // Default to first output language when available
   useEffect(() => {
-    if (effectiveOutputLanguages.length > 0 && !selectedLang) {
-      setSelectedLang(effectiveOutputLanguages[0])
+    if (hasExplicitOutputLanguages && outputLanguages.length > 0 && !selectedLang) {
+      setSelectedLang(outputLanguages[0])
     }
-  }, [effectiveOutputLanguages.length])
+  }, [outputLanguages.length, hasExplicitOutputLanguages])
 
   const entries = catalog?.entries ?? []
   const displayEntries = selectedPageId
     ? entries.filter((e) => e.id.startsWith(selectedPageId + "_"))
     : entries
 
-  const { isSourceLang } = resolveTranslationLanguageState({
+  // When no output languages are configured, we're always viewing the source language.
+  // When explicit output languages exist, check if the selected one matches the editing language.
+  const { editingLanguage, isSourceLang: isSelectedSourceLang, isSourceLanguagePending } = resolveTranslationLanguageState({
     selectedLang,
     configuredEditingLanguage,
     bookLanguage,
     isBookLoading,
   })
+  const isSourceLang = !hasExplicitOutputLanguages || isSelectedSourceLang
 
   // Pending state for edits (keyed by language)
   const [pendingEntries, setPendingEntries] = useState<TextCatalogEntry[] | null>(null)
@@ -257,10 +250,11 @@ export function TranslationsView({ bookLabel, selectedPageId, onSelectPage }: { 
     }
   }
 
-  // Build audio lookup for selected language
+  // Build audio lookup — use selected language, or editing language when no output languages
+  const audioLang = selectedLang ?? editingLanguage
   const audioMap = new Map<string, { fileName: string; voice: string }>()
-  if (ttsData && selectedLang && ttsData.languages[selectedLang]) {
-    for (const e of ttsData.languages[selectedLang].entries) {
+  if (ttsData && audioLang && ttsData.languages[audioLang]) {
+    for (const e of ttsData.languages[audioLang].entries) {
       audioMap.set(e.textId, { fileName: e.fileName, voice: e.voice })
     }
   }
@@ -408,8 +402,8 @@ export function TranslationsView({ bookLabel, selectedPageId, onSelectPage }: { 
                   <span className="text-[10px] text-muted-foreground">{entry.id}</span>
                   <p className="text-sm leading-relaxed mt-0.5">{entry.text}</p>
                 </div>
-                {audio && selectedLang && (
-                  <PlayButton key={selectedLang} audioUrl={getAudioUrl(bookLabel, selectedLang, audio.fileName)} />
+                {audio && audioLang && (
+                  <PlayButton key={audioLang} audioUrl={getAudioUrl(bookLabel, audioLang, audio.fileName)} />
                 )}
               </div>
             )
@@ -442,8 +436,8 @@ export function TranslationsView({ bookLabel, selectedPageId, onSelectPage }: { 
                     rows={1}
                   />
                 </div>
-                {audio && selectedLang && (
-                  <PlayButton key={selectedLang} audioUrl={getAudioUrl(bookLabel, selectedLang, audio.fileName)} />
+                {audio && audioLang && (
+                  <PlayButton key={audioLang} audioUrl={getAudioUrl(bookLabel, audioLang, audio.fileName)} />
                 )}
               </div>
             </div>
