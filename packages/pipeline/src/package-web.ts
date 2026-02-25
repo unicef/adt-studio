@@ -167,6 +167,9 @@ export async function packageAdtWeb(
           // Check for math content
           if (containsMathContent(rewrittenHtml)) hasMath = true
 
+          const isFirstPage = pageList.length === 0
+          const filename = isFirstPage ? "index.html" : `${sectionId}.html`
+
           const pageHtml = renderPageHtml({
             content: rewrittenHtml,
             language,
@@ -178,11 +181,11 @@ export async function packageAdtWeb(
             bundleVersion,
             applyBodyBackground,
           })
-          fs.writeFileSync(path.join(adtDir, `${sectionId}.html`), pageHtml)
+          fs.writeFileSync(path.join(adtDir, filename), pageHtml)
 
           const entry: PageEntry = {
             section_id: sectionId,
-            href: `${sectionId}.html`,
+            href: filename,
           }
           if (sectionMeta?.pageNumber !== null && sectionMeta?.pageNumber !== undefined) {
             entry.page_number = sectionMeta.pageNumber
@@ -197,6 +200,9 @@ export async function packageAdtWeb(
       const quizIndex = quizData!.quizzes.indexOf(quiz)
       const quizId = `qz${pad3(quizIndex + 1)}`
 
+      const isFirstPage = pageList.length === 0
+      const quizFilename = isFirstPage ? "index.html" : `${quizId}.html`
+
       const quizHtmlContent = renderQuizHtml(quiz, quizId, catalog)
       const quizPageHtml = renderPageHtml({
         content: quizHtmlContent,
@@ -210,9 +216,9 @@ export async function packageAdtWeb(
         skipContentWrapper: true,
         applyBodyBackground,
       })
-      fs.writeFileSync(path.join(adtDir, `${quizId}.html`), quizPageHtml)
+      fs.writeFileSync(path.join(adtDir, quizFilename), quizPageHtml)
 
-      pageList.push({ section_id: quizId, href: `${quizId}.html` })
+      pageList.push({ section_id: quizId, href: quizFilename })
     }
   }
 

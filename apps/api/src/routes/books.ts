@@ -154,7 +154,10 @@ export function createBookRoutes(
       return c.body(Buffer.from(result.zipBuffer))
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
-      if (message.includes("not found")) {
+      if (message.includes("Web assets directory not found")) {
+        throw new HTTPException(500, { message })
+      }
+      if (message.includes("Book not found")) {
         throw new HTTPException(404, { message })
       }
       throw new HTTPException(400, { message })
