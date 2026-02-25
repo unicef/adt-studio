@@ -26,7 +26,8 @@ import {
 } from "@/components/ui/dialog"
 import { LanguagePicker } from "@/components/LanguagePicker"
 import { useSettingsDialog } from "@/routes/__root"
-import { useCreateBook } from "@/hooks/use-books"
+import { useBooks, useCreateBook } from "@/hooks/use-books"
+import { isLabelFormatValid, isLabelDuplicate } from "@/lib/label-validation"
 import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
 import { usePreset, useGlobalConfig, useStyleguides, useStyleguidePreview } from "@/hooks/use-presets"
@@ -145,6 +146,7 @@ function Stepper({ currentStep }: { currentStep: number }) {
 function AddBookPage() {
   const navigate = useNavigate()
   const createMutation = useCreateBook()
+  const { data: existingBooks } = useBooks()
   const { apiKey, hasApiKey, azureKey, azureRegion } = useApiKey()
   const { openSettings } = useSettingsDialog()
 
@@ -374,9 +376,10 @@ function AddBookPage() {
     })
   }
 
-  const isLabelValid =
-    !!label && /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(label)
-  const canAdvanceStep1 = !!file && isLabelValid
+  const isLabelValid = isLabelFormatValid(label)
+  const labelIsDuplicate =
+    isLabelValid && isLabelDuplicate(label, existingBooks?.map((b) => b.label))
+  const canAdvanceStep1 = !!file && isLabelValid && !labelIsDuplicate
 
   const handleSubmit = () => {
     if (!file || !label) return
@@ -591,6 +594,10 @@ function AddBookPage() {
                   <p className="text-xs text-destructive">
                     Must start with a letter or number. Only letters, numbers,
                     hyphens, dots, underscores.
+                  </p>
+                ) : labelIsDuplicate ? (
+                  <p className="text-xs text-destructive">
+                    A book with this label already exists.
                   </p>
                 ) : (
                   <p className="text-xs text-muted-foreground">
