@@ -164,7 +164,7 @@ describe("packageAdtWeb", () => {
       fs.readFileSync(path.join(bookDir, "adt", "content", "pages.json"), "utf-8"),
     ) as Array<{ section_id: string; href: string; page_number?: number }>
     expect(pagesJson).toHaveLength(2)
-    expect(pagesJson[0]).toEqual({ section_id: "pg001_sec001", href: "pg001_sec001.html", page_number: 10 })
+    expect(pagesJson[0]).toEqual({ section_id: "pg001_sec001", href: "index.html", page_number: 10 })
     expect(pagesJson[1]).toEqual({ section_id: "pg002_sec001", href: "pg002_sec001.html" })
 
     const configJson = JSON.parse(
@@ -173,7 +173,7 @@ describe("packageAdtWeb", () => {
     expect(configJson.languages.available).toEqual(["fr"])
     expect(configJson.languages.default).toBe("fr")
 
-    const pageHtml = fs.readFileSync(path.join(bookDir, "adt", "pg001_sec001.html"), "utf-8")
+    const pageHtml = fs.readFileSync(path.join(bookDir, "adt", "index.html"), "utf-8")
     expect(pageHtml).toContain("window.correctAnswers = JSON.parse(")
     expect(pageHtml).not.toContain("</script><script>alert('x')</script>")
     expect(pageHtml).toContain("\\u003c/script\\u003e\\u003cscript\\u003e")
@@ -264,10 +264,10 @@ describe("packageAdtWeb", () => {
     ) as Array<{ section_id: string; href: string; page_number?: number }>
 
     expect(pagesJson).toEqual([
-      { section_id: "qz001", href: "qz001.html" },
+      { section_id: "qz001", href: "index.html" },
       { section_id: "pg002_sec001", href: "pg002_sec001.html" },
     ])
-    expect(fs.existsSync(path.join(bookDir, "adt", "qz001.html"))).toBe(true)
+    expect(fs.existsSync(path.join(bookDir, "adt", "index.html"))).toBe(true)
   })
 
   it("sets activities true in config.json when a section has an activity type", async () => {
@@ -437,7 +437,7 @@ describe("packageAdtWeb", () => {
       fs.readFileSync(path.join(bookDir, "adt", "content", "pages.json"), "utf-8"),
     ) as Array<{ section_id: string; href: string; page_number?: number }>
     expect(pagesJson).toEqual([
-      { section_id: "pg001_sec001", href: "pg001_sec001.html", page_number: 1 },
+      { section_id: "pg001_sec001", href: "index.html", page_number: 1 },
       { section_id: "pg001_sec002", href: "pg001_sec002.html", page_number: 1 },
     ])
   })

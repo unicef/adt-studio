@@ -7,9 +7,12 @@ import { unzipSync } from "fflate"
 import { exportBook } from "./export-service.js"
 
 let tmpDir: string
+let webAssetsDir: string
 
 beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-export-service-"))
+  webAssetsDir = path.join(tmpDir, "assets-web")
+  createWebAssets(webAssetsDir)
 })
 
 afterEach(() => {
@@ -62,12 +65,22 @@ function addConfigYaml(label: string): void {
   )
 }
 
+function createWebAssets(dir: string): void {
+  fs.mkdirSync(dir, { recursive: true })
+  fs.writeFileSync(path.join(dir, "base.js"), 'window.__ADT_BUNDLE_TEST__ = "ok";\n')
+  fs.writeFileSync(path.join(dir, "fonts.css"), "body { font-family: serif; }")
+  fs.writeFileSync(
+    path.join(dir, "tailwind_css.css"),
+    "@tailwind base;\n@tailwind components;\n@tailwind utilities;\n"
+  )
+}
+
 describe("exportBook", () => {
   it("produces a valid ZIP containing the db file", async () => {
     createTestDb("export-test")
     addPages("export-test", 1)
 
-    const result = await exportBook("export-test", tmpDir, "")
+    const result = await exportBook("export-test", tmpDir, webAssetsDir)
     expect(result.zipBuffer).toBeInstanceOf(Uint8Array)
     expect(result.filename).toBe("export-test.zip")
 
@@ -80,7 +93,7 @@ describe("exportBook", () => {
     addPages("with-pdf", 1)
     addPdf("with-pdf")
 
-    const result = await exportBook("with-pdf", tmpDir, "")
+    const result = await exportBook("with-pdf", tmpDir, webAssetsDir)
     const files = unzipSync(result.zipBuffer)
     expect(files["with-pdf.pdf"]).toBeDefined()
     expect(Buffer.from(files["with-pdf.pdf"]).toString()).toContain("%PDF")
@@ -91,7 +104,7 @@ describe("exportBook", () => {
     addPages("with-imgs", 1)
     addImageFile("with-imgs", "my-img")
 
-    const result = await exportBook("with-imgs", tmpDir, "")
+    const result = await exportBook("with-imgs", tmpDir, webAssetsDir)
     const files = unzipSync(result.zipBuffer)
     expect(files["images/my-img.png"]).toBeDefined()
     expect(Buffer.from(files["images/my-img.png"]).toString()).toBe("fake-png-data")
@@ -102,7 +115,7 @@ describe("exportBook", () => {
     addPages("with-config", 1)
     addConfigYaml("with-config")
 
-    const result = await exportBook("with-config", tmpDir, "")
+    const result = await exportBook("with-config", tmpDir, webAssetsDir)
     const files = unzipSync(result.zipBuffer)
     expect(files["config.yaml"]).toBeDefined()
     const content = new TextDecoder().decode(files["config.yaml"])
@@ -113,13 +126,21 @@ describe("exportBook", () => {
     createTestDb("not-accepted")
     addPages("not-accepted", 1)
 
-    const result = await exportBook("not-accepted", tmpDir, "")
+    const result = await exportBook("not-accepted", tmpDir, webAssetsDir)
     expect(result.zipBuffer).toBeInstanceOf(Uint8Array)
     expect(result.filename).toBe("not-accepted.zip")
   })
 
   it("throws for non-existent book", async () => {
-    await expect(exportBook("ghost", tmpDir, "")).rejects.toThrow("not found")
+    await expect(exportBook("ghost", tmpDir, webAssetsDir)).rejects.toThrow("not found")
+  })
+
+  it("throws when web assets directory is missing", async () => {
+    createTestDb("missing-assets")
+    addPages("missing-assets", 1)
+
+    await expect(exportBook("missing-assets", tmpDir, path.join(tmpDir, "missing-assets-dir")))
+      .rejects.toThrow("Web assets directory not found")
   })
 
   it("includes all book directory contents recursively", async () => {
@@ -130,7 +151,7 @@ describe("exportBook", () => {
     addImageFile("full-book", "img-b")
     addConfigYaml("full-book")
 
-    const result = await exportBook("full-book", tmpDir, "")
+    const result = await exportBook("full-book", tmpDir, webAssetsDir)
     const files = unzipSync(result.zipBuffer)
     const paths = Object.keys(files).sort()
 
