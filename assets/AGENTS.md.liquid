@@ -1,0 +1,353 @@
+# {{ title }} — ADT Bundle Reference
+
+This document describes the structure of this Accessible Digital Textbook (ADT) bundle. Use it to orient yourself when doing post-processing.
+
+## About This Book
+
+**{{ title }}**{% if summary %} — {{ summary }}{% endif %}
+
+- **Source language**: `{{ language }}`
+- **Available languages in this bundle**: {% for lang in outputLanguages %}`{{ lang }}`{% unless forloop.last %}, {% endunless %}{% endfor %}
+- **Total pages**: {{ totalPages }}{% if hasQuiz %}
+- **Quizzes**: yes{% endif %}{% if hasGlossary %}
+- **Glossary**: yes{% endif %}
+
+## Quick Overview
+
+An ADT bundle is a self-contained, offline-capable web app for reading a book. It has:
+
+- One HTML file per page/section and per quiz
+- A localization system (`i18n`) for text, audio, and glossary — keyed by stable IDs
+- A `pages.json` manifest that defines reading order
+- A shared `assets/` directory with JS runtime, fonts, and UI resources
+
+The `adt/` subdirectory is the self-contained web app. Other top-level files (`.db`, `.pdf`, `images/`, `audio/`, `.cache/`) are pipeline artifacts and not part of the reader.
+
+## Directory Structure
+
+```
+{{ label }}/
+├── adt/                              # THE WEB APP
+│   ├── index.html                    # Redirects to first page
+│   ├── cover.png                     # Book cover image
+│   ├── pg001_sec001.html             # Page HTML files (one per section)
+│   ├── pg002_sec001.html
+│   ├── ...
+│   ├── qz001.html                    # Quiz HTML files
+│   ├── qz002.html
+│   ├── ...
+│   │
+│   ├── images/                       # Images referenced by page HTML
+│   │   ├── pg001_im001.png
+│   │   └── pg002_im002.png
+│   │
+│   ├── content/
+│   │   ├── pages.json                # Reading order manifest
+│   │   ├── toc.json                  # Table of contents
+│   │   ├── tailwind_output.css       # Compiled Tailwind CSS
+│   │   ├── navigation/
+│   │   │   └── nav.html              # Navigation sidebar fragment
+│   │   └── i18n/
+│   │       └── {lang}/               # One directory per language: {% for lang in outputLanguages %}{{ lang }}{% unless forloop.last %}, {% endunless %}{% endfor %}
+│   │           ├── texts.json        # All text content (textId → string)
+│   │           ├── audios.json       # Audio mappings (textId → mp3 filename)
+│   │           ├── videos.json       # Video mappings (currently unused)
+│   │           ├── glossary.json     # Glossary entries (word → object)
+│   │           └── audio/            # MP3 files for read-aloud / TTS
+│   │
+│   └── assets/                       # Shared runtime (JS, fonts, icons)
+│       ├── config.json               # Book title, languages, feature flags
+│       ├── base.bundle.min.js        # Main JS runtime (do not edit)
+│       ├── interface.html            # Accessibility sidebar template
+│       ├── fonts/                    # Font files
+│       ├── libs/fontawesome/         # Icon library
+│       ├── modules/                  # JS feature modules (do not edit)
+│       ├── sounds/                   # UI feedback sounds
+│       └── interface_translations/
+│           └── {lang}/
+│               └── interface_translations.json
+│
+├── images/                           # Raw extracted images and page renders (pipeline artifact)
+│   ├── pg001_page.png                # Full-page render from PDF (useful for visual reference)
+│   ├── pg001_im001.png               # Extracted image from page
+│   └── ...
+├── audio/                            # Source audio files (pipeline artifact)
+│   └── {lang}/                       # TTS audio per language
+├── {{ label }}.db                    # SQLite database (pipeline state)
+├── {{ label }}.pdf                   # Original source PDF
+└── config.yaml                       # Pipeline configuration
+```
+
+## Page Images (Visual Reference)
+
+The `images/` directory at the top level (outside `adt/`) contains raw renders of each original PDF page. These are useful as visual reference when editing content — you can see exactly what the original page looked like.
+
+Page renders follow the pattern `pg{NNN}_page.png`:
+
+{% for img in pageImages %}- `images/{{ img }}`
+{% endfor %}
+## The Text ID System
+
+Every piece of displayable text has a unique, stable **text ID**. This ID is the key that connects everything together. The same ID appears in three places simultaneously:
+
+1. As a `data-id` attribute on HTML elements in page files
+2. As a key in `content/i18n/{lang}/texts.json` (the string value)
+3. As a key in `content/i18n/{lang}/audios.json` (the audio filename)
+
+### ID Naming Conventions
+
+| Pattern | What it is | Example |
+|---|---|---|
+| `pg{NNN}_gp{NNN}_tx{NNN}` | Page body text | `{{ sampleBodyText.id }}` |
+| `pg{NNN}_im{NNN}` | Image alt text / description | `{{ sampleImageText.id }}` |{% if hasGlossary %}
+| `gl{NNN}` | Glossary word | `{{ sampleGlossary.id }}` |
+| `gl{NNN}_def` | Glossary definition | `{{ sampleGlossary.defId }}` |{% endif %}{% if hasQuiz %}
+| `qz{NNN}_que` | Quiz question | `{{ sampleQuiz.id }}_que` |
+| `qz{NNN}_o{N}` | Quiz option | `{{ sampleQuiz.options[0].id }}` |
+| `qz{NNN}_o{N}_exp` | Quiz option explanation | `{{ sampleQuiz.options[0].expId }}` |{% endif %}
+
+Page/group/text numbers are zero-padded to 3 digits. Quiz option numbers are single digits.
+
+## Key Files in Detail
+
+### `content/pages.json` — Reading Order
+
+An ordered array that defines the navigation spine. Every page section and quiz appears here in reading order. Here are the first entries from this book:
+
+```json
+[
+{% for page in firstPages %}  { "section_id": "{{ page.section_id }}", "href": "{{ page.href }}"{% if page.page_number %}, "page_number": {{ page.page_number }}{% endif %} }{% unless forloop.last %},{% endunless %}
+{% endfor %}]
+```
+
+- `section_id` — matches the `<meta name="title-id">` in the HTML file
+- `href` — relative path to the HTML file from the `adt/` root
+- `page_number` — original PDF page number (omitted for cover pages, quizzes, etc.)
+
+Quizzes are interleaved after their anchor content page.
+
+### `content/i18n/{lang}/texts.json` — All Text Content
+
+A flat `Record<textId, string>` containing every piece of text in the book. Example entries from this book:
+
+```json
+{
+  "{{ sampleBodyText.id }}": "{{ sampleBodyText.text }}",
+  "{{ sampleImageText.id }}": "{{ sampleImageText.text }}"{% if hasGlossary %},
+  "{{ sampleGlossary.id }}": "{{ sampleGlossary.word }}",
+  "{{ sampleGlossary.defId }}": "{{ sampleGlossary.definition }}"{% endif %}{% if hasQuiz %},
+  "{{ sampleQuiz.id }}_que": "{{ sampleQuiz.question }}",
+  "{{ sampleQuiz.options[0].id }}": "{{ sampleQuiz.options[0].text }}",
+  "{{ sampleQuiz.options[0].expId }}": "{{ sampleQuiz.options[0].expText }}"{% endif %}
+}
+```
+
+### `content/i18n/{lang}/audios.json` — Audio Mappings
+
+Maps each text ID to its MP3 filename in the `audio/` subdirectory:
+
+```json
+{
+  "{{ sampleBodyText.id }}": "{{ sampleBodyText.id }}.mp3"{% if hasGlossary %},
+  "{{ sampleGlossary.id }}": "{{ sampleGlossary.id }}.mp3"{% endif %}{% if hasQuiz %},
+  "{{ sampleQuiz.id }}_que": "{{ sampleQuiz.id }}_que.mp3"{% endif %}
+}
+```
+
+Audio files live at `content/i18n/{lang}/audio/{filename}.mp3`.
+{% if hasGlossary %}
+### `content/i18n/{lang}/glossary.json` — Glossary
+
+Keyed by word (lowercase). Each entry has the word, a simple definition, inflected variations for matching, and decorative emoji. Example from this book:
+
+```json
+{
+  "{{ sampleGlossary.word }}": {
+    "word": "{{ sampleGlossary.word }}",
+    "definition": "{{ sampleGlossary.definition }}",
+    "variations": {{ sampleGlossary.variationsJson }},
+    "emoji": "{{ sampleGlossary.emoji }}"
+  }
+}
+```
+
+The runtime uses `variations` to match and highlight glossary words anywhere in the page text.
+{% endif %}
+### `assets/config.json` — Feature Flags and Languages
+
+Controls which features the reader UI enables. This book's config:
+
+```json
+{{ configJsonFormatted }}
+```
+
+## Page HTML Structure
+
+Each page is a standalone HTML file at the root of `adt/`. Key structural elements:
+
+```html
+<!DOCTYPE html>
+<html lang="{{ language }}">
+<head>
+    <meta name="title-id" content="{{ samplePageId }}" />      <!-- section identity -->
+    <meta name="page-section-id" content="2" />           <!-- 1-based index in pages.json -->
+    <link href="./content/tailwind_output.css" rel="stylesheet">
+    <link href="./assets/libs/fontawesome/css/all.min.css" rel="stylesheet">
+    <link href="./assets/fonts.css" rel="stylesheet">
+</head>
+<body>
+    <div id="content" class="opacity-0">
+        <section role="article" data-section-type="text_and_single_image"
+                 data-section-id="{{ samplePageId }}">
+            <!-- Images use relative paths and carry data-id for alt text lookup -->
+            <img data-id="{{ sampleImageText.id }}" src="images/{{ sampleImageText.id }}.png" ...>
+
+            <!-- Text elements carry data-id for i18n and TTS -->
+            <span data-id="{{ sampleBodyText.id }}">{{ sampleBodyText.text }}</span>
+        </section>
+    </div>
+
+    <div id="interface-container"></div>
+    <div id="nav-container"></div>
+    <script src="./assets/base.bundle.min.js?v=1" type="module"></script>
+</body>
+</html>
+```
+
+Key conventions:
+
+- **`data-id` on text elements** links to `texts.json` and `audios.json` — the runtime replaces inner text with the value from the active language's `texts.json` and wires up audio playback from `audios.json`
+- **`data-id` on images** links to image description text and audio
+- **Images** use relative paths: `images/{filename}`
+- **`page-section-id`** meta tag is the 1-based numeric index of this page's position in `pages.json` — the runtime uses this for navigation
+- **Content starts `opacity-0`** — the JS runtime fades it in after loading the interface
+{% if hasQuiz %}
+## Quiz HTML Structure
+
+Quiz pages use `role="activity"` and embed correct answers in multiple places:
+
+```html
+<section role="activity" data-section-type="activity_quiz" data-id="{{ sampleQuiz.id }}"
+    data-correct-answers='{{ sampleQuiz.correctAnswersJson }}'
+    data-option-explanations='{{ sampleQuiz.explanationsJson }}'>
+
+    <p data-id="{{ sampleQuiz.id }}_que">{{ sampleQuiz.question }}</p>
+
+    <label data-activity-item="{{ sampleQuiz.options[0].id }}"
+           data-explanation="{{ sampleQuiz.options[0].expText }}" data-explanation-id="{{ sampleQuiz.options[0].expId }}">
+        <input type="radio" name="{{ sampleQuiz.id }}" value="{{ sampleQuiz.options[0].id }}" class="sr-only" />
+        <span data-id="{{ sampleQuiz.options[0].id }}">{{ sampleQuiz.options[0].text }}</span>
+    </label>
+    <!-- more options... -->
+</section>
+
+<!-- Answers also embedded as JSON and in window.correctAnswers -->
+<script type="application/json" id="quiz-correct-answers">{{ sampleQuiz.correctAnswersJson }}</script>
+<script type="application/json" id="quiz-explanations">{{ sampleQuiz.explanationsJson }}</script>
+<script>window.correctAnswers = JSON.parse('{{ sampleQuiz.correctAnswersJson }}');</script>
+```
+{% endif %}
+## How to Edit Text
+
+To change text content for a given language, you must update all three locations that reference the text:
+
+1. **`texts.json`** — Change the value in `content/i18n/{lang}/texts.json` for the text ID.
+2. **The HTML file** — The text also appears inline in the page HTML. Update the inner text of the element with the matching `data-id`. The runtime replaces this on load, but the inline text serves as fallback.
+3. **Audio** (if applicable) — Regenerate the MP3 at `content/i18n/{lang}/audio/{textId}.mp3` and verify `audios.json` maps the text ID to the correct filename.
+{% if hasQuiz %}
+### Editing Quiz Text
+
+For quiz content, you must additionally update:
+
+- The `data-explanation` attribute on the `<label>` element (inline explanation text)
+- The `data-correct-answers` attribute on the `<section>` element
+- The `data-option-explanations` attribute on the `<section>` element
+- The `<script type="application/json" id="quiz-correct-answers">` block
+- The `<script type="application/json" id="quiz-explanations">` block
+- The `window.correctAnswers` inline script
+{% endif %}{% if hasGlossary %}
+### Editing Glossary
+
+Update both:
+
+- `content/i18n/{lang}/glossary.json` — the glossary entry for the word
+- `content/i18n/{lang}/texts.json` — the `gl{NNN}` and `gl{NNN}_def` entries
+{% endif %}
+## How to Add a New Page
+
+1. **Create the HTML file** — Copy an existing page as a template. Name it `pg{NNN}_sec001.html` following the sequential numbering pattern.
+
+2. **Set the `title-id` meta tag** — `<meta name="title-id" content="pg012_sec001">`.
+
+3. **Add text with `data-id` attributes** — Use the naming pattern `pg{NNN}_gp{NNN}_tx{NNN}` for each text element.
+
+4. **Add images** — Place image files in `images/` and reference them with relative paths. Give each `<img>` a `data-id` attribute (e.g. `pg012_im001`).
+
+5. **Update `pages.json`** — Insert the new entry at the correct position in reading order:
+   ```json
+   { "section_id": "pg012_sec001", "href": "pg012_sec001.html", "page_number": 11 }
+   ```
+
+6. **Renumber `page-section-id`** — Update the `<meta name="page-section-id">` in every HTML file that comes after the insertion point (this is a 1-based index into `pages.json`).
+
+7. **Add text entries** — Add entries for every `data-id` in the new page to `content/i18n/{lang}/texts.json` for each language.
+
+8. **Add audio entries** — Map each new text ID in `content/i18n/{lang}/audios.json` and place MP3 files in `content/i18n/{lang}/audio/`.
+
+## How to Add a New Language
+
+1. Create `content/i18n/{lang}/` with all required files:
+   - `texts.json` — translated strings for every text ID
+   - `audios.json` — audio filename mappings (can reuse the same naming pattern)
+   - `glossary.json` — translated glossary entries
+   - `videos.json` — `{}` (placeholder)
+   - `audio/` — MP3 files for each text ID
+
+2. Add the language code to `languages.available` in `assets/config.json`.
+
+3. Optionally add UI translations at `assets/interface_translations/{lang}/interface_translations.json`.
+
+## Where to Find Things
+
+| What you need | Where to look |
+|---|---|
+| Rendered page HTML | `adt/pg{NNN}_sec{NNN}.html` |{% if hasQuiz %}
+| Quiz HTML | `adt/qz{NNN}.html` |{% endif %}
+| Entry point | `adt/index.html` (redirects to first page) |
+| Page images | `adt/images/` |
+| All text content | `adt/content/i18n/{lang}/texts.json` |
+| Audio file mappings | `adt/content/i18n/{lang}/audios.json` |
+| Audio MP3 files | `adt/content/i18n/{lang}/audio/` |{% if hasGlossary %}
+| Glossary | `adt/content/i18n/{lang}/glossary.json` |{% endif %}
+| Reading order | `adt/content/pages.json` |
+| Table of contents | `adt/content/toc.json` |
+| Book config & features | `adt/assets/config.json` |
+| CSS styles | `adt/content/tailwind_output.css` |
+| JS runtime | `adt/assets/base.bundle.min.js` |
+| UI string translations | `adt/assets/interface_translations/{lang}/` |
+| Cover image | `adt/cover.png` |
+| Original PDF | `{{ label }}.pdf` |
+| Pipeline database | `{{ label }}.db` (SQLite) |
+| Raw page renders | `images/pg{NNN}_page.png` (visual reference for original pages) |
+| Raw extracted images | `images/pg{NNN}_im{NNN}.png` (pipeline artifact) |
+| Source TTS audio | `audio/{lang}/` (pipeline artifact) |
+
+## Audio Naming Conventions
+
+| Pattern | What it is |
+|---|---|
+| `pg{NNN}_gp{NNN}_tx{NNN}.mp3` | Page body text read-aloud |
+| `pg{NNN}_im{NNN}.mp3` | Image description read-aloud |{% if hasGlossary %}
+| `gl{NNN}.mp3` | Glossary word pronunciation |
+| `gl{NNN}_def.mp3` | Glossary definition read-aloud |{% endif %}{% if hasQuiz %}
+| `qz{NNN}_que.mp3` | Quiz question read-aloud |
+| `qz{NNN}_o{N}.mp3` | Quiz option read-aloud |
+| `qz{NNN}_o{N}_exp.mp3` | Quiz explanation read-aloud |{% endif %}
+
+## Important: What Not to Edit
+
+- **`assets/base.bundle.min.js`** and **`assets/modules/`** — compiled JS runtime; do not modify
+- **`assets/libs/`** — vendored third-party libraries (FontAwesome, MathJax)
+- **`assets/fonts/`** — font files
+- **`assets/sounds/`** — UI feedback sounds
+- **`content/tailwind_output.css`** — compiled from all HTML files; if you add new Tailwind classes to HTML, this file must be regenerated
