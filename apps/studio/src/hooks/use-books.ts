@@ -54,8 +54,16 @@ export function useExportBook() {
       a.download = `${label}.zip`
       document.body.appendChild(a)
       a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      // Delay removal/revoke to avoid race conditions where the browser
+      // hasn't started the download yet and the object URL gets revoked.
+      setTimeout(() => {
+        try {
+          document.body.removeChild(a)
+        } catch {}
+        try {
+          URL.revokeObjectURL(url)
+        } catch {}
+      }, 1500)
     },
   })
 }

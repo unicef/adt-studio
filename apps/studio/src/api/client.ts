@@ -645,11 +645,23 @@ export const api = {
 
   exportBook: async (label: string): Promise<Blob> => {
     const url = `${BASE_URL}/books/${label}/export`
-    const res = await fetch(url)
+    let res: Response
+    try {
+      res = await fetch(url, {
+        method: "GET",
+        headers: { Accept: "application/zip" },
+        mode: "cors",
+      })
+    } catch (err) {
+      throw new Error(`Network error while exporting book: ${String(err)}`)
+    }
+
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: res.statusText }))
       throw new Error(body.error ?? `Export failed: ${res.status}`)
     }
-    return res.blob()
+
+    const buf = await res.arrayBuffer()
+    return new Blob([buf], { type: "application/zip" })
   },
 }
