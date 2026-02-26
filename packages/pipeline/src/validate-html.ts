@@ -1,5 +1,8 @@
 import { parseDocument, DomUtils } from "htmlparser2"
 
+/** Minimum similarity (0–1) for auto-fixing text vs treating as a validation error */
+const TEXT_SIMILARITY_THRESHOLD = 0.9
+
 export interface HtmlValidationResult {
   valid: boolean
   errors: string[]
@@ -125,6 +128,8 @@ function walkNode(
   errors: string[],
   options?: HtmlValidationOptions
 ): void {
+  let replacementText: string | undefined
+
   if (node.type === "text") {
     if (node.data.trim().length > 0) {
       if (isInsideExemptTag(node)) return
@@ -163,7 +168,6 @@ function walkNode(
     }
 
     const dataId = node.attribs?.["data-id"]
-
     if (tagName === "img") {
       if (dataId === undefined) {
         errors.push('<img> tag missing required "data-id" attribute')
@@ -182,14 +186,25 @@ function walkNode(
       }
     }
 
-    // Verify text content matches expected text for this data-id
-    if (dataId !== undefined && options?.expectedTexts?.has(dataId)) {
+    // Verify text content matches expected text for this data-id.
+    // Always substitute the correct text back in. Only fail validation
+    // when the LLM's text is too far from the expected content.
+    if (
+      dataId !== undefined &&
+      options?.expectedTexts?.has(dataId) &&
+      !imageIds.has(dataId) &&
+      tagName !== "img"
+    ) {
       const actualText = normalizeText(DomUtils.getText(node))
       const expectedText = normalizeText(options.expectedTexts.get(dataId)!)
+      replacementText = options.expectedTexts.get(dataId)!
       if (actualText !== expectedText) {
-        errors.push(
-          `Text mismatch for data-id "${dataId}": expected "${expectedText.slice(0, 80)}" but got "${actualText.slice(0, 80)}"`
-        )
+        const similarity = textSimilarity(actualText, expectedText)
+        if (similarity < TEXT_SIMILARITY_THRESHOLD) {
+          errors.push(
+            `Text mismatch for data-id "${dataId}": expected "${expectedText.slice(0, 80)}" but got "${actualText.slice(0, 80)}"`
+          )
+        }
       }
     }
   }
@@ -198,6 +213,10 @@ function walkNode(
     for (const child of node.children) {
       walkNode(child, allowedIds, imageIds, errors, options)
     }
+  }
+
+  if (replacementText !== undefined) {
+    replaceChildrenWithText(node, replacementText)
   }
 }
 
@@ -272,4 +291,62 @@ function hasUnsafeCss(value: string): boolean {
     normalized.includes("url(javascript:") ||
     normalized.includes("url(vbscript:")
   )
+}
+
+/**
+ * Replace all children of a DOM node with a single text node.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function replaceChildrenWithText(node: any, text: string): void {
+  for (const child of node.children) {
+    child.parent = null
+    child.prev = null
+    child.next = null
+  }
+  const textNode = {
+    type: "text" as const,
+    data: text,
+    parent: node,
+    prev: null,
+    next: null,
+    startIndex: null,
+    endIndex: null,
+  }
+  node.children = [textNode]
+}
+
+/**
+ * Levenshtein edit distance between two strings.
+ * Two-row DP approach — O(min(m,n)) space.
+ */
+export function levenshteinDistance(a: string, b: string): number {
+  if (a.length > b.length) [a, b] = [b, a]
+  const m = a.length
+  const n = b.length
+  let prev = Array.from({ length: m + 1 }, (_, i) => i)
+  let curr = new Array<number>(m + 1)
+
+  for (let j = 1; j <= n; j++) {
+    curr[0] = j
+    for (let i = 1; i <= m; i++) {
+      if (a[i - 1] === b[j - 1]) {
+        curr[i] = prev[i - 1]
+      } else {
+        curr[i] = 1 + Math.min(prev[i - 1], prev[i], curr[i - 1])
+      }
+    }
+    ;[prev, curr] = [curr, prev]
+  }
+  return prev[m]
+}
+
+/**
+ * Similarity ratio between two strings (0.0 – 1.0).
+ * 1.0 = identical, 0.0 = completely different.
+ */
+export function textSimilarity(a: string, b: string): number {
+  if (a === b) return 1.0
+  const maxLen = Math.max(a.length, b.length)
+  if (maxLen === 0) return 1.0
+  return 1 - levenshteinDistance(a, b) / maxLen
 }

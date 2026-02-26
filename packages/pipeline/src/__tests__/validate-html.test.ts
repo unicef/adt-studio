@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { validateSectionHtml } from "../validate-html.js"
+import {
+  validateSectionHtml,
+  levenshteinDistance,
+  textSimilarity,
+} from "../validate-html.js"
 
 describe("validateSectionHtml", () => {
   it("passes valid HTML with correct data-ids", () => {
@@ -469,5 +473,310 @@ describe("validateSectionHtml", () => {
     expect(result.errors).toContainEqual(
       expect.stringContaining("Expected exactly one <section> tag")
     )
+  })
+
+  it("auto-fixes slight text variance and returns valid", () => {
+    const html = `
+      <section>
+        <p data-id="pg001_gp001_tx001">The cat sat on the mat.</p>
+      </section>
+    `
+    const expectedTexts = new Map([
+      ["pg001_gp001_tx001", "The cat sat on the mat"],
+    ])
+    const result = validateSectionHtml(
+      html,
+      ["pg001_gp001_tx001"],
+      [],
+      undefined,
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+    expect(result.sectionHtml).toContain("The cat sat on the mat</p>")
+    expect(result.sectionHtml).not.toContain("The cat sat on the mat.")
+  })
+
+  it("substitutes expected text even on exact match", () => {
+    const html = `
+      <section>
+        <p data-id="tx001">Hello world</p>
+      </section>
+    `
+    const expectedTexts = new Map([["tx001", "Hello world"]])
+    const result = validateSectionHtml(
+      html,
+      ["tx001"],
+      [],
+      undefined,
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(true)
+    expect(result.sectionHtml).toContain("Hello world</p>")
+  })
+
+  it("still rejects text with substantial mismatch", () => {
+    const html = `
+      <section>
+        <p data-id="tx001">Completely different content here</p>
+      </section>
+    `
+    const expectedTexts = new Map([["tx001", "The cat sat on the mat"]])
+    const result = validateSectionHtml(
+      html,
+      ["tx001"],
+      [],
+      undefined,
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining('Text mismatch for data-id "tx001"')
+    )
+  })
+
+  it("substitutes text even when rejecting low-similarity mismatch", () => {
+    const html = `
+      <section>
+        <p data-id="tx001">AAAA</p>
+      </section>
+    `
+    const expectedTexts = new Map([["tx001", "ZZZZ"]])
+    const result = validateSectionHtml(
+      html,
+      ["tx001"],
+      [],
+      undefined,
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(false)
+    // Even on failure, the correct text is substituted in the HTML
+    expect(result.sectionHtml).toContain("ZZZZ</p>")
+  })
+
+  it("replaces inline formatting children when substituting", () => {
+    const html = `
+      <section>
+        <p data-id="tx001"><strong>Hello</strong> world!</p>
+      </section>
+    `
+    // "Hello world!" vs "Hello world" — one char diff, high similarity
+    const expectedTexts = new Map([["tx001", "Hello world"]])
+    const result = validateSectionHtml(
+      html,
+      ["tx001"],
+      [],
+      undefined,
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(true)
+    expect(result.sectionHtml).toContain(
+      '<p data-id="tx001">Hello world</p>'
+    )
+    expect(result.sectionHtml).not.toContain("<strong>")
+  })
+
+  it("rejects short text with low similarity", () => {
+    // "Hi" vs "No" — distance 2, maxLen 2, similarity 0.0
+    const html = `
+      <section>
+        <p data-id="tx001">No</p>
+      </section>
+    `
+    const expectedTexts = new Map([["tx001", "Hi"]])
+    const result = validateSectionHtml(
+      html,
+      ["tx001"],
+      [],
+      undefined,
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(false)
+  })
+
+  it("handles multiple elements with mixed exact and slight variance", () => {
+    const html = `
+      <section>
+        <p data-id="tx001">Hello world</p>
+        <p data-id="tx002">The cat sat on the matt</p>
+      </section>
+    `
+    const expectedTexts = new Map([
+      ["tx001", "Hello world"],
+      ["tx002", "The cat sat on the mat"],
+    ])
+    const result = validateSectionHtml(
+      html,
+      ["tx001", "tx002"],
+      [],
+      undefined,
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(true)
+    expect(result.sectionHtml).toContain("Hello world</p>")
+    expect(result.sectionHtml).toContain("The cat sat on the mat</p>")
+    expect(result.sectionHtml).not.toContain("matt")
+  })
+
+  it("auto-fix works alongside image URL rewriting", () => {
+    const html = `
+      <section>
+        <p data-id="tx001">Hello world.</p>
+        <img data-id="im001" src="placeholder" alt="test" />
+      </section>
+    `
+    const expectedTexts = new Map([["tx001", "Hello world"]])
+    const result = validateSectionHtml(
+      html,
+      ["tx001"],
+      ["im001"],
+      "/api/books/my-book/images",
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(true)
+    expect(result.sectionHtml).toContain("Hello world</p>")
+    expect(result.sectionHtml).toContain(
+      'src="/api/books/my-book/images/im001"'
+    )
+  })
+
+  it("still rejects nested disallowed tags when expectedTexts is enabled", () => {
+    const html = `
+      <section>
+        <p data-id="tx001">Safe text<script src="https://evil.example/x.js"></script></p>
+      </section>
+    `
+    const expectedTexts = new Map([["tx001", "Safe text"]])
+    const result = validateSectionHtml(
+      html,
+      ["tx001"],
+      [],
+      undefined,
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining("Disallowed tag: <script>")
+    )
+  })
+
+  it("still rejects nested event handler attributes when expectedTexts is enabled", () => {
+    const html = `
+      <section>
+        <p data-id="tx001">Safe text<span onmouseover="alert(1)"></span></p>
+      </section>
+    `
+    const expectedTexts = new Map([["tx001", "Safe text"]])
+    const result = validateSectionHtml(
+      html,
+      ["tx001"],
+      [],
+      undefined,
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining('Event handler attribute not allowed: "onmouseover"')
+    )
+  })
+
+  it("still rejects nested unknown data-ids when expectedTexts is enabled", () => {
+    const html = `
+      <section>
+        <p data-id="tx001">Safe text<span data-id="unknown_nested"></span></p>
+      </section>
+    `
+    const expectedTexts = new Map([["tx001", "Safe text"]])
+    const result = validateSectionHtml(
+      html,
+      ["tx001"],
+      [],
+      undefined,
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining('Unknown data-id: "unknown_nested"')
+    )
+  })
+
+  it("does not substitute expected text on image data-ids", () => {
+    const html = `
+      <section>
+        <img data-id="im001" src="placeholder" alt="test" />
+      </section>
+    `
+    const expectedTexts = new Map([["im001", "SHOULD_NOT_APPEAR"]])
+    const result = validateSectionHtml(
+      html,
+      [],
+      ["im001"],
+      undefined,
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(true)
+    expect(result.sectionHtml).toContain('<img data-id="im001"')
+    expect(result.sectionHtml).not.toContain("SHOULD_NOT_APPEAR")
+  })
+})
+
+describe("levenshteinDistance", () => {
+  it("returns 0 for identical strings", () => {
+    expect(levenshteinDistance("hello", "hello")).toBe(0)
+  })
+
+  it("returns length of other string when one is empty", () => {
+    expect(levenshteinDistance("", "abc")).toBe(3)
+    expect(levenshteinDistance("abc", "")).toBe(3)
+  })
+
+  it("returns 0 for two empty strings", () => {
+    expect(levenshteinDistance("", "")).toBe(0)
+  })
+
+  it("computes single insertion", () => {
+    expect(levenshteinDistance("cat", "cats")).toBe(1)
+  })
+
+  it("computes single deletion", () => {
+    expect(levenshteinDistance("cats", "cat")).toBe(1)
+  })
+
+  it("computes single substitution", () => {
+    expect(levenshteinDistance("cat", "car")).toBe(1)
+  })
+
+  it("computes multi-edit distance", () => {
+    expect(levenshteinDistance("kitten", "sitting")).toBe(3)
+  })
+
+  it("is symmetric", () => {
+    expect(levenshteinDistance("abc", "xyz")).toBe(
+      levenshteinDistance("xyz", "abc")
+    )
+  })
+})
+
+describe("textSimilarity", () => {
+  it("returns 1.0 for identical strings", () => {
+    expect(textSimilarity("hello", "hello")).toBe(1.0)
+  })
+
+  it("returns 1.0 for two empty strings", () => {
+    expect(textSimilarity("", "")).toBe(1.0)
+  })
+
+  it("returns 0.0 for completely different single chars", () => {
+    expect(textSimilarity("a", "b")).toBe(0.0)
+  })
+
+  it("computes correct ratio for small edits", () => {
+    // "hello world" (11) vs "hello worl" (10) — distance 1, maxLen 11
+    const sim = textSimilarity("hello world", "hello worl")
+    expect(sim).toBeCloseTo(10 / 11, 5)
+  })
+
+  it("returns low similarity for very different strings", () => {
+    expect(textSimilarity("abc", "xyz")).toBe(0.0)
   })
 })
