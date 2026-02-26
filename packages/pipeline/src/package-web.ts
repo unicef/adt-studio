@@ -691,6 +691,15 @@ export function rewriteImageUrls(
       if (filename) {
         img.attribs.src = `images/${filename}`
         referencedImages.push(imageId)
+        delete img.attribs.width
+        delete img.attribs.height
+        const existingStyle = img.attribs.style ?? ""
+        const sizeStyle = "max-width: 100%; height: auto;"
+        if (!existingStyle.includes("max-width")) {
+          img.attribs.style = existingStyle
+            ? `${existingStyle.trimEnd().replace(/;$/, "")}; ${sizeStyle}`
+            : sizeStyle
+        }
       }
     }
     // Also handle data-id based images
@@ -700,6 +709,15 @@ export function rewriteImageUrls(
       img.attribs.src = `images/${filename}`
       if (!referencedImages.includes(dataId)) {
         referencedImages.push(dataId)
+      }
+      delete img.attribs.width
+      delete img.attribs.height
+      const existingStyle = img.attribs.style ?? ""
+      const sizeStyle = "max-width: 100%; height: auto;"
+      if (!existingStyle.includes("max-width")) {
+        img.attribs.style = existingStyle
+          ? `${existingStyle.trimEnd().replace(/;$/, "")}; ${sizeStyle}`
+          : sizeStyle
       }
     }
   }

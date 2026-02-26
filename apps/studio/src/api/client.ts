@@ -8,7 +8,7 @@ function resolveBaseUrl(): string {
   return "/api"
 }
 
-const BASE_URL = resolveBaseUrl()
+export const BASE_URL = resolveBaseUrl()
 
 export function getAdtUrl(label: string): string {
   return `${BASE_URL}/books/${label}/adt`
