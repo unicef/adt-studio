@@ -29,6 +29,7 @@ pub fn run() {
 
             let prompts_dir = resource_dir.join("prompts");
             let config_path = resource_dir.join("config.yaml");
+            let adt_resources_zip = resource_dir.join("assets").join("adt-resources.zip");
 
             let sidecar_cmd = shell
                 .sidecar("api-server")
@@ -36,7 +37,8 @@ pub fn run() {
                 .env("PORT", "3001")
                 .env("BOOKS_DIR", books_dir.to_string_lossy().to_string())
                 .env("PROMPTS_DIR", prompts_dir.to_string_lossy().to_string())
-                .env("CONFIG_PATH", config_path.to_string_lossy().to_string());
+                .env("CONFIG_PATH", config_path.to_string_lossy().to_string())
+                .env("ADT_RESOURCES_ZIP", adt_resources_zip.to_string_lossy().to_string());
 
             let (mut rx, child) = sidecar_cmd.spawn().expect("failed to spawn sidecar");
 

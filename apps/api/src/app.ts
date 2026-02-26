@@ -1,4 +1,7 @@
+import fs from "node:fs"
+import os from "node:os"
 import path from "node:path"
+import { unzipSync } from "fflate"
 import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { logger } from "hono/logger"
@@ -29,9 +32,33 @@ const promptsDir = path.resolve(process.env.PROMPTS_DIR ?? path.join(projectRoot
 const configPath = path.resolve(
   process.env.CONFIG_PATH ?? path.join(projectRoot, "config.yaml")
 )
-const webAssetsDir = path.resolve(
-  process.env.WEB_ASSETS_DIR ?? path.join(projectRoot, "assets", "adt")
-)
+let webAssetsDir: string
+const adtResourcesZip = process.env.ADT_RESOURCES_ZIP
+if (adtResourcesZip && fs.existsSync(adtResourcesZip)) {
+  // Tauri sidecar mode: extract zip to a temp dir preserving the full directory tree.
+  // Cannot use raw resource dir — Tauri's **/* glob flattens ALL subdirectory levels
+  // (LESSONS_LEARNT #7): libs/fontawesome/css/ and interface_translations/{lang}/
+  // would be mangled. The zip preserves the tree; extract once at startup.
+  const extractDir = path.join(os.tmpdir(), `adt-assets-${process.pid}`)
+  fs.mkdirSync(extractDir, { recursive: true })
+  const unzipped = unzipSync(new Uint8Array(fs.readFileSync(adtResourcesZip)))
+  for (const [filePath, data] of Object.entries(unzipped)) {
+    const dest = path.join(extractDir, filePath)
+    fs.mkdirSync(path.dirname(dest), { recursive: true })
+    fs.writeFileSync(dest, data)
+  }
+  webAssetsDir = extractDir
+  process.on("exit", () => {
+    try { fs.rmSync(extractDir, { recursive: true, force: true }) } catch {}
+  })
+  process.on("SIGTERM", () => process.exit(0))
+} else {
+  // Local dev mode: use assets/adt/ directly (full tree, all tools available).
+  // ADT_RESOURCES_ZIP is never set in pnpm dev, so this branch always runs there.
+  webAssetsDir = path.resolve(
+    process.env.WEB_ASSETS_DIR ?? path.join(projectRoot, "assets", "adt")
+  )
+}
 
 const stageRunner = createStageRunner()
 const stageService = createStageService(stageRunner)
