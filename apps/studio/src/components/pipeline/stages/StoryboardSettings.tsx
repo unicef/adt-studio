@@ -31,6 +31,10 @@ import { PromptViewer } from "@/components/pipeline/PromptViewer"
 import { TemplateViewer } from "@/components/pipeline/TemplateViewer"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useStepConfig } from "@/hooks/use-step-config"
+import {
+  listSelectableRenderStrategies,
+  normalizeDefaultRenderStrategy,
+} from "@/lib/render-strategy"
 import { hasSectioningChanges, hasSectioningData } from "./storyboard-rerun-policy"
 
 /** "two_column_story" → "Two Column Story" */
@@ -42,7 +46,6 @@ function titleCase(slug: string): string {
 const STRATEGY_DISPLAY_NAMES: Record<string, string> = {
   llm: "AI Generated",
   "llm-overlay": "AI Overlay",
-  dynamic: "Dynamic",
 }
 
 function strategyDisplayName(slug: string): string {
@@ -50,7 +53,6 @@ function strategyDisplayName(slug: string): string {
 }
 
 const RENDER_STRATEGY_DESCRIPTIONS: Record<string, string> = {
-  dynamic: "Automatically picks the best strategy per section type",
   llm: "LLM generates HTML from section content",
   "llm-overlay": "LLM positions text over background images",
   two_column: "Fixed two-column template layout",
@@ -169,19 +171,26 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     if (Array.isArray(merged.disabled_section_types)) {
       setDisabledSectionTypes(new Set(merged.disabled_section_types as string[]))
     }
-    if (merged.default_render_strategy) {
-      setDefaultRenderStrategy(String(merged.default_render_strategy))
-    }
     if (merged.section_render_strategies && typeof merged.section_render_strategies === "object") {
       setSectionRenderStrategies(merged.section_render_strategies as Record<string, string>)
     }
-    if (merged.render_strategies && typeof merged.render_strategies === "object") {
-      const strategies = merged.render_strategies as Record<string, { render_type?: string; config?: { prompt?: string; answer_prompt?: string; model?: string } }>
-      setAllStrategyNames(Object.keys(strategies))
-      setRenderStrategyNames(
-        Object.keys(strategies).filter((name) => !name.startsWith("activity_"))
-      )
-    }
+    const strategies = (
+      merged.render_strategies && typeof merged.render_strategies === "object"
+        ? merged.render_strategies
+        : {}
+    ) as Record<string, { render_type?: string; config?: { prompt?: string; answer_prompt?: string; model?: string; template?: string; temperature?: number; max_retries?: number } }>
+    const strategyNames = Object.keys(strategies)
+    const normalizedDefaultRenderStrategy = normalizeDefaultRenderStrategy(
+      typeof merged.default_render_strategy === "string"
+        ? String(merged.default_render_strategy)
+        : "",
+      strategies
+    )
+    setDefaultRenderStrategy(normalizedDefaultRenderStrategy)
+
+    setAllStrategyNames(strategyNames)
+    setRenderStrategyNames(listSelectableRenderStrategies(strategies))
+
     if (merged.page_sectioning && typeof merged.page_sectioning === "object") {
       const ps = merged.page_sectioning as Record<string, unknown>
       if (ps.mode) setSectioningMode(String(ps.mode))
@@ -191,19 +200,24 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     // Body background
     setApplyBodyBackground(merged.apply_body_background !== false)
     // Rendering config comes from the default render strategy
-    if (merged.render_strategies && merged.default_render_strategy) {
-      const strategies = merged.render_strategies as Record<string, { render_type?: string; config?: { model?: string; prompt?: string; template?: string; temperature?: number; max_retries?: number } }>
-      const defaultStrategy = strategies[String(merged.default_render_strategy)]
-      if (defaultStrategy?.render_type) setRenderingRenderType(defaultStrategy.render_type)
-      if (defaultStrategy?.config?.model) setRenderingModel(String(defaultStrategy.config.model))
-      if (defaultStrategy?.config?.prompt) setRenderingPromptName(String(defaultStrategy.config.prompt))
-      if (defaultStrategy?.config?.template) {
-        setRenderingTemplateName(String(defaultStrategy.config.template))
-        setTemplateTabName(String(defaultStrategy.config.template))
-      }
-      setRenderingTemperature(defaultStrategy?.config?.temperature != null ? String(defaultStrategy.config.temperature) : "")
-      setRenderingRetries(defaultStrategy?.config?.max_retries != null ? String(defaultStrategy.config.max_retries) : "")
+    const defaultStrategy = normalizedDefaultRenderStrategy
+      ? strategies[normalizedDefaultRenderStrategy]
+      : undefined
+    if (defaultStrategy?.render_type) setRenderingRenderType(defaultStrategy.render_type)
+    else setRenderingRenderType("")
+    if (defaultStrategy?.config?.model) setRenderingModel(String(defaultStrategy.config.model))
+    else setRenderingModel("")
+    if (defaultStrategy?.config?.prompt) setRenderingPromptName(String(defaultStrategy.config.prompt))
+    else setRenderingPromptName("")
+    if (defaultStrategy?.config?.template) {
+      setRenderingTemplateName(String(defaultStrategy.config.template))
+      setTemplateTabName(String(defaultStrategy.config.template))
+    } else {
+      setRenderingTemplateName("")
+      setTemplateTabName("")
     }
+    setRenderingTemperature(defaultStrategy?.config?.temperature != null ? String(defaultStrategy.config.temperature) : "")
+    setRenderingRetries(defaultStrategy?.config?.max_retries != null ? String(defaultStrategy.config.max_retries) : "")
   }, [activeConfigData])
 
   const [newTypeKey, setNewTypeKey] = useState("")
@@ -284,8 +298,16 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     if (shouldWrite("disabled_section_types")) {
       overrides.disabled_section_types = Array.from(disabledSectionTypes)
     }
+    const mergedStrategies = (merged?.render_strategies ?? {}) as Record<
+      string,
+      { render_type?: string }
+    >
+    const normalizedDefaultRenderStrategy = normalizeDefaultRenderStrategy(
+      defaultRenderStrategy,
+      mergedStrategies
+    )
     if (shouldWrite("default_render_strategy")) {
-      overrides.default_render_strategy = defaultRenderStrategy || undefined
+      overrides.default_render_strategy = normalizedDefaultRenderStrategy || undefined
     }
     if (shouldWrite("section_render_strategies")) {
       const baseStrategies = (merged?.section_render_strategies ?? {}) as Record<string, string>
@@ -415,7 +437,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
                     setTemplateTabDraft(null)
                   }
                 } else {
-                  // Synthetic option like "dynamic" — clear stale rendering config
+                  // Strategy not in render_strategies — clear stale rendering config
                   setRenderingRenderType("")
                   setRenderingModel("")
                   setRenderingPromptName("")
@@ -438,7 +460,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
                 </SelectValue>
               </SelectTrigger>
               <SelectContent align="start">
-                {["dynamic", ...renderStrategyNames.filter((n) => n !== "dynamic")].map((name) => {
+                {renderStrategyNames.map((name) => {
                   const isTemplate = strategyRenderTypes[name] === "template"
                   return (
                     <SelectItem key={name} value={name}>

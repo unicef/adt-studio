@@ -203,4 +203,5 @@ pnpm lint             # Lint all packages
 
 ## License
 
-See [LICENSE](LICENSE) for details.
+This project is licensed under GNU Affero General Public License v3.0 or later (`AGPL-3.0-or-later`). See [LICENSE](LICENSE) for details.
+Original author and copyright holder: UNICEF. See [COPYRIGHT](COPYRIGHT).

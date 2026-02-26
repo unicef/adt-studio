@@ -26,40 +26,36 @@ export async function exportBook(
 
   const storage = createBookStorage(safeLabel, resolvedDir)
   try {
+    if (!webAssetsDir || !fs.existsSync(webAssetsDir)) {
+      throw new Error("Web assets directory not found")
+    }
+
     // Always rebuild ADT package before export to ensure compiled assets are fresh
-    const adtDir = path.join(bookDir, "adt")
-    if (webAssetsDir && fs.existsSync(webAssetsDir)) {
-      const config = loadBookConfig(safeLabel, resolvedDir, configPath)
-      const metadataRow = storage.getLatestNodeData("metadata", "book")
-      const metadata = metadataRow?.data as {
-        title?: string | null
-        language_code?: string | null
-      } | null
-      const language = normalizeLocale(config.editing_language ?? metadata?.language_code ?? "en")
-      const outputLanguages = Array.from(
-        new Set(
-          (config.output_languages && config.output_languages.length > 0
-            ? config.output_languages
-            : [language]).map((code) => normalizeLocale(code))
-        )
+    const config = loadBookConfig(safeLabel, resolvedDir, configPath)
+    const metadataRow = storage.getLatestNodeData("metadata", "book")
+    const metadata = metadataRow?.data as {
+      title?: string | null
+      language_code?: string | null
+    } | null
+    const language = normalizeLocale(config.editing_language ?? metadata?.language_code ?? "en")
+    const outputLanguages = Array.from(
+      new Set(
+        (config.output_languages && config.output_languages.length > 0
+          ? config.output_languages
+          : [language]).map((code) => normalizeLocale(code))
       )
-      const title = metadata?.title ?? safeLabel
+    )
+    const title = metadata?.title ?? safeLabel
 
-      await packageAdtWeb(storage, {
-        bookDir,
-        label: safeLabel,
-        language,
-        outputLanguages,
-        title,
-        webAssetsDir,
-        applyBodyBackground: config.apply_body_background,
-      })
-    }
-
-    // Add index.html that redirects to the first page (only if adt/ exists)
-    if (fs.existsSync(adtDir)) {
-      ensureAdtIndexHtml(adtDir)
-    }
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: safeLabel,
+      language,
+      outputLanguages,
+      title,
+      webAssetsDir,
+      applyBodyBackground: config.apply_body_background,
+    })
   } finally {
     storage.close()
   }
@@ -74,39 +70,6 @@ export async function exportBook(
     zipBuffer,
     filename: `${safeLabel}.zip`,
   }
-}
-
-/**
- * Create an index.html in the adt/ directory that redirects to the first page.
- */
-function ensureAdtIndexHtml(adtDir: string): void {
-  const indexPath = path.join(adtDir, "index.html")
-  if (fs.existsSync(indexPath)) return
-
-  const pagesJsonPath = path.join(adtDir, "content", "pages.json")
-  if (!fs.existsSync(pagesJsonPath)) return
-
-  let firstHref = "pg001.html"
-  try {
-    const pages = JSON.parse(fs.readFileSync(pagesJsonPath, "utf-8")) as Array<{ href?: string }>
-    if (pages.length > 0 && pages[0].href) {
-      firstHref = pages[0].href
-    }
-  } catch { /* use default */ }
-
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <meta http-equiv="refresh" content="0; url=./${firstHref}" />
-  <title>Redirecting…</title>
-</head>
-<body>
-  <p>Loading book… <a href="./${firstHref}">Click here</a> if not redirected.</p>
-</body>
-</html>
-`
-  fs.writeFileSync(indexPath, html)
 }
 
 function collectFiles(

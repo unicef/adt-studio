@@ -716,7 +716,6 @@ describe("validateSectionHtml", () => {
     expect(result.errors).toHaveLength(0)
     expect(result.sectionHtml).toContain(">abcdefghij</p>")
   })
-
   it("still rejects nested disallowed tags when expectedTexts is enabled", () => {
     const html = `
       <section>
