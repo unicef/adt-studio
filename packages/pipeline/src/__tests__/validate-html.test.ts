@@ -380,6 +380,63 @@ describe("validateSectionHtml", () => {
     expect(result.valid).toBe(true)
   })
 
+  it("repairs malformed hex numeric entities without x prefix", () => {
+    const html = `
+      <section>
+        <p data-id="tx001">&#41f;</p>
+      </section>
+    `
+    const expectedTexts = new Map([["tx001", "П"]])
+    const result = validateSectionHtml(
+      html,
+      ["tx001"],
+      [],
+      undefined,
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+    expect(result.sectionHtml).toMatch(/>(П|&#x41f;)<\/p>/)
+  })
+
+  it("repairs truncated numeric entities at end of text", () => {
+    const html = `
+      <section>
+        <p data-id="tx001">Hello &#x41</p>
+      </section>
+    `
+    const expectedTexts = new Map([["tx001", "Hello A"]])
+    const result = validateSectionHtml(
+      html,
+      ["tx001"],
+      [],
+      undefined,
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+    expect(result.sectionHtml).toContain(">Hello A</p>")
+  })
+
+  it("ignores dangling truncated entity starters", () => {
+    const html = `
+      <section>
+        <p data-id="tx001">Hello A&#</p>
+      </section>
+    `
+    const expectedTexts = new Map([["tx001", "Hello A"]])
+    const result = validateSectionHtml(
+      html,
+      ["tx001"],
+      [],
+      undefined,
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+    expect(result.sectionHtml).toContain(">Hello A</p>")
+  })
+
   it("still rejects non-activity_gen_ unknown IDs even with allowActivityGeneratedIds", () => {
     const html = `
       <section>
@@ -638,6 +695,26 @@ describe("validateSectionHtml", () => {
     expect(result.sectionHtml).toContain(
       'src="/api/books/my-book/images/im001"'
     )
+  })
+
+  it("accepts text differences up to 30 percent", () => {
+    // 3 edits over max length 10 => similarity 0.7 (accepted)
+    const html = `
+      <section>
+        <p data-id="tx001">abcXXXghij</p>
+      </section>
+    `
+    const expectedTexts = new Map([["tx001", "abcdefghij"]])
+    const result = validateSectionHtml(
+      html,
+      ["tx001"],
+      [],
+      undefined,
+      { expectedTexts }
+    )
+    expect(result.valid).toBe(true)
+    expect(result.errors).toHaveLength(0)
+    expect(result.sectionHtml).toContain(">abcdefghij</p>")
   })
 
   it("still rejects nested disallowed tags when expectedTexts is enabled", () => {

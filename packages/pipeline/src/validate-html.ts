@@ -1,7 +1,7 @@
 import { parseDocument, DomUtils } from "htmlparser2"
 
 /** Minimum similarity (0–1) for auto-fixing text vs treating as a validation error */
-const TEXT_SIMILARITY_THRESHOLD = 0.9
+const TEXT_SIMILARITY_THRESHOLD = 0.7
 
 export interface HtmlValidationResult {
   valid: boolean
@@ -13,6 +13,23 @@ export interface HtmlValidationResult {
 const EXEMPT_TAGS = new Set(["style", "script"])
 const DISALLOWED_TAGS = new Set(["script", "iframe", "object", "embed"])
 const URL_ATTRS = new Set(["src", "href", "xlink:href", "formaction"])
+const NAMED_HTML_ENTITIES: Record<string, string> = {
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: "\"",
+  apos: "'",
+  nbsp: " ",
+  ndash: "–",
+  mdash: "—",
+  lsquo: "‘",
+  rsquo: "’",
+  ldquo: "“",
+  rdquo: "”",
+  hellip: "…",
+  bull: "•",
+  copy: "©",
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function findSectionElements(doc: any): any[] {
@@ -56,7 +73,7 @@ export function validateSectionHtml(
   const allowedIds = new Set([...allowedTextIds, ...allowedImageIds])
   const imageIdSet = new Set(allowedImageIds)
   const errors: string[] = []
-  const doc = parseDocument(html)
+  const doc = parseDocument(repairMalformedHtmlEntities(html))
 
   const sections = findSectionElements(doc)
   if (sections.length === 0) {
@@ -272,7 +289,70 @@ function hasAncestorWithDataId(node: any): boolean {
 }
 
 function normalizeText(text: string): string {
-  return text.replace(/\s+/g, " ").trim()
+  return decodePossiblyMalformedHtmlEntities(text)
+    .normalize("NFC")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function repairMalformedHtmlEntities(html: string): string {
+  let repaired = html
+
+  // Convert malformed numeric entities like "&#da0;" to valid hex entities.
+  repaired = repaired.replace(/&#([0-9a-fA-F]*[a-fA-F][0-9a-fA-F]*);/g, "&#x$1;")
+
+  // Repair truncated numeric entities missing semicolons before whitespace/tag/end.
+  repaired = repaired.replace(/&#x([0-9a-fA-F]+)(?=\s|<|$)/gi, "&#x$1;")
+  repaired = repaired.replace(
+    /&#([0-9a-fA-F]*[a-fA-F][0-9a-fA-F]*)(?=\s|<|$)/g,
+    "&#x$1;"
+  )
+
+  return repaired
+}
+
+function decodePossiblyMalformedHtmlEntities(text: string): string {
+  let repaired = text
+
+  // Repair malformed numeric entities like "&#da0;" where "x" is missing.
+  repaired = repaired.replace(/&#([0-9a-fA-F]+);/g, (full, body: string) => {
+    if (/^[0-9]+$/.test(body)) return full
+    return `&#x${body};`
+  })
+
+  // Repair truncated numeric entities at the end (missing semicolon).
+  repaired = repaired.replace(/&#x([0-9a-fA-F]+)$/i, "&#x$1;")
+  repaired = repaired.replace(/&#(?!x)([0-9a-fA-F]+)$/i, (full, body: string) => {
+    if (/^[0-9]+$/.test(body)) return `&#${body};`
+    return `&#x${body};`
+  })
+
+  // Drop dangling entity starters left by truncated model output.
+  repaired = repaired.replace(/&#(?:x)?$/i, "")
+
+  repaired = repaired.replace(/&#x([0-9a-fA-F]+);/g, (full, hex: string) =>
+    decodeCodePoint(parseInt(hex, 16), full)
+  )
+  repaired = repaired.replace(/&#([0-9]+);/g, (full, decimal: string) =>
+    decodeCodePoint(parseInt(decimal, 10), full)
+  )
+  repaired = repaired.replace(
+    /&([a-zA-Z][a-zA-Z0-9]+);/g,
+    (full, entityName: string) => NAMED_HTML_ENTITIES[entityName] ?? full
+  )
+
+  return repaired
+}
+
+function decodeCodePoint(value: number, fallback: string): string {
+  if (!Number.isInteger(value) || value < 0 || value > 0x10ffff) {
+    return fallback
+  }
+  try {
+    return String.fromCodePoint(value)
+  } catch {
+    return fallback
+  }
 }
 
 function isUnsafeUrl(value: string): boolean {
