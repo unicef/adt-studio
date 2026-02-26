@@ -34,6 +34,7 @@ import {
   AdvancedLayoutPanel,
   type RenderStrategyState,
 } from "@/components/config/AdvancedLayoutPanel"
+import { normalizeDefaultRenderStrategy } from "@/lib/render-strategy"
 
 export const Route = createFileRoute("/books/new")({
   component: AddBookPage,
@@ -223,16 +224,9 @@ function AddBookPage() {
         : {}
     )
 
-    // Use preset's default render strategy, or fall back to "dynamic"
-    setDefaultRenderStrategy(
-      typeof config.default_render_strategy === "string"
-        ? config.default_render_strategy
-        : "dynamic"
-    )
-
     // Render strategies
+    const loaded: Record<string, RenderStrategyState> = {}
     if (config.render_strategies && typeof config.render_strategies === "object") {
-      const loaded: Record<string, RenderStrategyState> = {}
       for (const [name, raw] of Object.entries(
         config.render_strategies as Record<string, Record<string, unknown>>
       )) {
@@ -250,10 +244,17 @@ function AddBookPage() {
           },
         }
       }
-      setRenderStrategies(loaded)
-    } else {
-      setRenderStrategies({})
     }
+    setRenderStrategies(loaded)
+
+    setDefaultRenderStrategy(
+      normalizeDefaultRenderStrategy(
+        typeof config.default_render_strategy === "string"
+          ? config.default_render_strategy
+          : "",
+        loaded
+      )
+    )
 
     // Section render strategies
     if (config.section_render_strategies && typeof config.section_render_strategies === "object") {
@@ -425,10 +426,12 @@ function AddBookPage() {
     }
 
     // Advanced layout settings
-    // "dynamic" means use section_render_strategies mapping with two_column fallback
-    const effectiveStrategy = defaultRenderStrategy === "dynamic" ? "two_column" : defaultRenderStrategy
-    if (effectiveStrategy.trim()) {
-      configOverrides.default_render_strategy = effectiveStrategy.trim()
+    const normalizedDefaultRenderStrategy = normalizeDefaultRenderStrategy(
+      defaultRenderStrategy,
+      renderStrategies
+    )
+    if (normalizedDefaultRenderStrategy) {
+      configOverrides.default_render_strategy = normalizedDefaultRenderStrategy
     }
     if (Object.keys(renderStrategies).length > 0) {
       const strategies: Record<string, unknown> = {}
