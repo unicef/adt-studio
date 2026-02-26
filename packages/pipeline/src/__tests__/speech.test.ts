@@ -118,6 +118,20 @@ describe("resolveVoice", () => {
     expect(resolveVoice("openai", "es_UY", voiceMaps)).toBe("nova")
     expect(resolveVoice("openai", "es_MX", voiceMaps)).toBe("coral")
   })
+
+  it("uses defaultVoice as fallback when no match in voiceMaps", () => {
+    const noDefault: VoiceMaps = { openai: { es: "coral" } }
+    expect(resolveVoice("openai", "fr", noDefault, "shimmer")).toBe("shimmer")
+  })
+
+  it("uses defaultVoice for unknown provider", () => {
+    expect(resolveVoice("azure", "en", voiceMaps, "shimmer")).toBe("shimmer")
+  })
+
+  it("prefers voice map match over defaultVoice", () => {
+    expect(resolveVoice("openai", "es-uy", voiceMaps, "shimmer")).toBe("nova")
+    expect(resolveVoice("openai", "es-mx", voiceMaps, "shimmer")).toBe("coral")
+  })
 })
 
 // ---------------------------------------------------------------------------
