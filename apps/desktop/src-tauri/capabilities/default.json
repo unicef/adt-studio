@@ -11,6 +11,8 @@
       ]
     },
     "shell:allow-kill",
-    "shell:allow-stdin-write"
+    "shell:allow-stdin-write",
+    "dialog:allow-save",
+    "fs:allow-write-file"
   ]
 }

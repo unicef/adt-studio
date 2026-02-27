@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { api } from "@/api/client"
+import { api, BASE_URL } from "@/api/client"
 
 export function useBooks() {
   return useQuery({
@@ -47,17 +47,34 @@ export function useDeleteBook() {
 export function useExportBook() {
   return useMutation({
     mutationFn: (label: string) => api.exportBook(label),
-    onSuccess: (blob, label) => {
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = `${label}.zip`
-      document.body.appendChild(a)
-      a.click()
-      setTimeout(() => {
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
-      }, 1500)
+    onSuccess: async (blob, label) => {
+      if (BASE_URL.startsWith("http")) {
+        // Tauri mode: programmatic blob-URL anchor clicks don't trigger file system
+        // downloads in WebView2 (async click loses the user-gesture context).
+        // Use native OS save dialog + fs write instead (see Lesson #10).
+        const { save } = await import("@tauri-apps/plugin-dialog")
+        const { writeFile } = await import("@tauri-apps/plugin-fs")
+        const savePath = await save({
+          defaultPath: `${label}.zip`,
+          filters: [{ name: "ZIP Archive", extensions: ["zip"] }],
+        })
+        if (savePath) {
+          const buf = await blob.arrayBuffer()
+          await writeFile(savePath, new Uint8Array(buf))
+        }
+      } else {
+        // Local dev / browser: standard anchor-click download
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `${label}.zip`
+        document.body.appendChild(a)
+        a.click()
+        setTimeout(() => {
+          document.body.removeChild(a)
+          URL.revokeObjectURL(url)
+        }, 1500)
+      }
     },
   })
 }
