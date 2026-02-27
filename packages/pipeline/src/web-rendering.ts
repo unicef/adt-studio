@@ -6,7 +6,7 @@ import {
   DEFAULT_LLM_MAX_RETRIES,
 } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
-import { renderSectionLlm } from "./render-llm.js"
+import { renderSectionLlm, type VisualRefinementDeps } from "./render-llm.js"
 import { renderSectionTemplate, type TemplateEngine } from "./render-template.js"
 
 export interface TextInput {
@@ -26,6 +26,15 @@ export type SectionPart =
   | { type: "group"; groupId: string; groupType: string; texts: TextInput[] }
   | { type: "image"; imageId: string; imageBase64: string; width?: number; height?: number }
 
+export interface VisualRefinementConfig {
+  enabled: boolean
+  maxIterations: number
+  promptName: string
+  modelId: string
+  timeoutMs: number
+  temperature: number
+}
+
 export interface RenderConfig {
   renderType: "llm" | "template" | "activity"
   // llm / activity fields
@@ -38,6 +47,8 @@ export interface RenderConfig {
   answerPromptName: string
   // template fields
   templateName: string
+  // visual refinement — screenshot-based LLM feedback loop
+  visualRefinement?: VisualRefinementConfig
 }
 
 export interface RenderSectionInput {
@@ -123,7 +134,8 @@ export async function renderPage(
   input: RenderPageInput,
   resolveConfig: (sectionType: string) => RenderConfig,
   llmModel: ResolveLLMModel,
-  templateEngine?: TemplateEngine
+  templateEngine?: TemplateEngine,
+  visualRefinement?: VisualRefinementDeps,
 ): Promise<WebRenderingOutput> {
   const sections: SectionRendering[] = []
 
@@ -173,7 +185,8 @@ export async function renderPage(
       rendering = await renderSectionLlm(
         sectionInput,
         config,
-        getLLMModel(llmModel, config.modelId)
+        getLLMModel(llmModel, config.modelId),
+        visualRefinement,
       )
     }
 
@@ -187,6 +200,14 @@ const DEFAULT_RENDER_CONFIG = {
   prompt: "web_generation_html",
   model: "openai:gpt-5.2",
   max_retries: DEFAULT_LLM_MAX_RETRIES,
+  timeout: 180,
+  temperature: 0.3,
+}
+
+const DEFAULT_VISUAL_REFINEMENT = {
+  prompt: "visual_review",
+  model: "openai:gpt-5.2",
+  max_iterations: 5,
   timeout: 180,
   temperature: 0.3,
 }
@@ -217,6 +238,8 @@ export function buildRenderStrategyResolver(
     const strategy = sectionStrategy ?? defaultStrategy
     const cfg = strategy?.config
 
+    const vr = cfg?.visual_refinement
+
     return {
       renderType: strategy?.render_type ?? "llm",
       promptName: cfg?.prompt ?? DEFAULT_RENDER_CONFIG.prompt,
@@ -226,6 +249,16 @@ export function buildRenderStrategyResolver(
       temperature: cfg?.temperature ?? DEFAULT_RENDER_CONFIG.temperature,
       answerPromptName: cfg?.answer_prompt ?? "",
       templateName: cfg?.template ?? "",
+      ...(vr?.enabled && {
+        visualRefinement: {
+          enabled: true,
+          maxIterations: vr.max_iterations ?? DEFAULT_VISUAL_REFINEMENT.max_iterations,
+          promptName: vr.prompt ?? DEFAULT_VISUAL_REFINEMENT.prompt,
+          modelId: vr.model ?? cfg?.model ?? DEFAULT_VISUAL_REFINEMENT.model,
+          timeoutMs: (vr.timeout ?? DEFAULT_VISUAL_REFINEMENT.timeout) * 1000,
+          temperature: vr.temperature ?? DEFAULT_VISUAL_REFINEMENT.temperature,
+        },
+      }),
     }
   }
 }

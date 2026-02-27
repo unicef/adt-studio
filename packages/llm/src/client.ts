@@ -39,6 +39,13 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
   const log = createLogger(logLevel)
 
   return {
+    async renderPrompt(name: string, context: Record<string, unknown>): Promise<Message[]> {
+      if (!promptEngine) {
+        throw new Error("promptEngine required for renderPrompt")
+      }
+      return promptEngine.renderPrompt(name, context)
+    },
+
     async generateObject<T>(
       opts: GenerateObjectOptions
     ): Promise<GenerateObjectResult<T>> {

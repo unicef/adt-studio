@@ -65,13 +65,21 @@ export {
   renderPage,
   buildRenderStrategyResolver,
   type RenderConfig,
+  type VisualRefinementConfig,
   type RenderPageInput,
   type RenderSectionInput,
   type SectionPart,
   type TextInput,
   type ImageInput,
 } from "./web-rendering.js"
-export { renderSectionLlm } from "./render-llm.js"
+export { renderSectionLlm, type VisualRefinementDeps } from "./render-llm.js"
+export {
+  createScreenshotRenderer,
+  SCREENSHOT_VIEWPORTS,
+  getViewportBreakpoints,
+  type ScreenshotRenderer,
+} from "./screenshot.js"
+export { buildScreenshotHtml } from "./screenshot-html.js"
 export {
   createTemplateEngine,
   renderSectionTemplate,

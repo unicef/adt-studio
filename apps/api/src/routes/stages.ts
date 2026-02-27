@@ -65,6 +65,7 @@ export function createStageRoutes(
   stageService: StageService,
   booksDir: string,
   promptsDir: string,
+  webAssetsDir: string,
   configPath?: string
 ): Hono {
   const app = new Hono()
@@ -107,6 +108,7 @@ export function createStageRoutes(
       booksDir,
       apiKey,
       promptsDir,
+      webAssetsDir,
       configPath,
       fromStage,
       toStage,

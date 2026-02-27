@@ -19,6 +19,15 @@ You are an expert frontend engineer. Generate a beautiful, kid-friendly HTML pag
 9. Image tags MUST have a `data-id` attribute matching the provided image ID
 10. Do NOT use any `data-id` values other than the ones provided
 11. Text color must be readable against the background color
+12. Text must NEVER be hidden behind images — if positioning text near or on top of images, always use `z-10` on text containers
+13. Preserve the original text alignment — most body text and headings are LEFT-ALIGNED. Do NOT center text unless it is clearly centered in the original page image. When in doubt, default to left alignment.
+## RESPONSIVE DESIGN
+Your HTML will be tested at these viewport widths. Use ONLY these Tailwind responsive prefixes:
+{% for vp in viewports %}- **{{ vp.label }}** ({{ vp.width }}px){% if vp.tailwind_prefix != "" %}: `{{ vp.tailwind_prefix }}` prefix{% else %}: default (no prefix — mobile-first base styles){% endif %}
+{% endfor %}
+Do NOT use `sm:`, `2xl:`, or other breakpoint prefixes not listed above.
+On mobile (default / no prefix), favor a single-column stacked layout with images and text flowing vertically rather than overlapping or side-by-side. Use `md:` or `lg:` prefixes to enable more complex layouts at larger viewports.
+Example: `class="flex flex-col md:flex-row"` or `class="text-sm md:text-base lg:text-lg xl:text-xl"`
 {% if styleguide != "" %}
 
 ## STYLEGUIDE (FOLLOW EXACTLY)

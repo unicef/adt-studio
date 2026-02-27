@@ -269,6 +269,13 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       )
     },
 
+    putDebugImage(hash: string, data: Buffer): void {
+      db.run(
+        "INSERT OR IGNORE INTO debug_images (hash, data, created_at) VALUES (?, ?, ?)",
+        [hash, data, new Date().toISOString()]
+      )
+    },
+
     close(): void {
       db.close()
     },

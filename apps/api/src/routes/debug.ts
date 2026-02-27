@@ -207,6 +207,18 @@ export function createDebugRoutes(
         }
       }
 
+      // Check debug_images table (screenshots stored by hash)
+      const debugRows = db.all(
+        "SELECT data FROM debug_images WHERE hash = ?",
+        [hash]
+      ) as Array<{ data: Uint8Array }>
+
+      if (debugRows.length > 0) {
+        c.header("Content-Type", "image/png")
+        c.header("Cache-Control", "public, max-age=86400")
+        return c.body(new Uint8Array(debugRows[0].data))
+      }
+
       throw new HTTPException(404, { message: `Image not found for hash: ${hash}` })
     } finally {
       db.close()

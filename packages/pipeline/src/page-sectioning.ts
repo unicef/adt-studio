@@ -208,7 +208,7 @@ export async function sectionPage(
       unassignedParts.push({
         type: "image",
         imageId: img.imageId,
-        isPruned: true,
+        isPruned: false,
         ...(img.reason ? { reason: img.reason } : {}),
       })
     }

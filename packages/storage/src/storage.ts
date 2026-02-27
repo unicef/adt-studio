@@ -73,5 +73,8 @@ export interface Storage {
 
   appendLlmLog(entry: LlmLogEntry): void
 
+  /** Store a debug image (e.g. screenshot) by its log hash so it can be resolved in the LLM log UI. */
+  putDebugImage(hash: string, data: Buffer): void
+
   close(): void
 }

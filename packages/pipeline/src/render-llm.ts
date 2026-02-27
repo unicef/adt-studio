@@ -1,8 +1,20 @@
 import type { SectionRendering } from "@adt/types"
-import { webRenderingLLMSchema, activityAnswersLLMSchema } from "@adt/types"
-import type { LLMModel, ValidationResult } from "@adt/llm"
+import { webRenderingLLMSchema, activityAnswersLLMSchema, visualReviewLLMSchema } from "@adt/types"
+import type { LLMModel, ValidationResult, Message, ContentPart } from "@adt/llm"
 import { validateSectionHtml } from "./validate-html.js"
+import { buildScreenshotHtml } from "./screenshot-html.js"
+import { SCREENSHOT_VIEWPORTS, getViewportBreakpoints, type ScreenshotRenderer } from "./screenshot.js"
 import type { RenderConfig, RenderSectionInput, TextInput, ImageInput } from "./web-rendering.js"
+
+/** Dependencies for the optional visual refinement loop. */
+export interface VisualRefinementDeps {
+  screenshotRenderer: ScreenshotRenderer
+  webAssetsDir: string
+  /** Resolve an LLM model for visual review (may differ from the generation model). */
+  llmModel: LLMModel
+  /** Persist a screenshot (base64 PNG) so it can be resolved in the LLM log UI. */
+  storeScreenshot?: (base64: string) => void
+}
 
 /**
  * Render a single section as HTML using an LLM.
@@ -15,7 +27,8 @@ import type { RenderConfig, RenderSectionInput, TextInput, ImageInput } from "./
 export async function renderSectionLlm(
   input: RenderSectionInput,
   config: RenderConfig,
-  llmModel: LLMModel
+  llmModel: LLMModel,
+  visualRefinement?: VisualRefinementDeps,
 ): Promise<SectionRendering> {
   const texts: TextInput[] = []
   const images: ImageInput[] = []
@@ -96,6 +109,7 @@ export async function renderSectionLlm(
       ...(img.height != null && { height: img.height }),
     })),
     styleguide: input.styleguide ?? "",
+    viewports: getViewportBreakpoints(),
     _isActivity: isActivity,
   }
 
@@ -118,7 +132,129 @@ export async function renderSectionLlm(
     },
   })
 
-  const generatedHtml = result.object.content
+  let generatedHtml = result.object.content
+
+  // Optional: visual refinement loop — screenshot the HTML and ask an LLM to review
+  if (visualRefinement && config.visualRefinement?.enabled) {
+    const vr = config.visualRefinement
+    const imagesForScreenshot = new Map<string, { base64: string }>()
+    for (const img of images) {
+      imagesForScreenshot.set(img.imageId, { base64: img.imageBase64 })
+    }
+
+    // Render the prompt template once to get the system message, then build
+    // up conversation history across iterations so the LLM sees its previous
+    // attempts and can learn from mistakes.
+    const initialMessages = await visualRefinement.llmModel.renderPrompt(vr.promptName, {
+      page_image_base64: input.pageImageBase64,
+      // Placeholders — the first real user message is built below
+      desktop_screenshot_base64: "",
+      tablet_screenshot_base64: "",
+      mobile_screenshot_base64: "",
+      section_type: input.sectionType,
+      current_html: generatedHtml,
+      viewports: getViewportBreakpoints(),
+    })
+    const systemMsg = initialMessages.find((m) => m.role === "system")
+    const systemPrompt = typeof systemMsg?.content === "string" ? systemMsg.content : undefined
+
+    // Accumulated conversation (user/assistant turns only)
+    let conversationMessages: Message[] = []
+
+    for (let iteration = 0; iteration < vr.maxIterations; iteration++) {
+      const screenshotHtml = await buildScreenshotHtml({
+        sectionHtml: generatedHtml,
+        label: input.label,
+        images: imagesForScreenshot,
+        webAssetsDir: visualRefinement.webAssetsDir,
+      })
+
+      // Take screenshots at multiple viewport sizes
+      const screenshotParts: ContentPart[] = []
+      for (const vp of SCREENSHOT_VIEWPORTS) {
+        const base64 = await visualRefinement.screenshotRenderer.screenshot(
+          screenshotHtml,
+          { width: vp.width, height: vp.height }
+        )
+        visualRefinement.storeScreenshot?.(base64)
+        screenshotParts.push(
+          { type: "text", text: `${vp.label} screenshot (${vp.width}px wide):` },
+          { type: "image", image: base64 },
+        )
+      }
+
+      // Build the user message for this iteration
+      const userParts: ContentPart[] = []
+
+      if (iteration === 0) {
+        // First iteration: include the original page image
+        userParts.push(
+          { type: "text", text: "Here is the original page image (this is what the rendered page should resemble):" },
+          { type: "image", image: input.pageImageBase64 },
+          { type: "text", text: "\nHere are screenshots of the current rendered HTML at three viewport sizes:\n" },
+        )
+      } else {
+        userParts.push(
+          { type: "text", text: "Here are the updated screenshots after your revision:\n" },
+        )
+      }
+
+      userParts.push(...screenshotParts)
+
+      userParts.push(
+        { type: "text", text: `\nSection type: ${input.sectionType}\n\nCurrent HTML:\n\`\`\`html\n${generatedHtml}\n\`\`\`` },
+      )
+
+      conversationMessages.push({ role: "user", content: userParts })
+
+      const reviewResult = await visualRefinement.llmModel.generateObject<{
+        approved: boolean
+        reasoning: string
+        content: string
+      }>({
+        schema: visualReviewLLMSchema,
+        system: systemPrompt,
+        messages: conversationMessages,
+        maxRetries: 2,
+        maxTokens: 16384,
+        temperature: vr.temperature,
+        timeoutMs: vr.timeoutMs,
+        log: {
+          taskType: "visual-review",
+          pageId: input.pageId,
+          promptName: vr.promptName,
+        },
+      })
+
+      // Append assistant response to conversation history
+      conversationMessages.push({
+        role: "assistant",
+        content: JSON.stringify(reviewResult.object, null, 2),
+      })
+
+      if (reviewResult.object.approved) break
+
+      if (!reviewResult.object.content) break
+
+      // Validate the revised HTML structurally before accepting it
+      const check = validateWebRendering(
+        { reasoning: reviewResult.object.reasoning, content: reviewResult.object.content },
+        context
+      )
+      if (check.valid) {
+        const cleaned = check.cleaned as { reasoning: string; content: string }
+        generatedHtml = cleaned.content
+      } else {
+        // Feed errors back to the LLM on the next iteration via conversation
+        conversationMessages.push({
+          role: "user",
+          content: "Your revision failed structural validation with these errors:\n" +
+            check.errors.map((e) => `- ${e}`).join("\n") +
+            "\n\nPlease fix these issues in your next revision.",
+        })
+      }
+    }
+  }
 
   // Optional: generate activity answers via a second LLM call
   let activityReasoning: string | undefined

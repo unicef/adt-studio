@@ -42,6 +42,7 @@ export interface StageRunOptions {
   booksDir: string
   apiKey: string
   promptsDir: string
+  webAssetsDir?: string
   configPath?: string
   fromStage: string
   toStage: string

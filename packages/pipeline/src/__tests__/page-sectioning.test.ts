@@ -455,7 +455,7 @@ describe("sectionPage", () => {
     expect(result.sections[0].parts[2]).toEqual({
       type: "image",
       imageId: "pg001_im001",
-      isPruned: true,
+      isPruned: false,
       reason: "too small",
     })
   })

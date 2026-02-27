@@ -56,6 +56,12 @@ CREATE TABLE IF NOT EXISTS step_runs (
   error TEXT,
   message TEXT
 );
+
+CREATE TABLE IF NOT EXISTS debug_images (
+  hash TEXT PRIMARY KEY,
+  data BLOB NOT NULL,
+  created_at TEXT NOT NULL
+);
 `
 
 export function openBookDb(dbPath: string): sqlite.Database {
@@ -109,6 +115,12 @@ function initSchema(db: sqlite.Database): void {
   if (version === 7) {
     migrateV7toV8(db)
     version = 8
+  }
+
+  // Migrate v8 → v9: add debug_images table
+  if (version === 8) {
+    migrateV8toV9(db)
+    version = 9
   }
 
   if (version === SCHEMA_VERSION) {
@@ -246,6 +258,20 @@ function migrateV7toV8(db: sqlite.Database): void {
     db.exec("ROLLBACK")
     throw err
   }
+}
+
+/**
+ * Migrate v8 → v9: add debug_images table for storing screenshot PNGs
+ * so they can be resolved from LLM log image hash placeholders.
+ */
+function migrateV8toV9(db: sqlite.Database): void {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS debug_images (
+      hash TEXT PRIMARY KEY,
+      data BLOB NOT NULL,
+      created_at TEXT NOT NULL
+    )
+  `)
 }
 
 function upsertSchemaVersion(db: sqlite.Database, version: number): void {
