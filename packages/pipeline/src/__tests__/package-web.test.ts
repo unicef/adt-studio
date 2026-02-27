@@ -3,7 +3,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import type { Storage, PageData } from "@adt/storage"
-import { packageAdtWeb, renderPageHtml } from "../package-web.js"
+import { packageAdtWeb, renderPageHtml, rewriteImageUrls } from "../package-web.js"
 
 function createMockStorage(
   pages: PageData[],
@@ -440,5 +440,62 @@ describe("packageAdtWeb", () => {
       { section_id: "pg001_sec001", href: "index.html", page_number: 1 },
       { section_id: "pg001_sec002", href: "pg001_sec002.html", page_number: 1 },
     ])
+  })
+})
+
+describe("rewriteImageUrls", () => {
+  it("rewrites src URL from API path to local images/ path", () => {
+    const html = `<img src="/api/books/mybook/images/abc123">`
+    const imageMap = new Map([["abc123", "photo.jpg"]])
+    const { html: out, referencedImages } = rewriteImageUrls(html, "mybook", imageMap)
+    expect(out).toContain('src="images/photo.jpg"')
+    // referencedImages contains image IDs (not filenames) — callers use IDs to look up files
+    expect(referencedImages).toContain("abc123")
+  })
+
+  it("removes explicit width and height attributes", () => {
+    const html = `<img src="/api/books/mybook/images/abc123" width="1200" height="900">`
+    const imageMap = new Map([["abc123", "photo.jpg"]])
+    const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
+    expect(out).not.toMatch(/width="/)
+    expect(out).not.toMatch(/height="/)
+  })
+
+  it("adds max-width inline style to prevent overflow", () => {
+    const html = `<img src="/api/books/mybook/images/abc123">`
+    const imageMap = new Map([["abc123", "photo.jpg"]])
+    const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
+    expect(out).toContain("max-width: 100%")
+    expect(out).toContain("height: auto")
+  })
+
+  it("preserves existing inline styles when adding max-width", () => {
+    const html = `<img src="/api/books/mybook/images/abc123" style="border: 1px solid red;">`
+    const imageMap = new Map([["abc123", "photo.jpg"]])
+    const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
+    expect(out).toContain("border: 1px solid red")
+    expect(out).toContain("max-width: 100%")
+  })
+
+  it("does not duplicate max-width if style already contains it", () => {
+    const html = `<img src="/api/books/mybook/images/abc123" style="max-width: 50%;">`
+    const imageMap = new Map([["abc123", "photo.jpg"]])
+    const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
+    const matches = (out.match(/max-width/g) ?? []).length
+    expect(matches).toBe(1)
+  })
+
+  it("does not include unreferenced images in referencedImages", () => {
+    const html = `<img src="/api/books/mybook/images/unknown">`
+    const imageMap = new Map([["abc123", "photo.jpg"]])
+    const { referencedImages } = rewriteImageUrls(html, "mybook", imageMap)
+    expect(referencedImages).toHaveLength(0)
+  })
+
+  it("leaves non-API image srcs unchanged", () => {
+    const html = `<img src="https://example.com/photo.jpg">`
+    const imageMap = new Map<string, string>()
+    const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
+    expect(out).toContain('src="https://example.com/photo.jpg"')
   })
 })

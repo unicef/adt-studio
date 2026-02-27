@@ -81,12 +81,13 @@ pnpm build         # Build all packages
 Prerequisites: [Rust toolchain](https://rustup.rs/) (Tauri CLI is already a local devDependency).
 
 ```bash
-# Dev mode — build sidecar once, then iterate on Rust/frontend
-pnpm --filter @adt/api build:sidecar   # Compile API → standalone binary
+# Dev mode
+pnpm --filter @adt/api build:sidecar   # Build sidecar binary + generate adt-resources.zip
 pnpm dev                                # Start API + Studio dev servers (terminal 1)
 pnpm dev:desktop                        # Start Tauri dev window (terminal 2)
+# Note: run build:sidecar again whenever API code or assets/adt/ change
 
-# Production build — single command, outputs .app/.dmg/.msi
+# Production build — self-contained, runs build:sidecar automatically via beforeBuildCommand
 pnpm build:desktop
 ```
 
@@ -95,7 +96,7 @@ pnpm build:desktop
 The API server is compiled into a standalone Node.js binary (`@yao-pkg/pkg`) and bundled inside the Tauri app as a **sidecar**. On launch, `lib.rs` spawns the sidecar, passing resource paths (prompts, config) via environment variables. The frontend detects the Tauri environment and routes API calls to `localhost:3001`.
 
 Key files:
-- `apps/api/scripts/bundle.mjs` — esbuild bundle (JS + WASM assets)
+- `apps/api/scripts/bundle.mjs` — esbuild bundle (JS + WASM assets) + pre-builds web assets (`assets/adt/base.bundle.min.js`, `assets/adt/tailwind_output.css`) and creates `assets/adt-resources.zip` for Tauri resource bundling
 - `apps/api/scripts/pkg.mjs` — Compile bundle → standalone binary, copy to `desktop/src-tauri/binaries/`
 - `apps/desktop/src-tauri/src/lib.rs` — Sidecar spawn, env vars, lifecycle
 - `apps/desktop/src-tauri/tauri.conf.json` — `externalBin`, `resources` mapping
