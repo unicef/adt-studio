@@ -12,6 +12,10 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { RENDER_TYPES } from "@/lib/config-constants"
+import {
+  listSelectableRenderStrategies,
+  normalizeDefaultRenderStrategy,
+} from "@/lib/render-strategy"
 
 export interface RenderStrategyState {
   render_type: string
@@ -382,11 +386,7 @@ export function AdvancedLayoutPanel({
   onTogglePrunedSection,
   afterStrategySlot,
 }: AdvancedLayoutPanelProps) {
-  const strategyNames = Object.keys(renderStrategies)
-  const dropdownOptions = [
-    "dynamic",
-    ...strategyNames.filter((name) => renderStrategies[name]?.render_type !== "activity"),
-  ]
+  const dropdownOptions = listSelectableRenderStrategies(renderStrategies)
 
   const addRenderStrategy = () => {
     const base = "new_strategy"
@@ -406,11 +406,7 @@ export function AdvancedLayoutPanel({
     delete next[name]
     onRenderStrategiesChange(next)
     if (defaultRenderStrategy === name) {
-      if (Object.keys(next).length > 0) {
-        onDefaultRenderStrategyChange(Object.keys(next)[0])
-      } else {
-        onDefaultRenderStrategyChange("dynamic")
-      }
+      onDefaultRenderStrategyChange(normalizeDefaultRenderStrategy("", next))
     }
   }
 
@@ -464,9 +460,7 @@ export function AdvancedLayoutPanel({
           </SelectContent>
         </Select>
         <p className="text-[10px] text-muted-foreground mt-1">
-          {defaultRenderStrategy === "dynamic"
-            ? "Automatically picks the best strategy per section type"
-            : "All sections rendered with this strategy"}
+          Fallback strategy for sections without a specific mapping
         </p>
       </div>
 

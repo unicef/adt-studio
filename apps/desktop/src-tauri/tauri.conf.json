@@ -39,7 +39,8 @@
       "../../../templates/**/*": "templates/",
       "../../../config.yaml": ".",
       "../../../config/**/*": "config/",
-      "../../../assets/**/*": "assets/"
+      "../../../assets/adt-resources.zip": "assets/adt-resources.zip",
+      "../../../assets/styleguides/**/*": "assets/styleguides/"
     }
   }
 }

@@ -1,14 +1,15 @@
-function resolveBaseUrl(): string {
-  if (
-    window.location.protocol === "tauri:" ||
-    window.location.hostname === "tauri.localhost"
-  ) {
+export function resolveBaseUrl(
+  loc: Pick<Location, "protocol" | "hostname"> = window.location,
+): string {
+  if (loc.protocol === "tauri:" || loc.hostname === "tauri.localhost") {
     return "http://localhost:3001/api"
   }
   return "/api"
 }
 
-const BASE_URL = resolveBaseUrl()
+// Guard for test/SSR environments where window is not defined
+export const BASE_URL =
+  typeof window !== "undefined" ? resolveBaseUrl() : "/api"
 
 export function getAdtUrl(label: string): string {
   return `${BASE_URL}/books/${label}/adt`
@@ -645,11 +646,17 @@ export const api = {
 
   exportBook: async (label: string): Promise<Blob> => {
     const url = `${BASE_URL}/books/${label}/export`
-    const res = await fetch(url)
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { Accept: "application/zip" },
+      mode: "cors",
+      signal: AbortSignal.timeout(300_000),
+    })
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: res.statusText }))
       throw new Error(body.error ?? `Export failed: ${res.status}`)
     }
-    return res.blob()
+    const buf = await res.arrayBuffer()
+    return new Blob([buf], { type: "application/zip" })
   },
 }

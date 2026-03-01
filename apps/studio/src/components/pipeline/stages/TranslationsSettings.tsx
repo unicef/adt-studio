@@ -39,7 +39,6 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
 
   // Speech settings
   const [speechModel, setSpeechModel] = useState("")
-  const [voice, setVoice] = useState("")
   const [format, setFormat] = useState("")
   const [defaultProvider, setDefaultProvider] = useState("openai")
   const [openaiModel, setOpenaiModel] = useState("")
@@ -65,7 +64,6 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
     if (m.speech && typeof m.speech === "object") {
       const s = m.speech as Record<string, unknown>
       if (s.model) setSpeechModel(String(s.model))
-      if (s.voice) setVoice(String(s.voice))
       if (s.format) setFormat(String(s.format))
       if (s.default_provider) setDefaultProvider(String(s.default_provider))
       if (s.bit_rate) setBitRate(String(s.bit_rate))
@@ -119,7 +117,6 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
       overrides.speech = {
         ...existing,
         model: speechModel.trim() || undefined,
-        voice: voice.trim() || undefined,
         format: format.trim() || undefined,
         default_provider: defaultProvider || undefined,
         providers: Object.keys(providers).length > 0 ? providers : undefined,
@@ -258,17 +255,6 @@ export function TranslationsSettings({ bookLabel, headerTarget, tab = "general" 
           {/* Audio Settings */}
           <div className="space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Audio Settings</h3>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Default Voice</Label>
-              <Input
-                value={voice}
-                onChange={(e) => { setVoice(e.target.value); markDirty("speech") }}
-                placeholder="e.g. alloy"
-                className="w-72 h-8 text-xs"
-              />
-              <p className="text-xs text-muted-foreground">Override voice (leave blank to use voices.yaml per-language mappings).</p>
-            </div>
-
             <div className="flex gap-4">
               <div className="space-y-1.5">
                 <Label className="text-xs">Format</Label>

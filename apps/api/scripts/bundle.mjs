@@ -13,6 +13,9 @@ import { build } from "esbuild"
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import { zipSync } from "fflate"
+import postcss from "postcss"
+import tailwindcss from "tailwindcss"
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const root = path.resolve(__dirname, "..")
@@ -131,3 +134,80 @@ for (const [pkg, filename] of Object.entries(EXPECTED_WASM)) {
 }
 
 console.log("✓ Bundled → dist-pkg/api-server.mjs")
+
+const webAssetsDir = path.resolve(monorepoRoot, "assets", "adt")
+
+// Step A: Pre-build base.bundle.min.js
+// esbuild cannot run inside the @yao-pkg/pkg sidecar binary at runtime.
+// package-web.ts:buildJsBundle() checks for this file first and copies it.
+await build({
+  entryPoints: [path.join(webAssetsDir, "base.js")],
+  bundle: true,
+  minify: true,
+  sourcemap: true,
+  format: "esm",
+  target: "es2020",
+  outfile: path.join(webAssetsDir, "base.bundle.min.js"),
+})
+console.log("✓ Pre-built assets/adt/base.bundle.min.js")
+
+// Step B: Pre-build tailwind_output.css
+// tailwindcss/postcss cannot run inside pkg. package-web.ts:buildTailwindCss()
+// checks for this file first and copies it.
+const inputCssPath = path.join(webAssetsDir, "tailwind_css.css")
+const inputCss = fs.existsSync(inputCssPath)
+  ? fs.readFileSync(inputCssPath, "utf-8")
+  : "@tailwind base;\n@tailwind components;\n@tailwind utilities;"
+const tailwindConfig = {
+  content: [
+    path.join(webAssetsDir, "interface.html"),
+    path.join(webAssetsDir, "modules", "**", "*.js"),
+  ],
+  theme: {
+    extend: {
+      keyframes: {
+        tutorialPopIn: {
+          "0%": { opacity: "0", transform: "scale(0.9)" },
+          "100%": { opacity: "1", transform: "scale(1)" },
+        },
+        pulseBorder: {
+          "0%": { boxShadow: "0 0 0 0 rgba(49,130,206,0.7)" },
+          "70%": { boxShadow: "0 0 0 10px rgba(49,130,206,0)" },
+          "100%": { boxShadow: "0 0 0 0 rgba(49,130,206,0)" },
+        },
+      },
+      animation: {
+        tutorialPopIn: "tutorialPopIn 0.3s ease-out forwards",
+        pulseBorder: "pulseBorder 2s infinite",
+      },
+      boxShadow: { tutorial: "0 0 0 4px rgba(49,130,206,0.3)" },
+    },
+  },
+  plugins: [],
+}
+const tailwindResult = await postcss([tailwindcss(tailwindConfig)]).process(
+  inputCss,
+  { from: undefined },
+)
+fs.writeFileSync(path.join(webAssetsDir, "tailwind_output.css"), tailwindResult.css)
+console.log("✓ Pre-built assets/adt/tailwind_output.css")
+
+// Step C: Zip assets/adt/ → assets/adt-resources.zip
+// Tauri's **/* resource glob flattens ALL subdirectory levels (Lessons #3, #7).
+// A single zip preserves the full tree (libs/fontawesome, interface_translations, etc).
+function collectFilesForZip(dir, prefix, files) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name)
+    const zipPath = prefix ? `${prefix}/${entry.name}` : entry.name
+    if (entry.isDirectory()) {
+      collectFilesForZip(fullPath, zipPath, files)
+    } else {
+      files[zipPath] = new Uint8Array(fs.readFileSync(fullPath))
+    }
+  }
+  return files
+}
+const zipFiles = collectFilesForZip(webAssetsDir, "", {})
+const adtZipPath = path.resolve(monorepoRoot, "assets", "adt-resources.zip")
+fs.writeFileSync(adtZipPath, Buffer.from(zipSync(zipFiles)))
+console.log("✓ Zipped web assets → assets/adt-resources.zip")

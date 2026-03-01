@@ -167,6 +167,9 @@ export async function packageAdtWeb(
           // Check for math content
           if (containsMathContent(rewrittenHtml)) hasMath = true
 
+          const isFirstPage = pageList.length === 0
+          const filename = isFirstPage ? "index.html" : `${sectionId}.html`
+
           const pageHtml = renderPageHtml({
             content: rewrittenHtml,
             language,
@@ -178,11 +181,11 @@ export async function packageAdtWeb(
             bundleVersion,
             applyBodyBackground,
           })
-          fs.writeFileSync(path.join(adtDir, `${sectionId}.html`), pageHtml)
+          fs.writeFileSync(path.join(adtDir, filename), pageHtml)
 
           const entry: PageEntry = {
             section_id: sectionId,
-            href: `${sectionId}.html`,
+            href: filename,
           }
           if (sectionMeta?.pageNumber !== null && sectionMeta?.pageNumber !== undefined) {
             entry.page_number = sectionMeta.pageNumber
@@ -197,6 +200,9 @@ export async function packageAdtWeb(
       const quizIndex = quizData!.quizzes.indexOf(quiz)
       const quizId = `qz${pad3(quizIndex + 1)}`
 
+      const isFirstPage = pageList.length === 0
+      const quizFilename = isFirstPage ? "index.html" : `${quizId}.html`
+
       const quizHtmlContent = renderQuizHtml(quiz, quizId, catalog)
       const quizPageHtml = renderPageHtml({
         content: quizHtmlContent,
@@ -210,9 +216,9 @@ export async function packageAdtWeb(
         skipContentWrapper: true,
         applyBodyBackground,
       })
-      fs.writeFileSync(path.join(adtDir, `${quizId}.html`), quizPageHtml)
+      fs.writeFileSync(path.join(adtDir, quizFilename), quizPageHtml)
 
-      pageList.push({ section_id: quizId, href: `${quizId}.html` })
+      pageList.push({ section_id: quizId, href: quizFilename })
     }
   }
 
@@ -685,6 +691,15 @@ export function rewriteImageUrls(
       if (filename) {
         img.attribs.src = `images/${filename}`
         referencedImages.push(imageId)
+        delete img.attribs.width
+        delete img.attribs.height
+        const existingStyle = img.attribs.style ?? ""
+        const sizeStyle = "max-width: 100%; height: auto;"
+        if (!existingStyle.includes("max-width")) {
+          img.attribs.style = existingStyle
+            ? `${existingStyle.trimEnd().replace(/;$/, "")}; ${sizeStyle}`
+            : sizeStyle
+        }
       }
     }
     // Also handle data-id based images
@@ -694,6 +709,15 @@ export function rewriteImageUrls(
       img.attribs.src = `images/${filename}`
       if (!referencedImages.includes(dataId)) {
         referencedImages.push(dataId)
+      }
+      delete img.attribs.width
+      delete img.attribs.height
+      const existingStyle = img.attribs.style ?? ""
+      const sizeStyle = "max-width: 100%; height: auto;"
+      if (!existingStyle.includes("max-width")) {
+        img.attribs.style = existingStyle
+          ? `${existingStyle.trimEnd().replace(/;$/, "")}; ${sizeStyle}`
+          : sizeStyle
       }
     }
   }
@@ -782,6 +806,16 @@ async function buildTailwindCss(
   adtDir: string,
   webAssetsDir: string,
 ): Promise<void> {
+  const outputPath = path.join(adtDir, "content", "tailwind_output.css")
+
+  // In Tauri sidecar mode, postcss/tailwindcss cannot run inside the pkg binary.
+  // bundle.mjs pre-builds tailwind_output.css into webAssetsDir before zipping.
+  const preBuilt = path.join(webAssetsDir, "tailwind_output.css")
+  if (fs.existsSync(preBuilt)) {
+    fs.copyFileSync(preBuilt, outputPath)
+    return
+  }
+
   // Dynamic imports to avoid issues if not installed
   const postcss = (await import("postcss")).default
   const tailwindcss = (await import("tailwindcss")).default
@@ -825,7 +859,6 @@ async function buildTailwindCss(
     from: undefined,
   })
 
-  const outputPath = path.join(adtDir, "content", "tailwind_output.css")
   fs.writeFileSync(outputPath, result.css)
 }
 
@@ -901,6 +934,14 @@ async function buildJsBundle(
   webAssetsDir: string,
   outputAssetsDir: string,
 ): Promise<void> {
+  // In Tauri sidecar mode, esbuild cannot run inside the pkg binary.
+  // bundle.mjs pre-builds base.bundle.min.js into webAssetsDir before zipping.
+  const preBuilt = path.join(webAssetsDir, "base.bundle.min.js")
+  if (fs.existsSync(preBuilt)) {
+    fs.copyFileSync(preBuilt, path.join(outputAssetsDir, "base.bundle.min.js"))
+    return
+  }
+
   const esbuild = await import("esbuild")
   const entryPoint = path.join(webAssetsDir, "base.js")
   if (!fs.existsSync(entryPoint)) return // skip if no source

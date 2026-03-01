@@ -1,5 +1,11 @@
 import { useRef, useMemo, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from "react"
 import DOMPurify from "dompurify"
+import { BASE_URL } from "@/api/client"
+
+// In Tauri, BASE_URL is "http://localhost:3001/api"; extract the origin so the iframe
+// can resolve relative image URLs (stored in the DB) via a <base> tag (see Lesson #2).
+// Use new URL().origin instead of string slicing — immune to path changes (Lesson #11).
+const IFRAME_BASE = BASE_URL.startsWith("http") ? new URL(BASE_URL).origin : ""
 
 export interface BookPreviewFrameHandle {
   /** Get the iframe element's bounding rect in the viewport */
@@ -175,6 +181,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
     () => `<!DOCTYPE html>
 <html>
 <head>
+  ${IFRAME_BASE ? `<base href="${IFRAME_BASE}">` : ""}
   <meta charset="utf-8" />
   <meta content="width=device-width, initial-scale=1" name="viewport" />
   <script src="https://cdn.tailwindcss.com"><\/script>

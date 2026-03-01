@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import { createPortal } from "react-dom"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { Save, Plus, X } from "lucide-react"
@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/api/client"
+import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
+import { useActiveConfig } from "@/hooks/use-debug"
 
 interface VoiceMappingsEditorProps {
   bookLabel: string
@@ -20,13 +22,18 @@ interface VoiceRow {
 
 export function VoiceMappingsEditor({ bookLabel, headerTarget }: VoiceMappingsEditorProps) {
   const queryClient = useQueryClient()
+  const { data: bookConfigData, isLoading: isBookConfigLoading } = useBookConfig(bookLabel)
+  const { data: activeConfigData } = useActiveConfig(bookLabel)
+  const updateConfig = useUpdateBookConfig()
   const { data, isLoading } = useQuery({
     queryKey: ["voice-mappings"],
     queryFn: () => api.getVoiceMappings(),
   })
 
   const [rows, setRows] = useState<VoiceRow[]>([])
-  const [dirty, setDirty] = useState(false)
+  const [defaultVoice, setDefaultVoice] = useState("")
+  const [dirtyMappings, setDirtyMappings] = useState(false)
+  const [dirtyDefaultVoice, setDirtyDefaultVoice] = useState(false)
   const [saving, setSaving] = useState(false)
   const [newLangKey, setNewLangKey] = useState("")
   const [showAddLang, setShowAddLang] = useState(false)
@@ -49,14 +56,26 @@ export function VoiceMappingsEditor({ bookLabel, headerTarget }: VoiceMappingsEd
     setRows(built)
   }, [data])
 
+  useEffect(() => {
+    if (dirtyDefaultVoice || !activeConfigData) return
+    const merged = activeConfigData.merged as Record<string, unknown>
+    const speech = merged.speech
+    if (!speech || typeof speech !== "object") {
+      setDefaultVoice("")
+      return
+    }
+    const voice = (speech as Record<string, unknown>).voice
+    setDefaultVoice(typeof voice === "string" ? voice : "")
+  }, [activeConfigData, dirtyDefaultVoice])
+
   const updateRow = (index: number, field: "openai" | "azure", value: string) => {
     setRows((prev) => prev.map((r, i) => i === index ? { ...r, [field]: value } : r))
-    setDirty(true)
+    setDirtyMappings(true)
   }
 
   const removeRow = (index: number) => {
     setRows((prev) => prev.filter((_, i) => i !== index))
-    setDirty(true)
+    setDirtyMappings(true)
   }
 
   const addLanguage = () => {
@@ -65,21 +84,50 @@ export function VoiceMappingsEditor({ bookLabel, headerTarget }: VoiceMappingsEd
     setRows((prev) => [...prev, { lang: key, openai: "", azure: "" }])
     setNewLangKey("")
     setShowAddLang(false)
-    setDirty(true)
+    setDirtyMappings(true)
   }
 
   const handleSave = async () => {
     setSaving(true)
     try {
-      const openai: Record<string, string> = {}
-      const azure: Record<string, string> = {}
-      for (const row of rows) {
-        if (row.openai.trim()) openai[row.lang] = row.openai.trim()
-        if (row.azure.trim()) azure[row.lang] = row.azure.trim()
+      const saves: Promise<unknown>[] = []
+
+      if (dirtyMappings) {
+        const openai: Record<string, string> = {}
+        const azure: Record<string, string> = {}
+        for (const row of rows) {
+          if (row.openai.trim()) openai[row.lang] = row.openai.trim()
+          if (row.azure.trim()) azure[row.lang] = row.azure.trim()
+        }
+        saves.push(api.updateVoiceMappings({ openai, azure }))
       }
-      await api.updateVoiceMappings({ openai, azure })
-      queryClient.invalidateQueries({ queryKey: ["voice-mappings"] })
-      setDirty(false)
+
+      if (dirtyDefaultVoice) {
+        const existingConfig = (bookConfigData?.config ?? {}) as Record<string, unknown>
+        const existingSpeech = existingConfig.speech
+        const speechObject = (existingSpeech && typeof existingSpeech === "object")
+          ? (existingSpeech as Record<string, unknown>)
+          : {}
+        const nextSpeech = {
+          ...speechObject,
+          voice: defaultVoice.trim() || undefined,
+        }
+        const cleanSpeech = Object.fromEntries(
+          Object.entries(nextSpeech).filter(([, value]) => value !== undefined)
+        )
+        const nextConfig: Record<string, unknown> = { ...existingConfig }
+        if (Object.keys(cleanSpeech).length > 0) nextConfig.speech = cleanSpeech
+        else delete nextConfig.speech
+
+        saves.push(updateConfig.mutateAsync({ label: bookLabel, config: nextConfig }))
+      }
+
+      if (saves.length > 0) await Promise.all(saves)
+      if (dirtyMappings) {
+        queryClient.invalidateQueries({ queryKey: ["voice-mappings"] })
+      }
+      setDirtyMappings(false)
+      setDirtyDefaultVoice(false)
     } finally {
       setSaving(false)
     }
@@ -96,13 +144,31 @@ export function VoiceMappingsEditor({ bookLabel, headerTarget }: VoiceMappingsEd
           size="sm"
           className="h-7 px-2.5 text-xs bg-black/15 text-white hover:bg-black/25"
           onClick={handleSave}
-          disabled={saving || !dirty}
+          disabled={saving || updateConfig.isPending || (!dirtyMappings && !dirtyDefaultVoice) || (dirtyDefaultVoice && isBookConfigLoading)}
         >
           <Save className="mr-1.5 h-3.5 w-3.5" />
           {saving ? "Saving..." : "Save"}
         </Button>,
         headerTarget
       )}
+
+      <div className="space-y-1.5">
+        <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Default Voice
+        </Label>
+        <Input
+          value={defaultVoice}
+          onChange={(e) => {
+            setDefaultVoice(e.target.value)
+            setDirtyDefaultVoice(true)
+          }}
+          placeholder="e.g. alloy"
+          className="w-72 h-8 text-xs"
+        />
+        <p className="text-xs text-muted-foreground">
+          Default voice used when not specified for a language.
+        </p>
+      </div>
 
       <div className="flex items-center justify-between">
         <div>

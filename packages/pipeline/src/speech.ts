@@ -52,10 +52,12 @@ export function loadVoicesConfig(configDir: string): VoiceMaps {
 export function resolveVoice(
   provider: string,
   languageCode: string,
-  voiceMaps: VoiceMaps
+  voiceMaps: VoiceMaps,
+  defaultVoice?: string
 ): string {
+  const fallback = defaultVoice ?? "alloy"
   const providerConfig = voiceMaps[provider]
-  if (!providerConfig) return "alloy"
+  if (!providerConfig) return fallback
 
   const normalized = normalizeLocale(languageCode).toLowerCase()
 
@@ -66,8 +68,8 @@ export function resolveVoice(
   const baseLang = getBaseLanguage(normalized)
   if (baseLang in providerConfig) return providerConfig[baseLang]
 
-  // Default
-  return providerConfig["default"] ?? "alloy"
+  // Default from voices.yaml, then config default, then hardcoded
+  return providerConfig["default"] ?? fallback
 }
 
 // ---------------------------------------------------------------------------

@@ -799,10 +799,12 @@ describe("GET /books/:label/step-status", () => {
 })
 
 describe("GET /books/:label/export", () => {
+  const webAssetsDir = path.resolve(process.cwd(), "assets", "adt")
+
   it("returns ZIP for valid book", async () => {
     createTestBook("export-book")
     addPagesAndRenderings("export-book", 2)
-    const app = createBookRoutes(tmpDir)
+    const app = createBookRoutes(tmpDir, webAssetsDir)
     const res = await app.request("/books/export-book/export")
     expect(res.status).toBe(200)
     expect(res.headers.get("Content-Type")).toBe("application/zip")
@@ -814,15 +816,23 @@ describe("GET /books/:label/export", () => {
   it("exports even when storyboard not accepted", async () => {
     createTestBook("not-accepted-export")
     addPagesAndRenderings("not-accepted-export", 1)
-    const app = createBookRoutes(tmpDir)
+    const app = createBookRoutes(tmpDir, webAssetsDir)
     const res = await app.request("/books/not-accepted-export/export")
     expect(res.status).toBe(200)
   })
 
   it("returns 404 for missing book", async () => {
-    const app = createBookRoutes(tmpDir)
+    const app = createBookRoutes(tmpDir, webAssetsDir)
     const res = await app.request("/books/ghost/export")
     expect(res.status).toBe(404)
+  })
+
+  it("returns 500 when web assets directory is missing", async () => {
+    createTestBook("missing-assets-export")
+    addPagesAndRenderings("missing-assets-export", 1)
+    const app = createBookRoutes(tmpDir, path.join(tmpDir, "no-web-assets"))
+    const res = await app.request("/books/missing-assets-export/export")
+    expect(res.status).toBe(500)
   })
 })
 

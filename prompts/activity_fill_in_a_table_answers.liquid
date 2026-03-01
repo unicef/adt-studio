@@ -109,6 +109,11 @@ IMPORTANT: The `answers` array MUST include ALL `data-activity-item` IDs found i
 This is the base64 image of the entire page from the textbook for context only.
 {% image page_image_base64 %}
 
+{% for image in images %}
+Image ID: {{ image.image_id }}{% if image.width %} ({{ image.width }}×{{ image.height }}px){% endif %}
+{% image image.image_base64 %}
+{% endfor %}
+
 Activity Type: {{ section_type }}
 
 Textbook Context:

@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react"
 import { Check, Eye, EyeOff, FileText, Image, ImageOff, Layers, Loader2, ChevronDown, X } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
 import { usePage, usePageImage } from "@/hooks/use-pages"
-import { api } from "@/api/client"
+import { api, BASE_URL } from "@/api/client"
 import type { VersionEntry } from "@/api/client"
 import { useActiveConfig } from "@/hooks/use-debug"
 
@@ -149,7 +149,7 @@ function ImageCard({ imageId, bookLabel, isPruned, reason, onTogglePrune }: { im
         }
       </button>
       <img
-        src={`/api/books/${bookLabel}/images/${imageId}`}
+        src={`${BASE_URL}/books/${bookLabel}/images/${imageId}`}
         alt={imageId}
         className={`max-w-full h-auto block my-auto ${isPruned ? "grayscale" : ""}`}
         onLoad={(e) => {
