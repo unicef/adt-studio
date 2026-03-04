@@ -31,3 +31,9 @@ export const activityAnswersLLMSchema = z.object({
     })
   ),
 })
+
+export const visualReviewLLMSchema = z.object({
+  approved: z.boolean(),
+  reasoning: z.string(),
+  content: z.string(),
+})

@@ -11,6 +11,7 @@ export interface BookPaths {
   bookDir: string
   dbPath: string
   imagesDir: string
+  debugImagesDir: string
 }
 
 export function resolveBookPaths(label: string, booksRoot: string): BookPaths {
@@ -24,6 +25,7 @@ export function resolveBookPaths(label: string, booksRoot: string): BookPaths {
     bookDir,
     dbPath: path.join(bookDir, `${safeLabel}.db`),
     imagesDir: path.join(bookDir, "images"),
+    debugImagesDir: path.join(bookDir, ".debug-images"),
   }
 }
 
@@ -32,12 +34,14 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
 
   fs.mkdirSync(paths.bookDir, { recursive: true })
   fs.mkdirSync(paths.imagesDir, { recursive: true })
+  fs.mkdirSync(paths.debugImagesDir, { recursive: true })
 
   const db = openBookDb(paths.dbPath)
 
   return {
     clearExtractedData(): void {
       clearImageFiles(paths.imagesDir)
+      clearImageFiles(paths.debugImagesDir)
       clearExtractedRows(db)
     },
 
@@ -267,6 +271,19 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
           JSON.stringify(entry),
         ]
       )
+    },
+
+    putDebugImage(hash: string, data: Buffer): void {
+      if (!/^[0-9a-f]{16}$/.test(hash)) {
+        throw new Error(`Invalid debug image hash: ${hash}`)
+      }
+      const filePath = path.join(paths.debugImagesDir, `${hash}.png`)
+      if (fs.existsSync(filePath)) return
+      fs.writeFileSync(filePath, data)
+    },
+
+    clearDebugImages(): void {
+      clearImageFiles(paths.debugImagesDir)
     },
 
     close(): void {

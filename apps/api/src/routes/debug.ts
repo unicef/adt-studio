@@ -176,9 +176,21 @@ export function createDebugRoutes(
 
     const { safeLabel, dbPath } = requireDb(label, booksDir)
     const bookDir = path.join(path.resolve(booksDir), safeLabel)
+    const debugImagePath = path.resolve(bookDir, ".debug-images", `${hash}.png`)
 
     const db = openBookDb(dbPath)
     try {
+      // Check file-based debug screenshots first.
+      if (
+        debugImagePath.startsWith(bookDir + path.sep) &&
+        fs.existsSync(debugImagePath)
+      ) {
+        const buf = fs.readFileSync(debugImagePath)
+        c.header("Content-Type", "image/png")
+        c.header("Cache-Control", "public, max-age=86400")
+        return c.body(new Uint8Array(buf))
+      }
+
       const rows = db.all(
         "SELECT image_id, path FROM images",
         []

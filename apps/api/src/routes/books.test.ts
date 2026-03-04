@@ -473,7 +473,7 @@ describe("POST /books/:label/stages/run", () => {
       },
     }
 
-    const app = createStageRoutes(stageService, tmpDir, "")
+    const app = createStageRoutes(stageService, tmpDir, "", "")
     const res = await app.request(`/books/${label}/stages/run`, {
       method: "POST",
       headers: {

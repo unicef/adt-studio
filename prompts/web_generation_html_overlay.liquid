@@ -66,7 +66,7 @@ Use a normal-flow layout. Do NOT create any `<img>` tags. Text groups flow verti
         <div class="relative w-full flex items-center justify-center">
             <!-- Background image — constrained to viewport height -->
             <img data-id="[IMAGE_ID]" alt="Page background"
-                 class="w-full h-auto object-contain"
+                 class="max-w-full h-auto object-contain"
                  style="max-height: var(--page-height, 100vh)"
                  src="placeholder" />
 
@@ -80,6 +80,16 @@ Use a normal-flow layout. Do NOT create any `<img>` tags. Text groups flow verti
     </section>
 </div>
 ```
+
+### CRITICAL: Do NOT stretch images beyond their natural size
+Use `max-w-full` (not `w-full`) on images so they scale DOWN to fit the container but never scale UP beyond their intrinsic resolution. `w-full` forces the image to fill the container width even if the container is wider than the image, causing blurry/pixelated stretching.
+
+### CRITICAL: Text must always render ABOVE images
+Images must NEVER obscure text. Ensure correct stacking:
+- All text overlay divs MUST have `z-10` (or higher)
+- Images MUST NOT have any z-index class (they stay at z-0 by default)
+- If using `position: relative` on an image container, text overlays inside it must still have `z-10`
+- This is critical because different browsers may render stacking order differently — explicit z-index prevents text from being hidden behind images
 
 ### CRITICAL: Group-level positioning
 - Position ONE absolutely-positioned `div` per text group
@@ -118,6 +128,9 @@ Example — three groups forming one column:
     <p class="text-base leading-relaxed text-gray-800" data-id="[ID_3]">Third paragraph</p>
 </div>
 ```
+
+### Text alignment
+Preserve the original text alignment from the page image. Most body text and headings are LEFT-ALIGNED — do NOT center them unless they are clearly centered in the original. Only use `text-center` when the original page image shows centered text (e.g., titles on cover pages, centered captions). When in doubt, default to left alignment.
 
 ### Text styling for overlay groups:
 
@@ -167,10 +180,10 @@ When multiple images are provided, lay them out side by side or stacked dependin
 <div class="relative w-full">
     <div class="flex flex-col md:flex-row items-center justify-center w-full">
         <div class="w-full md:w-1/2 flex items-center justify-center">
-            <img data-id="[IMG1]" class="w-full h-auto object-contain" style="max-height: var(--page-height, 100vh)" src="placeholder" />
+            <img data-id="[IMG1]" class="max-w-full h-auto object-contain" style="max-height: var(--page-height, 100vh)" src="placeholder" />
         </div>
         <div class="w-full md:w-1/2 flex items-center justify-center">
-            <img data-id="[IMG2]" class="w-full h-auto object-contain" style="max-height: var(--page-height, 100vh)" src="placeholder" />
+            <img data-id="[IMG2]" class="max-w-full h-auto object-contain" style="max-height: var(--page-height, 100vh)" src="placeholder" />
         </div>
     </div>
     <!-- Overlays positioned relative to the full container -->
@@ -195,6 +208,13 @@ When multiple images are provided, lay them out side by side or stacked dependin
 - Images constrained with `style="max-height: var(--page-height, 100vh)"` — NO raw vh/vw units
 - Text is readable
 - Consistent and clean visual presentation
+## RESPONSIVE DESIGN
+Your HTML will be tested at these viewport widths. Use ONLY these Tailwind responsive prefixes:
+{% for vp in viewports %}- **{{ vp.label }}** ({{ vp.width }}px){% if vp.tailwind_prefix != "" %}: `{{ vp.tailwind_prefix }}` prefix{% else %}: default (no prefix — mobile-first base styles){% endif %}
+{% endfor %}
+Do NOT use `sm:`, `2xl:`, or other breakpoint prefixes not listed above.
+On mobile only (default / no prefix), use a single-column stacked layout with images above and text below rather than overlapping. At tablet (`md:`) and above, keep the overlay layout with positioned text on top of images.
+Example: `class="relative md:absolute"` to stack on mobile but overlay on tablet and desktop.
 {% if styleguide != "" %}
 
 ## STYLEGUIDE (FOLLOW EXACTLY)

@@ -47,6 +47,15 @@ export type StyleguideName = z.infer<typeof StyleguideName>
 export const RenderType = z.enum(["llm", "template", "activity"])
 export type RenderType = z.infer<typeof RenderType>
 
+export const VisualRefinementStrategyConfig = z.object({
+  enabled: z.boolean().optional(),
+  max_iterations: z.number().int().min(1).max(50).optional(),
+  prompt: z.string().optional(),
+  timeout: z.number().int().min(1).optional(),
+  temperature: z.number().min(0).max(2).optional(),
+})
+export type VisualRefinementStrategyConfig = z.infer<typeof VisualRefinementStrategyConfig>
+
 export const RenderStrategyConfig = z
   .object({
     render_type: RenderType,
@@ -62,6 +71,8 @@ export const RenderStrategyConfig = z
         answer_prompt: z.string().optional(),
         // template render type
         template: z.string().optional(),
+        // visual refinement — screenshot-based LLM feedback loop
+        visual_refinement: VisualRefinementStrategyConfig.optional(),
       })
       .optional(),
   })

@@ -2,7 +2,19 @@ import type { SectionRendering } from "@adt/types"
 import { webRenderingLLMSchema, activityAnswersLLMSchema } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import { validateSectionHtml } from "./validate-html.js"
+import { getViewportBreakpoints, type ScreenshotRenderer } from "./screenshot.js"
 import type { RenderConfig, RenderSectionInput, TextInput, ImageInput } from "./web-rendering.js"
+import { runVisualReviewLoop } from "./visual-review.js"
+
+/** Dependencies for the optional visual refinement loop. */
+export interface VisualRefinementDeps {
+  screenshotRenderer: ScreenshotRenderer
+  webAssetsDir: string
+  /** Resolve an LLM model for visual review (may differ from the generation model). */
+  llmModel: LLMModel
+  /** Persist a screenshot (base64 PNG) so it can be resolved in the LLM log UI. */
+  storeScreenshot?: (base64: string) => void
+}
 
 /**
  * Render a single section as HTML using an LLM.
@@ -15,7 +27,8 @@ import type { RenderConfig, RenderSectionInput, TextInput, ImageInput } from "./
 export async function renderSectionLlm(
   input: RenderSectionInput,
   config: RenderConfig,
-  llmModel: LLMModel
+  llmModel: LLMModel,
+  visualRefinement?: VisualRefinementDeps,
 ): Promise<SectionRendering> {
   const texts: TextInput[] = []
   const images: ImageInput[] = []
@@ -96,6 +109,7 @@ export async function renderSectionLlm(
       ...(img.height != null && { height: img.height }),
     })),
     styleguide: input.styleguide ?? "",
+    viewports: getViewportBreakpoints(),
     _isActivity: isActivity,
   }
 
@@ -118,7 +132,53 @@ export async function renderSectionLlm(
     },
   })
 
-  const generatedHtml = result.object.content
+  let generatedHtml = result.object.content
+
+  // Optional: visual refinement loop — screenshot the HTML and ask an LLM to review
+  if (visualRefinement && config.visualRefinement?.enabled) {
+    const vr = config.visualRefinement
+    const imagesForScreenshot = new Map<string, { base64: string }>()
+    for (const img of images) {
+      imagesForScreenshot.set(img.imageId, { base64: img.imageBase64 })
+    }
+
+    const review = await runVisualReviewLoop({
+      initialHtml: generatedHtml,
+      label: input.label,
+      pageId: input.pageId,
+      images: imagesForScreenshot,
+      deps: {
+        llmModel: visualRefinement.llmModel,
+        screenshotRenderer: visualRefinement.screenshotRenderer,
+        webAssetsDir: visualRefinement.webAssetsDir,
+        storeScreenshot: visualRefinement.storeScreenshot,
+      },
+      promptName: vr.promptName,
+      maxIterations: vr.maxIterations,
+      timeoutMs: vr.timeoutMs,
+      temperature: vr.temperature,
+      pageImageBase64: input.pageImageBase64,
+      promptContext: {
+        page_image_base64: input.pageImageBase64,
+        section_type: input.sectionType,
+        current_html: generatedHtml,
+      },
+      originalImageIntroText: "Here is the original page image (this is what the rendered page should resemble):",
+      firstIterationScreenshotsText: "\nHere are screenshots of the current rendered HTML at three viewport sizes:\n",
+      nextIterationScreenshotsText: "Here are the updated screenshots after your revision:\n",
+      trailingContextText: `Section type: ${input.sectionType}`,
+      validateHtml: (candidateHtml) => {
+        const check = validateWebRendering(
+          { reasoning: "visual-review", content: candidateHtml },
+          context
+        )
+        if (!check.valid) return { valid: false, errors: check.errors }
+        const cleaned = check.cleaned as { reasoning: string; content: string } | undefined
+        return { valid: true, errors: [], cleanedHtml: cleaned?.content }
+      },
+    })
+    generatedHtml = review.html
+  }
 
   // Optional: generate activity answers via a second LLM call
   let activityReasoning: string | undefined

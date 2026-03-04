@@ -1,5 +1,7 @@
 export interface LLMModel {
   generateObject<T>(options: GenerateObjectOptions): Promise<GenerateObjectResult<T>>
+  /** Render a Liquid prompt template to messages (system + user/assistant). */
+  renderPrompt(name: string, context: Record<string, unknown>): Promise<Message[]>
 }
 
 export interface GenerateObjectOptions {

@@ -188,7 +188,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   <style>
     @import url("https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300..800;1,300..800&display=swap");
     :root { --page-height: 100vh; }
-    body { margin: 0; }
+    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
     body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select {
       font-family: "Merriweather", serif;
     }

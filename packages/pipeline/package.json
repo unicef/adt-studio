@@ -20,6 +20,7 @@
     "jpeg-js": "^0.4.4",
     "js-yaml": "^4.1.0",
     "liquidjs": "^10.0.0",
+    "playwright": "^1.50.0",
     "postcss": "^8.5.0",
     "tailwindcss": "^3.4.0",
     "zod": "^3.24.0"

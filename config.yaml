@@ -79,6 +79,9 @@ render_strategies:
       model: openai:gpt-5.2
       max_retries: 5
       timeout: 180
+      visual_refinement:
+        enabled: true
+        max_iterations: 20
   llm-overlay:
     render_type: llm
     config:
@@ -86,6 +89,9 @@ render_strategies:
       model: openai:gpt-5.2
       max_retries: 25
       timeout: 180
+      visual_refinement:
+        enabled: true
+        max_iterations: 5
   two_column:
     render_type: template
     config:
@@ -102,6 +108,9 @@ render_strategies:
       model: openai:gpt-5.2
       max_retries: 5
       timeout: 180
+      visual_refinement:
+        enabled: true
+        max_iterations: 5
   activity_true_false:
     render_type: activity
     config:
@@ -110,6 +119,9 @@ render_strategies:
       model: openai:gpt-5.2
       max_retries: 5
       timeout: 180
+      visual_refinement:
+        enabled: true
+        max_iterations: 5
   activity_fill_in_the_blank:
     render_type: activity
     config:
@@ -118,6 +130,9 @@ render_strategies:
       model: openai:gpt-5.2
       max_retries: 5
       timeout: 180
+      visual_refinement:
+        enabled: true
+        max_iterations: 5
   activity_fill_in_a_table:
     render_type: activity
     config:
@@ -126,6 +141,9 @@ render_strategies:
       model: openai:gpt-5.2
       max_retries: 5
       timeout: 180
+      visual_refinement:
+        enabled: true
+        max_iterations: 5
   activity_matching:
     render_type: activity
     config:
@@ -134,6 +152,9 @@ render_strategies:
       model: openai:gpt-5.2
       max_retries: 5
       timeout: 180
+      visual_refinement:
+        enabled: true
+        max_iterations: 5
   activity_sorting:
     render_type: activity
     config:
@@ -142,6 +163,9 @@ render_strategies:
       model: openai:gpt-5.2
       max_retries: 5
       timeout: 180
+      visual_refinement:
+        enabled: true
+        max_iterations: 5
   activity_open_ended_answer:
     render_type: activity
     config:
@@ -149,6 +173,9 @@ render_strategies:
       model: openai:gpt-5.2
       max_retries: 5
       timeout: 180
+      visual_refinement:
+        enabled: true
+        max_iterations: 5
 
 section_render_strategies:
   activity_multiple_choice: activity_multiple_choice

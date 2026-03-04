@@ -1,10 +1,12 @@
+import crypto from "node:crypto"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
 import type { LLMModel } from "@adt/llm"
-import { renderPage, buildRenderStrategyResolver, createTemplateEngine, loadBookConfig } from "@adt/pipeline"
-import { loadStyleguideContent } from "./styleguide.js"
+import { renderPage, buildRenderStrategyResolver, createTemplateEngine, loadBookConfig, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID } from "@adt/pipeline"
+import type { VisualRefinementDeps } from "@adt/pipeline"
 import { PageSectioningOutput, WebRenderingOutput, webRenderingLLMSchema } from "@adt/types"
+import { loadStyleguideContent } from "./styleguide.js"
 
 export interface ReRenderOptions {
   label: string
@@ -12,6 +14,7 @@ export interface ReRenderOptions {
   sectionIndex?: number
   booksDir: string
   promptsDir: string
+  webAssetsDir?: string
   configPath?: string
   apiKey: string
 }
@@ -30,6 +33,7 @@ export interface AiEditSectionOptions {
   currentHtml?: string
   booksDir: string
   promptsDir: string
+  webAssetsDir?: string
   configPath?: string
   apiKey: string
 }
@@ -42,13 +46,14 @@ export interface AiEditSectionResult {
 export async function reRenderPage(
   options: ReRenderOptions
 ): Promise<ReRenderResult> {
-  const { label, pageId, sectionIndex, booksDir, promptsDir, configPath, apiKey } = options
+  const { label, pageId, sectionIndex, booksDir, promptsDir, webAssetsDir, configPath, apiKey } = options
 
   // Set API key
   const previousKey = process.env.OPENAI_API_KEY
   process.env.OPENAI_API_KEY = apiKey
 
   const storage = createBookStorage(label, booksDir)
+  let visualRefinement: VisualRefinementDeps | undefined
 
   try {
     // Read latest pipeline data
@@ -106,6 +111,25 @@ export async function reRenderPage(
       throw new Error(`Section index ${sectionIndex} out of range`)
     }
 
+    // Set up visual refinement if any render strategy enables it
+    if (webAssetsDir) {
+      const hasVisualRefinement = Object.values(config.render_strategies ?? {}).some(
+        (s) => s.config?.visual_refinement?.enabled
+      )
+      if (hasVisualRefinement) {
+        const screenshotRenderer = await createScreenshotRenderer()
+        visualRefinement = {
+          screenshotRenderer,
+          webAssetsDir,
+          llmModel: resolveRenderModel(DEFAULT_VISUAL_REVIEW_MODEL_ID),
+          storeScreenshot: (base64: string) => {
+            const hash = crypto.createHash("sha256").update(base64).digest("hex").slice(0, 16)
+            storage.putDebugImage(hash, Buffer.from(base64, "base64"))
+          },
+        }
+      }
+    }
+
     // Render either a single section (preferred) or the full page.
     // For section re-render we force all other sections to pruned in-memory so
     // renderPage preserves the original sectionIndex while skipping extra LLM calls.
@@ -129,7 +153,8 @@ export async function reRenderPage(
       },
       resolveRenderConfig,
       resolveRenderModel,
-      templateEngine
+      templateEngine,
+      visualRefinement,
     )
 
     if (sectionIndex === undefined) {
@@ -159,6 +184,9 @@ export async function reRenderPage(
     const version = storage.putNodeData("web-rendering", pageId, mergedRendering)
     return { version, rendering: mergedRendering }
   } finally {
+    if (visualRefinement) {
+      await visualRefinement.screenshotRenderer.close()
+    }
     storage.close()
     // Restore previous key
     if (previousKey !== undefined) {
@@ -176,7 +204,7 @@ export async function reRenderPage(
 export async function aiEditSection(
   options: AiEditSectionOptions
 ): Promise<AiEditSectionResult> {
-  const { label, pageId, sectionIndex, instruction, currentHtml: providedHtml, booksDir, promptsDir, configPath, apiKey } = options
+  const { label, pageId, sectionIndex, instruction, currentHtml: providedHtml, booksDir, promptsDir, webAssetsDir, configPath, apiKey } = options
 
   const previousKey = process.env.OPENAI_API_KEY
   process.env.OPENAI_API_KEY = apiKey
@@ -251,55 +279,117 @@ export async function aiEditSection(
       // Page image not available — proceed without it
     }
 
+    const validateEditedHtml = (rawHtml: string) => {
+      const cleanedHtml = rawHtml
+        .replace(/^```(?:html)?\s*\n?/i, "")
+        .replace(/\n?```\s*$/, "")
+      const errors: string[] = []
+
+      if (!cleanedHtml.includes("<section")) {
+        errors.push("Result must contain a <section> element")
+      }
+
+      for (const id of existingIds) {
+        if (!cleanedHtml.includes(`data-id="${id}"`)) {
+          errors.push(`Missing data-id="${id}" in result`)
+        }
+      }
+
+      for (const [imgDataId, imgSrc] of existingImgs) {
+        const escaped = imgDataId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+        const imgCheck = new RegExp(`<img\\s[^>]*data-id="${escaped}"[^>]*>`)
+        if (!imgCheck.test(cleanedHtml)) {
+          const imgCheck2 = new RegExp(`<img\\s[^>]*src="[^"]*"[^>]*data-id="${escaped}"[^>]*>`)
+          if (!imgCheck2.test(cleanedHtml)) {
+            errors.push(`Image data-id="${imgDataId}" must remain an <img> tag`)
+          }
+        }
+        if (!cleanedHtml.includes(imgSrc)) {
+          errors.push(`Image src="${imgSrc}" was removed or changed`)
+        }
+      }
+
+      return { valid: errors.length === 0, errors, cleanedHtml }
+    }
+
     const result = await model.generateObject<{ reasoning: string; content: string }>({
       schema: webRenderingLLMSchema,
       prompt: "html_edit",
       context: { current_html: currentHtml, instruction, page_image_base64: pageImageBase64 },
       validate: (obj) => {
         const r = obj as { content: string }
-        // Strip markdown fences before validation so checks run on clean HTML
-        const cleaned = r.content
-          .replace(/^```(?:html)?\s*\n?/i, "")
-          .replace(/\n?```\s*$/, "")
-        const errors: string[] = []
-
-        if (!cleaned.includes("<section")) {
-          errors.push("Result must contain a <section> element")
-        }
-
-        // Verify all existing data-ids are preserved
-        for (const id of existingIds) {
-          if (!cleaned.includes(`data-id="${id}"`)) {
-            errors.push(`Missing data-id="${id}" in result`)
-          }
-        }
-
-        // Verify all <img> tags are preserved as <img> (not replaced with another tag)
-        for (const [imgDataId, imgSrc] of existingImgs) {
-          // Check this data-id is still on an <img> tag, not a <div> or <p>
-          const imgCheck = new RegExp(`<img\\s[^>]*data-id="${imgDataId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>`)
-          if (!imgCheck.test(cleaned)) {
-            // Try reversed attribute order
-            const imgCheck2 = new RegExp(`<img\\s[^>]*src="[^"]*"[^>]*data-id="${imgDataId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>`)
-            if (!imgCheck2.test(cleaned)) {
-              errors.push(`Image data-id="${imgDataId}" must remain an <img> tag`)
-            }
-          }
-          // Check src is preserved
-          if (!cleaned.includes(imgSrc)) {
-            errors.push(`Image src="${imgSrc}" was removed or changed`)
-          }
-        }
-
-        return { valid: errors.length === 0, errors }
+        const check = validateEditedHtml(r.content)
+        return { valid: check.valid, errors: check.errors }
       },
       maxRetries: 3,
       log: { taskType: "web-rendering", pageId, promptName: "html_edit" },
     })
 
-    // Strip markdown fences if the LLM wrapped the content in ```html...```
-    let html = result.object.content
-    html = html.replace(/^```(?:html)?\s*\n?/i, "").replace(/\n?```\s*$/, "")
+    let html = validateEditedHtml(result.object.content).cleanedHtml
+
+    // Visual refinement loop — screenshot the edited HTML and verify
+    if (webAssetsDir) {
+      // Find first render strategy with visual refinement enabled
+      const vrStrategyConfig = Object.values(config.render_strategies ?? {})
+        .find((s) => s.config?.visual_refinement?.enabled)?.config?.visual_refinement
+      if (vrStrategyConfig?.enabled) {
+        const maxIterations = vrStrategyConfig.max_iterations ?? 3
+        const vrTimeout = vrStrategyConfig.timeout ?? 120
+        const vrTemperature = vrStrategyConfig.temperature
+
+        const reviewModel = createLLMModel({
+          modelId: DEFAULT_VISUAL_REVIEW_MODEL_ID,
+          cacheDir,
+          promptEngine,
+          onLog: (entry) => storage.appendLlmLog(entry),
+        })
+
+        // Build image map from data-ids in the HTML for screenshot rendering
+        const imagesForScreenshot = new Map<string, { base64: string }>()
+        for (const [imgDataId] of existingImgs) {
+          try {
+            imagesForScreenshot.set(imgDataId, { base64: storage.getImageBase64(imgDataId) })
+          } catch {
+            // Image not found in storage — skip (will show broken in screenshot)
+          }
+        }
+
+        const screenshotRenderer = await createScreenshotRenderer()
+        try {
+          const review = await runVisualReviewLoop({
+            initialHtml: html,
+            label,
+            pageId,
+            images: imagesForScreenshot,
+            deps: {
+              llmModel: reviewModel,
+              screenshotRenderer,
+              webAssetsDir,
+              storeScreenshot: (base64) => {
+                const hash = crypto.createHash("sha256").update(base64).digest("hex").slice(0, 16)
+                storage.putDebugImage(hash, Buffer.from(base64, "base64"))
+              },
+            },
+            promptName: "visual_review_edit",
+            maxIterations,
+            timeoutMs: vrTimeout * 1000,
+            temperature: vrTemperature,
+            pageImageBase64,
+            promptContext: { instruction },
+            firstIterationScreenshotsText: "\nHere are screenshots of the edited HTML at three viewport sizes:\n",
+            nextIterationScreenshotsText: "Here are the updated screenshots after your revision:\n",
+            trailingContextText: `Edit instruction: ${instruction}`,
+            validateHtml: (candidateHtml) => {
+              const check = validateEditedHtml(candidateHtml)
+              return { valid: check.valid, errors: check.errors, cleanedHtml: check.cleanedHtml }
+            },
+          })
+          html = review.html
+        } finally {
+          await screenshotRenderer.close()
+        }
+      }
+    }
 
     return { html, reasoning: result.object.reasoning }
   } finally {

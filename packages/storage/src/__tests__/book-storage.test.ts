@@ -432,3 +432,28 @@ describe("appendLlmLog", () => {
     storage.close()
   })
 })
+
+describe("debug_images", () => {
+  it("stores and clears debug images", () => {
+    const { storage, paths } = createTempStorage()
+
+    storage.putDebugImage("aaaaaaaaaaaaaaaa", Buffer.from("one"))
+    storage.putDebugImage("bbbbbbbbbbbbbbbb", Buffer.from("two"))
+    // Duplicate hash is ignored
+    storage.putDebugImage("aaaaaaaaaaaaaaaa", Buffer.from("ignored"))
+
+    const debugDir = path.join(paths.bookDir, ".debug-images")
+    let files = fs.readdirSync(debugDir).sort()
+    expect(files).toEqual([
+      "aaaaaaaaaaaaaaaa.png",
+      "bbbbbbbbbbbbbbbb.png",
+    ])
+
+    storage.clearDebugImages()
+
+    files = fs.readdirSync(debugDir)
+    expect(files).toHaveLength(0)
+
+    storage.close()
+  })
+})
