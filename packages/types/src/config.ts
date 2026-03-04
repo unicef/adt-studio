@@ -51,7 +51,6 @@ export const VisualRefinementStrategyConfig = z.object({
   enabled: z.boolean().optional(),
   max_iterations: z.number().int().min(1).max(50).optional(),
   prompt: z.string().optional(),
-  model: z.string().optional(),
   timeout: z.number().int().min(1).optional(),
   temperature: z.number().min(0).max(2).optional(),
 })

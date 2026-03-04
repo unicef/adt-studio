@@ -43,6 +43,7 @@ On mobile only (no prefix), favor a single-column stacked layout (images and tex
 
 ## RULES
 - Preserve ALL data-id attributes exactly as they are
+- Elements with `data-id` attributes are TEXT-ONLY containers — their inner content is replaced with literal text at render time. Do NOT nest any HTML tags (like `<span>`, `<strong>`, `<em>`, etc.) inside them. Any styling must be applied to the element itself via Tailwind classes, not to nested child elements.
 - Preserve ALL text content exactly — do not change, add, or remove any words (unless the edit instruction specifically asks for text changes)
 - Preserve ALL image tags and their data-id attributes
 - Only change layout and styling: Tailwind CSS classes, inline styles, spacing, positioning

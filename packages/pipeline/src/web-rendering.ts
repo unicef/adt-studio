@@ -30,7 +30,6 @@ export interface VisualRefinementConfig {
   enabled: boolean
   maxIterations: number
   promptName: string
-  modelId: string
   timeoutMs: number
   temperature: number
 }
@@ -206,7 +205,6 @@ const DEFAULT_RENDER_CONFIG = {
 
 const DEFAULT_VISUAL_REFINEMENT = {
   prompt: "visual_review",
-  model: "openai:gpt-5.2",
   max_iterations: 5,
   timeout: 180,
   temperature: 0.3,
@@ -254,7 +252,6 @@ export function buildRenderStrategyResolver(
           enabled: true,
           maxIterations: vr.max_iterations ?? DEFAULT_VISUAL_REFINEMENT.max_iterations,
           promptName: vr.prompt ?? DEFAULT_VISUAL_REFINEMENT.prompt,
-          modelId: vr.model ?? cfg?.model ?? DEFAULT_VISUAL_REFINEMENT.model,
           timeoutMs: (vr.timeout ?? DEFAULT_VISUAL_REFINEMENT.timeout) * 1000,
           temperature: vr.temperature ?? DEFAULT_VISUAL_REFINEMENT.temperature,
         },

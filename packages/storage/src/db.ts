@@ -56,12 +56,6 @@ CREATE TABLE IF NOT EXISTS step_runs (
   error TEXT,
   message TEXT
 );
-
-CREATE TABLE IF NOT EXISTS debug_images (
-  hash TEXT PRIMARY KEY,
-  data BLOB NOT NULL,
-  created_at TEXT NOT NULL
-);
 `
 
 export function openBookDb(dbPath: string): sqlite.Database {
@@ -95,7 +89,10 @@ function initSchema(db: sqlite.Database): void {
   }>
   const existing = rows[0]?.version ?? 0
 
-  if (existing === SCHEMA_VERSION) return
+  if (existing === SCHEMA_VERSION) {
+    cleanupDeprecatedSchema(db)
+    return
+  }
 
   let version = existing
 
@@ -117,13 +114,14 @@ function initSchema(db: sqlite.Database): void {
     version = 8
   }
 
-  // Migrate v8 → v9: add debug_images table
+  // Migrate v8 → v9: reserved (no-op)
   if (version === 8) {
     migrateV8toV9(db)
     version = 9
   }
 
   if (version === SCHEMA_VERSION) {
+    cleanupDeprecatedSchema(db)
     upsertSchemaVersion(db, SCHEMA_VERSION)
     return
   }
@@ -261,17 +259,16 @@ function migrateV7toV8(db: sqlite.Database): void {
 }
 
 /**
- * Migrate v8 → v9: add debug_images table for storing screenshot PNGs
- * so they can be resolved from LLM log image hash placeholders.
+ * Migrate v8 → v9: reserved (no schema change).
  */
 function migrateV8toV9(db: sqlite.Database): void {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS debug_images (
-      hash TEXT PRIMARY KEY,
-      data BLOB NOT NULL,
-      created_at TEXT NOT NULL
-    )
-  `)
+  // No-op migration to keep compatibility with existing v9 databases.
+  void db
+}
+
+/** Remove deprecated schema artifacts from older builds. */
+function cleanupDeprecatedSchema(db: sqlite.Database): void {
+  db.exec("DROP TABLE IF EXISTS debug_images")
 }
 
 function upsertSchemaVersion(db: sqlite.Database, version: number): void {

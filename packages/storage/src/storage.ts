@@ -73,8 +73,10 @@ export interface Storage {
 
   appendLlmLog(entry: LlmLogEntry): void
 
-  /** Store a debug image (e.g. screenshot) by its log hash so it can be resolved in the LLM log UI. */
+  /** Store a debug image (e.g. screenshot) by hash as a file under the book directory. */
   putDebugImage(hash: string, data: Buffer): void
+  /** Clear all debug images (used when regenerating storyboard outputs). */
+  clearDebugImages(): void
 
   close(): void
 }

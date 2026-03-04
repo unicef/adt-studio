@@ -74,6 +74,14 @@ export {
 } from "./web-rendering.js"
 export { renderSectionLlm, type VisualRefinementDeps } from "./render-llm.js"
 export {
+  DEFAULT_VISUAL_REVIEW_MODEL_ID,
+  runVisualReviewLoop,
+  type VisualReviewDeps,
+  type RunVisualReviewLoopOptions,
+  type VisualReviewResult,
+  type VisualReviewValidation,
+} from "./visual-review.js"
+export {
   createScreenshotRenderer,
   SCREENSHOT_VIEWPORTS,
   getViewportBreakpoints,

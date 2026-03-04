@@ -268,4 +268,23 @@ describe("Debug routes", () => {
       expect(res.status).toBe(404)
     })
   })
+
+  describe("GET /api/books/:label/debug/llm-image/:hash", () => {
+    it("returns file-backed debug screenshot by hash", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putDebugImage("aaaaaaaaaaaaaaaa", Buffer.from("debug-png-bytes"))
+      } finally {
+        storage.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/debug/llm-image/aaaaaaaaaaaaaaaa`
+      )
+      expect(res.status).toBe(200)
+      expect(res.headers.get("content-type")).toContain("image/png")
+      const body = Buffer.from(await res.arrayBuffer())
+      expect(body.toString("utf-8")).toBe("debug-png-bytes")
+    })
+  })
 })

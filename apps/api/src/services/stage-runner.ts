@@ -54,6 +54,7 @@ import {
   buildSegmentationConfig,
   getSegmentedImageId,
   createScreenshotRenderer,
+  DEFAULT_VISUAL_REVIEW_MODEL_ID,
 } from "@adt/pipeline"
 import type { TranslationConfig, QuizPageInput, ProviderRouting, MeaningfulnessConfig, CroppingConfig, SegmentationConfig, VisualRefinementDeps } from "@adt/pipeline"
 import { loadStyleguideContent } from "./styleguide.js"
@@ -576,10 +577,7 @@ async function runStoryboardStep(
         visualRefinement = {
           screenshotRenderer,
           webAssetsDir,
-          llmModel: resolveRenderModel(config.render_strategies
-            ? Object.values(config.render_strategies).find((s) => s.config?.visual_refinement?.model)?.config?.visual_refinement?.model
-              ?? "openai:gpt-5.2"
-            : "openai:gpt-5.2"),
+          llmModel: resolveRenderModel(DEFAULT_VISUAL_REVIEW_MODEL_ID),
           storeScreenshot: (base64: string) => {
             const hash = crypto.createHash("sha256").update(base64).digest("hex").slice(0, 16)
             storage.putDebugImage(hash, Buffer.from(base64, "base64"))

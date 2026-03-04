@@ -38,11 +38,10 @@ export interface ScreenshotRenderer {
  * Create a Playwright-backed screenshot renderer.
  * Launches a headless Chromium browser once — call close() when done.
  *
- * Playwright is dynamically imported so this module can be loaded even when
- * playwright is not installed (visual refinement is opt-in).
+ * Playwright is dynamically imported so startup does not eagerly load Chromium.
  */
 export async function createScreenshotRenderer(): Promise<ScreenshotRenderer> {
-  // Dynamic import — playwright is an optional dependency
+  // Dynamic import keeps this path lazy.
   const pw = await import("playwright" as string) as {
     chromium: {
       launch(opts: { headless: boolean }): Promise<PlaywrightBrowser>

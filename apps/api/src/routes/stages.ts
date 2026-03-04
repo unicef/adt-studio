@@ -39,6 +39,9 @@ function makeBeforeRun(label: string, fromStage: StageName, booksDir: string, re
         if (nodes.length > 0) {
           storage.clearNodesByType(nodes)
         }
+        if (fromStage === "storyboard" && typeof storage.clearDebugImages === "function") {
+          storage.clearDebugImages()
+        }
         // Clear step run records for all downstream stages
         const stagesToClear = getStageClearOrder(fromStage)
         let stepsToClear = PIPELINE

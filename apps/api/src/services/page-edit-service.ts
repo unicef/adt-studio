@@ -3,11 +3,10 @@ import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
 import type { LLMModel } from "@adt/llm"
-import { renderPage, buildRenderStrategyResolver, createTemplateEngine, loadBookConfig, createScreenshotRenderer, SCREENSHOT_VIEWPORTS, getViewportBreakpoints, buildScreenshotHtml } from "@adt/pipeline"
+import { renderPage, buildRenderStrategyResolver, createTemplateEngine, loadBookConfig, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID } from "@adt/pipeline"
 import type { VisualRefinementDeps } from "@adt/pipeline"
-import type { Message, ContentPart } from "@adt/llm"
+import { PageSectioningOutput, WebRenderingOutput, webRenderingLLMSchema } from "@adt/types"
 import { loadStyleguideContent } from "./styleguide.js"
-import { PageSectioningOutput, WebRenderingOutput, webRenderingLLMSchema, visualReviewLLMSchema } from "@adt/types"
 
 export interface ReRenderOptions {
   label: string
@@ -122,10 +121,7 @@ export async function reRenderPage(
         visualRefinement = {
           screenshotRenderer,
           webAssetsDir,
-          llmModel: resolveRenderModel(
-            Object.values(config.render_strategies ?? {}).find((s) => s.config?.visual_refinement?.model)?.config?.visual_refinement?.model
-              ?? "openai:gpt-5.2"
-          ),
+          llmModel: resolveRenderModel(DEFAULT_VISUAL_REVIEW_MODEL_ID),
           storeScreenshot: (base64: string) => {
             const hash = crypto.createHash("sha256").update(base64).digest("hex").slice(0, 16)
             storage.putDebugImage(hash, Buffer.from(base64, "base64"))
@@ -283,55 +279,53 @@ export async function aiEditSection(
       // Page image not available — proceed without it
     }
 
+    const validateEditedHtml = (rawHtml: string) => {
+      const cleanedHtml = rawHtml
+        .replace(/^```(?:html)?\s*\n?/i, "")
+        .replace(/\n?```\s*$/, "")
+      const errors: string[] = []
+
+      if (!cleanedHtml.includes("<section")) {
+        errors.push("Result must contain a <section> element")
+      }
+
+      for (const id of existingIds) {
+        if (!cleanedHtml.includes(`data-id="${id}"`)) {
+          errors.push(`Missing data-id="${id}" in result`)
+        }
+      }
+
+      for (const [imgDataId, imgSrc] of existingImgs) {
+        const escaped = imgDataId.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+        const imgCheck = new RegExp(`<img\\s[^>]*data-id="${escaped}"[^>]*>`)
+        if (!imgCheck.test(cleanedHtml)) {
+          const imgCheck2 = new RegExp(`<img\\s[^>]*src="[^"]*"[^>]*data-id="${escaped}"[^>]*>`)
+          if (!imgCheck2.test(cleanedHtml)) {
+            errors.push(`Image data-id="${imgDataId}" must remain an <img> tag`)
+          }
+        }
+        if (!cleanedHtml.includes(imgSrc)) {
+          errors.push(`Image src="${imgSrc}" was removed or changed`)
+        }
+      }
+
+      return { valid: errors.length === 0, errors, cleanedHtml }
+    }
+
     const result = await model.generateObject<{ reasoning: string; content: string }>({
       schema: webRenderingLLMSchema,
       prompt: "html_edit",
       context: { current_html: currentHtml, instruction, page_image_base64: pageImageBase64 },
       validate: (obj) => {
         const r = obj as { content: string }
-        // Strip markdown fences before validation so checks run on clean HTML
-        const cleaned = r.content
-          .replace(/^```(?:html)?\s*\n?/i, "")
-          .replace(/\n?```\s*$/, "")
-        const errors: string[] = []
-
-        if (!cleaned.includes("<section")) {
-          errors.push("Result must contain a <section> element")
-        }
-
-        // Verify all existing data-ids are preserved
-        for (const id of existingIds) {
-          if (!cleaned.includes(`data-id="${id}"`)) {
-            errors.push(`Missing data-id="${id}" in result`)
-          }
-        }
-
-        // Verify all <img> tags are preserved as <img> (not replaced with another tag)
-        for (const [imgDataId, imgSrc] of existingImgs) {
-          // Check this data-id is still on an <img> tag, not a <div> or <p>
-          const imgCheck = new RegExp(`<img\\s[^>]*data-id="${imgDataId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>`)
-          if (!imgCheck.test(cleaned)) {
-            // Try reversed attribute order
-            const imgCheck2 = new RegExp(`<img\\s[^>]*src="[^"]*"[^>]*data-id="${imgDataId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>`)
-            if (!imgCheck2.test(cleaned)) {
-              errors.push(`Image data-id="${imgDataId}" must remain an <img> tag`)
-            }
-          }
-          // Check src is preserved
-          if (!cleaned.includes(imgSrc)) {
-            errors.push(`Image src="${imgSrc}" was removed or changed`)
-          }
-        }
-
-        return { valid: errors.length === 0, errors }
+        const check = validateEditedHtml(r.content)
+        return { valid: check.valid, errors: check.errors }
       },
       maxRetries: 3,
       log: { taskType: "web-rendering", pageId, promptName: "html_edit" },
     })
 
-    // Strip markdown fences if the LLM wrapped the content in ```html...```
-    let html = result.object.content
-    html = html.replace(/^```(?:html)?\s*\n?/i, "").replace(/\n?```\s*$/, "")
+    let html = validateEditedHtml(result.object.content).cleanedHtml
 
     // Visual refinement loop — screenshot the edited HTML and verify
     if (webAssetsDir) {
@@ -340,12 +334,11 @@ export async function aiEditSection(
         .find((s) => s.config?.visual_refinement?.enabled)?.config?.visual_refinement
       if (vrStrategyConfig?.enabled) {
         const maxIterations = vrStrategyConfig.max_iterations ?? 3
-        const vrModelId = vrStrategyConfig.model ?? "openai:gpt-5.2"
         const vrTimeout = vrStrategyConfig.timeout ?? 120
         const vrTemperature = vrStrategyConfig.temperature
 
         const reviewModel = createLLMModel({
-          modelId: vrModelId,
+          modelId: DEFAULT_VISUAL_REVIEW_MODEL_ID,
           cacheDir,
           promptEngine,
           onLog: (entry) => storage.appendLlmLog(entry),
@@ -361,131 +354,37 @@ export async function aiEditSection(
           }
         }
 
-        // Render the review prompt template to get system message
-        const initialMessages = await reviewModel.renderPrompt("visual_review_edit", {
-          instruction,
-          viewports: getViewportBreakpoints(),
-        })
-        const systemMsg = initialMessages.find((m) => m.role === "system")
-        const systemPrompt = typeof systemMsg?.content === "string" ? systemMsg.content : undefined
-
         const screenshotRenderer = await createScreenshotRenderer()
         try {
-          const conversationMessages: Message[] = []
-
-          for (let iteration = 0; iteration < maxIterations; iteration++) {
-            const screenshotHtml = await buildScreenshotHtml({
-              sectionHtml: html,
-              label,
-              images: imagesForScreenshot,
+          const review = await runVisualReviewLoop({
+            initialHtml: html,
+            label,
+            pageId,
+            images: imagesForScreenshot,
+            deps: {
+              llmModel: reviewModel,
+              screenshotRenderer,
               webAssetsDir,
-            })
-
-            // Take screenshots at multiple viewport sizes
-            const screenshotParts: ContentPart[] = []
-            for (const vp of SCREENSHOT_VIEWPORTS) {
-              const base64 = await screenshotRenderer.screenshot(
-                screenshotHtml,
-                { width: vp.width, height: vp.height }
-              )
-              // Store for debug UI
-              const hash = crypto.createHash("sha256").update(base64).digest("hex").slice(0, 16)
-              storage.putDebugImage(hash, Buffer.from(base64, "base64"))
-              screenshotParts.push(
-                { type: "text", text: `${vp.label} screenshot (${vp.width}px wide):` },
-                { type: "image", image: base64 },
-              )
-            }
-
-            // Build user message
-            const userParts: ContentPart[] = []
-            if (iteration === 0) {
-              if (pageImageBase64) {
-                userParts.push(
-                  { type: "text", text: "Here is the original page image for reference:" },
-                  { type: "image", image: pageImageBase64 },
-                )
-              }
-              userParts.push(
-                { type: "text", text: "\nHere are screenshots of the edited HTML at three viewport sizes:\n" },
-              )
-            } else {
-              userParts.push(
-                { type: "text", text: "Here are the updated screenshots after your revision:\n" },
-              )
-            }
-            userParts.push(...screenshotParts)
-            userParts.push(
-              { type: "text", text: `\nEdit instruction: ${instruction}\n\nCurrent HTML:\n\`\`\`html\n${html}\n\`\`\`` },
-            )
-
-            conversationMessages.push({ role: "user", content: userParts })
-
-            const reviewResult = await reviewModel.generateObject<{
-              approved: boolean
-              reasoning: string
-              content: string
-            }>({
-              schema: visualReviewLLMSchema,
-              system: systemPrompt,
-              messages: conversationMessages,
-              maxRetries: 2,
-              maxTokens: 16384,
-              temperature: vrTemperature,
-              timeoutMs: vrTimeout * 1000,
-              log: {
-                taskType: "visual-review",
-                pageId,
-                promptName: "visual_review_edit",
+              storeScreenshot: (base64) => {
+                const hash = crypto.createHash("sha256").update(base64).digest("hex").slice(0, 16)
+                storage.putDebugImage(hash, Buffer.from(base64, "base64"))
               },
-            })
-
-            conversationMessages.push({
-              role: "assistant",
-              content: JSON.stringify(reviewResult.object, null, 2),
-            })
-
-            if (reviewResult.object.approved) break
-            if (!reviewResult.object.content) break
-
-            // Validate the revised HTML structurally before accepting
-            const revised = reviewResult.object.content
-              .replace(/^```(?:html)?\s*\n?/i, "")
-              .replace(/\n?```\s*$/, "")
-
-            const errors: string[] = []
-            if (!revised.includes("<section")) {
-              errors.push("Result must contain a <section> element")
-            }
-            for (const id of existingIds) {
-              if (!revised.includes(`data-id="${id}"`)) {
-                errors.push(`Missing data-id="${id}" in result`)
-              }
-            }
-            for (const [imgDataId, imgSrc] of existingImgs) {
-              const imgCheck = new RegExp(`<img\\s[^>]*data-id="${imgDataId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>`)
-              if (!imgCheck.test(revised)) {
-                const imgCheck2 = new RegExp(`<img\\s[^>]*src="[^"]*"[^>]*data-id="${imgDataId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>`)
-                if (!imgCheck2.test(revised)) {
-                  errors.push(`Image data-id="${imgDataId}" must remain an <img> tag`)
-                }
-              }
-              if (!revised.includes(imgSrc)) {
-                errors.push(`Image src="${imgSrc}" was removed or changed`)
-              }
-            }
-
-            if (errors.length === 0) {
-              html = revised
-            } else {
-              conversationMessages.push({
-                role: "user",
-                content: "Your revision failed structural validation with these errors:\n" +
-                  errors.map((e) => `- ${e}`).join("\n") +
-                  "\n\nPlease fix these issues in your next revision.",
-              })
-            }
-          }
+            },
+            promptName: "visual_review_edit",
+            maxIterations,
+            timeoutMs: vrTimeout * 1000,
+            temperature: vrTemperature,
+            pageImageBase64,
+            promptContext: { instruction },
+            firstIterationScreenshotsText: "\nHere are screenshots of the edited HTML at three viewport sizes:\n",
+            nextIterationScreenshotsText: "Here are the updated screenshots after your revision:\n",
+            trailingContextText: `Edit instruction: ${instruction}`,
+            validateHtml: (candidateHtml) => {
+              const check = validateEditedHtml(candidateHtml)
+              return { valid: check.valid, errors: check.errors, cleanedHtml: check.cleanedHtml }
+            },
+          })
+          html = review.html
         } finally {
           await screenshotRenderer.close()
         }

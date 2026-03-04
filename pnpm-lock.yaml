@@ -231,6 +231,9 @@ importers:
       liquidjs:
         specifier: ^10.0.0
         version: 10.24.0
+      playwright:
+        specifier: ^1.50.0
+        version: 1.58.2
       postcss:
         specifier: ^8.5.0
         version: 8.5.6
@@ -253,10 +256,6 @@ importers:
       pngjs:
         specifier: ^7.0.0
         version: 7.0.0
-    optionalDependencies:
-      playwright:
-        specifier: ^1.50.0
-        version: 1.58.2
 
   packages/storage:
     dependencies:
@@ -4921,15 +4920,13 @@ snapshots:
 
   pirates@4.0.7: {}
 
-  playwright-core@1.58.2:
-    optional: true
+  playwright-core@1.58.2: {}
 
   playwright@1.58.2:
     dependencies:
       playwright-core: 1.58.2
     optionalDependencies:
       fsevents: 2.3.2
-    optional: true
 
   pngjs@7.0.0: {}
 
