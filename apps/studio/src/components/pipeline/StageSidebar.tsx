@@ -352,7 +352,7 @@ function PageRow({
   onSelectSection,
 }: {
   bookLabel: string
-  page: { pageId: string; textPreview: string; pageNumber: number; sectionCount: number }
+  page: { pageId: string; textPreview: string; pageNumber: number; sectionCount: number; prunedSections?: number[] }
   isActive: boolean
   activeStepDef?: (typeof STAGES)[number]
   onSelect: () => void
@@ -454,22 +454,25 @@ function PageRow({
           "flex flex-wrap gap-0.5 px-2 pb-1.5 -mt-0.5",
           activeStepDef?.bgLight ?? "bg-violet-50"
         )}>
-          {Array.from({ length: page.sectionCount }, (_, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => onSelectSection(i)}
-              className={cn(
-                "flex items-center justify-center min-w-[18px] h-[18px] px-0.5 rounded text-[9px] font-medium transition-colors",
-                i === (sectionIndex ?? 0)
-                  ? cn(activeStepDef?.color ?? "bg-violet-600", "text-white")
-                  : "bg-black/5 text-black/40 hover:bg-black/10 hover:text-black/60"
-              )}
-              title={`Section ${i + 1}`}
-            >
-              {i + 1}
-            </button>
-          ))}
+          {Array.from({ length: page.sectionCount }, (_, i) => {
+            const pruned = page.prunedSections?.includes(i)
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={() => onSelectSection(i)}
+                className={cn(
+                  "flex items-center justify-center min-w-[18px] h-[18px] px-0.5 rounded text-[9px] font-medium transition-colors",
+                  i === (sectionIndex ?? 0)
+                    ? cn(activeStepDef?.color ?? "bg-violet-600", pruned ? "text-white/50 line-through" : "text-white")
+                    : pruned ? "bg-black/5 text-black/20 line-through hover:bg-black/10 hover:text-black/40" : "bg-black/5 text-black/40 hover:bg-black/10 hover:text-black/60"
+                )}
+                title={`Section ${i + 1}${pruned ? " (pruned)" : ""}`}
+              >
+                {i + 1}
+              </button>
+            )
+          })}
         </div>
       )}
     </div>

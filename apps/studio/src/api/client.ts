@@ -107,6 +107,7 @@ export interface PageSummaryItem {
   imageCount: number
   wordCount: number
   sectionCount: number
+  prunedSections: number[]
 }
 
 export interface SectionRendering {

@@ -376,21 +376,24 @@ export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { book
               <>
                 <span className="text-white/40 text-sm">/</span>
                 <div className="flex items-center gap-0.5">
-                  {Array.from({ length: selectedPageSummary.sectionCount }, (_, i) => (
-                    <button
-                      key={i}
-                      type="button"
-                      onClick={() => setSectionIndex(i)}
-                      className={`flex items-center justify-center min-w-[20px] h-5 px-1 rounded text-[10px] font-medium transition-colors ${
-                        i === sectionIndex
-                          ? "bg-white/30 text-white"
-                          : "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"
-                      }`}
-                      title={`Section ${i + 1}`}
-                    >
-                      {i + 1}
-                    </button>
-                  ))}
+                  {Array.from({ length: selectedPageSummary.sectionCount }, (_, i) => {
+                    const pruned = selectedPageSummary.prunedSections?.includes(i)
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setSectionIndex(i)}
+                        className={`flex items-center justify-center min-w-[20px] h-5 px-1 rounded text-[10px] font-medium transition-colors ${
+                          i === sectionIndex
+                            ? pruned ? "bg-white/20 text-white/50 line-through decoration-white/40" : "bg-white/30 text-white"
+                            : pruned ? "bg-white/5 text-white/30 line-through decoration-white/20 hover:bg-white/10 hover:text-white/50" : "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"
+                        }`}
+                        title={`Section ${i + 1}${pruned ? " (pruned)" : ""}`}
+                      >
+                        {i + 1}
+                      </button>
+                    )
+                  })}
                 </div>
               </>
             )}
