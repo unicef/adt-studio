@@ -433,6 +433,11 @@ function PageRow({
           </span>
           <span className="text-[9px] font-mono opacity-50 leading-none">
             pg {page.pageNumber}
+            {page.sectionCount > 1 && (
+              <span className="ml-1 inline-flex items-center justify-center min-w-[14px] h-[12px] px-0.5 rounded bg-black/10 text-[8px] font-semibold not-italic leading-none">
+                {page.sectionCount}
+              </span>
+            )}
           </span>
         </div>
         {showPreview && imgSrc && createPortal(
