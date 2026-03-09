@@ -19,6 +19,8 @@ interface PageSummary {
   textPreview: string
   imageCount: number
   wordCount: number
+  sectionCount: number
+  prunedSections: number[]
 }
 
 interface PageDetail {
@@ -117,6 +119,30 @@ export function createPageRoutes(
         }
       }
 
+      // Get section counts and pruned indices per page from page-sectioning node data
+      const sectionCounts = new Map<string, number>()
+      const prunedSections = new Map<string, number[]>()
+      const sectionRows = db.all(
+        "SELECT item_id, data FROM node_data WHERE node = ? ORDER BY version DESC",
+        ["page-sectioning"]
+      ) as Array<{ item_id: string; data: string }>
+      for (const row of sectionRows) {
+        if (!sectionCounts.has(row.item_id)) {
+          try {
+            const parsed = JSON.parse(row.data)
+            const sections = parsed.sections as Array<{ isPruned?: boolean }>
+            sectionCounts.set(row.item_id, sections?.length ?? 0)
+            const pruned = (sections ?? []).reduce<number[]>((acc, s, i) => {
+              if (s.isPruned) acc.push(i)
+              return acc
+            }, [])
+            if (pruned.length > 0) prunedSections.set(row.item_id, pruned)
+          } catch {
+            sectionCounts.set(row.item_id, 0)
+          }
+        }
+      }
+
       // Get classified text per page from text-classification node data
       const classifiedText = new Map<string, string>()
       const textClassRows = db.all(
@@ -148,6 +174,8 @@ export function createPageRoutes(
         textPreview: classifiedText.get(p.page_id) ?? p.text.slice(0, 150),
         imageCount: imageCounts.get(p.page_id) ?? 0,
         wordCount: p.text.trim() ? p.text.trim().split(/\s+/).length : 0,
+        sectionCount: sectionCounts.get(p.page_id) ?? 0,
+        prunedSections: prunedSections.get(p.page_id) ?? [],
       }))
 
       return c.json(result)

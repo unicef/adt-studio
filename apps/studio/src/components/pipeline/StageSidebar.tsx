@@ -75,11 +75,15 @@ export function StageSidebar({
   activeStep,
   selectedPageId,
   onSelectPage,
+  sectionIndex,
+  onSelectSection,
 }: {
   bookLabel: string
   activeStep: string
   selectedPageId?: string
   onSelectPage?: (pageId: string | null) => void
+  sectionIndex?: number
+  onSelectSection?: (index: number) => void
 }) {
   const matchRoute = useMatchRoute()
   const search = useSearch({ strict: false }) as { tab?: string }
@@ -271,6 +275,8 @@ export function StageSidebar({
                 activeStep={activeStep}
                 selectedPageId={selectedPageId}
                 onSelectPage={onSelectPage}
+                sectionIndex={sectionIndex}
+                onSelectSection={onSelectSection}
               />
             </div>
           </div>
@@ -292,11 +298,15 @@ function PageIndex({
   activeStep,
   selectedPageId,
   onSelectPage,
+  sectionIndex,
+  onSelectSection,
 }: {
   bookLabel: string
   activeStep: string
   selectedPageId?: string
   onSelectPage?: (pageId: string) => void
+  sectionIndex?: number
+  onSelectSection?: (index: number) => void
 }) {
   const { data: pages } = usePages(bookLabel)
   const activeStepDef = STAGES.find((s) => s.slug === activeStep)
@@ -321,6 +331,8 @@ function PageIndex({
             isActive={isActive}
             activeStepDef={activeStepDef}
             onSelect={() => onSelectPage?.(page.pageId)}
+            sectionIndex={isActive ? sectionIndex : undefined}
+            onSelectSection={isActive ? onSelectSection : undefined}
           />
         )
       })}
@@ -336,12 +348,16 @@ function PageRow({
   isActive,
   activeStepDef,
   onSelect,
+  sectionIndex,
+  onSelectSection,
 }: {
   bookLabel: string
-  page: { pageId: string; textPreview: string; pageNumber: number }
+  page: { pageId: string; textPreview: string; pageNumber: number; sectionCount: number; prunedSections?: number[] }
   isActive: boolean
   activeStepDef?: (typeof STAGES)[number]
   onSelect: () => void
+  sectionIndex?: number
+  onSelectSection?: (index: number) => void
 }) {
   const { data, isLoading } = usePageImage(bookLabel, page.pageId)
   const [showPreview, setShowPreview] = useState(false)
@@ -385,51 +401,81 @@ function PageRow({
 
   const imgSrc = data?.imageBase64 ? `data:image/png;base64,${data.imageBase64}` : null
 
+  const showSections = isActive && page.sectionCount > 1 && onSelectSection
+
   return (
-    <button
-      ref={rowRef}
-      type="button"
-      onClick={onSelect}
-      className={cn(
-        "flex items-start gap-2 px-2 py-1.5 text-left transition-colors",
-        isActive
-          ? cn(activeStepDef?.bgLight ?? "bg-violet-50", activeStepDef?.textColor ?? "text-violet-600", "font-medium")
-          : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
-      )}
-    >
-      {isLoading || !imgSrc ? (
-        <div className="shrink-0 w-16 h-12 bg-muted rounded ring-1 ring-border" />
-      ) : (
-        <img
-          src={imgSrc}
-          alt=""
-          onMouseEnter={handleEnter}
-          onMouseLeave={handleLeave}
-          className="shrink-0 w-16 h-12 rounded object-cover object-center ring-1 ring-border"
-        />
-      )}
-      <div className="flex flex-col gap-0.5 min-w-0 flex-1 pt-0.5">
-        <span className="text-[11px] leading-snug line-clamp-2">
-          {page.textPreview || "Untitled"}
-        </span>
-        <span className="text-[9px] font-mono opacity-50 leading-none">
-          pg {page.pageNumber}
-        </span>
-      </div>
-      {showPreview && imgSrc && createPortal(
-        <div
-          className="fixed z-50 pointer-events-none animate-in fade-in duration-150"
-          style={{ top: previewPos.top, left: previewPos.left }}
-        >
+    <div>
+      <button
+        ref={rowRef}
+        type="button"
+        onClick={onSelect}
+        className={cn(
+          "flex items-start gap-2 px-2 py-1.5 text-left transition-colors w-full",
+          isActive
+            ? cn(activeStepDef?.bgLight ?? "bg-violet-50", activeStepDef?.textColor ?? "text-violet-600", "font-medium")
+            : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+        )}
+      >
+        {isLoading || !imgSrc ? (
+          <div className="shrink-0 w-16 h-12 bg-muted rounded ring-1 ring-border" />
+        ) : (
           <img
             src={imgSrc}
             alt=""
-            className="h-[400px] w-auto rounded-lg shadow-xl ring-1 ring-border"
+            onMouseEnter={handleEnter}
+            onMouseLeave={handleLeave}
+            className="shrink-0 w-16 h-12 rounded object-cover object-center ring-1 ring-border"
           />
-        </div>,
-        document.body
+        )}
+        <div className="flex flex-col gap-0.5 min-w-0 flex-1 pt-0.5">
+          <span className="text-[11px] leading-snug line-clamp-2">
+            {page.textPreview || "Untitled"}
+          </span>
+          <span className="text-[9px] font-mono opacity-50 leading-none">
+            pg {page.pageNumber}
+          </span>
+        </div>
+        {showPreview && imgSrc && createPortal(
+          <div
+            className="fixed z-50 pointer-events-none animate-in fade-in duration-150"
+            style={{ top: previewPos.top, left: previewPos.left }}
+          >
+            <img
+              src={imgSrc}
+              alt=""
+              className="h-[400px] w-auto rounded-lg shadow-xl ring-1 ring-border"
+            />
+          </div>,
+          document.body
+        )}
+      </button>
+      {showSections && (
+        <div className={cn(
+          "flex flex-wrap gap-0.5 px-2 pb-1.5 -mt-0.5",
+          activeStepDef?.bgLight ?? "bg-violet-50"
+        )}>
+          {Array.from({ length: page.sectionCount }, (_, i) => {
+            const pruned = page.prunedSections?.includes(i)
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={() => onSelectSection(i)}
+                className={cn(
+                  "flex items-center justify-center min-w-[18px] h-[18px] px-0.5 rounded text-[9px] font-medium transition-colors",
+                  i === (sectionIndex ?? 0)
+                    ? cn(activeStepDef?.color ?? "bg-violet-600", pruned ? "text-white/50 line-through" : "text-white")
+                    : pruned ? "bg-black/5 text-black/20 line-through hover:bg-black/10 hover:text-black/40" : "bg-black/5 text-black/40 hover:bg-black/10 hover:text-black/60"
+                )}
+                title={`Section ${i + 1}${pruned ? " (pruned)" : ""}`}
+              >
+                {i + 1}
+              </button>
+            )
+          })}
+        </div>
       )}
-    </button>
+    </div>
   )
 }
 
