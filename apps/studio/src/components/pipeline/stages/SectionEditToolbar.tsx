@@ -1,4 +1,4 @@
-import { Crop, Eye, EyeOff, Pencil, Scissors, Sparkles, Type, Upload } from "lucide-react"
+import { Crop, Eye, EyeOff, Pencil, Scissors, Sparkles, Trash2, Type, Upload } from "lucide-react"
 import {
   Select,
   SelectContent,
@@ -38,6 +38,8 @@ export interface SectionEditToolbarProps {
   onSegment?: (dataId: string) => void
   /** Whether segmentation is currently running */
   segmenting?: boolean
+  /** Called when delete/remove block is requested */
+  onDelete?: (dataId: string) => void
 }
 
 /**
@@ -61,6 +63,7 @@ export function SectionEditToolbar({
   onAiImage,
   onSegment,
   segmenting,
+  onDelete,
 }: SectionEditToolbarProps) {
   if (!dataId) return null
 
@@ -137,6 +140,17 @@ export function SectionEditToolbar({
                 {segmenting ? "Segmenting..." : "Segment"}
               </button>
             )}
+            {onDelete && (
+              <button
+                type="button"
+                onClick={() => onDelete(dataId)}
+                className="flex items-center gap-1 text-[10px] font-medium rounded px-2 py-1 bg-red-100 hover:bg-red-200 text-red-700 transition-colors cursor-pointer"
+                title="Remove this block"
+              >
+                <Trash2 className="h-3 w-3" />
+                Delete
+              </button>
+            )}
             {onTogglePrune && (
               <button
                 type="button"
@@ -210,6 +224,17 @@ export function SectionEditToolbar({
         <Pencil className="h-2.5 w-2.5" />
         Editing
       </span>
+
+      {onDelete && (
+        <button
+          type="button"
+          onClick={() => onDelete(dataId)}
+          className="p-0.5 rounded hover:bg-red-100 transition-colors cursor-pointer"
+          title="Remove this block"
+        >
+          <Trash2 className="h-3 w-3 text-red-600" />
+        </button>
+      )}
 
       {onTogglePrune && (
         <button

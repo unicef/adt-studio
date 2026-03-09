@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from "react"
 import { createPortal } from "react-dom"
-import { Check, Copy, Eye, EyeOff, ImagePlus, LayoutGrid, Layers, Loader2, ChevronDown, Sparkles, ChevronRight, PanelRightOpen, PanelRightClose, Play, PenLine, Save, X } from "lucide-react"
+import { Check, Copy, Eye, EyeOff, ImagePlus, LayoutGrid, Layers, Loader2, ChevronDown, Sparkles, ChevronRight, PanelRightOpen, PanelRightClose, Play, PenLine, Save, Trash2, Merge, X } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, BASE_URL } from "@/api/client"
 import type { PageDetail, VersionEntry } from "@/api/client"
@@ -332,6 +332,8 @@ export function StoryboardSectionDetail({
   const [saving, setSaving] = useState(false)
   const [cloning, setCloning] = useState(false)
   const [rerendering, setRerendering] = useState(false)
+  const [merging, setMerging] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [pendingSectioning, setPendingSectioning] = useState<SectioningData | null>(null)
   const [pendingRendering, setPendingRendering] = useState<RenderingData | null>(null)
 
@@ -478,16 +480,8 @@ export function StoryboardSectionDetail({
   const renderedSection = getRenderedSectionByIndex(renderingData, sectionIndex)
   const renderingDirty = pendingRendering != null
 
-  if (!section) {
-    return (
-      <div className="p-4 text-sm text-muted-foreground">
-        Section not found.
-      </div>
-    )
-  }
-
-  // Parts are inline in the section data
-  const parts = section.parts
+  // Parts are inline in the section data (empty if section missing — hooks still run)
+  const parts = section?.parts ?? []
 
   // Save / discard sectioning
   const saveSectioning = async () => {
@@ -581,6 +575,147 @@ export function StoryboardSectionDetail({
       setCloning(false)
     }
   }
+
+  // Merge current section with next or previous
+  const handleMergeSection = async (direction: "next" | "prev") => {
+    if (merging || dirty || renderingDirty || saving) return
+    setMerging(true)
+    try {
+      const result = await api.mergeSection(bookLabel, pageId, sectionIndex, direction)
+      await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
+      await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
+      onNavigateSection?.(result.mergedSectionIndex)
+
+      // Auto re-render the merged section so the LLM generates proper HTML for the combined content
+      if (hasApiKey) {
+        setRerendering(true)
+        const capturedPageId = pageId
+        api.reRenderPage(bookLabel, pageId, apiKey, result.mergedSectionIndex)
+          .then(() => {
+            if (pageIdRef.current !== capturedPageId) return
+            queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", capturedPageId] })
+            queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
+          })
+          .catch(() => {})
+          .finally(() => {
+            if (pageIdRef.current === capturedPageId) {
+              setRerendering(false)
+            }
+          })
+      }
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : "Merge failed")
+    } finally {
+      setMerging(false)
+    }
+  }
+
+  // Delete current section
+  const handleDeleteSection = async () => {
+    if (deleting || dirty || renderingDirty || saving) return
+    const totalSections = sectioningData?.sections.length ?? 0
+    if (totalSections <= 1) return
+    setDeleting(true)
+    try {
+      const result = await api.deleteSection(bookLabel, pageId, sectionIndex)
+      await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
+      await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
+      onNavigateSection?.(Math.min(sectionIndex, result.remainingSections - 1))
+    } catch (err) {
+      setAiError(err instanceof Error ? err.message : "Delete failed")
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  // Delete selected block from rendered HTML
+  const handleDeleteBlock = useCallback(
+    (dataId: string) => {
+      const rBase = pendingRendering ?? page.rendering
+      if (!rBase) return
+      const currentSection = getRenderedSectionByIndex(rBase, sectionIndex)
+      if (!currentSection?.html) return
+
+      // Remove the element with this data-id from the HTML
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(currentSection.html, "text/html")
+      const el = doc.querySelector(`[data-id="${dataId}"]`)
+      if (!el) return
+
+      // For block-level elements (divs, sections), remove the element
+      // For inline elements, remove closest block parent if it only contains this element
+      const blockParent = el.closest("div, p, figure, li, tr, section[data-section-id]")
+      if (blockParent && blockParent.getAttribute("data-section-id")) {
+        // Don't remove the outer section wrapper — just remove the element itself
+        el.remove()
+      } else if (blockParent && blockParent.querySelectorAll("[data-id]").length <= 1) {
+        // This block only contains the target element — remove the whole block
+        blockParent.remove()
+      } else {
+        el.remove()
+      }
+
+      const newHtml = doc.querySelector("section[data-section-id]")?.outerHTML ?? doc.body.innerHTML
+      const updated: RenderingData = {
+        ...rBase,
+        sections: rBase.sections.map((s) => {
+          if (s.sectionIndex !== sectionIndex) return s
+          return { ...s, html: newHtml }
+        }),
+      }
+      setPendingRendering(updated)
+
+      // Also prune matching part in sectioning if it exists
+      const sBase = pendingSectioning ?? page.sectioning
+      if (sBase) {
+        const loc = findTextByDataId(parts, dataId)
+        if (loc) {
+          const updatedSectioning: SectioningData = {
+            ...sBase,
+            sections: sBase.sections.map((s, si) => {
+              if (si !== sectionIndex) return s
+              return {
+                ...s,
+                parts: s.parts.map((p, pi) => {
+                  if (pi !== loc.partIndex || p.type !== "text_group") return p
+                  return {
+                    ...p,
+                    texts: p.texts.map((t, ti) => {
+                      if (ti !== loc.textIndex) return t
+                      return { ...t, isPruned: true }
+                    }),
+                  }
+                }),
+              }
+            }),
+          }
+          setPendingSectioning(updatedSectioning)
+        } else {
+          // Image
+          const imgIdx = parts.findIndex((p) => p.type === "image" && p.imageId === dataId)
+          if (imgIdx >= 0) {
+            const updatedSectioning: SectioningData = {
+              ...sBase,
+              sections: sBase.sections.map((s, si) => {
+                if (si !== sectionIndex) return s
+                return {
+                  ...s,
+                  parts: s.parts.map((p, pi) => {
+                    if (pi !== imgIdx) return p
+                    return { ...p, isPruned: true }
+                  }),
+                }
+              }),
+            }
+            setPendingSectioning(updatedSectioning)
+          }
+        }
+      }
+
+      setSelectedElement(null)
+    },
+    [pendingRendering, page.rendering, pendingSectioning, page.sectioning, sectionIndex, parts]
+  )
 
   // Toggle isPruned on a part within the current section
   const togglePartPruned = (partIndex: number) => {
@@ -1337,13 +1472,13 @@ export function StoryboardSectionDetail({
         type="button"
         onClick={toggleSectionPruned}
         className={`flex items-center justify-center w-7 h-7 rounded transition-colors cursor-pointer ${
-          section.isPruned
+          section?.isPruned
             ? "bg-amber-500/30 hover:bg-amber-500/40"
             : "bg-white/10 hover:bg-white/20"
         }`}
-        title={section.isPruned ? "Restore section to flow" : "Prune section from flow"}
+        title={section?.isPruned ? "Restore section to flow" : "Prune section from flow"}
       >
-        {section.isPruned ? (
+        {section?.isPruned ? (
           <EyeOff className="h-3.5 w-3.5 text-amber-200" />
         ) : (
           <Eye className="h-3.5 w-3.5" />
@@ -1401,6 +1536,14 @@ export function StoryboardSectionDetail({
       {navigationArrows}
     </>
   )
+
+  if (!section) {
+    return (
+      <div className="p-4 text-sm text-muted-foreground">
+        Section not found.
+      </div>
+    )
+  }
 
   return (
     <>
@@ -1659,6 +1802,7 @@ export function StoryboardSectionDetail({
           onAiImage={selectedInfo.isImage && hasApiKey ? handleAiImage : undefined}
           onSegment={selectedInfo.isImage && hasApiKey ? handleSegment : undefined}
           segmenting={segmenting}
+          onDelete={handleDeleteBlock}
         />
       )}
 
@@ -1706,6 +1850,36 @@ export function StoryboardSectionDetail({
             <span className="text-destructive text-[10px] font-medium">(pruned)</span>
           )}
           <div className="ml-auto flex items-center gap-1.5">
+          {sectionIndex > 0 && (
+            <button
+              type="button"
+              onClick={() => handleMergeSection("prev")}
+              disabled={merging || dirty || renderingDirty || saving}
+              className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
+              title={dirty || renderingDirty ? "Save changes before merging" : "Merge with previous section"}
+            >
+              {merging ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Merge className="h-3.5 w-3.5 rotate-180" />
+              )}
+            </button>
+          )}
+          {sectioningData && sectionIndex < sectioningData.sections.length - 1 && (
+            <button
+              type="button"
+              onClick={() => handleMergeSection("next")}
+              disabled={merging || dirty || renderingDirty || saving}
+              className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
+              title={dirty || renderingDirty ? "Save changes before merging" : "Merge with next section"}
+            >
+              {merging ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Merge className="h-3.5 w-3.5" />
+              )}
+            </button>
+          )}
           <button
             type="button"
             onClick={handleCloneSection}
@@ -1719,6 +1893,21 @@ export function StoryboardSectionDetail({
               <Copy className="h-3.5 w-3.5" />
             )}
           </button>
+          {sectioningData && sectioningData.sections.length > 1 && (
+            <button
+              type="button"
+              onClick={handleDeleteSection}
+              disabled={deleting || dirty || renderingDirty || saving}
+              className="p-0.5 rounded hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
+              title={dirty || renderingDirty ? "Save changes before deleting" : "Delete this section"}
+            >
+              {deleting ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="h-3.5 w-3.5 text-red-600" />
+              )}
+            </button>
+          )}
           <VersionPicker
             currentVersion={page.versions.sectioning}
             saving={saving}

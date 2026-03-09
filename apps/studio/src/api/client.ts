@@ -455,6 +455,18 @@ export const api = {
       { method: "POST" }
     ),
 
+  mergeSection: (label: string, pageId: string, sectionIndex: number, direction: "next" | "prev" = "next") =>
+    request<{ mergedSectionIndex: number; sectioningVersion: number; renderingVersion: number | null }>(
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/merge?direction=${direction}`,
+      { method: "POST" }
+    ),
+
+  deleteSection: (label: string, pageId: string, sectionIndex: number) =>
+    request<{ sectioningVersion: number; renderingVersion: number | null; remainingSections: number }>(
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}`,
+      { method: "DELETE" }
+    ),
+
   listBookImages: (label: string) =>
     request<{
       images: Array<{
