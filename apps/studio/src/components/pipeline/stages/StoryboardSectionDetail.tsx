@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from "react"
 import { createPortal } from "react-dom"
-import { Check, Copy, Eye, EyeOff, LayoutGrid, Layers, Loader2, ChevronDown, Sparkles, ChevronRight, PanelRightOpen, PanelRightClose, Save, X } from "lucide-react"
+import { Check, Copy, Eye, EyeOff, LayoutGrid, Layers, Loader2, ChevronDown, Sparkles, ChevronRight, PanelRightOpen, PanelRightClose, Play, PenLine, Save, X } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, BASE_URL } from "@/api/client"
 import type { PageDetail, VersionEntry } from "@/api/client"
@@ -380,6 +380,9 @@ export function StoryboardSectionDetail({
     onGeneratingChange?.(aiImageGen?.status === "generating")
   }, [aiImageGen?.status])
 
+  // Activity preview mode (try the activity in the editor)
+  const [activityPreviewMode, setActivityPreviewMode] = useState(false)
+
   // AI edit state
   const [aiInstruction, setAiInstruction] = useState("")
   const [aiLoading, setAiLoading] = useState(false)
@@ -442,7 +445,8 @@ export function StoryboardSectionDetail({
     setAiError(null)
     setRerendering(false)
     setSaving(false)
-  }, [pageId])
+    setActivityPreviewMode(false)
+  }, [pageId, sectionIndex])
 
   // Reset scroll position when page or section changes
   useEffect(() => {
@@ -1297,17 +1301,27 @@ export function StoryboardSectionDetail({
       {/* Preview — fills remaining space, scrolls independently */}
       <div className="flex-1 overflow-auto px-4 py-4 relative" ref={scrollContainerRef}>
         {renderedSection?.html ? (
-          <BookPreviewFrame
-            ref={previewFrameRef}
-            html={renderedSection.html}
-            className="w-full rounded border"
-            editable={!aiLoading && !rerendering}
-            prunedDataIds={prunedDataIds}
-            changedElements={changedElements}
-            onSelectElement={handleSelectElement}
-            onTextChanged={handleTextChanged}
-            applyBodyBackground={applyBodyBackground}
-          />
+          <>
+            {activityPreviewMode ? (
+              <iframe
+                src={`${BASE_URL}/books/${bookLabel}/adt-preview/${pageId}_sec${String(sectionIndex + 1).padStart(3, "0")}.html?embed=1&v=${page.versions.rendering ?? 0}`}
+                className="w-full rounded border"
+                style={{ height: "80vh" }}
+              />
+            ) : (
+              <BookPreviewFrame
+                ref={previewFrameRef}
+                html={renderedSection.html}
+                className="w-full rounded border"
+                editable={!aiLoading && !rerendering}
+                prunedDataIds={prunedDataIds}
+                changedElements={changedElements}
+                onSelectElement={handleSelectElement}
+                onTextChanged={handleTextChanged}
+                applyBodyBackground={applyBodyBackground}
+              />
+            )}
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <div className="w-12 h-12 rounded-full bg-violet-50 flex items-center justify-center mb-3">
@@ -1407,6 +1421,28 @@ export function StoryboardSectionDetail({
               </>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Activity preview toggle — absolute on outer wrapper, sits left of the debug console button */}
+      {section.sectionType.startsWith("activity_") && renderedSection?.html && (
+        <div className="absolute bottom-4 right-16 z-30 flex items-center gap-2">
+          {activityPreviewMode && renderingDirty && (
+            <span className="text-[10px] text-amber-600 bg-white/90 px-2 py-1 rounded shadow-sm">
+              Save changes first to preview the latest version
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => setActivityPreviewMode((v) => !v)}
+            className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 shadow-md border border-blue-200 transition-colors cursor-pointer opacity-80 hover:opacity-100"
+          >
+            {activityPreviewMode ? (
+              <><PenLine className="h-3 w-3" />Back to Editor</>
+            ) : (
+              <><Play className="h-3 w-3" />Try Activity</>
+            )}
+          </button>
         </div>
       )}
 
