@@ -148,7 +148,7 @@ export interface PageDetail {
             type: "text_group"
             groupId: string
             groupType: string
-            texts: Array<{ textType: string; text: string; isPruned: boolean }>
+            texts: Array<{ textId: string; textType: string; text: string; isPruned: boolean }>
             isPruned: boolean
           }
         | {

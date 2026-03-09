@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from "react"
 import { createPortal } from "react-dom"
-import { Check, Copy, Eye, EyeOff, ImagePlus, LayoutGrid, Layers, Loader2, ChevronDown, Sparkles, ChevronRight, PanelRightOpen, PanelRightClose, Play, PenLine, Save, Trash2, Merge, X } from "lucide-react"
+import { Check, Eye, EyeOff, LayoutGrid, Loader2, ChevronDown, Sparkles, ChevronRight, PanelRightOpen, PanelRightClose, Play, PenLine, Save, Merge, X } from "lucide-react"
+import { SectionDataPanel } from "./SectionDataPanel"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, BASE_URL } from "@/api/client"
 import type { PageDetail, VersionEntry } from "@/api/client"
@@ -167,41 +168,6 @@ function VersionPicker({
           )}
         </div>
       )}
-    </div>
-  )
-}
-
-// -- ImageCard --
-
-function ImageCard({ imageId, bookLabel, isPruned, reason }: { imageId: string; bookLabel: string; isPruned?: boolean; reason?: string }) {
-  const [dimensions, setDimensions] = useState<{ w: number; h: number } | null>(null)
-
-  return (
-    <div
-      className={`relative rounded border overflow-hidden bg-card flex flex-col items-center min-h-[80px] transition-opacity duration-300 ${isPruned ? "opacity-40" : ""}`}
-      title={isPruned ? `Pruned: ${reason}` : undefined}
-    >
-      <img
-        src={`${BASE_URL}/books/${bookLabel}/images/${imageId}`}
-        alt={imageId}
-        className={`max-w-full h-auto block my-auto ${isPruned ? "grayscale" : ""}`}
-        onLoad={(e) => {
-          const img = e.target as HTMLImageElement
-          setDimensions({ w: img.naturalWidth, h: img.naturalHeight })
-        }}
-        onError={(e) => {
-          const target = e.target as HTMLImageElement
-          target.style.display = "none"
-        }}
-      />
-      <div className="px-2 py-1 flex items-center justify-between border-t bg-muted/30 w-full mt-auto">
-        <span className="text-[10px] text-muted-foreground truncate">{imageId}</span>
-        {dimensions && (
-          <span className="text-[10px] text-muted-foreground shrink-0 ml-1">
-            {dimensions.w}&times;{dimensions.h}
-          </span>
-        )}
-      </div>
     </div>
   )
 }
@@ -784,6 +750,211 @@ export function StoryboardSectionDetail({
                 return { ...t, textType: newType }
               }),
             }
+          }),
+        }
+      }),
+    }
+    setPendingSectioning(updated)
+  }
+
+  // Toggle isPruned on a specific text entry
+  const toggleTextPruned = (partIndex: number, textIndex: number) => {
+    const base = pendingSectioning ?? page.sectioning
+    if (!base) return
+    const updated: SectioningData = {
+      ...base,
+      sections: base.sections.map((s, si) => {
+        if (si !== sectionIndex) return s
+        return {
+          ...s,
+          parts: s.parts.map((p, pi) => {
+            if (pi !== partIndex || p.type !== "text_group") return p
+            return {
+              ...p,
+              texts: p.texts.map((t, ti) => {
+                if (ti !== textIndex) return t
+                return { ...t, isPruned: !t.isPruned }
+              }),
+            }
+          }),
+        }
+      }),
+    }
+    setPendingSectioning(updated)
+  }
+
+  // Delete a specific text entry from a group
+  const deleteTextEntry = (partIndex: number, textIndex: number) => {
+    const base = pendingSectioning ?? page.sectioning
+    if (!base) return
+    const updated: SectioningData = {
+      ...base,
+      sections: base.sections.map((s, si) => {
+        if (si !== sectionIndex) return s
+        return {
+          ...s,
+          parts: s.parts.map((p, pi) => {
+            if (pi !== partIndex || p.type !== "text_group") return p
+            return {
+              ...p,
+              texts: p.texts.filter((_, ti) => ti !== textIndex),
+            }
+          }),
+        }
+      }),
+    }
+    setPendingSectioning(updated)
+  }
+
+  // Duplicate a specific text entry within a group
+  const duplicateTextEntry = (partIndex: number, textIndex: number) => {
+    const base = pendingSectioning ?? page.sectioning
+    if (!base) return
+    const updated: SectioningData = {
+      ...base,
+      sections: base.sections.map((s, si) => {
+        if (si !== sectionIndex) return s
+        return {
+          ...s,
+          parts: s.parts.map((p, pi) => {
+            if (pi !== partIndex || p.type !== "text_group") return p
+            const newTexts = [...p.texts]
+            const cloned = { ...p.texts[textIndex], textId: `user_txt_${crypto.randomUUID().slice(0, 8)}` }
+            newTexts.splice(textIndex + 1, 0, cloned)
+            return { ...p, texts: newTexts }
+          }),
+        }
+      }),
+    }
+    setPendingSectioning(updated)
+  }
+
+  // Add a new empty text group
+  const addGroup = () => {
+    const base = pendingSectioning ?? page.sectioning
+    if (!base) return
+    const newGroup = {
+      type: "text_group" as const,
+      groupId: `user_grp_${crypto.randomUUID().slice(0, 8)}`,
+      groupType: "body",
+      texts: [] as { textId: string; textType: string; text: string; isPruned: boolean }[],
+
+      isPruned: false,
+    }
+    const updated: SectioningData = {
+      ...base,
+      sections: base.sections.map((s, si) => {
+        if (si !== sectionIndex) return s
+        return { ...s, parts: [...s.parts, newGroup] }
+      }),
+    }
+    setPendingSectioning(updated)
+  }
+
+  // Duplicate a text group
+  const duplicateGroup = (partIndex: number) => {
+    const base = pendingSectioning ?? page.sectioning
+    if (!base) return
+    const updated: SectioningData = {
+      ...base,
+      sections: base.sections.map((s, si) => {
+        if (si !== sectionIndex) return s
+        const srcPart = s.parts[partIndex]
+        if (!srcPart || srcPart.type !== "text_group") return s
+        const cloned = structuredClone(srcPart)
+        const clone = {
+          ...cloned,
+          groupId: `user_grp_${crypto.randomUUID().slice(0, 8)}`,
+          texts: cloned.texts.map((t: { textId: string; textType: string; text: string; isPruned: boolean }) => ({
+            ...t,
+            textId: `user_txt_${crypto.randomUUID().slice(0, 8)}`,
+          })),
+        }
+        const newParts = [...s.parts]
+        newParts.splice(partIndex + 1, 0, clone)
+        return { ...s, parts: newParts }
+      }),
+    }
+    setPendingSectioning(updated)
+  }
+
+  // Delete a text group
+  const deleteGroup = (partIndex: number) => {
+    const base = pendingSectioning ?? page.sectioning
+    if (!base) return
+    const updated: SectioningData = {
+      ...base,
+      sections: base.sections.map((s, si) => {
+        if (si !== sectionIndex) return s
+        return { ...s, parts: s.parts.filter((_, pi) => pi !== partIndex) }
+      }),
+    }
+    setPendingSectioning(updated)
+  }
+
+  // Reorder parts within the section
+  const reorderParts = (fromIndex: number, toIndex: number) => {
+    const base = pendingSectioning ?? page.sectioning
+    if (!base) return
+    const updated: SectioningData = {
+      ...base,
+      sections: base.sections.map((s, si) => {
+        if (si !== sectionIndex) return s
+        const newParts = [...s.parts]
+        const [moved] = newParts.splice(fromIndex, 1)
+        newParts.splice(toIndex, 0, moved)
+        return { ...s, parts: newParts }
+      }),
+    }
+    setPendingSectioning(updated)
+  }
+
+  // Move a text entry between groups (or reorder within a group)
+  const moveText = (
+    fromPartIndex: number,
+    fromTextIndex: number,
+    toPartIndex: number,
+    toTextIndex: number
+  ) => {
+    const base = pendingSectioning ?? page.sectioning
+    if (!base) return
+    const updated: SectioningData = {
+      ...base,
+      sections: base.sections.map((s, si) => {
+        if (si !== sectionIndex) return s
+        const fromGroup = s.parts[fromPartIndex]
+        const toGroup = s.parts[toPartIndex]
+        if (fromGroup?.type !== "text_group" || toGroup?.type !== "text_group") return s
+
+        if (fromPartIndex === toPartIndex) {
+          // Reorder within the same group
+          const texts = [...fromGroup.texts]
+          const [moved] = texts.splice(fromTextIndex, 1)
+          texts.splice(toTextIndex > fromTextIndex ? toTextIndex - 1 : toTextIndex, 0, moved)
+          return {
+            ...s,
+            parts: s.parts.map((p, pi) => {
+              if (pi !== fromPartIndex) return p
+              return { ...p, texts }
+            }),
+          }
+        }
+
+        // Move between different groups
+        const movedText = fromGroup.texts[fromTextIndex]
+        return {
+          ...s,
+          parts: s.parts.map((p, pi) => {
+            if (p.type !== "text_group") return p
+            if (pi === fromPartIndex) {
+              return { ...p, texts: p.texts.filter((_, ti) => ti !== fromTextIndex) }
+            }
+            if (pi === toPartIndex) {
+              const newTexts = [...p.texts]
+              newTexts.splice(toTextIndex, 0, movedText)
+              return { ...p, texts: newTexts }
+            }
+            return p
           }),
         }
       }),
@@ -1807,107 +1978,33 @@ export function StoryboardSectionDetail({
       )}
 
       {/* Slide-out section data panel */}
-      <div
-        className={`absolute top-0 right-0 h-full w-[480px] bg-background border-l shadow-lg transition-transform duration-200 ease-in-out z-30 ${
-          panelOpen ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        {/* Panel header */}
-        <div className="flex items-center gap-2 px-4 py-2 border-b text-xs text-muted-foreground">
-          <span className="font-medium uppercase tracking-wider">Content</span>
-          {sectionTypes ? (
-            <Select value={section.sectionType} onValueChange={changeSectionType}>
-              <SelectTrigger className="h-6 text-[10px] font-medium px-1.5 py-0 w-auto min-w-[80px] border-0 bg-muted/50">
-                <SelectValue>{section.sectionType}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(sectionTypes).map(([key, desc]) => (
-                  <SelectItem key={key} value={key} className="text-xs">
-                    {key}
-                    <span className="ml-1 text-muted-foreground text-[10px]">{desc}</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          ) : (
-            <span className="font-medium">{section.sectionType}</span>
-          )}
-          {!section.isPruned && (
-            <>
-              <span
-                className="w-3.5 h-3.5 rounded border"
-                style={{ backgroundColor: section.backgroundColor }}
-                title={`Background: ${section.backgroundColor}`}
-              />
-              <span
-                className="w-3.5 h-3.5 rounded border"
-                style={{ backgroundColor: section.textColor }}
-                title={`Text color: ${section.textColor}`}
-              />
-            </>
-          )}
-          {section.isPruned && (
-            <span className="text-destructive text-[10px] font-medium">(pruned)</span>
-          )}
-          <div className="ml-auto flex items-center gap-1.5">
-          {sectionIndex > 0 && (
-            <button
-              type="button"
-              onClick={() => handleMergeSection("prev")}
-              disabled={merging || dirty || renderingDirty || saving}
-              className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
-              title={dirty || renderingDirty ? "Save changes before merging" : "Merge with previous section"}
-            >
-              {merging ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Merge className="h-3.5 w-3.5 rotate-180" />
-              )}
-            </button>
-          )}
-          {sectioningData && sectionIndex < sectioningData.sections.length - 1 && (
-            <button
-              type="button"
-              onClick={() => handleMergeSection("next")}
-              disabled={merging || dirty || renderingDirty || saving}
-              className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
-              title={dirty || renderingDirty ? "Save changes before merging" : "Merge with next section"}
-            >
-              {merging ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Merge className="h-3.5 w-3.5" />
-              )}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={handleCloneSection}
-            disabled={cloning || dirty || renderingDirty || saving}
-            className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
-            title={dirty || renderingDirty ? "Save changes before cloning" : "Clone this section"}
-          >
-            {cloning ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Copy className="h-3.5 w-3.5" />
-            )}
-          </button>
-          {sectioningData && sectioningData.sections.length > 1 && (
-            <button
-              type="button"
-              onClick={handleDeleteSection}
-              disabled={deleting || dirty || renderingDirty || saving}
-              className="p-0.5 rounded hover:bg-red-100 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
-              title={dirty || renderingDirty ? "Save changes before deleting" : "Delete this section"}
-            >
-              {deleting ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Trash2 className="h-3.5 w-3.5 text-red-600" />
-              )}
-            </button>
-          )}
+      {section && (
+      <SectionDataPanel
+        open={panelOpen}
+        onClose={() => setPanelOpen(false)}
+        section={section}
+        sectionIndex={sectionIndex}
+        sectionCount={sectioningData?.sections.length ?? 0}
+        bookLabel={bookLabel}
+        sectionTypes={sectionTypes}
+        textTypes={textTypes}
+        onChangeSectionType={changeSectionType}
+        onToggleSectionPruned={toggleSectionPruned}
+        onTogglePartPruned={togglePartPruned}
+        onChangeTextType={changeTextType}
+        onToggleTextPruned={toggleTextPruned}
+        onDeleteTextEntry={deleteTextEntry}
+        onDuplicateTextEntry={duplicateTextEntry}
+        onAddGroup={addGroup}
+        onDuplicateGroup={duplicateGroup}
+        onDeleteGroup={deleteGroup}
+        onReorderParts={reorderParts}
+        onMoveText={moveText}
+        onMergeSection={handleMergeSection}
+        onCloneSection={handleCloneSection}
+        onDeleteSection={handleDeleteSection}
+        onAddImage={() => setAddImageDialogOpen(true)}
+        versionPickerNode={
           <VersionPicker
             currentVersion={page.versions.sectioning}
             saving={saving}
@@ -1925,143 +2022,17 @@ export function StoryboardSectionDetail({
             onSave={saveSectioning}
             onDiscard={discardSectioning}
           />
-          <button
-            type="button"
-            onClick={() => setPanelOpen(false)}
-            className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
-          </div>
-        </div>
-
-        {/* Panel body — scrollable */}
-        <div className="overflow-auto h-[calc(100%-41px)] px-4 py-3 space-y-5">
-          {/* Text groups */}
-          {hasTextParts && (
-            <div>
-              <h3 className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                <Layers className="h-3 w-3" />
-                Text Groups
-              </h3>
-              <div className="space-y-3">
-                {parts.map((p, partIndex) => {
-                  if (p.type !== "text_group") return null
-                  return (
-                    <div key={p.groupId} className={`rounded border overflow-hidden transition-opacity duration-300 ${p.isPruned ? "opacity-40" : ""}`}>
-                      <div className="px-3 py-1.5 bg-muted/50 border-b flex items-center gap-1.5">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{p.groupType}</span>
-                        <button
-                          type="button"
-                          onClick={() => togglePartPruned(partIndex)}
-                          className="ml-auto p-0.5 rounded hover:bg-accent transition-colors cursor-pointer"
-                          title={p.isPruned ? "Include in render" : "Exclude from render"}
-                        >
-                          {p.isPruned ? (
-                            <EyeOff className="h-3 w-3 text-muted-foreground" />
-                          ) : (
-                            <Eye className="h-3 w-3 text-muted-foreground" />
-                          )}
-                        </button>
-                      </div>
-                      <div className="divide-y">
-                        {p.texts.map((t, i) => (
-                          <div key={i} className={`px-3 py-1.5 flex items-start gap-2 text-sm transition-opacity duration-300 ${t.isPruned ? "opacity-40" : ""}`}>
-                            {textTypes ? (
-                              <Select
-                                value={t.textType}
-                                onValueChange={(val) => changeTextType(partIndex, i, val)}
-                              >
-                                <SelectTrigger className="shrink-0 h-5 text-[10px] font-medium px-1.5 py-0 w-auto min-w-[60px] border-0 bg-muted/50">
-                                  <SelectValue>{t.textType}</SelectValue>
-                                </SelectTrigger>
-                                <SelectContent>
-                                  {Object.entries(textTypes).map(([key, desc]) => (
-                                    <SelectItem key={key} value={key} className="text-xs">
-                                      {key}
-                                      <span className="ml-1 text-muted-foreground text-[10px]">{desc}</span>
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            ) : (
-                              <span className="shrink-0 text-xs font-medium text-muted-foreground bg-muted/50 rounded px-1.5 py-0.5 text-center">
-                                {t.textType}
-                              </span>
-                            )}
-                            <span className="leading-relaxed flex-1 min-w-0 text-xs">
-                              {t.text}
-                            </span>
-                            {t.isPruned && (
-                              <EyeOff className="shrink-0 self-center h-3 w-3 text-muted-foreground" />
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* Images */}
-          <div>
-            <h3 className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-              Images
-              {hasImageParts && parts.some((p) => p.type === "image" && p.isPruned) && (
-                <button
-                  type="button"
-                  onClick={() => setShowPrunedImages((v) => !v)}
-                  className="ml-auto flex items-center gap-1 text-[10px] font-normal normal-case tracking-normal text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                  title={showPrunedImages ? "Hide pruned images" : "Show pruned images"}
-                >
-                  {showPrunedImages ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
-                  {showPrunedImages ? "Hide Pruned" : "Show Pruned"}
-                </button>
-              )}
-            </h3>
-            {hasImageParts && (
-              <div className="grid grid-cols-2 gap-2 mb-2">
-                {parts.map((p, partIndex) => {
-                  if (p.type !== "image") return null
-                  if (p.isPruned && !showPrunedImages) return null
-                  return (
-                    <div key={p.imageId} className="group relative">
-                      <ImageCard
-                        imageId={p.imageId}
-                        bookLabel={bookLabel}
-                        isPruned={p.isPruned}
-                        reason={p.reason}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => togglePartPruned(partIndex)}
-                        className="absolute top-1 right-1 p-1 rounded bg-background/80 hover:bg-accent transition-colors cursor-pointer opacity-0 group-hover:opacity-100"
-                        title={p.isPruned ? "Include in render" : "Exclude from render"}
-                      >
-                        {p.isPruned ? (
-                          <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
-                        ) : (
-                          <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-                        )}
-                      </button>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={() => setAddImageDialogOpen(true)}
-              className="flex items-center justify-center gap-1.5 w-full rounded border border-dashed border-muted-foreground/30 hover:border-muted-foreground/60 py-3 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            >
-              <ImagePlus className="h-3.5 w-3.5" />
-              Add Image
-            </button>
-          </div>
-        </div>
-      </div>
+        }
+        merging={merging}
+        cloning={cloning}
+        deleting={deleting}
+        saving={saving}
+        dirty={dirty}
+        renderingDirty={renderingDirty}
+        showPrunedImages={showPrunedImages}
+        onToggleShowPrunedImages={() => setShowPrunedImages((v) => !v)}
+      />
+      )}
     </div>
 
     {/* Hidden file input for image replace */}

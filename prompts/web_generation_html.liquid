@@ -3,9 +3,8 @@ You are an expert frontend engineer. Generate a beautiful, kid-friendly HTML pag
 
 ## INPUTS
 1. Original textbook page image (layout reference only)
-2. Text elements with their text_type
-3. Images with their IDs
-4. Section type
+2. Content parts in document order — text groups (with grouped text elements) and images
+3. Section type
 
 ## RULES
 1. Each text ID must appear EXACTLY ONCE - no duplicates
@@ -49,8 +48,15 @@ Image ID: {{ image.image_id }}
 {% image image.image_base64 %}
 {% endfor %}
 
-Text elements:
-{% for text in texts %}
-- id: {{ text.text_id }} | type: {{ text.text_type }} | text: "{{ text.text }}"
+Content parts (in document order):
+{% for part in ordered_parts %}
+{% if part.part_type == "text_group" %}
+[Group: {{ part.group_id }} | type: {{ part.group_type }}]
+{% for text in part.texts %}
+  - id: {{ text.text_id }} | type: {{ text.text_type }} | text: "{{ text.text }}"
+{% endfor %}
+{% elsif part.part_type == "image" %}
+[Image: {{ part.image_id }}]
+{% endif %}
 {% endfor %}
 {% endchat %}
