@@ -294,7 +294,7 @@ export function createAdtPreviewRoutes(
   })
 
   // /assets/* — Static files from webAssetsDir
-  app.get("/books/:label/adt-preview/assets/*", (c) => {
+  app.get("/books/:label/adt-preview/assets/*", async (c) => {
     resolveBook(c.req.param("label")) // validate label
     const assetPath = c.req.path.split("/adt-preview/assets/")[1]
     if (!assetPath) throw new HTTPException(400, { message: "Missing asset path" })
@@ -303,6 +303,24 @@ export function createAdtPreviewRoutes(
     const resolved = path.resolve(webAssetsDir, assetPath)
     if (!resolved.startsWith(path.resolve(webAssetsDir))) {
       throw new HTTPException(403, { message: "Forbidden" })
+    }
+
+    // Auto-build base.bundle.min.js on-the-fly if it doesn't exist (dev mode).
+    // The file is gitignored and normally pre-built by `pnpm --filter @adt/api bundle`.
+    if (!fs.existsSync(resolved) && assetPath === "base.bundle.min.js") {
+      const entryPoint = path.join(webAssetsDir, "base.js")
+      if (fs.existsSync(entryPoint)) {
+        const esbuild = await import("esbuild")
+        await esbuild.build({
+          entryPoints: [entryPoint],
+          bundle: true,
+          minify: true,
+          sourcemap: true,
+          format: "esm",
+          target: "es2020",
+          outfile: resolved,
+        })
+      }
     }
 
     if (!fs.existsSync(resolved) || fs.statSync(resolved).isDirectory()) {
