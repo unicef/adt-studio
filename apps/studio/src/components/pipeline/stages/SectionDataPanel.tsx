@@ -33,9 +33,11 @@ interface SectionDataPanelProps {
   bookLabel: string
   sectionTypes?: Record<string, string>
   textTypes?: Record<string, string>
+  groupTypes?: Record<string, string>
   onChangeSectionType: (type: string) => void
   onToggleSectionPruned: () => void
   onTogglePartPruned: (partIndex: number) => void
+  onChangeGroupType: (partIndex: number, type: string) => void
   onChangeTextType: (partIndex: number, textIndex: number, type: string) => void
   onToggleTextPruned: (partIndex: number, textIndex: number) => void
   onDeleteTextEntry: (partIndex: number, textIndex: number) => void
@@ -132,9 +134,11 @@ export function SectionDataPanel({
   bookLabel,
   sectionTypes,
   textTypes,
+  groupTypes,
   onChangeSectionType,
   onToggleSectionPruned,
   onTogglePartPruned,
+  onChangeGroupType,
   onChangeTextType,
   onToggleTextPruned,
   onDeleteTextEntry,
@@ -507,9 +511,28 @@ export function SectionDataPanel({
                       >
                         <GripVertical className="h-3 w-3 text-muted-foreground" />
                       </div>
-                      <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                        {p.groupType}
-                      </span>
+                      {groupTypes ? (
+                        <Select
+                          value={p.groupType}
+                          onValueChange={(val) => onChangeGroupType(partIndex, val)}
+                        >
+                          <SelectTrigger className="h-5 text-[10px] font-semibold uppercase tracking-wider px-1.5 py-0 w-auto min-w-[60px] border-0 bg-transparent text-muted-foreground">
+                            <SelectValue>{p.groupType}</SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(groupTypes).map(([key, desc]) => (
+                              <SelectItem key={key} value={key} className="text-xs">
+                                {key}
+                                <span className="ml-1 text-muted-foreground text-[10px]">{desc}</span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      ) : (
+                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                          {p.groupType}
+                        </span>
+                      )}
                       <div className="ml-auto flex items-center gap-0.5">
                         <button
                           type="button"

@@ -387,6 +387,7 @@ export function StoryboardSectionDetail({
   })
 
   const textTypes = configQuery.data?.merged?.text_types as Record<string, string> | undefined
+  const groupTypes = configQuery.data?.merged?.text_group_types as Record<string, string> | undefined
   const allSectionTypes = configQuery.data?.merged?.section_types as Record<string, string> | undefined
   const disabledSectionTypes = new Set(configQuery.data?.merged?.disabled_section_types as string[] ?? [])
   const sectionTypes = allSectionTypes
@@ -750,6 +751,26 @@ export function StoryboardSectionDetail({
                 return { ...t, textType: newType }
               }),
             }
+          }),
+        }
+      }),
+    }
+    setPendingSectioning(updated)
+  }
+
+  // Change group type for a specific text group
+  const changeGroupType = (partIndex: number, newType: string) => {
+    const base = pendingSectioning ?? page.sectioning
+    if (!base) return
+    const updated: SectioningData = {
+      ...base,
+      sections: base.sections.map((s, si) => {
+        if (si !== sectionIndex) return s
+        return {
+          ...s,
+          parts: s.parts.map((p, pi) => {
+            if (pi !== partIndex || p.type !== "text_group") return p
+            return { ...p, groupType: newType }
           }),
         }
       }),
@@ -1988,9 +2009,11 @@ export function StoryboardSectionDetail({
         bookLabel={bookLabel}
         sectionTypes={sectionTypes}
         textTypes={textTypes}
+        groupTypes={groupTypes}
         onChangeSectionType={changeSectionType}
         onToggleSectionPruned={toggleSectionPruned}
         onTogglePartPruned={togglePartPruned}
+        onChangeGroupType={changeGroupType}
         onChangeTextType={changeTextType}
         onToggleTextPruned={toggleTextPruned}
         onDeleteTextEntry={deleteTextEntry}
