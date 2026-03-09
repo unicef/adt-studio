@@ -28,6 +28,7 @@ This document records all significant technology and architecture decisions made
 20. [Stage Color System — Single Source of Truth](#020-stage-color-system--single-source-of-truth)
 21. [Context-Aware Top Bar Button](#021-context-aware-top-bar-button)
 22. [Unified Stage/Step Status via useBookRun](#022-unified-stagestep-status-via-usebookrun)
+23. [Visual Refinement + File-Based Debug Screenshots](#023-visual-refinement--file-based-debug-screenshots)
 
 ---
 
@@ -808,6 +809,48 @@ Every consumer had to consult both, with guards like `stageIsActive`, `completed
 
 ---
 
+## 023: Visual Refinement + File-Based Debug Screenshots
+
+**Status**: Decided  
+**Date**: 2026-03-09
+
+### Decision
+
+Add an optional screenshot-driven visual refinement loop to storyboard rendering and AI HTML edits, and store debug screenshots as files (`books/{label}/.debug-images/{hash}.png`) rather than DB blobs.
+
+### Context
+
+HTML generated from page-sectioning often passes structural validation while still failing visually (overlap, unreadable text, bad responsive behavior). A second-pass visual check was needed that compares rendered HTML screenshots against the source page image.
+
+The first implementation stored screenshots in a SQLite `debug_images` table. That increased DB size/churn and added unnecessary schema complexity for debug-only binary assets.
+
+### Rationale
+
+- **Quality**: Multi-iteration visual review catches layout issues structural checks miss.
+- **Transparency**: Screenshot hashes in LLM logs can be resolved directly via the debug image endpoint.
+- **Simplicity**: Flat files are sufficient for debug screenshots and align with the project principle "flat files > database when sufficient."
+- **Operational safety**: Storyboard reruns clear debug screenshots at run start, avoiding unbounded growth.
+
+### Key Design Choices
+
+- Visual refinement is configured per render strategy under `render_strategies.*.config.visual_refinement`.
+- The visual-review loop was extracted to a shared pipeline utility (`runVisualReviewLoop`) used by both storyboard rendering and AI edit flows.
+- Debug screenshot storage moved from DB table to filesystem:
+  - write: `Storage.putDebugImage(hash, data)` creates `.debug-images/{hash}.png`
+  - clear: `Storage.clearDebugImages()` removes files in `.debug-images/`
+  - resolve: `/api/books/:label/debug/llm-image/:hash` checks `.debug-images` first.
+- Legacy `debug_images` schema artifacts are dropped on DB open (`DROP TABLE IF EXISTS debug_images`).
+
+### Alternatives Considered
+
+| Approach | Why Not |
+|----------|---------|
+| Structural validation only | Misses visual regressions and responsive layout problems |
+| Store screenshots in SQLite BLOBs | Adds DB bloat/churn for debug binaries, harder cleanup |
+| External object store for screenshots | Unnecessary infrastructure for local/self-hosted workflows |
+
+---
+
 ## Decision Log Summary
 
 | # | Decision | Chosen | Over |
@@ -834,3 +877,4 @@ Every consumer had to consult both, with guards like `stageIsActive`, `completed
 | 020 | Stage colors | Single source in stage-config.ts | Scattered hex/class maps across files |
 | 021 | Top bar button | Context-aware per stage | Per-stage inline buttons in sidebar |
 | 022 | Stage/step status | Unified `useBookRun()` with SSE cache-patching | Dual-source (local SSE state + query cache) |
+| 023 | Visual QA + debug screenshots | Screenshot-based refinement + file-backed debug images | Structural-only validation, DB BLOB storage |

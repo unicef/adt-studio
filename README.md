@@ -9,6 +9,7 @@ Desktop-first application for automated book production — extract content from
 | Monorepo | pnpm workspaces |
 | Language | TypeScript (strict mode) |
 | Backend | Hono, node-sqlite3-wasm, Zod |
+| Visual QA | Playwright (Chromium) |
 | Frontend | React + Vite, TanStack (Router, Query, Table, Form), Tailwind CSS |
 | Desktop | Tauri v2 |
 | Testing | Vitest |
@@ -92,7 +93,7 @@ docker compose down             # stop
 
 ### Local development
 
-Prerequisites: [Node.js](https://nodejs.org/) >= 20, [pnpm](https://pnpm.io/) >= 9.
+Prerequisites: [Node.js](https://nodejs.org/) >= 20, [pnpm](https://pnpm.io/) >= 9, and Playwright Chromium (used by visual refinement in storyboard rendering).
 
 ```bash
 # Clone the repository
@@ -102,8 +103,17 @@ cd adt-studio
 # Install dependencies (first time only)
 pnpm install
 
+# Install Playwright Chromium (required for visual refinement)
+pnpm exec playwright install chromium
+
 # Start dev servers — builds automatically, opens browser
 pnpm dev
+```
+
+On Linux, if Chromium system libraries are missing, run:
+
+```bash
+pnpm exec playwright install --with-deps chromium
 ```
 
 The browser opens automatically at `http://localhost:5173`. The API runs at `http://localhost:3001`.

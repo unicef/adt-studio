@@ -136,10 +136,11 @@ books/
 └── {label}/                  # One directory per book (filesystem-safe label)
     ├── {label}.db            # SQLite database: pages, images, llm_log, node_data
     ├── config.yaml           # Per-book config overrides
+    ├── .debug-images/        # Visual-review screenshots (hash.png)
     └── images/               # Extracted page renders and images
 ```
 
-**Backup**: Copy or zip the `books/{label}/` directory. The entire book state — including all LLM outputs, version history, and cached responses — is self-contained.
+**Backup**: Copy or zip the `books/{label}/` directory. The entire book state — including all LLM outputs, version history, cached responses, and debug screenshots — is self-contained.
 
 **Migration**: Move a book directory to a new instance and it will be automatically detected on next startup.
 
@@ -248,6 +249,35 @@ text_classification:
   model: openai:gpt-4o
 ```
 
+### Visual refinement configuration (`render_strategies.*.config.visual_refinement`)
+
+LLM-based and activity-based render strategies can run an iterative visual QA loop:
+1. Render HTML.
+2. Screenshot at desktop/tablet/mobile viewports using Playwright Chromium.
+3. Ask a visual-review prompt to approve or return revised HTML.
+4. Repeat up to `max_iterations`.
+
+Example:
+
+```yaml
+render_strategies:
+  llm:
+    render_type: llm
+    config:
+      prompt: web_generation_html
+      model: openai:gpt-5.2
+      visual_refinement:
+        enabled: true
+        prompt: visual_review
+        max_iterations: 5
+        timeout: 180
+        temperature: 0.3
+```
+
+Notes:
+- The visual-review model is currently fixed in code (`DEFAULT_VISUAL_REVIEW_MODEL_ID` in `packages/pipeline/src/visual-review.ts`).
+- Debug screenshots referenced from LLM logs are stored as files in `books/{label}/.debug-images/`.
+
 ### LLM Prompt Templates (`prompts/*.liquid`)
 
 All LLM prompts are [Liquid](https://liquidjs.com/) templates stored as `.liquid` files. They define system messages, user messages, and inline images using custom tags:
@@ -273,7 +303,7 @@ HTML layout templates used by template-based render strategies (e.g., `two_colum
 
 ## 7. Developer Setup (Local)
 
-**Prerequisites**: [Node.js](https://nodejs.org/) >= 20, [pnpm](https://pnpm.io/) >= 9.
+**Prerequisites**: [Node.js](https://nodejs.org/) >= 20, [pnpm](https://pnpm.io/) >= 9, and Playwright Chromium.
 
 ```bash
 git clone git@github.com:unicef/adt-studio.git
@@ -282,10 +312,19 @@ cd adt-studio
 # Install all workspace dependencies
 pnpm install
 
+# Install Playwright Chromium (required for visual refinement)
+pnpm exec playwright install chromium
+
 # Start API + Studio dev servers in parallel
 pnpm dev
 # API:    http://localhost:3001
 # Studio: http://localhost:5173  (browser opens automatically)
+```
+
+On Linux, install Chromium OS packages if needed:
+
+```bash
+pnpm exec playwright install --with-deps chromium
 ```
 
 On first run, `pnpm dev` compiles all packages (~1 min). Subsequent runs use incremental TypeScript builds and are fast.
