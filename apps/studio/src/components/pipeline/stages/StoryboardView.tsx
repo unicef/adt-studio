@@ -94,6 +94,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
 
   // Navigation elements for the purple header — passed to StoryboardSectionDetail
   // which controls the full header content (nav + version + AI + panel toggle)
+  const currentSection = page?.sectioning?.sections[sectionIndex]
   const navigationExtra = selectedPageSummary && sectionCount > 0 ? (
     <>
       <span className="text-white/40 text-sm">/</span>
@@ -102,24 +103,28 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
       </span>
       <span className="text-white/40 text-sm">/</span>
       <div className="flex items-center gap-0.5">
-        {Array.from({ length: sectionCount }, (_, i) => (
-          <button
-            key={i}
-            type="button"
-            onClick={() => {
-              if (isGeneratingRef.current && !window.confirm("An AI image is being generated. Cancel it and navigate?")) return
-              setSectionIndex(i)
-            }}
-            className={`flex items-center justify-center min-w-[20px] h-5 px-1 rounded text-[10px] font-medium transition-colors ${
-              i === sectionIndex
-                ? "bg-white/30 text-white"
-                : "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"
-            }`}
-            title={`Section ${i + 1}`}
-          >
-            {i + 1}
-          </button>
-        ))}
+        {Array.from({ length: sectionCount }, (_, i) => {
+          const section = page?.sectioning?.sections[i]
+          const pruned = section?.isPruned
+          return (
+            <button
+              key={i}
+              type="button"
+              onClick={() => {
+                if (isGeneratingRef.current && !window.confirm("An AI image is being generated. Cancel it and navigate?")) return
+                setSectionIndex(i)
+              }}
+              className={`flex items-center justify-center min-w-[20px] h-5 px-1 rounded text-[10px] font-medium transition-colors ${
+                i === sectionIndex
+                  ? pruned ? "bg-white/20 text-white/50 line-through decoration-white/40" : "bg-white/30 text-white"
+                  : pruned ? "bg-white/5 text-white/30 line-through decoration-white/20 hover:bg-white/10 hover:text-white/50" : "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"
+              }`}
+              title={`Section ${i + 1}${pruned ? " (pruned)" : ""}`}
+            >
+              {i + 1}
+            </button>
+          )
+        })}
       </div>
     </>
   ) : null

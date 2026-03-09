@@ -624,6 +624,17 @@ export const api = {
   getStyleguidePreview: (name: string) =>
     request<{ name: string; html: string }>(`/styleguides/${name}/preview`),
 
+  generateStyleguide: (label: string, pageIds: string[], apiKey: string, signal?: AbortSignal) =>
+    request<{ name: string; content: string; reasoning: string }>(
+      `/books/${label}/generate-styleguide`,
+      {
+        method: "POST",
+        headers: { "X-OpenAI-Key": apiKey },
+        body: JSON.stringify({ pageIds }),
+        signal: signal ?? AbortSignal.timeout(180_000),
+      }
+    ),
+
   getGlobalConfig: () =>
     request<{ config: Record<string, unknown> }>(`/config`),
 

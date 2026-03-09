@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Style Guide Preview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .preview-label { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; color: #6b7280; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.25rem; margin-bottom: 1rem; }
+    .preview-section { border: 2px dashed #d1d5db; border-radius: 1rem; padding: 2rem; margin-bottom: 2.5rem; background: #fafafa; }
+    .preview-divider { border-top: 3px solid #7c3aed; margin: 3rem 0; }
+  </style>
+</head>
+<body class="bg-[#F6F7F7] text-[#1F1F1F]">
+  <main class="mx-auto max-w-6xl px-6 py-12">
+    <!-- Header -->
+    <section class="mb-10">
+      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-[#111827]">Style Guide Preview</h1>
+      <p class="mt-2 text-base md:text-lg text-[#4B4B4B]">Tema: libro escolar con banda verde, títulos grises grandes y actividades con recuadros y líneas punteadas.</p>
+    </section>
+
+    <div class="preview-divider"></div>
+
+    <!-- Text Styles -->
+    <section>
+      <h2 class="text-2xl font-extrabold text-[#111827] mb-6">Text Styles</h2>
+
+      <div class="preview-section">
+        <div class="preview-label">book_title — h1</div>
+        <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-[#6F6F6F]">Pensar la lengua escrita</h1>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">book_subtitle — p</div>
+        <p class="mt-2 text-lg md:text-xl font-semibold text-[#4B4B4B]">Actividades para leer, escribir y explicar con tus palabras.</p>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">chapter_title — h2</div>
+        <h2 class="text-3xl md:text-4xl font-extrabold text-[#6F6F6F]">Para definir mejor</h2>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">section_heading — h3</div>
+        <h3 class="flex items-center gap-3 text-xl md:text-2xl font-extrabold text-[#1F1F1F]"><span class="inline-block h-2.5 w-6 rounded-sm bg-[#0AA14B]"></span>El verbo</h3>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">activity_title — h4</div>
+        <h4 class="text-lg font-bold text-[#1F1F1F]">Actividad: completa la guía paso a paso</h4>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">section_text — p</div>
+        <p class="text-base leading-7 text-[#1F1F1F]">En la escuela circulan diversos recursos para estudiar. Observa las imágenes y explica para qué se usa cada uno.</p>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">instruction_text — p</div>
+        <p class="text-base leading-7 text-[#4B4B4B]">Escribe tu respuesta en las líneas punteadas. Revisa si tu explicación tiene ejemplos.</p>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">standalone_text — p</div>
+        <p class="text-base leading-7 text-[#1F1F1F]">Trabaja con un compañero y comparen respuestas.</p>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">image_associated_text — figcaption</div>
+        <figcaption class="mt-2 text-sm leading-6 text-[#4B4B4B]">Figura: ejemplo de recurso de estudio (manual, apuntes, diccionario).</figcaption>
+      </div>
+    </section>
+
+    <div class="preview-divider"></div>
+
+    <!-- Components -->
+    <section>
+      <h2 class="text-2xl font-extrabold text-[#111827] mb-6">Components</h2>
+
+      <div class="preview-section">
+        <div class="preview-label">Chapter Badge</div>
+        <div class="inline-flex items-center gap-2 rounded-full bg-[#0AA14B] px-4 py-2 text-sm font-extrabold text-white shadow-sm">
+          <span class="inline-block h-2 w-2 rounded-full bg-white/90"></span>
+          <span>UNIDAD 2</span>
+        </div>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">Content Card</div>
+        <div class="rounded-sm bg-[#E9ECEF] p-5 ring-1 ring-[#8E8E8E]">
+          <p class="text-base leading-7 text-[#1F1F1F]">Define la palabra <span class="bg-[#FFE24A] px-1 font-semibold">predadores</span> con tus palabras.</p>
+          <div class="mt-4 space-y-3">
+            <div class="border-b border-dotted border-[#7C7C7C] pb-2"></div>
+            <div class="border-b border-dotted border-[#7C7C7C] pb-2"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">Text Group</div>
+        <div class="space-y-3">
+          <div class="flex gap-3">
+            <span class="mt-2 inline-block h-2.5 w-6 rounded-sm bg-[#0AA14B]"></span>
+            <p class="text-base leading-7 text-[#1F1F1F]">Observa la imagen y explica qué información aporta.</p>
+          </div>
+          <div class="flex gap-3">
+            <span class="mt-2 inline-block h-2.5 w-6 rounded-sm bg-[#0AA14B]"></span>
+            <p class="text-base leading-7 text-[#1F1F1F]">Une cada tema con el área de estudio correspondiente.</p>
+          </div>
+          <hr class="my-4 border-t-2 border-dashed border-[#7C7C7C]" />
+          <p class="text-base leading-7 text-[#4B4B4B]">Si lo necesitas, consulta tu manual y tus apuntes.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="preview-divider"></div>
+
+    <!-- Image Styles -->
+    <section>
+      <h2 class="text-2xl font-extrabold text-[#111827] mb-6">Image Styles</h2>
+
+      <div class="preview-section">
+        <div class="preview-label">Single image</div>
+        <div class="aspect-[4/3] w-full rounded-md bg-gradient-to-br from-emerald-100 to-cyan-100 ring-1 ring-black/10"></div>
+        <p class="mt-2 text-sm text-[#4B4B4B]">Placeholder para una ilustración principal.</p>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">Multiple images row</div>
+        <div class="grid grid-cols-2 gap-4 md:grid-cols-3">
+          <div class="aspect-square rounded-md bg-gradient-to-br from-green-100 to-lime-100 ring-1 ring-black/10"></div>
+          <div class="aspect-square rounded-md bg-gradient-to-br from-emerald-100 to-teal-100 ring-1 ring-black/10"></div>
+          <div class="aspect-square rounded-md bg-gradient-to-br from-cyan-100 to-sky-100 ring-1 ring-black/10"></div>
+        </div>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">Image grid (activity icons)</div>
+        <div class="grid grid-cols-2 gap-6 md:grid-cols-4">
+          <div class="aspect-square rounded-md bg-gradient-to-br from-amber-100 to-yellow-100 ring-1 ring-black/10"></div>
+          <div class="aspect-square rounded-md bg-gradient-to-br from-rose-100 to-orange-100 ring-1 ring-black/10"></div>
+          <div class="aspect-square rounded-md bg-gradient-to-br from-indigo-100 to-violet-100 ring-1 ring-black/10"></div>
+          <div class="aspect-square rounded-md bg-gradient-to-br from-emerald-100 to-cyan-100 ring-1 ring-black/10"></div>
+        </div>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">Side-by-side layout</div>
+        <div class="grid grid-cols-1 gap-6 md:grid-cols-2 md:items-start">
+          <div class="space-y-3">
+            <h3 class="flex items-center gap-3 text-xl md:text-2xl font-extrabold text-[#1F1F1F]"><span class="inline-block h-2.5 w-6 rounded-sm bg-[#0AA14B]"></span>Fuente: el manual de estudio</h3>
+            <p class="text-base leading-7 text-[#1F1F1F]">El manual organiza la información por áreas (ciencias, lengua, matemática). Úsalo para repasar.</p>
+            <div class="rounded-sm bg-[#E9ECEF] p-4 ring-1 ring-[#8E8E8E]">
+              <p class="text-sm text-[#1F1F1F]"><span class="font-bold">Tip:</span> subraya palabras clave y arma un resumen.</p>
+            </div>
+          </div>
+          <div class="aspect-[4/3] w-full rounded-md bg-gradient-to-br from-emerald-100 to-cyan-100 ring-1 ring-black/10"></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="preview-divider"></div>
+
+    <!-- Page Templates -->
+    <section>
+      <h2 class="text-2xl font-extrabold text-[#111827] mb-6">Page Templates</h2>
+
+      <div class="preview-section">
+        <div class="preview-label">Chapter Start Page (example)</div>
+        <div class="mx-auto w-full overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
+          <header class="relative">
+            <div class="h-20 bg-[#0AA14B]"></div>
+            <div class="absolute inset-x-0 top-10 h-16 bg-white [clip-path:polygon(0_0,70%_0,100%_60%,100%_100%,0_100%)]"></div>
+            <div class="absolute inset-x-0 top-14 h-10 bg-[#D8DADC] opacity-70 [clip-path:polygon(0_0,70%_0,100%_60%,100%_100%,0_100%)]"></div>
+            <div class="absolute right-6 top-4 flex h-16 w-16 items-center justify-center rounded-full bg-white ring-4 ring-[#0AA14B]">
+              <div class="h-12 w-12 rounded-full bg-gradient-to-br from-green-100 to-green-300"></div>
+            </div>
+          </header>
+          <div class="px-8 pb-10 pt-8">
+            <div class="mb-4">
+              <div class="inline-flex items-center gap-2 rounded-full bg-[#0AA14B] px-4 py-2 text-sm font-extrabold text-white shadow-sm">
+                <span class="inline-block h-2 w-2 rounded-full bg-white/90"></span>
+                <span>UNIDAD 2</span>
+              </div>
+            </div>
+            <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-[#6F6F6F]">Pensar la lengua escrita</h1>
+            <p class="mt-2 text-lg md:text-xl font-semibold text-[#4B4B4B]">Aprendemos a dar instrucciones claras usando verbos.</p>
+            <hr class="my-6 border-t border-[#8E8E8E]" />
+            <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <div class="space-y-3">
+                <h3 class="flex items-center gap-3 text-xl md:text-2xl font-extrabold text-[#1F1F1F]"><span class="inline-block h-2.5 w-6 rounded-sm bg-[#0AA14B]"></span>El verbo</h3>
+                <p class="text-base leading-7 text-[#1F1F1F]">Marca si te piden, te explican o te ordenan una acción.</p>
+                <div class="rounded-sm bg-[#E9ECEF] p-5 ring-1 ring-[#8E8E8E]">
+                  <p class="text-base leading-7 text-[#1F1F1F]">En conclusión: cuando un hablante <span class="bg-[#FFE24A] px-1 font-semibold">da una instrucción</span>, usa imperativo.</p>
+                </div>
+              </div>
+              <div class="aspect-[4/3] w-full rounded-md bg-gradient-to-br from-emerald-100 to-cyan-100 ring-1 ring-black/10"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">Regular Content Page (example)</div>
+        <div class="mx-auto w-full overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
+          <header class="relative">
+            <div class="h-16 bg-[#0AA14B]"></div>
+            <div class="absolute inset-x-0 top-8 h-14 bg-white [clip-path:polygon(0_0,70%_0,100%_60%,100%_100%,0_100%)]"></div>
+            <div class="absolute inset-x-0 top-11 h-10 bg-[#D8DADC] opacity-70 [clip-path:polygon(0_0,70%_0,100%_60%,100%_100%,0_100%)]"></div>
+          </header>
+          <div class="px-8 pb-10 pt-8">
+            <h2 class="text-3xl md:text-4xl font-extrabold text-[#6F6F6F]">Fuente: el manual de estudio</h2>
+            <hr class="my-5 border-t border-[#8E8E8E]" />
+
+            <div class="space-y-3">
+              <div class="flex gap-3">
+                <span class="mt-2 inline-block h-2.5 w-6 rounded-sm bg-[#0AA14B]"></span>
+                <p class="text-base leading-7 text-[#1F1F1F]">Explica para qué usas cada recurso: cuaderno, diccionario, apuntes.</p>
+              </div>
+            </div>
+
+            <div class="my-6 grid grid-cols-2 gap-6 md:grid-cols-4">
+              <div class="aspect-square rounded-md bg-gradient-to-br from-green-100 to-lime-100 ring-1 ring-black/10"></div>
+              <div class="aspect-square rounded-md bg-gradient-to-br from-emerald-100 to-teal-100 ring-1 ring-black/10"></div>
+              <div class="aspect-square rounded-md bg-gradient-to-br from-cyan-100 to-sky-100 ring-1 ring-black/10"></div>
+              <div class="aspect-square rounded-md bg-gradient-to-br from-amber-100 to-yellow-100 ring-1 ring-black/10"></div>
+            </div>
+
+            <hr class="my-8 border-t-2 border-dashed border-[#7C7C7C]" />
+
+            <div class="flex gap-3">
+              <span class="mt-2 inline-block h-2.5 w-6 rounded-sm bg-[#0AA14B]"></span>
+              <p class="text-base leading-7 text-[#1F1F1F]">Resalta con dos colores las áreas de ciencias naturales y sociales.</p>
+            </div>
+
+            <div class="mt-5 rounded-sm bg-[#E9ECEF] p-5 ring-1 ring-[#8E8E8E]">
+              <p class="text-base leading-7 text-[#1F1F1F]">Escribe ejemplos: <span class="bg-[#FFE24A] px-1 font-semibold">geografía</span>, biología, historia, química.</p>
+              <div class="mt-4 space-y-3">
+                <div class="border-b border-dotted border-[#7C7C7C] pb-2"></div>
+                <div class="border-b border-dotted border-[#7C7C7C] pb-2"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="preview-divider"></div>
+
+    <!-- Required Structure Reference -->
+    <section class="preview-section">
+      <div class="preview-label">Required Structure Reference</div>
+      <pre class="overflow-auto rounded-lg bg-[#111827] p-4 text-sm text-white"><code>&lt;div class=&quot;container content mx-auto flex min-h-screen w-full items-start justify-center px-6 py-12&quot;
+    data-background-color=&quot;<span class="text-yellow-300">BACKGROUND_COLOR</span>&quot; id=&quot;content&quot;&gt;
+  &lt;section class=&quot;w-full&quot; data-section-id=&quot;<span class="text-yellow-300">SECTION_ID</span>&quot; data-section-type=&quot;<span class="text-yellow-300">SECTION_TYPE</span>&quot; data-text-color=&quot;<span class="text-yellow-300">TEXT_COLOR</span>&quot;
+      id=&quot;simple-main&quot; role=&quot;article&quot;&gt;
+    &lt;!-- Content goes here --&gt;
+  &lt;/section&gt;
+&lt;/div&gt;</code></pre>
+    </section>
+
+  </main>
+</body>
+</html>

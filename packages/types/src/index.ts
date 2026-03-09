@@ -130,3 +130,7 @@ export {
   SpeechFileEntry,
   TTSOutput,
 } from "./speech.js"
+
+export {
+  StyleguideGenerationOutput,
+} from "./styleguide-generation.js"

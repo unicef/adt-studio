@@ -8,7 +8,7 @@ import { parseBookLabel, TextClassificationOutput, ImageClassificationOutput, Pa
 import { openBookDb } from "@adt/storage"
 import { createBookStorage } from "@adt/storage"
 import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
-import { segmentPageImages, getSegmentedImageId, loadBookConfig, applyCrop } from "@adt/pipeline"
+import { segmentPageImages, getSegmentedImageId, loadBookConfig, applyCrop, generateStyleguide, buildStyleguideGenerationConfig } from "@adt/pipeline"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
 
 interface PageSummary {
@@ -1120,6 +1120,100 @@ export function createPageRoutes(
       return c.json({ error: err instanceof Error ? err.message : "Segmentation apply failed" }, 500)
     } finally {
       storage.close()
+    }
+  })
+
+  // POST /books/:label/generate-styleguide — Generate styleguide from page images
+  app.post("/books/:label/generate-styleguide", async (c) => {
+    const { label } = c.req.param()
+    const safeLabel = parseBookLabel(label)
+
+    const apiKey = c.req.header("X-OpenAI-Key")
+    if (!apiKey) {
+      throw new HTTPException(400, { message: "Missing X-OpenAI-Key header" })
+    }
+
+    const body = await c.req.json()
+    const PageIdsSchema = z.object({
+      pageIds: z.array(z.string().min(1)).min(1).max(5),
+    })
+    const parsed = PageIdsSchema.safeParse(body)
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid request: ${parsed.error.issues.map((i) => i.message).join(", ")}`,
+      })
+    }
+
+    const { pageIds } = parsed.data
+    const resolvedBooksDir = path.resolve(booksDir)
+    const bookDir = path.join(resolvedBooksDir, safeLabel)
+    const dbPath = path.join(bookDir, `${safeLabel}.db`)
+
+    if (!fs.existsSync(dbPath)) {
+      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
+    }
+
+    // Load page images
+    const storage = createBookStorage(safeLabel, booksDir)
+    const pageImages: Array<{ pageId: string; pageNumber: number; imageBase64: string }> = []
+    try {
+      const pages = storage.getPages()
+      for (const pageId of pageIds) {
+        const page = pages.find((p) => p.pageId === pageId)
+        if (!page) {
+          throw new HTTPException(404, { message: `Page not found: ${pageId}` })
+        }
+        const imageBase64 = storage.getPageImageBase64(pageId)
+        pageImages.push({
+          pageId,
+          pageNumber: page.pageNumber,
+          imageBase64,
+        })
+      }
+    } finally {
+      storage.close()
+    }
+
+    // Set API key for LLM
+    const previousKey = process.env.OPENAI_API_KEY
+    process.env.OPENAI_API_KEY = apiKey
+
+    try {
+      const bookPromptsDir = path.join(bookDir, "prompts")
+      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+      const cacheDir = path.join(bookDir, ".cache")
+      const config = buildStyleguideGenerationConfig()
+      const llmModel = createLLMModel({
+        modelId: config.modelId,
+        cacheDir,
+        promptEngine,
+      })
+
+      const result = await generateStyleguide(
+        { pageImages },
+        config,
+        llmModel
+      )
+
+      // Save to assets/styleguides/{label}-generated.md
+      const projectRoot = configPath ? path.dirname(configPath) : path.resolve(booksDir, "..")
+      const styleguidesDir = path.join(projectRoot, "assets", "styleguides")
+      fs.mkdirSync(styleguidesDir, { recursive: true })
+      const sgName = `${safeLabel}-generated`
+      fs.writeFileSync(path.join(styleguidesDir, `${sgName}.md`), result.content, "utf-8")
+      fs.writeFileSync(path.join(styleguidesDir, `${sgName}-preview.html`), result.preview_html, "utf-8")
+
+      return c.json({
+        name: sgName,
+        content: result.content,
+        reasoning: result.reasoning,
+      })
+    } finally {
+      if (previousKey !== undefined) {
+        process.env.OPENAI_API_KEY = previousKey
+      } else {
+        delete process.env.OPENAI_API_KEY
+      }
     }
   })
 

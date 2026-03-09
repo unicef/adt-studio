@@ -137,6 +137,12 @@ export {
   getTargetLanguages,
   type CatalogTranslationConfig,
 } from "./catalog-translation.js"
+export {
+  generateStyleguide,
+  buildStyleguideGenerationConfig,
+  type StyleguideGenerationConfig,
+  type StyleguideGenerationInput,
+} from "./styleguide-generation.js"
 export { loadConfig, loadBookConfig, deepMerge } from "./config.js"
 export { runPipeline, type RunPipelineOptions } from "./pipeline.js"
 export { runFullPipeline, type FullPipelineOptions } from "./pipeline-dag.js"
