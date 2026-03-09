@@ -81,7 +81,7 @@ render_strategies:
       timeout: 180
       visual_refinement:
         enabled: true
-        max_iterations: 20
+        max_iterations: 5
   llm-overlay:
     render_type: llm
     config:
