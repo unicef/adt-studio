@@ -2,7 +2,7 @@ import { z } from "zod"
 
 export const SCHEMA_VERSION = 9
 
-export const ImageSource = z.enum(["page", "extract", "crop", "segment"])
+export const ImageSource = z.enum(["page", "extract", "crop", "segment", "upload"])
 export type ImageSource = z.infer<typeof ImageSource>
 
 export const PageRow = z.object({

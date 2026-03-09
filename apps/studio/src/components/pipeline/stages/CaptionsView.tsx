@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { Check, ChevronDown, Image as ImageIcon, Loader2 } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
 import { api, BASE_URL } from "@/api/client"
@@ -9,6 +9,7 @@ import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { StageRunCard } from "../StageRunCard"
 import { STAGE_DESCRIPTIONS } from "../stage-config"
+import { useSectionNav } from "@/routes/books.$label"
 
 
 type CaptioningData = NonNullable<PageDetail["imageCaptioning"]>
@@ -130,7 +131,41 @@ function VersionPicker({
   )
 }
 
-function PageCaptions({ bookLabel, pageId, pageNumber, emptyState, largeImages }: { bookLabel: string; pageId: string; pageNumber: number; emptyState?: React.ReactNode; largeImages?: boolean }) {
+/** Build a map from imageId → sectionIndex using sectioning data */
+function buildImageSectionMap(page: PageDetail | undefined): Map<string, number> {
+  const map = new Map<string, number>()
+  if (!page?.sectioning) return map
+  page.sectioning.sections.forEach((section, idx) => {
+    for (const part of section.parts) {
+      if (part.type === "image") {
+        map.set(part.imageId, idx)
+      }
+    }
+  })
+  return map
+}
+
+interface CaptionGroup {
+  sectionIndex: number
+  sectionType?: string
+  captions: Array<{ imageId: string; reasoning: string; caption: string }>
+}
+
+function PageCaptions({
+  bookLabel,
+  pageId,
+  pageNumber,
+  emptyState,
+  largeImages,
+  filterSectionIndex,
+}: {
+  bookLabel: string
+  pageId: string
+  pageNumber: number
+  emptyState?: React.ReactNode
+  largeImages?: boolean
+  filterSectionIndex?: number
+}) {
   const queryClient = useQueryClient()
   const { data: page } = usePage(bookLabel, pageId)
 
@@ -145,6 +180,43 @@ function PageCaptions({ bookLabel, pageId, pageNumber, emptyState, largeImages }
   const effective = pending ?? page?.imageCaptioning
   const captions = effective?.captions ?? []
   const dirty = pending != null
+
+  // Map imageId → sectionIndex
+  const imageSectionMap = useMemo(() => buildImageSectionMap(page), [page?.sectioning])
+
+  // Group captions by section
+  const groups = useMemo(() => {
+    const sections = page?.sectioning?.sections
+    if (!sections || sections.length <= 1) {
+      // No sectioning or single section — flat list, no grouping
+      return null
+    }
+    const grouped = new Map<number, CaptionGroup>()
+    const unsectioned: Array<{ imageId: string; reasoning: string; caption: string }> = []
+    for (const cap of captions) {
+      const si = imageSectionMap.get(cap.imageId)
+      if (si != null) {
+        let group = grouped.get(si)
+        if (!group) {
+          group = {
+            sectionIndex: si,
+            sectionType: sections[si]?.sectionType,
+            captions: [],
+          }
+          grouped.set(si, group)
+        }
+        group.captions.push(cap)
+      } else {
+        unsectioned.push(cap)
+      }
+    }
+    // Sort by section index
+    const result = Array.from(grouped.values()).sort((a, b) => a.sectionIndex - b.sectionIndex)
+    if (unsectioned.length > 0) {
+      result.push({ sectionIndex: -1, sectionType: undefined, captions: unsectioned })
+    }
+    return result
+  }, [captions, imageSectionMap, page?.sectioning?.sections])
 
   if (!page?.imageCaptioning || captions.length === 0) return emptyState ?? null
 
@@ -174,10 +246,52 @@ function PageCaptions({ bookLabel, pageId, pageNumber, emptyState, largeImages }
     setPending(data as CaptioningData)
   }
 
+  // Filter captions by section when a section is selected
+  const filteredCaptions = filterSectionIndex != null
+    ? captions.filter((cap) => imageSectionMap.get(cap.imageId) === filterSectionIndex)
+    : captions
+
+  if (filterSectionIndex != null && filteredCaptions.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+        <div className="w-12 h-12 rounded-full bg-teal-50 flex items-center justify-center mb-3">
+          <ImageIcon className="w-6 h-6 text-teal-300" />
+        </div>
+        <p className="text-sm font-medium">No images in this section</p>
+      </div>
+    )
+  }
+
+  const renderCaption = (cap: { imageId: string; reasoning: string; caption: string }) => (
+    <div key={cap.imageId} className="flex items-start gap-4 rounded-md border bg-card overflow-hidden">
+      <img
+        src={`${BASE_URL}/books/${bookLabel}/images/${cap.imageId}`}
+        alt={cap.caption}
+        className={`shrink-0 self-stretch bg-muted object-cover block ${largeImages ? "w-96" : "w-48"}`}
+      />
+      <div className="flex-1 min-w-0 py-2.5 pr-3">
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-[10px] font-medium text-teal-600">{cap.imageId}</span>
+        </div>
+        <textarea
+          value={cap.caption}
+          onChange={(e) => updateCaption(cap.imageId, e.target.value)}
+          className="w-full text-sm text-foreground leading-relaxed resize-none rounded border border-transparent bg-transparent p-1.5 -ml-1.5 hover:border-border hover:bg-muted/30 focus:border-ring focus:bg-white focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
+          rows={2}
+        />
+      </div>
+    </div>
+  )
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-center gap-2 px-1">
-        <span className="text-[10px] font-medium text-muted-foreground">Page {pageNumber}</span>
+        <span className="text-sm font-medium text-foreground">
+          Page {pageNumber}
+          {filterSectionIndex != null && (
+            <span className="text-muted-foreground"> / Section {filterSectionIndex + 1}</span>
+          )}
+        </span>
         <div className="ml-auto">
           <VersionPicker
             currentVersion={page.versions.imageCaptioning}
@@ -191,26 +305,28 @@ function PageCaptions({ bookLabel, pageId, pageNumber, emptyState, largeImages }
           />
         </div>
       </div>
-      {captions.map((cap) => (
-        <div key={cap.imageId} className="flex items-start gap-4 rounded-md border bg-card overflow-hidden">
-          <img
-            src={`${BASE_URL}/books/${bookLabel}/images/${cap.imageId}`}
-            alt={cap.caption}
-            className={`shrink-0 self-stretch bg-muted object-cover block ${largeImages ? "w-96" : "w-48"}`}
-          />
-          <div className="flex-1 min-w-0 py-2.5 pr-3">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-[10px] font-medium text-teal-600">{cap.imageId}</span>
+      {filterSectionIndex != null ? (
+        // Filtered to a specific section — flat list
+        filteredCaptions.map(renderCaption)
+      ) : groups ? (
+        // Grouped by section
+        groups.map((group) => (
+          <div key={group.sectionIndex}>
+            <div className="px-1 pt-1.5 pb-0.5">
+              <span className="text-[9px] font-medium text-muted-foreground/70 uppercase tracking-wider">
+                {group.sectionIndex >= 0
+                  ? `Section ${group.sectionIndex + 1}${group.sectionType ? ` — ${group.sectionType}` : ""}`
+                  : "Other images"
+                }
+              </span>
             </div>
-            <textarea
-              value={cap.caption}
-              onChange={(e) => updateCaption(cap.imageId, e.target.value)}
-              className="w-full text-sm text-foreground leading-relaxed resize-none rounded border border-transparent bg-transparent p-1.5 -ml-1.5 hover:border-border hover:bg-muted/30 focus:border-ring focus:bg-white focus:outline-none focus:ring-1 focus:ring-ring transition-colors"
-              rows={2}
-            />
+            {group.captions.map(renderCaption)}
           </div>
-        </div>
-      ))}
+        ))
+      ) : (
+        // Single section or no sectioning — flat list
+        filteredCaptions.map(renderCaption)
+      )}
     </div>
   )
 }
@@ -224,6 +340,7 @@ export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { book
   const captionsDone = captionsState === "done"
   const captionsRunning = captionsState === "running" || captionsState === "queued"
   const showRunCard = !captionsDone || captionsRunning
+  const { sectionIndex, setSectionIndex } = useSectionNav()
 
   const handleRunCaptions = useCallback(() => {
     if (!hasApiKey || captionsRunning) return
@@ -238,16 +355,58 @@ export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { book
     : pagesWithImages
   const totalImages = displayPages.reduce((sum, p) => sum + p.imageCount, 0)
 
+  // Determine if we should filter by section (only when a specific page is selected and it has sections)
+  const selectedPageSummary = selectedPageId
+    ? (pages ?? []).find((p) => p.pageId === selectedPageId)
+    : null
+  const hasSections = selectedPageSummary && selectedPageSummary.sectionCount > 1
+  const filterSectionIndex = selectedPageId && hasSections
+    ? sectionIndex
+    : undefined
+
   useEffect(() => {
     if (!pages) return
     setExtra(
-      <div className="flex items-center gap-1.5 ml-auto">
-        <span className="text-[10px] bg-white/20 rounded-full px-2 py-0.5">{totalImages} images</span>
-        <span className="text-[10px] bg-white/20 rounded-full px-2 py-0.5">{displayPages.length} pages</span>
-      </div>
+      <>
+        {selectedPageSummary && (
+          <>
+            <span className="text-white/40 text-sm">/</span>
+            <span className="text-sm font-medium">Page {selectedPageSummary.pageNumber}</span>
+            {hasSections && (
+              <>
+                <span className="text-white/40 text-sm">/</span>
+                <div className="flex items-center gap-0.5">
+                  {Array.from({ length: selectedPageSummary.sectionCount }, (_, i) => {
+                    const pruned = selectedPageSummary.prunedSections?.includes(i)
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setSectionIndex(i)}
+                        className={`flex items-center justify-center min-w-[20px] h-5 px-1 rounded text-[10px] font-medium transition-colors ${
+                          i === sectionIndex
+                            ? pruned ? "bg-white/20 text-white/50 line-through decoration-white/40" : "bg-white/30 text-white"
+                            : pruned ? "bg-white/5 text-white/30 line-through decoration-white/20 hover:bg-white/10 hover:text-white/50" : "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"
+                        }`}
+                        title={`Section ${i + 1}${pruned ? " (pruned)" : ""}`}
+                      >
+                        {i + 1}
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+          </>
+        )}
+        <div className="flex items-center gap-1.5 ml-auto">
+          <span className="text-[10px] bg-white/20 rounded-full px-2 py-0.5">{totalImages} images</span>
+          <span className="text-[10px] bg-white/20 rounded-full px-2 py-0.5">{displayPages.length} pages</span>
+        </div>
+      </>
     )
     return () => setExtra(null)
-  }, [pages, totalImages, displayPages.length, setExtra, selectedPageId])
+  }, [pages, totalImages, displayPages.length, setExtra, selectedPageId, selectedPageSummary?.pageNumber, selectedPageSummary?.sectionCount, hasSections, sectionIndex, setSectionIndex])
 
   if (!showRunCard && isLoading) {
     return (
@@ -285,7 +444,7 @@ export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { book
           onClick={() => onSelectPage?.(null)}
           className="mt-3 text-xs font-medium text-teal-600 hover:text-teal-700 hover:underline transition-colors"
         >
-          Show all images
+          Show all
         </button>
       </div>
     )
@@ -303,6 +462,17 @@ export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { book
 
   return (
     <div className="space-y-4">
+      {selectedPageId && (
+        <div className="flex justify-end px-4 pt-3">
+          <button
+            type="button"
+            onClick={() => onSelectPage?.(null)}
+            className="text-xs font-medium text-teal-600 hover:text-teal-700 hover:underline transition-colors"
+          >
+            Show all
+          </button>
+        </div>
+      )}
       {displayPages.map((page) => (
         <PageCaptions
           key={page.pageId}
@@ -311,19 +481,9 @@ export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { book
           pageNumber={page.pageNumber}
           emptyState={singlePageEmptyState}
           largeImages={!!selectedPageId}
+          filterSectionIndex={page.pageId === selectedPageId ? filterSectionIndex : undefined}
         />
       ))}
-      {selectedPageId && (
-        <div className="flex justify-center pt-2 pb-4">
-          <button
-            type="button"
-            onClick={() => onSelectPage?.(null)}
-            className="text-xs font-medium text-teal-600 hover:text-teal-700 hover:underline transition-colors"
-          >
-            Show all images
-          </button>
-        </div>
-      )}
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { createPortal } from "react-dom"
 import { useNavigate } from "@tanstack/react-router"
-import { Play, Plus, X, Eye } from "lucide-react"
+import { Play, Plus, X, Eye, Wand2, Loader2, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PruneToggle } from "@/components/pipeline/PruneToggle"
@@ -25,7 +25,8 @@ import { Label } from "@/components/ui/label"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
-import { useStyleguides, useStyleguidePreview, useTemplates } from "@/hooks/use-presets"
+import { useStyleguides, useStyleguidePreview, useTemplates, useGenerateStyleguide } from "@/hooks/use-presets"
+import { usePages, usePageImage } from "@/hooks/use-pages"
 import { api } from "@/api/client"
 import { PromptViewer } from "@/components/pipeline/PromptViewer"
 import { TemplateViewer } from "@/components/pipeline/TemplateViewer"
@@ -57,6 +58,59 @@ const RENDER_STRATEGY_DESCRIPTIONS: Record<string, string> = {
   "llm-overlay": "LLM positions text over background images",
   two_column: "Fixed two-column template layout",
   two_column_story: "Two-column template for story content",
+}
+
+function PageThumb({
+  bookLabel,
+  page,
+  selected,
+  disabled,
+  onClick,
+}: {
+  bookLabel: string
+  page: { pageId: string; pageNumber: number }
+  selected: boolean
+  disabled: boolean
+  onClick: () => void
+}) {
+  const { data: imageData } = usePageImage(bookLabel, page.pageId)
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`relative flex flex-col rounded-md border overflow-hidden transition-colors text-left ${
+        selected
+          ? "border-blue-500 ring-2 ring-blue-500/30"
+          : disabled
+            ? "opacity-40 cursor-not-allowed border-border"
+            : "hover:border-blue-300 cursor-pointer border-border"
+      }`}
+    >
+      <div className="w-full bg-muted/30">
+        {imageData ? (
+          <img
+            src={`data:image/png;base64,${imageData.imageBase64}`}
+            alt={`Page ${page.pageNumber}`}
+            className="w-full h-auto block"
+          />
+        ) : (
+          <div className="flex aspect-[3/4] items-center justify-center text-[10px] text-muted-foreground">
+            ...
+          </div>
+        )}
+      </div>
+      <div className="px-1.5 py-1 border-t text-center">
+        <span className="text-[10px] font-medium">Page {page.pageNumber}</span>
+      </div>
+      {selected && (
+        <div className="absolute top-1 right-1 w-5 h-5 rounded-full bg-blue-500 flex items-center justify-center">
+          <Check className="h-3 w-3 text-white" />
+        </div>
+      )}
+    </button>
+  )
 }
 
 export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
@@ -136,6 +190,39 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
   const { data: templatesData } = useTemplates()
   const availableTemplates = templatesData?.templates ?? []
   const availableStyleguides = styleguidesData?.styleguides ?? []
+
+  // Styleguide generation
+  const { data: pagesData } = usePages(bookLabel)
+  const generateStyleguideMutation = useGenerateStyleguide()
+  const [generateDialogOpen, setGenerateDialogOpen] = useState(false)
+  const [selectedPageIds, setSelectedPageIds] = useState<Set<string>>(new Set())
+
+  const togglePageSelection = (pageId: string) => {
+    setSelectedPageIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(pageId)) {
+        next.delete(pageId)
+      } else if (next.size < 5) {
+        next.add(pageId)
+      }
+      return next
+    })
+  }
+
+  const handleGenerate = () => {
+    if (selectedPageIds.size === 0 || !hasApiKey) return
+    generateStyleguideMutation.mutate(
+      { label: bookLabel, pageIds: Array.from(selectedPageIds), apiKey },
+      {
+        onSuccess: (data) => {
+          setStyleguide(data.name)
+          markDirty("styleguide")
+          setGenerateDialogOpen(false)
+          setSelectedPageIds(new Set())
+        },
+      }
+    )
+  }
 
   // Styleguide preview
   const [styleguidePreviewOpen, setStyleguidePreviewOpen] = useState(false)
@@ -645,53 +732,67 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
         <div className="flex flex-col h-full">
           {/* Styleguide + Temperature settings */}
           <div className="shrink-0 p-4 pb-0 space-y-4">
-            {availableStyleguides.length > 0 && (
-              <div>
-                <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                  Styleguide
-                </h3>
-                <div className="flex items-center gap-2">
-                  <Select
-                    value={styleguide || "__none__"}
-                    onValueChange={(v) => {
-                      setStyleguide(v === "__none__" ? "" : v)
-                      markDirty("styleguide")
-                    }}
-                  >
-                    <SelectTrigger className="w-72">
-                      <SelectValue placeholder="Select styleguide...">
-                        {styleguide ? titleCase(styleguide) : "None"}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent align="start">
-                      <SelectItem value="__none__">
-                        <span className="text-muted-foreground">None</span>
+            <div>
+              <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+                Styleguide
+              </h3>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={styleguide || "__none__"}
+                  onValueChange={(v) => {
+                    setStyleguide(v === "__none__" ? "" : v)
+                    markDirty("styleguide")
+                  }}
+                >
+                  <SelectTrigger className="w-72">
+                    <SelectValue placeholder="Select styleguide...">
+                      {styleguide ? titleCase(styleguide) : "None"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent align="start">
+                    <SelectItem value="__none__">
+                      <span className="text-muted-foreground">None</span>
+                    </SelectItem>
+                    {availableStyleguides.map((sg) => (
+                      <SelectItem key={sg} value={sg}>
+                        {titleCase(sg)}
                       </SelectItem>
-                      {availableStyleguides.map((sg) => (
-                        <SelectItem key={sg} value={sg}>
-                          {titleCase(sg)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {styleguide && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-9 px-2.5 shrink-0"
-                      onClick={openStyleguidePreview}
-                    >
-                      <Eye className="h-3.5 w-3.5 mr-1" />
-                      Preview
-                    </Button>
-                  )}
-                </div>
-                <p className="text-xs text-muted-foreground mt-1.5">
-                  Provides consistent HTML/CSS patterns for LLM-generated pages.
-                </p>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {styleguide && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 px-2.5 shrink-0"
+                    onClick={openStyleguidePreview}
+                  >
+                    <Eye className="h-3.5 w-3.5 mr-1" />
+                    Preview
+                  </Button>
+                )}
+                {pagesData && pagesData.length > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 px-2.5 shrink-0"
+                    onClick={() => {
+                      setSelectedPageIds(new Set())
+                      setGenerateDialogOpen(true)
+                    }}
+                    disabled={generateStyleguideMutation.isPending}
+                  >
+                    <Wand2 className="h-3.5 w-3.5 mr-1" />
+                    Generate from pages
+                  </Button>
+                )}
               </div>
-            )}
+              <p className="text-xs text-muted-foreground mt-1.5">
+                Provides consistent HTML/CSS patterns for LLM-generated pages.
+              </p>
+            </div>
 
             <div>
               <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
@@ -978,6 +1079,78 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
               />
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={generateDialogOpen} onOpenChange={(open) => {
+        if (!generateStyleguideMutation.isPending) {
+          setGenerateDialogOpen(open)
+        }
+      }}>
+        <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Generate Styleguide from Pages</DialogTitle>
+            <DialogDescription>
+              Select up to 5 pages to use as visual references. The LLM will analyze them and generate a styleguide.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex-1 min-h-0 overflow-y-auto">
+            <div className="grid grid-cols-4 sm:grid-cols-5 gap-2 p-1">
+              {(pagesData ?? []).map((page) => {
+                const isSelected = selectedPageIds.has(page.pageId)
+                const isDisabled = !isSelected && selectedPageIds.size >= 5
+                return (
+                  <PageThumb
+                    key={page.pageId}
+                    bookLabel={bookLabel}
+                    page={page}
+                    selected={isSelected}
+                    disabled={isDisabled}
+                    onClick={() => togglePageSelection(page.pageId)}
+                  />
+                )
+              })}
+            </div>
+          </div>
+          <DialogFooter className="flex items-center justify-between sm:justify-between">
+            <div className="flex flex-col gap-1">
+              <span className="text-xs text-muted-foreground">
+                {selectedPageIds.size}/5 pages selected
+              </span>
+              {generateStyleguideMutation.isError && (
+                <span className="text-xs text-red-500">
+                  {generateStyleguideMutation.error instanceof Error
+                    ? generateStyleguideMutation.error.message
+                    : "Generation failed. Please try again."}
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setGenerateDialogOpen(false)}
+                disabled={generateStyleguideMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleGenerate}
+                disabled={selectedPageIds.size === 0 || !hasApiKey || generateStyleguideMutation.isPending}
+              >
+                {generateStyleguideMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <Wand2 className="h-4 w-4 mr-1.5" />
+                    Generate
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

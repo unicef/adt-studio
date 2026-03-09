@@ -73,6 +73,8 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
     const c = bookConfigData.config
     setSpreadMode(c.spread_mode === true)
     if (c.editing_language) setEditingLanguage(normalizeLocale(String(c.editing_language)))
+    if (c.start_page != null) setStartPage(String(c.start_page))
+    if (c.end_page != null) setEndPage(String(c.end_page))
   }, [bookConfigData])
 
   // Load text types, pruned types, image filters, and segmentation min_side from active (merged) config
@@ -157,6 +159,12 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
     // Only write managed fields if touched or already in book config
     if (shouldWrite("spread_mode")) {
       overrides.spread_mode = spreadMode
+    }
+    if (shouldWrite("start_page")) {
+      overrides.start_page = startPage.trim() ? Number(startPage) : undefined
+    }
+    if (shouldWrite("end_page")) {
+      overrides.end_page = endPage.trim() ? Number(endPage) : undefined
     }
     if (shouldWrite("editing_language") || editingLanguage.trim()) {
       const normalized = normalizeLocale(editingLanguage.trim())
@@ -255,7 +263,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
                 type="number"
                 min={1}
                 value={startPage}
-                onChange={(e) => setStartPage(e.target.value)}
+                onChange={(e) => { setStartPage(e.target.value); markDirty("start_page") }}
                 placeholder="First"
                 className="w-24"
               />
@@ -264,7 +272,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
                 type="number"
                 min={1}
                 value={endPage}
-                onChange={(e) => setEndPage(e.target.value)}
+                onChange={(e) => { setEndPage(e.target.value); markDirty("end_page") }}
                 placeholder="Last"
                 className="w-24"
               />

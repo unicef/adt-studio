@@ -195,6 +195,24 @@ function buildPreviewConfig(storage: Storage, language: string) {
   const quizData = quizRow?.data as { quizzes?: unknown[] } | undefined
   const hasQuiz = quizData !== undefined && (quizData.quizzes?.length ?? 0) > 0
 
+  // Also check if any rendered sections are activity types
+  let hasActivitySections = false
+  if (!hasQuiz) {
+    const pages = storage.getPages()
+    for (const page of pages) {
+      const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
+      if (renderRow) {
+        const parsed = WebRenderingOutput.safeParse(renderRow.data)
+        if (parsed.success) {
+          if (parsed.data.sections.some((s) => s.sectionType.startsWith("activity_"))) {
+            hasActivitySections = true
+            break
+          }
+        }
+      }
+    }
+  }
+
   return {
     title: getBookTitle(storage),
     bundleVersion: "1",
@@ -216,7 +234,7 @@ function buildPreviewConfig(storage: Storage, language: string) {
       state: false,
       characterDisplay: false,
       highlight: false,
-      activities: hasQuiz,
+      activities: hasQuiz || hasActivitySections,
     },
     analytics: {
       enabled: false,
@@ -276,7 +294,7 @@ export function createAdtPreviewRoutes(
   })
 
   // /assets/* — Static files from webAssetsDir
-  app.get("/books/:label/adt-preview/assets/*", (c) => {
+  app.get("/books/:label/adt-preview/assets/*", async (c) => {
     resolveBook(c.req.param("label")) // validate label
     const assetPath = c.req.path.split("/adt-preview/assets/")[1]
     if (!assetPath) throw new HTTPException(400, { message: "Missing asset path" })
@@ -285,6 +303,24 @@ export function createAdtPreviewRoutes(
     const resolved = path.resolve(webAssetsDir, assetPath)
     if (!resolved.startsWith(path.resolve(webAssetsDir))) {
       throw new HTTPException(403, { message: "Forbidden" })
+    }
+
+    // Auto-build base.bundle.min.js on-the-fly if it doesn't exist (dev mode).
+    // The file is gitignored and normally pre-built by `pnpm --filter @adt/api bundle`.
+    if (!fs.existsSync(resolved) && assetPath === "base.bundle.min.js") {
+      const entryPoint = path.join(webAssetsDir, "base.js")
+      if (fs.existsSync(entryPoint)) {
+        const esbuild = await import("esbuild")
+        await esbuild.build({
+          entryPoints: [entryPoint],
+          bundle: true,
+          minify: true,
+          sourcemap: true,
+          format: "esm",
+          target: "es2020",
+          outfile: resolved,
+        })
+      }
     }
 
     if (!fs.existsSync(resolved) || fs.statSync(resolved).isDirectory()) {
@@ -468,6 +504,7 @@ export function createAdtPreviewRoutes(
     const safeLabel = parseBookLabel(label)
     const config = loadBookConfig(safeLabel, booksDir, configPath)
     const applyBodyBackground = config.apply_body_background
+    const embed = c.req.query("embed") === "1"
 
     return withStorage(label, (storage) => {
       const title = getBookTitle(storage)
@@ -500,6 +537,7 @@ export function createAdtPreviewRoutes(
           bundleVersion: "1",
           skipContentWrapper: true,
           applyBodyBackground,
+          embed,
         })
 
         c.header("Content-Type", "text/html; charset=utf-8")
@@ -554,6 +592,7 @@ export function createAdtPreviewRoutes(
         hasMath: false,
         bundleVersion: "1",
         applyBodyBackground,
+        embed,
       })
 
       c.header("Content-Type", "text/html; charset=utf-8")

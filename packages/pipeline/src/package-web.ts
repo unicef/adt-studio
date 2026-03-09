@@ -450,6 +450,9 @@ export interface RenderPageOptions {
    *  Used for quiz pages whose template provides its own #content element. */
   skipContentWrapper?: boolean
   applyBodyBackground?: boolean
+  /** When true, renders a minimal page without navigation/sidebar chrome.
+   *  Content is visible immediately (no opacity-0). Used for storyboard preview. */
+  embed?: boolean
 }
 
 export function renderPageHtml(opts: RenderPageOptions): string {
@@ -464,7 +467,7 @@ export function renderPageHtml(opts: RenderPageOptions): string {
 
   const contentBlock = opts.skipContentWrapper
     ? `    ${opts.content}`
-    : `    <div id="content" class="opacity-0">
+    : `    <div id="content"${opts.embed ? "" : ` class="opacity-0"`}>
     ${opts.content}
     </div>`
 
@@ -476,6 +479,20 @@ export function renderPageHtml(opts: RenderPageOptions): string {
       ? ` style="background-color: ${escapeAttr(bgMatch[1])};"`
       : ""
   }
+
+  // In embed mode, hide all interface chrome except the submit/reset buttons
+  const embedStyles = opts.embed
+    ? `
+    <style>
+      /* Hide navigation, sidebar, and other chrome in embed mode */
+      #nav-container, #back-forward-buttons, #nav-popup,
+      #open-sidebar, #sidebar, #tts-quick-toggle-button, #play-bar,
+      #sl-quick-toggle-button, #sign-language-video,
+      #explain-me-button, #eli5-content, #notepad-button, #notepad-content { display: none !important; }
+      /* Keep submit/reset container fixed at bottom-right in embed mode */
+      #submit-reset-container { position: fixed !important; bottom: 1rem; right: 1rem; z-index: 50; }
+    </style>`
+    : ""
 
   return `<!DOCTYPE html>
 <html lang="${escapeAttr(opts.language)}">
@@ -491,13 +508,13 @@ export function renderPageHtml(opts: RenderPageOptions): string {
     <link href="./content/tailwind_output.css" rel="stylesheet">
     <link href="./assets/libs/fontawesome/css/all.min.css" rel="stylesheet">
     <link href="./assets/fonts.css" rel="stylesheet">
-${mathScript}</head>
+${mathScript}${embedStyles}</head>
 
 <body class="min-h-screen flex items-center justify-center"${bodyStyle}>
 ${contentBlock}
 ${answersScript}
     <div class="relative z-50" id="interface-container"></div>
-    <div class="relative z-50" id="nav-container"></div>
+    <div class="relative z-50" id="nav-container"${opts.embed ? ' style="display:none"' : ""}></div>
     <script src="./assets/base.bundle.min.js?v=${escapeAttr(opts.bundleVersion)}" type="module"></script>
 </body>
 

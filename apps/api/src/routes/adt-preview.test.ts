@@ -87,6 +87,19 @@ describe("ADT preview routes", () => {
     fs.rmSync(webAssetsDir, { recursive: true, force: true })
   })
 
+  it("auto-builds base.bundle.min.js when missing and base.js exists", async () => {
+    // Remove the pre-built bundle but ensure the source entry point exists
+    fs.unlinkSync(path.join(webAssetsDir, "base.bundle.min.js"))
+    fs.writeFileSync(path.join(webAssetsDir, "base.js"), "export const x = 1;")
+
+    const app = createAdtPreviewRoutes(tmpDir, webAssetsDir, path.resolve(process.cwd(), "config.yaml"))
+    const res = await app.request(`/books/${label}/adt-preview/assets/base.bundle.min.js`)
+
+    expect(res.status).toBe(200)
+    // The auto-built file should now exist on disk
+    expect(fs.existsSync(path.join(webAssetsDir, "base.bundle.min.js"))).toBe(true)
+  })
+
   it("renders the requested section id instead of falling back to the first section", async () => {
     const app = createAdtPreviewRoutes(tmpDir, webAssetsDir, path.resolve(process.cwd(), "config.yaml"))
     const res = await app.request(`/books/${label}/adt-preview/${label}_p1_sec002.html`)

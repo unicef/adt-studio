@@ -106,6 +106,8 @@ export interface PageSummaryItem {
   textPreview: string
   imageCount: number
   wordCount: number
+  sectionCount: number
+  prunedSections: number[]
 }
 
 export interface SectionRendering {
@@ -453,6 +455,27 @@ export const api = {
       { method: "POST" }
     ),
 
+  listBookImages: (label: string) =>
+    request<{
+      images: Array<{
+        imageId: string
+        pageId: string
+        width: number
+        height: number
+        source: string
+      }>
+    }>(`/books/${label}/images`),
+
+  uploadNewImage: (label: string, pageId: string, imageBlob: Blob) => {
+    const formData = new FormData()
+    formData.append("image", imageBlob, "upload.png")
+    formData.append("pageId", pageId)
+    return request<{ imageId: string; width: number; height: number }>(
+      `/books/${label}/images/upload`,
+      { method: "POST", body: formData }
+    )
+  },
+
   uploadCroppedImage: (label: string, pageId: string, sourceImageId: string, imageBlob: Blob) => {
     const formData = new FormData()
     formData.append("image", imageBlob, "crop.png")
@@ -622,6 +645,17 @@ export const api = {
 
   getStyleguidePreview: (name: string) =>
     request<{ name: string; html: string }>(`/styleguides/${name}/preview`),
+
+  generateStyleguide: (label: string, pageIds: string[], apiKey: string, signal?: AbortSignal) =>
+    request<{ name: string; content: string; reasoning: string }>(
+      `/books/${label}/generate-styleguide`,
+      {
+        method: "POST",
+        headers: { "X-OpenAI-Key": apiKey },
+        body: JSON.stringify({ pageIds }),
+        signal: signal ?? AbortSignal.timeout(180_000),
+      }
+    ),
 
   getGlobalConfig: () =>
     request<{ config: Record<string, unknown> }>(`/config`),

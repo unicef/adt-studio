@@ -8,7 +8,7 @@ import { parseBookLabel, TextClassificationOutput, ImageClassificationOutput, Pa
 import { openBookDb } from "@adt/storage"
 import { createBookStorage } from "@adt/storage"
 import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
-import { segmentPageImages, getSegmentedImageId, loadBookConfig, applyCrop } from "@adt/pipeline"
+import { segmentPageImages, getSegmentedImageId, loadBookConfig, applyCrop, generateStyleguide, buildStyleguideGenerationConfig } from "@adt/pipeline"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
 
 interface PageSummary {
@@ -19,6 +19,8 @@ interface PageSummary {
   textPreview: string
   imageCount: number
   wordCount: number
+  sectionCount: number
+  prunedSections: number[]
 }
 
 interface PageDetail {
@@ -118,6 +120,30 @@ export function createPageRoutes(
         }
       }
 
+      // Get section counts and pruned indices per page from page-sectioning node data
+      const sectionCounts = new Map<string, number>()
+      const prunedSections = new Map<string, number[]>()
+      const sectionRows = db.all(
+        "SELECT item_id, data FROM node_data WHERE node = ? ORDER BY version DESC",
+        ["page-sectioning"]
+      ) as Array<{ item_id: string; data: string }>
+      for (const row of sectionRows) {
+        if (!sectionCounts.has(row.item_id)) {
+          try {
+            const parsed = JSON.parse(row.data)
+            const sections = parsed.sections as Array<{ isPruned?: boolean }>
+            sectionCounts.set(row.item_id, sections?.length ?? 0)
+            const pruned = (sections ?? []).reduce<number[]>((acc, s, i) => {
+              if (s.isPruned) acc.push(i)
+              return acc
+            }, [])
+            if (pruned.length > 0) prunedSections.set(row.item_id, pruned)
+          } catch {
+            sectionCounts.set(row.item_id, 0)
+          }
+        }
+      }
+
       // Get classified text per page from text-classification node data
       const classifiedText = new Map<string, string>()
       const textClassRows = db.all(
@@ -149,6 +175,8 @@ export function createPageRoutes(
         textPreview: classifiedText.get(p.page_id) ?? p.text.slice(0, 150),
         imageCount: imageCounts.get(p.page_id) ?? 0,
         wordCount: p.text.trim() ? p.text.trim().split(/\s+/).length : 0,
+        sectionCount: sectionCounts.get(p.page_id) ?? 0,
+        prunedSections: prunedSections.get(p.page_id) ?? [],
       }))
 
       return c.json(result)
@@ -937,6 +965,84 @@ export function createPageRoutes(
     }
   })
 
+  // POST /books/:label/images/upload — Upload a new standalone image (not a crop)
+  app.post("/books/:label/images/upload", async (c) => {
+    const { label } = c.req.param()
+    const safeLabel = parseBookLabel(label)
+    const resolvedDir = path.resolve(booksDir)
+    const bookDir = path.join(resolvedDir, safeLabel)
+    const dbPath = path.join(bookDir, `${safeLabel}.db`)
+
+    if (!fs.existsSync(dbPath)) {
+      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
+    }
+
+    const formData = await c.req.formData()
+    const imageFile = formData.get("image")
+    const pageId = formData.get("pageId")
+
+    if (!imageFile || !(imageFile instanceof File)) {
+      throw new HTTPException(400, { message: "Missing image file" })
+    }
+    if (!pageId || typeof pageId !== "string") {
+      throw new HTTPException(400, { message: "Missing pageId" })
+    }
+    validateImageId(pageId)
+
+    const buffer = Buffer.from(await imageFile.arrayBuffer())
+    const hash = crypto.createHash("sha256").update(buffer).digest("hex").slice(0, 16)
+
+    const db = openBookDb(dbPath)
+    try {
+      // Generate new imageId: {pageId}_upload{N}
+      const existing = db.all(
+        "SELECT image_id FROM images WHERE image_id LIKE ? AND source = 'upload'",
+        [`${pageId}_upload%`]
+      ) as Array<{ image_id: string }>
+      let maxN = 0
+      for (const row of existing) {
+        const m = row.image_id.match(/_upload(\d+)$/)
+        if (m) maxN = Math.max(maxN, parseInt(m[1], 10))
+      }
+      const newImageId = `${pageId}_upload${maxN + 1}`
+
+      const isPng = imageFile.type === "image/png"
+      const ext = isPng ? "png" : "jpg"
+      const filename = `${newImageId}.${ext}`
+
+      const imagesDir = path.join(bookDir, "images")
+      fs.mkdirSync(imagesDir, { recursive: true })
+      fs.writeFileSync(path.join(imagesDir, filename), buffer)
+
+      // Get dimensions from image header
+      let width = 0
+      let height = 0
+      if (isPng && buffer.length > 24) {
+        width = buffer.readUInt32BE(16)
+        height = buffer.readUInt32BE(20)
+      } else if (!isPng) {
+        // JPEG: scan for SOF0/SOF2 marker (0xFF 0xC0 / 0xFF 0xC2)
+        for (let i = 0; i < buffer.length - 9; i++) {
+          if (buffer[i] === 0xff && (buffer[i + 1] === 0xc0 || buffer[i + 1] === 0xc2)) {
+            height = buffer.readUInt16BE(i + 5)
+            width = buffer.readUInt16BE(i + 7)
+            break
+          }
+        }
+      }
+
+      db.run(
+        `INSERT INTO images (image_id, page_id, path, hash, width, height, source)
+         VALUES (?, ?, ?, ?, ?, ?, 'upload')`,
+        [newImageId, pageId, `images/${filename}`, hash, width, height]
+      )
+
+      return c.json({ imageId: newImageId, width, height })
+    } finally {
+      db.close()
+    }
+  })
+
   // POST /books/:label/images/:imageId/segment — Analyze: run LLM segmentation, return bounding boxes only
   app.post("/books/:label/images/:imageId/segment", async (c) => {
     const { label, imageId } = c.req.param()
@@ -1103,6 +1209,100 @@ export function createPageRoutes(
       return c.json({ error: err instanceof Error ? err.message : "Segmentation apply failed" }, 500)
     } finally {
       storage.close()
+    }
+  })
+
+  // POST /books/:label/generate-styleguide — Generate styleguide from page images
+  app.post("/books/:label/generate-styleguide", async (c) => {
+    const { label } = c.req.param()
+    const safeLabel = parseBookLabel(label)
+
+    const apiKey = c.req.header("X-OpenAI-Key")
+    if (!apiKey) {
+      throw new HTTPException(400, { message: "Missing X-OpenAI-Key header" })
+    }
+
+    const body = await c.req.json()
+    const PageIdsSchema = z.object({
+      pageIds: z.array(z.string().min(1)).min(1).max(5),
+    })
+    const parsed = PageIdsSchema.safeParse(body)
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid request: ${parsed.error.issues.map((i) => i.message).join(", ")}`,
+      })
+    }
+
+    const { pageIds } = parsed.data
+    const resolvedBooksDir = path.resolve(booksDir)
+    const bookDir = path.join(resolvedBooksDir, safeLabel)
+    const dbPath = path.join(bookDir, `${safeLabel}.db`)
+
+    if (!fs.existsSync(dbPath)) {
+      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
+    }
+
+    // Load page images
+    const storage = createBookStorage(safeLabel, booksDir)
+    const pageImages: Array<{ pageId: string; pageNumber: number; imageBase64: string }> = []
+    try {
+      const pages = storage.getPages()
+      for (const pageId of pageIds) {
+        const page = pages.find((p) => p.pageId === pageId)
+        if (!page) {
+          throw new HTTPException(404, { message: `Page not found: ${pageId}` })
+        }
+        const imageBase64 = storage.getPageImageBase64(pageId)
+        pageImages.push({
+          pageId,
+          pageNumber: page.pageNumber,
+          imageBase64,
+        })
+      }
+    } finally {
+      storage.close()
+    }
+
+    // Set API key for LLM
+    const previousKey = process.env.OPENAI_API_KEY
+    process.env.OPENAI_API_KEY = apiKey
+
+    try {
+      const bookPromptsDir = path.join(bookDir, "prompts")
+      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+      const cacheDir = path.join(bookDir, ".cache")
+      const config = buildStyleguideGenerationConfig()
+      const llmModel = createLLMModel({
+        modelId: config.modelId,
+        cacheDir,
+        promptEngine,
+      })
+
+      const result = await generateStyleguide(
+        { pageImages },
+        config,
+        llmModel
+      )
+
+      // Save to assets/styleguides/{label}-generated.md
+      const projectRoot = configPath ? path.dirname(configPath) : path.resolve(booksDir, "..")
+      const styleguidesDir = path.join(projectRoot, "assets", "styleguides")
+      fs.mkdirSync(styleguidesDir, { recursive: true })
+      const sgName = `${safeLabel}-generated`
+      fs.writeFileSync(path.join(styleguidesDir, `${sgName}.md`), result.content, "utf-8")
+      fs.writeFileSync(path.join(styleguidesDir, `${sgName}-preview.html`), result.preview_html, "utf-8")
+
+      return c.json({
+        name: sgName,
+        content: result.content,
+        reasoning: result.reasoning,
+      })
+    } finally {
+      if (previousKey !== undefined) {
+        process.env.OPENAI_API_KEY = previousKey
+      } else {
+        delete process.env.OPENAI_API_KEY
+      }
     }
   })
 

@@ -18,14 +18,14 @@ RULES:
 {% if sectioning_mode == "page" %}
 - Create EXACTLY ONE section containing ALL listed group IDs and ALL listed image IDs
 - Choose the single most appropriate section type for the page as a whole
-- ALL listed group IDs must be assigned to this one section
+- ALL listed group IDs and ALL listed image IDs must be assigned to this one section
 - If no image IDs are listed below, do NOT include any image IDs in part_ids
 {% else %}
 - ALL listed group IDs must be assigned to at least one section
+- ALL listed image IDs must be assigned to at least one section — assign each image to the section it visually belongs to
 - Group/image IDs may appear in multiple sections only when it makes strong pedagogical sense (e.g. shared instructions)
 - Keep related content together — prefer fewer, more comprehensive sections over many small ones
 {% endif %}
-- Image IDs may be excluded if they have no educational value
 - Extract page number if visible (headers, footers, margins). Use null if none found
 - For background_color: hex code of predominant background. Default #ffffff
 - For text_color: hex code of predominant text color. Must contrast with background. Default #000000
