@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react"
+import { useEffect, useRef, useCallback } from "react"
 import { ArrowLeft, ArrowRight, LayoutGrid, Loader2 } from "lucide-react"
 import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../StepViewRouter"
@@ -7,6 +7,7 @@ import { useApiKey } from "@/hooks/use-api-key"
 import { StageRunCard } from "../StageRunCard"
 import { STAGE_DESCRIPTIONS } from "../stage-config"
 import { StoryboardSectionDetail } from "./StoryboardSectionDetail"
+import { useSectionNav } from "@/routes/books.$label"
 
 
 export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
@@ -26,7 +27,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   }, [hasApiKey, storyboardRunning, apiKey, queueRun])
 
   const pageList = pages ?? []
-  const [sectionIndex, setSectionIndex] = useState(0)
+  const { sectionIndex, setSectionIndex, skipNextResetRef } = useSectionNav()
   // When navigating backward across page boundary, resolve to last section
   const pendingLastSection = useRef(false)
   // Guard: prevent silent navigation while AI image is generating
@@ -38,7 +39,6 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     if (showRunCard) return
     if (!selectedPageIdProp && pageList.length > 0) {
       setSelectedPageId(pageList[0].pageId)
-      setSectionIndex(0)
     }
   }, [selectedPageIdProp, pageList.length, showRunCard, setSelectedPageId])
 
@@ -52,15 +52,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
 
   const sectionCount = page?.sectioning?.sections.length ?? 0
 
-  // Reset section index when page changes externally (must run before resolve effect)
-  useEffect(() => {
-    if (!pendingLastSection.current) {
-      setSectionIndex(0)
-    }
-  }, [selectedPageId])
-
   // Resolve pending "last section" once page data loads
-  // Declared after the reset effect so it runs later and its setSectionIndex wins
   useEffect(() => {
     if (pendingLastSection.current && sectionCount > 0) {
       setSectionIndex(sectionCount - 1)
@@ -85,6 +77,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
       setSectionIndex(sectionIndex - 1)
     } else if (prevPageId) {
       pendingLastSection.current = true
+      skipNextResetRef.current = true
       setSelectedPageId(prevPageId)
     }
   }
@@ -105,8 +98,29 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     <>
       <span className="text-white/40 text-sm">/</span>
       <span className="text-sm font-medium">
-        Page {selectedPageSummary.pageNumber} / Section {sectionIndex + 1}
+        Page {selectedPageSummary.pageNumber}
       </span>
+      <span className="text-white/40 text-sm">/</span>
+      <div className="flex items-center gap-0.5">
+        {Array.from({ length: sectionCount }, (_, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={() => {
+              if (isGeneratingRef.current && !window.confirm("An AI image is being generated. Cancel it and navigate?")) return
+              setSectionIndex(i)
+            }}
+            className={`flex items-center justify-center min-w-[20px] h-5 px-1 rounded text-[10px] font-medium transition-colors ${
+              i === sectionIndex
+                ? "bg-white/30 text-white"
+                : "bg-white/10 text-white/60 hover:bg-white/20 hover:text-white"
+            }`}
+            title={`Section ${i + 1}`}
+          >
+            {i + 1}
+          </button>
+        ))}
+      </div>
     </>
   ) : null
 

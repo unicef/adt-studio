@@ -106,6 +106,7 @@ export interface PageSummaryItem {
   textPreview: string
   imageCount: number
   wordCount: number
+  sectionCount: number
 }
 
 export interface SectionRendering {
