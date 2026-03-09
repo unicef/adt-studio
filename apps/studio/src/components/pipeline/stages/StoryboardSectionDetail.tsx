@@ -596,6 +596,20 @@ export function StoryboardSectionDetail({
     setPendingSectioning(updated)
   }
 
+  // Toggle isPruned on the current section
+  const toggleSectionPruned = () => {
+    const base = pendingSectioning ?? page.sectioning
+    if (!base) return
+    const updated: SectioningData = {
+      ...base,
+      sections: base.sections.map((s, si) => {
+        if (si !== sectionIndex) return s
+        return { ...s, isPruned: !s.isPruned }
+      }),
+    }
+    setPendingSectioning(updated)
+  }
+
   // Change section type
   const changeSectionType = (newType: string) => {
     const base = pendingSectioning ?? page.sectioning
@@ -1213,6 +1227,22 @@ export function StoryboardSectionDetail({
   const headerControls = (
     <>
       {navigationExtra}
+      <button
+        type="button"
+        onClick={toggleSectionPruned}
+        className={`flex items-center justify-center w-7 h-7 rounded transition-colors cursor-pointer ${
+          section.isPruned
+            ? "bg-amber-500/30 hover:bg-amber-500/40"
+            : "bg-white/10 hover:bg-white/20"
+        }`}
+        title={section.isPruned ? "Restore section to flow" : "Prune section from flow"}
+      >
+        {section.isPruned ? (
+          <EyeOff className="h-3.5 w-3.5 text-amber-200" />
+        ) : (
+          <Eye className="h-3.5 w-3.5" />
+        )}
+      </button>
       <VersionPicker
         currentVersion={page.versions.rendering}
         saving={saving}
@@ -1329,6 +1359,25 @@ export function StoryboardSectionDetail({
             </div>
             <p className="text-sm font-medium">No rendered content for this section</p>
             <p className="text-xs mt-1">This section has no storyboard rendering yet</p>
+          </div>
+        )}
+
+        {/* Pruned section overlay */}
+        {section.isPruned && !aiLoading && !rerendering && (
+          <div className="absolute inset-0 z-30 bg-background/60 backdrop-blur-[1px] flex items-center justify-center">
+            <div className="flex flex-col items-center gap-3 text-center max-w-xs">
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                <EyeOff className="w-5 h-5 text-amber-600" />
+              </div>
+              <p className="text-sm font-medium text-muted-foreground">Section pruned from flow</p>
+              <button
+                type="button"
+                onClick={toggleSectionPruned}
+                className="text-xs font-medium rounded px-3 py-1.5 bg-muted hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
+              >
+                Restore
+              </button>
+            </div>
           </div>
         )}
 

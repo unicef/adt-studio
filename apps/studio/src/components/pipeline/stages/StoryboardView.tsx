@@ -101,10 +101,11 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
 
   // Navigation elements for the purple header — passed to StoryboardSectionDetail
   // which controls the full header content (nav + version + AI + panel toggle)
+  const currentSection = page?.sectioning?.sections[sectionIndex]
   const navigationExtra = selectedPageSummary && sectionCount > 0 ? (
     <>
       <span className="text-white/40 text-sm">/</span>
-      <span className="text-sm font-medium">
+      <span className={`text-sm font-medium ${currentSection?.isPruned ? "text-white/50 line-through decoration-white/40" : ""}`}>
         Page {selectedPageSummary.pageNumber} / Section {sectionIndex + 1}
       </span>
     </>
