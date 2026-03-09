@@ -244,6 +244,7 @@ function validatePageSectioning(
   ])
 
   const errors: string[] = []
+  const assignedIds = new Set<string>()
   for (const section of r.sections) {
     if (!sectionTypeKeys.has(section.section_type)) {
       errors.push(
@@ -256,8 +257,18 @@ function validatePageSectioning(
           `Invalid part_id "${partId}". Must be one of: ${[...validPartIds].join(", ")}`
         )
       }
+      assignedIds.add(partId)
     }
   }
+
+  // Ensure all parts are assigned to at least one section
+  const unassigned = [...validPartIds].filter((id) => !assignedIds.has(id))
+  if (unassigned.length > 0) {
+    errors.push(
+      `Every part must be assigned to a section. Unassigned part_ids: ${unassigned.join(", ")}`
+    )
+  }
+
   return { valid: errors.length === 0, errors }
 }
 
