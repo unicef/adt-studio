@@ -195,6 +195,24 @@ function buildPreviewConfig(storage: Storage, language: string) {
   const quizData = quizRow?.data as { quizzes?: unknown[] } | undefined
   const hasQuiz = quizData !== undefined && (quizData.quizzes?.length ?? 0) > 0
 
+  // Also check if any rendered sections are activity types
+  let hasActivitySections = false
+  if (!hasQuiz) {
+    const pages = storage.getPages()
+    for (const page of pages) {
+      const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
+      if (renderRow) {
+        const parsed = WebRenderingOutput.safeParse(renderRow.data)
+        if (parsed.success) {
+          if (parsed.data.sections.some((s) => s.sectionType.startsWith("activity_"))) {
+            hasActivitySections = true
+            break
+          }
+        }
+      }
+    }
+  }
+
   return {
     title: getBookTitle(storage),
     bundleVersion: "1",
@@ -216,7 +234,7 @@ function buildPreviewConfig(storage: Storage, language: string) {
       state: false,
       characterDisplay: false,
       highlight: false,
-      activities: hasQuiz,
+      activities: hasQuiz || hasActivitySections,
     },
     analytics: {
       enabled: false,
@@ -468,6 +486,7 @@ export function createAdtPreviewRoutes(
     const safeLabel = parseBookLabel(label)
     const config = loadBookConfig(safeLabel, booksDir, configPath)
     const applyBodyBackground = config.apply_body_background
+    const embed = c.req.query("embed") === "1"
 
     return withStorage(label, (storage) => {
       const title = getBookTitle(storage)
@@ -500,6 +519,7 @@ export function createAdtPreviewRoutes(
           bundleVersion: "1",
           skipContentWrapper: true,
           applyBodyBackground,
+          embed,
         })
 
         c.header("Content-Type", "text/html; charset=utf-8")
@@ -554,6 +574,7 @@ export function createAdtPreviewRoutes(
         hasMath: false,
         bundleVersion: "1",
         applyBodyBackground,
+        embed,
       })
 
       c.header("Content-Type", "text/html; charset=utf-8")
