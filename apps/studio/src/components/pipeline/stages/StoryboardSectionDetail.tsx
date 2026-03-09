@@ -3,6 +3,7 @@ import { createPortal } from "react-dom"
 import { Check, Copy, Eye, EyeOff, ImagePlus, LayoutGrid, Layers, Loader2, ChevronDown, Sparkles, ChevronRight, PanelRightOpen, PanelRightClose, Play, PenLine, Save, Trash2, Merge, X } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, BASE_URL } from "@/api/client"
+import { useAiImageQueueContext } from "@/hooks/use-ai-image-queue"
 import type { PageDetail, VersionEntry } from "@/api/client"
 import { useApiKey } from "@/hooks/use-api-key"
 import { useActiveConfig } from "@/hooks/use-debug"
@@ -359,12 +360,9 @@ export function StoryboardSectionDetail({
 
   // Image replace / AI image state
   const [aiImageDialogTarget, setAiImageDialogTarget] = useState<string | null>(null)
-  const [aiImageGen, setAiImageGen] = useState<{
-    targetImageId: string
-    status: "generating" | "done" | "error"
-    error?: string
-  } | null>(null)
-  const aiImageAbortRef = useRef<AbortController | null>(null)
+  const { jobs: aiImageJobs, submitJob: submitAiImageJob, clearJob: clearAiImageJob } = useAiImageQueueContext()
+  // The pending job for this specific page+section (if any)
+  const currentAiJob = aiImageJobs.find((j) => j.pageId === pageId && j.sectionIndex === sectionIndex)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const replaceTargetRef = useRef<string | null>(null)
 
@@ -384,8 +382,8 @@ export function StoryboardSectionDetail({
 
   // Notify parent when AI image generation starts/stops
   useEffect(() => {
-    onGeneratingChange?.(aiImageGen?.status === "generating")
-  }, [aiImageGen?.status])
+    onGeneratingChange?.(currentAiJob?.status === "pending")
+  }, [currentAiJob?.status])
 
   // Activity preview mode (try the activity in the editor)
   const [activityPreviewMode, setActivityPreviewMode] = useState(false)
@@ -431,11 +429,10 @@ export function StoryboardSectionDetail({
   useEffect(() => {
     return () => {
       aiAbortRef.current?.abort()
-      aiImageAbortRef.current?.abort()
     }
   }, [])
 
-  // Clear pending state and abort ALL in-flight requests when page changes
+  // Clear pending state and abort in-flight requests when page changes
   useEffect(() => {
     setPendingSectioning(null)
     setPendingRendering(null)
@@ -444,8 +441,6 @@ export function StoryboardSectionDetail({
     setAiImageDialogTarget(null)
     setAddImageDialogOpen(false)
     aiAbortRef.current?.abort()
-    aiImageAbortRef.current?.abort()
-    setAiImageGen(null)
     setAiInstruction("")
     setAiLoading(false)
     setAiReasoning(null)
@@ -455,6 +450,24 @@ export function StoryboardSectionDetail({
     setSaving(false)
     setActivityPreviewMode(false)
   }, [pageId, sectionIndex])
+
+  // When a queued AI image job completes for this page+section, apply the result and clear the job
+  useEffect(() => {
+    const doneJob = aiImageJobs.find(
+      (j) => j.pageId === pageId && j.sectionIndex === sectionIndex && j.status === "done" && j.imageId
+    )
+    if (doneJob?.imageId) {
+      if (doneJob.jobType === "replace") {
+        swapImage(doneJob.targetImageId, doneJob.imageId, {
+          w: doneJob.originalWidth ?? 0,
+          h: doneJob.originalHeight ?? 0,
+        })
+      } else {
+        addImageToSection(doneJob.imageId, { w: doneJob.width ?? 0, h: doneJob.height ?? 0 })
+      }
+      clearAiImageJob(doneJob.jobId)
+    }
+  }, [aiImageJobs, pageId, sectionIndex])
 
   // Reset scroll position when page or section changes
   useEffect(() => {
@@ -1239,71 +1252,20 @@ export function StoryboardSectionDetail({
   const handleAddImageGenerate = useCallback(
     (prompt: string) => {
       setAddImageDialogOpen(false)
-      setAiImageGen({ targetImageId: "__adding__", status: "generating" })
-
-      const controller = new AbortController()
-      aiImageAbortRef.current = controller
-
-      api
-        .aiGenerateImage(bookLabel, pageId, prompt, apiKey, pageId, undefined, controller.signal)
-        .then((result) => {
-          addImageToSection(result.imageId, { w: result.width, h: result.height })
-          setAiImageGen({ targetImageId: "__adding__", status: "done" })
-          setTimeout(() => setAiImageGen((prev) => prev?.status === "done" ? null : prev), 3000)
-        })
-        .catch((err) => {
-          if (err instanceof DOMException && err.name === "AbortError") {
-            setAiImageGen(null)
-          } else {
-            setAiImageGen({
-              targetImageId: "__adding__",
-              status: "error",
-              error: err instanceof Error ? err.message : "Image generation failed",
-            })
-          }
-        })
-        .finally(() => {
-          aiImageAbortRef.current = null
-        })
+      submitAiImageJob({ bookLabel, pageId, sectionIndex, targetImageId: pageId, jobType: "add", prompt, apiKey })
     },
-    [bookLabel, pageId, apiKey, addImageToSection]
+    [bookLabel, pageId, sectionIndex, apiKey, submitAiImageJob]
   )
 
-  // Submit from AI image dialog: close dialog, run generation in background
+  // Submit from AI image dialog: close dialog, queue the generation job
   const handleAiImageSubmit = useCallback(
     (prompt: string, referenceImageId?: string) => {
       const targetId = aiImageDialogTarget
       if (!targetId) return
       setAiImageDialogTarget(null)
-      setAiImageGen({ targetImageId: targetId, status: "generating" })
-
-      const controller = new AbortController()
-      aiImageAbortRef.current = controller
-
-      api
-        .aiGenerateImage(bookLabel, pageId, prompt, apiKey, targetId, referenceImageId, controller.signal)
-        .then((result) => {
-          swapImage(targetId, result.imageId, { w: result.originalWidth, h: result.originalHeight })
-          setAiImageGen({ targetImageId: targetId, status: "done" })
-          // Auto-dismiss success after 3s
-          setTimeout(() => setAiImageGen((prev) => prev?.status === "done" ? null : prev), 3000)
-        })
-        .catch((err) => {
-          if (err instanceof DOMException && err.name === "AbortError") {
-            setAiImageGen(null)
-          } else {
-            setAiImageGen({
-              targetImageId: targetId,
-              status: "error",
-              error: err instanceof Error ? err.message : "Image generation failed",
-            })
-          }
-        })
-        .finally(() => {
-          aiImageAbortRef.current = null
-        })
+      submitAiImageJob({ bookLabel, pageId, sectionIndex, targetImageId: targetId, jobType: "replace", prompt, referenceImageId, apiKey })
     },
-    [aiImageDialogTarget, bookLabel, pageId, apiKey, swapImage]
+    [aiImageDialogTarget, bookLabel, pageId, sectionIndex, apiKey, submitAiImageJob]
   )
 
   // AI edit handler
@@ -1673,51 +1635,18 @@ export function StoryboardSectionDetail({
       </div>
 
       {/* Background image generation indicator — absolute to outer panel so it stays visible while scrolling */}
-      {aiImageGen && (
+      {currentAiJob?.status === "pending" && (
         <div className="absolute top-3 right-3 z-40 animate-in fade-in slide-in-from-top-2 duration-200">
-          <div
-            className={`flex items-center gap-2 rounded-full px-3.5 py-2 shadow-lg text-white text-xs font-medium ${
-              aiImageGen.status === "generating"
-                ? "bg-purple-600"
-                : aiImageGen.status === "done"
-                  ? "bg-green-600"
-                  : "bg-destructive"
-            }`}
-          >
-            {aiImageGen.status === "generating" && (
-              <>
-                <Loader2 className="h-3 w-3 animate-spin" />
-                <span>Generating image...</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    aiImageAbortRef.current?.abort()
-                    setAiImageGen(null)
-                  }}
-                  className="p-0.5 rounded-full hover:bg-white/20 transition-colors cursor-pointer"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </>
-            )}
-            {aiImageGen.status === "done" && (
-              <>
-                <Sparkles className="h-3 w-3" />
-                <span>Image generated</span>
-              </>
-            )}
-            {aiImageGen.status === "error" && (
-              <>
-                <span>{aiImageGen.error ?? "Generation failed"}</span>
-                <button
-                  type="button"
-                  onClick={() => setAiImageGen(null)}
-                  className="p-0.5 rounded-full hover:bg-white/20 transition-colors cursor-pointer"
-                >
-                  <X className="h-3 w-3" />
-                </button>
-              </>
-            )}
+          <div className="flex items-center gap-2 rounded-full px-3.5 py-2 shadow-lg text-white text-xs font-medium bg-purple-600">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            <span>Generating image...</span>
+            <button
+              type="button"
+              onClick={() => clearAiImageJob(currentAiJob.jobId)}
+              className="p-0.5 rounded-full hover:bg-white/20 transition-colors cursor-pointer"
+            >
+              <X className="h-3 w-3" />
+            </button>
           </div>
         </div>
       )}

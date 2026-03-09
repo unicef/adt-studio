@@ -510,6 +510,22 @@ export const api = {
       }
     ),
 
+  /** Non-blocking variant — returns a jobId immediately. Poll getAiImageJob() for the result. */
+  aiGenerateImageAsync: (label: string, pageId: string, prompt: string, apiKey: string, targetImageId: string, referenceImageId?: string) =>
+    request<{ jobId: string }>(
+      `/books/${label}/images/ai-generate-async?pageId=${pageId}`,
+      {
+        method: "POST",
+        headers: { "X-OpenAI-Key": apiKey },
+        body: JSON.stringify({ prompt, targetImageId, referenceImageId }),
+      }
+    ),
+
+  getAiImageJob: (label: string, jobId: string) =>
+    request<{ status: "pending" | "done" | "error"; imageId?: string; width?: number; height?: number; originalWidth?: number; originalHeight?: number; error?: string }>(
+      `/books/${label}/images/ai-jobs/${jobId}`
+    ),
+
   segmentImage: (label: string, imageId: string, pageId: string, apiKey: string, signal?: AbortSignal) =>
     request<{
       segmented: boolean

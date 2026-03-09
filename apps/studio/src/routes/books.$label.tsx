@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef, useMemo, createContext, useContext } from "react"
 import { createFileRoute, Outlet, useParams, useNavigate, Link, useMatchRoute } from "@tanstack/react-router"
-import { Home, Terminal } from "lucide-react"
+import { Home, Terminal, Loader2, CheckCircle2, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DebugPanel } from "@/components/debug/DebugPanel"
 import { StageSidebar } from "@/components/pipeline/StageSidebar"
 import { useBook } from "@/hooks/use-books"
 import { useBookRunStatus, BookRunProvider } from "@/hooks/use-book-run"
+import { useAiImageQueue, AiImageQueueContext } from "@/hooks/use-ai-image-queue"
 
 // Section navigation context — shared between sidebar and all views
 interface SectionNavContext {
@@ -21,6 +22,60 @@ const SectionNavCtx = createContext<SectionNavContext>({
 })
 export function useSectionNav() { return useContext(SectionNavCtx) }
 
+function AiJobNotifications({ label }: { label: string }) {
+  const { jobs, clearJob } = useContext(AiImageQueueContext)
+  const navigate = useNavigate()
+  const { setSectionIndex, skipNextResetRef } = useSectionNav()
+
+  if (jobs.length === 0) return null
+
+  return (
+    <div className="fixed bottom-14 right-4 z-50 flex flex-col gap-2 items-end">
+      {jobs.map((job) => (
+        <div
+          key={job.jobId}
+          className={`flex items-center gap-2 rounded-full px-3.5 py-2 shadow-lg text-white text-xs font-medium animate-in fade-in slide-in-from-bottom-2 duration-200 ${
+            job.status === "pending"
+              ? "bg-purple-600"
+              : job.status === "done"
+                ? "bg-green-600 cursor-pointer hover:bg-green-700 transition-colors"
+                : "bg-destructive"
+          }`}
+          onClick={() => {
+            if (job.status !== "done") return
+            skipNextResetRef.current = true
+            setSectionIndex(job.sectionIndex)
+            void navigate({
+              to: "/books/$label/$step/$pageId",
+              params: { label, step: "storyboard", pageId: job.pageId },
+            })
+          }}
+          title={job.status === "done" ? `View page ${job.pageId}` : undefined}
+        >
+          {job.status === "pending" && <Loader2 className="h-3 w-3 animate-spin shrink-0" />}
+          {job.status === "done" && <CheckCircle2 className="h-3 w-3 shrink-0" />}
+          {job.status === "error" && <XCircle className="h-3 w-3 shrink-0" />}
+
+          <span>
+            {job.status === "pending" && "Generating image\u2026"}
+            {job.status === "done" && `Image ready \u2014 view page ${job.pageId}`}
+            {job.status === "error" && (job.error ?? "Image generation failed")}
+          </span>
+
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); clearJob(job.jobId) }}
+            className="p-0.5 rounded-full hover:bg-white/20 transition-colors cursor-pointer shrink-0"
+            title="Dismiss"
+          >
+            <XCircle className="h-3 w-3" />
+          </button>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export const Route = createFileRoute("/books/$label")({
   component: BookLayout,
 })
@@ -28,10 +83,13 @@ export const Route = createFileRoute("/books/$label")({
 function BookLayout() {
   const { label } = Route.useParams()
   const bookRun = useBookRunStatus(label)
+  const aiImageQueue = useAiImageQueue(label)
 
   return (
     <BookRunProvider value={bookRun}>
-      <BookLayoutInner label={label} isRunning={bookRun.isRunning} />
+      <AiImageQueueContext.Provider value={aiImageQueue}>
+        <BookLayoutInner label={label} isRunning={bookRun.isRunning} />
+      </AiImageQueueContext.Provider>
     </BookRunProvider>
   )
 }
@@ -136,6 +194,7 @@ function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boole
           <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
             <SectionNavCtx.Provider value={sectionNav}>
               <Outlet />
+              <AiJobNotifications label={label} />
             </SectionNavCtx.Provider>
           </div>
         </div>

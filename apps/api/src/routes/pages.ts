@@ -8,6 +8,7 @@ import { parseBookLabel, TextClassificationOutput, ImageClassificationOutput, Pa
 import { openBookDb } from "@adt/storage"
 import { createBookStorage } from "@adt/storage"
 import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
+import { createJob, updateJob, getJob, cleanupOldJobs } from "../services/ai-image-service.js"
 import { segmentPageImages, getSegmentedImageId, loadBookConfig, applyCrop, generateStyleguide, buildStyleguideGenerationConfig } from "@adt/pipeline"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
 
@@ -898,7 +899,155 @@ export function createPageRoutes(
     }
   })
 
-  // POST /books/:label/images/ai-generate — Generate image via gpt-image-1.5
+  // Shared: run DALL-E generation + save image to disk + DB.
+  // Used by both the sync endpoint (awaited) and the async endpoint (fire-and-forget).
+  async function runAiImageGeneration(params: {
+    bookDir: string
+    dbPath: string
+    pageId: string
+    apiKey: string
+    finalPrompt: string
+    size: string
+    referenceImageId?: string
+    referenceImagePath?: string
+    originalWidth: number
+    originalHeight: number
+  }): Promise<{ imageId: string; width: number; height: number; originalWidth: number; originalHeight: number }> {
+    const { bookDir, dbPath, pageId, apiKey, finalPrompt, size, referenceImageId, referenceImagePath } = params
+    let { originalWidth, originalHeight } = params
+
+    const startTime = Date.now()
+    let openaiRes: Response
+
+    if (referenceImageId) {
+      // Edit mode: send the source image to /v1/images/edits
+      if (!referenceImagePath || !fs.existsSync(referenceImagePath)) {
+        throw new Error(`Reference image not found: ${referenceImageId}`)
+      }
+      const imageBuffer = fs.readFileSync(referenceImagePath)
+
+      const formData = new FormData()
+      formData.append("model", "gpt-image-1.5")
+      formData.append("prompt", finalPrompt)
+      formData.append("size", size)
+      formData.append("image[]", new Blob([imageBuffer], { type: "image/png" }), `${referenceImageId}.png`)
+
+      openaiRes = await fetch("https://api.openai.com/v1/images/edits", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${apiKey}` },
+        body: formData,
+        signal: AbortSignal.timeout(180_000),
+      })
+    } else {
+      // Generate mode: text-to-image via /v1/images/generations
+      openaiRes = await fetch("https://api.openai.com/v1/images/generations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: "gpt-image-1.5",
+          prompt: finalPrompt,
+          size,
+        }),
+        signal: AbortSignal.timeout(180_000),
+      })
+    }
+
+    const responseText = await openaiRes.text()
+
+    if (!openaiRes.ok) {
+      let errMsg = `OpenAI API error: ${openaiRes.status}`
+      try {
+        const errBody = JSON.parse(responseText)
+        errMsg = errBody?.error?.message ?? errMsg
+      } catch {}
+      throw new Error(errMsg)
+    }
+
+    const openaiData = JSON.parse(responseText) as {
+      data: Array<{ b64_json?: string; url?: string }>
+    }
+    const b64 = openaiData.data?.[0]?.b64_json
+    if (!b64) throw new Error("No image data returned from OpenAI")
+
+    const buffer = Buffer.from(b64, "base64")
+    const hash = crypto.createHash("sha256").update(buffer).digest("hex").slice(0, 16)
+
+    const [widthStr, heightStr] = size.split("x")
+    const width = parseInt(widthStr, 10) || 1024
+    const height = parseInt(heightStr, 10) || 1024
+
+    if (originalWidth === 0) originalWidth = width
+    if (originalHeight === 0) originalHeight = height
+
+    const db = openBookDb(dbPath)
+    try {
+      const prefix = referenceImageId ?? pageId
+      const existing = db.all(
+        "SELECT image_id FROM images WHERE image_id LIKE ?",
+        [`${prefix}_ai%`]
+      ) as Array<{ image_id: string }>
+      let maxN = 0
+      for (const row of existing) {
+        const m = row.image_id.match(/_ai(\d+)$/)
+        if (m) maxN = Math.max(maxN, parseInt(m[1], 10))
+      }
+      const newImageId = `${prefix}_ai${maxN + 1}`
+
+      const filename = `${newImageId}.png`
+      const imagesDir = path.join(bookDir, "images")
+      fs.mkdirSync(imagesDir, { recursive: true })
+      fs.writeFileSync(path.join(imagesDir, filename), buffer)
+
+      db.run(
+        `INSERT INTO images (image_id, page_id, path, hash, width, height, source)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT (image_id) DO UPDATE SET
+           page_id = excluded.page_id,
+           path = excluded.path,
+           hash = excluded.hash,
+           width = excluded.width,
+           height = excluded.height,
+           source = excluded.source`,
+        [newImageId, pageId, `images/${filename}`, hash, width, height, "crop"]
+      )
+
+      try {
+        const logEntry = {
+          requestId: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          taskType: "image-generation",
+          pageId,
+          promptName: referenceImageId ? "ai-image-edit" : "ai-image-generate",
+          modelId: "openai:gpt-image-1.5",
+          cacheHit: false,
+          success: true,
+          errorCount: 0,
+          attempt: 1,
+          durationMs: Date.now() - startTime,
+          messages: [
+            { role: "user", content: [{ type: "text", text: finalPrompt }] },
+            { role: "assistant", content: [{ type: "text", text: `Generated image: ${newImageId} (${width}x${height})` }] },
+          ],
+        }
+        db.run(
+          "INSERT INTO llm_log (request_id, timestamp, step, item_id, success, error_count, data) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          [logEntry.requestId, logEntry.timestamp, logEntry.taskType, logEntry.pageId, 1, 0, JSON.stringify(logEntry)]
+        )
+      } catch {
+        // Non-critical — don't fail the request if logging fails
+      }
+
+      return { imageId: newImageId, width, height, originalWidth, originalHeight }
+    } finally {
+      db.close()
+    }
+  }
+
+  // POST /books/:label/images/ai-generate — Generate image via gpt-image-1.5 (blocking)
+  // Used for "add new image" flow where the caller needs the imageId immediately.
   app.post("/books/:label/images/ai-generate", async (c) => {
     try {
       const { label } = c.req.param()
@@ -933,8 +1082,6 @@ export function createPageRoutes(
       const targetImageId =
         typeof body.targetImageId === "string" ? validateImageId(body.targetImageId) : referenceImageId
 
-      // Render the global image generation prompt template (book-level override takes priority).
-      // The template may contain {{ user_prompt }} where the per-image request is injected.
       const bookPromptPath = path.join(bookDir, "prompts", "ai_image_generation.liquid")
       const globalPromptPath = path.join(path.resolve(promptsDir), "ai_image_generation.liquid")
       let templateContent: string | null = null
@@ -943,14 +1090,10 @@ export function createPageRoutes(
       } else if (fs.existsSync(globalPromptPath)) {
         templateContent = fs.readFileSync(globalPromptPath, "utf-8")
       }
-      // Use a replacer function to avoid JS special replacement patterns ($&, $1, etc.)
-      // being interpreted if the user's prompt happens to contain them.
       const finalPrompt = templateContent
         ? templateContent.trim().replace(/\{\{\s*user_prompt\s*\}\}/g, () => prompt)
         : prompt
 
-      // Look up target image dimensions once — used for both aspect ratio size selection
-      // and returning originalWidth/originalHeight to the frontend
       let originalWidth = 0
       let originalHeight = 0
       let referenceImagePath: string | undefined
@@ -979,148 +1122,18 @@ export function createPageRoutes(
         }
       }
 
-      // Pick size that best matches the original aspect ratio
       let size = "1024x1024"
       if (originalWidth > 0 && originalHeight > 0) {
         const ratio = originalWidth / originalHeight
-        if (ratio > 1.2) size = "1536x1024"       // landscape
-        else if (ratio < 0.8) size = "1024x1536"   // portrait
+        if (ratio > 1.2) size = "1536x1024"
+        else if (ratio < 0.8) size = "1024x1536"
       }
 
-      const startTime = Date.now()
-      let openaiRes: Response
-
-      if (referenceImageId) {
-        // Edit mode: send the source image to /v1/images/edits
-        if (!referenceImagePath || !fs.existsSync(referenceImagePath)) {
-          return c.json({ error: `Reference image not found: ${referenceImageId}` }, 404)
-        }
-        const imageBuffer = fs.readFileSync(referenceImagePath)
-
-        const formData = new FormData()
-        formData.append("model", "gpt-image-1.5")
-        formData.append("prompt", finalPrompt)
-        formData.append("size", size)
-        formData.append("image[]", new Blob([imageBuffer], { type: "image/png" }), `${referenceImageId}.png`)
-
-        openaiRes = await fetch("https://api.openai.com/v1/images/edits", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${apiKey}` },
-          body: formData,
-          signal: AbortSignal.timeout(180_000),
-        })
-      } else {
-        // Generate mode: text-to-image via /v1/images/generations
-        openaiRes = await fetch("https://api.openai.com/v1/images/generations", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model: "gpt-image-1.5",
-            prompt: finalPrompt,
-            size,
-          }),
-          signal: AbortSignal.timeout(180_000),
-        })
-      }
-
-      const responseText = await openaiRes.text()
-
-      if (!openaiRes.ok) {
-        let errMsg = `OpenAI API error: ${openaiRes.status}`
-        try {
-          const errBody = JSON.parse(responseText)
-          errMsg = errBody?.error?.message ?? errMsg
-        } catch {}
-        return c.json({ error: errMsg }, 502)
-      }
-
-      const openaiData = JSON.parse(responseText) as {
-        data: Array<{ b64_json?: string; url?: string }>
-      }
-      const b64 = openaiData.data?.[0]?.b64_json
-      if (!b64) {
-        return c.json({ error: "No image data returned from OpenAI" }, 502)
-      }
-
-      const buffer = Buffer.from(b64, "base64")
-      const hash = crypto.createHash("sha256").update(buffer).digest("hex").slice(0, 16)
-
-      // Parse width/height from the size string (e.g. "1024x1024")
-      const [widthStr, heightStr] = size.split("x")
-      const width = parseInt(widthStr, 10) || 1024
-      const height = parseInt(heightStr, 10) || 1024
-
-      // If we didn't find original dimensions, fall back to generated size
-      if (originalWidth === 0) originalWidth = width
-      if (originalHeight === 0) originalHeight = height
-
-      // Generate imageId and save
-      const db = openBookDb(dbPath)
-      try {
-        const prefix = referenceImageId ?? pageId
-        const existing = db.all(
-          "SELECT image_id FROM images WHERE image_id LIKE ?",
-          [`${prefix}_ai%`]
-        ) as Array<{ image_id: string }>
-        let maxN = 0
-        for (const row of existing) {
-          const m = row.image_id.match(/_ai(\d+)$/)
-          if (m) maxN = Math.max(maxN, parseInt(m[1], 10))
-        }
-        const newImageId = `${prefix}_ai${maxN + 1}`
-
-        const filename = `${newImageId}.png`
-        const imagesDir = path.join(bookDir, "images")
-        fs.mkdirSync(imagesDir, { recursive: true })
-        fs.writeFileSync(path.join(imagesDir, filename), buffer)
-
-        db.run(
-          `INSERT INTO images (image_id, page_id, path, hash, width, height, source)
-           VALUES (?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT (image_id) DO UPDATE SET
-             page_id = excluded.page_id,
-             path = excluded.path,
-             hash = excluded.hash,
-             width = excluded.width,
-             height = excluded.height,
-             source = excluded.source`,
-          [newImageId, pageId, `images/${filename}`, hash, width, height, "crop"]
-        )
-
-        // Log to debug panel (reuse existing db connection)
-        try {
-          const logEntry = {
-            requestId: crypto.randomUUID(),
-            timestamp: new Date().toISOString(),
-            taskType: "image-generation",
-            pageId,
-            promptName: referenceImageId ? "ai-image-edit" : "ai-image-generate",
-            modelId: "openai:gpt-image-1.5",
-            cacheHit: false,
-            success: true,
-            errorCount: 0,
-            attempt: 1,
-            durationMs: Date.now() - startTime,
-            messages: [
-              { role: "user", content: [{ type: "text", text: finalPrompt }] },
-              { role: "assistant", content: [{ type: "text", text: `Generated image: ${newImageId} (${width}x${height})` }] },
-            ],
-          }
-          db.run(
-            "INSERT INTO llm_log (request_id, timestamp, step, item_id, success, error_count, data) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [logEntry.requestId, logEntry.timestamp, logEntry.taskType, logEntry.pageId, 1, 0, JSON.stringify(logEntry)]
-          )
-        } catch {
-          // Non-critical — don't fail the request if logging fails
-        }
-
-        return c.json({ imageId: newImageId, width, height, originalWidth, originalHeight })
-      } finally {
-        db.close()
-      }
+      const result = await runAiImageGeneration({
+        bookDir, dbPath, pageId, apiKey, finalPrompt, size,
+        referenceImageId, referenceImagePath, originalWidth, originalHeight,
+      })
+      return c.json(result)
     } catch (err) {
       if (err instanceof HTTPException) {
         return c.json({ error: err.message }, err.status)
@@ -1128,6 +1141,138 @@ export function createPageRoutes(
       console.error("[ai-generate] UNHANDLED ERROR:", err)
       return c.json({ error: err instanceof Error ? err.message : "Internal server error" }, 500)
     }
+  })
+
+  // POST /books/:label/images/ai-generate-async — Non-blocking variant: returns jobId immediately.
+  // Used for "replace image" flow so the user can navigate away while the image generates.
+  app.post("/books/:label/images/ai-generate-async", async (c) => {
+    try {
+      const { label } = c.req.param()
+      const safeLabel = parseBookLabel(label)
+      const resolvedDir = path.resolve(booksDir)
+      const bookDir = path.join(resolvedDir, safeLabel)
+      const dbPath = path.join(bookDir, `${safeLabel}.db`)
+
+      if (!fs.existsSync(dbPath)) {
+        return c.json({ error: `Book not found: ${safeLabel}` }, 404)
+      }
+
+      const apiKey = c.req.header("X-OpenAI-Key")
+      if (!apiKey) {
+        return c.json({ error: "Missing X-OpenAI-Key header" }, 400)
+      }
+
+      const pageId = c.req.query("pageId")
+      if (!pageId) {
+        return c.json({ error: "Missing pageId query parameter" }, 400)
+      }
+      validateImageId(pageId)
+
+      const body = await c.req.json()
+      const prompt = body?.prompt
+      if (!prompt || typeof prompt !== "string") {
+        return c.json({ error: "Missing prompt in request body" }, 400)
+      }
+
+      const referenceImageId =
+        typeof body.referenceImageId === "string" ? validateImageId(body.referenceImageId) : undefined
+      const targetImageId =
+        typeof body.targetImageId === "string" ? validateImageId(body.targetImageId) : referenceImageId
+
+      const bookPromptPath = path.join(bookDir, "prompts", "ai_image_generation.liquid")
+      const globalPromptPath = path.join(path.resolve(promptsDir), "ai_image_generation.liquid")
+      let templateContent: string | null = null
+      if (fs.existsSync(bookPromptPath)) {
+        templateContent = fs.readFileSync(bookPromptPath, "utf-8")
+      } else if (fs.existsSync(globalPromptPath)) {
+        templateContent = fs.readFileSync(globalPromptPath, "utf-8")
+      }
+      const finalPrompt = templateContent
+        ? templateContent.trim().replace(/\{\{\s*user_prompt\s*\}\}/g, () => prompt)
+        : prompt
+
+      let originalWidth = 0
+      let originalHeight = 0
+      let referenceImagePath: string | undefined
+      if (targetImageId || referenceImageId) {
+        const db0 = openBookDb(dbPath)
+        try {
+          if (targetImageId) {
+            const row = db0.get(
+              "SELECT width, height FROM images WHERE image_id = ?",
+              [targetImageId]
+            ) as { width: number; height: number } | undefined
+            if (row) {
+              originalWidth = row.width
+              originalHeight = row.height
+            }
+          }
+          if (referenceImageId) {
+            const row = db0.get(
+              "SELECT path FROM images WHERE image_id = ?",
+              [referenceImageId]
+            ) as { path: string } | undefined
+            if (row) referenceImagePath = path.join(bookDir, row.path)
+          }
+        } finally {
+          db0.close()
+        }
+      }
+
+      let size = "1024x1024"
+      if (originalWidth > 0 && originalHeight > 0) {
+        const ratio = originalWidth / originalHeight
+        if (ratio > 1.2) size = "1536x1024"
+        else if (ratio < 0.8) size = "1024x1536"
+      }
+
+      const jobId = createJob(safeLabel, pageId)
+
+      // Fire and forget — response already returned below
+      void runAiImageGeneration({
+        bookDir, dbPath, pageId, apiKey, finalPrompt, size,
+        referenceImageId, referenceImagePath, originalWidth, originalHeight,
+      }).then((result) => {
+        updateJob(jobId, {
+          status: "done",
+          imageId: result.imageId,
+          width: result.width,
+          height: result.height,
+          originalWidth: result.originalWidth,
+          originalHeight: result.originalHeight,
+        })
+      }).catch((err) => {
+        updateJob(jobId, {
+          status: "error",
+          error: err instanceof Error ? err.message : "Image generation failed",
+        })
+      })
+
+      return c.json({ jobId }, 202)
+    } catch (err) {
+      if (err instanceof HTTPException) {
+        return c.json({ error: err.message }, err.status)
+      }
+      console.error("[ai-generate-async] UNHANDLED ERROR:", err)
+      return c.json({ error: err instanceof Error ? err.message : "Internal server error" }, 500)
+    }
+  })
+
+  // GET /books/:label/images/ai-jobs/:jobId — Poll for async image generation result
+  app.get("/books/:label/images/ai-jobs/:jobId", (c) => {
+    cleanupOldJobs()
+    const { jobId } = c.req.param()
+    const job = getJob(jobId)
+    if (!job) return c.json({ error: "Job not found or expired" }, 404)
+    return c.json({
+      status: job.status,
+      imageId: job.imageId,
+      width: job.width,
+      height: job.height,
+      originalWidth: job.originalWidth,
+      originalHeight: job.originalHeight,
+      error: job.error,
+    })
   })
 
   // POST /books/:label/images — Upload a cropped image
