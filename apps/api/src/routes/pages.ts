@@ -962,6 +962,84 @@ export function createPageRoutes(
     }
   })
 
+  // POST /books/:label/images/upload — Upload a new standalone image (not a crop)
+  app.post("/books/:label/images/upload", async (c) => {
+    const { label } = c.req.param()
+    const safeLabel = parseBookLabel(label)
+    const resolvedDir = path.resolve(booksDir)
+    const bookDir = path.join(resolvedDir, safeLabel)
+    const dbPath = path.join(bookDir, `${safeLabel}.db`)
+
+    if (!fs.existsSync(dbPath)) {
+      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
+    }
+
+    const formData = await c.req.formData()
+    const imageFile = formData.get("image")
+    const pageId = formData.get("pageId")
+
+    if (!imageFile || !(imageFile instanceof File)) {
+      throw new HTTPException(400, { message: "Missing image file" })
+    }
+    if (!pageId || typeof pageId !== "string") {
+      throw new HTTPException(400, { message: "Missing pageId" })
+    }
+    validateImageId(pageId)
+
+    const buffer = Buffer.from(await imageFile.arrayBuffer())
+    const hash = crypto.createHash("sha256").update(buffer).digest("hex").slice(0, 16)
+
+    const db = openBookDb(dbPath)
+    try {
+      // Generate new imageId: {pageId}_upload{N}
+      const existing = db.all(
+        "SELECT image_id FROM images WHERE image_id LIKE ? AND source = 'upload'",
+        [`${pageId}_upload%`]
+      ) as Array<{ image_id: string }>
+      let maxN = 0
+      for (const row of existing) {
+        const m = row.image_id.match(/_upload(\d+)$/)
+        if (m) maxN = Math.max(maxN, parseInt(m[1], 10))
+      }
+      const newImageId = `${pageId}_upload${maxN + 1}`
+
+      const isPng = imageFile.type === "image/png"
+      const ext = isPng ? "png" : "jpg"
+      const filename = `${newImageId}.${ext}`
+
+      const imagesDir = path.join(bookDir, "images")
+      fs.mkdirSync(imagesDir, { recursive: true })
+      fs.writeFileSync(path.join(imagesDir, filename), buffer)
+
+      // Get dimensions from image header
+      let width = 0
+      let height = 0
+      if (isPng && buffer.length > 24) {
+        width = buffer.readUInt32BE(16)
+        height = buffer.readUInt32BE(20)
+      } else if (!isPng) {
+        // JPEG: scan for SOF0/SOF2 marker (0xFF 0xC0 / 0xFF 0xC2)
+        for (let i = 0; i < buffer.length - 9; i++) {
+          if (buffer[i] === 0xff && (buffer[i + 1] === 0xc0 || buffer[i + 1] === 0xc2)) {
+            height = buffer.readUInt16BE(i + 5)
+            width = buffer.readUInt16BE(i + 7)
+            break
+          }
+        }
+      }
+
+      db.run(
+        `INSERT INTO images (image_id, page_id, path, hash, width, height, source)
+         VALUES (?, ?, ?, ?, ?, ?, 'upload')`,
+        [newImageId, pageId, `images/${filename}`, hash, width, height]
+      )
+
+      return c.json({ imageId: newImageId, width, height })
+    } finally {
+      db.close()
+    }
+  })
+
   // POST /books/:label/images/:imageId/segment — Analyze: run LLM segmentation, return bounding boxes only
   app.post("/books/:label/images/:imageId/segment", async (c) => {
     const { label, imageId } = c.req.param()

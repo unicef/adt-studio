@@ -455,6 +455,27 @@ export const api = {
       { method: "POST" }
     ),
 
+  listBookImages: (label: string) =>
+    request<{
+      images: Array<{
+        imageId: string
+        pageId: string
+        width: number
+        height: number
+        source: string
+      }>
+    }>(`/books/${label}/images`),
+
+  uploadNewImage: (label: string, pageId: string, imageBlob: Blob) => {
+    const formData = new FormData()
+    formData.append("image", imageBlob, "upload.png")
+    formData.append("pageId", pageId)
+    return request<{ imageId: string; width: number; height: number }>(
+      `/books/${label}/images/upload`,
+      { method: "POST", body: formData }
+    )
+  },
+
   uploadCroppedImage: (label: string, pageId: string, sourceImageId: string, imageBlob: Blob) => {
     const formData = new FormData()
     formData.append("image", imageBlob, "crop.png")

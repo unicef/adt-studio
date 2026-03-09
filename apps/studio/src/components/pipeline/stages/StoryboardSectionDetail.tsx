@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from "react"
 import { createPortal } from "react-dom"
-import { Check, Copy, Eye, EyeOff, LayoutGrid, Layers, Loader2, ChevronDown, Sparkles, ChevronRight, PanelRightOpen, PanelRightClose, Play, PenLine, Save, X } from "lucide-react"
+import { Check, Copy, Eye, EyeOff, ImagePlus, LayoutGrid, Layers, Loader2, ChevronDown, Sparkles, ChevronRight, PanelRightOpen, PanelRightClose, Play, PenLine, Save, X } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, BASE_URL } from "@/api/client"
 import type { PageDetail, VersionEntry } from "@/api/client"
@@ -11,6 +11,7 @@ import { BookPreviewFrame, type BookPreviewFrameHandle } from "./BookPreviewFram
 import { SectionEditToolbar } from "./SectionEditToolbar"
 import { ImageCropDialog } from "./ImageCropDialog"
 import { AiImageDialog } from "./AiImageDialog"
+import { AddImageDialog } from "./AddImageDialog"
 import { SegmentPreviewDialog, type SegmentRegion } from "./SegmentPreviewDialog"
 import {
   Select,
@@ -375,6 +376,10 @@ export function StoryboardSectionDetail({
     regions: SegmentRegion[]
   } | null>(null)
 
+  // Add image dialog state
+  const [addImageDialogOpen, setAddImageDialogOpen] = useState(false)
+  const [showPrunedImages, setShowPrunedImages] = useState(true)
+
   // Notify parent when AI image generation starts/stops
   useEffect(() => {
     onGeneratingChange?.(aiImageGen?.status === "generating")
@@ -435,6 +440,7 @@ export function StoryboardSectionDetail({
     setSelectedElement(null)
     setCropTarget(null)
     setAiImageDialogTarget(null)
+    setAddImageDialogOpen(false)
     aiAbortRef.current?.abort()
     aiImageAbortRef.current?.abort()
     setAiImageGen(null)
@@ -1026,6 +1032,106 @@ export function StoryboardSectionDetail({
       })
     },
     [bookLabel, sectionIndex]
+  )
+
+  // Add a new image to the current section (append to parts + inject into HTML)
+  const addImageToSection = useCallback(
+    (newImageId: string, dims?: { w: number; h: number }) => {
+      // Update sectioning
+      setPendingSectioning((prev) => {
+        const sBase = prev ?? pageDataRef.current.sectioning
+        if (!sBase) return prev
+        return {
+          ...sBase,
+          sections: sBase.sections.map((s, si) => {
+            if (si !== sectionIndex) return s
+            // Skip if image already exists in this section
+            if (s.parts.some((p) => p.type === "image" && p.imageId === newImageId)) return s
+            return {
+              ...s,
+              parts: [...s.parts, { type: "image" as const, imageId: newImageId, isPruned: false }],
+            }
+          }),
+        }
+      })
+
+      // Update rendering HTML — append img tag at end of section content
+      setPendingRendering((prev) => {
+        const rBase = prev ?? pageDataRef.current.rendering
+        if (!rBase) return prev
+        const imgTag = `<img data-id="${newImageId}" src="${BASE_URL}/books/${bookLabel}/images/${newImageId}"${dims ? ` width="${dims.w}" height="${dims.h}"` : ""} alt="${newImageId}" class="w-full" />`
+        return {
+          ...rBase,
+          sections: rBase.sections.map((s) => {
+            if (s.sectionIndex !== sectionIndex) return s
+            // Try to insert before closing </section>, otherwise append
+            const closingIdx = s.html.lastIndexOf("</section>")
+            const html = closingIdx >= 0
+              ? s.html.slice(0, closingIdx) + imgTag + s.html.slice(closingIdx)
+              : s.html + imgTag
+            return { ...s, html }
+          }),
+        }
+      })
+    },
+    [bookLabel, sectionIndex]
+  )
+
+  // Handlers for AddImageDialog
+  const handleAddExistingImage = useCallback(
+    (imageIds: string[]) => {
+      setAddImageDialogOpen(false)
+      for (const id of imageIds) {
+        addImageToSection(id)
+      }
+    },
+    [addImageToSection]
+  )
+
+  const handleAddImageUpload = useCallback(
+    async (file: File) => {
+      setAddImageDialogOpen(false)
+      try {
+        const result = await api.uploadNewImage(bookLabel, pageId, file)
+        addImageToSection(result.imageId, { w: result.width, h: result.height })
+      } catch (err) {
+        setAiError(err instanceof Error ? err.message : "Image upload failed")
+      }
+    },
+    [bookLabel, pageId, addImageToSection]
+  )
+
+  const handleAddImageGenerate = useCallback(
+    (prompt: string) => {
+      setAddImageDialogOpen(false)
+      setAiImageGen({ targetImageId: "__adding__", status: "generating" })
+
+      const controller = new AbortController()
+      aiImageAbortRef.current = controller
+
+      api
+        .aiGenerateImage(bookLabel, pageId, prompt, apiKey, pageId, undefined, controller.signal)
+        .then((result) => {
+          addImageToSection(result.imageId, { w: result.width, h: result.height })
+          setAiImageGen({ targetImageId: "__adding__", status: "done" })
+          setTimeout(() => setAiImageGen((prev) => prev?.status === "done" ? null : prev), 3000)
+        })
+        .catch((err) => {
+          if (err instanceof DOMException && err.name === "AbortError") {
+            setAiImageGen(null)
+          } else {
+            setAiImageGen({
+              targetImageId: "__adding__",
+              status: "error",
+              error: err instanceof Error ? err.message : "Image generation failed",
+            })
+          }
+        })
+        .finally(() => {
+          aiImageAbortRef.current = null
+        })
+    },
+    [bookLabel, pageId, apiKey, addImageToSection]
   )
 
   // Submit from AI image dialog: close dialog, run generation in background
@@ -1711,14 +1817,26 @@ export function StoryboardSectionDetail({
           )}
 
           {/* Images */}
-          {hasImageParts && (
-            <div>
-              <h3 className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-                Images
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
+          <div>
+            <h3 className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+              Images
+              {hasImageParts && parts.some((p) => p.type === "image" && p.isPruned) && (
+                <button
+                  type="button"
+                  onClick={() => setShowPrunedImages((v) => !v)}
+                  className="ml-auto flex items-center gap-1 text-[10px] font-normal normal-case tracking-normal text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                  title={showPrunedImages ? "Hide pruned images" : "Show pruned images"}
+                >
+                  {showPrunedImages ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                  {showPrunedImages ? "Hide Pruned" : "Show Pruned"}
+                </button>
+              )}
+            </h3>
+            {hasImageParts && (
+              <div className="grid grid-cols-2 gap-2 mb-2">
                 {parts.map((p, partIndex) => {
                   if (p.type !== "image") return null
+                  if (p.isPruned && !showPrunedImages) return null
                   return (
                     <div key={p.imageId} className="group relative">
                       <ImageCard
@@ -1743,8 +1861,16 @@ export function StoryboardSectionDetail({
                   )
                 })}
               </div>
-            </div>
-          )}
+            )}
+            <button
+              type="button"
+              onClick={() => setAddImageDialogOpen(true)}
+              className="flex items-center justify-center gap-1.5 w-full rounded border border-dashed border-muted-foreground/30 hover:border-muted-foreground/60 py-3 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+            >
+              <ImagePlus className="h-3.5 w-3.5" />
+              Add Image
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -1786,6 +1912,17 @@ export function StoryboardSectionDetail({
         regions={segmentPreview.regions}
         onApply={handleSegmentApply}
         onClose={() => setSegmentPreview(null)}
+      />
+    )}
+
+    {/* Add image dialog */}
+    {addImageDialogOpen && (
+      <AddImageDialog
+        bookLabel={bookLabel}
+        onSelectExisting={handleAddExistingImage}
+        onUpload={handleAddImageUpload}
+        onGenerate={handleAddImageGenerate}
+        onClose={() => setAddImageDialogOpen(false)}
       />
     )}
     </>
