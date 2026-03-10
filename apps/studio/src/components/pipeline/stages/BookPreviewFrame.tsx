@@ -205,7 +205,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
     ${interactiveStyles}
   </style>
 </head>
-<body class="min-h-screen flex items-center justify-center">
+<body>
 ${interactiveScript}
 </body>
 </html>`,
@@ -252,8 +252,7 @@ ${interactiveScript}
     // Preserve the interactive script if present
     const scriptEl = doc.body.querySelector("script")
     // Wrap in the same <div id="content"> wrapper that renderPageHtml uses
-    // in the preview. This matters because the body is display:flex and the
-    // wrapper acts as a block-level flex child around the section HTML.
+    // in the preview so structure matches the final output.
     doc.body.innerHTML = `<div id="content">${newHtml}</div>`
     if (scriptEl && editable) {
       doc.body.appendChild(scriptEl)
@@ -286,8 +285,9 @@ ${interactiveScript}
     measureTimerRef.current = setTimeout(measureHeight, 500)
   }
 
-  // When html prop changes, update the body directly (no iframe reload)
+  // When html prop changes, reset height and update the body directly (no iframe reload)
   useEffect(() => {
+    setContentHeight(800)
     if (readyRef.current) injectContent(sanitizedHtml)
   }, [sanitizedHtml, applyBodyBackground])
 
