@@ -333,7 +333,7 @@ export function SectionDataPanel({
 
   return (
     <div
-      className={`absolute top-0 right-0 h-full w-[480px] bg-background border-l shadow-lg transition-transform duration-200 ease-in-out z-30 ${
+      className={`absolute top-0 right-0 h-full w-[480px] flex flex-col bg-background border-l shadow-lg transition-transform duration-200 ease-in-out z-30 ${
         open ? "translate-x-0" : "translate-x-full"
       }`}
     >
