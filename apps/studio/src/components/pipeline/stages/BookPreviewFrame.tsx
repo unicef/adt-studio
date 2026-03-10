@@ -7,6 +7,15 @@ import { BASE_URL } from "@/api/client"
 // Use new URL().origin instead of string slicing — immune to path changes (Lesson #11).
 const IFRAME_BASE = BASE_URL.startsWith("http") ? new URL(BASE_URL).origin : ""
 
+/** Build the URL prefix for adt-preview asset routes for the given book. */
+function previewAssetsUrl(bookLabel: string): string {
+  return `${BASE_URL}/books/${bookLabel}/adt-preview`
+}
+
+/** Fixed viewport width the iframe renders at — matches a typical desktop preview.
+ *  The iframe is scaled down via CSS transform to fit the actual panel width. */
+const RENDER_WIDTH = 1280
+
 export interface BookPreviewFrameHandle {
   /** Get the iframe element's bounding rect in the viewport */
   getIframeRect: () => DOMRect | null
@@ -14,6 +23,8 @@ export interface BookPreviewFrameHandle {
 
 export interface BookPreviewFrameProps {
   html: string
+  /** Book label — used to load the correct Tailwind CSS and font assets from the API */
+  bookLabel: string
   className?: string
   /** Enable interactive mode — click/edit elements with data-id attributes */
   editable?: boolean
@@ -31,18 +42,18 @@ export interface BookPreviewFrameProps {
 
 /**
  * Renders section HTML in an iframe that matches the final book output structure.
- * Loads the iframe shell once (Tailwind CDN + fonts), then swaps body innerHTML
- * when the html prop changes — avoids full-page reloads and the reflow cascade they cause.
- * The section HTML itself contains the <div id="content"> container with styling.
+ * Uses the same CSS, fonts, and body layout as the preview so rendering is pixel-identical.
+ *
+ * The iframe always renders at a fixed desktop-width viewport (RENDER_WIDTH) then
+ * scales down via CSS transform to fit the available panel width. This ensures
+ * responsive breakpoints, overlay positions, and image sizing match the preview.
  *
  * When `editable` is true, injects interactive scripts that allow clicking and
  * editing data-id elements, communicating changes back via postMessage.
- *
- * Height measurement is deferred until after fonts settle to prevent the visible
- * "slow collapse" caused by intermediate reflows during font loading.
  */
 export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFrameProps>(function BookPreviewFrame({
   html,
+  bookLabel,
   className,
   editable = false,
   prunedDataIds,
@@ -52,15 +63,16 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   applyBodyBackground,
 }, ref) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
 
   useImperativeHandle(ref, () => ({
     getIframeRect: () => iframeRef.current?.getBoundingClientRect() ?? null,
   }))
-  const [height, setHeight] = useState(300)
   const [iframeReady, setIframeReady] = useState(false)
+  const [scale, setScale] = useState(1)
+  const [contentHeight, setContentHeight] = useState(800)
   const readyRef = useRef(false)
   const latestHtmlRef = useRef("")
-  const settledRef = useRef(false)
   const measureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const sanitizedHtml = useMemo(() => DOMPurify.sanitize(html), [html])
@@ -176,7 +188,9 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
     img[data-id] { position: relative; z-index: 1; }`
     : ""
 
-  // Stable shell — loaded once, never changes
+  // Stable shell — loaded once, never changes.
+  // Mirrors the preview's renderPageHtml output: same CSS, fonts, body classes.
+  const assetsPrefix = previewAssetsUrl(bookLabel)
   const srcdoc = useMemo(
     () => `<!DOCTYPE html>
 <html>
@@ -184,22 +198,18 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   ${IFRAME_BASE ? `<base href="${IFRAME_BASE}">` : ""}
   <meta charset="utf-8" />
   <meta content="width=device-width, initial-scale=1" name="viewport" />
-  <script src="https://cdn.tailwindcss.com"><\/script>
+  <link href="${assetsPrefix}/content/tailwind_output.css" rel="stylesheet">
+  <link href="${assetsPrefix}/assets/fonts.css" rel="stylesheet">
+  <link href="${assetsPrefix}/assets/libs/fontawesome/css/all.min.css" rel="stylesheet">
   <style>
-    @import url("https://fonts.googleapis.com/css2?family=Merriweather:ital,wght@0,300..800;1,300..800&display=swap");
-    :root { --page-height: 100vh; }
-    body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-    body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select {
-      font-family: "Merriweather", serif;
-    }
     ${interactiveStyles}
   </style>
 </head>
-<body>
+<body class="min-h-screen flex items-center justify-center">
 ${interactiveScript}
 </body>
 </html>`,
-    [editable]
+    [editable, assetsPrefix]
   )
 
   // Listen for postMessage from iframe
@@ -229,32 +239,25 @@ ${interactiveScript}
   function measureHeight() {
     const doc = iframeRef.current?.contentDocument
     if (!doc?.body) return
-    // Temporarily collapse the root element so scrollHeight reflects
-    // the intrinsic content height, not the iframe viewport height.
-    doc.documentElement.style.height = "0"
-    const h = doc.documentElement.scrollHeight
-    doc.documentElement.style.height = ""
-    if (h > 0) setHeight(h)
+    const h = doc.body.scrollHeight
+    if (h > 0) setContentHeight(h)
   }
 
-  /** Inject HTML into the iframe body, then measure height once fonts are settled. */
-  function injectAndMeasure(newHtml: string) {
+  /** Inject HTML into the iframe body (preserving the interactive script). */
+  function injectContent(newHtml: string) {
     const iframe = iframeRef.current
     const doc = iframe?.contentDocument
     if (!doc?.body) return
 
-    settledRef.current = false
-
     // Preserve the interactive script if present
     const scriptEl = doc.body.querySelector("script")
-    doc.body.innerHTML = newHtml
+    // Wrap in the same <div id="content"> wrapper that renderPageHtml uses
+    // in the preview. This matters because the body is display:flex and the
+    // wrapper acts as a block-level flex child around the section HTML.
+    doc.body.innerHTML = `<div id="content">${newHtml}</div>`
     if (scriptEl && editable) {
       doc.body.appendChild(scriptEl)
     }
-
-    // Inject parent viewport height as CSS variable so overlay HTML can
-    // constrain images to fit without using vh (which doesn't work in iframes).
-    doc.documentElement.style.setProperty("--page-height", `${window.innerHeight}px`)
 
     // Apply data-background-color from content to iframe body
     if (applyBodyBackground !== false) {
@@ -264,25 +267,14 @@ ${interactiveScript}
       doc.body.style.backgroundColor = ""
     }
 
-    // Measure multiple times to catch late reflows from Tailwind CDN, fonts, and images.
-    // Wait one frame so the browser queues font loads for the new content,
-    // then wait for fonts.ready so we measure the final layout.
+    // Measure after fonts + images settle
     requestAnimationFrame(() => {
       measureHeight()
-
-      const settle = () => {
-        settledRef.current = true
-        measureHeight()
-      }
-
       if (doc.fonts?.ready) {
-        doc.fonts.ready.then(settle)
-      } else {
-        settle()
+        doc.fonts.ready.then(measureHeight)
       }
     })
 
-    // Re-measure when images finish loading (they affect content height)
     doc.querySelectorAll("img").forEach((img) => {
       if (!img.complete) {
         img.addEventListener("load", measureHeight, { once: true })
@@ -290,14 +282,13 @@ ${interactiveScript}
       }
     })
 
-    // Safety net for late reflows (e.g. Tailwind CDN processing injected classes)
     if (measureTimerRef.current) clearTimeout(measureTimerRef.current)
     measureTimerRef.current = setTimeout(measureHeight, 500)
   }
 
   // When html prop changes, update the body directly (no iframe reload)
   useEffect(() => {
-    if (readyRef.current) injectAndMeasure(sanitizedHtml)
+    if (readyRef.current) injectContent(sanitizedHtml)
   }, [sanitizedHtml, applyBodyBackground])
 
   // Inject/update pruned element styles into the iframe
@@ -367,6 +358,21 @@ ${selectors}:hover {
     }
   }, [changedElements, iframeReady])
 
+  // Compute scale factor when wrapper resizes
+  useEffect(() => {
+    const wrapper = wrapperRef.current
+    if (!wrapper) return
+
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0]
+      if (!entry) return
+      const availableWidth = entry.contentRect.width
+      setScale(Math.min(1, availableWidth / RENDER_WIDTH))
+    })
+    ro.observe(wrapper)
+    return () => ro.disconnect()
+  }, [])
+
   // One-time iframe setup
   useEffect(() => {
     const iframe = iframeRef.current
@@ -376,11 +382,10 @@ ${selectors}:hover {
       const doc = iframe.contentDocument
       if (!doc) return
 
-      // Wait for Tailwind CDN + initial font CSS to load
       const start = () => {
         readyRef.current = true
         setIframeReady(true)
-        injectAndMeasure(latestHtmlRef.current)
+        injectContent(latestHtmlRef.current)
       }
 
       if (doc.fonts?.ready) {
@@ -400,33 +405,31 @@ ${selectors}:hover {
       }
     }
 
-    // Re-measure on window resize (e.g. browser resize changes iframe width)
-    const onResize = () => {
-      const doc = iframe.contentDocument
-      if (doc) {
-        doc.documentElement.style.setProperty("--page-height", `${window.innerHeight}px`)
-      }
-      if (settledRef.current) measureHeight()
-    }
-    window.addEventListener("resize", onResize)
-
     iframe.addEventListener("load", onLoad)
     return () => {
       iframe.removeEventListener("load", onLoad)
-      window.removeEventListener("resize", onResize)
       if (measureTimerRef.current) clearTimeout(measureTimerRef.current)
       readyRef.current = false
       setIframeReady(false)
     }
   }, [])
 
+  const scaledHeight = contentHeight * scale
+
   return (
-    <iframe
-      ref={iframeRef}
-      srcDoc={srcdoc}
-      className={className}
-      scrolling="no"
-      style={{ width: "100%", height, overflow: "hidden" }}
-    />
+    <div ref={wrapperRef} className={className} style={{ height: scaledHeight, overflow: "hidden" }}>
+      <iframe
+        ref={iframeRef}
+        srcDoc={srcdoc}
+        scrolling="no"
+        style={{
+          width: RENDER_WIDTH,
+          height: contentHeight,
+          border: "none",
+          transformOrigin: "top left",
+          transform: `scale(${scale})`,
+        }}
+      />
+    </div>
   )
 })

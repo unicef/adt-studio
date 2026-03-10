@@ -2006,16 +2006,17 @@ export function StoryboardSectionDetail({
               />
             ) : (
               <BookPreviewFrame
-                ref={previewFrameRef}
-                html={renderedSection.html}
-                className="w-full rounded border"
-                editable={!aiLoading && !rerendering}
-                prunedDataIds={prunedDataIds}
-                changedElements={changedElements}
-                onSelectElement={handleSelectElement}
-                onTextChanged={handleTextChanged}
-                applyBodyBackground={applyBodyBackground}
-              />
+                  ref={previewFrameRef}
+                  html={renderedSection.html}
+                  bookLabel={bookLabel}
+                  className="w-full rounded border"
+                  editable={!aiLoading && !rerendering}
+                  prunedDataIds={prunedDataIds}
+                  changedElements={changedElements}
+                  onSelectElement={handleSelectElement}
+                  onTextChanged={handleTextChanged}
+                  applyBodyBackground={applyBodyBackground}
+                />
             )}
           </>
         ) : (
