@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from "react"
 import { createPortal } from "react-dom"
-import { Check, Eye, EyeOff, LayoutGrid, Loader2, ChevronDown, Sparkles, ChevronRight, PanelRightOpen, PanelRightClose, Play, PenLine, Save, Merge, X } from "lucide-react"
+import { Check, Eye, EyeOff, LayoutGrid, Loader2, ChevronDown, Sparkles, ChevronRight, PanelRightOpen, PanelRightClose, Play, PenLine, Save, Merge, X, Code, GripHorizontal } from "lucide-react"
 import { SectionDataPanel } from "./SectionDataPanel"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, BASE_URL } from "@/api/client"
@@ -319,6 +319,20 @@ export function StoryboardSectionDetail({
 
   // Section data panel state
   const [panelOpen, setPanelOpen] = useState(false)
+  const [htmlPreview, setHtmlPreview] = useState(false)
+  const [htmlPanelHeight, setHtmlPanelHeight] = useState(() => Math.floor(window.innerHeight * 0.35))
+  const htmlPanelRef = useRef<HTMLDivElement>(null)
+  const htmlDragging = useRef(false)
+  const [htmlDraggingActive, setHtmlDraggingActive] = useState(false)
+  const htmlDragCleanup = useRef<(() => void) | null>(null)
+
+  // Clean up drag listeners on unmount
+  useEffect(() => {
+    return () => {
+      htmlDragging.current = false
+      htmlDragCleanup.current?.()
+    }
+  }, [])
 
   // Image crop state
   const [cropTarget, setCropTarget] = useState<string | null>(null)
@@ -1711,6 +1725,19 @@ export function StoryboardSectionDetail({
       ) : (
         <div className="flex-1" />
       )}
+      {renderedSection?.html && (
+        <button
+          type="button"
+          onClick={() => setHtmlPreview((v) => !v)}
+          className={`flex items-center gap-1 px-2 py-1 rounded transition-colors cursor-pointer shrink-0 ${
+            htmlPreview ? "bg-white/30" : "bg-white/10 hover:bg-white/20"
+          }`}
+          title={htmlPreview ? "Back to preview" : "View HTML source"}
+        >
+          <Code className="h-3.5 w-3.5" />
+          <span className="text-[10px]">HTML</span>
+        </button>
+      )}
       <button
         type="button"
         onClick={() => setPanelOpen((v) => !v)}
@@ -1863,6 +1890,61 @@ export function StoryboardSectionDetail({
         )}
 
       </div>
+
+      {/* Slide-up HTML editor panel */}
+      {htmlPreview && renderedSection && (
+        <div
+          ref={htmlPanelRef}
+          className="border-t border-border bg-[#1e1e2e] flex flex-col shrink-0"
+          style={{ height: htmlPanelHeight }}
+        >
+          <div
+            className="flex items-center justify-center h-2 cursor-row-resize hover:bg-white/10 shrink-0"
+            onMouseDown={(e) => {
+              e.preventDefault()
+              htmlDragging.current = true
+              setHtmlDraggingActive(true)
+              const startY = e.clientY
+              const startH = htmlPanelRef.current?.offsetHeight ?? htmlPanelHeight
+              const onMove = (ev: MouseEvent) => {
+                if (!htmlDragging.current) return
+                const delta = startY - ev.clientY
+                const maxH = Math.floor(window.innerHeight * 0.8)
+                setHtmlPanelHeight(Math.min(maxH, Math.max(150, startH + delta)))
+              }
+              const onUp = () => {
+                htmlDragging.current = false
+                setHtmlDraggingActive(false)
+                document.removeEventListener("mousemove", onMove)
+                document.removeEventListener("mouseup", onUp)
+                htmlDragCleanup.current = null
+              }
+              document.addEventListener("mousemove", onMove)
+              document.addEventListener("mouseup", onUp)
+              htmlDragCleanup.current = onUp
+            }}
+          >
+            <GripHorizontal className="h-3 w-3 text-gray-500" />
+          </div>
+          <textarea
+            className="flex-1 min-h-0 w-full p-4 text-xs leading-relaxed text-gray-200 font-mono resize-none focus:outline-none bg-transparent"
+            spellCheck={false}
+            value={renderedSection.html ?? ""}
+            onChange={(e) => {
+              const base = pendingRendering ?? page.rendering
+              if (!base) return
+              const updated: RenderingData = {
+                ...base,
+                sections: base.sections.map((s) => {
+                  if (s.sectionIndex !== sectionIndex) return s
+                  return { ...s, html: e.target.value }
+                }),
+              }
+              setPendingRendering(updated)
+            }}
+          />
+        </div>
+      )}
 
       {/* Background image generation indicator — absolute to outer panel so it stays visible while scrolling */}
       {aiImageGen && (
@@ -2055,6 +2137,11 @@ export function StoryboardSectionDetail({
         showPrunedImages={showPrunedImages}
         onToggleShowPrunedImages={() => setShowPrunedImages((v) => !v)}
       />
+      )}
+
+      {/* Transparent overlay during drag to prevent iframe from stealing mouse events */}
+      {htmlDraggingActive && (
+        <div className="absolute inset-0 z-50 cursor-row-resize" />
       )}
     </div>
 

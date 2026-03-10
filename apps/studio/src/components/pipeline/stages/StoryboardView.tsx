@@ -204,6 +204,9 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   useEffect(() => {
     if (!selectedPageId || showRunCard) return
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't hijack arrows when user is typing in an input, textarea, or contenteditable
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return
       if (e.key === "ArrowLeft" && canGoPrev) {
         goPrev()
       } else if (e.key === "ArrowRight" && canGoNext) {
