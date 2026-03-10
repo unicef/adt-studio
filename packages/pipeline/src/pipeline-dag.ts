@@ -618,7 +618,11 @@ export async function runFullPipeline(
         const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
         if (!renderingRow) return
         const rendering = renderingRow.data as WebRenderingOutput
-        const htmlSections = rendering.sections.map((s) => s.html)
+        const sectioningRow = storage.getLatestNodeData("page-sectioning", page.pageId)
+        const sectioning = sectioningRow?.data as PageSectioningOutput | undefined
+        const htmlSections = rendering.sections
+          .filter((s) => !sectioning?.sections[s.sectionIndex]?.isPruned)
+          .map((s) => s.html)
         const imageIds = extractImageIds(htmlSections)
         if (imageIds.length === 0) {
           storage.putNodeData("image-captioning", page.pageId, { captions: [] })

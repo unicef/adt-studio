@@ -134,10 +134,11 @@ export async function packageAdtWeb(
       if (parsed.success) {
         const rendering = parsed.data
 
-        // One HTML file per rendered section (stable by sectionIndex)
+        // One HTML file per rendered section (stable by sectionIndex), skip pruned
         const sections = [...rendering.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
         for (const rs of sections) {
           const sectionMeta = sectioning?.sections[rs.sectionIndex]
+          if (sectionMeta?.isPruned) continue
           const sectionId = sectionMeta?.sectionId ?? `${page.pageId}_sec${String(rs.sectionIndex + 1).padStart(3, "0")}`
 
           if (rs.sectionType.startsWith("activity_") || sectionMeta?.sectionType.startsWith("activity_")) {

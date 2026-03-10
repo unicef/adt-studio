@@ -459,6 +459,18 @@ export function createPageRoutes(
       })
     }
 
+    // Optional prompt for LLM guidance during re-render
+    let prompt: string | undefined
+    try {
+      const body = await c.req.json()
+      const parsed = z.object({ prompt: z.string().optional() }).safeParse(body)
+      if (parsed.success) {
+        prompt = parsed.data.prompt
+      }
+    } catch {
+      // No body or not JSON — that's fine, prompt is optional
+    }
+
     const storage = createBookStorage(safeLabel, booksDir)
     try {
       const pages = storage.getPages()
@@ -492,6 +504,7 @@ export function createPageRoutes(
       label: safeLabel,
       pageId,
       sectionIndex,
+      prompt,
       booksDir,
       promptsDir,
       webAssetsDir,
@@ -823,10 +836,6 @@ export function createPageRoutes(
 
       if (idx >= sectioning.sections.length) {
         throw new HTTPException(400, { message: `Section index ${idx} out of range (page has ${sectioning.sections.length} sections)` })
-      }
-
-      if (sectioning.sections.length <= 1) {
-        throw new HTTPException(400, { message: "Cannot delete the only section on a page" })
       }
 
       // Remove section at idx

@@ -89,6 +89,18 @@ export function validateSectionHtml(
 
   walkNode(section, allowedIds, imageIdSet, errors, options)
 
+  // Verify all expected text IDs are present in the generated HTML.
+  // This ensures the LLM doesn't silently drop entries (e.g. duplicated texts).
+  if (allowedTextIds.length > 0) {
+    const renderedDataIds = new Set<string>()
+    collectDataIds(section, renderedDataIds)
+    for (const textId of allowedTextIds) {
+      if (!renderedDataIds.has(textId)) {
+        errors.push(`Missing required text data-id: "${textId}"`)
+      }
+    }
+  }
+
   if (imageUrlPrefix) {
     rewriteImageSrcs(section, imageIdSet, imageUrlPrefix)
   }
@@ -234,6 +246,19 @@ function walkNode(
 
   if (replacementText !== undefined) {
     replaceChildrenWithText(node, replacementText)
+  }
+}
+
+/** Collect all data-id attribute values from a DOM tree. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function collectDataIds(node: any, ids: Set<string>): void {
+  if (node.type === "tag" && node.attribs?.["data-id"]) {
+    ids.add(node.attribs["data-id"])
+  }
+  if (node.children) {
+    for (const child of node.children) {
+      collectDataIds(child, ids)
+    }
   }
 }
 

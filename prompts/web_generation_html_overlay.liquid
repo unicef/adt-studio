@@ -257,4 +257,9 @@ Use this ordering plus the page image to determine the vertical position of each
 {% endfor %}
 {% endif %}
 {% endfor %}
+{% if user_instructions != "" %}
+
+## ADDITIONAL INSTRUCTIONS FROM USER
+{{ user_instructions }}
+{% endif %}
 {% endchat %}

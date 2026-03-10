@@ -12,6 +12,8 @@ export interface ReRenderOptions {
   label: string
   pageId: string
   sectionIndex?: number
+  /** Optional user prompt/instructions to guide the LLM during re-render */
+  prompt?: string
   booksDir: string
   promptsDir: string
   webAssetsDir?: string
@@ -46,7 +48,7 @@ export interface AiEditSectionResult {
 export async function reRenderPage(
   options: ReRenderOptions
 ): Promise<ReRenderResult> {
-  const { label, pageId, sectionIndex, booksDir, promptsDir, webAssetsDir, configPath, apiKey } = options
+  const { label, pageId, sectionIndex, prompt, booksDir, promptsDir, webAssetsDir, configPath, apiKey } = options
 
   // Set API key
   const previousKey = process.env.OPENAI_API_KEY
@@ -150,6 +152,7 @@ export async function reRenderPage(
         sectioning: sectioningForRender,
         images: renderImages,
         styleguide: styleguideContent,
+        userPrompt: prompt,
       },
       resolveRenderConfig,
       resolveRenderModel,

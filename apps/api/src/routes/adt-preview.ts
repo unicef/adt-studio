@@ -150,10 +150,12 @@ function buildPagesManifest(storage: Storage): Array<{ section_id: string; href:
           : null
         const sectioning = sectioningParsed?.success ? sectioningParsed.data : undefined
 
-        // One entry per rendered section (stable by sectionIndex)
+        // One entry per rendered section (stable by sectionIndex), skip pruned
         const sections = [...parsed.data.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
         for (const rs of sections) {
           const sectionMeta = sectioning?.sections?.[rs.sectionIndex]
+          // Skip sections that are pruned in the sectioning data
+          if (sectionMeta?.isPruned) continue
           const sectionId = sectionMeta?.sectionId ?? `${page.pageId}_sec${String(rs.sectionIndex + 1).padStart(3, "0")}`
           const entry: { section_id: string; href: string; page_number?: number } = {
             section_id: sectionId,

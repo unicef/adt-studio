@@ -9,6 +9,7 @@ import {
   Loader2,
   Merge,
   Plus,
+  RefreshCw,
   Trash2,
   X,
 } from "lucide-react"
@@ -55,6 +56,7 @@ interface SectionDataPanelProps {
   onMergeSection: (dir: "prev" | "next") => void
   onCloneSection: () => void
   onDeleteSection: () => void
+  onRerender: (prompt?: string) => void
   onAddImage: () => void
   // Version picker
   versionPickerNode: ReactNode
@@ -63,8 +65,10 @@ interface SectionDataPanelProps {
   cloning: boolean
   deleting: boolean
   saving: boolean
+  rerendering: boolean
   dirty: boolean
   renderingDirty: boolean
+  hasApiKey: boolean
   showPrunedImages: boolean
   onToggleShowPrunedImages: () => void
 }
@@ -151,14 +155,17 @@ export function SectionDataPanel({
   onMergeSection,
   onCloneSection,
   onDeleteSection,
+  onRerender,
   onAddImage,
   versionPickerNode,
   merging,
   cloning,
   deleting,
   saving,
+  rerendering,
   dirty,
   renderingDirty,
+  hasApiKey,
   showPrunedImages,
   onToggleShowPrunedImages,
 }: SectionDataPanelProps) {
@@ -166,6 +173,10 @@ export function SectionDataPanel({
 
   const hasTextParts = parts.some((p) => p.type === "text_group")
   const hasImageParts = parts.some((p) => p.type === "image")
+
+  // Re-render prompt popover state
+  const [rerenderOpen, setRerenderOpen] = useState(false)
+  const [rerenderPrompt, setRerenderPrompt] = useState("")
 
   // -- Group drag state --
   const [dragGroupIdx, setDragGroupIdx] = useState<number | null>(null)
@@ -327,117 +338,160 @@ export function SectionDataPanel({
       }`}
     >
       {/* Panel header */}
-      <div className="flex items-center gap-2 px-4 py-2 border-b text-xs text-muted-foreground">
-        <span className="font-medium uppercase tracking-wider">Content</span>
-        {sectionTypes ? (
-          <Select
-            value={section.sectionType}
-            onValueChange={onChangeSectionType}
-          >
-            <SelectTrigger className="h-6 text-[10px] font-medium px-1.5 py-0 w-auto min-w-[80px] border-0 bg-muted/50">
-              <SelectValue>{section.sectionType}</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              {Object.entries(sectionTypes).map(([key, desc]) => (
-                <SelectItem key={key} value={key} className="text-xs">
-                  {key}
-                  <span className="ml-1 text-muted-foreground text-[10px]">
-                    {desc}
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : (
-          <span className="font-medium">{section.sectionType}</span>
-        )}
-        {!section.isPruned && (
-          <>
-            <span
-              className="w-3.5 h-3.5 rounded border"
-              style={{ backgroundColor: section.backgroundColor }}
-              title={`Background: ${section.backgroundColor}`}
-            />
-            <span
-              className="w-3.5 h-3.5 rounded border"
-              style={{ backgroundColor: section.textColor }}
-              title={`Text color: ${section.textColor}`}
-            />
-          </>
-        )}
-        <div className="ml-auto flex items-center gap-1.5">
-          <button
-            type="button"
-            onClick={onToggleSectionPruned}
-            className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer"
-            title={
-              section.isPruned
-                ? "Include section in render"
-                : "Exclude section from render"
-            }
-          >
-            {section.isPruned ? (
-              <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
-            ) : (
-              <Eye className="h-3.5 w-3.5 text-muted-foreground" />
-            )}
-          </button>
-          {sectionIndex > 0 && (
+      <div className="border-b">
+        <div className="flex items-center gap-2 px-4 py-2 text-xs text-muted-foreground">
+          <span className="font-medium uppercase tracking-wider">Content</span>
+          {sectionTypes ? (
+            <Select
+              value={section.sectionType}
+              onValueChange={onChangeSectionType}
+            >
+              <SelectTrigger className="h-6 text-[10px] font-medium px-1.5 py-0 w-auto min-w-[80px] border-0 bg-muted/50">
+                <SelectValue>{section.sectionType}</SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                {Object.entries(sectionTypes).map(([key, desc]) => (
+                  <SelectItem key={key} value={key} className="text-xs">
+                    {key}
+                    <span className="ml-1 text-muted-foreground text-[10px]">
+                      {desc}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <span className="font-medium">{section.sectionType}</span>
+          )}
+          {/* Re-render button — right next to section type */}
+          <div className="relative">
             <button
               type="button"
-              onClick={() => onMergeSection("prev")}
-              disabled={merging || dirty || renderingDirty || saving}
+              onClick={() => setRerenderOpen(!rerenderOpen)}
+              disabled={rerendering || dirty || renderingDirty || saving || !hasApiKey}
+              className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
+              title={
+                !hasApiKey
+                  ? "API key required to re-render"
+                  : dirty || renderingDirty
+                    ? "Save changes before re-rendering"
+                    : "Re-render this section"
+              }
+            >
+              {rerendering ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3.5 w-3.5 text-blue-600" />
+              )}
+            </button>
+            {rerenderOpen && (
+              <div className="absolute left-0 top-full mt-1 z-50 w-72 rounded-lg border bg-popover p-3 shadow-lg">
+                <p className="text-xs font-medium mb-2">Re-render section</p>
+                <textarea
+                  value={rerenderPrompt}
+                  onChange={(e) => setRerenderPrompt(e.target.value)}
+                  placeholder="Optional instructions for the LLM..."
+                  className="w-full text-xs rounded border bg-background px-2 py-1.5 resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+                  rows={3}
+                />
+                <div className="flex items-center justify-end gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRerenderOpen(false)
+                      setRerenderPrompt("")
+                    }}
+                    className="text-xs px-2 py-1 rounded hover:bg-accent transition-colors cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onRerender(rerenderPrompt.trim() || undefined)
+                      setRerenderOpen(false)
+                      setRerenderPrompt("")
+                    }}
+                    className="text-xs px-2.5 py-1 rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
+                  >
+                    Re-render
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="ml-auto flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={onToggleSectionPruned}
+              className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer"
+              title={
+                section.isPruned
+                  ? "Include section in render"
+                  : "Exclude section from render"
+              }
+            >
+              {section.isPruned ? (
+                <EyeOff className="h-3.5 w-3.5 text-muted-foreground" />
+              ) : (
+                <Eye className="h-3.5 w-3.5 text-muted-foreground" />
+              )}
+            </button>
+            {sectionIndex > 0 && (
+              <button
+                type="button"
+                onClick={() => onMergeSection("prev")}
+                disabled={merging || dirty || renderingDirty || saving}
+                className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
+                title={
+                  dirty || renderingDirty
+                    ? "Save changes before merging"
+                    : "Merge with previous section"
+                }
+              >
+                {merging ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Merge className="h-3.5 w-3.5 rotate-180" />
+                )}
+              </button>
+            )}
+            {sectionIndex < sectionCount - 1 && (
+              <button
+                type="button"
+                onClick={() => onMergeSection("next")}
+                disabled={merging || dirty || renderingDirty || saving}
+                className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
+                title={
+                  dirty || renderingDirty
+                    ? "Save changes before merging"
+                    : "Merge with next section"
+                }
+              >
+                {merging ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Merge className="h-3.5 w-3.5" />
+                )}
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onCloneSection}
+              disabled={cloning || dirty || renderingDirty || saving}
               className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
               title={
                 dirty || renderingDirty
-                  ? "Save changes before merging"
-                  : "Merge with previous section"
+                  ? "Save changes before cloning"
+                  : "Clone this section"
               }
             >
-              {merging ? (
+              {cloning ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <Merge className="h-3.5 w-3.5 rotate-180" />
+                <Copy className="h-3.5 w-3.5" />
               )}
             </button>
-          )}
-          {sectionIndex < sectionCount - 1 && (
-            <button
-              type="button"
-              onClick={() => onMergeSection("next")}
-              disabled={merging || dirty || renderingDirty || saving}
-              className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
-              title={
-                dirty || renderingDirty
-                  ? "Save changes before merging"
-                  : "Merge with next section"
-              }
-            >
-              {merging ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Merge className="h-3.5 w-3.5" />
-              )}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={onCloneSection}
-            disabled={cloning || dirty || renderingDirty || saving}
-            className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
-            title={
-              dirty || renderingDirty
-                ? "Save changes before cloning"
-                : "Clone this section"
-            }
-          >
-            {cloning ? (
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <Copy className="h-3.5 w-3.5" />
-            )}
-          </button>
-          {sectionCount > 1 && (
             <button
               type="button"
               onClick={onDeleteSection}
@@ -455,20 +509,38 @@ export function SectionDataPanel({
                 <Trash2 className="h-3.5 w-3.5 text-red-600" />
               )}
             </button>
-          )}
-          {versionPickerNode}
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
+            {versionPickerNode}
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
         </div>
+        {/* Page row — background & text color */}
+        {!section.isPruned && (
+          <div className="flex items-center gap-2 px-4 py-1.5 text-xs text-muted-foreground border-t">
+            <span className="font-medium uppercase tracking-wider">Page</span>
+            <span
+              className="w-3.5 h-3.5 rounded border"
+              style={{ backgroundColor: section.backgroundColor }}
+              title={`Background: ${section.backgroundColor}`}
+            />
+            <span className="text-[10px]">{section.backgroundColor}</span>
+            <span
+              className="w-3.5 h-3.5 rounded border ml-2"
+              style={{ backgroundColor: section.textColor }}
+              title={`Text color: ${section.textColor}`}
+            />
+            <span className="text-[10px]">{section.textColor}</span>
+          </div>
+        )}
       </div>
 
       {/* Panel body — scrollable */}
-      <div className="overflow-auto h-[calc(100%-41px)] px-4 py-3 space-y-5">
+      <div className="overflow-auto flex-1 px-4 py-3 space-y-5">
         {/* Text groups */}
         <div>
           <h3 className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">

@@ -7,7 +7,7 @@ import type {
   TextCatalogEntry,
   TextCatalogOutput,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema } from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, PageSectioningOutput } from "@adt/types"
 import type { Storage, PageData } from "@adt/storage"
 
 /** Zero-padded 3-digit number */
@@ -25,12 +25,14 @@ function pad3(n: number): string {
 function extractPageEntries(
   pageId: string,
   rendering: WebRenderingOutput,
-  captionMap: Map<string, string>
+  captionMap: Map<string, string>,
+  prunedSectionIndices?: Set<number>
 ): TextCatalogEntry[] {
   const entries: TextCatalogEntry[] = []
   let activityCounter = 0
 
   for (const section of rendering.sections) {
+    if (prunedSectionIndices?.has(section.sectionIndex)) continue
     const doc = parseDocument(section.html)
 
     const elements = DomUtils.findAll(
@@ -149,8 +151,16 @@ export function buildTextCatalog(
     const parsed = WebRenderingOutputSchema.safeParse(renderingRow.data)
     if (!parsed.success) continue
 
+    // Determine which sections are pruned
+    const sectioningRow = storage.getLatestNodeData("page-sectioning", page.pageId)
+    const sectioningParsed = sectioningRow ? PageSectioningOutput.safeParse(sectioningRow.data) : null
+    const prunedIndices = new Set<number>()
+    if (sectioningParsed?.success) {
+      sectioningParsed.data.sections.forEach((s, i) => { if (s.isPruned) prunedIndices.add(i) })
+    }
+
     const captionMap = loadCaptionMap(storage, page.pageId)
-    entries.push(...extractPageEntries(page.pageId, parsed.data, captionMap))
+    entries.push(...extractPageEntries(page.pageId, parsed.data, captionMap, prunedIndices))
   }
 
   // Glossary

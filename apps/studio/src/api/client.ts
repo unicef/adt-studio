@@ -420,12 +420,13 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
-  reRenderPage: (label: string, pageId: string, apiKey: string, sectionIndex?: number) =>
+  reRenderPage: (label: string, pageId: string, apiKey: string, sectionIndex?: number, prompt?: string) =>
     request<{ version: number; rendering: { sections: SectionRendering[] } }>(
       `/books/${label}/pages/${pageId}/re-render${sectionIndex !== undefined ? `?sectionIndex=${sectionIndex}` : ""}`,
       {
         method: "POST",
         headers: { "X-OpenAI-Key": apiKey },
+        ...(prompt ? { body: JSON.stringify({ prompt }) } : {}),
         signal: AbortSignal.timeout(120_000),
       }
     ),

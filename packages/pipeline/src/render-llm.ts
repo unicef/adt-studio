@@ -111,6 +111,7 @@ export async function renderSectionLlm(
     styleguide: input.styleguide ?? "",
     viewports: getViewportBreakpoints(),
     _isActivity: isActivity,
+    user_instructions: input.userPrompt ?? "",
   }
 
   const result = await llmModel.generateObject<{

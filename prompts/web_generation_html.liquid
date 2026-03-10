@@ -59,4 +59,9 @@ Content parts (in document order):
 [Image: {{ part.image_id }}]
 {% endif %}
 {% endfor %}
+{% if user_instructions != "" %}
+
+## ADDITIONAL INSTRUCTIONS FROM USER
+{{ user_instructions }}
+{% endif %}
 {% endchat %}

@@ -61,6 +61,8 @@ export interface RenderSectionInput {
   textColor: string
   parts: SectionPart[]
   styleguide?: string
+  /** Optional user instructions appended to the LLM prompt during re-render */
+  userPrompt?: string
 }
 
 export interface RenderPageInput {
@@ -70,6 +72,8 @@ export interface RenderPageInput {
   sectioning: PageSectioningOutput
   images: Map<string, { base64: string; width?: number; height?: number }>
   styleguide?: string
+  /** Optional user instructions appended to the LLM prompt during re-render */
+  userPrompt?: string
 }
 
 export type ResolveLLMModel = LLMModel | ((modelId: string) => LLMModel)
@@ -163,6 +167,7 @@ export async function renderPage(
       textColor: section.textColor,
       parts,
       styleguide: input.styleguide,
+      userPrompt: input.userPrompt,
     }
 
     let rendering: SectionRendering

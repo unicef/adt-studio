@@ -3,6 +3,7 @@ import type { AppConfig, GlossaryItem, GlossaryOutput } from "@adt/types"
 import {
   glossaryLLMSchema,
   WebRenderingOutput,
+  PageSectioningOutput,
   DEFAULT_LLM_MAX_RETRIES,
 } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
@@ -60,7 +61,12 @@ export function collectPageTexts(
       )
     }
     const rendering = parsed.data
-    const htmlParts = rendering.sections.map((s) => s.html)
+    // Filter out pruned sections
+    const sectioningRow = storage.getLatestNodeData("page-sectioning", page.pageId)
+    const sectioning = sectioningRow ? PageSectioningOutput.safeParse(sectioningRow.data) : null
+    const htmlParts = rendering.sections
+      .filter((s) => !sectioning?.success || !sectioning.data.sections[s.sectionIndex]?.isPruned)
+      .map((s) => s.html)
     const text = stripHtml(htmlParts.join(" "))
     if (text.length > 0) {
       result.push({ pageNumber: page.pageNumber, text })
