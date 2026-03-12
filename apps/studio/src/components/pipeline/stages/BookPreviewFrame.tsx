@@ -128,14 +128,10 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
     el.contentEditable = 'false';
     el.style.outline = '';
     el.style.outlineOffset = '';
-    var section = document.querySelector('section');
-    var fullHtml;
-    if (section) {
-      fullHtml = section.outerHTML;
-    } else {
-      var content = document.getElementById('content');
-      fullHtml = content ? content.outerHTML : document.body.innerHTML;
-    }
+    // Grab the innerHTML of the injected wrapper div so we preserve the
+    // full stored structure (including the outer container/content div).
+    var wrapper = document.getElementById('content');
+    var fullHtml = wrapper ? wrapper.innerHTML : document.body.innerHTML;
     parent.postMessage({
       type: 'text-changed',
       dataId: el.getAttribute('data-id'),

@@ -724,7 +724,11 @@ export function StoryboardSectionDetail({
         if (!el) continue
 
         const blockParent = el.closest("div, p, figure, li, tr, section[data-section-id]")
-        if (blockParent && blockParent.getAttribute("data-section-id")) {
+        // Guard: never remove the section wrapper or the outer content/container div
+        const isSectionWrapper = blockParent?.getAttribute("data-section-id") != null
+        const isOuterContainer =
+          blockParent?.id === "content" || blockParent?.classList.contains("container")
+        if (isSectionWrapper || isOuterContainer) {
           el.remove()
         } else if (blockParent && blockParent.querySelectorAll("[data-id]").length <= 1) {
           blockParent.remove()
@@ -736,7 +740,7 @@ export function StoryboardSectionDetail({
 
       if (!removed) return null
 
-      const newHtml = doc.querySelector("section[data-section-id]")?.outerHTML ?? doc.body.innerHTML
+      const newHtml = doc.body.innerHTML
       const updated: RenderingData = {
         ...rBase,
         sections: rBase.sections.map((s) => {
@@ -803,7 +807,7 @@ export function StoryboardSectionDetail({
         parent?.insertBefore(c, insertionRef)
       }
 
-      const newHtml = doc.querySelector("section[data-section-id]")?.outerHTML ?? doc.body.innerHTML
+      const newHtml = doc.body.innerHTML
       const updated: RenderingData = {
         ...rBase,
         sections: rBase.sections.map((s) => {
