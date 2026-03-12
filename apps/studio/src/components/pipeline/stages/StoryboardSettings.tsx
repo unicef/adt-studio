@@ -151,6 +151,8 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
   const [activityPromptDraft, setActivityPromptDraft] = useState<string | null>(null)
   const [activityAnswerDraft, setActivityAnswerDraft] = useState<string | null>(null)
   const [imageGenPromptDraft, setImageGenPromptDraft] = useState<string | null>(null)
+  const [imageEditPromptDraft, setImageEditPromptDraft] = useState<string | null>(null)
+  const [imagePromptSubTab, setImagePromptSubTab] = useState<"generate" | "edit">("generate")
 
   // Derive activity strategies directly from merged config (synchronous)
   const activityStrategies = useMemo(() => {
@@ -457,6 +459,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     if (activityPromptDraft != null && selectedActivity?.prompt) contentSaves.push(api.updatePrompt(selectedActivity.prompt, activityPromptDraft, bookLabel))
     if (activityAnswerDraft != null && selectedActivity?.answer_prompt) contentSaves.push(api.updatePrompt(selectedActivity.answer_prompt, activityAnswerDraft, bookLabel))
     if (imageGenPromptDraft != null) contentSaves.push(api.updatePrompt("ai_image_generation", imageGenPromptDraft, bookLabel))
+    if (imageEditPromptDraft != null) contentSaves.push(api.updatePrompt("ai_image_edit", imageEditPromptDraft, bookLabel))
     if (contentSaves.length > 0) await Promise.all(contentSaves)
 
     // Only re-render (preserve sections) when sectioning data exists and
@@ -484,13 +487,16 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     )
   }
 
-  // Image gen prompt is on-demand (not pipeline) — save without triggering a rerun
-  const saveImageGenPrompt = async () => {
-    if (imageGenPromptDraft == null) return
+  // Image prompts are on-demand (not pipeline) — save without triggering a rerun
+  const saveImagePrompts = async () => {
     setSavingImageGenPrompt(true)
     try {
-      await api.updatePrompt("ai_image_generation", imageGenPromptDraft, bookLabel)
+      const saves: Promise<unknown>[] = []
+      if (imageGenPromptDraft != null) saves.push(api.updatePrompt("ai_image_generation", imageGenPromptDraft, bookLabel))
+      if (imageEditPromptDraft != null) saves.push(api.updatePrompt("ai_image_edit", imageEditPromptDraft, bookLabel))
+      if (saves.length > 0) await Promise.all(saves)
       setImageGenPromptDraft(null)
+      setImageEditPromptDraft(null)
     } finally {
       setSavingImageGenPrompt(false)
     }
@@ -1021,15 +1027,55 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
       })()}
 
       {tab === "image-generation" && (
-        <div className="h-full">
-          <PromptViewer
-            promptName="ai_image_generation"
-            bookLabel={bookLabel}
-            title="Image Generation Prompt"
-            description="Wraps every AI image generation request — define style guidelines and rules here, then use {{ user_prompt }} where the per-image request should be injected."
-            hideModel
-            onContentChange={setImageGenPromptDraft}
-          />
+        <div className="h-full flex flex-col">
+          {/* Sub-tabs for Generate vs Edit prompt */}
+          <div className="flex items-center gap-1 px-4 pt-3 pb-0 shrink-0">
+            <button
+              type="button"
+              onClick={() => setImagePromptSubTab("generate")}
+              className={`text-xs font-medium px-3 py-1.5 rounded-t border border-b-0 cursor-pointer transition-colors ${
+                imagePromptSubTab === "generate"
+                  ? "bg-background border-border"
+                  : "bg-muted/50 border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Generate Prompt
+            </button>
+            <button
+              type="button"
+              onClick={() => setImagePromptSubTab("edit")}
+              className={`text-xs font-medium px-3 py-1.5 rounded-t border border-b-0 cursor-pointer transition-colors ${
+                imagePromptSubTab === "edit"
+                  ? "bg-background border-border"
+                  : "bg-muted/50 border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Edit Prompt
+            </button>
+          </div>
+          <div className="flex-1 min-h-0">
+            {imagePromptSubTab === "generate" ? (
+              <PromptViewer
+                key="ai_image_generation"
+                promptName="ai_image_generation"
+                bookLabel={bookLabel}
+                title="Image Generation Prompt"
+                description="Wraps 'Generate new' requests. Supports {{ user_prompt }}, {{ style }}, and {{ image_type }} variables. Uses Liquid syntax for conditionals."
+                hideModel
+                onContentChange={setImageGenPromptDraft}
+              />
+            ) : (
+              <PromptViewer
+                key="ai_image_edit"
+                promptName="ai_image_edit"
+                bookLabel={bookLabel}
+                title="Image Edit Prompt"
+                description="Wraps 'Edit this image' requests. The AI receives the original image alongside this prompt. Supports {{ user_prompt }} and {{ style }} variables."
+                hideModel
+                onContentChange={setImageEditPromptDraft}
+              />
+            )}
+          </div>
         </div>
       )}
 
@@ -1038,8 +1084,8 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
           <Button
             size="sm"
             className="h-7 px-2.5 text-xs bg-black/15 text-white hover:bg-black/25"
-            onClick={saveImageGenPrompt}
-            disabled={savingImageGenPrompt || imageGenPromptDraft == null}
+            onClick={saveImagePrompts}
+            disabled={savingImageGenPrompt || (imageGenPromptDraft == null && imageEditPromptDraft == null)}
           >
             {savingImageGenPrompt ? "Saving..." : "Save"}
           </Button>

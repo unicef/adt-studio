@@ -9,7 +9,7 @@ import { openBookDb } from "@adt/storage"
 import { createBookStorage } from "@adt/storage"
 import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
 import { segmentPageImages, getSegmentedImageId, loadBookConfig, applyCrop, generateStyleguide, buildStyleguideGenerationConfig } from "@adt/pipeline"
-import { createLLMModel, createPromptEngine } from "@adt/llm"
+import { createLLMModel, createPromptEngine, renderLiquidTemplate } from "@adt/llm"
 
 interface PageSummary {
   pageId: string
@@ -942,28 +942,43 @@ export function createPageRoutes(
       const targetImageId =
         typeof body.targetImageId === "string" ? validateImageId(body.targetImageId) : referenceImageId
 
-      // Render the global image generation prompt template (book-level override takes priority).
-      // The template may contain {{ user_prompt }} where the per-image request is injected.
-      const bookPromptPath = path.join(bookDir, "prompts", "ai_image_generation.liquid")
-      const globalPromptPath = path.join(path.resolve(promptsDir), "ai_image_generation.liquid")
+      // Optional style and image type parameters
+      const style = typeof body.style === "string" ? body.style : undefined
+      const imageType = typeof body.imageType === "string" ? body.imageType : undefined
+      // Optional style reference image — sent alongside the reference image for edit mode
+      const styleImageId =
+        typeof body.styleImageId === "string" ? validateImageId(body.styleImageId) : undefined
+
+      // Choose the correct prompt template: edit vs generate
+      const isEditMode = !!referenceImageId
+      const promptName = isEditMode ? "ai_image_edit" : "ai_image_generation"
+      const bookPromptPath = path.join(bookDir, "prompts", `${promptName}.liquid`)
+      const globalPromptPath = path.join(path.resolve(promptsDir), `${promptName}.liquid`)
       let templateContent: string | null = null
       if (fs.existsSync(bookPromptPath)) {
         templateContent = fs.readFileSync(bookPromptPath, "utf-8")
       } else if (fs.existsSync(globalPromptPath)) {
         templateContent = fs.readFileSync(globalPromptPath, "utf-8")
       }
-      // Use a replacer function to avoid JS special replacement patterns ($&, $1, etc.)
-      // being interpreted if the user's prompt happens to contain them.
-      const finalPrompt = templateContent
-        ? templateContent.trim().replace(/\{\{\s*user_prompt\s*\}\}/g, () => prompt)
-        : prompt
+      // Render the template with Liquid to support conditionals ({% if style %}, etc.)
+      let finalPrompt: string
+      if (templateContent) {
+        finalPrompt = await renderLiquidTemplate(templateContent.trim(), {
+          user_prompt: prompt,
+          style: style ?? "",
+          image_type: imageType ?? "",
+        })
+      } else {
+        finalPrompt = prompt
+      }
 
       // Look up target image dimensions once — used for both aspect ratio size selection
       // and returning originalWidth/originalHeight to the frontend
       let originalWidth = 0
       let originalHeight = 0
       let referenceImagePath: string | undefined
-      if (targetImageId || referenceImageId) {
+      let styleImagePath: string | undefined
+      if (targetImageId || referenceImageId || styleImageId) {
         const db0 = openBookDb(dbPath)
         try {
           if (targetImageId) {
@@ -982,6 +997,13 @@ export function createPageRoutes(
               [referenceImageId]
             ) as { path: string } | undefined
             if (row) referenceImagePath = path.join(bookDir, row.path)
+          }
+          if (styleImageId) {
+            const row = db0.get(
+              "SELECT path FROM images WHERE image_id = ?",
+              [styleImageId]
+            ) as { path: string } | undefined
+            if (row) styleImagePath = path.join(bookDir, row.path)
           }
         } finally {
           db0.close()
@@ -1011,6 +1033,11 @@ export function createPageRoutes(
         formData.append("prompt", finalPrompt)
         formData.append("size", size)
         formData.append("image[]", new Blob([imageBuffer], { type: "image/png" }), `${referenceImageId}.png`)
+        // Attach style reference image if provided — the model will use it as visual style guidance
+        if (styleImagePath && fs.existsSync(styleImagePath)) {
+          const styleBuffer = fs.readFileSync(styleImagePath)
+          formData.append("image[]", new Blob([styleBuffer], { type: "image/png" }), `${styleImageId}.png`)
+        }
 
         openaiRes = await fetch("https://api.openai.com/v1/images/edits", {
           method: "POST",
@@ -1019,20 +1046,36 @@ export function createPageRoutes(
           signal: AbortSignal.timeout(180_000),
         })
       } else {
-        // Generate mode: text-to-image via /v1/images/generations
-        openaiRes = await fetch("https://api.openai.com/v1/images/generations", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model: "gpt-image-1.5",
-            prompt: finalPrompt,
-            size,
-          }),
-          signal: AbortSignal.timeout(180_000),
-        })
+        // Generate mode: text-to-image
+        // If a style reference image is provided, use the edits endpoint so the model can see it
+        if (styleImagePath && fs.existsSync(styleImagePath)) {
+          const styleBuffer = fs.readFileSync(styleImagePath)
+          const formData = new FormData()
+          formData.append("model", "gpt-image-1.5")
+          formData.append("prompt", finalPrompt)
+          formData.append("size", size)
+          formData.append("image[]", new Blob([styleBuffer], { type: "image/png" }), `${styleImageId}.png`)
+          openaiRes = await fetch("https://api.openai.com/v1/images/edits", {
+            method: "POST",
+            headers: { Authorization: `Bearer ${apiKey}` },
+            body: formData,
+            signal: AbortSignal.timeout(180_000),
+          })
+        } else {
+          openaiRes = await fetch("https://api.openai.com/v1/images/generations", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${apiKey}`,
+            },
+            body: JSON.stringify({
+              model: "gpt-image-1.5",
+              prompt: finalPrompt,
+              size,
+            }),
+            signal: AbortSignal.timeout(180_000),
+          })
+        }
       }
 
       const responseText = await openaiRes.text()

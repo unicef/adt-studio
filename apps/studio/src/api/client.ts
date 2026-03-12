@@ -500,13 +500,29 @@ export const api = {
     )
   },
 
-  aiGenerateImage: (label: string, pageId: string, prompt: string, apiKey: string, targetImageId: string, referenceImageId?: string, signal?: AbortSignal) =>
+  aiGenerateImage: (
+    label: string,
+    pageId: string,
+    prompt: string,
+    apiKey: string,
+    targetImageId: string,
+    referenceImageId?: string,
+    signal?: AbortSignal,
+    options?: { style?: string; imageType?: string; styleImageId?: string },
+  ) =>
     request<{ imageId: string; width: number; height: number; originalWidth: number; originalHeight: number }>(
       `/books/${label}/images/ai-generate?pageId=${pageId}`,
       {
         method: "POST",
         headers: { "X-OpenAI-Key": apiKey },
-        body: JSON.stringify({ prompt, targetImageId, referenceImageId }),
+        body: JSON.stringify({
+          prompt,
+          targetImageId,
+          referenceImageId,
+          ...(options?.style && { style: options.style }),
+          ...(options?.imageType && { imageType: options.imageType }),
+          ...(options?.styleImageId && { styleImageId: options.styleImageId }),
+        }),
         signal: signal ?? AbortSignal.timeout(180_000),
       }
     ),

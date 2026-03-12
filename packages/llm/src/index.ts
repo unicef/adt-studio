@@ -23,7 +23,7 @@ export {
   type LlmLogImagePlaceholder,
 } from "./log.js"
 
-export { createPromptEngine, type PromptEngine } from "./prompt.js"
+export { createPromptEngine, renderLiquidTemplate, type PromptEngine } from "./prompt.js"
 
 export { createRateLimiter, type RateLimiter } from "./rate-limiter.js"
 

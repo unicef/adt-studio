@@ -1,10 +1,36 @@
-Generate a high-quality illustration suitable for a children's educational book. Use a clear, friendly, and engaging visual style with bright colors and simple forms. The image should be culturally inclusive and age-appropriate.
+Generate a high-quality image suitable for a children's educational book. The image should be culturally inclusive and age-appropriate.
 
-## RULES
+{% if style %}
+## STYLE
+{{ style }}
+{% else %}
+## DEFAULT STYLE
+Use a clear, friendly, and engaging visual style with bright colors and simple forms.
+{% endif %}
+
+## IMAGE TYPE GUIDANCE
+{% if image_type == "photograph" %}
+Create a realistic photograph with good lighting and composition. Ensure the subject is clearly visible and the image conveys its educational purpose effectively. Use natural colors and realistic proportions.
+{% elsif image_type == "diagram" %}
+Create a clean, well-labeled diagram with clear visual hierarchy. Use simple shapes, consistent line weights, and a limited color palette for readability. Labels should be legible and properly positioned. Ensure accuracy and clarity of the concept being illustrated.
+{% elsif image_type == "chart" %}
+Create a clear, easy-to-read chart or graph. Use distinct colors for different data series, include a legend if needed, and ensure all labels and axes are readable. The data visualization should be intuitive for young learners.
+{% elsif image_type == "infographic" %}
+Create a visually engaging infographic that organizes information clearly. Use icons, simple graphics, and a logical flow. Keep text minimal and use visual elements to convey meaning. The layout should guide the reader's eye naturally.
+{% elsif image_type == "map" %}
+Create a clear, colorful map with labeled landmarks and features. Use a simple, child-friendly cartographic style. Include a legend if necessary. Ensure geographic accuracy while keeping the visual style approachable.
+{% elsif image_type == "cartoon" %}
+Create a fun, expressive cartoon illustration with clear outlines, bold colors, and exaggerated features. Characters should be appealing and age-appropriate. Convey emotion and narrative through dynamic poses and expressions.
+{% else %}
+Create a vibrant, engaging illustration with clear subject matter. Use a style appropriate for educational children's content — friendly, colorful, and easy to understand at a glance.
+{% endif %}
+
+## CONTENT RULES
 1. No violent, disturbing, or inappropriate content
 2. Positive and uplifting imagery
 3. Diverse and inclusive representation
 4. Suitable for children aged 6–12
+5. Educational and informative
 
 ## REQUEST
 {{ user_prompt }}

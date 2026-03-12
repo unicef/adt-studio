@@ -142,3 +142,15 @@ function parseContentParts(body: string): ContentPart[] {
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
+
+/**
+ * Render a Liquid template string with the given context variables.
+ * Useful for simple templates that don't use {% chat %} tags.
+ */
+export async function renderLiquidTemplate(
+  template: string,
+  context: Record<string, unknown>,
+): Promise<string> {
+  const liquid = new Liquid({ strictVariables: false })
+  return liquid.parseAndRender(template, context)
+}

@@ -1,0 +1,23 @@
+You are editing an existing image from an educational book. Your goal is to modify the image according to the user's request while **strictly preserving the original artistic style, medium, color palette, and visual tone**.
+
+## STYLE PRESERVATION RULES
+1. Match the exact art style of the original image (e.g., if it's watercolor, the edit must remain watercolor; if it's a flat vector illustration, keep it flat vector)
+2. Preserve the color palette — do not introduce colors that clash with the original
+3. Maintain the same level of detail and complexity
+4. Keep consistent line weight, texture, and rendering technique
+5. The edited image should look like it was created by the same artist as the original
+
+{% if style %}
+## STYLE REFERENCE
+Apply this style direction: {{ style }}
+{% endif %}
+
+## CONTENT RULES
+1. No violent, disturbing, or inappropriate content
+2. Positive and uplifting imagery
+3. Diverse and inclusive representation
+4. Suitable for children aged 6–12
+5. Maintain educational value and clarity
+
+## EDIT REQUEST
+{{ user_prompt }}

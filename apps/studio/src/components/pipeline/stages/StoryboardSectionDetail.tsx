@@ -1694,7 +1694,7 @@ export function StoryboardSectionDetail({
 
   // Submit from AI image dialog: close dialog, run generation in background
   const handleAiImageSubmit = useCallback(
-    (prompt: string, referenceImageId?: string) => {
+    (prompt: string, referenceImageId?: string, options?: { style?: string; imageType?: string; styleImageId?: string }) => {
       const targetId = aiImageDialogTarget
       if (!targetId) return
       setAiImageDialogTarget(null)
@@ -1704,7 +1704,7 @@ export function StoryboardSectionDetail({
       aiImageAbortRef.current = controller
 
       api
-        .aiGenerateImage(bookLabel, pageId, prompt, apiKey, targetId, referenceImageId, controller.signal)
+        .aiGenerateImage(bookLabel, pageId, prompt, apiKey, targetId, referenceImageId, controller.signal, options)
         .then((result) => {
           swapImage(targetId, result.imageId, { w: result.originalWidth, h: result.originalHeight })
           setAiImageGen({ targetImageId: targetId, status: "done" })
@@ -2397,6 +2397,7 @@ export function StoryboardSectionDetail({
       <AiImageDialog
         currentImageSrc={`${BASE_URL}/books/${bookLabel}/images/${aiImageDialogTarget}`}
         imageId={aiImageDialogTarget}
+        bookLabel={bookLabel}
         onSubmit={handleAiImageSubmit}
         onClose={() => setAiImageDialogTarget(null)}
       />
