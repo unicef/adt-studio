@@ -3,6 +3,10 @@
 You are a pedagogical expert at classifying textbook pages for schoolchildren.
 
 You will be shown a page image and its extracted text groups and images. Classify the page as a single section containing ALL of its content.
+{% elsif sectioning_mode == "dynamic" %}
+You are a pedagogical expert at organizing a textbook page into coherent, logical sections for schoolchildren.
+
+You will be shown a page image and its extracted text groups and images. Your default behavior is to keep the entire page as a SINGLE section. Only split into multiple sections when specific conditions are met.
 {% else %}
 You are a pedagogical expert at organizing a textbook page into coherent, logical sections for schoolchildren.
 
@@ -20,6 +24,18 @@ RULES:
 - Choose the single most appropriate section type for the page as a whole
 - ALL listed group IDs and ALL listed image IDs must be assigned to this one section
 - If no image IDs are listed below, do NOT include any image IDs in part_ids
+{% elsif sectioning_mode == "dynamic" %}
+- DEFAULT: Keep all content in a SINGLE section. Prefer one section per page.
+- SPLIT the page into multiple sections when ANY of these conditions are true:
+  1. The page contains MULTIPLE DISTINCT activity types (e.g., open-ended questions followed by a sorting activity followed by multiple choice).
+  2. The page contains MULTIPLE multiple-choice questions — each multiple-choice question (its prompt and answer choices) MUST become its own separate section so the user only sees one question at a time.
+  3. The page contains MULTIPLE true/false questions — same rule, one question per section.
+- EXCEPTION — do NOT split if the page is ENTIRELY open-ended answers or ENTIRELY fill-in-the-blank. These should always remain as ONE section even with many questions.
+- When splitting multiple-choice or true/false questions: put any shared header, instructions, or passage text into the FIRST section, then give each question its own section. Include the question prompt and its answer choices together in each section.
+- When splitting mixed activity types: group consecutive content of the same activity type together.
+- ALL listed group IDs must be assigned to at least one section
+- ALL listed image IDs must be assigned to at least one section — assign each image to the section it visually belongs to
+- Group/image IDs may appear in multiple sections only when it makes strong pedagogical sense (e.g. shared instructions)
 {% else %}
 - ALL listed group IDs must be assigned to at least one section
 - ALL listed image IDs must be assigned to at least one section — assign each image to the section it visually belongs to
@@ -47,6 +63,8 @@ Text groups:
 
 {% if sectioning_mode == "page" %}
 Please place ALL content into a single section.
+{% elsif sectioning_mode == "dynamic" %}
+Keep this page as a single section UNLESS it contains multiple distinct activity types OR multiple multiple-choice/true-false questions. If there are multiple multiple-choice or true/false questions, split each question into its own section. Pages that are entirely open-ended or entirely fill-in-the-blank should always stay as one section.
 {% else %}
 Please organize these into sections.
 {% endif %}

@@ -24,7 +24,7 @@ export const QuizGenerationConfig = StepConfig.extend({
 })
 export type QuizGenerationConfig = z.infer<typeof QuizGenerationConfig>
 
-export const SectioningMode = z.enum(["section", "page"])
+export const SectioningMode = z.enum(["section", "page", "dynamic"])
 export type SectioningMode = z.infer<typeof SectioningMode>
 
 export const PageSectioningConfig = StepConfig.extend({

@@ -479,6 +479,9 @@ export function AdvancedLayoutPanel({
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
+            <SelectItem value="dynamic" className="text-xs">
+              Dynamic
+            </SelectItem>
             <SelectItem value="section" className="text-xs">
               By Section
             </SelectItem>
@@ -490,7 +493,9 @@ export function AdvancedLayoutPanel({
         <p className="text-[10px] text-muted-foreground mt-1">
           {sectioningMode === "page"
             ? "Each page is treated as a single section"
-            : "Content is grouped into logical sections per page"}
+            : sectioningMode === "dynamic"
+              ? "Keeps pages whole unless mixed activity types require splitting"
+              : "Content is grouped into logical sections per page"}
         </p>
       </div>
 

@@ -9,7 +9,7 @@ styleguide: default
 spread_mode: false
 
 page_sectioning:
-  mode: section
+  mode: dynamic
 
 render_strategies:
   llm:
@@ -142,6 +142,6 @@ pruned_section_types:
   - inside_cover
 
 image_filters:
-  min_side: 150
+  min_side: 50
   max_side: 3500
   min_stddev: 2

@@ -133,7 +133,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
   const [renderStrategyNames, setRenderStrategyNames] = useState<string[]>([])
   const [activityModel, setActivityModel] = useState("")
   const [activityRetries, setActivityRetries] = useState("")
-  const [sectioningMode, setSectioningMode] = useState("section")
+  const [sectioningMode, setSectioningMode] = useState("dynamic")
   const [renderingModel, setRenderingModel] = useState("")
   const [renderingRetries, setRenderingRetries] = useState("")
   const [renderingPromptName, setRenderingPromptName] = useState("web_generation_html")
@@ -695,6 +695,14 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent align="start">
+                  <SelectItem value="dynamic">
+                    <div className="flex flex-col items-start">
+                      <span>Dynamic</span>
+                      <span className="text-xs text-muted-foreground">
+                        Keeps pages whole unless mixed activity types require splitting
+                      </span>
+                    </div>
+                  </SelectItem>
                   <SelectItem value="section">
                     <div className="flex flex-col items-start">
                       <span>By Section</span>
