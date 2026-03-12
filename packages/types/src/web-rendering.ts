@@ -9,6 +9,8 @@ export const SectionRendering = z.object({
   activityAnswers: z
     .record(z.string(), z.union([z.string(), z.boolean(), z.number()]))
     .optional(),
+  /** Set when a pre-render type check corrected the assigned section type. */
+  correctedSectionType: z.string().optional(),
 })
 export type SectionRendering = z.infer<typeof SectionRendering>
 
@@ -30,6 +32,11 @@ export const activityAnswersLLMSchema = z.object({
       value: z.union([z.string(), z.boolean(), z.number()]),
     })
   ),
+})
+
+export const activityTypeCheckLLMSchema = z.object({
+  reasoning: z.string(),
+  correct_type: z.string(),
 })
 
 export const visualReviewLLMSchema = z.object({

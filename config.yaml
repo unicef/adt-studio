@@ -41,13 +41,29 @@ section_types:
   text_and_single_image: Section with text and a single image
   text_and_images: Reading section with text and multiple images
   images_only: Section with only images
-  activity_matching: Matching activity
-  activity_fill_in_a_table: Table fill-in activity
-  activity_multiple_choice: Multiple choice activity
-  activity_true_false: True or false activity
-  activity_open_ended_answer: Open-ended text response activity
-  activity_fill_in_the_blank: Fill in the blank activity
-  activity_sorting: Sorting activity
+  activity_matching: >
+    Matching activity — STRICTLY two parallel lists of EQUAL length where each item from
+    one side connects to exactly one item on the other side. Every item has exactly one
+    unique match (1-to-1 pairing). If items can go into categories with varying counts,
+    or if items are being sorted/grouped, this is sorting, NOT matching.
+  activity_fill_in_a_table: >
+    Table fill-in activity — students complete cells in a table or grid.
+  activity_multiple_choice: >
+    Multiple choice activity — each question or prompt presents several answer options
+    and the student picks ONE correct answer. Options may appear as buttons, radio buttons,
+    or labeled choices next to a passage or question. If the page has passages on one side
+    and answer choices on the other, but each passage has its OWN set of options to choose
+    from, this is multiple choice, NOT matching.
+  activity_true_false: >
+    True or false activity — students decide whether each statement is true or false.
+  activity_open_ended_answer: >
+    Open-ended text response activity — students write free-form answers.
+  activity_fill_in_the_blank: >
+    Fill in the blank activity — students complete sentences by filling in missing words.
+  activity_sorting: >
+    Sorting activity — students arrange or categorize items into groups, categories, or a
+    specific order. Categories may have any number of items (not necessarily equal). If in
+    doubt between matching and sorting, prefer sorting.
   other: Any other section type
 
 metadata:
@@ -177,15 +193,27 @@ render_strategies:
       visual_refinement:
         enabled: true
         max_iterations: 5
+  # Unified image-first activity renderer — determines activity structure from the page image
+  # rather than relying on a pre-assigned type to select a type-specific prompt.
+  activity_from_image:
+    render_type: activity
+    config:
+      prompt: activity_from_image
+      model: openai:gpt-5.2
+      max_retries: 5
+      timeout: 180
+      visual_refinement:
+        enabled: true
+        max_iterations: 5
 
 section_render_strategies:
-  activity_multiple_choice: activity_multiple_choice
-  activity_true_false: activity_true_false
-  activity_fill_in_the_blank: activity_fill_in_the_blank
-  activity_fill_in_a_table: activity_fill_in_a_table
-  activity_matching: activity_matching
-  activity_sorting: activity_sorting
-  activity_open_ended_answer: activity_open_ended_answer
+  activity_multiple_choice: activity_from_image
+  activity_true_false: activity_from_image
+  activity_fill_in_the_blank: activity_from_image
+  activity_fill_in_a_table: activity_from_image
+  activity_matching: activity_from_image
+  activity_sorting: activity_from_image
+  activity_open_ended_answer: activity_from_image
 
 quiz_generation:
   quiz_section_types:

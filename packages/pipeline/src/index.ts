@@ -71,8 +71,9 @@ export {
   type SectionPart,
   type TextInput,
   type ImageInput,
+  type ActivityTypeDef,
 } from "./web-rendering.js"
-export { renderSectionLlm, type VisualRefinementDeps } from "./render-llm.js"
+export { renderSectionLlm, checkActivityType, type VisualRefinementDeps } from "./render-llm.js"
 export {
   DEFAULT_VISUAL_REVIEW_MODEL_ID,
   runVisualReviewLoop,

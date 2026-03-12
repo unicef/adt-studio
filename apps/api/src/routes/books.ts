@@ -146,12 +146,14 @@ export function createBookRoutes(
     const { label } = c.req.param()
     try {
       const result = await exportBook(label, booksDir, webAssetsDir ?? "", configPath)
+      const buf = Buffer.from(result.zipBuffer)
       c.header("Content-Type", "application/zip")
       c.header(
         "Content-Disposition",
         `attachment; filename="${result.filename}"`
       )
-      return c.body(Buffer.from(result.zipBuffer))
+      c.header("Content-Length", String(buf.byteLength))
+      return c.body(buf)
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err)
       if (message.includes("Web assets directory not found")) {

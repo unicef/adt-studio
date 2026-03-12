@@ -99,6 +99,7 @@ export {
   WebRenderingOutput,
   webRenderingLLMSchema,
   activityAnswersLLMSchema,
+  activityTypeCheckLLMSchema,
   visualReviewLLMSchema,
 } from "./web-rendering.js"
 

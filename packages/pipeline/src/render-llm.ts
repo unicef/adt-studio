@@ -1,9 +1,9 @@
 import type { SectionRendering } from "@adt/types"
-import { webRenderingLLMSchema, activityAnswersLLMSchema } from "@adt/types"
+import { webRenderingLLMSchema, activityAnswersLLMSchema, activityTypeCheckLLMSchema } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import { validateSectionHtml } from "./validate-html.js"
 import { getViewportBreakpoints, type ScreenshotRenderer } from "./screenshot.js"
-import type { RenderConfig, RenderSectionInput, TextInput, ImageInput } from "./web-rendering.js"
+import type { RenderConfig, RenderSectionInput, TextInput, ImageInput, ActivityTypeDef } from "./web-rendering.js"
 import { runVisualReviewLoop } from "./visual-review.js"
 
 /** Dependencies for the optional visual refinement loop. */
@@ -112,6 +112,7 @@ export async function renderSectionLlm(
     viewports: getViewportBreakpoints(),
     _isActivity: isActivity,
     user_instructions: input.userPrompt ?? "",
+    reference_html: input.referenceHtml ?? "",
   }
 
   const result = await llmModel.generateObject<{
@@ -221,6 +222,70 @@ export async function renderSectionLlm(
     ...(activityReasoning !== undefined && { activityReasoning }),
     ...(activityAnswers !== undefined && { activityAnswers }),
   }
+}
+
+/**
+ * Lightweight pre-render check that validates an activity section's assigned type.
+ * Returns the corrected type if it differs from the assigned type, or undefined if correct.
+ */
+export async function checkActivityType(
+  input: RenderSectionInput,
+  availableTypes: ActivityTypeDef[],
+  llmModel: LLMModel,
+): Promise<string | undefined> {
+  const texts: Array<{ text_id: string; text_type: string; text: string }> = []
+  for (const part of input.parts) {
+    if (part.type === "group") {
+      for (const t of part.texts) {
+        texts.push({ text_id: t.textId, text_type: t.textType, text: t.text })
+      }
+    }
+  }
+
+  const validKeys = new Set(availableTypes.map((t) => t.key))
+
+  const result = await llmModel.generateObject<{
+    reasoning: string
+    correct_type: string
+  }>({
+    schema: activityTypeCheckLLMSchema,
+    prompt: "activity_type_check",
+    context: {
+      assigned_type: input.sectionType,
+      texts,
+      available_types: availableTypes,
+    },
+    validate: (obj) => {
+      const r = obj as { correct_type: string }
+      if (!validKeys.has(r.correct_type)) {
+        return {
+          valid: false,
+          errors: [
+            `Invalid correct_type "${r.correct_type}". Must be one of: ${[...validKeys].join(", ")}`,
+          ],
+        }
+      }
+      return { valid: true, errors: [] }
+    },
+    maxRetries: 2,
+    maxTokens: 1024,
+    temperature: 0,
+    timeoutMs: 30_000,
+    log: {
+      taskType: "activity-type-check",
+      pageId: input.pageId,
+      promptName: "activity_type_check",
+    },
+  })
+
+  const corrected = result.object.correct_type
+  if (corrected !== input.sectionType) {
+    console.log(
+      `[type-check] ${input.pageId}/${input.sectionId}: corrected ${input.sectionType} → ${corrected} (${result.object.reasoning})`
+    )
+    return corrected
+  }
+  return undefined
 }
 
 function validateWebRendering(
