@@ -6,7 +6,7 @@ import {
   DEFAULT_LLM_MAX_RETRIES,
 } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
-import { renderSectionLlm, type VisualRefinementDeps } from "./render-llm.js"
+import { renderSectionLlm, checkActivityType, type VisualRefinementDeps } from "./render-llm.js"
 import { renderSectionTemplate, type TemplateEngine } from "./render-template.js"
 
 export interface TextInput {
@@ -25,6 +25,11 @@ export interface ImageInput {
 export type SectionPart =
   | { type: "group"; groupId: string; groupType: string; texts: TextInput[] }
   | { type: "image"; imageId: string; imageBase64: string; width?: number; height?: number }
+
+export interface ActivityTypeDef {
+  key: string
+  description: string
+}
 
 export interface VisualRefinementConfig {
   enabled: boolean
@@ -63,6 +68,9 @@ export interface RenderSectionInput {
   styleguide?: string
   /** Optional user instructions appended to the LLM prompt during re-render */
   userPrompt?: string
+  /** Reference HTML from a previously rendered section of the same activity type.
+   *  When provided, the LLM is instructed to match the visual style. */
+  referenceHtml?: string
 }
 
 export interface RenderPageInput {
@@ -74,6 +82,12 @@ export interface RenderPageInput {
   styleguide?: string
   /** Optional user instructions appended to the LLM prompt during re-render */
   userPrompt?: string
+  /** Map of activity section type → reference HTML from a previously rendered section.
+   *  Used to ensure visual consistency across sections of the same activity type. */
+  activityReferenceHtmls?: ReadonlyMap<string, string>
+  /** Available activity types with descriptions. When provided, a pre-render type check
+   *  validates and potentially corrects the assigned activity type before rendering. */
+  availableActivityTypes?: ActivityTypeDef[]
 }
 
 export type ResolveLLMModel = LLMModel | ((modelId: string) => LLMModel)
@@ -154,7 +168,47 @@ export async function renderPage(
     // Skip sections with no content
     if (parts.length === 0) continue
 
-    const config = resolveConfig(section.sectionType)
+    // For activity sections, run a pre-render type check if available types are provided.
+    // This catches misclassifications before committing to an expensive render + visual review
+    // with the wrong activity-specific prompt.
+    let effectiveSectionType = section.sectionType
+    let correctedSectionType: string | undefined
+
+    if (
+      section.sectionType.startsWith("activity_") &&
+      input.availableActivityTypes &&
+      input.availableActivityTypes.length > 1
+    ) {
+      const sectionInput: RenderSectionInput = {
+        label: input.label,
+        pageId: input.pageId,
+        pageImageBase64: input.pageImageBase64,
+        sectionIndex: i,
+        sectionId: section.sectionId,
+        sectionType: section.sectionType,
+        backgroundColor: section.backgroundColor,
+        textColor: section.textColor,
+        parts,
+        styleguide: input.styleguide,
+        userPrompt: input.userPrompt,
+      }
+      const corrected = await checkActivityType(
+        sectionInput,
+        input.availableActivityTypes,
+        getLLMModel(llmModel, resolveConfig(section.sectionType).modelId),
+      )
+      if (corrected) {
+        effectiveSectionType = corrected
+        correctedSectionType = corrected
+      }
+    }
+
+    const config = resolveConfig(effectiveSectionType)
+
+    // Look up reference HTML for activity sections
+    const referenceHtml = effectiveSectionType.startsWith("activity_")
+      ? input.activityReferenceHtmls?.get(effectiveSectionType)
+      : undefined
 
     const sectionInput: RenderSectionInput = {
       label: input.label,
@@ -162,12 +216,13 @@ export async function renderPage(
       pageImageBase64: input.pageImageBase64,
       sectionIndex: i,
       sectionId: section.sectionId,
-      sectionType: section.sectionType,
+      sectionType: effectiveSectionType,
       backgroundColor: section.backgroundColor,
       textColor: section.textColor,
       parts,
       styleguide: input.styleguide,
       userPrompt: input.userPrompt,
+      referenceHtml,
     }
 
     let rendering: SectionRendering
@@ -192,6 +247,10 @@ export async function renderPage(
         getLLMModel(llmModel, config.modelId),
         visualRefinement,
       )
+    }
+
+    if (correctedSectionType) {
+      rendering = { ...rendering, correctedSectionType }
     }
 
     sections.push(rendering)

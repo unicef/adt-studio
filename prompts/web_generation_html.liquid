@@ -59,6 +59,15 @@ Content parts (in document order):
 [Image: {{ part.image_id }}]
 {% endif %}
 {% endfor %}
+{% if reference_html != "" %}
+
+## STYLE REFERENCE
+The following HTML is from a previously rendered section of the same activity type. Match its visual style, layout patterns, spacing, CSS classes, and overall structure as closely as possible. Use the same Tailwind classes for equivalent elements (buttons, options, headings, containers, etc.). The content will differ but the look and feel should be consistent.
+
+```html
+{{ reference_html }}
+```
+{% endif %}
 {% if user_instructions != "" %}
 
 ## ADDITIONAL INSTRUCTIONS FROM USER

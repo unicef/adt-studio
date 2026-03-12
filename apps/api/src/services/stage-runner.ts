@@ -519,6 +519,13 @@ async function runStoryboardStep(
 
     const styleguideContent = loadStyleguideContent(config.styleguide, configPath)
 
+    // Build list of available activity types for pre-render type validation
+    const sectionTypes = config.section_types ?? {}
+    const disabledTypes = new Set(config.disabled_section_types ?? [])
+    const availableActivityTypes = Object.entries(sectionTypes)
+      .filter(([key]) => key.startsWith("activity_") && !disabledTypes.has(key))
+      .map(([key, description]) => ({ key, description }))
+
     // Render config is always needed
     const resolveRenderConfig = buildRenderStrategyResolver(config)
 
@@ -593,75 +600,151 @@ async function runStoryboardStep(
 
     if (renderOnly) {
       // -- RENDER-ONLY PATH --
-      // Skip sectioning, re-render from existing page-sectioning data
+      // Skip sectioning, re-render from existing page-sectioning data.
+      // Uses a two-phase approach for activity style consistency:
+      //   Phase 1: Render "reference pages" (pages containing the first occurrence of each
+      //            repeated activity type) to establish style references.
+      //   Phase 2: Render remaining pages with reference HTML context for consistent styling.
       console.log(
         `[stage-run] ${label}: re-rendering storyboard for ${totalPages} pages (concurrency=${effectiveConcurrency})`
       )
 
       progress.emit({ type: "step-skip", step: "page-sectioning" })
 
+      // Pre-scan sectionings to identify repeated activity types
+      const activityTypeCounts = new Map<string, number>()
+      const activityTypeFirstPage = new Map<string, string>()
+      for (const page of pages) {
+        const sectioningRow = storage.getLatestNodeData("page-sectioning", page.pageId)
+        if (!sectioningRow) continue
+        const sectioning = sectioningRow.data as PageSectioningOutput
+        for (const section of sectioning.sections) {
+          if (section.isPruned || !section.sectionType.startsWith("activity_")) continue
+          const count = (activityTypeCounts.get(section.sectionType) ?? 0) + 1
+          activityTypeCounts.set(section.sectionType, count)
+          if (!activityTypeFirstPage.has(section.sectionType)) {
+            activityTypeFirstPage.set(section.sectionType, page.pageId)
+          }
+        }
+      }
+
+      // Determine which pages need to be rendered first as style references
+      const referencePageIds = new Set<string>()
+      for (const [actType, count] of activityTypeCounts) {
+        if (count > 1) {
+          referencePageIds.add(activityTypeFirstPage.get(actType)!)
+        }
+      }
+
+      const activityReferenceHtmls = new Map<string, string>()
       let completedRendering = 0
       const failedPages: string[] = []
 
+      // Helper: render a single page and return the result
+      const renderOnePage = async (page: PageData) => {
+        const sectioningRow = storage.getLatestNodeData("page-sectioning", page.pageId)
+        if (!sectioningRow) {
+          console.log(
+            `[stage-run] ${label}: skipping ${page.pageId} (no existing sectioning)`
+          )
+          completedRendering++
+          progress.emit({
+            type: "step-progress",
+            step: "web-rendering",
+            message: `${completedRendering}/${totalPages}`,
+            page: completedRendering,
+            totalPages,
+          })
+          return
+        }
+        const sectioning = sectioningRow.data as PageSectioningOutput
+
+        const allImages = storage.getPageImages(page.pageId)
+        const renderImages = new Map<string, { base64: string; width?: number; height?: number }>()
+        for (const img of allImages) {
+          renderImages.set(img.imageId, { base64: storage.getImageBase64(img.imageId), width: img.width, height: img.height })
+        }
+
+        const pageImageBase64 = storage.getPageImageBase64(page.pageId)
+
+        console.log(
+          `[stage-run] ${label}: rendering ${page.pageId}`
+        )
+        const renderResult = await renderPage(
+          {
+            label,
+            pageId: page.pageId,
+            pageImageBase64,
+            sectioning,
+            images: renderImages,
+            styleguide: styleguideContent,
+            activityReferenceHtmls,
+            availableActivityTypes,
+          },
+          resolveRenderConfig,
+          resolveRenderModel,
+          templateEngine,
+          visualRefinement,
+        )
+        storage.putNodeData("web-rendering", page.pageId, renderResult)
+        completedRendering++
+        progress.emit({
+          type: "step-progress",
+          step: "web-rendering",
+          message: `${completedRendering}/${totalPages}`,
+          page: completedRendering,
+          totalPages,
+        })
+        return renderResult
+      }
+
+      // Phase 1: Render reference pages first to establish activity style references
+      if (referencePageIds.size > 0) {
+        const refPages = pages.filter((p) => referencePageIds.has(p.pageId))
+        console.log(
+          `[stage-run] ${label}: rendering ${refPages.length} reference page(s) for activity style consistency`
+        )
+        await processWithConcurrency(
+          refPages,
+          effectiveConcurrency,
+          async (page: PageData) => {
+            try {
+              const renderResult = await renderOnePage(page)
+              // Extract activity reference HTMLs from the rendered result
+              if (renderResult) {
+                for (const section of renderResult.sections) {
+                  if (
+                    section.sectionType.startsWith("activity_") &&
+                    !activityReferenceHtmls.has(section.sectionType)
+                  ) {
+                    activityReferenceHtmls.set(section.sectionType, section.html)
+                  }
+                }
+              }
+            } catch (err) {
+              const msg = toErrorMessage(err)
+              console.error(
+                `[stage-run] ${label}: ${page.pageId} failed at web-rendering: ${msg}`
+              )
+              failedPages.push(`${page.pageId} [web-rendering]: ${msg}`)
+              progress.emit({
+                type: "step-error",
+                step: "web-rendering",
+                error: `${page.pageId} failed: ${msg}`,
+              })
+            }
+          }
+        )
+      }
+
+      // Phase 2: Render remaining pages with activity reference HTML context
+      const remainingPages = pages.filter((p) => !referencePageIds.has(p.pageId))
       await processWithConcurrency(
-        pages,
+        remainingPages,
         effectiveConcurrency,
         async (page: PageData) => {
           try {
-            // Read existing sectioning data
-            const sectioningRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-            if (!sectioningRow) {
-              console.log(
-                `[stage-run] ${label}: skipping ${page.pageId} (no existing sectioning)`
-              )
-              completedRendering++
-              progress.emit({
-                type: "step-progress",
-                step: "web-rendering",
-                message: `${completedRendering}/${totalPages}`,
-                page: completedRendering,
-                totalPages,
-              })
-              return
-            }
-            const sectioning = sectioningRow.data as PageSectioningOutput
-
-            // Build render images map from page images
-            const allImages = storage.getPageImages(page.pageId)
-            const renderImages = new Map<string, { base64: string; width?: number; height?: number }>()
-            for (const img of allImages) {
-              renderImages.set(img.imageId, { base64: storage.getImageBase64(img.imageId), width: img.width, height: img.height })
-            }
-
-            const pageImageBase64 = storage.getPageImageBase64(page.pageId)
-
-            // Web rendering
-            console.log(
-              `[stage-run] ${label}: rendering ${page.pageId}`
-            )
-            const renderResult = await renderPage(
-              {
-                label,
-                pageId: page.pageId,
-                pageImageBase64,
-                sectioning,
-                images: renderImages,
-                styleguide: styleguideContent,
-              },
-              resolveRenderConfig,
-              resolveRenderModel,
-              templateEngine,
-              visualRefinement,
-            )
-            storage.putNodeData("web-rendering", page.pageId, renderResult)
-            completedRendering++
-            progress.emit({
-              type: "step-progress",
-              step: "web-rendering",
-              message: `${completedRendering}/${totalPages}`,
-              page: completedRendering,
-              totalPages,
-            })
+            await renderOnePage(page)
           } catch (err) {
             const msg = toErrorMessage(err)
             console.error(
@@ -700,6 +783,11 @@ async function runStoryboardStep(
       console.log(
         `[stage-run] ${label}: running storyboard for ${totalPages} pages (concurrency=${effectiveConcurrency})`
       )
+
+      // Shared map for activity style consistency (growing-map approach).
+      // As pages complete rendering, their activity section HTML is stored here
+      // so subsequent pages can use it as a style reference.
+      const activityReferenceHtmls = new Map<string, string>()
 
       let completedSectioning = 0
       let completedRendering = 0
@@ -794,6 +882,8 @@ async function runStoryboardStep(
                 sectioning,
                 images: renderImages,
                 styleguide: styleguideContent,
+                activityReferenceHtmls,
+                availableActivityTypes,
               },
               resolveRenderConfig,
               resolveRenderModel,
@@ -801,6 +891,16 @@ async function runStoryboardStep(
               visualRefinement,
             )
             storage.putNodeData("web-rendering", page.pageId, renderResult)
+
+            // Populate activity reference HTMLs for subsequent pages
+            for (const section of renderResult.sections) {
+              if (
+                section.sectionType.startsWith("activity_") &&
+                !activityReferenceHtmls.has(section.sectionType)
+              ) {
+                activityReferenceHtmls.set(section.sectionType, section.html)
+              }
+            }
             completedRendering++
             progress.emit({
               type: "step-progress",
