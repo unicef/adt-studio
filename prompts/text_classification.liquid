@@ -18,6 +18,7 @@ EXTRACTION RULES:
 6. For drop caps, merge the large initial letter with the rest of the word/sentence
 7. For tables of contents, each entry should be a separate text entry in a single "list" group
 8. For poetry or verse, each stanza should be a separate group with group_type "stanza"
+9. For data tables (grids with rows and columns), use a "table" group. Each cell should be a separate text entry, ordered left-to-right then top-to-bottom. Include header cells as well. Preserve the row/column structure by keeping cells in reading order — the renderer will reconstruct the table layout from the cell count and the page image.
 9. Preserve original spelling and punctuation exactly as shown
 10. If the page is blank or contains only images with no text, return an empty groups array
 11. Use the OCR text as a reference but trust the image as the primary source — correct OCR errors when the image clearly shows different text

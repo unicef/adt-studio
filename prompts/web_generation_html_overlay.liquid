@@ -160,6 +160,35 @@ Preserve the original text alignment from the page image. Most body text and hea
 </div>
 ```
 
+**Table group (data table with rows and columns):**
+When a text group has group_type "table", render it as a semantic HTML `<table>`. Use the page image to determine the number of columns and which cells are headers (`<th>`) vs data (`<td>`). Each text entry is one cell — place them left-to-right, top-to-bottom into rows. Every `<td>` or `<th>` must have the `data-id` of its corresponding text entry.
+```html
+<div class="absolute top-[Y%] left-[X%] max-w-[W%] bg-white/85 rounded-lg p-3 z-10">
+    <table class="w-full border-collapse text-sm text-gray-800">
+        <thead>
+            <tr>
+                <th class="border border-gray-300 px-3 py-2 bg-gray-100 font-semibold text-left" data-id="[HEADER_ID_1]">Header 1</th>
+                <th class="border border-gray-300 px-3 py-2 bg-gray-100 font-semibold text-left" data-id="[HEADER_ID_2]">Header 2</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="border border-gray-300 px-3 py-2" data-id="[CELL_ID_1]">Cell 1</td>
+                <td class="border border-gray-300 px-3 py-2" data-id="[CELL_ID_2]">Cell 2</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+```
+For text-only layout (no images), use the same `<table>` structure without absolute positioning:
+```html
+<div class="space-y-2">
+    <table class="w-full border-collapse text-sm text-gray-800">
+        <!-- same thead/tbody structure as above -->
+    </table>
+</div>
+```
+
 **Image-overlay text group (text printed directly on the image):**
 ```html
 <div class="absolute top-[Y%] left-[X%] max-w-[W%] bg-white/85 rounded-lg p-3 z-10 space-y-1">

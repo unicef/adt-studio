@@ -25,6 +25,7 @@ text_group_types:
   paragraph: A block of continuous prose
   stanza: A verse or stanza of poetry
   list: A list of items (ordered or unordered)
+  table: A data table with rows and columns
   other: Anything that doesn't fit the above
 
 section_types:
