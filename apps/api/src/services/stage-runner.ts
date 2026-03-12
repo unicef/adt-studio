@@ -55,8 +55,9 @@ import {
   getSegmentedImageId,
   createScreenshotRenderer,
   DEFAULT_VISUAL_REVIEW_MODEL_ID,
+  checkActivityType,
 } from "@adt/pipeline"
-import type { TranslationConfig, QuizPageInput, ProviderRouting, MeaningfulnessConfig, CroppingConfig, SegmentationConfig, VisualRefinementDeps } from "@adt/pipeline"
+import type { TranslationConfig, QuizPageInput, ProviderRouting, MeaningfulnessConfig, CroppingConfig, SegmentationConfig, VisualRefinementDeps, RenderSectionInput } from "@adt/pipeline"
 import { loadStyleguideContent } from "./styleguide.js"
 import { createTTSSynthesizer, createAzureTTSSynthesizer } from "@adt/llm"
 import type { TTSSynthesizer } from "@adt/llm"
@@ -611,19 +612,63 @@ async function runStoryboardStep(
 
       progress.emit({ type: "step-skip", step: "page-sectioning" })
 
-      // Pre-scan sectionings to identify repeated activity types
+      // Pre-scan sectionings to identify repeated activity types.
+      // Run checkActivityType upfront so reference page selection uses corrected types.
+      const sectionTypeOverrides = new Map<string, string>()
       const activityTypeCounts = new Map<string, number>()
       const activityTypeFirstPage = new Map<string, string>()
+
+      const shouldCheckTypes = availableActivityTypes.length > 1
       for (const page of pages) {
         const sectioningRow = storage.getLatestNodeData("page-sectioning", page.pageId)
         if (!sectioningRow) continue
         const sectioning = sectioningRow.data as PageSectioningOutput
-        for (const section of sectioning.sections) {
+        for (let i = 0; i < sectioning.sections.length; i++) {
+          const section = sectioning.sections[i]
           if (section.isPruned || !section.sectionType.startsWith("activity_")) continue
-          const count = (activityTypeCounts.get(section.sectionType) ?? 0) + 1
-          activityTypeCounts.set(section.sectionType, count)
-          if (!activityTypeFirstPage.has(section.sectionType)) {
-            activityTypeFirstPage.set(section.sectionType, page.pageId)
+
+          // Run pre-render type check to get corrected type
+          let effectiveType = section.sectionType
+          if (shouldCheckTypes) {
+            const parts: RenderSectionInput["parts"] = []
+            for (const part of section.parts) {
+              if (part.isPruned) continue
+              if (part.type === "text_group") {
+                const texts = part.texts.filter((t) => !t.isPruned).map((t) => ({
+                  textId: t.textId,
+                  textType: t.textType,
+                  text: t.text,
+                }))
+                if (texts.length > 0) {
+                  parts.push({ type: "group", groupId: part.groupId, groupType: part.groupType, texts })
+                }
+              }
+            }
+            const corrected = await checkActivityType(
+              {
+                label,
+                pageId: page.pageId,
+                pageImageBase64: "",
+                sectionIndex: i,
+                sectionId: section.sectionId,
+                sectionType: section.sectionType,
+                backgroundColor: section.backgroundColor,
+                textColor: section.textColor,
+                parts,
+              },
+              availableActivityTypes,
+              resolveRenderModel(resolveRenderConfig(section.sectionType).modelId),
+            )
+            if (corrected) {
+              effectiveType = corrected
+              sectionTypeOverrides.set(section.sectionId, corrected)
+            }
+          }
+
+          const count = (activityTypeCounts.get(effectiveType) ?? 0) + 1
+          activityTypeCounts.set(effectiveType, count)
+          if (!activityTypeFirstPage.has(effectiveType)) {
+            activityTypeFirstPage.set(effectiveType, page.pageId)
           }
         }
       }
@@ -680,6 +725,7 @@ async function runStoryboardStep(
             styleguide: styleguideContent,
             activityReferenceHtmls,
             availableActivityTypes,
+            sectionTypeOverrides,
           },
           resolveRenderConfig,
           resolveRenderModel,

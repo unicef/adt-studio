@@ -88,6 +88,9 @@ export interface RenderPageInput {
   /** Available activity types with descriptions. When provided, a pre-render type check
    *  validates and potentially corrects the assigned activity type before rendering. */
   availableActivityTypes?: ActivityTypeDef[]
+  /** Pre-computed section type overrides (keyed by sectionId). When provided, the pre-render
+   *  type check is skipped for sections with an override and the override value is used instead. */
+  sectionTypeOverrides?: ReadonlyMap<string, string>
 }
 
 export type ResolveLLMModel = LLMModel | ((modelId: string) => LLMModel)
@@ -174,32 +177,35 @@ export async function renderPage(
     let effectiveSectionType = section.sectionType
     let correctedSectionType: string | undefined
 
-    if (
-      section.sectionType.startsWith("activity_") &&
-      input.availableActivityTypes &&
-      input.availableActivityTypes.length > 1
-    ) {
-      const sectionInput: RenderSectionInput = {
-        label: input.label,
-        pageId: input.pageId,
-        pageImageBase64: input.pageImageBase64,
-        sectionIndex: i,
-        sectionId: section.sectionId,
-        sectionType: section.sectionType,
-        backgroundColor: section.backgroundColor,
-        textColor: section.textColor,
-        parts,
-        styleguide: input.styleguide,
-        userPrompt: input.userPrompt,
-      }
-      const corrected = await checkActivityType(
-        sectionInput,
-        input.availableActivityTypes,
-        getLLMModel(llmModel, resolveConfig(section.sectionType).modelId),
-      )
-      if (corrected) {
-        effectiveSectionType = corrected
-        correctedSectionType = corrected
+    if (section.sectionType.startsWith("activity_")) {
+      // Use pre-computed override if available (e.g. from render-only pre-scan)
+      const override = input.sectionTypeOverrides?.get(section.sectionId)
+      if (override) {
+        effectiveSectionType = override
+        correctedSectionType = override
+      } else if (input.availableActivityTypes && input.availableActivityTypes.length > 1) {
+        const sectionInput: RenderSectionInput = {
+          label: input.label,
+          pageId: input.pageId,
+          pageImageBase64: input.pageImageBase64,
+          sectionIndex: i,
+          sectionId: section.sectionId,
+          sectionType: section.sectionType,
+          backgroundColor: section.backgroundColor,
+          textColor: section.textColor,
+          parts,
+          styleguide: input.styleguide,
+          userPrompt: input.userPrompt,
+        }
+        const corrected = await checkActivityType(
+          sectionInput,
+          input.availableActivityTypes,
+          getLLMModel(llmModel, resolveConfig(section.sectionType).modelId),
+        )
+        if (corrected) {
+          effectiveSectionType = corrected
+          correctedSectionType = corrected
+        }
       }
     }
 
