@@ -1970,6 +1970,39 @@ describe("packageWebpub", () => {
     expect(manifest.resources.length).toBeGreaterThan(0)
   })
 
+  it("strips the embedded runtime but keeps the feature data contract", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage)
+    packageWebpub(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Test Book",
+      webAssetsDir,
+    })
+
+    const webpubDir = path.join(bookDir, "webpub")
+    const assetsDir = path.join(webpubDir, "assets")
+
+    for (const name of [
+      "base.bundle.min.js",
+      "base.bundle.local.js",
+      "offline-preloader.js",
+      "scorm.js",
+    ]) {
+      expect(fs.existsSync(path.join(assetsDir, name))).toBe(false)
+    }
+
+    const html = fs.readFileSync(path.join(webpubDir, "index.html"), "utf-8")
+    expect(html).not.toContain("base.bundle")
+    expect(html).not.toContain("offline-preloader.js")
+    expect(html).not.toContain("scorm.js")
+
+    expect(fs.existsSync(path.join(assetsDir, "config.json"))).toBe(true)
+    expect(fs.existsSync(path.join(webpubDir, "content", "pages.json"))).toBe(true)
+  })
+
   it("throws when ADT package has not been built", () => {
     const bookDir = path.join(tmpDir, "book")
     fs.mkdirSync(bookDir, { recursive: true })

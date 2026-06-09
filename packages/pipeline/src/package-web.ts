@@ -14,6 +14,7 @@ const PIPELINE_PACKAGE_DIR = path.resolve(path.dirname(fileURLToPath(import.meta
 const TAILWIND_VIRTUAL_FROM = path.join(PIPELINE_PACKAGE_DIR, "_tailwind_input.css")
 import { parseDocument, DomUtils } from "htmlparser2"
 import temml from "temml"
+import { stripRuntimeBundle } from "./strip-runtime-bundle.js"
 import type { Storage } from "@adt/storage"
 import type {
   ContentNodeData,
@@ -824,6 +825,9 @@ export function packageWebpub(
   // Copy adt/ -> webpub/
   if (fs.existsSync(webpubDir)) fs.rmSync(webpubDir, { recursive: true })
   copyDirRecursive(adtDir, webpubDir)
+
+  // The reading app owns the UI; ship content + feature data only.
+  stripRuntimeBundle(webpubDir)
 
   // Override config: disable navigation controls and tutorial for embedded reading
   const configPath = path.join(webpubDir, "assets", "config.json")
