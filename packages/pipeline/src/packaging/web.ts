@@ -1,20 +1,10 @@
 import { createHash } from "node:crypto"
 import fs from "node:fs"
-import os from "node:os"
 import path from "node:path"
-import { fileURLToPath, pathToFileURL } from "node:url"
+import { pathToFileURL } from "node:url"
 
-/**
- * Tailwind v4 resolves `@import "tailwindcss"` relative to the postcss `from`
- * path. webAssetsDir / book directories don't have their own node_modules,
- * so we route the postcss invocation through this package's own directory
- * where tailwindcss + @tailwindcss/postcss are installed.
- */
-const PIPELINE_PACKAGE_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
-const TAILWIND_VIRTUAL_FROM = path.join(PIPELINE_PACKAGE_DIR, "_tailwind_input.css")
 import { parseDocument, DomUtils } from "htmlparser2"
 import temml from "temml"
-import { stripRuntimeBundle } from "./strip-runtime-bundle.js"
 import type { Storage } from "@adt/storage"
 import type {
   ContentNodeData,
@@ -36,14 +26,16 @@ import type {
 import { WebRenderingOutput as WebRenderingOutputSchema } from "@adt/types"
 import { googleFontsReferencedIn, googleFontsCss2Url } from "@adt/types"
 import { reflowableFontChain } from "@adt/types"
-import { bundleGoogleFontsIntoCss } from "./google-fonts-bundle.js"
-import type { Progress } from "./progress.js"
-import { nullProgress } from "./progress.js"
-import { getGlossaryItemTextId } from "./glossary.js"
-import { getBaseLanguage, normalizeLocale } from "./language-context.js"
-import { buildTextCatalog } from "./text-catalog.js"
-import { flattenEasyReadEntries } from "./easy-read.js"
-import { normalizeHtmlSectionSemantics } from "./html-semantics.js"
+import { bundleGoogleFontsIntoCss } from "../google-fonts-bundle.js"
+import type { Progress } from "../progress.js"
+import { nullProgress } from "../progress.js"
+import { getGlossaryItemTextId } from "../glossary.js"
+import { getBaseLanguage, normalizeLocale } from "../language-context.js"
+import { buildTextCatalog } from "../text-catalog.js"
+import { flattenEasyReadEntries } from "../easy-read.js"
+import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "../html-semantics.js"
+import { escapeHtml, escapeAttr, escapeInlineScriptJson } from "../html-escape.js"
+import { buildTailwindCss } from "../tailwind.js"
 
 export interface PackageAdtWebOptions {
   bookDir: string
@@ -78,7 +70,7 @@ export interface PackageAdtWebOptions {
   reflowableFont?: string
 }
 
-interface PageEntry {
+export interface PageEntry {
   section_id: string
   href: string
   page_number?: number
@@ -787,122 +779,8 @@ export async function packageAdtWeb(
 }
 
 // ---------------------------------------------------------------------------
-// WebPub packaging
+// Reader-override styles (shared by the webpub + epub packagers)
 // ---------------------------------------------------------------------------
-
-const WEBPUB_MIME_TYPES: Record<string, string> = {
-  ".html": "text/html",
-  ".css": "text/css",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".mp3": "audio/mpeg",
-  ".js": "application/javascript",
-  ".json": "application/json",
-}
-
-/**
- * Package the book as a Readium WebPub directory at `{bookDir}/webpub/`.
- *
- * Assumes ADT web packaging has already been run (i.e. `{bookDir}/adt/` exists).
- * Copies the ADT directory to `{bookDir}/webpub/`, adds a Readium WebPub
- * manifest, and tweaks config for embedded reading. The caller is responsible
- * for zipping the result into a `.webpub` file.
- */
-export function packageWebpub(
-  storage: Storage,
-  options: PackageAdtWebOptions,
-): void {
-  const { bookDir, title } = options
-
-  const adtDir = path.join(bookDir, "adt")
-  if (!fs.existsSync(adtDir)) {
-    throw new Error("ADT package not found — run packageAdtWeb first")
-  }
-
-  const webpubDir = path.join(bookDir, "webpub")
-
-  // Copy adt/ -> webpub/
-  if (fs.existsSync(webpubDir)) fs.rmSync(webpubDir, { recursive: true })
-  copyDirRecursive(adtDir, webpubDir)
-
-  // The reading app owns the UI; ship content + feature data only.
-  stripRuntimeBundle(webpubDir)
-
-  // Override config: disable navigation controls and tutorial for embedded reading
-  const configPath = path.join(webpubDir, "assets", "config.json")
-  if (fs.existsSync(configPath)) {
-    const config = JSON.parse(fs.readFileSync(configPath, "utf-8"))
-    config.features.showNavigationControls = false
-    config.features.showTutorial = false
-    writeJson(configPath, config)
-  }
-
-  // Inject CSS into HTML pages to prevent readers (e.g. Thorium) from applying
-  // column-based pagination which breaks the single-page ADT layout.
-  injectWebpubStyles(webpubDir, { fixedLayout: options.fixedLayout })
-
-  // Load metadata for manifest
-  const metadataRow = storage.getLatestNodeData("metadata", "book")
-  const metadata = metadataRow?.data as BookMetadata | undefined
-
-  const manifestMetadata: Record<string, unknown> = {
-    "@type": "http://schema.org/Book",
-    title,
-    language: options.language,
-    modified: new Date().toISOString(),
-    // Tell readers to scroll each page rather than paginating into columns,
-    // and not to display two pages side-by-side (spread).
-    presentation: {
-      overflow: "scrolled",
-      spread: "none",
-    },
-  }
-  if (metadata?.authors?.length) {
-    manifestMetadata.author = metadata.authors.join(", ")
-  }
-  if (metadata?.publisher) {
-    manifestMetadata.publisher = metadata.publisher
-  }
-
-  // Links
-  const links: Array<Record<string, string>> = [
-    { rel: "self", href: "manifest.json", type: "application/webpub+json" },
-  ]
-  for (const [filename, mimeType] of [
-    ["cover.png", "image/png"],
-    ["cover.jpg", "image/jpeg"],
-    ["cover.jpeg", "image/jpeg"],
-  ] as const) {
-    if (fs.existsSync(path.join(webpubDir, filename))) {
-      links.push({ rel: "cover", href: filename, type: mimeType })
-      break
-    }
-  }
-
-  // Reading order from pages.json
-  const pagesPath = path.join(webpubDir, "content", "pages.json")
-  const pageList = JSON.parse(fs.readFileSync(pagesPath, "utf-8")) as PageEntry[]
-  const readingOrder = pageList.map((page) => ({
-    href: page.href,
-    type: "text/html",
-    title: page.page_number != null ? String(page.page_number) : page.section_id,
-  }))
-
-  // Enumerate all files as resources
-  const resources: Array<{ href: string; type: string }> = []
-  collectWebpubResources(webpubDir, webpubDir, resources)
-
-  // Write manifest
-  const manifest = {
-    "@context": "https://readium.org/webpub-manifest/context.jsonld",
-    metadata: manifestMetadata,
-    links,
-    readingOrder,
-    resources,
-  }
-  writeJson(path.join(webpubDir, "manifest.json"), manifest)
-}
 
 const REFLOWABLE_OVERRIDE_CSS = `<style>
 /* ── WebPub / EPUB reader overrides (reflowable) ──
@@ -1031,27 +909,6 @@ export function injectWebpubStyles(dir: string, options?: InjectWebpubStylesOpti
   }
 }
 
-function collectWebpubResources(
-  baseDir: string,
-  dir: string,
-  out: Array<{ href: string; type: string }>,
-): void {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const fullPath = path.join(dir, entry.name)
-    if (entry.isDirectory()) {
-      collectWebpubResources(baseDir, fullPath, out)
-    } else if (entry.isFile()) {
-      const relPath = path.relative(baseDir, fullPath).replace(/\\/g, "/")
-      const ext = path.extname(entry.name).toLowerCase()
-      out.push({
-        href: relPath,
-        type: WEBPUB_MIME_TYPES[ext] ?? "application/octet-stream",
-      })
-    }
-  }
-}
-
-
 // ---------------------------------------------------------------------------
 // HTML generation
 // ---------------------------------------------------------------------------
@@ -1103,10 +960,6 @@ function injectOpacityClass(html: string): string {
   )
 }
 
-export function promoteFirstHeadingToH1(html: string): string {
-  if (/<h1\b/i.test(html)) return html
-  return html.replace(/<h([2-6])(\b[^>]*)>([\s\S]*?)<\/h\1>/i, '<h1$2>$3</h1>')
-}
 
 /**
  * Resolve the reflowable base-font CSS chain for a book, or undefined when no
@@ -1519,9 +1372,6 @@ export function buildPreferredImageAltMap(
   return section ? applyDuplicateImageAltPolicy(section, preferredImageAltMap) : preferredImageAltMap
 }
 
-export function normalizeSectionRoles(html: string): string {
-  return normalizeHtmlSectionSemantics(html)
-}
 
 /** Rewrite image URLs from /api/books/{label}/images/{id} to images/{filename} */
 export function rewriteImageUrls(
@@ -1612,22 +1462,6 @@ export function rewriteImageUrls(
  * Uses htmlparser2 to parse and re-serialize in XML mode, and replaces
  * HTML named entities with their numeric equivalents.
  */
-export function htmlToXhtml(html: string): string {
-  const doc = parseDocument(html)
-  let xhtml = DomUtils.getOuterHTML(doc, { xmlMode: true })
-  // Replace common HTML named entities not valid in XML
-  xhtml = xhtml.replace(/&nbsp;/g, "&#160;")
-  xhtml = xhtml.replace(/&mdash;/g, "&#8212;")
-  xhtml = xhtml.replace(/&ndash;/g, "&#8211;")
-  xhtml = xhtml.replace(/&lsquo;/g, "&#8216;")
-  xhtml = xhtml.replace(/&rsquo;/g, "&#8217;")
-  xhtml = xhtml.replace(/&ldquo;/g, "&#8220;")
-  xhtml = xhtml.replace(/&rdquo;/g, "&#8221;")
-  xhtml = xhtml.replace(/&hellip;/g, "&#8230;")
-  xhtml = xhtml.replace(/&bull;/g, "&#8226;")
-  xhtml = xhtml.replace(/&copy;/g, "&#169;")
-  return xhtml
-}
 
 // ---------------------------------------------------------------------------
 // Glossary helpers
@@ -1881,99 +1715,6 @@ export function convertLatexToMathml(html: string): string {
   })
 
   return html
-}
-
-// ---------------------------------------------------------------------------
-// Tailwind CSS build
-// ---------------------------------------------------------------------------
-
-async function buildTailwindCss(
-  adtDir: string,
-  webAssetsDir: string,
-): Promise<void> {
-  const outputPath = path.join(adtDir, "content", "tailwind_output.css")
-
-  // In Tauri sidecar mode, postcss/tailwindcss cannot run inside the pkg binary.
-  // bundle.mjs pre-builds tailwind_output.css into webAssetsDir before zipping.
-  const preBuilt = path.join(webAssetsDir, "tailwind_output.css")
-  if (fs.existsSync(preBuilt)) {
-    fs.copyFileSync(preBuilt, outputPath)
-    return
-  }
-
-  // Dynamic imports to avoid issues if not installed
-  const postcss = (await import("postcss")).default
-  // @tailwindcss/postcss is the Tailwind v4 plugin. Theme/colors live in CSS
-  // (tailwind_css.css → globals.css) via the @theme inline directive, so the
-  // plugin needs no JS-side config.
-  const tailwindcss = (await import("@tailwindcss/postcss")).default
-
-  const inputCssPath = path.join(webAssetsDir, "tailwind_css.css")
-  const inputCss = fs.existsSync(inputCssPath)
-    ? fs.readFileSync(inputCssPath, "utf-8")
-    : '@import "tailwindcss";'
-
-  // Inject content sources via @source directives. Tailwind v4 scans only
-  // files on disk, so compiled chrome bundles + book HTML files are
-  // referenced by absolute path.
-  const sourceDirectives = [
-    `@source "${toPosix(path.join(adtDir, "**/*.html"))}";`,
-    `@source "${toPosix(path.join(adtDir, "**/*.js"))}";`,
-  ].join("\n")
-
-  const result = await postcss([tailwindcss({ base: adtDir })]).process(
-    `${sourceDirectives}\n${inputCss}`,
-    { from: TAILWIND_VIRTUAL_FROM },
-  )
-
-  fs.writeFileSync(outputPath, result.css)
-}
-
-/** Convert Windows backslashes to forward slashes for `@source` paths. */
-function toPosix(p: string): string {
-  return p.replace(/\\/g, "/")
-}
-
-/**
- * Build Tailwind CSS for preview and return the CSS string.
- * Scans the given content HTML plus all web asset files for used classes.
- */
-export async function buildPreviewTailwindCss(
-  contentHtml: string,
-  webAssetsDir: string,
-): Promise<string> {
-  const postcss = (await import("postcss")).default
-  const tailwindcss = (await import("@tailwindcss/postcss")).default
-
-  const inputCssPath = path.join(webAssetsDir, "tailwind_css.css")
-  const inputCss = fs.existsSync(inputCssPath)
-    ? fs.readFileSync(inputCssPath, "utf-8")
-    : '@import "tailwindcss";'
-
-  // Tailwind v4 scans files on disk only — there's no equivalent to v3's
-  // `content: [{ raw, extension }]`. For dynamic content (HTML built from
-  // the DB rows), write to a temp file and reference it via @source.
-  // For chrome classes, scan apps/adt-runtime/src directly so JSX class
-  // strings are picked up before they get minified into the bundle.
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-twv4-"))
-  const tempHtml = path.join(tempDir, "preview-content.html")
-  fs.writeFileSync(tempHtml, contentHtml)
-
-  const sourceDirectives = [
-    `@source "${toPosix(tempHtml)}";`,
-    `@source "${toPosix(path.resolve(webAssetsDir, "../../apps/adt-runtime/src"))}";`,
-    `@source "${toPosix(path.join(webAssetsDir, "base.bundle.min.js"))}";`,
-  ].join("\n")
-
-  try {
-    const result = await postcss([tailwindcss({ base: webAssetsDir })]).process(
-      `${sourceDirectives}\n${inputCss}`,
-      { from: TAILWIND_VIRTUAL_FROM },
-    )
-    return result.css
-  } finally {
-    fs.rmSync(tempDir, { recursive: true, force: true })
-  }
 }
 
 // ---------------------------------------------------------------------------
@@ -2521,7 +2262,7 @@ function findHeadingText(
   return null
 }
 
-function writeJson(filePath: string, data: unknown): void {
+export function writeJson(filePath: string, data: unknown): void {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2))
 }
 
@@ -2537,19 +2278,6 @@ function pickDefaultLanguage(
     (lang) => getBaseLanguage(lang) === preferredBase,
   )
   return matchingBase ?? availableLanguages[0] ?? preferredLanguage
-}
-
-function escapeInlineScriptJson(s: string): string {
-  return s
-    .replace(/\\/g, "\\\\")
-    .replace(/'/g, "\\'")
-    .replace(/\r/g, "\\r")
-    .replace(/\n/g, "\\n")
-    .replace(/\u2028/g, "\\u2028")
-    .replace(/\u2029/g, "\\u2029")
-    .replace(/</g, "\\u003c")
-    .replace(/>/g, "\\u003e")
-    .replace(/&/g, "\\u0026")
 }
 
 export function copyDirRecursive(
@@ -2570,23 +2298,6 @@ export function copyDirRecursive(
       fs.copyFileSync(srcPath, destPath)
     }
   }
-}
-
-export function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-}
-
-function escapeAttr(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
 }
 
 // ---------------------------------------------------------------------------

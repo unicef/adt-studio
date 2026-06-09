@@ -7,14 +7,14 @@ import {
   computePackagingInputHash,
   buildGlossaryJson,
   packageAdtWeb,
-  packageWebpub,
   renderPageHtml,
   resolveReflowableFontChain,
   renderQuizHtml,
   rewriteImageUrls,
   convertLatexToMathml,
   convertLatexString,
-} from "../package-web.js"
+} from "../packaging/web.js"
+import { packageWebpub, nestTocEntries } from "../packaging/webpub.js"
 
 function createMockStorage(
   pages: PageData[],
@@ -1821,6 +1821,39 @@ describe("convertLatexToMathml (HTML)", () => {
   })
 })
 
+describe("nestTocEntries", () => {
+  it("keeps level-less entries flat", () => {
+    const result = nestTocEntries([
+      { href: "a.html", title: "A" },
+      { href: "b.html", title: "B" },
+    ])
+    expect(result).toEqual([
+      { href: "a.html", title: "A" },
+      { href: "b.html", title: "B" },
+    ])
+  })
+
+  it("nests deeper levels under the preceding entry", () => {
+    const result = nestTocEntries([
+      { href: "ch1.html", title: "Chapter 1", level: 1 },
+      { href: "ch1-1.html", title: "Section 1.1", level: 2 },
+      { href: "ch1-2.html", title: "Section 1.2", level: 2 },
+      { href: "ch2.html", title: "Chapter 2", level: 1 },
+    ])
+    expect(result).toEqual([
+      {
+        href: "ch1.html",
+        title: "Chapter 1",
+        children: [
+          { href: "ch1-1.html", title: "Section 1.1" },
+          { href: "ch1-2.html", title: "Section 1.2" },
+        ],
+      },
+      { href: "ch2.html", title: "Chapter 2" },
+    ])
+  })
+})
+
 describe("packageWebpub", () => {
   let tmpDir: string
 
@@ -1968,6 +2001,25 @@ describe("packageWebpub", () => {
       type: "application/webpub+json",
     })
     expect(manifest.resources.length).toBeGreaterThan(0)
+  })
+
+  it("emits pageList and landmarks navigation collections", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage)
+    packageWebpub(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Test Book",
+      webAssetsDir,
+    })
+
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
+    )
+    expect(manifest.pageList).toEqual([{ href: "index.html", title: "1" }])
+    expect(manifest.landmarks).toContainEqual({ rel: "bodymatter", href: "index.html" })
   })
 
   it("strips the embedded runtime but keeps the feature data contract", async () => {

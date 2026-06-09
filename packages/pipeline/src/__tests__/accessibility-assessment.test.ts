@@ -5,7 +5,7 @@ import path from "node:path"
 import type { Storage, PageData } from "@adt/storage"
 import { runAccessibilityAssessment } from "../accessibility-assessment.js"
 import { isAxeInternalError, mergeAccessibilityResults } from "../accessibility-assessment-shared.js"
-import { packageAdtWeb } from "../package-web.js"
+import { packageAdtWeb } from "../packaging/web.js"
 import type { AccessibilityAssessmentOutput, BrowserAccessibilityAssessmentOutput } from "@adt/types"
 
 function createMockStorage(

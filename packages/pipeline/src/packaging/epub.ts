@@ -3,7 +3,8 @@ import path from "node:path"
 import { JSDOM } from "jsdom"
 import type { Storage } from "@adt/storage"
 import type { BookMetadata, TocGenerationOutput, WordTimestampOutput } from "@adt/types"
-import { type PackageAdtWebOptions, copyDirRecursive, injectWebpubStyles, htmlToXhtml, getWordTimestamps, pad3 } from "./package-web.js"
+import { type PackageAdtWebOptions, copyDirRecursive, injectWebpubStyles, getWordTimestamps, pad3 } from "./web.js"
+import { htmlToXhtml } from "../html-semantics.js"
 import { stripRuntimeBundle } from "./strip-runtime-bundle.js"
 
 /**
@@ -14,9 +15,9 @@ import { stripRuntimeBundle } from "./strip-runtime-bundle.js"
 function wordIdFor(dataId: string, idx: number): string {
   return `${dataId}_w${pad3(idx)}`
 }
-import { buildSmil, formatMediaDuration, type SmilParagraph } from "./smil.js"
-import { tokenizeWords } from "./word-tokenize.js"
-import { styleMapToInline } from "./fixed-layout-rendering.js"
+import { buildSmil, formatMediaDuration, type SmilParagraph } from "../smil.js"
+import { tokenizeWords } from "../word-tokenize.js"
+import { styleMapToInline } from "../fixed-layout-rendering.js"
 
 export type PackageEpubOptions = PackageAdtWebOptions
 

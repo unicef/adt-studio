@@ -7,7 +7,8 @@
  */
 import fs from "node:fs"
 import path from "node:path"
-import { buildPreviewTailwindCss, normalizeSectionRoles, promoteFirstHeadingToH1 } from "./package-web.js"
+import { buildPreviewTailwindCss } from "./tailwind.js"
+import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "./html-semantics.js"
 
 export interface BuildScreenshotHtmlOptions {
   /** The section HTML fragment (content inside <body>). */
