@@ -268,7 +268,7 @@ When in doubt, pattern 2b is safer than pattern 2 — a misplaced marker outside
 12. If validator feedback says an exact expected value (for example section ID), use that exact value
 13. The `fitb-sentence` class MUST be present on any element (or its parent) that contains `[[blank:item-N]]` markers
 14. Font sizing: prefer `text-lg` (~18px) for fitb content. You may use `text-base` when cells are tight, and `text-xl` sparingly for single short words in wide single-column layouts. Avoid `text-2xl` or larger in multi-column grids — long words wrap and overflow the cells on desktop even when the page looks fine on mobile
-15. For text leaves, default to `<span>`. Use block elements (`<p>`, `<h1>`–`<h6>`, `<li>`) ONLY when the leaf is semantically a standalone block — a full paragraph of prose, a heading, a list item, or preformatted content. Short labels, captions, option text, and inline fragments MUST use `<span>` to avoid unwanted line breaks. If a `<span>` needs block-level layout, apply `block` or `inline-block` Tailwind classes rather than switching to `<p>`/`<div>`.
+15. For text leaves, default to `<span>`. Use block elements (`<p>`, `<h1>`–`<h6>`, `<li>`) ONLY when the leaf is semantically a standalone block — a full paragraph of prose, a heading, a list item, or preformatted content. Short labels, captions, option text, and inline fragments MUST use `<span>` to avoid unwanted line breaks. If a `<span>` needs block-level layout, apply `block` or `inline-block` Tailwind classes rather than switching to `<p>`/`<div>`. Leaves with role `heading` must ALWAYS use a heading tag (`<h1>`–`<h6>`, default `<h2>`), never `<span>`.
 
 ### Response Format (STRICT)
 Return JSON object:

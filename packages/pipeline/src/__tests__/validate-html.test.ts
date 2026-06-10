@@ -1582,3 +1582,142 @@ describe("[placeholder:...] marker stripping", () => {
     expect(result.sectionHtml).not.toContain("[placeholder:")
   })
 })
+
+describe("heading semantics enforcement (headingTextIds)", () => {
+  const headingOptions = { headingTextIds: new Set(["pg001_n0001"]) }
+
+  it("passes when a heading data-id is rendered as <h2>", () => {
+    const html = `
+      <section data-section-type="text_only">
+        <h2 class="text-2xl font-bold" data-id="pg001_n0001">Chapter 1</h2>
+        <p data-id="pg001_n0002">Body text</p>
+      </section>
+    `
+    const result = validateSectionHtml(
+      html,
+      ["pg001_n0001", "pg001_n0002"],
+      [],
+      undefined,
+      headingOptions
+    )
+    expect(result.valid).toBe(true)
+    expect(result.errors).toEqual([])
+  })
+
+  it("passes for every heading level h1–h6", () => {
+    for (const tag of ["h1", "h2", "h3", "h4", "h5", "h6"]) {
+      const html = `
+        <section data-section-type="text_only">
+          <${tag} data-id="pg001_n0001">Chapter 1</${tag}>
+        </section>
+      `
+      const result = validateSectionHtml(html, ["pg001_n0001"], [], undefined, headingOptions)
+      expect(result.valid).toBe(true)
+    }
+  })
+
+  it("passes when a heading data-id is a <span> inside a heading element (split heading)", () => {
+    const html = `
+      <section data-section-type="text_only">
+        <h2 class="text-2xl">
+          <span data-id="pg001_n0001">Chapter 1:</span>
+          <span data-id="pg001_n0002">The Solar System</span>
+        </h2>
+      </section>
+    `
+    const result = validateSectionHtml(
+      html,
+      ["pg001_n0001", "pg001_n0002"],
+      [],
+      undefined,
+      { headingTextIds: new Set(["pg001_n0001", "pg001_n0002"]) }
+    )
+    expect(result.valid).toBe(true)
+    expect(result.errors).toEqual([])
+  })
+
+  it("passes the ARIA equivalent: role=heading with aria-level", () => {
+    const html = `
+      <section data-section-type="text_only">
+        <div role="heading" aria-level="2" data-id="pg001_n0001">Chapter 1</div>
+      </section>
+    `
+    const result = validateSectionHtml(html, ["pg001_n0001"], [], undefined, headingOptions)
+    expect(result.valid).toBe(true)
+    expect(result.errors).toEqual([])
+  })
+
+  it("fails when a heading data-id is rendered as a styled <div>", () => {
+    const html = `
+      <section data-section-type="text_only">
+        <div class="text-2xl font-bold" data-id="pg001_n0001">Chapter 1</div>
+      </section>
+    `
+    const result = validateSectionHtml(html, ["pg001_n0001"], [], undefined, headingOptions)
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining('data-id "pg001_n0001" is a heading but is rendered as <div>')
+    )
+  })
+
+  it("fails when a heading data-id is an inline <span> with no heading ancestor", () => {
+    const html = `
+      <section data-section-type="text_only">
+        <p><span data-id="pg001_n0001">Chapter 1</span></p>
+      </section>
+    `
+    const result = validateSectionHtml(html, ["pg001_n0001"], [], undefined, headingOptions)
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining('data-id "pg001_n0001" is a heading but is rendered as <span>')
+    )
+  })
+
+  it("does not flag role=heading without aria-level", () => {
+    const html = `
+      <section data-section-type="text_only">
+        <div role="heading" data-id="pg001_n0001">Chapter 1</div>
+      </section>
+    `
+    const result = validateSectionHtml(html, ["pg001_n0001"], [], undefined, headingOptions)
+    expect(result.valid).toBe(false)
+  })
+
+  it("rejects role=heading with a non-numeric aria-level", () => {
+    const html = `
+      <section data-section-type="text_only">
+        <div role="heading" aria-level="" data-id="pg001_n0001">Chapter 1</div>
+      </section>
+    `
+    const result = validateSectionHtml(html, ["pg001_n0001"], [], undefined, headingOptions)
+    expect(result.valid).toBe(false)
+  })
+
+  it("skips the heading check for ids absent from the HTML (missing-id check still applies)", () => {
+    const html = `
+      <section data-section-type="text_only">
+        <p data-id="pg001_n0002">Body text</p>
+      </section>
+    `
+    const result = validateSectionHtml(
+      html,
+      ["pg001_n0001", "pg001_n0002"],
+      [],
+      undefined,
+      { ...headingOptions, optionalTextIds: new Set(["pg001_n0001"]) }
+    )
+    expect(result.valid).toBe(true)
+    expect(result.errors).toEqual([])
+  })
+
+  it("does not enforce heading tags when headingTextIds is omitted", () => {
+    const html = `
+      <section data-section-type="text_only">
+        <div class="text-2xl font-bold" data-id="pg001_n0001">Chapter 1</div>
+      </section>
+    `
+    const result = validateSectionHtml(html, ["pg001_n0001"], [])
+    expect(result.valid).toBe(true)
+    expect(result.errors).toEqual([])
+  })
+})

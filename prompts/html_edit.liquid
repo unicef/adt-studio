@@ -40,6 +40,7 @@ Rules for overlays:
 
 - Output natural-language text as literal Unicode characters. Do not encode letters as numeric or hex HTML entities (avoid `&#...;` and `&#x...;`). Use standard HTML escaping only for markup syntax (`&amp;`, `&lt;`, `&gt;`, and quotes in attributes).
 - Do NOT add `<script>`, `<iframe>`, `<object>`, or `<embed>` tags, or event handler attributes (`onclick`, `onload`, etc.).
+- Preserve semantic heading elements: content currently in `<h1>`–`<h6>` tags must stay in a heading tag unless the instruction explicitly asks to remove or demote the heading. Restyling a heading means changing its classes, not its tag.
 
 ## Response format
 

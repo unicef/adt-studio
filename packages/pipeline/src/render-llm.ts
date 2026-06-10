@@ -179,6 +179,7 @@ function validateWebRendering(
   const imageUrlPrefix = `/api/books/${label}/images`
   const expectedTexts = new Map(leaf_texts.map((t) => [t.text_id, t.text]))
   const optionalTextIds = collectOptionalTextIds(leaf_texts)
+  const headingTextIds = collectHeadingTextIds(leaf_texts)
 
   const check = validateSectionHtml(
     r.content,
@@ -192,6 +193,7 @@ function validateWebRendering(
       expectedSectionType: sectionType,
       expectedSectionId: sectionId,
       optionalTextIds,
+      headingTextIds,
     }
   )
   if (check.valid && check.sectionHtml) {
@@ -230,6 +232,16 @@ function isPlaceholderOnlyText(text: string): boolean {
     .replace(TEXTBOOK_BLANK_RE, "")
     .replace(/[\s/\-]/g, "")
   return stripped.length === 0
+}
+
+/** Ids of leaves the sectioning stage marked as headings — the validator
+ * requires these to render as (or inside) semantic heading elements. */
+export function collectHeadingTextIds(
+  leafTexts: Array<{ text_id: string; text_type: string; text: string }>
+): Set<string> {
+  return new Set(
+    leafTexts.filter((t) => t.text_type === "heading").map((t) => t.text_id)
+  )
 }
 
 export function collectOptionalTextIds(

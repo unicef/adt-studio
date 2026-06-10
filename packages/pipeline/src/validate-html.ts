@@ -112,6 +112,13 @@ export interface HtmlValidationOptions {
    * suppressed if it doesn't.
    */
   optionalTextIds?: Set<string>
+  /**
+   * Text data-ids whose source leaves have role "heading". Each rendered
+   * element carrying one of these data-ids must be an <h1>–<h6>, sit inside
+   * one (split headings render as spans inside a single heading element),
+   * or use the ARIA equivalent (role="heading" + aria-level).
+   */
+  headingTextIds?: Set<string>
 }
 
 export function validateSectionHtml(
@@ -360,6 +367,21 @@ function walkNode(
       }
     }
 
+    // Leaves the sectioning stage marked as headings must reach assistive
+    // tech as real headings, not visually styled generic elements.
+    if (
+      dataId !== undefined &&
+      tagName !== "section" &&
+      options?.headingTextIds?.has(dataId) &&
+      !hasHeadingSelfOrAncestor(node)
+    ) {
+      errors.push(
+        `Element with data-id "${dataId}" is a heading but is rendered as <${tagName}>. ` +
+          `Use a semantic heading tag (<h2> by default) for this element or place it inside one — ` +
+          `keep the same Tailwind classes; heading tags carry no default styling.`
+      )
+    }
+
     // Verify text content matches expected text for this data-id.
     // Always substitute the correct text back in. Only fail validation
     // when the LLM's text is too far from the expected content.
@@ -487,6 +509,32 @@ function hasSrOnlyAncestor(node: any): boolean {
         }
       }
     }
+    current = current.parent
+  }
+  return false
+}
+
+const HEADING_TAGS = new Set(["h1", "h2", "h3", "h4", "h5", "h6"])
+
+/**
+ * True if the element is a semantic heading: an <h1>–<h6> tag, or the ARIA
+ * equivalent (role="heading" with an explicit aria-level).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isHeadingElement(node: any): boolean {
+  if (node.type !== "tag") return false
+  if (HEADING_TAGS.has((node.name ?? "").toLowerCase())) return true
+  return (
+    node.attribs?.role?.trim().toLowerCase() === "heading" &&
+    /^[1-9]\d*$/.test(node.attribs?.["aria-level"] ?? "")
+  )
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function hasHeadingSelfOrAncestor(node: any): boolean {
+  let current = node
+  while (current) {
+    if (isHeadingElement(current)) return true
     current = current.parent
   }
   return false

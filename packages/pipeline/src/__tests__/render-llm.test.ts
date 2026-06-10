@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest"
-import { collectOptionalTextIds } from "../render-llm.js"
+import type { LLMModel, GenerateObjectOptions, GenerateObjectResult, ValidationResult } from "@adt/llm"
+import { collectHeadingTextIds, collectOptionalTextIds, renderSectionLlm } from "../render-llm.js"
+import type { RenderConfig, RenderSectionInput } from "../web-rendering.js"
 
 describe("collectOptionalTextIds", () => {
   it("marks single-underscore blank-cell leaves as optional (crossword cells)", () => {
@@ -67,5 +69,99 @@ describe("collectOptionalTextIds", () => {
     expect(collectOptionalTextIds(leaves).has("n1")).toBe(true)
     expect(collectOptionalTextIds(leaves).has("n1")).toBe(true)
     expect(collectOptionalTextIds(leaves).has("n1")).toBe(true)
+  })
+})
+
+describe("collectHeadingTextIds", () => {
+  it("collects ids of leaves with role heading", () => {
+    const ids = collectHeadingTextIds([
+      { text_id: "n1", text_type: "heading", text: "Chapter 1" },
+      { text_id: "n2", text_type: "text", text: "Body" },
+      { text_id: "n3", text_type: "heading", text: "Subtitle" },
+    ])
+    expect(ids).toEqual(new Set(["n1", "n3"]))
+  })
+
+  it("returns an empty set when no heading leaves exist", () => {
+    const ids = collectHeadingTextIds([
+      { text_id: "n1", text_type: "text", text: "Body" },
+    ])
+    expect(ids.size).toBe(0)
+  })
+})
+
+describe("renderSectionLlm — heading semantics enforcement", () => {
+  const sectionInput: RenderSectionInput = {
+    label: "test-book",
+    pageId: "pg001",
+    pageImageBase64: "base64img",
+    sectionIndex: 0,
+    section: {
+      sectionId: "pg001_sec001",
+      sectionType: "text_only",
+      nodes: [],
+      backgroundColor: "#ffffff",
+      textColor: "#000000",
+      pageNumber: 1,
+      isPruned: false,
+    },
+    context: {
+      nodes: [
+        { node_id: "pg001_n0001", role: "heading", text: "Chapter 1" },
+        { node_id: "pg001_n0002", role: "text", text: "Body text" },
+      ],
+      leaf_texts: [
+        { text_id: "pg001_n0001", text_type: "heading", text: "Chapter 1" },
+        { text_id: "pg001_n0002", text_type: "text", text: "Body text" },
+      ],
+      image_refs: [],
+      group_ids: [],
+    },
+  }
+
+  const config: RenderConfig = {
+    renderType: "llm",
+    promptName: "web_generation_html",
+    modelId: "test-model",
+    maxRetries: 1,
+    timeoutMs: 1000,
+    temperature: 0,
+    answerPromptName: "",
+    templateName: "",
+  }
+
+  const sectionHtml = (headingMarkup: string) =>
+    `<div id="content" class="container"><section data-section-type="text_only" data-section-id="pg001_sec001">${headingMarkup}<p data-id="pg001_n0002">Body text</p></section></div>`
+
+  async function validateThrough(headingMarkup: string): Promise<ValidationResult> {
+    let captured: ValidationResult | undefined
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        const object = { reasoning: "test", content: sectionHtml(headingMarkup) }
+        captured = opts.validate!(object, opts.context!)
+        const cleaned = (captured.valid && captured.cleaned ? captured.cleaned : object) as T
+        return { object: cleaned } as GenerateObjectResult<T>
+      },
+    }
+    await renderSectionLlm(sectionInput, config, fakeLlm)
+    return captured!
+  }
+
+  it("rejects a heading leaf rendered as a styled div", async () => {
+    const result = await validateThrough(
+      '<div class="text-2xl font-bold" data-id="pg001_n0001">Chapter 1</div>'
+    )
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContainEqual(
+      expect.stringContaining('data-id "pg001_n0001" is a heading but is rendered as <div>')
+    )
+  })
+
+  it("accepts a heading leaf rendered as <h2>", async () => {
+    const result = await validateThrough(
+      '<h2 class="text-2xl font-bold" data-id="pg001_n0001">Chapter 1</h2>'
+    )
+    expect(result.valid).toBe(true)
+    expect(result.errors).toEqual([])
   })
 })
