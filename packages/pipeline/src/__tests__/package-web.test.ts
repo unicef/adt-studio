@@ -2022,6 +2022,28 @@ describe("packageWebpub", () => {
     expect(manifest.landmarks).toContainEqual({ rel: "bodymatter", href: "index.html" })
   })
 
+  it("emits schema.org accessibility metadata derived from features", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage)
+    packageWebpub(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Test Book",
+      webAssetsDir,
+    })
+
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
+    )
+    const a11y = manifest.metadata.accessibility
+    expect(a11y.accessMode).toEqual(expect.arrayContaining(["textual", "visual"]))
+    expect(a11y.feature).toContain("readingOrder")
+    expect(a11y.hazard).toEqual(["none"])
+    expect(typeof a11y.summary).toBe("string")
+  })
+
   it("strips the embedded runtime but keeps the feature data contract", async () => {
     const { bookDir, webAssetsDir, storage } = setupBook()
     await buildAdtFirst(bookDir, webAssetsDir, storage)

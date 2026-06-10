@@ -51,12 +51,14 @@ export function packageWebpub(
   stripRuntimeBundle(webpubDir)
 
   // Override config: disable navigation controls and tutorial for embedded reading
+  let features: Record<string, unknown> = {}
   const configPath = path.join(webpubDir, "assets", "config.json")
   if (fs.existsSync(configPath)) {
     const config = JSON.parse(fs.readFileSync(configPath, "utf-8"))
     config.features.showNavigationControls = false
     config.features.showTutorial = false
     writeJson(configPath, config)
+    features = config.features ?? {}
   }
 
   // Inject CSS into HTML pages to prevent readers (e.g. Thorium) from applying
@@ -127,6 +129,8 @@ export function packageWebpub(
   if (readingOrder.length > 0) {
     landmarks.push({ rel: "bodymatter", href: readingOrder[0].href })
   }
+
+  manifestMetadata.accessibility = buildAccessibilityMetadata(features, toc.length > 0)
 
   // Write manifest
   const manifest = {
@@ -204,5 +208,43 @@ function collectWebpubResources(
         type: WEBPUB_MIME_TYPES[ext] ?? "application/octet-stream",
       })
     }
+  }
+}
+
+/**
+ * Derive a schema.org-based accessibility object from the ADT feature flags.
+ * Only features we can substantiate from the packaged data are claimed; no
+ * WCAG/EPUB conformance is asserted (that would require certification).
+ */
+function buildAccessibilityMetadata(
+  features: Record<string, unknown>,
+  hasToc: boolean,
+): Record<string, unknown> {
+  const on = (key: string): boolean => features[key] === true
+
+  const accessMode = ["textual", "visual"]
+  const feature = ["readingOrder"]
+  if (hasToc) feature.push("tableOfContents")
+  if (on("describeImages")) feature.push("alternativeText")
+  if (on("readAloud")) {
+    accessMode.push("auditory")
+    feature.push("synchronizedAudioText")
+  }
+  if (on("signLanguage")) feature.push("signLanguage")
+
+  const provided: string[] = []
+  if (on("readAloud")) provided.push("read-aloud audio synchronized with the text")
+  if (on("describeImages")) provided.push("alternative text for images")
+  if (on("signLanguage")) provided.push("sign-language video")
+  const summary = provided.length > 0
+    ? `Includes ${provided.join(", ")}.`
+    : "Structured text with a navigable reading order."
+
+  return {
+    accessMode,
+    accessModeSufficient: [["textual", "visual"]],
+    feature,
+    hazard: ["none"],
+    summary,
   }
 }
