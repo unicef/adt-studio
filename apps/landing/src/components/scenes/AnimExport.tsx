@@ -6,6 +6,7 @@ import {
   Sparkles,
   Volume2,
 } from "lucide-react";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { lerp, seg } from "@/lib/seg";
 
 const BOOK_COPY = {
@@ -40,6 +41,7 @@ const BOOK_COPY = {
 } as const;
 
 export function AnimExport({ progress }: { progress: number }) {
+  const { t } = useLingui();
   const p = progress;
 
   const tabletT = seg(p, 0, 0.05);
@@ -98,7 +100,7 @@ export function AnimExport({ progress }: { progress: number }) {
       >
         <Check className="h-3 w-3" strokeWidth={3} />
         <span className="font-mono text-[9px] font-bold uppercase tracking-wider">
-          Delivered
+          <Trans>Delivered</Trans>
         </span>
       </div>
 
@@ -173,25 +175,25 @@ export function AnimExport({ progress }: { progress: number }) {
                 active={audioActive}
                 color="#e11d48"
                 Icon={Volume2}
-                label="Audio"
+                label={t`Audio`}
               />
               <FeatureIcon
                 active={translateActive}
                 color="#db2777"
                 Icon={Languages}
-                label="Translate"
+                label={t`Translate`}
               />
               <FeatureIcon
                 active={signActive}
                 color="#2563eb"
                 Icon={Hand}
-                label="Sign"
+                label={t`Sign`}
               />
               <FeatureIcon
                 active={glossaryActive}
                 color="#65a30d"
                 Icon={Sparkles}
-                label="Glossary"
+                label={t`Glossary`}
               />
             </div>
           </div>
@@ -212,7 +214,10 @@ export function AnimExport({ progress }: { progress: number }) {
           className="text-[10.5px] font-medium leading-snug"
           style={{ color: "#2563eb" }}
         >
-          Every reader opens the same book, with the features they need on tap.
+          <Trans>
+            Every reader opens the same book, with the features they need on
+            tap.
+          </Trans>
         </span>
       </div>
     </div>
@@ -275,7 +280,7 @@ function LanguagePicker({
       <div className="flex items-center gap-1 px-1.5 pb-1 pt-0.5">
         <Languages className="h-2.5 w-2.5 text-pink-600" />
         <span className="font-mono text-[8px] font-bold uppercase tracking-wider text-pink-600">
-          Language
+          <Trans>Language</Trans>
         </span>
       </div>
       {langs.map((l) => {

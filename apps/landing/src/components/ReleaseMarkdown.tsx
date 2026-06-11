@@ -1,4 +1,5 @@
 import { ChevronRight } from "lucide-react";
+import { Trans } from "@lingui/react/macro";
 import { type ComponentProps } from "react";
 import ReactMarkdown, { type Components } from "react-markdown";
 import rehypeRaw from "rehype-raw";
@@ -357,9 +358,11 @@ function BetaBanner() {
   return (
     <div className="-mx-1 mb-2 flex items-center gap-2 rounded-lg border border-amber-200/70 bg-amber-100/40 px-3 py-2 text-[12px] font-semibold text-amber-800">
       <span className="inline-flex items-center rounded-md bg-amber-200/60 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
-        Beta
+        <Trans>Beta</Trans>
       </span>
-      Pre-release — APIs and behavior may still change before the stable cut.
+      <Trans>
+        Pre-release — APIs and behavior may still change before the stable cut.
+      </Trans>
     </div>
   );
 }

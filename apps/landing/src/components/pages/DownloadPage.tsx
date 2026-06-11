@@ -1,4 +1,5 @@
 import { AlertTriangle, ArrowUpRight, Construction, Monitor } from "lucide-react";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/Button";
 import { cn } from "@/lib/cn";
@@ -22,6 +23,7 @@ import {
 } from "./download/shared";
 
 export function DownloadPage() {
+  const { t } = useLingui();
   const { releases, loading, error } = useStableReleases();
   const latest: GithubRelease | undefined = releases?.[0];
   const [userPlatform, setUserPlatform] = useState<DetectedPlatform | null>(
@@ -84,7 +86,7 @@ export function DownloadPage() {
       <div className="relative mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center px-4 py-16 text-center">
         <a
           href="#top"
-          aria-label="ADT Studio home"
+          aria-label={t`ADT Studio home`}
           className={cn(
             "group relative inline-flex transition-all duration-700",
             mounted ? "translate-y-0 opacity-100" : "translate-y-1 opacity-0",
@@ -110,7 +112,7 @@ export function DownloadPage() {
           )}
           style={{ transitionDelay: "120ms" }}
         >
-          Start building accessible books.
+          <Trans>Start building accessible books.</Trans>
         </h1>
 
         <p
@@ -120,8 +122,10 @@ export function DownloadPage() {
           )}
           style={{ transitionDelay: "240ms" }}
         >
-          Free, open-source, and runs on your machine. Available for macOS,
-          Windows, and Linux.
+          <Trans>
+            Free, open-source, and runs on your machine. Available for macOS,
+            Windows, and Linux.
+          </Trans>
         </p>
 
         <div
@@ -142,7 +146,7 @@ export function DownloadPage() {
               onClick={() => trackDownload(detected.key, detectedAsset.name)}
             >
               <PrimaryIcon className="h-4 w-4" strokeWidth={1.8} />
-              Download for {detected.label}
+              <Trans>Download for {detected.label}</Trans>
             </Button>
           ) : (
             <EmptyPlatformState
@@ -163,7 +167,7 @@ export function DownloadPage() {
             style={{ transitionDelay: "440ms" }}
           >
             {loading
-              ? "Resolving latest release…"
+              ? t`Resolving latest release…`
               : `${detectedAsset.name} · ${formatSize(detectedAsset.size)} · ${detectedResolution.release.tag_name}`}
           </div>
         )}
@@ -185,7 +189,7 @@ export function DownloadPage() {
           style={{ transitionDelay: "540ms" }}
         >
           <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]">
-            {hasDetectedBuild ? "Also available on" : "Available for"}
+            {hasDetectedBuild ? t`Also available on` : t`Available for`}
           </div>
           <div className="flex flex-wrap items-center justify-center gap-2">
             {chipPlatforms.map((p) => (
@@ -211,7 +215,9 @@ export function DownloadPage() {
             <span className="font-semibold text-[color:var(--color-foreground)]">
               {formatDownloads(totalDownloads)}
             </span>
-            <span>downloads to date</span>
+            <span>
+              <Trans>downloads to date</Trans>
+            </span>
           </div>
         )}
 
@@ -224,36 +230,40 @@ export function DownloadPage() {
         >
           {latest?.prerelease && (
             <div className="inline-flex items-center gap-2">
-              <span>ADT Studio is currently in</span>
+              <span>
+                <Trans>ADT Studio is currently in</Trans>
+              </span>
               <span className="rounded-md border border-[color:var(--color-border)] px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider text-[color:var(--color-foreground)]">
-                Beta
+                <Trans>Beta</Trans>
               </span>
             </div>
           )}
           <div className="max-w-md text-balance">
-            If your device has been wrongly detected,{" "}
-            <a
-              href="https://github.com/unicef/adt-studio/releases/latest"
-              target="_blank"
-              rel="noreferrer noopener"
-              className="font-medium text-[color:var(--color-primary)] underline-offset-2 hover:underline"
-            >
-              see all downloads
-            </a>
-            . Please report any issues you encounter on{" "}
-            <a
-              href="https://github.com/unicef/adt-studio/issues"
-              target="_blank"
-              rel="noreferrer noopener"
-              className="font-medium text-[color:var(--color-primary)] underline-offset-2 hover:underline"
-            >
-              GitHub
-            </a>
-            .
+            <Trans>
+              If your device has been wrongly detected,{" "}
+              <a
+                href="https://github.com/unicef/adt-studio/releases/latest"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="font-medium text-[color:var(--color-primary)] underline-offset-2 hover:underline"
+              >
+                see all downloads
+              </a>
+              . Please report any issues you encounter on{" "}
+              <a
+                href="https://github.com/unicef/adt-studio/issues"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="font-medium text-[color:var(--color-primary)] underline-offset-2 hover:underline"
+              >
+                GitHub
+              </a>
+              .
+            </Trans>
           </div>
           {latest && (
             <div className="font-mono text-[10px] text-[color:var(--color-muted-foreground)]/70">
-              Released {formatRelativeDate(latest.published_at)}
+              <Trans>Released {formatRelativeDate(latest.published_at)}</Trans>
             </div>
           )}
         </div>
@@ -271,15 +281,17 @@ function MobileNotice({ fallbackHref }: { fallbackHref: string }) {
         </span>
         <div className="flex-1">
           <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]">
-            Desktop only
+            <Trans>Desktop only</Trans>
           </div>
           <div className="mt-0.5 text-base font-semibold tracking-tight text-[color:var(--color-foreground)]">
-            ADT Studio is a desktop app
+            <Trans>ADT Studio is a desktop app</Trans>
           </div>
           <p className="mt-2 text-sm leading-relaxed text-[color:var(--color-muted-foreground)]">
-            We don&rsquo;t ship a mobile version. To install ADT Studio, open
-            this page on macOS, Windows, or Linux — or send the link to your
-            computer.
+            <Trans>
+              We don&rsquo;t ship a mobile version. To install ADT Studio, open
+              this page on macOS, Windows, or Linux — or send the link to your
+              computer.
+            </Trans>
           </p>
         </div>
       </div>
@@ -292,7 +304,7 @@ function MobileNotice({ fallbackHref }: { fallbackHref: string }) {
         size="md"
         className="mt-4 w-full justify-center"
       >
-        View release on GitHub
+        <Trans>View release on GitHub</Trans>
         <ArrowUpRight className="h-4 w-4" />
       </Button>
     </div>
@@ -310,11 +322,12 @@ function EmptyPlatformState({
   loading: boolean;
   failed: boolean;
 }) {
+  const { t } = useLingui();
   if (loading) {
     return (
       <div className="mx-auto max-w-md rounded-2xl border border-dashed border-[color:var(--color-border)] bg-[color:var(--color-card)]/40 p-6 text-center">
         <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]">
-          Resolving latest release…
+          <Trans>Resolving latest release…</Trans>
         </div>
       </div>
     );
@@ -327,15 +340,15 @@ function EmptyPlatformState({
         </span>
         <div className="flex-1">
           <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]">
-            {failed ? "Couldn't reach GitHub" : "Coming soon"}
+            {failed ? t`Couldn't reach GitHub` : t`Coming soon`}
           </div>
           <div className="mt-0.5 text-base font-semibold tracking-tight text-[color:var(--color-foreground)]">
-            No {meta.label} build yet
+            <Trans>No {meta.label} build yet</Trans>
           </div>
           <p className="mt-2 text-sm leading-relaxed text-[color:var(--color-muted-foreground)]">
             {failed
-              ? "We couldn't fetch the latest release. Try the release page directly, or pick another platform below."
-              : `We don't ship a prebuilt installer for ${meta.label} in this release. Pick another platform below or follow progress on GitHub.`}
+              ? t`We couldn't fetch the latest release. Try the release page directly, or pick another platform below.`
+              : t`We don't ship a prebuilt installer for ${meta.label} in this release. Pick another platform below or follow progress on GitHub.`}
           </p>
         </div>
       </div>
@@ -348,7 +361,7 @@ function EmptyPlatformState({
         size="md"
         className="mt-4 w-full justify-center"
       >
-        View release on GitHub
+        <Trans>View release on GitHub</Trans>
         <ArrowUpRight className="h-4 w-4" />
       </Button>
     </div>
@@ -364,6 +377,7 @@ function PlatformChip({
   resolution: PlatformResolution | null;
   fallbackRelease: GithubRelease | undefined;
 }) {
+  const { t } = useLingui();
   const Icon = meta.icon;
   const fallbackHref =
     fallbackRelease?.html_url ??
@@ -374,9 +388,9 @@ function PlatformChip({
 
   const title = hasBuild
     ? isOutdated
-      ? `Download for ${meta.label} — ${resolution.release.tag_name} (a newer release exists for other platforms)`
-      : `Download for ${meta.label} ${resolution.release.tag_name}`
-    : `${meta.label} build is coming — track on GitHub`;
+      ? t`Download for ${meta.label} — ${resolution.release.tag_name} (a newer release exists for other platforms)`
+      : t`Download for ${meta.label} ${resolution.release.tag_name}`
+    : t`${meta.label} build is coming — track on GitHub`;
 
   return (
     <a
@@ -408,7 +422,7 @@ function PlatformChip({
       )}
       {!hasBuild && (
         <span className="ml-0.5 rounded-full bg-[color:var(--color-muted)] px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-wider text-[color:var(--color-muted-foreground)]">
-          Soon
+          <Trans>Soon</Trans>
         </span>
       )}
     </a>
@@ -437,20 +451,23 @@ function OutdatedNotice({
     >
       <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={2} />
       <span>
-        {platform.label} latest is{" "}
-        <span className="font-mono font-semibold">
-          {platformResolution.release.tag_name}
-        </span>{" "}
-        — the project is on{" "}
-        <a
-          href={overallLatest.html_url}
-          target="_blank"
-          rel="noreferrer noopener"
-          className="font-mono font-semibold underline-offset-2 hover:underline"
-        >
-          {overallLatest.tag_name}
-        </a>
-        . A {platform.label} build for the newer tag isn&rsquo;t available yet.
+        <Trans>
+          {platform.label} latest is{" "}
+          <span className="font-mono font-semibold">
+            {platformResolution.release.tag_name}
+          </span>{" "}
+          — the project is on{" "}
+          <a
+            href={overallLatest.html_url}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="font-mono font-semibold underline-offset-2 hover:underline"
+          >
+            {overallLatest.tag_name}
+          </a>
+          . A {platform.label} build for the newer tag isn&rsquo;t available
+          yet.
+        </Trans>
       </span>
     </div>
   );

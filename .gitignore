@@ -5,6 +5,7 @@ package-lock.json
 # Build output
 dist/
 apps/studio/src/locales/*.js
+apps/landing/src/locales/*.js
 .output/
 *.tsbuildinfo
 /books/

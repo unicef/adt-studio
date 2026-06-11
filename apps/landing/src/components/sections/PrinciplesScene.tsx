@@ -5,45 +5,45 @@ import {
   ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
+import { msg } from "@lingui/core/macro";
+import { type MessageDescriptor } from "@lingui/core";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { SectionEyebrow } from "@/components/SectionEyebrow";
 import { cn } from "@/lib/cn";
 import { useInView } from "@/lib/useScrollProgress";
 
 type Principle = {
-  title: string;
-  body: string;
+  title: MessageDescriptor;
+  body: MessageDescriptor;
   Icon: LucideIcon;
 };
 
 const PRINCIPLES: Principle[] = [
   {
-    title: "One folder per book",
-    body:
-      "Everything about a book — sources, prompts, outputs, history — lives in a single directory. Zip it, share it, back it up.",
+    title: msg`One folder per book`,
+    body: msg`Everything about a book — sources, prompts, outputs, history — lives in a single directory. Zip it, share it, back it up.`,
     Icon: FolderArchive,
   },
   {
-    title: "Nothing is overwritten",
-    body:
-      "Every edit creates a new version. Roll back any stage, compare outputs, keep a full trail of what changed and why.",
+    title: msg`Nothing is overwritten`,
+    body: msg`Every edit creates a new version. Roll back any stage, compare outputs, keep a full trail of what changed and why.`,
     Icon: GitBranch,
   },
   {
-    title: "Rerun what matters",
-    body:
-      "Results are cached at the LLM call level. Tweak a prompt and only the affected steps re-run — fast, deterministic, inspectable.",
+    title: msg`Rerun what matters`,
+    body: msg`Results are cached at the LLM call level. Tweak a prompt and only the affected steps re-run — fast, deterministic, inspectable.`,
     Icon: Rewind,
   },
   {
-    title: "No black boxes",
-    body:
-      "Every prompt, every LLM call, every cost is visible. Audit the whole pipeline or hand it off to the next person with confidence.",
+    title: msg`No black boxes`,
+    body: msg`Every prompt, every LLM call, every cost is visible. Audit the whole pipeline or hand it off to the next person with confidence.`,
     Icon: ShieldCheck,
   },
 ];
 
 export function PrinciplesScene() {
   const { ref, inView: mounted } = useInView<HTMLDivElement>({ threshold: 0.2 });
+  const { t, i18n } = useLingui();
 
   return (
     <section
@@ -53,7 +53,7 @@ export function PrinciplesScene() {
       <div ref={ref} className="mx-auto w-full max-w-6xl px-4">
         <div className="grid grid-cols-1 items-start gap-14 lg:grid-cols-[1fr_1.3fr] lg:gap-20">
           <div className="lg:sticky lg:top-28">
-            <SectionEyebrow label="How we build it" />
+            <SectionEyebrow label={t`How we build it`} />
             <h2
               className={cn(
                 "mt-5 text-balance text-4xl font-semibold leading-[1.08] tracking-tight md:text-[44px]",
@@ -62,11 +62,13 @@ export function PrinciplesScene() {
               )}
               style={{ transitionDelay: "80ms" }}
             >
-              Designed for the people who{" "}
-              <span className="text-[color:var(--color-primary)]">
-                do the work
-              </span>
-              .
+              <Trans>
+                Designed for the people who{" "}
+                <span className="text-[color:var(--color-primary)]">
+                  do the work
+                </span>
+                .
+              </Trans>
             </h2>
             <p
               className={cn(
@@ -76,17 +78,19 @@ export function PrinciplesScene() {
               )}
               style={{ transitionDelay: "220ms" }}
             >
-              ADT Studio is built for teachers, editors and accessibility
-              specialists — not engineers. Every choice in the app follows four
-              principles so your work is always safe, transparent and under
-              your control.
+              <Trans>
+                ADT Studio is built for teachers, editors and accessibility
+                specialists — not engineers. Every choice in the app follows
+                four principles so your work is always safe, transparent and
+                under your control.
+              </Trans>
             </p>
           </div>
 
           <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {PRINCIPLES.map((p, i) => (
               <li
-                key={p.title}
+                key={i}
                 className={cn(
                   "group flex flex-col gap-3 rounded-2xl border border-[color:var(--color-border)] bg-[color:var(--color-card)] p-6 transition-all duration-[700ms] ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-[color:var(--color-primary)]/30 hover:shadow-[0_10px_30px_-12px_rgba(0,0,0,0.12)]",
                   mounted ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0",
@@ -103,10 +107,10 @@ export function PrinciplesScene() {
                 </div>
                 <div>
                   <h3 className="mb-1.5 text-base font-semibold tracking-tight text-[color:var(--color-foreground)]">
-                    {p.title}
+                    {i18n._(p.title)}
                   </h3>
                   <p className="text-sm leading-relaxed text-[color:var(--color-muted-foreground)]">
-                    {p.body}
+                    {i18n._(p.body)}
                   </p>
                 </div>
               </li>

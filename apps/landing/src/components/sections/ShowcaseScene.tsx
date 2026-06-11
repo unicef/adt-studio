@@ -6,27 +6,31 @@ import {
   Languages,
   Volume2,
 } from "lucide-react";
+import { msg } from "@lingui/core/macro";
+import { type MessageDescriptor } from "@lingui/core";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { SectionEyebrow } from "@/components/SectionEyebrow";
 import { cn } from "@/lib/cn";
 import { useInView } from "@/lib/useScrollProgress";
 
-const HIGHLIGHTS = [
+const HIGHLIGHTS: { title: MessageDescriptor; body: MessageDescriptor }[] = [
   {
-    title: "One book, every format",
-    body: "HTML, audio, translations and sign-language — exported together as a single package.",
+    title: msg`One book, every format`,
+    body: msg`HTML, audio, translations and sign-language — exported together as a single package.`,
   },
   {
-    title: "Read on any device",
-    body: "Open in the reader, on the web, or hand the bundle off to an existing LMS.",
+    title: msg`Read on any device`,
+    body: msg`Open in the reader, on the web, or hand the bundle off to an existing LMS.`,
   },
   {
-    title: "Always editable",
-    body: "Your team stays in control. Every asset is a file you can re-run, replace or roll back.",
+    title: msg`Always editable`,
+    body: msg`Your team stays in control. Every asset is a file you can re-run, replace or roll back.`,
   },
 ];
 
 export function ShowcaseScene() {
   const { ref, inView: mounted } = useInView<HTMLDivElement>({ threshold: 0.2 });
+  const { t, i18n } = useLingui();
 
   return (
     <section
@@ -36,7 +40,7 @@ export function ShowcaseScene() {
       <div ref={ref} className="mx-auto w-full max-w-6xl px-6 md:px-10">
         <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-[1fr_1.1fr] lg:gap-14">
           <div>
-            <SectionEyebrow label="The output" />
+            <SectionEyebrow label={t`The output`} />
             <h2
               className={cn(
                 "mt-5 text-balance text-4xl font-semibold leading-[1.08] tracking-tight md:text-[44px]",
@@ -45,11 +49,13 @@ export function ShowcaseScene() {
               )}
               style={{ transitionDelay: "80ms" }}
             >
-              An accessible book,{" "}
-              <span className="text-[color:var(--color-primary)]">
-                ready to ship
-              </span>
-              .
+              <Trans>
+                An accessible book,{" "}
+                <span className="text-[color:var(--color-primary)]">
+                  ready to ship
+                </span>
+                .
+              </Trans>
             </h2>
             <p
               className={cn(
@@ -59,15 +65,17 @@ export function ShowcaseScene() {
               )}
               style={{ transitionDelay: "220ms" }}
             >
-              When the pipeline finishes, you get a clean bundle with every
-              accessibility feature baked in — ready for a classroom, a
-              publisher, or a kid on the couch.
+              <Trans>
+                When the pipeline finishes, you get a clean bundle with every
+                accessibility feature baked in — ready for a classroom, a
+                publisher, or a kid on the couch.
+              </Trans>
             </p>
 
             <ul className="mt-8 flex flex-col gap-4">
               {HIGHLIGHTS.map((h, i) => (
                 <li
-                  key={h.title}
+                  key={i}
                   className={cn(
                     "flex items-start gap-3 transition-all duration-[600ms] ease-[cubic-bezier(0.22,1,0.36,1)]",
                     mounted
@@ -81,10 +89,10 @@ export function ShowcaseScene() {
                   </span>
                   <div>
                     <div className="text-sm font-semibold text-[color:var(--color-foreground)]">
-                      {h.title}
+                      {i18n._(h.title)}
                     </div>
                     <div className="text-sm leading-relaxed text-[color:var(--color-muted-foreground)]">
-                      {h.body}
+                      {i18n._(h.body)}
                     </div>
                   </div>
                 </li>
@@ -126,13 +134,13 @@ function BookMockup({ mounted }: { mounted: boolean }) {
         <div className="flex h-[30px] items-center gap-1.5 bg-blue-500 px-3">
           <Check className="h-3 w-3 text-white" />
           <span className="text-[9px] font-extrabold uppercase tracking-[0.1em] text-white">
-            Cover · Chapter 1
+            <Trans>Cover · Chapter 1</Trans>
           </span>
         </div>
         <div className="flex h-[calc(100%-30px)] flex-col justify-between p-5">
           <div>
             <div className="mb-1.5 text-[9px] font-bold uppercase tracking-wide text-[color:var(--color-muted-foreground)]">
-              Science Textbook
+              <Trans>Science Textbook</Trans>
             </div>
             <div className="mb-3 h-4 w-4/5 rounded-sm bg-[color:var(--color-foreground)]" />
             <div
@@ -143,7 +151,7 @@ function BookMockup({ mounted }: { mounted: boolean }) {
             >
               <ImageIcon className="h-8 w-8 text-blue-500" />
               <span className="absolute bottom-1 right-1 rounded-sm bg-teal-50 px-1 py-0.5 text-[7px] font-bold uppercase tracking-wide text-teal-600">
-                Alt
+                <Trans>Alt</Trans>
               </span>
             </div>
             <div className="mb-1.5 h-1 w-[92%] rounded-sm bg-[color:var(--color-muted)]" />
@@ -153,10 +161,10 @@ function BookMockup({ mounted }: { mounted: boolean }) {
           </div>
           <div className="flex flex-wrap gap-1">
             <Pill tint="bg-rose-50" fg="text-rose-600" Icon={Volume2}>
-              EN · PT
+              <Trans>EN · PT</Trans>
             </Pill>
             <Pill tint="bg-lime-50" fg="text-lime-700" Icon={BookMarked}>
-              Glossary
+              <Trans>Glossary</Trans>
             </Pill>
           </div>
         </div>
@@ -180,13 +188,13 @@ function BookMockup({ mounted }: { mounted: boolean }) {
             <span className="h-2 w-2 rounded-full bg-[#28c840]" />
           </div>
           <span className="font-mono text-[9px] text-[color:var(--color-muted-foreground)]">
-            science · chapter 3
+            <Trans>science · chapter 3</Trans>
           </span>
           <span className="h-2 w-4 rounded-full bg-[color:var(--color-border)]" />
         </div>
         <div className="px-5 pb-5 pt-4">
           <div className="mb-1.5 text-[9px] font-bold uppercase tracking-wide text-[color:var(--color-primary)]">
-            Chapter 3
+            <Trans>Chapter 3</Trans>
           </div>
           <div className="mb-3 h-4 w-5/6 rounded-sm bg-[color:var(--color-foreground)]" />
           <div className="mb-1.5 h-1 w-[94%] rounded-sm bg-[color:var(--color-muted)]" />
@@ -201,7 +209,7 @@ function BookMockup({ mounted }: { mounted: boolean }) {
           >
             <ImageIcon className="h-7 w-7 text-blue-500" />
             <span className="absolute bottom-1.5 right-1.5 rounded-sm bg-teal-50 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-wide text-teal-600">
-              Alt described
+              <Trans>Alt described</Trans>
             </span>
           </div>
 
@@ -209,7 +217,7 @@ function BookMockup({ mounted }: { mounted: boolean }) {
             <div className="mb-1.5 flex items-center gap-1.5">
               <Volume2 className="h-3 w-3 text-rose-600" />
               <span className="text-[9px] font-bold uppercase tracking-wide text-[color:var(--color-muted-foreground)]">
-                Narration · 0:42
+                <Trans>Narration · 0:42</Trans>
               </span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -224,16 +232,16 @@ function BookMockup({ mounted }: { mounted: boolean }) {
 
           <div className="flex flex-wrap gap-1">
             <Pill tint="bg-rose-50" fg="text-rose-600" Icon={Volume2}>
-              EN · PT · ES
+              <Trans>EN · PT · ES</Trans>
             </Pill>
             <Pill tint="bg-cyan-50" fg="text-cyan-600" Icon={Hand}>
-              ASL · LIBRAS
+              <Trans>ASL · LIBRAS</Trans>
             </Pill>
             <Pill tint="bg-pink-50" fg="text-pink-600" Icon={Languages}>
-              4 languages
+              <Trans>4 languages</Trans>
             </Pill>
             <Pill tint="bg-lime-50" fg="text-lime-700" Icon={BookMarked}>
-              Glossary
+              <Trans>Glossary</Trans>
             </Pill>
           </div>
         </div>

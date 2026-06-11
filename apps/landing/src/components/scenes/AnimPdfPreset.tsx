@@ -1,4 +1,5 @@
 import { Check, FileText } from "lucide-react";
+import { Trans } from "@lingui/react/macro";
 import { cn } from "@/lib/cn";
 import { lerp, seg } from "@/lib/seg";
 import { Cursor } from "@/components/Cursor";
@@ -45,7 +46,7 @@ export function AnimPdfPreset({ progress }: { progress: number }) {
         >
           <FileText className="h-10 w-10 text-[color:var(--color-muted-foreground)]" />
           <span className="text-sm text-[color:var(--color-muted-foreground)]">
-            Drop a PDF to get started
+            <Trans>Drop a PDF to get started</Trans>
           </span>
         </div>
 
@@ -55,7 +56,7 @@ export function AnimPdfPreset({ progress }: { progress: number }) {
             dragging && !dropped ? "opacity-100" : "pointer-events-none opacity-0",
           )}
         >
-          Release to upload
+          <Trans>Release to upload</Trans>
         </span>
 
         <div
@@ -112,7 +113,7 @@ export function AnimPdfPreset({ progress }: { progress: number }) {
             )}
           >
             <Check className="h-3 w-3" />
-            Successfully uploaded
+            <Trans>Successfully uploaded</Trans>
           </div>
         </div>
       </div>

@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Info, Settings } from "lucide-react";
 import type { Preset } from "@/data/presets";
 import { cn } from "@/lib/cn";
@@ -9,6 +10,7 @@ export function PresetCard({
   preset: Preset;
   selected: boolean;
 }) {
+  const { i18n } = useLingui();
   const { Icon } = preset;
   return (
     <div
@@ -39,10 +41,10 @@ export function PresetCard({
       </div>
       <div className="flex flex-col gap-2 px-4 pt-4 pb-3">
         <span className="text-sm font-bold text-black leading-5">
-          {preset.title}
+          {i18n._(preset.title)}
         </span>
         <span className="line-clamp-3 text-[10px] leading-[14px] text-[#737373]">
-          {preset.description}
+          {i18n._(preset.description)}
         </span>
         <div
           className="mt-1 flex items-center justify-between"
@@ -50,7 +52,7 @@ export function PresetCard({
         >
           <span className="flex items-center gap-1.5 text-xs font-medium text-[#2b7fff]">
             <Info className="h-3.5 w-3.5 shrink-0" />
-            See examples
+            <Trans>See examples</Trans>
           </span>
           <span className="flex items-center gap-1 rounded-full border border-[#e5e5e5] px-2 py-0.5">
             <Settings className="h-3.5 w-3.5 text-[#0a0a0a]" />

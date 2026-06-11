@@ -1,4 +1,6 @@
 import { useEffect, useMemo } from "react";
+import { i18n } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
 import { DownloadPage } from "@/components/pages/DownloadPage";
 import { ReleasesPage } from "@/components/pages/ReleasesPage";
 import { CarouselScene } from "@/components/sections/CarouselScene";
@@ -38,13 +40,13 @@ function resolveRoute(hashRoute: string): Route {
 function getRouteTitle(route: Route): string {
   switch (route.kind) {
     case "home":
-      return "ADT Studio — Turn any PDF into an accessible book";
+      return i18n._(msg`ADT Studio — Turn any PDF into an accessible book`);
     case "download":
-      return "Download — ADT Studio";
+      return i18n._(msg`Download — ADT Studio`);
     case "releases":
       return route.focusTag
-        ? `Release ${route.focusTag} — ADT Studio`
-        : "Changelog — ADT Studio";
+        ? i18n._(msg`Release ${route.focusTag} — ADT Studio`)
+        : i18n._(msg`Changelog — ADT Studio`);
   }
 }
 

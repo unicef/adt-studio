@@ -1,3 +1,4 @@
+import { Trans, useLingui } from "@lingui/react/macro";
 import { ArrowRight, ArrowUpRight, Sparkles, Tag } from "lucide-react";
 import { SectionEyebrow } from "@/components/SectionEyebrow";
 import { cn } from "@/lib/cn";
@@ -17,6 +18,7 @@ import {
 import { useInView } from "@/lib/useScrollProgress";
 
 export function ReleasesScene() {
+  const { t } = useLingui();
   const { releases, loading } = useStableReleases();
   const { ref, inView: mounted } = useInView<HTMLDivElement>({ threshold: 0.2 });
   const latest = releases?.[0];
@@ -28,7 +30,7 @@ export function ReleasesScene() {
     >
       <div ref={ref} className="mx-auto w-full max-w-5xl px-6 md:px-10">
         <div className="mx-auto max-w-2xl text-center">
-          <SectionEyebrow label="Changelog" />
+          <SectionEyebrow label={t`Changelog`} />
           <h2
             className={cn(
               "mt-5 text-balance text-4xl font-semibold leading-[1.08] tracking-tight md:text-5xl",
@@ -37,8 +39,10 @@ export function ReleasesScene() {
             )}
             style={{ transitionDelay: "80ms" }}
           >
-            Fresh off the{" "}
-            <span className="text-[color:var(--color-primary)]">press</span>.
+            <Trans>
+              Fresh off the{" "}
+              <span className="text-[color:var(--color-primary)]">press</span>.
+            </Trans>
           </h2>
           <p
             className={cn(
@@ -48,8 +52,10 @@ export function ReleasesScene() {
             )}
             style={{ transitionDelay: "220ms" }}
           >
-            Here's what shipped in the latest version — and there are plenty
-            more where this came from.
+            <Trans>
+              Here's what shipped in the latest version — and there are plenty
+              more where this came from.
+            </Trans>
           </p>
         </div>
 
@@ -82,7 +88,7 @@ export function ReleasesScene() {
             rel="noreferrer noopener"
             className="group/gh inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-[color:var(--color-muted-foreground)] transition-colors hover:text-[color:var(--color-foreground)]"
           >
-            Raw notes on GitHub
+            <Trans>Raw notes on GitHub</Trans>
             <ArrowUpRight className="h-3 w-3 transition-transform duration-200 group-hover/gh:translate-x-0.5 group-hover/gh:-translate-y-0.5" />
           </a>
         </div>
@@ -92,6 +98,7 @@ export function ReleasesScene() {
 }
 
 function HeroSpotlight({ release }: { release: GithubRelease }) {
+  const { t } = useLingui();
   const title = release.name?.trim() || release.tag_name;
   const cover = firstImageFromBody(release.body);
   const excerpt = firstParagraphFromBody(release.body, 240);
@@ -107,7 +114,7 @@ function HeroSpotlight({ release }: { release: GithubRelease }) {
       {/* Whole-card link — sits beneath the content, above the background. */}
       <a
         href={detailHref}
-        aria-label={`Read release ${release.tag_name}`}
+        aria-label={t`Read release ${release.tag_name}`}
         className="absolute inset-0 z-0 rounded-3xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-ring)]"
       />
 
@@ -120,7 +127,7 @@ function HeroSpotlight({ release }: { release: GithubRelease }) {
             {release.tag_name}
           </span>
           <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
-            Latest
+            <Trans>Latest</Trans>
           </span>
           <span aria-hidden className="opacity-50">·</span>
           <span>{formatAbsoluteDate(release.published_at)}</span>
@@ -156,7 +163,7 @@ function HeroSpotlight({ release }: { release: GithubRelease }) {
         <div className="mt-auto flex flex-wrap items-center gap-3 pt-2">
           <span className="group/cta relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-[color:var(--color-primary)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_10px_24px_-10px_color-mix(in_oklch,var(--color-primary)_60%,transparent)] transition-all duration-300 group-hover/hero:shadow-[0_18px_36px_-14px_color-mix(in_oklch,var(--color-primary)_70%,transparent)]">
             <Sparkles className="h-4 w-4" />
-            Read this release
+            <Trans>Read this release</Trans>
             <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover/hero:translate-x-0.5" />
           </span>
           <a
@@ -165,7 +172,7 @@ function HeroSpotlight({ release }: { release: GithubRelease }) {
             rel="noreferrer noopener"
             className="group/raw pointer-events-auto relative z-[2] inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-xs font-semibold text-[color:var(--color-muted-foreground)] transition-colors hover:text-[color:var(--color-foreground)]"
           >
-            On GitHub
+            <Trans>On GitHub</Trans>
             <ArrowUpRight className="h-3 w-3 transition-transform duration-200 group-hover/raw:translate-x-0.5 group-hover/raw:-translate-y-0.5" />
           </a>
         </div>
@@ -287,7 +294,9 @@ function HeroSkeleton() {
 function EmptyHero() {
   return (
     <div className="rounded-3xl border border-dashed border-[color:var(--color-border)] bg-[color:var(--color-card)]/60 p-10 text-center text-sm text-[color:var(--color-muted-foreground)]">
-      No releases yet — once the first build ships, it'll show up here.
+      <Trans>
+        No releases yet — once the first build ships, it'll show up here.
+      </Trans>
     </div>
   );
 }

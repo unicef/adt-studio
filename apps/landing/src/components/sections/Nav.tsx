@@ -1,25 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
 import { Github, Menu, X } from "lucide-react";
+import { msg } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
+import type { MessageDescriptor } from "@lingui/core";
 import { Button } from "@/components/Button";
+import { LocaleSwitcher } from "@/components/LocaleSwitcher";
 import { cn } from "@/lib/cn";
 import { useHashRoute } from "@/lib/useHashRoute";
 import { useScrolled } from "@/lib/useScrolled";
 import { useSectionNav } from "@/lib/useSectionNav";
 import { trackEvent } from "@/lib/matomo";
 
-const LINKS = [
-  { href: "#top", id: "top", label: "Home" },
-  { href: "#features", id: "features", label: "Features" },
-  { href: "#carousel", id: "carousel", label: "How it works" },
-  { href: "#showcase", id: "showcase", label: "Output" },
-  { href: "#releases", id: "releases", label: "Releases" },
-  { href: "#finale", id: "finale", label: "Get started" },
+const LINKS: { href: string; id: string; label: MessageDescriptor }[] = [
+  { href: "#top", id: "top", label: msg`Home` },
+  { href: "#features", id: "features", label: msg`Features` },
+  { href: "#carousel", id: "carousel", label: msg`How it works` },
+  { href: "#showcase", id: "showcase", label: msg`Output` },
+  { href: "#releases", id: "releases", label: msg`Releases` },
+  { href: "#finale", id: "finale", label: msg`Get started` },
 ];
 
 const HOME_IDS = LINKS.map((l) => l.id);
 const EMPTY_IDS: readonly string[] = [];
 
 export function Nav() {
+  const { t, i18n } = useLingui();
   const scrolled = useScrolled(8);
   const hashRoute = useHashRoute();
   const isHome = !hashRoute.startsWith("/");
@@ -54,7 +59,7 @@ export function Nav() {
         <a
           href="#top"
           className="group flex items-center gap-2.5"
-          aria-label="ADT Studio home"
+          aria-label={t`ADT Studio home`}
         >
           <span className="relative inline-flex">
             <span
@@ -75,7 +80,7 @@ export function Nav() {
         </a>
 
         <nav
-          aria-label="Primary"
+          aria-label={t`Primary`}
           className="ml-auto hidden items-center gap-0.5 md:flex"
         >
           {LINKS.filter((l) => l.id !== "top").map((l) => {
@@ -92,7 +97,7 @@ export function Nav() {
                     : "text-[color:var(--color-muted-foreground)] hover:bg-[color:var(--color-accent)]/60 hover:text-[color:var(--color-foreground)]",
                 )}
               >
-                {l.label}
+                {i18n._(l.label)}
                 <span
                   aria-hidden
                   className={cn(
@@ -115,7 +120,7 @@ export function Nav() {
             className="hidden h-9 gap-1.5 px-3 text-[13px] sm:inline-flex"
           >
             <Github className="h-3.5 w-3.5" />
-            Star
+            <Trans>Star</Trans>
           </Button>
           <Button
             href="#/download"
@@ -124,13 +129,14 @@ export function Nav() {
             className="hidden h-9 px-4 text-[13px] sm:inline-flex"
             onClick={() => trackEvent("cta", "download_click", "nav")}
           >
-            Download
+            <Trans>Download</Trans>
           </Button>
+          <LocaleSwitcher />
           <button
             type="button"
             className="grid h-9 w-9 cursor-pointer place-items-center rounded-lg border border-[color:var(--color-border)] bg-[color:var(--color-card)] text-[color:var(--color-foreground)] transition-colors hover:bg-[color:var(--color-accent)] md:hidden"
             onClick={() => setOpen((v) => !v)}
-            aria-label={open ? "Close menu" : "Open menu"}
+            aria-label={open ? t`Close menu` : t`Open menu`}
             aria-expanded={open}
           >
             {open ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -162,7 +168,7 @@ export function Nav() {
                     : "text-[color:var(--color-muted-foreground)] hover:bg-[color:var(--color-accent)]/60 hover:text-[color:var(--color-foreground)]",
                 )}
               >
-                {l.label}
+                {i18n._(l.label)}
               </a>
             );
           })}
@@ -177,7 +183,7 @@ export function Nav() {
               onClick={() => setOpen(false)}
             >
               <Github className="h-4 w-4" />
-              Star
+              <Trans>Star</Trans>
             </Button>
             <Button
               href="#/download"
@@ -186,7 +192,7 @@ export function Nav() {
               className="flex-1"
               onClick={() => { setOpen(false); trackEvent("cta", "download_click", "nav"); }}
             >
-              Download
+              <Trans>Download</Trans>
             </Button>
           </div>
         </div>

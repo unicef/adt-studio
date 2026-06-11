@@ -6,19 +6,21 @@ import {
   LayoutGrid,
   Sparkles,
 } from "lucide-react";
+import { useLingui } from "@lingui/react/macro";
 
 export function AnimPipeline({ progress }: { progress: number }) {
+  const { t } = useLingui();
   const p = progress;
 
   const extractSubs = [
-    { label: "Parsing pages", detail: "238 pp" },
-    { label: "Detecting figures", detail: "42 figs" },
-    { label: "OCR & cleanup", detail: "14.2 kB" },
+    { label: t`Parsing pages`, detail: "238 pp" },
+    { label: t`Detecting figures`, detail: "42 figs" },
+    { label: t`OCR & cleanup`, detail: "14.2 kB" },
   ];
   const storySubs = [
-    { label: "Segmenting scenes", detail: "18 scenes" },
-    { label: "Generating panels", detail: "72 panels" },
-    { label: "Laying out spreads", detail: "36 spreads" },
+    { label: t`Segmenting scenes`, detail: "18 scenes" },
+    { label: t`Generating panels`, detail: "72 panels" },
+    { label: t`Laying out spreads`, detail: "36 spreads" },
   ];
 
   const extractT = Math.max(0, Math.min(1, (p - 0.03) / 0.35));
@@ -41,7 +43,7 @@ export function AnimPipeline({ progress }: { progress: number }) {
     <div className="absolute inset-0 flex flex-col gap-3.5 overflow-hidden p-7">
       <div className="flex items-center gap-2.5">
         <div className="text-[11px] font-bold uppercase tracking-wider text-[color:var(--color-muted-foreground)]">
-          {storyActive ? "Pipeline · storyboard" : "Pipeline · extract"}
+          {storyActive ? t`Pipeline · storyboard` : t`Pipeline · extract`}
         </div>
         <div className="h-[3px] max-w-[180px] flex-1 overflow-hidden rounded-full bg-[color:var(--color-muted)]">
           <div
@@ -61,7 +63,7 @@ export function AnimPipeline({ progress }: { progress: number }) {
 
       <div className="grid flex-1 grid-cols-[1fr_24px_1fr] items-stretch gap-2.5">
         <PipelineStage
-          title="Extract"
+          title={t`Extract`}
           Icon={FileText}
           color="#2563eb"
           subs={extractSubs}
@@ -70,7 +72,7 @@ export function AnimPipeline({ progress }: { progress: number }) {
           active={!extractDone}
           dimmed={false}
           NoteIcon={Sparkles}
-          note="Parsing pages into text, figures, and layout boxes — cached by content hash."
+          note={t`Parsing pages into text, figures, and layout boxes — cached by content hash.`}
         />
         <div
           className="flex items-center justify-center transition-colors duration-300"
@@ -79,7 +81,7 @@ export function AnimPipeline({ progress }: { progress: number }) {
           <ArrowRight className="h-4 w-4" />
         </div>
         <PipelineStage
-          title="Storyboard"
+          title={t`Storyboard`}
           Icon={LayoutGrid}
           color="#7c3aed"
           subs={storySubs}
@@ -88,7 +90,7 @@ export function AnimPipeline({ progress }: { progress: number }) {
           active={storyActive && !storyDone}
           dimmed={!storyActive}
           NoteIcon={Layers}
-          note="Grouping content by purpose, then laying out every section as reviewable HTML."
+          note={t`Grouping content by purpose, then laying out every section as reviewable HTML.`}
         />
       </div>
     </div>
@@ -118,6 +120,7 @@ function PipelineStage({
   note: string;
   NoteIcon: typeof FileText;
 }) {
+  const { t } = useLingui();
   const n = subs.length;
   return (
     <div
@@ -154,7 +157,7 @@ function PipelineStage({
           {done ? (
             <>
               <Check className="h-2.5 w-2.5" />
-              DONE
+              {t`DONE`}
             </>
           ) : active ? (
             <>
@@ -165,10 +168,10 @@ function PipelineStage({
                   animation: "onboarding-blink-dot 1s infinite",
                 }}
               />
-              RUNNING
+              {t`RUNNING`}
             </>
           ) : (
-            "WAITING"
+            t`WAITING`
           )}
         </span>
       </div>

@@ -1,4 +1,5 @@
 import { ArrowRight, Github } from "lucide-react";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Button } from "@/components/Button";
 import { SectionEyebrow } from "@/components/SectionEyebrow";
 import { trackEvent } from "@/lib/matomo";
@@ -7,6 +8,7 @@ import { cn } from "@/lib/cn";
 import { useInView } from "@/lib/useScrollProgress";
 
 export function FinaleScene() {
+  const { t } = useLingui();
   const { ref, inView: mounted } = useInView<HTMLDivElement>({ threshold: 0.2 });
 
   return (
@@ -29,7 +31,7 @@ export function FinaleScene() {
       >
         <div className="flex flex-col items-center gap-5">
           <SectionEyebrow
-            label="Get started"
+            label={t`Get started`}
             className={cn(
               "transition-opacity duration-500",
               mounted ? "opacity-100" : "opacity-0",
@@ -44,10 +46,12 @@ export function FinaleScene() {
             )}
             style={{ transitionDelay: "120ms" }}
           >
-            Your first accessible book{" "}
-            <span className="bg-gradient-to-r from-[color:var(--color-primary)] to-violet-500 bg-clip-text text-transparent">
-              starts here.
-            </span>
+            <Trans>
+              Your first accessible book{" "}
+              <span className="bg-gradient-to-r from-[color:var(--color-primary)] to-violet-500 bg-clip-text text-transparent">
+                starts here.
+              </span>
+            </Trans>
           </h2>
           <p
             className={cn(
@@ -56,9 +60,11 @@ export function FinaleScene() {
             )}
             style={{ transitionDelay: "280ms" }}
           >
-            Drop in a PDF and watch it flow through every stage — from raw
-            pages to an accessible reader. Free, open-source, runs on your
-            machine.
+            <Trans>
+              Drop in a PDF and watch it flow through every stage — from raw
+              pages to an accessible reader. Free, open-source, runs on your
+              machine.
+            </Trans>
           </p>
         </div>
 
@@ -75,7 +81,7 @@ export function FinaleScene() {
             variant="primary"
             onClick={() => trackEvent("cta", "download_click", "finale")}
           >
-            Download ADT Studio
+            <Trans>Download ADT Studio</Trans>
             <ArrowRight className="h-4 w-4" />
           </Button>
           <Button
@@ -87,7 +93,7 @@ export function FinaleScene() {
             onClick={() => trackEvent("outbound", "github_source", "finale")}
           >
             <Github className="h-4 w-4" />
-            View source
+            <Trans>View source</Trans>
           </Button>
         </div>
 
@@ -98,16 +104,22 @@ export function FinaleScene() {
           )}
           style={{ transitionDelay: "540ms" }}
         >
-          <span className="font-mono">Free forever</span>
+          <span className="font-mono">
+            <Trans>Free forever</Trans>
+          </span>
           <span className="h-1 w-1 rounded-full bg-[color:var(--color-border)]" />
-          <span className="font-mono">No account needed</span>
+          <span className="font-mono">
+            <Trans>No account needed</Trans>
+          </span>
           <span className="h-1 w-1 rounded-full bg-[color:var(--color-border)]" />
-          <span className="font-mono">MIT licensed</span>
+          <span className="font-mono">
+            <Trans>MIT licensed</Trans>
+          </span>
         </div>
 
         <div className="mt-6 w-full">
           <div className="mb-4 text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]">
-            What happens when you drop in a PDF
+            <Trans>What happens when you drop in a PDF</Trans>
           </div>
           <StageTimeline mounted={mounted} />
         </div>
@@ -117,9 +129,10 @@ export function FinaleScene() {
 }
 
 function StageTimeline({ mounted }: { mounted: boolean }) {
+  const { t } = useLingui();
   return (
     <ol
-      aria-label="Book creation stages"
+      aria-label={t`Book creation stages`}
       className="relative flex w-full items-start justify-between"
     >
       <span
@@ -146,6 +159,7 @@ function StageNode({
   index: number;
   mounted: boolean;
 }) {
+  const { i18n } = useLingui();
   const Icon = stage.icon;
   return (
     <li className="relative flex flex-col items-center gap-2.5">
@@ -170,7 +184,7 @@ function StageNode({
         )}
         style={{ transitionDelay: `${900 + index * 60}ms` }}
       >
-        {stage.label}
+        {i18n._(stage.label)}
       </span>
     </li>
   );

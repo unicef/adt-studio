@@ -1,4 +1,5 @@
 import { ArrowRight, ChevronDown, Github, Sparkles } from "lucide-react";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/Button";
 import { PdfToBookDiagram } from "@/components/PdfToBookDiagram";
@@ -10,6 +11,7 @@ import {
 import { trackEvent } from "@/lib/matomo";
 
 export function WelcomeScene() {
+  const { t } = useLingui();
   const [mounted, setMounted] = useState(false);
   const { releases } = useStableReleases();
   const latest = releases?.[0];
@@ -51,7 +53,7 @@ export function WelcomeScene() {
           >
             <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-[color:var(--color-primary)]/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[color:var(--color-primary)]">
               <Sparkles className="h-3 w-3" />
-              New
+              <Trans>New</Trans>
             </span>
             {latest ? (
               <span className="min-w-0 truncate">
@@ -60,13 +62,18 @@ export function WelcomeScene() {
                   {" · "}
                   {formatRelativeDate(latest.published_at)}
                 </span>
-                <span className="hidden sm:inline">{" · ADT Studio"}</span>
+                <span className="hidden sm:inline">
+                  {" · "}
+                  <Trans>ADT Studio</Trans>
+                </span>
               </span>
             ) : (
               <span className="min-w-0 truncate">
-                <span className="sm:hidden">Now on macOS, Windows, Linux</span>
+                <span className="sm:hidden">
+                  <Trans>Now on macOS, Windows, Linux</Trans>
+                </span>
                 <span className="hidden sm:inline">
-                  ADT Studio — now on macOS, Windows, Linux
+                  <Trans>ADT Studio — now on macOS, Windows, Linux</Trans>
                 </span>
               </span>
             )}
@@ -80,9 +87,11 @@ export function WelcomeScene() {
             )}
             style={{ transitionDelay: "150ms" }}
           >
-            <span className="block">From PDF to</span>
+            <span className="block">
+              <Trans>From PDF to</Trans>
+            </span>
             <span className="block bg-gradient-to-r from-[color:var(--color-primary)] to-violet-500 bg-clip-text text-transparent">
-              accessible books.
+              <Trans>accessible books.</Trans>
             </span>
           </h1>
 
@@ -93,9 +102,11 @@ export function WelcomeScene() {
             )}
             style={{ transitionDelay: "350ms" }}
           >
-            Turn any textbook into something every student can read, hear,
-            see, and understand — audio, structured layouts, translations, and
-            sign language, all built in.
+            <Trans>
+              Turn any textbook into something every student can read, hear,
+              see, and understand — audio, structured layouts, translations, and
+              sign language, all built in.
+            </Trans>
           </p>
 
           <div
@@ -111,7 +122,7 @@ export function WelcomeScene() {
               variant="primary"
               onClick={() => trackEvent("cta", "download_click", "hero")}
             >
-              Download for free
+              <Trans>Download for free</Trans>
               <ArrowRight className="h-4 w-4" />
             </Button>
             <Button
@@ -123,7 +134,7 @@ export function WelcomeScene() {
               onClick={() => trackEvent("outbound", "github_star", "hero")}
             >
               <Github className="h-4 w-4" />
-              Star on GitHub
+              <Trans>Star on GitHub</Trans>
             </Button>
           </div>
 
@@ -134,11 +145,17 @@ export function WelcomeScene() {
             )}
             style={{ transitionDelay: "650ms" }}
           >
-            <span className="font-mono">MIT licensed</span>
+            <span className="font-mono">
+              <Trans>MIT licensed</Trans>
+            </span>
             <span className="h-1 w-1 rounded-full bg-[color:var(--color-border)]" />
-            <span className="font-mono">Runs locally</span>
+            <span className="font-mono">
+              <Trans>Runs locally</Trans>
+            </span>
             <span className="h-1 w-1 rounded-full bg-[color:var(--color-border)]" />
-            <span className="font-mono">Windows · macOS · Linux</span>
+            <span className="font-mono">
+              <Trans>Windows · macOS · Linux</Trans>
+            </span>
           </div>
         </div>
 
@@ -159,7 +176,7 @@ export function WelcomeScene() {
 
       <a
         href="#features"
-        aria-label="Scroll to next section"
+        aria-label={t`Scroll to next section`}
         className={cn(
           "absolute bottom-6 left-1/2 grid h-10 w-10 -translate-x-1/2 cursor-pointer place-items-center rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-card)]/70 text-[color:var(--color-muted-foreground)] backdrop-blur-sm transition-all duration-500 hover:border-[color:var(--color-primary)]/40 hover:text-[color:var(--color-foreground)]",
           mounted ? "opacity-100" : "opacity-0",

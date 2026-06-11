@@ -1,0 +1,30 @@
+{
+  "src/components/PdfToBookDiagram.tsx": {
+    "lingui/no-unlocalized-strings": {
+      "count": 5
+    }
+  },
+  "src/components/ReleaseMarkdown.tsx": {
+    "@next/next/no-img-element": {
+      "count": 1
+    },
+    "lingui/no-unlocalized-strings": {
+      "count": 1
+    }
+  },
+  "src/components/pages/download/shared.ts": {
+    "lingui/no-unlocalized-strings": {
+      "count": 11
+    }
+  },
+  "src/components/scenes/AnimEnrich.tsx": {
+    "lingui/no-unlocalized-strings": {
+      "count": 21
+    }
+  },
+  "src/components/scenes/AnimExport.tsx": {
+    "lingui/no-unlocalized-strings": {
+      "count": 27
+    }
+  }
+}

@@ -1,9 +1,11 @@
 import { BookMarked, Globe, Languages, Volume2 } from "lucide-react";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { cn } from "@/lib/cn";
 import { lerp, seg } from "@/lib/seg";
 import { Cursor } from "@/components/Cursor";
 
 export function AnimEnrich({ progress }: { progress: number }) {
+  const { t } = useLingui();
   const p = progress;
   const enriching = p >= 0.45;
 
@@ -27,7 +29,7 @@ export function AnimEnrich({ progress }: { progress: number }) {
         }}
       >
         <div className="text-[11px] font-bold uppercase tracking-wider text-[color:var(--color-muted-foreground)]">
-          Edit & enrich
+          <Trans>Edit & enrich</Trans>
         </div>
         <div className="grid flex-1 grid-cols-2 grid-rows-2 gap-2.5">
           <EnrichPane
@@ -36,7 +38,7 @@ export function AnimEnrich({ progress }: { progress: number }) {
             bg="bg-pink-50"
             iconColor="text-pink-600"
             Icon={Languages}
-            label="Translate"
+            label={t`Translate`}
           >
             <TranslatePane t={p} />
           </EnrichPane>
@@ -46,7 +48,7 @@ export function AnimEnrich({ progress }: { progress: number }) {
             bg="bg-blue-50"
             iconColor="text-blue-600"
             Icon={Globe}
-            label="Languages"
+            label={t`Languages`}
           >
             <GlobePane t={p} />
           </EnrichPane>
@@ -56,7 +58,7 @@ export function AnimEnrich({ progress }: { progress: number }) {
             bg="bg-rose-50"
             iconColor="text-rose-600"
             Icon={Volume2}
-            label="Speech"
+            label={t`Speech`}
           >
             <WaveformPane t={p} />
           </EnrichPane>
@@ -66,7 +68,7 @@ export function AnimEnrich({ progress }: { progress: number }) {
             bg="bg-lime-50"
             iconColor="text-lime-600"
             Icon={BookMarked}
-            label="Glossary"
+            label={t`Glossary`}
           >
             <GlossaryPane t={p} />
           </EnrichPane>
@@ -248,7 +250,7 @@ function EnrichPane({
             className="ml-auto font-mono text-[9px] font-bold"
             style={{ color }}
           >
-            ● LIVE
+            ● <Trans>LIVE</Trans>
           </span>
         )}
       </div>

@@ -1,0 +1,630 @@
+msgid ""
+msgstr ""
+"POT-Creation-Date: 2026-06-11 13:49-0300\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: @lingui/cli\n"
+"Language: en\n"
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Plural-Forms: \n"
+
+#. placeholder {0}: meta.label
+msgid "{0} build is coming — track on GitHub"
+msgstr "{0} build is coming — track on GitHub"
+
+#. placeholder {0}: platform.label
+#. placeholder {1}: platformResolution.release.tag_name
+#. placeholder {2}: overallLatest.tag_name
+#. placeholder {3}: platform.label
+msgid "{0} latest is <0>{1}</0> — the project is on <1>{2}</1>. A {3} build for the newer tag isn’t available yet."
+msgstr "{0} latest is <0>{1}</0> — the project is on <1>{2}</1>. A {3} build for the newer tag isn’t available yet."
+
+#. placeholder {0}: new Date().getFullYear()
+msgid "© {0} ADT Studio — MIT licensed."
+msgstr "© {0} ADT Studio — MIT licensed."
+
+msgid "4 languages"
+msgstr "4 languages"
+
+msgid "Accessible book"
+msgstr "Accessible book"
+
+msgid "accessible books."
+msgstr "accessible books."
+
+msgid "ADT Studio"
+msgstr "ADT Studio"
+
+msgid "ADT Studio — now on macOS, Windows, Linux"
+msgstr "ADT Studio — now on macOS, Windows, Linux"
+
+msgid "ADT Studio — Turn any PDF into an accessible book"
+msgstr "ADT Studio — Turn any PDF into an accessible book"
+
+msgid "ADT Studio home"
+msgstr "ADT Studio home"
+
+msgid "ADT Studio is a desktop app"
+msgstr "ADT Studio is a desktop app"
+
+msgid "ADT Studio is built for teachers, editors and accessibility specialists — not engineers. Every choice in the app follows four principles so your work is always safe, transparent and under your control."
+msgstr "ADT Studio is built for teachers, editors and accessibility specialists — not engineers. Every choice in the app follows four principles so your work is always safe, transparent and under your control."
+
+msgid "ADT Studio is currently in"
+msgstr "ADT Studio is currently in"
+
+msgid "ADT Studio takes one PDF and rebuilds it as a fully-editable, fully-yours accessible book — with the pieces that used to take a team of specialists."
+msgstr "ADT Studio takes one PDF and rebuilds it as a fully-editable, fully-yours accessible book — with the pieces that used to take a team of specialists."
+
+msgid "Also available on"
+msgstr "Also available on"
+
+msgid "Alt"
+msgstr "Alt"
+
+msgid "Alt described"
+msgstr "Alt described"
+
+msgid "Always editable"
+msgstr "Always editable"
+
+msgid "An accessible book, <0>ready to ship</0>."
+msgstr "An accessible book, <0>ready to ship</0>."
+
+msgid "Architecture"
+msgstr "Architecture"
+
+msgid "ASL · LIBRAS"
+msgstr "ASL · LIBRAS"
+
+msgid "Attach sign-language video for ASL, LIBRAS and beyond — aligned to chapters and inspectable alongside the text."
+msgstr "Attach sign-language video for ASL, LIBRAS and beyond — aligned to chapters and inspectable alongside the text."
+
+msgid "Audio"
+msgstr "Audio"
+
+msgid "Audio narration"
+msgstr "Audio narration"
+
+msgid "Available for"
+msgstr "Available for"
+
+msgid "Back to home"
+msgstr "Back to home"
+
+msgid "Beta"
+msgstr "Beta"
+
+msgid "Book creation stages"
+msgstr "Book creation stages"
+
+msgid "Built with UNICEF"
+msgstr "Built with UNICEF"
+
+msgid "Captions"
+msgstr "Captions"
+
+msgid "Change language"
+msgstr "Change language"
+
+msgid "Changelog"
+msgstr "Changelog"
+
+msgid "Changelog — ADT Studio"
+msgstr "Changelog — ADT Studio"
+
+msgid "Chapter 3"
+msgstr "Chapter 3"
+
+msgid "Choose a preset that matches your content — textbook, storyboard, reference, or custom — and ADT Studio tailors the pipeline accordingly."
+msgstr "Choose a preset that matches your content — textbook, storyboard, reference, or custom — and ADT Studio tailors the pipeline accordingly."
+
+msgid "Close menu"
+msgstr "Close menu"
+
+msgid "Coming soon"
+msgstr "Coming soon"
+
+msgid "Configure each stage — extract, storyboard, layout — then let ADT Studio build the book. Review the output, correct anything that needs a human touch."
+msgstr "Configure each stage — extract, storyboard, layout — then let ADT Studio build the book. Review the output, correct anything that needs a human touch."
+
+msgid "Contents"
+msgstr "Contents"
+
+msgid "Couldn’t load the changelog"
+msgstr "Couldn’t load the changelog"
+
+msgid "Couldn't reach GitHub"
+msgstr "Couldn't reach GitHub"
+
+msgid "Cover · Chapter 1"
+msgstr "Cover · Chapter 1"
+
+msgid "Custom"
+msgstr "Custom"
+
+msgid "Delivered"
+msgstr "Delivered"
+
+msgid "Dense text, tables, glossaries. Best for technical material and documentation."
+msgstr "Dense text, tables, glossaries. Best for technical material and documentation."
+
+msgid "Designed for the people who <0>do the work</0>."
+msgstr "Designed for the people who <0>do the work</0>."
+
+msgid "Desktop only"
+msgstr "Desktop only"
+
+msgid "Detecting figures"
+msgstr "Detecting figures"
+
+msgid "Docs"
+msgstr "Docs"
+
+msgid "DONE"
+msgstr "DONE"
+
+msgid "Download"
+msgstr "Download"
+
+msgid "Download — ADT Studio"
+msgstr "Download — ADT Studio"
+
+msgid "Download ADT Studio"
+msgstr "Download ADT Studio"
+
+#. placeholder {0}: detected.label
+msgid "Download for {0}"
+msgstr "Download for {0}"
+
+#. placeholder {0}: meta.label
+#. placeholder {1}: resolution.release.tag_name
+msgid "Download for {0} — {1} (a newer release exists for other platforms)"
+msgstr "Download for {0} — {1} (a newer release exists for other platforms)"
+
+#. placeholder {0}: meta.label
+#. placeholder {1}: resolution.release.tag_name
+msgid "Download for {0} {1}"
+msgstr "Download for {0} {1}"
+
+msgid "Download for free"
+msgstr "Download for free"
+
+msgid "downloads to date"
+msgstr "downloads to date"
+
+msgid "Drop a PDF to get started"
+msgstr "Drop a PDF to get started"
+
+msgid "Drop in a PDF and watch it flow through every stage — from raw pages to an accessible reader. Free, open-source, runs on your machine."
+msgstr "Drop in a PDF and watch it flow through every stage — from raw pages to an accessible reader. Free, open-source, runs on your machine."
+
+msgid "Drop in a PDF to kick things off. ADT Studio organizes it into a new book project so you don't start from zero."
+msgstr "Drop in a PDF to kick things off. ADT Studio organizes it into a new book project so you don't start from zero."
+
+msgid "Edit & enrich"
+msgstr "Edit & enrich"
+
+msgid "EN · PT"
+msgstr "EN · PT"
+
+msgid "EN · PT · ES"
+msgstr "EN · PT · ES"
+
+msgid "English"
+msgstr "English"
+
+msgid "Every accessibility feature, <0>built in from page one</0>."
+msgstr "Every accessibility feature, <0>built in from page one</0>."
+
+msgid "Every book, every learner."
+msgstr "Every book, every learner."
+
+msgid "Every edit creates a new version. Roll back any stage, compare outputs, keep a full trail of what changed and why."
+msgstr "Every edit creates a new version. Roll back any stage, compare outputs, keep a full trail of what changed and why."
+
+msgid "Every prompt, every LLM call, every cost is visible. Audit the whole pipeline or hand it off to the next person with confidence."
+msgstr "Every prompt, every LLM call, every cost is visible. Audit the whole pipeline or hand it off to the next person with confidence."
+
+msgid "Every reader opens the same book, with the features they need on tap."
+msgstr "Every reader opens the same book, with the features they need on tap."
+
+msgid "Every ship of ADT Studio."
+msgstr "Every ship of ADT Studio."
+
+msgid "Everything about a book — sources, prompts, outputs, history — lives in a single directory. Zip it, share it, back it up."
+msgstr "Everything about a book — sources, prompts, outputs, history — lives in a single directory. Zip it, share it, back it up."
+
+msgid "Export to a reader"
+msgstr "Export to a reader"
+
+msgid "Extract"
+msgstr "Extract"
+
+msgid "Features"
+msgstr "Features"
+
+msgid "Fig 3.1 — The water cycle: evaporation, condensation, precipitation."
+msgstr "Fig 3.1 — The water cycle: evaporation, condensation, precipitation."
+
+msgid "Free forever"
+msgstr "Free forever"
+
+msgid "Free, open-source, and runs on your machine. Available for macOS, Windows, and Linux."
+msgstr "Free, open-source, and runs on your machine. Available for macOS, Windows, and Linux."
+
+msgid "French"
+msgstr "French"
+
+msgid "Fresh off the <0>press</0>."
+msgstr "Fresh off the <0>press</0>."
+
+msgid "From PDF to"
+msgstr "From PDF to"
+
+msgid "Full control over render strategies, pruning, and filters."
+msgstr "Full control over render strategies, pruning, and filters."
+
+msgid "Generate studio-quality text-to-speech for every page, with speaker control and per-language voices — no recording needed."
+msgstr "Generate studio-quality text-to-speech for every page, with speaker control and per-language voices — no recording needed."
+
+msgid "Generating panels"
+msgstr "Generating panels"
+
+msgid "Get started"
+msgstr "Get started"
+
+msgid "GitHub"
+msgstr "GitHub"
+
+msgid "Glossary"
+msgstr "Glossary"
+
+msgid "Grouping content by purpose, then laying out every section as reviewable HTML."
+msgstr "Grouping content by purpose, then laying out every section as reviewable HTML."
+
+msgid "Guidelines"
+msgstr "Guidelines"
+
+msgid "Here's what shipped in the latest version — and there are plenty more where this came from."
+msgstr "Here's what shipped in the latest version — and there are plenty more where this came from."
+
+msgid "Home"
+msgstr "Home"
+
+msgid "How it works"
+msgstr "How it works"
+
+msgid "How we build it"
+msgstr "How we build it"
+
+msgid "HTML, audio, translations and sign-language — exported together as a single package."
+msgstr "HTML, audio, translations and sign-language — exported together as a single package."
+
+msgid "If your device has been wrongly detected, <0>see all downloads</0>. Please report any issues you encounter on <1>GitHub</1>."
+msgstr "If your device has been wrongly detected, <0>see all downloads</0>. Please report any issues you encounter on <1>GitHub</1>."
+
+msgid "Issues"
+msgstr "Issues"
+
+msgid "Language"
+msgstr "Language"
+
+msgid "Languages"
+msgstr "Languages"
+
+msgid "Large images with narrative flow. Ideal for illustrated books with rich TTS voices."
+msgstr "Large images with narrative flow. Ideal for illustrated books with rich TTS voices."
+
+msgid "Latest"
+msgstr "Latest"
+
+msgid "Layer on translations, text-to-speech, and a glossary — all inspectable, cacheable, reversible."
+msgstr "Layer on translations, text-to-speech, and a glossary — all inspectable, cacheable, reversible."
+
+msgid "Laying out spreads"
+msgstr "Laying out spreads"
+
+msgid "License"
+msgstr "License"
+
+msgid "Linux"
+msgstr "Linux"
+
+msgid "LIVE"
+msgstr "LIVE"
+
+msgid "macOS"
+msgstr "macOS"
+
+msgid "MIT licensed"
+msgstr "MIT licensed"
+
+msgid "Narration · 0:42"
+msgstr "Narration · 0:42"
+
+msgid "New"
+msgstr "New"
+
+msgid "Newest first, with the full notes inline — what changed, why it matters, and the screenshots to back it up."
+msgstr "Newest first, with the full notes inline — what changed, why it matters, and the screenshots to back it up."
+
+#. placeholder {0}: meta.label
+msgid "No {0} build yet"
+msgstr "No {0} build yet"
+
+msgid "No account needed"
+msgstr "No account needed"
+
+msgid "No black boxes"
+msgstr "No black boxes"
+
+msgid "No release notes were provided for this version."
+msgstr "No release notes were provided for this version."
+
+msgid "No releases published yet — check back once the first build ships."
+msgstr "No releases published yet — check back once the first build ships."
+
+msgid "No releases yet — once the first build ships, it'll show up here."
+msgstr "No releases yet — once the first build ships, it'll show up here."
+
+msgid "Nothing is overwritten"
+msgstr "Nothing is overwritten"
+
+msgid "Now on macOS, Windows, Linux"
+msgstr "Now on macOS, Windows, Linux"
+
+msgid "OCR & cleanup"
+msgstr "OCR & cleanup"
+
+msgid "On GitHub"
+msgstr "On GitHub"
+
+msgid "One book, every format"
+msgstr "One book, every format"
+
+msgid "One folder per book"
+msgstr "One folder per book"
+
+msgid "Open in the reader, on the web, or hand the bundle off to an existing LMS."
+msgstr "Open in the reader, on the web, or hand the bundle off to an existing LMS."
+
+msgid "Open menu"
+msgstr "Open menu"
+
+msgid "Open on GitHub"
+msgstr "Open on GitHub"
+
+msgid "Open source"
+msgstr "Open source"
+
+msgid "Open-source desktop pipeline for turning PDFs into accessible books — built with UNICEF."
+msgstr "Open-source desktop pipeline for turning PDFs into accessible books — built with UNICEF."
+
+msgid "Output"
+msgstr "Output"
+
+msgid "Package the finished book with every accessibility feature baked in — ready for a kid to open, listen, and read along."
+msgstr "Package the finished book with every accessibility feature baked in — ready for a kid to open, listen, and read along."
+
+msgid "Parsing pages"
+msgstr "Parsing pages"
+
+msgid "Parsing pages into text, figures, and layout boxes — cached by content hash."
+msgstr "Parsing pages into text, figures, and layout boxes — cached by content hash."
+
+msgid "Pause"
+msgstr "Pause"
+
+msgid "Pick a preset"
+msgstr "Pick a preset"
+
+msgid "Pipeline · extract"
+msgstr "Pipeline · extract"
+
+msgid "Pipeline · storyboard"
+msgstr "Pipeline · storyboard"
+
+msgid "Play"
+msgstr "Play"
+
+msgid "Portuguese (BR)"
+msgstr "Portuguese (BR)"
+
+msgid "Pre-release — APIs and behavior may still change before the stable cut."
+msgstr "Pre-release — APIs and behavior may still change before the stable cut."
+
+msgid "Preview"
+msgstr "Preview"
+
+msgid "Primary"
+msgstr "Primary"
+
+msgid "Product"
+msgstr "Product"
+
+msgid "Project"
+msgstr "Project"
+
+msgid "Quizzes"
+msgstr "Quizzes"
+
+msgid "Raw notes on GitHub"
+msgstr "Raw notes on GitHub"
+
+msgid "Read on any device"
+msgstr "Read on any device"
+
+#. placeholder {0}: release.tag_name
+msgid "Read release {0}"
+msgstr "Read release {0}"
+
+msgid "Read this release"
+msgstr "Read this release"
+
+msgid "Recover headings, paragraphs, figures, tables and alt-text from the source PDF as real semantic HTML — built for screen readers."
+msgstr "Recover headings, paragraphs, figures, tables and alt-text from the source PDF as real semantic HTML — built for screen readers."
+
+msgid "Reference"
+msgstr "Reference"
+
+#. placeholder {0}: route.focusTag
+msgid "Release {0} — ADT Studio"
+msgstr "Release {0} — ADT Studio"
+
+msgid "Release to upload"
+msgstr "Release to upload"
+
+#. placeholder {0}: formatRelativeDate(latest.published_at)
+msgid "Released {0}"
+msgstr "Released {0}"
+
+msgid "Releases"
+msgstr "Releases"
+
+msgid "Rerun what matters"
+msgstr "Rerun what matters"
+
+msgid "Resolving latest release…"
+msgstr "Resolving latest release…"
+
+msgid "Results are cached at the LLM call level. Tweak a prompt and only the affected steps re-run — fast, deterministic, inspectable."
+msgstr "Results are cached at the LLM call level. Tweak a prompt and only the affected steps re-run — fast, deterministic, inspectable."
+
+msgid "Run the pipeline"
+msgstr "Run the pipeline"
+
+msgid "RUNNING"
+msgstr "RUNNING"
+
+msgid "Runs locally"
+msgstr "Runs locally"
+
+msgid "science · chapter 3"
+msgstr "science · chapter 3"
+
+msgid "Science Textbook"
+msgstr "Science Textbook"
+
+msgid "Scroll to next section"
+msgstr "Scroll to next section"
+
+msgid "See all releases on GitHub"
+msgstr "See all releases on GitHub"
+
+msgid "See examples"
+msgstr "See examples"
+
+msgid "Segmenting scenes"
+msgstr "Segmenting scenes"
+
+msgid "Ship the same book in every language you need. Translate text, captions and alt-text in one pass — review, edit, re-run."
+msgstr "Ship the same book in every language you need. Translate text, captions and alt-text in one pass — review, edit, re-run."
+
+msgid "Sign"
+msgstr "Sign"
+
+msgid "Sign language"
+msgstr "Sign language"
+
+msgid "Soon"
+msgstr "Soon"
+
+msgid "Spanish"
+msgstr "Spanish"
+
+msgid "Speech"
+msgstr "Speech"
+
+msgid "Star"
+msgstr "Star"
+
+msgid "Star on GitHub"
+msgstr "Star on GitHub"
+
+msgid "Start building accessible books."
+msgstr "Start building accessible books."
+
+msgid "Start from a PDF"
+msgstr "Start from a PDF"
+
+msgid "Storyboard"
+msgstr "Storyboard"
+
+msgid "Storybook"
+msgstr "Storybook"
+
+msgid "Structured chapters and exercises. Best for educational content with complex layouts."
+msgstr "Structured chapters and exercises. Best for educational content with complex layouts."
+
+msgid "Structured layouts"
+msgstr "Structured layouts"
+
+msgid "Successfully uploaded"
+msgstr "Successfully uploaded"
+
+msgid "Textbooks & Activities"
+msgstr "Textbooks & Activities"
+
+msgid "The output"
+msgstr "The output"
+
+msgid "Translate"
+msgstr "Translate"
+
+msgid "Translations"
+msgstr "Translations"
+
+msgid "Trust"
+msgstr "Trust"
+
+msgid "Turn any textbook into something every student can read, hear, see, and understand — audio, structured layouts, translations, and sign language, all built in."
+msgstr "Turn any textbook into something every student can read, hear, see, and understand — audio, structured layouts, translations, and sign language, all built in."
+
+msgid "View release on GitHub"
+msgstr "View release on GitHub"
+
+msgid "View source"
+msgstr "View source"
+
+msgid "WAITING"
+msgstr "WAITING"
+
+msgid "We couldn't fetch the latest release. Try the release page directly, or pick another platform below."
+msgstr "We couldn't fetch the latest release. Try the release page directly, or pick another platform below."
+
+msgid "We couldn’t reach GitHub. The full list is always available on the upstream repo."
+msgstr "We couldn’t reach GitHub. The full list is always available on the upstream repo."
+
+msgid "We don’t ship a mobile version. To install ADT Studio, open this page on macOS, Windows, or Linux — or send the link to your computer."
+msgstr "We don’t ship a mobile version. To install ADT Studio, open this page on macOS, Windows, or Linux — or send the link to your computer."
+
+#. placeholder {0}: meta.label
+msgid "We don't ship a prebuilt installer for {0} in this release. Pick another platform below or follow progress on GitHub."
+msgstr "We don't ship a prebuilt installer for {0} in this release. Pick another platform below or follow progress on GitHub."
+
+msgid "What happens when you drop in a PDF"
+msgstr "What happens when you drop in a PDF"
+
+msgid "What it does"
+msgstr "What it does"
+
+msgid "When the pipeline finishes, you get a clean bundle with every accessibility feature baked in — ready for a classroom, a publisher, or a kid on the couch."
+msgstr "When the pipeline finishes, you get a clean bundle with every accessibility feature baked in — ready for a classroom, a publisher, or a kid on the couch."
+
+msgid "Windows"
+msgstr "Windows"
+
+msgid "Windows · macOS · Linux"
+msgstr "Windows · macOS · Linux"
+
+msgid "Your first accessible book <0>starts here.</0>"
+msgstr "Your first accessible book <0>starts here.</0>"
+
+msgid "Your team stays in control. Every asset is a file you can re-run, replace or roll back."
+msgstr "Your team stays in control. Every asset is a file you can re-run, replace or roll back."

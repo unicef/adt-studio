@@ -1,3 +1,4 @@
+import { Trans } from "@lingui/react/macro";
 import { ArrowLeft, ArrowUpRight, Github } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/Button";
@@ -59,7 +60,7 @@ export function ReleasesPage({ focusTag }: { focusTag?: string }) {
             className="group inline-flex items-center gap-1.5 rounded-full border border-[color:var(--color-border)] bg-[color:var(--color-card)]/70 px-3 py-1 text-xs font-semibold text-[color:var(--color-muted-foreground)] shadow-sm backdrop-blur-sm transition-all hover:border-[color:var(--color-primary)]/30 hover:text-[color:var(--color-foreground)]"
           >
             <ArrowLeft className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" />
-            Back to home
+            <Trans>Back to home</Trans>
           </a>
         </div>
 
@@ -71,7 +72,7 @@ export function ReleasesPage({ focusTag }: { focusTag?: string }) {
             )}
             style={{ transitionDelay: "80ms" }}
           >
-            Changelog
+            <Trans>Changelog</Trans>
           </div>
           <h1
             className={cn(
@@ -80,7 +81,7 @@ export function ReleasesPage({ focusTag }: { focusTag?: string }) {
             )}
             style={{ transitionDelay: "140ms" }}
           >
-            Every ship of ADT Studio.
+            <Trans>Every ship of ADT Studio.</Trans>
           </h1>
           <p
             className={cn(
@@ -89,8 +90,10 @@ export function ReleasesPage({ focusTag }: { focusTag?: string }) {
             )}
             style={{ transitionDelay: "240ms" }}
           >
-            Newest first, with the full notes inline — what changed, why it
-            matters, and the screenshots to back it up.
+            <Trans>
+              Newest first, with the full notes inline — what changed, why it
+              matters, and the screenshots to back it up.
+            </Trans>
           </p>
         </header>
 
@@ -133,7 +136,7 @@ export function ReleasesPage({ focusTag }: { focusTag?: string }) {
               variant="secondary"
               size="md"
             >
-              See all releases on GitHub
+              <Trans>See all releases on GitHub</Trans>
               <ArrowUpRight className="h-4 w-4" />
             </Button>
           </div>
@@ -193,7 +196,7 @@ function ReleaseEntry({
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           {isLatest && (
             <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-700">
-              Latest
+              <Trans>Latest</Trans>
             </span>
           )}
           <span className="font-mono text-[10px] text-[color:var(--color-muted-foreground)]/80">
@@ -222,7 +225,7 @@ function ReleaseEntry({
             />
           ) : (
             <p className="text-sm text-[color:var(--color-muted-foreground)]">
-              No release notes were provided for this version.
+              <Trans>No release notes were provided for this version.</Trans>
             </p>
           )}
         </div>
@@ -314,11 +317,13 @@ function ErrorCard() {
   return (
     <div className="rounded-2xl border border-[color:var(--color-border)] bg-[color:var(--color-card)] p-6">
       <div className="text-base font-semibold text-[color:var(--color-foreground)]">
-        Couldn&rsquo;t load the changelog
+        <Trans>Couldn&rsquo;t load the changelog</Trans>
       </div>
       <p className="mt-1 text-sm text-[color:var(--color-muted-foreground)]">
-        We couldn&rsquo;t reach GitHub. The full list is always available on
-        the upstream repo.
+        <Trans>
+          We couldn&rsquo;t reach GitHub. The full list is always available on
+          the upstream repo.
+        </Trans>
       </p>
       <div className="mt-4">
         <Button
@@ -329,7 +334,7 @@ function ErrorCard() {
           size="md"
         >
           <Github className="h-4 w-4" />
-          Open on GitHub
+          <Trans>Open on GitHub</Trans>
           <ArrowUpRight className="h-4 w-4" />
         </Button>
       </div>
@@ -340,7 +345,9 @@ function ErrorCard() {
 function EmptyCard() {
   return (
     <div className="rounded-2xl border border-dashed border-[color:var(--color-border)] bg-[color:var(--color-card)]/60 p-6 text-sm text-[color:var(--color-muted-foreground)]">
-      No releases published yet — check back once the first build ships.
+      <Trans>
+        No releases published yet — check back once the first build ships.
+      </Trans>
     </div>
   );
 }

@@ -94,6 +94,12 @@ importers:
 
   apps/landing:
     dependencies:
+      '@lingui/core':
+        specifier: ^5.9.3
+        version: 5.9.3(@lingui/babel-plugin-lingui-macro@5.9.3(babel-plugin-macros@3.1.0)(typescript@5.9.3))(babel-plugin-macros@3.1.0)
+      '@lingui/react':
+        specifier: ^5.9.3
+        version: 5.9.3(@lingui/babel-plugin-lingui-macro@5.9.3(babel-plugin-macros@3.1.0)(typescript@5.9.3))(babel-plugin-macros@3.1.0)(react@19.2.4)
       clsx:
         specifier: ^2.1.0
         version: 2.1.1
@@ -122,6 +128,24 @@ importers:
         specifier: ^3.0.0
         version: 3.4.0
     devDependencies:
+      '@ai-sdk/openai':
+        specifier: ^1.0.0
+        version: 1.3.24(zod@3.25.76)
+      '@lingui/babel-plugin-lingui-macro':
+        specifier: ^5.9.3
+        version: 5.9.3(babel-plugin-macros@3.1.0)(typescript@5.9.3)
+      '@lingui/cli':
+        specifier: ^5.9.3
+        version: 5.9.3(babel-plugin-macros@3.1.0)(typescript@5.9.3)
+      '@lingui/conf':
+        specifier: ^5.9.3
+        version: 5.9.3(typescript@5.9.3)
+      '@lingui/macro':
+        specifier: ^5.9.3
+        version: 5.9.3(@lingui/babel-plugin-lingui-macro@5.9.3(babel-plugin-macros@3.1.0)(typescript@5.9.3))(babel-plugin-macros@3.1.0)(react@19.2.4)
+      '@lingui/vite-plugin':
+        specifier: ^5.9.3
+        version: 5.9.3(babel-plugin-macros@3.1.0)(typescript@5.9.3)(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0))
       '@tailwindcss/vite':
         specifier: ^4.0.0
         version: 4.1.18(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0))
@@ -134,15 +158,36 @@ importers:
       '@vitejs/plugin-react':
         specifier: ^4.3.0
         version: 4.7.0(vite@6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0))
+      ai:
+        specifier: ^4.0.0
+        version: 4.3.19(react@19.2.4)(zod@3.25.76)
+      babel-plugin-macros:
+        specifier: ^3.1.0
+        version: 3.1.0
+      eslint:
+        specifier: ^9
+        version: 9.39.4(jiti@2.6.1)
+      eslint-plugin-lingui:
+        specifier: ^0.11.0
+        version: 0.11.0(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3)
       tailwindcss:
         specifier: ^4.0.0
         version: 4.1.18
+      tsx:
+        specifier: ^4.21.0
+        version: 4.21.0
       typescript:
         specifier: ^5
         version: 5.9.3
+      typescript-eslint:
+        specifier: ^8
+        version: 8.57.1(eslint@9.39.4(jiti@2.6.1))(typescript@5.9.3)
       vite:
         specifier: ^6.0.0
         version: 6.4.1(@types/node@20.19.33)(jiti@2.6.1)(lightningcss@1.30.2)(tsx@4.21.0)
+      zod:
+        specifier: ^3.24.0
+        version: 3.25.76
 
   apps/studio:
     dependencies:

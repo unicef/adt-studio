@@ -7,6 +7,7 @@ import {
   Volume2,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { cn } from "@/lib/cn";
 
 export function PdfToBookDiagram({ mounted }: { mounted: boolean }) {
@@ -141,6 +142,7 @@ function PDFCard({ mounted }: { mounted: boolean }) {
 }
 
 function BookCard({ mounted }: { mounted: boolean }) {
+  const { t } = useLingui();
   return (
     <div
       className={cn(
@@ -156,7 +158,7 @@ function BookCard({ mounted }: { mounted: boolean }) {
       <div className="flex h-[30px] items-center gap-1.5 bg-blue-500 px-3">
         <Check className="h-3 w-3 text-white" />
         <span className="text-[9px] font-extrabold uppercase tracking-[0.1em] text-white">
-          Accessible book
+          <Trans>Accessible book</Trans>
         </span>
         <span aria-hidden className="ml-auto flex gap-[3px]">
           <span className="h-1 w-1 rounded-full bg-white/60" />
@@ -166,7 +168,7 @@ function BookCard({ mounted }: { mounted: boolean }) {
       </div>
       <div className="px-4 pb-3.5 pt-4">
         <div className="mb-1.5 text-[9px] font-bold uppercase tracking-wide text-[color:var(--color-muted-foreground)]">
-          Chapter 3
+          <Trans>Chapter 3</Trans>
         </div>
         <div className="mb-2.5 h-3 w-3/4 rounded-sm bg-[color:var(--color-foreground)]" />
         <div className="mb-1.5 h-1 w-[92%] rounded-sm bg-[color:var(--color-muted)]" />
@@ -185,7 +187,10 @@ function BookCard({ mounted }: { mounted: boolean }) {
           </span>
         </div>
         <div className="mb-3 text-[8px] italic leading-relaxed text-[color:var(--color-muted-foreground)]">
-          Fig 3.1 — The water cycle: evaporation, condensation, precipitation.
+          <Trans>
+            Fig 3.1 — The water cycle: evaporation, condensation,
+            precipitation.
+          </Trans>
         </div>
 
         <div className="flex flex-wrap gap-1">
@@ -209,7 +214,7 @@ function BookCard({ mounted }: { mounted: boolean }) {
             color="text-lime-700"
             bg="bg-lime-50"
             Icon={BookMarked}
-            label="Glossary"
+            label={t`Glossary`}
             delay={1400}
             mounted={mounted}
           />

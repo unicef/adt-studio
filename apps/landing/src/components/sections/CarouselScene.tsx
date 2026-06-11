@@ -1,3 +1,6 @@
+import { msg } from "@lingui/core/macro";
+import type { MessageDescriptor } from "@lingui/core";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Check, Pause, Play } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AnimEnrich } from "@/components/scenes/AnimEnrich";
@@ -11,40 +14,40 @@ import { useInViewLive } from "@/lib/useScrollProgress";
 
 type Feature = {
   num: string;
-  title: string;
-  body: string;
+  title: MessageDescriptor;
+  body: MessageDescriptor;
   Anim: (props: { progress: number }) => React.ReactElement;
 };
 
 const FEATURES: Feature[] = [
   {
     num: "01",
-    title: "Start from a PDF",
-    body: "Drop in a PDF to kick things off. ADT Studio organizes it into a new book project so you don't start from zero.",
+    title: msg`Start from a PDF`,
+    body: msg`Drop in a PDF to kick things off. ADT Studio organizes it into a new book project so you don't start from zero.`,
     Anim: AnimPdfPreset,
   },
   {
     num: "02",
-    title: "Pick a preset",
-    body: "Choose a preset that matches your content — textbook, storyboard, reference, or custom — and ADT Studio tailors the pipeline accordingly.",
+    title: msg`Pick a preset`,
+    body: msg`Choose a preset that matches your content — textbook, storyboard, reference, or custom — and ADT Studio tailors the pipeline accordingly.`,
     Anim: AnimPresetPicker,
   },
   {
     num: "03",
-    title: "Run the pipeline",
-    body: "Configure each stage — extract, storyboard, layout — then let ADT Studio build the book. Review the output, correct anything that needs a human touch.",
+    title: msg`Run the pipeline`,
+    body: msg`Configure each stage — extract, storyboard, layout — then let ADT Studio build the book. Review the output, correct anything that needs a human touch.`,
     Anim: AnimPipeline,
   },
   {
     num: "04",
-    title: "Edit & enrich",
-    body: "Layer on translations, text-to-speech, and a glossary — all inspectable, cacheable, reversible.",
+    title: msg`Edit & enrich`,
+    body: msg`Layer on translations, text-to-speech, and a glossary — all inspectable, cacheable, reversible.`,
     Anim: AnimEnrich,
   },
   {
     num: "05",
-    title: "Export to a reader",
-    body: "Package the finished book with every accessibility feature baked in — ready for a kid to open, listen, and read along.",
+    title: msg`Export to a reader`,
+    body: msg`Package the finished book with every accessibility feature baked in — ready for a kid to open, listen, and read along.`,
     Anim: AnimExport,
   },
 ];
@@ -54,6 +57,7 @@ const HOLD_AFTER_MS = [1600, 1600, 500, 1600, 1600];
 const FEATURE_COUNT = FEATURES.length;
 
 export function CarouselScene() {
+  const { i18n } = useLingui();
   const { ref, inView } = useInViewLive<HTMLElement>({ threshold: 0.35 });
   const [idx, setIdx] = useState(0);
   const [progress, setProgress] = useState(0);
@@ -116,7 +120,7 @@ export function CarouselScene() {
     >
       <div className="mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-14 px-4 md:grid-cols-[1fr_1.35fr]">
         <div className="flex flex-col">
-          <SectionEyebrow label="How it works" className="mb-5" />
+          <SectionEyebrow label={i18n._(msg`How it works`)} className="mb-5" />
 
           <div className="relative min-h-[170px]">
             {FEATURES.map((f, i) => (
@@ -133,10 +137,10 @@ export function CarouselScene() {
                   {f.num} / {String(FEATURE_COUNT).padStart(2, "0")}
                 </div>
                 <h2 className="mb-3.5 text-3xl font-semibold leading-tight tracking-tight text-[color:var(--color-foreground)]">
-                  {f.title}
+                  {i18n._(f.title)}
                 </h2>
                 <p className="max-w-md text-sm leading-relaxed text-[color:var(--color-muted-foreground)]">
-                  {f.body}
+                  {i18n._(f.body)}
                 </p>
               </div>
             ))}
@@ -186,7 +190,7 @@ export function CarouselScene() {
                         : "font-medium text-[color:var(--color-muted-foreground)]",
                     )}
                   >
-                    {f.title}
+                    {i18n._(f.title)}
                   </span>
                   {active && (
                     <span className="h-[3px] w-14 overflow-hidden rounded bg-[color:var(--color-muted)]">
@@ -207,7 +211,7 @@ export function CarouselScene() {
             className="mt-3 inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-[color:var(--color-muted-foreground)] transition-colors hover:bg-[color:var(--color-accent)]/60 hover:text-[color:var(--color-foreground)]"
           >
             {playing ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-            {playing ? "Pause" : "Play"}
+            {playing ? <Trans>Pause</Trans> : <Trans>Play</Trans>}
           </button>
         </div>
 
