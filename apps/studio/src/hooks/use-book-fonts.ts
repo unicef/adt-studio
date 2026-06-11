@@ -2,6 +2,15 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { api } from "@/api/client"
 import type { BookFontRole } from "@adt/types"
 
+export function useGoogleFontsCatalog(enabled: boolean) {
+  return useQuery({
+    queryKey: ["google-fonts-catalog"],
+    queryFn: api.getGoogleFontsCatalog,
+    staleTime: Infinity,
+    enabled,
+  })
+}
+
 export function useBookFonts(label: string, opts?: { refetchInterval?: number | false }) {
   return useQuery({
     queryKey: ["book-fonts", label],

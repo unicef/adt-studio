@@ -100,6 +100,10 @@ msgstr "{0} entries"
 msgid "{0} flagged findings in this review"
 msgstr "{0} flagged findings in this review"
 
+#. placeholder {0}: filtered.length
+msgid "{0} fonts"
+msgstr "{0} fonts"
+
 #. placeholder {0}: selectedImageIds.length
 #. placeholder {1}: selectedImageIds.length === 1 ? "" : "s"
 msgid "{0} image{1} selected"
@@ -812,6 +816,9 @@ msgstr "Add your first term"
 msgid "added"
 msgstr "added"
 
+msgid "Added"
+msgstr "Added"
+
 msgid "Added manually"
 msgstr "Added manually"
 
@@ -1346,6 +1353,9 @@ msgstr "Browse and edit Liquid templates used for template-based rendering strat
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 
+msgid "Browse Google Fonts"
+msgstr "Browse Google Fonts"
+
 msgid "Build a glossary of key terms and definitions found in the text."
 msgstr "Build a glossary of key terms and definitions found in the text."
 
@@ -1813,6 +1823,9 @@ msgstr "Correct answer"
 msgid "Correct the metadata extracted from the document."
 msgstr "Correct the metadata extracted from the document."
 
+msgid "Could not load the Google Fonts catalog. Check your connection and try again."
+msgstr "Could not load the Google Fonts catalog. Check your connection and try again."
+
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "Could not read this PDF. The file may be corrupted or password-protected."
 
@@ -2266,8 +2279,8 @@ msgstr "e.g. http://localhost:11434/v1"
 msgid "e.g. Kore"
 msgstr "e.g. Kore"
 
-msgid "e.g. Lexend"
-msgstr "e.g. Lexend"
+#~ msgid "e.g. Lexend"
+#~ msgstr "e.g. Lexend"
 
 msgid "e.g., A cheerful leopard family in a green forest, children's book style..."
 msgstr "e.g., A cheerful leopard family in a green forest, children's book style..."
@@ -3541,6 +3554,9 @@ msgstr "Loading Book..."
 msgid "Loading books..."
 msgstr "Loading books..."
 
+msgid "Loading catalog..."
+msgstr "Loading catalog..."
+
 msgid "Loading Easy Read..."
 msgstr "Loading Easy Read..."
 
@@ -4025,6 +4041,9 @@ msgstr "No fonts attached yet."
 #~ msgid "No fonts attached yet. The book uses the automatically detected fonts."
 #~ msgstr "No fonts attached yet. The book uses the automatically detected fonts."
 
+msgid "No fonts match your search."
+msgstr "No fonts match your search."
+
 msgid "No image"
 msgstr "No image"
 
@@ -4084,6 +4103,9 @@ msgstr "No matching sections"
 
 msgid "No metadata yet — run the pipeline to extract book details"
 msgstr "No metadata yet — run the pipeline to extract book details"
+
+msgid "No open-source license detected. Make sure you have the right to embed and distribute this font."
+msgstr "No open-source license detected. Make sure you have the right to embed and distribute this font."
 
 msgid "No other images in this book"
 msgstr "No other images in this book"
@@ -4324,6 +4346,9 @@ msgstr "Open the Quizzes stage to edit this quiz"
 
 msgid "Open Validation"
 msgstr "Open Validation"
+
+msgid "Open-source license"
+msgstr "Open-source license"
 
 msgid "OpenAI"
 msgstr "OpenAI"
@@ -4666,6 +4691,9 @@ msgstr "Photosynthesis"
 
 msgid "photosynthetic, photosynthesizing"
 msgstr "photosynthetic, photosynthesizing"
+
+msgid "Pick a family to attach to the book. It is downloaded when extraction runs and embedded in the final bundle."
+msgstr "Pick a family to attach to the book. It is downloaded when extraction runs and embedded in the final bundle."
 
 msgid "Pick a preset"
 msgstr "Pick a preset"
@@ -5237,6 +5265,9 @@ msgstr "Restore this term — it will be eligible again on the next regeneration
 msgid "restored"
 msgstr "restored"
 
+msgid "Restricted license"
+msgstr "Restricted license"
+
 msgid "Resume target"
 msgstr "Resume target"
 
@@ -5556,6 +5587,9 @@ msgstr "Search colors"
 
 msgid "Search entries…"
 msgstr "Search entries…"
+
+msgid "Search fonts..."
+msgstr "Search fonts..."
 
 msgid "Search languages..."
 msgstr "Search languages..."
@@ -6457,6 +6491,9 @@ msgstr "This book renders fixed-layout, so it keeps the original PDF fonts. Atta
 msgid "This file couldn't be read as a ZIP archive"
 msgstr "This file couldn't be read as a ZIP archive"
 
+msgid "This font's license is not open-source and restricts embedding — distributing it inside the book bundle may be illegal."
+msgstr "This font's license is not open-source and restricts embedding — distributing it inside the book bundle may be illegal."
+
 msgid "This image is decorative. Screen readers will skip it and no caption is needed."
 msgstr "This image is decorative. Screen readers will skip it and no caption is needed."
 
@@ -6817,6 +6854,9 @@ msgstr "Untitled entry"
 msgid "Untitled quiz"
 msgstr "Untitled quiz"
 
+msgid "Unverified license"
+msgstr "Unverified license"
+
 msgid "Update available"
 msgstr "Update available"
 
@@ -6987,6 +7027,9 @@ msgstr "View HTML source"
 
 msgid "View image"
 msgstr "View image"
+
+msgid "View license"
+msgstr "View license"
 
 msgid "View page"
 msgstr "View page"

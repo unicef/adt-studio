@@ -7,6 +7,9 @@ export interface ParsedFontMetadata {
   subfamily: string | null
   weight: number
   italic: boolean
+  licenseDescription: string | null
+  licenseUrl: string | null
+  embeddingRestricted: boolean
 }
 
 const SFNT_TRUETYPE = 0x00010000
@@ -146,23 +149,39 @@ export function parseFontMetadata(buf: Buffer): ParsedFontMetadata | null {
   let subfamily: string | null = null
   let weight: number | null = null
   let italic = false
+  let licenseDescription: string | null = null
+  let licenseUrl: string | null = null
+  let embeddingRestricted = false
 
   const nameTable = tables?.get("name")
   if (nameTable) {
     const records = parseNameTable(nameTable)
     family = pickName(records, [16, 1])
     subfamily = pickName(records, [17, 2])
+    licenseDescription = pickName(records, [13])
+    licenseUrl = pickName(records, [14])
   }
 
   const os2 = tables?.get("OS/2")
   if (os2 && os2.length >= 64) {
     const usWeightClass = os2.readUInt16BE(4)
     if (usWeightClass >= 1 && usWeightClass <= 1000) weight = usWeightClass
+    const fsType = os2.readUInt16BE(8)
+    embeddingRestricted = (fsType & 0x0002) !== 0 && (fsType & 0x000c) === 0
     italic = (os2.readUInt16BE(62) & 0x01) !== 0
   }
 
   if (!italic && subfamily && /italic|oblique/i.test(subfamily)) italic = true
   weight ??= inferWeightFromName(subfamily) ?? 400
 
-  return { format, family, subfamily, weight, italic }
+  return {
+    format,
+    family,
+    subfamily,
+    weight,
+    italic,
+    licenseDescription,
+    licenseUrl,
+    embeddingRestricted,
+  }
 }

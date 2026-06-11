@@ -102,6 +102,10 @@ msgstr "{0} entrées"
 msgid "{0} flagged findings in this review"
 msgstr "{0} résultats signalés dans cette révision"
 
+#. placeholder {0}: filtered.length
+msgid "{0} fonts"
+msgstr "{0} polices"
+
 #. placeholder {0}: selectedImageIds.length
 #. placeholder {1}: selectedImageIds.length === 1 ? "" : "s"
 msgid "{0} image{1} selected"
@@ -814,6 +818,9 @@ msgstr "Ajoutez votre premier terme"
 msgid "added"
 msgstr "ajouté"
 
+msgid "Added"
+msgstr "Ajoutée"
+
 msgid "Added manually"
 msgstr "Ajouté manuellement"
 
@@ -1348,6 +1355,9 @@ msgstr "Parcourez et modifiez les modèles Liquid utilisés pour les stratégies
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Parcourez chaque section du Storyboard et téléchargez, remplacez ou supprimez sa vidéo en langue des signes."
 
+msgid "Browse Google Fonts"
+msgstr "Parcourir Google Fonts"
+
 msgid "Build a glossary of key terms and definitions found in the text."
 msgstr "Construisez un glossaire des termes clés et définitions trouvés dans le texte."
 
@@ -1815,6 +1825,9 @@ msgstr "Bonne réponse"
 msgid "Correct the metadata extracted from the document."
 msgstr "Corrigez les métadonnées extraites du document."
 
+msgid "Could not load the Google Fonts catalog. Check your connection and try again."
+msgstr "Impossible de charger le catalogue Google Fonts. Vérifiez votre connexion et réessayez."
+
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "Impossible de lire ce PDF. Le fichier est peut-être corrompu ou protégé par un mot de passe."
 
@@ -2268,8 +2281,8 @@ msgstr "e.g. http://localhost:11434/v1"
 msgid "e.g. Kore"
 msgstr "e.g. Kore"
 
-msgid "e.g. Lexend"
-msgstr "p. ex. Lexend"
+#~ msgid "e.g. Lexend"
+#~ msgstr "p. ex. Lexend"
 
 msgid "e.g., A cheerful leopard family in a green forest, children's book style..."
 msgstr "ex., Une joyeuse famille de léopards dans une forêt verte, style livre pour enfants..."
@@ -3543,6 +3556,9 @@ msgstr "Chargement du livre..."
 msgid "Loading books..."
 msgstr "Chargement des livres..."
 
+msgid "Loading catalog..."
+msgstr "Chargement du catalogue..."
+
 msgid "Loading Easy Read..."
 msgstr "Chargement de Lecture Facile..."
 
@@ -4027,6 +4043,9 @@ msgstr "Aucune police jointe pour le moment."
 #~ msgid "No fonts attached yet. The book uses the automatically detected fonts."
 #~ msgstr "Aucune police jointe pour le moment. Le livre utilise les polices détectées automatiquement."
 
+msgid "No fonts match your search."
+msgstr "Aucune police ne correspond à votre recherche."
+
 msgid "No image"
 msgstr "Aucune image"
 
@@ -4086,6 +4105,9 @@ msgstr "Aucune section correspondante"
 
 msgid "No metadata yet — run the pipeline to extract book details"
 msgstr "Aucune métadonnée — exécutez le pipeline pour extraire les détails du livre"
+
+msgid "No open-source license detected. Make sure you have the right to embed and distribute this font."
+msgstr "Aucune licence open source détectée. Assurez-vous d'avoir le droit d'intégrer et de distribuer cette police."
 
 msgid "No other images in this book"
 msgstr "Aucune autre image dans ce livre"
@@ -4326,6 +4348,9 @@ msgstr "Ouvrir l'étape des quiz pour modifier ce quiz"
 
 msgid "Open Validation"
 msgstr "Ouvrir la validation"
+
+msgid "Open-source license"
+msgstr "Licence open source"
 
 msgid "OpenAI"
 msgstr "OpenAI"
@@ -4668,6 +4693,9 @@ msgstr "Photosynthèse"
 
 msgid "photosynthetic, photosynthesizing"
 msgstr "photosynthétique, en train de faire la photosynthèse"
+
+msgid "Pick a family to attach to the book. It is downloaded when extraction runs and embedded in the final bundle."
+msgstr "Choisissez une famille à joindre au livre. Elle est téléchargée lors de l'extraction et intégrée au paquet final."
 
 msgid "Pick a preset"
 msgstr "Choisissez un préréglage"
@@ -5239,6 +5267,9 @@ msgstr "Restaurer ce terme — il sera à nouveau éligible lors de la prochaine
 msgid "restored"
 msgstr "restauré"
 
+msgid "Restricted license"
+msgstr "Licence restreinte"
+
 msgid "Resume target"
 msgstr "Cible de reprise"
 
@@ -5558,6 +5589,9 @@ msgstr "Rechercher des couleurs"
 
 msgid "Search entries…"
 msgstr "Rechercher des entrées…"
+
+msgid "Search fonts..."
+msgstr "Rechercher des polices..."
 
 msgid "Search languages..."
 msgstr "Rechercher langues..."
@@ -6459,6 +6493,9 @@ msgstr "Ce livre est rendu en mise en page fixe, il conserve donc les polices d'
 msgid "This file couldn't be read as a ZIP archive"
 msgstr "Ce fichier n'a pas pu être lu comme une archive ZIP"
 
+msgid "This font's license is not open-source and restricts embedding — distributing it inside the book bundle may be illegal."
+msgstr "La licence de cette police n'est pas open source et restreint l'intégration — la distribuer dans le paquet du livre peut être illégal."
+
 msgid "This image is decorative. Screen readers will skip it and no caption is needed."
 msgstr "Cette image est décorative. Les lecteurs d'écran l'ignoreront et aucune légende n'est nécessaire."
 
@@ -6819,6 +6856,9 @@ msgstr "Entrée sans titre"
 msgid "Untitled quiz"
 msgstr "Quiz sans titre"
 
+msgid "Unverified license"
+msgstr "Licence non vérifiée"
+
 msgid "Update available"
 msgstr "Mise à jour disponible"
 
@@ -6989,6 +7029,9 @@ msgstr "Voir le code source HTML"
 
 msgid "View image"
 msgstr "Voir l'image"
+
+msgid "View license"
+msgstr "Voir la licence"
 
 msgid "View page"
 msgstr "Voir la page"

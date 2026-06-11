@@ -101,6 +101,10 @@ msgstr "{0} hyrje"
 msgid "{0} flagged findings in this review"
 msgstr "{0} gjetje të shënuara në këtë rishikim"
 
+#. placeholder {0}: filtered.length
+msgid "{0} fonts"
+msgstr "{0} fonte"
+
 #. placeholder {0}: selectedImageIds.length
 #. placeholder {1}: selectedImageIds.length === 1 ? "" : "s"
 msgid "{0} image{1} selected"
@@ -813,6 +817,9 @@ msgstr "Shto termin tuaj të parë"
 msgid "added"
 msgstr "shtuar"
 
+msgid "Added"
+msgstr "E shtuar"
+
 msgid "Added manually"
 msgstr "Shtuar manualisht"
 
@@ -1347,6 +1354,9 @@ msgstr "Shfleto dhe redakto shabllonët Liquid të përdorur për strategjitë e
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Shfleto çdo seksion të Storyboard-it dhe ngarko, zëvendëso ose hiq videon e gjuhës së shenjave."
 
+msgid "Browse Google Fonts"
+msgstr "Shfleto Google Fonts"
+
 msgid "Build a glossary of key terms and definitions found in the text."
 msgstr "Ndërto një glosar me termat kryesorë dhe përkufizimet e gjetura në tekst."
 
@@ -1814,6 +1824,9 @@ msgstr "Përgjigje e saktë"
 msgid "Correct the metadata extracted from the document."
 msgstr "Korrigjoni meta të dhënat e nxjerra nga dokumenti."
 
+msgid "Could not load the Google Fonts catalog. Check your connection and try again."
+msgstr "Katalogu i Google Fonts nuk u ngarkua dot. Kontrolloni lidhjen tuaj dhe provoni përsëri."
+
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "Nuk u mund të lexohet ky PDF. Skedari mund të jetë i dëmtuar ose i mbrojtur me fjalëkalim."
 
@@ -2267,8 +2280,8 @@ msgstr "p.sh. http://localhost:11434/v1"
 msgid "e.g. Kore"
 msgstr "p.sh. Kore"
 
-msgid "e.g. Lexend"
-msgstr "p.sh. Lexend"
+#~ msgid "e.g. Lexend"
+#~ msgstr "p.sh. Lexend"
 
 msgid "e.g., A cheerful leopard family in a green forest, children's book style..."
 msgstr "p.sh., Një familje leopardësh të gëzuar në një pyll të gjelbër, stil libri për fëmijë..."
@@ -3542,6 +3555,9 @@ msgstr "Duke ngarkuar librin..."
 msgid "Loading books..."
 msgstr "Duke ngarkuar librat..."
 
+msgid "Loading catalog..."
+msgstr "Duke ngarkuar katalogun..."
+
 msgid "Loading Easy Read..."
 msgstr "Duke ngarkuar Leximin e Lehtë..."
 
@@ -4026,6 +4042,9 @@ msgstr "Ende nuk është bashkëngjitur asnjë font."
 #~ msgid "No fonts attached yet. The book uses the automatically detected fonts."
 #~ msgstr "Ende nuk është bashkëngjitur asnjë font. Libri përdor fontet e zbuluara automatikisht."
 
+msgid "No fonts match your search."
+msgstr "Asnjë font nuk përputhet me kërkimin tuaj."
+
 msgid "No image"
 msgstr "Pa imazh"
 
@@ -4085,6 +4104,9 @@ msgstr "Nuk ka seksione përputhëse"
 
 msgid "No metadata yet — run the pipeline to extract book details"
 msgstr "Nuk ka metadatë ende — ekzekuto zinxhirin e procesimit për të nxjerrë detajet e librit"
+
+msgid "No open-source license detected. Make sure you have the right to embed and distribute this font."
+msgstr "Nuk u zbulua licencë open-source. Sigurohuni që keni të drejtën të përfshini dhe shpërndani këtë font."
 
 msgid "No other images in this book"
 msgstr "Nuk ka imazhe të tjera në këtë libër"
@@ -4325,6 +4347,9 @@ msgstr "Hapni fazën Kuizet për të redaktuar këtë kuiz"
 
 msgid "Open Validation"
 msgstr "Hapni Vërtetimin"
+
+msgid "Open-source license"
+msgstr "Licencë open-source"
 
 msgid "OpenAI"
 msgstr "OpenAI"
@@ -4667,6 +4692,9 @@ msgstr "Fotosinteza"
 
 msgid "photosynthetic, photosynthesizing"
 msgstr "fotosintetik, duke kryer fotosintezo"
+
+msgid "Pick a family to attach to the book. It is downloaded when extraction runs and embedded in the final bundle."
+msgstr "Zgjidhni një familje për ta bashkëngjitur në libër. Ajo shkarkohet kur ekzekutohet nxjerrja dhe futet në paketën përfundimtare."
 
 msgid "Pick a preset"
 msgstr "Zgjidhni një konfigurim paraprak"
@@ -5238,6 +5266,9 @@ msgstr "Riktheje këtë term — do të jetë i pranueshëm përsëri në rigjen
 msgid "restored"
 msgstr "rikthyer"
 
+msgid "Restricted license"
+msgstr "Licencë e kufizuar"
+
 msgid "Resume target"
 msgstr "Rimerr synimin"
 
@@ -5557,6 +5588,9 @@ msgstr "Kërko ngjyra"
 
 msgid "Search entries…"
 msgstr "Kërko regjistrime…"
+
+msgid "Search fonts..."
+msgstr "Kërko fonte..."
 
 msgid "Search languages..."
 msgstr "Kërko gjuhë..."
@@ -6458,6 +6492,9 @@ msgstr "Ky libër shfaqet me strukturë fikse, kështu që ruan fontet origjinal
 msgid "This file couldn't be read as a ZIP archive"
 msgstr "Ky skedar nuk mund të lexohej si arkiv ZIP"
 
+msgid "This font's license is not open-source and restricts embedding — distributing it inside the book bundle may be illegal."
+msgstr "Licenca e këtij fonti nuk është open-source dhe kufizon përfshirjen — shpërndarja e tij brenda paketës së librit mund të jetë e paligjshme."
+
 msgid "This image is decorative. Screen readers will skip it and no caption is needed."
 msgstr "Ky imazh është dekorativ. Lexuesit e ekranit do ta anashkalojnë dhe nuk nevojitet titull."
 
@@ -6818,6 +6855,9 @@ msgstr "Hyrje pa titull"
 msgid "Untitled quiz"
 msgstr "Kuiz pa titull"
 
+msgid "Unverified license"
+msgstr "Licencë e paverifikuar"
+
 msgid "Update available"
 msgstr "Përditësim i disponueshëm"
 
@@ -6988,6 +7028,9 @@ msgstr "Shiko burimin HTML"
 
 msgid "View image"
 msgstr "Shiko imazhin"
+
+msgid "View license"
+msgstr "Shiko licencën"
 
 msgid "View page"
 msgstr "Shiko faqen"

@@ -583,6 +583,11 @@ export interface SignLanguageVideo {
 
 export type BookFontWithStatus = BookFont & { cached: boolean }
 
+export interface GoogleCatalogFamily {
+  family: string
+  category?: string
+}
+
 export interface BookCurrentFont {
   detectedCategory: "serif" | "sans" | null
   setting: string
@@ -645,6 +650,9 @@ export const api = {
     request<{ pageCount: number }>(`/books/${label}/source-pdf/info`),
 
   getBookFonts: (label: string) => request<BookFontsResponse>(`/books/${label}/fonts`),
+
+  getGoogleFontsCatalog: () =>
+    request<{ families: GoogleCatalogFamily[] }>("/google-fonts/catalog"),
 
   uploadBookFonts: (label: string, files: File[]) => {
     const formData = new FormData()

@@ -3,15 +3,14 @@ import {
   ChevronDown,
   CloudDownload,
   Loader2,
-  Plus,
   Sparkles,
   Trash2,
+  TriangleAlert,
   Type,
   Upload,
 } from "lucide-react"
-import { GOOGLE_FONTS, googleFontsCss2Url, type BookFontRole } from "@adt/types"
+import { googleFontsCss2Url, type BookFontRole } from "@adt/types"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -36,6 +35,7 @@ import {
   useUploadBookFonts,
 } from "@/hooks/use-book-fonts"
 import { useApiKey } from "@/hooks/use-api-key"
+import { GoogleFontPickerDialog } from "./GoogleFontPickerDialog"
 import { useLingui } from "@lingui/react/macro"
 import { Trans } from "@lingui/react/macro"
 
@@ -108,6 +108,51 @@ function previewFamily(family: string, category?: string | null): string {
   return `'${family}', ${GENERIC_FALLBACK[category ?? "sans"] ?? "sans-serif"}`
 }
 
+type LicenseStatus = "open" | "restricted" | "unverified" | null
+
+function licenseStatus(font: BookFontWithStatus): LicenseStatus {
+  if (font.license?.embeddingRestricted || font.license?.openSource === false) return "restricted"
+  if (font.license?.openSource === true) return "open"
+  if (font.source === "upload") return "unverified"
+  return null
+}
+
+function FontLicenseWarning({ font }: { font: BookFontWithStatus }) {
+  const { t } = useLingui()
+  const status = licenseStatus(font)
+  if (status !== "restricted" && status !== "unverified") return null
+  const restricted = status === "restricted"
+  return (
+    <p
+      className={cn(
+        "flex items-start gap-1.5 text-xs",
+        restricted ? "text-destructive" : "text-amber-600 dark:text-amber-500",
+      )}
+      role="alert"
+    >
+      <TriangleAlert className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden="true" />
+      <span>
+        {restricted
+          ? t`This font's license is not open-source and restricts embedding — distributing it inside the book bundle may be illegal.`
+          : t`No open-source license detected. Make sure you have the right to embed and distribute this font.`}
+        {font.license?.url && (
+          <>
+            {" "}
+            <a
+              href={font.license.url}
+              target="_blank"
+              rel="noreferrer"
+              className="underline underline-offset-2"
+            >
+              {t`View license`}
+            </a>
+          </>
+        )}
+      </span>
+    </p>
+  )
+}
+
 function CurrentFontCard({ current }: { current: BookCurrentFont }) {
   const { t } = useLingui()
   if (current.fixedLayout) {
@@ -173,7 +218,7 @@ export function FontSettings({ bookLabel }: { bookLabel: string }) {
   const { apiKey, hasApiKey } = useApiKey()
 
   const [analyzing, setAnalyzing] = useState(false)
-  const [googleFamily, setGoogleFamily] = useState("")
+  const [pickerOpen, setPickerOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -205,12 +250,9 @@ export function FontSettings({ bookLabel }: { bookLabel: string }) {
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
-  const handleAddGoogle = () => {
-    const family = googleFamily.trim()
-    if (!family) return
+  const handleAddGoogle = (family: string) => {
     setActionError(null)
     addGoogleFont.mutate(family, {
-      onSuccess: () => setGoogleFamily(""),
       onError: (err) => setActionError(err.message),
     })
   }
@@ -289,47 +331,38 @@ export function FontSettings({ bookLabel }: { bookLabel: string }) {
         </button>
 
         <div className="flex flex-col justify-center gap-2 rounded-lg border p-4">
-          <Label htmlFor="google-font-family" className="text-xs flex items-center gap-1.5">
+          <Label className="text-xs flex items-center gap-1.5">
             <CloudDownload className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
             {t`Add a Google Fonts family`}
           </Label>
-          <div className="flex gap-2">
-            <Input
-              id="google-font-family"
-              list="google-fonts-families"
-              value={googleFamily}
-              onChange={(e) => setGoogleFamily(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleAddGoogle()
-              }}
-              placeholder={t`e.g. Lexend`}
-              className="h-9"
-            />
-            <datalist id="google-fonts-families">
-              {GOOGLE_FONTS.map((f) => (
-                <option key={f.key} value={f.family} />
-              ))}
-            </datalist>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="h-9 shrink-0"
-              onClick={handleAddGoogle}
-              disabled={addGoogleFont.isPending || !googleFamily.trim()}
-            >
-              {addGoogleFont.isPending ? (
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-              ) : (
-                <Plus className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-              )}
-              {t`Add`}
-            </Button>
-          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="h-9 justify-start"
+            onClick={() => setPickerOpen(true)}
+          >
+            {addGoogleFont.isPending ? (
+              <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+            ) : (
+              <CloudDownload className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+            )}
+            {t`Browse Google Fonts`}
+          </Button>
           <p className="text-xs text-muted-foreground">
             {t`Downloaded automatically when extraction runs — the final bundle works offline.`}
           </p>
         </div>
       </div>
+
+      <GoogleFontPickerDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        existingFamilies={
+          new Set(fonts.filter((f) => f.source === "google").map((f) => f.family))
+        }
+        pendingFamily={addGoogleFont.isPending ? (addGoogleFont.variables ?? null) : null}
+        onSelect={handleAddGoogle}
+      />
 
       {actionError && (
         <p className="text-xs text-destructive" role="alert">
@@ -429,6 +462,15 @@ export function FontSettings({ bookLabel }: { bookLabel: string }) {
                       </Badge>
                     )}
                     {font.roleLockedByUser && <Badge variant="outline">{t`Pinned`}</Badge>}
+                    {licenseStatus(font) === "open" && (
+                      <Badge variant="secondary">{t`Open-source license`}</Badge>
+                    )}
+                    {licenseStatus(font) === "restricted" && (
+                      <Badge variant="destructive">{t`Restricted license`}</Badge>
+                    )}
+                    {licenseStatus(font) === "unverified" && (
+                      <Badge variant="outline">{t`Unverified license`}</Badge>
+                    )}
                     {font.faces.length > 0 && (
                       <span className="text-xs text-muted-foreground ml-1">
                         {t`Weights:`}{" "}
@@ -439,6 +481,8 @@ export function FontSettings({ bookLabel }: { bookLabel: string }) {
                       </span>
                     )}
                   </div>
+
+                  <FontLicenseWarning font={font} />
 
                   <div className="flex items-center gap-2">
                     <Label className="text-xs shrink-0">{t`Used for`}</Label>

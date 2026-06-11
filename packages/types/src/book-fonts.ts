@@ -21,6 +21,14 @@ export const BOOK_FONT_FORMATS = ["woff2", "woff", "truetype", "opentype"] as co
 export const BookFontFormat = z.enum(BOOK_FONT_FORMATS)
 export type BookFontFormat = z.infer<typeof BookFontFormat>
 
+export const BookFontLicense = z.object({
+  description: z.string().optional(),
+  url: z.string().optional(),
+  embeddingRestricted: z.boolean().default(false),
+  openSource: z.boolean().nullable().default(null),
+})
+export type BookFontLicense = z.infer<typeof BookFontLicense>
+
 export const BookFontFace = z.object({
   file: z.string().regex(/^[a-zA-Z0-9._-]+$/),
   weight: z.number().int().min(1).max(1000).default(400),
@@ -39,6 +47,7 @@ export const BookFont = z.object({
   faces: z.array(BookFontFace).default([]),
   role: BookFontRole.default("unassigned"),
   roleLockedByUser: z.boolean().default(false),
+  license: BookFontLicense.optional(),
 })
 export type BookFont = z.infer<typeof BookFont>
 
@@ -78,4 +87,21 @@ export function bookFontsReferencedIn(text: string, registry: BookFontRegistry):
 
 export function isCuratedGoogleFamily(family: string): boolean {
   return GOOGLE_FONTS.some((f) => f.family === family)
+}
+
+const OPEN_SOURCE_LICENSE_RE =
+  /(SIL Open Font|Open Font License|\bOFL\b|Apache|\bMIT\b|GNU|\bGPL\b|\bLGPL\b|Ubuntu Font|Creative Commons|\bCC0\b|\bCC[- ]BY\b|public domain|\bUFL\b|opensource\.org|scripts\.sil\.org)/i
+
+const RESTRICTED_LICENSE_RE =
+  /(all rights reserved|proprietary|commercial (license|use only)|for (personal|evaluation) use only|not (be )?redistribut|may not be (copied|distributed|embedded|modified)|unauthorized|без права|uso (pessoal|restrito))/i
+
+export function classifyFontLicenseOpenSource(
+  description?: string | null,
+  url?: string | null,
+): boolean | null {
+  const text = `${description ?? ""} ${url ?? ""}`.trim()
+  if (!text) return null
+  if (OPEN_SOURCE_LICENSE_RE.test(text)) return true
+  if (RESTRICTED_LICENSE_RE.test(text)) return false
+  return null
 }

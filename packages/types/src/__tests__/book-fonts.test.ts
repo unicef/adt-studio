@@ -4,6 +4,7 @@ import {
   BookFontRegistry,
   bookFontIdFromName,
   bookFontsReferencedIn,
+  classifyFontLicenseOpenSource,
 } from "../book-fonts.js"
 
 function registryWith(...families: string[]): BookFontRegistry {
@@ -53,6 +54,30 @@ describe("bookFontsReferencedIn", () => {
   it("dedupes repeated references", () => {
     const html = `font-family:Solo; font-family: Solo, serif`
     expect(bookFontsReferencedIn(html, registryWith("Solo"))).toHaveLength(1)
+  })
+})
+
+describe("classifyFontLicenseOpenSource", () => {
+  it("recognizes open-source licenses", () => {
+    expect(
+      classifyFontLicenseOpenSource("Licensed under the SIL Open Font License 1.1"),
+    ).toBe(true)
+    expect(classifyFontLicenseOpenSource(undefined, "https://scripts.sil.org/OFL")).toBe(true)
+    expect(classifyFontLicenseOpenSource("Apache License, Version 2.0")).toBe(true)
+    expect(classifyFontLicenseOpenSource("Ubuntu Font Licence 1.0")).toBe(true)
+  })
+
+  it("recognizes restricted licenses", () => {
+    expect(classifyFontLicenseOpenSource("Copyright 2020. All rights reserved.")).toBe(false)
+    expect(classifyFontLicenseOpenSource("For personal use only")).toBe(false)
+    expect(
+      classifyFontLicenseOpenSource("This font may not be redistributed without permission"),
+    ).toBe(false)
+  })
+
+  it("returns null when nothing is known", () => {
+    expect(classifyFontLicenseOpenSource()).toBeNull()
+    expect(classifyFontLicenseOpenSource("Designed by Someone in 2015")).toBeNull()
   })
 })
 

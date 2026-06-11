@@ -37,10 +37,11 @@ function buildNameTable(names: Record<number, string>): Buffer {
   return Buffer.concat([header, ...records, ...strings])
 }
 
-function buildOs2Table(weight: number, italic: boolean): Buffer {
+function buildOs2Table(weight: number, italic: boolean, fsType = 0): Buffer {
   const table = Buffer.alloc(78)
   table.writeUInt16BE(4, 0)
   table.writeUInt16BE(weight, 4)
+  table.writeUInt16BE(fsType, 8)
   table.writeUInt16BE(italic ? 0x01 : 0x40, 62)
   return table
 }
@@ -162,5 +163,35 @@ describe("parseFontMetadata", () => {
     const ttf = buildSfnt({ name: Buffer.from([0, 0, 0]) })
     const meta = parseFontMetadata(ttf)
     expect(meta?.family).toBeNull()
+  })
+
+  it("extracts license description and url from name IDs 13/14", () => {
+    const ttf = buildSfnt({
+      name: buildNameTable({
+        1: "Fonte",
+        13: "This Font Software is licensed under the SIL Open Font License, Version 1.1.",
+        14: "https://scripts.sil.org/OFL",
+      }),
+    })
+    const meta = parseFontMetadata(ttf)
+    expect(meta?.licenseDescription).toContain("SIL Open Font License")
+    expect(meta?.licenseUrl).toBe("https://scripts.sil.org/OFL")
+    expect(meta?.embeddingRestricted).toBe(false)
+  })
+
+  it("flags restricted-embedding fsType", () => {
+    const ttf = buildSfnt({
+      name: buildNameTable({ 1: "Fonte" }),
+      "OS/2": buildOs2Table(400, false, 0x0002),
+    })
+    expect(parseFontMetadata(ttf)?.embeddingRestricted).toBe(true)
+  })
+
+  it("does not flag fsType with preview or editable bits", () => {
+    const ttf = buildSfnt({
+      name: buildNameTable({ 1: "Fonte" }),
+      "OS/2": buildOs2Table(400, false, 0x0006),
+    })
+    expect(parseFontMetadata(ttf)?.embeddingRestricted).toBe(false)
   })
 })

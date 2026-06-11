@@ -27,6 +27,7 @@ export {
   BookFontFormat,
   BOOK_FONT_FORMATS,
   BookFontFace,
+  BookFontLicense,
   BookFont,
   BookFontRegistry,
   FONT_REGISTRY_NODE,
@@ -36,6 +37,7 @@ export {
   bookFontIdFromName,
   bookFontsReferencedIn,
   isCuratedGoogleFamily,
+  classifyFontLicenseOpenSource,
 } from "./book-fonts.js"
 
 export {

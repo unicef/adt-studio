@@ -15,12 +15,14 @@ import {
   FONT_ASSIGNMENT_ITEM_ID,
   bookFontIdFromName,
   classifyFontCategoryByName,
+  classifyFontLicenseOpenSource,
   normalizeFontKey,
 } from "@adt/types"
 import { createBookStorage, type Storage } from "@adt/storage"
 import {
   parseFontMetadata,
   validateGoogleFamily,
+  fetchGoogleFontsCatalog,
   readCachedGoogleFont,
   readBookFontRegistry,
   resolveFontsCacheDir,
@@ -110,6 +112,11 @@ export function createFontRoutes(
     }
   }
 
+  app.get("/google-fonts/catalog", async (c) => {
+    const families = await fetchGoogleFontsCatalog(cacheDir)
+    return c.json({ families })
+  })
+
   app.get("/books/:label/fonts", (c) => {
     const safeLabel = parseBookLabel(c.req.param("label"))
     const storage = createBookStorage(safeLabel, booksDir)
@@ -151,6 +158,14 @@ export function createFontRoutes(
 
         const family = parsed.family ?? path.basename(file.name, path.extname(file.name))
         const fontId = bookFontIdFromName(family)
+        const license = {
+          description: parsed.licenseDescription ?? undefined,
+          url: parsed.licenseUrl ?? undefined,
+          embeddingRestricted: parsed.embeddingRestricted,
+          openSource: parsed.embeddingRestricted
+            ? false
+            : classifyFontLicenseOpenSource(parsed.licenseDescription, parsed.licenseUrl),
+        }
         const face: BookFontFace = {
           file: "",
           weight: parsed.weight,
@@ -177,6 +192,9 @@ export function createFontRoutes(
             ),
             face,
           ]
+          if (license.description || license.url || license.embeddingRestricted) {
+            existing.license = license
+          }
         } else {
           const category = classifyFontCategoryByName(family)
           registry.fonts.push({
@@ -187,6 +205,7 @@ export function createFontRoutes(
             faces: [face],
             role: "unassigned",
             roleLockedByUser: false,
+            license,
           })
         }
       }
@@ -231,6 +250,7 @@ export function createFontRoutes(
         faces: cached?.faces ?? [],
         role: "unassigned",
         roleLockedByUser: false,
+        license: { embeddingRestricted: false, openSource: true },
       })
       saveRegistry(storage, registry)
       return c.json(registryResponse(storage, safeLabel))

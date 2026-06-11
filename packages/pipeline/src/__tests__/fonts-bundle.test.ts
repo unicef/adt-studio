@@ -11,6 +11,8 @@ import {
   readCachedGoogleFont,
   bundleBookFontsIntoCss,
   resolveFontsCacheDir,
+  parseGoogleFontsCatalog,
+  fetchGoogleFontsCatalog,
 } from "../fonts-bundle.js"
 
 const CSS2 = `
@@ -130,6 +132,63 @@ describe("ensureGoogleFontsCached", () => {
     })
     expect(result.cached).toEqual([])
     expect(result.failed).toEqual([{ family: "Broken", error: "offline" }])
+  })
+})
+
+const CATALOG_RAW = `)]}'{"familyMetadataList":[{"family":"Lexend","category":"Sans Serif"},{"family":"Lora","category":"Serif"},{"category":"Serif"}]}`
+
+describe("parseGoogleFontsCatalog", () => {
+  it("strips the XSSI prefix and keeps valid entries", () => {
+    expect(parseGoogleFontsCatalog(CATALOG_RAW)).toEqual([
+      { family: "Lexend", category: "Sans Serif" },
+      { family: "Lora", category: "Serif" },
+    ])
+  })
+
+  it("returns empty for unexpected shapes", () => {
+    expect(parseGoogleFontsCatalog(`{"something":true}`)).toEqual([])
+  })
+})
+
+describe("fetchGoogleFontsCatalog", () => {
+  it("fetches, caches, and serves from cache within the TTL", async () => {
+    const fetchText = vi.fn().mockResolvedValue(CATALOG_RAW)
+    const first = await fetchGoogleFontsCatalog(tmpDir, { fetchText }, 1_000)
+    expect(first).toHaveLength(2)
+    const second = await fetchGoogleFontsCatalog(tmpDir, { fetchText }, 2_000)
+    expect(second).toHaveLength(2)
+    expect(fetchText).toHaveBeenCalledTimes(1)
+  })
+
+  it("refetches after the TTL expires", async () => {
+    const fetchText = vi.fn().mockResolvedValue(CATALOG_RAW)
+    await fetchGoogleFontsCatalog(tmpDir, { fetchText }, 1_000)
+    await fetchGoogleFontsCatalog(tmpDir, { fetchText }, 1_000 + 8 * 24 * 60 * 60 * 1000)
+    expect(fetchText).toHaveBeenCalledTimes(2)
+  })
+
+  it("falls back to a stale cache when the fetch fails", async () => {
+    await fetchGoogleFontsCatalog(tmpDir, { fetchText: async () => CATALOG_RAW }, 1_000)
+    const stale = await fetchGoogleFontsCatalog(
+      tmpDir,
+      {
+        fetchText: async () => {
+          throw new Error("offline")
+        },
+      },
+      1_000 + 8 * 24 * 60 * 60 * 1000,
+    )
+    expect(stale).toHaveLength(2)
+  })
+
+  it("falls back to the curated list with no cache and no network", async () => {
+    const families = await fetchGoogleFontsCatalog(tmpDir, {
+      fetchText: async () => {
+        throw new Error("offline")
+      },
+    })
+    expect(families.length).toBeGreaterThan(10)
+    expect(families.some((f) => f.family === "Lexend")).toBe(true)
   })
 })
 

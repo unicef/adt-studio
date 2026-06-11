@@ -26,25 +26,35 @@ function createTestBook(label: string): void {
   fs.writeFileSync(path.join(bookDir, `${label}.pdf`), "fake pdf")
 }
 
-function buildMinimalTtf(family: string): Buffer {
+function buildMinimalTtf(family: string, license?: string): Buffer {
   const utf16 = (s: string) => {
     const b = Buffer.alloc(s.length * 2)
     for (let i = 0; i < s.length; i++) b.writeUInt16BE(s.charCodeAt(i), i * 2)
     return b
   }
-  const famBytes = utf16(family)
+  const entries: Array<[number, Buffer]> = [[1, utf16(family)]]
+  if (license) entries.push([13, utf16(license)])
+
   const nameHeader = Buffer.alloc(6)
   nameHeader.writeUInt16BE(0, 0)
-  nameHeader.writeUInt16BE(1, 2)
-  nameHeader.writeUInt16BE(6 + 12, 4)
-  const rec = Buffer.alloc(12)
-  rec.writeUInt16BE(3, 0)
-  rec.writeUInt16BE(1, 2)
-  rec.writeUInt16BE(0x409, 4)
-  rec.writeUInt16BE(1, 6)
-  rec.writeUInt16BE(famBytes.length, 8)
-  rec.writeUInt16BE(0, 10)
-  const nameTable = Buffer.concat([nameHeader, rec, famBytes])
+  nameHeader.writeUInt16BE(entries.length, 2)
+  nameHeader.writeUInt16BE(6 + entries.length * 12, 4)
+  const records: Buffer[] = []
+  const strings: Buffer[] = []
+  let offset = 0
+  for (const [nameId, bytes] of entries) {
+    const rec = Buffer.alloc(12)
+    rec.writeUInt16BE(3, 0)
+    rec.writeUInt16BE(1, 2)
+    rec.writeUInt16BE(0x409, 4)
+    rec.writeUInt16BE(nameId, 6)
+    rec.writeUInt16BE(bytes.length, 8)
+    rec.writeUInt16BE(offset, 10)
+    records.push(rec)
+    strings.push(bytes)
+    offset += bytes.length
+  }
+  const nameTable = Buffer.concat([nameHeader, ...records, ...strings])
 
   const header = Buffer.alloc(12)
   header.writeUInt32BE(0x00010000, 0)
@@ -149,6 +159,58 @@ describe("POST /books/:label/fonts", () => {
     const body2 = (await res2.json()) as { version: number; fonts: unknown[] }
     expect(body2.version).toBe(2)
     expect(body2.fonts).toHaveLength(1)
+  })
+
+  it("marks fonts without license info as unverified", async () => {
+    createTestBook("nolicense")
+    const app = createFontRoutes(tmpDir, promptsDir)
+    const res = await app.request(uploadRequest("nolicense", "f.ttf", buildMinimalTtf("Fonte")))
+    const body = (await res.json()) as {
+      fonts: Array<{ license?: { openSource: boolean | null; embeddingRestricted: boolean } }>
+    }
+    expect(body.fonts[0].license).toMatchObject({ openSource: null, embeddingRestricted: false })
+  })
+
+  it("classifies a restricted license from the name table", async () => {
+    createTestBook("restricted")
+    const app = createFontRoutes(tmpDir, promptsDir)
+    const res = await app.request(
+      uploadRequest(
+        "restricted",
+        "f.ttf",
+        buildMinimalTtf("Fonte Paga", "Copyright 2020. All rights reserved."),
+      ),
+    )
+    const body = (await res.json()) as {
+      fonts: Array<{ license?: { openSource: boolean | null } }>
+    }
+    expect(body.fonts[0].license?.openSource).toBe(false)
+  })
+
+  it("marks google fonts as open source", async () => {
+    createTestBook("goog")
+    const cacheDir = path.join(tmpDir, ".fonts-cache", "google", "lexend")
+    fs.mkdirSync(cacheDir, { recursive: true })
+    fs.writeFileSync(path.join(cacheDir, "lexend-normal-400-0.woff2"), "bytes")
+    fs.writeFileSync(
+      path.join(cacheDir, "manifest.json"),
+      JSON.stringify({
+        family: "Lexend",
+        fetchedAt: "2026-01-01T00:00:00.000Z",
+        faces: [{ file: "lexend-normal-400-0.woff2", weight: 400, style: "normal", format: "woff2" }],
+      }),
+    )
+    const app = createFontRoutes(tmpDir, promptsDir)
+    const res = await app.request(`http://localhost/books/goog/fonts/google`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ family: "Lexend" }),
+    })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as {
+      fonts: Array<{ license?: { openSource: boolean | null } }>
+    }
+    expect(body.fonts[0].license?.openSource).toBe(true)
   })
 })
 

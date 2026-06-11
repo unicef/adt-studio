@@ -9,6 +9,7 @@ import {
   FONT_REGISTRY_ITEM_ID,
   FONT_ASSIGNMENT_NODE,
   FONT_ASSIGNMENT_ITEM_ID,
+  GOOGLE_FONTS,
   bookFontsReferencedIn,
   normalizeFontKey,
 } from "@adt/types"
@@ -189,6 +190,69 @@ export async function ensureGoogleFontsCached(
     }
   }
   return { cached, failed }
+}
+
+export interface GoogleCatalogFamily {
+  family: string
+  category?: string
+}
+
+const CATALOG_URL = "https://fonts.google.com/metadata/fonts"
+const CATALOG_TTL_MS = 7 * 24 * 60 * 60 * 1000
+
+export function parseGoogleFontsCatalog(raw: string): GoogleCatalogFamily[] {
+  const json = JSON.parse(raw.replace(/^\)\]\}'/, "")) as {
+    familyMetadataList?: Array<{ family?: unknown; category?: unknown }>
+  }
+  if (!Array.isArray(json.familyMetadataList)) return []
+  return json.familyMetadataList
+    .filter((f): f is { family: string; category?: unknown } => typeof f.family === "string")
+    .map((f) => ({
+      family: f.family,
+      category: typeof f.category === "string" ? f.category : undefined,
+    }))
+}
+
+interface CatalogCache {
+  fetchedAt: number
+  families: GoogleCatalogFamily[]
+}
+
+export async function fetchGoogleFontsCatalog(
+  cacheDir: string,
+  fetchers: FontsCacheFetchers = {},
+  now = Date.now(),
+): Promise<GoogleCatalogFamily[]> {
+  const fetchText = fetchers.fetchText ?? defaultFetchText
+  const cachePath = path.join(cacheDir, "google-catalog.json")
+
+  let cached: CatalogCache | null = null
+  try {
+    cached = JSON.parse(fs.readFileSync(cachePath, "utf-8")) as CatalogCache
+  } catch {
+    cached = null
+  }
+  if (!Array.isArray(cached?.families) || cached.families.length === 0) cached = null
+  if (cached && now - cached.fetchedAt < CATALOG_TTL_MS) return cached.families
+
+  let fetched: GoogleCatalogFamily[] = []
+  try {
+    fetched = parseGoogleFontsCatalog(await fetchText(CATALOG_URL))
+  } catch {
+    fetched = []
+  }
+  if (fetched.length > 0) {
+    try {
+      fs.mkdirSync(cacheDir, { recursive: true })
+      fs.writeFileSync(cachePath, JSON.stringify({ fetchedAt: now, families: fetched }))
+    } catch {
+      return fetched
+    }
+    return fetched
+  }
+
+  if (cached) return cached.families
+  return GOOGLE_FONTS.map((f) => ({ family: f.family }))
 }
 
 export interface BookFontPromptEntry {

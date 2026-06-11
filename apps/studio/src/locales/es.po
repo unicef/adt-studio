@@ -100,6 +100,10 @@ msgstr "{0} entradas"
 msgid "{0} flagged findings in this review"
 msgstr "{0} flagged findings in this review"
 
+#. placeholder {0}: filtered.length
+msgid "{0} fonts"
+msgstr "{0} fuentes"
+
 #. placeholder {0}: selectedImageIds.length
 #. placeholder {1}: selectedImageIds.length === 1 ? "" : "s"
 msgid "{0} image{1} selected"
@@ -812,6 +816,9 @@ msgstr "Añade tu primer término"
 msgid "added"
 msgstr "añadido"
 
+msgid "Added"
+msgstr "Añadida"
+
 msgid "Added manually"
 msgstr "Agregado manualmente"
 
@@ -1346,6 +1353,9 @@ msgstr "Navega y edita plantillas Liquid usadas para estrategias de renderizaci�
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Explora cada sección del Storyboard y sube, reemplaza o elimina su video de lenguaje de señas."
 
+msgid "Browse Google Fonts"
+msgstr "Explorar Google Fonts"
+
 msgid "Build a glossary of key terms and definitions found in the text."
 msgstr "Construye un glosario de términos clave y definiciones encontrados en el texto."
 
@@ -1813,6 +1823,9 @@ msgstr "Respuesta correcta"
 msgid "Correct the metadata extracted from the document."
 msgstr "Corrige los metadatos extraídos del documento."
 
+msgid "Could not load the Google Fonts catalog. Check your connection and try again."
+msgstr "No se pudo cargar el catálogo de Google Fonts. Comprueba tu conexión e inténtalo de nuevo."
+
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "No se pudo leer este PDF. El archivo puede estar dañado o protegido con contraseña."
 
@@ -2266,8 +2279,8 @@ msgstr "ej. http://localhost:11434/v1"
 msgid "e.g. Kore"
 msgstr "p. ej. Kore"
 
-msgid "e.g. Lexend"
-msgstr "p. ej., Lexend"
+#~ msgid "e.g. Lexend"
+#~ msgstr "p. ej., Lexend"
 
 msgid "e.g., A cheerful leopard family in a green forest, children's book style..."
 msgstr "ej., Una familia de leopardos alegres en un bosque verde, estilo libro infantil..."
@@ -3541,6 +3554,9 @@ msgstr "Cargando libro..."
 msgid "Loading books..."
 msgstr "Cargando libros..."
 
+msgid "Loading catalog..."
+msgstr "Cargando catálogo..."
+
 msgid "Loading Easy Read..."
 msgstr "Cargando Lectura Fácil..."
 
@@ -4025,6 +4041,9 @@ msgstr "Aún no hay fuentes adjuntas."
 #~ msgid "No fonts attached yet. The book uses the automatically detected fonts."
 #~ msgstr "Aún no hay fuentes adjuntas. El libro usa las fuentes detectadas automáticamente."
 
+msgid "No fonts match your search."
+msgstr "Ninguna fuente coincide con tu búsqueda."
+
 msgid "No image"
 msgstr "Sin imagen"
 
@@ -4084,6 +4103,9 @@ msgstr "No hay secciones coincidentes"
 
 msgid "No metadata yet — run the pipeline to extract book details"
 msgstr "Aún no hay metadatos — ejecuta el pipeline para extraer los detalles del libro"
+
+msgid "No open-source license detected. Make sure you have the right to embed and distribute this font."
+msgstr "No se detectó una licencia open source. Asegúrate de tener derecho a incrustar y distribuir esta fuente."
 
 msgid "No other images in this book"
 msgstr "No hay otras imágenes en este libro"
@@ -4324,6 +4346,9 @@ msgstr "Abre la etapa de Cuestionarios para editar este cuestionario"
 
 msgid "Open Validation"
 msgstr "Open Validation"
+
+msgid "Open-source license"
+msgstr "Licencia open source"
 
 msgid "OpenAI"
 msgstr "OpenAI"
@@ -4666,6 +4691,9 @@ msgstr "Fotosíntesis"
 
 msgid "photosynthetic, photosynthesizing"
 msgstr "fotosintético, realizando la fotosíntesis"
+
+msgid "Pick a family to attach to the book. It is downloaded when extraction runs and embedded in the final bundle."
+msgstr "Elige una familia para adjuntar al libro. Se descarga al ejecutar la extracción y se incrusta en el paquete final."
 
 msgid "Pick a preset"
 msgstr "Elige un preajuste"
@@ -5237,6 +5265,9 @@ msgstr "Restaurar este término — será elegible nuevamente en la próxima reg
 msgid "restored"
 msgstr "restaurado"
 
+msgid "Restricted license"
+msgstr "Licencia restringida"
+
 msgid "Resume target"
 msgstr "Resume target"
 
@@ -5556,6 +5587,9 @@ msgstr "Buscar colores"
 
 msgid "Search entries…"
 msgstr "Buscar entradas…"
+
+msgid "Search fonts..."
+msgstr "Buscar fuentes..."
 
 msgid "Search languages..."
 msgstr "Buscar idiomas..."
@@ -6457,6 +6491,9 @@ msgstr "Este libro se renderiza con diseño fijo, por lo que mantiene las fuente
 msgid "This file couldn't be read as a ZIP archive"
 msgstr "Este archivo no pudo leerse como un archivo ZIP"
 
+msgid "This font's license is not open-source and restricts embedding — distributing it inside the book bundle may be illegal."
+msgstr "La licencia de esta fuente no es open source y restringe la incrustación — distribuirla dentro del paquete del libro puede ser ilegal."
+
 msgid "This image is decorative. Screen readers will skip it and no caption is needed."
 msgstr "Esta imagen es decorativa. Los lectores de pantalla la omitirán y no se necesita leyenda."
 
@@ -6817,6 +6854,9 @@ msgstr "Entrada sin título"
 msgid "Untitled quiz"
 msgstr "Cuestionario sin título"
 
+msgid "Unverified license"
+msgstr "Licencia sin verificar"
+
 msgid "Update available"
 msgstr "Actualización disponible"
 
@@ -6987,6 +7027,9 @@ msgstr "Ver código HTML"
 
 msgid "View image"
 msgstr "Ver imagen"
+
+msgid "View license"
+msgstr "Ver licencia"
 
 msgid "View page"
 msgstr "Ver página"
