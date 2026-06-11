@@ -113,6 +113,7 @@ export function useAudioPlayer(): UseAudioPlayer {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const activeRef = useRef<ActiveHighlight | null>(null)
   const hasAutoStartedRef = useRef<boolean>(false)
+  const playSessionRef = useRef(0)
   const [isPlaying, setIsPlaying] = useAtom(isPlayingAtom)
   const [currentIndex, setCurrentIndex] = useAtom(currentAudioIndexAtom)
   const audioFiles = useAtomValue(audioFilesAtom)
@@ -195,6 +196,8 @@ export function useAudioPlayer(): UseAudioPlayer {
 
   const playAtIndex = useCallback(
     (index: number) => {
+      hasAutoStartedRef.current = true
+      const session = ++playSessionRef.current
       if (index < 0 || index >= items.length) {
         stopAndClear()
         setIsPlaying(false)
@@ -262,8 +265,12 @@ export function useAudioPlayer(): UseAudioPlayer {
       setCurrentIndex(index)
       audio
         .play()
-        .then(() => setIsPlaying(true))
+        .then(() => {
+          if (session !== playSessionRef.current) return
+          setIsPlaying(true)
+        })
         .catch((err) => {
+          if (session !== playSessionRef.current) return
           console.warn("[adt-runtime] audio.play() rejected", err)
           teardownActive()
           setIsPlaying(false)
