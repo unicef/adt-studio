@@ -668,6 +668,9 @@ msgstr "Add {0} Images"
 msgid "Add a definition…"
 msgstr "Add a definition…"
 
+msgid "Add a Google Fonts family"
+msgstr "Add a Google Fonts family"
+
 msgid "Add a language to see translations appear here."
 msgstr "Add a language to see translations appear here."
 
@@ -874,6 +877,9 @@ msgstr "age 8"
 msgid "AI"
 msgstr "AI"
 
+msgid "AI analysis reasoning"
+msgstr "AI analysis reasoning"
+
 msgid "AI Edit"
 msgstr "AI Edit"
 
@@ -984,6 +990,12 @@ msgstr "An AI image is being generated. Cancel it and navigate?"
 
 msgid "An open-ended answer activity."
 msgstr "An open-ended answer activity."
+
+msgid "Analyze with AI"
+msgstr "Analyze with AI"
+
+msgid "Analyzing..."
+msgstr "Analyzing..."
 
 msgid "and many more blocks across the entire book"
 msgstr "and many more blocks across the entire book"
@@ -1119,6 +1131,12 @@ msgstr "Assign..."
 msgid "At the river's edge"
 msgstr "At the river's edge"
 
+msgid "Attach font files or pick Google Fonts for this book. The AI assigns where each font is used (headings, body text, captions…) and the fonts are embedded in the final bundle so it works offline. Google Fonts are downloaded when extraction runs. Make sure you have the right to embed any uploaded font."
+msgstr "Attach font files or pick Google Fonts for this book. The AI assigns where each font is used (headings, body text, captions…) and the fonts are embedded in the final bundle so it works offline. Google Fonts are downloaded when extraction runs. Make sure you have the right to embed any uploaded font."
+
+msgid "Attached fonts"
+msgstr "Attached fonts"
+
 msgid "Audio"
 msgstr "Audio"
 
@@ -1145,6 +1163,9 @@ msgstr "Authors"
 
 msgid "Auto"
 msgstr "Auto"
+
+msgid "Auto-detected · {detectedLabel}"
+msgstr "Auto-detected · {detectedLabel}"
 
 msgid "Auto-fill from book context"
 msgstr "Auto-fill from book context"
@@ -1262,6 +1283,12 @@ msgstr "Blocked"
 msgid "Body"
 msgstr "Body"
 
+msgid "Body text"
+msgstr "Body text"
+
+msgid "Body text uses this font today. Attach a font below and assign it the “Body text” role to replace it in generated pages."
+msgstr "Body text uses this font today. Attach a font below and assign it the “Body text” role to replace it in generated pages."
+
 msgid "Book"
 msgstr "Book"
 
@@ -1270,6 +1297,9 @@ msgstr "Book creation stages"
 
 msgid "Book data is outdated and must be rebuilt."
 msgstr "Book data is outdated and must be rebuilt."
+
+msgid "Book Fonts"
+msgstr "Book Fonts"
 
 msgid "Book info"
 msgstr "Book info"
@@ -1446,6 +1476,9 @@ msgstr "Change Preset"
 
 msgid "Change the book language?"
 msgstr "Change the book language?"
+
+msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
+msgstr "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 
 msgid "Changing the language resets downstream work."
 msgstr "Changing the language resets downstream work."
@@ -1883,6 +1916,9 @@ msgstr "Crops each image to its visible bounding box."
 msgid "Current"
 msgstr "Current"
 
+msgid "Current book font"
+msgstr "Current book font"
+
 msgid "Current effective values"
 msgstr "Current effective values"
 
@@ -1921,6 +1957,9 @@ msgstr "Default"
 
 msgid "Default (from prompt)"
 msgstr "Default (from prompt)"
+
+msgid "Default (no text detected yet)"
+msgstr "Default (no text detected yet)"
 
 msgid "Default Font"
 msgstr "Default Font"
@@ -2141,10 +2180,22 @@ msgstr "Download size"
 msgid "Download update"
 msgstr "Download update"
 
+msgid "Downloaded"
+msgstr "Downloaded"
+
+msgid "Downloaded automatically when extraction runs — the final bundle works offline."
+msgstr "Downloaded automatically when extraction runs — the final bundle works offline."
+
 #. placeholder {0}: Math.round(percent)
 #. placeholder {1}: formatBytes(status.bytesPerSecond)
 msgid "Downloading… {0}% · {1}/s"
 msgstr "Downloading… {0}% · {1}/s"
+
+msgid "Downloads at extraction"
+msgstr "Downloads at extraction"
+
+msgid "Drag & drop or click — TTF, OTF, WOFF, WOFF2 (max 15 MB)"
+msgstr "Drag & drop or click — TTF, OTF, WOFF, WOFF2 (max 15 MB)"
 
 msgid "Drag to move"
 msgstr "Drag to move"
@@ -2214,6 +2265,9 @@ msgstr "e.g. http://localhost:11434/v1"
 
 msgid "e.g. Kore"
 msgstr "e.g. Kore"
+
+msgid "e.g. Lexend"
+msgstr "e.g. Lexend"
 
 msgid "e.g., A cheerful leopard family in a green forest, children's book style..."
 msgstr "e.g., A cheerful leopard family in a green forest, children's book style..."
@@ -2674,6 +2728,9 @@ msgstr "First language is the default"
 msgid "Fit"
 msgstr "Fit"
 
+msgid "Fixed layout"
+msgstr "Fixed layout"
+
 msgid "Fixed Layout"
 msgstr "Fixed Layout"
 
@@ -2700,6 +2757,12 @@ msgstr "Flexible"
 
 msgid "Font"
 msgstr "Font"
+
+msgid "Font Analysis"
+msgstr "Font Analysis"
+
+msgid "Fonts"
+msgstr "Fonts"
 
 #. placeholder {0}: String(page.fonts.length)
 msgid "Fonts ({0})"
@@ -2914,6 +2977,12 @@ msgstr "Google"
 msgid "Google AI API Key"
 msgstr "Google AI API Key"
 
+msgid "Google Fonts"
+msgstr "Google Fonts"
+
+#~ msgid "Google Fonts family"
+#~ msgstr "Google Fonts family"
+
 msgid "Google's voices with strong intonation for narrative content."
 msgstr "Google's voices with strong intonation for narrative content."
 
@@ -2940,6 +3009,9 @@ msgstr "heading"
 
 msgid "Heading"
 msgstr "Heading"
+
+msgid "Headings"
+msgstr "Headings"
 
 msgid "Heads up: regenerating images takes considerably longer than text translation — each selected image is redrawn for every output language."
 msgstr "Heads up: regenerating images takes considerably longer than text translation — each selected image is redrawn for every output language."
@@ -3247,6 +3319,9 @@ msgstr "Isolated asset"
 msgid "Issues"
 msgstr "Issues"
 
+msgid "italic"
+msgstr "italic"
+
 msgid "Italic"
 msgstr "Italic"
 
@@ -3471,6 +3546,9 @@ msgstr "Loading Easy Read..."
 
 msgid "Loading export..."
 msgstr "Loading export..."
+
+#~ msgid "Loading fonts..."
+#~ msgstr "Loading fonts..."
 
 msgid "Loading glossary..."
 msgstr "Loading glossary..."
@@ -3940,6 +4018,12 @@ msgstr "No findings this page"
 
 msgid "No flagged findings in reviewed pages"
 msgstr "No flagged findings in reviewed pages"
+
+msgid "No fonts attached yet."
+msgstr "No fonts attached yet."
+
+#~ msgid "No fonts attached yet. The book uses the automatically detected fonts."
+#~ msgstr "No fonts attached yet. The book uses the automatically detected fonts."
 
 msgid "No image"
 msgstr "No image"
@@ -4604,6 +4688,9 @@ msgstr "Pick which voice each language uses for narration, including regional ac
 msgid "Picture books and early readers"
 msgstr "Picture books and early readers"
 
+msgid "Pinned"
+msgstr "Pinned"
+
 msgid "Pipeline · extract"
 msgstr "Pipeline · extract"
 
@@ -5028,6 +5115,13 @@ msgstr "Remove entry"
 msgid "Remove file"
 msgstr "Remove file"
 
+#~ msgid "Remove font"
+#~ msgstr "Remove font"
+
+#. placeholder {0}: font.family
+msgid "Remove font {0}"
+msgstr "Remove font {0}"
+
 msgid "Remove from group"
 msgstr "Remove from group"
 
@@ -5348,6 +5442,9 @@ msgstr "Sample Reference Manual"
 
 msgid "Sample shown for illustration. The actual languages used come from your Output Languages list above."
 msgstr "Sample shown for illustration. The actual languages used come from your Output Languages list above."
+
+msgid "sans serif"
+msgstr "sans serif"
 
 msgid "Sans-serif"
 msgstr "Sans-serif"
@@ -5677,6 +5774,9 @@ msgstr "Self-contained ADT web app"
 msgid "Separator"
 msgstr "Separator"
 
+msgid "serif"
+msgstr "serif"
+
 msgid "Serif"
 msgstr "Serif"
 
@@ -5697,6 +5797,9 @@ msgstr "Sessions let different reviewers capture findings independently, includi
 
 msgid "Set a Gemini API key to generate audio"
 msgstr "Set a Gemini API key to generate audio"
+
+msgid "Set manually"
+msgstr "Set manually"
 
 msgid "Set the editing language and choose output languages for the book."
 msgstr "Set the editing language and choose output languages for the book."
@@ -6194,6 +6297,9 @@ msgstr "The back cover of the book."
 msgid "The book is written in {langName}."
 msgstr "The book is written in {langName}."
 
+msgid "The book keeps using the current font above until you attach and assign new ones."
+msgstr "The book keeps using the current font above until you attach and assign new ones."
+
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "The community of living organisms in a place and the way they interact with each other and their environment."
 
@@ -6278,6 +6384,9 @@ msgstr "The prompt template used to translate text catalog entries."
 msgid "The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt."
 msgstr "The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt."
 
+msgid "The quick brown fox jumps over the lazy dog 0123456789"
+msgstr "The quick brown fox jumps over the lazy dog 0123456789"
+
 msgid "The quick brown fox jumps over the lazy dog."
 msgstr "The quick brown fox jumps over the lazy dog."
 
@@ -6341,6 +6450,9 @@ msgstr "This book has no pages. Make sure the extraction and storyboard stages p
 #. placeholder {0}: book.title
 msgid "This book is titled \"{0}\"."
 msgstr "This book is titled \"{0}\"."
+
+msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
+msgstr "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 
 msgid "This file couldn't be read as a ZIP archive"
 msgstr "This file couldn't be read as a ZIP archive"
@@ -6741,6 +6853,12 @@ msgstr "Upload at least one video to see it appear here."
 msgid "Upload failed"
 msgstr "Upload failed"
 
+msgid "Upload font files"
+msgstr "Upload font files"
+
+#~ msgid "Upload fonts"
+#~ msgstr "Upload fonts"
+
 msgid "Upload from Disk"
 msgstr "Upload from Disk"
 
@@ -6807,6 +6925,9 @@ msgstr "Use this for checks you intentionally want to suppress, such as known fa
 
 msgid "Use this format to back up the project or move it to another machine."
 msgstr "Use this format to back up the project or move it to another machine."
+
+msgid "Used for"
+msgstr "Used for"
 
 msgid "Used for Azure Speech TTS provider."
 msgstr "Used for Azure Speech TTS provider."
@@ -6965,6 +7086,9 @@ msgstr "WebPub Export"
 
 msgid "Weight"
 msgstr "Weight"
+
+msgid "Weights:"
+msgstr "Weights:"
 
 msgid "Welcome to ADT Studio"
 msgstr "Welcome to ADT Studio"

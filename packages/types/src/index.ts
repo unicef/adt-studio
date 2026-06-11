@@ -21,6 +21,29 @@ export {
 } from "./google-fonts.js"
 
 export {
+  BookFontSource,
+  BookFontRole,
+  BookFontCategory,
+  BookFontFormat,
+  BOOK_FONT_FORMATS,
+  BookFontFace,
+  BookFont,
+  BookFontRegistry,
+  FONT_REGISTRY_NODE,
+  FONT_REGISTRY_ITEM_ID,
+  FONT_ASSIGNMENT_NODE,
+  FONT_ASSIGNMENT_ITEM_ID,
+  bookFontIdFromName,
+  bookFontsReferencedIn,
+  isCuratedGoogleFamily,
+} from "./book-fonts.js"
+
+export {
+  FontAssignment,
+  FontAssignmentOutput,
+} from "./font-assignment.js"
+
+export {
   type FontCategory,
   type DetectedFontCategory,
   type ReflowableFont,

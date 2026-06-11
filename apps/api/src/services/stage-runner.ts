@@ -7,6 +7,8 @@ import { createLLMModel, createPromptEngine, createRateLimiter, renderLiquidTemp
 import type { LlmLogEntry } from "@adt/llm"
 import {
   extractPDF,
+  resolveFontsCacheDir,
+  buildBookFontsPromptContext,
   extractMetadata,
   buildMetadataConfig,
   classifyPageImages,
@@ -570,6 +572,7 @@ async function runExtractStep(
         spreadMode: config.spread_mode,
         vectorTextGrouping: config.vector_text_grouping,
         fixedLayout: isFixedLayoutBook(config),
+        fontsCacheDir: resolveFontsCacheDir(booksDir),
       },
       storage,
       progress
@@ -1065,6 +1068,7 @@ async function runStoryboardStep(
               sectioning: sectioning,
               images: renderImages,
               styleguide: styleguideContent,
+              bookFonts: buildBookFontsPromptContext(storage),
             },
             resolveRenderConfig,
             resolveRenderModel,

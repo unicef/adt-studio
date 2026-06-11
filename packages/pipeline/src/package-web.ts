@@ -36,6 +36,11 @@ import { WebRenderingOutput as WebRenderingOutputSchema } from "@adt/types"
 import { googleFontsReferencedIn, googleFontsCss2Url } from "@adt/types"
 import { reflowableFontChain } from "@adt/types"
 import { bundleGoogleFontsIntoCss } from "./google-fonts-bundle.js"
+import {
+  bundleBookFontsIntoCss,
+  readBookFontRegistry,
+  resolveFontsCacheDir,
+} from "./fonts-bundle.js"
 import type { Progress } from "./progress.js"
 import { nullProgress } from "./progress.js"
 import { getGlossaryItemTextId } from "./glossary.js"
@@ -745,7 +750,28 @@ export async function packageAdtWeb(
   // inlineFontsInCss, which only rewrites local ./fonts/ urls and leaves these
   // data: URIs alone.
   progress.emit({ type: "step-progress", step, message: "Bundling fonts..." })
-  const bundledFonts = await bundleGoogleFontsIntoCss(adtDir)
+  const fontsCacheDir = resolveFontsCacheDir(path.dirname(bookDir))
+
+  const fontRegistry = readBookFontRegistry(storage)
+  let bundledBookFonts: string[] = []
+  if (fontRegistry.fonts.length > 0) {
+    bundledBookFonts = await bundleBookFontsIntoCss(adtDir, fontRegistry, {
+      bookFontsDir: path.join(bookDir, "fonts"),
+      googleCacheDir: fontsCacheDir,
+    })
+    if (bundledBookFonts.length > 0) {
+      progress.emit({
+        type: "step-progress",
+        step,
+        message: `Bundled book fonts: ${bundledBookFonts.join(", ")}`,
+      })
+    }
+  }
+
+  const bundledFonts = await bundleGoogleFontsIntoCss(adtDir, {
+    cacheDir: fontsCacheDir,
+    excludeFamilies: bundledBookFonts,
+  })
   if (bundledFonts.length > 0) {
     progress.emit({ type: "step-progress", step, message: `Bundled fonts: ${bundledFonts.join(", ")}` })
   }
@@ -2128,23 +2154,30 @@ async function renderAgentsMd(
 // SCORM + Offline support generators
 // ---------------------------------------------------------------------------
 
+const FONT_DATA_MIME: Record<string, string> = {
+  woff2: "font/woff2",
+  woff: "font/woff",
+  truetype: "font/ttf",
+  opentype: "font/otf",
+}
+
 /**
  * Rewrite `assets/fonts.css` so each `@font-face` `url('./fonts/X.woff2')`
- * becomes a `data:font/woff2;base64,...` URI, then delete `assets/fonts/`.
+ * becomes a `data:...;base64,...` URI, then delete `assets/fonts/`.
  * Required for `file://` (double-click) mode: browsers treat every file path
  * as a unique origin and block cross-origin font fetches, even though the
- * woff2 lives in the same directory tree.
+ * font file lives in the same directory tree.
  */
 function inlineFontsInCss(adtDir: string): void {
   const cssPath = path.join(adtDir, "assets", "fonts.css")
   if (!fs.existsSync(cssPath)) return
   const original = fs.readFileSync(cssPath, "utf-8")
   const updated = original.replace(
-    /url\(\s*['"]?(?:\.\/)?fonts\/([^'")]+\.woff2)['"]?\s*\)\s*format\(\s*['"]woff2['"]\s*\)/g,
-    (_match, file: string) => {
+    /url\(\s*['"]?(?:\.\/)?fonts\/([^'")]+)['"]?\s*\)\s*format\(\s*['"](woff2|woff|truetype|opentype)['"]\s*\)/g,
+    (_match, file: string, format: string) => {
       const fontPath = path.join(adtDir, "assets", "fonts", file)
       const b64 = fs.readFileSync(fontPath).toString("base64")
-      return `url('data:font/woff2;base64,${b64}') format('woff2')`
+      return `url('data:${FONT_DATA_MIME[format]};base64,${b64}') format('${format}')`
     },
   )
   if (updated === original) return

@@ -670,6 +670,9 @@ msgstr "Ajouter {0} Images"
 msgid "Add a definition…"
 msgstr "Ajouter une définition…"
 
+msgid "Add a Google Fonts family"
+msgstr "Ajouter une famille Google Fonts"
+
 msgid "Add a language to see translations appear here."
 msgstr "Ajoutez une langue pour voir les traductions apparaître ici."
 
@@ -876,6 +879,9 @@ msgstr "8 ans"
 msgid "AI"
 msgstr "AI"
 
+msgid "AI analysis reasoning"
+msgstr "Raisonnement de l'analyse de l'IA"
+
 msgid "AI Edit"
 msgstr "Modification IA"
 
@@ -986,6 +992,12 @@ msgstr "Une image IA est en cours de génération. Annuler et naviguer ?"
 
 msgid "An open-ended answer activity."
 msgstr "Une activité à réponse ouverte."
+
+msgid "Analyze with AI"
+msgstr "Analyser avec l'IA"
+
+msgid "Analyzing..."
+msgstr "Analyse en cours..."
 
 msgid "and many more blocks across the entire book"
 msgstr "et bien d'autres blocs à travers tout le livre"
@@ -1121,6 +1133,12 @@ msgstr "Attribuer..."
 msgid "At the river's edge"
 msgstr "Au bord de la rivière"
 
+msgid "Attach font files or pick Google Fonts for this book. The AI assigns where each font is used (headings, body text, captions…) and the fonts are embedded in the final bundle so it works offline. Google Fonts are downloaded when extraction runs. Make sure you have the right to embed any uploaded font."
+msgstr "Joignez des fichiers de polices ou choisissez des Google Fonts pour ce livre. L'IA détermine où chaque police est utilisée (titres, corps du texte, légendes…) et les polices sont intégrées au paquet final pour fonctionner hors ligne. Les Google Fonts sont téléchargées lors de l'extraction. Assurez-vous d'avoir le droit d'intégrer toute police importée."
+
+msgid "Attached fonts"
+msgstr "Polices jointes"
+
 msgid "Audio"
 msgstr "Audio"
 
@@ -1147,6 +1165,9 @@ msgstr "Auteurs"
 
 msgid "Auto"
 msgstr "Automatique"
+
+msgid "Auto-detected · {detectedLabel}"
+msgstr "Détectée automatiquement · {detectedLabel}"
 
 msgid "Auto-fill from book context"
 msgstr "Remplissage automatique à partir du contexte du livre"
@@ -1264,6 +1285,12 @@ msgstr "Bloqué"
 msgid "Body"
 msgstr "Corps"
 
+msgid "Body text"
+msgstr "Corps du texte"
+
+msgid "Body text uses this font today. Attach a font below and assign it the “Body text” role to replace it in generated pages."
+msgstr "Le corps du texte utilise cette police aujourd'hui. Joignez une police ci-dessous et attribuez-lui le rôle « Corps du texte » pour la remplacer dans les pages générées."
+
 msgid "Book"
 msgstr "Livre"
 
@@ -1272,6 +1299,9 @@ msgstr "Étapes de création du livre"
 
 msgid "Book data is outdated and must be rebuilt."
 msgstr "Les données du livre sont obsolètes et doivent être reconstruites."
+
+msgid "Book Fonts"
+msgstr "Polices du livre"
 
 msgid "Book info"
 msgstr "Infos du livre"
@@ -1448,6 +1478,9 @@ msgstr "Changer de préréglage"
 
 msgid "Change the book language?"
 msgstr "Changer la langue du livre ?"
+
+msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
+msgstr "Changer les polices affecte le rendu des pages — relancez le Storyboard et l'Export pour appliquer les nouvelles polices."
 
 msgid "Changing the language resets downstream work."
 msgstr "Changer la langue réinitialise le travail en aval."
@@ -1885,6 +1918,9 @@ msgstr "Recadre chaque image à sa boîte englobante visible."
 msgid "Current"
 msgstr "Actuel"
 
+msgid "Current book font"
+msgstr "Police actuelle du livre"
+
 msgid "Current effective values"
 msgstr "Valeurs effectives actuelles"
 
@@ -1923,6 +1959,9 @@ msgstr "Par défaut"
 
 msgid "Default (from prompt)"
 msgstr "Par défaut (from invite)"
+
+msgid "Default (no text detected yet)"
+msgstr "Par défaut (aucun texte détecté pour l'instant)"
 
 msgid "Default Font"
 msgstr "Police par défaut"
@@ -2143,10 +2182,22 @@ msgstr "Taille du téléchargement"
 msgid "Download update"
 msgstr "Télécharger la mise à jour"
 
+msgid "Downloaded"
+msgstr "Téléchargée"
+
+msgid "Downloaded automatically when extraction runs — the final bundle works offline."
+msgstr "Téléchargée automatiquement lors de l'extraction — le paquet final fonctionne hors ligne."
+
 #. placeholder {0}: Math.round(percent)
 #. placeholder {1}: formatBytes(status.bytesPerSecond)
 msgid "Downloading… {0}% · {1}/s"
 msgstr "Téléchargement… {0}% · {1}/s"
+
+msgid "Downloads at extraction"
+msgstr "Téléchargée à l'extraction"
+
+msgid "Drag & drop or click — TTF, OTF, WOFF, WOFF2 (max 15 MB)"
+msgstr "Glissez-déposez ou cliquez — TTF, OTF, WOFF, WOFF2 (max 15 Mo)"
 
 msgid "Drag to move"
 msgstr "Glisser pour déplacer"
@@ -2216,6 +2267,9 @@ msgstr "e.g. http://localhost:11434/v1"
 
 msgid "e.g. Kore"
 msgstr "e.g. Kore"
+
+msgid "e.g. Lexend"
+msgstr "p. ex. Lexend"
 
 msgid "e.g., A cheerful leopard family in a green forest, children's book style..."
 msgstr "ex., Une joyeuse famille de léopards dans une forêt verte, style livre pour enfants..."
@@ -2676,6 +2730,9 @@ msgstr "La première langue est la langue par défaut"
 msgid "Fit"
 msgstr "Ajuster"
 
+msgid "Fixed layout"
+msgstr "Mise en page fixe"
+
 msgid "Fixed Layout"
 msgstr "Mise en page fixe"
 
@@ -2702,6 +2759,12 @@ msgstr "Flexible"
 
 msgid "Font"
 msgstr "Police"
+
+msgid "Font Analysis"
+msgstr "Analyse des polices"
+
+msgid "Fonts"
+msgstr "Polices"
 
 #. placeholder {0}: String(page.fonts.length)
 msgid "Fonts ({0})"
@@ -2916,6 +2979,12 @@ msgstr "Google"
 msgid "Google AI API Key"
 msgstr "Google AI Clé API"
 
+msgid "Google Fonts"
+msgstr "Google Fonts"
+
+#~ msgid "Google Fonts family"
+#~ msgstr "Famille Google Fonts"
+
 msgid "Google's voices with strong intonation for narrative content."
 msgstr "Les voix de Google avec une forte intonation pour le contenu narratif."
 
@@ -2942,6 +3011,9 @@ msgstr "titre"
 
 msgid "Heading"
 msgstr "Titre"
+
+msgid "Headings"
+msgstr "Titres"
 
 msgid "Heads up: regenerating images takes considerably longer than text translation — each selected image is redrawn for every output language."
 msgstr "Attention : régénérer les images prend beaucoup plus de temps que la traduction de texte — chaque image sélectionnée est redessinée pour chaque langue de sortie."
@@ -3249,6 +3321,9 @@ msgstr "Ressource isolée"
 msgid "Issues"
 msgstr "Problèmes"
 
+msgid "italic"
+msgstr "italique"
+
 msgid "Italic"
 msgstr "Italique"
 
@@ -3473,6 +3548,9 @@ msgstr "Chargement de Lecture Facile..."
 
 msgid "Loading export..."
 msgstr "Chargement de l'exportation..."
+
+#~ msgid "Loading fonts..."
+#~ msgstr "Chargement des polices..."
 
 msgid "Loading glossary..."
 msgstr "Chargement du glossaire..."
@@ -3942,6 +4020,12 @@ msgstr "Aucun résultat sur cette page"
 
 msgid "No flagged findings in reviewed pages"
 msgstr "Aucun résultat signalé dans les pages révisées"
+
+msgid "No fonts attached yet."
+msgstr "Aucune police jointe pour le moment."
+
+#~ msgid "No fonts attached yet. The book uses the automatically detected fonts."
+#~ msgstr "Aucune police jointe pour le moment. Le livre utilise les polices détectées automatiquement."
 
 msgid "No image"
 msgstr "Aucune image"
@@ -4606,6 +4690,9 @@ msgstr "Choisissez quelle voix chaque langue utilise pour la narration, y compri
 msgid "Picture books and early readers"
 msgstr "Albums illustrés et premières lectures"
 
+msgid "Pinned"
+msgstr "Épinglée"
+
 msgid "Pipeline · extract"
 msgstr "Pipeline · extraction"
 
@@ -5030,6 +5117,13 @@ msgstr "Retirer entrée"
 msgid "Remove file"
 msgstr "Supprimer le fichier"
 
+#~ msgid "Remove font"
+#~ msgstr "Supprimer la police"
+
+#. placeholder {0}: font.family
+msgid "Remove font {0}"
+msgstr "Supprimer la police {0}"
+
 msgid "Remove from group"
 msgstr "Retirer du groupe"
 
@@ -5350,6 +5444,9 @@ msgstr "Exemple de manuel de référence"
 
 msgid "Sample shown for illustration. The actual languages used come from your Output Languages list above."
 msgstr "Exemple montré à titre d'illustration. Les langues réellement utilisées proviennent de votre liste de langues de sortie ci-dessus."
+
+msgid "sans serif"
+msgstr "sans empattement"
 
 msgid "Sans-serif"
 msgstr "Sans empattement"
@@ -5679,6 +5776,9 @@ msgstr "Application web ADT autonome"
 msgid "Separator"
 msgstr "Séparateur"
 
+msgid "serif"
+msgstr "avec empattement"
+
 msgid "Serif"
 msgstr "Avec empattement"
 
@@ -5699,6 +5799,9 @@ msgstr "Les sessions permettent à différents réviseurs de capturer leurs rés
 
 msgid "Set a Gemini API key to generate audio"
 msgstr "Définissez une clé API Gemini pour générer l'audio"
+
+msgid "Set manually"
+msgstr "Définie manuellement"
 
 msgid "Set the editing language and choose output languages for the book."
 msgstr "Définissez la langue d'édition et choisissez les langues de sortie pour le livre."
@@ -6196,6 +6299,9 @@ msgstr "La quatrième de couverture du livre."
 msgid "The book is written in {langName}."
 msgstr "Le livre est écrit en {langName}."
 
+msgid "The book keeps using the current font above until you attach and assign new ones."
+msgstr "Le livre continue d'utiliser la police actuelle ci-dessus jusqu'à ce que vous en joigniez et attribuiez de nouvelles."
+
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "La communauté des organismes vivants dans un lieu et la façon dont ils interagissent entre eux et avec leur environnement."
 
@@ -6280,6 +6386,9 @@ msgstr "Le modèle d'invite utilisé pour traduire les entrées du catalogue de 
 msgid "The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt."
 msgstr "Le prompt utilisé par la passe de revue pour inspecter et corriger un arbre de sectionnement candidat. Partage le modèle et les paramètres de réessai du prompt de sectionnement."
 
+msgid "The quick brown fox jumps over the lazy dog 0123456789"
+msgstr "Portez ce vieux whisky au juge blond qui fume 0123456789"
+
 msgid "The quick brown fox jumps over the lazy dog."
 msgstr "Le vif renard brun saute par-dessus le chien paresseux."
 
@@ -6343,6 +6452,9 @@ msgstr "Ce livre n'a pas de pages. Assurez-vous que les étapes d'extraction et 
 #. placeholder {0}: book.title
 msgid "This book is titled \"{0}\"."
 msgstr "Ce livre est intitulé \\\"{0}\\\"."
+
+msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
+msgstr "Ce livre est rendu en mise en page fixe, il conserve donc les polices d'origine du PDF. Les polices jointes guident tout de même l'IA pour les activités et les pages générées."
 
 msgid "This file couldn't be read as a ZIP archive"
 msgstr "Ce fichier n'a pas pu être lu comme une archive ZIP"
@@ -6743,6 +6855,12 @@ msgstr "Téléchargez au moins une vidéo pour la voir apparaître ici."
 msgid "Upload failed"
 msgstr "Le téléversement a échoué"
 
+msgid "Upload font files"
+msgstr "Importer des fichiers de polices"
+
+#~ msgid "Upload fonts"
+#~ msgstr "Importer des polices"
+
 msgid "Upload from Disk"
 msgstr "Téléverser depuis le disque"
 
@@ -6809,6 +6927,9 @@ msgstr "Utilisez ceci pour les vérifications que vous souhaitez intentionnellem
 
 msgid "Use this format to back up the project or move it to another machine."
 msgstr "Utilisez ce format pour sauvegarder le projet ou le déplacer vers une autre machine."
+
+msgid "Used for"
+msgstr "Utilisée pour"
 
 msgid "Used for Azure Speech TTS provider."
 msgstr "Utilisé pour le fournisseur TTS Azure Speech."
@@ -6967,6 +7088,9 @@ msgstr "Exportation WebPub"
 
 msgid "Weight"
 msgstr "Poids"
+
+msgid "Weights:"
+msgstr "Graisses :"
 
 msgid "Welcome to ADT Studio"
 msgstr "Bienvenue sur ADT Studio"

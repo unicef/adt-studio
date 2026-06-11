@@ -17,6 +17,7 @@ import {
   loadBookConfig,
   applyCrop,
   generateStyleguide,
+  buildBookFontsPromptContext,
   buildStyleguideGenerationConfig,
   buildScreenshotHtml,
   createScreenshotRenderer,
@@ -2371,6 +2372,7 @@ export function createPageRoutes(
     // Load page images
     const storage = createBookStorage(safeLabel, booksDir)
     const pageImages: Array<{ pageId: string; pageNumber: number; imageBase64: string }> = []
+    let bookFonts: ReturnType<typeof buildBookFontsPromptContext> = []
     try {
       const pages = storage.getPages()
       for (const pageId of pageIds) {
@@ -2385,6 +2387,7 @@ export function createPageRoutes(
           imageBase64,
         })
       }
+      bookFonts = buildBookFontsPromptContext(storage)
     } finally {
       storage.close()
     }
@@ -2405,7 +2408,7 @@ export function createPageRoutes(
       })
 
       const result = await generateStyleguide(
-        { pageImages },
+        { pageImages, bookFonts },
         config,
         llmModel
       )

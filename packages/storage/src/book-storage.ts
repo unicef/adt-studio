@@ -493,7 +493,7 @@ function clearImageFiles(imagesDir: string): void {
 function clearExtractedRows(db: sqlite.Database): void {
   db.exec("BEGIN IMMEDIATE")
   try {
-    db.run("DELETE FROM node_data")
+    db.run("DELETE FROM node_data WHERE node NOT IN ('font-registry', 'font-assignment')")
     db.run("DELETE FROM images")
     db.run("DELETE FROM pages")
     db.run("DELETE FROM step_runs")

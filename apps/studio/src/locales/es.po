@@ -668,6 +668,9 @@ msgstr "Agregar {0} imágenes"
 msgid "Add a definition…"
 msgstr "Agregar una definición…"
 
+msgid "Add a Google Fonts family"
+msgstr "Añadir una familia de Google Fonts"
+
 msgid "Add a language to see translations appear here."
 msgstr "Añade un idioma para ver las traducciones aquí."
 
@@ -874,6 +877,9 @@ msgstr "8 años"
 msgid "AI"
 msgstr "IA"
 
+msgid "AI analysis reasoning"
+msgstr "Razonamiento del análisis de la IA"
+
 msgid "AI Edit"
 msgstr "Edición con IA"
 
@@ -984,6 +990,12 @@ msgstr "Se está generando una imagen con IA. ¿Cancelar y navegar?"
 
 msgid "An open-ended answer activity."
 msgstr "Una actividad de respuesta abierta."
+
+msgid "Analyze with AI"
+msgstr "Analizar con IA"
+
+msgid "Analyzing..."
+msgstr "Analizando..."
 
 msgid "and many more blocks across the entire book"
 msgstr "y muchos más bloques a lo largo de todo el libro"
@@ -1119,6 +1131,12 @@ msgstr "Asignar..."
 msgid "At the river's edge"
 msgstr "A la orilla del río"
 
+msgid "Attach font files or pick Google Fonts for this book. The AI assigns where each font is used (headings, body text, captions…) and the fonts are embedded in the final bundle so it works offline. Google Fonts are downloaded when extraction runs. Make sure you have the right to embed any uploaded font."
+msgstr "Adjunta archivos de fuentes o elige Google Fonts para este libro. La IA asigna dónde se usa cada fuente (títulos, cuerpo del texto, leyendas…) y las fuentes se incrustan en el paquete final para que funcione sin conexión. Las Google Fonts se descargan cuando se ejecuta la extracción. Asegúrate de tener derecho a incrustar cualquier fuente subida."
+
+msgid "Attached fonts"
+msgstr "Fuentes adjuntas"
+
 msgid "Audio"
 msgstr "Audio"
 
@@ -1145,6 +1163,9 @@ msgstr "Autores"
 
 msgid "Auto"
 msgstr "Automático"
+
+msgid "Auto-detected · {detectedLabel}"
+msgstr "Detectada automáticamente · {detectedLabel}"
 
 msgid "Auto-fill from book context"
 msgstr "Autocompletar desde el contexto del libro"
@@ -1262,6 +1283,12 @@ msgstr "Bloqueado"
 msgid "Body"
 msgstr "Cuerpo"
 
+msgid "Body text"
+msgstr "Texto del cuerpo"
+
+msgid "Body text uses this font today. Attach a font below and assign it the “Body text” role to replace it in generated pages."
+msgstr "El cuerpo del texto usa esta fuente hoy. Adjunta una fuente abajo y asígnale el rol “Texto del cuerpo” para reemplazarla en las páginas generadas."
+
 msgid "Book"
 msgstr "Libro"
 
@@ -1270,6 +1297,9 @@ msgstr "Etapas de creación del libro"
 
 msgid "Book data is outdated and must be rebuilt."
 msgstr "Los datos del libro están desactualizados y deben reconstruirse."
+
+msgid "Book Fonts"
+msgstr "Fuentes del libro"
 
 msgid "Book info"
 msgstr "Información del libro"
@@ -1446,6 +1476,9 @@ msgstr "Cambiar Preajuste"
 
 msgid "Change the book language?"
 msgstr "¿Cambiar el idioma del libro?"
+
+msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
+msgstr "Cambiar las fuentes afecta cómo se renderizan las páginas — vuelve a ejecutar Storyboard y Exportar para aplicar las nuevas fuentes."
 
 msgid "Changing the language resets downstream work."
 msgstr "Cambiar el idioma restablece el trabajo posterior."
@@ -1883,6 +1916,9 @@ msgstr "Recorta cada imagen a su cuadro delimitador visible."
 msgid "Current"
 msgstr "Actual"
 
+msgid "Current book font"
+msgstr "Fuente actual del libro"
+
 msgid "Current effective values"
 msgstr "Current effective values"
 
@@ -1921,6 +1957,9 @@ msgstr "Predeterminado"
 
 msgid "Default (from prompt)"
 msgstr "Predeterminado (del prompt)"
+
+msgid "Default (no text detected yet)"
+msgstr "Predeterminada (aún no se detectó texto)"
 
 msgid "Default Font"
 msgstr "Fuente predeterminada"
@@ -2141,10 +2180,22 @@ msgstr "Tamaño de descarga"
 msgid "Download update"
 msgstr "Descargar actualización"
 
+msgid "Downloaded"
+msgstr "Descargada"
+
+msgid "Downloaded automatically when extraction runs — the final bundle works offline."
+msgstr "Se descarga automáticamente al ejecutar la extracción — el paquete final funciona sin conexión."
+
 #. placeholder {0}: Math.round(percent)
 #. placeholder {1}: formatBytes(status.bytesPerSecond)
 msgid "Downloading… {0}% · {1}/s"
 msgstr "Descargando… {0}% · {1}/s"
+
+msgid "Downloads at extraction"
+msgstr "Se descarga en la extracción"
+
+msgid "Drag & drop or click — TTF, OTF, WOFF, WOFF2 (max 15 MB)"
+msgstr "Arrastra y suelta o haz clic — TTF, OTF, WOFF, WOFF2 (máx. 15 MB)"
 
 msgid "Drag to move"
 msgstr "Arrastrar para mover"
@@ -2214,6 +2265,9 @@ msgstr "ej. http://localhost:11434/v1"
 
 msgid "e.g. Kore"
 msgstr "p. ej. Kore"
+
+msgid "e.g. Lexend"
+msgstr "p. ej., Lexend"
 
 msgid "e.g., A cheerful leopard family in a green forest, children's book style..."
 msgstr "ej., Una familia de leopardos alegres en un bosque verde, estilo libro infantil..."
@@ -2674,6 +2728,9 @@ msgstr "El primer idioma es el predeterminado"
 msgid "Fit"
 msgstr "Ajustar"
 
+msgid "Fixed layout"
+msgstr "Diseño fijo"
+
 msgid "Fixed Layout"
 msgstr "Diseño Fijo"
 
@@ -2700,6 +2757,12 @@ msgstr "Flexible"
 
 msgid "Font"
 msgstr "Fuente"
+
+msgid "Font Analysis"
+msgstr "Análisis de fuentes"
+
+msgid "Fonts"
+msgstr "Fuentes"
 
 #. placeholder {0}: String(page.fonts.length)
 msgid "Fonts ({0})"
@@ -2914,6 +2977,12 @@ msgstr "Google"
 msgid "Google AI API Key"
 msgstr "Clave de API de Google AI"
 
+msgid "Google Fonts"
+msgstr "Google Fonts"
+
+#~ msgid "Google Fonts family"
+#~ msgstr "Familia de Google Fonts"
+
 msgid "Google's voices with strong intonation for narrative content."
 msgstr "Voces de Google con fuerte entonación para contenido narrativo."
 
@@ -2940,6 +3009,9 @@ msgstr "encabezado"
 
 msgid "Heading"
 msgstr "Título"
+
+msgid "Headings"
+msgstr "Títulos"
 
 msgid "Heads up: regenerating images takes considerably longer than text translation — each selected image is redrawn for every output language."
 msgstr "Aviso: regenerar imágenes toma considerablemente más tiempo que traducir texto — cada imagen seleccionada se redibuja para cada idioma de salida."
@@ -3247,6 +3319,9 @@ msgstr "Recurso aislado"
 msgid "Issues"
 msgstr "Problemas"
 
+msgid "italic"
+msgstr "cursiva"
+
 msgid "Italic"
 msgstr "Cursiva"
 
@@ -3471,6 +3546,9 @@ msgstr "Cargando Lectura Fácil..."
 
 msgid "Loading export..."
 msgstr "Cargando exportación..."
+
+#~ msgid "Loading fonts..."
+#~ msgstr "Cargando fuentes..."
 
 msgid "Loading glossary..."
 msgstr "Cargando glosario..."
@@ -3940,6 +4018,12 @@ msgstr "Sin hallazgos en esta página"
 
 msgid "No flagged findings in reviewed pages"
 msgstr "No flagged findings in reviewed pages"
+
+msgid "No fonts attached yet."
+msgstr "Aún no hay fuentes adjuntas."
+
+#~ msgid "No fonts attached yet. The book uses the automatically detected fonts."
+#~ msgstr "Aún no hay fuentes adjuntas. El libro usa las fuentes detectadas automáticamente."
 
 msgid "No image"
 msgstr "Sin imagen"
@@ -4604,6 +4688,9 @@ msgstr "Elige qué voz usa cada idioma para la narración, incluidos los acentos
 msgid "Picture books and early readers"
 msgstr "Libros ilustrados y primeros lectores"
 
+msgid "Pinned"
+msgstr "Fijada"
+
 msgid "Pipeline · extract"
 msgstr "Pipeline · extracción"
 
@@ -5028,6 +5115,13 @@ msgstr "Eliminar entrada"
 msgid "Remove file"
 msgstr "Eliminar archivo"
 
+#~ msgid "Remove font"
+#~ msgstr "Eliminar fuente"
+
+#. placeholder {0}: font.family
+msgid "Remove font {0}"
+msgstr "Eliminar fuente {0}"
+
 msgid "Remove from group"
 msgstr "Quitar del grupo"
 
@@ -5348,6 +5442,9 @@ msgstr "Ejemplo de Manual de Referencia"
 
 msgid "Sample shown for illustration. The actual languages used come from your Output Languages list above."
 msgstr "Muestra mostrada para ilustración. Los idiomas reales utilizados provienen de tu lista de Idiomas de Salida arriba."
+
+msgid "sans serif"
+msgstr "sans serif"
 
 msgid "Sans-serif"
 msgstr "Sin serifa"
@@ -5677,6 +5774,9 @@ msgstr "Aplicación web ADT autónoma"
 msgid "Separator"
 msgstr "Separador"
 
+msgid "serif"
+msgstr "serif"
+
 msgid "Serif"
 msgstr "Con serifa"
 
@@ -5697,6 +5797,9 @@ msgstr "Sessions let different reviewers capture findings independently, includi
 
 msgid "Set a Gemini API key to generate audio"
 msgstr "Configura una clave de API de Gemini para generar audio"
+
+msgid "Set manually"
+msgstr "Definida manualmente"
 
 msgid "Set the editing language and choose output languages for the book."
 msgstr "Establece el idioma de edición y elige los idiomas de salida para el libro."
@@ -6194,6 +6297,9 @@ msgstr "La contraportada del libro."
 msgid "The book is written in {langName}."
 msgstr "El libro está escrito en {langName}."
 
+msgid "The book keeps using the current font above until you attach and assign new ones."
+msgstr "El libro sigue usando la fuente actual de arriba hasta que adjuntes y asignes nuevas."
+
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "La comunidad de organismos vivos en un lugar y la forma en que interactúan entre sí y con su entorno."
 
@@ -6278,6 +6384,9 @@ msgstr "La plantilla de prompt usada para traducir entradas del catálogo de tex
 msgid "The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt."
 msgstr "El prompt utilizado por la pasada de revisión para inspeccionar y corregir un árbol de sección candidato. Comparte el modelo y la configuración de reintentos del prompt de sección."
 
+msgid "The quick brown fox jumps over the lazy dog 0123456789"
+msgstr "El veloz murciélago hindú comía feliz cardillo y kiwi 0123456789"
+
 msgid "The quick brown fox jumps over the lazy dog."
 msgstr "El veloz zorro marrón salta sobre el perro perezoso."
 
@@ -6341,6 +6450,9 @@ msgstr "Este libro no tiene páginas. Asegúrate de que las etapas de extracció
 #. placeholder {0}: book.title
 msgid "This book is titled \"{0}\"."
 msgstr "Este libro se titula \\\"{0}\\\"."
+
+msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
+msgstr "Este libro se renderiza con diseño fijo, por lo que mantiene las fuentes originales del PDF. Las fuentes adjuntas igualmente guían a la IA en actividades y páginas generadas."
 
 msgid "This file couldn't be read as a ZIP archive"
 msgstr "Este archivo no pudo leerse como un archivo ZIP"
@@ -6741,6 +6853,12 @@ msgstr "Sube al menos un video para verlo aparecer aquí."
 msgid "Upload failed"
 msgstr "Error al subir"
 
+msgid "Upload font files"
+msgstr "Subir archivos de fuentes"
+
+#~ msgid "Upload fonts"
+#~ msgstr "Subir fuentes"
+
 msgid "Upload from Disk"
 msgstr "Subir desde disco"
 
@@ -6807,6 +6925,9 @@ msgstr "Use this for checks you intentionally want to suppress, such as known fa
 
 msgid "Use this format to back up the project or move it to another machine."
 msgstr "Usa este formato para respaldar el proyecto o moverlo a otra máquina."
+
+msgid "Used for"
+msgstr "Se usa para"
 
 msgid "Used for Azure Speech TTS provider."
 msgstr "Utilizada para el proveedor de TTS de Azure Speech."
@@ -6965,6 +7086,9 @@ msgstr "Exportación WebPub"
 
 msgid "Weight"
 msgstr "Peso"
+
+msgid "Weights:"
+msgstr "Pesos:"
 
 msgid "Welcome to ADT Studio"
 msgstr "Te damos la bienvenida a ADT Studio"

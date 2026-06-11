@@ -41,6 +41,7 @@ const SETTINGS_TAB_MESSAGE: Record<string, MessageDescriptor> = {
   "section-types": msg`Section Types`,
   "container-types": msg`Container Types`,
   "text-types": msg`Text Types`,
+  fonts: msg`Fonts`,
   "metadata-prompt": msg`Metadata Prompt`,
   prompt: msg`Extraction Prompt`,
   "meaningfulness-prompt": msg`Meaningfulness Prompt`,
@@ -82,6 +83,7 @@ const TASK_KIND_LABELS: Record<string, MessageDescriptor> = {
   "prepare-export": msg`Export`,
   "transcribe-timestamps": msg`Timestamps`,
   "book-summary": msg`Book Summary`,
+  "font-assignment": msg`Font Analysis`,
 }
 
 function getSettingsTabs(
@@ -92,6 +94,7 @@ function getSettingsTabs(
   const tabs: Record<string, { key: string; label: string }[]> = {
     extract: [
       { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE.general) },
+      { key: "fonts", label: i18n._(SETTINGS_TAB_MESSAGE.fonts) },
       { key: "metadata-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["metadata-prompt"]) },
       { key: "meaningfulness-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["meaningfulness-prompt"]) },
       { key: "cropping-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["cropping-prompt"]) },

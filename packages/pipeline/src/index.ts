@@ -201,6 +201,34 @@ export {
   type StyleguideGenerationConfig,
   type StyleguideGenerationInput,
 } from "./styleguide-generation.js"
+export {
+  detectFontFormat,
+  parseFontMetadata,
+  type ParsedFontMetadata,
+} from "./font-metadata.js"
+export {
+  resolveFontsCacheDir,
+  readCachedGoogleFont,
+  parseCss2FontFaces,
+  fetchGoogleFontFaces,
+  validateGoogleFamily,
+  ensureGoogleFontsCached,
+  ensureBookGoogleFontsCached,
+  readBookFontRegistry,
+  buildBookFontsPromptContext,
+  type BookFontPromptEntry,
+  bundleBookFontsIntoCss,
+  type CachedGoogleFont,
+  type EnsureCachedResult,
+  type FontsCacheFetchers,
+  type BundleBookFontsOptions,
+} from "./fonts-bundle.js"
+export {
+  generateFontAssignment,
+  buildFontAssignmentConfig,
+  type FontAssignmentConfig,
+  type FontAssignmentInput,
+} from "./font-assignment.js"
 export { loadConfig, loadBookConfig, deepMerge } from "./config.js"
 export { runFullPipeline, type FullPipelineOptions } from "./pipeline-dag.js"
 export {

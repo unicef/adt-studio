@@ -1,0 +1,227 @@
+import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
+import { openBookDb } from "@adt/storage"
+import { createFontRoutes } from "./fonts.js"
+
+let tmpDir: string
+let promptsDir: string
+
+beforeEach(() => {
+  tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-fonts-route-"))
+  promptsDir = path.join(tmpDir, "prompts")
+  fs.mkdirSync(promptsDir, { recursive: true })
+})
+
+afterEach(() => {
+  fs.rmSync(tmpDir, { recursive: true, force: true })
+})
+
+function createTestBook(label: string): void {
+  const bookDir = path.join(tmpDir, label)
+  fs.mkdirSync(path.join(bookDir, "images"), { recursive: true })
+  const db = openBookDb(path.join(bookDir, `${label}.db`))
+  db.close()
+  fs.writeFileSync(path.join(bookDir, `${label}.pdf`), "fake pdf")
+}
+
+function buildMinimalTtf(family: string): Buffer {
+  const utf16 = (s: string) => {
+    const b = Buffer.alloc(s.length * 2)
+    for (let i = 0; i < s.length; i++) b.writeUInt16BE(s.charCodeAt(i), i * 2)
+    return b
+  }
+  const famBytes = utf16(family)
+  const nameHeader = Buffer.alloc(6)
+  nameHeader.writeUInt16BE(0, 0)
+  nameHeader.writeUInt16BE(1, 2)
+  nameHeader.writeUInt16BE(6 + 12, 4)
+  const rec = Buffer.alloc(12)
+  rec.writeUInt16BE(3, 0)
+  rec.writeUInt16BE(1, 2)
+  rec.writeUInt16BE(0x409, 4)
+  rec.writeUInt16BE(1, 6)
+  rec.writeUInt16BE(famBytes.length, 8)
+  rec.writeUInt16BE(0, 10)
+  const nameTable = Buffer.concat([nameHeader, rec, famBytes])
+
+  const header = Buffer.alloc(12)
+  header.writeUInt32BE(0x00010000, 0)
+  header.writeUInt16BE(1, 4)
+  const tableRec = Buffer.alloc(16)
+  tableRec.write("name", 0, 4, "latin1")
+  tableRec.writeUInt32BE(12 + 16, 8)
+  tableRec.writeUInt32BE(nameTable.length, 12)
+  return Buffer.concat([header, tableRec, nameTable])
+}
+
+function uploadRequest(label: string, fileName: string, bytes: Buffer): Request {
+  const formData = new FormData()
+  formData.append("fonts", new File([new Uint8Array(bytes)], fileName))
+  return new Request(`http://localhost/books/${label}/fonts`, {
+    method: "POST",
+    body: formData,
+  })
+}
+
+describe("GET /books/:label/fonts", () => {
+  it("returns an empty registry with the current book font for a new book", async () => {
+    createTestBook("fresh")
+    const app = createFontRoutes(tmpDir, promptsDir)
+    const res = await app.request("/books/fresh/fonts")
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as {
+      version: number
+      fonts: unknown[]
+      assignment: unknown
+      current: { detectedCategory: string | null; setting: string; font: { family: string } }
+    }
+    expect(body.version).toBe(0)
+    expect(body.fonts).toEqual([])
+    expect(body.assignment).toBeNull()
+    expect(body.current.detectedCategory).toBeNull()
+    expect(body.current.setting).toBe("auto")
+    expect(body.current.font.family).toBe("Merriweather")
+  })
+
+  it("reflects the detected font profile in current", async () => {
+    createTestBook("profiled")
+    const db = openBookDb(path.join(tmpDir, "profiled", "profiled.db"))
+    db.run("INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)", [
+      "font-profile",
+      "book",
+      1,
+      JSON.stringify({ category: "sans", serifChars: 10, sansChars: 90 }),
+    ])
+    db.close()
+    const app = createFontRoutes(tmpDir, promptsDir)
+    const body = (await (await app.request("/books/profiled/fonts")).json()) as {
+      current: { detectedCategory: string | null; font: { family: string; category: string } }
+    }
+    expect(body.current.detectedCategory).toBe("sans")
+    expect(body.current.font.category).toBe("sans")
+  })
+})
+
+describe("POST /books/:label/fonts", () => {
+  it("rejects non-font files by magic bytes", async () => {
+    createTestBook("reject")
+    const app = createFontRoutes(tmpDir, promptsDir)
+    const res = await app.request(
+      uploadRequest("reject", "evil.ttf", Buffer.from("#!/bin/sh rm -rf /")),
+    )
+    expect(res.status).toBe(400)
+  })
+
+  it("rejects requests without files", async () => {
+    createTestBook("empty")
+    const app = createFontRoutes(tmpDir, promptsDir)
+    const formData = new FormData()
+    const res = await app.request(`http://localhost/books/empty/fonts`, {
+      method: "POST",
+      body: formData,
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it("stores a valid font, parses its family, and versions the registry", async () => {
+    createTestBook("ok")
+    const app = createFontRoutes(tmpDir, promptsDir)
+
+    const res = await app.request(uploadRequest("ok", "anything.ttf", buildMinimalTtf("Minha Fonte")))
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as {
+      version: number
+      fonts: Array<{ id: string; family: string; source: string; cached: boolean; faces: unknown[] }>
+    }
+    expect(body.version).toBe(1)
+    expect(body.fonts).toHaveLength(1)
+    expect(body.fonts[0]).toMatchObject({
+      id: "minha-fonte",
+      family: "Minha Fonte",
+      source: "upload",
+      cached: true,
+    })
+    expect(fs.existsSync(path.join(tmpDir, "ok", "fonts", "minha-fonte-400.ttf"))).toBe(true)
+
+    const res2 = await app.request(uploadRequest("ok", "again.ttf", buildMinimalTtf("Minha Fonte")))
+    const body2 = (await res2.json()) as { version: number; fonts: unknown[] }
+    expect(body2.version).toBe(2)
+    expect(body2.fonts).toHaveLength(1)
+  })
+})
+
+describe("DELETE /books/:label/fonts/:id", () => {
+  it("removes the font and its uploaded files", async () => {
+    createTestBook("del")
+    const app = createFontRoutes(tmpDir, promptsDir)
+    await app.request(uploadRequest("del", "f.ttf", buildMinimalTtf("Apagar")))
+
+    const res = await app.request("/books/del/fonts/apagar", { method: "DELETE" })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { fonts: unknown[] }
+    expect(body.fonts).toEqual([])
+    expect(fs.existsSync(path.join(tmpDir, "del", "fonts", "apagar-400.ttf"))).toBe(false)
+  })
+
+  it("404s for unknown fonts", async () => {
+    createTestBook("del404")
+    const app = createFontRoutes(tmpDir, promptsDir)
+    const res = await app.request("/books/del404/fonts/nope", { method: "DELETE" })
+    expect(res.status).toBe(404)
+  })
+})
+
+describe("PATCH /books/:label/fonts/:id", () => {
+  it("pins a role and survives as a new registry version", async () => {
+    createTestBook("patch")
+    const app = createFontRoutes(tmpDir, promptsDir)
+    await app.request(uploadRequest("patch", "f.ttf", buildMinimalTtf("Pinada")))
+
+    const res = await app.request("/books/patch/fonts/pinada", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: "heading" }),
+    })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as {
+      version: number
+      fonts: Array<{ role: string; roleLockedByUser: boolean }>
+    }
+    expect(body.version).toBe(2)
+    expect(body.fonts[0]).toMatchObject({ role: "heading", roleLockedByUser: true })
+  })
+
+  it("rejects invalid roles", async () => {
+    createTestBook("badrole")
+    const app = createFontRoutes(tmpDir, promptsDir)
+    await app.request(uploadRequest("badrole", "f.ttf", buildMinimalTtf("Fonte")))
+    const res = await app.request("/books/badrole/fonts/fonte", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ role: "banner" }),
+    })
+    expect(res.status).toBe(400)
+  })
+})
+
+describe("GET /books/:label/fonts/:id/files/:file", () => {
+  it("serves uploaded font files with the right content type", async () => {
+    createTestBook("serve")
+    const app = createFontRoutes(tmpDir, promptsDir)
+    await app.request(uploadRequest("serve", "f.ttf", buildMinimalTtf("Servida")))
+
+    const res = await app.request("/books/serve/fonts/servida/files/servida-400.ttf")
+    expect(res.status).toBe(200)
+    expect(res.headers.get("Content-Type")).toBe("font/ttf")
+  })
+
+  it("rejects path traversal in file names", async () => {
+    createTestBook("trav")
+    const app = createFontRoutes(tmpDir, promptsDir)
+    await app.request(uploadRequest("trav", "f.ttf", buildMinimalTtf("Fonte")))
+    const res = await app.request("/books/trav/fonts/fonte/files/..%2F..%2Ftrav.pdf")
+    expect([400, 404]).toContain(res.status)
+  })
+})

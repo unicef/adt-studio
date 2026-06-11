@@ -32,6 +32,7 @@ export interface BuildGoogleFontFaceOptions {
   /** Injectable fetchers (tests). Default to global `fetch` with a browser UA. */
   fetchText?: FetchText
   fetchBytes?: FetchBytes
+  excludeFamilies?: string[]
 }
 
 /** Every `https://….woff2` URL referenced by `url(...)` in a css2 response. */
@@ -150,11 +151,14 @@ export async function bundleGoogleFontsIntoCss(
   const cssPath = path.join(adtDir, "assets", "fonts.css")
   if (!fs.existsSync(cssPath)) return []
 
+  const excluded = new Set(opts.excludeFamilies ?? [])
   const families = new Set<string>()
   for (const name of fs.readdirSync(adtDir)) {
     if (!name.endsWith(".html")) continue
     const html = fs.readFileSync(path.join(adtDir, name), "utf-8")
-    for (const fam of googleFontsReferencedIn(html)) families.add(fam)
+    for (const fam of googleFontsReferencedIn(html)) {
+      if (!excluded.has(fam)) families.add(fam)
+    }
   }
   if (families.size === 0) return []
 
