@@ -1,0 +1,35 @@
+name: Landing CI
+
+on:
+  pull_request:
+    branches: [landing-page]
+  push:
+    branches: [landing-page]
+
+permissions:
+  contents: read
+
+jobs:
+  landing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Lint
+        run: pnpm --filter @adt/landing lint
+      - name: Check for unextracted strings
+        run: |
+          pnpm --filter @adt/landing extract
+          NEW=$(git diff -- apps/landing/src/locales/ | grep '^+msgid "' | grep -v '^+msgid ""' || true)
+          if [ -n "$NEW" ]; then
+            echo "New unextracted strings found. Run 'pnpm --filter @adt/landing extract' and commit the updated .po files."
+            echo "$NEW"
+            exit 1
+          fi
+      - name: Build
+        run: pnpm --filter @adt/landing build
