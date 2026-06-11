@@ -65,6 +65,11 @@ export function packageWebpub(
   // column-based pagination which breaks the single-page ADT layout.
   injectWebpubStyles(webpubDir, { fixedLayout: options.fixedLayout })
 
+  // The full runtime is stripped, so load the standalone activities bundle on
+  // pages that host interactive activities — it renders the Submit/Next control
+  // and validates answers (the bundle file survives stripRuntimeBundle).
+  injectActivitiesBundle(webpubDir)
+
   // Load metadata for manifest
   const metadataRow = storage.getLatestNodeData("metadata", "book")
   const metadata = metadataRow?.data as BookMetadata | undefined
@@ -188,6 +193,28 @@ function buildTocCollection(webpubDir: string): TocLink[] {
     return nestTocEntries(entries)
   } catch {
     return []
+  }
+}
+
+const ACTIVITY_SECTION_MARKER = 'data-section-type="activity_'
+const ACTIVITIES_SCRIPT_TAG = '    <script src="./assets/activities.bundle.local.js"></script>\n'
+
+/**
+ * Inject the standalone activities bundle into every WebPub page that hosts an
+ * interactive activity. Non-activity pages are left untouched so they don't
+ * boot an idle runtime.
+ */
+export function injectActivitiesBundle(dir: string): void {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name)
+    if (entry.isDirectory()) {
+      injectActivitiesBundle(fullPath)
+    } else if (entry.isFile() && entry.name.endsWith(".html")) {
+      const html = fs.readFileSync(fullPath, "utf-8")
+      if (!html.includes(ACTIVITY_SECTION_MARKER)) continue
+      if (html.includes("activities.bundle.local.js")) continue
+      fs.writeFileSync(fullPath, html.replace("</body>", `${ACTIVITIES_SCRIPT_TAG}</body>`))
+    }
   }
 }
 

@@ -1756,6 +1756,12 @@ async function buildJsBundle(
   if (fs.existsSync(preBuiltIife)) {
     fs.copyFileSync(preBuiltIife, path.join(outputAssetsDir, "base.bundle.local.js"))
   }
+  // Standalone activities bundle (used by the webpub export). Built alongside
+  // the base bundle by the same adt-runtime build script above.
+  const preBuiltActivities = path.join(webAssetsDir, "activities.bundle.local.js")
+  if (fs.existsSync(preBuiltActivities)) {
+    fs.copyFileSync(preBuiltActivities, path.join(outputAssetsDir, "activities.bundle.local.js"))
+  }
 }
 
 // ---------------------------------------------------------------------------

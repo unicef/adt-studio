@@ -14,7 +14,7 @@ import {
   convertLatexToMathml,
   convertLatexString,
 } from "../packaging/web.js"
-import { packageWebpub, nestTocEntries } from "../packaging/webpub.js"
+import { packageWebpub, nestTocEntries, injectActivitiesBundle } from "../packaging/webpub.js"
 
 function createMockStorage(
   pages: PageData[],
@@ -1851,6 +1851,40 @@ describe("nestTocEntries", () => {
       },
       { href: "ch2.html", title: "Chapter 2" },
     ])
+  })
+})
+
+describe("injectActivitiesBundle", () => {
+  let tmp: string
+
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "inject-activities-"))
+  })
+  afterEach(() => {
+    fs.rmSync(tmp, { recursive: true, force: true })
+  })
+
+  it("injects the bundle only into pages with an activity section", () => {
+    const activityHtml = `<html><body><section data-section-type="activity_quiz"></section></body></html>`
+    const plainHtml = `<html><body><p>No activity here</p></body></html>`
+    fs.writeFileSync(path.join(tmp, "quiz.html"), activityHtml)
+    fs.writeFileSync(path.join(tmp, "plain.html"), plainHtml)
+
+    injectActivitiesBundle(tmp)
+
+    const quiz = fs.readFileSync(path.join(tmp, "quiz.html"), "utf-8")
+    const plain = fs.readFileSync(path.join(tmp, "plain.html"), "utf-8")
+    expect(quiz).toContain("./assets/activities.bundle.local.js")
+    expect(plain).not.toContain("activities.bundle.local.js")
+  })
+
+  it("does not double-inject", () => {
+    const html = `<html><body><section data-section-type="activity_sorting"></section></body></html>`
+    fs.writeFileSync(path.join(tmp, "a.html"), html)
+    injectActivitiesBundle(tmp)
+    injectActivitiesBundle(tmp)
+    const out = fs.readFileSync(path.join(tmp, "a.html"), "utf-8")
+    expect(out.match(/activities\.bundle\.local\.js/g)).toHaveLength(1)
   })
 })
 
