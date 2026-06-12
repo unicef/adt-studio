@@ -1295,6 +1295,9 @@ msgstr "Corps"
 msgid "Body text"
 msgstr "Corps du texte"
 
+msgid "Body text uses this attached font. Change the “Used for” role below to switch back to the default."
+msgstr "Le corps du texte utilise cette police jointe. Changez le rôle « Utilisée pour » ci-dessous pour revenir à la police par défaut."
+
 msgid "Body text uses this font today. Attach a font below and assign it the “Body text” role to replace it in generated pages."
 msgstr "Le corps du texte utilise cette police aujourd'hui. Joignez une police ci-dessous et attribuez-lui le rôle « Corps du texte » pour la remplacer dans les pages générées."
 
@@ -2802,6 +2805,9 @@ msgstr "FR"
 
 msgid "French"
 msgstr "Français"
+
+msgid "From attached fonts · Body text"
+msgstr "Depuis les polices jointes · Corps du texte"
 
 msgid "From reference image..."
 msgstr "À partir de l'image de référence..."

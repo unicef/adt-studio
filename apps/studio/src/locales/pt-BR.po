@@ -1293,6 +1293,9 @@ msgstr "Corpo"
 msgid "Body text"
 msgstr "Texto do corpo"
 
+msgid "Body text uses this attached font. Change the “Used for” role below to switch back to the default."
+msgstr "O corpo do texto usa esta fonte anexada. Altere o papel “Usada para” abaixo para voltar ao padrão."
+
 msgid "Body text uses this font today. Attach a font below and assign it the “Body text” role to replace it in generated pages."
 msgstr "O corpo do texto usa esta fonte hoje. Anexe uma fonte abaixo e atribua a ela o papel “Texto do corpo” para substituí-la nas páginas geradas."
 
@@ -2800,6 +2803,9 @@ msgstr "FR"
 
 msgid "French"
 msgstr "Francês"
+
+msgid "From attached fonts · Body text"
+msgstr "Das fontes anexadas · Texto do corpo"
 
 msgid "From reference image..."
 msgstr "A partir de imagem de referência..."

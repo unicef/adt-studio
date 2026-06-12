@@ -36,6 +36,8 @@ export {
   FONT_ASSIGNMENT_ITEM_ID,
   bookFontIdFromName,
   bookFontsReferencedIn,
+  bookBodyFont,
+  bookFontFamilyChain,
   isCuratedGoogleFamily,
   classifyFontLicenseOpenSource,
 } from "./book-fonts.js"

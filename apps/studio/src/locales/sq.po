@@ -1294,6 +1294,9 @@ msgstr "Trupi"
 msgid "Body text"
 msgstr "Teksti kryesor"
 
+msgid "Body text uses this attached font. Change the “Used for” role below to switch back to the default."
+msgstr "Teksti kryesor përdor këtë font të bashkëngjitur. Ndryshoni rolin “Përdoret për” më poshtë për t'u kthyer te fonti i parazgjedhur."
+
 msgid "Body text uses this font today. Attach a font below and assign it the “Body text” role to replace it in generated pages."
 msgstr "Teksti kryesor përdor këtë font sot. Bashkëngjitni një font më poshtë dhe caktojini rolin “Teksti kryesor” për ta zëvendësuar në faqet e gjeneruara."
 
@@ -2801,6 +2804,9 @@ msgstr "FR"
 
 msgid "French"
 msgstr "Frëngjisht"
+
+msgid "From attached fonts · Body text"
+msgstr "Nga fontet e bashkëngjitura · Teksti kryesor"
 
 msgid "From reference image..."
 msgstr "Nga imazhi referues..."

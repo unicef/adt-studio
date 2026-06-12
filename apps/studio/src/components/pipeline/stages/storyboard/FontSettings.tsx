@@ -185,7 +185,9 @@ function CurrentFontCard({ current }: { current: BookCurrentFont }) {
       <div className="flex flex-wrap items-center gap-2 mb-2">
         <Type className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
         <h4 className="text-sm font-medium">{t`Current book font`}</h4>
-        {current.setting === "auto" ? (
+        {current.bodyRole ? (
+          <Badge variant="secondary">{t`From attached fonts · Body text`}</Badge>
+        ) : current.setting === "auto" ? (
           <Badge variant="secondary">
             {detectedLabel
               ? t`Auto-detected · ${detectedLabel}`
@@ -203,10 +205,17 @@ function CurrentFontCard({ current }: { current: BookCurrentFont }) {
         {current.font.family}
       </p>
       <p className="text-xs text-muted-foreground mt-1">
-        <Trans>
-          Body text uses this font today. Attach a font below and assign it the “Body text” role
-          to replace it in generated pages.
-        </Trans>
+        {current.bodyRole ? (
+          <Trans>
+            Body text uses this attached font. Change the “Used for” role below to switch back to
+            the default.
+          </Trans>
+        ) : (
+          <Trans>
+            Body text uses this font today. Attach a font below and assign it the “Body text” role
+            to replace it in generated pages.
+          </Trans>
+        )}
       </p>
     </div>
   )

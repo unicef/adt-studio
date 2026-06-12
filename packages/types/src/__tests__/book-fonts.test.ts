@@ -4,6 +4,8 @@ import {
   BookFontRegistry,
   bookFontIdFromName,
   bookFontsReferencedIn,
+  bookBodyFont,
+  bookFontFamilyChain,
   classifyFontLicenseOpenSource,
 } from "../book-fonts.js"
 
@@ -54,6 +56,39 @@ describe("bookFontsReferencedIn", () => {
   it("dedupes repeated references", () => {
     const html = `font-family:Solo; font-family: Solo, serif`
     expect(bookFontsReferencedIn(html, registryWith("Solo"))).toHaveLength(1)
+  })
+})
+
+describe("bookBodyFont", () => {
+  it("returns the font assigned the body role", () => {
+    const registry = registryWith("Heading Font", "Body Font")
+    registry.fonts[0].role = "heading"
+    registry.fonts[1].role = "body"
+    expect(bookBodyFont(registry)?.family).toBe("Body Font")
+  })
+
+  it("returns null when no font has the body role", () => {
+    expect(bookBodyFont(registryWith("Solo"))).toBeNull()
+  })
+})
+
+describe("bookFontFamilyChain", () => {
+  it("inserts the bundled Merriweather fallback for serif/sans/unknown", () => {
+    expect(bookFontFamilyChain({ family: "Aguafina Script" })).toBe(
+      "'Aguafina Script','Merriweather',sans-serif",
+    )
+    expect(bookFontFamilyChain({ family: "Lora", category: "serif" })).toBe(
+      "Lora,'Merriweather',serif",
+    )
+  })
+
+  it("uses the bare category generic for handwriting and mono", () => {
+    expect(bookFontFamilyChain({ family: "Caveat", category: "handwriting" })).toBe(
+      "Caveat,cursive",
+    )
+    expect(bookFontFamilyChain({ family: "Noto Sans Mono", category: "mono" })).toBe(
+      "'Noto Sans Mono',monospace",
+    )
   })
 })
 

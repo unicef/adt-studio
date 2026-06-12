@@ -151,6 +151,21 @@ describe("renderPageHtml", () => {
     expect(html).toContain("fonts.googleapis.com/css2?family=Atkinson+Hyperlegible")
   })
 
+  it("loads a non-curated body family from Google Fonts too", () => {
+    const html = renderPageHtml({
+      content: "<p>Hello</p>",
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Test",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+      bodyFontFamily: "'Aguafina Script','Merriweather',sans-serif",
+    })
+
+    expect(html).toContain("fonts.googleapis.com/css2?family=Aguafina+Script")
+  })
+
   it("omits the base-font override when bodyFontFamily is unset", () => {
     const html = renderPageHtml({
       content: "<p>Hello</p>",
@@ -278,11 +293,28 @@ describe("renderPageHtml", () => {
 })
 
 describe("resolveReflowableFontChain", () => {
-  const fakeStorage = (category: string | null) =>
+  const fakeStorage = (category: string | null, registry?: unknown) =>
     ({
       getLatestNodeData: (node: string) =>
-        node === "font-profile" ? { data: { category }, version: 1 } : null,
+        node === "font-profile"
+          ? { data: { category }, version: 1 }
+          : node === "font-registry" && registry
+            ? { data: registry, version: 1 }
+            : null,
     }) as unknown as Storage
+
+  const bodyFontRegistry = {
+    fonts: [
+      {
+        id: "aguafina-script",
+        family: "Aguafina Script",
+        source: "google",
+        faces: [],
+        role: "body",
+        roleLockedByUser: true,
+      },
+    ],
+  }
 
   it("returns undefined for fixed-layout books (keep original fonts)", () => {
     expect(resolveReflowableFontChain(fakeStorage("sans"), { fixedLayout: true })).toBeUndefined()
@@ -303,6 +335,20 @@ describe("resolveReflowableFontChain", () => {
     expect(resolveReflowableFontChain(fakeStorage("serif"), { reflowableFont: "lora" })).toBe(
       "Lora,'Merriweather',serif",
     )
+  })
+
+  it("prefers an attached font assigned the body role", () => {
+    expect(
+      resolveReflowableFontChain(fakeStorage("sans", bodyFontRegistry), {
+        reflowableFont: "lora",
+      }),
+    ).toBe("'Aguafina Script','Merriweather',sans-serif")
+  })
+
+  it("ignores body-role fonts for fixed-layout books", () => {
+    expect(
+      resolveReflowableFontChain(fakeStorage("sans", bodyFontRegistry), { fixedLayout: true }),
+    ).toBeUndefined()
   })
 })
 

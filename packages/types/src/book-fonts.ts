@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { GOOGLE_FONTS } from "./google-fonts.js"
+import { GOOGLE_FONTS, cssQuoteFamily } from "./google-fonts.js"
 
 export const BookFontSource = z.enum(["upload", "google"])
 export type BookFontSource = z.infer<typeof BookFontSource>
@@ -69,6 +69,34 @@ export function bookFontIdFromName(name: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
   return slug || "font"
+}
+
+/** The attached font assigned the `body` role, if any — it replaces the
+ *  reflowable base font in generated pages. */
+export function bookBodyFont(registry: BookFontRegistry): BookFont | null {
+  return registry.fonts.find((f) => f.role === "body") ?? null
+}
+
+const CATEGORY_GENERIC: Record<BookFontCategory, string> = {
+  serif: "serif",
+  sans: "sans-serif",
+  handwriting: "cursive",
+  mono: "monospace",
+  display: "sans-serif",
+}
+
+/**
+ * CSS font-family chain for an attached book font. Mirrors
+ * `reflowableFontFamilyChain`: handwriting/mono fall back straight to their
+ * category generic; everything else inserts the always-bundled Merriweather
+ * as a legible fallback while the webfont loads.
+ */
+export function bookFontFamilyChain(font: Pick<BookFont, "family" | "category">): string {
+  const fam = cssQuoteFamily(font.family)
+  const generic = CATEGORY_GENERIC[font.category ?? "sans"]
+  return font.category === "handwriting" || font.category === "mono"
+    ? `${fam},${generic}`
+    : `${fam},'Merriweather',${generic}`
 }
 
 export function bookFontsReferencedIn(text: string, registry: BookFontRegistry): BookFont[] {

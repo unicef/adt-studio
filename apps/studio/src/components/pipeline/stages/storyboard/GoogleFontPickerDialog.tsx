@@ -21,7 +21,7 @@ const ROW_H = CARD_H + ROW_GAP
 
 function previewCss2Url(family: string): string {
   const f = family.trim().replace(/\s+/g, "+")
-  return `https://fonts.googleapis.com/css2?family=${f}&text=${encodeURIComponent(family)}&display=swap`
+  return `https://fonts.googleapis.com/css2?family=${f}&display=swap`
 }
 
 export function GoogleFontPickerDialog({

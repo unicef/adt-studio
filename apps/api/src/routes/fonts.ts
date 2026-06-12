@@ -14,6 +14,7 @@ import {
   FONT_ASSIGNMENT_NODE,
   FONT_ASSIGNMENT_ITEM_ID,
   bookFontIdFromName,
+  bookBodyFont,
   classifyFontCategoryByName,
   classifyFontLicenseOpenSource,
   normalizeFontKey,
@@ -82,11 +83,30 @@ export function createFontRoutes(
     } | null
     const detectedCategory = profile?.category ?? null
     const setting = config?.reflowable_font ?? "auto"
+    const fixedLayout = config ? isFixedLayoutBook(config) : false
+
+    const bodyFont = fixedLayout ? null : bookBodyFont(readBookFontRegistry(storage))
+    if (bodyFont) {
+      return {
+        detectedCategory,
+        setting,
+        fixedLayout,
+        bodyRole: true,
+        font: {
+          id: bodyFont.id,
+          family: bodyFont.family,
+          category: bodyFont.category ?? "sans",
+          google: bodyFont.source === "google",
+        },
+      }
+    }
+
     const font = resolveReflowableFont(setting, detectedCategory)
     return {
       detectedCategory,
       setting,
-      fixedLayout: config ? isFixedLayoutBook(config) : false,
+      fixedLayout,
+      bodyRole: false,
       font: {
         id: font.id,
         family: font.family,

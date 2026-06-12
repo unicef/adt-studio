@@ -592,6 +592,7 @@ export interface BookCurrentFont {
   detectedCategory: "serif" | "sans" | null
   setting: string
   fixedLayout: boolean
+  bodyRole: boolean
   font: { id: string; family: string; category: string; google: boolean }
 }
 

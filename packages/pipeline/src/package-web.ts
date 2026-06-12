@@ -33,8 +33,8 @@ import type {
   ImageCaptioningOutput,
 } from "@adt/types"
 import { WebRenderingOutput as WebRenderingOutputSchema } from "@adt/types"
-import { googleFontsReferencedIn, googleFontsCss2Url } from "@adt/types"
-import { reflowableFontChain } from "@adt/types"
+import { googleFontsReferencedIn, googleFontsCss2Url, primaryFontFamily } from "@adt/types"
+import { reflowableFontChain, bookBodyFont, bookFontFamilyChain } from "@adt/types"
 import { bundleGoogleFontsIntoCss } from "./google-fonts-bundle.js"
 import {
   bundleBookFontsIntoCss,
@@ -1140,6 +1140,10 @@ export function resolveReflowableFontChain(
   storage: Storage,
   opts: { fixedLayout?: boolean; reflowableFont?: string },
 ): string | undefined {
+  if (!opts.fixedLayout) {
+    const bodyFont = bookBodyFont(readBookFontRegistry(storage))
+    if (bodyFont) return bookFontFamilyChain(bodyFont)
+  }
   const row = storage.getLatestNodeData("font-profile", "book")
   // The font profile only records the auto-detected categories (serif/sans).
   const category = (row?.data as { category?: "serif" | "sans" | null } | undefined)?.category ?? null
@@ -1228,6 +1232,10 @@ ${fallbackHeadingHtml}${contentBlock}
   // (above) declares the body family. The bundled Merriweather remains the
   // fallback for everything else.
   const googleFamilies = googleFontsReferencedIn(normalizedContent + bodyFontStyle)
+  const bodyPrimary = opts.bodyFontFamily ? primaryFontFamily(opts.bodyFontFamily) : ""
+  if (bodyPrimary && bodyPrimary !== "Merriweather" && !googleFamilies.includes(bodyPrimary)) {
+    googleFamilies.push(bodyPrimary)
+  }
   const googleFontsUrl = googleFontsCss2Url(googleFamilies)
   const googleFontsLinks = googleFontsUrl
     ? `
