@@ -25,7 +25,11 @@ import type {
   WebRenderingOutput,
 } from "@adt/types"
 import { extractPDF } from "./pdf-extraction.js"
-import { resolveFontsCacheDir, buildBookFontsPromptContext } from "./fonts-bundle.js"
+import {
+  resolveFontsCacheDir,
+  buildBookFontsPromptContext,
+  ensureBookGoogleFontsCached,
+} from "./fonts-bundle.js"
 import { extractMetadata, buildMetadataConfig } from "./metadata-extraction.js"
 import { generateBookSummary, buildBookSummaryConfig } from "./book-summary.js"
 import {
@@ -533,6 +537,8 @@ export async function runFullPipeline(
     executors.set("web-rendering", async (p) => {
       // Fixed-layout rendering is already done in page-sectioning step
       if (isFixedLayout) return
+
+      await ensureBookGoogleFontsCached(storage, resolveFontsCacheDir(booksRoot))
 
       const renderModels = new Map<string, LLMModel>()
       const resolveRenderModel = (modelId: string): LLMModel => {

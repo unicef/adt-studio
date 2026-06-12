@@ -9,6 +9,7 @@ import {
   extractPDF,
   resolveFontsCacheDir,
   buildBookFontsPromptContext,
+  ensureBookGoogleFontsCached,
   extractMetadata,
   buildMetadataConfig,
   classifyPageImages,
@@ -1013,6 +1014,8 @@ async function runStoryboardStep(
     console.log(
       `[stage-run] ${label}: rendering storyboard for ${totalPages} pages (concurrency=${effectiveConcurrency})`
     )
+
+    await ensureBookGoogleFontsCached(storage, resolveFontsCacheDir(booksDir))
 
     let completedRendering = 0
     const failedPages: string[] = []

@@ -94,7 +94,6 @@ function getSettingsTabs(
   const tabs: Record<string, { key: string; label: string }[]> = {
     extract: [
       { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE.general) },
-      { key: "fonts", label: i18n._(SETTINGS_TAB_MESSAGE.fonts) },
       { key: "metadata-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["metadata-prompt"]) },
       { key: "meaningfulness-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["meaningfulness-prompt"]) },
       { key: "cropping-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["cropping-prompt"]) },
@@ -109,6 +108,7 @@ function getSettingsTabs(
     ],
     storyboard: [
       { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE.general) },
+      { key: "fonts", label: i18n._(SETTINGS_TAB_MESSAGE.fonts) },
       { key: "rendering-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["rendering-prompt"]) },
       { key: "rendering-template", label: i18n._(SETTINGS_TAB_MESSAGE["rendering-template"]) },
       { key: "activity-prompts", label: i18n._(SETTINGS_TAB_MESSAGE["activity-prompts"]) },

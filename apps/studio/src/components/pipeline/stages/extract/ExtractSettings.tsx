@@ -20,7 +20,6 @@ import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
 import { PromptViewer } from "@/components/pipeline/components/PromptViewer"
-import { FontSettings } from "./FontSettings"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useStepConfig } from "@/hooks/use-step-config"
 import { normalizeLocale } from "@/lib/languages"
@@ -365,8 +364,6 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
           </div>
         </>
       )}
-
-      {tab === "fonts" && <FontSettings bookLabel={bookLabel} />}
 
       {tab === "metadata-prompt" && (
         <PromptViewer

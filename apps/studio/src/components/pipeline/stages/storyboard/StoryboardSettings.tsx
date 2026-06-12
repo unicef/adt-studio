@@ -41,6 +41,7 @@ import {
 } from "@/lib/render-strategy"
 import { getSectionTypeLabel } from "@/lib/section-constants"
 import { hasSectioningData } from "./lib/storyboard-rerun-policy"
+import { FontSettings } from "./FontSettings"
 import { REFLOWABLE_FONTS } from "@adt/types"
 
 /** "two_column_story" → "Two Column Story" */
@@ -560,6 +561,8 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
           </div>
         </div>
       )}
+
+      {tab === "fonts" && <FontSettings bookLabel={bookLabel} />}
 
       {tab === "rendering-prompt" && (
         <div className="flex flex-col h-full">
