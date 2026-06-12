@@ -1,6 +1,7 @@
 import { useRef, useMemo, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from "react"
 import DOMPurify from "dompurify"
-import { BASE_URL } from "@/api/client"
+import { BASE_URL, getBookFontFileUrl } from "@/api/client"
+import { useBookFonts } from "@/hooks/use-book-fonts"
 import type { DeviceView } from "./style-editor/device-breakpoint"
 import {
   getDeviceFrame,
@@ -306,6 +307,33 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   // injectContent can trigger another pass after content swaps.
   // eslint-disable-next-line lingui/no-unlocalized-strings
   const autoFitScript = `<script src="${assetsPrefix}/assets/auto-fit.js"></script>`
+  const { data: bookFontsData } = useBookFonts(bookLabel)
+  const bookFontsHead = useMemo(() => {
+    const fonts = bookFontsData?.fonts ?? []
+    if (fonts.length === 0) return ""
+    /* eslint-disable lingui/no-unlocalized-strings -- CSS, not user-visible text */
+    const googleUrl = googleFontsCss2Url(
+      fonts.filter((f) => f.source === "google").map((f) => f.family),
+    )
+    const link = googleUrl ? `\n  <link href="${googleUrl}" rel="stylesheet">` : ""
+    const faces = fonts
+      .filter((f) => f.source === "upload")
+      .flatMap((f) =>
+        f.faces.map(
+          (face) => `@font-face {
+  font-family: ${JSON.stringify(f.family)};
+  font-style: ${face.style};
+  font-weight: ${face.weight};
+  font-display: swap;
+  src: url(${JSON.stringify(getBookFontFileUrl(bookLabel, f.id, face.file))});
+  ${face.unicodeRange ? `unicode-range: ${face.unicodeRange};` : ""}
+}`,
+        ),
+      )
+    const style = faces.length > 0 ? `\n  <style>\n${faces.join("\n")}\n  </style>` : ""
+    /* eslint-enable lingui/no-unlocalized-strings */
+    return `${link}${style}`
+  }, [bookFontsData, bookLabel])
   // Reflowable base-font override: load the family from Google Fonts and
   // re-declare the global element font (last in <head> so it wins over
   // fonts.css's Merriweather rule). Mirrors renderPageHtml's injection so the
@@ -332,7 +360,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   <link href="${assetsPrefix}/assets/libs/fontawesome/css/all.min.css" rel="stylesheet">
   <style>
     ${INTERACTIVE_STYLES}
-  </style>${fontOverride}
+  </style>${bookFontsHead}${fontOverride}
 </head>
 <body class="min-h-screen flex items-center justify-center">
 ${INTERACTIVE_SCRIPT}
@@ -340,9 +368,9 @@ ${autoFitScript}
 </body>
 </html>`,
     // autoFitScript embeds assetsPrefix; INTERACTIVE_SCRIPT/INTERACTIVE_STYLES
-    // are stable module constants. Re-memoise when the prefix (auto-fit URL) or
-    // the reflowable font override changes.
-    [assetsPrefix, autoFitScript, fontOverride]
+    // are stable module constants. Re-memoise when the prefix (auto-fit URL),
+    // the attached book fonts, or the reflowable font override changes.
+    [assetsPrefix, autoFitScript, bookFontsHead, fontOverride]
   )
 
   // Listen for postMessage from iframe
