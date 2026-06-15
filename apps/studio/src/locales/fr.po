@@ -1352,6 +1352,9 @@ msgstr "Remplacement de point de rupture"
 msgid "Brewing a fresh batch of HTML..."
 msgstr "Préparation d'un nouveau lot de HTML..."
 
+msgid "Browse all Google Fonts…"
+msgstr "Parcourir toutes les Google Fonts…"
+
 msgid "Browse and edit Liquid templates used for template-based rendering strategies."
 msgstr "Parcourez et modifiez les modèles Liquid utilisés pour les stratégies de rendu basées sur des modèles."
 
@@ -1360,6 +1363,9 @@ msgstr "Parcourez chaque section du Storyboard et téléchargez, remplacez ou su
 
 msgid "Browse Google Fonts"
 msgstr "Parcourir Google Fonts"
+
+#~ msgid "Browse Google Fonts…"
+#~ msgstr "Parcourir Google Fonts…"
 
 msgid "Build a glossary of key terms and definitions found in the text."
 msgstr "Construisez un glossaire des termes clés et définitions trouvés dans le texte."
@@ -1975,6 +1981,9 @@ msgstr "Par défaut"
 
 msgid "Default (from prompt)"
 msgstr "Par défaut (from invite)"
+
+msgid "Default (inherit)"
+msgstr "Par défaut (hériter)"
 
 msgid "Default (no text detected yet)"
 msgstr "Par défaut (aucun texte détecté pour l'instant)"
@@ -4049,6 +4058,9 @@ msgstr "Aucune police jointe pour le moment."
 #~ msgid "No fonts attached yet. The book uses the automatically detected fonts."
 #~ msgstr "Aucune police jointe pour le moment. Le livre utilise les polices détectées automatiquement."
 
+msgid "No fonts found"
+msgstr "Aucune police trouvée"
+
 msgid "No fonts match your search."
 msgstr "Aucune police ne correspond à votre recherche."
 
@@ -5596,6 +5608,9 @@ msgstr "Rechercher des couleurs"
 msgid "Search entries…"
 msgstr "Rechercher des entrées…"
 
+msgid "Search fonts"
+msgstr "Rechercher des polices"
+
 msgid "Search fonts..."
 msgstr "Rechercher des polices..."
 
@@ -6502,6 +6517,9 @@ msgstr "Ce fichier n'a pas pu être lu comme une archive ZIP"
 msgid "This font's license is not open-source and restricts embedding — distributing it inside the book bundle may be illegal."
 msgstr "La licence de cette police n'est pas open source et restreint l'intégration — la distribuer dans le paquet du livre peut être illégal."
 
+msgid "This font's license restricts embedding — distributing it inside the book bundle may be illegal."
+msgstr "La licence de cette police restreint l'incorporation — la distribuer dans le paquet du livre peut être illégal."
+
 msgid "This image is decorative. Screen readers will skip it and no caption is needed."
 msgstr "Cette image est décorative. Les lecteurs d'écran l'ignoreront et aucune légende n'est nécessaire."
 
@@ -7248,6 +7266,9 @@ msgstr "Vos livres"
 
 msgid "Your first ADT <0>starts here.</0>"
 msgstr "Votre premier ADT <0>commence ici.</0>"
+
+msgid "Your fonts"
+msgstr "Vos polices"
 
 msgid "Z → A"
 msgstr "Z → A"

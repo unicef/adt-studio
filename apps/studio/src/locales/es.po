@@ -1350,6 +1350,9 @@ msgstr "Anulación de punto de ruptura"
 msgid "Brewing a fresh batch of HTML..."
 msgstr "Preparando un nuevo lote de HTML..."
 
+msgid "Browse all Google Fonts…"
+msgstr "Explorar todas las Google Fonts…"
+
 msgid "Browse and edit Liquid templates used for template-based rendering strategies."
 msgstr "Navega y edita plantillas Liquid usadas para estrategias de renderización basadas en plantillas."
 
@@ -1358,6 +1361,9 @@ msgstr "Explora cada sección del Storyboard y sube, reemplaza o elimina su vide
 
 msgid "Browse Google Fonts"
 msgstr "Explorar Google Fonts"
+
+#~ msgid "Browse Google Fonts…"
+#~ msgstr "Explorar Google Fonts…"
 
 msgid "Build a glossary of key terms and definitions found in the text."
 msgstr "Construye un glosario de términos clave y definiciones encontrados en el texto."
@@ -1973,6 +1979,9 @@ msgstr "Predeterminado"
 
 msgid "Default (from prompt)"
 msgstr "Predeterminado (del prompt)"
+
+msgid "Default (inherit)"
+msgstr "Predeterminado (heredar)"
 
 msgid "Default (no text detected yet)"
 msgstr "Predeterminada (aún no se detectó texto)"
@@ -4047,6 +4056,9 @@ msgstr "Aún no hay fuentes adjuntas."
 #~ msgid "No fonts attached yet. The book uses the automatically detected fonts."
 #~ msgstr "Aún no hay fuentes adjuntas. El libro usa las fuentes detectadas automáticamente."
 
+msgid "No fonts found"
+msgstr "No se encontraron fuentes"
+
 msgid "No fonts match your search."
 msgstr "Ninguna fuente coincide con tu búsqueda."
 
@@ -5594,6 +5606,9 @@ msgstr "Buscar colores"
 msgid "Search entries…"
 msgstr "Buscar entradas…"
 
+msgid "Search fonts"
+msgstr "Buscar fuentes"
+
 msgid "Search fonts..."
 msgstr "Buscar fuentes..."
 
@@ -6500,6 +6515,9 @@ msgstr "Este archivo no pudo leerse como un archivo ZIP"
 msgid "This font's license is not open-source and restricts embedding — distributing it inside the book bundle may be illegal."
 msgstr "La licencia de esta fuente no es open source y restringe la incrustación — distribuirla dentro del paquete del libro puede ser ilegal."
 
+msgid "This font's license restricts embedding — distributing it inside the book bundle may be illegal."
+msgstr "La licencia de esta fuente restringe la incrustación — distribuirla dentro del paquete del libro puede ser ilegal."
+
 msgid "This image is decorative. Screen readers will skip it and no caption is needed."
 msgstr "Esta imagen es decorativa. Los lectores de pantalla la omitirán y no se necesita leyenda."
 
@@ -7246,6 +7264,9 @@ msgstr "Tus libros"
 
 msgid "Your first ADT <0>starts here.</0>"
 msgstr "Tu primer ADT <0>empieza aquí.</0>"
+
+msgid "Your fonts"
+msgstr "Tus fuentes"
 
 msgid "Z → A"
 msgstr "Z → A"

@@ -1350,6 +1350,9 @@ msgstr "Breakpoint override"
 msgid "Brewing a fresh batch of HTML..."
 msgstr "Brewing a fresh batch of HTML..."
 
+msgid "Browse all Google Fonts…"
+msgstr "Browse all Google Fonts…"
+
 msgid "Browse and edit Liquid templates used for template-based rendering strategies."
 msgstr "Browse and edit Liquid templates used for template-based rendering strategies."
 
@@ -1358,6 +1361,9 @@ msgstr "Browse every Storyboard section and upload, replace, or remove its sign-
 
 msgid "Browse Google Fonts"
 msgstr "Browse Google Fonts"
+
+#~ msgid "Browse Google Fonts…"
+#~ msgstr "Browse Google Fonts…"
 
 msgid "Build a glossary of key terms and definitions found in the text."
 msgstr "Build a glossary of key terms and definitions found in the text."
@@ -1973,6 +1979,9 @@ msgstr "Default"
 
 msgid "Default (from prompt)"
 msgstr "Default (from prompt)"
+
+msgid "Default (inherit)"
+msgstr "Default (inherit)"
 
 msgid "Default (no text detected yet)"
 msgstr "Default (no text detected yet)"
@@ -4047,6 +4056,9 @@ msgstr "No fonts attached yet."
 #~ msgid "No fonts attached yet. The book uses the automatically detected fonts."
 #~ msgstr "No fonts attached yet. The book uses the automatically detected fonts."
 
+msgid "No fonts found"
+msgstr "No fonts found"
+
 msgid "No fonts match your search."
 msgstr "No fonts match your search."
 
@@ -5594,6 +5606,9 @@ msgstr "Search colors"
 msgid "Search entries…"
 msgstr "Search entries…"
 
+msgid "Search fonts"
+msgstr "Search fonts"
+
 msgid "Search fonts..."
 msgstr "Search fonts..."
 
@@ -6500,6 +6515,9 @@ msgstr "This file couldn't be read as a ZIP archive"
 msgid "This font's license is not open-source and restricts embedding — distributing it inside the book bundle may be illegal."
 msgstr "This font's license is not open-source and restricts embedding — distributing it inside the book bundle may be illegal."
 
+msgid "This font's license restricts embedding — distributing it inside the book bundle may be illegal."
+msgstr "This font's license restricts embedding — distributing it inside the book bundle may be illegal."
+
 msgid "This image is decorative. Screen readers will skip it and no caption is needed."
 msgstr "This image is decorative. Screen readers will skip it and no caption is needed."
 
@@ -7246,6 +7264,9 @@ msgstr "Your Books"
 
 msgid "Your first ADT <0>starts here.</0>"
 msgstr "Your first ADT <0>starts here.</0>"
+
+msgid "Your fonts"
+msgstr "Your fonts"
 
 msgid "Z → A"
 msgstr "Z → A"

@@ -1266,6 +1266,25 @@ export function StoryboardSectionDetail({
     [page.rendering, sectionIndex, markPending]
   )
 
+  // Inline-style edits (e.g. per-element font-family). Unlike class edits these
+  // need no Tailwind rebuild, so we skip refreshCss; we re-snapshot the
+  // element's computed/inline typography so the inspector reflects the change.
+  const handleStyleChange = useCallback(
+    (dataId: string, property: string, value: string) => {
+      if (!page.rendering) return
+      if (Date.now() - lastDiscardAtRef.current < 250) return
+      const fullHtml = previewFrameRef.current?.setElementStyleProp(dataId, property, value)
+      if (!fullHtml) return
+      setSelectedComputedTypography(
+        previewFrameRef.current?.getComputedTypographyStyles(dataId) ?? null
+      )
+      pendingHtmlRef.current = { html: fullHtml, sectionIndex }
+      setHasUnflushedEdits(true)
+      markPending("style")
+    },
+    [page.rendering, sectionIndex, markPending]
+  )
+
   const flushPendingHtml = useCallback((): RenderingData | null => {
     const queued = pendingHtmlRef.current
     if (!queued) return pendingRendering
@@ -2365,8 +2384,10 @@ export function StoryboardSectionDetail({
             : null
         }
         onClassesChange={handleClassesChange}
+        onStyleChange={handleStyleChange}
         deviceView={deviceView}
         isFixedLayout={isFixedLayout}
+        bookLabel={bookLabel}
       />
     </div>
 

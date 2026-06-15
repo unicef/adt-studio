@@ -1351,6 +1351,9 @@ msgstr "Anashkalim i pikës së thyerjes"
 msgid "Brewing a fresh batch of HTML..."
 msgstr "Duke krijuar një tufë të re HTML..."
 
+msgid "Browse all Google Fonts…"
+msgstr "Shfleto të gjitha Google Fonts…"
+
 msgid "Browse and edit Liquid templates used for template-based rendering strategies."
 msgstr "Shfleto dhe redakto shabllonët Liquid të përdorur për strategjitë e renderimit të bazuar në shabllon."
 
@@ -1359,6 +1362,9 @@ msgstr "Shfleto çdo seksion të Storyboard-it dhe ngarko, zëvendëso ose hiq v
 
 msgid "Browse Google Fonts"
 msgstr "Shfleto Google Fonts"
+
+#~ msgid "Browse Google Fonts…"
+#~ msgstr "Shfleto Google Fonts…"
 
 msgid "Build a glossary of key terms and definitions found in the text."
 msgstr "Ndërto një glosar me termat kryesorë dhe përkufizimet e gjetura në tekst."
@@ -1974,6 +1980,9 @@ msgstr "Parazgjedhje"
 
 msgid "Default (from prompt)"
 msgstr "Parazgjedhje (nga prompt-i)"
+
+msgid "Default (inherit)"
+msgstr "Parazgjedhje (trashëgo)"
 
 msgid "Default (no text detected yet)"
 msgstr "Parazgjedhje (ende nuk u zbulua tekst)"
@@ -4048,6 +4057,9 @@ msgstr "Ende nuk është bashkëngjitur asnjë font."
 #~ msgid "No fonts attached yet. The book uses the automatically detected fonts."
 #~ msgstr "Ende nuk është bashkëngjitur asnjë font. Libri përdor fontet e zbuluara automatikisht."
 
+msgid "No fonts found"
+msgstr "Nuk u gjet asnjë font"
+
 msgid "No fonts match your search."
 msgstr "Asnjë font nuk përputhet me kërkimin tuaj."
 
@@ -5595,6 +5607,9 @@ msgstr "Kërko ngjyra"
 msgid "Search entries…"
 msgstr "Kërko regjistrime…"
 
+msgid "Search fonts"
+msgstr "Kërko fonte"
+
 msgid "Search fonts..."
 msgstr "Kërko fonte..."
 
@@ -6501,6 +6516,9 @@ msgstr "Ky skedar nuk mund të lexohej si arkiv ZIP"
 msgid "This font's license is not open-source and restricts embedding — distributing it inside the book bundle may be illegal."
 msgstr "Licenca e këtij fonti nuk është open-source dhe kufizon përfshirjen — shpërndarja e tij brenda paketës së librit mund të jetë e paligjshme."
 
+msgid "This font's license restricts embedding — distributing it inside the book bundle may be illegal."
+msgstr "Licenca e kësaj fonti kufizon ngulitjen — shpërndarja e saj brenda paketës së librit mund të jetë e paligjshme."
+
 msgid "This image is decorative. Screen readers will skip it and no caption is needed."
 msgstr "Ky imazh është dekorativ. Lexuesit e ekranit do ta anashkalojnë dhe nuk nevojitet titull."
 
@@ -7247,6 +7265,9 @@ msgstr "Librat tuaj"
 
 msgid "Your first ADT <0>starts here.</0>"
 msgstr "ADT-ja juaj e parë <0>fillon këtu.</0>"
+
+msgid "Your fonts"
+msgstr "Fontet e tua"
 
 msgid "Z → A"
 msgstr "Z → A"

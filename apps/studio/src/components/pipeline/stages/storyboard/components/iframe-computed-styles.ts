@@ -12,6 +12,10 @@ export interface ComputedTypographyStyles {
   /** Primary declared family (first token, unquoted) of the element's text,
    *  e.g. "Mouse Memoirs". Null when no family is resolvable. */
   fontFamily: string | null
+  /** Primary family from the element's own inline `style="font-family"`, if any
+   *  — distinguishes an explicit per-element font from an inherited one. Null
+   *  when the element has no inline font-family. */
+  inlineFontFamily: string | null
 }
 
 export function parsePx(value: string): number | null {
