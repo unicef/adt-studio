@@ -1,62 +1,62 @@
-# Guia de Execução de Testes — ADT Studio
+# Test Execution Guide — ADT Studio
 
-Referência rápida com todos os comandos de teste em sequência lógica.
+Quick reference with all test commands in logical sequence.
 
-**Requisitos:** Node.js 20+, pnpm 10+
+**Requirements:** Node.js 20+, pnpm 10+
 
 ---
 
-## 1. Preparação inicial
+## 1. Initial setup
 
 ```bash
-# Instalar todas as dependências
+# Install all dependencies
 pnpm install
 
-# Build dos pacotes compartilhados (necessário antes de qualquer teste)
+# Build shared packages (required before any test)
 pnpm build
 ```
 
 ---
 
-## 2. Testes unitários (Vitest)
+## 2. Unit tests (Vitest)
 
-### Executar todos os testes
+### Run all tests
 
 ```bash
 pnpm test
 ```
 
-### Executar em modo watch (reexecuta ao salvar)
+### Run in watch mode (re-runs on save)
 
 ```bash
 pnpm test:watch
 ```
 
-### Executar com cobertura de código
+### Run with code coverage
 
 ```bash
 pnpm test --coverage
 ```
 
-> O relatório HTML de cobertura é gerado em `coverage/index.html`.
+> The HTML coverage report is generated at `coverage/index.html`.
 
-### Executar apenas uma área específica
+### Run a specific area only
 
 ```bash
-# Testes do pipeline
+# Pipeline tests
 pnpm test packages/pipeline
 
-# Testes da API
+# API tests
 pnpm test apps/api
 
-# Testes do Studio
+# Studio tests
 pnpm test apps/studio
 
-# Testes de um arquivo específico
+# A single file
 pnpm test apps/api/src/routes/books.test.ts
 ```
 
-### Executar apenas os testes de acessibilidade (unitários)
+### Run accessibility unit tests only
 
 ```bash
 pnpm test -- --testNamePattern="accessibility|a11y"
@@ -64,42 +64,42 @@ pnpm test -- --testNamePattern="accessibility|a11y"
 
 ---
 
-## 3. Testes E2E desktop (Playwright + Electron)
+## 3. E2E desktop tests (Playwright + Electron)
 
-> Os testes E2E exigem o app Electron compilado. Execute o build uma vez antes de rodar.
+> E2E tests require the compiled Electron app. Run the build once before running.
 
-### Build do app desktop (pré-requisito)
+### Build the desktop app (prerequisite)
 
 ```bash
 pnpm build:desktop
 ```
 
-### Executar todos os testes E2E
+### Run all E2E tests
 
 ```bash
 pnpm test:e2e
 ```
 
-### Executar um arquivo específico
+### Run a specific file
 
 ```bash
-# Testes do IPC bridge (window.api, window.electron)
+# IPC bridge tests (window.api, window.electron)
 pnpm test:e2e tests/desktop/electron-bridge.spec.ts
 
-# Testes da API e pipeline
+# API and pipeline tests
 pnpm test:e2e tests/desktop/pipeline.spec.ts
 
-# Testes de fila de estágios (stage-queue, SSE)
+# Stage queue tests (stage-queue, SSE)
 pnpm test:e2e tests/desktop/stage-queue.spec.ts
 
-# Testes de versionamento e lifecycle de livros
+# Book versioning and lifecycle tests
 pnpm test:e2e tests/desktop/versioning.spec.ts
 
-# Testes de acessibilidade WCAG no app real
+# WCAG accessibility tests on the real app
 pnpm test:e2e tests/desktop/accessibility.spec.ts
 ```
 
-### Executar com fixture de livro pré-extraído (testes avançados)
+### Run with pre-extracted book fixture (advanced tests)
 
 ```bash
 RAVEN_EXTRACTED_BOOK_DIR=./tests/fixtures/raven-extracted pnpm test:e2e
@@ -107,16 +107,16 @@ RAVEN_EXTRACTED_BOOK_DIR=./tests/fixtures/raven-extracted pnpm test:e2e
 
 ---
 
-## 4. Relatórios visuais
+## 4. Visual reports
 
-### Abrir relatório HTML do Playwright
+### Open Playwright HTML report
 
 ```bash
 npx playwright show-report
-# Abre em http://localhost:9323
+# Opens at http://localhost:9323
 ```
 
-### Abrir relatório de cobertura (após rodar com --coverage)
+### Open coverage report (after running with --coverage)
 
 ```bash
 # Windows
@@ -131,102 +131,102 @@ xdg-open coverage/index.html
 
 ---
 
-## 5. Acessibilidade (axe-core)
+## 5. Accessibility (axe-core)
 
-### Testes unitários com axe (componentes React)
+### Unit tests with axe (React components)
 
 ```bash
-# Todos os arquivos .a11y.test
+# All .a11y.test files
 pnpm test -- --reporter=verbose apps/studio/src/components/pipeline/components/ToggleCard.a11y.test.tsx
 pnpm test -- --reporter=verbose apps/studio/src/components/books/DeleteBookDialog.a11y.test.tsx
 ```
 
-### Auditoria WCAG no app Electron (E2E)
+### WCAG audit on the Electron app (E2E)
 
 ```bash
 pnpm test:e2e tests/desktop/accessibility.spec.ts
 ```
 
-### Auditoria axe nos livros gerados (requer livros processados)
+### axe audit on generated books (requires processed books)
 
 ```bash
-# Auditoria com relatório em texto
+# Audit with text report
 pnpm a11y:regression
 
-# Auditoria com saída JSON
+# Audit with JSON output
 pnpm a11y:regression:json
 
-# Auditoria via browser (color-contrast + regras dependentes de layout)
+# Browser audit (color-contrast + layout-dependent rules)
 pnpm a11y:browser-recheck
 
-# Auditoria browser com saída JSON
+# Browser audit with JSON output
 pnpm a11y:browser-recheck:json
 ```
 
 ---
 
-## 6. Gerar relatório de testes (documento)
+## 6. Generate test report (document)
 
 ```bash
-# Gera docs/test-report.xlsx e docs/test-report.docx
-# Requer coverage/coverage-summary.json (rodar pnpm test --coverage antes)
+# Generates docs/test-report.xlsx and docs/test-report.docx
+# Requires coverage/coverage-summary.json (run pnpm test --coverage first)
 node scripts/generate-test-report.mjs
 ```
 
 ---
 
-## 7. Sequência completa (do zero)
+## 7. Full sequence (from scratch)
 
-Execute os comandos abaixo em ordem para rodar toda a suíte do zero:
+Run the commands below in order to execute the full suite from zero:
 
 ```bash
-# 1. Instalar dependências
+# 1. Install dependencies
 pnpm install
 
-# 2. Build de todos os pacotes
+# 2. Build all packages
 pnpm build
 
-# 3. Testes unitários com cobertura
+# 3. Unit tests with coverage
 pnpm test --coverage
 
-# 4. Build do app Electron
+# 4. Build the Electron app
 pnpm build:desktop
 
-# 5. Testes E2E
+# 5. E2E tests
 pnpm test:e2e
 
-# 6. Gerar documentos de relatório
+# 6. Generate report documents
 node scripts/generate-test-report.mjs
 ```
 
 ---
 
-## 8. Resumo dos scripts disponíveis
+## 8. Available scripts summary
 
-| Comando | O que faz |
+| Command | What it does |
 |---|---|
-| `pnpm test` | Todos os testes unitários (Vitest) |
-| `pnpm test --coverage` | Testes unitários + cobertura em `coverage/` |
-| `pnpm test:watch` | Testes em modo watch |
-| `pnpm test:e2e` | Todos os testes E2E Playwright |
-| `pnpm test:e2e <arquivo>` | Arquivo E2E específico |
-| `pnpm a11y:regression` | Auditoria axe nos livros gerados |
-| `pnpm a11y:browser-recheck` | Auditoria axe via browser (color-contrast) |
-| `node scripts/generate-test-report.mjs` | Gera `.xlsx` e `.docx` do relatório |
-| `npx playwright show-report` | Abre relatório HTML do Playwright |
+| `pnpm test` | All unit tests (Vitest) |
+| `pnpm test --coverage` | Unit tests + coverage in `coverage/` |
+| `pnpm test:watch` | Tests in watch mode |
+| `pnpm test:e2e` | All Playwright E2E tests |
+| `pnpm test:e2e <file>` | Specific E2E file |
+| `pnpm a11y:regression` | axe audit on generated books |
+| `pnpm a11y:browser-recheck` | axe audit via browser (color-contrast) |
+| `node scripts/generate-test-report.mjs` | Generates `.xlsx` and `.docx` report |
+| `npx playwright show-report` | Opens Playwright HTML report |
 
 ---
 
-## 9. Arquivos de referência
+## 9. Reference files
 
-| Arquivo | Descrição |
+| File | Description |
 |---|---|
-| `vitest.config.ts` | Configuração do Vitest (include, coverage, timeout) |
-| `playwright.config.ts` | Configuração do Playwright (testDir, workers, reporters) |
-| `tests/desktop/setup.ts` | Fixtures compartilhadas dos testes E2E (Electron launcher) |
-| `tests/fixtures/raven.pdf` | PDF fixture usado nos testes E2E |
-| `coverage/index.html` | Relatório HTML de cobertura (gerado após `--coverage`) |
-| `playwright-report/index.html` | Relatório HTML do Playwright (gerado após `test:e2e`) |
-| `docs/test-report.xlsx` | Planilha do relatório de testes |
-| `docs/test-report.docx` | Documento Word do relatório de testes |
-| `docs/TEST-REPORT.md` | Relatório de testes em Markdown |
+| `vitest.config.ts` | Vitest configuration (include, coverage, timeout) |
+| `playwright.config.ts` | Playwright configuration (testDir, workers, reporters) |
+| `tests/desktop/setup.ts` | Shared E2E fixtures (Electron launcher) |
+| `tests/fixtures/raven.pdf` | PDF fixture used in E2E tests |
+| `coverage/index.html` | HTML coverage report (generated after `--coverage`) |
+| `playwright-report/index.html` | Playwright HTML report (generated after `test:e2e`) |
+| `docs/test-report.xlsx` | Test report spreadsheet |
+| `docs/test-report.docx` | Test report Word document |
+| `docs/TEST-REPORT.md` | Test report in Markdown |
