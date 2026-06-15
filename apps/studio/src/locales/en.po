@@ -97,6 +97,10 @@ msgstr "{0} audio"
 msgid "{0} checks per page"
 msgstr "{0} checks per page"
 
+#. placeholder {0}: getStageLabelI18n(uiStage)
+msgid "{0} complete"
+msgstr "{0} complete"
+
 #. placeholder {0}: String(p.stats.decorative)
 msgid "{0} decorative"
 msgstr "{0} decorative"
@@ -104,6 +108,10 @@ msgstr "{0} decorative"
 #. placeholder {0}: entries.length
 msgid "{0} entries"
 msgstr "{0} entries"
+
+#. placeholder {0}: getStageLabelI18n(uiStage)
+msgid "{0} failed"
+msgstr "{0} failed"
 
 #. placeholder {0}: activeMetrics.flagged.length
 msgid "{0} flagged findings in this review"
@@ -342,6 +350,10 @@ msgstr "{stageLabel} isn't ready yet — every section in the Storyboard is curr
 
 msgid "{stageLabel} isn't ready yet — Storyboard hasn't finished, so there's nothing to work with. Finish that stage first."
 msgstr "{stageLabel} isn't ready yet — Storyboard hasn't finished, so there's nothing to work with. Finish that stage first."
+
+#. placeholder {0}: getStageStatusLabelI18n(statusKey)
+msgid "{stepLabel}: {0}"
+msgstr "{stepLabel}: {0}"
 
 msgid "{textCount} text leaves"
 msgstr "{textCount} text leaves"
@@ -735,6 +747,12 @@ msgstr "Add at least one output language to run translation."
 
 msgid "Add Book"
 msgstr "Add Book"
+
+msgid "Add Book: Choose a preset"
+msgstr "Add Book: Choose a preset"
+
+msgid "Add Book: Upload PDF"
+msgstr "Add Book: Upload PDF"
 
 msgid "Add caption…"
 msgstr "Add caption…"
@@ -1290,6 +1308,9 @@ msgstr "Book Language"
 
 msgid "Book order"
 msgstr "Book order"
+
+msgid "Book package ready"
+msgstr "Book package ready"
 
 msgid "Book preview"
 msgstr "Book preview"
@@ -1980,6 +2001,10 @@ msgstr "Definitions and Terminology"
 msgid "Delete"
 msgstr "Delete"
 
+#. placeholder {0}: book.title ?? book.label
+msgid "Delete {0}"
+msgstr "Delete {0}"
+
 msgid "Delete all speech"
 msgstr "Delete all speech"
 
@@ -2108,6 +2133,9 @@ msgstr "Distribute through Readium-compatible reading apps and libraries."
 
 msgid "Don't have a project yet?"
 msgstr "Don't have a project yet?"
+
+msgid "done"
+msgstr "done"
 
 msgid "Done"
 msgstr "Done"
@@ -2248,6 +2276,10 @@ msgstr "Ecosystem"
 
 msgid "Edit"
 msgstr "Edit"
+
+#. placeholder {0}: book.title ?? book.label
+msgid "Edit {0}"
+msgstr "Edit {0}"
 
 msgid "Edit & enrich"
 msgstr "Edit & enrich"
@@ -2534,6 +2566,9 @@ msgstr "Extracts text and image data from each page of the PDF."
 
 msgid "Extracts the correct answer key from the generated activity HTML."
 msgstr "Extracts the correct answer key from the generated activity HTML."
+
+msgid "failed"
+msgstr "failed"
 
 msgid "Failed"
 msgstr "Failed"
@@ -3050,6 +3085,9 @@ msgstr "Image Cropping"
 msgid "Image Cropping Prompt"
 msgstr "Image Cropping Prompt"
 
+msgid "Image edit complete"
+msgstr "Image edit complete"
+
 msgid "Image Edit Prompt"
 msgstr "Image Edit Prompt"
 
@@ -3166,6 +3204,9 @@ msgstr "In book:"
 
 msgid "In case you don't want to convert the whole book, adjust the sliders to define which pages will be digitized."
 msgstr "In case you don't want to convert the whole book, adjust the sliders to define which pages will be digitized."
+
+msgid "in progress"
+msgstr "in progress"
 
 msgid "in the book"
 msgstr "in the book"
@@ -3809,6 +3850,9 @@ msgstr "Needs changes"
 msgid "Needs rebuild"
 msgstr "Needs rebuild"
 
+msgid "needs update"
+msgstr "needs update"
+
 msgid "Never"
 msgstr "Never"
 
@@ -4133,6 +4177,9 @@ msgstr "Not reviewed"
 
 msgid "Not run during the last execution — likely because its inputs weren't ready or its stage's settings turned it off."
 msgstr "Not run during the last execution — likely because its inputs weren't ready or its stage's settings turned it off."
+
+msgid "not started"
+msgstr "not started"
 
 msgid "Not started yet"
 msgstr "Not started yet"
@@ -4471,6 +4518,9 @@ msgstr "Page Range"
 msgid "Page range help"
 msgstr "Page range help"
 
+msgid "Page re-rendered"
+msgstr "Page re-rendered"
+
 msgid "Page Sectioning"
 msgstr "Page Sectioning"
 
@@ -4619,6 +4669,9 @@ msgstr "Pipeline · storyboard"
 
 msgid "Pipeline features"
 msgstr "Pipeline features"
+
+msgid "Pipeline stages"
+msgstr "Pipeline stages"
 
 msgid "Pipeline Stages"
 msgstr "Pipeline Stages"
@@ -4791,6 +4844,9 @@ msgstr "Query param"
 
 msgid "question"
 msgstr "question"
+
+msgid "queued"
+msgstr "queued"
 
 msgid "Queued"
 msgstr "Queued"
@@ -5166,6 +5222,9 @@ msgstr "Retries"
 msgid "Retry"
 msgstr "Retry"
 
+msgid "Retry {stageLabel}"
+msgstr "Retry {stageLabel}"
+
 msgid "Retry Export"
 msgstr "Retry Export"
 
@@ -5325,6 +5384,9 @@ msgstr "Running"
 
 msgid "RUNNING"
 msgstr "RUNNING"
+
+msgid "Running {stageLabel}"
+msgstr "Running {stageLabel}"
 
 msgid "Running Sectioning will run Extract first, then section the extracted pages."
 msgstr "Running Sectioning will run Extract first, then section the extracted pages."
@@ -6047,6 +6109,9 @@ msgstr "Structured HTML"
 msgid "Structures each page into a tree of sections and nodes."
 msgstr "Structures each page into a tree of sections and nodes."
 
+msgid "Studio actions"
+msgstr "Studio actions"
+
 msgid "Style"
 msgstr "Style"
 
@@ -6121,6 +6186,16 @@ msgstr "Tailwind classes"
 
 msgid "Takes liberties and produces something similar."
 msgstr "Takes liberties and produces something similar."
+
+msgid "Task complete"
+msgstr "Task complete"
+
+msgid "Task failed"
+msgstr "Task failed"
+
+#. placeholder {0}: d.error
+msgid "Task failed: {0}"
+msgstr "Task failed: {0}"
 
 msgid "Task Running"
 msgstr "Task Running"
@@ -6985,6 +7060,9 @@ msgstr "WebPub Export"
 msgid "Weight"
 msgstr "Weight"
 
+msgid "Welcome"
+msgstr "Welcome"
+
 msgid "Welcome to ADT Studio"
 msgstr "Welcome to ADT Studio"
 
@@ -7056,6 +7134,9 @@ msgstr "Word and definition are required."
 
 msgid "Word Highlighting"
 msgstr "Word Highlighting"
+
+msgid "Word highlighting ready"
+msgstr "Word highlighting ready"
 
 msgid "Word-level highlighting"
 msgstr "Word-level highlighting"

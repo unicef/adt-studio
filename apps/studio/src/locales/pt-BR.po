@@ -97,6 +97,10 @@ msgstr "{0} áudios"
 msgid "{0} checks per page"
 msgstr "{0} checks per page"
 
+#. placeholder {0}: getStageLabelI18n(uiStage)
+msgid "{0} complete"
+msgstr "{0} concluído"
+
 #. placeholder {0}: String(p.stats.decorative)
 msgid "{0} decorative"
 msgstr "{0} decorativo"
@@ -104,6 +108,10 @@ msgstr "{0} decorativo"
 #. placeholder {0}: entries.length
 msgid "{0} entries"
 msgstr "{0} entradas"
+
+#. placeholder {0}: getStageLabelI18n(uiStage)
+msgid "{0} failed"
+msgstr "{0} falhou"
 
 #. placeholder {0}: activeMetrics.flagged.length
 msgid "{0} flagged findings in this review"
@@ -342,6 +350,10 @@ msgstr "{stageLabel} ainda não está pronto — todas as seções no Storyboard
 
 msgid "{stageLabel} isn't ready yet — Storyboard hasn't finished, so there's nothing to work with. Finish that stage first."
 msgstr "{stageLabel} ainda não está pronto — o Storyboard não foi concluído, então não há nada para trabalhar. Termine essa etapa primeiro."
+
+#. placeholder {0}: getStageStatusLabelI18n(statusKey)
+msgid "{stepLabel}: {0}"
+msgstr "{stepLabel}: {0}"
 
 msgid "{textCount} text leaves"
 msgstr "{textCount} folhas de texto"
@@ -735,6 +747,12 @@ msgstr "Adicione pelo menos um idioma de saída para executar tradução."
 
 msgid "Add Book"
 msgstr "Adicionar livro"
+
+msgid "Add Book: Choose a preset"
+msgstr "Adicionar livro: Escolher uma predefinição"
+
+msgid "Add Book: Upload PDF"
+msgstr "Adicionar livro: Enviar PDF"
 
 msgid "Add caption…"
 msgstr "Adicionar legenda…"
@@ -1290,6 +1308,9 @@ msgstr "Idioma do livro"
 
 msgid "Book order"
 msgstr "Ordem do livro"
+
+msgid "Book package ready"
+msgstr "Pacote do livro pronto"
 
 msgid "Book preview"
 msgstr "Pré-visualização do livro"
@@ -1980,6 +2001,10 @@ msgstr "Definições e Terminologia"
 msgid "Delete"
 msgstr "Excluir"
 
+#. placeholder {0}: book.title ?? book.label
+msgid "Delete {0}"
+msgstr "Excluir {0}"
+
 msgid "Delete all speech"
 msgstr "Excluir todo o áudio"
 
@@ -2108,6 +2133,9 @@ msgstr "Distribua através de aplicativos e bibliotecas de leitura compatíveis 
 
 msgid "Don't have a project yet?"
 msgstr "Ainda não tem um projeto?"
+
+msgid "done"
+msgstr "concluído"
 
 msgid "Done"
 msgstr "Concluído"
@@ -2248,6 +2276,10 @@ msgstr "Ecossistema"
 
 msgid "Edit"
 msgstr "Editar"
+
+#. placeholder {0}: book.title ?? book.label
+msgid "Edit {0}"
+msgstr "Editar {0}"
 
 msgid "Edit & enrich"
 msgstr "Editar e aprimorar"
@@ -2534,6 +2566,9 @@ msgstr "Extrai texto e dados de imagem de cada página do PDF."
 
 msgid "Extracts the correct answer key from the generated activity HTML."
 msgstr "Extrai a chave de resposta correta do HTML da atividade gerada."
+
+msgid "failed"
+msgstr "falhou"
 
 msgid "Failed"
 msgstr "Falhou"
@@ -3050,6 +3085,9 @@ msgstr "Recorte de imagens"
 msgid "Image Cropping Prompt"
 msgstr "Prompt de recorte de imagem"
 
+msgid "Image edit complete"
+msgstr "Edição de imagem concluída"
+
 msgid "Image Edit Prompt"
 msgstr "Prompt de edição de imagem"
 
@@ -3166,6 +3204,9 @@ msgstr "No livro:"
 
 msgid "In case you don't want to convert the whole book, adjust the sliders to define which pages will be digitized."
 msgstr "Caso não queira converter o livro inteiro, ajuste os controles deslizantes para definir quais páginas serão digitalizadas."
+
+msgid "in progress"
+msgstr "em andamento"
 
 msgid "in the book"
 msgstr "no livro"
@@ -3809,6 +3850,9 @@ msgstr "Needs changes"
 msgid "Needs rebuild"
 msgstr "Precisa ser reconstruído"
 
+msgid "needs update"
+msgstr "precisa de atualização"
+
 msgid "Never"
 msgstr "Nunca"
 
@@ -4133,6 +4177,9 @@ msgstr "Not reviewed"
 
 msgid "Not run during the last execution — likely because its inputs weren't ready or its stage's settings turned it off."
 msgstr "Não executado na última execução — provavelmente porque suas entradas não estavam prontas ou as configurações de sua etapa o desativaram."
+
+msgid "not started"
+msgstr "não iniciado"
 
 msgid "Not started yet"
 msgstr "Ainda não iniciado"
@@ -4471,6 +4518,9 @@ msgstr "Intervalo de páginas"
 msgid "Page range help"
 msgstr "Ajuda de intervalo de páginas"
 
+msgid "Page re-rendered"
+msgstr "Página renderizada novamente"
+
 msgid "Page Sectioning"
 msgstr "Secionamento de páginas"
 
@@ -4619,6 +4669,9 @@ msgstr "Pipeline · storyboard"
 
 msgid "Pipeline features"
 msgstr "Recursos do pipeline"
+
+msgid "Pipeline stages"
+msgstr "Etapas do pipeline"
 
 msgid "Pipeline Stages"
 msgstr "Etapas do pipeline"
@@ -4791,6 +4844,9 @@ msgstr "Parâmetro de consulta"
 
 msgid "question"
 msgstr "pergunta"
+
+msgid "queued"
+msgstr "na fila"
 
 msgid "Queued"
 msgstr "Na fila"
@@ -5166,6 +5222,9 @@ msgstr "Retries"
 msgid "Retry"
 msgstr "Tentar novamente"
 
+msgid "Retry {stageLabel}"
+msgstr "Tentar {stageLabel} novamente"
+
 msgid "Retry Export"
 msgstr "Tentar exportar novamente"
 
@@ -5325,6 +5384,9 @@ msgstr "Em execução"
 
 msgid "RUNNING"
 msgstr "EM EXECUÇÃO"
+
+msgid "Running {stageLabel}"
+msgstr "Executando {stageLabel}"
 
 msgid "Running Sectioning will run Extract first, then section the extracted pages."
 msgstr "Executar Sectioning executará primeiro a Extração e depois dividirá em seções as páginas extraídas."
@@ -6047,6 +6109,9 @@ msgstr "HTML estruturado"
 msgid "Structures each page into a tree of sections and nodes."
 msgstr "Estrutura cada página em uma árvore de seções e nós."
 
+msgid "Studio actions"
+msgstr "Ações do estúdio"
+
 msgid "Style"
 msgstr "Estilo"
 
@@ -6121,6 +6186,16 @@ msgstr "Classes Tailwind"
 
 msgid "Takes liberties and produces something similar."
 msgstr "Toma liberdades e produz algo semelhante."
+
+msgid "Task complete"
+msgstr "Tarefa concluída"
+
+msgid "Task failed"
+msgstr "A tarefa falhou"
+
+#. placeholder {0}: d.error
+msgid "Task failed: {0}"
+msgstr "A tarefa falhou: {0}"
 
 msgid "Task Running"
 msgstr "Task Running"
@@ -6985,6 +7060,9 @@ msgstr "Exportação WebPub"
 msgid "Weight"
 msgstr "Peso"
 
+msgid "Welcome"
+msgstr "Bem-vindo"
+
 msgid "Welcome to ADT Studio"
 msgstr "Bem-vindo ao ADT Studio"
 
@@ -7056,6 +7134,9 @@ msgstr "Palavra e definição são obrigatórias."
 
 msgid "Word Highlighting"
 msgstr "Destaque de palavras"
+
+msgid "Word highlighting ready"
+msgstr "Destaque de palavras pronto"
 
 msgid "Word-level highlighting"
 msgstr "Destaque por palavra"

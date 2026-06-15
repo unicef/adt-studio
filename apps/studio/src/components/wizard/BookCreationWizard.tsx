@@ -10,6 +10,7 @@ import { useApiKey } from "@/hooks/use-api-key"
 import { useBooks, useCreateBook } from "@/hooks/use-books"
 import { useWizard } from "./index"
 import { useWizardForm } from "./wizardForm"
+import { usePageTitle } from "@/hooks/use-page-title"
 import { STEPS } from "./steps"
 import { buildConfigOverrides } from "./bookCreationConfig"
 import { getPresetAccent, type PresetAccent } from "./constants"
@@ -38,6 +39,7 @@ function WizardHeader({ step, accent }: { step: number; accent: PresetAccent }) 
           <span />
         )}
         <span
+          id="wizard-step-position"
           className="text-[14px] font-bold leading-5 uppercase tracking-wide animate-wizard-enter"
           style={{ color: accent.text, transition: "color 0.4s ease" }}
         >
@@ -45,7 +47,14 @@ function WizardHeader({ step, accent }: { step: number; accent: PresetAccent }) 
         </span>
       </div>
       <div className="flex flex-col gap-1">
-        <h1 className="text-[30px] font-semibold leading-9 tracking-[-0.75px] text-black">
+        {/* Focus target on step change; described by the "Step X of N" text so a
+            screen reader reads the step title together with the position. */}
+        <h1
+          id="wizard-step-heading"
+          tabIndex={-1}
+          aria-describedby="wizard-step-position"
+          className="text-[30px] font-semibold leading-9 tracking-[-0.75px] text-black outline-none"
+        >
           {i18n._(def.title)}
         </h1>
         <p className="text-[14px] font-medium text-[#737373]">{i18n._(def.description)}</p>
@@ -218,6 +227,28 @@ export function BookCreationWizard() {
   const stepDef = STEPS[stepIndex]
   const hintDescriptor = stepDef?.hint?.(values, stepValidationContext) ?? null
   const hint = hintDescriptor ? i18n._(hintDescriptor) : undefined
+
+  // Orientation for screen-reader users moving through the wizard.
+  const pageTitle =
+    phase === "upload"
+      ? t`Add Book: Upload PDF`
+      : currentStep === 0
+        ? t`Add Book: Choose a preset`
+        : stepDef
+          ? i18n._(stepDef.title)
+          : t`Add Book`
+  // For the multi-step phase we move focus to the step heading (below), which
+  // reads the title, so don't also announce it; for upload/preset there is no
+  // such heading, so announce instead.
+  usePageTitle(pageTitle, { announce: phase === "upload" || currentStep === 0 })
+
+  // The footer and step container remount on step change (key={currentStep}),
+  // dropping keyboard focus to <body>. Move it to the new step's heading so a
+  // screen-reader user is never stranded mid-page.
+  useEffect(() => {
+    if (currentStep < 1) return
+    document.getElementById("wizard-step-heading")?.focus()
+  }, [currentStep])
 
   function handleScrollToInvalid() {
     const fieldId = stepDef?.scrollToFirstInvalid?.(values, stepValidationContext)

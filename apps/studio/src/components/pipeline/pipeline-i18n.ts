@@ -107,10 +107,29 @@ export const STEP_DESCRIPTION_MESSAGES: Record<string, MessageDescriptor> = {
   "accessibility-assessment": msg`Runs accessibility checks against the packaged book.`,
 }
 
+/**
+ * Status words for a stage, exposed to screen readers (the sidebar otherwise
+ * conveys status only via icon color and a spinner ring).
+ */
+export const STAGE_STATUS_LABEL_MESSAGES: Record<string, MessageDescriptor> = {
+  idle: msg`not started`,
+  queued: msg`queued`,
+  running: msg`in progress`,
+  done: msg`done`,
+  error: msg`failed`,
+  "needs-update": msg`needs update`,
+}
+
 /** Resolve a stage label message descriptor to a translated string. Safe to call outside React. */
 export function getStageLabelI18n(slug: string): string {
   const descriptor = STAGE_LABEL_MESSAGES[slug]
   return descriptor ? i18n._(descriptor) : slug
+}
+
+/** Resolve a stage status (idle/queued/running/done/error/needs-update) to a translated word. */
+export function getStageStatusLabelI18n(status: string): string {
+  const descriptor = STAGE_STATUS_LABEL_MESSAGES[status]
+  return descriptor ? i18n._(descriptor) : status
 }
 
 /** Resolve a stage running label message descriptor to a translated string. Safe to call outside React. */

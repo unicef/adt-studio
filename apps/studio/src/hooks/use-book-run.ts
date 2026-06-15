@@ -12,6 +12,8 @@ import { STEP_TO_STAGE, PIPELINE, getStageClearOrder, PAGE_PROGRESS_STEPS } from
 import type { StageName } from "@adt/types"
 import { isStageComplete } from "./run-state"
 import { playCompletionSound } from "@/lib/completion-sound"
+import { useAnnouncer } from "@/components/a11y/LiveRegionAnnouncer"
+import { getStageLabelI18n, getStageRunningLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { bookTasksKey } from "./use-book-tasks"
 import { invalidateStoryboardDependents } from "./use-page-mutations"
 import { useApiKey } from "./use-api-key"
@@ -92,6 +94,13 @@ const stepStatusKey = (label: string) => ["books", label, "step-status"] as cons
 export function useBookRunStatus(label: string): BookRunContextValue {
   const queryClient = useQueryClient()
   const { anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey } = useApiKey()
+
+  // Screen-reader announcements for long-running jobs. Held in a ref so the
+  // always-on SSE effect (keyed on [label, queryClient]) can announce without
+  // re-subscribing whenever the announcer identity changes.
+  const { announce } = useAnnouncer()
+  const announceRef = useRef(announce)
+  announceRef.current = announce
 
   // Primary source of truth: enriched step-status from the server
   const { data, isPending } = useQuery<StepStatusResponse>({
@@ -232,7 +241,12 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             stepMessages,
           }
         })
-        if (stageJustCompleted) playCompletionSound()
+        if (stageJustCompleted) {
+          playCompletionSound()
+          // The chime alone tells a sighted user nothing about *which* stage
+          // finished; announce it so screen-reader users know they can proceed.
+          announceRef.current(i18n._(msg`${getStageLabelI18n(uiStage)} complete`))
+        }
         progressRef.current.delete(pipelineStep)
 
         // Also invalidate data queries for the completed step's stage
@@ -253,6 +267,8 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             error: d.error ?? i18n._(msg`Step failed`),
           }
         })
+        // Assertive: a failed step blocks progress; the user needs to know now.
+        announceRef.current(i18n._(msg`${getStageLabelI18n(uiStage)} failed`), "assertive")
         progressRef.current.delete(pipelineStep)
       }
     })
@@ -349,7 +365,20 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         return { tasks }
       })
 
-      if (d.type === "task-complete") playCompletionSound()
+      if (d.type === "task-complete") {
+        playCompletionSound()
+        const kind =
+          d.kind ??
+          queryClient
+            .getQueryData<{ tasks: TaskInfoResponse[] }>(tasksKey)
+            ?.tasks.find((t) => t.taskId === d.taskId)?.kind
+        announceRef.current(taskCompleteMessage(kind))
+      } else if (d.type === "task-error") {
+        announceRef.current(
+          d.error ? i18n._(msg`Task failed: ${d.error}`) : i18n._(msg`Task failed`),
+          "assertive",
+        )
+      }
     })
 
     return () => {
@@ -405,6 +434,10 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           error: null,
         }
       })
+
+      // Immediate spoken confirmation that the (button-click) run has started —
+      // long LLM stages otherwise give a screen-reader user no feedback at all.
+      announceRef.current(getStageRunningLabelI18n(fromStage))
 
       // Clear cosmetic progress only for downstream steps being reset
       for (const stage of stagesToClear) {
@@ -488,6 +521,24 @@ export function useBookRunStatus(label: string): BookRunContextValue {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/** Localized screen-reader announcement for a completed ad-hoc background task. */
+function taskCompleteMessage(kind: string | undefined): string {
+  switch (kind) {
+    case "package-adt":
+      return i18n._(msg`Book package ready`)
+    case "image-generate":
+      return i18n._(msg`Image generated`)
+    case "ai-edit":
+      return i18n._(msg`Image edit complete`)
+    case "re-render":
+      return i18n._(msg`Page re-rendered`)
+    case "transcribe-timestamps":
+      return i18n._(msg`Word highlighting ready`)
+    default:
+      return i18n._(msg`Task complete`)
+  }
+}
 
 function invalidateBookQueries(qc: ReturnType<typeof useQueryClient>, label: string) {
   qc.invalidateQueries({ queryKey: ["books", label] })
