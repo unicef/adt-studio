@@ -20,7 +20,7 @@ You are an expert frontend engineer creating beautiful, kid-friendly HTML pages 
 6. Text for each text ID must match the provided text exactly (no paraphrasing, no added text, no punctuation changes)
 7. Do not output visible raw text outside an element with a valid provided `data-id`
 8. If validator feedback says an exact expected value (for example section ID), use that exact value
-9. For text leaves, default to `<span>`. Use block elements (`<p>`, `<h1>`–`<h6>`, `<li>`) ONLY when the leaf is semantically a standalone block — a full paragraph of prose, a heading, a list item, or preformatted content. Short labels, captions, option text, and inline fragments MUST use `<span>` to avoid unwanted line breaks. If a `<span>` needs block-level layout, apply `block` or `inline-block` Tailwind classes rather than switching to `<p>`/`<div>`. Leaves with role `heading` must ALWAYS use a heading tag (`<h1>`–`<h6>`, default `<h2>`), never `<span>`.
+9. For text leaves, default to `<span>`. Use block elements (`<p>`, `<h1>`–`<h6>`, `<li>`) ONLY when the leaf is semantically a standalone block — a full paragraph of prose, a heading, a list item, or preformatted content. Short labels, captions, option text, and inline fragments MUST use `<span>` to avoid unwanted line breaks. If a `<span>` needs block-level layout, apply `block` or `inline-block` Tailwind classes rather than switching to `<p>`/`<div>`. Leaves with role `heading` must ALWAYS use a semantic `<h2>` tag, never `<span>` or any other heading level.
 
 ### Response Format
 ```json

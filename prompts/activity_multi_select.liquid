@@ -35,7 +35,7 @@ Use this exact outer shell:
 7. Do not output visible raw text outside an element that has a valid provided `data-id`. The only exception is single-digit numbers used as option markers.
 8. Use sequential numbers (1, 2, 3, …) as option markers inside the `.option-letter` element. Do not use letters (A, B, C) as they are not language-neutral.
 9. No markdown, no code fences in `content`, and no additional top-level fields.
-10. For text leaves, default to `<span>`. Use block elements (`<p>`, `<h1>`–`<h6>`, `<li>`) ONLY when the leaf is semantically a standalone block. Leaves with role `heading` must ALWAYS use a heading tag (`<h1>`–`<h6>`, default `<h2>`), never `<span>`.
+10. For text leaves, default to `<span>`. Use block elements (`<p>`, `<h1>`–`<h6>`, `<li>`) ONLY when the leaf is semantically a standalone block. Leaves with role `heading` must ALWAYS use a semantic `<h2>` tag, never `<span>` or any other heading level.
 11. Every option `<label>` MUST carry `class="activity-option"` (alongside any layout classes). The runtime uses this class to find clickable options; omitting it leaves the option unresponsive to clicks.
 
 ## Multi-Select Structure ("select all that apply")
