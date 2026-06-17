@@ -1,5 +1,6 @@
 import type { WizardFormValues } from "./wizardForm"
 import { PRESETS } from "./constants"
+import { SECTION_TYPES } from "@/lib/section-constants"
 
 function parsePositiveInt(raw: string): number | undefined {
   const n = Number(raw.trim())
@@ -21,6 +22,25 @@ export function buildConfigOverrides(values: WizardFormValues): Record<string, u
     (name) => renderStrategies[name].render_type === "activity"
   )
 
+  // Section types to leave out of activity detection. Two independent reasons
+  // to seed an activity type as disabled (the Sectioning page reads/writes
+  // disabled_section_types and shows the toggle accordingly — still
+  // overridable there):
+  const disabledSectionTypes = new Set<string>()
+  // 1. Activities generator off → skip the activity render strategies the
+  //    preset defines.
+  if (!values.activitiesGenerator) {
+    for (const name of activityTypeNames) disabledSectionTypes.add(name)
+  }
+  // 2. Fixed layout bakes activities into the page image, so they shouldn't be
+  //    split into their own interactive sections — disable the activity
+  //    section types by default.
+  if (values.renderStrategy === "fixed_layout") {
+    for (const { value } of SECTION_TYPES) {
+      if (value.startsWith("activity_")) disabledSectionTypes.add(value)
+    }
+  }
+
   const config: Record<string, unknown> = {
     ...baseConfig,
     default_render_strategy: values.renderStrategy,
@@ -28,8 +48,8 @@ export function buildConfigOverrides(values: WizardFormValues): Record<string, u
     spread_mode: values.pageGrouping === "spread",
     vector_text_grouping: values.figureExtraction,
     apply_body_background: true,
-    ...(!values.activitiesGenerator && activityTypeNames.length > 0 && {
-      disabled_section_types: activityTypeNames,
+    ...(disabledSectionTypes.size > 0 && {
+      disabled_section_types: Array.from(disabledSectionTypes),
     }),
     image_filters: {
       ...baseImageFilters,
