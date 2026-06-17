@@ -16,6 +16,13 @@ function wordIdFor(dataId: string, idx: number): string {
 import { buildSmil, formatMediaDuration, type SmilParagraph } from "./smil.js"
 import { tokenizeWords } from "./word-tokenize.js"
 import { styleMapToInline } from "./fixed-layout-rendering.js"
+import {
+  buildGlossaryDocument,
+  loadGlossaryEntries,
+  wrapGlossaryTerms,
+  type GlossaryBacklink,
+  type GlossaryEntry,
+} from "./epub-glossary.js"
 
 export type PackageEpubOptions = PackageAdtWebOptions
 
@@ -27,6 +34,25 @@ interface PageEntry {
 
 /** Files/dirs in adt/ root that are SCORM/offline-specific and not needed in EPUB. */
 const EPUB_SKIP = new Set(["imsmanifest.xml", "AGENTS.md"])
+
+/**
+ * Visual affordance for in-text glossary references (EPUB only). The web
+ * runtime marks terms at runtime with `.glossary-term`; the EPUB packager
+ * instead emits `<a epub:type="glossref" class="glossref">`, and the reader
+ * adds no styling of its own, so a dotted underline (the standard dictionary
+ * "tap for a definition" signal) is shipped here. `!important` + the
+ * `-webkit-` prefix defend against Tailwind Preflight's `a` reset and
+ * aggressive reader CSS / older e-reader WebKit. Injected via
+ * `injectWebpubStyles({ extraCss })` so it stays out of the web/webpub output.
+ */
+const GLOSSREF_CSS = `
+.glossref {
+  -webkit-text-decoration: underline dotted !important;
+  text-decoration: underline dotted !important;
+  text-underline-offset: 0.15em;
+  text-decoration-thickness: from-font;
+  cursor: pointer;
+}`
 
 // ---------------------------------------------------------------------------
 // Public API
@@ -70,12 +96,33 @@ export function packageEpub(
   // Strip the web runtime bundle. EPUB readers provide TOC, page navigation,
   // settings, and read-aloud playback (the latter via the SMIL media overlays
   // generated below) natively, so the React dock chrome would just duplicate
-  // them. Audio + word highlighting comes from SMIL; glossary is planned as
-  // an EPUB dictionary in a follow-up.
+  // them. Audio + word highlighting comes from SMIL; the glossary is lowered
+  // to EPUB-native markup (glossref + doc-glossary + landmarks) below.
   stripRuntimeBundle(oebpsDir)
 
-  // Inject reader-override CSS
-  injectWebpubStyles(oebpsDir, { fixedLayout: options.fixedLayout })
+  // ------------------------------------------------------------------
+  // Glossary (load once before the page loop)
+  // ------------------------------------------------------------------
+  // EPUB-native glossary, built to the EPUB 3 Dictionaries & Glossaries
+  // model the BookFusion reader consumes: first occurrences of terms become
+  // `<a epub:type="glossref">` anchors pointing at `<dt id>` entries in
+  // glossary.xhtml, the reader resolves them into definition popovers, and a
+  // `<nav epub:type="landmarks">` glossary entry surfaces the Glossary tab.
+  // The web runtime is stripped (see stripRuntimeBundle), so this is the
+  // only glossary surface in an EPUB export.
+  const glossaryEntries = loadGlossaryEntriesForLang(oebpsDir, language)
+  // Entry id → backlinks to each in-text occurrence ("Used in").
+  const backlinksByEntry = new Map<string, GlossaryBacklink[]>()
+
+  // Inject reader-override CSS. The glossref affordance (dotted underline) is
+  // EPUB-only — passed as extraCss here rather than baked into the shared
+  // override blocks, so it never ships in the web/webpub output (which marks
+  // terms at runtime instead and emits no glossref anchors). Only injected
+  // when the book actually has glossary terms.
+  injectWebpubStyles(oebpsDir, {
+    fixedLayout: options.fixedLayout,
+    extraCss: glossaryEntries.length > 0 ? GLOSSREF_CSS : undefined,
+  })
 
   // ------------------------------------------------------------------
   // Convert content HTML pages to XHTML (required by EPUB 3 / Apple Books)
@@ -88,8 +135,19 @@ export function packageEpub(
     if (!fs.existsSync(htmlPath)) continue
 
     const html = fs.readFileSync(htmlPath, "utf-8")
-    const xhtml = convertPageToXhtml(html)
+    let xhtml = convertPageToXhtml(html)
     const xhtmlHref = page.href.replace(/\.html$/, ".xhtml")
+
+    if (glossaryEntries.length > 0) {
+      const result = wrapGlossaryTerms(xhtml, glossaryEntries)
+      xhtml = result.xhtml
+      const label = page.page_number != null ? `Page ${page.page_number}` : page.section_id
+      for (const occ of result.occurrences) {
+        const list = backlinksByEntry.get(occ.entryId) ?? []
+        list.push({ href: `${xhtmlHref}#${occ.fragment}`, label })
+        backlinksByEntry.set(occ.entryId, list)
+      }
+    }
 
     fs.writeFileSync(path.join(oebpsDir, xhtmlHref), xhtml)
     fs.unlinkSync(htmlPath)
@@ -97,6 +155,26 @@ export function packageEpub(
   }
   // Update pages.json with .xhtml hrefs
   fs.writeFileSync(pagesJsonPath, JSON.stringify(rawPages, null, 2))
+
+  // ------------------------------------------------------------------
+  // glossary.xhtml + dead-weight cleanup
+  // ------------------------------------------------------------------
+  let glossaryHref: string | undefined
+  let glossaryHeading: string | undefined
+  if (backlinksByEntry.size > 0) {
+    glossaryHref = "glossary.xhtml"
+    glossaryHeading = loadGlossaryHeading(oebpsDir, language)
+    const doc = buildGlossaryDocument({
+      language,
+      heading: glossaryHeading,
+      entries: glossaryEntries,
+      backlinksByEntry,
+    })
+    fs.writeFileSync(path.join(oebpsDir, glossaryHref), doc)
+  }
+  // The runtime is stripped; per-language glossary.json files are now
+  // orphaned. Drop them so the package isn't shipping dead weight.
+  stripOrphanGlossaryJson(oebpsDir)
 
   // ------------------------------------------------------------------
   // SMIL media overlays (fixed-layout only)
@@ -183,13 +261,14 @@ export function packageEpub(
       coverHref,
       fixedLayout: options.fixedLayout,
       smilEntries,
+      glossaryHref,
     }),
   )
 
   // OEBPS/toc.xhtml (EPUB 3 navigation document)
   fs.writeFileSync(
     path.join(oebpsDir, "toc.xhtml"),
-    buildNavDocument(language, title, pageList, llmToc),
+    buildNavDocument(language, title, pageList, llmToc, glossaryHref, glossaryHeading),
   )
 
   // OEBPS/toc.ncx (EPUB 2 fallback)
@@ -379,8 +458,9 @@ function buildOpf(opts: {
   coverHref?: string
   fixedLayout?: boolean
   smilEntries?: SmilEntry[]
+  glossaryHref?: string
 }): string {
-  const { title, authors, publisher, language, pageList, allFiles, coverHref, fixedLayout, smilEntries } = opts
+  const { title, authors, publisher, language, pageList, allFiles, coverHref, fixedLayout, smilEntries, glossaryHref } = opts
   const smilByPage = new Map<string, SmilEntry>()
   for (const e of smilEntries ?? []) smilByPage.set(e.pageHref, e)
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z")
@@ -481,6 +561,15 @@ function buildOpf(opts: {
     const itemId = hrefToItemId.get(page.href) ?? escapeXml(page.section_id)
     return `    <itemref idref="${escapeXml(itemId)}"/>`
   })
+  // Glossary is reachable from in-text glossrefs and the landmarks nav;
+  // `linear="no"` keeps it out of the linear reading flow but in-spine so
+  // those hrefs resolve.
+  if (glossaryHref) {
+    const itemId = hrefToItemId.get(glossaryHref)
+    if (itemId) {
+      spineLines.push(`    <itemref idref="${escapeXml(itemId)}" linear="no"/>`)
+    }
+  }
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="pub-id"${fixedLayout ? ` prefix="rendition: http://www.idpf.org/vocab/rendition/#"` : ""}>
@@ -501,6 +590,8 @@ function buildNavDocument(
   title: string,
   pageList: PageEntry[],
   llmToc?: TocGenerationOutput,
+  glossaryHref?: string,
+  glossaryHeading?: string,
 ): string {
   let tocItems: string
 
@@ -526,6 +617,19 @@ function buildNavDocument(
       .join("\n")
   }
 
+  // The glossary is not part of the linear reading order, so it lives in a
+  // `landmarks` nav (below) rather than the TOC list. The reader keys its
+  // Glossary tab off the `epub:type="glossary"` landmark.
+  const landmarksNav =
+    glossaryHref && glossaryHeading
+      ? `
+  <nav epub:type="landmarks" hidden="">
+    <ol>
+      <li><a epub:type="glossary" href="${escapeXml(glossaryHref)}">${escapeXml(glossaryHeading)}</a></li>
+    </ol>
+  </nav>`
+      : ""
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" lang="${escapeXml(language)}">
@@ -539,7 +643,7 @@ function buildNavDocument(
     <ol>
 ${tocItems}
     </ol>
-  </nav>
+  </nav>${landmarksNav}
 </body>
 </html>`
 }
@@ -606,6 +710,64 @@ function escapeXml(str: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;")
+}
+
+// ---------------------------------------------------------------------------
+// Glossary helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Read `content/i18n/<lang>/glossary.json` and assign stable EPUB ids.
+ * Empty list if the file is absent or empty — callers branch on length.
+ */
+function loadGlossaryEntriesForLang(oebpsDir: string, language: string): GlossaryEntry[] {
+  const p = path.join(oebpsDir, "content", "i18n", language, "glossary.json")
+  if (!fs.existsSync(p)) return []
+  try {
+    const raw = JSON.parse(fs.readFileSync(p, "utf-8"))
+    return loadGlossaryEntries(raw)
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Read the "Glossary" heading from interface_translations for the export
+ * language, falling back to "Glossary" if the catalog is missing or the
+ * key isn't translated.
+ */
+function loadGlossaryHeading(oebpsDir: string, language: string): string {
+  const fallback = "Glossary"
+  const p = path.join(
+    oebpsDir,
+    "assets",
+    "interface_translations",
+    language,
+    "interface_translations.json",
+  )
+  if (!fs.existsSync(p)) return fallback
+  try {
+    const raw = JSON.parse(fs.readFileSync(p, "utf-8")) as Record<string, string>
+    return raw["glossary-label"]?.trim() || fallback
+  } catch {
+    return fallback
+  }
+}
+
+/**
+ * Remove `content/i18n/<lang>/glossary.json` from every language directory.
+ * The runtime that consumed these is stripped from EPUB exports
+ * (stripRuntimeBundle); the EPUB-native glossary surface (glossary.xhtml +
+ * glossrefs) is generated above, so the JSON catalogs are dead weight.
+ */
+function stripOrphanGlossaryJson(oebpsDir: string): void {
+  const i18nDir = path.join(oebpsDir, "content", "i18n")
+  if (!fs.existsSync(i18nDir)) return
+  for (const entry of fs.readdirSync(i18nDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    const gjson = path.join(i18nDir, entry.name, "glossary.json")
+    if (fs.existsSync(gjson)) fs.unlinkSync(gjson)
+  }
 }
 
 /**
@@ -749,10 +911,16 @@ function wrapBySegments(
   let wordIdx = 0
   for (const tok of tokenizeWords(concatText)) {
     if (tok.type === "separator") {
-      // Separators (whitespace, punctuation) emit bare so word boxes stay
-      // tight; surrounding glyphs don't inherit a segment's font metrics.
+      // Separators (whitespace, punctuation) stay OUTSIDE the word-index
+      // wrapper so word boxes remain tight for SMIL highlighting, but they
+      // must still carry the segment's style: in fixed-layout the font-size
+      // lives only on the per-segment span, and the paragraph itself has no
+      // font-size. A bare text node would inherit the page default (~16px),
+      // so a space between two 48px display words renders ~4px wide and the
+      // words look unspaced. Route the separator through buildPieces so each
+      // run of whitespace gets the surrounding segment's font metrics.
       if (tok.text.length > 0) {
-        parent.appendChild(doc.createTextNode(tok.text))
+        for (const piece of buildPieces(tok.start, tok.end)) parent.appendChild(piece)
       }
       continue
     }

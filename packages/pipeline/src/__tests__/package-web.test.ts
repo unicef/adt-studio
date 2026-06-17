@@ -6,6 +6,7 @@ import type { Storage, PageData } from "@adt/storage"
 import {
   computePackagingInputHash,
   buildGlossaryJson,
+  injectWebpubStyles,
   packageAdtWeb,
   packageWebpub,
   renderPageHtml,
@@ -1821,6 +1822,41 @@ describe("convertLatexToMathml (HTML)", () => {
   })
 })
 
+describe("injectWebpubStyles", () => {
+  let tmpDir: string
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "inject-styles-"))
+  })
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  function writePage(): string {
+    const p = path.join(tmpDir, "index.html")
+    fs.writeFileSync(p, "<html><head><title>t</title></head><body>x</body></html>")
+    return p
+  }
+
+  it("splices extraCss into the injected <style> block, before </style>", () => {
+    const p = writePage()
+    injectWebpubStyles(tmpDir, { fixedLayout: true, extraCss: ".glossref { color: red }" })
+    const html = fs.readFileSync(p, "utf-8")
+    expect(html).toContain(".glossref { color: red }")
+    // Inside the single injected style block, not after it.
+    const styleClose = html.indexOf("</style>")
+    expect(html.indexOf(".glossref")).toBeLessThan(styleClose)
+    expect(html.indexOf(".glossref")).toBeGreaterThan(html.indexOf("<style>"))
+  })
+
+  it("omits extraCss when not provided", () => {
+    const p = writePage()
+    injectWebpubStyles(tmpDir, { fixedLayout: true })
+    expect(fs.readFileSync(p, "utf-8")).not.toContain(".glossref")
+  })
+})
+
 describe("packageWebpub", () => {
   let tmpDir: string
 
@@ -1935,6 +1971,8 @@ describe("packageWebpub", () => {
     expect(html).toContain("columns: auto !important")
     expect(html).toContain("flex-direction: column !important")
     expect(html).toContain("max-width: 100% !important")
+    // The glossref affordance is EPUB-only; webpub must not carry it.
+    expect(html).not.toContain(".glossref")
   })
 
   it("writes a valid webpub manifest with scrolled presentation", async () => {
