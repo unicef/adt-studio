@@ -650,6 +650,22 @@ export function ExportDialog({
       iconText: "text-amber-600",
     },
     {
+      icon: FileText,
+      label: <Trans>Easy Read</Trans>,
+      wcagCode: "WCAG 3.1.5",
+      wcagUrl: "https://www.w3.org/WAI/WCAG21/Understanding/reading-level",
+      reason: (
+        <Trans>
+          A simplified Easy Read version makes the text accessible to readers
+          with cognitive disabilities, learning differences, or limited reading
+          proficiency.
+        </Trans>
+      ),
+      done: allFeatures.present.easyRead,
+      iconBg: "bg-cyan-50",
+      iconText: "text-cyan-600",
+    },
+    {
       icon: Hand,
       label: <Trans>Sign Language</Trans>,
       wcagCode: "WCAG 1.2.6",
@@ -674,6 +690,7 @@ export function ExportDialog({
     allFeatures.toggleable.signLanguage,
     allFeatures.present.captions,
     allFeatures.present.toc,
+    allFeatures.present.easyRead,
   ].filter(Boolean).length;
 
   return (

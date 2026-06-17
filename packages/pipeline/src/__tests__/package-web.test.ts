@@ -35,7 +35,13 @@ function createMockStorage(
     appendLlmLog: () => {},
     getSignLanguageVideos: () => [],
     getSignLanguageVideoPath: () => null,
-    getNodeVersionFingerprint: () => ({}),
+    getNodeVersionFingerprint: (excludeNodes: string[] = []) =>
+      Object.entries(nodeData)
+        .filter(([node]) => !excludeNodes.includes(node))
+        .flatMap(([node, items]) =>
+          Object.keys(items).map((itemId) => ({ node, itemId, version: 1 })),
+        )
+        .sort((a, b) => a.node.localeCompare(b.node) || a.itemId.localeCompare(b.itemId)),
     close: () => {},
   }
 }
@@ -464,6 +470,96 @@ describe("packageAdtWeb", () => {
     const manifest = fs.readFileSync(manifestPath, "utf-8")
     expect(manifest).toContain("ADL SCORM")
     expect(manifest).toContain("index.html")
+  })
+
+  it("packages persisted Easy Read entries for the source language", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    const pages: PageData[] = [{ pageId: "pg001", pageNumber: 1, text: "Page one" }]
+    const storage = createMockStorage(pages, {
+      "web-rendering": {
+        pg001: {
+          sections: [
+            {
+              sectionIndex: 0,
+              sectionType: "content",
+              reasoning: "ok",
+              html: '<p data-id="pg001_tx001">Original text</p>',
+            },
+          ],
+        },
+      },
+      "page-sectioning": {
+        pg001: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+      },
+      "text-catalog": {
+        book: {
+          entries: [{ id: "pg001_tx001", text: "Original text", pageId: "pg001" }],
+          generatedAt: "2026-01-01T00:00:00.000Z",
+        },
+      },
+      "easy-read": {
+        book: {
+          generatedAt: "2026-01-02T00:00:00.000Z",
+          blocks: [
+            {
+              pageId: "pg001",
+              pageNumber: 1,
+              sectionId: "pg001_sec001",
+              sectionIndex: 0,
+              sectionType: "content",
+              entries: [
+                {
+                  sourceId: "pg001_tx001",
+                  easyReadId: "pg001_tx001_easy_read",
+                  originalText: "Original text",
+                  text: "Easy text",
+                  pageId: "pg001",
+                  sectionId: "pg001_sec001",
+                  sectionIndex: 0,
+                },
+              ],
+            },
+          ],
+        },
+      },
+    })
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+    })
+
+    const textsJson = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "content", "i18n", "en", "texts.json"), "utf-8"),
+    ) as Record<string, string>
+    expect(textsJson.pg001_tx001).toBe("Original text")
+    expect(textsJson.pg001_tx001_easy_read).toBe("Easy text")
+
+    const configJson = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "assets", "config.json"), "utf-8"),
+    ) as { features: { easyRead: boolean } }
+    expect(configJson.features.easyRead).toBe(true)
   })
 
   it("inserts quiz pages even when the anchor page has no rendered sections", async () => {
@@ -1921,6 +2017,52 @@ describe("packageWebpub", () => {
     const secondHash = computePackagingInputHash(baseOptions)
 
     expect('console.log("alpha")\n'.length).toBe('console.log("omega")\n'.length)
+    expect(firstHash).not.toBe(secondHash)
+  })
+
+  it("changes the packaging hash when node data changes without changing versions", () => {
+    const bookDir = path.join(tmpDir, "hash-book-data")
+    const webAssetsDir = path.join(tmpDir, "hash-assets-data")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    const nodeData = {
+      "easy-read": {
+        book: {
+          blocks: [
+            {
+              entries: [
+                { easyReadId: "tx001_easy_read", text: "Easy Read text one" },
+              ],
+            },
+          ],
+        },
+      },
+    }
+    const storage = createMockStorage([], nodeData)
+    const baseOptions = {
+      storage,
+      bookDir,
+      label: "hash-book-data",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Hash Book",
+      webAssetsDir,
+      config: {},
+    }
+
+    const firstHash = computePackagingInputHash(baseOptions)
+    nodeData["easy-read"].book = {
+      blocks: [
+        {
+          entries: [
+            { easyReadId: "tx001_easy_read", text: "Easy Read text two" },
+          ],
+        },
+      ],
+    }
+    const secondHash = computePackagingInputHash(baseOptions)
+
     expect(firstHash).not.toBe(secondHash)
   })
 })

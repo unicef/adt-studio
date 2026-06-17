@@ -35,6 +35,12 @@ import {
   buildQuizGenerationConfig,
   // Master step imports
   buildTextCatalog,
+  buildEasyReadConfig,
+  buildEasyReadSourceBlocks,
+  createEmptyEasyReadOutput,
+  generateEasyRead,
+  flattenEasyReadEntries,
+  isDeterministicEmptyEasyReadOutput,
   translateCatalogBatch,
   buildCatalogTranslationConfig,
   getTargetLanguages,
@@ -47,8 +53,10 @@ import {
   resolveProviderForLanguage,
   resolveSpeechModel,
   resolveSpeechFormat,
+  computeSpeechCacheKey,
   generateSpeechFile,
   generateWordTimestamps,
+  stripEmojis,
   generateBookSummary,
   buildBookSummaryConfig,
   filterPageImageMeaningfulness,
@@ -79,6 +87,7 @@ import type {
   GlossaryOutput,
   TextCatalogOutput,
   TextCatalogEntry,
+  EasyReadOutput,
   SpeechFileEntry,
   TTSOutput,
   WordTimestampEntry,
@@ -113,6 +122,24 @@ class StepError extends Error {
 
 function toErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
+}
+
+/**
+ * Compare two text catalogs by content (entry id + text, in order). Used to
+ * skip writing a new node version when a rebuild produced identical output.
+ */
+function textCatalogsEqual(
+  a: TextCatalogOutput | undefined,
+  b: TextCatalogOutput
+): boolean {
+  if (!a) return false
+  if (a.entries.length !== b.entries.length) return false
+  for (let i = 0; i < a.entries.length; i++) {
+    if (a.entries[i].id !== b.entries[i].id || a.entries[i].text !== b.entries[i].text) {
+      return false
+    }
+  }
+  return true
 }
 
 function isGeminiTtsRateLimitMessage(message: string): boolean {
@@ -173,11 +200,14 @@ function emitSpeechStepProgress(
   audioCompleted: number,
   audioTotal: number,
   audioFailures: number,
+  reusedTotal = 0,
 ): void {
+  const reusedSuffix = reusedTotal > 0 ? ` (${reusedTotal} reused)` : ""
+  const failureSuffix = audioFailures > 0 ? ` (${audioFailures} failed)` : ""
   progress.emit({
     type: "step-progress",
     step: "tts",
-    message: `${audioCompleted}/${audioTotal} audio entries${audioFailures > 0 ? ` (${audioFailures} failed)` : ""}`,
+    message: `${audioCompleted}/${audioTotal} audio entries${reusedSuffix}${failureSuffix}`,
     page: audioCompleted,
     totalPages: audioTotal,
   })
@@ -217,6 +247,104 @@ function resolveSpeechAudioPath(
   }
 
   return null
+}
+
+function resolveSpeechOutputPath(
+  bookDir: string,
+  language: string,
+  fileName: string,
+): string | null {
+  if (!/^[A-Za-z0-9_.-]+$/.test(fileName)) return null
+
+  const audioRoot = path.resolve(bookDir, "audio")
+  const audioDir = path.resolve(audioRoot, normalizeLocale(language))
+  const outputPath = path.resolve(audioDir, fileName)
+
+  if (audioDir !== audioRoot && !audioDir.startsWith(audioRoot + path.sep)) {
+    return null
+  }
+  if (!outputPath.startsWith(audioDir + path.sep)) {
+    return null
+  }
+
+  return outputPath
+}
+
+function resolveSpeechCachePath(
+  cacheDir: string,
+  cacheKey: string,
+  format: string,
+): string | null {
+  if (!/^[a-f0-9]{64}$/.test(cacheKey)) return null
+  if (!/^[a-z0-9]+$/.test(format)) return null
+
+  const cacheRoot = path.resolve(cacheDir, "tts")
+  const cachePath = path.resolve(cacheRoot, `${cacheKey}.${format}`)
+  if (!cachePath.startsWith(cacheRoot + path.sep)) {
+    return null
+  }
+
+  return cachePath
+}
+
+function getExistingSpeechEntries(
+  storage: Storage,
+  language: string,
+): Map<string, SpeechFileEntry> {
+  const normalizedLanguage = normalizeLocale(language)
+  const legacyLanguage = normalizedLanguage.replace("-", "_")
+  const row =
+    storage.getLatestNodeData("tts", normalizedLanguage) ??
+    storage.getLatestNodeData("tts", legacyLanguage)
+  const entries = (row?.data as TTSOutput | undefined)?.entries ?? []
+  return new Map(entries.map((entry) => [entry.textId, entry]))
+}
+
+function canReuseSpeechEntry(
+  entry: SpeechFileEntry | undefined,
+  options: {
+    bookDir: string
+    cacheDir: string
+    language: string
+    text: string
+    provider: string
+    model: string
+    voice: string
+    instructions: string
+    format: string
+  },
+): entry is SpeechFileEntry {
+  if (!entry) return false
+
+  if (entry.provider === "manual") {
+    return resolveSpeechAudioPath(options.bookDir, options.language, entry.fileName) !== null
+  }
+
+  const entryProvider = entry.provider ?? "openai"
+  if (entryProvider !== options.provider) return false
+  if (entry.model !== options.model) return false
+  if (entry.voice !== options.voice) return false
+
+  const expectedExt = `.${options.format.toLowerCase()}`
+  if (path.extname(entry.fileName).toLowerCase() !== expectedExt) return false
+
+  const sanitized = stripEmojis(options.text).trim()
+  const cacheKey = computeSpeechCacheKey({
+    text: sanitized,
+    voice: options.voice,
+    model: options.model,
+    instructions: options.instructions,
+    provider: options.provider,
+  })
+  const cachePath = resolveSpeechCachePath(options.cacheDir, cacheKey, options.format.toLowerCase())
+  if (!cachePath || !fs.existsSync(cachePath)) return false
+
+  const outputPath = resolveSpeechOutputPath(options.bookDir, options.language, entry.fileName)
+  if (!outputPath) return false
+
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true })
+  fs.copyFileSync(cachePath, outputPath)
+  return true
 }
 
 interface GenerateSpeechWordTimestampsOptions {
@@ -331,6 +459,7 @@ const STAGE_RUNNERS: Record<StageName, RunFn> = {
   "captions": runCaptionsStep,
   "glossary": runGlossaryStep,
   "toc": runTocStep,
+  "easy-read": runEasyReadStep,
   "translate": runTranslateStep,
   "speech": runSpeechStep,
   "package": async () => { /* packaging handled separately */ },
@@ -362,16 +491,21 @@ export function createStageRunner(): StageRunner {
       // This is the single place where step state transitions are recorded,
       // so the step-status endpoint can read from step_runs.
       const completionStorage = createBookStorage(label, booksDir)
+      const runningSteps = new Set<StepName>()
       try {
         const trackingProgress: StageRunProgress = {
           emit(event) {
             if (event.type === "step-start") {
+              runningSteps.add(event.step)
               completionStorage.markStepStarted(event.step)
             } else if (event.type === "step-complete") {
+              runningSteps.delete(event.step)
               completionStorage.markStepCompleted(event.step)
             } else if (event.type === "step-skip") {
+              runningSteps.delete(event.step)
               completionStorage.markStepSkipped(event.step)
             } else if (event.type === "step-error") {
+              runningSteps.delete(event.step)
               completionStorage.recordStepError(event.step, event.error)
             } else if (event.type === "step-progress" && event.message) {
               completionStorage.updateStepMessage(event.step, event.message)
@@ -384,6 +518,13 @@ export function createStageRunner(): StageRunner {
           const stage = STAGE_ORDER[i]
           await STAGE_RUNNERS[stage](label, options, trackingProgress)
         }
+      } catch (err) {
+        const message = toErrorMessage(err)
+        for (const step of runningSteps) {
+          completionStorage.recordStepError(step, message)
+          progress.emit({ type: "step-error", step, error: message })
+        }
+        throw err
       } finally {
         completionStorage.close()
       }
@@ -490,10 +631,14 @@ async function runExtractStep(
     progress.emit({ type: "step-complete", step: "metadata" })
     console.log(`[stage-run] ${label}: metadata complete (lang=${metadataResult.language_code})`)
 
-    // Step 3: Book summary from raw page text (no sectioning required).
+    // Step 3: Book summary from raw page text (no sectioning required). Written
+    // in the book's detected language (just extracted above), not English.
     progress.emit({ type: "step-start", step: "book-summary" })
     try {
-      const bookSummaryConfig = buildBookSummaryConfig(config)
+      const summaryLanguage = normalizeLocale(
+        config.editing_language ?? metadataResult.language_code ?? "en"
+      )
+      const bookSummaryConfig = buildBookSummaryConfig(config, summaryLanguage)
       const summaryModel = createLLMModel({
         modelId: bookSummaryConfig.modelId,
         cacheDir,
@@ -1443,10 +1588,10 @@ async function runTocStep(
 }
 
 // ---------------------------------------------------------------------------
-// Translate stage (text catalog + catalog translation)
+// Easy Read stage (text catalog + Easy Read)
 // ---------------------------------------------------------------------------
 
-async function runTranslateStep(
+async function runEasyReadStep(
   label: string,
   options: StageRunOptions,
   progress: StageRunProgress
@@ -1513,9 +1658,156 @@ async function runTranslateStep(
     })
     progress.emit({ type: "step-complete", step: "text-catalog" })
 
+    const baseEasyReadConfig = buildEasyReadConfig(config, language)
+    const explicitEasyReadRun = options.fromStage === "easy-read" && options.toStage === "easy-read"
+    const easyReadConfig = {
+      ...baseEasyReadConfig,
+      enabled: explicitEasyReadRun || baseEasyReadConfig.enabled,
+    }
+    let easyReadEntries: TextCatalogEntry[] = []
+
+    if (!easyReadConfig.enabled) {
+      progress.emit({ type: "step-skip", step: "easy-read" })
+      console.log(`[stage-run] ${label}: easy read skipped (disabled)`)
+    } else {
+      progress.emit({ type: "step-start", step: "easy-read" })
+      const blocks = buildEasyReadSourceBlocks(storage, pages)
+      if (blocks.length === 0) {
+        const existingEasyRead = storage.getLatestNodeData("easy-read", "book")?.data
+        if (!isDeterministicEmptyEasyReadOutput(existingEasyRead)) {
+          storage.putNodeData("easy-read", "book", createEmptyEasyReadOutput())
+        }
+        progress.emit({ type: "step-skip", step: "easy-read" })
+        console.log(`[stage-run] ${label}: easy read skipped (no eligible text)`)
+      } else {
+        const easyReadModel = createLLMModel({
+          modelId: easyReadConfig.modelId,
+          cacheDir,
+          promptEngine,
+          rateLimiter,
+          onLog: onLlmLog,
+          credentials: llmCredentials,
+        })
+        const totalEntries = blocks.reduce((sum, block) => sum + block.entries.length, 0)
+        progress.emit({
+          type: "step-progress",
+          step: "easy-read",
+          message: `0/${totalEntries}`,
+          page: 0,
+          totalPages: totalEntries,
+        })
+        const easyRead = await generateEasyRead(blocks, easyReadConfig, easyReadModel, {
+          concurrency: effectiveConcurrency,
+          onProgress: (completed, total) => {
+            progress.emit({
+              type: "step-progress",
+              step: "easy-read",
+              message: `${completed}/${total}`,
+              page: completed,
+              totalPages: total,
+            })
+          },
+        })
+        storage.putNodeData("easy-read", "book", easyRead)
+        easyReadEntries = flattenEasyReadEntries(easyRead)
+        progress.emit({
+          type: "step-progress",
+          step: "easy-read",
+          message: `${easyReadEntries.length} entries`,
+        })
+        progress.emit({ type: "step-complete", step: "easy-read" })
+        console.log(`[stage-run] ${label}: easy read generated ${easyReadEntries.length} entries`)
+      }
+    }
+
+    console.log(`[stage-run] ${label}: easy read stage complete`)
+  } finally {
+    storage.close()
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Translate stage (catalog translation + image translation)
+// ---------------------------------------------------------------------------
+
+async function runTranslateStep(
+  label: string,
+  options: StageRunOptions,
+  progress: StageRunProgress
+): Promise<void> {
+  const { booksDir, promptsDir, configPath } = options
+
+  const storage = createBookStorage(label, booksDir)
+
+  try {
+    const config = loadBookConfig(label, booksDir, configPath)
+    const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
+    const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
+    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const rateLimiter = config.rate_limit
+      ? createRateLimiter(config.rate_limit.requests_per_minute)
+      : undefined
+    const llmCredentials = buildLLMCredentials(options)
+
+    const metadataRow = storage.getLatestNodeData("metadata", "book")
+    const metadata = metadataRow?.data as { language_code?: string | null } | null
+    const language = normalizeLocale(config.editing_language ?? metadata?.language_code ?? "en")
+
+    const onLlmLog = (entry: LlmLogEntry) => {
+      storage.appendLlmLog(entry)
+      const step = entry.taskType as StepName
+      progress.emit({
+        type: "llm-log",
+        step,
+        itemId: entry.pageId ?? "",
+        promptName: entry.promptName,
+        modelId: entry.modelId,
+        cacheHit: entry.cacheHit,
+        durationMs: entry.durationMs,
+        inputTokens: entry.usage?.inputTokens,
+        outputTokens: entry.usage?.outputTokens,
+        validationErrors: entry.validationErrors,
+      })
+    }
+
+    const effectiveConcurrency = config.concurrency ?? 32
+    const outputLanguages = Array.from(
+      new Set(
+        [language, ...(config.output_languages ?? [])].map((code) => normalizeLocale(code))
+      )
+    )
+
+    // The text-catalog is a derived artifact (a pure read of storyboard +
+    // captions + glossary + quizzes, no LLM). It's normally produced by the
+    // easy-read stage, but Translate must guarantee a *fresh* catalog rather
+    // than trust whatever node happens to exist:
+    //   - a standalone translate run (fromStage "translate") never runs
+    //     easy-read, and
+    //   - GET /text-catalog lazily persists a catalog the moment the book is
+    //     viewed; opened before Storyboard renders, that persisted catalog is
+    //     empty and previously stuck here (we only rebuilt when the node was
+    //     entirely absent), silently skipping all translation.
+    // Always rebuild from current data; persist a new version only when the
+    // content changed, to avoid version churn on repeated re-runs.
+    const pages = storage.getPages()
+    const catalog = await buildTextCatalog(storage, pages)
+    const existingCatalog = storage.getLatestNodeData("text-catalog", "book")?.data as
+      | TextCatalogOutput
+      | undefined
+    if (!textCatalogsEqual(existingCatalog, catalog)) {
+      storage.putNodeData("text-catalog", "book", catalog)
+      console.log(
+        `[stage-run] ${label}: rebuilt text catalog (${catalog.entries.length} entries)`
+      )
+    }
+    const easyReadRow = storage.getLatestNodeData("easy-read", "book")
+    const easyRead = easyReadRow?.data as EasyReadOutput | undefined
+    const easyReadEntries = easyRead ? flattenEasyReadEntries(easyRead) : []
+    const translationEntries = [...catalog.entries, ...easyReadEntries]
+
     // ── Step 2: Translate catalog to target languages ────────────────
     const targetLanguages = getTargetLanguages(outputLanguages, language)
-    if (targetLanguages.length === 0 || catalog.entries.length === 0) {
+    if (targetLanguages.length === 0 || translationEntries.length === 0) {
       progress.emit({ type: "step-skip", step: "catalog-translation" })
       console.log(`[stage-run] ${label}: catalog translation skipped`)
     } else {
@@ -1539,11 +1831,11 @@ async function runTranslateStep(
       }
       const workItems: TranslationWorkItem[] = []
       for (const lang of targetLanguages) {
-        for (let i = 0; i < catalog.entries.length; i += batchSize) {
+        for (let i = 0; i < translationEntries.length; i += batchSize) {
           workItems.push({
             language: lang,
             batchIndex: Math.floor(i / batchSize),
-            entries: catalog.entries.slice(i, i + batchSize),
+            entries: translationEntries.slice(i, i + batchSize),
           })
         }
       }
@@ -1564,7 +1856,7 @@ async function runTranslateStep(
         totalPages: totalBatches,
       })
 
-      console.log(`[stage-run] ${label}: translating ${catalog.entries.length} entries to ${targetLanguages.length} languages (${totalBatches} batches)`)
+      console.log(`[stage-run] ${label}: translating ${translationEntries.length} entries to ${targetLanguages.length} languages (${totalBatches} batches)`)
 
       await processWithConcurrency(
         workItems,
@@ -1590,7 +1882,7 @@ async function runTranslateStep(
 
       for (const lang of targetLanguages) {
         const entries = resultsByLang.get(lang)!
-        const idOrder = new Map(catalog.entries.map((e, i) => [e.id, i]))
+        const idOrder = new Map(translationEntries.map((e, i) => [e.id, i]))
         entries.sort((a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0))
 
         const output: TextCatalogOutput = {
@@ -1803,8 +2095,15 @@ async function runSpeechStep(
     // Load text catalog from storage (produced by translate stage)
     const catalogRow = storage.getLatestNodeData("text-catalog", "book")
     const catalog = catalogRow?.data as TextCatalogOutput | null
+    const easyReadConfig = buildEasyReadConfig(config, language)
+    const easyReadRow = storage.getLatestNodeData("easy-read", "book")
+    // Easy Read audio is generated whenever Easy Read is enabled (all
+    // languages), so include the source-language easy-read entries here too.
+    const sourceEasyReadEntries = easyReadConfig.enabled
+      ? flattenEasyReadEntries(easyReadRow?.data as EasyReadOutput | undefined)
+      : []
 
-    if (!catalog || catalog.entries.length === 0) {
+    if (!catalog || (catalog.entries.length === 0 && sourceEasyReadEntries.length === 0)) {
       progress.emit({ type: "step-skip", step: "tts" })
       progress.emit({ type: "step-skip", step: "word-timestamps" })
       console.log(`[stage-run] ${label}: TTS skipped (empty catalog)`)
@@ -1812,6 +2111,7 @@ async function runSpeechStep(
     }
 
     progress.emit({ type: "step-start", step: "tts" })
+    progress.emit({ type: "step-progress", step: "tts", message: "Preparing audio..." })
 
     const voiceMaps = loadVoicesConfig(configDir)
     const instructionsMap = loadSpeechInstructions(configDir)
@@ -1865,14 +2165,21 @@ async function runSpeechStep(
     }
     const ttsWorkItems: TTSWorkItem[] = []
     const textByLanguage = new Map<string, Map<string, string>>()
+    const ttsResultsByLang = new Map<string, SpeechFileEntry[]>()
+    const reusedEntriesByLang = new Map<string, number>()
+    for (const lang of outputLanguages) {
+      ttsResultsByLang.set(lang, [])
+      reusedEntriesByLang.set(lang, 0)
+    }
 
     for (const lang of outputLanguages) {
       const baseSource = getBaseLanguage(sourceLanguage)
       const baseLang = getBaseLanguage(lang)
+      const existingSpeechEntries = getExistingSpeechEntries(storage, lang)
 
       let entries: TextCatalogEntry[]
       if (baseLang === baseSource) {
-        entries = catalog.entries
+        entries = [...catalog.entries, ...sourceEasyReadEntries]
       } else {
         const legacyLang = lang.replace("-", "_")
         const translatedRow =
@@ -1888,8 +2195,41 @@ async function runSpeechStep(
 
       const languageTextMap = new Map<string, string>()
       for (const entry of entries) {
-        ttsWorkItems.push({ textId: entry.id, text: entry.text, language: lang })
         languageTextMap.set(entry.id, entry.text)
+
+        const provider = resolveProviderForLanguage(lang, routing)
+        const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
+        const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
+        const voice = resolveVoice(provider, lang, voiceMaps, config.speech?.voice)
+        // OpenAI consumes instructions via its `instructions` field; Gemini embeds
+        // them in the prompt text (it rejects systemInstruction). Both paths must
+        // resolve identically here and in the generation loop below so the cache key
+        // (computeSpeechCacheKey) stays in sync with canReuseSpeechEntry.
+        const instructions =
+          provider === "openai" || provider === "gemini"
+            ? resolveInstructions(lang, instructionsMap)
+            : ""
+        const existingEntry = existingSpeechEntries.get(entry.id)
+
+        if (
+          canReuseSpeechEntry(existingEntry, {
+            bookDir,
+            cacheDir,
+            language: lang,
+            text: entry.text,
+            provider,
+            model: providerModel,
+            voice,
+            instructions,
+            format: outputFormat,
+          })
+        ) {
+          ttsResultsByLang.get(lang)?.push(existingEntry)
+          reusedEntriesByLang.set(lang, (reusedEntriesByLang.get(lang) ?? 0) + 1)
+          continue
+        }
+
+        ttsWorkItems.push({ textId: entry.id, text: entry.text, language: lang })
       }
       textByLanguage.set(lang, languageTextMap)
     }
@@ -1897,9 +2237,10 @@ async function runSpeechStep(
     const totalItems = ttsWorkItems.length
     let completedItems = 0
 
-    emitSpeechStepProgress(progress, 0, totalItems, 0)
+    const reusedItems = [...reusedEntriesByLang.values()].reduce((sum, count) => sum + count, 0)
+    emitSpeechStepProgress(progress, 0, totalItems, 0, reusedItems)
 
-    console.log(`[stage-run] ${label}: generating TTS for ${totalItems} entries across ${outputLanguages.length} languages (${outputLanguages.join(", ")})`)
+    console.log(`[stage-run] ${label}: generating TTS for ${totalItems} entries and reusing ${reusedItems} existing entries across ${outputLanguages.length} languages (${outputLanguages.join(", ")})`)
     console.log(`[stage-run] ${label}: TTS routing — for each language: ${outputLanguages.map((l) => `${l}→${resolveProviderForLanguage(l, routing)}`).join(", ")}`)
 
     const hasGeminiTts = outputLanguages.some(
@@ -1918,11 +2259,6 @@ async function runSpeechStep(
       )
     }
 
-    const ttsResultsByLang = new Map<string, SpeechFileEntry[]>()
-    for (const lang of outputLanguages) {
-      ttsResultsByLang.set(lang, [])
-    }
-
     const failedItems: string[] = []
     const geminiFailedItems: string[] = []
 
@@ -1935,9 +2271,12 @@ async function runSpeechStep(
         const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
         const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
         const voice = resolveVoice(provider, item.language, voiceMaps, config.speech?.voice)
-        const instructions = provider === "openai"
-          ? resolveInstructions(item.language, instructionsMap)
-          : ""
+        // Must mirror the reuse-check above: OpenAI + Gemini both receive resolved
+        // instructions (Gemini embeds them in the prompt text), Azure does not.
+        const instructions =
+          provider === "openai" || provider === "gemini"
+            ? resolveInstructions(item.language, instructionsMap)
+            : ""
         let attemptCount = 0
 
         console.log(`[stage-run] ${label}: TTS ${item.textId} → provider=${provider} voice=${voice} model=${providerModel} format=${outputFormat}`)
@@ -2067,7 +2406,7 @@ async function runSpeechStep(
         }
 
         completedItems++
-        emitSpeechStepProgress(progress, completedItems, totalItems, failedItems.length)
+        emitSpeechStepProgress(progress, completedItems, totalItems, failedItems.length, reusedItems)
       }
     )
 

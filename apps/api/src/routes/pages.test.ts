@@ -670,9 +670,8 @@ describe("Page routes", () => {
   // ---------------------------------------------------------------------------
 
   /**
-   * Seed downstream pipeline data (image-captioning, text-catalog,
-   * text-catalog-translation, tts) and their step_runs so we can verify
-   * they get cleared after storyboard/image edits.
+   * Seed downstream pipeline data and step_runs so we can verify they get
+   * cleared after storyboard/image edits.
    */
   function seedDownstreamData(dir: string, bookLabel: string) {
     const s = createBookStorage(bookLabel, dir)
@@ -686,20 +685,51 @@ describe("Page routes", () => {
       s.putNodeData("text-catalog-translation", `${bookLabel}_p1`, {
         locale: "es", entries: [{ id: "t1", text: "Hola" }],
       })
+      s.putNodeData("easy-read", "book", {
+        blocks: [{
+          pageId: `${bookLabel}_p1`,
+          pageNumber: 1,
+          sectionId: `${bookLabel}_p1_sec001`,
+          sectionIndex: 0,
+          sectionType: "content",
+          entries: [{
+            sourceId: "t1",
+            easyReadId: "t1_easy_read",
+            originalText: "Hello",
+            text: "Easy hello",
+            pageId: `${bookLabel}_p1`,
+            sectionId: `${bookLabel}_p1_sec001`,
+            sectionIndex: 0,
+          }],
+        }],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
       s.putNodeData("tts", `${bookLabel}_p1`, {
         entries: [{ id: "t1", url: "audio.mp3" }],
+      })
+      s.putNodeData("tts-timestamps", "en", {
+        entries: { t1: { words: [{ text: "Hello", start: 0, end: 1 }] } },
+      })
+      s.putNodeData("accessibility-assessment", "book", {
+        summary: { violations: 0 },
+        pages: [],
       })
       // Mark corresponding steps as completed
       s.markStepCompleted("image-captioning")
       s.markStepCompleted("text-catalog")
+      s.markStepCompleted("easy-read")
       s.markStepCompleted("catalog-translation")
+      s.markStepCompleted("image-translation")
       s.markStepCompleted("tts")
+      s.markStepCompleted("word-timestamps")
+      s.markStepCompleted("package-web")
+      s.markStepCompleted("accessibility-assessment")
     } finally {
       s.close()
     }
   }
 
-  /** Assert that all caption + translate/speech node data and step_runs were cleared. */
+  /** Assert that all storyboard-dependent node data and step_runs were cleared. */
   function expectAllDownstreamCleared(dir: string, bookLabel: string) {
     const s = createBookStorage(bookLabel, dir)
     try {
@@ -707,10 +737,23 @@ describe("Page routes", () => {
       expect(s.getLatestNodeData("image-captioning", `${bookLabel}_p1`)).toBeNull()
       expect(s.getLatestNodeData("text-catalog", `${bookLabel}_p1`)).toBeNull()
       expect(s.getLatestNodeData("text-catalog-translation", `${bookLabel}_p1`)).toBeNull()
+      expect(s.getLatestNodeData("easy-read", "book")).toBeNull()
       expect(s.getLatestNodeData("tts", `${bookLabel}_p1`)).toBeNull()
+      expect(s.getLatestNodeData("tts-timestamps", "en")).toBeNull()
+      expect(s.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
       // Step runs should be gone
       const runs = s.getStepRuns()
-      const clearedSteps = ["image-captioning", "text-catalog", "catalog-translation", "tts"]
+      const clearedSteps = [
+        "image-captioning",
+        "text-catalog",
+        "easy-read",
+        "catalog-translation",
+        "image-translation",
+        "tts",
+        "word-timestamps",
+        "package-web",
+        "accessibility-assessment",
+      ]
       for (const step of clearedSteps) {
         expect(runs.find((r) => r.step === step)).toBeUndefined()
       }
@@ -725,14 +768,26 @@ describe("Page routes", () => {
     try {
       // image-captioning should still exist
       expect(s.getLatestNodeData("image-captioning", `${bookLabel}_p1`)).not.toBeNull()
+      expect(s.getLatestNodeData("easy-read", "book")).not.toBeNull()
       // text-catalog, translations, tts should be gone
       expect(s.getLatestNodeData("text-catalog", `${bookLabel}_p1`)).toBeNull()
       expect(s.getLatestNodeData("text-catalog-translation", `${bookLabel}_p1`)).toBeNull()
       expect(s.getLatestNodeData("tts", `${bookLabel}_p1`)).toBeNull()
+      expect(s.getLatestNodeData("tts-timestamps", "en")).toBeNull()
+      expect(s.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
       // Step runs: image-captioning should remain, text steps should be gone
       const runs = s.getStepRuns()
       expect(runs.find((r) => r.step === "image-captioning")).toBeDefined()
-      for (const step of ["text-catalog", "catalog-translation", "tts"]) {
+      expect(runs.find((r) => r.step === "easy-read")).toBeDefined()
+      for (const step of [
+        "text-catalog",
+        "catalog-translation",
+        "image-translation",
+        "tts",
+        "word-timestamps",
+        "package-web",
+        "accessibility-assessment",
+      ]) {
         expect(runs.find((r) => r.step === step)).toBeUndefined()
       }
     } finally {

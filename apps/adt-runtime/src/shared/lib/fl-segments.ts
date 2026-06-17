@@ -59,8 +59,11 @@ function escapeHtml(s: string): string {
  * back to a single run carrying the first segment's style — full per-run
  * styling preservation across translation is a known follow-up.
  *
- * `<br>` tags inside the swapped text are passed through unescaped so
- * line breaks survive; everything else is HTML-escaped.
+ * `<br>` tags and Temml-rendered `<math>…</math>` blocks inside the swapped
+ * text are passed through unescaped (line breaks survive and math renders);
+ * everything else is HTML-escaped. The catalog bakes math into these entries
+ * via `convertLatexString`, so without the `<math>` pass-through the tags
+ * would surface as literal text in fixed-layout pages.
  */
 export function rebuildSegmentedInnerHtml(
   segmentsAttr: string | null,
@@ -80,8 +83,12 @@ export function rebuildSegmentedInnerHtml(
   return runs
     .map((seg) => {
       const html = seg.text
-        .split(/(<br\s*\/?>)/i)
-        .map((part) => (/^<br\s*\/?>$/i.test(part) ? part : escapeHtml(part)))
+        .split(/(<br\s*\/?>|<math[\s\S]*?<\/math>)/i)
+        .map((part) =>
+          /^<br\s*\/?>$/i.test(part) || /^<math[\s\S]*?<\/math>$/i.test(part)
+            ? part
+            : escapeHtml(part),
+        )
         .join("")
       const styleStr = styleToInline(seg.style)
       return styleStr ? `<span style="${styleStr}">${html}</span>` : html

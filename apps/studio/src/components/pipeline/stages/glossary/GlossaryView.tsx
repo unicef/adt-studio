@@ -31,7 +31,9 @@ import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { StageRunCard } from "../../components/StageRunCard"
 import { StageContentGuard } from "../../components/StageContentGuard"
-import { StageEmptyState } from "../../components/StageEmptyState"
+import { FilteredEmptyState } from "../../components/FilteredEmptyState"
+import { VersionPicker } from "../../components/VersionPicker"
+import { usePendingChanges } from "../../components/change-summary"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useLingui } from "@lingui/react/macro"
 import { AddGlossaryDialog } from "./AddGlossaryDialog"
@@ -51,126 +53,6 @@ function createEmptyGlossary(): GlossaryData {
     pageCount: 0,
     generatedAt: new Date().toISOString(),
   }
-}
-
-function VersionPicker({
-  currentVersion,
-  saving,
-  dirty,
-  bookLabel,
-  disableSave = false,
-  onPreview,
-  onSave,
-  onDiscard,
-}: {
-  currentVersion: number | null
-  saving: boolean
-  dirty: boolean
-  bookLabel: string
-  disableSave?: boolean
-  onPreview: (data: unknown) => void
-  onSave: () => void
-  onDiscard: () => void
-}) {
-  const { t } = useLingui()
-  const [open, setOpen] = useState(false)
-  const [versions, setVersions] = useState<VersionEntry[] | null>(null)
-  const [loading, setLoading] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const handleClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener("mousedown", handleClick)
-    return () => document.removeEventListener("mousedown", handleClick)
-  }, [open])
-
-  const handleOpen = async () => {
-    if (saving || currentVersion == null) return
-    setOpen(true)
-    setLoading(true)
-    const res = await api.getVersionHistory(bookLabel, "glossary", "book", true)
-    setVersions(res.versions)
-    setLoading(false)
-  }
-
-  const handlePick = (v: VersionEntry) => {
-    if (v.version === currentVersion && !dirty) {
-      setOpen(false)
-      return
-    }
-    setOpen(false)
-    onPreview(v.data)
-  }
-
-  if (saving) {
-    return <Loader2 className="h-3 w-3 animate-spin" />
-  }
-
-  if (dirty) {
-    return (
-      <div className="flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={onDiscard}
-          className="text-[10px] font-medium rounded px-2 py-0.5 bg-black/15 text-black hover:bg-black/25 cursor-pointer transition-colors"
-        >
-          {t`Discard`}
-        </button>
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={disableSave}
-          title={disableSave ? t`Wait for glossary generation to finish` : undefined}
-          className="flex items-center gap-1 text-[10px] font-medium rounded px-2 py-0.5 bg-white text-green-800 hover:bg-white/80 cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <Check className="h-3 w-3" />
-          {t`Save`}
-        </button>
-      </div>
-    )
-  }
-
-  if (currentVersion == null) return null
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={handleOpen}
-        className="flex items-center gap-0.5 text-[10px] font-normal normal-case tracking-normal bg-white/20 text-white hover:bg-white/30 rounded px-1.5 py-0.5 transition-colors"
-      >
-        v{currentVersion}
-        <ChevronDown className="h-2.5 w-2.5" />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-1 z-20 bg-popover border rounded shadow-md min-w-[80px] py-1 animate-in fade-in zoom-in-95 duration-150">
-          {loading ? (
-            <div className="flex items-center justify-center py-2 px-3">
-              <Loader2 className="h-3 w-3 animate-spin" />
-            </div>
-          ) : versions && versions.length > 0 ? (
-            versions.map((v) => (
-              <button
-                key={v.version}
-                type="button"
-                onClick={() => handlePick(v)}
-                className={`w-full text-left px-3 py-1 text-xs hover:bg-accent transition-colors ${
-                  v.version === currentVersion ? "font-semibold text-foreground" : "text-muted-foreground"
-                }`}
-              >
-                v{v.version}
-              </button>
-            ))
-          ) : (
-            <div className="px-3 py-1 text-xs text-muted-foreground">{t`No versions`}</div>
-          )}
-        </div>
-      )}
-    </div>
-  )
 }
 
 export function GlossaryView({ bookLabel }: { bookLabel: string }) {
@@ -204,7 +86,24 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
 
   const effective = pending ?? data ?? null
   const items = effective?.items ?? []
-  const dirty = pending != null
+  const {
+    label: pendingLabel,
+    labelKey: pendingLabelKey,
+    hasChanges: dirty,
+  } = usePendingChanges({
+    prev: data?.items ?? [],
+    next: pending?.items,
+    keyOf: (i) => i.id ?? i.word,
+    isEqual: (a, b) =>
+      a.word === b.word &&
+      a.definition === b.definition &&
+      a.emojis.join("|") === b.emojis.join("|") &&
+      a.variations.join("|") === b.variations.join("|") &&
+      !!a.pruned === !!b.pruned,
+    classifyChanged: (before, after) =>
+      !!after.pruned && !before.pruned ? "pruned" : "edited",
+    noun: { one: t`term`, other: t`terms` },
+  })
   const currentVersion = data?.version ?? null
   const prunedCount = useMemo(() => items.filter((item) => item.pruned).length, [items])
   const manualCount = useMemo(() => items.filter((item) => item.source === "manual").length, [items])
@@ -281,11 +180,15 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
       <div className="flex items-center gap-1.5 ml-auto">
         <span className="text-[10px] bg-white/20 rounded-full px-2 py-0.5">{t`${String(visibleCount)} terms`}</span>
         <VersionPicker
+          step="glossary"
+          itemId="book"
           currentVersion={currentVersion}
           saving={saving}
           dirty={dirty}
           bookLabel={bookLabel}
-          disableSave={glossaryRunning}
+          saveDisabledReason={glossaryRunning ? t`Wait for glossary generation to finish` : undefined}
+          pendingLabel={pendingLabel}
+          pendingLabelKey={pendingLabelKey}
           onPreview={(d) => setPending(d as GlossaryData)}
           onSave={() => saveRef.current()}
           onDiscard={() => setPending(null)}
@@ -293,7 +196,7 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
       </div>
     )
     return () => setExtra(null)
-  }, [visibleCount, saving, dirty, bookLabel, currentVersion, glossaryRunning, t, setExtra])
+  }, [visibleCount, saving, dirty, bookLabel, currentVersion, glossaryRunning, t, setExtra, pendingLabel, pendingLabelKey])
 
   const updateDefinition = (itemId: string, newDefinition: string) => {
     const base = pending ?? data ?? createEmptyGlossary()
@@ -376,7 +279,7 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
         </>
       }
     >
-      <div className="flex flex-1 flex-col overflow-y-auto">
+      <div className="flex flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]">
         <GlossaryHintBanner />
         <div
           className="sticky top-0 z-20 flex items-center gap-3 px-6 py-3 bg-background/95 backdrop-blur-md border-b border-border/60"
@@ -493,9 +396,9 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-2.5 px-4 pb-12 pt-4">
+        <div className="flex flex-1 flex-col gap-2.5 px-4 pb-12 pt-4">
           {displayItems.length === 0 ? (
-            <StageEmptyState
+            <FilteredEmptyState
               icon={BookOpen}
               color="lime"
               title={
@@ -507,6 +410,16 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
                       ? t`No pruned terms`
                       : t`No terms to show`
               }
+              onClear={
+                searchQuery || manualOnly || filter !== "active"
+                  ? () => {
+                      setSearchQuery("")
+                      setManualOnly(false)
+                      setFilter("active")
+                    }
+                  : undefined
+              }
+              clearLabel={searchQuery ? t`Clear search` : t`Clear filters`}
             />
           ) : (
             displayItems.map((item) => (

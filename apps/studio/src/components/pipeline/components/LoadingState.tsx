@@ -331,6 +331,38 @@ function ExportSvg({ hex }: SvgProps) {
   )
 }
 
+function EasyReadSvg({ hex }: SvgProps) {
+  return (
+    <svg viewBox="0 0 56 56" className="w-full h-full" aria-hidden="true">
+      {/* Page */}
+      <rect x="10" y="6" width="36" height="44" rx="3" fill="none" stroke={hex} strokeWidth="2" />
+      {/* Dense "original" text — dims out during the simplify phase */}
+      <g fill={hex}>
+        <rect x="15" y="13" width="26" height="1.6" rx="0.8">
+          <animate attributeName="opacity" values="0.4;0.4;0.1;0.1;0.4" keyTimes="0;0.28;0.46;0.9;1" dur="2.6s" repeatCount="indefinite" />
+        </rect>
+        <rect x="15" y="17.5" width="22" height="1.6" rx="0.8">
+          <animate attributeName="opacity" values="0.4;0.4;0.1;0.1;0.4" keyTimes="0;0.28;0.46;0.9;1" dur="2.6s" repeatCount="indefinite" />
+        </rect>
+        <rect x="15" y="22" width="24" height="1.6" rx="0.8">
+          <animate attributeName="opacity" values="0.4;0.4;0.1;0.1;0.4" keyTimes="0;0.28;0.46;0.9;1" dur="2.6s" repeatCount="indefinite" />
+        </rect>
+      </g>
+      {/* Simplified "Easy Read" lines — grow in, bolder and rounded */}
+      <rect x="15" y="31" width="0" height="3" rx="1.5" fill={hex}>
+        <animate attributeName="width" values="0;0;24;24;0" keyTimes="0;0.46;0.64;0.9;1" dur="2.6s" repeatCount="indefinite" />
+      </rect>
+      <rect x="15" y="38" width="0" height="3" rx="1.5" fill={hex} opacity="0.65">
+        <animate attributeName="width" values="0;0;0;17;17;0" keyTimes="0;0.46;0.64;0.78;0.9;1" dur="2.6s" repeatCount="indefinite" />
+      </rect>
+      {/* AI sparkle — twinkles as the simplified text appears */}
+      <path d="M40 26.5 L41.2 28.8 L43.5 30 L41.2 31.2 L40 33.5 L38.8 31.2 L36.5 30 L38.8 28.8 Z" fill={hex}>
+        <animate attributeName="opacity" values="0;0;1;0.3;1;0" keyTimes="0;0.5;0.62;0.74;0.86;1" dur="2.6s" repeatCount="indefinite" />
+      </path>
+    </svg>
+  )
+}
+
 function BouncingDots({ hex }: SvgProps) {
   return (
     <svg viewBox="0 0 56 56" className="w-full h-full" aria-hidden="true">
@@ -357,6 +389,7 @@ const STAGE_SVGS = {
   quizzes: QuizzesSvg,
   glossary: GlossarySvg,
   toc: TocSvg,
+  "easy-read": EasyReadSvg,
   translate: TranslateSvg,
   speech: SpeechSvg,
   validation: ValidationSvg,

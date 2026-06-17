@@ -225,7 +225,7 @@ function migrateV6toV7(db: sqlite.Database): void {
       "metadata", "book-summary", "image-filtering", "image-segmentation",
       "image-cropping", "page-sectioning",
       "web-rendering", "quiz-generation", "image-captioning", "glossary",
-      "text-catalog", "tts",
+      "text-catalog", "easy-read", "tts",
     ]
     for (const step of directSteps) {
       if (nodes.has(step)) {

@@ -5,6 +5,7 @@ export const SETTINGS_STAGE_SLUGS = [
   "quizzes",
   "glossary",
   "toc",
+  "easy-read",
   "captions",
   "translate",
   "speech",

@@ -36,13 +36,30 @@ const extraResources = [
 ];
 
 const version = process.env.APP_VERSION || require("./package.json").version;
-const productName = "ADT-Studio";
+
+const isBeta = version.includes("-beta");
+const appId = isBeta ? "com.nees.adt-studio.beta" : "com.nees.adt-studio";
+const productName = isBeta ? "ADT-Studio-Beta" : "ADT-Studio";
+
+
+const icons = isBeta
+  ? {
+      win: "build/beta-icons/icon.ico",
+      mac: "build/beta-icons/icon.icns",
+      linux: "build/beta-icons/icons",
+    }
+  : {
+      win: "build/icon.ico",
+      mac: "build/icon.icon",
+      linux: "build/icons",
+    };
+
 const artifactName = `${productName}-\${version}.\${ext}`
   .toLowerCase()
   .replace(/ /g, "-");
 
 const config = {
-  appId: "com.nees.adt-studio",
+  appId,
   productName,
   electronVersion: "41.1.1",
   directories: {
@@ -55,16 +72,10 @@ const config = {
   extraResources,
   files: ["out/**/*", "!out/renderer/placeholder-*"],
 
-  // Write update metadata for every channel on each build, so a stable release
-  // also emits beta.yml (not just latest.yml). Beta clients track beta.yml, and
-  // without this they'd only graduate to a stable build via electron-updater's
-  // fragile 404-fallback-to-latest.yml path. This makes beta→stable graduation
-  // deterministic — see RELEASING.md.
-  generateUpdatesFilesForAllChannels: true,
 
   win: {
     target: ["nsis"],
-    icon: "build/icon.ico",
+    icon: icons.win,
     signtoolOptions: {
       publisherName: [
         "Núcleo de Excelência em Tecnologias Sociais - NEES",
@@ -82,7 +93,7 @@ const config = {
 
   mac: {
     target: ["dmg", "zip"],
-    icon: "build/icon.icon",
+    icon: icons.mac,
     category: "public.app-category.developer-tools",
     type: "distribution",
     hardenedRuntime: true,
@@ -109,7 +120,7 @@ const config = {
 
   linux: {
     target: ["AppImage", "deb"],
-    icon: "build/icons",
+    icon: icons.linux,
     artifactName,
     // TODO: change to "UNICEF <email@unicef.org>",
     maintainer: "electronjs.org",

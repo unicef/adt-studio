@@ -15,25 +15,9 @@ import {
 import { cn } from "@/lib/utils"
 import { useLlmLogs } from "@/hooks/use-debug"
 import { BASE_URL, type LlmLogEntry } from "@/api/client"
+import { ALL_STEP_NAMES } from "@adt/types"
 
-const STEPS = [
-  "extract",
-  "metadata",
-  "translation",
-  "image-filtering",
-  "image-cropping",
-  "image-meaningfulness",
-  "page-sectioning",
-  "web-rendering",
-  "image-captioning",
-  "glossary",
-  "quiz-generation",
-  "text-catalog",
-  "catalog-translation",
-  "book-summary",
-  "tts",
-  "package-web",
-] as const
+const STEP_FILTERS = Array.from(ALL_STEP_NAMES)
 
 interface LlmLogsTabProps {
   label: string
@@ -286,7 +270,7 @@ export function LlmLogsTab({ label, isRunning }: LlmLogsTabProps) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value=" "><Trans>All steps</Trans></SelectItem>
-            {STEPS.map((s) => (
+            {STEP_FILTERS.map((s) => (
               <SelectItem key={s} value={s}>{s}</SelectItem>
             ))}
           </SelectContent>

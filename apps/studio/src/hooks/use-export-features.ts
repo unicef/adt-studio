@@ -21,6 +21,7 @@ export interface AllProjectFeatures {
   present: {
     captions: boolean
     toc: boolean
+    easyRead: boolean
   }
 }
 
@@ -39,6 +40,7 @@ export function useAllProjectFeatures(bookLabel: string): AllProjectFeatures {
     present: {
       captions: stageState("captions") === "done",
       toc: stageState("toc") === "done",
+      easyRead: stageState("easy-read") === "done",
     },
   }
 }

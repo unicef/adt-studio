@@ -4,9 +4,10 @@ import os from "node:os"
 import path from "node:path"
 import { Hono } from "hono"
 import type { ExtractedPage } from "@adt/pdf"
-import { createBookStorage } from "@adt/storage"
-import { AccessibilityAssessmentOutput } from "@adt/types"
+import { createBookStorage, openBookDb } from "@adt/storage"
+import { AccessibilityAssessmentOutput, type TaskInfo } from "@adt/types"
 import { errorHandler } from "../middleware/error-handler.js"
+import type { TaskService } from "../services/task-service.js"
 import { createPackageRoutes } from "./package.js"
 
 describe("Package routes", () => {
@@ -88,6 +89,44 @@ describe("Package routes", () => {
     )
   }
 
+  function easyReadOutput(text: string) {
+    return {
+      blocks: [
+        {
+          pageId: "pg001",
+          pageNumber: 1,
+          sectionId: "pg001_sec001",
+          sectionIndex: 0,
+          sectionType: "content",
+          entries: [
+            {
+              sourceId: "pg001_n0001",
+              easyReadId: "pg001_n0001_easy_read",
+              originalText: "Original text",
+              text,
+              pageId: "pg001",
+              sectionId: "pg001_sec001",
+              sectionIndex: 0,
+            },
+          ],
+        },
+      ],
+      generatedAt: "2026-05-20T00:00:00.000Z",
+    }
+  }
+
+  function overwriteEasyReadVersion(label: string, text: string): void {
+    const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
+    try {
+      db.run(
+        "UPDATE node_data SET data = ? WHERE node = ? AND item_id = ? AND version = ?",
+        [JSON.stringify(easyReadOutput(text)), "easy-read", "book", 1],
+      )
+    } finally {
+      db.close()
+    }
+  }
+
   describe("POST /api/books/:label/package-adt", () => {
     it("returns 404 for missing book", async () => {
       const res = await app.request("/api/books/missing/package-adt", {
@@ -126,6 +165,84 @@ describe("Package routes", () => {
       const parsed = AccessibilityAssessmentOutput.safeParse(row?.data)
       expect(parsed.success).toBe(true)
       expect(parsed.success && parsed.data.summary.pageCount).toBe(1)
+    })
+
+    it("repackages when Easy Read content changes even if the stored version is unchanged", { timeout: 20_000 }, async () => {
+      createRenderedBook("book-easy-cache")
+      createWebAssets()
+
+      const storage = createBookStorage("book-easy-cache", tmpDir)
+      storage.putNodeData("easy-read", "book", easyReadOutput("First easy text"))
+      storage.close()
+
+      const firstRes = await app.request("/api/books/book-easy-cache/package-adt", {
+        method: "POST",
+      })
+      expect(firstRes.status).toBe(200)
+      const firstBody = await firstRes.json() as { version?: string }
+      expect(firstBody.version).toMatch(/^[a-f0-9]{16}$/)
+
+      const textsPath = path.join(tmpDir, "book-easy-cache", "adt", "content", "i18n", "en", "texts.json")
+      const configPath = path.join(tmpDir, "book-easy-cache", "adt", "assets", "config.json")
+      expect(JSON.parse(fs.readFileSync(textsPath, "utf-8")).pg001_n0001_easy_read).toBe("First easy text")
+      expect(JSON.parse(fs.readFileSync(configPath, "utf-8")).bundleVersion).toBe(firstBody.version)
+
+      overwriteEasyReadVersion("book-easy-cache", "Updated easy text")
+      const updatedStorage = createBookStorage("book-easy-cache", tmpDir)
+      const updatedEasyRead = updatedStorage.getLatestNodeData("easy-read", "book")?.data as ReturnType<typeof easyReadOutput>
+      updatedStorage.close()
+      expect(updatedEasyRead.blocks[0]?.entries[0]?.text).toBe("Updated easy text")
+
+      const secondRes = await app.request("/api/books/book-easy-cache/package-adt", {
+        method: "POST",
+      })
+      expect(secondRes.status).toBe(200)
+      const secondBody = await secondRes.json() as { version?: string }
+      expect(secondBody.version).toMatch(/^[a-f0-9]{16}$/)
+      expect(JSON.parse(fs.readFileSync(textsPath, "utf-8")).pg001_n0001_easy_read).toBe("Updated easy text")
+      expect(secondBody.version).not.toBe(firstBody.version)
+      expect(JSON.parse(fs.readFileSync(configPath, "utf-8")).bundleVersion).toBe(secondBody.version)
+    })
+
+    it("reuses an active packaging task for duplicate preview requests", async () => {
+      createRenderedBook("book-package-dedupe")
+      createWebAssets()
+
+      const activeTasks: TaskInfo[] = []
+      let submitCount = 0
+      const taskService: TaskService = {
+        submitTask(label, kind, description) {
+          submitCount += 1
+          const taskId = `task-${submitCount}`
+          activeTasks.push({
+            taskId,
+            kind,
+            status: "running",
+            description,
+            url: `/books/${label}/preview`,
+          })
+          return { taskId }
+        },
+        getActiveTasks() {
+          return activeTasks
+        },
+      }
+      const taskApp = new Hono()
+      taskApp.onError(errorHandler)
+      taskApp.route("/api", createPackageRoutes(tmpDir, webAssetsDir, undefined, taskService))
+
+      const firstRes = await taskApp.request("/api/books/book-package-dedupe/package-adt", {
+        method: "POST",
+      })
+      const secondRes = await taskApp.request("/api/books/book-package-dedupe/package-adt", {
+        method: "POST",
+      })
+
+      expect(firstRes.status).toBe(200)
+      expect(secondRes.status).toBe(200)
+      expect(await firstRes.json()).toMatchObject({ status: "submitted", taskId: "task-1" })
+      expect(await secondRes.json()).toMatchObject({ status: "submitted", taskId: "task-1" })
+      expect(submitCount).toBe(1)
     })
   })
 

@@ -173,7 +173,7 @@ export function resolveSpeechFormat(
 // Cache helpers
 // ---------------------------------------------------------------------------
 
-function computeSpeechHash(data: {
+export function computeSpeechCacheKey(data: {
   text: string
   voice: string
   model: string
@@ -264,7 +264,7 @@ export async function generateSpeechFile(
     "language code"
   )
 
-  const hash = computeSpeechHash({
+  const hash = computeSpeechCacheKey({
     text: sanitized,
     voice,
     model,

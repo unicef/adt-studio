@@ -13,6 +13,7 @@ const {
   capturedCaptionInputs,
   captionPageImagesMock,
   generateSpeechFileMock,
+  easyReadGenerateObjectMock,
   renderPageMock,
   sectionPageMock,
   transcribeWithWhisperMock,
@@ -24,6 +25,7 @@ const {
       capturedCaptionInputs.push(input)
       return { captions: [] }
     }),
+    easyReadGenerateObjectMock: vi.fn(),
     generateSpeechFileMock: vi.fn(),
     renderPageMock: vi.fn(async () => ({ sections: [] })),
     sectionPageMock: vi.fn(async () => ({ reasoning: "", sections: [] })),
@@ -48,8 +50,27 @@ vi.mock("@adt/llm", async () => {
   const actual = await vi.importActual<typeof import("@adt/llm")>("@adt/llm")
   return {
     ...actual,
+    createLLMModel: vi.fn(() => ({
+      generateObject: easyReadGenerateObjectMock,
+    })),
     transcribeWithWhisper: transcribeWithWhisperMock,
   }
+})
+
+beforeEach(() => {
+  easyReadGenerateObjectMock.mockReset()
+  easyReadGenerateObjectMock.mockImplementation(async (options: {
+    context?: { texts?: Array<{ text: string }> }
+    validate?: (raw: unknown, context: unknown) => { valid: boolean; errors: string[] }
+  }) => {
+    const texts = options.context?.texts ?? []
+    const object = { texts: texts.map((text) => `Easy: ${text.text}`) }
+    const validation = options.validate?.(object, options.context)
+    if (validation && !validation.valid) {
+      throw new Error(validation.errors.join("\n"))
+    }
+    return { object, usage: { inputTokens: 1, outputTokens: 1 } }
+  })
 })
 
 function writeBaseConfig(configPath: string): void {
@@ -166,6 +187,55 @@ function seedStoryboardBook(booksDir: string, label: string): void {
   }
 }
 
+function seedEasyReadBook(booksDir: string, label: string): void {
+  const storage = createBookStorage(label, booksDir)
+  try {
+    storage.putExtractedPage({
+      pageId: "pg001",
+      pageNumber: 1,
+      text: "Original text",
+      pageImage: {
+        imageId: "pg001_page",
+        buffer: Buffer.from("fake-page-image"),
+        format: "png",
+        hash: "hash-page",
+        width: 800,
+        height: 600,
+      },
+      images: [],
+    })
+
+    storage.putNodeData("page-sectioning", "pg001", {
+      reasoning: "",
+      sections: [
+        {
+          sectionId: "pg001_sec001",
+          sectionType: "text_only",
+          backgroundColor: "#fff",
+          textColor: "#000",
+          pageNumber: 1,
+          isPruned: false,
+          nodes: [],
+        },
+      ],
+    })
+
+    storage.putNodeData("web-rendering", "pg001", {
+      sections: [
+        {
+          sectionIndex: 0,
+          sectionType: "text_only",
+          reasoning: "",
+          html: '<section><p data-id="pg001_tx001">Original text</p></section>',
+        },
+      ],
+    })
+
+  } finally {
+    storage.close()
+  }
+}
+
 function seedTextAndSpeechBook(booksDir: string, label: string): void {
   const storage = createBookStorage(label, booksDir)
   try {
@@ -193,6 +263,11 @@ function seedTextAndSpeechBook(booksDir: string, label: string): void {
           html: '<p data-id="pg001_t001">Hello world</p>',
         },
       ],
+    })
+
+    storage.putNodeData("text-catalog", "book", {
+      entries: [{ id: "pg001_t001", text: "Hello world" }],
+      generatedAt: "2026-01-01T00:00:00.000Z",
     })
   } finally {
     storage.close()
@@ -483,6 +558,306 @@ describe("createStageRunner storyboard render-only", () => {
   })
 })
 
+describe("createStageRunner easy read step", () => {
+  let tmpDir = ""
+
+  afterEach(() => {
+    if (tmpDir) {
+      fs.rmSync(tmpDir, { recursive: true, force: true })
+      tmpDir = ""
+    }
+  })
+
+  it("generates for a single Easy Read stage run even when disabled by default", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-easy-read-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    writeBaseConfig(configPath)
+    seedEasyReadBook(booksDir, "explicit-easy-read")
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await runner.run(
+      "explicit-easy-read",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "easy-read",
+        toStage: "easy-read",
+      },
+      { emit: (event) => events.push(event) }
+    )
+
+    expect(easyReadGenerateObjectMock).toHaveBeenCalledTimes(1)
+    expect(
+      events.some(
+        (event) => event.type === "step-complete" && event.step === "easy-read"
+      )
+    ).toBe(true)
+
+    const storage = createBookStorage("explicit-easy-read", booksDir)
+    try {
+      const row = storage.getLatestNodeData("easy-read", "book")
+      expect(row?.data).toMatchObject({
+        blocks: [
+          {
+            entries: [
+              {
+                sourceId: "pg001_tx001",
+                easyReadId: "pg001_tx001_easy_read",
+                originalText: "Original text",
+                text: "Easy: Original text",
+              },
+            ],
+          },
+        ],
+      })
+      const easyReadStep = storage.getStepRuns().find((step) => step.step === "easy-read")
+      expect(easyReadStep?.status).toBe("done")
+    } finally {
+      storage.close()
+    }
+  })
+})
+
+describe("createStageRunner translate without a prebuilt text-catalog", () => {
+  let tmpDir = ""
+
+  afterEach(() => {
+    if (tmpDir) {
+      fs.rmSync(tmpDir, { recursive: true, force: true })
+      tmpDir = ""
+    }
+  })
+
+  // The text-catalog is normally built by the easy-read stage. A standalone
+  // translate run (or one after a caption/page edit cleared the catalog) must
+  // rebuild it rather than silently skipping translation.
+  it("rebuilds the missing text-catalog instead of skipping translation", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-translate-nocatalog-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+output_languages:
+  - fr
+`
+    )
+
+    // Seed a book with rendered text but NO text-catalog node.
+    const seed = createBookStorage("translate-no-catalog", booksDir)
+    try {
+      seed.putExtractedPage({
+        pageId: "pg001",
+        pageNumber: 1,
+        text: "Page text",
+        pageImage: {
+          imageId: "pg001_page",
+          buffer: Buffer.from("fake-page-image"),
+          format: "png",
+          hash: "hash-page",
+          width: 800,
+          height: 600,
+        },
+        images: [],
+      })
+      seed.putNodeData("web-rendering", "pg001", {
+        sections: [
+          {
+            sectionIndex: 0,
+            sectionType: "content",
+            reasoning: "",
+            html: '<p data-id="pg001_t001">Hello world</p>',
+          },
+        ],
+      })
+      expect(seed.getLatestNodeData("text-catalog", "book")).toBeFalsy()
+    } finally {
+      seed.close()
+    }
+
+    easyReadGenerateObjectMock.mockImplementation(async (options: {
+      context?: { texts?: Array<{ text: string }> }
+      validate?: (raw: unknown, context: unknown) => { valid: boolean; errors: string[] }
+    }) => {
+      const texts = options.context?.texts ?? []
+      const object = { translations: texts.map((t) => `FR: ${t.text}`) }
+      const validation = options.validate?.(object, options.context)
+      if (validation && !validation.valid) {
+        throw new Error(validation.errors.join("\n"))
+      }
+      return { object, usage: { inputTokens: 1, outputTokens: 1 } }
+    })
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await runner.run(
+      "translate-no-catalog",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "translate",
+      },
+      { emit: (event) => events.push(event) }
+    )
+
+    // Translation must run, not skip.
+    expect(
+      events.some(
+        (event) => event.type === "step-start" && event.step === "catalog-translation"
+      )
+    ).toBe(true)
+    expect(
+      events.some(
+        (event) => event.type === "step-skip" && event.step === "catalog-translation"
+      )
+    ).toBe(false)
+
+    const verify = createBookStorage("translate-no-catalog", booksDir)
+    try {
+      const catalog = verify.getLatestNodeData("text-catalog", "book")?.data as
+        | { entries?: unknown[] }
+        | undefined
+      expect(catalog?.entries?.length).toBeGreaterThan(0)
+
+      const frTranslation = verify.getLatestNodeData("text-catalog-translation", "fr")
+        ?.data as { entries?: unknown[] } | undefined
+      expect(frTranslation?.entries?.length).toBeGreaterThan(0)
+    } finally {
+      verify.close()
+    }
+  })
+
+  // Regression: a present-but-empty text-catalog node (e.g. persisted by
+  // GET /text-catalog when the book was opened before Storyboard rendered)
+  // previously stuck — Translate only rebuilt when the node was absent, so the
+  // empty catalog silently skipped all translation. Translate must rebuild it.
+  it("rebuilds a stale empty text-catalog instead of skipping translation", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-translate-emptycatalog-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+output_languages:
+  - fr
+`
+    )
+
+    // Seed a book with rendered text AND a stale, empty text-catalog node.
+    const seed = createBookStorage("translate-empty-catalog", booksDir)
+    try {
+      seed.putExtractedPage({
+        pageId: "pg001",
+        pageNumber: 1,
+        text: "Page text",
+        pageImage: {
+          imageId: "pg001_page",
+          buffer: Buffer.from("fake-page-image"),
+          format: "png",
+          hash: "hash-page",
+          width: 800,
+          height: 600,
+        },
+        images: [],
+      })
+      seed.putNodeData("web-rendering", "pg001", {
+        sections: [
+          {
+            sectionIndex: 0,
+            sectionType: "content",
+            reasoning: "",
+            html: '<p data-id="pg001_t001">Hello world</p>',
+          },
+        ],
+      })
+      // The poison: a persisted catalog with zero entries.
+      seed.putNodeData("text-catalog", "book", {
+        entries: [],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      const seeded = seed.getLatestNodeData("text-catalog", "book")?.data as
+        | { entries?: unknown[] }
+        | undefined
+      expect(seeded?.entries?.length).toBe(0)
+    } finally {
+      seed.close()
+    }
+
+    easyReadGenerateObjectMock.mockImplementation(async (options: {
+      context?: { texts?: Array<{ text: string }> }
+      validate?: (raw: unknown, context: unknown) => { valid: boolean; errors: string[] }
+    }) => {
+      const texts = options.context?.texts ?? []
+      const object = { translations: texts.map((t) => `FR: ${t.text}`) }
+      const validation = options.validate?.(object, options.context)
+      if (validation && !validation.valid) {
+        throw new Error(validation.errors.join("\n"))
+      }
+      return { object, usage: { inputTokens: 1, outputTokens: 1 } }
+    })
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await runner.run(
+      "translate-empty-catalog",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "translate",
+      },
+      { emit: (event) => events.push(event) }
+    )
+
+    // Translation must run, not skip on the stale empty catalog.
+    expect(
+      events.some(
+        (event) => event.type === "step-skip" && event.step === "catalog-translation"
+      )
+    ).toBe(false)
+    expect(
+      events.some(
+        (event) => event.type === "step-start" && event.step === "catalog-translation"
+      )
+    ).toBe(true)
+
+    const verify = createBookStorage("translate-empty-catalog", booksDir)
+    try {
+      const catalog = verify.getLatestNodeData("text-catalog", "book")?.data as
+        | { entries?: unknown[] }
+        | undefined
+      expect(catalog?.entries?.length).toBeGreaterThan(0)
+
+      const frTranslation = verify.getLatestNodeData("text-catalog-translation", "fr")
+        ?.data as { entries?: unknown[] } | undefined
+      expect(frTranslation?.entries?.length).toBeGreaterThan(0)
+    } finally {
+      verify.close()
+    }
+  })
+})
+
 describe("createStageRunner speech Gemini partial failures", () => {
   let tmpDir = ""
 
@@ -504,6 +879,74 @@ describe("createStageRunner speech Gemini partial failures", () => {
     if (tmpDir) {
       fs.rmSync(tmpDir, { recursive: true, force: true })
       tmpDir = ""
+    }
+  })
+
+  it("records an active step as error when a stage throws before emitting step-error", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-translate-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+output_languages:
+  - fr
+`
+    )
+    seedTextAndSpeechBook(booksDir, "catalog-translation-failure")
+
+    easyReadGenerateObjectMock.mockImplementation(async (options: {
+      context?: { texts?: Array<{ text: string }> }
+      validate?: (raw: unknown, context: unknown) => { valid: boolean; errors: string[] }
+    }) => {
+      const invalid = { translations: [] }
+      const validation = options.validate?.(invalid, options.context)
+      if (validation && !validation.valid) {
+        throw new Error(validation.errors.join("\n"))
+      }
+      return { object: invalid, usage: { inputTokens: 1, outputTokens: 1 } }
+    })
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await expect(
+      runner.run(
+        "catalog-translation-failure",
+        {
+          booksDir,
+          apiKey: "sk-test",
+          promptsDir,
+          configPath,
+          fromStage: "translate",
+          toStage: "translate",
+        },
+        { emit: (event) => events.push(event) }
+      )
+    ).rejects.toThrow("Expected 1 translations but got 0")
+
+    expect(
+      events.some(
+        (event) =>
+          event.type === "step-error" &&
+          event.step === "catalog-translation" &&
+          event.error.includes("Expected 1 translations but got 0")
+      )
+    ).toBe(true)
+
+    const storage = createBookStorage("catalog-translation-failure", booksDir)
+    try {
+      const catalogTranslationStep = storage
+        .getStepRuns()
+        .find((step) => step.step === "catalog-translation")
+      expect(catalogTranslationStep?.status).toBe("error")
+      expect(catalogTranslationStep?.error).toContain("Expected 1 translations but got 0")
+    } finally {
+      storage.close()
     }
   })
 

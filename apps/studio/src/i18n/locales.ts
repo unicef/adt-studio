@@ -10,7 +10,7 @@
  *
  * See docs/I18N_ADD_LANGUAGE.md for the full guide.
  */
-export const LOCALES = ["en", "pt-BR", "es", "fr"] as const
+export const LOCALES = ["en", "pt-BR", "es", "fr", "sq"] as const
 export type AppLocale = (typeof LOCALES)[number]
 
 /** Flag emoji for each locale, shown in the language switcher UI. */
@@ -19,6 +19,7 @@ export const LOCALE_FLAGS: Record<AppLocale, string> = {
   "pt-BR": "🇧🇷",
   es: "🇪🇸",
   fr: "🇫🇷",
+  sq: "🇽🇰",
 }
 
 /**
@@ -30,4 +31,5 @@ export const LOCALE_NAMES: Record<string, string> = {
   "pt-BR": "Brazilian Portuguese",
   es: "Spanish",
   fr: "French",
+  sq: "Albanian",
 }

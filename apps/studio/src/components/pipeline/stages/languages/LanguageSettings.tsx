@@ -76,6 +76,7 @@ export function LanguageSettings({ bookLabel, headerTarget, tab = "general", sta
   const [bitRate, setBitRate] = useState("")
   const [sampleRate, setSampleRate] = useState("")
   const [wordHighlighting, setWordHighlighting] = useState(false)
+  const [easyReadTts, setEasyReadTts] = useState(false)
 
   const [dirty, setDirty] = useState<Record<string, boolean>>({})
   const markDirty = (field: string) => setDirty((prev) => ({ ...prev, [field]: true }))

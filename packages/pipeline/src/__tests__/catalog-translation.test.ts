@@ -167,4 +167,48 @@ describe("translateCatalogBatch", () => {
     expect(result[0].id).toBe("tx001")
     expect(result[1].id).toBe("tx002")
   })
+
+  it("splits batches when count validation repeatedly fails", async () => {
+    const entries = [
+      { id: "tx001", text: "One" },
+      { id: "tx002", text: "Two" },
+      { id: "tx003", text: "Three" },
+      { id: "tx004", text: "Four" },
+    ]
+    const seenBatchSizes: number[] = []
+
+    const model: LLMModel = {
+      generateObject: async <T>(options: GenerateObjectOptions) => {
+        const context = options.context as { texts: Array<{ index: number; text: string }> }
+        seenBatchSizes.push(context.texts.length)
+
+        if (context.texts.length > 2) {
+          const invalid = {
+            translations: context.texts.slice(1).map((text) => `[fr] ${text.text}`),
+          }
+          const validation = options.validate!(invalid, options.context ?? {})
+          if (!validation.valid) {
+            throw new Error(validation.errors.join("\n"))
+          }
+        }
+
+        return {
+          object: {
+            translations: context.texts.map((text) => `[fr] ${text.text}`),
+          } as T,
+          usage: { inputTokens: 10, outputTokens: 10 },
+        } as GenerateObjectResult<T>
+      },
+    }
+
+    const result = await translateCatalogBatch(entries, "fr", config, model)
+
+    expect(seenBatchSizes).toEqual([4, 2, 2])
+    expect(result).toEqual([
+      { id: "tx001", text: "[fr] One" },
+      { id: "tx002", text: "[fr] Two" },
+      { id: "tx003", text: "[fr] Three" },
+      { id: "tx004", text: "[fr] Four" },
+    ])
+  })
 })

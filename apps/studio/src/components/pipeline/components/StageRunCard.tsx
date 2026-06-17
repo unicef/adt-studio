@@ -49,6 +49,7 @@ const HOVER_BG_BY_COLOR: Record<string, string> = {
   "bg-orange-600": "hover:bg-orange-600",
   "bg-teal-600": "hover:bg-teal-600",
   "bg-lime-600": "hover:bg-lime-600",
+  "bg-cyan-600": "hover:bg-cyan-600",
   "bg-pink-600": "hover:bg-pink-600",
   "bg-rose-600": "hover:bg-rose-600",
   "bg-amber-600": "hover:bg-amber-600",
@@ -83,6 +84,18 @@ export function StageRunCard({
       : cn("bg-gray-200 text-gray-700", hoverColorClass, "hover:text-white")
 
   const stageLabel = getStageLabelI18n(stageSlug)
+  const activeProgress = subSteps
+    .map(({ key }) => {
+      const progress = stepProgress(key)
+      const hasPages = progress?.page != null && progress?.totalPages != null && progress.totalPages > 0
+      const numericProgressLabel = hasPages ? `${progress.page}/${progress.totalPages}` : null
+      const progressLabel = progress?.message?.trim() || numericProgressLabel
+      const state = stepState(key)
+      return progressLabel && state === "running"
+        ? { key, stepLabel: getStepLabelI18n(key), progressLabel }
+        : null
+    })
+    .find((item) => item !== null)
 
   return (
     <Card className={cn("overflow-hidden max-w-xl shadow-none", borderColor)}>
@@ -114,15 +127,28 @@ export function StageRunCard({
               const errorMsg = stepError(key)
               const isDone = state === "done"
               const isSkipped = state === "skipped"
-              const isSubRunning = state === "running"
               const isError = state === "error"
-              const hasPages = isSubRunning && progress?.page != null && progress?.totalPages != null && progress.totalPages > 0
+              const hasPages = progress?.page != null && progress?.totalPages != null && progress.totalPages > 0
+              const numericProgressLabel = hasPages ? `${progress.page}/${progress.totalPages}` : null
+              const messageProgressLabel = progress?.message?.trim()
+              const progressLabel = messageProgressLabel || numericProgressLabel
+              const isSubRunning = state === "running"
+              const showInlineProgress = Boolean(
+                isSubRunning &&
+                progressLabel &&
+                (!messageProgressLabel || messageProgressLabel === numericProgressLabel)
+              )
+              const showDetailProgress = Boolean(
+                isSubRunning &&
+                progressLabel &&
+                !showInlineProgress
+              )
 
               return (
                 <div key={key}>
                   <div
                     className={cn(
-                      "flex items-center gap-2.5 text-xs whitespace-nowrap",
+                      "flex items-center gap-2.5 text-xs whitespace-nowrap min-w-0",
                       isDone
                         ? "text-muted-foreground"
                         : isSkipped
@@ -149,15 +175,20 @@ export function StageRunCard({
                     ) : (
                       <div className="w-4 h-4 rounded-full border border-current opacity-30 shrink-0" />
                     )}
-                    <span className={cn(isSkipped && "line-through decoration-muted-foreground/30")}>
+                    <span className={cn("min-w-0 truncate", isSkipped && "line-through decoration-muted-foreground/30")}>
                       {getStepLabelI18n(key)}
                     </span>
-                    {isSubRunning && hasPages && (
-                      <span className="text-muted-foreground tabular-nums">{progress?.page}/{progress?.totalPages}</span>
+                    {showInlineProgress && (
+                      <span className="text-muted-foreground tabular-nums shrink-0">{progressLabel}</span>
                     )}
                   </div>
+                  {showDetailProgress && (
+                    <p className="text-[10px] text-muted-foreground pl-6 truncate" title={progressLabel ?? undefined}>
+                      {progressLabel}
+                    </p>
+                  )}
                   {isError && errorMsg && (
-                    <p className="text-[10px] text-red-400 pl-6.5 truncate" title={errorMsg}>{errorMsg}</p>
+                    <p className="text-[10px] text-red-400 pl-6 truncate" title={errorMsg}>{errorMsg}</p>
                   )}
                 </div>
               )
@@ -204,14 +235,21 @@ export function StageRunCard({
 
         {/* Description */}
         {getStageDescriptionI18n(stageSlug) && (
-          <p
+          <div
             className={cn(
-              "min-w-0 text-xs text-muted-foreground leading-relaxed",
+              "min-w-0 text-xs leading-relaxed",
               showRunButton || hasSubSteps ? "flex-1" : "max-w-md text-center"
             )}
           >
-            {getStageDescriptionI18n(stageSlug)}
-          </p>
+            <p className="text-muted-foreground">
+              {getStageDescriptionI18n(stageSlug)}
+            </p>
+            {activeProgress && (
+              <p className="mt-1 font-medium text-foreground tabular-nums truncate" title={activeProgress.progressLabel}>
+                {activeProgress.stepLabel}: {activeProgress.progressLabel}
+              </p>
+            )}
+          </div>
         )}
       </CardContent>
 

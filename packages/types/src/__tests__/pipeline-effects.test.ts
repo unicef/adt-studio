@@ -10,7 +10,6 @@ describe("pipeline effects", () => {
   it("includes transitive downstream nodes in clear set", () => {
     expect(getStageClearNodes("quizzes")).toEqual([
       "quiz-generation",
-      "text-catalog",
       "catalog-translation",
       "image-translation",
       "text-catalog-translation",

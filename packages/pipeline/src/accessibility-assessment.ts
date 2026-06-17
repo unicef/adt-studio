@@ -28,6 +28,62 @@ export interface RunAccessibilityAssessmentOptions {
 
 const STEP = "accessibility-assessment" as const
 
+type JsdomWindowWithCanvas = {
+  HTMLCanvasElement?: {
+    prototype: object
+  }
+}
+
+function installCanvasStub(window: JsdomWindowWithCanvas): void {
+  const canvasPrototype = window.HTMLCanvasElement?.prototype
+  if (!canvasPrototype) return
+
+  Object.defineProperty(canvasPrototype, "getContext", {
+    configurable: true,
+    value: () => ({
+      canvas: null,
+      fillStyle: "#000000",
+      strokeStyle: "#000000",
+      font: "16px sans-serif",
+      globalAlpha: 1,
+      clearRect: () => {},
+      fillRect: () => {},
+      strokeRect: () => {},
+      beginPath: () => {},
+      closePath: () => {},
+      moveTo: () => {},
+      lineTo: () => {},
+      arc: () => {},
+      fill: () => {},
+      stroke: () => {},
+      save: () => {},
+      restore: () => {},
+      translate: () => {},
+      scale: () => {},
+      rotate: () => {},
+      setTransform: () => {},
+      transform: () => {},
+      rect: () => {},
+      clip: () => {},
+      drawImage: () => {},
+      fillText: () => {},
+      strokeText: () => {},
+      measureText: (text: string) => ({ width: text.length * 8 }),
+      createImageData: (width: number, height: number) => ({
+        data: new Uint8ClampedArray(width * height * 4),
+        width,
+        height,
+      }),
+      getImageData: (_x: number, _y: number, width: number, height: number) => ({
+        data: new Uint8ClampedArray(width * height * 4),
+        width,
+        height,
+      }),
+      putImageData: () => {},
+    }),
+  })
+}
+
 async function auditPackagedPage(
   adtDir: string,
   entry: PackagedPageManifestEntry,
@@ -76,6 +132,7 @@ async function auditPackagedPage(
     pretendToBeVisual: true,
     runScripts: "outside-only",
   })
+  installCanvasStub(dom.window)
 
   try {
     dom.window.eval(axeSource)

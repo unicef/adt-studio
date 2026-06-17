@@ -50,18 +50,17 @@ const translationSchema = z.object({
   translations: z.array(z.string()),
 })
 
-/**
- * Translate a single batch of catalog entries to a target language.
- * Returns the entries with same IDs and translated text.
- */
-export async function translateCatalogBatch(
+function isTranslationCountMismatchError(err: unknown): boolean {
+  const message = err instanceof Error ? err.message : String(err)
+  return /Expected \d+ translations but got \d+/i.test(message)
+}
+
+async function translateCatalogBatchOnce(
   entries: TextCatalogEntry[],
   targetLanguage: string,
   config: CatalogTranslationConfig,
   llmModel: LLMModel
 ): Promise<TextCatalogEntry[]> {
-  if (entries.length === 0) return []
-
   const texts = entries.map((e, i) => ({ index: i, text: e.text }))
   const normalizedTargetLanguage = normalizeLocale(targetLanguage)
 
@@ -101,4 +100,45 @@ export async function translateCatalogBatch(
     id: entry.id,
     text: result.object.translations[i],
   }))
+}
+
+/**
+ * Translate a single batch of catalog entries to a target language.
+ * Returns the entries with same IDs and translated text.
+ */
+export async function translateCatalogBatch(
+  entries: TextCatalogEntry[],
+  targetLanguage: string,
+  config: CatalogTranslationConfig,
+  llmModel: LLMModel
+): Promise<TextCatalogEntry[]> {
+  if (entries.length === 0) return []
+
+  try {
+    return await translateCatalogBatchOnce(
+      entries,
+      targetLanguage,
+      config,
+      llmModel
+    )
+  } catch (err) {
+    if (entries.length <= 1 || !isTranslationCountMismatchError(err)) {
+      throw err
+    }
+
+    const midpoint = Math.ceil(entries.length / 2)
+    const first = await translateCatalogBatch(
+      entries.slice(0, midpoint),
+      targetLanguage,
+      config,
+      llmModel
+    )
+    const second = await translateCatalogBatch(
+      entries.slice(midpoint),
+      targetLanguage,
+      config,
+      llmModel
+    )
+    return [...first, ...second]
+  }
 }

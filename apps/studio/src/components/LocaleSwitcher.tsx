@@ -18,6 +18,7 @@ const LOCALE_LABEL_MESSAGES: Record<AppLocale, MessageDescriptor> = {
   "pt-BR": msg`Portuguese (BR)`,
   es: msg`Spanish`,
   fr: msg`French`,
+  sq: msg`Albanian`,
 };
 
 function localeCode(loc: AppLocale): string {

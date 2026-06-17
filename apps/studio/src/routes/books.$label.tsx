@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button"
 import { DebugPanel } from "@/components/debug/DebugPanel"
 import { DebugPanelStateProvider, type DebugTabValue } from "@/components/debug/debug-panel-state"
 import { StageSidebar } from "@/components/pipeline/components/StageSidebar"
+import { FloatingSaveProvider } from "@/components/pipeline/components/floating-save"
+import { UnsavedChangesGuard } from "@/components/pipeline/components/UnsavedChangesGuard"
 import { useBookRunStatus, BookRunProvider } from "@/hooks/use-book-run"
 import { useExportWatcherSetup, ExportWatcherProvider } from "@/hooks/use-export-watcher"
 import { usePlatform } from "@/hooks/use-platform"
@@ -134,70 +136,73 @@ function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boole
 
   return (
     <DebugPanelStateProvider value={debugPanelState}>
-      <SectionNavCtx.Provider value={sectionNav}>
-        <div className="flex min-h-0 flex-1 flex-col">
-          <div className="flex min-h-0 flex-1">
-            <div className="relative w-[280px] shrink-0">
-              <div className="absolute inset-y-0 left-0 z-30 flex w-full flex-col overflow-hidden bg-background">
-                <div
-                  className="flex h-10 shrink-0 items-center border-r border-gray-700 bg-gray-700 text-white drag-region"
-                >
-                  {showMacOSSpacer && <MacOSTrafficLightSpacer />}
-                  <Link
-                    to="/"
-                    className="w-full flex h-full min-w-0 items-center gap-2.5 px-4 transition-colors hover:bg-gray-800"
-                    title="Back to books"
+      <FloatingSaveProvider>
+        <UnsavedChangesGuard />
+        <SectionNavCtx.Provider value={sectionNav}>
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex min-h-0 flex-1">
+              <div className="relative w-[280px] shrink-0">
+                <div className="absolute inset-y-0 left-0 z-30 flex w-full flex-col overflow-hidden bg-background">
+                  <div
+                    className="flex h-10 shrink-0 items-center border-r border-gray-700 bg-gray-700 text-white drag-region"
                   >
-                    <Home className="h-4 w-4 shrink-0" />
-                    <span className="truncate text-sm font-semibold">
-                      ADT Studio
-                    </span>
-                  </Link>
-                  <div className="flex-1 h-full" />
-                </div>
+                    {showMacOSSpacer && <MacOSTrafficLightSpacer />}
+                    <Link
+                      to="/"
+                      className="w-full flex h-full min-w-0 items-center gap-2.5 px-4 transition-colors hover:bg-gray-800"
+                      title="Back to books"
+                    >
+                      <Home className="h-4 w-4 shrink-0" />
+                      <span className="truncate text-sm font-semibold">
+                        ADT Studio
+                      </span>
+                    </Link>
+                    <div className="flex-1 h-full" />
+                  </div>
 
-                <div className="flex min-h-0 flex-1 flex-col border-r border-gray-300">
-                  <StageSidebar
-                    bookLabel={label}
-                    activeStep={activeStep}
-                    selectedPageId={pageId}
-                    onSelectPage={onSelectPage}
-                    sectionIndex={activeStep === "sectioning" ? undefined : sectionIndex}
-                    onSelectSection={activeStep === "sectioning" ? undefined : setSectionIndex}
-                  />
+                  <div className="flex min-h-0 flex-1 flex-col border-r border-gray-300">
+                    <StageSidebar
+                      bookLabel={label}
+                      activeStep={activeStep}
+                      selectedPageId={pageId}
+                      onSelectPage={onSelectPage}
+                      sectionIndex={activeStep === "sectioning" ? undefined : sectionIndex}
+                      onSelectSection={activeStep === "sectioning" ? undefined : setSectionIndex}
+                    />
+                  </div>
                 </div>
+              </div>
+
+              <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+                <ExportWatcherProvider value={exportWatcher}>
+                  <Outlet />
+                </ExportWatcherProvider>
               </div>
             </div>
 
-            <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-              <ExportWatcherProvider value={exportWatcher}>
-                <Outlet />
-              </ExportWatcherProvider>
-            </div>
+            {debugOpen && !isDebugRoute && (
+              <DebugPanel
+                label={label}
+                isRunning={isRunning}
+                defaultTab={debugDefaultTab}
+                onClose={() => setDebugOpen(false)}
+              />
+            )}
           </div>
 
-          {debugOpen && !isDebugRoute && (
-            <DebugPanel
-              label={label}
-              isRunning={isRunning}
-              defaultTab={debugDefaultTab}
-              onClose={() => setDebugOpen(false)}
-            />
+          {!debugOpen && !isDebugRoute && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="fixed bottom-16 right-4 z-50 h-8 w-8 rounded-full shadow-md opacity-60 hover:opacity-100"
+              onClick={() => openDebugPanel()}
+              title="Debug Panel (Cmd+Shift+D)"
+            >
+              <Terminal className="h-4 w-4" />
+            </Button>
           )}
-        </div>
-
-        {!debugOpen && !isDebugRoute && (
-          <Button
-            variant="outline"
-            size="icon"
-            className="fixed bottom-16 right-4 z-50 h-8 w-8 rounded-full shadow-md opacity-60 hover:opacity-100"
-            onClick={() => openDebugPanel()}
-            title="Debug Panel (Cmd+Shift+D)"
-          >
-            <Terminal className="h-4 w-4" />
-          </Button>
-        )}
-      </SectionNavCtx.Provider>
+        </SectionNavCtx.Provider>
+      </FloatingSaveProvider>
     </DebugPanelStateProvider>
   )
 }

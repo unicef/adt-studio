@@ -40,13 +40,19 @@ vi.mock("@/components/pipeline/stage-config", async () => {
         color: "bg-emerald-600",
       },
       {
+        slug: "easy-read",
+        label: "Easy Read",
+        icon: () => React.createElement("svg", { "data-testid": "easy-read-icon" }),
+        color: "bg-cyan-600",
+      },
+      {
         slug: "preview",
         label: "Preview",
         icon: () => React.createElement("svg", { "data-testid": "preview-icon" }),
         color: "bg-gray-600",
       },
     ],
-    isStageSlug: (slug: string) => slug === "validation" || slug === "preview",
+    isStageSlug: (slug: string) => slug === "validation" || slug === "easy-read" || slug === "preview",
   }
 })
 
@@ -65,6 +71,7 @@ vi.mock("@/components/pipeline/stages/storyboard/StoryboardSettings", () => ({ S
 vi.mock("@/components/pipeline/stages/quizzes/QuizzesSettings", () => ({ QuizzesSettings: () => <div>quizzes-settings</div> }))
 vi.mock("@/components/pipeline/stages/glossary/GlossarySettings", () => ({ GlossarySettings: () => <div>glossary-settings</div> }))
 vi.mock("@/components/pipeline/stages/toc/TocSettings", () => ({ TocSettings: () => <div>toc-settings</div> }))
+vi.mock("@/components/pipeline/stages/easy-read/EasyReadSettings", () => ({ EasyReadSettings: () => <div>easy-read-settings</div> }))
 vi.mock("@/components/pipeline/stages/captions/CaptionsSettings", () => ({ CaptionsSettings: () => <div>captions-settings</div> }))
 vi.mock("@/components/pipeline/stages/languages/LanguageSettings", () => ({ LanguageSettings: () => <div>language-settings</div> }))
 vi.mock("@/components/pipeline/stages/speech/SpeechSettings", () => ({ SpeechSettings: () => <div>speech-settings</div> }))
@@ -108,6 +115,16 @@ describe("books.$label.$step.settings route", () => {
     expect(validationSettingsMock).toHaveBeenCalledWith(
       expect.objectContaining({ bookLabel: "demo-book", tab: "reviewer-checklist" }),
     )
+  })
+
+  it("renders Easy Read settings", async () => {
+    useParamsMock.mockReturnValue({ label: "demo-book", step: "easy-read" })
+    useSearchMock.mockReturnValue({ tab: "general" })
+
+    const { StepSettingsPage } = await import("./books.$label.$step.settings")
+    render(<StepSettingsPage />)
+
+    expect(screen.getByText("easy-read-settings")).toBeTruthy()
   })
 
   it("shows the unavailable message for non-settings stages", async () => {

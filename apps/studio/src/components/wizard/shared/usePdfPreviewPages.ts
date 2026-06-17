@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { getPdfJs } from "@/components/wizard/shared/pdfjsLoader"
+import { getPdfJs, PDF_WASM_OPTIONS } from "@/components/wizard/shared/pdfjsLoader"
 
 const JPEG_QUALITY = 0.92
 const MAX_CACHE_ENTRIES = 12
@@ -72,8 +72,8 @@ export function usePdfPreviewPages(params: UsePdfPreviewPagesParams) {
     ;(async () => {
       try {
         const documentSource = file
-          ? { url: (objectUrl = URL.createObjectURL(file)) }
-          : { url: src as string }
+          ? { url: (objectUrl = URL.createObjectURL(file)), ...PDF_WASM_OPTIONS }
+          : { url: src as string, ...PDF_WASM_OPTIONS }
 
         const pdfjs = await getPdfJs()
         if (cancelled) return

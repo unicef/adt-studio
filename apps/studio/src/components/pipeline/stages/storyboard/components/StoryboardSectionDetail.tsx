@@ -2,8 +2,6 @@ import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } fro
 import { createPortal } from "react-dom"
 import {
   Boxes,
-  Check,
-  ChevronDown,
   Code,
   Eye,
   EyeOff,
@@ -18,14 +16,14 @@ import {
   PanelRightOpen,
   PenLine,
   Play,
-  Save,
   Sparkles,
   Type,
   X,
 } from "lucide-react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, BASE_URL } from "@/api/client"
-import type { PageDetail, VersionEntry } from "@/api/client"
+import type { PageDetail } from "@/api/client"
+import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
 import type {
   ContentNodeData,
   PageSectioningOutput,
@@ -51,6 +49,7 @@ import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
 import { useStepHeader } from "../../../components/StepViewRouter"
 import { LoadingState } from "../../../components/LoadingState"
 import { StageEmptyState } from "../../../components/StageEmptyState"
+import { useFloatingSave, PendingChip } from "../../../components/floating-save"
 import {
   BookPreviewFrame,
   type BookPreviewFrameHandle,
@@ -118,141 +117,6 @@ const AI_MESSAGE_DESCRIPTORS = [
 
 function getAiMessages() {
   return AI_MESSAGE_DESCRIPTORS.map((d) => i18n._(d))
-}
-
-// -- VersionPicker (same as ExtractPageDetail) --
-
-function VersionPicker({
-  currentVersion,
-  saving,
-  dirty,
-  bookLabel,
-  node,
-  itemId,
-  onPreview,
-  onSave,
-  onDiscard,
-  inline,
-}: {
-  currentVersion: number | null
-  saving: boolean
-  dirty: boolean
-  bookLabel: string
-  node: string
-  itemId: string
-  onPreview: (data: unknown) => void
-  onSave?: () => void
-  onDiscard: () => void
-  /** When true, removes ml-auto so the picker sits inline */
-  inline?: boolean
-}) {
-  const { t } = useLingui()
-  const [open, setOpen] = useState(false)
-  const [versions, setVersions] = useState<VersionEntry[] | null>(null)
-  const [loading, setLoading] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const handleClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener("mousedown", handleClick)
-    return () => document.removeEventListener("mousedown", handleClick)
-  }, [open])
-
-  const handleOpen = async () => {
-    if (saving || currentVersion == null) return
-    setOpen(true)
-    setLoading(true)
-    const res = await api.getVersionHistory(bookLabel, node, itemId, true)
-    setVersions(res.versions)
-    setLoading(false)
-  }
-
-  const handlePick = (v: VersionEntry) => {
-    if (v.version === currentVersion && !dirty) {
-      setOpen(false)
-      return
-    }
-    setOpen(false)
-    onPreview(v.data)
-  }
-
-  if (saving) {
-    return <Loader2 className={`h-3 w-3 animate-spin ${inline ? "text-white/60" : "ml-auto"}`} />
-  }
-
-  if (currentVersion == null) return null
-
-  if (dirty) {
-    return (
-      <div className={`flex items-center gap-1.5 ${inline ? "" : "ml-auto"}`}>
-        <button
-          type="button"
-          onClick={onDiscard}
-          className={`text-[10px] font-medium rounded px-2 py-0.5 cursor-pointer transition-colors ${
-            inline
-              ? "bg-white/15 hover:bg-white/25 text-white"
-              : "bg-muted hover:bg-accent hover:text-accent-foreground"
-          }`}
-        >
-          {t`Discard`}
-        </button>
-        {onSave && (
-          <button
-            type="button"
-            onClick={onSave}
-            className="flex items-center gap-1 text-[10px] font-medium rounded px-2 py-0.5 bg-green-600 hover:bg-green-500 text-white cursor-pointer transition-colors"
-          >
-            <Check className="h-3 w-3" />
-            {t`Save`}
-          </button>
-        )}
-      </div>
-    )
-  }
-
-  return (
-    <div ref={ref} className={`relative ${inline ? "" : "ml-auto"}`}>
-      <button
-        type="button"
-        onClick={handleOpen}
-        className={`flex items-center gap-0.5 text-[10px] font-normal normal-case tracking-normal rounded px-1.5 py-0.5 transition-colors ${
-          inline
-            ? "bg-white/15 hover:bg-white/25 text-white"
-            : "bg-muted hover:bg-muted/80"
-        }`}
-      >
-        v{currentVersion}
-        <ChevronDown className="h-2.5 w-2.5" />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-1 z-20 bg-popover border rounded shadow-md min-w-[80px] py-1">
-          {loading ? (
-            <div className="flex items-center justify-center py-2 px-3">
-              <Loader2 className="h-3 w-3 animate-spin" />
-            </div>
-          ) : versions && versions.length > 0 ? (
-            versions.map((v) => (
-              <button
-                key={v.version}
-                type="button"
-                onClick={() => handlePick(v)}
-                className={`w-full text-left px-3 py-1 text-xs hover:bg-accent transition-colors ${
-                  v.version === currentVersion ? "font-semibold text-foreground" : "text-muted-foreground"
-                }`}
-              >
-                v{v.version}
-              </button>
-            ))
-          ) : (
-            <div className="px-3 py-1 text-xs text-muted-foreground">{t`No versions`}</div>
-          )}
-        </div>
-      )}
-    </div>
-  )
 }
 
 // -- Types --
@@ -898,6 +762,50 @@ export function StoryboardSectionDetail({
       setSaving(false)
     }
   }
+
+  // Register combined pending state (sectioning + rendering + inspector edits)
+  // with the shared floating save bar. Category chips carry over as the label.
+  const pendingChipCats = (() => {
+    const active = new Set(pendingCategories)
+    if (dirty) active.add("sections")
+    const ordered: PendingCategory[] = ["sections", "style", "text", "images", "elements"]
+    return ordered.filter((c) => active.has(c))
+  })()
+  const pendingChipLabels: Record<PendingCategory, string> = {
+    sections: t`Sections`,
+    style: t`Style`,
+    text: t`Text`,
+    images: t`Images`,
+    elements: t`Elements`,
+  }
+  const pendingChipIcons: Record<PendingCategory, typeof Layers> = {
+    sections: Layers,
+    style: Palette,
+    text: Type,
+    images: ImageIcon,
+    elements: Boxes,
+  }
+  useFloatingSave({
+    id: `storyboard:${pageId}`,
+    dirty: dirty || renderingDirty,
+    saving,
+    labelKey: pendingChipCats.join(","),
+    label:
+      pendingChipCats.length > 0 ? (
+        <div className="flex items-center gap-1">
+          {pendingChipCats.map((cat) => (
+            <PendingChip key={cat} icon={pendingChipIcons[cat]}>
+              {pendingChipLabels[cat]}
+            </PendingChip>
+          ))}
+        </div>
+      ) : undefined,
+    onSave: () => {
+      if (renderingDirty) void saveRendering()
+      else if (pendingSectioning) void saveSectioning()
+    },
+    onDiscard: discardAll,
+  })
 
   // Clone current section
   const handleCloneSection = async () => {
@@ -1979,16 +1887,16 @@ export function StoryboardSectionDetail({
         )}
       </button>
       <VersionPicker
+        step="web-rendering"
+        itemId={pageId}
         currentVersion={page.versions.rendering}
         saving={saving}
         dirty={renderingDirty}
         bookLabel={bookLabel}
-        node="web-rendering"
-        itemId={pageId}
-        inline
         onPreview={(data) => setPendingRendering(data as RenderingData)}
         onSave={saveRendering}
         onDiscard={discardAll}
+        renderSaveBar={false}
       />
       <ViewportToggle
         value={deviceView}
@@ -2333,87 +2241,6 @@ export function StoryboardSectionDetail({
         </div>
       )}
 
-      {/* Floating save/discard bar */}
-      {(dirty || renderingDirty) && !saving && (() => {
-        const labels: Record<PendingCategory, string> = {
-          sections: t`Sections`,
-          style: t`Style`,
-          text: t`Text`,
-          images: t`Images`,
-          elements: t`Elements`,
-        }
-        const icons: Record<PendingCategory, typeof Layers> = {
-          sections: Layers,
-          style: Palette,
-          text: Type,
-          images: ImageIcon,
-          elements: Boxes,
-        }
-        const active = new Set(pendingCategories)
-        if (dirty) active.add("sections")
-        const orderedCategories: PendingCategory[] = ["sections", "style", "text", "images", "elements"]
-        const visible = orderedCategories.filter((c) => active.has(c))
-
-        return (
-          <div className="absolute bottom-4 left-1/2 z-40 -translate-x-1/2 animate-in slide-in-from-bottom-4 fade-in zoom-in-95 duration-300 ease-out">
-            <div className="flex items-center gap-3 rounded-md border border-border/60 bg-background/95 backdrop-blur px-2 py-1.5 shadow-xl shadow-black/5 transition-all duration-200">
-              {/* Status indicator + chips */}
-              <div className="flex items-center gap-2 pl-2">
-                <span className="relative inline-flex h-2 w-2 shrink-0" aria-hidden>
-                  <span className="absolute inset-0 rounded-full bg-amber-500/40 animate-ping" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
-                </span>
-                {visible.length > 0 ? (
-                  <div className="flex items-center gap-1">
-                    {visible.map((cat) => {
-                      const Icon = icons[cat]
-                      return (
-                        <span
-                          key={cat}
-                          className="adt-pill-chip inline-flex items-center gap-1 rounded bg-muted/70 px-2 py-0.5 text-[11px] font-medium text-foreground overflow-hidden whitespace-nowrap"
-                        >
-                          <Icon className="h-3 w-3 text-muted-foreground" />
-                          {labels[cat]}
-                        </span>
-                      )
-                    })}
-                  </div>
-                ) : (
-                  <span className="text-[11px] font-medium text-foreground">
-                    {t`Unsaved changes`}
-                  </span>
-                )}
-              </div>
-
-              {/* Divider */}
-              <div className="h-5 w-px bg-border/80" aria-hidden />
-
-              {/* Actions */}
-              <div className="flex items-center gap-1 pr-1">
-                <button
-                  type="button"
-                  onClick={discardAll}
-                  className="inline-flex items-center gap-1.5 rounded px-3 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
-                >
-                  <X className="h-3 w-3" />
-                  {t`Discard`}
-                </button>
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (renderingDirty) await saveRendering()
-                    else if (pendingSectioning) await saveSectioning()
-                  }}
-                  className="inline-flex items-center gap-1.5 rounded px-3 py-1 text-[11px] font-medium bg-green-600 hover:bg-green-500 text-white shadow-sm shadow-green-600/20 transition-colors cursor-pointer"
-                >
-                  <Save className="h-3 w-3" />
-                  {t`Save`}
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      })()}
 
 
       {/* Slide-out section data panel */}
@@ -2447,12 +2274,12 @@ export function StoryboardSectionDetail({
         onUpdateAnswer={updateAnswer}
         versionPickerNode={
           <VersionPicker
+            step="page-sectioning"
+            itemId={pageId}
             currentVersion={page.versions.sectioning}
             saving={saving}
             dirty={dirty}
             bookLabel={bookLabel}
-            node="page-sectioning"
-            itemId={pageId}
             onPreview={(data) => {
               const s = data as SectioningData
               setPendingSectioning(s)
@@ -2462,6 +2289,7 @@ export function StoryboardSectionDetail({
             }}
             onSave={saveSectioning}
             onDiscard={discardAll}
+            renderSaveBar={false}
           />
         }
         merging={merging}

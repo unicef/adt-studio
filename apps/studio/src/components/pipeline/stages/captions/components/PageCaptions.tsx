@@ -7,7 +7,8 @@ import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
 import { StageEmptyState } from "../../../components/StageEmptyState"
 import { useLingui } from "@lingui/react/macro"
 import { CaptionCard } from "./CaptionCard"
-import { VersionPicker } from "./VersionPicker"
+import { VersionPicker } from "../../../components/VersionPicker"
+import { PendingChip } from "../../../components/floating-save"
 import { Lightbox } from "./Lightbox"
 import { matchesDecorativeFilter, matchesSearch, buildImageSectionMap } from "../lib/utils"
 import type {
@@ -45,18 +46,23 @@ export function PageCaptions({
   const { data: page } = usePage(bookLabel, pageId)
   const { data: pageImage } = usePageImage(bookLabel, pageId)
 
+  // `pending` = manually staged changes awaiting an explicit save (drives the
+  // floating bar). `optimistic` = the in-flight result of an auto-save, shown
+  // immediately without a bar and held until the refetch lands (no flicker).
   const [pending, setPending] = useState<CaptioningData | null>(null)
+  const [optimistic, setOptimistic] = useState<CaptioningData | null>(null)
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState<CaptionEdit | null>(null)
   const [lightbox, setLightbox] = useState<{ imageIds: string[]; index: number } | null>(null)
 
   useEffect(() => {
     setPending(null)
+    setOptimistic(null)
     setEditing(null)
     setLightbox(null)
   }, [page?.versions.imageCaptioning])
 
-  const effective = pending ?? page?.imageCaptioning
+  const effective = pending ?? optimistic ?? page?.imageCaptioning
   const captions = effective?.captions ?? []
   const dirty = pending != null
 
@@ -104,6 +110,31 @@ export function PageCaptions({
   if (!page?.imageCaptioning || captions.length === 0) return emptyState ?? null
   if (visibleCaptions.length === 0) return emptyState ?? null
 
+  const refreshAfterSave = async () => {
+    await queryClient.invalidateQueries({
+      queryKey: ["books", bookLabel, "pages", pageId],
+    })
+    invalidateStoryboardDependents(queryClient, bookLabel)
+  }
+
+
+  const saveCaptions = async (data?: CaptioningData) => {
+    const next = data ?? pending
+    if (!next) return
+    setSaving(true)
+    setPending(next)
+    const minDelay = new Promise((r) => setTimeout(r, 400))
+    try {
+      await api.updateImageCaptioning(bookLabel, pageId, next)
+      await refreshAfterSave()
+    } finally {
+      await minDelay
+      setPending(null)
+      setEditing(null)
+      setSaving(false)
+    }
+  }
+
   const applyCaption = (imageId: string, newCaption: string) => {
     const base = pending ?? page.imageCaptioning
     if (!base) return
@@ -115,20 +146,53 @@ export function PageCaptions({
     })
   }
 
-  const toggleDecorative = (imageId: string) => {
-    const base = pending ?? page.imageCaptioning
+  // Persist a single image's field change immediately, with no floating bar.
+  // The change is shown via the optimistic overlay and held until the refetch
+  // lands, so the card never flickers to the old state.
+  const persistCaption = (
+    imageId: string,
+    patch: Partial<CaptioningData["captions"][number]>,
+  ) => {
+    const base = optimistic ?? pending ?? page.imageCaptioning
     if (!base) return
-    setPending({
+    const next: CaptioningData = {
       ...base,
       captions: base.captions.map((c) =>
-        c.imageId === imageId ? { ...c, decorative: !c.decorative, source: "manual" } : c,
+        c.imageId === imageId ? { ...c, ...patch, source: "manual" } : c,
       ),
-    })
+    }
+    setOptimistic(next)
+    void (async () => {
+      try {
+        await api.updateImageCaptioning(bookLabel, pageId, next)
+        await refreshAfterSave()
+      } catch {
+        setOptimistic(null)
+      }
+    })()
+  }
+
+
+  const toggleDecorative = (imageId: string) => {
+    const current = (optimistic ?? pending ?? page.imageCaptioning)?.captions.find(
+      (c) => c.imageId === imageId,
+    )
+    if (!current) return
+    persistCaption(imageId, { decorative: !current.decorative })
+  }
+
+
+  const commitCaptionEdit = (imageId: string, draft: string) => {
+    const current = (optimistic ?? pending ?? page.imageCaptioning)?.captions.find(
+      (c) => c.imageId === imageId,
+    )
+    if (!current || current.caption === draft) return
+    persistCaption(imageId, { caption: draft })
   }
 
   const handleStartEdit = (cap: CaptionEntry) => {
     if (editing && editing.imageId !== cap.imageId) {
-      applyCaption(editing.imageId, editing.draft)
+      commitCaptionEdit(editing.imageId, editing.draft)
     }
     setEditing({ imageId: cap.imageId, draft: cap.caption })
   }
@@ -139,25 +203,12 @@ export function PageCaptions({
 
   const handleCommitEdit = () => {
     if (!editing) return
-    applyCaption(editing.imageId, editing.draft)
+    commitCaptionEdit(editing.imageId, editing.draft)
     setEditing(null)
   }
 
   const handleCancelEdit = () => {
     setEditing(null)
-  }
-
-  const saveCaptions = async () => {
-    if (!pending) return
-    setSaving(true)
-    const minDelay = new Promise((r) => setTimeout(r, 400))
-    await api.updateImageCaptioning(bookLabel, pageId, pending)
-    setPending(null)
-    setEditing(null)
-    await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
-    invalidateStoryboardDependents(queryClient, bookLabel)
-    await minDelay
-    setSaving(false)
   }
 
   const handlePreview = (data: unknown) => {
@@ -256,11 +307,18 @@ export function PageCaptions({
           </div>
           <div className="ml-auto">
             <VersionPicker
+              step="image-captioning"
               currentVersion={page.versions.imageCaptioning}
               saving={saving}
               dirty={dirty}
               bookLabel={bookLabel}
               itemId={pageId}
+              pendingLabel={
+                <PendingChip icon={ImageIcon}>
+                  {t`Page ${String(pageNumber)} captions`}
+                </PendingChip>
+              }
+              pendingLabelKey={`captions:${pageNumber}`}
               onPreview={handlePreview}
               onSave={saveCaptions}
               onDiscard={() => setPending(null)}

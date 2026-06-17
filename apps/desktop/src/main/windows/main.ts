@@ -1,8 +1,11 @@
-import { shell, BrowserWindow, dialog } from "electron";
+import { app, shell, BrowserWindow, dialog } from "electron";
 import { join } from "path";
 import { is } from "@electron-toolkit/utils";
-import icon from "../../../resources/icon.png?asset";
+import icon from "../../../build/icon.png?asset";
+import betaIcon from "../../../build/beta-icons/icon.png?asset";
 import { STUDIO_APP_ORIGIN } from "../protocols/studio-app";
+
+const appIcon = app.getVersion().includes("-beta") ? betaIcon : icon;
 
 function platformWindowOptions(): Partial<Electron.BrowserWindowConstructorOptions> {
   switch (process.platform) {
@@ -28,9 +31,9 @@ export function createMainWindow(): BrowserWindow {
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
-    backgroundColor: "#374151", // match the gray-700 top bar to avoid a white flash
+    backgroundColor: "#fff",
     ...platformWindowOptions(),
-    ...(process.platform === "linux" ? { icon } : {}),
+    ...(process.platform === "linux" ? { icon: appIcon } : {}),
     webPreferences: {
       preload: join(__dirname, "../preload/index.js"),
       sandbox: false,

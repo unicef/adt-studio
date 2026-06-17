@@ -388,10 +388,28 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
   }
 }
 
-/** Clear caption + downstream translate/speech data when images change. */
+/** Clear storyboard-dependent data when page text, rendering, or images change. */
 function clearCaptionData(storage: Storage): void {
-  storage.clearNodesByType(["image-captioning", "text-catalog", "text-catalog-translation", "tts", "tts-timestamps"])
-  storage.clearStepRuns(["image-captioning", "text-catalog", "catalog-translation", "tts"])
+  storage.clearNodesByType([
+    "image-captioning",
+    "text-catalog",
+    "easy-read",
+    "text-catalog-translation",
+    "tts",
+    "tts-timestamps",
+    "accessibility-assessment",
+  ])
+  storage.clearStepRuns([
+    "image-captioning",
+    "text-catalog",
+    "easy-read",
+    "catalog-translation",
+    "image-translation",
+    "tts",
+    "word-timestamps",
+    "package-web",
+    "accessibility-assessment",
+  ])
 }
 
 /**
@@ -1048,9 +1066,23 @@ export function createPageRoutes(
       }
 
       const version = storage.putNodeData("image-captioning", pageId, parsed.data)
-      // Caption change cascades to text-catalog/translations/TTS
-      storage.clearNodesByType(["text-catalog", "text-catalog-translation", "tts", "tts-timestamps"])
-      storage.clearStepRuns(["text-catalog", "catalog-translation", "tts"])
+      // Caption change cascades to text-catalog, translations, TTS, and package output.
+      storage.clearNodesByType([
+        "text-catalog",
+        "text-catalog-translation",
+        "tts",
+        "tts-timestamps",
+        "accessibility-assessment",
+      ])
+      storage.clearStepRuns([
+        "text-catalog",
+        "catalog-translation",
+        "image-translation",
+        "tts",
+        "word-timestamps",
+        "package-web",
+        "accessibility-assessment",
+      ])
       return c.json({ version })
     } finally {
       storage.close()

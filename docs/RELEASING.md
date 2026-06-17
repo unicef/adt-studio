@@ -166,15 +166,35 @@ Runs only after `desktop` and `docker` both succeed. It:
 
 ---
 
+## Side-by-side installs (desktop)
+
+Beta and stable are **distinct products** and can be installed at the same time
+without overwriting each other. The identity is keyed off the `-beta` in the
+version (see [`apps/desktop/electron-builder.js`](../apps/desktop/electron-builder.js)):
+
+| | Stable | Beta |
+|---|--------|------|
+| `appId` | `com.nees.adt-studio` | `com.nees.adt-studio.beta` |
+| `productName` | `ADT-Studio` | `ADT-Studio-Beta` |
+| Install dir / shortcut / uninstall entry | separate | separate |
+| `userData` (books, config, cache) | separate | separate |
+
+Because the install location, Start Menu shortcut, Windows uninstall key, and
+the Electron `userData` directory all derive from `appId` / `productName`, the
+two builds never collide. The main process sets a matching `AppUserModelId` per
+channel ([`src/main/index.ts`](../apps/desktop/src/main/index.ts)) so taskbar
+grouping and notifications stay separate too.
+
 ## Auto-updates (desktop)
 
 The desktop app follows the **release channel that matches the build it is
-running**, so testers and end users stay on their respective tracks:
+running**, and each track is closed — a build never crosses over to the other
+channel:
 
 | Installed build | Update channel | Sees |
 |-----------------|----------------|------|
 | Stable (`vX.Y.Z`) | `latest` | Stable releases only |
-| Beta (`vX.Y.Z-beta.N`) | `beta` | Beta releases (and newer stable, per electron-builder's cumulative channel model) |
+| Beta (`vX.Y.Z-beta.N`) | `beta` | Beta releases only |
 
 This is configured in
 [`apps/desktop/src/main/services/auto-updater.ts`](../apps/desktop/src/main/services/auto-updater.ts):
@@ -182,14 +202,19 @@ the updater enables prereleases and selects the `beta` channel **only** when the
 running version is itself a beta; stable installs use the `latest` channel and
 ignore prereleases.
 
-> **Note on the beta channel.** Per electron-builder's
-> [channel model](https://www.electron.build/tutorials/release-using-channels.html),
-> the `beta` channel is cumulative: a beta install also receives newer **stable**
-> releases. This is intentional — a tester is never stranded on an old beta and
-> graduates to the stable build automatically. A stable install, however, never
-> receives betas.
+> **Beta stays beta.** A beta install must never auto-update onto a stable
+> build — doing so would silently graduate a beta into a stable install (and,
+> with separate identities, would orphan its data). Two safeguards enforce this:
+> 1. **Manifest level** — `generateUpdatesFilesForAllChannels` is **off**, so a
+>    stable release only writes `latest.yml` and never overwrites `beta.yml`.
+>    Beta installs reading `beta.yml` therefore only ever see newer betas.
+> 2. **Runtime level** — the updater rejects any non-beta version offered to a
+>    beta build, as defense-in-depth.
+>
+> To move a tester from beta to stable, install the stable build separately
+> (they coexist) and uninstall the beta if desired.
 
-The Docker distribution has no equivalent cumulative channel: users pin an
+The Docker distribution has no equivalent channel crossover: users pin an
 explicit image tag, and only `:latest` moves with stable releases.
 
 ---

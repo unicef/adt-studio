@@ -19,6 +19,7 @@ import type {
   BookSummaryOutput,
   TextCatalogOutput,
   TextCatalogEntry,
+  EasyReadOutput,
   SpeechFileEntry,
   TTSOutput,
   WebRenderingOutput,
@@ -42,6 +43,7 @@ import { generateGlossary, buildGlossaryConfig } from "./glossary.js"
 import { generateToc, buildTocGenerationConfig } from "./toc-generation.js"
 import { generateAllQuizzes, buildQuizGenerationConfig, type QuizPageInput } from "./quiz-generation.js"
 import { buildTextCatalog } from "./text-catalog.js"
+import { buildEasyReadConfig, buildEasyReadSourceBlocks, createEmptyEasyReadOutput, generateEasyRead, flattenEasyReadEntries, isDeterministicEmptyEasyReadOutput } from "./easy-read.js"
 import { translateCatalogBatch, buildCatalogTranslationConfig, getTargetLanguages } from "./catalog-translation.js"
 import { getBaseLanguage, normalizeLocale } from "./language-context.js"
 import {
@@ -177,7 +179,6 @@ export async function runFullPipeline(
 
     // Build all step configs upfront
     const metadataConfig = buildMetadataConfig(config)
-    const bookSummaryConfig = buildBookSummaryConfig(config)
     const pageSectioningConfig = buildPageSectioningConfig(config)
     const imageClassifyConfig = buildImageClassifyConfig(config)
     const meaningfulnessConfig = buildMeaningfulnessConfig(config)
@@ -227,6 +228,9 @@ export async function runFullPipeline(
         pageNumber: page.pageNumber,
         text: page.text,
       }))
+      // Resolve the language from the metadata step (book-summary depends on it)
+      // so the summary is written in the book's actual language, not English.
+      const bookSummaryConfig = buildBookSummaryConfig(config, getLanguage(storage, config))
       const model = getModel(bookSummaryConfig.modelId)
       const result = await generateBookSummary(summaryPages, bookSummaryConfig, model)
       storage.putNodeData("book-summary", "book", result)
@@ -714,6 +718,40 @@ export async function runFullPipeline(
       storage.putNodeData("text-catalog", "book", catalog)
     })
 
+    executors.set("easy-read", async (p) => {
+      const easyReadConfig = buildEasyReadConfig(config, getLanguage(storage, config))
+      if (!easyReadConfig.enabled) return
+      const pages = storage.getPages()
+      const blocks = buildEasyReadSourceBlocks(storage, pages)
+      if (blocks.length === 0) {
+        const existingEasyRead = storage.getLatestNodeData("easy-read", "book")?.data
+        if (!isDeterministicEmptyEasyReadOutput(existingEasyRead)) {
+          storage.putNodeData("easy-read", "book", createEmptyEasyReadOutput())
+        }
+        return
+      }
+      const model = getModel(easyReadConfig.modelId)
+      const totalEntries = blocks.reduce((sum, block) => sum + block.entries.length, 0)
+      const output = await generateEasyRead(blocks, easyReadConfig, model, {
+        concurrency: effectiveConcurrency,
+        onProgress: (completed, total) => {
+          p.emit({
+            type: "step-progress",
+            step: "easy-read",
+            message: `${completed}/${total}`,
+            page: completed,
+            totalPages: total,
+          })
+        },
+      })
+      storage.putNodeData("easy-read", "book", output)
+      p.emit({
+        type: "step-progress",
+        step: "easy-read",
+        message: `${totalEntries} entries`,
+      })
+    })
+
     executors.set("catalog-translation", async (p) => {
       const language = getLanguage(storage, config)
       const outputLanguages = getOutputLanguages(config, language)
@@ -722,15 +760,18 @@ export async function runFullPipeline(
       const catalogRow = storage.getLatestNodeData("text-catalog", "book")
       if (!catalogRow) return
       const catalog = catalogRow.data as TextCatalogOutput
-      if (catalog.entries.length === 0) return
+      const easyReadRow = storage.getLatestNodeData("easy-read", "book")
+      const easyReadEntries = flattenEasyReadEntries(easyReadRow?.data as EasyReadOutput | undefined)
+      const translationEntries = [...catalog.entries, ...easyReadEntries]
+      if (translationEntries.length === 0) return
       const translationConfig = buildCatalogTranslationConfig(config, language)
       const model = getModel(translationConfig.modelId)
       const batchSize = translationConfig.batchSize
       interface WorkItem { language: string; batchIndex: number; entries: TextCatalogEntry[] }
       const workItems: WorkItem[] = []
       for (const lang of targetLanguages) {
-        for (let i = 0; i < catalog.entries.length; i += batchSize) {
-          workItems.push({ language: lang, batchIndex: Math.floor(i / batchSize), entries: catalog.entries.slice(i, i + batchSize) })
+        for (let i = 0; i < translationEntries.length; i += batchSize) {
+          workItems.push({ language: lang, batchIndex: Math.floor(i / batchSize), entries: translationEntries.slice(i, i + batchSize) })
         }
       }
       const totalBatches = workItems.length
@@ -751,7 +792,7 @@ export async function runFullPipeline(
       })
       for (const lang of targetLanguages) {
         const entries = resultsByLang.get(lang)!
-        const idOrder = new Map(catalog.entries.map((e, i) => [e.id, i]))
+        const idOrder = new Map(translationEntries.map((e, i) => [e.id, i]))
         entries.sort((a, b) => (idOrder.get(a.id) ?? 0) - (idOrder.get(b.id) ?? 0))
         storage.putNodeData("text-catalog-translation", lang, { entries, generatedAt: new Date().toISOString() })
       }
@@ -759,11 +800,21 @@ export async function runFullPipeline(
 
     executors.set("tts", async (p) => {
       const language = getLanguage(storage, config)
+      const easyReadConfig = buildEasyReadConfig(config, language)
       const outputLanguages = getOutputLanguages(config, language)
       const catalogRow = storage.getLatestNodeData("text-catalog", "book")
       if (!catalogRow) return
       const sourceCatalog = catalogRow.data as TextCatalogOutput
-      if (sourceCatalog.entries.length === 0) return
+      const easyReadRow = storage.getLatestNodeData("easy-read", "book")
+      // Easy Read audio is generated for every language (source included)
+      // whenever Easy Read is enabled — target languages already carry the
+      // easy-read entries via text-catalog-translation, so gate the source
+      // side on `enabled` to match.
+      const easyReadEntries = easyReadConfig.enabled
+        ? flattenEasyReadEntries(easyReadRow?.data as EasyReadOutput | undefined)
+        : []
+      const sourceEntries = [...sourceCatalog.entries, ...easyReadEntries]
+      if (sourceEntries.length === 0) return
 
       const configDir = options.configDir ?? path.resolve(process.cwd(), "config")
       const azureConfig = options.azureSpeechKey && options.azureSpeechRegion
@@ -808,7 +859,7 @@ export async function runFullPipeline(
         const baseLang = getBaseLanguage(lang)
         let entries: TextCatalogEntry[]
         if (baseLang === baseSource) {
-          entries = sourceCatalog.entries
+          entries = sourceEntries
         } else {
           const legacyLang = lang.replace("-", "_")
           const translatedRow =
@@ -832,7 +883,13 @@ export async function runFullPipeline(
         const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
         const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
         const voice = resolveVoice(provider, item.language, voiceMaps, config.speech?.voice)
-        const instructions = provider === "openai" ? resolveInstructions(item.language, instructionsMap) : ""
+        // OpenAI + Gemini both receive resolved instructions (Gemini embeds them in
+        // the prompt text); Azure has no instruction channel. Must match stage-runner.ts
+        // and tts.ts so the shared TTS cache key (computeSpeechCacheKey) stays consistent.
+        const instructions =
+          provider === "openai" || provider === "gemini"
+            ? resolveInstructions(item.language, instructionsMap)
+            : ""
         const ttsSynthesizer = getSynthesizer(provider)
         const entry = await generateSpeechFile({
           textId: item.textId,

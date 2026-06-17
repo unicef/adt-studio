@@ -51,6 +51,13 @@ function DockPanel({
         align="center"
         sideOffset={12}
         anchor={anchor}
+        // Position relative to the viewport, not the portal container
+        // (`#interface-container` is a flow-positioned div at the end of
+        // <body>). The dock is `position: fixed`, so viewport-relative
+        // positioning keeps the panel pinned to the trigger when the page
+        // content reflows — e.g. when the Easy Read toggle swaps in
+        // simplified text and re-runs fixed-layout auto-fit.
+        positionMethod="fixed"
         className="w-auto p-0 overflow-hidden rounded-lg"
       >
         {children}

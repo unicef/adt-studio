@@ -87,10 +87,6 @@ jobs:
             echo "::error::Tag $TAG must be either vX.Y.Z (stable) or vX.Y.Z-beta[.N]."
             exit 1
           fi
-          if [[ "$BRANCH" == "develop" && "$PRERELEASE" != "true" ]]; then
-            echo "::error::develop only ships beta prereleases (got $TAG). Use vX.Y.Z-beta[.N]."
-            exit 1
-          fi
           if [[ "$BRANCH" == "main" && "$PRERELEASE" == "true" ]]; then
             echo "::error::main only ships stable tags (got $TAG). Use vX.Y.Z."
             exit 1
@@ -306,7 +302,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_PAT }}
 
       - name: Restore staged release metadata
         uses: actions/download-artifact@v4
@@ -335,7 +331,7 @@ jobs:
             git tag "$TAG"
             git push origin "$TAG"
           else
-            git commit -m "chore(release): $TAG"
+            git commit -m "chore(release): $TAG [skip ci]"
             git tag "$TAG"
             git push origin --atomic HEAD:"$BRANCH" "refs/tags/$TAG"
           fi

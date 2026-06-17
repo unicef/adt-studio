@@ -10,6 +10,7 @@ describe("settings-routing", () => {
   it("resolves known settings stages", () => {
     expect(resolveSettingsStageSlug("extract")).toBe("extract")
     expect(resolveSettingsStageSlug("translate")).toBe("translate")
+    expect(resolveSettingsStageSlug("easy-read")).toBe("easy-read")
     expect(resolveSettingsStageSlug("speech")).toBe("speech")
   })
 

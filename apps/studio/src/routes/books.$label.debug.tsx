@@ -24,16 +24,21 @@ function DebugPage() {
   const navigate = useNavigate({ from: "/books/$label/debug" })
 
   const { data: stageStatus } = useQuery({
-    queryKey: ["books", label, "stage-status"],
-    queryFn: () => api.getStagesStatus(label),
+    queryKey: ["books", label, "step-status"],
+    queryFn: () => api.getStepStatus(label),
     enabled: !!label,
     refetchInterval: (query) => {
-      const status = query.state.data?.status
-      return status === "running" ? 2000 : false
+      const stages = query.state.data?.stages
+      if (!stages) return false
+      return Object.values(stages).some((status) => status === "running" || status === "queued")
+        ? 2000
+        : false
     },
   })
 
-  const isRunning = stageStatus?.status === "running"
+  const isRunning = Object.values(stageStatus?.stages ?? {}).some(
+    (status) => status === "running" || status === "queued"
+  )
 
   return (
     <div className="flex h-full flex-col">

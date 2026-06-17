@@ -20,6 +20,7 @@ import type {
   PageSectioningOutput,
   PageSectioningSection,
   TextCatalogOutput,
+  EasyReadOutput,
   GlossaryOutput,
   QuizGenerationOutput,
   BookSummaryOutput,
@@ -40,6 +41,7 @@ import { nullProgress } from "./progress.js"
 import { getGlossaryItemTextId } from "./glossary.js"
 import { getBaseLanguage, normalizeLocale } from "./language-context.js"
 import { buildTextCatalog } from "./text-catalog.js"
+import { flattenEasyReadEntries } from "./easy-read.js"
 import { normalizeHtmlSectionSemantics } from "./html-semantics.js"
 
 export interface PackageAdtWebOptions {
@@ -158,8 +160,15 @@ export interface ComputePackagingInputHashOptions {
 export function computePackagingInputHash(options: ComputePackagingInputHashOptions): string {
   const hash = createHash("sha256")
 
-  // 1. Storage entity versions (exclude outputs like accessibility-assessment)
+  // 1. Storage entity versions and content (exclude outputs like accessibility-assessment)
   const fingerprint = options.storage.getNodeVersionFingerprint(["accessibility-assessment"])
+    .map((entry) => {
+      const row = options.storage.getLatestNodeData(entry.node, entry.itemId)
+      return {
+        ...entry,
+        dataHash: hashValue(row?.data ?? null),
+      }
+    })
   hash.update(JSON.stringify(fingerprint))
 
   // 2. Packaging options that affect output
@@ -190,6 +199,12 @@ export function computePackagingInputHash(options: ComputePackagingInputHashOpti
   hash.update(JSON.stringify(videoEntries))
 
   return hash.digest("hex")
+}
+
+function hashValue(value: unknown): string {
+  return createHash("sha256")
+    .update(JSON.stringify(value) ?? "undefined")
+    .digest("hex")
 }
 
 // ---------------------------------------------------------------------------
@@ -271,6 +286,10 @@ export async function packageAdtWeb(
 
   const tocRow = storage.getLatestNodeData("toc-generation", "book")
   const llmToc = tocRow?.data as TocGenerationOutput | undefined
+
+  const easyReadRow = storage.getLatestNodeData("easy-read", "book")
+  const easyRead = easyReadRow?.data as EasyReadOutput | undefined
+  const easyReadEntries = flattenEasyReadEntries(easyRead)
 
   // ------------------------------------------------------------------
   // Process pages
@@ -514,6 +533,7 @@ export async function packageAdtWeb(
       if (catalog?.entries) {
         for (const e of catalog.entries) textsMap[e.id] = e.text
       }
+      for (const e of easyReadEntries) textsMap[e.id] = e.text
     } else {
       // Translated language
       const legacyLang = lang.replace("-", "_")
@@ -629,6 +649,7 @@ export async function packageAdtWeb(
   // ------------------------------------------------------------------
   const hasGlossary = (features?.glossary !== false) && (glossary !== undefined && glossary.items.some((item) => !item.pruned))
   const hasQuiz = (features?.quizzes !== false) && (quizData !== undefined && quizData.quizzes.length > 0)
+  const hasEasyRead = easyReadEntries.length > 0
 
   const hasSignLanguageVideos = (features?.signLanguage !== false) && storage.getSignLanguageVideos().some((v) => v.sectionId !== null)
 
@@ -641,7 +662,7 @@ export async function packageAdtWeb(
     },
     features: {
       signLanguage: hasSignLanguageVideos,
-      easyRead: false,
+      easyRead: hasEasyRead,
       glossary: hasGlossary,
       eli5: false,
       readAloud: hasTTS,

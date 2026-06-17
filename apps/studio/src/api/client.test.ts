@@ -50,5 +50,10 @@ describe("resolveBaseUrl", () => {
       ;(window as { api: { apiPort: number } }).api = { apiPort: 9001 }
       expect(resolveBaseUrl()).toBe("http://localhost:9001/api")
     })
+
+    it("falls back to /api when the Electron bridge is not available", () => {
+      delete (window as { api?: unknown }).api
+      expect(resolveBaseUrl({ protocol: "http:", hostname: "localhost" })).toBe("/api")
+    })
   })
 })

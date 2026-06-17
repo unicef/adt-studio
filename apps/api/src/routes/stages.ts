@@ -166,6 +166,21 @@ export function createStageRoutes(
       }
     }
 
+    const failedActiveSteps = new Set<string>()
+    if (active?.status === "failed") {
+      const from = STAGE_ORDER.indexOf(active.fromStage as StageName)
+      const to = STAGE_ORDER.indexOf(active.toStage as StageName)
+      if (from !== -1 && to !== -1) {
+        const failedStages = new Set(STAGE_ORDER.slice(from, to + 1))
+        for (const stage of PIPELINE) {
+          if (!failedStages.has(stage.name)) continue
+          for (const step of stage.steps) {
+            failedActiveSteps.add(step.name)
+          }
+        }
+      }
+    }
+
     // Read step_runs from DB (or empty if no DB)
     let stepRunRows: Array<{ step: string; status: string; error: string | null; message: string | null }> = []
     if (fs.existsSync(dbPath)) {
@@ -182,12 +197,21 @@ export function createStageRoutes(
     // Build steps
     const steps: Record<string, string> = {}
     const stepErrors: Record<string, string> = {}
+    const stepMessages: Record<string, string> = {}
     for (const stage of PIPELINE) {
       for (const step of stage.steps) {
         const row = stepRunMap.get(step.name)
-        steps[step.name] = row?.status ?? "idle"
+        let status = row?.status ?? "idle"
+        if (status === "running" && failedActiveSteps.has(step.name)) {
+          status = "error"
+          stepErrors[step.name] = active?.error ?? "Stage run failed"
+        }
+        steps[step.name] = status
         if (row?.status === "error" && row.error) {
           stepErrors[step.name] = row.error
+        }
+        if (status === "running" && row?.message) {
+          stepMessages[step.name] = row.message
         }
       }
     }
@@ -222,6 +246,7 @@ export function createStageRoutes(
     if (fs.existsSync(adtDir)) stages.preview = "done"
 
     const hasStepErrors = Object.keys(stepErrors).length > 0
+    const hasStepMessages = Object.keys(stepMessages).length > 0
     const error = active?.error ?? (hasStepErrors ? formatStepErrors(stepErrors) : null)
 
     return c.json({
@@ -229,6 +254,7 @@ export function createStageRoutes(
       steps,
       error,
       stepErrors: hasStepErrors ? stepErrors : null,
+      stepMessages: hasStepMessages ? stepMessages : null,
     })
   })
 

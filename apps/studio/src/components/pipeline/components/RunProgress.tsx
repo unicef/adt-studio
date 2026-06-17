@@ -20,6 +20,8 @@ export function RunProgress({
   const isSkipped = state === "skipped"
   const hasPages =
     isRunning && progress?.page != null && progress?.totalPages != null && progress.totalPages > 0
+  const numericProgressLabel = hasPages ? `${progress?.page}/${progress?.totalPages}` : null
+  const progressLabel = progress?.message?.trim() || numericProgressLabel
 
   return (
     <div className="w-full max-w-sm">
@@ -48,9 +50,9 @@ export function RunProgress({
         >
           {getStepLabelI18n(stepKey)}
         </span>
-        {isRunning && hasPages && (
-          <span className="text-[#737373] tabular-nums">
-            {progress?.page}/{progress?.totalPages}
+        {isRunning && progressLabel && (
+          <span className="max-w-36 truncate text-[#737373] tabular-nums" title={progressLabel}>
+            {progressLabel}
           </span>
         )}
       </div>

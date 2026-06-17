@@ -12,6 +12,7 @@ export type EmptyStateColor =
   | "amber"
   | "rose"
   | "cyan"
+  | "fuchsia"
 
 interface ColorClasses {
   iconBg: string
@@ -29,6 +30,7 @@ const COLOR_CLASSES: Record<EmptyStateColor, ColorClasses> = {
   amber: { iconBg: "bg-amber-50", iconColor: "text-amber-300" },
   rose: { iconBg: "bg-rose-50", iconColor: "text-rose-300" },
   cyan: { iconBg: "bg-cyan-50", iconColor: "text-cyan-300" },
+  fuchsia: { iconBg: "bg-fuchsia-50", iconColor: "text-fuchsia-300" },
 }
 
 interface StageEmptyStateProps {

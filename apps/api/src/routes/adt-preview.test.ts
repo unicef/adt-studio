@@ -521,11 +521,90 @@ describe("ADT preview routes", () => {
       expect(htmlRes.status).toBe(200)
       const html = await htmlRes.text()
 
-      expect(config.bundleVersion).toBe(String(Math.trunc(expectedVersion.getTime())))
+      expect(config.bundleVersion).toMatch(new RegExp(`^${Math.trunc(expectedVersion.getTime())}-[a-f0-9]{12}$`))
       expect(html).toContain(`./assets/base.bundle.min.js?v=${config.bundleVersion}`)
+
+      const beforeEasyReadVersion = config.bundleVersion
+      const updatedStorage = createBookStorage(label, monorepoBooks)
+      try {
+        updatedStorage.putNodeData("easy-read", "book", {
+          generatedAt: "2030-01-01T00:00:00.000Z",
+          blocks: [],
+        })
+      } finally {
+        updatedStorage.close()
+      }
+
+      const updatedConfigRes = await app.request(`/books/${label}/adt-preview/assets/config.json`)
+      expect(updatedConfigRes.status).toBe(200)
+      const updatedConfig = await updatedConfigRes.json() as { bundleVersion: string }
+      expect(updatedConfig.bundleVersion).toMatch(new RegExp(`^${Math.trunc(expectedVersion.getTime())}-[a-f0-9]{12}$`))
+      expect(updatedConfig.bundleVersion).not.toBe(beforeEasyReadVersion)
     } finally {
       fs.rmSync(monorepoTmp, { recursive: true, force: true })
     }
+  })
+
+  it("uses metadata language for preview i18n when no config language is stored", async () => {
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.clearNodesByType(["config"])
+      storage.putNodeData("metadata", "book", {
+        title: "Preview Book",
+        language_code: "es",
+        reasoning: "test",
+      })
+      storage.putNodeData("web-rendering", `${label}_p1`, {
+        sections: [
+          {
+            sectionIndex: 0,
+            sectionType: "content",
+            reasoning: "ok",
+            html: `<section data-section-id="${label}_p1_sec001"><p data-id="pg001_tx001">Texto original.</p></section>`,
+          },
+        ],
+      })
+      storage.putNodeData("easy-read", "book", {
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        blocks: [
+          {
+            pageId: `${label}_p1`,
+            pageNumber: 1,
+            sectionId: `${label}_p1_sec001`,
+            sectionIndex: 0,
+            sectionType: "content",
+            entries: [
+              {
+                sourceId: "pg001_tx001",
+                easyReadId: "pg001_tx001_easy_read",
+                originalText: "Texto original.",
+                text: "Texto facil.",
+                pageId: `${label}_p1`,
+                sectionId: `${label}_p1_sec001`,
+                sectionIndex: 0,
+              },
+            ],
+          },
+        ],
+      })
+    } finally {
+      storage.close()
+    }
+
+    const app = createAdtPreviewRoutes(tmpDir, webAssetsDir, path.resolve(process.cwd(), "config.yaml"))
+
+    const configRes = await app.request(`/books/${label}/adt-preview/assets/config.json`)
+    expect(configRes.status).toBe(200)
+    expect(configRes.headers.get("Cache-Control")).toBe("no-store, max-age=0")
+    const config = await configRes.json() as { languages: { available: string[]; default: string } }
+    expect(config.languages).toEqual({ available: ["es"], default: "es" })
+
+    const textsRes = await app.request(`/books/${label}/adt-preview/content/i18n/es/texts.json`)
+    expect(textsRes.status).toBe(200)
+    expect(textsRes.headers.get("Cache-Control")).toBe("no-store, max-age=0")
+    const texts = await textsRes.json() as Record<string, string>
+    expect(texts.pg001_tx001).toBe("Texto original.")
+    expect(texts.pg001_tx001_easy_read).toBe("Texto facil.")
   })
 
   it("orders pages.json sections by sectionIndex when rendering rows are out of order", async () => {

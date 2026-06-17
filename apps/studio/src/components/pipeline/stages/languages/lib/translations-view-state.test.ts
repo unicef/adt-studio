@@ -1,5 +1,50 @@
 import { describe, expect, it } from "vitest"
-import { resolveTranslationLanguageState } from "./translations-view-state"
+import {
+  reconcileSourceOutputLanguage,
+  resolveTranslationLanguageState,
+} from "./translations-view-state"
+
+describe("reconcileSourceOutputLanguage", () => {
+  it("seeds the source language when the list is empty", () => {
+    expect(reconcileSourceOutputLanguage([], "es")).toEqual(["es"])
+  })
+
+  it("updates a stale bare-base seed to the localized source", () => {
+    // Source refined es -> es-UY; the previously-seeded "es" becomes "es-UY".
+    expect(reconcileSourceOutputLanguage(["es"], "es-UY")).toEqual(["es-UY"])
+  })
+
+  it("keeps foreign output languages while updating the source entry", () => {
+    expect(reconcileSourceOutputLanguage(["es", "fr"], "es-UY")).toEqual([
+      "es-UY",
+      "fr",
+    ])
+  })
+
+  it("preserves a distinct regional variant sharing the source base", () => {
+    // Source "es-UY" + user-added "es-MX" must both survive.
+    expect(reconcileSourceOutputLanguage(["es-MX", "fr"], "es-UY")).toEqual([
+      "es-UY",
+      "es-MX",
+      "fr",
+    ])
+  })
+
+  it("does not drop a regional variant when the source is bare", () => {
+    // Regression: source "en" + user-added "en-GB" — en-GB must NOT be removed.
+    expect(reconcileSourceOutputLanguage(["en-GB"], "en")).toEqual([
+      "en",
+      "en-GB",
+    ])
+  })
+
+  it("dedupes an exact duplicate of the source and normalizes casing", () => {
+    expect(reconcileSourceOutputLanguage(["es_uy", "FR"], "es-UY")).toEqual([
+      "es-UY",
+      "fr",
+    ])
+  })
+})
 
 describe("resolveTranslationLanguageState", () => {
   it("prefers configured editing language over detected book language", () => {

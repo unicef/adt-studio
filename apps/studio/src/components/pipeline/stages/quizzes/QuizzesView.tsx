@@ -1,14 +1,9 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
-  Check,
   CheckCircle2,
-  ChevronDown,
   HelpCircle,
   Loader2,
   ImageOff,
-  ZoomIn,
-  ZoomOut,
-  RotateCcw,
   Trash2,
   Search,
   X,
@@ -16,7 +11,7 @@ import {
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@/api/client";
-import type { QuizGenerationOutput, VersionEntry } from "@/api/client";
+import type { QuizGenerationOutput } from "@/api/client";
 import { useQuizzes } from "@/hooks/use-quizzes";
 import { usePageImage, usePages } from "@/hooks/use-pages";
 import { formatPageNumbers } from "./lib/format-page-numbers";
@@ -32,142 +27,21 @@ import { Button } from "@/components/ui/button";
 import { useStepHeader } from "../../components/StepViewRouter";
 import { StageContentGuard } from "../../components/StageContentGuard";
 import { StageEmptyState } from "../../components/StageEmptyState";
+import { VersionPicker } from "../../components/VersionPicker";
+import { usePendingChanges } from "../../components/change-summary";
 import {
   getRequestedPageId,
   getQuizImageRenderState,
 } from "./lib/quizzes-image-state";
 import { QuizzesHintBanner } from "./components/QuizzesHintBanner";
 import { QuizJumper, type QuizJumperEntry } from "./components/QuizJumper";
+import { PageLightbox } from "../../components/PageLightbox";
 import { AddQuizDialog } from "./AddQuizDialog";
 import { useApiKey } from "@/hooks/use-api-key";
 import { useStageStatus } from "@/hooks/use-stage-status";
 import { useLingui } from "@lingui/react/macro";
 
 type QuizData = QuizGenerationOutput;
-
-function VersionPicker({
-  currentVersion,
-  saving,
-  dirty,
-  bookLabel,
-  onPreview,
-  onSave,
-  onDiscard,
-}: {
-  currentVersion: number | null;
-  saving: boolean;
-  dirty: boolean;
-  bookLabel: string;
-  onPreview: (data: unknown) => void;
-  onSave: () => void;
-  onDiscard: () => void;
-}) {
-  const { t } = useLingui();
-  const [open, setOpen] = useState(false);
-  const [versions, setVersions] = useState<VersionEntry[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handleClick = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node))
-        setOpen(false);
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [open]);
-
-  const handleOpen = async () => {
-    if (saving || currentVersion == null) return;
-    setOpen(true);
-    setLoading(true);
-    const res = await api.getVersionHistory(
-      bookLabel,
-      "quiz-generation",
-      "book",
-      true,
-    );
-    setVersions(res.versions);
-    setLoading(false);
-  };
-
-  const handlePick = (v: VersionEntry) => {
-    if (v.version === currentVersion && !dirty) {
-      setOpen(false);
-      return;
-    }
-    setOpen(false);
-    onPreview(v.data);
-  };
-
-  if (saving) {
-    return <Loader2 className="h-3 w-3 animate-spin" />;
-  }
-
-  if (currentVersion == null) return null;
-
-  if (dirty) {
-    return (
-      <div className="flex items-center gap-1.5">
-        <button
-          type="button"
-          onClick={onDiscard}
-          className="text-[10px] font-medium rounded px-2 py-0.5 bg-black/15 text-black hover:bg-black/25 cursor-pointer transition-colors"
-        >
-          {t`Discard`}
-        </button>
-        <button
-          type="button"
-          onClick={onSave}
-          className="flex items-center gap-1 text-[10px] font-medium rounded px-2 py-0.5 bg-white text-orange-800 hover:bg-white/80 cursor-pointer transition-colors"
-        >
-          <Check className="h-3 w-3" />
-          {t`Save`}
-        </button>
-      </div>
-    );
-  }
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        onClick={handleOpen}
-        className="flex items-center gap-0.5 text-[10px] font-normal normal-case tracking-normal bg-white/20 text-white hover:bg-white/30 rounded px-1.5 py-0.5 transition-colors"
-      >
-        v{currentVersion}
-        <ChevronDown className="h-2.5 w-2.5" />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full mt-1 z-20 bg-popover border rounded shadow-md min-w-[80px] py-1">
-          {loading ? (
-            <div className="flex items-center justify-center py-2 px-3">
-              <Loader2 className="h-3 w-3 animate-spin" />
-            </div>
-          ) : versions && versions.length > 0 ? (
-            versions.map((v) => (
-              <button
-                key={v.version}
-                type="button"
-                onClick={() => handlePick(v)}
-                className={`w-full text-left px-3 py-1 text-xs hover:bg-accent transition-colors ${
-                  v.version === currentVersion
-                    ? "font-semibold text-foreground"
-                    : "text-muted-foreground"
-                }`}
-              >
-                v{v.version}
-              </button>
-            ))
-          ) : (
-            <div className="px-3 py-1 text-xs text-muted-foreground">{t`No versions`}</div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
 
 function PageThumb({
   bookLabel,
@@ -246,180 +120,6 @@ function PageThumb({
   );
 }
 
-/**
- * Full-screen page preview with zoom (buttons, scroll wheel, double-click) and
- * drag-to-pan. The page is always shown in full (object-contain) at 100%, so it
- * is never cropped, and can be zoomed up to 600%.
- */
-function PageZoomViewer({
-  pageId,
-  open,
-  onOpenChange,
-  imageState,
-  imageBase64,
-  onRetry,
-}: {
-  pageId: string | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  imageState: "ready" | "error" | "loading" | "idle";
-  imageBase64: string | null;
-  onRetry: () => void;
-}) {
-  const { t } = useLingui();
-  const [scale, setScale] = useState(1);
-  const [offset, setOffset] = useState({ x: 0, y: 0 });
-  const [dragging, setDragging] = useState(false);
-  const dragRef = useRef<{ x: number; y: number; ox: number; oy: number } | null>(
-    null,
-  );
-
-  // Reset zoom/pan whenever a new page opens.
-  useEffect(() => {
-    setScale(1);
-    setOffset({ x: 0, y: 0 });
-  }, [pageId, open]);
-
-  const MIN = 1;
-  const MAX = 6;
-  const applyScale = (next: number) => {
-    const clamped = Math.min(MAX, Math.max(MIN, next));
-    setScale(clamped);
-    if (clamped === 1) setOffset({ x: 0, y: 0 });
-  };
-  const reset = () => {
-    setScale(1);
-    setOffset({ x: 0, y: 0 });
-  };
-
-  const handleWheel = (e: React.WheelEvent) => {
-    applyScale(scale * (e.deltaY < 0 ? 1.12 : 1 / 1.12));
-  };
-  const handlePointerDown = (e: React.PointerEvent) => {
-    if (scale <= 1) return;
-    dragRef.current = { x: e.clientX, y: e.clientY, ox: offset.x, oy: offset.y };
-    setDragging(true);
-    (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
-  };
-  const handlePointerMove = (e: React.PointerEvent) => {
-    const d = dragRef.current;
-    if (!d) return;
-    setOffset({ x: d.ox + (e.clientX - d.x), y: d.oy + (e.clientY - d.y) });
-  };
-  const endDrag = () => {
-    dragRef.current = null;
-    setDragging(false);
-  };
-
-  const btn =
-    "flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 disabled:opacity-30 disabled:hover:bg-white/10";
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      {pageId && (
-        <DialogContent className="flex h-[94vh] w-[96vw] max-w-none flex-col gap-0 border-0 bg-neutral-900/95 p-0 text-white">
-          <DialogTitle className="sr-only">{t`Page preview`}</DialogTitle>
-          <DialogDescription className="sr-only">
-            {t`Full-size source page preview for the selected quiz.`}
-          </DialogDescription>
-
-          <div className="flex shrink-0 items-center justify-center gap-1.5 px-4 py-2">
-            <button type="button" onClick={() => applyScale(scale / 1.25)} disabled={scale <= MIN} title={t`Zoom out`} className={btn}>
-              <ZoomOut className="h-4 w-4" />
-            </button>
-            <span className="min-w-14 text-center text-xs tabular-nums text-white">
-              {Math.round(scale * 100)}%
-            </span>
-            <button type="button" onClick={() => applyScale(scale * 1.25)} disabled={scale >= MAX} title={t`Zoom in`} className={btn}>
-              <ZoomIn className="h-4 w-4" />
-            </button>
-            <button type="button" onClick={reset} disabled={scale === 1} title={t`Reset zoom`} className={btn}>
-              <RotateCcw className="h-4 w-4" />
-            </button>
-          </div>
-
-          <div
-            className="flex flex-1 items-center justify-center overflow-hidden p-4"
-            onWheel={handleWheel}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={endDrag}
-            onPointerLeave={endDrag}
-            onDoubleClick={() => (scale === 1 ? applyScale(2) : reset())}
-            style={{ cursor: scale > 1 ? (dragging ? "grabbing" : "grab") : "default" }}
-          >
-            {imageState === "ready" && imageBase64 ? (
-              <img
-                src={`data:image/png;base64,${imageBase64}`}
-                alt={t`Page ${pageId}`}
-                draggable={false}
-                className="max-h-full max-w-full select-none object-contain"
-                style={{
-                  transform: `translate(${offset.x}px, ${offset.y}px) scale(${scale})`,
-                  transition: dragging ? "none" : "transform 0.12s ease-out",
-                }}
-              />
-            ) : imageState === "error" ? (
-              <div className="flex flex-col items-center justify-center gap-2 text-sm text-white/80">
-                <ImageOff className="h-5 w-5" />
-                <span>{t`Image unavailable`}</span>
-                <button
-                  type="button"
-                  onClick={onRetry}
-                  className="rounded border border-white/30 px-2 py-0.5 text-xs transition-colors hover:bg-white/10"
-                >
-                  {t`Retry`}
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2 text-sm text-white/80">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                <span>{t`Loading image...`}</span>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      )}
-    </Dialog>
-  );
-}
-
-function PageLightbox({
-  bookLabel,
-  pageId,
-  open,
-  onOpenChange,
-}: {
-  bookLabel: string;
-  pageId: string | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) {
-  const isRequested = open && !!pageId;
-  const queryPageId = getRequestedPageId(pageId ?? "", isRequested);
-  const {
-    data: imageData,
-    isLoading,
-    isError,
-    refetch,
-  } = usePageImage(bookLabel, queryPageId);
-  const imageState = getQuizImageRenderState({
-    isRequested,
-    isLoading,
-    isError,
-    hasImage: !!imageData,
-  });
-
-  return <PageZoomViewer
-    pageId={pageId}
-    open={open}
-    onOpenChange={onOpenChange}
-    imageState={imageState}
-    imageBase64={imageData?.imageBase64 ?? null}
-    onRetry={() => void refetch()}
-  />;
-}
-
 export function QuizzesView({
   bookLabel,
   selectedPageId,
@@ -458,7 +158,21 @@ export function QuizzesView({
 
   const effective = pending ?? data?.quizzes;
   const quizzes = effective?.quizzes ?? [];
-  const dirty = pending != null;
+
+  const {
+    label: pendingLabel,
+    labelKey: pendingLabelKey,
+    hasChanges: dirty,
+  } = usePendingChanges({
+    prev: data?.quizzes?.quizzes ?? [],
+    next: pending?.quizzes,
+    keyOf: (q) => String(q.quizIndex),
+    isEqual: (a, b) =>
+      a.question === b.question &&
+      a.answerIndex === b.answerIndex &&
+      JSON.stringify(a.options) === JSON.stringify(b.options),
+    noun: { one: t`quiz`, other: t`quizzes` },
+  });
 
   const displayQuizzes = selectedPageId
     ? quizzes.filter((q) => q.pageIds.includes(selectedPageId))
@@ -586,10 +300,14 @@ export function QuizzesView({
     setExtra(
       <div className="flex items-center gap-1.5 ml-auto">
         <VersionPicker
+          step="quiz-generation"
+          itemId="book"
           currentVersion={data.version}
           saving={saving}
           dirty={dirty}
           bookLabel={bookLabel}
+          pendingLabel={pendingLabel}
+          pendingLabelKey={pendingLabelKey}
           onPreview={(d) => setPending(d as QuizData)}
           onSave={() => saveRef.current()}
           onDiscard={() => setPending(null)}
@@ -604,6 +322,9 @@ export function QuizzesView({
     dirty,
     bookLabel,
     selectedPageId,
+    pendingLabel,
+    pendingLabelKey,
+    setExtra,
   ]);
 
   const updateQuestion = (idx: number, question: string) => {

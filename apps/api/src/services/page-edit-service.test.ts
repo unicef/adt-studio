@@ -151,6 +151,43 @@ describe("page-edit-service", () => {
             },
           ],
         })
+        storage.putNodeData("easy-read", "book", {
+          blocks: [{
+            pageId,
+            pageNumber: 1,
+            sectionId: `${pageId}_sec001`,
+            sectionIndex: 0,
+            sectionType: "content",
+            entries: [{
+              sourceId: `${pageId}_n001`,
+              easyReadId: `${pageId}_n001_easy_read`,
+              originalText: "Old text",
+              text: "Old easy text",
+              pageId,
+              sectionId: `${pageId}_sec001`,
+              sectionIndex: 0,
+            }],
+          }],
+          generatedAt: "2026-01-01T00:00:00.000Z",
+        })
+        storage.putNodeData("text-catalog", "book", { entries: [{ id: "t1", text: "Old text" }] })
+        storage.putNodeData("text-catalog-translation", "es", { entries: [{ id: "t1", text: "Texto viejo" }] })
+        storage.putNodeData("tts", "en", { entries: [{ textId: "t1", fileName: "t1.mp3" }] })
+        storage.putNodeData("tts-timestamps", "en", { entries: { t1: { words: [{ text: "Old", start: 0, end: 1 }] } } })
+        storage.putNodeData("accessibility-assessment", "book", { pages: [] })
+        for (const step of [
+          "image-captioning",
+          "text-catalog",
+          "easy-read",
+          "catalog-translation",
+          "image-translation",
+          "tts",
+          "word-timestamps",
+          "package-web",
+          "accessibility-assessment",
+        ]) {
+          storage.markStepCompleted(step)
+        }
       } finally {
         storage.close()
       }
@@ -196,6 +233,32 @@ describe("page-edit-service", () => {
       expect(rendering.sections.find((s) => s.sectionIndex === 0)?.html).toContain("old-sec1")
       expect(rendering.sections.find((s) => s.sectionIndex === 1)?.html).toContain(`${pageId}_im002`)
       expect(rendering.sections.find((s) => s.sectionIndex === 1)?.html).not.toContain(`${pageId}_im001`)
+
+      const verifyStorage = createBookStorage(label, tmpDir)
+      try {
+        expect(verifyStorage.getLatestNodeData("easy-read", "book")).toBeNull()
+        expect(verifyStorage.getLatestNodeData("text-catalog", "book")).toBeNull()
+        expect(verifyStorage.getLatestNodeData("text-catalog-translation", "es")).toBeNull()
+        expect(verifyStorage.getLatestNodeData("tts", "en")).toBeNull()
+        expect(verifyStorage.getLatestNodeData("tts-timestamps", "en")).toBeNull()
+        expect(verifyStorage.getLatestNodeData("accessibility-assessment", "book")).toBeNull()
+        const clearedSteps = new Set(verifyStorage.getStepRuns().map((run) => run.step))
+        for (const step of [
+          "image-captioning",
+          "text-catalog",
+          "easy-read",
+          "catalog-translation",
+          "image-translation",
+          "tts",
+          "word-timestamps",
+          "package-web",
+          "accessibility-assessment",
+        ]) {
+          expect(clearedSteps.has(step)).toBe(false)
+        }
+      } finally {
+        verifyStorage.close()
+      }
     })
   })
 

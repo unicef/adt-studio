@@ -50,13 +50,20 @@ function resolveTimestamps(
   pdfPath: string
 ): { createdAt: string; modifiedAt: string } {
   const dirStat = fs.statSync(bookDir)
-  const createdMs = dirStat.birthtimeMs || dirStat.ctimeMs
 
-  const candidates: number[] = [dirStat.mtimeMs]
-  if (fs.existsSync(dbPath)) candidates.push(fs.statSync(dbPath).mtimeMs)
-  if (fs.existsSync(pdfPath)) candidates.push(fs.statSync(pdfPath).mtimeMs)
+  // Derive timestamps from content files, never the directory's mtime/ctime:
+  // node-sqlite3-wasm's `.db.lock` churn on every DB open bumps both to "now" on
+  // each launch (POSIX), which would collapse the sort to last-launch time.
+  const configPath = path.join(bookDir, "config.yaml")
+  const mtimes: number[] = []
+  if (fs.existsSync(dbPath)) mtimes.push(fs.statSync(dbPath).mtimeMs)
+  if (fs.existsSync(pdfPath)) mtimes.push(fs.statSync(pdfPath).mtimeMs)
+  if (fs.existsSync(configPath)) mtimes.push(fs.statSync(configPath).mtimeMs)
 
-  const modifiedMs = Math.max(...candidates)
+  const modifiedMs = mtimes.length > 0 ? Math.max(...mtimes) : dirStat.mtimeMs
+  const createdMs =
+    dirStat.birthtimeMs || (mtimes.length > 0 ? Math.min(...mtimes) : dirStat.mtimeMs)
+
   return { createdAt: toIsoDate(createdMs), modifiedAt: toIsoDate(modifiedMs) }
 }
 

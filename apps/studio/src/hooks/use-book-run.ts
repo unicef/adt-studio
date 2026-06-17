@@ -26,6 +26,7 @@ export type StepState = "idle" | "running" | "done" | "error" | "skipped"
 export interface StepProgress {
   page?: number
   totalPages?: number
+  message?: string
 }
 
 export interface QueueRunOptions {
@@ -43,6 +44,7 @@ interface StepStatusResponse {
   steps: Record<string, string>
   error: string | null
   stepErrors?: Record<string, string> | null
+  stepMessages?: Record<string, string> | null
 }
 
 // ---------------------------------------------------------------------------
@@ -96,6 +98,13 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     queryKey: stepStatusKey(label),
     queryFn: () => api.getStepStatus(label),
     enabled: !!label,
+    refetchInterval: (query) => {
+      const stages = query.state.data?.stages
+      if (!stages) return false
+      return Object.values(stages).some((s) => s === "running" || s === "queued")
+        ? 2000
+        : false
+    },
   })
 
   // Sub-step progress is cosmetic (page X/Y during a running step).
@@ -146,29 +155,48 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             ...old,
             stages: { ...old.stages, [uiStage]: "running" },
             steps: { ...old.steps, [pipelineStep]: "running" },
+            stepMessages: removeStepMessage(old.stepMessages, pipelineStep),
           }
         })
         // Clear progress for this step
         progressRef.current.delete(pipelineStep)
-      } else if (d.type === "step-progress" && d.totalPages) {
-        progressRef.current.set(pipelineStep, {
-          page: d.page ?? 0,
-          totalPages: d.totalPages,
-        })
-        setProgressTick((t) => t + 1)
+      } else if (d.type === "step-progress") {
+        const message = typeof d.message === "string" && d.message.trim().length > 0
+          ? d.message
+          : undefined
+        const totalPages = typeof d.totalPages === "number" ? d.totalPages : undefined
+        const page = typeof d.page === "number" ? d.page : undefined
+        if (message || totalPages != null) {
+          progressRef.current.set(pipelineStep, {
+            page,
+            totalPages,
+            message,
+          })
+          setProgressTick((t) => t + 1)
+        }
         // Also ensure step is marked running in the cache (handles missed step-start on reconnect)
         queryClient.setQueryData<StepStatusResponse>(stepStatusKey(label), (old) => {
-          if (!old || old.steps[pipelineStep] === "running") return old
+          if (!old) return old
+          const nextStepMessages = message
+            ? { ...(old.stepMessages ?? {}), [pipelineStep]: message }
+            : old.stepMessages
+          if (
+            old.steps[pipelineStep] === "running" &&
+            (message ? old.stepMessages?.[pipelineStep] === message : true)
+          ) {
+            return old
+          }
           return {
             ...old,
             stages: { ...old.stages, [uiStage]: "running" },
             steps: { ...old.steps, [pipelineStep]: "running" },
+            stepMessages: nextStepMessages,
           }
         })
         // Progressively refresh page data during storyboard steps so the UI
         // can show sections/renderings as they complete (throttled to ~2s).
         // Invalidates both the page list (sidebar) and individual page details.
-        if ((PAGE_PROGRESS_STEPS as ReadonlySet<string>).has(pipelineStep)) {
+        if ((PAGE_PROGRESS_STEPS as ReadonlySet<string>).has(pipelineStep) && (totalPages ?? 0) > 0) {
           const now = Date.now()
           if (now - lastPageInvalidateRef.current > 2000) {
             lastPageInvalidateRef.current = now
@@ -186,6 +214,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           if (!old) return old
           const wasComplete = old.stages[uiStage] === "done"
           const steps = { ...old.steps, [pipelineStep]: nextStepState }
+          const stepMessages = removeStepMessage(old.stepMessages, pipelineStep)
 
           // Recompute the parent stage: if all steps are done/skipped, stage is done
           const stageDef = PIPELINE.find((s) => s.name === uiStage)
@@ -196,7 +225,12 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           }
 
           stageJustCompleted = allDone && !wasComplete
-          return { ...old, stages, steps }
+          return {
+            ...old,
+            stages,
+            steps,
+            stepMessages,
+          }
         })
         if (stageJustCompleted) playCompletionSound()
         progressRef.current.delete(pipelineStep)
@@ -215,9 +249,11 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             stages: { ...old.stages, [uiStage]: "error" },
             steps: { ...old.steps, [pipelineStep]: "error" },
             stepErrors: { ...old.stepErrors, [pipelineStep]: d.error ?? i18n._(msg`Step failed`) },
+            stepMessages: removeStepMessage(old.stepMessages, pipelineStep),
             error: d.error ?? i18n._(msg`Step failed`),
           }
         })
+        progressRef.current.delete(pipelineStep)
       }
     })
 
@@ -280,6 +316,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           const completedTask = idx !== -1 ? tasks[idx] : undefined
           if (completedTask?.kind === "package-adt") {
             queryClient.invalidateQueries({ queryKey: ["books", label, "step-status"] })
+            queryClient.invalidateQueries({ queryKey: ["package-adt-status", label] })
             queryClient.invalidateQueries({ queryKey: ["debug", "accessibility", label] })
             queryClient.invalidateQueries({ queryKey: ["debug", "versions", label, "accessibility-assessment", "book"] })
             queryClient.invalidateQueries({ queryKey: ["book-config", label] })
@@ -296,6 +333,10 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           }
           if (completedTask?.kind === "transcribe-timestamps") {
             queryClient.invalidateQueries({ queryKey: ["books", label, "tts-timestamps"] })
+          }
+          if (completedTask?.kind === "book-summary") {
+            // Refresh the book detail so the banner shows the new summary.
+            queryClient.invalidateQueries({ queryKey: ["books", label] })
           }
           // Always refetch tasks so we pick up the final state even if we missed start
           queryClient.invalidateQueries({ queryKey: bookTasksKey(label) })
@@ -342,6 +383,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         if (!old) return old
         const stages = { ...old.stages }
         const steps = { ...old.steps }
+        const stepMessages = old.stepMessages ? { ...old.stepMessages } : null
 
         for (const stage of stagesToClear) {
           const stageDef = PIPELINE.find((s) => s.name === stage)
@@ -350,6 +392,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
               // Render-only: preserve page-sectioning step state
               if (renderOnly && step.name === "page-sectioning") continue
               steps[step.name] = "idle"
+              delete stepMessages?.[step.name]
             }
           }
           stages[stage] = "idle"
@@ -358,7 +401,13 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         // Mark the target stage as queued
         stages[fromStage] = "queued"
 
-        return { ...old, stages, steps, error: null }
+        return {
+          ...old,
+          stages,
+          steps,
+          stepMessages: stepMessages && Object.keys(stepMessages).length > 0 ? stepMessages : null,
+          error: null,
+        }
       })
 
       // Clear cosmetic progress only for downstream steps being reset
@@ -408,9 +457,13 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     (step: string): StepProgress | undefined => {
       // Reference progressTick to ensure reactivity
       void progressTick
-      return progressRef.current.get(step)
+      const progress = progressRef.current.get(step)
+      if (progress) return progress
+      if (data?.steps?.[step] !== "running") return undefined
+      const message = data?.stepMessages?.[step]
+      return message ? { message } : undefined
     },
-    [progressTick]
+    [data?.stepMessages, data?.steps, progressTick]
   )
 
   const stepErrorAccessor = useCallback(
@@ -444,7 +497,18 @@ function invalidateBookQueries(qc: ReturnType<typeof useQueryClient>, label: str
   qc.invalidateQueries({ queryKey: ["books", label] })
   qc.invalidateQueries({ queryKey: ["books"] })
   qc.invalidateQueries({ queryKey: ["books", label, "pages"] })
+  qc.invalidateQueries({ queryKey: ["package-adt-status", label] })
   qc.invalidateQueries({ queryKey: ["debug"] })
+}
+
+function removeStepMessage(
+  messages: Record<string, string> | null | undefined,
+  step: string,
+): Record<string, string> | null {
+  if (!messages?.[step]) return messages ?? null
+  const next = { ...messages }
+  delete next[step]
+  return Object.keys(next).length > 0 ? next : null
 }
 
 /** Invalidate data queries when a stage completes so views refresh. */
@@ -468,6 +532,10 @@ function invalidateStageData(qc: ReturnType<typeof useQueryClient>, label: strin
       break
     case "glossary":
       qc.invalidateQueries({ queryKey: ["books", label, "glossary"] })
+      break
+    case "easy-read":
+      qc.invalidateQueries({ queryKey: ["books", label, "easy-read"] })
+      qc.invalidateQueries({ queryKey: ["books", label, "text-catalog"] })
       break
     case "translate":
       qc.invalidateQueries({ queryKey: ["books", label, "text-catalog"] })

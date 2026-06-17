@@ -6,7 +6,12 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function isElectron(): boolean {
-  return typeof navigator !== "undefined" && navigator.userAgent.toLowerCase().includes("electron")
+  return (
+    typeof navigator !== "undefined" &&
+    navigator.userAgent.toLowerCase().includes("electron") &&
+    typeof window !== "undefined" &&
+    typeof window.api === "object"
+  )
 }
 export function formatBytes(bytes: number): string {
   /* eslint-disable-next-line lingui/no-unlocalized-strings */

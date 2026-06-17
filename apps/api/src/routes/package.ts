@@ -17,26 +17,73 @@ import {
 import type { Storage } from "@adt/storage"
 import type { TaskService } from "../services/task-service.js"
 
-function isPackagingCached(
+const PACKAGE_VERSION_LENGTH = 16
+
+interface PackagingCacheState {
+  cached: boolean
+  version: string
+}
+
+interface PackagingStatus {
+  label: string
+  hasAdt: boolean
+  version?: string
+}
+
+interface PackagingResult {
+  version: string
+}
+
+function packageVersionFromHash(hash: string): string {
+  return hash.slice(0, PACKAGE_VERSION_LENGTH)
+}
+
+function getBuildHashPath(bookDir: string): string {
+  return path.join(bookDir, "adt", ".build-hash")
+}
+
+function getBuildVersionPath(bookDir: string): string {
+  return path.join(bookDir, "adt", ".build-version")
+}
+
+function readBuildVersion(bookDir: string, fallbackHash: string): string {
+  const versionPath = getBuildVersionPath(bookDir)
+  if (fs.existsSync(versionPath)) {
+    const version = fs.readFileSync(versionPath, "utf-8").trim()
+    if (version.length > 0) return version
+  }
+  return packageVersionFromHash(fallbackHash)
+}
+
+function readStoredBuildVersion(bookDir: string): string | null {
+  const versionPath = getBuildVersionPath(bookDir)
+  if (!fs.existsSync(versionPath)) return null
+  const version = fs.readFileSync(versionPath, "utf-8").trim()
+  return version.length > 0 ? version : null
+}
+
+function getPackagingCacheState(
   storage: Storage,
   safeLabel: string,
   booksDir: string,
   bookDir: string,
   webAssetsDir: string,
   configPath?: string,
-): boolean {
-  const hashPath = path.join(bookDir, "adt", ".build-hash")
-  if (!fs.existsSync(hashPath)) return false
-
+): PackagingCacheState {
+  const hashPath = getBuildHashPath(bookDir)
   const { language, outputLanguages, title, config } = resolvePackagingParams(
     storage, safeLabel, booksDir, configPath,
   )
-  const currentHash = computePackagingInputHash({
+  const hash = computePackagingInputHash({
     storage, bookDir, label: safeLabel, language, outputLanguages, title,
     webAssetsDir, applyBodyBackground: config.apply_body_background,
     config: config as unknown as Record<string, unknown>,
   })
-  return fs.readFileSync(hashPath, "utf-8").trim() === currentHash
+  const cached = fs.existsSync(hashPath) && fs.readFileSync(hashPath, "utf-8").trim() === hash
+  return {
+    cached,
+    version: cached ? readBuildVersion(bookDir, hash) : packageVersionFromHash(hash),
+  }
 }
 
 function resolvePackagingParams(
@@ -97,6 +144,7 @@ export function createPackageRoutes(
       })
     }
 
+    let cacheState: PackagingCacheState
     const storage = createBookStorage(safeLabel, booksDir)
     try {
       const pages = storage.getPages()
@@ -110,29 +158,42 @@ export function createPackageRoutes(
       }
 
       // Fast path: skip task submission entirely when build cache is valid
-      if (isPackagingCached(storage, safeLabel, booksDir, bookDir, webAssetsDir, configPath)) {
-        return c.json({ status: "completed", label: safeLabel })
+      cacheState = getPackagingCacheState(storage, safeLabel, booksDir, bookDir, webAssetsDir, configPath)
+      if (cacheState.cached) {
+        return c.json({ status: "completed", label: safeLabel, version: cacheState.version })
       }
     } finally {
       storage.close()
     }
 
     if (taskService) {
+      const existingTask = taskService
+        .getActiveTasks(safeLabel)
+        .find((task) => task.kind === "package-adt" && task.status === "running")
+      if (existingTask) {
+        return c.json({
+          status: "submitted",
+          taskId: existingTask.taskId,
+          label: safeLabel,
+          version: cacheState.version,
+        })
+      }
+
       const { taskId } = taskService.submitTask(
         safeLabel,
         "package-adt",
         "Packaging ADT preview",
         async () => {
-          await runPackaging(safeLabel, booksDir, bookDir, webAssetsDir, configPath)
+          return await runPackaging(safeLabel, booksDir, bookDir, webAssetsDir, configPath)
         },
         { url: `/books/${safeLabel}/preview` },
       )
-      return c.json({ status: "submitted", taskId, label: safeLabel })
+      return c.json({ status: "submitted", taskId, label: safeLabel, version: cacheState.version })
     }
 
     try {
-      await runPackaging(safeLabel, booksDir, bookDir, webAssetsDir, configPath)
-      return c.json({ status: "completed", label: safeLabel })
+      const result = await runPackaging(safeLabel, booksDir, bookDir, webAssetsDir, configPath)
+      return c.json({ status: "completed", label: safeLabel, version: result.version })
     } catch (err) {
       if (err instanceof HTTPException) throw err
       const message = err instanceof Error ? err.message : String(err)
@@ -153,8 +214,11 @@ export function createPackageRoutes(
     const bookDir = path.join(path.resolve(booksDir), safeLabel)
     const pagesPath = path.join(bookDir, "adt", "content", "pages.json")
     const hasAdt = hasPackagedAdtPages(pagesPath)
+    const version = hasAdt ? readStoredBuildVersion(bookDir) : null
 
-    return c.json({ label: safeLabel, hasAdt })
+    const status: PackagingStatus = { label: safeLabel, hasAdt }
+    if (version) status.version = version
+    return c.json(status)
   })
 
   return app
@@ -166,7 +230,7 @@ async function runPackaging(
   bookDir: string,
   webAssetsDir: string,
   configPath?: string,
-): Promise<void> {
+): Promise<PackagingResult> {
   const storage = createBookStorage(safeLabel, booksDir)
   try {
     const { config, language, outputLanguages, title } = resolvePackagingParams(
@@ -185,10 +249,12 @@ async function runPackaging(
       applyBodyBackground: config.apply_body_background,
       config: config as unknown as Record<string, unknown>,
     }
-    const hashPath = path.join(bookDir, "adt", ".build-hash")
+    const hashPath = getBuildHashPath(bookDir)
+    const versionPath = getBuildVersionPath(bookDir)
     const preHash = computePackagingInputHash(hashOptions)
+    const bundleVersion = packageVersionFromHash(preHash)
     if (fs.existsSync(hashPath) && fs.readFileSync(hashPath, "utf-8").trim() === preHash) {
-      return
+      return { version: readBuildVersion(bookDir, preHash) }
     }
 
     await packageAdtWeb(storage, {
@@ -198,11 +264,13 @@ async function runPackaging(
       outputLanguages,
       title,
       webAssetsDir,
+      bundleVersion,
       applyBodyBackground: config.apply_body_background,
       speechConfig: config.speech,
       fixedLayout: isFixedLayoutBook(config),
       reflowableFont: config.reflowable_font,
     })
+    fs.writeFileSync(versionPath, bundleVersion, "utf-8")
 
     const baseAccessibility = await runAccessibilityAssessment({
       bookDir,
@@ -227,6 +295,8 @@ async function runPackaging(
     // Recompute hash after build — packageAdtWeb may update storage (e.g. text-catalog)
     const postHash = computePackagingInputHash(hashOptions)
     fs.writeFileSync(hashPath, postHash, "utf-8")
+    fs.writeFileSync(versionPath, bundleVersion, "utf-8")
+    return { version: bundleVersion }
   } finally {
     storage.close()
   }
