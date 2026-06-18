@@ -117,6 +117,21 @@ describe("renderPageHtml", () => {
     expect(html).toContain('href="./assets/fonts.css"')
   })
 
+  it("strips contenteditable left over from the storyboard editor", () => {
+    const html = renderPageHtml({
+      content: `<p data-id="x" contenteditable="true" style="font-family:Arial">Edited</p>`,
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Test",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+    })
+
+    expect(html).not.toMatch(/contenteditable/i)
+    expect(html).toContain('style="font-family:Arial"')
+  })
+
   it("injects a Google Fonts stylesheet for fonts the page actually uses", () => {
     const html = renderPageHtml({
       content: `<p><span style="font-family:'Mouse Memoirs',Merriweather,serif">Hi</span></p>`,

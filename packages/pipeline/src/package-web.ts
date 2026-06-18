@@ -1130,6 +1130,13 @@ export function promoteFirstHeadingToH1(html: string): string {
   return html.replace(/<h([2-6])(\b[^>]*)>([\s\S]*?)<\/h\1>/i, '<h1$2>$3</h1>')
 }
 
+export function stripContentEditable(html: string): string {
+  return html.replace(
+    /\s+contenteditable(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/gi,
+    "",
+  )
+}
+
 /**
  * Resolve the reflowable base-font CSS chain for a book, or undefined when no
  * override is needed (fixed-layout books keep original fonts; the serif default
@@ -1161,7 +1168,7 @@ export function renderPageHtml(opts: RenderPageOptions): string {
       ? `\n    <script type="text/javascript">\n        window.correctAnswers = JSON.parse('${escapeInlineScriptJson(JSON.stringify(opts.activityAnswers))}');\n    </script>`
       : ""
 
-  const normalizedContent = promoteFirstHeadingToH1(opts.content)
+  const normalizedContent = stripContentEditable(promoteFirstHeadingToH1(opts.content))
 
   // INVARIANT: every page MUST render all TTS-scannable content inside
   // <div id="content">. The reader's gatherAudioElements scans #content for

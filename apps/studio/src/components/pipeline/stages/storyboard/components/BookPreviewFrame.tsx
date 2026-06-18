@@ -42,6 +42,16 @@ function previewAssetsUrl(bookLabel: string): string {
  *  actual panel width. */
 const DEFAULT_RENDER_WIDTH = 1280
 
+function stripTransientAttributes(doc: Document): void {
+  doc
+    .querySelectorAll("[data-adt-selected], [data-adt-editing], [contenteditable]")
+    .forEach((el) => {
+      el.removeAttribute("data-adt-selected")
+      el.removeAttribute("data-adt-editing")
+      el.removeAttribute("contenteditable")
+    })
+}
+
 /** Parse a pixel value (e.g. "612px") to a number, or null for non-px values. */
 function parsePxStyle(value: string | undefined): number | null {
   if (!value) return null
@@ -189,11 +199,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       el.className = classes.join(" ")
       // Don't strip `_el#` data-ids here — the inspector relies on them across
       // edits in a session. They're stripped only at API persist time.
-      const transientEls = doc.querySelectorAll("[data-adt-selected], [data-adt-editing]")
-      transientEls.forEach((te) => {
-        te.removeAttribute("data-adt-selected")
-        te.removeAttribute("data-adt-editing")
-      })
+      stripTransientAttributes(doc)
       const wrapper = doc.getElementById("content")
       let html: string
       if (wrapper) {
@@ -212,11 +218,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       if (!el) return null
       if (value) el.style.setProperty(property, value)
       else el.style.removeProperty(property)
-      const transientEls = doc.querySelectorAll("[data-adt-selected], [data-adt-editing]")
-      transientEls.forEach((te) => {
-        te.removeAttribute("data-adt-selected")
-        te.removeAttribute("data-adt-editing")
-      })
+      stripTransientAttributes(doc)
       const wrapper = doc.getElementById("content")
       let html: string
       if (wrapper) {
@@ -292,7 +294,10 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   const originalTextsRef = useRef<Record<string, string>>({})
   const measureTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const sanitizedHtml = useMemo(() => DOMPurify.sanitize(html), [html])
+  const sanitizedHtml = useMemo(
+    () => DOMPurify.sanitize(html, { FORBID_ATTR: ["contenteditable"] }),
+    [html],
+  )
   // Convert LaTeX to MathML for display via the API — the underlying data stays as LaTeX.
   // Start with sanitized HTML immediately, then update when the API responds.
   const [displayHtml, setDisplayHtml] = useState(sanitizedHtml)
