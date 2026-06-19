@@ -5,7 +5,8 @@ import { z } from "zod"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel, ImageClassificationOutput, PageSectioningOutput, WebRenderingOutput, ImageCaptioningOutput, ImageSegmentRegion, DEFAULT_LLM_MAX_RETRIES, primaryFontFamily, reflowableFontChain } from "@adt/types"
-import type { ContentNodeData } from "@adt/types"
+import type { ContentNodeData, ExtractionWarning } from "@adt/types"
+import { classifyExtractionWarning, flattenVisibleSectioningText } from "../services/extraction-warning.js"
 import { openBookDb } from "@adt/storage"
 import { createBookStorage } from "@adt/storage"
 import type { Storage } from "@adt/storage"
@@ -66,6 +67,9 @@ interface PageSummary {
   renderingVersion: number | null
   sectioningVersion: number | null
   sections: PageSummarySection[]
+  /** Extraction-quality warning for this page (no readable text when there
+   *  should be), or null when the page extracted cleanly / is blank. */
+  extractionWarning: ExtractionWarning | null
 }
 
 interface PageDetail {
@@ -97,6 +101,9 @@ interface PageDetail {
    *  fixed-layout books and for the Merriweather default (no override needed).
    *  Mirrors what packaging/preview inject, so the storyboard preview can match. */
   reflowableFontFamily: string | null
+  /** Extraction-quality warning for this page (no readable text when there
+   *  should be), or null when the page extracted cleanly / is blank. */
+  extractionWarning: ExtractionWarning | null
   versions: {
     sectioning: number | null
     imageClassification: number | null
@@ -671,6 +678,10 @@ export function createPageRoutes(
         renderingVersion: renderingByPage.get(p.page_id)?.version ?? null,
         sectioningVersion: sectioningVersions.get(p.page_id) ?? null,
         sections: sectionsByPage.get(p.page_id) ?? [],
+        // Cross-check: empty extracted text layer, but the Sectioning step
+        // recovered text from the page image → the PDF isn't exposing this
+        // page's text directly (scanned/image-only page).
+        extractionWarning: classifyExtractionWarning(p.text, structuredText.get(p.page_id)),
       }))
 
       return c.json(result)
@@ -757,6 +768,14 @@ export function createPageRoutes(
         if (parsed.success) sectioningTreeForUI = parsed.data
       }
 
+      // Cross-check the empty text layer against vision-recovered text (see
+      // classifyExtractionWarning). Uses the validated tree so we don't read
+      // text from a malformed blob.
+      const recoveredSectioningText = flattenVisibleSectioningText(
+        (sectioningTreeForUI as { sections?: Array<{ isPruned?: boolean; nodes?: unknown[] }> } | null)
+          ?.sections
+      )
+
       // Per-image meta (width/height/bounds) — sourced directly from the
       // images table rather than node_data so it reflects the latest state.
       const imageMetaRows = db.all(
@@ -796,6 +815,7 @@ export function createPageRoutes(
         fonts: derivePageFonts(positionedTextNode?.data),
         fontProfile,
         reflowableFontFamily,
+        extractionWarning: classifyExtractionWarning(page.text, recoveredSectioningText),
         versions: {
           sectioning: sectioningNode?.version ?? null,
           imageClassification: imageClassNode?.version ?? null,

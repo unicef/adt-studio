@@ -406,6 +406,23 @@ export function ExtractPageDetail({
               {page.text}
             </div>
           </div>
+        ) : page.extractionWarning ? (
+          <div className="rounded border border-amber-200 bg-amber-50 p-3">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-amber-800 uppercase tracking-wider mb-1">
+              <AlertTriangle className="h-3 w-3" />
+              <Trans>No text extracted</Trans>
+            </div>
+            <p className="text-xs text-amber-700 leading-relaxed">
+              <Trans>
+                This page's embedded text layer is empty, but the Sectioning step
+                recovered text from the page image — so it looks like a scanned or
+                image-only page. The pipeline can still work from the recovered
+                text, but for better summaries, metadata, and translations, try to
+                obtain a text-based version of this PDF (one with a real text
+                layer) rather than a scanned copy.
+              </Trans>
+            </p>
+          </div>
         ) : (
           <div className="text-sm text-muted-foreground py-8 text-center">
             <Trans>No extracted text yet. Run the pipeline first.</Trans>

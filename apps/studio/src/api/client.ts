@@ -4,6 +4,7 @@ import type {
   BookDetail,
   BookMetadata,
   BookSummary,
+  ExtractionWarning,
   ReviewerPageValidationRecord,
   ReviewerValidationIdentificationField,
   ReviewerValidationInstruction,
@@ -198,6 +199,9 @@ export interface PageSummaryItem {
   renderingVersion: number | null
   sectioningVersion: number | null
   sections: PageSummarySection[]
+  /** Warning when the page extracted no readable text but evidently should
+   *  have (undecodable fonts or an image-only/scanned page); null otherwise. */
+  extractionWarning: ExtractionWarning | null
 }
 
 export interface SectionRendering {
@@ -282,6 +286,9 @@ export interface PageDetail {
    *  the Merriweather default). The storyboard preview injects it to match the
    *  packaged output. */
   reflowableFontFamily: string | null
+  /** Warning when the page extracted no readable text but evidently should
+   *  have (undecodable fonts or an image-only/scanned page); null otherwise. */
+  extractionWarning: ExtractionWarning | null
   versions: {
     imageClassification: number | null
     imageCropping: number | null
