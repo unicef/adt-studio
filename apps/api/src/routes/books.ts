@@ -26,6 +26,15 @@ import {
   type ExportResult,
 } from "../services/export-service.js"
 import { importProject, previewImport } from "../services/import-service.js"
+import {
+  exportPart,
+  importPart,
+  previewImportPart,
+  isPartArchive,
+  previewMerge,
+  mergePart,
+  getPartInfo,
+} from "../services/part-service.js"
 import type { TaskService } from "../services/task-service.js"
 
 const MIME_TYPES: Record<string, string> = {
@@ -168,8 +177,12 @@ export function createBookRoutes(
     }
 
     const zipBuffer = Buffer.from(await zip.arrayBuffer())
-    const preview = previewImport(zipBuffer)
-    return c.json(preview)
+    // A "part" archive (PDF + window + manifest, no DB) previews differently
+    // from a full project; the response carries `isPart: true` to disambiguate.
+    if (isPartArchive(zipBuffer)) {
+      return c.json(previewImportPart(zipBuffer))
+    }
+    return c.json(previewImport(zipBuffer))
   })
 
   app.post("/books/import", async (c) => {
@@ -181,8 +194,48 @@ export function createBookRoutes(
     }
 
     const zipBuffer = Buffer.from(await zip.arrayBuffer())
-    const book = await importProject(zipBuffer, booksDir)
+    const book = isPartArchive(zipBuffer)
+      ? importPart(zipBuffer, booksDir)
+      : await importProject(zipBuffer, booksDir)
     return c.json(book, 201)
+  })
+
+  // GET /books/:label/part-info — Manifest info if this book is an imported part
+  app.get("/books/:label/part-info", (c) => {
+    const { label } = c.req.param()
+    return c.json(getPartInfo(label, booksDir))
+  })
+
+  // POST /books/:label/preview-merge — Dry-run merge of a completed-part project
+  app.post("/books/:label/preview-merge", async (c) => {
+    const { label } = c.req.param()
+    const formData = await c.req.formData()
+    const zip = formData.get("zip")
+    if (!(zip instanceof File)) {
+      throw new HTTPException(400, { message: "zip file is required" })
+    }
+    const zipBuffer = Buffer.from(await zip.arrayBuffer())
+    return c.json(previewMerge(label, booksDir, zipBuffer, configPath))
+  })
+
+  // POST /books/:label/merge — Merge a completed-part project into the book
+  app.post("/books/:label/merge", async (c) => {
+    const { label } = c.req.param()
+    const formData = await c.req.formData()
+    const zip = formData.get("zip")
+    if (!(zip instanceof File)) {
+      throw new HTTPException(400, { message: "zip file is required" })
+    }
+    const acknowledge = formData.get("acknowledgeSemanticsMismatch") === "true"
+    const zipBuffer = Buffer.from(await zip.arrayBuffer())
+    const result = mergePart(
+      label,
+      booksDir,
+      zipBuffer,
+      { acknowledgeSemanticsMismatch: acknowledge },
+      configPath,
+    )
+    return c.json(result)
   })
 
   app.delete("/books/:label", (c) => {
@@ -406,6 +459,26 @@ export function createBookRoutes(
       return c.body(result.stream)
     })
   }
+
+  // GET /books/:label/export-part — Download a lightweight page-range part
+  // (full PDF + windowed config + fingerprint manifest) for a contributor to
+  // process independently and merge back later.
+  app.get("/books/:label/export-part", (c) => {
+    const { label } = c.req.param()
+    const startPage = Number(c.req.query("startPage"))
+    const endPage = Number(c.req.query("endPage"))
+    if (!Number.isInteger(startPage) || !Number.isInteger(endPage) || startPage < 1) {
+      throw new HTTPException(400, { message: "startPage and endPage query params are required" })
+    }
+    const result = exportPart(label, booksDir, { startPage, endPage }, configPath)
+    c.header("Content-Type", "application/zip")
+    const encodedName = encodeURIComponent(result.filename)
+    c.header(
+      "Content-Disposition",
+      `attachment; filename="${result.safeFilename}"; filename*=UTF-8''${encodedName}`
+    )
+    return c.body(result.stream)
+  })
 
   // GET /books/:label/export-epub — Download book as EPUB 3
   app.get("/books/:label/export-epub", async (c) => {
