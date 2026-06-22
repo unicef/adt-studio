@@ -115,6 +115,34 @@ export interface ImportPreview {
   validationError: string | null
 }
 
+export interface PartInfo {
+  sourceLabel: string
+  range: { startPage: number; endPage: number }
+}
+
+export interface MergePreview {
+  targetLabel: string
+  sourceLabel: string
+  title: string | null
+  range: { startPage: number; endPage: number }
+  identityMatch: boolean
+  semanticsMatch: boolean
+  blocked: boolean
+  blockReason: string | null
+  warnings: string[]
+  addedPageNumbers: number[]
+  replacedPageNumbers: number[]
+  coverage: Array<{ node: string; pages: number }>
+}
+
+export interface MergeResult {
+  targetLabel: string
+  addedPages: number
+  replacedPages: number
+  staleSteps: string[]
+  semanticsOverridden: boolean
+}
+
 export interface AzureCredentials {
   key: string
   region: string
@@ -650,6 +678,36 @@ export const api = {
     const formData = new FormData()
     formData.append("zip", zip)
     return request<BookSummary>("/books/import", {
+      method: "POST",
+      body: formData,
+    })
+  },
+
+  getPartInfo: (label: string) =>
+    request<PartInfo | null>(`/books/${label}/part-info`),
+
+  exportPart: (label: string, startPage: number, endPage: number) => {
+    triggerDirectDownload(
+      `${BASE_URL}/books/${label}/export-part?startPage=${startPage}&endPage=${endPage}`,
+    )
+  },
+
+  previewMerge: (label: string, zip: File) => {
+    const formData = new FormData()
+    formData.append("zip", zip)
+    return request<MergePreview>(`/books/${label}/preview-merge`, {
+      method: "POST",
+      body: formData,
+    })
+  },
+
+  mergePart: (label: string, zip: File, acknowledgeSemanticsMismatch: boolean) => {
+    const formData = new FormData()
+    formData.append("zip", zip)
+    if (acknowledgeSemanticsMismatch) {
+      formData.append("acknowledgeSemanticsMismatch", "true")
+    }
+    return request<MergeResult>(`/books/${label}/merge`, {
       method: "POST",
       body: formData,
     })

@@ -80,6 +80,10 @@ msgstr "{0} / {1}"
 msgid "{0} × {1}px · {2} points"
 msgstr "{0} × {1}px · {2} pontos"
 
+#. placeholder {0}: preview.addedPageNumbers.length
+msgid "{0} added"
+msgstr "{0} adicionadas"
+
 #. placeholder {0}: String(totalAudioFiles)
 msgid "{0} audio"
 msgstr "{0} áudios"
@@ -181,6 +185,10 @@ msgstr "{0} pendentes"
 #. placeholder {0}: String(displayQuizzes.length)
 msgid "{0} questions"
 msgstr "{0} questões"
+
+#. placeholder {0}: preview.replacedPageNumbers.length
+msgid "{0} replaced"
+msgstr "{0} substituídas"
 
 #. placeholder {0}: String(group.blocks.length)
 msgid "{0} sections"
@@ -1003,6 +1011,9 @@ msgstr "Uma imagem com IA está sendo gerada. Cancelar e navegar?"
 msgid "An open-ended answer activity."
 msgstr "Uma atividade de resposta aberta."
 
+msgid "Analyzing part…"
+msgstr "Analisando a parte…"
+
 msgid "and many more blocks across the entire book"
 msgstr "e muitos mais blocos em todo o livro"
 
@@ -1539,6 +1550,9 @@ msgstr "Escolha como o conteúdo deve ser formatado."
 
 msgid "Choose images..."
 msgstr "Escolher imagens..."
+
+msgid "Choose part file…"
+msgstr "Escolher arquivo da parte…"
 
 msgid "Choose Provider"
 msgstr "Escolher provedor"
@@ -2163,6 +2177,12 @@ msgstr "CONCLUÍDO"
 msgid "Download a full backup of this project"
 msgstr "Baixar um backup completo deste projeto"
 
+msgid "Download a lightweight part (the full PDF plus a page range and a fingerprint) for someone else to process on their own machine, then merge their result back here."
+msgstr "Baixe uma parte leve (o PDF completo mais um intervalo de páginas e uma impressão digital) para outra pessoa processar na própria máquina e depois mescle o resultado aqui."
+
+msgid "Download part"
+msgstr "Baixar parte"
+
 msgid "Download size"
 msgstr "Tamanho do download"
 
@@ -2429,6 +2449,9 @@ msgstr "Melhorias"
 msgid "Enter a valid minimum dimension (whole number ≥ 0)"
 msgstr "Insira uma dimensão mínima válida (número inteiro ≥ 0)"
 
+msgid "Enter a valid page range"
+msgstr "Informe um intervalo de páginas válido"
+
 msgid "Enter a valid project name"
 msgstr "Insira um nome de projeto válido"
 
@@ -2528,6 +2551,9 @@ msgstr "Exportar"
 #. placeholder {0}: formatLabels[selectedFormat].label
 msgid "Export {0}"
 msgstr "Exportar {0}"
+
+msgid "Export a part"
+msgstr "Exportar uma parte"
 
 msgid "Export is not blocked by the stages below. As soon as Storyboard is done, you can ship a bundle. Enhancements, Localization, and Validation are optional ways to enrich the book — you can export again anytime later."
 msgstr "A exportação não é bloqueada pelas etapas abaixo. Assim que o Storyboard for concluído, você pode enviar um pacote. Melhorias, Localização e Validação são formas opcionais de enriquecer o livro — você pode exportar novamente a qualquer momento."
@@ -2759,6 +2785,9 @@ msgstr "FR"
 
 msgid "French"
 msgstr "Francês"
+
+msgid "From page"
+msgstr "Da página"
 
 msgid "From reference image..."
 msgstr "A partir de imagem de referência..."
@@ -3060,6 +3089,9 @@ msgstr "Como adicionar questionários"
 msgid "HTML"
 msgstr "HTML"
 
+msgid "I understand the part was processed with different prompts/models and want to merge it anyway."
+msgstr "Entendo que a parte foi processada com prompts/modelos diferentes e quero mesclá-la mesmo assim."
+
 msgid "I'll start later"
 msgstr "Começarei mais tarde"
 
@@ -3207,6 +3239,11 @@ msgstr "Importar projeto"
 msgid "Import Project"
 msgstr "Importar projeto"
 
+#. placeholder {0}: partInfo.range.startPage
+#. placeholder {1}: partInfo.range.endPage
+msgid "Imported part · pages {0}–{1}"
+msgstr "Parte importada · páginas {0}–{1}"
+
 msgid "Importing..."
 msgstr "Importando..."
 
@@ -3230,6 +3267,9 @@ msgstr "Incluir na renderização"
 
 msgid "Include text overlays in vector groups"
 msgstr "Incluir sobreposições de texto em grupos vetoriais"
+
+msgid "Includes:"
+msgstr "Inclui:"
 
 msgid "Increase indent"
 msgstr "Aumentar recuo"
@@ -3696,6 +3736,12 @@ msgstr "Referências médicas"
 msgid "Medium"
 msgstr "Médio"
 
+msgid "Merge a completed part"
+msgstr "Mesclar uma parte concluída"
+
+msgid "Merge another"
+msgstr "Mesclar outra"
+
 msgid "Merge facing pages as spreads"
 msgstr "Mesclar páginas adjacentes como duplas"
 
@@ -3714,6 +3760,9 @@ msgstr "mesclar na página anterior"
 msgid "Merge into previous page"
 msgstr "Mesclar na página anterior"
 
+msgid "Merge part"
+msgstr "Mesclar parte"
+
 msgid "merge with next"
 msgstr "mesclar com a próxima"
 
@@ -3731,6 +3780,14 @@ msgstr "Mesclar com a anterior"
 
 msgid "merge with previous section"
 msgstr "mesclar com a seção anterior"
+
+#. placeholder {0}: result.addedPages
+#. placeholder {1}: result.replacedPages
+msgid "Merged · {0} added, {1} replaced"
+msgstr "Mesclado · {0} adicionadas, {1} substituídas"
+
+msgid "Merging…"
+msgstr "Mesclando…"
 
 msgid "Messages"
 msgstr "Mensagens"
@@ -4530,7 +4587,9 @@ msgid "Pages"
 msgstr "Páginas"
 
 #. placeholder {0}: activeSession.session.start_page ?? "?"
+#. placeholder {0}: preview.range.startPage
 #. placeholder {1}: activeSession.session.end_page ?? "?"
+#. placeholder {1}: preview.range.endPage
 msgid "Pages {0}–{1}"
 msgstr "Pages {0}–{1}"
 
@@ -4936,6 +4995,9 @@ msgstr "Reexecutar {stageLabel}?"
 
 msgid "Re-run speech"
 msgstr "Reexecutar áudio"
+
+msgid "Re-run these book-level stages on the assembled book:"
+msgstr "Execute novamente estas etapas de nível de livro no livro montado:"
 
 msgid "Re-run translation"
 msgstr "Reexecutar tradução"
@@ -5969,6 +6031,9 @@ msgstr "Prompts de fala"
 msgid "Speech Settings"
 msgstr "Configurações de Fala"
 
+msgid "Split & merge"
+msgstr "Dividir e mesclar"
+
 msgid "Split segments"
 msgstr "Segmentos divididos"
 
@@ -6407,6 +6472,9 @@ msgstr "Produzem flores para atrair polinizadores."
 msgid "They release oxygen directly into the air."
 msgstr "Liberam oxigênio diretamente no ar."
 
+msgid "This book has {pageCount} pages."
+msgstr "Este livro tem {pageCount} páginas."
+
 msgid "This book has no images to caption"
 msgstr "Este livro não tem imagens para legendar"
 
@@ -6458,6 +6526,9 @@ msgstr "Esta página não tem entradas de texto traduzíveis"
 
 msgid "This page has not been reviewed yet"
 msgstr "This page has not been reviewed yet"
+
+msgid "This part cannot be merged"
+msgstr "Esta parte não pode ser mesclada"
 
 msgid "This permanently deletes every uploaded video and clears all section assignments. This can't be undone."
 msgstr "Isso exclui permanentemente todos os vídeos enviados e limpa todas as atribuições de seção. Isso não pode ser desfeito."
@@ -6548,6 +6619,9 @@ msgstr "Títulos retirados literalmente dos títulos das seções classificadas.
 
 msgid "to"
 msgstr "até"
+
+msgid "To page"
+msgstr "Até a página"
 
 msgid "to stream API logs here."
 msgstr "para transmitir logs de API aqui."
@@ -6788,6 +6862,9 @@ msgstr "Atualização baixada. Reinicie para instalar."
 
 msgid "Upload"
 msgstr "Enviar"
+
+msgid "Upload a completed part (exported as a project). Per-page results are copied in as new versions; book-level stages are marked for re-running."
+msgstr "Envie uma parte concluída (exportada como projeto). Os resultados por página são copiados como novas versões; as etapas de nível de livro são marcadas para reexecução."
 
 msgid "Upload a new image file from your computer"
 msgstr "Envie um novo arquivo de imagem do seu computador"

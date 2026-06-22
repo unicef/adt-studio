@@ -81,6 +81,10 @@ msgstr "{0} / {1}"
 msgid "{0} × {1}px · {2} points"
 msgstr "{0} × {1}px · {2} pika"
 
+#. placeholder {0}: preview.addedPageNumbers.length
+msgid "{0} added"
+msgstr "{0} të shtuara"
+
 #. placeholder {0}: String(totalAudioFiles)
 msgid "{0} audio"
 msgstr "{0} audio"
@@ -182,6 +186,10 @@ msgstr "{0} në pritje"
 #. placeholder {0}: String(displayQuizzes.length)
 msgid "{0} questions"
 msgstr "{0} pyetje"
+
+#. placeholder {0}: preview.replacedPageNumbers.length
+msgid "{0} replaced"
+msgstr "{0} të zëvendësuara"
 
 #. placeholder {0}: String(group.blocks.length)
 msgid "{0} sections"
@@ -1004,6 +1012,9 @@ msgstr "Po gjenerohet një imazh me AI. Ta anulosh dhe të vazhdosh?"
 msgid "An open-ended answer activity."
 msgstr "Një aktivitet me përgjigje të hapur."
 
+msgid "Analyzing part…"
+msgstr "Po analizohet pjesa…"
+
 msgid "and many more blocks across the entire book"
 msgstr "dhe shumë blloqe të tjera në të gjithë librin"
 
@@ -1540,6 +1551,9 @@ msgstr "Zgjidhni si duhet të formatohet përmbajtja."
 
 msgid "Choose images..."
 msgstr "Zgjidhni imazhe..."
+
+msgid "Choose part file…"
+msgstr "Zgjidh skedarin e pjesës…"
 
 msgid "Choose Provider"
 msgstr "Zgjidhni Ofruesin"
@@ -2164,6 +2178,12 @@ msgstr "KRYER"
 msgid "Download a full backup of this project"
 msgstr "Shkarko një kopje rezervë të plotë të këtij projekti"
 
+msgid "Download a lightweight part (the full PDF plus a page range and a fingerprint) for someone else to process on their own machine, then merge their result back here."
+msgstr "Shkarko një pjesë të lehtë (PDF-ja e plotë plus një interval faqesh dhe një gjurmë) që dikush tjetër ta përpunojë në makinën e vet, e më pas bashko rezultatin e tij këtu."
+
+msgid "Download part"
+msgstr "Shkarko pjesën"
+
 msgid "Download size"
 msgstr "Madhësia e shkarkimit"
 
@@ -2430,6 +2450,9 @@ msgstr "Përmirësime"
 msgid "Enter a valid minimum dimension (whole number ≥ 0)"
 msgstr "Shkruani një dimension minimal të vlefshëm (numër i plotë ≥ 0)"
 
+msgid "Enter a valid page range"
+msgstr "Fut një interval faqesh të vlefshëm"
+
 msgid "Enter a valid project name"
 msgstr "Shkruani një emër të vlefshëm projekti"
 
@@ -2529,6 +2552,9 @@ msgstr "Eksporto"
 #. placeholder {0}: formatLabels[selectedFormat].label
 msgid "Export {0}"
 msgstr "Eksporto {0}"
+
+msgid "Export a part"
+msgstr "Eksporto një pjesë"
 
 msgid "Export is not blocked by the stages below. As soon as Storyboard is done, you can ship a bundle. Enhancements, Localization, and Validation are optional ways to enrich the book — you can export again anytime later."
 msgstr "Eksporti nuk bllokohet nga fazat më poshtë. Sapo të përfundojë Storyboard-i, mund të dërgoni një paketë. Përmirësimet, Lokalizimi dhe Validimi janë mënyra opsionale për ta pasuruar librin — mund të eksportoni përsëri në çdo kohë."
@@ -2760,6 +2786,9 @@ msgstr "FR"
 
 msgid "French"
 msgstr "Frëngjisht"
+
+msgid "From page"
+msgstr "Nga faqja"
 
 msgid "From reference image..."
 msgstr "Nga imazhi referues..."
@@ -3061,6 +3090,9 @@ msgstr "Si të shtohen kuizet"
 msgid "HTML"
 msgstr "HTML"
 
+msgid "I understand the part was processed with different prompts/models and want to merge it anyway."
+msgstr "E kuptoj se pjesa u përpunua me prompte/modele të ndryshme dhe dua ta bashkoj gjithsesi."
+
 msgid "I'll start later"
 msgstr "Do të filloj më vonë"
 
@@ -3208,6 +3240,11 @@ msgstr "Importo projektin"
 msgid "Import Project"
 msgstr "Importo Projektin"
 
+#. placeholder {0}: partInfo.range.startPage
+#. placeholder {1}: partInfo.range.endPage
+msgid "Imported part · pages {0}–{1}"
+msgstr "Pjesë e importuar · faqet {0}–{1}"
+
 msgid "Importing..."
 msgstr "Duke importuar..."
 
@@ -3231,6 +3268,9 @@ msgstr "Përfshi në paraqitje"
 
 msgid "Include text overlays in vector groups"
 msgstr "Përfshi mbivendosjet e tekstit në grupet vektoriale"
+
+msgid "Includes:"
+msgstr "Përfshin:"
 
 msgid "Increase indent"
 msgstr "Rrit dhëmbëzimin"
@@ -3697,6 +3737,12 @@ msgstr "Referenca mjekësore"
 msgid "Medium"
 msgstr "Mesatar"
 
+msgid "Merge a completed part"
+msgstr "Bashko një pjesë të përfunduar"
+
+msgid "Merge another"
+msgstr "Bashko një tjetër"
+
 msgid "Merge facing pages as spreads"
 msgstr "Bashko faqet ballë-përballë si hapësira"
 
@@ -3715,6 +3761,9 @@ msgstr "bashko me faqen e mëparshme"
 msgid "Merge into previous page"
 msgstr "Bashko me faqen e mëparshme"
 
+msgid "Merge part"
+msgstr "Bashko pjesën"
+
 msgid "merge with next"
 msgstr "bashko me të ardhshmin"
 
@@ -3732,6 +3781,14 @@ msgstr "Bashko me të mëparshmit"
 
 msgid "merge with previous section"
 msgstr "bashko me seksionin e mëparshëm"
+
+#. placeholder {0}: result.addedPages
+#. placeholder {1}: result.replacedPages
+msgid "Merged · {0} added, {1} replaced"
+msgstr "U bashkua · {0} të shtuara, {1} të zëvendësuara"
+
+msgid "Merging…"
+msgstr "Po bashkohet…"
 
 msgid "Messages"
 msgstr "Mesazhe"
@@ -4531,7 +4588,9 @@ msgid "Pages"
 msgstr "Faqet"
 
 #. placeholder {0}: activeSession.session.start_page ?? "?"
+#. placeholder {0}: preview.range.startPage
 #. placeholder {1}: activeSession.session.end_page ?? "?"
+#. placeholder {1}: preview.range.endPage
 msgid "Pages {0}–{1}"
 msgstr "Faqet {0}–{1}"
 
@@ -4937,6 +4996,9 @@ msgstr "Ri-ekzekuto {stageLabel}?"
 
 msgid "Re-run speech"
 msgstr "Ri-ekzekuto fjalimin"
+
+msgid "Re-run these book-level stages on the assembled book:"
+msgstr "Riekzekuto këto faza në nivel libri në librin e bashkuar:"
 
 msgid "Re-run translation"
 msgstr "Ri-ekzekuto përkthimin"
@@ -5970,6 +6032,9 @@ msgstr "Prompte të të Folurit"
 msgid "Speech Settings"
 msgstr "Cilësimet e të Folurit"
 
+msgid "Split & merge"
+msgstr "Ndaj dhe bashko"
+
 msgid "Split segments"
 msgstr "Ndaj segmentet"
 
@@ -6408,6 +6473,9 @@ msgstr "Ato prodhojnë lule për të tërhequr polenizuesit."
 msgid "They release oxygen directly into the air."
 msgstr "Ato lëshojnë oksigjen drejtpërdrejt në ajër."
 
+msgid "This book has {pageCount} pages."
+msgstr "Ky libër ka {pageCount} faqe."
+
 msgid "This book has no images to caption"
 msgstr "Ky libër nuk ka imazhe për t'i titulluar"
 
@@ -6459,6 +6527,9 @@ msgstr "Kjo faqe nuk ka hyrje teksti të përkthyeshme"
 
 msgid "This page has not been reviewed yet"
 msgstr "Kjo faqe nuk është rishikuar akoma"
+
+msgid "This part cannot be merged"
+msgstr "Kjo pjesë nuk mund të bashkohet"
 
 msgid "This permanently deletes every uploaded video and clears all section assignments. This can't be undone."
 msgstr "Kjo fshin përgjithmonë çdo video të ngarkuar dhe pastron të gjitha caktimet e seksioneve. Ky veprim nuk mund të zhbëhet."
@@ -6549,6 +6620,9 @@ msgstr "Titujt marrë fjalë për fjalë nga titujt e seksioneve të shtypura."
 
 msgid "to"
 msgstr "te"
+
+msgid "To page"
+msgstr "Deri te faqja"
 
 msgid "to stream API logs here."
 msgstr "për të transmetuar regjistrat API këtu."
@@ -6789,6 +6863,9 @@ msgstr "Përditësimi u shkarkua. Rinisni për të instaluar."
 
 msgid "Upload"
 msgstr "Ngarko"
+
+msgid "Upload a completed part (exported as a project). Per-page results are copied in as new versions; book-level stages are marked for re-running."
+msgstr "Ngarko një pjesë të përfunduar (e eksportuar si projekt). Rezultatet për çdo faqe kopjohen si versione të reja; fazat në nivel libri shënohen për riekzekutim."
 
 msgid "Upload a new image file from your computer"
 msgstr "Ngarko një skedar imazhi të ri nga kompjuteri yt"
