@@ -3925,6 +3925,9 @@ msgstr "No disabled rules"
 msgid "No Easy Read for this page"
 msgstr "No Easy Read for this page"
 
+msgid "No embedded text layer — text was recovered from the page image"
+msgstr "No embedded text layer — text was recovered from the page image"
+
 msgid "No entries match your search"
 msgstr "No entries match your search"
 
@@ -4048,8 +4051,8 @@ msgstr "No quizzes for this page"
 msgid "No quizzes match your search"
 msgstr "No quizzes match your search"
 
-msgid "No readable text extracted from this page"
-msgstr "No readable text extracted from this page"
+#~ msgid "No readable text extracted from this page"
+#~ msgstr "No readable text extracted from this page"
 
 msgid "No rendered content for this section"
 msgstr "No rendered content for this section"

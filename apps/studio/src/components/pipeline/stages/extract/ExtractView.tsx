@@ -87,7 +87,7 @@ function PageCard({
             {page.extractionWarning && (
               <span
                 className="flex items-center text-amber-600"
-                title={t`No readable text extracted from this page`}
+                title={t`No embedded text layer — text was recovered from the page image`}
               >
                 <TriangleAlert className="h-2.5 w-2.5" />
               </span>

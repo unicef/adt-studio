@@ -768,13 +768,20 @@ export function createPageRoutes(
         if (parsed.success) sectioningTreeForUI = parsed.data
       }
 
-      // Cross-check the empty text layer against vision-recovered text (see
-      // classifyExtractionWarning). Uses the validated tree so we don't read
-      // text from a malformed blob.
-      const recoveredSectioningText = flattenVisibleSectioningText(
-        (sectioningTreeForUI as { sections?: Array<{ isPruned?: boolean; nodes?: unknown[] }> } | null)
-          ?.sections
-      )
+      // Cross-check the empty text layer against the Sectioning step's
+      // vision-recovered text (see classifyExtractionWarning). Read from the raw
+      // stored blob — the SAME source the pages-summary route uses — so the
+      // warning stays consistent across the grid badge, banners, sidebar, and
+      // this detail view even when the blob doesn't fully validate against the
+      // canonical schema. Only walked when the text layer is empty, since
+      // classifyExtractionWarning short-circuits on non-empty text.
+      const recoveredSectioningText =
+        page.text.trim().length === 0
+          ? flattenVisibleSectioningText(
+              (sectioningNode?.data as { sections?: Array<{ isPruned?: boolean; nodes?: unknown[] }> } | null)
+                ?.sections
+            )
+          : ""
 
       // Per-image meta (width/height/bounds) — sourced directly from the
       // images table rather than node_data so it reflects the latest state.

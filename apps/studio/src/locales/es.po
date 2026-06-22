@@ -3925,6 +3925,9 @@ msgstr "No disabled rules"
 msgid "No Easy Read for this page"
 msgstr "No hay Lectura Fácil para esta página"
 
+msgid "No embedded text layer — text was recovered from the page image"
+msgstr "Sin capa de texto incrustado — el texto se recuperó a partir de la imagen de la página"
+
 msgid "No entries match your search"
 msgstr "No hay entradas que coincidan con tu búsqueda"
 
@@ -4048,8 +4051,8 @@ msgstr "No hay quizzes para esta página"
 msgid "No quizzes match your search"
 msgstr "Ningún cuestionario coincide con tu búsqueda"
 
-msgid "No readable text extracted from this page"
-msgstr "No se extrajo texto legible de esta página"
+#~ msgid "No readable text extracted from this page"
+#~ msgstr "No se extrajo texto legible de esta página"
 
 msgid "No rendered content for this section"
 msgstr "Sin contenido renderizado para esta sección"

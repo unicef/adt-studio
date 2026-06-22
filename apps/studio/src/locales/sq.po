@@ -3926,6 +3926,9 @@ msgstr "Nuk ka rregulla të çaktiviziuara"
 msgid "No Easy Read for this page"
 msgstr "Nuk ka Lexim të Lehtë për këtë faqe"
 
+msgid "No embedded text layer — text was recovered from the page image"
+msgstr "Pa shtresë teksti të integruar — teksti u rikuperua nga imazhi i faqes"
+
 msgid "No entries match your search"
 msgstr "Asnjë hyrje nuk përputhet me kërkimin tuaj"
 
@@ -4049,8 +4052,8 @@ msgstr "Nuk ka kuize për këtë faqe"
 msgid "No quizzes match your search"
 msgstr "Asnjë kuiz nuk përputhet me kërkimin tuaj"
 
-msgid "No readable text extracted from this page"
-msgstr "Nuk u nxor tekst i lexueshëm nga kjo faqe"
+#~ msgid "No readable text extracted from this page"
+#~ msgstr "Nuk u nxor tekst i lexueshëm nga kjo faqe"
 
 msgid "No rendered content for this section"
 msgstr "Nuk ka përmbajtje të gjeneruar për këtë seksion"

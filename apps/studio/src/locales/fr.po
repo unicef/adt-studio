@@ -3927,6 +3927,9 @@ msgstr "Aucune règle désactivée"
 msgid "No Easy Read for this page"
 msgstr "Pas de lecture facile pour cette page"
 
+msgid "No embedded text layer — text was recovered from the page image"
+msgstr "Pas de couche de texte intégrée — le texte a été récupéré à partir de l'image de la page"
+
 msgid "No entries match your search"
 msgstr "Aucune entrée ne correspond à votre recherche"
 
@@ -4050,8 +4053,8 @@ msgstr "Aucun quiz pour cette page"
 msgid "No quizzes match your search"
 msgstr "Aucun quiz ne correspond à votre recherche"
 
-msgid "No readable text extracted from this page"
-msgstr "Aucun texte lisible extrait de cette page"
+#~ msgid "No readable text extracted from this page"
+#~ msgstr "Aucun texte lisible extrait de cette page"
 
 msgid "No rendered content for this section"
 msgstr "Aucun contenu rendu pour cette section"
