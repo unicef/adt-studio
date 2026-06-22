@@ -256,6 +256,10 @@ describe("bundleBookFontsIntoCss", () => {
 
   it("bundles google fonts from the cache and fails loudly when unreachable", async () => {
     const adtDir = setupAdtDir()
+    fs.writeFileSync(
+      path.join(adtDir, "pg001.html"),
+      `<style>body{font-family:'Lexend','Merriweather',sans-serif}</style>`,
+    )
     const cacheDir = path.join(tmpDir, ".fonts-cache")
     const registry: BookFontRegistry = {
       fonts: [

@@ -744,11 +744,11 @@ export async function packageAdtWeb(
   const activityIds = collectActivityIds(adtDir, pageList)
   generateScormAdapter(assetsDir, activityIds)
 
-  // Bundle any Google Fonts the book uses (fetch the woff2, inline as base64
-  // @font-face) so they render under file:// / offline; the online <link> in
-  // each page stays as the fallback when the fetch fails. Runs before
-  // inlineFontsInCss, which only rewrites local ./fonts/ urls and leaves these
-  // data: URIs alone.
+  // Bundle any Google Fonts the book uses (fetch the woff2 into assets/fonts/
+  // and link them) so they render under file:// / offline; the online <link>
+  // in each page stays as the fallback when the fetch fails. @font-face url()
+  // loads work under file:// — unlike fetch(), which the offline preloader
+  // patches — so fonts are linked, not base64-inlined.
   progress.emit({ type: "step-progress", step, message: "Bundling fonts..." })
   const fontsCacheDir = resolveFontsCacheDir(path.dirname(bookDir))
 
@@ -775,11 +775,6 @@ export async function packageAdtWeb(
   if (bundledFonts.length > 0) {
     progress.emit({ type: "step-progress", step, message: `Bundled fonts: ${bundledFonts.join(", ")}` })
   }
-
-  // Inline fonts as base64 in fonts.css so `@font-face` works under file://
-  // (browsers treat each file:// path as a unique origin and block cross-origin
-  // font requests; data: URIs sidestep this entirely).
-  inlineFontsInCss(adtDir)
 
   // Offline preloader must run after all asset writes — it snapshots the
   // final state of every file it inlines (page HTML, content JSON, nav.html).
@@ -2168,37 +2163,6 @@ async function renderAgentsMd(
 // ---------------------------------------------------------------------------
 // SCORM + Offline support generators
 // ---------------------------------------------------------------------------
-
-const FONT_DATA_MIME: Record<string, string> = {
-  woff2: "font/woff2",
-  woff: "font/woff",
-  truetype: "font/ttf",
-  opentype: "font/otf",
-}
-
-/**
- * Rewrite `assets/fonts.css` so each `@font-face` `url('./fonts/X.woff2')`
- * becomes a `data:...;base64,...` URI, then delete `assets/fonts/`.
- * Required for `file://` (double-click) mode: browsers treat every file path
- * as a unique origin and block cross-origin font fetches, even though the
- * font file lives in the same directory tree.
- */
-function inlineFontsInCss(adtDir: string): void {
-  const cssPath = path.join(adtDir, "assets", "fonts.css")
-  if (!fs.existsSync(cssPath)) return
-  const original = fs.readFileSync(cssPath, "utf-8")
-  const updated = original.replace(
-    /url\(\s*['"]?(?:\.\/)?fonts\/([^'")]+)['"]?\s*\)\s*format\(\s*['"](woff2|woff|truetype|opentype)['"]\s*\)/g,
-    (_match, file: string, format: string) => {
-      const fontPath = path.join(adtDir, "assets", "fonts", file)
-      const b64 = fs.readFileSync(fontPath).toString("base64")
-      return `url('data:${FONT_DATA_MIME[format]};base64,${b64}') format('${format}')`
-    },
-  )
-  if (updated === original) return
-  fs.writeFileSync(cssPath, updated)
-  fs.rmSync(path.join(adtDir, "assets", "fonts"), { recursive: true, force: true })
-}
 
 /**
  * Generate `assets/offline-preloader.js` — inlines all JSON/HTML files that

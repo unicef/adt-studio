@@ -4,8 +4,8 @@ import os from "node:os"
 import path from "node:path"
 import {
   extractWoff2Urls,
-  inlineWoff2Urls,
-  buildInlinedGoogleFontFaceCss,
+  linkWoff2Urls,
+  buildLinkedGoogleFontFaceCss,
   bundleGoogleFontsIntoCss,
 } from "../google-fonts-bundle.js"
 
@@ -46,32 +46,36 @@ describe("extractWoff2Urls", () => {
   })
 })
 
-describe("inlineWoff2Urls", () => {
-  it("rewrites mapped urls to data URIs and leaves unmapped ones", () => {
-    const map = new Map([["https://fonts.gstatic.com/s/mousememoirs/v19/AAA.woff2", "QUFB"]])
-    const out = inlineWoff2Urls(SAMPLE_CSS, map)
-    expect(out).toContain("url('data:font/woff2;base64,QUFB')")
+describe("linkWoff2Urls", () => {
+  it("rewrites mapped urls to local ./fonts/ paths and leaves unmapped ones", () => {
+    const map = new Map([["https://fonts.gstatic.com/s/mousememoirs/v19/AAA.woff2", "gf-aaa.woff2"]])
+    const out = linkWoff2Urls(SAMPLE_CSS, map)
+    expect(out).toContain("url('./fonts/gf-aaa.woff2')")
     // BBB wasn't in the map → left as the original remote url.
     expect(out).toContain("/BBB.woff2)")
   })
 })
 
-describe("buildInlinedGoogleFontFaceCss", () => {
-  it("inlines every woff2 as base64 with no remaining remote urls", async () => {
-    const css = await buildInlinedGoogleFontFaceCss(["Mouse Memoirs"], {
+describe("buildLinkedGoogleFontFaceCss", () => {
+  it("downloads every woff2 to outFontsDir and links them with no remaining remote urls", async () => {
+    const outFontsDir = path.join(makeTmpDir(), "fonts")
+    const css = await buildLinkedGoogleFontFaceCss(["Mouse Memoirs"], outFontsDir, {
       cacheDir: makeTmpDir(),
       fetchText: async () => SAMPLE_CSS,
       fetchBytes: async (u) => Buffer.from(`bytes:${u}`),
     })
     expect(css).toContain("@font-face")
-    expect(css).toContain("data:font/woff2;base64,")
+    expect(css).toContain("url('./fonts/gf-")
     expect(css).not.toContain("https://fonts.gstatic.com")
     // unicode-range preserved so subset selection still works.
     expect(css).toContain("unicode-range")
+    // Two woff2 subsets written as files.
+    expect(fs.readdirSync(outFontsDir).filter((f) => f.endsWith(".woff2"))).toHaveLength(2)
   })
 
-  it("inlines the woff2 that succeed even if one fails (partial success)", async () => {
-    const css = await buildInlinedGoogleFontFaceCss(["Mouse Memoirs"], {
+  it("links the woff2 that succeed even if one fails (partial success)", async () => {
+    const outFontsDir = path.join(makeTmpDir(), "fonts")
+    const css = await buildLinkedGoogleFontFaceCss(["Mouse Memoirs"], outFontsDir, {
       cacheDir: makeTmpDir(),
       fetchText: async () => SAMPLE_CSS,
       // AAA succeeds, BBB fails.
@@ -80,14 +84,15 @@ describe("buildInlinedGoogleFontFaceCss", () => {
         return Buffer.from(`bytes:${u}`)
       },
     })
-    // The successful subset is inlined…
-    expect(css).toContain("data:font/woff2;base64,")
+    // The successful subset is linked…
+    expect(css).toContain("url('./fonts/gf-")
     // …and the failed one is left as its remote url (works online).
     expect(css).toContain("/BBB.woff2)")
+    expect(fs.readdirSync(outFontsDir).filter((f) => f.endsWith(".woff2"))).toHaveLength(1)
   })
 
   it("returns '' (graceful) when the fetch fails", async () => {
-    const css = await buildInlinedGoogleFontFaceCss(["Mouse Memoirs"], {
+    const css = await buildLinkedGoogleFontFaceCss(["Mouse Memoirs"], path.join(makeTmpDir(), "fonts"), {
       cacheDir: makeTmpDir(),
       fetchText: async () => {
         throw new Error("offline")
@@ -98,7 +103,7 @@ describe("buildInlinedGoogleFontFaceCss", () => {
   })
 
   it("returns '' for an empty family list", async () => {
-    expect(await buildInlinedGoogleFontFaceCss([])).toBe("")
+    expect(await buildLinkedGoogleFontFaceCss([], path.join(makeTmpDir(), "fonts"))).toBe("")
   })
 })
 
@@ -118,16 +123,21 @@ describe("bundleGoogleFontsIntoCss", () => {
     fetchBytes: async (u: string) => Buffer.from(`bytes:${u}`),
   }
 
-  it("appends inlined @font-face for fonts the pages use", async () => {
+  it("appends linked @font-face for fonts the pages use and writes the woff2 files", async () => {
     const adtDir = setupBook(
       `<p><span style="font-family:'Mouse Memoirs',Merriweather,serif">Hi</span></p>`,
     )
     const bundled = await bundleGoogleFontsIntoCss(adtDir, { ...deps, cacheDir: makeTmpDir() })
     expect(bundled).toEqual(["Mouse Memoirs"])
     const css = fs.readFileSync(path.join(adtDir, "assets", "fonts.css"), "utf-8")
-    expect(css).toContain("data:font/woff2;base64,")
+    expect(css).toContain("url('./fonts/gf-")
+    expect(css).not.toContain("base64")
     // Original Merriweather rule is preserved (untouched by this step).
     expect(css).toContain("Merriweather")
+    // The referenced woff2 subsets were written into assets/fonts/.
+    expect(
+      fs.readdirSync(path.join(adtDir, "assets", "fonts")).filter((f) => f.endsWith(".woff2")),
+    ).toHaveLength(2)
   })
 
   it("does nothing when no page references a registered Google font", async () => {

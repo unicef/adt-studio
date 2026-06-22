@@ -98,7 +98,7 @@ function createMinimalStorage(): Storage {
 }
 
 describe("renderPageHtml", () => {
-  it("does not emit font preload links (fonts are inlined as base64 in fonts.css for file:// support)", () => {
+  it("does not emit font preload links (fonts are declared in fonts.css)", () => {
     const html = renderPageHtml({
       content: "<p>Hello</p>",
       language: "en",
@@ -243,7 +243,7 @@ describe("renderPageHtml", () => {
     expect(html).not.toContain("scorm.js")
   })
 
-  it("does not reference woff2 fonts directly (they are inlined as base64 in fonts.css)", () => {
+  it("does not reference woff2 fonts directly (they are declared in fonts.css)", () => {
     const html = renderPageHtml({
       content: "<p>Hello</p>",
       language: "en",

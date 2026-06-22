@@ -348,9 +348,7 @@ export async function bundleBookFontsIntoCss(
     if (name.endsWith(".html")) allHtml += fs.readFileSync(path.join(adtDir, name), "utf-8")
   }
   const referencedIds = new Set(bookFontsReferencedIn(allHtml, registry).map((f) => f.id))
-  const needed = registry.fonts.filter(
-    (f) => referencedIds.has(f.id) || f.role !== "unassigned",
-  )
+  const needed = registry.fonts.filter((f) => referencedIds.has(f.id))
   if (needed.length === 0) return []
 
   const googleFamilies = needed.filter((f) => f.source === "google").map((f) => f.family)
