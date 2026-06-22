@@ -253,9 +253,9 @@ function BookRow({
           {/* Top: title + badges */}
           <div className="flex items-start justify-between gap-3 mb-3">
             <div className="flex items-center gap-2.5 min-w-0">
-              <h3 className="font-semibold text-base truncate">
+              <h2 className="font-semibold text-base truncate">
                 {book.title ?? book.label}
-              </h3>
+              </h2>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               {book.needsRebuild && (
