@@ -58,6 +58,19 @@ export {
   getCacheResourcesForStageClear,
 } from "./pipeline-effects.js"
 
+export {
+  type PipelineFingerprint,
+  type FingerprintComparison,
+  EXTRACTION_CONFIG_KEYS,
+  PER_PAGE_PROMPT_KEYS,
+  canonicalJson,
+  computeFingerprint,
+  compareFingerprints,
+  hashPdfBytes,
+} from "./fingerprint.js"
+
+export { PartRange, PartManifest } from "./part.js"
+
 export { ProgressEvent } from "./progress.js"
 
 export {
