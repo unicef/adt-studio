@@ -182,9 +182,14 @@ export function StageSidebar({
   const speechNeedsRerun = stageMissing.speech > 0
   // At least one page had an empty embedded text layer but vision recovered its
   // text (scanned/image-only). Surfaced as an advisory badge on the Extract
-  // entry. Reuses the cached `pages` query the Extract/Sectioning views populate.
-  const { data: sidebarPages } = usePages(bookLabel)
+  // entry. `enabled: false` reads the `pages` query the Extract/Sectioning views
+  // populate without triggering its own fetch, so opening the sidebar (e.g. on a
+  // freshly imported book or the settings view) adds no background /pages load.
+  const { data: sidebarPages } = usePages(bookLabel, { enabled: false })
   const hasNoTextLayer = (sidebarPages ?? []).some((p) => p.extractionWarning)
+  const noTextLayerLabel = i18n._(
+    msg`Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF.`
+  )
 
   const currentState = stageState(activeStep)
   const stageHasContent =
@@ -325,12 +330,12 @@ export function StageSidebar({
               <StepProgressRing size={28} state={ringState} colorClass={isActive ? "bg-white" : step.color} />
               {step.slug === "extract" && hasNoTextLayer && (
                 <span
+                  role="img"
+                  aria-label={noTextLayerLabel}
+                  title={noTextLayerLabel}
                   className="absolute -top-1 -right-1 z-20 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-amber-500 ring-2 ring-background"
-                  title={i18n._(
-                    msg`Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF.`
-                  )}
                 >
-                  <TriangleAlert className="w-2 h-2 text-white" />
+                  <TriangleAlert className="w-2 h-2 text-white" aria-hidden="true" />
                 </span>
               )}
             </div>

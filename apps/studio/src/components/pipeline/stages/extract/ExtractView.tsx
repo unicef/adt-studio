@@ -86,10 +86,12 @@ function PageCard({
           <div className="flex items-center gap-2">
             {page.extractionWarning && (
               <span
-                className="flex items-center text-amber-600"
+                role="img"
+                aria-label={t`No embedded text layer — text was recovered from the page image`}
                 title={t`No embedded text layer — text was recovered from the page image`}
+                className="flex items-center text-amber-600"
               >
-                <TriangleAlert className="h-2.5 w-2.5" />
+                <TriangleAlert className="h-2.5 w-2.5" aria-hidden="true" />
               </span>
             )}
             {page.wordCount > 0 && (

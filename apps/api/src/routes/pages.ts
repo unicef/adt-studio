@@ -67,8 +67,9 @@ interface PageSummary {
   renderingVersion: number | null
   sectioningVersion: number | null
   sections: PageSummarySection[]
-  /** Extraction-quality warning for this page (no readable text when there
-   *  should be), or null when the page extracted cleanly / is blank. */
+  /** `text-layer-missing` when the page's embedded text layer was empty but the
+   *  Sectioning step (vision) recovered text from the page image (a scanned /
+   *  image-only page); null otherwise. */
   extractionWarning: ExtractionWarning | null
 }
 
@@ -101,8 +102,9 @@ interface PageDetail {
    *  fixed-layout books and for the Merriweather default (no override needed).
    *  Mirrors what packaging/preview inject, so the storyboard preview can match. */
   reflowableFontFamily: string | null
-  /** Extraction-quality warning for this page (no readable text when there
-   *  should be), or null when the page extracted cleanly / is blank. */
+  /** `text-layer-missing` when the page's embedded text layer was empty but the
+   *  Sectioning step (vision) recovered text from the page image (a scanned /
+   *  image-only page); null otherwise. */
   extractionWarning: ExtractionWarning | null
   versions: {
     sectioning: number | null

@@ -199,8 +199,9 @@ export interface PageSummaryItem {
   renderingVersion: number | null
   sectioningVersion: number | null
   sections: PageSummarySection[]
-  /** Warning when the page extracted no readable text but evidently should
-   *  have (undecodable fonts or an image-only/scanned page); null otherwise. */
+  /** `text-layer-missing` when the page's embedded text layer was empty but the
+   *  Sectioning step (vision) recovered text from the page image (a scanned /
+   *  image-only page); null otherwise. */
   extractionWarning: ExtractionWarning | null
 }
 
@@ -286,8 +287,9 @@ export interface PageDetail {
    *  the Merriweather default). The storyboard preview injects it to match the
    *  packaged output. */
   reflowableFontFamily: string | null
-  /** Warning when the page extracted no readable text but evidently should
-   *  have (undecodable fonts or an image-only/scanned page); null otherwise. */
+  /** `text-layer-missing` when the page's embedded text layer was empty but the
+   *  Sectioning step (vision) recovered text from the page image (a scanned /
+   *  image-only page); null otherwise. */
   extractionWarning: ExtractionWarning | null
   versions: {
     imageClassification: number | null
