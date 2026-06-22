@@ -5865,6 +5865,9 @@ msgstr "Përditësim Softueri"
 msgid "Software update status"
 msgstr "Gjendja e përditësimit të softuerit"
 
+msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
+msgstr "Disa faqe nuk kanë shtresë teksti të integruar — teksti u rikuperua nga imazhi i faqes. Preferoni një PDF të bazuar në tekst."
+
 msgid "Something went wrong"
 msgstr "Diçka shkoi keq"
 

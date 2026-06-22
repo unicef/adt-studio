@@ -5864,6 +5864,9 @@ msgstr "Actualización de Software"
 msgid "Software update status"
 msgstr "Estado de la actualización de software"
 
+msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
+msgstr "Algunas páginas no tienen capa de texto incrustado — el texto se recuperó a partir de la imagen de la página. Usa preferentemente un PDF basado en texto."
+
 msgid "Something went wrong"
 msgstr "Algo salió mal"
 

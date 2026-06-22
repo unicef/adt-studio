@@ -5864,6 +5864,9 @@ msgstr "Software Update"
 msgid "Software update status"
 msgstr "Software update status"
 
+msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
+msgstr "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
+
 msgid "Something went wrong"
 msgstr "Something went wrong"
 
