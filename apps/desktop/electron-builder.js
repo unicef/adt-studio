@@ -40,6 +40,20 @@ const version = process.env.APP_VERSION || require("./package.json").version;
 const isBeta = version.includes("-beta");
 const appId = isBeta ? "com.nees.adt-studio.beta" : "com.nees.adt-studio";
 const productName = isBeta ? "ADT-Studio-Beta" : "ADT-Studio";
+
+
+const icons = isBeta
+  ? {
+      win: "build/beta-icons/icon.ico",
+      mac: "build/beta-icons/icon.icns",
+      linux: "build/beta-icons/icons",
+    }
+  : {
+      win: "build/icon.ico",
+      mac: "build/icon.icon",
+      linux: "build/icons",
+    };
+
 const artifactName = `${productName}-\${version}.\${ext}`
   .toLowerCase()
   .replace(/ /g, "-");
@@ -61,7 +75,7 @@ const config = {
 
   win: {
     target: ["nsis"],
-    icon: "build/icon.ico",
+    icon: icons.win,
     signtoolOptions: {
       publisherName: [
         "Núcleo de Excelência em Tecnologias Sociais - NEES",
@@ -79,7 +93,7 @@ const config = {
 
   mac: {
     target: ["dmg", "zip"],
-    icon: "build/icon.icon",
+    icon: icons.mac,
     category: "public.app-category.developer-tools",
     type: "distribution",
     hardenedRuntime: true,
@@ -106,7 +120,7 @@ const config = {
 
   linux: {
     target: ["AppImage", "deb"],
-    icon: "build/icons",
+    icon: icons.linux,
     artifactName,
     // TODO: change to "UNICEF <email@unicef.org>",
     maintainer: "electronjs.org",

@@ -124,6 +124,24 @@ function toErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
 }
 
+/**
+ * Compare two text catalogs by content (entry id + text, in order). Used to
+ * skip writing a new node version when a rebuild produced identical output.
+ */
+function textCatalogsEqual(
+  a: TextCatalogOutput | undefined,
+  b: TextCatalogOutput
+): boolean {
+  if (!a) return false
+  if (a.entries.length !== b.entries.length) return false
+  for (let i = 0; i < a.entries.length; i++) {
+    if (a.entries[i].id !== b.entries[i].id || a.entries[i].text !== b.entries[i].text) {
+      return false
+    }
+  }
+  return true
+}
+
 function isGeminiTtsRateLimitMessage(message: string): boolean {
   return /\(429\)|quota exceeded|rate limit|too many requests/i.test(message)
 }
@@ -613,10 +631,14 @@ async function runExtractStep(
     progress.emit({ type: "step-complete", step: "metadata" })
     console.log(`[stage-run] ${label}: metadata complete (lang=${metadataResult.language_code})`)
 
-    // Step 3: Book summary from raw page text (no sectioning required).
+    // Step 3: Book summary from raw page text (no sectioning required). Written
+    // in the book's detected language (just extracted above), not English.
     progress.emit({ type: "step-start", step: "book-summary" })
     try {
-      const bookSummaryConfig = buildBookSummaryConfig(config)
+      const summaryLanguage = normalizeLocale(
+        config.editing_language ?? metadataResult.language_code ?? "en"
+      )
+      const bookSummaryConfig = buildBookSummaryConfig(config, summaryLanguage)
       const summaryModel = createLLMModel({
         modelId: bookSummaryConfig.modelId,
         cacheDir,
@@ -1666,7 +1688,26 @@ async function runEasyReadStep(
           onLog: onLlmLog,
           credentials: llmCredentials,
         })
-        const easyRead = await generateEasyRead(blocks, easyReadConfig, easyReadModel)
+        const totalEntries = blocks.reduce((sum, block) => sum + block.entries.length, 0)
+        progress.emit({
+          type: "step-progress",
+          step: "easy-read",
+          message: `0/${totalEntries}`,
+          page: 0,
+          totalPages: totalEntries,
+        })
+        const easyRead = await generateEasyRead(blocks, easyReadConfig, easyReadModel, {
+          concurrency: effectiveConcurrency,
+          onProgress: (completed, total) => {
+            progress.emit({
+              type: "step-progress",
+              step: "easy-read",
+              message: `${completed}/${total}`,
+              page: completed,
+              totalPages: total,
+            })
+          },
+        })
         storage.putNodeData("easy-read", "book", easyRead)
         easyReadEntries = flattenEasyReadEntries(easyRead)
         progress.emit({
@@ -1736,24 +1777,33 @@ async function runTranslateStep(
       )
     )
 
-    const catalogRow = storage.getLatestNodeData("text-catalog", "book")
-    let catalog = catalogRow?.data as TextCatalogOutput | undefined
-    // The text-catalog is normally produced by the easy-read stage. A translate
-    // run can start here without it — a standalone translate run (fromStage
-    // "translate") never runs easy-read, and caption/page edits clear the
-    // catalog. Rebuild it so translation isn't silently skipped.
-    if (!catalog) {
-      const pages = storage.getPages()
-      catalog = await buildTextCatalog(storage, pages)
+    // The text-catalog is a derived artifact (a pure read of storyboard +
+    // captions + glossary + quizzes, no LLM). It's normally produced by the
+    // easy-read stage, but Translate must guarantee a *fresh* catalog rather
+    // than trust whatever node happens to exist:
+    //   - a standalone translate run (fromStage "translate") never runs
+    //     easy-read, and
+    //   - GET /text-catalog lazily persists a catalog the moment the book is
+    //     viewed; opened before Storyboard renders, that persisted catalog is
+    //     empty and previously stuck here (we only rebuilt when the node was
+    //     entirely absent), silently skipping all translation.
+    // Always rebuild from current data; persist a new version only when the
+    // content changed, to avoid version churn on repeated re-runs.
+    const pages = storage.getPages()
+    const catalog = await buildTextCatalog(storage, pages)
+    const existingCatalog = storage.getLatestNodeData("text-catalog", "book")?.data as
+      | TextCatalogOutput
+      | undefined
+    if (!textCatalogsEqual(existingCatalog, catalog)) {
       storage.putNodeData("text-catalog", "book", catalog)
       console.log(
-        `[stage-run] ${label}: rebuilt missing text catalog (${catalog.entries.length} entries)`
+        `[stage-run] ${label}: rebuilt text catalog (${catalog.entries.length} entries)`
       )
     }
     const easyReadRow = storage.getLatestNodeData("easy-read", "book")
     const easyRead = easyReadRow?.data as EasyReadOutput | undefined
     const easyReadEntries = easyRead ? flattenEasyReadEntries(easyRead) : []
-    const translationEntries = [...(catalog?.entries ?? []), ...easyReadEntries]
+    const translationEntries = [...catalog.entries, ...easyReadEntries]
 
     // ── Step 2: Translate catalog to target languages ────────────────
     const targetLanguages = getTargetLanguages(outputLanguages, language)
@@ -2151,9 +2201,14 @@ async function runSpeechStep(
         const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
         const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
         const voice = resolveVoice(provider, lang, voiceMaps, config.speech?.voice)
-        const instructions = provider === "openai"
-          ? resolveInstructions(lang, instructionsMap)
-          : ""
+        // OpenAI consumes instructions via its `instructions` field; Gemini embeds
+        // them in the prompt text (it rejects systemInstruction). Both paths must
+        // resolve identically here and in the generation loop below so the cache key
+        // (computeSpeechCacheKey) stays in sync with canReuseSpeechEntry.
+        const instructions =
+          provider === "openai" || provider === "gemini"
+            ? resolveInstructions(lang, instructionsMap)
+            : ""
         const existingEntry = existingSpeechEntries.get(entry.id)
 
         if (
@@ -2216,9 +2271,12 @@ async function runSpeechStep(
         const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
         const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
         const voice = resolveVoice(provider, item.language, voiceMaps, config.speech?.voice)
-        const instructions = provider === "openai"
-          ? resolveInstructions(item.language, instructionsMap)
-          : ""
+        // Must mirror the reuse-check above: OpenAI + Gemini both receive resolved
+        // instructions (Gemini embeds them in the prompt text), Azure does not.
+        const instructions =
+          provider === "openai" || provider === "gemini"
+            ? resolveInstructions(item.language, instructionsMap)
+            : ""
         let attemptCount = 0
 
         console.log(`[stage-run] ${label}: TTS ${item.textId} → provider=${provider} voice=${voice} model=${providerModel} format=${outputFormat}`)

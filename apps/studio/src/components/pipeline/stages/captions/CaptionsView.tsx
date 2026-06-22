@@ -9,11 +9,13 @@ import { useApiKey } from "@/hooks/use-api-key"
 import { StageRunCard } from "../../components/StageRunCard"
 import { StageContentGuard } from "../../components/StageContentGuard"
 import { StageEmptyState } from "../../components/StageEmptyState"
+import { FilteredEmptyState } from "../../components/FilteredEmptyState"
 import { useSectionNav } from "@/routes/books.$label"
 import { useLingui } from "@lingui/react/macro"
 import { CaptionsHintBanner } from "./components/CaptionsHintBanner"
 import { PageCaptions } from "./components/PageCaptions"
 import { PageJumper } from "./components/PageJumper"
+import { matchesDecorativeFilter, matchesSearch } from "./lib/utils"
 import type { DecorativeFilter, PageJumperEntry } from "./lib/types"
 
 const TOOLBAR_HEIGHT = 64
@@ -91,6 +93,23 @@ export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { book
     }
     return { total, captioned, decorative }
   }, [pageDetailQueries])
+
+  // Total captions surviving the active decorative filter + search across every
+  // displayed page. Drives the gallery-level "no results" state so filtering
+  // down to nothing shows a single empty state instead of a blank gallery.
+  const visibleCaptionTotal = useMemo(() => {
+    let n = 0
+    for (const q of pageDetailQueries) {
+      for (const c of q.data?.imageCaptioning?.captions ?? []) {
+        if (matchesDecorativeFilter(c, decorativeFilter) && matchesSearch(c, searchQuery)) n += 1
+      }
+    }
+    return n
+  }, [pageDetailQueries, decorativeFilter, searchQuery])
+  const captionDetailsLoading = pageDetailQueries.some((q) => q.isLoading)
+  const filtersActive = decorativeFilter !== "all" || searchQuery.trim().length > 0
+  const showFilterEmpty =
+    hasCaptionData && filtersActive && !captionDetailsLoading && visibleCaptionTotal === 0
 
   const pageJumperEntries: PageJumperEntry[] = useMemo(
     () =>
@@ -262,7 +281,7 @@ export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { book
           }
         />
       ) : (
-    <div ref={scrollContainerRef} className="flex flex-1 flex-col overflow-y-auto">
+    <div ref={scrollContainerRef} className="flex flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]">
       <CaptionsHintBanner />
       <div
         className="sticky top-0 z-20 flex items-center gap-3 px-6 py-3 bg-background/95 backdrop-blur-md border-b border-border/60"
@@ -345,21 +364,38 @@ export function CaptionsView({ bookLabel, selectedPageId, onSelectPage }: { book
         </div>
       </div>
 
-      <div className="flex flex-col gap-8 px-4 pb-12 pt-3">
-        {displayPages.map((page) => (
-          <PageCaptions
-            key={page.pageId}
-            bookLabel={bookLabel}
-            pageId={page.pageId}
-            pageNumber={page.pageNumber}
-            textPreview={page.textPreview}
-            emptyState={singlePageEmptyState}
-            filterSectionIndex={page.pageId === selectedPageId ? filterSectionIndex : undefined}
-            decorativeFilter={decorativeFilter}
-            searchQuery={searchQuery}
-            toolbarHeight={TOOLBAR_HEIGHT}
+      <div className="flex flex-1 flex-col gap-8 px-4 pb-12 pt-3">
+        {showFilterEmpty ? (
+          <FilteredEmptyState
+            icon={ImageIcon}
+            color="teal"
+            title={
+              searchQuery.trim()
+                ? t`No captions match your search`
+                : t`No captions match these filters`
+            }
+            onClear={() => {
+              setDecorativeFilter("all")
+              setSearchQuery("")
+            }}
+            clearLabel={searchQuery.trim() ? t`Clear search` : t`Clear filters`}
           />
-        ))}
+        ) : (
+          displayPages.map((page) => (
+            <PageCaptions
+              key={page.pageId}
+              bookLabel={bookLabel}
+              pageId={page.pageId}
+              pageNumber={page.pageNumber}
+              textPreview={page.textPreview}
+              emptyState={singlePageEmptyState}
+              filterSectionIndex={page.pageId === selectedPageId ? filterSectionIndex : undefined}
+              decorativeFilter={decorativeFilter}
+              searchQuery={searchQuery}
+              toolbarHeight={TOOLBAR_HEIGHT}
+            />
+          ))
+        )}
       </div>
     </div>
       )}

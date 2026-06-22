@@ -11,6 +11,7 @@ import { messages as enMessages } from "./locales/en.po"
 import { messages as ptBRMessages } from "./locales/pt-BR.po"
 import { messages as esMessages } from "./locales/es.po"
 import { messages as frMessages } from "./locales/fr.po"
+import { messages as sqMessages } from "./locales/sq.po"
 import { routeTree } from "./routeTree.gen"
 import "./styles/globals.css"
 import { LOCALES, activateLocale } from "./i18n/locales"
@@ -23,7 +24,7 @@ function detectLocale(): AppLocale {
   return "en"
 }
 
-i18n.load({ en: enMessages, "pt-BR": ptBRMessages, es: esMessages, fr: frMessages })
+i18n.load({ en: enMessages, "pt-BR": ptBRMessages, es: esMessages, fr: frMessages, sq: sqMessages })
 // activateLocale also sets <html lang> so screen readers use the correct voice.
 activateLocale(detectLocale())
 

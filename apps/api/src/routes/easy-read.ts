@@ -229,7 +229,9 @@ export function createEasyReadRoutes(
           rateLimiter,
           onLog: (entry) => storage.appendLlmLog(entry),
         })
-        const output: EasyReadOutputType = await generateEasyRead(blocks, easyReadConfig, model)
+        const output: EasyReadOutputType = await generateEasyRead(blocks, easyReadConfig, model, {
+          concurrency: config.concurrency ?? 32,
+        })
         const previousRow = storage.getLatestNodeData("easy-read", "book")
         const previousEasyRead = parseStoredEasyRead(previousRow?.data)
         const version = storage.putNodeData("easy-read", "book", output)

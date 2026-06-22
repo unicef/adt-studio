@@ -93,7 +93,7 @@ export function SpeechPromptsEditor({ bookLabel, headerTarget }: SpeechPromptsEd
           {t`Default Prompt`}
         </Label>
         <p className="text-xs text-muted-foreground">
-          {t`The default TTS instruction sent to OpenAI for all languages unless overridden below.`}
+          {t`The default TTS instruction applied to every language unless overridden below. OpenAI uses it as a voice instruction and Gemini as in-prompt accent steering; Azure ignores it.`}
         </p>
         <textarea
           value={defaultEntry}
@@ -119,6 +119,9 @@ export function SpeechPromptsEditor({ bookLabel, headerTarget }: SpeechPromptsEd
             {t`Add Language`}
           </Button>
         </div>
+        <p className="text-xs text-muted-foreground">
+          {t`Each prompt is applied to whichever provider its language is routed to — for example, Albanian (sq) routed to Gemini receives this as its accent steering.`}
+        </p>
 
         {showAddLang && (
           <div className="flex items-center gap-2">

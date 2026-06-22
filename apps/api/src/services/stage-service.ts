@@ -211,7 +211,17 @@ export function createStageService(
       }
       state.active = job
 
-      executeJob(label, job, options).catch(() => {})
+      // Defer execution to the next macrotask so this call — and the HTTP
+      // response that triggered it — returns before the job's synchronous
+      // startup runs. A stage's setup (e.g. extract: reading the PDF off disk,
+      // parsing it via WASM, extracting the first page) runs synchronously up
+      // to its first await and would otherwise block the response for several
+      // seconds, stalling the client that just kicked off the run. `state.active`
+      // is already set, so getStatus() reflects "running" right away; the step
+      // run record is written once the deferred job actually starts.
+      setImmediate(() => {
+        executeJob(label, job, options).catch(() => {})
+      })
 
       return { status: "started", id }
     },

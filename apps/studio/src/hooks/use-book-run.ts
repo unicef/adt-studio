@@ -350,6 +350,10 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           if (completedTask?.kind === "transcribe-timestamps") {
             queryClient.invalidateQueries({ queryKey: ["books", label, "tts-timestamps"] })
           }
+          if (completedTask?.kind === "book-summary") {
+            // Refresh the book detail so the banner shows the new summary.
+            queryClient.invalidateQueries({ queryKey: ["books", label] })
+          }
           // Always refetch tasks so we pick up the final state even if we missed start
           queryClient.invalidateQueries({ queryKey: bookTasksKey(label) })
         } else if (d.type === "task-error") {

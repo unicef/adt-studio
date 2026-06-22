@@ -56,13 +56,20 @@ export async function generateBookSummary(
 
 /**
  * Build BookSummaryConfig from AppConfig.
+ *
+ * `language` is the resolved book/editing language (from the metadata step).
+ * When omitted, falls back to the editing-language override or English so the
+ * summary is still produced for callers that don't resolve metadata.
  */
-export function buildBookSummaryConfig(appConfig: AppConfig): BookSummaryConfig {
+export function buildBookSummaryConfig(
+  appConfig: AppConfig,
+  language?: string,
+): BookSummaryConfig {
   return {
     promptName: appConfig.book_summary?.prompt ?? "book_summary",
     modelId: appConfig.book_summary?.model ?? "openai:gpt-5.4",
     maxRetries:
       appConfig.book_summary?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,
-    outputLanguage: normalizeLocale(appConfig.editing_language ?? "en"),
+    outputLanguage: normalizeLocale(language ?? appConfig.editing_language ?? "en"),
   }
 }

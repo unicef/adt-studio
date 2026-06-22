@@ -179,7 +179,6 @@ export async function runFullPipeline(
 
     // Build all step configs upfront
     const metadataConfig = buildMetadataConfig(config)
-    const bookSummaryConfig = buildBookSummaryConfig(config)
     const pageSectioningConfig = buildPageSectioningConfig(config)
     const imageClassifyConfig = buildImageClassifyConfig(config)
     const meaningfulnessConfig = buildMeaningfulnessConfig(config)
@@ -229,6 +228,9 @@ export async function runFullPipeline(
         pageNumber: page.pageNumber,
         text: page.text,
       }))
+      // Resolve the language from the metadata step (book-summary depends on it)
+      // so the summary is written in the book's actual language, not English.
+      const bookSummaryConfig = buildBookSummaryConfig(config, getLanguage(storage, config))
       const model = getModel(bookSummaryConfig.modelId)
       const result = await generateBookSummary(summaryPages, bookSummaryConfig, model)
       storage.putNodeData("book-summary", "book", result)
@@ -729,12 +731,24 @@ export async function runFullPipeline(
         return
       }
       const model = getModel(easyReadConfig.modelId)
-      const output = await generateEasyRead(blocks, easyReadConfig, model)
+      const totalEntries = blocks.reduce((sum, block) => sum + block.entries.length, 0)
+      const output = await generateEasyRead(blocks, easyReadConfig, model, {
+        concurrency: effectiveConcurrency,
+        onProgress: (completed, total) => {
+          p.emit({
+            type: "step-progress",
+            step: "easy-read",
+            message: `${completed}/${total}`,
+            page: completed,
+            totalPages: total,
+          })
+        },
+      })
       storage.putNodeData("easy-read", "book", output)
       p.emit({
         type: "step-progress",
         step: "easy-read",
-        message: `${output.blocks.reduce((sum, block) => sum + block.entries.length, 0)} entries`,
+        message: `${totalEntries} entries`,
       })
     })
 
@@ -869,7 +883,13 @@ export async function runFullPipeline(
         const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
         const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
         const voice = resolveVoice(provider, item.language, voiceMaps, config.speech?.voice)
-        const instructions = provider === "openai" ? resolveInstructions(item.language, instructionsMap) : ""
+        // OpenAI + Gemini both receive resolved instructions (Gemini embeds them in
+        // the prompt text); Azure has no instruction channel. Must match stage-runner.ts
+        // and tts.ts so the shared TTS cache key (computeSpeechCacheKey) stays consistent.
+        const instructions =
+          provider === "openai" || provider === "gemini"
+            ? resolveInstructions(item.language, instructionsMap)
+            : ""
         const ttsSynthesizer = getSynthesizer(provider)
         const entry = await generateSpeechFile({
           textId: item.textId,

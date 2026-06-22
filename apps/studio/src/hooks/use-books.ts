@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import type { BookMetadata } from "@adt/types"
 import { api } from "@/api/client"
 
 export function useBooks() {
@@ -13,6 +14,33 @@ export function useBook(label: string) {
     queryKey: ["books", label],
     queryFn: () => api.getBook(label),
     enabled: !!label,
+  })
+}
+
+export function useUpdateBookMetadata() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: ({ label, metadata }: { label: string; metadata: BookMetadata }) =>
+      api.updateMetadata(label, metadata),
+    onSuccess: (result, { label }) => {
+      // ["books", label] is a prefix match, so this also refreshes step-status and
+      // every downstream book sub-resource query (easy-read, text-catalog, tts, ...).
+      queryClient.invalidateQueries({ queryKey: ["books", label] })
+      queryClient.invalidateQueries({ queryKey: ["package-adt-status", label] })
+      if (result.languageChanged) {
+        queryClient.invalidateQueries({ queryKey: ["debug"] })
+      }
+    },
+  })
+}
+
+export function useRegenerateBookSummary() {
+  // Submits a background regeneration task. The book detail is refreshed when
+  // the task completes (handled by the task-event listener in use-book-run),
+  // so there's nothing to invalidate on submit.
+  return useMutation({
+    mutationFn: ({ label, apiKey }: { label: string; apiKey: string }) =>
+      api.regenerateBookSummary(label, apiKey),
   })
 }
 

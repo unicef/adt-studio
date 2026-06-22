@@ -24,6 +24,12 @@ export interface WhisperTranscriptionResult {
 
 /**
  * Transcribe an audio file using OpenAI Whisper with word-level timestamps.
+ *
+ * The `language` parameter is only an accuracy hint, but OpenAI's hosted
+ * transcription API rejects ISO codes outside its supported set with a 400
+ * (e.g. Albanian "sq") even though the underlying model can transcribe them.
+ * When that happens we retry once without the hint so auto-detection takes
+ * over, rather than hard-failing every item in that language.
  */
 export async function transcribeWithWhisper(
   audioBuffer: Buffer,
@@ -38,24 +44,41 @@ export async function transcribeWithWhisper(
       : ext === "ogg" ? "audio/ogg"
         : "audio/mpeg"
 
-  const blob = new Blob([audioBuffer], { type: mimeType })
-  const form = new FormData()
-  form.append("file", blob, fileName)
-  form.append("model", "whisper-1")
-  form.append("response_format", "verbose_json")
-  form.append("timestamp_granularities[]", "word")
-  if (language) form.append("language", language)
-  if (prompt) form.append("prompt", prompt)
+  const postTranscription = (withLanguage: boolean): Promise<Response> => {
+    const blob = new Blob([audioBuffer], { type: mimeType })
+    const form = new FormData()
+    form.append("file", blob, fileName)
+    form.append("model", "whisper-1")
+    form.append("response_format", "verbose_json")
+    form.append("timestamp_granularities[]", "word")
+    if (withLanguage && language) form.append("language", language)
+    if (prompt) form.append("prompt", prompt)
 
-  const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: form,
-  })
+    return fetch("https://api.openai.com/v1/audio/transcriptions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: form,
+    })
+  }
 
-  if (!response.ok) {
+  let response = await postTranscription(Boolean(language))
+
+  // A 400 while a language hint is set is almost always the hint being
+  // rejected (unsupported ISO code). Retry once without it before giving up;
+  // a genuine non-language 400 (e.g. bad audio) simply fails again and the
+  // real message is surfaced below.
+  if (!response.ok && response.status === 400 && language) {
+    const firstError = await response.text()
+    response = await postTranscription(false)
+    if (!response.ok) {
+      const message = await response.text()
+      throw new Error(
+        `Whisper transcription failed (${response.status}): ${message || firstError || response.statusText}`
+      )
+    }
+  } else if (!response.ok) {
     const message = await response.text()
     throw new Error(
       `Whisper transcription failed (${response.status}): ${message || response.statusText}`
@@ -240,6 +263,23 @@ function buildGeminiShortTextRetryInput(input: string): string | null {
 }
 
 /**
+ * Wrap transcript text in the structured "performance + transcript" layout the
+ * native Gemini TTS models use for accent/style steering.
+ *
+ * The newer native speech models (e.g. gemini-*-tts-preview) reject the
+ * `systemInstruction` field at the API schema level ("Developer instruction is
+ * not enabled for this model"), so steering must live inside the prompt text.
+ * The `#### TRANSCRIPT` delimiter keeps the performance notes from being spoken
+ * aloud — only the text below it is read. Returns the transcript unchanged when
+ * there are no instructions, preserving the bare-text behaviour.
+ */
+function buildGeminiSpeechPrompt(transcript: string, instructions?: string): string {
+  const performance = instructions?.trim()
+  if (!performance) return transcript
+  return `### PERFORMANCE\n${performance}\n\n#### TRANSCRIPT\n${transcript}`
+}
+
+/**
  * Create a TTS client using Azure Speech Services REST API.
  */
 export function createAzureTTSSynthesizer(
@@ -342,7 +382,7 @@ export function createGeminiTTSSynthesizer(
       }
 
       const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(options.model)}:generateContent`
-      const synthesizeInput = async (inputText: string): Promise<GeminiGenerateContentPayload> => {
+      const synthesizeInput = async (transcript: string): Promise<GeminiGenerateContentPayload> => {
         const response = await fetch(url, {
           method: "POST",
           headers: {
@@ -354,7 +394,7 @@ export function createGeminiTTSSynthesizer(
               {
                 parts: [
                   {
-                    text: inputText,
+                    text: buildGeminiSpeechPrompt(transcript, options.instructions),
                   },
                 ],
               },

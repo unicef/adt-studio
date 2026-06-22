@@ -78,12 +78,12 @@ body:
       label: Version
       description: What version of ADT Studio are you running? Check Help → About, or see https://github.com/unicef/adt-studio/releases.
       options:
+        - v0.7.4-beta.1
         - v0.7.0-rc.8
         - v0.7.0-rc.7
-        - v0.7.0-rc.6
+        - v0.7.3
+        - v0.7.2
         - v0.6.0
-        - v0.5.1
-        - v0.5.0
         - Older / unsure
     validations:
       required: true

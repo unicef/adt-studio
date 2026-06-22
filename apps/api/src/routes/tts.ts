@@ -24,8 +24,10 @@ import {
 import {
   getBaseLanguage,
   loadBookConfig,
+  loadSpeechInstructions,
   loadVoicesConfig,
   normalizeLocale,
+  resolveInstructions,
   resolveProviderForLanguage,
   resolveSpeechFormat,
   resolveSpeechModel,
@@ -684,6 +686,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
       const configDir = getConfigDir(configPath)
       const voiceMaps = loadVoicesConfig(configDir)
+      const instructionsMap = loadSpeechInstructions(configDir)
       const model = resolveSpeechModel(provider, providerConfigs, config.speech?.model)
       const format = resolveSpeechFormat(provider, config.speech?.format)
       const voice = resolveVoice(
@@ -715,7 +718,14 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           language: normalizedLanguage,
           model: options.targetModel,
           voice: options.targetVoice,
-          instructions: "",
+          // Gemini embeds these in the prompt text; OpenAI uses its instructions
+          // field. Azure has no instruction channel. Mirrors stage-runner.ts so the
+          // single-item cache key matches the batch path.
+          instructions:
+            options.targetProvider === "openai" ||
+            options.targetProvider === "gemini"
+              ? resolveInstructions(normalizedLanguage, instructionsMap)
+              : "",
           format,
           bookDir,
           cacheDir,

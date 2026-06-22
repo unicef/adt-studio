@@ -627,6 +627,12 @@ export function StoryboardSectionDetail({
   const section = sectioningData?.sections[sectionIndex]
   const renderingData = pendingRendering ?? page.rendering
   const renderedSection = getRenderedSectionByIndex(renderingData, sectionIndex)
+  // Fixed-layout pages style every element via inline CSS (the `<p>`'s own
+  // `style` + per-run `data-segments`), not Tailwind classes — so the class
+  // editor's changes are always overridden and never apply. Disable the
+  // class-based style controls for these pages until inline-style editing
+  // lands; image actions, prune/delete, and inline text edits still work.
+  const isFixedLayout = renderedSection?.sectionType === "fixed-layout-page"
   const renderingDirty = pendingRendering != null || hasUnflushedEdits
 
   // When server-delivered HTML for the current section changes to something we
@@ -2360,6 +2366,7 @@ export function StoryboardSectionDetail({
         }
         onClassesChange={handleClassesChange}
         deviceView={deviceView}
+        isFixedLayout={isFixedLayout}
       />
     </div>
 

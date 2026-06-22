@@ -40,6 +40,14 @@ import { usePendingChanges } from "../../components/change-summary"
 import { msg } from "@lingui/core/macro"
 import { useLingui } from "@lingui/react/macro"
 
+// Per-provider default TTS voice/model shown in the speech summary when the book hasn't
+// pinned one. Mirrors resolveVoice()/resolveSpeechModel() in @adt/pipeline (and
+// config/voices.yaml) so we never show an OpenAI voice/model for a Gemini/Azure provider.
+// Values are voice/model identifiers, not user-facing copy — display only.
+// eslint-disable-next-line lingui/no-unlocalized-strings -- voice identifiers
+const DEFAULT_TTS_VOICE: Record<string, string> = { openai: "alloy", azure: "en-US-JennyNeural", gemini: "Kore" }
+const DEFAULT_TTS_MODEL: Record<string, string> = { openai: "gpt-4o-mini-tts", azure: "azure-tts", gemini: "gemini-2.5-pro-preview-tts" }
+
 export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageId, onSelectPage }: { bookLabel: string; stageSlug?: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
   const isSpeechStage = stageSlug === "speech"
   const { t, i18n } = useLingui()
@@ -540,16 +548,21 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
 
   // Resolve speech config summary for display
   const speechSummary = useMemo(() => {
+    const provider =
+      (speechConfig && typeof speechConfig === "object"
+        ? ((speechConfig as Record<string, unknown>).default_provider as string)
+        : undefined) ?? "openai"
+    const defaultVoice = DEFAULT_TTS_VOICE[provider] ?? DEFAULT_TTS_VOICE.openai
+    const defaultModel = DEFAULT_TTS_MODEL[provider] ?? DEFAULT_TTS_MODEL.openai
     if (!speechConfig || typeof speechConfig !== "object") {
-      return { provider: "openai", voice: "alloy", model: "gpt-4o-mini-tts" }
+      return { provider, voice: defaultVoice, model: defaultModel }
     }
     const sc = speechConfig as Record<string, unknown>
-    const provider = (sc.default_provider as string) ?? "openai"
-    const voice = (sc.voice as string) ?? "alloy"
+    const voice = (sc.voice as string) ?? defaultVoice
     const model = (sc.model as string) ?? undefined
     const providers = sc.providers as Record<string, Record<string, unknown>> | undefined
     const providerModel = providers?.[provider]?.model as string | undefined
-    return { provider, voice, model: providerModel ?? model ?? "gpt-4o-mini-tts" }
+    return { provider, voice, model: providerModel ?? model ?? defaultModel }
   }, [speechConfig])
 
   if (showRunCard || !catalog || entries.length === 0) {

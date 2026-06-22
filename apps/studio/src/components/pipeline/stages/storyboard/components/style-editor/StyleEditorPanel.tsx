@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import {
   Box,
+  Construction,
   Eye,
   EyeOff,
   Film,
@@ -45,6 +46,10 @@ interface StyleEditorPanelProps {
    *  typography properties — used as inspector defaults so the fields show
    *  the actually-rendered value when no explicit class is set. */
   computedTypography?: ComputedTypographyStyles | null
+  /** Fixed-layout pages style elements via inline CSS, not Tailwind classes,
+   *  so the class-based controls have no effect. When true, the class sections
+   *  (and Advanced) are hidden; image actions and prune/delete remain. */
+  isFixedLayout?: boolean
 }
 
 export function StyleEditorPanel({
@@ -57,6 +62,7 @@ export function StyleEditorPanel({
   onClassesChange,
   deviceView,
   computedTypography,
+  isFixedLayout = false,
 }: StyleEditorPanelProps) {
   const { t } = useLingui()
 
@@ -179,6 +185,7 @@ export function StyleEditorPanel({
             onClassesChange={onClassesChange}
             deviceView={deviceView}
             computedTypography={computedTypography ?? null}
+            isFixedLayout={isFixedLayout}
           />
         ) : null}
       </div>
@@ -246,6 +253,7 @@ interface StyleEditorBodyProps {
   onClassesChange: (dataId: string, classes: string[]) => void
   deviceView: DeviceView
   computedTypography: ComputedTypographyStyles | null
+  isFixedLayout: boolean
 }
 
 function StyleEditorBody({
@@ -256,6 +264,7 @@ function StyleEditorBody({
   onClassesChange,
   deviceView,
   computedTypography,
+  isFixedLayout,
 }: StyleEditorBodyProps) {
   const visibleSections = useMemo(
     () => (elementType ? getVisibleSections(elementType) : []),
@@ -272,20 +281,56 @@ function StyleEditorBody({
         computedStyles: computedTypography ?? undefined,
       }}
     >
-      <div className="flex flex-col">
+      <div className="flex flex-col min-h-full">
         {elementProps?.isImage ? (
           <ImageActionsSection dataId={dataId} elementProps={elementProps} />
         ) : null}
         {elementType === "text" ? (
           <TextRoleSection dataId={dataId} elementProps={elementProps} />
         ) : null}
-        {visibleSections.map((key) => {
-          const SectionComponent = SECTION_COMPONENTS[key]
-          return <SectionComponent key={key} />
-        })}
-        <AdvancedSection />
+        {isFixedLayout ? (
+          <div className="flex flex-1 items-center justify-center">
+            <FixedLayoutNotice />
+          </div>
+        ) : (
+          <>
+            {visibleSections.map((key) => {
+              const SectionComponent = SECTION_COMPONENTS[key]
+              return <SectionComponent key={key} />
+            })}
+            <AdvancedSection />
+          </>
+        )}
       </div>
     </ElementProvider>
+  )
+}
+
+/** Centered placeholder shown in place of the class-based style controls on
+ *  fixed-layout pages, where styling is driven by inline CSS rather than
+ *  Tailwind classes. Signals the feature is in development. */
+function FixedLayoutNotice() {
+  return (
+    <div className="flex flex-col items-center gap-3 px-2 py-4 text-center animate-in fade-in slide-in-from-bottom-1 duration-300">
+      <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-violet-50">
+        <Construction className="h-6 w-6 text-violet-500" />
+        <span className="absolute inset-0 rounded-full ring-1 ring-inset ring-violet-200/70" />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <p className="text-xs font-semibold text-foreground">
+          <Trans>Style editing coming soon</Trans>
+        </p>
+        <p className="text-[11px] leading-relaxed text-muted-foreground">
+          <Trans>
+            Visual style editing isn't available for fixed-layout pages yet. You
+            can still edit text inline, swap or crop images, and prune elements.
+          </Trans>
+        </p>
+      </div>
+      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+        <Trans>In development</Trans>
+      </span>
+    </div>
   )
 }
 

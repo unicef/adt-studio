@@ -31,6 +31,13 @@ export function createTextCatalogRoutes(booksDir: string): Hono {
     // If no catalog exists yet (translate stage hasn't run), build one on demand
     // from existing pipeline outputs so consumers like the glossary autofill have
     // source-language text available before translation.
+    //
+    // Only persist a *non-empty* result. Opening the book before Storyboard has
+    // rendered any pages builds an empty catalog; persisting that empty node
+    // poisons every downstream reader (translate, speech, packaging) — translate
+    // historically only rebuilt when the node was absent, so an empty persisted
+    // catalog silently skipped all translation until the Easy Read stage
+    // rebuilt it. Leaving the node absent keeps the rebuild paths intact.
     {
       const storage = createBookStorage(safeLabel, booksDir)
       try {
@@ -38,7 +45,9 @@ export function createTextCatalogRoutes(booksDir: string): Hono {
         if (!existing) {
           const pages = storage.getPages()
           const catalog = await buildTextCatalog(storage, pages)
-          storage.putNodeData("text-catalog", "book", catalog)
+          if (catalog.entries.length > 0) {
+            storage.putNodeData("text-catalog", "book", catalog)
+          }
         }
       } finally {
         storage.close()

@@ -378,6 +378,217 @@ describe("PUT /books/:label/config", () => {
   })
 })
 
+describe("PUT /books/:label/metadata", () => {
+  function seedDownstream(label: string, languageCode?: string): void {
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      if (languageCode) {
+        storage.putNodeData("metadata", "book", {
+          title: "Test Book",
+          authors: ["Author"],
+          publisher: null,
+          language_code: languageCode,
+          cover_page_number: 1,
+          reasoning: "test",
+        })
+      }
+      // page-sectioning must survive a language change; the rest must be cleared.
+      storage.putNodeData("page-sectioning", "pg001", { sections: [] })
+      storage.putNodeData("easy-read", "book", { blocks: [] })
+      storage.putNodeData("quiz-generation", "book", { quizzes: [] })
+      // book-summary (Extract stage) is written in the book's language and only
+      // regenerates on a true base-language change.
+      storage.putNodeData("book-summary", "book", { summary: "x" })
+      storage.markStepCompleted("page-sectioning")
+      storage.markStepCompleted("translation")
+      storage.markStepCompleted("easy-read")
+      storage.markStepCompleted("quiz-generation")
+      storage.markStepCompleted("book-summary")
+      storage.markStepCompleted("package-web")
+    } finally {
+      storage.close()
+    }
+  }
+
+  function readMetadata(label: string) {
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      return storage.getLatestNodeData("metadata", "book")
+    } finally {
+      storage.close()
+    }
+  }
+
+  function readState(label: string) {
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      const steps = new Map(storage.getStepRuns().map((r) => [r.step, r.status]))
+      return {
+        steps,
+        easyRead: storage.getLatestNodeData("easy-read", "book"),
+        quiz: storage.getLatestNodeData("quiz-generation", "book"),
+        sectioning: storage.getLatestNodeData("page-sectioning", "pg001"),
+        bookSummary: storage.getLatestNodeData("book-summary", "book"),
+      }
+    } finally {
+      storage.close()
+    }
+  }
+
+  it("updates bibliographic fields without cascading to LLM stages", async () => {
+    createTestBook("meta-biblio")
+    seedDownstream("meta-biblio")
+    const app = createBookRoutes(tmpDir)
+    const res = await app.request("/books/meta-biblio/metadata", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Edited Title",
+        authors: ["New Author"],
+        publisher: "New Publisher",
+        language_code: "en",
+      }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.languageChanged).toBe(false)
+    expect(body.version).toBe(2)
+
+    const stored = readMetadata("meta-biblio")
+    expect(stored?.data).toMatchObject({
+      title: "Edited Title",
+      authors: ["New Author"],
+      publisher: "New Publisher",
+    })
+
+    const state = readState("meta-biblio")
+    // Bibliographic edits only refresh packaging.
+    expect(state.steps.has("package-web")).toBe(false)
+    expect(state.steps.get("easy-read")).toBe("done")
+    expect(state.steps.get("translation")).toBe("done")
+    expect(state.easyRead).not.toBeNull()
+    expect(state.quiz).not.toBeNull()
+  })
+
+  it("cascades downstream LLM stages on a base-language change, signaling summary regen without clearing it", async () => {
+    createTestBook("meta-lang") // seeded language "en"
+    seedDownstream("meta-lang")
+    const app = createBookRoutes(tmpDir)
+    const res = await app.request("/books/meta-lang/metadata", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Test Book",
+        authors: ["Author"],
+        publisher: null,
+        language_code: "fr",
+      }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.languageChanged).toBe(true)
+    // Signals the client to regenerate the summary via the dedicated endpoint.
+    expect(body.baseLanguageChanged).toBe(true)
+
+    const stored = readMetadata("meta-lang")
+    expect((stored?.data as { language_code: string }).language_code).toBe("fr")
+
+    const state = readState("meta-lang")
+    // Language-dependent outputs cleared...
+    expect(state.easyRead).toBeNull()
+    expect(state.quiz).toBeNull()
+    expect(state.steps.has("easy-read")).toBe(false)
+    expect(state.steps.has("quiz-generation")).toBe(false)
+    // ...but the book summary is NOT cleared here — it stays visible and is
+    // refreshed via the book-summary regenerate endpoint, so Extract isn't reset.
+    expect(state.bookSummary).not.toBeNull()
+    expect(state.steps.get("book-summary")).toBe("done")
+    // ...and Sectioning (page structure + in-place translation) survives.
+    expect(state.sectioning).not.toBeNull()
+    expect(state.steps.get("page-sectioning")).toBe("done")
+    expect(state.steps.get("translation")).toBe("done")
+  })
+
+  it("keeps the book summary on a locale-only refinement (es -> es-UY)", async () => {
+    createTestBook("meta-locale")
+    seedDownstream("meta-locale", "es") // start from base Spanish
+    const app = createBookRoutes(tmpDir)
+    const res = await app.request("/books/meta-locale/metadata", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Test Book",
+        authors: ["Author"],
+        publisher: null,
+        language_code: "es-uy",
+      }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.languageChanged).toBe(true)
+    // Same base language → no summary regeneration signal.
+    expect(body.baseLanguageChanged).toBe(false)
+
+    const stored = readMetadata("meta-locale")
+    // Normalized to BCP-47 dash form with uppercase region.
+    expect((stored?.data as { language_code: string }).language_code).toBe("es-UY")
+
+    const state = readState("meta-locale")
+    // Language-dependent LLM outputs still re-run (the locale feeds prompts)...
+    expect(state.easyRead).toBeNull()
+    expect(state.steps.has("easy-read")).toBe(false)
+    // ...but the book summary stays — same base language (Spanish).
+    expect(state.bookSummary).not.toBeNull()
+    expect(state.steps.get("book-summary")).toBe("done")
+    expect(state.sectioning).not.toBeNull()
+  })
+
+  it("preserves cover_page_number and reasoning when the client omits them", async () => {
+    createTestBook("meta-preserve")
+    const app = createBookRoutes(tmpDir)
+    const res = await app.request("/books/meta-preserve/metadata", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: "Only Title Changed",
+        authors: ["Author"],
+        publisher: null,
+        language_code: "en",
+      }),
+    })
+    expect(res.status).toBe(200)
+
+    const stored = readMetadata("meta-preserve")
+    expect(stored?.data).toMatchObject({
+      title: "Only Title Changed",
+      cover_page_number: 1,
+      reasoning: "test",
+    })
+  })
+
+  it("returns 404 when the book has no metadata to edit", async () => {
+    const storage = createBookStorage("meta-empty", tmpDir)
+    storage.close()
+    const app = createBookRoutes(tmpDir)
+    const res = await app.request("/books/meta-empty/metadata", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "x", authors: [], publisher: null, language_code: "en" }),
+    })
+    expect(res.status).toBe(404)
+  })
+
+  it("returns 400 for invalid label", async () => {
+    const app = createBookRoutes(tmpDir)
+    const res = await app.request("/books/-bad/metadata", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: "x", authors: [], publisher: null, language_code: "en" }),
+    })
+    expect(res.status).toBe(400)
+  })
+})
+
 function addPagesAndRenderings(label: string, count: number): void {
   const storage = createBookStorage(label, tmpDir)
   try {

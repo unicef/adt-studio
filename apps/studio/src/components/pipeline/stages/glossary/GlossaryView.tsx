@@ -31,7 +31,7 @@ import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { StageRunCard } from "../../components/StageRunCard"
 import { StageContentGuard } from "../../components/StageContentGuard"
-import { StageEmptyState } from "../../components/StageEmptyState"
+import { FilteredEmptyState } from "../../components/FilteredEmptyState"
 import { VersionPicker } from "../../components/VersionPicker"
 import { usePendingChanges } from "../../components/change-summary"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
@@ -279,7 +279,7 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
         </>
       }
     >
-      <div className="flex flex-1 flex-col overflow-y-auto">
+      <div className="flex flex-1 flex-col overflow-y-auto [scrollbar-gutter:stable]">
         <GlossaryHintBanner />
         <div
           className="sticky top-0 z-20 flex items-center gap-3 px-6 py-3 bg-background/95 backdrop-blur-md border-b border-border/60"
@@ -396,9 +396,9 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
           </div>
         </div>
 
-        <div className="flex flex-col gap-2.5 px-4 pb-12 pt-4">
+        <div className="flex flex-1 flex-col gap-2.5 px-4 pb-12 pt-4">
           {displayItems.length === 0 ? (
-            <StageEmptyState
+            <FilteredEmptyState
               icon={BookOpen}
               color="lime"
               title={
@@ -410,6 +410,16 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
                       ? t`No pruned terms`
                       : t`No terms to show`
               }
+              onClear={
+                searchQuery || manualOnly || filter !== "active"
+                  ? () => {
+                      setSearchQuery("")
+                      setManualOnly(false)
+                      setFilter("active")
+                    }
+                  : undefined
+              }
+              clearLabel={searchQuery ? t`Clear search` : t`Clear filters`}
             />
           ) : (
             displayItems.map((item) => (

@@ -81,6 +81,7 @@ const TASK_KIND_LABELS: Record<string, MessageDescriptor> = {
   "ai-edit": msg`AI Edit`,
   "prepare-export": msg`Export`,
   "transcribe-timestamps": msg`Timestamps`,
+  "book-summary": msg`Book Summary`,
 }
 
 function getSettingsTabs(
