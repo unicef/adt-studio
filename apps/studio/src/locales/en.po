@@ -88,6 +88,10 @@ msgstr "{0} audio"
 msgid "{0} checks per page"
 msgstr "{0} checks per page"
 
+#. placeholder {0}: getStageLabelI18n(uiStage)
+msgid "{0} complete"
+msgstr "{0} complete"
+
 #. placeholder {0}: String(p.stats.decorative)
 msgid "{0} decorative"
 msgstr "{0} decorative"
@@ -95,6 +99,10 @@ msgstr "{0} decorative"
 #. placeholder {0}: entries.length
 msgid "{0} entries"
 msgstr "{0} entries"
+
+#. placeholder {0}: getStageLabelI18n(uiStage)
+msgid "{0} failed"
+msgstr "{0} failed"
 
 #. placeholder {0}: activeMetrics.flagged.length
 msgid "{0} flagged findings in this review"
@@ -162,6 +170,7 @@ msgid "{0} of {1} items"
 msgstr "{0} of {1} items"
 
 #. placeholder {0}: String(displayPages.length)
+#. placeholder {0}: book.pageCount
 msgid "{0} pages"
 msgstr "{0} pages"
 
@@ -325,6 +334,10 @@ msgstr "{stageLabel} isn't ready yet — every section in the Storyboard is curr
 msgid "{stageLabel} isn't ready yet — Storyboard hasn't finished, so there's nothing to work with. Finish that stage first."
 msgstr "{stageLabel} isn't ready yet — Storyboard hasn't finished, so there's nothing to work with. Finish that stage first."
 
+#. placeholder {0}: getStageStatusLabelI18n(statusKey)
+msgid "{stepLabel}: {0}"
+msgstr "{stepLabel}: {0}"
+
 msgid "{textCount} text leaves"
 msgstr "{textCount} text leaves"
 
@@ -446,6 +459,9 @@ msgstr "A fill-in-the-blank activity."
 
 msgid "A glossary term with this word already exists."
 msgstr "A glossary term with this word already exists."
+
+msgid "A language is required so downstream stages can localize the book."
+msgstr "A language is required so downstream stages can localize the book."
 
 msgid "A long row of shelves filled with food in a big store."
 msgstr "A long row of shelves filled with food in a big store."
@@ -712,8 +728,17 @@ msgstr "Add an API key in Book settings to run translation."
 msgid "Add at least one output language to run translation."
 msgstr "Add at least one output language to run translation."
 
+msgid "Add author"
+msgstr "Add author"
+
 msgid "Add Book"
 msgstr "Add Book"
+
+msgid "Add Book: Choose a preset"
+msgstr "Add Book: Choose a preset"
+
+msgid "Add Book: Upload PDF"
+msgstr "Add Book: Upload PDF"
 
 msgid "Add caption…"
 msgstr "Add caption…"
@@ -774,6 +799,9 @@ msgstr "Add Term"
 
 msgid "Add text"
 msgstr "Add text"
+
+msgid "Add the region (e.g. Spanish — Uruguay) so downstream stages use the right localization."
+msgstr "Add the region (e.g. Spanish — Uruguay) so downstream stages use the right localization."
 
 msgid "Add the selected provider's API key in Book settings to run speech."
 msgstr "Add the selected provider's API key in Book settings to run speech."
@@ -1124,6 +1152,9 @@ msgstr "Audio Player"
 msgid "Author"
 msgstr "Author"
 
+msgid "Author name"
+msgstr "Author name"
+
 msgid "Authored by {authorsList}."
 msgstr "Authored by {authorsList}."
 
@@ -1264,8 +1295,14 @@ msgstr "Book info"
 msgid "Book Language"
 msgstr "Book Language"
 
+#~ msgid "Book metadata"
+#~ msgstr "Book metadata"
+
 msgid "Book order"
 msgstr "Book order"
+
+msgid "Book package ready"
+msgstr "Book package ready"
 
 msgid "Book preview"
 msgstr "Book preview"
@@ -1275,6 +1312,9 @@ msgstr "Book Preview"
 
 msgid "Book Summary"
 msgstr "Book Summary"
+
+msgid "Book title"
+msgstr "Book title"
 
 msgid "Borders"
 msgstr "Borders"
@@ -1424,6 +1464,18 @@ msgstr "Change language"
 
 msgid "Change Preset"
 msgstr "Change Preset"
+
+msgid "Change the book language?"
+msgstr "Change the book language?"
+
+msgid "Changing the language resets downstream work."
+msgstr "Changing the language resets downstream work."
+
+#~ msgid "Changing the language resets the completed downstream stages that depend on it. You'll confirm before it happens."
+#~ msgstr "Changing the language resets the completed downstream stages that depend on it. You'll confirm before it happens."
+
+#~ msgid "Changing the language resets the stages that depend on it."
+#~ msgstr "Changing the language resets the stages that depend on it."
 
 msgid "Chapter 1: Introduction"
 msgstr "Chapter 1: Introduction"
@@ -1611,6 +1663,9 @@ msgstr "Comments"
 msgid "Completed"
 msgstr "Completed"
 
+msgid "Completed language-based stages (quizzes, glossary, captions, audio) will be cleared and need to run again. You'll confirm first."
+msgstr "Completed language-based stages (quizzes, glossary, captions, audio) will be cleared and need to run again. You'll confirm first."
+
 msgid "Completion"
 msgstr "Completion"
 
@@ -1743,11 +1798,17 @@ msgstr "Core Pipeline"
 msgid "Correct answer"
 msgstr "Correct answer"
 
+msgid "Correct the metadata extracted from the document."
+msgstr "Correct the metadata extracted from the document."
+
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "Could not read this PDF. The file may be corrupted or password-protected."
 
 msgid "Couldn't read this PDF"
 msgstr "Couldn't read this PDF"
+
+#~ msgid "Couldn't regenerate the book summary. Re-run Extract to update it."
+#~ msgstr "Couldn't regenerate the book summary. Re-run Extract to update it."
 
 msgid "Counting occurrences…"
 msgstr "Counting occurrences…"
@@ -1758,8 +1819,15 @@ msgstr "Course"
 msgid "Cover"
 msgstr "Cover"
 
+msgid "Cover of {displayTitle}"
+msgstr "Cover of {displayTitle}"
+
 msgid "Cover of {title}"
 msgstr "Cover of {title}"
+
+#. placeholder {0}: String(metadata.cover_page_number)
+msgid "Cover: page {0}"
+msgstr "Cover: page {0}"
 
 msgid "Coverage"
 msgstr "Coverage"
@@ -1953,6 +2021,10 @@ msgstr "Definitions and Terminology"
 msgid "Delete"
 msgstr "Delete"
 
+#. placeholder {0}: book.title ?? book.label
+msgid "Delete {0}"
+msgstr "Delete {0}"
+
 msgid "Delete all speech"
 msgstr "Delete all speech"
 
@@ -2078,6 +2150,9 @@ msgstr "Distribute through Readium-compatible reading apps and libraries."
 
 msgid "Don't have a project yet?"
 msgstr "Don't have a project yet?"
+
+msgid "done"
+msgstr "done"
 
 msgid "Done"
 msgstr "Done"
@@ -2219,8 +2294,18 @@ msgstr "Ecosystem"
 msgid "Edit"
 msgstr "Edit"
 
+#. placeholder {0}: book.title ?? book.label
+msgid "Edit {0}"
+msgstr "Edit {0}"
+
 msgid "Edit & enrich"
 msgstr "Edit & enrich"
+
+msgid "Edit book details"
+msgstr "Edit book details"
+
+msgid "Edit book metadata"
+msgstr "Edit book metadata"
 
 msgid "Edit caption"
 msgstr "Edit caption"
@@ -2483,6 +2568,9 @@ msgstr "Extracted"
 msgid "Extracted Blocks"
 msgstr "Extracted Blocks"
 
+msgid "Extracted from the document"
+msgstr "Extracted from the document"
+
 #. placeholder {0}: String(count)
 msgid "Extracted Images ({0})"
 msgstr "Extracted Images ({0})"
@@ -2493,6 +2581,9 @@ msgstr "Extracted Text"
 msgid "Extracting..."
 msgstr "Extracting..."
 
+msgid "Extraction notes"
+msgstr "Extraction notes"
+
 msgid "Extraction Prompt"
 msgstr "Extraction Prompt"
 
@@ -2501,6 +2592,9 @@ msgstr "Extracts text and image data from each page of the PDF."
 
 msgid "Extracts the correct answer key from the generated activity HTML."
 msgstr "Extracts the correct answer key from the generated activity HTML."
+
+msgid "failed"
+msgstr "failed"
 
 msgid "Failed"
 msgstr "Failed"
@@ -2551,6 +2645,9 @@ msgstr "Failed to load validation checklist:"
 
 msgid "Failed to read archive"
 msgstr "Failed to read archive"
+
+msgid "Failed to save metadata. Please try again."
+msgstr "Failed to save metadata. Please try again."
 
 msgid "Failed:"
 msgstr "Failed:"
@@ -2999,6 +3096,9 @@ msgstr "Image Cropping"
 msgid "Image Cropping Prompt"
 msgstr "Image Cropping Prompt"
 
+msgid "Image edit complete"
+msgstr "Image edit complete"
+
 msgid "Image Edit Prompt"
 msgstr "Image Edit Prompt"
 
@@ -3118,6 +3218,9 @@ msgstr "In case you don't want to convert the whole book, adjust the sliders to 
 
 msgid "In development"
 msgstr "In development"
+
+msgid "in progress"
+msgstr "in progress"
 
 msgid "in the book"
 msgstr "in the book"
@@ -3758,6 +3861,9 @@ msgstr "Needs changes"
 msgid "Needs rebuild"
 msgstr "Needs rebuild"
 
+msgid "needs update"
+msgstr "needs update"
+
 msgid "Never"
 msgstr "Never"
 
@@ -4073,6 +4179,9 @@ msgstr "Not reviewed"
 
 msgid "Not run during the last execution — likely because its inputs weren't ready or its stage's settings turned it off."
 msgstr "Not run during the last execution — likely because its inputs weren't ready or its stage's settings turned it off."
+
+msgid "not started"
+msgstr "not started"
 
 msgid "Not started yet"
 msgstr "Not started yet"
@@ -4402,6 +4511,9 @@ msgstr "Page Range"
 msgid "Page range help"
 msgstr "Page range help"
 
+msgid "Page re-rendered"
+msgstr "Page re-rendered"
+
 msgid "Page Sectioning"
 msgstr "Page Sectioning"
 
@@ -4550,6 +4662,9 @@ msgstr "Pipeline · storyboard"
 
 msgid "Pipeline features"
 msgstr "Pipeline features"
+
+msgid "Pipeline stages"
+msgstr "Pipeline stages"
 
 msgid "Pipeline Stages"
 msgstr "Pipeline Stages"
@@ -4717,6 +4832,9 @@ msgstr "Query param"
 msgid "question"
 msgstr "question"
 
+msgid "queued"
+msgstr "queued"
+
 msgid "Queued"
 msgstr "Queued"
 
@@ -4828,6 +4946,9 @@ msgstr "Re-running clears later stages"
 msgid "Read the prompt aloud"
 msgstr "Read the prompt aloud"
 
+msgid "Read-only"
+msgstr "Read-only"
+
 msgid "Reader Highlighting"
 msgstr "Reader Highlighting"
 
@@ -4919,6 +5040,9 @@ msgstr "Regenerate Easy Read"
 msgid "Regenerate selected images for each output language so that any text burned into them is shown in the target language."
 msgstr "Regenerate selected images for each output language so that any text burned into them is shown in the target language."
 
+#~ msgid "Regenerating the book summary in the new language…"
+#~ msgstr "Regenerating the book summary in the new language…"
+
 msgid "Region"
 msgstr "Region"
 
@@ -4947,6 +5071,9 @@ msgstr "Remove all"
 
 msgid "Remove all sign-language videos?"
 msgstr "Remove all sign-language videos?"
+
+msgid "Remove author"
+msgstr "Remove author"
 
 msgid "Remove checklist item"
 msgstr "Remove checklist item"
@@ -5085,8 +5212,17 @@ msgstr "Retries"
 msgid "Retry"
 msgstr "Retry"
 
+msgid "Retry {stageLabel}"
+msgstr "Retry {stageLabel}"
+
 msgid "Retry Export"
 msgstr "Retry Export"
+
+msgid "Revert language change"
+msgstr "Revert language change"
+
+msgid "Revert to {originalLanguageName}"
+msgstr "Revert to {originalLanguageName}"
 
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Review and refine each simplified block side-by-side with the original before packaging."
@@ -5238,6 +5374,9 @@ msgstr "Running"
 
 msgid "RUNNING"
 msgstr "RUNNING"
+
+msgid "Running {stageLabel}"
+msgstr "Running {stageLabel}"
 
 msgid "Running Sectioning will run Extract first, then section the extracted pages."
 msgstr "Running Sectioning will run Extract first, then section the extracted pages."
@@ -5939,6 +6078,9 @@ msgstr "Structured HTML"
 msgid "Structures each page into a tree of sections and nodes."
 msgstr "Structures each page into a tree of sections and nodes."
 
+msgid "Studio actions"
+msgstr "Studio actions"
+
 msgid "Style"
 msgstr "Style"
 
@@ -5981,6 +6123,9 @@ msgstr "Suggested modification"
 msgid "Suggested modification:"
 msgstr "Suggested modification:"
 
+msgid "Summary"
+msgstr "Summary"
+
 msgid "Summary Prompt"
 msgstr "Summary Prompt"
 
@@ -6016,6 +6161,16 @@ msgstr "Tailwind classes"
 
 msgid "Takes liberties and produces something similar."
 msgstr "Takes liberties and produces something similar."
+
+msgid "Task complete"
+msgstr "Task complete"
+
+msgid "Task failed"
+msgstr "Task failed"
+
+#. placeholder {0}: d.error
+msgid "Task failed: {0}"
+msgstr "Task failed: {0}"
 
 msgid "Task Running"
 msgstr "Task Running"
@@ -6119,6 +6274,9 @@ msgstr "The community of living organisms in a place and the way they interact w
 
 msgid "The completed stages below will be reset and need to run again before final outputs are available."
 msgstr "The completed stages below will be reset and need to run again before final outputs are available."
+
+msgid "The completed stages below will be reset and need to run again so they use the new language. Your page sections are kept."
+msgstr "The completed stages below will be reset and need to run again so they use the new language. Your page sections are kept."
 
 msgid "The credits page."
 msgstr "The credits page."
@@ -6376,6 +6534,9 @@ msgstr "Timestamps"
 msgid "Tip: {MODIFIER_LABEL}+Click the label to reset."
 msgstr "Tip: {MODIFIER_LABEL}+Click the label to reset."
 
+msgid "Title"
+msgstr "Title"
+
 msgid "Title and image with text overlaid as a caption — AI matches the source book's visual style."
 msgstr "Title and image with text overlaid as a caption — AI matches the source book's visual style."
 
@@ -6471,6 +6632,9 @@ msgstr "Translation Prompt"
 
 msgid "Translation runs on the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "Translation runs on the typed sections placed by Storyboard. Finish Storyboard before running this stage."
+
+#~ msgid "Translation, captions, glossary, quizzes, table of contents, easy read, speech, and packaging will be reset and need to run again so they use the new language. Your manual page sections are kept."
+#~ msgstr "Translation, captions, glossary, quizzes, table of contents, easy read, speech, and packaging will be reset and need to run again so they use the new language. Your manual page sections are kept."
 
 msgid "translations"
 msgstr "translations"
@@ -6597,6 +6761,9 @@ msgstr "Unknown step: {step}"
 
 msgid "Unprune image"
 msgstr "Unprune image"
+
+#~ msgid "Unsaved"
+#~ msgstr "Unsaved"
 
 msgid "Unsaved changes"
 msgstr "Unsaved changes"
@@ -6874,6 +7041,9 @@ msgstr "WebPub Export"
 msgid "Weight"
 msgstr "Weight"
 
+msgid "Welcome"
+msgstr "Welcome"
+
 msgid "Welcome to ADT Studio"
 msgstr "Welcome to ADT Studio"
 
@@ -6942,6 +7112,9 @@ msgstr "Word and definition are required."
 
 msgid "Word Highlighting"
 msgstr "Word Highlighting"
+
+msgid "Word highlighting ready"
+msgstr "Word highlighting ready"
 
 msgid "Word-level highlighting"
 msgstr "Word-level highlighting"

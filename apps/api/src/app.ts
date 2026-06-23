@@ -16,6 +16,7 @@ import { createPackageRoutes } from "./routes/package.js"
 import { createPromptRoutes } from "./routes/prompts.js"
 import { createTextCatalogRoutes } from "./routes/text-catalog.js"
 import { createEasyReadRoutes } from "./routes/easy-read.js"
+import { createBookSummaryRoutes } from "./routes/book-summary.js"
 import { createTTSRoutes } from "./routes/tts.js"
 import { createStageRoutes } from "./routes/stages.js"
 import { createTaskRoutes } from "./routes/tasks.js"
@@ -97,6 +98,7 @@ app.route("/api", createPackageRoutes(booksDir, webAssetsDir, configPath, taskSe
 app.route("/api", createPromptRoutes(promptsDir, booksDir))
 app.route("/api", createTextCatalogRoutes(booksDir))
 app.route("/api", createEasyReadRoutes(booksDir, promptsDir, configPath))
+app.route("/api", createBookSummaryRoutes(booksDir, promptsDir, configPath, taskService))
 app.route("/api", createTTSRoutes(booksDir, configPath, taskService))
 app.route(
   "/api",

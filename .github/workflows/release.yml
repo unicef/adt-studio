@@ -302,7 +302,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_PAT }}
 
       - name: Restore staged release metadata
         uses: actions/download-artifact@v4
@@ -331,7 +331,7 @@ jobs:
             git tag "$TAG"
             git push origin "$TAG"
           else
-            git commit -m "chore(release): $TAG"
+            git commit -m "chore(release): $TAG [skip ci]"
             git tag "$TAG"
             git push origin --atomic HEAD:"$BRANCH" "refs/tags/$TAG"
           fi

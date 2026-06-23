@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -196,6 +196,59 @@ describe("listBooks", () => {
     expect(() => new Date(books[0].modifiedAt).toISOString()).not.toThrow()
     expect(Date.parse(books[0].createdAt)).not.toBeNaN()
     expect(Date.parse(books[0].modifiedAt)).not.toBeNaN()
+  })
+
+  it("derives modifiedAt from content files, not the bumped directory mtime", () => {
+    // Reproduces the "Last modified resets on every launch" bug: opening a book DB
+    // creates/removes a .lock dir inside the book folder, bumping the folder mtime
+    // to "now" on POSIX filesystems. modifiedAt must reflect the real .db edit time,
+    // not the freshly-bumped directory mtime.
+    createTestDb("stale")
+    const bookDir = path.join(tmpDir, "stale")
+    const dbPath = path.join(bookDir, "stale.db")
+
+    const oldDate = new Date("2020-01-02T03:04:05.000Z")
+    fs.utimesSync(dbPath, oldDate, oldDate)
+    // Simulate the launch-time directory mtime bump.
+    const now = new Date()
+    fs.utimesSync(bookDir, now, now)
+
+    const books = listBooks(tmpDir)
+    expect(books).toHaveLength(1)
+    expect(books[0].modifiedAt).toBe(oldDate.toISOString())
+  })
+
+  it("derives createdAt from content files (not ctime) when birthtime is unavailable", () => {
+    // On filesystems that don't report a birth time (birthtimeMs === 0), createdAt
+    // must fall back to the earliest content mtime, NOT the directory's ctime — which,
+    // like its mtime, is bumped to "now" on every launch by the .lock-dir churn.
+    createTestDb("nobirth")
+    const bookDir = path.join(tmpDir, "nobirth")
+    const dbPath = path.join(bookDir, "nobirth.db")
+
+    const oldDate = new Date("2019-05-06T07:08:09.000Z")
+    fs.utimesSync(dbPath, oldDate, oldDate)
+    // Simulate the launch-time directory mtime bump (ctime moves with it).
+    const now = new Date()
+    fs.utimesSync(bookDir, now, now)
+
+    // Simulate a filesystem that doesn't expose birthtime for the book directory.
+    const realStatSync = fs.statSync.bind(fs)
+    const spy = vi
+      .spyOn(fs, "statSync")
+      .mockImplementation(((p: fs.PathLike, opts?: fs.StatSyncOptions) => {
+        const stat = realStatSync(p, opts) as fs.Stats
+        if (p === bookDir) stat.birthtimeMs = 0
+        return stat
+      }) as typeof fs.statSync)
+
+    try {
+      const books = listBooks(tmpDir)
+      expect(books).toHaveLength(1)
+      expect(books[0].createdAt).toBe(oldDate.toISOString())
+    } finally {
+      spy.mockRestore()
+    }
   })
 
   it("lists multiple books sorted by label", () => {

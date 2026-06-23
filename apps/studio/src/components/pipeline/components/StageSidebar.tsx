@@ -31,7 +31,7 @@ import {
 } from "../stage-config"
 import { useSettingsDialog } from "@/routes/__root"
 import type { TaskInfoResponse } from "@/api/client"
-import { getStageLabelI18n, getStepLabelI18n } from "../pipeline-i18n"
+import { getStageLabelI18n, getStepLabelI18n, getStageStatusLabelI18n } from "../pipeline-i18n"
 import { ALL_STEP_NAMES } from "@adt/types"
 
 const SETTINGS_TAB_MESSAGE: Record<string, MessageDescriptor> = {
@@ -81,6 +81,7 @@ const TASK_KIND_LABELS: Record<string, MessageDescriptor> = {
   "ai-edit": msg`AI Edit`,
   "prepare-export": msg`Export`,
   "transcribe-timestamps": msg`Timestamps`,
+  "book-summary": msg`Book Summary`,
 }
 
 function getSettingsTabs(
@@ -274,6 +275,13 @@ export function StageSidebar({
 
     const stepLabel = step.slug === "book" ? toCamelLabel(bookLabel) : getStageLabelI18n(step.slug)
 
+    // Expose stage status to screen readers — the visual ring/color carries it
+    // for sighted users, but the link's accessible name must say it too.
+    const statusKey = step.slug === "book" ? undefined : stageNeedsRerun ? "needs-update" : state
+    const stepAriaLabel = statusKey
+      ? i18n._(msg`${stepLabel}: ${getStageStatusLabelI18n(statusKey)}`)
+      : stepLabel
+
     const nextStep = STAGES[index + 1]
     const nextGroup = nextStep && "group" in nextStep ? (nextStep as { group?: StageGroup }).group : undefined
     const showConnector = index < STAGES.length - 1 && nextGroup === stepGroup
@@ -301,6 +309,8 @@ export function StageSidebar({
               : { label: bookLabel, step: step.slug }}
             className={cn("flex items-center gap-2.5 min-w-7", x.flex1)}
             title={stepLabel}
+            aria-label={stepAriaLabel}
+            aria-current={isActive ? "page" : undefined}
           >
             <div className="relative shrink-0">
               <div
@@ -388,6 +398,7 @@ export function StageSidebar({
                   to="/books/$label/$step/settings"
                   params={{ label: bookLabel, step: step.slug }}
                   search={{ tab: tab.key }}
+                  aria-current={activeTab === tab.key ? "page" : undefined}
                 >
                   {tab.label}
                 </Link>
@@ -400,7 +411,7 @@ export function StageSidebar({
   })
 
   return (
-    <nav className="flex flex-col flex-1 min-h-0">
+    <nav className="flex flex-col flex-1 min-h-0" aria-label={i18n._(msg`Pipeline stages`)}>
       <div className="flex flex-1 min-h-0">
         {/* Stage rail */}
         <div className={cn(

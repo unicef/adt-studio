@@ -632,10 +632,14 @@ async function runExtractStep(
     progress.emit({ type: "step-complete", step: "metadata" })
     console.log(`[stage-run] ${label}: metadata complete (lang=${metadataResult.language_code})`)
 
-    // Step 3: Book summary from raw page text (no sectioning required).
+    // Step 3: Book summary from raw page text (no sectioning required). Written
+    // in the book's detected language (just extracted above), not English.
     progress.emit({ type: "step-start", step: "book-summary" })
     try {
-      const bookSummaryConfig = buildBookSummaryConfig(config)
+      const summaryLanguage = normalizeLocale(
+        config.editing_language ?? metadataResult.language_code ?? "en"
+      )
+      const bookSummaryConfig = buildBookSummaryConfig(config, summaryLanguage)
       const summaryModel = createLLMModel({
         modelId: bookSummaryConfig.modelId,
         cacheDir,
@@ -1685,7 +1689,26 @@ async function runEasyReadStep(
           onLog: onLlmLog,
           credentials: llmCredentials,
         })
-        const easyRead = await generateEasyRead(blocks, easyReadConfig, easyReadModel)
+        const totalEntries = blocks.reduce((sum, block) => sum + block.entries.length, 0)
+        progress.emit({
+          type: "step-progress",
+          step: "easy-read",
+          message: `0/${totalEntries}`,
+          page: 0,
+          totalPages: totalEntries,
+        })
+        const easyRead = await generateEasyRead(blocks, easyReadConfig, easyReadModel, {
+          concurrency: effectiveConcurrency,
+          onProgress: (completed, total) => {
+            progress.emit({
+              type: "step-progress",
+              step: "easy-read",
+              message: `${completed}/${total}`,
+              page: completed,
+              totalPages: total,
+            })
+          },
+        })
         storage.putNodeData("easy-read", "book", easyRead)
         easyReadEntries = flattenEasyReadEntries(easyRead)
         progress.emit({

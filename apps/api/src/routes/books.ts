@@ -2,9 +2,10 @@ import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel, PIPELINE } from "@adt/types"
-import { openBookDb } from "@adt/storage"
+import { parseBookLabel, PIPELINE, BookMetadata } from "@adt/types"
+import { openBookDb, createBookStorage } from "@adt/storage"
 import { countPdfPages } from "@adt/pdf"
+import { normalizeLocale, getBaseLanguage } from "@adt/pipeline"
 import {
   listBooks,
   getBook,
@@ -232,6 +233,114 @@ export function createBookRoutes(
         throw new HTTPException(404, { message })
       }
       throw new HTTPException(400, { message })
+    }
+  })
+
+  // PUT /books/:label/metadata — Update editable book metadata
+  //
+  // Only title/authors/publisher/language_code are user-editable; cover_page_number
+  // and reasoning are preserved by merging onto the stored metadata. Changing the
+  // language invalidates every downstream LLM-derived output that depends on it so
+  // they re-run against the corrected language; bibliographic edits only refresh the
+  // package output.
+  app.put("/books/:label/metadata", async (c) => {
+    const { label } = c.req.param()
+    let safeLabel: string
+    try {
+      safeLabel = parseBookLabel(label)
+    } catch (err) {
+      throw new HTTPException(400, {
+        message: err instanceof Error ? err.message : String(err),
+      })
+    }
+    const body = await c.req.json<Partial<BookMetadata>>()
+
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const previousRow = storage.getLatestNodeData("metadata", "book")
+      const previous = previousRow
+        ? (previousRow.data as BookMetadata)
+        : null
+      if (!previous) {
+        throw new HTTPException(404, {
+          message: `No metadata to edit for book: ${safeLabel}`,
+        })
+      }
+
+      // Merge only the editable fields onto the stored metadata so cover_page_number
+      // and reasoning round-trip even if the client omits them.
+      const merged = {
+        ...previous,
+        title: body.title ?? null,
+        authors: body.authors ?? [],
+        publisher: body.publisher ?? null,
+        language_code: body.language_code
+          ? normalizeLocale(body.language_code)
+          : null,
+      }
+
+      const parsed = BookMetadata.safeParse(merged)
+      if (!parsed.success) {
+        throw new HTTPException(400, {
+          message: `Invalid metadata: ${parsed.error.message}`,
+        })
+      }
+
+      const prevLanguage = normalizeLocale(previous.language_code ?? "")
+      const nextLanguage = normalizeLocale(parsed.data.language_code ?? "")
+      const languageChanged = prevLanguage !== nextLanguage
+      // A base-language change (es -> fr) also needs the book summary
+      // regenerated; the client triggers that via the book-summary regenerate
+      // endpoint (which keeps the existing summary visible until it lands)
+      // rather than clearing it here, so the Extract stage isn't reset.
+      const baseLanguageChanged =
+        getBaseLanguage(prevLanguage) !== getBaseLanguage(nextLanguage)
+
+      const version = storage.putNodeData("metadata", "book", parsed.data)
+
+      if (languageChanged) {
+        // The detected language drives the editing language used by every
+        // language-dependent step downstream of Storyboard (captions, quizzes,
+        // glossary, ToC, easy read, translation, speech, packaging). Clearing
+        // these mirrors a "re-run from Storyboard" cascade. Sectioning and
+        // Storyboard themselves (page structure, rendering) are language-agnostic
+        // and intentionally preserved, along with manual section edits.
+        storage.clearNodesByType([
+          "quiz-generation",
+          "image-captioning",
+          "glossary",
+          "toc-generation",
+          "text-catalog",
+          "easy-read",
+          "text-catalog-translation",
+          "tts",
+          "tts-timestamps",
+          "accessibility-assessment",
+        ])
+        storage.clearStepRuns([
+          "quiz-generation",
+          "image-captioning",
+          "glossary",
+          "toc-generation",
+          "text-catalog",
+          "easy-read",
+          "catalog-translation",
+          "image-translation",
+          "tts",
+          "word-timestamps",
+          "package-web",
+          "accessibility-assessment",
+        ])
+        // Language-specific translated image variants live in the images table.
+        storage.clearTranslatedImages()
+      } else {
+        // Title/authors/publisher only feed packaging metadata.
+        storage.clearStepRuns(["package-web"])
+      }
+
+      return c.json({ version, languageChanged, baseLanguageChanged })
+    } finally {
+      storage.close()
     }
   })
 

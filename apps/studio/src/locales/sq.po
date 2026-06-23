@@ -89,6 +89,10 @@ msgstr "{0} audio"
 msgid "{0} checks per page"
 msgstr "{0} kontrolle për faqe"
 
+#. placeholder {0}: getStageLabelI18n(uiStage)
+msgid "{0} complete"
+msgstr "{0} u krye"
+
 #. placeholder {0}: String(p.stats.decorative)
 msgid "{0} decorative"
 msgstr "{0} dekorative"
@@ -96,6 +100,10 @@ msgstr "{0} dekorative"
 #. placeholder {0}: entries.length
 msgid "{0} entries"
 msgstr "{0} hyrje"
+
+#. placeholder {0}: getStageLabelI18n(uiStage)
+msgid "{0} failed"
+msgstr "{0} dështoi"
 
 #. placeholder {0}: activeMetrics.flagged.length
 msgid "{0} flagged findings in this review"
@@ -163,6 +171,7 @@ msgid "{0} of {1} items"
 msgstr "{0} nga {1} elemente"
 
 #. placeholder {0}: String(displayPages.length)
+#. placeholder {0}: book.pageCount
 msgid "{0} pages"
 msgstr "{0} faqe"
 
@@ -326,6 +335,10 @@ msgstr "{stageLabel} nuk është gati ende — çdo seksion në Storyboard ësht
 msgid "{stageLabel} isn't ready yet — Storyboard hasn't finished, so there's nothing to work with. Finish that stage first."
 msgstr "{stageLabel} nuk është gati ende — Storyboard nuk ka përfunduar, kështu që nuk ka asgjë me të cilën të punohet. Përfundoni atë fazë fillimisht."
 
+#. placeholder {0}: getStageStatusLabelI18n(statusKey)
+msgid "{stepLabel}: {0}"
+msgstr "{stepLabel}: {0}"
+
 msgid "{textCount} text leaves"
 msgstr "{textCount} gjethe teksti"
 
@@ -447,6 +460,9 @@ msgstr "Një aktivitet me plotësim boshllëqesh."
 
 msgid "A glossary term with this word already exists."
 msgstr "Një term glosari me këtë fjalë ekziston tashmë."
+
+msgid "A language is required so downstream stages can localize the book."
+msgstr "Kërkohet një gjuhë që fazat e mëvonshme të mund ta lokalizojnë librin."
 
 msgid "A long row of shelves filled with food in a big store."
 msgstr "Një rresht i gjatë rafte të mbushur me ushqim në një dyqan të madh."
@@ -713,8 +729,17 @@ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar përkt
 msgid "Add at least one output language to run translation."
 msgstr "Shto të paktën një gjuhë dalëse për të ekzekutuar përkthimin."
 
+msgid "Add author"
+msgstr "Shto autor"
+
 msgid "Add Book"
 msgstr "Shto Libër"
+
+msgid "Add Book: Choose a preset"
+msgstr "Shto Libër: Zgjidh një paracaktim"
+
+msgid "Add Book: Upload PDF"
+msgstr "Shto Libër: Ngarko PDF"
 
 msgid "Add caption…"
 msgstr "Shto titull…"
@@ -775,6 +800,9 @@ msgstr "Shto Term"
 
 msgid "Add text"
 msgstr "Shto tekst"
+
+msgid "Add the region (e.g. Spanish — Uruguay) so downstream stages use the right localization."
+msgstr "Shto rajonin (p.sh. Spanjisht — Uruguai) që fazat pasuese të përdorin lokalizimin e duhur."
 
 msgid "Add the selected provider's API key in Book settings to run speech."
 msgstr "Shto çelësin API të ofruesit të zgjedhur në cilësimet e Librit për të ekzekutuar të folurit."
@@ -1125,6 +1153,9 @@ msgstr "Luajtës audio"
 msgid "Author"
 msgstr "Autor"
 
+msgid "Author name"
+msgstr "Emri i autorit"
+
 msgid "Authored by {authorsList}."
 msgstr "Autorë: {authorsList}."
 
@@ -1265,8 +1296,14 @@ msgstr "Info libri"
 msgid "Book Language"
 msgstr "Gjuha e librit"
 
+#~ msgid "Book metadata"
+#~ msgstr "Të dhënat e librit"
+
 msgid "Book order"
 msgstr "Rendi i librit"
+
+msgid "Book package ready"
+msgstr "Paketa e librit gati"
 
 msgid "Book preview"
 msgstr "Pamje paraprake e librit"
@@ -1276,6 +1313,9 @@ msgstr "Pamje paraprake e librit"
 
 msgid "Book Summary"
 msgstr "Përmbledhje e librit"
+
+msgid "Book title"
+msgstr "Titulli i librit"
 
 msgid "Borders"
 msgstr "Kufij"
@@ -1425,6 +1465,18 @@ msgstr "Ndrysho gjuhën"
 
 msgid "Change Preset"
 msgstr "Ndrysho Presetin"
+
+msgid "Change the book language?"
+msgstr "Të ndryshohet gjuha e librit?"
+
+msgid "Changing the language resets downstream work."
+msgstr "Ndryshimi i gjuhës rivendos punën e mëvonshme."
+
+#~ msgid "Changing the language resets the completed downstream stages that depend on it. You'll confirm before it happens."
+#~ msgstr "Ndryshimi i gjuhës rivendos fazat e mëvonshme të përfunduara që varen prej saj. Do ta konfirmoni para se të ndodhë."
+
+#~ msgid "Changing the language resets the stages that depend on it."
+#~ msgstr "Ndryshimi i gjuhës rivendos fazat që varen prej saj."
 
 msgid "Chapter 1: Introduction"
 msgstr "Kapitulli 1: Hyrje"
@@ -1612,6 +1664,9 @@ msgstr "Komente"
 msgid "Completed"
 msgstr "Përfunduar"
 
+msgid "Completed language-based stages (quizzes, glossary, captions, audio) will be cleared and need to run again. You'll confirm first."
+msgstr "Fazat e përfunduara të bazuara në gjuhë (kuize, glosar, titra, audio) do të fshihen dhe duhet të ekzekutohen sërish. Do ta konfirmoni më parë."
+
 msgid "Completion"
 msgstr "Përfundim"
 
@@ -1744,11 +1799,17 @@ msgstr "Zinxhiri Kryesor"
 msgid "Correct answer"
 msgstr "Përgjigje e saktë"
 
+msgid "Correct the metadata extracted from the document."
+msgstr "Korrigjoni meta të dhënat e nxjerra nga dokumenti."
+
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "Nuk u mund të lexohet ky PDF. Skedari mund të jetë i dëmtuar ose i mbrojtur me fjalëkalim."
 
 msgid "Couldn't read this PDF"
 msgstr "Nuk mund të lexohej ky PDF"
+
+#~ msgid "Couldn't regenerate the book summary. Re-run Extract to update it."
+#~ msgstr "Përmbledhja e librit nuk u rigjenerua dot. Ekzekutoni përsëri Nxjerrjen për ta përditësuar."
 
 msgid "Counting occurrences…"
 msgstr "Po numërohen ndodhitë…"
@@ -1759,8 +1820,15 @@ msgstr "Kurs"
 msgid "Cover"
 msgstr "Kopertinë"
 
+msgid "Cover of {displayTitle}"
+msgstr "Kopertina e {displayTitle}"
+
 msgid "Cover of {title}"
 msgstr "Kopertina e {title}"
+
+#. placeholder {0}: String(metadata.cover_page_number)
+msgid "Cover: page {0}"
+msgstr "Kapaku: faqja {0}"
 
 msgid "Coverage"
 msgstr "Mbulim"
@@ -1954,6 +2022,10 @@ msgstr "Përkufizime dhe Terminologji"
 msgid "Delete"
 msgstr "Fshi"
 
+#. placeholder {0}: book.title ?? book.label
+msgid "Delete {0}"
+msgstr "Fshi {0}"
+
 msgid "Delete all speech"
 msgstr "Fshi të gjitha fjalët"
 
@@ -2079,6 +2151,9 @@ msgstr "Shpërnda nëpërmjet aplikacioneve dhe bibliotekave të leximit të paj
 
 msgid "Don't have a project yet?"
 msgstr "Nuk ke ende një projekt?"
+
+msgid "done"
+msgstr "u krye"
 
 msgid "Done"
 msgstr "U krye"
@@ -2220,8 +2295,18 @@ msgstr "Ekosistem"
 msgid "Edit"
 msgstr "Redakto"
 
+#. placeholder {0}: book.title ?? book.label
+msgid "Edit {0}"
+msgstr "Redakto {0}"
+
 msgid "Edit & enrich"
 msgstr "Redakto dhe pasuro"
+
+msgid "Edit book details"
+msgstr "Modifiko detajet e librit"
+
+msgid "Edit book metadata"
+msgstr "Modifiko meta të dhënat e librit"
 
 msgid "Edit caption"
 msgstr "Redakto titullin"
@@ -2484,6 +2569,9 @@ msgstr "Nxjerrë"
 msgid "Extracted Blocks"
 msgstr "Blloqe të nxjerra"
 
+msgid "Extracted from the document"
+msgstr "Nxjerrë nga dokumenti"
+
 #. placeholder {0}: String(count)
 msgid "Extracted Images ({0})"
 msgstr "Imazhe të nxjerra ({0})"
@@ -2494,6 +2582,9 @@ msgstr "Tekst i nxjerrë"
 msgid "Extracting..."
 msgstr "Duke nxjerrë..."
 
+msgid "Extraction notes"
+msgstr "Shënime nxjerrjeje"
+
 msgid "Extraction Prompt"
 msgstr "Prompt-i i nxjerrjes"
 
@@ -2502,6 +2593,9 @@ msgstr "Nxjerr të dhëna teksti dhe imazhi nga çdo faqe e PDF-it."
 
 msgid "Extracts the correct answer key from the generated activity HTML."
 msgstr "Nxjerr çelësin e saktë të përgjigjeve nga HTML-i i gjeneruar i aktivitetit."
+
+msgid "failed"
+msgstr "dështoi"
 
 msgid "Failed"
 msgstr "Dështoi"
@@ -2552,6 +2646,9 @@ msgstr "Dështoi ngarkimi i listës së kontrollit të validimit:"
 
 msgid "Failed to read archive"
 msgstr "Dështoi leximi i arkivit"
+
+msgid "Failed to save metadata. Please try again."
+msgstr "Ruajtja e të dhënave dështoi. Ju lutemi provoni përsëri."
 
 msgid "Failed:"
 msgstr "Dështoi:"
@@ -3000,6 +3097,9 @@ msgstr "Prerja e Imazheve"
 msgid "Image Cropping Prompt"
 msgstr "Prompt i Prerjes së Imazheve"
 
+msgid "Image edit complete"
+msgstr "Modifikimi i imazhit u krye"
+
 msgid "Image Edit Prompt"
 msgstr "Prompt i Editimit të Imazhit"
 
@@ -3119,6 +3219,9 @@ msgstr "Nëse nuk doni të konvertoni të gjithë librin, rregulloni rrëshqitë
 
 msgid "In development"
 msgstr "Në zhvillim"
+
+msgid "in progress"
+msgstr "në proces"
 
 msgid "in the book"
 msgstr "në libër"
@@ -3759,6 +3862,9 @@ msgstr "Kërkon ndryshime"
 msgid "Needs rebuild"
 msgstr "Kërkon rindërtim"
 
+msgid "needs update"
+msgstr "nevojitet përditësim"
+
 msgid "Never"
 msgstr "Kurrë"
 
@@ -4074,6 +4180,9 @@ msgstr "Nuk u rishikua"
 
 msgid "Not run during the last execution — likely because its inputs weren't ready or its stage's settings turned it off."
 msgstr "Nuk u ekzekutua gjatë ekzekutimit të fundit — me shumë gjasë sepse hyrjet e tij nuk ishin gati ose cilësimet e fazës e çaktivizuan."
+
+msgid "not started"
+msgstr "e panisur"
 
 msgid "Not started yet"
 msgstr "Nuk ka filluar ende"
@@ -4403,6 +4512,9 @@ msgstr "Gama e Faqeve"
 msgid "Page range help"
 msgstr "Ndihmë për gamën e faqeve"
 
+msgid "Page re-rendered"
+msgstr "Faqja u rirenderua"
+
 msgid "Page Sectioning"
 msgstr "Ndarja e Faqeve në Seksione"
 
@@ -4551,6 +4663,9 @@ msgstr "Pipeline · storyboard"
 
 msgid "Pipeline features"
 msgstr "Veçoritë e Pipeline"
+
+msgid "Pipeline stages"
+msgstr "Fazat e procesit"
 
 msgid "Pipeline Stages"
 msgstr "Fazat e Pipeline"
@@ -4718,6 +4833,9 @@ msgstr "Parametri i pyetjes"
 msgid "question"
 msgstr "pyetje"
 
+msgid "queued"
+msgstr "në radhë"
+
 msgid "Queued"
 msgstr "Në radhë"
 
@@ -4829,6 +4947,9 @@ msgstr "Ri-ekzekutimi fshin fazat e mëvonshme"
 msgid "Read the prompt aloud"
 msgstr "Lexo kërkesën me zë"
 
+msgid "Read-only"
+msgstr "Vetëm për lexim"
+
 msgid "Reader Highlighting"
 msgstr "Theksimi i Lexuesit"
 
@@ -4920,6 +5041,9 @@ msgstr "Rigenero Easy Read"
 msgid "Regenerate selected images for each output language so that any text burned into them is shown in the target language."
 msgstr "Rigenero imazhet e zgjedhura për çdo gjuhë dalëse, në mënyrë që çdo tekst i djegur mbi to të shfaqet në gjuhën e synuar."
 
+#~ msgid "Regenerating the book summary in the new language…"
+#~ msgstr "Po rigjenerohet përmbledhja e librit në gjuhën e re…"
+
 msgid "Region"
 msgstr "Rajon"
 
@@ -4948,6 +5072,9 @@ msgstr "Hiq të gjitha"
 
 msgid "Remove all sign-language videos?"
 msgstr "Hiqni të gjitha videot e gjuhës së shenjave?"
+
+msgid "Remove author"
+msgstr "Hiq autorin"
 
 msgid "Remove checklist item"
 msgstr "Hiq artikullin e listës kontrolluese"
@@ -5086,8 +5213,17 @@ msgstr "Riprovime"
 msgid "Retry"
 msgstr "Riprovo"
 
+msgid "Retry {stageLabel}"
+msgstr "Riprovo {stageLabel}"
+
 msgid "Retry Export"
 msgstr "Riprovo Eksportimin"
+
+msgid "Revert language change"
+msgstr "Kthe ndryshimin e gjuhës"
+
+msgid "Revert to {originalLanguageName}"
+msgstr "Kthehu te {originalLanguageName}"
 
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Rishikoni dhe rafinoni çdo bllok të thjeshtëzuar krahas origjinalit përpara paketimit."
@@ -5239,6 +5375,9 @@ msgstr "Duke ekzekutuar"
 
 msgid "RUNNING"
 msgstr "NË EKZEKUTIM"
+
+msgid "Running {stageLabel}"
+msgstr "Duke ekzekutuar {stageLabel}"
 
 msgid "Running Sectioning will run Extract first, then section the extracted pages."
 msgstr "Ekzekutimi i Seksionimit do të ekzekutojë Ekstraktimin së pari, pastaj do të seksionojë faqet e ekstraktuara."
@@ -5940,6 +6079,9 @@ msgstr "HTML i Strukturuar"
 msgid "Structures each page into a tree of sections and nodes."
 msgstr "Strukturon çdo faqe në një pemë seksionesh dhe nyjesh."
 
+msgid "Studio actions"
+msgstr "Veprimet e studios"
+
 msgid "Style"
 msgstr "Stili"
 
@@ -5982,6 +6124,9 @@ msgstr "Modifikim i sugjeruar"
 msgid "Suggested modification:"
 msgstr "Modifikim i sugjeruar:"
 
+msgid "Summary"
+msgstr "Përmbledhje"
+
 msgid "Summary Prompt"
 msgstr "Prompt Përmbledhjeje"
 
@@ -6017,6 +6162,16 @@ msgstr "Klasa Tailwind"
 
 msgid "Takes liberties and produces something similar."
 msgstr "Merr liri dhe prodhon diçka të ngjashme."
+
+msgid "Task complete"
+msgstr "Detyra u krye"
+
+msgid "Task failed"
+msgstr "Detyra dështoi"
+
+#. placeholder {0}: d.error
+msgid "Task failed: {0}"
+msgstr "Detyra dështoi: {0}"
 
 msgid "Task Running"
 msgstr "Detyra po Ekzekutohet"
@@ -6120,6 +6275,9 @@ msgstr "Bashkësia e organizmave të gjallë në një vend dhe mënyra si ndërv
 
 msgid "The completed stages below will be reset and need to run again before final outputs are available."
 msgstr "Fazat e përfunduara më poshtë do të resetohen dhe duhet të ekzekutohen sërish para se rezultatet përfundimtare të jenë të disponueshme."
+
+msgid "The completed stages below will be reset and need to run again so they use the new language. Your page sections are kept."
+msgstr "Fazat e përfunduara më poshtë do të rivendosen dhe duhet të ekzekutohen përsëri që të përdorin gjuhën e re. Seksionet e faqes suaj ruhen."
 
 msgid "The credits page."
 msgstr "Faqja e krediteve."
@@ -6377,6 +6535,9 @@ msgstr "Vula kohore"
 msgid "Tip: {MODIFIER_LABEL}+Click the label to reset."
 msgstr "Këshillë: {MODIFIER_LABEL}+Kliko etiketën për ta rivendosur."
 
+msgid "Title"
+msgstr "Titulli"
+
 msgid "Title and image with text overlaid as a caption — AI matches the source book's visual style."
 msgstr "Titulli dhe imazhi me tekst të mbivendosur si titull — AI përputhet me stilin vizual të librit burim."
 
@@ -6472,6 +6633,9 @@ msgstr "Udhëzimi i Përkthimit"
 
 msgid "Translation runs on the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "Përkthimi ekzekutohet mbi seksionet e shtypura të vendosura nga Storyboard. Përfundo Storyboard para se të ekzekutosh këtë fazë."
+
+#~ msgid "Translation, captions, glossary, quizzes, table of contents, easy read, speech, and packaging will be reset and need to run again so they use the new language. Your manual page sections are kept."
+#~ msgstr "Përkthimi, titrat, fjalori, kuizet, tabela e përmbajtjes, leximi i lehtë, zëri dhe paketimi do të rivendosen dhe duhet të ekzekutohen përsëri që të përdorin gjuhën e re. Seksionet e faqes që keni redaktuar manualisht ruhen."
 
 msgid "translations"
 msgstr "përkthime"
@@ -6598,6 +6762,9 @@ msgstr "Hap i panjohur: {step}"
 
 msgid "Unprune image"
 msgstr "Rikthe imazhin"
+
+#~ msgid "Unsaved"
+#~ msgstr "E paruajtur"
 
 msgid "Unsaved changes"
 msgstr "Ndryshime të paruajtura"
@@ -6875,6 +7042,9 @@ msgstr "Eksport WebPub"
 msgid "Weight"
 msgstr "Peshë"
 
+msgid "Welcome"
+msgstr "Mirë se vini"
+
 msgid "Welcome to ADT Studio"
 msgstr "Mirë se vini në ADT Studio"
 
@@ -6943,6 +7113,9 @@ msgstr "Fjala dhe përkufizimi kërkohen."
 
 msgid "Word Highlighting"
 msgstr "Theksim fjalësh"
+
+msgid "Word highlighting ready"
+msgstr "Theksimi i fjalëve gati"
 
 msgid "Word-level highlighting"
 msgstr "Theksim në nivel fjale"
