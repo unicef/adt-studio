@@ -340,6 +340,10 @@ export interface MergeResult {
   addedPages: number
   replacedPages: number
   staleSteps: string[]
+  /** The page set changed, so the whole-book summary is now stale and should be
+   *  regenerated on the assembled book (kept separate from staleSteps because
+   *  book-summary lives in the Extract stage and must stay "done" there). */
+  bookSummaryStale: boolean
   semanticsOverridden: boolean
 }
 
@@ -676,6 +680,7 @@ export function mergePart(
       addedPages,
       replacedPages,
       staleSteps: DOWNSTREAM_STAGE_NAMES,
+      bookSummaryStale: addedPages + replacedPages > 0,
       semanticsOverridden: !semanticsMatch,
     }
   } finally {

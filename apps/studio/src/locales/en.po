@@ -1327,6 +1327,9 @@ msgstr "Book Preview"
 msgid "Book Summary"
 msgstr "Book Summary"
 
+msgid "Book summary regeneration queued"
+msgstr "Book summary regeneration queued"
+
 msgid "Book title"
 msgstr "Book title"
 
@@ -5108,6 +5111,9 @@ msgstr "Refreshing results for this packaged preview."
 msgid "Regenerate"
 msgstr "Regenerate"
 
+msgid "Regenerate book summary"
+msgstr "Regenerate book summary"
+
 msgid "Regenerate definition, variations, and emoji"
 msgstr "Regenerate definition, variations, and emoji"
 
@@ -5840,6 +5846,9 @@ msgstr "Set a Gemini API key to generate audio"
 msgid "Set the editing language and choose output languages for the book."
 msgstr "Set the editing language and choose output languages for the book."
 
+msgid "Set your API key first"
+msgstr "Set your API key first"
+
 msgid "Set your API key to auto-generate"
 msgstr "Set your API key to auto-generate"
 
@@ -6348,6 +6357,9 @@ msgstr "The back cover of the book."
 
 msgid "The book is written in {langName}."
 msgstr "The book is written in {langName}."
+
+msgid "The book summary covers the whole book — regenerate it on the assembled book once you've merged your last part."
+msgstr "The book summary covers the whole book — regenerate it on the assembled book once you've merged your last part."
 
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "The community of living organisms in a place and the way they interact with each other and their environment."

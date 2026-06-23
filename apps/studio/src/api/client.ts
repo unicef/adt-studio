@@ -161,6 +161,7 @@ export interface MergeResult {
   addedPages: number
   replacedPages: number
   staleSteps: string[]
+  bookSummaryStale: boolean
   semanticsOverridden: boolean
 }
 

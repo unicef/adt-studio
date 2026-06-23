@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { Scissors, Combine, Download, Upload, AlertTriangle, CheckCircle2 } from "lucide-react"
-import { useBook } from "../../hooks/use-books"
+import { Scissors, Combine, Download, Upload, AlertTriangle, CheckCircle2, Loader2, Sparkles } from "lucide-react"
+import { useBook, useRegenerateBookSummary } from "../../hooks/use-books"
 import { usePartInfo, usePreviewMerge, useMergePart } from "../../hooks/use-parts"
+import { useApiKey } from "../../hooks/use-api-key"
 import { api, type MergePreview, type MergeResult } from "../../api/client"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
@@ -134,6 +135,8 @@ function MergePart({ bookLabel }: { bookLabel: string }) {
 
   const previewMutation = usePreviewMerge(bookLabel)
   const mergeMutation = useMergePart(bookLabel)
+  const regenerateSummary = useRegenerateBookSummary()
+  const { apiKey, hasApiKey } = useApiKey()
 
   const reset = () => {
     setFile(null)
@@ -208,6 +211,41 @@ function MergePart({ bookLabel }: { bookLabel: string }) {
             </Trans>{" "}
             <span className="font-medium text-foreground">{result.staleSteps.join(", ")}</span>
           </p>
+
+          {result.bookSummaryStale && (
+            <div className="flex flex-col gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/5 p-2.5">
+              <p className="text-xs text-amber-800 dark:text-amber-300">
+                <Trans>
+                  The book summary covers the whole book — regenerate it on the
+                  assembled book once you've merged your last part.
+                </Trans>
+              </p>
+              {regenerateSummary.isSuccess ? (
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  <Trans>Book summary regeneration queued</Trans>
+                </span>
+              ) : (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="self-start"
+                  disabled={!hasApiKey || regenerateSummary.isPending}
+                  title={!hasApiKey ? t`Set your API key first` : undefined}
+                  onClick={() => regenerateSummary.mutate({ label: bookLabel, apiKey })}
+                >
+                  {regenerateSummary.isPending ? (
+                    <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Sparkles className="mr-1.5 h-4 w-4" />
+                  )}
+                  <Trans>Regenerate book summary</Trans>
+                </Button>
+              )}
+            </div>
+          )}
+
           <Button type="button" variant="outline" size="sm" className="self-start" onClick={reset}>
             <Trans>Merge another</Trans>
           </Button>

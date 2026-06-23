@@ -1327,6 +1327,9 @@ msgstr "Vista Previa del Libro"
 msgid "Book Summary"
 msgstr "Resumen del libro"
 
+msgid "Book summary regeneration queued"
+msgstr "Regeneración del resumen del libro en cola"
+
 msgid "Book title"
 msgstr "Título del libro"
 
@@ -5108,6 +5111,9 @@ msgstr "Refreshing results for this packaged preview."
 msgid "Regenerate"
 msgstr "Regenerar"
 
+msgid "Regenerate book summary"
+msgstr "Regenerar resumen del libro"
+
 msgid "Regenerate definition, variations, and emoji"
 msgstr "Regenerar definición, variaciones y emoji"
 
@@ -5840,6 +5846,9 @@ msgstr "Configura una clave de API de Gemini para generar audio"
 msgid "Set the editing language and choose output languages for the book."
 msgstr "Establece el idioma de edición y elige los idiomas de salida para el libro."
 
+msgid "Set your API key first"
+msgstr "Configura primero tu clave de API"
+
 msgid "Set your API key to auto-generate"
 msgstr "Configura tu clave de API para autogenerar"
 
@@ -6348,6 +6357,9 @@ msgstr "La contraportada del libro."
 
 msgid "The book is written in {langName}."
 msgstr "El libro está escrito en {langName}."
+
+msgid "The book summary covers the whole book — regenerate it on the assembled book once you've merged your last part."
+msgstr "El resumen del libro abarca todo el libro: regéneralo en el libro ensamblado una vez que hayas fusionado tu última parte."
 
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "La comunidad de organismos vivos en un lugar y la forma en que interactúan entre sí y con su entorno."

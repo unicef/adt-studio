@@ -1328,6 +1328,9 @@ msgstr "Pamje paraprake e librit"
 msgid "Book Summary"
 msgstr "Përmbledhje e librit"
 
+msgid "Book summary regeneration queued"
+msgstr "Rigjenerimi i përmbledhjes së librit në radhë"
+
 msgid "Book title"
 msgstr "Titulli i librit"
 
@@ -5109,6 +5112,9 @@ msgstr "Duke rifreskuar rezultatet për këtë pamje paraprake të paketuar."
 msgid "Regenerate"
 msgstr "Rigenero"
 
+msgid "Regenerate book summary"
+msgstr "Rigjenero përmbledhjen e librit"
+
 msgid "Regenerate definition, variations, and emoji"
 msgstr "Rigenero përkufizimin, variacionet dhe emoji"
 
@@ -5841,6 +5847,9 @@ msgstr "Vendosni një çelës API Gemini për të gjeneruar audio"
 msgid "Set the editing language and choose output languages for the book."
 msgstr "Vendosni gjuhën e redaktimit dhe zgjidhni gjuhët e daljes për librin."
 
+msgid "Set your API key first"
+msgstr "Vendos fillimisht çelësin tënd të API-t"
+
 msgid "Set your API key to auto-generate"
 msgstr "Vendosni çelësin tuaj API për gjenerim automatik"
 
@@ -6349,6 +6358,9 @@ msgstr "Kapaku i pasëm i librit."
 
 msgid "The book is written in {langName}."
 msgstr "Libri është shkruar në {langName}."
+
+msgid "The book summary covers the whole book — regenerate it on the assembled book once you've merged your last part."
+msgstr "Përmbledhja e librit mbulon të gjithë librin — rigjeneroje në librin e bashkuar pasi të kesh bashkuar pjesën tënde të fundit."
 
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "Bashkësia e organizmave të gjallë në një vend dhe mënyra si ndërveprojnë me njëri-tjetrin dhe mjedisin e tyre."
