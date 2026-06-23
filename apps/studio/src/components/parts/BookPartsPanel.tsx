@@ -1,14 +1,18 @@
 import { useEffect, useRef, useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Scissors, Combine, Download, Upload, AlertTriangle, CheckCircle2, Loader2, Sparkles } from "lucide-react"
 import { useBook, useRegenerateBookSummary } from "../../hooks/use-books"
-import { usePartInfo, usePreviewMerge, useMergePart } from "../../hooks/use-parts"
+import { usePartInfo, usePreviewMerge, useMergePart, useSplitStatus } from "../../hooks/use-parts"
 import { useApiKey } from "../../hooks/use-api-key"
 import { useSourcePdfInfo } from "../../hooks/use-source-pdf-info"
-import { api, type MergePreview, type MergeResult } from "../../api/client"
+import { api, type MergePreview, type MergeResult, type PageRange, type SplitStatus } from "../../api/client"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
 import { Badge } from "../ui/badge"
+
+const fmtRange = (r: PageRange) =>
+  r.startPage === r.endPage ? `${r.startPage}` : `${r.startPage}–${r.endPage}`
 
 /**
  * Split a book into page-range "parts" for independent processing, and merge
@@ -18,10 +22,11 @@ export function BookPartsPanel({ bookLabel }: { bookLabel: string }) {
   const { data: book } = useBook(bookLabel)
   const { data: partInfo } = usePartInfo(bookLabel)
   const { data: pdfInfo } = useSourcePdfInfo(bookLabel)
+  const { data: splitStatus } = useSplitStatus(bookLabel)
   // Base the export range on the full source PDF (works before extraction and
   // isn't capped when the book was extracted with a window). Fall back to the
   // extracted page count.
-  const pageCount = pdfInfo?.pageCount ?? book?.pageCount ?? 0
+  const pageCount = splitStatus?.pageCount ?? pdfInfo?.pageCount ?? book?.pageCount ?? 0
 
   return (
     <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
@@ -39,8 +44,10 @@ export function BookPartsPanel({ bookLabel }: { bookLabel: string }) {
         )}
       </header>
 
+      {splitStatus && <CoverageStrip status={splitStatus} />}
+
       <div className="grid grid-cols-1 gap-px bg-border/60 md:grid-cols-2">
-        <ExportPart bookLabel={bookLabel} pageCount={pageCount} />
+        <ExportPart bookLabel={bookLabel} pageCount={pageCount} status={splitStatus} />
         <MergePart bookLabel={bookLabel} />
       </div>
     </section>
@@ -48,21 +55,97 @@ export function BookPartsPanel({ bookLabel }: { bookLabel: string }) {
 }
 
 // ---------------------------------------------------------------------------
+// Coverage strip — which pages are present (merged) vs still missing
+// ---------------------------------------------------------------------------
+
+function CoverageStrip({ status }: { status: SplitStatus }) {
+  // Only meaningful once there's some split/merge activity.
+  if (status.pageCount === 0 || (status.mergedRanges.length === 0 && status.exported.length === 0)) {
+    return null
+  }
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-border/60 px-6 py-3 text-xs">
+      {status.fullyMerged ? (
+        <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700 dark:text-emerald-400">
+          <CheckCircle2 className="h-3.5 w-3.5" />
+          <Trans>All {status.pageCount} pages merged in</Trans>
+        </span>
+      ) : (
+        <>
+          {status.mergedRanges.length > 0 && (
+            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+              <Trans>Merged:</Trans>
+              <span className="font-medium tabular-nums text-foreground">
+                {status.mergedRanges.map(fmtRange).join(", ")}
+              </span>
+            </span>
+          )}
+          {status.missingRanges.length > 0 && (
+            <span className="inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
+              <AlertTriangle className="h-3.5 w-3.5" />
+              <Trans>Missing:</Trans>
+              <span className="font-medium tabular-nums">
+                {status.missingRanges.map(fmtRange).join(", ")}
+              </span>
+            </span>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
 // Export a part
 // ---------------------------------------------------------------------------
 
-function ExportPart({ bookLabel, pageCount }: { bookLabel: string; pageCount: number }) {
+function ExportPart({
+  bookLabel,
+  pageCount,
+  status,
+}: {
+  bookLabel: string
+  pageCount: number
+  status: SplitStatus | undefined
+}) {
   const { t } = useLingui()
+  const queryClient = useQueryClient()
   const [startPage, setStartPage] = useState(1)
   const [endPage, setEndPage] = useState(pageCount > 0 ? pageCount : 1)
+  // While false, the picker auto-follows the next un-exported gap. Manual edits
+  // pin it; exporting releases it so it advances to the next gap.
+  const [touched, setTouched] = useState(false)
 
-  // Default the end page to the last page once the book detail loads.
+  const nextGap = status?.nextGap
+  const nextGapKey = nextGap ? `${nextGap.startPage}-${nextGap.endPage}` : ""
+
+  // Default the picker to the first un-exported gap (e.g. after exporting 1–10,
+  // jump to 11–N; if only the tail is exported, offer 1–10).
   useEffect(() => {
-    if (pageCount > 0) setEndPage((prev) => (prev === 1 ? pageCount : prev))
-  }, [pageCount])
+    if (touched) return
+    if (nextGap) {
+      setStartPage(nextGap.startPage)
+      setEndPage(nextGap.endPage)
+    } else if (pageCount > 0 && !status) {
+      // Status not loaded yet — fall back to the whole book.
+      setStartPage(1)
+      setEndPage(pageCount)
+    }
+  }, [nextGapKey, pageCount, touched, status, nextGap])
 
   const max = pageCount > 0 ? pageCount : undefined
   const invalid = startPage < 1 || endPage < startPage || (max !== undefined && endPage > max)
+
+  const onExport = () => {
+    api.exportPart(bookLabel, startPage, endPage)
+    // Release the pin so the picker follows the next gap, and refresh the
+    // ledger once the download request has recorded the export server-side.
+    setTouched(false)
+    setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "split-status"] })
+    }, 1200)
+  }
 
   return (
     <div className="flex flex-col gap-3 bg-card p-6">
@@ -90,7 +173,7 @@ function ExportPart({ bookLabel, pageCount }: { bookLabel: string; pageCount: nu
             min={1}
             max={max}
             value={startPage}
-            onChange={(e) => setStartPage(Number(e.target.value))}
+            onChange={(e) => { setStartPage(Number(e.target.value)); setTouched(true) }}
             className="w-24 tabular-nums"
           />
         </label>
@@ -103,21 +186,47 @@ function ExportPart({ bookLabel, pageCount }: { bookLabel: string; pageCount: nu
             min={1}
             max={max}
             value={endPage}
-            onChange={(e) => setEndPage(Number(e.target.value))}
+            onChange={(e) => { setEndPage(Number(e.target.value)); setTouched(true) }}
             className="w-24 tabular-nums"
           />
         </label>
         <Button
           type="button"
           disabled={invalid}
-          onClick={() => api.exportPart(bookLabel, startPage, endPage)}
+          onClick={onExport}
           title={invalid ? t`Enter a valid page range` : undefined}
         >
           <Download className="mr-1.5 h-4 w-4" />
           <Trans>Download part</Trans>
         </Button>
       </div>
-      {pageCount > 0 && (
+
+      {status && status.exported.length > 0 && (
+        <div className="flex flex-col gap-1.5">
+          {status.fullySplit ? (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              <Trans>The whole book has been split into parts.</Trans>
+            </span>
+          ) : (
+            <span className="text-[11px] text-muted-foreground">
+              <Trans>Not yet split:</Trans>{" "}
+              <span className="font-medium text-foreground tabular-nums">
+                {status.exportGaps.map(fmtRange).join(", ")}
+              </span>
+            </span>
+          )}
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="text-[11px] text-muted-foreground"><Trans>Exported:</Trans></span>
+            {status.exported.map((r) => (
+              <Badge key={`${r.startPage}-${r.endPage}`} variant="secondary" className="text-[10px] px-1.5 py-0 tabular-nums">
+                {fmtRange(r)}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+      {pageCount > 0 && (!status || status.exported.length === 0) && (
         <p className="text-[11px] text-muted-foreground tabular-nums">
           <Trans>This book has {pageCount} pages.</Trans>
         </p>

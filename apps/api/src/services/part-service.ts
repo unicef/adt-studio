@@ -9,6 +9,7 @@ import {
   parseBookLabel,
   BookMetadata,
   PartManifest,
+  PartsLedger,
   PIPELINE,
   PER_PAGE_PROMPT_KEYS,
   computeFingerprint,
@@ -103,6 +104,125 @@ function readPdfBytes(bookDir: string, label: string): Buffer {
 }
 
 // ---------------------------------------------------------------------------
+// Split tracking — coordinator-side ledger of exported parts + merge coverage
+// ---------------------------------------------------------------------------
+
+function ledgerPath(bookDir: string): string {
+  return path.join(bookDir, "parts-ledger.json")
+}
+
+function readLedger(bookDir: string): PartsLedger {
+  const p = ledgerPath(bookDir)
+  if (!fs.existsSync(p)) return { exported: [] }
+  try {
+    const parsed = PartsLedger.safeParse(JSON.parse(fs.readFileSync(p, "utf-8")))
+    return parsed.success ? parsed.data : { exported: [] }
+  } catch {
+    return { exported: [] }
+  }
+}
+
+/** Record (or refresh) an exported page range in the coordinator's ledger. */
+function recordExportedRange(bookDir: string, range: PartRange, at: string): void {
+  const exported = readLedger(bookDir).exported.filter(
+    (e) => !(e.startPage === range.startPage && e.endPage === range.endPage),
+  )
+  exported.push({ startPage: range.startPage, endPage: range.endPage, at })
+  exported.sort((a, b) => a.startPage - b.startPage || a.endPage - b.endPage)
+  fs.writeFileSync(ledgerPath(bookDir), JSON.stringify({ exported }, null, 2) + "\n")
+}
+
+/** Contiguous uncovered ranges over 1..pageCount given a set of covered ranges. */
+export function gapsOf(ranges: PartRange[], pageCount: number): PartRange[] {
+  if (pageCount <= 0) return []
+  const covered = new Array<boolean>(pageCount + 1).fill(false)
+  for (const r of ranges) {
+    for (let p = Math.max(1, r.startPage); p <= Math.min(pageCount, r.endPage); p++) covered[p] = true
+  }
+  const gaps: PartRange[] = []
+  let start: number | null = null
+  for (let p = 1; p <= pageCount; p++) {
+    if (!covered[p] && start === null) start = p
+    if (covered[p] && start !== null) {
+      gaps.push({ startPage: start, endPage: p - 1 })
+      start = null
+    }
+  }
+  if (start !== null) gaps.push({ startPage: start, endPage: pageCount })
+  return gaps
+}
+
+/** Collapse a list of page numbers into contiguous inclusive ranges. */
+export function contiguousRanges(pages: number[]): PartRange[] {
+  const sorted = [...new Set(pages)].sort((a, b) => a - b)
+  const out: PartRange[] = []
+  for (const p of sorted) {
+    const last = out[out.length - 1]
+    if (last && p === last.endPage + 1) last.endPage = p
+    else out.push({ startPage: p, endPage: p })
+  }
+  return out
+}
+
+function pagesPresent(bookDir: string, label: string): number[] {
+  const dbPath = path.join(bookDir, `${label}.db`)
+  if (!fs.existsSync(dbPath)) return []
+  const db = openBookDb(dbPath)
+  try {
+    const rows = db.all("SELECT page_number FROM pages ORDER BY page_number") as Array<{
+      page_number: number
+    }>
+    return rows.map((r) => r.page_number)
+  } finally {
+    db.close()
+  }
+}
+
+export interface SplitStatus {
+  pageCount: number
+  /** Page ranges already exported as parts (sorted). */
+  exported: PartRange[]
+  /** Ranges not yet exported. */
+  exportGaps: PartRange[]
+  /** First un-exported gap — the split UI defaults the picker to this. */
+  nextGap: PartRange | null
+  /** Every page is covered by an exported part. */
+  fullySplit: boolean
+  /** Pages present in the book (merged from parts or extracted), as ranges. */
+  mergedRanges: PartRange[]
+  /** Pages not yet present (missing parts). */
+  missingRanges: PartRange[]
+  /** Every page is present. */
+  fullyMerged: boolean
+}
+
+export function computeSplitStatus(label: string, booksDir: string): SplitStatus {
+  const safeLabel = parseBookLabel(label)
+  const bookDir = path.join(path.resolve(booksDir), safeLabel)
+  const pageCount = countPdfPages(readPdfBytes(bookDir, safeLabel))
+
+  const exported = readLedger(bookDir).exported.map((e) => ({
+    startPage: e.startPage,
+    endPage: e.endPage,
+  }))
+  const exportGaps = gapsOf(exported, pageCount)
+
+  const mergedRanges = contiguousRanges(pagesPresent(bookDir, safeLabel))
+  const missingRanges = gapsOf(mergedRanges, pageCount)
+
+  return {
+    pageCount,
+    exported,
+    exportGaps,
+    nextGap: exportGaps[0] ?? null,
+    fullySplit: pageCount > 0 && exportGaps.length === 0,
+    mergedRanges,
+    missingRanges,
+    fullyMerged: pageCount > 0 && missingRanges.length === 0,
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Part export (coordinator -> contributor)
 // ---------------------------------------------------------------------------
 
@@ -180,6 +300,10 @@ export function exportPart(
     createdAt: new Date().toISOString(),
     partLabelSuggestion,
   }
+
+  // Remember this range was split off, so the UI can default to the next gap
+  // and report when the whole book has been split.
+  recordExportedRange(bookDir, window, manifest.createdAt)
 
   const enc = new TextEncoder()
   const stream = createZipStreamFromEntries([

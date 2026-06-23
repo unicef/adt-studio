@@ -34,6 +34,7 @@ import {
   previewMerge,
   mergePart,
   getPartInfo,
+  computeSplitStatus,
 } from "../services/part-service.js"
 import type { TaskService } from "../services/task-service.js"
 
@@ -204,6 +205,12 @@ export function createBookRoutes(
   app.get("/books/:label/part-info", (c) => {
     const { label } = c.req.param()
     return c.json(getPartInfo(label, booksDir))
+  })
+
+  // GET /books/:label/split-status — Exported-part ledger + merge coverage
+  app.get("/books/:label/split-status", (c) => {
+    const { label } = c.req.param()
+    return c.json(computeSplitStatus(label, booksDir))
   })
 
   // POST /books/:label/preview-merge — Dry-run merge of a completed-part project

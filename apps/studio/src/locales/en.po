@@ -963,6 +963,10 @@ msgstr "Aligns narration with text to enable word-level highlighting."
 msgid "All"
 msgstr "All"
 
+#. placeholder {0}: status.pageCount
+msgid "All {0} pages merged in"
+msgstr "All {0} pages merged in"
+
 msgid "All Categories"
 msgstr "All Categories"
 
@@ -2579,6 +2583,9 @@ msgstr "Export the packaged book and related artifacts for delivery."
 msgid "Export to a reader"
 msgstr "Export to a reader"
 
+msgid "Exported:"
+msgstr "Exported:"
+
 msgid "Exporting..."
 msgstr "Exporting..."
 
@@ -3795,6 +3802,9 @@ msgstr "merge with previous section"
 msgid "Merged · {0} added, {1} replaced"
 msgstr "Merged · {0} added, {1} replaced"
 
+msgid "Merged:"
+msgstr "Merged:"
+
 msgid "Merging…"
 msgstr "Merging…"
 
@@ -3866,6 +3876,9 @@ msgstr "Misses"
 
 msgid "Missing"
 msgstr "Missing"
+
+msgid "Missing:"
+msgstr "Missing:"
 
 msgid "Mission 01"
 msgstr "Mission 01"
@@ -4251,6 +4264,9 @@ msgstr "not started"
 
 msgid "Not started yet"
 msgstr "Not started yet"
+
+msgid "Not yet split:"
+msgstr "Not yet split:"
 
 msgid "Note"
 msgstr "Note"
@@ -6492,6 +6508,9 @@ msgstr "The Water Cycle"
 
 msgid "The weather was very bad."
 msgstr "The weather was very bad."
+
+msgid "The whole book has been split into parts."
+msgstr "The whole book has been split into parts."
 
 msgid "The world before us"
 msgstr "The world before us"

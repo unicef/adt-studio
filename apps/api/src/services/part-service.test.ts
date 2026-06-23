@@ -4,7 +4,7 @@ import os from "node:os"
 import path from "node:path"
 import { openBookDb, createBookStorage } from "@adt/storage"
 import { exportProject } from "./export-service.js"
-import { previewMerge, mergePart, importPart, isPartArchive } from "./part-service.js"
+import { previewMerge, mergePart, importPart, isPartArchive, gapsOf, contiguousRanges } from "./part-service.js"
 
 let tmpDir: string
 let configPath: string
@@ -309,5 +309,27 @@ describe("importPart", () => {
     expect(fs.existsSync(path.join(bookDir, "part.json"))).toBe(true)
     const cfg = fs.readFileSync(path.join(bookDir, "config.yaml"), "utf-8")
     expect(cfg).toContain("start_page: 3")
+  })
+})
+
+describe("split tracking range math", () => {
+  it("gapsOf returns un-covered ranges, advancing past exported parts", () => {
+    // Nothing exported yet → the whole book is the gap.
+    expect(gapsOf([], 19)).toEqual([{ startPage: 1, endPage: 19 }])
+    // 1–10 exported → next gap is 11–19.
+    expect(gapsOf([{ startPage: 1, endPage: 10 }], 19)).toEqual([{ startPage: 11, endPage: 19 }])
+    // Only the tail exported → the front 1–10 is the gap.
+    expect(gapsOf([{ startPage: 11, endPage: 19 }], 19)).toEqual([{ startPage: 1, endPage: 10 }])
+    // Fully covered (even with overlap) → no gaps.
+    expect(gapsOf([{ startPage: 1, endPage: 12 }, { startPage: 10, endPage: 19 }], 19)).toEqual([])
+  })
+
+  it("contiguousRanges collapses present page numbers", () => {
+    expect(contiguousRanges([1, 2, 3, 11, 12])).toEqual([
+      { startPage: 1, endPage: 3 },
+      { startPage: 11, endPage: 12 },
+    ])
+    expect(contiguousRanges([])).toEqual([])
+    expect(contiguousRanges([5, 5, 4])).toEqual([{ startPage: 4, endPage: 5 }])
   })
 })

@@ -36,3 +36,22 @@ export const PartManifest = z.object({
   partLabelSuggestion: z.string(),
 })
 export type PartManifest = z.infer<typeof PartManifest>
+
+/**
+ * Coordinator-side ledger (`parts-ledger.json` in the source book directory)
+ * tracking which page-range parts have been exported, so the split UI can
+ * default to the next un-exported gap and report when the whole book is split.
+ * Merge coverage is derived separately from the pages actually present.
+ */
+export const ExportedPartEntry = z.object({
+  startPage: z.number().int().min(1),
+  endPage: z.number().int().min(1),
+  /** ISO timestamp of the (most recent) export of this range. */
+  at: z.string(),
+})
+export type ExportedPartEntry = z.infer<typeof ExportedPartEntry>
+
+export const PartsLedger = z.object({
+  exported: z.array(ExportedPartEntry).default([]),
+})
+export type PartsLedger = z.infer<typeof PartsLedger>

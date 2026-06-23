@@ -120,6 +120,22 @@ export interface PartInfo {
   range: { startPage: number; endPage: number }
 }
 
+export interface PageRange {
+  startPage: number
+  endPage: number
+}
+
+export interface SplitStatus {
+  pageCount: number
+  exported: PageRange[]
+  exportGaps: PageRange[]
+  nextGap: PageRange | null
+  fullySplit: boolean
+  mergedRanges: PageRange[]
+  missingRanges: PageRange[]
+  fullyMerged: boolean
+}
+
 /** Preview shape returned by the import endpoints for a lightweight part
  *  archive (PDF + window + manifest, no DB). Discriminated by `isPart`. */
 export interface PartImportPreview {
@@ -707,6 +723,9 @@ export const api = {
 
   getPartInfo: (label: string) =>
     request<PartInfo | null>(`/books/${label}/part-info`),
+
+  getSplitStatus: (label: string) =>
+    request<SplitStatus>(`/books/${label}/split-status`),
 
   exportPart: (label: string, startPage: number, endPage: number) => {
     triggerDirectDownload(

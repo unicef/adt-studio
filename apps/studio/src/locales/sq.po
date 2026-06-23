@@ -964,6 +964,10 @@ msgstr "Rreshtimi i tregimit me tekstin për të aktivizuar theksimin në nivel 
 msgid "All"
 msgstr "Të gjitha"
 
+#. placeholder {0}: status.pageCount
+msgid "All {0} pages merged in"
+msgstr "Të {0} faqet janë bashkuar"
+
 msgid "All Categories"
 msgstr "Të Gjitha Kategoritë"
 
@@ -2580,6 +2584,9 @@ msgstr "Eksportoni librin e paketuar dhe artefaktet përkatëse për dorëzim."
 msgid "Export to a reader"
 msgstr "Eksporto tek një lexues"
 
+msgid "Exported:"
+msgstr "Eksportuar:"
+
 msgid "Exporting..."
 msgstr "Duke eksportuar..."
 
@@ -3796,6 +3803,9 @@ msgstr "bashko me seksionin e mëparshëm"
 msgid "Merged · {0} added, {1} replaced"
 msgstr "U bashkua · {0} të shtuara, {1} të zëvendësuara"
 
+msgid "Merged:"
+msgstr "Bashkuar:"
+
 msgid "Merging…"
 msgstr "Po bashkohet…"
 
@@ -3867,6 +3877,9 @@ msgstr "Mungesa"
 
 msgid "Missing"
 msgstr "Mungon"
+
+msgid "Missing:"
+msgstr "Mungojnë:"
 
 msgid "Mission 01"
 msgstr "Misioni 01"
@@ -4252,6 +4265,9 @@ msgstr "e panisur"
 
 msgid "Not started yet"
 msgstr "Nuk ka filluar ende"
+
+msgid "Not yet split:"
+msgstr "Ende të pandara:"
 
 msgid "Note"
 msgstr "Shënim"
@@ -6493,6 +6509,9 @@ msgstr "Cikli i Ujit"
 
 msgid "The weather was very bad."
 msgstr "Moti ishte shumë i keq."
+
+msgid "The whole book has been split into parts."
+msgstr "I gjithë libri është ndarë në pjesë."
 
 msgid "The world before us"
 msgstr "Bota para nesh"

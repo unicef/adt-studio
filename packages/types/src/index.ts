@@ -69,7 +69,7 @@ export {
   hashPdfBytes,
 } from "./fingerprint.js"
 
-export { PartRange, PartManifest } from "./part.js"
+export { PartRange, PartManifest, ExportedPartEntry, PartsLedger } from "./part.js"
 
 export { ProgressEvent } from "./progress.js"
 

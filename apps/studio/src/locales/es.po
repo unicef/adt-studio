@@ -963,6 +963,10 @@ msgstr "Alinea la narración con el texto para permitir el resaltado a nivel de 
 msgid "All"
 msgstr "Todo"
 
+#. placeholder {0}: status.pageCount
+msgid "All {0} pages merged in"
+msgstr "Las {0} páginas están fusionadas"
+
 msgid "All Categories"
 msgstr "All Categories"
 
@@ -2579,6 +2583,9 @@ msgstr "Exportar el libro empaquetado y los artefactos relacionados para la entr
 msgid "Export to a reader"
 msgstr "Exportar a un lector"
 
+msgid "Exported:"
+msgstr "Exportado:"
+
 msgid "Exporting..."
 msgstr "Exportando..."
 
@@ -3795,6 +3802,9 @@ msgstr "fusionar con la sección anterior"
 msgid "Merged · {0} added, {1} replaced"
 msgstr "Fusionado · {0} añadidas, {1} reemplazadas"
 
+msgid "Merged:"
+msgstr "Fusionado:"
+
 msgid "Merging…"
 msgstr "Fusionando…"
 
@@ -3866,6 +3876,9 @@ msgstr "Fallos"
 
 msgid "Missing"
 msgstr "Faltante"
+
+msgid "Missing:"
+msgstr "Faltan:"
 
 msgid "Mission 01"
 msgstr "Misión 01"
@@ -4251,6 +4264,9 @@ msgstr "sin iniciar"
 
 msgid "Not started yet"
 msgstr "No iniciado aún"
+
+msgid "Not yet split:"
+msgstr "Aún sin dividir:"
 
 msgid "Note"
 msgstr "Nota"
@@ -6492,6 +6508,9 @@ msgstr "El Ciclo del Agua"
 
 msgid "The weather was very bad."
 msgstr "El tiempo estaba muy malo."
+
+msgid "The whole book has been split into parts."
+msgstr "El libro completo se ha dividido en partes."
 
 msgid "The world before us"
 msgstr "El mundo ante nosotros"

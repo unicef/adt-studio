@@ -10,6 +10,15 @@ export function usePartInfo(label: string) {
   })
 }
 
+/** Coordinator-side split tracking: exported parts + merge coverage. */
+export function useSplitStatus(label: string) {
+  return useQuery({
+    queryKey: ["books", label, "split-status"],
+    queryFn: () => api.getSplitStatus(label),
+    enabled: !!label,
+  })
+}
+
 /** Dry-run a merge of a completed-part project zip. */
 export function usePreviewMerge(label: string) {
   return useMutation({
