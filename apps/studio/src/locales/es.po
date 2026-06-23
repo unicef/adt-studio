@@ -963,9 +963,12 @@ msgstr "Alinea la narración con el texto para permitir el resaltado a nivel de 
 msgid "All"
 msgstr "Todo"
 
+#~ msgid "All {0} pages merged in"
+#~ msgstr "Las {0} páginas están fusionadas"
+
 #. placeholder {0}: status.pageCount
-msgid "All {0} pages merged in"
-msgstr "Las {0} páginas están fusionadas"
+msgid "All {0} parts merged in"
+msgstr "Las {0} partes están fusionadas"
 
 msgid "All Categories"
 msgstr "All Categories"
@@ -3257,6 +3260,9 @@ msgstr "Importar proyecto"
 msgid "Imported part · pages {0}–{1}"
 msgstr "Parte importada · páginas {0}–{1}"
 
+msgid "Imported:"
+msgstr "Importado:"
+
 msgid "Importing creates a new book limited to {windowSize} pages. Run the per-page stages, then export it as a project to merge back into the full book."
 msgstr "La importación crea un libro nuevo limitado a {windowSize} páginas. Ejecuta las etapas por página y luego expórtalo como proyecto para fusionarlo de nuevo en el libro completo."
 
@@ -3802,8 +3808,8 @@ msgstr "fusionar con la sección anterior"
 msgid "Merged · {0} added, {1} replaced"
 msgstr "Fusionado · {0} añadidas, {1} reemplazadas"
 
-msgid "Merged:"
-msgstr "Fusionado:"
+#~ msgid "Merged:"
+#~ msgstr "Fusionado:"
 
 msgid "Merging…"
 msgstr "Fusionando…"

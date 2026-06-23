@@ -963,9 +963,12 @@ msgstr "Aligns narration with text to enable word-level highlighting."
 msgid "All"
 msgstr "All"
 
+#~ msgid "All {0} pages merged in"
+#~ msgstr "All {0} pages merged in"
+
 #. placeholder {0}: status.pageCount
-msgid "All {0} pages merged in"
-msgstr "All {0} pages merged in"
+msgid "All {0} parts merged in"
+msgstr "All {0} parts merged in"
 
 msgid "All Categories"
 msgstr "All Categories"
@@ -3257,6 +3260,9 @@ msgstr "Import Project"
 msgid "Imported part · pages {0}–{1}"
 msgstr "Imported part · pages {0}–{1}"
 
+msgid "Imported:"
+msgstr "Imported:"
+
 msgid "Importing creates a new book limited to {windowSize} pages. Run the per-page stages, then export it as a project to merge back into the full book."
 msgstr "Importing creates a new book limited to {windowSize} pages. Run the per-page stages, then export it as a project to merge back into the full book."
 
@@ -3802,8 +3808,8 @@ msgstr "merge with previous section"
 msgid "Merged · {0} added, {1} replaced"
 msgstr "Merged · {0} added, {1} replaced"
 
-msgid "Merged:"
-msgstr "Merged:"
+#~ msgid "Merged:"
+#~ msgstr "Merged:"
 
 msgid "Merging…"
 msgstr "Merging…"

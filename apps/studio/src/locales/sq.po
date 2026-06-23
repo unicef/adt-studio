@@ -964,9 +964,12 @@ msgstr "Rreshtimi i tregimit me tekstin për të aktivizuar theksimin në nivel 
 msgid "All"
 msgstr "Të gjitha"
 
+#~ msgid "All {0} pages merged in"
+#~ msgstr "Të {0} faqet janë bashkuar"
+
 #. placeholder {0}: status.pageCount
-msgid "All {0} pages merged in"
-msgstr "Të {0} faqet janë bashkuar"
+msgid "All {0} parts merged in"
+msgstr "Të {0} pjesët janë bashkuar"
 
 msgid "All Categories"
 msgstr "Të Gjitha Kategoritë"
@@ -3258,6 +3261,9 @@ msgstr "Importo Projektin"
 msgid "Imported part · pages {0}–{1}"
 msgstr "Pjesë e importuar · faqet {0}–{1}"
 
+msgid "Imported:"
+msgstr "Importuar:"
+
 msgid "Importing creates a new book limited to {windowSize} pages. Run the per-page stages, then export it as a project to merge back into the full book."
 msgstr "Importimi krijon një libër të ri të kufizuar në {windowSize} faqe. Ekzekuto fazat për çdo faqe, pastaj eksportoje si projekt për ta bashkuar përsëri në librin e plotë."
 
@@ -3803,8 +3809,8 @@ msgstr "bashko me seksionin e mëparshëm"
 msgid "Merged · {0} added, {1} replaced"
 msgstr "U bashkua · {0} të shtuara, {1} të zëvendësuara"
 
-msgid "Merged:"
-msgstr "Bashkuar:"
+#~ msgid "Merged:"
+#~ msgstr "Bashkuar:"
 
 msgid "Merging…"
 msgstr "Po bashkohet…"

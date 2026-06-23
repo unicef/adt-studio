@@ -44,53 +44,51 @@ export function BookPartsPanel({ bookLabel }: { bookLabel: string }) {
         )}
       </header>
 
-      {splitStatus && <CoverageStrip status={splitStatus} />}
-
       <div className="grid grid-cols-1 gap-px bg-border/60 md:grid-cols-2">
         <ExportPart bookLabel={bookLabel} pageCount={pageCount} status={splitStatus} />
-        <MergePart bookLabel={bookLabel} />
+        <MergePart bookLabel={bookLabel} status={splitStatus} />
       </div>
     </section>
   )
 }
 
 // ---------------------------------------------------------------------------
-// Coverage strip — which pages are present (merged) vs still missing
+// Merge coverage — which pages are present (merged) vs still missing.
+// Shown inside the "Merge a completed part" section once a split has started.
 // ---------------------------------------------------------------------------
 
-function CoverageStrip({ status }: { status: SplitStatus }) {
-  // Only meaningful once there's some split/merge activity.
-  if (status.pageCount === 0 || (status.mergedRanges.length === 0 && status.exported.length === 0)) {
-    return null
+function MergeCoverage({ status }: { status: SplitStatus | undefined }) {
+  // Only meaningful once a split has begun (parts exported and/or merged).
+  if (!status || status.pageCount === 0) return null
+  if (status.mergedRanges.length === 0 && status.exported.length === 0) return null
+
+  if (status.fullyMerged) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
+        <CheckCircle2 className="h-3.5 w-3.5" />
+        <Trans>All {status.pageCount} parts merged in</Trans>
+      </span>
+    )
   }
   return (
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-border/60 px-6 py-3 text-xs">
-      {status.fullyMerged ? (
-        <span className="inline-flex items-center gap-1.5 font-medium text-emerald-700 dark:text-emerald-400">
-          <CheckCircle2 className="h-3.5 w-3.5" />
-          <Trans>All {status.pageCount} pages merged in</Trans>
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+      {status.mergedRanges.length > 0 && (
+        <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+          <Trans>Imported:</Trans>
+          <span className="font-medium tabular-nums text-foreground">
+            {status.mergedRanges.map(fmtRange).join(", ")}
+          </span>
         </span>
-      ) : (
-        <>
-          {status.mergedRanges.length > 0 && (
-            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
-              <Trans>Merged:</Trans>
-              <span className="font-medium tabular-nums text-foreground">
-                {status.mergedRanges.map(fmtRange).join(", ")}
-              </span>
-            </span>
-          )}
-          {status.missingRanges.length > 0 && (
-            <span className="inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              <Trans>Missing:</Trans>
-              <span className="font-medium tabular-nums">
-                {status.missingRanges.map(fmtRange).join(", ")}
-              </span>
-            </span>
-          )}
-        </>
+      )}
+      {status.missingRanges.length > 0 && (
+        <span className="inline-flex items-center gap-1.5 text-amber-700 dark:text-amber-400">
+          <AlertTriangle className="h-3.5 w-3.5" />
+          <Trans>Missing:</Trans>
+          <span className="font-medium tabular-nums">
+            {status.missingRanges.map(fmtRange).join(", ")}
+          </span>
+        </span>
       )}
     </div>
   )
@@ -239,7 +237,7 @@ function ExportPart({
 // Merge a completed part
 // ---------------------------------------------------------------------------
 
-function MergePart({ bookLabel }: { bookLabel: string }) {
+function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStatus | undefined }) {
   const { t } = useLingui()
   const fileRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
@@ -360,6 +358,8 @@ function MergePart({ bookLabel }: { bookLabel: string }) {
             </div>
           )}
 
+          <MergeCoverage status={status} />
+
           <Button type="button" variant="outline" size="sm" className="self-start" onClick={reset}>
             <Trans>Merge another</Trans>
           </Button>
@@ -382,6 +382,8 @@ function MergePart({ bookLabel }: { bookLabel: string }) {
               </span>
             )}
           </div>
+
+          <MergeCoverage status={status} />
 
           {previewMutation.isPending && (
             <p className="text-xs text-muted-foreground">
