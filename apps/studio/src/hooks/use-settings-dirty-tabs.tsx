@@ -10,19 +10,6 @@ import {
   type ReactNode,
 } from "react"
 
-/**
- * Tracks which settings sub-tabs currently hold unsaved edits, per stage.
- *
- * Each settings surface (a stage's main settings, or a sub-editor like the
- * voice-mappings panel) registers the set of tab keys it has dirty. The sidebar
- * reads this to draw a "pending changes" dot on those sub-tabs, and the
- * navigation guard reads it to know the stage has unsaved work even when the
- * floating save bar is hidden on the current tab.
- *
- * It is intentionally separate from the floating-save registry: that one drives
- * the per-tab save bar (and is sometimes gated to a single tab), whereas this
- * one is the stage-wide truth used for indicators and the leave-guard.
- */
 class DirtyTabsStore {
   private entries = new Map<string, { stage: string; tabs: string[]; ephemeral: boolean }>()
   private sigs = new Map<string, string>()
@@ -70,7 +57,6 @@ class DirtyTabsStore {
     return [...this.entries.values()].filter((e) => e.tabs.length > 0)
   }
 
-  /** Dirty tabs belonging to "ephemeral" surfaces (unmount when their tab is left). */
   ephemeralTabs(): Set<string> {
     const out = new Set<string>()
     for (const entry of this.entries.values()) {
@@ -95,14 +81,6 @@ export function SettingsDirtyTabsProvider({ children }: { children: ReactNode })
 
 const noopSubscribe = () => () => {}
 
-/**
- * Register a settings surface's dirty tabs. Pass a stable `id`. When `tabs` is
- * empty the surface contributes nothing. Safe to call without a provider.
- *
- * `ephemeral` marks a surface that only exists while its tab is active (e.g. a
- * tab-conditional sub-editor) — leaving its tab unmounts it and drops edits, so
- * the leave-guard must prompt on that transition.
- */
 export function useRegisterDirtyTabs(
   id: string,
   stage: string,
@@ -110,7 +88,6 @@ export function useRegisterDirtyTabs(
   ephemeral = false,
 ) {
   const store = useContext(DirtyTabsContext)
-  // Re-register the latest tabs every render (sig-guarded inside the store).
   useEffect(() => {
     store?.upsert(id, stage, tabs, ephemeral)
   })
@@ -120,7 +97,6 @@ export function useRegisterDirtyTabs(
   }, [store, id])
 }
 
-/** Dirty tab keys for a stage (reactive). Empty set outside a provider. */
 export function useDirtyTabsForStage(stage: string): Set<string> {
   const store = useContext(DirtyTabsContext)
   const version = useSyncExternalStore(
@@ -128,18 +104,12 @@ export function useDirtyTabsForStage(stage: string): Set<string> {
     store ? store.getVersion : () => 0,
     store ? store.getVersion : () => 0,
   )
-  // `version` is the reactive trigger; tabsForStage is recomputed on each bump.
   return useMemo(
     () => (store ? store.tabsForStage(stage) : new Set<string>()),
     [store, stage, version],
   )
 }
 
-/**
- * Records which tabs an edit happened on. Call `markTab(currentTab)` from a
- * stage's change handlers (the edit is always on the tab being viewed), so
- * config edits are attributed to the right tab without a field→tab map.
- */
 export function useDirtyTabTracker() {
   const [markedTabs, setMarkedTabs] = useState<string[]>([])
   const markTab = useCallback(
@@ -150,7 +120,6 @@ export function useDirtyTabTracker() {
   return { markedTabs, markTab, resetMarkedTabs }
 }
 
-/** All dirty settings surfaces (stage + tab keys), reactive. */
 export function useDirtyTabEntries(): { stage: string; tabs: string[] }[] {
   const store = useContext(DirtyTabsContext)
   const version = useSyncExternalStore(
@@ -161,7 +130,6 @@ export function useDirtyTabEntries(): { stage: string; tabs: string[] }[] {
   return useMemo(() => (store ? store.list() : []), [store, version])
 }
 
-/** Dirty tabs of ephemeral surfaces — leaving these unmounts the editor (reactive). */
 export function useEphemeralDirtyTabs(): Set<string> {
   const store = useContext(DirtyTabsContext)
   const version = useSyncExternalStore(
@@ -172,7 +140,6 @@ export function useEphemeralDirtyTabs(): Set<string> {
   return useMemo(() => (store ? store.ephemeralTabs() : new Set<string>()), [store, version])
 }
 
-/** Whether any registered settings surface has unsaved tabs (reactive). */
 export function useHasAnyDirtyTab(): boolean {
   const store = useContext(DirtyTabsContext)
   const version = useSyncExternalStore(

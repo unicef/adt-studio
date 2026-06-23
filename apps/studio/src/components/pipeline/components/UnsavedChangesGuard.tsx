@@ -23,22 +23,8 @@ import { getStageLabelI18n } from "../pipeline-i18n"
 
 const STAGE_BY_SLUG = new Map<string, (typeof STAGES)[number]>(STAGES.map((s) => [s.slug, s]))
 
-/**
- * Warns before leaving a view that has unsaved changes — both on in-app
- * navigation (stage/page/book switches, which otherwise silently drop pending
- * edits) and on tab close/reload. Reads the shared floating-save registry, so
- * it must be rendered inside a FloatingSaveProvider and under the router.
- *
- * The dialog is themed with the stage's color (mirroring the settings header),
- * lists which tabs are dirty, and offers a save-and-continue path (re-running
- * where applicable) alongside discard/stay.
- */
 export function UnsavedChangesGuard() {
   const { t, i18n } = useLingui()
-  // Either source signals unsaved work: the floating-save bar (which may be
-  // gated to one tab) or the stage-wide dirty-tabs registry (which still knows
-  // a stage has edits after you've switched to a different tab). Both hooks must
-  // be called unconditionally — don't short-circuit with `||` inline.
   const hasFloatingUnsaved = useHasUnsavedChanges()
   const hasDirtyTab = useHasAnyDirtyTab()
   const hasUnsaved = hasFloatingUnsaved || hasDirtyTab
@@ -49,24 +35,15 @@ export function UnsavedChangesGuard() {
 
   const hasUnsavedRef = useRef(hasUnsaved)
   hasUnsavedRef.current = hasUnsaved
-  // Live set of dirty tabs whose editor unmounts when its tab is left.
   const ephemeralDirtyRef = useRef(ephemeralDirtyTabs)
   ephemeralDirtyRef.current = ephemeralDirtyTabs
 
-  // Block when actually leaving the view (pathname change). Same-path
-  // navigations — switching settings sub-tabs via the `tab` search param — keep
-  // the form mounted and edits intact, so they don't prompt... EXCEPT the
-  // "overview" tab, which swaps in a different view and would unmount the form
-  // (dropping edits), so that transition is guarded too.
   const shouldBlockFn = useCallback<ShouldBlockFn>(({ current, next }) => {
     if (!hasUnsavedRef.current) return false
     if (current.pathname !== next.pathname) return true
     const nextTab = (next.search as { tab?: string } | undefined)?.tab
     const currentTab = (current.search as { tab?: string } | undefined)?.tab
-    // Entering "overview" swaps in a different view and unmounts the settings form.
     if (nextTab === "overview" && currentTab !== "overview") return true
-    // Leaving a tab whose editor only exists on that tab (sub-editors) would
-    // unmount it and drop its edits.
     for (const tab of ephemeralDirtyRef.current) {
       if (tab !== nextTab) return true
     }
@@ -80,8 +57,6 @@ export function UnsavedChangesGuard() {
     withResolver: true,
   })
 
-  // Theme the dialog after the stage being left (falls back to a neutral header
-  // for non-settings surfaces that have no stage color).
   const primaryStage = dirtyEntries[0]?.stage
   const stageDef = primaryStage ? STAGE_BY_SLUG.get(primaryStage) : undefined
   const HeaderIcon = stageDef?.icon ?? TriangleAlert
@@ -98,14 +73,9 @@ export function UnsavedChangesGuard() {
 
   const handleSaveAndContinue = async () => {
     setSaving(true)
-    try {
-      await saveAndStay()
-      proceed?.()
-    } catch {
-      // Save failed — keep the dialog open so the user can retry or discard.
-    } finally {
-      setSaving(false)
-    }
+    const saved = await saveAndStay().then(() => true).catch(() => false)
+    setSaving(false)
+    if (saved) proceed?.()
   }
 
   return (
@@ -116,7 +86,6 @@ export function UnsavedChangesGuard() {
       }}
     >
       <AlertDialogContent className="max-w-lg gap-0 overflow-hidden p-0 [--tw-enter-translate-x:0]! [--tw-enter-translate-y:0]! [--tw-exit-translate-x:0]! [--tw-exit-translate-y:0]!">
-        {/* Stage-colored header band — mirrors the settings page header. */}
         <div className={cn("flex items-center gap-3 px-6 py-4 text-white", headerColor)}>
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/20">
             <HeaderIcon className="h-5 w-5" />
@@ -131,7 +100,6 @@ export function UnsavedChangesGuard() {
           </div>
         </div>
 
-        {/* Body */}
         <div className="space-y-4 px-6 py-5">
           <AlertDialogDescription className="text-sm leading-relaxed text-muted-foreground">
             {willRerun ? (
@@ -164,7 +132,6 @@ export function UnsavedChangesGuard() {
           )}
         </div>
 
-        {/* Footer */}
         <div className="flex items-center justify-between gap-2 border-t bg-muted/20 px-6 py-4">
           <Button
             variant="ghost"

@@ -45,13 +45,7 @@ export interface FloatingSaveEntry {
   saving: boolean
   label?: ReactNode
   onSave?: () => void
-  /** Optional: persist and immediately re-run the stage. */
   onSaveAndRerun?: () => void
-  /**
-   * Optional: persist (and re-run, if this surface re-runs) WITHOUT navigating.
-   * Used by the leave-guard so it can save then continue to the original
-   * destination. Resolve only after the write lands.
-   */
   onSaveStay?: () => void | Promise<void>
   onDiscard: () => void
   saveDisabledReason?: string
@@ -216,19 +210,11 @@ export function useHasUnsavedChanges(): boolean {
 }
 
 export interface FloatingSaveLeaveAction {
-  /** True if every dirty surface can be saved without losing work. */
   canSave: boolean
-  /** True if saving will also trigger a re-run (label the button accordingly). */
   willRerun: boolean
-  /** Persist every dirty surface in place (no navigation). */
   saveAndStay: () => Promise<void>
 }
 
-/**
- * Exposes a "save everything in place" action for the leave-guard: it saves
- * each dirty surface (preferring its no-navigate `onSaveStay`, falling back to
- * `onSave`) so the guard can then continue to the user's destination.
- */
 export function useFloatingSaveLeaveAction(): FloatingSaveLeaveAction {
   const store = useContext(FloatingSaveContext)
   useSyncExternalStore(

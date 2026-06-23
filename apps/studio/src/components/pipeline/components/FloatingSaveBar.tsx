@@ -13,11 +13,9 @@ import {
 interface FloatingSaveBarProps {
   onDiscard: () => void
   onSave?: () => void
-  /** Optional secondary action: save and immediately re-run the stage. */
   onSaveAndRerun?: () => void
   saving?: boolean
   saveDisabledReason?: string
-  /** Disabled reason for the Save & Re-run action (e.g. missing API key). */
   rerunDisabledReason?: string
   /** Status content next to the pulse dot. Defaults to "Unsaved changes". */
   label?: ReactNode
@@ -39,8 +37,6 @@ export function FloatingSaveBar({
   const saveDisabled = !!saveDisabledReason || saving
   const rerunDisabled = !!rerunDisabledReason || saving
 
-  // When a Save & Re-run action sits beside it, Save is the secondary choice
-  // (muted); on its own it stays the primary green action.
   const saveButton = onSave && (
     <button
       type="button"

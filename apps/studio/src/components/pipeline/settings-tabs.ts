@@ -1,11 +1,6 @@
 import { msg } from "@lingui/core/macro"
 import type { I18n, MessageDescriptor } from "@lingui/core"
 
-/**
- * Labels for every settings sub-tab key. Shared so the sidebar (sub-tab list +
- * pending dots) and the unsaved-changes guard (which lists dirty tabs) describe
- * tabs the same way.
- */
 export const SETTINGS_TAB_MESSAGE: Record<string, MessageDescriptor> = {
   general: msg`General`,
   overview: msg`Overview`,
@@ -39,10 +34,6 @@ export const SETTINGS_TAB_MESSAGE: Record<string, MessageDescriptor> = {
   "easy-read-prompt": msg`Easy Read Prompt`,
 }
 
-/**
- * Ordered settings sub-tabs for a stage, or `undefined` if the stage has none.
- * Labels are resolved against the passed-in i18n instance.
- */
 export function getSettingsTabs(
   slug: string,
   i18n: I18n,
@@ -108,7 +99,6 @@ export function getSettingsTabs(
   return [{ key: "overview", label: i18n._(SETTINGS_TAB_MESSAGE.overview) }, ...stageTabs]
 }
 
-/** Human label for a single (stage, tab) pair, falling back to the raw key. */
 export function getSettingsTabLabel(stage: string, tabKey: string, i18n: I18n): string {
   const tabs = getSettingsTabs(stage, i18n, false)
   return tabs?.find((t) => t.key === tabKey)?.label ?? tabKey

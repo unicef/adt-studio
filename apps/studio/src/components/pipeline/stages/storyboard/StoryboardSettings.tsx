@@ -406,8 +406,6 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
     resetMarkedTabs()
   }
 
-  // Every tab — including image-generation prompts — saves through the one
-  // storyboard Save & Re-run flow (the main `save` already persists them).
   const dirtyTabs = [
     ...markedTabs,
     ...(renderingPromptDraft != null ? ["rendering-prompt"] : []),
