@@ -45,8 +45,17 @@ export interface FloatingSaveEntry {
   saving: boolean
   label?: ReactNode
   onSave?: () => void
+  /** Optional: persist and immediately re-run the stage. */
+  onSaveAndRerun?: () => void
+  /**
+   * Optional: persist (and re-run, if this surface re-runs) WITHOUT navigating.
+   * Used by the leave-guard so it can save then continue to the original
+   * destination. Resolve only after the write lands.
+   */
+  onSaveStay?: () => void | Promise<void>
   onDiscard: () => void
   saveDisabledReason?: string
+  rerunDisabledReason?: string
   /**
    * Primitive that changes when `label` content changes. Required only for
    * entries with a dynamic label (e.g. storyboard's category chips) so the bar
@@ -61,7 +70,10 @@ function signature(e: FloatingSaveEntry): string {
     e.dirty ? "1" : "0",
     e.saving ? "1" : "0",
     e.onSave ? "1" : "0",
+    e.onSaveAndRerun ? "1" : "0",
+    e.onSaveStay ? "1" : "0",
     e.saveDisabledReason ?? "",
+    e.rerunDisabledReason ?? "",
     e.labelKey ?? "",
   ].join("|")
 }
@@ -127,8 +139,10 @@ interface BarProps {
   label?: ReactNode
   saving: boolean
   onSave?: () => void
+  onSaveAndRerun?: () => void
   onDiscard: () => void
   saveDisabledReason?: string
+  rerunDisabledReason?: string
 }
 
 const EXIT_MS = 200
@@ -150,8 +164,10 @@ function FloatingSaveHost({ store }: { store: FloatingSaveStore }) {
       label: e.label,
       saving: e.saving,
       onSave: e.onSave ? () => store.get(e.id)?.onSave?.() : undefined,
+      onSaveAndRerun: e.onSaveAndRerun ? () => store.get(e.id)?.onSaveAndRerun?.() : undefined,
       onDiscard: () => store.get(e.id)?.onDiscard(),
       saveDisabledReason: e.saveDisabledReason,
+      rerunDisabledReason: e.rerunDisabledReason,
     }
   } else if (entries.length > 1) {
     barProps = {
@@ -197,6 +213,39 @@ export function useHasUnsavedChanges(): boolean {
   const subscribe = store ? store.subscribe : noopSubscribe
   const getSnapshot = () => (store ? store.active().length > 0 : false)
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+}
+
+export interface FloatingSaveLeaveAction {
+  /** True if every dirty surface can be saved without losing work. */
+  canSave: boolean
+  /** True if saving will also trigger a re-run (label the button accordingly). */
+  willRerun: boolean
+  /** Persist every dirty surface in place (no navigation). */
+  saveAndStay: () => Promise<void>
+}
+
+/**
+ * Exposes a "save everything in place" action for the leave-guard: it saves
+ * each dirty surface (preferring its no-navigate `onSaveStay`, falling back to
+ * `onSave`) so the guard can then continue to the user's destination.
+ */
+export function useFloatingSaveLeaveAction(): FloatingSaveLeaveAction {
+  const store = useContext(FloatingSaveContext)
+  useSyncExternalStore(
+    store ? store.subscribe : () => () => {},
+    store ? store.getVersion : () => 0,
+    store ? store.getVersion : () => 0,
+  )
+  const entries = store ? store.active() : []
+  const canSave = entries.length > 0 && entries.every((e) => e.onSaveStay || e.onSave)
+  const willRerun = entries.some((e) => e.onSaveStay)
+  const saveAndStay = async () => {
+    if (!store) return
+    await Promise.all(
+      store.active().map((e) => Promise.resolve((e.onSaveStay ?? e.onSave)?.())),
+    )
+  }
+  return { canSave, willRerun, saveAndStay }
 }
 
 /**

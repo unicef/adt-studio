@@ -1,26 +1,17 @@
 import { useState, useEffect } from "react"
-import { createPortal } from "react-dom"
-import { useNavigate } from "@tanstack/react-router"
-import { Play, Plus } from "lucide-react"
+import { Plus } from "lucide-react"
 import { AddQuizDialog } from "./AddQuizDialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { api } from "@/api/client"
 import { PromptViewer } from "@/components/pipeline/components/PromptViewer"
-import { useBookRun } from "@/hooks/use-book-run"
+import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
+import { useDirtyTabTracker } from "@/hooks/use-settings-dirty-tabs"
 import { useStepConfig } from "@/hooks/use-step-config"
 import { useLingui } from "@lingui/react/macro"
 import { getSectionTypeLabel, getSectionTypeDescription } from "@/lib/section-constants"
@@ -33,16 +24,13 @@ function getSectionTypeDisplayDescription(value: string, configDesc: string): st
   return getSectionTypeDescription(value) ?? configDesc
 }
 
-export function QuizzesSettings({ bookLabel, headerTarget, tab = "general" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
+export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
-  const { apiKey, hasApiKey } = useApiKey()
-  const { queueRun } = useBookRun()
+  const { hasApiKey } = useApiKey()
   const quizzesStatus = useStageStatus("quizzes")
-  const navigate = useNavigate()
-  const [showRerunDialog, setShowRerunDialog] = useState(false)
   const [showAddQuiz, setShowAddQuiz] = useState(false)
 
   const [pagesPerQuiz, setPagesPerQuiz] = useState("")
@@ -50,8 +38,12 @@ export function QuizzesSettings({ bookLabel, headerTarget, tab = "general" }: { 
   const [sectionTypes, setSectionTypes] = useState<Record<string, string>>({})
   const [quizSectionTypes, setQuizSectionTypes] = useState<Set<string>>(new Set())
 
+  const { markedTabs, markTab, resetMarkedTabs } = useDirtyTabTracker()
   const [dirty, setDirty] = useState<Record<string, boolean>>({})
-  const markDirty = (field: string) => setDirty((prev) => ({ ...prev, [field]: true }))
+  const markDirty = (field: string) => {
+    setDirty((prev) => ({ ...prev, [field]: true }))
+    markTab(tab)
+  }
 
   const merged = activeConfigData?.merged as Record<string, unknown> | undefined
   const quiz = useStepConfig(merged, "quiz_generation", markDirty)
@@ -108,25 +100,27 @@ export function QuizzesSettings({ bookLabel, headerTarget, tab = "general" }: { 
     return overrides
   }
 
-  const confirmSaveAndRerun = async () => {
-    const promptSaves: Promise<unknown>[] = []
-    if (promptDraft != null) promptSaves.push(api.updatePrompt("quiz_generation", promptDraft, bookLabel))
-    if (promptSaves.length > 0) await Promise.all(promptSaves)
-
-    const overrides = buildOverrides()
-    updateConfig.mutate(
-      { label: bookLabel, config: overrides },
-      {
-        onSuccess: async () => {
-          setDirty({})
-          setPromptDraft(null)
-          setShowRerunDialog(false)
-          queueRun({ fromStage: "quizzes", toStage: "quizzes", apiKey })
-          navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "quizzes" } })
-        },
-      }
-    )
+  const save = async () => {
+    if (promptDraft != null) await api.updatePrompt("quiz_generation", promptDraft, bookLabel)
+    await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
+    setDirty({})
+    setPromptDraft(null)
+    resetMarkedTabs()
   }
+
+  const dirtyTabs = [
+    ...markedTabs,
+    ...(promptDraft != null ? ["prompt"] : []),
+  ].filter((tabKey, i, all) => all.indexOf(tabKey) === i)
+
+  useStageSettingsBar({
+    stage: "quizzes",
+    bookLabel,
+    dirty: dirtyTabs.length > 0,
+    dirtyTabs,
+    saving: updateConfig.isPending,
+    save,
+  })
 
   const sectionTypeKeys = Object.keys(sectionTypes).filter((k) => !k.startsWith("activity_"))
 
@@ -226,38 +220,6 @@ export function QuizzesSettings({ bookLabel, headerTarget, tab = "general" }: { 
           enabled={tab === "prompt"}
         />
       )}
-
-      {headerTarget && createPortal(
-        <Button
-          size="sm"
-          className="h-7 px-2.5 text-xs bg-black/15 text-white hover:bg-black/25"
-          onClick={() => setShowRerunDialog(true)}
-          disabled={updateConfig.isPending || !hasApiKey}
-        >
-          <Play className="mr-1.5 h-3.5 w-3.5" />
-          {t`Save & Rerun`}
-        </Button>,
-        headerTarget
-      )}
-
-      <Dialog open={showRerunDialog} onOpenChange={setShowRerunDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t`Save & Rerun Quizzes`}</DialogTitle>
-            <DialogDescription>
-              {t`This will save your settings and re-run quiz generation.`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRerunDialog(false)}>
-              {t`Cancel`}
-            </Button>
-            <Button onClick={confirmSaveAndRerun} disabled={updateConfig.isPending}>
-              {updateConfig.isPending ? t`Saving...` : t`Confirm Rerun`}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <AddQuizDialog
         open={showAddQuiz}
