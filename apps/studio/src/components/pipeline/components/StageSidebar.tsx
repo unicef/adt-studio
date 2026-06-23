@@ -6,6 +6,7 @@ import {
   Loader2,
   RotateCcw,
   Settings,
+  TriangleAlert,
 } from "lucide-react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
@@ -80,8 +81,12 @@ export function StageSidebar({
   const stageMissing = useStageMissingCounts(bookLabel)
   const translateNeedsRerun = stageMissing.translate > 0
   const speechNeedsRerun = stageMissing.speech > 0
-  // Sub-tabs of the active stage that currently hold unsaved edits.
   const activeDirtyTabs = useDirtyTabsForStage(activeStep)
+  const { data: sidebarPages } = usePages(bookLabel, { enabled: false })
+  const hasNoTextLayer = (sidebarPages ?? []).some((p) => p.extractionWarning)
+  const noTextLayerLabel = i18n._(
+    msg`Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF.`
+  )
 
   const currentState = stageState(activeStep)
   const stageHasContent =
@@ -229,6 +234,16 @@ export function StageSidebar({
                 <Icon className="w-3.5 h-3.5" />
               </div>
               <StepProgressRing size={28} state={ringState} colorClass={isActive ? "bg-white" : step.color} />
+              {step.slug === "extract" && hasNoTextLayer && (
+                <span
+                  role="img"
+                  aria-label={noTextLayerLabel}
+                  title={noTextLayerLabel}
+                  className="absolute -top-1 -right-1 z-20 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-amber-500 ring-2 ring-background"
+                >
+                  <TriangleAlert className="w-2 h-2 text-white" aria-hidden="true" />
+                </span>
+              )}
             </div>
             <span className={cn("truncate hidden", x.showLabel)}>
               {stepLabel}

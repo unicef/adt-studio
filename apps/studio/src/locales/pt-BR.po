@@ -169,6 +169,14 @@ msgstr "{0} de {1} imagens"
 msgid "{0} of {1} items"
 msgstr "{0} de {1} itens"
 
+#. placeholder {0}: warnPages.length
+#. placeholder {1}: pageList.length
+msgid "{0} of {1} pages had no extracted text"
+msgstr "{0} de {1} páginas não têm texto extraído"
+
+#~ msgid "{0} of {1} pages had no readable text"
+#~ msgstr "{0} de {1} páginas não têm texto legível"
+
 #. placeholder {0}: String(displayPages.length)
 #. placeholder {0}: book.pageCount
 msgid "{0} pages"
@@ -3961,6 +3969,9 @@ msgstr "No disabled rules"
 msgid "No Easy Read for this page"
 msgstr "Sem Leitura Fácil para esta página"
 
+msgid "No embedded text layer — text was recovered from the page image"
+msgstr "Sem camada de texto incorporada — o texto foi recuperado a partir da imagem da página"
+
 msgid "No entries match your search"
 msgstr "Nenhuma entrada corresponde à sua pesquisa"
 
@@ -4083,6 +4094,9 @@ msgstr "Nenhum quiz para esta página"
 
 msgid "No quizzes match your search"
 msgstr "Nenhum questionário corresponde à sua pesquisa"
+
+#~ msgid "No readable text extracted from this page"
+#~ msgstr "Nenhum texto legível extraído desta página"
 
 msgid "No rendered content for this section"
 msgstr "Sem conteúdo renderizado para esta seção"
@@ -5915,6 +5929,9 @@ msgstr "Atualização de Software"
 msgid "Software update status"
 msgstr "Status da atualização de software"
 
+msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
+msgstr "Algumas páginas não têm camada de texto incorporada — o texto foi recuperado a partir da imagem da página. Prefira um PDF baseado em texto."
+
 msgid "Something went wrong"
 msgstr "Algo deu errado"
 
@@ -6245,6 +6262,9 @@ msgstr "Cor do texto: {0}"
 msgid "Text Only"
 msgstr "Só texto"
 
+msgid "Text recovered from the page image — this page has no embedded text layer"
+msgstr "Texto recuperado a partir da imagem da página — esta página não tem camada de texto incorporada"
+
 msgid "Text roles the LLM may assign to text in the content tree. Pruned roles are classified but excluded from rendering."
 msgstr "Papéis de texto que o LLM pode atribuir ao texto na árvore de conteúdo. Papéis podados são classificados, mas excluídos da renderização."
 
@@ -6389,6 +6409,9 @@ msgstr "Tema"
 msgid "These features improve access for people with disabilities. Running them before exporting helps your book meet ADT accessibility standards."
 msgstr "Esses recursos melhoram o acesso para pessoas com deficiência. Executá-los antes de exportar ajuda seu livro a atender aos padrões de acessibilidade ADT."
 
+msgid "These pages have no embedded text layer, but the Sectioning step recovered text from the page images — so this PDF looks scanned or image-based. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
+msgstr "Estas páginas não têm camada de texto incorporada, mas a etapa de Seccionamento recuperou texto a partir das imagens das páginas — portanto este PDF parece digitalizado ou baseado em imagens. O pipeline ainda pode funcionar com o texto recuperado, mas para melhores resumos, metadados e traduções, tente obter uma versão deste PDF baseada em texto (com uma camada de texto real) em vez de uma cópia digitalizada."
+
 msgid "These stages are optional. They don't depend on each other — run any of them in any order once the core pipeline is complete."
 msgstr "Essas etapas são opcionais. Elas não dependem umas das outras — execute qualquer uma em qualquer ordem após a conclusão do pipeline principal."
 
@@ -6441,6 +6464,9 @@ msgstr "Este é o Pip! Ele é um cachorro caramelo feliz com um rabo muito agita
 msgid "This page has no captioned images"
 msgstr "Esta página não tem imagens legendadas"
 
+msgid "This page has no embedded text layer — the text below was recovered from the page image (vision). For better summaries, metadata, and translations, prefer a text-based version of this PDF."
+msgstr "Esta página não tem camada de texto incorporada — o texto abaixo foi recuperado a partir da imagem da página (visão). Para melhores resumos, metadados e traduções, use uma versão deste PDF baseada em texto."
+
 msgid "This page has no entries to synthesize"
 msgstr "Esta página não tem entradas para sintetizar"
 
@@ -6453,11 +6479,32 @@ msgstr "Esta página não tem blocos de texto simplificados"
 msgid "This page has no storyboard sections"
 msgstr "Esta página não tem seções de storyboard"
 
+#~ msgid "This page has no text layer — it appears to be a scanned or image-only page. The Sectioning step may still recover text from the page image. For reliable text, first try to obtain a better-quality, text-based version of this PDF; only if none is available, run OCR on the file before importing."
+#~ msgstr "Esta página não tem camada de texto: parece ser uma página digitalizada ou apenas de imagem. A etapa de Seccionamento ainda pode recuperar algum texto a partir da imagem da página. Para um texto confiável, primeiro tente obter uma versão deste PDF de melhor qualidade e baseada em texto; somente se nenhuma estiver disponível, aplique OCR ao arquivo antes de importá-lo."
+
+#~ msgid "This page has no text layer — it appears to be a scanned or image-only page. The Sectioning step may still recover text from the page image. For reliable text, run OCR on this PDF before importing."
+#~ msgstr "Esta página não tem camada de texto: parece ser uma página digitalizada ou apenas de imagem. A etapa de Seccionamento ainda pode recuperar algum texto a partir da imagem da página. Para um texto confiável, aplique OCR a este PDF antes de importá-lo."
+
 msgid "This page has no translatable text entries"
 msgstr "Esta página não tem entradas de texto traduzíveis"
 
 msgid "This page has not been reviewed yet"
 msgstr "This page has not been reviewed yet"
+
+#~ msgid "This page renders text, but its fonts could not be decoded (a font/encoding issue in the PDF). The Sectioning step may still recover the text from the page image. For reliable text, first try to obtain a cleaner, text-based version of this PDF; only if none is available, run OCR on the file before importing."
+#~ msgstr "Esta página exibe texto, mas suas fontes não puderam ser decodificadas (um problema de fonte/codificação no PDF). A etapa de Seccionamento ainda pode recuperar o texto a partir da imagem da página. Para um texto confiável, primeiro tente obter uma versão mais limpa deste PDF baseada em texto; somente se nenhuma estiver disponível, aplique OCR ao arquivo antes de importá-lo."
+
+#~ msgid "This page renders text, but its fonts could not be decoded (a font/encoding issue in the PDF). The Sectioning step may still recover the text from the page image. For reliable text, supply a text-based PDF or run OCR on this file before importing."
+#~ msgstr "Esta página exibe texto, mas suas fontes não puderam ser decodificadas (um problema de fonte/codificação no PDF). A etapa de Seccionamento ainda pode recuperar o texto a partir da imagem da página. Para um texto confiável, forneça um PDF baseado em texto ou aplique OCR a este arquivo antes de importá-lo."
+
+msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
+msgstr "A camada de texto incorporada desta página está vazia, mas a etapa de Seccionamento recuperou texto a partir da imagem da página — portanto ela parece uma página digitalizada ou apenas de imagem. O pipeline ainda pode funcionar com o texto recuperado, mas para melhores resumos, metadados e traduções, tente obter uma versão deste PDF baseada em texto (com uma camada de texto real) em vez de uma cópia digitalizada."
+
+#~ msgid "This PDF appears to be image-based or uses fonts we can't read as text, so the extracted text may be incomplete. The Sectioning step can still recover some text from the page image, but for better summaries, metadata, and translations, first try to obtain a better-quality, text-based version of this PDF — and only run OCR on it if no such version is available."
+#~ msgstr "Este PDF parece ser baseado em imagens ou usa fontes que não conseguimos ler como texto, portanto o texto extraído pode estar incompleto. A etapa de Seccionamento ainda pode recuperar parte do texto a partir da imagem da página, mas para melhores resumos, metadados e traduções, primeiro tente obter uma versão deste PDF de melhor qualidade e baseada em texto — e aplique OCR somente se nenhuma estiver disponível."
+
+#~ msgid "This PDF appears to be image-based or uses fonts we can't read as text, so the extracted text may be incomplete. The Sectioning step can still recover some text from the page image, but for better summaries, metadata, and translations, supply a text-based PDF or run OCR on this file before importing."
+#~ msgstr "Este PDF parece ser baseado em imagens ou usa fontes que não conseguimos ler como texto, portanto o texto extraído pode estar incompleto. A etapa de Seccionamento ainda pode recuperar parte do texto a partir da imagem da página, mas para melhores resumos, metadados e traduções, forneça um PDF baseado em texto ou aplique OCR a este arquivo antes de importá-lo."
 
 msgid "This permanently deletes every uploaded video and clears all section assignments. This can't be undone."
 msgstr "Isso exclui permanentemente todos os vídeos enviados e limpa todas as atribuições de seção. Isso não pode ser desfeito."
@@ -6944,6 +6991,9 @@ msgstr "Ver imagem"
 
 msgid "View page"
 msgstr "Ver página"
+
+msgid "vision"
+msgstr "visão"
 
 msgid "Visual & sensory cues"
 msgstr "Visual & sensory cues"

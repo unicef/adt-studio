@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { AlignLeft, ArrowLeft, ArrowRight, FileText, Image } from "lucide-react"
+import { AlignLeft, ArrowLeft, ArrowRight, FileText, Image, TriangleAlert } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
 import { usePages, usePageImage } from "@/hooks/use-pages"
@@ -11,6 +11,7 @@ import { LoadingState } from "../../components/LoadingState"
 import { useStepHeader } from "../../components/StepViewRouter"
 import { StageRunCard } from "../../components/StageRunCard"
 import { StageEmptyState } from "../../components/StageEmptyState"
+import { LandingPageWarning } from "../../components/LandingPageWarning"
 import type { PageSummaryItem } from "@/api/client"
 
 /** Returns true once the element has scrolled into view. */
@@ -83,6 +84,16 @@ function PageCard({
         <div className="flex items-center justify-between mb-0.5">
           <span className="text-xs font-medium"><Trans>Page {String(page.pageNumber)}</Trans></span>
           <div className="flex items-center gap-2">
+            {page.extractionWarning && (
+              <span
+                role="img"
+                aria-label={t`No embedded text layer — text was recovered from the page image`}
+                title={t`No embedded text layer — text was recovered from the page image`}
+                className="flex items-center text-amber-600"
+              >
+                <TriangleAlert className="h-2.5 w-2.5" aria-hidden="true" />
+              </span>
+            )}
             {page.wordCount > 0 && (
               <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
                 <AlignLeft className="h-2.5 w-2.5" />
@@ -133,6 +144,7 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
   }, [hasApiKey, extractRunning, apiKey, queueRun])
 
   const pageList = pages ?? []
+  const warnPages = pageList.filter((p) => p.extractionWarning)
   const currentIndex = selectedPageId ? pageList.findIndex((p) => p.pageId === selectedPageId) : -1
   const selectedPage = currentIndex >= 0 ? pageList[currentIndex] : null
   const prevPageId = currentIndex > 0 ? pageList[currentIndex - 1].pageId : null
@@ -243,16 +255,36 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
           subtitle={t`Run the pipeline to extract content`}
         />
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {pageList.map((page) => (
-            <PageCard
-              key={page.pageId}
-              bookLabel={bookLabel}
-              page={page}
-              onClick={() => setSelectedPageId(page.pageId)}
-            />
-          ))}
-        </div>
+        <>
+          {warnPages.length > 0 && (
+            <div className="mb-4">
+              <LandingPageWarning
+                variant="prereq"
+                title={t`${warnPages.length} of ${pageList.length} pages had no extracted text`}
+                description={
+                  <Trans>
+                    These pages have no embedded text layer, but the Sectioning
+                    step recovered text from the page images — so this PDF looks
+                    scanned or image-based. The pipeline can still work from the
+                    recovered text, but for better summaries, metadata, and
+                    translations, try to obtain a text-based version of this PDF
+                    (one with a real text layer) rather than a scanned copy.
+                  </Trans>
+                }
+              />
+            </div>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            {pageList.map((page) => (
+              <PageCard
+                key={page.pageId}
+                bookLabel={bookLabel}
+                page={page}
+                onClick={() => setSelectedPageId(page.pageId)}
+              />
+            ))}
+          </div>
+        </>
       )}
       </div>
     </div>

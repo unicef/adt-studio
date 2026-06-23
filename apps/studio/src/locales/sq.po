@@ -170,6 +170,14 @@ msgstr "{0} nga {1} imazhe"
 msgid "{0} of {1} items"
 msgstr "{0} nga {1} elemente"
 
+#. placeholder {0}: warnPages.length
+#. placeholder {1}: pageList.length
+msgid "{0} of {1} pages had no extracted text"
+msgstr "{0} nga {1} faqe nuk kanë tekst të nxjerrë"
+
+#~ msgid "{0} of {1} pages had no readable text"
+#~ msgstr "{0} nga {1} faqe nuk kanë tekst të lexueshëm"
+
 #. placeholder {0}: String(displayPages.length)
 #. placeholder {0}: book.pageCount
 msgid "{0} pages"
@@ -3962,6 +3970,9 @@ msgstr "Nuk ka rregulla të çaktiviziuara"
 msgid "No Easy Read for this page"
 msgstr "Nuk ka Lexim të Lehtë për këtë faqe"
 
+msgid "No embedded text layer — text was recovered from the page image"
+msgstr "Pa shtresë teksti të integruar — teksti u rikuperua nga imazhi i faqes"
+
 msgid "No entries match your search"
 msgstr "Asnjë hyrje nuk përputhet me kërkimin tuaj"
 
@@ -4084,6 +4095,9 @@ msgstr "Nuk ka kuize për këtë faqe"
 
 msgid "No quizzes match your search"
 msgstr "Asnjë kuiz nuk përputhet me kërkimin tuaj"
+
+#~ msgid "No readable text extracted from this page"
+#~ msgstr "Nuk u nxor tekst i lexueshëm nga kjo faqe"
 
 msgid "No rendered content for this section"
 msgstr "Nuk ka përmbajtje të gjeneruar për këtë seksion"
@@ -5916,6 +5930,9 @@ msgstr "Përditësim Softueri"
 msgid "Software update status"
 msgstr "Gjendja e përditësimit të softuerit"
 
+msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
+msgstr "Disa faqe nuk kanë shtresë teksti të integruar — teksti u rikuperua nga imazhi i faqes. Preferoni një PDF të bazuar në tekst."
+
 msgid "Something went wrong"
 msgstr "Diçka shkoi keq"
 
@@ -6246,6 +6263,9 @@ msgstr "Ngjyra e tekstit: {0}"
 msgid "Text Only"
 msgstr "Vetëm Tekst"
 
+msgid "Text recovered from the page image — this page has no embedded text layer"
+msgstr "Teksti u rikuperua nga imazhi i faqes — kjo faqe nuk ka shtresë teksti të integruar"
+
 msgid "Text roles the LLM may assign to text in the content tree. Pruned roles are classified but excluded from rendering."
 msgstr "Rolet tekstuale që LLM mund t'u caktojë teksteve në pemën e përmbajtjes. Rolet e eliminuara klasifikohen por përjashtohen nga renderimi."
 
@@ -6390,6 +6410,9 @@ msgstr "Tema"
 msgid "These features improve access for people with disabilities. Running them before exporting helps your book meet ADT accessibility standards."
 msgstr "Këto veçori përmirësojnë aksesin për personat me aftësi të kufizuara. Ekzekutimi i tyre para eksportimit ndihmon librin tuaj të përmbushë standardet e aksesibilitetit ADT."
 
+msgid "These pages have no embedded text layer, but the Sectioning step recovered text from the page images — so this PDF looks scanned or image-based. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
+msgstr "Këto faqe nuk kanë shtresë teksti të integruar, por hapi i Seksionimit rikuperoi tekst nga imazhet e faqeve — pra ky PDF duket i skanuar ose i bazuar në imazhe. Procesi ende mund të punojë me tekstin e rikuperuar, por për përmbledhje, metadata dhe përkthime më të mira, provoni të siguroni një version të këtij PDF-je të bazuar në tekst (me një shtresë teksti reale) në vend të një kopjeje të skanuar."
+
 msgid "These stages are optional. They don't depend on each other — run any of them in any order once the core pipeline is complete."
 msgstr "Këto faza janë opsionale. Ato nuk varen nga njëra-tjetra — ekzekuto cilëndo prej tyre në çfarëdo rendi pasi të jetë plotësuar tubi kryesor."
 
@@ -6442,6 +6465,9 @@ msgstr "Ky është Pip! Ai është një qen i lumtur karamel me bisht shumë lë
 msgid "This page has no captioned images"
 msgstr "Kjo faqe nuk ka imazhe me tituj"
 
+msgid "This page has no embedded text layer — the text below was recovered from the page image (vision). For better summaries, metadata, and translations, prefer a text-based version of this PDF."
+msgstr "Kjo faqe nuk ka shtresë teksti të integruar — teksti më poshtë u rikuperua nga imazhi i faqes (vegim). Për përmbledhje, metadata dhe përkthime më të mira, përdorni një version të këtij PDF-je të bazuar në tekst."
+
 msgid "This page has no entries to synthesize"
 msgstr "Kjo faqe nuk ka hyrje për të sintetizuar"
 
@@ -6454,11 +6480,32 @@ msgstr "Kjo faqe nuk ka blloqe teksti të thjeshtuara"
 msgid "This page has no storyboard sections"
 msgstr "Kjo faqe nuk ka seksione storyboard"
 
+#~ msgid "This page has no text layer — it appears to be a scanned or image-only page. The Sectioning step may still recover text from the page image. For reliable text, first try to obtain a better-quality, text-based version of this PDF; only if none is available, run OCR on the file before importing."
+#~ msgstr "Kjo faqe nuk ka shtresë teksti: duket se është një faqe e skanuar ose vetëm me imazhe. Hapi i Seksionimit mund të rikuperojë ende njëfarë teksti nga imazhi i faqes. Për tekst të besueshëm, fillimisht provoni të siguroni një version më cilësor të këtij PDF-je të bazuar në tekst; vetëm nëse asnjë nuk është i disponueshëm, aplikoni OCR në skedar para se ta importoni."
+
+#~ msgid "This page has no text layer — it appears to be a scanned or image-only page. The Sectioning step may still recover text from the page image. For reliable text, run OCR on this PDF before importing."
+#~ msgstr "Kjo faqe nuk ka shtresë teksti: duket se është një faqe e skanuar ose vetëm me imazhe. Hapi i Seksionimit mund të rikuperojë ende njëfarë teksti nga imazhi i faqes. Për tekst të besueshëm, aplikoni OCR në këtë PDF para se ta importoni."
+
 msgid "This page has no translatable text entries"
 msgstr "Kjo faqe nuk ka hyrje teksti të përkthyeshme"
 
 msgid "This page has not been reviewed yet"
 msgstr "Kjo faqe nuk është rishikuar akoma"
+
+#~ msgid "This page renders text, but its fonts could not be decoded (a font/encoding issue in the PDF). The Sectioning step may still recover the text from the page image. For reliable text, first try to obtain a cleaner, text-based version of this PDF; only if none is available, run OCR on the file before importing."
+#~ msgstr "Kjo faqe shfaq tekst, por fontet e saj nuk mund të dekodoheshin (një problem fonti ose kodimi në PDF). Hapi i Seksionimit mund të rikuperojë ende tekstin nga imazhi i faqes. Për tekst të besueshëm, fillimisht provoni të siguroni një version më të pastër të këtij PDF-je të bazuar në tekst; vetëm nëse asnjë nuk është i disponueshëm, aplikoni OCR në skedar para se ta importoni."
+
+#~ msgid "This page renders text, but its fonts could not be decoded (a font/encoding issue in the PDF). The Sectioning step may still recover the text from the page image. For reliable text, supply a text-based PDF or run OCR on this file before importing."
+#~ msgstr "Kjo faqe shfaq tekst, por fontet e saj nuk mund të dekodoheshin (një problem fonti ose kodimi në PDF). Hapi i Seksionimit mund të rikuperojë ende tekstin nga imazhi i faqes. Për tekst të besueshëm, jepni një PDF të bazuar në tekst ose aplikoni OCR në këtë skedar para se ta importoni."
+
+msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
+msgstr "Shtresa e tekstit të integruar e kësaj faqeje është bosh, por hapi i Seksionimit rikuperoi tekst nga imazhi i faqes — pra duket si një faqe e skanuar ose vetëm me imazhe. Procesi ende mund të punojë me tekstin e rikuperuar, por për përmbledhje, metadata dhe përkthime më të mira, provoni të siguroni një version të këtij PDF-je të bazuar në tekst (me një shtresë teksti reale) në vend të një kopjeje të skanuar."
+
+#~ msgid "This PDF appears to be image-based or uses fonts we can't read as text, so the extracted text may be incomplete. The Sectioning step can still recover some text from the page image, but for better summaries, metadata, and translations, first try to obtain a better-quality, text-based version of this PDF — and only run OCR on it if no such version is available."
+#~ msgstr "Ky PDF duket se është i bazuar në imazhe ose përdor fonte që nuk mund t'i lexojmë si tekst, prandaj teksti i nxjerrë mund të jetë i paplotë. Hapi i Seksionimit mund të rikuperojë ende një pjesë të tekstit nga imazhi i faqes, por për përmbledhje, metadata dhe përkthime më të mira, fillimisht provoni të siguroni një version më cilësor të këtij PDF-je të bazuar në tekst — dhe aplikoni OCR vetëm nëse asnjë version i tillë nuk është i disponueshëm."
+
+#~ msgid "This PDF appears to be image-based or uses fonts we can't read as text, so the extracted text may be incomplete. The Sectioning step can still recover some text from the page image, but for better summaries, metadata, and translations, supply a text-based PDF or run OCR on this file before importing."
+#~ msgstr "Ky PDF duket se është i bazuar në imazhe ose përdor fonte që nuk mund t'i lexojmë si tekst, prandaj teksti i nxjerrë mund të jetë i paplotë. Hapi i Seksionimit mund të rikuperojë ende një pjesë të tekstit nga imazhi i faqes, por për përmbledhje, metadata dhe përkthime më të mira, jepni një PDF të bazuar në tekst ose aplikoni OCR në këtë skedar para se ta importoni."
 
 msgid "This permanently deletes every uploaded video and clears all section assignments. This can't be undone."
 msgstr "Kjo fshin përgjithmonë çdo video të ngarkuar dhe pastron të gjitha caktimet e seksioneve. Ky veprim nuk mund të zhbëhet."
@@ -6945,6 +6992,9 @@ msgstr "Shiko imazhin"
 
 msgid "View page"
 msgstr "Shiko faqen"
+
+msgid "vision"
+msgstr "vegim"
 
 msgid "Visual & sensory cues"
 msgstr "Sinjale vizuale dhe shqisore"
