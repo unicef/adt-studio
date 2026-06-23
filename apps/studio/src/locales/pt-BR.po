@@ -69,6 +69,10 @@ msgstr "(template)"
 msgid "{0} — type country or Enter for base"
 msgstr "{0} — digite o país ou pressione Enter para o padrão"
 
+#. placeholder {0}: tab.label
+msgid "{0} (unsaved changes)"
+msgstr "{0} (alterações não salvas)"
+
 #. placeholder {0}: progress?.page
 #. placeholder {1}: progress?.totalPages
 msgid "{0} / {1}"
@@ -732,6 +736,9 @@ msgstr "Adicione uma chave de API nas configurações do Livro para executar a g
 
 msgid "Add an API key in Book settings to run translation."
 msgstr "Adicione uma chave de API nas configurações do Livro para executar tradução."
+
+msgid "Add an API key to re-run"
+msgstr "Adicione uma chave de API para reexecutar"
 
 msgid "Add at least one output language to run translation."
 msgstr "Adicione pelo menos um idioma de saída para executar tradução."
@@ -1722,8 +1729,8 @@ msgstr "Configurar vozes e sotaques"
 msgid "Confirm merge"
 msgstr "Confirmar mesclagem"
 
-msgid "Confirm Rerun"
-msgstr "Confirmar reexecução"
+#~ msgid "Confirm Rerun"
+#~ msgstr "Confirmar reexecução"
 
 msgid "Connect an AI provider"
 msgstr "Conecte um provedor de IA"
@@ -2147,8 +2154,11 @@ msgstr "Disabled rules"
 msgid "Discard"
 msgstr "Descartar"
 
-msgid "Discard unsaved changes?"
-msgstr "Descartar alterações não salvas?"
+msgid "Discard & leave"
+msgstr "Descartar e sair"
+
+#~ msgid "Discard unsaved changes?"
+#~ msgstr "Descartar alterações não salvas?"
 
 msgid "Display"
 msgstr "Exibição"
@@ -2327,8 +2337,11 @@ msgstr "Prompt de edição"
 msgid "Edit Prompts"
 msgstr "Editar prompts"
 
-msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
-msgstr "Edite o template Liquid/HTML abaixo. As alterações são salvas quando você clica em Salvar e reexecutar."
+#~ msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
+#~ msgstr "Edite o template Liquid/HTML abaixo. As alterações são salvas quando você clica em Salvar e reexecutar."
+
+msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save."
+msgstr "Edite o modelo Liquid/HTML abaixo. As alterações são salvas ao clicar em Salvar."
 
 msgid "Edit this image"
 msgstr "Editar esta imagem"
@@ -2984,6 +2997,9 @@ msgstr "título"
 msgid "Heading"
 msgstr "Título"
 
+msgid "Heads up"
+msgstr "Atenção"
+
 msgid "Heads up: regenerating images takes considerably longer than text translation — each selected image is redrawn for every output language."
 msgstr "Atenção: regenerar imagens leva consideravelmente mais tempo do que traduzir texto — cada imagem selecionada é redesenhada para cada idioma de saída."
 
@@ -3076,6 +3092,9 @@ msgstr "Identificar a ideia principal"
 
 msgid "If you don't run Image Captions, your output will not be accessible to readers who use screen readers or can't see the images."
 msgstr "Se você não executar Legendas de Imagens, sua saída não será acessível para leitores que usam leitores de tela ou não conseguem ver as imagens."
+
+msgid "If you leave now, your unsaved changes will be lost."
+msgstr "Se você sair agora, suas alterações não salvas serão perdidas."
 
 msgid "Illustrated children's books"
 msgstr "Livros infantis ilustrados"
@@ -3404,8 +3423,8 @@ msgstr "Entrelinha"
 msgid "Least used"
 msgstr "Menos usado"
 
-msgid "Leave"
-msgstr "Sair"
+#~ msgid "Leave"
+#~ msgstr "Sair"
 
 msgid "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
 msgstr "Deixe em Nenhum para executar segmentação em todas as imagens qualificadas (sujeito às regras do pipeline)."
@@ -3508,6 +3527,9 @@ msgstr "Pronto para LMS com rastreamento de conclusão"
 
 msgid "Loading accessibility summary..."
 msgstr "Loading accessibility summary..."
+
+msgid "Loading book config…"
+msgstr "Carregando configuração do livro…"
 
 msgid "Loading Book..."
 msgstr "Carregando livro..."
@@ -4614,6 +4636,9 @@ msgstr "Pré-visualização da página PDF {pageLabel}"
 msgid "Pencil Sketch"
 msgstr "Desenho a lápis"
 
+msgid "Pending edits"
+msgstr "Edições pendentes"
+
 msgid "Pending..."
 msgstr "Pendente..."
 
@@ -5431,38 +5456,44 @@ msgstr "Sem serifa"
 msgid "Save"
 msgstr "Salvar"
 
-msgid "Save & Rerun"
+msgid "Save & leave"
+msgstr "Salvar e sair"
+
+msgid "Save & Re-run"
 msgstr "Salvar e reexecutar"
 
-msgid "Save & Rerun Captions"
-msgstr "Salvar e reexecutar legendas"
+#~ msgid "Save & Rerun"
+#~ msgstr "Salvar e reexecutar"
 
-msgid "Save & Rerun Easy Read"
-msgstr "Salvar e reexecutar Leitura Fácil"
+#~ msgid "Save & Rerun Captions"
+#~ msgstr "Salvar e reexecutar legendas"
 
-msgid "Save & Rerun Extraction"
-msgstr "Salvar e reexecutar extração"
+#~ msgid "Save & Rerun Easy Read"
+#~ msgstr "Salvar e reexecutar Leitura Fácil"
 
-msgid "Save & Rerun Glossary"
-msgstr "Salvar e reexecutar glossário"
+#~ msgid "Save & Rerun Extraction"
+#~ msgstr "Salvar e reexecutar extração"
 
-msgid "Save & Rerun Quizzes"
-msgstr "Salvar e reexecutar quizzes"
+#~ msgid "Save & Rerun Glossary"
+#~ msgstr "Salvar e reexecutar glossário"
 
-msgid "Save & Rerun Sectioning"
-msgstr "Salvar e reexecutar seccionamento"
+#~ msgid "Save & Rerun Quizzes"
+#~ msgstr "Salvar e reexecutar quizzes"
 
-msgid "Save & Rerun Speech"
-msgstr "Salvar e reexecutar voz"
+#~ msgid "Save & Rerun Sectioning"
+#~ msgstr "Salvar e reexecutar seccionamento"
 
-msgid "Save & Rerun Storyboard"
-msgstr "Salvar e reexecutar storyboard"
+#~ msgid "Save & Rerun Speech"
+#~ msgstr "Salvar e reexecutar voz"
 
-msgid "Save & Rerun TOC Generation"
-msgstr "Salvar e reexecutar geração do sumário"
+#~ msgid "Save & Rerun Storyboard"
+#~ msgstr "Salvar e reexecutar storyboard"
 
-msgid "Save & Rerun Translations"
-msgstr "Salvar e reexecutar traduções"
+#~ msgid "Save & Rerun TOC Generation"
+#~ msgstr "Salvar e reexecutar geração do sumário"
+
+#~ msgid "Save & Rerun Translations"
+#~ msgstr "Salvar e reexecutar traduções"
 
 msgid "Save changes"
 msgstr "Salvar alterações"
@@ -5491,8 +5522,8 @@ msgstr "Save settings"
 msgid "Saved. Re-package Preview to apply."
 msgstr "Saved. Re-package Preview to apply."
 
-msgid "Saving..."
-msgstr "Salvando..."
+#~ msgid "Saving..."
+#~ msgstr "Salvando..."
 
 msgid "Saving…"
 msgstr "Salvando…"
@@ -6406,6 +6437,9 @@ msgstr "O mundo diante de nós"
 msgid "Theme"
 msgstr "Tema"
 
+msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
+msgstr "Estas alterações ainda não foram aplicadas. Se você sair, serão perdidas — ou salve e reexecute para aplicá-las. A execução continua em segundo plano enquanto você trabalha."
+
 msgid "These features improve access for people with disabilities. Running them before exporting helps your book meet ADT accessibility standards."
 msgstr "Esses recursos melhoram o acesso para pessoas com deficiência. Executá-los antes de exportar ajuda seu livro a atender aos padrões de acessibilidade ADT."
 
@@ -6536,38 +6570,38 @@ msgstr "This session is using an older reviewer checklist snapshot. Newer checkl
 msgid "This text is only perceptible to assistive technologies."
 msgstr "Este texto é perceptível apenas para tecnologias assistivas."
 
-msgid "This will save your Easy Read settings and generate a new editable Easy Read version."
-msgstr "Isso salvará suas configurações de Leitura Fácil e gerará uma nova versão editável de Leitura Fácil."
+#~ msgid "This will save your Easy Read settings and generate a new editable Easy Read version."
+#~ msgstr "Isso salvará suas configurações de Leitura Fácil e gerará uma nova versão editável de Leitura Fácil."
 
-msgid "This will save your settings and re-generate the table of contents."
-msgstr "Isso salvará suas configurações e gerará novamente o sumário."
+#~ msgid "This will save your settings and re-generate the table of contents."
+#~ msgstr "Isso salvará suas configurações e gerará novamente o sumário."
 
-msgid "This will save your settings and re-run glossary generation."
-msgstr "Isso salvará suas configurações e reexecutará a geração do glossário."
+#~ msgid "This will save your settings and re-run glossary generation."
+#~ msgstr "Isso salvará suas configurações e reexecutará a geração do glossário."
 
-msgid "This will save your settings and re-run image captioning."
-msgstr "Isso salvará suas configurações e reexecutará a legendagem de imagens."
+#~ msgid "This will save your settings and re-run image captioning."
+#~ msgstr "Isso salvará suas configurações e reexecutará a legendagem de imagens."
 
-msgid "This will save your settings and re-run quiz generation."
-msgstr "Isso salvará suas configurações e reexecutará a geração de quizzes."
+#~ msgid "This will save your settings and re-run quiz generation."
+#~ msgstr "Isso salvará suas configurações e reexecutará a geração de quizzes."
 
-msgid "This will save your settings and re-run sectioning for all pages."
-msgstr "Isso salvará suas configurações e reexecutará o seccionamento para todas as páginas."
+#~ msgid "This will save your settings and re-run sectioning for all pages."
+#~ msgstr "Isso salvará suas configurações e reexecutará o seccionamento para todas as páginas."
 
-msgid "This will save your settings and re-run speech generation."
-msgstr "Isso salvará suas configurações e reexecutará a geração de voz."
+#~ msgid "This will save your settings and re-run speech generation."
+#~ msgstr "Isso salvará suas configurações e reexecutará a geração de voz."
 
-msgid "This will save your settings and re-run the extraction pipeline. Any manual edits to extracted text will be overwritten for affected pages."
-msgstr "Isso salvará suas configurações e reexecutará o pipeline de extração. Edições manuais no texto extraído serão sobrescritas nas páginas afetadas."
+#~ msgid "This will save your settings and re-run the extraction pipeline. Any manual edits to extracted text will be overwritten for affected pages."
+#~ msgstr "Isso salvará suas configurações e reexecutará o pipeline de extração. Edições manuais no texto extraído serão sobrescritas nas páginas afetadas."
 
-msgid "This will save your settings and re-run the storyboard pipeline. Only rendering will be regenerated — your existing sections will be preserved."
-msgstr "Isso salvará suas configurações e reexecutará o pipeline do storyboard. Apenas a renderização será regenerada — suas seções existentes serão preservadas."
+#~ msgid "This will save your settings and re-run the storyboard pipeline. Only rendering will be regenerated — your existing sections will be preserved."
+#~ msgstr "Isso salvará suas configurações e reexecutará o pipeline do storyboard. Apenas a renderização será regenerada — suas seções existentes serão preservadas."
 
-msgid "This will save your settings and re-run the storyboard pipeline. Sectioning and rendering will be run for all pages."
-msgstr "Isso salvará suas configurações e reexecutará o pipeline do storyboard. O seccionamento e a renderização serão executados para todas as páginas."
+#~ msgid "This will save your settings and re-run the storyboard pipeline. Sectioning and rendering will be run for all pages."
+#~ msgstr "Isso salvará suas configurações e reexecutará o pipeline do storyboard. O seccionamento e a renderização serão executados para todas as páginas."
 
-msgid "This will save your settings and re-run translations, rebuilding the text catalog and translating to output languages."
-msgstr "Isso salvará suas configurações e reexecutará as traduções, reconstruindo o catálogo de texto e traduzindo para os idiomas de saída."
+#~ msgid "This will save your settings and re-run translations, rebuilding the text catalog and translating to output languages."
+#~ msgstr "Isso salvará suas configurações e reexecutará as traduções, reconstruindo o catálogo de texto e traduzindo para os idiomas de saída."
 
 msgid "Thorium Reader"
 msgstr "Thorium Reader"
@@ -7184,8 +7218,8 @@ msgstr "Envolve solicitações de 'Gerar nova'. Suporta variáveis user_prompt, 
 msgid "You can export at this stage"
 msgstr "Você pode exportar nesta etapa"
 
-msgid "You have unsaved changes. If you leave, they'll be lost."
-msgstr "Você tem alterações não salvas. Se sair, elas serão perdidas."
+#~ msgid "You have unsaved changes. If you leave, they'll be lost."
+#~ msgstr "Você tem alterações não salvas. Se sair, elas serão perdidas."
 
 msgid "You haven't added any terms manually yet"
 msgstr "Você ainda não adicionou nenhum termo manualmente"

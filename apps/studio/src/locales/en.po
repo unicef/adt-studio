@@ -69,6 +69,10 @@ msgstr "(template)"
 msgid "{0} — type country or Enter for base"
 msgstr "{0} — type country or Enter for base"
 
+#. placeholder {0}: tab.label
+msgid "{0} (unsaved changes)"
+msgstr "{0} (unsaved changes)"
+
 #. placeholder {0}: progress?.page
 #. placeholder {1}: progress?.totalPages
 msgid "{0} / {1}"
@@ -732,6 +736,9 @@ msgstr "Add an API key in Book settings to run TOC generation."
 
 msgid "Add an API key in Book settings to run translation."
 msgstr "Add an API key in Book settings to run translation."
+
+msgid "Add an API key to re-run"
+msgstr "Add an API key to re-run"
 
 msgid "Add at least one output language to run translation."
 msgstr "Add at least one output language to run translation."
@@ -1722,8 +1729,8 @@ msgstr "Configure voices and accents"
 msgid "Confirm merge"
 msgstr "Confirm merge"
 
-msgid "Confirm Rerun"
-msgstr "Confirm Rerun"
+#~ msgid "Confirm Rerun"
+#~ msgstr "Confirm Rerun"
 
 msgid "Connect an AI provider"
 msgstr "Connect an AI provider"
@@ -2147,8 +2154,11 @@ msgstr "Disabled rules"
 msgid "Discard"
 msgstr "Discard"
 
-msgid "Discard unsaved changes?"
-msgstr "Discard unsaved changes?"
+msgid "Discard & leave"
+msgstr "Discard & leave"
+
+#~ msgid "Discard unsaved changes?"
+#~ msgstr "Discard unsaved changes?"
 
 msgid "Display"
 msgstr "Display"
@@ -2327,8 +2337,11 @@ msgstr "Edit Prompt"
 msgid "Edit Prompts"
 msgstr "Edit Prompts"
 
-msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
-msgstr "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
+#~ msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
+#~ msgstr "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
+
+msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save."
+msgstr "Edit the Liquid/HTML template below. Changes are saved when you click Save."
 
 msgid "Edit this image"
 msgstr "Edit this image"
@@ -2984,6 +2997,9 @@ msgstr "heading"
 msgid "Heading"
 msgstr "Heading"
 
+msgid "Heads up"
+msgstr "Heads up"
+
 msgid "Heads up: regenerating images takes considerably longer than text translation — each selected image is redrawn for every output language."
 msgstr "Heads up: regenerating images takes considerably longer than text translation — each selected image is redrawn for every output language."
 
@@ -3076,6 +3092,9 @@ msgstr "Identify the key idea"
 
 msgid "If you don't run Image Captions, your output will not be accessible to readers who use screen readers or can't see the images."
 msgstr "If you don't run Image Captions, your output will not be accessible to readers who use screen readers or can't see the images."
+
+msgid "If you leave now, your unsaved changes will be lost."
+msgstr "If you leave now, your unsaved changes will be lost."
 
 msgid "Illustrated children's books"
 msgstr "Illustrated children's books"
@@ -3404,8 +3423,8 @@ msgstr "Leading"
 msgid "Least used"
 msgstr "Least used"
 
-msgid "Leave"
-msgstr "Leave"
+#~ msgid "Leave"
+#~ msgstr "Leave"
 
 msgid "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
 msgstr "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
@@ -3508,6 +3527,9 @@ msgstr "LMS-ready with completion tracking"
 
 msgid "Loading accessibility summary..."
 msgstr "Loading accessibility summary..."
+
+msgid "Loading book config…"
+msgstr "Loading book config…"
 
 msgid "Loading Book..."
 msgstr "Loading Book..."
@@ -4614,6 +4636,9 @@ msgstr "PDF page {pageLabel} preview"
 msgid "Pencil Sketch"
 msgstr "Pencil Sketch"
 
+msgid "Pending edits"
+msgstr "Pending edits"
+
 msgid "Pending..."
 msgstr "Pending..."
 
@@ -5431,38 +5456,44 @@ msgstr "Sans-serif"
 msgid "Save"
 msgstr "Save"
 
-msgid "Save & Rerun"
-msgstr "Save & Rerun"
+msgid "Save & leave"
+msgstr "Save & leave"
 
-msgid "Save & Rerun Captions"
-msgstr "Save & Rerun Captions"
+msgid "Save & Re-run"
+msgstr "Save & Re-run"
 
-msgid "Save & Rerun Easy Read"
-msgstr "Save & Rerun Easy Read"
+#~ msgid "Save & Rerun"
+#~ msgstr "Save & Rerun"
 
-msgid "Save & Rerun Extraction"
-msgstr "Save & Rerun Extraction"
+#~ msgid "Save & Rerun Captions"
+#~ msgstr "Save & Rerun Captions"
 
-msgid "Save & Rerun Glossary"
-msgstr "Save & Rerun Glossary"
+#~ msgid "Save & Rerun Easy Read"
+#~ msgstr "Save & Rerun Easy Read"
 
-msgid "Save & Rerun Quizzes"
-msgstr "Save & Rerun Quizzes"
+#~ msgid "Save & Rerun Extraction"
+#~ msgstr "Save & Rerun Extraction"
 
-msgid "Save & Rerun Sectioning"
-msgstr "Save & Rerun Sectioning"
+#~ msgid "Save & Rerun Glossary"
+#~ msgstr "Save & Rerun Glossary"
 
-msgid "Save & Rerun Speech"
-msgstr "Save & Rerun Speech"
+#~ msgid "Save & Rerun Quizzes"
+#~ msgstr "Save & Rerun Quizzes"
 
-msgid "Save & Rerun Storyboard"
-msgstr "Save & Rerun Storyboard"
+#~ msgid "Save & Rerun Sectioning"
+#~ msgstr "Save & Rerun Sectioning"
 
-msgid "Save & Rerun TOC Generation"
-msgstr "Save & Rerun TOC Generation"
+#~ msgid "Save & Rerun Speech"
+#~ msgstr "Save & Rerun Speech"
 
-msgid "Save & Rerun Translations"
-msgstr "Save & Rerun Translations"
+#~ msgid "Save & Rerun Storyboard"
+#~ msgstr "Save & Rerun Storyboard"
+
+#~ msgid "Save & Rerun TOC Generation"
+#~ msgstr "Save & Rerun TOC Generation"
+
+#~ msgid "Save & Rerun Translations"
+#~ msgstr "Save & Rerun Translations"
 
 msgid "Save changes"
 msgstr "Save changes"
@@ -5491,8 +5522,8 @@ msgstr "Save settings"
 msgid "Saved. Re-package Preview to apply."
 msgstr "Saved. Re-package Preview to apply."
 
-msgid "Saving..."
-msgstr "Saving..."
+#~ msgid "Saving..."
+#~ msgstr "Saving..."
 
 msgid "Saving…"
 msgstr "Saving…"
@@ -6406,6 +6437,9 @@ msgstr "The world before us"
 msgid "Theme"
 msgstr "Theme"
 
+msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
+msgstr "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
+
 msgid "These features improve access for people with disabilities. Running them before exporting helps your book meet ADT accessibility standards."
 msgstr "These features improve access for people with disabilities. Running them before exporting helps your book meet ADT accessibility standards."
 
@@ -6536,38 +6570,38 @@ msgstr "This session is using an older reviewer checklist snapshot. Newer checkl
 msgid "This text is only perceptible to assistive technologies."
 msgstr "This text is only perceptible to assistive technologies."
 
-msgid "This will save your Easy Read settings and generate a new editable Easy Read version."
-msgstr "This will save your Easy Read settings and generate a new editable Easy Read version."
+#~ msgid "This will save your Easy Read settings and generate a new editable Easy Read version."
+#~ msgstr "This will save your Easy Read settings and generate a new editable Easy Read version."
 
-msgid "This will save your settings and re-generate the table of contents."
-msgstr "This will save your settings and re-generate the table of contents."
+#~ msgid "This will save your settings and re-generate the table of contents."
+#~ msgstr "This will save your settings and re-generate the table of contents."
 
-msgid "This will save your settings and re-run glossary generation."
-msgstr "This will save your settings and re-run glossary generation."
+#~ msgid "This will save your settings and re-run glossary generation."
+#~ msgstr "This will save your settings and re-run glossary generation."
 
-msgid "This will save your settings and re-run image captioning."
-msgstr "This will save your settings and re-run image captioning."
+#~ msgid "This will save your settings and re-run image captioning."
+#~ msgstr "This will save your settings and re-run image captioning."
 
-msgid "This will save your settings and re-run quiz generation."
-msgstr "This will save your settings and re-run quiz generation."
+#~ msgid "This will save your settings and re-run quiz generation."
+#~ msgstr "This will save your settings and re-run quiz generation."
 
-msgid "This will save your settings and re-run sectioning for all pages."
-msgstr "This will save your settings and re-run sectioning for all pages."
+#~ msgid "This will save your settings and re-run sectioning for all pages."
+#~ msgstr "This will save your settings and re-run sectioning for all pages."
 
-msgid "This will save your settings and re-run speech generation."
-msgstr "This will save your settings and re-run speech generation."
+#~ msgid "This will save your settings and re-run speech generation."
+#~ msgstr "This will save your settings and re-run speech generation."
 
-msgid "This will save your settings and re-run the extraction pipeline. Any manual edits to extracted text will be overwritten for affected pages."
-msgstr "This will save your settings and re-run the extraction pipeline. Any manual edits to extracted text will be overwritten for affected pages."
+#~ msgid "This will save your settings and re-run the extraction pipeline. Any manual edits to extracted text will be overwritten for affected pages."
+#~ msgstr "This will save your settings and re-run the extraction pipeline. Any manual edits to extracted text will be overwritten for affected pages."
 
-msgid "This will save your settings and re-run the storyboard pipeline. Only rendering will be regenerated — your existing sections will be preserved."
-msgstr "This will save your settings and re-run the storyboard pipeline. Only rendering will be regenerated — your existing sections will be preserved."
+#~ msgid "This will save your settings and re-run the storyboard pipeline. Only rendering will be regenerated — your existing sections will be preserved."
+#~ msgstr "This will save your settings and re-run the storyboard pipeline. Only rendering will be regenerated — your existing sections will be preserved."
 
-msgid "This will save your settings and re-run the storyboard pipeline. Sectioning and rendering will be run for all pages."
-msgstr "This will save your settings and re-run the storyboard pipeline. Sectioning and rendering will be run for all pages."
+#~ msgid "This will save your settings and re-run the storyboard pipeline. Sectioning and rendering will be run for all pages."
+#~ msgstr "This will save your settings and re-run the storyboard pipeline. Sectioning and rendering will be run for all pages."
 
-msgid "This will save your settings and re-run translations, rebuilding the text catalog and translating to output languages."
-msgstr "This will save your settings and re-run translations, rebuilding the text catalog and translating to output languages."
+#~ msgid "This will save your settings and re-run translations, rebuilding the text catalog and translating to output languages."
+#~ msgstr "This will save your settings and re-run translations, rebuilding the text catalog and translating to output languages."
 
 msgid "Thorium Reader"
 msgstr "Thorium Reader"
@@ -7184,8 +7218,8 @@ msgstr "Wraps 'Generate new' requests. Supports user_prompt, style, and image_ty
 msgid "You can export at this stage"
 msgstr "You can export at this stage"
 
-msgid "You have unsaved changes. If you leave, they'll be lost."
-msgstr "You have unsaved changes. If you leave, they'll be lost."
+#~ msgid "You have unsaved changes. If you leave, they'll be lost."
+#~ msgstr "You have unsaved changes. If you leave, they'll be lost."
 
 msgid "You haven't added any terms manually yet"
 msgstr "You haven't added any terms manually yet"

@@ -70,6 +70,10 @@ msgstr "(shabllon)"
 msgid "{0} — type country or Enter for base"
 msgstr "{0} — shkruani vendin ose Enter për bazë"
 
+#. placeholder {0}: tab.label
+msgid "{0} (unsaved changes)"
+msgstr "{0} (ndryshime të paruajtura)"
+
 #. placeholder {0}: progress?.page
 #. placeholder {1}: progress?.totalPages
 msgid "{0} / {1}"
@@ -733,6 +737,9 @@ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar gjener
 
 msgid "Add an API key in Book settings to run translation."
 msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar përkthimin."
+
+msgid "Add an API key to re-run"
+msgstr "Shto një çelës API për të ri-ekzekutuar"
 
 msgid "Add at least one output language to run translation."
 msgstr "Shto të paktën një gjuhë dalëse për të ekzekutuar përkthimin."
@@ -1723,8 +1730,8 @@ msgstr "Konfiguroni zërat dhe thekset"
 msgid "Confirm merge"
 msgstr "Konfirmoni bashkimin"
 
-msgid "Confirm Rerun"
-msgstr "Konfirmoni Rikryerjen"
+#~ msgid "Confirm Rerun"
+#~ msgstr "Konfirmoni Rikryerjen"
 
 msgid "Connect an AI provider"
 msgstr "Lidheni një ofrues AI"
@@ -2148,8 +2155,11 @@ msgstr "Rregullat e çaktivizuara"
 msgid "Discard"
 msgstr "Hidh poshtë"
 
-msgid "Discard unsaved changes?"
-msgstr "Hidh poshtë ndryshimet e paruajtura?"
+msgid "Discard & leave"
+msgstr "Hidh poshtë dhe dil"
+
+#~ msgid "Discard unsaved changes?"
+#~ msgstr "Hidh poshtë ndryshimet e paruajtura?"
 
 msgid "Display"
 msgstr "Shfaqje"
@@ -2328,8 +2338,11 @@ msgstr "Redakto Prompt-in"
 msgid "Edit Prompts"
 msgstr "Redakto Prompt-et"
 
-msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
-msgstr "Redaktoni shabllonin Liquid/HTML më poshtë. Ndryshimet ruhen kur klikoni Ruaj dhe Riekzekuto."
+#~ msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
+#~ msgstr "Redaktoni shabllonin Liquid/HTML më poshtë. Ndryshimet ruhen kur klikoni Ruaj dhe Riekzekuto."
+
+msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save."
+msgstr "Modifiko shabllonin Liquid/HTML më poshtë. Ndryshimet ruhen kur klikon Ruaj."
 
 msgid "Edit this image"
 msgstr "Redakto këtë imazh"
@@ -2985,6 +2998,9 @@ msgstr "titull"
 msgid "Heading"
 msgstr "Titull"
 
+msgid "Heads up"
+msgstr "Kujdes"
+
 msgid "Heads up: regenerating images takes considerably longer than text translation — each selected image is redrawn for every output language."
 msgstr "Vini re: rigjenerimi i imazheve kërkon kohë shumë më të gjatë se përkthimi i tekstit — çdo imazh i zgjedhur rihiqet për çdo gjuhë dalje."
 
@@ -3077,6 +3093,9 @@ msgstr "Identifiko idenë kryesore"
 
 msgid "If you don't run Image Captions, your output will not be accessible to readers who use screen readers or can't see the images."
 msgstr "Nëse nuk ekzekutoni Titujt e Imazheve, dalja juaj nuk do të jetë e aksesueshme për lexuesit që përdorin lexues ekrani ose nuk mund t'i shohin imazhet."
+
+msgid "If you leave now, your unsaved changes will be lost."
+msgstr "Nëse del tani, ndryshimet e tua të paruajtura do të humbasin."
 
 msgid "Illustrated children's books"
 msgstr "Libra për fëmijë të ilustruar"
@@ -3405,8 +3424,8 @@ msgstr "Hapësira ndër-rreshta"
 msgid "Least used"
 msgstr "Më pak i përdorur"
 
-msgid "Leave"
-msgstr "Lër"
+#~ msgid "Leave"
+#~ msgstr "Lër"
 
 msgid "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
 msgstr "Lëre në Asnjë për të ekzekutuar segmentimin në të gjitha imazhet e kualifikuara (sipas rregullave të pipeline)."
@@ -3509,6 +3528,9 @@ msgstr "Gati për LMS me gjurmim të përfundimit"
 
 msgid "Loading accessibility summary..."
 msgstr "Duke ngarkuar përmbledhjen e aksesueshmërisë..."
+
+msgid "Loading book config…"
+msgstr "Po ngarkohet konfigurimi i librit…"
 
 msgid "Loading Book..."
 msgstr "Duke ngarkuar librin..."
@@ -4615,6 +4637,9 @@ msgstr "Pamja paraprake e faqes PDF {pageLabel}"
 msgid "Pencil Sketch"
 msgstr "Skicë me Laps"
 
+msgid "Pending edits"
+msgstr "Ndryshime në pritje"
+
 msgid "Pending..."
 msgstr "Në pritje..."
 
@@ -5432,38 +5457,44 @@ msgstr "Sans-serif"
 msgid "Save"
 msgstr "Ruaj"
 
-msgid "Save & Rerun"
-msgstr "Ruaj dhe Riekzekuto"
+msgid "Save & leave"
+msgstr "Ruaj dhe dil"
 
-msgid "Save & Rerun Captions"
-msgstr "Ruaj dhe Riekzekuto Titujt"
+msgid "Save & Re-run"
+msgstr "Ruaj dhe ri-ekzekuto"
 
-msgid "Save & Rerun Easy Read"
-msgstr "Ruaj dhe Riekzekuto Leximin e Lehtë"
+#~ msgid "Save & Rerun"
+#~ msgstr "Ruaj dhe Riekzekuto"
 
-msgid "Save & Rerun Extraction"
-msgstr "Ruaj dhe Riekzekuto Nxjerrjen"
+#~ msgid "Save & Rerun Captions"
+#~ msgstr "Ruaj dhe Riekzekuto Titujt"
 
-msgid "Save & Rerun Glossary"
-msgstr "Ruaj dhe Riekzekuto Glosarin"
+#~ msgid "Save & Rerun Easy Read"
+#~ msgstr "Ruaj dhe Riekzekuto Leximin e Lehtë"
 
-msgid "Save & Rerun Quizzes"
-msgstr "Ruaj dhe Riekzekuto Kuizet"
+#~ msgid "Save & Rerun Extraction"
+#~ msgstr "Ruaj dhe Riekzekuto Nxjerrjen"
 
-msgid "Save & Rerun Sectioning"
-msgstr "Ruaj dhe Riekzekuto Seksionimin"
+#~ msgid "Save & Rerun Glossary"
+#~ msgstr "Ruaj dhe Riekzekuto Glosarin"
 
-msgid "Save & Rerun Speech"
-msgstr "Ruaj dhe Riekzekuto Fjalimin"
+#~ msgid "Save & Rerun Quizzes"
+#~ msgstr "Ruaj dhe Riekzekuto Kuizet"
 
-msgid "Save & Rerun Storyboard"
-msgstr "Ruaj dhe Riekzekuto Storyboard"
+#~ msgid "Save & Rerun Sectioning"
+#~ msgstr "Ruaj dhe Riekzekuto Seksionimin"
 
-msgid "Save & Rerun TOC Generation"
-msgstr "Ruaj dhe Riekzekuto Gjenerimin e Përmbajtjes"
+#~ msgid "Save & Rerun Speech"
+#~ msgstr "Ruaj dhe Riekzekuto Fjalimin"
 
-msgid "Save & Rerun Translations"
-msgstr "Ruaj dhe Riekzekuto Përkthimet"
+#~ msgid "Save & Rerun Storyboard"
+#~ msgstr "Ruaj dhe Riekzekuto Storyboard"
+
+#~ msgid "Save & Rerun TOC Generation"
+#~ msgstr "Ruaj dhe Riekzekuto Gjenerimin e Përmbajtjes"
+
+#~ msgid "Save & Rerun Translations"
+#~ msgstr "Ruaj dhe Riekzekuto Përkthimet"
 
 msgid "Save changes"
 msgstr "Ruaj ndryshimet"
@@ -5492,8 +5523,8 @@ msgstr "Ruaj cilësimet"
 msgid "Saved. Re-package Preview to apply."
 msgstr "U ruajt. Ri-pako Parapamjen për ta aplikuar."
 
-msgid "Saving..."
-msgstr "Po ruhet..."
+#~ msgid "Saving..."
+#~ msgstr "Po ruhet..."
 
 msgid "Saving…"
 msgstr "Po ruhet…"
@@ -6407,6 +6438,9 @@ msgstr "Bota para nesh"
 msgid "Theme"
 msgstr "Tema"
 
+msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
+msgstr "Këto ndryshime nuk janë zbatuar ende. Nëse del, do të humbasin — ose ruaji dhe ri-ekzekuto për t'i zbatuar. Ekzekutimi vazhdon në sfond ndërsa ti punon."
+
 msgid "These features improve access for people with disabilities. Running them before exporting helps your book meet ADT accessibility standards."
 msgstr "Këto veçori përmirësojnë aksesin për personat me aftësi të kufizuara. Ekzekutimi i tyre para eksportimit ndihmon librin tuaj të përmbushë standardet e aksesibilitetit ADT."
 
@@ -6537,38 +6571,38 @@ msgstr "Kjo sesion po përdor një fotografi të vjetër të listës së kontrol
 msgid "This text is only perceptible to assistive technologies."
 msgstr "Ky tekst perceptohet vetëm nga teknologjitë ndihmëse."
 
-msgid "This will save your Easy Read settings and generate a new editable Easy Read version."
-msgstr "Kjo do të ruajë cilësimet tuaja Easy Read dhe do të gjenerojë një version të ri të redaktueshëm Easy Read."
+#~ msgid "This will save your Easy Read settings and generate a new editable Easy Read version."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja Easy Read dhe do të gjenerojë një version të ri të redaktueshëm Easy Read."
 
-msgid "This will save your settings and re-generate the table of contents."
-msgstr "Kjo do të ruajë cilësimet tuaja dhe do të rigjenerojë tabelën e përmbajtjes."
+#~ msgid "This will save your settings and re-generate the table of contents."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja dhe do të rigjenerojë tabelën e përmbajtjes."
 
-msgid "This will save your settings and re-run glossary generation."
-msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë gjenerimin e fjalorit."
+#~ msgid "This will save your settings and re-run glossary generation."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë gjenerimin e fjalorit."
 
-msgid "This will save your settings and re-run image captioning."
-msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë titullimin e imazheve."
+#~ msgid "This will save your settings and re-run image captioning."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë titullimin e imazheve."
 
-msgid "This will save your settings and re-run quiz generation."
-msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë gjenerimin e testeve."
+#~ msgid "This will save your settings and re-run quiz generation."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë gjenerimin e testeve."
 
-msgid "This will save your settings and re-run sectioning for all pages."
-msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë seksionimin për të gjitha faqet."
+#~ msgid "This will save your settings and re-run sectioning for all pages."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë seksionimin për të gjitha faqet."
 
-msgid "This will save your settings and re-run speech generation."
-msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë gjenerimin e të folurit."
+#~ msgid "This will save your settings and re-run speech generation."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë gjenerimin e të folurit."
 
-msgid "This will save your settings and re-run the extraction pipeline. Any manual edits to extracted text will be overwritten for affected pages."
-msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë tubin e nxjerrjes. Çdo redaktim manual i tekstit të nxjerrë do të mbishkruhet për faqet e prekura."
+#~ msgid "This will save your settings and re-run the extraction pipeline. Any manual edits to extracted text will be overwritten for affected pages."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë tubin e nxjerrjes. Çdo redaktim manual i tekstit të nxjerrë do të mbishkruhet për faqet e prekura."
 
-msgid "This will save your settings and re-run the storyboard pipeline. Only rendering will be regenerated — your existing sections will be preserved."
-msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë tubin storyboard. Vetëm renderimi do të rigjerohet — seksionet tuaja ekzistuese do të ruhen."
+#~ msgid "This will save your settings and re-run the storyboard pipeline. Only rendering will be regenerated — your existing sections will be preserved."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë tubin storyboard. Vetëm renderimi do të rigjerohet — seksionet tuaja ekzistuese do të ruhen."
 
-msgid "This will save your settings and re-run the storyboard pipeline. Sectioning and rendering will be run for all pages."
-msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë tubin storyboard. Seksionimi dhe renderimi do të ekzekutohen për të gjitha faqet."
+#~ msgid "This will save your settings and re-run the storyboard pipeline. Sectioning and rendering will be run for all pages."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë tubin storyboard. Seksionimi dhe renderimi do të ekzekutohen për të gjitha faqet."
 
-msgid "This will save your settings and re-run translations, rebuilding the text catalog and translating to output languages."
-msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë përkthimet, duke rindërtuar katalogun e tekstit dhe duke përkthyer në gjuhët e daljes."
+#~ msgid "This will save your settings and re-run translations, rebuilding the text catalog and translating to output languages."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë përkthimet, duke rindërtuar katalogun e tekstit dhe duke përkthyer në gjuhët e daljes."
 
 msgid "Thorium Reader"
 msgstr "Thorium Reader"
@@ -7185,8 +7219,8 @@ msgstr "Mbështjell kërkesat 'Gjenero të re'. Mbështet variablat user_prompt,
 msgid "You can export at this stage"
 msgstr "Mund të eksportosh në këtë fazë"
 
-msgid "You have unsaved changes. If you leave, they'll be lost."
-msgstr "Ke ndryshime të paruajtura. Nëse largohesh, ato do të humbasin."
+#~ msgid "You have unsaved changes. If you leave, they'll be lost."
+#~ msgstr "Ke ndryshime të paruajtura. Nëse largohesh, ato do të humbasin."
 
 msgid "You haven't added any terms manually yet"
 msgstr "Nuk ke shtuar ende asnjë term manualisht"
