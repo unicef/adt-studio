@@ -9,9 +9,12 @@ import {
   parseBookLabel,
   BookMetadata,
   PartManifest,
-  PAGE_PROGRESS_STEPS,
+  PIPELINE,
+  PER_PAGE_PROMPT_KEYS,
   computeFingerprint,
+  canonicalJson,
   hashPdfBytes,
+  type AppConfig,
   type PartRange,
 } from "@adt/types"
 import { renderPdfCover, countPdfPages } from "@adt/pdf"
@@ -22,27 +25,37 @@ import { getBookConfig, type BookSummary } from "./book-service.js"
 import type { ExportResult } from "./export-service.js"
 
 /**
- * Book-level steps re-run on the assembled book after a merge. Their step_runs
- * are cleared so the UI shows them as needing a run; the underlying per-item
- * caches are carried by the merge so re-running is cheap (see plan). `metadata`
- * is intentionally excluded — it is derived from the first pages and drives the
- * editing language every downstream step depends on; clearing it would be
- * destructive, not just stale.
+ * The per-page processing stages. A merge carries the part's step status for
+ * every step in these stages onto the assembled book. This deliberately
+ * includes the Extract stage's non-page-level `metadata` and `book-summary`
+ * steps: stage completion requires *every* step to be done/skipped, so clearing
+ * `book-summary` would make the whole Extract stage read as "not run" and block
+ * the downstream UI (e.g. the Sectioning page's "Extract hasn't run" gate).
  */
-const BOOK_LEVEL_STALE_STEPS = [
-  "book-summary",
-  "quiz-generation",
-  "glossary",
-  "toc-generation",
-  "text-catalog",
-  "easy-read",
-  "catalog-translation",
-  "image-translation",
-  "tts",
-  "word-timestamps",
-  "package-web",
-  "accessibility-assessment",
-] as const
+const PER_PAGE_STAGE_NAMES = new Set<string>(["extract", "sectioning", "storyboard"])
+const PER_PAGE_STAGE_STEPS = new Set<string>(
+  PIPELINE.filter((s) => PER_PAGE_STAGE_NAMES.has(s.name)).flatMap((s) =>
+    s.steps.map((st) => st.name),
+  ),
+)
+/** Steps of the downstream / book-level stages, cleared on merge so the UI
+ *  flags them for re-running on the assembled book. */
+const DOWNSTREAM_STEPS = PIPELINE.filter((s) => !PER_PAGE_STAGE_NAMES.has(s.name)).flatMap((s) =>
+  s.steps.map((st) => st.name),
+)
+const DOWNSTREAM_STAGE_NAMES = PIPELINE.filter((s) => !PER_PAGE_STAGE_NAMES.has(s.name)).map(
+  (s) => s.name,
+)
+
+/** Config fields whose drift the semantics tier reports (per-page prompts +
+ *  editing language). */
+const SEMANTIC_DIFF_KEYS: string[] = [...PER_PAGE_PROMPT_KEYS, "editing_language"]
+
+function diffSemanticKeys(target: AppConfig, incoming: AppConfig): string[] {
+  const a = target as unknown as Record<string, unknown>
+  const b = incoming as unknown as Record<string, unknown>
+  return SEMANTIC_DIFF_KEYS.filter((k) => canonicalJson(a[k]) !== canonicalJson(b[k]))
+}
 
 function throwInvalid(message: string): never {
   throw new HTTPException(400, { message })
@@ -310,6 +323,9 @@ export interface MergePreview {
   range: PartRange
   identityMatch: boolean
   semanticsMatch: boolean
+  /** Config keys whose values differ between the part and the target (only
+   *  populated when semanticsMatch is false). */
+  semanticsDiff: string[]
   blocked: boolean
   blockReason: string | null
   warnings: string[]
@@ -375,7 +391,8 @@ function openPartProject(zipBuffer: Buffer): { part: ExtractedPart; cleanup: () 
   }
 }
 
-function fingerprintOf(label: string, booksDir: string, configPath?: string): {
+function resolvedFingerprint(label: string, booksDir: string, configPath?: string): {
+  config: AppConfig
   identityHash: string
   semanticsHash: string
 } {
@@ -384,7 +401,7 @@ function fingerprintOf(label: string, booksDir: string, configPath?: string): {
   const pdfBytes = readPdfBytes(bookDir, label)
   const config = loadBookConfig(label, resolvedDir, configPath)
   const fp = computeFingerprint({ config, pdfSha256: hashPdfBytes(pdfBytes) })
-  return { identityHash: fp.identityHash, semanticsHash: fp.semanticsHash }
+  return { config, identityHash: fp.identityHash, semanticsHash: fp.semanticsHash }
 }
 
 function inWindowPages(
@@ -421,15 +438,17 @@ export function previewMerge(
     const entries = unzipBuffer(zipBuffer)
     const manifest = parseManifest(entries)
 
-    const target = fingerprintOf(safeTarget, booksDir, configPath)
-    const incoming = fingerprintOf(part.rawLabel, part.booksRoot, configPath)
+    const target = resolvedFingerprint(safeTarget, booksDir, configPath)
+    const incoming = resolvedFingerprint(part.rawLabel, part.booksRoot, configPath)
     const identityMatch = target.identityHash === incoming.identityHash
     const semanticsMatch = target.semanticsHash === incoming.semanticsHash
+    const semanticsDiff = semanticsMatch ? [] : diffSemanticKeys(target.config, incoming.config)
 
     const warnings: string[] = []
     if (!semanticsMatch) {
+      const where = semanticsDiff.length > 0 ? ` (differs in: ${semanticsDiff.join(", ")})` : ""
       warnings.push(
-        "This part was processed with different prompts, models, or editing language than the target book. Pages still align, but their generated structure may differ.",
+        `This part was processed with different prompts, models, or editing language than the target book${where}. Pages still align, but their generated structure may differ.`,
       )
     }
 
@@ -464,6 +483,7 @@ export function previewMerge(
       range: manifest.range,
       identityMatch,
       semanticsMatch,
+      semanticsDiff,
       blocked: !identityMatch,
       blockReason: identityMatch
         ? null
@@ -513,8 +533,8 @@ export function mergePart(
     const entries = unzipBuffer(zipBuffer)
     const manifest = parseManifest(entries)
 
-    const target = fingerprintOf(safeTarget, booksDir, configPath)
-    const incoming = fingerprintOf(part.rawLabel, part.booksRoot, configPath)
+    const target = resolvedFingerprint(safeTarget, booksDir, configPath)
+    const incoming = resolvedFingerprint(part.rawLabel, part.booksRoot, configPath)
     if (target.identityHash !== incoming.identityHash) {
       throwInvalid(
         "Cannot merge: this part was extracted from a different PDF, spread mode, or schema version than the target book.",
@@ -522,9 +542,10 @@ export function mergePart(
     }
     const semanticsMatch = target.semanticsHash === incoming.semanticsHash
     if (!semanticsMatch && !options.acknowledgeSemanticsMismatch) {
+      const diff = diffSemanticKeys(target.config, incoming.config)
+      const where = diff.length > 0 ? ` (differs in: ${diff.join(", ")})` : ""
       throw new HTTPException(409, {
-        message:
-          "This part was processed with different prompts/models than the target book. Re-submit with acknowledgement to merge anyway.",
+        message: `This part was processed with different prompts/models than the target book${where}. Re-submit with acknowledgement to merge anyway.`,
       })
     }
 
@@ -615,25 +636,26 @@ export function mergePart(
         )
       }
 
-      // Per-page steps the part completed: mark done on the assembled book.
-      // (Page-level data presence is the source of truth; this keeps the stage
-      // badge consistent. Re-running is cache-cheap if a page was missed.)
+      // Carry the part's status for every step in the per-page stages
+      // (extract/sectioning/storyboard, incl. metadata + book-summary) so the
+      // assembled book's early stages read as complete. Stage completion needs
+      // every step done/skipped, so we must NOT leave any of these unset.
       for (const sr of partStepRuns) {
-        if (sr.status === "done" && PAGE_PROGRESS_STEPS.has(sr.step as never)) {
+        if (PER_PAGE_STAGE_STEPS.has(sr.step) && (sr.status === "done" || sr.status === "skipped")) {
           targetDb.run(
-            `INSERT INTO step_runs (step, status) VALUES (?, 'done')
-             ON CONFLICT (step) DO UPDATE SET status = 'done'`,
-            [sr.step],
+            `INSERT INTO step_runs (step, status) VALUES (?, ?)
+             ON CONFLICT (step) DO UPDATE SET status = excluded.status`,
+            [sr.step, sr.status],
           )
         }
       }
 
-      // Book-level outputs are now computed over a stale page set → mark stale.
-      const placeholders = BOOK_LEVEL_STALE_STEPS.map(() => "?").join(", ")
-      targetDb.run(
-        `DELETE FROM step_runs WHERE step IN (${placeholders})`,
-        [...BOOK_LEVEL_STALE_STEPS],
-      )
+      // Downstream / book-level stages are now computed over a stale page set →
+      // clear so the UI flags them for re-running on the assembled book.
+      if (DOWNSTREAM_STEPS.length > 0) {
+        const placeholders = DOWNSTREAM_STEPS.map(() => "?").join(", ")
+        targetDb.run(`DELETE FROM step_runs WHERE step IN (${placeholders})`, DOWNSTREAM_STEPS)
+      }
 
       targetDb.exec("COMMIT")
     } catch (err) {
@@ -653,7 +675,7 @@ export function mergePart(
       targetLabel: safeTarget,
       addedPages,
       replacedPages,
-      staleSteps: [...BOOK_LEVEL_STALE_STEPS],
+      staleSteps: DOWNSTREAM_STAGE_NAMES,
       semanticsOverridden: !semanticsMatch,
     }
   } finally {

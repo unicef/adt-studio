@@ -74,6 +74,18 @@ function addProcessedPage(label: string, pageNumber: number): void {
   }
 }
 
+/** Mark the per-page-stage steps a contributor would have run as done. */
+function markPartStepsDone(label: string): void {
+  const storage = createBookStorage(label, tmpDir)
+  try {
+    for (const step of ["extract", "metadata", "book-summary", "page-sectioning", "web-rendering"]) {
+      storage.markStepCompleted(step)
+    }
+  } finally {
+    storage.close()
+  }
+}
+
 function writePartManifest(label: string, startPage: number, endPage: number): void {
   fs.writeFileSync(
     path.join(tmpDir, label, "part.json"),
@@ -101,6 +113,7 @@ async function buildCompletedPart(
 ): Promise<Buffer> {
   makeBook(label, `${overrides}start_page: ${start}\nend_page: ${end}\n`)
   for (let n = start; n <= end; n++) addProcessedPage(label, n)
+  markPartStepsDone(label)
   writePartManifest(label, start, end)
   // a content-addressed cache entry to verify it is carried over
   fs.mkdirSync(path.join(tmpDir, label, ".cache"), { recursive: true })
@@ -188,13 +201,22 @@ describe("mergePart", () => {
       ) as Array<{ version: number }>
       expect(v).toEqual([{ version: 1 }])
 
+      // Downstream/book-level stages are cleared (flagged for re-run).
       const glossary = db.all("SELECT status FROM step_runs WHERE step = 'glossary'")
       expect(glossary).toEqual([])
 
+      // Per-page stages are carried from the part and stay complete...
       const sectioning = db.all(
         "SELECT status FROM step_runs WHERE step = 'page-sectioning'",
       ) as Array<{ status: string }>
       expect(sectioning).toEqual([{ status: "done" }])
+
+      // ...including book-summary, which lives in the Extract stage and must
+      // NOT be cleared (else the whole Extract stage reads as "not run").
+      const bookSummary = db.all(
+        "SELECT status FROM step_runs WHERE step = 'book-summary'",
+      ) as Array<{ status: string }>
+      expect(bookSummary).toEqual([{ status: "done" }])
     } finally {
       db.close()
     }

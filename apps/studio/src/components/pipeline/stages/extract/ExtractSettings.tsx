@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog"
 import { LanguagePicker } from "@/components/LanguagePicker"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
+import { usePartInfo } from "@/hooks/use-parts"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
@@ -29,6 +30,10 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
+  const { data: partInfo } = usePartInfo(bookLabel)
+  // A book imported as a part is scoped to a fixed page window — lock the range
+  // so the contributor processes exactly the assigned subset.
+  const isPart = !!partInfo
   const updateConfig = useUpdateBookConfig()
   const { apiKey, hasApiKey } = useApiKey()
   const { queueRun } = useBookRun()
@@ -200,6 +205,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
                 onChange={(e) => { setStartPage(e.target.value); markDirty("start_page") }}
                 placeholder={t`First`}
                 className="w-24"
+                disabled={isPart}
               />
               <span className="text-xs text-muted-foreground">{t`to`}</span>
               <Input
@@ -209,10 +215,13 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
                 onChange={(e) => { setEndPage(e.target.value); markDirty("end_page") }}
                 placeholder={t`Last`}
                 className="w-24"
+                disabled={isPart}
               />
             </div>
             <p className="text-xs text-muted-foreground mt-1.5">
-              {t`Leave empty to process all pages.`}
+              {isPart
+                ? t`This book is a part — its page range is fixed to the assigned subset and cannot be changed.`
+                : t`Leave empty to process all pages.`}
             </p>
           </div>
 

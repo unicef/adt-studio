@@ -277,7 +277,12 @@ export function createBookRoutes(
     }
 
     try {
-      updateBookConfig(label, booksDir, body.config)
+      // A part's page window is fixed — never let a config update move it.
+      const partInfo = getPartInfo(label, booksDir)
+      const config = partInfo
+        ? { ...body.config, start_page: partInfo.range.startPage, end_page: partInfo.range.endPage }
+        : body.config
+      updateBookConfig(label, booksDir, config)
       const updated = getBookConfig(label, booksDir)
       return c.json({ config: updated ?? {} })
     } catch (err) {

@@ -147,6 +147,7 @@ export interface MergePreview {
   range: { startPage: number; endPage: number }
   identityMatch: boolean
   semanticsMatch: boolean
+  semanticsDiff: string[]
   blocked: boolean
   blockReason: string | null
   warnings: string[]
