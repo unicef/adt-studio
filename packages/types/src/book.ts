@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { BookMetadata } from "./metadata.js"
 import { BookSummaryOutput } from "./book-summary.js"
+import { PartRange } from "./part.js"
 
 export const BookLabel = z
   .string()
@@ -22,6 +23,10 @@ export const BookSummary = z.object({
   completedStages: z.array(z.string()),
   createdAt: z.string(),
   modifiedAt: z.string(),
+  /** Set when this book was imported as a page-range part of a larger book. */
+  part: z
+    .object({ sourceLabel: z.string(), range: PartRange })
+    .nullable(),
 })
 export type BookSummary = z.infer<typeof BookSummary>
 

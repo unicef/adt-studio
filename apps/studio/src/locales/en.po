@@ -4635,8 +4635,17 @@ msgstr "Parsing pages"
 msgid "Parsing pages into text, figures, and layout boxes — cached by content hash."
 msgstr "Parsing pages into text, figures, and layout boxes — cached by content hash."
 
+#. placeholder {0}: book.part.range.startPage
+#. placeholder {1}: book.part.range.endPage
+msgid "Part · p{0}–{1}"
+msgstr "Part · p{0}–{1}"
+
 msgid "Part info"
 msgstr "Part info"
+
+#. placeholder {0}: book.part.sourceLabel
+msgid "Part of {0}"
+msgstr "Part of {0}"
 
 msgid "Parts"
 msgstr "Parts"

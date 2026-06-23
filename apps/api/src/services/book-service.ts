@@ -6,15 +6,33 @@ import {
   BookLabel,
   BookMetadata,
   BookSummaryOutput,
+  PartManifest,
   PIPELINE,
   type BookSummary,
   type BookDetail,
+  type PartRange,
 } from "@adt/types"
 import { openBookDb } from "@adt/storage"
 
 type BookDb = ReturnType<typeof openBookDb>
 
 export type { BookSummary, BookDetail }
+
+/** If the book directory holds a part manifest, return its source + window. */
+export function readPartInfo(
+  bookDir: string,
+): { sourceLabel: string; range: PartRange } | null {
+  const manifestPath = path.join(bookDir, "part.json")
+  if (!fs.existsSync(manifestPath)) return null
+  try {
+    const parsed = PartManifest.safeParse(JSON.parse(fs.readFileSync(manifestPath, "utf-8")))
+    return parsed.success
+      ? { sourceLabel: parsed.data.sourceLabel, range: parsed.data.range }
+      : null
+  } catch {
+    return null
+  }
+}
 
 function computeCompletedStages(db: BookDb, bookDir: string): string[] {
   const rows = db.all("SELECT step, status FROM step_runs") as Array<{
@@ -152,6 +170,7 @@ export function listBooks(booksDir: string): BookSummary[] {
       completedStages,
       createdAt,
       modifiedAt,
+      part: readPartInfo(bookDir),
     })
   }
 
@@ -250,6 +269,7 @@ export function getBook(label: string, booksDir: string): BookDetail {
     completedStages,
     createdAt,
     modifiedAt,
+    part: readPartInfo(bookDir),
     metadata,
     bookSummary,
   }
@@ -294,6 +314,7 @@ export function createBook(
     completedStages: [],
     createdAt: nowIso,
     modifiedAt: nowIso,
+    part: null,
   }
 }
 

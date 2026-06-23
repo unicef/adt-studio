@@ -4636,8 +4636,17 @@ msgstr "Analizimi i faqeve"
 msgid "Parsing pages into text, figures, and layout boxes — cached by content hash."
 msgstr "Analizimi i faqeve në tekst, figura dhe kuti paraqitjeje — memorizuar sipas hash-it të përmbajtjes."
 
+#. placeholder {0}: book.part.range.startPage
+#. placeholder {1}: book.part.range.endPage
+msgid "Part · p{0}–{1}"
+msgstr "Pjesë · f{0}–{1}"
+
 msgid "Part info"
 msgstr "Informacion mbi pjesën"
+
+#. placeholder {0}: book.part.sourceLabel
+msgid "Part of {0}"
+msgstr "Pjesë e {0}"
 
 msgid "Parts"
 msgstr "Pjesë"

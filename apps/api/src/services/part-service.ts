@@ -21,7 +21,7 @@ import { renderPdfCover, countPdfPages } from "@adt/pdf"
 import { openBookDb, resolveBookPaths } from "@adt/storage"
 import { loadBookConfig } from "@adt/pipeline"
 import { createZipStreamFromEntries } from "./zip-util.js"
-import { getBookConfig, type BookSummary } from "./book-service.js"
+import { getBookConfig, readPartInfo, type BookSummary } from "./book-service.js"
 import type { ExportResult } from "./export-service.js"
 
 /**
@@ -286,6 +286,7 @@ export function importPart(zipBuffer: Buffer, booksDir: string): BookSummary {
       completedStages: [],
       createdAt: nowIso,
       modifiedAt: nowIso,
+      part: { sourceLabel: manifest.sourceLabel, range: manifest.range },
     }
   } catch (err) {
     try { fs.rmSync(bookDir, { recursive: true, force: true }) } catch { /* ignore */ }
@@ -301,15 +302,7 @@ export interface PartInfo {
 /** If this book was imported as a part, return its source + window; else null. */
 export function getPartInfo(label: string, booksDir: string): PartInfo | null {
   const bookDir = path.join(path.resolve(booksDir), parseBookLabel(label))
-  const manifestPath = path.join(bookDir, "part.json")
-  if (!fs.existsSync(manifestPath)) return null
-  try {
-    const parsed = PartManifest.safeParse(JSON.parse(fs.readFileSync(manifestPath, "utf-8")))
-    if (!parsed.success) return null
-    return { sourceLabel: parsed.data.sourceLabel, range: parsed.data.range }
-  } catch {
-    return null
-  }
+  return readPartInfo(bookDir)
 }
 
 // ---------------------------------------------------------------------------

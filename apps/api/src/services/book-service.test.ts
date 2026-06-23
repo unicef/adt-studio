@@ -140,6 +140,7 @@ describe("listBooks", () => {
       completedStages: [],
       createdAt: expect.any(String),
       modifiedAt: expect.any(String),
+      part: null,
     })
   })
 
@@ -161,6 +162,7 @@ describe("listBooks", () => {
       completedStages: [],
       createdAt: expect.any(String),
       modifiedAt: expect.any(String),
+      part: null,
     })
   })
 
@@ -184,6 +186,7 @@ describe("listBooks", () => {
       completedStages: [],
       createdAt: expect.any(String),
       modifiedAt: expect.any(String),
+      part: null,
     })
   })
 

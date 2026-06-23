@@ -15,6 +15,7 @@ import {
   Search,
   CalendarPlus,
   Clock,
+  Scissors,
 } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
@@ -258,6 +259,18 @@ function BookRow({
               </h2>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
+              {book.part && (
+                <Badge
+                  variant="secondary"
+                  className="gap-1 text-[11px] px-2 py-0.5"
+                  title={t`Part of ${book.part.sourceLabel}`}
+                >
+                  <Scissors className="h-3 w-3" />
+                  <Trans>
+                    Part · p{book.part.range.startPage}–{book.part.range.endPage}
+                  </Trans>
+                </Badge>
+              )}
               {book.needsRebuild && (
                 <Badge variant="destructive" className="text-[11px] px-2 py-0.5">
                   <Trans>Needs rebuild</Trans>
