@@ -124,6 +124,35 @@ describe("buildPageSectioningConfig", () => {
     expect(config.disabledSectionTypes).toEqual(["images_only"])
   })
 
+  it("hides all activity_* section types when generate_activities is false", () => {
+    const appConfig: AppConfig = {
+      role_types: { text: "Body" },
+      structure_types: { paragraph: "Paragraph" },
+      section_types: {
+        text_only: "Text only",
+        activity_multiple_choice: "MCQ",
+        activity_other: "Other activity",
+      },
+      generate_activities: false,
+    }
+
+    const config = buildPageSectioningConfig(appConfig)
+    // activity_* types (including activity_other, which has no render strategy)
+    // are excluded by the prefix rule — not a hand-maintained list.
+    expect(config.sectionTypes).toEqual([{ key: "text_only", description: "Text only" }])
+  })
+
+  it("keeps activity types when generate_activities is not false", () => {
+    const appConfig: AppConfig = {
+      role_types: { text: "Body" },
+      structure_types: { paragraph: "Paragraph" },
+      section_types: { text_only: "Text only", activity_multiple_choice: "MCQ" },
+    }
+
+    const config = buildPageSectioningConfig(appConfig)
+    expect(config.sectionTypes.map((t) => t.key)).toEqual(["text_only", "activity_multiple_choice"])
+  })
+
   it("carries through pruned_role_types and pruned_section_types", () => {
     const appConfig: AppConfig = {
       role_types: { page_number: "Page number", text: "Body" },

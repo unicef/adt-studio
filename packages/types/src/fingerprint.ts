@@ -56,6 +56,7 @@ export const PER_PAGE_PROMPT_KEYS = [
   "pruned_role_types",
   "pruned_section_types",
   "disabled_section_types",
+  "generate_activities",
   "page_sectioning",
   "translation",
   "default_render_strategy",

@@ -102,6 +102,10 @@ export function SectioningSettings({ bookLabel, headerTarget, tab = "section-typ
   const [roleTypes, setRoleTypes] = useState<Record<string, string>>({})
   const [prunedRoleTypes, setPrunedRoleTypes] = useState<Set<string>>(new Set())
 
+  // Activities on/off — a single flag honored by sectioning and web-rendering
+  // (via the `activity_` prefix), so it never drifts from a per-type list.
+  const [generateActivities, setGenerateActivities] = useState(true)
+
   // Sectioning state
   const [sectioningMode, setSectioningMode] = useState("dynamic")
   const [maxRefinements, setMaxRefinements] = useState("")
@@ -150,6 +154,7 @@ export function SectioningSettings({ bookLabel, headerTarget, tab = "section-typ
       if (ps.mode) setSectioningMode(String(ps.mode))
       setMaxRefinements(ps.max_refinements != null ? String(ps.max_refinements) : "")
     }
+    setGenerateActivities(m.generate_activities !== false)
   }, [activeConfigData])
 
   // Section Types handlers
@@ -291,6 +296,9 @@ export function SectioningSettings({ bookLabel, headerTarget, tab = "section-typ
     if (shouldWrite("disabled_section_types")) {
       overrides.disabled_section_types = Array.from(disabledSectionTypes)
     }
+    if (shouldWrite("generate_activities")) {
+      overrides.generate_activities = generateActivities
+    }
     if (shouldWrite("section_render_strategies")) {
       const baseStrategies = (m?.section_render_strategies ?? {}) as Record<string, string>
       const stratWithDeletions: Record<string, string | null> = { ...sectionRenderStrategies }
@@ -368,19 +376,11 @@ export function SectioningSettings({ bookLabel, headerTarget, tab = "section-typ
     return Array.from(names)
   }, [merged, sectionTypes])
 
-  const anyActivitiesEnabled = activityNames.length > 0 &&
-    activityNames.some((name) => !disabledSectionTypes.has(name))
+  const hasActivityTypes = activityNames.length > 0
 
   const toggleAllActivities = (enabled: boolean) => {
-    markDirty("disabled_section_types")
-    setDisabledSectionTypes((prev) => {
-      const next = new Set(prev)
-      for (const name of activityNames) {
-        if (enabled) next.delete(name)
-        else next.add(name)
-      }
-      return next
-    })
+    markDirty("generate_activities")
+    setGenerateActivities(enabled)
   }
 
   const orderedStructureEntries = useMemo(
@@ -468,17 +468,17 @@ export function SectioningSettings({ bookLabel, headerTarget, tab = "section-typ
           <p className="text-xs text-muted-foreground mb-3">
             {<Trans>Types used during page sectioning. Pruned types are classified but excluded from rendering. Disabled types are hidden from the LLM entirely.</Trans>}
           </p>
-          {activityNames.length > 0 && (
+          {hasActivityTypes && (
             <div className="flex items-center gap-3 mb-3">
               <Switch
-                checked={anyActivitiesEnabled}
+                checked={generateActivities}
                 onCheckedChange={toggleAllActivities}
               />
               <Label className="text-xs">
-                {anyActivitiesEnabled ? <Trans>Activities enabled</Trans> : <Trans>Activities disabled</Trans>}
+                {generateActivities ? <Trans>Activities enabled</Trans> : <Trans>Activities disabled</Trans>}
               </Label>
               <p className="text-xs text-muted-foreground">
-                {anyActivitiesEnabled
+                {generateActivities
                   ? <Trans>Activity section types are available for classification and rendering.</Trans>
                   : <Trans>Activity section types are hidden from the classifier and skipped during rendering.</Trans>}
               </p>
@@ -494,7 +494,9 @@ export function SectioningSettings({ bookLabel, headerTarget, tab = "section-typ
             </div>
             {Object.entries(sectionTypes).map(([key, description]) => {
               const pruned = prunedSectionTypes.has(key)
-              const disabled = disabledSectionTypes.has(key)
+              const disabled =
+                disabledSectionTypes.has(key) ||
+                (!generateActivities && key.startsWith("activity_"))
               const renderOverride = sectionRenderStrategies[key] ?? ""
               return (
                 <div

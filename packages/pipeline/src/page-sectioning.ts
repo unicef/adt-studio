@@ -684,8 +684,13 @@ export function buildPageSectioningConfig(
     ([key, description]) => ({ key, description })
   )
   const disabledSet = new Set(appConfig.disabled_section_types ?? [])
+  // `generate_activities: false` disables every activity section type by the
+  // `activity_` prefix convention (the same rule web-rendering uses). This is
+  // the single source of truth for the activities on/off choice, so it can't
+  // drift from a hand-maintained list (e.g. missing `activity_other`).
+  const activitiesOff = appConfig.generate_activities === false
   const sectionTypes: TypeDef[] = Object.entries(appConfig.section_types ?? {})
-    .filter(([key]) => !disabledSet.has(key))
+    .filter(([key]) => !disabledSet.has(key) && !(activitiesOff && key.startsWith("activity_")))
     .map(([key, description]) => ({ key, description }))
 
   return {

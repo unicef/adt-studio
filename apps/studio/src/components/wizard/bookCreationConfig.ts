@@ -16,11 +16,6 @@ export function buildConfigOverrides(values: WizardFormValues): Record<string, u
   const baseConfig = preset?.baseConfig ?? {}
   const baseImageFilters = (baseConfig.image_filters ?? {}) as Record<string, unknown>
 
-  const renderStrategies = (baseConfig.render_strategies ?? {}) as Record<string, { render_type?: string }>
-  const activityTypeNames = Object.keys(renderStrategies).filter(
-    (name) => renderStrategies[name].render_type === "activity"
-  )
-
   const config: Record<string, unknown> = {
     ...baseConfig,
     default_render_strategy: values.renderStrategy,
@@ -28,9 +23,9 @@ export function buildConfigOverrides(values: WizardFormValues): Record<string, u
     spread_mode: values.pageGrouping === "spread",
     vector_text_grouping: values.figureExtraction,
     apply_body_background: true,
-    ...(!values.activitiesGenerator && activityTypeNames.length > 0 && {
-      disabled_section_types: activityTypeNames,
-    }),
+    // Single flag governs activities everywhere (sectioning + web-rendering),
+    // via the `activity_` prefix — no hand-maintained type list to drift.
+    ...(!values.activitiesGenerator && { generate_activities: false }),
     image_filters: {
       ...baseImageFilters,
       min_side: values.imageFilterMinSide,
