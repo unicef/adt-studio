@@ -4840,6 +4840,9 @@ msgstr "Página anterior"
 msgid "Previous slide"
 msgstr "Diapositiva anterior"
 
+msgid "Process the whole book here"
+msgstr "Procesar todo el libro aquí"
+
 msgid "Processing metadata…"
 msgstr "Procesando metadatos…"
 
@@ -5976,6 +5979,9 @@ msgstr "sk-..."
 msgid "sk-ant-..."
 msgstr "sk-ant-..."
 
+msgid "Skip extraction — hand out page-range parts and merge the results back later."
+msgstr "Omitir la extracción: reparte las partes por rango de páginas y fusiona los resultados más adelante."
+
 msgid "Skip for now"
 msgstr "Omitir por ahora"
 
@@ -6067,6 +6073,9 @@ msgstr "Configuración de Voz"
 msgid "Split & merge"
 msgstr "Dividir y fusionar"
 
+msgid "Split into parts for others"
+msgstr "Dividir en partes para otros"
+
 msgid "Split segments"
 msgstr "Segmentos divididos"
 
@@ -6096,6 +6105,9 @@ msgstr "Inicio"
 
 msgid "Start a reviewer session"
 msgstr "Start a reviewer session"
+
+msgid "Start extracting on this machine right after creating the book."
+msgstr "Comienza a extraer en esta máquina justo después de crear el libro."
 
 msgid "Start from a PDF"
 msgstr "Empieza con un PDF"
@@ -7180,6 +7192,9 @@ msgstr "Qué hay dentro"
 
 msgid "What's new"
 msgstr "Novedades"
+
+msgid "What's next for this book?"
+msgstr "¿Qué sigue para este libro?"
 
 msgid "When describing images, mention any culturally specific objects, locations, or recurring characters by name."
 msgstr "Al describir imágenes, menciona cualquier objeto, ubicación o personaje recurrente específico de la cultura por su nombre."

@@ -301,8 +301,11 @@ export function BookCreationWizard() {
       })
 
       // Kick off extraction automatically so the user lands on the book home
-      // with the Extract stage already running.
-      if (hasApiKey) {
+      // with the Extract stage already running — but only when the user intends
+      // to process the whole book here. For the "split" intent we skip it: each
+      // contributor extracts their own page-range part, so extracting the full
+      // book on this machine would be the very cost the split feature avoids.
+      if (values.intent === "process" && hasApiKey) {
         try {
           await api.runStages(
             book.label,
@@ -320,6 +323,11 @@ export function BookCreationWizard() {
         } catch (pipelineError) {
           console.error("[wizard] extract kickoff failed:", pipelineError)
         }
+      }
+
+      // When splitting, surface the Split & merge panel on the overview.
+      if (values.intent === "split" && typeof window !== "undefined") {
+        window.sessionStorage.setItem("adt:focus-parts", book.label)
       }
 
       navigate({ to: "/books/$label/$step", params: { label: book.label, step: "book" } })

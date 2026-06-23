@@ -4841,6 +4841,9 @@ msgstr "Faqja e mëparshme"
 msgid "Previous slide"
 msgstr "Sllajdi i mëparshëm"
 
+msgid "Process the whole book here"
+msgstr "Përpunoje të gjithë librin këtu"
+
 msgid "Processing metadata…"
 msgstr "Po përpunohen metadatat…"
 
@@ -5977,6 +5980,9 @@ msgstr "sk-..."
 msgid "sk-ant-..."
 msgstr "sk-ant-..."
 
+msgid "Skip extraction — hand out page-range parts and merge the results back later."
+msgstr "Anashkalo nxjerrjen — shpërnda pjesët sipas intervalit të faqeve dhe bashko rezultatet më vonë."
+
 msgid "Skip for now"
 msgstr "Kalo tani"
 
@@ -6068,6 +6074,9 @@ msgstr "Cilësimet e të Folurit"
 msgid "Split & merge"
 msgstr "Ndaj dhe bashko"
 
+msgid "Split into parts for others"
+msgstr "Ndaje në pjesë për të tjerët"
+
 msgid "Split segments"
 msgstr "Ndaj segmentet"
 
@@ -6097,6 +6106,9 @@ msgstr "Fillo"
 
 msgid "Start a reviewer session"
 msgstr "Fillo një sesion rishikimi"
+
+msgid "Start extracting on this machine right after creating the book."
+msgstr "Fillo nxjerrjen në këtë makinë menjëherë pas krijimit të librit."
 
 msgid "Start from a PDF"
 msgstr "Fillo nga një PDF"
@@ -7181,6 +7193,9 @@ msgstr "Çfarë ka brenda"
 
 msgid "What's new"
 msgstr "Çfarë është e re"
+
+msgid "What's next for this book?"
+msgstr "Çfarë vjen më pas për këtë libër?"
 
 msgid "When describing images, mention any culturally specific objects, locations, or recurring characters by name."
 msgstr "Kur përshkruan imazhet, përmend çdo objekt specifik kulturor, vendndodhje ose personazh të përsëritur me emër."

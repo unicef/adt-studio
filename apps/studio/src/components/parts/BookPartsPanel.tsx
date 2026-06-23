@@ -4,6 +4,7 @@ import { Scissors, Combine, Download, Upload, AlertTriangle, CheckCircle2, Loade
 import { useBook, useRegenerateBookSummary } from "../../hooks/use-books"
 import { usePartInfo, usePreviewMerge, useMergePart } from "../../hooks/use-parts"
 import { useApiKey } from "../../hooks/use-api-key"
+import { useSourcePdfInfo } from "../../hooks/use-source-pdf-info"
 import { api, type MergePreview, type MergeResult } from "../../api/client"
 import { Button } from "../ui/button"
 import { Input } from "../ui/input"
@@ -16,7 +17,11 @@ import { Badge } from "../ui/badge"
 export function BookPartsPanel({ bookLabel }: { bookLabel: string }) {
   const { data: book } = useBook(bookLabel)
   const { data: partInfo } = usePartInfo(bookLabel)
-  const pageCount = book?.pageCount ?? 0
+  const { data: pdfInfo } = useSourcePdfInfo(bookLabel)
+  // Base the export range on the full source PDF (works before extraction and
+  // isn't capped when the book was extracted with a window). Fall back to the
+  // extracted page count.
+  const pageCount = pdfInfo?.pageCount ?? book?.pageCount ?? 0
 
   return (
     <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">

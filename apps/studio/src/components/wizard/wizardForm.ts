@@ -34,6 +34,10 @@ export const defaultWizardValues = {
   imageFilterMaxSide: 5000,
   editingLanguage: "",
   styleguide: "",
+  /** UI-only: what to do after creating the book. "process" runs extraction
+   *  immediately; "split" skips it so the book can be handed out as parts.
+   *  Not written to book config. */
+  intent: "process" as "process" | "split",
 }
 
 export type WizardFormValues = typeof defaultWizardValues

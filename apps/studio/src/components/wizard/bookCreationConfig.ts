@@ -60,8 +60,12 @@ export function buildConfigOverrides(values: WizardFormValues): Record<string, u
   if (values.styleguide.trim()) config.styleguide = values.styleguide.trim()
   if (values.editingLanguage.trim()) config.editing_language = values.editingLanguage.trim()
   if (values.outputLanguages.length > 0) config.output_languages = values.outputLanguages
-  if (validPageRange && parsedStartPage !== undefined) config.start_page = parsedStartPage
-  if (validPageRange && parsedEndPage !== undefined) config.end_page = parsedEndPage
+  // When splitting, the whole book is the basis and per-part page windows are
+  // set at export time — so don't bake a global page range into the book.
+  if (values.intent !== "split") {
+    if (validPageRange && parsedStartPage !== undefined) config.start_page = parsedStartPage
+    if (validPageRange && parsedEndPage !== undefined) config.end_page = parsedEndPage
+  }
   if (values.imageSegmentation && values.segmentationMinSide.trim()) {
     const n = Number(values.segmentationMinSide.trim())
     if (Number.isInteger(n) && n >= 0) config.image_segmentation = { min_side: n }
