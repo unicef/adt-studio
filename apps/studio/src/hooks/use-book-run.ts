@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useRef, createContext, useContext, useState } from "react"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
+import { useNavigate } from "@tanstack/react-router"
 import { i18n } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
 import {
@@ -40,6 +41,12 @@ export interface QueueRunOptions {
   /** When true, skip page-sectioning and only re-render from existing section data. */
   renderOnly?: boolean
   providerCredentials?: StageRunProviderCredentials
+  /**
+   * When true, navigate to the `toStage` step view after queueing. A no-op from
+   * the step index (it already swaps to the view once running); a real switch
+   * from the settings/overview route, so the run progression stays visible.
+   */
+  viewAfter?: boolean
 }
 
 /** Shape returned by the enriched GET /books/:label/step-status endpoint. */
@@ -103,6 +110,8 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   const { announce } = useAnnouncer()
   const announceRef = useRef(announce)
   announceRef.current = announce
+
+  const navigate = useNavigate()
 
   // Primary source of truth: enriched step-status from the server
   const { data, isPending } = useQuery<StepStatusResponse>({
@@ -407,7 +416,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   // ------------------------------------------------------------------
   const queueRun = useCallback(
     (options: QueueRunOptions) => {
-      const { fromStage, toStage, apiKey, renderOnly } = options
+      const { fromStage, toStage, apiKey, renderOnly, viewAfter } = options
       const providerCredentials: StageRunProviderCredentials = {
         anthropicApiKey: anthropicKey || undefined,
         googleApiKey: googleKey || undefined,
@@ -512,6 +521,10 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       }
       setProgressTick((t) => t + 1)
 
+      if (viewAfter) {
+        navigate({ to: "/books/$label/$step", params: { label, step: toStage } })
+      }
+
       // Chain the API call so they arrive in click order
       runChainRef.current = runChainRef.current.then(async () => {
         try {
@@ -523,7 +536,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         }
       })
     },
-    [label, queryClient, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey]
+    [label, navigate, queryClient, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey]
   )
 
   // ------------------------------------------------------------------

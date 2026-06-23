@@ -13,7 +13,6 @@ import { useActiveConfig } from "@/hooks/use-debug"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
-import { useNavigate } from "@tanstack/react-router"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { TocPreview, type TocModeKey } from "./components/TocPreview"
 import { TocModeVisual } from "./components/TocModeVisual"
@@ -24,7 +23,6 @@ export function TocLandingPage({ bookLabel }: { bookLabel: string }) {
   const persist = usePersistConfig(bookLabel)
   const { apiKey, hasApiKey } = useApiKey()
   const { queueRun } = useBookRun()
-  const navigate = useNavigate()
   const status = useStageStatus("toc")
   const storyboardStatus = useStageStatus("storyboard")
   const storyboardReady = storyboardStatus.isCompleted
@@ -60,11 +58,7 @@ export function TocLandingPage({ bookLabel }: { bookLabel: string }) {
 
   const handleRun = () => {
     if (!hasApiKey || !storyboardReady || status.isRunning) return
-    queueRun({ fromStage: "toc", toStage: "toc", apiKey })
-    // Navigate to the step view so the run progression is visible, matching a
-    // from-scratch run (no-op from the step index; switches away from the
-    // settings/overview route).
-    navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "toc" } })
+    queueRun({ fromStage: "toc", toStage: "toc", apiKey, viewAfter: true })
   }
 
   const modeOptions = useMemo(

@@ -34,7 +34,7 @@ import {
   generateAllQuizzes,
   buildQuizGenerationConfig,
   // Master step imports
-  getRenderSectioningRow,
+  getRenderSectioning,
   buildTextCatalog,
   buildEasyReadConfig,
   buildEasyReadSourceBlocks,
@@ -1182,12 +1182,12 @@ async function runQuizzesStep(
     const quizPages: QuizPageInput[] = []
     for (const page of pages) {
       const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
-      const structuringRow = getRenderSectioningRow(storage, page.pageId)
-      if (!renderingRow || !structuringRow) continue
+      const sectioning = getRenderSectioning(storage, page.pageId)
+      if (!renderingRow || !sectioning) continue
       quizPages.push({
         pageId: page.pageId,
         rendering: renderingRow.data as WebRenderingOutput,
-        sectioning: structuringRow.data as PageSectioningOutput,
+        sectioning,
       })
     }
 
@@ -1318,8 +1318,7 @@ async function runCaptionsStep(
 
           const rendering = renderingRow.data as WebRenderingOutput
           // Filter out pruned sections before extracting image IDs
-          const structuringRow = getRenderSectioningRow(storage, page.pageId)
-          const sectioning = structuringRow?.data as PageSectioningOutput | undefined
+          const sectioning = getRenderSectioning(storage, page.pageId)
           const htmlSections = rendering.sections
             .filter((s) => !sectioning?.sections[s.sectionIndex]?.isPruned)
             .map((s) => s.html)

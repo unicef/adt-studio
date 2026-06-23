@@ -11,11 +11,10 @@ import type {
 } from "@adt/types"
 import {
   WebRenderingOutput as WebRenderingOutputSchema,
-  PageSectioningOutput,
 } from "@adt/types"
 import type { Storage, PageData } from "@adt/storage"
 import { getGlossaryItemTextId } from "./glossary.js"
-import { getRenderSectioningRow } from "./render-sectioning.js"
+import { getRenderSectioning } from "./render-sectioning.js"
 
 /** Zero-padded 3-digit number */
 function pad3(n: number): string {
@@ -193,13 +192,10 @@ export async function buildTextCatalog(
     // Determine which sections are pruned. Use the render-sectioning resolver
     // so fixed-layout books read the positioned tree whose ids/section count
     // match the rendered HTML (1 section/page), not the semantic tree.
-    const structuringRow = getRenderSectioningRow(storage, page.pageId)
-    const structuringParsed = structuringRow
-      ? PageSectioningOutput.safeParse(structuringRow.data)
-      : null
+    const sectioning = getRenderSectioning(storage, page.pageId)
     const prunedIndices = new Set<number>()
-    if (structuringParsed?.success) {
-      structuringParsed.data.sections.forEach((s: { isPruned: boolean }, i: number) => {
+    if (sectioning) {
+      sectioning.sections.forEach((s: { isPruned: boolean }, i: number) => {
         if (s.isPruned) prunedIndices.add(i)
       })
     }
@@ -210,7 +206,7 @@ export async function buildTextCatalog(
       parsed.data,
       captionMap,
       prunedIndices,
-      structuringParsed?.success ? structuringParsed.data : undefined
+      sectioning
     ))
 
     // Yield to event loop so the server stays responsive during large books

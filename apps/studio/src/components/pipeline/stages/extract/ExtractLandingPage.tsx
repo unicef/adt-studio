@@ -15,7 +15,6 @@ import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { usePersistConfig } from "@/hooks/use-persist-config"
-import { useNavigate } from "@tanstack/react-router"
 import { PageGroupingVisual } from "./components/PageGroupingVisual"
 import { ExtractPreview } from "./components/ExtractPreview"
 
@@ -27,7 +26,6 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
   const persist = usePersistConfig(bookLabel)
   const { apiKey, hasApiKey } = useApiKey()
   const { queueRun } = useBookRun()
-  const navigate = useNavigate()
   const status = useStageStatus("extract")
   const { data: book } = useBook(bookLabel)
   const { data: sourcePdfInfo, isPending: sourcePdfPending } = useSourcePdfInfo(bookLabel)
@@ -75,13 +73,7 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
 
   const handleRun = () => {
     if (!hasApiKey || status.isRunning) return
-    queueRun({ fromStage: "extract", toStage: "extract", apiKey })
-    // Leave the landing/overview page for the extract step view so the run
-    // progression (pages loading) is visible, matching a from-scratch run.
-    // From the step index this is a no-op (ExtractIndex swaps to the view once
-    // running); from the settings/overview route it switches away from the
-    // landing page.
-    navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "extract" } })
+    queueRun({ fromStage: "extract", toStage: "extract", apiKey, viewAfter: true })
   }
 
   const disabledReason = !hasApiKey ? (

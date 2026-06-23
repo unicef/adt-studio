@@ -1,11 +1,11 @@
 import { z } from "zod"
 import { parseDocument, DomUtils } from "htmlparser2"
 import type { AppConfig, EasyReadOutput, TextCatalogEntry, WebRenderingOutput, PageSectioningOutput } from "@adt/types"
-import { DEFAULT_LLM_MAX_RETRIES, EasyReadOutput as EasyReadOutputSchema, WebRenderingOutput as WebRenderingOutputSchema, PageSectioningOutput as PageSectioningOutputSchema } from "@adt/types"
+import { DEFAULT_LLM_MAX_RETRIES, EasyReadOutput as EasyReadOutputSchema, WebRenderingOutput as WebRenderingOutputSchema } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import type { Storage, PageData } from "@adt/storage"
 import { buildLanguageContext, normalizeLocale } from "./language-context.js"
-import { getRenderSectioningRow } from "./render-sectioning.js"
+import { getRenderSectioning } from "./render-sectioning.js"
 import { processWithConcurrency } from "./concurrency.js"
 
 export const DEFAULT_EASY_READ_MODEL_ID = "openai:gpt-4.1"
@@ -132,14 +132,13 @@ export function buildEasyReadSourceBlocks(
     const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
     // Resolver: fixed-layout books pair against the positioned tree (its ids
     // match the rendered HTML data-ids the runtime swaps Easy Read text into).
-    const sectioningRow = getRenderSectioningRow(storage, page.pageId)
-    if (!renderingRow || !sectioningRow) continue
+    const sectioning = getRenderSectioning(storage, page.pageId)
+    if (!renderingRow || !sectioning) continue
 
     const rendering = WebRenderingOutputSchema.safeParse(renderingRow.data)
-    const sectioning = PageSectioningOutputSchema.safeParse(sectioningRow.data)
-    if (!rendering.success || !sectioning.success) continue
+    if (!rendering.success) continue
 
-    blocks.push(...buildPageEasyReadBlocks(page, rendering.data, sectioning.data))
+    blocks.push(...buildPageEasyReadBlocks(page, rendering.data, sectioning))
   }
 
   return blocks

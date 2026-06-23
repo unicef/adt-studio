@@ -59,7 +59,7 @@ import {
 } from "./speech.js"
 import { packageAdtWeb } from "./package-web.js"
 import { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rendering.js"
-import { getRenderSectioningRow } from "./render-sectioning.js"
+import { getRenderSectioning } from "./render-sectioning.js"
 import { runAccessibilityAssessment } from "./accessibility-assessment.js"
 import { loadBookConfig } from "./config.js"
 import { nullProgress, type Progress } from "./progress.js"
@@ -592,12 +592,12 @@ export async function runFullPipeline(
       const quizPages: QuizPageInput[] = []
       for (const page of pages) {
         const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
-        const structuringRow = getRenderSectioningRow(storage, page.pageId)
-        if (!renderingRow || !structuringRow) continue
+        const sectioning = getRenderSectioning(storage, page.pageId)
+        if (!renderingRow || !sectioning) continue
         quizPages.push({
           pageId: page.pageId,
           rendering: renderingRow.data as WebRenderingOutput,
-          sectioning: structuringRow.data as PageSectioningOutput,
+          sectioning,
         })
       }
       if (quizPages.length > 0) {
@@ -631,8 +631,7 @@ export async function runFullPipeline(
         const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
         if (!renderingRow) return
         const rendering = renderingRow.data as WebRenderingOutput
-        const structuringRow = getRenderSectioningRow(storage, page.pageId)
-        const sectioning = structuringRow?.data as PageSectioningOutput | undefined
+        const sectioning = getRenderSectioning(storage, page.pageId)
         const htmlSections = rendering.sections
           .filter((s) => !sectioning?.sections[s.sectionIndex]?.isPruned)
           .map((s) => s.html)

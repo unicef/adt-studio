@@ -17,7 +17,6 @@ import temml from "temml"
 import type { Storage } from "@adt/storage"
 import type {
   ContentNodeData,
-  PageSectioningOutput,
   PageSectioningSection,
   TextCatalogOutput,
   EasyReadOutput,
@@ -42,7 +41,7 @@ import { getGlossaryItemTextId } from "./glossary.js"
 import { getBaseLanguage, normalizeLocale } from "./language-context.js"
 import { buildTextCatalog } from "./text-catalog.js"
 import { flattenEasyReadEntries } from "./easy-read.js"
-import { getRenderSectioningRow } from "./render-sectioning.js"
+import { getRenderSectioning } from "./render-sectioning.js"
 import { normalizeHtmlSectionSemantics } from "./html-semantics.js"
 
 export interface PackageAdtWebOptions {
@@ -319,8 +318,7 @@ export async function packageAdtWeb(
 
     // Resolver: fixed-layout books package from the positioned tree (its ids +
     // 1-section/page shape match the rendered HTML the runtime hydrates).
-    const structuringRow = getRenderSectioningRow(storage, page.pageId)
-    const sectioning = structuringRow?.data as PageSectioningOutput | undefined
+    const sectioning = getRenderSectioning(storage, page.pageId)
     const imageCaptionMap = loadImageCaptionMap(storage, page.pageId)
     const decorativeImageIds = buildDecorativeImageIdSet(storage, page.pageId)
 

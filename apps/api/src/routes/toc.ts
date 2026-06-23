@@ -2,10 +2,10 @@ import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { TocGenerationOutput, PageSectioningOutput, WebRenderingOutput, parseBookLabel } from "@adt/types"
+import { TocGenerationOutput, WebRenderingOutput, parseBookLabel } from "@adt/types"
 import type { ContentNodeData } from "@adt/types"
 import { openBookDb, createBookStorage } from "@adt/storage"
-import { getRenderSectioningRow } from "@adt/pipeline"
+import { getRenderSectioning } from "@adt/pipeline"
 
 function safeParseLabel(label: string): string {
   try {
@@ -112,9 +112,7 @@ export function createTocRoutes(booksDir: string): Hono {
         const renderParsed = WebRenderingOutput.safeParse(renderRow.data)
         if (!renderParsed.success) continue
 
-        const structuringRow = getRenderSectioningRow(storage, page.pageId)
-        const structuringParsed = structuringRow ? PageSectioningOutput.safeParse(structuringRow.data) : null
-        const sectioning = structuringParsed?.success ? structuringParsed.data : undefined
+        const sectioning = getRenderSectioning(storage, page.pageId)
 
         const findFirstHeadingText = (nodes: ContentNodeData[]): string | null => {
           const stack: ContentNodeData[] = [...nodes]

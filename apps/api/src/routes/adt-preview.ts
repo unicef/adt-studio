@@ -7,7 +7,6 @@ import { HTTPException } from "hono/http-exception"
 import { parseBookLabel } from "@adt/types"
 import {
   WebRenderingOutput,
-  PageSectioningOutput,
   type SpeechConfig,
   type TextCatalogOutput,
   type EasyReadOutput,
@@ -39,7 +38,7 @@ import {
   convertLatexToMathml,
   isFixedLayoutBook,
   resolveReflowableFontChain,
-  getRenderSectioningRow,
+  getRenderSectioning,
 } from "@adt/pipeline"
 
 // ---------------------------------------------------------------------------
@@ -275,9 +274,7 @@ function buildSectionIdToPageIndex(storage: Storage): Map<string, number> {
     if (renderRow) {
       const parsed = WebRenderingOutput.safeParse(renderRow.data)
       if (parsed.success && parsed.data.sections.length > 0) {
-        const structuringRow = getRenderSectioningRow(storage, page.pageId)
-        const structuringParsed = structuringRow ? PageSectioningOutput.safeParse(structuringRow.data) : null
-        const sectioning = structuringParsed?.success ? structuringParsed.data : undefined
+        const sectioning = getRenderSectioning(storage, page.pageId)
         const sections = [...parsed.data.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
         for (const rs of sections) {
           const sectionMeta = sectioning?.sections?.[rs.sectionIndex]
@@ -319,11 +316,7 @@ function buildPagesManifest(storage: Storage): Array<{ section_id: string; href:
       const parsed = WebRenderingOutput.safeParse(renderRow.data)
       if (parsed.success && parsed.data.sections.length > 0) {
         // Get sectioning data for sectionIds and page numbers
-        const structuringRow = getRenderSectioningRow(storage, page.pageId)
-        const structuringParsed = structuringRow
-          ? PageSectioningOutput.safeParse(structuringRow.data)
-          : null
-        const sectioning = structuringParsed?.success ? structuringParsed.data : undefined
+        const sectioning = getRenderSectioning(storage, page.pageId)
 
         // One entry per rendered section (stable by sectionIndex), skip pruned
         const sections = [...parsed.data.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
@@ -409,9 +402,7 @@ function buildHeadingBasedToc(storage: Storage): Array<{ section_id: string; hre
     const parsed = WebRenderingOutput.safeParse(renderRow.data)
     if (!parsed.success || parsed.data.sections.length === 0) continue
 
-    const sectioningRow = getRenderSectioningRow(storage, page.pageId)
-    const sectioningParsed = sectioningRow ? PageSectioningOutput.safeParse(sectioningRow.data) : null
-    const sectioning = sectioningParsed?.success ? sectioningParsed.data : undefined
+    const sectioning = getRenderSectioning(storage, page.pageId)
 
     const sections = [...parsed.data.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
     for (const rs of sections) {
@@ -981,12 +972,9 @@ export function createAdtPreviewRoutes(
       }
 
       // Get sectioning to look up sectionId → sectionIndex mapping
-      const sectioningRow = getRenderSectioningRow(storage, ownerPageId)
-      const sectioningParsed = sectioningRow
-        ? PageSectioningOutput.safeParse(sectioningRow.data)
-        : null
-      const resolvedIndex = sectioningParsed?.success
-        ? sectioningParsed.data.sections.findIndex((s) => s.sectionId === pageId)
+      const sectioning = getRenderSectioning(storage, ownerPageId)
+      const resolvedIndex = sectioning
+        ? sectioning.sections.findIndex((s) => s.sectionId === pageId)
         : -1
       const targetSectionIndex = resolvedIndex >= 0 ? resolvedIndex : fallbackSectionIndex
       const renderedSection = parsed.data.sections.find((s) => s.sectionIndex === targetSectionIndex)
@@ -1000,8 +988,8 @@ export function createAdtPreviewRoutes(
       const manifestIndex = manifest.findIndex((e) => e.section_id === pageId)
       const previewBundleVersion = getPreviewContentVersion(storage, webAssetsDir)
 
-      const sectionMeta = sectioningParsed?.success
-        ? sectioningParsed.data.sections[targetSectionIndex]
+      const sectionMeta = sectioning
+        ? sectioning.sections[targetSectionIndex]
         : undefined
       const preferredImageAltMap = buildPreferredImageAltMap(storage, ownerPageId, sectionMeta)
       const decorativeImageIds = buildDecorativeImageIdSet(storage, ownerPageId)
