@@ -1316,6 +1316,9 @@ msgstr "Rendi i librit"
 msgid "Book package ready"
 msgstr "Paketa e librit gati"
 
+msgid "Book part"
+msgstr "Pjesë e librit"
+
 msgid "Book preview"
 msgstr "Pamje paraprake e librit"
 
@@ -3245,6 +3248,9 @@ msgstr "Importo Projektin"
 msgid "Imported part · pages {0}–{1}"
 msgstr "Pjesë e importuar · faqet {0}–{1}"
 
+msgid "Importing creates a new book limited to {windowSize} pages. Run the per-page stages, then export it as a project to merge back into the full book."
+msgstr "Importimi krijon një libër të ri të kufizuar në {windowSize} faqe. Ekzekuto fazat për çdo faqe, pastaj eksportoje si projekt për ta bashkuar përsëri në librin e plotë."
+
 msgid "Importing..."
 msgstr "Duke importuar..."
 
@@ -4594,6 +4600,12 @@ msgstr "Faqet"
 msgid "Pages {0}–{1}"
 msgstr "Faqet {0}–{1}"
 
+#. placeholder {0}: preview.range.startPage
+#. placeholder {1}: preview.range.endPage
+#. placeholder {2}: preview.pageCount
+msgid "Pages {0}–{1} of {2}"
+msgstr "Faqet {0}–{1} nga {2}"
+
 msgid "pages {shownStr}"
 msgstr "faqet {shownStr}"
 
@@ -4620,6 +4632,9 @@ msgstr "Analizimi i faqeve"
 
 msgid "Parsing pages into text, figures, and layout boxes — cached by content hash."
 msgstr "Analizimi i faqeve në tekst, figura dhe kuti paraqitjeje — memorizuar sipas hash-it të përmbajtjes."
+
+msgid "Part info"
+msgstr "Informacion mbi pjesën"
 
 msgid "Parts"
 msgstr "Pjesë"

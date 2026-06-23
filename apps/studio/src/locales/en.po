@@ -1315,6 +1315,9 @@ msgstr "Book order"
 msgid "Book package ready"
 msgstr "Book package ready"
 
+msgid "Book part"
+msgstr "Book part"
+
 msgid "Book preview"
 msgstr "Book preview"
 
@@ -3244,6 +3247,9 @@ msgstr "Import Project"
 msgid "Imported part · pages {0}–{1}"
 msgstr "Imported part · pages {0}–{1}"
 
+msgid "Importing creates a new book limited to {windowSize} pages. Run the per-page stages, then export it as a project to merge back into the full book."
+msgstr "Importing creates a new book limited to {windowSize} pages. Run the per-page stages, then export it as a project to merge back into the full book."
+
 msgid "Importing..."
 msgstr "Importing..."
 
@@ -4593,6 +4599,12 @@ msgstr "Pages"
 msgid "Pages {0}–{1}"
 msgstr "Pages {0}–{1}"
 
+#. placeholder {0}: preview.range.startPage
+#. placeholder {1}: preview.range.endPage
+#. placeholder {2}: preview.pageCount
+msgid "Pages {0}–{1} of {2}"
+msgstr "Pages {0}–{1} of {2}"
+
 msgid "pages {shownStr}"
 msgstr "pages {shownStr}"
 
@@ -4619,6 +4631,9 @@ msgstr "Parsing pages"
 
 msgid "Parsing pages into text, figures, and layout boxes — cached by content hash."
 msgstr "Parsing pages into text, figures, and layout boxes — cached by content hash."
+
+msgid "Part info"
+msgstr "Part info"
 
 msgid "Parts"
 msgstr "Parts"

@@ -17,6 +17,7 @@ import {
   LayoutDashboard,
   Languages,
   AlertCircle,
+  Scissors,
   type LucideIcon,
 } from "lucide-react"
 import { msg } from "@lingui/core/macro"
@@ -26,8 +27,8 @@ import { Button } from "@/components/ui/button"
 import { FileDropOverlay, useFileDropZone } from "@/components/ui/file-drop-overlay"
 import { cn, formatBytes } from "@/lib/utils"
 import { useImportBook } from "@/hooks/use-books"
-import { api } from "@/api/client"
-import type { ImportPreview } from "@/api/client"
+import { api, isPartImportPreview } from "@/api/client"
+import type { AnyImportPreview, ImportPreview, PartImportPreview } from "@/api/client"
 
 /* eslint-disable-next-line lingui/no-unlocalized-strings */
 const DROP_ZONE_HEIGHT = "h-[334px]"
@@ -193,6 +194,71 @@ function PreviewCard({ preview, fileName, fileSize }: { preview: ImportPreview; 
   )
 }
 
+function PartPreviewCard({ preview, fileName, fileSize }: { preview: PartImportPreview; fileName: string; fileSize: number }) {
+  const { t } = useLingui()
+  const displayTitle = preview.title ?? preview.sourceLabel
+  const windowSize = preview.range.endPage - preview.range.startPage + 1
+
+  return (
+    <div className="w-full max-w-2xl border border-slate-200 rounded-lg overflow-hidden grid grid-cols-[2fr_1fr]">
+      {/* Left — Info */}
+      <div className="flex flex-col">
+        <div className="px-5 pt-5 pb-3 space-y-1">
+          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-semibold text-indigo-600">
+            <Scissors className="w-3 h-3" />
+            <Trans>Book part</Trans>
+          </span>
+          <p className="font-semibold text-lg leading-snug line-clamp-2 text-slate-900">
+            {displayTitle}
+          </p>
+          <p className="text-[11px] text-slate-400 truncate">{fileName} &middot; {formatBytes(fileSize)}</p>
+        </div>
+
+        <div className="px-5 pb-4 mt-auto">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">
+            <Trans>Part info</Trans>
+          </p>
+          <div className="space-y-2 text-xs text-slate-500">
+            <div className="flex items-center gap-2">
+              <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+              <span>
+                <Trans>
+                  Pages {preview.range.startPage}–{preview.range.endPage} of {preview.pageCount}
+                </Trans>
+              </span>
+            </div>
+            <p className="text-[11px] leading-relaxed text-slate-400">
+              <Trans>
+                Importing creates a new book limited to {windowSize} pages. Run the
+                per-page stages, then export it as a project to merge back into the
+                full book.
+              </Trans>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Right — Cover */}
+      <div className="flex flex-col justify-center items-center border-l border-slate-200 bg-slate-50/50 p-5">
+        {preview.coverBase64 ? (
+          <img
+            src={`data:image/png;base64,${preview.coverBase64}`}
+            alt={displayTitle}
+            className="w-full max-w-[160px] rounded-sm border border-slate-200 shadow-md object-contain"
+          />
+        ) : (
+          <div className="w-full aspect-[3/4] max-w-[160px] rounded-sm border border-slate-200 bg-gradient-to-br from-slate-100 to-slate-200 flex flex-col items-center justify-center gap-3 shadow-md">
+            <BookOpen className="w-10 h-10 text-slate-300" />
+            <p className="text-[11px] text-slate-400 font-medium px-4 text-center leading-tight">
+              <Trans>No cover available</Trans>
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function isZipFile(f: File) {
   return f.name.endsWith(".zip") || f.type === "application/zip" || f.type === "application/x-zip-compressed"
 }
@@ -224,7 +290,7 @@ export function ImportProject() {
   const importMutation = useImportBook()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [zipFile, setZipFile] = useState<File | null>(null)
-  const [preview, setPreview] = useState<ImportPreview | null>(null)
+  const [preview, setPreview] = useState<AnyImportPreview | null>(null)
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState<string | null>(null)
 
@@ -466,7 +532,11 @@ export function ImportProject() {
             )}>
               {hasPreview && (
                 <div className="relative">
-                  <PreviewCard preview={preview} fileName={zipFile.name} fileSize={zipFile.size} />
+                  {isPartImportPreview(preview) ? (
+                    <PartPreviewCard preview={preview} fileName={zipFile.name} fileSize={zipFile.size} />
+                  ) : (
+                    <PreviewCard preview={preview} fileName={zipFile.name} fileSize={zipFile.size} />
+                  )}
                   <button
                     type="button"
                     onClick={clearFile}
@@ -491,7 +561,11 @@ export function ImportProject() {
             <Trans>Back</Trans>
           </Button>
           <Button
-            disabled={!preview || !!preview.validationError || importMutation.isPending}
+            disabled={
+              !preview ||
+              (!isPartImportPreview(preview) && !!preview.validationError) ||
+              importMutation.isPending
+            }
             onClick={handleImport}
             className="h-9 px-3 py-2 text-white bg-amber-500 hover:bg-amber-600 disabled:opacity-50 border-0"
           >

@@ -120,6 +120,26 @@ export interface PartInfo {
   range: { startPage: number; endPage: number }
 }
 
+/** Preview shape returned by the import endpoints for a lightweight part
+ *  archive (PDF + window + manifest, no DB). Discriminated by `isPart`. */
+export interface PartImportPreview {
+  isPart: true
+  label: string
+  sourceLabel: string
+  title: string | null
+  range: { startPage: number; endPage: number }
+  pageCount: number
+  coverBase64: string | null
+}
+
+export type AnyImportPreview = ImportPreview | PartImportPreview
+
+export function isPartImportPreview(
+  preview: AnyImportPreview,
+): preview is PartImportPreview {
+  return (preview as PartImportPreview).isPart === true
+}
+
 export interface MergePreview {
   targetLabel: string
   sourceLabel: string
@@ -668,7 +688,7 @@ export const api = {
   previewImport: (zip: File) => {
     const formData = new FormData()
     formData.append("zip", zip)
-    return request<ImportPreview>("/books/preview-import", {
+    return request<AnyImportPreview>("/books/preview-import", {
       method: "POST",
       body: formData,
     })
