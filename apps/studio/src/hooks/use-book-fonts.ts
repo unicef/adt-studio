@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { api } from "@/api/client"
+import { api, type ApplyBookFontPayload } from "@/api/client"
 import type { BookFontRole } from "@adt/types"
 
 export function useGoogleFontsCatalog(enabled: boolean) {
@@ -67,5 +67,17 @@ export function useDeleteBookFont(label: string) {
 export function useAnalyzeBookFonts(label: string) {
   return useMutation({
     mutationFn: (apiKey: string) => api.analyzeBookFonts(label, apiKey),
+  })
+}
+
+export function useApplyBookFont(label: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: ApplyBookFontPayload) => api.applyBookFont(label, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["book-fonts", label] })
+      queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
+      queryClient.invalidateQueries({ queryKey: ["books", label, "config"] })
+    },
   })
 }

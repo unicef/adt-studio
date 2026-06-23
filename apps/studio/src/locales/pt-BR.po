@@ -765,6 +765,9 @@ msgstr "Adicionar idioma"
 msgid "Add languages to translate the book content into."
 msgstr "Adicione idiomas para traduzir o conteúdo do livro."
 
+msgid "Add new font"
+msgstr "Adicionar nova fonte"
+
 msgid "Add quiz"
 msgstr "Adicionar questionário"
 
@@ -1180,9 +1183,6 @@ msgstr "Preenchimento automático do contexto do livro"
 msgid "Auto-scroll"
 msgstr "Rolagem automática"
 
-msgid "Automatic"
-msgstr "Automático"
-
 msgid "Automatically adapts the layout based on each page's content using AI."
 msgstr "Adapta automaticamente o layout com base no conteúdo de cada página usando IA."
 
@@ -1237,9 +1237,6 @@ msgstr "Fundo: {0}"
 
 msgid "base"
 msgstr "base"
-
-msgid "Base font for AI-rendered and template (reflowable) text. Fixed-layout pages keep their original fonts."
-msgstr "Fonte base para texto gerado por IA e por modelo. As páginas de layout fixo mantêm suas fontes originais."
 
 msgid "Base Language"
 msgstr "Idioma base"
@@ -1317,9 +1314,6 @@ msgstr "Informações do livro"
 msgid "Book Language"
 msgstr "Idioma do livro"
 
-#~ msgid "Book metadata"
-#~ msgstr "Metadados do livro"
-
 msgid "Book order"
 msgstr "Ordem do livro"
 
@@ -1358,12 +1352,6 @@ msgstr "Navegue e edite templates Liquid usados para estratégias de renderizaç
 
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Navegue por cada seção do Storyboard e faça upload, substitua ou remova seu vídeo em linguagem de sinais."
-
-msgid "Browse Google Fonts"
-msgstr "Explorar Google Fonts"
-
-#~ msgid "Browse Google Fonts…"
-#~ msgstr "Explorar Google Fonts…"
 
 msgid "Build a glossary of key terms and definitions found in the text."
 msgstr "Constrói um glossário de termos e definições importantes encontrados no texto."
@@ -1501,12 +1489,6 @@ msgstr "Alterar as fontes afeta como as páginas são renderizadas — execute n
 
 msgid "Changing the language resets downstream work."
 msgstr "Alterar o idioma redefine o trabalho posterior."
-
-#~ msgid "Changing the language resets the completed downstream stages that depend on it. You'll confirm before it happens."
-#~ msgstr "Alterar o idioma redefine as etapas posteriores concluídas que dependem dele. Você confirmará antes que isso aconteça."
-
-#~ msgid "Changing the language resets the stages that depend on it."
-#~ msgstr "Alterar o idioma redefine as etapas que dependem dele."
 
 msgid "Chapter 1: Introduction"
 msgstr "Capítulo 1: Introdução"
@@ -1841,9 +1823,6 @@ msgstr "Não foi possível ler este PDF. O arquivo pode estar corrompido ou prot
 msgid "Couldn't read this PDF"
 msgstr "Não foi possível ler este PDF"
 
-#~ msgid "Couldn't regenerate the book summary. Re-run Extract to update it."
-#~ msgstr "Não foi possível regenerar o resumo do livro. Execute a Extração novamente para atualizá-lo."
-
 msgid "Counting occurrences…"
 msgstr "Contando ocorrências…"
 
@@ -1985,9 +1964,6 @@ msgstr "Padrão (herdar)"
 
 msgid "Default (no text detected yet)"
 msgstr "Padrão (nenhum texto detectado ainda)"
-
-msgid "Default Font"
-msgstr "Fonte padrão"
 
 msgid "Default model"
 msgstr "Modelo padrão"
@@ -2208,9 +2184,6 @@ msgstr "Baixar atualização"
 msgid "Downloaded"
 msgstr "Baixada"
 
-msgid "Downloaded automatically when extraction runs — the final bundle works offline."
-msgstr "Baixada automaticamente quando a extração é executada — o pacote final funciona offline."
-
 #. placeholder {0}: Math.round(percent)
 #. placeholder {1}: formatBytes(status.bytesPerSecond)
 msgid "Downloading… {0}% · {1}/s"
@@ -2219,8 +2192,8 @@ msgstr "Baixando… {0}% · {1}/s"
 msgid "Downloads at extraction"
 msgstr "Baixa na extração"
 
-msgid "Drag & drop or click — TTF, OTF, WOFF, WOFF2 (max 15 MB)"
-msgstr "Arraste e solte ou clique — TTF, OTF, WOFF, WOFF2 (máx. 15 MB)"
+msgid "Drag & drop font files here"
+msgstr "Arraste e solte arquivos de fonte aqui"
 
 msgid "Drag to move"
 msgstr "Arrastar para mover"
@@ -2290,9 +2263,6 @@ msgstr "ex. http://localhost:11434/v1"
 
 msgid "e.g. Kore"
 msgstr "ex.: Kore"
-
-#~ msgid "e.g. Lexend"
-#~ msgstr "ex.: Lexend"
 
 msgid "e.g., A cheerful leopard family in a green forest, children's book style..."
 msgstr "ex.: Uma família de leopardos felizes em uma floresta verde, estilo livro infantil..."
@@ -3008,9 +2978,6 @@ msgstr "Chave de API do Google AI"
 msgid "Google Fonts"
 msgstr "Google Fonts"
 
-#~ msgid "Google Fonts family"
-#~ msgstr "Família do Google Fonts"
-
 msgid "Google's voices with strong intonation for narrative content."
 msgstr "Vozes do Google com forte entonação para conteúdo narrativo."
 
@@ -3025,9 +2992,6 @@ msgstr "Agrupando o conteúdo por propósito e montando cada seção como HTML r
 
 msgid "Groups image regions into discrete illustrations on each page."
 msgstr "Agrupa regiões de imagem em ilustrações distintas em cada página."
-
-msgid "Handwriting"
-msgstr "Manuscrita"
 
 msgid "Header"
 msgstr "Cabeçalho"
@@ -3578,9 +3542,6 @@ msgstr "Carregando Leitura Fácil..."
 msgid "Loading export..."
 msgstr "Carregando exportação..."
 
-#~ msgid "Loading fonts..."
-#~ msgstr "Carregando fontes..."
-
 msgid "Loading glossary..."
 msgstr "Carregando glossário..."
 
@@ -3718,9 +3679,6 @@ msgstr "Associe cada estágio do ciclo da água à sua definição:"
 
 msgid "Match Source"
 msgstr "Corresponder à Fonte"
-
-msgid "Match the book's detected style"
-msgstr "Corresponde ao estilo detectado do livro"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Corresponde ao design original do livro com alguma flexibilidade."
@@ -4052,9 +4010,6 @@ msgstr "No flagged findings in reviewed pages"
 
 msgid "No fonts attached yet."
 msgstr "Nenhuma fonte anexada ainda."
-
-#~ msgid "No fonts attached yet. The book uses the automatically detected fonts."
-#~ msgstr "Nenhuma fonte anexada ainda. O livro usa as fontes detectadas automaticamente."
 
 msgid "No fonts found"
 msgstr "Nenhuma fonte encontrada"
@@ -4427,6 +4382,9 @@ msgstr "gera um novo layout para cada página."
 
 msgid "Or"
 msgstr "Ou"
+
+msgid "or click to browse — TTF, OTF, WOFF, WOFF2 (max 15 MB)"
+msgstr "ou clique para procurar — TTF, OTF, WOFF, WOFF2 (máx. 15 MB)"
 
 msgid "Original"
 msgstr "Original"
@@ -5117,9 +5075,6 @@ msgstr "Regenerar Leitura Fácil"
 msgid "Regenerate selected images for each output language so that any text burned into them is shown in the target language."
 msgstr "Regenera as imagens selecionadas para cada idioma de saída para que qualquer texto fixo nelas seja exibido no idioma de destino."
 
-#~ msgid "Regenerating the book summary in the new language…"
-#~ msgstr "Regenerando o resumo do livro no novo idioma…"
-
 msgid "Region"
 msgstr "Região"
 
@@ -5160,9 +5115,6 @@ msgstr "Remover entrada"
 
 msgid "Remove file"
 msgstr "Remover arquivo"
-
-#~ msgid "Remove font"
-#~ msgstr "Remover fonte"
 
 #. placeholder {0}: font.family
 msgid "Remove font {0}"
@@ -5249,6 +5201,12 @@ msgstr "Obrigatório"
 
 msgid "Required Fields"
 msgstr "Campos Obrigatórios"
+
+msgid "Reset fonts"
+msgstr "Redefinir fontes"
+
+msgid "Reset fonts to default?"
+msgstr "Redefinir as fontes para o padrão?"
 
 msgid "Reset to defaults"
 msgstr "Reset to defaults"
@@ -6572,6 +6530,9 @@ msgstr "Este prompt instrui o LLM sobre como avaliar o HTML renderizado em rela�
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "Este questionário será removido do livro. Você ainda pode restaurá-lo pelo histórico de versões."
 
+msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
+msgstr "Isso restaura a fonte padrão em todas as páginas e limpa os ajustes de fonte por elemento e a seleção de fonte do livro todo. As fontes anexadas permanecem na lista. A reversão está disponível por página no histórico de versões."
+
 msgid "This screen couldn’t load"
 msgstr "Esta tela não pôde ser carregada"
 
@@ -6731,9 +6692,6 @@ msgstr "Prompt de tradução"
 msgid "Translation runs on the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "A tradução é executada nas seções classificadas colocadas pelo Storyboard. Termine o Storyboard antes de executar esta etapa."
 
-#~ msgid "Translation, captions, glossary, quizzes, table of contents, easy read, speech, and packaging will be reset and need to run again so they use the new language. Your manual page sections are kept."
-#~ msgstr "Tradução, legendas, glossário, questionários, sumário, leitura fácil, voz e empacotamento serão redefinidos e precisarão ser executados novamente para usar o novo idioma. Suas seções de página manuais são mantidas."
-
 msgid "translations"
 msgstr "traduções"
 
@@ -6860,9 +6818,6 @@ msgstr "Etapa desconhecida: {0}"
 msgid "Unprune image"
 msgstr "Restaurar imagem"
 
-#~ msgid "Unsaved"
-#~ msgstr "Não salvo"
-
 msgid "Unsaved changes"
 msgstr "Alterações não salvas"
 
@@ -6917,12 +6872,6 @@ msgstr "Envie pelo menos um vídeo para vê-lo aparecer aqui."
 msgid "Upload failed"
 msgstr "Falha no envio"
 
-msgid "Upload font files"
-msgstr "Enviar arquivos de fonte"
-
-#~ msgid "Upload fonts"
-#~ msgstr "Enviar fontes"
-
 msgid "Upload from Disk"
 msgstr "Enviar do disco"
 
@@ -6952,6 +6901,9 @@ msgstr "Envie para um LMS para rastrear progresso, resultados de questionários 
 
 msgid "Upload your own audio file"
 msgstr "Envie seu próprio arquivo de áudio"
+
+msgid "Upload your own font files or pick a Google Fonts family. Fonts are embedded in the final bundle so the book works offline."
+msgstr "Envie seus próprios arquivos de fonte ou escolha uma família do Google Fonts. As fontes são incorporadas ao pacote final para que o livro funcione offline."
 
 msgid "Upload ZIP or drag and drop"
 msgstr "Envie um ZIP ou arraste e solte"
@@ -7201,6 +7153,9 @@ msgstr "Onde tudo começa"
 
 msgid "While editing"
 msgstr "Durante a edição"
+
+msgid "Whole book"
+msgstr "Livro todo"
 
 msgid "Whole-book checks for packaged ADT output, plus reviewer findings captured from Preview."
 msgstr "Whole-book checks for packaged ADT output, plus reviewer findings captured from Preview."

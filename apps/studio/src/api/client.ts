@@ -603,6 +603,14 @@ export interface BookFontsResponse {
   current: BookCurrentFont
 }
 
+export type BookFontScope = "whole" | "heading" | "body" | "caption"
+
+export interface ApplyBookFontPayload {
+  scope: BookFontScope
+  font?: { kind: "registry" | "reflowable"; id: string }
+  reset?: boolean
+}
+
 export function getBookFontFileUrl(label: string, fontId: string, file: string): string {
   return `${BASE_URL}/books/${label}/fonts/${fontId}/files/${file}`
 }
@@ -691,6 +699,12 @@ export const api = {
         headers: { "X-OpenAI-Key": apiKey },
       },
     ),
+
+  applyBookFont: (label: string, payload: ApplyBookFontPayload) =>
+    request<BookFontsResponse & { pagesUpdated: number }>(`/books/${label}/fonts/apply`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 
   createBook: (label: string, pdf: File, config?: Record<string, unknown>) => {
     const formData = new FormData()

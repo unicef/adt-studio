@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { openBookDb } from "@adt/storage"
+import { openBookDb, createBookStorage } from "@adt/storage"
 import { createFontRoutes } from "./fonts.js"
 
 let tmpDir: string
@@ -285,5 +285,70 @@ describe("GET /books/:label/fonts/:id/files/:file", () => {
     await app.request(uploadRequest("trav", "f.ttf", buildMinimalTtf("Fonte")))
     const res = await app.request("/books/trav/fonts/fonte/files/..%2F..%2Ftrav.pdf")
     expect([400, 404]).toContain(res.status)
+  })
+})
+
+describe("POST /books/:label/fonts/apply", () => {
+  function seedRenderedPage(label: string, html: string): void {
+    const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
+    db.run("INSERT INTO pages (page_id, page_number, text) VALUES (?, ?, ?)", ["pg001", 1, ""])
+    db.close()
+    const storage = createBookStorage(label, tmpDir)
+    storage.putNodeData("web-rendering", "pg001", {
+      sections: [{ sectionIndex: 0, sectionType: "text", reasoning: "", html }],
+    })
+    storage.close()
+  }
+
+  function readRenderedHtml(label: string): string {
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      const row = storage.getLatestNodeData("web-rendering", "pg001")
+      const data = row?.data as { sections: Array<{ html: string }> }
+      return data.sections[0].html
+    } finally {
+      storage.close()
+    }
+  }
+
+  it("removes every inline font-family for a whole-book reset", async () => {
+    createTestBook("recolor")
+    seedRenderedPage(
+      "recolor",
+      `<section><h1 style="font-family:'Nabla',serif">T</h1><p style="font-family:'Lora',serif">b</p></section>`,
+    )
+    const app = createFontRoutes(tmpDir, promptsDir)
+    const res = await app.request("/books/recolor/fonts/apply", {
+      method: "POST",
+      body: JSON.stringify({ scope: "whole", reset: true }),
+    })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { pagesUpdated: number }
+    expect(body.pagesUpdated).toBe(1)
+    expect(readRenderedHtml("recolor")).not.toContain("font-family")
+  })
+
+  it("sets a built-in font on headings and leaves body untouched", async () => {
+    createTestBook("headset")
+    seedRenderedPage("headset", `<section><h2 data-id="t1">T</h2><p data-id="t2">b</p></section>`)
+    const app = createFontRoutes(tmpDir, promptsDir)
+    const res = await app.request("/books/headset/fonts/apply", {
+      method: "POST",
+      body: JSON.stringify({ scope: "heading", font: { kind: "reflowable", id: "lexend" } }),
+    })
+    expect(res.status).toBe(200)
+    const html = readRenderedHtml("headset")
+    expect(html).toMatch(/<h2[^>]*font-family[^>]*Lexend/)
+    expect(html).not.toMatch(/<p[^>]*font-family/)
+  })
+
+  it("rejects an unknown scope", async () => {
+    createTestBook("badscope")
+    const app = createFontRoutes(tmpDir, promptsDir)
+    const res = await app.request("/books/badscope/fonts/apply", {
+      method: "POST",
+      body: JSON.stringify({ scope: "nope", reset: true }),
+    })
+    expect(res.status).toBe(400)
   })
 })

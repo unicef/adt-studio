@@ -766,6 +766,9 @@ msgstr "Shto Gjuhë"
 msgid "Add languages to translate the book content into."
 msgstr "Shto gjuhë për të përkthyer përmbajtjen e librit."
 
+msgid "Add new font"
+msgstr "Shto font të ri"
+
 msgid "Add quiz"
 msgstr "Shto kuiz"
 
@@ -1181,9 +1184,6 @@ msgstr "Plotëso automatikisht nga konteksti i librit"
 msgid "Auto-scroll"
 msgstr "Lëvizje automatike"
 
-msgid "Automatic"
-msgstr "Automatik"
-
 msgid "Automatically adapts the layout based on each page's content using AI."
 msgstr "Përshtaton automatikisht paraqitjen bazuar në përmbajtjen e çdo faqeje duke përdorur AI."
 
@@ -1238,9 +1238,6 @@ msgstr "Sfond: {0}"
 
 msgid "base"
 msgstr "bazë"
-
-msgid "Base font for AI-rendered and template (reflowable) text. Fixed-layout pages keep their original fonts."
-msgstr "Fonti bazë për tekstin e renderuar nga AI dhe bazuar në shabllon (i rrjedhshëm). Faqet me paraqitje fikse mbajnë fontet origjinale."
 
 msgid "Base Language"
 msgstr "Gjuha bazë"
@@ -1318,9 +1315,6 @@ msgstr "Info libri"
 msgid "Book Language"
 msgstr "Gjuha e librit"
 
-#~ msgid "Book metadata"
-#~ msgstr "Të dhënat e librit"
-
 msgid "Book order"
 msgstr "Rendi i librit"
 
@@ -1359,12 +1353,6 @@ msgstr "Shfleto dhe redakto shabllonët Liquid të përdorur për strategjitë e
 
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Shfleto çdo seksion të Storyboard-it dhe ngarko, zëvendëso ose hiq videon e gjuhës së shenjave."
-
-msgid "Browse Google Fonts"
-msgstr "Shfleto Google Fonts"
-
-#~ msgid "Browse Google Fonts…"
-#~ msgstr "Shfleto Google Fonts…"
 
 msgid "Build a glossary of key terms and definitions found in the text."
 msgstr "Ndërto një glosar me termat kryesorë dhe përkufizimet e gjetura në tekst."
@@ -1502,12 +1490,6 @@ msgstr "Ndryshimi i fonteve ndikon në mënyrën se si shfaqen faqet — riekzek
 
 msgid "Changing the language resets downstream work."
 msgstr "Ndryshimi i gjuhës rivendos punën e mëvonshme."
-
-#~ msgid "Changing the language resets the completed downstream stages that depend on it. You'll confirm before it happens."
-#~ msgstr "Ndryshimi i gjuhës rivendos fazat e mëvonshme të përfunduara që varen prej saj. Do ta konfirmoni para se të ndodhë."
-
-#~ msgid "Changing the language resets the stages that depend on it."
-#~ msgstr "Ndryshimi i gjuhës rivendos fazat që varen prej saj."
 
 msgid "Chapter 1: Introduction"
 msgstr "Kapitulli 1: Hyrje"
@@ -1842,9 +1824,6 @@ msgstr "Nuk u mund të lexohet ky PDF. Skedari mund të jetë i dëmtuar ose i m
 msgid "Couldn't read this PDF"
 msgstr "Nuk mund të lexohej ky PDF"
 
-#~ msgid "Couldn't regenerate the book summary. Re-run Extract to update it."
-#~ msgstr "Përmbledhja e librit nuk u rigjenerua dot. Ekzekutoni përsëri Nxjerrjen për ta përditësuar."
-
 msgid "Counting occurrences…"
 msgstr "Po numërohen ndodhitë…"
 
@@ -1986,9 +1965,6 @@ msgstr "Parazgjedhje (trashëgo)"
 
 msgid "Default (no text detected yet)"
 msgstr "Parazgjedhje (ende nuk u zbulua tekst)"
-
-msgid "Default Font"
-msgstr "Fonti parazgjedhës"
 
 msgid "Default model"
 msgstr "Modeli parazgjedhës"
@@ -2209,9 +2185,6 @@ msgstr "Shkarko përditësimin"
 msgid "Downloaded"
 msgstr "E shkarkuar"
 
-msgid "Downloaded automatically when extraction runs — the final bundle works offline."
-msgstr "Shkarkohet automatikisht kur ekzekutohet nxjerrja — paketa përfundimtare funksionon offline."
-
 #. placeholder {0}: Math.round(percent)
 #. placeholder {1}: formatBytes(status.bytesPerSecond)
 msgid "Downloading… {0}% · {1}/s"
@@ -2220,8 +2193,8 @@ msgstr "Po shkarkohet… {0}% · {1}/s"
 msgid "Downloads at extraction"
 msgstr "Shkarkohet gjatë nxjerrjes"
 
-msgid "Drag & drop or click — TTF, OTF, WOFF, WOFF2 (max 15 MB)"
-msgstr "Tërhiqni dhe lëshoni ose klikoni — TTF, OTF, WOFF, WOFF2 (maks. 15 MB)"
+msgid "Drag & drop font files here"
+msgstr "Tërhiq dhe lësho skedarët e fontit këtu"
 
 msgid "Drag to move"
 msgstr "Tërhiq për të lëvizur"
@@ -2291,9 +2264,6 @@ msgstr "p.sh. http://localhost:11434/v1"
 
 msgid "e.g. Kore"
 msgstr "p.sh. Kore"
-
-#~ msgid "e.g. Lexend"
-#~ msgstr "p.sh. Lexend"
 
 msgid "e.g., A cheerful leopard family in a green forest, children's book style..."
 msgstr "p.sh., Një familje leopardësh të gëzuar në një pyll të gjelbër, stil libri për fëmijë..."
@@ -3009,9 +2979,6 @@ msgstr "Çelësi API i Google AI"
 msgid "Google Fonts"
 msgstr "Google Fonts"
 
-#~ msgid "Google Fonts family"
-#~ msgstr "Familja e Google Fonts"
-
 msgid "Google's voices with strong intonation for narrative content."
 msgstr "Zërat e Google me intonacion të fortë për përmbajtje narrative."
 
@@ -3026,9 +2993,6 @@ msgstr "Grupimi i përmbajtjes sipas qëllimit, pastaj vendosja e çdo seksioni 
 
 msgid "Groups image regions into discrete illustrations on each page."
 msgstr "Grupon rajonet e imazheve në ilustrime të veçanta në çdo faqe."
-
-msgid "Handwriting"
-msgstr "Shkrim dore"
 
 msgid "Header"
 msgstr "Titull"
@@ -3579,9 +3543,6 @@ msgstr "Duke ngarkuar Leximin e Lehtë..."
 msgid "Loading export..."
 msgstr "Duke ngarkuar eksportimin..."
 
-#~ msgid "Loading fonts..."
-#~ msgstr "Duke ngarkuar fontet..."
-
 msgid "Loading glossary..."
 msgstr "Duke ngarkuar glosarin..."
 
@@ -3719,9 +3680,6 @@ msgstr "Përputhni çdo fazë të ciklit të ujit me përkufizimin e saj:"
 
 msgid "Match Source"
 msgstr "Përputhje me Burimin"
-
-msgid "Match the book's detected style"
-msgstr "Përputhje me stilin e zbuluar të librit"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Përputhet me dizajnin origjinal të librit me pak fleksibilitet."
@@ -4053,9 +4011,6 @@ msgstr "Nuk ka gjetje të sinjalizuara në faqet e rishikuara"
 
 msgid "No fonts attached yet."
 msgstr "Ende nuk është bashkëngjitur asnjë font."
-
-#~ msgid "No fonts attached yet. The book uses the automatically detected fonts."
-#~ msgstr "Ende nuk është bashkëngjitur asnjë font. Libri përdor fontet e zbuluara automatikisht."
 
 msgid "No fonts found"
 msgstr "Nuk u gjet asnjë font"
@@ -4428,6 +4383,9 @@ msgstr "opsionet gjenerojnë një paraqitje të re për çdo faqe."
 
 msgid "Or"
 msgstr "Ose"
+
+msgid "or click to browse — TTF, OTF, WOFF, WOFF2 (max 15 MB)"
+msgstr "ose kliko për të shfletuar — TTF, OTF, WOFF, WOFF2 (maks. 15 MB)"
 
 msgid "Original"
 msgstr "Origjinal"
@@ -5118,9 +5076,6 @@ msgstr "Rigenero Easy Read"
 msgid "Regenerate selected images for each output language so that any text burned into them is shown in the target language."
 msgstr "Rigenero imazhet e zgjedhura për çdo gjuhë dalëse, në mënyrë që çdo tekst i djegur mbi to të shfaqet në gjuhën e synuar."
 
-#~ msgid "Regenerating the book summary in the new language…"
-#~ msgstr "Po rigjenerohet përmbledhja e librit në gjuhën e re…"
-
 msgid "Region"
 msgstr "Rajon"
 
@@ -5161,9 +5116,6 @@ msgstr "Hiq hyrjen"
 
 msgid "Remove file"
 msgstr "Hiq skedarin"
-
-#~ msgid "Remove font"
-#~ msgstr "Hiq fontin"
 
 #. placeholder {0}: font.family
 msgid "Remove font {0}"
@@ -5250,6 +5202,12 @@ msgstr "E detyrueshme"
 
 msgid "Required Fields"
 msgstr "Fushat e Detyrueshme"
+
+msgid "Reset fonts"
+msgstr "Rivendos fontet"
+
+msgid "Reset fonts to default?"
+msgstr "Të rivendosen fontet në parazgjedhje?"
 
 msgid "Reset to defaults"
 msgstr "Rivendos në paracaktimet"
@@ -6573,6 +6531,9 @@ msgstr "Ky udhëzim i tregon LLM-it si të vlerësojë HTML-in e renderuar kundr
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "Ky test do të hiqet nga libri. Mund ta rikthesh nga historia e versioneve."
 
+msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
+msgstr "Kjo rikthen fontin e parazgjedhur në çdo faqe dhe pastron mbishkrimet e fontit për element dhe përzgjedhjen e fontit për të gjithë librin. Fontet e bashkëngjitura mbeten në listë. Kthimi është i disponueshëm për çdo faqe nga historiku i versioneve."
+
 msgid "This screen couldn’t load"
 msgstr "Ky ekran nuk mund të ngarkohej"
 
@@ -6732,9 +6693,6 @@ msgstr "Udhëzimi i Përkthimit"
 msgid "Translation runs on the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "Përkthimi ekzekutohet mbi seksionet e shtypura të vendosura nga Storyboard. Përfundo Storyboard para se të ekzekutosh këtë fazë."
 
-#~ msgid "Translation, captions, glossary, quizzes, table of contents, easy read, speech, and packaging will be reset and need to run again so they use the new language. Your manual page sections are kept."
-#~ msgstr "Përkthimi, titrat, fjalori, kuizet, tabela e përmbajtjes, leximi i lehtë, zëri dhe paketimi do të rivendosen dhe duhet të ekzekutohen përsëri që të përdorin gjuhën e re. Seksionet e faqes që keni redaktuar manualisht ruhen."
-
 msgid "translations"
 msgstr "përkthime"
 
@@ -6861,9 +6819,6 @@ msgstr "Hap i panjohur: {step}"
 msgid "Unprune image"
 msgstr "Rikthe imazhin"
 
-#~ msgid "Unsaved"
-#~ msgstr "E paruajtur"
-
 msgid "Unsaved changes"
 msgstr "Ndryshime të paruajtura"
 
@@ -6918,12 +6873,6 @@ msgstr "Ngarko të paktën një video për ta parë këtu."
 msgid "Upload failed"
 msgstr "Ngarkimi dështoi"
 
-msgid "Upload font files"
-msgstr "Ngarko skedarë fontesh"
-
-#~ msgid "Upload fonts"
-#~ msgstr "Ngarko fontet"
-
 msgid "Upload from Disk"
 msgstr "Ngarko nga disku"
 
@@ -6953,6 +6902,9 @@ msgstr "Ngarko në një LMS për të gjurmuar progresin, rezultatet e kuizeve dh
 
 msgid "Upload your own audio file"
 msgstr "Ngarko skedarin tënd audio"
+
+msgid "Upload your own font files or pick a Google Fonts family. Fonts are embedded in the final bundle so the book works offline."
+msgstr "Ngarko skedarët e tu të fontit ose zgjidh një familje nga Google Fonts. Fontet futen në paketën përfundimtare që libri të funksionojë pa internet."
 
 msgid "Upload ZIP or drag and drop"
 msgstr "Ngarko ZIP ose tërhiq dhe lësho"
@@ -7202,6 +7154,9 @@ msgstr "Ku fillon gjithçka"
 
 msgid "While editing"
 msgstr "Gjatë redaktimit"
+
+msgid "Whole book"
+msgstr "I gjithë libri"
 
 msgid "Whole-book checks for packaged ADT output, plus reviewer findings captured from Preview."
 msgstr "Kontrolle për të gjithë librin për dalje të paketuara ADT, plus gjetjet e rishikuesve të kaptura nga Parapamja."

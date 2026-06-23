@@ -765,6 +765,9 @@ msgstr "Add Language"
 msgid "Add languages to translate the book content into."
 msgstr "Add languages to translate the book content into."
 
+msgid "Add new font"
+msgstr "Add new font"
+
 msgid "Add quiz"
 msgstr "Add quiz"
 
@@ -1180,9 +1183,6 @@ msgstr "Auto-fill from book context"
 msgid "Auto-scroll"
 msgstr "Auto-scroll"
 
-msgid "Automatic"
-msgstr "Automatic"
-
 msgid "Automatically adapts the layout based on each page's content using AI."
 msgstr "Automatically adapts the layout based on each page's content using AI."
 
@@ -1237,9 +1237,6 @@ msgstr "Background: {0}"
 
 msgid "base"
 msgstr "base"
-
-msgid "Base font for AI-rendered and template (reflowable) text. Fixed-layout pages keep their original fonts."
-msgstr "Base font for AI-rendered and template (reflowable) text. Fixed-layout pages keep their original fonts."
 
 msgid "Base Language"
 msgstr "Base Language"
@@ -1317,9 +1314,6 @@ msgstr "Book info"
 msgid "Book Language"
 msgstr "Book Language"
 
-#~ msgid "Book metadata"
-#~ msgstr "Book metadata"
-
 msgid "Book order"
 msgstr "Book order"
 
@@ -1358,12 +1352,6 @@ msgstr "Browse and edit Liquid templates used for template-based rendering strat
 
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Browse every Storyboard section and upload, replace, or remove its sign-language video."
-
-msgid "Browse Google Fonts"
-msgstr "Browse Google Fonts"
-
-#~ msgid "Browse Google Fonts…"
-#~ msgstr "Browse Google Fonts…"
 
 msgid "Build a glossary of key terms and definitions found in the text."
 msgstr "Build a glossary of key terms and definitions found in the text."
@@ -1501,12 +1489,6 @@ msgstr "Changing fonts affects how pages are rendered — re-run Storyboard and 
 
 msgid "Changing the language resets downstream work."
 msgstr "Changing the language resets downstream work."
-
-#~ msgid "Changing the language resets the completed downstream stages that depend on it. You'll confirm before it happens."
-#~ msgstr "Changing the language resets the completed downstream stages that depend on it. You'll confirm before it happens."
-
-#~ msgid "Changing the language resets the stages that depend on it."
-#~ msgstr "Changing the language resets the stages that depend on it."
 
 msgid "Chapter 1: Introduction"
 msgstr "Chapter 1: Introduction"
@@ -1841,9 +1823,6 @@ msgstr "Could not read this PDF. The file may be corrupted or password-protected
 msgid "Couldn't read this PDF"
 msgstr "Couldn't read this PDF"
 
-#~ msgid "Couldn't regenerate the book summary. Re-run Extract to update it."
-#~ msgstr "Couldn't regenerate the book summary. Re-run Extract to update it."
-
 msgid "Counting occurrences…"
 msgstr "Counting occurrences…"
 
@@ -1985,9 +1964,6 @@ msgstr "Default (inherit)"
 
 msgid "Default (no text detected yet)"
 msgstr "Default (no text detected yet)"
-
-msgid "Default Font"
-msgstr "Default Font"
 
 msgid "Default model"
 msgstr "Default model"
@@ -2208,9 +2184,6 @@ msgstr "Download update"
 msgid "Downloaded"
 msgstr "Downloaded"
 
-msgid "Downloaded automatically when extraction runs — the final bundle works offline."
-msgstr "Downloaded automatically when extraction runs — the final bundle works offline."
-
 #. placeholder {0}: Math.round(percent)
 #. placeholder {1}: formatBytes(status.bytesPerSecond)
 msgid "Downloading… {0}% · {1}/s"
@@ -2219,8 +2192,8 @@ msgstr "Downloading… {0}% · {1}/s"
 msgid "Downloads at extraction"
 msgstr "Downloads at extraction"
 
-msgid "Drag & drop or click — TTF, OTF, WOFF, WOFF2 (max 15 MB)"
-msgstr "Drag & drop or click — TTF, OTF, WOFF, WOFF2 (max 15 MB)"
+msgid "Drag & drop font files here"
+msgstr "Drag & drop font files here"
 
 msgid "Drag to move"
 msgstr "Drag to move"
@@ -2290,9 +2263,6 @@ msgstr "e.g. http://localhost:11434/v1"
 
 msgid "e.g. Kore"
 msgstr "e.g. Kore"
-
-#~ msgid "e.g. Lexend"
-#~ msgstr "e.g. Lexend"
 
 msgid "e.g., A cheerful leopard family in a green forest, children's book style..."
 msgstr "e.g., A cheerful leopard family in a green forest, children's book style..."
@@ -3008,9 +2978,6 @@ msgstr "Google AI API Key"
 msgid "Google Fonts"
 msgstr "Google Fonts"
 
-#~ msgid "Google Fonts family"
-#~ msgstr "Google Fonts family"
-
 msgid "Google's voices with strong intonation for narrative content."
 msgstr "Google's voices with strong intonation for narrative content."
 
@@ -3025,9 +2992,6 @@ msgstr "Grouping content by purpose, then laying out every section as reviewable
 
 msgid "Groups image regions into discrete illustrations on each page."
 msgstr "Groups image regions into discrete illustrations on each page."
-
-msgid "Handwriting"
-msgstr "Handwriting"
 
 msgid "Header"
 msgstr "Header"
@@ -3578,9 +3542,6 @@ msgstr "Loading Easy Read..."
 msgid "Loading export..."
 msgstr "Loading export..."
 
-#~ msgid "Loading fonts..."
-#~ msgstr "Loading fonts..."
-
 msgid "Loading glossary..."
 msgstr "Loading glossary..."
 
@@ -3718,9 +3679,6 @@ msgstr "Match each stage of the water cycle to its definition:"
 
 msgid "Match Source"
 msgstr "Match Source"
-
-msgid "Match the book's detected style"
-msgstr "Match the book's detected style"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Matches the original book design with some flexibility."
@@ -4052,9 +4010,6 @@ msgstr "No flagged findings in reviewed pages"
 
 msgid "No fonts attached yet."
 msgstr "No fonts attached yet."
-
-#~ msgid "No fonts attached yet. The book uses the automatically detected fonts."
-#~ msgstr "No fonts attached yet. The book uses the automatically detected fonts."
 
 msgid "No fonts found"
 msgstr "No fonts found"
@@ -4427,6 +4382,9 @@ msgstr "options generate a fresh layout per page."
 
 msgid "Or"
 msgstr "Or"
+
+msgid "or click to browse — TTF, OTF, WOFF, WOFF2 (max 15 MB)"
+msgstr "or click to browse — TTF, OTF, WOFF, WOFF2 (max 15 MB)"
 
 msgid "Original"
 msgstr "Original"
@@ -5117,9 +5075,6 @@ msgstr "Regenerate Easy Read"
 msgid "Regenerate selected images for each output language so that any text burned into them is shown in the target language."
 msgstr "Regenerate selected images for each output language so that any text burned into them is shown in the target language."
 
-#~ msgid "Regenerating the book summary in the new language…"
-#~ msgstr "Regenerating the book summary in the new language…"
-
 msgid "Region"
 msgstr "Region"
 
@@ -5160,9 +5115,6 @@ msgstr "Remove entry"
 
 msgid "Remove file"
 msgstr "Remove file"
-
-#~ msgid "Remove font"
-#~ msgstr "Remove font"
 
 #. placeholder {0}: font.family
 msgid "Remove font {0}"
@@ -5249,6 +5201,12 @@ msgstr "Required"
 
 msgid "Required Fields"
 msgstr "Required Fields"
+
+msgid "Reset fonts"
+msgstr "Reset fonts"
+
+msgid "Reset fonts to default?"
+msgstr "Reset fonts to default?"
 
 msgid "Reset to defaults"
 msgstr "Reset to defaults"
@@ -6572,6 +6530,9 @@ msgstr "This prompt instructs the LLM how to evaluate the rendered HTML against 
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "This quiz will be removed from the book. You can still restore it from the version history."
 
+msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
+msgstr "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
+
 msgid "This screen couldn’t load"
 msgstr "This screen couldn’t load"
 
@@ -6731,9 +6692,6 @@ msgstr "Translation Prompt"
 msgid "Translation runs on the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "Translation runs on the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 
-#~ msgid "Translation, captions, glossary, quizzes, table of contents, easy read, speech, and packaging will be reset and need to run again so they use the new language. Your manual page sections are kept."
-#~ msgstr "Translation, captions, glossary, quizzes, table of contents, easy read, speech, and packaging will be reset and need to run again so they use the new language. Your manual page sections are kept."
-
 msgid "translations"
 msgstr "translations"
 
@@ -6860,9 +6818,6 @@ msgstr "Unknown step: {step}"
 msgid "Unprune image"
 msgstr "Unprune image"
 
-#~ msgid "Unsaved"
-#~ msgstr "Unsaved"
-
 msgid "Unsaved changes"
 msgstr "Unsaved changes"
 
@@ -6917,12 +6872,6 @@ msgstr "Upload at least one video to see it appear here."
 msgid "Upload failed"
 msgstr "Upload failed"
 
-msgid "Upload font files"
-msgstr "Upload font files"
-
-#~ msgid "Upload fonts"
-#~ msgstr "Upload fonts"
-
 msgid "Upload from Disk"
 msgstr "Upload from Disk"
 
@@ -6952,6 +6901,9 @@ msgstr "Upload to an LMS to track progress, quiz results, and completion."
 
 msgid "Upload your own audio file"
 msgstr "Upload your own audio file"
+
+msgid "Upload your own font files or pick a Google Fonts family. Fonts are embedded in the final bundle so the book works offline."
+msgstr "Upload your own font files or pick a Google Fonts family. Fonts are embedded in the final bundle so the book works offline."
 
 msgid "Upload ZIP or drag and drop"
 msgstr "Upload ZIP or drag and drop"
@@ -7201,6 +7153,9 @@ msgstr "Where it all begins"
 
 msgid "While editing"
 msgstr "While editing"
+
+msgid "Whole book"
+msgstr "Whole book"
 
 msgid "Whole-book checks for packaged ADT output, plus reviewer findings captured from Preview."
 msgstr "Whole-book checks for packaged ADT output, plus reviewer findings captured from Preview."

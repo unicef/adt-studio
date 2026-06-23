@@ -24,21 +24,21 @@ function previewCss2Url(family: string): string {
   return `https://fonts.googleapis.com/css2?family=${f}&display=swap`
 }
 
-export function GoogleFontPickerDialog({
-  open,
-  onOpenChange,
+/** Searchable, virtualized Google Fonts catalog grid. Render inside a dialog or
+ *  a tab; pass `active` to gate the (large) catalog fetch to when it's visible. */
+export function GoogleFontPicker({
+  active,
   existingFamilies,
   pendingFamily,
   onSelect,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
+  active: boolean
   existingFamilies: Set<string>
   pendingFamily: string | null
   onSelect: (family: string) => void
 }) {
   const { t } = useLingui()
-  const { data, isLoading, isError } = useGoogleFontsCatalog(open)
+  const { data, isLoading, isError } = useGoogleFontsCatalog(active)
   const [query, setQuery] = useState("")
   const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null)
   const requestedRef = useRef<Set<string>>(new Set())
@@ -79,25 +79,12 @@ export function GoogleFontPickerDialog({
   }, [query, rowVirtualizer])
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl">
-        <DialogHeader>
-          <DialogTitle>
-            <Trans>Add a Google Fonts family</Trans>
-          </DialogTitle>
-          <DialogDescription>
-            <Trans>
-              Pick a family to attach to the book. It is downloaded when extraction runs and
-              embedded in the final bundle.
-            </Trans>
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      {requested.map((family) => (
+        <link key={family} rel="stylesheet" href={previewCss2Url(family)} />
+      ))}
 
-        {requested.map((family) => (
-          <link key={family} rel="stylesheet" href={previewCss2Url(family)} />
-        ))}
-
-        <div className="relative">
+      <div className="relative">
           <Search
             className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden="true"
@@ -106,7 +93,7 @@ export function GoogleFontPickerDialog({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t`Search fonts...`}
-            className="pl-9"
+            className="pl-9 mb-2"
             autoFocus
           />
         </div>
@@ -185,6 +172,43 @@ export function GoogleFontPickerDialog({
             <Trans>{filtered.length} fonts</Trans>
           </p>
         )}
+    </>
+  )
+}
+
+export function GoogleFontPickerDialog({
+  open,
+  onOpenChange,
+  existingFamilies,
+  pendingFamily,
+  onSelect,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  existingFamilies: Set<string>
+  pendingFamily: string | null
+  onSelect: (family: string) => void
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>
+            <Trans>Add a Google Fonts family</Trans>
+          </DialogTitle>
+          <DialogDescription>
+            <Trans>
+              Pick a family to attach to the book. It is downloaded when extraction runs and
+              embedded in the final bundle.
+            </Trans>
+          </DialogDescription>
+        </DialogHeader>
+        <GoogleFontPicker
+          active={open}
+          existingFamilies={existingFamilies}
+          pendingFamily={pendingFamily}
+          onSelect={onSelect}
+        />
       </DialogContent>
     </Dialog>
   )

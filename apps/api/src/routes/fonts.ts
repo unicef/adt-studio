@@ -31,8 +31,18 @@ import {
   generateFontAssignment,
   isFixedLayoutBook,
   loadBookConfig,
+  applyFontToHtml,
+  type FontScope,
 } from "@adt/pipeline"
-import { resolveReflowableFont, type DetectedFontCategory } from "@adt/types"
+import {
+  resolveReflowableFont,
+  type DetectedFontCategory,
+  REFLOWABLE_FONTS,
+  reflowableFontFamilyChain,
+  bookFontFamilyChain,
+  WebRenderingOutput,
+} from "@adt/types"
+import { getBookConfig, updateBookConfig } from "../services/book-service.js"
 import { createLLMModel, createPromptEngine, createRateLimiter } from "@adt/llm"
 import type { TaskService } from "../services/task-service.js"
 
@@ -459,6 +469,129 @@ export function createFontRoutes(
       storage.close()
     }
   }
+
+  const FONT_SCOPES: ReadonlySet<FontScope> = new Set<FontScope>([
+    "whole",
+    "heading",
+    "body",
+    "caption",
+  ])
+  const SCOPE_ROLE: Record<Exclude<FontScope, "whole">, BookFont["role"]> = {
+    heading: "heading",
+    body: "body",
+    caption: "caption",
+  }
+
+  // Apply a font across the whole book (or a single role) in one shot: rewrite
+  // every page's stored web-rendering HTML and persist the base/role so future
+  // re-renders stay consistent. Pure HTML rewrite — no LLM.
+  app.post("/books/:label/fonts/apply", async (c) => {
+    const safeLabel = parseBookLabel(c.req.param("label"))
+    const body = (await c.req.json().catch(() => null)) as {
+      scope?: string
+      font?: { kind?: string; id?: string }
+      reset?: boolean
+    } | null
+    const scope = body?.scope as FontScope | undefined
+    if (!scope || !FONT_SCOPES.has(scope)) {
+      throw new HTTPException(400, { message: "Body must include a valid 'scope'." })
+    }
+    const reset = body?.reset === true
+    if (!reset && !body?.font?.id) {
+      throw new HTTPException(400, { message: "Body must include 'font' or 'reset: true'." })
+    }
+
+    let config: ReturnType<typeof loadBookConfig> | null = null
+    try {
+      config = loadBookConfig(safeLabel, booksDir, configPath)
+    } catch {
+      config = null
+    }
+    if (config && isFixedLayoutBook(config)) {
+      throw new HTTPException(400, {
+        message: "Fixed-layout books keep their original fonts — book-wide font changes are not available.",
+      })
+    }
+
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const registry = readBookFontRegistry(storage)
+
+      // Resolve the inline font-family chain for role scopes.
+      let inlineFamily: string | null = null
+      if (!reset && scope !== "whole") {
+        if (body!.font!.kind === "registry") {
+          const f = registry.fonts.find((x) => x.id === body!.font!.id)
+          if (!f) throw new HTTPException(404, { message: "Font not found." })
+          inlineFamily = bookFontFamilyChain(f)
+        } else {
+          const rf = REFLOWABLE_FONTS.find((x) => x.id === body!.font!.id)
+          if (!rf) throw new HTTPException(404, { message: "Font not found." })
+          inlineFamily = reflowableFontFamilyChain(rf)
+        }
+      }
+
+      // 1. Rewrite every page's web-rendering HTML.
+      let pagesUpdated = 0
+      for (const page of storage.getPages()) {
+        const row = storage.getLatestNodeData("web-rendering", page.pageId)
+        if (!row) continue
+        const parsed = WebRenderingOutput.safeParse(row.data)
+        if (!parsed.success) continue
+        let changed = false
+        const sections = parsed.data.sections.map((s) => {
+          const html = applyFontToHtml(s.html, { family: scope === "whole" ? null : inlineFamily, scope })
+          if (html !== s.html) changed = true
+          return { ...s, html }
+        })
+        if (changed) {
+          storage.putNodeData("web-rendering", page.pageId, { sections })
+          pagesUpdated++
+        }
+      }
+
+      // 2. Persist base/role so future re-renders match.
+      if (scope === "whole") {
+        for (const f of registry.fonts) {
+          if (f.role === "body") {
+            f.role = "unassigned"
+            f.roleLockedByUser = false
+          }
+        }
+        if (!reset && body!.font!.kind === "registry") {
+          const f = registry.fonts.find((x) => x.id === body!.font!.id)
+          if (f) {
+            f.role = "body"
+            f.roleLockedByUser = true
+          }
+        }
+        saveRegistry(storage, registry)
+
+        const overrides = getBookConfig(safeLabel, booksDir) ?? {}
+        if (!reset && body!.font!.kind === "reflowable") {
+          overrides.reflowable_font = body!.font!.id
+        } else {
+          delete overrides.reflowable_font
+        }
+        updateBookConfig(safeLabel, booksDir, overrides)
+      } else if (!reset && body!.font!.kind === "registry") {
+        const f = registry.fonts.find((x) => x.id === body!.font!.id)
+        if (f) {
+          f.role = SCOPE_ROLE[scope]
+          f.roleLockedByUser = true
+          saveRegistry(storage, registry)
+        }
+      }
+
+      // 3. Drop derived artifacts so Export rebuilds with the new fonts.
+      storage.clearNodesByType(["accessibility-assessment"])
+      storage.clearStepRuns(["package-web", "accessibility-assessment"])
+
+      return c.json({ pagesUpdated, ...registryResponse(storage, safeLabel) })
+    } finally {
+      storage.close()
+    }
+  })
 
   app.post("/books/:label/fonts/analyze", async (c) => {
     const safeLabel = parseBookLabel(c.req.param("label"))
