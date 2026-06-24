@@ -113,10 +113,6 @@ export function bookFontsReferencedIn(text: string, registry: BookFontRegistry):
   return [...found.values()]
 }
 
-export function isCuratedGoogleFamily(family: string): boolean {
-  return GOOGLE_FONTS.some((f) => f.family === family)
-}
-
 const OPEN_SOURCE_LICENSE_RE =
   /(SIL Open Font|Open Font License|\bOFL\b|Apache|\bMIT\b|GNU|\bGPL\b|\bLGPL\b|Ubuntu Font|Creative Commons|\bCC0\b|\bCC[- ]BY\b|public domain|\bUFL\b|opensource\.org|scripts\.sil\.org)/i
 
