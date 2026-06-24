@@ -1324,6 +1324,9 @@ msgstr "Idioma del libro"
 #~ msgid "Book metadata"
 #~ msgstr "Metadatos del libro"
 
+msgid "Book metadata (title, authors, publisher) was taken from this part and now appears in the Extract step, where you can edit it."
+msgstr "Los metadatos del libro (título, autores, editorial) se tomaron de esta parte y ahora aparecen en el paso de Extracción, donde puedes editarlos."
+
 msgid "Book order"
 msgstr "Orden del libro"
 

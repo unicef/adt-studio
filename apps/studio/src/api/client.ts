@@ -180,6 +180,7 @@ export interface MergeResult {
   staleSteps: string[]
   bookSummaryStale: boolean
   semanticsOverridden: boolean
+  metadataMerged: boolean
 }
 
 export interface AzureCredentials {

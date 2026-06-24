@@ -469,6 +469,9 @@ export interface MergeResult {
    *  book-summary lives in the Extract stage and must stay "done" there). */
   bookSummaryStale: boolean
   semanticsOverridden: boolean
+  /** The part covered page 1 and carried the book's metadata (title/authors/
+   *  publisher), which the target lacked — so it was populated by this merge. */
+  metadataMerged: boolean
 }
 
 /** Page id (pg051 / pg002003) a node_data item_id belongs to, if any. */
@@ -690,6 +693,7 @@ export function mergePart(
     const existing = targetPageIds(safeTarget, booksDir)
     let addedPages = 0
     let replacedPages = 0
+    let metadataMerged = false
     for (const p of pages) {
       if (existing.has(p.page_id)) replacedPages++
       else addedPages++
@@ -755,6 +759,29 @@ export function mergePart(
         )
       }
 
+      // Book-level metadata (title/authors/publisher/language/cover) is the one
+      // book-level node a part can carry authoritatively: it's extracted from the
+      // first pages, so only the part covering page 1 has real values (mid-book
+      // parts derive garbage from their own first pages). A split-coordinator book
+      // is never extracted, so without this it would have NO metadata after merge
+      // — no title, and the Extract "Edit metadata" button stays hidden (it gates
+      // on the metadata node existing). Copy it once, when absent, so it doesn't
+      // clobber a later manual edit; the coordinator can edit or re-extract after.
+      if (manifest.range.startPage === 1) {
+        const targetHasMetadata =
+          (targetDb.all(
+            "SELECT 1 FROM node_data WHERE node = 'metadata' AND item_id = 'book' LIMIT 1",
+          ) as unknown[]).length > 0
+        const metaRow = latestNodes.find((r) => r.node === "metadata" && r.item_id === "book")
+        if (!targetHasMetadata && metaRow) {
+          targetDb.run(
+            "INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)",
+            ["metadata", "book", 1, metaRow.data],
+          )
+          metadataMerged = true
+        }
+      }
+
       for (const img of images) {
         targetDb.run(
           `INSERT INTO images
@@ -814,6 +841,7 @@ export function mergePart(
       staleSteps: DOWNSTREAM_STAGE_NAMES,
       bookSummaryStale: addedPages + replacedPages > 0,
       semanticsOverridden: !semanticsMatch,
+      metadataMerged,
     }
   } finally {
     cleanup()

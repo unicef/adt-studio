@@ -441,6 +441,15 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
             <span className="font-medium text-foreground">{result.staleSteps.join(", ")}</span>
           </p>
 
+          {result.metadataMerged && (
+            <p className="text-xs text-muted-foreground">
+              <Trans>
+                Book metadata (title, authors, publisher) was taken from this
+                part and now appears in the Extract step, where you can edit it.
+              </Trans>
+            </p>
+          )}
+
           {result.bookSummaryStale && (
             <div className="flex flex-col gap-1.5 rounded-md border border-amber-200 bg-amber-50 p-2.5 dark:border-amber-500/30 dark:bg-amber-500/10">
               <p className="text-xs text-amber-900 dark:text-amber-200">

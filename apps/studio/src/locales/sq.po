@@ -1325,6 +1325,9 @@ msgstr "Gjuha e librit"
 #~ msgid "Book metadata"
 #~ msgstr "Të dhënat e librit"
 
+msgid "Book metadata (title, authors, publisher) was taken from this part and now appears in the Extract step, where you can edit it."
+msgstr "Të dhënat e librit (titulli, autorët, botuesi) u morën nga kjo pjesë dhe tani shfaqen në hapin e Nxjerrjes, ku mund t'i modifikoni."
+
 msgid "Book order"
 msgstr "Rendi i librit"
 

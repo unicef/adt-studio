@@ -104,15 +104,34 @@ function writePartManifest(label: string, startPage: number, endPage: number): v
   )
 }
 
+/** Seed the book-level metadata node a contributor's extract would produce. */
+function addBookMetadata(label: string, title: string): void {
+  const storage = createBookStorage(label, tmpDir)
+  try {
+    storage.putNodeData("metadata", "book", {
+      title,
+      authors: ["Edgar Allan Poe"],
+      publisher: "Raven Press",
+      language_code: "en",
+      cover_page_number: 1,
+      reasoning: "test",
+    })
+  } finally {
+    storage.close()
+  }
+}
+
 /** Build a "completed part" project zip for pages [start..end]. */
 async function buildCompletedPart(
   label: string,
   start: number,
   end: number,
   overrides = "concurrency: 4\n",
+  metadataTitle?: string,
 ): Promise<Buffer> {
   makeBook(label, `${overrides}start_page: ${start}\nend_page: ${end}\n`)
   for (let n = start; n <= end; n++) addProcessedPage(label, n)
+  if (metadataTitle !== undefined) addBookMetadata(label, metadataTitle)
   markPartStepsDone(label)
   writePartManifest(label, start, end)
   // a content-addressed cache entry to verify it is carried over
@@ -224,6 +243,70 @@ describe("mergePart", () => {
     // Carried cache + page image files.
     expect(fs.existsSync(path.join(tmpDir, "raven", ".cache", "deadbeef.json"))).toBe(true)
     expect(fs.existsSync(path.join(tmpDir, "raven", "images", "pg003_page.png"))).toBe(true)
+  })
+
+  it("populates book metadata from the page-1 part when the target lacks it", async () => {
+    makeBook("raven") // split-coordinator book: never extracted, no metadata
+    {
+      const db = targetDb("raven")
+      const meta = db.all("SELECT 1 FROM node_data WHERE node = 'metadata' AND item_id = 'book'")
+      expect(meta).toEqual([]) // precondition: no metadata yet
+      db.close()
+    }
+
+    const zip = await buildCompletedPart("raven-p001-004", 1, 4, "concurrency: 4\n", "The Raven")
+    const result = mergePart("raven", tmpDir, zip, {}, configPath)
+
+    expect(result.metadataMerged).toBe(true)
+    const db = targetDb("raven")
+    try {
+      const rows = db.all(
+        "SELECT data FROM node_data WHERE node = 'metadata' AND item_id = 'book' ORDER BY version DESC LIMIT 1",
+      ) as Array<{ data: string }>
+      expect(rows).toHaveLength(1)
+      const meta = JSON.parse(rows[0].data)
+      expect(meta.title).toBe("The Raven")
+      expect(meta.authors).toEqual(["Edgar Allan Poe"])
+      expect(meta.publisher).toBe("Raven Press")
+    } finally {
+      db.close()
+    }
+  })
+
+  it("does NOT take metadata from a mid-book part (only the page-1 part is authoritative)", async () => {
+    makeBook("raven")
+    // A part covering pages 3–4 carries metadata derived from its own first
+    // pages — not the real book metadata, so the merge must ignore it.
+    const zip = await buildCompletedPart("raven-p003-004", 3, 4, "concurrency: 4\n", "Wrong Title")
+    const result = mergePart("raven", tmpDir, zip, {}, configPath)
+
+    expect(result.metadataMerged).toBe(false)
+    const db = targetDb("raven")
+    try {
+      const meta = db.all("SELECT 1 FROM node_data WHERE node = 'metadata' AND item_id = 'book'")
+      expect(meta).toEqual([])
+    } finally {
+      db.close()
+    }
+  })
+
+  it("does not clobber existing target metadata when re-merging the page-1 part", async () => {
+    makeBook("raven")
+    addBookMetadata("raven", "Coordinator Edited Title") // pretend a prior merge/edit set it
+
+    const zip = await buildCompletedPart("raven-p001-004", 1, 4, "concurrency: 4\n", "Part Title")
+    const result = mergePart("raven", tmpDir, zip, {}, configPath)
+
+    expect(result.metadataMerged).toBe(false)
+    const db = targetDb("raven")
+    try {
+      const rows = db.all(
+        "SELECT data FROM node_data WHERE node = 'metadata' AND item_id = 'book' ORDER BY version DESC LIMIT 1",
+      ) as Array<{ data: string }>
+      expect(JSON.parse(rows[0].data).title).toBe("Coordinator Edited Title")
+    } finally {
+      db.close()
+    }
   })
 
   it("creates a new version on re-submission (overlap → replaced)", async () => {
