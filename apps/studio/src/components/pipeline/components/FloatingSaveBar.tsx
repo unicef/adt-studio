@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom"
 import type { ReactNode } from "react"
-import { Loader2, Save, X } from "lucide-react"
+import { Loader2, Play, Save, X } from "lucide-react"
 import { useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
 import {
@@ -13,8 +13,10 @@ import {
 interface FloatingSaveBarProps {
   onDiscard: () => void
   onSave?: () => void
+  onSaveAndRerun?: () => void
   saving?: boolean
   saveDisabledReason?: string
+  rerunDisabledReason?: string
   /** Status content next to the pulse dot. Defaults to "Unsaved changes". */
   label?: ReactNode
   /** Play the exit animation (the host keeps it mounted until it finishes). */
@@ -24,20 +26,28 @@ interface FloatingSaveBarProps {
 export function FloatingSaveBar({
   onDiscard,
   onSave,
+  onSaveAndRerun,
   saving = false,
   saveDisabledReason,
+  rerunDisabledReason,
   label,
   closing = false,
 }: FloatingSaveBarProps) {
   const { t } = useLingui()
   const saveDisabled = !!saveDisabledReason || saving
+  const rerunDisabled = !!rerunDisabledReason || saving
 
   const saveButton = onSave && (
     <button
       type="button"
       onClick={onSave}
       disabled={saveDisabled}
-      className="inline-flex items-center gap-1.5 rounded px-3 py-1 text-[11px] font-medium bg-green-600 hover:bg-green-500 text-white shadow-sm shadow-green-600/20 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded px-3 py-1 text-[11px] font-medium transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed",
+        onSaveAndRerun
+          ? "bg-muted text-foreground hover:bg-muted-foreground/20"
+          : "bg-green-600 hover:bg-green-500 text-white shadow-sm shadow-green-600/20",
+      )}
     >
       {saving ? (
         <Loader2 className="h-3 w-3 animate-spin" />
@@ -45,6 +55,22 @@ export function FloatingSaveBar({
         <Save className="h-3 w-3" />
       )}
       {t`Save`}
+    </button>
+  )
+
+  const rerunButton = onSaveAndRerun && (
+    <button
+      type="button"
+      onClick={onSaveAndRerun}
+      disabled={rerunDisabled}
+      className="inline-flex items-center gap-1.5 rounded px-3 py-1 text-[11px] font-medium bg-green-600 hover:bg-green-500 text-white shadow-sm shadow-green-600/20 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {saving ? (
+        <Loader2 className="h-3 w-3 animate-spin" />
+      ) : (
+        <Play className="h-3 w-3" />
+      )}
+      {t`Save & Re-run`}
     </button>
   )
 
@@ -96,6 +122,18 @@ export function FloatingSaveBar({
             </TooltipProvider>
           ) : (
             saveButton
+          )}
+          {rerunButton && rerunDisabledReason ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>{rerunButton}</span>
+                </TooltipTrigger>
+                <TooltipContent>{rerunDisabledReason}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            rerunButton
           )}
         </div>
       </div>

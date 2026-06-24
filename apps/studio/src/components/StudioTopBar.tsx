@@ -68,7 +68,7 @@ export function StudioTopBar({
   );
 
   return (
-    <div
+    <header
       className={cn(
         "shrink-0 min-h-10 flex items-center bg-gray-700 text-white select-none",
         !hasWindowControls && "py-1",
@@ -85,7 +85,8 @@ export function StudioTopBar({
           </>
         )}
       </div>
-      <div
+      <nav
+        aria-label={t`Studio actions`}
         className="ml-auto flex items-center gap-1.5 pr-2 no-drag"
         style={NO_DRAG_REGION}
       >
@@ -94,6 +95,7 @@ export function StudioTopBar({
           variant="ghost"
           size="icon"
           className="size-8 shrink-0 text-white/70 hover:text-white hover:bg-gray-600"
+          aria-label={t`How it works`}
           title={t`How it works`}
           asChild
         >
@@ -106,6 +108,7 @@ export function StudioTopBar({
           size="icon"
           className="relative size-8 shrink-0 text-white/70 hover:text-white hover:bg-gray-600"
           onClick={openUpdateDialog}
+          aria-label={hasPendingUpdate ? t`Update available` : t`Software update`}
           title={hasPendingUpdate ? t`Update available` : t`Software update`}
         >
           <Download className="h-3.5 w-3.5" />
@@ -121,15 +124,16 @@ export function StudioTopBar({
           size="icon"
           className="size-8 shrink-0 text-white/70 hover:text-white hover:bg-gray-600"
           onClick={openSettings}
+          aria-label={t`API Key Settings`}
           title={t`API Key Settings`}
         >
           <Settings className="h-3.5 w-3.5" />
         </Button>
-      </div>
+      </nav>
       {showLinuxControls && <LinuxControls className="self-stretch pr-3" />}
       {showWindowsControls && (
         <WindowsControls className="self-stretch" variant="dark" />
       )}
-    </div>
+    </header>
   );
 }

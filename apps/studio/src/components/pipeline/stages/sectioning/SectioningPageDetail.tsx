@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom"
+import { Eye } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type { PageSectioningOutput, PageSectioningSection } from "@adt/types"
@@ -190,6 +191,19 @@ export function SectioningPageDetail({
         )}
       </div>
       <div className="w-1/2 min-w-0 overflow-auto p-4 space-y-4">
+        {page.extractionWarning && (
+          <div className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+            <Eye className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+            <span className="text-[12px] text-amber-700 leading-relaxed">
+              <Trans>
+                This page has no embedded text layer — the text below was
+                recovered from the page image (vision). For better summaries,
+                metadata, and translations, prefer a text-based version of this
+                PDF.
+              </Trans>
+            </span>
+          </div>
+        )}
         {mergedSections.length === 0 ? (
           <div className="text-sm text-muted-foreground italic">
             <Trans>No sections on this page</Trans>

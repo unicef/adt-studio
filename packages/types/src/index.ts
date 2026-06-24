@@ -180,6 +180,8 @@ export { BookMetadata } from "./metadata.js"
 
 export { BookSummaryOutput } from "./book-summary.js"
 
+export { ExtractionWarning } from "./extraction-warning.js"
+
 export {
   SectionRendering,
   WebRenderingOutput,

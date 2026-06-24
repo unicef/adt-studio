@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { I18nProvider } from "@lingui/react"
 import { i18n } from "@lingui/core"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { LiveRegionAnnouncer } from "@/components/a11y/LiveRegionAnnouncer"
 import { usePreviewSettingsListener } from "@/hooks/use-preview-settings-listener"
 import { messages as enMessages } from "./locales/en.po"
 import { messages as ptBRMessages } from "./locales/pt-BR.po"
@@ -13,7 +14,7 @@ import { messages as frMessages } from "./locales/fr.po"
 import { messages as sqMessages } from "./locales/sq.po"
 import { routeTree } from "./routeTree.gen"
 import "./styles/globals.css"
-import { LOCALES } from "./i18n/locales"
+import { LOCALES, activateLocale } from "./i18n/locales"
 import type { AppLocale } from "./i18n/locales"
 export { LOCALES, type AppLocale } from "./i18n/locales"
 
@@ -24,7 +25,8 @@ function detectLocale(): AppLocale {
 }
 
 i18n.load({ en: enMessages, "pt-BR": ptBRMessages, es: esMessages, fr: frMessages, sq: sqMessages })
-i18n.activate(detectLocale())
+// activateLocale also sets <html lang> so screen readers use the correct voice.
+activateLocale(detectLocale())
 
 if (import.meta.env.VITE_WORKSPACE_NAME) {
   // eslint-disable-next-line lingui/no-unlocalized-strings -- dev-only tab label; env var is unset in production builds
@@ -46,7 +48,7 @@ const router = createRouter({
     input: ({ url }) => {
       const lang = url.searchParams.get("lang")
       if (lang && LOCALES.includes(lang as AppLocale)) {
-        i18n.activate(lang as AppLocale)
+        activateLocale(lang as AppLocale)
       }
       url.searchParams.delete("lang")
       return url
@@ -76,7 +78,9 @@ createRoot(document.getElementById("root")!).render(
       <QueryClientProvider client={queryClient}>
         <TooltipProvider delayDuration={300}>
           <PreviewSettingsListener />
-          <RouterProvider router={router} />
+          <LiveRegionAnnouncer>
+            <RouterProvider router={router} />
+          </LiveRegionAnnouncer>
         </TooltipProvider>
       </QueryClientProvider>
     </I18nProvider>

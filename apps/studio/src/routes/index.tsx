@@ -21,6 +21,7 @@ import { useLingui } from "@lingui/react/macro"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { StudioTopBar } from "@/components/StudioTopBar"
+import { usePageTitle } from "@/hooks/use-page-title"
 import { Badge } from "@/components/ui/badge"
 import {
   Select,
@@ -252,9 +253,9 @@ function BookRow({
           {/* Top: title + badges */}
           <div className="flex items-start justify-between gap-3 mb-3">
             <div className="flex items-center gap-2.5 min-w-0">
-              <h3 className="font-semibold text-base truncate">
+              <h2 className="font-semibold text-base truncate">
                 {book.title ?? book.label}
-              </h3>
+              </h2>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               {book.needsRebuild && (
@@ -356,7 +357,11 @@ function BookRow({
             className="h-8 w-8 text-muted-foreground hover:text-primary"
             asChild
           >
-            <Link to="/books/$label/$step" params={{ label: book.label, step: "extract" }}>
+            <Link
+              to="/books/$label/$step"
+              params={{ label: book.label, step: "extract" }}
+              aria-label={t`Edit ${book.title ?? book.label}`}
+            >
               <Pencil className="h-4 w-4" />
             </Link>
           </Button>
@@ -365,6 +370,7 @@ function BookRow({
             size="icon"
             className="h-8 w-8 text-muted-foreground hover:text-destructive"
             onClick={() => onDelete(book.label)}
+            aria-label={t`Delete ${book.title ?? book.label}`}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -376,6 +382,7 @@ function BookRow({
 
 function HomePage() {
   const { t } = useLingui()
+  usePageTitle(t`Your Books`)
   const { data: books, isLoading, error } = useBooks()
   const deleteMutation = useDeleteBook()
   const [deleteLabel, setDeleteLabel] = useState<string | null>(null)
@@ -480,7 +487,7 @@ function HomePage() {
       {/* Right — books list (70%) */}
       <div className="flex-1 min-w-0 overflow-auto p-5">
         <div className="flex items-center justify-between mb-4 gap-3">
-          <h2 className="text-sm font-medium text-muted-foreground">
+          <h1 className="text-sm font-medium text-muted-foreground">
             <Trans>Your Books</Trans>
             {totalBooks > 0 && (
               <span
@@ -492,7 +499,7 @@ function HomePage() {
                   : `(${totalBooks})`}
               </span>
             )}
-          </h2>
+          </h1>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
               <Link to="/books/import" className="gap-1.5 text-muted-foreground">

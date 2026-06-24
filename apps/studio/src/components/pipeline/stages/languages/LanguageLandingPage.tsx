@@ -147,7 +147,7 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
 
   const handleRun = () => {
     if (!hasApiKey || !storyboardReady || status.isRunning) return
-    queueRun({ fromStage: "translate", toStage: "translate", apiKey })
+    queueRun({ fromStage: "translate", toStage: "translate", apiKey, viewAfter: true })
   }
 
   const hasLanguages = outputLanguages.size > 0

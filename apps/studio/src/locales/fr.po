@@ -71,6 +71,10 @@ msgstr "(modèle)"
 msgid "{0} — type country or Enter for base"
 msgstr "{0} — tapez un pays ou Entrée pour base"
 
+#. placeholder {0}: tab.label
+msgid "{0} (unsaved changes)"
+msgstr "{0} (modifications non enregistrées)"
+
 #. placeholder {0}: progress?.page
 #. placeholder {1}: progress?.totalPages
 msgid "{0} / {1}"
@@ -90,6 +94,10 @@ msgstr "{0} audio"
 msgid "{0} checks per page"
 msgstr "{0} vérifications par page"
 
+#. placeholder {0}: getStageLabelI18n(uiStage)
+msgid "{0} complete"
+msgstr "{0} terminé"
+
 #. placeholder {0}: String(p.stats.decorative)
 msgid "{0} decorative"
 msgstr "{0} décoratif"
@@ -97,6 +105,10 @@ msgstr "{0} décoratif"
 #. placeholder {0}: entries.length
 msgid "{0} entries"
 msgstr "{0} entrées"
+
+#. placeholder {0}: getStageLabelI18n(uiStage)
+msgid "{0} failed"
+msgstr "Échec : {0}"
 
 #. placeholder {0}: activeMetrics.flagged.length
 msgid "{0} flagged findings in this review"
@@ -166,6 +178,14 @@ msgstr "{0} sur {1} images"
 #. placeholder {1}: visibleFindingsUniverse.length
 msgid "{0} of {1} items"
 msgstr "{0} sur {1} éléments"
+
+#. placeholder {0}: warnPages.length
+#. placeholder {1}: pageList.length
+msgid "{0} of {1} pages had no extracted text"
+msgstr "{0} pages sur {1} n'ont aucun texte extrait"
+
+#~ msgid "{0} of {1} pages had no readable text"
+#~ msgstr "{0} pages sur {1} n'ont aucun texte lisible"
 
 #. placeholder {0}: String(displayPages.length)
 #. placeholder {0}: book.pageCount
@@ -331,6 +351,10 @@ msgstr "{stageLabel} n'est pas encore prêt — chaque section du Storyboard est
 
 msgid "{stageLabel} isn't ready yet — Storyboard hasn't finished, so there's nothing to work with. Finish that stage first."
 msgstr "{stageLabel} n'est pas encore prêt — le Storyboard n'est pas terminé, il n'y a donc rien avec quoi travailler. Terminez d'abord cette étape."
+
+#. placeholder {0}: getStageStatusLabelI18n(statusKey)
+msgid "{stepLabel}: {0}"
+msgstr "{stepLabel} : {0}"
 
 msgid "{textCount} text leaves"
 msgstr "{textCount} feuilles de texte"
@@ -722,6 +746,9 @@ msgstr "Ajoutez une clé API dans les paramètres du livre pour exécuter la gé
 msgid "Add an API key in Book settings to run translation."
 msgstr "Ajoutez une clé API dans les paramètres du livre pour exécuter la traduction."
 
+msgid "Add an API key to re-run"
+msgstr "Ajoutez une clé API pour relancer"
+
 msgid "Add at least one output language to run translation."
 msgstr "Ajoutez au moins une langue de sortie pour exécuter la traduction."
 
@@ -730,6 +757,12 @@ msgstr "Ajouter un auteur"
 
 msgid "Add Book"
 msgstr "Ajouter un livre"
+
+msgid "Add Book: Choose a preset"
+msgstr "Ajouter un livre : Choisir un préréglage"
+
+msgid "Add Book: Upload PDF"
+msgstr "Ajouter un livre : Importer un PDF"
 
 msgid "Add caption…"
 msgstr "Ajouter une légende…"
@@ -1322,6 +1355,9 @@ msgstr "Livre Langue"
 msgid "Book order"
 msgstr "Ordre du livre"
 
+msgid "Book package ready"
+msgstr "Paquet du livre prêt"
+
 msgid "Book preview"
 msgstr "Livre aperçu"
 
@@ -1735,8 +1771,8 @@ msgstr "Configurer les voix et les accents"
 msgid "Confirm merge"
 msgstr "Confirmer la fusion"
 
-msgid "Confirm Rerun"
-msgstr "Confirmer Rerun"
+#~ msgid "Confirm Rerun"
+#~ msgstr "Confirmer Rerun"
 
 msgid "Connect an AI provider"
 msgstr "Connectez un fournisseur d'IA"
@@ -2048,6 +2084,10 @@ msgstr "Definitions et Terminology"
 msgid "Delete"
 msgstr "Supprimer"
 
+#. placeholder {0}: book.title ?? book.label
+msgid "Delete {0}"
+msgstr "Supprimer {0}"
+
 msgid "Delete all speech"
 msgstr "Supprimer tout parole"
 
@@ -2162,8 +2202,11 @@ msgstr "Règles désactivées"
 msgid "Discard"
 msgstr "Abandonner"
 
-msgid "Discard unsaved changes?"
-msgstr "Ignorer les modifications non enregistrées ?"
+msgid "Discard & leave"
+msgstr "Abandonner et quitter"
+
+#~ msgid "Discard unsaved changes?"
+#~ msgstr "Ignorer les modifications non enregistrées ?"
 
 msgid "Display"
 msgstr "Affichage"
@@ -2173,6 +2216,9 @@ msgstr "Distribuez via des applications et bibliothèques de lecture compatibles
 
 msgid "Don't have a project yet?"
 msgstr "Vous n'avez pas encore de projet ?"
+
+msgid "done"
+msgstr "terminé"
 
 msgid "Done"
 msgstr "Terminé"
@@ -2323,6 +2369,10 @@ msgstr "Écosystème"
 msgid "Edit"
 msgstr "Modifier"
 
+#. placeholder {0}: book.title ?? book.label
+msgid "Edit {0}"
+msgstr "Modifier {0}"
+
 msgid "Edit & enrich"
 msgstr "Éditer et enrichir"
 
@@ -2344,8 +2394,11 @@ msgstr "Modifier Invite"
 msgid "Edit Prompts"
 msgstr "Modifier Invites"
 
-msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
-msgstr "Modifiez le modèle Liquid/HTML ci-dessous. Les modifications sont enregistrées lorsque vous cliquez sur Enregistrer et relancer."
+#~ msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
+#~ msgstr "Modifiez le modèle Liquid/HTML ci-dessous. Les modifications sont enregistrées lorsque vous cliquez sur Enregistrer et relancer."
+
+msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save."
+msgstr "Modifiez le modèle Liquid/HTML ci-dessous. Les modifications sont enregistrées lorsque vous cliquez sur Enregistrer."
 
 msgid "Edit this image"
 msgstr "Modifier cette image"
@@ -2617,6 +2670,9 @@ msgstr "Extrait le texte et les données d'image de chaque page du PDF."
 
 msgid "Extracts the correct answer key from the generated activity HTML."
 msgstr "Extrait la clé de réponse correcte du HTML d'activité généré."
+
+msgid "failed"
+msgstr "échoué"
 
 msgid "Failed"
 msgstr "Échoué"
@@ -3013,6 +3069,9 @@ msgstr "Titre"
 msgid "Headings"
 msgstr "Titres"
 
+msgid "Heads up"
+msgstr "Attention"
+
 msgid "Heads up: regenerating images takes considerably longer than text translation — each selected image is redrawn for every output language."
 msgstr "Attention : régénérer les images prend beaucoup plus de temps que la traduction de texte — chaque image sélectionnée est redessinée pour chaque langue de sortie."
 
@@ -3106,6 +3165,9 @@ msgstr "Identifier l'idée clé"
 msgid "If you don't run Image Captions, your output will not be accessible to readers who use screen readers or can't see the images."
 msgstr "Si vous n'exécutez pas Image Légendes, votre sortie ne sera pas accessible aux lecteurs qui utilisent des lecteurs d'écran ou qui ne peuvent pas voir les images."
 
+msgid "If you leave now, your unsaved changes will be lost."
+msgstr "Si vous quittez maintenant, vos modifications non enregistrées seront perdues."
+
 msgid "Illustrated children's books"
 msgstr "Livres illustrés pour enfants"
 
@@ -3132,6 +3194,9 @@ msgstr "Recadrage d'images"
 
 msgid "Image Cropping Prompt"
 msgstr "Image Cropping Invite"
+
+msgid "Image edit complete"
+msgstr "Modification de l'image terminée"
 
 msgid "Image Edit Prompt"
 msgstr "Image Modifier Invite"
@@ -3252,6 +3317,9 @@ msgstr "Si vous ne souhaitez pas convertir le livre entier, ajustez les curseurs
 
 msgid "In development"
 msgstr "En développement"
+
+msgid "in progress"
+msgstr "en cours"
 
 msgid "in the book"
 msgstr "dans le livre"
@@ -3430,8 +3498,8 @@ msgstr "Interligne"
 msgid "Least used"
 msgstr "Moins utilisé"
 
-msgid "Leave"
-msgstr "Quitter"
+#~ msgid "Leave"
+#~ msgstr "Quitter"
 
 msgid "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
 msgstr "Laissez sur Aucun pour exécuter la segmentation sur toutes les images éligibles (selon les règles du pipeline)."
@@ -3534,6 +3602,9 @@ msgstr "Prêt pour LMS avec suivi de l'achèvement"
 
 msgid "Loading accessibility summary..."
 msgstr "Chargement du résumé d'accessibilité..."
+
+msgid "Loading book config…"
+msgstr "Chargement de la configuration du livre…"
 
 msgid "Loading Book..."
 msgstr "Chargement du livre..."
@@ -3895,6 +3966,9 @@ msgstr "Modifications nécessaires"
 msgid "Needs rebuild"
 msgstr "Reconstruction nécessaire"
 
+msgid "needs update"
+msgstr "à mettre à jour"
+
 msgid "Never"
 msgstr "Jamais"
 
@@ -3994,6 +4068,9 @@ msgstr "Aucune règle désactivée"
 
 msgid "No Easy Read for this page"
 msgstr "Pas de lecture facile pour cette page"
+
+msgid "No embedded text layer — text was recovered from the page image"
+msgstr "Pas de couche de texte intégrée — le texte a été récupéré à partir de l'image de la page"
 
 msgid "No entries match your search"
 msgstr "Aucune entrée ne correspond à votre recherche"
@@ -4130,6 +4207,9 @@ msgstr "Aucun quiz pour cette page"
 msgid "No quizzes match your search"
 msgstr "Aucun quiz ne correspond à votre recherche"
 
+#~ msgid "No readable text extracted from this page"
+#~ msgstr "Aucun texte lisible extrait de cette page"
+
 msgid "No rendered content for this section"
 msgstr "Aucun contenu rendu pour cette section"
 
@@ -4225,6 +4305,9 @@ msgstr "Non révisé"
 
 msgid "Not run during the last execution — likely because its inputs weren't ready or its stage's settings turned it off."
 msgstr "Non exécuté lors de la dernière exécution — probablement parce que ses entrées n'étaient pas prêtes ou que les paramètres de son étape l'ont désactivé."
+
+msgid "not started"
+msgstr "non démarré"
 
 msgid "Not started yet"
 msgstr "Pas encore commencé"
@@ -4560,6 +4643,9 @@ msgstr "Plage de pages"
 msgid "Page range help"
 msgstr "Aide sur la plage de pages"
 
+msgid "Page re-rendered"
+msgstr "Page rendue à nouveau"
+
 msgid "Page Sectioning"
 msgstr "Sectionnement de page"
 
@@ -4646,6 +4732,9 @@ msgstr "Aperçu de la page PDF {pageLabel}"
 msgid "Pencil Sketch"
 msgstr "Croquis au crayon"
 
+msgid "Pending edits"
+msgstr "Modifications en attente"
+
 msgid "Pending..."
 msgstr "En attente..."
 
@@ -4714,6 +4803,9 @@ msgstr "Pipeline · storyboard"
 
 msgid "Pipeline features"
 msgstr "Fonctionnalités du pipeline"
+
+msgid "Pipeline stages"
+msgstr "Étapes du pipeline"
 
 msgid "Pipeline Stages"
 msgstr "Étapes du pipeline"
@@ -4883,6 +4975,9 @@ msgstr "Paramètre de requête"
 
 msgid "question"
 msgstr "question"
+
+msgid "queued"
+msgstr "en file d’attente"
 
 msgid "Queued"
 msgstr "En file d'attente"
@@ -5271,6 +5366,9 @@ msgstr "Tentatives"
 msgid "Retry"
 msgstr "Réessayer"
 
+msgid "Retry {stageLabel}"
+msgstr "Réessayer {stageLabel}"
+
 msgid "Retry Export"
 msgstr "Réessayer Exporter"
 
@@ -5431,6 +5529,9 @@ msgstr "En cours"
 msgid "RUNNING"
 msgstr "EN COURS"
 
+msgid "Running {stageLabel}"
+msgstr "Exécution de {stageLabel}"
+
 msgid "Running Sectioning will run Extract first, then section the extracted pages."
 msgstr "Lancer Sectioning exécutera d'abord Extraction, puis découpera en sections les pages extraites."
 
@@ -5473,38 +5574,44 @@ msgstr "Sans empattement"
 msgid "Save"
 msgstr "Enregistrer"
 
-msgid "Save & Rerun"
+msgid "Save & leave"
+msgstr "Enregistrer et quitter"
+
+msgid "Save & Re-run"
 msgstr "Enregistrer et relancer"
 
-msgid "Save & Rerun Captions"
-msgstr "Enregistrer et relancer les légendes"
+#~ msgid "Save & Rerun"
+#~ msgstr "Enregistrer et relancer"
 
-msgid "Save & Rerun Easy Read"
-msgstr "Enregistrer et relancer Lecture Facile"
+#~ msgid "Save & Rerun Captions"
+#~ msgstr "Enregistrer et relancer les légendes"
 
-msgid "Save & Rerun Extraction"
-msgstr "Enregistrer et relancer l'extraction"
+#~ msgid "Save & Rerun Easy Read"
+#~ msgstr "Enregistrer et relancer Lecture Facile"
 
-msgid "Save & Rerun Glossary"
-msgstr "Enregistrer et relancer le glossaire"
+#~ msgid "Save & Rerun Extraction"
+#~ msgstr "Enregistrer et relancer l'extraction"
 
-msgid "Save & Rerun Quizzes"
-msgstr "Enregistrer et relancer les quiz"
+#~ msgid "Save & Rerun Glossary"
+#~ msgstr "Enregistrer et relancer le glossaire"
 
-msgid "Save & Rerun Sectioning"
-msgstr "Enregistrer et relancer le sectionnement"
+#~ msgid "Save & Rerun Quizzes"
+#~ msgstr "Enregistrer et relancer les quiz"
 
-msgid "Save & Rerun Speech"
-msgstr "Enregistrer et relancer la synthèse vocale"
+#~ msgid "Save & Rerun Sectioning"
+#~ msgstr "Enregistrer et relancer le sectionnement"
 
-msgid "Save & Rerun Storyboard"
-msgstr "Enregistrer et relancer le scénarimage"
+#~ msgid "Save & Rerun Speech"
+#~ msgstr "Enregistrer et relancer la synthèse vocale"
 
-msgid "Save & Rerun TOC Generation"
-msgstr "Enregistrer et relancer la génération de la TdM"
+#~ msgid "Save & Rerun Storyboard"
+#~ msgstr "Enregistrer et relancer le scénarimage"
 
-msgid "Save & Rerun Translations"
-msgstr "Enregistrer et relancer les traductions"
+#~ msgid "Save & Rerun TOC Generation"
+#~ msgstr "Enregistrer et relancer la génération de la TdM"
+
+#~ msgid "Save & Rerun Translations"
+#~ msgstr "Enregistrer et relancer les traductions"
 
 msgid "Save changes"
 msgstr "Enregistrer les modifications"
@@ -5533,8 +5640,8 @@ msgstr "Enregistrer les paramètres"
 msgid "Saved. Re-package Preview to apply."
 msgstr "Enregistré. Ré-empaquetez l'aperçu pour appliquer."
 
-msgid "Saving..."
-msgstr "Enregistrement..."
+#~ msgid "Saving..."
+#~ msgstr "Enregistrement..."
 
 msgid "Saving…"
 msgstr "Enregistrement…"
@@ -5983,6 +6090,9 @@ msgstr "Mise à jour logicielle"
 msgid "Software update status"
 msgstr "Statut de la mise à jour logicielle"
 
+msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
+msgstr "Certaines pages n'ont pas de couche de texte intégrée — le texte a été récupéré à partir de l'image de la page. Préférez un PDF basé sur du texte."
+
 msgid "Something went wrong"
 msgstr "Quelque chose s'est mal passé"
 
@@ -6149,6 +6259,9 @@ msgstr "HTML structuré"
 msgid "Structures each page into a tree of sections and nodes."
 msgstr "Structure chaque page en un arbre de sections et de nœuds."
 
+msgid "Studio actions"
+msgstr "Actions du studio"
+
 msgid "Style"
 msgstr "Style"
 
@@ -6233,6 +6346,16 @@ msgstr "Classes Tailwind"
 msgid "Takes liberties and produces something similar."
 msgstr "Prend des libertés et produit quelque chose de similaire."
 
+msgid "Task complete"
+msgstr "Tâche terminée"
+
+msgid "Task failed"
+msgstr "Échec de la tâche"
+
+#. placeholder {0}: d.error
+msgid "Task failed: {0}"
+msgstr "Échec de la tâche : {0}"
+
 msgid "Task Running"
 msgstr "Tâche En cours"
 
@@ -6305,6 +6428,9 @@ msgstr "Texte couleur: {0}"
 
 msgid "Text Only"
 msgstr "Texte uniquement"
+
+msgid "Text recovered from the page image — this page has no embedded text layer"
+msgstr "Texte récupéré à partir de l'image de la page — cette page n'a pas de couche de texte intégrée"
 
 msgid "Text roles the LLM may assign to text in the content tree. Pruned roles are classified but excluded from rendering."
 msgstr "Rôles de texte que le LLM peut attribuer au texte dans l'arbre de contenu. Les rôles élagués sont classés mais exclus du rendu."
@@ -6453,8 +6579,14 @@ msgstr "Le monde devant nous"
 msgid "Theme"
 msgstr "Thème"
 
+msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
+msgstr "Ces modifications n'ont pas encore été appliquées. Quittez et elles seront perdues — ou enregistrez et relancez pour les appliquer. L'exécution se poursuit en arrière-plan pendant que vous continuez à travailler."
+
 msgid "These features improve access for people with disabilities. Running them before exporting helps your book meet ADT accessibility standards."
 msgstr "Ces fonctionnalités améliorent l'accès pour les personnes handicapées. Les exécuter avant l'exportation aide votre livre à respecter les normes d'accessibilité ADT."
+
+msgid "These pages have no embedded text layer, but the Sectioning step recovered text from the page images — so this PDF looks scanned or image-based. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
+msgstr "Ces pages n'ont pas de couche de texte intégrée, mais l'étape de Sectionnement a récupéré du texte à partir des images des pages — ce PDF semble donc numérisé ou basé sur des images. Le pipeline peut toujours fonctionner à partir du texte récupéré, mais pour de meilleurs résumés, métadonnées et traductions, essayez d'obtenir une version de ce PDF basée sur du texte (avec une vraie couche de texte) plutôt qu'une copie numérisée."
 
 msgid "These stages are optional. They don't depend on each other — run any of them in any order once the core pipeline is complete."
 msgstr "Ces étapes sont facultatives. Elles ne dépendent pas les unes des autres — exécutez-les dans n'importe quel ordre une fois le pipeline principal terminé."
@@ -6517,6 +6649,9 @@ msgstr "Voici Pip ! C'est un joyeux chien caramel avec une queue très remuante.
 msgid "This page has no captioned images"
 msgstr "Cette page n'a pas d'images légendées"
 
+msgid "This page has no embedded text layer — the text below was recovered from the page image (vision). For better summaries, metadata, and translations, prefer a text-based version of this PDF."
+msgstr "Cette page n'a pas de couche de texte intégrée — le texte ci-dessous a été récupéré à partir de l'image de la page (vision). Pour de meilleurs résumés, métadonnées et traductions, utilisez une version de ce PDF basée sur du texte."
+
 msgid "This page has no entries to synthesize"
 msgstr "Cette page n'a pas d'entrées à synthétiser"
 
@@ -6529,11 +6664,32 @@ msgstr "Cette page n'a pas de blocs de texte simplifiés"
 msgid "This page has no storyboard sections"
 msgstr "Cette page n'a pas de sections de scénarimage"
 
+#~ msgid "This page has no text layer — it appears to be a scanned or image-only page. The Sectioning step may still recover text from the page image. For reliable text, first try to obtain a better-quality, text-based version of this PDF; only if none is available, run OCR on the file before importing."
+#~ msgstr "Cette page n'a pas de couche de texte : il s'agit apparemment d'une page numérisée ou uniquement composée d'images. L'étape de Sectionnement peut encore récupérer du texte à partir de l'image de la page. Pour un texte fiable, essayez d'abord d'obtenir une version de ce PDF de meilleure qualité et basée sur du texte ; n'appliquez l'OCR au fichier avant de l'importer que si aucune n'est disponible."
+
+#~ msgid "This page has no text layer — it appears to be a scanned or image-only page. The Sectioning step may still recover text from the page image. For reliable text, run OCR on this PDF before importing."
+#~ msgstr "Cette page n'a pas de couche de texte : il s'agit apparemment d'une page numérisée ou uniquement composée d'images. L'étape de Sectionnement peut encore récupérer du texte à partir de l'image de la page. Pour un texte fiable, appliquez l'OCR à ce PDF avant de l'importer."
+
 msgid "This page has no translatable text entries"
 msgstr "Cette page n'a pas d'entrées de texte traduisibles"
 
 msgid "This page has not been reviewed yet"
 msgstr "Cette page n'a pas encore été révisée"
+
+#~ msgid "This page renders text, but its fonts could not be decoded (a font/encoding issue in the PDF). The Sectioning step may still recover the text from the page image. For reliable text, first try to obtain a cleaner, text-based version of this PDF; only if none is available, run OCR on the file before importing."
+#~ msgstr "Cette page affiche du texte, mais ses polices n'ont pas pu être décodées (un problème de police ou d'encodage dans le PDF). L'étape de Sectionnement peut encore récupérer le texte à partir de l'image de la page. Pour un texte fiable, essayez d'abord d'obtenir une version plus propre de ce PDF basée sur du texte ; n'appliquez l'OCR au fichier avant de l'importer que si aucune n'est disponible."
+
+#~ msgid "This page renders text, but its fonts could not be decoded (a font/encoding issue in the PDF). The Sectioning step may still recover the text from the page image. For reliable text, supply a text-based PDF or run OCR on this file before importing."
+#~ msgstr "Cette page affiche du texte, mais ses polices n'ont pas pu être décodées (un problème de police ou d'encodage dans le PDF). L'étape de Sectionnement peut encore récupérer le texte à partir de l'image de la page. Pour un texte fiable, fournissez un PDF basé sur du texte ou appliquez l'OCR à ce fichier avant de l'importer."
+
+msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
+msgstr "La couche de texte intégrée de cette page est vide, mais l'étape de Sectionnement a récupéré du texte à partir de l'image de la page — elle semble donc numérisée ou uniquement composée d'images. Le pipeline peut toujours fonctionner à partir du texte récupéré, mais pour de meilleurs résumés, métadonnées et traductions, essayez d'obtenir une version de ce PDF basée sur du texte (avec une vraie couche de texte) plutôt qu'une copie numérisée."
+
+#~ msgid "This PDF appears to be image-based or uses fonts we can't read as text, so the extracted text may be incomplete. The Sectioning step can still recover some text from the page image, but for better summaries, metadata, and translations, first try to obtain a better-quality, text-based version of this PDF — and only run OCR on it if no such version is available."
+#~ msgstr "Ce PDF semble être basé sur des images ou utilise des polices que nous ne pouvons pas lire comme du texte ; le texte extrait peut donc être incomplet. L'étape de Sectionnement peut encore récupérer une partie du texte à partir de l'image de la page, mais pour de meilleurs résumés, métadonnées et traductions, essayez d'abord d'obtenir une version de ce PDF de meilleure qualité et basée sur du texte, et n'appliquez l'OCR que si aucune n'est disponible."
+
+#~ msgid "This PDF appears to be image-based or uses fonts we can't read as text, so the extracted text may be incomplete. The Sectioning step can still recover some text from the page image, but for better summaries, metadata, and translations, supply a text-based PDF or run OCR on this file before importing."
+#~ msgstr "Ce PDF semble être basé sur des images ou utilise des polices que nous ne pouvons pas lire comme du texte ; le texte extrait peut donc être incomplet. L'étape de Sectionnement peut encore récupérer une partie du texte à partir de l'image de la page, mais pour de meilleurs résumés, métadonnées et traductions, fournissez un PDF basé sur du texte ou appliquez l'OCR à ce fichier avant de l'importer."
 
 msgid "This permanently deletes every uploaded video and clears all section assignments. This can't be undone."
 msgstr "Cela supprime définitivement chaque vidéo téléchargée et efface toutes les affectations de sections. Cela ne peut pas être annulé."
@@ -6568,38 +6724,38 @@ msgstr "Cette session utilise un ancien instantané de la liste de contrôle du 
 msgid "This text is only perceptible to assistive technologies."
 msgstr "Ce texte n'est perceptible que par les technologies d'assistance."
 
-msgid "This will save your Easy Read settings and generate a new editable Easy Read version."
-msgstr "Cela enregistrera vos paramètres Lecture Facile et générera une nouvelle version Lecture Facile modifiable."
+#~ msgid "This will save your Easy Read settings and generate a new editable Easy Read version."
+#~ msgstr "Cela enregistrera vos paramètres Lecture Facile et générera une nouvelle version Lecture Facile modifiable."
 
-msgid "This will save your settings and re-generate the table of contents."
-msgstr "Cela enregistrera vos paramètres et régénérera la table des matières."
+#~ msgid "This will save your settings and re-generate the table of contents."
+#~ msgstr "Cela enregistrera vos paramètres et régénérera la table des matières."
 
-msgid "This will save your settings and re-run glossary generation."
-msgstr "Cela enregistrera vos paramètres et relancera la génération du glossaire."
+#~ msgid "This will save your settings and re-run glossary generation."
+#~ msgstr "Cela enregistrera vos paramètres et relancera la génération du glossaire."
 
-msgid "This will save your settings and re-run image captioning."
-msgstr "Cela enregistrera vos paramètres et relancera la génération des légendes d'images."
+#~ msgid "This will save your settings and re-run image captioning."
+#~ msgstr "Cela enregistrera vos paramètres et relancera la génération des légendes d'images."
 
-msgid "This will save your settings and re-run quiz generation."
-msgstr "Cela enregistrera vos paramètres et relancera la génération des quiz."
+#~ msgid "This will save your settings and re-run quiz generation."
+#~ msgstr "Cela enregistrera vos paramètres et relancera la génération des quiz."
 
-msgid "This will save your settings and re-run sectioning for all pages."
-msgstr "Ceci enregistrera vos paramètres et relancera le sectionnement pour toutes les pages."
+#~ msgid "This will save your settings and re-run sectioning for all pages."
+#~ msgstr "Ceci enregistrera vos paramètres et relancera le sectionnement pour toutes les pages."
 
-msgid "This will save your settings and re-run speech generation."
-msgstr "Cela enregistrera vos paramètres et relancera la génération de la synthèse vocale."
+#~ msgid "This will save your settings and re-run speech generation."
+#~ msgstr "Cela enregistrera vos paramètres et relancera la génération de la synthèse vocale."
 
-msgid "This will save your settings and re-run the extraction pipeline. Any manual edits to extracted text will be overwritten for affected pages."
-msgstr "Cela enregistrera vos paramètres et relancera le pipeline d'extraction. Les modifications manuelles du texte extrait seront écrasées pour les pages concernées."
+#~ msgid "This will save your settings and re-run the extraction pipeline. Any manual edits to extracted text will be overwritten for affected pages."
+#~ msgstr "Cela enregistrera vos paramètres et relancera le pipeline d'extraction. Les modifications manuelles du texte extrait seront écrasées pour les pages concernées."
 
-msgid "This will save your settings and re-run the storyboard pipeline. Only rendering will be regenerated — your existing sections will be preserved."
-msgstr "Cela enregistrera vos paramètres et relancera le pipeline du scénarimage. Seul le rendu sera régénéré — vos sections existantes seront conservées."
+#~ msgid "This will save your settings and re-run the storyboard pipeline. Only rendering will be regenerated — your existing sections will be preserved."
+#~ msgstr "Cela enregistrera vos paramètres et relancera le pipeline du scénarimage. Seul le rendu sera régénéré — vos sections existantes seront conservées."
 
-msgid "This will save your settings and re-run the storyboard pipeline. Sectioning and rendering will be run for all pages."
-msgstr "Ceci enregistrera vos paramètres et relancera le pipeline du storyboard. Le sectionnement et le rendu seront exécutés pour toutes les pages."
+#~ msgid "This will save your settings and re-run the storyboard pipeline. Sectioning and rendering will be run for all pages."
+#~ msgstr "Ceci enregistrera vos paramètres et relancera le pipeline du storyboard. Le sectionnement et le rendu seront exécutés pour toutes les pages."
 
-msgid "This will save your settings and re-run translations, rebuilding the text catalog and translating to output languages."
-msgstr "Cela enregistrera vos paramètres et relancera les traductions, en reconstruisant le catalogue de texte et en traduisant vers les langues de sortie."
+#~ msgid "This will save your settings and re-run translations, rebuilding the text catalog and translating to output languages."
+#~ msgstr "Cela enregistrera vos paramètres et relancera les traductions, en reconstruisant le catalogue de texte et en traduisant vers les langues de sortie."
 
 msgid "Thorium Reader"
 msgstr "Thorium Reader"
@@ -7030,6 +7186,9 @@ msgstr "Voir la licence"
 msgid "View page"
 msgstr "Voir la page"
 
+msgid "vision"
+msgstr "vision"
+
 msgid "Visual & sensory cues"
 msgstr "Indices visuels et sensoriels"
 
@@ -7129,6 +7288,9 @@ msgstr "Poids"
 msgid "Weights:"
 msgstr "Graisses :"
 
+msgid "Welcome"
+msgstr "Bienvenue"
+
 msgid "Welcome to ADT Studio"
 msgstr "Bienvenue sur ADT Studio"
 
@@ -7201,6 +7363,9 @@ msgstr "Le mot et la définition sont obligatoires."
 msgid "Word Highlighting"
 msgstr "Surlignage des mots"
 
+msgid "Word highlighting ready"
+msgstr "Surlignage des mots prêt"
+
 msgid "Word-level highlighting"
 msgstr "Surlignage mot à mot"
 
@@ -7219,8 +7384,8 @@ msgstr "Encapsule les requêtes « Générer nouveau ». Prend en charge les var
 msgid "You can export at this stage"
 msgstr "Vous pouvez exporter à cette étape"
 
-msgid "You have unsaved changes. If you leave, they'll be lost."
-msgstr "Vous avez des modifications non enregistrées. Si vous quittez, elles seront perdues."
+#~ msgid "You have unsaved changes. If you leave, they'll be lost."
+#~ msgstr "Vous avez des modifications non enregistrées. Si vous quittez, elles seront perdues."
 
 msgid "You haven't added any terms manually yet"
 msgstr "Vous n'avez pas encore ajouté de termes manuellement"

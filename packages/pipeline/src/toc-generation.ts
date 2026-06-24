@@ -8,13 +8,13 @@ import type {
 import {
   tocLLMSchema,
   WebRenderingOutput,
-  PageSectioningOutput,
   DEFAULT_LLM_MAX_RETRIES,
 } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
 import type { Storage, PageData } from "@adt/storage"
 import { buildLanguageContext } from "./language-context.js"
 import { stripHtml } from "./glossary.js"
+import { getRenderSectioning } from "./render-sectioning.js"
 
 /** Role values (leaves) whose text acts as a section heading for TOC. */
 const HEADING_ROLE_TYPES = new Set(["heading"])
@@ -74,11 +74,8 @@ function collectHeadingsAndToc(
   let originalTocText: string | null = null
 
   for (const page of pages) {
-    const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-    if (!structuringRow) continue
-    const parsed = PageSectioningOutput.safeParse(structuringRow.data)
-    if (!parsed.success) continue
-    const sectioning = parsed.data
+    const sectioning = getRenderSectioning(storage, page.pageId)
+    if (!sectioning) continue
 
     // Check for TOC page — collect its rendered text.
     const hasTocSection = sectioning.sections.some(

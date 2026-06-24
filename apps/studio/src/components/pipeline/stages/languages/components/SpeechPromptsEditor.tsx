@@ -1,11 +1,16 @@
 import { useState, useEffect } from "react"
-import { createPortal } from "react-dom"
+import { useNavigate } from "@tanstack/react-router"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Save, Plus, X } from "lucide-react"
+import { Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/api/client"
+import { useFloatingSave } from "@/components/pipeline/components/floating-save"
+import { useSettingsRemount } from "@/hooks/use-settings-remount"
+import { useRegisterDirtyTabs } from "@/hooks/use-settings-dirty-tabs"
+import { useBookRun } from "@/hooks/use-book-run"
+import { useApiKey } from "@/hooks/use-api-key"
 import { useLingui } from "@lingui/react/macro"
 
 interface SpeechPromptsEditorProps {
@@ -13,9 +18,13 @@ interface SpeechPromptsEditorProps {
   headerTarget?: HTMLDivElement | null
 }
 
-export function SpeechPromptsEditor({ bookLabel, headerTarget }: SpeechPromptsEditorProps) {
+export function SpeechPromptsEditor({ bookLabel }: SpeechPromptsEditorProps) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
+  const remount = useSettingsRemount()
+  const { queueRun } = useBookRun()
+  const { apiKey, hasApiKey } = useApiKey()
+  const navigate = useNavigate()
   const { data, isLoading } = useQuery({
     queryKey: ["speech-instructions"],
     queryFn: () => api.getSpeechInstructions(),
@@ -65,6 +74,24 @@ export function SpeechPromptsEditor({ bookLabel, headerTarget }: SpeechPromptsEd
     }
   }
 
+  useRegisterDirtyTabs("settings:speech-prompts", "speech", dirty ? ["speech-prompts"] : [], true)
+  useFloatingSave({
+    id: "settings:speech-prompts",
+    dirty,
+    saving,
+    onSaveAndRerun: async () => {
+      await handleSave()
+      queueRun({ fromStage: "speech", toStage: "speech", apiKey })
+      navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "speech" } })
+    },
+    onSaveStay: async () => {
+      await handleSave()
+      queueRun({ fromStage: "speech", toStage: "speech", apiKey })
+    },
+    onDiscard: remount,
+    rerunDisabledReason: hasApiKey ? undefined : t`Add an API key to re-run`,
+  })
+
   if (isLoading) {
     return <div className="p-4 text-sm text-muted-foreground">{t`Loading speech instructions...`}</div>
   }
@@ -74,18 +101,6 @@ export function SpeechPromptsEditor({ bookLabel, headerTarget }: SpeechPromptsEd
 
   return (
     <div className="p-4 max-w-2xl space-y-6">
-      {headerTarget && createPortal(
-        <Button
-          size="sm"
-          className="h-7 px-2.5 text-xs bg-black/15 text-white hover:bg-black/25"
-          onClick={handleSave}
-          disabled={saving || !dirty}
-        >
-          <Save className="mr-1.5 h-3.5 w-3.5" />
-          {saving ? t`Saving...` : t`Save`}
-        </Button>,
-        headerTarget
-      )}
 
       {/* Default prompt */}
       <div className="space-y-2">

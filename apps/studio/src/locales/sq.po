@@ -70,6 +70,10 @@ msgstr "(shabllon)"
 msgid "{0} — type country or Enter for base"
 msgstr "{0} — shkruani vendin ose Enter për bazë"
 
+#. placeholder {0}: tab.label
+msgid "{0} (unsaved changes)"
+msgstr "{0} (ndryshime të paruajtura)"
+
 #. placeholder {0}: progress?.page
 #. placeholder {1}: progress?.totalPages
 msgid "{0} / {1}"
@@ -89,6 +93,10 @@ msgstr "{0} audio"
 msgid "{0} checks per page"
 msgstr "{0} kontrolle për faqe"
 
+#. placeholder {0}: getStageLabelI18n(uiStage)
+msgid "{0} complete"
+msgstr "{0} u krye"
+
 #. placeholder {0}: String(p.stats.decorative)
 msgid "{0} decorative"
 msgstr "{0} dekorative"
@@ -96,6 +104,10 @@ msgstr "{0} dekorative"
 #. placeholder {0}: entries.length
 msgid "{0} entries"
 msgstr "{0} hyrje"
+
+#. placeholder {0}: getStageLabelI18n(uiStage)
+msgid "{0} failed"
+msgstr "{0} dështoi"
 
 #. placeholder {0}: activeMetrics.flagged.length
 msgid "{0} flagged findings in this review"
@@ -165,6 +177,14 @@ msgstr "{0} nga {1} imazhe"
 #. placeholder {1}: visibleFindingsUniverse.length
 msgid "{0} of {1} items"
 msgstr "{0} nga {1} elemente"
+
+#. placeholder {0}: warnPages.length
+#. placeholder {1}: pageList.length
+msgid "{0} of {1} pages had no extracted text"
+msgstr "{0} nga {1} faqe nuk kanë tekst të nxjerrë"
+
+#~ msgid "{0} of {1} pages had no readable text"
+#~ msgstr "{0} nga {1} faqe nuk kanë tekst të lexueshëm"
 
 #. placeholder {0}: String(displayPages.length)
 #. placeholder {0}: book.pageCount
@@ -330,6 +350,10 @@ msgstr "{stageLabel} nuk është gati ende — çdo seksion në Storyboard ësht
 
 msgid "{stageLabel} isn't ready yet — Storyboard hasn't finished, so there's nothing to work with. Finish that stage first."
 msgstr "{stageLabel} nuk është gati ende — Storyboard nuk ka përfunduar, kështu që nuk ka asgjë me të cilën të punohet. Përfundoni atë fazë fillimisht."
+
+#. placeholder {0}: getStageStatusLabelI18n(statusKey)
+msgid "{stepLabel}: {0}"
+msgstr "{stepLabel}: {0}"
 
 msgid "{textCount} text leaves"
 msgstr "{textCount} gjethe teksti"
@@ -721,6 +745,9 @@ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar gjener
 msgid "Add an API key in Book settings to run translation."
 msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar përkthimin."
 
+msgid "Add an API key to re-run"
+msgstr "Shto një çelës API për të ri-ekzekutuar"
+
 msgid "Add at least one output language to run translation."
 msgstr "Shto të paktën një gjuhë dalëse për të ekzekutuar përkthimin."
 
@@ -729,6 +756,12 @@ msgstr "Shto autor"
 
 msgid "Add Book"
 msgstr "Shto Libër"
+
+msgid "Add Book: Choose a preset"
+msgstr "Shto Libër: Zgjidh një paracaktim"
+
+msgid "Add Book: Upload PDF"
+msgstr "Shto Libër: Ngarko PDF"
 
 msgid "Add caption…"
 msgstr "Shto titull…"
@@ -1321,6 +1354,9 @@ msgstr "Gjuha e librit"
 msgid "Book order"
 msgstr "Rendi i librit"
 
+msgid "Book package ready"
+msgstr "Paketa e librit gati"
+
 msgid "Book preview"
 msgstr "Pamje paraprake e librit"
 
@@ -1734,8 +1770,8 @@ msgstr "Konfiguroni zërat dhe thekset"
 msgid "Confirm merge"
 msgstr "Konfirmoni bashkimin"
 
-msgid "Confirm Rerun"
-msgstr "Konfirmoni Rikryerjen"
+#~ msgid "Confirm Rerun"
+#~ msgstr "Konfirmoni Rikryerjen"
 
 msgid "Connect an AI provider"
 msgstr "Lidheni një ofrues AI"
@@ -2047,6 +2083,10 @@ msgstr "Përkufizime dhe Terminologji"
 msgid "Delete"
 msgstr "Fshi"
 
+#. placeholder {0}: book.title ?? book.label
+msgid "Delete {0}"
+msgstr "Fshi {0}"
+
 msgid "Delete all speech"
 msgstr "Fshi të gjitha fjalët"
 
@@ -2161,8 +2201,11 @@ msgstr "Rregullat e çaktivizuara"
 msgid "Discard"
 msgstr "Hidh poshtë"
 
-msgid "Discard unsaved changes?"
-msgstr "Hidh poshtë ndryshimet e paruajtura?"
+msgid "Discard & leave"
+msgstr "Hidh poshtë dhe dil"
+
+#~ msgid "Discard unsaved changes?"
+#~ msgstr "Hidh poshtë ndryshimet e paruajtura?"
 
 msgid "Display"
 msgstr "Shfaqje"
@@ -2172,6 +2215,9 @@ msgstr "Shpërnda nëpërmjet aplikacioneve dhe bibliotekave të leximit të paj
 
 msgid "Don't have a project yet?"
 msgstr "Nuk ke ende një projekt?"
+
+msgid "done"
+msgstr "u krye"
 
 msgid "Done"
 msgstr "U krye"
@@ -2322,6 +2368,10 @@ msgstr "Ekosistem"
 msgid "Edit"
 msgstr "Redakto"
 
+#. placeholder {0}: book.title ?? book.label
+msgid "Edit {0}"
+msgstr "Redakto {0}"
+
 msgid "Edit & enrich"
 msgstr "Redakto dhe pasuro"
 
@@ -2343,8 +2393,11 @@ msgstr "Redakto Prompt-in"
 msgid "Edit Prompts"
 msgstr "Redakto Prompt-et"
 
-msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
-msgstr "Redaktoni shabllonin Liquid/HTML më poshtë. Ndryshimet ruhen kur klikoni Ruaj dhe Riekzekuto."
+#~ msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
+#~ msgstr "Redaktoni shabllonin Liquid/HTML më poshtë. Ndryshimet ruhen kur klikoni Ruaj dhe Riekzekuto."
+
+msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save."
+msgstr "Modifiko shabllonin Liquid/HTML më poshtë. Ndryshimet ruhen kur klikon Ruaj."
 
 msgid "Edit this image"
 msgstr "Redakto këtë imazh"
@@ -2616,6 +2669,9 @@ msgstr "Nxjerr të dhëna teksti dhe imazhi nga çdo faqe e PDF-it."
 
 msgid "Extracts the correct answer key from the generated activity HTML."
 msgstr "Nxjerr çelësin e saktë të përgjigjeve nga HTML-i i gjeneruar i aktivitetit."
+
+msgid "failed"
+msgstr "dështoi"
 
 msgid "Failed"
 msgstr "Dështoi"
@@ -3012,6 +3068,9 @@ msgstr "Titull"
 msgid "Headings"
 msgstr "Titujt"
 
+msgid "Heads up"
+msgstr "Kujdes"
+
 msgid "Heads up: regenerating images takes considerably longer than text translation — each selected image is redrawn for every output language."
 msgstr "Vini re: rigjenerimi i imazheve kërkon kohë shumë më të gjatë se përkthimi i tekstit — çdo imazh i zgjedhur rihiqet për çdo gjuhë dalje."
 
@@ -3105,6 +3164,9 @@ msgstr "Identifiko idenë kryesore"
 msgid "If you don't run Image Captions, your output will not be accessible to readers who use screen readers or can't see the images."
 msgstr "Nëse nuk ekzekutoni Titujt e Imazheve, dalja juaj nuk do të jetë e aksesueshme për lexuesit që përdorin lexues ekrani ose nuk mund t'i shohin imazhet."
 
+msgid "If you leave now, your unsaved changes will be lost."
+msgstr "Nëse del tani, ndryshimet e tua të paruajtura do të humbasin."
+
 msgid "Illustrated children's books"
 msgstr "Libra për fëmijë të ilustruar"
 
@@ -3131,6 +3193,9 @@ msgstr "Prerja e Imazheve"
 
 msgid "Image Cropping Prompt"
 msgstr "Prompt i Prerjes së Imazheve"
+
+msgid "Image edit complete"
+msgstr "Modifikimi i imazhit u krye"
 
 msgid "Image Edit Prompt"
 msgstr "Prompt i Editimit të Imazhit"
@@ -3251,6 +3316,9 @@ msgstr "Nëse nuk doni të konvertoni të gjithë librin, rregulloni rrëshqitë
 
 msgid "In development"
 msgstr "Në zhvillim"
+
+msgid "in progress"
+msgstr "në proces"
 
 msgid "in the book"
 msgstr "në libër"
@@ -3429,8 +3497,8 @@ msgstr "Hapësira ndër-rreshta"
 msgid "Least used"
 msgstr "Më pak i përdorur"
 
-msgid "Leave"
-msgstr "Lër"
+#~ msgid "Leave"
+#~ msgstr "Lër"
 
 msgid "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
 msgstr "Lëre në Asnjë për të ekzekutuar segmentimin në të gjitha imazhet e kualifikuara (sipas rregullave të pipeline)."
@@ -3533,6 +3601,9 @@ msgstr "Gati për LMS me gjurmim të përfundimit"
 
 msgid "Loading accessibility summary..."
 msgstr "Duke ngarkuar përmbledhjen e aksesueshmërisë..."
+
+msgid "Loading book config…"
+msgstr "Po ngarkohet konfigurimi i librit…"
 
 msgid "Loading Book..."
 msgstr "Duke ngarkuar librin..."
@@ -3894,6 +3965,9 @@ msgstr "Kërkon ndryshime"
 msgid "Needs rebuild"
 msgstr "Kërkon rindërtim"
 
+msgid "needs update"
+msgstr "nevojitet përditësim"
+
 msgid "Never"
 msgstr "Kurrë"
 
@@ -3993,6 +4067,9 @@ msgstr "Nuk ka rregulla të çaktiviziuara"
 
 msgid "No Easy Read for this page"
 msgstr "Nuk ka Lexim të Lehtë për këtë faqe"
+
+msgid "No embedded text layer — text was recovered from the page image"
+msgstr "Pa shtresë teksti të integruar — teksti u rikuperua nga imazhi i faqes"
 
 msgid "No entries match your search"
 msgstr "Asnjë hyrje nuk përputhet me kërkimin tuaj"
@@ -4129,6 +4206,9 @@ msgstr "Nuk ka kuize për këtë faqe"
 msgid "No quizzes match your search"
 msgstr "Asnjë kuiz nuk përputhet me kërkimin tuaj"
 
+#~ msgid "No readable text extracted from this page"
+#~ msgstr "Nuk u nxor tekst i lexueshëm nga kjo faqe"
+
 msgid "No rendered content for this section"
 msgstr "Nuk ka përmbajtje të gjeneruar për këtë seksion"
 
@@ -4224,6 +4304,9 @@ msgstr "Nuk u rishikua"
 
 msgid "Not run during the last execution — likely because its inputs weren't ready or its stage's settings turned it off."
 msgstr "Nuk u ekzekutua gjatë ekzekutimit të fundit — me shumë gjasë sepse hyrjet e tij nuk ishin gati ose cilësimet e fazës e çaktivizuan."
+
+msgid "not started"
+msgstr "e panisur"
 
 msgid "Not started yet"
 msgstr "Nuk ka filluar ende"
@@ -4559,6 +4642,9 @@ msgstr "Gama e Faqeve"
 msgid "Page range help"
 msgstr "Ndihmë për gamën e faqeve"
 
+msgid "Page re-rendered"
+msgstr "Faqja u rirenderua"
+
 msgid "Page Sectioning"
 msgstr "Ndarja e Faqeve në Seksione"
 
@@ -4645,6 +4731,9 @@ msgstr "Pamja paraprake e faqes PDF {pageLabel}"
 msgid "Pencil Sketch"
 msgstr "Skicë me Laps"
 
+msgid "Pending edits"
+msgstr "Ndryshime në pritje"
+
 msgid "Pending..."
 msgstr "Në pritje..."
 
@@ -4713,6 +4802,9 @@ msgstr "Pipeline · storyboard"
 
 msgid "Pipeline features"
 msgstr "Veçoritë e Pipeline"
+
+msgid "Pipeline stages"
+msgstr "Fazat e procesit"
 
 msgid "Pipeline Stages"
 msgstr "Fazat e Pipeline"
@@ -4882,6 +4974,9 @@ msgstr "Parametri i pyetjes"
 
 msgid "question"
 msgstr "pyetje"
+
+msgid "queued"
+msgstr "në radhë"
 
 msgid "Queued"
 msgstr "Në radhë"
@@ -5270,6 +5365,9 @@ msgstr "Riprovime"
 msgid "Retry"
 msgstr "Riprovo"
 
+msgid "Retry {stageLabel}"
+msgstr "Riprovo {stageLabel}"
+
 msgid "Retry Export"
 msgstr "Riprovo Eksportimin"
 
@@ -5430,6 +5528,9 @@ msgstr "Duke ekzekutuar"
 msgid "RUNNING"
 msgstr "NË EKZEKUTIM"
 
+msgid "Running {stageLabel}"
+msgstr "Duke ekzekutuar {stageLabel}"
+
 msgid "Running Sectioning will run Extract first, then section the extracted pages."
 msgstr "Ekzekutimi i Seksionimit do të ekzekutojë Ekstraktimin së pari, pastaj do të seksionojë faqet e ekstraktuara."
 
@@ -5472,38 +5573,44 @@ msgstr "Sans-serif"
 msgid "Save"
 msgstr "Ruaj"
 
-msgid "Save & Rerun"
-msgstr "Ruaj dhe Riekzekuto"
+msgid "Save & leave"
+msgstr "Ruaj dhe dil"
 
-msgid "Save & Rerun Captions"
-msgstr "Ruaj dhe Riekzekuto Titujt"
+msgid "Save & Re-run"
+msgstr "Ruaj dhe ri-ekzekuto"
 
-msgid "Save & Rerun Easy Read"
-msgstr "Ruaj dhe Riekzekuto Leximin e Lehtë"
+#~ msgid "Save & Rerun"
+#~ msgstr "Ruaj dhe Riekzekuto"
 
-msgid "Save & Rerun Extraction"
-msgstr "Ruaj dhe Riekzekuto Nxjerrjen"
+#~ msgid "Save & Rerun Captions"
+#~ msgstr "Ruaj dhe Riekzekuto Titujt"
 
-msgid "Save & Rerun Glossary"
-msgstr "Ruaj dhe Riekzekuto Glosarin"
+#~ msgid "Save & Rerun Easy Read"
+#~ msgstr "Ruaj dhe Riekzekuto Leximin e Lehtë"
 
-msgid "Save & Rerun Quizzes"
-msgstr "Ruaj dhe Riekzekuto Kuizet"
+#~ msgid "Save & Rerun Extraction"
+#~ msgstr "Ruaj dhe Riekzekuto Nxjerrjen"
 
-msgid "Save & Rerun Sectioning"
-msgstr "Ruaj dhe Riekzekuto Seksionimin"
+#~ msgid "Save & Rerun Glossary"
+#~ msgstr "Ruaj dhe Riekzekuto Glosarin"
 
-msgid "Save & Rerun Speech"
-msgstr "Ruaj dhe Riekzekuto Fjalimin"
+#~ msgid "Save & Rerun Quizzes"
+#~ msgstr "Ruaj dhe Riekzekuto Kuizet"
 
-msgid "Save & Rerun Storyboard"
-msgstr "Ruaj dhe Riekzekuto Storyboard"
+#~ msgid "Save & Rerun Sectioning"
+#~ msgstr "Ruaj dhe Riekzekuto Seksionimin"
 
-msgid "Save & Rerun TOC Generation"
-msgstr "Ruaj dhe Riekzekuto Gjenerimin e Përmbajtjes"
+#~ msgid "Save & Rerun Speech"
+#~ msgstr "Ruaj dhe Riekzekuto Fjalimin"
 
-msgid "Save & Rerun Translations"
-msgstr "Ruaj dhe Riekzekuto Përkthimet"
+#~ msgid "Save & Rerun Storyboard"
+#~ msgstr "Ruaj dhe Riekzekuto Storyboard"
+
+#~ msgid "Save & Rerun TOC Generation"
+#~ msgstr "Ruaj dhe Riekzekuto Gjenerimin e Përmbajtjes"
+
+#~ msgid "Save & Rerun Translations"
+#~ msgstr "Ruaj dhe Riekzekuto Përkthimet"
 
 msgid "Save changes"
 msgstr "Ruaj ndryshimet"
@@ -5532,8 +5639,8 @@ msgstr "Ruaj cilësimet"
 msgid "Saved. Re-package Preview to apply."
 msgstr "U ruajt. Ri-pako Parapamjen për ta aplikuar."
 
-msgid "Saving..."
-msgstr "Po ruhet..."
+#~ msgid "Saving..."
+#~ msgstr "Po ruhet..."
 
 msgid "Saving…"
 msgstr "Po ruhet…"
@@ -5982,6 +6089,9 @@ msgstr "Përditësim Softueri"
 msgid "Software update status"
 msgstr "Gjendja e përditësimit të softuerit"
 
+msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
+msgstr "Disa faqe nuk kanë shtresë teksti të integruar — teksti u rikuperua nga imazhi i faqes. Preferoni një PDF të bazuar në tekst."
+
 msgid "Something went wrong"
 msgstr "Diçka shkoi keq"
 
@@ -6148,6 +6258,9 @@ msgstr "HTML i Strukturuar"
 msgid "Structures each page into a tree of sections and nodes."
 msgstr "Strukturon çdo faqe në një pemë seksionesh dhe nyjesh."
 
+msgid "Studio actions"
+msgstr "Veprimet e studios"
+
 msgid "Style"
 msgstr "Stili"
 
@@ -6232,6 +6345,16 @@ msgstr "Klasa Tailwind"
 msgid "Takes liberties and produces something similar."
 msgstr "Merr liri dhe prodhon diçka të ngjashme."
 
+msgid "Task complete"
+msgstr "Detyra u krye"
+
+msgid "Task failed"
+msgstr "Detyra dështoi"
+
+#. placeholder {0}: d.error
+msgid "Task failed: {0}"
+msgstr "Detyra dështoi: {0}"
+
 msgid "Task Running"
 msgstr "Detyra po Ekzekutohet"
 
@@ -6304,6 +6427,9 @@ msgstr "Ngjyra e tekstit: {0}"
 
 msgid "Text Only"
 msgstr "Vetëm Tekst"
+
+msgid "Text recovered from the page image — this page has no embedded text layer"
+msgstr "Teksti u rikuperua nga imazhi i faqes — kjo faqe nuk ka shtresë teksti të integruar"
 
 msgid "Text roles the LLM may assign to text in the content tree. Pruned roles are classified but excluded from rendering."
 msgstr "Rolet tekstuale që LLM mund t'u caktojë teksteve në pemën e përmbajtjes. Rolet e eliminuara klasifikohen por përjashtohen nga renderimi."
@@ -6452,8 +6578,14 @@ msgstr "Bota para nesh"
 msgid "Theme"
 msgstr "Tema"
 
+msgid "These edits haven't been applied yet. Leave and they'll be lost — or save and re-run to apply them. The run continues in the background while you keep working."
+msgstr "Këto ndryshime nuk janë zbatuar ende. Nëse del, do të humbasin — ose ruaji dhe ri-ekzekuto për t'i zbatuar. Ekzekutimi vazhdon në sfond ndërsa ti punon."
+
 msgid "These features improve access for people with disabilities. Running them before exporting helps your book meet ADT accessibility standards."
 msgstr "Këto veçori përmirësojnë aksesin për personat me aftësi të kufizuara. Ekzekutimi i tyre para eksportimit ndihmon librin tuaj të përmbushë standardet e aksesibilitetit ADT."
+
+msgid "These pages have no embedded text layer, but the Sectioning step recovered text from the page images — so this PDF looks scanned or image-based. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
+msgstr "Këto faqe nuk kanë shtresë teksti të integruar, por hapi i Seksionimit rikuperoi tekst nga imazhet e faqeve — pra ky PDF duket i skanuar ose i bazuar në imazhe. Procesi ende mund të punojë me tekstin e rikuperuar, por për përmbledhje, metadata dhe përkthime më të mira, provoni të siguroni një version të këtij PDF-je të bazuar në tekst (me një shtresë teksti reale) në vend të një kopjeje të skanuar."
 
 msgid "These stages are optional. They don't depend on each other — run any of them in any order once the core pipeline is complete."
 msgstr "Këto faza janë opsionale. Ato nuk varen nga njëra-tjetra — ekzekuto cilëndo prej tyre në çfarëdo rendi pasi të jetë plotësuar tubi kryesor."
@@ -6516,6 +6648,9 @@ msgstr "Ky është Pip! Ai është një qen i lumtur karamel me bisht shumë lë
 msgid "This page has no captioned images"
 msgstr "Kjo faqe nuk ka imazhe me tituj"
 
+msgid "This page has no embedded text layer — the text below was recovered from the page image (vision). For better summaries, metadata, and translations, prefer a text-based version of this PDF."
+msgstr "Kjo faqe nuk ka shtresë teksti të integruar — teksti më poshtë u rikuperua nga imazhi i faqes (vegim). Për përmbledhje, metadata dhe përkthime më të mira, përdorni një version të këtij PDF-je të bazuar në tekst."
+
 msgid "This page has no entries to synthesize"
 msgstr "Kjo faqe nuk ka hyrje për të sintetizuar"
 
@@ -6528,11 +6663,32 @@ msgstr "Kjo faqe nuk ka blloqe teksti të thjeshtuara"
 msgid "This page has no storyboard sections"
 msgstr "Kjo faqe nuk ka seksione storyboard"
 
+#~ msgid "This page has no text layer — it appears to be a scanned or image-only page. The Sectioning step may still recover text from the page image. For reliable text, first try to obtain a better-quality, text-based version of this PDF; only if none is available, run OCR on the file before importing."
+#~ msgstr "Kjo faqe nuk ka shtresë teksti: duket se është një faqe e skanuar ose vetëm me imazhe. Hapi i Seksionimit mund të rikuperojë ende njëfarë teksti nga imazhi i faqes. Për tekst të besueshëm, fillimisht provoni të siguroni një version më cilësor të këtij PDF-je të bazuar në tekst; vetëm nëse asnjë nuk është i disponueshëm, aplikoni OCR në skedar para se ta importoni."
+
+#~ msgid "This page has no text layer — it appears to be a scanned or image-only page. The Sectioning step may still recover text from the page image. For reliable text, run OCR on this PDF before importing."
+#~ msgstr "Kjo faqe nuk ka shtresë teksti: duket se është një faqe e skanuar ose vetëm me imazhe. Hapi i Seksionimit mund të rikuperojë ende njëfarë teksti nga imazhi i faqes. Për tekst të besueshëm, aplikoni OCR në këtë PDF para se ta importoni."
+
 msgid "This page has no translatable text entries"
 msgstr "Kjo faqe nuk ka hyrje teksti të përkthyeshme"
 
 msgid "This page has not been reviewed yet"
 msgstr "Kjo faqe nuk është rishikuar akoma"
+
+#~ msgid "This page renders text, but its fonts could not be decoded (a font/encoding issue in the PDF). The Sectioning step may still recover the text from the page image. For reliable text, first try to obtain a cleaner, text-based version of this PDF; only if none is available, run OCR on the file before importing."
+#~ msgstr "Kjo faqe shfaq tekst, por fontet e saj nuk mund të dekodoheshin (një problem fonti ose kodimi në PDF). Hapi i Seksionimit mund të rikuperojë ende tekstin nga imazhi i faqes. Për tekst të besueshëm, fillimisht provoni të siguroni një version më të pastër të këtij PDF-je të bazuar në tekst; vetëm nëse asnjë nuk është i disponueshëm, aplikoni OCR në skedar para se ta importoni."
+
+#~ msgid "This page renders text, but its fonts could not be decoded (a font/encoding issue in the PDF). The Sectioning step may still recover the text from the page image. For reliable text, supply a text-based PDF or run OCR on this file before importing."
+#~ msgstr "Kjo faqe shfaq tekst, por fontet e saj nuk mund të dekodoheshin (një problem fonti ose kodimi në PDF). Hapi i Seksionimit mund të rikuperojë ende tekstin nga imazhi i faqes. Për tekst të besueshëm, jepni një PDF të bazuar në tekst ose aplikoni OCR në këtë skedar para se ta importoni."
+
+msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
+msgstr "Shtresa e tekstit të integruar e kësaj faqeje është bosh, por hapi i Seksionimit rikuperoi tekst nga imazhi i faqes — pra duket si një faqe e skanuar ose vetëm me imazhe. Procesi ende mund të punojë me tekstin e rikuperuar, por për përmbledhje, metadata dhe përkthime më të mira, provoni të siguroni një version të këtij PDF-je të bazuar në tekst (me një shtresë teksti reale) në vend të një kopjeje të skanuar."
+
+#~ msgid "This PDF appears to be image-based or uses fonts we can't read as text, so the extracted text may be incomplete. The Sectioning step can still recover some text from the page image, but for better summaries, metadata, and translations, first try to obtain a better-quality, text-based version of this PDF — and only run OCR on it if no such version is available."
+#~ msgstr "Ky PDF duket se është i bazuar në imazhe ose përdor fonte që nuk mund t'i lexojmë si tekst, prandaj teksti i nxjerrë mund të jetë i paplotë. Hapi i Seksionimit mund të rikuperojë ende një pjesë të tekstit nga imazhi i faqes, por për përmbledhje, metadata dhe përkthime më të mira, fillimisht provoni të siguroni një version më cilësor të këtij PDF-je të bazuar në tekst — dhe aplikoni OCR vetëm nëse asnjë version i tillë nuk është i disponueshëm."
+
+#~ msgid "This PDF appears to be image-based or uses fonts we can't read as text, so the extracted text may be incomplete. The Sectioning step can still recover some text from the page image, but for better summaries, metadata, and translations, supply a text-based PDF or run OCR on this file before importing."
+#~ msgstr "Ky PDF duket se është i bazuar në imazhe ose përdor fonte që nuk mund t'i lexojmë si tekst, prandaj teksti i nxjerrë mund të jetë i paplotë. Hapi i Seksionimit mund të rikuperojë ende një pjesë të tekstit nga imazhi i faqes, por për përmbledhje, metadata dhe përkthime më të mira, jepni një PDF të bazuar në tekst ose aplikoni OCR në këtë skedar para se ta importoni."
 
 msgid "This permanently deletes every uploaded video and clears all section assignments. This can't be undone."
 msgstr "Kjo fshin përgjithmonë çdo video të ngarkuar dhe pastron të gjitha caktimet e seksioneve. Ky veprim nuk mund të zhbëhet."
@@ -6567,38 +6723,38 @@ msgstr "Kjo sesion po përdor një fotografi të vjetër të listës së kontrol
 msgid "This text is only perceptible to assistive technologies."
 msgstr "Ky tekst perceptohet vetëm nga teknologjitë ndihmëse."
 
-msgid "This will save your Easy Read settings and generate a new editable Easy Read version."
-msgstr "Kjo do të ruajë cilësimet tuaja Easy Read dhe do të gjenerojë një version të ri të redaktueshëm Easy Read."
+#~ msgid "This will save your Easy Read settings and generate a new editable Easy Read version."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja Easy Read dhe do të gjenerojë një version të ri të redaktueshëm Easy Read."
 
-msgid "This will save your settings and re-generate the table of contents."
-msgstr "Kjo do të ruajë cilësimet tuaja dhe do të rigjenerojë tabelën e përmbajtjes."
+#~ msgid "This will save your settings and re-generate the table of contents."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja dhe do të rigjenerojë tabelën e përmbajtjes."
 
-msgid "This will save your settings and re-run glossary generation."
-msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë gjenerimin e fjalorit."
+#~ msgid "This will save your settings and re-run glossary generation."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë gjenerimin e fjalorit."
 
-msgid "This will save your settings and re-run image captioning."
-msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë titullimin e imazheve."
+#~ msgid "This will save your settings and re-run image captioning."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë titullimin e imazheve."
 
-msgid "This will save your settings and re-run quiz generation."
-msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë gjenerimin e testeve."
+#~ msgid "This will save your settings and re-run quiz generation."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë gjenerimin e testeve."
 
-msgid "This will save your settings and re-run sectioning for all pages."
-msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë seksionimin për të gjitha faqet."
+#~ msgid "This will save your settings and re-run sectioning for all pages."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë seksionimin për të gjitha faqet."
 
-msgid "This will save your settings and re-run speech generation."
-msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë gjenerimin e të folurit."
+#~ msgid "This will save your settings and re-run speech generation."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë gjenerimin e të folurit."
 
-msgid "This will save your settings and re-run the extraction pipeline. Any manual edits to extracted text will be overwritten for affected pages."
-msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë tubin e nxjerrjes. Çdo redaktim manual i tekstit të nxjerrë do të mbishkruhet për faqet e prekura."
+#~ msgid "This will save your settings and re-run the extraction pipeline. Any manual edits to extracted text will be overwritten for affected pages."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë tubin e nxjerrjes. Çdo redaktim manual i tekstit të nxjerrë do të mbishkruhet për faqet e prekura."
 
-msgid "This will save your settings and re-run the storyboard pipeline. Only rendering will be regenerated — your existing sections will be preserved."
-msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë tubin storyboard. Vetëm renderimi do të rigjerohet — seksionet tuaja ekzistuese do të ruhen."
+#~ msgid "This will save your settings and re-run the storyboard pipeline. Only rendering will be regenerated — your existing sections will be preserved."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë tubin storyboard. Vetëm renderimi do të rigjerohet — seksionet tuaja ekzistuese do të ruhen."
 
-msgid "This will save your settings and re-run the storyboard pipeline. Sectioning and rendering will be run for all pages."
-msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë tubin storyboard. Seksionimi dhe renderimi do të ekzekutohen për të gjitha faqet."
+#~ msgid "This will save your settings and re-run the storyboard pipeline. Sectioning and rendering will be run for all pages."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë tubin storyboard. Seksionimi dhe renderimi do të ekzekutohen për të gjitha faqet."
 
-msgid "This will save your settings and re-run translations, rebuilding the text catalog and translating to output languages."
-msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë përkthimet, duke rindërtuar katalogun e tekstit dhe duke përkthyer në gjuhët e daljes."
+#~ msgid "This will save your settings and re-run translations, rebuilding the text catalog and translating to output languages."
+#~ msgstr "Kjo do të ruajë cilësimet tuaja dhe do të riekzekutojë përkthimet, duke rindërtuar katalogun e tekstit dhe duke përkthyer në gjuhët e daljes."
 
 msgid "Thorium Reader"
 msgstr "Thorium Reader"
@@ -7029,6 +7185,9 @@ msgstr "Shiko licencën"
 msgid "View page"
 msgstr "Shiko faqen"
 
+msgid "vision"
+msgstr "vegim"
+
 msgid "Visual & sensory cues"
 msgstr "Sinjale vizuale dhe shqisore"
 
@@ -7128,6 +7287,9 @@ msgstr "Peshë"
 msgid "Weights:"
 msgstr "Peshat:"
 
+msgid "Welcome"
+msgstr "Mirë se vini"
+
 msgid "Welcome to ADT Studio"
 msgstr "Mirë se vini në ADT Studio"
 
@@ -7200,6 +7362,9 @@ msgstr "Fjala dhe përkufizimi kërkohen."
 msgid "Word Highlighting"
 msgstr "Theksim fjalësh"
 
+msgid "Word highlighting ready"
+msgstr "Theksimi i fjalëve gati"
+
 msgid "Word-level highlighting"
 msgstr "Theksim në nivel fjale"
 
@@ -7218,8 +7383,8 @@ msgstr "Mbështjell kërkesat 'Gjenero të re'. Mbështet variablat user_prompt,
 msgid "You can export at this stage"
 msgstr "Mund të eksportosh në këtë fazë"
 
-msgid "You have unsaved changes. If you leave, they'll be lost."
-msgstr "Ke ndryshime të paruajtura. Nëse largohesh, ato do të humbasin."
+#~ msgid "You have unsaved changes. If you leave, they'll be lost."
+#~ msgstr "Ke ndryshime të paruajtura. Nëse largohesh, ato do të humbasin."
 
 msgid "You haven't added any terms manually yet"
 msgstr "Nuk ke shtuar ende asnjë term manualisht"
