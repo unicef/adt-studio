@@ -34,10 +34,15 @@ export const defaultWizardValues = {
   imageFilterMaxSide: 5000,
   editingLanguage: "",
   styleguide: "",
-  /** UI-only: what to do after creating the book. "process" runs extraction
-   *  immediately; "split" skips it so the book can be handed out as parts.
-   *  Not written to book config. */
-  intent: "process" as "process" | "split",
+  /** UI-only: how much of the book to process here, and how. Set in step 1
+   *  alongside the page-range slider (same page-window primitive):
+   *  - "whole" — process every page on this machine.
+   *  - "range" — process only `startPage`..`endPage` here (terminal subset).
+   *  - "split" — this is the canonical full book; defer extraction and hand
+   *    out page-range parts to merge back later.
+   *  Only "range" writes `start_page`/`end_page` to config; only "whole"/"range"
+   *  kick off extraction. Not itself written to book config. */
+  scope: "whole" as "whole" | "range" | "split",
 }
 
 export type WizardFormValues = typeof defaultWizardValues

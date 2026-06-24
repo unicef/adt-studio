@@ -5,6 +5,7 @@ import { Scissors, Combine, Download, Upload, AlertTriangle, CheckCircle2, Loade
 import { useBook, useRegenerateBookSummary } from "../../hooks/use-books"
 import { usePartInfo, usePreviewMerge, useMergePart, useSplitStatus } from "../../hooks/use-parts"
 import { useApiKey } from "../../hooks/use-api-key"
+import { useActiveConfig } from "../../hooks/use-debug"
 import { useSourcePdfInfo } from "../../hooks/use-source-pdf-info"
 import { api, type MergePreview, type MergeResult, type PageRange, type SplitStatus } from "../../api/client"
 import { Button } from "../ui/button"
@@ -13,6 +14,54 @@ import { Badge } from "../ui/badge"
 
 const fmtRange = (r: PageRange) =>
   r.startPage === r.endPage ? `${r.startPage}` : `${r.startPage}–${r.endPage}`
+
+const rangeKey = (r: PageRange) => `${r.startPage}-${r.endPage}`
+
+/**
+ * Split `1..pageCount` into `n` contiguous, roughly-equal page windows (sizes
+ * differ by at most one page). In `spreadMode` the split is computed in
+ * two-page-spread units — assuming spreads pair as (1,2), (3,4), … — so a
+ * window never splits a spread; each window then starts on an odd page and
+ * ends on an even one. These are starting suggestions the coordinator can
+ * still adjust per export.
+ */
+export function computeEqualWindows(
+  pageCount: number,
+  n: number,
+  opts: { spreadMode?: boolean } = {},
+): PageRange[] {
+  if (pageCount <= 0 || n <= 0) return []
+
+  if (opts.spreadMode) {
+    const spreads = Math.ceil(pageCount / 2) // spread i covers pages [2i+1, 2i+2]
+    const parts = Math.min(n, spreads)
+    const base = Math.floor(spreads / parts)
+    const remainder = spreads % parts
+    const windows: PageRange[] = []
+    let spreadStart = 0
+    for (let i = 0; i < parts; i++) {
+      const count = base + (i < remainder ? 1 : 0)
+      const startPage = spreadStart * 2 + 1
+      const endPage = Math.min((spreadStart + count) * 2, pageCount)
+      windows.push({ startPage, endPage })
+      spreadStart += count
+    }
+    return windows
+  }
+
+  const parts = Math.min(n, pageCount)
+  const base = Math.floor(pageCount / parts)
+  const remainder = pageCount % parts
+  const windows: PageRange[] = []
+  let start = 1
+  for (let i = 0; i < parts; i++) {
+    const size = base + (i < remainder ? 1 : 0)
+    const end = Math.min(start + size - 1, pageCount)
+    windows.push({ startPage: start, endPage: end })
+    start = end + 1
+  }
+  return windows
+}
 
 /**
  * Split a book into page-range "parts" for independent processing, and merge
@@ -23,6 +72,8 @@ export function BookPartsPanel({ bookLabel }: { bookLabel: string }) {
   const { data: partInfo } = usePartInfo(bookLabel)
   const { data: pdfInfo } = useSourcePdfInfo(bookLabel)
   const { data: splitStatus } = useSplitStatus(bookLabel)
+  const { data: activeConfig } = useActiveConfig(bookLabel)
+  const spreadMode = activeConfig?.merged?.spread_mode === true
   // Base the export range on the full source PDF (works before extraction and
   // isn't capped when the book was extracted with a window). Fall back to the
   // extracted page count.
@@ -45,7 +96,7 @@ export function BookPartsPanel({ bookLabel }: { bookLabel: string }) {
       </header>
 
       <div className="grid grid-cols-1 gap-px bg-border/60 md:grid-cols-2">
-        <ExportPart bookLabel={bookLabel} pageCount={pageCount} status={splitStatus} />
+        <ExportPart bookLabel={bookLabel} pageCount={pageCount} spreadMode={spreadMode} status={splitStatus} />
         <MergePart bookLabel={bookLabel} status={splitStatus} />
       </div>
     </section>
@@ -101,27 +152,43 @@ function MergeCoverage({ status }: { status: SplitStatus | undefined }) {
 function ExportPart({
   bookLabel,
   pageCount,
+  spreadMode,
   status,
 }: {
   bookLabel: string
   pageCount: number
+  spreadMode: boolean
   status: SplitStatus | undefined
 }) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
   const [startPage, setStartPage] = useState(1)
   const [endPage, setEndPage] = useState(pageCount > 0 ? pageCount : 1)
-  // While false, the picker auto-follows the next un-exported gap. Manual edits
-  // pin it; exporting releases it so it advances to the next gap.
+  // While false, the picker auto-follows the next un-exported window (the equal-
+  // parts plan if one is set, otherwise the next gap). Manual edits pin it;
+  // exporting releases it so it advances.
   const [touched, setTouched] = useState(false)
+  // Optional "split into N equal parts" plan. When set, the picker walks these
+  // windows in order, skipping ones already exported.
+  const [partsInput, setPartsInput] = useState("")
+  const [plan, setPlan] = useState<PageRange[] | null>(null)
 
   const nextGap = status?.nextGap
   const nextGapKey = nextGap ? `${nextGap.startPage}-${nextGap.endPage}` : ""
+  const exportedKey = (status?.exported ?? []).map(rangeKey).join(",")
 
-  // Default the picker to the first un-exported gap (e.g. after exporting 1–10,
-  // jump to 11–N; if only the tail is exported, offer 1–10).
+  // Default the picker to the next un-exported window. With a plan, that's the
+  // first plan window not yet exported; otherwise the next gap (e.g. after
+  // exporting 1–10, jump to 11–N).
   useEffect(() => {
     if (touched) return
+    if (plan && plan.length > 0) {
+      const exported = new Set(exportedKey ? exportedKey.split(",") : [])
+      const next = plan.find((w) => !exported.has(rangeKey(w))) ?? plan[plan.length - 1]
+      setStartPage(next.startPage)
+      setEndPage(next.endPage)
+      return
+    }
     if (nextGap) {
       setStartPage(nextGap.startPage)
       setEndPage(nextGap.endPage)
@@ -130,7 +197,18 @@ function ExportPart({
       setStartPage(1)
       setEndPage(pageCount)
     }
-  }, [nextGapKey, pageCount, touched, status, nextGap])
+  }, [nextGapKey, pageCount, touched, status, nextGap, plan, exportedKey])
+
+  const onPartsChange = (raw: string) => {
+    setPartsInput(raw)
+    const n = Number(raw.trim())
+    if (raw.trim() && Number.isInteger(n) && n >= 2 && pageCount > 0) {
+      setPlan(computeEqualWindows(pageCount, n, { spreadMode }))
+      setTouched(false)
+    } else {
+      setPlan(null)
+    }
+  }
 
   const max = pageCount > 0 ? pageCount : undefined
   const invalid = startPage < 1 || endPage < startPage || (max !== undefined && endPage > max)
@@ -160,6 +238,45 @@ function ExportPart({
           merge their result back here.
         </Trans>
       </p>
+
+      {pageCount > 0 && (
+        <div className="flex flex-col gap-1.5">
+          <label className="flex items-center gap-2">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <Trans>Split into</Trans>
+            </span>
+            <Input
+              type="number"
+              min={2}
+              max={pageCount}
+              placeholder="N"
+              value={partsInput}
+              onChange={(e) => onPartsChange(e.target.value)}
+              className="w-16 tabular-nums"
+            />
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              <Trans>equal parts</Trans>
+            </span>
+          </label>
+          {plan && plan.length > 0 && (
+            <div className="flex flex-wrap items-center gap-1">
+              {plan.map((w) => {
+                const done = (status?.exported ?? []).some((r) => rangeKey(r) === rangeKey(w))
+                return (
+                  <Badge
+                    key={rangeKey(w)}
+                    variant={done ? "secondary" : "outline"}
+                    className="text-[10px] px-1.5 py-0 tabular-nums"
+                  >
+                    {done && <CheckCircle2 className="mr-1 h-3 w-3 text-emerald-600" />}
+                    {fmtRange(w)}
+                  </Badge>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="flex items-end gap-3">
         <label className="flex flex-col gap-1">

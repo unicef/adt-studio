@@ -2499,6 +2499,9 @@ msgstr "EPUB 3"
 msgid "EPUB Export"
 msgstr "Export EPUB"
 
+msgid "equal parts"
+msgstr "parties égales"
+
 msgid "Error"
 msgstr "Erreur"
 
@@ -2632,6 +2635,9 @@ msgstr "Extrait Texte"
 
 msgid "Extracting..."
 msgstr "Extraction..."
+
+msgid "Extraction is skipped now. After the book is created, use the Split & merge panel on its overview to export page-range parts and merge the completed results back."
+msgstr "L'extraction est ignorée pour l'instant. Une fois le livre créé, utilisez le panneau Diviser et fusionner de sa vue d'ensemble pour exporter des parties par plage de pages et fusionner les résultats terminés."
 
 msgid "Extraction notes"
 msgstr "Notes d'extraction"
@@ -3019,6 +3025,9 @@ msgstr "Regroupement du contenu par objectif, puis mise en page de chaque sectio
 msgid "Groups image regions into discrete illustrations on each page."
 msgstr "Regroupe les régions d'image en illustrations distinctes sur chaque page."
 
+msgid "Hand out page-range parts and merge them back later."
+msgstr "Distribuez des parties par plage de pages et fusionnez-les plus tard."
+
 msgid "Handwriting"
 msgstr "Manuscrite"
 
@@ -3099,6 +3108,9 @@ msgstr "Comment ça marche"
 
 msgid "How many pages of content go into each quiz. A lower number means more quizzes across the book."
 msgstr "Combien de pages de contenu entrent dans chaque quiz. Un nombre plus faible signifie plus de quiz dans le livre."
+
+msgid "How much of this book do you want to process?"
+msgstr "Quelle partie de ce livre souhaitez-vous traiter ?"
 
 msgid "How quizzes work"
 msgstr "Comment fonctionnent les quiz"
@@ -4609,6 +4621,9 @@ msgstr "Mode de page"
 msgid "Page preview"
 msgstr "Aperçu de la page"
 
+msgid "Page range"
+msgstr "Plage de pages"
+
 msgid "Page Range"
 msgstr "Plage de pages"
 
@@ -4878,8 +4893,14 @@ msgstr "Page précédente"
 msgid "Previous slide"
 msgstr "Diapositive précédente"
 
-msgid "Process the whole book here"
-msgstr "Traiter tout le livre ici"
+msgid "Process every page on this machine."
+msgstr "Traiter toutes les pages sur cette machine."
+
+msgid "Process only a range of pages here."
+msgstr "Traiter uniquement une plage de pages ici."
+
+#~ msgid "Process the whole book here"
+#~ msgstr "Traiter tout le livre ici"
 
 msgid "Processing metadata…"
 msgstr "Traitement des métadonnées…"
@@ -6017,8 +6038,8 @@ msgstr "sk-..."
 msgid "sk-ant-..."
 msgstr "sk-ant-..."
 
-msgid "Skip extraction — hand out page-range parts and merge the results back later."
-msgstr "Ignorer l'extraction : distribuez les parties par plage de pages et fusionnez les résultats plus tard."
+#~ msgid "Skip extraction — hand out page-range parts and merge the results back later."
+#~ msgstr "Ignorer l'extraction : distribuez les parties par plage de pages et fusionnez les résultats plus tard."
 
 msgid "Skip for now"
 msgstr "Passer pour l'instant"
@@ -6122,12 +6143,18 @@ msgstr "Divisé · toutes les parties fusionnées"
 msgid "Split & merge"
 msgstr "Diviser et fusionner"
 
+msgid "Split into"
+msgstr "Diviser en"
+
 #. placeholder {0}: book.split.exportedParts
 msgid "Split into {0} part(s)"
 msgstr "Divisé en {0} partie(s)"
 
-msgid "Split into parts for others"
-msgstr "Diviser en parties pour d'autres"
+msgid "Split into parts"
+msgstr "Diviser en parties"
+
+#~ msgid "Split into parts for others"
+#~ msgstr "Diviser en parties pour d'autres"
 
 msgid "Split segments"
 msgstr "Diviser segments"
@@ -6159,8 +6186,8 @@ msgstr "Démarrer"
 msgid "Start a reviewer session"
 msgstr "Démarrer une session de révision"
 
-msgid "Start extracting on this machine right after creating the book."
-msgstr "Lancez l'extraction sur cette machine juste après la création du livre."
+#~ msgid "Start extracting on this machine right after creating the book."
+#~ msgstr "Lancez l'extraction sur cette machine juste après la création du livre."
 
 msgid "Start from a PDF"
 msgstr "Partez d'un PDF"
@@ -7282,8 +7309,8 @@ msgstr "Ce qu'il y a à l'intérieur"
 msgid "What's new"
 msgstr "Quoi de neuf"
 
-msgid "What's next for this book?"
-msgstr "Et ensuite pour ce livre ?"
+#~ msgid "What's next for this book?"
+#~ msgstr "Et ensuite pour ce livre ?"
 
 msgid "When describing images, mention any culturally specific objects, locations, or recurring characters by name."
 msgstr "Lors de la description des images, mentionnez par leur nom tout objet, lieu ou personnage récurrent culturellement spécifique."
@@ -7308,6 +7335,9 @@ msgstr "Où tout commence"
 
 msgid "While editing"
 msgstr "Pendant l'édition"
+
+msgid "Whole book"
+msgstr "Livre entier"
 
 msgid "Whole-book checks for packaged ADT output, plus reviewer findings captured from Preview."
 msgstr "Vérifications du livre entier pour la sortie ADT empaquetée, plus les résultats du réviseur capturés depuis l'aperçu."

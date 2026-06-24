@@ -55,9 +55,10 @@ export function buildConfigOverrides(values: WizardFormValues): Record<string, u
   if (values.styleguide.trim()) config.styleguide = values.styleguide.trim()
   if (values.editingLanguage.trim()) config.editing_language = values.editingLanguage.trim()
   if (values.outputLanguages.length > 0) config.output_languages = values.outputLanguages
-  // When splitting, the whole book is the basis and per-part page windows are
-  // set at export time — so don't bake a global page range into the book.
-  if (values.intent !== "split") {
+  // Only a "range" scope bakes a global page window into the book. "whole"
+  // processes every page; "split" treats the whole book as the canonical basis
+  // and sets per-part windows at export time — neither writes start/end_page.
+  if (values.scope === "range") {
     if (validPageRange && parsedStartPage !== undefined) config.start_page = parsedStartPage
     if (validPageRange && parsedEndPage !== undefined) config.end_page = parsedEndPage
   }
