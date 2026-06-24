@@ -145,6 +145,13 @@ export function AttachedFontsList({
                     )
                     return
                   }
+                  if (value === "heading" || value === "caption") {
+                    applyFont.mutate(
+                      { scope: value, font: { kind: "registry", id: font.id } },
+                      { onError: (err) => onError(err.message) },
+                    )
+                    return
+                  }
                   updateFont.mutate({
                     fontId: font.id,
                     role: value as BookFontRole,
