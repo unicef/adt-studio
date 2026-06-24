@@ -43,6 +43,7 @@ import {
 } from "@/components/pipeline/pipeline-i18n"
 import type { BookSummary } from "@/api/client"
 import { getBookCoverUrl } from "@/api/client"
+import { cn } from "@/lib/utils"
 
 type BookSortKey = "modified" | "created" | "alphabetical"
 
@@ -207,7 +208,10 @@ function BookRow({
     [book.completedStages],
   )
   const [coverFailed, setCoverFailed] = useState(false)
-  const showCover = book.pageCount > 0 && !coverFailed
+  // Show the cover when there are extracted pages OR a source PDF — the server
+  // falls back to rendering page 1 from the PDF for un-extracted books (e.g. a
+  // freshly-split shell). onError still drops to the placeholder if neither works.
+  const showCover = (book.pageCount > 0 || book.hasSourcePdf) && !coverFailed
   const coverUrl = useMemo(
     () => getBookCoverUrl(book.label, book.modifiedAt),
     [book.label, book.modifiedAt],
@@ -271,6 +275,27 @@ function BookRow({
                   </Trans>
                 </Badge>
               )}
+              {book.split && (
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "gap-1 text-[11px] px-2 py-0.5",
+                    book.split.fullyMerged
+                      ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
+                      : "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300",
+                  )}
+                  title={t`Split into ${book.split.exportedParts} part(s)`}
+                >
+                  <Scissors className="h-3 w-3" />
+                  {book.split.fullyMerged ? (
+                    <Trans>Split · all parts merged</Trans>
+                  ) : (
+                    <Trans>
+                      Split · {book.split.mergedPages}/{book.split.totalPages} pages merged
+                    </Trans>
+                  )}
+                </Badge>
+              )}
               {book.needsRebuild && (
                 <Badge variant="destructive" className="text-[11px] px-2 py-0.5">
                   <Trans>Needs rebuild</Trans>
@@ -281,7 +306,7 @@ function BookRow({
                   {book.languageCode.toUpperCase()}
                 </Badge>
               )}
-              {!book.needsRebuild && (
+              {!book.needsRebuild && !book.split && (
                 <Badge
                   variant={book.pageCount > 0 ? "default" : "secondary"}
                   className="text-[11px] px-2 py-0.5"

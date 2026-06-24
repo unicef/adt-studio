@@ -141,6 +141,7 @@ describe("listBooks", () => {
       createdAt: expect.any(String),
       modifiedAt: expect.any(String),
       part: null,
+      split: null,
     })
   })
 
@@ -163,6 +164,7 @@ describe("listBooks", () => {
       createdAt: expect.any(String),
       modifiedAt: expect.any(String),
       part: null,
+      split: null,
     })
   })
 
@@ -187,6 +189,7 @@ describe("listBooks", () => {
       createdAt: expect.any(String),
       modifiedAt: expect.any(String),
       part: null,
+      split: null,
     })
   })
 

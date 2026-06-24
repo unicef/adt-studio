@@ -6093,8 +6093,20 @@ msgstr "Prompte të të Folurit"
 msgid "Speech Settings"
 msgstr "Cilësimet e të Folurit"
 
+#. placeholder {0}: book.split.mergedPages
+#. placeholder {1}: book.split.totalPages
+msgid "Split · {0}/{1} pages merged"
+msgstr "I ndarë · {0}/{1} faqe të bashkuara"
+
+msgid "Split · all parts merged"
+msgstr "I ndarë · të gjitha pjesët u bashkuan"
+
 msgid "Split & merge"
 msgstr "Ndaj dhe bashko"
+
+#. placeholder {0}: book.split.exportedParts
+msgid "Split into {0} part(s)"
+msgstr "I ndarë në {0} pjesë"
 
 msgid "Split into parts for others"
 msgstr "Ndaje në pjesë për të tjerët"

@@ -6092,8 +6092,20 @@ msgstr "Speech Prompts"
 msgid "Speech Settings"
 msgstr "Speech Settings"
 
+#. placeholder {0}: book.split.mergedPages
+#. placeholder {1}: book.split.totalPages
+msgid "Split · {0}/{1} pages merged"
+msgstr "Split · {0}/{1} pages merged"
+
+msgid "Split · all parts merged"
+msgstr "Split · all parts merged"
+
 msgid "Split & merge"
 msgstr "Split & merge"
+
+#. placeholder {0}: book.split.exportedParts
+msgid "Split into {0} part(s)"
+msgstr "Split into {0} part(s)"
 
 msgid "Split into parts for others"
 msgstr "Split into parts for others"

@@ -6094,8 +6094,20 @@ msgstr "Parole Invites"
 msgid "Speech Settings"
 msgstr "Paramètres de la parole"
 
+#. placeholder {0}: book.split.mergedPages
+#. placeholder {1}: book.split.totalPages
+msgid "Split · {0}/{1} pages merged"
+msgstr "Divisé · {0}/{1} pages fusionnées"
+
+msgid "Split · all parts merged"
+msgstr "Divisé · toutes les parties fusionnées"
+
 msgid "Split & merge"
 msgstr "Diviser et fusionner"
+
+#. placeholder {0}: book.split.exportedParts
+msgid "Split into {0} part(s)"
+msgstr "Divisé en {0} partie(s)"
 
 msgid "Split into parts for others"
 msgstr "Diviser en parties pour d'autres"

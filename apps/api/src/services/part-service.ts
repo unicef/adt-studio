@@ -123,13 +123,19 @@ function readLedger(bookDir: string): PartsLedger {
 }
 
 /** Record (or refresh) an exported page range in the coordinator's ledger. */
-function recordExportedRange(bookDir: string, range: PartRange, at: string): void {
+function recordExportedRange(
+  bookDir: string,
+  range: PartRange,
+  at: string,
+  pageCount: number,
+): void {
   const exported = readLedger(bookDir).exported.filter(
     (e) => !(e.startPage === range.startPage && e.endPage === range.endPage),
   )
   exported.push({ startPage: range.startPage, endPage: range.endPage, at })
   exported.sort((a, b) => a.startPage - b.startPage || a.endPage - b.endPage)
-  fs.writeFileSync(ledgerPath(bookDir), JSON.stringify({ exported }, null, 2) + "\n")
+  const ledger: PartsLedger = { exported, pageCount }
+  fs.writeFileSync(ledgerPath(bookDir), JSON.stringify(ledger, null, 2) + "\n")
 }
 
 /** Contiguous uncovered ranges over 1..pageCount given a set of covered ranges. */
@@ -303,7 +309,7 @@ export function exportPart(
 
   // Remember this range was split off, so the UI can default to the next gap
   // and report when the whole book has been split.
-  recordExportedRange(bookDir, window, manifest.createdAt)
+  recordExportedRange(bookDir, window, manifest.createdAt, pageCount)
 
   const enc = new TextEncoder()
   const stream = createZipStreamFromEntries([
@@ -411,6 +417,7 @@ export function importPart(zipBuffer: Buffer, booksDir: string): BookSummary {
       createdAt: nowIso,
       modifiedAt: nowIso,
       part: { sourceLabel: manifest.sourceLabel, range: manifest.range },
+      split: null,
     }
   } catch (err) {
     try { fs.rmSync(bookDir, { recursive: true, force: true }) } catch { /* ignore */ }

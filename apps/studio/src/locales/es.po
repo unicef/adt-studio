@@ -6092,8 +6092,20 @@ msgstr "Indicaciones de voz"
 msgid "Speech Settings"
 msgstr "Configuración de Voz"
 
+#. placeholder {0}: book.split.mergedPages
+#. placeholder {1}: book.split.totalPages
+msgid "Split · {0}/{1} pages merged"
+msgstr "Dividido · {0}/{1} páginas fusionadas"
+
+msgid "Split · all parts merged"
+msgstr "Dividido · todas las partes fusionadas"
+
 msgid "Split & merge"
 msgstr "Dividir y fusionar"
+
+#. placeholder {0}: book.split.exportedParts
+msgid "Split into {0} part(s)"
+msgstr "Dividido en {0} parte(s)"
 
 msgid "Split into parts for others"
 msgstr "Dividir en partes para otros"

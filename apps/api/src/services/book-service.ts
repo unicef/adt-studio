@@ -7,6 +7,7 @@ import {
   BookMetadata,
   BookSummaryOutput,
   PartManifest,
+  PartsLedger,
   PIPELINE,
   type BookSummary,
   type BookDetail,
@@ -31,6 +32,46 @@ export function readPartInfo(
       : null
   } catch {
     return null
+  }
+}
+
+/**
+ * If the book has been split (a parts ledger exists with exported ranges),
+ * summarize split/merge coverage for the library card. `mergedPages` is the
+ * number of pages already present in the book (the COUNT(*) listBooks runs).
+ * Inlines a tiny coverage counter to avoid a book-service ↔ part-service cycle.
+ */
+export function readSplitSummary(
+  bookDir: string,
+  mergedPages: number,
+): BookSummary["split"] {
+  const ledgerPath = path.join(bookDir, "parts-ledger.json")
+  if (!fs.existsSync(ledgerPath)) return null
+  let ledger: PartsLedger
+  try {
+    const parsed = PartsLedger.safeParse(JSON.parse(fs.readFileSync(ledgerPath, "utf-8")))
+    if (!parsed.success) return null
+    ledger = parsed.data
+  } catch {
+    return null
+  }
+  if (ledger.exported.length === 0) return null
+
+  // Legacy ledgers predate `pageCount`; fall back to the furthest exported page.
+  const totalPages =
+    ledger.pageCount ?? ledger.exported.reduce((max, e) => Math.max(max, e.endPage), 0)
+
+  const covered = new Set<number>()
+  for (const e of ledger.exported) {
+    for (let p = Math.max(1, e.startPage); p <= Math.min(totalPages, e.endPage); p++) covered.add(p)
+  }
+
+  return {
+    totalPages,
+    exportedParts: ledger.exported.length,
+    mergedPages,
+    fullySplit: totalPages > 0 && covered.size === totalPages,
+    fullyMerged: totalPages > 0 && mergedPages >= totalPages,
   }
 }
 
@@ -171,6 +212,7 @@ export function listBooks(booksDir: string): BookSummary[] {
       createdAt,
       modifiedAt,
       part: readPartInfo(bookDir),
+      split: readSplitSummary(bookDir, pageCount),
     })
   }
 
@@ -270,6 +312,7 @@ export function getBook(label: string, booksDir: string): BookDetail {
     createdAt,
     modifiedAt,
     part: readPartInfo(bookDir),
+    split: readSplitSummary(bookDir, pageCount),
     metadata,
     bookSummary,
   }
@@ -315,6 +358,7 @@ export function createBook(
     createdAt: nowIso,
     modifiedAt: nowIso,
     part: null,
+    split: null,
   }
 }
 

@@ -4,7 +4,7 @@ import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel, PIPELINE, BookMetadata } from "@adt/types"
 import { openBookDb, createBookStorage } from "@adt/storage"
-import { countPdfPages } from "@adt/pdf"
+import { countPdfPages, renderPdfCover } from "@adt/pdf"
 import { normalizeLocale, getBaseLanguage } from "@adt/pipeline"
 import {
   listBooks,
@@ -703,10 +703,25 @@ export function createBookRoutes(
     const bookDir = path.join(resolvedDir, safeLabel)
     const dbPath = path.join(bookDir, `${safeLabel}.db`)
 
+    // Fallback for books with no extracted cover yet (e.g. a freshly-split
+    // shell): render page 1 straight from the source PDF, like the import
+    // preview does. Returns the response, or 404 if there's no usable PDF.
+    const pdfPath = path.join(bookDir, `${safeLabel}.pdf`)
+    const servePdfCover = () => {
+      if (!fs.existsSync(pdfPath)) {
+        throw new HTTPException(404, { message: "No cover available" })
+      }
+      const cover = renderPdfCover(fs.readFileSync(pdfPath), { maxWidth: 320 })
+      if (!cover) {
+        throw new HTTPException(404, { message: "No cover available" })
+      }
+      c.header("Content-Type", "image/png")
+      c.header("Cache-Control", "public, max-age=86400")
+      return c.body(new Uint8Array(cover))
+    }
+
     if (!fs.existsSync(dbPath)) {
-      throw new HTTPException(404, {
-        message: `Book not found: ${safeLabel}`,
-      })
+      return servePdfCover()
     }
 
     const db = openBookDb(dbPath)
@@ -740,7 +755,7 @@ export function createBookRoutes(
             ) as Array<{ page_id: string }>)
 
       if (pageRows.length === 0) {
-        throw new HTTPException(404, { message: "No pages extracted yet" })
+        return servePdfCover()
       }
 
       const imageId = `${pageRows[0].page_id}_page`
@@ -750,7 +765,7 @@ export function createBookRoutes(
       ) as Array<{ path: string }>
 
       if (imageRows.length === 0) {
-        throw new HTTPException(404, { message: "Cover image not found" })
+        return servePdfCover()
       }
 
       const imagePath = path.resolve(bookDir, imageRows[0].path)

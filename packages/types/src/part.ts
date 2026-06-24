@@ -53,5 +53,8 @@ export type ExportedPartEntry = z.infer<typeof ExportedPartEntry>
 
 export const PartsLedger = z.object({
   exported: z.array(ExportedPartEntry).default([]),
+  /** Total pages in the source PDF, recorded at export time so the book list
+   *  can summarize split/merge coverage without re-parsing the PDF. */
+  pageCount: z.number().int().min(0).optional(),
 })
 export type PartsLedger = z.infer<typeof PartsLedger>

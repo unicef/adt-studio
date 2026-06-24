@@ -27,6 +27,16 @@ export const BookSummary = z.object({
   part: z
     .object({ sourceLabel: z.string(), range: PartRange })
     .nullable(),
+  /** Set when this book has been split into parts (coordinator side). */
+  split: z
+    .object({
+      totalPages: z.number().int(),
+      exportedParts: z.number().int(),
+      mergedPages: z.number().int(),
+      fullySplit: z.boolean(),
+      fullyMerged: z.boolean(),
+    })
+    .nullable(),
 })
 export type BookSummary = z.infer<typeof BookSummary>
 
