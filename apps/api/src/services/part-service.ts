@@ -509,7 +509,15 @@ function openPartProject(zipBuffer: Buffer): { part: ExtractedPart; cleanup: () 
     fs.writeFileSync(dest, data)
   }
 
-  const db = openBookDb(path.join(dir, `${rawLabel}.db`))
+  let db: sqlite.Database
+  try {
+    db = openBookDb(path.join(dir, `${rawLabel}.db`))
+  } catch (err) {
+    // The caller only gets `cleanup` on success, so remove the temp dir here
+    // if opening the part's DB fails (e.g. a corrupt archive).
+    try { fs.rmSync(tmpRoot, { recursive: true, force: true }) } catch { /* ignore */ }
+    throw err
+  }
   return {
     part: { booksRoot: tmpRoot, dir, rawLabel, db },
     cleanup: () => {
