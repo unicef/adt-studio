@@ -34,6 +34,7 @@ import {
   generateAllQuizzes,
   buildQuizGenerationConfig,
   // Master step imports
+  getRenderSectioning,
   buildTextCatalog,
   buildEasyReadConfig,
   buildEasyReadSourceBlocks,
@@ -991,17 +992,17 @@ async function runStoryboardStep(
     const effectiveConcurrency = config.concurrency ?? 32
 
     if (isFixedLayoutBook(config)) {
-      // Fixed-layout: both sectioning and rendering happen here, driven
-      // off the positioned-text + image-filtering data the extract step
-      // already wrote. No LLM call. Emit start/complete for both steps so
-      // the progress UI mirrors the reflowable flow's two-step shape.
+      // Fixed-layout: build the positioned tree (into `fixed-layout-sectioning`)
+      // and render from it, driven off the positioned-text + image-filtering
+      // data the extract step already wrote. No LLM call. This is the
+      // web-rendering step only — the semantic `page-sectioning` is owned and
+      // already produced by the sectioning stage, so we don't re-emit its
+      // progress here (that would wrongly re-mark the sectioning stage running).
       console.log(`[stage-run] ${label}: fixed-layout rendering for ${totalPages} pages`)
-      progress.emit({ type: "step-start", step: "page-sectioning" })
       progress.emit({ type: "step-start", step: "web-rendering" })
       const { processFixedLayoutPages } = await import("@adt/pipeline")
       const imageUrlPrefix = `/api/books/${label}/images`
       processFixedLayoutPages(storage, imageUrlPrefix)
-      progress.emit({ type: "step-complete", step: "page-sectioning" })
       progress.emit({ type: "step-complete", step: "web-rendering" })
       console.log(`[stage-run] ${label}: fixed-layout rendering complete`)
       return
@@ -1181,12 +1182,12 @@ async function runQuizzesStep(
     const quizPages: QuizPageInput[] = []
     for (const page of pages) {
       const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
-      const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-      if (!renderingRow || !structuringRow) continue
+      const sectioning = getRenderSectioning(storage, page.pageId)
+      if (!renderingRow || !sectioning) continue
       quizPages.push({
         pageId: page.pageId,
         rendering: renderingRow.data as WebRenderingOutput,
-        sectioning: structuringRow.data as PageSectioningOutput,
+        sectioning,
       })
     }
 
@@ -1317,8 +1318,7 @@ async function runCaptionsStep(
 
           const rendering = renderingRow.data as WebRenderingOutput
           // Filter out pruned sections before extracting image IDs
-          const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-          const sectioning = structuringRow?.data as PageSectioningOutput | undefined
+          const sectioning = getRenderSectioning(storage, page.pageId)
           const htmlSections = rendering.sections
             .filter((s) => !sectioning?.sections[s.sectionIndex]?.isPruned)
             .map((s) => s.html)

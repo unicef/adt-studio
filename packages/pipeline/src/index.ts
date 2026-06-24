@@ -251,3 +251,9 @@ export {
 } from "./browser-accessibility-assessment.js"
 export { mergeAccessibilityResults } from "./accessibility-assessment-shared.js"
 export { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rendering.js"
+export {
+  getRenderSectioning,
+  getRenderSectioningRow,
+  FIXED_LAYOUT_SECTIONING_NODE,
+  PAGE_SECTIONING_NODE,
+} from "./render-sectioning.js"

@@ -12,6 +12,7 @@ import {
   FileText,
   Loader2,
   SlidersHorizontal,
+  Eye,
 } from "lucide-react"
 import { SectionActionsDropdown } from "./SectionActionsDropdown"
 import { SectionEditToolbar } from "./SectionEditToolbar"
@@ -412,6 +413,15 @@ function PageSectionRows({
             <span className="text-muted-foreground text-[10px] ml-1">
               — {sections.length} {sections.length === 1 ? t`section` : t`sections`}
             </span>
+            {page.extractionWarning && (
+              <span
+                className="inline-flex items-center gap-0.5 text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1 rounded"
+                title={t`Text recovered from the page image — this page has no embedded text layer`}
+              >
+                <Eye className="h-3 w-3" />
+                <Trans>vision</Trans>
+              </span>
+            )}
             {reasoning && reasoning !== "No content to section" && (
               <>
                 {reasoningOpen ? (

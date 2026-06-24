@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useRef, createContext, useContext, useState } from "react"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
+import { useNavigate } from "@tanstack/react-router"
 import { i18n } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
 import {
@@ -7,6 +8,8 @@ import {
   BASE_URL,
   type TaskInfoResponse,
   type StageRunProviderCredentials,
+  type PageSummaryItem,
+  type PageDetail,
 } from "@/api/client"
 import { STEP_TO_STAGE, PIPELINE, getStageClearOrder, PAGE_PROGRESS_STEPS } from "@adt/types"
 import type { StageName } from "@adt/types"
@@ -38,6 +41,12 @@ export interface QueueRunOptions {
   /** When true, skip page-sectioning and only re-render from existing section data. */
   renderOnly?: boolean
   providerCredentials?: StageRunProviderCredentials
+  /**
+   * When true, navigate to the `toStage` step view after queueing. A no-op from
+   * the step index (it already swaps to the view once running); a real switch
+   * from the settings/overview route, so the run progression stays visible.
+   */
+  viewAfter?: boolean
 }
 
 /** Shape returned by the enriched GET /books/:label/step-status endpoint. */
@@ -101,6 +110,8 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   const { announce } = useAnnouncer()
   const announceRef = useRef(announce)
   announceRef.current = announce
+
+  const navigate = useNavigate()
 
   // Primary source of truth: enriched step-status from the server
   const { data, isPending } = useQuery<StepStatusResponse>({
@@ -169,6 +180,16 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         })
         // Clear progress for this step
         progressRef.current.delete(pipelineStep)
+        // For page-processing steps, the runner has just cleared this step's
+        // page data (e.g. web-rendering on a re-run). Refetch the page list now
+        // so views reflect the empty state immediately — that's what flips the
+        // storyboard step to its "loading pages" panel at the start of a re-run
+        // instead of leaving the stale preview on screen. Page data then streams
+        // back via the throttled step-progress invalidations below.
+        if ((PAGE_PROGRESS_STEPS as ReadonlySet<string>).has(pipelineStep)) {
+          lastPageInvalidateRef.current = Date.now()
+          queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
+        }
       } else if (d.type === "step-progress") {
         const message = typeof d.message === "string" && d.message.trim().length > 0
           ? d.message
@@ -395,7 +416,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   // ------------------------------------------------------------------
   const queueRun = useCallback(
     (options: QueueRunOptions) => {
-      const { fromStage, toStage, apiKey, renderOnly } = options
+      const { fromStage, toStage, apiKey, renderOnly, viewAfter } = options
       const providerCredentials: StageRunProviderCredentials = {
         anthropicApiKey: anthropicKey || undefined,
         googleApiKey: googleKey || undefined,
@@ -439,6 +460,51 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         }
       })
 
+      // Optimistically clear the page data this run will regenerate, so the
+      // step view immediately mirrors a first-time run instead of leaving stale
+      // content up. Without this, a fast/cached re-run finishes before the async
+      // refetch ever observes the cleared backend state. Extract re-extracts the
+      // PDF (the pages themselves are dropped → empty the list); storyboard
+      // clears web-rendering (page.rendering / hasRendering); sectioning/extract
+      // also clear page-sectioning (sectioningTree / sectionCount).
+      const clearsPages = stagesToClear.has("extract" as StageName)
+      const clearsRendering = stagesToClear.has("storyboard" as StageName)
+      const clearsSectioning =
+        stagesToClear.has("sectioning" as StageName) || stagesToClear.has("extract" as StageName)
+      if (clearsPages) {
+        // Extract drops and rebuilds every page — empty the list so the extract
+        // view shows its from-scratch run card while pages re-extract.
+        queryClient.setQueryData<PageSummaryItem[]>(["books", label, "pages"], [])
+      } else if (clearsRendering || clearsSectioning) {
+        // Page list summaries (sidebar + run-card gating).
+        queryClient.setQueryData<PageSummaryItem[]>(["books", label, "pages"], (old) =>
+          old?.map((p) => ({
+            ...p,
+            ...(clearsRendering ? { hasRendering: false, renderingVersion: null } : {}),
+            ...(clearsSectioning
+              ? { sectionCount: 0, sections: [], prunedSections: [], sectioningVersion: null }
+              : {}),
+          }))
+        )
+        // Page detail caches (the storyboard preview reads page.rendering).
+        // Match only the per-page detail queries (key length 4), not the list
+        // (length 3) or the image queries (length 5).
+        queryClient.setQueriesData<PageDetail>(
+          {
+            queryKey: ["books", label, "pages"],
+            predicate: (q) => q.queryKey.length === 4 && q.queryKey[2] === "pages",
+          },
+          (old) =>
+            old
+              ? {
+                  ...old,
+                  ...(clearsRendering ? { rendering: null } : {}),
+                  ...(clearsSectioning ? { sectioningTree: null } : {}),
+                }
+              : old,
+        )
+      }
+
       // Immediate spoken confirmation that the (button-click) run has started —
       // long LLM stages otherwise give a screen-reader user no feedback at all.
       announceRef.current(getStageRunningLabelI18n(fromStage))
@@ -455,6 +521,10 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       }
       setProgressTick((t) => t + 1)
 
+      if (viewAfter) {
+        navigate({ to: "/books/$label/$step", params: { label, step: toStage } })
+      }
+
       // Chain the API call so they arrive in click order
       runChainRef.current = runChainRef.current.then(async () => {
         try {
@@ -466,7 +536,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         }
       })
     },
-    [label, queryClient, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey]
+    [label, navigate, queryClient, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey]
   )
 
   // ------------------------------------------------------------------

@@ -5,11 +5,13 @@
  * extracted illustration images as backgrounds with visible, styled
  * positioned text from mupdf's asHTML() output.
  *
- * Sectioning emits a regular `PageSectioningOutput` (semantic tree of
- * `ContentNodeData` leaves) plus a `placement` sidecar carrying the PDF
- * coordinates, segment styling, blockBounds, etc. on
- * `PageSectioningSection.placement[nodeId]`. Downstream steps
- * (text-catalog, TTS, packageAdtWeb) walk the tree and ignore placement.
+ * Sectioning emits a regular `PageSectioningOutput` (tree of `ContentNodeData`
+ * leaves) plus a `placement` sidecar carrying the PDF coordinates, segment
+ * styling, blockBounds, etc. on `PageSectioningSection.placement[nodeId]`. It is
+ * stored in the dedicated `fixed-layout-sectioning` node (NOT `page-sectioning`,
+ * which always holds the semantic tree) and reached via the render-sectioning
+ * resolver. Downstream steps (text-catalog, TTS, packageAdtWeb) walk the tree
+ * and ignore placement.
  */
 
 import type { Storage } from "@adt/storage"
@@ -544,7 +546,10 @@ export function processFixedLayoutPages(
       drawItems,
       availableImageIds,
     })
-    storage.putNodeData("page-sectioning", page.pageId, sectioning)
+    // Store the positioned tree under its OWN node so it never clobbers the
+    // semantic `page-sectioning` (which the Sectioning view + reflowable
+    // rendering rely on, and which must survive a render-strategy switch).
+    storage.putNodeData("fixed-layout-sectioning", page.pageId, sectioning)
 
     const rendering = renderFixedLayoutPage(
       sectioning.sections[0],

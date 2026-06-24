@@ -89,7 +89,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
     // done/running/queued it will produce its output, so queue Sectioning
     // behind it; only pull Extract into the run when it isn't covered.
     const fromStage = extractCovered ? "sectioning" : "extract"
-    queueRun({ fromStage, toStage: "sectioning", apiKey })
+    queueRun({ fromStage, toStage: "sectioning", apiKey, viewAfter: true })
   }
 
   const modeOptions = useMemo(

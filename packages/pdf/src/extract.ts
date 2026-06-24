@@ -768,51 +768,42 @@ async function extractPage(doc: MupdfDocument, pageIndex: number, vectorTextGrou
     ? allRasterImages.filter(img => !coveredRasterHashes.has(img.hash))
     : allRasterImages;
 
-  // Positioned-text + stream-order extraction is consumed ONLY by fixed-layout
-  // rendering (the sole reader of positionedText and of the recorder-derived
-  // image bounds/seqno/clip/blend/opacity). For reflowable books we skip it
-  // entirely, which avoids a full extra device traversal of the page plus the
-  // structured-text walks parsePageParagraphs runs.
-  let positionedText: PositionedTextOutput;
+  // Positioned-text + stream-order extraction (page geometry) is now produced
+  // for EVERY book — it's strategy-independent data, and producing it always
+  // lets the user switch the render strategy to fixed-layout at the storyboard
+  // step without re-extracting the PDF. It's a pure-local mupdf pass (no LLM).
+  //
+  // Stream-order assignment: run the page through a recording device so every
+  // draw op gets a true PDF content-stream seqno. mupdf's StructuredText walker
+  // is a layout reconstruction (reading flow, not stream order) so it can't be
+  // used for z-order — but the device callbacks fire once per content-stream
+  // operator, in stream order, with fully-resolved CTMs.
+  const recorder = runRecorderInViewport(page, pageBounds, 0, 0);
+  stampRasterPlacementsFromOps(rasterImages, recorder.ops);
+
+  // Reuse the StructuredText already built above — no extra pass. Build
+  // positioned text at fixed-layout quality (spacing cleanup on) so the data is
+  // ready regardless of when the user picks fixed-layout.
+  const paragraphData = parsePageParagraphs(page, stext, 2, true);
+  // Fold hand-lettered vector paint into the duplicate selectable text run.
+  const { restyledBoxes } = restyleCoincidentVectorText(paragraphData.paragraphs, recorder.ops);
+  // Dropping the now-duplicate vector shapes CHANGES the image set, so keep it
+  // gated to fixed-layout — reflowable image output stays exactly as before.
+  // (A reflowable-extracted book later switched to fixed-layout may therefore
+  // show duplicate vector lettering until re-extracted; a narrow, cosmetic case.)
   if (fixedLayout) {
-    // Stream-order assignment: run the page through a recording device so
-    // every draw op gets a true PDF content-stream seqno. mupdf's
-    // StructuredText walker is a layout reconstruction (reading flow, not
-    // stream order) so we cannot use it for z-order — but the device
-    // callbacks fire once per content-stream operator, in stream order, with
-    // fully-resolved CTMs. This is the canonical mupdf z-order primitive.
-    const recorder = runRecorderInViewport(page, pageBounds, 0, 0);
-    stampRasterPlacementsFromOps(rasterImages, recorder.ops);
-
-    // Reuse the StructuredText already built above — no extra pass.
-    const paragraphData = parsePageParagraphs(page, stext, 2, fixedLayout);
-    // Fold hand-lettered vector paint into the duplicate selectable text
-    // run, then drop the now-duplicate vector shapes (re-rendering figures
-    // that only partially duplicate text). Figure seqnos are stamped after,
-    // so re-rendered survivors get their true content-stream order.
-    const { restyledBoxes } = restyleCoincidentVectorText(paragraphData.paragraphs, recorder.ops);
     figureImages = await excludeConsumedFigureShapes(figureImages, restyledBoxes);
-    stampFigureSeqnosFromOps(figureImages, recorder.ops);
-
-    positionedText = buildPositionedTextOutput(
-      pageId,
-      paragraphData,
-      rasterImages,
-      figureImages,
-      recorder.ops,
-    );
-  } else {
-    // NOTE: skipping the recorder pass here also skips
-    // excludeConsumedFigureShapes, so vector-drawn lettering that duplicates a
-    // selectable-text run is NOT deduped for reflowable books and stays in
-    // `images`. Known trade-off: restoring the dedup needs the recorder this
-    // gate deliberately avoids. Narrow in practice (such content is usually
-    // fixed-layout), so left as-is for now.
-    positionedText = emptyPositionedText(
-      pageBounds[2] - pageBounds[0],
-      pageBounds[3] - pageBounds[1],
-    );
   }
+  // Figure seqnos stamped after dedup so re-rendered survivors get true order.
+  stampFigureSeqnosFromOps(figureImages, recorder.ops);
+
+  const positionedText: PositionedTextOutput = buildPositionedTextOutput(
+    pageId,
+    paragraphData,
+    rasterImages,
+    figureImages,
+    recorder.ops,
+  );
 
   return {
     pageId,
@@ -924,27 +915,6 @@ type AnyPage = ReturnType<MupdfDocument["loadPage"]>;
 
 function bboxToImageBounds(b: StreamBBox): ImageBounds {
   return { x: b.x0, y: b.y0, width: b.x1 - b.x0, height: b.y1 - b.y0 };
-}
-
-/**
- * Minimal positioned-text output for reflowable books, which don't run the
- * positioned-text extraction pipeline. Carries the page's viewport dimensions
- * (cheap, from page bounds) so any consumer that falls back to them still
- * works, with no draw items. Dimensions match what `buildPositionedTextOutput`
- * would emit (page size in points; render size at `renderScale`).
- */
-function emptyPositionedText(
-  pageWidth: number,
-  pageHeight: number,
-  renderScale = 2,
-): PositionedTextOutput {
-  return {
-    drawItems: [],
-    pageWidth,
-    pageHeight,
-    renderWidth: Math.round(pageWidth * renderScale),
-    renderHeight: Math.round(pageHeight * renderScale),
-  };
 }
 
 /** Serialize PathCommand[] to an SVG `d` attribute string in absolute coords. */
@@ -1559,64 +1529,48 @@ async function extractSpreadPage(
   // own PDF-point bounds, compose correctly on the rendered spread viewport.
   const rasterImages = [...leftRaster, ...rightRaster];
 
-  // Positioned-text + stream-order extraction is consumed ONLY by fixed-layout
-  // rendering. Skip it for reflowable books (see extractPage for rationale).
-  let positionedText: PositionedTextOutput;
-  let figureImages: ExtractedImage[];
+  // Positioned-text + stream-order extraction (page geometry) is now produced
+  // for EVERY book so fixed-layout can be chosen later without re-extracting
+  // (see extractPage for rationale). Pure-local mupdf pass.
+  //
+  // Run the recorder on both pages, in viewport coords; right-page x is shifted
+  // by left page width so positions address the stitched spread, and right-page
+  // seqnos shift past left so cross-page sort puts left ahead of right.
+  const leftRecorder = runRecorderInViewport(leftPage, leftBounds, 0, 0);
+  const leftMaxSeqno = leftRecorder.ops.reduce(
+    (m, o) => Math.max(m, o.seqno),
+    -1,
+  );
+  const rightRecorder = runRecorderInViewport(
+    rightPage,
+    rightBounds,
+    leftPageWidthPt,
+    leftMaxSeqno + 1,
+  );
+  const ops: StreamOp[] = [...leftRecorder.ops, ...rightRecorder.ops];
+  // Rasters: stamp per page so dim-tied images on different pages don't
+  // pair across the spread boundary.
+  stampRasterPlacementsFromOps(leftRaster, leftRecorder.ops);
+  stampRasterPlacementsFromOps(rightRaster, rightRecorder.ops);
+
+  // Reuse the per-page StructuredText already built above — no extra pass.
+  const paragraphData = parsePageParagraphsSpread(leftPage, rightPage, leftStext, rightStext, 2, true);
+  const { restyledBoxes } = restyleCoincidentVectorText(paragraphData.paragraphs, ops);
+  // The destructive figure dedup stays gated to fixed-layout so reflowable
+  // image output is unchanged (see extractPage).
+  let figureImages: ExtractedImage[] = [...leftResult.images, ...rightResult.images];
   if (fixedLayout) {
-    // Run the recorder on both pages, in viewport coords; right-page x is
-    // shifted by left page width so positions address the stitched spread,
-    // and right-page seqnos shift past left so cross-page sort puts left
-    // ahead of right (matches PDF reading order).
-    const leftRecorder = runRecorderInViewport(leftPage, leftBounds, 0, 0);
-    const leftMaxSeqno = leftRecorder.ops.reduce(
-      (m, o) => Math.max(m, o.seqno),
-      -1,
-    );
-    const rightRecorder = runRecorderInViewport(
-      rightPage,
-      rightBounds,
-      leftPageWidthPt,
-      leftMaxSeqno + 1,
-    );
-    const ops: StreamOp[] = [...leftRecorder.ops, ...rightRecorder.ops];
-    // Rasters: stamp per page so dim-tied images on different pages don't
-    // pair across the spread boundary.
-    stampRasterPlacementsFromOps(leftRaster, leftRecorder.ops);
-    stampRasterPlacementsFromOps(rightRaster, rightRecorder.ops);
-
-    // Reuse the per-page StructuredText already built above — no extra pass.
-    const paragraphData = parsePageParagraphsSpread(leftPage, rightPage, leftStext, rightStext, 2, fixedLayout);
-    // Fold hand-lettered vector paint into the duplicate selectable text run
-    // and drop the now-duplicate vector shapes (per-figure xOffset/svgDefs
-    // is carried in the re-render context, so a single pass spans both
-    // halves). Figure seqnos are stamped after, over the unified op list:
-    // geometry identity is position-exact, so right-page shape boxes
-    // (xOffset-shifted) only coincide with right-page ops.
-    const { restyledBoxes } = restyleCoincidentVectorText(paragraphData.paragraphs, ops);
-    figureImages = await excludeConsumedFigureShapes(
-      [...leftResult.images, ...rightResult.images],
-      restyledBoxes,
-    );
-    stampFigureSeqnosFromOps(figureImages, ops);
-
-    positionedText = buildPositionedTextOutput(
-      pageId,
-      paragraphData,
-      rasterImages,
-      figureImages,
-      ops,
-    );
-  } else {
-    // NOTE: see extractPage — skipping the recorder also skips
-    // excludeConsumedFigureShapes, so figures are not deduped against
-    // coincident selectable text for reflowable books. Known trade-off.
-    figureImages = [...leftResult.images, ...rightResult.images];
-    positionedText = emptyPositionedText(
-      leftBounds[2] - leftBounds[0] + (rightBounds[2] - rightBounds[0]),
-      Math.max(leftBounds[3] - leftBounds[1], rightBounds[3] - rightBounds[1]),
-    );
+    figureImages = await excludeConsumedFigureShapes(figureImages, restyledBoxes);
   }
+  stampFigureSeqnosFromOps(figureImages, ops);
+
+  const positionedText: PositionedTextOutput = buildPositionedTextOutput(
+    pageId,
+    paragraphData,
+    rasterImages,
+    figureImages,
+    ops,
+  );
 
   const images: ExtractedImage[] = [...rasterImages, ...figureImages];
 

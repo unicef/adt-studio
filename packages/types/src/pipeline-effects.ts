@@ -7,6 +7,11 @@ export type PipelineNodeName =
   // Sub-product of the `extract` step — written alongside the main
   // page data, not its own pipeline step.
   | "positioned-text"
+  // Sub-product of the `storyboard` step for fixed-layout books — the
+  // positioned section tree used for fixed-layout rendering and the content
+  // pipeline. Kept separate from `page-sectioning` (which always holds the
+  // semantic tree) so switching render strategy never destroys sectioning.
+  | "fixed-layout-sectioning"
 
 /**
  * Shared, UI-agnostic cache/resource tags used by apps to derive
@@ -27,6 +32,7 @@ export type PipelineCacheResource =
 const EXTRA_STAGE_OUTPUT_NODES: Partial<Record<StageName, readonly PipelineNodeName[]>> = {
   "translate": ["text-catalog-translation"],
   "extract": ["positioned-text"],
+  "storyboard": ["fixed-layout-sectioning"],
 }
 
 /** All node_data node names written by each stage. */
@@ -95,6 +101,7 @@ const NODE_CACHE_RESOURCES: Record<PipelineNodeName, readonly PipelineCacheResou
   "accessibility-assessment": ["debug"],
   "text-catalog-translation": ["text-catalog"],
   "positioned-text": ["pages"],
+  "fixed-layout-sectioning": ["pages"],
 }
 
 const CACHE_RESOURCE_ORDER: readonly PipelineCacheResource[] = [

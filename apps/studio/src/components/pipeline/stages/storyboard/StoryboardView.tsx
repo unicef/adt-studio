@@ -28,7 +28,11 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   const storyboardRunning = storyboardState === "running" || storyboardState === "queued"
   const sectioningReady = stageState("sectioning") === "done"
   // Show page content during a run (or after an error) once pages have data.
-  // Only show the run card when idle or no data exists yet.
+  // Keyed on sectioning (which a render-only re-run preserves) so the view drops
+  // into the per-page storyboard view during a re-run — there each section shows
+  // its own "Rendering this section…" loading state while web-rendering
+  // regenerates (the page's stale rendering is cleared optimistically on re-run,
+  // see queueRun). Only show the run card when idle or no data exists yet.
   const hasPageData = (pages ?? []).some((p) => p.sectionCount > 0)
   const showRunCard = storyboardRunning || storyboardState === "error"
     ? !hasPageData

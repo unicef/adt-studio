@@ -59,6 +59,7 @@ import {
 } from "./speech.js"
 import { packageAdtWeb } from "./package-web.js"
 import { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rendering.js"
+import { getRenderSectioning } from "./render-sectioning.js"
 import { runAccessibilityAssessment } from "./accessibility-assessment.js"
 import { loadBookConfig } from "./config.js"
 import { nullProgress, type Progress } from "./progress.js"
@@ -453,15 +454,11 @@ export async function runFullPipeline(
     const isFixedLayout = isFixedLayoutBook(config)
 
     executors.set("page-sectioning", async (p) => {
-      if (isFixedLayout) {
-        // Fixed-layout: both sectioning and rendering happen here, driven
-        // off the positioned-text + image-filtering data the extract step
-        // already wrote. No LLM call.
-        const imageUrlPrefix = `/api/books/${label}/images`
-        processFixedLayoutPages(storage, imageUrlPrefix)
-        p.emit({ type: "step-progress", step: "page-sectioning", message: "fixed-layout pages" })
-        return
-      }
+      // Semantic LLM sectioning runs for ALL books (including fixed-layout) so
+      // `page-sectioning` always holds the editable semantic tree, the
+      // Sectioning view never empties, and the render strategy can be toggled
+      // without re-sectioning. Fixed-layout's positioned tree + rendering is
+      // produced in the web-rendering step instead (see below).
       const model = getModel(pageSectioningConfig.modelId)
       const pages = storage.getPages()
       const totalPages = pages.length
@@ -529,8 +526,15 @@ export async function runFullPipeline(
     })
 
     executors.set("web-rendering", async (p) => {
-      // Fixed-layout rendering is already done in page-sectioning step
-      if (isFixedLayout) return
+      if (isFixedLayout) {
+        // Fixed-layout: build the positioned tree (into `fixed-layout-sectioning`)
+        // and render from it. Driven off positioned-text + image-filtering; no
+        // LLM call. `page-sectioning` (semantic) is left intact.
+        const imageUrlPrefix = `/api/books/${label}/images`
+        processFixedLayoutPages(storage, imageUrlPrefix)
+        p.emit({ type: "step-progress", step: "web-rendering", message: "fixed-layout pages" })
+        return
+      }
 
       const renderModels = new Map<string, LLMModel>()
       const resolveRenderModel = (modelId: string): LLMModel => {
@@ -588,12 +592,12 @@ export async function runFullPipeline(
       const quizPages: QuizPageInput[] = []
       for (const page of pages) {
         const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
-        const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-        if (!renderingRow || !structuringRow) continue
+        const sectioning = getRenderSectioning(storage, page.pageId)
+        if (!renderingRow || !sectioning) continue
         quizPages.push({
           pageId: page.pageId,
           rendering: renderingRow.data as WebRenderingOutput,
-          sectioning: structuringRow.data as PageSectioningOutput,
+          sectioning,
         })
       }
       if (quizPages.length > 0) {
@@ -627,8 +631,7 @@ export async function runFullPipeline(
         const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
         if (!renderingRow) return
         const rendering = renderingRow.data as WebRenderingOutput
-        const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-        const sectioning = structuringRow?.data as PageSectioningOutput | undefined
+        const sectioning = getRenderSectioning(storage, page.pageId)
         const htmlSections = rendering.sections
           .filter((s) => !sectioning?.sections[s.sectionIndex]?.isPruned)
           .map((s) => s.html)
