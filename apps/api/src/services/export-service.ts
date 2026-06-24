@@ -5,6 +5,7 @@ import { parseBookLabel } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
 import { packageAdtWeb, packageWebpub, packageEpub, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
 import { createZipStream } from "./zip-util.js"
+import { readPartInfo } from "./book-service.js"
 
 export interface ExportResult {
   stream: ReadableStream<Uint8Array>
@@ -178,6 +179,23 @@ export async function exportProject(
   }
 
   const title = readBookTitle(safeLabel, resolvedDir)
+
+  // When this book is an imported page-range part, name the returned archive
+  // with the same part convention as the coordinator's handout (exportPart),
+  // plus a "-processed" marker — so the coordinator can tell, from the filename
+  // alone, that it's a finished part of a known book/range ready to merge.
+  // The merge identifies a part from part.json *inside* the zip, never the
+  // filename, so this is purely cosmetic.
+  const part = readPartInfo(bookDir)
+  if (part) {
+    const { startPage, endPage } = part.range
+    const pad3 = (n: number) => String(n).padStart(3, "0")
+    return {
+      stream: createZipStream(bookDir, { excludeDirs: new Set(["adt", "webpub"]) }),
+      filename: `${title}-part-${startPage}-${endPage}-processed.zip`,
+      safeFilename: `${part.sourceLabel}-p${pad3(startPage)}-${pad3(endPage)}-processed.zip`,
+    }
+  }
 
   return {
     stream: createZipStream(bookDir, { excludeDirs: new Set(["adt", "webpub"]) }),
