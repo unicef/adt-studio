@@ -195,6 +195,14 @@ export async function ensureGoogleFontsCached(
 export interface GoogleCatalogFamily {
   family: string
   category?: string
+  /** Number of available styles (weights × italics). */
+  variants?: number
+  /** Whether the family ships variable-font axes. */
+  variable?: boolean
+  /** Google popularity rank — lower is more popular. */
+  popularity?: number
+  /** ISO date the family was added to Google Fonts (e.g. `2012-09-30`). */
+  dateAdded?: string
 }
 
 const CATALOG_URL = "https://fonts.google.com/metadata/fonts"
@@ -202,14 +210,26 @@ const CATALOG_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 export function parseGoogleFontsCatalog(raw: string): GoogleCatalogFamily[] {
   const json = JSON.parse(raw.replace(/^\)\]\}'/, "")) as {
-    familyMetadataList?: Array<{ family?: unknown; category?: unknown }>
+    familyMetadataList?: Array<{
+      family?: unknown
+      category?: unknown
+      fonts?: unknown
+      axes?: unknown
+      popularity?: unknown
+      dateAdded?: unknown
+    }>
   }
   if (!Array.isArray(json.familyMetadataList)) return []
   return json.familyMetadataList
-    .filter((f): f is { family: string; category?: unknown } => typeof f.family === "string")
+    .filter((f): f is typeof f & { family: string } => typeof f.family === "string")
     .map((f) => ({
       family: f.family,
       category: typeof f.category === "string" ? f.category : undefined,
+      variants:
+        f.fonts && typeof f.fonts === "object" ? Object.keys(f.fonts).length : undefined,
+      variable: Array.isArray(f.axes) ? f.axes.length > 0 : undefined,
+      popularity: typeof f.popularity === "number" ? f.popularity : undefined,
+      dateAdded: typeof f.dateAdded === "string" ? f.dateAdded : undefined,
     }))
 }
 
@@ -233,6 +253,7 @@ export async function fetchGoogleFontsCatalog(
     cached = null
   }
   if (!Array.isArray(cached?.families) || cached.families.length === 0) cached = null
+  if (cached && !cached.families.some((f) => f.popularity !== undefined)) cached = null
   if (cached && now - cached.fetchedAt < CATALOG_TTL_MS) return cached.families
 
   let fetched: GoogleCatalogFamily[] = []

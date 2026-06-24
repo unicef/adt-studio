@@ -955,6 +955,9 @@ msgstr "Aligne la narration avec le texte pour permettre la mise en surbrillance
 msgid "All"
 msgstr "Tout"
 
+msgid "All categories"
+msgstr "Toutes les catégories"
+
 msgid "All Categories"
 msgstr "Toutes les catégories"
 
@@ -1467,6 +1470,9 @@ msgstr "Dessin animé"
 
 msgid "Catalog Translation"
 msgstr "Catalog Traduction"
+
+msgid "Category"
+msgstr "Catégorie"
 
 msgid "Cell division producing two identical cells."
 msgstr "Division cellulaire produisant deux cellules identiques."
@@ -3910,6 +3916,9 @@ msgstr "Nouvelle version"
 msgid "new_type_key"
 msgstr "new_type_key"
 
+msgid "Newest"
+msgstr "Plus récentes"
+
 msgid "Newest first"
 msgstr "Plus récents d'abord"
 
@@ -4723,6 +4732,9 @@ msgstr "Lire la vidéo"
 
 msgid "Polishing paragraphs to perfection..."
 msgstr "Peaufinage des paragraphes à la perfection..."
+
+msgid "Popular"
+msgstr "Populaires"
 
 msgid "Portuguese (BR)"
 msgstr "Portugais (BR)"
@@ -5980,6 +5992,9 @@ msgstr "Trier"
 msgid "Sort books"
 msgstr "Trier les livres"
 
+msgid "Sort by"
+msgstr "Trier par"
+
 msgid "Source"
 msgstr "Source"
 
@@ -6160,6 +6175,9 @@ msgstr "Aperçu du guide de style"
 
 msgid "Styleguide Preview — {styleguide}"
 msgstr "Aperçu du guide de style — {styleguide}"
+
+msgid "styles"
+msgstr "styles"
 
 msgid "Submit"
 msgstr "Soumettre"

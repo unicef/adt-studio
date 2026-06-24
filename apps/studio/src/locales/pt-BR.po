@@ -953,6 +953,9 @@ msgstr "Alinha a narração com o texto para permitir destaque por palavra."
 msgid "All"
 msgstr "Tudo"
 
+msgid "All categories"
+msgstr "Todas as categorias"
+
 msgid "All Categories"
 msgstr "All Categories"
 
@@ -1465,6 +1468,9 @@ msgstr "Cartum"
 
 msgid "Catalog Translation"
 msgstr "Tradução do catálogo"
+
+msgid "Category"
+msgstr "Categoria"
 
 msgid "Cell division producing two identical cells."
 msgstr "Divisão celular que produz duas células idênticas."
@@ -3908,6 +3914,9 @@ msgstr "Nova versão"
 msgid "new_type_key"
 msgstr "novo_tipo"
 
+msgid "Newest"
+msgstr "Mais recentes"
+
 msgid "Newest first"
 msgstr "Mais recentes primeiro"
 
@@ -4721,6 +4730,9 @@ msgstr "Reproduzir vídeo"
 
 msgid "Polishing paragraphs to perfection..."
 msgstr "Polindo parágrafos até a perfeição..."
+
+msgid "Popular"
+msgstr "Populares"
 
 msgid "Portuguese (BR)"
 msgstr "Português (BR)"
@@ -5978,6 +5990,9 @@ msgstr "Ordenar"
 msgid "Sort books"
 msgstr "Ordenar livros"
 
+msgid "Sort by"
+msgstr "Ordenar por"
+
 msgid "Source"
 msgstr "Fonte"
 
@@ -6158,6 +6173,9 @@ msgstr "Pré-visualização do guia de estilo"
 
 msgid "Styleguide Preview — {styleguide}"
 msgstr "Pré-visualização do guia de estilo — {0}"
+
+msgid "styles"
+msgstr "estilos"
 
 msgid "Submit"
 msgstr "Enviar"

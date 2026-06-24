@@ -953,6 +953,9 @@ msgstr "Aligns narration with text to enable word-level highlighting."
 msgid "All"
 msgstr "All"
 
+msgid "All categories"
+msgstr "All categories"
+
 msgid "All Categories"
 msgstr "All Categories"
 
@@ -1465,6 +1468,9 @@ msgstr "Cartoon"
 
 msgid "Catalog Translation"
 msgstr "Catalog Translation"
+
+msgid "Category"
+msgstr "Category"
 
 msgid "Cell division producing two identical cells."
 msgstr "Cell division producing two identical cells."
@@ -3908,6 +3914,9 @@ msgstr "New version"
 msgid "new_type_key"
 msgstr "new_type_key"
 
+msgid "Newest"
+msgstr "Newest"
+
 msgid "Newest first"
 msgstr "Newest first"
 
@@ -4721,6 +4730,9 @@ msgstr "Play video"
 
 msgid "Polishing paragraphs to perfection..."
 msgstr "Polishing paragraphs to perfection..."
+
+msgid "Popular"
+msgstr "Popular"
 
 msgid "Portuguese (BR)"
 msgstr "Portuguese (BR)"
@@ -5978,6 +5990,9 @@ msgstr "Sort"
 msgid "Sort books"
 msgstr "Sort books"
 
+msgid "Sort by"
+msgstr "Sort by"
+
 msgid "Source"
 msgstr "Source"
 
@@ -6158,6 +6173,9 @@ msgstr "Styleguide Preview"
 
 msgid "Styleguide Preview — {styleguide}"
 msgstr "Styleguide Preview — {styleguide}"
+
+msgid "styles"
+msgstr "styles"
 
 msgid "Submit"
 msgstr "Submit"

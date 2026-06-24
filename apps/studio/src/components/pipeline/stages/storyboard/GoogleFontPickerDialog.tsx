@@ -9,6 +9,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { useGoogleFontsCatalog } from "@/hooks/use-book-fonts"
 import { useLingui } from "@lingui/react/macro"
@@ -18,6 +25,9 @@ const COLS = 4
 const CARD_H = 140
 const ROW_GAP = 12
 const ROW_H = CARD_H + ROW_GAP
+
+const ALL = "all"
+type SortKey = "popular" | "alpha" | "newest"
 
 function previewCss2Url(family: string): string {
   const f = family.trim().replace(/\s+/g, "+")
@@ -40,16 +50,37 @@ export function GoogleFontPicker({
   const { t } = useLingui()
   const { data, isLoading, isError } = useGoogleFontsCatalog(active)
   const [query, setQuery] = useState("")
+  const [category, setCategory] = useState(ALL)
+  const [sort, setSort] = useState<SortKey>("popular")
   const [scrollEl, setScrollEl] = useState<HTMLDivElement | null>(null)
   const requestedRef = useRef<Set<string>>(new Set())
   const [requested, setRequested] = useState<string[]>([])
 
   const families = useMemo(() => data?.families ?? [], [data])
+
+  const categories = useMemo(() => {
+    const set = new Set<string>()
+    for (const f of families) if (f.category) set.add(f.category)
+    return [...set].sort()
+  }, [families])
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return families
-    return families.filter((f) => f.family.toLowerCase().includes(q))
-  }, [families, query])
+    const result = families.filter((f) => {
+      if (q && !f.family.toLowerCase().includes(q)) return false
+      if (category !== ALL && f.category !== category) return false
+      return true
+    })
+    const sorted = [...result]
+    if (sort === "alpha") {
+      sorted.sort((a, b) => a.family.localeCompare(b.family))
+    } else if (sort === "newest") {
+      sorted.sort((a, b) => (b.dateAdded ?? "").localeCompare(a.dateAdded ?? ""))
+    } else {
+      sorted.sort((a, b) => (a.popularity ?? Infinity) - (b.popularity ?? Infinity))
+    }
+    return sorted
+  }, [families, query, category, sort])
 
   const rowCount = Math.ceil(filtered.length / COLS)
   const rowVirtualizer = useVirtualizer({
@@ -76,7 +107,7 @@ export function GoogleFontPicker({
 
   useEffect(() => {
     rowVirtualizer.scrollToOffset(0)
-  }, [query, rowVirtualizer])
+  }, [query, category, sort, rowVirtualizer])
 
   return (
     <>
@@ -84,7 +115,8 @@ export function GoogleFontPicker({
         <link key={family} rel="stylesheet" href={previewCss2Url(family)} />
       ))}
 
-      <div className="relative">
+      <div className="mb-2 space-y-2">
+        <div className="relative">
           <Search
             className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden="true"
@@ -93,10 +125,38 @@ export function GoogleFontPicker({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t`Search fonts...`}
-            className="pl-9 mb-2"
+            className="pl-9"
             autoFocus
           />
         </div>
+
+        <div className="flex flex-wrap gap-2">
+          <Select value={category} onValueChange={setCategory}>
+            <SelectTrigger className="h-9 w-auto min-w-[9rem] flex-1" aria-label={t`Category`}>
+              <SelectValue placeholder={t`Category`} />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL}>{t`All categories`}</SelectItem>
+              {categories.map((c) => (
+                <SelectItem key={c} value={c}>
+                  {c}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
+            <SelectTrigger className="h-9 w-auto min-w-[9rem] flex-1" aria-label={t`Sort by`}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="popular">{t`Popular`}</SelectItem>
+              <SelectItem value="alpha">{t`A–Z`}</SelectItem>
+              <SelectItem value="newest">{t`Newest`}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
 
         {isLoading ? (
           <div className="flex h-[50vh] items-center justify-center text-sm text-muted-foreground">
@@ -145,6 +205,9 @@ export function GoogleFontPicker({
                         </span>
                         <span className="text-[11px] text-muted-foreground">
                           {entry.category ?? ""}
+                          {entry.variants && entry.variants > 1
+                            ? ` · ${entry.variants} ${t`styles`}`
+                            : ""}
                         </span>
                         {added && (
                           <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-secondary px-1.5 py-0.5 text-[10px] text-secondary-foreground">

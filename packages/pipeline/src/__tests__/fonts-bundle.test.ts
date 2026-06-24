@@ -135,13 +135,27 @@ describe("ensureGoogleFontsCached", () => {
   })
 })
 
-const CATALOG_RAW = `)]}'{"familyMetadataList":[{"family":"Lexend","category":"Sans Serif"},{"family":"Lora","category":"Serif"},{"category":"Serif"}]}`
+const CATALOG_RAW = `)]}'{"familyMetadataList":[{"family":"Lexend","category":"Sans Serif","fonts":{"400":{},"700":{}},"axes":[{"tag":"wght"}],"popularity":42,"dateAdded":"2018-06-12"},{"family":"Lora","category":"Serif"},{"category":"Serif"}]}`
 
 describe("parseGoogleFontsCatalog", () => {
-  it("strips the XSSI prefix and keeps valid entries", () => {
+  it("strips the XSSI prefix and enriches valid entries", () => {
     expect(parseGoogleFontsCatalog(CATALOG_RAW)).toEqual([
-      { family: "Lexend", category: "Sans Serif" },
-      { family: "Lora", category: "Serif" },
+      {
+        family: "Lexend",
+        category: "Sans Serif",
+        variants: 2,
+        variable: true,
+        popularity: 42,
+        dateAdded: "2018-06-12",
+      },
+      {
+        family: "Lora",
+        category: "Serif",
+        variants: undefined,
+        variable: undefined,
+        popularity: undefined,
+        dateAdded: undefined,
+      },
     ])
   })
 

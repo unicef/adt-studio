@@ -954,6 +954,9 @@ msgstr "Rreshtimi i tregimit me tekstin për të aktivizuar theksimin në nivel 
 msgid "All"
 msgstr "Të gjitha"
 
+msgid "All categories"
+msgstr "Të gjitha kategoritë"
+
 msgid "All Categories"
 msgstr "Të Gjitha Kategoritë"
 
@@ -1466,6 +1469,9 @@ msgstr "Vizatim Karikaturë"
 
 msgid "Catalog Translation"
 msgstr "Përkthim Katalogu"
+
+msgid "Category"
+msgstr "Kategoria"
 
 msgid "Cell division producing two identical cells."
 msgstr "Ndarja qelizore që prodhon dy qeliza identike."
@@ -3909,6 +3915,9 @@ msgstr "Version i ri"
 msgid "new_type_key"
 msgstr "new_type_key"
 
+msgid "Newest"
+msgstr "Më të rejat"
+
 msgid "Newest first"
 msgstr "Më i riu i pari"
 
@@ -4722,6 +4731,9 @@ msgstr "Luaj videon"
 
 msgid "Polishing paragraphs to perfection..."
 msgstr "Polisim paragrafet deri në përsosmëri..."
+
+msgid "Popular"
+msgstr "Popullore"
 
 msgid "Portuguese (BR)"
 msgstr "Portugalisht (BR)"
@@ -5979,6 +5991,9 @@ msgstr "Rendit"
 msgid "Sort books"
 msgstr "Rendit librat"
 
+msgid "Sort by"
+msgstr "Rendit sipas"
+
 msgid "Source"
 msgstr "Burimi"
 
@@ -6159,6 +6174,9 @@ msgstr "Parashikim i Udhëzuesit të Stilit"
 
 msgid "Styleguide Preview — {styleguide}"
 msgstr "Parashikim i Udhëzuesit të Stilit — {styleguide}"
+
+msgid "styles"
+msgstr "stile"
 
 msgid "Submit"
 msgstr "Dërgo"

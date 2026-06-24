@@ -586,6 +586,10 @@ export type BookFontWithStatus = BookFont & { cached: boolean }
 export interface GoogleCatalogFamily {
   family: string
   category?: string
+  variants?: number
+  variable?: boolean
+  popularity?: number
+  dateAdded?: string
 }
 
 export interface BookCurrentFont {
