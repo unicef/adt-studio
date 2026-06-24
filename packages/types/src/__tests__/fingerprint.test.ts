@@ -66,6 +66,22 @@ describe("computeFingerprint", () => {
     })
   })
 
+  it("ignores downstream-stage config (captions/translate) in both hashes", () => {
+    const a = computeFingerprint({ config: baseConfig(), pdfSha256: PDF })
+    const b = computeFingerprint({
+      config: baseConfig({
+        image_captioning_grade_level: "advanced",
+        image_captioning_user_prompt: "custom",
+        image_translation: { enabled: true },
+      }),
+      pdfSha256: PDF,
+    })
+    // The merge re-runs these stages on the assembled book, so their config
+    // drift must not warn (a contributor running captions shouldn't trip it).
+    expect(b.identityHash).toBe(a.identityHash)
+    expect(b.semanticsHash).toBe(a.semanticsHash)
+  })
+
   it("does not let book-level prompt fields affect either hash", () => {
     const a = computeFingerprint({ config: baseConfig(), pdfSha256: PDF })
     const b = computeFingerprint({

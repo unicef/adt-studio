@@ -43,13 +43,25 @@ export const EXTRACTION_CONFIG_KEYS = [
 ] as const
 
 /**
- * Resolved-config fields that feed the per-page LLM steps (sectioning,
- * translation, web-rendering, image classification/captioning). Each
- * `StepConfig`-shaped entry already carries its own `model`/`temperature`, so
- * picking these keys captures model and prompt drift together. A mismatch does
- * not break page-id alignment.
+ * Resolved-config fields that feed the per-page steps the merge treats as
+ * AUTHORITATIVE — i.e. the Extract / Sectioning / Storyboard stages, whose
+ * per-page output is copied in and never re-run. Each `StepConfig`-shaped entry
+ * carries its own `model`/`temperature`, so these keys capture model and prompt
+ * drift together. A mismatch does not break page-id alignment.
+ *
+ * Downstream stages (captions, translate, …) are deliberately EXCLUDED: the
+ * merge clears and re-runs them on the assembled book, so their config drift is
+ * irrelevant to merge safety — and including them produced false positives,
+ * since the coordinator's shell never sets them (e.g. a contributor running
+ * captions materializes `image_captioning_grade_level` the shell lacks).
  */
 export const PER_PAGE_PROMPT_KEYS = [
+  // Extract (per-page image processing)
+  "image_filters",
+  "image_meaningfulness",
+  "image_segmentation",
+  "image_cropping",
+  // Sectioning
   "structure_types",
   "role_types",
   "section_types",
@@ -59,6 +71,7 @@ export const PER_PAGE_PROMPT_KEYS = [
   "generate_activities",
   "page_sectioning",
   "translation",
+  // Storyboard
   "default_render_strategy",
   "render_strategies",
   "section_render_strategies",
@@ -66,14 +79,6 @@ export const PER_PAGE_PROMPT_KEYS = [
   "visual_review_max_iterations",
   "storyboard_effort",
   "storyboard_activity_mode",
-  "image_filters",
-  "image_meaningfulness",
-  "image_segmentation",
-  "image_cropping",
-  "image_captioning",
-  "image_captioning_grade_level",
-  "image_captioning_user_prompt",
-  "image_translation",
 ] as const
 
 export interface PipelineFingerprint {
