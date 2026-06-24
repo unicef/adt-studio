@@ -231,7 +231,7 @@ function BookRow({
         {/* Main content — clickable */}
         <Link
           to="/books/$label/$step"
-          params={{ label: book.label, step: "extract" }}
+          params={{ label: book.label, step: "book" }}
           className="flex flex-1 min-w-0 gap-4 p-5"
         >
           {/* Cover thumbnail */}
@@ -281,8 +281,8 @@ function BookRow({
                   className={cn(
                     "gap-1 text-[11px] px-2 py-0.5",
                     book.split.fullyMerged
-                      ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
-                      : "border-amber-300 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300",
+                      ? "border-emerald-300 bg-emerald-100 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
+                      : "border-amber-300 bg-amber-100 text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200",
                   )}
                   title={t`Split into ${book.split.exportedParts} part(s)`}
                 >
@@ -397,7 +397,7 @@ function BookRow({
           >
             <Link
               to="/books/$label/$step"
-              params={{ label: book.label, step: "extract" }}
+              params={{ label: book.label, step: "book" }}
               aria-label={t`Edit ${book.title ?? book.label}`}
             >
               <Pencil className="h-4 w-4" />
