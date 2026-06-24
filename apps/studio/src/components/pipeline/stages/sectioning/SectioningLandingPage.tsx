@@ -33,7 +33,9 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
   const extractCovered = extractStatus.isCompleted || extractStatus.isRunning
 
   const [sectioningMode, setSectioningMode] = useState<SectioningModeKey>("dynamic")
-  const [disabledSectionTypes, setDisabledSectionTypes] = useState<Set<string>>(new Set())
+  // Single flag honored by sectioning + web-rendering (via the `activity_`
+  // prefix) — the source of truth for the activities on/off choice.
+  const [generateActivities, setGenerateActivities] = useState(true)
 
   const merged = activeConfigData?.merged as Record<string, unknown> | undefined
 
@@ -51,8 +53,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
     return Array.from(names)
   }, [merged])
 
-  const activitiesEnabled =
-    activityNames.length > 0 && activityNames.some((name) => !disabledSectionTypes.has(name))
+  const activitiesEnabled = activityNames.length > 0 && generateActivities
 
   useEffect(() => {
     if (!activeConfigData) return
@@ -61,9 +62,7 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
       const ps = m.page_sectioning as Record<string, unknown>
       if (ps.mode === "page" || ps.mode === "dynamic") setSectioningMode(ps.mode)
     }
-    if (Array.isArray(m.disabled_section_types)) {
-      setDisabledSectionTypes(new Set(m.disabled_section_types as string[]))
-    }
+    setGenerateActivities(m.generate_activities !== false)
   }, [activeConfigData])
 
   const handleModeChange = (value: SectioningModeKey) => {
@@ -74,13 +73,8 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
 
   const handleActivityDetectionChange = (next: boolean) => {
     if (activityNames.length === 0) return
-    const updated = new Set(disabledSectionTypes)
-    for (const name of activityNames) {
-      if (next) updated.delete(name)
-      else updated.add(name)
-    }
-    setDisabledSectionTypes(updated)
-    persist({ disabled_section_types: Array.from(updated) })
+    setGenerateActivities(next)
+    persist({ generate_activities: next })
   }
 
   const handleRun = () => {
