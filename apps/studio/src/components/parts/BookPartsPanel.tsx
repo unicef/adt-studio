@@ -442,8 +442,8 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
           </p>
 
           {result.bookSummaryStale && (
-            <div className="flex flex-col gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/5 p-2.5">
-              <p className="text-xs text-amber-800 dark:text-amber-300">
+            <div className="flex flex-col gap-1.5 rounded-md border border-amber-200 bg-amber-50 p-2.5 dark:border-amber-500/30 dark:bg-amber-500/10">
+              <p className="text-xs text-amber-900 dark:text-amber-200">
                 <Trans>
                   The book summary covers the whole book — regenerate it on the
                   assembled book once you've merged your last part.
