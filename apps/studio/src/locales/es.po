@@ -2206,6 +2206,9 @@ msgstr "Descartar y salir"
 #~ msgid "Discard unsaved changes?"
 #~ msgstr "¿Descartar cambios no guardados?"
 
+msgid "Dismiss"
+msgstr "Descartar"
+
 msgid "Display"
 msgstr "Visualización"
 
@@ -2824,6 +2827,9 @@ msgstr "Fuentes"
 #. placeholder {0}: String(page.fonts.length)
 msgid "Fonts ({0})"
 msgstr "Fuentes ({0})"
+
+msgid "Fonts have been reset to the default."
+msgstr "Las fuentes se han restablecido a las predeterminadas."
 
 #. placeholder {0}: i18n._(preset.title)
 #. placeholder {1}: recommendedOption.label
@@ -5930,6 +5936,9 @@ msgstr "Sessions let different reviewers capture findings independently, includi
 msgid "Set a Gemini API key to generate audio"
 msgstr "Configura una clave de API de Gemini para generar audio"
 
+msgid "Set fonts for the whole book"
+msgstr "Establecer las fuentes de todo el libro"
+
 msgid "Set manually"
 msgstr "Definida manualmente"
 
@@ -7178,6 +7187,9 @@ msgstr "Ver código HTML"
 msgid "View image"
 msgstr "Ver imagen"
 
+msgid "View in storyboard"
+msgstr "Ver en Storyboard"
+
 msgid "View license"
 msgstr "Ver licencia"
 
@@ -7402,6 +7414,15 @@ msgstr "Tus libros"
 
 msgid "Your first ADT <0>starts here.</0>"
 msgstr "Tu primer ADT <0>empieza aquí.</0>"
+
+msgid "Your font has been applied to captions."
+msgstr "Tu fuente se ha aplicado a los subtítulos."
+
+msgid "Your font has been applied to headings."
+msgstr "Tu fuente se ha aplicado a los títulos."
+
+msgid "Your font has been applied to the whole book."
+msgstr "Tu fuente se ha aplicado a todo el libro."
 
 msgid "Your fonts"
 msgstr "Tus fuentes"

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
-import { ChevronDown, Loader2, Plus, RotateCcw, Sparkles } from "lucide-react"
+import { Link } from "@tanstack/react-router"
+import { CheckCircle2, ChevronDown, Loader2, Plus, RotateCcw, Sparkles, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -32,6 +33,7 @@ export function FontSettings({ bookLabel }: { bookLabel: string }) {
   const [addOpen, setAddOpen] = useState(false)
   const [resetOpen, setResetOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [applied, setApplied] = useState<string | null>(null)
 
   const { data, isLoading } = useBookFonts(bookLabel, {
     refetchInterval: analyzing ? ANALYZE_POLL_MS : false,
@@ -40,15 +42,31 @@ export function FontSettings({ bookLabel }: { bookLabel: string }) {
   const applyFont = useApplyBookFont(bookLabel)
   const fixedLayout = data?.current?.fixedLayout ?? false
 
-  const handleResetFonts = () => {
+  const clearMessages = () => {
     setActionError(null)
+    setApplied(null)
+  }
+  const showError = (message: string) => {
+    setApplied(null)
+    setActionError(message)
+  }
+  const showApplied = (message: string) => {
+    setActionError(null)
+    setApplied(message)
+  }
+
+  const handleResetFonts = () => {
+    clearMessages()
     applyFont.mutate(
       { scope: "whole", reset: true },
       {
-        onSuccess: () => setResetOpen(false),
+        onSuccess: () => {
+          setResetOpen(false)
+          showApplied(t`Fonts have been reset to the default.`)
+        },
         onError: (err) => {
           setResetOpen(false)
-          setActionError(err.message)
+          showError(err.message)
         },
       },
     )
@@ -63,10 +81,10 @@ export function FontSettings({ bookLabel }: { bookLabel: string }) {
   }, [analyzing, allAssigned])
 
   const handleAnalyze = () => {
-    setActionError(null)
+    clearMessages()
     analyzeFonts.mutate(apiKey, {
       onSuccess: () => setAnalyzing(true),
-      onError: (err) => setActionError(err.message),
+      onError: (err) => showError(err.message),
     })
   }
 
@@ -96,7 +114,7 @@ export function FontSettings({ bookLabel }: { bookLabel: string }) {
         open={addOpen}
         onOpenChange={setAddOpen}
         fonts={fonts}
-        onError={setActionError}
+        onError={showError}
       />
 
       <Dialog open={resetOpen} onOpenChange={setResetOpen}>
@@ -125,6 +143,31 @@ export function FontSettings({ bookLabel }: { bookLabel: string }) {
         </DialogContent>
       </Dialog>
 
+      {applied && (
+        <div
+          className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-800"
+          role="status"
+        >
+          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
+          <span className="flex-1">{applied}</span>
+          <Link
+            to="/books/$label/$step"
+            params={{ label: bookLabel, step: "storyboard" }}
+            className="shrink-0 font-medium text-emerald-700 underline-offset-2 hover:underline"
+          >
+            <Trans>View in storyboard</Trans>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setApplied(null)}
+            className="shrink-0 rounded p-0.5 text-emerald-600/70 hover:text-emerald-800 transition-colors"
+            aria-label={t`Dismiss`}
+          >
+            <X className="h-3.5 w-3.5" aria-hidden="true" />
+          </button>
+        </div>
+      )}
+
       {actionError && (
         <p className="text-xs text-destructive" role="alert">
           {actionError}
@@ -145,7 +188,7 @@ export function FontSettings({ bookLabel }: { bookLabel: string }) {
               size="sm"
               disabled={fixedLayout || applyFont.isPending}
               onClick={() => {
-                setActionError(null)
+                clearMessages()
                 setResetOpen(true)
               }}
             >
@@ -160,7 +203,7 @@ export function FontSettings({ bookLabel }: { bookLabel: string }) {
               variant="secondary"
               size="sm"
               onClick={() => {
-                setActionError(null)
+                clearMessages()
                 setAddOpen(true)
               }}
             >
@@ -187,7 +230,8 @@ export function FontSettings({ bookLabel }: { bookLabel: string }) {
           fonts={fonts}
           assignment={assignment}
           isLoading={isLoading}
-          onError={setActionError}
+          onError={showError}
+          onApplied={showApplied}
         />
       </div>
 

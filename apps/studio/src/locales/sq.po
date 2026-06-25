@@ -2207,6 +2207,9 @@ msgstr "Hidh poshtë dhe dil"
 #~ msgid "Discard unsaved changes?"
 #~ msgstr "Hidh poshtë ndryshimet e paruajtura?"
 
+msgid "Dismiss"
+msgstr "Hiqe"
+
 msgid "Display"
 msgstr "Shfaqje"
 
@@ -2825,6 +2828,9 @@ msgstr "Fontet"
 #. placeholder {0}: String(page.fonts.length)
 msgid "Fonts ({0})"
 msgstr "Fonte ({0})"
+
+msgid "Fonts have been reset to the default."
+msgstr "Fontet u rivendosën në parazgjedhje."
 
 #. placeholder {0}: i18n._(preset.title)
 #. placeholder {1}: recommendedOption.label
@@ -5931,6 +5937,9 @@ msgstr "Sesionet u lejojnë rishikuesve të ndryshëm të regjistrojnë gjetjet 
 msgid "Set a Gemini API key to generate audio"
 msgstr "Vendosni një çelës API Gemini për të gjeneruar audio"
 
+msgid "Set fonts for the whole book"
+msgstr "Vendos fontet për të gjithë librin"
+
 msgid "Set manually"
 msgstr "Caktuar manualisht"
 
@@ -7179,6 +7188,9 @@ msgstr "Shiko burimin HTML"
 msgid "View image"
 msgstr "Shiko imazhin"
 
+msgid "View in storyboard"
+msgstr "Shiko në Storyboard"
+
 msgid "View license"
 msgstr "Shiko licencën"
 
@@ -7403,6 +7415,15 @@ msgstr "Librat tuaj"
 
 msgid "Your first ADT <0>starts here.</0>"
 msgstr "ADT-ja juaj e parë <0>fillon këtu.</0>"
+
+msgid "Your font has been applied to captions."
+msgstr "Fonti juaj u zbatua te përshkrimet."
+
+msgid "Your font has been applied to headings."
+msgstr "Fonti juaj u zbatua te titujt."
+
+msgid "Your font has been applied to the whole book."
+msgstr "Fonti juaj u zbatua në të gjithë librin."
 
 msgid "Your fonts"
 msgstr "Fontet e tua"

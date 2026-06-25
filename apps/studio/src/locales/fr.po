@@ -2208,6 +2208,9 @@ msgstr "Abandonner et quitter"
 #~ msgid "Discard unsaved changes?"
 #~ msgstr "Ignorer les modifications non enregistrées ?"
 
+msgid "Dismiss"
+msgstr "Ignorer"
+
 msgid "Display"
 msgstr "Affichage"
 
@@ -2826,6 +2829,9 @@ msgstr "Polices"
 #. placeholder {0}: String(page.fonts.length)
 msgid "Fonts ({0})"
 msgstr "Polices ({0})"
+
+msgid "Fonts have been reset to the default."
+msgstr "Les polices ont été réinitialisées par défaut."
 
 #. placeholder {0}: i18n._(preset.title)
 #. placeholder {1}: recommendedOption.label
@@ -5932,6 +5938,9 @@ msgstr "Les sessions permettent à différents réviseurs de capturer leurs rés
 msgid "Set a Gemini API key to generate audio"
 msgstr "Définissez une clé API Gemini pour générer l'audio"
 
+msgid "Set fonts for the whole book"
+msgstr "Définir les polices pour tout le livre"
+
 msgid "Set manually"
 msgstr "Définie manuellement"
 
@@ -7180,6 +7189,9 @@ msgstr "Voir le code source HTML"
 msgid "View image"
 msgstr "Voir l'image"
 
+msgid "View in storyboard"
+msgstr "Voir dans le scénarimage"
+
 msgid "View license"
 msgstr "Voir la licence"
 
@@ -7404,6 +7416,15 @@ msgstr "Vos livres"
 
 msgid "Your first ADT <0>starts here.</0>"
 msgstr "Votre premier ADT <0>commence ici.</0>"
+
+msgid "Your font has been applied to captions."
+msgstr "Votre police a été appliquée aux légendes."
+
+msgid "Your font has been applied to headings."
+msgstr "Votre police a été appliquée aux titres."
+
+msgid "Your font has been applied to the whole book."
+msgstr "Votre police a été appliquée à tout le livre."
 
 msgid "Your fonts"
 msgstr "Vos polices"

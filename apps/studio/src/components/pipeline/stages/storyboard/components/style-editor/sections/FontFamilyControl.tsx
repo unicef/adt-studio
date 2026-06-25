@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react"
-import { TriangleAlert } from "lucide-react"
+import { Link } from "@tanstack/react-router"
+import { Settings2, TriangleAlert } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { bookFontFamilyChain, googleFontsCss2Url } from "@adt/types"
 import { getBookFontFileUrl, type BookFontWithStatus } from "@/api/client"
@@ -110,6 +111,15 @@ export function FontFamilyControl({ bookLabel }: { bookLabel: string }) {
           }}
         />
       </StyleLabel>
+      <Link
+        to="/books/$label/$step/settings"
+        params={{ label: bookLabel, step: "storyboard" }}
+        search={{ tab: "fonts" }}
+        className="flex items-center gap-1 pl-[5.5rem] text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <Settings2 className="h-3 w-3 shrink-0" aria-hidden="true" />
+        <Trans>Set fonts for the whole book</Trans>
+      </Link>
       {selected && isRestricted(selected) ? (
         <p className="flex items-start gap-1.5 pl-[5.5rem] text-[11px] text-destructive" role="alert">
           <TriangleAlert className="h-3.5 w-3.5 shrink-0 mt-0.5" aria-hidden="true" />

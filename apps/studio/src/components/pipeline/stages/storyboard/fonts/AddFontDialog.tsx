@@ -42,12 +42,18 @@ export function AddFontDialog({
   const handleUpload = (files: FileList | File[] | null) => {
     const list = files ? [...files] : []
     if (list.length === 0) return
-    uploadFonts.mutate(list, { onError: (err) => onError(err.message) })
+    uploadFonts.mutate(list, {
+      onSuccess: () => onOpenChange(false),
+      onError: (err) => onError(err.message),
+    })
     if (fileInputRef.current) fileInputRef.current.value = ""
   }
 
   const handleAddGoogle = (family: string) => {
-    addGoogleFont.mutate(family, { onError: (err) => onError(err.message) })
+    addGoogleFont.mutate(family, {
+      onSuccess: () => onOpenChange(false),
+      onError: (err) => onError(err.message),
+    })
   }
 
   return (

@@ -25,12 +25,14 @@ export function AttachedFontsList({
   assignment,
   isLoading,
   onError,
+  onApplied,
 }: {
   bookLabel: string
   fonts: BookFontWithStatus[]
   assignment: FontAssignmentOutput | null | undefined
   isLoading: boolean
   onError: (message: string) => void
+  onApplied: (message: string) => void
 }) {
   const { t } = useLingui()
   const roleLabels = useRoleLabels()
@@ -141,14 +143,26 @@ export function AttachedFontsList({
                   if (value === WHOLE_BOOK_VALUE) {
                     applyFont.mutate(
                       { scope: "whole", font: { kind: "registry", id: font.id } },
-                      { onError: (err) => onError(err.message) },
+                      {
+                        onSuccess: () =>
+                          onApplied(t`Your font has been applied to the whole book.`),
+                        onError: (err) => onError(err.message),
+                      },
                     )
                     return
                   }
                   if (value === "heading" || value === "caption") {
                     applyFont.mutate(
                       { scope: value, font: { kind: "registry", id: font.id } },
-                      { onError: (err) => onError(err.message) },
+                      {
+                        onSuccess: () =>
+                          onApplied(
+                            value === "heading"
+                              ? t`Your font has been applied to headings.`
+                              : t`Your font has been applied to captions.`,
+                          ),
+                        onError: (err) => onError(err.message),
+                      },
                     )
                     return
                   }
