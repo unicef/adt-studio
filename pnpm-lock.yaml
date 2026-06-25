@@ -158,13 +158,13 @@ importers:
         version: link:../../packages/types
       '@hono/node-server':
         specifier: ^1.14.0
-        version: 1.19.9(hono@4.11.9)
+        version: 1.19.9(hono@4.12.25)
       fflate:
         specifier: ^0.8.2
         version: 0.8.2
       hono:
-        specifier: ^4.7.0
-        version: 4.11.9
+        specifier: ^4.12.25
+        version: 4.12.25
       js-yaml:
         specifier: ^4.1.0
         version: 4.1.1
@@ -484,8 +484,8 @@ importers:
         specifier: ^4.0.0
         version: 4.3.19(react@19.2.4)(zod@3.25.76)
       liquidjs:
-        specifier: ^10.0.0
-        version: 10.24.0
+        specifier: ^10.27.0
+        version: 10.27.0
       zod:
         specifier: ^3.24.0
         version: 3.25.76
@@ -548,8 +548,8 @@ importers:
         specifier: ^27.0.0
         version: 27.4.0
       liquidjs:
-        specifier: ^10.0.0
-        version: 10.24.0
+        specifier: ^10.27.0
+        version: 10.27.0
       playwright:
         specifier: ^1.50.0
         version: 1.58.2
@@ -3808,8 +3808,8 @@ packages:
   hermes-parser@0.25.1:
     resolution: {integrity: sha512-6pEjquH3rqaI6cYAXYPcz9MS4rY6R4ngRgrgfDshRptUZIc3lw0MCIJIGDj9++mfySOuPTHB4nrSW99BCvOPIA==}
 
-  hono@4.11.9:
-    resolution: {integrity: sha512-Eaw2YTGM6WOxA6CXbckaEvslr2Ne4NFsKrvc0v97JD5awbmeBLO5w9Ho9L9kmKonrwF9RJlW6BxT1PVv/agBHQ==}
+  hono@4.12.25:
+    resolution: {integrity: sha512-2NFaIyNVgJmBs/ecmtGzlmluTFs5cHEWGTdu0t1HBwYzoGXOL5nUQBRMXsXWla5i4KkG//QMzVP88m1+I3fdAQ==}
     engines: {node: '>=16.9.0'}
 
   hosted-git-info@4.1.0:
@@ -4305,8 +4305,8 @@ packages:
   lines-and-columns@1.2.4:
     resolution: {integrity: sha512-7ylylesZQ/PV29jhEDl3Ufjo6ZX7gCqJr5F7PKrqc93v7fzSymt1BpwEU8nAUXs8qzzvqhbjhK5QZg6Mt/HkBg==}
 
-  liquidjs@10.24.0:
-    resolution: {integrity: sha512-TAUNAdgwaAXjjcUFuYVJm9kOVH7zc0mTKxsG9t9Lu4qdWjB2BEblyVIYpjWcmJLMGgiYqnGNJjpNMHx0gp/46A==}
+  liquidjs@10.27.0:
+    resolution: {integrity: sha512-tw/OA59K7aIBlMKIrKlumr37fiZUheShVHXY8cVctWisgY1p9mc5hreOvlreoS0wTiwlWk14Ya7305c2a/Cg5w==}
     engines: {node: '>=16'}
     hasBin: true
 
@@ -6262,9 +6262,9 @@ snapshots:
 
   '@floating-ui/utils@0.2.11': {}
 
-  '@hono/node-server@1.19.9(hono@4.11.9)':
+  '@hono/node-server@1.19.9(hono@4.12.25)':
     dependencies:
-      hono: 4.11.9
+      hono: 4.12.25
 
   '@humanfs/core@0.19.1': {}
 
@@ -9124,7 +9124,7 @@ snapshots:
     dependencies:
       hermes-estree: 0.25.1
 
-  hono@4.11.9: {}
+  hono@4.12.25: {}
 
   hosted-git-info@4.1.0:
     dependencies:
@@ -9574,7 +9574,7 @@ snapshots:
 
   lines-and-columns@1.2.4: {}
 
-  liquidjs@10.24.0:
+  liquidjs@10.27.0:
     dependencies:
       commander: 10.0.1
 
