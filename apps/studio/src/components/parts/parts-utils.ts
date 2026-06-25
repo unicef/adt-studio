@@ -8,10 +8,13 @@ export const rangeKey = (r: PageRange) => `${r.startPage}-${r.endPage}`
 /**
  * Split `1..pageCount` into `n` contiguous, roughly-equal page windows (sizes
  * differ by at most one page). In `spreadMode` the split is computed in
- * two-page-spread units — assuming spreads pair as (1,2), (3,4), … — so a
- * window never splits a spread; each window then starts on an odd page and
- * ends on an even one. These are starting suggestions the coordinator can
- * still adjust per export.
+ * indivisible spread units that mirror the extractor: page 1 is a standalone
+ * cover, then pages pair as (2,3), (4,5), … (an even page with the next odd
+ * page), with a trailing even page left standalone. Those units are grouped
+ * into roughly-equal windows so a window never splits a spread — each window
+ * then starts on page 1 or an even page and ends on an odd page (or the last
+ * page), matching the backend's `snapSpreadRange`. These are starting
+ * suggestions the coordinator can still adjust per export.
  */
 export function computeEqualWindows(
   pageCount: number,
@@ -21,18 +24,20 @@ export function computeEqualWindows(
   if (pageCount <= 0 || n <= 0) return []
 
   if (opts.spreadMode) {
-    const spreads = Math.ceil(pageCount / 2) // spread i covers pages [2i+1, 2i+2]
-    const parts = Math.min(n, spreads)
-    const base = Math.floor(spreads / parts)
-    const remainder = spreads % parts
+    // Indivisible units: page 1 alone, then (2,3), (4,5), … clamped to the end.
+    const units: PageRange[] = [{ startPage: 1, endPage: 1 }]
+    for (let p = 2; p <= pageCount; p += 2) {
+      units.push({ startPage: p, endPage: Math.min(p + 1, pageCount) })
+    }
+    const parts = Math.min(n, units.length)
+    const base = Math.floor(units.length / parts)
+    const remainder = units.length % parts
     const windows: PageRange[] = []
-    let spreadStart = 0
+    let u = 0
     for (let i = 0; i < parts; i++) {
       const count = base + (i < remainder ? 1 : 0)
-      const startPage = spreadStart * 2 + 1
-      const endPage = Math.min((spreadStart + count) * 2, pageCount)
-      windows.push({ startPage, endPage })
-      spreadStart += count
+      windows.push({ startPage: units[u].startPage, endPage: units[u + count - 1].endPage })
+      u += count
     }
     return windows
   }

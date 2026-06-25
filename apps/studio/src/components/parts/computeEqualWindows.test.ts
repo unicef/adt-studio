@@ -36,23 +36,29 @@ describe("computeEqualWindows", () => {
     ])
   })
 
-  it("never splits a two-page spread in spreadMode (odd start, even end)", () => {
+  it("never splits a spread in spreadMode (page 1 standalone, then (2,3),(4,5)…)", () => {
     const w = computeEqualWindows(20, 3, { spreadMode: true })
-    // 10 spreads / 3 → 4, 3, 3 spreads → pages [1-8], [9-14], [15-20]
+    // 11 spread units (cover + 10 pairs) / 3 → 4, 4, 3 units
     expect(w).toEqual([
-      { startPage: 1, endPage: 8 },
-      { startPage: 9, endPage: 14 },
-      { startPage: 15, endPage: 20 },
+      { startPage: 1, endPage: 7 },
+      { startPage: 8, endPage: 15 },
+      { startPage: 16, endPage: 20 },
     ])
     for (const r of w) {
-      expect(r.startPage % 2).toBe(1) // every window starts on an odd page
-      expect(r.endPage % 2).toBe(0) // and ends on an even page
+      // Every window starts on page 1 or an even page (the start of a spread)…
+      expect(r.startPage === 1 || r.startPage % 2 === 0).toBe(true)
+      // …and ends on an odd page (end of a spread) or the last page.
+      expect(r.endPage % 2 === 1 || r.endPage === 20).toBe(true)
     }
   })
 
-  it("clamps the last spread window to an odd page count", () => {
-    // 19 pages, spreadMode → 10 spreads, last spread is the lone page 19.
+  it("clamps the last spread window to the final page", () => {
+    // 19 pages, spreadMode → cover + 9 pairs = 10 units → 5, 5.
     const w = computeEqualWindows(19, 2, { spreadMode: true })
+    expect(w).toEqual([
+      { startPage: 1, endPage: 9 },
+      { startPage: 10, endPage: 19 },
+    ])
     expect(w[w.length - 1].endPage).toBe(19)
   })
 
