@@ -13,9 +13,6 @@ import { fmtRange } from "./parts-utils"
 import { ExportPartControls, useExportPartState } from "./ExportPartControls"
 import { SplitPreviewDialog } from "./SplitPreviewDialog"
 
-// Re-exported for tests and existing importers.
-export { computeEqualWindows } from "./parts-utils"
-
 /**
  * Split a book into page-range "parts" for independent processing, and merge
  * completed parts back in. Surfaced on the book overview page.

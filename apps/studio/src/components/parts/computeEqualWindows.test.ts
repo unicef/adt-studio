@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { computeEqualWindows } from "./BookPartsPanel"
+import { computeEqualWindows } from "./parts-utils"
 
 describe("computeEqualWindows", () => {
   it("splits evenly when divisible", () => {
