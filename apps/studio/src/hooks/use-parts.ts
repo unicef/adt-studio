@@ -36,6 +36,10 @@ export function useMergePart(label: string) {
       // Pages, node data and step status all change — refresh the book subtree.
       queryClient.invalidateQueries({ queryKey: ["books", label] })
       queryClient.invalidateQueries({ queryKey: ["package-adt-status", label] })
+      // The library card's split/merge badge reads the list query, which is
+      // separate from the book subtree and otherwise stays fresh (global 5-min
+      // staleTime) — invalidate it so merge progress shows on the card.
+      queryClient.invalidateQueries({ queryKey: ["books"], exact: true })
     },
   })
 }

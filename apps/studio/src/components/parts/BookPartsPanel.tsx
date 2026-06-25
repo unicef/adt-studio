@@ -215,11 +215,14 @@ function ExportPart({
 
   const onExport = () => {
     api.exportPart(bookLabel, startPage, endPage)
-    // Release the pin so the picker follows the next gap, and refresh the
-    // ledger once the download request has recorded the export server-side.
+    // Release the pin so the picker follows the next gap, and refresh once the
+    // download request has recorded the export server-side: the split-status
+    // (overview panel) and the books list (library card's split badge, which is
+    // a separate query kept fresh by the global 5-min staleTime).
     setTouched(false)
     setTimeout(() => {
       queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "split-status"] })
+      queryClient.invalidateQueries({ queryKey: ["books"], exact: true })
     }, 1200)
   }
 
