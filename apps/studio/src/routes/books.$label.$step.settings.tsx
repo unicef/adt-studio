@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { X } from "lucide-react"
+import { SettingsRemountProvider } from "@/hooks/use-settings-remount"
 import { STAGES, isStageSlug } from "@/components/pipeline/stage-config"
 import { resolveSettingsStageSlug } from "@/components/pipeline/settings-routing"
 import { ExtractSettings } from "@/components/pipeline/stages/extract/ExtractSettings"
@@ -65,6 +66,7 @@ export function StepSettingsPage() {
   const stepLabel = stage.label
   const Icon = stage.icon
   const [headerTarget, setHeaderTarget] = useState<HTMLDivElement | null>(null)
+  const [discardNonce, setDiscardNonce] = useState(0)
 
   return (
     <div className="flex flex-col h-full">
@@ -93,7 +95,8 @@ export function StepSettingsPage() {
       </div>
 
       {/* Settings content */}
-      <div className="flex-1 min-h-0 overflow-auto">
+      <SettingsRemountProvider value={() => setDiscardNonce((n) => n + 1)}>
+      <div key={discardNonce} className="flex-1 min-h-0 overflow-auto">
         {(() => {
           const settingsStage = resolveSettingsStageSlug(step)
 
@@ -156,6 +159,7 @@ export function StepSettingsPage() {
           }
         })()}
       </div>
+      </SettingsRemountProvider>
     </div>
   )
 }

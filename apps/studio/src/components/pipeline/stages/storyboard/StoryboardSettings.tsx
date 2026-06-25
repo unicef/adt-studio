@@ -1,7 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
-import { createPortal } from "react-dom"
-import { useNavigate } from "@tanstack/react-router"
-import { Play, Eye, Wand2, Loader2, Check } from "lucide-react"
+import { Eye, Wand2, Loader2, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
@@ -30,7 +28,8 @@ import { usePages, usePageImage } from "@/hooks/use-pages"
 import { api } from "@/api/client"
 import { PromptViewer } from "@/components/pipeline/components/PromptViewer"
 import { TemplateViewer } from "@/components/pipeline/components/TemplateViewer"
-import { useBookRun } from "@/hooks/use-book-run"
+import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
+import { useDirtyTabTracker } from "@/hooks/use-settings-dirty-tabs"
 import { Trans } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import { useLingui } from "@lingui/react/macro"
@@ -40,7 +39,6 @@ import {
   normalizeDefaultRenderStrategy,
 } from "@/lib/render-strategy"
 import { getSectionTypeLabel } from "@/lib/section-constants"
-import { hasSectioningData } from "./lib/storyboard-rerun-policy"
 import { REFLOWABLE_FONTS } from "@adt/types"
 
 /** "two_column_story" → "Two Column Story" */
@@ -133,16 +131,12 @@ function PageThumb({
   )
 }
 
-export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
+export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
   const { apiKey, hasApiKey } = useApiKey()
-  const { queueRun, stepState } = useBookRun()
-  const navigate = useNavigate()
-  const [showRerunDialog, setShowRerunDialog] = useState(false)
-  const [savingImageGenPrompt, setSavingImageGenPrompt] = useState(false)
 
   // Form state
   const [defaultRenderStrategy, setDefaultRenderStrategy] = useState("")
@@ -255,13 +249,14 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
   }
 
   // Track which field groups the user has actually touched
+  const { markedTabs, markTab, resetMarkedTabs } = useDirtyTabTracker()
   const [dirty, setDirty] = useState<Record<string, boolean>>({})
-  const markDirty = (field: string) => setDirty((prev) => ({ ...prev, [field]: true }))
+  const markDirty = (field: string) => {
+    setDirty((prev) => ({ ...prev, [field]: true }))
+    markTab(tab)
+  }
 
   const merged = activeConfigData?.merged as Record<string, unknown> | undefined
-
-  // Whether sectioning data already exists (sectioning has been run at least once)
-  const hasExistingSectioningData = hasSectioningData(stepState("page-sectioning"))
 
   // Load render strategy, styleguide, and rendering config from active (merged) config
   useEffect(() => {
@@ -387,7 +382,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     return overrides
   }
 
-  const confirmSaveAndRerun = async () => {
+  const save = async () => {
     // Save any edited prompts/templates first
     const contentSaves: Promise<unknown>[] = []
     if (renderingPromptDraft != null) contentSaves.push(api.updatePrompt(renderingPromptName, renderingPromptDraft, bookLabel))
@@ -399,43 +394,34 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
     if (imageEditPromptDraft != null) contentSaves.push(api.updatePrompt("ai_image_edit", imageEditPromptDraft, bookLabel))
     if (contentSaves.length > 0) await Promise.all(contentSaves)
 
-    // Storyboard settings don't touch sectioning — preserve sectioning when it exists.
-    const renderOnly = hasExistingSectioningData
-
-    const overrides = buildOverrides()
-    updateConfig.mutate(
-      { label: bookLabel, config: overrides },
-      {
-        onSuccess: async () => {
-          setDirty({})
-          setRenderingPromptDraft(null)
-          setRenderingTemplateDraft(null)
-          setTemplateTabDraft(null)
-          setActivityPromptDraft(null)
-          setActivityAnswerDraft(null)
-          setImageGenPromptDraft(null)
-          setShowRerunDialog(false)
-          queueRun({ fromStage: "storyboard", toStage: "storyboard", apiKey, renderOnly })
-          navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "storyboard" } })
-        },
-      }
-    )
+    await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
+    setDirty({})
+    setRenderingPromptDraft(null)
+    setRenderingTemplateDraft(null)
+    setTemplateTabDraft(null)
+    setActivityPromptDraft(null)
+    setActivityAnswerDraft(null)
+    setImageGenPromptDraft(null)
+    setImageEditPromptDraft(null)
+    resetMarkedTabs()
   }
 
-  // Image prompts are on-demand (not pipeline) — save without triggering a rerun
-  const saveImagePrompts = async () => {
-    setSavingImageGenPrompt(true)
-    try {
-      const saves: Promise<unknown>[] = []
-      if (imageGenPromptDraft != null) saves.push(api.updatePrompt("ai_image_generation", imageGenPromptDraft, bookLabel))
-      if (imageEditPromptDraft != null) saves.push(api.updatePrompt("ai_image_edit", imageEditPromptDraft, bookLabel))
-      if (saves.length > 0) await Promise.all(saves)
-      setImageGenPromptDraft(null)
-      setImageEditPromptDraft(null)
-    } finally {
-      setSavingImageGenPrompt(false)
-    }
-  }
+  const dirtyTabs = [
+    ...markedTabs,
+    ...(renderingPromptDraft != null ? ["rendering-prompt"] : []),
+    ...(renderingTemplateDraft != null || templateTabDraft != null ? ["rendering-template"] : []),
+    ...(activityPromptDraft != null || activityAnswerDraft != null ? ["activity-prompts"] : []),
+    ...(imageGenPromptDraft != null || imageEditPromptDraft != null ? ["image-generation"] : []),
+  ].filter((tabKey, i, all) => all.indexOf(tabKey) === i)
+
+  useStageSettingsBar({
+    stage: "storyboard",
+    bookLabel,
+    dirty: dirtyTabs.length > 0,
+    dirtyTabs,
+    saving: updateConfig.isPending,
+    save,
+  })
 
   return (
     <div className={tab === "rendering-prompt" || tab === "rendering-template" || tab === "activity-prompts" || tab === "image-generation" || tab === "visual-review-prompt" ? "h-full" : "p-4 space-y-6"}>
@@ -738,7 +724,7 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
                 templateName={templateTabName}
                 bookLabel={bookLabel}
                 title={titleCase(templateTabName)}
-                description={t`Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun.`}
+                description={t`Edit the Liquid/HTML template below. Changes are saved when you click Save.`}
                 onContentChange={setTemplateTabDraft}
               />
             </div>
@@ -946,30 +932,6 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
         </div>
       )}
 
-      {headerTarget && createPortal(
-        tab === "image-generation" ? (
-          <Button
-            size="sm"
-            className="h-7 px-2.5 text-xs bg-black/15 text-white hover:bg-black/25"
-            onClick={saveImagePrompts}
-            disabled={savingImageGenPrompt || (imageGenPromptDraft == null && imageEditPromptDraft == null)}
-          >
-            {savingImageGenPrompt ? t`Saving...` : t`Save`}
-          </Button>
-        ) : (
-          <Button
-            size="sm"
-            className="h-7 px-2.5 text-xs bg-black/15 text-white hover:bg-black/25"
-            onClick={() => setShowRerunDialog(true)}
-            disabled={updateConfig.isPending || !hasApiKey}
-          >
-            <Play className="mr-1.5 h-3.5 w-3.5" />
-            {<Trans>Save & Rerun</Trans>}
-          </Button>
-        ),
-        headerTarget
-      )}
-
       <Dialog open={styleguidePreviewOpen} onOpenChange={setStyleguidePreviewOpen}>
         <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-0">
           <DialogHeader className="px-6 pt-6 pb-0">
@@ -1067,26 +1029,6 @@ export function StoryboardSettings({ bookLabel, headerTarget, tab = "general" }:
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showRerunDialog} onOpenChange={setShowRerunDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{<Trans>Save & Rerun Storyboard</Trans>}</DialogTitle>
-            <DialogDescription>
-              {hasExistingSectioningData
-                ? <Trans>This will save your settings and re-run the storyboard pipeline. Only rendering will be regenerated — your existing sections will be preserved.</Trans>
-                : <Trans>This will save your settings and re-run the storyboard pipeline. Sectioning and rendering will be run for all pages.</Trans>}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRerunDialog(false)}>
-              {<Trans>Cancel</Trans>}
-            </Button>
-            <Button onClick={confirmSaveAndRerun} disabled={updateConfig.isPending}>
-              {updateConfig.isPending ? t`Saving...` : t`Confirm Rerun`}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

@@ -18,6 +18,8 @@ import { useBookRun } from "@/hooks/use-book-run"
 import { useAccessibilityAssessment } from "@/hooks/use-debug"
 import { useBookTasks } from "@/hooks/use-book-tasks"
 import { useStageMissingCounts } from "@/hooks/use-stage-missing-counts"
+import { useDirtyTabsForStage } from "@/hooks/use-settings-dirty-tabs"
+import { getSettingsTabs } from "../settings-tabs"
 import { usePackageAdtStatus } from "@/hooks/use-books"
 import { useSignLanguageVideos } from "@/hooks/use-sign-language-videos"
 import { StepProgressRing } from "./StepProgressRing"
@@ -35,39 +37,6 @@ import type { TaskInfoResponse } from "@/api/client"
 import { getStageLabelI18n, getStepLabelI18n, getStageStatusLabelI18n } from "../pipeline-i18n"
 import { ALL_STEP_NAMES } from "@adt/types"
 
-const SETTINGS_TAB_MESSAGE: Record<string, MessageDescriptor> = {
-  general: msg`General`,
-  overview: msg`Overview`,
-  "image-processing": msg`Image Processing`,
-  "section-types": msg`Section Types`,
-  "container-types": msg`Container Types`,
-  "text-types": msg`Text Types`,
-  "metadata-prompt": msg`Metadata Prompt`,
-  prompt: msg`Extraction Prompt`,
-  "meaningfulness-prompt": msg`Meaningfulness Prompt`,
-  "cropping-prompt": msg`Cropping Prompt`,
-  "segmentation-prompt": msg`Segmentation Prompt`,
-  "book-summary-prompt": msg`Summary Prompt`,
-  "sectioning-prompt": msg`Sectioning Prompt`,
-  "refinement-prompt": msg`Refinement Prompt`,
-  "rendering-prompt": msg`AI Rendering`,
-  "rendering-template": msg`Template Rendering`,
-  "activity-prompts": msg`Activity Rendering`,
-  "image-generation": msg`Image Generation`,
-  "visual-review-prompt": msg`Visual Review`,
-  "quiz-prompt": msg`Quiz Prompt`,
-  "glossary-prompt": msg`Glossary Prompt`,
-  "caption-prompt": msg`Caption Prompt`,
-  languages: msg`Languages`,
-  "translation-prompt": msg`Translation Prompt`,
-  "image-translation": msg`Image Translation`,
-  speech: msg`Speech Settings`,
-  "speech-prompts": msg`Speech Prompts`,
-  voices: msg`Voices`,
-  "toc-prompt": msg`Generation Prompt`,
-  "easy-read-prompt": msg`Easy Read Prompt`,
-}
-
 const STAGE_GROUP_LABELS: Record<StageGroup, MessageDescriptor> = {
   convert: msg`Core Pipeline`,
   enhancements: msg`Enhancements`,
@@ -83,74 +52,6 @@ const TASK_KIND_LABELS: Record<string, MessageDescriptor> = {
   "prepare-export": msg`Export`,
   "transcribe-timestamps": msg`Timestamps`,
   "book-summary": msg`Book Summary`,
-}
-
-function getSettingsTabs(
-  slug: string,
-  i18n: ReturnType<typeof useLingui>["i18n"],
-  showOverviewTab: boolean,
-): { key: string; label: string }[] | undefined {
-  const tabs: Record<string, { key: string; label: string }[]> = {
-    extract: [
-      { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE.general) },
-      { key: "metadata-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["metadata-prompt"]) },
-      { key: "meaningfulness-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["meaningfulness-prompt"]) },
-      { key: "cropping-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["cropping-prompt"]) },
-      { key: "segmentation-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["segmentation-prompt"]) },
-    ],
-    sectioning: [
-      { key: "section-types", label: i18n._(SETTINGS_TAB_MESSAGE["section-types"]) },
-      { key: "sectioning-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["sectioning-prompt"]) },
-      { key: "refinement-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["refinement-prompt"]) },
-      { key: "container-types", label: i18n._(SETTINGS_TAB_MESSAGE["container-types"]) },
-      { key: "text-types", label: i18n._(SETTINGS_TAB_MESSAGE["text-types"]) },
-    ],
-    storyboard: [
-      { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE.general) },
-      { key: "rendering-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["rendering-prompt"]) },
-      { key: "rendering-template", label: i18n._(SETTINGS_TAB_MESSAGE["rendering-template"]) },
-      { key: "activity-prompts", label: i18n._(SETTINGS_TAB_MESSAGE["activity-prompts"]) },
-      { key: "image-generation", label: i18n._(SETTINGS_TAB_MESSAGE["image-generation"]) },
-      { key: "visual-review-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["visual-review-prompt"]) },
-    ],
-    quizzes: [
-      { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE.general) },
-      { key: "prompt", label: i18n._(SETTINGS_TAB_MESSAGE["quiz-prompt"]) },
-    ],
-    glossary: [
-      { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE["glossary-prompt"]) },
-    ],
-    toc: [
-      { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE["toc-prompt"]) },
-    ],
-    "easy-read": [
-      { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE["easy-read-prompt"]) },
-    ],
-    captions: [
-      { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE["caption-prompt"]) },
-    ],
-    translate: [
-      { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE.languages) },
-      { key: "prompt", label: i18n._(SETTINGS_TAB_MESSAGE["translation-prompt"]) },
-      { key: "image-translation", label: i18n._(SETTINGS_TAB_MESSAGE["image-translation"]) },
-    ],
-    speech: [
-      { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE.speech) },
-      { key: "speech-prompts", label: i18n._(SETTINGS_TAB_MESSAGE["speech-prompts"]) },
-      { key: "voices", label: i18n._(SETTINGS_TAB_MESSAGE.voices) },
-    ],
-    validation: [
-      { key: "general", label: i18n._(msg`Accessibility`) },
-      { key: "reviewer-checklist", label: i18n._(msg`Reviewer Checklist`) },
-    ],
-  }
-  const stageTabs = tabs[slug]
-  if (!stageTabs) return undefined
-  if (!showOverviewTab) return stageTabs
-  return [
-    { key: "overview", label: i18n._(SETTINGS_TAB_MESSAGE.overview) },
-    ...stageTabs,
-  ]
 }
 
 export function StageSidebar({
@@ -180,11 +81,7 @@ export function StageSidebar({
   const stageMissing = useStageMissingCounts(bookLabel)
   const translateNeedsRerun = stageMissing.translate > 0
   const speechNeedsRerun = stageMissing.speech > 0
-  // At least one page had an empty embedded text layer but vision recovered its
-  // text (scanned/image-only). Surfaced as an advisory badge on the Extract
-  // entry. `enabled: false` reads the `pages` query the Extract/Sectioning views
-  // populate without triggering its own fetch, so opening the sidebar (e.g. on a
-  // freshly imported book or the settings view) adds no background /pages load.
+  const activeDirtyTabs = useDirtyTabsForStage(activeStep)
   const { data: sidebarPages } = usePages(bookLabel, { enabled: false })
   const hasNoTextLayer = (sidebarPages ?? []).some((p) => p.extractionWarning)
   const noTextLayerLabel = i18n._(
@@ -420,8 +317,17 @@ export function StageSidebar({
                   params={{ label: bookLabel, step: step.slug }}
                   search={{ tab: tab.key }}
                   aria-current={activeTab === tab.key ? "page" : undefined}
+                  aria-label={activeDirtyTabs.has(tab.key) ? i18n._(msg`${tab.label} (unsaved changes)`) : undefined}
                 >
-                  {tab.label}
+                  <span className="flex items-center gap-1.5">
+                    {tab.label}
+                    {activeDirtyTabs.has(tab.key) && (
+                      <span
+                        aria-hidden
+                        className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500"
+                      />
+                    )}
+                  </span>
                 </Link>
               </Button>
             ))}
