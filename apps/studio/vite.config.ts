@@ -1,4 +1,4 @@
-import { lingui } from "@lingui/vite-plugin";
+import { lingui, linguiTransformerBabelPreset } from "@lingui/vite-plugin";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
@@ -7,6 +7,7 @@ import { fileURLToPath, URL } from "node:url";
 import { createRequire } from "node:module";
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
+import babel from "@rolldown/plugin-babel";
 
 // pdfjs-dist 5.x decodes JPEG 2000 (JPXDecode), JBIG2, and ICC color via WASM
 // modules shipped in `pdfjs-dist/wasm/`. They must be reachable at a stable URL
@@ -15,7 +16,10 @@ import { dirname, join } from "node:path";
 // in dev (middleware) and in builds (emitted unhashed assets).
 function pdfjsWasmAssets(): Plugin {
   const require = createRequire(import.meta.url);
-  const wasmDir = join(dirname(require.resolve("pdfjs-dist/package.json")), "wasm");
+  const wasmDir = join(
+    dirname(require.resolve("pdfjs-dist/package.json")),
+    "wasm",
+  );
   const files = readdirSync(wasmDir).filter(
     (f) => f.endsWith(".wasm") || f.endsWith(".js"),
   );
@@ -58,12 +62,9 @@ export default defineConfig(({ mode }) => {
         quoteStyle: "double",
         routeFileIgnorePattern: "\\.test\\.tsx?$",
       }),
-      react({
-        babel: {
-          plugins: ["@lingui/babel-plugin-lingui-macro"],
-        },
-      }),
+      react(),
       tailwindcss(),
+      babel({ presets: [linguiTransformerBabelPreset()] }),
     ],
     resolve: {
       alias: {
@@ -80,5 +81,5 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-  }
+  };
 });
