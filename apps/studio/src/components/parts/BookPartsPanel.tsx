@@ -109,7 +109,7 @@ function MergeCoverage({ status }: { status: SplitStatus | undefined }) {
     return (
       <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
         <CheckCircle2 className="h-3.5 w-3.5" />
-        <Trans>All {status.pageCount} parts merged in</Trans>
+        <Trans>All {status.pageCount} pages merged in</Trans>
       </span>
     )
   }

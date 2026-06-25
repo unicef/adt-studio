@@ -978,12 +978,12 @@ msgstr "Aligns narration with text to enable word-level highlighting."
 msgid "All"
 msgstr "All"
 
-#~ msgid "All {0} pages merged in"
-#~ msgstr "All {0} pages merged in"
-
 #. placeholder {0}: status.pageCount
-msgid "All {0} parts merged in"
-msgstr "All {0} parts merged in"
+msgid "All {0} pages merged in"
+msgstr "All {0} pages merged in"
+
+#~ msgid "All {0} parts merged in"
+#~ msgstr "All {0} parts merged in"
 
 msgid "All Categories"
 msgstr "All Categories"

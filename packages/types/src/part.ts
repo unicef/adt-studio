@@ -4,10 +4,15 @@ import { z } from "zod"
  * Page-range window of a "part" — a slice of a book handed to a contributor to
  * process independently. Pages are 1-indexed and inclusive.
  */
-export const PartRange = z.object({
-  startPage: z.number().int().min(1),
-  endPage: z.number().int().min(1),
-})
+export const PartRange = z
+  .object({
+    startPage: z.number().int().min(1),
+    endPage: z.number().int().min(1),
+  })
+  .refine((r) => r.endPage >= r.startPage, {
+    message: "endPage must be greater than or equal to startPage",
+    path: ["endPage"],
+  })
 export type PartRange = z.infer<typeof PartRange>
 
 /**

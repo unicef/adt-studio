@@ -978,12 +978,12 @@ msgstr "Alinea la narración con el texto para permitir el resaltado a nivel de 
 msgid "All"
 msgstr "Todo"
 
-#~ msgid "All {0} pages merged in"
-#~ msgstr "Las {0} páginas están fusionadas"
-
 #. placeholder {0}: status.pageCount
-msgid "All {0} parts merged in"
-msgstr "Las {0} partes están fusionadas"
+msgid "All {0} pages merged in"
+msgstr "Las {0} páginas están fusionadas"
+
+#~ msgid "All {0} parts merged in"
+#~ msgstr "Las {0} partes están fusionadas"
 
 msgid "All Categories"
 msgstr "All Categories"

@@ -11,13 +11,15 @@ import {
   PartManifest,
   PartsLedger,
   PIPELINE,
+  type AppConfig,
+  type PartRange,
+} from "@adt/types"
+import {
   PER_PAGE_PROMPT_KEYS,
   computeFingerprint,
   canonicalJson,
   hashPdfBytes,
-  type AppConfig,
-  type PartRange,
-} from "@adt/types"
+} from "@adt/types/fingerprint"
 import { renderPdfCover, countPdfPages } from "@adt/pdf"
 import { openBookDb, resolveBookPaths } from "@adt/storage"
 import { loadBookConfig } from "@adt/pipeline"

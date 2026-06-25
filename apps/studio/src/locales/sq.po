@@ -979,12 +979,12 @@ msgstr "Rreshtimi i tregimit me tekstin për të aktivizuar theksimin në nivel 
 msgid "All"
 msgstr "Të gjitha"
 
-#~ msgid "All {0} pages merged in"
-#~ msgstr "Të {0} faqet janë bashkuar"
-
 #. placeholder {0}: status.pageCount
-msgid "All {0} parts merged in"
-msgstr "Të {0} pjesët janë bashkuar"
+msgid "All {0} pages merged in"
+msgstr "Të {0} faqet janë bashkuar"
+
+#~ msgid "All {0} parts merged in"
+#~ msgstr "Të {0} pjesët janë bashkuar"
 
 msgid "All Categories"
 msgstr "Të Gjitha Kategoritë"

@@ -58,16 +58,10 @@ export {
   getCacheResourcesForStageClear,
 } from "./pipeline-effects.js"
 
-export {
-  type PipelineFingerprint,
-  type FingerprintComparison,
-  EXTRACTION_CONFIG_KEYS,
-  PER_PAGE_PROMPT_KEYS,
-  canonicalJson,
-  computeFingerprint,
-  compareFingerprints,
-  hashPdfBytes,
-} from "./fingerprint.js"
+// NOTE: fingerprint.* is intentionally NOT re-exported here. It imports
+// `node:crypto`, which is unavailable in the browser, and this root barrel is
+// imported by the Studio SPA (for PIPELINE and friends). Node-only consumers
+// import it from the "@adt/types/fingerprint" subpath instead.
 
 export { PartRange, PartManifest, ExportedPartEntry, PartsLedger } from "./part.js"
 

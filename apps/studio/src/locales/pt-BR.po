@@ -978,12 +978,12 @@ msgstr "Alinha a narração com o texto para permitir destaque por palavra."
 msgid "All"
 msgstr "Tudo"
 
-#~ msgid "All {0} pages merged in"
-#~ msgstr "As {0} páginas foram mescladas"
-
 #. placeholder {0}: status.pageCount
-msgid "All {0} parts merged in"
-msgstr "As {0} partes foram mescladas"
+msgid "All {0} pages merged in"
+msgstr "As {0} páginas foram mescladas"
+
+#~ msgid "All {0} parts merged in"
+#~ msgstr "As {0} partes foram mescladas"
 
 msgid "All Categories"
 msgstr "All Categories"

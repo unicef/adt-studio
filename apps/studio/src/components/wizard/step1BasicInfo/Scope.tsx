@@ -11,10 +11,14 @@ export function Scope() {
 
   return (
     <fieldset className="flex flex-col gap-3">
-      <legend className="mb-1 text-sm font-medium text-foreground">
+      <legend id="scope-legend" className="mb-1 text-sm font-medium text-foreground">
         <Trans>How much of this book do you want to process?</Trans>
       </legend>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div
+        role="radiogroup"
+        aria-labelledby="scope-legend"
+        className="grid grid-cols-1 gap-3 sm:grid-cols-3"
+      >
         <ScopeCard
           selected={scope === "whole"}
           onSelect={() => form.setFieldValue("scope", "whole")}
