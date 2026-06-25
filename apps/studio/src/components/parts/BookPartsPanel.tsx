@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { Scissors, Combine, Download, Upload, AlertTriangle, CheckCircle2, Loader2, Sparkles } from "lucide-react"
+import { Scissors, Combine, Download, Upload, AlertTriangle, CheckCircle2, Loader2, Sparkles, Info } from "lucide-react"
 import { useBook, useRegenerateBookSummary } from "../../hooks/use-books"
 import { usePartInfo, usePreviewMerge, useMergePart, useSplitStatus } from "../../hooks/use-parts"
 import { useApiKey } from "../../hooks/use-api-key"
@@ -95,10 +95,23 @@ export function BookPartsPanel({ bookLabel }: { bookLabel: string }) {
         )}
       </header>
 
-      <div className="grid grid-cols-1 gap-px bg-border/60 md:grid-cols-2">
-        <ExportPart bookLabel={bookLabel} pageCount={pageCount} spreadMode={spreadMode} status={splitStatus} />
-        <MergePart bookLabel={bookLabel} status={splitStatus} />
-      </div>
+      {partInfo ? (
+        <div className="flex items-start gap-2.5 px-6 py-5 text-xs leading-relaxed text-muted-foreground">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
+          <p>
+            <Trans>
+              This book is an imported part. Parts can't be split or merged
+              further — process the assigned pages, then return the finished
+              part from the Export step to merge it back into the source book.
+            </Trans>
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-px bg-border/60 md:grid-cols-2">
+          <ExportPart bookLabel={bookLabel} pageCount={pageCount} spreadMode={spreadMode} status={splitStatus} />
+          <MergePart bookLabel={bookLabel} status={splitStatus} />
+        </div>
+      )}
     </section>
   )
 }
