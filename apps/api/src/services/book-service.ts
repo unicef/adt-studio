@@ -69,6 +69,7 @@ export function readSplitSummary(
   return {
     totalPages,
     exportedParts: ledger.exported.length,
+    splitPages: covered.size,
     mergedPages,
     fullySplit: totalPages > 0 && covered.size === totalPages,
     fullyMerged: totalPages > 0 && mergedPages >= totalPages,

@@ -6138,6 +6138,11 @@ msgstr "Speech Settings"
 msgid "Split · {0}/{1} pages merged"
 msgstr "Split · {0}/{1} pages merged"
 
+#. placeholder {0}: book.split.splitPages
+#. placeholder {1}: book.split.totalPages
+msgid "Split · {0}/{1} pages split"
+msgstr "Split · {0}/{1} pages split"
+
 msgid "Split · all parts merged"
 msgstr "Split · all parts merged"
 
@@ -6147,9 +6152,16 @@ msgstr "Split & merge"
 msgid "Split into"
 msgstr "Split into"
 
+#~ msgid "Split into {0} part(s)"
+#~ msgstr "Split into {0} part(s)"
+
 #. placeholder {0}: book.split.exportedParts
-msgid "Split into {0} part(s)"
-msgstr "Split into {0} part(s)"
+#. placeholder {1}: book.split.splitPages
+#. placeholder {2}: book.split.totalPages
+#. placeholder {3}: book.split.mergedPages
+#. placeholder {4}: book.split.totalPages
+msgid "Split into {0} part(s) · {1}/{2} pages split off · {3}/{4} merged back"
+msgstr "Split into {0} part(s) · {1}/{2} pages split off · {3}/{4} merged back"
 
 msgid "Split into parts"
 msgstr "Split into parts"

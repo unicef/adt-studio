@@ -6139,6 +6139,11 @@ msgstr "Cilësimet e të Folurit"
 msgid "Split · {0}/{1} pages merged"
 msgstr "I ndarë · {0}/{1} faqe të bashkuara"
 
+#. placeholder {0}: book.split.splitPages
+#. placeholder {1}: book.split.totalPages
+msgid "Split · {0}/{1} pages split"
+msgstr "I ndarë · {0}/{1} faqe të ndara"
+
 msgid "Split · all parts merged"
 msgstr "I ndarë · të gjitha pjesët u bashkuan"
 
@@ -6148,9 +6153,16 @@ msgstr "Ndaj dhe bashko"
 msgid "Split into"
 msgstr "Ndaje në"
 
+#~ msgid "Split into {0} part(s)"
+#~ msgstr "I ndarë në {0} pjesë"
+
 #. placeholder {0}: book.split.exportedParts
-msgid "Split into {0} part(s)"
-msgstr "I ndarë në {0} pjesë"
+#. placeholder {1}: book.split.splitPages
+#. placeholder {2}: book.split.totalPages
+#. placeholder {3}: book.split.mergedPages
+#. placeholder {4}: book.split.totalPages
+msgid "Split into {0} part(s) · {1}/{2} pages split off · {3}/{4} merged back"
+msgstr "I ndarë në {0} pjesë · {1}/{2} faqe të ndara · {3}/{4} të bashkuara"
 
 msgid "Split into parts"
 msgstr "Ndaje në pjesë"

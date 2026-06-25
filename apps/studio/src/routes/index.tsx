@@ -284,12 +284,19 @@ function BookRow({
                       ? "border-emerald-300 bg-emerald-100 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
                       : "border-amber-300 bg-amber-100 text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200",
                   )}
-                  title={t`Split into ${book.split.exportedParts} part(s)`}
+                  title={t`Split into ${book.split.exportedParts} part(s) · ${book.split.splitPages}/${book.split.totalPages} pages split off · ${book.split.mergedPages}/${book.split.totalPages} merged back`}
                 >
                   <Scissors className="h-3 w-3" />
                   {book.split.fullyMerged ? (
+                    // Done: every page split off and merged back.
                     <Trans>Split · all parts merged</Trans>
+                  ) : !book.split.fullySplit ? (
+                    // Still carving: show how much has been handed out as parts.
+                    <Trans>
+                      Split · {book.split.splitPages}/{book.split.totalPages} pages split
+                    </Trans>
                   ) : (
+                    // Fully split, now collecting completed parts back.
                     <Trans>
                       Split · {book.split.mergedPages}/{book.split.totalPages} pages merged
                     </Trans>

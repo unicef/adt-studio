@@ -6138,6 +6138,11 @@ msgstr "Configurações de Fala"
 msgid "Split · {0}/{1} pages merged"
 msgstr "Dividido · {0}/{1} páginas mescladas"
 
+#. placeholder {0}: book.split.splitPages
+#. placeholder {1}: book.split.totalPages
+msgid "Split · {0}/{1} pages split"
+msgstr "Dividido · {0}/{1} páginas divididas"
+
 msgid "Split · all parts merged"
 msgstr "Dividido · todas as partes mescladas"
 
@@ -6147,9 +6152,16 @@ msgstr "Dividir e mesclar"
 msgid "Split into"
 msgstr "Dividir em"
 
+#~ msgid "Split into {0} part(s)"
+#~ msgstr "Dividido em {0} parte(s)"
+
 #. placeholder {0}: book.split.exportedParts
-msgid "Split into {0} part(s)"
-msgstr "Dividido em {0} parte(s)"
+#. placeholder {1}: book.split.splitPages
+#. placeholder {2}: book.split.totalPages
+#. placeholder {3}: book.split.mergedPages
+#. placeholder {4}: book.split.totalPages
+msgid "Split into {0} part(s) · {1}/{2} pages split off · {3}/{4} merged back"
+msgstr "Dividido em {0} parte(s) · {1}/{2} páginas separadas · {3}/{4} mescladas"
 
 msgid "Split into parts"
 msgstr "Dividir em partes"

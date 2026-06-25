@@ -32,6 +32,8 @@ export const BookSummary = z.object({
     .object({
       totalPages: z.number().int(),
       exportedParts: z.number().int(),
+      /** Distinct pages covered by exported parts (split-off progress). */
+      splitPages: z.number().int(),
       mergedPages: z.number().int(),
       fullySplit: z.boolean(),
       fullyMerged: z.boolean(),
