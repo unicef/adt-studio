@@ -1851,6 +1851,9 @@ msgstr "Corrigez les métadonnées extraites du document."
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "Impossible de lire ce PDF. Le fichier est peut-être corrompu ou protégé par un mot de passe."
 
+msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
+msgstr "Impossible de charger l'aperçu du PDF. Les pages peuvent toujours être divisées à l'aide des commandes."
+
 msgid "Couldn't read this PDF"
 msgstr "Impossible de lire ce PDF"
 
@@ -2614,6 +2617,9 @@ msgstr "Exporter le livre emballé et les artefacts associés pour la livraison.
 
 msgid "Export to a reader"
 msgstr "Exporter vers un lecteur"
+
+msgid "Exported"
+msgstr "Exporté"
 
 msgid "Exported:"
 msgstr "Exporté :"
@@ -3459,6 +3465,9 @@ msgstr "L{0}"
 
 msgid "Label"
 msgstr "Libellé"
+
+msgid "labeled {printedLabel}"
+msgstr "étiquetée {printedLabel}"
 
 msgid "Language"
 msgstr "Langue"
@@ -4622,6 +4631,9 @@ msgstr "Page {n}"
 msgid "Page {pageId}"
 msgstr "Page {pageId}"
 
+msgid "Page {pageNum}"
+msgstr "Page {pageNum}"
+
 msgid "page {shownStr}"
 msgstr "page {shownStr}"
 
@@ -4717,6 +4729,12 @@ msgstr "Analyse des pages en texte, figures et cadres de mise en page — mis en
 #. placeholder {1}: book.part.range.endPage
 msgid "Part · p{0}–{1}"
 msgstr "Partie · p{0}–{1}"
+
+#. placeholder {0}: planStart.index + 1
+#. placeholder {1}: planStart.window.startPage
+#. placeholder {2}: planStart.window.endPage
+msgid "Part {0} · pages {1}–{2}"
+msgstr "Partie {0} · pages {1}–{2}"
 
 msgid "Part info"
 msgstr "Infos sur la partie"
@@ -4893,6 +4911,9 @@ msgstr "Préc."
 
 msgid "Preview"
 msgstr "Aperçu"
+
+msgid "Preview & split pages"
+msgstr "Aperçu et division des pages"
 
 msgid "Preview linked page"
 msgstr "Aperçu de la page liée"
@@ -6201,6 +6222,9 @@ msgstr "Diviser en parties"
 
 #~ msgid "Split into parts for others"
 #~ msgstr "Diviser en parties pour d'autres"
+
+msgid "Split preview"
+msgstr "Aperçu de la division"
 
 msgid "Split segments"
 msgstr "Diviser segments"

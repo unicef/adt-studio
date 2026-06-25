@@ -342,8 +342,19 @@ export function BookCreationWizard() {
 
   const isFixedLayout = values.renderStrategy === "fixed_layout"
 
+  // When scoping to a page range, preview exactly which pages will be processed
+  // — emphasise the selected range and dim the rest.
+  const previewRange =
+    values.scope === "range"
+      ? {
+          startPage: parseInt(values.startPage) || 1,
+          endPage: parseInt(values.endPage) || Number.MAX_SAFE_INTEGER,
+        }
+      : null
+
   function renderPreviewContent({mobileMode}: {mobileMode: boolean} = {mobileMode: false}) {
-    if (currentStep === 1) return <PdfCoverPreview file={file} width={650} height={812} />
+    if (currentStep === 1)
+      return <PdfCoverPreview file={file} width={650} height={812} highlightRange={previewRange} />
     if (currentStep === 2) return <LayoutPreview strategy={renderStrategy} />
     if (currentStep === 3) {
       if (isFixedLayout) return <PdfCoverPreview file={file} width={650} height={812} />

@@ -1,67 +1,20 @@
-import { useEffect, useRef, useState } from "react"
-import { useQueryClient } from "@tanstack/react-query"
+import { useRef, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { Scissors, Combine, Download, Upload, AlertTriangle, CheckCircle2, Loader2, Sparkles, Info } from "lucide-react"
+import { Scissors, Combine, Upload, AlertTriangle, CheckCircle2, Loader2, Sparkles, Info } from "lucide-react"
 import { useBook, useRegenerateBookSummary } from "../../hooks/use-books"
 import { usePartInfo, usePreviewMerge, useMergePart, useSplitStatus } from "../../hooks/use-parts"
 import { useApiKey } from "../../hooks/use-api-key"
 import { useActiveConfig } from "../../hooks/use-debug"
 import { useSourcePdfInfo } from "../../hooks/use-source-pdf-info"
-import { api, type MergePreview, type MergeResult, type PageRange, type SplitStatus } from "../../api/client"
+import { type MergePreview, type MergeResult, type SplitStatus } from "../../api/client"
 import { Button } from "../ui/button"
-import { Input } from "../ui/input"
 import { Badge } from "../ui/badge"
+import { fmtRange } from "./parts-utils"
+import { ExportPartControls, useExportPartState } from "./ExportPartControls"
+import { SplitPreviewDialog } from "./SplitPreviewDialog"
 
-const fmtRange = (r: PageRange) =>
-  r.startPage === r.endPage ? `${r.startPage}` : `${r.startPage}–${r.endPage}`
-
-const rangeKey = (r: PageRange) => `${r.startPage}-${r.endPage}`
-
-/**
- * Split `1..pageCount` into `n` contiguous, roughly-equal page windows (sizes
- * differ by at most one page). In `spreadMode` the split is computed in
- * two-page-spread units — assuming spreads pair as (1,2), (3,4), … — so a
- * window never splits a spread; each window then starts on an odd page and
- * ends on an even one. These are starting suggestions the coordinator can
- * still adjust per export.
- */
-export function computeEqualWindows(
-  pageCount: number,
-  n: number,
-  opts: { spreadMode?: boolean } = {},
-): PageRange[] {
-  if (pageCount <= 0 || n <= 0) return []
-
-  if (opts.spreadMode) {
-    const spreads = Math.ceil(pageCount / 2) // spread i covers pages [2i+1, 2i+2]
-    const parts = Math.min(n, spreads)
-    const base = Math.floor(spreads / parts)
-    const remainder = spreads % parts
-    const windows: PageRange[] = []
-    let spreadStart = 0
-    for (let i = 0; i < parts; i++) {
-      const count = base + (i < remainder ? 1 : 0)
-      const startPage = spreadStart * 2 + 1
-      const endPage = Math.min((spreadStart + count) * 2, pageCount)
-      windows.push({ startPage, endPage })
-      spreadStart += count
-    }
-    return windows
-  }
-
-  const parts = Math.min(n, pageCount)
-  const base = Math.floor(pageCount / parts)
-  const remainder = pageCount % parts
-  const windows: PageRange[] = []
-  let start = 1
-  for (let i = 0; i < parts; i++) {
-    const size = base + (i < remainder ? 1 : 0)
-    const end = Math.min(start + size - 1, pageCount)
-    windows.push({ startPage: start, endPage: end })
-    start = end + 1
-  }
-  return windows
-}
+// Re-exported for tests and existing importers.
+export { computeEqualWindows } from "./parts-utils"
 
 /**
  * Split a book into page-range "parts" for independent processing, and merge
@@ -69,15 +22,20 @@ export function computeEqualWindows(
  */
 export function BookPartsPanel({ bookLabel }: { bookLabel: string }) {
   const { data: book } = useBook(bookLabel)
-  const { data: partInfo } = usePartInfo(bookLabel)
-  const { data: pdfInfo } = useSourcePdfInfo(bookLabel)
-  const { data: splitStatus } = useSplitStatus(bookLabel)
+  const { data: partInfo, isLoading: partInfoLoading } = usePartInfo(bookLabel)
+  const { data: pdfInfo, isLoading: pdfInfoLoading } = useSourcePdfInfo(bookLabel)
+  const { data: splitStatus, isLoading: splitStatusLoading } = useSplitStatus(bookLabel)
   const { data: activeConfig } = useActiveConfig(bookLabel)
   const spreadMode = activeConfig?.merged?.spread_mode === true
   // Base the export range on the full source PDF (works before extraction and
   // isn't capped when the book was extracted with a window). Fall back to the
   // extracted page count.
   const pageCount = splitStatus?.pageCount ?? pdfInfo?.pageCount ?? book?.pageCount ?? 0
+  // Until these settle we know neither whether this is an imported part nor the
+  // page count — render a stable skeleton instead of flashing the wrong body
+  // (the export/merge grid, then snapping to the part notice / adding the
+  // "Preview & split pages" button once the queries resolve).
+  const loading = partInfoLoading || pdfInfoLoading || splitStatusLoading
 
   return (
     <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
@@ -95,7 +53,9 @@ export function BookPartsPanel({ bookLabel }: { bookLabel: string }) {
         )}
       </header>
 
-      {partInfo ? (
+      {loading ? (
+        <PartsPanelSkeleton />
+      ) : partInfo ? (
         <div className="flex items-start gap-2.5 px-6 py-5 text-xs leading-relaxed text-muted-foreground">
           <Info className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
           <p>
@@ -113,6 +73,28 @@ export function BookPartsPanel({ bookLabel }: { bookLabel: string }) {
         </div>
       )}
     </section>
+  )
+}
+
+/**
+ * Placeholder shown while the part/split queries load, sized to roughly match
+ * the two-column export/merge grid so the card doesn't jump once data arrives.
+ */
+function PartsPanelSkeleton() {
+  return (
+    <div
+      className="grid animate-pulse grid-cols-1 gap-px bg-border/60 md:grid-cols-2"
+      aria-hidden
+    >
+      {[0, 1].map((col) => (
+        <div key={col} className="flex flex-col gap-3 bg-card p-6">
+          <div className="h-4 w-32 rounded bg-muted" />
+          <div className="h-3 w-full rounded bg-muted/70" />
+          <div className="h-3 w-4/5 rounded bg-muted/70" />
+          <div className="mt-2 h-9 w-40 rounded bg-muted" />
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -173,195 +155,34 @@ function ExportPart({
   spreadMode: boolean
   status: SplitStatus | undefined
 }) {
-  const { t } = useLingui()
-  const queryClient = useQueryClient()
-  const [startPage, setStartPage] = useState(1)
-  const [endPage, setEndPage] = useState(pageCount > 0 ? pageCount : 1)
-  // While false, the picker auto-follows the next un-exported window (the equal-
-  // parts plan if one is set, otherwise the next gap). Manual edits pin it;
-  // exporting releases it so it advances.
-  const [touched, setTouched] = useState(false)
-  // Optional "split into N equal parts" plan. When set, the picker walks these
-  // windows in order, skipping ones already exported.
-  const [partsInput, setPartsInput] = useState("")
-  const [plan, setPlan] = useState<PageRange[] | null>(null)
-
-  const nextGap = status?.nextGap
-  const nextGapKey = nextGap ? `${nextGap.startPage}-${nextGap.endPage}` : ""
-  const exportedKey = (status?.exported ?? []).map(rangeKey).join(",")
-
-  // Default the picker to the next un-exported window. With a plan, that's the
-  // first plan window not yet exported; otherwise the next gap (e.g. after
-  // exporting 1–10, jump to 11–N).
-  useEffect(() => {
-    if (touched) return
-    if (plan && plan.length > 0) {
-      const exported = new Set(exportedKey ? exportedKey.split(",") : [])
-      const next = plan.find((w) => !exported.has(rangeKey(w))) ?? plan[plan.length - 1]
-      setStartPage(next.startPage)
-      setEndPage(next.endPage)
-      return
-    }
-    if (nextGap) {
-      setStartPage(nextGap.startPage)
-      setEndPage(nextGap.endPage)
-    } else if (pageCount > 0 && !status) {
-      // Status not loaded yet — fall back to the whole book.
-      setStartPage(1)
-      setEndPage(pageCount)
-    }
-  }, [nextGapKey, pageCount, touched, status, nextGap, plan, exportedKey])
-
-  const onPartsChange = (raw: string) => {
-    setPartsInput(raw)
-    const n = Number(raw.trim())
-    if (raw.trim() && Number.isInteger(n) && n >= 2 && pageCount > 0) {
-      setPlan(computeEqualWindows(pageCount, n, { spreadMode }))
-      setTouched(false)
-    } else {
-      setPlan(null)
-    }
-  }
-
-  const max = pageCount > 0 ? pageCount : undefined
-  const invalid = startPage < 1 || endPage < startPage || (max !== undefined && endPage > max)
-
-  const onExport = () => {
-    api.exportPart(bookLabel, startPage, endPage)
-    // Release the pin so the picker follows the next gap, and refresh once the
-    // download request has recorded the export server-side: the split-status
-    // (overview panel) and the books list (library card's split badge, which is
-    // a separate query kept fresh by the global 5-min staleTime).
-    setTouched(false)
-    setTimeout(() => {
-      queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "split-status"] })
-      queryClient.invalidateQueries({ queryKey: ["books"], exact: true })
-    }, 1200)
-  }
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const state = useExportPartState({ bookLabel, pageCount, spreadMode, status })
 
   return (
     <div className="flex flex-col gap-3 bg-card p-6">
-      <div className="flex items-center gap-2">
-        <Download className="h-4 w-4 text-muted-foreground" strokeWidth={2} />
-        <h3 className="text-sm font-semibold text-foreground">
-          <Trans>Export a part</Trans>
-        </h3>
-      </div>
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        <Trans>
-          Download a lightweight part (the full PDF plus a page range and a
-          fingerprint) for someone else to process on their own machine, then
-          merge their result back here.
-        </Trans>
-      </p>
+      <ExportPartControls state={state} pageCount={pageCount} status={status} />
 
       {pageCount > 0 && (
-        <div className="flex flex-col gap-1.5">
-          <label className="flex items-center gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              <Trans>Split into</Trans>
-            </span>
-            <Input
-              type="number"
-              min={2}
-              max={pageCount}
-              placeholder="N"
-              value={partsInput}
-              onChange={(e) => onPartsChange(e.target.value)}
-              className="w-16 tabular-nums"
-            />
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              <Trans>equal parts</Trans>
-            </span>
-          </label>
-          {plan && plan.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1">
-              {plan.map((w) => {
-                const done = (status?.exported ?? []).some((r) => rangeKey(r) === rangeKey(w))
-                return (
-                  <Badge
-                    key={rangeKey(w)}
-                    variant={done ? "secondary" : "outline"}
-                    className="text-[10px] px-1.5 py-0 tabular-nums"
-                  >
-                    {done && <CheckCircle2 className="mr-1 h-3 w-3 text-emerald-600" />}
-                    {fmtRange(w)}
-                  </Badge>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      <div className="flex items-end gap-3">
-        <label className="flex flex-col gap-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            <Trans>From page</Trans>
-          </span>
-          <Input
-            type="number"
-            min={1}
-            max={max}
-            value={startPage}
-            onChange={(e) => { setStartPage(Number(e.target.value)); setTouched(true) }}
-            className="w-24 tabular-nums"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            <Trans>To page</Trans>
-          </span>
-          <Input
-            type="number"
-            min={1}
-            max={max}
-            value={endPage}
-            onChange={(e) => { setEndPage(Number(e.target.value)); setTouched(true) }}
-            className="w-24 tabular-nums"
-          />
-        </label>
         <Button
           type="button"
-          disabled={invalid}
-          onClick={onExport}
-          title={invalid ? t`Enter a valid page range` : undefined}
+          variant="outline"
+          size="sm"
+          className="self-start"
+          onClick={() => setPreviewOpen(true)}
         >
-          <Download className="mr-1.5 h-4 w-4" />
-          <Trans>Download part</Trans>
+          <Scissors className="mr-1.5 h-4 w-4" />
+          <Trans>Preview & split pages</Trans>
         </Button>
-      </div>
+      )}
 
-      {status && status.exported.length > 0 && (
-        <div className="flex flex-col gap-1.5">
-          {status.fullySplit ? (
-            <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400">
-              <CheckCircle2 className="h-3.5 w-3.5" />
-              <Trans>The whole book has been split into parts.</Trans>
-            </span>
-          ) : (
-            <span className="text-[11px] text-muted-foreground">
-              <Trans>Not yet split:</Trans>{" "}
-              <span className="font-medium text-foreground tabular-nums">
-                {status.exportGaps.map(fmtRange).join(", ")}
-              </span>
-            </span>
-          )}
-          <div className="flex flex-wrap items-center gap-1">
-            <span className="text-[11px] text-muted-foreground"><Trans>Exported:</Trans></span>
-            {status.exported.map((r) => (
-              <Badge key={`${r.startPage}-${r.endPage}`} variant="secondary" className="text-[10px] px-1.5 py-0 tabular-nums">
-                {fmtRange(r)}
-              </Badge>
-            ))}
-          </div>
-        </div>
-      )}
-      {pageCount > 0 && (!status || status.exported.length === 0) && (
-        <p className="text-[11px] text-muted-foreground tabular-nums">
-          <Trans>This book has {pageCount} pages.</Trans>
-        </p>
-      )}
+      <SplitPreviewDialog
+        open={previewOpen}
+        onOpenChange={setPreviewOpen}
+        bookLabel={bookLabel}
+        pageCount={pageCount}
+        status={status}
+        state={state}
+      />
     </div>
   )
 }

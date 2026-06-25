@@ -1850,6 +1850,9 @@ msgstr "Korrigjoni meta të dhënat e nxjerra nga dokumenti."
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "Nuk u mund të lexohet ky PDF. Skedari mund të jetë i dëmtuar ose i mbrojtur me fjalëkalim."
 
+msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
+msgstr "Pamja paraprake e PDF-së nuk u ngarkua dot. Faqet mund të ndahen ende duke përdorur kontrollet."
+
 msgid "Couldn't read this PDF"
 msgstr "Nuk mund të lexohej ky PDF"
 
@@ -2613,6 +2616,9 @@ msgstr "Eksportoni librin e paketuar dhe artefaktet përkatëse për dorëzim."
 
 msgid "Export to a reader"
 msgstr "Eksporto tek një lexues"
+
+msgid "Exported"
+msgstr "Eksportuar"
 
 msgid "Exported:"
 msgstr "Eksportuar:"
@@ -3458,6 +3464,9 @@ msgstr "N{0}"
 
 msgid "Label"
 msgstr "Etiketë"
+
+msgid "labeled {printedLabel}"
+msgstr "etiketuar {printedLabel}"
 
 msgid "Language"
 msgstr "Gjuhë"
@@ -4621,6 +4630,9 @@ msgstr "Faqja {n}"
 msgid "Page {pageId}"
 msgstr "Faqja {pageId}"
 
+msgid "Page {pageNum}"
+msgstr "Faqja {pageNum}"
+
 msgid "page {shownStr}"
 msgstr "faqja {shownStr}"
 
@@ -4716,6 +4728,12 @@ msgstr "Analizimi i faqeve në tekst, figura dhe kuti paraqitjeje — memorizuar
 #. placeholder {1}: book.part.range.endPage
 msgid "Part · p{0}–{1}"
 msgstr "Pjesë · f{0}–{1}"
+
+#. placeholder {0}: planStart.index + 1
+#. placeholder {1}: planStart.window.startPage
+#. placeholder {2}: planStart.window.endPage
+msgid "Part {0} · pages {1}–{2}"
+msgstr "Pjesa {0} · faqet {1}–{2}"
 
 msgid "Part info"
 msgstr "Informacion mbi pjesën"
@@ -4892,6 +4910,9 @@ msgstr "Para"
 
 msgid "Preview"
 msgstr "Pamje paraprake"
+
+msgid "Preview & split pages"
+msgstr "Parashiko dhe ndaj faqet"
 
 msgid "Preview linked page"
 msgstr "Shiko faqen e lidhur"
@@ -6200,6 +6221,9 @@ msgstr "Ndaje në pjesë"
 
 #~ msgid "Split into parts for others"
 #~ msgstr "Ndaje në pjesë për të tjerët"
+
+msgid "Split preview"
+msgstr "Pamja paraprake e ndarjes"
 
 msgid "Split segments"
 msgstr "Ndaj segmentet"

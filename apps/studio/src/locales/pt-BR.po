@@ -1849,6 +1849,9 @@ msgstr "Corrija os metadados extraídos do documento."
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "Não foi possível ler este PDF. O arquivo pode estar corrompido ou protegido por senha."
 
+msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
+msgstr "Não foi possível carregar a pré-visualização do PDF. As páginas ainda podem ser divididas usando os controles."
+
 msgid "Couldn't read this PDF"
 msgstr "Não foi possível ler este PDF"
 
@@ -2612,6 +2615,9 @@ msgstr "Exporte o livro embalado e artefatos relacionados para entrega."
 
 msgid "Export to a reader"
 msgstr "Exportar para um leitor"
+
+msgid "Exported"
+msgstr "Exportado"
 
 msgid "Exported:"
 msgstr "Exportado:"
@@ -3457,6 +3463,9 @@ msgstr "N{0}"
 
 msgid "Label"
 msgstr "Rótulo"
+
+msgid "labeled {printedLabel}"
+msgstr "rotulada {printedLabel}"
 
 msgid "Language"
 msgstr "Idioma"
@@ -4620,6 +4629,9 @@ msgstr "Página {n}"
 msgid "Page {pageId}"
 msgstr "Página {0}"
 
+msgid "Page {pageNum}"
+msgstr "Página {pageNum}"
+
 msgid "page {shownStr}"
 msgstr "página {shownStr}"
 
@@ -4715,6 +4727,12 @@ msgstr "Analisando páginas em texto, figuras e caixas de layout — com cache p
 #. placeholder {1}: book.part.range.endPage
 msgid "Part · p{0}–{1}"
 msgstr "Parte · p{0}–{1}"
+
+#. placeholder {0}: planStart.index + 1
+#. placeholder {1}: planStart.window.startPage
+#. placeholder {2}: planStart.window.endPage
+msgid "Part {0} · pages {1}–{2}"
+msgstr "Parte {0} · páginas {1}–{2}"
 
 msgid "Part info"
 msgstr "Informações da parte"
@@ -4891,6 +4909,9 @@ msgstr "Anterior"
 
 msgid "Preview"
 msgstr "Pré-visualização"
+
+msgid "Preview & split pages"
+msgstr "Pré-visualizar e dividir páginas"
 
 msgid "Preview linked page"
 msgstr "Visualizar página vinculada"
@@ -6199,6 +6220,9 @@ msgstr "Dividir em partes"
 
 #~ msgid "Split into parts for others"
 #~ msgstr "Dividir em partes para outras pessoas"
+
+msgid "Split preview"
+msgstr "Pré-visualização da divisão"
 
 msgid "Split segments"
 msgstr "Segmentos divididos"
