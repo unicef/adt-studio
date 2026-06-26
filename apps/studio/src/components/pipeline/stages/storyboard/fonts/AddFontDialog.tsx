@@ -7,6 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { toast } from "@/components/ui/sonner"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import type { BookFontWithStatus } from "@/api/client"
@@ -43,7 +44,10 @@ export function AddFontDialog({
     const list = files ? [...files] : []
     if (list.length === 0) return
     uploadFonts.mutate(list, {
-      onSuccess: () => onOpenChange(false),
+      onSuccess: () => {
+        onOpenChange(false)
+        toast.success(t`Fonts successfully uploaded.`)
+      },
       onError: (err) => onError(err.message),
     })
     if (fileInputRef.current) fileInputRef.current.value = ""

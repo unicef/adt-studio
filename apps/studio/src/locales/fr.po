@@ -2208,8 +2208,8 @@ msgstr "Abandonner et quitter"
 #~ msgid "Discard unsaved changes?"
 #~ msgstr "Ignorer les modifications non enregistrées ?"
 
-msgid "Dismiss"
-msgstr "Ignorer"
+#~ msgid "Dismiss"
+#~ msgstr "Ignorer"
 
 msgid "Display"
 msgstr "Affichage"
@@ -2832,6 +2832,9 @@ msgstr "Polices ({0})"
 
 msgid "Fonts have been reset to the default."
 msgstr "Les polices ont été réinitialisées par défaut."
+
+msgid "Fonts successfully uploaded."
+msgstr "Polices importées avec succès."
 
 #. placeholder {0}: i18n._(preset.title)
 #. placeholder {1}: recommendedOption.label

@@ -2206,8 +2206,8 @@ msgstr "Descartar y salir"
 #~ msgid "Discard unsaved changes?"
 #~ msgstr "¿Descartar cambios no guardados?"
 
-msgid "Dismiss"
-msgstr "Descartar"
+#~ msgid "Dismiss"
+#~ msgstr "Descartar"
 
 msgid "Display"
 msgstr "Visualización"
@@ -2830,6 +2830,9 @@ msgstr "Fuentes ({0})"
 
 msgid "Fonts have been reset to the default."
 msgstr "Las fuentes se han restablecido a las predeterminadas."
+
+msgid "Fonts successfully uploaded."
+msgstr "Fuentes cargadas correctamente."
 
 #. placeholder {0}: i18n._(preset.title)
 #. placeholder {1}: recommendedOption.label

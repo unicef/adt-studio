@@ -2206,8 +2206,8 @@ msgstr "Discard & leave"
 #~ msgid "Discard unsaved changes?"
 #~ msgstr "Discard unsaved changes?"
 
-msgid "Dismiss"
-msgstr "Dismiss"
+#~ msgid "Dismiss"
+#~ msgstr "Dismiss"
 
 msgid "Display"
 msgstr "Display"
@@ -2830,6 +2830,9 @@ msgstr "Fonts ({0})"
 
 msgid "Fonts have been reset to the default."
 msgstr "Fonts have been reset to the default."
+
+msgid "Fonts successfully uploaded."
+msgstr "Fonts successfully uploaded."
 
 #. placeholder {0}: i18n._(preset.title)
 #. placeholder {1}: recommendedOption.label

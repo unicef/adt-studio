@@ -2207,8 +2207,8 @@ msgstr "Hidh poshtë dhe dil"
 #~ msgid "Discard unsaved changes?"
 #~ msgstr "Hidh poshtë ndryshimet e paruajtura?"
 
-msgid "Dismiss"
-msgstr "Hiqe"
+#~ msgid "Dismiss"
+#~ msgstr "Hiqe"
 
 msgid "Display"
 msgstr "Shfaqje"
@@ -2831,6 +2831,9 @@ msgstr "Fonte ({0})"
 
 msgid "Fonts have been reset to the default."
 msgstr "Fontet u rivendosën në parazgjedhje."
+
+msgid "Fonts successfully uploaded."
+msgstr "Fontet u ngarkuan me sukses."
 
 #. placeholder {0}: i18n._(preset.title)
 #. placeholder {1}: recommendedOption.label

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
-import { Link } from "@tanstack/react-router"
-import { CheckCircle2, ChevronDown, Loader2, Plus, RotateCcw, Sparkles, X } from "lucide-react"
+import { useNavigate } from "@tanstack/react-router"
+import { ChevronDown, Loader2, Plus, RotateCcw, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { toast } from "@/components/ui/sonner"
 import {
   useAnalyzeBookFonts,
   useApplyBookFont,
@@ -27,13 +28,12 @@ const ANALYZE_POLL_MS = 3000
 
 export function FontSettings({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
+  const navigate = useNavigate()
   const { apiKey, hasApiKey } = useApiKey()
 
   const [analyzing, setAnalyzing] = useState(false)
   const [addOpen, setAddOpen] = useState(false)
   const [resetOpen, setResetOpen] = useState(false)
-  const [actionError, setActionError] = useState<string | null>(null)
-  const [applied, setApplied] = useState<string | null>(null)
 
   const { data, isLoading } = useBookFonts(bookLabel, {
     refetchInterval: analyzing ? ANALYZE_POLL_MS : false,
@@ -43,16 +43,23 @@ export function FontSettings({ bookLabel }: { bookLabel: string }) {
   const fixedLayout = data?.current?.fixedLayout ?? false
 
   const clearMessages = () => {
-    setActionError(null)
-    setApplied(null)
+    toast.dismiss()
   }
   const showError = (message: string) => {
-    setApplied(null)
-    setActionError(message)
+    toast.error(message)
   }
   const showApplied = (message: string) => {
-    setActionError(null)
-    setApplied(message)
+    toast.success(message, {
+      action: {
+        label: t`View in storyboard`,
+        onClick: () => {
+          void navigate({
+            to: "/books/$label/$step",
+            params: { label: bookLabel, step: "storyboard" },
+          })
+        },
+      },
+    })
   }
 
   const handleResetFonts = () => {
@@ -142,37 +149,6 @@ export function FontSettings({ bookLabel }: { bookLabel: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {applied && (
-        <div
-          className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5 text-sm text-emerald-800"
-          role="status"
-        >
-          <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
-          <span className="flex-1">{applied}</span>
-          <Link
-            to="/books/$label/$step"
-            params={{ label: bookLabel, step: "storyboard" }}
-            className="shrink-0 font-medium text-emerald-700 underline-offset-2 hover:underline"
-          >
-            <Trans>View in storyboard</Trans>
-          </Link>
-          <button
-            type="button"
-            onClick={() => setApplied(null)}
-            className="shrink-0 rounded p-0.5 text-emerald-600/70 hover:text-emerald-800 transition-colors"
-            aria-label={t`Dismiss`}
-          >
-            <X className="h-3.5 w-3.5" aria-hidden="true" />
-          </button>
-        </div>
-      )}
-
-      {actionError && (
-        <p className="text-xs text-destructive" role="alert">
-          {actionError}
-        </p>
-      )}
 
       <div>
         <div className="flex items-center justify-between mb-3">
