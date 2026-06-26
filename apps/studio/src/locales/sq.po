@@ -6693,6 +6693,9 @@ msgstr "Ky libër nuk ka faqe. Sigurohu që fazat e nxjerrjes dhe storyboard kan
 msgid "This book is a part — its page range is fixed to the assigned subset and cannot be changed."
 msgstr "Ky libër është një pjesë: intervali i faqeve është fiks, i përket nëngrupit të caktuar dhe nuk mund të ndryshohet."
 
+msgid "This book is a part. Export it as a <0>Project Archive</0> and send the file back to the coordinator to merge into the source book."
+msgstr "Ky libër është një pjesë. Eksportojeni si <0>Arkiva e Projektit</0> dhe dërgojeni skedarin te koordinatori për ta bashkuar me librin burimor."
+
 msgid "This book is an imported part. Parts can't be split or merged further — process the assigned pages, then return the finished part from the Export step to merge it back into the source book."
 msgstr "Ky libër është një pjesë e importuar. Pjesët nuk mund të ndahen ose bashkohen më tej: përpunoni faqet e caktuara, pastaj ktheni pjesën e përfunduar nga hapi Eksporto për ta bashkuar përsëri në librin burimor."
 

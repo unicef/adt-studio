@@ -6694,6 +6694,9 @@ msgstr "Ce livre n'a pas de pages. Assurez-vous que les étapes d'extraction et 
 msgid "This book is a part — its page range is fixed to the assigned subset and cannot be changed."
 msgstr "Ce livre est une partie : sa plage de pages est fixe, correspond au sous-ensemble assigné et ne peut pas être modifiée."
 
+msgid "This book is a part. Export it as a <0>Project Archive</0> and send the file back to the coordinator to merge into the source book."
+msgstr "Ce livre est une partie. Exportez-le en tant qu'<0>Archive du projet</0> et renvoyez le fichier au coordinateur pour le fusionner dans le livre source."
+
 msgid "This book is an imported part. Parts can't be split or merged further — process the assigned pages, then return the finished part from the Export step to merge it back into the source book."
 msgstr "Ce livre est une partie importée. Les parties ne peuvent pas être à nouveau divisées ni fusionnées : traitez les pages assignées, puis renvoyez la partie terminée depuis l'étape Exporter pour la fusionner à nouveau dans le livre source."
 
