@@ -93,10 +93,12 @@ function PdfCoverCanvas({
         {pages.map((dataUrl, index) => {
           const pageNum = index + 1
           const printedLabel = getPreviewPageLabel(pageLabels, index)
-          // No range → every page is active (unchanged behaviour).
+          // No range → every page is active (unchanged behaviour). An open-ended
+          // range is clamped to the last rendered page.
           const active =
             !highlightRange ||
-            (pageNum >= highlightRange.startPage && pageNum <= highlightRange.endPage)
+            (pageNum >= highlightRange.startPage &&
+              pageNum <= Math.min(highlightRange.endPage, pages.length))
           return (
             <div
               key={index}

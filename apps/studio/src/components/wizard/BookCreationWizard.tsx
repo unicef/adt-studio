@@ -343,9 +343,11 @@ export function BookCreationWizard() {
   const isFixedLayout = values.renderStrategy === "fixed_layout"
 
   // When scoping to a page range, preview exactly which pages will be processed
-  // — emphasise the selected range and dim the rest.
+  // — emphasise the selected range and dim the rest. Only once a bound is typed,
+  // so an untouched range doesn't read as "whole book selected". An empty end
+  // means "to the last page"; the preview clamps it to the real page count.
   const previewRange =
-    values.scope === "range"
+    values.scope === "range" && (values.startPage !== "" || values.endPage !== "")
       ? {
           startPage: parseInt(values.startPage) || 1,
           endPage: parseInt(values.endPage) || Number.MAX_SAFE_INTEGER,
