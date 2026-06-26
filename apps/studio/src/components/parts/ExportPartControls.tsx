@@ -92,17 +92,22 @@ export function useExportPartState({
   const max = pageCount > 0 ? pageCount : undefined
   const invalid = startPage < 1 || endPage < startPage || (max !== undefined && endPage > max)
 
-  const onExport = () => {
+  const onExport = async () => {
+    const before = (status?.exported ?? []).length
     api.exportPart(bookLabel, startPage, endPage)
-    // Release the pin so the picker follows the next gap, and refresh once the
-    // download request has recorded the export server-side: the split-status
-    // (overview panel) and the books list (library card's split badge, which is
-    // a separate query kept fresh by the global 5-min staleTime).
+    // Release the pin so the picker follows the next gap, then poll the
+    // split-status until the server has recorded the export (a single fixed
+    // delay races a slow disk / large PDF). Refresh the books list too — the
+    // library card's split badge is a separate query.
     setTouched(false)
-    setTimeout(() => {
-      queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "split-status"] })
-      queryClient.invalidateQueries({ queryKey: ["books"], exact: true })
-    }, 1200)
+    const statusKey = ["books", bookLabel, "split-status"]
+    for (let attempt = 0; attempt < 8; attempt++) {
+      await new Promise((resolve) => setTimeout(resolve, 400 + attempt * 200))
+      await queryClient.refetchQueries({ queryKey: statusKey, exact: true })
+      const next = queryClient.getQueryData<SplitStatus>(statusKey)
+      if ((next?.exported.length ?? 0) > before) break
+    }
+    queryClient.invalidateQueries({ queryKey: ["books"], exact: true })
   }
 
   return {
