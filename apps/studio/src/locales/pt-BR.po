@@ -7424,6 +7424,9 @@ msgstr "Sua fonte foi aplicada às legendas."
 msgid "Your font has been applied to headings."
 msgstr "Sua fonte foi aplicada aos títulos."
 
+msgid "Your font has been applied to paragraphs."
+msgstr "Sua fonte foi aplicada aos parágrafos."
+
 msgid "Your font has been applied to the whole book."
 msgstr "Sua fonte foi aplicada ao livro todo."
 

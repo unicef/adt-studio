@@ -7426,6 +7426,9 @@ msgstr "Votre police a été appliquée aux légendes."
 msgid "Your font has been applied to headings."
 msgstr "Votre police a été appliquée aux titres."
 
+msgid "Your font has been applied to paragraphs."
+msgstr "Votre police a été appliquée aux paragraphes."
+
 msgid "Your font has been applied to the whole book."
 msgstr "Votre police a été appliquée à tout le livre."
 

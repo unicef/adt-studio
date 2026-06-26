@@ -7425,6 +7425,9 @@ msgstr "Fonti juaj u zbatua te përshkrimet."
 msgid "Your font has been applied to headings."
 msgstr "Fonti juaj u zbatua te titujt."
 
+msgid "Your font has been applied to paragraphs."
+msgstr "Fonti juaj u aplikua te paragrafët."
+
 msgid "Your font has been applied to the whole book."
 msgstr "Fonti juaj u zbatua në të gjithë librin."
 

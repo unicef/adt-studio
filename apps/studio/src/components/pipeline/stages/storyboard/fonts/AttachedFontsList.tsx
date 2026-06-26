@@ -151,7 +151,7 @@ export function AttachedFontsList({
                     )
                     return
                   }
-                  if (value === "heading" || value === "caption") {
+                  if (value === "heading" || value === "paragraph" || value === "caption") {
                     applyFont.mutate(
                       { scope: value, font: { kind: "registry", id: font.id } },
                       {
@@ -159,6 +159,8 @@ export function AttachedFontsList({
                           onApplied(
                             value === "heading"
                               ? t`Your font has been applied to headings.`
+                              : value === "paragraph"
+                                ? t`Your font has been applied to paragraphs.`
                               : t`Your font has been applied to captions.`,
                           ),
                         onError: (err) => onError(err.message),

@@ -6,6 +6,7 @@ export type BookFontSource = z.infer<typeof BookFontSource>
 
 export const BookFontRole = z.enum([
   "heading",
+  "paragraph",
   "body",
   "caption",
   "decorative",

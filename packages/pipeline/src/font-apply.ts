@@ -1,9 +1,10 @@
 import { parseDocument, DomUtils } from "htmlparser2"
 
-export type FontScope = "whole" | "heading" | "body" | "caption"
+export type FontScope = "whole" | "heading" | "paragraph" | "body" | "caption"
 
 const SCOPE_TAGS: Record<Exclude<FontScope, "whole">, ReadonlySet<string>> = {
   heading: new Set(["h1", "h2", "h3", "h4", "h5", "h6"]),
+  paragraph: new Set(["p"]),
   body: new Set(["p", "li"]),
   caption: new Set(["figcaption"]),
 }

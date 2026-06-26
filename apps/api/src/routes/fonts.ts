@@ -473,11 +473,13 @@ export function createFontRoutes(
   const FONT_SCOPES: ReadonlySet<FontScope> = new Set<FontScope>([
     "whole",
     "heading",
+    "paragraph",
     "body",
     "caption",
   ])
   const SCOPE_ROLE: Record<Exclude<FontScope, "whole">, BookFont["role"]> = {
     heading: "heading",
+    paragraph: "paragraph",
     body: "body",
     caption: "caption",
   }

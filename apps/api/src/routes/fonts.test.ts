@@ -342,6 +342,24 @@ describe("POST /books/:label/fonts/apply", () => {
     expect(html).not.toMatch(/<p[^>]*font-family/)
   })
 
+  it("sets a built-in font on paragraphs only", async () => {
+    createTestBook("parascope")
+    seedRenderedPage(
+      "parascope",
+      `<section><h2 data-id="t1">T</h2><p data-id="t2">b</p><ul><li>item</li></ul></section>`,
+    )
+    const app = createFontRoutes(tmpDir, promptsDir)
+    const res = await app.request("/books/parascope/fonts/apply", {
+      method: "POST",
+      body: JSON.stringify({ scope: "paragraph", font: { kind: "reflowable", id: "lexend" } }),
+    })
+    expect(res.status).toBe(200)
+    const html = readRenderedHtml("parascope")
+    expect(html).toMatch(/<p[^>]*font-family[^>]*Lexend/)
+    expect(html).not.toMatch(/<h2[^>]*font-family/)
+    expect(html).not.toMatch(/<li[^>]*font-family/)
+  })
+
   it("rejects an unknown scope", async () => {
     createTestBook("badscope")
     const app = createFontRoutes(tmpDir, promptsDir)

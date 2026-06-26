@@ -7424,6 +7424,9 @@ msgstr "Tu fuente se ha aplicado a los subtítulos."
 msgid "Your font has been applied to headings."
 msgstr "Tu fuente se ha aplicado a los títulos."
 
+msgid "Your font has been applied to paragraphs."
+msgstr "Tu fuente se ha aplicado a los párrafos."
+
 msgid "Your font has been applied to the whole book."
 msgstr "Tu fuente se ha aplicado a todo el libro."
 

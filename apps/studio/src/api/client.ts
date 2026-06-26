@@ -616,7 +616,7 @@ export interface BookFontsResponse {
   current: BookCurrentFont
 }
 
-export type BookFontScope = "whole" | "heading" | "body" | "caption"
+export type BookFontScope = "whole" | "heading" | "paragraph" | "body" | "caption"
 
 export interface ApplyBookFontPayload {
   scope: BookFontScope

@@ -27,6 +27,7 @@ export function useRoleLabels(): Record<BookFontRole, string> {
   const { t } = useLingui()
   return {
     heading: t`Headings`,
+    paragraph: t`Paragraph`,
     body: t`Body text`,
     caption: t`Captions`,
     decorative: t`Decorative`,

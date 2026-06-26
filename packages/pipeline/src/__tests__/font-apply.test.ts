@@ -25,6 +25,14 @@ describe("applyFontToHtml", () => {
     expect(out.match(/font-family/g)).toHaveLength(1)
   })
 
+  it("sets inline font-family only on p elements for the paragraph scope", () => {
+    const html = `<section><p data-id="p1">Body</p><ul><li>List item</li></ul><h2>Title</h2></section>`
+    const out = applyFontToHtml(html, { family: "'Lora',serif", scope: "paragraph" })
+    expect(out).toMatch(/<p[^>]*font-family[^>]*Lora/)
+    expect(out).not.toMatch(/<li[^>]*font-family/)
+    expect(out).not.toMatch(/<h2[^>]*font-family/)
+  })
+
   it("resets a role to inherit the base when family is null", () => {
     const html = `<figure><figcaption style="font-family:'Cap',serif;font-style:italic">c</figcaption></figure>`
     const out = applyFontToHtml(html, { family: null, scope: "caption" })
