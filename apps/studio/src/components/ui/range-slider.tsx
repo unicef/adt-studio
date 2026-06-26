@@ -20,6 +20,12 @@ interface RangeSliderProps {
   value: [number, number];
   onChange: (value: [number, number]) => void;
   disabled?: boolean;
+  /**
+   * Like `disabled` (non-interactive), but keeps the current values visible
+   * instead of blanking the inputs. Use when a value is fixed/locked and the
+   * user should still be able to read it.
+   */
+  readOnly?: boolean;
   startLabel?: string;
   endLabel?: string;
   color?: string;
@@ -49,6 +55,7 @@ function MinMaxInput({
   max,
   onChange,
   disabled,
+  readOnly,
 }: {
   label: string;
   value: number;
@@ -56,6 +63,7 @@ function MinMaxInput({
   max: number;
   onChange: (v: number) => void;
   disabled?: boolean;
+  readOnly?: boolean;
 }) {
   const inputId = useId();
   const [draft, setDraft] = useState<string | null>(null);
@@ -70,6 +78,9 @@ function MinMaxInput({
     if (!isNaN(parsed)) onChange(clamp(parsed));
   }
 
+  // A locked field stays non-interactive, but a read-only lock keeps the value
+  // visible (a plain `disabled` slider blanks the inputs).
+  const locked = disabled || readOnly;
   return (
     <div className="flex w-full flex-col items-center gap-1 py-2">
       <Label
@@ -83,7 +94,7 @@ function MinMaxInput({
           type="button"
           variant="ghost"
           size="icon"
-          disabled={disabled || value <= min}
+          disabled={locked || value <= min}
           onClick={() => onChange(clamp(value - 1))}
           className="h-8 w-8 shrink-0 rounded-none border-r border-[#e5e5e5] transition-colors duration-150"
         >
@@ -92,8 +103,8 @@ function MinMaxInput({
         <Input
           id={inputId}
           type="number"
-          disabled={disabled}
-          value={disabled ? "" : (draft ?? value)}
+          disabled={locked}
+          value={disabled && !readOnly ? "" : (draft ?? value)}
           min={min}
           max={max}
           onChange={(e) => setDraft(e.target.value)}
@@ -107,13 +118,15 @@ function MinMaxInput({
             "h-8 w-full rounded-none border-0 bg-white px-2 py-0 text-center text-[11.2px] shadow-none",
             "focus-visible:z-10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-0",
             "[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none",
+            // Keep the value legible when read-only (disabled inputs are dimmed).
+            readOnly && "disabled:cursor-default disabled:opacity-100",
           )}
         />
         <Button
           type="button"
           variant="ghost"
           size="icon"
-          disabled={disabled || value >= max}
+          disabled={locked || value >= max}
           onClick={() => onChange(clamp(value + 1))}
           className="h-8 w-8 shrink-0 rounded-none border-l border-[#e5e5e5] transition-colors duration-150"
         >
@@ -201,6 +214,7 @@ export function RangeSlider({
   value,
   onChange,
   disabled,
+  readOnly,
   startLabel,
   endLabel,
   color,
@@ -255,7 +269,7 @@ export function RangeSlider({
         step={1}
         value={sliderValue}
         onValueChange={([s, e]) => onChange([s, e])}
-        disabled={disabled}
+        disabled={disabled || readOnly}
         color={color}
       />
 
@@ -267,6 +281,7 @@ export function RangeSlider({
           max={end}
           onChange={(v) => onChange([v, end])}
           disabled={disabled}
+          readOnly={readOnly}
         />
         <MinMaxInput
           label={endLabel ?? ""}
@@ -275,6 +290,7 @@ export function RangeSlider({
           max={boundedMax}
           onChange={(v) => onChange([start, v])}
           disabled={disabled}
+          readOnly={readOnly}
         />
       </div>
     </div>

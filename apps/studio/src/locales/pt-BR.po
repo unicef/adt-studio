@@ -2450,8 +2450,8 @@ msgstr "EN"
 msgid "Enable {0}"
 msgstr "Enable {0}"
 
-msgid "Enable for scanned books where two pages appear on a single PDF page."
-msgstr "Ative para livros digitalizados em que duas páginas aparecem em uma única página do PDF."
+#~ msgid "Enable for scanned books where two pages appear on a single PDF page."
+#~ msgstr "Ative para livros digitalizados em que duas páginas aparecem em uma única página do PDF."
 
 msgid "Enable or disable reviewer-authored checklist reviews for this book. Automated accessibility assessment remains available either way."
 msgstr "Enable or disable reviewer-authored checklist reviews for this book. Automated accessibility assessment remains available either way."
@@ -2775,8 +2775,8 @@ msgstr "Filtra imagens decorativas ou sem conteúdo em cada página."
 msgid "Final Page"
 msgstr "Página Final"
 
-msgid "First"
-msgstr "Primeira"
+#~ msgid "First"
+#~ msgstr "Primeira"
 
 msgid "First images from the deep-field telescope."
 msgstr "Primeiras imagens do telescópio de campo profundo."
@@ -3335,8 +3335,8 @@ msgstr "no livro"
 msgid "Include in render"
 msgstr "Incluir na renderização"
 
-msgid "Include text overlays in vector groups"
-msgstr "Incluir sobreposições de texto em grupos vetoriais"
+#~ msgid "Include text overlays in vector groups"
+#~ msgstr "Incluir sobreposições de texto em grupos vetoriais"
 
 msgid "Includes:"
 msgstr "Inclui:"
@@ -3485,8 +3485,8 @@ msgstr "Grande o suficiente"
 msgid "Large images, narrative flow. Best for illustrated books with high-fidelity TTS voices."
 msgstr "Imagens grandes, fluxo narrativo. Melhor para livros ilustrados com vozes TTS de alta fidelidade."
 
-msgid "Last"
-msgstr "Última"
+#~ msgid "Last"
+#~ msgstr "Última"
 
 msgid "Last modified"
 msgstr "Última modificação"
@@ -3521,8 +3521,8 @@ msgstr "Deixe vazio se não for necessário"
 msgid "Leave empty to output only in the book language."
 msgstr "Deixe vazio para gerar apenas no idioma do livro."
 
-msgid "Leave empty to process all pages."
-msgstr "Deixe vazio para processar todas as páginas."
+#~ msgid "Leave empty to process all pages."
+#~ msgstr "Deixe vazio para processar todas as páginas."
 
 msgid "Leave empty to use the book language."
 msgstr "Deixe vazio para usar o idioma do livro."
@@ -3818,8 +3818,8 @@ msgstr "Mesclar uma parte concluída"
 msgid "Merge another"
 msgstr "Mesclar outra"
 
-msgid "Merge facing pages as spreads"
-msgstr "Mesclar páginas adjacentes como duplas"
+#~ msgid "Merge facing pages as spreads"
+#~ msgstr "Mesclar páginas adjacentes como duplas"
 
 msgid "Merge failed"
 msgstr "Merge failed"
@@ -4664,6 +4664,9 @@ msgstr "Intervalo de páginas"
 
 msgid "Page range help"
 msgstr "Ajuda de intervalo de páginas"
+
+msgid "Page range locked"
+msgstr "Intervalo de páginas bloqueado"
 
 msgid "Page re-rendered"
 msgstr "Página renderizada novamente"
@@ -6858,8 +6861,8 @@ msgstr "Títulos gerados pelo modelo a partir do conteúdo da seção."
 msgid "Titles taken verbatim from typed section headings."
 msgstr "Títulos retirados literalmente dos títulos das seções classificadas."
 
-msgid "to"
-msgstr "até"
+#~ msgid "to"
+#~ msgstr "até"
 
 msgid "To page"
 msgstr "Até a página"
@@ -7226,8 +7229,8 @@ msgstr "Variáveis"
 msgid "Variations"
 msgstr "Variações"
 
-msgid "Vector Extraction"
-msgstr "Extração vetorial"
+#~ msgid "Vector Extraction"
+#~ msgstr "Extração vetorial"
 
 msgid "Verified applied"
 msgstr "Aplicação verificada"
@@ -7395,8 +7398,8 @@ msgstr "Ao descrever imagens, mencione qualquer objeto, local ou personagem reco
 msgid "When enabled, background colors from the styleguide are applied to the full page body."
 msgstr "Quando ativado, as cores de fundo do guia de estilo são aplicadas ao corpo completo da página."
 
-msgid "When enabled, text labels near vector images (e.g. chart dimensions, speech bubbles) are grouped together and extracted as raster crops. Disable to extract only the core vector shapes without text."
-msgstr "Quando ativado, rótulos de texto próximos a imagens vetoriais (ex.: dimensões de gráficos, balões de fala) são agrupados e extraídos como recortes rasterizados. Desative para extrair apenas as formas vetoriais sem texto."
+#~ msgid "When enabled, text labels near vector images (e.g. chart dimensions, speech bubbles) are grouped together and extracted as raster crops. Disable to extract only the core vector shapes without text."
+#~ msgstr "Quando ativado, rótulos de texto próximos a imagens vetoriais (ex.: dimensões de gráficos, balões de fala) são agrupados e extraídos como recortes rasterizados. Desative para extrair apenas as formas vetoriais sem texto."
 
 msgid "When enabled, the selected images below are regenerated for every output language during the translate stage."
 msgstr "Quando ativado, as imagens selecionadas abaixo são regeneradas para cada idioma de saída durante a etapa de tradução."

@@ -2451,8 +2451,8 @@ msgstr "EN"
 msgid "Enable {0}"
 msgstr "Aktivizo {0}"
 
-msgid "Enable for scanned books where two pages appear on a single PDF page."
-msgstr "Aktivizo për librat e skanuar ku dy faqe shfaqen në një faqe të vetme PDF."
+#~ msgid "Enable for scanned books where two pages appear on a single PDF page."
+#~ msgstr "Aktivizo për librat e skanuar ku dy faqe shfaqen në një faqe të vetme PDF."
 
 msgid "Enable or disable reviewer-authored checklist reviews for this book. Automated accessibility assessment remains available either way."
 msgstr "Aktivizo ose çaktivizo rishikimet e listës së kontrollit të bëra nga rishikuesi për këtë libër. Vlerësimi i automatizuar i aksesueshmërisë mbetet i disponueshëm në çdo rast."
@@ -2776,8 +2776,8 @@ msgstr "Filtron imazhet dekorative ose pa përmbajtje nga çdo faqe."
 msgid "Final Page"
 msgstr "Faqja e fundit"
 
-msgid "First"
-msgstr "E para"
+#~ msgid "First"
+#~ msgstr "E para"
 
 msgid "First images from the deep-field telescope."
 msgstr "Imazhet e para nga teleskopi i fushës së thellë."
@@ -3336,8 +3336,8 @@ msgstr "në libër"
 msgid "Include in render"
 msgstr "Përfshi në paraqitje"
 
-msgid "Include text overlays in vector groups"
-msgstr "Përfshi mbivendosjet e tekstit në grupet vektoriale"
+#~ msgid "Include text overlays in vector groups"
+#~ msgstr "Përfshi mbivendosjet e tekstit në grupet vektoriale"
 
 msgid "Includes:"
 msgstr "Përfshin:"
@@ -3486,8 +3486,8 @@ msgstr "Mjaft i madh"
 msgid "Large images, narrative flow. Best for illustrated books with high-fidelity TTS voices."
 msgstr "Imazhe të mëdha, rrjedhje narrative. Më i miri për libra të ilustruar me zëra TTS të besnikërisë së lartë."
 
-msgid "Last"
-msgstr "I fundit"
+#~ msgid "Last"
+#~ msgstr "I fundit"
 
 msgid "Last modified"
 msgstr "Modifikuar së fundmi"
@@ -3522,8 +3522,8 @@ msgstr "Lëre bosh nëse nuk kërkohet"
 msgid "Leave empty to output only in the book language."
 msgstr "Lëre bosh për të dalë vetëm në gjuhën e librit."
 
-msgid "Leave empty to process all pages."
-msgstr "Lëre bosh për të përpunuar të gjitha faqet."
+#~ msgid "Leave empty to process all pages."
+#~ msgstr "Lëre bosh për të përpunuar të gjitha faqet."
 
 msgid "Leave empty to use the book language."
 msgstr "Lëre bosh për të përdorur gjuhën e librit."
@@ -3819,8 +3819,8 @@ msgstr "Bashko një pjesë të përfunduar"
 msgid "Merge another"
 msgstr "Bashko një tjetër"
 
-msgid "Merge facing pages as spreads"
-msgstr "Bashko faqet ballë-përballë si hapësira"
+#~ msgid "Merge facing pages as spreads"
+#~ msgstr "Bashko faqet ballë-përballë si hapësira"
 
 msgid "Merge failed"
 msgstr "Bashkimi dështoi"
@@ -4665,6 +4665,9 @@ msgstr "Gama e Faqeve"
 
 msgid "Page range help"
 msgstr "Ndihmë për gamën e faqeve"
+
+msgid "Page range locked"
+msgstr "Intervali i faqeve i kyçur"
 
 msgid "Page re-rendered"
 msgstr "Faqja u rirenderua"
@@ -6859,8 +6862,8 @@ msgstr "Titujt e gjeneruar nga modeli nga përmbajtja e seksionit."
 msgid "Titles taken verbatim from typed section headings."
 msgstr "Titujt marrë fjalë për fjalë nga titujt e seksioneve të shtypura."
 
-msgid "to"
-msgstr "te"
+#~ msgid "to"
+#~ msgstr "te"
 
 msgid "To page"
 msgstr "Deri te faqja"
@@ -7227,8 +7230,8 @@ msgstr "Variabla"
 msgid "Variations"
 msgstr "Variacione"
 
-msgid "Vector Extraction"
-msgstr "Nxjerrje vektori"
+#~ msgid "Vector Extraction"
+#~ msgstr "Nxjerrje vektori"
 
 msgid "Verified applied"
 msgstr "Vërtetimi u aplikua"
@@ -7396,8 +7399,8 @@ msgstr "Kur përshkruan imazhet, përmend çdo objekt specifik kulturor, vendndo
 msgid "When enabled, background colors from the styleguide are applied to the full page body."
 msgstr "Kur aktivizohet, ngjyrat e sfondit nga udhëzuesi i stilit aplikohen në të gjithë trupin e faqes."
 
-msgid "When enabled, text labels near vector images (e.g. chart dimensions, speech bubbles) are grouped together and extracted as raster crops. Disable to extract only the core vector shapes without text."
-msgstr "Kur aktivizohet, etiketat e tekstit pranë imazheve vektoriale (p.sh. dimensionet e grafikut, flluska dialogu) grupohen dhe nxirren si prerje raster. Çaktivizo për të nxjerrë vetëm format vektoriale kryesore pa tekst."
+#~ msgid "When enabled, text labels near vector images (e.g. chart dimensions, speech bubbles) are grouped together and extracted as raster crops. Disable to extract only the core vector shapes without text."
+#~ msgstr "Kur aktivizohet, etiketat e tekstit pranë imazheve vektoriale (p.sh. dimensionet e grafikut, flluska dialogu) grupohen dhe nxirren si prerje raster. Çaktivizo për të nxjerrë vetëm format vektoriale kryesore pa tekst."
 
 msgid "When enabled, the selected images below are regenerated for every output language during the translate stage."
 msgstr "Kur aktivizohet, imazhet e zgjedhura më poshtë rigjenerohen për çdo gjuhë dalje gjatë fazës së përkthimit."

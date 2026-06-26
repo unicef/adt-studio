@@ -4,7 +4,6 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { LanguagePicker } from "@/components/LanguagePicker"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
-import { usePartInfo } from "@/hooks/use-parts"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { api } from "@/api/client"
 import { PromptViewer } from "@/components/pipeline/components/PromptViewer"
@@ -18,17 +17,9 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
-  const { data: partInfo } = usePartInfo(bookLabel)
-  // A book imported as a part is scoped to a fixed page window — lock the range
-  // so the contributor processes exactly the assigned subset.
-  const isPart = !!partInfo
   const updateConfig = useUpdateBookConfig()
 
   // Form state
-  const [startPage, setStartPage] = useState("")
-  const [endPage, setEndPage] = useState("")
-  const [spreadMode, setSpreadMode] = useState(false)
-  const [vectorTextGrouping, setVectorTextGrouping] = useState(true)
   const [editingLanguage, setEditingLanguage] = useState("")
   const [minSide, setMinSide] = useState("")
   const [maxSide, setMaxSide] = useState("")
@@ -60,11 +51,7 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
   useEffect(() => {
     if (!bookConfigData) return
     const c = bookConfigData.config
-    setSpreadMode(c.spread_mode === true)
-    setVectorTextGrouping(c.vector_text_grouping !== false)
     if (c.editing_language) setEditingLanguage(normalizeLocale(String(c.editing_language)))
-    if (c.start_page != null) setStartPage(String(c.start_page))
-    if (c.end_page != null) setEndPage(String(c.end_page))
   }, [bookConfigData])
 
   // Load image filters, and segmentation min_side from active (merged) config
@@ -99,18 +86,6 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
     }
 
     // Only write managed fields if touched or already in book config
-    if (shouldWrite("spread_mode")) {
-      overrides.spread_mode = spreadMode
-    }
-    if (shouldWrite("vector_text_grouping")) {
-      overrides.vector_text_grouping = vectorTextGrouping
-    }
-    if (shouldWrite("start_page")) {
-      overrides.start_page = startPage.trim() ? Number(startPage) : undefined
-    }
-    if (shouldWrite("end_page")) {
-      overrides.end_page = endPage.trim() ? Number(endPage) : undefined
-    }
     if (shouldWrite("editing_language") || editingLanguage.trim()) {
       const normalized = normalizeLocale(editingLanguage.trim())
       overrides.editing_language = normalized || undefined
@@ -188,79 +163,6 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
     <div className={tab === "metadata-prompt" || tab === "meaningfulness-prompt" || tab === "cropping-prompt" || tab === "segmentation-prompt" ? "h-full max-w-4xl" : "p-4 space-y-6"}>
       {tab === "general" && (
         <>
-          {/* Page Range */}
-          <div>
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-              {t`Page Range`}
-            </h3>
-            <div className="flex items-center gap-2">
-              <Input
-                type="number"
-                min={1}
-                value={startPage}
-                onChange={(e) => { setStartPage(e.target.value); markDirty("start_page") }}
-                placeholder={t`First`}
-                className="w-24"
-                disabled={isPart}
-              />
-              <span className="text-xs text-muted-foreground">{t`to`}</span>
-              <Input
-                type="number"
-                min={1}
-                value={endPage}
-                onChange={(e) => { setEndPage(e.target.value); markDirty("end_page") }}
-                placeholder={t`Last`}
-                className="w-24"
-                disabled={isPart}
-              />
-            </div>
-            <p className="text-xs text-muted-foreground mt-1.5">
-              {isPart
-                ? t`This book is a part — its page range is fixed to the assigned subset and cannot be changed.`
-                : t`Leave empty to process all pages.`}
-            </p>
-          </div>
-
-          {/* Spread Mode */}
-          <div>
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-              {t`Spread Mode`}
-            </h3>
-            <div className="flex items-center gap-2">
-              <Switch
-                id="spread-mode"
-                checked={spreadMode}
-                onCheckedChange={(v) => { setSpreadMode(v); markDirty("spread_mode") }}
-              />
-              <Label htmlFor="spread-mode" className="text-sm font-normal">
-                {t`Merge facing pages as spreads`}
-              </Label>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1.5">
-              {t`Enable for scanned books where two pages appear on a single PDF page.`}
-            </p>
-          </div>
-
-          {/* Vector + Text Grouping */}
-          <div>
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-              {t`Vector Extraction`}
-            </h3>
-            <div className="flex items-center gap-2">
-              <Switch
-                id="vector-text-grouping"
-                checked={vectorTextGrouping}
-                onCheckedChange={(v) => { setVectorTextGrouping(v); markDirty("vector_text_grouping") }}
-              />
-              <Label htmlFor="vector-text-grouping" className="text-sm font-normal">
-                {t`Include text overlays in vector groups`}
-              </Label>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1.5">
-              {t`When enabled, text labels near vector images (e.g. chart dimensions, speech bubbles) are grouped together and extracted as raster crops. Disable to extract only the core vector shapes without text.`}
-            </p>
-          </div>
-
           {/* Editing Language */}
           <div className="max-w-sm">
             <LanguagePicker
