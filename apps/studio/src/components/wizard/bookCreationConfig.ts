@@ -25,7 +25,13 @@ export function buildConfigOverrides(values: WizardFormValues): Record<string, u
     apply_body_background: true,
     // Single flag governs activities everywhere (sectioning + web-rendering),
     // via the `activity_` prefix — no hand-maintained type list to drift.
-    ...(!values.activitiesGenerator && { generate_activities: false }),
+    // Activities are off when the user disabled the generator, or for
+    // fixed-layout books (activities are baked into the page image, so
+    // detecting them as their own interactive sections just adds noise —
+    // still overridable on the Sectioning page).
+    ...((!values.activitiesGenerator || values.renderStrategy === "fixed_layout") && {
+      generate_activities: false,
+    }),
     image_filters: {
       ...baseImageFilters,
       min_side: values.imageFilterMinSide,

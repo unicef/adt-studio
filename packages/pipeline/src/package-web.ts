@@ -1008,6 +1008,12 @@ body {
 
 export interface InjectWebpubStylesOptions {
   fixedLayout?: boolean
+  /**
+   * Extra CSS rules appended inside the injected `<style>` block. Used by the
+   * EPUB packager to ship export-only affordances (e.g. the glossref dotted
+   * underline) without leaking them into the web/webpub output.
+   */
+  extraCss?: string
 }
 
 /**
@@ -1015,7 +1021,12 @@ export interface InjectWebpubStylesOptions {
  * `</head>` that overrides reader-injected column pagination CSS.
  */
 export function injectWebpubStyles(dir: string, options?: InjectWebpubStylesOptions): void {
-  const css = options?.fixedLayout ? FIXED_LAYOUT_OVERRIDE_CSS : REFLOWABLE_OVERRIDE_CSS
+  const base = options?.fixedLayout ? FIXED_LAYOUT_OVERRIDE_CSS : REFLOWABLE_OVERRIDE_CSS
+  // Splice any caller-supplied rules in before the closing tag so they share
+  // the single injected <style> block. Function replacer so `$` in the CSS
+  // isn't interpreted as a replacement pattern (`$&`, `$1`, …).
+  const extra = options?.extraCss
+  const css = extra ? base.replace("</style>", () => `${extra}\n</style>`) : base
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const fullPath = path.join(dir, entry.name)
     if (entry.isDirectory()) {
