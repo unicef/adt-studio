@@ -119,6 +119,8 @@ export function SplitPagePreview({
                 >
                   <img
                     src={dataUrl}
+                    loading="lazy"
+                    decoding="async"
                     alt={i18n._(
                       pdfPagePreviewMsg.id,
                       { pageLabel: pageNum },
