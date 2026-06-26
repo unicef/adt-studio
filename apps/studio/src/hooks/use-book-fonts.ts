@@ -77,7 +77,8 @@ export function useApplyBookFont(label: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["book-fonts", label] })
       queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
-      queryClient.invalidateQueries({ queryKey: ["books", label, "config"] })
+      queryClient.invalidateQueries({ queryKey: ["book-config", label] })
+      queryClient.invalidateQueries({ queryKey: ["debug", "config", label] })
     },
   })
 }

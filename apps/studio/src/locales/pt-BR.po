@@ -3046,6 +3046,9 @@ msgstr "Google"
 msgid "Google AI API Key"
 msgstr "Chave de API do Google AI"
 
+msgid "Google font added."
+msgstr "Fonte do Google adicionada."
+
 msgid "Google Fonts"
 msgstr "Google Fonts"
 

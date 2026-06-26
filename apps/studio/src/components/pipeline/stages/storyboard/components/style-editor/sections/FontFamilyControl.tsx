@@ -1,9 +1,10 @@
 import { useMemo, useState } from "react"
 import { Link } from "@tanstack/react-router"
 import { Settings2, TriangleAlert } from "lucide-react"
-import { Trans } from "@lingui/react/macro"
+import { Trans, useLingui } from "@lingui/react/macro"
 import { bookFontFamilyChain, googleFontsCss2Url } from "@adt/types"
 import { getBookFontFileUrl, type BookFontWithStatus } from "@/api/client"
+import { toast } from "@/components/ui/sonner"
 import { useAddGoogleFont, useBookFonts } from "@/hooks/use-book-fonts"
 import { StyleLabel } from "../controls/StyleLabel"
 import { useElementContext } from "../element-context"
@@ -68,6 +69,7 @@ function FontPreviewAssets({
  *  the book's attached fonts plus a curated Google set in a searchable popover,
  *  with a footer entry that opens the full Google catalog. */
 export function FontFamilyControl({ bookLabel }: { bookLabel: string }) {
+  const { t } = useLingui()
   const { dataId, computedStyles, onStyleChange } = useElementContext()
   const inlineFamily = computedStyles?.inlineFontFamily ?? null
   const inheritedFamily = computedStyles?.fontFamily ?? null
@@ -92,7 +94,9 @@ export function FontFamilyControl({ bookLabel }: { bookLabel: string }) {
 
   const handleSelectGoogle = (family: string) => {
     setFontFamily(bookFontFamilyChain({ family }))
-    addGoogleFont.mutate(family)
+    addGoogleFont.mutate(family, {
+      onSuccess: () => toast.success(t`Google font added.`),
+    })
   }
 
   return (

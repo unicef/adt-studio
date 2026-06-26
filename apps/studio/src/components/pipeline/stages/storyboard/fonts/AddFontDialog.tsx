@@ -55,7 +55,10 @@ export function AddFontDialog({
 
   const handleAddGoogle = (family: string) => {
     addGoogleFont.mutate(family, {
-      onSuccess: () => onOpenChange(false),
+      onSuccess: () => {
+        onOpenChange(false)
+        toast.success(t`Google font added.`)
+      },
       onError: (err) => onError(err.message),
     })
   }

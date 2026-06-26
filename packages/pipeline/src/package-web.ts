@@ -32,7 +32,12 @@ import type {
   ImageCaptioningOutput,
 } from "@adt/types"
 import { WebRenderingOutput as WebRenderingOutputSchema } from "@adt/types"
-import { googleFontsReferencedIn, googleFontsCss2Url, primaryFontFamily } from "@adt/types"
+import {
+  GOOGLE_FONTS,
+  googleFontsReferencedIn,
+  googleFontsCss2Url,
+  primaryFontFamily,
+} from "@adt/types"
 import { reflowableFontChain, bookBodyFont, bookFontFamilyChain } from "@adt/types"
 import { bundleGoogleFontsIntoCss } from "./google-fonts-bundle.js"
 import {
@@ -1236,7 +1241,11 @@ ${fallbackHeadingHtml}${contentBlock}
   // fallback for everything else.
   const googleFamilies = googleFontsReferencedIn(normalizedContent + bodyFontStyle)
   const bodyPrimary = opts.bodyFontFamily ? primaryFontFamily(opts.bodyFontFamily) : ""
-  if (bodyPrimary && bodyPrimary !== "Merriweather" && !googleFamilies.includes(bodyPrimary)) {
+  if (
+    bodyPrimary &&
+    GOOGLE_FONTS.some((font) => font.family === bodyPrimary) &&
+    !googleFamilies.includes(bodyPrimary)
+  ) {
     googleFamilies.push(bodyPrimary)
   }
   const googleFontsUrl = googleFontsCss2Url(googleFamilies)

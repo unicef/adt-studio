@@ -166,7 +166,7 @@ describe("renderPageHtml", () => {
     expect(html).toContain("fonts.googleapis.com/css2?family=Atkinson+Hyperlegible")
   })
 
-  it("loads a non-curated body family from Google Fonts too", () => {
+  it("does not load an unregistered body family from Google Fonts", () => {
     const html = renderPageHtml({
       content: "<p>Hello</p>",
       language: "en",
@@ -178,7 +178,8 @@ describe("renderPageHtml", () => {
       bodyFontFamily: "'Aguafina Script','Merriweather',sans-serif",
     })
 
-    expect(html).toContain("fonts.googleapis.com/css2?family=Aguafina+Script")
+    expect(html).toContain("'Aguafina Script','Merriweather',sans-serif")
+    expect(html).not.toContain("fonts.googleapis.com/css2?family=Aguafina+Script")
   })
 
   it("omits the base-font override when bodyFontFamily is unset", () => {

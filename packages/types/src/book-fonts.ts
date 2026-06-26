@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { GOOGLE_FONTS, cssQuoteFamily } from "./google-fonts.js"
+import { cssQuoteFamily } from "./google-fonts.js"
 
 export const BookFontSource = z.enum(["upload", "google"])
 export type BookFontSource = z.infer<typeof BookFontSource>
