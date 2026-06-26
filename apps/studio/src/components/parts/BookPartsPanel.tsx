@@ -1,5 +1,5 @@
 import { useRef, useState } from "react"
-import { Trans, useLingui } from "@lingui/react/macro"
+import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { Scissors, Combine, Upload, AlertTriangle, CheckCircle2, Loader2, Sparkles, Info } from "lucide-react"
 import { useBook, useRegenerateBookSummary } from "../../hooks/use-books"
 import { usePartInfo, usePreviewMerge, useMergePart, useSplitStatus } from "../../hooks/use-parts"
@@ -275,9 +275,20 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
         <div className="flex flex-col gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
           <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
             <CheckCircle2 className="h-4 w-4" />
-            <Trans>
-              Merged · {result.addedPages} added, {result.replacedPages} replaced
-            </Trans>
+            <span>
+              <Trans>Merged</Trans> ·{" "}
+              <Plural
+                value={result.addedPages}
+                one="# page added"
+                other="# pages added"
+              />
+              ,{" "}
+              <Plural
+                value={result.replacedPages}
+                one="# page replaced"
+                other="# pages replaced"
+              />
+            </span>
           </div>
           <p className="text-xs text-muted-foreground">
             <Trans>
@@ -413,11 +424,19 @@ function PreviewSummary({ preview }: { preview: MergePreview }) {
           </Trans>
         </span>
         <span className="text-emerald-700 dark:text-emerald-400">
-          <Trans>{preview.addedPageNumbers.length} added</Trans>
+          <Plural
+            value={preview.addedPageNumbers.length}
+            one="# page added"
+            other="# pages added"
+          />
         </span>
         {preview.replacedPageNumbers.length > 0 && (
           <span className="text-amber-700 dark:text-amber-400">
-            <Trans>{preview.replacedPageNumbers.length} replaced</Trans>
+            <Plural
+              value={preview.replacedPageNumbers.length}
+              one="# page replaced"
+              other="# pages replaced"
+            />
           </span>
         )}
       </div>
