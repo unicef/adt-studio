@@ -491,9 +491,14 @@ interface ExtractedPart {
   db: sqlite.Database
 }
 
-/** Write a part project zip to a temp book dir and open its DB. Caller must
- *  call `cleanup()`. */
-function openPartProject(zipBuffer: Buffer): { part: ExtractedPart; cleanup: () => void } {
+/** Write a part project zip to a temp book dir and open its DB. Returns the
+ *  decoded archive entries so callers don't have to unzip the (large) project
+ *  buffer again. Caller must call `cleanup()`. */
+function openPartProject(zipBuffer: Buffer): {
+  part: ExtractedPart
+  entries: Record<string, Uint8Array>
+  cleanup: () => void
+} {
   const entries = unzipBuffer(zipBuffer)
   const filePaths = Object.keys(entries)
   const dbEntry = findRootEntry(filePaths, ".db")
@@ -525,6 +530,7 @@ function openPartProject(zipBuffer: Buffer): { part: ExtractedPart; cleanup: () 
   }
   return {
     part: { booksRoot: tmpRoot, dir, rawLabel, db },
+    entries,
     cleanup: () => {
       try { db.close() } catch { /* ignore */ }
       try { fs.rmSync(tmpRoot, { recursive: true, force: true }) } catch { /* ignore */ }
@@ -574,9 +580,8 @@ export function previewMerge(
   configPath?: string,
 ): MergePreview {
   const safeTarget = parseBookLabel(targetLabel)
-  const { part, cleanup } = openPartProject(zipBuffer)
+  const { part, entries, cleanup } = openPartProject(zipBuffer)
   try {
-    const entries = unzipBuffer(zipBuffer)
     const manifest = parseManifest(entries)
 
     const target = resolvedFingerprint(safeTarget, booksDir, configPath)
@@ -669,9 +674,8 @@ export function mergePart(
   const resolvedDir = path.resolve(booksDir)
   const targetPaths = resolveBookPaths(safeTarget, resolvedDir)
 
-  const { part, cleanup } = openPartProject(zipBuffer)
+  const { part, entries, cleanup } = openPartProject(zipBuffer)
   try {
-    const entries = unzipBuffer(zipBuffer)
     const manifest = parseManifest(entries)
 
     const target = resolvedFingerprint(safeTarget, booksDir, configPath)
