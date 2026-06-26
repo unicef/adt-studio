@@ -753,12 +753,18 @@ export function mergePart(
         )
       }
 
+      // Current max version per (node, item_id) in one pass, so the insert loop
+      // doesn't issue a SELECT per row.
+      const maxVersions = new Map<string, number>()
+      for (const r of targetDb.all(
+        "SELECT node, item_id, MAX(version) AS mv FROM node_data GROUP BY node, item_id",
+      ) as Array<{ node: string; item_id: string; mv: number | null }>) {
+        maxVersions.set(`${r.node} ${r.item_id}`, r.mv ?? 0)
+      }
       for (const row of perPageNodes) {
-        const max = targetDb.all(
-          "SELECT MAX(version) AS mv FROM node_data WHERE node = ? AND item_id = ?",
-          [row.node, row.item_id],
-        ) as Array<{ mv: number | null }>
-        const nextVersion = (max[0]?.mv ?? 0) + 1
+        const key = `${row.node} ${row.item_id}`
+        const nextVersion = (maxVersions.get(key) ?? 0) + 1
+        maxVersions.set(key, nextVersion)
         targetDb.run(
           "INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)",
           [row.node, row.item_id, nextVersion, row.data],
