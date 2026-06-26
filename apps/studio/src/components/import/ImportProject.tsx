@@ -174,22 +174,28 @@ function PreviewCard({ preview, fileName, fileSize }: { preview: ImportPreview; 
       </div>
 
       {/* Right — Cover */}
-      <div className="flex flex-col justify-center items-center border-l border-slate-200 bg-slate-50/50 p-5">
-        {preview.coverBase64 ? (
-          <img
-            src={`data:image/png;base64,${preview.coverBase64}`}
-            alt={preview.title ?? preview.label}
-            className="w-full max-w-[160px] rounded-sm border border-slate-200 shadow-md object-contain"
-          />
-        ) : (
-          <div className="w-full aspect-[3/4] max-w-[160px] rounded-sm border border-slate-200 bg-gradient-to-br from-slate-100 to-slate-200 flex flex-col items-center justify-center gap-3 shadow-md">
-            <BookOpen className="w-10 h-10 text-slate-300" />
-            <p className="text-[11px] text-slate-400 font-medium px-4 text-center leading-tight">
-              <Trans>No cover available</Trans>
-            </p>
-          </div>
-        )}
-      </div>
+      <PreviewCover coverBase64={preview.coverBase64} alt={preview.title ?? preview.label} />
+    </div>
+  )
+}
+
+function PreviewCover({ coverBase64, alt }: { coverBase64: string | null; alt: string }) {
+  return (
+    <div className="flex flex-col justify-center items-center border-l border-slate-200 bg-slate-50/50 p-5">
+      {coverBase64 ? (
+        <img
+          src={`data:image/png;base64,${coverBase64}`}
+          alt={alt}
+          className="w-full max-w-[160px] rounded-sm border border-slate-200 shadow-md object-contain"
+        />
+      ) : (
+        <div className="w-full aspect-[3/4] max-w-[160px] rounded-sm border border-slate-200 bg-gradient-to-br from-slate-100 to-slate-200 flex flex-col items-center justify-center gap-3 shadow-md">
+          <BookOpen className="w-10 h-10 text-slate-300" />
+          <p className="text-[11px] text-slate-400 font-medium px-4 text-center leading-tight">
+            <Trans>No cover available</Trans>
+          </p>
+        </div>
+      )}
     </div>
   )
 }
@@ -239,22 +245,7 @@ function PartPreviewCard({ preview, fileName, fileSize }: { preview: PartImportP
       </div>
 
       {/* Right — Cover */}
-      <div className="flex flex-col justify-center items-center border-l border-slate-200 bg-slate-50/50 p-5">
-        {preview.coverBase64 ? (
-          <img
-            src={`data:image/png;base64,${preview.coverBase64}`}
-            alt={displayTitle}
-            className="w-full max-w-[160px] rounded-sm border border-slate-200 shadow-md object-contain"
-          />
-        ) : (
-          <div className="w-full aspect-[3/4] max-w-[160px] rounded-sm border border-slate-200 bg-gradient-to-br from-slate-100 to-slate-200 flex flex-col items-center justify-center gap-3 shadow-md">
-            <BookOpen className="w-10 h-10 text-slate-300" />
-            <p className="text-[11px] text-slate-400 font-medium px-4 text-center leading-tight">
-              <Trans>No cover available</Trans>
-            </p>
-          </div>
-        )}
-      </div>
+      <PreviewCover coverBase64={preview.coverBase64} alt={displayTitle} />
     </div>
   )
 }
