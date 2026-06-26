@@ -826,6 +826,14 @@ export function mergePart(
         targetDb.run(`DELETE FROM step_runs WHERE step IN (${placeholders})`, DOWNSTREAM_STEPS)
       }
 
+      // Carry per-item artifacts (so the stale book-level re-run is cheap) while
+      // the transaction is still open: a failed copy must roll back the DB, or
+      // the committed image/node rows would reference files missing on disk.
+      copyMissingFiles(path.join(part.dir, "images"), targetPaths.imagesDir)
+      copyMissingFiles(path.join(part.dir, ".cache"), path.join(targetPaths.bookDir, ".cache"))
+      copyMissingFiles(path.join(part.dir, "audio"), path.join(targetPaths.bookDir, "audio"))
+      copyMissingFiles(path.join(part.dir, "videos"), targetPaths.videosDir)
+
       targetDb.exec("COMMIT")
     } catch (err) {
       try { targetDb.exec("ROLLBACK") } catch { /* ignore */ }
@@ -833,12 +841,6 @@ export function mergePart(
     } finally {
       targetDb.close()
     }
-
-    // Carry per-item artifacts so the stale book-level re-run is cheap.
-    copyMissingFiles(path.join(part.dir, "images"), targetPaths.imagesDir)
-    copyMissingFiles(path.join(part.dir, ".cache"), path.join(targetPaths.bookDir, ".cache"))
-    copyMissingFiles(path.join(part.dir, "audio"), path.join(targetPaths.bookDir, "audio"))
-    copyMissingFiles(path.join(part.dir, "videos"), targetPaths.videosDir)
 
     return {
       targetLabel: safeTarget,
