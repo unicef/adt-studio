@@ -25,7 +25,7 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { Button } from "@/components/ui/button"
 import { FileDropOverlay, useFileDropZone } from "@/components/ui/file-drop-overlay"
-import { cn, formatBytes } from "@/lib/utils"
+import { cn, formatBytes, isZipFile } from "@/lib/utils"
 import { useImportBook } from "@/hooks/use-books"
 import { api, isPartImportPreview } from "@/api/client"
 import type { AnyImportPreview, ImportPreview, PartImportPreview } from "@/api/client"
@@ -257,10 +257,6 @@ function PartPreviewCard({ preview, fileName, fileSize }: { preview: PartImportP
       </div>
     </div>
   )
-}
-
-function isZipFile(f: File) {
-  return f.name.endsWith(".zip") || f.type === "application/zip" || f.type === "application/x-zip-compressed"
 }
 
 interface FriendlyError {

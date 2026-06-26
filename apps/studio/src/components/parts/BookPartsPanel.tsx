@@ -9,6 +9,7 @@ import { useSourcePdfInfo } from "../../hooks/use-source-pdf-info"
 import { type MergePreview, type MergeResult, type SplitStatus } from "../../api/client"
 import { Button } from "../ui/button"
 import { Badge } from "../ui/badge"
+import { isZipFile } from "../../lib/utils"
 import { fmtRange } from "./parts-utils"
 import { ExportPartControls, useExportPartState } from "./ExportPartControls"
 import { SplitPreviewDialog } from "./SplitPreviewDialog"
@@ -195,6 +196,7 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
   const [preview, setPreview] = useState<MergePreview | null>(null)
   const [acknowledge, setAcknowledge] = useState(false)
   const [result, setResult] = useState<MergeResult | null>(null)
+  const [selectError, setSelectError] = useState<string | null>(null)
 
   const previewMutation = usePreviewMerge(bookLabel)
   const mergeMutation = useMergePart(bookLabel)
@@ -206,6 +208,7 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
     setPreview(null)
     setAcknowledge(false)
     setResult(null)
+    setSelectError(null)
     previewMutation.reset()
     mergeMutation.reset()
     if (fileRef.current) fileRef.current.value = ""
@@ -215,7 +218,15 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
     setPreview(null)
     setResult(null)
     setAcknowledge(false)
+    setSelectError(null)
+    previewMutation.reset()
     mergeMutation.reset()
+    if (selected && !isZipFile(selected)) {
+      setFile(null)
+      setSelectError(t`Select a .zip project archive exported from ADT Studio.`)
+      if (fileRef.current) fileRef.current.value = ""
+      return
+    }
     setFile(selected)
     if (selected) {
       previewMutation.mutate(selected, { onSuccess: (p) => setPreview(p) })
@@ -350,6 +361,7 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
               <Trans>Analyzing part…</Trans>
             </p>
           )}
+          {selectError && <ErrorNote message={selectError} />}
           {previewError && <ErrorNote message={previewError} />}
 
           {preview && <PreviewSummary preview={preview} />}
