@@ -28,6 +28,9 @@ msgstr "_page"
 msgid "-"
 msgstr "-"
 
+msgid "— none —"
+msgstr "— nenhum —"
+
 msgid ", "
 msgstr ", "
 
@@ -819,6 +822,9 @@ msgstr "Adicione a chave de API do provedor selecionado nas configurações do L
 
 msgid "Add this provider's API key in Book settings."
 msgstr "Adicione a chave de API deste provedor nas configurações do Livro."
+
+msgid "Add tile"
+msgstr "Adicionar peça"
 
 msgid "Add Translations"
 msgstr "Adicionar traduções"

@@ -28,6 +28,9 @@ msgstr "_page"
 msgid "-"
 msgstr "-"
 
+msgid "— none —"
+msgstr "— none —"
+
 msgid ", "
 msgstr ", "
 
@@ -819,6 +822,9 @@ msgstr "Add the selected provider's API key in Book settings to run speech."
 
 msgid "Add this provider's API key in Book settings."
 msgstr "Add this provider's API key in Book settings."
+
+msgid "Add tile"
+msgstr "Add tile"
 
 msgid "Add Translations"
 msgstr "Add Translations"

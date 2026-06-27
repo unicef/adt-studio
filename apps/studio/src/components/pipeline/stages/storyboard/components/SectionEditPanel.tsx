@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react"
 import { ImagePlus, Loader2, RefreshCw, X } from "lucide-react"
 import { SectionActionsDropdown } from "./SectionActionsDropdown"
+import { ActivityAnswersEditor } from "./ActivityAnswersEditor"
 import { SectionTreeEditor } from "@/components/section-tree-editor/SectionTreeEditor"
 import {
   Select,
@@ -39,6 +40,8 @@ interface SectionEditPanelProps {
   textTypes?: Record<string, string>
   groupTypes?: Record<string, string>
   activityAnswers?: Record<string, string | boolean | number>
+  /** The section's rendered HTML — used to label activity answers. */
+  activityHtml?: string
   onChangeSectionType: (type: string) => void
   onToggleSectionPruned: () => void
   onSectionChange: (next: PageSectioningSection) => void
@@ -78,6 +81,7 @@ export function SectionEditPanel({
   textTypes,
   groupTypes,
   activityAnswers,
+  activityHtml,
   onChangeSectionType,
   onToggleSectionPruned,
   onSectionChange,
@@ -286,36 +290,12 @@ export function SectionEditPanel({
         />
 
         {activityAnswers && Object.keys(activityAnswers).length > 0 && (
-          <div>
-            <h3 className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-              {t`Answers`}
-            </h3>
-            <div className="space-y-1.5">
-              {Object.entries(activityAnswers)
-                .sort(([a], [b]) => {
-                  const numA = parseInt(a.replace(/\D/g, ""), 10) || 0
-                  const numB = parseInt(b.replace(/\D/g, ""), 10) || 0
-                  return numA - numB
-                })
-                .map(([key, value]) => (
-                  <div
-                    key={key}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded border bg-amber-50/60"
-                  >
-                    <span className="shrink-0 text-[10px] font-medium text-amber-700 bg-amber-100 rounded px-1.5 py-0.5">
-                      {key}
-                    </span>
-                    <input
-                      type="text"
-                      value={String(value)}
-                      onChange={(e) => onUpdateAnswer(key, e.target.value)}
-                      disabled={pipelineRunning}
-                      className="flex-1 min-w-0 text-xs rounded border border-transparent bg-transparent px-1.5 py-1 hover:border-border hover:bg-white focus:border-ring focus:bg-white focus:outline-none focus:ring-1 focus:ring-ring transition-colors disabled:opacity-50 disabled:cursor-default"
-                    />
-                  </div>
-                ))}
-            </div>
-          </div>
+          <ActivityAnswersEditor
+            answers={activityAnswers}
+            html={activityHtml}
+            onUpdateAnswer={onUpdateAnswer}
+            disabled={pipelineRunning}
+          />
         )}
 
         <div>

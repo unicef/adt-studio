@@ -57,6 +57,7 @@ import {
   type ComputedTypographyStyles,
 } from "./BookPreviewFrame"
 import { SectionEditPanel } from "./SectionEditPanel"
+import { writeCustomAnswerToHtml } from "../lib/activity-answer-labels"
 import { StorySectionBanner } from "./StorySectionBanner"
 import { Puzzle } from "lucide-react"
 import { StyleEditorPanel } from "./style-editor"
@@ -1150,17 +1151,31 @@ export function StoryboardSectionDetail({
     [pendingRendering, page.rendering, sectionIndex, markPending]
   )
 
-  // Update a single activity answer value in the rendering
+  // Update a single activity answer value in the rendering.
+  //
+  // `activityAnswers` is only a DERIVED view. Custom activities (their inline
+  // grading script) read the correct answer straight from the section HTML —
+  // `data-correct-items` on a drop target, or `data-answer` on a per-slot input
+  // — so for custom sections we must write the edit back into the HTML, or the
+  // change would be cosmetic and never affect grading. Templated activities
+  // grade off `window.correctAnswers` (built from `activityAnswers`), so the
+  // derived update alone is enough for them.
   const updateAnswer = useCallback(
     (itemKey: string, value: string) => {
       const rBase = pendingRendering ?? page.rendering
       if (!rBase) return
+      const isCustom = section?.sectionType.startsWith("activity_custom") ?? false
       const updated = {
         ...rBase,
         sections: rBase.sections.map((s) => {
           if (s.sectionIndex !== sectionIndex) return s
+          let html = s.html
+          if (isCustom && html) {
+            html = writeCustomAnswerToHtml(html, itemKey, value)
+          }
           return {
             ...s,
+            html,
             activityAnswers: { ...s.activityAnswers, [itemKey]: value },
           }
         }),
@@ -1168,7 +1183,7 @@ export function StoryboardSectionDetail({
       setPendingRendering(updated)
       markPending("text")
     },
-    [pendingRendering, page.rendering, sectionIndex, markPending]
+    [pendingRendering, page.rendering, sectionIndex, markPending, section]
   )
 
   // Delete selected block from rendered HTML and remove the matching leaf from sectioning.
@@ -2440,6 +2455,7 @@ export function StoryboardSectionDetail({
         textTypes={textTypes}
         groupTypes={groupTypes}
         activityAnswers={renderedSection?.activityAnswers}
+        activityHtml={renderedSection?.html}
         onChangeSectionType={changeSectionType}
         onToggleSectionPruned={toggleSectionPruned}
         onSectionChange={handleSectionChange}
