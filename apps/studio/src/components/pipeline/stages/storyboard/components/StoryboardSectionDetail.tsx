@@ -64,7 +64,7 @@ import {
   DEVICE_WIDTHS,
   useDeviceView,
 } from "./style-editor/device-breakpoint"
-import { ImageCropDialog } from "./ImageCropDialog"
+import { ImageCropDialog, pageBoundsToCropRect } from "./ImageCropDialog"
 import { AiImageDialog } from "./AiImageDialog"
 import { AddImageDialog } from "./AddImageDialog"
 import { ReplaceFromBookDialog } from "./ReplaceFromBookDialog"
@@ -2380,13 +2380,21 @@ export function StoryboardSectionDetail({
     />
 
     {/* Image crop dialog */}
-    {cropTarget && (
-      <ImageCropDialog
-        imageSrc={recropPageSrc ?? `${BASE_URL}/books/${bookLabel}/images/${cropTarget}`}
-        onApply={handleCropApply}
-        onClose={() => { setCropTarget(null); setRecropPageSrc(null) }}
-      />
-    )}
+    {cropTarget && (() => {
+      // Overlay the original placement only when recropping from the full page;
+      // an in-place crop uses the image itself, where the full frame is correct.
+      const bounds = recropPageSrc
+        ? page.imagesMeta.find((m) => m.imageId === cropTarget)?.bounds
+        : undefined
+      return (
+        <ImageCropDialog
+          imageSrc={recropPageSrc ?? `${BASE_URL}/books/${bookLabel}/images/${cropTarget}`}
+          initialRect={bounds ? pageBoundsToCropRect(bounds) : undefined}
+          onApply={handleCropApply}
+          onClose={() => { setCropTarget(null); setRecropPageSrc(null) }}
+        />
+      )
+    })()}
 
     {/* Replace from book dialog */}
     {replaceFromBookTarget && (

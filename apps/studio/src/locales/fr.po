@@ -82,6 +82,11 @@ msgstr "{0} / {1}"
 
 #. placeholder {0}: bbox.w
 #. placeholder {1}: bbox.h
+msgid "{0} × {1}px"
+msgstr "{0} × {1}px"
+
+#. placeholder {0}: bbox.w
+#. placeholder {1}: bbox.h
 #. placeholder {2}: points.length
 msgid "{0} × {1}px · {2} points"
 msgstr "{0} × {1}px · {2} points"
@@ -404,6 +409,9 @@ msgstr "1 section"
 
 msgid "1 selected image is no longer in the storyboard."
 msgstr "1 image sélectionnée ne figure plus dans le storyboard."
+
+msgid "1:1"
+msgstr "1:1"
 
 msgid "1.1 Background"
 msgstr "1.1 Contexte"
@@ -2194,6 +2202,15 @@ msgstr "Télécharger la mise à jour"
 msgid "Downloading… {0}% · {1}/s"
 msgstr "Téléchargement… {0}% · {1}/s"
 
+#~ msgid "Drag corners to resize (aspect ratio locked). Drag inside to move. Choose “Free” to edit as a polygon."
+#~ msgstr "Faites glisser les coins pour redimensionner (rapport d'aspect verrouillé). Faites glisser à l'intérieur pour déplacer. Choisissez « Libre » pour modifier en tant que polygone."
+
+msgid "Drag the handles to crop a rectangle. Drag inside to move."
+msgstr "Faites glisser les poignées pour rogner un rectangle. Faites glisser à l'intérieur pour déplacer."
+
+msgid "Drag the handles to resize (aspect ratio locked). Drag inside to move."
+msgstr "Faites glisser les poignées pour redimensionner (rapport d'aspect verrouillé). Faites glisser à l'intérieur pour déplacer."
+
 msgid "Drag to move"
 msgstr "Glisser pour déplacer"
 
@@ -2779,6 +2796,18 @@ msgstr "Formulaires et contrôles"
 
 msgid "FR"
 msgstr "FR"
+
+#~ msgid "Free"
+#~ msgstr "Libre"
+
+msgid "Free rectangle — resize without skewing"
+msgstr "Rectangle libre — redimensionner sans déformer"
+
+msgid "Free-form polygon — move, add, and remove points"
+msgstr "Polygone libre — déplacer, ajouter et supprimer des points"
+
+#~ msgid "Free-form polygon (no ratio lock)"
+#~ msgstr "Polygone libre (sans verrouillage du rapport)"
 
 msgid "French"
 msgstr "Français"
@@ -3625,6 +3654,18 @@ msgstr "Chargement…"
 
 msgid "Localization"
 msgstr "Localisation"
+
+msgid "Lock"
+msgstr "Verrouiller"
+
+msgid "Lock the current aspect ratio"
+msgstr "Verrouiller le rapport d'aspect actuel"
+
+msgid "Lock to a square"
+msgstr "Verrouiller en carré"
+
+#~ msgid "Lock to the image's aspect ratio"
+#~ msgstr "Verrouiller au rapport d'aspect de l'image"
 
 msgid "Logs"
 msgstr "Journaux"
@@ -4725,6 +4766,9 @@ msgstr "Lire la vidéo"
 msgid "Polishing paragraphs to perfection..."
 msgstr "Peaufinage des paragraphes à la perfection..."
 
+msgid "Polygon"
+msgstr "Polygone"
+
 msgid "Portuguese (BR)"
 msgstr "Portugais (BR)"
 
@@ -5056,6 +5100,9 @@ msgstr "Recadrer depuis la page"
 
 msgid "Recrop from Page"
 msgstr "Recadrer depuis la page"
+
+msgid "Rectangle"
+msgstr "Rectangle"
 
 msgid "Reference"
 msgstr "Référence"

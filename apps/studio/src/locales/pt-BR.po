@@ -80,6 +80,11 @@ msgstr "{0} / {1}"
 
 #. placeholder {0}: bbox.w
 #. placeholder {1}: bbox.h
+msgid "{0} × {1}px"
+msgstr "{0} × {1}px"
+
+#. placeholder {0}: bbox.w
+#. placeholder {1}: bbox.h
 #. placeholder {2}: points.length
 msgid "{0} × {1}px · {2} points"
 msgstr "{0} × {1}px · {2} pontos"
@@ -402,6 +407,9 @@ msgstr "1 seção"
 
 msgid "1 selected image is no longer in the storyboard."
 msgstr "1 imagem selecionada não está mais no storyboard."
+
+msgid "1:1"
+msgstr "1:1"
 
 msgid "1.1 Background"
 msgstr "1.1 Contexto"
@@ -2192,6 +2200,15 @@ msgstr "Baixar atualização"
 msgid "Downloading… {0}% · {1}/s"
 msgstr "Baixando… {0}% · {1}/s"
 
+#~ msgid "Drag corners to resize (aspect ratio locked). Drag inside to move. Choose “Free” to edit as a polygon."
+#~ msgstr "Arraste os cantos para redimensionar (proporção bloqueada). Arraste dentro para mover. Escolha “Livre” para editar como polígono."
+
+msgid "Drag the handles to crop a rectangle. Drag inside to move."
+msgstr "Arraste as alças para recortar um retângulo. Arraste dentro para mover."
+
+msgid "Drag the handles to resize (aspect ratio locked). Drag inside to move."
+msgstr "Arraste as alças para redimensionar (proporção bloqueada). Arraste dentro para mover."
+
 msgid "Drag to move"
 msgstr "Arrastar para mover"
 
@@ -2777,6 +2794,18 @@ msgstr "Forms & controls"
 
 msgid "FR"
 msgstr "FR"
+
+#~ msgid "Free"
+#~ msgstr "Livre"
+
+msgid "Free rectangle — resize without skewing"
+msgstr "Retângulo livre — redimensione sem distorcer"
+
+msgid "Free-form polygon — move, add, and remove points"
+msgstr "Polígono livre — mova, adicione e remova pontos"
+
+#~ msgid "Free-form polygon (no ratio lock)"
+#~ msgstr "Polígono livre (sem bloqueio de proporção)"
 
 msgid "French"
 msgstr "Francês"
@@ -3623,6 +3652,18 @@ msgstr "Carregando…"
 
 msgid "Localization"
 msgstr "Localização"
+
+msgid "Lock"
+msgstr "Bloquear"
+
+msgid "Lock the current aspect ratio"
+msgstr "Bloquear a proporção atual"
+
+msgid "Lock to a square"
+msgstr "Bloquear como quadrado"
+
+#~ msgid "Lock to the image's aspect ratio"
+#~ msgstr "Bloquear na proporção da imagem"
 
 msgid "Logs"
 msgstr "Logs"
@@ -4723,6 +4764,9 @@ msgstr "Reproduzir vídeo"
 msgid "Polishing paragraphs to perfection..."
 msgstr "Polindo parágrafos até a perfeição..."
 
+msgid "Polygon"
+msgstr "Polígono"
+
 msgid "Portuguese (BR)"
 msgstr "Português (BR)"
 
@@ -5054,6 +5098,9 @@ msgstr "Recortar da página"
 
 msgid "Recrop from Page"
 msgstr "Recortar da página"
+
+msgid "Rectangle"
+msgstr "Retângulo"
 
 msgid "Reference"
 msgstr "Referência"

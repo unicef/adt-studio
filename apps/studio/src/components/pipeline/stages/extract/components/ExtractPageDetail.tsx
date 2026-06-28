@@ -7,7 +7,7 @@ import { useActiveConfig } from "@/hooks/use-debug"
 import { useBookRun } from "@/hooks/use-book-run"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
-import { ImageCropDialog } from "@/components/pipeline/stages/storyboard/components/ImageCropDialog"
+import { ImageCropDialog, pageBoundsToCropRect } from "@/components/pipeline/stages/storyboard/components/ImageCropDialog"
 import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
 import { usePendingChanges } from "@/components/pipeline/components/change-summary"
 import { resolveReflowableFont } from "@adt/types"
@@ -431,13 +431,19 @@ export function ExtractPageDetail({
 
       </div>
       </div>
-      {cropTarget && cropPageSrc && (
-        <ImageCropDialog
-          imageSrc={cropPageSrc}
-          onApply={handleCropApply}
-          onClose={() => { setCropTarget(null); setCropPageSrc(null) }}
-        />
-      )}
+      {cropTarget && cropPageSrc && (() => {
+        // Recrop is always from the full page image — overlay the selection on
+        // the region this image originally came from when its bounds are known.
+        const bounds = boundsByImageId.get(cropTarget)
+        return (
+          <ImageCropDialog
+            imageSrc={cropPageSrc}
+            initialRect={bounds ? pageBoundsToCropRect(bounds) : undefined}
+            onApply={handleCropApply}
+            onClose={() => { setCropTarget(null); setCropPageSrc(null) }}
+          />
+        )
+      })()}
     </div>
   )
 }

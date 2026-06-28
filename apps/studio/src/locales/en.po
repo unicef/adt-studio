@@ -80,6 +80,11 @@ msgstr "{0} / {1}"
 
 #. placeholder {0}: bbox.w
 #. placeholder {1}: bbox.h
+msgid "{0} × {1}px"
+msgstr "{0} × {1}px"
+
+#. placeholder {0}: bbox.w
+#. placeholder {1}: bbox.h
 #. placeholder {2}: points.length
 msgid "{0} × {1}px · {2} points"
 msgstr "{0} × {1}px · {2} points"
@@ -402,6 +407,9 @@ msgstr "1 section"
 
 msgid "1 selected image is no longer in the storyboard."
 msgstr "1 selected image is no longer in the storyboard."
+
+msgid "1:1"
+msgstr "1:1"
 
 msgid "1.1 Background"
 msgstr "1.1 Background"
@@ -2192,6 +2200,15 @@ msgstr "Download update"
 msgid "Downloading… {0}% · {1}/s"
 msgstr "Downloading… {0}% · {1}/s"
 
+#~ msgid "Drag corners to resize (aspect ratio locked). Drag inside to move. Choose “Free” to edit as a polygon."
+#~ msgstr "Drag corners to resize (aspect ratio locked). Drag inside to move. Choose “Free” to edit as a polygon."
+
+msgid "Drag the handles to crop a rectangle. Drag inside to move."
+msgstr "Drag the handles to crop a rectangle. Drag inside to move."
+
+msgid "Drag the handles to resize (aspect ratio locked). Drag inside to move."
+msgstr "Drag the handles to resize (aspect ratio locked). Drag inside to move."
+
 msgid "Drag to move"
 msgstr "Drag to move"
 
@@ -2777,6 +2794,18 @@ msgstr "Forms & controls"
 
 msgid "FR"
 msgstr "FR"
+
+#~ msgid "Free"
+#~ msgstr "Free"
+
+msgid "Free rectangle — resize without skewing"
+msgstr "Free rectangle — resize without skewing"
+
+msgid "Free-form polygon — move, add, and remove points"
+msgstr "Free-form polygon — move, add, and remove points"
+
+#~ msgid "Free-form polygon (no ratio lock)"
+#~ msgstr "Free-form polygon (no ratio lock)"
 
 msgid "French"
 msgstr "French"
@@ -3623,6 +3652,18 @@ msgstr "Loading…"
 
 msgid "Localization"
 msgstr "Localization"
+
+msgid "Lock"
+msgstr "Lock"
+
+msgid "Lock the current aspect ratio"
+msgstr "Lock the current aspect ratio"
+
+msgid "Lock to a square"
+msgstr "Lock to a square"
+
+#~ msgid "Lock to the image's aspect ratio"
+#~ msgstr "Lock to the image's aspect ratio"
 
 msgid "Logs"
 msgstr "Logs"
@@ -4723,6 +4764,9 @@ msgstr "Play video"
 msgid "Polishing paragraphs to perfection..."
 msgstr "Polishing paragraphs to perfection..."
 
+msgid "Polygon"
+msgstr "Polygon"
+
 msgid "Portuguese (BR)"
 msgstr "Portuguese (BR)"
 
@@ -5054,6 +5098,9 @@ msgstr "Recrop from page"
 
 msgid "Recrop from Page"
 msgstr "Recrop from Page"
+
+msgid "Rectangle"
+msgstr "Rectangle"
 
 msgid "Reference"
 msgstr "Reference"

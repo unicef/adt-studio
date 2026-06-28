@@ -81,6 +81,11 @@ msgstr "{0} / {1}"
 
 #. placeholder {0}: bbox.w
 #. placeholder {1}: bbox.h
+msgid "{0} × {1}px"
+msgstr "{0} × {1}px"
+
+#. placeholder {0}: bbox.w
+#. placeholder {1}: bbox.h
 #. placeholder {2}: points.length
 msgid "{0} × {1}px · {2} points"
 msgstr "{0} × {1}px · {2} pika"
@@ -403,6 +408,9 @@ msgstr "1 seksion"
 
 msgid "1 selected image is no longer in the storyboard."
 msgstr "1 imazh i zgjedhur nuk është më në storyboard."
+
+msgid "1:1"
+msgstr "1:1"
 
 msgid "1.1 Background"
 msgstr "1.1 Sfondi"
@@ -2193,6 +2201,15 @@ msgstr "Shkarko përditësimin"
 msgid "Downloading… {0}% · {1}/s"
 msgstr "Po shkarkohet… {0}% · {1}/s"
 
+#~ msgid "Drag corners to resize (aspect ratio locked). Drag inside to move. Choose “Free” to edit as a polygon."
+#~ msgstr "Tërhiqni qoshet për të ripërmasuar (raporti i pamjes i kyçur). Tërhiqni brenda për ta lëvizur. Zgjidhni “I lirë” për ta redaktuar si poligon."
+
+msgid "Drag the handles to crop a rectangle. Drag inside to move."
+msgstr "Tërhiqni dorezat për të prerë një drejtkëndësh. Tërhiqni brenda për ta lëvizur."
+
+msgid "Drag the handles to resize (aspect ratio locked). Drag inside to move."
+msgstr "Tërhiqni dorezat për të ripërmasuar (raporti i pamjes i kyçur). Tërhiqni brenda për ta lëvizur."
+
 msgid "Drag to move"
 msgstr "Tërhiq për të lëvizur"
 
@@ -2778,6 +2795,18 @@ msgstr "Formularë dhe kontrolle"
 
 msgid "FR"
 msgstr "FR"
+
+#~ msgid "Free"
+#~ msgstr "I lirë"
+
+msgid "Free rectangle — resize without skewing"
+msgstr "Drejtkëndësh i lirë — ripërmaso pa shtrembëruar"
+
+msgid "Free-form polygon — move, add, and remove points"
+msgstr "Poligon i lirë — lëviz, shto dhe hiq pika"
+
+#~ msgid "Free-form polygon (no ratio lock)"
+#~ msgstr "Poligon i lirë (pa kyçje raporti)"
 
 msgid "French"
 msgstr "Frëngjisht"
@@ -3624,6 +3653,18 @@ msgstr "Duke ngarkuar…"
 
 msgid "Localization"
 msgstr "Lokalizim"
+
+msgid "Lock"
+msgstr "Kyç"
+
+msgid "Lock the current aspect ratio"
+msgstr "Kyç raportin aktual të pamjes"
+
+msgid "Lock to a square"
+msgstr "Kyç si katror"
+
+#~ msgid "Lock to the image's aspect ratio"
+#~ msgstr "Kyç në raportin e pamjes së figurës"
 
 msgid "Logs"
 msgstr "Regjistra"
@@ -4724,6 +4765,9 @@ msgstr "Luaj videon"
 msgid "Polishing paragraphs to perfection..."
 msgstr "Polisim paragrafet deri në përsosmëri..."
 
+msgid "Polygon"
+msgstr "Poligon"
+
 msgid "Portuguese (BR)"
 msgstr "Portugalisht (BR)"
 
@@ -5055,6 +5099,9 @@ msgstr "Rirritjo nga faqja"
 
 msgid "Recrop from Page"
 msgstr "Rirritjo nga Faqja"
+
+msgid "Rectangle"
+msgstr "Drejtkëndësh"
 
 msgid "Reference"
 msgstr "Referencë"
