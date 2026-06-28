@@ -40,6 +40,7 @@ export {
 export {
   segmentPageImages,
   applySegmentation,
+  segmentBoundsOnPage,
   buildSegmentationConfig,
   getSegmentedImageId,
   type AppliedSegment,

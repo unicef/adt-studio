@@ -34,7 +34,7 @@ import {
 import { classifyPageImages, buildImageClassifyConfig } from "./image-filtering.js"
 import { filterPageImageMeaningfulness, buildMeaningfulnessConfig } from "./image-meaningfulness.js"
 import { cropPageImages, applyCrops, buildCroppingConfig, getCroppedImageId } from "./image-cropping.js"
-import { segmentPageImages, applySegmentation, buildSegmentationConfig, getSegmentedImageId } from "./image-segmentation.js"
+import { segmentPageImages, applySegmentation, segmentBoundsOnPage, buildSegmentationConfig, getSegmentedImageId } from "./image-segmentation.js"
 import { renderPage, buildRenderStrategyResolver } from "./web-rendering.js"
 import { translatePageTree, buildTranslationConfig } from "./translation.js"
 import { createTemplateEngine } from "./render-template.js"
@@ -297,7 +297,12 @@ export async function runFullPipeline(
               (imageId) => storage.getImageBase64(imageId),
               segDims,
             )
+            const srcMeta = new Map(allImages.map((img) => [img.imageId, img]))
             for (const seg of applied) {
+              const src = srcMeta.get(seg.sourceImageId)
+              const bounds = src?.bounds
+                ? segmentBoundsOnPage(src.bounds, src.width, src.height, seg)
+                : undefined
               storage.putSegmentedImage({
                 sourceImageId: seg.sourceImageId,
                 segmentIndex: seg.segmentIndex,
@@ -306,6 +311,7 @@ export async function runFullPipeline(
                 buffer: seg.buffer,
                 width: seg.width,
                 height: seg.height,
+                bounds,
               })
               const segImageId = getSegmentedImageId(seg.sourceImageId, seg.segmentIndex, segVersion)
               imageClassification.images.push({

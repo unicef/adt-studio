@@ -68,6 +68,7 @@ import {
   getCroppedImageId,
   segmentPageImages,
   applySegmentation,
+  segmentBoundsOnPage,
   buildSegmentationConfig,
   getSegmentedImageId,
   createScreenshotRenderer,
@@ -2682,7 +2683,12 @@ async function runSegmentationPass(
           (imageId) => storage.getImageBase64(imageId),
           segDims,
         )
+        const srcMeta = new Map(images.map((img) => [img.imageId, img]))
         for (const seg of applied) {
+          const src = srcMeta.get(seg.sourceImageId)
+          const bounds = src?.bounds
+            ? segmentBoundsOnPage(src.bounds, src.width, src.height, seg)
+            : undefined
           storage.putSegmentedImage({
             sourceImageId: seg.sourceImageId,
             segmentIndex: seg.segmentIndex,
@@ -2691,6 +2697,7 @@ async function runSegmentationPass(
             buffer: seg.buffer,
             width: seg.width,
             height: seg.height,
+            bounds,
           })
           existing.images.push({
             imageId: getSegmentedImageId(seg.sourceImageId, seg.segmentIndex, segVersion),
