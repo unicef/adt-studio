@@ -80,6 +80,11 @@ msgstr "{0} / {1}"
 
 #. placeholder {0}: bbox.w
 #. placeholder {1}: bbox.h
+msgid "{0} × {1}px"
+msgstr "{0} × {1}px"
+
+#. placeholder {0}: bbox.w
+#. placeholder {1}: bbox.h
 #. placeholder {2}: points.length
 msgid "{0} × {1}px · {2} points"
 msgstr "{0} × {1}px · {2} pontos"
@@ -406,6 +411,9 @@ msgstr "1 seção"
 
 msgid "1 selected image is no longer in the storyboard."
 msgstr "1 imagem selecionada não está mais no storyboard."
+
+msgid "1:1"
+msgstr "1:1"
 
 msgid "1.1 Background"
 msgstr "1.1 Contexto"
@@ -1859,6 +1867,9 @@ msgstr "Corrija os metadados extraídos do documento."
 msgid "Could not load the Google Fonts catalog. Check your connection and try again."
 msgstr "Não foi possível carregar o catálogo do Google Fonts. Verifique sua conexão e tente novamente."
 
+msgid "Could not read image dimensions"
+msgstr "Não foi possível ler as dimensões da imagem"
+
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "Não foi possível ler este PDF. O arquivo pode estar corrompido ou protegido por senha."
 
@@ -2249,6 +2260,15 @@ msgstr "Baixa na extração"
 
 msgid "Drag & drop font files here"
 msgstr "Arraste e solte arquivos de fonte aqui"
+
+#~ msgid "Drag corners to resize (aspect ratio locked). Drag inside to move. Choose “Free” to edit as a polygon."
+#~ msgstr "Arraste os cantos para redimensionar (proporção bloqueada). Arraste dentro para mover. Escolha “Livre” para editar como polígono."
+
+msgid "Drag the handles to crop a rectangle. Drag inside to move."
+msgstr "Arraste as alças para recortar um retângulo. Arraste dentro para mover."
+
+msgid "Drag the handles to resize (aspect ratio locked). Drag inside to move."
+msgstr "Arraste as alças para redimensionar (proporção bloqueada). Arraste dentro para mover."
 
 msgid "Drag to move"
 msgstr "Arrastar para mover"
@@ -2850,6 +2870,18 @@ msgstr "Forms & controls"
 
 msgid "FR"
 msgstr "FR"
+
+#~ msgid "Free"
+#~ msgstr "Livre"
+
+msgid "Free rectangle — resize without skewing"
+msgstr "Retângulo livre — redimensione sem distorcer"
+
+msgid "Free-form polygon — move, add, and remove points"
+msgstr "Polígono livre — mova, adicione e remova pontos"
+
+#~ msgid "Free-form polygon (no ratio lock)"
+#~ msgstr "Polígono livre (sem bloqueio de proporção)"
 
 msgid "French"
 msgstr "Francês"
@@ -3711,6 +3743,18 @@ msgstr "Carregando…"
 
 msgid "Localization"
 msgstr "Localização"
+
+msgid "Lock"
+msgstr "Bloquear"
+
+msgid "Lock the current aspect ratio"
+msgstr "Bloquear a proporção atual"
+
+msgid "Lock to a square"
+msgstr "Bloquear como quadrado"
+
+#~ msgid "Lock to the image's aspect ratio"
+#~ msgstr "Bloquear na proporção da imagem"
 
 msgid "Logs"
 msgstr "Logs"
@@ -4838,6 +4882,9 @@ msgstr "Polindo parágrafos até a perfeição..."
 msgid "Popular"
 msgstr "Populares"
 
+msgid "Polygon"
+msgstr "Polígono"
+
 msgid "Portuguese (BR)"
 msgstr "Português (BR)"
 
@@ -5169,6 +5216,9 @@ msgstr "Recortar da página"
 
 msgid "Recrop from Page"
 msgstr "Recortar da página"
+
+msgid "Rectangle"
+msgstr "Retângulo"
 
 msgid "Reference"
 msgstr "Referência"
@@ -5815,6 +5865,9 @@ msgstr "Ver exemplos"
 
 msgid "Segment"
 msgstr "Segmentar"
+
+msgid "Segment image"
+msgstr "Segmentar imagem"
 
 msgid "Segment Preview"
 msgstr "Segment Preview"

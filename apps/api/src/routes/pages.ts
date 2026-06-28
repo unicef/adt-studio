@@ -15,6 +15,7 @@ import type { TaskService } from "../services/task-service.js"
 import {
   segmentPageImages,
   getSegmentedImageId,
+  segmentBoundsOnPage,
   loadBookConfig,
   applyCrop,
   generateStyleguide,
@@ -2277,7 +2278,13 @@ export function createPageRoutes(
 
       const imgResult = segResult.results[0]
       if (!imgResult || !imgResult.needsSegmentation || !imgResult.segments || imgResult.segments.length === 0) {
-        return c.json({ segmented: false })
+        // Still return dimensions so callers can offer a manual single-region
+        // fallback (open the segment editor with one full-image box).
+        return c.json({
+          segmented: false,
+          imageWidth: imageMeta.width,
+          imageHeight: imageMeta.height,
+        })
       }
 
       return c.json({
@@ -2330,6 +2337,10 @@ export function createPageRoutes(
       const imageBase64 = storage.getImageBase64(imageId)
       const buffer = Buffer.from(imageBase64, "base64")
 
+      // Source image's placement on the page, so each segment can record where
+      // it was extracted from (for recrop-from-page overlay).
+      const sourceMeta = storage.getPageImages(pageId).find((img) => img.imageId === imageId)
+
       const version = storage.putNodeData("image-segmentation", pageId, {
         results: [{
           imageId,
@@ -2354,6 +2365,10 @@ export function createPageRoutes(
           cropBottom: region.cropBottom,
         })
 
+        const bounds = sourceMeta?.bounds
+          ? segmentBoundsOnPage(sourceMeta.bounds, sourceMeta.width, sourceMeta.height, region)
+          : undefined
+
         const segIndex = i + 1
         storage.putSegmentedImage({
           sourceImageId: imageId,
@@ -2363,6 +2378,7 @@ export function createPageRoutes(
           buffer: cropped,
           width,
           height,
+          bounds,
         })
         segments.push({
           imageId: getSegmentedImageId(imageId, segIndex, version),
