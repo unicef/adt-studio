@@ -1817,6 +1817,9 @@ msgstr "Përgjigje e saktë"
 msgid "Correct the metadata extracted from the document."
 msgstr "Korrigjoni meta të dhënat e nxjerra nga dokumenti."
 
+msgid "Could not read image dimensions"
+msgstr "Nuk u lexuan dot përmasat e imazhit"
+
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "Nuk u mund të lexohet ky PDF. Skedari mund të jetë i dëmtuar ose i mbrojtur me fjalëkalim."
 
@@ -5682,6 +5685,9 @@ msgstr "Shiko shembuj"
 
 msgid "Segment"
 msgstr "Segment"
+
+msgid "Segment image"
+msgstr "Segmento imazhin"
 
 msgid "Segment Preview"
 msgstr "Parapamje Segmenti"

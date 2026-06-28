@@ -1816,6 +1816,9 @@ msgstr "Correct answer"
 msgid "Correct the metadata extracted from the document."
 msgstr "Correct the metadata extracted from the document."
 
+msgid "Could not read image dimensions"
+msgstr "Could not read image dimensions"
+
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "Could not read this PDF. The file may be corrupted or password-protected."
 
@@ -5681,6 +5684,9 @@ msgstr "See examples"
 
 msgid "Segment"
 msgstr "Segment"
+
+msgid "Segment image"
+msgstr "Segment image"
 
 msgid "Segment Preview"
 msgstr "Segment Preview"

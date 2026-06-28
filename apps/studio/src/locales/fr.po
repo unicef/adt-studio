@@ -1818,6 +1818,9 @@ msgstr "Bonne réponse"
 msgid "Correct the metadata extracted from the document."
 msgstr "Corrigez les métadonnées extraites du document."
 
+msgid "Could not read image dimensions"
+msgstr "Impossible de lire les dimensions de l'image"
+
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "Impossible de lire ce PDF. Le fichier est peut-être corrompu ou protégé par un mot de passe."
 
@@ -5683,6 +5686,9 @@ msgstr "Voir les exemples"
 
 msgid "Segment"
 msgstr "Segment"
+
+msgid "Segment image"
+msgstr "Segmenter l'image"
 
 msgid "Segment Preview"
 msgstr "Aperçu du segment"

@@ -2262,7 +2262,13 @@ export function createPageRoutes(
 
       const imgResult = segResult.results[0]
       if (!imgResult || !imgResult.needsSegmentation || !imgResult.segments || imgResult.segments.length === 0) {
-        return c.json({ segmented: false })
+        // Still return dimensions so callers can offer a manual single-region
+        // fallback (open the segment editor with one full-image box).
+        return c.json({
+          segmented: false,
+          imageWidth: imageMeta.width,
+          imageHeight: imageMeta.height,
+        })
       }
 
       return c.json({
