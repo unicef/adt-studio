@@ -228,12 +228,11 @@ export function ExtractPageDetail({
   const handleSegmentApply = useCallback(async (confirmedRegions: SegmentRegion[]) => {
     if (!segmentPreview) return
     const { imageId } = segmentPreview
-    setSegmentPreview(null)
+    setSegmentError(null)
     try {
       const result = await api.applySegmentation(bookLabel, imageId, pageId, confirmedRegions)
       if (!result.segments || result.segments.length === 0) {
-        setSegmentError(t`Segmentation produced no valid segments`)
-        return
+        throw new Error(t`Segmentation produced no valid segments`)
       }
       const base = pendingImageData ?? page?.imageClassification
       if (base) {
@@ -253,8 +252,15 @@ export function ExtractPageDetail({
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       setPendingImageData(null)
       setCacheBust((n) => n + 1)
+      // Close only after success — keeps the dialog (and the user's adjusted
+      // regions) up while applying, so it can show its spinner and stay open
+      // for retry if the apply fails.
+      setSegmentPreview(null)
     } catch (err) {
       setSegmentError(err instanceof Error ? err.message : t`Segmentation apply failed`)
+      // Rethrow so SegmentPreviewDialog resets its applying state and the user
+      // can retry without re-running the (paid) LLM analysis.
+      throw err
     }
   }, [segmentPreview, bookLabel, pageId, queryClient, pendingImageData, page?.imageClassification, t])
 
