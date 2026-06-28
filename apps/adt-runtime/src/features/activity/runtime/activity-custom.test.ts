@@ -158,3 +158,63 @@ describe("initializeCustomActivity", () => {
     expect(store.get(validateHandlerAtom)).toBeNull()
   })
 })
+
+describe("initializeCustomActivity — accessibility backstop", () => {
+  it("backfills role + focusability on drop zones and non-native cards", () => {
+    document.body.innerHTML = `
+      <section data-section-type="activity_custom_jigsaw">
+        <h3>Assemble the puzzle</h3>
+        <div data-activity-target="slot-1" aria-label="Top left"></div>
+        <div data-activity-item="item-1">Tile A</div>
+        <div data-activity-status aria-live="polite"></div>
+      </section>`
+    initializeCustomActivity()
+
+    const zone = document.querySelector<HTMLElement>("[data-activity-target]")!
+    expect(zone.getAttribute("role")).toBe("group")
+    expect(zone.getAttribute("tabindex")).toBe("0")
+
+    const card = document.querySelector<HTMLElement>("[data-activity-item]")!
+    expect(card.getAttribute("role")).toBe("button")
+    expect(card.getAttribute("tabindex")).toBe("0")
+  })
+
+  it("labels the section from its heading when unlabelled", () => {
+    document.body.innerHTML = `
+      <section data-section-type="activity_custom_drag_drop">
+        <h3>Sort the systems</h3>
+        <div data-activity-item="item-1">X</div>
+      </section>`
+    initializeCustomActivity()
+
+    const section = document.querySelector<HTMLElement>("section")!
+    expect(section.getAttribute("role")).toBe("group")
+    const labelledBy = section.getAttribute("aria-labelledby")
+    expect(labelledBy).toBeTruthy()
+    expect(document.getElementById(labelledBy!)?.textContent).toBe(
+      "Sort the systems",
+    )
+  })
+
+  it("never overrides author-provided ARIA", () => {
+    document.body.innerHTML = `
+      <section data-section-type="activity_custom_jigsaw" role="region" aria-label="My puzzle">
+        <div data-activity-target="slot-1" role="region" tabindex="-1" aria-label="Slot"></div>
+        <button data-activity-item="item-1">Tile</button>
+      </section>`
+    initializeCustomActivity()
+
+    const section = document.querySelector<HTMLElement>("section")!
+    expect(section.getAttribute("role")).toBe("region")
+    expect(section.getAttribute("aria-label")).toBe("My puzzle")
+
+    const zone = document.querySelector<HTMLElement>("[data-activity-target]")!
+    expect(zone.getAttribute("role")).toBe("region")
+    expect(zone.getAttribute("tabindex")).toBe("-1")
+
+    // Native <button> card is left untouched (no spurious role/tabindex).
+    const card = document.querySelector<HTMLElement>("[data-activity-item]")!
+    expect(card.hasAttribute("role")).toBe(false)
+    expect(card.hasAttribute("tabindex")).toBe(false)
+  })
+})

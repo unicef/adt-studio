@@ -86,6 +86,53 @@ function findNextPageHref(): string | null {
   return pages[idx + 1].href
 }
 
+let a11yIdCounter = 0
+
+/**
+ * Defensive accessibility floor for a custom activity. The generation prompt
+ * asks for named, roled, keyboard-focusable drop zones and cards and a labelled
+ * section, but it's LLM best-effort — this backfills the minimum so a
+ * screen-reader / keyboard learner can always operate the activity even when a
+ * generation missed something. It only ever ADDS missing attributes; it never
+ * overrides what the author provided. The build-time validator
+ * (validate-activity-structure.ts) is the primary guard; this is the safety net.
+ */
+function applyA11yBackstop(section: HTMLElement): void {
+  // Section: a labelled grouping landmark.
+  if (!section.hasAttribute("role")) section.setAttribute("role", "group")
+  if (
+    !section.getAttribute("aria-label")?.trim() &&
+    !section.getAttribute("aria-labelledby")?.trim()
+  ) {
+    const heading = section.querySelector<HTMLElement>(
+      "h1, h2, h3, h4, h5, h6, [role='heading']",
+    )
+    if (heading?.textContent?.trim()) {
+      if (!heading.id) heading.id = `adt-custom-heading-${++a11yIdCounter}`
+      section.setAttribute("aria-labelledby", heading.id)
+    }
+  }
+
+  // Drop zones: roled + keyboard-focusable.
+  section
+    .querySelectorAll<HTMLElement>("[data-activity-target]")
+    .forEach((zone) => {
+      if (!zone.hasAttribute("role")) zone.setAttribute("role", "group")
+      if (!zone.hasAttribute("tabindex")) zone.setAttribute("tabindex", "0")
+    })
+
+  // Cards: non-native controls need a role + focusability to be operable.
+  // Native controls (<button>, <a>, <input>…) already have both.
+  const NATIVE = new Set(["BUTTON", "A", "INPUT", "SELECT", "TEXTAREA"])
+  section
+    .querySelectorAll<HTMLElement>("[data-activity-item]")
+    .forEach((card) => {
+      if (NATIVE.has(card.tagName)) return
+      if (!card.hasAttribute("role")) card.setAttribute("role", "button")
+      if (!card.hasAttribute("tabindex")) card.setAttribute("tabindex", "0")
+    })
+}
+
 export function initializeCustomActivity(): (() => void) | null {
   if (typeof document === "undefined") return null
 
@@ -93,6 +140,12 @@ export function initializeCustomActivity(): (() => void) | null {
   const hasPending = Array.isArray(pending) && pending.length > 0
   const hasCustomSection = !!document.querySelector(CUSTOM_SELECTOR)
   if (!hasPending && !hasCustomSection) return null
+
+  // Guarantee a baseline a11y floor on every custom section, independent of
+  // whether its grader registered successfully.
+  document
+    .querySelectorAll<HTMLElement>(CUSTOM_SELECTOR)
+    .forEach(applyA11yBackstop)
 
   const store = getDefaultStore()
   const hasNextPage = findNextPageHref() !== null
