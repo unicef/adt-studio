@@ -1,11 +1,35 @@
 import { Hono } from "hono"
+import type { Context } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel } from "@adt/types"
 import {
   layoutMirrorService,
   generateActivityService,
+  type AgentApiKeys,
 } from "../services/agents-service.js"
 import type { TaskService } from "../services/task-service.js"
+
+/**
+ * Read the per-provider API keys from the request headers. Mirrors the header
+ * convention used by the stages/quizzes routes (X-OpenAI-Key,
+ * X-Anthropic-API-Key, X-Google-API-Key). At least one key must be present;
+ * which one is required depends on the book's configured `agents.model`, which
+ * the service resolves — so we only enforce "at least one" here.
+ */
+function readAgentKeys(c: Context): AgentApiKeys {
+  const keys: AgentApiKeys = {
+    openaiApiKey: c.req.header("X-OpenAI-Key") || undefined,
+    anthropicApiKey: c.req.header("X-Anthropic-API-Key") || undefined,
+    googleApiKey: c.req.header("X-Google-API-Key") || undefined,
+  }
+  if (!keys.openaiApiKey && !keys.anthropicApiKey && !keys.googleApiKey) {
+    throw new HTTPException(400, {
+      message:
+        "Missing API key. Set X-OpenAI-Key, X-Anthropic-API-Key, or X-Google-API-Key to match the book's configured agents.model.",
+    })
+  }
+  return keys
+}
 
 interface LayoutMirrorRequestBody {
   source?: { pageId?: unknown; sectionIndex?: unknown }
@@ -17,6 +41,14 @@ interface GenerateActivityRequestBody {
   anchorPageId?: unknown
   description?: unknown
   inclusiveDesign?: unknown
+  mode?: unknown
+}
+
+const ACTIVITY_MODES = ["auto", "templated", "custom"] as const
+type ActivityMode = (typeof ACTIVITY_MODES)[number]
+
+function parseActivityMode(v: unknown): ActivityMode {
+  return ACTIVITY_MODES.includes(v as ActivityMode) ? (v as ActivityMode) : "auto"
 }
 
 function parseTarget(v: {
@@ -57,10 +89,7 @@ export function createAgentRoutes(
     const { label } = c.req.param()
     const safeLabel = parseBookLabel(label)
 
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
-      throw new HTTPException(400, { message: "Missing X-OpenAI-Key header" })
-    }
+    const apiKeys = readAgentKeys(c)
 
     const body = (await c.req.json()) as LayoutMirrorRequestBody
     if (!body.source) {
@@ -84,7 +113,7 @@ export function createAgentRoutes(
         source,
         targets,
         instruction,
-        apiKey,
+        ...apiKeys,
         onProgress: emitProgress
           ? (message: string) => emitProgress(message)
           : undefined,
@@ -122,10 +151,7 @@ export function createAgentRoutes(
     const { label } = c.req.param()
     const safeLabel = parseBookLabel(label)
 
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
-      throw new HTTPException(400, { message: "Missing X-OpenAI-Key header" })
-    }
+    const apiKeys = readAgentKeys(c)
 
     const body = (await c.req.json()) as GenerateActivityRequestBody
     if (typeof body.anchorPageId !== "string" || !body.anchorPageId) {
@@ -139,6 +165,8 @@ export function createAgentRoutes(
     // Default-on. Only honor an explicit `false`; any other value (missing,
     // null, non-boolean) leaves the inclusive-design block in the prompt.
     const inclusiveDesign = body.inclusiveDesign !== false
+    // Defaults to "auto"; an unknown value falls back to "auto" too.
+    const mode = parseActivityMode(body.mode)
 
     const run = (emitProgress?: (msg: string, percent?: number) => void) =>
       generateActivityService({
@@ -149,7 +177,8 @@ export function createAgentRoutes(
         anchorPageId,
         description,
         inclusiveDesign,
-        apiKey,
+        mode,
+        ...apiKeys,
         onProgress: emitProgress
           ? (message: string) => emitProgress(message)
           : undefined,

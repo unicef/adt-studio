@@ -4,11 +4,16 @@ import { useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
 import { i18n } from "@lingui/core"
 
+export type ActivityGenMode = "auto" | "templated" | "custom"
+
 interface GenerateActivityDialogProps {
   /** The anchor page the new activity section will be appended to. */
   anchorPageId: string
   anchorPageNumber: number
-  onSubmit: (description: string, options: { inclusiveDesign: boolean }) => void
+  onSubmit: (
+    description: string,
+    options: { inclusiveDesign: boolean; mode: ActivityGenMode },
+  ) => void
   onClose: () => void
 }
 
@@ -53,12 +58,31 @@ export function GenerateActivityDialog({
   const { t } = useLingui()
   const [description, setDescription] = useState("")
   const [inclusiveDesign, setInclusiveDesign] = useState(true)
+  const [mode, setMode] = useState<ActivityGenMode>("auto")
+
+  const STYLE_OPTIONS: Array<{
+    value: ActivityGenMode
+    label: string
+    hint: string
+  }> = [
+    { value: "auto", label: t`Auto`, hint: t`Let the agent choose` },
+    {
+      value: "templated",
+      label: t`Templated`,
+      hint: t`Standard built-in activity types`,
+    },
+    {
+      value: "custom",
+      label: t`Custom`,
+      hint: t`Bespoke, freeform interactive activity`,
+    },
+  ]
 
   const canSubmit = description.trim().length > 0
 
   const handleSubmit = () => {
     if (!canSubmit) return
-    onSubmit(description.trim(), { inclusiveDesign })
+    onSubmit(description.trim(), { inclusiveDesign, mode })
   }
 
   return (
@@ -96,6 +120,36 @@ export function GenerateActivityDialog({
               autoFocus
               className="w-full text-xs border rounded-md px-2 py-1.5 resize-y focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/50"
             />
+          </div>
+
+          <div>
+            <div className="text-[11px] font-medium text-muted-foreground mb-1.5">
+              {t`Activity style`}
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              {STYLE_OPTIONS.map((opt) => {
+                const active = mode === opt.value
+                return (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setMode(opt.value)}
+                    aria-pressed={active}
+                    title={opt.hint}
+                    className={`flex flex-col items-start gap-0.5 rounded-md border px-2.5 py-1.5 text-left transition-colors ${
+                      active
+                        ? "border-violet-500 bg-violet-50 dark:bg-violet-950/40"
+                        : "border-input hover:bg-muted/60"
+                    }`}
+                  >
+                    <span className="text-xs font-medium">{opt.label}</span>
+                    <span className="text-[10px] text-muted-foreground leading-tight">
+                      {opt.hint}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
           </div>
 
           <div>

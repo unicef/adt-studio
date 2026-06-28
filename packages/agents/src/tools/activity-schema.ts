@@ -18,6 +18,22 @@ export const TEMPLATED_ACTIVITY_TYPES = [
 export type TemplatedActivityType = (typeof TEMPLATED_ACTIVITY_TYPES)[number]
 
 /**
+ * Which write tools the generation agent is allowed to use for a run:
+ *   - "auto":      both tools available; the agent chooses on fit (default).
+ *   - "templated": only createTemplatedActivity is exposed.
+ *   - "custom":    only createCustomSection is exposed.
+ * The "templated"/"custom" modes restrict the toolset itself (not just the
+ * prompt), so the choice is deterministic.
+ */
+export type ActivityGenMode = "auto" | "templated" | "custom"
+
+export const ACTIVITY_GEN_MODES: readonly ActivityGenMode[] = [
+  "auto",
+  "templated",
+  "custom",
+] as const
+
+/**
  * Container structures the agent may emit inside an activity tree. The
  * renderer's Liquid templates understand these.
  */

@@ -113,6 +113,12 @@ export function SectionEditPanel({
   const [rerenderOpen, setRerenderOpen] = useState(false)
   const [rerenderPrompt, setRerenderPrompt] = useState("")
 
+  // Custom activities are raw HTML + an inline grading <script>. Re-render
+  // regenerates from the (flat, script-less) sectioning tree, which would
+  // discard the script and bespoke markup — so it is blocked for them. Edit
+  // these via "View HTML source" or AI edit instead.
+  const isCustomActivity = section.sectionType.startsWith("activity_custom")
+
   return (
     <div
       className={`absolute top-0 right-0 h-full w-[480px] flex flex-col bg-background border-l shadow-lg transition-transform duration-200 ease-in-out z-30 ${
@@ -160,19 +166,22 @@ export function SectionEditPanel({
                 dirty ||
                 renderingDirty ||
                 saving ||
-                !hasApiKey
+                !hasApiKey ||
+                isCustomActivity
               }
               className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
               title={
-                pipelineRunning
-                  ? t`Wait for storyboard to complete`
-                  : !hasApiKey
-                    ? t`API key required to re-render`
-                    : dirty
-                      ? t`Save changes before re-rendering`
-                      : renderingDirty
-                        ? t`Re-render (your edits will be preserved)`
-                        : t`Re-render this section`
+                isCustomActivity
+                  ? t`Re-render is disabled for custom activities — it would discard the interactive script. Use "View HTML source" or AI edit instead.`
+                  : pipelineRunning
+                    ? t`Wait for storyboard to complete`
+                    : !hasApiKey
+                      ? t`API key required to re-render`
+                      : dirty
+                        ? t`Save changes before re-rendering`
+                        : renderingDirty
+                          ? t`Re-render (your edits will be preserved)`
+                          : t`Re-render this section`
               }
             >
               {rerendering ? (

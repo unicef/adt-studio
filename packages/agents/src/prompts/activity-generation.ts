@@ -1,3 +1,5 @@
+import type { ActivityGenMode } from "../tools/activity-schema.js"
+
 /**
  * System prompt for the generative activity agent.
  *
@@ -36,7 +38,9 @@ For templated activities, the pipeline's Liquid templates already implement most
 
 const PROMPT_BODY = `## Tool choice — read this first
 
-**createTemplatedActivity (PREFERRED).** Use this whenever the request maps to one of:
+Both write tools are first-class. Choose on FIT, not by default — and lean toward whichever will produce the more engaging, page-appropriate activity for the learner.
+
+**createTemplatedActivity.** A good fit for standard exercises that map to one of:
   - activity_multiple_choice — choose one or more correct option(s)
   - activity_true_false — boolean statements
   - activity_fill_in_the_blank — short determinable answers (word/number/date)
@@ -47,9 +51,12 @@ const PROMPT_BODY = `## Tool choice — read this first
 
 You provide a STRUCTURED SECTIONING TREE as a **JSON-encoded string** in the \`sectioningJson\` parameter — NOT a nested object literal. The string must be valid JSON that parses to \`{ "reasoning": string, "nodes": [...] }\`. The pipeline's renderer turns the parsed tree into HTML using the book's styleguide and the activity-type's accessibility-compliant Liquid template. The activityAnswers key is extracted automatically by the renderer — do NOT supply it.
 
-**createCustomSection (escape hatch).** Use ONLY when the request is for something outside the templated set — e.g. "make a crossword", "build a word search", "create a drag-and-drop matching game", "design a custom interactive widget". You write the HTML directly, following the book styleguide injected later in this prompt. Provide activityAnswers if the activity has a meaningful key.
+**createCustomSection.** A good fit when a bespoke layout or richer interaction would serve the page better than a fixed template — e.g. a crossword, word search, drag-and-drop game, a custom interactive widget, or simply a more visual, more playful take on a matching/sorting/quiz idea. You write the HTML directly (with one inline grading \`<script>\`), following the book styleguide and the design lens injected later in this prompt. Encode answers in the markup (\`data-correct-items\` / \`data-answer\`) so they're derived automatically; pass activityAnswers explicitly only when the markup convention doesn't fit.
 
-If you can reasonably express the user's request as one of the templated types, you MUST use createTemplatedActivity. The templated path inherits styleguide and inclusive-education patterns automatically; the custom path is a fallback that gives up those guarantees.
+How to choose:
+  - Use **createTemplatedActivity** when consistency with the rest of the book and built-in auto-grading matter most, or the exercise is a plain multiple-choice / true-false / fill-in / open-ended question.
+  - Use **createCustomSection** when the activity benefits from a richer or more playful layout and interaction than a fixed template gives — including a more engaging version of a matching or sorting task. This path still applies the book styleguide and the inclusive design lens; you own the markup and the grading script.
+  - When both fit equally, pick the one that yields the more engaging, page-appropriate result. Do not treat the templated path as a forced default.
 
 ## Process
 
@@ -167,7 +174,7 @@ For sections outside the templated set, you build a FULLY INTERACTIVE custom act
 
 Custom activities ship their own JavaScript. Include exactly one \`<script>\` block at the end of the section that:
 
-  1. Finds its section element (it's exposed as \`window.__adtCurrentCustomSection\` during setup, or use \`document.currentScript.closest('section')\`).
+  1. Finds its section element with \`document.currentScript.closest('section')\` (correct per-script, even with multiple custom activities on the page). Capture it in a \`const\` immediately — \`document.currentScript\` is only valid while the script first runs.
   2. Wires up interaction (drag handlers, click handlers, keyboard handlers, etc.). Scope every querySelector to the section so you don't touch other sections.
   3. Calls \`window.adtRegisterCustomActivity(section, { validate, reset })\` once, with:
      - \`validate()\`: returns a boolean (or Promise<boolean>) — \`true\` if the learner's answer is correct. The validate function is responsible for any visible feedback inside the section (marking items green/red, showing a message). The runtime plays a success/error sound based on the return value.
@@ -227,7 +234,7 @@ The example below demonstrates the inclusive-design contract: pointer drag AND c
 
   <script>
     (function () {
-      const section = window.__adtCurrentCustomSection || document.currentScript.closest('section');
+      const section = document.currentScript.closest('section');
       if (!section || section.dataset.adtInitialized === 'true') return;
       section.dataset.adtInitialized = 'true';
 
@@ -404,6 +411,14 @@ The studio's EDIT sidebar and the text-catalog / translation pipelines read \`ac
   - Mentally walk through what happens on mount, on Submit, on Reset. Make sure validate() correctly returns false until the learner has interacted.
   - Accessibility: every interactive element needs keyboard support. For drag-and-drop, also wire Enter/Space to "pick up" and arrow keys to move between targets — pure pointer drag locks out keyboard users.`
 
+const TEMPLATED_ONLY_DIRECTIVE = `## Tool restriction for this run
+
+The user asked for a TEMPLATED activity. Only createTemplatedActivity is available this run — createCustomSection is disabled. Build the activity with createTemplatedActivity using one of the known activity types.`
+
+const CUSTOM_ONLY_DIRECTIVE = `## Tool restriction for this run
+
+The user asked for a CUSTOM (freeform) activity. Only createCustomSection is available this run — createTemplatedActivity is disabled. Build a bespoke, fully-interactive activity with createCustomSection, following the custom-section rules and the design lens. Do not try to reduce the request to a templated type.`
+
 export interface ActivityGenerationPromptOptions {
   /**
    * When true (default), the prompt includes the Universal Design for Learning
@@ -413,6 +428,12 @@ export interface ActivityGenerationPromptOptions {
    * comparing output quality with and without the inclusive-design framing.
    */
   inclusiveDesign?: boolean
+  /**
+   * Which write tools the agent may use. "auto" (default) leaves the choice to
+   * the model; "templated"/"custom" append a directive matching the restricted
+   * toolset so the prompt and the available tools agree.
+   */
+  mode?: ActivityGenMode
 }
 
 export function buildActivityGenerationSystemPrompt(
@@ -423,6 +444,11 @@ export function buildActivityGenerationSystemPrompt(
     parts.push(INCLUSIVE_DESIGN_SECTION)
   }
   parts.push(PROMPT_BODY)
+  if (opts.mode === "templated") {
+    parts.push(TEMPLATED_ONLY_DIRECTIVE)
+  } else if (opts.mode === "custom") {
+    parts.push(CUSTOM_ONLY_DIRECTIVE)
+  }
   return parts.join("\n\n")
 }
 

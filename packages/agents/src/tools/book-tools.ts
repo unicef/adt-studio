@@ -13,9 +13,11 @@ import {
   TEMPLATED_ACTIVITY_TYPES,
   TemplatedActivitySectioningSchema,
   type ActivityNodeShape,
+  type ActivityGenMode,
 } from "./activity-schema.js"
 import { renderSyntheticActivity } from "./render-section.js"
 import { extractAnswersFromHtml } from "./extract-custom-answers.js"
+import type { AgentCredentials } from "../resolve-model.js"
 
 const activityAnswersSchema = z
   .record(z.string(), z.union([z.string(), z.boolean(), z.number()]))
@@ -35,10 +37,17 @@ export interface BookToolsContext {
    * agent's system prompt instead.
    */
   styleguide?: string
-  /** API key forwarded to the renderer's LLM client. */
-  apiKey: string
+  /** Per-provider keys forwarded to the renderer's LLM client. */
+  credentials: AgentCredentials
   /** When set, write tools refuse to touch any other page. Read tools are unrestricted. */
   restrictWritesToPageId?: string
+  /**
+   * Which create tools to expose. "auto" (default) exposes both; "templated"
+   * drops createCustomSection; "custom" drops createTemplatedActivity. This
+   * makes a forced choice deterministic — the agent physically cannot reach
+   * for the other path.
+   */
+  activityMode?: ActivityGenMode
 }
 
 export interface BookToolCallRecord {
@@ -462,7 +471,7 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
               nodes,
               userInstructions: userInstructions ?? undefined,
               styleguide: ctx.styleguide,
-              apiKey: ctx.apiKey,
+              credentials: ctx.credentials,
             })
 
           // The renderer returns sectionIndex/sectionType etc., but its
@@ -611,6 +620,14 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
         },
       ),
     }),
+  }
+
+  // Restrict the create surface so a forced mode is deterministic — the agent
+  // can't fall back to the path the user disabled.
+  if (ctx.activityMode === "templated") {
+    delete tools.createCustomSection
+  } else if (ctx.activityMode === "custom") {
+    delete tools.createTemplatedActivity
   }
 
   return { tools, calls, touchedPageIds }

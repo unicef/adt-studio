@@ -656,6 +656,9 @@ msgstr "Les types de section d'activité sont disponibles pour la classification
 msgid "Activity section types are hidden from the classifier and skipped during rendering."
 msgstr "Les types de section d'activité sont masqués du classifieur et ignorés pendant le rendu."
 
+msgid "Activity style"
+msgstr "Style d'activité"
+
 msgid "Activity Types"
 msgstr "Types d'activité"
 
@@ -1282,6 +1285,9 @@ msgstr "Avant"
 
 msgid "Beneath Earth's crust, molten rock builds pressure over millennia until it finds a path to the surface."
 msgstr "Sous la croûte terrestre, la roche en fusion accumule de la pression pendant des millénaires jusqu'à ce qu'elle trouve un chemin vers la surface."
+
+msgid "Bespoke, freeform interactive activity"
+msgstr "Activité interactive personnalisée et libre"
 
 #. placeholder {0}: i18n._(presetLabel)
 msgid "Best for {0}"
@@ -3439,6 +3445,9 @@ msgstr "Manuels juridiques et de conformité"
 msgid "Legal Compliance Guide"
 msgstr "Legal Compliance Guide"
 
+msgid "Let the agent choose"
+msgstr "Laisser l'agent choisir"
+
 msgid "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 msgstr "Laissez le modèle écrire des titres de chapitres descriptifs basés sur le contenu de chaque section. Idéal pour les livres d'histoires ou lorsque les titres manquent."
 
@@ -4974,6 +4983,9 @@ msgstr "Re-rendu (vos modifications seront conservées)"
 msgid "Re-render failed"
 msgstr "Le re-rendu a échoué"
 
+msgid "Re-render is disabled for custom activities — it would discard the interactive script. Use \"View HTML source\" or AI edit instead."
+msgstr "La régénération est désactivée pour les activités personnalisées : elle supprimerait le script interactif. Utilisez « Voir la source HTML » ou la modification par IA à la place."
+
 msgid "Re-render section"
 msgstr "Re-rendre la section"
 
@@ -6051,6 +6063,9 @@ msgstr "Les étapes sont réexécutables et chaque résultat est versionné, don
 msgid "Standard"
 msgstr "Standard"
 
+msgid "Standard built-in activity types"
+msgstr "Types d'activités intégrés standard"
+
 msgid "Standard e-book for readers & libraries"
 msgstr "Livre électronique standard pour liseuses et bibliothèques"
 
@@ -6258,6 +6273,9 @@ msgstr "Rendu par modèle"
 
 msgid "Template-based"
 msgstr "Basé sur un modèle"
+
+msgid "Templated"
+msgstr "Modèle"
 
 msgid "term"
 msgstr "terme"
@@ -6485,6 +6503,12 @@ msgstr "Voici Pip ! Il a une queue frétillante."
 
 msgid "This is Pip! He is a happy caramel dog with a very wiggly tail. Pip loves the green grass, the bright yellow sun, and making new friends in his garden."
 msgstr "Voici Pip ! C'est un joyeux chien caramel avec une queue très remuante. Pip adore l'herbe verte, le soleil jaune éclatant et se faire de nouveaux amis dans son jardin."
+
+msgid "This merges a custom activity. The combined section is re-rendered, which will discard the custom activity's interactive grading script. To keep it, edit via \"View HTML source\" instead of merging."
+msgstr "Cette opération fusionne une activité personnalisée. La section combinée est régénérée, ce qui supprimera le script de notation interactif de l'activité personnalisée. Pour le conserver, modifiez-la via « Voir la source HTML » au lieu de fusionner."
+
+msgid "This merges an activity. The combined section is re-rendered, so the activity's layout and answer key may change."
+msgstr "Cette opération fusionne une activité. La section combinée est régénérée, de sorte que la mise en page et le corrigé de l'activité peuvent changer."
 
 msgid "This page has no captioned images"
 msgstr "Cette page n'a pas d'images légendées"

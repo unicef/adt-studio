@@ -11,6 +11,8 @@ export type {
   GenerateActivityOptions,
   GenerateActivityResult,
 } from "./generate-activity.js"
+export { ACTIVITY_GEN_MODES } from "./tools/activity-schema.js"
+export type { ActivityGenMode } from "./tools/activity-schema.js"
 
 export { runAgent } from "./runner.js"
 export type { RunAgentOptions, RunAgentResult } from "./runner.js"
@@ -30,6 +32,7 @@ export {
   buildActivityGenerationSystemPrompt,
 } from "./prompts/activity-generation.js"
 export type { ActivityGenerationPromptOptions } from "./prompts/activity-generation.js"
+export { FRONTEND_DESIGN_CHILDREN_PROMPT } from "./prompts/frontend-design-children.js"
 export {
   LAYOUT_MIRROR_SYSTEM_PROMPT,
   buildLayoutMirrorUserPrompt,

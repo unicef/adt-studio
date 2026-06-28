@@ -13,6 +13,7 @@ import type {
 } from "@adt/types"
 import type { Storage } from "@adt/storage"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
+import type { AgentCredentials } from "../resolve-model.js"
 
 export interface RenderSyntheticActivityInput {
   storage: Storage
@@ -33,7 +34,8 @@ export interface RenderSyntheticActivityInput {
   userInstructions?: string
   /** The book's styleguide content (markdown), if any. */
   styleguide?: string
-  apiKey: string
+  /** Per-provider keys forwarded to the renderer's LLM client. */
+  credentials: AgentCredentials
 }
 
 export interface RenderSyntheticActivityResult {
@@ -134,10 +136,7 @@ export async function renderSyntheticActivity(
     cacheDir,
     promptEngine,
     onLog: (entry) => input.storage.appendLlmLog(entry),
-    credentials: {
-      openaiApiKey: input.apiKey,
-      anthropicApiKey: input.apiKey,
-    },
+    credentials: input.credentials,
   })
 
   const renderContext = buildRenderContext(section, images, input.bookLabel)

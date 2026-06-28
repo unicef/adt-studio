@@ -654,6 +654,9 @@ msgstr "Activity section types are available for classification and rendering."
 msgid "Activity section types are hidden from the classifier and skipped during rendering."
 msgstr "Activity section types are hidden from the classifier and skipped during rendering."
 
+msgid "Activity style"
+msgstr "Activity style"
+
 msgid "Activity Types"
 msgstr "Activity Types"
 
@@ -1280,6 +1283,9 @@ msgstr "Before"
 
 msgid "Beneath Earth's crust, molten rock builds pressure over millennia until it finds a path to the surface."
 msgstr "Beneath Earth's crust, molten rock builds pressure over millennia until it finds a path to the surface."
+
+msgid "Bespoke, freeform interactive activity"
+msgstr "Bespoke, freeform interactive activity"
 
 #. placeholder {0}: i18n._(presetLabel)
 msgid "Best for {0}"
@@ -3437,6 +3443,9 @@ msgstr "Legal and compliance manuals"
 msgid "Legal Compliance Guide"
 msgstr "Legal Compliance Guide"
 
+msgid "Let the agent choose"
+msgstr "Let the agent choose"
+
 msgid "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 msgstr "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 
@@ -4972,6 +4981,9 @@ msgstr "Re-render (your edits will be preserved)"
 msgid "Re-render failed"
 msgstr "Re-render failed"
 
+msgid "Re-render is disabled for custom activities — it would discard the interactive script. Use \"View HTML source\" or AI edit instead."
+msgstr "Re-render is disabled for custom activities — it would discard the interactive script. Use \"View HTML source\" or AI edit instead."
+
 msgid "Re-render section"
 msgstr "Re-render section"
 
@@ -6049,6 +6061,9 @@ msgstr "Stages are rerunable and every result is versioned, so experimenting is 
 msgid "Standard"
 msgstr "Standard"
 
+msgid "Standard built-in activity types"
+msgstr "Standard built-in activity types"
+
 msgid "Standard e-book for readers & libraries"
 msgstr "Standard e-book for readers & libraries"
 
@@ -6256,6 +6271,9 @@ msgstr "Template Rendering"
 
 msgid "Template-based"
 msgstr "Template-based"
+
+msgid "Templated"
+msgstr "Templated"
 
 msgid "term"
 msgstr "term"
@@ -6483,6 +6501,12 @@ msgstr "This is Pip! He has a wiggly tail."
 
 msgid "This is Pip! He is a happy caramel dog with a very wiggly tail. Pip loves the green grass, the bright yellow sun, and making new friends in his garden."
 msgstr "This is Pip! He is a happy caramel dog with a very wiggly tail. Pip loves the green grass, the bright yellow sun, and making new friends in his garden."
+
+msgid "This merges a custom activity. The combined section is re-rendered, which will discard the custom activity's interactive grading script. To keep it, edit via \"View HTML source\" instead of merging."
+msgstr "This merges a custom activity. The combined section is re-rendered, which will discard the custom activity's interactive grading script. To keep it, edit via \"View HTML source\" instead of merging."
+
+msgid "This merges an activity. The combined section is re-rendered, so the activity's layout and answer key may change."
+msgstr "This merges an activity. The combined section is re-rendered, so the activity's layout and answer key may change."
 
 msgid "This page has no captioned images"
 msgstr "This page has no captioned images"

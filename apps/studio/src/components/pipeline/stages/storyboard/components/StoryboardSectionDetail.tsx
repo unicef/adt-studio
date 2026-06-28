@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from "react"
 import { createPortal } from "react-dom"
 import {
+  AlertTriangle,
   Boxes,
   Check,
   Code,
@@ -373,7 +374,11 @@ export function StoryboardSectionDetail({
 }) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasApiKey, anthropicKey, googleKey } = useApiKey()
+  // The agent endpoints accept an OpenAI, Anthropic, or Google key (whichever
+  // matches the book's configured agents.model), so gate those features on
+  // having ANY provider key — not just OpenAI like the rest of the panel.
+  const hasAnyAgentKey = hasApiKey || !!anthropicKey || !!googleKey
   const { headerSlotEl } = useStepHeader()
   const { stageState } = useBookRun()
   const storyboardRunning = stageState("storyboard") === "running" || stageState("storyboard") === "queued"
@@ -388,7 +393,7 @@ export function StoryboardSectionDetail({
   const [merging, setMerging] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [confirmDeleteSection, setConfirmDeleteSection] = useState(false)
-  const [confirmMerge, setConfirmMerge] = useState<{ action: () => Promise<void>; label: string } | null>(null)
+  const [confirmMerge, setConfirmMerge] = useState<{ action: () => Promise<void>; label: string; warning?: string } | null>(null)
   const [pendingSectioning, setPendingSectioning] = useState<SectioningData | null>(null)
   const [pendingRendering, setPendingRendering] = useState<RenderingData | null>(null)
   // Inspector edits mutate the iframe DOM directly; this ref stashes the
@@ -767,8 +772,12 @@ export function StoryboardSectionDetail({
       await minDelay
 
       // Only re-render when changes require LLM (e.g., unprune, type change, reorder)
-      // Skip for pure prune/delete — those are already handled by local HTML removal
-      if (shouldRerender && hasApiKey) {
+      // Skip for pure prune/delete — those are already handled by local HTML removal.
+      // Also skip custom activities: re-render rebuilds from the flat sectioning
+      // tree and would discard their inline grading script.
+      const isCustomActivity =
+        section?.sectionType?.startsWith("activity_custom") ?? false
+      if (shouldRerender && hasApiKey && !isCustomActivity) {
         api.reRenderPage(bookLabel, pageId, apiKey, sectionIndex).catch(() => {})
       }
     } catch (err) {
@@ -935,17 +944,51 @@ export function StoryboardSectionDetail({
     }
   }
 
+  // Merging re-renders the combined section, which restructures activities and,
+  // for a custom activity, discards its inline grading script. Warn when either
+  // the current section or the section it's merging into is an activity.
+  const buildMergeWarning = (otherSectionType?: string): string | undefined => {
+    const types = [section?.sectionType, otherSectionType]
+    const isActivity = (st?: string) => !!st && st.startsWith("activity_")
+    const isCustom = (st?: string) => !!st && st.startsWith("activity_custom")
+    if (types.some(isCustom)) {
+      return t`This merges a custom activity. The combined section is re-rendered, which will discard the custom activity's interactive grading script. To keep it, edit via "View HTML source" instead of merging.`
+    }
+    if (types.some(isActivity)) {
+      return t`This merges an activity. The combined section is re-rendered, so the activity's layout and answer key may change.`
+    }
+    return undefined
+  }
+
   // Confirmation wrappers for merge actions
   const handleMergeSection = (direction: "next" | "prev") => {
     if (merging || dirty || renderingDirty || saving || storyboardRunning) return
     const label = direction === "prev" ? t`merge with previous` : t`merge with next`
-    setConfirmMerge({ action: () => executeMergeSection(direction), label })
+    // Look up the same-page neighbor's type so the warning also fires when
+    // merging a plain section into an adjacent activity.
+    const ordered = [...(page.rendering?.sections ?? [])].sort(
+      (a, b) => a.sectionIndex - b.sectionIndex,
+    )
+    const pos = ordered.findIndex((s) => s.sectionIndex === sectionIndex)
+    const neighbor =
+      pos >= 0 ? ordered[direction === "next" ? pos + 1 : pos - 1] : undefined
+    setConfirmMerge({
+      action: () => executeMergeSection(direction),
+      label,
+      warning: buildMergeWarning(neighbor?.sectionType),
+    })
   }
 
   const handleMergeCrossPage = (direction: "next" | "prev") => {
     if (merging || dirty || renderingDirty || saving || storyboardRunning) return
     const label = direction === "prev" ? t`merge into previous page` : t`merge into next page`
-    setConfirmMerge({ action: () => executeMergeCrossPage(direction), label })
+    // The cross-page neighbor lives on another page we don't have loaded here,
+    // so the warning is based on the current section's type only.
+    setConfirmMerge({
+      action: () => executeMergeCrossPage(direction),
+      label,
+      warning: buildMergeWarning(),
+    })
   }
 
   // Delete current section
@@ -975,6 +1018,16 @@ export function StoryboardSectionDetail({
   // and inject structured instructions so the LLM preserves the user's changes.
   const handleRerender = (prompt?: string) => {
     if (hasActiveTask || storyboardRunning || dirty || renderingDirty || saving || !hasApiKey) return
+    // Custom activities can't be re-rendered: the renderer rebuilds from the
+    // flat, script-less sectioning tree and would discard the inline grading
+    // script and bespoke markup. The button is disabled for them, but guard
+    // here too so no other caller can wipe the script.
+    if (section?.sectionType?.startsWith("activity_custom")) {
+      setAiError(
+        t`Re-render is disabled for custom activities — it would discard the interactive script. Use "View HTML source" or AI edit instead.`,
+      )
+      return
+    }
     setPanelOpen(false)
 
     // Build edit instructions from pending changes
@@ -1853,7 +1906,7 @@ export function StoryboardSectionDetail({
     instruction: string | undefined,
   ) => {
     setLayoutMirrorOpen(false)
-    if (!hasApiKey) return
+    if (!hasAnyAgentKey) return
     setAiError(null)
     api
       .agentLayoutMirror(
@@ -1862,6 +1915,10 @@ export function StoryboardSectionDetail({
         [{ pageId, sectionIndex }],
         apiKey,
         instruction,
+        {
+          anthropicApiKey: anthropicKey || undefined,
+          googleApiKey: googleKey || undefined,
+        },
       )
       .catch((err) => {
         setAiError(err instanceof Error ? err.message : t`Layout mirror failed`)
@@ -1870,13 +1927,16 @@ export function StoryboardSectionDetail({
 
   const handleGenerateActivitySubmit = (
     description: string,
-    options: { inclusiveDesign: boolean },
+    options: { inclusiveDesign: boolean; mode: "auto" | "templated" | "custom" },
   ) => {
     setGenerateActivityOpen(false)
-    if (!hasApiKey) return
+    if (!hasAnyAgentKey) return
     setAiError(null)
     api
-      .agentGenerateActivity(bookLabel, pageId, description, apiKey, options)
+      .agentGenerateActivity(bookLabel, pageId, description, apiKey, options, {
+        anthropicApiKey: anthropicKey || undefined,
+        googleApiKey: googleKey || undefined,
+      })
       .catch((err) => {
         setAiError(
           err instanceof Error ? err.message : t`Activity generation failed`,
@@ -2057,7 +2117,7 @@ export function StoryboardSectionDetail({
           <MessageSquare className="h-3.5 w-3.5" />
         </button>
       )}
-      {renderedSection?.html && hasApiKey && (
+      {renderedSection?.html && hasAnyAgentKey && (
         <button
           type="button"
           onClick={() => setLayoutMirrorOpen(true)}
@@ -2068,7 +2128,7 @@ export function StoryboardSectionDetail({
           <LayoutGrid className="h-3.5 w-3.5" />
         </button>
       )}
-      {hasApiKey && (
+      {hasAnyAgentKey && (
         <button
           type="button"
           onClick={() => setGenerateActivityOpen(true)}
@@ -2661,6 +2721,12 @@ export function StoryboardSectionDetail({
             {t`Are you sure you want to ${confirmMerge?.label ?? ""}? This action cannot be undone.`}
           </DialogDescription>
         </DialogHeader>
+        {confirmMerge?.warning && (
+          <div className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 dark:bg-amber-950/40 px-3 py-2 text-xs text-amber-800 dark:text-amber-200">
+            <AlertTriangle className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+            <p>{confirmMerge.warning}</p>
+          </div>
+        )}
         <DialogFooter>
           <button
             type="button"

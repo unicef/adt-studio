@@ -3,6 +3,8 @@ import type { Storage } from "@adt/storage"
 import { runAgent, type AgentStepEvent } from "./runner.js"
 import { createBookTools, type BookToolCallRecord } from "./tools/book-tools.js"
 import { buildActivityGenerationSystemPrompt } from "./prompts/activity-generation.js"
+import { FRONTEND_DESIGN_CHILDREN_PROMPT } from "./prompts/frontend-design-children.js"
+import type { ActivityGenMode } from "./tools/activity-schema.js"
 import type { AgentCredentials } from "./resolve-model.js"
 
 export interface GenerateActivityOptions {
@@ -21,12 +23,21 @@ export interface GenerateActivityOptions {
    * comparison/testing purposes.
    */
   inclusiveDesign?: boolean
+  /**
+   * Which write path the agent may take. "auto" (default) lets the model
+   * choose between templated and custom; "templated"/"custom" force the choice
+   * by restricting the toolset and the prompt.
+   */
+  mode?: ActivityGenMode
   modelId: string
   /** Optional book styleguide markdown — appended to the agent's system prompt and forwarded to the renderer for the templated path. */
   styleguide?: string
-  /** API key used by both the agent and the renderer's LLM client. */
-  apiKey: string
-  credentials?: AgentCredentials
+  /**
+   * Per-provider keys used by both the agent loop and the renderer's LLM
+   * client. Each provider is authenticated with its own key (see
+   * resolveAgentModel) — keys are never cross-wired.
+   */
+  credentials: AgentCredentials
   maxSteps?: number
   /** Whole-run timeout. Default 5 min. */
   timeoutMs?: number
@@ -117,14 +128,21 @@ export async function generateActivity(
     promptsDir: opts.promptsDir,
     configPath: opts.configPath,
     styleguide: opts.styleguide,
-    apiKey: opts.apiKey,
+    credentials: opts.credentials,
     restrictWritesToPageId: opts.anchorPageId,
+    activityMode: opts.mode,
   })
 
   const systemParts: string[] = [
     buildActivityGenerationSystemPrompt({
       inclusiveDesign: opts.inclusiveDesign,
+      mode: opts.mode,
     }),
+    // Design lens for the createCustomSection path — the templated path
+    // inherits styling from the pipeline's Liquid templates, but custom HTML
+    // does not, so this gives the agent a children's-textbook design and a11y
+    // vocabulary. Placed before the styleguide block it defers to.
+    FRONTEND_DESIGN_CHILDREN_PROMPT,
   ]
   if (opts.styleguide && opts.styleguide.trim()) {
     systemParts.push(
@@ -138,13 +156,20 @@ export async function generateActivity(
     )
   }
 
+  const toolInstruction =
+    opts.mode === "templated"
+      ? "Then build it with createTemplatedActivity (the only write tool available this run)."
+      : opts.mode === "custom"
+        ? "Then build a bespoke, fully-interactive activity with createCustomSection (the only write tool available this run)."
+        : "Then choose the write tool that yields the best activity for this page: createTemplatedActivity for a standard exercise, or createCustomSection for a richer/bespoke one."
+
   const userPrompt = [
     `Anchor page: ${opts.anchorPageId}`,
     "",
     "User request:",
     opts.description.trim(),
     "",
-    "Build the activity now. Start by calling getPage on the anchor page so you understand its content and any data-id indices already in use. Then pick the right tool: createTemplatedActivity if the request maps to one of the known activity types, createCustomSection otherwise. Call it exactly once.",
+    `Build the activity now. Start by calling getPage on the anchor page so you understand its content and any data-id indices already in use. ${toolInstruction} Call it exactly once.`,
   ].join("\n")
 
   opts.onProgress?.("Starting activity agent")

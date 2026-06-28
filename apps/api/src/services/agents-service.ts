@@ -4,9 +4,57 @@ import type {
   LayoutMirrorResult,
   GenerateActivityResult,
   LayoutMirrorTarget,
+  AgentCredentials,
+  ActivityGenMode,
 } from "@adt/agents"
 import { loadBookConfig } from "@adt/pipeline"
 import { loadStyleguideContent } from "./styleguide.js"
+
+/**
+ * Per-provider API keys forwarded from the request headers. Each provider is
+ * authenticated with its own key — they are never cross-wired — so a book that
+ * overrides `agents.model` to an `anthropic:` or `google:` model works as long
+ * as the matching key was sent.
+ */
+export interface AgentApiKeys {
+  openaiApiKey?: string
+  anthropicApiKey?: string
+  googleApiKey?: string
+}
+
+function toCredentials(keys: AgentApiKeys): AgentCredentials {
+  return {
+    ...(keys.openaiApiKey ? { openaiApiKey: keys.openaiApiKey } : {}),
+    ...(keys.anthropicApiKey ? { anthropicApiKey: keys.anthropicApiKey } : {}),
+    ...(keys.googleApiKey ? { googleApiKey: keys.googleApiKey } : {}),
+  }
+}
+
+/**
+ * Temporarily export each supplied key to the env var its SDK reads by default,
+ * for any code path that constructs a default provider client instead of
+ * receiving explicit credentials. Returns a restore function that puts the
+ * previous values back (deleting ones we introduced).
+ */
+function applyProviderEnv(keys: AgentApiKeys): () => void {
+  const map: Record<string, string | undefined> = {
+    OPENAI_API_KEY: keys.openaiApiKey,
+    ANTHROPIC_API_KEY: keys.anthropicApiKey,
+    GOOGLE_GENERATIVE_AI_API_KEY: keys.googleApiKey,
+  }
+  const restore: Array<[string, string | undefined]> = []
+  for (const [name, value] of Object.entries(map)) {
+    if (!value) continue
+    restore.push([name, process.env[name]])
+    process.env[name] = value
+  }
+  return () => {
+    for (const [name, previous] of restore) {
+      if (previous === undefined) delete process.env[name]
+      else process.env[name] = previous
+    }
+  }
+}
 
 /**
  * Resolve the model id for the agents from book config, falling back to a
@@ -25,8 +73,10 @@ function resolveAgentModelId(
   const agents = (config.agents ?? {}) as Record<string, unknown>
   // Default to GPT-5.5 since that's the model the agent prompts are tuned for
   // and where the user's free credits live. Override per-book by setting
-  // `agents.model` (e.g. `openai:gpt-4o`, `anthropic:claude-sonnet-4-6`) in
-  // the book's config.yaml.
+  // `agents.model` in the book's config.yaml — e.g. `openai:gpt-4o`,
+  // `anthropic:claude-sonnet-4-6`, or `google:gemini-2.5-pro`. The matching
+  // provider key must be sent with the request (X-OpenAI-Key /
+  // X-Anthropic-API-Key / X-Google-API-Key) or the call fails to authenticate.
   const defaultModel = (agents.model as string | undefined) ?? "openai:gpt-5.5"
   return defaultModel
 }
@@ -44,14 +94,13 @@ function resolveStyleguide(
   return loadStyleguideContent(name, configPath)
 }
 
-export interface LayoutMirrorServiceOptions {
+export interface LayoutMirrorServiceOptions extends AgentApiKeys {
   label: string
   booksDir: string
   configPath?: string
   source: LayoutMirrorTarget
   targets: LayoutMirrorTarget[]
   instruction?: string
-  apiKey: string
   onProgress?: (message: string) => void
 }
 
@@ -65,12 +114,10 @@ export async function layoutMirrorService(
     source,
     targets,
     instruction,
-    apiKey,
     onProgress,
   } = options
 
-  const previousKey = process.env.OPENAI_API_KEY
-  process.env.OPENAI_API_KEY = apiKey
+  const restoreEnv = applyProviderEnv(options)
 
   const storage = createBookStorage(label, booksDir)
   try {
@@ -81,7 +128,7 @@ export async function layoutMirrorService(
       targets,
       instruction,
       modelId,
-      credentials: { openaiApiKey: apiKey, anthropicApiKey: apiKey },
+      credentials: toCredentials(options),
       onProgress,
     })
 
@@ -99,15 +146,11 @@ export async function layoutMirrorService(
     return result
   } finally {
     storage.close()
-    if (previousKey !== undefined) {
-      process.env.OPENAI_API_KEY = previousKey
-    } else {
-      delete process.env.OPENAI_API_KEY
-    }
+    restoreEnv()
   }
 }
 
-export interface GenerateActivityServiceOptions {
+export interface GenerateActivityServiceOptions extends AgentApiKeys {
   label: string
   booksDir: string
   promptsDir: string
@@ -116,7 +159,8 @@ export interface GenerateActivityServiceOptions {
   description: string
   /** Defaults to true. When false, the UDL block is omitted from the agent's system prompt. */
   inclusiveDesign?: boolean
-  apiKey: string
+  /** Which write path to allow. Defaults to "auto" (the agent chooses). */
+  mode?: ActivityGenMode
   /** Forwarded to the agent so per-step progress reaches the task UI. */
   onProgress?: (message: string) => void
 }
@@ -132,12 +176,11 @@ export async function generateActivityService(
     anchorPageId,
     description,
     inclusiveDesign,
-    apiKey,
+    mode,
     onProgress,
   } = options
 
-  const previousKey = process.env.OPENAI_API_KEY
-  process.env.OPENAI_API_KEY = apiKey
+  const restoreEnv = applyProviderEnv(options)
 
   const storage = createBookStorage(label, booksDir)
   try {
@@ -152,10 +195,10 @@ export async function generateActivityService(
       anchorPageId,
       description,
       inclusiveDesign,
+      mode,
       modelId,
       styleguide,
-      apiKey,
-      credentials: { openaiApiKey: apiKey, anthropicApiKey: apiKey },
+      credentials: toCredentials(options),
       onProgress,
     })
 
@@ -200,10 +243,6 @@ export async function generateActivityService(
     return result
   } finally {
     storage.close()
-    if (previousKey !== undefined) {
-      process.env.OPENAI_API_KEY = previousKey
-    } else {
-      delete process.env.OPENAI_API_KEY
-    }
+    restoreEnv()
   }
 }

@@ -1,10 +1,12 @@
 import { createOpenAI, openai } from "@ai-sdk/openai"
 import { anthropic, createAnthropic } from "@ai-sdk/anthropic"
+import { createGoogleGenerativeAI, google } from "@ai-sdk/google"
 import type { LanguageModel } from "ai"
 
 export interface AgentCredentials {
   openaiApiKey?: string
   anthropicApiKey?: string
+  googleApiKey?: string
 }
 
 /**
@@ -12,6 +14,11 @@ export interface AgentCredentials {
  * LanguageModel suitable for generateText with tools. Mirrors the resolver in
  * @adt/llm but exposes the raw model, since the agent loop here uses
  * generateText rather than the wrapped generateObject pipeline.
+ *
+ * Each provider is authenticated with its OWN key from `credentials` — never
+ * cross-wired. A model string for a provider whose key wasn't supplied falls
+ * back to the SDK's default client (which reads that provider's env var) and
+ * surfaces a clear auth error if neither is present.
  */
 export function resolveAgentModel(
   modelId: string,
@@ -32,6 +39,12 @@ export function resolveAgentModel(
       const client = credentials?.anthropicApiKey
         ? createAnthropic({ apiKey: credentials.anthropicApiKey })
         : anthropic
+      return client(model)
+    }
+    case "google": {
+      const client = credentials?.googleApiKey
+        ? createGoogleGenerativeAI({ apiKey: credentials.googleApiKey })
+        : google
       return client(model)
     }
     default:

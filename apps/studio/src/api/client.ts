@@ -779,12 +779,13 @@ export const api = {
     targets: Array<{ pageId: string; sectionIndex: number }>,
     apiKey: string,
     instruction?: string,
+    providerCredentials?: StageRunProviderCredentials,
   ) =>
     request<{ taskId?: string; status?: string; results?: Array<{ pageId: string; sectionIndex: number; ok: boolean; version?: number; reasoning?: string; error?: string }> }>(
       `/books/${label}/agents/layout-mirror`,
       {
         method: "POST",
-        headers: { "X-OpenAI-Key": apiKey },
+        headers: buildApiHeaders(apiKey, providerCredentials),
         body: JSON.stringify({ source, targets, instruction }),
         signal: AbortSignal.timeout(30_000),
       },
@@ -795,17 +796,19 @@ export const api = {
     anchorPageId: string,
     description: string,
     apiKey: string,
-    options?: { inclusiveDesign?: boolean },
+    options?: { inclusiveDesign?: boolean; mode?: "auto" | "templated" | "custom" },
+    providerCredentials?: StageRunProviderCredentials,
   ) =>
     request<{ taskId?: string; status?: string; text?: string; touchedPageIds?: string[]; toolCalls?: Array<{ name: string; args: unknown; result: unknown; error?: string }>; stepCount?: number; finishReason?: string }>(
       `/books/${label}/agents/generate-activity`,
       {
         method: "POST",
-        headers: { "X-OpenAI-Key": apiKey },
+        headers: buildApiHeaders(apiKey, providerCredentials),
         body: JSON.stringify({
           anchorPageId,
           description,
           inclusiveDesign: options?.inclusiveDesign ?? true,
+          mode: options?.mode ?? "auto",
         }),
         signal: AbortSignal.timeout(30_000),
       },

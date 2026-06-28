@@ -45,13 +45,13 @@ The book's styleguide may already imply one of these. If it does, conform to it.
 - Give every text-bearing element a unique \`data-id="text-<pageId>-<n>"\` attribute with n higher than any existing data-id on the page. Every visible string belongs to a data-id-bearing element.
 - For every image, set \`alt\` to a meaningful description; for decorative SVG/i elements use \`aria-hidden="true"\`.
 - For every input or button, give it an accessible name via visible text inside it, or \`aria-label\` if visually the label is detached.
-- Use semantic HTML inside the section wrapper: \`<h2>\`, \`<p>\`, \`<ul>\`, \`<button>\`, \`<input>\`, \`<label>\`. Do not build interactive elements from \`<div>\` with click handlers (you can't add click handlers anyway — there are no scripts allowed).
+- Prefer semantic HTML inside the section wrapper: \`<h2>\`, \`<p>\`, \`<ul>\`, \`<button>\`, \`<input>\`, \`<label>\`. A custom activity DOES carry exactly one inline grading \`<script>\` (see the custom-section rules), and you wire interaction there with \`addEventListener\` — never with inline \`onclick=\` attributes. If an interaction truly needs a non-native element, give it \`role\`, \`tabindex="0"\`, and keyboard handlers (Enter/Space) so it is operable; a bare \`<div>\` with only a click handler is not acceptable.
 - Single-column layouts on mobile; consider \`md:grid md:grid-cols-2\` only when content genuinely benefits from two columns. Crosswords, word searches, and games may use a fixed grid (\`grid-cols-5 gap-1\` etc.).
 - Group related controls under an \`aria-labelledby\` heading or a \`<fieldset><legend>\` so screen-reader users hear the grouping.
 
 ### Rules — DON'T
 
-- Don't use \`<style>\`, \`<script>\`, \`<iframe>\`, \`<object>\`, \`<embed>\`, or event-handler attributes (\`onclick\`, \`onload\`, etc.).
+- Don't use \`<style>\`, \`<iframe>\`, \`<object>\`, \`<embed>\`, or inline event-handler attributes (\`onclick\`, \`onload\`, etc.). The ONE exception is the single inline \`<script>\` that grades the activity by calling \`window.adtRegisterCustomActivity\` (required — see the custom-section rules); bind all events inside it with \`addEventListener\`.
 - Don't pick font families. Use whatever the book styleguide says or fall back to the ADT default. Avoid Inter, Roboto, Arial, and the generic system font stack — they read as "AI default" and disrespect the styleguide's choices.
 - Don't use purple-on-white gradient AI clichés or generic SaaS-style cards. The book is for children, not for a startup landing page.
 - Don't centre body text by default. Left-align for readability unless the styleguide says otherwise.
@@ -88,7 +88,7 @@ Adapt the colour, icon, and label to the chosen aesthetic direction.
 
     <div class="grid grid-cols-7 gap-1 max-w-md mx-auto mb-8" role="grid" aria-label="Crossword grid">
       <!-- one cell per square; .bg-amber-100 + border for letter cells, .bg-amber-900 for blocked cells -->
-      <input type="text" maxlength="1" class="w-10 h-10 text-center text-lg font-bold uppercase rounded border border-amber-300 bg-white focus:ring-4 focus:ring-amber-300 focus:outline-none" data-activity-item="cell-1-1" aria-label="Row 1 column 1" />
+      <input type="text" maxlength="1" class="w-10 h-10 text-center text-lg font-bold uppercase rounded border border-amber-300 bg-white focus:ring-4 focus:ring-amber-300 focus:outline-none" data-cell="r1c1" data-answer="A" aria-label="Row 1 column 1" />
       <!-- ...more cells... -->
       <div class="w-10 h-10 bg-amber-900 rounded" aria-hidden="true"></div>
     </div>
@@ -111,13 +111,14 @@ Adapt the colour, icon, and label to the chosen aesthetic direction.
 </section>
 \`\`\`
 
-Adapt to the book's chosen aesthetic direction (the amber palette above is the "nature notebook" direction; swap for the styleguide's palette).
+Adapt to the book's chosen aesthetic direction (the amber palette above is the "nature notebook" direction; swap for the styleguide's palette). This snippet shows layout and aesthetics only — a complete custom activity still needs the single inline grading \`<script>\` and the answer attributes (\`data-answer\` on each letter cell here) described in the custom-section rules.
 
-### How to make activityAnswers for a custom activity
+### Answer key for a custom activity
 
-The published ADT runtime only auto-grades the templated activity types. For a custom activity:
-- If the activity has discrete checkable answers (crossword cells, drag-drop pairings), put them in activityAnswers as \`{ "<data-activity-item>": "<expected value>" }\`. The runtime won't grade it automatically, but the catalog and translation pipelines will surface the answers correctly, and a human author can wire up grading later.
-- If the activity is genuinely free-form (open prompt, sketching exercise), pass null for activityAnswers.
+Custom activities ARE graded at runtime — by the inline \`<script>\` you ship, which calls \`window.adtRegisterCustomActivity\` with a \`validate()\` (see the custom-section rules). Encode the correct answers in HTML attributes so they are the single source of truth that both your \`validate()\` and the studio / translation pipelines read:
+- Drop targets (drag-and-drop): \`data-correct-items="item-1,item-2"\` on each \`[data-activity-target]\`.
+- Per-slot inputs (crossword cells, fill-in): \`data-answer="<expected>"\` on each \`<input>\`.
+The server derives \`activityAnswers\` from these automatically, so you normally don't pass it. Pass \`activityAnswers\` explicitly only when there's no natural per-slot attribute, or pass null for genuinely free-form activities (open prompt, sketching exercise).
 
 ### Final discipline
 
