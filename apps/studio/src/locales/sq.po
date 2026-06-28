@@ -4880,11 +4880,11 @@ msgstr "Luaj videon"
 msgid "Polishing paragraphs to perfection..."
 msgstr "Polisim paragrafet deri në përsosmëri..."
 
-msgid "Popular"
-msgstr "Popullore"
-
 msgid "Polygon"
 msgstr "Poligon"
+
+msgid "Popular"
+msgstr "Popullore"
 
 msgid "Portuguese (BR)"
 msgstr "Portugalisht (BR)"

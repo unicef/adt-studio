@@ -4879,11 +4879,11 @@ msgstr "Reproducir video"
 msgid "Polishing paragraphs to perfection..."
 msgstr "Puliendo párrafos a la perfección..."
 
-msgid "Popular"
-msgstr "Populares"
-
 msgid "Polygon"
 msgstr "Polígono"
+
+msgid "Popular"
+msgstr "Populares"
 
 msgid "Portuguese (BR)"
 msgstr "Portugués (BR)"

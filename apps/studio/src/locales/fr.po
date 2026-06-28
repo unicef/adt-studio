@@ -4881,11 +4881,11 @@ msgstr "Lire la vidéo"
 msgid "Polishing paragraphs to perfection..."
 msgstr "Peaufinage des paragraphes à la perfection..."
 
-msgid "Popular"
-msgstr "Populaires"
-
 msgid "Polygon"
 msgstr "Polygone"
+
+msgid "Popular"
+msgstr "Populaires"
 
 msgid "Portuguese (BR)"
 msgstr "Portugais (BR)"
