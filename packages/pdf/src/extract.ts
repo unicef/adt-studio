@@ -1051,6 +1051,15 @@ function stampRasterPlacementsFromOps(
         (c) => c.pixelDigest !== undefined && c.pixelDigest === op.contentDigest,
       );
       if (idx >= 0) matched = candidates.splice(idx, 1)[0];
+      else {
+        // This op has a digest but no candidate matches it — only reachable on
+        // a partial digest failure (one side hashed, the other couldn't) or
+        // when the op's image was filtered out (e.g. figure-covered). Consume a
+        // candidate that has NO digest of its own first, so we don't steal one
+        // that a later digest-bearing op still needs to match.
+        const undigested = candidates.findIndex((c) => c.pixelDigest === undefined);
+        if (undigested >= 0) matched = candidates.splice(undigested, 1)[0];
+      }
     }
     // Unambiguous bucket, or no digest match — pair in stream order.
     if (!matched) matched = candidates.shift();

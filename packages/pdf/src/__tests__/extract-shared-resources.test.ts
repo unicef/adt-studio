@@ -93,8 +93,10 @@ describe("shared resource dictionary — same-dimension image disambiguation", (
     const distinct = new Set(drawn.map((d) => d.contentHash))
     expect(distinct.size).toBe(n)
 
-    // Exact correctness: keys sort I0..I{n-1}, so extraction assigns im001=I0,
-    // im002=I1, … Page i draws /I{i}, so it must map to im00{i+1}.
+    // Exact correctness: keys sort I0..I{n-1} (alphabetical == numerical for
+    // n < 10), so extraction assigns im001=I0, im002=I1, … Page i draws /I{i},
+    // so it must map to im00{i+1}. (Digest matching itself is order-independent;
+    // only this exact-imageId assertion relies on the key sort.)
     drawn.forEach((d, i) => {
       expect(d.imageId).toMatch(new RegExp(`_im${String(i + 1).padStart(3, "0")}$`))
     })

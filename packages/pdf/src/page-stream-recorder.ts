@@ -174,6 +174,19 @@ export function recordPageStream(
   const groupStack: { blendMode: BlendMode; alpha: number }[] = []
   let seqno = 0
 
+  // Content digest for an image op, computed only when requested. Guarded:
+  // a decode failure on an unusual image (imagemask, exotic colorspace) must
+  // degrade to "no digest" — the matcher then falls back to dimension order —
+  // rather than throwing out of `page.run` and aborting the whole page.
+  const imageDigest = (image: MupdfImage): { contentDigest?: string } => {
+    if (!hashImages) return {}
+    try {
+      return { contentDigest: hashImagePixels(image) }
+    } catch {
+      return {}
+    }
+  }
+
   const activeClipBbox = (): BBox | null =>
     clipStack.length > 0 ? clipStack[clipStack.length - 1].bbox : null
   const activeClipPaths = (): ClipPath[] => clipStack.slice()
@@ -284,7 +297,7 @@ export function recordPageStream(
         activeClipPaths: activeClipPaths(),
         blendMode: activeBlendMode(),
         alpha: composedAlpha(alpha ?? 1),
-        ...(hashImages ? { contentDigest: hashImagePixels(image) } : {}),
+        ...imageDigest(image),
       })
     },
     fillImageMask(image, ctm, _cs, _color, alpha) {
@@ -299,7 +312,7 @@ export function recordPageStream(
         activeClipPaths: activeClipPaths(),
         blendMode: activeBlendMode(),
         alpha: composedAlpha(alpha ?? 1),
-        ...(hashImages ? { contentDigest: hashImagePixels(image) } : {}),
+        ...imageDigest(image),
       })
     },
     clipImageMask(_image, ctm) {
