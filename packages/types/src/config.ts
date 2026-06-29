@@ -134,6 +134,7 @@ export const AppConfig = z
       .enum(["dynamic", "match_source", "template"])
       .optional(),
     image_filters: ImageFilters.optional(),
+    font_assignment: StepConfig.optional(),
     image_meaningfulness: StepConfig.optional(),
     glossary: StepConfig.optional(),
     toc_generation: StepConfig.optional(),

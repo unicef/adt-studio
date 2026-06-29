@@ -6,6 +6,7 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router"
 import { ApiKeyDialog } from "@/components/settings/ApiKeyDialog"
+import { Toaster } from "@/components/ui/sonner"
 import { UpdateDialogProvider } from "@/components/updates"
 import { useApiKey } from "@/hooks/use-api-key"
 import { ErrorScreen } from "@/components/ErrorScreen"
@@ -79,6 +80,7 @@ function RootLayout() {
             azureRegion={azureRegion}
             onSaveAzureRegion={setAzureRegion}
           />
+          <Toaster position="top-center" richColors closeButton />
         </div>
       </UpdateDialogProvider>
     </SettingsContext>

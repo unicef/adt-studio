@@ -16,7 +16,7 @@ import {
 } from "lucide-react"
 import { SectionActionsDropdown } from "./SectionActionsDropdown"
 import { SectionEditToolbar } from "./SectionEditToolbar"
-import { ImageCropDialog } from "./ImageCropDialog"
+import { ImageCropDialog, pageBoundsToCropRect } from "./ImageCropDialog"
 import { AiImageDialog } from "./AiImageDialog"
 import { SectionTreeEditor } from "@/components/section-tree-editor/SectionTreeEditor"
 import { useApiKey } from "@/hooks/use-api-key"
@@ -1019,13 +1019,23 @@ function SectionDetail({
       />
 
       {/* Crop dialog */}
-      {cropTarget && (
-        <ImageCropDialog
-          imageSrc={recropPageSrc ?? `${BASE_URL}/books/${bookLabel}/images/${cropTarget}`}
-          onApply={handleCropApply}
-          onClose={() => { setCropTarget(null); setRecropPageSrc(null) }}
-        />
-      )}
+      {cropTarget && (() => {
+        // Overlay the original placement only when recropping from the full page;
+        // an in-place crop uses the image itself, where the full frame is correct.
+        const bounds = recropPageSrc
+          ? queryClient
+              .getQueryData<PageDetail>(["books", bookLabel, "pages", pageId])
+              ?.imagesMeta.find((m) => m.imageId === cropTarget)?.bounds
+          : undefined
+        return (
+          <ImageCropDialog
+            imageSrc={recropPageSrc ?? `${BASE_URL}/books/${bookLabel}/images/${cropTarget}`}
+            initialRect={bounds ? pageBoundsToCropRect(bounds) : undefined}
+            onApply={handleCropApply}
+            onClose={() => { setCropTarget(null); setRecropPageSrc(null) }}
+          />
+        )
+      })()}
 
       {/* AI image dialog */}
       {aiImageTarget && (

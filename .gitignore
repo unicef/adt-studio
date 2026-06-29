@@ -82,3 +82,7 @@ packages/pipeline/src/__tests__/fixtures/raven-cache/tts/*.mp3
 
 # Electron cerificates
 *.p12
+
+# Others
+apps/desktop/electron.vite.config*.mjs
+PLAN*.md

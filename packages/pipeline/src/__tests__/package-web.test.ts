@@ -99,7 +99,7 @@ function createMinimalStorage(): Storage {
 }
 
 describe("renderPageHtml", () => {
-  it("does not emit font preload links (fonts are inlined as base64 in fonts.css for file:// support)", () => {
+  it("does not emit font preload links (fonts are declared in fonts.css)", () => {
     const html = renderPageHtml({
       content: "<p>Hello</p>",
       language: "en",
@@ -116,6 +116,21 @@ describe("renderPageHtml", () => {
     expect(html).not.toContain('rel="preload"')
     expect(html).not.toContain("Merriweather-VariableFont.woff2")
     expect(html).toContain('href="./assets/fonts.css"')
+  })
+
+  it("strips contenteditable left over from the storyboard editor", () => {
+    const html = renderPageHtml({
+      content: `<p data-id="x" contenteditable="true" style="font-family:Arial">Edited</p>`,
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Test",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+    })
+
+    expect(html).not.toMatch(/contenteditable/i)
+    expect(html).toContain('style="font-family:Arial"')
   })
 
   it("injects a Google Fonts stylesheet for fonts the page actually uses", () => {
@@ -150,6 +165,22 @@ describe("renderPageHtml", () => {
     expect(html).toMatch(/<style>[\s\S]*body, p, h1[\s\S]*font-family:/)
     // The body family is also loaded from Google Fonts.
     expect(html).toContain("fonts.googleapis.com/css2?family=Atkinson+Hyperlegible")
+  })
+
+  it("does not load an unregistered body family from Google Fonts", () => {
+    const html = renderPageHtml({
+      content: "<p>Hello</p>",
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Test",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+      bodyFontFamily: "'Aguafina Script','Merriweather',sans-serif",
+    })
+
+    expect(html).toContain("'Aguafina Script','Merriweather',sans-serif")
+    expect(html).not.toContain("fonts.googleapis.com/css2?family=Aguafina+Script")
   })
 
   it("omits the base-font override when bodyFontFamily is unset", () => {
@@ -214,7 +245,7 @@ describe("renderPageHtml", () => {
     expect(html).not.toContain("scorm.js")
   })
 
-  it("does not reference woff2 fonts directly (they are inlined as base64 in fonts.css)", () => {
+  it("does not reference woff2 fonts directly (they are declared in fonts.css)", () => {
     const html = renderPageHtml({
       content: "<p>Hello</p>",
       language: "en",
@@ -279,11 +310,28 @@ describe("renderPageHtml", () => {
 })
 
 describe("resolveReflowableFontChain", () => {
-  const fakeStorage = (category: string | null) =>
+  const fakeStorage = (category: string | null, registry?: unknown) =>
     ({
       getLatestNodeData: (node: string) =>
-        node === "font-profile" ? { data: { category }, version: 1 } : null,
+        node === "font-profile"
+          ? { data: { category }, version: 1 }
+          : node === "font-registry" && registry
+            ? { data: registry, version: 1 }
+            : null,
     }) as unknown as Storage
+
+  const bodyFontRegistry = {
+    fonts: [
+      {
+        id: "aguafina-script",
+        family: "Aguafina Script",
+        source: "google",
+        faces: [],
+        role: "body",
+        roleLockedByUser: true,
+      },
+    ],
+  }
 
   it("returns undefined for fixed-layout books (keep original fonts)", () => {
     expect(resolveReflowableFontChain(fakeStorage("sans"), { fixedLayout: true })).toBeUndefined()
@@ -304,6 +352,20 @@ describe("resolveReflowableFontChain", () => {
     expect(resolveReflowableFontChain(fakeStorage("serif"), { reflowableFont: "lora" })).toBe(
       "Lora,'Merriweather',serif",
     )
+  })
+
+  it("prefers an attached font assigned the body role", () => {
+    expect(
+      resolveReflowableFontChain(fakeStorage("sans", bodyFontRegistry), {
+        reflowableFont: "lora",
+      }),
+    ).toBe("'Aguafina Script','Merriweather',sans-serif")
+  })
+
+  it("ignores body-role fonts for fixed-layout books", () => {
+    expect(
+      resolveReflowableFontChain(fakeStorage("sans", bodyFontRegistry), { fixedLayout: true }),
+    ).toBeUndefined()
   })
 })
 

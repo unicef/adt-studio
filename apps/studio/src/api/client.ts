@@ -2,8 +2,11 @@ import { isElectron } from "@/lib/utils"
 import type {
   AccessibilityAssessmentOutput,
   BookDetail,
+  BookFont,
+  BookFontRole,
   BookMetadata,
   BookSummary,
+  FontAssignmentOutput,
   ExtractionWarning,
   ReviewerPageValidationRecord,
   ReviewerValidationIdentificationField,
@@ -654,6 +657,44 @@ export interface SignLanguageVideo {
   createdAt: string
 }
 
+export type BookFontWithStatus = BookFont & { cached: boolean }
+
+export interface GoogleCatalogFamily {
+  family: string
+  category?: string
+  variants?: number
+  variable?: boolean
+  popularity?: number
+  dateAdded?: string
+}
+
+export interface BookCurrentFont {
+  detectedCategory: "serif" | "sans" | null
+  setting: string
+  fixedLayout: boolean
+  bodyRole: boolean
+  font: { id: string; family: string; category: string; google: boolean }
+}
+
+export interface BookFontsResponse {
+  version: number
+  fonts: BookFontWithStatus[]
+  assignment: FontAssignmentOutput | null
+  current: BookCurrentFont
+}
+
+export type BookFontScope = "whole" | "heading" | "paragraph" | "body" | "caption"
+
+export interface ApplyBookFontPayload {
+  scope: BookFontScope
+  font?: { kind: "registry" | "reflowable"; id: string }
+  reset?: boolean
+}
+
+export function getBookFontFileUrl(label: string, fontId: string, file: string): string {
+  return `${BASE_URL}/books/${label}/fonts/${fontId}/files/${file}`
+}
+
 // --- Task types ---
 
 export interface TaskInfoResponse {
@@ -696,6 +737,54 @@ export const api = {
 
   getSourcePdfInfo: (label: string) =>
     request<{ pageCount: number }>(`/books/${label}/source-pdf/info`),
+
+  getBookFonts: (label: string) => request<BookFontsResponse>(`/books/${label}/fonts`),
+
+  getGoogleFontsCatalog: () =>
+    request<{ families: GoogleCatalogFamily[] }>("/google-fonts/catalog"),
+
+  uploadBookFonts: (label: string, files: File[]) => {
+    const formData = new FormData()
+    for (const file of files) formData.append("fonts", file)
+    return request<BookFontsResponse>(`/books/${label}/fonts`, {
+      method: "POST",
+      body: formData,
+    })
+  },
+
+  addGoogleFont: (label: string, family: string) =>
+    request<BookFontsResponse>(`/books/${label}/fonts/google`, {
+      method: "POST",
+      body: JSON.stringify({ family }),
+    }),
+
+  updateBookFont: (
+    label: string,
+    fontId: string,
+    data: { family?: string; role?: BookFontRole; roleLockedByUser?: boolean },
+  ) =>
+    request<BookFontsResponse>(`/books/${label}/fonts/${fontId}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  deleteBookFont: (label: string, fontId: string) =>
+    request<BookFontsResponse>(`/books/${label}/fonts/${fontId}`, { method: "DELETE" }),
+
+  analyzeBookFonts: (label: string, apiKey: string) =>
+    request<{ taskId?: string; status?: string; version?: number }>(
+      `/books/${label}/fonts/analyze`,
+      {
+        method: "POST",
+        headers: { "X-OpenAI-Key": apiKey },
+      },
+    ),
+
+  applyBookFont: (label: string, payload: ApplyBookFontPayload) =>
+    request<BookFontsResponse & { pagesUpdated: number }>(`/books/${label}/fonts/apply`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }),
 
   createBook: (label: string, pdf: File, config?: Record<string, unknown>) => {
     const formData = new FormData()

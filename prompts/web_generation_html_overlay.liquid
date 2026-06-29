@@ -250,6 +250,15 @@ Example: `class="absolute max-sm:relative"` to overlay on desktop/tablet but sta
 
 {{ styleguide }}
 {% endif %}
+{% if book_fonts.size > 0 %}
+
+## BOOK FONTS (USE ONLY THESE FAMILIES)
+
+The user attached these fonts for this book. Whenever you set an explicit `font-family`, use ONLY these families (always with a sensible generic fallback such as serif/sans-serif). Do not introduce any other named font family.
+{% for font in book_fonts %}- "{{ font.family }}" — role: {{ font.role }}{% if font.category %} ({{ font.category }}){% endif %}{% if font.usage_notes %} — {{ font.usage_notes }}{% endif %}
+{% endfor %}
+Apply each font according to its role: `heading` for titles and headings, `paragraph` for paragraph `<p>` elements only, `body` for broader running text, `caption` for captions/footnotes, `decorative` sparingly for ornamental display text, `mono` for code or tabular content. Ignore fonts with role `unassigned`.
+{% endif %}
 
 ## RESPONSE FORMAT
 

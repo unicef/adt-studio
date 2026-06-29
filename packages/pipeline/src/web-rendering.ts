@@ -8,6 +8,7 @@ import {
   DEFAULT_LLM_MAX_RETRIES,
 } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
+import type { BookFontPromptEntry } from "./fonts-bundle.js"
 import { renderSectionLlm, type VisualRefinementDeps } from "./render-llm.js"
 import { renderSectionTemplate, type TemplateEngine } from "./render-template.js"
 
@@ -84,6 +85,7 @@ export interface RenderSectionInput {
   section: PageSectioningSection
   context: RenderContext
   styleguide?: string
+  bookFonts?: BookFontPromptEntry[]
   /** Optional user instructions appended to the LLM prompt during re-render */
   userPrompt?: string
 }
@@ -95,6 +97,7 @@ export interface RenderPageInput {
   sectioning: PageSectioningOutput
   images: Map<string, { base64: string; width?: number; height?: number }>
   styleguide?: string
+  bookFonts?: BookFontPromptEntry[]
   /** Optional user instructions appended to the LLM prompt during re-render */
   userPrompt?: string
 }
@@ -243,6 +246,7 @@ export async function renderPage(
       section,
       context,
       styleguide: input.styleguide,
+      bookFonts: input.bookFonts,
       userPrompt: input.userPrompt,
     }
 

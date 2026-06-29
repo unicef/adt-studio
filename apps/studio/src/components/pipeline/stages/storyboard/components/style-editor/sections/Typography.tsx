@@ -27,6 +27,7 @@ import {
 } from "../class-maps"
 import { useElementStyles } from "../use-element-styles"
 import { useElementContext } from "../element-context"
+import { FontFamilyControl } from "./FontFamilyControl"
 
 const WEIGHT_OPTIONS: ReadonlyArray<SelectOption<string>> = [
   { value: "thin", label: "thin", preview: <span className="font-thin">Aa</span> },
@@ -44,7 +45,7 @@ const EMPTY_DECOR: string[] = []
 
 export function TypographySection() {
   const { t } = useLingui()
-  const { computedStyles } = useElementContext()
+  const { computedStyles, bookLabel } = useElementContext()
   const elementFontFamily = computedStyles?.fontFamily ?? null
   const inheritedFontSize = computedStyles?.fontSize ?? null
   const inheritedWeight = computedStyles?.fontWeight ?? null
@@ -73,7 +74,9 @@ export function TypographySection() {
 
   return (
     <Section title={<Trans>Typography</Trans>}>
-      {elementFontFamily ? (
+      {bookLabel ? (
+        <FontFamilyControl bookLabel={bookLabel} />
+      ) : elementFontFamily ? (
         <StyleLabel label={<Trans>Font</Trans>}>
           <span
             className="text-[11px] text-foreground truncate"
