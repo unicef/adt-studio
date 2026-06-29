@@ -2136,7 +2136,7 @@ export function StoryboardSectionDetail({
           className="flex items-center gap-1 px-2 py-1 rounded bg-white/10 hover:bg-white/20 transition-colors cursor-pointer shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
           title={t`Generate a new activity from a description`}
         >
-          <Sparkles className="h-3.5 w-3.5" />
+          <Puzzle className="h-3.5 w-3.5" />
         </button>
       )}
       {renderedSection?.html && (
