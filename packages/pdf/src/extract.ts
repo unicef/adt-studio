@@ -26,6 +26,7 @@ import {
 } from "./positioned-text.js";
 import {
   recordPageStream,
+  hashImagePixels,
   type StreamOp,
   type ImageStreamOp,
   type PathStreamOp,
@@ -123,6 +124,17 @@ export interface ExtractedImage {
    *     constituent shape bboxes (see `shapeGeomBoxes`).
    */
   streamSeqno?: number;
+  /**
+   * Pixel-content digest, set ONLY when this image shares its native
+   * dimensions with another image on the same page (a dimension collision).
+   * `stampRasterPlacementsFromOps` uses it to match a draw op to the exact
+   * XObject it references — dimension alone is ambiguous when a page can see
+   * several same-size images (e.g. pages sharing one resource dictionary that
+   * lists every full-page layer). Computed from the same `toPixmap()` samples
+   * as the recorder's `ImageStreamOp.contentDigest` so the two compare equal.
+   * Transient: not persisted to the images table.
+   */
+  pixelDigest?: string;
   /**
    * Geometry bboxes of this vector figure's constituent SVG shapes, in the
    * same coordinate space as recorder ops (page coords + spread xOffset).
@@ -778,7 +790,13 @@ async function extractPage(doc: MupdfDocument, pageIndex: number, vectorTextGrou
   // is a layout reconstruction (reading flow, not stream order) so it can't be
   // used for z-order — but the device callbacks fire once per content-stream
   // operator, in stream order, with fully-resolved CTMs.
-  const recorder = runRecorderInViewport(page, pageBounds, 0, 0);
+  const recorder = runRecorderInViewport(
+    page,
+    pageBounds,
+    0,
+    0,
+    hasDuplicateDimensions(rasterImages),
+  );
   stampRasterPlacementsFromOps(rasterImages, recorder.ops);
 
   // Reuse the StructuredText already built above — no extra pass. Build
@@ -835,10 +853,11 @@ function runRecorderInViewport(
   pageBounds: number[],
   xShift: number,
   seqnoShift: number,
+  hashImages: boolean = false,
 ): { ops: StreamOp[] } {
   const pageOriginX = pageBounds[0];
   const pageOriginY = pageBounds[1];
-  const rawOps = recordPageStream(page);
+  const rawOps = recordPageStream(page, { hashImages });
   const dx = -pageOriginX + xShift;
   const dy = -pageOriginY;
   const shiftBBox = (b: StreamBBox): StreamBBox => ({
@@ -981,14 +1000,34 @@ function selectImageClipPath(op: ImageStreamOp): string | undefined {
 }
 
 /**
- * Match each `fillImage` / `fillImageMask` op to an extracted raster XObject
- * by native pixel dimensions, consuming candidates in stream order. The
- * matched raster gets its `streamSeqno` and its `bounds` (from the op's CTM)
- * stamped on it.
+ * True when two or more images share identical native dimensions. This is the
+ * condition under which dimension-only op→image matching is ambiguous, so it
+ * gates the extra pixel-hashing work (recorder `hashImages` + extraction
+ * `pixelDigest`). False — the common case — keeps the cheap dimension match.
+ */
+function hasDuplicateDimensions(images: ExtractedImage[]): boolean {
+  const seen = new Set<string>();
+  for (const img of images) {
+    const key = `${img.width}x${img.height}`;
+    if (seen.has(key)) return true;
+    seen.add(key);
+  }
+  return false;
+}
+
+/**
+ * Match each `fillImage` / `fillImageMask` op to an extracted raster XObject,
+ * stamping the matched raster's `streamSeqno` and `bounds` (from the op's CTM).
  *
- * Multiple instances of the same image dimensions are paired in stream
- * order — first op with WxH matches first remaining ExtractedImage with
- * WxH. This is how mupdf placement order maps to XObject extraction order.
+ * Matching keys on native pixel dimensions. When a dimension bucket holds more
+ * than one image the match is ambiguous: a page that can see several same-size
+ * images (e.g. pages sharing one resource dictionary listing every full-page
+ * layer) would otherwise pair every op with the FIRST candidate, so every page
+ * renders the same image. To disambiguate, both the op (`contentDigest`) and
+ * the image (`pixelDigest`) carry a pixel-content hash; we pick the candidate
+ * whose digest matches. Single-candidate buckets — and any bucket without
+ * digests — fall back to stream-order pairing (first op with WxH ↔ first
+ * remaining image with WxH), the long-standing behaviour for unambiguous pages.
  */
 function stampRasterPlacementsFromOps(
   rasters: ExtractedImage[],
@@ -1004,7 +1043,17 @@ function stampRasterPlacementsFromOps(
   for (const op of ops) {
     if (op.kind !== "image" && op.kind !== "imageMask") continue;
     const candidates = byDim.get(`${op.nativeWidth}x${op.nativeHeight}`);
-    const matched = candidates?.shift();
+    if (!candidates || candidates.length === 0) continue;
+    let matched: ExtractedImage | undefined;
+    // Disambiguate same-dimension candidates by pixel content when available.
+    if (candidates.length > 1 && op.contentDigest) {
+      const idx = candidates.findIndex(
+        (c) => c.pixelDigest !== undefined && c.pixelDigest === op.contentDigest,
+      );
+      if (idx >= 0) matched = candidates.splice(idx, 1)[0];
+    }
+    // Unambiguous bucket, or no digest match — pair in stream order.
+    if (!matched) matched = candidates.shift();
     if (!matched) continue;
     matched.streamSeqno = op.seqno;
     matched.bounds = bboxToImageBounds(op.bbox);
@@ -1536,7 +1585,13 @@ async function extractSpreadPage(
   // Run the recorder on both pages, in viewport coords; right-page x is shifted
   // by left page width so positions address the stitched spread, and right-page
   // seqnos shift past left so cross-page sort puts left ahead of right.
-  const leftRecorder = runRecorderInViewport(leftPage, leftBounds, 0, 0);
+  const leftRecorder = runRecorderInViewport(
+    leftPage,
+    leftBounds,
+    0,
+    0,
+    hasDuplicateDimensions(leftRaster),
+  );
   const leftMaxSeqno = leftRecorder.ops.reduce(
     (m, o) => Math.max(m, o.seqno),
     -1,
@@ -1546,6 +1601,7 @@ async function extractSpreadPage(
     rightBounds,
     leftPageWidthPt,
     leftMaxSeqno + 1,
+    hasDuplicateDimensions(rightRaster),
   );
   const ops: StreamOp[] = [...leftRecorder.ops, ...rightRecorder.ops];
   // Rasters: stamp per page so dim-tied images on different pages don't
@@ -1606,6 +1662,10 @@ function extractRasterImagesFromPdf(
   startIndex: number = 0
 ): ExtractedImage[] {
   const images: ExtractedImage[] = [];
+  // The mupdf stream object each image was decoded from, parallel to `images`.
+  // Kept so we can re-decode an image to a pixmap for content hashing without
+  // re-walking the dict — only done for dimension-colliding images (below).
+  const sources: PDFObject[] = [];
   const seen = new Set<number>(); // Track object numbers to avoid duplicates
   let imgIndex = startIndex;
 
@@ -1750,6 +1810,7 @@ function extractRasterImagesFromPdf(
           hash: hashBuffer(buf),
           renderMethod: "raster",
         });
+        sources.push(streamObj);
       } catch (err) {
         console.warn(
           `[extractRasterImagesFromPdf] Failed to extract image on ${pageId}:`,
@@ -1767,7 +1828,44 @@ function extractRasterImagesFromPdf(
   if (xobject.isNull() || !xobject.isDictionary()) return images;
 
   extractFromXObjectDict(xobject);
+  stampPixelDigestsOnCollisions(doc, images, sources);
   return images;
+}
+
+/**
+ * Set `pixelDigest` on each image that shares its native dimensions with at
+ * least one other image in the set. Draw-op→image matching keys on dimensions
+ * (see `stampRasterPlacementsFromOps`); when a page can see several same-size
+ * images, that match is ambiguous and needs pixel content to disambiguate.
+ *
+ * Unique-dimension images (the common case) get no digest and pay no decode
+ * cost. The digest hashes `toPixmap()` samples — the same basis the recorder
+ * uses in `hashImagePixels` — so an op's `contentDigest` compares equal to the
+ * matching image's `pixelDigest`.
+ */
+function stampPixelDigestsOnCollisions(
+  doc: PDFDocument,
+  images: ExtractedImage[],
+  sources: PDFObject[],
+): void {
+  const dimCounts = new Map<string, number>();
+  for (const img of images) {
+    const key = `${img.width}x${img.height}`;
+    dimCounts.set(key, (dimCounts.get(key) ?? 0) + 1);
+  }
+  for (let i = 0; i < images.length; i++) {
+    if ((dimCounts.get(`${images[i].width}x${images[i].height}`) ?? 0) < 2) continue;
+    try {
+      const image = doc.loadImage(sources[i]);
+      images[i].pixelDigest = hashImagePixels(image);
+      image.destroy();
+    } catch (err) {
+      console.warn(
+        `[extractRasterImagesFromPdf] Failed to digest ${images[i].imageId} on ${images[i].pageId}:`,
+        err instanceof Error ? err.message : err
+      );
+    }
+  }
 }
 
 /**
