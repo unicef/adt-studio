@@ -96,7 +96,7 @@ function ExportLandingBody({
     setExportDialogOpen(false)
   }
 
-  const formatLabels = buildExportFormatConfig(t)
+  const formatLabels = buildExportFormatConfig(t, { isPart })
 
   const formatError =
     error?.format === selectedFormat ? error.message : null
@@ -122,7 +122,7 @@ function ExportLandingBody({
       previewLabel={t`Export Preview`}
       hideAdvancedSettings
       onRun={handleOpenDialog}
-      preview={<ExportPreview format={selectedFormat} />}
+      preview={<ExportPreview format={selectedFormat} isPart={isPart} />}
     >
       <div className="flex flex-col gap-2">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
@@ -143,9 +143,7 @@ function ExportLandingBody({
           <p>
             <Trans>
               This book is a part. Export it as a{" "}
-              <span className="font-medium text-foreground">
-                Project Archive
-              </span>{" "}
+              <span className="font-medium text-foreground">Completed Part</span>{" "}
               and send the file back to the coordinator to merge into the source
               book.
             </Trans>
@@ -160,6 +158,7 @@ function ExportLandingBody({
             onSelect={setSelectedFormat}
             t={t}
             errorFormat={error?.format ?? null}
+            isPart={isPart}
           />
         </SettingsField>
       </SettingsCard>

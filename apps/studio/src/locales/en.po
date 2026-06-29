@@ -1792,6 +1792,9 @@ msgstr "Completed"
 msgid "Completed language-based stages (quizzes, glossary, captions, audio) will be cleared and need to run again. You'll confirm first."
 msgstr "Completed language-based stages (quizzes, glossary, captions, audio) will be cleared and need to run again. You'll confirm first."
 
+msgid "Completed Part"
+msgstr "Completed Part"
+
 msgid "Completion"
 msgstr "Completion"
 
@@ -5700,6 +5703,9 @@ msgstr "Retry {stageLabel}"
 msgid "Retry Export"
 msgstr "Retry Export"
 
+msgid "Return to coordinator"
+msgstr "Return to coordinator"
+
 msgid "Revert language change"
 msgstr "Revert language change"
 
@@ -6245,6 +6251,9 @@ msgstr "Selecting \"None\" lets the LLM choose its own styling for each page."
 
 msgid "Self-contained ADT web app"
 msgstr "Self-contained ADT web app"
+
+msgid "Send this project archive back to the coordinator to merge into the source book."
+msgstr "Send this project archive back to the coordinator to merge into the source book."
 
 msgid "Separator"
 msgstr "Separator"
@@ -7020,8 +7029,11 @@ msgstr "This book has no pages. Make sure the extraction and storyboard stages p
 msgid "This book is a part — its page range is fixed to the assigned subset and cannot be changed."
 msgstr "This book is a part — its page range is fixed to the assigned subset and cannot be changed."
 
-msgid "This book is a part. Export it as a <0>Project Archive</0> and send the file back to the coordinator to merge into the source book."
-msgstr "This book is a part. Export it as a <0>Project Archive</0> and send the file back to the coordinator to merge into the source book."
+msgid "This book is a part. Export it as a <0>Completed Part</0> and send the file back to the coordinator to merge into the source book."
+msgstr "This book is a part. Export it as a <0>Completed Part</0> and send the file back to the coordinator to merge into the source book."
+
+#~ msgid "This book is a part. Export it as a <0>Project Archive</0> and send the file back to the coordinator to merge into the source book."
+#~ msgstr "This book is a part. Export it as a <0>Project Archive</0> and send the file back to the coordinator to merge into the source book."
 
 #~ msgid "This book is an imported part. Parts can't be split or merged further — process the assigned pages, then return the finished part from the Export step to merge it back into the source book."
 #~ msgstr "This book is an imported part. Parts can't be split or merged further — process the assigned pages, then return the finished part from the Export step to merge it back into the source book."
