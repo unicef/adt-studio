@@ -1040,6 +1040,9 @@ msgstr "Të gjitha problemet dhe elementet e rishikimit manual"
 msgid "All pages are pruned"
 msgstr "Të gjitha faqet janë prerë"
 
+msgid "All parts merged"
+msgstr "Të gjitha pjesët u bashkuan"
+
 msgid "All sections are covered"
 msgstr "Të gjitha seksionet janë mbuluar"
 
@@ -4053,6 +4056,11 @@ msgstr "U bashkua"
 #~ msgid "Merged · {0} added, {1} replaced"
 #~ msgstr "U bashkua · {0} të shtuara, {1} të zëvendësuara"
 
+#. placeholder {0}: book.split.mergedPages
+#. placeholder {1}: book.split.totalPages
+msgid "Merged · {0}/{1}"
+msgstr "Bashkuar · {0}/{1}"
+
 #~ msgid "Merged:"
 #~ msgstr "Bashkuar:"
 
@@ -4962,10 +4970,13 @@ msgstr "Analizimi i faqeve në tekst, figura dhe kuti paraqitjeje — memorizuar
 msgid "Part"
 msgstr "Pjesa"
 
+#~ msgid "Part · p{0}–{1}"
+#~ msgstr "Pjesë · f{0}–{1}"
+
 #. placeholder {0}: book.part.range.startPage
 #. placeholder {1}: book.part.range.endPage
-msgid "Part · p{0}–{1}"
-msgstr "Pjesë · f{0}–{1}"
+msgid "Part · pages {0}–{1}"
+msgstr "Pjesa · faqet {0}–{1}"
 
 #. placeholder {0}: planStart.index + 1
 msgid "Part {0}"
@@ -6490,18 +6501,19 @@ msgstr "Prompte të të Folurit"
 msgid "Speech Settings"
 msgstr "Cilësimet e të Folurit"
 
-#. placeholder {0}: book.split.mergedPages
-#. placeholder {1}: book.split.totalPages
-msgid "Split · {0}/{1} pages merged"
-msgstr "I ndarë · {0}/{1} faqe të bashkuara"
-
 #. placeholder {0}: book.split.splitPages
 #. placeholder {1}: book.split.totalPages
-msgid "Split · {0}/{1} pages split"
-msgstr "I ndarë · {0}/{1} faqe të ndara"
+msgid "Split · {0}/{1}"
+msgstr "Ndarë · {0}/{1}"
 
-msgid "Split · all parts merged"
-msgstr "I ndarë · të gjitha pjesët u bashkuan"
+#~ msgid "Split · {0}/{1} pages merged"
+#~ msgstr "I ndarë · {0}/{1} faqe të bashkuara"
+
+#~ msgid "Split · {0}/{1} pages split"
+#~ msgstr "I ndarë · {0}/{1} faqe të ndara"
+
+#~ msgid "Split · all parts merged"
+#~ msgstr "I ndarë · të gjitha pjesët u bashkuan"
 
 msgid "Split & merge"
 msgstr "Ndaj dhe bashko"

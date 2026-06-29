@@ -1039,6 +1039,9 @@ msgstr "Todos los problemas y elementos de revisión manual"
 msgid "All pages are pruned"
 msgstr "Todas las páginas están podadas"
 
+msgid "All parts merged"
+msgstr "Todas las partes combinadas"
+
 msgid "All sections are covered"
 msgstr "Todas las secciones están cubiertas"
 
@@ -4052,6 +4055,11 @@ msgstr "Fusionado"
 #~ msgid "Merged · {0} added, {1} replaced"
 #~ msgstr "Fusionado · {0} añadidas, {1} reemplazadas"
 
+#. placeholder {0}: book.split.mergedPages
+#. placeholder {1}: book.split.totalPages
+msgid "Merged · {0}/{1}"
+msgstr "Combinadas · {0}/{1}"
+
 #~ msgid "Merged:"
 #~ msgstr "Fusionado:"
 
@@ -4961,10 +4969,13 @@ msgstr "Analizando páginas en texto, figuras y cajas de diseño — con caché 
 msgid "Part"
 msgstr "Parte"
 
+#~ msgid "Part · p{0}–{1}"
+#~ msgstr "Parte · p{0}–{1}"
+
 #. placeholder {0}: book.part.range.startPage
 #. placeholder {1}: book.part.range.endPage
-msgid "Part · p{0}–{1}"
-msgstr "Parte · p{0}–{1}"
+msgid "Part · pages {0}–{1}"
+msgstr "Parte · páginas {0}–{1}"
 
 #. placeholder {0}: planStart.index + 1
 msgid "Part {0}"
@@ -6489,18 +6500,19 @@ msgstr "Indicaciones de voz"
 msgid "Speech Settings"
 msgstr "Configuración de Voz"
 
-#. placeholder {0}: book.split.mergedPages
-#. placeholder {1}: book.split.totalPages
-msgid "Split · {0}/{1} pages merged"
-msgstr "Dividido · {0}/{1} páginas fusionadas"
-
 #. placeholder {0}: book.split.splitPages
 #. placeholder {1}: book.split.totalPages
-msgid "Split · {0}/{1} pages split"
-msgstr "Dividido · {0}/{1} páginas divididas"
+msgid "Split · {0}/{1}"
+msgstr "Dividido · {0}/{1}"
 
-msgid "Split · all parts merged"
-msgstr "Dividido · todas las partes fusionadas"
+#~ msgid "Split · {0}/{1} pages merged"
+#~ msgstr "Dividido · {0}/{1} páginas fusionadas"
+
+#~ msgid "Split · {0}/{1} pages split"
+#~ msgstr "Dividido · {0}/{1} páginas divididas"
+
+#~ msgid "Split · all parts merged"
+#~ msgstr "Dividido · todas las partes fusionadas"
 
 msgid "Split & merge"
 msgstr "Dividir y fusionar"

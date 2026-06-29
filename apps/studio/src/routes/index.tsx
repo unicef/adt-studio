@@ -16,6 +16,7 @@ import {
   CalendarPlus,
   Clock,
   Scissors,
+  Puzzle,
 } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
@@ -265,13 +266,13 @@ function BookRow({
             <div className="flex items-center gap-1.5 shrink-0">
               {book.part && (
                 <Badge
-                  variant="secondary"
-                  className="gap-1 text-[11px] px-2 py-0.5"
+                  variant="outline"
+                  className="gap-1 border-part/40 bg-part/10 px-2 py-0.5 text-[11px] text-part"
                   title={t`Part of ${book.part.sourceLabel}`}
                 >
-                  <Scissors className="h-3 w-3" />
+                  <Puzzle className="h-3 w-3" />
                   <Trans>
-                    Part · p{book.part.range.startPage}–{book.part.range.endPage}
+                    Part · pages {book.part.range.startPage}–{book.part.range.endPage}
                   </Trans>
                 </Badge>
               )}
@@ -279,27 +280,23 @@ function BookRow({
                 <Badge
                   variant="outline"
                   className={cn(
-                    "gap-1 text-[11px] px-2 py-0.5",
+                    "gap-1 px-2 py-0.5 text-[11px]",
                     book.split.fullyMerged
                       ? "border-emerald-300 bg-emerald-100 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
-                      : "border-amber-300 bg-amber-100 text-amber-900 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-200",
+                      : "border-part/40 bg-part/10 text-part",
                   )}
                   title={t`Split into ${book.split.exportedParts} part(s) · ${book.split.splitPages}/${book.split.totalPages} pages split off · ${book.split.mergedPages}/${book.split.totalPages} merged back`}
                 >
                   <Scissors className="h-3 w-3" />
                   {book.split.fullyMerged ? (
                     // Done: every page split off and merged back.
-                    <Trans>Split · all parts merged</Trans>
+                    <Trans>All parts merged</Trans>
                   ) : !book.split.fullySplit ? (
-                    // Still carving: show how much has been handed out as parts.
-                    <Trans>
-                      Split · {book.split.splitPages}/{book.split.totalPages} pages split
-                    </Trans>
+                    // Still carving: how much has been handed out as parts.
+                    <Trans>Split · {book.split.splitPages}/{book.split.totalPages}</Trans>
                   ) : (
                     // Fully split, now collecting completed parts back.
-                    <Trans>
-                      Split · {book.split.mergedPages}/{book.split.totalPages} pages merged
-                    </Trans>
+                    <Trans>Merged · {book.split.mergedPages}/{book.split.totalPages}</Trans>
                   )}
                 </Badge>
               )}
