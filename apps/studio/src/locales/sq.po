@@ -1061,6 +1061,9 @@ msgstr "Alegori"
 msgid "Alphabetical"
 msgstr "Alfabetik"
 
+msgid "Already handed out"
+msgstr "Tashmë të shpërndara"
+
 msgid "Alt"
 msgstr "Alt"
 
@@ -3705,6 +3708,9 @@ msgstr "Manuale ligjore dhe të pajtueshmërisë"
 msgid "Legal Compliance Guide"
 msgstr "Udhëzues i pajtueshmërisë ligjore"
 
+msgid "Legend"
+msgstr "Legjenda"
+
 msgid "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 msgstr "Lëre modelin të shkruajë tituj përshkrues kapitujsh bazuar në përmbajtjen e çdo seksioni. Më i miri për libra tregimesh ose kur titujt mungojnë."
 
@@ -4834,12 +4840,17 @@ msgid "Page {0} captions"
 msgstr "Titujt e faqes {0}"
 
 #. placeholder {0}: current.pageNumber
+#. placeholder {0}: zoom + 1
+#. placeholder {1}: pages.length
 #. placeholder {1}: renderedPages.length
 msgid "Page {0} of {1}"
 msgstr "Faqja {0} nga {1}"
 
 msgid "Page {n}"
 msgstr "Faqja {n}"
+
+#~ msgid "Page {p}"
+#~ msgstr "Faqja {p}"
 
 msgid "Page {pageId}"
 msgstr "Faqja {pageId}"
@@ -4921,6 +4932,9 @@ msgstr "Faqet {0}–{1} nga {2}"
 msgid "pages {shownStr}"
 msgstr "faqet {shownStr}"
 
+msgid "Pages in the selected range"
+msgstr "Faqet në intervalin e zgjedhur"
+
 msgid "pages per quiz"
 msgstr "faqe për kuiz"
 
@@ -4945,16 +4959,20 @@ msgstr "Analizimi i faqeve"
 msgid "Parsing pages into text, figures, and layout boxes — cached by content hash."
 msgstr "Analizimi i faqeve në tekst, figura dhe kuti paraqitjeje — memorizuar sipas hash-it të përmbajtjes."
 
+msgid "Part"
+msgstr "Pjesa"
+
 #. placeholder {0}: book.part.range.startPage
 #. placeholder {1}: book.part.range.endPage
 msgid "Part · p{0}–{1}"
 msgstr "Pjesë · f{0}–{1}"
 
 #. placeholder {0}: planStart.index + 1
-#. placeholder {1}: planStart.window.startPage
-#. placeholder {2}: planStart.window.endPage
-msgid "Part {0} · pages {1}–{2}"
-msgstr "Pjesa {0} · faqet {1}–{2}"
+msgid "Part {0}"
+msgstr "Pjesa {0}"
+
+#~ msgid "Part {0} · pages {1}–{2}"
+#~ msgstr "Pjesa {0} · faqet {1}–{2}"
 
 msgid "Part info"
 msgstr "Informacion mbi pjesën"
@@ -5055,6 +5073,9 @@ msgstr "Zgjidhni nga Libri"
 
 msgid "Pick one layout approach."
 msgstr "Zgjidhni një qasje paraqitjeje."
+
+#~ msgid "Pick page range"
+#~ msgstr "Zgjidhni intervalin e faqeve"
 
 msgid "Pick the languages you want to translate to. The book's original language stays as-is."
 msgstr "Zgjidhni gjuhët në të cilat dëshironi të përktheni. Gjuha origjinale e librit mbetet ashtu siç është."
@@ -6544,6 +6565,9 @@ msgstr "Fillo një sesion rishikimi"
 msgid "Start from a PDF"
 msgstr "Fillo nga një PDF"
 
+msgid "Start of an equal-split window"
+msgstr "Fillimi i një dritareje me ndarje të barabartë"
+
 msgid "Start page"
 msgstr "Faqja fillestare"
 
@@ -7576,6 +7600,9 @@ msgstr "Shiko licencën"
 
 msgid "View page"
 msgstr "Shiko faqen"
+
+msgid "View page {pageNum} larger"
+msgstr "Shiko faqen {pageNum} më të madhe"
 
 msgid "vision"
 msgstr "vegim"

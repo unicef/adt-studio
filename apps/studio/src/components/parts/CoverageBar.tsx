@@ -5,13 +5,13 @@ import { computeCoverageSegments, fmtRange, type CoverageState } from "./parts-u
 
 const SEGMENT_FILL: Record<CoverageState, string> = {
   merged: "bg-emerald-500",
-  exported: "bg-[#2b7fff]",
+  exported: "bg-part",
   pending: "bg-muted-foreground/20",
 }
 
 const DOT_FILL: Record<CoverageState, string> = {
   merged: "bg-emerald-500",
-  exported: "bg-[#2b7fff]",
+  exported: "bg-part",
   pending: "bg-muted-foreground/30",
 }
 

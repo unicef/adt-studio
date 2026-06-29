@@ -1062,6 +1062,9 @@ msgstr "Allégorie"
 msgid "Alphabetical"
 msgstr "Alphabétique"
 
+msgid "Already handed out"
+msgstr "Déjà distribuées"
+
 msgid "Alt"
 msgstr "Alt"
 
@@ -3706,6 +3709,9 @@ msgstr "Manuels juridiques et de conformité"
 msgid "Legal Compliance Guide"
 msgstr "Legal Compliance Guide"
 
+msgid "Legend"
+msgstr "Légende"
+
 msgid "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 msgstr "Laissez le modèle écrire des titres de chapitres descriptifs basés sur le contenu de chaque section. Idéal pour les livres d'histoires ou lorsque les titres manquent."
 
@@ -4835,12 +4841,17 @@ msgid "Page {0} captions"
 msgstr "Légendes de la page {0}"
 
 #. placeholder {0}: current.pageNumber
+#. placeholder {0}: zoom + 1
+#. placeholder {1}: pages.length
 #. placeholder {1}: renderedPages.length
 msgid "Page {0} of {1}"
 msgstr "Page {0} sur {1}"
 
 msgid "Page {n}"
 msgstr "Page {n}"
+
+#~ msgid "Page {p}"
+#~ msgstr "Page {p}"
 
 msgid "Page {pageId}"
 msgstr "Page {pageId}"
@@ -4922,6 +4933,9 @@ msgstr "Pages {0}–{1} sur {2}"
 msgid "pages {shownStr}"
 msgstr "pages {shownStr}"
 
+msgid "Pages in the selected range"
+msgstr "Pages de la plage sélectionnée"
+
 msgid "pages per quiz"
 msgstr "pages par quiz"
 
@@ -4946,16 +4960,20 @@ msgstr "Analyse des pages"
 msgid "Parsing pages into text, figures, and layout boxes — cached by content hash."
 msgstr "Analyse des pages en texte, figures et cadres de mise en page — mis en cache par hash du contenu."
 
+msgid "Part"
+msgstr "Partie"
+
 #. placeholder {0}: book.part.range.startPage
 #. placeholder {1}: book.part.range.endPage
 msgid "Part · p{0}–{1}"
 msgstr "Partie · p{0}–{1}"
 
 #. placeholder {0}: planStart.index + 1
-#. placeholder {1}: planStart.window.startPage
-#. placeholder {2}: planStart.window.endPage
-msgid "Part {0} · pages {1}–{2}"
-msgstr "Partie {0} · pages {1}–{2}"
+msgid "Part {0}"
+msgstr "Partie {0}"
+
+#~ msgid "Part {0} · pages {1}–{2}"
+#~ msgstr "Partie {0} · pages {1}–{2}"
 
 msgid "Part info"
 msgstr "Infos sur la partie"
@@ -5056,6 +5074,9 @@ msgstr "Choisir dans le livre"
 
 msgid "Pick one layout approach."
 msgstr "Choisissez une approche de mise en page."
+
+#~ msgid "Pick page range"
+#~ msgstr "Choisir la plage de pages"
 
 msgid "Pick the languages you want to translate to. The book's original language stays as-is."
 msgstr "Choisissez les langues vers lesquelles vous souhaitez traduire. La langue originale du livre reste inchangée."
@@ -6545,6 +6566,9 @@ msgstr "Démarrer une session de révision"
 msgid "Start from a PDF"
 msgstr "Partez d'un PDF"
 
+msgid "Start of an equal-split window"
+msgstr "Début d'une fenêtre de division égale"
+
 msgid "Start page"
 msgstr "Page de début"
 
@@ -7577,6 +7601,9 @@ msgstr "Voir la licence"
 
 msgid "View page"
 msgstr "Voir la page"
+
+msgid "View page {pageNum} larger"
+msgstr "Voir la page {pageNum} en grand"
 
 msgid "vision"
 msgstr "vision"

@@ -27,6 +27,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  /* Accent for the split & merge parts UI (chips, selection, coverage). */
+  --color-part: #2b7fff;
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);

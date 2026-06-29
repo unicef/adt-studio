@@ -380,12 +380,12 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
               "transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               file ? "min-h-0 py-4" : "min-h-[140px] flex-1",
               dragOver
-                ? "border-[#2b7fff] bg-[#2b7fff]/5"
-                : "border-border hover:border-[#2b7fff]/50 hover:bg-muted/30",
+                ? "border-part bg-part/5"
+                : "border-border hover:border-part/50 hover:bg-muted/30",
             )}
           >
             <Upload
-              className={cn("h-6 w-6", dragOver ? "text-[#2b7fff]" : "text-muted-foreground")}
+              className={cn("h-6 w-6", dragOver ? "text-part" : "text-muted-foreground")}
               strokeWidth={2}
             />
             {file ? (

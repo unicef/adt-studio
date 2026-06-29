@@ -1,7 +1,9 @@
-import { useState, type ComponentProps } from "react"
+import { useId, useState, type ComponentProps } from "react"
 import { Minus, Plus } from "lucide-react"
+import { useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
 
 interface StepperInputProps
   extends Omit<ComponentProps<"input">, "value" | "onChange" | "type" | "min" | "max" | "step"> {
@@ -114,6 +116,55 @@ export function StepperInput({
       >
         <Plus className="h-3.5 w-3.5" />
       </Button>
+    </div>
+  )
+}
+
+/**
+ * Label-above {@link StepperInput}. The shared field pattern for every numeric
+ * control (split count, page range), so the label + input + stepper a11y stay
+ * consistent in one place.
+ */
+export function StepperField({
+  label,
+  value,
+  onValueChange,
+  widthClass,
+  invalid,
+  errorId,
+  ...rest
+}: {
+  label: string
+  value: number | null
+  onValueChange: (value: number | null) => void
+  widthClass?: string
+  invalid?: boolean
+  errorId?: string
+} & Omit<
+  StepperInputProps,
+  "value" | "onChange" | "decrementLabel" | "incrementLabel" | "wrapperClassName" | "aria-invalid" | "aria-describedby"
+>) {
+  const { t } = useLingui()
+  const id = useId()
+  return (
+    <div className="flex flex-col gap-1">
+      <Label
+        htmlFor={id}
+        className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
+      >
+        {label}
+      </Label>
+      <StepperInput
+        id={id}
+        value={value}
+        onChange={onValueChange}
+        wrapperClassName={widthClass}
+        aria-invalid={invalid || undefined}
+        aria-describedby={invalid ? errorId : undefined}
+        decrementLabel={t`Decrease ${label}`}
+        incrementLabel={t`Increase ${label}`}
+        {...rest}
+      />
     </div>
   )
 }

@@ -1060,6 +1060,9 @@ msgstr "Allegory"
 msgid "Alphabetical"
 msgstr "Alphabetical"
 
+msgid "Already handed out"
+msgstr "Already handed out"
+
 msgid "Alt"
 msgstr "Alt"
 
@@ -3704,6 +3707,9 @@ msgstr "Legal and compliance manuals"
 msgid "Legal Compliance Guide"
 msgstr "Legal Compliance Guide"
 
+msgid "Legend"
+msgstr "Legend"
+
 msgid "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 msgstr "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 
@@ -4833,12 +4839,17 @@ msgid "Page {0} captions"
 msgstr "Page {0} captions"
 
 #. placeholder {0}: current.pageNumber
+#. placeholder {0}: zoom + 1
+#. placeholder {1}: pages.length
 #. placeholder {1}: renderedPages.length
 msgid "Page {0} of {1}"
 msgstr "Page {0} of {1}"
 
 msgid "Page {n}"
 msgstr "Page {n}"
+
+#~ msgid "Page {p}"
+#~ msgstr "Page {p}"
 
 msgid "Page {pageId}"
 msgstr "Page {pageId}"
@@ -4920,6 +4931,9 @@ msgstr "Pages {0}–{1} of {2}"
 msgid "pages {shownStr}"
 msgstr "pages {shownStr}"
 
+msgid "Pages in the selected range"
+msgstr "Pages in the selected range"
+
 msgid "pages per quiz"
 msgstr "pages per quiz"
 
@@ -4944,16 +4958,20 @@ msgstr "Parsing pages"
 msgid "Parsing pages into text, figures, and layout boxes — cached by content hash."
 msgstr "Parsing pages into text, figures, and layout boxes — cached by content hash."
 
+msgid "Part"
+msgstr "Part"
+
 #. placeholder {0}: book.part.range.startPage
 #. placeholder {1}: book.part.range.endPage
 msgid "Part · p{0}–{1}"
 msgstr "Part · p{0}–{1}"
 
 #. placeholder {0}: planStart.index + 1
-#. placeholder {1}: planStart.window.startPage
-#. placeholder {2}: planStart.window.endPage
-msgid "Part {0} · pages {1}–{2}"
-msgstr "Part {0} · pages {1}–{2}"
+msgid "Part {0}"
+msgstr "Part {0}"
+
+#~ msgid "Part {0} · pages {1}–{2}"
+#~ msgstr "Part {0} · pages {1}–{2}"
 
 msgid "Part info"
 msgstr "Part info"
@@ -5054,6 +5072,9 @@ msgstr "Pick from Book"
 
 msgid "Pick one layout approach."
 msgstr "Pick one layout approach."
+
+#~ msgid "Pick page range"
+#~ msgstr "Pick page range"
 
 msgid "Pick the languages you want to translate to. The book's original language stays as-is."
 msgstr "Pick the languages you want to translate to. The book's original language stays as-is."
@@ -6543,6 +6564,9 @@ msgstr "Start a reviewer session"
 msgid "Start from a PDF"
 msgstr "Start from a PDF"
 
+msgid "Start of an equal-split window"
+msgstr "Start of an equal-split window"
+
 msgid "Start page"
 msgstr "Start page"
 
@@ -7575,6 +7599,9 @@ msgstr "View license"
 
 msgid "View page"
 msgstr "View page"
+
+msgid "View page {pageNum} larger"
+msgstr "View page {pageNum} larger"
 
 msgid "vision"
 msgstr "vision"

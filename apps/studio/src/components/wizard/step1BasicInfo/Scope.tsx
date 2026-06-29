@@ -4,6 +4,7 @@ import { Trans } from "@lingui/react/macro"
 import { BookOpen, Scissors, SlidersHorizontal } from "lucide-react"
 import { useWizardForm } from "@/components/wizard/wizardForm"
 import { getPresetAccent } from "@/components/wizard/constants"
+import { Collapsible } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
 import { PageRange } from "./PageRange"
 
@@ -66,20 +67,6 @@ export function Scope() {
         </p>
       </Collapsible>
     </fieldset>
-  )
-}
-
-function Collapsible({ shown, children }: { shown: boolean; children: ReactNode }) {
-  return (
-    <div
-      className={cn(
-        "grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none",
-        shown ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
-      )}
-      aria-hidden={!shown}
-    >
-      <div className="min-h-0 overflow-hidden">{children}</div>
-    </div>
   )
 }
 
