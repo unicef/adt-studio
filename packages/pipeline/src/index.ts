@@ -39,6 +39,8 @@ export {
 } from "./image-cropping.js"
 export {
   segmentPageImages,
+  segmentPageImagesGeometrically,
+  detectGeometricSegments,
   applySegmentation,
   buildSegmentationConfig,
   getSegmentedImageId,

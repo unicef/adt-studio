@@ -5,6 +5,13 @@ import {
 } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import { applyCrop } from "./image-cropping.js"
+import { applyGeometricSegmentationFallback } from "./image-geometric-segmentation.js"
+
+export {
+  detectGeometricSegments,
+  segmentPageImagesGeometrically,
+  type GeometricSegmentCandidate,
+} from "./image-geometric-segmentation.js"
 
 export interface SegmentationPageInput {
   pageId: string
@@ -24,7 +31,7 @@ const DEFAULT_SEGMENTATION_MODEL = "openai:gpt-5.4"
 /**
  * Build segmentation config from AppConfig.
  * Returns null unless explicitly enabled via image_filters.segmentation === true.
- * Defaults to GPT-5.2 when no model is configured.
+ * Defaults to the current project segmentation model when no model is configured.
  */
 export function buildSegmentationConfig(
   appConfig: AppConfig
@@ -153,7 +160,7 @@ export async function segmentPageImages(
     },
   })
 
-  return {
+  const llmOutput: ImageSegmentationOutput = {
     results: result.object.images.map((img) => ({
       imageId: img.image_id,
       reasoning: img.reasoning,
@@ -171,6 +178,8 @@ export async function segmentPageImages(
         : {}),
     })),
   }
+
+  return applyGeometricSegmentationFallback(llmOutput, input.images)
 }
 
 /**

@@ -68,6 +68,7 @@ import {
   segmentPageImages,
   applySegmentation,
   buildSegmentationConfig,
+  segmentPageImagesGeometrically,
   getSegmentedImageId,
   createScreenshotRenderer,
   DEFAULT_VISUAL_REVIEW_MODEL_ID,
@@ -646,6 +647,7 @@ async function runExtractStep(
     const meaningfulnessConfig = buildMeaningfulnessConfig(config)
     const segmentationConfig = buildSegmentationConfig(config)
     const croppingConfig = buildCroppingConfig(config)
+    imageClassifyConfig.preserveOversizedForSegmentation = segmentationConfig !== null
 
     const meaningfulnessModel = meaningfulnessConfig
       ? createLLMModel({
@@ -692,14 +694,14 @@ async function runExtractStep(
       effectiveConcurrency, pageResults, failedPages, progress
     )
 
-    await runMeaningfulnessPass(
-      label, pages, storage, meaningfulnessConfig, meaningfulnessModel,
-      effectiveConcurrency, pageResults, failedPages, progress
-    )
-
     await runSegmentationPass(
       label, pages, storage, segmentationConfig, segmentationModel,
       effectiveConcurrency, pageResults, progress
+    )
+
+    await runMeaningfulnessPass(
+      label, pages, storage, meaningfulnessConfig, meaningfulnessModel,
+      effectiveConcurrency, pageResults, failedPages, progress
     )
 
     await runCroppingPass(
@@ -2608,15 +2610,26 @@ async function runSegmentationPass(
         }))
 
       if (unprunedImages.length > 0) {
-        const segmentationResult = await segmentPageImages(
-          {
-            pageId: page.pageId,
-            pageImageBase64: storage.getPageImageBase64(page.pageId),
-            images: unprunedImages,
-          },
-          config,
-          model,
-        )
+        const segmentationInput = {
+          pageId: page.pageId,
+          pageImageBase64: storage.getPageImageBase64(page.pageId),
+          images: unprunedImages,
+        }
+        let segmentationResult
+        try {
+          segmentationResult = await segmentPageImages(
+            segmentationInput,
+            config,
+            model,
+          )
+        } catch (err) {
+          const msg = toErrorMessage(err)
+          console.error(`[stage-run] ${label}: LLM image segmentation failed for ${page.pageId}; using geometric fallback: ${msg}`)
+          segmentationResult = segmentPageImagesGeometrically(
+            segmentationInput,
+            "LLM segmentation failed; using deterministic geometric fallback.",
+          )
+        }
         const segVersion = storage.putNodeData("image-segmentation", page.pageId, segmentationResult)
         const segDims = new Map(images.map((img) => [img.imageId, { width: img.width, height: img.height }]))
         const applied = applySegmentation(

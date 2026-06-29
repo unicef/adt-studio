@@ -61,6 +61,21 @@ describe("classifyPageImages", () => {
     })
   })
 
+  it("preserves oversized images when segmentation is enabled", () => {
+    const images = [makeImage("pg001_im001", 6000, 3000)]
+    const result = classifyPageImages("pg001", images, {
+      ...defaultConfig,
+      preserveOversizedForSegmentation: true,
+    })
+
+    expect(result.images).toHaveLength(1)
+    expect(result.images[0]).toEqual({
+      imageId: "pg001_im001",
+      isPruned: false,
+      reason: "longest side 6000px > max_side 5000px; preserved for segmentation",
+    })
+  })
+
   it("checks min_side before max_side", () => {
     // Image with both short side < min and long side > max: min_side triggers first
     const images = [makeImage("pg001_im001", 6000, 50)]

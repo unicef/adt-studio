@@ -5,6 +5,7 @@ import { grayscaleStdDev } from "./image-complexity.js"
 export interface ImageClassifyConfig {
   filters: ImageFilters
   getImageBytes?: (imageId: string) => Buffer
+  preserveOversizedForSegmentation?: boolean
 }
 
 /**
@@ -37,6 +38,14 @@ export function classifyPageImages(
       }
 
       if (max_side !== undefined && longSide > max_side) {
+        if (config.preserveOversizedForSegmentation) {
+          return {
+            imageId: img.imageId,
+            isPruned: false,
+            reason: `longest side ${longSide}px > max_side ${max_side}px; preserved for segmentation`,
+          }
+        }
+
         return {
           imageId: img.imageId,
           isPruned: true,
@@ -68,5 +77,6 @@ export function classifyPageImages(
 export function buildImageClassifyConfig(appConfig: AppConfig): ImageClassifyConfig {
   return {
     filters: appConfig.image_filters ?? {},
+    preserveOversizedForSegmentation: appConfig.image_filters?.segmentation === true,
   }
 }
