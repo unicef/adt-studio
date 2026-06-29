@@ -1,6 +1,6 @@
 import { draggable } from "@atlaskit/pragmatic-drag-and-drop/element/adapter"
 import { disableNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/element/disable-native-drag-preview"
-import { useAtom, useAtomValue } from "jotai"
+import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { GripHorizontal, VideoOff } from "lucide-react"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { appConfigAtom } from "@/shared/state/config.atoms"
@@ -14,6 +14,7 @@ import {
   currentSectionIdAtom,
   pagesAtom,
 } from "@/features/navigation/state/nav.atoms"
+import { activeMediaAtom } from "@/features/audio/state/audio.atoms"
 import { useTranslation } from "@/features/language/hooks/useTranslation"
 import { cn } from "@/shared/lib/utils"
 
@@ -26,6 +27,8 @@ export function SLVideo() {
   const features = useAtomValue(appConfigAtom).features
   const slMode = useAtomValue(signLanguageModeAtom)
   const videoFiles = useAtomValue(videoFilesAtom)
+  const activeMedia = useAtomValue(activeMediaAtom)
+  const setActiveMedia = useSetAtom(activeMediaAtom)
   const sectionId = useAtomValue(currentSectionIdAtom)
   const pageNumber = useAtomValue(currentPageNumberAtom)
   const pages = useAtomValue(pagesAtom)
@@ -33,6 +36,7 @@ export function SLVideo() {
   const { t } = useTranslation()
 
   const containerRef = useRef<HTMLDivElement>(null)
+  const videoRef = useRef<HTMLVideoElement>(null)
   const handleRef = useRef<HTMLDivElement>(null)
   const [position, setPosition] = useAtom(slVideoPositionAtom)
   const [isDragging, setIsDragging] = useState(false)
@@ -105,6 +109,11 @@ export function SLVideo() {
     setAspectRatio(null)
   }, [src])
 
+  useEffect(() => {
+    if (activeMedia !== "tts") return
+    videoRef.current?.pause()
+  }, [activeMedia])
+
   if (!visible) return null
 
   const positioned = position !== null
@@ -150,6 +159,7 @@ export function SLVideo() {
       </div>
       {src ? (
         <video
+          ref={videoRef}
           key={src}
           src={src}
           autoPlay
@@ -162,6 +172,7 @@ export function SLVideo() {
               setAspectRatio(v.videoWidth / v.videoHeight)
             }
           }}
+          onPlay={() => setActiveMedia("sign-language")}
           className="w-full h-[calc(100%-1.5rem)] object-contain bg-black"
         />
       ) : (
