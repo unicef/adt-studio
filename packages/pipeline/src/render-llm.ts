@@ -44,6 +44,7 @@ export async function renderSectionLlm(
     images: renderContext.image_refs,
     group_ids: renderContext.group_ids,
     styleguide: input.styleguide ?? "",
+    book_fonts: input.bookFonts ?? [],
     viewports: getViewportBreakpoints(),
     _isActivity: isActivity,
     user_instructions: input.userPrompt ?? "",

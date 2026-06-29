@@ -41,6 +41,7 @@ interface StyleEditorPanelProps {
   elementClasses: string[] | null
   elementProps: StyleEditorElementProps | null
   onClassesChange: (dataId: string, classes: string[]) => void
+  onStyleChange?: (dataId: string, property: string, value: string) => void
   deviceView: DeviceView
   /** Snapshot of the iframe element's getComputedStyle for the inheritable
    *  typography properties — used as inspector defaults so the fields show
@@ -50,6 +51,8 @@ interface StyleEditorPanelProps {
    *  so the class-based controls have no effect. When true, the class sections
    *  (and Advanced) are hidden; image actions and prune/delete remain. */
   isFixedLayout?: boolean
+  /** Book label, forwarded to the font control so it can list attached fonts. */
+  bookLabel?: string
 }
 
 export function StyleEditorPanel({
@@ -60,9 +63,11 @@ export function StyleEditorPanel({
   elementClasses,
   elementProps,
   onClassesChange,
+  onStyleChange,
   deviceView,
   computedTypography,
   isFixedLayout = false,
+  bookLabel,
 }: StyleEditorPanelProps) {
   const { t } = useLingui()
 
@@ -183,9 +188,11 @@ export function StyleEditorPanel({
             elementType={elementType}
             elementProps={displayElementProps}
             onClassesChange={onClassesChange}
+            onStyleChange={onStyleChange}
             deviceView={deviceView}
             computedTypography={computedTypography ?? null}
             isFixedLayout={isFixedLayout}
+            bookLabel={bookLabel}
           />
         ) : null}
       </div>
@@ -251,9 +258,11 @@ interface StyleEditorBodyProps {
   elementType: ElementType | null
   elementProps: StyleEditorElementProps | null
   onClassesChange: (dataId: string, classes: string[]) => void
+  onStyleChange?: (dataId: string, property: string, value: string) => void
   deviceView: DeviceView
   computedTypography: ComputedTypographyStyles | null
   isFixedLayout: boolean
+  bookLabel?: string
 }
 
 function StyleEditorBody({
@@ -262,9 +271,11 @@ function StyleEditorBody({
   elementType,
   elementProps,
   onClassesChange,
+  onStyleChange,
   deviceView,
   computedTypography,
   isFixedLayout,
+  bookLabel,
 }: StyleEditorBodyProps) {
   const visibleSections = useMemo(
     () => (elementType ? getVisibleSections(elementType) : []),
@@ -277,8 +288,10 @@ function StyleEditorBody({
         dataId,
         classes,
         onClassesChange,
+        onStyleChange,
         deviceView,
         computedStyles: computedTypography ?? undefined,
+        bookLabel,
       }}
     >
       <div className="flex flex-col min-h-full">

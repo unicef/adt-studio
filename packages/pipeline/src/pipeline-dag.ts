@@ -25,6 +25,11 @@ import type {
   WebRenderingOutput,
 } from "@adt/types"
 import { extractPDF } from "./pdf-extraction.js"
+import {
+  resolveFontsCacheDir,
+  buildBookFontsPromptContext,
+  ensureBookGoogleFontsCached,
+} from "./fonts-bundle.js"
 import { extractMetadata, buildMetadataConfig } from "./metadata-extraction.js"
 import { generateBookSummary, buildBookSummaryConfig } from "./book-summary.js"
 import {
@@ -34,7 +39,7 @@ import {
 import { classifyPageImages, buildImageClassifyConfig } from "./image-filtering.js"
 import { filterPageImageMeaningfulness, buildMeaningfulnessConfig } from "./image-meaningfulness.js"
 import { cropPageImages, applyCrops, buildCroppingConfig, getCroppedImageId } from "./image-cropping.js"
-import { segmentPageImages, applySegmentation, buildSegmentationConfig, getSegmentedImageId } from "./image-segmentation.js"
+import { segmentPageImages, applySegmentation, segmentBoundsOnPage, buildSegmentationConfig, getSegmentedImageId } from "./image-segmentation.js"
 import { renderPage, buildRenderStrategyResolver } from "./web-rendering.js"
 import { translatePageTree, buildTranslationConfig } from "./translation.js"
 import { createTemplateEngine } from "./render-template.js"
@@ -204,6 +209,7 @@ export async function runFullPipeline(
           // Gates the positioned-text pipeline (fixed-layout rendering is its
           // only consumer). Must match stage-runner so re-runs are consistent.
           fixedLayout: isFixedLayoutBook(config),
+          fontsCacheDir: resolveFontsCacheDir(booksRoot),
         },
         storage,
         progressOnly(p),
@@ -297,7 +303,12 @@ export async function runFullPipeline(
               (imageId) => storage.getImageBase64(imageId),
               segDims,
             )
+            const srcMeta = new Map(allImages.map((img) => [img.imageId, img]))
             for (const seg of applied) {
+              const src = srcMeta.get(seg.sourceImageId)
+              const bounds = src?.bounds
+                ? segmentBoundsOnPage(src.bounds, src.width, src.height, seg)
+                : undefined
               storage.putSegmentedImage({
                 sourceImageId: seg.sourceImageId,
                 segmentIndex: seg.segmentIndex,
@@ -306,6 +317,7 @@ export async function runFullPipeline(
                 buffer: seg.buffer,
                 width: seg.width,
                 height: seg.height,
+                bounds,
               })
               const segImageId = getSegmentedImageId(seg.sourceImageId, seg.segmentIndex, segVersion)
               imageClassification.images.push({
@@ -536,6 +548,8 @@ export async function runFullPipeline(
         return
       }
 
+      await ensureBookGoogleFontsCached(storage, resolveFontsCacheDir(booksRoot))
+
       const renderModels = new Map<string, LLMModel>()
       const resolveRenderModel = (modelId: string): LLMModel => {
         let model = renderModels.get(modelId)
@@ -564,7 +578,14 @@ export async function runFullPipeline(
         }
         const pageImageBase64 = storage.getPageImageBase64(page.pageId)
         const result = await renderPage(
-          { label, pageId: page.pageId, pageImageBase64, sectioning: sectioning, images: renderImages },
+          {
+            label,
+            pageId: page.pageId,
+            pageImageBase64,
+            sectioning: sectioning,
+            images: renderImages,
+            bookFonts: buildBookFontsPromptContext(storage),
+          },
           resolveRenderConfig,
           resolveRenderModel,
           templateEngine,

@@ -52,7 +52,9 @@ const TASK_KIND_LABELS: Record<string, MessageDescriptor> = {
   "prepare-export": msg`Export`,
   "transcribe-timestamps": msg`Timestamps`,
   "book-summary": msg`Book Summary`,
+  "font-assignment": msg`Font Analysis`,
 }
+
 
 export function StageSidebar({
   bookLabel,

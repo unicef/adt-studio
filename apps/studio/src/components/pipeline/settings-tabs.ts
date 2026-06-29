@@ -4,6 +4,7 @@ import type { I18n, MessageDescriptor } from "@lingui/core"
 export const SETTINGS_TAB_MESSAGE: Record<string, MessageDescriptor> = {
   general: msg`General`,
   overview: msg`Overview`,
+  fonts: msg`Fonts`,
   "image-processing": msg`Image Processing`,
   "section-types": msg`Section Types`,
   "container-types": msg`Container Types`,
@@ -56,6 +57,7 @@ export function getSettingsTabs(
     ],
     storyboard: [
       { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE.general) },
+      { key: "fonts", label: i18n._(SETTINGS_TAB_MESSAGE.fonts) },
       { key: "rendering-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["rendering-prompt"]) },
       { key: "rendering-template", label: i18n._(SETTINGS_TAB_MESSAGE["rendering-template"]) },
       { key: "activity-prompts", label: i18n._(SETTINGS_TAB_MESSAGE["activity-prompts"]) },
