@@ -46,6 +46,11 @@ export function SplitPreviewDialog({
             endPage={state.endPage}
             plan={state.plan}
             exported={status?.exported}
+            onSelectRange={(s, e) => {
+              state.setStartPage(s)
+              state.setEndPage(e)
+              state.setTouched(true)
+            }}
           />
         </div>
       </DialogContent>

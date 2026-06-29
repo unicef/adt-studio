@@ -37,6 +37,9 @@ msgstr ", e "
 msgid "? This will remove all extracted data and cannot be undone."
 msgstr "? Isso removerá todos os dados extraídos e não poderá ser desfeito."
 
+msgid "· choose another"
+msgstr "· escolher outro"
+
 msgid "\"A landscape forged by fire.\""
 msgstr "\\\"Uma paisagem forjada pelo fogo.\\\""
 
@@ -65,6 +68,20 @@ msgstr "(p.{0})"
 msgid "(template)"
 msgstr "(template)"
 
+#. placeholder {0}: preview.addedPageNumbers.length
+#. placeholder {0}: result.addedPages
+msgid "{0, plural, one {# page added} other {# pages added}}"
+msgstr "{0, plural, one {# página adicionada} other {# páginas adicionadas}}"
+
+#. placeholder {0}: preview.replacedPageNumbers.length
+#. placeholder {0}: result.replacedPages
+msgid "{0, plural, one {# page replaced} other {# pages replaced}}"
+msgstr "{0, plural, one {# página substituída} other {# páginas substituídas}}"
+
+#. placeholder {0}: Math.max(0, endPage - startPage + 1)
+msgid "{0, plural, one {# page} other {# pages}}"
+msgstr "{0, plural, one {# página} other {# páginas}}"
+
 #. placeholder {0}: lockedLang.name
 msgid "{0} — type country or Enter for base"
 msgstr "{0} — digite o país ou pressione Enter para o padrão"
@@ -84,9 +101,8 @@ msgstr "{0} / {1}"
 msgid "{0} × {1}px · {2} points"
 msgstr "{0} × {1}px · {2} pontos"
 
-#. placeholder {0}: preview.addedPageNumbers.length
-msgid "{0} added"
-msgstr "{0} adicionadas"
+#~ msgid "{0} added"
+#~ msgstr "{0} adicionadas"
 
 #. placeholder {0}: String(totalAudioFiles)
 msgid "{0} audio"
@@ -198,9 +214,8 @@ msgstr "{0} pendentes"
 msgid "{0} questions"
 msgstr "{0} questões"
 
-#. placeholder {0}: preview.replacedPageNumbers.length
-msgid "{0} replaced"
-msgstr "{0} substituídas"
+#~ msgid "{0} replaced"
+#~ msgstr "{0} substituídas"
 
 #. placeholder {0}: String(group.blocks.length)
 msgid "{0} sections"
@@ -309,6 +324,12 @@ msgstr "{issueCount} {0}"
 
 msgid "{issuesLabel}, {reviewLabel}"
 msgstr "{issuesLabel}, {reviewLabel}"
+
+#~ msgid "{merged, plural, =0 {0 of {0} pages merged} one {# of {1} pages merged} other {# of {2} pages merged}}"
+#~ msgstr ""
+
+msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
+msgstr "{merged, plural, =0 {0 de {total} páginas mescladas} one {# de {total} páginas mescladas} other {# de {total} páginas mescladas}}"
 
 msgid "{missingAudioCount} missing"
 msgstr "{missingAudioCount} faltando"
@@ -1316,6 +1337,9 @@ msgstr "Corpo"
 msgid "Book"
 msgstr "Livro"
 
+msgid "Book coverage"
+msgstr "Cobertura do livro"
+
 msgid "Book creation stages"
 msgstr "Etapas de criação do livro"
 
@@ -1582,8 +1606,8 @@ msgstr "Escolha como o conteúdo deve ser formatado."
 msgid "Choose images..."
 msgstr "Escolher imagens..."
 
-msgid "Choose part file…"
-msgstr "Escolher arquivo da parte…"
+#~ msgid "Choose part file…"
+#~ msgstr "Escolher arquivo da parte…"
 
 msgid "Choose Provider"
 msgstr "Escolher provedor"
@@ -1626,6 +1650,9 @@ msgstr "Limpar busca"
 
 msgid "Clear, descriptive captions for middle and high school readers."
 msgstr "Legendas claras e descritivas para leitores do ensino fundamental e médio."
+
+msgid "Click a start page, then an end page to set the range."
+msgstr "Clique em uma página inicial e depois em uma final para definir o intervalo."
 
 msgid "Click an image to select"
 msgstr "Clique em uma imagem para selecionar"
@@ -1970,6 +1997,9 @@ msgstr "Instruções Personalizadas"
 msgid "Custom Layout Demo"
 msgstr "Demonstração de Layout Personalizado"
 
+msgid "Custom range"
+msgstr "Intervalo personalizado"
+
 msgid "Custom section {index}"
 msgstr "Custom section {index}"
 
@@ -1978,6 +2008,9 @@ msgstr "Modo de depuração não está ativado."
 
 msgid "Decorative"
 msgstr "Decorativa"
+
+msgid "Decrease {label}"
+msgstr "Diminuir {label}"
 
 msgid "Decrease indent"
 msgstr "Diminuir recuo"
@@ -2199,6 +2232,9 @@ msgstr "Exibição"
 msgid "Distribute through Readium-compatible reading apps and libraries."
 msgstr "Distribua através de aplicativos e bibliotecas de leitura compatíveis com Readium."
 
+msgid "Divide the book into equal windows, then export each to hand out."
+msgstr "Divida o livro em janelas iguais e exporte cada uma para distribuir."
+
 msgid "Don't have a project yet?"
 msgstr "Ainda não tem um projeto?"
 
@@ -2242,6 +2278,9 @@ msgstr "Arraste os vértices para remodelar. Clique nos pontos médios (+) para 
 
 msgid "Drawn from"
 msgstr "Baseado em"
+
+msgid "Drop a part <0>.zip</0> here, or browse"
+msgstr "Solte uma parte <0>.zip</0> aqui ou navegue"
 
 msgid "Drop a PDF to get started"
 msgstr "Solte um PDF para começar"
@@ -2489,8 +2528,11 @@ msgstr "Melhorias"
 msgid "Enter a valid minimum dimension (whole number ≥ 0)"
 msgstr "Insira uma dimensão mínima válida (número inteiro ≥ 0)"
 
-msgid "Enter a valid page range"
-msgstr "Informe um intervalo de páginas válido"
+#~ msgid "Enter a valid page range"
+#~ msgstr "Informe um intervalo de páginas válido"
+
+msgid "Enter a valid page range within 1–{pageCount}."
+msgstr "Insira um intervalo de páginas válido entre 1 e {pageCount}."
 
 msgid "Enter a valid project name"
 msgstr "Insira um nome de projeto válido"
@@ -2516,8 +2558,8 @@ msgstr "EPUB 3"
 msgid "EPUB Export"
 msgstr "Exportar EPUB"
 
-msgid "equal parts"
-msgstr "partes iguais"
+#~ msgid "equal parts"
+#~ msgstr "partes iguais"
 
 msgid "Error"
 msgstr "Erro"
@@ -2621,6 +2663,9 @@ msgstr "Exportado"
 
 msgid "Exported:"
 msgstr "Exportado:"
+
+msgid "Exporting"
+msgstr "Exportando"
 
 msgid "Exporting..."
 msgstr "Exportando..."
@@ -3341,6 +3386,9 @@ msgstr "Incluir na renderização"
 msgid "Includes:"
 msgstr "Inclui:"
 
+msgid "Increase {label}"
+msgstr "Aumentar {label}"
+
 msgid "Increase indent"
 msgstr "Aumentar recuo"
 
@@ -3391,6 +3439,9 @@ msgstr "Introdução à Fotossíntese"
 
 msgid "Invalid project archive"
 msgstr "Arquivo de projeto inválido"
+
+msgid "Invalid range"
+msgstr "Intervalo inválido"
 
 msgid "Isolated asset"
 msgstr "Recurso isolado"
@@ -3857,10 +3908,11 @@ msgstr "Mesclar com a anterior"
 msgid "merge with previous section"
 msgstr "mesclar com a seção anterior"
 
-#. placeholder {0}: result.addedPages
-#. placeholder {1}: result.replacedPages
-msgid "Merged · {0} added, {1} replaced"
-msgstr "Mesclado · {0} adicionadas, {1} substituídas"
+msgid "Merged"
+msgstr "Mescladas"
+
+#~ msgid "Merged · {0} added, {1} replaced"
+#~ msgstr "Mesclado · {0} adicionadas, {1} substituídas"
 
 #~ msgid "Merged:"
 #~ msgstr "Mesclado:"
@@ -4325,6 +4377,9 @@ msgstr "Not reviewed"
 msgid "Not run during the last execution — likely because its inputs weren't ready or its stage's settings turned it off."
 msgstr "Não executado na última execução — provavelmente porque suas entradas não estavam prontas ou as configurações de sua etapa o desativaram."
 
+msgid "Not split yet"
+msgstr "Ainda não dividido"
+
 msgid "not started"
 msgstr "não iniciado"
 
@@ -4339,6 +4394,9 @@ msgstr "Nota"
 
 msgid "Nothing to show"
 msgstr "Nada para mostrar"
+
+msgid "Now click the end page."
+msgstr "Agora clique na página final."
 
 msgid "Number of pages of content to include per quiz question."
 msgstr "Número de páginas de conteúdo a incluir por questão de quiz."
@@ -4521,6 +4579,9 @@ msgstr "Outras imagens"
 msgid "Other options"
 msgstr "Outras opções"
 
+msgid "Out for processing"
+msgstr "Em processamento"
+
 msgid "Out of date"
 msgstr "Desatualizado"
 
@@ -4686,6 +4747,10 @@ msgstr "páginas"
 msgid "Pages"
 msgstr "Páginas"
 
+#. placeholder {0}: fmtRange({ startPage, endPage })
+msgid "Pages {0}"
+msgstr "Páginas {0}"
+
 #. placeholder {0}: activeSession.session.start_page ?? "?"
 #. placeholder {0}: preview.range.startPage
 #. placeholder {1}: activeSession.session.end_page ?? "?"
@@ -4746,6 +4811,9 @@ msgstr "Parte de {0}"
 
 msgid "Parts"
 msgstr "Partes"
+
+msgid "Parts can't be split further. Process the assigned pages, then return the finished part from its Export step to merge it back into the source book."
+msgstr "As partes não podem ser divididas novamente. Processe as páginas atribuídas e depois devolva a parte concluída a partir da etapa de Exportação para mesclá-la de volta no livro de origem."
 
 msgid "Pass"
 msgstr "Pass"
@@ -4913,8 +4981,8 @@ msgstr "Anterior"
 msgid "Preview"
 msgstr "Pré-visualização"
 
-msgid "Preview & split pages"
-msgstr "Pré-visualizar e dividir páginas"
+#~ msgid "Preview & split pages"
+#~ msgstr "Pré-visualizar e dividir páginas"
 
 msgid "Preview linked page"
 msgstr "Visualizar página vinculada"
@@ -5844,6 +5912,9 @@ msgstr "Seções"
 msgid "See examples"
 msgstr "Ver exemplos"
 
+msgid "See the book & pick pages"
+msgstr "Ver o livro e escolher páginas"
+
 msgid "Segment"
 msgstr "Segmentar"
 
@@ -5876,6 +5947,9 @@ msgstr "Segmentando..."
 
 msgid "Segmenting…"
 msgstr "Segmentando..."
+
+msgid "Select a .zip project archive exported from ADT Studio."
+msgstr "Selecione um arquivo de projeto .zip exportado do ADT Studio."
 
 msgid "Select a node type and enter an item ID to view versions."
 msgstr "Selecione um tipo de nó e insira um ID de item para ver as versões."
@@ -5936,6 +6010,10 @@ msgstr "Selecione até 5 páginas para usar como referências visuais. O LLM ir�
 
 msgid "Selected images"
 msgstr "Imagens selecionadas"
+
+#. placeholder {0}: fmtRange(w)
+msgid "Selected pages {0}."
+msgstr "Páginas selecionadas {0}."
 
 msgid "Selected: {styleImageId}"
 msgstr "Selecionada: {0}"
@@ -6698,8 +6776,8 @@ msgstr "Este livro é uma parte: seu intervalo de páginas é fixo, corresponde 
 msgid "This book is a part. Export it as a <0>Project Archive</0> and send the file back to the coordinator to merge into the source book."
 msgstr "Este livro é uma parte. Exporte-o como <0>Arquivo do Projeto</0> e envie o arquivo de volta ao coordenador para mesclá-lo ao livro de origem."
 
-msgid "This book is an imported part. Parts can't be split or merged further — process the assigned pages, then return the finished part from the Export step to merge it back into the source book."
-msgstr "Este livro é uma parte importada. As partes não podem ser divididas nem mescladas novamente: processe as páginas atribuídas e depois retorne a parte concluída a partir da etapa Exportar para mesclá-la de volta no livro de origem."
+#~ msgid "This book is an imported part. Parts can't be split or merged further — process the assigned pages, then return the finished part from the Export step to merge it back into the source book."
+#~ msgstr "Este livro é uma parte importada. As partes não podem ser divididas nem mescladas novamente: processe as páginas atribuídas e depois retorne a parte concluída a partir da etapa Exportar para mesclá-la de volta no livro de origem."
 
 #. placeholder {0}: book.title
 msgid "This book is titled \"{0}\"."
@@ -7430,6 +7508,9 @@ msgstr "Largura"
 
 msgid "Will be reset"
 msgstr "Será redefinido"
+
+msgid "Windows"
+msgstr "Janelas"
 
 msgid "Within range"
 msgstr "Dentro do alcance"

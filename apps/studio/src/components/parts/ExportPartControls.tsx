@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react"
+import { useEffect, useId, useMemo, useState, type ComponentProps, type ReactNode } from "react"
 import { useQueryClient } from "@tanstack/react-query"
-import { Trans, useLingui } from "@lingui/react/macro"
-import { Download, CheckCircle2 } from "lucide-react"
+import { Plural, Trans, useLingui } from "@lingui/react/macro"
+import { Download, CheckCircle2, Scissors, SlidersHorizontal } from "lucide-react"
 import { api, type PageRange, type SplitStatus } from "../../api/client"
 import { Button } from "../ui/button"
-import { Input } from "../ui/input"
 import { Badge } from "../ui/badge"
+import { Label } from "../ui/label"
+import { SegmentedControl } from "../ui/segmented-control"
+import { StepperInput } from "../ui/stepper-input"
+import { cn } from "../../lib/utils"
 import { computeEqualWindows, fmtRange, rangeKey } from "./parts-utils"
 
 export interface ExportPartState {
@@ -47,10 +50,16 @@ export function useExportPartState({
   // parts plan if one is set, otherwise the next gap). Manual edits pin it;
   // exporting releases it so it advances.
   const [touched, setTouched] = useState(false)
-  // Optional "split into N equal parts" plan. When set, the picker walks these
-  // windows in order, skipping ones already exported.
-  const [partsInput, setPartsInput] = useState("")
-  const [plan, setPlan] = useState<PageRange[] | null>(null)
+  // "Split into N equal parts" — defaults to 2 so the user lands on a sensible
+  // split. The plan is derived so it recomputes once the page count loads.
+  const [partsInput, setPartsInput] = useState("2")
+  const plan = useMemo(() => {
+    const n = Number(partsInput.trim())
+    if (partsInput.trim() && Number.isInteger(n) && n >= 2 && pageCount > 0) {
+      return computeEqualWindows(pageCount, n, { spreadMode })
+    }
+    return null
+  }, [partsInput, pageCount, spreadMode])
 
   const nextGap = status?.nextGap
   const nextGapKey = nextGap ? `${nextGap.startPage}-${nextGap.endPage}` : ""
@@ -81,12 +90,8 @@ export function useExportPartState({
   const onPartsChange = (raw: string) => {
     setPartsInput(raw)
     const n = Number(raw.trim())
-    if (raw.trim() && Number.isInteger(n) && n >= 2 && pageCount > 0) {
-      setPlan(computeEqualWindows(pageCount, n, { spreadMode }))
-      setTouched(false)
-    } else {
-      setPlan(null)
-    }
+    // Release the pin so the picker follows the freshly-computed windows.
+    if (raw.trim() && Number.isInteger(n) && n >= 2 && pageCount > 0) setTouched(false)
   }
 
   const max = pageCount > 0 ? pageCount : undefined
@@ -141,6 +146,9 @@ export function ExportPartControls({
   status: SplitStatus | undefined
 }) {
   const { t } = useLingui()
+  const errorId = useId()
+  const [announce, setAnnounce] = useState("")
+  const [mode, setMode] = useState<"split" | "custom">("split")
   const {
     startPage,
     endPage,
@@ -155,98 +163,164 @@ export function ExportPartControls({
     onExport,
   } = state
 
+  // Window chips drive the canonical From/To range — picking one pins it (so the
+  // auto-advance effect won't override) and announces the change for SR users.
+  const selectWindow = (w: PageRange) => {
+    setStartPage(w.startPage)
+    setEndPage(w.endPage)
+    setTouched(true)
+    setAnnounce(t`Selected pages ${fmtRange(w)}.`)
+  }
+
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex items-center gap-2">
-        <Download className="h-4 w-4 text-muted-foreground" strokeWidth={2} />
-        <h3 className="text-sm font-semibold text-foreground">
-          <Trans>Export a part</Trans>
-        </h3>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center gap-2">
+          <Download className="h-4 w-4 text-muted-foreground" strokeWidth={2} />
+          <h3 className="text-sm font-semibold text-foreground">
+            <Trans>Export a part</Trans>
+          </h3>
+        </div>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          <Trans>
+            Download a lightweight part (the full PDF plus a page range and a
+            fingerprint) for someone else to process on their own machine, then
+            merge their result back here.
+          </Trans>
+        </p>
       </div>
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        <Trans>
-          Download a lightweight part (the full PDF plus a page range and a
-          fingerprint) for someone else to process on their own machine, then
-          merge their result back here.
-        </Trans>
-      </p>
 
       {pageCount > 0 && (
-        <div className="flex flex-col gap-1.5">
-          <label className="flex items-center gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              <Trans>Split into</Trans>
-            </span>
-            <Input
-              type="number"
-              min={2}
-              max={pageCount}
-              placeholder="N"
-              value={partsInput}
-              onChange={(e) => onPartsChange(e.target.value)}
-              className="w-16 tabular-nums"
-            />
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              <Trans>equal parts</Trans>
-            </span>
-          </label>
-          {plan && plan.length > 0 && (
-            <div className="flex flex-wrap items-center gap-1">
-              {plan.map((w) => {
-                const done = (status?.exported ?? []).some((r) => rangeKey(r) === rangeKey(w))
-                return (
-                  <Badge
-                    key={rangeKey(w)}
-                    variant={done ? "secondary" : "outline"}
-                    className="text-[10px] px-1.5 py-0 tabular-nums"
-                  >
-                    {done && <CheckCircle2 className="mr-1 h-3 w-3 text-emerald-600" />}
-                    {fmtRange(w)}
-                  </Badge>
-                )
-              })}
+        <div className="flex flex-col gap-4">
+          <SegmentedControl
+            options={[
+              { value: "split", label: t`Split into parts`, icon: <Scissors className="h-3.5 w-3.5" /> },
+              { value: "custom", label: t`Custom range`, icon: <SlidersHorizontal className="h-3.5 w-3.5" /> },
+            ]}
+            value={mode}
+            onValueChange={setMode}
+            color="#2b7fff"
+          />
+
+          {mode === "split" ? (
+            <div key="split" className="flex flex-col gap-3">
+              <div className="flex items-end gap-3">
+                <NumberField
+                  label={t`Split into`}
+                  value={partsInput === "" ? null : Number(partsInput)}
+                  min={2}
+                  max={pageCount}
+                  widthClass="w-28"
+                  onValueChange={(n) => onPartsChange(n == null ? "" : String(n))}
+                />
+                <p className="mb-2.5 flex-1 text-[11px] leading-relaxed text-muted-foreground">
+                  <Trans>Divide the book into equal windows, then export each to hand out.</Trans>
+                </p>
+              </div>
+
+              <Collapsible shown={!!plan && plan.length > 0}>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    <Trans>Windows</Trans>
+                  </span>
+                  <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={t`Windows`}>
+                    {(plan ?? []).map((w, i) => {
+                      const done = (status?.exported ?? []).some((r) => rangeKey(r) === rangeKey(w))
+                      const active = w.startPage === startPage && w.endPage === endPage
+                      return (
+                        <button
+                          key={rangeKey(w)}
+                          type="button"
+                          aria-pressed={active}
+                          onClick={() => selectWindow(w)}
+                          style={{ animationDelay: `${i * 30}ms` }}
+                          className={cn(
+                            "inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] tabular-nums",
+                            "transition-[color,background-color,border-color,transform] duration-150 ease-out active:scale-95",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                            "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95",
+                            active
+                              ? "border-[#2b7fff] bg-[#2b7fff]/10 font-medium text-[#2b7fff]"
+                              : done
+                                ? "border-transparent bg-muted text-muted-foreground hover:bg-muted/70"
+                                : "border-border text-foreground hover:border-[#2b7fff]/50 hover:bg-muted/40",
+                          )}
+                        >
+                          {done && <CheckCircle2 className="mr-1 h-3 w-3 text-emerald-600" />}
+                          {fmtRange(w)}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              </Collapsible>
+            </div>
+          ) : (
+            <div key="custom" className="flex flex-col gap-2">
+              <div className="grid grid-cols-2 gap-3">
+                <NumberField
+                  label={t`From page`}
+                  value={startPage}
+                  min={1}
+                  max={max}
+                  widthClass="w-full"
+                  aria-invalid={invalid || undefined}
+                  aria-describedby={invalid ? errorId : undefined}
+                  onValueChange={(n) => { if (n != null) { setStartPage(n); setTouched(true) } }}
+                />
+                <NumberField
+                  label={t`To page`}
+                  value={endPage}
+                  min={1}
+                  max={max}
+                  widthClass="w-full"
+                  aria-invalid={invalid || undefined}
+                  aria-describedby={invalid ? errorId : undefined}
+                  onValueChange={(n) => { if (n != null) { setEndPage(n); setTouched(true) } }}
+                />
+              </div>
+              <Collapsible shown={invalid}>
+                <p id={errorId} role="alert" className="text-[11px] font-medium text-destructive">
+                  <Trans>Enter a valid page range within 1–{pageCount}.</Trans>
+                </p>
+              </Collapsible>
             </div>
           )}
+
+          {/* What's about to be exported, and the action. */}
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-muted/20 p-3">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                <Trans>Exporting</Trans>
+              </span>
+              <span className="text-sm font-medium tabular-nums text-foreground">
+                {invalid ? (
+                  <span className="text-destructive"><Trans>Invalid range</Trans></span>
+                ) : (
+                  <>
+                    <Trans>Pages {fmtRange({ startPage, endPage })}</Trans>
+                    <span className="font-normal text-muted-foreground">
+                      {" · "}
+                      <Plural value={Math.max(0, endPage - startPage + 1)} one="# page" other="# pages" />
+                    </span>
+                  </>
+                )}
+              </span>
+            </div>
+            <Button
+              type="button"
+              disabled={invalid}
+              onClick={onExport}
+              aria-describedby={invalid ? errorId : undefined}
+            >
+              <Download className="mr-1.5 h-4 w-4" />
+              <Trans>Download part</Trans>
+            </Button>
+          </div>
+
+          <span className="sr-only" aria-live="polite">{announce}</span>
         </div>
       )}
-
-      <div className="flex items-end gap-3">
-        <label className="flex flex-col gap-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            <Trans>From page</Trans>
-          </span>
-          <Input
-            type="number"
-            min={1}
-            max={max}
-            value={startPage}
-            onChange={(e) => { setStartPage(Number(e.target.value)); setTouched(true) }}
-            className="w-24 tabular-nums"
-          />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-            <Trans>To page</Trans>
-          </span>
-          <Input
-            type="number"
-            min={1}
-            max={max}
-            value={endPage}
-            onChange={(e) => { setEndPage(Number(e.target.value)); setTouched(true) }}
-            className="w-24 tabular-nums"
-          />
-        </label>
-        <Button
-          type="button"
-          disabled={invalid}
-          onClick={onExport}
-          title={invalid ? t`Enter a valid page range` : undefined}
-        >
-          <Download className="mr-1.5 h-4 w-4" />
-          <Trans>Download part</Trans>
-        </Button>
-      </div>
 
       {status && status.exported.length > 0 && (
         <div className="flex flex-col gap-1.5">
@@ -278,6 +352,62 @@ export function ExportPartControls({
           <Trans>This book has {pageCount} pages.</Trans>
         </p>
       )}
+    </div>
+  )
+}
+
+/** Height + opacity collapse for content that slides in/out (windows, errors). */
+function Collapsible({ shown, children }: { shown: boolean; children: ReactNode }) {
+  return (
+    <div
+      className={cn(
+        "grid transition-[grid-template-rows,opacity] duration-300 ease-out motion-reduce:transition-none",
+        shown ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+      )}
+      aria-hidden={!shown}
+    >
+      <div className="min-h-0 overflow-hidden">{children}</div>
+    </div>
+  )
+}
+
+/** Label-above stepper input — the single field pattern every export control shares. */
+function NumberField({
+  id,
+  label,
+  widthClass,
+  value,
+  onValueChange,
+  ...rest
+}: {
+  label: string
+  widthClass?: string
+  value: number | null
+  onValueChange: (value: number | null) => void
+} & Omit<
+  ComponentProps<typeof StepperInput>,
+  "value" | "onChange" | "decrementLabel" | "incrementLabel" | "wrapperClassName"
+>) {
+  const { t } = useLingui()
+  const autoId = useId()
+  const fieldId = id ?? autoId
+  return (
+    <div className="flex flex-col gap-1">
+      <Label
+        htmlFor={fieldId}
+        className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"
+      >
+        {label}
+      </Label>
+      <StepperInput
+        id={fieldId}
+        value={value}
+        onChange={onValueChange}
+        decrementLabel={t`Decrease ${label}`}
+        incrementLabel={t`Increase ${label}`}
+        wrapperClassName={widthClass}
+        {...rest}
+      />
     </div>
   )
 }

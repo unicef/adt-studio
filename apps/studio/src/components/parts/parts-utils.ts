@@ -5,6 +5,51 @@ export const fmtRange = (r: PageRange) =>
 
 export const rangeKey = (r: PageRange) => `${r.startPage}-${r.endPage}`
 
+/** Per-page lifecycle state, in pipeline order. */
+export type CoverageState = "merged" | "exported" | "pending"
+
+export interface CoverageSegment {
+  state: CoverageState
+  startPage: number
+  endPage: number
+  pages: number
+}
+
+/**
+ * Coalesce the book's pages into contiguous runs by lifecycle state so a single
+ * proportional bar can show, at a glance, how much of the book is merged back
+ * (done), exported but still out for processing, or not split yet. Page state
+ * priority: merged > exported > pending.
+ */
+export function computeCoverageSegments(status: {
+  pageCount: number
+  exported: PageRange[]
+  mergedRanges: PageRange[]
+}): CoverageSegment[] {
+  const { pageCount } = status
+  if (pageCount <= 0) return []
+  const inRanges = (ranges: PageRange[], p: number) =>
+    ranges.some((r) => p >= r.startPage && p <= r.endPage)
+  const stateOf = (p: number): CoverageState =>
+    inRanges(status.mergedRanges, p)
+      ? "merged"
+      : inRanges(status.exported, p)
+        ? "exported"
+        : "pending"
+  const segments: CoverageSegment[] = []
+  for (let p = 1; p <= pageCount; p++) {
+    const s = stateOf(p)
+    const last = segments[segments.length - 1]
+    if (last && last.state === s) {
+      last.endPage = p
+      last.pages += 1
+    } else {
+      segments.push({ state: s, startPage: p, endPage: p, pages: 1 })
+    }
+  }
+  return segments
+}
+
 /**
  * Split `1..pageCount` into `n` contiguous, roughly-equal page windows (sizes
  * differ by at most one page). In `spreadMode` the split is computed in

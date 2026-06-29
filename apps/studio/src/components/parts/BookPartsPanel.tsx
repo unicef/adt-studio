@@ -1,6 +1,6 @@
-import { useRef, useState } from "react"
+import { useRef, useState, type ReactNode } from "react"
 import { Plural, Trans, useLingui } from "@lingui/react/macro"
-import { Scissors, Combine, Upload, AlertTriangle, CheckCircle2, Loader2, Sparkles, Info } from "lucide-react"
+import { Scissors, Combine, Upload, AlertTriangle, CheckCircle2, Loader2, Sparkles, ArrowRight } from "lucide-react"
 import { useBook, useRegenerateBookSummary } from "../../hooks/use-books"
 import { usePartInfo, usePreviewMerge, useMergePart, useSplitStatus } from "../../hooks/use-parts"
 import { useApiKey } from "../../hooks/use-api-key"
@@ -9,8 +9,9 @@ import { useSourcePdfInfo } from "../../hooks/use-source-pdf-info"
 import { type MergePreview, type MergeResult, type SplitStatus } from "../../api/client"
 import { Button } from "../ui/button"
 import { Badge } from "../ui/badge"
-import { isZipFile } from "../../lib/utils"
+import { cn, isZipFile } from "../../lib/utils"
 import { fmtRange } from "./parts-utils"
+import { CoverageBar } from "./CoverageBar"
 import { ExportPartControls, useExportPartState } from "./ExportPartControls"
 import { SplitPreviewDialog } from "./SplitPreviewDialog"
 
@@ -39,7 +40,7 @@ export function BookPartsPanel({ bookLabel }: { bookLabel: string }) {
     <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
       <header className="flex items-center gap-2 border-b border-border/60 bg-muted/20 px-6 py-4">
         <Scissors className="h-4 w-4 text-muted-foreground" strokeWidth={2} />
-        <h2 className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
           <Trans>Split & merge</Trans>
         </h2>
         {partInfo && (
@@ -54,21 +55,34 @@ export function BookPartsPanel({ bookLabel }: { bookLabel: string }) {
       {loading ? (
         <PartsPanelSkeleton />
       ) : partInfo ? (
-        <div className="flex items-start gap-2.5 px-6 py-5 text-xs leading-relaxed text-muted-foreground">
-          <Info className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={2} />
-          <p>
-            <Trans>
-              This book is an imported part. Parts can't be split or merged
-              further — process the assigned pages, then return the finished
-              part from the Export step to merge it back into the source book.
-            </Trans>
-          </p>
-        </div>
+        <p className="px-6 py-5 text-xs leading-relaxed text-muted-foreground">
+          <Trans>
+            Parts can't be split further. Process the assigned pages, then return
+            the finished part from its Export step to merge it back into the
+            source book.
+          </Trans>
+        </p>
       ) : (
-        <div className="grid grid-cols-1 gap-px bg-border/60 md:grid-cols-2">
-          <ExportPart bookLabel={bookLabel} pageCount={pageCount} spreadMode={spreadMode} status={splitStatus} />
-          <MergePart bookLabel={bookLabel} status={splitStatus} />
-        </div>
+        <>
+          {splitStatus &&
+            (splitStatus.exported.length > 0 || splitStatus.mergedRanges.length > 0) && (
+              <div className="border-b border-border/60 px-6 py-4">
+                <CoverageBar status={splitStatus} />
+              </div>
+            )}
+          <div className="relative grid grid-cols-1 items-stretch gap-px bg-border/60 md:grid-cols-2">
+            <ExportPart bookLabel={bookLabel} pageCount={pageCount} spreadMode={spreadMode} status={splitStatus} />
+            <MergePart bookLabel={bookLabel} status={splitStatus} />
+            <div
+              aria-hidden
+              className="pointer-events-none absolute left-1/2 top-1/2 z-10 -translate-x-1/2 -translate-y-1/2"
+            >
+              <span className="flex h-7 w-7 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm">
+                <ArrowRight className="h-3.5 w-3.5 rotate-90 md:rotate-0" strokeWidth={2} />
+              </span>
+            </div>
+          </div>
+        </>
       )}
     </section>
   )
@@ -157,19 +171,18 @@ function ExportPart({
   const state = useExportPartState({ bookLabel, pageCount, spreadMode, status })
 
   return (
-    <div className="flex flex-col gap-3 bg-card p-6">
+    <div className="flex flex-col gap-4 bg-card p-6">
       <ExportPartControls state={state} pageCount={pageCount} status={status} />
 
       {pageCount > 0 && (
         <Button
           type="button"
           variant="outline"
-          size="sm"
-          className="self-start"
+          className="w-full"
           onClick={() => setPreviewOpen(true)}
         >
           <Scissors className="mr-1.5 h-4 w-4" />
-          <Trans>Preview & split pages</Trans>
+          <Trans>See the book & pick pages</Trans>
         </Button>
       )}
 
@@ -197,6 +210,7 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
   const [acknowledge, setAcknowledge] = useState(false)
   const [result, setResult] = useState<MergeResult | null>(null)
   const [selectError, setSelectError] = useState<string | null>(null)
+  const [dragOver, setDragOver] = useState(false)
 
   const previewMutation = usePreviewMerge(bookLabel)
   const mergeMutation = useMergePart(bookLabel)
@@ -249,19 +263,21 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
     mergeMutation.error instanceof Error ? mergeMutation.error.message : null
 
   return (
-    <div className="flex flex-col gap-3 bg-card p-6">
-      <div className="flex items-center gap-2">
-        <Combine className="h-4 w-4 text-muted-foreground" strokeWidth={2} />
-        <h3 className="text-sm font-semibold text-foreground">
-          <Trans>Merge a completed part</Trans>
-        </h3>
+    <div className="flex flex-col gap-4 bg-card p-6">
+      <div className="flex flex-col gap-1.5">
+        <div className="flex items-center gap-2">
+          <Combine className="h-4 w-4 text-muted-foreground" strokeWidth={2} />
+          <h3 className="text-sm font-semibold text-foreground">
+            <Trans>Merge a completed part</Trans>
+          </h3>
+        </div>
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          <Trans>
+            Upload a completed part (exported as a project). Per-page results are
+            copied in as new versions; book-level stages are marked for re-running.
+          </Trans>
+        </p>
       </div>
-      <p className="text-xs leading-relaxed text-muted-foreground">
-        <Trans>
-          Upload a completed part (exported as a project). Per-page results are
-          copied in as new versions; book-level stages are marked for re-running.
-        </Trans>
-      </p>
 
       <input
         ref={fileRef}
@@ -271,8 +287,9 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
         onChange={(e) => onSelectFile(e.target.files?.[0] ?? null)}
       />
 
+      <div className="flex flex-1 flex-col gap-3">
       {result ? (
-        <div className="flex flex-col gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3">
+        <StatusPanel tone="success" className="flex flex-col gap-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
             <CheckCircle2 className="h-4 w-4" />
             <span>
@@ -307,7 +324,7 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
           )}
 
           {result.bookSummaryStale && (
-            <div className="flex flex-col gap-1.5 rounded-md border border-amber-200 bg-amber-50 p-2.5 dark:border-amber-500/30 dark:bg-amber-500/10">
+            <StatusPanel tone="warning" className="flex flex-col gap-1.5">
               <p className="text-xs text-amber-900 dark:text-amber-200">
                 <Trans>
                   The book summary covers the whole book — regenerate it on the
@@ -337,7 +354,7 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
                   <Trans>Regenerate book summary</Trans>
                 </Button>
               )}
-            </div>
+            </StatusPanel>
           )}
 
           <MergeCoverage status={status} />
@@ -345,27 +362,46 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
           <Button type="button" variant="outline" size="sm" className="self-start" onClick={reset}>
             <Trans>Merge another</Trans>
           </Button>
-        </div>
+        </StatusPanel>
       ) : (
         <>
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => fileRef.current?.click()}
-            >
-              <Upload className="mr-1.5 h-4 w-4" />
-              <Trans>Choose part file…</Trans>
-            </Button>
-            {file && (
-              <span className="truncate text-xs text-muted-foreground" title={file.name}>
-                {file.name}
+          <button
+            type="button"
+            onClick={() => fileRef.current?.click()}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault()
+              setDragOver(false)
+              onSelectFile(e.dataTransfer.files?.[0] ?? null)
+            }}
+            className={cn(
+              "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 text-center",
+              "transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              file ? "min-h-0 py-4" : "min-h-[140px] flex-1",
+              dragOver
+                ? "border-[#2b7fff] bg-[#2b7fff]/5"
+                : "border-border hover:border-[#2b7fff]/50 hover:bg-muted/30",
+            )}
+          >
+            <Upload
+              className={cn("h-6 w-6", dragOver ? "text-[#2b7fff]" : "text-muted-foreground")}
+              strokeWidth={2}
+            />
+            {file ? (
+              <span className="max-w-full truncate text-xs" title={file.name}>
+                <span className="font-medium text-foreground">{file.name}</span>{" "}
+                <span className="text-muted-foreground"><Trans>· choose another</Trans></span>
+              </span>
+            ) : (
+              <span className="text-xs text-muted-foreground">
+                <Trans>
+                  Drop a part <span className="font-medium text-foreground">.zip</span> here, or
+                  browse
+                </Trans>
               </span>
             )}
-          </div>
-
-          <MergeCoverage status={status} />
+          </button>
 
           {previewMutation.isPending && (
             <p className="text-xs text-muted-foreground">
@@ -410,13 +446,14 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
           )}
         </>
       )}
+      </div>
     </div>
   )
 }
 
 function PreviewSummary({ preview }: { preview: MergePreview }) {
   return (
-    <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/20 p-3 text-xs">
+    <StatusPanel tone="info" className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 tabular-nums">
         <span>
           <Trans>
@@ -462,15 +499,50 @@ function PreviewSummary({ preview }: { preview: MergePreview }) {
           {preview.coverage.map((c) => `${c.node} (${c.pages})`).join(", ")}
         </p>
       )}
+    </StatusPanel>
+  )
+}
+
+const STATUS_TONES = {
+  success: "border-emerald-500/30 bg-emerald-500/5",
+  warning: "border-amber-200 bg-amber-50 dark:border-amber-500/30 dark:bg-amber-500/10",
+  error: "border-destructive/30 bg-destructive/5 text-destructive",
+  info: "border-border bg-muted/20",
+} as const
+
+/**
+ * Shared surface for the panel's result / preview / warning / error blocks so
+ * they share one elevation + radius language and fade in consistently when they
+ * appear, instead of each defining its own border/bg combo.
+ */
+function StatusPanel({
+  tone,
+  className,
+  children,
+}: {
+  tone: keyof typeof STATUS_TONES
+  className?: string
+  children: ReactNode
+}) {
+  return (
+    <div
+      className={cn(
+        "rounded-lg border p-3 text-xs",
+        "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-200",
+        STATUS_TONES[tone],
+        className,
+      )}
+    >
+      {children}
     </div>
   )
 }
 
 function ErrorNote({ message }: { message: string }) {
   return (
-    <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-xs text-destructive">
+    <StatusPanel tone="error" className="flex items-start gap-2">
       <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
       <span>{message}</span>
-    </div>
+    </StatusPanel>
   )
 }
