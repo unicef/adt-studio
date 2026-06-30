@@ -324,7 +324,14 @@ function walkNode(
   ) {
     const tagName = (node.name ?? node.type ?? "").toLowerCase()
     if (DISALLOWED_TAGS.has(tagName)) {
-      errors.push(`Disallowed tag: <${tagName}>`)
+      // Script tags are permitted inside a custom-activity section (the only
+      // path where the agent ships its own interaction logic). Everywhere
+      // else they remain disallowed — including iframe/object/embed.
+      if (tagName === "script" && isInsideCustomActivitySection(node)) {
+        // Custom-activity scripts can carry behavior; allow.
+      } else {
+        errors.push(`Disallowed tag: <${tagName}>`)
+      }
     }
 
     const attribs = node.attribs ?? {}
@@ -538,6 +545,24 @@ function rewriteImageSrcs(node: any, imageIds: Set<string>, urlPrefix: string): 
       rewriteImageSrcs(child, imageIds, urlPrefix)
     }
   }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isInsideCustomActivitySection(node: any): boolean {
+  let current = node.parent
+  while (current) {
+    if (current.type === "tag" && (current.name ?? "").toLowerCase() === "section") {
+      const sectionType = current.attribs?.["data-section-type"]
+      if (
+        typeof sectionType === "string" &&
+        (sectionType === "activity_custom" || sectionType.startsWith("activity_custom_"))
+      ) {
+        return true
+      }
+    }
+    current = current.parent
+  }
+  return false
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

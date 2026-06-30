@@ -23,12 +23,34 @@ The screenshots show a **single section**, which is typically only a SUBSET of t
 - The page is responsive — content reflows gracefully at smaller viewports
 - Attractive appearance — subtle enhancements like light transparent backgrounds behind text for readability are encouraged
 
+## TYPE SCALE — page-to-page consistency
+You are reviewing one section at a time, but readers see many sections back-to-back across a book. Different sections drifting to different body-text or heading sizes makes the book feel inconsistent. Every section must draw its sizes from the scale below — even when the original page image shows a slightly different size.
+
+- Body text (paragraphs, list items): `text-lg md:text-xl leading-relaxed`
+- Image captions and short metadata: `text-base md:text-lg`
+- Inline emphasis / call-out text: `text-lg md:text-xl font-semibold`
+- Headings:
+  - h1 / page title: `text-3xl md:text-4xl font-bold`
+  - h2 / section heading: `text-2xl md:text-3xl font-bold`
+  - h3 / subsection heading: `text-xl md:text-2xl font-semibold`
+- Activity prompts / questions: `text-xl md:text-2xl font-semibold`
+- Glossary terms / answer chips: `text-lg md:text-xl`
+
+Within a single section, body text must use a SINGLE size class — do not mix `text-base`, `text-lg`, and `text-xl` across paragraphs that play the same role. If the source HTML uses arbitrary values (`text-[15px]`, inline `style="font-size: ..."`), replace them with the closest scale entry.
+
+## IMAGE SIZING
+- Images that are the primary content of an image-only or image-primary section MUST fill the section width: use `w-full h-auto` (with `object-cover` or `object-contain` as appropriate). Do not let a hero image render at intrinsic size in a section that has space for it.
+- Inline / inset images alongside text (small spot illustrations, icons): use `max-w-full h-auto` to avoid upscaling small assets beyond their natural size.
+- If you cannot tell from the screenshot whether an image is being upscaled vs. rendered correctly at intrinsic size, prefer `w-full` for image-primary sections — book scans are typically large enough that filling the section reads better than leaving white space.
+
 ## WHAT TO FIX
 - Overlapping text or elements (this is the most important issue to fix)
 - Text hidden behind images — text overlays MUST have `z-10` or higher so they always render above images. Different browsers may stack elements differently, so explicit z-index is required
 - Content that is cut off or hidden
 - Text that is unreadably small or excessively large
-- Images that are missing, broken, wildly misplaced, or stretched beyond their natural size (use `max-w-full` not `w-full` to prevent upscaling)
+- Body text or headings that deviate from the TYPE SCALE above (e.g. a paragraph using `text-base` or `text-sm`, an h2 rendered as `text-xl`, a mix of two body-text sizes within one section, or any arbitrary `text-[...]` / inline `font-size` value)
+- Image-primary sections where the image does not fill the section width (e.g. a hero image rendered at `max-w-md` inside a full-width section, leaving a band of empty space beside it)
+- Images that are missing, broken, wildly misplaced, or visibly upscaled and blurry past their natural resolution
 - Text alignment that differs from the original — body text and headings that are left-aligned in the original should NOT be centered (and vice versa)
 - Layout that fundamentally differs from the original (e.g., wrong number of columns, completely wrong ordering)
 - Content that doesn't reflow at smaller viewports (overflowing, horizontal scroll)
@@ -36,11 +58,11 @@ The screenshots show a **single section**, which is typically only a SUBSET of t
 ## WHAT IS ACCEPTABLE (do NOT reject for these)
 - Light transparent backgrounds behind text to improve readability
 - Minor differences in spacing, padding, or margins vs the original
-- Slightly different font sizes if readability is maintained
 - Responsive adaptations (e.g., a two-column layout stacking to single column on mobile, or overlay text flowing below the image on mobile instead of on top of it)
 - Color or background differences that maintain the overall feel
 - Subtle styling improvements that enhance the appearance
 - Text that is not included on purpose (page numbers, other metadata)
+- Font sizes that match the TYPE SCALE above even when the original used a slightly different size — consistency across the book outranks pixel-matching the source
 
 ## VIEWPORT SIZES & TAILWIND BREAKPOINTS (DESKTOP-FIRST)
 Screenshots are taken at these exact viewport widths, which correspond to Tailwind CSS breakpoints:

@@ -321,14 +321,35 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             queryClient.invalidateQueries({ queryKey: ["debug", "versions", label, "accessibility-assessment", "book"] })
             queryClient.invalidateQueries({ queryKey: ["book-config", label] })
           }
-          if ((completedTask?.kind === "image-generate" || completedTask?.kind === "re-render" || completedTask?.kind === "ai-edit") && completedTask.pageId) {
+          if (
+            (completedTask?.kind === "image-generate" ||
+              completedTask?.kind === "re-render" ||
+              completedTask?.kind === "ai-edit" ||
+              completedTask?.kind === "layout-mirror" ||
+              completedTask?.kind === "generate-activity") &&
+            completedTask.pageId
+          ) {
             queryClient.invalidateQueries({ queryKey: ["books", label, "pages", completedTask.pageId] })
             queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
             if (completedTask.kind === "ai-edit") {
               queryClient.invalidateQueries({ queryKey: ["books", label, "pages", completedTask.pageId, "ai-edit-history"] })
             }
+            // generate-activity changes a page's section count, so the pages
+            // list (which drives the storyboard sidebar) needs to refetch.
+            // refetchQueries (not invalidate) makes the update deterministic —
+            // it doesn't depend on the sidebar's query being marked stale or
+            // active when the SSE event fires.
+            if (completedTask.kind === "generate-activity") {
+              void queryClient.refetchQueries({ queryKey: ["books", label, "pages"] })
+            }
           }
-          if (completedTask?.kind === "re-render" || completedTask?.kind === "ai-edit" || completedTask?.kind === "image-generate") {
+          if (
+            completedTask?.kind === "re-render" ||
+            completedTask?.kind === "ai-edit" ||
+            completedTask?.kind === "image-generate" ||
+            completedTask?.kind === "layout-mirror" ||
+            completedTask?.kind === "generate-activity"
+          ) {
             invalidateStoryboardDependents(queryClient, label)
           }
           if (completedTask?.kind === "transcribe-timestamps") {
