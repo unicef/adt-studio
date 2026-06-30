@@ -38,7 +38,7 @@ export function SupportersStrip() {
   return (
     <div className="flex flex-col items-center gap-6 border-b border-[color:var(--color-border)] pb-10">
       <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]">
-        <Trans>Supported by</Trans>
+        <Trans>Made possible by</Trans>
       </div>
       <div className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6">
         {SUPPORTERS.map((s) => (
