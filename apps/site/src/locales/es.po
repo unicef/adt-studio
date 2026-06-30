@@ -113,8 +113,11 @@ msgstr "Ver toda la documentación"
 #~ msgid "Browse the docs"
 #~ msgstr ""
 
-msgid "Built with UNICEF"
-msgstr "Construido con UNICEF"
+msgid "Built with"
+msgstr "Construido con"
+
+#~ msgid "Built with UNICEF"
+#~ msgstr "Construido con UNICEF"
 
 msgid "Cached & inspectable"
 msgstr "En caché e inspeccionable"
@@ -424,8 +427,8 @@ msgstr "Aprender"
 msgid "License"
 msgstr "Licencia"
 
-msgid "Linux"
-msgstr "Linux"
+#~ msgid "Linux"
+#~ msgstr "Linux"
 
 msgid "LIVE"
 msgstr "EN VIVO"
@@ -433,8 +436,11 @@ msgstr "EN VIVO"
 msgid "LLM Providers & API Keys"
 msgstr "Proveedores de LLM y claves de API"
 
-msgid "macOS"
-msgstr "macOS"
+#~ msgid "macOS"
+#~ msgstr "macOS"
+
+msgid "Made possible by"
+msgstr "Hecho posible gracias a"
 
 msgid "MIT licensed"
 msgstr "Licencia MIT"
@@ -509,8 +515,8 @@ msgstr "Abrir menú"
 msgid "Open on GitHub"
 msgstr "Abrir en GitHub"
 
-msgid "Open source"
-msgstr "Código abierto"
+#~ msgid "Open source"
+#~ msgstr "Código abierto"
 
 #~ msgid "Open the documentation"
 #~ msgstr ""
@@ -739,6 +745,9 @@ msgstr "Diseños estructurados"
 msgid "Successfully uploaded"
 msgstr "Subido con éxito"
 
+msgid "Supported by"
+msgstr "Con el apoyo de"
+
 msgid "Table of Contents"
 msgstr "Tabla de contenidos"
 
@@ -772,8 +781,8 @@ msgstr "Traducciones"
 msgid "Troubleshooting & FAQ"
 msgstr "Solución de problemas y FAQ"
 
-msgid "Trust"
-msgstr "Confianza"
+#~ msgid "Trust"
+#~ msgstr "Confianza"
 
 msgid "Turn any PDF into an <0>accessible book</0>"
 msgstr "Convierte cualquier PDF en un <0>libro accesible</0>"
@@ -815,8 +824,8 @@ msgstr "Qué hace"
 msgid "When the pipeline finishes, you get a clean bundle with every accessibility feature baked in — ready for a classroom, a publisher, or a kid on the couch."
 msgstr "Cuando el pipeline termina, obtienes un paquete limpio con todas las características de accesibilidad integradas — listo para un aula, un editor o un niño en el sofá."
 
-msgid "Windows"
-msgstr "Windows"
+#~ msgid "Windows"
+#~ msgstr "Windows"
 
 msgid "Windows · macOS · Linux"
 msgstr "Windows · macOS · Linux"

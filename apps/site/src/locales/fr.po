@@ -113,8 +113,11 @@ msgstr "Voir toute la documentation"
 #~ msgid "Browse the docs"
 #~ msgstr ""
 
-msgid "Built with UNICEF"
-msgstr "Développé avec l'UNICEF"
+msgid "Built with"
+msgstr "Conçu avec"
+
+#~ msgid "Built with UNICEF"
+#~ msgstr "Développé avec l'UNICEF"
 
 msgid "Cached & inspectable"
 msgstr "Mis en cache et inspectable"
@@ -424,8 +427,8 @@ msgstr "Apprendre"
 msgid "License"
 msgstr "Licence"
 
-msgid "Linux"
-msgstr "Linux"
+#~ msgid "Linux"
+#~ msgstr "Linux"
 
 msgid "LIVE"
 msgstr "EN DIRECT"
@@ -433,8 +436,11 @@ msgstr "EN DIRECT"
 msgid "LLM Providers & API Keys"
 msgstr "Fournisseurs de LLM et clés d'API"
 
-msgid "macOS"
-msgstr "macOS"
+#~ msgid "macOS"
+#~ msgstr "macOS"
+
+msgid "Made possible by"
+msgstr "Rendu possible par"
 
 msgid "MIT licensed"
 msgstr "Sous licence MIT"
@@ -509,8 +515,8 @@ msgstr "Ouvrir le menu"
 msgid "Open on GitHub"
 msgstr "Ouvrir sur GitHub"
 
-msgid "Open source"
-msgstr "Open source"
+#~ msgid "Open source"
+#~ msgstr "Open source"
 
 #~ msgid "Open the documentation"
 #~ msgstr ""
@@ -739,6 +745,9 @@ msgstr "Mises en page structurées"
 msgid "Successfully uploaded"
 msgstr "Téléversé avec succès"
 
+msgid "Supported by"
+msgstr "Avec le soutien de"
+
 msgid "Table of Contents"
 msgstr "Table des matières"
 
@@ -772,8 +781,8 @@ msgstr "Traductions"
 msgid "Troubleshooting & FAQ"
 msgstr "Dépannage et FAQ"
 
-msgid "Trust"
-msgstr "Confiance"
+#~ msgid "Trust"
+#~ msgstr "Confiance"
 
 msgid "Turn any PDF into an <0>accessible book</0>"
 msgstr "Transformez n'importe quel PDF en <0>livre accessible</0>"
@@ -815,8 +824,8 @@ msgstr "Ce que ça fait"
 msgid "When the pipeline finishes, you get a clean bundle with every accessibility feature baked in — ready for a classroom, a publisher, or a kid on the couch."
 msgstr "Lorsque le pipeline se termine, vous obtenez un package propre avec toutes les fonctionnalités d'accessibilité intégrées — prêt pour une salle de classe, un éditeur ou un enfant sur le canapé."
 
-msgid "Windows"
-msgstr "Windows"
+#~ msgid "Windows"
+#~ msgstr "Windows"
 
 msgid "Windows · macOS · Linux"
 msgstr "Windows · macOS · Linux"

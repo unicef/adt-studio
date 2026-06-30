@@ -113,8 +113,11 @@ msgstr "Ver toda a documentação"
 #~ msgid "Browse the docs"
 #~ msgstr ""
 
-msgid "Built with UNICEF"
-msgstr "Feito com a UNICEF"
+msgid "Built with"
+msgstr "Desenvolvido com"
+
+#~ msgid "Built with UNICEF"
+#~ msgstr "Feito com a UNICEF"
 
 msgid "Cached & inspectable"
 msgstr "Em cache e inspecionável"
@@ -424,8 +427,8 @@ msgstr "Aprender"
 msgid "License"
 msgstr "Licença"
 
-msgid "Linux"
-msgstr "Linux"
+#~ msgid "Linux"
+#~ msgstr "Linux"
 
 msgid "LIVE"
 msgstr "AO VIVO"
@@ -433,8 +436,11 @@ msgstr "AO VIVO"
 msgid "LLM Providers & API Keys"
 msgstr "Provedores de LLM e chaves de API"
 
-msgid "macOS"
-msgstr "macOS"
+#~ msgid "macOS"
+#~ msgstr "macOS"
+
+msgid "Made possible by"
+msgstr "Tornado possível por"
 
 msgid "MIT licensed"
 msgstr "Licença MIT"
@@ -509,8 +515,8 @@ msgstr "Abrir menu"
 msgid "Open on GitHub"
 msgstr "Abrir no GitHub"
 
-msgid "Open source"
-msgstr "Código aberto"
+#~ msgid "Open source"
+#~ msgstr "Código aberto"
 
 #~ msgid "Open the documentation"
 #~ msgstr ""
@@ -739,6 +745,9 @@ msgstr "Layouts estruturados"
 msgid "Successfully uploaded"
 msgstr "Enviado com sucesso"
 
+msgid "Supported by"
+msgstr "Com o apoio de"
+
 msgid "Table of Contents"
 msgstr "Sumário"
 
@@ -772,8 +781,8 @@ msgstr "Traduções"
 msgid "Troubleshooting & FAQ"
 msgstr "Solução de problemas e FAQ"
 
-msgid "Trust"
-msgstr "Confiança"
+#~ msgid "Trust"
+#~ msgstr "Confiança"
 
 msgid "Turn any PDF into an <0>accessible book</0>"
 msgstr "Transforme qualquer PDF em um <0>livro acessível</0>"
@@ -815,8 +824,8 @@ msgstr "O que faz"
 msgid "When the pipeline finishes, you get a clean bundle with every accessibility feature baked in — ready for a classroom, a publisher, or a kid on the couch."
 msgstr "Quando o pipeline termina, você obtém um pacote limpo com todos os recursos de acessibilidade embutidos — pronto para uma sala de aula, um editor ou uma criança no sofá."
 
-msgid "Windows"
-msgstr "Windows"
+#~ msgid "Windows"
+#~ msgstr "Windows"
 
 msgid "Windows · macOS · Linux"
 msgstr "Windows · macOS · Linux"

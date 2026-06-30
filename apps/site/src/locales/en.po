@@ -112,8 +112,11 @@ msgstr "Browse all documentation"
 #~ msgid "Browse the docs"
 #~ msgstr "Browse the docs"
 
-msgid "Built with UNICEF"
-msgstr "Built with UNICEF"
+msgid "Built with"
+msgstr "Built with"
+
+#~ msgid "Built with UNICEF"
+#~ msgstr "Built with UNICEF"
 
 msgid "Cached & inspectable"
 msgstr "Cached & inspectable"
@@ -423,8 +426,8 @@ msgstr "Learn"
 msgid "License"
 msgstr "License"
 
-msgid "Linux"
-msgstr "Linux"
+#~ msgid "Linux"
+#~ msgstr "Linux"
 
 msgid "LIVE"
 msgstr "LIVE"
@@ -432,8 +435,11 @@ msgstr "LIVE"
 msgid "LLM Providers & API Keys"
 msgstr "LLM Providers & API Keys"
 
-msgid "macOS"
-msgstr "macOS"
+#~ msgid "macOS"
+#~ msgstr "macOS"
+
+msgid "Made possible by"
+msgstr "Made possible by"
 
 msgid "MIT licensed"
 msgstr "MIT licensed"
@@ -508,8 +514,8 @@ msgstr "Open menu"
 msgid "Open on GitHub"
 msgstr "Open on GitHub"
 
-msgid "Open source"
-msgstr "Open source"
+#~ msgid "Open source"
+#~ msgstr "Open source"
 
 #~ msgid "Open the documentation"
 #~ msgstr "Open the documentation"
@@ -738,6 +744,9 @@ msgstr "Structured layouts"
 msgid "Successfully uploaded"
 msgstr "Successfully uploaded"
 
+msgid "Supported by"
+msgstr "Supported by"
+
 msgid "Table of Contents"
 msgstr "Table of Contents"
 
@@ -771,8 +780,8 @@ msgstr "Translations"
 msgid "Troubleshooting & FAQ"
 msgstr "Troubleshooting & FAQ"
 
-msgid "Trust"
-msgstr "Trust"
+#~ msgid "Trust"
+#~ msgstr "Trust"
 
 msgid "Turn any PDF into an <0>accessible book</0>"
 msgstr "Turn any PDF into an <0>accessible book</0>"
@@ -814,8 +823,8 @@ msgstr "What it does"
 msgid "When the pipeline finishes, you get a clean bundle with every accessibility feature baked in — ready for a classroom, a publisher, or a kid on the couch."
 msgstr "When the pipeline finishes, you get a clean bundle with every accessibility feature baked in — ready for a classroom, a publisher, or a kid on the couch."
 
-msgid "Windows"
-msgstr "Windows"
+#~ msgid "Windows"
+#~ msgstr "Windows"
 
 msgid "Windows · macOS · Linux"
 msgstr "Windows · macOS · Linux"
