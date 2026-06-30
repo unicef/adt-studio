@@ -2,6 +2,7 @@ import { Github } from "lucide-react";
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { MessageDescriptor } from "@lingui/core";
+import { SupportersStrip } from "@/components/sections/SupportersStrip";
 
 type LinkCol = {
   title: MessageDescriptor;
@@ -65,7 +66,8 @@ export function Footer() {
   return (
     <footer className="border-t border-[color:var(--color-border)] bg-[color:var(--color-muted)]/40">
       <div className="mx-auto w-full max-w-6xl px-6 pb-10 pt-16">
-        <div className="grid grid-cols-1 gap-10 md:grid-cols-[1.2fr_1fr_1fr_1fr]">
+        <SupportersStrip />
+        <div className="mt-14 grid grid-cols-1 gap-10 md:grid-cols-[1.2fr_1fr_1fr_1fr]">
           <div className="flex flex-col gap-4">
             <a href="#top" className="flex items-center gap-2.5">
               <img

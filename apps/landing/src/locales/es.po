@@ -103,8 +103,11 @@ msgstr "Beta"
 msgid "Book creation stages"
 msgstr "Etapas de creación del libro"
 
-msgid "Built with UNICEF"
-msgstr "Construido con UNICEF"
+msgid "Built with"
+msgstr "Construido con"
+
+#~ msgid "Built with UNICEF"
+#~ msgstr "Construido con UNICEF"
 
 msgid "Captions"
 msgstr "Subtítulos"
@@ -333,14 +336,17 @@ msgstr "Diseñando pliegos"
 msgid "License"
 msgstr "Licencia"
 
-msgid "Linux"
-msgstr "Linux"
+#~ msgid "Linux"
+#~ msgstr "Linux"
 
 msgid "LIVE"
 msgstr "EN VIVO"
 
-msgid "macOS"
-msgstr "macOS"
+#~ msgid "macOS"
+#~ msgstr "macOS"
+
+msgid "Made possible by"
+msgstr "Hecho posible gracias a"
 
 msgid "MIT licensed"
 msgstr "Licencia MIT"
@@ -400,8 +406,8 @@ msgstr "Abrir menú"
 msgid "Open on GitHub"
 msgstr "Abrir en GitHub"
 
-msgid "Open source"
-msgstr "Código abierto"
+#~ msgid "Open source"
+#~ msgstr "Código abierto"
 
 msgid "Open-source desktop pipeline for turning PDFs into accessible books — built with UNICEF."
 msgstr "Pipeline de escritorio de código abierto para convertir PDFs en libros accesibles — construido con UNICEF."
@@ -568,6 +574,9 @@ msgstr "Diseños estructurados"
 msgid "Successfully uploaded"
 msgstr "Subido con éxito"
 
+msgid "Supported by"
+msgstr "Con el apoyo de"
+
 msgid "Textbooks & Activities"
 msgstr "Libros de texto y actividades"
 
@@ -580,8 +589,8 @@ msgstr "Traducir"
 msgid "Translations"
 msgstr "Traducciones"
 
-msgid "Trust"
-msgstr "Confianza"
+#~ msgid "Trust"
+#~ msgstr "Confianza"
 
 msgid "Turn any textbook into something every student can read, hear, see, and understand — audio, structured layouts, translations, and sign language, all built in."
 msgstr "Convierte cualquier libro de texto en algo que cada estudiante pueda leer, escuchar, ver y entender — audio, diseños estructurados, traducciones y lengua de señas, todo integrado."
@@ -617,8 +626,8 @@ msgstr "Qué hace"
 msgid "When the pipeline finishes, you get a clean bundle with every accessibility feature baked in — ready for a classroom, a publisher, or a kid on the couch."
 msgstr "Cuando el pipeline termina, obtienes un paquete limpio con todas las características de accesibilidad integradas — listo para un aula, un editor o un niño en el sofá."
 
-msgid "Windows"
-msgstr "Windows"
+#~ msgid "Windows"
+#~ msgstr "Windows"
 
 msgid "Windows · macOS · Linux"
 msgstr "Windows · macOS · Linux"

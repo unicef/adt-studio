@@ -103,8 +103,11 @@ msgstr "Beta"
 msgid "Book creation stages"
 msgstr "Book creation stages"
 
-msgid "Built with UNICEF"
-msgstr "Built with UNICEF"
+msgid "Built with"
+msgstr "Built with"
+
+#~ msgid "Built with UNICEF"
+#~ msgstr "Built with UNICEF"
 
 msgid "Captions"
 msgstr "Captions"
@@ -333,14 +336,17 @@ msgstr "Laying out spreads"
 msgid "License"
 msgstr "License"
 
-msgid "Linux"
-msgstr "Linux"
+#~ msgid "Linux"
+#~ msgstr "Linux"
 
 msgid "LIVE"
 msgstr "LIVE"
 
-msgid "macOS"
-msgstr "macOS"
+#~ msgid "macOS"
+#~ msgstr "macOS"
+
+msgid "Made possible by"
+msgstr "Made possible by"
 
 msgid "MIT licensed"
 msgstr "MIT licensed"
@@ -400,8 +406,8 @@ msgstr "Open menu"
 msgid "Open on GitHub"
 msgstr "Open on GitHub"
 
-msgid "Open source"
-msgstr "Open source"
+#~ msgid "Open source"
+#~ msgstr "Open source"
 
 msgid "Open-source desktop pipeline for turning PDFs into accessible books — built with UNICEF."
 msgstr "Open-source desktop pipeline for turning PDFs into accessible books — built with UNICEF."
@@ -568,6 +574,9 @@ msgstr "Structured layouts"
 msgid "Successfully uploaded"
 msgstr "Successfully uploaded"
 
+msgid "Supported by"
+msgstr "Supported by"
+
 msgid "Textbooks & Activities"
 msgstr "Textbooks & Activities"
 
@@ -580,8 +589,8 @@ msgstr "Translate"
 msgid "Translations"
 msgstr "Translations"
 
-msgid "Trust"
-msgstr "Trust"
+#~ msgid "Trust"
+#~ msgstr "Trust"
 
 msgid "Turn any textbook into something every student can read, hear, see, and understand — audio, structured layouts, translations, and sign language, all built in."
 msgstr "Turn any textbook into something every student can read, hear, see, and understand — audio, structured layouts, translations, and sign language, all built in."
@@ -617,8 +626,8 @@ msgstr "What it does"
 msgid "When the pipeline finishes, you get a clean bundle with every accessibility feature baked in — ready for a classroom, a publisher, or a kid on the couch."
 msgstr "When the pipeline finishes, you get a clean bundle with every accessibility feature baked in — ready for a classroom, a publisher, or a kid on the couch."
 
-msgid "Windows"
-msgstr "Windows"
+#~ msgid "Windows"
+#~ msgstr "Windows"
 
 msgid "Windows · macOS · Linux"
 msgstr "Windows · macOS · Linux"
