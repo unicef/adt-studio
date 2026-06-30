@@ -16,27 +16,27 @@
 
 <p align="center">
   <a href="https://www.unicef.org/" title="UNICEF">
-    <img src="https://upload.wikimedia.org/wikipedia/commons/e/ed/Logo_of_UNICEF.svg" alt="UNICEF" height="44">
+    <img src="https://upload.wikimedia.org/wikipedia/commons/e/ed/Logo_of_UNICEF.svg" alt="UNICEF" height="40">
   </a>
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://openai.com/" title="OpenAI">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset=".github/assets/openai-dark.svg">
-      <img src=".github/assets/openai-light.svg" alt="OpenAI" height="30">
+      <img src=".github/assets/openai-light.svg" alt="OpenAI" height="40">
     </picture>
   </a>
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://nees.ufal.br/" title="NEES — Núcleo de Excelência em Tecnologias Sociais">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset=".github/assets/nees-dark.png">
-      <img src=".github/assets/nees-light.png" alt="NEES" height="40">
+      <img src=".github/assets/nees-light.png" alt="NEES" height="44">
     </picture>
   </a>
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
   <a href="https://www.ceibal.edu.uy/" title="Ceibal">
     <picture>
       <source media="(prefers-color-scheme: dark)" srcset=".github/assets/ceibal-dark.svg">
-      <img src=".github/assets/ceibal-light.svg" alt="Ceibal" height="40">
+      <img src=".github/assets/ceibal-light.svg" alt="Ceibal" height="42">
     </picture>
   </a>
   &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
