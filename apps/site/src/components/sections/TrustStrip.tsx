@@ -4,7 +4,7 @@ const UNICEF = {
   name: "UNICEF",
   href: "https://www.unicef.org/",
   src: "logos/unicef.svg",
-  heightClass: "h-7",
+  heightClass: "h-6 sm:h-7",
 };
 
 const PARTNERS = [
@@ -12,19 +12,19 @@ const PARTNERS = [
     name: "OpenAI",
     href: "https://openai.com/",
     src: "logos/openai.svg",
-    heightClass: "h-5",
+    heightClass: "h-4 sm:h-5",
   },
   {
     name: "NEES",
     href: "https://nees.ufal.br/",
     src: "logos/nees.png",
-    heightClass: "h-6",
+    heightClass: "h-5 sm:h-6",
   },
   {
     name: "Ceibal",
     href: "https://www.ceibal.edu.uy/",
     src: "logos/ceibal.svg",
-    heightClass: "h-6",
+    heightClass: "h-5 sm:h-6",
   },
 ];
 
@@ -58,7 +58,7 @@ function PartnerLogo({
 
 function GroupLabel({ children }: { children: React.ReactNode }) {
   return (
-    <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[color:var(--color-muted-foreground)]">
+    <span className="whitespace-nowrap text-[10px] font-bold uppercase leading-none tracking-[0.16em] text-[color:var(--color-muted-foreground)]">
       {children}
     </span>
   );
@@ -71,8 +71,8 @@ export function TrustStrip() {
       aria-label={t`Supported by`}
       className="relative border-y border-[color:var(--color-border)] bg-[color:var(--color-muted)]/40"
     >
-      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-center gap-x-8 gap-y-4 px-4 py-7">
-        <div className="flex items-center gap-3">
+      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-center gap-x-6 gap-y-5 px-4 py-6 sm:gap-x-8 sm:py-7">
+        <div className="flex items-center gap-2.5 sm:gap-3">
           <GroupLabel>
             <Trans>Built with</Trans>
           </GroupLabel>
@@ -82,7 +82,7 @@ export function TrustStrip() {
           aria-hidden
           className="hidden h-5 w-px bg-[color:var(--color-border)] sm:block"
         />
-        <div className="flex flex-wrap items-center justify-center gap-x-7 gap-y-3">
+        <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-3 sm:gap-x-7">
           <GroupLabel>
             <Trans>Supported by</Trans>
           </GroupLabel>
