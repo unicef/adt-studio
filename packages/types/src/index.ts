@@ -70,6 +70,7 @@ export {
   STAGE_BY_NAME,
   ALL_STEP_NAMES,
   PAGE_PROGRESS_STEPS,
+  BOOK_LEVEL_STAGES,
 } from "./pipeline.js"
 
 export {

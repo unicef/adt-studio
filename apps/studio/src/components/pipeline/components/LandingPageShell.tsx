@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/tooltip"
 import { PreviewShell } from "@/components/wizard/shared/PreviewShell"
 import { useDownstreamWithOutput } from "@/hooks/use-downstream-with-output"
+import { BOOK_LEVEL_STAGES, type StageName } from "@adt/types"
+import { PartialMergeNotice } from "@/components/parts/PartialMergeNotice"
 import { getStageLabelI18n } from "../pipeline-i18n"
 import { CascadeResetDialog } from "./CascadeResetDialog"
 
@@ -126,6 +128,9 @@ export function LandingPageShell({
     >
       <aside className="flex flex-col w-[480px] shrink-0 overflow-hidden border-r border-gray-200">
         <div className="flex flex-col gap-6 px-8 pt-8 pb-4 flex-1 overflow-y-auto">
+          {BOOK_LEVEL_STAGES.has(stageSlug as StageName) && (
+            <PartialMergeNotice bookLabel={bookLabel} />
+          )}
           {children}
         </div>
 

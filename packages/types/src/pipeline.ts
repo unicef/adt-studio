@@ -194,3 +194,12 @@ export const ALL_STEP_NAMES: ReadonlySet<StepName> = new Set(
 export const PAGE_PROGRESS_STEPS: ReadonlySet<StepName> = new Set(
   PIPELINE.flatMap((stage) => stage.steps.filter((step) => step.pageProgress).map((step) => step.name))
 )
+
+/**
+ * Stages that aggregate across the whole book (no per-page step). Running one of
+ * these over a partially-merged split book yields output that silently omits the
+ * pages not yet merged back, so the UI warns before running them.
+ */
+export const BOOK_LEVEL_STAGES: ReadonlySet<StageName> = new Set(
+  PIPELINE.filter((stage) => !stage.steps.some((step) => step.pageProgress)).map((stage) => stage.name)
+)

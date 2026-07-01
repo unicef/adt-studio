@@ -7063,6 +7063,10 @@ msgstr "Este libro es una parte. Expórtalo como <0>Parte completada</0> y enví
 msgid "This book is titled \"{0}\"."
 msgstr "Este libro se titula \\\"{0}\\\"."
 
+#. placeholder {0}: status.missingRanges.map(fmtRange).join(", ")
+msgid "This book isn't fully assembled yet — pages <0>{0}</0> haven't been merged back. Anything you run here covers only the merged pages, so the result will be incomplete until every part is merged."
+msgstr "Este libro aún no está completo — las páginas <0>{0}</0> no se han combinado. Lo que ejecutes aquí solo cubre las páginas combinadas, por lo que el resultado estará incompleto hasta que se combinen todas las partes."
+
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Este libro se renderiza con diseño fijo, por lo que mantiene las fuentes originales del PDF. Las fuentes adjuntas igualmente guían a la IA en actividades y páginas generadas."
 
