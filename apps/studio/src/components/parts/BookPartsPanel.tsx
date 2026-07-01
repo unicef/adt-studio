@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from "react"
 import { Plural, Trans, useLingui } from "@lingui/react/macro"
-import { Scissors, Combine, Upload, AlertTriangle, CheckCircle2, Loader2, Sparkles, ArrowRight, FileArchive, X } from "lucide-react"
+import { Scissors, Combine, Upload, AlertTriangle, CheckCircle2, Loader2, Sparkles, ArrowRight, FileArchive, X, Info } from "lucide-react"
 import { useBook, useRegenerateBookSummary } from "../../hooks/use-books"
 import { usePartInfo, usePreviewMerge, useMergePart, useSplitStatus } from "../../hooks/use-parts"
 import { useApiKey } from "../../hooks/use-api-key"
@@ -38,6 +38,15 @@ export function BookPartsPanel({ bookLabel }: { bookLabel: string }) {
   // "Preview & split pages" button once the queries resolve).
   const loading = partInfoLoading || pdfInfoLoading || splitStatusLoading
 
+  // Book metadata (title, authors) is only carried in by the part that contains
+  // page 1, so a split book stays untitled until that part is merged. Nudge the
+  // user while page 1 is still missing and the book has no title yet.
+  const page1Merged = !!splitStatus?.mergedRanges.some(
+    (r) => r.startPage <= 1 && r.endPage >= 1,
+  )
+  const showPageOneHint =
+    !!splitStatus && splitStatus.exported.length > 0 && !page1Merged && !book?.title
+
   return (
     <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
       <header className="flex items-center gap-2 border-b border-border/60 bg-muted/20 px-6 py-4">
@@ -68,8 +77,19 @@ export function BookPartsPanel({ bookLabel }: { bookLabel: string }) {
         <>
           {splitStatus &&
             (splitStatus.exported.length > 0 || splitStatus.mergedRanges.length > 0) && (
-              <div className="border-b border-border/60 px-6 py-4">
+              <div className="flex flex-col gap-3 border-b border-border/60 px-6 py-4">
                 <CoverageBar status={splitStatus} />
+                {showPageOneHint && (
+                  <div className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+                    <p>
+                      <Trans>
+                        The book's title and metadata arrive with the part that
+                        contains page 1 — merge that part to fill them in.
+                      </Trans>
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           <div className="relative grid grid-cols-1 items-stretch gap-px bg-border/60 md:grid-cols-2">
