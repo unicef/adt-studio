@@ -213,6 +213,8 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
   const [result, setResult] = useState<MergeResult | null>(null)
   const [selectError, setSelectError] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)
+  // Lets the user reopen the picker to merge again after the book is complete.
+  const [mergeAnother, setMergeAnother] = useState(false)
 
   const previewMutation = usePreviewMerge(bookLabel)
   const mergeMutation = useMergePart(bookLabel)
@@ -225,6 +227,7 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
     setAcknowledge(false)
     setResult(null)
     setSelectError(null)
+    setMergeAnother(false)
     previewMutation.reset()
     mergeMutation.reset()
     if (fileRef.current) fileRef.current.value = ""
@@ -274,6 +277,15 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
     mergeMutation.error instanceof Error ? mergeMutation.error.message : null,
   )
 
+  // A split book with every page merged back is done — show that plainly
+  // instead of an empty picker, but let the user reopen it to re-merge.
+  const showCompletion =
+    !!status &&
+    status.exported.length > 0 &&
+    status.fullyMerged &&
+    !file &&
+    !mergeAnother
+
   return (
     <div className="flex flex-col gap-4 bg-card p-6">
       <div className="flex flex-col gap-1.5">
@@ -300,7 +312,30 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
       />
 
       <div className="flex flex-1 flex-col">
-      {result ? (
+      {showCompletion ? (
+        <StatusPanel tone="success" className="flex flex-col gap-2">
+          <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
+            <CheckCircle2 className="h-4 w-4" />
+            <Trans>This book is fully assembled</Trans>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            <Trans>
+              Every page has been merged back from its part — the whole book is
+              in place.
+            </Trans>
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="self-start"
+            onClick={() => setMergeAnother(true)}
+          >
+            <Upload className="mr-1.5 h-4 w-4" />
+            <Trans>Merge another part</Trans>
+          </Button>
+        </StatusPanel>
+      ) : result ? (
         <StatusPanel tone="success" className="flex flex-col gap-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
             <CheckCircle2 className="h-4 w-4" />

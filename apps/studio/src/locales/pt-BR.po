@@ -2681,6 +2681,9 @@ msgstr "A cada poucas páginas"
 msgid "Every notable concept and named entity."
 msgstr "Todo conceito notável e entidade nomeada."
 
+msgid "Every page has been merged back from its part — the whole book is in place."
+msgstr "Todas as páginas foram mescladas de volta a partir de sua parte — o livro inteiro está no lugar."
+
 msgid "Every page in this book has all sections pruned. There is no content available to generate {stageName} from."
 msgstr "Todas as páginas deste livro têm todas as seções excluídas. Não há conteúdo disponível para gerar {stageName}."
 
@@ -4024,6 +4027,9 @@ msgstr "Mesclar uma parte concluída"
 
 msgid "Merge another"
 msgstr "Mesclar outra"
+
+msgid "Merge another part"
+msgstr "Mesclar outra parte"
 
 #~ msgid "Merge facing pages as spreads"
 #~ msgstr "Mesclar páginas adjacentes como duplas"
@@ -7058,6 +7064,9 @@ msgstr "Este livro é uma parte. Exporte-o como <0>Parte concluída</0> e envie 
 
 #~ msgid "This book is an imported part. Parts can't be split or merged further — process the assigned pages, then return the finished part from the Export step to merge it back into the source book."
 #~ msgstr "Este livro é uma parte importada. As partes não podem ser divididas nem mescladas novamente: processe as páginas atribuídas e depois retorne a parte concluída a partir da etapa Exportar para mesclá-la de volta no livro de origem."
+
+msgid "This book is fully assembled"
+msgstr "Este livro está totalmente montado"
 
 #. placeholder {0}: book.title
 msgid "This book is titled \"{0}\"."
