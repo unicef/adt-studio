@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button"
 import { FileDropOverlay, useFileDropZone } from "@/components/ui/file-drop-overlay"
 import { cn, formatBytes, isZipFile } from "@/lib/utils"
 import { useImportBook } from "@/hooks/use-books"
+import { useFriendlyArchiveError, type FriendlyError } from "@/hooks/use-archive-error"
 import { api, isPartImportPreview } from "@/api/client"
 import type { AnyImportPreview, ImportPreview, PartImportPreview } from "@/api/client"
 
@@ -250,26 +251,6 @@ function PartPreviewCard({ preview, fileName, fileSize }: { preview: PartImportP
   )
 }
 
-interface FriendlyError {
-  title: string
-  hint: string
-}
-
-function useFriendlyError(rawError: string | null): FriendlyError | null {
-  const { t } = useLingui()
-  if (!rawError) return null
-
-  if (rawError.includes("Invalid ZIP file"))
-    return {
-      title: t`This file couldn't be read as a ZIP archive`,
-      hint: t`The file may be damaged or incomplete. Try downloading it again from the source.`,
-    }
-
-  return {
-    title: t`Invalid project archive`,
-    hint: t`Make sure you're uploading a .zip file exported from ADT Studio.`,
-  }
-}
 
 export function ImportProject() {
   const { t } = useLingui()
@@ -281,8 +262,8 @@ export function ImportProject() {
   const [previewLoading, setPreviewLoading] = useState(false)
   const [previewError, setPreviewError] = useState<string | null>(null)
 
-  const friendlyPreviewError = useFriendlyError(previewError)
-  const friendlyImportError = useFriendlyError(
+  const friendlyPreviewError = useFriendlyArchiveError(previewError)
+  const friendlyImportError = useFriendlyArchiveError(
     importMutation.error ? (importMutation.error instanceof Error ? importMutation.error.message : String(importMutation.error)) : null,
   )
 

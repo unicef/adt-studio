@@ -37,8 +37,8 @@ msgstr ", and "
 msgid "? This will remove all extracted data and cannot be undone."
 msgstr "? This will remove all extracted data and cannot be undone."
 
-msgid "· choose another"
-msgstr "· choose another"
+#~ msgid "· choose another"
+#~ msgstr "· choose another"
 
 msgid "\"A landscape forged by fire.\""
 msgstr "\"A landscape forged by fire.\""
@@ -1666,6 +1666,9 @@ msgstr "Choose images..."
 msgid "Choose Provider"
 msgstr "Choose Provider"
 
+msgid "Choose the part file that was shared with you, or export it again."
+msgstr "Choose the part file that was shared with you, or export it again."
+
 msgid "Choose the source pages and where the quiz lands in the page editor."
 msgstr "Choose the source pages and where the quiz lands in the page editor."
 
@@ -2739,6 +2742,9 @@ msgstr "Export preparation failed"
 msgid "Export Preview"
 msgstr "Export Preview"
 
+msgid "Export the finished part from its Export step, then upload that file."
+msgstr "Export the finished part from its Export step, then upload that file."
+
 msgid "Export the packaged book and related artifacts for delivery."
 msgstr "Export the packaged book and related artifacts for delivery."
 
@@ -3574,6 +3580,12 @@ msgstr "Isolated asset"
 
 msgid "Issues"
 msgstr "Issues"
+
+msgid "It contains unexpected file paths. Use a .zip exported from ADT Studio."
+msgstr "It contains unexpected file paths. Use a .zip exported from ADT Studio."
+
+msgid "It was created from a different PDF or settings, so it can't be merged here."
+msgstr "It was created from a different PDF or settings, so it can't be merged here."
 
 msgid "italic"
 msgstr "italic"
@@ -4606,6 +4618,9 @@ msgstr "Only letters, numbers, dots, dashes, underscores. Must start with a lett
 
 msgid "Only pages containing these section types are counted when grouping pages for quiz generation."
 msgstr "Only pages containing these section types are counted when grouping pages for quiz generation."
+
+msgid "Only parts exported from this book can be merged back."
+msgstr "Only parts exported from this book can be merged back."
 
 msgid "Only PDF files are supported"
 msgstr "Only PDF files are supported"
@@ -6855,6 +6870,9 @@ msgstr "The AI will preserve the original style while applying your changes."
 msgid "The application ran into an unexpected error. You can try reloading — your work in progress is saved on disk."
 msgstr "The application ran into an unexpected error. You can try reloading — your work in progress is saved on disk."
 
+msgid "The archive must contain a project database and its PDF. Re-export it from ADT Studio."
+msgstr "The archive must contain a project database and its PDF. Re-export it from ADT Studio."
+
 msgid "The back cover of the book."
 msgstr "The back cover of the book."
 
@@ -7017,6 +7035,9 @@ msgstr "They produce flowers to attract pollinators."
 msgid "They release oxygen directly into the air."
 msgstr "They release oxygen directly into the air."
 
+msgid "This archive can't be opened safely"
+msgstr "This archive can't be opened safely"
+
 msgid "This book has {pageCount} pages."
 msgstr "This book has {pageCount} pages."
 
@@ -7066,11 +7087,23 @@ msgstr "This is <0>ADT Studio</0>."
 msgid "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
 msgstr "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
 
+msgid "This is a project, not a book part"
+msgstr "This is a project, not a book part"
+
 msgid "This is Pip! He has a wiggly tail."
 msgstr "This is Pip! He has a wiggly tail."
 
 msgid "This is Pip! He is a happy caramel dog with a very wiggly tail. Pip loves the green grass, the bright yellow sun, and making new friends in his garden."
 msgstr "This is Pip! He is a happy caramel dog with a very wiggly tail. Pip loves the green grass, the bright yellow sun, and making new friends in his garden."
+
+msgid "This isn't a completed part"
+msgstr "This isn't a completed part"
+
+msgid "This isn't a valid ADT Studio project"
+msgstr "This isn't a valid ADT Studio project"
+
+msgid "This isn't a valid part file"
+msgstr "This isn't a valid part file"
 
 msgid "This page has no captioned images"
 msgstr "This page has no captioned images"
@@ -7113,6 +7146,9 @@ msgstr "This page's embedded text layer is empty, but the Sectioning step recove
 
 msgid "This part cannot be merged"
 msgstr "This part cannot be merged"
+
+msgid "This part doesn't match this book"
+msgstr "This part doesn't match this book"
 
 #~ msgid "This PDF appears to be image-based or uses fonts we can't read as text, so the extracted text may be incomplete. The Sectioning step can still recover some text from the page image, but for better summaries, metadata, and translations, first try to obtain a better-quality, text-based version of this PDF — and only run OCR on it if no such version is available."
 #~ msgstr "This PDF appears to be image-based or uses fonts we can't read as text, so the extracted text may be incomplete. The Sectioning step can still recover some text from the page image, but for better summaries, metadata, and translations, first try to obtain a better-quality, text-based version of this PDF — and only run OCR on it if no such version is available."

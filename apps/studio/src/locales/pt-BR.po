@@ -37,8 +37,8 @@ msgstr ", e "
 msgid "? This will remove all extracted data and cannot be undone."
 msgstr "? Isso removerá todos os dados extraídos e não poderá ser desfeito."
 
-msgid "· choose another"
-msgstr "· escolher outro"
+#~ msgid "· choose another"
+#~ msgstr "· escolher outro"
 
 msgid "\"A landscape forged by fire.\""
 msgstr "\\\"Uma paisagem forjada pelo fogo.\\\""
@@ -1666,6 +1666,9 @@ msgstr "Escolher imagens..."
 msgid "Choose Provider"
 msgstr "Escolher provedor"
 
+msgid "Choose the part file that was shared with you, or export it again."
+msgstr "Escolha o arquivo de parte que foi compartilhado com você, ou exporte-o novamente."
+
 msgid "Choose the source pages and where the quiz lands in the page editor."
 msgstr "Escolha as páginas de origem e onde o questionário será inserido no editor de páginas."
 
@@ -2739,6 +2742,9 @@ msgstr "Falha ao preparar a exportação"
 msgid "Export Preview"
 msgstr "Pré-visualização de Exportação"
 
+msgid "Export the finished part from its Export step, then upload that file."
+msgstr "Exporte a parte concluída a partir da etapa de Exportação e depois envie esse arquivo."
+
 msgid "Export the packaged book and related artifacts for delivery."
 msgstr "Exporte o livro embalado e artefatos relacionados para entrega."
 
@@ -3574,6 +3580,12 @@ msgstr "Recurso isolado"
 
 msgid "Issues"
 msgstr "Problemas"
+
+msgid "It contains unexpected file paths. Use a .zip exported from ADT Studio."
+msgstr "Ele contém caminhos de arquivo inesperados. Use um arquivo .zip exportado do ADT Studio."
+
+msgid "It was created from a different PDF or settings, so it can't be merged here."
+msgstr "Foi criada a partir de um PDF ou de configurações diferentes, por isso não pode ser mesclada aqui."
 
 msgid "italic"
 msgstr "itálico"
@@ -4606,6 +4618,9 @@ msgstr "Apenas letras, números, pontos, traços, sublinhados. Deve começar com
 
 msgid "Only pages containing these section types are counted when grouping pages for quiz generation."
 msgstr "Apenas páginas que contêm esses tipos de seção são contadas ao agrupar páginas para geração de quiz."
+
+msgid "Only parts exported from this book can be merged back."
+msgstr "Apenas as partes exportadas deste livro podem ser mescladas de volta."
 
 msgid "Only PDF files are supported"
 msgstr "Apenas arquivos PDF são suportados"
@@ -6855,6 +6870,9 @@ msgstr "A IA preservará o estilo original ao aplicar suas alterações."
 msgid "The application ran into an unexpected error. You can try reloading — your work in progress is saved on disk."
 msgstr "O aplicativo encontrou um erro inesperado. Você pode tentar recarregar — seu trabalho em andamento está salvo no disco."
 
+msgid "The archive must contain a project database and its PDF. Re-export it from ADT Studio."
+msgstr "O arquivo deve conter um banco de dados de projeto e seu PDF. Exporte-o novamente do ADT Studio."
+
 msgid "The back cover of the book."
 msgstr "A contracapa do livro."
 
@@ -7017,6 +7035,9 @@ msgstr "Produzem flores para atrair polinizadores."
 msgid "They release oxygen directly into the air."
 msgstr "Liberam oxigênio diretamente no ar."
 
+msgid "This archive can't be opened safely"
+msgstr "Este arquivo não pode ser aberto com segurança"
+
 msgid "This book has {pageCount} pages."
 msgstr "Este livro tem {pageCount} páginas."
 
@@ -7066,11 +7087,23 @@ msgstr "Isto é o <0>ADT Studio</0>."
 msgid "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
 msgstr "Esta é uma pré-visualização das opções que você selecionou para o seu livro, cada opção afeta a pré-visualização de uma maneira diferente."
 
+msgid "This is a project, not a book part"
+msgstr "Isto é um projeto, não uma parte do livro"
+
 msgid "This is Pip! He has a wiggly tail."
 msgstr "Este é o Pip! Ele tem um rabo que balança."
 
 msgid "This is Pip! He is a happy caramel dog with a very wiggly tail. Pip loves the green grass, the bright yellow sun, and making new friends in his garden."
 msgstr "Este é o Pip! Ele é um cachorro caramelo feliz com um rabo muito agitado. Pip adora a grama verde, o sol amarelo brilhante e fazer novos amigos em seu jardim."
+
+msgid "This isn't a completed part"
+msgstr "Isto não é uma parte concluída"
+
+msgid "This isn't a valid ADT Studio project"
+msgstr "Este não é um projeto válido do ADT Studio"
+
+msgid "This isn't a valid part file"
+msgstr "Este não é um arquivo de parte válido"
 
 msgid "This page has no captioned images"
 msgstr "Esta página não tem imagens legendadas"
@@ -7113,6 +7146,9 @@ msgstr "A camada de texto incorporada desta página está vazia, mas a etapa de 
 
 msgid "This part cannot be merged"
 msgstr "Esta parte não pode ser mesclada"
+
+msgid "This part doesn't match this book"
+msgstr "Esta parte não corresponde a este livro"
 
 #~ msgid "This PDF appears to be image-based or uses fonts we can't read as text, so the extracted text may be incomplete. The Sectioning step can still recover some text from the page image, but for better summaries, metadata, and translations, first try to obtain a better-quality, text-based version of this PDF — and only run OCR on it if no such version is available."
 #~ msgstr "Este PDF parece ser baseado em imagens ou usa fontes que não conseguimos ler como texto, portanto o texto extraído pode estar incompleto. A etapa de Seccionamento ainda pode recuperar parte do texto a partir da imagem da página, mas para melhores resumos, metadados e traduções, primeiro tente obter uma versão deste PDF de melhor qualidade e baseada em texto — e aplique OCR somente se nenhuma estiver disponível."

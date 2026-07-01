@@ -68,7 +68,7 @@ function unzipBuffer(zipBuffer: Buffer): Record<string, Uint8Array> {
   try {
     return unzipSync(zipBuffer)
   } catch {
-    throwInvalid("Invalid ZIP file")
+    throwInvalid("That file isn't a valid .zip archive.")
   }
 }
 
@@ -344,15 +344,15 @@ export interface PartImportPreview {
 
 function parseManifest(entries: Record<string, Uint8Array>): PartManifest {
   const raw = entries["part.json"]
-  if (!raw) throwInvalid("Not a part archive: missing part.json")
+  if (!raw) throwInvalid("This file isn't a book part. Choose the part file that was shared with you.")
   let json: unknown
   try {
     json = JSON.parse(Buffer.from(raw).toString("utf-8"))
   } catch {
-    throwInvalid("part.json is not valid JSON")
+    throwInvalid("This part file looks corrupted and can't be read.")
   }
   const parsed = PartManifest.safeParse(json)
-  if (!parsed.success) throwInvalid(`Invalid part.json: ${parsed.error.message}`)
+  if (!parsed.success) throwInvalid("This part file is invalid or corrupted.")
   return parsed.data
 }
 
@@ -388,7 +388,7 @@ export function importPart(zipBuffer: Buffer, booksDir: string): BookSummary {
   const entries = unzipBuffer(zipBuffer)
   const manifest = parseManifest(entries)
   const pdfEntry = findRootEntry(Object.keys(entries), ".pdf")
-  if (!pdfEntry) throwInvalid("Part archive is missing its PDF")
+  if (!pdfEntry) throwInvalid("This part file is incomplete: its PDF is missing.")
 
   const baseLabel = parseBookLabel(manifest.partLabelSuggestion)
   const targetLabel = resolveUniqueLabel(baseLabel, booksDir)
@@ -502,9 +502,13 @@ function openPartProject(zipBuffer: Buffer): {
   const entries = unzipBuffer(zipBuffer)
   const filePaths = Object.keys(entries)
   const dbEntry = findRootEntry(filePaths, ".db")
-  if (!dbEntry) throwInvalid("Not a completed-part project: missing .db at the archive root")
+  if (!dbEntry) {
+    throwInvalid(
+      "This .zip isn't a completed part. Open the part, export it from its Export step as a Completed Part, and upload that file.",
+    )
+  }
   if (!("part.json" in entries)) {
-    throwInvalid("Not a part project: missing part.json (export the part as a project)")
+    throwInvalid("This looks like a regular project, not a book part. Only parts exported from this book can be merged back.")
   }
   const rawLabel = parseBookLabel(dbEntry.replace(/\.db$/, ""))
 
@@ -514,7 +518,7 @@ function openPartProject(zipBuffer: Buffer): {
 
   for (const [entryPath, data] of Object.entries(entries)) {
     const dest = path.join(dir, entryPath)
-    if (!dest.startsWith(dir + path.sep)) throwInvalid("Part archive contains unsafe paths")
+    if (!dest.startsWith(dir + path.sep)) throwInvalid("This .zip contains unexpected file paths and can't be opened safely.")
     fs.mkdirSync(path.dirname(dest), { recursive: true })
     fs.writeFileSync(dest, data)
   }

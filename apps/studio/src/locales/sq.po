@@ -38,8 +38,8 @@ msgstr ", dhe "
 msgid "? This will remove all extracted data and cannot be undone."
 msgstr "? Kjo do të heqë të gjitha të dhënat e nxjerra dhe nuk mund të zhbëhet."
 
-msgid "· choose another"
-msgstr "· zgjidh një tjetër"
+#~ msgid "· choose another"
+#~ msgstr "· zgjidh një tjetër"
 
 msgid "\"A landscape forged by fire.\""
 msgstr "\"Një peizazh i formuar nga zjarri.\""
@@ -1667,6 +1667,9 @@ msgstr "Zgjidhni imazhe..."
 msgid "Choose Provider"
 msgstr "Zgjidhni Ofruesin"
 
+msgid "Choose the part file that was shared with you, or export it again."
+msgstr "Zgjidhni skedarin e pjesës që ju është ndarë, ose eksportojeni përsëri."
+
 msgid "Choose the source pages and where the quiz lands in the page editor."
 msgstr "Zgjidhni faqet burimore dhe ku vendoset testi në redaktorin e faqeve."
 
@@ -2740,6 +2743,9 @@ msgstr "Përgatitja e eksportit dështoi"
 msgid "Export Preview"
 msgstr "Pamje paraprake e eksportit"
 
+msgid "Export the finished part from its Export step, then upload that file."
+msgstr "Eksportoni pjesën e përfunduar nga hapi i saj i Eksportimit, pastaj ngarkoni atë skedar."
+
 msgid "Export the packaged book and related artifacts for delivery."
 msgstr "Eksportoni librin e paketuar dhe artefaktet përkatëse për dorëzim."
 
@@ -3575,6 +3581,12 @@ msgstr "Asete e izoluar"
 
 msgid "Issues"
 msgstr "Probleme"
+
+msgid "It contains unexpected file paths. Use a .zip exported from ADT Studio."
+msgstr "Ai përmban shtigje skedarësh të papritura. Përdorni një skedar .zip të eksportuar nga ADT Studio."
+
+msgid "It was created from a different PDF or settings, so it can't be merged here."
+msgstr "U krijua nga një PDF ose cilësime të ndryshme, ndaj nuk mund të bashkohet këtu."
 
 msgid "italic"
 msgstr "kursive"
@@ -4607,6 +4619,9 @@ msgstr "Vetëm shkronja, numra, pika, viza, nënviza. Duhet të fillojë me një
 
 msgid "Only pages containing these section types are counted when grouping pages for quiz generation."
 msgstr "Numërohen vetëm faqet që përmbajnë këto lloje seksionesh kur grupohen faqet për gjenerimin e kuizit."
+
+msgid "Only parts exported from this book can be merged back."
+msgstr "Vetëm pjesët e eksportuara nga ky libër mund të bashkohen përsëri."
 
 msgid "Only PDF files are supported"
 msgstr "Mbështeten vetëm skedarë PDF"
@@ -6856,6 +6871,9 @@ msgstr "AI do të ruajë stilin origjinal ndërkohë që aplikon ndryshimet tuaj
 msgid "The application ran into an unexpected error. You can try reloading — your work in progress is saved on disk."
 msgstr "Aplikacioni ndeshi një gabim të papritur. Mund të provosh të ringarkosh — puna juaj në vazhdim është ruajtur në disk."
 
+msgid "The archive must contain a project database and its PDF. Re-export it from ADT Studio."
+msgstr "Arkivi duhet të përmbajë një bazë të dhënash projekti dhe PDF-në e tij. Eksportojeni përsëri nga ADT Studio."
+
 msgid "The back cover of the book."
 msgstr "Kapaku i pasëm i librit."
 
@@ -7018,6 +7036,9 @@ msgstr "Ato prodhojnë lule për të tërhequr polenizuesit."
 msgid "They release oxygen directly into the air."
 msgstr "Ato lëshojnë oksigjen drejtpërdrejt në ajër."
 
+msgid "This archive can't be opened safely"
+msgstr "Ky arkiv nuk mund të hapet në mënyrë të sigurt"
+
 msgid "This book has {pageCount} pages."
 msgstr "Ky libër ka {pageCount} faqe."
 
@@ -7067,11 +7088,23 @@ msgstr "Ky është <0>ADT Studio</0>."
 msgid "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
 msgstr "Ky është një paraparim i opsioneve të zgjedhura për librin tuaj, çdo opsion ndikon paraparimimin në mënyra të ndryshme."
 
+msgid "This is a project, not a book part"
+msgstr "Ky është një projekt, jo një pjesë libri"
+
 msgid "This is Pip! He has a wiggly tail."
 msgstr "Ky është Pip! Ai ka bisht që lëkundet."
 
 msgid "This is Pip! He is a happy caramel dog with a very wiggly tail. Pip loves the green grass, the bright yellow sun, and making new friends in his garden."
 msgstr "Ky është Pip! Ai është një qen i lumtur karamel me bisht shumë lëkundes. Pip i do barin e gjelbër, diellin e ndritshëm të verdhë dhe të bëjë miq të rinj në kopshtin e tij."
+
+msgid "This isn't a completed part"
+msgstr "Kjo nuk është një pjesë e përfunduar"
+
+msgid "This isn't a valid ADT Studio project"
+msgstr "Ky nuk është një projekt i vlefshëm i ADT Studio"
+
+msgid "This isn't a valid part file"
+msgstr "Ky nuk është një skedar i vlefshëm pjese"
 
 msgid "This page has no captioned images"
 msgstr "Kjo faqe nuk ka imazhe me tituj"
@@ -7114,6 +7147,9 @@ msgstr "Shtresa e tekstit të integruar e kësaj faqeje është bosh, por hapi i
 
 msgid "This part cannot be merged"
 msgstr "Kjo pjesë nuk mund të bashkohet"
+
+msgid "This part doesn't match this book"
+msgstr "Kjo pjesë nuk përputhet me këtë libër"
 
 #~ msgid "This PDF appears to be image-based or uses fonts we can't read as text, so the extracted text may be incomplete. The Sectioning step can still recover some text from the page image, but for better summaries, metadata, and translations, first try to obtain a better-quality, text-based version of this PDF — and only run OCR on it if no such version is available."
 #~ msgstr "Ky PDF duket se është i bazuar në imazhe ose përdor fonte që nuk mund t'i lexojmë si tekst, prandaj teksti i nxjerrë mund të jetë i paplotë. Hapi i Seksionimit mund të rikuperojë ende një pjesë të tekstit nga imazhi i faqes, por për përmbledhje, metadata dhe përkthime më të mira, fillimisht provoni të siguroni një version më cilësor të këtij PDF-je të bazuar në tekst — dhe aplikoni OCR vetëm nëse asnjë version i tillë nuk është i disponueshëm."

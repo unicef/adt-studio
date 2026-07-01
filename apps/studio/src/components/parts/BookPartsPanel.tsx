@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from "react"
 import { Plural, Trans, useLingui } from "@lingui/react/macro"
-import { Scissors, Combine, Upload, AlertTriangle, CheckCircle2, Loader2, Sparkles, ArrowRight } from "lucide-react"
+import { Scissors, Combine, Upload, AlertTriangle, CheckCircle2, Loader2, Sparkles, ArrowRight, FileArchive, X } from "lucide-react"
 import { useBook, useRegenerateBookSummary } from "../../hooks/use-books"
 import { usePartInfo, usePreviewMerge, useMergePart, useSplitStatus } from "../../hooks/use-parts"
 import { useApiKey } from "../../hooks/use-api-key"
@@ -10,6 +10,8 @@ import { type MergePreview, type MergeResult, type SplitStatus } from "../../api
 import { Button } from "../ui/button"
 import { Badge } from "../ui/badge"
 import { cn, isZipFile } from "../../lib/utils"
+import { useFriendlyArchiveError } from "../../hooks/use-archive-error"
+import { Collapsible } from "../ui/collapsible"
 import { fmtRange } from "./parts-utils"
 import { CoverageBar } from "./CoverageBar"
 import { ExportPartControls, useExportPartState } from "./ExportPartControls"
@@ -243,7 +245,15 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
     }
     setFile(selected)
     if (selected) {
-      previewMutation.mutate(selected, { onSuccess: (p) => setPreview(p) })
+      previewMutation.mutate(selected, {
+        onSuccess: (p) => setPreview(p),
+        // A bad part clears the picker (the dropzone returns to its empty state)
+        // while the error stays visible, so the user can drop another file.
+        onError: () => {
+          setFile(null)
+          if (fileRef.current) fileRef.current.value = ""
+        },
+      })
     }
   }
 
@@ -257,10 +267,12 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
 
   const needsAck = preview && !preview.blocked && !preview.semanticsMatch
   const canMerge = preview && !preview.blocked && (!needsAck || acknowledge)
-  const previewError =
-    previewMutation.error instanceof Error ? previewMutation.error.message : null
-  const mergeError =
-    mergeMutation.error instanceof Error ? mergeMutation.error.message : null
+  const previewError = useFriendlyArchiveError(
+    previewMutation.error instanceof Error ? previewMutation.error.message : null,
+  )
+  const mergeError = useFriendlyArchiveError(
+    mergeMutation.error instanceof Error ? mergeMutation.error.message : null,
+  )
 
   return (
     <div className="flex flex-col gap-4 bg-card p-6">
@@ -287,7 +299,7 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
         onChange={(e) => onSelectFile(e.target.files?.[0] ?? null)}
       />
 
-      <div className="flex flex-1 flex-col gap-3">
+      <div className="flex flex-1 flex-col">
       {result ? (
         <StatusPanel tone="success" className="flex flex-col gap-2">
           <div className="flex items-center gap-2 text-sm font-semibold text-emerald-700 dark:text-emerald-400">
@@ -365,9 +377,7 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
         </StatusPanel>
       ) : (
         <>
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
+          <div
             onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
             onDragLeave={() => setDragOver(false)}
             onDrop={(e) => {
@@ -375,75 +385,124 @@ function MergePart({ bookLabel, status }: { bookLabel: string; status: SplitStat
               setDragOver(false)
               onSelectFile(e.dataTransfer.files?.[0] ?? null)
             }}
-            className={cn(
-              "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 text-center",
-              "transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              file ? "min-h-0 py-4" : "min-h-[140px] flex-1",
-              dragOver
-                ? "border-part bg-part/5"
-                : "border-border hover:border-part/50 hover:bg-muted/30",
-            )}
           >
-            <Upload
-              className={cn("h-6 w-6", dragOver ? "text-part" : "text-muted-foreground")}
-              strokeWidth={2}
-            />
             {file ? (
-              <span className="max-w-full truncate text-xs" title={file.name}>
-                <span className="font-medium text-foreground">{file.name}</span>{" "}
-                <span className="text-muted-foreground"><Trans>· choose another</Trans></span>
-              </span>
+              <div
+                className={cn(
+                  "flex items-center gap-2.5 rounded-lg border p-3",
+                  "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-200",
+                  dragOver ? "border-part bg-part/5" : "border-border bg-muted/20",
+                )}
+              >
+                <FileArchive className="h-5 w-5 shrink-0 text-part" strokeWidth={2} />
+                <span className="min-w-0 flex-1 truncate text-xs font-medium text-foreground" title={file.name}>
+                  {file.name}
+                </span>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs"
+                  onClick={() => fileRef.current?.click()}
+                >
+                  <Trans>Change</Trans>
+                </Button>
+                <button
+                  type="button"
+                  onClick={reset}
+                  aria-label={t`Remove file`}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             ) : (
-              <span className="text-xs text-muted-foreground">
-                <Trans>
-                  Drop a part <span className="font-medium text-foreground">.zip</span> here, or
-                  browse
-                </Trans>
-              </span>
+              <button
+                type="button"
+                onClick={() => fileRef.current?.click()}
+                className={cn(
+                  "flex min-h-[150px] w-full cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 text-center",
+                  "transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  dragOver
+                    ? "border-part bg-part/5"
+                    : "border-border hover:border-part/50 hover:bg-muted/30",
+                )}
+              >
+                <Upload
+                  className={cn("h-6 w-6", dragOver ? "text-part" : "text-muted-foreground")}
+                  strokeWidth={2}
+                />
+                <span className="text-xs text-muted-foreground">
+                  <Trans>
+                    Drop a part <span className="font-medium text-foreground">.zip</span> here, or
+                    browse
+                  </Trans>
+                </span>
+              </button>
             )}
-          </button>
+          </div>
 
-          {previewMutation.isPending && (
-            <p className="text-xs text-muted-foreground">
+          <Collapsible shown={previewMutation.isPending}>
+            <p className="flex items-center gap-2 pt-3 text-xs text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" strokeWidth={2} />
               <Trans>Analyzing part…</Trans>
             </p>
-          )}
-          {selectError && <ErrorNote message={selectError} />}
-          {previewError && <ErrorNote message={previewError} />}
+          </Collapsible>
 
-          {preview && <PreviewSummary preview={preview} />}
+          <Collapsible shown={!!selectError}>
+            {selectError && <div className="pt-3"><ErrorNote message={selectError} /></div>}
+          </Collapsible>
 
-          {needsAck && (
-            <label className="flex items-start gap-2 text-xs text-foreground">
-              <input
-                type="checkbox"
-                checked={acknowledge}
-                onChange={(e) => setAcknowledge(e.target.checked)}
-                className="mt-0.5"
-              />
-              <span>
-                <Trans>
-                  I understand the part was processed with different
-                  prompts/models and want to merge it anyway.
-                </Trans>
-              </span>
-            </label>
-          )}
+          <Collapsible shown={!!previewError}>
+            {previewError && (
+              <div className="pt-3"><ErrorNote message={previewError.title} hint={previewError.hint} /></div>
+            )}
+          </Collapsible>
 
-          {mergeError && <ErrorNote message={mergeError} />}
+          <Collapsible shown={!!preview}>
+            {preview && <div className="pt-3"><PreviewSummary preview={preview} /></div>}
+          </Collapsible>
 
-          {preview && (
-            <Button
-              type="button"
-              disabled={!canMerge || mergeMutation.isPending}
-              onClick={onMerge}
-              title={preview.blocked ? t`This part cannot be merged` : undefined}
-              className="self-start"
-            >
-              <Combine className="mr-1.5 h-4 w-4" />
-              {mergeMutation.isPending ? <Trans>Merging…</Trans> : <Trans>Merge part</Trans>}
-            </Button>
-          )}
+          <Collapsible shown={!!needsAck}>
+            {needsAck && (
+              <label className="flex items-start gap-2 pt-3 text-xs text-foreground">
+                <input
+                  type="checkbox"
+                  checked={acknowledge}
+                  onChange={(e) => setAcknowledge(e.target.checked)}
+                  className="mt-0.5"
+                />
+                <span>
+                  <Trans>
+                    I understand the part was processed with different
+                    prompts/models and want to merge it anyway.
+                  </Trans>
+                </span>
+              </label>
+            )}
+          </Collapsible>
+
+          <Collapsible shown={!!mergeError}>
+            {mergeError && (
+              <div className="pt-3"><ErrorNote message={mergeError.title} hint={mergeError.hint} /></div>
+            )}
+          </Collapsible>
+
+          <Collapsible shown={!!preview}>
+            {preview && (
+              <div className="pt-3">
+                <Button
+                  type="button"
+                  disabled={!canMerge || mergeMutation.isPending}
+                  onClick={onMerge}
+                  title={preview.blocked ? t`This part cannot be merged` : undefined}
+                >
+                  <Combine className="mr-1.5 h-4 w-4" />
+                  {mergeMutation.isPending ? <Trans>Merging…</Trans> : <Trans>Merge part</Trans>}
+                </Button>
+              </div>
+            )}
+          </Collapsible>
         </>
       )}
       </div>
@@ -538,11 +597,14 @@ function StatusPanel({
   )
 }
 
-function ErrorNote({ message }: { message: string }) {
+function ErrorNote({ message, hint }: { message: string; hint?: string }) {
   return (
     <StatusPanel tone="error" className="flex items-start gap-2">
       <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-      <span>{message}</span>
+      <span className="flex flex-col gap-0.5">
+        <span className="font-medium">{message}</span>
+        {hint && <span className="text-destructive/80">{hint}</span>}
+      </span>
     </StatusPanel>
   )
 }
