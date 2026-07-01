@@ -1,6 +1,13 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Dark mode is driven by a `.dark` class (see the `.dark { … }` token block
+ * below), not the OS. Without this, Tailwind v4 defaults the `dark:` variant to
+ * `@media (prefers-color-scheme: dark)`, so `dark:` utilities would fire on a
+ * dark-mode OS while the class-based surfaces stay light — e.g. pale
+ * `dark:text-amber-200` on a light `bg-amber-50`, making warnings illegible. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif,
