@@ -37,7 +37,11 @@ export function useStageSettingsBar({
     onSaveAndRerun: async () => {
       await save()
       queueRun({ fromStage: stage, toStage: stage, apiKey })
-      navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: stage } })
+      navigate({
+        to: "/books/$label/$step",
+        params: { label: bookLabel, step: stage },
+        ignoreBlocker: true,
+      })
     },
     onSaveStay: async () => {
       await save()
