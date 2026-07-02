@@ -1,0 +1,14 @@
+diff --git a/dist/esm/staticFunctionMiddleware.js b/dist/esm/staticFunctionMiddleware.js
+index c6fecf9ebb3ce93e574642f49bf66495bc62d9a0..3dfcda019cb6cbdf8a5fc2f931de6c2e597ccbed 100644
+--- a/dist/esm/staticFunctionMiddleware.js
++++ b/dist/esm/staticFunctionMiddleware.js
+@@ -57,7 +57,8 @@ var fetchItem = async ({ data, functionId }) => {
+ 		hash: jsonToFilenameSafeString(data)
+ 	});
+ 	let result = staticClientCache?.get(url);
+-	result = await fetch(url, { method: "GET" }).then((r) => r.json()).then((d) => fromJSON(d, { plugins: getDefaultSerovalPlugins() }));
++	const baseUrl = (import.meta.env.BASE_URL || "/").replace(/\/$/, "") + url;
++	result = await fetch(baseUrl, { method: "GET" }).then((r) => r.json()).then((d) => fromJSON(d, { plugins: getDefaultSerovalPlugins() }));
+ 	return result;
+ };
+ var staticFunctionMiddleware = createMiddleware({ type: "function" }).client(async (ctx) => {

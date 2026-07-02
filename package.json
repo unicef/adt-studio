@@ -39,6 +39,9 @@
     ],
     "overrides": {
       "typescript": "^5"
+    },
+    "patchedDependencies": {
+      "@tanstack/start-static-server-functions@1.167.17": "patches/@tanstack__start-static-server-functions@1.167.17.patch"
     }
   },
   "license": "AGPL-3.0-or-later"

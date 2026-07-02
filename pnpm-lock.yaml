@@ -7,6 +7,11 @@ settings:
 overrides:
   typescript: ^5
 
+patchedDependencies:
+  '@tanstack/start-static-server-functions@1.167.17':
+    hash: d389282172be31d0acf54cc9df70bea319c224dd457b020ef10daec6b2c16d48
+    path: patches/@tanstack__start-static-server-functions@1.167.17.patch
+
 importers:
 
   .:
@@ -117,7 +122,7 @@ importers:
         version: 1.168.26(crossws@0.4.6(srvx@0.11.17))(esbuild@0.28.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(rolldown@1.1.3)(vite@8.1.0(@types/node@25.9.4)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.21.0))
       '@tanstack/start-static-server-functions':
         specifier: 1.167.17
-        version: 1.167.17(@tanstack/react-start@1.168.26(crossws@0.4.6(srvx@0.11.17))(esbuild@0.28.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(rolldown@1.1.3)(vite@8.1.0(@types/node@25.9.4)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.21.0)))
+        version: 1.167.17(patch_hash=d389282172be31d0acf54cc9df70bea319c224dd457b020ef10daec6b2c16d48)(@tanstack/react-start@1.168.26(crossws@0.4.6(srvx@0.11.17))(esbuild@0.28.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(rolldown@1.1.3)(vite@8.1.0(@types/node@25.9.4)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.21.0)))
       clsx:
         specifier: ^2.1.0
         version: 2.1.1
@@ -9281,7 +9286,7 @@ snapshots:
     transitivePeerDependencies:
       - crossws
 
-  '@tanstack/start-static-server-functions@1.167.17(@tanstack/react-start@1.168.26(crossws@0.4.6(srvx@0.11.17))(esbuild@0.28.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(rolldown@1.1.3)(vite@8.1.0(@types/node@25.9.4)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.21.0)))':
+  '@tanstack/start-static-server-functions@1.167.17(patch_hash=d389282172be31d0acf54cc9df70bea319c224dd457b020ef10daec6b2c16d48)(@tanstack/react-start@1.168.26(crossws@0.4.6(srvx@0.11.17))(esbuild@0.28.1)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(rolldown@1.1.3)(vite@8.1.0(@types/node@25.9.4)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.21.0)))':
     dependencies:
       '@tanstack/start-client-core': 1.170.12
       seroval: 1.5.4
@@ -12103,24 +12108,6 @@ snapshots:
   react-is@17.0.2: {}
 
   react-is@18.3.1: {}
-
-  react-markdown@10.1.0(@types/react@19.2.13)(react@19.2.4):
-    dependencies:
-      '@types/hast': 3.0.4
-      '@types/mdast': 4.0.4
-      '@types/react': 19.2.13
-      devlop: 1.1.0
-      hast-util-to-jsx-runtime: 2.3.6
-      html-url-attributes: 3.0.1
-      mdast-util-to-hast: 13.2.1
-      react: 19.2.4
-      remark-parse: 11.0.0
-      remark-rehype: 11.1.2
-      unified: 11.0.5
-      unist-util-visit: 5.1.0
-      vfile: 6.0.3
-    transitivePeerDependencies:
-      - supports-color
 
   react-markdown@10.1.0(@types/react@19.2.17)(react@19.2.4):
     dependencies:
