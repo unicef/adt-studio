@@ -4,8 +4,8 @@ import {
   getReleaseChannel,
   type ReleaseChannel,
 } from "./release-banner-utils"
-import betaIconSrc from "../../../../desktop/build/beta-icons/icons/512x512.png?url"
-import stableIconSrc from "../../../../desktop/build/icons/512x512.png?url"
+import betaIconSrc from "../../assets/update-icons/beta-512x512.png?url"
+import stableIconSrc from "../../assets/update-icons/stable-512x512.png?url"
 
 interface ReleaseFallbackBannerProps {
   version: string
