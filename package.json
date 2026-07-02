@@ -42,7 +42,8 @@
     ],
     "overrides": {
       "form-data": "^4.0.6",
-      "@xmldom/xmldom": "0.9.10"
+      "@xmldom/xmldom": "0.9.10",
+      "plist>@xmldom/xmldom": "^0.8.13"
     }
   },
   "license": "AGPL-3.0-or-later"
