@@ -10,6 +10,8 @@
 
 import { Route as rootRouteImport } from "./routes/__root"
 import { Route as OnboardingRouteImport } from "./routes/onboarding"
+import { Route as DevUpdateFlowRouteImport } from "./routes/dev-update-flow"
+import { Route as DevUpdateAllDialogsRouteImport } from "./routes/dev-update-all-dialogs"
 import { Route as IndexRouteImport } from "./routes/index"
 import { Route as BooksNewRouteImport } from "./routes/books.new"
 import { Route as BooksImportRouteImport } from "./routes/books.import"
@@ -24,6 +26,16 @@ import { Route as BooksLabelStepPageIdRouteImport } from "./routes/books.$label.
 const OnboardingRoute = OnboardingRouteImport.update({
   id: "/onboarding",
   path: "/onboarding",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevUpdateFlowRoute = DevUpdateFlowRouteImport.update({
+  id: "/dev-update-flow",
+  path: "/dev-update-flow",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DevUpdateAllDialogsRoute = DevUpdateAllDialogsRouteImport.update({
+  id: "/dev-update-all-dialogs",
+  path: "/dev-update-all-dialogs",
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -79,6 +91,8 @@ const BooksLabelStepPageIdRoute = BooksLabelStepPageIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
+  "/dev-update-all-dialogs": typeof DevUpdateAllDialogsRoute
+  "/dev-update-flow": typeof DevUpdateFlowRoute
   "/onboarding": typeof OnboardingRoute
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
@@ -92,6 +106,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
+  "/dev-update-all-dialogs": typeof DevUpdateAllDialogsRoute
+  "/dev-update-flow": typeof DevUpdateFlowRoute
   "/onboarding": typeof OnboardingRoute
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
@@ -104,6 +120,8 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   "/": typeof IndexRoute
+  "/dev-update-all-dialogs": typeof DevUpdateAllDialogsRoute
+  "/dev-update-flow": typeof DevUpdateFlowRoute
   "/onboarding": typeof OnboardingRoute
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
@@ -119,6 +137,8 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | "/"
+    | "/dev-update-all-dialogs"
+    | "/dev-update-flow"
     | "/onboarding"
     | "/books/$label"
     | "/books/import"
@@ -132,6 +152,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | "/"
+    | "/dev-update-all-dialogs"
+    | "/dev-update-flow"
     | "/onboarding"
     | "/books/import"
     | "/books/new"
@@ -143,6 +165,8 @@ export interface FileRouteTypes {
   id:
     | "__root__"
     | "/"
+    | "/dev-update-all-dialogs"
+    | "/dev-update-flow"
     | "/onboarding"
     | "/books/$label"
     | "/books/import"
@@ -157,6 +181,8 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DevUpdateAllDialogsRoute: typeof DevUpdateAllDialogsRoute
+  DevUpdateFlowRoute: typeof DevUpdateFlowRoute
   OnboardingRoute: typeof OnboardingRoute
   BooksLabelRoute: typeof BooksLabelRouteWithChildren
   BooksImportRoute: typeof BooksImportRoute
@@ -170,6 +196,20 @@ declare module "@tanstack/react-router" {
       path: "/onboarding"
       fullPath: "/onboarding"
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/dev-update-flow": {
+      id: "/dev-update-flow"
+      path: "/dev-update-flow"
+      fullPath: "/dev-update-flow"
+      preLoaderRoute: typeof DevUpdateFlowRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/dev-update-all-dialogs": {
+      id: "/dev-update-all-dialogs"
+      path: "/dev-update-all-dialogs"
+      fullPath: "/dev-update-all-dialogs"
+      preLoaderRoute: typeof DevUpdateAllDialogsRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/": {
@@ -279,6 +319,8 @@ const BooksLabelRouteWithChildren = BooksLabelRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DevUpdateAllDialogsRoute: DevUpdateAllDialogsRoute,
+  DevUpdateFlowRoute: DevUpdateFlowRoute,
   OnboardingRoute: OnboardingRoute,
   BooksLabelRoute: BooksLabelRouteWithChildren,
   BooksImportRoute: BooksImportRoute,

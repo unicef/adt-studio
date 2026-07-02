@@ -263,6 +263,11 @@ msgstr "{0}/{MAX_SOURCE_PAGES} selecionadas"
 msgid "{0}/5 pages selected"
 msgstr "{0}/5 páginas selecionadas"
 
+#. placeholder {0}: Math.round(percent)
+#. placeholder {1}: formatBytes(status.bytesPerSecond)
+msgid "{0}% · {1}/s"
+msgstr "{0}% · {1}/s"
+
 #. placeholder {0}: activeProgress.percent
 msgid "{0}% complete"
 msgstr "{0}% complete"
@@ -384,6 +389,12 @@ msgstr "{stageLabel} ainda não está pronto — o Storyboard não foi concluíd
 #. placeholder {0}: getStageStatusLabelI18n(statusKey)
 msgid "{stepLabel}: {0}"
 msgstr "{stepLabel}: {0}"
+
+msgid "{target} has been downloaded."
+msgstr "{target} foi baixado."
+
+msgid "{target} is ready to download."
+msgstr "{target} está pronto para baixar."
 
 msgid "{textCount} text leaves"
 msgstr "{textCount} folhas de texto"
@@ -522,8 +533,8 @@ msgstr "Uma atividade de correspondência onde os alunos conectam itens relacion
 msgid "A multiple choice activity."
 msgstr "Uma atividade de múltipla escolha."
 
-msgid "A new version is available for download."
-msgstr "Uma nova versão está disponível para download."
+#~ msgid "A new version is available for download."
+#~ msgstr "Uma nova versão está disponível para download."
 
 msgid "A question worth asking"
 msgstr "Uma pergunta que vale a pena fazer"
@@ -913,6 +924,9 @@ msgstr "Pacote ADT"
 
 msgid "ADT Studio uses your own API keys to run the pipeline. Keys are stored locally on this device and never sent anywhere else."
 msgstr "O ADT Studio usa suas próprias chaves de API para executar o pipeline. As chaves são armazenadas localmente neste dispositivo e nunca são enviadas para outro lugar."
+
+msgid "ADT Studio will restart to finish installing."
+msgstr "O ADT Studio será reiniciado para concluir a instalação."
 
 msgid "ADT_DEBUG=1"
 msgstr "ADT_DEBUG=1"
@@ -1364,6 +1378,9 @@ msgstr "Melhor para seu predefinido"
 msgid "Beta"
 msgstr "Beta"
 
+msgid "Beta release"
+msgstr "Versão beta"
+
 msgid "Bit Rate"
 msgstr "Taxa de bits"
 
@@ -1457,6 +1474,9 @@ msgstr "Navegue e edite templates Liquid usados para estratégias de renderizaç
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Navegue por cada seção do Storyboard e faça upload, substitua ou remova seu vídeo em linguagem de sinais."
 
+msgid "Build"
+msgstr "Compilação"
+
 msgid "Build a glossary of key terms and definitions found in the text."
 msgstr "Constrói um glossário de termos e definições importantes encontrados no texto."
 
@@ -1522,6 +1542,9 @@ msgstr "Chamadas"
 
 msgid "Cancel"
 msgstr "Cancelar"
+
+msgid "Cancel download"
+msgstr "Cancelar download"
 
 #. placeholder {0}: String(MAX_ENTRIES)
 msgid "capped at {0}"
@@ -1624,8 +1647,8 @@ msgstr "Capítulo Um"
 msgid "Chart / Graph"
 msgstr "Gráfico / Tabela"
 
-msgid "Check for updates"
-msgstr "Verificar atualizações"
+#~ msgid "Check for updates"
+#~ msgstr "Verificar atualizações"
 
 msgid "Checked"
 msgstr "Checked"
@@ -1942,6 +1965,9 @@ msgstr "Não foi possível ler as dimensões da imagem"
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "Não foi possível ler este PDF. O arquivo pode estar corrompido ou protegido por senha."
 
+msgid "Couldn't check for updates"
+msgstr "Não foi possível verificar atualizações"
+
 msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
 msgstr "Não foi possível carregar a pré-visualização do PDF. As páginas ainda podem ser divididas usando os controles."
 
@@ -2051,8 +2077,8 @@ msgstr "Current effective values"
 msgid "Current Preview Page"
 msgstr "Current Preview Page"
 
-msgid "Current version"
-msgstr "Versão atual"
+#~ msgid "Current version"
+#~ msgstr "Versão atual"
 
 msgid "Custom"
 msgstr "Personalizado"
@@ -2328,8 +2354,8 @@ msgstr "Baixe uma parte leve (o PDF completo mais um intervalo de páginas e uma
 msgid "Download part"
 msgstr "Baixar parte"
 
-msgid "Download size"
-msgstr "Tamanho do download"
+#~ msgid "Download size"
+#~ msgstr "Tamanho do download"
 
 msgid "Download update"
 msgstr "Baixar atualização"
@@ -2337,10 +2363,11 @@ msgstr "Baixar atualização"
 msgid "Downloaded"
 msgstr "Baixada"
 
-#. placeholder {0}: Math.round(percent)
-#. placeholder {1}: formatBytes(status.bytesPerSecond)
-msgid "Downloading… {0}% · {1}/s"
-msgstr "Baixando… {0}% · {1}/s"
+msgid "Downloading update…"
+msgstr "Baixando atualização…"
+
+#~ msgid "Downloading… {0}% · {1}/s"
+#~ msgstr "Baixando… {0}% · {1}/s"
 
 msgid "Downloads at extraction"
 msgstr "Baixa na extração"
@@ -3210,6 +3237,9 @@ msgstr "Google Fonts"
 msgid "Google's voices with strong intonation for narrative content."
 msgstr "Vozes do Google com forte entonação para conteúdo narrativo."
 
+msgid "Got it"
+msgstr "Entendi"
+
 msgid "Grade Level"
 msgstr "Nível de Série"
 
@@ -3497,6 +3527,9 @@ msgstr "A importação cria um novo livro limitado a {windowSize} páginas. Exec
 msgid "Importing..."
 msgstr "Importando..."
 
+msgid "Improvements"
+msgstr "Melhorias"
+
 msgid "In book:"
 msgstr "No livro:"
 
@@ -3553,6 +3586,9 @@ msgstr "Contracapa interna"
 
 msgid "Install on quit"
 msgstr "Instalar ao sair"
+
+msgid "Installing update…"
+msgstr "Instalando atualização…"
 
 msgid "Institution"
 msgstr "Institution"
@@ -3926,6 +3962,9 @@ msgstr "Bloquear como quadrado"
 msgid "Logs"
 msgstr "Logs"
 
+msgid "Looking for the latest version…"
+msgstr "Procurando a versão mais recente…"
+
 msgid "Looking forward"
 msgstr "Olhando para frente"
 
@@ -4237,8 +4276,8 @@ msgstr "Nova entrada"
 msgid "New session"
 msgstr "New session"
 
-msgid "New version"
-msgstr "Nova versão"
+#~ msgid "New version"
+#~ msgstr "Nova versão"
 
 msgid "new_type_key"
 msgstr "novo_tipo"
@@ -5313,6 +5352,9 @@ msgstr "Extrai os metadados do livro — título, autor, idioma — do PDF."
 msgid "px"
 msgstr "px"
 
+msgid "Quality"
+msgstr "Qualidade"
+
 msgid "Query param"
 msgstr "Parâmetro de consulta"
 
@@ -5544,6 +5586,9 @@ msgstr "Rejeite renderizações que divergem estilisticamente do original. Mais 
 
 msgid "Relaxed"
 msgstr "Leve"
+
+msgid "Release"
+msgstr "Lançamento"
 
 msgid "Release to upload"
 msgstr "Solte para enviar"
@@ -6464,8 +6509,8 @@ msgstr "Corte Inteligente"
 msgid "Software update"
 msgstr "Atualização de software"
 
-msgid "Software Update"
-msgstr "Atualização de Software"
+#~ msgid "Software Update"
+#~ msgstr "Atualização de Software"
 
 msgid "Software update status"
 msgstr "Status da atualização de software"
@@ -6581,6 +6626,9 @@ msgstr "Modo de duplas"
 
 msgid "Sprinkling some digital fairy dust..."
 msgstr "Salpicando um pouco de pó mágico digital..."
+
+msgid "Stable"
+msgstr "Estável"
 
 msgid "Stages are rerunable and every result is versioned, so experimenting is safe — nothing is ever overwritten."
 msgstr "As etapas são reexecutáveis e cada resultado é versionado, então experimentar é seguro — nada é sobrescrito."
@@ -7187,6 +7235,9 @@ msgstr "Este prompt instrui o LLM sobre como avaliar o HTML renderizado em rela�
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "Este questionário será removido do livro. Você ainda pode restaurá-lo pelo histórico de versões."
 
+msgid "This release includes general improvements and fixes."
+msgstr "Esta versão inclui melhorias gerais e correções."
+
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "Isso restaura a fonte padrão em todas as páginas e limpa os ajustes de fonte por elemento e a seleção de fonte do livro todo. As fontes anexadas permanecem na lista. A reversão está disponível por página no histórico de versões."
 
@@ -7499,8 +7550,11 @@ msgstr "Licença não verificada"
 msgid "Update available"
 msgstr "Atualização disponível"
 
-msgid "Update downloaded. Restart to install."
-msgstr "Atualização baixada. Reinicie para instalar."
+#~ msgid "Update downloaded. Restart to install."
+#~ msgstr "Atualização baixada. Reinicie para instalar."
+
+msgid "Update ready to install"
+msgstr "Atualização pronta para instalar"
 
 msgid "Upload"
 msgstr "Enviar"
@@ -7643,8 +7697,11 @@ msgstr "Aplicação verificada"
 msgid "Version {0}"
 msgstr "Versão {0}"
 
-msgid "Version {targetVersion}"
-msgstr "Versão {targetVersion}"
+msgid "Version {current}"
+msgstr "Versão {current}"
+
+#~ msgid "Version {targetVersion}"
+#~ msgstr "Versão {targetVersion}"
 
 msgid "Versioned"
 msgstr "Versionado"
@@ -7745,10 +7802,12 @@ msgstr "Água movendo-se através de uma membrana."
 msgid "Watercolor"
 msgstr "Aquarela"
 
-msgid "wcag2a\n"
+msgid ""
+"wcag2a\n"
 "wcag2aa\n"
 "best-practice"
-msgstr "wcag2a\n"
+msgstr ""
+"wcag2a\n"
 "wcag2aa\n"
 "best-practice"
 
@@ -7802,6 +7861,9 @@ msgstr "O que há dentro"
 
 msgid "What's new"
 msgstr "O que há de novo"
+
+msgid "What's new in this release"
+msgstr "Novidades desta versão"
 
 #~ msgid "What's next for this book?"
 #~ msgstr "O que vem a seguir para este livro?"
@@ -7887,11 +7949,20 @@ msgstr "Você pode exportar nesta etapa"
 msgid "You haven't added any terms manually yet"
 msgstr "Você ainda não adicionou nenhum termo manualmente"
 
+msgid "You're all set"
+msgstr "Tudo certo"
+
+msgid "You're now running ADT Studio {label}"
+msgstr "Agora você está usando o ADT Studio {label}"
+
+msgid "You're running the latest version of ADT Studio."
+msgstr "Você está usando a versão mais recente do ADT Studio."
+
 msgid "Young adult fiction"
 msgstr "Ficção para jovens adultos"
 
-msgid "Your app is up to date. There's nothing to do."
-msgstr "Seu aplicativo está atualizado. Não há nada a fazer."
+#~ msgid "Your app is up to date. There's nothing to do."
+#~ msgstr "Seu aplicativo está atualizado. Não há nada a fazer."
 
 msgid "Your book"
 msgstr "Seu livro"

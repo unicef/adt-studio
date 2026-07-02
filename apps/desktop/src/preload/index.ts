@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import type { ApiLogEntry } from '../main/api-server/types'
 import type { UpdateStatus } from '../main/services/auto-updater'
+import type { PostUpdateInfo } from '../main/services/update-state'
 
 type ApiLogCallback = (entry: ApiLogEntry) => void
 type MaximizeChangeCallback = (isMaximized: boolean) => void
@@ -35,9 +36,12 @@ const windowControls = {
 const updates = {
   check: (): Promise<UpdateStatus> => ipcRenderer.invoke('updates:check'),
   download: (): Promise<UpdateStatus> => ipcRenderer.invoke('updates:download'),
+  cancel: (): Promise<UpdateStatus> => ipcRenderer.invoke('updates:cancel'),
   install: (): Promise<void> => ipcRenderer.invoke('updates:install'),
   installOnQuit: (): Promise<void> => ipcRenderer.invoke('updates:install-on-quit'),
   getStatus: (): Promise<UpdateStatus> => ipcRenderer.invoke('updates:get-status'),
+  getPostUpdate: (): Promise<PostUpdateInfo | null> =>
+    ipcRenderer.invoke('updates:get-post-update'),
   onStatus: (cb: UpdateStatusCallback): (() => void) => {
     const handler = (_: Electron.IpcRendererEvent, status: UpdateStatus) =>
       cb(status)

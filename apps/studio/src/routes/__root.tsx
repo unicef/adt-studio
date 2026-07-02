@@ -49,7 +49,11 @@ function RootLayout() {
   } = useApiKey()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const isOnboarding = pathname.startsWith("/onboarding")
-  const [showKeyDialog, setShowKeyDialog] = useState(!hasApiKey && !isOnboarding)
+  const isDevUpdateRoute = pathname.startsWith("/dev-update")
+  const [showKeyDialog, setShowKeyDialog] = useState(
+    !hasApiKey && !isOnboarding && !isDevUpdateRoute
+  )
+  const shouldShowKeyDialog = showKeyDialog && !isDevUpdateRoute
   const openSettings = useCallback(() => setShowKeyDialog(true), [])
   // Google and Gemini TTS use the same API key — save to both storage keys
   const saveGoogleKey = useMemo(() => (key: string) => { setGoogleKey(key); setGeminiKey(key) }, [setGoogleKey, setGeminiKey])
@@ -63,7 +67,7 @@ function RootLayout() {
           </main>
 
           <ApiKeyDialog
-            open={showKeyDialog}
+            open={shouldShowKeyDialog}
             onOpenChange={setShowKeyDialog}
             apiKey={apiKey}
             onSaveApiKey={setApiKey}

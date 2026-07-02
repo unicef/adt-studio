@@ -57,6 +57,7 @@
   --animate-accordion-up: accordion-up 0.2s ease-out;
   --animate-wizard-enter: wizard-enter 0.25s ease-out;
   --animate-fade-ring: fade-ring 1.5s ease-out forwards;
+  --animate-indeterminate: indeterminate 1.15s ease-in-out infinite;
   --animate-btn-label-enter: btn-label-enter 0.22s cubic-bezier(0.22, 1, 0.36, 1);
   --animate-btn-final-enter: btn-final-enter 0.38s cubic-bezier(0.22, 1, 0.36, 1);
   --animate-btn-label-enter: btn-label-enter 0.22s cubic-bezier(0.22, 1, 0.36, 1);
@@ -191,6 +192,15 @@
   }
   100% {
     opacity: 0;
+  }
+}
+
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
   }
 }
 

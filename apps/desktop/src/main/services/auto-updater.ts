@@ -1,5 +1,11 @@
 import { app, BrowserWindow } from "electron";
-import { autoUpdater, type ProgressInfo, type UpdateInfo } from "electron-updater";
+import {
+  autoUpdater,
+  CancellationToken,
+  type ProgressInfo,
+  type UpdateInfo,
+} from "electron-updater";
+import { recordPendingInstall } from "./update-state";
 
 export type UpdateStatus =
   | { phase: "idle" }
@@ -21,6 +27,7 @@ export type UpdateStatus =
       total: number;
     }
   | { phase: "downloaded"; version: string; releaseNotes?: string }
+  | { phase: "installing"; version: string }
   | { phase: "error"; message: string };
 
 type StatusListener = (status: UpdateStatus) => void;
@@ -33,6 +40,7 @@ function isPrereleaseVersion(version: string): boolean {
 const listeners = new Set<StatusListener>();
 let lastStatus: UpdateStatus = { phase: "idle" };
 let lastInfo: UpdateInfo | null = null;
+let cancellationToken: CancellationToken | null = null;
 
 function normalizeReleaseNotes(notes: UpdateInfo["releaseNotes"]): string | undefined {
   if (!notes) return undefined;
@@ -46,6 +54,20 @@ function normalizeReleaseNotes(notes: UpdateInfo["releaseNotes"]): string | unde
 function emit(status: UpdateStatus): void {
   lastStatus = status;
   for (const fn of listeners) fn(status);
+}
+
+function emitAvailableFromLastInfo(): void {
+  if (!lastInfo) {
+    emit({ phase: "not-available" });
+    return;
+  }
+  emit({
+    phase: "available",
+    version: lastInfo.version,
+    releaseDate: lastInfo.releaseDate,
+    releaseNotes: normalizeReleaseNotes(lastInfo.releaseNotes),
+    totalBytes: lastInfo.files?.[0]?.size,
+  });
 }
 
 export function onUpdateStatus(fn: StatusListener): () => void {
@@ -120,16 +142,90 @@ function configure(): void {
 
   autoUpdater.on("update-downloaded", (info: UpdateInfo) => {
     lastInfo = info;
+    const releaseNotes = normalizeReleaseNotes(info.releaseNotes);
+    recordPendingInstall(info.version, releaseNotes);
     emit({
       phase: "downloaded",
       version: info.version,
-      releaseNotes: normalizeReleaseNotes(info.releaseNotes),
+      releaseNotes,
     });
   });
 
   autoUpdater.on("error", (err: Error) => {
+    if (cancellationToken?.cancelled) return;
     emit({ phase: "error", message: err?.message ?? String(err) });
   });
+}
+
+const FAKE_VERSION = "99.0.0";
+const FAKE_TOTAL_BYTES = 84_000_000;
+const FAKE_RELEASE_NOTES = [
+  "Highlights in this release:",
+  "- Redesigned the update experience end to end",
+  "- Cancelable downloads with live progress",
+  "- A friendly post-update summary so you always know what changed",
+].join("\n");
+
+function fakeUpdateEnabled(): boolean {
+  return !app.isPackaged && process.env.ADT_FAKE_UPDATE === "1";
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+let fakeDownloadTimer: ReturnType<typeof setInterval> | null = null;
+
+function emitFakeAvailable(): void {
+  emit({
+    phase: "available",
+    version: FAKE_VERSION,
+    releaseDate: new Date().toISOString(),
+    releaseNotes: FAKE_RELEASE_NOTES,
+    totalBytes: FAKE_TOTAL_BYTES,
+  });
+}
+
+function clearFakeDownload(): void {
+  if (fakeDownloadTimer) {
+    clearInterval(fakeDownloadTimer);
+    fakeDownloadTimer = null;
+  }
+}
+
+async function simulateCheck(): Promise<UpdateStatus> {
+  emit({ phase: "checking" });
+  await delay(900);
+  emitFakeAvailable();
+  return lastStatus;
+}
+
+function simulateDownload(): UpdateStatus {
+  if (fakeDownloadTimer) return lastStatus;
+  const startedAt = Date.now();
+  let transferred = 0;
+  const step = FAKE_TOTAL_BYTES / 40;
+  fakeDownloadTimer = setInterval(() => {
+    transferred = Math.min(FAKE_TOTAL_BYTES, transferred + step);
+    const elapsed = (Date.now() - startedAt) / 1000;
+    emit({
+      phase: "downloading",
+      version: FAKE_VERSION,
+      percent: (transferred / FAKE_TOTAL_BYTES) * 100,
+      bytesPerSecond: elapsed > 0 ? transferred / elapsed : 0,
+      transferred,
+      total: FAKE_TOTAL_BYTES,
+    });
+    if (transferred >= FAKE_TOTAL_BYTES) {
+      clearFakeDownload();
+      emit({
+        phase: "downloaded",
+        version: FAKE_VERSION,
+        releaseNotes: FAKE_RELEASE_NOTES,
+      });
+    }
+  }, 100);
+  return lastStatus;
 }
 
 /**
@@ -139,6 +235,8 @@ function configure(): void {
  * Skipped silently when running unpacked / in dev (no installer to update).
  */
 export async function checkForUpdates(): Promise<UpdateStatus> {
+  if (fakeUpdateEnabled()) return simulateCheck();
+
   if (!app.isPackaged) {
     emit({ phase: "not-available" });
     return lastStatus;
@@ -161,6 +259,11 @@ export async function checkForUpdates(): Promise<UpdateStatus> {
  * No-op if no update is currently available.
  */
 export async function downloadUpdate(): Promise<UpdateStatus> {
+  if (fakeUpdateEnabled()) {
+    if (lastStatus.phase !== "available") return lastStatus;
+    return simulateDownload();
+  }
+
   if (!app.isPackaged) {
     return lastStatus;
   }
@@ -171,14 +274,36 @@ export async function downloadUpdate(): Promise<UpdateStatus> {
     return lastStatus;
   }
 
+  cancellationToken = new CancellationToken();
+
   try {
-    await autoUpdater.downloadUpdate();
+    await autoUpdater.downloadUpdate(cancellationToken);
     return lastStatus;
   } catch (err) {
+    if (cancellationToken?.cancelled) {
+      emitAvailableFromLastInfo();
+      return lastStatus;
+    }
     const message = err instanceof Error ? err.message : String(err);
     emit({ phase: "error", message });
     return lastStatus;
+  } finally {
+    cancellationToken = null;
   }
+}
+
+export function cancelUpdate(): UpdateStatus {
+  if (lastStatus.phase !== "downloading") return lastStatus;
+
+  if (fakeUpdateEnabled()) {
+    clearFakeDownload();
+    emitFakeAvailable();
+    return lastStatus;
+  }
+
+  cancellationToken?.cancel();
+  emitAvailableFromLastInfo();
+  return lastStatus;
 }
 
 /**
@@ -187,6 +312,11 @@ export async function downloadUpdate(): Promise<UpdateStatus> {
  */
 export function quitAndInstall(): void {
   if (lastStatus.phase !== "downloaded") return;
+  const version = lastStatus.version;
+  emit({ phase: "installing", version });
+  if (fakeUpdateEnabled()) {
+    return;
+  }
   autoUpdater.quitAndInstall(true, true);
 }
 
@@ -196,5 +326,8 @@ export function quitAndInstall(): void {
  */
 export function deferInstallUntilQuit(): void {
   if (lastStatus.phase !== "downloaded") return;
+  if (fakeUpdateEnabled()) {
+    return;
+  }
   autoUpdater.autoInstallOnAppQuit = true;
 }
