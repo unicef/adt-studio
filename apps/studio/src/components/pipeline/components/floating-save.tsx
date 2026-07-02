@@ -45,7 +45,6 @@ export interface FloatingSaveEntry {
   dirty: boolean
   saving: boolean
   label?: ReactNode
-  /** Stage this surface belongs to, so the unsaved-changes guard can style its dialog with the stage icon/color. */
   stage?: StageName
   onSave?: () => void
   onSaveAndRerun?: () => void
@@ -219,7 +218,6 @@ export interface FloatingSaveDirtyEntry {
   label?: ReactNode
 }
 
-/** Stage + label of every surface with unsaved changes, so the guard can style its dialog and list pending edits. */
 export function useFloatingSaveDirtyEntries(): FloatingSaveDirtyEntry[] {
   const store = useContext(FloatingSaveContext)
   useSyncExternalStore(
