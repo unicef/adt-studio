@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from "react"
+import { Fragment, useCallback, useRef, useState } from "react"
 import { useBlocker, type ShouldBlockFn } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Loader2, Play, TriangleAlert } from "lucide-react"
@@ -11,7 +11,11 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { cn } from "@/lib/utils"
-import { useHasUnsavedChanges, useFloatingSaveLeaveAction } from "./floating-save"
+import {
+  useHasUnsavedChanges,
+  useFloatingSaveLeaveAction,
+  useFloatingSaveDirtyEntries,
+} from "./floating-save"
 import {
   useHasAnyDirtyTab,
   useDirtyTabEntries,
@@ -29,6 +33,7 @@ export function UnsavedChangesGuard() {
   const hasDirtyTab = useHasAnyDirtyTab()
   const hasUnsaved = hasFloatingUnsaved || hasDirtyTab
   const dirtyEntries = useDirtyTabEntries()
+  const floatingDirtyEntries = useFloatingSaveDirtyEntries()
   const ephemeralDirtyTabs = useEphemeralDirtyTabs()
   const { canSave, willRerun, saveAndStay } = useFloatingSaveLeaveAction()
   const [saving, setSaving] = useState(false)
@@ -57,7 +62,8 @@ export function UnsavedChangesGuard() {
     withResolver: true,
   })
 
-  const primaryStage = dirtyEntries[0]?.stage
+  const isSettings = dirtyEntries.length > 0
+  const primaryStage = dirtyEntries[0]?.stage ?? floatingDirtyEntries.find((e) => e.stage)?.stage
   const stageDef = primaryStage ? STAGE_BY_SLUG.get(primaryStage) : undefined
   const HeaderIcon = stageDef?.icon ?? TriangleAlert
   const headerColor = stageDef?.color ?? "bg-gray-700"
@@ -70,6 +76,10 @@ export function UnsavedChangesGuard() {
       dotColor: def?.color ?? "bg-amber-500",
     }))
   })
+
+  const editorLabels = isSettings
+    ? []
+    : floatingDirtyEntries.filter((e) => e.label != null)
 
   const handleSaveAndContinue = async () => {
     setSaving(true)
@@ -92,7 +102,11 @@ export function UnsavedChangesGuard() {
           </div>
           <div className="min-w-0">
             <p className="truncate text-xs font-semibold uppercase tracking-wide text-white/75">
-              {stageDef ? `${getStageLabelI18n(stageDef.slug)} · ${t`Settings`}` : t`Heads up`}
+              {stageDef
+                ? isSettings
+                  ? `${getStageLabelI18n(stageDef.slug)} · ${t`Settings`}`
+                  : getStageLabelI18n(stageDef.slug)
+                : t`Heads up`}
             </p>
             <AlertDialogTitle className="text-lg font-semibold leading-tight text-white">
               <Trans>Unsaved changes</Trans>
@@ -112,21 +126,25 @@ export function UnsavedChangesGuard() {
             )}
           </AlertDialogDescription>
 
-          {changeChips.length > 0 && (
+          {(changeChips.length > 0 || editorLabels.length > 0) && (
             <div className="rounded-lg border bg-muted/30 px-3.5 py-3">
               <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 <Trans>Pending edits</Trans>
               </p>
               <div className="flex flex-wrap gap-1.5">
-                {changeChips.map((chip) => (
-                  <span
-                    key={chip.key}
-                    className="inline-flex items-center gap-1.5 rounded-md border bg-background px-2 py-1 text-xs font-medium text-foreground"
-                  >
-                    <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", chip.dotColor)} aria-hidden />
-                    {chip.label}
-                  </span>
-                ))}
+                {changeChips.length > 0
+                  ? changeChips.map((chip) => (
+                      <span
+                        key={chip.key}
+                        className="inline-flex items-center gap-1.5 rounded-md border bg-background px-2 py-1 text-xs font-medium text-foreground"
+                      >
+                        <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", chip.dotColor)} aria-hidden />
+                        {chip.label}
+                      </span>
+                    ))
+                  : editorLabels.map((entry) => (
+                      <Fragment key={entry.id}>{entry.label}</Fragment>
+                    ))}
               </div>
             </div>
           )}

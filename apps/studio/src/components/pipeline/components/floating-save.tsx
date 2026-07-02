@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react"
 import type { LucideIcon } from "lucide-react"
+import type { StageName } from "@adt/types"
 import { useLingui } from "@lingui/react/macro"
 import { FloatingSaveBar } from "./FloatingSaveBar"
 
@@ -44,6 +45,8 @@ export interface FloatingSaveEntry {
   dirty: boolean
   saving: boolean
   label?: ReactNode
+  /** Stage this surface belongs to, so the unsaved-changes guard can style its dialog with the stage icon/color. */
+  stage?: StageName
   onSave?: () => void
   onSaveAndRerun?: () => void
   onSaveStay?: () => void | Promise<void>
@@ -69,6 +72,7 @@ function signature(e: FloatingSaveEntry): string {
     e.saveDisabledReason ?? "",
     e.rerunDisabledReason ?? "",
     e.labelKey ?? "",
+    e.stage ?? "",
   ].join("|")
 }
 
@@ -207,6 +211,24 @@ export function useHasUnsavedChanges(): boolean {
   const subscribe = store ? store.subscribe : noopSubscribe
   const getSnapshot = () => (store ? store.active().length > 0 : false)
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+}
+
+export interface FloatingSaveDirtyEntry {
+  id: string
+  stage?: StageName
+  label?: ReactNode
+}
+
+/** Stage + label of every surface with unsaved changes, so the guard can style its dialog and list pending edits. */
+export function useFloatingSaveDirtyEntries(): FloatingSaveDirtyEntry[] {
+  const store = useContext(FloatingSaveContext)
+  useSyncExternalStore(
+    store ? store.subscribe : noopSubscribe,
+    store ? store.getVersion : () => 0,
+    store ? store.getVersion : () => 0,
+  )
+  if (!store) return []
+  return store.active().map((e) => ({ id: e.id, stage: e.stage, label: e.label }))
 }
 
 export interface FloatingSaveLeaveAction {

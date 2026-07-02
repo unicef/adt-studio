@@ -787,6 +787,7 @@ export function StoryboardSectionDetail({
   }
   useFloatingSave({
     id: `storyboard:${pageId}`,
+    stage: "storyboard",
     dirty: dirty || renderingDirty,
     saving,
     labelKey: pendingChipCats.join(","),
