@@ -2,6 +2,10 @@ import { useState, useRef, useEffect, useCallback } from "react"
 import { Loader2, Lock, Square, RectangleHorizontal, Pentagon } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
+import { NO_DRAG_REGION } from "@/constants"
+import { usePlatform } from "@/hooks/use-platform"
+import { useWindowControls } from "@/hooks/use-window-controls"
+import { MacOSTrafficLightSpacer } from "@/components/title-bar"
 
 interface Point {
   x: number
@@ -106,6 +110,9 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
  */
 export function ImageCropDialog({ imageSrc, initialRect, onApply, onClose }: ImageCropDialogProps) {
   const { t } = useLingui()
+  const platform = usePlatform()
+  const { available: hasWindowControls } = useWindowControls()
+  const showMacOSSpacer = hasWindowControls && platform === "macos"
   const [points, setPoints] = useState<Point[]>([])
   const [imageNatural, setImageNatural] = useState<{ w: number; h: number } | null>(null)
   const [displaySize, setDisplaySize] = useState<{ w: number; h: number } | null>(null)
@@ -410,10 +417,15 @@ export function ImageCropDialog({ imageSrc, initialRect, onApply, onClose }: Ima
   ]
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/80 flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3 px-4 py-3 bg-background border-b shrink-0">
+    <div className="fixed inset-0 z-[100] bg-black/80 flex flex-col" style={NO_DRAG_REGION}>
+      {/* Header — `drag-region` lets the window be moved by the empty header
+          area; its interactive children are reset to no-drag via CSS. Electron
+          computes app regions globally (ignoring z-index), so the overlay must
+          declare no-drag or the app's title-bar drag strip beneath it would
+          swallow clicks on these buttons in the packaged desktop app. */}
+      <div className="flex items-center justify-between gap-3 px-4 py-3 bg-background border-b shrink-0 drag-region">
         <div className="flex items-center gap-3 min-w-0">
+          {showMacOSSpacer && <MacOSTrafficLightSpacer />}
           <h2 className="text-sm font-medium shrink-0">{t`Crop Image`}</h2>
           {/* Mode / ratio control */}
           <div className="flex items-center rounded-md border bg-muted/50 p-0.5 gap-0.5">
