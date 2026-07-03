@@ -1133,16 +1133,6 @@ export function renderPageHtml(opts: RenderPageOptions): string {
 
   const normalizedContent = promoteFirstHeadingToH1(opts.content)
 
-  // Custom activities (`activity_custom_*`) ship an inline <script> that calls
-  // window.adtRegisterCustomActivity(section, {validate, reset}) during parse —
-  // BEFORE base.bundle (end of <body>) can define it. Inject a tiny buffering
-  // stub into <head> so that call lands in a queue the runtime drains on boot
-  // (see apps/adt-runtime/src/features/activity/runtime/activity-custom.ts).
-  // Without this the call throws and the activity's Submit button never enables.
-  const customActivityStub = /data-section-type="activity_custom/.test(normalizedContent)
-    ? `\n    <script>(function(){if(window.adtRegisterCustomActivity)return;var q=(window.__adtPendingCustomActivities=window.__adtPendingCustomActivities||[]);window.adtRegisterCustomActivity=function(section,handlers){q.push({section:section,handlers:handlers})}})();</script>`
-    : ""
-
   // INVARIANT: every page MUST render all TTS-scannable content inside
   // <div id="content">. The reader's gatherAudioElements scans #content for
   // [data-id] elements to build the TTS queue; anything outside #content is
@@ -1231,7 +1221,7 @@ ${fallbackHeadingHtml}${contentBlock}
     <meta name="page-section-id" content="${opts.pageIndex}" />
     <link href="./content/tailwind_output.css" rel="stylesheet">
     <link href="./assets/libs/fontawesome/css/all.min.css" rel="stylesheet">
-    <link href="./assets/fonts.css" rel="stylesheet">${googleFontsLinks}${customActivityStub}
+    <link href="./assets/fonts.css" rel="stylesheet">${googleFontsLinks}
 ${mathScript}${embedStyles}${bodyFontStyle}</head>
 
 <body${opts.fixedViewport ? ` style="margin:0;overflow:hidden;width:${opts.fixedViewport.width}px;height:${opts.fixedViewport.height}px"` : ` class="min-h-screen flex items-center justify-center"${bodyStyle}`}>

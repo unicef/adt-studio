@@ -213,44 +213,6 @@ describe("renderPageHtml", () => {
     expect(html).not.toContain("scorm.js")
   })
 
-  it("injects the custom-activity registration stub in <head> for activity_custom pages", () => {
-    const html = renderPageHtml({
-      content:
-        '<section data-section-type="activity_custom_jigsaw" data-id="pg008_s2"><div>tiles</div><script>window.adtRegisterCustomActivity(section,{validate:()=>true});</script></section>',
-      language: "en",
-      sectionId: "pg008",
-      pageTitle: "Test",
-      pageIndex: 8,
-      hasMath: false,
-      bundleVersion: "1",
-    })
-
-    // The stub defines the registration hook and a pending queue...
-    expect(html).toContain("window.adtRegisterCustomActivity=function")
-    expect(html).toContain("__adtPendingCustomActivities")
-    // ...and it MUST live in <head>, before the section's parse-time script runs.
-    const headEnd = html.indexOf("</head>")
-    const stubAt = html.indexOf("__adtPendingCustomActivities")
-    const sectionAt = html.indexOf("activity_custom_jigsaw")
-    expect(stubAt).toBeGreaterThan(0)
-    expect(stubAt).toBeLessThan(headEnd)
-    expect(stubAt).toBeLessThan(sectionAt)
-  })
-
-  it("does not inject the custom-activity stub for non-custom pages", () => {
-    const html = renderPageHtml({
-      content: '<section data-section-type="activity_multiple_choice"><p>Pick one</p></section>',
-      language: "en",
-      sectionId: "pg001",
-      pageTitle: "Test",
-      pageIndex: 1,
-      hasMath: false,
-      bundleVersion: "1",
-    })
-
-    expect(html).not.toContain("__adtPendingCustomActivities")
-  })
-
   it("does not reference woff2 fonts directly (they are inlined as base64 in fonts.css)", () => {
     const html = renderPageHtml({
       content: "<p>Hello</p>",
