@@ -38,6 +38,8 @@ export {
   bookFontsReferencedIn,
   bookBodyFont,
   bookFontFamilyChain,
+  fontFamilyClass,
+  fontFamilyFromClass,
   classifyFontLicenseOpenSource,
 } from "./book-fonts.js"
 
@@ -134,6 +136,8 @@ export {
   ImagePartBounds,
   SectionViewport,
   NodePlacement,
+  FixedLayoutUserNodeStyles,
+  FixedLayoutUserStyles,
 } from "./page-sectioning.js"
 
 export {

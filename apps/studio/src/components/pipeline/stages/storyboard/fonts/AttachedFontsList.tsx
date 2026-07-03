@@ -24,6 +24,7 @@ export function AttachedFontsList({
   fonts,
   assignment,
   isLoading,
+  fixedLayout = false,
   onError,
   onApplied,
 }: {
@@ -31,6 +32,7 @@ export function AttachedFontsList({
   fonts: BookFontWithStatus[]
   assignment: FontAssignmentOutput | null | undefined
   isLoading: boolean
+  fixedLayout?: boolean
   onError: (message: string) => void
   onApplied: (message: string) => void
 }) {
@@ -151,7 +153,7 @@ export function AttachedFontsList({
                     )
                     return
                   }
-                  if (value === "heading" || value === "paragraph" || value === "caption") {
+                  if (!fixedLayout && (value === "heading" || value === "paragraph" || value === "caption")) {
                     applyFont.mutate(
                       { scope: value, font: { kind: "registry", id: font.id } },
                       {

@@ -42,4 +42,16 @@ describe("rebuildSegmentedInnerHtml", () => {
 
     expect(result).toBe(`<span style="color:rgb(0, 0, 0)">Dong Xu${MATH}</span>`)
   })
+
+  it("copies paragraph font classes to rebuilt segment spans", () => {
+    const segments = JSON.stringify([{ text: "source", style: { color: "#000" } }])
+
+    expect(
+      rebuildSegmentedInnerHtml(segments, "translated", [
+        "font-[Lexend,Merriweather,sans-serif]",
+      ]),
+    ).toBe(
+      '<span class="font-[Lexend,Merriweather,sans-serif]" style="color:#000">translated</span>',
+    )
+  })
 })

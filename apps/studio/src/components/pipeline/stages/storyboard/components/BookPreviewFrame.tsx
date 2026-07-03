@@ -23,6 +23,7 @@ import {
   weightToToken,
 } from "./iframe-computed-styles"
 import { INTERACTIVE_SCRIPT, INTERACTIVE_STYLES } from "./iframe-interactive"
+import { stripInheritableClasses } from "./style-editor/fixed-layout-class-props"
 import { primaryFontFamily, googleFontsCss2Url } from "@adt/types"
 
 export type { ComputedTypographyStyles }
@@ -52,11 +53,50 @@ function stripTransientAttributes(doc: Document): void {
     })
 }
 
+function restoreAutoFitFontSizes(root: ParentNode): void {
+  for (const el of Array.from(root.querySelectorAll<HTMLElement>("[data-adt-fs]"))) {
+    el.style.removeProperty("font-size")
+    if (!el.getAttribute("style")) el.removeAttribute("style")
+    el.removeAttribute("data-adt-fs")
+  }
+}
+
+function serializeCleanContent(doc: Document): string {
+  const wrapper = doc.getElementById("content")
+  const source = wrapper ?? doc.body
+  const clone = source.cloneNode(true) as HTMLElement
+  for (const el of Array.from(clone.querySelectorAll<HTMLElement>("[data-adt-fit]"))) {
+    el.style.removeProperty("letter-spacing")
+    if (!el.getAttribute("style")) el.removeAttribute("style")
+    el.removeAttribute("data-adt-fit-ls")
+  }
+  restoreAutoFitFontSizes(clone)
+  if (wrapper) {
+    const cls = (clone.getAttribute("class") || "").trim()
+    return cls ? clone.outerHTML : clone.innerHTML
+  }
+  return clone.innerHTML
+}
+
+function cleanAutoFitInnerHtml(html: string): string {
+  if (!html.includes("data-adt-fs")) return html
+  const holder = document.createElement("div")
+  holder.innerHTML = html
+  restoreAutoFitFontSizes(holder)
+  return holder.innerHTML
+}
+
 /** Parse a pixel value (e.g. "612px") to a number, or null for non-px values. */
 function parsePxStyle(value: string | undefined): number | null {
   if (!value) return null
   const match = /^(\d+(?:\.\d+)?)px$/.exec(value.trim())
   return match ? parseFloat(match[1]) : null
+}
+
+function parsePositiveNumber(value: string | undefined | null): number | null {
+  if (!value) return null
+  const parsed = parseFloat(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
 }
 
 // Upper bound for upscaling fixed-layout pages so small-page PDFs fill the
@@ -74,10 +114,8 @@ export interface BookPreviewFrameHandle {
   getElementClasses: (dataId: string) => string[]
   /** Set the full class list on an element by data-id. Returns updated full HTML, or null. */
   setElementClasses: (dataId: string, classes: string[]) => string | null
-  /** Set (or remove, when value is empty) a single inline CSS property on an
-   *  element by data-id. Returns updated full HTML, or null. Used for styling
-   *  that must win over class/cascade rules (e.g. per-element font-family). */
-  setElementStyleProp: (dataId: string, property: string, value: string) => string | null
+  clearElementStyleProp: (dataId: string, property: string) => string | null
+  stripChildStyleProps: (dataId: string, properties: string[]) => string | null
   /** Re-inject the current `html` prop into the iframe, discarding any in-iframe
    *  DOM mutations (e.g. live `setElementClasses` edits). Used when the parent
    *  wants to revert to the saved state without changing the html prop. */
@@ -200,33 +238,56 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       // Don't strip `_el#` data-ids here — the inspector relies on them across
       // edits in a session. They're stripped only at API persist time.
       stripTransientAttributes(doc)
-      const wrapper = doc.getElementById("content")
-      let html: string
-      if (wrapper) {
-        const cls = (wrapper.getAttribute("class") || "").trim()
-        html = cls ? wrapper.outerHTML : wrapper.innerHTML
-      } else {
-        html = doc.body.innerHTML
-      }
+      const html = serializeCleanContent(doc)
       el.setAttribute("data-adt-selected", "true")
       return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
     },
-    setElementStyleProp: (dataId: string, property: string, value: string): string | null => {
+    clearElementStyleProp: (dataId: string, property: string): string | null => {
       const doc = iframeRef.current?.contentDocument
       if (!doc) return null
       const el = doc.querySelector(`[data-id="${CSS.escape(dataId)}"]`) as HTMLElement | null
       if (!el) return null
-      if (value) el.style.setProperty(property, value)
-      else el.style.removeProperty(property)
+      el.style.removeProperty(property)
+      if (!el.getAttribute("style")) el.removeAttribute("style")
       stripTransientAttributes(doc)
-      const wrapper = doc.getElementById("content")
-      let html: string
-      if (wrapper) {
-        const cls = (wrapper.getAttribute("class") || "").trim()
-        html = cls ? wrapper.outerHTML : wrapper.innerHTML
-      } else {
-        html = doc.body.innerHTML
+      const html = serializeCleanContent(doc)
+      el.setAttribute("data-adt-selected", "true")
+      return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
+    },
+    stripChildStyleProps: (dataId: string, properties: string[]): string | null => {
+      const doc = iframeRef.current?.contentDocument
+      if (!doc || properties.length === 0) return null
+      const el = doc.querySelector(`[data-id="${CSS.escape(dataId)}"]`) as HTMLElement | null
+      if (!el) return null
+      for (const child of Array.from(el.querySelectorAll<HTMLElement>("*"))) {
+        if (child.hasAttribute("style")) {
+          for (const prop of properties) child.style.removeProperty(prop)
+          if (!child.getAttribute("style")) child.removeAttribute("style")
+        }
+        if (child.classList.length > 0) {
+          const kept = stripInheritableClasses(Array.from(child.classList), properties)
+          if (kept.length !== child.classList.length) {
+            if (kept.length > 0) child.setAttribute("class", kept.join(" "))
+            else child.removeAttribute("class")
+          }
+        }
       }
+      const segmentsAttr = el.getAttribute("data-segments")
+      if (segmentsAttr) {
+        try {
+          const segments = JSON.parse(segmentsAttr) as Array<{ style?: Record<string, string> }>
+          for (const seg of segments) {
+            if (!seg.style) continue
+            for (const prop of properties) delete seg.style[prop]
+            if (Object.keys(seg.style).length === 0) delete seg.style
+          }
+          el.setAttribute("data-segments", JSON.stringify(segments))
+        } catch {
+          void segmentsAttr
+        }
+      }
+      stripTransientAttributes(doc)
+      const html = serializeCleanContent(doc)
       el.setAttribute("data-adt-selected", "true")
       return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
     },
@@ -252,14 +313,15 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       if (!el) return empty
       const s = win.getComputedStyle(el)
       const fontSize = parsePx(s.fontSize)
-      // The font is declared on the inner styled run(s) (fixed-layout
-      // `data-segments` spans), not the paragraph itself — so walk into the
-      // first descendant that carries a font-family and read its resolved
-      // family. Fall back to the element's own computed family.
       const fontEl =
-        (el.querySelector('[style*="font-family"]') as HTMLElement | null) ?? el
+        (el.querySelector('[style*="font-family"]') as HTMLElement | null) ??
+        (el.querySelector('[class*="font-["]') as HTMLElement | null) ??
+        el
       const family = primaryFontFamily(win.getComputedStyle(fontEl).fontFamily)
-      const inlineFamily = primaryFontFamily(fontEl.style.fontFamily || el.style.fontFamily || "")
+      const declaredInline = primaryFontFamily(
+        fontEl.style.fontFamily || el.style.fontFamily || "",
+      )
+      const inlineFamily = declaredInline || (fontEl !== el ? family : "")
       return {
         fontSize,
         color: rgbToHex(s.color),
@@ -384,7 +446,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
     const url = googleFontsCss2Url([primaryFontFamily(bodyFontFamily)])
     const link = url ? `\n  <link href="${url}" rel="stylesheet">` : ""
     // eslint-disable-next-line lingui/no-unlocalized-strings
-    return `${link}\n  <style>\n    body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select { font-family: ${bodyFontFamily}; }\n  </style>`
+    return `${link}\n  <style>\n    body { font-family: ${bodyFontFamily}; }\n    @layer base { body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select { font-family: ${bodyFontFamily}; } }\n  </style>`
   }, [bodyFontFamily])
   // Stable shell — loaded once, never changes.
   // Mirrors the preview's renderPageHtml output: same CSS, fonts, body classes.
@@ -436,7 +498,7 @@ ${autoFitScript}
       const reconstructed = reconstructHtmlWithEdit(
         sanitizedHtmlRef.current,
         dataId,
-        editedInnerHtml ?? newText,
+        cleanAutoFitInnerHtml(editedInnerHtml ?? newText),
       )
       if (reconstructed === null) {
         console.warn(
@@ -462,16 +524,18 @@ ${autoFitScript}
   function measureHeight() {
     const doc = iframeRef.current?.contentDocument
     if (!doc?.body) return
-    // Fixed-layout detection: `#content` with explicit pixel width + height.
-    // Our fixed-layout renderer emits `<div id="content" style="...width:Wpx;height:Hpx...">`.
     const contentEl = doc.getElementById("content") as HTMLElement | null
+    const dataW = parsePositiveNumber(contentEl?.dataset.flWidth)
+    const dataH = parsePositiveNumber(contentEl?.dataset.flHeight)
     const styleW = contentEl ? parsePxStyle(contentEl.style.width) : null
     const styleH = contentEl ? parsePxStyle(contentEl.style.height) : null
-    if (contentEl && styleW !== null && styleH !== null) {
+    const fixedW = dataW ?? styleW
+    const fixedH = dataH ?? styleH
+    if (contentEl && fixedW !== null && fixedH !== null) {
       const refRaw = contentEl.dataset.flReferenceWidth
       const ref = refRaw ? parseFloat(refRaw) : NaN
-      const referenceWidth = Number.isFinite(ref) && ref > 0 ? ref : styleW
-      setFixedLayoutSize({ width: styleW, height: styleH, referenceWidth })
+      const referenceWidth = Number.isFinite(ref) && ref > 0 ? ref : fixedW
+      setFixedLayoutSize({ width: fixedW, height: fixedH, referenceWidth })
       return
     }
 

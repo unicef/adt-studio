@@ -106,6 +106,21 @@ describe("googleFontsReferencedIn", () => {
   it("returns nothing when no registered family appears", () => {
     expect(googleFontsReferencedIn(`font-family:Palatino,serif`)).toEqual([])
   })
+
+  it("detects families referenced via Tailwind font-[...] classes", () => {
+    const html = `<p class="absolute top-[23px] font-['Mouse_Memoirs','Merriweather',serif]">x</p>`
+    expect(googleFontsReferencedIn(html)).toEqual(["Mouse Memoirs"])
+  })
+
+  it("detects a single-word family in a font-[...] class", () => {
+    const html = `<p class="font-[Inter,'Merriweather',sans-serif]">x</p>`
+    expect(googleFontsReferencedIn(html)).toEqual(["Inter"])
+  })
+
+  it("detects class-referenced families with entity-encoded quotes (XHTML)", () => {
+    const html = `<p class="font-[&apos;Mouse_Memoirs&apos;,&apos;Merriweather&apos;,serif]">x</p>`
+    expect(googleFontsReferencedIn(html)).toEqual(["Mouse Memoirs"])
+  })
 })
 
 describe("cssQuoteFamily / normalizeFontKey", () => {

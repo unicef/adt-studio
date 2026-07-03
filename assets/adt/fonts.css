@@ -48,8 +48,13 @@
 }
 
 /* Apply the font globally */
-body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select {
+body {
   font-family: "Merriweather", serif;
+}
+@layer base {
+  body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select {
+    font-family: "Merriweather", serif;
+  }
 }
 
 #nav-container, #nav-container *,

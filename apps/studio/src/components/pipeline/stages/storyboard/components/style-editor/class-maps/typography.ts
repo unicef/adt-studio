@@ -1,5 +1,6 @@
 /* eslint-disable lingui/no-unlocalized-strings -- Tailwind class identifiers, not user copy */
 
+import { fontFamilyClass, fontFamilyFromClass } from "@adt/types"
 import type { ClassMap } from "./types"
 import { makeColorClassMap } from "./_color"
 
@@ -18,6 +19,23 @@ export const fontFamilyClassMap: ClassMap<string> = {
   toClasses(value) {
     if (!FONT_FAMILY_VALUES.includes(value)) return []
     return [`font-${value}`]
+  },
+}
+
+export const fontFamilyChainClassMap: ClassMap<string> = {
+  matches: (cls) =>
+    /^font-\[/.test(cls) || /^font-(sans|serif|mono)$/.test(cls),
+  fromClasses(classes) {
+    let last: string | null = null
+    for (const cls of classes) {
+      const chain = fontFamilyFromClass(cls)
+      if (chain) last = chain
+    }
+    return last
+  },
+  toClasses(value) {
+    if (!value) return []
+    return [fontFamilyClass(value)]
   },
 }
 

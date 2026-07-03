@@ -34,7 +34,7 @@
   function targets(el) {
     var t = []
     if (el.style.fontSize) t.push(el)
-    var inner = el.querySelectorAll('[style*="font-size"]')
+    var inner = el.querySelectorAll("span")
     for (var i = 0; i < inner.length; i++) t.push(inner[i])
     return t
   }
@@ -43,7 +43,7 @@
     var ts = targets(el)
     for (var i = 0; i < ts.length; i++) {
       var t = ts[i]
-      if (!t.dataset.adtFs) t.dataset.adtFs = parseFloat(t.style.fontSize)
+      if (!t.dataset.adtFs) t.dataset.adtFs = parseFloat(getComputedStyle(t).fontSize)
       t.style.fontSize = t.dataset.adtFs + "px"
     }
     var origLs

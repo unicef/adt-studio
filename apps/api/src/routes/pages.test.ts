@@ -262,6 +262,149 @@ describe("Page routes", () => {
     })
   })
 
+  describe("PUT /api/books/:label/pages/:pageId/fixed-layout-styles", () => {
+    function putFixedLayoutSectioning() {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("fixed-layout-sectioning", `${label}_p1`, {
+          reasoning: "fixed",
+          sections: [
+            {
+              sectionId: `${label}_p1_sec001`,
+              sectionType: "fixed-layout-page",
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+              viewport: { width: 400, height: 300 },
+              nodes: [
+                {
+                  nodeId: `${label}_p1_t001`,
+                  isPruned: false,
+                  role: "text",
+                  text: "Hello",
+                },
+              ],
+              placement: {
+                [`${label}_p1_t001`]: {
+                  position: { top: 100, left: 72, lineHeight: 24 },
+                },
+              },
+            },
+          ],
+        })
+      } finally {
+        storage.close()
+      }
+    }
+
+    it("stores only the delta against generated classes and stamps placement", async () => {
+      putFixedLayoutSectioning()
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/fixed-layout-styles`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            changes: [
+              {
+                nodeId: `${label}_p1_t001`,
+                classes: ["absolute", "top-[999px]", "left-[72px]", "leading-[24px]", "text-2xl"],
+              },
+            ],
+          }),
+        }
+      )
+
+      expect(res.status).toBe(200)
+      const body = (await res.json()) as { version: number; applied: number }
+      expect(body.applied).toBe(1)
+
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        const userStyles = storage.getLatestNodeData("fixed-layout-user-styles", `${label}_p1`)!
+          .data as { nodes: Record<string, { classes?: string[] }> }
+        expect(userStyles.nodes[`${label}_p1_t001`].classes).toEqual(["top-[999px]", "text-2xl"])
+
+        const sectioning = storage.getLatestNodeData("fixed-layout-sectioning", `${label}_p1`)!
+          .data as { sections: Array<{ placement: Record<string, { classes?: string[] }> }> }
+        expect(sectioning.sections[0].placement[`${label}_p1_t001`].classes).toEqual([
+          "top-[999px]",
+          "text-2xl",
+        ])
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("converts legacy styleOverrides to classes and removes props set to empty string", async () => {
+      putFixedLayoutSectioning()
+      const put = (styleOverrides: Record<string, string>) =>
+        app.request(`/api/books/${label}/pages/${label}_p1/fixed-layout-styles`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            changes: [{ nodeId: `${label}_p1_t001`, styleOverrides }],
+          }),
+        })
+
+      expect((await put({ "font-family": "Palatino,serif" })).status).toBe(200)
+      {
+        const storage = createBookStorage(label, tmpDir)
+        try {
+          const userStyles = storage.getLatestNodeData("fixed-layout-user-styles", `${label}_p1`)!
+            .data as { nodes: Record<string, { classes?: string[]; styleOverrides?: Record<string, string> }> }
+          expect(userStyles.nodes[`${label}_p1_t001`].classes).toEqual([
+            "font-[Palatino,Merriweather,serif]",
+          ])
+          expect(userStyles.nodes[`${label}_p1_t001`].styleOverrides).toBeUndefined()
+        } finally {
+          storage.close()
+        }
+      }
+      expect((await put({ "font-family": "" })).status).toBe(200)
+
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        const userStyles = storage.getLatestNodeData("fixed-layout-user-styles", `${label}_p1`)!
+          .data as { nodes: Record<string, unknown> }
+        expect(userStyles.nodes[`${label}_p1_t001`]).toBeUndefined()
+      } finally {
+        storage.close()
+      }
+    })
+
+    it("returns 400 when the page has no fixed-layout sectioning", async () => {
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/fixed-layout-styles`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            changes: [{ nodeId: `${label}_p1_t001`, classes: ["text-2xl"] }],
+          }),
+        }
+      )
+      expect(res.status).toBe(400)
+    })
+
+    it("returns 400 when no change matches an element", async () => {
+      putFixedLayoutSectioning()
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/fixed-layout-styles`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            changes: [{ nodeId: "unknown-node", classes: ["text-2xl"] }],
+          }),
+        }
+      )
+      expect(res.status).toBe(400)
+    })
+  })
+
   describe("PUT /api/books/:label/pages/:pageId/image-filtering", () => {
     it("saves image classification and returns version", async () => {
       const data = {
@@ -417,6 +560,65 @@ describe("Page routes", () => {
       expect(res.status).toBe(400)
       const body = await res.json()
       expect(body.error).toContain("out of range")
+    })
+
+    it("re-renders fixed-layout pages from placement without touching the LLM", async () => {
+      fs.writeFileSync(
+        path.join(tmpDir, label, "config.yaml"),
+        [
+          "render_strategies:",
+          "  fixed_layout:",
+          "    render_type: fixed_layout",
+          "default_render_strategy: fixed_layout",
+          "",
+        ].join("\n")
+      )
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("fixed-layout-sectioning", `${label}_p1`, {
+          reasoning: "fixed",
+          sections: [
+            {
+              sectionId: `${label}_p1_sec001`,
+              sectionType: "fixed-layout-page",
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+              viewport: { width: 400, height: 300 },
+              nodes: [
+                { nodeId: `${label}_p1_t001`, isPruned: false, role: "text", text: "Hello" },
+              ],
+              placement: {
+                [`${label}_p1_t001`]: {
+                  position: { top: 100, left: 72, lineHeight: 24 },
+                  classes: ["top-[43px]"],
+                },
+              },
+            },
+          ],
+        })
+      } finally {
+        storage.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/re-render`,
+        { method: "POST", headers: { "X-OpenAI-Key": "sk-test" } }
+      )
+      expect(res.status).toBe(200)
+
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        const rendering = verify.getLatestNodeData("web-rendering", `${label}_p1`)!
+          .data as { sections: Array<{ sectionType: string; html: string }> }
+        expect(rendering.sections[0].sectionType).toBe("fixed-layout-page")
+        expect(rendering.sections[0].html).toContain("top-[43px]")
+        expect(rendering.sections[0].html).not.toContain("top-[100px]")
+        expect(rendering.sections[0].html).not.toMatch(/<p[^>]*style="[^"]*top:/)
+      } finally {
+        verify.close()
+      }
     })
   })
 

@@ -7,7 +7,7 @@ import { previewFamily } from "./font-utils"
 
 export function CurrentFontCard({ current }: { current: BookCurrentFont }) {
   const { t } = useLingui()
-  if (current.fixedLayout) {
+  if (current.fixedLayout && !current.bodyRole && current.setting === "auto") {
     return (
       <div className="rounded-lg border bg-card p-4">
         <div className="flex items-center gap-2 mb-1">
@@ -17,8 +17,9 @@ export function CurrentFontCard({ current }: { current: BookCurrentFont }) {
         </div>
         <p className="text-xs text-muted-foreground">
           <Trans>
-            This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts
-            still guide the AI for activities and generated pages.
+            This book renders fixed-layout and keeps the original PDF fonts. Set a font to
+            “Whole book” below to replace them across every page — Reset fonts brings the
+            originals back.
           </Trans>
         </p>
       </div>
@@ -37,6 +38,7 @@ export function CurrentFontCard({ current }: { current: BookCurrentFont }) {
       <div className="flex flex-wrap items-center gap-2 mb-2">
         <Type className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
         <h4 className="text-sm font-medium">{t`Current book font`}</h4>
+        {current.fixedLayout && <Badge variant="secondary">{t`Fixed layout`}</Badge>}
         {current.bodyRole ? (
           <Badge variant="secondary">{t`From attached fonts · Body text`}</Badge>
         ) : current.setting === "auto" ? (
@@ -57,7 +59,12 @@ export function CurrentFontCard({ current }: { current: BookCurrentFont }) {
         {current.font.family}
       </p>
       <p className="text-xs text-muted-foreground mt-1">
-        {current.bodyRole ? (
+        {current.fixedLayout ? (
+          <Trans>
+            Every page's text uses this font. Use “Reset fonts” to restore the original PDF
+            fonts.
+          </Trans>
+        ) : current.bodyRole ? (
           <Trans>
             Body text uses this attached font. Change the “Used for” role below to switch back to
             the default.

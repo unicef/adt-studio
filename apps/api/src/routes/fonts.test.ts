@@ -369,4 +369,116 @@ describe("POST /books/:label/fonts/apply", () => {
     })
     expect(res.status).toBe(400)
   })
+
+  function seedFixedLayoutBook(label: string): void {
+    createTestBook(label)
+    fs.writeFileSync(
+      path.join(tmpDir, label, "config.yaml"),
+      [
+        "render_strategies:",
+        "  fixed_layout:",
+        "    render_type: fixed_layout",
+        "default_render_strategy: fixed_layout",
+        "",
+      ].join("\n")
+    )
+    const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
+    db.run("INSERT INTO pages (page_id, page_number, text) VALUES (?, ?, ?)", ["pg001", 1, ""])
+    db.close()
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putNodeData("fixed-layout-sectioning", "pg001", {
+        reasoning: "fixed",
+        sections: [
+          {
+            sectionId: "pg001_sec001",
+            sectionType: "fixed-layout-page",
+            backgroundColor: "#ffffff",
+            textColor: "#000000",
+            pageNumber: 1,
+            isPruned: false,
+            viewport: { width: 400, height: 300 },
+            nodes: [{ nodeId: "pg001_t001", isPruned: false, role: "text", text: "Hello" }],
+            placement: {
+              pg001_t001: {
+                position: { top: 100, left: 72, lineHeight: 24 },
+                segments: [
+                  { text: "Hello", style: { "font-family": "Rosewood,serif", color: "#231f20" } },
+                ],
+              },
+            },
+          },
+        ],
+      })
+      storage.putNodeData("web-rendering", "pg001", {
+        sections: [{ sectionIndex: 0, sectionType: "fixed-layout-page", reasoning: "", html: "<div>old</div>" }],
+      })
+    } finally {
+      storage.close()
+    }
+  }
+
+  it("applies a whole-book font to fixed-layout pages via placement overrides", async () => {
+    seedFixedLayoutBook("fixedfont")
+    const app = createFontRoutes(tmpDir, promptsDir)
+    const res = await app.request("/books/fixedfont/fonts/apply", {
+      method: "POST",
+      body: JSON.stringify({ scope: "whole", font: { kind: "reflowable", id: "lexend" } }),
+    })
+    expect(res.status).toBe(200)
+    const body = (await res.json()) as { pagesUpdated: number }
+    expect(body.pagesUpdated).toBe(1)
+
+    const html = readRenderedHtml("fixedfont")
+    expect(html).toMatch(/<p[^>]*class="[^"]*font-\[Lexend/)
+    expect(html).toMatch(/<span[^>]*class="[^"]*font-\[Lexend/)
+    expect(html).not.toMatch(/<p[^>]*style=/)
+    expect(html).not.toContain("Rosewood")
+    expect(html).toContain("top-[100px]")
+
+    const storage = createBookStorage("fixedfont", tmpDir)
+    try {
+      const userStyles = storage.getLatestNodeData("fixed-layout-user-styles", "pg001")!
+        .data as { nodes: Record<string, { classes?: string[] }> }
+      expect(userStyles.nodes.pg001_t001.classes?.some((c) => c.startsWith("font-[Lexend"))).toBe(true)
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("resets fixed-layout pages back to the original PDF fonts", async () => {
+    seedFixedLayoutBook("fixedreset")
+    const app = createFontRoutes(tmpDir, promptsDir)
+    await app.request("/books/fixedreset/fonts/apply", {
+      method: "POST",
+      body: JSON.stringify({ scope: "whole", font: { kind: "reflowable", id: "lexend" } }),
+    })
+    const res = await app.request("/books/fixedreset/fonts/apply", {
+      method: "POST",
+      body: JSON.stringify({ scope: "whole", reset: true }),
+    })
+    expect(res.status).toBe(200)
+
+    const html = readRenderedHtml("fixedreset")
+    expect(html).not.toContain("Lexend")
+    expect(html).toContain("Rosewood")
+    const storage = createBookStorage("fixedreset", tmpDir)
+    try {
+      const userStyles = storage.getLatestNodeData("fixed-layout-user-styles", "pg001")!
+        .data as { nodes: Record<string, unknown> }
+      expect(userStyles.nodes.pg001_t001).toBeUndefined()
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("rejects role scopes for fixed-layout books", async () => {
+    seedFixedLayoutBook("fixedrole")
+    const app = createFontRoutes(tmpDir, promptsDir)
+    const res = await app.request("/books/fixedrole/fonts/apply", {
+      method: "POST",
+      body: JSON.stringify({ scope: "heading", font: { kind: "reflowable", id: "lexend" } }),
+    })
+    expect(res.status).toBe(400)
+  })
 })

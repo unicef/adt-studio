@@ -210,6 +210,23 @@ describe("renderPageHtml", () => {
     expect(html).not.toContain("fonts.googleapis.com")
   })
 
+  it("renders fixed viewport body dimensions as classes", () => {
+    const html = renderPageHtml({
+      content: '<div id="content" data-fl-width="400" data-fl-height="300" class="relative w-[400px] h-[300px]"></div>',
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Test",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+      fixedViewport: { width: 400, height: 300 },
+    })
+
+    expect(html).toContain('content="width=400, height=300"')
+    expect(html).toContain('data-fl-width="400" data-fl-height="300" class="m-0 overflow-hidden w-[400px] h-[300px]"')
+    expect(html).not.toContain('style="margin:0;overflow:hidden;width:400px;height:300px"')
+  })
+
   it("uses offline/SCORM scripts instead of type=module in normal mode", () => {
     const html = renderPageHtml({
       content: "<p>Hello</p>",
@@ -533,6 +550,65 @@ describe("packageAdtWeb", () => {
     const manifest = fs.readFileSync(manifestPath, "utf-8")
     expect(manifest).toContain("ADL SCORM")
     expect(manifest).toContain("index.html")
+  })
+
+  it("packages class-based fixed-layout viewport dimensions", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+
+    const storage = createMockStorage(
+      [{ pageId: "pg001", pageNumber: 1, text: "Page one" }],
+      {
+        "web-rendering": {
+          pg001: {
+            sections: [
+              {
+                sectionIndex: 0,
+                sectionType: "fixed-layout-page",
+                reasoning: "ok",
+                html: '<div id="content" data-fl-width="400" data-fl-height="300" class="relative mx-auto overflow-hidden w-[400px] h-[300px]"><p class="font-[Lexend,Merriweather,sans-serif]"><span class="font-[Lexend,Merriweather,sans-serif]">Hi</span></p><img src="/api/books/book/images/pg001_im001" alt="" class="absolute [clip-path:url(#clip-pg001_im001)]"/></div>',
+              },
+            ],
+          },
+        },
+        "page-sectioning": {
+          pg001: {
+            reasoning: "ok",
+            sections: [
+              {
+                sectionId: "pg001_sec001",
+                sectionType: "fixed-layout-page",
+                nodes: [],
+                backgroundColor: "#fff",
+                textColor: "#000",
+                pageNumber: 1,
+                isPruned: false,
+              },
+            ],
+          },
+        },
+      },
+    )
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+      fixedLayout: true,
+    })
+
+    const pageHtml = fs.readFileSync(path.join(bookDir, "adt", "index.html"), "utf-8")
+    expect(pageHtml).toContain('content="width=400, height=300"')
+    expect(pageHtml).toContain('data-fl-width="400" data-fl-height="300" class="m-0 overflow-hidden w-[400px] h-[300px]"')
+    expect(pageHtml).not.toContain("style=\"position:relative;width:400px")
+    const css = fs.readFileSync(path.join(bookDir, "adt", "content", "tailwind_output.css"), "utf-8")
+    expect(css).toContain("clip-path: url(#clip-pg001_im001)")
+    expect(css).toContain("font-family: Lexend,Merriweather,sans-serif")
   })
 
   it("packages persisted Easy Read entries for the source language", async () => {
@@ -1650,6 +1726,15 @@ describe("rewriteImageUrls", () => {
     const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
     const matches = (out.match(/max-width/g) ?? []).length
     expect(matches).toBe(1)
+  })
+
+  it("does not add responsive inline styles to class-positioned fixed-layout images", () => {
+    const html = `<img src="/api/books/mybook/images/abc123" class="absolute top-[0px] left-[0px] w-[400px] h-[300px]">`
+    const imageMap = new Map([["abc123", "photo.jpg"]])
+    const { html: out } = rewriteImageUrls(html, "mybook", imageMap)
+    expect(out).toContain('src="images/photo.jpg"')
+    expect(out).not.toContain("max-width: 100%")
+    expect(out).not.toContain("height: auto")
   })
 
   it("strips legacy section role attributes while rewriting HTML", () => {

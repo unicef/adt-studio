@@ -129,6 +129,9 @@ export const NodePlacement = z.object({
    */
   renderHeight: z.number().optional(),
 
+  classes: z.array(z.string()).optional(),
+  styleOverrides: z.record(z.string(), z.string()).optional(),
+
   // Image-leaf placement
   bounds: ImagePartBounds.optional(),
   /**
@@ -147,6 +150,17 @@ export const NodePlacement = z.object({
   opacity: z.number().optional(),
 })
 export type NodePlacement = z.infer<typeof NodePlacement>
+
+export const FixedLayoutUserNodeStyles = z.object({
+  classes: z.array(z.string()).optional(),
+  styleOverrides: z.record(z.string(), z.string()).optional(),
+})
+export type FixedLayoutUserNodeStyles = z.infer<typeof FixedLayoutUserNodeStyles>
+
+export const FixedLayoutUserStyles = z.object({
+  nodes: z.record(z.string(), FixedLayoutUserNodeStyles),
+})
+export type FixedLayoutUserStyles = z.infer<typeof FixedLayoutUserStyles>
 
 // ── Section ─────────────────────────────────────────────────────
 

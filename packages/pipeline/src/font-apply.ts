@@ -36,5 +36,5 @@ export function applyFontToHtml(html: string, opts: { family: string | null; sco
   for (const node of nodes) {
     rewriteStyle(node, isWhole ? null : opts.family)
   }
-  return DomUtils.getOuterHTML(doc)
+  return DomUtils.getOuterHTML(doc, { encodeEntities: "utf8" })
 }

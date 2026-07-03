@@ -6,6 +6,8 @@ import {
   bookFontsReferencedIn,
   bookBodyFont,
   bookFontFamilyChain,
+  fontFamilyClass,
+  fontFamilyFromClass,
   classifyFontLicenseOpenSource,
 } from "../book-fonts.js"
 
@@ -89,6 +91,39 @@ describe("bookFontFamilyChain", () => {
     expect(bookFontFamilyChain({ family: "Noto Sans Mono", category: "mono" })).toBe(
       "'Noto Sans Mono',monospace",
     )
+  })
+})
+
+describe("bookFontsReferencedIn — font-[...] classes", () => {
+  it("finds registry fonts referenced only via a Tailwind class", () => {
+    const html = `<p class="absolute font-['Black_Ops_One','Merriweather',sans-serif]">x</p>`
+    const found = bookFontsReferencedIn(html, registryWith("Black Ops One", "Outra"))
+    expect(found.map((f) => f.family)).toEqual(["Black Ops One"])
+  })
+})
+
+describe("fontFamilyClass / fontFamilyFromClass", () => {
+  it("encodes a chain without spaces verbatim", () => {
+    expect(fontFamilyClass("Honk,'Merriweather',sans-serif")).toBe(
+      "font-[Honk,'Merriweather',sans-serif]",
+    )
+  })
+
+  it("encodes spaces as underscores and round-trips", () => {
+    const chain = "'Mouse Memoirs','Merriweather',serif"
+    const cls = fontFamilyClass(chain)
+    expect(cls).toBe("font-['Mouse_Memoirs','Merriweather',serif]")
+    expect(fontFamilyFromClass(cls)).toBe(chain)
+  })
+
+  it("escapes literal underscores and round-trips", () => {
+    const chain = "'My_Font',serif"
+    expect(fontFamilyFromClass(fontFamilyClass(chain))).toBe(chain)
+  })
+
+  it("returns null for non font-family classes", () => {
+    expect(fontFamilyFromClass("font-sans")).toBeNull()
+    expect(fontFamilyFromClass("text-2xl")).toBeNull()
   })
 })
 

@@ -2692,6 +2692,9 @@ msgstr "Chaque page de ce livre a toutes les sections élaguées. Il n'y a pas d
 msgid "Every page is pruned"
 msgstr "Chaque page est élaguée"
 
+msgid "Every page's text uses this font. Use “Reset fonts” to restore the original PDF fonts."
+msgstr "Le texte de toutes les pages utilise cette police. Utilisez « Réinitialiser les polices » pour restaurer les polices d'origine du PDF."
+
 msgid "Every reader opens the same book, with the features they need on tap."
 msgstr "Chaque lecteur ouvre le même livre, avec les fonctionnalités dont il a besoin d'un simple toucher."
 
@@ -3505,8 +3508,8 @@ msgstr "Dans le livre :"
 msgid "In case you don't want to convert the whole book, adjust the sliders to define which pages will be digitized."
 msgstr "Si vous ne souhaitez pas convertir le livre entier, ajustez les curseurs pour définir quelles pages seront numérisées."
 
-msgid "In development"
-msgstr "En développement"
+#~ msgid "In development"
+#~ msgstr "En développement"
 
 msgid "in progress"
 msgstr "en cours"
@@ -6693,8 +6696,8 @@ msgstr "Actions du studio"
 msgid "Style"
 msgstr "Style"
 
-msgid "Style editing coming soon"
-msgstr "Édition de style bientôt disponible"
+#~ msgid "Style editing coming soon"
+#~ msgstr "Édition de style bientôt disponible"
 
 msgid "Style guide"
 msgstr "Guide de style"
@@ -7081,8 +7084,11 @@ msgstr "Ce livre est intitulé \\\"{0}\\\"."
 msgid "This book isn't fully assembled yet — pages <0>{0}</0> haven't been merged back. Anything you run here covers only the merged pages, so the result will be incomplete until every part is merged."
 msgstr "Ce livre n'est pas encore complet — les pages <0>{0}</0> n'ont pas été fusionnées. Tout ce que vous lancez ici ne couvre que les pages fusionnées, le résultat sera donc incomplet tant que toutes les parties ne sont pas fusionnées."
 
-msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
-msgstr "Ce livre est rendu en mise en page fixe, il conserve donc les polices d'origine du PDF. Les polices jointes guident tout de même l'IA pour les activités et les pages générées."
+msgid "This book renders fixed-layout and keeps the original PDF fonts. Set a font to “Whole book” below to replace them across every page — Reset fonts brings the originals back."
+msgstr "Ce livre est rendu en mise en page fixe et conserve les polices d'origine du PDF. Attribuez une police à « Livre entier » ci-dessous pour les remplacer sur toutes les pages — « Réinitialiser les polices » restaure les originales."
+
+#~ msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
+#~ msgstr "Ce livre est rendu en mise en page fixe, il conserve donc les polices d'origine du PDF. Les polices jointes guident tout de même l'IA pour les activités et les pages générées."
 
 msgid "This file couldn't be read as a ZIP archive"
 msgstr "Ce fichier n'a pas pu être lu comme une archive ZIP"
@@ -7191,6 +7197,9 @@ msgstr "Ce quiz sera retiré du livre. Vous pourrez toujours le restaurer depuis
 
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "Cela restaure la police par défaut sur toutes les pages et efface les réglages de police par élément ainsi que la sélection de police pour tout le livre. Les polices jointes restent dans la liste. La restauration est disponible par page dans l'historique des versions."
+
+msgid "This restores the original PDF fonts across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
+msgstr "Cela restaure les polices d'origine du PDF sur toutes les pages et efface les remplacements de police par élément ainsi que la sélection de police du livre. Les polices attachées restent dans la liste. Un retour en arrière est possible par page depuis l'historique des versions."
 
 msgid "This screen couldn’t load"
 msgstr "Cet écran n'a pas pu se charger"
@@ -7696,8 +7705,8 @@ msgstr "Révision visuelle"
 msgid "Visual Review Prompt (read-only)"
 msgstr "Invite de révision visuelle (lecture seule)"
 
-msgid "Visual style editing isn't available for fixed-layout pages yet. You can still edit text inline, swap or crop images, and prune elements."
-msgstr "L'édition visuelle des styles n'est pas encore disponible pour les pages à mise en page fixe. Vous pouvez toujours modifier le texte en ligne, remplacer ou recadrer des images et élaguer des éléments."
+#~ msgid "Visual style editing isn't available for fixed-layout pages yet. You can still edit text inline, swap or crop images, and prune elements."
+#~ msgstr "L'édition visuelle des styles n'est pas encore disponible pour les pages à mise en page fixe. Vous pouvez toujours modifier le texte en ligne, remplacer ou recadrer des images et élaguer des éléments."
 
 msgid "Voice"
 msgstr "Voix"

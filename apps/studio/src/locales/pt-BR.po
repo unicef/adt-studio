@@ -2690,6 +2690,9 @@ msgstr "Todas as páginas deste livro têm todas as seções excluídas. Não h�
 msgid "Every page is pruned"
 msgstr "Todas as páginas estão excluídas"
 
+msgid "Every page's text uses this font. Use “Reset fonts” to restore the original PDF fonts."
+msgstr "O texto de todas as páginas usa esta fonte. Use “Redefinir fontes” para restaurar as fontes originais do PDF."
+
 msgid "Every reader opens the same book, with the features they need on tap."
 msgstr "Todo leitor abre o mesmo livro, com os recursos que precisa ao toque."
 
@@ -3503,8 +3506,8 @@ msgstr "No livro:"
 msgid "In case you don't want to convert the whole book, adjust the sliders to define which pages will be digitized."
 msgstr "Caso não queira converter o livro inteiro, ajuste os controles deslizantes para definir quais páginas serão digitalizadas."
 
-msgid "In development"
-msgstr "Em desenvolvimento"
+#~ msgid "In development"
+#~ msgstr "Em desenvolvimento"
 
 msgid "in progress"
 msgstr "em andamento"
@@ -6691,8 +6694,8 @@ msgstr "Ações do estúdio"
 msgid "Style"
 msgstr "Estilo"
 
-msgid "Style editing coming soon"
-msgstr "Edição de estilo em breve"
+#~ msgid "Style editing coming soon"
+#~ msgstr "Edição de estilo em breve"
 
 msgid "Style guide"
 msgstr "Guia de estilo"
@@ -7079,8 +7082,11 @@ msgstr "Este livro é intitulado \\\"{0}\\\"."
 msgid "This book isn't fully assembled yet — pages <0>{0}</0> haven't been merged back. Anything you run here covers only the merged pages, so the result will be incomplete until every part is merged."
 msgstr "Este livro ainda não está completo — as páginas <0>{0}</0> não foram mescladas. Tudo o que você executar aqui cobre apenas as páginas mescladas, então o resultado ficará incompleto até que todas as partes sejam mescladas."
 
-msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
-msgstr "Este livro é renderizado em layout fixo, então mantém as fontes originais do PDF. Fontes anexadas ainda orientam a IA em atividades e páginas geradas."
+msgid "This book renders fixed-layout and keeps the original PDF fonts. Set a font to “Whole book” below to replace them across every page — Reset fonts brings the originals back."
+msgstr "Este livro é renderizado em layout fixo e mantém as fontes originais do PDF. Defina uma fonte como “Livro inteiro” abaixo para substituí-las em todas as páginas — “Redefinir fontes” traz as originais de volta."
+
+#~ msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
+#~ msgstr "Este livro é renderizado em layout fixo, então mantém as fontes originais do PDF. Fontes anexadas ainda orientam a IA em atividades e páginas geradas."
 
 msgid "This file couldn't be read as a ZIP archive"
 msgstr "Este arquivo não pôde ser lido como um arquivo ZIP"
@@ -7189,6 +7195,9 @@ msgstr "Este questionário será removido do livro. Você ainda pode restaurá-l
 
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "Isso restaura a fonte padrão em todas as páginas e limpa os ajustes de fonte por elemento e a seleção de fonte do livro todo. As fontes anexadas permanecem na lista. A reversão está disponível por página no histórico de versões."
+
+msgid "This restores the original PDF fonts across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
+msgstr "Isto restaura as fontes originais do PDF em todas as páginas e limpa as substituições de fonte por elemento e a seleção de fonte do livro. As fontes anexadas permanecem na lista. É possível reverter por página no histórico de versões."
 
 msgid "This screen couldn’t load"
 msgstr "Esta tela não pôde ser carregada"
@@ -7694,8 +7703,8 @@ msgstr "Revisão Visual"
 msgid "Visual Review Prompt (read-only)"
 msgstr "Prompt de Revisão Visual (somente leitura)"
 
-msgid "Visual style editing isn't available for fixed-layout pages yet. You can still edit text inline, swap or crop images, and prune elements."
-msgstr "A edição visual de estilos ainda não está disponível para páginas de layout fixo. Você ainda pode editar texto inline, substituir ou recortar imagens e remover elementos."
+#~ msgid "Visual style editing isn't available for fixed-layout pages yet. You can still edit text inline, swap or crop images, and prune elements."
+#~ msgstr "A edição visual de estilos ainda não está disponível para páginas de layout fixo. Você ainda pode editar texto inline, substituir ou recortar imagens e remover elementos."
 
 msgid "Voice"
 msgstr "Voz"

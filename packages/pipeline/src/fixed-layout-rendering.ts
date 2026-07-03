@@ -19,6 +19,7 @@ import type {
   AppConfig,
   ContentNodeData,
   DrawItem,
+  FixedLayoutUserStyles,
   ImageClassificationOutput,
   NodePlacement,
   PageSectioningOutput,
@@ -27,7 +28,32 @@ import type {
   WebRenderingOutput,
   PositionedTextOutput,
 } from "@adt/types"
+import {
+  FixedLayoutUserStyles as FixedLayoutUserStylesSchema,
+  PageSectioningOutput as PageSectioningOutputSchema,
+  fontFamilyClass,
+} from "@adt/types"
 import { escapeHtml } from "./package-web.js"
+
+export const FIXED_LAYOUT_USER_STYLES_NODE = "fixed-layout-user-styles"
+
+export function applyUserStyles(
+  sectioning: PageSectioningOutput,
+  userStyles: FixedLayoutUserStyles,
+): void {
+  for (const section of sectioning.sections) {
+    if (!section.placement) continue
+    for (const [nodeId, p] of Object.entries(section.placement)) {
+      const styles = userStyles.nodes[nodeId]
+      const legacyClasses = styles?.styleOverrides ? styleMapToClasses(styles.styleOverrides) : []
+      const classes = [...legacyClasses, ...(styles?.classes ?? [])]
+      if (classes.length > 0) p.classes = classes
+      else delete p.classes
+      delete p.styleOverrides
+      if (styles) delete styles.styleOverrides
+    }
+  }
+}
 
 /**
  * Whether the book should render as a fixed-layout EPUB.
@@ -265,31 +291,18 @@ function appendContinuationLine(
   }
 }
 
-/**
- * Build the inner HTML for a paragraph `<p>` from structured segments.
- *
- * Emits one styled `<span style="…">` per run; nothing more. Word-level
- * `<span id="…_wNNN">` wrappers — needed for EPUB 3 media-overlay
- * `<text src="…#…"/>` references and for in-viewer read-aloud highlighting
- * — are materialised by the consumers from `data-segments` JSON:
- *   - EPUB packaging: `wrapWordSpans` in `package-epub.ts`
- *   - Live viewer at audio playback: `wrapTextInSpans` in
- *     `assets/adt/modules/tts_highlighter.js`
- *
- * Keeping the renderer language-agnostic means a single XHTML page can be
- * re-skinned across translations (the in-studio swap rebuilds segments
- * via `rebuildSegmentedInnerHtml`) without invalidating word ids; the
- * consumers regenerate them in the target language.
- */
 function renderSegmentsToHtml(
   segments: SectionTextSegment[] | undefined,
+  inheritedSpanClasses: string[] = [],
 ): string {
   if (!segments || segments.length === 0) return ""
   return segments
     .map((seg) => {
       const content = escapeHtml(seg.text)
-      const styleStr = seg.style ? styleMapToInline(seg.style) : ""
-      return styleStr ? `<span style="${styleStr}">${content}</span>` : content
+      const classes = [...(seg.style ? styleMapToClasses(seg.style) : []), ...inheritedSpanClasses]
+      return classes.length > 0
+        ? `<span class="${classes.join(" ")}">${content}</span>`
+        : content
     })
     .join("")
 }
@@ -304,6 +317,65 @@ export function styleMapToInline(style: Record<string, string>): string {
   return Object.entries(style)
     .map(([k, v]) => `${k}:${k === "font-family" ? withBundledFallback(v) : v}`)
     .join(";")
+}
+
+export function styleMapToClasses(style: Record<string, string>): string[] {
+  const classes: string[] = []
+  for (const [prop, raw] of Object.entries(style)) {
+    const value = raw.trim()
+    if (!value) continue
+    switch (prop) {
+      case "font-family":
+        classes.push(fontFamilyClass(withBundledFallback(value)))
+        break
+      case "font-size":
+        classes.push(`text-[${cssArbitraryValue(value)}]`)
+        break
+      case "color":
+        classes.push(`text-[${cssArbitraryValue(value)}]`)
+        break
+      case "font-weight":
+        classes.push(fontWeightToClass(value))
+        break
+      case "font-style":
+        classes.push(
+          value === "italic"
+            ? "italic"
+            : value === "normal"
+              ? "not-italic"
+              : `[font-style:${cssArbitraryValue(value)}]`,
+        )
+        break
+      case "letter-spacing":
+        classes.push(`tracking-[${cssArbitraryValue(value)}]`)
+        break
+      default:
+        classes.push(`[${prop}:${cssArbitraryValue(value)}]`)
+    }
+  }
+  return classes
+}
+
+const FONT_WEIGHT_KEYWORD_CLASS: Record<string, string> = {
+  "100": "font-thin",
+  "200": "font-extralight",
+  "300": "font-light",
+  "400": "font-normal",
+  normal: "font-normal",
+  "500": "font-medium",
+  "600": "font-semibold",
+  "700": "font-bold",
+  bold: "font-bold",
+  "800": "font-extrabold",
+  "900": "font-black",
+}
+
+function fontWeightToClass(value: string): string {
+  return FONT_WEIGHT_KEYWORD_CLASS[value] ?? `font-[${cssArbitraryValue(value)}]`
+}
+
+function cssArbitraryValue(value: string): string {
+  return value.replace(/_/g, "\\_").replace(/\s+/g, "_")
 }
 
 /**
@@ -328,6 +400,144 @@ function withBundledFallback(fontFamily: string): string {
     return fontFamily.slice(0, idx) + "Merriweather," + fontFamily.slice(idx)
   }
   return fontFamily.replace(/\s*$/, "") + ",Merriweather,serif"
+}
+
+const NATIVE_BLEND_MODES = new Set([
+  "multiply", "screen", "overlay", "darken", "lighten", "color-dodge",
+  "color-burn", "hard-light", "soft-light", "difference", "exclusion",
+  "hue", "saturation", "color", "luminosity", "normal",
+])
+
+function hasVariantPrefix(cls: string): boolean {
+  const colon = cls.indexOf(":")
+  if (colon === -1) return false
+  const bracket = cls.indexOf("[")
+  return bracket === -1 || colon < bracket
+}
+
+export function classPropertyGroup(cls: string): string | null {
+  if (hasVariantPrefix(cls)) return null
+  if (/^(absolute|relative|static|fixed|sticky)$/.test(cls)) return "position"
+  if (/^-?top-/.test(cls)) return "top"
+  if (/^-?left-/.test(cls)) return "left"
+  if (/^max-w-/.test(cls)) return "max-width"
+  if (/^w-/.test(cls)) return "width"
+  if (/^h-/.test(cls)) return "height"
+  if (/^leading-/.test(cls)) return "line-height"
+  if (/^text-(left|center|right|justify|start|end)$/.test(cls)) return "text-align"
+  if (/^text-(xs|sm|base|lg|xl|\dxl)$/.test(cls)) return "font-size"
+  if (/^text-\[[\d.]+(px|rem|em|%)\]$/.test(cls)) return "font-size"
+  if (/^text-/.test(cls)) return "color"
+  if (/^font-(sans|serif|mono)$/.test(cls) || /^font-\[/.test(cls)) return "font-family"
+  if (/^font-/.test(cls)) return "font-weight"
+  if (/^tracking-/.test(cls)) return "letter-spacing"
+  if (/^(italic|not-italic)$/.test(cls)) return "font-style"
+  if (/^opacity-/.test(cls)) return "opacity"
+  if (/^mix-blend-/.test(cls) || /^\[mix-blend-mode:/.test(cls)) return "mix-blend-mode"
+  return null
+}
+
+const INHERITABLE_GROUPS: Record<string, string> = {
+  "font-size": "font-size",
+  "color": "color",
+  "font-family": "font-family",
+  "font-weight": "font-weight",
+  "letter-spacing": "letter-spacing",
+  "font-style": "font-style",
+}
+
+export function generatedTextLeafClasses(p: NodePlacement): string[] {
+  if (!p.position) return []
+  const renderLeft = p.blockBounds ? Math.round(p.blockBounds.x) : p.position.left
+  const effectiveLineHeight = pickEffectiveLineHeight(p.segments, p.position.lineHeight)
+  const classes = [
+    "absolute",
+    `top-[${p.position.top}px]`,
+    `left-[${renderLeft}px]`,
+    `leading-[${effectiveLineHeight}px]`,
+  ]
+  if (p.blockBounds) {
+    classes.push(`w-[${Math.round(p.blockBounds.width)}px]`)
+    const heightValue = p.renderHeight !== undefined ? p.renderHeight : p.blockBounds.height
+    classes.push(`h-[${Math.round(heightValue)}px]`)
+  }
+  if (p.textAlign) classes.push(`text-${p.textAlign}`)
+  return classes
+}
+
+export function generatedImageLeafClasses(p: NodePlacement): string[] {
+  if (!p.bounds) return []
+  const { x, y, width, height } = p.bounds
+  const classes = [
+    "absolute",
+    "max-w-none",
+    `top-[${Math.round(y)}px]`,
+    `left-[${Math.round(x)}px]`,
+    `w-[${Math.round(width)}px]`,
+    `h-[${Math.round(height)}px]`,
+  ]
+  if (p.blendMode && p.blendMode !== "normal") {
+    classes.push(
+      NATIVE_BLEND_MODES.has(p.blendMode)
+        ? `mix-blend-${p.blendMode}`
+        : `[mix-blend-mode:${p.blendMode}]`,
+    )
+  }
+  if (typeof p.opacity === "number" && p.opacity < 1) {
+    classes.push(`opacity-[${p.opacity}]`)
+  }
+  return classes
+}
+
+function mergeLeafClasses(generated: string[], user: string[] | undefined): string[] {
+  if (!user || user.length === 0) return generated
+  const userGroups = new Set(
+    user.map(classPropertyGroup).filter((g): g is string => g !== null),
+  )
+  const kept = generated.filter((c) => {
+    const group = classPropertyGroup(c)
+    return group === null || !userGroups.has(group)
+  })
+  const merged = [...kept]
+  for (const cls of user) if (!merged.includes(cls)) merged.push(cls)
+  return merged
+}
+
+function userOverriddenInheritableProps(p: NodePlacement): Set<string> {
+  const props = new Set<string>()
+  for (const cls of placementUserClasses(p)) {
+    const group = classPropertyGroup(cls)
+    if (group && INHERITABLE_GROUPS[group]) props.add(INHERITABLE_GROUPS[group])
+  }
+  return props
+}
+
+function stripOverriddenSegmentProps(
+  segments: SectionTextSegment[] | undefined,
+  overridden: Set<string>,
+): SectionTextSegment[] | undefined {
+  if (!segments || overridden.size === 0) return segments
+  return segments.map((seg) => {
+    if (!seg.style) return seg
+    const entries = Object.entries(seg.style).filter(([k]) => !overridden.has(k))
+    if (entries.length === Object.keys(seg.style).length) return seg
+    if (entries.length === 0) {
+      const { style: _style, ...rest } = seg
+      return rest
+    }
+    return { ...seg, style: Object.fromEntries(entries) }
+  })
+}
+
+function placementUserClasses(p: NodePlacement): string[] {
+  return [...styleMapToClasses(p.styleOverrides ?? {}), ...(p.classes ?? [])]
+}
+
+function fontFamilyClasses(classes: string[]): string[] {
+  return classes.filter((cls) => {
+    if (cls.startsWith("[&_span]:")) return false
+    return classPropertyGroup(cls) === "font-family"
+  })
 }
 
 // ── Fixed-Layout Web Rendering ─────────────────────────────────────
@@ -372,71 +582,26 @@ export function renderFixedLayoutPage(
     if (node.role === "image") {
       if (!p?.bounds) continue
       const url = `${imageUrlPrefix}/${node.nodeId}`
-      const { x, y, width, height } = p.bounds
-      let imgStyle = `position:absolute;top:${Math.round(y)}px;left:${Math.round(x)}px;width:${Math.round(width)}px;height:${Math.round(height)}px`
-      // Apply the PDF clip path captured during extraction. The `d` string is
-      // in absolute viewport coords; we translate via `transform` on the
-      // <path> element so the inner coords stay readable for debugging,
-      // while userSpaceOnUse interprets them relative to the <img>'s box
-      // (top-left origin). EPUB3 readers (Apple Books, ADE, Thorium,
-      // Calibre) all support this combination.
+      const { x, y } = p.bounds
+      const classes = mergeLeafClasses(generatedImageLeafClasses(p), placementUserClasses(p))
       if (p.clipPath) {
         const clipId = `clip-${node.nodeId}`
         elements.push(
-          `  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><clipPath id="${clipId}" clipPathUnits="userSpaceOnUse"><path d="${escapeHtmlAttr(p.clipPath)}" transform="translate(${-Math.round(x)},${-Math.round(y)})"/></clipPath></defs></svg>`,
+          `  <svg width="0" height="0" class="absolute" aria-hidden="true"><defs><clipPath id="${clipId}" clipPathUnits="userSpaceOnUse"><path d="${escapeHtmlAttr(p.clipPath)}" transform="translate(${-Math.round(x)},${-Math.round(y)})"/></clipPath></defs></svg>`,
         )
-        imgStyle += `;clip-path:url(#${clipId})`
-      }
-      // PDF blend modes (commonly Multiply in watercolor storybooks) make
-      // image backgrounds composite as transparent. Reproduce via
-      // `mix-blend-mode`.
-      if (p.blendMode) {
-        imgStyle += `;mix-blend-mode:${p.blendMode}`
-      }
-      if (typeof p.opacity === "number" && p.opacity < 1) {
-        imgStyle += `;opacity:${p.opacity}`
+        classes.push(`[clip-path:url(#${clipId})]`)
       }
       elements.push(
-        `  <img src="${escapeHtml(url)}" alt="" data-id="${node.nodeId}" style="${imgStyle}"/>`)
+        `  <img src="${escapeHtml(url)}" alt="" data-id="${node.nodeId}" class="${classes.join(" ")}"/>`)
     } else if (node.role === "text") {
       if (!p?.position) continue // Reflowable text leaves shouldn't appear in fixed-layout sections; skip defensively
-      const { top, lineHeight } = p.position
-      // When the leaf carries a block bounds (i.e. clustering ran and
-      // identified the visual container), render the paragraph spanning
-      // the full block width with the inferred text-align — this lets a
-      // translation re-flow inside the original bubble. Without
-      // blockBounds (legacy data), fall back to single-line legacy
-      // behaviour (anchor at the line's own left, no width constraint).
-      const renderLeft = p.blockBounds ? Math.round(p.blockBounds.x) : p.position.left
-      // When we have block geometry, pin the paragraph to the full block
-      // box (width + height) and tag it with data-adt-fit so the runtime
-      // auto-fit script can shrink letter-spacing/font-size to make the
-      // text actually fit. We deliberately leave overflow visible: cases
-      // we haven't characterised should overflow visibly so they're easy
-      // to spot rather than getting silently clipped. The auto-fit
-      // script's fits() check uses scrollHeight/scrollWidth which work
-      // regardless of overflow setting.
-      const widthRule = p.blockBounds ? `;width:${Math.round(p.blockBounds.width)}px` : ""
-      // renderHeight is stamped at sectioning when multiple leaves share
-      // a block (each gets its own slice of the block height); for blocks
-      // with a single leaf the full blockBounds.height is correct.
-      const heightValue = p.blockBounds
-        ? p.renderHeight !== undefined ? p.renderHeight : p.blockBounds.height
-        : undefined
-      const heightRule = heightValue !== undefined ? `;height:${Math.round(heightValue)}px` : ""
-      const alignRule = p.textAlign ? `;text-align:${p.textAlign}` : ""
-      // line-height needs to fit the LARGEST segment's font-size, not
-      // just mupdf's reported lineHeight (which it computes from the
-      // first/dominant run). Without this, mixed-size paragraphs like
-      // "Remember the warning signs." (11.5px body + 24px decorative)
-      // overflow their 12px line box and the auto-fit's blanket scale
-      // produces uneven results. Use the biggest segment fontSize when
-      // segments mix sizes; fall back to the leaf's lineHeight otherwise.
-      const effectiveLineHeight = pickEffectiveLineHeight(p.segments, lineHeight)
-      const style = `position:absolute;top:${top}px;left:${renderLeft}px;line-height:${effectiveLineHeight}px${widthRule}${heightRule}${alignRule}`
+      const userClasses = placementUserClasses(p)
+      const spanFontClasses = fontFamilyClasses(userClasses)
+      const classes = mergeLeafClasses(generatedTextLeafClasses(p), userClasses)
 
-      const segments = p.segments
-      const content = renderSegmentsToHtml(segments) || escapeHtml(node.text ?? "")
+      const overridden = userOverriddenInheritableProps(p)
+      const segments = stripOverriddenSegmentProps(p.segments, overridden)
+      const content = renderSegmentsToHtml(segments, spanFontClasses) || escapeHtml(node.text ?? "")
 
       // `data-segments` carries the structured styling inline so the viewer
       // can rebuild the styled span structure after any text swap (language
@@ -444,20 +609,20 @@ export function renderFixedLayoutPage(
       const segmentsAttr = segments && segments.length > 0
         ? ` data-segments="${escapeHtmlAttr(JSON.stringify(segments))}"`
         : ""
-      const fitAttr = p.blockBounds ? ` data-adt-fit="1"` : ""
+      const userPinnedFontSize = overridden.has("font-size")
+      const fitAttr = p.blockBounds && !userPinnedFontSize ? ` data-adt-fit="1"` : ""
       elements.push(
-        `  <p data-id="${node.nodeId}"${segmentsAttr}${fitAttr} style="${style}">${content}</p>`)
+        `  <p data-id="${node.nodeId}"${segmentsAttr}${fitAttr} class="${classes.join(" ")}">${content}</p>`)
     }
   }
 
   const hasFitTargets = elements.some((el) => el.includes("data-adt-fit=\"1\""))
   const fitScript = hasFitTargets ? `\n${FIT_SCRIPT}` : ""
-  // Keep the attribute before `style` so the per-page viewport regex in
-  // package-web (`/width:(\d+)px;height:(\d+)px/`) still reads the page's own
-  // dimensions from the style rule, not this book-wide value.
+  const width = Math.round(viewport.width)
+  const height = Math.round(viewport.height)
   const refWidthAttr =
     referenceWidth !== undefined ? ` data-fl-reference-width="${Math.round(referenceWidth)}"` : ""
-  const html = `<div id="content"${refWidthAttr} style="position:relative;width:${viewport.width}px;height:${viewport.height}px;margin:0 auto;overflow:hidden">
+  const html = `<div id="content"${refWidthAttr} data-fl-width="${width}" data-fl-height="${height}" class="relative mx-auto overflow-hidden w-[${width}px] h-[${height}px]">
 ${elements.join("\n")}${fitScript}
 </div>`
 
@@ -546,6 +711,11 @@ export function processFixedLayoutPages(
       drawItems,
       availableImageIds,
     })
+    const userStylesRow = storage.getLatestNodeData(FIXED_LAYOUT_USER_STYLES_NODE, page.pageId)
+    if (userStylesRow) {
+      const parsed = FixedLayoutUserStylesSchema.safeParse(userStylesRow.data)
+      if (parsed.success) applyUserStyles(sectioning, parsed.data)
+    }
     // Store the positioned tree under its OWN node so it never clobbers the
     // semantic `page-sectioning` (which the Sectioning view + reflowable
     // rendering rely on, and which must survive a render-strategy switch).
@@ -573,6 +743,20 @@ export function processFixedLayoutPages(
         "configured for fixed-layout rendering)."
     )
   }
+}
+
+export function getFixedLayoutReferenceWidth(storage: Storage): number | undefined {
+  let max = 0
+  for (const page of storage.getPages()) {
+    const row = storage.getLatestNodeData("fixed-layout-sectioning", page.pageId)
+    if (!row) continue
+    const parsed = PageSectioningOutputSchema.safeParse(row.data)
+    if (!parsed.success) continue
+    for (const section of parsed.data.sections) {
+      if (section.viewport && section.viewport.width > max) max = section.viewport.width
+    }
+  }
+  return max > 0 ? max : undefined
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────

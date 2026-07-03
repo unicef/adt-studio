@@ -3,7 +3,7 @@ import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
 import type { LLMModel } from "@adt/llm"
-import { renderPage, buildRenderStrategyResolver, buildBookFontsPromptContext, createTemplateEngine, loadBookConfig, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID, buildScreenshotHtml, SCREENSHOT_VIEWPORTS } from "@adt/pipeline"
+import { renderPage, buildRenderStrategyResolver, buildBookFontsPromptContext, createTemplateEngine, loadBookConfig, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID, buildScreenshotHtml, SCREENSHOT_VIEWPORTS, isFixedLayoutBook, renderFixedLayoutPage, getFixedLayoutReferenceWidth, FIXED_LAYOUT_SECTIONING_NODE } from "@adt/pipeline"
 import type { VisualRefinementDeps } from "@adt/pipeline"
 import { PageSectioningOutput, WebRenderingOutput, webRenderingLLMSchema, editVerifyLLMSchema } from "@adt/types"
 import { loadStyleguideContent } from "./styleguide.js"
@@ -58,6 +58,21 @@ export async function reRenderPage(
   let visualRefinement: VisualRefinementDeps | undefined
 
   try {
+    const fixedLayoutConfig = loadBookConfig(label, booksDir, configPath)
+    if (isFixedLayoutBook(fixedLayoutConfig)) {
+      const fixedRow = storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId)
+      const fixedParsed = fixedRow ? PageSectioningOutput.safeParse(fixedRow.data) : null
+      if (fixedParsed?.success && fixedParsed.data.sections[0]?.viewport) {
+        const rendering = renderFixedLayoutPage(
+          fixedParsed.data.sections[0],
+          `/api/books/${label}/images`,
+          getFixedLayoutReferenceWidth(storage),
+        )
+        const version = storage.putNodeData("web-rendering", pageId, rendering)
+        return { version, rendering }
+      }
+    }
+
     const structuringRow = storage.getLatestNodeData("page-sectioning", pageId)
 
     if (!structuringRow) {

@@ -2690,6 +2690,9 @@ msgstr "Every page in this book has all sections pruned. There is no content ava
 msgid "Every page is pruned"
 msgstr "Every page is pruned"
 
+msgid "Every page's text uses this font. Use “Reset fonts” to restore the original PDF fonts."
+msgstr "Every page's text uses this font. Use “Reset fonts” to restore the original PDF fonts."
+
 msgid "Every reader opens the same book, with the features they need on tap."
 msgstr "Every reader opens the same book, with the features they need on tap."
 
@@ -3503,8 +3506,8 @@ msgstr "In book:"
 msgid "In case you don't want to convert the whole book, adjust the sliders to define which pages will be digitized."
 msgstr "In case you don't want to convert the whole book, adjust the sliders to define which pages will be digitized."
 
-msgid "In development"
-msgstr "In development"
+#~ msgid "In development"
+#~ msgstr "In development"
 
 msgid "in progress"
 msgstr "in progress"
@@ -6691,8 +6694,8 @@ msgstr "Studio actions"
 msgid "Style"
 msgstr "Style"
 
-msgid "Style editing coming soon"
-msgstr "Style editing coming soon"
+#~ msgid "Style editing coming soon"
+#~ msgstr "Style editing coming soon"
 
 msgid "Style guide"
 msgstr "Style guide"
@@ -7079,8 +7082,11 @@ msgstr "This book is titled \"{0}\"."
 msgid "This book isn't fully assembled yet — pages <0>{0}</0> haven't been merged back. Anything you run here covers only the merged pages, so the result will be incomplete until every part is merged."
 msgstr "This book isn't fully assembled yet — pages <0>{0}</0> haven't been merged back. Anything you run here covers only the merged pages, so the result will be incomplete until every part is merged."
 
-msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
-msgstr "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
+msgid "This book renders fixed-layout and keeps the original PDF fonts. Set a font to “Whole book” below to replace them across every page — Reset fonts brings the originals back."
+msgstr "This book renders fixed-layout and keeps the original PDF fonts. Set a font to “Whole book” below to replace them across every page — Reset fonts brings the originals back."
+
+#~ msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
+#~ msgstr "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 
 msgid "This file couldn't be read as a ZIP archive"
 msgstr "This file couldn't be read as a ZIP archive"
@@ -7189,6 +7195,9 @@ msgstr "This quiz will be removed from the book. You can still restore it from t
 
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
+
+msgid "This restores the original PDF fonts across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
+msgstr "This restores the original PDF fonts across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 
 msgid "This screen couldn’t load"
 msgstr "This screen couldn’t load"
@@ -7694,8 +7703,8 @@ msgstr "Visual Review"
 msgid "Visual Review Prompt (read-only)"
 msgstr "Visual Review Prompt (read-only)"
 
-msgid "Visual style editing isn't available for fixed-layout pages yet. You can still edit text inline, swap or crop images, and prune elements."
-msgstr "Visual style editing isn't available for fixed-layout pages yet. You can still edit text inline, swap or crop images, and prune elements."
+#~ msgid "Visual style editing isn't available for fixed-layout pages yet. You can still edit text inline, swap or crop images, and prune elements."
+#~ msgstr "Visual style editing isn't available for fixed-layout pages yet. You can still edit text inline, swap or crop images, and prune elements."
 
 msgid "Voice"
 msgstr "Voice"

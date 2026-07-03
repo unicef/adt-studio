@@ -2,7 +2,14 @@ import { describe, it, expect, afterEach } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
-import { sectionFixedLayoutPage, renderFixedLayoutPage, processFixedLayoutPages } from "../fixed-layout-rendering.js"
+import {
+  sectionFixedLayoutPage,
+  renderFixedLayoutPage,
+  processFixedLayoutPages,
+  applyUserStyles,
+  styleMapToClasses,
+  FIXED_LAYOUT_USER_STYLES_NODE,
+} from "../fixed-layout-rendering.js"
 import type { ContentNodeData, DrawItem, NodePlacement, PageSectioningSection, PositionedTextOutput } from "@adt/types"
 import type { ExtractedImage } from "@adt/pdf"
 import { createBookStorage } from "@adt/storage"
@@ -312,6 +319,36 @@ describe("sectionFixedLayoutPage", () => {
   })
 })
 
+describe("styleMapToClasses", () => {
+  it("maps common typography properties to Tailwind utility classes", () => {
+    expect(styleMapToClasses({ "font-size": "12px" })).toEqual(["text-[12px]"])
+    expect(styleMapToClasses({ color: "#231f20" })).toEqual(["text-[#231f20]"])
+    expect(styleMapToClasses({ "font-weight": "bold" })).toEqual(["font-bold"])
+    expect(styleMapToClasses({ "font-weight": "700" })).toEqual(["font-bold"])
+    expect(styleMapToClasses({ "font-style": "italic" })).toEqual(["italic"])
+    expect(styleMapToClasses({ "font-style": "normal" })).toEqual(["not-italic"])
+    expect(styleMapToClasses({ "letter-spacing": "0.5px" })).toEqual(["tracking-[0.5px]"])
+  })
+
+  it("encodes font-family via fontFamilyClass with the bundled fallback", () => {
+    expect(styleMapToClasses({ "font-family": "'Mouse Memoirs',serif" })).toEqual([
+      "font-['Mouse_Memoirs',Merriweather,serif]",
+    ])
+  })
+
+  it("falls back to an arbitrary-property class for unmapped properties", () => {
+    expect(styleMapToClasses({ "text-transform": "uppercase" })).toEqual([
+      "[text-transform:uppercase]",
+    ])
+  })
+
+  it("drops empty values and preserves declaration order", () => {
+    expect(
+      styleMapToClasses({ "font-family": "Palatino,serif", "font-size": "48px", color: "" }),
+    ).toEqual(["font-[Palatino,Merriweather,serif]", "text-[48px]"])
+  })
+})
+
 describe("renderFixedLayoutPage", () => {
   const viewport = { width: 400, height: 300 }
 
@@ -363,8 +400,10 @@ describe("renderFixedLayoutPage", () => {
   it("includes viewport dimensions in the HTML", () => {
     const html = renderFixedLayoutPage(makeSection(), "/images").sections[0].html
 
-    expect(html).toContain("width:400px")
-    expect(html).toContain("height:300px")
+    expect(html).toContain('data-fl-width="400"')
+    expect(html).toContain('data-fl-height="300"')
+    expect(html).toContain("w-[400px]")
+    expect(html).toContain("h-[300px]")
   })
 
   it("omits data-fl-reference-width when no reference width is given", () => {
@@ -373,15 +412,13 @@ describe("renderFixedLayoutPage", () => {
     expect(html).not.toContain("data-fl-reference-width")
   })
 
-  it("stamps data-fl-reference-width on #content when given, before the style", () => {
+  it("stamps data-fl-reference-width on #content when given", () => {
     // A single page (width 400) in a book whose widest spread is 800. Viewers
     // scale by availableWidth/800 so this page renders centered at half-width.
     const html = renderFixedLayoutPage(makeSection(), "/images", 800).sections[0].html
 
     expect(html).toContain('data-fl-reference-width="800"')
-    // Attribute precedes `style` so package-web's per-page viewport regex
-    // still reads this page's own dimensions, not the reference width.
-    expect(html).toMatch(/data-fl-reference-width="800"\s+style="[^"]*width:400px;height:300px/)
+    expect(html).toMatch(/data-fl-reference-width="800"\s+data-fl-width="400"\s+data-fl-height="300"/)
   })
 
   it("includes illustration image reference", () => {
@@ -396,9 +433,6 @@ describe("renderFixedLayoutPage", () => {
 
     expect(html).toContain('data-id="pg001_p000"')
     expect(html).toContain('data-id="pg001_p001"')
-    // Renderer emits a structural shell — one styled <span style> per
-    // segment, no per-word wrapping. Word ids are added downstream by
-    // wrapWordSpans (packaging) and wrapTextInSpans (live viewer).
     expect(html).toContain(">I am a little girl.</span>")
     expect(html).toContain(">My name is Sue.</span>")
   })
@@ -433,9 +467,9 @@ describe("renderFixedLayoutPage", () => {
 
     // Renders at the block's left (113), not the line's left (142), so the
     // line re-centres against the block's full width when translated.
-    expect(html).toContain("left:113px")
-    expect(html).toContain("width:165px")
-    expect(html).toContain("text-align:center")
+    expect(html).toContain("left-[113px]")
+    expect(html).toContain("w-[165px]")
+    expect(html).toContain("text-center")
   })
 
   it("pins height + data-adt-fit when blockBounds is set (overflow stays visible)", () => {
@@ -466,13 +500,13 @@ describe("renderFixedLayoutPage", () => {
     const html = renderFixedLayoutPage(section, "/images").sections[0].html
 
     expect(html).toContain('data-adt-fit="1"')
-    expect(html).toContain("height:16px")
+    expect(html).toContain("h-[16px]")
     // overflow stays visible on the text leaf's <p> — content that
     // doesn't auto-fit overflows visibly rather than getting silently
     // clipped. The page-level #content wrapper keeps overflow:hidden.
-    const pStyleMatch = html.match(/<p[^>]*data-id="pg001_p000"[^>]*style="([^"]*)"/)
-    expect(pStyleMatch).not.toBeNull()
-    expect(pStyleMatch![1]).not.toContain("overflow:")
+    const pTagMatch = html.match(/<p[^>]*data-id="pg001_p000"[^>]*>/)
+    expect(pTagMatch).not.toBeNull()
+    expect(pTagMatch![0]).not.toContain("overflow")
     // Script reference is injected once when at least one fit-target
     // exists. Loaded by URL from the shared assets/adt/auto-fit.js so
     // studio + EPUB + web export run identical code.
@@ -537,16 +571,11 @@ describe("renderFixedLayoutPage", () => {
 
     const html = renderFixedLayoutPage(section, "/images").sections[0].html
 
-    // Merriweather inserted before the generic `serif` terminator.
-    expect(html).toContain("font-family:MuseoSans,Merriweather,serif")
-    expect(html).toContain("font-family:Chokle,Merriweather,serif")
+    expect(html).toContain("font-[MuseoSans,Merriweather,serif]")
+    expect(html).toContain("font-[Chokle,Merriweather,serif]")
   })
 
-  it("keeps a quoted Google family safe inside the inline style attribute", () => {
-    // Regression: a double-quoted family ("Mouse Memoirs") inside style="..."
-    // terminates the attribute early and drops the whole style (font-size,
-    // color too). The extractor emits single-quoted families so the span
-    // survives intact.
+  it("encodes a quoted Google family into the font class with spaces underscored", () => {
     const drawItems: DrawItem[] = [
       {
         kind: "paragraph",
@@ -578,13 +607,10 @@ describe("renderFixedLayoutPage", () => {
 
     const html = renderFixedLayoutPage(section, "/images").sections[0].html
 
-    // Single-quoted family with Merriweather fallback, and the size/color
-    // survive in the same attribute (i.e. it wasn't truncated).
-    expect(html).toContain("font-family:'Mouse Memoirs',Merriweather,serif")
-    expect(html).toContain("font-size:30.24px")
-    expect(html).toContain("color:#a9414b")
-    // The broken form (double quote ending the attribute) must NOT appear.
-    expect(html).not.toContain('style="font-family:"')
+    expect(html).toContain("font-['Mouse_Memoirs',Merriweather,serif]")
+    expect(html).toContain("text-[30.24px]")
+    expect(html).toContain("text-[#a9414b]")
+    expect(html).not.toMatch(/<span[^>]*style=/)
   })
 
   it("leaves font-family untouched when Merriweather is already present", () => {
@@ -613,7 +639,7 @@ describe("renderFixedLayoutPage", () => {
     const html = renderFixedLayoutPage(section, "/images").sections[0].html
 
     // No double-Merriweather.
-    expect(html).toContain("font-family:Merriweather,serif")
+    expect(html).toContain("font-[Merriweather,serif]")
     expect(html).not.toContain("Merriweather,Merriweather")
   })
 
@@ -651,10 +677,10 @@ describe("renderFixedLayoutPage", () => {
     const html = renderFixedLayoutPage(section, "/images").sections[0].html
 
     // Effective line-height should be 24 (max segment fontSize), not 12.
-    const pStyleMatch = html.match(/<p[^>]*data-id="pg001_p000"[^>]*style="([^"]*)"/)
-    expect(pStyleMatch).not.toBeNull()
-    expect(pStyleMatch![1]).toContain("line-height:24px")
-    expect(pStyleMatch![1]).not.toContain("line-height:12px")
+    const pTagMatch = html.match(/<p[^>]*data-id="pg001_p000"[^>]*class="([^"]*)"/)
+    expect(pTagMatch).not.toBeNull()
+    expect(pTagMatch![1]).toContain("leading-[24px]")
+    expect(pTagMatch![1]).not.toContain("leading-[12px]")
   })
 
   it("keeps mupdf-reported line-height for uniform segment sizes", () => {
@@ -682,9 +708,9 @@ describe("renderFixedLayoutPage", () => {
 
     const html = renderFixedLayoutPage(section, "/images").sections[0].html
 
-    const pStyleMatch = html.match(/<p[^>]*data-id="pg001_p000"[^>]*style="([^"]*)"/)
-    expect(pStyleMatch).not.toBeNull()
-    expect(pStyleMatch![1]).toContain("line-height:24px")
+    const pTagMatch = html.match(/<p[^>]*data-id="pg001_p000"[^>]*class="([^"]*)"/)
+    expect(pTagMatch).not.toBeNull()
+    expect(pTagMatch![1]).toContain("leading-[24px]")
   })
 
   it("falls back to legacy single-line rendering when blockBounds is absent", () => {
@@ -710,16 +736,14 @@ describe("renderFixedLayoutPage", () => {
 
     const html = renderFixedLayoutPage(section, "/images").sections[0].html
 
-    expect(html).toContain("left:72px")
-    expect(html).not.toContain("text-align:")
-    // No width / box-height / overflow rule when blockBounds isn't set —
-    // legacy leaves flow at their original line position. (`line-height`
-    // is fine; `height:` proper isn't.)
-    const pStyleMatch = html.match(/<p[^>]*data-id="pg001_p000"[^>]*style="([^"]*)"/)
-    expect(pStyleMatch).not.toBeNull()
-    expect(pStyleMatch![1]).not.toContain("width:")
-    expect(pStyleMatch![1]).not.toMatch(/(^|;)height:/)
-    expect(pStyleMatch![1]).not.toContain("overflow:")
+    expect(html).toContain("left-[72px]")
+    expect(html).not.toContain("text-center")
+    expect(html).not.toContain("text-right")
+    const pTagMatch = html.match(/<p[^>]*data-id="pg001_p000"[^>]*class="([^"]*)"/)
+    expect(pTagMatch).not.toBeNull()
+    expect(pTagMatch![1]).not.toContain("w-[")
+    expect(pTagMatch![1]).not.toContain("h-[")
+    expect(pTagMatch![1]).not.toContain("overflow")
   })
 
   it("preserves font styling from mupdf via leaf html", () => {
@@ -727,17 +751,17 @@ describe("renderFixedLayoutPage", () => {
 
     // Merriweather is auto-inserted before the generic serif terminator
     // (it's the bundled font; without this insertion spans fall back to
-    // system serif).
-    expect(html).toContain("font-family:Palatino,Merriweather,serif")
-    expect(html).toContain("color:#000000")
+    expect(html).toContain("font-[Palatino,Merriweather,serif]")
+    expect(html).toContain("text-[#000000]")
   })
 
-  it("places positions from section JSON as inline styles in viewport coords", () => {
+  it("places positions from section JSON as Tailwind classes in viewport coords", () => {
     const html = renderFixedLayoutPage(makeSection(), "/images").sections[0].html
 
-    expect(html).toContain("top:100px")
-    expect(html).toContain("left:72px")
-    expect(html).toContain("top:158px")
+    expect(html).toContain("top-[100px]")
+    expect(html).toContain("left-[72px]")
+    expect(html).toContain("top-[158px]")
+    expect(html).not.toMatch(/<p[^>]*style="[^"]*top:/)
   })
 
   it("emits data-segments on <p> so the viewer can rebuild styling on text swap", () => {
@@ -768,9 +792,8 @@ describe("renderFixedLayoutPage", () => {
     // (live viewer), each consuming the data-segments JSON.
     const html = renderFixedLayoutPage(makeSection(), "/images").sections[0].html
     expect(html).not.toMatch(/<span id="pg001_p000_w\d+"/)
-    // Single styled <span> for the single-run paragraph.
-    expect(html).toMatch(/<span style="[^"]*">I am a little girl\.<\/span>/)
-    expect(html).toMatch(/<span style="[^"]*">My name is Sue\.<\/span>/)
+    expect(html).toMatch(/<span class="[^"]*">I am a little girl\.<\/span>/)
+    expect(html).toMatch(/<span class="[^"]*">My name is Sue\.<\/span>/)
   })
 
   it("preserves per-segment styling across multiple runs", () => {
@@ -805,11 +828,9 @@ describe("renderFixedLayoutPage", () => {
 
     const html = renderFixedLayoutPage(section, "/images").sections[0].html
 
-    // One <span style> per source segment; mid-paragraph coloured run
-    // survives intact for the downstream word-wrap to see.
-    expect(html).toMatch(/<span style="[^"]*color:#000000[^"]*">There are long, <\/span>/)
-    expect(html).toMatch(/<span style="[^"]*color:#fff200[^"]*">yellow <\/span>/)
-    expect(html).toMatch(/<span style="[^"]*color:#000000[^"]*">bookshelves\.<\/span>/)
+    expect(html).toMatch(/<span class="[^"]*text-\[#000000\][^"]*">There are long, <\/span>/)
+    expect(html).toMatch(/<span class="[^"]*text-\[#fff200\][^"]*">yellow <\/span>/)
+    expect(html).toMatch(/<span class="[^"]*text-\[#000000\][^"]*">bookshelves\.<\/span>/)
   })
 
   it("renders visible text (no transparent fallback)", () => {
@@ -840,9 +861,8 @@ describe("renderFixedLayoutPage", () => {
     // origin so userSpaceOnUse coords are image-local.
     expect(html).toContain('d="M150 100L250 100L250 200L150 200Z"')
     expect(html).toContain('transform="translate(-100,-50)"')
-    // The <img> picks up the clip-path style via the clip-{imageId} ref.
     expect(html).toMatch(
-      /<img[^>]+style="[^"]*clip-path:url\(#clip-pg001_im001\)/,
+      /<img[^>]+class="[^"]*\[clip-path:url\(#clip-pg001_im001\)\][^"]*"/,
     )
   })
 
@@ -869,17 +889,183 @@ describe("renderFixedLayoutPage", () => {
 
     const html = renderFixedLayoutPage(section, "/images").sections[0].html
     expect(html).toMatch(
-      /<img[^>]+style="[^"]*mix-blend-mode:multiply[^"]*"/,
+      /<img[^>]+class="[^"]*mix-blend-multiply[^"]*"/,
     )
-    expect(html).toMatch(/<img[^>]+style="[^"]*opacity:0\.8/)
+    expect(html).toMatch(/<img[^>]+class="[^"]*opacity-\[0\.8\]/)
   })
 
   it("omits blend-mode and opacity styles when not provided", () => {
     const html = renderFixedLayoutPage(makeSection(), "/images").sections[0].html
-    expect(html).not.toContain("mix-blend-mode")
-    expect(html).not.toContain("opacity:")
+    expect(html).not.toContain("mix-blend")
+    expect(html).not.toContain("opacity")
   })
 
+  it("merges user classes over generated ones, suppressing same-property classes", () => {
+    const section = makeSection()
+    const p = section.placement!["pg001_p000"]
+    p.classes = ["top-[999px]", "rotate-3"]
+
+    const html = renderFixedLayoutPage(section, "/images").sections[0].html
+    const pTagMatch = html.match(/<p[^>]*data-id="pg001_p000"[^>]*class="([^"]*)"/)
+    expect(pTagMatch).not.toBeNull()
+    const classes = pTagMatch![1].split(" ")
+    expect(classes).toContain("top-[999px]")
+    expect(classes).toContain("rotate-3")
+    expect(classes).not.toContain("top-[100px]")
+    expect(classes).toContain("left-[72px]")
+    expect(classes).toContain("absolute")
+    expect(html).toContain("top-[158px]")
+  })
+
+  it("strips user-overridden inheritable props from segment spans and data-segments", () => {
+    const section = makeSection()
+    const p = section.placement!["pg001_p000"]
+    p.classes = ["text-2xl", "text-red-500"]
+
+    const html = renderFixedLayoutPage(section, "/images").sections[0].html
+    const pTag = html.match(/<p[^>]*data-id="pg001_p000".*?<\/p>/)![0]
+    expect(pTag).not.toContain("text-[48px]")
+    expect(pTag).not.toContain("#000000")
+    expect(pTag).not.toContain("font-size")
+    expect(pTag).toContain("font-[Palatino,Merriweather,serif]")
+    expect(pTag).toContain("font-family")
+    const otherTag = html.match(/<p[^>]*data-id="pg001_p001".*?<\/p>/)![0]
+    expect(otherTag).toContain("text-[48px]")
+    expect(otherTag).toContain("text-[#000000]")
+  })
+
+  it("drops data-adt-fit when the user pinned a font-size", () => {
+    const blockBounds = { x: 184, y: 22, width: 40, height: 16 }
+    const drawItems: DrawItem[] = [
+      {
+        kind: "paragraph",
+        textId: "pg001_p000",
+        top: 22,
+        left: 184,
+        lineHeight: 12,
+        segments: [{ text: "C O P E", style: { "font-size": "12px" } }],
+        text: "C O P E",
+        blockId: "b000",
+        blockBounds,
+        mergedParagraphId: "b000_p01",
+      },
+    ]
+    const section = sectionFixedLayoutPage({
+      pageId: "pg001",
+      pageNumber: 1,
+      viewport,
+      drawItems,
+      availableImageIds: new Set(),
+    }).sections[0]
+    section.placement!["pg001_p000"].classes = ["text-[40px]"]
+
+    const html = renderFixedLayoutPage(section, "/images").sections[0].html
+    expect(html).not.toContain("data-adt-fit")
+    expect(html).toContain("text-[40px]")
+  })
+
+  it("renders legacy styleOverrides as classes and strips the prop from segments", () => {
+    const section = makeSection()
+    const p = section.placement!["pg001_p000"]
+    p.styleOverrides = { "font-family": "'Mouse Memoirs',serif" }
+
+    const html = renderFixedLayoutPage(section, "/images").sections[0].html
+    const pTag = html.match(/<p[^>]*data-id="pg001_p000".*?<\/p>/)![0]
+    expect(pTag).toContain("font-['Mouse_Memoirs',Merriweather,serif]")
+    expect(pTag).not.toContain("style=")
+    expect(pTag).not.toContain("Palatino")
+    expect(pTag).toContain("text-[48px]")
+  })
+
+  it("applies paragraph font-family overrides directly to segment spans", () => {
+    const section = makeSection()
+    const p = section.placement!["pg001_p000"]
+    p.classes = ["font-[Lexend,Merriweather,sans-serif]"]
+
+    const html = renderFixedLayoutPage(section, "/images").sections[0].html
+    const pTag = html.match(/<p[^>]*data-id="pg001_p000".*?<\/p>/)![0]
+    expect(pTag).toMatch(/<span[^>]*class="[^"]*font-\[Lexend,Merriweather,sans-serif\]/)
+    expect(pTag).not.toContain("Palatino")
+    expect(pTag).not.toContain("font-family")
+  })
+})
+
+describe("applyUserStyles", () => {
+  it("stamps classes onto matching placements and clears stale ones", () => {
+    const sectioning = sectionFixedLayoutPage({
+      pageId: "pg001",
+      pageNumber: 1,
+      viewport: { width: 400, height: 300 },
+      drawItems: [
+        {
+          kind: "paragraph",
+          textId: "pg001_p000",
+          top: 10,
+          left: 10,
+          lineHeight: 12,
+          segments: [{ text: "a" }],
+          text: "a",
+        },
+        {
+          kind: "paragraph",
+          textId: "pg001_p001",
+          top: 30,
+          left: 10,
+          lineHeight: 12,
+          segments: [{ text: "b" }],
+          text: "b",
+        },
+      ],
+      availableImageIds: new Set(),
+    })
+    const placement = sectioning.sections[0].placement!
+    placement["pg001_p001"].classes = ["top-[500px]"]
+
+    applyUserStyles(sectioning, {
+      nodes: {
+        "pg001_p000": { classes: ["text-2xl"] },
+        "pg001_gone": { classes: ["top-[1px]"] },
+      },
+    })
+
+    expect(placement["pg001_p000"].classes).toEqual(["text-2xl"])
+    expect(placement["pg001_p001"].classes).toBeUndefined()
+    expect(placement["pg001_gone"]).toBeUndefined()
+  })
+
+  it("converts legacy styleOverrides to classes", () => {
+    const sectioning = sectionFixedLayoutPage({
+      pageId: "pg001",
+      pageNumber: 1,
+      viewport: { width: 400, height: 300 },
+      drawItems: [
+        {
+          kind: "paragraph",
+          textId: "pg001_p000",
+          top: 10,
+          left: 10,
+          lineHeight: 12,
+          segments: [{ text: "a" }],
+          text: "a",
+        },
+      ],
+      availableImageIds: new Set(),
+    })
+    const placement = sectioning.sections[0].placement!
+    const userStyles = {
+      nodes: {
+        "pg001_p000": { styleOverrides: { "font-family": "'Mouse Memoirs',serif" } },
+      },
+    }
+
+    applyUserStyles(sectioning, userStyles)
+
+    expect(placement["pg001_p000"].classes).toEqual([
+      "font-['Mouse_Memoirs',Merriweather,serif]",
+    ])
+    expect(placement["pg001_p000"].styleOverrides).toBeUndefined()
+    expect(userStyles.nodes["pg001_p000"].styleOverrides).toBeUndefined()
+  })
 })
 
 describe("processFixedLayoutPages", () => {
@@ -963,8 +1149,54 @@ describe("processFixedLayoutPages", () => {
       expect(html).toContain('data-id="pg001_im001"')
       expect(html).toContain('data-id="pg001_im002"')
       // Both images positioned at their bounds
-      expect(html).toMatch(/data-id="pg001_im002"[^>]*top:100px/)
-      expect(html).toMatch(/data-id="pg001_im002"[^>]*left:200px/)
+      expect(html).toMatch(/data-id="pg001_im002"[^>]*top-\[100px\]/)
+      expect(html).toMatch(/data-id="pg001_im002"[^>]*left-\[200px\]/)
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("re-stamps user styles from fixed-layout-user-styles onto rebuilt pages", () => {
+    const booksRoot = fs.mkdtempSync(path.join(os.tmpdir(), "adt-fixlayout-test-"))
+    tmpDirs.push(booksRoot)
+
+    const storage = createBookStorage("test-book", booksRoot)
+    try {
+      const positionedText: PositionedTextOutput = {
+        drawItems: [
+          { kind: "image", imageId: "pg001_im001", bounds: { x: 50, y: 50, width: 300, height: 200 } },
+        ],
+        pageWidth: 400,
+        pageHeight: 300,
+        renderWidth: 800,
+        renderHeight: 600,
+      }
+      storage.putExtractedPage({
+        pageId: "pg001",
+        pageNumber: 1,
+        text: "",
+        pageImage: makeImage("pg001_page", "pg001", 800, 600),
+        images: [makeImage("pg001_im001", "pg001", 600, 400, { x: 50, y: 50, width: 300, height: 200 })],
+        positionedText,
+      })
+      storage.putNodeData("positioned-text", "pg001", positionedText)
+      storage.putNodeData("image-filtering", "pg001", {
+        images: [
+          { imageId: "pg001_page", isPruned: true, reason: "full-page render" },
+          { imageId: "pg001_im001", isPruned: false },
+        ],
+      })
+      storage.putNodeData(FIXED_LAYOUT_USER_STYLES_NODE, "pg001", {
+        nodes: { "pg001_im001": { classes: ["top-[7px]"] } },
+      })
+
+      processFixedLayoutPages(storage, "/images")
+
+      const html = (storage.getLatestNodeData("web-rendering", "pg001")!.data as {
+        sections: Array<{ html: string }>
+      }).sections[0].html
+      expect(html).toMatch(/data-id="pg001_im001"[^>]*top-\[7px\]/)
+      expect(html).not.toContain("top-[50px]")
     } finally {
       storage.close()
     }
@@ -1144,9 +1376,10 @@ describe("processFixedLayoutPages", () => {
       // Both pages reference the widest page (800), not their own width.
       expect(coverHtml).toContain('data-fl-reference-width="800"')
       expect(spreadHtml).toContain('data-fl-reference-width="800"')
-      // The cover still carries its own viewport (400) in the style rule.
-      expect(coverHtml).toContain("width:400px;height:600px")
-      expect(spreadHtml).toContain("width:800px;height:600px")
+      expect(coverHtml).toContain('data-fl-width="400"')
+      expect(coverHtml).toContain('data-fl-height="600"')
+      expect(spreadHtml).toContain('data-fl-width="800"')
+      expect(spreadHtml).toContain('data-fl-height="600"')
     } finally {
       storage.close()
     }

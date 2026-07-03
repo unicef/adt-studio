@@ -898,6 +898,22 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  updateFixedLayoutStyles: (
+    label: string,
+    pageId: string,
+    changes: Array<{
+      nodeId: string
+      classes?: string[]
+    }>
+  ) =>
+    request<{ version: number; applied: number }>(
+      `/books/${label}/pages/${pageId}/fixed-layout-styles`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ changes }),
+      }
+    ),
+
   updateImageCaptioning: (label: string, pageId: string, data: unknown) =>
     request<{ version: number }>(`/books/${label}/pages/${pageId}/image-captioning`, {
       method: "PUT",

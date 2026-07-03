@@ -15,7 +15,10 @@ import {
   videoFilesAtom,
 } from "@/features/language/state/language.atoms"
 import { applyPlainTextWithLineBreaks } from "./text-formatting"
-import { rebuildSegmentedInnerHtml } from "@/shared/lib/fl-segments"
+import {
+  fontFamilyClassesFromClassList,
+  rebuildSegmentedInnerHtml,
+} from "@/shared/lib/fl-segments"
 
 const EASY_READ_FORMATTED_ATTR = "data-easy-read-formatted"
 const EASY_READ_PREVIOUS_STYLE_ATTRS = {
@@ -218,7 +221,11 @@ export function applyTranslationsToDOM(
       // assignment would flatten them.
       const segmentsAttr = htmlElement.getAttribute("data-segments")
       const html = segmentsAttr
-        ? rebuildSegmentedInnerHtml(segmentsAttr, renderedHtml)
+        ? rebuildSegmentedInnerHtml(
+            segmentsAttr,
+            renderedHtml,
+            fontFamilyClassesFromClassList(htmlElement.classList),
+          )
         : renderedHtml
       if (htmlElement.hasAttribute("data-tts-original-html")) {
         htmlElement.setAttribute("data-tts-original-html", html)

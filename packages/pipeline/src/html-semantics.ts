@@ -272,5 +272,5 @@ export function normalizeHtmlSectionSemantics(html: string): string {
     normalizeSectionSemantics(section)
   }
 
-  return DomUtils.getOuterHTML(doc)
+  return DomUtils.getOuterHTML(doc, { encodeEntities: "utf8" })
 }

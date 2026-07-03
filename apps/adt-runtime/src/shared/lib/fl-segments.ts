@@ -42,6 +42,12 @@ export function styleToInline(style: Record<string, string> | undefined): string
     .join(";")
 }
 
+export function fontFamilyClassesFromClassList(classes: Iterable<string>): string[] {
+  return Array.from(classes).filter((cls) =>
+    /^font-\[/.test(cls) || /^font-(sans|serif|mono)$/.test(cls),
+  )
+}
+
 function escapeHtml(s: string): string {
   return s
     .replace(/&/g, "&amp;")
@@ -68,6 +74,7 @@ function escapeHtml(s: string): string {
 export function rebuildSegmentedInnerHtml(
   segmentsAttr: string | null,
   translatedHtml: string,
+  spanClasses: string[] = [],
 ): string {
   const segments = parseSegments(segmentsAttr)
   if (!segments || segments.length === 0) return translatedHtml
@@ -91,7 +98,10 @@ export function rebuildSegmentedInnerHtml(
         )
         .join("")
       const styleStr = styleToInline(seg.style)
-      return styleStr ? `<span style="${styleStr}">${html}</span>` : html
+      if (!styleStr && spanClasses.length === 0) return html
+      const classAttr = spanClasses.length > 0 ? ` class="${escapeHtml(spanClasses.join(" "))}"` : ""
+      const styleAttr = styleStr ? ` style="${styleStr}"` : ""
+      return `<span${classAttr}${styleAttr}>${html}</span>`
     })
     .join("")
 }

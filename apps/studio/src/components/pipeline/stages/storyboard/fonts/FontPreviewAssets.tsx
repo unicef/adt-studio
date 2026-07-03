@@ -39,7 +39,7 @@ export function GooglePreviewLink({
   fonts: BookFontWithStatus[]
 }) {
   const families = new Set<string>()
-  if (current && !current.fixedLayout && current.font.google) families.add(current.font.family)
+  if (current && current.font.google) families.add(current.font.family)
   for (const f of fonts) {
     if (f.source === "google") families.add(f.family)
   }

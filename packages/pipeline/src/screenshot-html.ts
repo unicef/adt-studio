@@ -137,8 +137,13 @@ function buildInlineFontCss(webAssetsDir: string): string {
 }`)
   }
 
-  rules.push(`body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select {
+  rules.push(`body {
   font-family: "Merriweather", serif;
+}
+@layer base {
+  body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select {
+    font-family: "Merriweather", serif;
+  }
 }`)
 
   return rules.join("\n")

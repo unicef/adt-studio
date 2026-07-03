@@ -283,7 +283,18 @@ export {
   type BuildBrowserAccessibilityRecheckPlanOptions,
 } from "./browser-accessibility-assessment.js"
 export { mergeAccessibilityResults } from "./accessibility-assessment-shared.js"
-export { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rendering.js"
+export {
+  processFixedLayoutPages,
+  isFixedLayoutBook,
+  generatedTextLeafClasses,
+  generatedImageLeafClasses,
+  styleMapToClasses,
+  classPropertyGroup,
+  applyUserStyles,
+  renderFixedLayoutPage,
+  getFixedLayoutReferenceWidth,
+  FIXED_LAYOUT_USER_STYLES_NODE,
+} from "./fixed-layout-rendering.js"
 export {
   getRenderSectioning,
   getRenderSectioningRow,

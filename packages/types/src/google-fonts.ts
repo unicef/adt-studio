@@ -196,15 +196,37 @@ export function googleFontsCss2Url(families: string[]): string | null {
  * "Internet". HTML-escaped JSON in `data-segments` (`font-family&quot;:`) is
  * skipped because the `:` must follow `font-family` directly.
  */
+export function fontFamilyClass(chain: string): string {
+  return `font-[${chain.replace(/_/g, "\\_").replace(/\s+/g, "_")}]`
+}
+
+export function fontFamilyFromClass(cls: string): string | null {
+  const m = cls.match(/^font-\[(.+)\]$/)
+  if (!m) return null
+  return m[1].replace(/\\_|_/g, (t) => (t.length === 2 ? "_" : " "))
+}
+
+export function fontFamilyChainsIn(text: string): string[] {
+  if (!text) return []
+  const chains: string[] = []
+  for (const m of text.matchAll(/font-family\s*:\s*([^;"}<]+)/gi)) {
+    chains.push(m[1])
+  }
+  for (const m of text.matchAll(/font-\[((?:[^\]\\]|\\.)+)\]/g)) {
+    const value = m[1]
+      .replace(/&apos;|&#0*39;|&#x0*27;/gi, "'")
+      .replace(/&quot;|&#0*34;|&#x0*22;/gi, '"')
+    const chain = fontFamilyFromClass(`font-[${value}]`)
+    if (chain) chains.push(chain)
+  }
+  return chains
+}
+
 export function googleFontsReferencedIn(text: string): string[] {
   if (!text) return []
   const found = new Set<string>()
-  // Scan font-family declaration values only (inline styles + CSS rules), then
-  // exact-match each comma-separated family token. Exact (not substring)
-  // matching avoids body-text false positives AND prefix collisions — e.g. a
-  // page using "Noto Sans Mono" must not also pull "Noto Sans".
-  for (const m of text.matchAll(/font-family\s*:\s*([^;"}<]+)/gi)) {
-    for (const tokenRaw of m[1].split(",")) {
+  for (const chain of fontFamilyChainsIn(text)) {
+    for (const tokenRaw of chain.split(",")) {
       const token = tokenRaw.trim().replace(/^['"]+|['"]+$/g, "")
       const entry = GOOGLE_FONTS.find((f) => f.family === token)
       if (entry) found.add(entry.family)

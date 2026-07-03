@@ -129,11 +129,19 @@ export function FontSettings({ bookLabel }: { bookLabel: string }) {
           <DialogHeader>
             <DialogTitle>{t`Reset fonts to default?`}</DialogTitle>
             <DialogDescription>
-              <Trans>
-                This restores the default fallback font across every page and clears per-element
-                font overrides and the book-wide font selection. Attached fonts stay in the list.
-                Rollback is available per page from version history.
-              </Trans>
+              {fixedLayout ? (
+                <Trans>
+                  This restores the original PDF fonts across every page and clears per-element
+                  font overrides and the book-wide font selection. Attached fonts stay in the
+                  list. Rollback is available per page from version history.
+                </Trans>
+              ) : (
+                <Trans>
+                  This restores the default fallback font across every page and clears per-element
+                  font overrides and the book-wide font selection. Attached fonts stay in the list.
+                  Rollback is available per page from version history.
+                </Trans>
+              )}
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -162,7 +170,7 @@ export function FontSettings({ bookLabel }: { bookLabel: string }) {
             <Button
               variant="outline"
               size="sm"
-              disabled={fixedLayout || applyFont.isPending}
+              disabled={applyFont.isPending}
               onClick={() => {
                 clearMessages()
                 setResetOpen(true)
@@ -206,6 +214,7 @@ export function FontSettings({ bookLabel }: { bookLabel: string }) {
           fonts={fonts}
           assignment={assignment}
           isLoading={isLoading}
+          fixedLayout={fixedLayout}
           onError={showError}
           onApplied={showApplied}
         />

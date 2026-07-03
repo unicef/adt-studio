@@ -23,7 +23,12 @@ import {
   createApproximateWordTimestamps,
   type WordTimestamp,
 } from "@/features/audio/lib/tokenizer"
-import { parseSegments, styleToInline, type Segment } from "@/shared/lib/fl-segments"
+import {
+  fontFamilyClassesFromClassList,
+  parseSegments,
+  styleToInline,
+  type Segment,
+} from "@/shared/lib/fl-segments"
 
 const ORIGINAL_HTML_ATTR = "data-tts-original-html"
 const WORD_HIGHLIGHT_CLASS = "bg-yellow-300"
@@ -41,6 +46,7 @@ function wrapWordsFromSegments(element: HTMLElement, segments: Segment[]): boole
   if (!plan.some((s) => s.type === "word")) return false
 
   const doc = element.ownerDocument
+  const spanClasses = fontFamilyClassesFromClassList(element.classList)
   const segOffsets: number[] = []
   let cursor = 0
   for (const s of segments) {
@@ -62,6 +68,7 @@ function wrapWordsFromSegments(element: HTMLElement, segments: Segment[]): boole
       if (!slice.length) continue
       const span = doc.createElement("span")
       const styleStr = styleToInline(segments[i].style)
+      if (spanClasses.length > 0) span.className = spanClasses.join(" ")
       if (styleStr) span.setAttribute("style", styleStr)
       span.appendChild(doc.createTextNode(slice))
       out.push(span)

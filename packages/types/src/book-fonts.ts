@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { cssQuoteFamily } from "./google-fonts.js"
+import { cssQuoteFamily, fontFamilyChainsIn } from "./google-fonts.js"
 
 export const BookFontSource = z.enum(["upload", "google"])
 export type BookFontSource = z.infer<typeof BookFontSource>
@@ -100,12 +100,14 @@ export function bookFontFamilyChain(font: Pick<BookFont, "family" | "category">)
     : `${fam},'Merriweather',${generic}`
 }
 
+export { fontFamilyClass, fontFamilyFromClass } from "./google-fonts.js"
+
 export function bookFontsReferencedIn(text: string, registry: BookFontRegistry): BookFont[] {
   if (!text || registry.fonts.length === 0) return []
   const byFamily = new Map(registry.fonts.map((f) => [f.family, f]))
   const found = new Map<string, BookFont>()
-  for (const m of text.matchAll(/font-family\s*:\s*([^;"}<]+)/gi)) {
-    for (const tokenRaw of m[1].split(",")) {
+  for (const chain of fontFamilyChainsIn(text)) {
+    for (const tokenRaw of chain.split(",")) {
       const token = tokenRaw.trim().replace(/^['"]+|['"]+$/g, "")
       const font = byFamily.get(token)
       if (font) found.set(font.id, font)

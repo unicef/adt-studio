@@ -59,6 +59,10 @@ import { SectionEditPanel } from "./SectionEditPanel"
 import { StorySectionBanner } from "./StorySectionBanner"
 import { Puzzle } from "lucide-react"
 import { StyleEditorPanel } from "./style-editor"
+import {
+  INHERITABLE_STYLE_PROPS,
+  inheritablePropsForClasses,
+} from "./style-editor/fixed-layout-class-props"
 import { ViewportToggle } from "./style-editor/ViewportToggle"
 import {
   DEVICE_WIDTHS,
@@ -392,6 +396,9 @@ export function StoryboardSectionDetail({
   // (selection change, save, unmount) so per-keystroke changes don't
   // re-render BookPreviewFrame and rebuild its body.
   const pendingHtmlRef = useRef<{ html: string; sectionIndex: number } | null>(null)
+  const fixedLayoutStyleChangesRef = useRef(
+    new Map<string, { classes?: string[] }>()
+  )
   // Stamped by `discardAll` so late debounced commits get dropped.
   const lastDiscardAtRef = useRef(0)
   // Tracks whether iframe-DOM edits exist that haven't been flushed into
@@ -627,11 +634,6 @@ export function StoryboardSectionDetail({
   const section = sectioningData?.sections[sectionIndex]
   const renderingData = pendingRendering ?? page.rendering
   const renderedSection = getRenderedSectionByIndex(renderingData, sectionIndex)
-  // Fixed-layout pages style every element via inline CSS (the `<p>`'s own
-  // `style` + per-run `data-segments`), not Tailwind classes — so the class
-  // editor's changes are always overridden and never apply. Disable the
-  // class-based style controls for these pages until inline-style editing
-  // lands; image actions, prune/delete, and inline text edits still work.
   const isFixedLayout = renderedSection?.sectionType === "fixed-layout-page"
   const renderingDirty = pendingRendering != null || hasUnflushedEdits
 
@@ -653,6 +655,15 @@ export function StoryboardSectionDetail({
 
   // Tree nodes for the current section (empty if section missing — hooks still run)
   const nodes = section?.nodes ?? []
+
+  const flushFixedLayoutStyles = async () => {
+    if (!isFixedLayout || fixedLayoutStyleChangesRef.current.size === 0) return
+    const changes = Array.from(fixedLayoutStyleChangesRef.current.entries()).map(
+      ([nodeId, entry]) => ({ nodeId, ...entry })
+    )
+    fixedLayoutStyleChangesRef.current.clear()
+    await api.updateFixedLayoutStyles(bookLabel, pageId, changes)
+  }
 
   // Save / discard sectioning
   const saveSectioning = async () => {
@@ -684,6 +695,7 @@ export function StoryboardSectionDetail({
       if (renderingToSave) {
         await api.updateRendering(bookLabel, pageId, stripTransientIds(renderingToSave))
       }
+      await flushFixedLayoutStyles()
 
       setPendingSectioning(null)
       setPendingRendering(null)
@@ -716,6 +728,7 @@ export function StoryboardSectionDetail({
     setPendingRendering(null)
     setPendingCategories(new Set())
     pendingHtmlRef.current = null
+    fixedLayoutStyleChangesRef.current.clear()
     setHasUnflushedEdits(false)
     needsRerenderRef.current = false
     previewFrameRef.current?.resetContent()
@@ -732,6 +745,7 @@ export function StoryboardSectionDetail({
       const minDelay = new Promise((r) => setTimeout(r, 400))
 
       await api.updateRendering(bookLabel, pageId, stripTransientIds(renderingToSave))
+      await flushFixedLayoutStyles()
 
       // Back-propagate text changes into sectioning. `renderingToSave` already
       // includes the flushed inspector edit; the closure `pendingRendering`
@@ -1255,26 +1269,37 @@ export function StoryboardSectionDetail({
       if (!page.rendering) return
       // 250ms covers the inspector's 200ms debounce plus slack.
       if (Date.now() - lastDiscardAtRef.current < 250) return
-      const fullHtml = previewFrameRef.current?.setElementClasses(dataId, classes)
+      let fullHtml = previewFrameRef.current?.setElementClasses(dataId, classes)
       if (!fullHtml) return
       setSelectedElementClasses(classes)
+      if (isFixedLayout) {
+        const props = inheritablePropsForClasses(classes)
+        if (props.length > 0) {
+          fullHtml = previewFrameRef.current?.stripChildStyleProps(dataId, props) ?? fullHtml
+        }
+        const entry = fixedLayoutStyleChangesRef.current.get(dataId) ?? {}
+        entry.classes = classes
+        fixedLayoutStyleChangesRef.current.set(dataId, entry)
+      }
       previewFrameRef.current?.refreshCss(fullHtml)
       pendingHtmlRef.current = { html: fullHtml, sectionIndex }
       setHasUnflushedEdits(true)
       markPending("style")
     },
-    [page.rendering, sectionIndex, markPending]
+    [page.rendering, sectionIndex, markPending, isFixedLayout]
   )
 
-  // Inline-style edits (e.g. per-element font-family). Unlike class edits these
-  // need no Tailwind rebuild, so we skip refreshCss; we re-snapshot the
-  // element's computed/inline typography so the inspector reflects the change.
-  const handleStyleChange = useCallback(
-    (dataId: string, property: string, value: string) => {
+  const handleLegacyStyleClear = useCallback(
+    (dataId: string, property: string) => {
       if (!page.rendering) return
       if (Date.now() - lastDiscardAtRef.current < 250) return
-      const fullHtml = previewFrameRef.current?.setElementStyleProp(dataId, property, value)
+      let fullHtml = previewFrameRef.current?.clearElementStyleProp(dataId, property)
       if (!fullHtml) return
+      if (isFixedLayout) {
+        if (INHERITABLE_STYLE_PROPS.has(property)) {
+          fullHtml = previewFrameRef.current?.stripChildStyleProps(dataId, [property]) ?? fullHtml
+        }
+      }
       setSelectedComputedTypography(
         previewFrameRef.current?.getComputedTypographyStyles(dataId) ?? null
       )
@@ -1282,7 +1307,7 @@ export function StoryboardSectionDetail({
       setHasUnflushedEdits(true)
       markPending("style")
     },
-    [page.rendering, sectionIndex, markPending]
+    [page.rendering, sectionIndex, markPending, isFixedLayout]
   )
 
   const flushPendingHtml = useCallback((): RenderingData | null => {
@@ -2384,9 +2409,8 @@ export function StoryboardSectionDetail({
             : null
         }
         onClassesChange={handleClassesChange}
-        onStyleChange={handleStyleChange}
+        onLegacyStyleClear={handleLegacyStyleClear}
         deviceView={deviceView}
-        isFixedLayout={isFixedLayout}
         bookLabel={bookLabel}
       />
     </div>

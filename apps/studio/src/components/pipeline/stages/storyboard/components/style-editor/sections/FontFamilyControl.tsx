@@ -2,12 +2,14 @@ import { useMemo, useState } from "react"
 import { Link } from "@tanstack/react-router"
 import { Settings2, TriangleAlert } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { bookFontFamilyChain, googleFontsCss2Url } from "@adt/types"
+import { bookFontFamilyChain, googleFontsCss2Url, primaryFontFamily } from "@adt/types"
 import { getBookFontFileUrl, type BookFontWithStatus } from "@/api/client"
 import { toast } from "@/components/ui/sonner"
 import { useAddGoogleFont, useBookFonts } from "@/hooks/use-book-fonts"
+import { fontFamilyChainClassMap } from "../class-maps/typography"
 import { StyleLabel } from "../controls/StyleLabel"
 import { useElementContext } from "../element-context"
+import { useElementStyles } from "../use-element-styles"
 import { GoogleFontPickerDialog } from "../../../GoogleFontPickerDialog"
 import { POPULAR_GOOGLE_FONTS } from "../../../popular-google-fonts"
 import { FontFamilyCombobox } from "./FontFamilyCombobox"
@@ -62,26 +64,25 @@ function FontPreviewAssets({
   )
 }
 
-/** Per-element font picker for the Typography section. Applies the chosen font
- *  as an inline `font-family` on the element (an explicit declaration that wins
- *  over the book's body-font rule and needs no Tailwind rebuild). "Default"
- *  removes the inline font so the element falls back to the body font. Lists
- *  the book's attached fonts plus a curated Google set in a searchable popover,
- *  with a footer entry that opens the full Google catalog. */
 export function FontFamilyControl({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui()
-  const { dataId, computedStyles, onStyleChange } = useElementContext()
+  const { dataId, computedStyles, onLegacyStyleClear } = useElementContext()
+  const { value: chain, setValue: setChain } = useElementStyles(fontFamilyChainClassMap, "")
   const inlineFamily = computedStyles?.inlineFontFamily ?? null
   const inheritedFamily = computedStyles?.fontFamily ?? null
+  const explicitFamily = chain ? primaryFontFamily(chain) : inlineFamily
   const { data } = useBookFonts(bookLabel)
   const addGoogleFont = useAddGoogleFont(bookLabel)
   const [pickerOpen, setPickerOpen] = useState(false)
   const [previewsLoaded, setPreviewsLoaded] = useState(false)
 
   const fonts = data?.fonts ?? []
-  const selected = fonts.find((f) => f.family === inlineFamily) ?? null
+  const selected = fonts.find((f) => f.family === explicitFamily) ?? null
 
-  const setFontFamily = (chain: string) => onStyleChange?.(dataId, "font-family", chain)
+  const setFontFamily = (newChain: string) => {
+    if (inlineFamily) onLegacyStyleClear?.(dataId, "font-family")
+    setChain(newChain)
+  }
 
   const handleSelectFont = (id: string) => {
     if (!id) {
@@ -102,7 +103,7 @@ export function FontFamilyControl({ bookLabel }: { bookLabel: string }) {
   return (
     <>
       <FontPreviewAssets label={bookLabel} fonts={fonts} includePopular={previewsLoaded} />
-      <StyleLabel label={<Trans>Font</Trans>} inherited={!inlineFamily && !!inheritedFamily}>
+      <StyleLabel label={<Trans>Font</Trans>} inherited={!explicitFamily && !!inheritedFamily}>
         <FontFamilyCombobox
           value={selected?.id ?? ""}
           fonts={fonts}

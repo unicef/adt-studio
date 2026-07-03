@@ -135,13 +135,9 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
       const signLanguageEnabled =
         iframe.contentDocument.querySelector("#sl-quick-toggle-button, #sign-language-video") !== null
 
-      // Detect fixed-layout pages — `package-web.ts` emits inline
-      // `style="...width:Wpx;height:Hpx..."` on `<body>` for fixed-layout
-      // page HTML. Parse those values; null otherwise. The book-wide
-      // reference width lives on `#content`'s `data-fl-reference-width`.
       const body = iframe.contentDocument.body
-      const w = parsePxStyle(body?.style.width)
-      const h = parsePxStyle(body?.style.height)
+      const w = parsePositiveNumber(body?.dataset.flWidth) ?? parsePxStyle(body?.style.width)
+      const h = parsePositiveNumber(body?.dataset.flHeight) ?? parsePxStyle(body?.style.height)
       const contentEl = iframe.contentDocument.getElementById("content")
       const refRaw = contentEl?.getAttribute("data-fl-reference-width")
       const ref = refRaw ? parseFloat(refRaw) : NaN
@@ -426,6 +422,12 @@ function parsePxStyle(value: string | undefined): number | null {
   if (!value) return null
   const match = /^(\d+(?:\.\d+)?)px$/.exec(value.trim())
   return match ? parseFloat(match[1]) : null
+}
+
+function parsePositiveNumber(value: string | undefined | null): number | null {
+  if (!value) return null
+  const parsed = parseFloat(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
 }
 
 function deriveReviewPageId(sectionId: string | null, href: string | null): string | null {

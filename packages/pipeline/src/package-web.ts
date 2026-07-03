@@ -167,8 +167,12 @@ export interface ComputePackagingInputHashOptions {
   config: Record<string, unknown>
 }
 
+const PACKAGING_CODE_VERSION = 2
+
 export function computePackagingInputHash(options: ComputePackagingInputHashOptions): string {
   const hash = createHash("sha256")
+
+  hash.update(JSON.stringify({ packagingCodeVersion: PACKAGING_CODE_VERSION }))
 
   // 1. Storage entity versions and content (exclude outputs like accessibility-assessment)
   const fingerprint = options.storage.getNodeVersionFingerprint(["accessibility-assessment"])
@@ -384,16 +388,9 @@ export async function packageAdtWeb(
 
           const headingText = sectionMeta ? findHeadingText(sectionMeta) : null
 
-          // For fixed-layout pages, extract viewport from the rendered content div.
-          // Viewport matches content dimensions (2x render scale) exactly — no
-          // transform needed, Apple Books scales the viewport to fit the screen.
-          let fixedViewport: { width: number; height: number } | undefined
-          if (fixedLayout) {
-            const vp = rewrittenHtml.match(/width:(\d+)px;height:(\d+)px/)
-            if (vp) {
-              fixedViewport = { width: parseInt(vp[1], 10), height: parseInt(vp[2], 10) }
-            }
-          }
+          const fixedViewport = fixedLayout
+            ? extractFixedLayoutViewport(rewrittenHtml)
+            : undefined
 
           const pageHtml = renderPageHtml({
             content: rewrittenHtml,
@@ -1239,11 +1236,8 @@ ${fallbackHeadingHtml}${contentBlock}
     </style>`
     : ""
 
-  // Reflowable base-font override: re-declare the same elements fonts.css
-  // targets with the chosen family, placed last in <head> so it wins. Omitted
-  // for fixed-layout / serif-default books (keeps the global Merriweather).
   const bodyFontStyle = opts.bodyFontFamily
-    ? `\n    <style>\n      body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select { font-family: ${opts.bodyFontFamily}; }\n    </style>`
+    ? `\n    <style>\n      body { font-family: ${opts.bodyFontFamily}; }\n      @layer base { body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select { font-family: ${opts.bodyFontFamily}; } }\n    </style>`
     : ""
 
   // Load any Google Fonts the page actually uses — fixed-layout pages declare
@@ -1281,7 +1275,7 @@ ${fallbackHeadingHtml}${contentBlock}
     <link href="./assets/fonts.css" rel="stylesheet">${googleFontsLinks}
 ${mathScript}${embedStyles}${bodyFontStyle}</head>
 
-<body${opts.fixedViewport ? ` style="margin:0;overflow:hidden;width:${opts.fixedViewport.width}px;height:${opts.fixedViewport.height}px"` : ` class="min-h-screen flex items-center justify-center"${bodyStyle}`}>
+<body${opts.fixedViewport ? ` data-fl-width="${opts.fixedViewport.width}" data-fl-height="${opts.fixedViewport.height}" class="m-0 overflow-hidden w-[${opts.fixedViewport.width}px] h-[${opts.fixedViewport.height}px]"` : ` class="min-h-screen flex items-center justify-center"${bodyStyle}`}>
 ${mainBlock}
 ${answersScript}
     <div class="relative z-50" id="interface-container"></div>
@@ -1295,6 +1289,17 @@ ${opts.embed
 
 </html>
 `
+}
+
+function extractFixedLayoutViewport(html: string): { width: number; height: number } | undefined {
+  const data = html.match(/data-fl-width="(\d+)"[^>]*data-fl-height="(\d+)"/)
+  if (data) {
+    return { width: parseInt(data[1], 10), height: parseInt(data[2], 10) }
+  }
+  const legacy = html.match(/width:(\d+)px;height:(\d+)px/)
+  return legacy
+    ? { width: parseInt(legacy[1], 10), height: parseInt(legacy[2], 10) }
+    : undefined
 }
 
 // ---------------------------------------------------------------------------
@@ -1606,8 +1611,7 @@ export function rewriteImageUrls(
         delete img.attribs.width
         delete img.attribs.height
         const existingStyle = img.attribs.style ?? ""
-        // Don't add responsive sizing to absolutely-positioned images (fixed-layout)
-        if (!existingStyle.includes("position:absolute")) {
+        if (!isAbsolutelyPositioned(img.attribs)) {
           const sizeStyle = "max-width: 100%; height: auto;"
           if (!existingStyle.includes("max-width")) {
             img.attribs.style = existingStyle
@@ -1629,8 +1633,7 @@ export function rewriteImageUrls(
       delete img.attribs.width
       delete img.attribs.height
       const existingStyle = img.attribs.style ?? ""
-      // Don't add responsive sizing to absolutely-positioned images (fixed-layout)
-      if (!existingStyle.includes("position:absolute")) {
+      if (!isAbsolutelyPositioned(img.attribs)) {
         const sizeStyle = "max-width: 100%; height: auto;"
         if (!existingStyle.includes("max-width")) {
           img.attribs.style = existingStyle
@@ -1656,8 +1659,14 @@ export function rewriteImageUrls(
     }
   }
 
-  const normalizedHtml = DomUtils.getOuterHTML(doc).replace(/(<img\b[^>]*?)\salt(?=[\s>])/g, "$1 alt=\"\"")
+  const normalizedHtml = DomUtils.getOuterHTML(doc, { encodeEntities: "utf8" }).replace(/(<img\b[^>]*?)\salt(?=[\s>])/g, "$1 alt=\"\"")
   return { html: normalizedHtml, referencedImages }
+}
+
+function isAbsolutelyPositioned(attribs: Record<string, string | undefined>): boolean {
+  const style = attribs.style ?? ""
+  if (/position\s*:\s*absolute\b/.test(style)) return true
+  return (attribs.class ?? "").split(/\s+/).includes("absolute")
 }
 
 /**

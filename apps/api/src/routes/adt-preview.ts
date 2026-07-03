@@ -17,6 +17,7 @@ import {
   type TocGenerationOutput,
   type Quiz,
   type ContentNodeData,
+  googleFontsCss2Url,
 } from "@adt/types"
 import { createBookStorage, type Storage } from "@adt/storage"
 import {
@@ -39,6 +40,7 @@ import {
   isFixedLayoutBook,
   resolveReflowableFontChain,
   getRenderSectioning,
+  readBookFontRegistry,
 } from "@adt/pipeline"
 
 // ---------------------------------------------------------------------------
@@ -627,6 +629,41 @@ export function createAdtPreviewRoutes(
 
     if (!fs.existsSync(resolved) || fs.statSync(resolved).isDirectory()) {
       throw new HTTPException(404, { message: "Asset not found" })
+    }
+
+    if (assetPath === "fonts.css") {
+      const label = parseBookLabel(c.req.param("label"))
+      const baseCss = fs.readFileSync(resolved, "utf-8")
+      const apiPrefix = c.req.path.slice(0, c.req.path.indexOf("/books/"))
+      const css = withStorage(label, (storage) => {
+        const registry = readBookFontRegistry(storage)
+        if (registry.fonts.length === 0) return baseCss
+        const googleUrl = googleFontsCss2Url(
+          registry.fonts.filter((f) => f.source === "google").map((f) => f.family),
+        )
+        const importRule = googleUrl ? `@import url("${googleUrl}");\n` : ""
+        const faceRules = registry.fonts
+          .filter((f) => f.source === "upload")
+          .flatMap((f) =>
+            f.faces.map((face) =>
+              [
+                `@font-face {`,
+                `  font-family: '${f.family.replace(/'/g, "\\'")}';`,
+                `  font-style: ${face.style};`,
+                `  font-weight: ${face.weight};`,
+                `  font-display: swap;`,
+                `  src: url('${apiPrefix}/books/${label}/fonts/${f.id}/files/${face.file}');`,
+                ...(face.unicodeRange ? [`  unicode-range: ${face.unicodeRange};`] : []),
+                `}`,
+              ].join("\n"),
+            ),
+          )
+        if (!importRule && faceRules.length === 0) return baseCss
+        return `${importRule}${baseCss}\n\n${faceRules.join("\n")}\n`
+      })
+      setNoStoreHeaders(c)
+      c.header("Content-Type", "text/css")
+      return c.body(css)
     }
 
     c.header("Content-Type", getMimeType(resolved))

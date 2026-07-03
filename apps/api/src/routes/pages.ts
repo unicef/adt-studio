@@ -4,8 +4,8 @@ import path from "node:path"
 import { z } from "zod"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel, ImageClassificationOutput, PageSectioningOutput, WebRenderingOutput, ImageCaptioningOutput, ImageSegmentRegion, DEFAULT_LLM_MAX_RETRIES, primaryFontFamily, reflowableFontChain, BookFontRegistry, bookBodyFont, bookFontFamilyChain } from "@adt/types"
-import type { ContentNodeData, ExtractionWarning } from "@adt/types"
+import { parseBookLabel, ImageClassificationOutput, PageSectioningOutput, WebRenderingOutput, ImageCaptioningOutput, ImageSegmentRegion, DEFAULT_LLM_MAX_RETRIES, primaryFontFamily, reflowableFontChain, BookFontRegistry, bookBodyFont, bookFontFamilyChain, FixedLayoutUserStyles } from "@adt/types"
+import type { ContentNodeData, ExtractionWarning, FixedLayoutUserNodeStyles, NodePlacement } from "@adt/types"
 import { classifyExtractionWarning, flattenVisibleSectioningText } from "../services/extraction-warning.js"
 import { openBookDb } from "@adt/storage"
 import { createBookStorage } from "@adt/storage"
@@ -25,6 +25,13 @@ import {
   createScreenshotRenderer,
   SCREENSHOT_VIEWPORTS,
   isFixedLayoutBook,
+  generatedTextLeafClasses,
+  generatedImageLeafClasses,
+  styleMapToClasses,
+  classPropertyGroup,
+  applyUserStyles,
+  FIXED_LAYOUT_SECTIONING_NODE,
+  FIXED_LAYOUT_USER_STYLES_NODE,
   type ScreenshotRenderer,
 } from "@adt/pipeline"
 import { createLLMModel, createPromptEngine, renderLiquidTemplate, generateImageWithCache } from "@adt/llm"
@@ -427,6 +434,43 @@ function clearCaptionData(storage: Storage): void {
  * Save storyboard (web-rendering) node data and clear stale downstream data.
  * Use for all user-initiated storyboard saves (NOT pipeline stage runs).
  */
+const FixedLayoutStylesBody = z.object({
+  changes: z
+    .array(
+      z.object({
+        nodeId: z.string(),
+        classes: z.array(z.string()).optional(),
+        styleOverrides: z.record(z.string(), z.string()).optional(),
+      }),
+    )
+    .min(1),
+})
+
+function findFixedLayoutPlacement(
+  sectioning: PageSectioningOutput,
+  nodeId: string,
+): { role: "text" | "image"; placement: NodePlacement } | null {
+  for (const section of sectioning.sections) {
+    const placement = section.placement?.[nodeId]
+    if (!placement) continue
+    const node = findLeafById(section.nodes, nodeId)
+    if (!node) continue
+    return { role: node.role === "image" ? "image" : "text", placement }
+  }
+  return null
+}
+
+function findLeafById(nodes: ContentNodeData[], nodeId: string): ContentNodeData | null {
+  for (const node of nodes) {
+    if (node.nodeId === nodeId) return node
+    if (node.children) {
+      const found = findLeafById(node.children, nodeId)
+      if (found) return found
+    }
+  }
+  return null
+}
+
 function saveStoryboardNode(
   storage: Storage,
   node: "page-sectioning" | "web-rendering",
@@ -1028,6 +1072,99 @@ export function createPageRoutes(
       // Sectioning change cascades to everything downstream
       clearCaptionData(storage)
       return c.json({ version })
+    } finally {
+      storage.close()
+    }
+  })
+
+  app.put("/books/:label/pages/:pageId/fixed-layout-styles", async (c) => {
+    const { label, pageId } = c.req.param()
+    const safeLabel = parseBookLabel(label)
+
+    const body = await c.req.json()
+    const parsed = FixedLayoutStylesBody.safeParse(body)
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid fixed-layout styles payload: ${parsed.error.message}`,
+      })
+    }
+
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const pages = storage.getPages()
+      const page = pages.find((p) => p.pageId === pageId)
+      if (!page) {
+        throw new HTTPException(404, { message: `Page not found: ${pageId}` })
+      }
+
+      const sectioningRow = storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId)
+      if (!sectioningRow) {
+        throw new HTTPException(400, {
+          message: `Page ${pageId} has no fixed-layout sectioning — style edits require a fixed-layout render`,
+        })
+      }
+      const sectioningParsed = PageSectioningOutput.safeParse(sectioningRow.data)
+      if (!sectioningParsed.success) {
+        throw new HTTPException(400, { message: "Invalid fixed-layout-sectioning data" })
+      }
+      const sectioning = sectioningParsed.data
+
+      const userStylesRow = storage.getLatestNodeData(FIXED_LAYOUT_USER_STYLES_NODE, pageId)
+      const userStylesParsed = userStylesRow
+        ? FixedLayoutUserStyles.safeParse(userStylesRow.data)
+        : null
+      const userStyles: FixedLayoutUserStyles =
+        userStylesParsed?.success ? userStylesParsed.data : { nodes: {} }
+
+      let applied = 0
+      for (const change of parsed.data.changes) {
+        const located = findFixedLayoutPlacement(sectioning, change.nodeId)
+        if (!located) continue
+        const entry: FixedLayoutUserNodeStyles = { ...userStyles.nodes[change.nodeId] }
+
+        if (change.classes || change.styleOverrides) {
+          const generated =
+            located.role === "image"
+              ? generatedImageLeafClasses(located.placement)
+              : generatedTextLeafClasses(located.placement)
+          let classes = change.classes ? [...change.classes] : [...(entry.classes ?? [])]
+          if (change.styleOverrides) {
+            for (const [prop, value] of Object.entries(change.styleOverrides)) {
+              if (value === "") {
+                const group = classPropertyGroup(styleMapToClasses({ [prop]: "x" })[0] ?? "")
+                if (group) classes = classes.filter((cls) => classPropertyGroup(cls) !== group)
+              } else {
+                classes.push(...styleMapToClasses({ [prop]: value }))
+              }
+            }
+          }
+          const seen = new Set<string>()
+          classes = classes.filter((cls) => {
+            if (seen.has(cls)) return false
+            seen.add(cls)
+            return true
+          })
+          const delta = classes.filter((cls) => !generated.includes(cls))
+          if (delta.length > 0) entry.classes = delta
+          else delete entry.classes
+          delete entry.styleOverrides
+        }
+
+        if (Object.keys(entry).length > 0) userStyles.nodes[change.nodeId] = entry
+        else delete userStyles.nodes[change.nodeId]
+        applied++
+      }
+
+      if (applied === 0) {
+        throw new HTTPException(400, {
+          message: "No changes matched a fixed-layout element on this page",
+        })
+      }
+
+      applyUserStyles(sectioning, userStyles)
+      storage.putNodeData(FIXED_LAYOUT_USER_STYLES_NODE, pageId, userStyles)
+      const version = storage.putNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId, sectioning)
+      return c.json({ version, applied })
     } finally {
       storage.close()
     }

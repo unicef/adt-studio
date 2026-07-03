@@ -32,6 +32,12 @@ import {
   isFixedLayoutBook,
   loadBookConfig,
   applyFontToHtml,
+  applyUserStyles,
+  renderFixedLayoutPage,
+  getFixedLayoutReferenceWidth,
+  classPropertyGroup,
+  FIXED_LAYOUT_SECTIONING_NODE,
+  FIXED_LAYOUT_USER_STYLES_NODE,
   type FontScope,
 } from "@adt/pipeline"
 import {
@@ -40,7 +46,10 @@ import {
   REFLOWABLE_FONTS,
   reflowableFontFamilyChain,
   bookFontFamilyChain,
+  fontFamilyClass,
   WebRenderingOutput,
+  PageSectioningOutput,
+  FixedLayoutUserStyles,
 } from "@adt/types"
 import { getBookConfig, updateBookConfig } from "../services/book-service.js"
 import { createLLMModel, createPromptEngine, createRateLimiter } from "@adt/llm"
@@ -95,7 +104,7 @@ export function createFontRoutes(
     const setting = config?.reflowable_font ?? "auto"
     const fixedLayout = config ? isFixedLayoutBook(config) : false
 
-    const bodyFont = fixedLayout ? null : bookBodyFont(readBookFontRegistry(storage))
+    const bodyFont = bookBodyFont(readBookFontRegistry(storage))
     if (bodyFont) {
       return {
         detectedCategory,
@@ -509,9 +518,10 @@ export function createFontRoutes(
     } catch {
       config = null
     }
-    if (config && isFixedLayoutBook(config)) {
+    const fixedLayout = config ? isFixedLayoutBook(config) : false
+    if (fixedLayout && scope !== "whole") {
       throw new HTTPException(400, {
-        message: "Fixed-layout books keep their original fonts — book-wide font changes are not available.",
+        message: "Fixed-layout pages have no heading/paragraph/caption structure — apply the font to the whole book instead.",
       })
     }
 
@@ -519,9 +529,8 @@ export function createFontRoutes(
     try {
       const registry = readBookFontRegistry(storage)
 
-      // Resolve the inline font-family chain for role scopes.
       let inlineFamily: string | null = null
-      if (!reset && scope !== "whole") {
+      if (!reset && (scope !== "whole" || fixedLayout)) {
         if (body!.font!.kind === "registry") {
           const f = registry.fonts.find((x) => x.id === body!.font!.id)
           if (!f) throw new HTTPException(404, { message: "Font not found." })
@@ -533,22 +542,79 @@ export function createFontRoutes(
         }
       }
 
-      // 1. Rewrite every page's web-rendering HTML.
       let pagesUpdated = 0
-      for (const page of storage.getPages()) {
-        const row = storage.getLatestNodeData("web-rendering", page.pageId)
-        if (!row) continue
-        const parsed = WebRenderingOutput.safeParse(row.data)
-        if (!parsed.success) continue
-        let changed = false
-        const sections = parsed.data.sections.map((s) => {
-          const html = applyFontToHtml(s.html, { family: scope === "whole" ? null : inlineFamily, scope })
-          if (html !== s.html) changed = true
-          return { ...s, html }
-        })
-        if (changed) {
-          storage.putNodeData("web-rendering", page.pageId, { sections })
+      if (fixedLayout) {
+        const fontClass = reset ? null : fontFamilyClass(inlineFamily!)
+        const referenceWidth = getFixedLayoutReferenceWidth(storage)
+        for (const page of storage.getPages()) {
+          const row = storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, page.pageId)
+          if (!row) continue
+          const parsed = PageSectioningOutput.safeParse(row.data)
+          if (!parsed.success || !parsed.data.sections[0]?.viewport) continue
+          const sectioning = parsed.data
+          const userStylesRow = storage.getLatestNodeData(FIXED_LAYOUT_USER_STYLES_NODE, page.pageId)
+          const userStylesParsed = userStylesRow
+            ? FixedLayoutUserStyles.safeParse(userStylesRow.data)
+            : null
+          const userStyles = userStylesParsed?.success ? userStylesParsed.data : { nodes: {} }
+
+          let changed = false
+          for (const section of sectioning.sections) {
+            if (!section.placement) continue
+            for (const node of section.nodes) {
+              if (node.role !== "text" || !section.placement[node.nodeId]) continue
+              const entry = { ...userStyles.nodes[node.nodeId] }
+
+              const prevClasses = entry.classes ?? []
+              const kept = prevClasses.filter((c) => classPropertyGroup(c) !== "font-family")
+              const nextClasses = fontClass ? [...kept, fontClass] : kept
+              const classesChanged =
+                nextClasses.length !== prevClasses.length ||
+                nextClasses.some((c, i) => c !== prevClasses[i])
+              if (nextClasses.length > 0) entry.classes = nextClasses
+              else delete entry.classes
+
+              const overrides = { ...entry.styleOverrides }
+              const hadInline = "font-family" in overrides
+              delete overrides["font-family"]
+              if (Object.keys(overrides).length > 0) entry.styleOverrides = overrides
+              else delete entry.styleOverrides
+
+              if (!classesChanged && !hadInline) continue
+              if (Object.keys(entry).length > 0) userStyles.nodes[node.nodeId] = entry
+              else delete userStyles.nodes[node.nodeId]
+              changed = true
+            }
+          }
+          if (!changed) continue
+
+          applyUserStyles(sectioning, userStyles)
+          storage.putNodeData(FIXED_LAYOUT_USER_STYLES_NODE, page.pageId, userStyles)
+          storage.putNodeData(FIXED_LAYOUT_SECTIONING_NODE, page.pageId, sectioning)
+          const rendering = renderFixedLayoutPage(
+            sectioning.sections[0],
+            `/api/books/${safeLabel}/images`,
+            referenceWidth,
+          )
+          storage.putNodeData("web-rendering", page.pageId, rendering)
           pagesUpdated++
+        }
+      } else {
+        for (const page of storage.getPages()) {
+          const row = storage.getLatestNodeData("web-rendering", page.pageId)
+          if (!row) continue
+          const parsed = WebRenderingOutput.safeParse(row.data)
+          if (!parsed.success) continue
+          let changed = false
+          const sections = parsed.data.sections.map((s) => {
+            const html = applyFontToHtml(s.html, { family: scope === "whole" ? null : inlineFamily, scope })
+            if (html !== s.html) changed = true
+            return { ...s, html }
+          })
+          if (changed) {
+            storage.putNodeData("web-rendering", page.pageId, { sections })
+            pagesUpdated++
+          }
         }
       }
 
