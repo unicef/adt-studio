@@ -1,6 +1,7 @@
 import { Trans } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
 import {
+  formatVersion,
   getReleaseChannel,
   type ReleaseChannel,
 } from "./release-banner-utils"
@@ -26,7 +27,7 @@ export function ReleaseFallbackBanner({
   className,
 }: ReleaseFallbackBannerProps) {
   const isBeta = channel === "beta"
-  const label = formatVersion(version)
+  const label = formatVersion(version, "v0.0.0")
 
   return (
     <div
@@ -176,9 +177,4 @@ function BetaObject({ compact }: { compact?: boolean }) {
       />
     </>
   )
-}
-
-function formatVersion(version: string): string {
-  if (!version) return "v0.0.0"
-  return version.startsWith("v") ? version : `v${version}`
 }

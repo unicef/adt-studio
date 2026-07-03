@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog"
 import { ReleaseFallbackBanner } from "./ReleaseFallbackBanner"
 import { ReleaseNotesMarkdown } from "./ReleaseNotesMarkdown"
-import { releaseNotesHaveImage } from "./release-banner-utils"
+import { formatVersion, releaseNotesHaveImage } from "./release-banner-utils"
 
 export interface PostUpdateDialogProps {
   open: boolean
@@ -57,7 +57,7 @@ export function PostUpdateContent({
   onDone,
   TitleTag = "h2",
 }: PostUpdateContentProps) {
-  const label = version.startsWith("v") ? version : `v${version}`
+  const label = formatVersion(version)
   const showFallbackBanner = !releaseNotesHaveImage(releaseNotes)
   const notes = releaseNotes?.trim()
 

@@ -20,6 +20,7 @@ import {
 import { useAppVersion } from "@/hooks/use-app-version"
 import { useUpdateStatus, type UpdateStatus } from "@/hooks/use-update-status"
 import { formatBytes, cn } from "@/lib/utils"
+import { formatVersion, getReleaseChannel } from "./release-banner-utils"
 
 export interface UpdateDialogProps {
   open: boolean
@@ -324,7 +325,7 @@ function buildView({
           <Trans>Version {current}</Trans>
         </span>
         <span aria-hidden>·</span>
-        <ChannelBadge beta={current.includes("-beta")} />
+        <ChannelBadge beta={getReleaseChannel(current) === "beta"} />
       </div>
     ) : undefined,
     actions: (
@@ -463,11 +464,6 @@ function ProgressBar({ percent }: { percent: number }) {
 
 function clampPercent(percent: number): number {
   return Math.max(0, Math.min(100, percent))
-}
-
-function formatVersion(version: string): string {
-  if (!version) return "—"
-  return version.startsWith("v") ? version : `v${version}`
 }
 
 function formatReleaseDate(value: string): string {

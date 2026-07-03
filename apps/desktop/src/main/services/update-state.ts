@@ -8,7 +8,6 @@ export interface PostUpdateInfo {
 }
 
 interface UpdateState {
-  lastVersion?: string;
   pending?: PostUpdateInfo;
 }
 
@@ -53,7 +52,7 @@ export function initPostUpdateDetection(): void {
     };
   }
 
-  writeState({ lastVersion: current });
+  if (state.pending) writeState({});
 }
 
 export function consumePostUpdateInfo(): PostUpdateInfo | null {
