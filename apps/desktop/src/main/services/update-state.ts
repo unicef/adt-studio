@@ -39,29 +39,9 @@ export function recordPendingInstall(version: string, releaseNotes?: string): vo
 let postUpdateInfo: PostUpdateInfo | null = null;
 let initialized = false;
 
-const FAKE_POSTUPDATE_NOTES = [
-  "## Highlights",
-  "",
-  "- **Redesigned update experience** end to end",
-  "- Cancelable downloads with live progress",
-  "- A friendly *What's new* summary after every update",
-  "",
-  "![ADT Studio](/logo.png)",
-  "",
-  "Read the [full changelog](https://github.com/unicef/adt-studio/releases).",
-].join("\n");
-
 export function initPostUpdateDetection(): void {
   if (initialized) return;
   initialized = true;
-
-  if (!app.isPackaged && process.env.ADT_FAKE_POSTUPDATE === "1") {
-    postUpdateInfo = {
-      version: app.getVersion(),
-      releaseNotes: FAKE_POSTUPDATE_NOTES,
-    };
-    return;
-  }
 
   const current = app.getVersion();
   const state = readState();
