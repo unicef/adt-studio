@@ -2,6 +2,7 @@
   "pages": [
     "---Introduction---",
     "index",
+    "definitions",
     "---Get Started---",
     "install",
     "new-project",
