@@ -247,7 +247,7 @@ msgid "{0} translations"
 msgstr "{0} traduções"
 
 #. placeholder {0}: String(generatedAudioCount)
-#. placeholder {1}: String(displayEntries.length)
+#. placeholder {1}: String(speakableEntries.length)
 msgid "{0}/{1} audio"
 msgstr "{0}/{1} áudio"
 
@@ -671,6 +671,9 @@ msgstr "Atividade"
 
 msgid "Activity 5.1"
 msgstr "Atividade 5.1"
+
+msgid "Activity answers"
+msgstr "Respostas de atividades"
 
 msgid "Activity Converter"
 msgstr "Conversão de atividades"
@@ -1110,6 +1113,9 @@ msgstr "gabarito"
 
 msgid "Answers"
 msgstr "Respostas"
+
+msgid "Answers revealed in activities."
+msgstr "Respostas reveladas nas atividades."
 
 msgid "Anthropic"
 msgstr "Anthropic"
@@ -1672,6 +1678,9 @@ msgstr "Escolha o arquivo de parte que foi compartilhado com você, ou exporte-o
 msgid "Choose the source pages and where the quiz lands in the page editor."
 msgstr "Escolha as páginas de origem e onde o questionário será inserido no editor de páginas."
 
+msgid "Choose which kinds of on-screen text are read aloud. Disabled types get no audio in the reader. You can also mute individual entries from the Speech and Language views."
+msgstr "Escolha quais tipos de texto na tela são lidos em voz alta. Tipos desativados não recebem áudio no leitor. Você também pode silenciar entradas individuais nas visualizações de Fala e Idioma."
+
 msgid "Choose which per-page validation items reviewers must check, customize the wording and guidance, and add your own checklist items for this document."
 msgstr "Choose which per-page validation items reviewers must check, customize the wording and guidance, and add your own checklist items for this document."
 
@@ -2232,6 +2241,9 @@ msgstr "Descrição"
 msgid "Description..."
 msgstr "Descrição..."
 
+msgid "Descriptions spoken for images."
+msgstr "Descrições faladas para as imagens."
+
 msgid "Deselect all"
 msgstr "Desmarcar tudo"
 
@@ -2702,6 +2714,9 @@ msgstr "Cada seção do Storyboard tem um vídeo em linguagem de sinais atribuí
 msgid "Example Books"
 msgstr "Livros de Exemplo"
 
+msgid "Exclude from read-aloud"
+msgstr "Excluir da leitura em voz alta"
+
 msgid "Exclude from render"
 msgstr "Excluir da renderização"
 
@@ -3132,6 +3147,11 @@ msgstr "Gera texto alternativo descritivo para imagens para que leitores de tela
 msgid "Generates the interactive HTML for this activity type."
 msgstr "Gera o HTML interativo para este tipo de atividade."
 
+#. placeholder {0}: String(ttsProgress.page ?? 0)
+#. placeholder {1}: String(ttsProgress.totalPages)
+msgid "Generating {0}/{1}"
+msgstr "Gerando {0}/{1}"
+
 msgid "Generating Easy Read..."
 msgstr "Gerando Leitura Fácil..."
 
@@ -3182,6 +3202,9 @@ msgstr "Pré-visualização do Glossário"
 
 msgid "Glossary Prompt"
 msgstr "Prompt de glossário"
+
+msgid "Glossary words and their definitions."
+msgstr "Palavras do glossário e suas definições."
 
 msgid "Go to {stageLabel}"
 msgstr "Ir para {stageLabel}"
@@ -3363,6 +3386,9 @@ msgstr "Texto Alternativo da Imagem"
 msgid "Image Captioning"
 msgstr "Legendagem de imagens"
 
+msgid "Image captions"
+msgstr "Legendas de imagens"
+
 msgid "Image Captions"
 msgstr "Legendas de Imagens"
 
@@ -3511,6 +3537,9 @@ msgstr "em andamento"
 
 msgid "in the book"
 msgstr "no livro"
+
+msgid "Include in read-aloud"
+msgstr "Incluir na leitura em voz alta"
 
 msgid "Include in render"
 msgstr "Incluir na renderização"
@@ -4198,6 +4227,15 @@ msgstr "Publicações multi-formato"
 msgid "multiple choice"
 msgstr "múltipla escolha"
 
+msgid "Muted"
+msgstr "Silenciado"
+
+msgid "Muted by a content type switch in the Speech settings"
+msgstr "Silenciado por um interruptor de tipo de conteúdo nas configurações de Fala"
+
+msgid "Muted via its source text entry"
+msgstr "Silenciado por meio de sua entrada de texto de origem"
+
 msgid "my-book-slug"
 msgstr "meu-livro-slug"
 
@@ -4282,6 +4320,9 @@ msgstr "Ainda não há chave de API para {0}. Adicione uma nas configurações d
 
 msgid "No assessment"
 msgstr "No assessment"
+
+msgid "No audio"
+msgstr "Sem áudio"
 
 msgid "No audio for this page"
 msgstr "Sem áudio para esta página"
@@ -4937,6 +4978,9 @@ msgstr "Prompt de secionamento de página"
 msgid "Page Sectioning Refinement Prompt"
 msgstr "Prompt de refinamento de seção"
 
+msgid "Page text, headings, and quiz content."
+msgstr "Texto da página, títulos e conteúdo de questionários."
+
 msgid "pages"
 msgstr "páginas"
 
@@ -5183,6 +5227,9 @@ msgstr "Precipitação"
 
 msgid "Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page."
 msgstr "Prefira termos centrais ao assunto do livro. Pule vocabulário genérico e nomes próprios que não carregam significado além da página."
+
+msgid "Preparing speech..."
+msgstr "Preparando o áudio..."
 
 msgid "Preserves the source PDF's exact page layout"
 msgstr "Preserva o layout de página exato do PDF de origem"
@@ -5435,6 +5482,9 @@ msgstr "Reexecutar limpa etapas posteriores"
 
 msgid "Read the prompt aloud"
 msgstr "Leia o prompt em voz alta"
+
+msgid "Read-Aloud Content"
+msgstr "Conteúdo de leitura em voz alta"
 
 msgid "Read-only"
 msgstr "Somente leitura"
@@ -6399,6 +6449,9 @@ msgstr "Sobreposições de vídeo em língua de sinais para cada página"
 
 msgid "Sign language videos provide access for deaf and hard of hearing readers who may not be fluent in written language."
 msgstr "Vídeos em língua de sinais oferecem acesso para leitores surdos e com deficiência auditiva que podem não ser fluentes em linguagem escrita."
+
+msgid "Simplified Easy Read text variants."
+msgstr "Variantes de texto simplificadas de Leitura Fácil."
 
 msgid "Single"
 msgstr "Individual"

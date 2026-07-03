@@ -248,7 +248,7 @@ msgid "{0} translations"
 msgstr "{0} përkthime"
 
 #. placeholder {0}: String(generatedAudioCount)
-#. placeholder {1}: String(displayEntries.length)
+#. placeholder {1}: String(speakableEntries.length)
 msgid "{0}/{1} audio"
 msgstr "{0}/{1} audio"
 
@@ -672,6 +672,9 @@ msgstr "Aktivitet"
 
 msgid "Activity 5.1"
 msgstr "Aktiviteti 5.1"
+
+msgid "Activity answers"
+msgstr "Përgjigjet e aktiviteteve"
 
 msgid "Activity Converter"
 msgstr "Konvertues Aktivitetesh"
@@ -1111,6 +1114,9 @@ msgstr "answer_key"
 
 msgid "Answers"
 msgstr "Përgjigjet"
+
+msgid "Answers revealed in activities."
+msgstr "Përgjigjet që shfaqen në aktivitete."
 
 msgid "Anthropic"
 msgstr "Anthropic"
@@ -1673,6 +1679,9 @@ msgstr "Zgjidhni skedarin e pjesës që ju është ndarë, ose eksportojeni për
 msgid "Choose the source pages and where the quiz lands in the page editor."
 msgstr "Zgjidhni faqet burimore dhe ku vendoset testi në redaktorin e faqeve."
 
+msgid "Choose which kinds of on-screen text are read aloud. Disabled types get no audio in the reader. You can also mute individual entries from the Speech and Language views."
+msgstr "Zgjidhni cilat lloje të tekstit në ekran lexohen me zë. Llojet e çaktivizuara nuk marrin audio në lexues. Mund të heshtni edhe zëra të veçantë nga pamjet e Të folurit dhe Gjuhës."
+
 msgid "Choose which per-page validation items reviewers must check, customize the wording and guidance, and add your own checklist items for this document."
 msgstr "Zgjidhni cilat artikuj validimi për faqe duhet të kontrollojnë rishikuesit, personalizoni formulimin dhe udhëzimet dhe shtoni artikujt tuaj të listës së kontrollit për këtë dokument."
 
@@ -2233,6 +2242,9 @@ msgstr "Përshkrim"
 msgid "Description..."
 msgstr "Përshkrim..."
 
+msgid "Descriptions spoken for images."
+msgstr "Përshkrime që lexohen për imazhet."
+
 msgid "Deselect all"
 msgstr "Hiq zgjedhjen e të gjithave"
 
@@ -2703,6 +2715,9 @@ msgstr "Çdo seksion i Storyboard-it ka një video të gjuhës së shenjave të 
 msgid "Example Books"
 msgstr "Libra shembull"
 
+msgid "Exclude from read-aloud"
+msgstr "Përjashto nga leximi me zë"
+
 msgid "Exclude from render"
 msgstr "Përjashto nga renderimi"
 
@@ -3133,6 +3148,11 @@ msgstr "Gjeneron tekst alternativ përshkrues për imazhet që lexuesit e ekrani
 msgid "Generates the interactive HTML for this activity type."
 msgstr "Gjeneron HTML interaktiv për këtë lloj aktiviteti."
 
+#. placeholder {0}: String(ttsProgress.page ?? 0)
+#. placeholder {1}: String(ttsProgress.totalPages)
+msgid "Generating {0}/{1}"
+msgstr "Duke gjeneruar {0}/{1}"
+
 msgid "Generating Easy Read..."
 msgstr "Duke gjeneruar Easy Read..."
 
@@ -3183,6 +3203,9 @@ msgstr "Pamje Paraprake e Glosariumit"
 
 msgid "Glossary Prompt"
 msgstr "Prompt i Glosariumit"
+
+msgid "Glossary words and their definitions."
+msgstr "Fjalët e glosarit dhe përkufizimet e tyre."
 
 msgid "Go to {stageLabel}"
 msgstr "Shko te {stageLabel}"
@@ -3364,6 +3387,9 @@ msgstr "Teksti Alternativ i Imazhit"
 msgid "Image Captioning"
 msgstr "Titullimi i Imazheve"
 
+msgid "Image captions"
+msgstr "Përshkrimet e imazheve"
+
 msgid "Image Captions"
 msgstr "Titujt e Imazheve"
 
@@ -3512,6 +3538,9 @@ msgstr "në proces"
 
 msgid "in the book"
 msgstr "në libër"
+
+msgid "Include in read-aloud"
+msgstr "Përfshi në leximin me zë"
 
 msgid "Include in render"
 msgstr "Përfshi në paraqitje"
@@ -4199,6 +4228,15 @@ msgstr "Botime me shumë formate"
 msgid "multiple choice"
 msgstr "me zgjedhje të shumëfishta"
 
+msgid "Muted"
+msgstr "I heshtur"
+
+msgid "Muted by a content type switch in the Speech settings"
+msgstr "Heshtur nga një çelës i llojit të përmbajtjes në cilësimet e Të folurit"
+
+msgid "Muted via its source text entry"
+msgstr "Heshtur përmes zërit të tekstit burimor"
+
 msgid "my-book-slug"
 msgstr "my-book-slug"
 
@@ -4283,6 +4321,9 @@ msgstr "Nuk ka ende çelës API për {0}. Shto një te cilësimet e Librit për 
 
 msgid "No assessment"
 msgstr "Pa vlerësim"
+
+msgid "No audio"
+msgstr "Pa audio"
 
 msgid "No audio for this page"
 msgstr "Nuk ka audio për këtë faqe"
@@ -4938,6 +4979,9 @@ msgstr "Prompt i Ndarjes së Faqeve"
 msgid "Page Sectioning Refinement Prompt"
 msgstr "Prompt i Rafinimit të Ndarjes së Faqeve"
 
+msgid "Page text, headings, and quiz content."
+msgstr "Teksti i faqes, titujt dhe përmbajtja e kuizeve."
+
 msgid "pages"
 msgstr "faqe"
 
@@ -5184,6 +5228,9 @@ msgstr "Reshje"
 
 msgid "Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page."
 msgstr "Preferoni terma qendrore për lëndën e librit. Anashkaloni fjalor gjeneral dhe emra të përveçëm që nuk bartin kuptim përtej faqes."
+
+msgid "Preparing speech..."
+msgstr "Duke përgatitur audion..."
 
 msgid "Preserves the source PDF's exact page layout"
 msgstr "Ruan paraqitjen e saktë të faqes nga PDF-ja burimore"
@@ -5436,6 +5483,9 @@ msgstr "Ri-ekzekutimi fshin fazat e mëvonshme"
 
 msgid "Read the prompt aloud"
 msgstr "Lexo kërkesën me zë"
+
+msgid "Read-Aloud Content"
+msgstr "Përmbajtja e leximit me zë"
 
 msgid "Read-only"
 msgstr "Vetëm për lexim"
@@ -6400,6 +6450,9 @@ msgstr "Mbivendosje videosh të gjuhës së shenjave për çdo faqe"
 
 msgid "Sign language videos provide access for deaf and hard of hearing readers who may not be fluent in written language."
 msgstr "Videot e gjuhës së shenjave ofrojnë qasje për lexuesit shurdhamutë dhe me dëgjim të kufizuar, të cilët mund të mos jenë të rrjedhshëm në gjuhën e shkruar."
+
+msgid "Simplified Easy Read text variants."
+msgstr "Variante të thjeshtuara të tekstit Easy Read."
 
 msgid "Single"
 msgstr "Të vetëm"

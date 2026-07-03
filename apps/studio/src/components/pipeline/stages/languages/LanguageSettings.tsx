@@ -65,6 +65,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
   const [sampleRate, setSampleRate] = useState("")
   const [wordHighlighting, setWordHighlighting] = useState(false)
   const [easyReadTts, setEasyReadTts] = useState(false)
+  const [excludedCategories, setExcludedCategories] = useState<Set<string>>(new Set())
 
   const { markedTabs, markTab, resetMarkedTabs } = useDirtyTabTracker()
   const [dirty, setDirty] = useState<Record<string, boolean>>({})
@@ -106,6 +107,9 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
       if (s.bit_rate) setBitRate(String(s.bit_rate))
       if (s.sample_rate) setSampleRate(String(s.sample_rate))
       setWordHighlighting(s.word_highlighting === true)
+      setExcludedCategories(
+        new Set(Array.isArray(s.excluded_categories) ? (s.excluded_categories as string[]) : [])
+      )
       if (s.providers && typeof s.providers === "object") {
         const providers = s.providers as Record<string, Record<string, unknown>>
         if (providers.openai) {
@@ -182,6 +186,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
         bit_rate: bitRate.trim() || undefined,
         sample_rate: sampleRate.trim() ? Number(sampleRate.trim()) : undefined,
         word_highlighting: wordHighlighting,
+        excluded_categories: excludedCategories.size > 0 ? Array.from(excludedCategories) : undefined,
       }
     }
     return overrides
@@ -301,6 +306,18 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
           sampleRate={sampleRate} setSampleRate={setSampleRate}
           wordHighlighting={wordHighlighting} setWordHighlighting={setWordHighlighting}
           markDirty={markDirty}
+        />
+        <ReadAloudContentSection
+          excludedCategories={excludedCategories}
+          onToggle={(category, readAloud) => {
+            setExcludedCategories((prev) => {
+              const next = new Set(prev)
+              if (readAloud) next.delete(category)
+              else next.add(category)
+              return next
+            })
+            markDirty("speech")
+          }}
         />
         </>
       )}
@@ -451,6 +468,54 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
       {tab === "voices" && (
         <VoiceMappingsEditor bookLabel={bookLabel} />
       )}
+    </div>
+  )
+}
+
+/* ---------- Read-aloud content types ---------- */
+
+function ReadAloudContentSection({
+  excludedCategories,
+  onToggle,
+}: {
+  excludedCategories: Set<string>
+  onToggle: (category: string, readAloud: boolean) => void
+}) {
+  const { t } = useLingui()
+
+  const rows: Array<{ key: string; label: string; hint: string }> = [
+    { key: "text", label: t`Text`, hint: t`Page text, headings, and quiz content.` },
+    { key: "captions", label: t`Image captions`, hint: t`Descriptions spoken for images.` },
+    { key: "answers", label: t`Activity answers`, hint: t`Answers revealed in activities.` },
+    { key: "glossary", label: t`Glossary`, hint: t`Glossary words and their definitions.` },
+    { key: "easy-read", label: t`Easy Read`, hint: t`Simplified Easy Read text variants.` },
+  ]
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t`Read-Aloud Content`}</h3>
+        <p className="text-[11px] text-muted-foreground mt-1">
+          {t`Choose which kinds of on-screen text are read aloud. Disabled types get no audio in the reader. You can also mute individual entries from the Speech and Language views.`}
+        </p>
+      </div>
+      <div className="rounded-lg border divide-y">
+        {rows.map((row) => (
+          <div key={row.key} className="flex items-center justify-between gap-3 px-4 py-2.5">
+            <div className="space-y-0.5 pr-3">
+              <Label htmlFor={`read-aloud-${row.key}`} className="text-xs cursor-pointer">
+                {row.label}
+              </Label>
+              <p className="text-[11px] text-muted-foreground">{row.hint}</p>
+            </div>
+            <Switch
+              id={`read-aloud-${row.key}`}
+              checked={!excludedCategories.has(row.key)}
+              onCheckedChange={(v) => onToggle(row.key, v)}
+            />
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

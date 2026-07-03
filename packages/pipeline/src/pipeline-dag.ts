@@ -24,6 +24,7 @@ import type {
   TTSOutput,
   WebRenderingOutput,
 } from "@adt/types"
+import { isTtsExcluded } from "@adt/types"
 import { extractPDF } from "./pdf-extraction.js"
 import {
   resolveFontsCacheDir,
@@ -893,6 +894,7 @@ export async function runFullPipeline(
           entries = (translatedRow.data as TextCatalogOutput).entries
         }
         for (const entry of entries) {
+          if (isTtsExcluded(entry.id, config.speech)) continue
           workItems.push({ textId: entry.id, text: entry.text, language: lang })
         }
       }

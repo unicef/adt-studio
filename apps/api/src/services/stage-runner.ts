@@ -82,7 +82,8 @@ import type { PageSectioningConfig, TranslationConfig, QuizPageInput, ProviderRo
 import { loadStyleguideContent } from "./styleguide.js"
 import { createTTSSynthesizer, createAzureTTSSynthesizer, createGeminiTTSSynthesizer } from "@adt/llm"
 import type { TTSSynthesizer } from "@adt/llm"
-import { STAGE_ORDER } from "@adt/types"
+import { STAGE_ORDER, isTtsExcluded } from "@adt/types"
+import { beginSpeechRun, endSpeechRun } from "./speech-progress.js"
 import type {
   AppConfig,
   ImageClassificationOutput,
@@ -94,6 +95,7 @@ import type {
   TextCatalogEntry,
   EasyReadOutput,
   SpeechFileEntry,
+  SpeechFailedEntry,
   TTSOutput,
   WordTimestampEntry,
   WordTimestampOutput,
@@ -2174,11 +2176,16 @@ async function runSpeechStep(
     const ttsWorkItems: TTSWorkItem[] = []
     const textByLanguage = new Map<string, Map<string, string>>()
     const ttsResultsByLang = new Map<string, SpeechFileEntry[]>()
+    const failedByLang = new Map<string, SpeechFailedEntry[]>()
     const reusedEntriesByLang = new Map<string, number>()
     for (const lang of outputLanguages) {
       ttsResultsByLang.set(lang, [])
+      failedByLang.set(lang, [])
       reusedEntriesByLang.set(lang, 0)
     }
+    // Expose the (live-mutated) result arrays so GET /tts can serve a
+    // progressive snapshot while this run is active. Cleared in `finally`.
+    beginSpeechRun(label, ttsResultsByLang, failedByLang)
 
     for (const lang of outputLanguages) {
       const baseSource = getBaseLanguage(sourceLanguage)
@@ -2203,6 +2210,9 @@ async function runSpeechStep(
 
       const languageTextMap = new Map<string, string>()
       for (const entry of entries) {
+        // Excluded entries get no audio at all — not generated, not reused
+        // into the new TTS output version.
+        if (isTtsExcluded(entry.id, config.speech)) continue
         languageTextMap.set(entry.id, entry.text)
 
         const provider = resolveProviderForLanguage(lang, routing)
@@ -2373,6 +2383,7 @@ async function runSpeechStep(
           const durationMs = Date.now() - startMs
           console.error(`[stage-run] ${label}: TTS failed for ${item.textId} (${item.language}): ${msg}`)
           failedItems.push(`${item.textId}: ${msg}`)
+          failedByLang.get(item.language)?.push({ textId: item.textId, error: msg })
           if (provider === "gemini") {
             geminiFailedItems.push(`${item.textId}: ${msg}`)
           }
@@ -2425,9 +2436,11 @@ async function runSpeechStep(
     for (const lang of outputLanguages) {
       const entries = ttsResultsByLang.get(lang)
       if (!entries) continue
+      const failed = failedByLang.get(lang) ?? []
       const output: TTSOutput = {
         entries,
         generatedAt: new Date().toISOString(),
+        ...(failed.length > 0 ? { failed } : {}),
       }
       storage.putNodeData("tts", lang, output)
     }
@@ -2497,6 +2510,7 @@ async function runSpeechStep(
 
     console.log(`[stage-run] ${label}: speech complete`)
   } finally {
+    endSpeechRun(label)
     storage.close()
   }
 }

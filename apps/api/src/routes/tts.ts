@@ -36,6 +36,7 @@ import {
   generateWordTimestamps,
   type ProviderRouting,
 } from "@adt/pipeline"
+import { getLiveSpeechRun } from "../services/speech-progress.js"
 
 const GenerateSingleTTSBody = z
   .object({
@@ -355,6 +356,46 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
     }
 
+    const resolvedBooksDir = path.resolve(booksDir)
+    const mapEntries = (language: string, entries: Array<{ textId: string; fileName: string; voice: string; model: string; cached: boolean; provider?: string }>) => {
+      const audioDir = path.join(resolvedBooksDir, safeLabel, "audio", language)
+      return entries.map((e) => {
+        let cacheKey: string | undefined
+        try {
+          cacheKey = fs.statSync(path.join(audioDir, e.fileName)).mtimeMs.toString(36)
+        } catch {
+          // file missing — leave cacheKey undefined
+        }
+        return {
+          textId: e.textId,
+          fileName: e.fileName,
+          voice: e.voice,
+          model: e.model,
+          cached: e.cached,
+          provider: e.provider,
+          cacheKey,
+        }
+      })
+    }
+
+    const languages: Record<string, { entries: Array<{ textId: string; fileName: string; voice: string; model: string; cached: boolean; provider?: string; cacheKey?: string }>; failed?: Array<{ textId: string; error: string }>; generatedAt: string; version: number }> = {}
+
+    // While a speech run is active, serve its live snapshot — node data is
+    // only persisted at the end of the run, but audio files land on disk per
+    // item, so this lets the Speech view fill in progressively.
+    const live = getLiveSpeechRun(safeLabel)
+    if (live) {
+      for (const [lang, data] of Object.entries(live.languages)) {
+        languages[lang] = {
+          entries: mapEntries(lang, data.entries),
+          ...(data.failed.length > 0 ? { failed: data.failed } : {}),
+          generatedAt: live.startedAt,
+          version: 0,
+        }
+      }
+      return c.json({ languages, live: true })
+    }
+
     const db = openBookDb(dbPath)
     try {
       // TTS is stored per language: node="tts", item_id=language code
@@ -367,32 +408,16 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         ["tts", "tts"]
       ) as Array<{ item_id: string; data: string; version: number }>
 
-      const languages: Record<string, { entries: Array<{ textId: string; fileName: string; voice: string; model: string; cached: boolean; provider?: string; cacheKey?: string }>; generatedAt: string; version: number }> = {}
-      const resolvedBooksDir = path.resolve(booksDir)
       for (const row of rows) {
         try {
           const parsed = JSON.parse(row.data)
           const validated = TTSOutput.safeParse(parsed)
           if (!validated.success) continue
-          const audioDir = path.join(resolvedBooksDir, safeLabel, "audio", row.item_id)
           languages[row.item_id] = {
-            entries: validated.data.entries.map((e) => {
-              let cacheKey: string | undefined
-              try {
-                cacheKey = fs.statSync(path.join(audioDir, e.fileName)).mtimeMs.toString(36)
-              } catch {
-                // file missing — leave cacheKey undefined
-              }
-              return {
-                textId: e.textId,
-                fileName: e.fileName,
-                voice: e.voice,
-                model: e.model,
-                cached: e.cached,
-                provider: e.provider,
-                cacheKey,
-              }
-            }),
+            entries: mapEntries(row.item_id, validated.data.entries),
+            ...(validated.data.failed && validated.data.failed.length > 0
+              ? { failed: validated.data.failed }
+              : {}),
             generatedAt: validated.data.generatedAt,
             version: row.version,
           }

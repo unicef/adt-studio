@@ -31,7 +31,7 @@ import type {
   Quiz,
   ImageCaptioningOutput,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema } from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, isTtsExcluded } from "@adt/types"
 import {
   GOOGLE_FONTS,
   googleFontsReferencedIn,
@@ -132,11 +132,13 @@ export function getWordTimestamps(
 
 function buildRuntimeTimecodeMap(
   timestamps: WordTimestampOutput | undefined,
+  speechConfig?: SpeechConfig,
 ): Record<string, RuntimeTimecodeEntry> {
   const map: Record<string, RuntimeTimecodeEntry> = {}
 
   for (const [textId, entry] of Object.entries(timestamps?.entries ?? {})) {
     if (entry.words.length === 0) continue
+    if (isTtsExcluded(textId, speechConfig)) continue
     map[textId] = {
       timecodes: [
         null,
@@ -579,6 +581,9 @@ export async function packageAdtWeb(
 
       if (ttsData?.entries) {
         for (const entry of ttsData.entries) {
+          // Exclusions apply at packaging time too, so muting an element
+          // takes effect without regenerating speech.
+          if (isTtsExcluded(entry.textId, speechConfig)) continue
           const srcFile = path.join(bookDir, "audio", lang, entry.fileName)
           const legacySrcFile = path.join(bookDir, "audio", legacyLang, entry.fileName)
           const resolvedSrcFile = fs.existsSync(srcFile) ? srcFile : legacySrcFile
@@ -598,7 +603,7 @@ export async function packageAdtWeb(
     writeJson(
       path.join(timecodeDir, "timecode_output.json"),
       highlightEnabled
-        ? buildRuntimeTimecodeMap(getWordTimestamps(storage, lang))
+        ? buildRuntimeTimecodeMap(getWordTimestamps(storage, lang), speechConfig)
         : {},
     )
 

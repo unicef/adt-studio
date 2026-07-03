@@ -495,14 +495,23 @@ export interface TTSEntry {
   cacheKey?: string
 }
 
+export interface TTSFailedEntry {
+  textId: string
+  error: string
+}
+
 export interface TTSLanguageData {
   entries: TTSEntry[]
+  /** Items whose generation failed in the run that produced this data */
+  failed?: TTSFailedEntry[]
   generatedAt: string
   version: number
 }
 
 export interface TTSResponse {
   languages: Record<string, TTSLanguageData>
+  /** True when served from an in-flight speech run's live snapshot */
+  live?: boolean
 }
 
 export interface GenerateSingleTTSResponse {
