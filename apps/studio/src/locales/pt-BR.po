@@ -1789,6 +1789,12 @@ msgstr "Comment"
 msgid "Comments"
 msgstr "Comments"
 
+msgid "Compare split"
+msgstr "Divisão da comparação"
+
+msgid "Compare versions"
+msgstr "Comparar versões"
+
 msgid "Completed"
 msgstr "Concluído"
 
@@ -2042,6 +2048,10 @@ msgstr "Recorta cada imagem para sua caixa delimitadora visível."
 msgid "Current"
 msgstr "Atual"
 
+#. placeholder {0}: String(currentVersion)
+#~ msgid "Current (v{0})"
+#~ msgstr "Atual (v{0})"
+
 msgid "Current book font"
 msgstr "Fonte atual do livro"
 
@@ -2268,6 +2278,9 @@ msgstr "Diagrama"
 msgid "Did you know?"
 msgstr "Você sabia?"
 
+msgid "Diff"
+msgstr "Diff"
+
 msgid "Direction"
 msgstr "Direção"
 
@@ -2356,6 +2369,9 @@ msgstr "Arraste as alças para recortar um retângulo. Arraste dentro para mover
 
 msgid "Drag the handles to resize (aspect ratio locked). Drag inside to move."
 msgstr "Arraste as alças para redimensionar (proporção bloqueada). Arraste dentro para mover."
+
+msgid "Drag to compare"
+msgstr "Arraste para comparar"
 
 msgid "Drag to move"
 msgstr "Arrastar para mover"
@@ -3722,6 +3738,9 @@ msgstr "Deixe vazio para gerar apenas no idioma do livro."
 msgid "Leave empty to use the book language."
 msgstr "Deixe vazio para usar o idioma do livro."
 
+msgid "Left"
+msgstr "Esquerda"
+
 msgid "Legal and compliance manuals"
 msgstr "Manuais legais e de conformidade"
 
@@ -3898,6 +3917,9 @@ msgstr "Carregando catálogo de textos..."
 
 msgid "Loading validation..."
 msgstr "Carregando validação..."
+
+msgid "Loading versions"
+msgstr "Carregando versões"
 
 msgid "Loading voice mappings..."
 msgstr "Carregando mapeamentos de voz..."
@@ -4307,6 +4329,9 @@ msgstr "No changes flagged on this page"
 msgid "No colors found"
 msgstr "Nenhuma cor encontrada"
 
+msgid "No comparable sources available"
+msgstr "Nenhuma fonte comparável disponível"
+
 msgid "No content processing needed"
 msgstr "Não é necessário processamento de conteúdo"
 
@@ -4501,6 +4526,9 @@ msgstr "No segmentation needed for this image"
 
 msgid "No source image"
 msgstr "Nenhuma imagem de origem"
+
+msgid "No source selected"
+msgstr "Nenhuma fonte selecionada"
 
 msgid "No storyboard sections found. Run Storyboard to generate sections you can match videos to."
 msgstr "Nenhuma seção de storyboard encontrada. Execute o Storyboard para gerar seções que você pode associar a vídeos."
@@ -5050,6 +5078,9 @@ msgstr "Arquivo PDF"
 
 msgid "PDF info"
 msgstr "Informações do PDF"
+
+msgid "PDF page"
+msgstr "Página do PDF"
 
 msgid "PDF page {pageLabel} preview"
 msgstr "Pré-visualização da página PDF {pageLabel}"
@@ -5786,6 +5817,9 @@ msgstr "Reviewer validation summary"
 
 msgid "Rewriting the story of this section..."
 msgstr "Reescrevendo a história desta seção..."
+
+msgid "Right"
+msgstr "Direita"
 
 msgid "Rising ocean temperatures cause coral bleaching - when stressed corals expel the colorful algae living inside them and turn white. Without these algae, corals slowly starve. Protecting reefs means reducing pollution, overfishing, and greenhouse gas emissions."
 msgstr "O aumento das temperaturas dos oceanos causa o branqueamento dos corais - quando corais estressados expulsam as algas coloridas que vivem dentro deles e ficam brancos. Sem essas algas, os corais lentamente morrem de fome. Proteger os recifes significa reduzir a poluição, a pesca excessiva e as emissões de gases de efeito estufa."
@@ -6529,6 +6563,9 @@ msgstr "Prompts de fala"
 
 msgid "Speech Settings"
 msgstr "Configurações de Fala"
+
+msgid "Split"
+msgstr "Divisão"
 
 #. placeholder {0}: book.split.splitPages
 #. placeholder {1}: book.split.totalPages
@@ -7639,6 +7676,8 @@ msgstr "Variações"
 msgid "Verified applied"
 msgstr "Aplicação verificada"
 
+#. placeholder {0}: String(currentVersion)
+#. placeholder {0}: String(entry.version)
 #. placeholder {0}: String(version)
 msgid "Version {0}"
 msgstr "Versão {0}"

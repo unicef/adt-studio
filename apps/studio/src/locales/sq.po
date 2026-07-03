@@ -1790,6 +1790,12 @@ msgstr "Koment"
 msgid "Comments"
 msgstr "Komente"
 
+msgid "Compare split"
+msgstr "Ndarja e krahasimit"
+
+msgid "Compare versions"
+msgstr "Krahasoni versionet"
+
 msgid "Completed"
 msgstr "Përfunduar"
 
@@ -2043,6 +2049,10 @@ msgstr "Pret çdo imazh sipas kufirit të tij të dukshëm."
 msgid "Current"
 msgstr "Aktual"
 
+#. placeholder {0}: String(currentVersion)
+#~ msgid "Current (v{0})"
+#~ msgstr "Aktuale (v{0})"
+
 msgid "Current book font"
 msgstr "Fonti aktual i librit"
 
@@ -2269,6 +2279,9 @@ msgstr "Diagram"
 msgid "Did you know?"
 msgstr "A e dije?"
 
+msgid "Diff"
+msgstr "Dallim"
+
 msgid "Direction"
 msgstr "Drejtim"
 
@@ -2357,6 +2370,9 @@ msgstr "Tërhiqni dorezat për të prerë një drejtkëndësh. Tërhiqni brenda 
 
 msgid "Drag the handles to resize (aspect ratio locked). Drag inside to move."
 msgstr "Tërhiqni dorezat për të ripërmasuar (raporti i pamjes i kyçur). Tërhiqni brenda për ta lëvizur."
+
+msgid "Drag to compare"
+msgstr "Tërhiqni për të krahasuar"
 
 msgid "Drag to move"
 msgstr "Tërhiq për të lëvizur"
@@ -3723,6 +3739,9 @@ msgstr "Lëre bosh për të dalë vetëm në gjuhën e librit."
 msgid "Leave empty to use the book language."
 msgstr "Lëre bosh për të përdorur gjuhën e librit."
 
+msgid "Left"
+msgstr "Majtas"
+
 msgid "Legal and compliance manuals"
 msgstr "Manuale ligjore dhe të pajtueshmërisë"
 
@@ -3899,6 +3918,9 @@ msgstr "Duke ngarkuar katalogun e tekstit..."
 
 msgid "Loading validation..."
 msgstr "Duke ngarkuar vërtetimin..."
+
+msgid "Loading versions"
+msgstr "Duke ngarkuar versionet"
 
 msgid "Loading voice mappings..."
 msgstr "Duke ngarkuar hartëzimet e zërit..."
@@ -4308,6 +4330,9 @@ msgstr "Nuk janë sinjalizuar ndryshime në këtë faqe"
 msgid "No colors found"
 msgstr "Nuk u gjetën ngjyra"
 
+msgid "No comparable sources available"
+msgstr "Nuk ka burime të krahasueshme të disponueshme"
+
 msgid "No content processing needed"
 msgstr "Nuk nevojitet procesim i përmbajtjes"
 
@@ -4502,6 +4527,9 @@ msgstr "Nuk nevojitet segmentim për këtë imazh"
 
 msgid "No source image"
 msgstr "Nuk ka imazh burimor"
+
+msgid "No source selected"
+msgstr "Nuk është zgjedhur asnjë burim"
 
 msgid "No storyboard sections found. Run Storyboard to generate sections you can match videos to."
 msgstr "Nuk u gjetën seksione storyboard. Ekzekutoni Storyboard-in për të gjeneruar seksione me të cilat mund të përputhni video."
@@ -5051,6 +5079,9 @@ msgstr "Skedar PDF"
 
 msgid "PDF info"
 msgstr "Informacioni PDF"
+
+msgid "PDF page"
+msgstr "Faqja PDF"
 
 msgid "PDF page {pageLabel} preview"
 msgstr "Pamja paraprake e faqes PDF {pageLabel}"
@@ -5787,6 +5818,9 @@ msgstr "Përmbledhja e validimit të rishikuesit"
 
 msgid "Rewriting the story of this section..."
 msgstr "Duke rishkruar historinë e këtij seksioni..."
+
+msgid "Right"
+msgstr "Djathtas"
 
 msgid "Rising ocean temperatures cause coral bleaching - when stressed corals expel the colorful algae living inside them and turn white. Without these algae, corals slowly starve. Protecting reefs means reducing pollution, overfishing, and greenhouse gas emissions."
 msgstr "Rritja e temperaturave të oqeanit shkakton zbardhjen e koraleve - kur koralett e stresuar nxjerrin algat me ngjyra që jetojnë brenda tyre dhe bëhen të bardha. Pa këto alga, koralett ngadalë vdesin nga uria. Mbrojtja e rifeve nënkupton reduktimin e ndotjes, mbipeshkimit dhe emetimeve të gazeve serrë."
@@ -6530,6 +6564,9 @@ msgstr "Prompte të të Folurit"
 
 msgid "Speech Settings"
 msgstr "Cilësimet e të Folurit"
+
+msgid "Split"
+msgstr "Ndarje"
 
 #. placeholder {0}: book.split.splitPages
 #. placeholder {1}: book.split.totalPages
@@ -7640,6 +7677,8 @@ msgstr "Variacione"
 msgid "Verified applied"
 msgstr "Vërtetimi u aplikua"
 
+#. placeholder {0}: String(currentVersion)
+#. placeholder {0}: String(entry.version)
 #. placeholder {0}: String(version)
 msgid "Version {0}"
 msgstr "Versioni {0}"

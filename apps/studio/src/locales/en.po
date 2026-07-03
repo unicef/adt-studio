@@ -1789,6 +1789,12 @@ msgstr "Comment"
 msgid "Comments"
 msgstr "Comments"
 
+msgid "Compare split"
+msgstr "Compare split"
+
+msgid "Compare versions"
+msgstr "Compare versions"
+
 msgid "Completed"
 msgstr "Completed"
 
@@ -2042,6 +2048,10 @@ msgstr "Crops each image to its visible bounding box."
 msgid "Current"
 msgstr "Current"
 
+#. placeholder {0}: String(currentVersion)
+#~ msgid "Current (v{0})"
+#~ msgstr "Current (v{0})"
+
 msgid "Current book font"
 msgstr "Current book font"
 
@@ -2268,6 +2278,9 @@ msgstr "Diagram"
 msgid "Did you know?"
 msgstr "Did you know?"
 
+msgid "Diff"
+msgstr "Diff"
+
 msgid "Direction"
 msgstr "Direction"
 
@@ -2356,6 +2369,9 @@ msgstr "Drag the handles to crop a rectangle. Drag inside to move."
 
 msgid "Drag the handles to resize (aspect ratio locked). Drag inside to move."
 msgstr "Drag the handles to resize (aspect ratio locked). Drag inside to move."
+
+msgid "Drag to compare"
+msgstr "Drag to compare"
 
 msgid "Drag to move"
 msgstr "Drag to move"
@@ -3722,6 +3738,9 @@ msgstr "Leave empty to output only in the book language."
 msgid "Leave empty to use the book language."
 msgstr "Leave empty to use the book language."
 
+msgid "Left"
+msgstr "Left"
+
 msgid "Legal and compliance manuals"
 msgstr "Legal and compliance manuals"
 
@@ -3898,6 +3917,9 @@ msgstr "Loading text catalog..."
 
 msgid "Loading validation..."
 msgstr "Loading validation..."
+
+msgid "Loading versions"
+msgstr "Loading versions"
 
 msgid "Loading voice mappings..."
 msgstr "Loading voice mappings..."
@@ -4307,6 +4329,9 @@ msgstr "No changes flagged on this page"
 msgid "No colors found"
 msgstr "No colors found"
 
+msgid "No comparable sources available"
+msgstr "No comparable sources available"
+
 msgid "No content processing needed"
 msgstr "No content processing needed"
 
@@ -4501,6 +4526,9 @@ msgstr "No segmentation needed for this image"
 
 msgid "No source image"
 msgstr "No source image"
+
+msgid "No source selected"
+msgstr "No source selected"
 
 msgid "No storyboard sections found. Run Storyboard to generate sections you can match videos to."
 msgstr "No storyboard sections found. Run Storyboard to generate sections you can match videos to."
@@ -5050,6 +5078,9 @@ msgstr "PDF File"
 
 msgid "PDF info"
 msgstr "PDF info"
+
+msgid "PDF page"
+msgstr "PDF page"
 
 msgid "PDF page {pageLabel} preview"
 msgstr "PDF page {pageLabel} preview"
@@ -5786,6 +5817,9 @@ msgstr "Reviewer validation summary"
 
 msgid "Rewriting the story of this section..."
 msgstr "Rewriting the story of this section..."
+
+msgid "Right"
+msgstr "Right"
 
 msgid "Rising ocean temperatures cause coral bleaching - when stressed corals expel the colorful algae living inside them and turn white. Without these algae, corals slowly starve. Protecting reefs means reducing pollution, overfishing, and greenhouse gas emissions."
 msgstr "Rising ocean temperatures cause coral bleaching - when stressed corals expel the colorful algae living inside them and turn white. Without these algae, corals slowly starve. Protecting reefs means reducing pollution, overfishing, and greenhouse gas emissions."
@@ -6529,6 +6563,9 @@ msgstr "Speech Prompts"
 
 msgid "Speech Settings"
 msgstr "Speech Settings"
+
+msgid "Split"
+msgstr "Split"
 
 #. placeholder {0}: book.split.splitPages
 #. placeholder {1}: book.split.totalPages
@@ -7639,6 +7676,8 @@ msgstr "Variations"
 msgid "Verified applied"
 msgstr "Verified applied"
 
+#. placeholder {0}: String(currentVersion)
+#. placeholder {0}: String(entry.version)
 #. placeholder {0}: String(version)
 msgid "Version {0}"
 msgstr "Version {0}"

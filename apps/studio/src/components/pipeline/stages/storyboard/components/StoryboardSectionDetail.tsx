@@ -70,6 +70,7 @@ import { AddImageDialog } from "./AddImageDialog"
 import { ReplaceFromBookDialog } from "./ReplaceFromBookDialog"
 import { SegmentPreviewDialog, type SegmentRegion } from "./SegmentPreviewDialog"
 import { AiEditHistoryDrawer } from "./AiEditHistoryDrawer"
+import { StoryboardVisualDiff } from "./StoryboardVisualDiff"
 import { Input } from "@/components/ui/input"
 import { useLingui } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
@@ -461,6 +462,7 @@ export function StoryboardSectionDetail({
     setPanelOpen((v) => !v)
   }, [])
   const [htmlPreview, setHtmlPreview] = useState(false)
+  const [visualDiff, setVisualDiff] = useState(false)
   const [htmlPanelHeight, setHtmlPanelHeight] = useState(() => Math.floor(window.innerHeight * 0.35))
   const htmlPanelRef = useRef<HTMLDivElement>(null)
   const htmlDragging = useRef(false)
@@ -1957,7 +1959,27 @@ export function StoryboardSectionDetail({
       {renderedSection?.html && (
         <button
           type="button"
-          onClick={() => setHtmlPreview((v) => !v)}
+          onClick={() => {
+            setVisualDiff((value) => !value)
+            setHtmlPreview(false)
+            setActivityPreviewMode(false)
+          }}
+          className={`flex items-center gap-1 px-2 py-1 rounded transition-colors cursor-pointer shrink-0 ${
+            visualDiff ? "bg-white/30" : "bg-white/10 hover:bg-white/20"
+          }`}
+          title={visualDiff ? t`Back to preview` : t`Compare versions`}
+        >
+          <Layers className="h-3.5 w-3.5" />
+          <span className="text-[10px]">{t`Diff`}</span>
+        </button>
+      )}
+      {renderedSection?.html && (
+        <button
+          type="button"
+          onClick={() => {
+            setHtmlPreview((v) => !v)
+            setVisualDiff(false)
+          }}
           className={`flex items-center gap-1 px-2 py-1 rounded transition-colors cursor-pointer shrink-0 ${
             htmlPreview ? "bg-white/30" : "bg-white/10 hover:bg-white/20"
           }`}
@@ -2043,6 +2065,18 @@ export function StoryboardSectionDetail({
                 src={`${BASE_URL}/books/${bookLabel}/adt-preview/${pageId}_sec${String(sectionIndex + 1).padStart(3, "0")}.html?embed=1&v=${page.versions.rendering ?? 0}`}
                 className="w-full rounded border"
                 style={{ height: "80vh" }}
+              />
+            ) : visualDiff ? (
+              <StoryboardVisualDiff
+                bookLabel={bookLabel}
+                pageId={pageId}
+                sectionIndex={sectionIndex}
+                currentHtml={renderedSection.html}
+                currentVersion={page.versions.rendering}
+                hasPageImage={page.imagesMeta.some((image) => image.imageId === `${pageId}_page`)}
+                bodyFontFamily={pageDetail?.reflowableFontFamily ?? undefined}
+                renderWidth={DEVICE_WIDTHS[deviceView]}
+                deviceView={deviceView}
               />
             ) : (
               <BookPreviewFrame
