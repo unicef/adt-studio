@@ -6,13 +6,8 @@ import { LinuxControls } from "@/components/title-bar/LinuxControls"
 import { WindowsControls } from "@/components/title-bar/WindowsControls"
 
 /**
- * The colored bar at the top of a step view (step title, settings entry, etc.).
- *
- * Owns the two behaviours every step header must share so they can't drift out
- * of sync: it is a `drag-region` (the frameless desktop window is moved by
- * dragging it) and it hosts the Windows/Linux window controls, which are the
- * only min/maximize/close affordance when the OS chrome is hidden. Interactive
- * children opt out of dragging automatically via the `.drag-region *` rule.
+ * Colored bar at the top of a step view. Owns the `drag-region` and the
+ * Windows/Linux window controls so every step header keeps them in sync.
  */
 export function StepHeaderBar({
   color,
@@ -32,7 +27,6 @@ export function StepHeaderBar({
       className={cn(
         "shrink-0 h-10 px-4 flex items-center gap-3 text-white drag-region",
         color,
-        // Let the window controls sit flush to the right edge on Win/Linux.
         hasWindowControls && platform !== "macos" && "pr-0",
         className,
       )}
