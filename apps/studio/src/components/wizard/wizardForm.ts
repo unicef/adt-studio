@@ -41,7 +41,8 @@ export const defaultWizardValues = {
    *  - "split" — this is the canonical full book; defer extraction and hand
    *    out page-range parts to merge back later.
    *  Only "range" writes `start_page`/`end_page` to config; only "whole"/"range"
-   *  kick off extraction. Not itself written to book config. */
+   *  kick off extraction. "split" persists `split_mode: true` to book config so
+   *  the overview can gate the Split & merge panel on the choice. */
   scope: "whole" as "whole" | "range" | "split",
 }
 
