@@ -186,7 +186,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
         bit_rate: bitRate.trim() || undefined,
         sample_rate: sampleRate.trim() ? Number(sampleRate.trim()) : undefined,
         word_highlighting: wordHighlighting,
-        excluded_categories: excludedCategories.size > 0 ? Array.from(excludedCategories) : undefined,
+        excluded_categories: Array.from(excludedCategories),
       }
     }
     return overrides
@@ -813,4 +813,3 @@ function SpeechLanguageCards({
     </div>
   )
 }
-

@@ -65,6 +65,9 @@ export function useStageMissingCounts(label: string): { translate: number; speec
       [...catalogIds].filter((id) => !isTtsExcluded(id, speechExclusions)),
     )
     const speakableTotal = speakableIds.size
+    if (tts?.live) {
+      return { translate, speech: 0 }
+    }
 
     let speech = 0
     for (const lang of outputLanguages) {

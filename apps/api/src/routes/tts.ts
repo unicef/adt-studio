@@ -7,6 +7,7 @@ import { z } from "zod"
 import {
   parseBookLabel,
   TTSOutput,
+  isTtsExcluded,
   type SpeechFileEntry,
   type TTSProviderConfig,
   type TextCatalogEntry,
@@ -159,13 +160,20 @@ function getLatestTtsEntries(
   storage: ReturnType<typeof createBookStorage>,
   language: string
 ): SpeechFileEntry[] {
+  return getLatestTtsOutput(storage, language)?.entries ?? []
+}
+
+function getLatestTtsOutput(
+  storage: ReturnType<typeof createBookStorage>,
+  language: string
+): TTSOutput | undefined {
   const normalizedLanguage = normalizeLocale(language)
   const legacyLanguage = normalizedLanguage.replace("-", "_")
   const row =
     storage.getLatestNodeData("tts", normalizedLanguage) ??
     storage.getLatestNodeData("tts", legacyLanguage)
 
-  return row ? (row.data as { entries?: SpeechFileEntry[] }).entries ?? [] : []
+  return row ? (row.data as TTSOutput) : undefined
 }
 
 function mergeSpeechEntry(
@@ -182,6 +190,23 @@ function mergeSpeechEntry(
       (order.get(left.textId) ?? Number.MAX_SAFE_INTEGER) -
       (order.get(right.textId) ?? Number.MAX_SAFE_INTEGER)
   )
+}
+
+function buildUpdatedTtsOutput(
+  storage: ReturnType<typeof createBookStorage>,
+  language: string,
+  entries: SpeechFileEntry[],
+  resolvedTextId: string
+): TTSOutput {
+  const previous = getLatestTtsOutput(storage, language)
+  const failed = (previous?.failed ?? []).filter(
+    (entry) => entry.textId !== resolvedTextId
+  )
+  return {
+    entries,
+    generatedAt: new Date().toISOString(),
+    ...(failed.length > 0 ? { failed } : {}),
+  }
 }
 
 function getTtsCompletionSummary(
@@ -211,6 +236,7 @@ function getTtsCompletionSummary(
       getLatestTtsEntries(storage, language).map((entry) => entry.textId)
     )
     for (const entry of expectedEntries) {
+      if (isTtsExcluded(entry.id, config.speech)) continue
       if (!availableIds.has(entry.id)) {
         remainingItems++
       }
@@ -584,10 +610,11 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         languageEntries.map((entry) => entry.id)
       )
 
-      const version = storage.putNodeData("tts", normalizedLanguage, {
-        entries: mergedEntries,
-        generatedAt: new Date().toISOString(),
-      })
+      const version = storage.putNodeData(
+        "tts",
+        normalizedLanguage,
+        buildUpdatedTtsOutput(storage, normalizedLanguage, mergedEntries, textEntry.id)
+      )
 
       clearWordTimestampEntry(storage, normalizedLanguage, textEntry.id)
 
@@ -823,10 +850,11 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           languageEntries.map((item) => item.id)
         )
 
-        const version = storage.putNodeData("tts", normalizedLanguage, {
-          entries: mergedEntries,
-          generatedAt: new Date().toISOString(),
-        })
+        const version = storage.putNodeData(
+          "tts",
+          normalizedLanguage,
+          buildUpdatedTtsOutput(storage, normalizedLanguage, mergedEntries, textEntry.id)
+        )
 
         const completion = getTtsCompletionSummary(
           storage,
@@ -897,10 +925,11 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                 languageEntries.map((item) => item.id)
               )
 
-              const version = storage.putNodeData("tts", normalizedLanguage, {
-                entries: mergedEntries,
-                generatedAt: new Date().toISOString(),
-              })
+              const version = storage.putNodeData(
+                "tts",
+                normalizedLanguage,
+                buildUpdatedTtsOutput(storage, normalizedLanguage, mergedEntries, textEntry.id)
+              )
 
               const completion = getTtsCompletionSummary(
                 storage,

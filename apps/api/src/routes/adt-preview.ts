@@ -4,7 +4,7 @@ import { createHash } from "node:crypto"
 import { pathToFileURL } from "node:url"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel } from "@adt/types"
+import { isTtsExcluded, parseBookLabel } from "@adt/types"
 import {
   WebRenderingOutput,
   type SpeechConfig,
@@ -224,6 +224,7 @@ function getWordTimestamps(
 
 function buildRuntimeTimecodeMap(
   timestamps: WordTimestampOutput | undefined,
+  speechConfig?: SpeechConfig,
 ): Record<string, {
   timecodes: [null, {
     word_timestamps: Array<{ text: string; start: number; end: number }>
@@ -237,6 +238,7 @@ function buildRuntimeTimecodeMap(
 
   for (const [textId, entry] of Object.entries(timestamps?.entries ?? {})) {
     if (entry.words.length === 0) continue
+    if (isTtsExcluded(textId, speechConfig)) continue
     map[textId] = {
       timecodes: [
         null,
@@ -759,7 +761,8 @@ export function createAdtPreviewRoutes(
   // /content/i18n/:lang/audios.json — Audio file mapping
   app.get("/books/:label/adt-preview/content/i18n/:lang/audios.json", (c) => {
     const lang = normalizeLocale(c.req.param("lang"))
-    const audioMap = withStorage(c.req.param("label"), (storage) => {
+    const audioMap = withStorage(c.req.param("label"), (storage, safeLabel) => {
+      const speechConfig = loadBookConfig(safeLabel, booksDir, configPath).speech
       const legacyLang = lang.replace("-", "_")
       const ttsRow =
         storage.getLatestNodeData("tts", lang) ??
@@ -767,7 +770,10 @@ export function createAdtPreviewRoutes(
       const ttsData = ttsRow?.data as TTSOutput | undefined
       const map: Record<string, string> = {}
       if (ttsData?.entries) {
-        for (const entry of ttsData.entries) map[entry.textId] = entry.fileName
+        for (const entry of ttsData.entries) {
+          if (isTtsExcluded(entry.textId, speechConfig)) continue
+          map[entry.textId] = entry.fileName
+        }
       }
       return map
     })
@@ -783,7 +789,7 @@ export function createAdtPreviewRoutes(
     const bookConfig = loadBookConfig(safeLabel, booksDir, configPath)
     const timecodes = bookConfig.speech?.word_highlighting === true
       ? withStorage(c.req.param("label"), (storage) =>
-          buildRuntimeTimecodeMap(getWordTimestamps(storage, lang))
+          buildRuntimeTimecodeMap(getWordTimestamps(storage, lang), bookConfig.speech)
         )
       : {}
     setNoStoreHeaders(c)

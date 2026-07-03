@@ -22,6 +22,7 @@ export function useUpdateBookConfig() {
     onSuccess: (_data, { label }) => {
       queryClient.invalidateQueries({ queryKey: ["book-config", label] })
       queryClient.invalidateQueries({ queryKey: ["validation", "catalog", label] })
+      queryClient.invalidateQueries({ queryKey: ["debug", "config", label] })
       queryClient.invalidateQueries({ queryKey: ["debug"] })
     },
   })

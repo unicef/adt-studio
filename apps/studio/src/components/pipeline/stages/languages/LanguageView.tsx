@@ -122,16 +122,24 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
     ? speechConfig as Record<string, unknown>
     : null
   const wordHighlightingEnabled = speechConfigRecord?.word_highlighting === true
+  const configExcludedTextIds = useMemo(
+    () => Array.isArray(speechConfigRecord?.excluded_text_ids)
+      ? (speechConfigRecord.excluded_text_ids as string[])
+      : [],
+    [speechConfigRecord]
+  )
+  const [pendingExcludedTextIds, setPendingExcludedTextIds] = useState<string[] | null>(null)
+  const pendingExcludedTextIdsRef = useRef<string[] | null>(null)
+  const configUpdateQueueRef = useRef<Promise<unknown>>(Promise.resolve())
+  const effectiveExcludedTextIds = pendingExcludedTextIds ?? configExcludedTextIds
   // Effective read-aloud exclusions (merged config) — category-level from the
   // speech settings plus individually muted entry ids.
   const ttsExclusionConfig = useMemo(() => ({
     excluded_categories: Array.isArray(speechConfigRecord?.excluded_categories)
       ? (speechConfigRecord.excluded_categories as string[])
       : undefined,
-    excluded_text_ids: Array.isArray(speechConfigRecord?.excluded_text_ids)
-      ? (speechConfigRecord.excluded_text_ids as string[])
-      : undefined,
-  }), [speechConfigRecord])
+    excluded_text_ids: effectiveExcludedTextIds,
+  }), [effectiveExcludedTextIds, speechConfigRecord])
   const excludedTextIdSet = useMemo(
     () => new Set(ttsExclusionConfig.excluded_text_ids ?? []),
     [ttsExclusionConfig]
@@ -229,15 +237,32 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
       : {}
     // Toggle against the effective (merged) exclusions so the write matches
     // what the user currently sees.
-    const next = new Set(ttsExclusionConfig.excluded_text_ids ?? [])
+    const next = new Set(pendingExcludedTextIdsRef.current ?? effectiveExcludedTextIds)
     if (next.has(textId)) next.delete(textId)
     else next.add(textId)
+    const nextIds = Array.from(next)
+    pendingExcludedTextIdsRef.current = nextIds
+    setPendingExcludedTextIds(nextIds)
     currentConfig.speech = {
       ...existingSpeech,
-      excluded_text_ids: next.size > 0 ? Array.from(next) : undefined,
+      // Empty array is intentional: it overrides any project-level excluded ids.
+      excluded_text_ids: nextIds,
     }
-    updateConfig.mutate({ label: bookLabel, config: currentConfig })
-  }, [bookConfigData?.config, bookLabel, ttsExclusionConfig, updateConfig])
+    configUpdateQueueRef.current = configUpdateQueueRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        const updated = await updateConfig.mutateAsync({ label: bookLabel, config: currentConfig })
+        await queryClient.invalidateQueries({ queryKey: ["debug", "config", bookLabel] })
+        return updated
+      })
+      .finally(() => {
+        if (pendingExcludedTextIdsRef.current === nextIds) {
+          pendingExcludedTextIdsRef.current = null
+          setPendingExcludedTextIds(null)
+        }
+      })
+    void configUpdateQueueRef.current.catch(() => undefined)
+  }, [bookConfigData?.config, bookLabel, effectiveExcludedTextIds, queryClient, updateConfig])
 
   // Fetch word timestamps for the active language on the speech page
   const { data: timestampData } = useQuery({
@@ -499,6 +524,25 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
     [audioLang, apiKey, transcribeMutation]
   )
 
+  // Resolve speech config summary for display.
+  const speechSummary = useMemo(() => {
+    const provider =
+      (speechConfig && typeof speechConfig === "object"
+        ? ((speechConfig as Record<string, unknown>).default_provider as string)
+        : undefined) ?? "openai"
+    const defaultVoice = DEFAULT_TTS_VOICE[provider] ?? DEFAULT_TTS_VOICE.openai
+    const defaultModel = DEFAULT_TTS_MODEL[provider] ?? DEFAULT_TTS_MODEL.openai
+    if (!speechConfig || typeof speechConfig !== "object") {
+      return { provider, voice: defaultVoice, model: defaultModel }
+    }
+    const sc = speechConfig as Record<string, unknown>
+    const voice = (sc.voice as string) ?? defaultVoice
+    const model = (sc.model as string) ?? undefined
+    const providers = sc.providers as Record<string, Record<string, unknown>> | undefined
+    const providerModel = providers?.[provider]?.model as string | undefined
+    return { provider, voice, model: providerModel ?? model ?? defaultModel }
+  }, [speechConfig])
+
   const headerControls = catalog ? (
     <div className="flex items-center gap-1.5 ml-auto">
       {isSpeechStage && isRunning && (
@@ -592,25 +636,6 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
   if (!showRunCard && isLoading) {
     return <LoadingState stageSlug="translate" label={t`Loading text catalog...`} />
   }
-
-  // Resolve speech config summary for display
-  const speechSummary = useMemo(() => {
-    const provider =
-      (speechConfig && typeof speechConfig === "object"
-        ? ((speechConfig as Record<string, unknown>).default_provider as string)
-        : undefined) ?? "openai"
-    const defaultVoice = DEFAULT_TTS_VOICE[provider] ?? DEFAULT_TTS_VOICE.openai
-    const defaultModel = DEFAULT_TTS_MODEL[provider] ?? DEFAULT_TTS_MODEL.openai
-    if (!speechConfig || typeof speechConfig !== "object") {
-      return { provider, voice: defaultVoice, model: defaultModel }
-    }
-    const sc = speechConfig as Record<string, unknown>
-    const voice = (sc.voice as string) ?? defaultVoice
-    const model = (sc.model as string) ?? undefined
-    const providers = sc.providers as Record<string, Record<string, unknown>> | undefined
-    const providerModel = providers?.[provider]?.model as string | undefined
-    return { provider, voice, model: providerModel ?? model ?? defaultModel }
-  }, [speechConfig])
 
   if (showRunCard || !catalog || entries.length === 0) {
     return (
