@@ -27,6 +27,16 @@ vi.mock("@tanstack/react-router", () => ({
 
 vi.mock("@lingui/react/macro", () => ({
   Trans: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useLingui: () => ({
+    t(strings: TemplateStringsArray, ...values: unknown[]) {
+      let text = ""
+      for (let index = 0; index < strings.length; index += 1) {
+        text += strings[index]
+        if (index < values.length) text += String(values[index])
+      }
+      return text
+    },
+  }),
 }))
 
 vi.mock("@/components/pipeline/stage-config", async () => {
