@@ -34,11 +34,13 @@ export type BookTypography = z.infer<typeof BookTypography>
  * book has no saved typography yet. Edited on the Fonts tab. Sizes are
  * desktop → mobile; the renderer interpolates fluidly between them.
  */
+// Sizes align to Tailwind's font-size scale (text-5xl=48, 4xl=36, 3xl=30,
+// 2xl=24, xl=20, lg=18, base=16, sm=14) so the editor shows a clean token.
 export const DEFAULT_TYPOGRAPHY: BookTypography = {
   styles: [
-    { key: "chapter_title", label: "Chapter title", className: "adt-h1", desktopPx: 44, mobilePx: 30 },
-    { key: "section_heading", label: "Section heading", className: "adt-h2", desktopPx: 34, mobilePx: 24 },
-    { key: "subheading", label: "Subheading", className: "adt-h3", desktopPx: 28, mobilePx: 20 },
+    { key: "chapter_title", label: "Chapter title", className: "adt-h1", desktopPx: 48, mobilePx: 30 },
+    { key: "section_heading", label: "Section heading", className: "adt-h2", desktopPx: 36, mobilePx: 24 },
+    { key: "subheading", label: "Subheading", className: "adt-h3", desktopPx: 30, mobilePx: 20 },
     { key: "body", label: "Body", className: "adt-body", desktopPx: 24, mobilePx: 16 },
     { key: "caption", label: "Caption", className: "adt-caption", desktopPx: 18, mobilePx: 14 },
   ],

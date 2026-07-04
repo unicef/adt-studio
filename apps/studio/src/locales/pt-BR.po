@@ -339,11 +339,17 @@ msgstr "{issueCount} {0}"
 msgid "{issuesLabel}, {reviewLabel}"
 msgstr "{issuesLabel}, {reviewLabel}"
 
-msgid "{label} desktop size in pixels"
-msgstr "Tamanho de {label} no desktop, em pixels"
+msgid "{label} desktop size"
+msgstr "Tamanho de {label} no desktop"
 
-msgid "{label} mobile size in pixels"
-msgstr "Tamanho de {label} no celular, em pixels"
+#~ msgid "{label} desktop size in pixels"
+#~ msgstr "Tamanho de {label} no desktop, em pixels"
+
+msgid "{label} mobile size"
+msgstr "Tamanho de {label} no celular"
+
+#~ msgid "{label} mobile size in pixels"
+#~ msgstr "Tamanho de {label} no celular, em pixels"
 
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 de {total} páginas mescladas} one {# de {total} páginas mescladas} other {# de {total} páginas mescladas}}"
@@ -613,6 +619,9 @@ msgstr "Uma visão em ângulo amplo de um corredor de supermercado iluminado por
 
 msgid "A–Z"
 msgstr "A–Z"
+
+msgid "Aa"
+msgstr "Aa"
 
 msgid "ABC"
 msgstr "ABC"
@@ -2125,11 +2134,11 @@ msgstr "Decorativa"
 msgid "Decrease {label}"
 msgstr "Diminuir {label}"
 
-msgid "Decrease {label} desktop size"
-msgstr "Diminuir o tamanho de {label} no desktop"
+#~ msgid "Decrease {label} desktop size"
+#~ msgstr "Diminuir o tamanho de {label} no desktop"
 
-msgid "Decrease {label} mobile size"
-msgstr "Diminuir o tamanho de {label} no celular"
+#~ msgid "Decrease {label} mobile size"
+#~ msgstr "Diminuir o tamanho de {label} no celular"
 
 msgid "Decrease indent"
 msgstr "Diminuir recuo"
@@ -3000,8 +3009,11 @@ msgstr "Layout fixo de duas colunas (template)"
 msgid "Fixed-layout books use the original page images as backgrounds with positioned text extracted from the PDF. Activities detection, figure extraction, and image cropping or segmentation don't apply to this layout."
 msgstr "Livros de layout fixo usam as imagens originais das páginas como fundo com texto posicionado extraído do PDF. Detecção de atividades, extração de figuras, recorte ou segmentação de imagens não se aplicam a este layout."
 
-msgid "Fixed, accessible sizes applied to every page. Each role scales fluidly between its mobile and desktop size, and these override any size the AI picks — so headings and body text stay consistent across the whole book."
-msgstr "Tamanhos fixos e acessíveis aplicados a todas as páginas. Cada função é dimensionada de forma fluida entre seu tamanho no celular e no desktop, e elas substituem qualquer tamanho escolhido pela IA — assim os títulos e o texto do corpo permanecem consistentes em todo o livro."
+#~ msgid "Fixed, accessible sizes applied to every page. Each role scales fluidly between its mobile and desktop size, and these override any size the AI picks — so headings and body text stay consistent across the whole book."
+#~ msgstr "Tamanhos fixos e acessíveis aplicados a todas as páginas. Cada função é dimensionada de forma fluida entre seu tamanho no celular e no desktop, e elas substituem qualquer tamanho escolhido pela IA — assim os títulos e o texto do corpo permanecem consistentes em todo o livro."
+
+msgid "Fixed, accessible sizes applied to every page. Sizes use the book's Tailwind scale (pick a token or type an exact px), scale fluidly between mobile and desktop, and override any size the AI picks — so headings and body text stay consistent across the whole book."
+msgstr "Tamanhos fixos e acessíveis aplicados a todas as páginas. Os tamanhos usam a escala Tailwind do livro (escolha um token ou digite um valor exato em px), são dimensionados de forma fluida entre celular e desktop, e substituem qualquer tamanho escolhido pela IA — assim os títulos e o texto do corpo permanecem consistentes em todo o livro."
 
 msgid "flagged"
 msgstr "flagged"
@@ -3607,11 +3619,11 @@ msgstr "Inclui:"
 msgid "Increase {label}"
 msgstr "Aumentar {label}"
 
-msgid "Increase {label} desktop size"
-msgstr "Aumentar o tamanho de {label} no desktop"
+#~ msgid "Increase {label} desktop size"
+#~ msgstr "Aumentar o tamanho de {label} no desktop"
 
-msgid "Increase {label} mobile size"
-msgstr "Aumentar o tamanho de {label} no celular"
+#~ msgid "Increase {label} mobile size"
+#~ msgstr "Aumentar o tamanho de {label} no celular"
 
 msgid "Increase indent"
 msgstr "Aumentar recuo"

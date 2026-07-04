@@ -340,11 +340,17 @@ msgstr "{issueCount} {0}"
 msgid "{issuesLabel}, {reviewLabel}"
 msgstr "{issuesLabel}, {reviewLabel}"
 
-msgid "{label} desktop size in pixels"
-msgstr "Madhësia e {label} në desktop, në piksel"
+msgid "{label} desktop size"
+msgstr "Madhësia e {label} në desktop"
 
-msgid "{label} mobile size in pixels"
-msgstr "Madhësia e {label} në celular, në piksel"
+#~ msgid "{label} desktop size in pixels"
+#~ msgstr "Madhësia e {label} në desktop, në piksel"
+
+msgid "{label} mobile size"
+msgstr "Madhësia e {label} në celular"
+
+#~ msgid "{label} mobile size in pixels"
+#~ msgstr "Madhësia e {label} në celular, në piksel"
 
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 nga {total} faqe të bashkuara} one {# nga {total} faqe të bashkuara} other {# nga {total} faqe të bashkuara}}"
@@ -614,6 +620,9 @@ msgstr "Një pamje me kënd të gjerë poshtë një korridori supermarketi të n
 
 msgid "A–Z"
 msgstr "A–Z"
+
+msgid "Aa"
+msgstr "Aa"
 
 msgid "ABC"
 msgstr "ABC"
@@ -2126,11 +2135,11 @@ msgstr "Dekorativ"
 msgid "Decrease {label}"
 msgstr "Zvogëlo {label}"
 
-msgid "Decrease {label} desktop size"
-msgstr "Zvogëlo madhësinë e {label} në desktop"
+#~ msgid "Decrease {label} desktop size"
+#~ msgstr "Zvogëlo madhësinë e {label} në desktop"
 
-msgid "Decrease {label} mobile size"
-msgstr "Zvogëlo madhësinë e {label} në celular"
+#~ msgid "Decrease {label} mobile size"
+#~ msgstr "Zvogëlo madhësinë e {label} në celular"
 
 msgid "Decrease indent"
 msgstr "Zvogëlo dhëmbëzimin"
@@ -3001,8 +3010,11 @@ msgstr "Paraqitje e fiksuar me dy kolona"
 msgid "Fixed-layout books use the original page images as backgrounds with positioned text extracted from the PDF. Activities detection, figure extraction, and image cropping or segmentation don't apply to this layout."
 msgstr "Librat me paraqitje të fiksuar përdorin imazhet origjinale të faqeve si sfond me tekst të pozicionuar të nxjerrë nga PDF-i. Zbulimi i aktiviteteve, nxjerrja e figurave dhe prerja ose segmentimi i imazheve nuk zbatohen për këtë paraqitje."
 
-msgid "Fixed, accessible sizes applied to every page. Each role scales fluidly between its mobile and desktop size, and these override any size the AI picks — so headings and body text stay consistent across the whole book."
-msgstr "Madhësi fikse dhe të aksesueshme që zbatohen në çdo faqe. Çdo rol shkallëzohet në mënyrë të rrjedhshme mes madhësisë së tij në celular dhe në desktop, dhe ato mbizotërojnë çdo madhësi që zgjedh IA-ja — kështu titujt dhe teksti i trupit mbeten të qëndrueshëm në të gjithë librin."
+#~ msgid "Fixed, accessible sizes applied to every page. Each role scales fluidly between its mobile and desktop size, and these override any size the AI picks — so headings and body text stay consistent across the whole book."
+#~ msgstr "Madhësi fikse dhe të aksesueshme që zbatohen në çdo faqe. Çdo rol shkallëzohet në mënyrë të rrjedhshme mes madhësisë së tij në celular dhe në desktop, dhe ato mbizotërojnë çdo madhësi që zgjedh IA-ja — kështu titujt dhe teksti i trupit mbeten të qëndrueshëm në të gjithë librin."
+
+msgid "Fixed, accessible sizes applied to every page. Sizes use the book's Tailwind scale (pick a token or type an exact px), scale fluidly between mobile and desktop, and override any size the AI picks — so headings and body text stay consistent across the whole book."
+msgstr "Madhësi fikse dhe të aksesueshme që zbatohen në çdo faqe. Madhësitë përdorin shkallën Tailwind të librit (zgjidhni një token ose shkruani një vlerë të saktë në px), shkallëzohen në mënyrë të rrjedhshme mes celularit dhe desktopit, dhe mbizotërojnë çdo madhësi që zgjedh IA-ja — kështu titujt dhe teksti i trupit mbeten të qëndrueshëm në të gjithë librin."
 
 msgid "flagged"
 msgstr "shënuar"
@@ -3608,11 +3620,11 @@ msgstr "Përfshin:"
 msgid "Increase {label}"
 msgstr "Rrit {label}"
 
-msgid "Increase {label} desktop size"
-msgstr "Rrit madhësinë e {label} në desktop"
+#~ msgid "Increase {label} desktop size"
+#~ msgstr "Rrit madhësinë e {label} në desktop"
 
-msgid "Increase {label} mobile size"
-msgstr "Rrit madhësinë e {label} në celular"
+#~ msgid "Increase {label} mobile size"
+#~ msgstr "Rrit madhësinë e {label} në celular"
 
 msgid "Increase indent"
 msgstr "Rrit dhëmbëzimin"

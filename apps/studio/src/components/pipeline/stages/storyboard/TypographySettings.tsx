@@ -3,14 +3,17 @@ import { Loader2, RotateCcw } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { DEFAULT_TYPOGRAPHY, type TypographyStyle } from "@adt/types"
 import { Button } from "@/components/ui/button"
-import { StepperInput } from "@/components/ui/stepper-input"
 import { toast } from "@/components/ui/sonner"
 import { useTypography, useUpdateTypography } from "@/hooks/use-typography"
+import { TokenInput } from "./components/style-editor/controls/TokenInput"
+import { FONT_SIZE_TOKEN_LIST } from "./components/style-editor/class-maps"
 
 const MIN_PX = 8
 const MAX_PX = 200
 // Keep the preview legible without letting a large value blow out the row.
 const PREVIEW_MAX_PX = 44
+
+const clampPx = (v: number) => Math.max(MIN_PX, Math.min(MAX_PX, Math.round(v)))
 
 /** Localized labels for the known style keys (falls back to the stored label). */
 function useStyleLabel() {
@@ -51,13 +54,11 @@ export function TypographySettings({ bookLabel }: { bookLabel: string }) {
     [styles, data],
   )
 
-  const setMobile = (key: string, value: number | null) => {
-    if (value == null) return
-    setStyles((prev) => prev.map((s) => (s.key === key ? { ...s, mobilePx: value } : s)))
+  const setMobile = (key: string, value: number) => {
+    setStyles((prev) => prev.map((s) => (s.key === key ? { ...s, mobilePx: clampPx(value) } : s)))
   }
-  const setDesktop = (key: string, value: number | null) => {
-    if (value == null) return
-    setStyles((prev) => prev.map((s) => (s.key === key ? { ...s, desktopPx: value } : s)))
+  const setDesktop = (key: string, value: number) => {
+    setStyles((prev) => prev.map((s) => (s.key === key ? { ...s, desktopPx: clampPx(value) } : s)))
   }
 
   const handleSave = () => {
@@ -91,13 +92,14 @@ export function TypographySettings({ bookLabel }: { bookLabel: string }) {
       </h3>
       <p className="text-xs text-muted-foreground mb-4">
         <Trans>
-          Fixed, accessible sizes applied to every page. Each role scales fluidly between its
-          mobile and desktop size, and these override any size the AI picks — so headings and
-          body text stay consistent across the whole book.
+          Fixed, accessible sizes applied to every page. Sizes use the book's Tailwind scale
+          (pick a token or type an exact px), scale fluidly between mobile and desktop, and
+          override any size the AI picks — so headings and body text stay consistent across the
+          whole book.
         </Trans>
       </p>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_5.5rem_5.5rem_minmax(0,1.4fr)] items-center gap-x-3 gap-y-3">
+      <div className="grid grid-cols-[minmax(5.5rem,1fr)_8.5rem_8.5rem_minmax(0,1.1fr)] items-center gap-x-3 gap-y-3">
         <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
           <Trans>Style</Trans>
         </div>
@@ -116,26 +118,28 @@ export function TypographySettings({ bookLabel }: { bookLabel: string }) {
           return (
             <Fragment key={s.key}>
               <div className="text-sm">{label}</div>
-              <StepperInput
-                value={s.mobilePx}
-                onChange={(v) => setMobile(s.key, v)}
-                min={MIN_PX}
-                max={MAX_PX}
-                step={1}
-                decrementLabel={t`Decrease ${label} mobile size`}
-                incrementLabel={t`Increase ${label} mobile size`}
-                aria-label={t`${label} mobile size in pixels`}
-              />
-              <StepperInput
-                value={s.desktopPx}
-                onChange={(v) => setDesktop(s.key, v)}
-                min={MIN_PX}
-                max={MAX_PX}
-                step={1}
-                decrementLabel={t`Decrease ${label} desktop size`}
-                incrementLabel={t`Increase ${label} desktop size`}
-                aria-label={t`${label} desktop size in pixels`}
-              />
+              <div role="group" aria-label={t`${label} mobile size`}>
+                <TokenInput
+                  value={s.mobilePx}
+                  onChange={(v) => setMobile(s.key, v)}
+                  tokens={FONT_SIZE_TOKEN_LIST}
+                  suffix="px"
+                  renderPreview={(tok) => (
+                    <span style={{ fontSize: Math.min(tok.value, 22) }}>{t`Aa`}</span>
+                  )}
+                />
+              </div>
+              <div role="group" aria-label={t`${label} desktop size`}>
+                <TokenInput
+                  value={s.desktopPx}
+                  onChange={(v) => setDesktop(s.key, v)}
+                  tokens={FONT_SIZE_TOKEN_LIST}
+                  suffix="px"
+                  renderPreview={(tok) => (
+                    <span style={{ fontSize: Math.min(tok.value, 22) }}>{t`Aa`}</span>
+                  )}
+                />
+              </div>
               <div className="overflow-hidden">
                 <span
                   className="block truncate leading-tight"

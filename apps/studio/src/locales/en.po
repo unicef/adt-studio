@@ -339,11 +339,17 @@ msgstr "{issueCount} {0}"
 msgid "{issuesLabel}, {reviewLabel}"
 msgstr "{issuesLabel}, {reviewLabel}"
 
-msgid "{label} desktop size in pixels"
-msgstr "{label} desktop size in pixels"
+msgid "{label} desktop size"
+msgstr "{label} desktop size"
 
-msgid "{label} mobile size in pixels"
-msgstr "{label} mobile size in pixels"
+#~ msgid "{label} desktop size in pixels"
+#~ msgstr "{label} desktop size in pixels"
+
+msgid "{label} mobile size"
+msgstr "{label} mobile size"
+
+#~ msgid "{label} mobile size in pixels"
+#~ msgstr "{label} mobile size in pixels"
 
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
@@ -613,6 +619,9 @@ msgstr "A wide-angle view down a fluorescent-lit supermarket aisle, with stacked
 
 msgid "A–Z"
 msgstr "A–Z"
+
+msgid "Aa"
+msgstr "Aa"
 
 msgid "ABC"
 msgstr "ABC"
@@ -2125,11 +2134,11 @@ msgstr "Decorative"
 msgid "Decrease {label}"
 msgstr "Decrease {label}"
 
-msgid "Decrease {label} desktop size"
-msgstr "Decrease {label} desktop size"
+#~ msgid "Decrease {label} desktop size"
+#~ msgstr "Decrease {label} desktop size"
 
-msgid "Decrease {label} mobile size"
-msgstr "Decrease {label} mobile size"
+#~ msgid "Decrease {label} mobile size"
+#~ msgstr "Decrease {label} mobile size"
 
 msgid "Decrease indent"
 msgstr "Decrease indent"
@@ -3000,8 +3009,11 @@ msgstr "Fixed two-column template layout"
 msgid "Fixed-layout books use the original page images as backgrounds with positioned text extracted from the PDF. Activities detection, figure extraction, and image cropping or segmentation don't apply to this layout."
 msgstr "Fixed-layout books use the original page images as backgrounds with positioned text extracted from the PDF. Activities detection, figure extraction, and image cropping or segmentation don't apply to this layout."
 
-msgid "Fixed, accessible sizes applied to every page. Each role scales fluidly between its mobile and desktop size, and these override any size the AI picks — so headings and body text stay consistent across the whole book."
-msgstr "Fixed, accessible sizes applied to every page. Each role scales fluidly between its mobile and desktop size, and these override any size the AI picks — so headings and body text stay consistent across the whole book."
+#~ msgid "Fixed, accessible sizes applied to every page. Each role scales fluidly between its mobile and desktop size, and these override any size the AI picks — so headings and body text stay consistent across the whole book."
+#~ msgstr "Fixed, accessible sizes applied to every page. Each role scales fluidly between its mobile and desktop size, and these override any size the AI picks — so headings and body text stay consistent across the whole book."
+
+msgid "Fixed, accessible sizes applied to every page. Sizes use the book's Tailwind scale (pick a token or type an exact px), scale fluidly between mobile and desktop, and override any size the AI picks — so headings and body text stay consistent across the whole book."
+msgstr "Fixed, accessible sizes applied to every page. Sizes use the book's Tailwind scale (pick a token or type an exact px), scale fluidly between mobile and desktop, and override any size the AI picks — so headings and body text stay consistent across the whole book."
 
 msgid "flagged"
 msgstr "flagged"
@@ -3607,11 +3619,11 @@ msgstr "Includes:"
 msgid "Increase {label}"
 msgstr "Increase {label}"
 
-msgid "Increase {label} desktop size"
-msgstr "Increase {label} desktop size"
+#~ msgid "Increase {label} desktop size"
+#~ msgstr "Increase {label} desktop size"
 
-msgid "Increase {label} mobile size"
-msgstr "Increase {label} mobile size"
+#~ msgid "Increase {label} mobile size"
+#~ msgstr "Increase {label} mobile size"
 
 msgid "Increase indent"
 msgstr "Increase indent"
