@@ -341,6 +341,100 @@ describe("packageAdtWeb", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true })
   })
 
+  it("does not copy static feedback audio from web assets", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+    fs.mkdirSync(path.join(webAssetsDir, "feedback-audio", "en"), { recursive: true })
+    fs.writeFileSync(path.join(webAssetsDir, "feedback-audio", "en", "speed-slow.mp3"), "static")
+
+    await packageAdtWeb(createMinimalStorage(), {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+    })
+
+    const configJson = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "assets", "config.json"), "utf-8"),
+    ) as { features: Record<string, unknown> }
+    expect(configJson.features).not.toHaveProperty("changeFeedback")
+    expect(fs.existsSync(path.join(bookDir, "adt", "assets", "feedback-audio", "en", "speed-slow.mp3"))).toBe(false)
+  })
+
+  it("packages generated feedback speech", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    fs.mkdirSync(bookDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+    fs.mkdirSync(path.join(bookDir, "audio", "en"), { recursive: true })
+    fs.writeFileSync(path.join(bookDir, "audio", "en", "speed-slow.mp3"), "generated")
+
+    const storage = createMockStorage(
+      [{ pageId: "pg001", pageNumber: 1, text: "Page one" }],
+      {
+        "web-rendering": {
+          pg001: {
+            sections: [
+              { sectionIndex: 0, sectionType: "content", reasoning: "ok", html: "<div>Hello</div>" },
+            ],
+          },
+        },
+        "page-sectioning": {
+          pg001: {
+            reasoning: "ok",
+            sections: [
+              {
+                sectionId: "pg001_sec001",
+                sectionType: "content",
+                nodes: [],
+                backgroundColor: "#fff",
+                textColor: "#000",
+                pageNumber: 1,
+                isPruned: false,
+              },
+            ],
+          },
+        },
+        "feedback-tts": {
+          en: {
+            entries: [
+              {
+                textId: "speed-slow",
+                language: "en",
+                fileName: "speed-slow.mp3",
+                voice: "alloy",
+                model: "gpt-4o-mini-tts",
+                cached: false,
+                provider: "openai",
+              },
+            ],
+            generatedAt: "2026-01-01T00:00:00.000Z",
+          },
+        },
+      },
+    )
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+    })
+
+    const outputPath = path.join(bookDir, "adt", "assets", "feedback-audio", "en", "speed-slow.mp3")
+    expect(fs.readFileSync(outputPath, "utf-8")).toBe("generated")
+    const configJson = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "assets", "config.json"), "utf-8"),
+    ) as { features: Record<string, unknown> }
+    expect(configJson.features).not.toHaveProperty("changeFeedback")
+  })
+
   it("uses a safe default locale, avoids page-number carryover, and escapes inline answer JSON", async () => {
     const bookDir = path.join(tmpDir, "book")
     const webAssetsDir = path.join(tmpDir, "assets-web")

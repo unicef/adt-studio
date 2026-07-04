@@ -77,9 +77,10 @@ import type { PageSectioningConfig, TranslationConfig, QuizPageInput, ProviderRo
 import { loadStyleguideContent } from "./styleguide.js"
 import { createTTSSynthesizer, createAzureTTSSynthesizer, createGeminiTTSSynthesizer } from "@adt/llm"
 import type { TTSSynthesizer } from "@adt/llm"
-import { STAGE_ORDER } from "@adt/types"
+import { FEEDBACK_AUDIO_DEFINITIONS, STAGE_ORDER } from "@adt/types"
 import type {
   AppConfig,
+  FeedbackAudioDefinition,
   ImageClassificationOutput,
   PageSectioningOutput,
   WebRenderingOutput,
@@ -109,6 +110,27 @@ const GEMINI_TTS_SAFE_REQUESTS_PER_MINUTE = 10
 const GEMINI_TTS_MAX_RATE_LIMIT_RETRIES = 2
 const GEMINI_TTS_DEFAULT_RETRY_DELAY_MS = 6_000
 const GEMINI_TTS_MAX_RETRY_DELAY_MS = 20_000
+
+function resolveFeedbackAudioText(
+  definition: FeedbackAudioDefinition,
+  languageCode: string,
+  webAssetsDir: string,
+): string {
+  const normalized = normalizeLocale(languageCode).toLowerCase()
+  const baseLanguage = getBaseLanguage(normalized)
+  const candidates = Array.from(new Set([normalized, baseLanguage, "en"]))
+  const key = definition.audioMessageKey ?? definition.messageKey
+
+  for (const candidate of candidates) {
+    const filePath = path.join(webAssetsDir, "interface_translations", candidate, "interface_translations.json")
+    if (!fs.existsSync(filePath)) continue
+    const dict = JSON.parse(fs.readFileSync(filePath, "utf-8")) as Record<string, string>
+    const text = dict[key]
+    if (typeof text === "string" && text.trim()) return text
+  }
+
+  throw new Error(`Missing feedback interface translation: ${key}`)
+}
 
 class StepError extends Error {
   readonly step: StepName
@@ -272,12 +294,13 @@ function resolveSpeechCachePath(
 function getExistingSpeechEntries(
   storage: Storage,
   language: string,
+  nodeName: "tts" | "feedback-tts" = "tts",
 ): Map<string, SpeechFileEntry> {
   const normalizedLanguage = normalizeLocale(language)
   const legacyLanguage = normalizedLanguage.replace("-", "_")
   const row =
-    storage.getLatestNodeData("tts", normalizedLanguage) ??
-    storage.getLatestNodeData("tts", legacyLanguage)
+    storage.getLatestNodeData(nodeName, normalizedLanguage) ??
+    storage.getLatestNodeData(nodeName, legacyLanguage)
   const entries = (row?.data as TTSOutput | undefined)?.entries ?? []
   return new Map(entries.map((entry) => [entry.textId, entry]))
 }
@@ -2027,6 +2050,7 @@ async function runSpeechStep(
     const configDir = configPath
       ? path.join(path.dirname(configPath), "config")
       : path.resolve(process.cwd(), "config")
+    const webAssetsDir = options.webAssetsDir ?? path.resolve(process.cwd(), "assets", "adt")
 
     // Get book language from metadata
     const metadataRow = storage.getLatestNodeData("metadata", "book")
@@ -2112,13 +2136,16 @@ async function runSpeechStep(
       textId: string
       text: string
       language: string
+      kind: "content" | "feedback"
     }
     const ttsWorkItems: TTSWorkItem[] = []
     const textByLanguage = new Map<string, Map<string, string>>()
     const ttsResultsByLang = new Map<string, SpeechFileEntry[]>()
+    const feedbackResultsByLang = new Map<string, SpeechFileEntry[]>()
     const reusedEntriesByLang = new Map<string, number>()
     for (const lang of outputLanguages) {
       ttsResultsByLang.set(lang, [])
+      feedbackResultsByLang.set(lang, [])
       reusedEntriesByLang.set(lang, 0)
     }
 
@@ -2126,6 +2153,7 @@ async function runSpeechStep(
       const baseSource = getBaseLanguage(sourceLanguage)
       const baseLang = getBaseLanguage(lang)
       const existingSpeechEntries = getExistingSpeechEntries(storage, lang)
+      const existingFeedbackEntries = getExistingSpeechEntries(storage, lang, "feedback-tts")
 
       let entries: TextCatalogEntry[]
       if (baseLang === baseSource) {
@@ -2174,7 +2202,44 @@ async function runSpeechStep(
           continue
         }
 
-        ttsWorkItems.push({ textId: entry.id, text: entry.text, language: lang })
+        ttsWorkItems.push({ textId: entry.id, text: entry.text, language: lang, kind: "content" })
+      }
+
+      for (const definition of FEEDBACK_AUDIO_DEFINITIONS) {
+        const feedbackText = resolveFeedbackAudioText(definition, lang, webAssetsDir)
+        const provider = resolveProviderForLanguage(lang, routing)
+        const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
+        const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
+        const voice = resolveVoice(provider, lang, voiceMaps, config.speech?.voice)
+        const instructions = provider === "openai"
+          ? resolveInstructions(lang, instructionsMap)
+          : ""
+        const existingEntry = existingFeedbackEntries.get(definition.textId)
+
+        if (
+          canReuseSpeechEntry(existingEntry, {
+            bookDir,
+            cacheDir,
+            language: lang,
+            text: feedbackText,
+            provider,
+            model: providerModel,
+            voice,
+            instructions,
+            format: outputFormat,
+          })
+        ) {
+          feedbackResultsByLang.get(lang)?.push(existingEntry)
+          reusedEntriesByLang.set(lang, (reusedEntriesByLang.get(lang) ?? 0) + 1)
+          continue
+        }
+
+        ttsWorkItems.push({
+          textId: definition.textId,
+          text: feedbackText,
+          language: lang,
+          kind: "feedback",
+        })
       }
       textByLanguage.set(lang, languageTextMap)
     }
@@ -2300,7 +2365,8 @@ async function runSpeechStep(
           })
 
           if (entry) {
-            ttsResultsByLang.get(item.language)?.push(entry)
+            const target = item.kind === "feedback" ? feedbackResultsByLang : ttsResultsByLang
+            target.get(item.language)?.push(entry)
           }
         } catch (err) {
           const msg = toErrorMessage(err)
@@ -2364,6 +2430,13 @@ async function runSpeechStep(
         generatedAt: new Date().toISOString(),
       }
       storage.putNodeData("tts", lang, output)
+
+      const feedbackEntries = feedbackResultsByLang.get(lang) ?? []
+      const feedbackOutput: TTSOutput = {
+        entries: feedbackEntries,
+        generatedAt: new Date().toISOString(),
+      }
+      storage.putNodeData("feedback-tts", lang, feedbackOutput)
     }
 
     if (geminiFailedItems.length > 0) {

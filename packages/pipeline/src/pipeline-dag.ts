@@ -12,6 +12,7 @@ import {
 } from "@adt/llm"
 import type { LLMModel, LlmLogEntry, LogLevel, TTSSynthesizer } from "@adt/llm"
 import type {
+  FeedbackAudioDefinition,
   StepName,
   ImageClassificationOutput,
   PageSectioningOutput,
@@ -24,6 +25,7 @@ import type {
   TTSOutput,
   WebRenderingOutput,
 } from "@adt/types"
+import { FEEDBACK_AUDIO_DEFINITIONS } from "@adt/types"
 import { extractPDF } from "./pdf-extraction.js"
 import { extractMetadata, buildMetadataConfig } from "./metadata-extraction.js"
 import { generateBookSummary, buildBookSummaryConfig } from "./book-summary.js"
@@ -66,6 +68,27 @@ import { processWithConcurrency } from "./concurrency.js"
 import { runPipelineDAG, type StepExecutor, type PipelineDAGResult } from "./dag.js"
 
 const DEFAULT_METADATA_PAGES = 3
+
+function resolveFeedbackAudioText(
+  definition: FeedbackAudioDefinition,
+  languageCode: string,
+  webAssetsDir: string,
+): string {
+  const normalized = normalizeLocale(languageCode).toLowerCase()
+  const baseLanguage = getBaseLanguage(normalized)
+  const candidates = Array.from(new Set([normalized, baseLanguage, "en"]))
+  const key = definition.audioMessageKey ?? definition.messageKey
+
+  for (const candidate of candidates) {
+    const filePath = path.join(webAssetsDir, "interface_translations", candidate, "interface_translations.json")
+    if (!fs.existsSync(filePath)) continue
+    const dict = JSON.parse(fs.readFileSync(filePath, "utf-8")) as Record<string, string>
+    const text = dict[key]
+    if (typeof text === "string" && text.trim()) return text
+  }
+
+  throw new Error(`Missing feedback interface translation: ${key}`)
+}
 
 /**
  * Wrap a Progress so only step-progress and llm-log events pass through.
@@ -803,6 +826,7 @@ export async function runFullPipeline(
       if (sourceEntries.length === 0) return
 
       const configDir = options.configDir ?? path.resolve(process.cwd(), "config")
+      const webAssetsDir = options.webAssetsDir ?? path.resolve(process.cwd(), "assets", "adt")
       const azureConfig = options.azureSpeechKey && options.azureSpeechRegion
         ? { subscriptionKey: options.azureSpeechKey, region: options.azureSpeechRegion }
         : undefined
@@ -838,7 +862,7 @@ export async function runFullPipeline(
         return synth
       }
 
-      interface TTSWorkItem { textId: string; text: string; language: string }
+      interface TTSWorkItem { textId: string; text: string; language: string; kind: "content" | "feedback" }
       const workItems: TTSWorkItem[] = []
       for (const lang of outputLanguages) {
         const baseSource = getBaseLanguage(language)
@@ -855,14 +879,25 @@ export async function runFullPipeline(
           entries = (translatedRow.data as TextCatalogOutput).entries
         }
         for (const entry of entries) {
-          workItems.push({ textId: entry.id, text: entry.text, language: lang })
+          workItems.push({ textId: entry.id, text: entry.text, language: lang, kind: "content" })
+        }
+
+        for (const definition of FEEDBACK_AUDIO_DEFINITIONS) {
+          workItems.push({
+            textId: definition.textId,
+            text: resolveFeedbackAudioText(definition, lang, webAssetsDir),
+            language: lang,
+            kind: "feedback",
+          })
         }
       }
 
       const totalItems = workItems.length
       let completedItems = 0
       const resultsByLang = new Map<string, SpeechFileEntry[]>()
+      const feedbackResultsByLang = new Map<string, SpeechFileEntry[]>()
       for (const lang of outputLanguages) resultsByLang.set(lang, [])
+      for (const lang of outputLanguages) feedbackResultsByLang.set(lang, [])
 
       await processWithConcurrency(workItems, effectiveConcurrency, async (item) => {
         const provider = resolveProviderForLanguage(item.language, routing)
@@ -884,7 +919,10 @@ export async function runFullPipeline(
           ttsSynthesizer,
           provider,
         })
-        if (entry) resultsByLang.get(item.language)!.push(entry)
+        if (entry) {
+          const target = item.kind === "feedback" ? feedbackResultsByLang : resultsByLang
+          target.get(item.language)!.push(entry)
+        }
         completedItems++
         p.emit({
           type: "step-progress",
@@ -899,6 +937,10 @@ export async function runFullPipeline(
         const entries = resultsByLang.get(lang)!
         const output: TTSOutput = { entries, generatedAt: new Date().toISOString() }
         storage.putNodeData("tts", lang, output)
+
+        const feedbackEntries = feedbackResultsByLang.get(lang)!
+        const feedbackOutput: TTSOutput = { entries: feedbackEntries, generatedAt: new Date().toISOString() }
+        storage.putNodeData("feedback-tts", lang, feedbackOutput)
       }
     })
 

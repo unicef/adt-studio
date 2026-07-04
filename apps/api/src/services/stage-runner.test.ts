@@ -2,6 +2,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { FEEDBACK_AUDIO_DEFINITIONS } from "@adt/types"
 import type { AppConfig, ProgressEvent } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
 import {
@@ -946,7 +947,7 @@ speech:
       { emit: (event) => events.push(event) }
     )
 
-    expect(generateSpeechFileMock).toHaveBeenCalledTimes(2)
+    expect(generateSpeechFileMock).toHaveBeenCalledTimes(2 + FEEDBACK_AUDIO_DEFINITIONS.length)
     expect(
       events.some(
         (event) => event.type === "step-complete" && event.step === "tts"
@@ -965,6 +966,100 @@ speech:
     try {
       const ttsStep = storage.getStepRuns().find((step) => step.step === "tts")
       expect(ttsStep?.status).toBe("done")
+    } finally {
+      storage.close()
+    }
+  })
+
+  it("generates feedback TTS during the speech step", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+`
+    )
+    seedTextAndSpeechBook(booksDir, "speech-feedback-tts")
+
+    generateSpeechFileMock.mockImplementation(async (options: {
+      bookDir: string
+      textId: string
+      language: string
+      voice: string
+      model: string
+      provider?: string
+    }) => {
+      const audioDir = path.join(options.bookDir, "audio", options.language)
+      fs.mkdirSync(audioDir, { recursive: true })
+      const fileName = `${options.textId}.mp3`
+      fs.writeFileSync(path.join(audioDir, fileName), Buffer.from("fake-audio"))
+      return {
+        textId: options.textId,
+        language: options.language,
+        fileName,
+        voice: options.voice,
+        model: options.model,
+        cached: false,
+        provider: options.provider ?? "openai",
+      }
+    })
+
+    const runner = createStageRunner()
+    await runner.run(
+      "speech-feedback-tts",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "speech",
+      },
+      { emit: () => {} }
+    )
+
+    const callOptions = generateSpeechFileMock.mock.calls.map((call) => call[0] as {
+      textId: string
+      text: string
+      language: string
+      voice: string
+      model: string
+      provider?: string
+    })
+    expect(callOptions).toHaveLength(1 + FEEDBACK_AUDIO_DEFINITIONS.length)
+    expect(callOptions.map((options) => options.textId)).toEqual(
+      expect.arrayContaining([
+        "pg001_t001",
+        ...FEEDBACK_AUDIO_DEFINITIONS.map((definition) => definition.textId),
+      ])
+    )
+    expect(callOptions.find((options) => options.textId === "speed-slow")?.text).toBe(
+      "Now I will read more slowly."
+    )
+    expect(callOptions.find((options) => options.textId === "language-changed")?.text).toBe(
+      "Language changed."
+    )
+
+    const contentCall = callOptions.find((options) => options.textId === "pg001_t001")
+    const feedbackCalls = callOptions.filter((options) => options.textId !== "pg001_t001")
+    expect(feedbackCalls.every((options) => options.voice === contentCall?.voice)).toBe(true)
+    expect(feedbackCalls.every((options) => options.model === contentCall?.model)).toBe(true)
+    expect(feedbackCalls.every((options) => options.provider === contentCall?.provider)).toBe(true)
+
+    const storage = createBookStorage("speech-feedback-tts", booksDir)
+    try {
+      const contentRow = storage.getLatestNodeData("tts", "en")
+      const feedbackRow = storage.getLatestNodeData("feedback-tts", "en")
+      expect((contentRow?.data as { entries: Array<{ textId: string }> }).entries).toHaveLength(1)
+      expect((feedbackRow?.data as { entries: Array<{ textId: string }> }).entries).toHaveLength(
+        FEEDBACK_AUDIO_DEFINITIONS.length
+      )
     } finally {
       storage.close()
     }

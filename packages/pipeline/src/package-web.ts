@@ -699,7 +699,7 @@ export async function packageAdtWeb(
   progress.emit({ type: "step-progress", step, message: "Copying web assets..." })
 
   const assetsDir = path.join(adtDir, "assets")
-  copyDirRecursive(webAssetsDir, assetsDir, new Set(["interface_translations"]))
+  copyDirRecursive(webAssetsDir, assetsDir, new Set(["interface_translations", "feedback-audio"]))
 
   // Copy only required interface translations
   const itSrc = path.join(webAssetsDir, "interface_translations")
@@ -712,6 +712,27 @@ export async function packageAdtWeb(
       const src = fs.existsSync(langSrc) ? langSrc : fs.existsSync(baseLangSrc) ? baseLangSrc : null
       if (src) {
         copyDirRecursive(src, path.join(itDest, lang))
+      }
+    }
+  }
+
+  const feedbackRoot = path.join(assetsDir, "feedback-audio")
+  for (const lang of outputLanguages) {
+    const legacyLang = lang.replace("-", "_")
+    const feedbackRow =
+      storage.getLatestNodeData("feedback-tts", lang) ??
+      storage.getLatestNodeData("feedback-tts", legacyLang)
+    const feedbackData = feedbackRow?.data as TTSOutput | undefined
+    if (!feedbackData?.entries?.length) continue
+
+    const langDir = path.join(feedbackRoot, lang)
+    fs.mkdirSync(langDir, { recursive: true })
+    for (const entry of feedbackData.entries) {
+      const srcFile = path.join(bookDir, "audio", lang, entry.fileName)
+      const legacySrcFile = path.join(bookDir, "audio", legacyLang, entry.fileName)
+      const resolvedSrcFile = fs.existsSync(srcFile) ? srcFile : legacySrcFile
+      if (fs.existsSync(resolvedSrcFile)) {
+        fs.copyFileSync(resolvedSrcFile, path.join(langDir, entry.fileName))
       }
     }
   }

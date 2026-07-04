@@ -204,6 +204,12 @@ export {
 } from "./speech.js"
 
 export {
+  FEEDBACK_AUDIO_DEFINITIONS,
+  type FeedbackAudioDefinition,
+  type FeedbackAudioKey,
+} from "./feedback-audio.js"
+
+export {
   StyleguideGenerationOutput,
 } from "./styleguide-generation.js"
 

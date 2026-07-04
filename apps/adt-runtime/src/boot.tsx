@@ -11,6 +11,7 @@ import {
   subscribePreviewSettings,
 } from "@/app/lifecycle"
 import { describeInitError, showErrorToast, showMainContent } from "@/shared/lib/errors"
+import { subscribeChangeFeedback } from "@/shared/runtime/change-feedback"
 
 const sharedStore = getDefaultStore()
 
@@ -70,9 +71,11 @@ function mount(): void {
     .then(() => {
       const unsubLanguage = subscribeLanguageChanges()
       const unsubPreview = subscribePreviewSettings()
+      const unsubFeedback = subscribeChangeFeedback()
       window.__adtRuntime!.unsubscribe = () => {
         unsubLanguage()
         unsubPreview()
+        unsubFeedback()
       }
     })
     .catch((err) => {
