@@ -6,6 +6,7 @@ import type {
   BookFontRole,
   BookMetadata,
   BookSummary,
+  BookTypography,
   FontAssignmentOutput,
   ExtractionWarning,
   ReviewerPageValidationRecord,
@@ -748,6 +749,17 @@ export const api = {
     request<{ pageCount: number }>(`/books/${label}/source-pdf/info`),
 
   getBookFonts: (label: string) => request<BookFontsResponse>(`/books/${label}/fonts`),
+
+  getTypography: (label: string) =>
+    request<{ data: BookTypography; version: number; isDefault: boolean }>(
+      `/books/${label}/typography`
+    ),
+
+  updateTypography: (label: string, data: BookTypography) =>
+    request<{ version: number }>(`/books/${label}/typography`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
 
   getGoogleFontsCatalog: () =>
     request<{ families: GoogleCatalogFamily[] }>("/google-fonts/catalog"),

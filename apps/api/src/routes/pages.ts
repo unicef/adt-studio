@@ -20,6 +20,8 @@ import {
   applyCrop,
   generateStyleguide,
   buildBookFontsPromptContext,
+  readTypography,
+  resolveTypographyCss,
   buildStyleguideGenerationConfig,
   buildScreenshotHtml,
   createScreenshotRenderer,
@@ -957,6 +959,7 @@ export function createPageRoutes(
       }
       const storage = createBookStorage(safeLabel, booksDir)
       const images = new Map<string, { base64: string }>()
+      let typographyCss = ""
       try {
         for (const id of referencedImageIds) {
           try {
@@ -965,6 +968,7 @@ export function createPageRoutes(
             // Image missing — screenshot will show a broken image.
           }
         }
+        typographyCss = resolveTypographyCss(storage)
       } finally {
         storage.close()
       }
@@ -974,6 +978,7 @@ export function createPageRoutes(
         label: safeLabel,
         images,
         webAssetsDir,
+        typographyCss,
       })
 
       // Cache key incorporates HTML + viewport so cache invalidates whenever
@@ -2432,6 +2437,7 @@ export function createPageRoutes(
     const storage = createBookStorage(safeLabel, booksDir)
     const pageImages: Array<{ pageId: string; pageNumber: number; imageBase64: string }> = []
     let bookFonts: ReturnType<typeof buildBookFontsPromptContext> = []
+    let typography: ReturnType<typeof readTypography> | undefined
     try {
       const pages = storage.getPages()
       for (const pageId of pageIds) {
@@ -2447,6 +2453,7 @@ export function createPageRoutes(
         })
       }
       bookFonts = buildBookFontsPromptContext(storage)
+      typography = readTypography(storage)
     } finally {
       storage.close()
     }
@@ -2467,7 +2474,7 @@ export function createPageRoutes(
       })
 
       const result = await generateStyleguide(
-        { pageImages, bookFonts },
+        { pageImages, bookFonts, typography },
         config,
         llmModel
       )

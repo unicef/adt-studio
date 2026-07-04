@@ -28,7 +28,7 @@ Your HTML will be tested at these viewport widths. Use ONLY these Tailwind respo
 {% endfor %}
 Do NOT use `sm:`, `md:`, `lg:`, `xl:`, `2xl:`, or any other prefixes not listed above.
 The base (no-prefix) classes are the DESKTOP design. Use `max-lg:` to override styles at tablet and below, and `max-sm:` to override at mobile only. On smaller viewports, favor single-column stacked layouts — switch multi-column desktop layouts to a stacked column with `max-lg:flex-col`.
-Example: `class="flex flex-row max-lg:flex-col"` or `class="text-lg max-lg:text-base max-sm:text-sm"`
+Example: `class="flex flex-row max-lg:flex-col"` or `class="gap-8 max-lg:gap-4 max-sm:gap-2"`
 {% if styleguide != "" %}
 
 ## STYLEGUIDE (FOLLOW EXACTLY)
@@ -43,6 +43,18 @@ The user attached these fonts for this book. Whenever you set an explicit `font-
 {% for font in book_fonts %}- "{{ font.family }}" — role: {{ font.role }}{% if font.category %} ({{ font.category }}){% endif %}{% if font.usage_notes %} — {{ font.usage_notes }}{% endif %}
 {% endfor %}
 Apply each font according to its role: `heading` for titles and headings, `paragraph` for paragraph `<p>` elements only, `body` for broader running text, `caption` for captions/footnotes, `decorative` sparingly for ornamental display text, `mono` for code or tabular content. Ignore fonts with role `unassigned`.
+{% endif %}
+{% if typography.size > 0 %}
+
+## TYPOGRAPHY (FIXED SIZES — USE THESE CLASSES)
+
+This book uses a fixed, accessible type scale. Font SIZE is applied automatically from these semantic classes and is identical on every page, so pages stay consistent even though they are generated one at a time.
+{% for s in typography %}- `{{ s.className }}` — {{ s.label }} ({{ s.mobilePx }}px mobile → {{ s.desktopPx }}px desktop)
+{% endfor %}
+Rules:
+- Put the right class directly on each text element: main chapter/display title → `adt-h1`; section headings → `adt-h2`; minor or callout/sidebar headings → `adt-h3`; paragraphs, running text, list items → `adt-body`; captions and image labels → `adt-caption`.
+- Do NOT set any font-size utility (`text-sm` … `text-6xl`, `text-[..]`) or inline `font-size` — sizing comes only from the `adt-*` class, scales fluidly between mobile and desktop, and cannot be overridden. Handle responsiveness with LAYOUT (stack columns with `max-lg:flex-col`, adjust spacing), not font size.
+- Keep using Tailwind for everything else (font weight, color, spacing, alignment).
 {% endif %}
 {% endchat %}
 

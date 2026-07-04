@@ -45,6 +45,7 @@ import {
   readBookFontRegistry,
   resolveFontsCacheDir,
 } from "./fonts-bundle.js"
+import { resolveTypographyCss } from "./typography.js"
 import type { Progress } from "./progress.js"
 import { nullProgress } from "./progress.js"
 import { getGlossaryItemTextId } from "./glossary.js"
@@ -254,6 +255,9 @@ export async function packageAdtWeb(
   // Reflowable base font (serif/sans default from the detected profile, or an
   // explicit override). undefined for fixed-layout / Merriweather-default.
   const bodyFontFamily = resolveReflowableFontChain(storage, { fixedLayout, reflowableFont })
+  // Book typography CSS (fixed size per text role), appended to the compiled
+  // Tailwind stylesheet so every page shares the same sizes.
+  const typographyCss = resolveTypographyCss(storage)
 
   const step = "package-web" as const
   progress.emit({ type: "step-start", step })
@@ -745,7 +749,7 @@ export async function packageAdtWeb(
   // Build Tailwind CSS
   // ------------------------------------------------------------------
   progress.emit({ type: "step-progress", step, message: "Building Tailwind CSS..." })
-  await buildTailwindCss(adtDir, webAssetsDir)
+  await buildTailwindCss(adtDir, webAssetsDir, typographyCss)
 
   // ------------------------------------------------------------------
   // SCORM + Offline support
@@ -1948,14 +1952,19 @@ export function convertLatexToMathml(html: string): string {
 async function buildTailwindCss(
   adtDir: string,
   webAssetsDir: string,
+  typographyCss?: string,
 ): Promise<void> {
   const outputPath = path.join(adtDir, "content", "tailwind_output.css")
+  // Appended AFTER (outside) Tailwind's @layer output so these unlayered rules
+  // win over text-* utilities wherever a page applies an .adt-* class.
+  const suffix = typographyCss ? `\n${typographyCss}\n` : ""
 
   // In Tauri sidecar mode, postcss/tailwindcss cannot run inside the pkg binary.
   // bundle.mjs pre-builds tailwind_output.css into webAssetsDir before zipping.
   const preBuilt = path.join(webAssetsDir, "tailwind_output.css")
   if (fs.existsSync(preBuilt)) {
     fs.copyFileSync(preBuilt, outputPath)
+    if (suffix) fs.appendFileSync(outputPath, suffix)
     return
   }
 
@@ -1984,7 +1993,7 @@ async function buildTailwindCss(
     { from: TAILWIND_VIRTUAL_FROM },
   )
 
-  fs.writeFileSync(outputPath, result.css)
+  fs.writeFileSync(outputPath, result.css + suffix)
 }
 
 /** Convert Windows backslashes to forward slashes for `@source` paths. */
@@ -1999,6 +2008,7 @@ function toPosix(p: string): string {
 export async function buildPreviewTailwindCss(
   contentHtml: string,
   webAssetsDir: string,
+  typographyCss?: string,
 ): Promise<string> {
   const postcss = (await import("postcss")).default
   const tailwindcss = (await import("@tailwindcss/postcss")).default
@@ -2028,7 +2038,8 @@ export async function buildPreviewTailwindCss(
       `${sourceDirectives}\n${inputCss}`,
       { from: TAILWIND_VIRTUAL_FROM },
     )
-    return result.css
+    // Append unlayered so the .adt-* size classes win over text-* utilities.
+    return typographyCss ? `${result.css}\n${typographyCss}\n` : result.css
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true })
   }

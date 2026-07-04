@@ -37,7 +37,7 @@ You may adjust alignment classes (items-center vs items-start), padding, and max
 5. **Text Styles** — A table mapping each text_type to an HTML element and Tailwind classes. Required text_types:
    - book_title, book_subtitle, chapter_title, section_heading, activity_title
    - section_text, instruction_text, standalone_text, image_associated_text
-   Choose font sizes, weights, and colors that match the original style.
+   For FONT SIZE, when a typography scale is provided in the input, set the size via the shared classes (`adt-h1`/`adt-h2`/`adt-h3` for headings, `adt-body` for body/instruction/standalone text, `adt-caption` for captions and image-associated text) instead of choosing per-type `text-*` sizes — the size is fixed book-wide by these classes and keeps every page identical. Choose font weights and colors that match the original style. If no typography scale is provided, choose sizes that match the original.
 
 6. **Image Styles** — A table defining classes for single images, multiple images, and image grid containers.
 
@@ -99,6 +99,13 @@ The user attached these fonts for this book. The Text Styles section MUST use ON
 {% for font in book_fonts %}- "{{ font.family }}" — role: {{ font.role }}{% if font.category %} ({{ font.category }}){% endif %}{% if font.usage_notes %} — {{ font.usage_notes }}{% endif %}
 {% endfor %}
 Reference them via inline `style="font-family: '...'"` (or Tailwind arbitrary values like `font-['Family_Name']`) in the styleguide HTML examples. Ignore fonts with role `unassigned`.
+{% endif %}
+{% if typography.size > 0 %}
+
+This book uses a FIXED, accessible type scale. In the Text Styles table, set FONT SIZE via these classes only (do not add competing `text-*` size utilities on those elements):
+{% for s in typography %}- `{{ s.className }}` — {{ s.label }} ({{ s.mobilePx }}px mobile → {{ s.desktopPx }}px desktop)
+{% endfor %}
+Suggested mapping: book_title / chapter_title → `adt-h1`; book_subtitle / section_heading / activity_title → `adt-h2` (use `adt-h3` for minor or callout headings); section_text / instruction_text / standalone_text → `adt-body`; image_associated_text → `adt-caption`. Show these classes on the elements in your Text Styles examples and Page Templates.
 {% endif %}
 
 {% for image in page_images %}

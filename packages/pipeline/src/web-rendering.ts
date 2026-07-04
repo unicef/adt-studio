@@ -4,6 +4,7 @@ import {
   type PageSectioningOutput,
   type PageSectioningSection,
   type SectionRendering,
+  type BookTypography,
   type WebRenderingOutput,
   DEFAULT_LLM_MAX_RETRIES,
 } from "@adt/types"
@@ -86,6 +87,8 @@ export interface RenderSectionInput {
   context: RenderContext
   styleguide?: string
   bookFonts?: BookFontPromptEntry[]
+  /** Book typography (editable size-per-role map), shared with every page. */
+  typography?: BookTypography
   /** Optional user instructions appended to the LLM prompt during re-render */
   userPrompt?: string
 }
@@ -98,6 +101,8 @@ export interface RenderPageInput {
   images: Map<string, { base64: string; width?: number; height?: number }>
   styleguide?: string
   bookFonts?: BookFontPromptEntry[]
+  /** Book typography (editable size-per-role map), shared with every page. */
+  typography?: BookTypography
   /** Optional user instructions appended to the LLM prompt during re-render */
   userPrompt?: string
 }
@@ -247,6 +252,7 @@ export async function renderPage(
       context,
       styleguide: input.styleguide,
       bookFonts: input.bookFonts,
+      typography: input.typography,
       userPrompt: input.userPrompt,
     }
 

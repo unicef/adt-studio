@@ -31,6 +31,7 @@ import {
   buildBookFontsPromptContext,
   ensureBookGoogleFontsCached,
 } from "./fonts-bundle.js"
+import { readTypography } from "./typography.js"
 import { extractMetadata, buildMetadataConfig } from "./metadata-extraction.js"
 import { generateBookSummary, buildBookSummaryConfig } from "./book-summary.js"
 import {
@@ -562,6 +563,8 @@ export async function runFullPipeline(
       }
       const pages = storage.getPages()
       const totalPages = pages.length
+      // Resolve once per book — every page shares the same typography.
+      const typography = readTypography(storage)
       await processWithConcurrency(pages, effectiveConcurrency, async (page) => {
         const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
         const imageClassRow = storage.getLatestNodeData("image-filtering", page.pageId)
@@ -586,6 +589,7 @@ export async function runFullPipeline(
             sectioning: sectioning,
             images: renderImages,
             bookFonts: buildBookFontsPromptContext(storage),
+            typography,
           },
           resolveRenderConfig,
           resolveRenderModel,

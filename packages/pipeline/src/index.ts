@@ -272,6 +272,22 @@ export {
   convertLatexToMathml,
 } from "./package-web.js"
 export {
+  tallyFontSizes,
+  mergeTallies,
+  deriveTypeScale,
+  deriveTypeScaleFromHistogram,
+  readTypeScale,
+  TYPE_SCALE_NODE,
+  TYPE_SCALE_ITEM,
+} from "./type-scale.js"
+export {
+  readTypography,
+  buildTypographyCss,
+  resolveTypographyCss,
+  TYPOGRAPHY_NODE,
+  TYPOGRAPHY_ITEM,
+} from "./typography.js"
+export {
   runAccessibilityAssessment,
   type RunAccessibilityAssessmentOptions,
 } from "./accessibility-assessment.js"

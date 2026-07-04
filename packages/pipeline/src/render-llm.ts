@@ -5,6 +5,8 @@ import { validateSectionHtml } from "./validate-html.js"
 import { getViewportBreakpoints, type ScreenshotRenderer } from "./screenshot.js"
 import type { RenderConfig, RenderSectionInput } from "./web-rendering.js"
 import { runVisualReviewLoop } from "./visual-review.js"
+import { buildTypographyCss } from "./typography.js"
+import { DEFAULT_TYPOGRAPHY } from "@adt/types"
 
 /** Dependencies for the optional visual refinement loop. */
 export interface VisualRefinementDeps {
@@ -45,6 +47,7 @@ export async function renderSectionLlm(
     group_ids: renderContext.group_ids,
     styleguide: input.styleguide ?? "",
     book_fonts: input.bookFonts ?? [],
+    typography: (input.typography ?? DEFAULT_TYPOGRAPHY).styles,
     viewports: getViewportBreakpoints(),
     _isActivity: isActivity,
     user_instructions: input.userPrompt ?? "",
@@ -91,6 +94,7 @@ export async function renderSectionLlm(
         screenshotRenderer: visualRefinement.screenshotRenderer,
         webAssetsDir: visualRefinement.webAssetsDir,
         storeScreenshot: visualRefinement.storeScreenshot,
+        typographyCss: buildTypographyCss(input.typography ?? DEFAULT_TYPOGRAPHY),
       },
       promptName: vr.promptName,
       maxIterations: vr.maxIterations,

@@ -4,6 +4,13 @@ import type { Storage } from "@adt/storage"
 import type { Progress } from "./progress.js"
 import { toBookMetadata } from "./metadata-model.js"
 import { ensureBookGoogleFontsCached } from "./fonts-bundle.js"
+import {
+  tallyFontSizes,
+  mergeTallies,
+  deriveTypeScaleFromHistogram,
+  TYPE_SCALE_NODE,
+  TYPE_SCALE_ITEM,
+} from "./type-scale.js"
 
 export interface ExtractOptions {
   pdfPath: string
@@ -62,6 +69,9 @@ export async function extractPDF(
 
     let serifChars = 0
     let sansChars = 0
+    // Character-weighted font-size histogram across all pages, used to derive
+    // the book-wide type scale (body + heading tiers) below.
+    const sizeHist = new Map<number, number>()
     for await (const page of pages) {
       storage.putExtractedPage(page)
       // Store positioned text (paragraphs + viewport dims). Always available so
@@ -73,6 +83,7 @@ export async function extractPDF(
       }
       serifChars += page.fontStats?.serifChars ?? 0
       sansChars += page.fontStats?.sansChars ?? 0
+      mergeTallies(sizeHist, tallyFontSizes(page.positionedText))
     }
 
     // Book-level font profile: the dominant body-text category (serif vs sans)
@@ -81,6 +92,12 @@ export async function extractPDF(
     const category =
       serifChars === 0 && sansChars === 0 ? null : serifChars >= sansChars ? "serif" : "sans"
     storage.putNodeData("font-profile", "book", { category, serifChars, sansChars })
+
+    // Book-level type scale: baseline size per text role, derived from the
+    // extracted font sizes. Shared as CSS tokens at render time so every page
+    // renders paragraphs/headings at the same size. null when no text.
+    const typeScale = deriveTypeScaleFromHistogram(sizeHist)
+    if (typeScale) storage.putNodeData(TYPE_SCALE_NODE, TYPE_SCALE_ITEM, typeScale)
 
     progress.emit({ type: "step-complete", step: "extract" })
   } catch (err) {

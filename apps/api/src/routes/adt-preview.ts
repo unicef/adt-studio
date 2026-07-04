@@ -23,6 +23,7 @@ import {
   renderPageHtml,
   NAV_HTML,
   buildPreviewTailwindCss,
+  resolveTypographyCss,
   buildGlossaryJson,
   getBaseLanguage,
   normalizeLocale,
@@ -704,7 +705,7 @@ export function createAdtPreviewRoutes(
       // are picked up before the edit is persisted to the DB.
       if (extraHtml) allHtml += "\n" + extraHtml
 
-      return await buildPreviewTailwindCss(allHtml, webAssetsDir)
+      return await buildPreviewTailwindCss(allHtml, webAssetsDir, resolveTypographyCss(storage))
     } finally {
       storage.close()
     }

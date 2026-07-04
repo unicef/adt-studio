@@ -23,6 +23,7 @@ import { FontPreviewStyles, GooglePreviewLink } from "./fonts/FontPreviewAssets"
 import { CurrentFontCard } from "./fonts/CurrentFontCard"
 import { AddFontDialog } from "./fonts/AddFontDialog"
 import { AttachedFontsList } from "./fonts/AttachedFontsList"
+import { TypographySettings } from "./TypographySettings"
 
 const ANALYZE_POLL_MS = 3000
 
@@ -235,6 +236,8 @@ export function FontSettings({ bookLabel }: { bookLabel: string }) {
           </Trans>
         </p>
       )}
+
+      <TypographySettings bookLabel={bookLabel} />
     </div>
   )
 }

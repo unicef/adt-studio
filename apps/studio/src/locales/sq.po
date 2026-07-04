@@ -340,6 +340,12 @@ msgstr "{issueCount} {0}"
 msgid "{issuesLabel}, {reviewLabel}"
 msgstr "{issuesLabel}, {reviewLabel}"
 
+msgid "{label} desktop size in pixels"
+msgstr "Madhësia e {label} në desktop, në piksel"
+
+msgid "{label} mobile size in pixels"
+msgstr "Madhësia e {label} në celular, në piksel"
+
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 nga {total} faqe të bashkuara} one {# nga {total} faqe të bashkuara} other {# nga {total} faqe të bashkuara}}"
 
@@ -1621,6 +1627,9 @@ msgstr "Ndrysho Presetin"
 msgid "Change the book language?"
 msgstr "Të ndryshohet gjuha e librit?"
 
+msgid "Changes apply the next time you run Storyboard and Export."
+msgstr "Ndryshimet zbatohen herën tjetër që ekzekutoni Storyboard dhe Eksportin."
+
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Ndryshimi i fonteve ndikon në mënyrën se si shfaqen faqet — riekzekutoni Storyboard dhe Eksportin për të zbatuar fontet e reja."
 
@@ -1650,6 +1659,9 @@ msgstr "Libra me kapituj dhe imazhe"
 
 msgid "Chapter One"
 msgstr "Kapitulli i Parë"
+
+msgid "Chapter title"
+msgstr "Titulli i kapitullit"
 
 msgid "Chart / Graph"
 msgstr "Tabelë / Grafik"
@@ -2113,6 +2125,12 @@ msgstr "Dekorativ"
 
 msgid "Decrease {label}"
 msgstr "Zvogëlo {label}"
+
+msgid "Decrease {label} desktop size"
+msgstr "Zvogëlo madhësinë e {label} në desktop"
+
+msgid "Decrease {label} mobile size"
+msgstr "Zvogëlo madhësinë e {label} në celular"
 
 msgid "Decrease indent"
 msgstr "Zvogëlo dhëmbëzimin"
@@ -2983,6 +3001,9 @@ msgstr "Paraqitje e fiksuar me dy kolona"
 msgid "Fixed-layout books use the original page images as backgrounds with positioned text extracted from the PDF. Activities detection, figure extraction, and image cropping or segmentation don't apply to this layout."
 msgstr "Librat me paraqitje të fiksuar përdorin imazhet origjinale të faqeve si sfond me tekst të pozicionuar të nxjerrë nga PDF-i. Zbulimi i aktiviteteve, nxjerrja e figurave dhe prerja ose segmentimi i imazheve nuk zbatohen për këtë paraqitje."
 
+msgid "Fixed, accessible sizes applied to every page. Each role scales fluidly between its mobile and desktop size, and these override any size the AI picks — so headings and body text stay consistent across the whole book."
+msgstr "Madhësi fikse dhe të aksesueshme që zbatohen në çdo faqe. Çdo rol shkallëzohet në mënyrë të rrjedhshme mes madhësisë së tij në celular dhe në desktop, dhe ato mbizotërojnë çdo madhësi që zgjedh IA-ja — kështu titujt dhe teksti i trupit mbeten të qëndrueshëm në të gjithë librin."
+
 msgid "flagged"
 msgstr "shënuar"
 
@@ -3587,6 +3608,12 @@ msgstr "Përfshin:"
 msgid "Increase {label}"
 msgstr "Rrit {label}"
 
+msgid "Increase {label} desktop size"
+msgstr "Rrit madhësinë e {label} në desktop"
+
+msgid "Increase {label} mobile size"
+msgstr "Rrit madhësinë e {label} në celular"
+
 msgid "Increase indent"
 msgstr "Rrit dhëmbëzimin"
 
@@ -3961,6 +3988,9 @@ msgstr "Duke ngarkuar modelin..."
 
 msgid "Loading text catalog..."
 msgstr "Duke ngarkuar katalogun e tekstit..."
+
+msgid "Loading text sizes…"
+msgstr "Po ngarkohen madhësitë e tekstit…"
 
 msgid "Loading validation..."
 msgstr "Duke ngarkuar vërtetimin..."
@@ -6088,6 +6118,9 @@ msgstr "Ruaj zgjedhjen"
 msgid "Save settings"
 msgstr "Ruaj cilësimet"
 
+msgid "Save text sizes"
+msgstr "Ruaj madhësitë e tekstit"
+
 msgid "Saved. Re-package Preview to apply."
 msgstr "U ruajt. Ri-pako Parapamjen për ta aplikuar."
 
@@ -6205,6 +6238,9 @@ msgstr "Seksioni 3 · Përmbledhje"
 
 msgid "Section 3.2"
 msgstr "Seksioni 3.2"
+
+msgid "Section heading"
+msgstr "Titull seksioni"
 
 msgid "Section label"
 msgstr "Etiketë seksioni"
@@ -6820,6 +6856,9 @@ msgstr "Parashikim i Udhëzuesit të Stilit — {styleguide}"
 msgid "styles"
 msgstr "stile"
 
+msgid "Subheading"
+msgstr "Nëntitull"
+
 msgid "Submit"
 msgstr "Dërgo"
 
@@ -6962,6 +7001,12 @@ msgstr "Teksti u rikuperua nga imazhi i faqes — kjo faqe nuk ka shtresë tekst
 
 msgid "Text roles the LLM may assign to text in the content tree. Pruned roles are classified but excluded from rendering."
 msgstr "Rolet tekstuale që LLM mund t'u caktojë teksteve në pemën e përmbajtjes. Rolet e eliminuara klasifikohen por përjashtohen nga renderimi."
+
+msgid "Text sizes"
+msgstr "Madhësitë e tekstit"
+
+msgid "Text sizes saved. Re-run Storyboard and Export to apply them."
+msgstr "Madhësitë e tekstit u ruajtën. Riekzekutoni Storyboard dhe Eksportin për t'i zbatuar."
 
 msgid "Text Types"
 msgstr "Llojet e Tekstit"

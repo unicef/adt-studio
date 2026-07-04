@@ -339,6 +339,12 @@ msgstr "{issueCount} {0}"
 msgid "{issuesLabel}, {reviewLabel}"
 msgstr "{issuesLabel}, {reviewLabel}"
 
+msgid "{label} desktop size in pixels"
+msgstr "{label} desktop size in pixels"
+
+msgid "{label} mobile size in pixels"
+msgstr "{label} mobile size in pixels"
+
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 
@@ -1620,6 +1626,9 @@ msgstr "Change Preset"
 msgid "Change the book language?"
 msgstr "Change the book language?"
 
+msgid "Changes apply the next time you run Storyboard and Export."
+msgstr "Changes apply the next time you run Storyboard and Export."
+
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 
@@ -1649,6 +1658,9 @@ msgstr "Chapter books with images"
 
 msgid "Chapter One"
 msgstr "Chapter One"
+
+msgid "Chapter title"
+msgstr "Chapter title"
 
 msgid "Chart / Graph"
 msgstr "Chart / Graph"
@@ -2112,6 +2124,12 @@ msgstr "Decorative"
 
 msgid "Decrease {label}"
 msgstr "Decrease {label}"
+
+msgid "Decrease {label} desktop size"
+msgstr "Decrease {label} desktop size"
+
+msgid "Decrease {label} mobile size"
+msgstr "Decrease {label} mobile size"
 
 msgid "Decrease indent"
 msgstr "Decrease indent"
@@ -2982,6 +3000,9 @@ msgstr "Fixed two-column template layout"
 msgid "Fixed-layout books use the original page images as backgrounds with positioned text extracted from the PDF. Activities detection, figure extraction, and image cropping or segmentation don't apply to this layout."
 msgstr "Fixed-layout books use the original page images as backgrounds with positioned text extracted from the PDF. Activities detection, figure extraction, and image cropping or segmentation don't apply to this layout."
 
+msgid "Fixed, accessible sizes applied to every page. Each role scales fluidly between its mobile and desktop size, and these override any size the AI picks — so headings and body text stay consistent across the whole book."
+msgstr "Fixed, accessible sizes applied to every page. Each role scales fluidly between its mobile and desktop size, and these override any size the AI picks — so headings and body text stay consistent across the whole book."
+
 msgid "flagged"
 msgstr "flagged"
 
@@ -3586,6 +3607,12 @@ msgstr "Includes:"
 msgid "Increase {label}"
 msgstr "Increase {label}"
 
+msgid "Increase {label} desktop size"
+msgstr "Increase {label} desktop size"
+
+msgid "Increase {label} mobile size"
+msgstr "Increase {label} mobile size"
+
 msgid "Increase indent"
 msgstr "Increase indent"
 
@@ -3960,6 +3987,9 @@ msgstr "Loading template..."
 
 msgid "Loading text catalog..."
 msgstr "Loading text catalog..."
+
+msgid "Loading text sizes…"
+msgstr "Loading text sizes…"
 
 msgid "Loading validation..."
 msgstr "Loading validation..."
@@ -6087,6 +6117,9 @@ msgstr "Save selection"
 msgid "Save settings"
 msgstr "Save settings"
 
+msgid "Save text sizes"
+msgstr "Save text sizes"
+
 msgid "Saved. Re-package Preview to apply."
 msgstr "Saved. Re-package Preview to apply."
 
@@ -6204,6 +6237,9 @@ msgstr "Section 3 · Overview"
 
 msgid "Section 3.2"
 msgstr "Section 3.2"
+
+msgid "Section heading"
+msgstr "Section heading"
 
 msgid "Section label"
 msgstr "Section label"
@@ -6819,6 +6855,9 @@ msgstr "Styleguide Preview — {styleguide}"
 msgid "styles"
 msgstr "styles"
 
+msgid "Subheading"
+msgstr "Subheading"
+
 msgid "Submit"
 msgstr "Submit"
 
@@ -6961,6 +7000,12 @@ msgstr "Text recovered from the page image — this page has no embedded text la
 
 msgid "Text roles the LLM may assign to text in the content tree. Pruned roles are classified but excluded from rendering."
 msgstr "Text roles the LLM may assign to text in the content tree. Pruned roles are classified but excluded from rendering."
+
+msgid "Text sizes"
+msgstr "Text sizes"
+
+msgid "Text sizes saved. Re-run Storyboard and Export to apply them."
+msgstr "Text sizes saved. Re-run Storyboard and Export to apply them."
 
 msgid "Text Types"
 msgstr "Text Types"

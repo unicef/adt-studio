@@ -339,6 +339,12 @@ msgstr "{issueCount} {0}"
 msgid "{issuesLabel}, {reviewLabel}"
 msgstr "{issuesLabel}, {reviewLabel}"
 
+msgid "{label} desktop size in pixels"
+msgstr "Tamanho de {label} no desktop, em pixels"
+
+msgid "{label} mobile size in pixels"
+msgstr "Tamanho de {label} no celular, em pixels"
+
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 de {total} páginas mescladas} one {# de {total} páginas mescladas} other {# de {total} páginas mescladas}}"
 
@@ -1620,6 +1626,9 @@ msgstr "Alterar Predefinição"
 msgid "Change the book language?"
 msgstr "Alterar o idioma do livro?"
 
+msgid "Changes apply the next time you run Storyboard and Export."
+msgstr "As alterações são aplicadas na próxima vez que você executar o Storyboard e a Exportação."
+
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Alterar as fontes afeta como as páginas são renderizadas — execute novamente o Storyboard e a Exportação para aplicar as novas fontes."
 
@@ -1649,6 +1658,9 @@ msgstr "Livros de capítulos com imagens"
 
 msgid "Chapter One"
 msgstr "Capítulo Um"
+
+msgid "Chapter title"
+msgstr "Título do capítulo"
 
 msgid "Chart / Graph"
 msgstr "Gráfico / Tabela"
@@ -2112,6 +2124,12 @@ msgstr "Decorativa"
 
 msgid "Decrease {label}"
 msgstr "Diminuir {label}"
+
+msgid "Decrease {label} desktop size"
+msgstr "Diminuir o tamanho de {label} no desktop"
+
+msgid "Decrease {label} mobile size"
+msgstr "Diminuir o tamanho de {label} no celular"
 
 msgid "Decrease indent"
 msgstr "Diminuir recuo"
@@ -2982,6 +3000,9 @@ msgstr "Layout fixo de duas colunas (template)"
 msgid "Fixed-layout books use the original page images as backgrounds with positioned text extracted from the PDF. Activities detection, figure extraction, and image cropping or segmentation don't apply to this layout."
 msgstr "Livros de layout fixo usam as imagens originais das páginas como fundo com texto posicionado extraído do PDF. Detecção de atividades, extração de figuras, recorte ou segmentação de imagens não se aplicam a este layout."
 
+msgid "Fixed, accessible sizes applied to every page. Each role scales fluidly between its mobile and desktop size, and these override any size the AI picks — so headings and body text stay consistent across the whole book."
+msgstr "Tamanhos fixos e acessíveis aplicados a todas as páginas. Cada função é dimensionada de forma fluida entre seu tamanho no celular e no desktop, e elas substituem qualquer tamanho escolhido pela IA — assim os títulos e o texto do corpo permanecem consistentes em todo o livro."
+
 msgid "flagged"
 msgstr "flagged"
 
@@ -3586,6 +3607,12 @@ msgstr "Inclui:"
 msgid "Increase {label}"
 msgstr "Aumentar {label}"
 
+msgid "Increase {label} desktop size"
+msgstr "Aumentar o tamanho de {label} no desktop"
+
+msgid "Increase {label} mobile size"
+msgstr "Aumentar o tamanho de {label} no celular"
+
 msgid "Increase indent"
 msgstr "Aumentar recuo"
 
@@ -3960,6 +3987,9 @@ msgstr "Loading template..."
 
 msgid "Loading text catalog..."
 msgstr "Carregando catálogo de textos..."
+
+msgid "Loading text sizes…"
+msgstr "Carregando tamanhos de texto…"
 
 msgid "Loading validation..."
 msgstr "Carregando validação..."
@@ -6087,6 +6117,9 @@ msgstr "Salvar seleção"
 msgid "Save settings"
 msgstr "Save settings"
 
+msgid "Save text sizes"
+msgstr "Salvar tamanhos de texto"
+
 msgid "Saved. Re-package Preview to apply."
 msgstr "Saved. Re-package Preview to apply."
 
@@ -6204,6 +6237,9 @@ msgstr "Seção 3 · Visão Geral"
 
 msgid "Section 3.2"
 msgstr "Seção 3.2"
+
+msgid "Section heading"
+msgstr "Título de seção"
 
 msgid "Section label"
 msgstr "Section label"
@@ -6819,6 +6855,9 @@ msgstr "Pré-visualização do guia de estilo — {0}"
 msgid "styles"
 msgstr "estilos"
 
+msgid "Subheading"
+msgstr "Subtítulo"
+
 msgid "Submit"
 msgstr "Enviar"
 
@@ -6961,6 +7000,12 @@ msgstr "Texto recuperado a partir da imagem da página — esta página não tem
 
 msgid "Text roles the LLM may assign to text in the content tree. Pruned roles are classified but excluded from rendering."
 msgstr "Papéis de texto que o LLM pode atribuir ao texto na árvore de conteúdo. Papéis podados são classificados, mas excluídos da renderização."
+
+msgid "Text sizes"
+msgstr "Tamanhos de texto"
+
+msgid "Text sizes saved. Re-run Storyboard and Export to apply them."
+msgstr "Tamanhos de texto salvos. Execute novamente o Storyboard e a Exportação para aplicá-los."
 
 msgid "Text Types"
 msgstr "Tipos de texto"
