@@ -934,9 +934,10 @@ export function createAdtPreviewRoutes(
         const quiz = quizData.quizzes[quizIndex]
         const catalog = await getTextCatalog(storage)
 
-        const quizStyle = (config.quiz_generation?.match_book_style ?? true)
-          ? { palette: resolveQuizPalette(storage) }
+        const quizPalette = (config.quiz_generation?.match_book_style ?? true)
+          ? resolveQuizPalette(storage)
           : null
+        const quizStyle = quizPalette ? { palette: quizPalette } : null
         const quizHtmlContent = renderQuizHtml(quiz, pageId, catalog, quizStyle)
         // Determine page index from the manifest
       const manifest = buildPagesManifest(storage)

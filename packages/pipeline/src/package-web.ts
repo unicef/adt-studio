@@ -263,8 +263,10 @@ export async function packageAdtWeb(
   // Book typography CSS (fixed size per text role), appended to the compiled
   // Tailwind stylesheet so every page shares the same sizes.
   const typographyCss = resolveTypographyCss(storage)
-  // Quiz styling: match the book (typography + derived palette) unless disabled.
-  const quizStyle = (quizMatchBookStyle ?? true) ? { palette: resolveQuizPalette(storage) } : null
+  // Quiz styling: match the book (typography + derived palette) when enabled AND
+  // the book has a detectable accent color; otherwise keep the clean white default.
+  const quizPalette = (quizMatchBookStyle ?? true) ? resolveQuizPalette(storage) : null
+  const quizStyle = quizPalette ? { palette: quizPalette } : null
 
   const step = "package-web" as const
   progress.emit({ type: "step-start", step })

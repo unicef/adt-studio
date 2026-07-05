@@ -218,7 +218,7 @@ export function deriveQuizPalette(
  * (often as Tailwind classes like `bg-emerald-700`) and is NOT present in the
  * section colors. Falls back to a colorful section color, then a neutral accent.
  */
-export function resolveQuizPalette(storage: Storage): QuizPalette {
+export function resolveQuizPalette(storage: Storage): QuizPalette | null {
   const sectionBg: string[] = []
   const sectionTx: string[] = []
   const htmlColorful: string[] = []
@@ -246,7 +246,11 @@ export function resolveQuizPalette(storage: Storage): QuizPalette {
   const sectionColorful = [...sectionBg, ...sectionTx].filter(
     (c) => c !== surface && isColorful(parseHex(c)!),
   )
-  const accent =
-    mostFrequent(htmlColorful) ?? mostFrequent(sectionColorful) ?? DEFAULT_ACCENT
+  // Accent = the book's actual brand color (from rendered pages, then sections).
+  // When none is found — e.g. two-column/template modes with no colored
+  // rendering — return null so the quiz keeps the clean white default rather
+  // than a generic blue tint.
+  const accent = mostFrequent(htmlColorful) ?? mostFrequent(sectionColorful)
+  if (!accent) return null
   return buildPalette(surface, ink, accent)
 }

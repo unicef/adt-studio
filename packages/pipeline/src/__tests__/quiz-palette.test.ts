@@ -1,9 +1,23 @@
 import { describe, it, expect } from "vitest"
+import type { Storage } from "@adt/storage"
 import {
   deriveQuizPalette,
+  resolveQuizPalette,
   colorCandidatesFromHtml,
   DEFAULT_QUIZ_PALETTE,
 } from "../quiz-palette.js"
+
+const fakeStorage = (
+  pageIds: string[],
+  nodes: Record<string, Record<string, unknown>>,
+) =>
+  ({
+    getPages: () => pageIds.map((pageId) => ({ pageId, pageNumber: 1, text: "" })),
+    getLatestNodeData: (node: string, itemId: string) => {
+      const d = nodes[node]?.[itemId]
+      return d !== undefined ? { data: d, version: 1 } : null
+    },
+  }) as unknown as Storage
 
 describe("deriveQuizPalette", () => {
   it("falls back to defaults when there are no usable colors", () => {
@@ -55,5 +69,26 @@ describe("colorCandidatesFromHtml", () => {
   it("also reads arbitrary hex and rgb(), filtering out neutrals", () => {
     const html = '<div style="color: #0A8F5A; background: rgb(255,255,255)"></div><span class="text-[#111111]">x</span>'
     expect(colorCandidatesFromHtml(html)).toEqual(["#0A8F5A"])
+  })
+})
+
+describe("resolveQuizPalette", () => {
+  it("returns null when the book has no accent color (keep the clean white quiz)", () => {
+    const storage = fakeStorage(["pg001"], {
+      "page-sectioning": { pg001: { sections: [{ backgroundColor: "#ffffff", textColor: "#000000" }] } },
+      "web-rendering": { pg001: { sections: [{ html: '<p class="bg-white text-gray-900">plain</p>' }] } },
+    })
+    expect(resolveQuizPalette(storage)).toBeNull()
+  })
+
+  it("derives the accent from the rendered pages when one exists", () => {
+    const storage = fakeStorage(["pg001"], {
+      "page-sectioning": { pg001: { sections: [{ backgroundColor: "#ffffff", textColor: "#000000" }] } },
+      "web-rendering": { pg001: { sections: [{ html: '<h1 class="bg-emerald-700 text-emerald-700">Q</h1>' }] } },
+    })
+    const p = resolveQuizPalette(storage)
+    expect(p).not.toBeNull()
+    expect(p!.accent).toBe("#047857")
+    expect(p!.surface).toBe("#FFFFFF")
   })
 })
