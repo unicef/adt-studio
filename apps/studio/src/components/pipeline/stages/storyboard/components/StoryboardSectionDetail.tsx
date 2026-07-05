@@ -129,7 +129,13 @@ type SectioningData = PageSectioningOutput
 type RenderingData = NonNullable<PageDetail["rendering"]>
 
 // `_el#` data-ids are assigned by the iframe at runtime to give the inspector
-// a stable handle on container elements; they must not be persisted.
+// a stable handle on container elements (e.g. inline text-run <span>s that
+// carry no authored data-id); they map to no fixed-layout sectioning node and
+// must not be persisted.
+function isTransientId(dataId: string): boolean {
+  return /^_el\d+$/.test(dataId)
+}
+
 function stripTransientIds(rendering: RenderingData): RenderingData {
   return {
     ...rendering,
@@ -1272,7 +1278,7 @@ export function StoryboardSectionDetail({
       let fullHtml = previewFrameRef.current?.setElementClasses(dataId, classes)
       if (!fullHtml) return
       setSelectedElementClasses(classes)
-      if (isFixedLayout) {
+      if (isFixedLayout && !isTransientId(dataId)) {
         const props = inheritablePropsForClasses(classes)
         if (props.length > 0) {
           fullHtml = previewFrameRef.current?.stripChildStyleProps(dataId, props) ?? fullHtml
