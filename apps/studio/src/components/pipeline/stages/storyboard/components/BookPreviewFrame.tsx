@@ -99,6 +99,87 @@ function parsePositiveNumber(value: string | undefined | null): number | null {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null
 }
 
+type FixedLayoutSize = { width: number; height: number; referenceWidth: number }
+
+const pxClassPatterns = {
+  left: /^left-\[(-?\d+(?:\.\d+)?)px\]$/,
+  top: /^top-\[(-?\d+(?:\.\d+)?)px\]$/,
+  w: /^w-\[(-?\d+(?:\.\d+)?)px\]$/,
+  h: /^h-\[(-?\d+(?:\.\d+)?)px\]$/,
+} as const
+
+function parsePxClass(classes: DOMTokenList, prefix: "left" | "top" | "w" | "h"): number | null {
+  const re = pxClassPatterns[prefix]
+  for (const cls of Array.from(classes)) {
+    const match = re.exec(cls)
+    if (match) return parseFloat(match[1])
+  }
+  return null
+}
+
+function readFixedLayoutSizeFromElement(contentEl: HTMLElement | null): FixedLayoutSize | null {
+  const dataW = parsePositiveNumber(contentEl?.dataset.flWidth)
+  const dataH = parsePositiveNumber(contentEl?.dataset.flHeight)
+  const styleW = contentEl ? parsePxStyle(contentEl.style.width) : null
+  const styleH = contentEl ? parsePxStyle(contentEl.style.height) : null
+  const classW = contentEl ? parsePxClass(contentEl.classList, "w") : null
+  const classH = contentEl ? parsePxClass(contentEl.classList, "h") : null
+  const fixedW = dataW ?? styleW ?? classW
+  const fixedH = dataH ?? styleH ?? classH
+  if (!contentEl || fixedW === null || fixedH === null) return null
+  const referenceWidth = parsePositiveNumber(contentEl.dataset.flReferenceWidth) ?? fixedW
+  return { width: fixedW, height: fixedH, referenceWidth }
+}
+
+function replaceFixedSizeClasses(contentEl: HTMLElement, width: number, height: number): void {
+  const classes = Array.from(contentEl.classList).filter(
+    (cls) => !/^w-\[-?\d+(?:\.\d+)?px\]$/.test(cls) && !/^h-\[-?\d+(?:\.\d+)?px\]$/.test(cls),
+  )
+  classes.push(`w-[${width}px]`, `h-[${height}px]`)
+  contentEl.setAttribute("class", classes.join(" "))
+}
+
+function expandFixedLayoutCanvas(html: string): string {
+  if (!/\bdata-fl-width=/.test(html)) return html
+  const template = document.createElement("template")
+  template.innerHTML = html
+  const contentEl =
+    template.content.querySelector<HTMLElement>("#content") ??
+    template.content.querySelector<HTMLElement>("[data-fl-width][data-fl-height]")
+  const size = readFixedLayoutSizeFromElement(contentEl)
+  if (!contentEl || !size) return html
+
+  let maxRight = size.width
+  let maxBottom = size.height
+  for (const el of Array.from(contentEl.querySelectorAll<HTMLElement>(".absolute"))) {
+    const left = parsePxClass(el.classList, "left")
+    const top = parsePxClass(el.classList, "top")
+    const width = parsePxClass(el.classList, "w")
+    const height = parsePxClass(el.classList, "h")
+    if (left !== null && width !== null) maxRight = Math.max(maxRight, left + width)
+    if (top !== null && height !== null) maxBottom = Math.max(maxBottom, top + height)
+  }
+
+  const width = Math.ceil(maxRight)
+  const height = Math.ceil(maxBottom)
+  if (width === size.width && height === size.height) return html
+  contentEl.dataset.flWidth = String(width)
+  contentEl.dataset.flHeight = String(height)
+  contentEl.dataset.flReferenceWidth = String(Math.max(size.referenceWidth, width))
+  replaceFixedSizeClasses(contentEl, width, height)
+  return template.innerHTML
+}
+
+function readFixedLayoutSizeFromHtml(html: string): FixedLayoutSize | null {
+  if (!/\bdata-fl-width=/.test(html)) return null
+  const template = document.createElement("template")
+  template.innerHTML = html
+  const contentEl =
+    template.content.querySelector<HTMLElement>("#content") ??
+    template.content.querySelector<HTMLElement>("[data-fl-width][data-fl-height]")
+  return readFixedLayoutSizeFromElement(contentEl)
+}
+
 // Upper bound for upscaling fixed-layout pages so small-page PDFs fill the
 // preview panel instead of rendering boxed. 2× keeps rasterised assets from
 // getting unacceptably soft while still filling the panel for typical books.
@@ -194,20 +275,20 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
 
   const assetsPrefix = previewAssetsUrl(bookLabel)
 
-  useImperativeHandle(ref, () => ({
-    getIframeRect: () => iframeRef.current?.getBoundingClientRect() ?? null,
-    refreshCss: async (extraHtml: string) => {
-      const id = ++refreshIdRef.current
-      const doc = iframeRef.current?.contentDocument
-      if (!doc?.head) return
+  const refreshPreviewCss = useCallback(async (extraHtml: string, afterApply = true): Promise<boolean> => {
+    const id = ++refreshIdRef.current
+    const doc = iframeRef.current?.contentDocument
+    if (!doc?.head) return false
+    try {
       const res = await fetch(`${assetsPrefix}/content/tailwind_output.css`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ extraHtml }),
       })
-      if (id !== refreshIdRef.current || !res.ok) return
+      if (id !== refreshIdRef.current) return false
+      if (!res.ok) return false
       const css = await res.text()
-      if (id !== refreshIdRef.current) return
+      if (id !== refreshIdRef.current) return false
       const styleId = "adt-dynamic-css"
       let styleEl = doc.getElementById(styleId) as HTMLStyleElement | null
       if (!styleEl) {
@@ -216,11 +297,22 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
         doc.head.appendChild(styleEl)
       }
       styleEl.textContent = css
-      requestAnimationFrame(() => {
-        const main = doc.querySelector("main")
-        const h = (main ?? doc.body)?.scrollHeight
-        if (h && h > 0) setContentHeight(h)
-      })
+      if (afterApply) {
+        requestAnimationFrame(() => {
+          runAutoFit()
+          measureHeight()
+        })
+      }
+      return true
+    } catch {
+      return false
+    }
+  }, [assetsPrefix])
+
+  useImperativeHandle(ref, () => ({
+    getIframeRect: () => iframeRef.current?.getBoundingClientRect() ?? null,
+    refreshCss: async (extraHtml: string) => {
+      await refreshPreviewCss(expandFixedLayoutCanvas(extraHtml))
     },
     getElementClasses: (dataId: string): string[] => {
       const doc = iframeRef.current?.contentDocument
@@ -292,7 +384,17 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       return demoteFirstHeadingIfPromoted(html, sanitizedHtmlRef.current)
     },
     resetContent: () => {
-      if (readyRef.current) injectContent(latestHtmlRef.current)
+      if (!readyRef.current) return
+      const htmlToInject = latestHtmlRef.current
+      if (/\bdata-fl-width=/.test(htmlToInject)) {
+        void refreshPreviewCss(htmlToInject, false).then(() => {
+          if (readyRef.current && latestHtmlRef.current === htmlToInject) {
+            injectContent(htmlToInject)
+          }
+        })
+        return
+      }
+      injectContent(htmlToInject)
     },
     getComputedTypographyStyles: (dataId: string): ComputedTypographyStyles => {
       const empty: ComputedTypographyStyles = {
@@ -348,7 +450,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
    * width when the attribute is absent (older content / ad-hoc renders).
    * null for reflowable pages.
    */
-  const [fixedLayoutSize, setFixedLayoutSize] = useState<{ width: number; height: number; referenceWidth: number } | null>(null)
+  const [fixedLayoutSize, setFixedLayoutSize] = useState<FixedLayoutSize | null>(null)
   const [availableWidth, setAvailableWidth] = useState(DEFAULT_RENDER_WIDTH)
   const readyRef = useRef(false)
   const latestHtmlRef = useRef("")
@@ -380,8 +482,17 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       .catch(() => {}) // fallback: display without math conversion
     return () => { cancelled = true }
   }, [sanitizedHtml, assetsPrefix])
-  latestHtmlRef.current = displayHtml
+  const previewHtml = useMemo(
+    () => expandFixedLayoutCanvas(displayHtml),
+    [displayHtml],
+  )
+  latestHtmlRef.current = previewHtml
   sanitizedHtmlRef.current = sanitizedHtml
+  const expectedFixedLayoutSize = useMemo(
+    () => readFixedLayoutSizeFromHtml(previewHtml),
+    [previewHtml],
+  )
+  const layoutFixedSize = expectedFixedLayoutSize ?? fixedLayoutSize
 
   // Build a map of data-id → original LaTeX innerHTML so the iframe can swap
   // MathML back to LaTeX when the user clicks to edit an element.
@@ -525,17 +636,9 @@ ${autoFitScript}
     const doc = iframeRef.current?.contentDocument
     if (!doc?.body) return
     const contentEl = doc.getElementById("content") as HTMLElement | null
-    const dataW = parsePositiveNumber(contentEl?.dataset.flWidth)
-    const dataH = parsePositiveNumber(contentEl?.dataset.flHeight)
-    const styleW = contentEl ? parsePxStyle(contentEl.style.width) : null
-    const styleH = contentEl ? parsePxStyle(contentEl.style.height) : null
-    const fixedW = dataW ?? styleW
-    const fixedH = dataH ?? styleH
-    if (contentEl && fixedW !== null && fixedH !== null) {
-      const refRaw = contentEl.dataset.flReferenceWidth
-      const ref = refRaw ? parseFloat(refRaw) : NaN
-      const referenceWidth = Number.isFinite(ref) && ref > 0 ? ref : fixedW
-      setFixedLayoutSize({ width: fixedW, height: fixedH, referenceWidth })
+    const fixedSize = readFixedLayoutSizeFromElement(contentEl)
+    if (fixedSize) {
+      setFixedLayoutSize(fixedSize)
       return
     }
 
@@ -543,6 +646,15 @@ ${autoFitScript}
     const main = doc.querySelector("main")
     const h = (main ?? doc.body).scrollHeight
     if (h > 0) setContentHeight(h)
+  }
+
+  function runAutoFit() {
+    const iframe = iframeRef.current
+    const w = iframe?.contentWindow as (Window & { __adtRunAutoFit?: () => void }) | null
+    if (typeof w?.__adtRunAutoFit !== "function") {
+      return
+    }
+    w.__adtRunAutoFit()
   }
 
   /** Inject HTML into the iframe body (preserving the interactive script). */
@@ -571,7 +683,9 @@ ${autoFitScript}
     // Inject original LaTeX texts so startEditing can swap MathML → LaTeX
     const textsEl = doc.createElement("script")
     textsEl.id = "adt-original-texts"
-    textsEl.textContent = `window.__origTexts=${JSON.stringify(originalTextsRef.current)};`
+    textsEl.textContent = String.fromCharCode(
+      119, 105, 110, 100, 111, 119, 46, 95, 95, 111, 114, 105, 103, 84, 101, 120, 116, 115, 61,
+    ) + JSON.stringify(originalTextsRef.current) + String.fromCharCode(59)
     doc.body.appendChild(textsEl)
 
     // Apply data-background-color from content to iframe body
@@ -600,18 +714,9 @@ ${autoFitScript}
     // injected content. Without the explicit second pass here, auto-fit
     // measures against fallback-font metrics (Times for Palatino, etc.) and
     // shrinks paragraphs that fit fine in the actual rendered font.
-    const runFit = () => {
-      const w = iframe?.contentWindow as (Window & { __adtRunAutoFit?: () => void }) | null
-      if (typeof w?.__adtRunAutoFit !== "function") {
-        // eslint-disable-next-line no-console, lingui/no-unlocalized-strings
-        console.warn("[BookPreviewFrame] __adtRunAutoFit is not defined on iframe contentWindow — auto-fit script did not load/execute. assetsPrefix:", assetsPrefix)
-        return
-      }
-      w.__adtRunAutoFit()
-    }
-    requestAnimationFrame(runFit)
+    requestAnimationFrame(runAutoFit)
     if (doc.fonts?.ready) {
-      doc.fonts.ready.then(() => requestAnimationFrame(runFit))
+      doc.fonts.ready.then(() => requestAnimationFrame(runAutoFit))
     }
 
     // Measure after fonts + images settle
@@ -636,8 +741,18 @@ ${autoFitScript}
   // injectContent re-measures synchronously, so don't reset contentHeight
   // here — collapsing to 800 first causes a layout jump on every commit.
   useEffect(() => {
-    if (readyRef.current) injectContent(displayHtml)
-  }, [displayHtml, applyBodyBackground])
+    if (!readyRef.current) return
+    const htmlToInject = previewHtml
+    if (/\bdata-fl-width=/.test(htmlToInject)) {
+      void refreshPreviewCss(htmlToInject, false).then(() => {
+        if (readyRef.current && latestHtmlRef.current === htmlToInject) {
+          injectContent(htmlToInject)
+        }
+      })
+      return
+    }
+    injectContent(htmlToInject)
+  }, [previewHtml, applyBodyBackground, iframeReady, refreshPreviewCss])
 
   // Re-stamp the selection attribute after every body rebuild. Must run
   // after the inject effect above (declaration order matters).
@@ -675,15 +790,12 @@ ${autoFitScript}
   }, [deviceView, iframeReady])
 
   // Fixed-layout pages overlay positioned text on top of full-page images
-  // via DOM order. The editable-mode `img[data-id] { z-index: 1 }` rule (used
-  // for image-selection outlines in reflowable books) would lift those images
-  // above the text and bury it — neutralise the z-index for fixed-layout pages.
   useEffect(() => {
     const doc = iframeRef.current?.contentDocument
     if (!doc?.head) return
     const styleId = "adt-fixed-layout-styles"
     let styleEl = doc.getElementById(styleId) as HTMLStyleElement | null
-    if (!fixedLayoutSize) {
+    if (!layoutFixedSize) {
       styleEl?.remove()
       return
     }
@@ -693,8 +805,8 @@ ${autoFitScript}
       doc.head.appendChild(styleEl)
     }
     // eslint-disable-next-line lingui/no-unlocalized-strings
-    styleEl.textContent = `body[data-editable="true"] img[data-id] { z-index: auto; }`
-  }, [fixedLayoutSize, iframeReady])
+    styleEl.textContent = `body[data-editable="true"] img[data-id] { position: absolute; z-index: auto; }`
+  }, [layoutFixedSize, iframeReady])
 
   // Inject/update the attached book fonts (Google <link> + uploaded @font-face)
   // into the live iframe head. Done here rather than in `srcdoc` so attaching a
@@ -828,8 +940,8 @@ ${selectors}:hover {
   // Reflowable: fit to the device-frame base width, desktop capped at 1× and
   // mobile/tablet grown up to a target visible width for legibility.
   useEffect(() => {
-    if (fixedLayoutSize) {
-      setScale(Math.min(FL_MAX_SCALE, availableWidth / fixedLayoutSize.referenceWidth))
+    if (layoutFixedSize) {
+      setScale(Math.min(FL_MAX_SCALE, availableWidth / layoutFixedSize.referenceWidth))
       return
     }
     const fitScale = Math.max(0, availableWidth / baseWidth)
@@ -838,7 +950,7 @@ ${selectors}:hover {
         ? 1
         : targetVisibleWidth / baseWidth
     setScale(Math.min(cap, fitScale))
-  }, [availableWidth, fixedLayoutSize, baseWidth, targetVisibleWidth, deviceView])
+  }, [availableWidth, layoutFixedSize, baseWidth, targetVisibleWidth, deviceView])
 
   // Ref callback so the iframe re-initializes whenever the conditional
   // device-frame branch swaps it out (toggling Desktop ↔ Mobile ↔ Tablet
@@ -859,7 +971,6 @@ ${selectors}:hover {
       const start = () => {
         readyRef.current = true
         setIframeReady(true)
-        injectContent(latestHtmlRef.current)
       }
       if (doc.fonts?.ready) {
         doc.fonts.ready.then(start)
@@ -878,7 +989,7 @@ ${selectors}:hover {
     }
   }, [])
 
-  const visibleWidth = Math.round((fixedLayoutSize?.width ?? renderWidth) * scale)
+  const visibleWidth = Math.round((layoutFixedSize?.width ?? renderWidth) * scale)
   useEffect(() => {
     onVisibleWidthChange?.(visibleWidth)
   }, [visibleWidth, onVisibleWidthChange])
@@ -890,10 +1001,10 @@ ${selectors}:hover {
   // `min-h-screen flex items-center` produces when a section is shorter than
   // the canvas.
   const isDesktop = !deviceView || deviceView === "desktop"
-  const iframeWidth = fixedLayoutSize?.width ?? frame.screenWidth
-  const iframeHeight = fixedLayoutSize?.height ?? (isDesktop ? contentHeight : frame.screenHeight)
-  const visibleHeight = fixedLayoutSize
-    ? fixedLayoutSize.height * scale
+  const iframeWidth = layoutFixedSize?.width ?? frame.screenWidth
+  const iframeHeight = layoutFixedSize?.height ?? (isDesktop ? contentHeight : frame.screenHeight)
+  const visibleHeight = layoutFixedSize
+    ? layoutFixedSize.height * scale
     : isDesktop
       ? contentHeight * scale
       : frame.chromeHeight * scale
