@@ -972,6 +972,7 @@ export async function runFullPipeline(
         speechConfig: config.speech,
         fixedLayout: isFixedLayoutBook(config),
         reflowableFont: config.reflowable_font,
+        quizMatchBookStyle: config.quiz_generation?.match_book_style ?? true,
       }, progressOnly(p))
     })
 

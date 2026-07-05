@@ -282,6 +282,8 @@ section_render_strategies:
   activity_open_ended_answer: activity_open_ended_answer
 
 quiz_generation:
+  # Style quizzes to match the book (typography + colors derived from the book).
+  match_book_style: true
   quiz_section_types:
     - boxed_text
     - text_only

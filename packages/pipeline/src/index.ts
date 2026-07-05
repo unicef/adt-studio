@@ -267,10 +267,17 @@ export {
   rewriteImageUrls,
   htmlToXhtml,
   renderQuizHtml,
+  type QuizStyle,
   buildQuizAnswers,
   pad3,
   convertLatexToMathml,
 } from "./package-web.js"
+export {
+  resolveQuizPalette,
+  deriveQuizPalette,
+  DEFAULT_QUIZ_PALETTE,
+  type QuizPalette,
+} from "./quiz-palette.js"
 export {
   tallyFontSizes,
   mergeTallies,
@@ -284,6 +291,7 @@ export {
   readTypography,
   buildTypographyCss,
   resolveTypographyCss,
+  typographyPreservationErrors,
   TYPOGRAPHY_NODE,
   TYPOGRAPHY_ITEM,
 } from "./typography.js"

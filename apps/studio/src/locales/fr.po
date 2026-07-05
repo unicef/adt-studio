@@ -4083,6 +4083,9 @@ msgstr "Marquer comme décoratif"
 msgid "Mark as decorative (hidden from screen readers)"
 msgstr "Marquer comme décoratif (caché des lecteurs d'écran)"
 
+msgid "Match book style"
+msgstr "Adopter le style du livre"
+
 msgid "Match Design"
 msgstr "Correspondre au design"
 
@@ -6850,6 +6853,9 @@ msgstr "Guide de style"
 
 msgid "Style Guide"
 msgstr "Guide de style"
+
+msgid "Style quizzes to match the book's fonts, text sizes, and colors. Turn off for the generic quiz style."
+msgstr "Applique aux quiz les polices, tailles de texte et couleurs du livre. Désactivez pour utiliser le style de quiz générique."
 
 msgid "Style reference"
 msgstr "Référence de style"

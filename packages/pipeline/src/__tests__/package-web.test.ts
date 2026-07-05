@@ -16,6 +16,7 @@ import {
   convertLatexToMathml,
   convertLatexString,
 } from "../package-web.js"
+import { deriveQuizPalette } from "../quiz-palette.js"
 
 function createMockStorage(
   pages: PageData[],
@@ -390,6 +391,48 @@ describe("renderQuizHtml", () => {
 
     expect(html).toContain('<section')
     expect(html).not.toContain('role="activity"')
+  })
+
+  const sampleQuiz = {
+    quizIndex: 0,
+    afterPageId: "pg001",
+    pageIds: ["pg001"],
+    question: "What is 2+2?",
+    options: [
+      { text: "3", explanation: "Nope" },
+      { text: "4", explanation: "Yes" },
+    ],
+    answerIndex: 1,
+    reasoning: "...",
+  }
+
+  it("uses the legacy template when no style is given", () => {
+    const html = renderQuizHtml(sampleQuiz, "qz001", undefined)
+    expect(html).toContain("bg-[#FFFAF5]")
+    expect(html).not.toContain("--quiz-accent")
+    // Options are a fixed width so they don't resize when feedback appears.
+    expect(html).toContain("w-[34rem]")
+    expect(html).not.toContain("w-full max-w-xl")
+  })
+
+  it("themes the quiz as a callout when a style is given, preserving the interactive contract", () => {
+    const palette = deriveQuizPalette([
+      { backgroundColor: "#FFFFFF", textColor: "#111111" },
+      { backgroundColor: "#FFFFFF", textColor: "#111111" },
+      { backgroundColor: "#FFFFFF", textColor: "#111111" },
+      { backgroundColor: "#0A8F5A", textColor: "#FFFFFF" }, // green callout section
+    ])
+    const html = renderQuizHtml(sampleQuiz, "qz001", undefined, { palette })
+    // Book typography + callout structure applied.
+    expect(html).toContain("adt-body")
+    expect(html).toContain("--quiz-accent: #0A8F5A;")
+    expect(html).toContain("quiz-header") // colored header band
+    expect(html).toContain("quiz-body") // pale card body
+    expect(html).not.toContain("bg-[#FFFAF5]")
+    // Interactive contract preserved.
+    expect(html).toContain('data-correct-answers=')
+    expect(html).toContain('data-activity-item="qz001_o0"')
+    expect(html).toContain('class="option-text block adt-body"')
   })
 })
 

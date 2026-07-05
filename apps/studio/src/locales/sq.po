@@ -4082,6 +4082,9 @@ msgstr "Shëno si dekorativ"
 msgid "Mark as decorative (hidden from screen readers)"
 msgstr "Shëno si dekorativ (i fshehur nga lexuesit e ekranit)"
 
+msgid "Match book style"
+msgstr "Përputh me stilin e librit"
+
 msgid "Match Design"
 msgstr "Përputhje Dizajni"
 
@@ -6849,6 +6852,9 @@ msgstr "Udhëzues stili"
 
 msgid "Style Guide"
 msgstr "Udhëzues Stili"
+
+msgid "Style quizzes to match the book's fonts, text sizes, and colors. Turn off for the generic quiz style."
+msgstr "Stilizon kuizet që të përputhen me fontet, madhësitë e tekstit dhe ngjyrat e librit. Çaktivizoje për stilin e përgjithshëm të kuizit."
 
 msgid "Style reference"
 msgstr "Referencë stili"

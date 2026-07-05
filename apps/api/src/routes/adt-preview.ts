@@ -24,6 +24,7 @@ import {
   NAV_HTML,
   buildPreviewTailwindCss,
   resolveTypographyCss,
+  resolveQuizPalette,
   buildGlossaryJson,
   getBaseLanguage,
   normalizeLocale,
@@ -933,7 +934,10 @@ export function createAdtPreviewRoutes(
         const quiz = quizData.quizzes[quizIndex]
         const catalog = await getTextCatalog(storage)
 
-        const quizHtmlContent = renderQuizHtml(quiz, pageId, catalog)
+        const quizStyle = (config.quiz_generation?.match_book_style ?? true)
+          ? { palette: resolveQuizPalette(storage) }
+          : null
+        const quizHtmlContent = renderQuizHtml(quiz, pageId, catalog, quizStyle)
         // Determine page index from the manifest
       const manifest = buildPagesManifest(storage)
       const manifestIndex = manifest.findIndex((e) => e.section_id === pageId)

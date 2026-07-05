@@ -4081,6 +4081,9 @@ msgstr "Mark as decorative"
 msgid "Mark as decorative (hidden from screen readers)"
 msgstr "Mark as decorative (hidden from screen readers)"
 
+msgid "Match book style"
+msgstr "Match book style"
+
 msgid "Match Design"
 msgstr "Match Design"
 
@@ -6848,6 +6851,9 @@ msgstr "Style guide"
 
 msgid "Style Guide"
 msgstr "Style Guide"
+
+msgid "Style quizzes to match the book's fonts, text sizes, and colors. Turn off for the generic quiz style."
+msgstr "Style quizzes to match the book's fonts, text sizes, and colors. Turn off for the generic quiz style."
 
 msgid "Style reference"
 msgstr "Style reference"

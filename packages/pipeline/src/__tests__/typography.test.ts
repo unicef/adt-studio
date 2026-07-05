@@ -1,7 +1,12 @@
 import { describe, it, expect } from "vitest"
 import type { Storage } from "@adt/storage"
 import { DEFAULT_TYPOGRAPHY, type BookTypography } from "@adt/types"
-import { readTypography, buildTypographyCss, TYPOGRAPHY_NODE } from "../typography.js"
+import {
+  readTypography,
+  buildTypographyCss,
+  typographyPreservationErrors,
+  TYPOGRAPHY_NODE,
+} from "../typography.js"
 
 const fakeStorage = (typography?: unknown) =>
   ({
@@ -53,5 +58,34 @@ describe("buildTypographyCss", () => {
       styles: [{ key: "body", label: "Body", className: "adt-body", desktopPx: 24, mobilePx: 16, fontWeight: 600 }],
     })
     expect(css).toContain("font-weight: 600;")
+  })
+})
+
+describe("typographyPreservationErrors", () => {
+  const original =
+    '<h1 class="adt-h1">T</h1><p class="adt-body">a</p><p class="adt-body">b</p><figcaption class="adt-caption">c</figcaption>'
+
+  it("passes when all adt-* classes are preserved (layout-only change)", () => {
+    const revised =
+      '<h1 class="adt-h1 text-center">T</h1><p class="adt-body">a</p><div><p class="adt-body">b</p></div><figcaption class="adt-caption">c</figcaption>'
+    expect(typographyPreservationErrors(original, revised)).toEqual([])
+  })
+
+  it("flags a dropped adt-* class", () => {
+    // One adt-body removed, one swapped for text-lg.
+    const revised = '<h1 class="adt-h1">T</h1><p class="adt-body">a</p><p class="text-lg">b</p><figcaption class="adt-caption">c</figcaption>'
+    const errors = typographyPreservationErrors(original, revised)
+    expect(errors.length).toBe(1)
+    expect(errors[0]).toContain("adt-body")
+  })
+
+  it("flags an added inline font-size", () => {
+    const revised = original.replace('<p class="adt-body">a</p>', '<p class="adt-body" style="font-size: 14px">a</p>')
+    const errors = typographyPreservationErrors(original, revised)
+    expect(errors.some((e) => e.includes("font-size"))).toBe(true)
+  })
+
+  it("does not fire when the original had no typography classes", () => {
+    expect(typographyPreservationErrors("<p>plain</p>", "<p class='text-sm'>plain</p>")).toEqual([])
   })
 })

@@ -22,7 +22,7 @@ Generate a complete styleguide Markdown document following this exact structure.
 
 3. **Required Container Structure** — MUST include this exact outer structure (adjust colors only):
 ```html
-<div class="container content mx-auto flex min-h-screen w-full items-center justify-center px-6 py-12"
+<div class="container content mx-auto flex min-h-screen w-full items-start justify-center px-6 py-12"
     data-background-color="BACKGROUND_COLOR" id="content">
   <section class="w-full" data-section-id="SECTION_ID" data-section-type="SECTION_TYPE" data-text-color="TEXT_COLOR"
       id="simple-main">
@@ -30,9 +30,9 @@ Generate a complete styleguide Markdown document following this exact structure.
   </section>
 </div>
 ```
-You may adjust alignment classes (items-center vs items-start), padding, and max-width based on the visual style.
+Keep this container IDENTICAL on every page — same alignment, padding, and max-width — so the reading column sits in the same place throughout the book; only the colors may change. Top-align content (`items-start`); reserve vertical centering (`items-center`) for cover / title pages ONLY.
 
-4. **Inner Container** — The inner wrapper structure with appropriate max-width and spacing.
+4. **Inner Container** — Use ONE fixed max-width for the reading column on EVERY page (`mx-auto w-full max-w-5xl`) with the same horizontal padding everywhere. Do NOT use a different max-width (e.g. max-w-2xl/3xl/4xl) on different page types — a single consistent measure keeps text in the same position page to page.
 
 5. **Text Styles** — A table mapping each text_type to an HTML element and Tailwind classes. Required text_types:
    - book_title, book_subtitle, chapter_title, section_heading, activity_title
@@ -48,9 +48,11 @@ You may adjust alignment classes (items-center vs items-start), padding, and max
 
 8. **Page Templates** — Complete HTML examples for:
    - Chapter Start Page
-   - Regular Content Page (text and images)
+   - Regular Content Page with a callout/sidebar (e.g. Vocabulary, Big Question)
    - Text and Image Side by Side
    - Table of Contents
+
+   For the callout/sidebar page, FLOAT the panel and keep the body text as one continuous column so text wraps beside the panel and then flows full-width below it. Emit any full-width header first, then the floated panel, then all body paragraphs as normal siblings — e.g. `<aside class="float-right w-[34%] ml-8 mb-6 max-lg:float-none max-lg:w-full max-lg:ml-0">…</aside>` followed by the `<p>` paragraphs. Do NOT use a two-column flex/grid row (body beside sidebar) followed by a separate full-width block, which leaves a large empty gap when the sidebar is taller than the top text.
 
 9. **General Rules** — Numbered list of design rules (background handling, layout preferences, decoration rules, etc.)
 
@@ -62,6 +64,9 @@ You may adjust alignment classes (items-center vs items-start), padding, and max
 - The section element MUST have `data-section-id` and `data-section-type` attributes, and MUST NOT add `role="article"`
 - Color values should be specific hex codes extracted from the images, not generic Tailwind color names
 - Text sizes should be appropriate for the target audience (larger for children, standard for adults)
+- Keep running body text as ONE continuous column. For a callout/sidebar beside body text, float the panel (float-right, fixed width, stacking on small screens via `max-lg:float-none max-lg:w-full`) so text wraps beside it and continues full-width below — never a side-by-side row followed by a separate full-width block, which leaves empty gaps
+- A full-bleed header/banner band may span the full page width for its background color, but its title and any badge MUST sit in the same centered `max-w-5xl` reading column as the body (wrap the banner's inner content in `mx-auto w-full max-w-5xl`) and must not be clipped
+- Content images should fill the space they occupy in the original — a standalone photo or diagram fills the reading column (`w-full h-auto`); never specify small thumbnail sizes for content images
 
 ---
 
