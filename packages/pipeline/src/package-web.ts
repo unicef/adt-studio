@@ -57,6 +57,7 @@ export interface PackageAdtWebOptions {
   features?: {
     glossary?: boolean
     readAloud?: boolean
+    enableFeedback?: boolean
     quizzes?: boolean
     signLanguage?: boolean
   }
@@ -650,6 +651,7 @@ export async function packageAdtWeb(
   const hasGlossary = (features?.glossary !== false) && (glossary !== undefined && glossary.items.some((item) => !item.pruned))
   const hasQuiz = (features?.quizzes !== false) && (quizData !== undefined && quizData.quizzes.length > 0)
   const hasEasyRead = easyReadEntries.length > 0
+  const isEnabledFeedback = features?.enableFeedback === true
 
   const hasSignLanguageVideos = (features?.signLanguage !== false) && storage.getSignLanguageVideos().some((v) => v.sectionId !== null)
 
@@ -675,6 +677,7 @@ export async function packageAdtWeb(
       characterDisplay: false,
       highlight: highlightEnabled,
       activities: hasQuiz || hasActivitySections,
+      enableFeedback: isEnabledFeedback,
     },
     analytics: {
       enabled: false,
@@ -699,7 +702,11 @@ export async function packageAdtWeb(
   progress.emit({ type: "step-progress", step, message: "Copying web assets..." })
 
   const assetsDir = path.join(adtDir, "assets")
-  copyDirRecursive(webAssetsDir, assetsDir, new Set(["interface_translations", "feedback-audio"]))
+  copyDirRecursive(
+    webAssetsDir,
+    assetsDir,
+    new Set(["interface_translations", ...(isEnabledFeedback ? [] : ["feedback-audio"])]),
+  )
 
   // Copy only required interface translations
   const itSrc = path.join(webAssetsDir, "interface_translations")

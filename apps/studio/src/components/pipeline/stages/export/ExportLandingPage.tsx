@@ -39,6 +39,7 @@ export function ExportLandingPage({ bookLabel }: { bookLabel: string }) {
   const [featureToggles, setFeatureToggles] = useState<ExportFeatureToggles>({
     glossary: true,
     readAloud: true,
+    enableFeedback: false,
     quizzes: true,
     signLanguage: true,
   })
@@ -54,6 +55,8 @@ export function ExportLandingPage({ bookLabel }: { bookLabel: string }) {
         : {
             glossary: featureToggles.glossary && available.glossary,
             readAloud: featureToggles.readAloud && available.readAloud,
+            enableFeedback:
+              featureToggles.enableFeedback && available.enableFeedback,
             quizzes: featureToggles.quizzes && available.quizzes,
             signLanguage:
               featureToggles.signLanguage && available.signLanguage,

@@ -1445,6 +1445,9 @@ msgstr "Centrer"
 msgid "Change"
 msgstr "Modifier"
 
+msgid "Change Feedback"
+msgstr "Confirmation des changements"
+
 msgid "Change language"
 msgstr "Changer de langue"
 
@@ -1684,6 +1687,9 @@ msgstr "Configurer les voix et les accents"
 
 msgid "Confirm merge"
 msgstr "Confirmer la fusion"
+
+msgid "Confirm reader setting changes with visual and audio cues"
+msgstr "Confirmer les changements de paramètres du lecteur avec des signaux visuels et audio"
 
 msgid "Confirm Rerun"
 msgstr "Confirmer Rerun"

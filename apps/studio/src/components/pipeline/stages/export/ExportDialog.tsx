@@ -827,6 +827,7 @@ export function ExportDialog({
               {selectedFormat !== "project" &&
                 (availableFeatures.glossary ||
                   availableFeatures.readAloud ||
+                  availableFeatures.enableFeedback ||
                   availableFeatures.quizzes ||
                   availableFeatures.signLanguage) && (
                   <div className="space-y-2">
@@ -873,6 +874,25 @@ export function ExportDialog({
                               <Trans>Large</Trans>
                             </span>
                           }
+                        />
+                      )}
+                      {availableFeatures.enableFeedback && (
+                        <FeatureToggleRow
+                          icon={AudioLines}
+                          label={<Trans>Change Feedback</Trans>}
+                          description={
+                            <Trans>
+                              Confirm reader setting changes with visual and audio cues
+                            </Trans>
+                          }
+                          textColor="text-rose-600"
+                          bgLight="bg-rose-50"
+                          borderColor="border-rose-200"
+                          checked={featureToggles.enableFeedback}
+                          onCheckedChange={(v) =>
+                            onFeatureToggleChange("enableFeedback", v)
+                          }
+                          disabled={isPreparing}
                         />
                       )}
                       {availableFeatures.quizzes && (

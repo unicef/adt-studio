@@ -10,6 +10,7 @@ export interface AppFeatures {
   glossary?: boolean
   eli5?: boolean
   readAloud?: boolean
+  enableFeedback?: boolean
   autoplay?: boolean
   showTutorial?: boolean
   showNavigationControls?: boolean

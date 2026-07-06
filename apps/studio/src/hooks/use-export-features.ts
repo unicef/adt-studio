@@ -4,6 +4,7 @@ import { useSignLanguageVideos } from "./use-sign-language-videos"
 export interface ExportFeatureToggles {
   glossary: boolean
   readAloud: boolean
+  enableFeedback: boolean
   quizzes: boolean
   signLanguage: boolean
   languages?: string[]
@@ -12,6 +13,7 @@ export interface ExportFeatureToggles {
 export interface AvailableExportFeatures {
   glossary: boolean
   readAloud: boolean
+  enableFeedback: boolean
   quizzes: boolean
   signLanguage: boolean
 }
@@ -34,6 +36,7 @@ export function useAllProjectFeatures(bookLabel: string): AllProjectFeatures {
     toggleable: {
       glossary: stageState("glossary") === "done",
       readAloud: stageState("speech") === "done",
+      enableFeedback: true,
       quizzes: stageState("quizzes") === "done",
       signLanguage: hasAssignedVideos,
     },

@@ -1443,6 +1443,9 @@ msgstr "Center"
 msgid "Change"
 msgstr "Change"
 
+msgid "Change Feedback"
+msgstr "Change Feedback"
+
 msgid "Change language"
 msgstr "Change language"
 
@@ -1682,6 +1685,9 @@ msgstr "Configure voices and accents"
 
 msgid "Confirm merge"
 msgstr "Confirm merge"
+
+msgid "Confirm reader setting changes with visual and audio cues"
+msgstr "Confirm reader setting changes with visual and audio cues"
 
 msgid "Confirm Rerun"
 msgstr "Confirm Rerun"
