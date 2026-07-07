@@ -28,10 +28,8 @@ import {
   captionPageImages,
   buildCaptionConfig,
   extractImageIds,
-  generateGlossary,
+  regenerateGlossaryPreservingEdits,
   buildGlossaryConfig,
-  mergeGeneratedGlossaryWithManualItems,
-  getPrunedGlossaryWords,
   generateToc,
   buildTocGenerationConfig,
   generateAllQuizzes,
@@ -89,7 +87,6 @@ import type {
   PageSectioningOutput,
   WebRenderingOutput,
   ImageCaptioningOutput,
-  GlossaryOutput,
   TextCatalogOutput,
   TextCatalogEntry,
   EasyReadOutput,
@@ -1475,18 +1472,12 @@ async function runGlossaryStep(
 
     console.log(`[stage-run] ${label}: generating glossary from ${pages.length} pages`)
 
-    const existingGlossaryRow = storage.getLatestNodeData("glossary", "book")
-    const existingGlossary = existingGlossaryRow?.data as GlossaryOutput | undefined
-
-    const excludedWords = getPrunedGlossaryWords(existingGlossary?.items ?? [])
-
-    const generatedGlossary = await generateGlossary({
+    const glossary = await regenerateGlossaryPreservingEdits({
       storage,
       pages,
       config: glossaryConfig,
       llmModel: glossaryModel,
       concurrency: effectiveConcurrency,
-      excludedWords,
       onBatchComplete: (completed, total) => {
         progress.emit({
           type: "step-progress",
@@ -1497,10 +1488,6 @@ async function runGlossaryStep(
         })
       },
     })
-    const glossary = mergeGeneratedGlossaryWithManualItems(
-      generatedGlossary,
-      existingGlossary?.items ?? [],
-    )
     storage.putNodeData("glossary", "book", glossary)
 
     progress.emit({

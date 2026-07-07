@@ -205,7 +205,9 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
       ...base,
       generatedAt: base.generatedAt || new Date().toISOString(),
       items: base.items.map((item) =>
-        (item.id ?? item.word) === itemId ? { ...item, definition: newDefinition } : item
+        (item.id ?? item.word) === itemId
+          ? { ...item, definition: newDefinition, source: "manual" }
+          : item
       ),
     })
   }
@@ -217,7 +219,9 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
       ...base,
       generatedAt: base.generatedAt || new Date().toISOString(),
       items: base.items.map((item) =>
-        (item.id ?? item.word) === itemId ? { ...item, emojis: newEmojis } : item
+        (item.id ?? item.word) === itemId
+          ? { ...item, emojis: newEmojis, source: "manual" }
+          : item
       ),
     })
   }

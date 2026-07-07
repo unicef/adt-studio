@@ -118,6 +118,7 @@ export {
 } from "./image-captioning.js"
 export {
   generateGlossary,
+  regenerateGlossaryPreservingEdits,
   generateGlossaryItem,
   buildGlossaryConfig,
   stripHtml,
