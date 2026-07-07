@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils"
 import {
   formatVersion,
   getReleaseChannel,
+  RELEASE_BANNER_ASPECT,
   type ReleaseChannel,
 } from "./release-banner-utils"
 import betaIconSrc from "../../assets/update-icons/beta-512x512.png?url"
@@ -32,7 +33,8 @@ export function ReleaseFallbackBanner({
   return (
     <div
       className={cn(
-        "relative isolate aspect-[16/9] w-full overflow-hidden rounded-lg border",
+        "relative isolate w-full overflow-hidden rounded-lg border",
+        RELEASE_BANNER_ASPECT,
         "shadow-[0_18px_50px_oklch(0.22_0.04_260/0.16)]",
         isBeta
           ? "border-[oklch(0.72_0.22_302/0.34)] bg-[oklch(0.26_0.14_298)] text-[oklch(0.98_0.01_300)]"

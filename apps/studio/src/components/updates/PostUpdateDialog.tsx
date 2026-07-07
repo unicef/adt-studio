@@ -62,7 +62,7 @@ export function PostUpdateContent({
   const notes = releaseNotes?.trim()
 
   return (
-    <div className="flex h-[31rem] max-h-[calc(100vh-2rem)] flex-col">
+    <div className="flex h-160 max-h-[calc(100vh-2rem)] flex-col">
       <div className="flex shrink-0 items-center gap-3 px-6 pb-4 pt-6">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
           <Sparkles className="size-5" />
