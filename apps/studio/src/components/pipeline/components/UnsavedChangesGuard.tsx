@@ -24,6 +24,7 @@ import {
 import { getSettingsTabLabel } from "../settings-tabs"
 import { STAGES } from "../stage-config"
 import { getStageLabelI18n } from "../pipeline-i18n"
+import { useCloseIntent } from "@/components/close-guard/CloseGuard"
 
 const STAGE_BY_SLUG = new Map<string, (typeof STAGES)[number]>(STAGES.map((s) => [s.slug, s]))
 
@@ -32,6 +33,8 @@ export function UnsavedChangesGuard() {
   const hasFloatingUnsaved = useHasUnsavedChanges()
   const hasDirtyTab = useHasAnyDirtyTab()
   const hasUnsaved = hasFloatingUnsaved || hasDirtyTab
+
+  useCloseIntent(hasUnsaved, "unsaved-changes")
   const dirtyEntries = useDirtyTabEntries()
   const floatingDirtyEntries = useFloatingSaveDirtyEntries()
   const ephemeralDirtyTabs = useEphemeralDirtyTabs()

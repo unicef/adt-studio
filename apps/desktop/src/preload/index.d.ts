@@ -10,6 +10,9 @@ export interface WindowControlsApi {
   minimize: () => Promise<void>
   toggleMaximize: () => Promise<boolean>
   close: () => Promise<void>
+  confirmClose: () => void
+  cancelClose: () => void
+  onCloseRequested: (cb: () => void) => () => void
   isMaximized: () => Promise<boolean>
   isFullscreen: () => Promise<boolean>
   onMaximizeChange: (cb: (isMaximized: boolean) => void) => () => void

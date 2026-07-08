@@ -1447,6 +1447,9 @@ msgstr "Vista previa del libro"
 msgid "Book Preview"
 msgstr "Vista Previa del Libro"
 
+msgid "Book setup"
+msgstr "Configuración del libro"
+
 msgid "Book Summary"
 msgstr "Resumen del libro"
 
@@ -3787,6 +3790,12 @@ msgstr "Dejar vacío para generar solo en el idioma del libro."
 msgid "Leave empty to use the book language."
 msgstr "Deja vacío para usar el idioma del libro."
 
+msgid "Leave setup"
+msgstr "Salir de la configuración"
+
+msgid "Leave without finishing?"
+msgstr "¿Salir sin terminar?"
+
 msgid "Legal and compliance manuals"
 msgstr "Manuales legales y de cumplimiento"
 
@@ -5414,6 +5423,12 @@ msgstr "en cola"
 msgid "Queued"
 msgstr "En cola"
 
+msgid "Quit anyway"
+msgstr "Salir de todos modos"
+
+msgid "Quit without saving?"
+msgstr "¿Salir sin guardar?"
+
 msgid "quiz"
 msgstr "cuestionario"
 
@@ -6086,6 +6101,9 @@ msgstr "Guardar selección"
 
 msgid "Save settings"
 msgstr "Save settings"
+
+msgid "Save your work first if you want to keep these changes."
+msgstr "Guarda tu trabajo primero si quieres conservar estos cambios."
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Saved. Re-package Preview to apply."
@@ -7018,6 +7036,9 @@ msgstr "Toda la página se trata como una sola sección - todo el texto e imáge
 
 msgid "The file may be damaged or incomplete. Try downloading it again from the source."
 msgstr "El archivo puede estar dañado o incompleto. Intenta descargarlo nuevamente desde la fuente."
+
+msgid "The file you uploaded and the options you picked won't be kept."
+msgstr "No se conservarán el archivo que subiste ni las opciones que elegiste."
 
 msgid "The following terms are used throughout this manual. Familiarity with these definitions is required before proceeding to the implementation chapters."
 msgstr "Los siguientes términos se utilizan a lo largo de este manual. Se requiere familiaridad con estas definiciones antes de proceder a los capítulos de implementación."
@@ -7994,6 +8015,9 @@ msgstr "Envuelve solicitudes de 'Generar nueva'. Soporta variables user_prompt, 
 msgid "You can export at this stage"
 msgstr "Puedes exportar en esta etapa"
 
+msgid "You have changes that haven't been saved yet. If you quit now, they'll be lost."
+msgstr "Tienes cambios que aún no se han guardado. Si sales ahora, se perderán."
+
 #~ msgid "You have unsaved changes. If you leave, they'll be lost."
 #~ msgstr "Tienes cambios no guardados. Si sales, se perderán."
 
@@ -8005,6 +8029,9 @@ msgstr "Todo listo"
 
 msgid "You're now running ADT Studio {label}"
 msgstr "Ahora estás usando ADT Studio {label}"
+
+msgid "You're partway through setting up a book. There's nothing to save yet — leaving now discards your progress and you'll start over."
+msgstr "Estás configurando un libro y todavía no hay nada que guardar: si sales ahora, descartarás tu progreso y tendrás que empezar de nuevo."
 
 msgid "You're running the latest version of ADT Studio."
 msgstr "Estás usando la última versión de ADT Studio."

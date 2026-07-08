@@ -6,6 +6,7 @@ import { I18nProvider } from "@lingui/react"
 import { i18n } from "@lingui/core"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { LiveRegionAnnouncer } from "@/components/a11y/LiveRegionAnnouncer"
+import { CloseGuardProvider } from "@/components/close-guard/CloseGuard"
 import { usePreviewSettingsListener } from "@/hooks/use-preview-settings-listener"
 import { messages as enMessages } from "./locales/en.po"
 import { messages as ptBRMessages } from "./locales/pt-BR.po"
@@ -79,7 +80,9 @@ createRoot(document.getElementById("root")!).render(
         <TooltipProvider delayDuration={300}>
           <PreviewSettingsListener />
           <LiveRegionAnnouncer>
-            <RouterProvider router={router} />
+            <CloseGuardProvider>
+              <RouterProvider router={router} />
+            </CloseGuardProvider>
           </LiveRegionAnnouncer>
         </TooltipProvider>
       </QueryClientProvider>

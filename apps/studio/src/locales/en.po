@@ -1447,6 +1447,9 @@ msgstr "Book preview"
 msgid "Book Preview"
 msgstr "Book Preview"
 
+msgid "Book setup"
+msgstr "Book setup"
+
 msgid "Book Summary"
 msgstr "Book Summary"
 
@@ -3787,6 +3790,12 @@ msgstr "Leave empty to output only in the book language."
 msgid "Leave empty to use the book language."
 msgstr "Leave empty to use the book language."
 
+msgid "Leave setup"
+msgstr "Leave setup"
+
+msgid "Leave without finishing?"
+msgstr "Leave without finishing?"
+
 msgid "Legal and compliance manuals"
 msgstr "Legal and compliance manuals"
 
@@ -5414,6 +5423,12 @@ msgstr "queued"
 msgid "Queued"
 msgstr "Queued"
 
+msgid "Quit anyway"
+msgstr "Quit anyway"
+
+msgid "Quit without saving?"
+msgstr "Quit without saving?"
+
 msgid "quiz"
 msgstr "quiz"
 
@@ -6086,6 +6101,9 @@ msgstr "Save selection"
 
 msgid "Save settings"
 msgstr "Save settings"
+
+msgid "Save your work first if you want to keep these changes."
+msgstr "Save your work first if you want to keep these changes."
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Saved. Re-package Preview to apply."
@@ -7018,6 +7036,9 @@ msgstr "The entire page is treated as a single section - all text and images sta
 
 msgid "The file may be damaged or incomplete. Try downloading it again from the source."
 msgstr "The file may be damaged or incomplete. Try downloading it again from the source."
+
+msgid "The file you uploaded and the options you picked won't be kept."
+msgstr "The file you uploaded and the options you picked won't be kept."
 
 msgid "The following terms are used throughout this manual. Familiarity with these definitions is required before proceeding to the implementation chapters."
 msgstr "The following terms are used throughout this manual. Familiarity with these definitions is required before proceeding to the implementation chapters."
@@ -7994,6 +8015,9 @@ msgstr "Wraps 'Generate new' requests. Supports user_prompt, style, and image_ty
 msgid "You can export at this stage"
 msgstr "You can export at this stage"
 
+msgid "You have changes that haven't been saved yet. If you quit now, they'll be lost."
+msgstr "You have changes that haven't been saved yet. If you quit now, they'll be lost."
+
 #~ msgid "You have unsaved changes. If you leave, they'll be lost."
 #~ msgstr "You have unsaved changes. If you leave, they'll be lost."
 
@@ -8005,6 +8029,9 @@ msgstr "You're all set"
 
 msgid "You're now running ADT Studio {label}"
 msgstr "You're now running ADT Studio {label}"
+
+msgid "You're partway through setting up a book. There's nothing to save yet — leaving now discards your progress and you'll start over."
+msgstr "You're partway through setting up a book. There's nothing to save yet — leaving now discards your progress and you'll start over."
 
 msgid "You're running the latest version of ADT Studio."
 msgstr "You're running the latest version of ADT Studio."

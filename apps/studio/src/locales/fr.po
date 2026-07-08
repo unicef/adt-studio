@@ -1449,6 +1449,9 @@ msgstr "Livre aperçu"
 msgid "Book Preview"
 msgstr "Livre Aperçu"
 
+msgid "Book setup"
+msgstr "Configuration du livre"
+
 msgid "Book Summary"
 msgstr "Livre Résumé"
 
@@ -3789,6 +3792,12 @@ msgstr "Laissez vide pour une sortie uniquement dans la langue du livre."
 msgid "Leave empty to use the book language."
 msgstr "Laissez vide pour utiliser la langue du livre."
 
+msgid "Leave setup"
+msgstr "Quitter la configuration"
+
+msgid "Leave without finishing?"
+msgstr "Quitter sans terminer ?"
+
 msgid "Legal and compliance manuals"
 msgstr "Manuels juridiques et de conformité"
 
@@ -5416,6 +5425,12 @@ msgstr "en file d’attente"
 msgid "Queued"
 msgstr "En file d'attente"
 
+msgid "Quit anyway"
+msgstr "Quitter quand même"
+
+msgid "Quit without saving?"
+msgstr "Quitter sans enregistrer ?"
+
 msgid "quiz"
 msgstr "quiz"
 
@@ -6088,6 +6103,9 @@ msgstr "Enregistrer la sélection"
 
 msgid "Save settings"
 msgstr "Enregistrer les paramètres"
+
+msgid "Save your work first if you want to keep these changes."
+msgstr "Enregistrez d'abord votre travail si vous souhaitez conserver ces modifications."
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Enregistré. Ré-empaquetez l'aperçu pour appliquer."
@@ -7020,6 +7038,9 @@ msgstr "La page entière est traitée comme une seule section — tout le texte 
 
 msgid "The file may be damaged or incomplete. Try downloading it again from the source."
 msgstr "Le fichier peut être endommagé ou incomplet. Essayez de le télécharger à nouveau depuis la source."
+
+msgid "The file you uploaded and the options you picked won't be kept."
+msgstr "Le fichier que vous avez importé et les options que vous avez choisies ne seront pas conservés."
 
 msgid "The following terms are used throughout this manual. Familiarity with these definitions is required before proceeding to the implementation chapters."
 msgstr "Les termes suivants sont utilisés tout au long de ce manuel. La connaissance de ces définitions est requise avant de passer aux chapitres de mise en œuvre."
@@ -7996,6 +8017,9 @@ msgstr "Encapsule les requêtes « Générer nouveau ». Prend en charge les var
 msgid "You can export at this stage"
 msgstr "Vous pouvez exporter à cette étape"
 
+msgid "You have changes that haven't been saved yet. If you quit now, they'll be lost."
+msgstr "Vous avez des modifications qui n'ont pas encore été enregistrées. Si vous quittez maintenant, elles seront perdues."
+
 #~ msgid "You have unsaved changes. If you leave, they'll be lost."
 #~ msgstr "Vous avez des modifications non enregistrées. Si vous quittez, elles seront perdues."
 
@@ -8007,6 +8031,9 @@ msgstr "Vous êtes à jour"
 
 msgid "You're now running ADT Studio {label}"
 msgstr "Vous utilisez maintenant ADT Studio {label}"
+
+msgid "You're partway through setting up a book. There's nothing to save yet — leaving now discards your progress and you'll start over."
+msgstr "Vous êtes en train de configurer un livre et il n'y a encore rien à enregistrer : quitter maintenant supprime votre progression et vous devrez tout recommencer."
 
 msgid "You're running the latest version of ADT Studio."
 msgstr "Vous utilisez la dernière version d’ADT Studio."

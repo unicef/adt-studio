@@ -16,6 +16,13 @@ const windowControls = {
   toggleMaximize: (): Promise<boolean> =>
     ipcRenderer.invoke('window:toggle-maximize'),
   close: (): Promise<void> => ipcRenderer.invoke('window:close'),
+  confirmClose: (): void => ipcRenderer.send('window:confirm-close'),
+  cancelClose: (): void => ipcRenderer.send('window:cancel-close'),
+  onCloseRequested: (cb: () => void): (() => void) => {
+    const handler = () => cb()
+    ipcRenderer.on('window:close-requested', handler)
+    return () => ipcRenderer.off('window:close-requested', handler)
+  },
   isMaximized: (): Promise<boolean> => ipcRenderer.invoke('window:is-maximized'),
   isFullscreen: (): Promise<boolean> =>
     ipcRenderer.invoke('window:is-fullscreen'),

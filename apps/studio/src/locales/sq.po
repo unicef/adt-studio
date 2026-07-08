@@ -1448,6 +1448,9 @@ msgstr "Pamje paraprake e librit"
 msgid "Book Preview"
 msgstr "Pamje paraprake e librit"
 
+msgid "Book setup"
+msgstr "Konfigurimi i librit"
+
 msgid "Book Summary"
 msgstr "Përmbledhje e librit"
 
@@ -3788,6 +3791,12 @@ msgstr "Lëre bosh për të dalë vetëm në gjuhën e librit."
 msgid "Leave empty to use the book language."
 msgstr "Lëre bosh për të përdorur gjuhën e librit."
 
+msgid "Leave setup"
+msgstr "Dil nga konfigurimi"
+
+msgid "Leave without finishing?"
+msgstr "Dil pa përfunduar?"
+
 msgid "Legal and compliance manuals"
 msgstr "Manuale ligjore dhe të pajtueshmërisë"
 
@@ -5415,6 +5424,12 @@ msgstr "në radhë"
 msgid "Queued"
 msgstr "Në radhë"
 
+msgid "Quit anyway"
+msgstr "Dil gjithsesi"
+
+msgid "Quit without saving?"
+msgstr "Dil pa ruajtur?"
+
 msgid "quiz"
 msgstr "kuiz"
 
@@ -6087,6 +6102,9 @@ msgstr "Ruaj zgjedhjen"
 
 msgid "Save settings"
 msgstr "Ruaj cilësimet"
+
+msgid "Save your work first if you want to keep these changes."
+msgstr "Ruaje punën tënde më parë nëse dëshiron t'i mbash këto ndryshime."
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "U ruajt. Ri-pako Parapamjen për ta aplikuar."
@@ -7019,6 +7037,9 @@ msgstr "I gjithë faqja trajtohet si një seksion i vetëm — i gjithë teksti 
 
 msgid "The file may be damaged or incomplete. Try downloading it again from the source."
 msgstr "Skedari mund të jetë i dëmtuar ose i paplotë. Provo ta shkarkosh sërish nga burimi."
+
+msgid "The file you uploaded and the options you picked won't be kept."
+msgstr "Skedari që ngarkove dhe opsionet që zgjodhe nuk do të ruhen."
 
 msgid "The following terms are used throughout this manual. Familiarity with these definitions is required before proceeding to the implementation chapters."
 msgstr "Termat e mëposhtëm përdoren gjatë gjithë këtij manuali. Njohja me këto përkufizime kërkohet para se të vazhdohet me kapitujt e zbatimit."
@@ -7995,6 +8016,9 @@ msgstr "Mbështjell kërkesat 'Gjenero të re'. Mbështet variablat user_prompt,
 msgid "You can export at this stage"
 msgstr "Mund të eksportosh në këtë fazë"
 
+msgid "You have changes that haven't been saved yet. If you quit now, they'll be lost."
+msgstr "Ke ndryshime që ende nuk janë ruajtur. Nëse del tani, ato do të humbasin."
+
 #~ msgid "You have unsaved changes. If you leave, they'll be lost."
 #~ msgstr "Ke ndryshime të paruajtura. Nëse largohesh, ato do të humbasin."
 
@@ -8006,6 +8030,9 @@ msgstr "Je gati"
 
 msgid "You're now running ADT Studio {label}"
 msgstr "Tani po përdor ADT Studio {label}"
+
+msgid "You're partway through setting up a book. There's nothing to save yet — leaving now discards your progress and you'll start over."
+msgstr "Je duke konfiguruar një libër dhe ende s'ka asgjë për të ruajtur — nëse del tani, progresi yt humbet dhe do të fillosh nga e para."
 
 msgid "You're running the latest version of ADT Studio."
 msgstr "Po përdor versionin më të fundit të ADT Studio."
