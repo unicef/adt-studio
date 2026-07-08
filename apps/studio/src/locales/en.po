@@ -1148,6 +1148,9 @@ msgstr "Application Programming Interface — a set of rules that allows program
 msgid "Apply"
 msgstr "Apply"
 
+msgid "Apply filters"
+msgstr "Apply filters"
+
 msgid "Apply page background colors"
 msgstr "Apply page background colors"
 
@@ -1211,6 +1214,9 @@ msgstr "Assign..."
 
 msgid "At the river's edge"
 msgstr "At the river's edge"
+
+msgid "Attach an image variable"
+msgstr "Attach an image variable"
 
 msgid "Attach font files or pick Google Fonts for this book. The AI assigns where each font is used (headings, body text, captions…) and the fonts are embedded in the final bundle so it works offline. Google Fonts are downloaded when extraction runs. Make sure you have the right to embed any uploaded font."
 msgstr "Attach font files or pick Google Fonts for this book. The AI assigns where each font is used (headings, body text, captions…) and the fonts are embedded in the final bundle so it works offline. Google Fonts are downloaded when extraction runs. Make sure you have the right to embed any uploaded font."
@@ -1801,6 +1807,9 @@ msgstr "Concise"
 msgid "Condensation"
 msgstr "Condensation"
 
+msgid "Conditionally include text"
+msgstr "Conditionally include text"
+
 msgid "Config"
 msgstr "Config"
 
@@ -2134,6 +2143,9 @@ msgstr "Defaulted to N/A until this reviewer session has a language selected."
 msgid "Defaults"
 msgstr "Defaults"
 
+msgid "Define chat messages"
+msgstr "Define chat messages"
+
 msgid "Definition"
 msgstr "Definition"
 
@@ -2222,6 +2234,9 @@ msgstr "Detailed, technical captions for college and adult readers."
 
 msgid "Detected Font"
 msgstr "Detected Font"
+
+msgid "Detected in current template"
+msgstr "Detected in current template"
 
 msgid "Detecting figures"
 msgstr "Detecting figures"
@@ -3567,6 +3582,9 @@ msgstr "Justify"
 msgid "KB"
 msgstr "KB"
 
+msgid "Keep output schemas and IDs unchanged when editing prompts."
+msgstr "Keep output schemas and IDs unchanged when editing prompts."
+
 msgid "Keep pages whole by default, but split when distinct activity types are detected on the same page."
 msgstr "Keep pages whole by default, but split when distinct activity types are detected on the same page."
 
@@ -3591,6 +3609,9 @@ msgstr "Knowledge check generated from the source pages, after page {0}."
 
 msgid "Knowledge check generated from the source pages."
 msgstr "Knowledge check generated from the source pages."
+
+msgid "Known variables"
+msgstr "Known variables"
 
 #. placeholder {0}: entry.level
 msgid "L{0}"
@@ -3688,6 +3709,15 @@ msgstr "Link page"
 
 msgid "Linked to: {value}"
 msgstr "Linked to: {value}"
+
+msgid "Liquid guide"
+msgstr "Liquid guide"
+
+msgid "Liquid prompt guide"
+msgstr "Liquid prompt guide"
+
+msgid "Liquid quick reference"
+msgstr "Liquid quick reference"
 
 msgid "List"
 msgstr "List"
@@ -3859,6 +3889,9 @@ msgstr "Looking forward"
 
 msgid "Lookup definitions for key terms"
 msgstr "Lookup definitions for key terms"
+
+msgid "Loop over an array"
+msgstr "Loop over an array"
 
 msgid "Lower values produce more consistent styling across pages."
 msgstr "Lower values produce more consistent styling across pages."
@@ -4322,6 +4355,9 @@ msgstr "No log entries found yet."
 msgid "No manual terms yet"
 msgstr "No manual terms yet"
 
+msgid "No mapped variables for this prompt yet."
+msgstr "No mapped variables for this prompt yet."
+
 msgid "No matches for \"{search}\""
 msgstr "No matches for \"{search}\""
 
@@ -4438,6 +4474,9 @@ msgstr "No text extracted"
 
 msgid "No translations for this page"
 msgstr "No translations for this page"
+
+msgid "No variables detected in the current template."
+msgstr "No variables detected in the current template."
 
 msgid "No versions"
 msgstr "No versions"
@@ -4582,6 +4621,9 @@ msgstr "Open image preview"
 
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Open in any EPUB 3 reader, e-reader, or accessibility tool."
+
+msgid "Open Liquid guide"
+msgstr "Open Liquid guide"
 
 msgid "Open page preview for {pageId}"
 msgstr "Open page preview for {pageId}"
@@ -5135,6 +5177,9 @@ msgstr "Previous page"
 
 msgid "Previous slide"
 msgstr "Previous slide"
+
+msgid "Print a variable"
+msgstr "Print a variable"
 
 msgid "Process every page on this machine."
 msgstr "Process every page on this machine."
@@ -7370,6 +7415,9 @@ msgstr "Use an LLM to detect and split composited images (e.g., multiple photos 
 msgid "Use an LLM to filter out decorative or non-educational images."
 msgstr "Use an LLM to filter out decorative or non-educational images."
 
+msgid "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
+msgstr "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
+
 #. placeholder {0}: page.pageNumber
 msgid "Use page {0} for the quiz"
 msgstr "Use page {0} for the quiz"
@@ -7385,6 +7433,9 @@ msgstr "Use the + between pages to place the quiz"
 
 msgid "Use the sidebar on the left to open any stage of the pipeline. Each stage has its own page where you can review its content, configure its settings, and start a run. The cards below mirror that navigation — click a card to jump straight to that stage's page."
 msgstr "Use the sidebar on the left to open any stage of the pipeline. Each stage has its own page where you can review its content, configure its settings, and start a run. The cards below mirror that navigation — click a card to jump straight to that stage's page."
+
+msgid "Use these names inside double braces or Liquid tags. Nested fields use dot notation."
+msgstr "Use these names inside double braces or Liquid tags. Nested fields use dot notation."
 
 msgid "Use this for checks you intentionally want to suppress, such as known false positives."
 msgstr "Use this for checks you intentionally want to suppress, such as known false positives."
@@ -7419,6 +7470,9 @@ msgstr "Validation Errors ({0})"
 
 msgid "Variables"
 msgstr "Variables"
+
+msgid "Variables for this prompt"
+msgstr "Variables for this prompt"
 
 msgid "Variations"
 msgstr "Variations"

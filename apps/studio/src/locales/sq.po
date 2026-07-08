@@ -1149,6 +1149,9 @@ msgstr "Ndërfaqe Programimi Aplikacioni — një grup rregullash që lejon prog
 msgid "Apply"
 msgstr "Apliko"
 
+msgid "Apply filters"
+msgstr "Zbato filtrat"
+
 msgid "Apply page background colors"
 msgstr "Apliko ngjyrat e sfondit të faqes"
 
@@ -1212,6 +1215,9 @@ msgstr "Cakto..."
 
 msgid "At the river's edge"
 msgstr "Në buzë të lumit"
+
+msgid "Attach an image variable"
+msgstr "Bashkëngjit një variabël imazhi"
 
 msgid "Attach font files or pick Google Fonts for this book. The AI assigns where each font is used (headings, body text, captions…) and the fonts are embedded in the final bundle so it works offline. Google Fonts are downloaded when extraction runs. Make sure you have the right to embed any uploaded font."
 msgstr "Bashkëngjitni skedarë fontesh ose zgjidhni Google Fonts për këtë libër. IA cakton se ku përdoret çdo font (tituj, teksti kryesor, diçitura…) dhe fontet futen në paketën përfundimtare që të funksionojë offline. Google Fonts shkarkohen kur ekzekutohet nxjerrja. Sigurohuni që keni të drejtën të përfshini çdo font të ngarkuar."
@@ -1802,6 +1808,9 @@ msgstr "Konciz"
 msgid "Condensation"
 msgstr "Kondensim"
 
+msgid "Conditionally include text"
+msgstr "Përfshi tekst me kusht"
+
 msgid "Config"
 msgstr "Konfigurim"
 
@@ -2135,6 +2144,9 @@ msgstr "Kaloi në N/A derisa kjo sesion rishikuesi të ketë një gjuhë të zgj
 msgid "Defaults"
 msgstr "Parazgjedhjet"
 
+msgid "Define chat messages"
+msgstr "Përcakto mesazhet e chat-it"
+
 msgid "Definition"
 msgstr "Përkufizim"
 
@@ -2223,6 +2235,9 @@ msgstr "Tituj të detajuar dhe teknikë për lexues të universitetit dhe të rr
 
 msgid "Detected Font"
 msgstr "Fonti i zbuluar"
+
+msgid "Detected in current template"
+msgstr "Të zbuluara në template-in aktual"
 
 msgid "Detecting figures"
 msgstr "Po zbulohen figurat"
@@ -3568,6 +3583,9 @@ msgstr "Justify"
 msgid "KB"
 msgstr "KB"
 
+msgid "Keep output schemas and IDs unchanged when editing prompts."
+msgstr "Mbaji të pandryshuara skemat e daljes dhe ID-të kur redakton promptet."
+
 msgid "Keep pages whole by default, but split when distinct activity types are detected on the same page."
 msgstr "Mbaji faqet të plota si parazgjedhje, por ndaji kur zbulohen lloje të ndryshme aktivitetesh në të njëjtën faqe."
 
@@ -3592,6 +3610,9 @@ msgstr "Kontroll njohurish gjeneruar nga faqet burimore, pas faqes {0}."
 
 msgid "Knowledge check generated from the source pages."
 msgstr "Kontroll njohurish gjeneruar nga faqet burimore."
+
+msgid "Known variables"
+msgstr "Variablat e njohura"
 
 #. placeholder {0}: entry.level
 msgid "L{0}"
@@ -3689,6 +3710,15 @@ msgstr "Faqe lidhje"
 
 msgid "Linked to: {value}"
 msgstr "I lidhur me: {value}"
+
+msgid "Liquid guide"
+msgstr "Udhëzuesi Liquid"
+
+msgid "Liquid prompt guide"
+msgstr "Udhëzues për promptet Liquid"
+
+msgid "Liquid quick reference"
+msgstr "Referencë e shpejtë Liquid"
 
 msgid "List"
 msgstr "Listë"
@@ -3860,6 +3890,9 @@ msgstr "Duke shikuar përpara"
 
 msgid "Lookup definitions for key terms"
 msgstr "Kërko përkufizime për termat kyç"
+
+msgid "Loop over an array"
+msgstr "Itero mbi një array"
 
 msgid "Lower values produce more consistent styling across pages."
 msgstr "Vlerat më të ulëta prodhojnë stil më konsistent nëpër faqe."
@@ -4323,6 +4356,9 @@ msgstr "Nuk u gjetën ende hyrje regjistrimi."
 msgid "No manual terms yet"
 msgstr "Nuk ka terma manualë ende"
 
+msgid "No mapped variables for this prompt yet."
+msgstr "Ende nuk ka variabla të mapuara për këtë prompt."
+
 msgid "No matches for \"{search}\""
 msgstr "Nuk ka përputhje për \"{search}\""
 
@@ -4439,6 +4475,9 @@ msgstr "Nuk u ekstraktua tekst"
 
 msgid "No translations for this page"
 msgstr "Nuk ka përkthime për këtë faqe"
+
+msgid "No variables detected in the current template."
+msgstr "Nuk u zbuluan variabla në template-in aktual."
 
 msgid "No versions"
 msgstr "Nuk ka versione"
@@ -4583,6 +4622,9 @@ msgstr "Hapni pamjen paraprake të imazhit"
 
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Hapeni në çdo lexues EPUB 3, e-reader, ose mjet aksesueshmërie."
+
+msgid "Open Liquid guide"
+msgstr "Hap udhëzuesin Liquid"
 
 msgid "Open page preview for {pageId}"
 msgstr "Hapni pamjen paraprake të faqes për {pageId}"
@@ -5136,6 +5178,9 @@ msgstr "Faqja e mëparshme"
 
 msgid "Previous slide"
 msgstr "Sllajdi i mëparshëm"
+
+msgid "Print a variable"
+msgstr "Shfaq një variabël"
 
 msgid "Process every page on this machine."
 msgstr "Përpunoni çdo faqe në këtë makinë."
@@ -7371,6 +7416,9 @@ msgstr "Përdor një LLM për të zbuluar dhe ndarë imazhet e kompozuara (p.sh.
 msgid "Use an LLM to filter out decorative or non-educational images."
 msgstr "Përdor një LLM për të filtruar imazhet dekorative ose jo-edukative."
 
+msgid "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
+msgstr "Përdor sintaksën Liquid për të interpoluar variabla, për të iteruar mbi array dhe për të përfshirë udhëzime me kusht në këtë prompt."
+
 #. placeholder {0}: page.pageNumber
 msgid "Use page {0} for the quiz"
 msgstr "Përdor faqen {0} për kuizin"
@@ -7386,6 +7434,9 @@ msgstr "Përdor + ndërmjet faqeve për të vendosur kuizin"
 
 msgid "Use the sidebar on the left to open any stage of the pipeline. Each stage has its own page where you can review its content, configure its settings, and start a run. The cards below mirror that navigation — click a card to jump straight to that stage's page."
 msgstr "Përdor shiritin anësor majtas për të hapur çdo fazë të linjës. Çdo fazë ka faqen e saj ku mund të shqyrtosh përmbajtjen, të konfigurosh cilësimet dhe të nisësh një ekzekutim. Kartat më poshtë pasqyrojnë atë navigim — kliko një kartë për të kaluar direkt te faqja e asaj faze."
+
+msgid "Use these names inside double braces or Liquid tags. Nested fields use dot notation."
+msgstr "Përdor këta emra brenda kllapave të dyfishta ose tag-eve Liquid. Fushat e ndërthurura përdorin notacion me pikë."
 
 msgid "Use this for checks you intentionally want to suppress, such as known false positives."
 msgstr "Përdor këtë për kontrollet që dëshiron t'i fshehësh me qëllim, si p.sh. pozitivët e rremë të njohur."
@@ -7420,6 +7471,9 @@ msgstr "Gabime vërtetimi ({0})"
 
 msgid "Variables"
 msgstr "Variabla"
+
+msgid "Variables for this prompt"
+msgstr "Variablat për këtë prompt"
 
 msgid "Variations"
 msgstr "Variacione"

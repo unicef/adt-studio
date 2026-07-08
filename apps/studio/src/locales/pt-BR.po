@@ -1148,6 +1148,9 @@ msgstr "Interface de programação de aplicativos (API) — conjunto de regras q
 msgid "Apply"
 msgstr "Aplicar"
 
+msgid "Apply filters"
+msgstr "Aplicar filtros"
+
 msgid "Apply page background colors"
 msgstr "Aplicar cores de fundo da página"
 
@@ -1211,6 +1214,9 @@ msgstr "Atribuir..."
 
 msgid "At the river's edge"
 msgstr "Na beira do rio"
+
+msgid "Attach an image variable"
+msgstr "Anexar uma variável de imagem"
 
 msgid "Attach font files or pick Google Fonts for this book. The AI assigns where each font is used (headings, body text, captions…) and the fonts are embedded in the final bundle so it works offline. Google Fonts are downloaded when extraction runs. Make sure you have the right to embed any uploaded font."
 msgstr "Anexe arquivos de fonte ou escolha Google Fonts para este livro. A IA define onde cada fonte é usada (títulos, corpo do texto, legendas…) e as fontes são embutidas no pacote final para funcionar offline. As Google Fonts são baixadas quando a extração é executada. Certifique-se de ter o direito de embutir qualquer fonte enviada."
@@ -1801,6 +1807,9 @@ msgstr "Conciso"
 msgid "Condensation"
 msgstr "Condensação"
 
+msgid "Conditionally include text"
+msgstr "Incluir texto condicionalmente"
+
 msgid "Config"
 msgstr "Configuração"
 
@@ -2134,6 +2143,9 @@ msgstr "Defaulted to N/A until this reviewer session has a language selected."
 msgid "Defaults"
 msgstr "Padrões"
 
+msgid "Define chat messages"
+msgstr "Definir mensagens de chat"
+
 msgid "Definition"
 msgstr "Definição"
 
@@ -2222,6 +2234,9 @@ msgstr "Legendas detalhadas e técnicas para leitores universitários e adultos.
 
 msgid "Detected Font"
 msgstr "Fonte detectada"
+
+msgid "Detected in current template"
+msgstr "Detectadas no template atual"
 
 msgid "Detecting figures"
 msgstr "Detectando figuras"
@@ -3567,6 +3582,9 @@ msgstr "Justificar"
 msgid "KB"
 msgstr "KB"
 
+msgid "Keep output schemas and IDs unchanged when editing prompts."
+msgstr "Mantenha os schemas de saída e os IDs inalterados ao editar prompts."
+
 msgid "Keep pages whole by default, but split when distinct activity types are detected on the same page."
 msgstr "Mantenha as páginas inteiras por padrão, mas divida quando tipos distintos de atividades forem detectados na mesma página."
 
@@ -3591,6 +3609,9 @@ msgstr "Verificação de conhecimento gerada a partir das páginas de origem, ap
 
 msgid "Knowledge check generated from the source pages."
 msgstr "Verificação de conhecimento gerada a partir das páginas de origem."
+
+msgid "Known variables"
+msgstr "Variáveis conhecidas"
 
 #. placeholder {0}: entry.level
 msgid "L{0}"
@@ -3688,6 +3709,15 @@ msgstr "Vincular página"
 
 msgid "Linked to: {value}"
 msgstr "Vinculado a: {value}"
+
+msgid "Liquid guide"
+msgstr "Guia Liquid"
+
+msgid "Liquid prompt guide"
+msgstr "Guia de prompts Liquid"
+
+msgid "Liquid quick reference"
+msgstr "Referência rápida de Liquid"
 
 msgid "List"
 msgstr "Lista"
@@ -3859,6 +3889,9 @@ msgstr "Olhando para frente"
 
 msgid "Lookup definitions for key terms"
 msgstr "Procurar definições de termos-chave"
+
+msgid "Loop over an array"
+msgstr "Percorrer um array"
 
 msgid "Lower values produce more consistent styling across pages."
 msgstr "Valores mais baixos produzem estilização mais consistente entre as páginas."
@@ -4322,6 +4355,9 @@ msgstr "Nenhuma entrada de registro encontrada ainda."
 msgid "No manual terms yet"
 msgstr "Nenhum termo manual ainda"
 
+msgid "No mapped variables for this prompt yet."
+msgstr "Ainda não há variáveis mapeadas para este prompt."
+
 msgid "No matches for \"{search}\""
 msgstr "Nenhum resultado para \"{0}\""
 
@@ -4438,6 +4474,9 @@ msgstr "Nenhum texto extraído"
 
 msgid "No translations for this page"
 msgstr "Sem traduções para esta página"
+
+msgid "No variables detected in the current template."
+msgstr "Nenhuma variável detectada no template atual."
 
 msgid "No versions"
 msgstr "Sem versões"
@@ -4582,6 +4621,9 @@ msgstr "Abrir pré-visualização da imagem"
 
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Abra em qualquer leitor EPUB 3, leitor eletrônico ou ferramenta de acessibilidade."
+
+msgid "Open Liquid guide"
+msgstr "Abrir guia Liquid"
 
 msgid "Open page preview for {pageId}"
 msgstr "Abrir pré-visualização da página {0}"
@@ -5135,6 +5177,9 @@ msgstr "Página anterior"
 
 msgid "Previous slide"
 msgstr "Slide anterior"
+
+msgid "Print a variable"
+msgstr "Exibir uma variável"
 
 msgid "Process every page on this machine."
 msgstr "Processar todas as páginas nesta máquina."
@@ -7370,6 +7415,9 @@ msgstr "Usa um LLM para detectar e dividir imagens compostas (ex.: múltiplas fo
 msgid "Use an LLM to filter out decorative or non-educational images."
 msgstr "Usa um LLM para filtrar imagens decorativas ou não educativas."
 
+msgid "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
+msgstr "Use a sintaxe Liquid para interpolar variáveis, percorrer arrays e incluir instruções condicionalmente neste prompt."
+
 #. placeholder {0}: page.pageNumber
 msgid "Use page {0} for the quiz"
 msgstr "Usar a página {0} para o questionário"
@@ -7385,6 +7433,9 @@ msgstr "Use o + entre as páginas para posicionar o questionário"
 
 msgid "Use the sidebar on the left to open any stage of the pipeline. Each stage has its own page where you can review its content, configure its settings, and start a run. The cards below mirror that navigation — click a card to jump straight to that stage's page."
 msgstr "Use a barra lateral à esquerda para abrir qualquer etapa do pipeline. Cada etapa tem sua própria página onde você pode revisar seu conteúdo, configurar suas configurações e iniciar uma execução. Os cartões abaixo espelham essa navegação — clique em um cartão para ir direto para a página dessa etapa."
+
+msgid "Use these names inside double braces or Liquid tags. Nested fields use dot notation."
+msgstr "Use estes nomes dentro de chaves duplas ou tags Liquid. Campos aninhados usam notação de ponto."
 
 msgid "Use this for checks you intentionally want to suppress, such as known false positives."
 msgstr "Use this for checks you intentionally want to suppress, such as known false positives."
@@ -7419,6 +7470,9 @@ msgstr "Erros de validação ({0})"
 
 msgid "Variables"
 msgstr "Variáveis"
+
+msgid "Variables for this prompt"
+msgstr "Variáveis deste prompt"
 
 msgid "Variations"
 msgstr "Variações"
