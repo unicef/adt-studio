@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react"
 import Editor, { type BeforeMount } from "@monaco-editor/react"
+import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { useQuery } from "@tanstack/react-query"
 import { DEFAULT_LLM_MAX_RETRIES } from "@adt/types"
 import { api } from "@/api/client"
@@ -185,6 +187,23 @@ export function PromptViewer({
 
   const currentContent = promptData?.content ?? ""
   const displayContent = draft ?? currentContent
+  const expectedModelPromptName = promptModelId
+    ? promptNameForSelectedModel(promptName, promptModelId)
+    : null
+
+  console.log({
+    promptModelId,
+    model,
+    expectedModelPromptName,
+    promptName,
+    promptData,
+  })
+
+  const isUsingModelFallback = Boolean(
+    promptModelId
+      && promptData?.content != null
+      && promptData.resolvedName !== expectedModelPromptName
+  )
 
   const onChange = (value: string) => {
     setDraft(value)
@@ -218,6 +237,7 @@ export function PromptViewer({
                 inputClassName="h-9 text-xs"
               />
             </div>
+
             {onMaxRetriesChange && (
               <div className="flex items-center gap-2">
                 <Label className="shrink-0 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
@@ -232,6 +252,35 @@ export function PromptViewer({
                   className="h-9 w-20 text-xs"
                 />
               </div>
+            )}
+
+            {isUsingModelFallback && expectedModelPromptName && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge
+                    variant="outline"
+                    className="h-6 cursor-help border-amber-200 bg-amber-50 px-2 text-[11px] font-medium text-amber-800 hover:bg-amber-50"
+                  >
+                    <Trans>Using fallback</Trans>
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="bottom"
+                  align="start"
+                  sideOffset={6}
+                  variant="light"
+                  className="block max-w-[320px] space-y-1.5 p-3 text-left"
+                >
+                  <p className="text-xs font-medium text-foreground">
+                    <Trans>Model-specific prompt not found</Trans>
+                  </p>
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    <Trans>
+                      This model is using the base prompt because {expectedModelPromptName} does not exist yet. Saving changes while this model is selected will create a book-level prompt variant for it.
+                    </Trans>
+                  </p>
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
         )}
@@ -270,6 +319,20 @@ export function PromptViewer({
 function promptModelForSelectedModel(modelId: string | undefined): string | null {
   if (!modelId) return null
   const normalized = modelId.trim().toLowerCase()
-  if (normalized === "gpt-5.5" || normalized === "openai:gpt-5.5") return "openai:gpt-5.5"
-  return null
+  const defaultModelPrompts = ["gpt-5.4", "openai:gpt-5.4"]
+
+  if(defaultModelPrompts.includes(normalized)) return null
+
+  return normalized
+}
+
+function promptNameForSelectedModel(promptName: string, modelId: string): string {
+  return `${promptName}__${sanitizePromptModelId(modelId)}`
+}
+
+function sanitizePromptModelId(modelId: string): string {
+  return modelId
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
 }

@@ -4093,6 +4093,9 @@ msgstr "Celular"
 msgid "Model"
 msgstr "Modelo"
 
+msgid "Model-specific prompt not found"
+msgstr "Prompt específico do modelo não encontrado"
+
 msgid "moderate"
 msgstr "moderate"
 
@@ -6956,6 +6959,9 @@ msgstr "Este não é um projeto válido do ADT Studio"
 msgid "This isn't a valid part file"
 msgstr "Este não é um arquivo de parte válido"
 
+msgid "This model is using the base prompt because {expectedModelPromptName} does not exist yet. Saving changes while this model is selected will create a book-level prompt variant for it."
+msgstr "Este modelo está usando o prompt base porque {expectedModelPromptName} ainda não existe. Salvar alterações enquanto este modelo estiver selecionado criará uma variante de prompt no nível do livro para ele."
+
 msgid "This page has no captioned images"
 msgstr "Esta página não tem imagens legendadas"
 
@@ -7400,6 +7406,9 @@ msgstr "Utilizada para modelos Gemini — tanto LLM (gemini-2.5-pro, etc.) quant
 
 msgid "Used for this quiz"
 msgstr "Usada neste questionário"
+
+msgid "Using fallback"
+msgstr "Usando fallback"
 
 msgid "Validation"
 msgstr "Validation"

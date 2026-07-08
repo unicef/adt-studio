@@ -4095,6 +4095,9 @@ msgstr "Mobile"
 msgid "Model"
 msgstr "Modèle"
 
+msgid "Model-specific prompt not found"
+msgstr "Prompt spécifique au modèle introuvable"
+
 msgid "moderate"
 msgstr "modéré"
 
@@ -6958,6 +6961,9 @@ msgstr "Ce n'est pas un projet ADT Studio valide"
 msgid "This isn't a valid part file"
 msgstr "Ce n'est pas un fichier de partie valide"
 
+msgid "This model is using the base prompt because {expectedModelPromptName} does not exist yet. Saving changes while this model is selected will create a book-level prompt variant for it."
+msgstr "Ce modèle utilise le prompt de base, car {expectedModelPromptName} n'existe pas encore. Enregistrer des modifications pendant que ce modèle est sélectionné créera une variante de prompt au niveau du livre pour celui-ci."
+
 msgid "This page has no captioned images"
 msgstr "Cette page n'a pas d'images légendées"
 
@@ -7402,6 +7408,9 @@ msgstr "Utilisé pour les modèles Gemini — LLM (gemini-2.5-pro, etc.) et TTS 
 
 msgid "Used for this quiz"
 msgstr "Utilisée pour ce quiz"
+
+msgid "Using fallback"
+msgstr "Fallback utilisé"
 
 msgid "Validation"
 msgstr "Validation"
