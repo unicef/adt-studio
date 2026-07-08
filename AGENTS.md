@@ -203,6 +203,7 @@ See [`docs/I18N_ADD_LANGUAGE.md`](docs/I18N_ADD_LANGUAGE.md).
 - All types defined as Zod schemas in `packages/types/`, infer TS types with `z.infer<>`
 - All API calls from frontend go through `apps/studio/src/api/client.ts` + TanStack Query
 - Styling: Tailwind utility classes only — no CSS modules, no styled-components
+- Keep React component files focused. If a file grows multiple substantial components, split it into a folder with a primary component file plus focused child components, hooks, and helpers (for example `ComponentName/ComponentName.tsx`, `ComponentName/Child.tsx`, `ComponentName/helpers.ts`).
 - Server state: TanStack Query — no Redux, Zustand, or global stores; `useState` for UI-only state
 - Routing: TanStack Router (type-safe), Forms: TanStack Form, Tables: TanStack Table
 - Pipeline functions must be pure (no side effects, all deps as params)

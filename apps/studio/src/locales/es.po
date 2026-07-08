@@ -171,6 +171,10 @@ msgstr "{0} elementos con cambios no guardados"
 msgid "{0} languages"
 msgstr "{0} idiomas"
 
+#. placeholder {0}: missingPrompts.length
+msgid "{0} missing prompt files will be created. Existing files are left unchanged."
+msgstr "Se crearán {0} archivos de prompt faltantes. Los archivos existentes no se modificarán."
+
 #. placeholder {0}: String(filteredQuizzes.length)
 #. placeholder {1}: String(displayQuizzes.length)
 msgid "{0} of {1}"
@@ -301,6 +305,9 @@ msgstr "{disabledProvidersText} está deshabilitado — añade su clave API en l
 
 msgid "{elapsed}s"
 msgstr "{elapsed}s"
+
+msgid "{expectedModelPromptName} does not exist yet. Saving while this model is selected creates that global model-specific prompt."
+msgstr "{expectedModelPromptName} aún no existe. Guardar con este modelo seleccionado crea ese prompt global específico del modelo."
 
 msgid "{formatted} will be reset and need to run again before final outputs are available."
 msgstr "{formatted} se restablecerá y necesitará ejecutarse de nuevo antes de que los resultados finales estén disponibles."
@@ -820,8 +827,14 @@ msgstr "Agregar idioma"
 msgid "Add languages to translate the book content into."
 msgstr "Agrega idiomas para traducir el contenido del libro."
 
+#~ msgid "Add model"
+#~ msgstr "Añadir modelo"
+
 msgid "Add new font"
 msgstr "Añadir nueva fuente"
+
+#~ msgid "Add or create model prompt files"
+#~ msgstr "Añadir o crear archivos de prompt del modelo"
 
 msgid "Add quiz"
 msgstr "Añadir cuestionario"
@@ -1125,6 +1138,9 @@ msgstr "Se requiere clave de API para re-renderizar"
 
 msgid "API Key Settings"
 msgstr "Configuración de clave API"
+
+msgid "API keys"
+msgstr "Claves API"
 
 msgid "API Keys"
 msgstr "Claves de API"
@@ -1639,6 +1655,12 @@ msgstr "Elige un preajuste que coincida con tu contenido — libro de texto, gui
 msgid "Choose an existing image from this project"
 msgstr "Elige una imagen existente de este proyecto"
 
+#~ msgid "Choose an existing model or type a new provider:model id. Adding stores it in global prompt settings. Creating files copies the current base prompt content into missing model-specific versions."
+#~ msgstr "Elige un modelo existente o escribe un nuevo id provider:model. Añadirlo lo guarda en la configuración global de prompts. Crear archivos copia el contenido actual del prompt base en las versiones específicas del modelo que faltan."
+
+msgid "Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions."
+msgstr "Elige un modelo existente o escribe un nuevo id provider:model. Crear archivos guarda el modelo en la configuración global de prompts y copia el contenido actual del prompt base en las versiones específicas del modelo que falten."
+
 msgid "Choose features to include in this export"
 msgstr "Elige características para incluir en esta exportación"
 
@@ -1656,6 +1678,9 @@ msgstr "Elige el archivo de parte que te compartieron, o expórtalo de nuevo."
 
 msgid "Choose the source pages and where the quiz lands in the page editor."
 msgstr "Elige las páginas de origen y dónde se ubica el cuestionario en el editor de páginas."
+
+msgid "Choose the target model. The new global prompt file will use this file content and the normal model-specific prompt name."
+msgstr "Elige el modelo de destino. El nuevo archivo de prompt global usará el contenido de este archivo y el nombre normal específico del modelo."
 
 msgid "Choose which per-page validation items reviewers must check, customize the wording and guidance, and add your own checklist items for this document."
 msgstr "Choose which per-page validation items reviewers must check, customize the wording and guidance, and add your own checklist items for this document."
@@ -1744,6 +1769,12 @@ msgstr "Collapse accessibility summary"
 msgid "Collapse all sections"
 msgstr "Contraer todas las secciones"
 
+#~ msgid "Collapse model prompts"
+#~ msgstr "Contraer prompts del modelo"
+
+#~ msgid "Collapse prompt variants"
+#~ msgstr "Contraer variantes del prompt"
+
 msgid "Collapse validation"
 msgstr "Collapse validation"
 
@@ -1827,6 +1858,12 @@ msgstr "Configura cada etapa — extraer, guión gráfico, diseño — luego dej
 
 msgid "Configure features to include in the export"
 msgstr "Configura las características a incluir en la exportación"
+
+#~ msgid "Configure provider credentials and global prompt fallbacks used by ADT Studio."
+#~ msgstr "Configura las credenciales de los proveedores y los prompts fallback globales usados por ADT Studio."
+
+msgid "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
+msgstr "Configura las credenciales de los proveedores usadas cuando ADT Studio ejecuta pasos de la pipeline de IA en esta máquina."
 
 msgid "Configure voices and accents"
 msgstr "Configurar voces y acentos"
@@ -1976,14 +2013,29 @@ msgstr "Crear ADT"
 msgid "Create descriptive captions for images to improve accessibility."
 msgstr "Crea subtítulos descriptivos para las imágenes para mejorar la accesibilidad."
 
+msgid "Create file"
+msgstr "Crear archivo"
+
+msgid "Create files"
+msgstr "Crear archivos"
+
 msgid "Create from scratch using your description"
 msgstr "Crear desde cero con tu descripción"
+
+msgid "Create model prompt files"
+msgstr "Crear archivos de prompt del modelo"
 
 msgid "Create one quiz from specific pages and place it exactly where you want it in the book."
 msgstr "Crea un único cuestionario a partir de páginas específicas y colócalo exactamente donde quieras dentro del libro."
 
+msgid "Create prompt file from template"
+msgstr "Crear archivo de prompt desde plantilla"
+
 msgid "Create session"
 msgstr "Create session"
+
+msgid "Created {created} prompt files for {normalizedTargetModel}."
+msgstr "Se crearon {created} archivos de prompt para {normalizedTargetModel}."
 
 msgid "Created {createdLabel}"
 msgstr "Creado el {createdLabel}"
@@ -2084,11 +2136,23 @@ msgstr "Predeterminada (aún no se detectó texto)"
 msgid "Default model"
 msgstr "Modelo predeterminado"
 
+msgid "Default model cannot be used as a template target."
+msgstr "El modelo predeterminado no se puede usar como destino de plantilla."
+
+msgid "Default model uses the base prompt files and does not need model-specific copies."
+msgstr "El modelo predeterminado usa los archivos de prompt base y no necesita copias específicas del modelo."
+
 msgid "Default N/A"
 msgstr "Default N/A"
 
 msgid "Default Prompt"
 msgstr "Prompt predeterminado"
+
+msgid "Default prompt files cannot be deleted."
+msgstr "Los archivos de prompt predeterminados no se pueden eliminar."
+
+msgid "Default prompt folders cannot be deleted."
+msgstr "Las carpetas de prompts predeterminadas no se pueden eliminar."
 
 msgid "Default Provider"
 msgstr "Proveedor predeterminado"
@@ -2174,6 +2238,18 @@ msgstr "Eliminar elemento"
 
 msgid "Delete failed"
 msgstr "Delete failed"
+
+msgid "Delete file"
+msgstr "Eliminar archivo"
+
+msgid "Delete folder"
+msgstr "Eliminar carpeta"
+
+msgid "Delete prompt file?"
+msgstr "¿Eliminar archivo de prompt?"
+
+msgid "Delete prompt folder?"
+msgstr "¿Eliminar carpeta de prompts?"
 
 msgid "Delete quiz"
 msgstr "Eliminar cuestionario"
@@ -2478,6 +2554,9 @@ msgstr "Editar metadatos del libro"
 msgid "Edit caption"
 msgstr "Editar leyenda"
 
+msgid "Edit fallback prompts used by every book. Saving creates a global prompt version; reset removes the version and returns to the shipped default file."
+msgstr "Edita los prompts fallback usados por todos los libros. Guardar crea una versión global del prompt; restablecer elimina la versión y vuelve al archivo predeterminado incluido."
+
 msgid "Edit in Quizzes"
 msgstr "Editar en Cuestionarios"
 
@@ -2501,6 +2580,9 @@ msgstr "Editable por bloque"
 
 msgid "edited"
 msgstr "editado"
+
+#~ msgid "Edited globally"
+#~ msgstr "Editado globalmente"
 
 msgid "Edited in"
 msgstr "Editado en"
@@ -2590,6 +2672,9 @@ msgstr "English"
 
 msgid "Enhancements"
 msgstr "Mejoras"
+
+msgid "Enter a model id."
+msgstr "Ingresa un id de modelo."
 
 msgid "Enter a valid minimum dimension (whole number ≥ 0)"
 msgstr "Introduce una dimensión mínima válida (número entero ≥ 0)"
@@ -2683,6 +2768,12 @@ msgstr "Expandir"
 
 msgid "Expand all sections"
 msgstr "Expandir todas las secciones"
+
+#~ msgid "Expand model prompts"
+#~ msgstr "Expandir prompts del modelo"
+
+#~ msgid "Expand prompt variants"
+#~ msgstr "Expandir variantes del prompt"
 
 msgid "Experimental configurations"
 msgstr "Configuraciones experimentales"
@@ -2841,6 +2932,9 @@ msgstr "No se pudieron guardar los metadatos. Inténtalo de nuevo."
 msgid "Failed:"
 msgstr "Error:"
 
+#~ msgid "Fallback"
+#~ msgstr "Fallback"
+
 msgid "Falls back to"
 msgstr "Hereda de"
 
@@ -2862,6 +2956,9 @@ msgstr "Extracción de Figuras"
 msgid "File accepted"
 msgstr "Archivo aceptado"
 
+msgid "File actions"
+msgstr "Acciones del archivo"
+
 msgid "Filter by image ID or caption..."
 msgstr "Filtrar por ID de imagen o subtítulo..."
 
@@ -2873,6 +2970,9 @@ msgstr "Filtrar por ID de ítem..."
 
 msgid "Filter pages…"
 msgstr "Filtrar páginas…"
+
+msgid "Filter prompt files..."
+msgstr "Filtrar archivos de prompt..."
 
 msgid "Filter quizzes…"
 msgstr "Filtrar cuestionarios…"
@@ -2921,6 +3021,9 @@ msgstr "Vector plano"
 
 msgid "Flexible"
 msgstr "Flexible"
+
+msgid "Folder actions"
+msgstr "Acciones de la carpeta"
 
 msgid "Font"
 msgstr "Fuente"
@@ -3131,6 +3234,18 @@ msgstr "Prompt de generación"
 
 msgid "Get started"
 msgstr "Comenzar"
+
+msgid "Global prompt reset to default."
+msgstr "Prompt global restablecido al valor predeterminado."
+
+msgid "Global prompt saved."
+msgstr "Prompt global guardado."
+
+msgid "Global prompts"
+msgstr "Prompts globales"
+
+msgid "Global Prompts"
+msgstr "Prompts Globales"
 
 msgid "Glossary"
 msgstr "Glosario"
@@ -3602,6 +3717,9 @@ msgstr "La clave debe empezar con sk-"
 
 msgid "Keyboard & navigation"
 msgstr "Keyboard & navigation"
+
+msgid "Keys are stored locally in this browser or desktop session and are sent only with run requests."
+msgstr "Las claves se almacenan localmente en este navegador o sesión de escritorio y solo se envían con solicitudes de ejecución."
 
 #. placeholder {0}: afterPage.pageNumber
 msgid "Knowledge check generated from the source pages, after page {0}."
@@ -4126,8 +4244,17 @@ msgstr "Móvil"
 msgid "Model"
 msgstr "Modelo"
 
+#~ msgid "Model {normalizedTargetModel} added."
+#~ msgstr "Modelo {normalizedTargetModel} añadido."
+
+#~ msgid "Model variant"
+#~ msgstr "Variante de modelo"
+
 msgid "Model-specific prompt not found"
 msgstr "Prompt específico del modelo no encontrado"
+
+msgid "Models"
+msgstr "Modelos"
 
 msgid "moderate"
 msgstr "moderate"
@@ -4409,6 +4536,12 @@ msgstr "No hay vista previa disponible"
 msgid "No preview available."
 msgstr "No hay vista previa disponible."
 
+msgid "No prompt files for this model."
+msgstr "No hay archivos de prompts para este modelo."
+
+msgid "No prompt files found."
+msgstr "No se encontraron archivos de prompt."
+
 msgid "No pruned terms"
 msgstr "No hay términos podados"
 
@@ -4612,6 +4745,9 @@ msgstr "Open a page to review"
 
 msgid "Open a page to see page-level findings"
 msgstr "Open a page to see page-level findings"
+
+msgid "Open API key settings"
+msgstr "Abrir configuración de claves API"
 
 msgid "Open edit panel"
 msgstr "Abrir panel de edición"
@@ -5202,6 +5338,21 @@ msgstr "Nombre del Proyecto"
 msgid "Prompt"
 msgstr "Prompt"
 
+msgid "Prompt file created from template."
+msgstr "Archivo de prompt creado desde la plantilla."
+
+msgid "Prompt file deleted."
+msgstr "Archivo de prompt eliminado."
+
+#~ msgid "Prompt files"
+#~ msgstr "Archivos de prompt"
+
+msgid "Prompt folder deleted."
+msgstr "Carpeta de prompts eliminada."
+
+msgid "Prompt Settings"
+msgstr "Configuración de prompts"
+
 msgid "Prompt template"
 msgstr "Plantilla de prompt"
 
@@ -5210,6 +5361,9 @@ msgstr "Prompt template not found."
 
 msgid "Provider"
 msgstr "Proveedor"
+
+msgid "Provider credentials"
+msgstr "Credenciales del proveedor"
 
 msgid "Provides consistent HTML/CSS patterns for LLM-generated pages."
 msgstr "Proporciona patrones HTML/CSS consistentes para páginas generadas por LLM."
@@ -5608,6 +5762,9 @@ msgstr "Requerido"
 
 msgid "Required Fields"
 msgstr "Campos Requeridos"
+
+msgid "Reset"
+msgstr "Restablecer"
 
 msgid "Reset fonts"
 msgstr "Restablecer fuentes"
@@ -6116,6 +6273,9 @@ msgstr "Selecciona un tipo de nodo e ingresa un ID de elemento para ver las vers
 msgid "Select a page grouping to continue"
 msgstr "Selecciona un grupo de páginas para continuar"
 
+#~ msgid "Select a prompt"
+#~ msgstr "Selecciona un prompt"
+
 msgid "Select a render strategy to continue"
 msgstr "Selecciona una estrategia de renderizado para continuar"
 
@@ -6166,6 +6326,9 @@ msgstr "Selecciona las páginas en las que se basa el cuestionario y elige dónd
 
 msgid "Select up to 5 pages to use as visual references. The LLM will analyze them and generate a styleguide."
 msgstr "Selecciona hasta 5 páginas para usar como referencias visuales. El LLM las analizará y generará una guía de estilo."
+
+msgid "Selected file"
+msgstr "Archivo seleccionado"
 
 msgid "Selected images"
 msgstr "Imágenes seleccionadas"
@@ -6394,6 +6557,9 @@ msgstr "Ordenar por"
 
 msgid "Source"
 msgstr "Fuente"
+
+msgid "Source file"
+msgstr "Archivo de origen"
 
 msgid "Source PDF"
 msgstr "PDF Fuente"
@@ -6661,6 +6827,12 @@ msgstr "Clases de Tailwind"
 msgid "Takes liberties and produces something similar."
 msgstr "Toma libertades y produce algo similar."
 
+msgid "Target file"
+msgstr "Archivo de destino"
+
+msgid "Target model"
+msgstr "Modelo de destino"
+
 msgid "Task complete"
 msgstr "Tarea completada"
 
@@ -6694,6 +6866,9 @@ msgstr "Temperatura"
 
 msgid "Template"
 msgstr "Plantilla"
+
+#~ msgid "Template applied to current draft."
+#~ msgstr "Plantilla aplicada al borrador actual."
 
 msgid "Template not found."
 msgstr "Template not found."
@@ -7004,8 +7179,14 @@ msgstr "Este no es un proyecto válido de ADT Studio"
 msgid "This isn't a valid part file"
 msgstr "Este no es un archivo de parte válido"
 
-msgid "This model is using the base prompt because {expectedModelPromptName} does not exist yet. Saving changes while this model is selected will create a book-level prompt variant for it."
-msgstr "Este modelo está usando el prompt base porque {expectedModelPromptName} aún no existe. Guardar cambios mientras este modelo esté seleccionado creará una variante de prompt a nivel del libro para él."
+msgid "This model already has prompt files for every base prompt."
+msgstr "Este modelo ya tiene archivos de prompt para todos los prompts base."
+
+#~ msgid "This model is using the base prompt because {expectedModelPromptName} does not exist yet. Saving changes while this model is selected will create a book-level prompt variant for it."
+#~ msgstr "Este modelo está usando el prompt base porque {expectedModelPromptName} aún no existe. Guardar cambios mientras este modelo esté seleccionado creará una variante de prompt a nivel del libro para él."
+
+msgid "This model is using the base prompt because {expectedModelPromptName} does not exist yet. Saving changes while this model is selected will create a prompt variant for it."
+msgstr "Este modelo está usando el prompt base porque {expectedModelPromptName} aún no existe. Guardar cambios con este modelo seleccionado creará una variante de prompt para él."
 
 msgid "This page has no captioned images"
 msgstr "Esta página no tiene imágenes con leyendas"
@@ -7052,8 +7233,17 @@ msgstr "Esta posición ya tiene un cuestionario. Añade otro justo después o re
 msgid "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 msgstr "Este aviso instruye al LLM cómo evaluar el HTML renderizado contra la página original. La selección arriba controla qué plantilla se usa."
 
+#~ msgid "This prompt is using the latest global version. Reset removes that version and returns to the shipped default."
+#~ msgstr "Este prompt usa la versión global más reciente. Restablecer elimina esa versión y vuelve al valor predeterminado incluido."
+
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "Este cuestionario se quitará del libro. Aún podrás restaurarlo desde el historial de versiones."
+
+msgid "This removes all model-specific global prompt versions in this folder. Shipped fallback files remain available."
+msgstr "Esto elimina todas las versiones globales de prompts específicas del modelo en esta carpeta. Los archivos de fallback incluidos con la aplicación permanecen disponibles."
+
+msgid "This removes the global version for this prompt file. Shipped fallback files remain available."
+msgstr "Esto elimina la versión global de este archivo de prompt. Los archivos de fallback incluidos con la aplicación permanecen disponibles."
 
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "Esto restaura la fuente predeterminada en todas las páginas y borra los ajustes de fuente por elemento y la selección de fuente para todo el libro. Las fuentes adjuntas permanecen en la lista. La reversión está disponible por página en el historial de versiones."
@@ -7262,11 +7452,35 @@ msgstr "Tipos usados durante el seccionamiento de páginas. Los tipos eliminados
 msgid "Typography"
 msgstr "Tipografía"
 
+#~ msgid "Unable to apply template."
+#~ msgstr "No se pudo aplicar la plantilla."
+
+msgid "Unable to create prompt file from template."
+msgstr "No se pudo crear el archivo de prompt desde la plantilla."
+
+msgid "Unable to create prompt files."
+msgstr "No se pudieron crear los archivos de prompt."
+
+msgid "Unable to delete prompt file."
+msgstr "No se pudo eliminar el archivo de prompt."
+
+msgid "Unable to delete prompt folder."
+msgstr "No se pudo eliminar la carpeta de prompts."
+
 msgid "Unable to load reviewer checklist settings."
 msgstr "Unable to load reviewer checklist settings."
 
 msgid "Unable to render PDF preview."
 msgstr "No se puede renderizar la vista previa del PDF."
+
+msgid "Unable to reset global prompt."
+msgstr "No se pudo restablecer el prompt global."
+
+msgid "Unable to save global prompt."
+msgstr "No se pudo guardar el prompt global."
+
+#~ msgid "Unable to save prompt model."
+#~ msgstr "No se pudo guardar el modelo de prompt."
 
 msgid "Unassign video"
 msgstr "Desasignar video"
@@ -7414,6 +7628,9 @@ msgstr "Usa un LLM para detectar y dividir imágenes compuestas (ej.: múltiples
 
 msgid "Use an LLM to filter out decorative or non-educational images."
 msgstr "Usa un LLM para filtrar imágenes decorativas o no educativas."
+
+msgid "Use as template"
+msgstr "Usar como plantilla"
 
 msgid "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
 msgstr "Usa la sintaxis de Liquid para interpolar variables, recorrer arrays e incluir instrucciones condicionalmente en este prompt."

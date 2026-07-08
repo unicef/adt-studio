@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from "./routes/__root"
 import { Route as OnboardingRouteImport } from "./routes/onboarding"
 import { Route as IndexRouteImport } from "./routes/index"
+import { Route as PromptsSettingsRouteImport } from "./routes/prompts.settings"
 import { Route as BooksNewRouteImport } from "./routes/books.new"
 import { Route as BooksImportRouteImport } from "./routes/books.import"
 import { Route as BooksLabelRouteImport } from "./routes/books.$label"
@@ -29,6 +30,11 @@ const OnboardingRoute = OnboardingRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: "/",
   path: "/",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PromptsSettingsRoute = PromptsSettingsRouteImport.update({
+  id: "/prompts/settings",
+  path: "/prompts/settings",
   getParentRoute: () => rootRouteImport,
 } as any)
 const BooksNewRoute = BooksNewRouteImport.update({
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
+  "/prompts/settings": typeof PromptsSettingsRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/books/$label/": typeof BooksLabelIndexRoute
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   "/onboarding": typeof OnboardingRoute
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
+  "/prompts/settings": typeof PromptsSettingsRoute
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/books/$label": typeof BooksLabelIndexRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
@@ -108,6 +116,7 @@ export interface FileRoutesById {
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
+  "/prompts/settings": typeof PromptsSettingsRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/books/$label/": typeof BooksLabelIndexRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | "/books/$label"
     | "/books/import"
     | "/books/new"
+    | "/prompts/settings"
     | "/books/$label/$step"
     | "/books/$label/debug"
     | "/books/$label/"
@@ -135,6 +145,7 @@ export interface FileRouteTypes {
     | "/onboarding"
     | "/books/import"
     | "/books/new"
+    | "/prompts/settings"
     | "/books/$label/debug"
     | "/books/$label"
     | "/books/$label/$step/$pageId"
@@ -147,6 +158,7 @@ export interface FileRouteTypes {
     | "/books/$label"
     | "/books/import"
     | "/books/new"
+    | "/prompts/settings"
     | "/books/$label/$step"
     | "/books/$label/debug"
     | "/books/$label/"
@@ -161,6 +173,7 @@ export interface RootRouteChildren {
   BooksLabelRoute: typeof BooksLabelRouteWithChildren
   BooksImportRoute: typeof BooksImportRoute
   BooksNewRoute: typeof BooksNewRoute
+  PromptsSettingsRoute: typeof PromptsSettingsRoute
 }
 
 declare module "@tanstack/react-router" {
@@ -177,6 +190,13 @@ declare module "@tanstack/react-router" {
       path: "/"
       fullPath: "/"
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/prompts/settings": {
+      id: "/prompts/settings"
+      path: "/prompts/settings"
+      fullPath: "/prompts/settings"
+      preLoaderRoute: typeof PromptsSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/books/new": {
@@ -283,6 +303,7 @@ const rootRouteChildren: RootRouteChildren = {
   BooksLabelRoute: BooksLabelRouteWithChildren,
   BooksImportRoute: BooksImportRoute,
   BooksNewRoute: BooksNewRoute,
+  PromptsSettingsRoute: PromptsSettingsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

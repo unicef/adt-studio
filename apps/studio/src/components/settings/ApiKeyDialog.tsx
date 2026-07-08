@@ -94,7 +94,7 @@ export function ApiKeyDialog({
   }, [open, apiKey, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion])
 
   function handleSave() {
-    // Save all tabs — not just the active one
+    // Save all tabs, not just the active one.
     const trimmedOpenai = openaiDraft.trim()
     if (isValidOpenAIKey(trimmedOpenai) || trimmedOpenai === "") onSaveApiKey(trimmedOpenai)
 

@@ -36,7 +36,66 @@ function writeTemplate(name: string, content: string) {
   fs.writeFileSync(path.join(templatesDir, `${name}.liquid`), content, "utf-8")
 }
 
+// ---- Prompt models ----
+
+describe("GET /prompt-models", () => {
+  it("returns an empty model list when none were configured", async () => {
+    const res = await app().request("/prompt-models")
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.models).toEqual([])
+  })
+})
+
+describe("PUT /prompt-models", () => {
+  it("stores normalized unique prompt model ids", async () => {
+    const res = await app().request("/prompt-models", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ models: [" OpenAI:GPT-6 ", "openai:gpt-6", "custom:local-model"] }),
+    })
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.models).toEqual(["openai:gpt-6", "custom:local-model"])
+
+    const readRes = await app().request("/prompt-models")
+    const readBody = await readRes.json()
+    expect(readBody.models).toEqual(["openai:gpt-6", "custom:local-model"])
+  })
+
+  it("rejects invalid prompt model ids", async () => {
+    const res = await app().request("/prompt-models", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ models: ["openai:gpt-6", "../bad"] }),
+    })
+
+    expect(res.status).toBe(400)
+  })
+})
+
 // ---- Prompts ----
+
+describe("GET /prompts", () => {
+  it("lists base prompt names and available variants", async () => {
+    writePrompt("page_sectioning", "base")
+    writePrompt("page_sectioning__openai_gpt_5_5", "flat variant")
+    const versionDir = path.join(promptsDir, ".versions", "metadata_extraction")
+    fs.mkdirSync(versionDir, { recursive: true })
+    fs.writeFileSync(path.join(versionDir, "20260101T000000000Z-000.liquid"), "version", "utf-8")
+
+    const res = await app().request("/prompts")
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.prompts).toEqual([
+      { name: "metadata_extraction", variants: [] },
+      { name: "page_sectioning", variants: ["page_sectioning__openai_gpt_5_5"] },
+    ])
+  })
+})
 
 describe("GET /prompts/:name", () => {
   it("returns prompt content", async () => {
@@ -60,7 +119,7 @@ describe("GET /prompts/:name", () => {
 })
 
 describe("PUT /prompts/:name", () => {
-  it("updates prompt content", async () => {
+  it("creates a versioned global prompt override", async () => {
     writePrompt("test_prompt", "old content")
     const res = await app().request("/prompts/test_prompt", {
       method: "PUT",
@@ -70,7 +129,30 @@ describe("PUT /prompts/:name", () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.content).toBe("new content")
-    expect(fs.readFileSync(path.join(promptsDir, "test_prompt.liquid"), "utf-8")).toBe("new content")
+    expect(body.version).toMatch(/\.liquid$/)
+    expect(fs.readFileSync(path.join(promptsDir, "test_prompt.liquid"), "utf-8")).toBe("old content")
+    const versionDir = path.join(promptsDir, ".versions", "test_prompt")
+    const versions = fs.readdirSync(versionDir)
+    expect(versions).toHaveLength(1)
+    expect(fs.readFileSync(path.join(versionDir, versions[0]), "utf-8")).toBe("new content")
+  })
+
+  it("creates a versioned global exact model override", async () => {
+    writePrompt("test_prompt", "old content")
+    const res = await app().request("/prompts/test_prompt?model=google%3Agemini-2.5-pro", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "gemini content" }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.resolvedName).toBe("test_prompt__google_gemini_2_5_pro")
+    expect(body.modelId).toBe("google:gemini-2.5-pro")
+
+    const readRes = await app().request("/prompts/test_prompt?model=google%3Agemini-2.5-pro")
+    const readBody = await readRes.json()
+    expect(readBody.resolvedName).toBe("test_prompt__google_gemini_2_5_pro")
+    expect(readBody.content).toBe("gemini content")
   })
 
   it("returns 404 when prompt does not exist", async () => {
@@ -90,6 +172,44 @@ describe("PUT /prompts/:name", () => {
       body: JSON.stringify({}),
     })
     expect(res.status).toBe(400)
+  })
+})
+
+describe("DELETE /prompts/:name", () => {
+  it("resets a global prompt override to the flat default", async () => {
+    writePrompt("test_prompt", "default content")
+    const saveRes = await app().request("/prompts/test_prompt", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "edited content" }),
+    })
+    expect(saveRes.status).toBe(200)
+
+    const resetRes = await app().request("/prompts/test_prompt", { method: "DELETE" })
+    expect(resetRes.status).toBe(200)
+    const body = await resetRes.json()
+    expect(body.content).toBe("default content")
+    expect(body.version).toBeUndefined()
+    expect(fs.existsSync(path.join(promptsDir, ".versions", "test_prompt"))).toBe(false)
+  })
+
+  it("resets a missing model variant back to the base prompt fallback", async () => {
+    writePrompt("test_prompt", "default content")
+    await app().request("/prompts/test_prompt?model=anthropic%3Aclaude-opus-4-6", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "claude content" }),
+    })
+
+    const resetRes = await app().request("/prompts/test_prompt?model=anthropic%3Aclaude-opus-4-6", {
+      method: "DELETE",
+    })
+
+    expect(resetRes.status).toBe(200)
+    const body = await resetRes.json()
+    expect(body.resolvedName).toBe("test_prompt")
+    expect(body.modelId).toBeNull()
+    expect(body.content).toBe("default content")
   })
 })
 

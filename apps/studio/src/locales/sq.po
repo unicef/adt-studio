@@ -172,6 +172,10 @@ msgstr "{0} elemente me ndryshime të paruajtura"
 msgid "{0} languages"
 msgstr "{0} gjuhë"
 
+#. placeholder {0}: missingPrompts.length
+msgid "{0} missing prompt files will be created. Existing files are left unchanged."
+msgstr "{0} skedarë prompti që mungojnë do të krijohen. Skedarët ekzistues nuk do të ndryshohen."
+
 #. placeholder {0}: String(filteredQuizzes.length)
 #. placeholder {1}: String(displayQuizzes.length)
 msgid "{0} of {1}"
@@ -302,6 +306,9 @@ msgstr "{disabledProvidersText} është i çaktivizuar — shtoni çelësin e ti
 
 msgid "{elapsed}s"
 msgstr "{elapsed}s"
+
+msgid "{expectedModelPromptName} does not exist yet. Saving while this model is selected creates that global model-specific prompt."
+msgstr "{expectedModelPromptName} nuk ekziston ende. Ruajtja ndërsa ky model është zgjedhur krijon atë prompt global specifik për modelin."
 
 msgid "{formatted} will be reset and need to run again before final outputs are available."
 msgstr "{formatted} do të rivendoset dhe duhet të ekzekutohet përsëri përpara se rezultatet përfundimtare të jenë të disponueshme."
@@ -821,8 +828,14 @@ msgstr "Shto Gjuhë"
 msgid "Add languages to translate the book content into."
 msgstr "Shto gjuhë për të përkthyer përmbajtjen e librit."
 
+#~ msgid "Add model"
+#~ msgstr "Shto model"
+
 msgid "Add new font"
 msgstr "Shto font të ri"
+
+#~ msgid "Add or create model prompt files"
+#~ msgstr "Shto ose krijo skedarë prompti për modelin"
 
 msgid "Add quiz"
 msgstr "Shto kuiz"
@@ -1126,6 +1139,9 @@ msgstr "Kërkohet çelës API për ri-renderim"
 
 msgid "API Key Settings"
 msgstr "Cilësimet e çelësit API"
+
+msgid "API keys"
+msgstr "Çelësat API"
 
 msgid "API Keys"
 msgstr "Çelësat API"
@@ -1640,6 +1656,12 @@ msgstr "Zgjidhni një preset që përputhet me përmbajtjen tuaj — tekst shkol
 msgid "Choose an existing image from this project"
 msgstr "Zgjidhni një imazh ekzistues nga ky projekt"
 
+#~ msgid "Choose an existing model or type a new provider:model id. Adding stores it in global prompt settings. Creating files copies the current base prompt content into missing model-specific versions."
+#~ msgstr "Zgjidh një model ekzistues ose shkruaj një id të ri provider:model. Shtimi e ruan te cilësimet globale të promptit. Krijimi i skedarëve kopjon përmbajtjen aktuale të promptit bazë në versionet specifike për modelin që mungojnë."
+
+msgid "Choose an existing model or type a new provider:model id. Creating files stores the model in global prompt settings and copies the current base prompt content into missing model-specific versions."
+msgstr "Zgjidhni një model ekzistues ose shkruani një id të ri provider:model. Krijimi i skedarëve e ruan modelin te cilësimet globale të prompteve dhe kopjon përmbajtjen aktuale të promptit bazë te versionet specifike për modelin që mungojnë."
+
 msgid "Choose features to include in this export"
 msgstr "Zgjidhni funksionet për t'i përfshirë në këtë eksportim"
 
@@ -1657,6 +1679,9 @@ msgstr "Zgjidhni skedarin e pjesës që ju është ndarë, ose eksportojeni për
 
 msgid "Choose the source pages and where the quiz lands in the page editor."
 msgstr "Zgjidhni faqet burimore dhe ku vendoset testi në redaktorin e faqeve."
+
+msgid "Choose the target model. The new global prompt file will use this file content and the normal model-specific prompt name."
+msgstr "Zgjidh modelin e synuar. Skedari i ri global i promptit do të përdorë përmbajtjen e këtij skedari dhe emrin normal specifik për modelin."
 
 msgid "Choose which per-page validation items reviewers must check, customize the wording and guidance, and add your own checklist items for this document."
 msgstr "Zgjidhni cilat artikuj validimi për faqe duhet të kontrollojnë rishikuesit, personalizoni formulimin dhe udhëzimet dhe shtoni artikujt tuaj të listës së kontrollit për këtë dokument."
@@ -1745,6 +1770,12 @@ msgstr "Mbledh përmbledhjen e aksesueshmërisë"
 msgid "Collapse all sections"
 msgstr "Mbledh të gjitha seksionet"
 
+#~ msgid "Collapse model prompts"
+#~ msgstr "Mbyll promptet e modelit"
+
+#~ msgid "Collapse prompt variants"
+#~ msgstr "Mbyll variantet e promptit"
+
 msgid "Collapse validation"
 msgstr "Mbledh validimin"
 
@@ -1828,6 +1859,12 @@ msgstr "Konfiguroni çdo fazë — ekstraktim, storyboard, faqosje — pastaj l�
 
 msgid "Configure features to include in the export"
 msgstr "Konfiguroni funksionet për t'i përfshirë në eksportim"
+
+#~ msgid "Configure provider credentials and global prompt fallbacks used by ADT Studio."
+#~ msgstr "Konfiguro kredencialet e ofruesve dhe promptet globale fallback që përdor ADT Studio."
+
+msgid "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
+msgstr "Konfiguro kredencialet e ofruesve që përdoren kur ADT Studio ekzekuton hapat e pipeline-it të IA-së në këtë makinë."
 
 msgid "Configure voices and accents"
 msgstr "Konfiguroni zërat dhe thekset"
@@ -1977,14 +2014,29 @@ msgstr "Krijo ADT"
 msgid "Create descriptive captions for images to improve accessibility."
 msgstr "Krijoni përshkrime përshkruese për imazhet për të përmirësuar aksesueshmërinë."
 
+msgid "Create file"
+msgstr "Krijo skedar"
+
+msgid "Create files"
+msgstr "Krijo skedarë"
+
 msgid "Create from scratch using your description"
 msgstr "Krijo nga e para duke përdorur përshkrimin tuaj"
+
+msgid "Create model prompt files"
+msgstr "Krijo skedarët e promptit të modelit"
 
 msgid "Create one quiz from specific pages and place it exactly where you want it in the book."
 msgstr "Krijoni një test nga faqe specifike dhe vendoseni pikërisht aty ku dëshironi në libër."
 
+msgid "Create prompt file from template"
+msgstr "Krijo skedar prompti nga shablloni"
+
 msgid "Create session"
 msgstr "Krijo sesion"
+
+msgid "Created {created} prompt files for {normalizedTargetModel}."
+msgstr "U krijuan {created} skedarë prompti për {normalizedTargetModel}."
 
 msgid "Created {createdLabel}"
 msgstr "Krijuar {createdLabel}"
@@ -2085,11 +2137,23 @@ msgstr "Parazgjedhje (ende nuk u zbulua tekst)"
 msgid "Default model"
 msgstr "Modeli parazgjedhës"
 
+msgid "Default model cannot be used as a template target."
+msgstr "Modeli i parazgjedhur nuk mund të përdoret si destinacion shablloni."
+
+msgid "Default model uses the base prompt files and does not need model-specific copies."
+msgstr "Modeli i parazgjedhur përdor skedarët bazë të promptit dhe nuk ka nevojë për kopje specifike për modelin."
+
 msgid "Default N/A"
 msgstr "Parazgjedhje N/A"
 
 msgid "Default Prompt"
 msgstr "Prompt-i parazgjedhës"
+
+msgid "Default prompt files cannot be deleted."
+msgstr "Skedarët e parazgjedhur të promptit nuk mund të fshihen."
+
+msgid "Default prompt folders cannot be deleted."
+msgstr "Dosjet e parazgjedhura të prompteve nuk mund të fshihen."
 
 msgid "Default Provider"
 msgstr "Ofruesi parazgjedhës"
@@ -2175,6 +2239,18 @@ msgstr "Fshi elementin"
 
 msgid "Delete failed"
 msgstr "Fshirja dështoi"
+
+msgid "Delete file"
+msgstr "Fshi skedarin"
+
+msgid "Delete folder"
+msgstr "Fshi dosjen"
+
+msgid "Delete prompt file?"
+msgstr "Të fshihet skedari i promptit?"
+
+msgid "Delete prompt folder?"
+msgstr "Të fshihet dosja e prompteve?"
 
 msgid "Delete quiz"
 msgstr "Fshi kuizin"
@@ -2479,6 +2555,9 @@ msgstr "Modifiko meta të dhënat e librit"
 msgid "Edit caption"
 msgstr "Redakto titullin"
 
+msgid "Edit fallback prompts used by every book. Saving creates a global prompt version; reset removes the version and returns to the shipped default file."
+msgstr "Redakto promptet fallback që përdoren nga çdo libër. Ruajtja krijon një version global të promptit; resetimi heq versionin dhe kthen skedarin e parazgjedhur të shpërndarë."
+
 msgid "Edit in Quizzes"
 msgstr "Redakto në Kuize"
 
@@ -2502,6 +2581,9 @@ msgstr "I redaktueshëm për çdo bllok"
 
 msgid "edited"
 msgstr "redaktuar"
+
+#~ msgid "Edited globally"
+#~ msgstr "Redaktuar globalisht"
 
 msgid "Edited in"
 msgstr "Redaktuar në"
@@ -2591,6 +2673,9 @@ msgstr "Anglisht"
 
 msgid "Enhancements"
 msgstr "Përmirësime"
+
+msgid "Enter a model id."
+msgstr "Shkruaj një id modeli."
 
 msgid "Enter a valid minimum dimension (whole number ≥ 0)"
 msgstr "Shkruani një dimension minimal të vlefshëm (numër i plotë ≥ 0)"
@@ -2684,6 +2769,12 @@ msgstr "Zgjer"
 
 msgid "Expand all sections"
 msgstr "Zgjer të gjitha seksionet"
+
+#~ msgid "Expand model prompts"
+#~ msgstr "Zgjero promptet e modelit"
+
+#~ msgid "Expand prompt variants"
+#~ msgstr "Zgjero variantet e promptit"
 
 msgid "Experimental configurations"
 msgstr "Konfigurime eksperimentale"
@@ -2842,6 +2933,9 @@ msgstr "Ruajtja e të dhënave dështoi. Ju lutemi provoni përsëri."
 msgid "Failed:"
 msgstr "Dështoi:"
 
+#~ msgid "Fallback"
+#~ msgstr "Fallback"
+
 msgid "Falls back to"
 msgstr "Kthehet te"
 
@@ -2863,6 +2957,9 @@ msgstr "Nxjerrja e figurave"
 msgid "File accepted"
 msgstr "Skedari u pranua"
 
+msgid "File actions"
+msgstr "Veprimet e skedarit"
+
 msgid "Filter by image ID or caption..."
 msgstr "Filtro sipas ID-së ose titullit të imazhit..."
 
@@ -2874,6 +2971,9 @@ msgstr "Filtro sipas ID-së së artikullit..."
 
 msgid "Filter pages…"
 msgstr "Filtro faqet…"
+
+msgid "Filter prompt files..."
+msgstr "Filtro skedarët e promptit..."
 
 msgid "Filter quizzes…"
 msgstr "Filtro kuizet…"
@@ -2922,6 +3022,9 @@ msgstr "Vektor i sheshtë"
 
 msgid "Flexible"
 msgstr "Fleksibël"
+
+msgid "Folder actions"
+msgstr "Veprimet e dosjes"
 
 msgid "Font"
 msgstr "Font"
@@ -3132,6 +3235,18 @@ msgstr "Prompt Gjenerimi"
 
 msgid "Get started"
 msgstr "Filloni"
+
+msgid "Global prompt reset to default."
+msgstr "Prompti global u resetua në parazgjedhje."
+
+msgid "Global prompt saved."
+msgstr "Prompti global u ruajt."
+
+msgid "Global prompts"
+msgstr "Promptet globale"
+
+msgid "Global Prompts"
+msgstr "Promptet globale"
 
 msgid "Glossary"
 msgstr "Glosarit"
@@ -3603,6 +3718,9 @@ msgstr "Çelësi duhet të fillojë me sk-"
 
 msgid "Keyboard & navigation"
 msgstr "Tastierë dhe navigim"
+
+msgid "Keys are stored locally in this browser or desktop session and are sent only with run requests."
+msgstr "Çelësat ruhen lokalisht në këtë shfletues ose sesion desktop dhe dërgohen vetëm me kërkesat e ekzekutimit."
 
 #. placeholder {0}: afterPage.pageNumber
 msgid "Knowledge check generated from the source pages, after page {0}."
@@ -4127,8 +4245,17 @@ msgstr "Celular"
 msgid "Model"
 msgstr "Model"
 
+#~ msgid "Model {normalizedTargetModel} added."
+#~ msgstr "Modeli {normalizedTargetModel} u shtua."
+
+#~ msgid "Model variant"
+#~ msgstr "Variant modeli"
+
 msgid "Model-specific prompt not found"
 msgstr "Prompti specifik për modelin nuk u gjet"
+
+msgid "Models"
+msgstr "Modelet"
 
 msgid "moderate"
 msgstr "i moderuar"
@@ -4410,6 +4537,12 @@ msgstr "Nuk ka pamje paraprake"
 msgid "No preview available."
 msgstr "Nuk ka pamje paraprake."
 
+msgid "No prompt files for this model."
+msgstr "Nuk ka skedarë prompti për këtë model."
+
+msgid "No prompt files found."
+msgstr "Nuk u gjet asnjë skedar prompti."
+
 msgid "No pruned terms"
 msgstr "Nuk ka terma të hequr"
 
@@ -4613,6 +4746,9 @@ msgstr "Hapni një faqe për rishikim"
 
 msgid "Open a page to see page-level findings"
 msgstr "Hapni një faqe për të parë gjetjet në nivel faqeje"
+
+msgid "Open API key settings"
+msgstr "Hap cilësimet e çelësave API"
 
 msgid "Open edit panel"
 msgstr "Hapni panelin e redaktimit"
@@ -5203,6 +5339,21 @@ msgstr "Emri i Projektit"
 msgid "Prompt"
 msgstr "Prompt"
 
+msgid "Prompt file created from template."
+msgstr "Skedari i promptit u krijua nga shablloni."
+
+msgid "Prompt file deleted."
+msgstr "Skedari i promptit u fshi."
+
+#~ msgid "Prompt files"
+#~ msgstr "Skedarët e promptit"
+
+msgid "Prompt folder deleted."
+msgstr "Dosja e prompteve u fshi."
+
+msgid "Prompt Settings"
+msgstr "Cilësimet e promptit"
+
 msgid "Prompt template"
 msgstr "Shabllon prompt"
 
@@ -5211,6 +5362,9 @@ msgstr "Shablloni i prompt-it nuk u gjet."
 
 msgid "Provider"
 msgstr "Ofruesi"
+
+msgid "Provider credentials"
+msgstr "Kredencialet e ofruesit"
 
 msgid "Provides consistent HTML/CSS patterns for LLM-generated pages."
 msgstr "Siguron modele të qëndrueshme HTML/CSS për faqet e gjeneruara nga LLM."
@@ -5609,6 +5763,9 @@ msgstr "E detyrueshme"
 
 msgid "Required Fields"
 msgstr "Fushat e Detyrueshme"
+
+msgid "Reset"
+msgstr "Reseto"
 
 msgid "Reset fonts"
 msgstr "Rivendos fontet"
@@ -6117,6 +6274,9 @@ msgstr "Zgjidhni një lloj nyje dhe shkruani një ID elementi për të parë ver
 msgid "Select a page grouping to continue"
 msgstr "Zgjidhni një grupim faqesh për të vazhduar"
 
+#~ msgid "Select a prompt"
+#~ msgstr "Zgjidh një prompt"
+
 msgid "Select a render strategy to continue"
 msgstr "Zgjidhni një strategji renderimi për të vazhduar"
 
@@ -6167,6 +6327,9 @@ msgstr "Zgjidhni faqet nga të cilat është shkruar kuizi, pastaj zgjidhni ku s
 
 msgid "Select up to 5 pages to use as visual references. The LLM will analyze them and generate a styleguide."
 msgstr "Zgjidhni deri në 5 faqe për t'i përdorur si referenca vizuale. LLM do t'i analizojë dhe do të gjenerojë një udhëzues stili."
+
+msgid "Selected file"
+msgstr "Skedari i zgjedhur"
 
 msgid "Selected images"
 msgstr "Imazhe të zgjedhura"
@@ -6395,6 +6558,9 @@ msgstr "Rendit sipas"
 
 msgid "Source"
 msgstr "Burimi"
+
+msgid "Source file"
+msgstr "Skedari burim"
 
 msgid "Source PDF"
 msgstr "PDF Burim"
@@ -6662,6 +6828,12 @@ msgstr "Klasa Tailwind"
 msgid "Takes liberties and produces something similar."
 msgstr "Merr liri dhe prodhon diçka të ngjashme."
 
+msgid "Target file"
+msgstr "Skedari i synuar"
+
+msgid "Target model"
+msgstr "Modeli i synuar"
+
 msgid "Task complete"
 msgstr "Detyra u krye"
 
@@ -6695,6 +6867,9 @@ msgstr "Temperatura"
 
 msgid "Template"
 msgstr "Shablloni"
+
+#~ msgid "Template applied to current draft."
+#~ msgstr "Shablloni u aplikua në draftin aktual."
 
 msgid "Template not found."
 msgstr "Shablloni nuk u gjet."
@@ -7005,8 +7180,14 @@ msgstr "Ky nuk është një projekt i vlefshëm i ADT Studio"
 msgid "This isn't a valid part file"
 msgstr "Ky nuk është një skedar i vlefshëm pjese"
 
-msgid "This model is using the base prompt because {expectedModelPromptName} does not exist yet. Saving changes while this model is selected will create a book-level prompt variant for it."
-msgstr "Ky model po përdor promptin bazë sepse {expectedModelPromptName} nuk ekziston ende. Ruajtja e ndryshimeve ndërsa ky model është i zgjedhur do të krijojë një variant prompti në nivel libri për të."
+msgid "This model already has prompt files for every base prompt."
+msgstr "Ky model tashmë ka skedarë prompti për çdo prompt bazë."
+
+#~ msgid "This model is using the base prompt because {expectedModelPromptName} does not exist yet. Saving changes while this model is selected will create a book-level prompt variant for it."
+#~ msgstr "Ky model po përdor promptin bazë sepse {expectedModelPromptName} nuk ekziston ende. Ruajtja e ndryshimeve ndërsa ky model është i zgjedhur do të krijojë një variant prompti në nivel libri për të."
+
+msgid "This model is using the base prompt because {expectedModelPromptName} does not exist yet. Saving changes while this model is selected will create a prompt variant for it."
+msgstr "Ky model po përdor promptin bazë sepse {expectedModelPromptName} nuk ekziston ende. Ruajtja e ndryshimeve ndërsa ky model është zgjedhur do të krijojë një variant prompti për të."
 
 msgid "This page has no captioned images"
 msgstr "Kjo faqe nuk ka imazhe me tituj"
@@ -7053,8 +7234,17 @@ msgstr "Kjo pozicion tashmë ka një test. Shto një tjetër menjëherë pas tij
 msgid "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 msgstr "Ky udhëzim i tregon LLM-it si të vlerësojë HTML-in e renderuar kundrejt faqes origjinale. Zgjedhja më lart kontrollon cilin shabllon përdoret."
 
+#~ msgid "This prompt is using the latest global version. Reset removes that version and returns to the shipped default."
+#~ msgstr "Ky prompt po përdor versionin më të fundit global. Resetimi heq atë version dhe kthen parazgjedhjen e shpërndarë."
+
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "Ky test do të hiqet nga libri. Mund ta rikthesh nga historia e versioneve."
+
+msgid "This removes all model-specific global prompt versions in this folder. Shipped fallback files remain available."
+msgstr "Kjo heq të gjitha versionet globale të prompteve specifike për modelin në këtë dosje. Skedarët fallback të përfshirë mbeten të disponueshëm."
+
+msgid "This removes the global version for this prompt file. Shipped fallback files remain available."
+msgstr "Kjo heq versionin global për këtë skedar prompti. Skedarët fallback të përfshirë mbeten të disponueshëm."
 
 msgid "This restores the default fallback font across every page and clears per-element font overrides and the book-wide font selection. Attached fonts stay in the list. Rollback is available per page from version history."
 msgstr "Kjo rikthen fontin e parazgjedhur në çdo faqe dhe pastron mbishkrimet e fontit për element dhe përzgjedhjen e fontit për të gjithë librin. Fontet e bashkëngjitura mbeten në listë. Kthimi është i disponueshëm për çdo faqe nga historiku i versioneve."
@@ -7263,11 +7453,35 @@ msgstr "Llojet e përdorura gjatë seksionimit të faqes. Llojet e prera klasifi
 msgid "Typography"
 msgstr "Tipografia"
 
+#~ msgid "Unable to apply template."
+#~ msgstr "Nuk u arrit të aplikohej shablloni."
+
+msgid "Unable to create prompt file from template."
+msgstr "Nuk u arrit të krijohej skedari i promptit nga shablloni."
+
+msgid "Unable to create prompt files."
+msgstr "Nuk mund të krijohen skedarët e promptit."
+
+msgid "Unable to delete prompt file."
+msgstr "Nuk u arrit të fshihej skedari i promptit."
+
+msgid "Unable to delete prompt folder."
+msgstr "Nuk u arrit të fshihej dosja e prompteve."
+
 msgid "Unable to load reviewer checklist settings."
 msgstr "Nuk mund të ngarkohen cilësimet e listës së kontrollit të rishikuesit."
 
 msgid "Unable to render PDF preview."
 msgstr "Pamja paraprake e PDF nuk mund të shfaqet."
+
+msgid "Unable to reset global prompt."
+msgstr "Nuk mund të resetohet prompti global."
+
+msgid "Unable to save global prompt."
+msgstr "Nuk mund të ruhet prompti global."
+
+#~ msgid "Unable to save prompt model."
+#~ msgstr "Nuk mund të ruhet modeli i promptit."
 
 msgid "Unassign video"
 msgstr "Hiq caktimin e videos"
@@ -7415,6 +7629,9 @@ msgstr "Përdor një LLM për të zbuluar dhe ndarë imazhet e kompozuara (p.sh.
 
 msgid "Use an LLM to filter out decorative or non-educational images."
 msgstr "Përdor një LLM për të filtruar imazhet dekorative ose jo-edukative."
+
+msgid "Use as template"
+msgstr "Përdor si shabllon"
 
 msgid "Use Liquid syntax to interpolate variables, loop over arrays, and conditionally include instructions in this prompt."
 msgstr "Përdor sintaksën Liquid për të interpoluar variabla, për të iteruar mbi array dhe për të përfshirë udhëzime me kusht në këtë prompt."

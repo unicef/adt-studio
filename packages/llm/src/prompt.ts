@@ -71,8 +71,9 @@ export function createPromptEngine(promptsDir: string | string[]): PromptEngine 
 export function resolvePromptModelId(modelId: string | undefined): string | null {
   if (!modelId) return null
   const normalized = modelId.trim().toLowerCase()
-  if (normalized === "gpt-5.5" || normalized === "openai:gpt-5.5") return "openai:gpt-5.5"
-  return null
+  if (!normalized) return null
+  if (normalized === "gpt-5.4" || normalized === "openai:gpt-5.4") return null
+  return normalized
 }
 
 export function promptNameForModel(

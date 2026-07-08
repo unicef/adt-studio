@@ -14,13 +14,17 @@ import {
   getKnownPromptVariables,
   LIQUID_SNIPPETS,
 } from "./promptLiquidVariables"
+import { cn } from "@/lib/utils"
+
 
 export function PromptLiquidGuideDialog({
   promptName,
   content,
+  className,
 }: {
   promptName: string
   content: string
+  className?: string
 }) {
   const { t } = useLingui()
   const knownVariables = getKnownPromptVariables(promptName)
@@ -33,7 +37,7 @@ export function PromptLiquidGuideDialog({
           type="button"
           variant="outline"
           size="sm"
-          className="h-9 px-2.5 text-xs"
+          className={cn("h-9 px-2.5 text-xs", className)}
           aria-label={t`Open Liquid guide`}
         >
           <BookOpen className="h-3.5 w-3.5" />

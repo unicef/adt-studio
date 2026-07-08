@@ -7,13 +7,54 @@ import {
 } from "@adt/llm"
 
 const VALID_NAME = /^[a-zA-Z0-9_]+$/
+const VALID_MODEL_ID = /^[a-zA-Z0-9][a-zA-Z0-9_.:/-]{0,159}$/
 const PROMPT_VERSIONS_DIR = ".versions"
+const PROMPT_MODELS_FILE = ".models.json"
+
+interface PromptSummary {
+  name: string
+  variants: string[]
+}
 
 export function createPromptRoutes(promptsDir: string, booksDir: string) {
   const app = new Hono()
   const templatesDir = path.join(path.dirname(promptsDir), "templates")
 
-  // GET /prompts/:name — read global prompt template content
+  // GET /prompt-models - list additional globally configured prompt model IDs
+  app.get("/prompt-models", (c) => {
+    return c.json({ models: readPromptModels(promptsDir) })
+  })
+
+  // PUT /prompt-models - replace additional globally configured prompt model IDs
+  app.put("/prompt-models", async (c) => {
+    const body = await c.req.json<{ models?: unknown }>()
+    if (!Array.isArray(body.models)) {
+      return c.json({ error: "Missing models array" }, 400)
+    }
+
+    const models: string[] = []
+    for (const value of body.models) {
+      if (typeof value !== "string") {
+        return c.json({ error: "Invalid model id" }, 400)
+      }
+      const modelId = normalizePromptModelId(value)
+      if (!modelId) continue
+      if (!VALID_MODEL_ID.test(modelId)) {
+        return c.json({ error: "Invalid model id" }, 400)
+      }
+      if (!models.includes(modelId)) models.push(modelId)
+    }
+
+    writePromptModels(promptsDir, models)
+    return c.json({ models })
+  })
+
+  // GET /prompts - list global prompt template names and model variants
+  app.get("/prompts", (c) => {
+    return c.json({ prompts: listPrompts(promptsDir) })
+  })
+
+  // GET /prompts/:name - read global prompt template content
   app.get("/prompts/:name", (c) => {
     const name = c.req.param("name")
     if (!VALID_NAME.test(name)) {
@@ -29,7 +70,7 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
     return c.json(prompt)
   })
 
-  // PUT /prompts/:name — update global prompt template content
+  // PUT /prompts/:name - update global prompt template content
   app.put("/prompts/:name", async (c) => {
     const name = c.req.param("name")
     if (!VALID_NAME.test(name)) {
@@ -42,18 +83,45 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
       return c.json({ error: "Missing content field" }, 400)
     }
 
-    const basePath = path.join(promptsDir, `${name}.liquid`)
-    if (!fs.existsSync(basePath)) {
+    if (!basePromptExists(promptsDir, name)) {
       return c.json({ error: "Prompt not found" }, 404)
     }
 
     const resolvedName = promptNameForModel(name, modelId)
-    const filePath = path.join(promptsDir, `${resolvedName}.liquid`)
-    fs.writeFileSync(filePath, body.content, "utf-8")
-    return c.json({ name, resolvedName, content: body.content, source: "global", modelId })
+    const versionDir = path.join(promptsDir, PROMPT_VERSIONS_DIR, resolvedName)
+    fs.mkdirSync(versionDir, { recursive: true })
+    const version = createPromptVersionName(versionDir)
+    fs.writeFileSync(path.join(versionDir, version), body.content, "utf-8")
+    return c.json({ name, resolvedName, content: body.content, source: "global", modelId, version })
   })
 
-  // GET /books/:label/prompts/:name — read book override, fall back to global
+  // DELETE /prompts/:name - reset global prompt to its shipped flat-file default
+  app.delete("/prompts/:name", (c) => {
+    const name = c.req.param("name")
+    if (!VALID_NAME.test(name)) {
+      return c.json({ error: "Invalid prompt name" }, 400)
+    }
+    const modelId = resolvePromptModelId(c.req.query("model"))
+
+    if (!basePromptExists(promptsDir, name)) {
+      return c.json({ error: "Prompt not found" }, 404)
+    }
+
+    const resolvedName = promptNameForModel(name, modelId)
+    const versionDir = path.join(promptsDir, PROMPT_VERSIONS_DIR, resolvedName)
+    if (fs.existsSync(versionDir)) {
+      fs.rmSync(versionDir, { recursive: true, force: true })
+    }
+
+    const prompt = readPrompt({ promptsDir, name, modelId })
+    if (!prompt) {
+      return c.json({ error: "Prompt not found" }, 404)
+    }
+
+    return c.json(prompt)
+  })
+
+  // GET /books/:label/prompts/:name - read book override, fall back to global
   app.get("/books/:label/prompts/:name", (c) => {
     const label = c.req.param("label")
     const name = c.req.param("name")
@@ -70,7 +138,7 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
     return c.json(prompt)
   })
 
-  // PUT /books/:label/prompts/:name — save book-level override
+  // PUT /books/:label/prompts/:name - save book-level override
   app.put("/books/:label/prompts/:name", async (c) => {
     const label = c.req.param("label")
     const name = c.req.param("name")
@@ -103,7 +171,7 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
 
   // --- Render templates (Liquid layout templates used by template-based strategies) ---
 
-  // GET /templates — list available template names
+  // GET /templates - list available template names
   app.get("/templates", (c) => {
     if (!fs.existsSync(templatesDir)) {
       return c.json({ templates: [] })
@@ -115,7 +183,7 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
     return c.json({ templates: names })
   })
 
-  // GET /templates/:name — read global template
+  // GET /templates/:name - read global template
   app.get("/templates/:name", (c) => {
     const name = c.req.param("name")
     if (!VALID_NAME.test(name)) {
@@ -131,7 +199,7 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
     return c.json({ name, content })
   })
 
-  // PUT /templates/:name — update global template
+  // PUT /templates/:name - update global template
   app.put("/templates/:name", async (c) => {
     const name = c.req.param("name")
     if (!VALID_NAME.test(name)) {
@@ -152,7 +220,7 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
     return c.json({ name, content: body.content })
   })
 
-  // GET /books/:label/templates/:name — read book override, fall back to global
+  // GET /books/:label/templates/:name - read book override, fall back to global
   app.get("/books/:label/templates/:name", (c) => {
     const label = c.req.param("label")
     const name = c.req.param("name")
@@ -175,7 +243,7 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
     return c.json({ name, content, source: "global" })
   })
 
-  // PUT /books/:label/templates/:name — save book-level template override
+  // PUT /books/:label/templates/:name - save book-level template override
   app.put("/books/:label/templates/:name", async (c) => {
     const label = c.req.param("label")
     const name = c.req.param("name")
@@ -201,6 +269,85 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
   })
 
   return app
+}
+
+function listPrompts(promptsDir: string): PromptSummary[] {
+  const names = new Set<string>()
+  const variantMap = new Map<string, Set<string>>()
+
+  if (fs.existsSync(promptsDir)) {
+    for (const file of fs.readdirSync(promptsDir)) {
+      if (!file.endsWith(".liquid")) continue
+      const name = file.replace(/\.liquid$/, "")
+      const [baseName] = name.split("__")
+      if (!baseName) continue
+      if (name.includes("__")) {
+        if (!variantMap.has(baseName)) variantMap.set(baseName, new Set())
+        variantMap.get(baseName)!.add(name)
+      } else {
+        names.add(name)
+      }
+    }
+  }
+
+  const versionsRoot = path.join(promptsDir, PROMPT_VERSIONS_DIR)
+  if (fs.existsSync(versionsRoot)) {
+    for (const name of fs.readdirSync(versionsRoot)) {
+      const [baseName] = name.split("__")
+      if (!baseName) continue
+      if (name.includes("__")) {
+        if (!variantMap.has(baseName)) variantMap.set(baseName, new Set())
+        variantMap.get(baseName)!.add(name)
+      } else {
+        names.add(name)
+      }
+    }
+  }
+
+  return [...names]
+    .sort((a, b) => a.localeCompare(b))
+    .map((name) => ({
+      name,
+      variants: [...(variantMap.get(name) ?? new Set<string>())].sort((a, b) => a.localeCompare(b)),
+    }))
+}
+
+function normalizePromptModelId(value: string): string {
+  return value.trim().toLowerCase()
+}
+
+function readPromptModels(promptsDir: string): string[] {
+  const filePath = path.join(promptsDir, PROMPT_MODELS_FILE)
+  if (!fs.existsSync(filePath)) return []
+
+  try {
+    const data = JSON.parse(fs.readFileSync(filePath, "utf-8")) as { models?: unknown }
+    if (!Array.isArray(data.models)) return []
+    const models: string[] = []
+    for (const value of data.models) {
+      if (typeof value !== "string") continue
+      const modelId = normalizePromptModelId(value)
+      if (!modelId || !VALID_MODEL_ID.test(modelId) || models.includes(modelId)) continue
+      models.push(modelId)
+    }
+    return models
+  } catch {
+    return []
+  }
+}
+
+function writePromptModels(promptsDir: string, models: string[]) {
+  fs.mkdirSync(promptsDir, { recursive: true })
+  fs.writeFileSync(
+    path.join(promptsDir, PROMPT_MODELS_FILE),
+    `${JSON.stringify({ models }, null, 2)}\n`,
+    "utf-8",
+  )
+}
+
+function basePromptExists(promptsDir: string, name: string): boolean {
+  return fs.existsSync(path.join(promptsDir, `${name}.liquid`))
+    || latestVersionFile(promptsDir, name) != null
 }
 
 function readPrompt(options: {

@@ -610,6 +610,19 @@ export interface PromptResponse {
   version?: string
 }
 
+export interface PromptSummary {
+  name: string
+  variants: string[]
+}
+
+export interface PromptListResponse {
+  prompts: PromptSummary[]
+}
+
+export interface PromptModelsResponse {
+  models: string[]
+}
+
 function promptModelQuery(modelId?: string | null): string {
   // eslint-disable-next-line lingui/no-unlocalized-strings -- API query string, not user-visible copy.
   return modelId ? `?model=${encodeURIComponent(modelId)}` : ""
@@ -1194,6 +1207,16 @@ export const api = {
       body: JSON.stringify({ config }),
     }),
 
+  listPrompts: () => request<PromptListResponse>("/prompts"),
+
+  listPromptModels: () => request<PromptModelsResponse>("/prompt-models"),
+
+  updatePromptModels: (models: string[]) =>
+    request<PromptModelsResponse>("/prompt-models", {
+      method: "PUT",
+      body: JSON.stringify({ models }),
+    }),
+
   getPrompt: (name: string, bookLabel?: string, modelId?: string | null) => {
     const query = promptModelQuery(modelId)
     return request<PromptResponse>(
@@ -1207,6 +1230,11 @@ export const api = {
       bookLabel ? `/books/${bookLabel}/prompts/${name}${query}` : `/prompts/${name}${query}`,
       { method: "PUT", body: JSON.stringify({ content }) },
     )
+  },
+
+  resetPrompt: (name: string, modelId?: string | null) => {
+    const query = promptModelQuery(modelId)
+    return request<PromptResponse>(`/prompts/${name}${query}`, { method: "DELETE" })
   },
 
   getTemplate: (name: string, bookLabel?: string) =>

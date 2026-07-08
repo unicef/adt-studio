@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Link } from "@tanstack/react-router";
-import { Home, HelpCircle, Settings, Download } from "lucide-react";
+import { Home, HelpCircle, Settings, Download, FileText } from "lucide-react";
 import { useLingui } from "@lingui/react/macro";
 import { Button } from "@/components/ui/button";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
@@ -95,6 +95,18 @@ export function StudioTopBar({
           variant="ghost"
           size="icon"
           className="size-8 shrink-0 text-white/70 hover:text-white hover:bg-gray-600"
+          aria-label={t`Prompt Settings`}
+          title={t`Prompt Settings`}
+          asChild
+        >
+          <Link to="/prompts/settings">
+            <FileText className="h-3.5 w-3.5" />
+          </Link>
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 shrink-0 text-white/70 hover:text-white hover:bg-gray-600"
           aria-label={t`How it works`}
           title={t`How it works`}
           asChild
@@ -124,8 +136,8 @@ export function StudioTopBar({
           size="icon"
           className="size-8 shrink-0 text-white/70 hover:text-white hover:bg-gray-600"
           onClick={openSettings}
-          aria-label={t`API Key Settings`}
-          title={t`API Key Settings`}
+          aria-label={t`Settings`}
+          title={t`Settings`}
         >
           <Settings className="h-3.5 w-3.5" />
         </Button>

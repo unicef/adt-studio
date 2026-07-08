@@ -138,7 +138,7 @@ export function PromptViewer({
                     </p>
                     <p className="text-xs leading-5 text-muted-foreground">
                       <Trans>
-                        This model is using the base prompt because {expectedModelPromptName} does not exist yet. Saving changes while this model is selected will create a book-level prompt variant for it.
+                        This model is using the base prompt because {expectedModelPromptName} does not exist yet. Saving changes while this model is selected will create a prompt variant for it.
                       </Trans>
                     </p>
                   </TooltipContent>

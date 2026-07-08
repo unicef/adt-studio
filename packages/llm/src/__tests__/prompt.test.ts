@@ -109,6 +109,51 @@ describe("createPromptEngine", () => {
       .toBe("section__openai_gpt_5_5")
   })
 
+  it("uses exact variants for any non-default model id", async () => {
+    const dir = tmpDir()
+    fs.writeFileSync(
+      path.join(dir, "section.liquid"),
+      `{% chat role: "user" %}Base{% endchat %}`
+    )
+    fs.writeFileSync(
+      path.join(dir, "section__google_gemini_2_5_pro.liquid"),
+      `{% chat role: "user" %}Gemini{% endchat %}`
+    )
+
+    const engine = createPromptEngine(dir)
+    const resolution = engine.resolvePrompt("section", { modelId: "google:gemini-2.5-pro" })
+    const messages = await engine.renderPrompt("section", {}, { modelId: "google:gemini-2.5-pro" })
+
+    expect(resolution.resolvedName).toBe("section__google_gemini_2_5_pro")
+    expect(messages[0]).toEqual({
+      role: "user",
+      content: [{ type: "text", text: "Gemini" }],
+    })
+  })
+
+  it("treats gpt-5.4 as the base prompt model", async () => {
+    const dir = tmpDir()
+    fs.writeFileSync(
+      path.join(dir, "section.liquid"),
+      `{% chat role: "user" %}Base{% endchat %}`
+    )
+    fs.writeFileSync(
+      path.join(dir, "section__openai_gpt_5_4.liquid"),
+      `{% chat role: "user" %}Should not be used{% endchat %}`
+    )
+
+    const engine = createPromptEngine(dir)
+    const resolution = engine.resolvePrompt("section", { modelId: "openai:gpt-5.4" })
+    const messages = await engine.renderPrompt("section", {}, { modelId: "openai:gpt-5.4" })
+
+    expect(resolution.resolvedName).toBe("section")
+    expect(resolution.modelId).toBeNull()
+    expect(messages[0]).toEqual({
+      role: "user",
+      content: [{ type: "text", text: "Base" }],
+    })
+  })
+
   it("falls back to the base prompt when a model-specific variant is missing", async () => {
     const dir = tmpDir()
     fs.writeFileSync(
