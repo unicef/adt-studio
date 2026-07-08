@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/api/client"
-import { PromptViewer } from "@/components/pipeline/components/PromptViewer"
+import { PromptViewer, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
@@ -25,7 +25,7 @@ export function EasyReadSettings({
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
   const queryClient = useQueryClient()
-  const [promptDraft, setPromptDraft] = useState<string | null>(null)
+  const [promptDraft, setPromptDraft] = useState<PromptDraft | null>(null)
   const [promptName, setPromptName] = useState(DEFAULT_PROMPT)
   const [batchSize, setBatchSize] = useState(DEFAULT_BATCH_SIZE)
 
@@ -74,9 +74,9 @@ export function EasyReadSettings({
   const save = async () => {
     const promptToSave = promptName.trim() || DEFAULT_PROMPT
     if (promptDraft != null) {
-      const savedPrompt = await api.updatePrompt(promptToSave, promptDraft, bookLabel)
-      queryClient.setQueryData(["prompts", promptToSave, bookLabel], savedPrompt)
-      await queryClient.invalidateQueries({ queryKey: ["prompts", promptToSave, bookLabel] })
+      const savedPrompt = await api.updatePrompt(promptToSave, promptDraft.content, bookLabel, promptDraft.modelId)
+      queryClient.setQueryData(["prompts", promptToSave, bookLabel, promptDraft.modelId], savedPrompt)
+      await queryClient.invalidateQueries({ queryKey: ["prompts", promptToSave, bookLabel, promptDraft.modelId] })
     }
 
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
@@ -97,7 +97,7 @@ export function EasyReadSettings({
   const selectedPrompt = promptName.trim() || DEFAULT_PROMPT
 
   return (
-    <div className="h-full max-w-4xl">
+    <div className="h-full w-full">
       <div className="border-b px-4 py-3">
         <div className="grid gap-3 md:grid-cols-[minmax(180px,260px)_auto] md:items-end">
           <div>
@@ -138,7 +138,7 @@ export function EasyReadSettings({
         onModelChange={easyRead.onModelChange}
         maxRetries={easyRead.maxRetries}
         onMaxRetriesChange={easyRead.onMaxRetriesChange}
-        onContentChange={setPromptDraft}
+        onContentChange={(content, modelId) => setPromptDraft(toPromptDraft(content, modelId))}
       />
     </div>
   )

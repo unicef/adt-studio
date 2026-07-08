@@ -6,7 +6,7 @@ import { LanguagePicker } from "@/components/LanguagePicker"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { api } from "@/api/client"
-import { PromptViewer } from "@/components/pipeline/components/PromptViewer"
+import { PromptViewer, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
 import { useDirtyTabTracker } from "@/hooks/use-settings-dirty-tabs"
 import { useStepConfig } from "@/hooks/use-step-config"
@@ -28,10 +28,10 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
   const [cropping, setCropping] = useState(false)
   const [segmentation, setSegmentation] = useState(false)
   const [segmentationMinSide, setSegmentationMinSide] = useState("")
-  const [metadataPromptDraft, setMetadataPromptDraft] = useState<string | null>(null)
-  const [meaningfulnessPromptDraft, setMeaningfulnessPromptDraft] = useState<string | null>(null)
-  const [croppingPromptDraft, setCroppingPromptDraft] = useState<string | null>(null)
-  const [segmentationPromptDraft, setSegmentationPromptDraft] = useState<string | null>(null)
+  const [metadataPromptDraft, setMetadataPromptDraft] = useState<PromptDraft | null>(null)
+  const [meaningfulnessPromptDraft, setMeaningfulnessPromptDraft] = useState<PromptDraft | null>(null)
+  const [croppingPromptDraft, setCroppingPromptDraft] = useState<PromptDraft | null>(null)
+  const [segmentationPromptDraft, setSegmentationPromptDraft] = useState<PromptDraft | null>(null)
 
   // Track which field groups the user has actually touched
   const { markedTabs, markTab, resetMarkedTabs } = useDirtyTabTracker()
@@ -127,10 +127,18 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
   const save = async () => {
     // Save any edited prompts first
     const promptSaves: Promise<unknown>[] = []
-    if (metadataPromptDraft != null) promptSaves.push(api.updatePrompt("metadata_extraction", metadataPromptDraft, bookLabel))
-    if (meaningfulnessPromptDraft != null) promptSaves.push(api.updatePrompt("image_meaningfulness", meaningfulnessPromptDraft, bookLabel))
-    if (croppingPromptDraft != null) promptSaves.push(api.updatePrompt("image_cropping", croppingPromptDraft, bookLabel))
-    if (segmentationPromptDraft != null) promptSaves.push(api.updatePrompt("image_segmentation", segmentationPromptDraft, bookLabel))
+    if (metadataPromptDraft != null) {
+      promptSaves.push(api.updatePrompt("metadata_extraction", metadataPromptDraft.content, bookLabel, metadataPromptDraft.modelId))
+    }
+    if (meaningfulnessPromptDraft != null) {
+      promptSaves.push(api.updatePrompt("image_meaningfulness", meaningfulnessPromptDraft.content, bookLabel, meaningfulnessPromptDraft.modelId))
+    }
+    if (croppingPromptDraft != null) {
+      promptSaves.push(api.updatePrompt("image_cropping", croppingPromptDraft.content, bookLabel, croppingPromptDraft.modelId))
+    }
+    if (segmentationPromptDraft != null) {
+      promptSaves.push(api.updatePrompt("image_segmentation", segmentationPromptDraft.content, bookLabel, segmentationPromptDraft.modelId))
+    }
     if (promptSaves.length > 0) await Promise.all(promptSaves)
 
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
@@ -160,7 +168,7 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
   })
 
   return (
-    <div className={tab === "metadata-prompt" || tab === "meaningfulness-prompt" || tab === "cropping-prompt" || tab === "segmentation-prompt" ? "h-full max-w-4xl" : "p-4 space-y-6"}>
+    <div className={tab === "metadata-prompt" || tab === "meaningfulness-prompt" || tab === "cropping-prompt" || tab === "segmentation-prompt" ? "h-full w-full" : "p-4 space-y-6"}>
       {tab === "general" && (
         <>
           {/* Editing Language */}
@@ -282,7 +290,7 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
           onModelChange={metadata.onModelChange}
           maxRetries={metadata.maxRetries}
           onMaxRetriesChange={metadata.onMaxRetriesChange}
-          onContentChange={setMetadataPromptDraft}
+          onContentChange={(content, modelId) => setMetadataPromptDraft(toPromptDraft(content, modelId))}
           enabled={tab === "metadata-prompt"}
         />
       )}
@@ -297,7 +305,7 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
           onModelChange={imageMeaningfulness.onModelChange}
           maxRetries={imageMeaningfulness.maxRetries}
           onMaxRetriesChange={imageMeaningfulness.onMaxRetriesChange}
-          onContentChange={setMeaningfulnessPromptDraft}
+          onContentChange={(content, modelId) => setMeaningfulnessPromptDraft(toPromptDraft(content, modelId))}
           enabled={tab === "meaningfulness-prompt"}
         />
       )}
@@ -312,7 +320,7 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
           onModelChange={imageCropping.onModelChange}
           maxRetries={imageCropping.maxRetries}
           onMaxRetriesChange={imageCropping.onMaxRetriesChange}
-          onContentChange={setCroppingPromptDraft}
+          onContentChange={(content, modelId) => setCroppingPromptDraft(toPromptDraft(content, modelId))}
           enabled={tab === "cropping-prompt"}
         />
       )}
@@ -343,7 +351,7 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
               onModelChange={imageSegmentation.onModelChange}
               maxRetries={imageSegmentation.maxRetries}
               onMaxRetriesChange={imageSegmentation.onMaxRetriesChange}
-              onContentChange={setSegmentationPromptDraft}
+              onContentChange={(content, modelId) => setSegmentationPromptDraft(toPromptDraft(content, modelId))}
               enabled={tab === "segmentation-prompt"}
             />
           </div>

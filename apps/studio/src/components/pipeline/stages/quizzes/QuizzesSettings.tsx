@@ -9,7 +9,7 @@ import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { api } from "@/api/client"
-import { PromptViewer } from "@/components/pipeline/components/PromptViewer"
+import { PromptViewer, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
 import { useDirtyTabTracker } from "@/hooks/use-settings-dirty-tabs"
 import { useStepConfig } from "@/hooks/use-step-config"
@@ -34,7 +34,7 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
   const [showAddQuiz, setShowAddQuiz] = useState(false)
 
   const [pagesPerQuiz, setPagesPerQuiz] = useState("")
-  const [promptDraft, setPromptDraft] = useState<string | null>(null)
+  const [promptDraft, setPromptDraft] = useState<PromptDraft | null>(null)
   const [sectionTypes, setSectionTypes] = useState<Record<string, string>>({})
   const [quizSectionTypes, setQuizSectionTypes] = useState<Set<string>>(new Set())
 
@@ -101,7 +101,9 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
   }
 
   const save = async () => {
-    if (promptDraft != null) await api.updatePrompt("quiz_generation", promptDraft, bookLabel)
+    if (promptDraft != null) {
+      await api.updatePrompt("quiz_generation", promptDraft.content, bookLabel, promptDraft.modelId)
+    }
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
     setDirty({})
     setPromptDraft(null)
@@ -125,7 +127,7 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
   const sectionTypeKeys = Object.keys(sectionTypes).filter((k) => !k.startsWith("activity_"))
 
   return (
-    <div className={tab === "prompt" ? "h-full max-w-4xl" : "p-4 max-w-2xl space-y-6"}>
+    <div className={tab === "prompt" ? "h-full w-full" : "p-4 max-w-2xl space-y-6"}>
       {tab === "general" && (
         <>
           <div className="space-y-1.5">
@@ -216,7 +218,7 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
           onModelChange={quiz.onModelChange}
           maxRetries={quiz.maxRetries}
           onMaxRetriesChange={quiz.onMaxRetriesChange}
-          onContentChange={setPromptDraft}
+          onContentChange={(content, modelId) => setPromptDraft(toPromptDraft(content, modelId))}
           enabled={tab === "prompt"}
         />
       )}

@@ -13,7 +13,7 @@ import { ModelSelect, OPENAI_TTS_MODELS, AZURE_TTS_MODELS, GEMINI_TTS_MODELS, IM
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { api } from "@/api/client"
-import { PromptViewer } from "@/components/pipeline/components/PromptViewer"
+import { PromptViewer, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
 import { useDirtyTabTracker } from "@/hooks/use-settings-dirty-tabs"
 import { LanguagePicker } from "@/components/LanguagePicker"
@@ -42,13 +42,13 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
   const updateConfig = useUpdateBookConfig()
 
   const [outputLanguages, setOutputLanguages] = useState<Set<string>>(new Set())
-  const [promptDraft, setPromptDraft] = useState<string | null>(null)
+  const [promptDraft, setPromptDraft] = useState<PromptDraft | null>(null)
 
   // Image translation
   const [imageTranslationEnabled, setImageTranslationEnabled] = useState(false)
   const [imageModel, setImageModel] = useState("")
   const [selectedImageIds, setSelectedImageIds] = useState<string[]>([])
-  const [imagePromptDraft, setImagePromptDraft] = useState<string | null>(null)
+  const [imagePromptDraft, setImagePromptDraft] = useState<PromptDraft | null>(null)
   const [showImagePicker, setShowImagePicker] = useState(false)
 
   // Speech settings
@@ -202,8 +202,12 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
 
   const save = async () => {
     const promptSaves: Promise<unknown>[] = []
-    if (promptDraft != null) promptSaves.push(api.updatePrompt("translation", promptDraft, bookLabel))
-    if (imagePromptDraft != null) promptSaves.push(api.updatePrompt("image_translation", imagePromptDraft, bookLabel))
+    if (promptDraft != null) {
+      promptSaves.push(api.updatePrompt("translation", promptDraft.content, bookLabel, promptDraft.modelId))
+    }
+    if (imagePromptDraft != null) {
+      promptSaves.push(api.updatePrompt("image_translation", imagePromptDraft.content, bookLabel, imagePromptDraft.modelId))
+    }
     if (promptSaves.length > 0) await Promise.all(promptSaves)
 
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
@@ -230,7 +234,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
   })
 
   return (
-    <div className={tab === "prompt" ? "h-full max-w-4xl" : "p-4 max-w-2xl space-y-6"}>
+    <div className={tab === "prompt" ? "h-full w-full" : "p-4 max-w-2xl space-y-6"}>
       {tab === "general" && !isSpeechStage && (
         <div className="space-y-4">
           {/* Base language (non-removable) */}
@@ -266,7 +270,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
           onModelChange={translation.onModelChange}
           maxRetries={translation.maxRetries}
           onMaxRetriesChange={translation.onMaxRetriesChange}
-          onContentChange={setPromptDraft}
+          onContentChange={(content, modelId) => setPromptDraft(toPromptDraft(content, modelId))}
           enabled={tab === "prompt"}
         />
       )}
@@ -424,7 +428,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
               onModelChange={imageTranslation.onModelChange}
               maxRetries={imageTranslation.maxRetries}
               onMaxRetriesChange={imageTranslation.onMaxRetriesChange}
-              onContentChange={setImagePromptDraft}
+              onContentChange={(content, modelId) => setImagePromptDraft(toPromptDraft(content, modelId))}
               enabled={tab === "image-translation"}
             />
           </div>

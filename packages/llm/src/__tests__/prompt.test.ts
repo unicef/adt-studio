@@ -86,4 +86,73 @@ describe("createPromptEngine", () => {
     expect(content).toContain("- heading: A heading")
     expect(content).toContain("- paragraph: A paragraph")
   })
+
+  it("uses exact model-specific prompt variants before the base prompt", async () => {
+    const dir = tmpDir()
+    fs.writeFileSync(
+      path.join(dir, "section.liquid"),
+      `{% chat role: "user" %}Base{% endchat %}`
+    )
+    fs.writeFileSync(
+      path.join(dir, "section__openai_gpt_5_5.liquid"),
+      `{% chat role: "user" %}GPT 5.5{% endchat %}`
+    )
+
+    const engine = createPromptEngine(dir)
+    const messages = await engine.renderPrompt("section", {}, { modelId: "openai:gpt-5.5" })
+
+    expect(messages[0]).toEqual({
+      role: "user",
+      content: [{ type: "text", text: "GPT 5.5" }],
+    })
+    expect(engine.resolvePrompt("section", { modelId: "openai:gpt-5.5" }).resolvedName)
+      .toBe("section__openai_gpt_5_5")
+  })
+
+  it("falls back to the base prompt when a model-specific variant is missing", async () => {
+    const dir = tmpDir()
+    fs.writeFileSync(
+      path.join(dir, "section.liquid"),
+      `{% chat role: "user" %}Base{% endchat %}`
+    )
+
+    const engine = createPromptEngine(dir)
+    const messages = await engine.renderPrompt("section", {}, { modelId: "openai:gpt-5.5" })
+
+    expect(messages).toHaveLength(1)
+    expect(messages[0]).toEqual({
+      role: "user",
+      content: [{ type: "text", text: "Base" }],
+    })
+    const resolution = engine.resolvePrompt("section", { modelId: "openai:gpt-5.5" })
+    expect(resolution.resolvedName).toBe("section")
+    expect(resolution.modelId).toBe("openai:gpt-5.5")
+  })
+
+  it("uses the newest versioned book override before flat prompts", async () => {
+    const bookDir = tmpDir()
+    const globalDir = tmpDir()
+    fs.writeFileSync(
+      path.join(globalDir, "section__openai_gpt_5_5.liquid"),
+      `{% chat role: "user" %}Global variant{% endchat %}`
+    )
+    const versionDir = path.join(bookDir, ".versions", "section__openai_gpt_5_5")
+    fs.mkdirSync(versionDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(versionDir, "20260101T000000Z.liquid"),
+      `{% chat role: "user" %}Old{% endchat %}`
+    )
+    fs.writeFileSync(
+      path.join(versionDir, "20260102T000000Z.liquid"),
+      `{% chat role: "user" %}New{% endchat %}`
+    )
+
+    const engine = createPromptEngine([bookDir, globalDir])
+    const messages = await engine.renderPrompt("section", {}, { modelId: "openai:gpt-5.5" })
+
+    expect(messages[0]).toEqual({
+      role: "user",
+      content: [{ type: "text", text: "New" }],
+    })
+  })
 })

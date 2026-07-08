@@ -26,7 +26,7 @@ import { useApiKey } from "@/hooks/use-api-key"
 import { useStyleguides, useStyleguidePreview, useTemplates, useGenerateStyleguide } from "@/hooks/use-presets"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { api } from "@/api/client"
-import { PromptViewer } from "@/components/pipeline/components/PromptViewer"
+import { PromptViewer, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { TemplateViewer } from "@/components/pipeline/components/TemplateViewer"
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
 import { useDirtyTabTracker } from "@/hooks/use-settings-dirty-tabs"
@@ -151,15 +151,15 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
   const [renderingTemperature, setRenderingTemperature] = useState("")
   const [styleguide, setStyleguide] = useState("")
   const [applyBodyBackground, setApplyBodyBackground] = useState(true)
-  const [renderingPromptDraft, setRenderingPromptDraft] = useState<string | null>(null)
+  const [renderingPromptDraft, setRenderingPromptDraft] = useState<PromptDraft | null>(null)
   const [renderingTemplateDraft, setRenderingTemplateDraft] = useState<string | null>(null)
   const [templateTabName, setTemplateTabName] = useState("")
   const [templateTabDraft, setTemplateTabDraft] = useState<string | null>(null)
   const [activityStrategyName, setActivityStrategyName] = useState("")
-  const [activityPromptDraft, setActivityPromptDraft] = useState<string | null>(null)
-  const [activityAnswerDraft, setActivityAnswerDraft] = useState<string | null>(null)
-  const [imageGenPromptDraft, setImageGenPromptDraft] = useState<string | null>(null)
-  const [imageEditPromptDraft, setImageEditPromptDraft] = useState<string | null>(null)
+  const [activityPromptDraft, setActivityPromptDraft] = useState<PromptDraft | null>(null)
+  const [activityAnswerDraft, setActivityAnswerDraft] = useState<PromptDraft | null>(null)
+  const [imageGenPromptDraft, setImageGenPromptDraft] = useState<PromptDraft | null>(null)
+  const [imageEditPromptDraft, setImageEditPromptDraft] = useState<PromptDraft | null>(null)
   const [imagePromptSubTab, setImagePromptSubTab] = useState<"generate" | "edit">("generate")
   const [visualReviewPrompt, setVisualReviewPrompt] = useState<"visual_review" | "visual_review_flexible">("visual_review")
   const [visualReviewMaxIterations, setVisualReviewMaxIterations] = useState("")
@@ -378,13 +378,23 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
   const save = async () => {
     // Save any edited prompts/templates first
     const contentSaves: Promise<unknown>[] = []
-    if (renderingPromptDraft != null) contentSaves.push(api.updatePrompt(renderingPromptName, renderingPromptDraft, bookLabel))
+    if (renderingPromptDraft != null) {
+      contentSaves.push(api.updatePrompt(renderingPromptName, renderingPromptDraft.content, bookLabel, renderingPromptDraft.modelId))
+    }
     if (renderingTemplateDraft != null) contentSaves.push(api.updateTemplate(renderingTemplateName, renderingTemplateDraft, bookLabel))
     if (templateTabDraft != null && templateTabName) contentSaves.push(api.updateTemplate(templateTabName, templateTabDraft, bookLabel))
-    if (activityPromptDraft != null && selectedActivity?.prompt) contentSaves.push(api.updatePrompt(selectedActivity.prompt, activityPromptDraft, bookLabel))
-    if (activityAnswerDraft != null && selectedActivity?.answer_prompt) contentSaves.push(api.updatePrompt(selectedActivity.answer_prompt, activityAnswerDraft, bookLabel))
-    if (imageGenPromptDraft != null) contentSaves.push(api.updatePrompt("ai_image_generation", imageGenPromptDraft, bookLabel))
-    if (imageEditPromptDraft != null) contentSaves.push(api.updatePrompt("ai_image_edit", imageEditPromptDraft, bookLabel))
+    if (activityPromptDraft != null && selectedActivity?.prompt) {
+      contentSaves.push(api.updatePrompt(selectedActivity.prompt, activityPromptDraft.content, bookLabel, activityPromptDraft.modelId))
+    }
+    if (activityAnswerDraft != null && selectedActivity?.answer_prompt) {
+      contentSaves.push(api.updatePrompt(selectedActivity.answer_prompt, activityAnswerDraft.content, bookLabel, activityAnswerDraft.modelId))
+    }
+    if (imageGenPromptDraft != null) {
+      contentSaves.push(api.updatePrompt("ai_image_generation", imageGenPromptDraft.content, bookLabel, imageGenPromptDraft.modelId))
+    }
+    if (imageEditPromptDraft != null) {
+      contentSaves.push(api.updatePrompt("ai_image_edit", imageEditPromptDraft.content, bookLabel, imageEditPromptDraft.modelId))
+    }
     if (contentSaves.length > 0) await Promise.all(contentSaves)
 
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
@@ -617,7 +627,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
               onModelChange={(v) => { setRenderingModel(v); markDirty("rendering_model") }}
               maxRetries={renderingRetries}
               onMaxRetriesChange={(v) => { setRenderingRetries(v); markDirty("rendering_retries") }}
-              onContentChange={setRenderingPromptDraft}
+              onContentChange={(content, modelId) => setRenderingPromptDraft(toPromptDraft(content, modelId))}
             />
           </div>
         </div>
@@ -722,7 +732,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
                   onModelChange={(v) => { setActivityModel(v); markDirty("activity_model") }}
                   maxRetries={activityRetries}
                   onMaxRetriesChange={(v) => { setActivityRetries(v); markDirty("activity_retries") }}
-                  onContentChange={setActivityPromptDraft}
+                  onContentChange={(content, modelId) => setActivityPromptDraft(toPromptDraft(content, modelId))}
                 />
               </div>
               {selectedActivity.answer_prompt && (
@@ -737,7 +747,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
                     onModelChange={(v) => { setActivityModel(v); markDirty("activity_model") }}
                     maxRetries={activityRetries}
                     onMaxRetriesChange={(v) => { setActivityRetries(v); markDirty("activity_retries") }}
-                    onContentChange={setActivityAnswerDraft}
+                    onContentChange={(content, modelId) => setActivityAnswerDraft(toPromptDraft(content, modelId))}
                   />
                 </div>
               )}
@@ -782,7 +792,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
                 title={t`Image Generation Prompt`}
                 description={t`Wraps 'Generate new' requests. Supports user_prompt, style, and image_type variables. Uses Liquid syntax for conditionals.`}
                 hideModel
-                onContentChange={setImageGenPromptDraft}
+                onContentChange={(content, modelId) => setImageGenPromptDraft(toPromptDraft(content, modelId))}
               />
             ) : (
               <PromptViewer
@@ -792,7 +802,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
                 title={t`Image Edit Prompt`}
                 description={t`Wraps 'Edit this image' requests. The AI receives the original image alongside this prompt. Supports user_prompt and style variables.`}
                 hideModel
-                onContentChange={setImageEditPromptDraft}
+                onContentChange={(content, modelId) => setImageEditPromptDraft(toPromptDraft(content, modelId))}
               />
             )}
           </div>

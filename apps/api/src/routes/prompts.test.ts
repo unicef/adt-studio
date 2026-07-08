@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest"
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest"
 import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
@@ -19,6 +19,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  vi.useRealTimers()
   fs.rmSync(tmpDir, { recursive: true, force: true })
 })
 
@@ -117,6 +118,29 @@ describe("GET /books/:label/prompts/:name", () => {
     expect(body.content).toBe("book content")
   })
 
+  it("returns an exact model prompt variant before the base prompt", async () => {
+    writePrompt("page_sectioning", "global base")
+    writePrompt("page_sectioning__openai_gpt_5_5", "global gpt 5.5")
+    const res = await app().request("/books/my-book/prompts/page_sectioning?model=openai%3Agpt-5.5")
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.source).toBe("global")
+    expect(body.resolvedName).toBe("page_sectioning__openai_gpt_5_5")
+    expect(body.modelId).toBe("openai:gpt-5.5")
+    expect(body.content).toBe("global gpt 5.5")
+  })
+
+  it("returns the base prompt when a model variant is missing", async () => {
+    writePrompt("page_sectioning", "global base")
+    const res = await app().request("/books/my-book/prompts/page_sectioning?model=openai%3Agpt-5.5")
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.source).toBe("global")
+    expect(body.resolvedName).toBe("page_sectioning")
+    expect(body.modelId).toBeNull()
+    expect(body.content).toBe("global base")
+  })
+
   it("returns 404 when prompt does not exist globally", async () => {
     const res = await app().request("/books/my-book/prompts/nonexistent")
     expect(res.status).toBe(404)
@@ -135,11 +159,64 @@ describe("PUT /books/:label/prompts/:name", () => {
     const body = await res.json()
     expect(body.source).toBe("book")
     expect(body.content).toBe("override")
-    const onDisk = fs.readFileSync(
-      path.join(booksDir, "my-book", "prompts", "page_sectioning.liquid"),
-      "utf-8"
-    )
+    const versionDir = path.join(booksDir, "my-book", "prompts", ".versions", "page_sectioning")
+    const versions = fs.readdirSync(versionDir)
+    expect(versions).toHaveLength(1)
+    const onDisk = fs.readFileSync(path.join(versionDir, versions[0]), "utf-8")
     expect(onDisk).toBe("override")
+  })
+
+  it("creates a versioned book-level exact model override", async () => {
+    writePrompt("page_sectioning", "global")
+    const res = await app().request("/books/my-book/prompts/page_sectioning?model=openai%3Agpt-5.5", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "gpt 5.5 override" }),
+    })
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.source).toBe("book")
+    expect(body.resolvedName).toBe("page_sectioning__openai_gpt_5_5")
+    expect(body.modelId).toBe("openai:gpt-5.5")
+
+    const readRes = await app().request("/books/my-book/prompts/page_sectioning?model=openai%3Agpt-5.5")
+    expect(readRes.status).toBe(200)
+    const readBody = await readRes.json()
+    expect(readBody.source).toBe("book")
+    expect(readBody.resolvedName).toBe("page_sectioning__openai_gpt_5_5")
+    expect(readBody.content).toBe("gpt 5.5 override")
+  })
+
+  it("creates separate versions when saves share the same timestamp", async () => {
+    writePrompt("page_sectioning", "global")
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date("2026-01-02T03:04:05.006Z"))
+
+    const first = await app().request("/books/my-book/prompts/page_sectioning", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "first" }),
+    })
+    const second = await app().request("/books/my-book/prompts/page_sectioning", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "second" }),
+    })
+
+    expect(first.status).toBe(200)
+    expect(second.status).toBe(200)
+    const versionDir = path.join(booksDir, "my-book", "prompts", ".versions", "page_sectioning")
+    const versions = fs.readdirSync(versionDir).sort()
+    expect(versions).toEqual([
+      "20260102T030405006Z-000.liquid",
+      "20260102T030405006Z-001.liquid",
+    ])
+    expect(fs.readFileSync(path.join(versionDir, versions[0]), "utf-8")).toBe("first")
+    expect(fs.readFileSync(path.join(versionDir, versions[1]), "utf-8")).toBe("second")
+
+    const readRes = await app().request("/books/my-book/prompts/page_sectioning")
+    const readBody = await readRes.json()
+    expect(readBody.content).toBe("second")
   })
 
   it("returns 404 when global prompt does not exist", async () => {

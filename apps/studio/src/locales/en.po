@@ -37,9 +37,6 @@ msgstr ", and "
 msgid "? This will remove all extracted data and cannot be undone."
 msgstr "? This will remove all extracted data and cannot be undone."
 
-#~ msgid "· choose another"
-#~ msgstr "· choose another"
-
 msgid "\"A landscape forged by fire.\""
 msgstr "\"A landscape forged by fire.\""
 
@@ -105,9 +102,6 @@ msgstr "{0} × {1}px"
 #. placeholder {2}: points.length
 msgid "{0} × {1}px · {2} points"
 msgstr "{0} × {1}px · {2} points"
-
-#~ msgid "{0} added"
-#~ msgstr "{0} added"
 
 #. placeholder {0}: String(totalAudioFiles)
 msgid "{0} audio"
@@ -207,9 +201,6 @@ msgstr "{0} of {1} items"
 msgid "{0} of {1} pages had no extracted text"
 msgstr "{0} of {1} pages had no extracted text"
 
-#~ msgid "{0} of {1} pages had no readable text"
-#~ msgstr "{0} of {1} pages had no readable text"
-
 #. placeholder {0}: String(displayPages.length)
 #. placeholder {0}: book.pageCount
 msgid "{0} pages"
@@ -222,9 +213,6 @@ msgstr "{0} pending"
 #. placeholder {0}: String(displayQuizzes.length)
 msgid "{0} questions"
 msgstr "{0} questions"
-
-#~ msgid "{0} replaced"
-#~ msgstr "{0} replaced"
 
 #. placeholder {0}: String(group.blocks.length)
 msgid "{0} sections"
@@ -1024,9 +1012,6 @@ msgstr "All"
 msgid "All {0} pages merged in"
 msgstr "All {0} pages merged in"
 
-#~ msgid "All {0} parts merged in"
-#~ msgstr "All {0} parts merged in"
-
 msgid "All categories"
 msgstr "All categories"
 
@@ -1403,9 +1388,6 @@ msgstr "Book info"
 msgid "Book Language"
 msgstr "Book Language"
 
-#~ msgid "Book metadata"
-#~ msgstr "Book metadata"
-
 msgid "Book metadata (title, authors, publisher) was taken from this part and now appears in the Extract step, where you can edit it."
 msgstr "Book metadata (title, authors, publisher) was taken from this part and now appears in the Extract step, where you can edit it."
 
@@ -1660,9 +1642,6 @@ msgstr "Choose how the content should be formatted."
 msgid "Choose images..."
 msgstr "Choose images..."
 
-#~ msgid "Choose part file…"
-#~ msgstr "Choose part file…"
-
 msgid "Choose Provider"
 msgstr "Choose Provider"
 
@@ -1845,9 +1824,6 @@ msgstr "Configure voices and accents"
 
 msgid "Confirm merge"
 msgstr "Confirm merge"
-
-#~ msgid "Confirm Rerun"
-#~ msgstr "Confirm Rerun"
 
 msgid "Connect an AI provider"
 msgstr "Connect an AI provider"
@@ -2292,12 +2268,6 @@ msgstr "Discard"
 msgid "Discard & leave"
 msgstr "Discard & leave"
 
-#~ msgid "Discard unsaved changes?"
-#~ msgstr "Discard unsaved changes?"
-
-#~ msgid "Dismiss"
-#~ msgstr "Dismiss"
-
 msgid "Display"
 msgstr "Display"
 
@@ -2347,9 +2317,6 @@ msgstr "Downloads at extraction"
 
 msgid "Drag & drop font files here"
 msgstr "Drag & drop font files here"
-
-#~ msgid "Drag corners to resize (aspect ratio locked). Drag inside to move. Choose “Free” to edit as a polygon."
-#~ msgstr "Drag corners to resize (aspect ratio locked). Drag inside to move. Choose “Free” to edit as a polygon."
 
 msgid "Drag the handles to crop a rectangle. Drag inside to move."
 msgstr "Drag the handles to crop a rectangle. Drag inside to move."
@@ -2505,9 +2472,6 @@ msgstr "Edit Prompt"
 msgid "Edit Prompts"
 msgstr "Edit Prompts"
 
-#~ msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
-#~ msgstr "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
-
 msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save."
 msgstr "Edit the Liquid/HTML template below. Changes are saved when you click Save."
 
@@ -2579,9 +2543,6 @@ msgstr "EN"
 msgid "Enable {0}"
 msgstr "Enable {0}"
 
-#~ msgid "Enable for scanned books where two pages appear on a single PDF page."
-#~ msgstr "Enable for scanned books where two pages appear on a single PDF page."
-
 msgid "Enable or disable reviewer-authored checklist reviews for this book. Automated accessibility assessment remains available either way."
 msgstr "Enable or disable reviewer-authored checklist reviews for this book. Automated accessibility assessment remains available either way."
 
@@ -2618,9 +2579,6 @@ msgstr "Enhancements"
 msgid "Enter a valid minimum dimension (whole number ≥ 0)"
 msgstr "Enter a valid minimum dimension (whole number ≥ 0)"
 
-#~ msgid "Enter a valid page range"
-#~ msgstr "Enter a valid page range"
-
 msgid "Enter a valid page range within 1–{pageCount}."
 msgstr "Enter a valid page range within 1–{pageCount}."
 
@@ -2647,9 +2605,6 @@ msgstr "EPUB 3"
 
 msgid "EPUB Export"
 msgstr "EPUB Export"
-
-#~ msgid "equal parts"
-#~ msgstr "equal parts"
 
 msgid "Error"
 msgstr "Error"
@@ -2916,9 +2871,6 @@ msgstr "Filters out decorative or non-content images on each page."
 msgid "Final Page"
 msgstr "Final Page"
 
-#~ msgid "First"
-#~ msgstr "First"
-
 msgid "First images from the deep-field telescope."
 msgstr "First images from the deep-field telescope."
 
@@ -2991,17 +2943,11 @@ msgstr "Forms & controls"
 msgid "FR"
 msgstr "FR"
 
-#~ msgid "Free"
-#~ msgstr "Free"
-
 msgid "Free rectangle — resize without skewing"
 msgstr "Free rectangle — resize without skewing"
 
 msgid "Free-form polygon — move, add, and remove points"
 msgstr "Free-form polygon — move, add, and remove points"
-
-#~ msgid "Free-form polygon (no ratio lock)"
-#~ msgstr "Free-form polygon (no ratio lock)"
 
 msgid "French"
 msgstr "French"
@@ -3224,9 +3170,6 @@ msgstr "Groups image regions into discrete illustrations on each page."
 
 msgid "Hand out page-range parts and merge them back later."
 msgstr "Hand out page-range parts and merge them back later."
-
-#~ msgid "Handwriting"
-#~ msgstr "Handwriting"
 
 msgid "Header"
 msgstr "Header"
@@ -3515,9 +3458,6 @@ msgstr "in the book"
 msgid "Include in render"
 msgstr "Include in render"
 
-#~ msgid "Include text overlays in vector groups"
-#~ msgstr "Include text overlays in vector groups"
-
 msgid "Includes:"
 msgstr "Includes:"
 
@@ -3680,9 +3620,6 @@ msgstr "Large enough"
 msgid "Large images, narrative flow. Best for illustrated books with high-fidelity TTS voices."
 msgstr "Large images, narrative flow. Best for illustrated books with high-fidelity TTS voices."
 
-#~ msgid "Last"
-#~ msgstr "Last"
-
 msgid "Last modified"
 msgstr "Last modified"
 
@@ -3704,9 +3641,6 @@ msgstr "Leading"
 msgid "Least used"
 msgstr "Least used"
 
-#~ msgid "Leave"
-#~ msgstr "Leave"
-
 msgid "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
 msgstr "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
 
@@ -3715,9 +3649,6 @@ msgstr "Leave empty if not required"
 
 msgid "Leave empty to output only in the book language."
 msgstr "Leave empty to output only in the book language."
-
-#~ msgid "Leave empty to process all pages."
-#~ msgstr "Leave empty to process all pages."
 
 msgid "Leave empty to use the book language."
 msgstr "Leave empty to use the book language."
@@ -3920,9 +3851,6 @@ msgstr "Lock the current aspect ratio"
 msgid "Lock to a square"
 msgstr "Lock to a square"
 
-#~ msgid "Lock to the image's aspect ratio"
-#~ msgstr "Lock to the image's aspect ratio"
-
 msgid "Logs"
 msgstr "Logs"
 
@@ -4031,9 +3959,6 @@ msgstr "Merge another"
 msgid "Merge another part"
 msgstr "Merge another part"
 
-#~ msgid "Merge facing pages as spreads"
-#~ msgstr "Merge facing pages as spreads"
-
 msgid "Merge failed"
 msgstr "Merge failed"
 
@@ -4073,16 +3998,10 @@ msgstr "merge with previous section"
 msgid "Merged"
 msgstr "Merged"
 
-#~ msgid "Merged · {0} added, {1} replaced"
-#~ msgstr "Merged · {0} added, {1} replaced"
-
 #. placeholder {0}: book.split.mergedPages
 #. placeholder {1}: book.split.totalPages
 msgid "Merged · {0}/{1}"
 msgstr "Merged · {0}/{1}"
-
-#~ msgid "Merged:"
-#~ msgstr "Merged:"
 
 msgid "Merging…"
 msgstr "Merging…"
@@ -4459,9 +4378,6 @@ msgstr "No quizzes for this page"
 
 msgid "No quizzes match your search"
 msgstr "No quizzes match your search"
-
-#~ msgid "No readable text extracted from this page"
-#~ msgstr "No readable text extracted from this page"
 
 msgid "No rendered content for this section"
 msgstr "No rendered content for this section"
@@ -4880,9 +4796,6 @@ msgstr "Page {0} of {1}"
 msgid "Page {n}"
 msgstr "Page {n}"
 
-#~ msgid "Page {p}"
-#~ msgstr "Page {p}"
-
 msgid "Page {pageId}"
 msgstr "Page {pageId}"
 
@@ -4993,9 +4906,6 @@ msgstr "Parsing pages into text, figures, and layout boxes — cached by content
 msgid "Part"
 msgstr "Part"
 
-#~ msgid "Part · p{0}–{1}"
-#~ msgstr "Part · p{0}–{1}"
-
 #. placeholder {0}: book.part.range.startPage
 #. placeholder {1}: book.part.range.endPage
 msgid "Part · pages {0}–{1}"
@@ -5004,9 +4914,6 @@ msgstr "Part · pages {0}–{1}"
 #. placeholder {0}: planStart.index + 1
 msgid "Part {0}"
 msgstr "Part {0}"
-
-#~ msgid "Part {0} · pages {1}–{2}"
-#~ msgstr "Part {0} · pages {1}–{2}"
 
 msgid "Part info"
 msgstr "Part info"
@@ -5108,9 +5015,6 @@ msgstr "Pick from Book"
 msgid "Pick one layout approach."
 msgstr "Pick one layout approach."
 
-#~ msgid "Pick page range"
-#~ msgstr "Pick page range"
-
 msgid "Pick the languages you want to translate to. The book's original language stays as-is."
 msgstr "Pick the languages you want to translate to. The book's original language stays as-is."
 
@@ -5202,9 +5106,6 @@ msgstr "Prev"
 msgid "Preview"
 msgstr "Preview"
 
-#~ msgid "Preview & split pages"
-#~ msgstr "Preview & split pages"
-
 msgid "Preview linked page"
 msgstr "Preview linked page"
 
@@ -5237,9 +5138,6 @@ msgstr "Process every page on this machine."
 
 msgid "Process only a range of pages here."
 msgstr "Process only a range of pages here."
-
-#~ msgid "Process the whole book here"
-#~ msgstr "Process the whole book here"
 
 msgid "Processing metadata…"
 msgstr "Processing metadata…"
@@ -5935,39 +5833,6 @@ msgstr "Save & leave"
 msgid "Save & Re-run"
 msgstr "Save & Re-run"
 
-#~ msgid "Save & Rerun"
-#~ msgstr "Save & Rerun"
-
-#~ msgid "Save & Rerun Captions"
-#~ msgstr "Save & Rerun Captions"
-
-#~ msgid "Save & Rerun Easy Read"
-#~ msgstr "Save & Rerun Easy Read"
-
-#~ msgid "Save & Rerun Extraction"
-#~ msgstr "Save & Rerun Extraction"
-
-#~ msgid "Save & Rerun Glossary"
-#~ msgstr "Save & Rerun Glossary"
-
-#~ msgid "Save & Rerun Quizzes"
-#~ msgstr "Save & Rerun Quizzes"
-
-#~ msgid "Save & Rerun Sectioning"
-#~ msgstr "Save & Rerun Sectioning"
-
-#~ msgid "Save & Rerun Speech"
-#~ msgstr "Save & Rerun Speech"
-
-#~ msgid "Save & Rerun Storyboard"
-#~ msgstr "Save & Rerun Storyboard"
-
-#~ msgid "Save & Rerun TOC Generation"
-#~ msgstr "Save & Rerun TOC Generation"
-
-#~ msgid "Save & Rerun Translations"
-#~ msgstr "Save & Rerun Translations"
-
 msgid "Save changes"
 msgstr "Save changes"
 
@@ -5994,9 +5859,6 @@ msgstr "Save settings"
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Saved. Re-package Preview to apply."
-
-#~ msgid "Saving..."
-#~ msgstr "Saving..."
 
 msgid "Saving…"
 msgstr "Saving…"
@@ -6433,9 +6295,6 @@ msgstr "sk-..."
 msgid "sk-ant-..."
 msgstr "sk-ant-..."
 
-#~ msgid "Skip extraction — hand out page-range parts and merge the results back later."
-#~ msgstr "Skip extraction — hand out page-range parts and merge the results back later."
-
 msgid "Skip for now"
 msgstr "Skip for now"
 
@@ -6535,23 +6394,11 @@ msgstr "Speech Settings"
 msgid "Split · {0}/{1}"
 msgstr "Split · {0}/{1}"
 
-#~ msgid "Split · {0}/{1} pages merged"
-#~ msgstr "Split · {0}/{1} pages merged"
-
-#~ msgid "Split · {0}/{1} pages split"
-#~ msgstr "Split · {0}/{1} pages split"
-
-#~ msgid "Split · all parts merged"
-#~ msgstr "Split · all parts merged"
-
 msgid "Split & merge"
 msgstr "Split & merge"
 
 msgid "Split into"
 msgstr "Split into"
-
-#~ msgid "Split into {0} part(s)"
-#~ msgstr "Split into {0} part(s)"
 
 #. placeholder {0}: book.split.exportedParts
 #. placeholder {1}: book.split.splitPages
@@ -6563,9 +6410,6 @@ msgstr "Split into {0} part(s) · {1}/{2} pages split off · {3}/{4} merged back
 
 msgid "Split into parts"
 msgstr "Split into parts"
-
-#~ msgid "Split into parts for others"
-#~ msgstr "Split into parts for others"
 
 msgid "Split preview"
 msgstr "Split preview"
@@ -6599,9 +6443,6 @@ msgstr "Start"
 
 msgid "Start a reviewer session"
 msgstr "Start a reviewer session"
-
-#~ msgid "Start extracting on this machine right after creating the book."
-#~ msgstr "Start extracting on this machine right after creating the book."
 
 msgid "Start from a PDF"
 msgstr "Start from a PDF"
@@ -7062,12 +6903,6 @@ msgstr "This book is a part — its page range is fixed to the assigned subset a
 msgid "This book is a part. Export it as a <0>Completed Part</0> and send the file back to the coordinator to merge into the source book."
 msgstr "This book is a part. Export it as a <0>Completed Part</0> and send the file back to the coordinator to merge into the source book."
 
-#~ msgid "This book is a part. Export it as a <0>Project Archive</0> and send the file back to the coordinator to merge into the source book."
-#~ msgstr "This book is a part. Export it as a <0>Project Archive</0> and send the file back to the coordinator to merge into the source book."
-
-#~ msgid "This book is an imported part. Parts can't be split or merged further — process the assigned pages, then return the finished part from the Export step to merge it back into the source book."
-#~ msgstr "This book is an imported part. Parts can't be split or merged further — process the assigned pages, then return the finished part from the Export step to merge it back into the source book."
-
 msgid "This book is fully assembled"
 msgstr "This book is fully assembled"
 
@@ -7139,23 +6974,11 @@ msgstr "This page has no simplified text blocks"
 msgid "This page has no storyboard sections"
 msgstr "This page has no storyboard sections"
 
-#~ msgid "This page has no text layer — it appears to be a scanned or image-only page. The Sectioning step may still recover text from the page image. For reliable text, first try to obtain a better-quality, text-based version of this PDF; only if none is available, run OCR on the file before importing."
-#~ msgstr "This page has no text layer — it appears to be a scanned or image-only page. The Sectioning step may still recover text from the page image. For reliable text, first try to obtain a better-quality, text-based version of this PDF; only if none is available, run OCR on the file before importing."
-
-#~ msgid "This page has no text layer — it appears to be a scanned or image-only page. The Sectioning step may still recover text from the page image. For reliable text, run OCR on this PDF before importing."
-#~ msgstr "This page has no text layer — it appears to be a scanned or image-only page. The Sectioning step may still recover text from the page image. For reliable text, run OCR on this PDF before importing."
-
 msgid "This page has no translatable text entries"
 msgstr "This page has no translatable text entries"
 
 msgid "This page has not been reviewed yet"
 msgstr "This page has not been reviewed yet"
-
-#~ msgid "This page renders text, but its fonts could not be decoded (a font/encoding issue in the PDF). The Sectioning step may still recover the text from the page image. For reliable text, first try to obtain a cleaner, text-based version of this PDF; only if none is available, run OCR on the file before importing."
-#~ msgstr "This page renders text, but its fonts could not be decoded (a font/encoding issue in the PDF). The Sectioning step may still recover the text from the page image. For reliable text, first try to obtain a cleaner, text-based version of this PDF; only if none is available, run OCR on the file before importing."
-
-#~ msgid "This page renders text, but its fonts could not be decoded (a font/encoding issue in the PDF). The Sectioning step may still recover the text from the page image. For reliable text, supply a text-based PDF or run OCR on this file before importing."
-#~ msgstr "This page renders text, but its fonts could not be decoded (a font/encoding issue in the PDF). The Sectioning step may still recover the text from the page image. For reliable text, supply a text-based PDF or run OCR on this file before importing."
 
 msgid "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "This page's embedded text layer is empty, but the Sectioning step recovered text from the page image — so it looks like a scanned or image-only page. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
@@ -7165,12 +6988,6 @@ msgstr "This part cannot be merged"
 
 msgid "This part doesn't match this book"
 msgstr "This part doesn't match this book"
-
-#~ msgid "This PDF appears to be image-based or uses fonts we can't read as text, so the extracted text may be incomplete. The Sectioning step can still recover some text from the page image, but for better summaries, metadata, and translations, first try to obtain a better-quality, text-based version of this PDF — and only run OCR on it if no such version is available."
-#~ msgstr "This PDF appears to be image-based or uses fonts we can't read as text, so the extracted text may be incomplete. The Sectioning step can still recover some text from the page image, but for better summaries, metadata, and translations, first try to obtain a better-quality, text-based version of this PDF — and only run OCR on it if no such version is available."
-
-#~ msgid "This PDF appears to be image-based or uses fonts we can't read as text, so the extracted text may be incomplete. The Sectioning step can still recover some text from the page image, but for better summaries, metadata, and translations, supply a text-based PDF or run OCR on this file before importing."
-#~ msgstr "This PDF appears to be image-based or uses fonts we can't read as text, so the extracted text may be incomplete. The Sectioning step can still recover some text from the page image, but for better summaries, metadata, and translations, supply a text-based PDF or run OCR on this file before importing."
 
 msgid "This permanently deletes every uploaded video and clears all section assignments. This can't be undone."
 msgstr "This permanently deletes every uploaded video and clears all section assignments. This can't be undone."
@@ -7205,39 +7022,6 @@ msgstr "This session is using an older reviewer checklist snapshot. Newer checkl
 msgid "This text is only perceptible to assistive technologies."
 msgstr "This text is only perceptible to assistive technologies."
 
-#~ msgid "This will save your Easy Read settings and generate a new editable Easy Read version."
-#~ msgstr "This will save your Easy Read settings and generate a new editable Easy Read version."
-
-#~ msgid "This will save your settings and re-generate the table of contents."
-#~ msgstr "This will save your settings and re-generate the table of contents."
-
-#~ msgid "This will save your settings and re-run glossary generation."
-#~ msgstr "This will save your settings and re-run glossary generation."
-
-#~ msgid "This will save your settings and re-run image captioning."
-#~ msgstr "This will save your settings and re-run image captioning."
-
-#~ msgid "This will save your settings and re-run quiz generation."
-#~ msgstr "This will save your settings and re-run quiz generation."
-
-#~ msgid "This will save your settings and re-run sectioning for all pages."
-#~ msgstr "This will save your settings and re-run sectioning for all pages."
-
-#~ msgid "This will save your settings and re-run speech generation."
-#~ msgstr "This will save your settings and re-run speech generation."
-
-#~ msgid "This will save your settings and re-run the extraction pipeline. Any manual edits to extracted text will be overwritten for affected pages."
-#~ msgstr "This will save your settings and re-run the extraction pipeline. Any manual edits to extracted text will be overwritten for affected pages."
-
-#~ msgid "This will save your settings and re-run the storyboard pipeline. Only rendering will be regenerated — your existing sections will be preserved."
-#~ msgstr "This will save your settings and re-run the storyboard pipeline. Only rendering will be regenerated — your existing sections will be preserved."
-
-#~ msgid "This will save your settings and re-run the storyboard pipeline. Sectioning and rendering will be run for all pages."
-#~ msgstr "This will save your settings and re-run the storyboard pipeline. Sectioning and rendering will be run for all pages."
-
-#~ msgid "This will save your settings and re-run translations, rebuilding the text catalog and translating to output languages."
-#~ msgstr "This will save your settings and re-run translations, rebuilding the text catalog and translating to output languages."
-
 msgid "Thorium Reader"
 msgstr "Thorium Reader"
 
@@ -7261,9 +7045,6 @@ msgstr "Titles generated by the model from section content."
 
 msgid "Titles taken verbatim from typed section headings."
 msgstr "Titles taken verbatim from typed section headings."
-
-#~ msgid "to"
-#~ msgstr "to"
 
 msgid "To page"
 msgstr "To page"
@@ -7633,9 +7414,6 @@ msgstr "Variables"
 msgid "Variations"
 msgstr "Variations"
 
-#~ msgid "Vector Extraction"
-#~ msgstr "Vector Extraction"
-
 msgid "Verified applied"
 msgstr "Verified applied"
 
@@ -7803,17 +7581,11 @@ msgstr "What's inside"
 msgid "What's new"
 msgstr "What's new"
 
-#~ msgid "What's next for this book?"
-#~ msgstr "What's next for this book?"
-
 msgid "When describing images, mention any culturally specific objects, locations, or recurring characters by name."
 msgstr "When describing images, mention any culturally specific objects, locations, or recurring characters by name."
 
 msgid "When enabled, background colors from the styleguide are applied to the full page body."
 msgstr "When enabled, background colors from the styleguide are applied to the full page body."
-
-#~ msgid "When enabled, text labels near vector images (e.g. chart dimensions, speech bubbles) are grouped together and extracted as raster crops. Disable to extract only the core vector shapes without text."
-#~ msgstr "When enabled, text labels near vector images (e.g. chart dimensions, speech bubbles) are grouped together and extracted as raster crops. Disable to extract only the core vector shapes without text."
 
 msgid "When enabled, the selected images below are regenerated for every output language during the translate stage."
 msgstr "When enabled, the selected images below are regenerated for every output language during the translate stage."
@@ -7880,9 +7652,6 @@ msgstr "Wraps 'Generate new' requests. Supports user_prompt, style, and image_ty
 
 msgid "You can export at this stage"
 msgstr "You can export at this stage"
-
-#~ msgid "You have unsaved changes. If you leave, they'll be lost."
-#~ msgstr "You have unsaved changes. If you leave, they'll be lost."
 
 msgid "You haven't added any terms manually yet"
 msgstr "You haven't added any terms manually yet"

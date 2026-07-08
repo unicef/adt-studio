@@ -541,6 +541,7 @@ export interface LlmLogEntry {
   itemId: string
   data: {
     promptName: string
+    requestedPromptName?: string
     modelId: string
     cacheHit: boolean
     durationMs: number
@@ -598,6 +599,20 @@ export interface BookConfigResponse {
 export interface ActiveConfigResponse {
   merged: Record<string, unknown>
   hasBookOverride: boolean
+}
+
+export interface PromptResponse {
+  name: string
+  resolvedName?: string
+  content: string
+  source?: "book" | "global"
+  modelId?: string | null
+  version?: string
+}
+
+function promptModelQuery(modelId?: string | null): string {
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- API query string, not user-visible copy.
+  return modelId ? `?model=${encodeURIComponent(modelId)}` : ""
 }
 
 export interface VersionEntry {
@@ -1179,16 +1194,20 @@ export const api = {
       body: JSON.stringify({ config }),
     }),
 
-  getPrompt: (name: string, bookLabel?: string) =>
-    request<{ name: string; content: string; source?: string }>(
-      bookLabel ? `/books/${bookLabel}/prompts/${name}` : `/prompts/${name}`
-    ),
+  getPrompt: (name: string, bookLabel?: string, modelId?: string | null) => {
+    const query = promptModelQuery(modelId)
+    return request<PromptResponse>(
+      bookLabel ? `/books/${bookLabel}/prompts/${name}${query}` : `/prompts/${name}${query}`
+    )
+  },
 
-  updatePrompt: (name: string, content: string, bookLabel?: string) =>
-    request<{ name: string; content: string; source?: string }>(
-      bookLabel ? `/books/${bookLabel}/prompts/${name}` : `/prompts/${name}`,
+  updatePrompt: (name: string, content: string, bookLabel?: string, modelId?: string | null) => {
+    const query = promptModelQuery(modelId)
+    return request<PromptResponse>(
+      bookLabel ? `/books/${bookLabel}/prompts/${name}${query}` : `/prompts/${name}${query}`,
       { method: "PUT", body: JSON.stringify({ content }) },
-    ),
+    )
+  },
 
   getTemplate: (name: string, bookLabel?: string) =>
     request<{ name: string; content: string; source?: string }>(

@@ -15,7 +15,7 @@ import {
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { api } from "@/api/client"
-import { PromptViewer } from "@/components/pipeline/components/PromptViewer"
+import { PromptViewer, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
 import { useDirtyTabTracker } from "@/hooks/use-settings-dirty-tabs"
 import { useStepConfig } from "@/hooks/use-step-config"
@@ -95,8 +95,8 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
   // Sectioning state
   const [sectioningMode, setSectioningMode] = useState("dynamic")
   const [maxRefinements, setMaxRefinements] = useState("")
-  const [sectioningPromptDraft, setSectioningPromptDraft] = useState<string | null>(null)
-  const [refinementPromptDraft, setRefinementPromptDraft] = useState<string | null>(null)
+  const [sectioningPromptDraft, setSectioningPromptDraft] = useState<PromptDraft | null>(null)
+  const [refinementPromptDraft, setRefinementPromptDraft] = useState<PromptDraft | null>(null)
 
   // Track dirty state
   const { markedTabs, markTab, resetMarkedTabs } = useDirtyTabTracker()
@@ -332,10 +332,10 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
 
   const save = async () => {
     if (sectioningPromptDraft != null) {
-      await api.updatePrompt("page_sectioning", sectioningPromptDraft, bookLabel)
+      await api.updatePrompt("page_sectioning", sectioningPromptDraft.content, bookLabel, sectioningPromptDraft.modelId)
     }
     if (refinementPromptDraft != null) {
-      await api.updatePrompt("page_sectioning_refinement", refinementPromptDraft, bookLabel)
+      await api.updatePrompt("page_sectioning_refinement", refinementPromptDraft.content, bookLabel, refinementPromptDraft.modelId)
     }
 
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
@@ -583,7 +583,7 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
               onModelChange={sectioning.onModelChange}
               maxRetries={sectioning.maxRetries}
               onMaxRetriesChange={sectioning.onMaxRetriesChange}
-              onContentChange={setSectioningPromptDraft}
+              onContentChange={(content, modelId) => setSectioningPromptDraft(toPromptDraft(content, modelId))}
             />
           </div>
         </div>
@@ -626,7 +626,7 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
               title={t`Page Sectioning Refinement Prompt`}
               description={t`The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt.`}
               hideModel
-              onContentChange={setRefinementPromptDraft}
+              onContentChange={(content, modelId) => setRefinementPromptDraft(toPromptDraft(content, modelId))}
             />
           </div>
         </div>
