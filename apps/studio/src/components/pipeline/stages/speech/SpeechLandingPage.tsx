@@ -16,20 +16,22 @@ import { useActiveConfig } from "@/hooks/use-debug"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
-import { useBookConfig } from "@/hooks/use-book-config"
+import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { SpeechPreview } from "./components/SpeechPreview"
 
-type ProviderKey = "openai" | "azure" | "gemini"
+type ProviderKey = "openai" | "anthropic" | "azure" | "gemini"
 
 const PROVIDER_LABELS: Record<ProviderKey, MessageDescriptor> = {
   openai: msg`OpenAI`,
+  anthropic: msg`Anthropic`,
   azure: msg`Azure`,
   gemini: msg`Gemini`,
 }
 
 const PROVIDER_HINTS: Record<ProviderKey, MessageDescriptor> = {
   openai: msg`Natural, expressive voices. Best general-purpose default.`,
+  anthropic: msg`Anthropic is available for text models, but not speech synthesis.`,
   azure: msg`Wide multilingual coverage with neural voices for many locales.`,
   gemini: msg`Google's voices with strong intonation for narrative content.`,
 }
@@ -43,7 +45,8 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const persist = usePersistConfig(bookLabel)
-  const { apiKey, hasApiKey, hasAzureKey, hasGeminiKey } = useApiKey()
+  const updateConfig = useUpdateBookConfig()
+  const { apiKey, hasOpenAIKey, hasAzureKey, hasGeminiKey } = useApiKey()
   const { queueRun } = useBookRun()
   const status = useStageStatus("speech")
   const translateStatus = useStageStatus("translate")
@@ -51,6 +54,14 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
 
   const [wordHighlighting, setWordHighlighting] = useState(false)
   const [provider, setProvider] = useState<ProviderKey>("openai")
+  const providerKeyAvailable: Record<ProviderKey, boolean> = {
+    openai: hasOpenAIKey,
+    anthropic: false,
+    azure: hasAzureKey,
+    gemini: hasGeminiKey,
+  }
+  const firstAvailableSpeechProvider: ProviderKey =
+    hasOpenAIKey ? "openai" : hasAzureKey ? "azure" : hasGeminiKey ? "gemini" : "openai"
 
   useEffect(() => {
     if (!activeConfigData) return
@@ -61,12 +72,15 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
     }
     if (
       speech.default_provider === "openai" ||
+      speech.default_provider === "anthropic" ||
       speech.default_provider === "azure" ||
       speech.default_provider === "gemini"
     ) {
       setProvider(speech.default_provider)
+    } else {
+      setProvider(firstAvailableSpeechProvider)
     }
-  }, [activeConfigData])
+  }, [activeConfigData, firstAvailableSpeechProvider])
 
   const persistSpeech = (patch: Record<string, unknown>) => {
     const existing = (bookConfigData?.config?.speech ?? {}) as Record<
@@ -86,26 +100,41 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
     persistSpeech({ default_provider: value })
   }
 
-  const handleRun = () => {
-    if (!hasApiKey || !translateReady || status.isRunning) return
+  const handleRun = async () => {
+    if (!providerKeyAvailable[provider] || !translateReady || status.isRunning) return
+    const base = bookConfigData?.config ?? {}
+    const existingSpeech = (base.speech ?? {}) as Record<string, unknown>
+    if (existingSpeech.default_provider !== provider) {
+      await updateConfig.mutateAsync({
+        label: bookLabel,
+        config: {
+          ...base,
+          speech: {
+            ...existingSpeech,
+            default_provider: provider,
+          },
+        },
+      })
+    }
     queueRun({ fromStage: "speech", toStage: "speech", apiKey, viewAfter: true })
-  }
-
-  const providerKeyAvailable: Record<ProviderKey, boolean> = {
-    openai: hasApiKey,
-    azure: hasAzureKey,
-    gemini: hasGeminiKey,
   }
 
   const providerOptions = useMemo(
     () => {
       const disabledHint = t`Add this provider's API key in Book settings.`
+      const unsupportedHint = t`Anthropic is available for text models, but not speech synthesis.`
       return [
         {
           value: "openai" as const,
           label: linguiI18n._(PROVIDER_LABELS.openai),
-          disabled: !hasApiKey,
+          disabled: !hasOpenAIKey,
           disabledHint,
+        },
+        {
+          value: "anthropic" as const,
+          label: linguiI18n._(PROVIDER_LABELS.anthropic),
+          disabled: true,
+          disabledHint: unsupportedHint,
         },
         {
           value: "azure" as const,
@@ -121,15 +150,16 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
         },
       ]
     },
-    [t, hasApiKey, hasAzureKey, hasGeminiKey],
+    [t, hasOpenAIKey, hasAzureKey, hasGeminiKey],
   )
 
   const selectedProviderKeyMissing = !providerKeyAvailable[provider]
+  const selectedProviderUnsupported = provider === "anthropic"
 
   const disabledProviderLabels = useMemo(
     () =>
       providerOptions
-        .filter((o) => o.disabled)
+        .filter((o) => o.disabled && o.value !== "anthropic")
         .map((o) => o.label),
     [providerOptions],
   )
@@ -151,8 +181,11 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
     [t],
   )
 
-  const disabledReason = !hasApiKey ? (
-    <Trans>Add an API key in Book settings to run speech.</Trans>
+  const hasSpeechProviderKey = hasOpenAIKey || hasAzureKey || hasGeminiKey
+  const disabledReason = selectedProviderUnsupported ? (
+    <Trans>Anthropic is available for text models, but not speech synthesis.</Trans>
+  ) : !hasSpeechProviderKey ? (
+    <Trans>Add a speech provider API key in Book settings to run speech.</Trans>
   ) : selectedProviderKeyMissing ? (
     <Trans>Add the selected provider's API key in Book settings to run speech.</Trans>
   ) : !translateReady ? (
@@ -171,7 +204,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
       isCompleted={status.isCompleted}
       hasError={status.hasError}
       canRun={true}
-      extraDisabled={!hasApiKey || selectedProviderKeyMissing || !translateReady}
+      extraDisabled={!hasSpeechProviderKey || selectedProviderKeyMissing || !translateReady}
       disabledReason={disabledReason}
       runLabel={<Trans>Run Speech</Trans>}
       rerunLabel={<Trans>Re-run</Trans>}
@@ -207,7 +240,9 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
         <SettingsField
           label={<Trans>Provider</Trans>}
           hint={
-            selectedProviderKeyMissing ? (
+            selectedProviderUnsupported ? (
+              linguiI18n._(PROVIDER_HINTS.anthropic)
+            ) : selectedProviderKeyMissing ? (
               <Trans>
                 No API key for {linguiI18n._(PROVIDER_LABELS[provider])} yet.
                 Add one in Book settings to enable this provider.
@@ -242,6 +277,20 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
                       in Book settings to enable them.
                     </Trans>
                   )}
+                </span>
+              </div>
+            )}
+            {!hasSpeechProviderKey && (
+              <div className="flex items-start gap-2 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-[11.5px] text-blue-800">
+                <AlertCircle
+                  className="mt-0.5 h-3.5 w-3.5 shrink-0 text-blue-600"
+                  strokeWidth={2}
+                  aria-hidden
+                />
+                <span>
+                  <Trans>
+                    Anthropic does not offer a text-to-speech API. Add an OpenAI, Gemini, or Azure key to generate audio narration.
+                  </Trans>
                 </span>
               </div>
             )}

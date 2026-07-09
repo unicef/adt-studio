@@ -67,7 +67,7 @@ export function StageRunCard({
 }: StageRunCardProps) {
   const { t } = useLingui()
   const stage = STAGES.find((s) => s.slug === stageSlug) ?? STAGES[0]
-  const { stageState, stepState, stepProgress, stepError, error } = useBookRun()
+  const { stageState, stepState, stepProgress, stepError, error, runProvider } = useBookRun()
   const stageStatus = stageState(stageSlug)
   const subSteps = STAGE_SUB_STEPS[stageSlug as StageName] ?? []
   const Icon = stage.icon
@@ -109,6 +109,11 @@ export function StageRunCard({
             ? getStageRunningLabelI18n(stageSlug)
             : stageLabel}
         </CardTitle>
+        {runProvider && (isRunning || isCompleted || hasError) && (
+          <span className="ml-auto text-[11px] font-normal opacity-80">
+            {t`Provider: ${runProvider.providerName}`}
+          </span>
+        )}
       </CardHeader>
 
       {/* Main row: sub-steps | button | description */}

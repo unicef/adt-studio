@@ -662,6 +662,13 @@ msgstr "active item"
 msgid "active items"
 msgstr "active items"
 
+#~ msgid "Active provider requires valid credentials. Please configure your provider in Settings."
+#~ msgstr "O provedor ativo requer credenciais válidas. Por favor, configure seu provedor em Configurações."
+
+#. placeholder {0}: activeProvider.label
+msgid "Active provider: {0}"
+msgstr "Provedor ativo: {0}"
+
 msgid "Active reviewer session"
 msgstr "Active reviewer session"
 
@@ -753,6 +760,9 @@ msgstr "Adicione um idioma para ver as traduções aparecerem aqui."
 msgid "Add a quiz"
 msgstr "Adicionar um questionário"
 
+msgid "Add a speech provider API key in Book settings to run speech."
+msgstr "Adicione uma chave de API de um provedor de fala nas configurações do livro para executar a fala."
+
 msgid "Add after"
 msgstr "Adicionar depois"
 
@@ -777,8 +787,8 @@ msgstr "Adicione uma chave de API nas configurações do Livro para executar ext
 msgid "Add an API key in Book settings to run sectioning."
 msgstr "Adicione uma chave de API nas configurações do Livro para executar seccionamento."
 
-msgid "Add an API key in Book settings to run speech."
-msgstr "Adicione uma chave de API nas configurações do Livro para executar fala."
+#~ msgid "Add an API key in Book settings to run speech."
+#~ msgstr "Adicione uma chave de API nas configurações do Livro para executar fala."
 
 msgid "Add an API key in Book settings to run storyboard."
 msgstr "Adicione uma chave de API nas configurações do Livro para executar storyboard."
@@ -1136,6 +1146,9 @@ msgstr "Anthropic"
 
 msgid "Anthropic API Key"
 msgstr "Chave de API da Anthropic"
+
+msgid "Anthropic is available for text models, but not speech synthesis."
+msgstr "A Anthropic está disponível para modelos de texto, mas não para síntese de fala."
 
 msgid "Any content type"
 msgstr "Qualquer tipo de conteúdo"
@@ -1552,6 +1565,9 @@ msgstr "Cancelar"
 msgid "Cancel download"
 msgstr "Cancelar download"
 
+#~ msgid "Cannot run: active provider has no credentials"
+#~ msgstr "Não é possível executar: o provedor ativo não possui credenciais"
+
 #. placeholder {0}: String(MAX_ENTRIES)
 msgid "capped at {0}"
 msgstr "limitado a {0}"
@@ -1857,6 +1873,9 @@ msgstr "Condensação"
 msgid "Config"
 msgstr "Configuração"
 
+msgid "Configure a provider to run"
+msgstr "Configurar um provedor para executar"
+
 msgid "Configure activity detection and image processing options for extracted content. Hover any setting to see how it affects the preview."
 msgstr "Configure as opções de detecção de atividade e processamento de imagem para o conteúdo extraído. Passe o mouse sobre qualquer configuração para ver como ela afeta a visualização."
 
@@ -1871,6 +1890,9 @@ msgstr "Configure cada etapa — extração, storyboard, layout — e deixe o AD
 
 msgid "Configure features to include in the export"
 msgstr "Configure as funcionalidades a incluir na exportação"
+
+msgid "Configure provider credentials"
+msgstr "Configurar credenciais do provedor"
 
 msgid "Configure voices and accents"
 msgstr "Configurar vozes e sotaques"
@@ -2044,6 +2066,9 @@ msgstr "Cria um arquivo ZIP do projeto completo — banco de dados, PDF de orige
 msgid "Creating..."
 msgstr "Criando..."
 
+msgid "credentials needed"
+msgstr "credenciais necessárias"
+
 msgid "Credits"
 msgstr "Créditos"
 
@@ -2085,6 +2110,9 @@ msgstr "Current effective values"
 
 msgid "Current Preview Page"
 msgstr "Current Preview Page"
+
+#~ msgid "Current step:"
+#~ msgstr "Etapa atual:"
 
 #~ msgid "Current version"
 #~ msgstr "Versão atual"
@@ -2130,6 +2158,12 @@ msgstr "Padrão (herdar)"
 
 msgid "Default (no text detected yet)"
 msgstr "Padrão (nenhum texto detectado ainda)"
+
+msgid "Default AI model"
+msgstr "Modelo de IA padrão"
+
+#~ msgid "Default AI model:"
+#~ msgstr "Modelo de IA padrão:"
 
 msgid "Default model"
 msgstr "Modelo padrão"
@@ -2960,6 +2994,9 @@ msgstr "Página Final"
 
 #~ msgid "First"
 #~ msgstr "Primeira"
+
+#~ msgid "First available provider"
+#~ msgstr "Primeiro provedor disponível"
 
 msgid "First images from the deep-field telescope."
 msgstr "Primeiras imagens do telescópio de campo profundo."
@@ -3859,6 +3896,9 @@ msgstr "Filtro de relevância por LLM"
 msgid "LLM positions text over background images"
 msgstr "LLM posiciona texto sobre imagens de fundo"
 
+msgid "LLM providers"
+msgstr "Provedores LLM"
+
 msgid "LLM segmentation"
 msgstr "Segmentação LLM"
 
@@ -4038,6 +4078,9 @@ msgstr "Marcar como decorativo"
 
 msgid "Mark as decorative (hidden from screen readers)"
 msgstr "Marcar como decorativo (oculto para leitores de tela)"
+
+msgid "Mark as default"
+msgstr "Marcar como padrão"
 
 msgid "Match Design"
 msgstr "Corresponder ao Design"
@@ -4621,6 +4664,9 @@ msgstr "ruído"
 msgid "None"
 msgstr "Nenhum"
 
+msgid "Not configured"
+msgstr "Não configurado"
+
 msgid "Not detected"
 msgstr "Não detectado"
 
@@ -4864,6 +4910,9 @@ msgstr "Idiomas de saída"
 
 msgid "Output Tokens"
 msgstr "Tokens de saída"
+
+#~ msgid "Overall model"
+#~ msgstr "Modelo geral"
 
 msgid "Overall page note"
 msgstr "Overall page note"
@@ -5350,6 +5399,13 @@ msgstr "Prompt template not found."
 
 msgid "Provider"
 msgstr "Provedor"
+
+msgid "Provider default model"
+msgstr "Modelo padrão do provedor"
+
+#. placeholder {0}: runProvider.providerName
+msgid "Provider: {0}"
+msgstr "Provedor: {0}"
 
 msgid "Provides consistent HTML/CSS patterns for LLM-generated pages."
 msgstr "Fornece padrões HTML/CSS consistentes para páginas geradas por LLM."
@@ -6328,6 +6384,9 @@ msgstr "Selecionar tudo"
 msgid "Select images to translate"
 msgstr "Selecionar imagens para traduzir"
 
+msgid "Select LLM provider"
+msgstr "Selecionar provedor LLM"
+
 msgid "Select node type..."
 msgstr "Selecionar tipo de nó..."
 
@@ -6354,6 +6413,9 @@ msgstr "Selecione até 5 páginas para usar como referências visuais. O LLM ir�
 
 msgid "Selected images"
 msgstr "Imagens selecionadas"
+
+msgid "Selected model"
+msgstr "Modelo selecionado"
 
 #. placeholder {0}: fmtRange(w)
 msgid "Selected pages {0}."
@@ -7306,6 +7368,9 @@ msgstr "Esta seção foi removida e não é renderizada."
 msgid "This session is using an older reviewer checklist snapshot. Newer checklist settings will apply only to newly created reviewer sessions."
 msgstr "This session is using an older reviewer checklist snapshot. Newer checklist settings will apply only to newly created reviewer sessions."
 
+msgid "This step uses"
+msgstr "Esta etapa usa"
+
 msgid "This text is only perceptible to assistive technologies."
 msgstr "Este texto é perceptível apenas para tecnologias assistivas."
 
@@ -7712,6 +7777,9 @@ msgstr "Use this for checks you intentionally want to suppress, such as known fa
 msgid "Use this format to back up the project or move it to another machine."
 msgstr "Use este formato para fazer backup do projeto ou movê-lo para outra máquina."
 
+msgid "Used by default when this provider's API key is selected."
+msgstr "Usado por padrão quando a chave de API deste provedor é selecionada."
+
 msgid "Used for"
 msgstr "Usada para"
 
@@ -7726,6 +7794,9 @@ msgstr "Utilizada para modelos Gemini — tanto LLM (gemini-2.5-pro, etc.) quant
 
 msgid "Used for this quiz"
 msgstr "Usada neste questionário"
+
+#~ msgid "Used when a step has no available provider-specific model. Only providers with configured credentials are listed."
+#~ msgstr "Usado quando uma etapa não tem um modelo específico do provedor disponível. Apenas provedores com credenciais configuradas são exibidos."
 
 msgid "Validation"
 msgstr "Validation"

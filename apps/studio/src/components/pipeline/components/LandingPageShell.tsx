@@ -150,31 +150,33 @@ export function LandingPageShell({
               <span />
             )}
 
-            <div
-              className={cn(
-                "transition-all duration-200 ease-out",
-                hideRunButton
-                  ? "pointer-events-none translate-y-1 opacity-0"
-                  : "translate-y-0 opacity-100",
-              )}
-              inert={hideRunButton || undefined}
-            >
-              {showTooltip ? (
-                <TooltipProvider delayDuration={150}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span tabIndex={0} className="inline-flex cursor-help">
-                        <span className="pointer-events-none">{runButton}</span>
-                      </span>
-                    </TooltipTrigger>
-                    <TooltipContent side="top" align="end" className="max-w-[260px] text-center">
-                      {disabledReason}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ) : (
-                runButton
-              )}
+            <div className="flex items-center gap-3">
+              <div
+                className={cn(
+                  "transition-all duration-200 ease-out",
+                  hideRunButton
+                    ? "pointer-events-none translate-y-1 opacity-0"
+                    : "translate-y-0 opacity-100",
+                )}
+                inert={hideRunButton || undefined}
+              >
+                {showTooltip ? (
+                  <TooltipProvider delayDuration={150}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span tabIndex={0} className="inline-flex cursor-help">
+                          <span className="pointer-events-none">{runButton}</span>
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" align="end" className="max-w-[260px] text-center">
+                        {disabledReason}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  runButton
+                )}
+              </div>
             </div>
           </div>
         )}

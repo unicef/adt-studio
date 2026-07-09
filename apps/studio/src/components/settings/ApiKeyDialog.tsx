@@ -14,8 +14,10 @@ import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
+import { ModelSelect, LLM_MODEL_GROUPS } from "@/components/pipeline/components/ModelSelect"
 
 type TabKey = "openai" | "anthropic" | "google" | "custom" | "azure"
+type TextProviderKey = "openai" | "anthropic" | "google" | "custom"
 
 interface ApiKeyDialogProps {
   open: boolean
@@ -34,11 +36,15 @@ interface ApiKeyDialogProps {
   onSaveAzureKey: (key: string) => void
   azureRegion: string
   onSaveAzureRegion: (region: string) => void
+  providerDefaultModels: Record<TextProviderKey, string>
+  onSaveProviderDefaultModel: (provider: TextProviderKey, model: string) => void
 }
 
 function isValidOpenAIKey(key: string): boolean {
   return key.trim().length > 0 && key.trim().startsWith("sk-")
 }
+
+const TEXT_PROVIDER_ORDER: TextProviderKey[] = ["openai", "anthropic", "google", "custom"]
 
 export function ApiKeyDialog({
   open,
@@ -57,6 +63,8 @@ export function ApiKeyDialog({
   onSaveAzureKey,
   azureRegion,
   onSaveAzureRegion,
+  providerDefaultModels,
+  onSaveProviderDefaultModel,
 }: ApiKeyDialogProps) {
   const { t } = useLingui()
   const [tab, setTab] = useState<TabKey>("openai")
@@ -68,6 +76,14 @@ export function ApiKeyDialog({
   const [azureKeyDraft, setAzureKeyDraft] = useState(azureKey)
   const [azureRegionDraft, setAzureRegionDraft] = useState(azureRegion)
   const [showKey, setShowKey] = useState(false)
+  const [defaultModelDrafts, setDefaultModelDrafts] = useState(providerDefaultModels)
+  const [activeProviderDraft, setActiveProviderDraft] = useState(() => {
+    try {
+      return localStorage.getItem("adt-studio-active-provider") ?? ""
+    } catch {
+      return ""
+    }
+  })
   const prevOpenRef = useRef(false)
 
   const tabs = [
@@ -89,9 +105,28 @@ export function ApiKeyDialog({
       setAzureKeyDraft(azureKey)
       setAzureRegionDraft(azureRegion)
       setShowKey(false)
+      setDefaultModelDrafts(providerDefaultModels)
+      try {
+        setActiveProviderDraft(localStorage.getItem("adt-studio-active-provider") ?? "")
+      } catch {
+        setActiveProviderDraft("")
+      }
     }
     prevOpenRef.current = open
   }, [open, apiKey, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion])
+
+  const draftConfiguredProviders: Record<TextProviderKey, boolean> = {
+    openai: isValidOpenAIKey(openaiDraft),
+    anthropic: anthropicDraft.trim().length > 0,
+    google: googleDraft.trim().length > 0,
+    custom: customBaseUrlDraft.trim().length > 0,
+  }
+
+  // Count only the current drafts. If a user clears OpenAI, it should stop
+  // acting configured immediately instead of falling back to the saved prop.
+  const configuredProviderCount = TEXT_PROVIDER_ORDER
+    .filter((provider) => draftConfiguredProviders[provider])
+    .length
 
   function handleSave() {
     // Save all tabs — not just the active one
@@ -104,11 +139,36 @@ export function ApiKeyDialog({
     onSaveCustomApiKey(customApiKeyDraft.trim())
     onSaveAzureKey(azureKeyDraft.trim())
     onSaveAzureRegion(azureRegionDraft.trim())
+    for (const provider of TEXT_PROVIDER_ORDER) {
+      onSaveProviderDefaultModel(provider, defaultModelDrafts[provider].trim())
+    }
+
+    // Save the active provider preference only if that provider is configured.
+    // Otherwise fall back to the first configured provider in the same order
+    // used by the rest of the app.
+    const resolvedActiveProvider =
+      activeProviderDraft && draftConfiguredProviders[activeProviderDraft as TextProviderKey]
+        ? activeProviderDraft
+        : (TEXT_PROVIDER_ORDER.find((provider) => draftConfiguredProviders[provider]) ?? "")
+
+    try {
+      if (resolvedActiveProvider) {
+        localStorage.setItem("adt-studio-active-provider", resolvedActiveProvider)
+      } else {
+        localStorage.removeItem("adt-studio-active-provider")
+      }
+      window.dispatchEvent(new CustomEvent("adt:api-setting-changed", {
+        detail: { key: "adt-studio-active-provider", value: resolvedActiveProvider },
+      }))
+    } catch {
+      // localStorage unavailable
+    }
 
     onOpenChange(false)
   }
 
   // Check if there are any meaningful changes to save
+  const savedActiveProvider = (() => { try { return localStorage.getItem("adt-studio-active-provider") ?? "" } catch { return "" } })()
   const hasChanges =
     openaiDraft.trim() !== apiKey.trim() ||
     anthropicDraft.trim() !== anthropicKey.trim() ||
@@ -117,6 +177,8 @@ export function ApiKeyDialog({
     customApiKeyDraft.trim() !== customApiKey.trim() ||
     azureKeyDraft.trim() !== azureKey.trim() ||
     azureRegionDraft.trim() !== azureRegion.trim()
+    || Object.entries(defaultModelDrafts).some(([provider, model]) => model.trim() !== providerDefaultModels[provider as keyof typeof providerDefaultModels].trim())
+    || activeProviderDraft !== savedActiveProvider
 
   // Validate the OpenAI key if it was changed to a non-empty value
   const openaiValid = openaiDraft.trim() === "" || openaiDraft.trim() === apiKey.trim() || isValidOpenAIKey(openaiDraft)
@@ -140,6 +202,11 @@ export function ApiKeyDialog({
                   : item.key === "google" ? googleKey.length > 0
                     : item.key === "custom" ? customBaseUrl.length > 0
                       : azureKey.length > 0
+            const isDefault =
+              item.key !== "azure" &&
+              draftConfiguredProviders[item.key] &&
+              activeProviderDraft === item.key &&
+              configuredProviderCount > 1
             return (
               <button
                 key={item.key}
@@ -153,6 +220,9 @@ export function ApiKeyDialog({
               >
                 {item.label}
                 {isSaved && <Check className="h-3 w-3 text-green-500" />}
+                {isDefault && (
+                  <span className="rounded bg-green-100 px-1 py-px text-[10px] font-medium text-green-700">✦</span>
+                )}
               </button>
             )
           })}
@@ -160,9 +230,27 @@ export function ApiKeyDialog({
 
         {tab === "openai" && (
           <div className="space-y-2">
-            <Label htmlFor="openai-key-input">
-              <Trans>OpenAI API Key</Trans>
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="openai-key-input">
+                <Trans>OpenAI API Key</Trans>
+              </Label>
+              {configuredProviderCount > 1 && (
+                activeProviderDraft === "openai" ? (
+                  <span className="inline-flex items-center gap-1 rounded bg-green-100 px-1.5 py-0.5 text-[11px] font-medium text-green-700">
+                    <Check className="h-3 w-3" />
+                    <Trans>default</Trans>
+                  </span>
+                ) : draftConfiguredProviders.openai ? (
+                  <button
+                    type="button"
+                    onClick={() => setActiveProviderDraft("openai")}
+                    className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                  >
+                    <Trans>Mark as default</Trans>
+                  </button>
+                ) : null
+              )}
+            </div>
             <div className="relative">
               <Input
                 id="openai-key-input"
@@ -194,9 +282,27 @@ export function ApiKeyDialog({
 
         {tab === "anthropic" && (
           <div className="space-y-2">
-            <Label htmlFor="anthropic-key-input">
-              <Trans>Anthropic API Key</Trans>
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="anthropic-key-input">
+                <Trans>Anthropic API Key</Trans>
+              </Label>
+              {configuredProviderCount > 1 && (
+                activeProviderDraft === "anthropic" ? (
+                  <span className="inline-flex items-center gap-1 rounded bg-green-100 px-1.5 py-0.5 text-[11px] font-medium text-green-700">
+                    <Check className="h-3 w-3" />
+                    <Trans>default</Trans>
+                  </span>
+                ) : draftConfiguredProviders.anthropic ? (
+                  <button
+                    type="button"
+                    onClick={() => setActiveProviderDraft("anthropic")}
+                    className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                  >
+                    <Trans>Mark as default</Trans>
+                  </button>
+                ) : null
+              )}
+            </div>
             <div className="relative">
               <Input
                 id="anthropic-key-input"
@@ -228,9 +334,27 @@ export function ApiKeyDialog({
 
         {tab === "google" && (
           <div className="space-y-2">
-            <Label htmlFor="google-key-input">
-              <Trans>Google AI API Key</Trans>
-            </Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="google-key-input">
+                <Trans>Google AI API Key</Trans>
+              </Label>
+              {configuredProviderCount > 1 && (
+                activeProviderDraft === "google" ? (
+                  <span className="inline-flex items-center gap-1 rounded bg-green-100 px-1.5 py-0.5 text-[11px] font-medium text-green-700">
+                    <Check className="h-3 w-3" />
+                    <Trans>default</Trans>
+                  </span>
+                ) : draftConfiguredProviders.google ? (
+                  <button
+                    type="button"
+                    onClick={() => setActiveProviderDraft("google")}
+                    className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                  >
+                    <Trans>Mark as default</Trans>
+                  </button>
+                ) : null
+              )}
+            </div>
             <div className="relative">
               <Input
                 id="google-key-input"
@@ -263,9 +387,27 @@ export function ApiKeyDialog({
         {tab === "custom" && (
           <div className="space-y-3">
             <div className="space-y-2">
-              <Label htmlFor="custom-base-url-input">
-                <Trans>Base URL</Trans>
-              </Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="custom-base-url-input">
+                  <Trans>Base URL</Trans>
+                </Label>
+                {configuredProviderCount > 1 && (
+                  activeProviderDraft === "custom" ? (
+                    <span className="inline-flex items-center gap-1 rounded bg-green-100 px-1.5 py-0.5 text-[11px] font-medium text-green-700">
+                      <Check className="h-3 w-3" />
+                      <Trans>default</Trans>
+                    </span>
+                  ) : draftConfiguredProviders.custom ? (
+                    <button
+                      type="button"
+                      onClick={() => setActiveProviderDraft("custom")}
+                      className="rounded bg-muted px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                    >
+                      <Trans>Mark as default</Trans>
+                    </button>
+                  ) : null
+                )}
+              </div>
               <Input
                 id="custom-base-url-input"
                 placeholder={t`e.g. http://localhost:11434/v1`}
@@ -353,6 +495,19 @@ export function ApiKeyDialog({
             </p>
           </div>
         )}
+
+        {tab !== "azure" && tab !== "custom" && <div className="space-y-2 rounded-md border p-3">
+          <Label><Trans>Default AI model</Trans></Label>
+          <ModelSelect
+            value={defaultModelDrafts[tab]}
+            onChange={(model) => setDefaultModelDrafts((current) => ({ ...current, [tab]: model }))}
+            groups={LLM_MODEL_GROUPS.filter((group) => group.provider === tab)}
+            placeholder={t`Provider default model`}
+          />
+          <p className="text-xs text-muted-foreground">
+            <Trans>Used by default when this provider's API key is selected.</Trans>
+          </p>
+        </div>}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

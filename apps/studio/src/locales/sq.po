@@ -663,6 +663,13 @@ msgstr "element aktiv"
 msgid "active items"
 msgstr "elementë aktivë"
 
+#~ msgid "Active provider requires valid credentials. Please configure your provider in Settings."
+#~ msgstr "Ofruesi aktiv kërkon kredenciale të vlefshme. Ju lutem konfiguroni ofruesin tuaj në Cilësimet."
+
+#. placeholder {0}: activeProvider.label
+msgid "Active provider: {0}"
+msgstr "Ofruesi aktiv: {0}"
+
 msgid "Active reviewer session"
 msgstr "Sesion aktiv i rishikuesit"
 
@@ -754,6 +761,9 @@ msgstr "Shto një gjuhë për të parë përkthimet këtu."
 msgid "Add a quiz"
 msgstr "Shto një kuiz"
 
+msgid "Add a speech provider API key in Book settings to run speech."
+msgstr "Shto një çelës API të një ofruesi të të folurit në cilësimet e Librit për të ekzekutuar të folurin."
+
 msgid "Add after"
 msgstr "Shto pas"
 
@@ -778,8 +788,8 @@ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar nxjerr
 msgid "Add an API key in Book settings to run sectioning."
 msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar ndarjen në seksione."
 
-msgid "Add an API key in Book settings to run speech."
-msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar të folurit."
+#~ msgid "Add an API key in Book settings to run speech."
+#~ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar të folurit."
 
 msgid "Add an API key in Book settings to run storyboard."
 msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar storyboard-in."
@@ -1137,6 +1147,9 @@ msgstr "Anthropic"
 
 msgid "Anthropic API Key"
 msgstr "Çelësi API Anthropic"
+
+msgid "Anthropic is available for text models, but not speech synthesis."
+msgstr "Anthropic është i disponueshëm për modele teksti, por jo për sintezë të të folurit."
 
 msgid "Any content type"
 msgstr "Çdo lloj përmbajtjeje"
@@ -1553,6 +1566,9 @@ msgstr "Anulo"
 msgid "Cancel download"
 msgstr "Anulo shkarkimin"
 
+#~ msgid "Cannot run: active provider has no credentials"
+#~ msgstr "Nuk mund të ekzekutohet: ofruesi aktiv nuk ka kredenciale"
+
 #. placeholder {0}: String(MAX_ENTRIES)
 msgid "capped at {0}"
 msgstr "kufizuar në {0}"
@@ -1858,6 +1874,9 @@ msgstr "Kondensim"
 msgid "Config"
 msgstr "Konfigurim"
 
+msgid "Configure a provider to run"
+msgstr "Konfiguroni një ofrues për të ekzekutuar"
+
 msgid "Configure activity detection and image processing options for extracted content. Hover any setting to see how it affects the preview."
 msgstr "Konfiguroni zbulimin e aktivitetit dhe opsionet e përpunimit të imazheve për përmbajtjen e ekstraktuar. Kaloni kursorin mbi çdo cilësim për të parë si ndikon në pamjen paraprake."
 
@@ -1872,6 +1891,9 @@ msgstr "Konfiguroni çdo fazë — ekstraktim, storyboard, faqosje — pastaj l�
 
 msgid "Configure features to include in the export"
 msgstr "Konfiguroni funksionet për t'i përfshirë në eksportim"
+
+msgid "Configure provider credentials"
+msgstr "Konfiguroni kredencialet e ofruesit"
 
 msgid "Configure voices and accents"
 msgstr "Konfiguroni zërat dhe thekset"
@@ -2045,6 +2067,9 @@ msgstr "Krijon një arkiv ZIP të projektit të plotë — bazën e të dhënave
 msgid "Creating..."
 msgstr "Po krijohet..."
 
+msgid "credentials needed"
+msgstr "nevojiten kredenciale"
+
 msgid "Credits"
 msgstr "Kreditet"
 
@@ -2086,6 +2111,9 @@ msgstr "Vlerat aktuale efektive"
 
 msgid "Current Preview Page"
 msgstr "Faqja aktuale e pamjes paraprake"
+
+#~ msgid "Current step:"
+#~ msgstr "Hapi aktual:"
 
 #~ msgid "Current version"
 #~ msgstr "Versioni aktual"
@@ -2131,6 +2159,12 @@ msgstr "Parazgjedhje (trashëgo)"
 
 msgid "Default (no text detected yet)"
 msgstr "Parazgjedhje (ende nuk u zbulua tekst)"
+
+msgid "Default AI model"
+msgstr "Modeli i parazgjedhur i IA-së"
+
+#~ msgid "Default AI model:"
+#~ msgstr "Modeli i parazgjedhur i IA-së:"
 
 msgid "Default model"
 msgstr "Modeli parazgjedhës"
@@ -2961,6 +2995,9 @@ msgstr "Faqja e fundit"
 
 #~ msgid "First"
 #~ msgstr "E para"
+
+#~ msgid "First available provider"
+#~ msgstr "Ofruesi i parë i disponueshëm"
 
 msgid "First images from the deep-field telescope."
 msgstr "Imazhet e para nga teleskopi i fushës së thellë."
@@ -3860,6 +3897,9 @@ msgstr "Filtër kuptimësie LLM"
 msgid "LLM positions text over background images"
 msgstr "LLM pozicionon tekstin mbi imazhet e sfondit"
 
+msgid "LLM providers"
+msgstr "Ofruesit LLM"
+
 msgid "LLM segmentation"
 msgstr "Segmentim LLM"
 
@@ -4039,6 +4079,9 @@ msgstr "Shëno si dekorativ"
 
 msgid "Mark as decorative (hidden from screen readers)"
 msgstr "Shëno si dekorativ (i fshehur nga lexuesit e ekranit)"
+
+msgid "Mark as default"
+msgstr "Shëno si parazgjedhje"
 
 msgid "Match Design"
 msgstr "Përputhje Dizajni"
@@ -4622,6 +4665,9 @@ msgstr "zhurmë"
 msgid "None"
 msgstr "Asnjë"
 
+msgid "Not configured"
+msgstr "I pakonfiguruar"
+
 msgid "Not detected"
 msgstr "Nuk u zbulua"
 
@@ -4865,6 +4911,9 @@ msgstr "Gjuhët e daljes"
 
 msgid "Output Tokens"
 msgstr "Tokena dalje"
+
+#~ msgid "Overall model"
+#~ msgstr "Modeli i përgjithshëm"
 
 msgid "Overall page note"
 msgstr "Shënim i përgjithshëm i faqes"
@@ -5351,6 +5400,13 @@ msgstr "Shablloni i prompt-it nuk u gjet."
 
 msgid "Provider"
 msgstr "Ofruesi"
+
+msgid "Provider default model"
+msgstr "Modeli i parazgjedhur i ofruesit"
+
+#. placeholder {0}: runProvider.providerName
+msgid "Provider: {0}"
+msgstr "Ofruesi: {0}"
 
 msgid "Provides consistent HTML/CSS patterns for LLM-generated pages."
 msgstr "Siguron modele të qëndrueshme HTML/CSS për faqet e gjeneruara nga LLM."
@@ -6329,6 +6385,9 @@ msgstr "Zgjidhni të gjitha"
 msgid "Select images to translate"
 msgstr "Zgjidhni imazhet për të përkthyer"
 
+msgid "Select LLM provider"
+msgstr "Zgjidhni ofruesin LLM"
+
 msgid "Select node type..."
 msgstr "Zgjidhni llojin e nyjes..."
 
@@ -6355,6 +6414,9 @@ msgstr "Zgjidhni deri në 5 faqe për t'i përdorur si referenca vizuale. LLM do
 
 msgid "Selected images"
 msgstr "Imazhe të zgjedhura"
+
+msgid "Selected model"
+msgstr "Modeli i zgjedhur"
 
 #. placeholder {0}: fmtRange(w)
 msgid "Selected pages {0}."
@@ -7307,6 +7369,9 @@ msgstr "Ky seksion është prerë dhe nuk renderizohet."
 msgid "This session is using an older reviewer checklist snapshot. Newer checklist settings will apply only to newly created reviewer sessions."
 msgstr "Kjo sesion po përdor një fotografi të vjetër të listës së kontrollit të rishikuesit. Cilësimet e reja të listës do të zbatohen vetëm për sesionet e rishikuesit të krijuara rishtazi."
 
+msgid "This step uses"
+msgstr "Ky hap përdor"
+
 msgid "This text is only perceptible to assistive technologies."
 msgstr "Ky tekst perceptohet vetëm nga teknologjitë ndihmëse."
 
@@ -7713,6 +7778,9 @@ msgstr "Përdor këtë për kontrollet që dëshiron t'i fshehësh me qëllim, s
 msgid "Use this format to back up the project or move it to another machine."
 msgstr "Përdor këtë format për të rezervuar projektin ose për ta zhvendosur në një makinë tjetër."
 
+msgid "Used by default when this provider's API key is selected."
+msgstr "Përdoret si parazgjedhje kur zgjidhet çelësi API i këtij ofruesi."
+
 msgid "Used for"
 msgstr "Përdoret për"
 
@@ -7727,6 +7795,9 @@ msgstr "Përdoret për modelet Gemini — si LLM (gemini-2.5-pro, etj.) ashtu ed
 
 msgid "Used for this quiz"
 msgstr "Përdoret për këtë kuiz"
+
+#~ msgid "Used when a step has no available provider-specific model. Only providers with configured credentials are listed."
+#~ msgstr "Përdoret kur një hap nuk ka model të disponueshëm specifik për ofruesin. Shfaqen vetëm ofruesit me kredenciale të konfiguruara."
 
 msgid "Validation"
 msgstr "Vërtetim"

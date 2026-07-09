@@ -1,4 +1,4 @@
-import { useState, createContext, useContext, useCallback, useMemo } from "react"
+import { useState, useCallback, useMemo } from "react"
 import {
   createRootRoute,
   Outlet,
@@ -10,14 +10,9 @@ import { Toaster } from "@/components/ui/sonner"
 import { UpdateDialogProvider } from "@/components/updates"
 import { useApiKey } from "@/hooks/use-api-key"
 import { ErrorScreen } from "@/components/ErrorScreen"
+import { SettingsContext, useSettingsDialog } from "@/hooks/use-settings-dialog"
 
-const SettingsContext = createContext<{ openSettings: () => void }>({
-  openSettings: () => {},
-})
-
-export function useSettingsDialog() {
-  return useContext(SettingsContext)
-}
+export { useSettingsDialog }
 
 function RootErrorComponent({ error, reset }: ErrorComponentProps) {
   return <ErrorScreen variant="app" error={error} reset={reset} />
@@ -46,6 +41,8 @@ function RootLayout() {
     azureRegion,
     setAzureRegion,
     setGeminiKey,
+    providerDefaultModels,
+    setProviderDefaultModel,
   } = useApiKey()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const isOnboarding = pathname.startsWith("/onboarding")
@@ -79,6 +76,8 @@ function RootLayout() {
             onSaveAzureKey={setAzureKey}
             azureRegion={azureRegion}
             onSaveAzureRegion={setAzureRegion}
+            providerDefaultModels={providerDefaultModels}
+            onSaveProviderDefaultModel={setProviderDefaultModel}
           />
           <Toaster position="top-center" richColors closeButton />
         </div>

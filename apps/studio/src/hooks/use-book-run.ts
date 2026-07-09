@@ -20,6 +20,28 @@ import { getStageLabelI18n, getStageRunningLabelI18n } from "@/components/pipeli
 import { bookTasksKey } from "./use-book-tasks"
 import { invalidateStoryboardDependents } from "./use-page-mutations"
 import { useApiKey } from "./use-api-key"
+import { useBookConfig } from "./use-book-config"
+import { useActiveProvider, type ProviderType } from "./use-active-provider"
+
+function collectExplicitModelIds(value: unknown): string[] {
+  const models = new Set<string>()
+  const visit = (current: unknown) => {
+    if (!current || typeof current !== "object") return
+    if (Array.isArray(current)) {
+      current.forEach(visit)
+      return
+    }
+    const record = current as Record<string, unknown>
+    if (record.model_override === true && typeof record.model === "string") {
+      models.add(record.model)
+    }
+    for (const child of Object.values(record)) {
+      visit(child)
+    }
+  }
+  visit(value)
+  return [...models]
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -32,6 +54,13 @@ export interface StepProgress {
   page?: number
   totalPages?: number
   message?: string
+}
+
+/** Provider info captured at stage run initiation time for status display. */
+export interface RunProviderCapture {
+  providerName: string
+  providerType: ProviderType
+  modelId: string
 }
 
 export interface QueueRunOptions {
@@ -79,6 +108,8 @@ export interface BookRunContextValue {
   isStatusLoading: boolean
   /** Queue a stage run */
   queueRun(options: QueueRunOptions): void
+  /** Provider info captured at the most recent stage run initiation */
+  runProvider: RunProviderCapture | null
 }
 
 const BookRunContext = createContext<BookRunContextValue | null>(null)
@@ -102,7 +133,13 @@ const stepStatusKey = (label: string) => ["books", label, "step-status"] as cons
 
 export function useBookRunStatus(label: string): BookRunContextValue {
   const queryClient = useQueryClient()
-  const { anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey } = useApiKey()
+  const { anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey, defaultModel } = useApiKey()
+  const { activeProvider } = useActiveProvider()
+  const { data: bookConfigData } = useBookConfig(label)
+  const explicitModelIds = collectExplicitModelIds(bookConfigData?.config)
+
+  // Capture the active provider at run initiation time for stage run status display
+  const [runProvider, setRunProvider] = useState<RunProviderCapture | null>(null)
 
   // Screen-reader announcements for long-running jobs. Held in a ref so the
   // always-on SSE effect (keyed on [label, queryClient]) can announce without
@@ -435,6 +472,19 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   const queueRun = useCallback(
     (options: QueueRunOptions) => {
       const { fromStage, toStage, apiKey, renderOnly, viewAfter } = options
+
+      // Capture active provider at run initiation time for stage run status display
+      if (activeProvider) {
+        setRunProvider({
+          providerName: activeProvider.label,
+          providerType: activeProvider.type,
+          modelId: activeProvider.model,
+        })
+      }
+
+      // Use the active provider's model as the default model for this run
+      const activeDefaultModelId = activeProvider?.model
+
       const providerCredentials: StageRunProviderCredentials = {
         anthropicApiKey: anthropicKey || undefined,
         googleApiKey: googleKey || undefined,
@@ -442,6 +492,8 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         customApiKey: customApiKey || undefined,
         azure: { key: azureKey, region: azureRegion },
         geminiApiKey: geminiKey || undefined,
+        defaultModelId: activeDefaultModelId || defaultModel || undefined,
+        explicitModelIds,
         ...options.providerCredentials,
       }
 
@@ -554,7 +606,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         }
       })
     },
-    [label, navigate, queryClient, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey]
+    [label, navigate, queryClient, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey, defaultModel, explicitModelIds, activeProvider]
   )
 
   // ------------------------------------------------------------------
@@ -607,6 +659,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
     isRunning,
     isStatusLoading: isPending,
     queueRun,
+    runProvider,
   }
 }
 
