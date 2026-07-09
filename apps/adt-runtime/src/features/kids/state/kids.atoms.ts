@@ -43,3 +43,19 @@ export const kidsBuddyAtom = persistedJsonAtom<KidsBuddyConfig>("kidsBuddy", {
 export const kidsPlayerNameAtom = persistedStringAtom("kidsPlayerName", "")
 
 export const buddySpeechAtom = ephemeralAtom<string | null>(null)
+export const kidsBuddyPanelOpenAtom = ephemeralAtom(false)
+
+export const kidsLanguageDialogOpenAtom = ephemeralAtom(false)
+export const kidsStoryMapDialogOpenAtom = ephemeralAtom(false)
+export const kidsResumeChipDismissedAtom = ephemeralAtom(false)
+
+export interface KidsLastSpot {
+  sectionId: string
+  href: string
+  page: number | null
+}
+
+export const kidsLastSpotAtom = persistedJsonAtom<KidsLastSpot | null>(
+  "kidsLastSpot",
+  null,
+)

@@ -1,5 +1,6 @@
 import { useAtomValue } from "jotai"
 import { KidsBuddy } from "@/features/kids/components/KidsBuddy"
+import { KidsPageArrows } from "@/features/kids/components/KidsPageArrows"
 import { KidsSpeechBubble } from "@/features/kids/components/KidsSpeechBubble"
 import { kidsModeActiveAtom } from "@/features/kids/state/kids.atoms"
 
@@ -14,6 +15,7 @@ export function KidsChrome() {
     >
       {kidsModeActive ? (
         <>
+          <KidsPageArrows />
           <KidsSpeechBubble />
           <KidsBuddy />
         </>

@@ -1,10 +1,16 @@
 import { useAtomValue } from "jotai"
 import { useEffect, useState } from "react"
-import { buddySpeechAtom } from "@/features/kids/state/kids.atoms"
+import {
+  buddySpeechAtom,
+  kidsBuddyPanelOpenAtom,
+} from "@/features/kids/state/kids.atoms"
 import { cn } from "@/shared/lib/utils"
+import { reduceMotionAtom } from "@/shared/state/ui.atoms"
 
 export function KidsSpeechBubble() {
   const speech = useAtomValue(buddySpeechAtom)
+  const panelOpen = useAtomValue(kidsBuddyPanelOpenAtom)
+  const reduceMotion = useAtomValue(reduceMotionAtom)
   const [renderedSpeech, setRenderedSpeech] = useState(speech)
   const [visible, setVisible] = useState(Boolean(speech))
 
@@ -28,15 +34,20 @@ export function KidsSpeechBubble() {
       role="status"
       aria-live="polite"
       className={cn(
-        "pointer-events-none fixed bottom-[7.25rem] right-5 z-[58]",
-        "max-w-[min(18rem,calc(100vw-2.5rem))]",
+        "pointer-events-none fixed right-5",
+        panelOpen
+          ? "top-5 z-[62] max-w-[min(24rem,calc(100vw-2.5rem))]"
+          : "bottom-[7.25rem] z-[58] max-w-[min(18rem,calc(100vw-2.5rem))]",
         "rounded-2xl bg-white px-4 py-3 text-base font-semibold leading-snug text-slate-900",
         "shadow-xl ring-1 ring-black/10",
-        "transition-all duration-[180ms] ease-out",
+        reduceMotion
+          ? "transition-none"
+          : "transition-all duration-[180ms] ease-out",
         visible
           ? "translate-y-0 scale-100 opacity-100"
           : "translate-y-2 scale-95 opacity-0",
-        "after:absolute after:-bottom-2 after:right-10 after:h-4 after:w-4 after:rotate-45 after:bg-white after:ring-black/10",
+        !panelOpen &&
+          "after:absolute after:-bottom-2 after:right-10 after:h-4 after:w-4 after:rotate-45 after:bg-white after:ring-black/10",
       )}
     >
       {renderedSpeech}
