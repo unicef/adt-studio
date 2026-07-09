@@ -26,7 +26,7 @@ export function KidsSpeechBubble() {
     return () => window.clearTimeout(timeout)
   }, [speech])
 
-  if (!renderedSpeech) return null
+  if (panelOpen || !renderedSpeech) return null
 
   return (
     <div
@@ -35,9 +35,7 @@ export function KidsSpeechBubble() {
       aria-live="polite"
       className={cn(
         "pointer-events-none fixed right-5",
-        panelOpen
-          ? "top-5 z-[62] max-w-[min(24rem,calc(100vw-2.5rem))]"
-          : "bottom-[7.25rem] z-[58] max-w-[min(18rem,calc(100vw-2.5rem))]",
+        "bottom-[7.25rem] z-[58] max-w-[min(18rem,calc(100vw-2.5rem))]",
         "rounded-2xl bg-white px-4 py-3 text-base font-semibold leading-snug text-slate-900",
         "shadow-xl ring-1 ring-black/10",
         reduceMotion
@@ -46,8 +44,7 @@ export function KidsSpeechBubble() {
         visible
           ? "translate-y-0 scale-100 opacity-100"
           : "translate-y-2 scale-95 opacity-0",
-        !panelOpen &&
-          "after:absolute after:-bottom-2 after:right-10 after:h-4 after:w-4 after:rotate-45 after:bg-white after:ring-black/10",
+        "after:absolute after:-bottom-2 after:right-10 after:h-4 after:w-4 after:rotate-45 after:bg-white after:ring-black/10",
       )}
     >
       {renderedSpeech}

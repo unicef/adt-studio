@@ -165,9 +165,9 @@ describe("KidsBuddy", () => {
     const store = createKidsStore({ kidsMode: true, playerName: "Mina" })
     const first = renderKidsChrome(store)
 
-    expect(first.queryByTestId("kids-speech-bubble")?.textContent).toBe(
-      "Hi Mina! Tap me if you need help.",
-    )
+    const bubble = first.queryByTestId("kids-speech-bubble")
+    expect(bubble?.textContent).toBe("Hi Mina! Tap me if you need help.")
+    expect(bubble?.className).toContain("bottom-[7.25rem]")
 
     fireEvent.click(first.getByTestId("kids-buddy-fab"))
 
@@ -180,6 +180,25 @@ describe("KidsBuddy", () => {
     )
 
     expect(second.queryByTestId("kids-speech-bubble")).toBeNull()
+  })
+
+  it("shows the default open-panel prompt with the player name", () => {
+    renderKidsChrome(createKidsStore({ playerName: "Mina" }))
+    openBuddy()
+
+    expect(screen.queryByTestId("kids-speech-bubble")).toBeNull()
+    expect(screen.getByTestId("kids-buddy-panel-message").textContent).toBe(
+      "Hi Mina! What would you like me to do?",
+    )
+  })
+
+  it("shows the generic open-panel prompt when the player name is missing", () => {
+    renderKidsChrome(createKidsStore({ playerName: "" }))
+    openBuddy()
+
+    expect(screen.getByTestId("kids-buddy-panel-message").textContent).toBe(
+      "What would you like me to do?",
+    )
   })
 
   it("opens and closes the action panel from the FAB and Escape", () => {
@@ -203,6 +222,18 @@ describe("KidsBuddy", () => {
     fireEvent.keyDown(window, { key: "Escape" })
 
     expect(fab.getAttribute("aria-expanded")).toBe("false")
+    expect(queryByTestId("kids-buddy-panel")).toBeNull()
+  })
+
+  it("closes the action panel from the header close button", () => {
+    const { getByLabelText, getByTestId, queryByTestId } = renderKidsChrome()
+
+    openBuddy()
+    fireEvent.click(getByLabelText("Close"))
+
+    expect(getByTestId("kids-buddy-fab").getAttribute("aria-expanded")).toBe(
+      "false",
+    )
     expect(queryByTestId("kids-buddy-panel")).toBeNull()
   })
 
@@ -314,18 +345,21 @@ describe("KidsBuddy", () => {
     expect(store.get(buddySpeechAtom)).toBe("Word helper is on!")
   })
 
-  it("floats confirmation speech above the open action panel", async () => {
+  it("shows confirmation speech in the open panel header without a separate bubble", () => {
     const store = createKidsStore()
     renderKidsChrome(store)
     openBuddy()
 
     fireEvent.click(screen.getByTestId("kids-action-easy-read"))
 
-    const bubble = await screen.findByTestId("kids-speech-bubble")
-    expect(bubble.textContent).toBe("Big letters are on!")
-    expect(bubble.className).toContain("z-[62]")
-    expect(bubble.className).toContain("top-5")
-    expect(bubble.className).toContain("pointer-events-none")
+    expect(screen.getByTestId("kids-buddy-panel-message").textContent).toBe(
+      "Big letters are on!",
+    )
+    expect(screen.queryByTestId("kids-speech-bubble")).toBeNull()
+    expect(screen.queryByTestId("kids-buddy-panel")).not.toBeNull()
+    expect(
+      screen.getByTestId("kids-action-easy-read").getAttribute("aria-pressed"),
+    ).toBe("true")
   })
 
   it("lists story sections and navigates when a section is tapped", async () => {

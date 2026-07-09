@@ -75,6 +75,7 @@ export function KidsBuddy() {
   const features = config.features
   const buddy = useAtomValue(kidsBuddyAtom)
   const playerName = useAtomValue(kidsPlayerNameAtom).trim()
+  const speech = useAtomValue(buddySpeechAtom)
   const setSpeech = useSetAtom(buddySpeechAtom)
   const reduceMotion = useAtomValue(reduceMotionAtom)
   const { isPlaying, hasItems, togglePlayPause } = useAudioPlayerContext()
@@ -105,6 +106,17 @@ export function KidsBuddy() {
     ? tk("kids-action-pause", "Take a break")
     : tk("kids-action-read", "Read to me")
   const speedState = getSpeedState(speed)
+  const panelMessage =
+    speech ??
+    (playerName
+      ? tk(
+          "kids-buddy-prompt-name",
+          "Hi ${name}! What would you like me to do?",
+          {
+            name: playerName,
+          },
+        )
+      : tk("kids-buddy-prompt", "What would you like me to do?"))
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -216,113 +228,142 @@ export function KidsBuddy() {
       {open ? (
         <div
           data-testid="kids-buddy-panel"
+          role="region"
+          aria-labelledby="kids-buddy-panel-message"
           className={cn(
-            "max-h-[min(72vh,34rem)] w-[min(25rem,calc(100vw-2rem))] overflow-y-auto rounded-[1.75rem] bg-amber-50 p-3 shadow-2xl ring-2 ring-white/90",
-            "transition-all duration-200 ease-out",
+            "relative mb-1 max-h-[min(72vh,34rem)] w-[min(26rem,calc(100vw-2rem))] overflow-visible rounded-[2rem] bg-amber-50 p-4 text-slate-950 shadow-2xl ring-2 ring-white/90",
+            reduceMotion
+              ? "transition-none"
+              : "transition-all duration-200 ease-out",
             !reduceMotion && "motion-safe:animate-kidsBuddyPop",
+            "after:absolute after:-bottom-2 after:right-8 after:h-5 after:w-5 after:rotate-45 after:border-b-2 after:border-r-2 after:border-white/90 after:bg-amber-50",
           )}
         >
-          <div className="grid grid-cols-2 gap-2">
-            {features.readAloud ? (
-              <>
+          <div className="relative z-10 flex max-h-[calc(min(72vh,34rem)-2rem)] flex-col gap-4 overflow-y-auto pr-1">
+            <div className="flex items-start justify-between gap-3">
+              <h2
+                id="kids-buddy-panel-message"
+                data-testid="kids-buddy-panel-message"
+                className="max-w-[19rem] text-balance text-2xl font-black leading-tight text-slate-950"
+              >
+                {panelMessage}
+              </h2>
+              <KidsDialogClose
+                label={tk("kids-dialog-close", "Close")}
+                onClick={() => setOpen(false)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              {features.readAloud ? (
+                <>
+                  <KidsActionButton
+                    testId="kids-action-read"
+                    variant="list"
+                    icon={
+                      isPlaying ? (
+                        <Pause className="h-5 w-5" fill="currentColor" />
+                      ) : (
+                        <Volume2 className="h-5 w-5" />
+                      )
+                    }
+                    label={readLabel}
+                    onClick={handleRead}
+                    disabled={!hasItems}
+                    active={isPlaying}
+                  />
+                  <KidsActionButton
+                    testId="kids-action-speed"
+                    variant="list"
+                    icon={speedState.icon}
+                    label={speedState.label(tk)}
+                    onClick={handleSpeed}
+                  />
+                </>
+              ) : null}
+
+              {features.signLanguage ? (
                 <KidsActionButton
-                  testId="kids-action-read"
-                  icon={
-                    isPlaying ? (
-                      <Pause className="h-5 w-5" fill="currentColor" />
-                    ) : (
-                      <Volume2 className="h-5 w-5" />
-                    )
+                  testId="kids-action-sign-language"
+                  variant="list"
+                  icon={<Hand className="h-5 w-5" />}
+                  label={
+                    signLanguage
+                      ? tk("kids-action-sign-off", "Signs off")
+                      : tk("kids-action-sign-on", "Signs on")
                   }
-                  label={readLabel}
-                  onClick={handleRead}
-                  disabled={!hasItems}
-                  active={isPlaying}
+                  onClick={toggleSignLanguage}
+                  active={signLanguage}
                 />
+              ) : null}
+
+              {features.easyRead ? (
                 <KidsActionButton
-                  testId="kids-action-speed"
-                  icon={speedState.icon}
-                  label={speedState.label(tk)}
-                  onClick={handleSpeed}
+                  testId="kids-action-easy-read"
+                  variant="list"
+                  icon={<CaseSensitive className="h-5 w-5" />}
+                  label={
+                    easyRead
+                      ? tk("kids-action-easy-read-off", "Easy read off")
+                      : tk("kids-action-easy-read-on", "Easy read on")
+                  }
+                  onClick={toggleEasyRead}
+                  active={easyRead}
                 />
-              </>
-            ) : null}
+              ) : null}
 
-            {features.signLanguage ? (
+              {features.glossary ? (
+                <KidsActionButton
+                  testId="kids-action-glossary"
+                  variant="list"
+                  icon={<BookOpen className="h-5 w-5" />}
+                  label={
+                    glossary
+                      ? tk("kids-action-glossary-off", "Word helper off")
+                      : tk("kids-action-glossary-on", "Word helper on")
+                  }
+                  onClick={toggleGlossary}
+                  active={glossary}
+                />
+              ) : null}
+
+              {features.eli5 ? (
+                <KidsActionButton
+                  testId="kids-action-eli5"
+                  variant="list"
+                  icon={<Sparkles className="h-5 w-5" />}
+                  label={tk("kids-action-eli5", "Explain it")}
+                  onClick={openEli5}
+                />
+              ) : null}
+
+              {features.notepad ? (
+                <KidsActionButton
+                  testId="kids-action-notes"
+                  variant="list"
+                  icon={<NotebookPen className="h-5 w-5" />}
+                  label={tk("kids-action-notes", "My notes")}
+                  onClick={openNotepad}
+                />
+              ) : null}
+
+              {languageCount > 1 ? (
+                <KidsActionButton
+                  testId="kids-action-language"
+                  variant="list"
+                  icon={<Languages className="h-5 w-5" />}
+                  label={tk("kids-action-language", "Change language")}
+                  onClick={() => setLanguageDialogOpen(true)}
+                />
+              ) : null}
+
               <KidsActionButton
-                testId="kids-action-sign-language"
-                icon={<Hand className="h-5 w-5" />}
-                label={
-                  signLanguage
-                    ? tk("kids-action-sign-off", "Signs off")
-                    : tk("kids-action-sign-on", "Signs on")
-                }
-                onClick={toggleSignLanguage}
-                active={signLanguage}
+                testId="kids-action-story-map"
+                variant="list"
+                icon={<Map className="h-5 w-5" />}
+                label={tk("kids-action-story-map", "Story map")}
+                onClick={() => setStoryMapDialogOpen(true)}
               />
-            ) : null}
-
-            {features.easyRead ? (
-              <KidsActionButton
-                testId="kids-action-easy-read"
-                icon={<CaseSensitive className="h-5 w-5" />}
-                label={
-                  easyRead
-                    ? tk("kids-action-easy-read-off", "Easy read off")
-                    : tk("kids-action-easy-read-on", "Easy read on")
-                }
-                onClick={toggleEasyRead}
-                active={easyRead}
-              />
-            ) : null}
-
-            {features.glossary ? (
-              <KidsActionButton
-                testId="kids-action-glossary"
-                icon={<BookOpen className="h-5 w-5" />}
-                label={
-                  glossary
-                    ? tk("kids-action-glossary-off", "Word helper off")
-                    : tk("kids-action-glossary-on", "Word helper on")
-                }
-                onClick={toggleGlossary}
-                active={glossary}
-              />
-            ) : null}
-
-            {features.eli5 ? (
-              <KidsActionButton
-                testId="kids-action-eli5"
-                icon={<Sparkles className="h-5 w-5" />}
-                label={tk("kids-action-eli5", "Explain it")}
-                onClick={openEli5}
-              />
-            ) : null}
-
-            {features.notepad ? (
-              <KidsActionButton
-                testId="kids-action-notes"
-                icon={<NotebookPen className="h-5 w-5" />}
-                label={tk("kids-action-notes", "My notes")}
-                onClick={openNotepad}
-              />
-            ) : null}
-
-            {languageCount > 1 ? (
-              <KidsActionButton
-                testId="kids-action-language"
-                icon={<Languages className="h-5 w-5" />}
-                label={tk("kids-action-language", "Change language")}
-                onClick={() => setLanguageDialogOpen(true)}
-              />
-            ) : null}
-
-            <KidsActionButton
-              testId="kids-action-story-map"
-              icon={<Map className="h-5 w-5" />}
-              label={tk("kids-action-story-map", "Story map")}
-              onClick={() => setStoryMapDialogOpen(true)}
-            />
+            </div>
           </div>
         </div>
       ) : null}
