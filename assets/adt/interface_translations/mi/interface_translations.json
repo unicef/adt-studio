@@ -121,5 +121,7 @@
     "admin-popup-stub-message": "Ka tāpirihia ngā taputapu kaiwhakahaere i te whakahōutanga whai muri.",
     "main-menu-label": "Tahua matua",
     "cover-label": "Uhi",
-    "print-page-label": "Tā te whārangi"
+    "print-page-label": "Tā te whārangi",
+    "settings-section-kids": "Tamariki",
+    "kids-mode-label": "Aratau tamariki"
 }

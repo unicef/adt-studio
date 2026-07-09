@@ -121,5 +121,7 @@
     "admin-popup-stub-message": "Beheertools worden toegevoegd in een volgende update.",
     "main-menu-label": "Hoofdmenu",
     "cover-label": "Omslag",
-    "print-page-label": "Pagina afdrukken"
+    "print-page-label": "Pagina afdrukken",
+    "settings-section-kids": "Kinderen",
+    "kids-mode-label": "Kindermodus"
 }

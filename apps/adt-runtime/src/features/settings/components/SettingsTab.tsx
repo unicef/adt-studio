@@ -22,6 +22,7 @@ import {
 } from "@/shared/state/ui.atoms";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
 import { trackToggleEvent } from "@/shared/lib/analytics";
+import { kidsModeAtom } from "@/features/kids/state/kids.atoms";
 
 export function SettingsTab() {
   const { t } = useTranslation();
@@ -42,6 +43,7 @@ export function SettingsTab() {
   const [iconSize, setIconSize] = useAtom(iconSizeAtom);
   const [reduceMotion, setReduceMotion] = useAtom(reduceMotionAtom);
   const [theme, setTheme] = useAtom(themeAtom);
+  const [kidsMode, setKidsMode] = useAtom(kidsModeAtom);
 
   const wrap =
     (name: string, setter: (v: boolean) => void) => (next: boolean) => {
@@ -163,6 +165,19 @@ export function SettingsTab() {
               }}
             />
           ) : null}
+        </SettingsSection>
+      ) : null}
+
+      {features.kidsMode !== false ? (
+        <SettingsSection title={t("settings-section-kids") || "Kids"}>
+          <ToggleRow
+            label={t("kids-mode-label") || "Kids mode"}
+            checked={kidsMode}
+            onChange={(next) => {
+              trackToggleEvent("KidsMode", next);
+              setKidsMode(next);
+            }}
+          />
         </SettingsSection>
       ) : null}
 

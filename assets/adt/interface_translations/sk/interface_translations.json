@@ -121,5 +121,7 @@
     "admin-popup-stub-message": "Nástroje správcu budú pridané v ďalšej aktualizácii.",
     "main-menu-label": "Hlavné menu",
     "cover-label": "Obal",
-    "print-page-label": "Vytlačiť stránku"
+    "print-page-label": "Vytlačiť stránku",
+    "settings-section-kids": "Deti",
+    "kids-mode-label": "Detský režim"
 }

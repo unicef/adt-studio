@@ -121,5 +121,7 @@
     "admin-popup-stub-message": "Administrationsverktygen läggs till i en kommande uppdatering.",
     "main-menu-label": "Huvudmeny",
     "cover-label": "Omslag",
-    "print-page-label": "Skriv ut sida"
+    "print-page-label": "Skriv ut sida",
+    "settings-section-kids": "Barn",
+    "kids-mode-label": "Barnläge"
 }

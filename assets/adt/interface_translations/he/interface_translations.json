@@ -121,5 +121,7 @@
     "admin-popup-stub-message": "כלי הניהול יתווספו בעדכון עתידי.",
     "main-menu-label": "תפריט ראשי",
     "cover-label": "כריכה",
-    "print-page-label": "הדפס דף"
+    "print-page-label": "הדפס דף",
+    "settings-section-kids": "ילדים",
+    "kids-mode-label": "מצב ילדים"
 }

@@ -20,6 +20,7 @@ export interface AppFeatures {
   highlight?: boolean
   activities?: boolean
   state?: boolean
+  kidsMode?: boolean
   /**
    * Opt into cookie-backed atom persistence instead of the default
    * `localStorage`. Use only for legacy multi-book deployments on a shared

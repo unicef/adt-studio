@@ -121,5 +121,7 @@
     "admin-popup-stub-message": "ನಿರ್ವಾಹಕ ಪರಿಕರಗಳನ್ನು ಮುಂದಿನ ನವೀಕರಣದಲ್ಲಿ ಸೇರಿಸಲಾಗುತ್ತದೆ.",
     "main-menu-label": "ಮುಖ್ಯ ಮೆನು",
     "cover-label": "ಮುಖಪುಟ",
-    "print-page-label": "ಪುಟ ಮುದ್ರಿಸಿ"
+    "print-page-label": "ಪುಟ ಮುದ್ರಿಸಿ",
+    "settings-section-kids": "ಮಕ್ಕಳು",
+    "kids-mode-label": "ಮಕ್ಕಳ ಮೋಡ್"
 }

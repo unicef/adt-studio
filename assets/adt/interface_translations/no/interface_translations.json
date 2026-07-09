@@ -121,5 +121,7 @@
     "admin-popup-stub-message": "Administratorverktøyene legges til i en senere oppdatering.",
     "main-menu-label": "Hovedmeny",
     "cover-label": "Forside",
-    "print-page-label": "Skriv ut side"
+    "print-page-label": "Skriv ut side",
+    "settings-section-kids": "Barn",
+    "kids-mode-label": "Barnemodus"
 }

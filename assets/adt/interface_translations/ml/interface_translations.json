@@ -121,5 +121,7 @@
     "admin-popup-stub-message": "അഡ്മിൻ ടൂളുകൾ വരാനിരിക്കുന്ന അപ്ഡേറ്റിൽ ചേർക്കും.",
     "main-menu-label": "പ്രധാന മെനു",
     "cover-label": "പുറംചട്ട",
-    "print-page-label": "പേജ് പ്രിന്റ് ചെയ്യുക"
+    "print-page-label": "പേജ് പ്രിന്റ് ചെയ്യുക",
+    "settings-section-kids": "കുട്ടികൾ",
+    "kids-mode-label": "കുട്ടികളുടെ മോഡ്"
 }

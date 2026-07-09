@@ -121,5 +121,7 @@
     "admin-popup-stub-message": "Stjórnandatólunum verður bætt við í síðari uppfærslu.",
     "main-menu-label": "Aðalvalmynd",
     "cover-label": "Forsíða",
-    "print-page-label": "Prenta síðu"
+    "print-page-label": "Prenta síðu",
+    "settings-section-kids": "Börn",
+    "kids-mode-label": "Barnahamur"
 }

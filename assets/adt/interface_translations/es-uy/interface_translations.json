@@ -117,5 +117,7 @@
     "admin-popup-stub-message": "Las herramientas de administración se agregarán en una actualización posterior.",
     "main-menu-label": "Menú principal",
     "cover-label": "Portada",
-    "print-page-label": "Imprimir página"
+    "print-page-label": "Imprimir página",
+    "settings-section-kids": "Niños",
+    "kids-mode-label": "Modo infantil"
 }

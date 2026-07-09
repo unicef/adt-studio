@@ -121,5 +121,7 @@
     "admin-popup-stub-message": "Інструменти адміністратора будуть додані в наступному оновленні.",
     "main-menu-label": "Головне меню",
     "cover-label": "Обкладинка",
-    "print-page-label": "Друк сторінки"
+    "print-page-label": "Друк сторінки",
+    "settings-section-kids": "Діти",
+    "kids-mode-label": "Дитячий режим"
 }

@@ -121,5 +121,7 @@
     "admin-popup-stub-message": "Az adminisztrátori eszközök egy következő frissítésben kerülnek bevezetésre.",
     "main-menu-label": "Főmenü",
     "cover-label": "Borító",
-    "print-page-label": "Oldal nyomtatása"
+    "print-page-label": "Oldal nyomtatása",
+    "settings-section-kids": "Gyerekek",
+    "kids-mode-label": "Gyerek mód"
 }

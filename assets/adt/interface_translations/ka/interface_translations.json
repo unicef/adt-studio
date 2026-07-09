@@ -121,5 +121,7 @@
     "admin-popup-stub-message": "ადმინისტრატორის ხელსაწყოები დაემატება შემდეგ განახლებაში.",
     "main-menu-label": "მთავარი მენიუ",
     "cover-label": "ყდა",
-    "print-page-label": "გვერდის ბეჭდვა"
+    "print-page-label": "გვერდის ბეჭდვა",
+    "settings-section-kids": "ბავშვები",
+    "kids-mode-label": "საბავშვო რეჟიმი"
 }
