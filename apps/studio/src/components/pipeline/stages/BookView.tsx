@@ -759,4 +759,3 @@ function BookOverviewCard({ bookLabel }: { bookLabel: string }) {
     </section>
   )
 }
-

@@ -10,7 +10,7 @@ export type {
   ValidationResult,
 } from "./types.js"
 
-export { createLLMModel, type CreateLLMModelOptions } from "./client.js"
+export { createLLMModel, resolveEffectiveModelId, type CreateLLMModelOptions } from "./client.js"
 
 export {
   generateImageWithCache,

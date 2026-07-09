@@ -27,6 +27,7 @@ import { SelectImagesDialog } from "./components/SelectImagesDialog"
 import { WordHighlightPreview } from "./components/WordHighlightPreview"
 import { useLingui } from "@lingui/react/macro"
 import { displayLang } from "./lib/display-lang"
+import { useApiKey } from "@/hooks/use-api-key"
 
 export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "translate" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string; stageSlug?: string }) {
   const isSpeechStage = stageSlug === "speech"
@@ -36,6 +37,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
     enabled: !isSpeechStage,
   })
   const { t } = useLingui()
+  const { hasOpenAIKey } = useApiKey()
   const { data: book } = useBook(bookLabel)
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
@@ -76,7 +78,6 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
 
   const merged = activeConfigData?.merged as Record<string, unknown> | undefined
   const translation = useStepConfig(merged, "translation", markDirty)
-  const imageTranslation = useStepConfig(merged, "image_translation", markDirty)
 
   const configuredEditingLanguage = merged?.editing_language as string | undefined
   const bookLanguage = book?.languageCode ?? book?.metadata?.language_code ?? null
@@ -147,7 +148,6 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
       const existing = (bookConfigData?.config?.image_translation ?? {}) as Record<string, unknown>
       overrides.image_translation = {
         ...existing,
-        ...imageTranslation.configOverrides,
         enabled: imageTranslationEnabled,
         image_model: imageModel.trim() || undefined,
         selected_image_ids: selectedImageIds.length > 0 ? selectedImageIds : undefined,
@@ -358,6 +358,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
               onChange={(v) => { setImageModel(v); markDirty("image_translation") }}
               placeholder="openai:gpt-image-2"
               groups={IMAGE_MODEL_GROUPS}
+              disabledProviders={hasOpenAIKey ? [] : ["openai"]}
               prefixProvider
               className="max-w-md"
               inputClassName="h-9 text-sm"
@@ -437,10 +438,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
               bookLabel={bookLabel}
               title={t`Image translation prompt`}
               description={t`The prompt sent to the image model alongside each selected image.`}
-              model={imageTranslation.model}
-              onModelChange={imageTranslation.onModelChange}
-              maxRetries={imageTranslation.maxRetries}
-              onMaxRetriesChange={imageTranslation.onMaxRetriesChange}
+              hideModel
               onContentChange={setImagePromptDraft}
               enabled={tab === "image-translation"}
             />
@@ -523,7 +521,8 @@ function ReadAloudContentSection({
 /* ---------- Speech per-language cards ---------- */
 
 // eslint-disable-next-line lingui/no-unlocalized-strings -- brand names
-const PROVIDER_LABELS: Record<string, string> = { openai: "OpenAI", azure: "Azure", gemini: "Gemini" }
+const PROVIDER_LABELS: Record<string, string> = { openai: "OpenAI", anthropic: "Anthropic", azure: "Azure", gemini: "Gemini" }
+const SPEECH_PROVIDER_OPTIONS = ["openai", "anthropic", "azure", "gemini"] as const
 
 const MODEL_GROUPS_BY_PROVIDER: Record<string, typeof OPENAI_TTS_MODELS> = {
   openai: OPENAI_TTS_MODELS,
@@ -648,7 +647,7 @@ function SpeechLanguageCards({
   // Route a language to a different provider
   const routeLanguageTo = (lang: string, newProvider: string) => {
     // Remove from all providers' language lists
-    for (const p of ["openai", "azure", "gemini"]) {
+    for (const p of SPEECH_PROVIDER_OPTIONS) {
       const current = getProviderLanguages(p)
       const langs = current.split(",").map((s) => s.trim()).filter(Boolean)
       const filtered = langs.filter((l) => normalizeLocale(l) !== normalizeLocale(lang))
@@ -682,9 +681,15 @@ function SpeechLanguageCards({
               className="flex h-8 w-40 rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm"
             >
               <option value="openai">{t`OpenAI`}</option>
+              <option value="anthropic" disabled>{t`Anthropic`}</option>
               <option value="azure">{t`Azure`}</option>
               <option value="gemini">{t`Gemini`}</option>
             </select>
+            {defaultProvider === "anthropic" && (
+              <p className="max-w-40 text-[10px] text-muted-foreground">
+                {t`Anthropic is available for text models, but not speech synthesis.`}
+              </p>
+            )}
           </div>
           <div className="space-y-1.5">
             <Label className="text-xs">{t`Format`}</Label>
@@ -762,12 +767,17 @@ function SpeechLanguageCards({
                     onChange={(e) => routeLanguageTo(lang, e.target.value)}
                     className="flex h-8 w-36 rounded-md border border-input bg-background px-2 py-1 text-xs shadow-sm"
                   >
-                    {["openai", "azure", "gemini"].map((p) => (
-                      <option key={p} value={p}>
+                    {SPEECH_PROVIDER_OPTIONS.map((p) => (
+                      <option key={p} value={p} disabled={p === "anthropic"}>
                         {PROVIDER_LABELS[p]}{p === defaultProvider ? ` (${t`default`})` : ""}
                       </option>
                     ))}
                   </select>
+                  {provider === "anthropic" && (
+                    <p className="text-[10px] text-muted-foreground">
+                      {t`Anthropic is available for text models, but not speech synthesis.`}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-1 flex-1 min-w-[200px]">
                   <Label className="text-[10px] text-muted-foreground">{t`Model`}</Label>

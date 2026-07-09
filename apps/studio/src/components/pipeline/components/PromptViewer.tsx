@@ -6,6 +6,7 @@ import { DEFAULT_LLM_MAX_RETRIES } from "@adt/types"
 import { api } from "@/api/client"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { ModelSelect, LLM_MODEL_GROUPS, type ModelGroup } from "./ModelSelect"
+import { useApiKey } from "@/hooks/use-api-key"
 
 interface PromptViewerBaseProps {
   /** Prompt template name to fetch (e.g. "page_sectioning") */
@@ -62,13 +63,23 @@ export function PromptViewer({
   onContentChange,
   maxRetries,
   onMaxRetriesChange,
-  modelPlaceholder = "openai:gpt-5.4",
+  modelPlaceholder,
   modelGroups = LLM_MODEL_GROUPS,
   enabled = true,
   hideModel = false,
   readOnly = false,
 }: PromptViewerProps) {
   const { t } = useLingui()
+  const { defaultModel, hasOpenAIKey, hasAnthropicKey, hasGoogleKey, hasCustomProvider } = useApiKey()
+  const disabledProviders = modelGroups
+    .filter((group) =>
+      group.provider === "openai" ? !hasOpenAIKey
+        : group.provider === "anthropic" ? !hasAnthropicKey
+          : group.provider === "google" ? !hasGoogleKey
+            : group.provider === "custom" ? !hasCustomProvider
+              : false
+    )
+    .map((group) => group.provider)
 
   const { data: promptData, isLoading } = useQuery({
     queryKey: ["prompts", promptName, bookLabel],
@@ -123,8 +134,9 @@ export function PromptViewer({
             <ModelSelect
               value={model ?? ""}
               onChange={(v) => onModelChange?.(v)}
-              placeholder={modelPlaceholder}
+              placeholder={modelPlaceholder ?? defaultModel ?? ""}
               groups={modelGroups}
+              disabledProviders={disabledProviders}
               className="mt-1"
               inputClassName="text-xs"
             />

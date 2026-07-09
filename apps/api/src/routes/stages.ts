@@ -69,11 +69,28 @@ export function createStageRoutes(
   // POST /books/:label/stages/run — Start or queue a stage-scoped run
   app.post("/books/:label/stages/run", async (c) => {
     const { label } = c.req.param()
-    const apiKey = c.req.header("X-OpenAI-Key")
+    const apiKey = c.req.header("X-OpenAI-Key") || undefined
+    const anthropicApiKey = c.req.header("X-Anthropic-API-Key") || undefined
+    const googleApiKey = c.req.header("X-Google-API-Key") || undefined
+    const customBaseUrl = c.req.header("X-Custom-Base-URL") || undefined
+    const customApiKey = c.req.header("X-Custom-API-Key") || undefined
+    const defaultModelId = c.req.header("X-Default-LLM-Model") || undefined
+    const rawExplicitModels = c.req.header("X-Step-Model-Overrides")
+    let explicitModelIds: string[] | undefined
+    if (rawExplicitModels) {
+      try {
+        const parsedModels: unknown = JSON.parse(rawExplicitModels)
+        if (Array.isArray(parsedModels)) {
+          explicitModelIds = parsedModels.filter((model): model is string => typeof model === "string")
+        }
+      } catch {
+        throw new HTTPException(400, { message: "Invalid step model overrides header." })
+      }
+    }
 
-    if (!apiKey) {
+    if (!apiKey && !anthropicApiKey && !googleApiKey && !customBaseUrl) {
       throw new HTTPException(400, {
-        message: "API key required. Set X-OpenAI-Key header.",
+        message: "At least one LLM provider API key is required.",
       })
     }
 
@@ -93,10 +110,6 @@ export function createStageRoutes(
 
     const { fromStage, toStage, renderOnly } = parsed.data
 
-    const anthropicApiKey = c.req.header("X-Anthropic-API-Key") || undefined
-    const googleApiKey = c.req.header("X-Google-API-Key") || undefined
-    const customBaseUrl = c.req.header("X-Custom-Base-URL") || undefined
-    const customApiKey = c.req.header("X-Custom-API-Key") || undefined
     const azureSpeechKey = c.req.header("X-Azure-Speech-Key") || undefined
     const azureSpeechRegion = c.req.header("X-Azure-Speech-Region") || undefined
     const geminiApiKey = c.req.header("X-Gemini-API-Key") || undefined
@@ -107,11 +120,13 @@ export function createStageRoutes(
 
     const result = stageService.startStageRun(label, {
       booksDir,
-      apiKey,
+      apiKey: apiKey ?? "",
       anthropicApiKey,
       googleApiKey,
       customBaseUrl,
       customApiKey,
+      defaultModelId,
+      explicitModelIds,
       promptsDir,
       webAssetsDir,
       configPath,

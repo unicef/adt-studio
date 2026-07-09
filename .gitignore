@@ -35,6 +35,7 @@ Thumbs.db
 
 # AI agent local config
 .claude/
+.kiro/
 
 # AI agent rule files
 CLAUDE.md

@@ -4,7 +4,7 @@ import { Home, HelpCircle, Settings, Download } from "lucide-react";
 import { useLingui } from "@lingui/react/macro";
 import { Button } from "@/components/ui/button";
 import { LocaleSwitcher } from "@/components/LocaleSwitcher";
-import { useSettingsDialog } from "@/routes/__root";
+import { useSettingsDialog } from "@/hooks/use-settings-dialog";
 import { useUpdateDialog } from "@/components/updates";
 import { usePlatform } from "@/hooks/use-platform";
 import { useAppVersion } from "@/hooks/use-app-version";

@@ -198,6 +198,8 @@ export interface StageRunProviderCredentials {
   customApiKey?: string
   azure?: AzureCredentials
   geminiApiKey?: string
+  defaultModelId?: string
+  explicitModelIds?: string[]
 }
 
 export interface RunStagesOptions {
@@ -211,7 +213,9 @@ function buildApiHeaders(
   apiKey: string,
   providerCredentials?: StageRunProviderCredentials
 ): Record<string, string> {
-  const headers: Record<string, string> = { "X-OpenAI-Key": apiKey }
+  const headers: Record<string, string> = {}
+  const openaiApiKey = apiKey.trim()
+  if (openaiApiKey.startsWith("sk-")) headers["X-OpenAI-Key"] = openaiApiKey
   if (providerCredentials?.anthropicApiKey) {
     headers["X-Anthropic-API-Key"] = providerCredentials.anthropicApiKey
   }
@@ -232,6 +236,10 @@ function buildApiHeaders(
   }
   if (providerCredentials?.geminiApiKey) {
     headers["X-Gemini-API-Key"] = providerCredentials.geminiApiKey
+  }
+  if (providerCredentials?.defaultModelId) headers["X-Default-LLM-Model"] = providerCredentials.defaultModelId
+  if (providerCredentials?.explicitModelIds?.length) {
+    headers["X-Step-Model-Overrides"] = JSON.stringify(providerCredentials.explicitModelIds)
   }
   return headers
 }

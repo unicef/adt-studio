@@ -22,6 +22,52 @@ export interface LLMProviderCredentials {
   googleApiKey?: string
   customBaseUrl?: string
   customApiKey?: string
+  defaultModelId?: string
+  /** Model IDs explicitly selected for individual steps. */
+  explicitModelIds?: string[]
+}
+
+const FALLBACK_MODELS = {
+  openai: "gpt-5.4",
+  anthropic: "claude-sonnet-4-6",
+  google: "gemini-2.5-pro",
+  custom: "your-model-name",
+} as const
+
+/** Resolve an unavailable configured provider to the first request-scoped credential. */
+export function resolveEffectiveModelId(
+  modelId: string,
+  credentials?: LLMProviderCredentials,
+): string {
+  if (!credentials) return modelId
+  const requestedProvider = modelId.includes(":") ? modelId.slice(0, modelId.indexOf(":")) : "openai"
+  const available = [
+    credentials.openaiApiKey && "openai",
+    credentials.anthropicApiKey && "anthropic",
+    credentials.googleApiKey && "google",
+    credentials.customBaseUrl && "custom",
+  ].filter(Boolean) as Array<keyof typeof FALLBACK_MODELS>
+  if (available.length === 0 || available.includes(requestedProvider as keyof typeof FALLBACK_MODELS)) {
+    if (
+      credentials.defaultModelId &&
+      !credentials.explicitModelIds?.includes(modelId)
+    ) {
+      const defaultProvider = credentials.defaultModelId.includes(":")
+        ? credentials.defaultModelId.slice(0, credentials.defaultModelId.indexOf(":"))
+        : "openai"
+      if (available.includes(defaultProvider as keyof typeof FALLBACK_MODELS)) {
+        return credentials.defaultModelId
+      }
+    }
+    return modelId
+  }
+  const preferred = credentials.defaultModelId
+  if (preferred) {
+    const preferredProvider = (preferred.includes(":") ? preferred.slice(0, preferred.indexOf(":")) : "openai") as keyof typeof FALLBACK_MODELS
+    if (available.includes(preferredProvider)) return preferred
+  }
+  const provider = available[0]
+  return `${provider}:${FALLBACK_MODELS[provider]}`
 }
 
 export interface CreateLLMModelOptions {
@@ -45,7 +91,8 @@ export interface CreateLLMModelOptions {
  * - Optional prompt rendering (pass promptEngine + use prompt option)
  */
 export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
-  const { modelId, cacheDir, promptEngine, onLog, rateLimiter, credentials, logLevel } = options
+  const { cacheDir, promptEngine, onLog, rateLimiter, credentials, logLevel } = options
+  const modelId = resolveEffectiveModelId(options.modelId, credentials)
   const log = createLogger(logLevel)
 
   return {
@@ -82,6 +129,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
       }
 
       const maxRetries = opts.maxRetries ?? 0
+      const objectMode = resolveObjectMode(modelId, opts.mode)
       const t0 = Date.now()
       const requestId = randomUUID()
 
@@ -93,11 +141,16 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
       const label = opts.log
         ? `${opts.log.taskType}${opts.log.pageId ? ` ${opts.log.pageId}` : ""}`
         : modelId
+      log.info(
+        `[LLM] ${label} | model=${modelId}` +
+        `${modelId !== options.modelId ? ` | requested=${options.modelId}` : ""}` +
+        ` | mode=${objectMode ?? "auto"} | start`
+      )
 
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         const hash = computeHash({
           modelId,
-          mode: opts.mode,
+          mode: objectMode,
           system,
           messages: currentMessages,
           schema: opts.schema,
@@ -121,7 +174,8 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
                 }),
                 opts,
                 system,
-                currentMessages
+                currentMessages,
+                objectMode,
               )
               result = generated.object
               totalUsage.inputTokens += generated.usage.inputTokens
@@ -137,7 +191,8 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
               }),
               opts,
               system,
-              currentMessages
+              currentMessages,
+              objectMode,
             )
             result = generated.object
             totalUsage.inputTokens += generated.usage.inputTokens
@@ -312,6 +367,18 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
   }
 }
 
+function resolveObjectMode(
+  modelId: string,
+  requestedMode: GenerateObjectOptions["mode"],
+): GenerateObjectOptions["mode"] {
+  const provider = modelId.includes(":") ? modelId.slice(0, modelId.indexOf(":")) : "openai"
+  // The AI SDK's Anthropic provider does not implement JSON-mode object
+  // generation. Tool mode provides schema-constrained objects for Claude and
+  // also supports the recursive schemas for which callers request JSON mode.
+  if (provider === "anthropic" && requestedMode === "json") return "tool"
+  return requestedMode
+}
+
 function resolveModel(
   modelId: string,
   credentials?: LLMProviderCredentials,
@@ -389,7 +456,8 @@ async function callLLM<T>(
   model: LanguageModel,
   opts: GenerateObjectOptions,
   system: string | undefined,
-  messages: Message[]
+  messages: Message[],
+  mode: GenerateObjectOptions["mode"],
 ): Promise<{ object: T; usage: TokenUsage }> {
   const coreMessages = convertMessages(messages)
   const generateOpts: Record<string, unknown> = {
@@ -400,8 +468,8 @@ async function callLLM<T>(
     maxRetries: 0,
     abortSignal: AbortSignal.timeout(opts.timeoutMs ?? 90_000),
   }
-  if (opts.mode) {
-    generateOpts.mode = opts.mode
+  if (mode) {
+    generateOpts.mode = mode
   }
   if (opts.maxTokens) {
     generateOpts.maxTokens = opts.maxTokens

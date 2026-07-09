@@ -141,4 +141,28 @@ describe("createLLMModel credentials", () => {
       expect.objectContaining({ model: googleModel }),
     )
   })
+
+  it("uses tool mode for Anthropic callers that request JSON mode", async () => {
+    const anthropicModel = { provider: "request-anthropic" }
+    createAnthropicMock.mockReturnValue(vi.fn(() => anthropicModel))
+    generateObjectMock.mockResolvedValue({
+      object: { ok: true },
+      usage: { promptTokens: 1, completionTokens: 2 },
+    })
+
+    const llm = createLLMModel({
+      modelId: "anthropic:claude-sonnet-4-6",
+      credentials: { anthropicApiKey: "ak-request" },
+      logLevel: "silent",
+    })
+    await llm.generateObject({
+      schema: z.object({ ok: z.boolean() }),
+      mode: "json",
+      messages: [{ role: "user", content: "hello" }],
+    })
+
+    expect(generateObjectMock).toHaveBeenCalledWith(
+      expect.objectContaining({ model: anthropicModel, mode: "tool" }),
+    )
+  })
 })

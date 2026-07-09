@@ -551,6 +551,8 @@ function buildLLMCredentials(options: StageRunOptions) {
     googleApiKey: options.googleApiKey,
     customBaseUrl: options.customBaseUrl,
     customApiKey: options.customApiKey,
+    defaultModelId: options.defaultModelId,
+    explicitModelIds: options.explicitModelIds,
   }
 }
 

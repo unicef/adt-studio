@@ -6,6 +6,7 @@ import {
   Loader2,
   RotateCcw,
   Settings,
+  Sparkles,
   TriangleAlert,
 } from "lucide-react"
 import { useVirtualizer } from "@tanstack/react-virtual"
@@ -15,7 +16,8 @@ import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { Button } from "@/components/ui/button"
 import { useBookRun } from "@/hooks/use-book-run"
-import { useAccessibilityAssessment } from "@/hooks/use-debug"
+import { useAccessibilityAssessment, useActiveConfig } from "@/hooks/use-debug"
+import { useApiKey } from "@/hooks/use-api-key"
 import { useBookTasks } from "@/hooks/use-book-tasks"
 import { useStageMissingCounts } from "@/hooks/use-stage-missing-counts"
 import { useDirtyTabsForStage } from "@/hooks/use-settings-dirty-tabs"
@@ -24,6 +26,7 @@ import { usePackageAdtStatus } from "@/hooks/use-books"
 import { useSignLanguageVideos } from "@/hooks/use-sign-language-videos"
 import { StepProgressRing } from "./StepProgressRing"
 import { StoryboardIndex } from "./StoryboardIndex"
+import { ProviderSelector } from "./ProviderSelector"
 import { useSectionNav } from "@/routes/books.$label"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import {
@@ -32,7 +35,7 @@ import {
   toCamelLabel,
   type StageGroup,
 } from "../stage-config"
-import { useSettingsDialog } from "@/routes/__root"
+import { useSettingsDialog } from "@/hooks/use-settings-dialog"
 import type { TaskInfoResponse } from "@/api/client"
 import { getStageLabelI18n, getStepLabelI18n, getStageStatusLabelI18n } from "../pipeline-i18n"
 import { ALL_STEP_NAMES } from "@adt/types"
@@ -55,6 +58,17 @@ const TASK_KIND_LABELS: Record<string, MessageDescriptor> = {
   "font-assignment": msg`Font Analysis`,
 }
 
+const STAGE_MODEL_CONFIG: Record<string, string> = {
+  extract: "metadata",
+  sectioning: "page_sectioning",
+  captions: "image_captioning",
+  glossary: "glossary",
+  quizzes: "quiz_generation",
+  toc: "toc_generation",
+  "easy-read": "easy_read",
+  translate: "translation",
+}
+
 
 export function StageSidebar({
   bookLabel,
@@ -74,6 +88,7 @@ export function StageSidebar({
   const { i18n } = useLingui()
   const matchRoute = useMatchRoute()
   const search = useSearch({ strict: false }) as { tab?: string }
+  const activeTab = search.tab ?? "general"
   const { stageState } = useBookRun()
   const { data: accessibilityAssessment } = useAccessibilityAssessment(bookLabel)
   const { data: signLanguageData } = useSignLanguageVideos(bookLabel)
@@ -85,6 +100,46 @@ export function StageSidebar({
   const speechNeedsRerun = stageMissing.speech > 0
   const activeDirtyTabs = useDirtyTabsForStage(activeStep)
   const { data: sidebarPages } = usePages(bookLabel, { enabled: false })
+  const { defaultModel, hasOpenAIKey, hasAnthropicKey, hasGoogleKey, hasCustomProvider } = useApiKey()
+  const { data: activeConfig } = useActiveConfig(bookLabel)
+  const activeModelConfigKey = activeStep === "extract"
+    ? activeTab === "meaningfulness-prompt"
+      ? "image_meaningfulness"
+      : activeTab === "cropping-prompt"
+        ? "image_cropping"
+        : activeTab === "segmentation-prompt"
+          ? "image_segmentation"
+          : "metadata"
+    : STAGE_MODEL_CONFIG[activeStep]
+  const activeModelConfig = activeModelConfigKey
+    ? (activeConfig?.merged as Record<string, unknown> | undefined)?.[activeModelConfigKey]
+    : undefined
+  const mergedConfig = activeConfig?.merged as Record<string, unknown> | undefined
+  const storyboardStrategy = activeStep === "storyboard" && typeof mergedConfig?.default_render_strategy === "string"
+    ? (mergedConfig.render_strategies as Record<string, { config?: { model?: string; model_override?: boolean } }> | undefined)?.[mergedConfig.default_render_strategy]
+    : undefined
+  const activeStepModel = storyboardStrategy?.config?.model ?? (activeModelConfig && typeof activeModelConfig === "object"
+    ? (activeModelConfig as Record<string, unknown>).model
+    : undefined)
+  const hasActiveStepOverride = storyboardStrategy
+    ? storyboardStrategy.config?.model_override === true
+    : activeModelConfig && typeof activeModelConfig === "object"
+      ? (activeModelConfig as Record<string, unknown>).model_override === true
+      : false
+  const activeProvider = typeof activeStepModel === "string" && activeStepModel.includes(":")
+    ? activeStepModel.slice(0, activeStepModel.indexOf(":"))
+    : "openai"
+  const activeProviderAvailable =
+    (activeProvider === "openai" && hasOpenAIKey) ||
+    (activeProvider === "anthropic" && hasAnthropicKey) ||
+    (activeProvider === "google" && hasGoogleKey) ||
+    (activeProvider === "custom" && hasCustomProvider)
+  const effectiveStepModel = hasActiveStepOverride && typeof activeStepModel === "string" && activeProviderAvailable
+    ? activeStepModel
+    : defaultModel
+  const stepModelOverride = effectiveStepModel && effectiveStepModel !== defaultModel
+    ? effectiveStepModel
+    : null
   const hasNoTextLayer = (sidebarPages ?? []).some((p) => p.extractionWarning)
   const noTextLayerLabel = i18n._(
     msg`Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF.`
@@ -103,7 +158,6 @@ export function StageSidebar({
     to: "/books/$label/$step/settings",
     params: { label: bookLabel, step: activeStep },
   })
-  const activeTab = search.tab ?? "general"
 
   // The rail collapses (icon-only, hover to expand) only when pages are showing
   // and we're not in settings. Otherwise it's always expanded with labels visible.
@@ -117,6 +171,31 @@ export function StageSidebar({
     showFlex:  "flex",
     flex1:     "flex-1",
   }
+  const selectedModelItem = (
+    <div
+      key="selected-model"
+      data-testid="selected-model-card"
+      className="mb-1 ml-[42px] mr-2 flex min-h-10 items-center gap-2 overflow-hidden rounded-lg border bg-muted/40 px-2 py-1.5"
+    >
+      <Sparkles className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+      <div className={cn(
+        "min-w-0 whitespace-nowrap transition-opacity duration-150",
+        railCollapsed ? "opacity-0 delay-150 group-hover/rail:opacity-100" : "opacity-100",
+      )}>
+        <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+          <Trans>Selected model</Trans>
+        </div>
+        <div className="mt-1 min-w-0">
+          <ProviderSelector />
+        </div>
+        {stepModelOverride && (
+          <div className="mt-0.5 truncate text-[10px] text-amber-700 dark:text-amber-400" title={stepModelOverride}>
+            <Trans>This step uses</Trans> <span className="font-mono">{stepModelOverride}</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 
   const validationCompleted = Boolean(accessibilityAssessment?.assessment)
   const signLanguageCompleted = signLanguageData?.videos?.some((v) => v.sectionId !== null) ?? false
@@ -204,6 +283,7 @@ export function StageSidebar({
 
         {/* Step row */}
         <div
+          data-stage-slug={step.slug}
           className={cn(
             "group/row flex items-center py-2 text-sm transition-colors overflow-hidden",
             x.gap,
@@ -337,6 +417,10 @@ export function StageSidebar({
         )}
       </div>
     )
+
+    if (step.slug === "book" && selectedModelItem) {
+      stageItems.push(selectedModelItem)
+    }
   })
 
   return (

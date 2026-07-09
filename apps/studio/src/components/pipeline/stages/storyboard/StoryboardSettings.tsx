@@ -136,7 +136,17 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
-  const { apiKey, hasApiKey } = useApiKey()
+  const { apiKey, hasApiKey, defaultModel, hasOpenAIKey, hasAnthropicKey, hasGoogleKey, hasCustomProvider } = useApiKey()
+  const effectiveModel = (configuredModel?: string, isOverride = false) => {
+    if (!configuredModel || !isOverride) return defaultModel ?? configuredModel ?? ""
+    const provider = configuredModel.includes(":") ? configuredModel.slice(0, configuredModel.indexOf(":")) : "openai"
+    const available =
+      (provider === "openai" && hasOpenAIKey) ||
+      (provider === "anthropic" && hasAnthropicKey) ||
+      (provider === "google" && hasGoogleKey) ||
+      (provider === "custom" && hasCustomProvider)
+    return available ? configuredModel : (defaultModel ?? configuredModel)
+  }
 
   // Form state
   const [defaultRenderStrategy, setDefaultRenderStrategy] = useState("")
@@ -166,17 +176,18 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
 
   // Derive activity strategies directly from merged config (synchronous)
   const activityStrategies = useMemo(() => {
-    if (!activeConfigData) return {} as Record<string, { prompt: string; answer_prompt?: string; model?: string; max_retries?: number }>
+    if (!activeConfigData) return {} as Record<string, { prompt: string; answer_prompt?: string; model?: string; model_override?: boolean; max_retries?: number }>
     const merged = activeConfigData.merged as Record<string, unknown>
-    const strategies = merged.render_strategies as Record<string, { render_type?: string; config?: { prompt?: string; answer_prompt?: string; model?: string; max_retries?: number } }> | undefined
-    if (!strategies || typeof strategies !== "object") return {} as Record<string, { prompt: string; answer_prompt?: string; model?: string; max_retries?: number }>
-    const activityMap: Record<string, { prompt: string; answer_prompt?: string; model?: string; max_retries?: number }> = {}
+    const strategies = merged.render_strategies as Record<string, { render_type?: string; config?: { prompt?: string; answer_prompt?: string; model?: string; model_override?: boolean; max_retries?: number } }> | undefined
+    if (!strategies || typeof strategies !== "object") return {} as Record<string, { prompt: string; answer_prompt?: string; model?: string; model_override?: boolean; max_retries?: number }>
+    const activityMap: Record<string, { prompt: string; answer_prompt?: string; model?: string; model_override?: boolean; max_retries?: number }> = {}
     for (const [name, strat] of Object.entries(strategies)) {
       if (strat.render_type === "activity" && strat.config?.prompt) {
         activityMap[name] = {
           prompt: strat.config.prompt,
           answer_prompt: strat.config.answer_prompt,
           model: strat.config.model,
+          model_override: strat.config.model_override,
           max_retries: strat.config.max_retries,
         }
       }
@@ -265,7 +276,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
       merged.render_strategies && typeof merged.render_strategies === "object"
         ? merged.render_strategies
         : {}
-    ) as Record<string, { render_type?: string; config?: { prompt?: string; answer_prompt?: string; model?: string; template?: string; temperature?: number; max_retries?: number } }>
+    ) as Record<string, { render_type?: string; config?: { prompt?: string; answer_prompt?: string; model?: string; model_override?: boolean; template?: string; temperature?: number; max_retries?: number } }>
     const normalizedDefaultRenderStrategy = normalizeDefaultRenderStrategy(
       typeof merged.default_render_strategy === "string"
         ? String(merged.default_render_strategy)
@@ -286,8 +297,9 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
       : undefined
     if (defaultStrategy?.render_type) setRenderingRenderType(defaultStrategy.render_type)
     else setRenderingRenderType("")
-    if (defaultStrategy?.config?.model) setRenderingModel(String(defaultStrategy.config.model))
-    else setRenderingModel("")
+    if (defaultStrategy?.config?.model) {
+      setRenderingModel(effectiveModel(String(defaultStrategy.config.model), defaultStrategy.config.model_override === true))
+    } else setRenderingModel(defaultModel ?? "")
     if (defaultStrategy?.config?.prompt) setRenderingPromptName(String(defaultStrategy.config.prompt))
     else setRenderingPromptName("")
     if (defaultStrategy?.config?.template) {
@@ -306,7 +318,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
     setVisualReviewMaxIterations(
       typeof merged.visual_review_max_iterations === "number" ? String(merged.visual_review_max_iterations) : ""
     )
-  }, [activeConfigData])
+  }, [activeConfigData, defaultModel, hasOpenAIKey, hasAnthropicKey, hasGoogleKey, hasCustomProvider])
 
   // Helper: only write a field if the user changed it or the book config already had it
   const shouldWrite = (field: string) =>
@@ -347,11 +359,15 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
         : undefined
     }
     // Write rendering temperature / retries into the default render strategy config
-    if ((shouldWrite("rendering_temperature") || shouldWrite("rendering_retries")) && defaultRenderStrategy) {
+    if ((shouldWrite("rendering_model") || shouldWrite("rendering_temperature") || shouldWrite("rendering_retries")) && defaultRenderStrategy) {
       const existingStrategies = (overrides.render_strategies ?? merged?.render_strategies ?? {}) as Record<string, Record<string, unknown>>
       const stratCopy = JSON.parse(JSON.stringify(existingStrategies)) as Record<string, Record<string, unknown>>
       if (stratCopy[defaultRenderStrategy]) {
         const cfg = (stratCopy[defaultRenderStrategy].config ?? {}) as Record<string, unknown>
+        if (shouldWrite("rendering_model")) {
+          cfg.model = renderingModel.trim() || undefined
+          cfg.model_override = true
+        }
         if (shouldWrite("rendering_temperature")) cfg.temperature = renderingTemperature.trim() ? Number(renderingTemperature) : undefined
         if (shouldWrite("rendering_retries")) cfg.max_retries = renderingRetries.trim() ? Number(renderingRetries) : undefined
         stratCopy[defaultRenderStrategy].config = cfg
@@ -366,7 +382,10 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
       const stratCopy = overrides.render_strategies as Record<string, Record<string, unknown>>
       if (stratCopy[activityStrategyName]) {
         const cfg = (stratCopy[activityStrategyName].config ?? {}) as Record<string, unknown>
-        if (shouldWrite("activity_model")) cfg.model = activityModel.trim() || undefined
+        if (shouldWrite("activity_model")) {
+          cfg.model = activityModel.trim() || undefined
+          cfg.model_override = true
+        }
         if (shouldWrite("activity_retries")) cfg.max_retries = activityRetries.trim() ? Number(activityRetries) : undefined
         stratCopy[activityStrategyName].config = cfg
       }
@@ -435,7 +454,10 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
               if (strat) {
                 if (strat.render_type) setRenderingRenderType(strat.render_type)
                 if (strat.config?.prompt) setRenderingPromptName(strat.config.prompt)
-                if (strat.config?.model) setRenderingModel(strat.config.model)
+                if (strat.config?.model) {
+                  const cfg = strat.config as { model?: string; model_override?: boolean }
+                  setRenderingModel(effectiveModel(cfg.model, cfg.model_override === true))
+                }
                 if (strat.config?.template) {
                   setRenderingTemplateName(strat.config.template)
                   setTemplateTabName(strat.config.template)
@@ -691,7 +713,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
                 setActivityStrategyName(name)
                 setActivityPromptDraft(null)
                 setActivityAnswerDraft(null)
-                setActivityModel(name ? (activityStrategies[name]?.model ?? "") : "")
+                setActivityModel(name ? effectiveModel(activityStrategies[name]?.model, activityStrategies[name]?.model_override === true) : "")
                 setActivityRetries(name && activityStrategies[name]?.max_retries != null ? String(activityStrategies[name].max_retries) : "")
               }}
             >

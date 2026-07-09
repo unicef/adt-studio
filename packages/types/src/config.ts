@@ -14,6 +14,8 @@ export type RateLimitConfig = z.infer<typeof RateLimitConfig>
 export const StepConfig = z.object({
   prompt: z.string().optional(),
   model: z.string().optional(),
+  /** True when the user intentionally overrides the application-wide selected model. */
+  model_override: z.boolean().optional(),
   max_retries: z.number().int().min(0).optional(),
   timeout: z.number().int().min(1).optional(),
   temperature: z.number().min(0).max(2).optional(),
@@ -77,6 +79,7 @@ export const RenderStrategyConfig = z
         // llm / activity render type
         prompt: z.string().optional(),
         model: z.string().optional(),
+        model_override: z.boolean().optional(),
         max_retries: z.number().int().min(0).optional(),
         timeout: z.number().int().min(1).optional(),
         temperature: z.number().min(0).max(2).optional(),

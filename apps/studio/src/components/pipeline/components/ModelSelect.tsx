@@ -19,6 +19,8 @@ interface ModelSelectProps {
   inputClassName?: string
   /** When true (default), selected values are prefixed as "provider:model". When false, only the bare model name is emitted. */
   prefixProvider?: boolean
+  /** Providers whose models remain visible but cannot be selected. */
+  disabledProviders?: string[]
 }
 
 export function ModelSelect({
@@ -29,6 +31,7 @@ export function ModelSelect({
   className,
   inputClassName,
   prefixProvider = true,
+  disabledProviders = [],
 }: ModelSelectProps) {
   const { t } = useLingui()
   const [open, setOpen] = useState(false)
@@ -92,6 +95,7 @@ export function ModelSelect({
     if (!trimmed) { closeDropdown(); return }
     // If it exactly matches a dropdown item, use formatModelId for consistency
     for (const g of groups) {
+      if (disabledProviders.includes(g.provider)) continue
       for (const m of g.models) {
         const full = `${g.provider}:${m}`
         if (trimmed === full || trimmed === m) {
@@ -183,18 +187,26 @@ export function ModelSelect({
             <div key={group.provider}>
               <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                 {group.provider}
+                {disabledProviders.includes(group.provider) && (
+                  <span className="ml-2 rounded-full border border-muted-foreground/30 px-1.5 py-0.5 text-[9px] font-medium normal-case tracking-normal">
+                    {t`Not configured`}
+                  </span>
+                )}
               </div>
               {group.models.map((model) => {
                 const fullId = formatModelId(group.provider, model)
                 const isSelected = value === fullId
+                const isDisabled = disabledProviders.includes(group.provider)
                 return (
                   <button
                     key={`${group.provider}:${model}`}
                     type="button"
                     onClick={() => selectModel(group.provider, model)}
+                    disabled={isDisabled}
                     className={cn(
                       "flex w-full items-center px-3 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground",
-                      isSelected && "bg-accent text-accent-foreground"
+                      isSelected && "bg-accent text-accent-foreground",
+                      isDisabled && "cursor-not-allowed opacity-40 hover:bg-transparent hover:text-inherit"
                     )}
                   >
                     {prefixProvider && <span className="text-muted-foreground mr-1">{group.provider}:</span>}
