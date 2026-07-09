@@ -37,7 +37,7 @@ export function PromptLiquidGuideDialog({
           type="button"
           variant="outline"
           size="sm"
-          className={cn("h-9 px-2.5 text-xs", className)}
+          className={cn("h-8 px-2.5 text-xs", className)}
           aria-label={t`Open Liquid guide`}
         >
           <BookOpen className="h-3.5 w-3.5" />
