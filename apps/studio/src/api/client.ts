@@ -138,6 +138,7 @@ export interface SplitStatus {
   mergedRanges: PageRange[]
   missingRanges: PageRange[]
   fullyMerged: boolean
+  hasMergeActivity: boolean
 }
 
 /** Preview shape returned by the import endpoints for a lightweight part
