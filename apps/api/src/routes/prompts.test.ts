@@ -31,6 +31,12 @@ function writePrompt(name: string, content: string) {
   fs.writeFileSync(path.join(promptsDir, `${name}.liquid`), content, "utf-8")
 }
 
+function writeModelPrompt(modelFolder: string, name: string, content: string) {
+  const modelPromptsDir = path.join(promptsDir, modelFolder)
+  fs.mkdirSync(modelPromptsDir, { recursive: true })
+  fs.writeFileSync(path.join(modelPromptsDir, `${name}.liquid`), content, "utf-8")
+}
+
 function writeTemplate(name: string, content: string) {
   fs.mkdirSync(templatesDir, { recursive: true })
   fs.writeFileSync(path.join(templatesDir, `${name}.liquid`), content, "utf-8")
@@ -82,6 +88,7 @@ describe("GET /prompts", () => {
   it("lists base prompt names and available variants", async () => {
     writePrompt("page_sectioning", "base")
     writePrompt("page_sectioning__openai_gpt_5_5", "flat variant")
+    writeModelPrompt("google_gemini_2_5_pro", "page_sectioning", "folder variant")
     const versionDir = path.join(promptsDir, ".versions", "metadata_extraction")
     fs.mkdirSync(versionDir, { recursive: true })
     fs.writeFileSync(path.join(versionDir, "20260101T000000000Z-000.liquid"), "version", "utf-8")
@@ -92,7 +99,13 @@ describe("GET /prompts", () => {
     const body = await res.json()
     expect(body.prompts).toEqual([
       { name: "metadata_extraction", variants: [] },
-      { name: "page_sectioning", variants: ["page_sectioning__openai_gpt_5_5"] },
+      {
+        name: "page_sectioning",
+        variants: [
+          "page_sectioning__google_gemini_2_5_pro",
+          "page_sectioning__openai_gpt_5_5",
+        ],
+      },
     ])
   })
 })
@@ -153,6 +166,21 @@ describe("PUT /prompts/:name", () => {
     const readBody = await readRes.json()
     expect(readBody.resolvedName).toBe("test_prompt__google_gemini_2_5_pro")
     expect(readBody.content).toBe("gemini content")
+  })
+
+  it("reads model-specific prompt files from model folders", async () => {
+    writePrompt("test_prompt", "base content")
+    writePrompt("test_prompt__google_gemini_2_5_pro", "legacy flat content")
+    writeModelPrompt("google_gemini_2_5_pro", "test_prompt", "folder content")
+
+    const res = await app().request("/prompts/test_prompt?model=google%3Agemini-2.5-pro")
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.resolvedName).toBe("test_prompt__google_gemini_2_5_pro")
+    expect(body.modelId).toBe("google:gemini-2.5-pro")
+    expect(body.source).toBe("global")
+    expect(body.content).toBe("folder content")
   })
 
   it("keeps only the latest 6 global prompt versions", async () => {
@@ -239,6 +267,26 @@ describe("DELETE /prompts/:name", () => {
     expect(body.modelId).toBeNull()
     expect(body.content).toBe("default content")
   })
+
+  it("resets a global model override back to the model folder prompt", async () => {
+    writePrompt("test_prompt", "default content")
+    writeModelPrompt("anthropic_claude_opus_4_6", "test_prompt", "folder content")
+    await app().request("/prompts/test_prompt?model=anthropic%3Aclaude-opus-4-6", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "edited content" }),
+    })
+
+    const resetRes = await app().request("/prompts/test_prompt?model=anthropic%3Aclaude-opus-4-6", {
+      method: "DELETE",
+    })
+
+    expect(resetRes.status).toBe(200)
+    const body = await resetRes.json()
+    expect(body.resolvedName).toBe("test_prompt__anthropic_claude_opus_4_6")
+    expect(body.modelId).toBe("anthropic:claude-opus-4-6")
+    expect(body.content).toBe("folder content")
+  })
 })
 
 // ---- Book-level prompt overrides ----
@@ -269,13 +317,14 @@ describe("GET /books/:label/prompts/:name", () => {
   it("returns an exact model prompt variant before the base prompt", async () => {
     writePrompt("page_sectioning", "global base")
     writePrompt("page_sectioning__openai_gpt_5_5", "global gpt 5.5")
+    writeModelPrompt("openai_gpt_5_5", "page_sectioning", "global gpt 5.5 folder")
     const res = await app().request("/books/my-book/prompts/page_sectioning?model=openai%3Agpt-5.5")
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.source).toBe("global")
     expect(body.resolvedName).toBe("page_sectioning__openai_gpt_5_5")
     expect(body.modelId).toBe("openai:gpt-5.5")
-    expect(body.content).toBe("global gpt 5.5")
+    expect(body.content).toBe("global gpt 5.5 folder")
   })
 
   it("returns the base prompt when a model variant is missing", async () => {

@@ -77,10 +77,7 @@ export function promptTreeKey(modelId: string, promptName: string): string {
 }
 
 export function promptFileNameForModel(promptName: string, modelId: string): string {
-  const promptModelId = promptModelForSelectedModel(modelId)
-  return promptFileName(
-    promptModelId ? promptNameForSelectedModel(promptName, promptModelId) : promptName,
-  )
+  return promptFileName(promptName)
 }
 
 export function promptExistsForModel(

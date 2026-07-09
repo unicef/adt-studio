@@ -3,18 +3,16 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Trans } from "@lingui/react/macro"
 
 type PromptStatusBadgesProps = {
-  expectedModelPromptName: string | null
   isUsingFallback: boolean
   isEditedGlobalVersion: boolean
 }
 
 export function PromptStatusBadges({
-  expectedModelPromptName,
   isUsingFallback,
 }: PromptStatusBadgesProps) {
   return (
     <>
-      {isUsingFallback && expectedModelPromptName && (
+      {isUsingFallback && (
         <Tooltip>
           <TooltipTrigger asChild>
             <Badge
@@ -26,7 +24,7 @@ export function PromptStatusBadges({
           </TooltipTrigger>
           <TooltipContent side="bottom" align="start" variant="light" className="max-w-[340px] p-3 text-xs leading-5">
             <Trans>
-              {expectedModelPromptName} does not exist yet. Saving while this model is selected creates that global model-specific prompt.
+              This model-specific prompt file does not exist yet. Saving while this model is selected creates a global prompt version for that model.
             </Trans>
           </TooltipContent>
         </Tooltip>

@@ -23,7 +23,7 @@ This preserves book-level portability and entity-level versioning. A prompt edit
 made in the Studio pipeline UI writes a new versioned file for that book only; it
 does not modify the global `prompts/*.liquid` files.
 
-## Naming Convention
+## Directory And Naming Convention
 
 The base prompt name remains unchanged:
 
@@ -31,22 +31,33 @@ The base prompt name remains unchanged:
 prompts/page_sectioning.liquid
 ```
 
-A model-specific global prompt variant appends the sanitized model id:
+Model-specific global prompts should live in a directory named after the
+filesystem-safe model id:
+
+```text
+prompts/openai_gpt_5_5/page_sectioning.liquid
+```
+
+The current folder-name sanitizer lowercases the model id, replaces
+non-alphanumeric runs with `_`, and trims leading/trailing `_`. This avoids
+characters such as `:` that are not valid in Windows folder names.
+
+Examples:
+
+| Model id | Folder name |
+| --- | --- |
+| `openai:gpt-5.5` | `openai_gpt_5_5` |
+| `anthropic:claude-opus-4.1` | `anthropic_claude_opus_4_1` |
+| `google:gemini-2.5-pro` | `google_gemini_2_5_pro` |
+
+The older flat filename format is still supported for compatibility:
 
 ```text
 prompts/page_sectioning__openai_gpt_5_5.liquid
 ```
 
-The current sanitizer lowercases the model id, replaces non-alphanumeric runs
-with `_`, and trims leading/trailing `_`.
-
-Examples:
-
-| Model id | Prompt suffix |
-| --- | --- |
-| `openai:gpt-5.5` | `__openai_gpt_5_5` |
-| `anthropic:claude-opus-4.1` | `__anthropic_claude_opus_4_1` |
-| `google:gemini-2.5-pro` | `__google_gemini_2_5_pro` |
+New project-level prompt variants should use model folders instead of the flat
+filename format.
 
 Book-level edits use the same resolved prompt name, but are stored as immutable
 versions:
@@ -63,25 +74,27 @@ When a pipeline step renders `page_sectioning` with model
 `openai:gpt-5.5`, the prompt engine tries:
 
 1. `books/<book-label>/prompts/.versions/page_sectioning__openai_gpt_5_5/<latest>.liquid`
-2. `books/<book-label>/prompts/page_sectioning__openai_gpt_5_5.liquid`
-3. `prompts/.versions/page_sectioning__openai_gpt_5_5/<latest>.liquid`
-4. `prompts/page_sectioning__openai_gpt_5_5.liquid`
-5. `books/<book-label>/prompts/.versions/page_sectioning/<latest>.liquid`
-6. `books/<book-label>/prompts/page_sectioning.liquid`
-7. `prompts/.versions/page_sectioning/<latest>.liquid`
-8. `prompts/page_sectioning.liquid`
+2. `books/<book-label>/prompts/openai_gpt_5_5/page_sectioning.liquid`
+3. `books/<book-label>/prompts/page_sectioning__openai_gpt_5_5.liquid`
+4. `prompts/.versions/page_sectioning__openai_gpt_5_5/<latest>.liquid`
+5. `prompts/openai_gpt_5_5/page_sectioning.liquid`
+6. `prompts/page_sectioning__openai_gpt_5_5.liquid`
+7. `books/<book-label>/prompts/.versions/page_sectioning/<latest>.liquid`
+8. `books/<book-label>/prompts/page_sectioning.liquid`
+9. `prompts/.versions/page_sectioning/<latest>.liquid`
+10. `prompts/page_sectioning.liquid`
 
 If no model-specific prompt exists, the base prompt is used.
 
 ## Adding a New Model
 
-1. Add the model id to `resolvePromptModelId` in
-   `packages/llm/src/prompt.ts`.
-2. Add the model option to Studio model selection if it is not already present
+1. Add the model option to Studio model selection if it is not already present
    in `apps/studio/src/components/pipeline/components/ModelSelect.tsx`.
-3. Add or verify provider support in the LLM client/config layer.
-4. Create model-specific prompt files in `prompts/` using the naming convention
+2. Add or verify provider support in the LLM client/config layer.
+3. Create a model folder in `prompts/` using the sanitized folder convention
    above.
+4. Add only the prompt files that need model-specific instructions inside that
+   folder, using the same base filenames as the root prompts.
 5. Keep the Liquid variables, `{% chat %}` blocks, `{% image %}` tags, and
    expected output shape compatible with the base prompt.
 6. Run focused prompt/pipeline tests and `pnpm typecheck`.

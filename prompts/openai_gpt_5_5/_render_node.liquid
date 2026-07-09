@@ -1,0 +1,31 @@
+{%- comment -%}
+  Recursive partial that emits a plain-text outline of a RenderNode[] tree.
+  Parameters:
+    nodes  — RenderNode[]
+    depth  — indent level (default 0). Safety cap at 8.
+
+  Lines:
+    - image leaf            → `image id=...`
+    - other leaves          → `<role> id=... "<text>"`
+    - containers            → `<structure>`           (no id — only leaves carry data-id in the rendered HTML)
+
+  NOTE: we read the include parameter `depth` directly rather than copying
+  it into a `_depth` variable. In LiquidJS `assign` writes to the shared
+  root scope, so a recursive include would clobber the parent's copy and
+  push every subsequent sibling one indent level deeper. Include
+  parameters, by contrast, stay scoped to each call.
+{%- endcomment -%}
+{%- for node in nodes -%}
+{%- if depth > 0 -%}{%- for _i in (1..depth) -%}{{ "  " }}{%- endfor -%}{%- endif -%}
+{%- if node.role == "image" -%}
+image id={{ node.node_id }}
+{%- elsif node.role -%}
+{{ node.role }} id={{ node.node_id }} "{{ node.text }}"
+{%- else -%}
+{{ node.structure }}
+{%- endif %}
+{% if node.children and node.children.size > 0 and depth < 8 -%}
+{%- assign _child_depth = depth | plus: 1 -%}
+{%- include "_render_node", nodes: node.children, depth: _child_depth -%}
+{%- endif -%}
+{%- endfor -%}

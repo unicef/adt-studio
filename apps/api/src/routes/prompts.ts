@@ -279,9 +279,9 @@ function listPrompts(promptsDir: string): PromptSummary[] {
   const variantMap = new Map<string, Set<string>>()
 
   if (fs.existsSync(promptsDir)) {
-    for (const file of fs.readdirSync(promptsDir)) {
-      if (!file.endsWith(".liquid")) continue
-      const name = file.replace(/\.liquid$/, "")
+    for (const file of fs.readdirSync(promptsDir, { withFileTypes: true })) {
+      if (!file.isFile() || !file.name.endsWith(".liquid")) continue
+      const name = file.name.replace(/\.liquid$/, "")
       const [baseName] = name.split("__")
       if (!baseName) continue
       if (name.includes("__")) {
@@ -289,6 +289,19 @@ function listPrompts(promptsDir: string): PromptSummary[] {
         variantMap.get(baseName)!.add(name)
       } else {
         names.add(name)
+      }
+    }
+
+    const rootPromptNames = new Set(names)
+    for (const entry of fs.readdirSync(promptsDir, { withFileTypes: true })) {
+      if (!entry.isDirectory() || !isPromptModelFolder(entry.name)) continue
+      for (const file of fs.readdirSync(path.join(promptsDir, entry.name), { withFileTypes: true })) {
+        if (!file.isFile() || !file.name.endsWith(".liquid")) continue
+        const promptName = file.name.replace(/\.liquid$/, "")
+        if (!VALID_NAME.test(promptName) || !rootPromptNames.has(promptName)) continue
+        const variantName = `${promptName}__${entry.name}`
+        if (!variantMap.has(promptName)) variantMap.set(promptName, new Set())
+        variantMap.get(promptName)!.add(variantName)
       }
     }
   }
@@ -370,13 +383,58 @@ function readPrompt(options: {
   const { promptsDir, booksDir, label, name, modelId } = options
   const resolvedName = promptNameForModel(name, modelId)
   if (resolvedName !== name) {
-    const variant = readBasePrompt({ promptsDir, booksDir, label, name: resolvedName, modelId })
+    const variant = readModelPrompt({ promptsDir, booksDir, label, name, resolvedName, modelId })
     if (variant) {
       return { ...variant, name, resolvedName }
     }
   }
 
   return readBasePrompt({ promptsDir, booksDir, label, name, modelId: null })
+}
+
+function readModelPrompt(options: {
+  promptsDir: string
+  booksDir?: string
+  label?: string
+  name: string
+  resolvedName: string
+  modelId: string | null
+}): {
+  name: string
+  resolvedName: string
+  content: string
+  source: "book" | "global"
+  modelId: string | null
+  version?: string
+} | null {
+  const { promptsDir, booksDir, label, name, resolvedName, modelId } = options
+  if (booksDir && label) {
+    const bookPrompt = readModelPromptFromRoot(path.join(booksDir, label, "prompts"), name, resolvedName, modelId)
+    if (bookPrompt) {
+      return {
+        name,
+        resolvedName,
+        content: bookPrompt.content,
+        source: "book",
+        modelId,
+        version: bookPrompt.version,
+      }
+    }
+  }
+
+  const globalPrompt = readModelPromptFromRoot(promptsDir, name, resolvedName, modelId)
+  if (globalPrompt) {
+    return {
+      name,
+      resolvedName,
+      content: globalPrompt.content,
+      source: "global",
+      modelId,
+      version: globalPrompt.version,
+    }
+  }
+
+  return null
 }
 
 function readBasePrompt(options: {
@@ -440,6 +498,35 @@ function readPromptFromRoot(
   return { content: fs.readFileSync(flatPath, "utf-8") }
 }
 
+function readModelPromptFromRoot(
+  root: string,
+  promptName: string,
+  resolvedName: string,
+  modelId: string | null,
+): { content: string; version?: string } | null {
+  const version = latestVersionFile(root, resolvedName)
+  if (version) {
+    return {
+      content: fs.readFileSync(path.join(root, PROMPT_VERSIONS_DIR, resolvedName, version), "utf-8"),
+      version,
+    }
+  }
+
+  if (modelId) {
+    const folderPath = path.join(root, promptModelFolderName(modelId), `${promptName}.liquid`)
+    if (fs.existsSync(folderPath)) {
+      return { content: fs.readFileSync(folderPath, "utf-8") }
+    }
+  }
+
+  const legacyFlatPath = path.join(root, `${resolvedName}.liquid`)
+  if (fs.existsSync(legacyFlatPath)) {
+    return { content: fs.readFileSync(legacyFlatPath, "utf-8") }
+  }
+
+  return null
+}
+
 function latestVersionFile(root: string, promptName: string): string | null {
   const versionDir = path.join(root, PROMPT_VERSIONS_DIR, promptName)
   if (!fs.existsSync(versionDir)) return null
@@ -470,4 +557,17 @@ function prunePromptVersions(versionDir: string) {
   for (const version of staleVersions) {
     fs.rmSync(path.join(versionDir, version), { force: true })
   }
+}
+
+function isPromptModelFolder(name: string): boolean {
+  return name !== PROMPT_VERSIONS_DIR
+    && name !== "node_modules"
+    && VALID_NAME.test(name)
+}
+
+function promptModelFolderName(modelId: string): string {
+  return modelId
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
 }

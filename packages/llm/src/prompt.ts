@@ -82,7 +82,11 @@ export function promptNameForModel(
 ): string {
   const resolvedModelId = resolvePromptModelId(modelId ?? undefined)
   if (!resolvedModelId) return templateName
-  return `${templateName}__${sanitizePromptModelId(resolvedModelId)}`
+  return `${templateName}__${promptModelFolderName(resolvedModelId)}`
+}
+
+export function promptModelFolderName(modelId: string): string {
+  return sanitizePromptModelId(modelId)
 }
 
 function resolvePromptTemplate(
@@ -94,7 +98,7 @@ function resolvePromptTemplate(
 
   if (modelId) {
     const variantName = promptNameForModel(templateName, modelId)
-    const variant = findPromptTemplate(roots, variantName)
+    const variant = findModelPromptTemplate(roots, templateName, modelId, variantName)
     if (variant) {
       return { requestedName: templateName, resolvedName: variantName, modelId, filePath: variant }
     }
@@ -125,6 +129,33 @@ function findPromptTemplate(roots: string[], name: string): string | null {
     const flatPath = path.join(root, `${name}.liquid`)
     if (fs.existsSync(flatPath)) {
       return flatPath
+    }
+  }
+
+  return null
+}
+
+function findModelPromptTemplate(
+  roots: string[],
+  templateName: string,
+  modelId: string,
+  variantName: string,
+): string | null {
+  const modelFolder = promptModelFolderName(modelId)
+  for (const root of roots) {
+    const versionedPath = latestVersionedPromptPath(root, variantName)
+    if (versionedPath) {
+      return versionedPath
+    }
+
+    const folderPath = path.join(root, modelFolder, `${templateName}.liquid`)
+    if (fs.existsSync(folderPath)) {
+      return folderPath
+    }
+
+    const legacyFlatPath = path.join(root, `${variantName}.liquid`)
+    if (fs.existsSync(legacyFlatPath)) {
+      return legacyFlatPath
     }
   }
 

@@ -40,7 +40,7 @@ import {
   mergePromptModelGroups,
   modelIdsFromGroups,
   normalizePromptModelInput,
-  promptFileName,
+  promptFileNameForModel,
   promptTreeKey,
   updatePromptCaches,
 } from "./promptSettings";
@@ -303,9 +303,7 @@ export function GlobalPromptsSettings({
   };
 
   const activePromptLabel =
-    promptModelId && expectedModelPromptName
-      ? promptFileName(expectedModelPromptName)
-      : promptFileName(selectedPrompt);
+    promptFileNameForModel(selectedPrompt, model);
   const selectedTreeKey = selectedPrompt
     ? promptTreeKey(model, selectedPrompt)
     : "";
@@ -458,7 +456,6 @@ export function GlobalPromptsSettings({
                   ) : (
                     <>
                       <PromptStatusBadges
-                        expectedModelPromptName={expectedModelPromptName}
                         isUsingFallback={isUsingFallback}
                         isEditedGlobalVersion={isEditedGlobalVersion}
                       />

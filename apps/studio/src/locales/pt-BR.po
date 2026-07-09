@@ -311,8 +311,8 @@ msgstr "{disabledProvidersText} está desativado — adicione sua chave de API n
 msgid "{elapsed}s"
 msgstr "{elapsed}s"
 
-msgid "{expectedModelPromptName} does not exist yet. Saving while this model is selected creates that global model-specific prompt."
-msgstr "{expectedModelPromptName} ainda não existe. Salvar com este modelo selecionado cria esse prompt global específico do modelo."
+#~ msgid "{expectedModelPromptName} does not exist yet. Saving while this model is selected creates that global model-specific prompt."
+#~ msgstr "{expectedModelPromptName} ainda não existe. Salvar com este modelo selecionado cria esse prompt global específico do modelo."
 
 msgid "{formatted} will be reset and need to run again before final outputs are available."
 msgstr "{formatted} será redefinido e precisará ser executado novamente antes que os resultados finais estejam disponíveis."
@@ -7291,6 +7291,9 @@ msgstr "Este modelo já tem arquivos de prompt para todos os prompts base."
 
 msgid "This model is using the base prompt because {expectedModelPromptName} does not exist yet. Saving changes while this model is selected will create a prompt variant for it."
 msgstr "Este modelo está usando o prompt base porque {expectedModelPromptName} ainda não existe. Salvar alterações com este modelo selecionado criará uma variante de prompt para ele."
+
+msgid "This model-specific prompt file does not exist yet. Saving while this model is selected creates a global prompt version for that model."
+msgstr "Este arquivo de prompt específico do modelo ainda não existe. Salvar enquanto este modelo estiver selecionado cria uma versão global do prompt para esse modelo."
 
 msgid "This page has no captioned images"
 msgstr "Esta página não tem imagens legendadas"

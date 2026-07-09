@@ -109,6 +109,62 @@ describe("createPromptEngine", () => {
       .toBe("section__openai_gpt_5_5")
   })
 
+  it("uses prompt files from model folders before legacy flat variants", async () => {
+    const dir = tmpDir()
+    fs.writeFileSync(
+      path.join(dir, "section.liquid"),
+      `{% chat role: "user" %}Base{% endchat %}`
+    )
+    fs.writeFileSync(
+      path.join(dir, "section__openai_gpt_5_5.liquid"),
+      `{% chat role: "user" %}Legacy flat{% endchat %}`
+    )
+    const modelDir = path.join(dir, "openai_gpt_5_5")
+    fs.mkdirSync(modelDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(modelDir, "section.liquid"),
+      `{% chat role: "user" %}Model folder{% endchat %}`
+    )
+
+    const engine = createPromptEngine(dir)
+    const resolution = engine.resolvePrompt("section", { modelId: "openai:gpt-5.5" })
+    const messages = await engine.renderPrompt("section", {}, { modelId: "openai:gpt-5.5" })
+
+    expect(resolution.resolvedName).toBe("section__openai_gpt_5_5")
+    expect(messages[0]).toEqual({
+      role: "user",
+      content: [{ type: "text", text: "Model folder" }],
+    })
+  })
+
+  it("uses versioned model overrides before prompt files from model folders", async () => {
+    const dir = tmpDir()
+    fs.writeFileSync(
+      path.join(dir, "section.liquid"),
+      `{% chat role: "user" %}Base{% endchat %}`
+    )
+    const modelDir = path.join(dir, "openai_gpt_5_5")
+    fs.mkdirSync(modelDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(modelDir, "section.liquid"),
+      `{% chat role: "user" %}Model folder{% endchat %}`
+    )
+    const versionDir = path.join(dir, ".versions", "section__openai_gpt_5_5")
+    fs.mkdirSync(versionDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(versionDir, "20260101T000000Z.liquid"),
+      `{% chat role: "user" %}Versioned{% endchat %}`
+    )
+
+    const engine = createPromptEngine(dir)
+    const messages = await engine.renderPrompt("section", {}, { modelId: "openai:gpt-5.5" })
+
+    expect(messages[0]).toEqual({
+      role: "user",
+      content: [{ type: "text", text: "Versioned" }],
+    })
+  })
+
   it("uses exact variants for any non-default model id", async () => {
     const dir = tmpDir()
     fs.writeFileSync(

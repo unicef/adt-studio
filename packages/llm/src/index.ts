@@ -33,6 +33,7 @@ export {
   createPromptEngine,
   renderLiquidTemplate,
   resolvePromptModelId,
+  promptModelFolderName,
   promptNameForModel,
   type PromptEngine,
   type PromptRenderOptions,
