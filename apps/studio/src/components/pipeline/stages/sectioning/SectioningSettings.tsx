@@ -27,6 +27,8 @@ import { listSelectableRenderStrategies } from "@/lib/render-strategy"
 import { getSectionTypeLabel } from "@/lib/section-constants"
 import { cn } from "@/lib/utils"
 
+const PROMPT_TABS = ["sectioning-prompt", "refinement-prompt"]
+
 function PageModeIcon({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="none" aria-hidden>
@@ -358,6 +360,7 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
     dirtyTabs,
     saving: updateConfig.isPending,
     save,
+    showSaveOnly: PROMPT_TABS.includes(tab),
   })
 
   const activityNames = useMemo(() => {

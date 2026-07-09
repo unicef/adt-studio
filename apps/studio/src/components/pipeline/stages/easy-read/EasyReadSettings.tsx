@@ -92,6 +92,7 @@ export function EasyReadSettings({
     dirtyTabs: isDirty ? ["general"] : [],
     saving: updateConfig.isPending,
     save,
+    showSaveOnly: true,
   })
 
   const selectedPrompt = promptName.trim() || DEFAULT_PROMPT

@@ -28,6 +28,8 @@ import { WordHighlightPreview } from "./components/WordHighlightPreview"
 import { useLingui } from "@lingui/react/macro"
 import { displayLang } from "./lib/display-lang"
 
+const PROMPT_TABS = ["prompt", "image-translation"]
+
 export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "translate" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string; stageSlug?: string }) {
   const isSpeechStage = stageSlug === "speech"
   const captionedImagesQuery = useQuery({
@@ -231,6 +233,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
     dirtyTabs,
     saving: updateConfig.isPending,
     save,
+    showSaveOnly: PROMPT_TABS.includes(tab),
   })
 
   return (

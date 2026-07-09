@@ -56,6 +56,7 @@ export function TocSettings({ bookLabel }: { bookLabel: string; headerTarget?: H
     dirtyTabs: isDirty ? ["general"] : [],
     saving: updateConfig.isPending,
     save,
+    showSaveOnly: true,
   })
 
   return (

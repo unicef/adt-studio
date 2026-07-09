@@ -13,6 +13,13 @@ import { useStepConfig } from "@/hooks/use-step-config"
 import { normalizeLocale } from "@/lib/languages"
 import { useLingui } from "@lingui/react/macro"
 
+const PROMPT_TABS = [
+  "metadata-prompt",
+  "meaningfulness-prompt",
+  "cropping-prompt",
+  "segmentation-prompt",
+]
+
 export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
@@ -165,6 +172,7 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
     dirtyTabs,
     saving: updateConfig.isPending,
     save,
+    showSaveOnly: PROMPT_TABS.includes(tab),
   })
 
   return (

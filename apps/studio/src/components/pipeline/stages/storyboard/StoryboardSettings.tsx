@@ -41,6 +41,13 @@ import {
 import { getSectionTypeLabel } from "@/lib/section-constants"
 import { FontSettings } from "./FontSettings"
 
+const PROMPT_TABS = [
+  "rendering-prompt",
+  "activity-prompts",
+  "image-generation",
+  "visual-review-prompt",
+]
+
 /** "two_column_story" → "Two Column Story" */
 function titleCase(slug: string): string {
   return slug.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")
@@ -424,6 +431,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
     dirtyTabs,
     saving: updateConfig.isPending,
     save,
+    showSaveOnly: PROMPT_TABS.includes(tab),
   })
 
   return (

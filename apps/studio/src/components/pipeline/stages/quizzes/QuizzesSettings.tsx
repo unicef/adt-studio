@@ -16,6 +16,8 @@ import { useStepConfig } from "@/hooks/use-step-config"
 import { useLingui } from "@lingui/react/macro"
 import { getSectionTypeLabel, getSectionTypeDescription } from "@/lib/section-constants"
 
+const PROMPT_TABS = ["prompt"]
+
 function getSectionTypeDisplayLabel(value: string): string {
   return getSectionTypeLabel(value) || value.replace(/_/g, " ")
 }
@@ -122,6 +124,7 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
     dirtyTabs,
     saving: updateConfig.isPending,
     save,
+    showSaveOnly: PROMPT_TABS.includes(tab),
   })
 
   const sectionTypeKeys = Object.keys(sectionTypes).filter((k) => !k.startsWith("activity_"))

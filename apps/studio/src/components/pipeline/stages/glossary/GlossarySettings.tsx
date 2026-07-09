@@ -51,6 +51,7 @@ export function GlossarySettings({ bookLabel }: { bookLabel: string; headerTarge
     dirtyTabs: isDirty ? ["general"] : [],
     saving: updateConfig.isPending,
     save,
+    showSaveOnly: true,
   })
 
   return (
