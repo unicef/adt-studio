@@ -35,7 +35,10 @@ speech:
   )
 }
 
-function seedBook(label: string): void {
+function seedBook(
+  label: string,
+  entries: Array<{ id: string; text: string }> = [{ id: "pg001_t001", text: "Hello world" }]
+): void {
   const storage = createBookStorage(label, tmpDir)
   try {
     storage.putNodeData("metadata", "book", {
@@ -47,7 +50,7 @@ function seedBook(label: string): void {
       reasoning: "test",
     })
     storage.putNodeData("text-catalog", "book", {
-      entries: [{ id: "pg001_t001", text: "Hello world" }],
+      entries,
       generatedAt: new Date().toISOString(),
     })
   } finally {
@@ -136,6 +139,124 @@ describe("POST /books/:label/tts/generate-one", () => {
     expect(
       fs.existsSync(path.join(tmpDir, label, "audio", "en", "pg001_t001.wav"))
     ).toBe(true)
+  })
+
+  it("treats excluded catalog entries as complete after generating the remaining audio", async () => {
+    const label = "excluded-completion"
+    seedBook(label, [
+      { id: "pg001_t001", text: "Hello world" },
+      { id: "pg001_t002", text: "Muted text" },
+    ])
+    fs.writeFileSync(
+      path.join(tmpDir, label, "config.yaml"),
+      "speech:\n  excluded_text_ids:\n    - pg001_t002\n",
+    )
+
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    inlineData: {
+                      data: Buffer.from(new Uint8Array([1, 2, 3, 4])).toString("base64"),
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      )
+    )
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/generate-one`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Gemini-API-Key": "gm-test",
+      },
+      body: JSON.stringify({ textId: "pg001_t001", language: "en" }),
+    })
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.completed).toBe(true)
+    expect(body.remainingItems).toBe(0)
+  })
+
+  it("preserves failure records for other entries when one item is regenerated", async () => {
+    const label = "preserve-failures"
+    seedBook(label, [
+      { id: "pg001_t001", text: "Hello world" },
+      { id: "pg001_t002", text: "Still missing" },
+    ])
+    const storage = createBookStorage(label, tmpDir)
+    try {
+      storage.putNodeData("tts", "en", {
+        entries: [],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+        failed: [
+          { textId: "pg001_t001", error: "old failure" },
+          { textId: "pg001_t002", error: "still failed" },
+        ],
+      })
+    } finally {
+      storage.close()
+    }
+
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    inlineData: {
+                      data: Buffer.from(new Uint8Array([1, 2, 3, 4])).toString("base64"),
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      )
+    )
+
+    const app = createTTSRoutes(tmpDir, configPath)
+    const res = await app.request(`/books/${label}/tts/generate-one`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Gemini-API-Key": "gm-test",
+      },
+      body: JSON.stringify({ textId: "pg001_t001", language: "en" }),
+    })
+
+    expect(res.status).toBe(200)
+
+    const after = createBookStorage(label, tmpDir)
+    try {
+      const ttsRow = after.getLatestNodeData("tts", "en")
+      expect((ttsRow?.data as { failed?: Array<{ textId: string; error: string }> }).failed).toEqual([
+        { textId: "pg001_t002", error: "still failed" },
+      ])
+    } finally {
+      after.close()
+    }
   })
 
   it("generates Gemini audio when the response includes a text part before the audio part", async () => {

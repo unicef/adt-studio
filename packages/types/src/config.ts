@@ -171,6 +171,7 @@ export const AppConfig = z
     image_cropping: StepConfig.optional(),
     layout_type: LayoutType.optional(),
     spread_mode: z.boolean().optional(),
+    split_mode: z.boolean().optional(),
     vector_text_grouping: z.boolean().optional(),
     apply_body_background: z.boolean().optional(),
     generate_activities: z.boolean().optional(),

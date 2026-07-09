@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { Scissors, Combine, Upload, AlertTriangle, CheckCircle2, Loader2, Sparkles, ArrowRight, FileArchive, X, Info } from "lucide-react"
 import { useBook, useRegenerateBookSummary } from "../../hooks/use-books"
@@ -26,17 +26,40 @@ export function BookPartsPanel({ bookLabel }: { bookLabel: string }) {
   const { data: partInfo, isLoading: partInfoLoading } = usePartInfo(bookLabel)
   const { data: pdfInfo, isLoading: pdfInfoLoading } = useSourcePdfInfo(bookLabel)
   const { data: splitStatus, isLoading: splitStatusLoading } = useSplitStatus(bookLabel)
-  const { data: activeConfig } = useActiveConfig(bookLabel)
+  const { data: activeConfig, isLoading: configLoading } = useActiveConfig(bookLabel)
   const spreadMode = activeConfig?.merged?.spread_mode === true
   // Base the export range on the full source PDF (works before extraction and
   // isn't capped when the book was extracted with a window). Fall back to the
   // extracted page count.
   const pageCount = splitStatus?.pageCount ?? pdfInfo?.pageCount ?? book?.pageCount ?? 0
-  // Until these settle we know neither whether this is an imported part nor the
-  // page count — render a stable skeleton instead of flashing the wrong body
-  // (the export/merge grid, then snapping to the part notice / adding the
-  // "Preview & split pages" button once the queries resolve).
-  const loading = partInfoLoading || pdfInfoLoading || splitStatusLoading
+  const loading =
+    partInfoLoading || pdfInfoLoading || splitStatusLoading || configLoading
+
+  // Only books in the split/merge world show the panel: those the user chose to
+  // split (`split_mode`), those with existing split activity (covers books
+  // split before the flag existed), and imported parts.
+  const splitMode = activeConfig?.merged?.split_mode === true
+  const hasSplitActivity =
+    !!splitStatus &&
+    (splitStatus.exported.length > 0 || splitStatus.mergedRanges.length > 0)
+  const relevant = !!partInfo || splitMode || hasSplitActivity
+
+  // The wizard leaves a one-shot flag to scroll to and briefly highlight this
+  // panel after finishing with the "split into parts" intent.
+  const sectionRef = useRef<HTMLElement>(null)
+  const [focus, setFocus] = useState(false)
+  useEffect(() => {
+    if (loading || !relevant) return
+    if (typeof window === "undefined") return
+    if (window.sessionStorage.getItem("adt:focus-parts") !== bookLabel) return
+    window.sessionStorage.removeItem("adt:focus-parts")
+    setFocus(true)
+    sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+    const timer = setTimeout(() => setFocus(false), 2400)
+    return () => clearTimeout(timer)
+  }, [bookLabel, loading, relevant])
+
+  if (loading || !relevant) return null
 
   // Book metadata (title, authors) is only carried in by the part that contains
   // page 1, so a split book stays untitled until that part is merged. Nudge the
@@ -48,7 +71,13 @@ export function BookPartsPanel({ bookLabel }: { bookLabel: string }) {
     !!splitStatus && splitStatus.exported.length > 0 && !page1Merged && !book?.title
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+    <section
+      ref={sectionRef}
+      className={cn(
+        "overflow-hidden rounded-2xl border border-border bg-card shadow-sm transition-shadow duration-500",
+        focus && "ring-2 ring-primary ring-offset-2 ring-offset-background",
+      )}
+    >
       <header className="flex items-center gap-2 border-b border-border/60 bg-muted/20 px-6 py-4">
         <Scissors className="h-4 w-4 text-muted-foreground" strokeWidth={2} />
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
@@ -63,9 +92,7 @@ export function BookPartsPanel({ bookLabel }: { bookLabel: string }) {
         )}
       </header>
 
-      {loading ? (
-        <PartsPanelSkeleton />
-      ) : partInfo ? (
+      {partInfo ? (
         <p className="px-6 py-5 text-xs leading-relaxed text-muted-foreground">
           <Trans>
             Parts can't be split further. Process the assigned pages, then return
@@ -75,23 +102,22 @@ export function BookPartsPanel({ bookLabel }: { bookLabel: string }) {
         </p>
       ) : (
         <>
-          {splitStatus &&
-            (splitStatus.exported.length > 0 || splitStatus.mergedRanges.length > 0) && (
-              <div className="flex flex-col gap-3 border-b border-border/60 px-6 py-4">
-                <CoverageBar status={splitStatus} />
-                {showPageOneHint && (
-                  <div className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
-                    <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={2} />
-                    <p>
-                      <Trans>
-                        The book's title and metadata arrive with the part that
-                        contains page 1 — merge that part to fill them in.
-                      </Trans>
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
+          {hasSplitActivity && (
+            <div className="flex flex-col gap-3 border-b border-border/60 px-6 py-4">
+              <CoverageBar status={splitStatus} />
+              {showPageOneHint && (
+                <div className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
+                  <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+                  <p>
+                    <Trans>
+                      The book's title and metadata arrive with the part that
+                      contains page 1 — merge that part to fill them in.
+                    </Trans>
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
           <div className="relative grid grid-cols-1 items-stretch gap-px bg-border/60 md:grid-cols-2">
             <ExportPart bookLabel={bookLabel} pageCount={pageCount} spreadMode={spreadMode} status={splitStatus} />
             <MergePart bookLabel={bookLabel} status={splitStatus} />
@@ -107,28 +133,6 @@ export function BookPartsPanel({ bookLabel }: { bookLabel: string }) {
         </>
       )}
     </section>
-  )
-}
-
-/**
- * Placeholder shown while the part/split queries load, sized to roughly match
- * the two-column export/merge grid so the card doesn't jump once data arrives.
- */
-function PartsPanelSkeleton() {
-  return (
-    <div
-      className="grid animate-pulse grid-cols-1 gap-px bg-border/60 md:grid-cols-2"
-      aria-hidden
-    >
-      {[0, 1].map((col) => (
-        <div key={col} className="flex flex-col gap-3 bg-card p-6">
-          <div className="h-4 w-32 rounded bg-muted" />
-          <div className="h-3 w-full rounded bg-muted/70" />
-          <div className="h-3 w-4/5 rounded bg-muted/70" />
-          <div className="mt-2 h-9 w-40 rounded bg-muted" />
-        </div>
-      ))}
-    </div>
   )
 }
 

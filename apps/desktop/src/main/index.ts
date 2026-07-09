@@ -32,6 +32,7 @@ import {
 } from "./protocols/studio-app";
 
 import { checkForUpdates } from "./services/auto-updater";
+import { initPostUpdateDetection } from "./services/update-state";
 import { setStartupError } from "./services/debug-info";
 
 protocol.registerSchemesAsPrivileged([
@@ -48,6 +49,7 @@ app.whenReady().then(async () => {
   registerAppInfoIpc();
   registerSplashIpc();
   registerUpdatesIpc();
+  initPostUpdateDetection();
 
   const splashWindow = createSplashWindow();
 

@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react"
 import type { LucideIcon } from "lucide-react"
+import type { StageName } from "@adt/types"
 import { useLingui } from "@lingui/react/macro"
 import { FloatingSaveBar } from "./FloatingSaveBar"
 
@@ -44,6 +45,7 @@ export interface FloatingSaveEntry {
   dirty: boolean
   saving: boolean
   label?: ReactNode
+  stage?: StageName
   onSave?: () => void
   onSaveAndRerun?: () => void
   onSaveStay?: () => void | Promise<void>
@@ -73,6 +75,7 @@ function signature(e: FloatingSaveEntry): string {
     e.rerunDisabledReason ?? "",
     e.resetDisabledReason ?? "",
     e.labelKey ?? "",
+    e.stage ?? "",
   ].join("|")
 }
 
@@ -217,6 +220,23 @@ export function useHasUnsavedChanges(): boolean {
   const subscribe = store ? store.subscribe : noopSubscribe
   const getSnapshot = () => (store ? store.active().length > 0 : false)
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
+}
+
+export interface FloatingSaveDirtyEntry {
+  id: string
+  stage?: StageName
+  label?: ReactNode
+}
+
+export function useFloatingSaveDirtyEntries(): FloatingSaveDirtyEntry[] {
+  const store = useContext(FloatingSaveContext)
+  useSyncExternalStore(
+    store ? store.subscribe : noopSubscribe,
+    store ? store.getVersion : () => 0,
+    store ? store.getVersion : () => 0,
+  )
+  if (!store) return []
+  return store.active().map((e) => ({ id: e.id, stage: e.stage, label: e.label }))
 }
 
 export interface FloatingSaveLeaveAction {

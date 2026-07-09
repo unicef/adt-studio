@@ -68,6 +68,7 @@ export function buildConfigOverrides(values: WizardFormValues): Record<string, u
     if (validPageRange && parsedStartPage !== undefined) config.start_page = parsedStartPage
     if (validPageRange && parsedEndPage !== undefined) config.end_page = parsedEndPage
   }
+  if (values.scope === "split") config.split_mode = true
   if (values.imageSegmentation && values.segmentationMinSide.trim()) {
     const n = Number(values.segmentationMinSide.trim())
     if (Number.isInteger(n) && n >= 0) config.image_segmentation = { min_side: n }

@@ -240,7 +240,7 @@ msgid "{0} translations"
 msgstr "{0} përkthime"
 
 #. placeholder {0}: String(generatedAudioCount)
-#. placeholder {1}: String(displayEntries.length)
+#. placeholder {1}: String(speakableEntries.length)
 msgid "{0}/{1} audio"
 msgstr "{0}/{1} audio"
 
@@ -255,6 +255,11 @@ msgstr "{0}/{MAX_SOURCE_PAGES} të zgjedhura"
 #. placeholder {0}: String(selectedPageIds.size)
 msgid "{0}/5 pages selected"
 msgstr "{0}/5 faqe të zgjedhura"
+
+#. placeholder {0}: Math.round(percent)
+#. placeholder {1}: formatBytes(status.bytesPerSecond)
+msgid "{0}% · {1}/s"
+msgstr "{0}% · {1}/s"
 
 #. placeholder {0}: activeProgress.percent
 msgid "{0}% complete"
@@ -380,6 +385,12 @@ msgstr "{stageLabel} nuk është gati ende — Storyboard nuk ka përfunduar, k�
 #. placeholder {0}: getStageStatusLabelI18n(statusKey)
 msgid "{stepLabel}: {0}"
 msgstr "{stepLabel}: {0}"
+
+msgid "{target} has been downloaded."
+msgstr "{target} u shkarkua."
+
+msgid "{target} is ready to download."
+msgstr "{target} është gati për shkarkim."
 
 msgid "{textCount} text leaves"
 msgstr "{textCount} gjethe teksti"
@@ -518,8 +529,8 @@ msgstr "Një aktivitet çiftëzimi ku nxënësit lidhin elementet e lidhura."
 msgid "A multiple choice activity."
 msgstr "Një aktivitet me zgjedhje të shumëfishtë."
 
-msgid "A new version is available for download."
-msgstr "Një version i ri është i disponueshëm për shkarkim."
+#~ msgid "A new version is available for download."
+#~ msgstr "Një version i ri është i disponueshëm për shkarkim."
 
 msgid "A question worth asking"
 msgstr "Një pyetje që vlen të bëhet"
@@ -667,6 +678,9 @@ msgstr "Aktivitet"
 
 msgid "Activity 5.1"
 msgstr "Aktiviteti 5.1"
+
+msgid "Activity answers"
+msgstr "Përgjigjet e aktiviteteve"
 
 msgid "Activity Converter"
 msgstr "Konvertues Aktivitetesh"
@@ -916,6 +930,9 @@ msgstr "Paketë ADT"
 msgid "ADT Studio uses your own API keys to run the pipeline. Keys are stored locally on this device and never sent anywhere else."
 msgstr "ADT Studio përdor çelësat tuaj API për të ekzekutuar pipeline-in. Çelësat ruhen lokalisht në këtë pajisje dhe nuk dërgohen asnjëherë askund tjetër."
 
+msgid "ADT Studio will restart to finish installing."
+msgstr "ADT Studio do të riniset për të përfunduar instalimin."
+
 msgid "ADT_DEBUG=1"
 msgstr "ADT_DEBUG=1"
 
@@ -1109,6 +1126,9 @@ msgstr "answer_key"
 
 msgid "Answers"
 msgstr "Përgjigjet"
+
+msgid "Answers revealed in activities."
+msgstr "Përgjigjet që shfaqen në aktivitete."
 
 msgid "Anthropic"
 msgstr "Anthropic"
@@ -1372,6 +1392,9 @@ msgstr "Më i mirë për presetin tuaj"
 msgid "Beta"
 msgstr "Beta"
 
+msgid "Beta release"
+msgstr "Version beta"
+
 msgid "Bit Rate"
 msgstr "Shpejtësia e bitit"
 
@@ -1462,6 +1485,9 @@ msgstr "Shfleto dhe redakto shabllonët Liquid të përdorur për strategjitë e
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Shfleto çdo seksion të Storyboard-it dhe ngarko, zëvendëso ose hiq videon e gjuhës së shenjave."
 
+msgid "Build"
+msgstr "Ndërtim"
+
 msgid "Build a glossary of key terms and definitions found in the text."
 msgstr "Ndërto një glosar me termat kryesorë dhe përkufizimet e gjetura në tekst."
 
@@ -1527,6 +1553,9 @@ msgstr "Thirrje"
 
 msgid "Cancel"
 msgstr "Anulo"
+
+msgid "Cancel download"
+msgstr "Anulo shkarkimin"
 
 #. placeholder {0}: String(MAX_ENTRIES)
 msgid "capped at {0}"
@@ -1629,8 +1658,8 @@ msgstr "Kapitulli i Parë"
 msgid "Chart / Graph"
 msgstr "Tabelë / Grafik"
 
-msgid "Check for updates"
-msgstr "Kontrollo për përditësime"
+#~ msgid "Check for updates"
+#~ msgstr "Kontrollo për përditësime"
 
 msgid "Checked"
 msgstr "Kontrolluar"
@@ -1682,6 +1711,9 @@ msgstr "Zgjidhni faqet burimore dhe ku vendoset testi në redaktorin e faqeve."
 
 msgid "Choose the target model. The new global prompt file will use this file content and the normal model-specific prompt name."
 msgstr "Zgjidh modelin e synuar. Skedari i ri global i promptit do të përdorë përmbajtjen e këtij skedari dhe emrin normal specifik për modelin."
+
+msgid "Choose which kinds of on-screen text are read aloud. Disabled types get no audio in the reader. You can also mute individual entries from the Speech and Language views."
+msgstr "Zgjidhni cilat lloje të tekstit në ekran lexohen me zë. Llojet e çaktivizuara nuk marrin audio në lexues. Mund të heshtni edhe zëra të veçantë nga pamjet e Të folurit dhe Gjuhës."
 
 msgid "Choose which per-page validation items reviewers must check, customize the wording and guidance, and add your own checklist items for this document."
 msgstr "Zgjidhni cilat artikuj validimi për faqe duhet të kontrollojnë rishikuesit, personalizoni formulimin dhe udhëzimet dhe shtoni artikujt tuaj të listës së kontrollit për këtë dokument."
@@ -1965,6 +1997,9 @@ msgstr "Nuk u lexuan dot përmasat e imazhit"
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "Nuk u mund të lexohet ky PDF. Skedari mund të jetë i dëmtuar ose i mbrojtur me fjalëkalim."
 
+msgid "Couldn't check for updates"
+msgstr "Nuk u arrit të kontrollohen përditësimet"
+
 msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
 msgstr "Pamja paraprake e PDF-së nuk u ngarkua dot. Faqet mund të ndahen ende duke përdorur kontrollet."
 
@@ -2089,8 +2124,8 @@ msgstr "Vlerat aktuale efektive"
 msgid "Current Preview Page"
 msgstr "Faqja aktuale e pamjes paraprake"
 
-msgid "Current version"
-msgstr "Versioni aktual"
+#~ msgid "Current version"
+#~ msgstr "Versioni aktual"
 
 msgid "Custom"
 msgstr "I personalizuar"
@@ -2300,6 +2335,9 @@ msgstr "Përshkrim"
 msgid "Description..."
 msgstr "Përshkrim..."
 
+msgid "Descriptions spoken for images."
+msgstr "Përshkrime që lexohen për imazhet."
+
 msgid "Deselect all"
 msgstr "Hiq zgjedhjen e të gjithave"
 
@@ -2393,8 +2431,8 @@ msgstr "Shkarko një pjesë të lehtë (PDF-ja e plotë plus një interval faqes
 msgid "Download part"
 msgstr "Shkarko pjesën"
 
-msgid "Download size"
-msgstr "Madhësia e shkarkimit"
+#~ msgid "Download size"
+#~ msgstr "Madhësia e shkarkimit"
 
 msgid "Download update"
 msgstr "Shkarko përditësimin"
@@ -2402,10 +2440,11 @@ msgstr "Shkarko përditësimin"
 msgid "Downloaded"
 msgstr "E shkarkuar"
 
-#. placeholder {0}: Math.round(percent)
-#. placeholder {1}: formatBytes(status.bytesPerSecond)
-msgid "Downloading… {0}% · {1}/s"
-msgstr "Po shkarkohet… {0}% · {1}/s"
+msgid "Downloading update…"
+msgstr "Duke shkarkuar përditësimin…"
+
+#~ msgid "Downloading… {0}% · {1}/s"
+#~ msgstr "Po shkarkohet… {0}% · {1}/s"
 
 msgid "Downloads at extraction"
 msgstr "Shkarkohet gjatë nxjerrjes"
@@ -2760,6 +2799,9 @@ msgstr "Çdo seksion i Storyboard-it ka një video të gjuhës së shenjave të 
 
 msgid "Example Books"
 msgstr "Libra shembull"
+
+msgid "Exclude from read-aloud"
+msgstr "Përjashto nga leximi me zë"
 
 msgid "Exclude from render"
 msgstr "Përjashto nga renderimi"
@@ -3200,6 +3242,11 @@ msgstr "Gjeneron tekst alternativ përshkrues për imazhet që lexuesit e ekrani
 msgid "Generates the interactive HTML for this activity type."
 msgstr "Gjeneron HTML interaktiv për këtë lloj aktiviteti."
 
+#. placeholder {0}: String(ttsProgress.page ?? 0)
+#. placeholder {1}: String(ttsProgress.totalPages)
+msgid "Generating {0}/{1}"
+msgstr "Duke gjeneruar {0}/{1}"
+
 msgid "Generating Easy Read..."
 msgstr "Duke gjeneruar Easy Read..."
 
@@ -3263,6 +3310,9 @@ msgstr "Pamje Paraprake e Glosariumit"
 msgid "Glossary Prompt"
 msgstr "Prompt i Glosariumit"
 
+msgid "Glossary words and their definitions."
+msgstr "Fjalët e glosarit dhe përkufizimet e tyre."
+
 msgid "Go to {stageLabel}"
 msgstr "Shko te {stageLabel}"
 
@@ -3289,6 +3339,9 @@ msgstr "Google Fonts"
 
 msgid "Google's voices with strong intonation for narrative content."
 msgstr "Zërat e Google me intonacion të fortë për përmbajtje narrative."
+
+msgid "Got it"
+msgstr "Në rregull"
 
 msgid "Grade Level"
 msgstr "Niveli Shkollor"
@@ -3440,6 +3493,9 @@ msgstr "Teksti Alternativ i Imazhit"
 msgid "Image Captioning"
 msgstr "Titullimi i Imazheve"
 
+msgid "Image captions"
+msgstr "Përshkrimet e imazheve"
+
 msgid "Image Captions"
 msgstr "Titujt e Imazheve"
 
@@ -3574,6 +3630,9 @@ msgstr "Importimi krijon një libër të ri të kufizuar në {windowSize} faqe. 
 msgid "Importing..."
 msgstr "Duke importuar..."
 
+msgid "Improvements"
+msgstr "Përmirësime"
+
 msgid "In book:"
 msgstr "Në libër:"
 
@@ -3588,6 +3647,9 @@ msgstr "në proces"
 
 msgid "in the book"
 msgstr "në libër"
+
+msgid "Include in read-aloud"
+msgstr "Përfshi në leximin me zë"
 
 msgid "Include in render"
 msgstr "Përfshi në paraqitje"
@@ -3627,6 +3689,9 @@ msgstr "Kapaku i brendshëm"
 
 msgid "Install on quit"
 msgstr "Instalo gjatë daljes"
+
+msgid "Installing update…"
+msgstr "Duke instaluar përditësimin…"
 
 msgid "Institution"
 msgstr "Institucion"
@@ -4006,6 +4071,9 @@ msgstr "Kyç si katror"
 msgid "Logs"
 msgstr "Regjistra"
 
+msgid "Looking for the latest version…"
+msgstr "Duke kërkuar versionin më të fundit…"
+
 msgid "Looking forward"
 msgstr "Duke shikuar përpara"
 
@@ -4284,6 +4352,15 @@ msgstr "Botime me shumë formate"
 msgid "multiple choice"
 msgstr "me zgjedhje të shumëfishta"
 
+msgid "Muted"
+msgstr "I heshtur"
+
+msgid "Muted by a content type switch in the Speech settings"
+msgstr "Heshtur nga një çelës i llojit të përmbajtjes në cilësimet e Të folurit"
+
+msgid "Muted via its source text entry"
+msgstr "Heshtur përmes zërit të tekstit burimor"
+
 msgid "my-book-slug"
 msgstr "my-book-slug"
 
@@ -4323,8 +4400,8 @@ msgstr "Hyrje e re"
 msgid "New session"
 msgstr "Sesion i ri"
 
-msgid "New version"
-msgstr "Version i ri"
+#~ msgid "New version"
+#~ msgstr "Version i ri"
 
 msgid "new_type_key"
 msgstr "new_type_key"
@@ -4368,6 +4445,9 @@ msgstr "Nuk ka ende çelës API për {0}. Shto një te cilësimet e Librit për 
 
 msgid "No assessment"
 msgstr "Pa vlerësim"
+
+msgid "No audio"
+msgstr "Pa audio"
 
 msgid "No audio for this page"
 msgstr "Nuk ka audio për këtë faqe"
@@ -5035,6 +5115,9 @@ msgstr "Prompt i Ndarjes së Faqeve"
 msgid "Page Sectioning Refinement Prompt"
 msgstr "Prompt i Rafinimit të Ndarjes së Faqeve"
 
+msgid "Page text, headings, and quiz content."
+msgstr "Teksti i faqes, titujt dhe përmbajtja e kuizeve."
+
 msgid "pages"
 msgstr "faqe"
 
@@ -5273,6 +5356,9 @@ msgstr "Reshje"
 msgid "Prefer terms central to the book's subject matter. Skip generic vocabulary and proper nouns that don't carry meaning beyond the page."
 msgstr "Preferoni terma qendrore për lëndën e librit. Anashkaloni fjalor gjeneral dhe emra të përveçëm që nuk bartin kuptim përtej faqes."
 
+msgid "Preparing speech..."
+msgstr "Duke përgatitur audion..."
+
 msgid "Preserves the source PDF's exact page layout"
 msgstr "Ruan paraqitjen e saktë të faqes nga PDF-ja burimore"
 
@@ -5417,6 +5503,9 @@ msgstr "Nxjerr metadatat e librit — titullin, autorin, gjuhën — nga PDF-ja.
 msgid "px"
 msgstr "px"
 
+msgid "Quality"
+msgstr "Cilësi"
+
 msgid "Query param"
 msgstr "Parametri i pyetjes"
 
@@ -5540,6 +5629,9 @@ msgstr "Ri-ekzekutimi fshin fazat e mëvonshme"
 msgid "Read the prompt aloud"
 msgstr "Lexo kërkesën me zë"
 
+msgid "Read-Aloud Content"
+msgstr "Përmbajtja e leximit me zë"
+
 msgid "Read-only"
 msgstr "Vetëm për lexim"
 
@@ -5648,6 +5740,9 @@ msgstr "Refuzo renderime që devijojnë stilistikisht nga origjinali. Sa më shu
 
 msgid "Relaxed"
 msgstr "I relaksuar"
+
+msgid "Release"
+msgstr "Publikim"
 
 msgid "Release to upload"
 msgstr "Lëshoni për të ngarkuar"
@@ -6477,6 +6572,9 @@ msgstr "Mbivendosje videosh të gjuhës së shenjave për çdo faqe"
 msgid "Sign language videos provide access for deaf and hard of hearing readers who may not be fluent in written language."
 msgstr "Videot e gjuhës së shenjave ofrojnë qasje për lexuesit shurdhamutë dhe me dëgjim të kufizuar, të cilët mund të mos jenë të rrjedhshëm në gjuhën e shkruar."
 
+msgid "Simplified Easy Read text variants."
+msgstr "Variante të thjeshtuara të tekstit Easy Read."
+
 msgid "Single"
 msgstr "Të vetëm"
 
@@ -6538,8 +6636,8 @@ msgstr "Prerje Inteligjente"
 msgid "Software update"
 msgstr "Përditësim softueri"
 
-msgid "Software Update"
-msgstr "Përditësim Softueri"
+#~ msgid "Software Update"
+#~ msgstr "Përditësim Softueri"
 
 msgid "Software update status"
 msgstr "Gjendja e përditësimit të softuerit"
@@ -6643,6 +6741,9 @@ msgstr "Modalitet Shpërndarjeje"
 
 msgid "Sprinkling some digital fairy dust..."
 msgstr "Duke spërkatur pak pluhur magjik dixhital..."
+
+msgid "Stable"
+msgstr "Stabil"
 
 msgid "Stages are rerunable and every result is versioned, so experimenting is safe — nothing is ever overwritten."
 msgstr "Fazat mund të ri-ekzekutohen dhe çdo rezultat versionohet, kështu që eksperimentimi është i sigurt — asgjë nuk mbishkruhet kurrë."
@@ -7243,6 +7344,9 @@ msgstr "Ky udhëzim i tregon LLM-it si të vlerësojë HTML-in e renderuar kundr
 msgid "This quiz will be removed from the book. You can still restore it from the version history."
 msgstr "Ky test do të hiqet nga libri. Mund ta rikthesh nga historia e versioneve."
 
+msgid "This release includes general improvements and fixes."
+msgstr "Ky version përfshin përmirësime të përgjithshme dhe rregullime."
+
 msgid "This removes all model-specific global prompt versions in this folder. Shipped fallback files remain available."
 msgstr "Kjo heq të gjitha versionet globale të prompteve specifike për modelin në këtë dosje. Skedarët fallback të përfshirë mbeten të disponueshëm."
 
@@ -7549,8 +7653,11 @@ msgstr "Licencë e paverifikuar"
 msgid "Update available"
 msgstr "Përditësim i disponueshëm"
 
-msgid "Update downloaded. Restart to install."
-msgstr "Përditësimi u shkarkua. Rinisni për të instaluar."
+#~ msgid "Update downloaded. Restart to install."
+#~ msgstr "Përditësimi u shkarkua. Rinisni për të instaluar."
+
+msgid "Update ready to install"
+msgstr "Përditësimi është gati për instalim"
 
 msgid "Upload"
 msgstr "Ngarko"
@@ -7705,8 +7812,11 @@ msgstr "Vërtetimi u aplikua"
 msgid "Version {0}"
 msgstr "Versioni {0}"
 
-msgid "Version {targetVersion}"
-msgstr "Versioni {targetVersion}"
+msgid "Version {current}"
+msgstr "Versioni {current}"
+
+#~ msgid "Version {targetVersion}"
+#~ msgstr "Versioni {targetVersion}"
 
 msgid "Versioned"
 msgstr "Me version"
@@ -7865,6 +7975,12 @@ msgstr "Çfarë ka brenda"
 msgid "What's new"
 msgstr "Çfarë është e re"
 
+msgid "What's new in this release"
+msgstr "Çfarë ka të re në këtë version"
+
+#~ msgid "What's next for this book?"
+#~ msgstr "Çfarë vjen më pas për këtë libër?"
+
 msgid "When describing images, mention any culturally specific objects, locations, or recurring characters by name."
 msgstr "Kur përshkruan imazhet, përmend çdo objekt specifik kulturor, vendndodhje ose personazh të përsëritur me emër."
 
@@ -7940,11 +8056,20 @@ msgstr "Mund të eksportosh në këtë fazë"
 msgid "You haven't added any terms manually yet"
 msgstr "Nuk ke shtuar ende asnjë term manualisht"
 
+msgid "You're all set"
+msgstr "Je gati"
+
+msgid "You're now running ADT Studio {label}"
+msgstr "Tani po përdor ADT Studio {label}"
+
+msgid "You're running the latest version of ADT Studio."
+msgstr "Po përdor versionin më të fundit të ADT Studio."
+
 msgid "Young adult fiction"
 msgstr "Fiksion për të rinj"
 
-msgid "Your app is up to date. There's nothing to do."
-msgstr "Aplikacioni yt është i përditësuar. Nuk ka asgjë për të bërë."
+#~ msgid "Your app is up to date. There's nothing to do."
+#~ msgstr "Aplikacioni yt është i përditësuar. Nuk ka asgjë për të bërë."
 
 msgid "Your book"
 msgstr "Libri yt"

@@ -79,14 +79,22 @@ type ElectronUpdateStatus =
       total: number
     }
   | { phase: "downloaded"; version: string; releaseNotes?: string }
+  | { phase: "installing"; version: string }
   | { phase: "error"; message: string }
+
+interface ElectronPostUpdateInfo {
+  version: string
+  releaseNotes?: string
+}
 
 interface ElectronUpdatesApi {
   check: () => Promise<ElectronUpdateStatus>
   download: () => Promise<ElectronUpdateStatus>
+  cancel: () => Promise<ElectronUpdateStatus>
   install: () => Promise<void>
   installOnQuit: () => Promise<void>
   getStatus: () => Promise<ElectronUpdateStatus>
+  getPostUpdate: () => Promise<ElectronPostUpdateInfo | null>
   onStatus: (cb: (status: ElectronUpdateStatus) => void) => () => void
 }
 

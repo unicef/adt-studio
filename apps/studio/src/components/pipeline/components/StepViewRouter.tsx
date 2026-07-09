@@ -29,10 +29,7 @@ import {
 } from "../stages";
 import { cn } from "@/lib/utils";
 import { Trans } from "@lingui/react/macro";
-import { useWindowControls } from "@/hooks/use-window-controls";
-import { usePlatform } from "@/hooks/use-platform";
-import { LinuxControls } from "@/components/title-bar/LinuxControls";
-import { WindowsControls } from "@/components/title-bar/WindowsControls";
+import { StepHeaderBar } from "./StepHeaderBar";
 
 // Context for views to inject content into the step header
 interface StepHeaderControls {
@@ -93,7 +90,6 @@ export function StepViewRouter({
   selectedPageId?: string;
   onSelectPage?: (pageId: string | null) => void;
 }) {
-  const { available: hasWindows } = useWindowControls();
   const entry = VIEW_MAP[step];
   const stepConfig = STAGES.find((s) => s.slug === step);
   const [headerExtra, setHeaderExtra] = useState<ReactNode>(null);
@@ -101,8 +97,6 @@ export function StepViewRouter({
     fn: () => void;
   } | null>(null);
   const [headerSlotEl, setHeaderSlotEl] = useState<HTMLElement | null>(null);
-
-  const platform = usePlatform();
 
   const setOnLabelClick = useCallback((handler: (() => void) | null) => {
     setLabelClickHandler(handler ? { fn: handler } : null);
@@ -131,13 +125,7 @@ export function StepViewRouter({
     <StepHeaderContext.Provider value={controls}>
       <div className="flex flex-col h-full">
         {/* Step header */}
-        <div
-          className={cn(
-            "shrink-0 h-10 px-4 flex items-center gap-3 text-white drag-region",
-            stepConfig.color,
-            hasWindows && platform !== "macos" && "pr-0",
-          )}
-        >
+        <StepHeaderBar color={stepConfig.color}>
           <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white/20">
             <Icon className="w-3 h-3" />
           </div>
@@ -168,9 +156,7 @@ export function StepViewRouter({
               <Settings className="w-3.5 h-3.5" />
             </Link>
           )}
-          <LinuxControls className="self-stretch" />
-          <WindowsControls variant="dark" className="self-stretch" />
-        </div>
+        </StepHeaderBar>
 
         {/* Step content */}
         {entry.fullHeight ? (

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react"
+import { Fragment, useState, type MouseEvent, type ReactNode } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import {
   AlertTriangle,
@@ -58,20 +58,6 @@ const RECOMMENDED_STAGES = new Set<string>(["captions"])
 export function BookView({ bookLabel }: ViewProps) {
   const { t } = useLingui()
   const overviewSteps = getBookOverviewStages()
-
-  // When the create-book wizard finished with the "split into parts" intent, it
-  // leaves a one-shot flag so we scroll to and briefly highlight the split panel.
-  const partsRef = useRef<HTMLDivElement>(null)
-  const [focusParts, setFocusParts] = useState(false)
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    if (window.sessionStorage.getItem("adt:focus-parts") !== bookLabel) return
-    window.sessionStorage.removeItem("adt:focus-parts")
-    setFocusParts(true)
-    partsRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
-    const timer = setTimeout(() => setFocusParts(false), 2400)
-    return () => clearTimeout(timer)
-  }, [bookLabel])
   const {
     stageState,
     stepState,
@@ -154,15 +140,7 @@ export function BookView({ bookLabel }: ViewProps) {
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-4 py-6">
       <BookOverviewCard bookLabel={bookLabel} />
 
-      <div
-        ref={partsRef}
-        className={cn(
-          "rounded-2xl transition-shadow duration-500",
-          focusParts && "ring-2 ring-primary ring-offset-2 ring-offset-background",
-        )}
-      >
-        <BookPartsPanel bookLabel={bookLabel} />
-      </div>
+      <BookPartsPanel bookLabel={bookLabel} />
 
       {/* Core Pipeline cluster — connectors hug the cards. */}
       <div className="flex flex-col gap-2">

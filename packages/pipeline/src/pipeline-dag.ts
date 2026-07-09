@@ -24,6 +24,7 @@ import type {
   TTSOutput,
   WebRenderingOutput,
 } from "@adt/types"
+import { isTtsExcluded } from "@adt/types"
 import { extractPDF } from "./pdf-extraction.js"
 import {
   resolveFontsCacheDir,
@@ -44,7 +45,7 @@ import { renderPage, buildRenderStrategyResolver } from "./web-rendering.js"
 import { translatePageTree, buildTranslationConfig } from "./translation.js"
 import { createTemplateEngine } from "./render-template.js"
 import { captionPageImages, buildCaptionConfig, extractImageIds } from "./image-captioning.js"
-import { generateGlossary, buildGlossaryConfig } from "./glossary.js"
+import { regenerateGlossaryPreservingEdits, buildGlossaryConfig } from "./glossary.js"
 import { generateToc, buildTocGenerationConfig } from "./toc-generation.js"
 import { generateAllQuizzes, buildQuizGenerationConfig, type QuizPageInput } from "./quiz-generation.js"
 import { buildTextCatalog } from "./text-catalog.js"
@@ -690,7 +691,8 @@ export async function runFullPipeline(
       const glossaryConfig = buildGlossaryConfig(config, language)
       const model = getModel(glossaryConfig.modelId)
       const pages = storage.getPages()
-      const glossary = await generateGlossary({
+
+      const glossary = await regenerateGlossaryPreservingEdits({
         storage,
         pages,
         config: glossaryConfig,
@@ -893,6 +895,7 @@ export async function runFullPipeline(
           entries = (translatedRow.data as TextCatalogOutput).entries
         }
         for (const entry of entries) {
+          if (isTtsExcluded(entry.id, config.speech)) continue
           workItems.push({ textId: entry.id, text: entry.text, language: lang })
         }
       }

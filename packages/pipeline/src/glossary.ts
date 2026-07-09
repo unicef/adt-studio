@@ -270,6 +270,22 @@ export async function generateGlossary(
   return aiGlossary
 }
 
+/** Regenerate the glossary while preserving manually added, edited, and pruned
+ * terms from the previous version. Shared by both pipeline runners so the
+ * behavior can't drift; the caller persists the returned glossary. Relies on the
+ * prior glossary node surviving any pre-run clear (see getStageRerunClearNodes). */
+export async function regenerateGlossaryPreservingEdits(
+  options: Omit<GenerateGlossaryOptions, "excludedWords">
+): Promise<GlossaryOutput> {
+  const existingRow = options.storage.getLatestNodeData("glossary", "book")
+  const existingItems = (existingRow?.data as GlossaryOutput | undefined)?.items ?? []
+  const generated = await generateGlossary({
+    ...options,
+    excludedWords: getPrunedGlossaryWords(existingItems),
+  })
+  return mergeGeneratedGlossaryWithManualItems(generated, existingItems)
+}
+
 export interface GenerateGlossaryItemOptions {
   word: string
   context?: string

@@ -177,7 +177,11 @@ export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
     onSaveAndRerun: async () => {
       await handleSave()
       queueRun({ fromStage: "speech", toStage: "speech", apiKey })
-      navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "speech" } })
+      navigate({
+        to: "/books/$label/$step",
+        params: { label: bookLabel, step: "speech" },
+        ignoreBlocker: true,
+      })
     },
     onSaveStay: async () => {
       await handleSave()

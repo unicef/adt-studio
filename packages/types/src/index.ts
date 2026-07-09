@@ -79,6 +79,7 @@ export {
   STAGE_OUTPUT_NODES,
   getStageClearOrder,
   getStageClearNodes,
+  getStageRerunClearNodes,
   getCacheResourcesForNode,
   getCacheResourcesForNodes,
   getCacheResourcesForStageOutput,
@@ -220,6 +221,8 @@ export {
 export {
   TextCatalogEntry,
   TextCatalogOutput,
+  TextCatalogCategory,
+  getTextCatalogCategory,
 } from "./text-catalog.js"
 
 export {
@@ -232,7 +235,10 @@ export {
   TTSProviderConfig,
   SpeechConfig,
   isSpeechWordHighlightingEnabled,
+  type TtsExclusionConfig,
+  isTtsExcluded,
   SpeechFileEntry,
+  SpeechFailedEntry,
   TTSOutput,
   WordTimestamp,
   WordTimestampEntry,

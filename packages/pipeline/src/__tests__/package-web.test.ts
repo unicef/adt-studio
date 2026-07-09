@@ -836,6 +836,116 @@ describe("packageAdtWeb", () => {
     expect(preloader).toContain("timecode/timecode_output.json")
   })
 
+  it("drops read-aloud excluded entries from audios.json and timecodes", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    const audioDir = path.join(bookDir, "audio", "en")
+    fs.mkdirSync(bookDir, { recursive: true })
+    fs.mkdirSync(audioDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+    fs.writeFileSync(path.join(audioDir, "pg001_t001.mp3"), "audio")
+    fs.writeFileSync(path.join(audioDir, "pg001_t002.mp3"), "audio")
+    fs.writeFileSync(path.join(audioDir, "pg001_im001.mp3"), "audio")
+
+    const pages: PageData[] = [
+      { pageId: "pg001", pageNumber: 1, text: "Page one" },
+    ]
+
+    const ttsEntry = (textId: string) => ({
+      textId,
+      language: "en",
+      fileName: `${textId}.mp3`,
+      voice: "alloy",
+      model: "gpt-4o-mini-tts",
+      cached: false,
+    })
+    const timestampEntry = (textId: string) => ({
+      textId,
+      language: "en",
+      duration: 0.5,
+      words: [{ word: "Hello", start: 0, end: 0.5 }],
+    })
+
+    const storage = createMockStorage(pages, {
+      "web-rendering": {
+        pg001: {
+          sections: [
+            {
+              sectionIndex: 0,
+              sectionType: "content",
+              reasoning: "ok",
+              html: '<p data-id="pg001_t001">Kept</p><p data-id="pg001_t002">Muted</p>',
+            },
+          ],
+        },
+      },
+      "page-sectioning": {
+        pg001: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+      },
+      "tts": {
+        en: {
+          entries: [ttsEntry("pg001_t001"), ttsEntry("pg001_t002"), ttsEntry("pg001_im001")],
+          generatedAt: "2026-01-01T00:00:00.000Z",
+        },
+      },
+      "tts-timestamps": {
+        en: {
+          entries: {
+            pg001_t001: timestampEntry("pg001_t001"),
+            pg001_t002: timestampEntry("pg001_t002"),
+            pg001_im001: timestampEntry("pg001_im001"),
+          },
+          generatedAt: "2026-01-01T00:00:00.000Z",
+        },
+      },
+    })
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+      speechConfig: {
+        word_highlighting: true,
+        excluded_text_ids: ["pg001_t002"],
+        excluded_categories: ["captions"],
+      },
+    })
+
+    const audios = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "content", "i18n", "en", "audios.json"), "utf-8"),
+    ) as Record<string, string>
+    expect(audios).toEqual({ pg001_t001: "pg001_t001.mp3" })
+
+    const bundledAudioDir = path.join(bookDir, "adt", "content", "i18n", "en", "audio")
+    expect(fs.existsSync(path.join(bundledAudioDir, "pg001_t001.mp3"))).toBe(true)
+    expect(fs.existsSync(path.join(bundledAudioDir, "pg001_t002.mp3"))).toBe(false)
+    expect(fs.existsSync(path.join(bundledAudioDir, "pg001_im001.mp3"))).toBe(false)
+
+    const timecodes = JSON.parse(
+      fs.readFileSync(
+        path.join(bookDir, "adt", "content", "i18n", "en", "timecode", "timecode_output.json"),
+        "utf-8",
+      ),
+    ) as Record<string, unknown>
+    expect(Object.keys(timecodes)).toEqual(["pg001_t001"])
+  })
+
   it("emits defaultSettings and lockedSettings in config.json when provided", async () => {
     const bookDir = path.join(tmpDir, "book")
     const webAssetsDir = path.join(tmpDir, "assets-web")

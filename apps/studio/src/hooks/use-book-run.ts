@@ -136,6 +136,9 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   // Throttle progressive page invalidations during storyboard runs
   const lastPageInvalidateRef = useRef<number>(0)
 
+  // Throttle progressive TTS-list invalidations during speech runs
+  const lastTtsInvalidateRef = useRef<number>(0)
+
   // Serialized run queue — chains API calls so they arrive in click order
   const runChainRef = useRef<Promise<void>>(Promise.resolve())
 
@@ -233,6 +236,16 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
           }
         }
+        // Progressively refresh the TTS list during speech generation — GET
+        // /tts serves the run's live snapshot, so each completed audio shows
+        // up in the Speech view as it lands (throttled to ~2s).
+        if (pipelineStep === "tts") {
+          const now = Date.now()
+          if (now - lastTtsInvalidateRef.current > 2000) {
+            lastTtsInvalidateRef.current = now
+            queryClient.invalidateQueries({ queryKey: ["books", label, "tts"] })
+          }
+        }
       } else if (d.type === "step-complete" || d.type === "step-skip") {
         // Mark step as done/skipped, recompute stage state
         const nextStepState: StepState = d.type === "step-skip" ? "skipped" : "done"
@@ -291,6 +304,11 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         // Assertive: a failed step blocks progress; the user needs to know now.
         announceRef.current(i18n._(msg`${getStageLabelI18n(uiStage)} failed`), "assertive")
         progressRef.current.delete(pipelineStep)
+        // Speech errors persist per-item failures into the TTS output —
+        // refetch so the Speech view can mark the failed entries.
+        if (pipelineStep === "tts") {
+          queryClient.invalidateQueries({ queryKey: ["books", label, "tts"] })
+        }
       }
     })
 
