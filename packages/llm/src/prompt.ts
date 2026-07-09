@@ -42,14 +42,6 @@ export interface PromptEngine {
  */
 export function createPromptEngine(promptsDir: string | string[]): PromptEngine {
   const roots = Array.isArray(promptsDir) ? promptsDir : [promptsDir]
-  const engine = new Liquid({
-    root: roots,
-    extname: ".liquid",
-    strictVariables: false,
-  })
-
-  engine.registerTag("chat", createChatTag(engine))
-  engine.registerTag("image", ImageTag)
 
   return {
     resolvePrompt(templateName: string, options?: PromptRenderOptions): PromptResolution {
@@ -63,18 +55,58 @@ export function createPromptEngine(promptsDir: string | string[]): PromptEngine 
     ): Promise<Message[]> {
       const resolved = resolvePromptTemplate(roots, templateName, options)
       const template = fs.readFileSync(resolved.filePath, "utf-8")
+      const engine = createLiquidEngine(renderRootsForResolution(roots, resolved))
       const raw = await engine.parseAndRender(template, context)
       return parseMessages(raw)
     },
   }
 }
 
+function createLiquidEngine(roots: string[]): Liquid {
+  const engine = new Liquid({
+    root: roots,
+    extname: ".liquid",
+    strictVariables: false,
+  })
+
+  engine.registerTag("chat", createChatTag(engine))
+  engine.registerTag("image", ImageTag)
+  return engine
+}
+
+function renderRootsForResolution(roots: string[], resolved: PromptResolution): string[] {
+  const renderRoots: string[] = []
+  const seen = new Set<string>()
+  const addRoot = (root: string) => {
+    const key = path.resolve(root).toLowerCase()
+    if (seen.has(key)) return
+    seen.add(key)
+    renderRoots.push(root)
+  }
+
+  addRoot(path.dirname(resolved.filePath))
+
+  if (resolved.modelId && resolved.resolvedName !== resolved.requestedName) {
+    const modelFolder = promptModelFolderName(resolved.modelId)
+    for (const root of roots) {
+      addRoot(path.join(root, modelFolder))
+    }
+  }
+
+  for (const root of roots) {
+    addRoot(root)
+  }
+
+  return renderRoots
+}
+
 export function resolvePromptModelId(modelId: string | undefined): string | null {
   if (!modelId) return null
   const normalized = modelId.trim().toLowerCase()
   if (!normalized) return null
-  if (normalized === "gpt-5.4" || normalized === "openai:gpt-5.4") return null
-  return normalized
+  const canonical = normalized.includes(":") ? normalized : `openai:${normalized}`
+  if (canonical === "openai:gpt-5.4") return null
+  return canonical
 }
 
 export function promptNameForModel(

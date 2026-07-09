@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,8 +15,7 @@ import {
 } from "@/components/ui/select"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
-import { api } from "@/api/client"
-import { PromptViewer, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
+import { PromptViewer, savePromptDraft, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
 import { useDirtyTabTracker } from "@/hooks/use-settings-dirty-tabs"
 import { useStepConfig } from "@/hooks/use-step-config"
@@ -76,6 +76,7 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
+  const queryClient = useQueryClient()
 
   // Section Types state
   const [sectionTypes, setSectionTypes] = useState<Record<string, string>>({})
@@ -334,10 +335,10 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
 
   const save = async () => {
     if (sectioningPromptDraft != null) {
-      await api.updatePrompt("page_sectioning", sectioningPromptDraft.content, bookLabel, sectioningPromptDraft.modelId)
+      await savePromptDraft(queryClient, "page_sectioning", bookLabel, sectioningPromptDraft)
     }
     if (refinementPromptDraft != null) {
-      await api.updatePrompt("page_sectioning_refinement", refinementPromptDraft.content, bookLabel, refinementPromptDraft.modelId)
+      await savePromptDraft(queryClient, "page_sectioning_refinement", bookLabel, refinementPromptDraft)
     }
 
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
@@ -582,6 +583,7 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
               bookLabel={bookLabel}
               title={t`Page Sectioning Prompt`}
               description={t`The prompt template used to split each page into logical sections. This is a Liquid template processed with page context.`}
+              draft={sectioningPromptDraft}
               model={sectioning.model}
               onModelChange={sectioning.onModelChange}
               maxRetries={sectioning.maxRetries}
@@ -628,6 +630,7 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
               bookLabel={bookLabel}
               title={t`Page Sectioning Refinement Prompt`}
               description={t`The prompt used by the reviewer pass to inspect and correct a candidate sectioning tree. Shares the model and retry settings of the sectioning prompt.`}
+              draft={refinementPromptDraft}
               hideModel
               onContentChange={(content, modelId) => setRefinementPromptDraft(toPromptDraft(content, modelId))}
             />

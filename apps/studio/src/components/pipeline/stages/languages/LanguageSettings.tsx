@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { Link } from "@tanstack/react-router"
 import { Lock, ArrowLeft } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type { StageName } from "@adt/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -13,7 +13,7 @@ import { ModelSelect, OPENAI_TTS_MODELS, AZURE_TTS_MODELS, GEMINI_TTS_MODELS, IM
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { api } from "@/api/client"
-import { PromptViewer, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
+import { PromptViewer, savePromptDraft, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
 import { useDirtyTabTracker } from "@/hooks/use-settings-dirty-tabs"
 import { LanguagePicker } from "@/components/LanguagePicker"
@@ -42,6 +42,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
+  const queryClient = useQueryClient()
 
   const [outputLanguages, setOutputLanguages] = useState<Set<string>>(new Set())
   const [promptDraft, setPromptDraft] = useState<PromptDraft | null>(null)
@@ -210,10 +211,10 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
   const save = async () => {
     const promptSaves: Promise<unknown>[] = []
     if (promptDraft != null) {
-      promptSaves.push(api.updatePrompt("translation", promptDraft.content, bookLabel, promptDraft.modelId))
+      promptSaves.push(savePromptDraft(queryClient, "translation", bookLabel, promptDraft))
     }
     if (imagePromptDraft != null) {
-      promptSaves.push(api.updatePrompt("image_translation", imagePromptDraft.content, bookLabel, imagePromptDraft.modelId))
+      promptSaves.push(savePromptDraft(queryClient, "image_translation", bookLabel, imagePromptDraft))
     }
     if (promptSaves.length > 0) await Promise.all(promptSaves)
 
@@ -274,6 +275,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
           bookLabel={bookLabel}
           title={t`Translation Prompt`}
           description={t`The prompt template used to translate text catalog entries.`}
+          draft={promptDraft}
           model={translation.model}
           onModelChange={translation.onModelChange}
           maxRetries={translation.maxRetries}
@@ -444,6 +446,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
               bookLabel={bookLabel}
               title={t`Image translation prompt`}
               description={t`The prompt sent to the image model alongside each selected image.`}
+              draft={imagePromptDraft}
               model={imageTranslation.model}
               onModelChange={imageTranslation.onModelChange}
               maxRetries={imageTranslation.maxRetries}

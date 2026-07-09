@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { Eye, Wand2, Loader2, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,7 +27,7 @@ import { useApiKey } from "@/hooks/use-api-key"
 import { useStyleguides, useStyleguidePreview, useTemplates, useGenerateStyleguide } from "@/hooks/use-presets"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { api } from "@/api/client"
-import { PromptViewer, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
+import { PromptViewer, savePromptDraft, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { TemplateViewer } from "@/components/pipeline/components/TemplateViewer"
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
 import { useDirtyTabTracker } from "@/hooks/use-settings-dirty-tabs"
@@ -143,6 +144,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
+  const queryClient = useQueryClient()
   const { apiKey, hasApiKey } = useApiKey()
 
   // Form state
@@ -386,21 +388,21 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
     // Save any edited prompts/templates first
     const contentSaves: Promise<unknown>[] = []
     if (renderingPromptDraft != null) {
-      contentSaves.push(api.updatePrompt(renderingPromptName, renderingPromptDraft.content, bookLabel, renderingPromptDraft.modelId))
+      contentSaves.push(savePromptDraft(queryClient, renderingPromptName, bookLabel, renderingPromptDraft))
     }
     if (renderingTemplateDraft != null) contentSaves.push(api.updateTemplate(renderingTemplateName, renderingTemplateDraft, bookLabel))
     if (templateTabDraft != null && templateTabName) contentSaves.push(api.updateTemplate(templateTabName, templateTabDraft, bookLabel))
     if (activityPromptDraft != null && selectedActivity?.prompt) {
-      contentSaves.push(api.updatePrompt(selectedActivity.prompt, activityPromptDraft.content, bookLabel, activityPromptDraft.modelId))
+      contentSaves.push(savePromptDraft(queryClient, selectedActivity.prompt, bookLabel, activityPromptDraft))
     }
     if (activityAnswerDraft != null && selectedActivity?.answer_prompt) {
-      contentSaves.push(api.updatePrompt(selectedActivity.answer_prompt, activityAnswerDraft.content, bookLabel, activityAnswerDraft.modelId))
+      contentSaves.push(savePromptDraft(queryClient, selectedActivity.answer_prompt, bookLabel, activityAnswerDraft))
     }
     if (imageGenPromptDraft != null) {
-      contentSaves.push(api.updatePrompt("ai_image_generation", imageGenPromptDraft.content, bookLabel, imageGenPromptDraft.modelId))
+      contentSaves.push(savePromptDraft(queryClient, "ai_image_generation", bookLabel, imageGenPromptDraft))
     }
     if (imageEditPromptDraft != null) {
-      contentSaves.push(api.updatePrompt("ai_image_edit", imageEditPromptDraft.content, bookLabel, imageEditPromptDraft.modelId))
+      contentSaves.push(savePromptDraft(queryClient, "ai_image_edit", bookLabel, imageEditPromptDraft))
     }
     if (contentSaves.length > 0) await Promise.all(contentSaves)
 
@@ -631,6 +633,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
               bookLabel={bookLabel}
               title={t`Rendering Prompt`}
               description={t`The prompt template used to generate HTML for each section. This is a Liquid template processed with section context.`}
+              draft={renderingPromptDraft}
               model={renderingModel}
               onModelChange={(v) => { setRenderingModel(v); markDirty("rendering_model") }}
               maxRetries={renderingRetries}
@@ -736,6 +739,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
                   bookLabel={bookLabel}
                   title={t`Generation Prompt`}
                   description={t`Generates the interactive HTML for this activity type.`}
+                  draft={activityPromptDraft}
                   model={activityModel}
                   onModelChange={(v) => { setActivityModel(v); markDirty("activity_model") }}
                   maxRetries={activityRetries}
@@ -751,6 +755,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
                     bookLabel={bookLabel}
                   title={t`Answer Prompt`}
                   description={t`Extracts the correct answer key from the generated activity HTML.`}
+                    draft={activityAnswerDraft}
                     model={activityModel}
                     onModelChange={(v) => { setActivityModel(v); markDirty("activity_model") }}
                     maxRetries={activityRetries}
@@ -799,6 +804,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
                 bookLabel={bookLabel}
                 title={t`Image Generation Prompt`}
                 description={t`Wraps 'Generate new' requests. Supports user_prompt, style, and image_type variables. Uses Liquid syntax for conditionals.`}
+                draft={imageGenPromptDraft}
                 hideModel
                 onContentChange={(content, modelId) => setImageGenPromptDraft(toPromptDraft(content, modelId))}
               />
@@ -809,6 +815,7 @@ export function StoryboardSettings({ bookLabel, tab = "general" }: { bookLabel: 
                 bookLabel={bookLabel}
                 title={t`Image Edit Prompt`}
                 description={t`Wraps 'Edit this image' requests. The AI receives the original image alongside this prompt. Supports user_prompt and style variables.`}
+                draft={imageEditPromptDraft}
                 hideModel
                 onContentChange={(content, modelId) => setImageEditPromptDraft(toPromptDraft(content, modelId))}
               />

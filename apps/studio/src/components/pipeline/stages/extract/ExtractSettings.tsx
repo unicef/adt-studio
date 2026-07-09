@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { LanguagePicker } from "@/components/LanguagePicker"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
-import { api } from "@/api/client"
-import { PromptViewer, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
+import { PromptViewer, savePromptDraft, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
 import { useDirtyTabTracker } from "@/hooks/use-settings-dirty-tabs"
 import { useStepConfig } from "@/hooks/use-step-config"
@@ -25,6 +25,7 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
+  const queryClient = useQueryClient()
 
   // Form state
   const [editingLanguage, setEditingLanguage] = useState("")
@@ -135,16 +136,16 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
     // Save any edited prompts first
     const promptSaves: Promise<unknown>[] = []
     if (metadataPromptDraft != null) {
-      promptSaves.push(api.updatePrompt("metadata_extraction", metadataPromptDraft.content, bookLabel, metadataPromptDraft.modelId))
+      promptSaves.push(savePromptDraft(queryClient, "metadata_extraction", bookLabel, metadataPromptDraft))
     }
     if (meaningfulnessPromptDraft != null) {
-      promptSaves.push(api.updatePrompt("image_meaningfulness", meaningfulnessPromptDraft.content, bookLabel, meaningfulnessPromptDraft.modelId))
+      promptSaves.push(savePromptDraft(queryClient, "image_meaningfulness", bookLabel, meaningfulnessPromptDraft))
     }
     if (croppingPromptDraft != null) {
-      promptSaves.push(api.updatePrompt("image_cropping", croppingPromptDraft.content, bookLabel, croppingPromptDraft.modelId))
+      promptSaves.push(savePromptDraft(queryClient, "image_cropping", bookLabel, croppingPromptDraft))
     }
     if (segmentationPromptDraft != null) {
-      promptSaves.push(api.updatePrompt("image_segmentation", segmentationPromptDraft.content, bookLabel, segmentationPromptDraft.modelId))
+      promptSaves.push(savePromptDraft(queryClient, "image_segmentation", bookLabel, segmentationPromptDraft))
     }
     if (promptSaves.length > 0) await Promise.all(promptSaves)
 
@@ -294,6 +295,7 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
           bookLabel={bookLabel}
           title={t`Metadata Extraction Prompt`}
           description={t`The prompt template used to extract book metadata (title, author, etc.) from the first few pages. This is a Liquid template processed with page context.`}
+          draft={metadataPromptDraft}
           model={metadata.model}
           onModelChange={metadata.onModelChange}
           maxRetries={metadata.maxRetries}
@@ -309,6 +311,7 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
           bookLabel={bookLabel}
           title={t`Image Meaningfulness Prompt`}
           description={t`LLM-based filter to determine if extracted images are meaningful.`}
+          draft={meaningfulnessPromptDraft}
           model={imageMeaningfulness.model}
           onModelChange={imageMeaningfulness.onModelChange}
           maxRetries={imageMeaningfulness.maxRetries}
@@ -324,6 +327,7 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
           bookLabel={bookLabel}
           title={t`Image Cropping Prompt`}
           description={t`LLM-based cropping to remove stray text, artifacts, and excessive whitespace from extracted images.`}
+          draft={croppingPromptDraft}
           model={imageCropping.model}
           onModelChange={imageCropping.onModelChange}
           maxRetries={imageCropping.maxRetries}
@@ -355,6 +359,7 @@ export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: str
               bookLabel={bookLabel}
               title={t`Image Segmentation Prompt`}
               description={t`LLM-based segmentation to detect and split composited images into individual segments. Requires GPT-5.2+ for accurate bounding box coordinates.`}
+              draft={segmentationPromptDraft}
               model={imageSegmentation.model}
               onModelChange={imageSegmentation.onModelChange}
               maxRetries={imageSegmentation.maxRetries}

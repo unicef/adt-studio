@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { Plus } from "lucide-react"
 import { AddQuizDialog } from "./AddQuizDialog"
 import { Button } from "@/components/ui/button"
@@ -8,8 +9,7 @@ import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
 import { useStageStatus } from "@/hooks/use-stage-status"
-import { api } from "@/api/client"
-import { PromptViewer, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
+import { PromptViewer, savePromptDraft, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
 import { useDirtyTabTracker } from "@/hooks/use-settings-dirty-tabs"
 import { useStepConfig } from "@/hooks/use-step-config"
@@ -31,6 +31,7 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
+  const queryClient = useQueryClient()
   const { hasApiKey } = useApiKey()
   const quizzesStatus = useStageStatus("quizzes")
   const [showAddQuiz, setShowAddQuiz] = useState(false)
@@ -104,7 +105,7 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
 
   const save = async () => {
     if (promptDraft != null) {
-      await api.updatePrompt("quiz_generation", promptDraft.content, bookLabel, promptDraft.modelId)
+      await savePromptDraft(queryClient, "quiz_generation", bookLabel, promptDraft)
     }
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
     setDirty({})
@@ -217,6 +218,7 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
           bookLabel={bookLabel}
           title={t`Quiz Generation Prompt`}
           description={t`The prompt template used to generate quiz questions from page content.`}
+          draft={promptDraft}
           model={quiz.model}
           onModelChange={quiz.onModelChange}
           maxRetries={quiz.maxRetries}

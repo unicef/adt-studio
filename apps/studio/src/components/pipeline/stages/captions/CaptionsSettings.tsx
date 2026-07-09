@@ -1,8 +1,8 @@
 import { useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
-import { api } from "@/api/client"
-import { PromptViewer, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
+import { PromptViewer, savePromptDraft, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
 import { useStepConfig } from "@/hooks/use-step-config"
 import { useLingui } from "@lingui/react/macro"
@@ -12,6 +12,7 @@ export function CaptionsSettings({ bookLabel }: { bookLabel: string; headerTarge
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
+  const queryClient = useQueryClient()
   const [promptDraft, setPromptDraft] = useState<PromptDraft | null>(null)
 
   const [dirty, setDirty] = useState<Record<string, boolean>>({})
@@ -36,7 +37,7 @@ export function CaptionsSettings({ bookLabel }: { bookLabel: string; headerTarge
 
   const save = async () => {
     if (promptDraft != null) {
-      await api.updatePrompt("image_captioning", promptDraft.content, bookLabel, promptDraft.modelId)
+      await savePromptDraft(queryClient, "image_captioning", bookLabel, promptDraft)
     }
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
     setDirty({})
@@ -61,6 +62,7 @@ export function CaptionsSettings({ bookLabel }: { bookLabel: string; headerTarge
         bookLabel={bookLabel}
         title={t`Caption Prompt`}
         description={t`The prompt template used to generate captions for images in the book.`}
+        draft={promptDraft}
         model={caption.model}
         onModelChange={caption.onModelChange}
         maxRetries={caption.maxRetries}

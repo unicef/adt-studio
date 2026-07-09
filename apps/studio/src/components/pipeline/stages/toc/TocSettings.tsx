@@ -1,8 +1,8 @@
 import { useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
-import { api } from "@/api/client"
-import { PromptViewer, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
+import { PromptViewer, savePromptDraft, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
 import { useStepConfig } from "@/hooks/use-step-config"
 import { useLingui } from "@lingui/react/macro"
@@ -12,6 +12,7 @@ export function TocSettings({ bookLabel }: { bookLabel: string; headerTarget?: H
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
+  const queryClient = useQueryClient()
   const [generationPromptDraft, setGenerationPromptDraft] = useState<PromptDraft | null>(null)
 
   const [dirty, setDirty] = useState<Record<string, boolean>>({})
@@ -36,12 +37,7 @@ export function TocSettings({ bookLabel }: { bookLabel: string; headerTarget?: H
 
   const save = async () => {
     if (generationPromptDraft != null) {
-      await api.updatePrompt(
-        "toc_generation",
-        generationPromptDraft.content,
-        bookLabel,
-        generationPromptDraft.modelId,
-      )
+      await savePromptDraft(queryClient, "toc_generation", bookLabel, generationPromptDraft)
     }
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
     setDirty({})
@@ -66,6 +62,7 @@ export function TocSettings({ bookLabel }: { bookLabel: string; headerTarget?: H
         bookLabel={bookLabel}
         title={t`TOC Generation Prompt`}
         description={t`The prompt template used to generate the table of contents from book headings.`}
+        draft={generationPromptDraft}
         model={tocGen.model}
         onModelChange={tocGen.onModelChange}
         maxRetries={tocGen.maxRetries}

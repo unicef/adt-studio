@@ -1,11 +1,11 @@
 export function promptModelForSelectedModel(modelId: string | undefined): string | null {
   if (!modelId) return null
   const normalized = modelId.trim().toLowerCase()
-  const defaultModelPrompts = ["gpt-5.4", "openai:gpt-5.4"]
+  const canonical = normalized.includes(":") ? normalized : `openai:${normalized}`
 
-  if (defaultModelPrompts.includes(normalized)) return null
+  if (canonical === "openai:gpt-5.4") return null
 
-  return normalized
+  return canonical
 }
 
 export function promptNameForSelectedModel(promptName: string, modelId: string): string {

@@ -2419,6 +2419,9 @@ msgstr "Discard"
 msgid "Discard & leave"
 msgstr "Discard & leave"
 
+msgid "Discard unsaved prompt changes?"
+msgstr "Discard unsaved prompt changes?"
+
 msgid "Display"
 msgstr "Display"
 

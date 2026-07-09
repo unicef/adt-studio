@@ -9,6 +9,8 @@ export interface PromptViewerBaseProps {
   title: string
   /** Short description shown above the prompt */
   description: string
+  /** Draft content owned by the parent so tab remounts keep pending edits. */
+  draft?: PromptDraft | null
   /** Called when the user edits the prompt content (null = reverted to original) */
   onContentChange?: (content: string | null, modelId: string | null) => void
   /** Current max retries value (as string for input binding) */

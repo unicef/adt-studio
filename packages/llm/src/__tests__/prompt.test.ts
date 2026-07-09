@@ -137,6 +137,30 @@ describe("createPromptEngine", () => {
     })
   })
 
+  it("resolves includes from the selected model folder before root includes", async () => {
+    const dir = tmpDir()
+    fs.writeFileSync(
+      path.join(dir, "section.liquid"),
+      `{% chat role: "user" %}Base{% endchat %}`
+    )
+    fs.writeFileSync(path.join(dir, "_shared.liquid"), "Root include")
+    const modelDir = path.join(dir, "openai_gpt_5_5")
+    fs.mkdirSync(modelDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(modelDir, "section.liquid"),
+      `{% chat role: "user" %}{% include "_shared" %}{% endchat %}`
+    )
+    fs.writeFileSync(path.join(modelDir, "_shared.liquid"), "Model include")
+
+    const engine = createPromptEngine(dir)
+    const messages = await engine.renderPrompt("section", {}, { modelId: "openai:gpt-5.5" })
+
+    expect(messages[0]).toEqual({
+      role: "user",
+      content: [{ type: "text", text: "Model include" }],
+    })
+  })
+
   it("uses versioned model overrides before prompt files from model folders", async () => {
     const dir = tmpDir()
     fs.writeFileSync(
@@ -184,6 +208,28 @@ describe("createPromptEngine", () => {
     expect(messages[0]).toEqual({
       role: "user",
       content: [{ type: "text", text: "Gemini" }],
+    })
+  })
+
+  it("treats bare model ids as OpenAI model ids for prompt variants", async () => {
+    const dir = tmpDir()
+    fs.writeFileSync(
+      path.join(dir, "section.liquid"),
+      `{% chat role: "user" %}Base{% endchat %}`
+    )
+    fs.writeFileSync(
+      path.join(dir, "section__openai_gpt_5_5.liquid"),
+      `{% chat role: "user" %}GPT 5.5{% endchat %}`
+    )
+
+    const engine = createPromptEngine(dir)
+    const resolution = engine.resolvePrompt("section", { modelId: "gpt-5.5" })
+    const messages = await engine.renderPrompt("section", {}, { modelId: "gpt-5.5" })
+
+    expect(resolution.resolvedName).toBe("section__openai_gpt_5_5")
+    expect(messages[0]).toEqual({
+      role: "user",
+      content: [{ type: "text", text: "GPT 5.5" }],
     })
   })
 

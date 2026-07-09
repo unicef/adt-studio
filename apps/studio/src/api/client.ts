@@ -1259,22 +1259,34 @@ export const api = {
     )
   },
 
-  listPromptVersions: (name: string, modelId?: string | null) => {
+  listPromptVersions: (name: string, modelId?: string | null, bookLabel?: string) => {
     const query = promptModelQuery(modelId)
-    return request<PromptVersionsResponse>(`/prompts/${name}/versions${query}`)
+    return request<PromptVersionsResponse>(
+      bookLabel ? `/books/${bookLabel}/prompts/${name}/versions${query}` : `/prompts/${name}/versions${query}`,
+    )
   },
 
-  setPromptVersionCurrent: (name: string, version: string, modelId?: string | null) => {
+  setPromptVersionCurrent: (
+    name: string,
+    version: string,
+    modelId?: string | null,
+    bookLabel?: string,
+  ) => {
     const query = promptModelQuery(modelId)
     return request<PromptResponse>(
-      `/prompts/${name}/versions/${encodeURIComponent(version)}/current${query}`,
+      bookLabel
+        ? `/books/${bookLabel}/prompts/${name}/versions/${encodeURIComponent(version)}/current${query}`
+        : `/prompts/${name}/versions/${encodeURIComponent(version)}/current${query}`,
       { method: "PUT" },
     )
   },
 
-  resetPrompt: (name: string, modelId?: string | null) => {
+  resetPrompt: (name: string, modelId?: string | null, bookLabel?: string) => {
     const query = promptModelQuery(modelId)
-    return request<PromptResponse>(`/prompts/${name}${query}`, { method: "DELETE" })
+    return request<PromptResponse>(
+      bookLabel ? `/books/${bookLabel}/prompts/${name}${query}` : `/prompts/${name}${query}`,
+      { method: "DELETE" },
+    )
   },
 
   getTemplate: (name: string, bookLabel?: string) =>

@@ -2,8 +2,7 @@ import { useEffect, useState } from "react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { api } from "@/api/client"
-import { PromptViewer, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
+import { PromptViewer, savePromptDraft, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
@@ -74,9 +73,7 @@ export function EasyReadSettings({
   const save = async () => {
     const promptToSave = promptName.trim() || DEFAULT_PROMPT
     if (promptDraft != null) {
-      const savedPrompt = await api.updatePrompt(promptToSave, promptDraft.content, bookLabel, promptDraft.modelId)
-      queryClient.setQueryData(["prompts", promptToSave, bookLabel, promptDraft.modelId], savedPrompt)
-      await queryClient.invalidateQueries({ queryKey: ["prompts", promptToSave, bookLabel, promptDraft.modelId] })
+      await savePromptDraft(queryClient, promptToSave, bookLabel, promptDraft)
     }
 
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
@@ -135,6 +132,7 @@ export function EasyReadSettings({
         bookLabel={bookLabel}
         title={t`Easy Read Prompt`}
         description={t`The prompt template used to generate editable Easy Read text blocks.`}
+        draft={promptDraft}
         model={easyRead.model}
         onModelChange={easyRead.onModelChange}
         maxRetries={easyRead.maxRetries}

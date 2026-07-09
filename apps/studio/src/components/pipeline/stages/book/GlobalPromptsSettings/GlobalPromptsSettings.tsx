@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { FileText, GitCompare } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/api/client";
@@ -61,6 +61,10 @@ export function GlobalPromptsSettings({
   const [treeFilter, setTreeFilter] = useState("");
   const [draft, setDraft] = useState<string | null>(null);
   const [isDiffOpen, setIsDiffOpen] = useState(false);
+  const currentSelectionRef = useRef<{
+    promptName: string;
+    modelId: string | null;
+  }>({ promptName: "", modelId: null });
 
   const promptListQuery = useQuery({
     queryKey: ["prompts"],
@@ -96,6 +100,10 @@ export function GlobalPromptsSettings({
   }, [promptSummaries, selectedPrompt]);
 
   const promptModelId = promptModelForSelectedModel(model);
+  useEffect(() => {
+    currentSelectionRef.current = { promptName: selectedPrompt, modelId: promptModelId };
+  }, [selectedPrompt, promptModelId]);
+
   const promptQuery = useQuery({
     queryKey: ["prompts", selectedPrompt, undefined, promptModelId],
     queryFn: () => api.getPrompt(selectedPrompt, undefined, promptModelId),
@@ -120,12 +128,38 @@ export function GlobalPromptsSettings({
   const isDirty = draft != null && draft !== currentContent;
   const hasResettableVersion = selectedPrompt.length > 0 && isEditedGlobalVersion;
 
-  const handleCurrentVersionChanged = async (prompt: PromptResponse) => {
+  const canDiscardDraft = () => (
+    !isDirty || window.confirm(t`Discard unsaved prompt changes?`)
+  );
+
+  const selectPromptFile = (promptName: string, modelId: string) => {
+    if (!canDiscardDraft()) return;
+    setSelectedPrompt(promptName);
+    setModel(modelId);
     setDraft(null);
-    updatePromptCaches(queryClient, selectedPrompt, promptModelId, prompt);
+  };
+
+  const selectModel = (modelId: string) => {
+    if (!canDiscardDraft()) return;
+    setModel(modelId);
+    setDraft(null);
+  };
+
+  const handleCurrentVersionChanged = async (
+    promptName: string,
+    modelId: string | null,
+    prompt: PromptResponse,
+  ) => {
+    if (
+      currentSelectionRef.current.promptName === promptName
+      && currentSelectionRef.current.modelId === modelId
+    ) {
+      setDraft(null);
+    }
+    updatePromptCaches(queryClient, promptName, modelId, prompt);
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["prompts"] }),
-      queryClient.invalidateQueries({ queryKey: ["prompt-versions", selectedPrompt, promptModelId] }),
+      queryClient.invalidateQueries({ queryKey: ["prompt-versions", promptName, modelId] }),
     ]);
   };
 
@@ -410,7 +444,7 @@ export function GlobalPromptsSettings({
                   promptModels={promptModels}
                   promptSummaries={promptSummaries}
                   selectedModel={model}
-                  onModelSelected={setModel}
+                  onModelSelected={selectModel}
                 />
               </div>
               {isPromptFilesLoading ? (
@@ -424,11 +458,7 @@ export function GlobalPromptsSettings({
                   selectedModel={model}
                   deletingKey={deletingTreeKey}
                   deletingModelId={deletingModelId}
-                  onSelectPrompt={(promptName, modelId) => {
-                    setSelectedPrompt(promptName);
-                    setModel(modelId);
-                    setDraft(null);
-                  }}
+                  onSelectPrompt={selectPromptFile}
                   onCreatePromptFromTemplate={handleCreatePromptFromTemplate}
                   onDeletePrompt={(promptName, modelId) =>
                     deletePromptMutation.mutateAsync({ promptName, modelId })

@@ -15,17 +15,30 @@ const UNSAVED_VERSION_KEY = "__unsaved__"
 
 type PromptVersionHistoryProps = {
   promptName: string
+  bookLabel?: string
   modelId: string | null
   currentContent: string
   editedContent: string
   disabled: boolean
   hasUnsavedChanges: boolean
   className?: string
-  onCurrentVersionChanged: (prompt: PromptResponse) => Promise<void> | void
+  onCurrentVersionChanged: (
+    promptName: string,
+    modelId: string | null,
+    prompt: PromptResponse,
+  ) => Promise<void> | void
+}
+
+type ActivatePromptVersionVariables = {
+  promptName: string
+  bookLabel?: string
+  modelId: string | null
+  version: string
 }
 
 export function PromptVersionHistory({
   promptName,
+  bookLabel,
   modelId,
   currentContent,
   editedContent,
@@ -39,8 +52,8 @@ export function PromptVersionHistory({
   const [selectedVersionName, setSelectedVersionName] = useState<string | null>(null)
 
   const versionsQuery = useQuery({
-    queryKey: ["prompt-versions", promptName, modelId],
-    queryFn: () => api.listPromptVersions(promptName, modelId),
+    queryKey: ["prompt-versions", promptName, modelId, bookLabel],
+    queryFn: () => api.listPromptVersions(promptName, modelId, bookLabel),
     enabled: !disabled && promptName.length > 0,
   })
 
@@ -69,10 +82,13 @@ export function PromptVersionHistory({
   }, [hasUnsavedChanges, promptName, modelId, versionsQuery.data?.currentVersion, versions])
 
   const activateMutation = useMutation({
-    mutationFn: (version: string) => api.setPromptVersionCurrent(promptName, version, modelId),
-    onSuccess: async (prompt) => {
-      await onCurrentVersionChanged(prompt)
-      await queryClient.invalidateQueries({ queryKey: ["prompt-versions", promptName, modelId] })
+    mutationFn: ({ promptName, bookLabel, modelId, version }: ActivatePromptVersionVariables) =>
+      api.setPromptVersionCurrent(promptName, version, modelId, bookLabel),
+    onSuccess: async (prompt, variables) => {
+      await onCurrentVersionChanged(variables.promptName, variables.modelId, prompt)
+      await queryClient.invalidateQueries({
+        queryKey: ["prompt-versions", variables.promptName, variables.modelId, variables.bookLabel],
+      })
       toast.success(t`Prompt version selected.`)
     },
     onError: (error) => {
@@ -122,7 +138,14 @@ export function PromptVersionHistory({
                   || hasUnsavedChanges
                 }
                 onClick={() => {
-                  if (selectedVersion) activateMutation.mutate(selectedVersion.version)
+                  if (selectedVersion) {
+                    activateMutation.mutate({
+                      promptName,
+                      bookLabel,
+                      modelId,
+                      version: selectedVersion.version,
+                    })
+                  }
                 }}
               >
                 <CheckCircle2 className="size-3.5" />

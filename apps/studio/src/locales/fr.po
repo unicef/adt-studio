@@ -2421,6 +2421,9 @@ msgstr "Abandonner"
 msgid "Discard & leave"
 msgstr "Abandonner et quitter"
 
+msgid "Discard unsaved prompt changes?"
+msgstr "Abandonner les modifications non enregistrées du prompt ?"
+
 msgid "Display"
 msgstr "Affichage"
 

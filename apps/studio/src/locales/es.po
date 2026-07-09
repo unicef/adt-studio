@@ -2419,6 +2419,9 @@ msgstr "Descartar"
 msgid "Discard & leave"
 msgstr "Descartar y salir"
 
+msgid "Discard unsaved prompt changes?"
+msgstr "¿Descartar los cambios no guardados del prompt?"
+
 msgid "Display"
 msgstr "Visualización"
 

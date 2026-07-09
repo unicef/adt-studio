@@ -7,12 +7,14 @@ import {
 } from "@adt/llm"
 
 const VALID_NAME = /^[a-zA-Z0-9_]+$/
-const VALID_MODEL_ID = /^[a-zA-Z0-9][a-zA-Z0-9_.:/-]{0,159}$/
+const VALID_MODEL_ID = /^[a-zA-Z][a-zA-Z0-9]*:[a-zA-Z0-9][a-zA-Z0-9_.-]{0,159}$/
 const PROMPT_VERSIONS_DIR = ".versions"
 const PROMPT_MODELS_FILE = ".models.json"
-const PROMPT_VERSION_FILE_LIMIT = 6
 const PROMPT_CURRENT_VERSION_FILE = ".current"
 const VALID_VERSION_FILE = /^\d{8}T\d{9}Z-\d{3}\.liquid$/
+const BUILT_IN_PROMPT_MODEL_OWNERS = new Map<string, string>([
+  ["openai_gpt_5_5", "openai:gpt-5.5"],
+])
 
 interface PromptSummary {
   name: string
@@ -44,6 +46,7 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
     }
 
     const models: string[] = []
+    const modelFolders = new Map(BUILT_IN_PROMPT_MODEL_OWNERS)
     for (const value of body.models) {
       if (typeof value !== "string") {
         return c.json({ error: "Invalid model id" }, 400)
@@ -53,6 +56,12 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
       if (!VALID_MODEL_ID.test(modelId)) {
         return c.json({ error: "Invalid model id" }, 400)
       }
+      const folderName = promptModelFolderName(modelId)
+      const existingModel = modelFolders.get(folderName)
+      if (existingModel && existingModel !== modelId) {
+        return c.json({ error: "Model id collides with another prompt model" }, 400)
+      }
+      modelFolders.set(folderName, modelId)
       if (!models.includes(modelId)) models.push(modelId)
     }
 
@@ -72,12 +81,15 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
     const modelId = resolvePromptModelId(c.req.query("model"))
+    if (!isValidPromptModelId(promptsDir, modelId)) {
+      return c.json({ error: "Invalid model id" }, 400)
+    }
 
     if (!basePromptExists(promptsDir, name)) {
       return c.json({ error: "Prompt not found" }, 404)
     }
 
-    return c.json(listPromptVersions(promptsDir, name, modelId))
+    return c.json(listPromptVersions({ root: promptsDir, promptsDir, name, modelId }))
   })
 
   // PUT /prompts/:name/versions/:version/current - select active global prompt version
@@ -91,6 +103,9 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
       return c.json({ error: "Invalid prompt version" }, 400)
     }
     const modelId = resolvePromptModelId(c.req.query("model"))
+    if (!isValidPromptModelId(promptsDir, modelId)) {
+      return c.json({ error: "Invalid model id" }, 400)
+    }
 
     if (!basePromptExists(promptsDir, name)) {
       return c.json({ error: "Prompt not found" }, 404)
@@ -119,6 +134,9 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
     const modelId = resolvePromptModelId(c.req.query("model"))
+    if (!isValidPromptModelId(promptsDir, modelId)) {
+      return c.json({ error: "Invalid model id" }, 400)
+    }
 
     const prompt = readPrompt({ promptsDir, name, modelId })
     if (!prompt) {
@@ -135,6 +153,9 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
     const modelId = resolvePromptModelId(c.req.query("model"))
+    if (!isValidPromptModelId(promptsDir, modelId)) {
+      return c.json({ error: "Invalid model id" }, 400)
+    }
 
     const body = await c.req.json<{ content: string }>()
     if (typeof body.content !== "string") {
@@ -151,7 +172,6 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
     const version = createPromptVersionName(versionDir)
     fs.writeFileSync(path.join(versionDir, version), body.content, "utf-8")
     writeCurrentPromptVersion(versionDir, version)
-    prunePromptVersions(versionDir)
     return c.json({ name, resolvedName, content: body.content, source: "global", modelId, version })
   })
 
@@ -162,6 +182,9 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
     const modelId = resolvePromptModelId(c.req.query("model"))
+    if (!isValidPromptModelId(promptsDir, modelId)) {
+      return c.json({ error: "Invalid model id" }, 400)
+    }
 
     if (!basePromptExists(promptsDir, name)) {
       return c.json({ error: "Prompt not found" }, 404)
@@ -181,6 +204,69 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
     return c.json(prompt)
   })
 
+  // GET /books/:label/prompts/:name/versions - list versioned book prompt overrides
+  app.get("/books/:label/prompts/:name/versions", (c) => {
+    const label = c.req.param("label")
+    const name = c.req.param("name")
+    if (!VALID_NAME.test(name)) {
+      return c.json({ error: "Invalid prompt name" }, 400)
+    }
+    const modelId = resolvePromptModelId(c.req.query("model"))
+    if (!isValidPromptModelId(promptsDir, modelId)) {
+      return c.json({ error: "Invalid model id" }, 400)
+    }
+
+    if (!basePromptExists(promptsDir, name)) {
+      return c.json({ error: "Prompt not found" }, 404)
+    }
+
+    const bookPromptsDir = path.join(booksDir, label, "prompts")
+    return c.json(listPromptVersions({
+      root: bookPromptsDir,
+      promptsDir,
+      booksDir,
+      label,
+      name,
+      modelId,
+    }))
+  })
+
+  // PUT /books/:label/prompts/:name/versions/:version/current - select active book prompt version
+  app.put("/books/:label/prompts/:name/versions/:version/current", (c) => {
+    const label = c.req.param("label")
+    const name = c.req.param("name")
+    const version = c.req.param("version")
+    if (!VALID_NAME.test(name)) {
+      return c.json({ error: "Invalid prompt name" }, 400)
+    }
+    if (!VALID_VERSION_FILE.test(version)) {
+      return c.json({ error: "Invalid prompt version" }, 400)
+    }
+    const modelId = resolvePromptModelId(c.req.query("model"))
+    if (!isValidPromptModelId(promptsDir, modelId)) {
+      return c.json({ error: "Invalid model id" }, 400)
+    }
+
+    if (!basePromptExists(promptsDir, name)) {
+      return c.json({ error: "Prompt not found" }, 404)
+    }
+
+    const resolvedName = promptNameForModel(name, modelId)
+    const versionDir = path.join(booksDir, label, "prompts", PROMPT_VERSIONS_DIR, resolvedName)
+    const versionPath = path.join(versionDir, version)
+    if (!fs.existsSync(versionPath)) {
+      return c.json({ error: "Prompt version not found" }, 404)
+    }
+
+    writeCurrentPromptVersion(versionDir, version)
+    const prompt = readPrompt({ promptsDir, booksDir, label, name, modelId })
+    if (!prompt) {
+      return c.json({ error: "Prompt not found" }, 404)
+    }
+
+    return c.json(prompt)
+  })
+
   // GET /books/:label/prompts/:name - read book override, fall back to global
   app.get("/books/:label/prompts/:name", (c) => {
     const label = c.req.param("label")
@@ -189,6 +275,52 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
     const modelId = resolvePromptModelId(c.req.query("model"))
+    if (!isValidPromptModelId(promptsDir, modelId)) {
+      return c.json({ error: "Invalid model id" }, 400)
+    }
+
+    const prompt = readPrompt({ promptsDir, booksDir, label, name, modelId })
+    if (!prompt) {
+      return c.json({ error: "Prompt not found" }, 404)
+    }
+
+    return c.json(prompt)
+  })
+
+  // DELETE /books/:label/prompts/:name - reset book prompt override to global fallback
+  app.delete("/books/:label/prompts/:name", (c) => {
+    const label = c.req.param("label")
+    const name = c.req.param("name")
+    if (!VALID_NAME.test(name)) {
+      return c.json({ error: "Invalid prompt name" }, 400)
+    }
+    const modelId = resolvePromptModelId(c.req.query("model"))
+    if (!isValidPromptModelId(promptsDir, modelId)) {
+      return c.json({ error: "Invalid model id" }, 400)
+    }
+
+    if (!basePromptExists(promptsDir, name)) {
+      return c.json({ error: "Prompt not found" }, 404)
+    }
+
+    const resolvedName = promptNameForModel(name, modelId)
+    const bookPromptsDir = path.join(booksDir, label, "prompts")
+    const versionDir = path.join(bookPromptsDir, PROMPT_VERSIONS_DIR, resolvedName)
+    if (fs.existsSync(versionDir)) {
+      fs.rmSync(versionDir, { recursive: true, force: true })
+    }
+
+    const legacyFlatPath = path.join(bookPromptsDir, `${resolvedName}.liquid`)
+    if (fs.existsSync(legacyFlatPath)) {
+      fs.rmSync(legacyFlatPath, { force: true })
+    }
+
+    if (modelId) {
+      const folderPath = path.join(bookPromptsDir, promptModelFolderName(modelId), `${name}.liquid`)
+      if (fs.existsSync(folderPath)) {
+        fs.rmSync(folderPath, { force: true })
+      }
+    }
 
     const prompt = readPrompt({ promptsDir, booksDir, label, name, modelId })
     if (!prompt) {
@@ -206,6 +338,9 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
     const modelId = resolvePromptModelId(c.req.query("model"))
+    if (!isValidPromptModelId(promptsDir, modelId)) {
+      return c.json({ error: "Invalid model id" }, 400)
+    }
 
     const body = await c.req.json<{ content: string }>()
     if (typeof body.content !== "string") {
@@ -227,7 +362,6 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
     const version = createPromptVersionName(versionDir)
     fs.writeFileSync(path.join(versionDir, version), body.content, "utf-8")
     writeCurrentPromptVersion(versionDir, version)
-    prunePromptVersions(versionDir)
     return c.json({ name, resolvedName, content: body.content, source: "book", modelId, version })
   })
 
@@ -360,17 +494,6 @@ function listPrompts(promptsDir: string): PromptSummary[] {
       }
     }
 
-    const rootPromptNames = new Set(names)
-    for (const entry of fs.readdirSync(promptsDir, { withFileTypes: true })) {
-      if (!entry.isDirectory() || !isPromptModelFolder(entry.name)) continue
-      for (const file of fs.readdirSync(path.join(promptsDir, entry.name), { withFileTypes: true })) {
-        if (!file.isFile() || !file.name.endsWith(".liquid")) continue
-        const promptName = file.name.replace(/\.liquid$/, "")
-        if (!VALID_NAME.test(promptName) || !rootPromptNames.has(promptName)) continue
-        const variantName = `${promptName}__${entry.name}`
-        addVariant(promptName, variantName, "file")
-      }
-    }
   }
 
   const versionsRoot = path.join(promptsDir, PROMPT_VERSIONS_DIR)
@@ -382,6 +505,20 @@ function listPrompts(promptsDir: string): PromptSummary[] {
         addVariant(baseName, name, "version")
       } else {
         names.add(name)
+      }
+    }
+  }
+
+  if (fs.existsSync(promptsDir)) {
+    const rootPromptNames = new Set(names)
+    for (const entry of fs.readdirSync(promptsDir, { withFileTypes: true })) {
+      if (!entry.isDirectory() || !isPromptModelFolder(entry.name)) continue
+      for (const file of fs.readdirSync(path.join(promptsDir, entry.name), { withFileTypes: true })) {
+        if (!file.isFile() || !file.name.endsWith(".liquid")) continue
+        const promptName = file.name.replace(/\.liquid$/, "")
+        if (!VALID_NAME.test(promptName) || !rootPromptNames.has(promptName)) continue
+        const variantName = `${promptName}__${entry.name}`
+        addVariant(promptName, variantName, "file")
       }
     }
   }
@@ -406,6 +543,26 @@ function normalizePromptModelId(value: string): string {
   return value.trim().toLowerCase()
 }
 
+function isValidPromptModelId(promptsDir: string, modelId: string | null): boolean {
+  if (modelId == null) return true
+  if (!VALID_MODEL_ID.test(modelId)) return false
+
+  const folderName = promptModelFolderName(modelId)
+  const builtInOwner = BUILT_IN_PROMPT_MODEL_OWNERS.get(folderName)
+  if (builtInOwner && builtInOwner !== modelId) return false
+
+  for (const existingModelId of readPromptModels(promptsDir)) {
+    if (
+      existingModelId !== modelId
+      && promptModelFolderName(existingModelId) === folderName
+    ) {
+      return false
+    }
+  }
+
+  return true
+}
+
 function readPromptModels(promptsDir: string): string[] {
   const filePath = path.join(promptsDir, PROMPT_MODELS_FILE)
   if (!fs.existsSync(filePath)) return []
@@ -414,10 +571,15 @@ function readPromptModels(promptsDir: string): string[] {
     const data = JSON.parse(fs.readFileSync(filePath, "utf-8")) as { models?: unknown }
     if (!Array.isArray(data.models)) return []
     const models: string[] = []
+    const modelFolders = new Map(BUILT_IN_PROMPT_MODEL_OWNERS)
     for (const value of data.models) {
       if (typeof value !== "string") continue
       const modelId = normalizePromptModelId(value)
       if (!modelId || !VALID_MODEL_ID.test(modelId) || models.includes(modelId)) continue
+      const folderName = promptModelFolderName(modelId)
+      const existingModel = modelFolders.get(folderName)
+      if (existingModel && existingModel !== modelId) continue
+      modelFolders.set(folderName, modelId)
       models.push(modelId)
     }
     return models
@@ -435,11 +597,14 @@ function writePromptModels(promptsDir: string, models: string[]) {
   )
 }
 
-function listPromptVersions(
-  promptsDir: string,
-  name: string,
-  modelId: string | null,
-): {
+function listPromptVersions(options: {
+  root: string
+  promptsDir: string
+  booksDir?: string
+  label?: string
+  name: string
+  modelId: string | null
+}): {
   name: string
   resolvedName: string
   modelId: string | null
@@ -448,10 +613,11 @@ function listPromptVersions(
   currentVersion: string | null
   versions: PromptVersionSummary[]
 } {
+  const { root, promptsDir, booksDir, label, name, modelId } = options
   const resolvedName = promptNameForModel(name, modelId)
-  const fallback = readPromptFallback({ promptsDir, name, modelId })
-  const versionDir = path.join(promptsDir, PROMPT_VERSIONS_DIR, resolvedName)
-  const currentVersion = readCurrentPromptVersion(versionDir) ?? latestVersionFile(promptsDir, resolvedName)
+  const fallback = readPromptVersionFallback({ root, promptsDir, booksDir, label, name, modelId })
+  const versionDir = path.join(root, PROMPT_VERSIONS_DIR, resolvedName)
+  const currentVersion = readCurrentPromptVersion(versionDir) ?? latestVersionFile(root, resolvedName)
   if (!fs.existsSync(versionDir)) {
     return {
       name,
@@ -518,17 +684,36 @@ function readPrompt(options: {
   return readBasePrompt({ promptsDir, booksDir, label, name, modelId: null })
 }
 
-function readPromptFallback(options: {
+function readPromptVersionFallback(options: {
+  root: string
   promptsDir: string
+  booksDir?: string
+  label?: string
   name: string
   modelId: string | null
 }): { content: string; resolvedName: string } | null {
-  const { promptsDir, name, modelId } = options
+  const { root, promptsDir, booksDir, label, name, modelId } = options
   const resolvedName = promptNameForModel(name, modelId)
 
   if (modelId && resolvedName !== name) {
-    const modelPrompt = readModelPromptFallbackFromRoot(promptsDir, name, resolvedName, modelId)
+    const rootModelPrompt = readModelPromptFallbackFromRoot(root, name, resolvedName, modelId)
+    if (rootModelPrompt) return { ...rootModelPrompt, resolvedName }
+    const modelPrompt = root === promptsDir
+      ? null
+      : readModelPromptFallbackFromRoot(promptsDir, name, resolvedName, modelId)
     if (modelPrompt) return { ...modelPrompt, resolvedName }
+  }
+
+  const rootFlatPath = path.join(root, `${name}.liquid`)
+  if (fs.existsSync(rootFlatPath)) {
+    return { content: fs.readFileSync(rootFlatPath, "utf-8"), resolvedName: name }
+  }
+
+  if (booksDir && label) {
+    const globalPrompt = readPrompt({ promptsDir, name, modelId })
+    if (globalPrompt) {
+      return { content: globalPrompt.content, resolvedName: globalPrompt.resolvedName }
+    }
   }
 
   const flatPath = path.join(promptsDir, `${name}.liquid`)
@@ -724,20 +909,6 @@ function createPromptVersionName(versionDir: string): string {
     if (!fs.existsSync(path.join(versionDir, candidate))) return candidate
   }
   throw new Error("Unable to create unique prompt version name")
-}
-
-function prunePromptVersions(versionDir: string) {
-  const versions = fs
-    .readdirSync(versionDir)
-    .filter((file) => file.endsWith(".liquid"))
-    .sort()
-
-  const currentVersion = readCurrentPromptVersion(versionDir)
-  const removableVersions = versions.filter((version) => version !== currentVersion)
-  const staleVersions = removableVersions.slice(0, Math.max(0, versions.length - PROMPT_VERSION_FILE_LIMIT))
-  for (const version of staleVersions) {
-    fs.rmSync(path.join(versionDir, version), { force: true })
-  }
 }
 
 function createdAtFromPromptVersion(version: string): string | null {

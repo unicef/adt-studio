@@ -2420,6 +2420,9 @@ msgstr "Hidh poshtë"
 msgid "Discard & leave"
 msgstr "Hidh poshtë dhe dil"
 
+msgid "Discard unsaved prompt changes?"
+msgstr "Të hidhen poshtë ndryshimet e paruajtura të promptit?"
+
 msgid "Display"
 msgstr "Shfaqje"
 

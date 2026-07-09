@@ -1,8 +1,8 @@
 import { useState } from "react"
+import { useQueryClient } from "@tanstack/react-query"
 import { useUpdateBookConfig, useBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
-import { api } from "@/api/client"
-import { PromptViewer, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
+import { PromptViewer, savePromptDraft, toPromptDraft, type PromptDraft } from "@/components/pipeline/components/PromptViewer"
 import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
 import { useStepConfig } from "@/hooks/use-step-config"
 import { useLingui } from "@lingui/react/macro"
@@ -12,6 +12,7 @@ export function GlossarySettings({ bookLabel }: { bookLabel: string; headerTarge
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
+  const queryClient = useQueryClient()
   const [promptDraft, setPromptDraft] = useState<PromptDraft | null>(null)
 
   const [dirty, setDirty] = useState<Record<string, boolean>>({})
@@ -36,7 +37,7 @@ export function GlossarySettings({ bookLabel }: { bookLabel: string; headerTarge
 
   const save = async () => {
     if (promptDraft != null) {
-      await api.updatePrompt("glossary", promptDraft.content, bookLabel, promptDraft.modelId)
+      await savePromptDraft(queryClient, "glossary", bookLabel, promptDraft)
     }
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
     setDirty({})
@@ -61,6 +62,7 @@ export function GlossarySettings({ bookLabel }: { bookLabel: string; headerTarge
         bookLabel={bookLabel}
         title={t`Glossary Prompt`}
         description={t`The prompt template used to generate glossary terms from book content.`}
+        draft={promptDraft}
         model={glossary.model}
         onModelChange={glossary.onModelChange}
         maxRetries={glossary.maxRetries}

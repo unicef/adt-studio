@@ -87,6 +87,16 @@ describe("PUT /prompt-models", () => {
 
     expect(res.status).toBe(400)
   })
+
+  it("rejects prompt model ids that map to the same folder name", async () => {
+    const res = await app().request("/prompt-models", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ models: ["openai:gpt-5.5", "openai:gpt_5_5"] }),
+    })
+
+    expect(res.status).toBe(400)
+  })
 })
 
 // ---- Prompts ----
@@ -137,6 +147,31 @@ describe("GET /prompts", () => {
         variants: ["page_sectioning__google_gemini_2_5_pro"],
         variantSources: {
           page_sectioning__google_gemini_2_5_pro: "file+version",
+        },
+      },
+    ])
+  })
+
+  it("lists folder variants when the base prompt only exists as a version", async () => {
+    const baseVersionDir = path.join(promptsDir, ".versions", "page_sectioning")
+    fs.mkdirSync(baseVersionDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(baseVersionDir, "20260101T000000000Z-000.liquid"),
+      "base version",
+      "utf-8",
+    )
+    writeModelPrompt("openai_gpt_5_5", "page_sectioning", "folder variant")
+
+    const res = await app().request("/prompts")
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.prompts).toEqual([
+      {
+        name: "page_sectioning",
+        variants: ["page_sectioning__openai_gpt_5_5"],
+        variantSources: {
+          page_sectioning__openai_gpt_5_5: "file",
         },
       },
     ])
@@ -202,6 +237,24 @@ describe("PUT /prompts/:name", () => {
     expect(readBody.content).toBe("gemini content")
   })
 
+  it("normalizes bare OpenAI model ids before resolving prompt variants", async () => {
+    writePrompt("test_prompt", "old content")
+    const res = await app().request("/prompts/test_prompt?model=gpt-5.5", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "gpt content" }),
+    })
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.resolvedName).toBe("test_prompt__openai_gpt_5_5")
+    expect(body.modelId).toBe("openai:gpt-5.5")
+
+    const readRes = await app().request("/prompts/test_prompt?model=openai%3Agpt-5.5")
+    const readBody = await readRes.json()
+    expect(readBody.content).toBe("gpt content")
+  })
+
   it("reads model-specific prompt files from model folders", async () => {
     writePrompt("test_prompt", "base content")
     writePrompt("test_prompt__google_gemini_2_5_pro", "legacy flat content")
@@ -217,7 +270,7 @@ describe("PUT /prompts/:name", () => {
     expect(body.content).toBe("folder content")
   })
 
-  it("keeps only the latest 6 global prompt versions", async () => {
+  it("preserves all global prompt versions", async () => {
     writePrompt("test_prompt", "old content")
     vi.useFakeTimers()
 
@@ -234,6 +287,8 @@ describe("PUT /prompts/:name", () => {
     const versionDir = path.join(promptsDir, ".versions", "test_prompt")
     const versions = readLiquidVersions(versionDir)
     expect(versions).toEqual([
+      "20260102T030401000Z-000.liquid",
+      "20260102T030402000Z-000.liquid",
       "20260102T030403000Z-000.liquid",
       "20260102T030404000Z-000.liquid",
       "20260102T030405000Z-000.liquid",
@@ -241,7 +296,7 @@ describe("PUT /prompts/:name", () => {
       "20260102T030407000Z-000.liquid",
       "20260102T030408000Z-000.liquid",
     ])
-    expect(fs.readFileSync(path.join(versionDir, versions[0]), "utf-8")).toBe("version 3")
+    expect(fs.readFileSync(path.join(versionDir, versions[0]), "utf-8")).toBe("version 1")
     expect(fs.readFileSync(path.join(versionDir, versions.at(-1)!), "utf-8")).toBe("version 8")
   })
 
@@ -610,7 +665,7 @@ describe("PUT /books/:label/prompts/:name", () => {
     expect(readBody.content).toBe("second")
   })
 
-  it("keeps only the latest 6 book prompt versions", async () => {
+  it("preserves all book prompt versions", async () => {
     writePrompt("page_sectioning", "global")
     vi.useFakeTimers()
 
@@ -627,6 +682,8 @@ describe("PUT /books/:label/prompts/:name", () => {
     const versionDir = path.join(booksDir, "my-book", "prompts", ".versions", "page_sectioning")
     const versions = readLiquidVersions(versionDir)
     expect(versions).toEqual([
+      "20260102T030401000Z-000.liquid",
+      "20260102T030402000Z-000.liquid",
       "20260102T030403000Z-000.liquid",
       "20260102T030404000Z-000.liquid",
       "20260102T030405000Z-000.liquid",
@@ -634,7 +691,7 @@ describe("PUT /books/:label/prompts/:name", () => {
       "20260102T030407000Z-000.liquid",
       "20260102T030408000Z-000.liquid",
     ])
-    expect(fs.readFileSync(path.join(versionDir, versions[0]), "utf-8")).toBe("book version 3")
+    expect(fs.readFileSync(path.join(versionDir, versions[0]), "utf-8")).toBe("book version 1")
     expect(fs.readFileSync(path.join(versionDir, versions.at(-1)!), "utf-8")).toBe("book version 8")
   })
 
@@ -645,6 +702,103 @@ describe("PUT /books/:label/prompts/:name", () => {
       body: JSON.stringify({ content: "x" }),
     })
     expect(res.status).toBe(404)
+  })
+})
+
+describe("GET /books/:label/prompts/:name/versions", () => {
+  it("lists book prompt versions with global fallback content", async () => {
+    writePrompt("page_sectioning", "global fallback")
+    vi.useFakeTimers()
+
+    vi.setSystemTime(new Date("2026-01-02T03:04:05.006Z"))
+    await app().request("/books/my-book/prompts/page_sectioning", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "first book version" }),
+    })
+    vi.setSystemTime(new Date("2026-01-02T03:04:06.007Z"))
+    await app().request("/books/my-book/prompts/page_sectioning", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "second book version" }),
+    })
+
+    const res = await app().request("/books/my-book/prompts/page_sectioning/versions")
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.name).toBe("page_sectioning")
+    expect(body.resolvedName).toBe("page_sectioning")
+    expect(body.fallbackContent).toBe("global fallback")
+    expect(body.fallbackResolvedName).toBe("page_sectioning")
+    expect(body.currentVersion).toBe("20260102T030406007Z-000.liquid")
+    expect(body.versions.map((version: { content: string; isCurrent: boolean }) => ({
+      content: version.content,
+      isCurrent: version.isCurrent,
+    }))).toEqual([
+      { content: "second book version", isCurrent: true },
+      { content: "first book version", isCurrent: false },
+    ])
+  })
+})
+
+describe("PUT /books/:label/prompts/:name/versions/:version/current", () => {
+  it("selects an older book prompt version as current", async () => {
+    writePrompt("page_sectioning", "global fallback")
+    vi.useFakeTimers()
+
+    vi.setSystemTime(new Date("2026-01-02T03:04:05.006Z"))
+    await app().request("/books/my-book/prompts/page_sectioning?model=openai%3Agpt-5.5", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "first model book version" }),
+    })
+    vi.setSystemTime(new Date("2026-01-02T03:04:06.007Z"))
+    await app().request("/books/my-book/prompts/page_sectioning?model=openai%3Agpt-5.5", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "second model book version" }),
+    })
+
+    const res = await app().request(
+      "/books/my-book/prompts/page_sectioning/versions/20260102T030405006Z-000.liquid/current?model=openai%3Agpt-5.5",
+      { method: "PUT" },
+    )
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.source).toBe("book")
+    expect(body.resolvedName).toBe("page_sectioning__openai_gpt_5_5")
+    expect(body.content).toBe("first model book version")
+    expect(body.version).toBe("20260102T030405006Z-000.liquid")
+
+    const readRes = await app().request("/books/my-book/prompts/page_sectioning?model=openai%3Agpt-5.5")
+    const readBody = await readRes.json()
+    expect(readBody.content).toBe("first model book version")
+  })
+})
+
+describe("DELETE /books/:label/prompts/:name", () => {
+  it("resets a book prompt override back to the global fallback", async () => {
+    writePrompt("page_sectioning", "global fallback")
+    await app().request("/books/my-book/prompts/page_sectioning?model=openai%3Agpt-5.5", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "book model override" }),
+    })
+
+    const resetRes = await app().request("/books/my-book/prompts/page_sectioning?model=openai%3Agpt-5.5", {
+      method: "DELETE",
+    })
+
+    expect(resetRes.status).toBe(200)
+    const body = await resetRes.json()
+    expect(body.source).toBe("global")
+    expect(body.resolvedName).toBe("page_sectioning")
+    expect(body.content).toBe("global fallback")
+    expect(fs.existsSync(
+      path.join(booksDir, "my-book", "prompts", ".versions", "page_sectioning__openai_gpt_5_5"),
+    )).toBe(false)
   })
 })
 
