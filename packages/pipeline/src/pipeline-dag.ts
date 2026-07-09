@@ -45,7 +45,7 @@ import { renderPage, buildRenderStrategyResolver } from "./web-rendering.js"
 import { translatePageTree, buildTranslationConfig } from "./translation.js"
 import { createTemplateEngine } from "./render-template.js"
 import { captionPageImages, buildCaptionConfig, extractImageIds } from "./image-captioning.js"
-import { generateGlossary, buildGlossaryConfig } from "./glossary.js"
+import { regenerateGlossaryPreservingEdits, buildGlossaryConfig } from "./glossary.js"
 import { generateToc, buildTocGenerationConfig } from "./toc-generation.js"
 import { generateAllQuizzes, buildQuizGenerationConfig, type QuizPageInput } from "./quiz-generation.js"
 import { buildTextCatalog } from "./text-catalog.js"
@@ -691,7 +691,8 @@ export async function runFullPipeline(
       const glossaryConfig = buildGlossaryConfig(config, language)
       const model = getModel(glossaryConfig.modelId)
       const pages = storage.getPages()
-      const glossary = await generateGlossary({
+
+      const glossary = await regenerateGlossaryPreservingEdits({
         storage,
         pages,
         config: glossaryConfig,

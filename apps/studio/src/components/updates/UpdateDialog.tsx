@@ -27,6 +27,7 @@ export interface UpdateDialogProps {
   onOpenChange: (open: boolean) => void
   statusOverride?: UpdateStatus
   modal?: boolean
+  onShowWhatsNew?: () => void
 }
 
 type Tone = "muted" | "info" | "success" | "danger"
@@ -47,6 +48,7 @@ export function UpdateDialog({
   onOpenChange,
   statusOverride,
   modal,
+  onShowWhatsNew,
 }: UpdateDialogProps) {
   const currentVersion = useAppVersion()
   const live = useUpdateStatus()
@@ -74,6 +76,7 @@ export function UpdateDialog({
             close()
           }}
           onClose={close}
+          onShowWhatsNew={onShowWhatsNew}
         />
       </DialogContent>
     </Dialog>
@@ -89,6 +92,7 @@ export interface UpdateStateSurfaceProps {
   onInstallNow?: () => void
   onInstallLater?: () => void
   onClose?: () => void
+  onShowWhatsNew?: () => void
   TitleTag?: ElementType
 }
 
@@ -101,6 +105,7 @@ export function UpdateStateSurface({
   onInstallNow,
   onInstallLater,
   onClose,
+  onShowWhatsNew,
   TitleTag = "h2",
 }: UpdateStateSurfaceProps) {
   const noop = () => {}
@@ -113,6 +118,7 @@ export function UpdateStateSurface({
     onInstallNow: onInstallNow ?? noop,
     onInstallLater: onInstallLater ?? noop,
     onClose: onClose ?? noop,
+    onShowWhatsNew,
   })
 
   if (view.loading) {
@@ -173,6 +179,7 @@ interface BuildViewArgs {
   onInstallNow: () => void
   onInstallLater: () => void
   onClose: () => void
+  onShowWhatsNew?: () => void
 }
 
 function buildView({
@@ -184,6 +191,7 @@ function buildView({
   onInstallNow,
   onInstallLater,
   onClose,
+  onShowWhatsNew,
 }: BuildViewArgs): DialogView {
   const current = currentVersion ?? undefined
 
@@ -329,9 +337,17 @@ function buildView({
       </div>
     ) : undefined,
     actions: (
-      <Button onClick={onClose}>
-        <Trans>Done</Trans>
-      </Button>
+      <>
+        {onShowWhatsNew && (
+          <Button variant="outline" onClick={onShowWhatsNew}>
+            <Sparkles />
+            <Trans>What's new</Trans>
+          </Button>
+        )}
+        <Button onClick={onClose}>
+          <Trans>Done</Trans>
+        </Button>
+      </>
     ),
   }
 }

@@ -79,6 +79,7 @@ export {
   STAGE_OUTPUT_NODES,
   getStageClearOrder,
   getStageClearNodes,
+  getStageRerunClearNodes,
   getCacheResourcesForNode,
   getCacheResourcesForNodes,
   getCacheResourcesForStageOutput,
