@@ -225,4 +225,19 @@ span[data-word-index].bg-yellow-300 {
     border-radius: 4px;
     animation: glossaryFlash 3.5s ease-out forwards;
   }
+
+  @keyframes kidsBuddyIdle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+  @keyframes kidsBuddyPop {
+    0% { opacity: 0; transform: translateY(8px) scale(0.96); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .kids-buddy-idle {
+    animation: kidsBuddyIdle 3.2s ease-in-out infinite;
+  }
+  .animate-kidsBuddyPop {
+    animation: kidsBuddyPop 180ms ease-out both;
+  }
 }

@@ -9,6 +9,20 @@ import { SettingsTab } from "@/features/settings/components/SettingsTab"
 import { appConfigAtom, type AppFeatures } from "@/shared/state/config.atoms"
 import { NavRoot } from "./NavRoot"
 
+vi.mock("@/features/audio/hooks/AudioPlayerContext", () => ({
+  useAudioPlayerContext: () => ({
+    isPlaying: false,
+    hasItems: true,
+    play: () => undefined,
+    pause: () => undefined,
+    togglePlayPause: () => undefined,
+    playNext: () => undefined,
+    playPrevious: () => undefined,
+    stop: () => undefined,
+    playAtIndex: () => undefined,
+  }),
+}))
+
 vi.mock("@/features/dock/components/BottomDock", () => ({
   BottomDock: () => <div data-testid="bottom-dock" />,
 }))
@@ -34,6 +48,7 @@ vi.mock("@/shared/lib/analytics", () => ({
 afterEach(() => {
   cleanup()
   localStorage.clear()
+  sessionStorage.clear()
 })
 
 function createRuntimeStore({

@@ -1,15 +1,23 @@
-/**
- * Minimal kids-mode chrome shell.
- *
- * Later steps will host the buddy and kids onboarding here. For now this
- * intentionally renders no visible UI while reserving a stable mount point.
- */
+import { useAtomValue } from "jotai"
+import { KidsBuddy } from "@/features/kids/components/KidsBuddy"
+import { KidsSpeechBubble } from "@/features/kids/components/KidsSpeechBubble"
+import { kidsModeActiveAtom } from "@/features/kids/state/kids.atoms"
+
 export function KidsChrome() {
+  const kidsModeActive = useAtomValue(kidsModeActiveAtom)
+
   return (
     <div
       data-testid="kids-chrome"
       className="pointer-events-none fixed inset-0 z-[55]"
-      aria-hidden="true"
-    />
+      aria-hidden={kidsModeActive ? undefined : "true"}
+    >
+      {kidsModeActive ? (
+        <>
+          <KidsSpeechBubble />
+          <KidsBuddy />
+        </>
+      ) : null}
+    </div>
   )
 }
