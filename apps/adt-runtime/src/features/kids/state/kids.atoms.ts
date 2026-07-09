@@ -8,6 +8,7 @@
 import { atom } from "jotai"
 import { appConfigAtom } from "@/shared/state/config.atoms"
 import {
+  ephemeralAtom,
   persistedBoolAtom,
   persistedJsonAtom,
   persistedStringAtom,
@@ -27,16 +28,18 @@ export const kidsModeActiveAtom = atom((get) => {
 
 export interface KidsBuddyConfig {
   character: KidsCharacterId
-  look: string
+  palette: string
   backgroundColor: string
   name: string
 }
 
 export const kidsBuddyAtom = persistedJsonAtom<KidsBuddyConfig>("kidsBuddy", {
   character: KIDS_CHARACTERS[0].id,
-  look: KIDS_CHARACTERS[0].looks[0].id,
+  palette: KIDS_CHARACTERS[0].art.palettes[0].id,
   backgroundColor: BUDDY_BACKGROUNDS[0].value,
   name: "",
 })
 
 export const kidsPlayerNameAtom = persistedStringAtom("kidsPlayerName", "")
+
+export const buddySpeechAtom = ephemeralAtom<string | null>(null)

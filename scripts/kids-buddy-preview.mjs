@@ -12,6 +12,9 @@ const outputPath = path.join(rootDir, ".context/kids-mode/buddy-preview.html")
 const sources = [
   { id: "dino", file: "dino.ts", exportName: "DINO_BUDDY" },
   { id: "robot", file: "robot.ts", exportName: "ROBOT_BUDDY" },
+  { id: "bunny", file: "bunny.ts", exportName: "BUNNY_BUDDY" },
+  { id: "cat", file: "cat.ts", exportName: "CAT_BUDDY" },
+  { id: "alien", file: "alien.ts", exportName: "ALIEN_BUDDY" },
 ]
 
 const freeColors = {

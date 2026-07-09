@@ -1,54 +1,48 @@
 import { describe, expect, it } from "vitest"
-import { characterAvatar } from "@/features/kids/assets/character-art"
+import type { BuddyArt } from "@/features/kids/assets/buddies/buddy-art"
 import {
   KIDS_CHARACTERS,
   getCharacter,
-  resolveAvatar,
+  getPalette,
 } from "./characters"
 
+function expectValidBuddyArt(art: BuddyArt) {
+  expect(art.id.length).toBeGreaterThan(0)
+  expect(art.svg).toContain("<svg")
+  expect(art.palettes.length).toBeGreaterThanOrEqual(4)
+  expect(art.palettes[0].id).toBe("classic")
+
+  const paletteIds = art.palettes.map((palette) => palette.id)
+  expect(new Set(paletteIds).size).toBe(paletteIds.length)
+
+  for (const palette of art.palettes) {
+    expect(palette.labelKey).toBe(`kids-palette-${palette.id}`)
+    expect(palette.labelFallback.length).toBeGreaterThan(0)
+    expect(palette.primary).toMatch(/^#[0-9A-F]{6}$/i)
+    expect(palette.secondary).toMatch(/^#[0-9A-F]{6}$/i)
+    expect(palette.accent).toMatch(/^#[0-9A-F]{6}$/i)
+  }
+}
+
 describe("KIDS_CHARACTERS", () => {
-  it("contains the expected characters in order with unique ids", () => {
+  it("contains the approved characters in order with unique ids", () => {
     const ids = KIDS_CHARACTERS.map((character) => character.id)
 
-    expect(ids).toEqual([
-      "dino",
-      "robot",
-      "parrot",
-      "unicorn",
-      "dragon",
-      "alien",
-      "princess",
-    ])
+    expect(ids).toEqual(["dino", "robot", "bunny", "cat", "alien"])
     expect(new Set(ids).size).toBe(KIDS_CHARACTERS.length)
   })
 
-  it("has art and unique looks for every character", () => {
+  it("defines labels, default names, and valid layered art", () => {
+    expect(
+      KIDS_CHARACTERS.map((character) => character.defaultNameFallback),
+    ).toEqual(["Rex", "Bolt", "Pip", "Luna", "Zibby"])
+
     for (const character of KIDS_CHARACTERS) {
-      const lookIds = character.looks.map((look) => look.id)
-
-      expect(character.art.length).toBeGreaterThan(0)
-      expect(character.looks.length).toBeGreaterThanOrEqual(4)
-      expect(new Set(lookIds).size).toBe(lookIds.length)
-    }
-  })
-
-  it("uses art variants instead of filters for princess looks", () => {
-    const princess = getCharacter("princess")
-
-    expect(princess.looks).toHaveLength(6)
-    for (const look of princess.looks) {
-      expect(look.art).toBeTruthy()
-      expect(look.filter).toBeUndefined()
-    }
-  })
-
-  it("injects color before hue rotation for alien recolors", () => {
-    const alien = getCharacter("alien")
-    const recolors = alien.looks.filter((look) => look.id !== "classic")
-
-    expect(recolors.length).toBeGreaterThan(0)
-    for (const look of recolors) {
-      expect(look.filter?.startsWith("sepia(1) saturate(2.5)")).toBe(true)
+      expect(character.labelKey).toBe(`kids-character-${character.id}`)
+      expect(character.defaultNameKey).toBe(
+        `kids-character-${character.id}-default-name`,
+      )
+      expectValidBuddyArt(character.art)
     }
   })
 })
@@ -58,9 +52,12 @@ describe("character lookup", () => {
     expect(getCharacter("nope")).toBe(KIDS_CHARACTERS[0])
   })
 
-  it("falls back to the first look when resolving an unknown look id", () => {
+  it("returns the requested palette or the classic palette by default", () => {
     const dino = getCharacter("dino")
+    const alternate = dino.art.palettes[1]
 
-    expect(resolveAvatar("dino", "nope")).toEqual(characterAvatar(dino.art))
+    expect(getPalette(dino.art, alternate.id)).toBe(alternate)
+    expect(getPalette(dino.art, "nope")).toBe(dino.art.palettes[0])
+    expect(getPalette(dino.art, undefined)).toBe(dino.art.palettes[0])
   })
 })

@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest"
+import { ALIEN_BUDDY } from "./alien"
+import { BUNNY_BUDDY } from "./bunny"
+import { CAT_BUDDY } from "./cat"
 import { DINO_BUDDY } from "./dino"
 import { ROBOT_BUDDY } from "./robot"
 import { buddyPaletteVars, type BuddyArt } from "./buddy-art"
 
-const BUDDIES = [DINO_BUDDY, ROBOT_BUDDY] as const
+const BUDDIES = [DINO_BUDDY, ROBOT_BUDDY, BUNNY_BUDDY, CAT_BUDDY, ALIEN_BUDDY] as const
 const REQUIRED_PARTS = ["body", "head", "eyes", "mouth"] as const
 const REQUIRED_ANCHORS = ["hat", "eyes", "neck"] as const
 const HEX_COLOR = /^#[0-9A-F]{6}$/i
