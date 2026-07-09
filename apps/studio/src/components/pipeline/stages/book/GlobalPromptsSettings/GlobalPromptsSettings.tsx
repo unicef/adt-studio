@@ -27,6 +27,12 @@ import {
 import { Trans, useLingui } from "@lingui/react/macro";
 import { PromptFileTree } from "./PromptFileTree";
 import { PromptModelActionsDialog } from "./PromptModelActionsDialog";
+import {
+  PromptEditorSkeleton,
+  PromptFileTreeSkeleton,
+  PromptStatusSkeleton,
+  SelectedPromptHeaderSkeleton,
+} from "./PromptSettingsSkeletons";
 import { PromptStatusBadges } from "./PromptStatusBadges";
 import {
   DEFAULT_MODEL,
@@ -319,6 +325,9 @@ export function GlobalPromptsSettings({
     deleteModelMutation.isPending && deleteModelMutation.variables
       ? deleteModelMutation.variables.modelId
       : null;
+  const isPromptFilesLoading =
+    promptListQuery.isLoading || promptModelsQuery.isLoading;
+  const isPromptEditorLoading = isPromptFilesLoading || promptQuery.isLoading;
 
   return (
     <div
@@ -378,27 +387,31 @@ export function GlobalPromptsSettings({
                   onModelSelected={setModel}
                 />
               </div>
-              <PromptFileTree
-                prompts={promptSummaries}
-                modelGroups={modelGroups}
-                filter={treeFilter}
-                selectedKey={selectedTreeKey}
-                selectedModel={model}
-                deletingKey={deletingTreeKey}
-                deletingModelId={deletingModelId}
-                onSelectPrompt={(promptName, modelId) => {
-                  setSelectedPrompt(promptName);
-                  setModel(modelId);
-                  setDraft(null);
-                }}
-                onCreatePromptFromTemplate={handleCreatePromptFromTemplate}
-                onDeletePrompt={(promptName, modelId) =>
-                  deletePromptMutation.mutateAsync({ promptName, modelId })
-                }
-                onDeleteModel={(modelId, promptNames) =>
-                  deleteModelMutation.mutateAsync({ modelId, promptNames })
-                }
-              />
+              {isPromptFilesLoading ? (
+                <PromptFileTreeSkeleton />
+              ) : (
+                <PromptFileTree
+                  prompts={promptSummaries}
+                  modelGroups={modelGroups}
+                  filter={treeFilter}
+                  selectedKey={selectedTreeKey}
+                  selectedModel={model}
+                  deletingKey={deletingTreeKey}
+                  deletingModelId={deletingModelId}
+                  onSelectPrompt={(promptName, modelId) => {
+                    setSelectedPrompt(promptName);
+                    setModel(modelId);
+                    setDraft(null);
+                  }}
+                  onCreatePromptFromTemplate={handleCreatePromptFromTemplate}
+                  onDeletePrompt={(promptName, modelId) =>
+                    deletePromptMutation.mutateAsync({ promptName, modelId })
+                  }
+                  onDeleteModel={(modelId, promptNames) =>
+                    deleteModelMutation.mutateAsync({ modelId, promptNames })
+                  }
+                />
+              )}
             </aside>
           </ResizablePanel>
 
@@ -415,23 +428,36 @@ export function GlobalPromptsSettings({
                   <Label className="text-xs font-medium text-muted-foreground">
                     <Trans>Selected file</Trans>
                   </Label>
-                  <div className="flex h-9 items-center gap-2 bg-background font-mono text-sm">
-                    <FileText className="size-4 shrink-0 text-muted-foreground" />
-                    <span className="truncate">{activePromptLabel}</span>
-                  </div>
+                  {isPromptFilesLoading ? (
+                    <SelectedPromptHeaderSkeleton />
+                  ) : (
+                    <div className="flex h-9 items-center gap-2 bg-background font-mono text-sm">
+                      <FileText className="size-4 shrink-0 text-muted-foreground" />
+                      <span className="truncate">{activePromptLabel}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex flex-1 flex-wrap items-center gap-2 pb-0.5">
-                  <PromptStatusBadges
-                    expectedModelPromptName={expectedModelPromptName}
-                    isUsingFallback={isUsingFallback}
-                    isEditedGlobalVersion={isEditedGlobalVersion}
-                  />
-                  <PromptLiquidGuideDialog
-                    promptName={selectedPrompt}
-                    content={displayContent}
-                    className="ml-auto"
-                  />
+                  {isPromptEditorLoading ? (
+                    <>
+                      <PromptStatusSkeleton />
+                      <div className="ml-auto" />
+                    </>
+                  ) : (
+                    <>
+                      <PromptStatusBadges
+                        expectedModelPromptName={expectedModelPromptName}
+                        isUsingFallback={isUsingFallback}
+                        isEditedGlobalVersion={isEditedGlobalVersion}
+                      />
+                      <PromptLiquidGuideDialog
+                        promptName={selectedPrompt}
+                        content={displayContent}
+                        className="ml-auto"
+                      />
+                    </>
+                  )}
                   <Button
                     type="button"
                     variant="outline"
@@ -463,10 +489,8 @@ export function GlobalPromptsSettings({
                     : "min-h-[560px] flex-1 overflow-hidden"
                 }
               >
-                {promptListQuery.isLoading || promptQuery.isLoading ? (
-                  <div className="p-4 text-sm text-muted-foreground">
-                    <Trans>Loading prompt...</Trans>
-                  </div>
+                {isPromptEditorLoading ? (
+                  <PromptEditorSkeleton />
                 ) : promptQuery.data?.content != null ? (
                   <Editor
                     value={displayContent}

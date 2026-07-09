@@ -155,6 +155,34 @@ describe("PUT /prompts/:name", () => {
     expect(readBody.content).toBe("gemini content")
   })
 
+  it("keeps only the latest 6 global prompt versions", async () => {
+    writePrompt("test_prompt", "old content")
+    vi.useFakeTimers()
+
+    for (let index = 1; index <= 8; index += 1) {
+      vi.setSystemTime(new Date(`2026-01-02T03:04:0${index}.000Z`))
+      const res = await app().request("/prompts/test_prompt", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: `version ${index}` }),
+      })
+      expect(res.status).toBe(200)
+    }
+
+    const versionDir = path.join(promptsDir, ".versions", "test_prompt")
+    const versions = fs.readdirSync(versionDir).sort()
+    expect(versions).toEqual([
+      "20260102T030403000Z-000.liquid",
+      "20260102T030404000Z-000.liquid",
+      "20260102T030405000Z-000.liquid",
+      "20260102T030406000Z-000.liquid",
+      "20260102T030407000Z-000.liquid",
+      "20260102T030408000Z-000.liquid",
+    ])
+    expect(fs.readFileSync(path.join(versionDir, versions[0]), "utf-8")).toBe("version 3")
+    expect(fs.readFileSync(path.join(versionDir, versions.at(-1)!), "utf-8")).toBe("version 8")
+  })
+
   it("returns 404 when prompt does not exist", async () => {
     const res = await app().request("/prompts/ghost", {
       method: "PUT",
@@ -337,6 +365,34 @@ describe("PUT /books/:label/prompts/:name", () => {
     const readRes = await app().request("/books/my-book/prompts/page_sectioning")
     const readBody = await readRes.json()
     expect(readBody.content).toBe("second")
+  })
+
+  it("keeps only the latest 6 book prompt versions", async () => {
+    writePrompt("page_sectioning", "global")
+    vi.useFakeTimers()
+
+    for (let index = 1; index <= 8; index += 1) {
+      vi.setSystemTime(new Date(`2026-01-02T03:04:0${index}.000Z`))
+      const res = await app().request("/books/my-book/prompts/page_sectioning", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: `book version ${index}` }),
+      })
+      expect(res.status).toBe(200)
+    }
+
+    const versionDir = path.join(booksDir, "my-book", "prompts", ".versions", "page_sectioning")
+    const versions = fs.readdirSync(versionDir).sort()
+    expect(versions).toEqual([
+      "20260102T030403000Z-000.liquid",
+      "20260102T030404000Z-000.liquid",
+      "20260102T030405000Z-000.liquid",
+      "20260102T030406000Z-000.liquid",
+      "20260102T030407000Z-000.liquid",
+      "20260102T030408000Z-000.liquid",
+    ])
+    expect(fs.readFileSync(path.join(versionDir, versions[0]), "utf-8")).toBe("book version 3")
+    expect(fs.readFileSync(path.join(versionDir, versions.at(-1)!), "utf-8")).toBe("book version 8")
   })
 
   it("returns 404 when global prompt does not exist", async () => {

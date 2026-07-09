@@ -10,6 +10,7 @@ const VALID_NAME = /^[a-zA-Z0-9_]+$/
 const VALID_MODEL_ID = /^[a-zA-Z0-9][a-zA-Z0-9_.:/-]{0,159}$/
 const PROMPT_VERSIONS_DIR = ".versions"
 const PROMPT_MODELS_FILE = ".models.json"
+const PROMPT_VERSION_FILE_LIMIT = 6
 
 interface PromptSummary {
   name: string
@@ -92,6 +93,7 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
     fs.mkdirSync(versionDir, { recursive: true })
     const version = createPromptVersionName(versionDir)
     fs.writeFileSync(path.join(versionDir, version), body.content, "utf-8")
+    prunePromptVersions(versionDir)
     return c.json({ name, resolvedName, content: body.content, source: "global", modelId, version })
   })
 
@@ -166,6 +168,7 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
     fs.mkdirSync(versionDir, { recursive: true })
     const version = createPromptVersionName(versionDir)
     fs.writeFileSync(path.join(versionDir, version), body.content, "utf-8")
+    prunePromptVersions(versionDir)
     return c.json({ name, resolvedName, content: body.content, source: "book", modelId, version })
   })
 
@@ -455,4 +458,16 @@ function createPromptVersionName(versionDir: string): string {
     if (!fs.existsSync(path.join(versionDir, candidate))) return candidate
   }
   throw new Error("Unable to create unique prompt version name")
+}
+
+function prunePromptVersions(versionDir: string) {
+  const versions = fs
+    .readdirSync(versionDir)
+    .filter((file) => file.endsWith(".liquid"))
+    .sort()
+
+  const staleVersions = versions.slice(0, Math.max(0, versions.length - PROMPT_VERSION_FILE_LIMIT))
+  for (const version of staleVersions) {
+    fs.rmSync(path.join(versionDir, version), { force: true })
+  }
 }
