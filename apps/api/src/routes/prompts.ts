@@ -11,10 +11,20 @@ const VALID_MODEL_ID = /^[a-zA-Z0-9][a-zA-Z0-9_.:/-]{0,159}$/
 const PROMPT_VERSIONS_DIR = ".versions"
 const PROMPT_MODELS_FILE = ".models.json"
 const PROMPT_VERSION_FILE_LIMIT = 6
+const PROMPT_CURRENT_VERSION_FILE = ".current"
+const VALID_VERSION_FILE = /^\d{8}T\d{9}Z-\d{3}\.liquid$/
 
 interface PromptSummary {
   name: string
   variants: string[]
+  variantSources: Record<string, "file" | "version" | "file+version">
+}
+
+interface PromptVersionSummary {
+  version: string
+  createdAt: string | null
+  content: string
+  isCurrent: boolean
 }
 
 export function createPromptRoutes(promptsDir: string, booksDir: string) {
@@ -55,6 +65,53 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
     return c.json({ prompts: listPrompts(promptsDir) })
   })
 
+  // GET /prompts/:name/versions - list versioned global prompt overrides
+  app.get("/prompts/:name/versions", (c) => {
+    const name = c.req.param("name")
+    if (!VALID_NAME.test(name)) {
+      return c.json({ error: "Invalid prompt name" }, 400)
+    }
+    const modelId = resolvePromptModelId(c.req.query("model"))
+
+    if (!basePromptExists(promptsDir, name)) {
+      return c.json({ error: "Prompt not found" }, 404)
+    }
+
+    return c.json(listPromptVersions(promptsDir, name, modelId))
+  })
+
+  // PUT /prompts/:name/versions/:version/current - select active global prompt version
+  app.put("/prompts/:name/versions/:version/current", (c) => {
+    const name = c.req.param("name")
+    const version = c.req.param("version")
+    if (!VALID_NAME.test(name)) {
+      return c.json({ error: "Invalid prompt name" }, 400)
+    }
+    if (!VALID_VERSION_FILE.test(version)) {
+      return c.json({ error: "Invalid prompt version" }, 400)
+    }
+    const modelId = resolvePromptModelId(c.req.query("model"))
+
+    if (!basePromptExists(promptsDir, name)) {
+      return c.json({ error: "Prompt not found" }, 404)
+    }
+
+    const resolvedName = promptNameForModel(name, modelId)
+    const versionDir = path.join(promptsDir, PROMPT_VERSIONS_DIR, resolvedName)
+    const versionPath = path.join(versionDir, version)
+    if (!fs.existsSync(versionPath)) {
+      return c.json({ error: "Prompt version not found" }, 404)
+    }
+
+    writeCurrentPromptVersion(versionDir, version)
+    const prompt = readPrompt({ promptsDir, name, modelId })
+    if (!prompt) {
+      return c.json({ error: "Prompt not found" }, 404)
+    }
+
+    return c.json(prompt)
+  })
+
   // GET /prompts/:name - read global prompt template content
   app.get("/prompts/:name", (c) => {
     const name = c.req.param("name")
@@ -93,6 +150,7 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
     fs.mkdirSync(versionDir, { recursive: true })
     const version = createPromptVersionName(versionDir)
     fs.writeFileSync(path.join(versionDir, version), body.content, "utf-8")
+    writeCurrentPromptVersion(versionDir, version)
     prunePromptVersions(versionDir)
     return c.json({ name, resolvedName, content: body.content, source: "global", modelId, version })
   })
@@ -168,6 +226,7 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
     fs.mkdirSync(versionDir, { recursive: true })
     const version = createPromptVersionName(versionDir)
     fs.writeFileSync(path.join(versionDir, version), body.content, "utf-8")
+    writeCurrentPromptVersion(versionDir, version)
     prunePromptVersions(versionDir)
     return c.json({ name, resolvedName, content: body.content, source: "book", modelId, version })
   })
@@ -277,6 +336,16 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
 function listPrompts(promptsDir: string): PromptSummary[] {
   const names = new Set<string>()
   const variantMap = new Map<string, Set<string>>()
+  const variantSourceMap = new Map<string, Map<string, Set<"file" | "version">>>()
+
+  const addVariant = (baseName: string, variantName: string, source: "file" | "version") => {
+    if (!variantMap.has(baseName)) variantMap.set(baseName, new Set())
+    variantMap.get(baseName)!.add(variantName)
+    if (!variantSourceMap.has(baseName)) variantSourceMap.set(baseName, new Map())
+    const sources = variantSourceMap.get(baseName)!
+    if (!sources.has(variantName)) sources.set(variantName, new Set())
+    sources.get(variantName)!.add(source)
+  }
 
   if (fs.existsSync(promptsDir)) {
     for (const file of fs.readdirSync(promptsDir, { withFileTypes: true })) {
@@ -285,8 +354,7 @@ function listPrompts(promptsDir: string): PromptSummary[] {
       const [baseName] = name.split("__")
       if (!baseName) continue
       if (name.includes("__")) {
-        if (!variantMap.has(baseName)) variantMap.set(baseName, new Set())
-        variantMap.get(baseName)!.add(name)
+        addVariant(baseName, name, "file")
       } else {
         names.add(name)
       }
@@ -300,8 +368,7 @@ function listPrompts(promptsDir: string): PromptSummary[] {
         const promptName = file.name.replace(/\.liquid$/, "")
         if (!VALID_NAME.test(promptName) || !rootPromptNames.has(promptName)) continue
         const variantName = `${promptName}__${entry.name}`
-        if (!variantMap.has(promptName)) variantMap.set(promptName, new Set())
-        variantMap.get(promptName)!.add(variantName)
+        addVariant(promptName, variantName, "file")
       }
     }
   }
@@ -312,8 +379,7 @@ function listPrompts(promptsDir: string): PromptSummary[] {
       const [baseName] = name.split("__")
       if (!baseName) continue
       if (name.includes("__")) {
-        if (!variantMap.has(baseName)) variantMap.set(baseName, new Set())
-        variantMap.get(baseName)!.add(name)
+        addVariant(baseName, name, "version")
       } else {
         names.add(name)
       }
@@ -325,6 +391,14 @@ function listPrompts(promptsDir: string): PromptSummary[] {
     .map((name) => ({
       name,
       variants: [...(variantMap.get(name) ?? new Set<string>())].sort((a, b) => a.localeCompare(b)),
+      variantSources: Object.fromEntries(
+        [...(variantSourceMap.get(name) ?? new Map<string, Set<"file" | "version">>()).entries()]
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([variantName, sources]) => [
+            variantName,
+            sources.size > 1 ? "file+version" : [...sources][0],
+          ]),
+      ),
     }))
 }
 
@@ -361,6 +435,58 @@ function writePromptModels(promptsDir: string, models: string[]) {
   )
 }
 
+function listPromptVersions(
+  promptsDir: string,
+  name: string,
+  modelId: string | null,
+): {
+  name: string
+  resolvedName: string
+  modelId: string | null
+  fallbackContent: string | null
+  fallbackResolvedName: string | null
+  currentVersion: string | null
+  versions: PromptVersionSummary[]
+} {
+  const resolvedName = promptNameForModel(name, modelId)
+  const fallback = readPromptFallback({ promptsDir, name, modelId })
+  const versionDir = path.join(promptsDir, PROMPT_VERSIONS_DIR, resolvedName)
+  const currentVersion = readCurrentPromptVersion(versionDir) ?? latestVersionFile(promptsDir, resolvedName)
+  if (!fs.existsSync(versionDir)) {
+    return {
+      name,
+      resolvedName,
+      modelId,
+      fallbackContent: fallback?.content ?? null,
+      fallbackResolvedName: fallback?.resolvedName ?? null,
+      currentVersion: null,
+      versions: [],
+    }
+  }
+
+  const versions = fs
+    .readdirSync(versionDir)
+    .filter((file) => file.endsWith(".liquid"))
+    .sort()
+    .reverse()
+    .map((version) => ({
+      version,
+      createdAt: createdAtFromPromptVersion(version),
+      content: fs.readFileSync(path.join(versionDir, version), "utf-8"),
+      isCurrent: version === currentVersion,
+    }))
+
+  return {
+    name,
+    resolvedName,
+    modelId,
+    fallbackContent: fallback?.content ?? null,
+    fallbackResolvedName: fallback?.resolvedName ?? null,
+    currentVersion,
+    versions,
+  }
+}
+
 function basePromptExists(promptsDir: string, name: string): boolean {
   return fs.existsSync(path.join(promptsDir, `${name}.liquid`))
     || latestVersionFile(promptsDir, name) != null
@@ -390,6 +516,24 @@ function readPrompt(options: {
   }
 
   return readBasePrompt({ promptsDir, booksDir, label, name, modelId: null })
+}
+
+function readPromptFallback(options: {
+  promptsDir: string
+  name: string
+  modelId: string | null
+}): { content: string; resolvedName: string } | null {
+  const { promptsDir, name, modelId } = options
+  const resolvedName = promptNameForModel(name, modelId)
+
+  if (modelId && resolvedName !== name) {
+    const modelPrompt = readModelPromptFallbackFromRoot(promptsDir, name, resolvedName, modelId)
+    if (modelPrompt) return { ...modelPrompt, resolvedName }
+  }
+
+  const flatPath = path.join(promptsDir, `${name}.liquid`)
+  if (!fs.existsSync(flatPath)) return null
+  return { content: fs.readFileSync(flatPath, "utf-8"), resolvedName: name }
 }
 
 function readModelPrompt(options: {
@@ -527,6 +671,25 @@ function readModelPromptFromRoot(
   return null
 }
 
+function readModelPromptFallbackFromRoot(
+  root: string,
+  promptName: string,
+  resolvedName: string,
+  modelId: string,
+): { content: string } | null {
+  const folderPath = path.join(root, promptModelFolderName(modelId), `${promptName}.liquid`)
+  if (fs.existsSync(folderPath)) {
+    return { content: fs.readFileSync(folderPath, "utf-8") }
+  }
+
+  const legacyFlatPath = path.join(root, `${resolvedName}.liquid`)
+  if (fs.existsSync(legacyFlatPath)) {
+    return { content: fs.readFileSync(legacyFlatPath, "utf-8") }
+  }
+
+  return null
+}
+
 function latestVersionFile(root: string, promptName: string): string | null {
   const versionDir = path.join(root, PROMPT_VERSIONS_DIR, promptName)
   if (!fs.existsSync(versionDir)) return null
@@ -535,7 +698,23 @@ function latestVersionFile(root: string, promptName: string): string | null {
     .readdirSync(versionDir)
     .filter((file) => file.endsWith(".liquid"))
     .sort()
+  const currentVersion = readCurrentPromptVersion(versionDir)
+  if (currentVersion && versions.includes(currentVersion)) return currentVersion
   return versions.at(-1) ?? null
+}
+
+function readCurrentPromptVersion(versionDir: string): string | null {
+  const currentPath = path.join(versionDir, PROMPT_CURRENT_VERSION_FILE)
+  if (!fs.existsSync(currentPath)) return null
+
+  const currentVersion = fs.readFileSync(currentPath, "utf-8").trim()
+  if (!VALID_VERSION_FILE.test(currentVersion)) return null
+  if (!fs.existsSync(path.join(versionDir, currentVersion))) return null
+  return currentVersion
+}
+
+function writeCurrentPromptVersion(versionDir: string, version: string) {
+  fs.writeFileSync(path.join(versionDir, PROMPT_CURRENT_VERSION_FILE), `${version}\n`, "utf-8")
 }
 
 function createPromptVersionName(versionDir: string): string {
@@ -553,10 +732,20 @@ function prunePromptVersions(versionDir: string) {
     .filter((file) => file.endsWith(".liquid"))
     .sort()
 
-  const staleVersions = versions.slice(0, Math.max(0, versions.length - PROMPT_VERSION_FILE_LIMIT))
+  const currentVersion = readCurrentPromptVersion(versionDir)
+  const removableVersions = versions.filter((version) => version !== currentVersion)
+  const staleVersions = removableVersions.slice(0, Math.max(0, versions.length - PROMPT_VERSION_FILE_LIMIT))
   for (const version of staleVersions) {
     fs.rmSync(path.join(versionDir, version), { force: true })
   }
+}
+
+function createdAtFromPromptVersion(version: string): string | null {
+  const match = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(\d{3})Z-\d{3}\.liquid$/.exec(version)
+  if (!match) return null
+
+  const [, year, month, day, hour, minute, second, millisecond] = match
+  return `${year}-${month}-${day}T${hour}:${minute}:${second}.${millisecond}Z`
 }
 
 function isPromptModelFolder(name: string): boolean {

@@ -256,4 +256,32 @@ describe("createPromptEngine", () => {
       content: [{ type: "text", text: "New" }],
     })
   })
+
+  it("uses the selected current versioned book override before the newest version", async () => {
+    const bookDir = tmpDir()
+    const globalDir = tmpDir()
+    fs.writeFileSync(
+      path.join(globalDir, "section__openai_gpt_5_5.liquid"),
+      `{% chat role: "user" %}Global variant{% endchat %}`
+    )
+    const versionDir = path.join(bookDir, ".versions", "section__openai_gpt_5_5")
+    fs.mkdirSync(versionDir, { recursive: true })
+    fs.writeFileSync(
+      path.join(versionDir, "20260101T000000Z.liquid"),
+      `{% chat role: "user" %}Selected old{% endchat %}`
+    )
+    fs.writeFileSync(
+      path.join(versionDir, "20260102T000000Z.liquid"),
+      `{% chat role: "user" %}Newest{% endchat %}`
+    )
+    fs.writeFileSync(path.join(versionDir, ".current"), "20260101T000000Z.liquid\n")
+
+    const engine = createPromptEngine([bookDir, globalDir])
+    const messages = await engine.renderPrompt("section", {}, { modelId: "openai:gpt-5.5" })
+
+    expect(messages[0]).toEqual({
+      role: "user",
+      content: [{ type: "text", text: "Selected old" }],
+    })
+  })
 })

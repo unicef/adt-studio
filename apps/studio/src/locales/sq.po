@@ -239,6 +239,10 @@ msgstr "{0} tekste"
 msgid "{0} translations"
 msgstr "{0} përkthime"
 
+#. placeholder {0}: versions.length
+#~ msgid "{0} versions"
+#~ msgstr "{0} versione"
+
 #. placeholder {0}: String(generatedAudioCount)
 #. placeholder {1}: String(speakableEntries.length)
 msgid "{0}/{1} audio"
@@ -1838,6 +1842,12 @@ msgstr "Koment"
 msgid "Comments"
 msgstr "Komente"
 
+#~ msgid "Compared with current content."
+#~ msgstr "Krahasuar me përmbajtjen aktuale."
+
+msgid "Compared with fallback prompt."
+msgstr "Krahasuar me prompt-in fallback."
+
 msgid "Completed"
 msgstr "Përfunduar"
 
@@ -2377,6 +2387,15 @@ msgstr "Diagram"
 msgid "Did you know?"
 msgstr "A e dije?"
 
+msgid "Diff"
+msgstr "Diff"
+
+#~ msgid "Diff against current"
+#~ msgstr "Dallimet me aktualin"
+
+msgid "Diff against fallback"
+msgstr "Diff ndaj fallback"
+
 msgid "Direction"
 msgstr "Drejtim"
 
@@ -2448,6 +2467,9 @@ msgstr "Duke shkarkuar përditësimin…"
 
 msgid "Downloads at extraction"
 msgstr "Shkarkohet gjatë nxjerrjes"
+
+msgid "Draft"
+msgstr "Draft"
 
 msgid "Drag & drop font files here"
 msgstr "Tërhiq dhe lësho skedarët e fontit këtu"
@@ -4482,6 +4504,12 @@ msgstr "Nuk ka kopertinë të disponueshme"
 msgid "No data"
 msgstr "Nuk ka të dhëna"
 
+#~ msgid "No differences from the current version."
+#~ msgstr "Nuk ka dallime nga versioni aktual."
+
+msgid "No differences from the fallback prompt."
+msgstr "Nuk ka dallime nga prompt-i fallback."
+
 msgid "No disabled rules"
 msgstr "Nuk ka rregulla të çaktiviziuara"
 
@@ -4646,6 +4674,9 @@ msgstr "Nuk ka zona të shënuara aktualisht në këtë sesion rishikimi."
 
 msgid "No reviewer validation sessions have been started yet. Open Preview to create a reviewer session and begin recording page-level findings."
 msgstr "Nuk ka ende sesione vërtetimi rishikuesi të filluara. Hapni Pamjen Paraprake për të krijuar një sesion rishikuesi dhe filluar regjistrimin e gjetjeve në nivel faqeje."
+
+msgid "No saved prompt versions yet."
+msgstr "Nuk ka ende versione prompti të ruajtura."
 
 msgid "No sectioning data available."
 msgstr "Nuk ka të dhëna seksionimi të disponueshme."
@@ -5448,6 +5479,9 @@ msgstr "Shabllon prompt"
 
 msgid "Prompt template not found."
 msgstr "Shablloni i prompt-it nuk u gjet."
+
+msgid "Prompt version selected."
+msgstr "Versioni i promptit u zgjodh."
 
 msgid "Provider"
 msgstr "Ofruesi"
@@ -7593,6 +7627,9 @@ msgstr "Nuk mund të ruhet prompti global."
 #~ msgid "Unable to save prompt model."
 #~ msgstr "Nuk mund të ruhet modeli i promptit."
 
+msgid "Unable to select prompt version."
+msgstr "Nuk mund të zgjidhet versioni i promptit."
+
 msgid "Unassign video"
 msgstr "Hiq caktimin e videos"
 
@@ -7743,6 +7780,9 @@ msgstr "Përdor një LLM për të zbuluar dhe ndarë imazhet e kompozuara (p.sh.
 msgid "Use an LLM to filter out decorative or non-educational images."
 msgstr "Përdor një LLM për të filtruar imazhet dekorative ose jo-edukative."
 
+msgid "Use as current"
+msgstr "Përdor si aktual"
+
 msgid "Use as template"
 msgstr "Përdor si shabllon"
 
@@ -7820,6 +7860,9 @@ msgstr "Versioni {current}"
 
 #~ msgid "Version {targetVersion}"
 #~ msgstr "Versioni {targetVersion}"
+
+#~ msgid "Version history"
+#~ msgstr "Historiku i versioneve"
 
 msgid "Versioned"
 msgstr "Me version"

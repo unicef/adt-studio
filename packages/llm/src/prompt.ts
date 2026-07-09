@@ -14,6 +14,7 @@ import type { Message, ContentPart } from "./types.js"
 const IMAGE_MARKER_START = "\x00IMG:"
 const IMAGE_MARKER_END = "\x00"
 const PROMPT_VERSIONS_DIR = ".versions"
+const PROMPT_CURRENT_VERSION_FILE = ".current"
 
 export interface PromptRenderOptions {
   modelId?: string
@@ -166,12 +167,33 @@ function latestVersionedPromptPath(root: string, promptName: string): string | n
   const versionDir = path.join(root, PROMPT_VERSIONS_DIR, promptName)
   if (!fs.existsSync(versionDir)) return null
 
+  const currentPath = currentVersionedPromptPath(versionDir)
+  if (currentPath) return currentPath
+
   const files = fs
     .readdirSync(versionDir)
     .filter((file) => file.endsWith(".liquid"))
     .sort()
   const latest = files.at(-1)
   return latest ? path.join(versionDir, latest) : null
+}
+
+function currentVersionedPromptPath(versionDir: string): string | null {
+  const currentPath = path.join(versionDir, PROMPT_CURRENT_VERSION_FILE)
+  if (!fs.existsSync(currentPath)) return null
+
+  const currentVersion = fs.readFileSync(currentPath, "utf-8").trim()
+  if (
+    !currentVersion.endsWith(".liquid")
+    || currentVersion.includes("/")
+    || currentVersion.includes("\\")
+    || currentVersion.includes("..")
+  ) {
+    return null
+  }
+
+  const promptPath = path.join(versionDir, currentVersion)
+  return fs.existsSync(promptPath) ? promptPath : null
 }
 
 /**

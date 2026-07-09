@@ -622,6 +622,7 @@ export interface PromptResponse {
 export interface PromptSummary {
   name: string
   variants: string[]
+  variantSources?: Record<string, "file" | "version" | "file+version">
 }
 
 export interface PromptListResponse {
@@ -630,6 +631,23 @@ export interface PromptListResponse {
 
 export interface PromptModelsResponse {
   models: string[]
+}
+
+export interface PromptVersionSummary {
+  version: string
+  createdAt: string | null
+  content: string
+  isCurrent: boolean
+}
+
+export interface PromptVersionsResponse {
+  name: string
+  resolvedName: string
+  modelId: string | null
+  fallbackContent: string | null
+  fallbackResolvedName: string | null
+  currentVersion: string | null
+  versions: PromptVersionSummary[]
 }
 
 function promptModelQuery(modelId?: string | null): string {
@@ -1238,6 +1256,19 @@ export const api = {
     return request<PromptResponse>(
       bookLabel ? `/books/${bookLabel}/prompts/${name}${query}` : `/prompts/${name}${query}`,
       { method: "PUT", body: JSON.stringify({ content }) },
+    )
+  },
+
+  listPromptVersions: (name: string, modelId?: string | null) => {
+    const query = promptModelQuery(modelId)
+    return request<PromptVersionsResponse>(`/prompts/${name}/versions${query}`)
+  },
+
+  setPromptVersionCurrent: (name: string, version: string, modelId?: string | null) => {
+    const query = promptModelQuery(modelId)
+    return request<PromptResponse>(
+      `/prompts/${name}/versions/${encodeURIComponent(version)}/current${query}`,
+      { method: "PUT" },
     )
   },
 

@@ -42,6 +42,13 @@ function writeTemplate(name: string, content: string) {
   fs.writeFileSync(path.join(templatesDir, `${name}.liquid`), content, "utf-8")
 }
 
+function readLiquidVersions(versionDir: string): string[] {
+  return fs
+    .readdirSync(versionDir)
+    .filter((file) => file.endsWith(".liquid"))
+    .sort()
+}
+
 // ---- Prompt models ----
 
 describe("GET /prompt-models", () => {
@@ -98,13 +105,39 @@ describe("GET /prompts", () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body.prompts).toEqual([
-      { name: "metadata_extraction", variants: [] },
+      { name: "metadata_extraction", variants: [], variantSources: {} },
       {
         name: "page_sectioning",
         variants: [
           "page_sectioning__google_gemini_2_5_pro",
           "page_sectioning__openai_gpt_5_5",
         ],
+        variantSources: {
+          page_sectioning__google_gemini_2_5_pro: "file",
+          page_sectioning__openai_gpt_5_5: "file",
+        },
+      },
+    ])
+  })
+
+  it("marks model variants with both shipped files and user versions", async () => {
+    writePrompt("page_sectioning", "base")
+    writeModelPrompt("google_gemini_2_5_pro", "page_sectioning", "folder variant")
+    const versionDir = path.join(promptsDir, ".versions", "page_sectioning__google_gemini_2_5_pro")
+    fs.mkdirSync(versionDir, { recursive: true })
+    fs.writeFileSync(path.join(versionDir, "20260101T000000000Z-000.liquid"), "version", "utf-8")
+
+    const res = await app().request("/prompts")
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.prompts).toEqual([
+      {
+        name: "page_sectioning",
+        variants: ["page_sectioning__google_gemini_2_5_pro"],
+        variantSources: {
+          page_sectioning__google_gemini_2_5_pro: "file+version",
+        },
       },
     ])
   })
@@ -145,9 +178,10 @@ describe("PUT /prompts/:name", () => {
     expect(body.version).toMatch(/\.liquid$/)
     expect(fs.readFileSync(path.join(promptsDir, "test_prompt.liquid"), "utf-8")).toBe("old content")
     const versionDir = path.join(promptsDir, ".versions", "test_prompt")
-    const versions = fs.readdirSync(versionDir)
+    const versions = readLiquidVersions(versionDir)
     expect(versions).toHaveLength(1)
     expect(fs.readFileSync(path.join(versionDir, versions[0]), "utf-8")).toBe("new content")
+    expect(fs.readFileSync(path.join(versionDir, ".current"), "utf-8").trim()).toBe(versions[0])
   })
 
   it("creates a versioned global exact model override", async () => {
@@ -198,7 +232,7 @@ describe("PUT /prompts/:name", () => {
     }
 
     const versionDir = path.join(promptsDir, ".versions", "test_prompt")
-    const versions = fs.readdirSync(versionDir).sort()
+    const versions = readLiquidVersions(versionDir)
     expect(versions).toEqual([
       "20260102T030403000Z-000.liquid",
       "20260102T030404000Z-000.liquid",
@@ -228,6 +262,166 @@ describe("PUT /prompts/:name", () => {
       body: JSON.stringify({}),
     })
     expect(res.status).toBe(400)
+  })
+})
+
+describe("GET /prompts/:name/versions", () => {
+  it("lists global prompt versions with the current version marked", async () => {
+    writePrompt("test_prompt", "default content")
+    vi.useFakeTimers()
+
+    vi.setSystemTime(new Date("2026-01-02T03:04:05.006Z"))
+    await app().request("/prompts/test_prompt", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "first version" }),
+    })
+    vi.setSystemTime(new Date("2026-01-02T03:04:06.007Z"))
+    await app().request("/prompts/test_prompt", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "second version" }),
+    })
+
+    const res = await app().request("/prompts/test_prompt/versions")
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.name).toBe("test_prompt")
+    expect(body.resolvedName).toBe("test_prompt")
+    expect(body.fallbackContent).toBe("default content")
+    expect(body.fallbackResolvedName).toBe("test_prompt")
+    expect(body.currentVersion).toBe("20260102T030406007Z-000.liquid")
+    expect(body.versions).toEqual([
+      {
+        version: "20260102T030406007Z-000.liquid",
+        createdAt: "2026-01-02T03:04:06.007Z",
+        content: "second version",
+        isCurrent: true,
+      },
+      {
+        version: "20260102T030405006Z-000.liquid",
+        createdAt: "2026-01-02T03:04:05.006Z",
+        content: "first version",
+        isCurrent: false,
+      },
+    ])
+  })
+
+  it("lists model-specific global prompt versions", async () => {
+    writePrompt("test_prompt", "default content")
+    await app().request("/prompts/test_prompt?model=openai%3Agpt-5.5", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "gpt version" }),
+    })
+
+    const res = await app().request("/prompts/test_prompt/versions?model=openai%3Agpt-5.5")
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.resolvedName).toBe("test_prompt__openai_gpt_5_5")
+    expect(body.modelId).toBe("openai:gpt-5.5")
+    expect(body.fallbackContent).toBe("default content")
+    expect(body.fallbackResolvedName).toBe("test_prompt")
+    expect(body.versions).toHaveLength(1)
+    expect(body.versions[0].content).toBe("gpt version")
+    expect(body.versions[0].isCurrent).toBe(true)
+  })
+
+  it("uses the shipped model prompt as the version diff fallback when present", async () => {
+    writePrompt("test_prompt", "default content")
+    writeModelPrompt("openai_gpt_5_5", "test_prompt", "shipped gpt fallback")
+    await app().request("/prompts/test_prompt?model=openai%3Agpt-5.5", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "custom gpt version" }),
+    })
+
+    const res = await app().request("/prompts/test_prompt/versions?model=openai%3Agpt-5.5")
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.resolvedName).toBe("test_prompt__openai_gpt_5_5")
+    expect(body.fallbackContent).toBe("shipped gpt fallback")
+    expect(body.fallbackResolvedName).toBe("test_prompt__openai_gpt_5_5")
+    expect(body.versions[0].content).toBe("custom gpt version")
+  })
+})
+
+describe("PUT /prompts/:name/versions/:version/current", () => {
+  it("selects an older global prompt version as current", async () => {
+    writePrompt("test_prompt", "default content")
+    vi.useFakeTimers()
+
+    vi.setSystemTime(new Date("2026-01-02T03:04:05.006Z"))
+    await app().request("/prompts/test_prompt", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "first version" }),
+    })
+    vi.setSystemTime(new Date("2026-01-02T03:04:06.007Z"))
+    await app().request("/prompts/test_prompt", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "second version" }),
+    })
+
+    const res = await app().request(
+      "/prompts/test_prompt/versions/20260102T030405006Z-000.liquid/current",
+      { method: "PUT" },
+    )
+
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body.content).toBe("first version")
+    expect(body.version).toBe("20260102T030405006Z-000.liquid")
+
+    const readRes = await app().request("/prompts/test_prompt")
+    const readBody = await readRes.json()
+    expect(readBody.content).toBe("first version")
+
+    const versionDir = path.join(promptsDir, ".versions", "test_prompt")
+    expect(fs.readFileSync(path.join(versionDir, ".current"), "utf-8").trim()).toBe(
+      "20260102T030405006Z-000.liquid",
+    )
+  })
+
+  it("makes a new save current after an older version was selected", async () => {
+    writePrompt("test_prompt", "default content")
+    vi.useFakeTimers()
+
+    for (let index = 1; index <= 2; index += 1) {
+      vi.setSystemTime(new Date(`2026-01-02T03:04:0${index}.000Z`))
+      await app().request("/prompts/test_prompt", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: `version ${index}` }),
+      })
+    }
+
+    await app().request(
+      "/prompts/test_prompt/versions/20260102T030401000Z-000.liquid/current",
+      { method: "PUT" },
+    )
+
+    vi.setSystemTime(new Date("2026-01-02T03:04:03.000Z"))
+    await app().request("/prompts/test_prompt", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "version 3" }),
+    })
+
+    const versionDir = path.join(promptsDir, ".versions", "test_prompt")
+    const versions = readLiquidVersions(versionDir)
+    expect(versions).toEqual([
+      "20260102T030401000Z-000.liquid",
+      "20260102T030402000Z-000.liquid",
+      "20260102T030403000Z-000.liquid",
+    ])
+    expect(fs.readFileSync(path.join(versionDir, ".current"), "utf-8").trim()).toBe(
+      "20260102T030403000Z-000.liquid",
+    )
   })
 })
 
@@ -357,7 +551,7 @@ describe("PUT /books/:label/prompts/:name", () => {
     expect(body.source).toBe("book")
     expect(body.content).toBe("override")
     const versionDir = path.join(booksDir, "my-book", "prompts", ".versions", "page_sectioning")
-    const versions = fs.readdirSync(versionDir)
+    const versions = readLiquidVersions(versionDir)
     expect(versions).toHaveLength(1)
     const onDisk = fs.readFileSync(path.join(versionDir, versions[0]), "utf-8")
     expect(onDisk).toBe("override")
@@ -403,7 +597,7 @@ describe("PUT /books/:label/prompts/:name", () => {
     expect(first.status).toBe(200)
     expect(second.status).toBe(200)
     const versionDir = path.join(booksDir, "my-book", "prompts", ".versions", "page_sectioning")
-    const versions = fs.readdirSync(versionDir).sort()
+    const versions = readLiquidVersions(versionDir)
     expect(versions).toEqual([
       "20260102T030405006Z-000.liquid",
       "20260102T030405006Z-001.liquid",
@@ -431,7 +625,7 @@ describe("PUT /books/:label/prompts/:name", () => {
     }
 
     const versionDir = path.join(booksDir, "my-book", "prompts", ".versions", "page_sectioning")
-    const versions = fs.readdirSync(versionDir).sort()
+    const versions = readLiquidVersions(versionDir)
     expect(versions).toEqual([
       "20260102T030403000Z-000.liquid",
       "20260102T030404000Z-000.liquid",

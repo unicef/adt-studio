@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
-import Editor from "@monaco-editor/react";
-import { FileText } from "lucide-react";
+import { FileText, GitCompare } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/api/client";
+import type { PromptResponse } from "@/api/client";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useFloatingSave } from "@/components/pipeline/components/floating-save";
@@ -15,25 +16,20 @@ import { toast } from "@/components/ui/sonner";
 import { LLM_MODEL_GROUPS } from "@/components/pipeline/components/ModelSelect";
 import { PromptLiquidGuideDialog } from "@/components/pipeline/components/PromptViewer/PromptLiquidGuideDialog";
 import {
-  configurePromptEditor,
-  PROMPT_EDITOR_LANGUAGE,
-  PROMPT_EDITOR_OPTIONS,
-  PROMPT_EDITOR_THEME,
-} from "@/components/pipeline/components/PromptViewer/promptEditor";
-import {
   promptModelForSelectedModel,
   promptNameForSelectedModel,
 } from "@/components/pipeline/components/PromptViewer/promptModel";
 import { Trans, useLingui } from "@lingui/react/macro";
+import { PromptEditorPane } from "./PromptEditorPane";
 import { PromptFileTree } from "./PromptFileTree";
 import { PromptModelActionsDialog } from "./PromptModelActionsDialog";
 import {
-  PromptEditorSkeleton,
   PromptFileTreeSkeleton,
   PromptStatusSkeleton,
   SelectedPromptHeaderSkeleton,
 } from "./PromptSettingsSkeletons";
 import { PromptStatusBadges } from "./PromptStatusBadges";
+import { PromptVersionHistory } from "./PromptVersionHistory";
 import {
   DEFAULT_MODEL,
   isDefaultPromptModelId,
@@ -64,6 +60,7 @@ export function GlobalPromptsSettings({
   const [model, setModel] = useState(DEFAULT_MODEL);
   const [treeFilter, setTreeFilter] = useState("");
   const [draft, setDraft] = useState<string | null>(null);
+  const [isDiffOpen, setIsDiffOpen] = useState(false);
 
   const promptListQuery = useQuery({
     queryKey: ["prompts"],
@@ -123,6 +120,15 @@ export function GlobalPromptsSettings({
   const isDirty = draft != null && draft !== currentContent;
   const hasResettableVersion = selectedPrompt.length > 0 && isEditedGlobalVersion;
 
+  const handleCurrentVersionChanged = async (prompt: PromptResponse) => {
+    setDraft(null);
+    updatePromptCaches(queryClient, selectedPrompt, promptModelId, prompt);
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ["prompts"] }),
+      queryClient.invalidateQueries({ queryKey: ["prompt-versions", selectedPrompt, promptModelId] }),
+    ]);
+  };
+
   const saveMutation = useMutation({
     mutationFn: () =>
       api.updatePrompt(
@@ -134,7 +140,10 @@ export function GlobalPromptsSettings({
     onSuccess: async (saved) => {
       setDraft(null);
       updatePromptCaches(queryClient, selectedPrompt, promptModelId, saved);
-      await queryClient.invalidateQueries({ queryKey: ["prompts"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["prompts"] }),
+        queryClient.invalidateQueries({ queryKey: ["prompt-versions", selectedPrompt, promptModelId] }),
+      ]);
       toast.success(t`Global prompt saved.`);
     },
     onError: (error) => {
@@ -156,7 +165,10 @@ export function GlobalPromptsSettings({
         promptModelId,
         resetPrompt,
       );
-      await queryClient.invalidateQueries({ queryKey: ["prompts"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["prompts"] }),
+        queryClient.invalidateQueries({ queryKey: ["prompt-versions", selectedPrompt, promptModelId] }),
+      ]);
       toast.success(t`Global prompt reset to default.`);
     },
     onError: (error) => {
@@ -184,7 +196,10 @@ export function GlobalPromptsSettings({
         resetPrompt,
       );
       if (selectedPrompt === promptName && model === modelId) setDraft(null);
-      await queryClient.invalidateQueries({ queryKey: ["prompts"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["prompts"] }),
+        queryClient.invalidateQueries({ queryKey: ["prompt-versions"] }),
+      ]);
       toast.success(t`Prompt file deleted.`);
     },
     onError: (error) => {
@@ -224,6 +239,7 @@ export function GlobalPromptsSettings({
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["prompts"] }),
         queryClient.invalidateQueries({ queryKey: ["prompt-models"] }),
+        queryClient.invalidateQueries({ queryKey: ["prompt-versions"] }),
       ]);
       toast.success(t`Prompt folder deleted.`);
     },
@@ -290,6 +306,7 @@ export function GlobalPromptsSettings({
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["prompts"] }),
         queryClient.invalidateQueries({ queryKey: ["prompt-models"] }),
+        queryClient.invalidateQueries({ queryKey: ["prompt-versions"] }),
       ]);
       toast.success(t`Prompt file created from template.`);
     } catch (error) {
@@ -433,7 +450,7 @@ export function GlobalPromptsSettings({
           >
             <section className="flex h-full w-full min-w-0 flex-col">
               <div className="flex shrink-0 flex-wrap items-end gap-3 border-b bg-muted/20 p-3">
-                <div className="min-w-96">
+                <div className="min-w-96 flex-1">
                   <Label className="text-xs font-medium text-muted-foreground">
                     <Trans>Selected file</Trans>
                   </Label>
@@ -447,7 +464,7 @@ export function GlobalPromptsSettings({
                   )}
                 </div>
 
-                <div className="flex flex-1 flex-wrap items-center gap-2 pb-0.5">
+                <div className="flex flex-wrap items-center gap-2 pb-0.5">
                   {isPromptEditorLoading ? (
                     <>
                       <PromptStatusSkeleton />
@@ -459,10 +476,20 @@ export function GlobalPromptsSettings({
                         isUsingFallback={isUsingFallback}
                         isEditedGlobalVersion={isEditedGlobalVersion}
                       />
+                      <Button
+                        type="button"
+                        variant={isDiffOpen ? "secondary" : "outline"}
+                        size="sm"
+                        className="ml-auto h-8"
+                        aria-pressed={isDiffOpen}
+                        onClick={() => setIsDiffOpen((isOpen) => !isOpen)}
+                      >
+                        <GitCompare className="size-4" />
+                        <Trans>Diff</Trans>
+                      </Button>
                       <PromptLiquidGuideDialog
                         promptName={selectedPrompt}
                         content={displayContent}
-                        className="ml-auto"
                       />
                     </>
                   )}
@@ -472,27 +499,55 @@ export function GlobalPromptsSettings({
               <div
                 className={
                   embedded
-                    ? "min-h-0 flex-1 overflow-hidden"
-                    : "min-h-[560px] flex-1 overflow-hidden"
+                    ? "min-h-0 flex-1"
+                    : "min-h-[560px] flex-1"
                 }
               >
-                {isPromptEditorLoading ? (
-                  <PromptEditorSkeleton />
-                ) : promptQuery.data?.content != null ? (
-                  <Editor
-                    value={displayContent}
-                    language={PROMPT_EDITOR_LANGUAGE}
-                    theme={PROMPT_EDITOR_THEME}
-                    beforeMount={configurePromptEditor}
-                    height="100%"
-                    width="100%"
-                    onChange={(value) => setDraft(value ?? "")}
-                    options={PROMPT_EDITOR_OPTIONS}
-                  />
+                {isDiffOpen ? (
+                  <ResizablePanelGroup
+                    orientation="horizontal"
+                    defaultLayout={{ promptEditorBody: 58, promptVersions: 42 }}
+                    className="min-h-0"
+                  >
+                    <ResizablePanel
+                      id="promptEditorBody"
+                      defaultSize="58%"
+                      minSize="450px"
+                    >
+                      <PromptEditorPane
+                        isLoading={isPromptEditorLoading}
+                        content={promptQuery.data?.content}
+                        displayContent={displayContent}
+                        onChange={setDraft}
+                      />
+                    </ResizablePanel>
+
+                    <ResizableHandle withHandle />
+
+                    <ResizablePanel
+                      id="promptVersions"
+                      defaultSize="45%"
+                      minSize="45%"
+                      maxSize="65%"
+                    >
+                      <PromptVersionHistory
+                        promptName={selectedPrompt}
+                        modelId={promptModelId}
+                        currentContent={currentContent}
+                        editedContent={displayContent}
+                        disabled={isPromptEditorLoading || promptQuery.data?.content == null}
+                        hasUnsavedChanges={isDirty}
+                        onCurrentVersionChanged={handleCurrentVersionChanged}
+                      />
+                    </ResizablePanel>
+                  </ResizablePanelGroup>
                 ) : (
-                  <div className="p-4 text-sm text-muted-foreground">
-                    <Trans>Prompt template not found.</Trans>
-                  </div>
+                  <PromptEditorPane
+                    isLoading={isPromptEditorLoading}
+                    content={promptQuery.data?.content}
+                    displayContent={displayContent}
+                    onChange={setDraft}
+                  />
                 )}
               </div>
             </section>

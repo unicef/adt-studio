@@ -240,6 +240,10 @@ msgstr "{0} textes"
 msgid "{0} translations"
 msgstr "{0} traductions"
 
+#. placeholder {0}: versions.length
+#~ msgid "{0} versions"
+#~ msgstr "{0} versions"
+
 #. placeholder {0}: String(generatedAudioCount)
 #. placeholder {1}: String(speakableEntries.length)
 msgid "{0}/{1} audio"
@@ -1839,6 +1843,12 @@ msgstr "Commentaire"
 msgid "Comments"
 msgstr "Commentaires"
 
+#~ msgid "Compared with current content."
+#~ msgstr "Comparé au contenu actuel."
+
+msgid "Compared with fallback prompt."
+msgstr "Comparé au prompt de repli."
+
 msgid "Completed"
 msgstr "Terminé"
 
@@ -2378,6 +2388,15 @@ msgstr "Diagramme"
 msgid "Did you know?"
 msgstr "Le saviez-vous ?"
 
+msgid "Diff"
+msgstr "Diff"
+
+#~ msgid "Diff against current"
+#~ msgstr "Diff avec l'actuelle"
+
+msgid "Diff against fallback"
+msgstr "Diff avec le repli"
+
 msgid "Direction"
 msgstr "Direction"
 
@@ -2449,6 +2468,9 @@ msgstr "Téléchargement de la mise à jour…"
 
 msgid "Downloads at extraction"
 msgstr "Téléchargée à l'extraction"
+
+msgid "Draft"
+msgstr "Brouillon"
 
 msgid "Drag & drop font files here"
 msgstr "Glissez-déposez des fichiers de police ici"
@@ -4483,6 +4505,12 @@ msgstr "Pas de couverture disponible"
 msgid "No data"
 msgstr "Aucune donnée"
 
+#~ msgid "No differences from the current version."
+#~ msgstr "Aucune différence avec la version actuelle."
+
+msgid "No differences from the fallback prompt."
+msgstr "Aucune différence avec le prompt de repli."
+
 msgid "No disabled rules"
 msgstr "Aucune règle désactivée"
 
@@ -4647,6 +4675,9 @@ msgstr "Aucune zone de révision n'est actuellement signalée dans cette session
 
 msgid "No reviewer validation sessions have been started yet. Open Preview to create a reviewer session and begin recording page-level findings."
 msgstr "Aucune session de validation du réviseur n'a encore été démarrée. Ouvrez l'aperçu pour créer une session de révision et commencer à enregistrer les résultats au niveau de la page."
+
+msgid "No saved prompt versions yet."
+msgstr "Aucune version de prompt enregistrée pour l'instant."
 
 msgid "No sectioning data available."
 msgstr "Aucune donnée de sectionnement disponible."
@@ -5449,6 +5480,9 @@ msgstr "Modèle d'invite"
 
 msgid "Prompt template not found."
 msgstr "Invite modèle non trouvé."
+
+msgid "Prompt version selected."
+msgstr "Version du prompt sélectionnée."
 
 msgid "Provider"
 msgstr "Provider"
@@ -7594,6 +7628,9 @@ msgstr "Impossible d'enregistrer le prompt global."
 #~ msgid "Unable to save prompt model."
 #~ msgstr "Impossible d'enregistrer le modèle de prompt."
 
+msgid "Unable to select prompt version."
+msgstr "Impossible de sélectionner la version du prompt."
+
 msgid "Unassign video"
 msgstr "Désassigner la vidéo"
 
@@ -7744,6 +7781,9 @@ msgstr "Utilisez un LLM pour détecter et séparer les images composites (par ex
 msgid "Use an LLM to filter out decorative or non-educational images."
 msgstr "Utiliser un LLM pour filtrer les images décoratives ou non éducatives."
 
+msgid "Use as current"
+msgstr "Utiliser comme actuelle"
+
 msgid "Use as template"
 msgstr "Utiliser comme modèle"
 
@@ -7821,6 +7861,9 @@ msgstr "Version {current}"
 
 #~ msgid "Version {targetVersion}"
 #~ msgstr "Version {targetVersion}"
+
+#~ msgid "Version history"
+#~ msgstr "Historique des versions"
 
 msgid "Versioned"
 msgstr "Versionné"

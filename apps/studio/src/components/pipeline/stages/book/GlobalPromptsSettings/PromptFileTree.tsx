@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react"
 import { FileText, Folder, FolderOpen } from "lucide-react"
 import type { ModelGroup } from "@/components/pipeline/components/ModelSelect"
 import { Badge } from "@/components/ui/badge"
+import { promptNameForSelectedModel } from "@/components/pipeline/components/PromptViewer/promptModel"
 import { cn } from "@/lib/utils"
 import { Trans } from "@lingui/react/macro"
 import { PromptFileActions } from "./PromptFileActions"
@@ -16,6 +17,7 @@ import {
 type PromptSummary = {
   name: string
   variants: string[]
+  variantSources?: Record<string, "file" | "version" | "file+version">
 }
 
 type PromptFileTreeProps = {
@@ -39,9 +41,11 @@ type PromptFileTreeProps = {
 type ModelPromptFolder = {
   modelId: string
   allPromptNames: string[]
+  hasProjectDefaultFiles: boolean
   prompts: Array<{
     name: string
     fileName: string
+    isProjectDefault: boolean
   }>
 }
 
@@ -66,12 +70,17 @@ export function PromptFileTree({
       group.models.map((model) => {
         const modelId = `${group.provider}:${model}`
         const existingPrompts = prompts.filter((prompt) => promptExistsForModel(prompt, modelId))
+        const projectDefaultPrompts = existingPrompts.filter((prompt) => (
+          isProjectDefaultPromptVariant(prompt, modelId)
+        ))
         return {
           modelId,
           allPromptNames: existingPrompts.map((prompt) => prompt.name),
+          hasProjectDefaultFiles: projectDefaultPrompts.length > 0,
           prompts: existingPrompts.map((prompt) => ({
             name: prompt.name,
             fileName: promptFileNameForModel(prompt.name, modelId),
+            isProjectDefault: isProjectDefaultPromptVariant(prompt, modelId),
           })),
         }
       }),
@@ -123,6 +132,7 @@ export function PromptFileTree({
           const FolderIcon = isOpen ? FolderOpen : Folder
           const isDefaultFolder = folder.modelId === DEFAULT_MODEL
           const isSelectedFolder = selectedModel === folder.modelId
+          const canDeleteFolder = !isDefaultFolder && !folder.hasProjectDefaultFiles
           return (
             <div key={folder.modelId}>
               <div
@@ -152,7 +162,7 @@ export function PromptFileTree({
                     <Trans>Default</Trans>
                   </Badge>
                 )}
-                {!isDefaultFolder && (
+                {canDeleteFolder && (
                   <PromptFolderActions
                     modelId={folder.modelId}
                     isActive={isSelectedFolder || deletingModelId === folder.modelId}
@@ -195,7 +205,7 @@ export function PromptFileTree({
                           defaultTargetModel={selectedModel || DEFAULT_MODEL}
                           isActive={isSelectedFile || deletingKey === itemKey}
                           isDeleting={deletingKey === itemKey}
-                          canDelete={folder.modelId !== DEFAULT_MODEL}
+                          canDelete={!prompt.isProjectDefault}
                           onCreateFromTemplate={(targetModelId) =>
                             onCreatePromptFromTemplate(prompt.name, folder.modelId, targetModelId)}
                           onDelete={() => onDeletePrompt(prompt.name, folder.modelId)}
@@ -211,4 +221,12 @@ export function PromptFileTree({
       </div>
     </div>
   )
+}
+
+function isProjectDefaultPromptVariant(prompt: PromptSummary, modelId: string): boolean {
+  if (modelId === DEFAULT_MODEL) return true
+  const variantName = promptNameForSelectedModel(prompt.name, modelId)
+  if (!prompt.variants.includes(variantName)) return false
+  const source = prompt.variantSources?.[variantName]
+  return source === "file" || source === "file+version"
 }
