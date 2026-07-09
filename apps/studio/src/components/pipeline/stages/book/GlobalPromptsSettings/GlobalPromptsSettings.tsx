@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import Editor from "@monaco-editor/react";
-import { FileText, RotateCcw, Save } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/api/client";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useFloatingSave } from "@/components/pipeline/components/floating-save";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -121,6 +121,7 @@ export function GlobalPromptsSettings({
   );
   const isEditedGlobalVersion = Boolean(promptQuery.data?.version);
   const isDirty = draft != null && draft !== currentContent;
+  const hasResettableVersion = selectedPrompt.length > 0 && isEditedGlobalVersion;
 
   const saveMutation = useMutation({
     mutationFn: () =>
@@ -301,12 +302,6 @@ export function GlobalPromptsSettings({
     }
   };
 
-  const canSave =
-    selectedPrompt.length > 0 && isDirty && !saveMutation.isPending;
-  const canReset =
-    selectedPrompt.length > 0 &&
-    isEditedGlobalVersion &&
-    !resetMutation.isPending;
   const activePromptLabel =
     promptModelId && expectedModelPromptName
       ? promptFileName(expectedModelPromptName)
@@ -328,6 +323,22 @@ export function GlobalPromptsSettings({
   const isPromptFilesLoading =
     promptListQuery.isLoading || promptModelsQuery.isLoading;
   const isPromptEditorLoading = isPromptFilesLoading || promptQuery.isLoading;
+  const isSavingPrompt = saveMutation.isPending || resetMutation.isPending;
+
+  useFloatingSave({
+    id: "global-prompts",
+    dirty: !isPromptEditorLoading && (isDirty || hasResettableVersion),
+    saving: isSavingPrompt,
+    label: isDirty ? undefined : (
+      <span className="text-[11px] font-medium text-foreground">
+        <Trans>Custom prompt version</Trans>
+      </span>
+    ),
+    labelKey: isDirty ? "unsaved" : "custom-version",
+    onDiscard: isDirty ? () => setDraft(null) : undefined,
+    onReset: hasResettableVersion ? () => resetMutation.mutate() : undefined,
+    onSave: isDirty ? () => saveMutation.mutate() : undefined,
+  });
 
   return (
     <div
@@ -458,27 +469,6 @@ export function GlobalPromptsSettings({
                       />
                     </>
                   )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-9 gap-2"
-                    onClick={() => resetMutation.mutate()}
-                    disabled={!canReset}
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                    <Trans>Reset</Trans>
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    className="h-9 gap-2"
-                    onClick={() => saveMutation.mutate()}
-                    disabled={!canSave}
-                  >
-                    <Save className="h-3.5 w-3.5" />
-                    <Trans>Save</Trans>
-                  </Button>
                 </div>
               </div>
 

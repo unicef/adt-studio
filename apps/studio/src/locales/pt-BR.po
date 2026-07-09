@@ -2100,6 +2100,9 @@ msgstr "Instruções Personalizadas"
 msgid "Custom Layout Demo"
 msgstr "Demonstração de Layout Personalizado"
 
+msgid "Custom prompt version"
+msgstr "Versão customizada do prompt"
+
 msgid "Custom range"
 msgstr "Intervalo personalizado"
 

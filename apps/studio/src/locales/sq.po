@@ -2101,6 +2101,9 @@ msgstr "Udhëzime të personalizuara"
 msgid "Custom Layout Demo"
 msgstr "Demo e paraqitjes së personalizuar"
 
+msgid "Custom prompt version"
+msgstr "Version i personalizuar i promptit"
+
 msgid "Custom range"
 msgstr "Interval i personalizuar"
 

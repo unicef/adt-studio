@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { StudioTopBar } from "@/components/StudioTopBar"
+import { FloatingSaveProvider } from "@/components/pipeline/components/floating-save"
 import { GlobalPromptsSettings } from "@/components/pipeline/stages/book/GlobalPromptsSettings"
 import { usePageTitle } from "@/hooks/use-page-title"
 
@@ -15,7 +16,9 @@ function PromptSettingsPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <StudioTopBar brandLinksHome trailingTitle={<Trans>Prompt Settings</Trans>} />
-      <GlobalPromptsSettings />
+      <FloatingSaveProvider>
+        <GlobalPromptsSettings />
+      </FloatingSaveProvider>
     </div>
   )
 }

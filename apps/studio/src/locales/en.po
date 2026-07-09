@@ -2100,6 +2100,9 @@ msgstr "Custom Instructions"
 msgid "Custom Layout Demo"
 msgstr "Custom Layout Demo"
 
+msgid "Custom prompt version"
+msgstr "Custom prompt version"
+
 msgid "Custom range"
 msgstr "Custom range"
 
