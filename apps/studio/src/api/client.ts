@@ -13,10 +13,16 @@ import type {
   ReviewerValidationInstruction,
   ReviewerValidationSection,
   ReviewerValidationSession,
+  Student,
+  StudentInput,
+  AccessibilityProfileInput,
+  AccessibilityTemplate,
+  MaterialAssignment,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 
 export type { BookSummary, BookDetail }
+export type { Student, StudentInput, AccessibilityProfileInput, AccessibilityTemplate, MaterialAssignment }
 
 export function resolveBaseUrl(
   _loc: Pick<Location, "protocol" | "hostname"> = window.location,
@@ -722,6 +728,20 @@ export interface TaskInfoResponse {
 }
 
 export const api = {
+  getStudents: (search?: string) => request<Student[]>(`/students${search ? `?search=${encodeURIComponent(search)}` : ""}`),
+  getStudent: (id: string) => request<Student>(`/students/${id}`),
+  createStudent: (data: StudentInput) => request<Student>("/students", { method: "POST", body: JSON.stringify(data) }),
+  updateStudent: (id: string, data: StudentInput) => request<Student>(`/students/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteStudent: (id: string) => request<{ ok: boolean }>(`/students/${id}`, { method: "DELETE" }),
+  addStudentProfile: (studentId: string, data: AccessibilityProfileInput) => request(`/students/${studentId}/profiles`, { method: "POST", body: JSON.stringify(data) }),
+  deleteStudentProfile: (studentId: string, profileId: string) => request<{ ok: boolean }>(`/students/${studentId}/profiles/${profileId}`, { method: "DELETE" }),
+  getAccessibilityTemplates: () => request<AccessibilityTemplate[]>("/accessibility-templates"),
+  getStudentDashboard: () => request<{ totalStudents: number; studentsRequiringSupport: number; assignedMaterials: number; completedMaterials: number; pendingMaterials: number; materialsSent: number }>("/dashboard"),
+  generatePersonalizedMaterial: (studentId: string, sourceBookLabel: string) => request<{ material: { id: string; derivedBookLabel: string }; assignment: MaterialAssignment; plan: { rules: Record<string, boolean> } }>("/materials/personalized", { method: "POST", body: JSON.stringify({ studentId, sourceBookLabel }) }),
+  getStudentAssignments: (studentId: string) => request<MaterialAssignment[]>(`/students/${studentId}/assignments`),
+  updateAssignmentStatus: (id: string, status: MaterialAssignment["status"]) => request<MaterialAssignment>(`/assignments/${id}/status`, { method: "POST", body: JSON.stringify({ status }) }),
+  recordDelivery: (assignmentId: string, recipient: string) => request(`/assignments/${assignmentId}/deliveries`, { method: "POST", body: JSON.stringify({ method: "manual", recipient }) }),
+
   getBooks: () => request<BookSummary[]>("/books"),
 
   getBook: (label: string) => request<BookDetail>(`/books/${label}`),

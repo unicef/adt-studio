@@ -23,6 +23,7 @@
     { "path": "packages/storage" },
     { "path": "packages/pipeline" },
     { "path": "apps/api" },
-    { "path": "apps/studio" }
+    { "path": "apps/studio" },
+    { "path": "apps/classroom-worker" }
   ]
 }

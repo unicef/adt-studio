@@ -43,6 +43,12 @@ export default defineConfig({
       },
       {
         test: {
+          name: "classroom-worker",
+          include: ["apps/classroom-worker/src/**/*.test.ts"],
+        },
+      },
+      {
+        test: {
           name: "packages",
           include: ["packages/*/src/**/__tests__/**/*.test.ts"],
         },

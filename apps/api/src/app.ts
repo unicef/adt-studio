@@ -31,6 +31,7 @@ import { createSpeechConfigRoutes } from "./routes/speech-config.js"
 import { createReviewerValidationRoutes } from "./routes/reviewer-validation.js"
 import { createTocRoutes } from "./routes/toc.js"
 import { createSignLanguageVideoRoutes } from "./routes/sign-language-videos.js"
+import { createStudentRoutes } from "./routes/students.js"
 
 // Resolve paths relative to monorepo root (2 levels up from apps/api/)
 const projectRoot = path.resolve(
@@ -112,6 +113,7 @@ app.route("/api", createAdtPreviewRoutes(booksDir, webAssetsDir, configPath))
 app.route("/api", createSpeechConfigRoutes(configPath))
 app.route("/api", createReviewerValidationRoutes(booksDir, configFolderPath, configPath))
 app.route("/api", createSignLanguageVideoRoutes(booksDir))
+app.route("/api", createStudentRoutes(booksDir))
 
 export default app
 export { booksDir }

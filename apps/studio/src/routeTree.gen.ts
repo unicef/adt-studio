@@ -9,8 +9,13 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from "./routes/__root"
+import { Route as StudentsRouteImport } from "./routes/students"
 import { Route as OnboardingRouteImport } from "./routes/onboarding"
+import { Route as DashboardRouteImport } from "./routes/dashboard"
 import { Route as IndexRouteImport } from "./routes/index"
+import { Route as StudentsIndexRouteImport } from "./routes/students.index"
+import { Route as StudentsNewRouteImport } from "./routes/students.new"
+import { Route as StudentsStudentIdRouteImport } from "./routes/students.$studentId"
 import { Route as BooksNewRouteImport } from "./routes/books.new"
 import { Route as BooksImportRouteImport } from "./routes/books.import"
 import { Route as BooksLabelRouteImport } from "./routes/books.$label"
@@ -21,15 +26,40 @@ import { Route as BooksLabelStepIndexRouteImport } from "./routes/books.$label.$
 import { Route as BooksLabelStepSettingsRouteImport } from "./routes/books.$label.$step.settings"
 import { Route as BooksLabelStepPageIdRouteImport } from "./routes/books.$label.$step.$pageId"
 
+const StudentsRoute = StudentsRouteImport.update({
+  id: "/students",
+  path: "/students",
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: "/onboarding",
   path: "/onboarding",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: "/dashboard",
+  path: "/dashboard",
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
   id: "/",
   path: "/",
   getParentRoute: () => rootRouteImport,
+} as any)
+const StudentsIndexRoute = StudentsIndexRouteImport.update({
+  id: "/",
+  path: "/",
+  getParentRoute: () => StudentsRoute,
+} as any)
+const StudentsNewRoute = StudentsNewRouteImport.update({
+  id: "/new",
+  path: "/new",
+  getParentRoute: () => StudentsRoute,
+} as any)
+const StudentsStudentIdRoute = StudentsStudentIdRouteImport.update({
+  id: "/$studentId",
+  path: "/$studentId",
+  getParentRoute: () => StudentsRoute,
 } as any)
 const BooksNewRoute = BooksNewRouteImport.update({
   id: "/books/new",
@@ -79,10 +109,15 @@ const BooksLabelStepPageIdRoute = BooksLabelStepPageIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
+  "/dashboard": typeof DashboardRoute
   "/onboarding": typeof OnboardingRoute
+  "/students": typeof StudentsRouteWithChildren
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
+  "/students/$studentId": typeof StudentsStudentIdRoute
+  "/students/new": typeof StudentsNewRoute
+  "/students/": typeof StudentsIndexRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/books/$label/": typeof BooksLabelIndexRoute
@@ -92,9 +127,13 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
+  "/dashboard": typeof DashboardRoute
   "/onboarding": typeof OnboardingRoute
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
+  "/students/$studentId": typeof StudentsStudentIdRoute
+  "/students/new": typeof StudentsNewRoute
+  "/students": typeof StudentsIndexRoute
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/books/$label": typeof BooksLabelIndexRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
@@ -104,10 +143,15 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   "/": typeof IndexRoute
+  "/dashboard": typeof DashboardRoute
   "/onboarding": typeof OnboardingRoute
+  "/students": typeof StudentsRouteWithChildren
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
+  "/students/$studentId": typeof StudentsStudentIdRoute
+  "/students/new": typeof StudentsNewRoute
+  "/students/": typeof StudentsIndexRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/books/$label/": typeof BooksLabelIndexRoute
@@ -119,10 +163,15 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | "/"
+    | "/dashboard"
     | "/onboarding"
+    | "/students"
     | "/books/$label"
     | "/books/import"
     | "/books/new"
+    | "/students/$studentId"
+    | "/students/new"
+    | "/students/"
     | "/books/$label/$step"
     | "/books/$label/debug"
     | "/books/$label/"
@@ -132,9 +181,13 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | "/"
+    | "/dashboard"
     | "/onboarding"
     | "/books/import"
     | "/books/new"
+    | "/students/$studentId"
+    | "/students/new"
+    | "/students"
     | "/books/$label/debug"
     | "/books/$label"
     | "/books/$label/$step/$pageId"
@@ -143,10 +196,15 @@ export interface FileRouteTypes {
   id:
     | "__root__"
     | "/"
+    | "/dashboard"
     | "/onboarding"
+    | "/students"
     | "/books/$label"
     | "/books/import"
     | "/books/new"
+    | "/students/$studentId"
+    | "/students/new"
+    | "/students/"
     | "/books/$label/$step"
     | "/books/$label/debug"
     | "/books/$label/"
@@ -157,7 +215,9 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  DashboardRoute: typeof DashboardRoute
   OnboardingRoute: typeof OnboardingRoute
+  StudentsRoute: typeof StudentsRouteWithChildren
   BooksLabelRoute: typeof BooksLabelRouteWithChildren
   BooksImportRoute: typeof BooksImportRoute
   BooksNewRoute: typeof BooksNewRoute
@@ -165,11 +225,25 @@ export interface RootRouteChildren {
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
+    "/students": {
+      id: "/students"
+      path: "/students"
+      fullPath: "/students"
+      preLoaderRoute: typeof StudentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     "/onboarding": {
       id: "/onboarding"
       path: "/onboarding"
       fullPath: "/onboarding"
       preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/dashboard": {
+      id: "/dashboard"
+      path: "/dashboard"
+      fullPath: "/dashboard"
+      preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/": {
@@ -178,6 +252,27 @@ declare module "@tanstack/react-router" {
       fullPath: "/"
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    "/students/": {
+      id: "/students/"
+      path: "/"
+      fullPath: "/students/"
+      preLoaderRoute: typeof StudentsIndexRouteImport
+      parentRoute: typeof StudentsRoute
+    }
+    "/students/new": {
+      id: "/students/new"
+      path: "/new"
+      fullPath: "/students/new"
+      preLoaderRoute: typeof StudentsNewRouteImport
+      parentRoute: typeof StudentsRoute
+    }
+    "/students/$studentId": {
+      id: "/students/$studentId"
+      path: "/$studentId"
+      fullPath: "/students/$studentId"
+      preLoaderRoute: typeof StudentsStudentIdRouteImport
+      parentRoute: typeof StudentsRoute
     }
     "/books/new": {
       id: "/books/new"
@@ -245,6 +340,22 @@ declare module "@tanstack/react-router" {
   }
 }
 
+interface StudentsRouteChildren {
+  StudentsStudentIdRoute: typeof StudentsStudentIdRoute
+  StudentsNewRoute: typeof StudentsNewRoute
+  StudentsIndexRoute: typeof StudentsIndexRoute
+}
+
+const StudentsRouteChildren: StudentsRouteChildren = {
+  StudentsStudentIdRoute: StudentsStudentIdRoute,
+  StudentsNewRoute: StudentsNewRoute,
+  StudentsIndexRoute: StudentsIndexRoute,
+}
+
+const StudentsRouteWithChildren = StudentsRoute._addFileChildren(
+  StudentsRouteChildren,
+)
+
 interface BooksLabelStepRouteChildren {
   BooksLabelStepPageIdRoute: typeof BooksLabelStepPageIdRoute
   BooksLabelStepSettingsRoute: typeof BooksLabelStepSettingsRoute
@@ -279,7 +390,9 @@ const BooksLabelRouteWithChildren = BooksLabelRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  DashboardRoute: DashboardRoute,
   OnboardingRoute: OnboardingRoute,
+  StudentsRoute: StudentsRouteWithChildren,
   BooksLabelRoute: BooksLabelRouteWithChildren,
   BooksImportRoute: BooksImportRoute,
   BooksNewRoute: BooksNewRoute,

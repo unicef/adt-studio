@@ -285,6 +285,7 @@ export {
 } from "./browser-accessibility-assessment.js"
 export { mergeAccessibilityResults } from "./accessibility-assessment-shared.js"
 export { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rendering.js"
+export { buildAccessibilityPlan, personalizationPromptContext, type AccessibilityPlan } from "./accessibility-engine.js"
 export {
   getRenderSectioning,
   getRenderSectioningRow,

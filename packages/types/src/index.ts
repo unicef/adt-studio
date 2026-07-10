@@ -105,6 +105,20 @@ export {
 export { BookLabel, BookSummary, BookDetail, parseBookLabel } from "./book.js"
 
 export {
+  AdaptationRules,
+  AccessibilityTemplate,
+  StudentAccessibilityProfile,
+  Student,
+  StudentInput,
+  AccessibilityProfileInput,
+  MaterialStatus,
+  AssignmentStatus,
+  Material,
+  MaterialAssignment,
+  MaterialDelivery,
+} from "./student.js"
+
+export {
   BookFormat,
   LayoutType,
   StyleguideName,

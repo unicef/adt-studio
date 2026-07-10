@@ -636,6 +636,9 @@ msgstr "Kontrolli i aksesueshmërisë dështoi për këtë faqe"
 msgid "Accessibility Findings"
 msgstr "Gjetjet e Aksesueshmërisë"
 
+msgid "Accessibility profiles"
+msgstr "Profilet e aksesueshmërisë"
+
 msgid "Accessibility results are temporarily unavailable."
 msgstr "Rezultatet e aksesueshmërisë janë përkohësisht të padisponueshme."
 
@@ -754,6 +757,9 @@ msgstr "Shto një gjuhë për të parë përkthimet këtu."
 msgid "Add a quiz"
 msgstr "Shto një kuiz"
 
+msgid "Add accessibility profile"
+msgstr "Shto profil aksesueshmërie"
+
 msgid "Add after"
 msgstr "Shto pas"
 
@@ -838,6 +844,9 @@ msgstr "Shto imazh"
 msgid "Add Image"
 msgstr "Shto Imazh"
 
+msgid "Add images"
+msgstr "Shto imazhe"
+
 msgid "Add language"
 msgstr "Shto gjuhë"
 
@@ -849,6 +858,9 @@ msgstr "Shto gjuhë për të përkthyer përmbajtjen e librit."
 
 msgid "Add new font"
 msgstr "Shto font të ri"
+
+msgid "Add profile"
+msgstr "Shto profil"
 
 msgid "Add quiz"
 msgstr "Shto kuiz"
@@ -864,6 +876,9 @@ msgstr "Shto seksion"
 
 msgid "Add sizing field"
 msgstr "Shto fushë madhësie"
+
+msgid "Add student"
+msgstr "Shto student"
 
 msgid "Add term"
 msgstr "Shto term"
@@ -965,6 +980,9 @@ msgstr "Pas faqes {afterNumber}"
 #. placeholder {0}: String(page.pageNumber)
 msgid "after pg {0}"
 msgstr "pas f. {0}"
+
+msgid "Age"
+msgstr "Mosha"
 
 msgid "age 8"
 msgstr "mosha 8"
@@ -1245,6 +1263,9 @@ msgstr "Burim"
 msgid "Assign..."
 msgstr "Cakto..."
 
+msgid "Assigned materials"
+msgstr "Materialet e caktuara"
+
 msgid "At the river's edge"
 msgstr "Në buzë të lumit"
 
@@ -1331,6 +1352,9 @@ msgstr "Kthehu te pamja paraprake"
 
 msgid "Back to Speech overview"
 msgstr "Kthehu te përmbledhja e të folurit"
+
+msgid "Back to students"
+msgstr "Kthehu te studentët"
 
 msgid "Back up or transfer the full project including the database, PDF, and all pipeline outputs."
 msgstr "Rezervoni ose transferoni projektin e plotë duke përfshirë bazën e të dhënave, PDF-në dhe të gjitha rezultatet e pipeline-it."
@@ -1675,6 +1699,9 @@ msgstr "Artikull liste kontrolli"
 msgid "choice"
 msgstr "zgjedhje"
 
+msgid "Choose a book"
+msgstr "Zgjidh një libër"
+
 msgid "Choose a Preset"
 msgstr "Zgjidhni një Preset"
 
@@ -1710,6 +1737,9 @@ msgstr "Zgjidhni cilat lloje të tekstit në ekran lexohen me zë. Llojet e çak
 
 msgid "Choose which per-page validation items reviewers must check, customize the wording and guidance, and add your own checklist items for this document."
 msgstr "Zgjidhni cilat artikuj validimi për faqe duhet të kontrollojnë rishikuesit, personalizoni formulimin dhe udhëzimet dhe shtoni artikujt tuaj të listës së kontrollit për këtë dokument."
+
+msgid "Chunk content"
+msgstr "Ndaj përmbajtjen"
 
 msgid "Ciências da Natureza - Ensino Fundamental"
 msgstr "Ciências da Natureza - Ensino Fundamental"
@@ -1830,6 +1860,9 @@ msgstr "Përfunduar"
 
 msgid "Completed language-based stages (quizzes, glossary, captions, audio) will be cleared and need to run again. You'll confirm first."
 msgstr "Fazat e përfunduara të bazuara në gjuhë (kuize, glosar, titra, audio) do të fshihen dhe duhet të ekzekutohen sërish. Do ta konfirmoni më parë."
+
+msgid "Completed materials"
+msgstr "Materialet e përfunduara"
 
 msgid "Completed Part"
 msgstr "Pjesa e përfunduar"
@@ -2027,6 +2060,9 @@ msgstr "Krijoni një sesion rishikuesi për këtë libër."
 msgid "Create ADT"
 msgstr "Krijo ADT"
 
+msgid "Create an independent, versioned copy of a book using this student’s active adaptations."
+msgstr "Krijo një kopje të pavarur dhe të versionuar të një libri duke përdorur përshtatjet aktive të këtij studenti."
+
 msgid "Create descriptive captions for images to improve accessibility."
 msgstr "Krijoni përshkrime përshkruese për imazhet për të përmirësuar aksesueshmërinë."
 
@@ -2038,6 +2074,9 @@ msgstr "Krijoni një test nga faqe specifike dhe vendoseni pikërisht aty ku dë
 
 msgid "Create session"
 msgstr "Krijo sesion"
+
+msgid "Create student"
+msgstr "Krijo student"
 
 msgid "Created {createdLabel}"
 msgstr "Krijuar {createdLabel}"
@@ -2971,6 +3010,9 @@ msgstr "Imazhet e para nga teleskopi i fushës së thellë."
 msgid "First language is the default"
 msgstr "Gjuha e parë është e parazgjedhur"
 
+msgid "First name"
+msgstr "Emri"
+
 msgid "Fit"
 msgstr "Përshtat"
 
@@ -3024,6 +3066,9 @@ msgstr "Fontet u ngarkuan me sukses."
 #. placeholder {1}: recommendedOption.label
 msgid "For {0}, we recommend {1}."
 msgstr "Për {0}, rekomandojmë {1}."
+
+msgid "For example, reading support"
+msgstr "Për shembull, mbështetje për lexim"
 
 msgid "Foreword"
 msgstr "Parathënie"
@@ -3115,6 +3160,9 @@ msgstr "Gjenero dhe personalizo tabelën e përmbajtjes për navigimin e librit.
 msgid "Generate and edit Easy Read text blocks for the ADT accessibility toggle."
 msgstr "Gjenero dhe modifiko blloqet e tekstit Easy Read për çelësin e aksesueshmërisë ADT."
 
+msgid "Generate audio"
+msgstr "Gjenero audio"
+
 msgid "Generate audio narration for every page of the book. Pick a provider and choose whether to highlight each word as it's read aloud."
 msgstr "Gjenero narrativë audio për çdo faqe të librit. Zgjidh një ofrues dhe vendos nëse do të theksohet çdo fjalë ndërsa lexohet me zë."
 
@@ -3138,6 +3186,9 @@ msgstr "Gjenero kuize me zgjedhje të shumëfishta nga përmbajtja e librit. Kri
 
 msgid "Generate new"
 msgstr "Gjenero të ri"
+
+msgid "Generate personalized copy"
+msgstr "Gjenero kopje të personalizuar"
 
 msgid "Generate Prompt"
 msgstr "Gjenero Prompt"
@@ -3266,6 +3317,9 @@ msgstr "Zërat e Google me intonacion të fortë për përmbajtje narrative."
 
 msgid "Got it"
 msgstr "Në rregull"
+
+msgid "Grade"
+msgstr "Klasa"
 
 msgid "Grade Level"
 msgstr "Niveli Shkollor"
@@ -3755,6 +3809,9 @@ msgstr "Imazhe të mëdha, rrjedhje narrative. Më i miri për libra të ilustru
 msgid "Last modified"
 msgstr "Modifikuar së fundmi"
 
+msgid "Last name"
+msgstr "Mbiemri"
+
 msgid "Launch the app with"
 msgstr "Hap aplikacionin me"
 
@@ -3769,6 +3826,9 @@ msgstr "Paraqitje"
 
 msgid "Leading"
 msgstr "Hapësira ndër-rreshta"
+
+msgid "Learning preferences, interests, or useful context"
+msgstr "Preferencat e të mësuarit, interesat, ose konteksti i dobishëm"
 
 msgid "Least used"
 msgstr "Më pak i përdorur"
@@ -3959,6 +4019,9 @@ msgstr "Duke ngarkuar udhëzimet e fjalës..."
 msgid "Loading stats..."
 msgstr "Duke ngarkuar statistikat..."
 
+msgid "Loading student…"
+msgstr "Duke ngarkuar studentin…"
+
 msgid "Loading style guides..."
 msgstr "Duke ngarkuar udhëzuesit e stilit..."
 
@@ -4019,8 +4082,14 @@ msgstr "Sigurohuni që po ngarkoni një skedar .zip të eksportuar nga ADT Studi
 msgid "Manage all sections"
 msgstr "Menaxho të gjitha seksionet"
 
+msgid "Manage learning profiles and personalized materials."
+msgstr "Menaxho profilet e të mësuarit dhe materialet e personalizuara."
+
 msgid "Manage sign-language videos"
 msgstr "Menaxho videot e gjuhës së shenjave"
+
+msgid "Manage students"
+msgstr "Menaxho studentët"
 
 msgid "Manual only"
 msgstr "Vetëm manual"
@@ -4060,6 +4129,9 @@ msgstr "Përputhje me Burimin"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Përputhet me dizajnin origjinal të librit me pak fleksibilitet."
+
+msgid "Materials shared"
+msgstr "Materialet e ndara"
 
 msgid "Max height"
 msgstr "Lartësia maksimale"
@@ -4324,6 +4396,9 @@ msgstr "Hyrje e re"
 msgid "New session"
 msgstr "Sesion i ri"
 
+msgid "New student"
+msgstr "Student i ri"
+
 #~ msgid "New version"
 #~ msgstr "Version i ri"
 
@@ -4448,6 +4523,9 @@ msgstr "Nuk u gjet asnjë font"
 msgid "No fonts match your search."
 msgstr "Asnjë font nuk përputhet me kërkimin tuaj."
 
+msgid "No grade set"
+msgstr "Asnjë klasë e caktuar"
+
 msgid "No image"
 msgstr "Pa imazh"
 
@@ -4541,6 +4619,9 @@ msgstr "Nuk ka pamje paraprake"
 msgid "No preview available."
 msgstr "Nuk ka pamje paraprake."
 
+msgid "No profiles added yet."
+msgstr "Ende nuk janë shtuar profile."
+
 msgid "No pruned terms"
 msgstr "Nuk ka terma të hequr"
 
@@ -4594,6 +4675,9 @@ msgstr "Nuk ka imazh burimor"
 
 msgid "No storyboard sections found. Run Storyboard to generate sections you can match videos to."
 msgstr "Nuk u gjetën seksione storyboard. Ekzekutoni Storyboard-in për të gjeneruar seksione me të cilat mund të përputhni video."
+
+msgid "No students found."
+msgstr "Nuk u gjetën studentë."
 
 msgid "No terms match your search"
 msgstr "Asnjë term nuk përputhet me kërkimin tuaj"
@@ -4663,6 +4747,9 @@ msgstr "Ende të pandara:"
 
 msgid "Note"
 msgstr "Shënim"
+
+msgid "Notes"
+msgstr "Shënime"
 
 msgid "Nothing to show"
 msgstr "Nuk ka asgjë për të shfaqur"
@@ -5077,6 +5164,12 @@ msgstr "paragraf"
 msgid "Paragraph"
 msgstr "Paragraf"
 
+msgid "Parent or guardian email"
+msgstr "Emaili i prindit ose kujdestarit"
+
+msgid "Parent or guardian name"
+msgstr "Emri i prindit ose kujdestarit"
+
 msgid "Parsing pages"
 msgstr "Analizimi i faqeve"
 
@@ -5153,6 +5246,9 @@ msgstr "Skicë me Laps"
 msgid "Pending edits"
 msgstr "Ndryshime në pritje"
 
+msgid "Pending materials"
+msgstr "Materialet në pritje"
+
 msgid "Pending..."
 msgstr "Në pritje..."
 
@@ -5170,6 +5266,12 @@ msgstr "Për-Fjalë"
 
 msgid "Perfect for children's books, pairing large images with minimal text."
 msgstr "E përsosur për librat e fëmijëve, duke çiftëzuar imazhe të mëdha me tekst minimal."
+
+msgid "Personalized material"
+msgstr "Material i personalizuar"
+
+msgid "Personalized material created. It is available in your book library."
+msgstr "Materiali i personalizuar u krijua. Është i disponueshëm në bibliotekën tuaj të librave."
 
 msgid "Phase {phaseNumber}"
 msgstr "Faza {phaseNumber}"
@@ -5339,6 +5441,12 @@ msgstr "Përpunoni vetëm një interval faqesh këtu."
 
 msgid "Processing metadata…"
 msgstr "Po përpunohen metadatat…"
+
+msgid "Profile name"
+msgstr "Emri i profilit"
+
+msgid "profiles"
+msgstr "profile"
 
 msgid "Progress"
 msgstr "Progresi"
@@ -6172,6 +6280,9 @@ msgstr "Kërko pyetje ose opsione…"
 msgid "Search sections..."
 msgstr "Kërko seksione..."
 
+msgid "Search students"
+msgstr "Kërko studentë"
+
 msgid "Search style guides..."
 msgstr "Kërko udhëzues stili..."
 
@@ -6450,6 +6561,9 @@ msgstr "Dërgo"
 msgid "Short, simple sentences for kindergarten through 5th grade."
 msgstr "Fjali të shkurtra dhe të thjeshta për klasën e parë deri në të pestën."
 
+msgid "Shorten activities"
+msgstr "Shkurto aktivitetet"
+
 msgid "Show accessibility summary"
 msgstr "Shfaq përmbledhjen e aksesueshmërisë"
 
@@ -6516,6 +6630,9 @@ msgstr "Videot e gjuhës së shenjave ofrojnë qasje për lexuesit shurdhamutë 
 
 msgid "Simplified Easy Read text variants."
 msgstr "Variante të thjeshtuara të tekstit Easy Read."
+
+msgid "Simplify language"
+msgstr "Thjeshto gjuhën"
 
 msgid "Single"
 msgstr "Të vetëm"
@@ -6805,6 +6922,18 @@ msgstr "HTML i Strukturuar"
 msgid "Structures each page into a tree of sections and nodes."
 msgstr "Strukturon çdo faqe në një pemë seksionesh dhe nyjesh."
 
+msgid "Student profile"
+msgstr "Profili i studentit"
+
+msgid "Student support, material progress, and parent communication at a glance."
+msgstr "Mbështetja e studentit, progresi i materialit dhe komunikimi me prindërit në një vështrim."
+
+msgid "Students"
+msgstr "Studentët"
+
+msgid "Students requiring support"
+msgstr "Studentët që kërkojnë mbështetje"
+
 msgid "Studio actions"
 msgstr "Veprimet e studios"
 
@@ -6910,6 +7039,9 @@ msgstr "Detyra po ekzekutohet..."
 
 msgid "Tasks Running"
 msgstr "Detyrat po Ekzekutohen"
+
+msgid "Teaching dashboard"
+msgstr "Paneli i mësimdhënies"
 
 msgid "Teaching the pixels new tricks..."
 msgstr "Duke i mësuar pikselëve truke të reja..."
@@ -7426,6 +7558,9 @@ msgstr "Shumë i madh"
 
 msgid "Too small"
 msgstr "Shumë i vogël"
+
+msgid "Total students"
+msgstr "Numri total i studentëve"
 
 msgid "Total Tokens"
 msgstr "Tokenë Gjithsej"

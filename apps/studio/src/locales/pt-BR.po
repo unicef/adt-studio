@@ -635,6 +635,9 @@ msgstr "Accessibility check failed for this page"
 msgid "Accessibility Findings"
 msgstr "Accessibility Findings"
 
+msgid "Accessibility profiles"
+msgstr "Perfis de acessibilidade"
+
 msgid "Accessibility results are temporarily unavailable."
 msgstr "Accessibility results are temporarily unavailable."
 
@@ -753,6 +756,9 @@ msgstr "Adicione um idioma para ver as traduções aparecerem aqui."
 msgid "Add a quiz"
 msgstr "Adicionar um questionário"
 
+msgid "Add accessibility profile"
+msgstr "Adicionar perfil de acessibilidade"
+
 msgid "Add after"
 msgstr "Adicionar depois"
 
@@ -837,6 +843,9 @@ msgstr "Adicionar imagem"
 msgid "Add Image"
 msgstr "Adicionar imagem"
 
+msgid "Add images"
+msgstr "Adicionar imagens"
+
 msgid "Add language"
 msgstr "Adicionar idioma"
 
@@ -848,6 +857,9 @@ msgstr "Adicione idiomas para traduzir o conteúdo do livro."
 
 msgid "Add new font"
 msgstr "Adicionar nova fonte"
+
+msgid "Add profile"
+msgstr "Adicionar perfil"
 
 msgid "Add quiz"
 msgstr "Adicionar questionário"
@@ -863,6 +875,9 @@ msgstr "Add section"
 
 msgid "Add sizing field"
 msgstr "Adicionar campo de dimensionamento"
+
+msgid "Add student"
+msgstr "Adicionar aluno"
 
 msgid "Add term"
 msgstr "Adicionar termo"
@@ -964,6 +979,9 @@ msgstr "Após a página {afterNumber}"
 #. placeholder {0}: String(page.pageNumber)
 msgid "after pg {0}"
 msgstr "após pág. {0}"
+
+msgid "Age"
+msgstr "Idade"
 
 msgid "age 8"
 msgstr "8 anos"
@@ -1244,6 +1262,9 @@ msgstr "Recurso"
 msgid "Assign..."
 msgstr "Atribuir..."
 
+msgid "Assigned materials"
+msgstr "Materiais atribuídos"
+
 msgid "At the river's edge"
 msgstr "Na beira do rio"
 
@@ -1330,6 +1351,9 @@ msgstr "Voltar para pré-visualização"
 
 msgid "Back to Speech overview"
 msgstr "Voltar para visão geral de Fala"
+
+msgid "Back to students"
+msgstr "Voltar para alunos"
 
 msgid "Back up or transfer the full project including the database, PDF, and all pipeline outputs."
 msgstr "Faça backup ou transfira o projeto completo incluindo o banco de dados, o PDF e todas as saídas do pipeline."
@@ -1674,6 +1698,9 @@ msgstr "Checklist item"
 msgid "choice"
 msgstr "escolha"
 
+msgid "Choose a book"
+msgstr "Escolher um livro"
+
 msgid "Choose a Preset"
 msgstr "Escolha uma Predefinição"
 
@@ -1709,6 +1736,9 @@ msgstr "Escolha quais tipos de texto na tela são lidos em voz alta. Tipos desat
 
 msgid "Choose which per-page validation items reviewers must check, customize the wording and guidance, and add your own checklist items for this document."
 msgstr "Choose which per-page validation items reviewers must check, customize the wording and guidance, and add your own checklist items for this document."
+
+msgid "Chunk content"
+msgstr "Dividir conteúdo"
 
 msgid "Ciências da Natureza - Ensino Fundamental"
 msgstr "Ciências da Natureza - Ensino Fundamental"
@@ -1829,6 +1859,9 @@ msgstr "Concluído"
 
 msgid "Completed language-based stages (quizzes, glossary, captions, audio) will be cleared and need to run again. You'll confirm first."
 msgstr "As etapas concluídas baseadas no idioma (questionários, glossário, legendas, áudio) serão apagadas e precisarão ser executadas novamente. Você confirmará primeiro."
+
+msgid "Completed materials"
+msgstr "Materiais concluídos"
 
 msgid "Completed Part"
 msgstr "Parte concluída"
@@ -2026,6 +2059,9 @@ msgstr "Create a reviewer session for this book."
 msgid "Create ADT"
 msgstr "Criar ADT"
 
+msgid "Create an independent, versioned copy of a book using this student’s active adaptations."
+msgstr "Criar uma cópia independente e versionada de um livro usando as adaptações ativas deste aluno."
+
 msgid "Create descriptive captions for images to improve accessibility."
 msgstr "Cria legendas descritivas para imagens para melhorar a acessibilidade."
 
@@ -2037,6 +2073,9 @@ msgstr "Crie um único questionário a partir de páginas específicas e coloque
 
 msgid "Create session"
 msgstr "Create session"
+
+msgid "Create student"
+msgstr "Criar aluno"
 
 msgid "Created {createdLabel}"
 msgstr "Criado em {createdLabel}"
@@ -2970,6 +3009,9 @@ msgstr "Primeiras imagens do telescópio de campo profundo."
 msgid "First language is the default"
 msgstr "O primeiro idioma é o padrão"
 
+msgid "First name"
+msgstr "Nome"
+
 msgid "Fit"
 msgstr "Ajustar"
 
@@ -3023,6 +3065,9 @@ msgstr "Fontes enviadas com sucesso."
 #. placeholder {1}: recommendedOption.label
 msgid "For {0}, we recommend {1}."
 msgstr "Para {0}, recomendamos {1}."
+
+msgid "For example, reading support"
+msgstr "Por exemplo, suporte à leitura"
 
 msgid "Foreword"
 msgstr "Prefácio"
@@ -3114,6 +3159,9 @@ msgstr "Gere e personalize o sumário para a navegação do livro."
 msgid "Generate and edit Easy Read text blocks for the ADT accessibility toggle."
 msgstr "Gere e edite blocos de texto de Leitura Fácil para o botão de acessibilidade do ADT."
 
+msgid "Generate audio"
+msgstr "Gerar áudio"
+
 msgid "Generate audio narration for every page of the book. Pick a provider and choose whether to highlight each word as it's read aloud."
 msgstr "Gere narração em áudio para cada página do livro. Escolha um provedor e decida se deseja destacar cada palavra à medida que é lida em voz alta."
 
@@ -3137,6 +3185,9 @@ msgstr "Gere questionários de compreensão de múltipla escolha a partir do con
 
 msgid "Generate new"
 msgstr "Gerar nova"
+
+msgid "Generate personalized copy"
+msgstr "Gerar cópia personalizada"
 
 msgid "Generate Prompt"
 msgstr "Prompt de geração"
@@ -3265,6 +3316,9 @@ msgstr "Vozes do Google com forte entonação para conteúdo narrativo."
 
 msgid "Got it"
 msgstr "Entendi"
+
+msgid "Grade"
+msgstr "Série"
 
 msgid "Grade Level"
 msgstr "Nível de Série"
@@ -3754,6 +3808,9 @@ msgstr "Imagens grandes, fluxo narrativo. Melhor para livros ilustrados com voze
 msgid "Last modified"
 msgstr "Última modificação"
 
+msgid "Last name"
+msgstr "Sobrenome"
+
 msgid "Launch the app with"
 msgstr "Iniciar o aplicativo com"
 
@@ -3768,6 +3825,9 @@ msgstr "Layout"
 
 msgid "Leading"
 msgstr "Entrelinha"
+
+msgid "Learning preferences, interests, or useful context"
+msgstr "Preferências de aprendizagem, interesses ou contexto útil"
 
 msgid "Least used"
 msgstr "Menos usado"
@@ -3958,6 +4018,9 @@ msgstr "Carregando instruções de fala..."
 msgid "Loading stats..."
 msgstr "Carregando estatísticas..."
 
+msgid "Loading student…"
+msgstr "Carregando aluno..."
+
 msgid "Loading style guides..."
 msgstr "Carregando guias de estilo..."
 
@@ -4018,8 +4081,14 @@ msgstr "Certifique-se de enviar um arquivo .zip exportado do ADT Studio."
 msgid "Manage all sections"
 msgstr "Gerenciar todas as seções"
 
+msgid "Manage learning profiles and personalized materials."
+msgstr "Gerenciar perfis de aprendizagem e materiais personalizados."
+
 msgid "Manage sign-language videos"
 msgstr "Gerenciar vídeos em linguagem de sinais"
+
+msgid "Manage students"
+msgstr "Gerenciar alunos"
 
 msgid "Manual only"
 msgstr "Somente manual"
@@ -4059,6 +4128,9 @@ msgstr "Corresponder à Fonte"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Corresponde ao design original do livro com alguma flexibilidade."
+
+msgid "Materials shared"
+msgstr "Materiais compartilhados"
 
 msgid "Max height"
 msgstr "Altura máx"
@@ -4323,6 +4395,9 @@ msgstr "Nova entrada"
 msgid "New session"
 msgstr "New session"
 
+msgid "New student"
+msgstr "Novo aluno"
+
 #~ msgid "New version"
 #~ msgstr "Nova versão"
 
@@ -4447,6 +4522,9 @@ msgstr "Nenhuma fonte encontrada"
 msgid "No fonts match your search."
 msgstr "Nenhuma fonte corresponde à sua busca."
 
+msgid "No grade set"
+msgstr "Nenhuma série definida"
+
 msgid "No image"
 msgstr "Sem imagem"
 
@@ -4540,6 +4618,9 @@ msgstr "Nenhuma prévia disponível"
 msgid "No preview available."
 msgstr "Nenhuma pré-visualização disponível."
 
+msgid "No profiles added yet."
+msgstr "Nenhum perfil adicionado ainda."
+
 msgid "No pruned terms"
 msgstr "Nenhum termo podado"
 
@@ -4593,6 +4674,9 @@ msgstr "Nenhuma imagem de origem"
 
 msgid "No storyboard sections found. Run Storyboard to generate sections you can match videos to."
 msgstr "Nenhuma seção de storyboard encontrada. Execute o Storyboard para gerar seções que você pode associar a vídeos."
+
+msgid "No students found."
+msgstr "Nenhum aluno encontrado."
 
 msgid "No terms match your search"
 msgstr "Nenhum termo corresponde à sua pesquisa"
@@ -4662,6 +4746,9 @@ msgstr "Ainda não dividido:"
 
 msgid "Note"
 msgstr "Nota"
+
+msgid "Notes"
+msgstr "Notas"
 
 msgid "Nothing to show"
 msgstr "Nada para mostrar"
@@ -5076,6 +5163,12 @@ msgstr "parágrafo"
 msgid "Paragraph"
 msgstr "Parágrafo"
 
+msgid "Parent or guardian email"
+msgstr "Email do responsável"
+
+msgid "Parent or guardian name"
+msgstr "Nome do responsável"
+
 msgid "Parsing pages"
 msgstr "Analisando páginas"
 
@@ -5152,6 +5245,9 @@ msgstr "Desenho a lápis"
 msgid "Pending edits"
 msgstr "Edições pendentes"
 
+msgid "Pending materials"
+msgstr "Materiais pendentes"
+
 msgid "Pending..."
 msgstr "Pendente..."
 
@@ -5169,6 +5265,12 @@ msgstr "Por Palavra"
 
 msgid "Perfect for children's books, pairing large images with minimal text."
 msgstr "Perfeito para livros infantis, combinando imagens grandes com texto mínimo."
+
+msgid "Personalized material"
+msgstr "Material personalizado"
+
+msgid "Personalized material created. It is available in your book library."
+msgstr "Material personalizado criado. Está disponível na sua biblioteca de livros."
 
 msgid "Phase {phaseNumber}"
 msgstr "Fase {phaseNumber}"
@@ -5338,6 +5440,12 @@ msgstr "Processar apenas um intervalo de páginas aqui."
 
 msgid "Processing metadata…"
 msgstr "Processando metadados…"
+
+msgid "Profile name"
+msgstr "Nome do perfil"
+
+msgid "profiles"
+msgstr "perfis"
 
 msgid "Progress"
 msgstr "Progresso"
@@ -6171,6 +6279,9 @@ msgstr "Pesquisar perguntas ou opções…"
 msgid "Search sections..."
 msgstr "Buscar seções..."
 
+msgid "Search students"
+msgstr "Buscar alunos"
+
 msgid "Search style guides..."
 msgstr "Buscar guias de estilo..."
 
@@ -6449,6 +6560,9 @@ msgstr "Entregar"
 msgid "Short, simple sentences for kindergarten through 5th grade."
 msgstr "Frases curtas e simples para jardim de infância até o 5º ano."
 
+msgid "Shorten activities"
+msgstr "Encurtar atividades"
+
 msgid "Show accessibility summary"
 msgstr "Show accessibility summary"
 
@@ -6515,6 +6629,9 @@ msgstr "Vídeos em língua de sinais oferecem acesso para leitores surdos e com 
 
 msgid "Simplified Easy Read text variants."
 msgstr "Variantes de texto simplificadas de Leitura Fácil."
+
+msgid "Simplify language"
+msgstr "Simplificar linguagem"
 
 msgid "Single"
 msgstr "Individual"
@@ -6804,6 +6921,18 @@ msgstr "HTML estruturado"
 msgid "Structures each page into a tree of sections and nodes."
 msgstr "Estrutura cada página em uma árvore de seções e nós."
 
+msgid "Student profile"
+msgstr "Perfil do aluno"
+
+msgid "Student support, material progress, and parent communication at a glance."
+msgstr "Suporte ao aluno, progresso do material e comunicação com os pais de relance."
+
+msgid "Students"
+msgstr "Alunos"
+
+msgid "Students requiring support"
+msgstr "Alunos que necessitam de suporte"
+
 msgid "Studio actions"
 msgstr "Ações do estúdio"
 
@@ -6909,6 +7038,9 @@ msgstr "Tarefa em execução..."
 
 msgid "Tasks Running"
 msgstr "Tasks Running"
+
+msgid "Teaching dashboard"
+msgstr "Painel de ensino"
 
 msgid "Teaching the pixels new tricks..."
 msgstr "Ensinando novos truques aos pixels..."
@@ -7425,6 +7557,9 @@ msgstr "Muito grande"
 
 msgid "Too small"
 msgstr "Muito pequeno"
+
+msgid "Total students"
+msgstr "Total de alunos"
 
 msgid "Total Tokens"
 msgstr "Total de tokens"

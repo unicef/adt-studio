@@ -1,0 +1,11 @@
+PRAGMA foreign_keys = ON;
+CREATE TABLE students (id TEXT PRIMARY KEY, teacher_id TEXT NOT NULL, first_name TEXT NOT NULL, last_name TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE TABLE accessibility_profiles (student_id TEXT PRIMARY KEY REFERENCES students(id) ON DELETE CASCADE, reading_level TEXT NOT NULL, preferred_language TEXT NOT NULL, simplified_language INTEGER NOT NULL DEFAULT 0, symbol_support INTEGER NOT NULL DEFAULT 0, audio_support INTEGER NOT NULL DEFAULT 0, attention_support INTEGER NOT NULL DEFAULT 0, notes TEXT NOT NULL DEFAULT '');
+CREATE TABLE materials (id TEXT PRIMARY KEY, teacher_id TEXT NOT NULL, student_id TEXT REFERENCES students(id) ON DELETE SET NULL, title TEXT NOT NULL, body TEXT NOT NULL, r2_key TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+CREATE TABLE classroom_sessions (id TEXT PRIMARY KEY, teacher_id TEXT NOT NULL, material_id TEXT NOT NULL REFERENCES materials(id) ON DELETE CASCADE, join_code TEXT NOT NULL UNIQUE, expires_at TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE TABLE session_participants (id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES classroom_sessions(id) ON DELETE CASCADE, display_name TEXT NOT NULL, joined_at TEXT NOT NULL, completed_at TEXT, responses TEXT);
+CREATE TABLE parent_shares (id TEXT PRIMARY KEY, teacher_id TEXT NOT NULL, material_id TEXT NOT NULL REFERENCES materials(id) ON DELETE CASCADE, token_hash TEXT NOT NULL UNIQUE, expires_at TEXT, created_at TEXT NOT NULL);
+CREATE INDEX idx_students_teacher ON students(teacher_id, last_name, first_name);
+CREATE INDEX idx_materials_teacher ON materials(teacher_id, created_at DESC);
+CREATE INDEX idx_sessions_join_code ON classroom_sessions(join_code, expires_at);
+CREATE INDEX idx_participants_session ON session_participants(session_id, joined_at);
