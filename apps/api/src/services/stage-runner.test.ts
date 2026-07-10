@@ -523,6 +523,7 @@ describe("createStageRunner storyboard render-only", () => {
     seedStoryboardBook(booksDir, "render-only")
 
     const events: ProgressEvent[] = []
+    const controller = new AbortController()
     const runner = createStageRunner()
     await runner.run(
       "render-only",
@@ -534,12 +535,16 @@ describe("createStageRunner storyboard render-only", () => {
         fromStage: "storyboard",
         toStage: "storyboard",
         renderOnly: true,
+        signal: controller.signal,
       },
       { emit: (event) => events.push(event) }
     )
 
     expect(sectionPageMock).not.toHaveBeenCalled()
     expect(renderPageMock).toHaveBeenCalledTimes(1)
+    expect(renderPageMock.mock.calls[0]?.[5]).toEqual({
+      signal: controller.signal,
+    })
     expect(
       events.some(
         (event) =>

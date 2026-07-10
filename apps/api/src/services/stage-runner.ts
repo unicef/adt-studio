@@ -1313,6 +1313,8 @@ async function runStoryboardStep(
       effectiveConcurrency,
       async (page: PageData) => {
         try {
+          if (options.signal?.aborted) throw new RunCancelledError()
+
           const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
           if (!structuringRow) {
             console.log(
@@ -1344,10 +1346,12 @@ async function runStoryboardStep(
           )
           const renderImages = new Map<string, { base64: string; width?: number; height?: number }>()
           for (const imageId of unprunedImageIds) {
+            if (options.signal?.aborted) throw new RunCancelledError()
             const dims = pageDims.get(imageId)
             renderImages.set(imageId, { base64: storage.getImageBase64(imageId), width: dims?.width, height: dims?.height })
           }
 
+          if (options.signal?.aborted) throw new RunCancelledError()
           const pageImageBase64 = storage.getPageImageBase64(page.pageId)
 
           console.log(`[stage-run] ${label}: rendering ${page.pageId}`)
@@ -1365,7 +1369,9 @@ async function runStoryboardStep(
             resolveRenderModel,
             templateEngine,
             visualRefinement,
+            { signal: options.signal },
           )
+          if (options.signal?.aborted) throw new RunCancelledError()
           storage.putNodeData("web-rendering", page.pageId, renderResult)
           completedRendering++
           progress.emit({
@@ -1376,9 +1382,11 @@ async function runStoryboardStep(
             totalPages,
           })
         } catch (err) {
-          console.error(
-            `[stage-run] ${label}: ${page.pageId} failed at web-rendering: ${toErrorMessage(err)}`
-          )
+          if (!isCancellation(err, [options.signal])) {
+            console.error(
+              `[stage-run] ${label}: ${page.pageId} failed at web-rendering: ${toErrorMessage(err)}`
+            )
+          }
           await reportPageFailure(pageFailureDeps, progress, "web-rendering", page.pageId, err)
         }
       },

@@ -35,6 +35,7 @@ export interface RunVisualReviewLoopOptions {
   nextIterationScreenshotsText: string
   trailingContextText: string
   validateHtml: (html: string) => VisualReviewValidation
+  signal?: AbortSignal
 }
 
 export interface VisualReviewResult {
@@ -74,6 +75,11 @@ function normalizeForCompare(s: string): string {
   return s.replace(/\s+/g, " ").trim()
 }
 
+function throwIfAborted(signal?: AbortSignal): void {
+  if (!signal?.aborted) return
+  throw signal.reason instanceof Error ? signal.reason : new Error("Operation aborted")
+}
+
 export async function runVisualReviewLoop(
   options: RunVisualReviewLoopOptions
 ): Promise<VisualReviewResult> {
@@ -94,12 +100,15 @@ export async function runVisualReviewLoop(
     nextIterationScreenshotsText,
     trailingContextText,
     validateHtml,
+    signal,
   } = options
 
+  throwIfAborted(signal)
   const initialMessages = await deps.llmModel.renderPrompt(promptName, {
     ...(promptContext ?? {}),
     viewports: getViewportBreakpoints(),
   })
+  throwIfAborted(signal)
   const systemMsg = initialMessages.find((m) => m.role === "system")
   const systemPrompt = typeof systemMsg?.content === "string" ? systemMsg.content : undefined
 
@@ -113,6 +122,7 @@ export async function runVisualReviewLoop(
   let pendingValidationFeedback: string | null = null
 
   for (let iteration = 0; iteration < maxIterations; iteration++) {
+    throwIfAborted(signal)
     const screenshotHtml = await buildScreenshotHtml({
       sectionHtml: html,
       label,
@@ -126,10 +136,12 @@ export async function runVisualReviewLoop(
       SCREENSHOT_VIEWPORTS.map((vp) =>
         deps.screenshotRenderer.screenshot(
           screenshotHtml,
-          { width: vp.width, height: vp.height }
+          { width: vp.width, height: vp.height },
+          { signal },
         )
       )
     )
+    throwIfAborted(signal)
     const screenshotParts: ContentPart[] = []
     for (let i = 0; i < SCREENSHOT_VIEWPORTS.length; i++) {
       const vp = SCREENSHOT_VIEWPORTS[i]
@@ -181,6 +193,7 @@ export async function runVisualReviewLoop(
       maxTokens: 16384,
       temperature,
       timeoutMs,
+      signal,
       log: {
         taskType: "visual-review",
         pageId,

@@ -3,10 +3,11 @@ import React from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { cleanup, render, screen } from "@testing-library/react"
 
-const stageStateMock = vi.fn((slug: string) => {
+const defaultStageState = (slug: string) => {
   if (slug === "storyboard" || slug === "validation") return "done"
   return "idle"
-})
+}
+const stageStateMock = vi.fn(defaultStageState)
 const matchRouteMock = vi.fn(() => true)
 const searchMock = { tab: "reviewer-checklist" }
 
@@ -118,6 +119,7 @@ vi.mock("@/routes/books.$label", () => ({
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+  stageStateMock.mockImplementation(defaultStageState)
 })
 
 describe("StageSidebar", () => {
@@ -139,5 +141,25 @@ describe("StageSidebar", () => {
     expect(screen.getByText("Reviewer Checklist")).toBeTruthy()
     expect(container.textContent).toContain("Validation")
     expect(container.textContent).toContain("Preview")
+  })
+
+  it("shows a red error badge on failed stages", async () => {
+    stageStateMock.mockImplementation((slug: string) => {
+      if (slug === "storyboard") return "error"
+      return defaultStageState(slug)
+    })
+
+    const { StageSidebar } = await import("./components/StageSidebar")
+    const { container } = render(
+      <StageSidebar
+        bookLabel="demo-book"
+        activeStep="storyboard"
+      />,
+    )
+
+    const errorBadge = screen.getByTitle("Storyboard: failed")
+    expect(errorBadge.className).toContain("bg-red-600")
+    expect(errorBadge.getAttribute("role")).toBe("img")
+    expect(container.querySelector('circle[stroke="#ef4444"]')).toBeNull()
   })
 })

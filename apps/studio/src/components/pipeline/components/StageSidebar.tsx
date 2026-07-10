@@ -3,6 +3,7 @@ import { createPortal } from "react-dom"
 import { Link, useMatchRoute, useSearch } from "@tanstack/react-router"
 import { Trans } from "@lingui/react/macro"
 import {
+  AlertCircle,
   CircleStop,
   Loader2,
   RotateCcw,
@@ -179,7 +180,7 @@ export function StageSidebar({
     const stageNeedsRerun =
       (step.slug === "translate" && translateNeedsRerun) ||
       (step.slug === "speech" && speechNeedsRerun)
-    const ringState = stageNeedsRerun ? "idle" : state
+    const ringState = stageNeedsRerun || state === "error" ? "idle" : state
 
     // "book" is always filled; all other stages fill when their own completion signal is met.
     const iconFilled = step.slug === "book" ? true : stageCompleted
@@ -237,7 +238,16 @@ export function StageSidebar({
                 <Icon className="w-3.5 h-3.5" />
               </div>
               <StepProgressRing size={28} state={ringState} colorClass={isActive ? "bg-white" : step.color} />
-              {step.slug === "extract" && hasNoTextLayer && (
+              {state === "error" ? (
+                <span
+                  role="img"
+                  aria-label={stepAriaLabel}
+                  title={stepAriaLabel}
+                  className="absolute -top-1 -right-1 z-20 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-red-600 ring-2 ring-background"
+                >
+                  <AlertCircle className="w-2.5 h-2.5 text-white" aria-hidden="true" />
+                </span>
+              ) : step.slug === "extract" && hasNoTextLayer ? (
                 <span
                   role="img"
                   aria-label={noTextLayerLabel}
@@ -246,7 +256,7 @@ export function StageSidebar({
                 >
                   <TriangleAlert className="w-2 h-2 text-white" aria-hidden="true" />
                 </span>
-              )}
+              ) : null}
             </div>
             <span className={cn("truncate hidden", x.showLabel)}>
               {stepLabel}
@@ -366,7 +376,7 @@ export function StageSidebar({
 
         {/* Pages panel — only when pages are open and not in settings. */}
         {effectivePagesOpen && !isSettings && (
-          <div className="flex-1 min-w-0 flex flex-col overflow-hidden border-l">
+          <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
             {activeStep === "storyboard" ? (
               <StoryboardSidebarBridge
                 bookLabel={bookLabel}

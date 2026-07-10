@@ -184,6 +184,82 @@ describe("renderPage", () => {
     content: '<div id="content" class="container"><section data-section-type="text_only" data-section-id="pg001_sec001"><p data-id="pg001_gp001_tx001">Hello</p></section></div>',
   }
 
+  it("passes the cancellation signal to LLM calls and stops between sections", async () => {
+    const controller = new AbortController()
+    const seenSignals: Array<AbortSignal | undefined> = []
+    let calls = 0
+
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        calls++
+        seenSignals.push(opts.signal)
+        const context = opts.context as {
+          section_id: string
+          section_type: string
+          leaf_texts: Array<{ text_id: string; text: string }>
+        }
+        const leaf = context.leaf_texts[0]
+        controller.abort()
+        return {
+          object: {
+            reasoning: "test",
+            content: `<div id="content" class="container"><section data-section-type="${context.section_type}" data-section-id="${context.section_id}"><p data-id="${leaf.text_id}">${leaf.text}</p></section></div>`,
+          } as T,
+        } as GenerateObjectResult<T>
+      },
+    }
+
+    await expect(
+      renderPage(
+        {
+          label: "test-book",
+          pageId: "pg001",
+          pageImageBase64: "base64img",
+          sectioning: {
+            reasoning: "test",
+            sections: [
+              {
+                sectionId: "pg001_sec001",
+                sectionType: "text_only",
+                nodes: [
+                  groupNode("pg001_gp001", "paragraph", [
+                    leafNode("pg001_gp001_tx001", "section_text", "Hello"),
+                  ]),
+                ],
+                backgroundColor: "#ffffff",
+                textColor: "#000000",
+                pageNumber: 1,
+                isPruned: false,
+              },
+              {
+                sectionId: "pg001_sec002",
+                sectionType: "text_only",
+                nodes: [
+                  groupNode("pg001_gp002", "paragraph", [
+                    leafNode("pg001_gp002_tx001", "section_text", "Second"),
+                  ]),
+                ],
+                backgroundColor: "#ffffff",
+                textColor: "#000000",
+                pageNumber: 1,
+                isPruned: false,
+              },
+            ],
+          },
+          images: new Map(),
+        },
+        defaultResolveConfig,
+        fakeLlm,
+        undefined,
+        undefined,
+        { signal: controller.signal },
+      )
+    ).rejects.toThrow()
+
+    expect(calls).toBe(1)
+    expect(seenSignals).toEqual([controller.signal])
+  })
+
   it("skips pruned sections", async () => {
     const calls: string[] = []
     const fakeLlm: LLMModel = {

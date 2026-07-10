@@ -102,6 +102,10 @@ export interface RenderPageInput {
   userPrompt?: string
 }
 
+export interface RenderExecutionOptions {
+  signal?: AbortSignal
+}
+
 export type ResolveLLMModel = LLMModel | ((modelId: string) => LLMModel)
 
 function getLLMModel(
@@ -111,6 +115,11 @@ function getLLMModel(
   return typeof resolver === "function"
     ? resolver(modelId)
     : resolver
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (!signal?.aborted) return
+  throw signal.reason instanceof Error ? signal.reason : new Error("Operation aborted")
 }
 
 /**
@@ -222,10 +231,13 @@ export async function renderPage(
   llmModel: ResolveLLMModel,
   templateEngine?: TemplateEngine,
   visualRefinement?: VisualRefinementDeps,
+  options: RenderExecutionOptions = {},
 ): Promise<WebRenderingOutput> {
   const sections: SectionRendering[] = []
 
   for (let i = 0; i < input.sectioning.sections.length; i++) {
+    throwIfAborted(options.signal)
+
     const section = input.sectioning.sections[i]
 
     // Skip pruned sections
@@ -271,9 +283,11 @@ export async function renderPage(
         config,
         getLLMModel(llmModel, config.modelId),
         visualRefinement,
+        options,
       )
     }
 
+    throwIfAborted(options.signal)
     sections.push(rendering)
   }
 
