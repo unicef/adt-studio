@@ -18,6 +18,7 @@ import {
   translationsAtom,
 } from "@/features/language/state/language.atoms"
 import { easyReadModeAtom } from "@/shared/state/ui.atoms"
+import { kidsModeActiveAtom } from "@/features/kids/state/kids.atoms"
 import {
   clearBlockHighlight,
   clearWordHighlight,
@@ -126,6 +127,7 @@ export function useAudioPlayer(): UseAudioPlayer {
   const speed = useAtomValue(audioSpeedAtom) as number
   const volume = useAtomValue(audioVolumeAtom) as number
   const autoplayMode = useAtomValue(autoplayModeAtom) as boolean
+  const kidsModeActive = useAtomValue(kidsModeActiveAtom)
   const readAloudMode = useAtomValue(readAloudModeAtom) as boolean
   const setReadAloudMode = useSetAtom(readAloudModeAtom)
   const wordHighlightMode = useAtomValue(wordHighlightModeAtom) as boolean
@@ -358,9 +360,12 @@ export function useAudioPlayer(): UseAudioPlayer {
     if (items.length === 0) return
     if (!readAloudMode) return
     if (!initialResumeRef.current) return
+    // Kids mode: never auto-start narration. The buddy reads only when the
+    // child asks (taps "Read to me"), so TTS must not blast on page load.
+    if (kidsModeActive) return
     hasAutoStartedRef.current = true
     playAtIndex(0)
-  }, [items.length, readAloudMode, playAtIndex])
+  }, [items.length, readAloudMode, kidsModeActive, playAtIndex])
 
   useEffect(() => {
     if (readAloudMode) return
