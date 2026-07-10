@@ -1,5 +1,11 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react"
 import { createStore, Provider } from "jotai"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import { audioSpeedAtom } from "@/features/audio/state/audio.atoms"
@@ -227,16 +233,30 @@ describe("KidsBuddy", () => {
     expect(queryByTestId("kids-buddy-panel")).toBeNull()
   })
 
-  it("closes the action panel from the header close button", () => {
+  it("closes the action panel from the header close button", async () => {
     const { getByLabelText, getByTestId, queryByTestId } = renderKidsChrome()
 
     openBuddy()
+    await waitFor(() =>
+      expect(document.activeElement).toBe(getByLabelText("Close")),
+    )
     fireEvent.click(getByLabelText("Close"))
 
     expect(getByTestId("kids-buddy-fab").getAttribute("aria-expanded")).toBe(
       "false",
     )
     expect(queryByTestId("kids-buddy-panel")).toBeNull()
+    await waitFor(() =>
+      expect(document.activeElement).toBe(getByTestId("kids-buddy-fab")),
+    )
+  })
+
+  it("labels the scrollable action list as a keyboard-focusable region", () => {
+    renderKidsChrome()
+    openBuddy()
+
+    const region = screen.getByRole("region", { name: "Buddy actions" })
+    expect(region.getAttribute("tabindex")).toBe("0")
   })
 
   it("renders all enabled buddy actions", () => {
@@ -354,9 +374,9 @@ describe("KidsBuddy", () => {
 
     fireEvent.click(screen.getByTestId("kids-action-easy-read"))
 
-    expect(screen.getByTestId("kids-buddy-panel-message").textContent).toBe(
-      "Big letters are on!",
-    )
+    const message = screen.getByTestId("kids-buddy-panel-message")
+    expect(message.textContent).toBe("Big letters are on!")
+    expect(message.getAttribute("aria-live")).toBe("polite")
     expect(screen.queryByTestId("kids-speech-bubble")).toBeNull()
     expect(screen.queryByTestId("kids-buddy-panel")).not.toBeNull()
     expect(

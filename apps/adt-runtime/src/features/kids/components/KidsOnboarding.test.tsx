@@ -181,6 +181,8 @@ describe("KidsOnboarding", () => {
     expect(screen.getByText("Here's what I can do")).not.toBeNull()
     fireEvent.click(screen.getByText("Got it"))
     expect(screen.getByText("Ready to read, Mina?")).not.toBeNull()
+    expect(screen.queryByTestId("kids-onboarding-neutral-visual")).toBeNull()
+    expect(screen.getByLabelText("Nova")).not.toBeNull()
     fireEvent.click(screen.getByTestId("kids-onboarding-finish"))
 
     expect(store.get(kidsBuddyAtom)).toEqual({
@@ -279,6 +281,21 @@ describe("KidsOnboarding", () => {
     expect(screen.queryByText("Explain it")).toBeNull()
   })
 
+  it("makes the abilities scroll region keyboard focusable with a label", () => {
+    renderWithStore(<KidsChrome />)
+
+    goToPickPage()
+    fireEvent.click(screen.getByText("This is my buddy"))
+    fireEvent.click(screen.getByText("Keep going"))
+    fireEvent.click(screen.getByText("Got it"))
+    fireEvent.click(screen.getByText("Got it"))
+
+    const region = screen.getByRole("region", {
+      name: "What your buddy can do",
+    })
+    expect(region.getAttribute("tabindex")).toBe("0")
+  })
+
   it("renders feature page keycap hints", () => {
     renderWithStore(<KidsChrome />)
 
@@ -292,10 +309,13 @@ describe("KidsOnboarding", () => {
     expect(screen.getByText("L")).not.toBeNull()
   })
 
-  it("shows progress dots without step counter text", () => {
+  it("announces the current step position from the focused heading", () => {
     renderWithStore(<KidsChrome />)
 
-    expect(screen.queryByText(/Step 1 of 7/)).toBeNull()
+    const heading = screen.getByRole("heading", {
+      name: /Step 1 of 8\..*Hi! Welcome to your reading adventure\./,
+    })
+    expect(document.activeElement).toBe(heading)
     expect(screen.getByTestId("kids-onboarding-progress-dots")).not.toBeNull()
   })
 

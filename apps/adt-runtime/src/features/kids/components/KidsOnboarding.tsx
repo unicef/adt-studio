@@ -23,6 +23,7 @@ import {
 import { readAloudModeAtom } from "@/features/audio/state/audio.atoms"
 import { KidsBuddyArt } from "@/features/kids/components/KidsBuddyArt"
 import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
+import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
 import {
   BUDDY_BACKGROUNDS,
   KIDS_CHARACTERS,
@@ -34,11 +35,13 @@ import {
   kidsOnboardingDoneAtom,
   kidsPlayerNameAtom,
 } from "@/features/kids/state/kids.atoms"
-import { buddyPaletteVars } from "@/features/kids/assets/buddies/buddy-art"
+import {
+  buddyPaletteVars,
+  type BuddyPalette,
+} from "@/features/kids/assets/buddies/buddy-art"
 import { isTypingTarget } from "@/features/navigation/lib/typing-target"
 import { cn } from "@/shared/lib/utils"
 import { appConfigAtom, type AppFeatures } from "@/shared/state/config.atoms"
-import { reduceMotionAtom } from "@/shared/state/ui.atoms"
 
 type OnboardingStep =
   | "welcome"
@@ -49,6 +52,8 @@ type OnboardingStep =
   | "feature-help"
   | "feature-abilities"
   | "start"
+
+type NavigationDirection = "forward" | "back"
 
 const READ_ALOUD_STEPS: OnboardingStep[] = [
   "welcome",
@@ -71,9 +76,21 @@ const NO_READ_ALOUD_STEPS: OnboardingStep[] = [
   "start",
 ]
 
+const STEP_LAYOUT_CLASS =
+  "flex w-full flex-col items-center justify-center gap-6"
+const STEP_TEXT_STACK_CLASS = "flex flex-col items-center gap-3"
+const STEP_TITLE_CLASS =
+  "text-balance text-4xl font-extrabold leading-tight text-slate-950 focus:outline-none sm:text-5xl"
+const STEP_COPY_CLASS =
+  "max-w-xl text-balance text-xl font-medium leading-relaxed text-slate-700 sm:text-2xl"
+
+function animationDelayStyle(index: number, delayMs = 50): CSSProperties {
+  return { animationDelay: `${index * delayMs}ms` }
+}
+
 export function KidsOnboarding() {
   const { tk } = useKidsTranslation()
-  const reduceMotion = useAtomValue(reduceMotionAtom)
+  const reduceMotion = usePrefersReducedMotion()
   const appConfig = useAtomValue(appConfigAtom)
   const currentBuddy = useAtomValue(kidsBuddyAtom)
   const currentPlayerName = useAtomValue(kidsPlayerNameAtom)
@@ -82,6 +99,8 @@ export function KidsOnboarding() {
   const setOnboardingDone = useSetAtom(kidsOnboardingDoneAtom)
   const [readAloud, setReadAloud] = useAtom(readAloudModeAtom)
   const [stepIndex, setStepIndex] = useState(0)
+  const [navigationDirection, setNavigationDirection] =
+    useState<NavigationDirection>("forward")
   const [playerNameDraft, setPlayerNameDraft] = useState(currentPlayerName)
   const [characterId, setCharacterId] = useState(currentBuddy.character)
   const character = useMemo(() => getCharacter(characterId), [characterId])
@@ -99,9 +118,14 @@ export function KidsOnboarding() {
     ? READ_ALOUD_STEPS
     : NO_READ_ALOUD_STEPS
   const step = steps[Math.min(stepIndex, steps.length - 1)]
+  const stepPosition = tk(
+    "kids-onboarding-step-position",
+    "Step ${step} of ${total}. ",
+    { step: String(stepIndex + 1), total: String(steps.length) },
+  )
   const buddyName = buddyNameDraft.trim() || defaultBuddyName
   const playerName = playerNameDraft.trim()
-  const showBuddy = step !== "welcome" && step !== "name"
+  const showBuddy = step !== "welcome" && step !== "name" && step !== "start"
   const pageStyle = {
     background: "linear-gradient(180deg, #C9E6F9 0%, #A5D2F0 100%)",
   } as CSSProperties
@@ -112,10 +136,12 @@ export function KidsOnboarding() {
 
   const goNext = useCallback(() => {
     if (step === "name") setPlayerName(playerName)
+    setNavigationDirection("forward")
     setStepIndex((value) => Math.min(value + 1, steps.length - 1))
   }, [playerName, setPlayerName, step, steps.length])
 
   const goBack = useCallback(() => {
+    setNavigationDirection("back")
     setStepIndex((value) => Math.max(value - 1, 0))
   }, [])
 
@@ -201,7 +227,9 @@ export function KidsOnboarding() {
             "mx-auto flex w-full max-w-[40rem] flex-1 flex-col items-center justify-between gap-6 py-6 text-center",
             reduceMotion
               ? "transition-none"
-              : "transition-all duration-300 ease-out motion-safe:animate-kidsBuddyPop",
+              : navigationDirection === "forward"
+                ? "motion-safe:animate-kidsSlideFromRight"
+                : "motion-safe:animate-kidsSlideFromLeft",
           )}
         >
           <div className="flex w-full flex-1 flex-col items-center justify-center gap-7">
@@ -214,27 +242,36 @@ export function KidsOnboarding() {
                   } as CSSProperties
                 }
               >
-                <KidsBuddyArt
-                  art={character.art}
-                  palette={palette}
-                  title={buddyName}
+                <span
+                  key={character.id}
                   className={cn(
-                    "block w-[82%]",
-                    !reduceMotion && "kids-buddy-idle",
+                    "grid w-[82%] place-items-center",
+                    !reduceMotion && "animate-kidsWiggle",
                   )}
-                />
+                >
+                  <KidsBuddyArt
+                    art={character.art}
+                    palette={palette}
+                    title={buddyName}
+                    className={cn("block w-full", !reduceMotion && "kids-buddy-idle")}
+                  />
+                </span>
               </div>
-            ) : (
+            ) : step === "start" ? null : (
               <NeutralOnboardingVisual reduceMotion={reduceMotion} />
             )}
 
             <div className="flex w-full flex-col items-center justify-center gap-5">
               {step === "welcome" ? (
-                <WelcomeStep headingRef={headingRef} />
+                <WelcomeStep
+                  headingRef={headingRef}
+                  stepPosition={stepPosition}
+                />
               ) : null}
               {step === "pick" ? (
                 <BuddyStep
                   headingRef={headingRef}
+                  stepPosition={stepPosition}
                   selectedId={character.id}
                   buddyName={buddyNameDraft}
                   onSelect={selectCharacter}
@@ -245,6 +282,7 @@ export function KidsOnboarding() {
               {step === "name" ? (
                 <NameStep
                   headingRef={headingRef}
+                  stepPosition={stepPosition}
                   value={playerNameDraft}
                   onChange={setPlayerNameDraft}
                   onNext={goNext}
@@ -253,27 +291,39 @@ export function KidsOnboarding() {
               {step === "reading-mode" ? (
                 <ReadingModeStep
                   headingRef={headingRef}
+                  stepPosition={stepPosition}
                   readAloud={readAloud}
                   onReadAloudChange={setReadAloud}
                 />
               ) : null}
               {step === "feature-pages" ? (
-                <FeaturePagesStep headingRef={headingRef} />
+                <FeaturePagesStep
+                  headingRef={headingRef}
+                  stepPosition={stepPosition}
+                />
               ) : null}
               {step === "feature-help" ? (
-                <FeatureBuddyStep headingRef={headingRef} />
+                <FeatureBuddyStep
+                  headingRef={headingRef}
+                  stepPosition={stepPosition}
+                />
               ) : null}
               {step === "feature-abilities" ? (
                 <FeatureAbilitiesStep
                   headingRef={headingRef}
+                  stepPosition={stepPosition}
                   features={appConfig.features}
                 />
               ) : null}
               {step === "start" ? (
                 <StartStep
                   headingRef={headingRef}
+                  stepPosition={stepPosition}
                   playerName={playerName}
                   buddyName={buddyName}
+                  character={character}
+                  palette={palette}
+                  reduceMotion={reduceMotion}
                 />
               ) : null}
             </div>
@@ -295,26 +345,45 @@ export function KidsOnboarding() {
 }
 
 function KidsClouds({ reduceMotion }: { reduceMotion: boolean }) {
-  const drift = !reduceMotion && "kids-buddy-idle"
   return (
     <div
       className="pointer-events-none absolute inset-0 overflow-hidden"
       aria-hidden="true"
     >
-      <Cloud className={cn("left-[6%] top-[14%] scale-90 opacity-70", drift)} />
-      <Cloud className="right-[10%] top-[26%] scale-[1.15] opacity-50" />
-      <Cloud className={cn("bottom-[18%] left-[14%] scale-110 opacity-40", drift)} />
-      <Cloud className="bottom-[10%] right-[6%] scale-75 opacity-60" />
+      <Cloud
+        className="left-[6%] top-[14%] scale-90 opacity-70"
+        driftClassName={!reduceMotion ? "kids-cloud-drift-slow" : undefined}
+      />
+      <Cloud
+        className="right-[10%] top-[26%] scale-[1.15] opacity-50"
+        driftClassName={!reduceMotion ? "kids-cloud-drift-wide" : undefined}
+      />
+      <Cloud
+        className="bottom-[18%] left-[14%] scale-110 opacity-40"
+        driftClassName={!reduceMotion ? "kids-cloud-drift" : undefined}
+      />
+      <Cloud
+        className="bottom-[10%] right-[6%] scale-75 opacity-60"
+        driftClassName={!reduceMotion ? "kids-cloud-drift-slow" : undefined}
+      />
     </div>
   )
 }
 
-function Cloud({ className }: { className?: string }) {
+function Cloud({
+  className,
+  driftClassName,
+}: {
+  className?: string
+  driftClassName?: string
+}) {
   return (
     <div className={cn("absolute h-16 w-44", className)}>
-      <span className="absolute bottom-0 left-0 h-10 w-44 rounded-full bg-white/50" />
-      <span className="absolute bottom-4 left-7 h-12 w-16 rounded-full bg-white/50" />
-      <span className="absolute bottom-3 left-20 h-10 w-14 rounded-full bg-white/50" />
+      <span className={cn("absolute inset-0 block", driftClassName)}>
+        <span className="absolute bottom-0 left-0 h-10 w-44 rounded-full bg-white/50" />
+        <span className="absolute bottom-4 left-7 h-12 w-16 rounded-full bg-white/50" />
+        <span className="absolute bottom-3 left-20 h-10 w-14 rounded-full bg-white/50" />
+      </span>
     </div>
   )
 }
@@ -352,27 +421,62 @@ function NeutralOnboardingVisual({ reduceMotion }: { reduceMotion: boolean }) {
   )
 }
 
-function WelcomeStep({
+function StepLayout({
+  children,
+  className,
+}: {
+  children: ReactNode
+  className?: string
+}) {
+  return <div className={cn(STEP_LAYOUT_CLASS, className)}>{children}</div>
+}
+
+function StepTitle({
   headingRef,
+  stepPosition,
+  children,
+  className,
 }: {
   headingRef: RefObject<HTMLHeadingElement | null>
+  stepPosition: string
+  children: ReactNode
+  className?: string
+}) {
+  return (
+    <h1
+      id="kids-onboarding-title"
+      ref={headingRef}
+      tabIndex={-1}
+      className={cn(STEP_TITLE_CLASS, className)}
+    >
+      <span className="sr-only">{stepPosition}</span>
+      {children}
+    </h1>
+  )
+}
+
+function WelcomeStep({
+  headingRef,
+  stepPosition,
+}: {
+  headingRef: RefObject<HTMLHeadingElement | null>
+  stepPosition: string
 }) {
   const { tk } = useKidsTranslation()
   return (
-    <div className="flex w-full flex-col items-center justify-center gap-6">
-      <div className="flex flex-col items-center gap-3">
-        <h1
-          id="kids-onboarding-title"
-          ref={headingRef}
-          tabIndex={-1}
-          className="max-w-2xl text-balance text-4xl font-extrabold leading-tight text-slate-950 focus:outline-none sm:text-5xl"
+    <StepLayout>
+      <div className={STEP_TEXT_STACK_CLASS}>
+        <StepTitle
+          headingRef={headingRef}
+          stepPosition={stepPosition}
+          className="max-w-2xl"
         >
           {tk(
             "kids-onboarding-welcome-title",
             "Hi! Welcome to your reading adventure.",
           )}
-        </h1>
-        <p className="max-w-xl text-balance text-xl font-medium leading-relaxed text-slate-700 sm:text-2xl">
+        </StepTitle>
+        <p className={STEP_COPY_CLASS}>
           {tk(
             "kids-onboarding-welcome-copy",
             "I'm going to be your reading buddy - first, let's get to know you.",
@@ -384,33 +488,30 @@ function WelcomeStep({
         <Keycap>→</Keycap>
         <span>{tk("kids-onboarding-arrow-hint-end", "to continue")}</span>
       </p>
-    </div>
+    </StepLayout>
   )
 }
 
 function NameStep({
   headingRef,
+  stepPosition,
   value,
   onChange,
   onNext,
 }: {
   headingRef: RefObject<HTMLHeadingElement | null>
+  stepPosition: string
   value: string
   onChange: (value: string) => void
   onNext: () => void
 }) {
   const { tk } = useKidsTranslation()
   return (
-    <div className="flex w-full flex-col items-center justify-center gap-6">
+    <StepLayout>
       <label className="flex w-full max-w-xl flex-col items-center gap-4">
-        <h1
-          id="kids-onboarding-title"
-          ref={headingRef}
-          tabIndex={-1}
-          className="text-balance text-4xl font-extrabold leading-tight text-slate-950 focus:outline-none sm:text-5xl"
-        >
+        <StepTitle headingRef={headingRef} stepPosition={stepPosition}>
           {tk("kids-onboarding-name-title", "What should I call you?")}
-        </h1>
+        </StepTitle>
         <input
           data-testid="kids-onboarding-player-name"
           value={value}
@@ -422,12 +523,13 @@ function NameStep({
           autoComplete="given-name"
         />
       </label>
-    </div>
+    </StepLayout>
   )
 }
 
 function BuddyStep({
   headingRef,
+  stepPosition,
   selectedId,
   buddyName,
   onSelect,
@@ -435,6 +537,7 @@ function BuddyStep({
   onNext,
 }: {
   headingRef: RefObject<HTMLHeadingElement | null>
+  stepPosition: string
   selectedId: string
   buddyName: string
   onSelect: (character: KidsCharacter) => void
@@ -442,7 +545,7 @@ function BuddyStep({
   onNext: () => void
 }) {
   const { tk } = useKidsTranslation()
-  const reduceMotion = useAtomValue(reduceMotionAtom)
+  const reduceMotion = usePrefersReducedMotion()
   const selected = getCharacter(selectedId)
   const selectedName = tk(
     selected.defaultNameKey,
@@ -451,14 +554,9 @@ function BuddyStep({
   return (
     <div className="flex w-full flex-col items-center gap-5">
       <div className="flex flex-col items-center gap-2">
-        <h1
-          id="kids-onboarding-title"
-          ref={headingRef}
-          tabIndex={-1}
-          className="text-balance text-4xl font-extrabold leading-tight text-slate-950 focus:outline-none sm:text-5xl"
-        >
+        <StepTitle headingRef={headingRef} stepPosition={stepPosition}>
           {tk("kids-onboarding-buddy-title", "Pick a reading buddy")}
-        </h1>
+        </StepTitle>
         <p className="text-balance text-lg font-medium leading-relaxed text-slate-700 sm:text-xl">
           {tk("kids-onboarding-buddy-hi", "Hi! I am ${name}.", {
             name: selectedName,
@@ -467,7 +565,7 @@ function BuddyStep({
       </div>
 
       <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-5">
-        {KIDS_CHARACTERS.map((character) => {
+        {KIDS_CHARACTERS.map((character, index) => {
           const name = tk(character.defaultNameKey, character.defaultNameFallback)
           const label = tk(character.labelKey, character.labelFallback)
           const palette = character.art.palettes[0]
@@ -486,12 +584,20 @@ function BuddyStep({
                   ? "border-sky-600 bg-sky-50"
                   : "border-slate-200",
                 !reduceMotion &&
-                  "hover:-translate-y-0.5 hover:shadow-[0_5px_0_#C4DFF2] active:translate-y-1 active:shadow-[0_1px_0_#C4DFF2]",
+                  "animate-kidsRiseIn hover:-translate-y-0.5 hover:shadow-[0_5px_0_#C4DFF2] active:translate-y-1 active:shadow-[0_1px_0_#C4DFF2]",
               )}
+              style={
+                !reduceMotion
+                  ? animationDelayStyle(index)
+                  : undefined
+              }
             >
               {selected ? (
                 <span
-                  className="absolute -right-2 -top-2 grid h-8 w-8 place-items-center rounded-full bg-sky-500 text-white ring-[3px] ring-white"
+                  className={cn(
+                    "absolute -right-2 -top-2 grid h-8 w-8 place-items-center rounded-full bg-sky-600 text-white ring-[3px] ring-white",
+                    !reduceMotion && "animate-kidsBuddyPop",
+                  )}
                   aria-hidden="true"
                 >
                   <Check className="h-5 w-5" strokeWidth={3.5} />
@@ -532,24 +638,21 @@ function BuddyStep({
 
 function ReadingModeStep({
   headingRef,
+  stepPosition,
   readAloud,
   onReadAloudChange,
 }: {
   headingRef: RefObject<HTMLHeadingElement | null>
+  stepPosition: string
   readAloud: boolean
   onReadAloudChange: (value: boolean) => void
 }) {
   const { tk } = useKidsTranslation()
   return (
-    <div className="flex w-full flex-col items-center justify-center gap-6">
-      <h1
-        id="kids-onboarding-title"
-        ref={headingRef}
-        tabIndex={-1}
-        className="text-balance text-4xl font-extrabold leading-tight text-slate-950 focus:outline-none sm:text-5xl"
-      >
+    <StepLayout>
+      <StepTitle headingRef={headingRef} stepPosition={stepPosition}>
         {tk("kids-onboarding-read-title", "How do you want to read?")}
-      </h1>
+      </StepTitle>
 
       <div className="grid w-full gap-4 sm:grid-cols-2">
         <ReadingChoice
@@ -565,28 +668,25 @@ function ReadingModeStep({
           onClick={() => onReadAloudChange(true)}
         />
       </div>
-    </div>
+    </StepLayout>
   )
 }
 
 function FeaturePagesStep({
   headingRef,
+  stepPosition,
 }: {
   headingRef: RefObject<HTMLHeadingElement | null>
+  stepPosition: string
 }) {
   const { tk } = useKidsTranslation()
   return (
-    <div className="flex w-full flex-col items-center justify-center gap-6">
-      <div className="flex flex-col items-center gap-3">
-        <h1
-          id="kids-onboarding-title"
-          ref={headingRef}
-          tabIndex={-1}
-          className="text-balance text-4xl font-extrabold leading-tight text-slate-950 focus:outline-none sm:text-5xl"
-        >
+    <StepLayout>
+      <div className={STEP_TEXT_STACK_CLASS}>
+        <StepTitle headingRef={headingRef} stepPosition={stepPosition}>
           {tk("kids-onboarding-pages-title", "Turn the pages")}
-        </h1>
-        <p className="max-w-xl text-balance text-xl font-medium leading-relaxed text-slate-700 sm:text-2xl">
+        </StepTitle>
+        <p className={STEP_COPY_CLASS}>
           {tk(
             "kids-onboarding-pages-copy",
             "Press the arrow keys to go forward and back.",
@@ -597,28 +697,25 @@ function FeaturePagesStep({
         <Keycap>←</Keycap>
         <Keycap>→</Keycap>
       </div>
-    </div>
+    </StepLayout>
   )
 }
 
 function FeatureBuddyStep({
   headingRef,
+  stepPosition,
 }: {
   headingRef: RefObject<HTMLHeadingElement | null>
+  stepPosition: string
 }) {
   const { tk } = useKidsTranslation()
   return (
-    <div className="flex w-full flex-col items-center justify-center gap-6">
-      <div className="flex flex-col items-center gap-3">
-        <h1
-          id="kids-onboarding-title"
-          ref={headingRef}
-          tabIndex={-1}
-          className="text-balance text-4xl font-extrabold leading-tight text-slate-950 focus:outline-none sm:text-5xl"
-        >
+    <StepLayout>
+      <div className={STEP_TEXT_STACK_CLASS}>
+        <StepTitle headingRef={headingRef} stepPosition={stepPosition}>
           {tk("kids-onboarding-help-title", "Ask me anytime")}
-        </h1>
-        <p className="max-w-xl text-balance text-xl font-medium leading-relaxed text-slate-700 sm:text-2xl">
+        </StepTitle>
+        <p className={STEP_COPY_CLASS}>
           {tk(
             "kids-onboarding-help-copy",
             "Tap your buddy or press the L key when you want help.",
@@ -626,7 +723,7 @@ function FeatureBuddyStep({
         </p>
       </div>
       <Keycap>L</Keycap>
-    </div>
+    </StepLayout>
   )
 }
 
@@ -640,12 +737,15 @@ interface AbilityItem {
 
 function FeatureAbilitiesStep({
   headingRef,
+  stepPosition,
   features,
 }: {
   headingRef: RefObject<HTMLHeadingElement | null>
+  stepPosition: string
   features: AppFeatures
 }) {
   const { tk } = useKidsTranslation()
+  const reduceMotion = usePrefersReducedMotion()
   const abilities: AbilityItem[] = [
     ...(features.readAloud
       ? [
@@ -730,20 +830,31 @@ function FeatureAbilitiesStep({
 
   return (
     <div className="flex min-h-0 w-full flex-col items-center justify-center gap-5">
-      <h1
-        id="kids-onboarding-title"
-        ref={headingRef}
-        tabIndex={-1}
-        className="text-balance text-4xl font-extrabold leading-tight text-slate-950 focus:outline-none sm:text-5xl"
-      >
+      <StepTitle headingRef={headingRef} stepPosition={stepPosition}>
         {tk("kids-onboarding-abilities-title", "Here's what I can do")}
-      </h1>
+      </StepTitle>
 
-      <div className="flex max-h-[min(52vh,28rem)] w-full flex-col gap-3 overflow-y-auto pr-1">
-        {abilities.map(({ key, Icon, label, description, chip }) => (
+      <div
+        className="flex max-h-[min(52vh,28rem)] w-full flex-col gap-3 overflow-y-auto pr-1 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+        role="region"
+        aria-label={tk(
+          "kids-onboarding-abilities-region",
+          "What your buddy can do",
+        )}
+        tabIndex={0}
+      >
+        {abilities.map(({ key, Icon, label, description, chip }, index) => (
           <div
             key={key}
-            className="flex items-start gap-4 rounded-2xl bg-white p-4 text-left shadow-[0_3px_0_#D9EBF8] ring-2 ring-sky-100"
+            className={cn(
+              "flex items-start gap-4 rounded-2xl bg-white p-4 text-left shadow-[0_3px_0_#D9EBF8] ring-2 ring-sky-100",
+              !reduceMotion && "animate-kidsRiseIn",
+            )}
+            style={
+              !reduceMotion
+                ? animationDelayStyle(index)
+                : undefined
+            }
           >
             <span
               className={cn(
@@ -770,33 +881,59 @@ function FeatureAbilitiesStep({
 
 function StartStep({
   headingRef,
+  stepPosition,
   playerName,
   buddyName,
+  character,
+  palette,
+  reduceMotion,
 }: {
   headingRef: RefObject<HTMLHeadingElement | null>
+  stepPosition: string
   playerName: string
   buddyName: string
+  character: KidsCharacter
+  palette: BuddyPalette
+  reduceMotion: boolean
 }) {
   const { tk } = useKidsTranslation()
   const name = playerName || buddyName
   return (
-    <div className="flex w-full flex-col items-center justify-center gap-6">
-      <div className="flex flex-col items-center gap-3">
-        <Sparkles className="h-12 w-12 text-[#FFB700]" aria-hidden="true" />
-        <h1
-          id="kids-onboarding-title"
-          ref={headingRef}
-          tabIndex={-1}
-          className="text-balance text-4xl font-extrabold leading-tight text-slate-950 focus:outline-none sm:text-5xl"
+    <div className="flex w-full flex-col items-center justify-center gap-4">
+      <div className="relative grid aspect-square w-full max-w-64 place-items-center">
+        <div
+          className="absolute inset-[12%] rounded-full bg-[radial-gradient(circle,rgba(255,200,0,0.24)_0%,rgba(255,255,255,0)_68%)]"
+          aria-hidden="true"
+        />
+        <div
+          className="relative z-10 grid aspect-square w-[74%] place-items-center rounded-full bg-white/90 shadow-[0_8px_0_#C4DFF2] ring-4 ring-white"
+          style={buddyPaletteVars(palette) as CSSProperties}
         >
+          <KidsBuddyArt
+            art={character.art}
+            palette={palette}
+            title={buddyName}
+            className={cn(
+              "block w-[88%]",
+              !reduceMotion && "animate-kidsWiggle",
+            )}
+          />
+        </div>
+        <div className="absolute bottom-1 z-20 rounded-full bg-[#FFC800] px-5 py-2 text-lg font-black text-slate-950 shadow-[0_4px_0_#DFA000] ring-4 ring-white">
+          {buddyName}
+        </div>
+      </div>
+
+      <div className="flex flex-col items-center gap-2">
+        <StepTitle headingRef={headingRef} stepPosition={stepPosition}>
           {tk("kids-onboarding-start-title", "Ready to read, ${name}?", {
             name,
           })}
-        </h1>
-        <p className="max-w-xl text-balance text-xl font-medium leading-relaxed text-slate-700 sm:text-2xl">
+        </StepTitle>
+        <p className={STEP_COPY_CLASS}>
           {tk(
-            "kids-onboarding-done-copy",
-            "${buddy} is ready to read with you.",
+            "kids-onboarding-start-celebrate",
+            "${buddy} is so excited to read with you!",
             { buddy: buddyName },
           )}
         </p>
@@ -816,7 +953,7 @@ function ReadingChoice({
   label: string
   onClick: () => void
 }) {
-  const reduceMotion = useAtomValue(reduceMotionAtom)
+  const reduceMotion = usePrefersReducedMotion()
   return (
     <button
       type="button"
@@ -825,7 +962,7 @@ function ReadingChoice({
       className={cn(
         "flex min-h-40 flex-col items-start justify-between gap-4 rounded-2xl border-[3px] p-5 text-left text-xl font-bold transition-[transform,box-shadow,background-color,border-color] duration-200 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-700 sm:text-2xl",
         selected
-          ? "border-sky-700 bg-sky-500 text-white shadow-[0_4px_0_#075985]"
+          ? "border-sky-800 bg-sky-600 text-white shadow-[0_4px_0_#075985]"
           : "border-slate-300 bg-white text-slate-950 shadow-[0_4px_0_#C4DFF2]",
         !reduceMotion &&
           (selected
@@ -841,6 +978,7 @@ function ReadingChoice({
           className={cn(
             "grid h-8 w-8 place-items-center rounded-full transition-colors",
             selected ? "bg-white text-sky-600" : "bg-slate-100 text-transparent",
+            selected && !reduceMotion && "animate-kidsBuddyPop",
           )}
           aria-hidden="true"
         >
@@ -865,7 +1003,12 @@ function OnboardingPrimaryAction({
 
   if (step === "start") {
     return (
-      <PrimaryButton onClick={onFinish} testId="kids-onboarding-finish">
+      <PrimaryButton
+        onClick={onFinish}
+        testId="kids-onboarding-finish"
+        size="lg"
+        attention
+      >
         <Check className="h-6 w-6" aria-hidden="true" />
         {tk("kids-onboarding-start-reading", "Start reading!")}
       </PrimaryButton>
@@ -890,22 +1033,30 @@ function PrimaryButton({
   children,
   onClick,
   testId,
+  size = "md",
+  attention = false,
 }: {
   children: ReactNode
   onClick: () => void
   testId?: string
+  size?: "md" | "lg"
+  attention?: boolean
 }) {
-  const reduceMotion = useAtomValue(reduceMotionAtom)
+  const reduceMotion = usePrefersReducedMotion()
   return (
     <button
       type="button"
       data-testid={testId}
       onClick={onClick}
       className={cn(
-        "inline-flex min-h-14 w-fit min-w-64 items-center justify-center gap-2 rounded-full bg-[#FFC800] px-8 py-3 text-lg font-extrabold text-slate-900 shadow-[0_6px_0_#DFA000] transition-[transform,box-shadow] duration-200 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-600 sm:text-xl",
+        "inline-flex w-fit items-center justify-center gap-2 rounded-full bg-[#FFC800] font-extrabold text-slate-900 shadow-[0_6px_0_#DFA000] transition-[transform,box-shadow] duration-200 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-600",
+        size === "lg"
+          ? "min-h-16 min-w-72 px-10 py-4 text-xl sm:text-2xl"
+          : "min-h-14 min-w-64 px-8 py-3 text-lg sm:text-xl",
         reduceMotion
           ? "active:shadow-[0_6px_0_#DFA000]"
           : "hover:-translate-y-[1px] hover:shadow-[0_7px_0_#DFA000] active:translate-y-[6px] active:shadow-[0_1px_0_#DFA000]",
+        attention && !reduceMotion && "animate-kidsAttentionNudge",
       )}
     >
       {children}

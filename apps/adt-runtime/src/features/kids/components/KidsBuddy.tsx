@@ -1,7 +1,6 @@
 import {
   BookOpen,
   CaseSensitive,
-  Check,
   Gauge,
   Hand,
   Languages,
@@ -12,44 +11,33 @@ import {
   Sparkles,
   Turtle,
   Volume2,
-  X,
 } from "lucide-react"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  type CSSProperties,
-} from "react"
+import { useEffect, useMemo, useRef, type CSSProperties } from "react"
 import {
   audioSpeedAtom,
   playBarVisibleAtom,
 } from "@/features/audio/state/audio.atoms"
 import { useAudioPlayerContext } from "@/features/audio/hooks/AudioPlayerContext"
-import { currentLanguageAtom } from "@/features/language/state/language.atoms"
-import {
-  currentPageNumberAtom,
-  currentSectionIdAtom,
-  pagesAtom,
-  tocAtom,
-  type TocEntry,
-} from "@/features/navigation/state/nav.atoms"
-import { navigateToHref } from "@/features/navigation/lib/page-navigation"
 import { buddyPaletteVars } from "@/features/kids/assets/buddies/buddy-art"
 import { KidsActionButton } from "@/features/kids/components/KidsActionButton"
 import { KidsBuddyArt } from "@/features/kids/components/KidsBuddyArt"
+import {
+  KidsDialogClose,
+  KidsLanguageDialog,
+  KidsResumeChip,
+  KidsStoryMapDialog,
+} from "@/features/kids/components/kids-dialogs"
 import { useBuddySpeech } from "@/features/kids/hooks/useBuddySpeech"
 import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
+import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
 import {
   buddySpeechAtom,
   kidsBuddyPanelOpenAtom,
   kidsBuddyAtom,
   kidsLanguageDialogOpenAtom,
-  kidsLastSpotAtom,
-  kidsResumeChipDismissedAtom,
   kidsPlayerNameAtom,
   kidsStoryMapDialogOpenAtom,
-  type KidsLastSpot,
 } from "@/features/kids/state/kids.atoms"
 import { getCharacter, getPalette } from "@/features/kids/lib/characters"
 import { appConfigAtom } from "@/shared/state/config.atoms"
@@ -61,12 +49,10 @@ import {
   eli5PopupOpenAtom,
   glossaryModeAtom,
   notepadOpenAtom,
-  reduceMotionAtom,
   signLanguageModeAtom,
 } from "@/shared/state/ui.atoms"
 
 const GREETING_SESSION_KEY = "kidsBuddyGreeted"
-const RESUME_SESSION_KEY = "kidsLastSpotOfferChecked"
 const SPEEDS = [0.75, 1, 1.3] as const
 
 export function KidsBuddy() {
@@ -77,7 +63,7 @@ export function KidsBuddy() {
   const playerName = useAtomValue(kidsPlayerNameAtom).trim()
   const speech = useAtomValue(buddySpeechAtom)
   const setSpeech = useSetAtom(buddySpeechAtom)
-  const reduceMotion = useAtomValue(reduceMotionAtom)
+  const reduceMotion = usePrefersReducedMotion()
   const { isPlaying, hasItems, togglePlayPause } = useAudioPlayerContext()
   const { say } = useBuddySpeech()
   const [open, setOpen] = useAtom(kidsBuddyPanelOpenAtom)
@@ -92,6 +78,10 @@ export function KidsBuddy() {
   const setLanguageDialogOpen = useSetAtom(kidsLanguageDialogOpenAtom)
   const setStoryMapDialogOpen = useSetAtom(kidsStoryMapDialogOpenAtom)
   const languageCount = config.languages.available.length
+  const fabRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+  const panelCloseRef = useRef<HTMLButtonElement>(null)
+  const wasOpenRef = useRef(false)
 
   const character = useMemo(
     () => getCharacter(buddy.character),
@@ -134,13 +124,28 @@ export function KidsBuddy() {
   }, [playerName, say, tk])
 
   useEffect(() => {
+    if (open) {
+      const frame = window.requestAnimationFrame(() => {
+        panelCloseRef.current?.focus()
+      })
+      wasOpenRef.current = true
+      return () => window.cancelAnimationFrame(frame)
+    }
+
+    if (wasOpenRef.current) {
+      fabRef.current?.focus()
+      wasOpenRef.current = false
+    }
+  }, [open])
+
+  useEffect(() => {
     if (!open) return
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") setOpen(false)
     }
     window.addEventListener("keydown", handleKeyDown)
     return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [open])
+  }, [open, setOpen])
 
   const handleFabClick = () => {
     if (!open) setSpeech(null)
@@ -227,28 +232,37 @@ export function KidsBuddy() {
       <KidsResumeChip />
       {open ? (
         <div
+          ref={panelRef}
           data-testid="kids-buddy-panel"
           role="region"
           aria-labelledby="kids-buddy-panel-message"
+          tabIndex={-1}
           className={cn(
             "relative mb-1 max-h-[min(72vh,34rem)] w-[min(26rem,calc(100vw-2rem))] overflow-visible rounded-[2rem] bg-white p-4 text-slate-950 shadow-2xl ring-2 ring-sky-100",
             reduceMotion
               ? "transition-none"
               : "transition-all duration-200 ease-out",
-            !reduceMotion && "motion-safe:animate-kidsBuddyPop",
+            !reduceMotion && "motion-safe:animate-kidsPanelOpen",
             "after:absolute after:-bottom-2 after:right-8 after:h-5 after:w-5 after:rotate-45 after:border-b-2 after:border-r-2 after:border-sky-100 after:bg-white",
           )}
         >
-          <div className="relative z-10 flex max-h-[calc(min(72vh,34rem)-2rem)] flex-col gap-4 overflow-y-auto pr-1">
+          <div
+            className="relative z-10 flex max-h-[calc(min(72vh,34rem)-2rem)] flex-col gap-4 overflow-y-auto pr-1 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+            role="region"
+            aria-label={tk("kids-buddy-actions-region", "Buddy actions")}
+            tabIndex={0}
+          >
             <div className="flex items-start justify-between gap-3">
               <h2
                 id="kids-buddy-panel-message"
                 data-testid="kids-buddy-panel-message"
+                aria-live="polite"
                 className="max-w-[19rem] text-balance text-2xl font-black leading-tight text-slate-950"
               >
                 {panelMessage}
               </h2>
               <KidsDialogClose
+                buttonRef={panelCloseRef}
                 label={tk("kids-dialog-close", "Close")}
                 onClick={() => setOpen(false)}
               />
@@ -372,6 +386,7 @@ export function KidsBuddy() {
       <KidsStoryMapDialog />
 
       <button
+        ref={fabRef}
         type="button"
         data-testid="kids-buddy-fab"
         aria-expanded={open}
@@ -397,299 +412,6 @@ export function KidsBuddy() {
         </span>
       </button>
     </div>
-  )
-}
-
-function KidsLanguageDialog() {
-  const { tk } = useKidsTranslation()
-  const config = useAtomValue(appConfigAtom)
-  const [open, setOpen] = useAtom(kidsLanguageDialogOpenAtom)
-  const [currentLanguage, setCurrentLanguage] = useAtom(currentLanguageAtom)
-  const { say } = useBuddySpeech()
-  const reduceMotion = useAtomValue(reduceMotionAtom)
-
-  return (
-    <KidsModal
-      open={open}
-      onClose={() => setOpen(false)}
-      title={tk("kids-language-title", "Pick a language")}
-      reduceMotion={reduceMotion}
-      closeLabel={tk("kids-dialog-close", "Close")}
-    >
-      <div className="grid gap-2">
-        {config.languages.available.map((language) => {
-          const active = language === currentLanguage
-          const name = getLanguageName(language)
-          return (
-            <button
-              type="button"
-              key={language}
-              aria-current={active ? "true" : undefined}
-              onClick={() => {
-                setCurrentLanguage(language)
-                setOpen(false)
-                say(
-                  tk("kids-confirm-language", "Okay, ${language} is on!", {
-                    language: name,
-                  }),
-                )
-              }}
-              className={cn(
-                "flex min-h-16 items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-left text-xl font-extrabold shadow-sm ring-1 ring-slate-200",
-                "transition-all duration-150 hover:bg-sky-50 active:scale-[0.99]",
-                "focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500",
-                active && "bg-[#FFF6D6] ring-2 ring-[#FFC800]",
-              )}
-            >
-              <span>{name}</span>
-              {active ? <Check className="h-6 w-6" aria-hidden="true" /> : null}
-            </button>
-          )
-        })}
-      </div>
-    </KidsModal>
-  )
-}
-
-function KidsStoryMapDialog() {
-  const { tk } = useKidsTranslation()
-  const [open, setOpen] = useAtom(kidsStoryMapDialogOpenAtom)
-  const toc = useAtomValue(tocAtom)
-  const pages = useAtomValue(pagesAtom)
-  const currentSectionId = useAtomValue(currentSectionIdAtom)
-  const reduceMotion = useAtomValue(reduceMotionAtom)
-  const entries = useMemo<TocEntry[]>(
-    () =>
-      toc.length > 0
-        ? toc
-        : pages.map((page, index) => ({
-            section_id: page.section_id,
-            href: page.href,
-            title: `${tk("kids-page-label", "Page")} ${index + 1}`,
-            chapter_id: page.section_id,
-          })),
-    [pages, tk, toc],
-  )
-
-  return (
-    <KidsModal
-      open={open}
-      onClose={() => setOpen(false)}
-      title={tk("kids-story-map-title", "Story map")}
-      reduceMotion={reduceMotion}
-      closeLabel={tk("kids-dialog-close", "Close")}
-      wide
-    >
-      <div className="grid max-h-[60vh] gap-2 overflow-y-auto pr-1">
-        {entries.map((entry) => {
-          const active = entry.section_id === currentSectionId
-          return (
-            <button
-              type="button"
-              key={entry.section_id}
-              aria-current={active ? "page" : undefined}
-              onClick={() => navigateToHref(entry.href)}
-              className={cn(
-                "min-h-16 rounded-2xl bg-white px-4 py-3 text-left text-xl font-extrabold shadow-sm ring-1 ring-slate-200",
-                "transition-all duration-150 hover:bg-sky-50 active:scale-[0.99]",
-                "focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500",
-                active && "bg-[#FFF6D6] ring-2 ring-[#FFC800]",
-                entry.level === 2 && "ml-5",
-                entry.level === 3 && "ml-9",
-              )}
-            >
-              {entry.title}
-            </button>
-          )
-        })}
-      </div>
-    </KidsModal>
-  )
-}
-
-function KidsModal({
-  open,
-  onClose,
-  title,
-  closeLabel,
-  reduceMotion,
-  wide,
-  children,
-}: {
-  open: boolean
-  onClose: () => void
-  title: string
-  closeLabel: string
-  reduceMotion: boolean
-  wide?: boolean
-  children: React.ReactNode
-}) {
-  const dialogRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!open) return
-    const previous = document.activeElement instanceof HTMLElement
-      ? document.activeElement
-      : null
-    const dialog = dialogRef.current
-    const focusable = getFocusable(dialog)
-    ;(focusable[0] ?? dialog)?.focus()
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose()
-        return
-      }
-      if (event.key !== "Tab") return
-      const items = getFocusable(dialog)
-      if (items.length === 0) {
-        event.preventDefault()
-        dialog?.focus()
-        return
-      }
-      const first = items[0]
-      const last = items[items.length - 1]
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault()
-        first.focus()
-      }
-    }
-
-    document.addEventListener("keydown", handleKeyDown)
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown)
-      previous?.focus()
-    }
-  }, [onClose, open])
-
-  if (!open) return null
-
-  return (
-    <div
-      className="fixed inset-0 z-[70] flex items-center justify-center p-4"
-      role="presentation"
-    >
-      <button
-        type="button"
-        aria-label={closeLabel}
-        className={cn(
-          "absolute inset-0 bg-black/25 backdrop-blur-sm",
-          "transition-opacity duration-200",
-        )}
-        onClick={onClose}
-      />
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        tabIndex={-1}
-        className={cn(
-          "relative grid max-h-[min(80vh,42rem)] w-full gap-4 overflow-hidden rounded-[2rem] bg-white p-5 text-slate-900 shadow-2xl ring-2 ring-sky-100",
-          wide ? "max-w-2xl" : "max-w-lg",
-          "transition-all duration-200 ease-out",
-          !reduceMotion && "motion-safe:animate-kidsBuddyPop",
-        )}
-      >
-        <div className="flex items-start justify-between gap-4">
-          <h2 className="text-2xl font-black text-slate-950">{title}</h2>
-          <KidsDialogClose label={closeLabel} onClick={onClose} />
-        </div>
-        {children}
-      </div>
-    </div>
-  )
-}
-
-function getFocusable(root: HTMLElement | null): HTMLElement[] {
-  if (!root) return []
-  return Array.from(
-    root.querySelectorAll<HTMLElement>(
-      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-    ),
-  ).filter((element) => !element.hasAttribute("disabled"))
-}
-
-function KidsResumeChip() {
-  const { tk } = useKidsTranslation()
-  const [lastSpot, setLastSpot] = useAtom(kidsLastSpotAtom)
-  const [dismissed, setDismissed] = useAtom(kidsResumeChipDismissedAtom)
-  const pages = useAtomValue(pagesAtom)
-  const currentSectionId = useAtomValue(currentSectionIdAtom)
-  const currentPage = useAtomValue(currentPageNumberAtom)
-  const initialLastSpotRef = useRef<KidsLastSpot | null>(lastSpot)
-  const shouldOfferResumeRef = useRef(
-    typeof window !== "undefined" &&
-      window.sessionStorage.getItem(RESUME_SESSION_KEY) !== "true",
-  )
-  const currentSpot = useMemo(
-    () => getCurrentSpot(pages, currentSectionId, currentPage),
-    [currentPage, currentSectionId, pages],
-  )
-
-  useEffect(() => {
-    if (typeof window === "undefined") return
-    window.sessionStorage.setItem(RESUME_SESSION_KEY, "true")
-  }, [])
-
-  useEffect(() => {
-    if (!currentSpot) return
-    setLastSpot(currentSpot)
-  }, [currentSpot, setLastSpot])
-
-  const initialLastSpot = initialLastSpotRef.current
-  const show =
-    shouldOfferResumeRef.current &&
-    !dismissed &&
-    !!initialLastSpot &&
-    !!currentSpot &&
-    initialLastSpot.sectionId !== currentSpot.sectionId
-
-  if (!show || !initialLastSpot) return null
-
-  return (
-    <div
-      data-testid="kids-resume-chip"
-      className="mb-1 flex max-w-[min(22rem,calc(100vw-2rem))] items-center gap-2 rounded-full bg-white px-2 py-2 shadow-xl ring-2 ring-sky-100"
-    >
-      <button
-        type="button"
-        onClick={() => navigateToHref(initialLastSpot.href)}
-        className="min-h-11 rounded-full bg-[#FFE58A] px-4 text-sm font-extrabold text-slate-950 transition-all duration-150 hover:bg-[#FFDD66] active:scale-[0.98] focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
-      >
-        {tk("kids-resume-chip", "Take me back to where I was")}
-      </button>
-      <button
-        type="button"
-        aria-label={tk("kids-resume-dismiss", "Dismiss")}
-        onClick={() => setDismissed(true)}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-600 transition-all duration-150 hover:bg-slate-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
-      >
-        <X className="h-5 w-5" aria-hidden="true" />
-      </button>
-    </div>
-  )
-}
-
-function KidsDialogClose({
-  label,
-  onClick,
-}: {
-  label: string
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      onClick={onClick}
-      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-slate-700 shadow-sm ring-2 ring-sky-100 transition-all duration-150 hover:bg-sky-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
-    >
-      <X className="h-6 w-6" aria-hidden="true" />
-    </button>
   )
 }
 
@@ -719,29 +441,4 @@ function nextSpeed(speed: number): (typeof SPEEDS)[number] {
   if (speed < 1) return 1
   if (speed === 1) return 1.3
   return 0.75
-}
-
-function getCurrentSpot(
-  pages: { section_id: string; href: string; page_number?: number }[],
-  currentSectionId: string | null,
-  currentPage: number | null,
-): KidsLastSpot | null {
-  const current = pages.find((page) => page.section_id === currentSectionId)
-  if (!current) return null
-  return {
-    sectionId: current.section_id,
-    href: current.href,
-    page: currentPage ?? current.page_number ?? null,
-  }
-}
-
-function getLanguageName(language: string) {
-  const names: Record<string, string> = {
-    en: "English",
-    es: "Español",
-    fr: "Français",
-    "pt-BR": "Português (Brasil)",
-    sq: "Shqip",
-  }
-  return names[language] ?? language
 }

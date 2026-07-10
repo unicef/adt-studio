@@ -234,10 +234,71 @@ span[data-word-index].bg-yellow-300 {
     0% { opacity: 0; transform: translateY(8px) scale(0.96); }
     100% { opacity: 1; transform: translateY(0) scale(1); }
   }
+  @keyframes kidsSlideFromRight {
+    0% { opacity: 0; transform: translateX(1.4rem); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes kidsSlideFromLeft {
+    0% { opacity: 0; transform: translateX(-1.4rem); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes kidsRiseIn {
+    0% { opacity: 0; transform: translateY(0.55rem); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes kidsWiggle {
+    0%, 100% { transform: rotate(0deg); }
+    18% { transform: rotate(-4deg); }
+    36% { transform: rotate(4deg); }
+    54% { transform: rotate(-3deg); }
+    72% { transform: rotate(2deg); }
+  }
+  @keyframes kidsCloudDrift {
+    0% { transform: translateX(-1rem); }
+    100% { transform: translateX(3rem); }
+  }
+  @keyframes kidsPanelOpen {
+    0% { opacity: 0; transform: translate(0.75rem, 0.75rem) scale(0.94); }
+    100% { opacity: 1; transform: translate(0, 0) scale(1); }
+  }
+  @keyframes kidsAttentionNudge {
+    0%, 86%, 100% { transform: scale(1); }
+    90% { transform: scale(1.035); }
+    94% { transform: scale(0.99); }
+  }
   .kids-buddy-idle {
     animation: kidsBuddyIdle 3.2s ease-in-out infinite;
   }
   .animate-kidsBuddyPop {
     animation: kidsBuddyPop 180ms ease-out both;
+  }
+  .animate-kidsSlideFromRight {
+    animation: kidsSlideFromRight 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-kidsSlideFromLeft {
+    animation: kidsSlideFromLeft 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-kidsRiseIn {
+    opacity: 0;
+    animation: kidsRiseIn 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-kidsWiggle {
+    animation: kidsWiggle 600ms ease-out both;
+  }
+  .kids-cloud-drift {
+    animation: kidsCloudDrift 42s ease-in-out infinite alternate;
+  }
+  .kids-cloud-drift-slow {
+    animation: kidsCloudDrift 58s ease-in-out infinite alternate;
+  }
+  .kids-cloud-drift-wide {
+    animation: kidsCloudDrift 34s ease-in-out infinite alternate-reverse;
+  }
+  .animate-kidsPanelOpen {
+    animation: kidsPanelOpen 210ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    transform-origin: bottom right;
+  }
+  .animate-kidsAttentionNudge {
+    animation: kidsAttentionNudge 3s ease-in-out infinite;
   }
 }

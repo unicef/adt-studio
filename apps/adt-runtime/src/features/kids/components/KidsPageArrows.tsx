@@ -9,14 +9,14 @@ import {
   navigateToHref,
 } from "@/features/navigation/lib/page-navigation"
 import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
+import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
 import { cn } from "@/shared/lib/utils"
-import { reduceMotionAtom } from "@/shared/state/ui.atoms"
 
 export function KidsPageArrows() {
   const { tk } = useKidsTranslation()
   const pages = useAtomValue(pagesAtom)
   const currentSectionId = useAtomValue(currentSectionIdAtom)
-  const reduceMotion = useAtomValue(reduceMotionAtom)
+  const reduceMotion = usePrefersReducedMotion()
   const { prev, next } = getAdjacentPages(pages, currentSectionId)
 
   return (
@@ -66,9 +66,9 @@ function KidsArrow({
       onClick={onClick}
       className={cn(
         "pointer-events-auto fixed top-1/2 z-[58] flex h-16 w-16 -translate-y-1/2 items-center justify-center rounded-full",
-        "bg-sky-500 text-white shadow-[0_5px_0_#075985] ring-4 ring-white",
+        "bg-sky-600 text-white shadow-[0_5px_0_#075985] ring-4 ring-white",
         "transition-[transform,box-shadow,background-color] duration-200 ease-out",
-        "hover:bg-sky-400 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFC800]",
+        "hover:bg-sky-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFC800]",
         side === "left" ? "left-3" : "right-3",
         !reduceMotion &&
           "hover:translate-y-[calc(-50%-1px)] hover:shadow-[0_6px_0_#075985] active:translate-y-[calc(-50%+4px)] active:shadow-[0_1px_0_#075985]",

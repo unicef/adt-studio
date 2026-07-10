@@ -4,13 +4,13 @@ import {
   buddySpeechAtom,
   kidsBuddyPanelOpenAtom,
 } from "@/features/kids/state/kids.atoms"
+import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
 import { cn } from "@/shared/lib/utils"
-import { reduceMotionAtom } from "@/shared/state/ui.atoms"
 
 export function KidsSpeechBubble() {
   const speech = useAtomValue(buddySpeechAtom)
   const panelOpen = useAtomValue(kidsBuddyPanelOpenAtom)
-  const reduceMotion = useAtomValue(reduceMotionAtom)
+  const reduceMotion = usePrefersReducedMotion()
   const [renderedSpeech, setRenderedSpeech] = useState(speech)
   const [visible, setVisible] = useState(Boolean(speech))
 
