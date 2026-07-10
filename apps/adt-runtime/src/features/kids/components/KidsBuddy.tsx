@@ -231,12 +231,12 @@ export function KidsBuddy() {
           role="region"
           aria-labelledby="kids-buddy-panel-message"
           className={cn(
-            "relative mb-1 max-h-[min(72vh,34rem)] w-[min(26rem,calc(100vw-2rem))] overflow-visible rounded-[2rem] bg-amber-50 p-4 text-slate-950 shadow-2xl ring-2 ring-white/90",
+            "relative mb-1 max-h-[min(72vh,34rem)] w-[min(26rem,calc(100vw-2rem))] overflow-visible rounded-[2rem] bg-white p-4 text-slate-950 shadow-2xl ring-2 ring-sky-100",
             reduceMotion
               ? "transition-none"
               : "transition-all duration-200 ease-out",
             !reduceMotion && "motion-safe:animate-kidsBuddyPop",
-            "after:absolute after:-bottom-2 after:right-8 after:h-5 after:w-5 after:rotate-45 after:border-b-2 after:border-r-2 after:border-white/90 after:bg-amber-50",
+            "after:absolute after:-bottom-2 after:right-8 after:h-5 after:w-5 after:rotate-45 after:border-b-2 after:border-r-2 after:border-sky-100 after:bg-white",
           )}
         >
           <div className="relative z-10 flex max-h-[calc(min(72vh,34rem)-2rem)] flex-col gap-4 overflow-y-auto pr-1">
@@ -383,7 +383,7 @@ export function KidsBuddy() {
           "flex h-[76px] w-[76px] items-center justify-center overflow-hidden rounded-full",
           "shadow-2xl ring-4 ring-white/90",
           "transition-all duration-200 ease-out hover:scale-105 active:scale-95",
-          "focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-400 focus-visible:ring-offset-2",
+          "focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 focus-visible:ring-offset-2",
           !reduceMotion && "kids-buddy-idle",
         )}
         style={{ backgroundColor: buddy.backgroundColor }}
@@ -436,9 +436,9 @@ function KidsLanguageDialog() {
               }}
               className={cn(
                 "flex min-h-16 items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-left text-xl font-extrabold shadow-sm ring-1 ring-slate-200",
-                "transition-all duration-150 hover:bg-amber-100 active:scale-[0.99]",
-                "focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-400",
-                active && "bg-amber-100 ring-2 ring-amber-400",
+                "transition-all duration-150 hover:bg-sky-50 active:scale-[0.99]",
+                "focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500",
+                active && "bg-[#FFF6D6] ring-2 ring-[#FFC800]",
               )}
             >
               <span>{name}</span>
@@ -491,9 +491,9 @@ function KidsStoryMapDialog() {
               onClick={() => navigateToHref(entry.href)}
               className={cn(
                 "min-h-16 rounded-2xl bg-white px-4 py-3 text-left text-xl font-extrabold shadow-sm ring-1 ring-slate-200",
-                "transition-all duration-150 hover:bg-amber-100 active:scale-[0.99]",
-                "focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-400",
-                active && "bg-amber-100 ring-2 ring-amber-400",
+                "transition-all duration-150 hover:bg-sky-50 active:scale-[0.99]",
+                "focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500",
+                active && "bg-[#FFF6D6] ring-2 ring-[#FFC800]",
                 entry.level === 2 && "ml-5",
                 entry.level === 3 && "ml-9",
               )}
@@ -588,7 +588,7 @@ function KidsModal({
         aria-label={title}
         tabIndex={-1}
         className={cn(
-          "relative grid max-h-[min(80vh,42rem)] w-full gap-4 overflow-hidden rounded-[2rem] bg-amber-50 p-5 text-slate-900 shadow-2xl ring-2 ring-white",
+          "relative grid max-h-[min(80vh,42rem)] w-full gap-4 overflow-hidden rounded-[2rem] bg-white p-5 text-slate-900 shadow-2xl ring-2 ring-sky-100",
           wide ? "max-w-2xl" : "max-w-lg",
           "transition-all duration-200 ease-out",
           !reduceMotion && "motion-safe:animate-kidsBuddyPop",
@@ -653,12 +653,12 @@ function KidsResumeChip() {
   return (
     <div
       data-testid="kids-resume-chip"
-      className="mb-1 flex max-w-[min(22rem,calc(100vw-2rem))] items-center gap-2 rounded-full bg-white px-2 py-2 shadow-xl ring-2 ring-amber-200"
+      className="mb-1 flex max-w-[min(22rem,calc(100vw-2rem))] items-center gap-2 rounded-full bg-white px-2 py-2 shadow-xl ring-2 ring-sky-100"
     >
       <button
         type="button"
         onClick={() => navigateToHref(initialLastSpot.href)}
-        className="min-h-11 rounded-full bg-amber-100 px-4 text-sm font-extrabold text-slate-950 transition-all duration-150 hover:bg-amber-200 active:scale-[0.98] focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-400"
+        className="min-h-11 rounded-full bg-[#FFE58A] px-4 text-sm font-extrabold text-slate-950 transition-all duration-150 hover:bg-[#FFDD66] active:scale-[0.98] focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
       >
         {tk("kids-resume-chip", "Take me back to where I was")}
       </button>
@@ -666,7 +666,7 @@ function KidsResumeChip() {
         type="button"
         aria-label={tk("kids-resume-dismiss", "Dismiss")}
         onClick={() => setDismissed(true)}
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-600 transition-all duration-150 hover:bg-slate-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-400"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-slate-600 transition-all duration-150 hover:bg-slate-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
       >
         <X className="h-5 w-5" aria-hidden="true" />
       </button>
@@ -686,7 +686,7 @@ function KidsDialogClose({
       type="button"
       aria-label={label}
       onClick={onClick}
-      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-slate-700 shadow-sm ring-1 ring-slate-200 transition-all duration-150 hover:bg-amber-100 focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-400"
+      className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white text-slate-700 shadow-sm ring-2 ring-sky-100 transition-all duration-150 hover:bg-sky-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500"
     >
       <X className="h-6 w-6" aria-hidden="true" />
     </button>

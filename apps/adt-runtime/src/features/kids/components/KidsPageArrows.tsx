@@ -28,7 +28,7 @@ export function KidsPageArrows() {
           reduceMotion={reduceMotion}
           onClick={() => navigateToHref(prev.href)}
         >
-          <ChevronLeft className="h-10 w-10" aria-hidden="true" />
+          <ChevronLeft className="h-9 w-9" strokeWidth={3} aria-hidden="true" />
         </KidsArrow>
       ) : null}
       {next ? (
@@ -38,7 +38,7 @@ export function KidsPageArrows() {
           reduceMotion={reduceMotion}
           onClick={() => navigateToHref(next.href)}
         >
-          <ChevronRight className="h-10 w-10" aria-hidden="true" />
+          <ChevronRight className="h-9 w-9" strokeWidth={3} aria-hidden="true" />
         </KidsArrow>
       ) : null}
     </>
@@ -65,14 +65,13 @@ function KidsArrow({
       data-testid={`kids-page-arrow-${side}`}
       onClick={onClick}
       className={cn(
-        "pointer-events-auto fixed top-1/2 z-[58] flex h-20 w-16 -translate-y-1/2 items-center justify-center",
-        "bg-white/95 text-slate-900 shadow-xl ring-2 ring-amber-200/80 backdrop-blur",
-        "transition-all duration-200 ease-out active:scale-95",
-        "hover:bg-amber-50 focus:outline-none focus-visible:ring-4 focus-visible:ring-amber-400",
-        side === "left"
-          ? "left-0 rounded-r-[2rem] pl-1"
-          : "right-0 rounded-l-[2rem] pr-1",
-        !reduceMotion && "hover:w-20",
+        "pointer-events-auto fixed top-1/2 z-[58] flex h-16 w-16 -translate-y-1/2 items-center justify-center rounded-full",
+        "bg-sky-500 text-white shadow-[0_5px_0_#075985] ring-4 ring-white",
+        "transition-[transform,box-shadow,background-color] duration-200 ease-out",
+        "hover:bg-sky-400 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFC800]",
+        side === "left" ? "left-3" : "right-3",
+        !reduceMotion &&
+          "hover:translate-y-[calc(-50%-1px)] hover:shadow-[0_6px_0_#075985] active:translate-y-[calc(-50%+4px)] active:shadow-[0_1px_0_#075985]",
       )}
     >
       {children}
