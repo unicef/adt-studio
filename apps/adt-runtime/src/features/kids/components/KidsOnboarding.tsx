@@ -232,7 +232,7 @@ export function KidsOnboarding() {
           <div className="flex w-full flex-1 flex-col items-center justify-center gap-7">
             <div
               key={`${step}-hero`}
-              className={cn(!reduceMotion && "motion-safe:animate-kidsBuddyPop")}
+              className={cn("flex w-full justify-center", !reduceMotion && "motion-safe:animate-kidsBuddyPop")}
             >
               {step === "pick" ? null : showBuddy ? (
                 <div
@@ -440,7 +440,7 @@ function NeutralOnboardingVisual({
         style={animateWelcome ? { animationDelay: "60ms" } : undefined}
       >
         <span
-          className={cn("text-7xl", !reduceMotion && "kids-buddy-idle")}
+          className="text-7xl"
           style={animateWelcome ? { animationDelay: "480ms" } : undefined}
           aria-hidden="true"
         >
