@@ -68,6 +68,18 @@ export function KidsChrome() {
           <KidsPageArrows />
           <KidsSpeechBubble />
           <KidsBuddy />
+          {/* TEMP — quick way to replay onboarding while building. Dev/preview
+              only (never in a shipped book). Remove before shipping. */}
+          {isKidsDevReviewEnv() ? (
+            <button
+              type="button"
+              data-testid="kids-redo-onboarding"
+              onClick={() => setKidsOnboardingDone(false)}
+              className="pointer-events-auto fixed left-4 top-4 z-[60] rounded-full bg-slate-900/80 px-4 py-2 text-sm font-bold text-white shadow-lg ring-1 ring-white/20 transition hover:bg-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            >
+              ↻ Redo intro
+            </button>
+          ) : null}
         </>
       ) : null}
     </div>

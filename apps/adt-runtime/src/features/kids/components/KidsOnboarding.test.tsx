@@ -92,17 +92,21 @@ function renderWithStore(ui: ReactNode, store = createKidsStore()) {
 }
 
 function goToBuddyPage() {
-  fireEvent.click(screen.getByText("Let's go!"))
+  goToNamePage()
+  fireEvent.click(screen.getByText("That's me!"))
 }
 
 function goToNamePage() {
+  fireEvent.click(screen.getByText("Let's go!"))
+}
+
+function goToPickPage() {
   goToBuddyPage()
-  fireEvent.click(screen.getByText("This is my buddy"))
 }
 
 function goToReadingModePage() {
-  goToNamePage()
-  fireEvent.click(screen.getByText("That's me!"))
+  goToPickPage()
+  fireEvent.click(screen.getByText("This is my buddy"))
 }
 
 function goToFeaturePagesPage() {
@@ -125,23 +129,46 @@ describe("KidsOnboarding", () => {
     expect(screen.queryByTestId("kids-buddy-fab")).not.toBeNull()
   })
 
-  it("steps through all 7 onboarding pages, writes the chosen buddy, and shows it in the reading view", () => {
+  it("keeps character art hidden until the pick page, then shows all 5 choices", () => {
+    renderWithStore(<KidsChrome />)
+
+    expect(screen.getByTestId("kids-onboarding-neutral-visual")).not.toBeNull()
+    expect(screen.queryByTestId("kids-onboarding-character-dino")).toBeNull()
+    expect(screen.queryByLabelText("Rex")).toBeNull()
+
+    fireEvent.click(screen.getByText("Let's go!"))
+
+    expect(screen.getByText("What should I call you?")).not.toBeNull()
+    expect(screen.getByTestId("kids-onboarding-neutral-visual")).not.toBeNull()
+    expect(screen.queryByTestId("kids-onboarding-character-dino")).toBeNull()
+    expect(screen.queryByLabelText("Rex")).toBeNull()
+
+    fireEvent.click(screen.getByText("That's me!"))
+
+    expect(screen.getByText("Pick a reading buddy")).not.toBeNull()
+    expect(screen.queryByTestId("kids-onboarding-neutral-visual")).toBeNull()
+    expect(screen.getByTestId("kids-onboarding-character-dino")).not.toBeNull()
+    expect(screen.getByTestId("kids-onboarding-character-robot")).not.toBeNull()
+    expect(screen.getByTestId("kids-onboarding-character-bunny")).not.toBeNull()
+    expect(screen.getByTestId("kids-onboarding-character-cat")).not.toBeNull()
+    expect(screen.getByTestId("kids-onboarding-character-alien")).not.toBeNull()
+  })
+
+  it("steps through all 8 onboarding pages, writes the chosen buddy, and shows it in the reading view", () => {
     const store = createKidsStore()
     renderWithStore(<KidsChrome />, store)
 
     fireEvent.click(screen.getByText("Let's go!"))
-    fireEvent.click(screen.getByTestId("kids-onboarding-character-cat"))
-    fireEvent.click(screen.getByTestId("kids-onboarding-palette-rose"))
-    fireEvent.click(screen.getByTestId("kids-onboarding-background-mint"))
-    fireEvent.change(screen.getByTestId("kids-onboarding-buddy-name"), {
-      target: { value: "Nova" },
-    })
-    fireEvent.click(screen.getByText("This is my buddy"))
-
     fireEvent.change(screen.getByTestId("kids-onboarding-player-name"), {
       target: { value: "Mina" },
     })
     fireEvent.click(screen.getByText("That's me!"))
+
+    fireEvent.click(screen.getByTestId("kids-onboarding-character-cat"))
+    fireEvent.change(screen.getByTestId("kids-onboarding-buddy-name"), {
+      target: { value: "Nova" },
+    })
+    fireEvent.click(screen.getByText("This is my buddy"))
 
     expect(store.get(kidsPlayerNameAtom)).toBe("Mina")
 
@@ -151,13 +178,15 @@ describe("KidsOnboarding", () => {
     fireEvent.click(screen.getByText("Got it"))
     expect(screen.getByText("Ask me anytime")).not.toBeNull()
     fireEvent.click(screen.getByText("Got it"))
+    expect(screen.getByText("Here's what I can do")).not.toBeNull()
+    fireEvent.click(screen.getByText("Got it"))
     expect(screen.getByText("Ready to read, Mina?")).not.toBeNull()
     fireEvent.click(screen.getByTestId("kids-onboarding-finish"))
 
     expect(store.get(kidsBuddyAtom)).toEqual({
       character: "cat",
-      palette: "rose",
-      backgroundColor: "#D1FAE5",
+      palette: "classic",
+      backgroundColor: "#FEF3C7",
       name: "Nova",
     })
     expect(store.get(kidsOnboardingDoneAtom)).toBe(true)
@@ -165,9 +194,9 @@ describe("KidsOnboarding", () => {
 
     const fab = screen.getByTestId("kids-buddy-fab")
     expect(fab.getAttribute("aria-label")).toBe("Talk to Nova")
-    expect(fab.getAttribute("style")).toContain("background-color: rgb(209, 250, 229)")
+    expect(fab.getAttribute("style")).toContain("background-color: rgb(254, 243, 199)")
     expect(screen.getByLabelText("Nova").parentElement?.getAttribute("style")).toContain(
-      "--buddy-primary: #EF9FB6",
+      "--buddy-primary: #9AA2C7",
     )
   })
 
@@ -178,12 +207,12 @@ describe("KidsOnboarding", () => {
 
     fireEvent.keyDown(document.body, { key: "ArrowRight" })
 
-    expect(screen.getByText("Pick a reading buddy")).not.toBeNull()
+    expect(screen.getByText("What should I call you?")).not.toBeNull()
     expect(downstreamPageNav).not.toHaveBeenCalled()
 
     fireEvent.keyDown(document.body, { key: "ArrowLeft" })
 
-    expect(screen.getByText("Hi! I'm your reading buddy.")).not.toBeNull()
+    expect(screen.getByText("Hi! Welcome to your reading adventure.")).not.toBeNull()
 
     document.removeEventListener("keydown", downstreamPageNav)
   })
@@ -196,11 +225,11 @@ describe("KidsOnboarding", () => {
     input.focus()
     fireEvent.keyDown(input, { key: "ArrowRight" })
 
-    expect(screen.getByText("What is your name?")).not.toBeNull()
+    expect(screen.getByText("What should I call you?")).not.toBeNull()
 
     fireEvent.keyDown(input, { key: "Enter" })
 
-    expect(screen.getByText("How do you want to read?")).not.toBeNull()
+    expect(screen.getByText("Pick a reading buddy")).not.toBeNull()
   })
 
   it("sets read-aloud mode from the reading mode page", () => {
@@ -218,12 +247,36 @@ describe("KidsOnboarding", () => {
       featureOverrides: { readAloud: false },
     })
     renderWithStore(<KidsChrome />, store)
-    goToNamePage()
-
-    fireEvent.click(screen.getByText("That's me!"))
+    goToPickPage()
+    fireEvent.click(screen.getByText("This is my buddy"))
 
     expect(screen.queryByText("How do you want to read?")).toBeNull()
     expect(screen.getByText("Turn the pages")).not.toBeNull()
+  })
+
+  it("lists only enabled abilities on the abilities page", () => {
+    const store = createKidsStore({
+      featureOverrides: {
+        readAloud: false,
+        easyRead: false,
+        eli5: false,
+        glossary: true,
+      },
+    })
+    renderWithStore(<KidsChrome />, store)
+
+    goToPickPage()
+    fireEvent.click(screen.getByText("This is my buddy"))
+    fireEvent.click(screen.getByText("Got it"))
+    fireEvent.click(screen.getByText("Got it"))
+
+    expect(screen.getByText("Here's what I can do")).not.toBeNull()
+    expect(screen.getByText("Word helper")).not.toBeNull()
+    expect(screen.getByText("Story map")).not.toBeNull()
+    expect(screen.queryByText("Read to me")).toBeNull()
+    expect(screen.queryByText("Reading speed")).toBeNull()
+    expect(screen.queryByText("Easy read")).toBeNull()
+    expect(screen.queryByText("Explain it")).toBeNull()
   })
 
   it("renders feature page keycap hints", () => {
