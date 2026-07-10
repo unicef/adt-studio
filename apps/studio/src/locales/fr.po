@@ -1149,6 +1149,9 @@ msgstr "Anthropic"
 msgid "Anthropic API Key"
 msgstr "Anthropic Clé API"
 
+msgid "Anthropic does not offer a text-to-speech API. Add an OpenAI, Gemini, or Azure key to generate audio narration."
+msgstr "Anthropic ne propose pas d'API de synthèse vocale. Ajoutez une clé OpenAI, Gemini ou Azure pour générer la narration audio."
+
 msgid "Anthropic is available for text models, but not speech synthesis."
 msgstr "Anthropic est disponible pour les modèles de texte, mais pas pour la synthèse vocale."
 
