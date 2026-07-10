@@ -225,47 +225,72 @@ export function KidsOnboarding() {
           data-testid="kids-onboarding-step"
           className={cn(
             "mx-auto flex w-full max-w-[40rem] flex-1 flex-col items-center justify-between gap-6 py-6 text-center",
-            reduceMotion
-              ? "transition-none"
-              : navigationDirection === "forward"
-                ? "motion-safe:animate-kidsSlideFromRight"
-                : "motion-safe:animate-kidsSlideFromLeft",
+            reduceMotion ? "transition-none" : "motion-safe:animate-kidsBuddyPop",
           )}
         >
           <div className="flex w-full flex-1 flex-col items-center justify-center gap-7">
-            {showBuddy ? (
-              <div
-                className="grid aspect-square w-full max-w-56 place-items-center rounded-full bg-white/70"
-                style={
-                  {
-                    ...buddyPaletteVars(palette),
-                  } as CSSProperties
-                }
-              >
-                <span
-                  key={character.id}
-                  className={cn(
-                    "grid w-[82%] place-items-center",
-                    !reduceMotion && "animate-kidsWiggle",
-                  )}
+            <div
+              key={`${step}-hero`}
+              className={cn(!reduceMotion && "motion-safe:animate-kidsBuddyPop")}
+            >
+              {showBuddy ? (
+                <div
+                  className="grid aspect-square w-full max-w-56 place-items-center rounded-full bg-white/70"
+                  style={
+                    {
+                      ...buddyPaletteVars(palette),
+                    } as CSSProperties
+                  }
                 >
-                  <KidsBuddyArt
-                    art={character.art}
-                    palette={palette}
-                    title={buddyName}
-                    className={cn("block w-full", !reduceMotion && "kids-buddy-idle")}
-                  />
-                </span>
-              </div>
-            ) : step === "start" ? null : (
-              <NeutralOnboardingVisual reduceMotion={reduceMotion} />
-            )}
+                  <span
+                    key={character.id}
+                    className={cn(
+                      "grid w-[82%] place-items-center",
+                      !reduceMotion && "animate-kidsWiggle",
+                    )}
+                  >
+                    <KidsBuddyArt
+                      art={character.art}
+                      palette={palette}
+                      title={buddyName}
+                      className={cn(
+                        "block w-full",
+                        !reduceMotion && "kids-buddy-idle",
+                      )}
+                    />
+                  </span>
+                </div>
+              ) : step === "start" ? (
+                <StartHero
+                  buddyName={buddyName}
+                  character={character}
+                  palette={palette}
+                  reduceMotion={reduceMotion}
+                />
+              ) : (
+                <NeutralOnboardingVisual
+                  reduceMotion={reduceMotion}
+                  isWelcome={step === "welcome"}
+                />
+              )}
+            </div>
 
-            <div className="flex w-full flex-col items-center justify-center gap-5">
+            <div
+              key={`${step}-text`}
+              className={cn(
+                "flex w-full flex-col items-center justify-center gap-5",
+                !reduceMotion &&
+                  (navigationDirection === "forward"
+                    ? "motion-safe:animate-kidsSlideFromRight"
+                    : "motion-safe:animate-kidsSlideFromLeft"),
+              )}
+              style={!reduceMotion ? { animationDelay: "60ms" } : undefined}
+            >
               {step === "welcome" ? (
                 <WelcomeStep
                   headingRef={headingRef}
                   stepPosition={stepPosition}
+                  reduceMotion={reduceMotion}
                 />
               ) : null}
               {step === "pick" ? (
@@ -316,25 +341,22 @@ export function KidsOnboarding() {
                 />
               ) : null}
               {step === "start" ? (
-                <StartStep
+                <StartStepText
                   headingRef={headingRef}
                   stepPosition={stepPosition}
                   playerName={playerName}
                   buddyName={buddyName}
-                  character={character}
-                  palette={palette}
-                  reduceMotion={reduceMotion}
                 />
               ) : null}
-            </div>
-          </div>
 
-          <div className="flex min-h-20 w-full shrink-0 items-start justify-center pb-3 pt-1">
-            <OnboardingPrimaryAction
-              step={step}
-              onNext={goNext}
-              onFinish={finish}
-            />
+              <div className="flex min-h-20 w-full shrink-0 items-start justify-center pb-3 pt-1">
+                <OnboardingPrimaryAction
+                  step={step}
+                  onNext={goNext}
+                  onFinish={finish}
+                />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -388,7 +410,14 @@ function Cloud({
   )
 }
 
-function NeutralOnboardingVisual({ reduceMotion }: { reduceMotion: boolean }) {
+function NeutralOnboardingVisual({
+  reduceMotion,
+  isWelcome = false,
+}: {
+  reduceMotion: boolean
+  isWelcome?: boolean
+}) {
+  const animateWelcome = isWelcome && !reduceMotion
   return (
     <div
       data-testid="kids-onboarding-neutral-visual"
@@ -397,23 +426,39 @@ function NeutralOnboardingVisual({ reduceMotion }: { reduceMotion: boolean }) {
       <div
         className={cn(
           "absolute h-[70%] w-[70%] rounded-full bg-sky-200/60 blur-2xl",
-          !reduceMotion && "motion-safe:animate-pulse",
+          !reduceMotion && !isWelcome && "motion-safe:animate-pulse",
+          animateWelcome && "motion-safe:animate-kidsBounceIn",
         )}
         aria-hidden="true"
       />
-      <div className="relative grid h-[62%] w-[62%] place-items-center rounded-[2rem] bg-white shadow-[0_6px_0_#C4DFF2]">
+      <div
+        className={cn(
+          "relative grid h-[62%] w-[62%] place-items-center rounded-[2rem] bg-white shadow-[0_6px_0_#C4DFF2]",
+          animateWelcome && "motion-safe:animate-kidsBounceIn",
+        )}
+        style={animateWelcome ? { animationDelay: "60ms" } : undefined}
+      >
         <span
           className={cn("text-7xl", !reduceMotion && "kids-buddy-idle")}
+          style={animateWelcome ? { animationDelay: "480ms" } : undefined}
           aria-hidden="true"
         >
           👋
         </span>
         <Sparkles
-          className="absolute right-4 top-4 h-7 w-7 text-[#FFB700]"
+          className={cn(
+            "absolute right-4 top-4 h-7 w-7 text-[#FFB700]",
+            animateWelcome && "motion-safe:animate-kidsSparkle",
+          )}
+          style={animateWelcome ? { animationDelay: "240ms" } : undefined}
           aria-hidden="true"
         />
         <Sparkles
-          className="absolute bottom-4 left-4 h-6 w-6 text-sky-400"
+          className={cn(
+            "absolute bottom-4 left-4 h-6 w-6 text-sky-400",
+            animateWelcome && "motion-safe:animate-kidsSparkle",
+          )}
+          style={animateWelcome ? { animationDelay: "340ms" } : undefined}
           aria-hidden="true"
         />
       </div>
@@ -436,11 +481,13 @@ function StepTitle({
   stepPosition,
   children,
   className,
+  style,
 }: {
   headingRef: RefObject<HTMLHeadingElement | null>
   stepPosition: string
   children: ReactNode
   className?: string
+  style?: CSSProperties
 }) {
   return (
     <h1
@@ -448,6 +495,7 @@ function StepTitle({
       ref={headingRef}
       tabIndex={-1}
       className={cn(STEP_TITLE_CLASS, className)}
+      style={style}
     >
       <span className="sr-only">{stepPosition}</span>
       {children}
@@ -458,9 +506,11 @@ function StepTitle({
 function WelcomeStep({
   headingRef,
   stepPosition,
+  reduceMotion,
 }: {
   headingRef: RefObject<HTMLHeadingElement | null>
   stepPosition: string
+  reduceMotion: boolean
 }) {
   const { tk } = useKidsTranslation()
   return (
@@ -469,21 +519,37 @@ function WelcomeStep({
         <StepTitle
           headingRef={headingRef}
           stepPosition={stepPosition}
-          className="max-w-2xl"
+          className={cn(
+            "max-w-2xl",
+            !reduceMotion && "motion-safe:animate-kidsFadeUp",
+          )}
+          style={!reduceMotion ? { animationDelay: "160ms" } : undefined}
         >
           {tk(
             "kids-onboarding-welcome-title",
             "Hi! Welcome to your reading adventure.",
           )}
         </StepTitle>
-        <p className={STEP_COPY_CLASS}>
+        <p
+          className={cn(
+            STEP_COPY_CLASS,
+            !reduceMotion && "motion-safe:animate-kidsFadeUp",
+          )}
+          style={!reduceMotion ? { animationDelay: "240ms" } : undefined}
+        >
           {tk(
             "kids-onboarding-welcome-copy",
             "I'm going to be your reading buddy - first, let's get to know you.",
           )}
         </p>
       </div>
-      <p className="flex flex-wrap items-center justify-center gap-3 text-base font-semibold text-slate-600">
+      <p
+        className={cn(
+          "flex flex-wrap items-center justify-center gap-3 text-base font-semibold text-slate-600",
+          !reduceMotion && "motion-safe:animate-kidsFadeUp",
+        )}
+        style={!reduceMotion ? { animationDelay: "340ms" } : undefined}
+      >
         <span>{tk("kids-onboarding-arrow-hint", "Press")}</span>
         <Keycap>→</Keycap>
         <span>{tk("kids-onboarding-arrow-hint-end", "to continue")}</span>
@@ -879,65 +945,71 @@ function FeatureAbilitiesStep({
   )
 }
 
-function StartStep({
-  headingRef,
-  stepPosition,
-  playerName,
+function StartHero({
   buddyName,
   character,
   palette,
   reduceMotion,
 }: {
-  headingRef: RefObject<HTMLHeadingElement | null>
-  stepPosition: string
-  playerName: string
   buddyName: string
   character: KidsCharacter
   palette: BuddyPalette
   reduceMotion: boolean
 }) {
+  return (
+    <div className="relative grid aspect-square w-full max-w-64 place-items-center">
+      <div
+        className="absolute inset-[12%] rounded-full bg-[radial-gradient(circle,rgba(255,200,0,0.24)_0%,rgba(255,255,255,0)_68%)]"
+        aria-hidden="true"
+      />
+      <div
+        className="relative z-10 grid aspect-square w-[74%] place-items-center rounded-full bg-white/90 shadow-[0_8px_0_#C4DFF2] ring-4 ring-white"
+        style={buddyPaletteVars(palette) as CSSProperties}
+      >
+        <KidsBuddyArt
+          art={character.art}
+          palette={palette}
+          title={buddyName}
+          className={cn(
+            "block w-[88%]",
+            !reduceMotion && "animate-kidsWiggle",
+          )}
+        />
+      </div>
+      <div className="absolute bottom-1 z-20 rounded-full bg-[#FFC800] px-5 py-2 text-lg font-black text-slate-950 shadow-[0_4px_0_#DFA000] ring-4 ring-white">
+        {buddyName}
+      </div>
+    </div>
+  )
+}
+
+function StartStepText({
+  headingRef,
+  stepPosition,
+  playerName,
+  buddyName,
+}: {
+  headingRef: RefObject<HTMLHeadingElement | null>
+  stepPosition: string
+  playerName: string
+  buddyName: string
+}) {
   const { tk } = useKidsTranslation()
   const name = playerName || buddyName
   return (
-    <div className="flex w-full flex-col items-center justify-center gap-4">
-      <div className="relative grid aspect-square w-full max-w-64 place-items-center">
-        <div
-          className="absolute inset-[12%] rounded-full bg-[radial-gradient(circle,rgba(255,200,0,0.24)_0%,rgba(255,255,255,0)_68%)]"
-          aria-hidden="true"
-        />
-        <div
-          className="relative z-10 grid aspect-square w-[74%] place-items-center rounded-full bg-white/90 shadow-[0_8px_0_#C4DFF2] ring-4 ring-white"
-          style={buddyPaletteVars(palette) as CSSProperties}
-        >
-          <KidsBuddyArt
-            art={character.art}
-            palette={palette}
-            title={buddyName}
-            className={cn(
-              "block w-[88%]",
-              !reduceMotion && "animate-kidsWiggle",
-            )}
-          />
-        </div>
-        <div className="absolute bottom-1 z-20 rounded-full bg-[#FFC800] px-5 py-2 text-lg font-black text-slate-950 shadow-[0_4px_0_#DFA000] ring-4 ring-white">
-          {buddyName}
-        </div>
-      </div>
-
-      <div className="flex flex-col items-center gap-2">
-        <StepTitle headingRef={headingRef} stepPosition={stepPosition}>
-          {tk("kids-onboarding-start-title", "Ready to read, ${name}?", {
-            name,
-          })}
-        </StepTitle>
-        <p className={STEP_COPY_CLASS}>
-          {tk(
-            "kids-onboarding-start-celebrate",
-            "${buddy} is so excited to read with you!",
-            { buddy: buddyName },
-          )}
-        </p>
-      </div>
+    <div className="flex flex-col items-center gap-2">
+      <StepTitle headingRef={headingRef} stepPosition={stepPosition}>
+        {tk("kids-onboarding-start-title", "Ready to read, ${name}?", {
+          name,
+        })}
+      </StepTitle>
+      <p className={STEP_COPY_CLASS}>
+        {tk(
+          "kids-onboarding-start-celebrate",
+          "${buddy} is so excited to read with you!",
+          { buddy: buddyName },
+        )}
+      </p>
     </div>
   )
 }

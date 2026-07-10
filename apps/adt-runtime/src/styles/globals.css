@@ -235,12 +235,27 @@ span[data-word-index].bg-yellow-300 {
     100% { opacity: 1; transform: translateY(0) scale(1); }
   }
   @keyframes kidsSlideFromRight {
-    0% { opacity: 0; transform: translateX(1.4rem); }
+    0% { opacity: 0; transform: translateX(1.8rem); }
     100% { opacity: 1; transform: translateX(0); }
   }
   @keyframes kidsSlideFromLeft {
-    0% { opacity: 0; transform: translateX(-1.4rem); }
+    0% { opacity: 0; transform: translateX(-1.8rem); }
     100% { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes kidsBounceIn {
+    0% { opacity: 0; transform: scale(0.55) translateY(16px); }
+    55% { opacity: 1; transform: scale(1.08) translateY(-4px); }
+    75% { transform: scale(0.96) translateY(2px); }
+    100% { transform: scale(1) translateY(0); }
+  }
+  @keyframes kidsSparkle {
+    0% { opacity: 0; transform: scale(0) rotate(-20deg); }
+    60% { opacity: 1; transform: scale(1.25) rotate(10deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+  }
+  @keyframes kidsFadeUp {
+    0% { opacity: 0; transform: translateY(0.6rem); }
+    100% { opacity: 1; transform: translateY(0); }
   }
   @keyframes kidsRiseIn {
     0% { opacity: 0; transform: translateY(0.55rem); }
@@ -270,13 +285,22 @@ span[data-word-index].bg-yellow-300 {
     animation: kidsBuddyIdle 3.2s ease-in-out infinite;
   }
   .animate-kidsBuddyPop {
-    animation: kidsBuddyPop 180ms ease-out both;
+    animation: kidsBuddyPop 220ms ease-out both;
   }
   .animate-kidsSlideFromRight {
-    animation: kidsSlideFromRight 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: kidsSlideFromRight 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
   .animate-kidsSlideFromLeft {
-    animation: kidsSlideFromLeft 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation: kidsSlideFromLeft 360ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .animate-kidsBounceIn {
+    animation: kidsBounceIn 480ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .animate-kidsSparkle {
+    animation: kidsSparkle 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .animate-kidsFadeUp {
+    animation: kidsFadeUp 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
   }
   .animate-kidsRiseIn {
     opacity: 0;
