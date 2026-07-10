@@ -20,6 +20,10 @@ import {
 } from "@/features/kids/lib/characters"
 
 export const kidsModeAtom = persistedBoolAtom("kidsMode", false)
+export const kidsOnboardingDoneAtom = persistedBoolAtom(
+  "kidsOnboardingDone",
+  false,
+)
 
 export const kidsModeActiveAtom = atom((get) => {
   const enabled = get(appConfigAtom).features.kidsMode !== false

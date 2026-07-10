@@ -1,0 +1,265 @@
+// @vitest-environment jsdom
+import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import { createStore, Provider } from "jotai"
+import type { ReactNode } from "react"
+import { afterEach, describe, expect, it, vi } from "vitest"
+import { readAloudModeAtom } from "@/features/audio/state/audio.atoms"
+import { SettingsTab } from "@/features/settings/components/SettingsTab"
+import {
+  kidsBuddyAtom,
+  kidsModeAtom,
+  kidsOnboardingDoneAtom,
+  kidsPlayerNameAtom,
+} from "@/features/kids/state/kids.atoms"
+import { translationsAtom } from "@/features/language/state/language.atoms"
+import { appConfigAtom, type AppFeatures } from "@/shared/state/config.atoms"
+import { reduceMotionAtom } from "@/shared/state/ui.atoms"
+import { KidsChrome } from "./KidsChrome"
+
+const audioMock = vi.hoisted(() => ({
+  player: {
+    isPlaying: false,
+    hasItems: true,
+    play: vi.fn(),
+    pause: vi.fn(),
+    togglePlayPause: vi.fn(),
+    playNext: vi.fn(),
+    playPrevious: vi.fn(),
+    stop: vi.fn(),
+    playAtIndex: vi.fn(),
+  },
+}))
+
+vi.mock("@/features/audio/hooks/AudioPlayerContext", () => ({
+  useAudioPlayerContext: () => audioMock.player,
+}))
+
+vi.mock("@/shared/lib/analytics", () => ({
+  trackToggleEvent: vi.fn(),
+}))
+
+afterEach(() => {
+  cleanup()
+  localStorage.clear()
+  sessionStorage.clear()
+  vi.clearAllMocks()
+})
+
+const features: AppFeatures = {
+  readAloud: true,
+  signLanguage: true,
+  easyRead: true,
+  glossary: true,
+  eli5: true,
+  notepad: true,
+  kidsMode: true,
+}
+
+function createKidsStore({
+  kidsMode = true,
+  onboardingDone = false,
+  reduceMotion = false,
+  featureOverrides = {},
+}: {
+  kidsMode?: boolean
+  onboardingDone?: boolean
+  reduceMotion?: boolean
+  featureOverrides?: AppFeatures
+} = {}) {
+  const store = createStore()
+  store.set(appConfigAtom, {
+    languages: { available: ["en"], default: "en" },
+    features: { ...features, ...featureOverrides },
+  })
+  store.set(kidsModeAtom, kidsMode)
+  store.set(kidsOnboardingDoneAtom, onboardingDone)
+  store.set(kidsPlayerNameAtom, "")
+  store.set(kidsBuddyAtom, {
+    character: "dino",
+    palette: "classic",
+    backgroundColor: "#FEF3C7",
+    name: "",
+  })
+  store.set(reduceMotionAtom, reduceMotion)
+  store.set(translationsAtom, {
+    "kids-meet-buddy-again": "Meet your buddy again",
+  })
+  return store
+}
+
+function renderWithStore(ui: ReactNode, store = createKidsStore()) {
+  return render(<Provider store={store}>{ui}</Provider>)
+}
+
+function goToBuddyPage() {
+  fireEvent.click(screen.getByText("Let's go!"))
+}
+
+function goToNamePage() {
+  goToBuddyPage()
+  fireEvent.click(screen.getByText("This is my buddy"))
+}
+
+function goToReadingModePage() {
+  goToNamePage()
+  fireEvent.click(screen.getByText("That's me!"))
+}
+
+function goToFeaturePagesPage() {
+  goToReadingModePage()
+  fireEvent.click(screen.getByText("Keep going"))
+}
+
+describe("KidsOnboarding", () => {
+  it("shows onboarding when kids mode is on and onboarding is not done", () => {
+    renderWithStore(<KidsChrome />)
+
+    expect(screen.queryByTestId("kids-onboarding")).not.toBeNull()
+    expect(screen.queryByTestId("kids-buddy-fab")).toBeNull()
+  })
+
+  it("shows the buddy instead of onboarding when onboarding is done", () => {
+    renderWithStore(<KidsChrome />, createKidsStore({ onboardingDone: true }))
+
+    expect(screen.queryByTestId("kids-onboarding")).toBeNull()
+    expect(screen.queryByTestId("kids-buddy-fab")).not.toBeNull()
+  })
+
+  it("steps through all 7 onboarding pages, writes the chosen buddy, and shows it in the reading view", () => {
+    const store = createKidsStore()
+    renderWithStore(<KidsChrome />, store)
+
+    fireEvent.click(screen.getByText("Let's go!"))
+    fireEvent.click(screen.getByTestId("kids-onboarding-character-cat"))
+    fireEvent.click(screen.getByTestId("kids-onboarding-palette-rose"))
+    fireEvent.click(screen.getByTestId("kids-onboarding-background-mint"))
+    fireEvent.change(screen.getByTestId("kids-onboarding-buddy-name"), {
+      target: { value: "Nova" },
+    })
+    fireEvent.click(screen.getByText("This is my buddy"))
+
+    fireEvent.change(screen.getByTestId("kids-onboarding-player-name"), {
+      target: { value: "Mina" },
+    })
+    fireEvent.click(screen.getByText("That's me!"))
+
+    expect(store.get(kidsPlayerNameAtom)).toBe("Mina")
+
+    expect(screen.getByText("How do you want to read?")).not.toBeNull()
+    fireEvent.click(screen.getByText("Keep going"))
+    expect(screen.getByText("Turn the pages")).not.toBeNull()
+    fireEvent.click(screen.getByText("Got it"))
+    expect(screen.getByText("Ask me anytime")).not.toBeNull()
+    fireEvent.click(screen.getByText("Got it"))
+    expect(screen.getByText("Ready to read, Mina?")).not.toBeNull()
+    fireEvent.click(screen.getByTestId("kids-onboarding-finish"))
+
+    expect(store.get(kidsBuddyAtom)).toEqual({
+      character: "cat",
+      palette: "rose",
+      backgroundColor: "#D1FAE5",
+      name: "Nova",
+    })
+    expect(store.get(kidsOnboardingDoneAtom)).toBe(true)
+    expect(screen.queryByTestId("kids-onboarding")).toBeNull()
+
+    const fab = screen.getByTestId("kids-buddy-fab")
+    expect(fab.getAttribute("aria-label")).toBe("Talk to Nova")
+    expect(fab.getAttribute("style")).toContain("background-color: rgb(209, 250, 229)")
+    expect(screen.getByLabelText("Nova").parentElement?.getAttribute("style")).toContain(
+      "--buddy-primary: #EF9FB6",
+    )
+  })
+
+  it("uses arrow keys for onboarding pages and intercepts them before book navigation", () => {
+    const downstreamPageNav = vi.fn()
+    renderWithStore(<KidsChrome />)
+    document.addEventListener("keydown", downstreamPageNav)
+
+    fireEvent.keyDown(document.body, { key: "ArrowRight" })
+
+    expect(screen.getByText("Pick a reading buddy")).not.toBeNull()
+    expect(downstreamPageNav).not.toHaveBeenCalled()
+
+    fireEvent.keyDown(document.body, { key: "ArrowLeft" })
+
+    expect(screen.getByText("Hi! I'm your reading buddy.")).not.toBeNull()
+
+    document.removeEventListener("keydown", downstreamPageNav)
+  })
+
+  it("does not advance with arrow keys while focus is in the player name input", () => {
+    renderWithStore(<KidsChrome />)
+    goToNamePage()
+
+    const input = screen.getByTestId("kids-onboarding-player-name")
+    input.focus()
+    fireEvent.keyDown(input, { key: "ArrowRight" })
+
+    expect(screen.getByText("What is your name?")).not.toBeNull()
+
+    fireEvent.keyDown(input, { key: "Enter" })
+
+    expect(screen.getByText("How do you want to read?")).not.toBeNull()
+  })
+
+  it("sets read-aloud mode from the reading mode page", () => {
+    const store = createKidsStore()
+    renderWithStore(<KidsChrome />, store)
+    goToReadingModePage()
+
+    fireEvent.click(screen.getByText("Read it to me"))
+
+    expect(store.get(readAloudModeAtom)).toBe(true)
+  })
+
+  it("skips the reading mode page when read aloud is disabled", () => {
+    const store = createKidsStore({
+      featureOverrides: { readAloud: false },
+    })
+    renderWithStore(<KidsChrome />, store)
+    goToNamePage()
+
+    fireEvent.click(screen.getByText("That's me!"))
+
+    expect(screen.queryByText("How do you want to read?")).toBeNull()
+    expect(screen.getByText("Turn the pages")).not.toBeNull()
+  })
+
+  it("renders feature page keycap hints", () => {
+    renderWithStore(<KidsChrome />)
+
+    goToFeaturePagesPage()
+
+    expect(screen.getByText("←")).not.toBeNull()
+    expect(screen.getByText("→")).not.toBeNull()
+
+    fireEvent.click(screen.getByText("Got it"))
+
+    expect(screen.getByText("L")).not.toBeNull()
+  })
+
+  it("shows progress dots without step counter text", () => {
+    renderWithStore(<KidsChrome />)
+
+    expect(screen.queryByText(/Step 1 of 7/)).toBeNull()
+    expect(screen.getByTestId("kids-onboarding-progress-dots")).not.toBeNull()
+  })
+
+  it("keeps step animation classes off when reduce motion is enabled", () => {
+    renderWithStore(<KidsChrome />, createKidsStore({ reduceMotion: true }))
+
+    const step = screen.getByTestId("kids-onboarding-step")
+    expect(step.className).toContain("transition-none")
+    expect(step.className).not.toContain("animate-kidsBuddyPop")
+  })
+
+  it("lets Settings replay onboarding when kids mode is enabled", () => {
+    const store = createKidsStore({ onboardingDone: true })
+    renderWithStore(<SettingsTab />, store)
+
+    fireEvent.click(screen.getByText("Meet your buddy again"))
+
+    expect(store.get(kidsOnboardingDoneAtom)).toBe(false)
+  })
+})

@@ -14,6 +14,7 @@ import {
   kidsBuddyAtom,
   kidsLastSpotAtom,
   kidsModeAtom,
+  kidsOnboardingDoneAtom,
   kidsPlayerNameAtom,
 } from "@/features/kids/state/kids.atoms"
 import {
@@ -103,6 +104,7 @@ function createKidsStore({
     features,
   })
   store.set(kidsModeAtom, kidsMode)
+  store.set(kidsOnboardingDoneAtom, true)
   store.set(kidsPlayerNameAtom, playerName)
   store.set(reduceMotionAtom, reduceMotion)
   store.set(kidsBuddyAtom, {

@@ -1,4 +1,4 @@
-import { useAtom, useAtomValue } from "jotai";
+import { useAtom, useAtomValue, useSetAtom } from "jotai";
 import { ToggleRow } from "@/features/settings/components/ToggleRow";
 import { SegmentedRow } from "@/features/settings/components/SegmentedRow";
 import { SettingsSection } from "@/features/settings/components/SettingsSection";
@@ -22,7 +22,10 @@ import {
 } from "@/shared/state/ui.atoms";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
 import { trackToggleEvent } from "@/shared/lib/analytics";
-import { kidsModeAtom } from "@/features/kids/state/kids.atoms";
+import {
+  kidsModeAtom,
+  kidsOnboardingDoneAtom,
+} from "@/features/kids/state/kids.atoms";
 
 export function SettingsTab() {
   const { t } = useTranslation();
@@ -44,6 +47,8 @@ export function SettingsTab() {
   const [reduceMotion, setReduceMotion] = useAtom(reduceMotionAtom);
   const [theme, setTheme] = useAtom(themeAtom);
   const [kidsMode, setKidsMode] = useAtom(kidsModeAtom);
+  const setKidsOnboardingDone = useSetAtom(kidsOnboardingDoneAtom);
+  const meetBuddyAgainText = t("kids-meet-buddy-again");
 
   const wrap =
     (name: string, setter: (v: boolean) => void) => (next: boolean) => {
@@ -178,6 +183,19 @@ export function SettingsTab() {
               setKidsMode(next);
             }}
           />
+          {kidsMode ? (
+            <div className="border-t border-border py-3">
+              <button
+                type="button"
+                onClick={() => setKidsOnboardingDone(false)}
+                className="min-h-11 w-full rounded-lg border border-border bg-background px-4 py-2 text-left text-base font-semibold text-foreground transition hover:bg-accent hover:text-accent-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              >
+                {meetBuddyAgainText === "kids-meet-buddy-again"
+                  ? "Meet your buddy again"
+                  : meetBuddyAgainText}
+              </button>
+            </div>
+          ) : null}
         </SettingsSection>
       ) : null}
 
