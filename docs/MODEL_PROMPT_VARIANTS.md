@@ -114,6 +114,175 @@ If no model-specific prompt exists, the base prompt is used.
 - Do not create family-level prompts such as `__gpt` or `__gemini`. Variants are
   per exact model id.
 
+## Liquid Runtime Contract
+
+Every prompt variant is rendered by `packages/llm/src/prompt.ts` with Liquid.
+The prompt file must remain a valid `.liquid` template and may use only the
+runtime context supplied by the pipeline step that calls it.
+
+ADT Studio supports these prompt-specific tags:
+
+```liquid
+{% chat role: "system" %}
+System instructions.
+{% endchat %}
+
+{% chat role: "user" %}
+Prompt body with {{ variables }}.
+{% image page_image_base64 %}
+{% endchat %}
+```
+
+Rules:
+
+- Keep `{% chat %}` message structure valid. Roles are `system`, `user`, and
+  `assistant`.
+- Keep `{% image <base64-variable> %}` tags for multimodal inputs. Do not
+  replace them with raw `data:image/...` strings.
+- Keep `{% include "_render_node", nodes: nodes, depth: 0 %}` in render and
+  activity prompts unless the variant intentionally rewrites equivalent node
+  serialization and still preserves the same input/output contract.
+- Do not rename Liquid variables. If a model needs clearer instructions, add
+  prose around the same variables.
+- Treat `openai:gpt-5.4` and bare `gpt-5.4` as the base/default prompt model;
+  they do not produce a model folder.
+- Bare model ids are canonicalized as OpenAI model ids. For example, `gpt-5.5`
+  resolves to `openai:gpt-5.5` and folder `openai_gpt_5_5`.
+
+### Common Object Shapes
+
+These shapes are used repeatedly. Individual prompts receive only the variables
+listed in the prompt variable table below.
+
+| Variable/object | Meaning |
+| --- | --- |
+| `pages[]` | Source pages used as context. Usually includes `pageNumber`, `text`, and sometimes `imageBase64`. |
+| `page` | Current page for page-level work. Includes `pageNumber`, `text`, and `imageBase64`. |
+| `page_image_base64` | Base64 image for the full source page or screenshot under review. Used with `{% image page_image_base64 %}`. |
+| `images[]` | Extracted images available to the prompt. Image field spelling depends on the step: extraction/caption prompts use `imageId` and `imageBase64`; sectioning/render prompts use `image_id` and `image_base64`. Preserve the spelling used by the base prompt. |
+| `structure_types[]` | Allowed content tree container types. Each entry has at least `key` and `description`. |
+| `role_types[]` | Allowed leaf/text roles. Each entry has at least `key` and `description`. |
+| `section_types[]` | Allowed top-level section types. Each entry has at least `key` and `description`. |
+| `nodes` | Content tree nodes for a section. Passed to `_render_node` in render/activity prompts. |
+| `leaf_texts[]` | Flat list of text leaves from the content tree. Used by answer extraction and visual review. |
+| `viewports[]` | Responsive viewport definitions. Entries include `label`, `width`, and `tailwind_prefix`. |
+| `book_fonts[]` | Font assignment context. Entries include `family`, `role`, and optional `category`/`usage_notes`. |
+| `styleguide` | Styleguide text/JSON-like guidance for HTML rendering. May be an empty string. |
+| `user_instructions` | User-provided extra instructions for captioning/glossary/rendering. May be an empty string. |
+| `language` / `language_code` | Human language name and locale/code for generated output. |
+| `source_language` / `target_language` | Translation source/target human language names. |
+| `source_language_code` / `target_language_code` | Translation source/target locale codes. |
+
+## Prompt Variables
+
+Use this table when creating variants from zero. A model-specific prompt may use
+fewer variables than listed only if the base prompt also does; it must not
+introduce new required variables without a matching pipeline code change.
+
+| Prompt | Variables supplied by the runtime |
+| --- | --- |
+| `metadata_extraction` | `pages`, `pages[].pageNumber`, `pages[].text`, `pages[].imageBase64` |
+| `image_meaningfulness` | `page_image_base64`, `images`, `images[].imageId`, `images[].imageBase64`, `images[].width`, `images[].height` |
+| `image_cropping` | `page_image_base64`, `images`, `images[].imageId`, `images[].imageBase64`, `images[].width`, `images[].height` |
+| `image_segmentation` | `page_image_base64`, `images`, `images[].imageId`, `images[].imageBase64`, `images[].width`, `images[].height` |
+| `page_sectioning` | `page`, `page.pageNumber`, `page.text`, `page.imageBase64`, `images`, `images[].image_id`, `images[].imageBase64`, `structure_types`, `role_types`, `section_types`, `mode` |
+| `page_sectioning_refinement` | `page`, `page.pageNumber`, `page.text`, `page.imageBase64`, `images`, `structure_types`, `role_types`, `section_types`, `mode`, `max_refinements`, `iteration`, `prior_notes`, `candidate`, `candidate.reasoning`, `candidate.sections_json` |
+| `image_captioning` | `page_image_base64`, `images`, `images[].imageId`, `images[].imageBase64`, `language`, `language_code`, `book_summary`, `user_instructions`, `grade_level` |
+| `translation` | `source_language`, `source_language_code`, `target_language`, `target_language_code`, `texts`, `texts[].index`, `texts[].text` |
+| `image_translation` | No Liquid variables in the current root prompt. The API passes image context to the image model separately. |
+| `easy_read` | `language`, `language_code`, `section_text`, `section_type`, `texts`, `texts[].index`, `texts[].text` |
+| `glossary` | `language`, `language_code`, `pages`, `amount`, `user_instructions`, `seed_terms`, `excluded_words` |
+| `glossary_one` | `language`, `language_code`, `word`, `context`, `candidate_variations` |
+| `book_summary` | `pages`, `pages[].pageNumber`, `pages[].text`, `output_language`, `output_language_code` |
+| `toc_generation` | `language`, `language_code`, `headings`, `headings[].sectionId`, `headings[].title`, `headings[].textType`, `has_original_toc`, `original_toc_text`, `mode` |
+| `quiz_generation` | `language`, `language_code`, `page_texts`, `page_texts[].pageId`, `page_texts[].text` |
+| `font_assignment` | `fonts`, `page_images`, `book_summary`, `book_title` |
+| `styleguide_generation` | `page_images`, `book_fonts` |
+| `web_generation_html` | `label`, `page_image_base64`, `section_id`, `section_type`, `nodes`, `leaf_texts`, `images`, `group_ids`, `styleguide`, `book_fonts`, `viewports`, `user_instructions` |
+| `web_generation_html_overlay` | `label`, `page_image_base64`, `section_id`, `section_type`, `nodes`, `leaf_texts`, `images`, `group_ids`, `styleguide`, `book_fonts`, `viewports`, `user_instructions` |
+| `visual_review` | `page_image_base64`, `section_type`, `current_html`, `nodes`, `leaf_texts`, `viewports` |
+| `visual_review_flexible` | `page_image_base64`, `section_type`, `current_html`, `nodes`, `leaf_texts`, `viewports` |
+| `html_edit` | `current_html`, `instruction`, `screenshots`, `previous_attempt_failure` |
+| `html_edit_verify` | `instruction`, `before_base64`, `after_base64` |
+| `activity_*` | Same as render prompts: `label`, `page_image_base64`, `section_id`, `section_type`, `nodes`, `leaf_texts`, `images`, `group_ids`, `styleguide`, `book_fonts`, `viewports`, `user_instructions` |
+| `activity_*_answers` | Same as `activity_*`, plus `activity_html` |
+| `activity_open_ended_answer` | Same as `activity_*` |
+| `ai_image_generation` | `user_prompt`, `style`, `image_type` |
+| `ai_image_edit` | `user_prompt`, `style`, `image_type` |
+| `_render_node` | Include-only helper. Called with `nodes` and `depth`; internally iterates `node`, `node.node_id`, `node.role`, `node.text`, `node.structure`, and `node.children`. |
+| `web_generation_html_old` | Legacy prompt using `styleguide`, `page_image_base64`, `section_type`, `images`, `images[].image_id`, `images[].image_base64`, `texts`, `texts[].text_id`, `texts[].text_type`, `texts[].text`. |
+| `visual_review_edit` | Legacy/alternate prompt using `instruction`, `viewports`, and visual review screenshot context. |
+
+## Context Needed To Generate Variant Files
+
+When asking an AI model to generate prompt variants, provide enough context for
+the model to preserve ADT Studio's contracts instead of inventing new inputs.
+At minimum, include:
+
+1. Target model id, for example `openai:gpt-5.5`.
+2. Target folder name, for example `prompts/openai_gpt_5_5/`.
+3. The exact base prompt file contents for every prompt to convert.
+4. This document's storage rules, runtime resolution order, authoring rules, and
+   prompt variable table.
+5. The expected output format: a file path and full `.liquid` file content for
+   each generated variant.
+6. Which prompts to generate. Use the minimum recommended set below unless full
+   parity is required.
+7. Any model-specific behavior to account for: multimodal syntax expectations,
+   JSON reliability, tool limitations, maximum output length, verbosity, and
+   whether the model needs stricter schema reminders.
+
+Use this brief template:
+
+```text
+You are generating ADT Studio model-specific Liquid prompt variants.
+
+Target model id: <provider:model>
+Target prompt folder: prompts/<sanitized_model_id>/
+
+Rules:
+- Start from the supplied base prompt content.
+- Preserve all Liquid variables, custom tags, includes, output schemas, IDs, and
+  validation-sensitive wording unless the change is explicitly model-specific.
+- Do not introduce new required variables.
+- Keep {% chat %}, {% image %}, and {% include %} syntax valid.
+- Keep the same filename as the base prompt inside the target folder.
+- Output one complete file per prompt, with path and full content.
+
+Available runtime variables are exactly the variables listed for each prompt in
+the "Prompt Variables" table.
+
+Generate variants for:
+<prompt-name-1>
+<prompt-name-2>
+...
+
+For each prompt, I will provide:
+--- BEGIN prompts/<prompt-name>.liquid ---
+<base prompt content>
+--- END prompts/<prompt-name>.liquid ---
+```
+
+Expected response format from the generator:
+
+```text
+FILE: prompts/<sanitized_model_id>/<prompt-name>.liquid
+<full Liquid content>
+
+FILE: prompts/<sanitized_model_id>/<next-prompt-name>.liquid
+<full Liquid content>
+```
+
+After receiving generated files, review manually for:
+
+- No new Liquid variables beyond the table above.
+- No removed required variables, image tags, or includes.
+- Same output schema and JSON field names as the base prompt.
+- Same downstream IDs (`image_id`, `node_id`, `section_id`, text indexes).
+- No provider-specific API syntax inside the prompt body unless it is plain
+  instruction text intended for the model.
+- No markdown fences around final JSON when the base prompt requires raw JSON.
+
 ## Prompt Inventory
 
 For full model parity, review every prompt below and create a variant when the
