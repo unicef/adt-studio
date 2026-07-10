@@ -3,6 +3,7 @@ import { createPortal } from "react-dom"
 import { Link, useMatchRoute, useSearch } from "@tanstack/react-router"
 import { Trans } from "@lingui/react/macro"
 import {
+  CircleStop,
   Loader2,
   RotateCcw,
   Settings,
@@ -399,7 +400,7 @@ export function StageSidebar({
 function TaskIndicator({ bookLabel }: { bookLabel: string }) {
   const { i18n } = useLingui()
   const { runningTasks, runningCount } = useBookTasks(bookLabel)
-  const { stepState, stepProgress } = useBookRun()
+  const { stepState, stepProgress, isCancelling, cancelRun } = useBookRun()
 
   // Running steps with visible progress (pages, entries, batches, etc.)
   const stageProgressRows: { step: string; label: string; progressLabel: string }[] = []
@@ -423,6 +424,8 @@ function TaskIndicator({ bookLabel }: { bookLabel: string }) {
   }
 
   const totalCount = runningCount + stageProgressRows.length + activeSteps.length
+  // A pipeline stage run (not just ad-hoc tasks) is active — offer to cancel it.
+  const pipelineActive = stageProgressRows.length + activeSteps.length > 0
 
   if (totalCount === 0) return null
 
@@ -465,6 +468,27 @@ function TaskIndicator({ bookLabel }: { bookLabel: string }) {
         <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
           {totalCount === 1 ? i18n._(msg`Task Running`) : i18n._(msg`Tasks Running`)}
         </span>
+        {pipelineActive && (
+          <button
+            type="button"
+            onClick={cancelRun}
+            disabled={isCancelling}
+            title={isCancelling ? i18n._(msg`Cancelling…`) : i18n._(msg`Cancel run`)}
+            aria-label={isCancelling ? i18n._(msg`Cancelling run`) : i18n._(msg`Cancel run`)}
+            className={cn(
+              "ml-auto shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors",
+              isCancelling
+                ? "text-muted-foreground/50 cursor-default"
+                : "text-muted-foreground hover:text-red-600 hover:bg-red-50 cursor-pointer",
+            )}
+          >
+            {isCancelling ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <CircleStop className="w-3.5 h-3.5" />
+            )}
+          </button>
+        )}
       </div>
     </div>
   )

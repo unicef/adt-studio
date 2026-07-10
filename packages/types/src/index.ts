@@ -96,6 +96,13 @@ export { PartRange, PartManifest, ExportedPartEntry, PartsLedger } from "./part.
 export { ProgressEvent } from "./progress.js"
 
 export {
+  PageErrorPolicy,
+  PageErrorAction,
+  PendingDecision,
+  DecisionBody,
+} from "./page-error.js"
+
+export {
   TaskKind,
   TaskStatus,
   TaskEvent,

@@ -295,6 +295,9 @@ msgstr "{count} {count, plural, one {issue} other {issues}}"
 msgid "{count} {count, plural, one {manual review item} other {manual review items}}"
 msgstr "{count} {count, plural, one {manual review item} other {manual review items}}"
 
+msgid "{count} pages failed in {stageLabel}"
+msgstr "{count} pages failed in {stageLabel}"
+
 msgid "{count} translations"
 msgstr "{count} translations"
 
@@ -535,6 +538,12 @@ msgstr "A multiple choice activity."
 
 #~ msgid "A new version is available for download."
 #~ msgstr "A new version is available for download."
+
+msgid "A page failed in {stageLabel}"
+msgstr "A page failed in {stageLabel}"
+
+msgid "A page failed in {stepLabel}"
+msgstr "A page failed in {stepLabel}"
 
 msgid "A question worth asking"
 msgstr "A question worth asking"
@@ -1189,6 +1198,9 @@ msgstr "Apply page background colors"
 msgid "Apply Segmentation"
 msgstr "Apply Segmentation"
 
+msgid "Apply to all errors in this run"
+msgstr "Apply to all errors in this run"
+
 msgid "AR"
 msgstr "AR"
 
@@ -1552,8 +1564,29 @@ msgstr "Calls"
 msgid "Cancel"
 msgstr "Cancel"
 
+msgid "Cancel {stageLabel}"
+msgstr "Cancel {stageLabel}"
+
 msgid "Cancel download"
 msgstr "Cancel download"
+
+msgid "Cancel run"
+msgstr "Cancel run"
+
+msgid "Cancelling {stageLabel}"
+msgstr "Cancelling {stageLabel}"
+
+msgid "Cancelling run"
+msgstr "Cancelling run"
+
+msgid "Cancelling run…"
+msgstr "Cancelling run…"
+
+msgid "Cancelling..."
+msgstr "Cancelling..."
+
+msgid "Cancelling…"
+msgstr "Cancelling…"
 
 #. placeholder {0}: String(MAX_ENTRIES)
 msgid "capped at {0}"
@@ -5919,6 +5952,9 @@ msgstr "Run {stageLabel}"
 msgid "Run {upstreamLabel} first"
 msgstr "Run {upstreamLabel} first"
 
+msgid "Run cancelled"
+msgstr "Run cancelled"
+
 msgid "Run Captions"
 msgstr "Run Captions"
 
@@ -5994,8 +6030,8 @@ msgstr "Running"
 msgid "RUNNING"
 msgstr "RUNNING"
 
-msgid "Running {stageLabel}"
-msgstr "Running {stageLabel}"
+#~ msgid "Running {stageLabel}"
+#~ msgstr "Running {stageLabel}"
 
 msgid "Running Sectioning will run Extract first, then section the extracted pages."
 msgstr "Running Sectioning will run Extract first, then section the extracted pages."
@@ -6006,8 +6042,8 @@ msgstr "Running Storyboard will run the earlier core stages it depends on first,
 msgid "Running Validation..."
 msgstr "Running Validation..."
 
-msgid "Running..."
-msgstr "Running..."
+#~ msgid "Running..."
+#~ msgstr "Running..."
 
 msgid "Runs accessibility checks against the packaged book."
 msgstr "Runs accessibility checks against the packaged book."
@@ -6558,8 +6594,14 @@ msgstr "Skip for now"
 msgid "Skip intro"
 msgstr "Skip intro"
 
+msgid "Skip page and continue"
+msgstr "Skip page and continue"
+
 msgid "Skip segmentation for images whose shortest side is below this threshold."
 msgstr "Skip segmentation for images whose shortest side is below this threshold."
+
+msgid "Skip this page and continue the step, or stop the step entirely."
+msgstr "Skip this page and continue the step, or stop the step entirely."
 
 msgid "Skipped"
 msgstr "Skipped"
@@ -6758,6 +6800,9 @@ msgstr "Step failed"
 
 msgid "Step run failed"
 msgstr "Step run failed"
+
+msgid "Stop step"
+msgstr "Stop step"
 
 msgid "Storyboard"
 msgstr "Storyboard"
@@ -7791,6 +7836,9 @@ msgstr "videos"
 
 msgid "Videos"
 msgstr "Videos"
+
+msgid "View details"
+msgstr "View details"
 
 msgid "View HTML source"
 msgstr "View HTML source"

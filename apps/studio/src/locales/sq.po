@@ -296,6 +296,9 @@ msgstr "{count} {count, plural, one {problem} other {probleme}}"
 msgid "{count} {count, plural, one {manual review item} other {manual review items}}"
 msgstr "{count} {count, plural, one {element për rishikim manual} other {elemente për rishikim manual}}"
 
+msgid "{count} pages failed in {stageLabel}"
+msgstr "{count} faqe dështuan te {stageLabel}"
+
 msgid "{count} translations"
 msgstr "{count} përkthime"
 
@@ -536,6 +539,12 @@ msgstr "Një aktivitet me zgjedhje të shumëfishtë."
 
 #~ msgid "A new version is available for download."
 #~ msgstr "Një version i ri është i disponueshëm për shkarkim."
+
+msgid "A page failed in {stageLabel}"
+msgstr "Një faqe dështoi te {stageLabel}"
+
+msgid "A page failed in {stepLabel}"
+msgstr "Një faqe dështoi te {stepLabel}"
 
 msgid "A question worth asking"
 msgstr "Një pyetje që vlen të bëhet"
@@ -1190,6 +1199,9 @@ msgstr "Apliko ngjyrat e sfondit të faqes"
 msgid "Apply Segmentation"
 msgstr "Apliko segmentimin"
 
+msgid "Apply to all errors in this run"
+msgstr "Zbato për të gjitha gabimet e këtij ekzekutimi"
+
 msgid "AR"
 msgstr "AR"
 
@@ -1553,8 +1565,29 @@ msgstr "Thirrje"
 msgid "Cancel"
 msgstr "Anulo"
 
+msgid "Cancel {stageLabel}"
+msgstr "Anulo {stageLabel}"
+
 msgid "Cancel download"
 msgstr "Anulo shkarkimin"
+
+msgid "Cancel run"
+msgstr "Anulo ekzekutimin"
+
+msgid "Cancelling {stageLabel}"
+msgstr "Duke anuluar {stageLabel}"
+
+msgid "Cancelling run"
+msgstr "Duke anuluar ekzekutimin"
+
+msgid "Cancelling run…"
+msgstr "Duke anuluar ekzekutimin…"
+
+msgid "Cancelling..."
+msgstr "Duke anuluar..."
+
+msgid "Cancelling…"
+msgstr "Duke anuluar…"
 
 #. placeholder {0}: String(MAX_ENTRIES)
 msgid "capped at {0}"
@@ -5920,6 +5953,9 @@ msgstr "Ekzekuto {stageLabel}"
 msgid "Run {upstreamLabel} first"
 msgstr "Ekzekuto {upstreamLabel} së pari"
 
+msgid "Run cancelled"
+msgstr "Ekzekutimi u anulua"
+
 msgid "Run Captions"
 msgstr "Ekzekuto Titujt"
 
@@ -5995,8 +6031,8 @@ msgstr "Duke ekzekutuar"
 msgid "RUNNING"
 msgstr "NË EKZEKUTIM"
 
-msgid "Running {stageLabel}"
-msgstr "Duke ekzekutuar {stageLabel}"
+#~ msgid "Running {stageLabel}"
+#~ msgstr "Duke ekzekutuar {stageLabel}"
 
 msgid "Running Sectioning will run Extract first, then section the extracted pages."
 msgstr "Ekzekutimi i Seksionimit do të ekzekutojë Ekstraktimin së pari, pastaj do të seksionojë faqet e ekstraktuara."
@@ -6007,8 +6043,8 @@ msgstr "Ekzekutimi i Storyboard-it do të ekzekutojë fazat kryesore të mëpars
 msgid "Running Validation..."
 msgstr "Duke ekzekutuar Validimin..."
 
-msgid "Running..."
-msgstr "Duke ekzekutuar..."
+#~ msgid "Running..."
+#~ msgstr "Duke ekzekutuar..."
 
 msgid "Runs accessibility checks against the packaged book."
 msgstr "Ekzekuton kontrolle aksesueshmërie kundrejt librit të paketuar."
@@ -6559,8 +6595,14 @@ msgstr "Kalo tani"
 msgid "Skip intro"
 msgstr "Kalo hyrjen"
 
+msgid "Skip page and continue"
+msgstr "Kapërce faqen dhe vazhdo"
+
 msgid "Skip segmentation for images whose shortest side is below this threshold."
 msgstr "Kalo segmentimin për imazhet çdofaqja më e shkurtër e të cilave është nën këtë prag."
+
+msgid "Skip this page and continue the step, or stop the step entirely."
+msgstr "Kapërce këtë faqe dhe vazhdo hapin, ose ndale hapin plotësisht."
 
 msgid "Skipped"
 msgstr "Kaluar"
@@ -6759,6 +6801,9 @@ msgstr "Hapi dështoi"
 
 msgid "Step run failed"
 msgstr "Ekzekutimi i hapit dështoi"
+
+msgid "Stop step"
+msgstr "Ndalo hapin"
 
 msgid "Storyboard"
 msgstr "Storyboard"
@@ -7792,6 +7837,9 @@ msgstr "video"
 
 msgid "Videos"
 msgstr "Video"
+
+msgid "View details"
+msgstr "Shiko detajet"
 
 msgid "View HTML source"
 msgstr "Shiko burimin HTML"

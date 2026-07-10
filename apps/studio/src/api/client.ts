@@ -205,6 +205,9 @@ export interface RunStagesOptions {
   toStage: string
   /** When true, skip page-sectioning and only re-render from existing section data. */
   renderOnly?: boolean
+  /** How to react when a page fails inside a per-page step. The Studio sends
+   *  "ask" so page errors surface an interactive skip/stop dialog. */
+  pageErrorPolicy?: "ask" | "stop"
 }
 
 function buildApiHeaders(
@@ -236,9 +239,16 @@ function buildApiHeaders(
   return headers
 }
 
+export interface PendingDecision {
+  decisionId: string
+  step: string
+  pageId: string
+  error: string
+}
+
 export interface StageRunStatus {
   label: string
-  status: "idle" | "running" | "completed" | "failed"
+  status: "idle" | "running" | "cancelling" | "cancelled" | "completed" | "failed"
   fromStage?: string
   toStage?: string
   error?: string
@@ -880,6 +890,33 @@ export const api = {
   getStagesStatus: (label: string) =>
     request<StageRunStatus>(`/books/${label}/stages/status`),
 
+  /** Cancel the active run and clear the queue. A 404 (nothing to cancel — the
+   *  run may have finished between the click and this request) resolves silently. */
+  cancelRun: async (label: string): Promise<void> => {
+    const res = await fetch(`${BASE_URL}/books/${label}/stages/cancel`, {
+      method: "POST",
+    })
+    if (res.ok || res.status === 404) return
+    const text = await res.text().catch(() => "")
+    throw new Error(text || `Cancel failed: ${res.status}`)
+  },
+
+  /** Resolve a pending page-error decision. A 409 (already resolved by
+   *  timeout/cancel) is treated as success — the caller drops the stale dialog. */
+  resolveDecision: async (
+    label: string,
+    body: { decisionId: string; action: "skip" | "stop"; applyToAll?: boolean },
+  ): Promise<void> => {
+    const res = await fetch(`${BASE_URL}/books/${label}/stages/decision`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    })
+    if (res.ok || res.status === 409) return
+    const text = await res.text().catch(() => "")
+    throw new Error(text || `Decision failed: ${res.status}`)
+  },
+
   getPages: (label: string) =>
     request<PageSummaryItem[]>(`/books/${label}/pages`),
 
@@ -1306,6 +1343,8 @@ export const api = {
       error: string | null
       stepErrors: Record<string, string> | null
       stepMessages: Record<string, string> | null
+      runStatus: "idle" | "running" | "cancelling" | "cancelled" | "completed" | "failed"
+      pendingDecisions: PendingDecision[]
     }>(`/books/${label}/step-status`),
 
   getTTS: (label: string) =>

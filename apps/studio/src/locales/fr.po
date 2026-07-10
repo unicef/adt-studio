@@ -297,6 +297,9 @@ msgstr "{count} {count, plural, one {problème} other {problèmes}}"
 msgid "{count} {count, plural, one {manual review item} other {manual review items}}"
 msgstr "{count} {count, plural, one {élément de révision manuelle} other {éléments de révision manuelle}}"
 
+msgid "{count} pages failed in {stageLabel}"
+msgstr "{count} pages ont échoué dans {stageLabel}"
+
 msgid "{count} translations"
 msgstr "{count} traductions"
 
@@ -537,6 +540,12 @@ msgstr "Une activité à choix multiple."
 
 #~ msgid "A new version is available for download."
 #~ msgstr "Une nouvelle version est disponible au téléchargement."
+
+msgid "A page failed in {stageLabel}"
+msgstr "Une page a échoué dans {stageLabel}"
+
+msgid "A page failed in {stepLabel}"
+msgstr "Une page a échoué dans {stepLabel}"
 
 msgid "A question worth asking"
 msgstr "Une question qui mérite d'être posée"
@@ -1191,6 +1200,9 @@ msgstr "Appliquer page background colors"
 msgid "Apply Segmentation"
 msgstr "Appliquer Segmentation"
 
+msgid "Apply to all errors in this run"
+msgstr "Appliquer à toutes les erreurs de cette exécution"
+
 msgid "AR"
 msgstr "AR"
 
@@ -1554,8 +1566,29 @@ msgstr "Appels"
 msgid "Cancel"
 msgstr "Annuler"
 
+msgid "Cancel {stageLabel}"
+msgstr "Annuler {stageLabel}"
+
 msgid "Cancel download"
 msgstr "Annuler le téléchargement"
+
+msgid "Cancel run"
+msgstr "Annuler l’exécution"
+
+msgid "Cancelling {stageLabel}"
+msgstr "Annulation de {stageLabel}"
+
+msgid "Cancelling run"
+msgstr "Annulation de l’exécution"
+
+msgid "Cancelling run…"
+msgstr "Annulation de l’exécution…"
+
+msgid "Cancelling..."
+msgstr "Annulation..."
+
+msgid "Cancelling…"
+msgstr "Annulation…"
 
 #. placeholder {0}: String(MAX_ENTRIES)
 msgid "capped at {0}"
@@ -5921,6 +5954,9 @@ msgstr "Exécuter {stageLabel}"
 msgid "Run {upstreamLabel} first"
 msgstr "Exécutez d'abord {upstreamLabel}"
 
+msgid "Run cancelled"
+msgstr "Exécution annulée"
+
 msgid "Run Captions"
 msgstr "Exécuter les sous-titres"
 
@@ -5996,8 +6032,8 @@ msgstr "En cours"
 msgid "RUNNING"
 msgstr "EN COURS"
 
-msgid "Running {stageLabel}"
-msgstr "Exécution de {stageLabel}"
+#~ msgid "Running {stageLabel}"
+#~ msgstr "Exécution de {stageLabel}"
 
 msgid "Running Sectioning will run Extract first, then section the extracted pages."
 msgstr "Lancer Sectioning exécutera d'abord Extraction, puis découpera en sections les pages extraites."
@@ -6008,8 +6044,8 @@ msgstr "Lancer Storyboard exécutera d'abord les étapes principales précédent
 msgid "Running Validation..."
 msgstr "Validation en cours..."
 
-msgid "Running..."
-msgstr "En cours..."
+#~ msgid "Running..."
+#~ msgstr "En cours..."
 
 msgid "Runs accessibility checks against the packaged book."
 msgstr "Effectue des vérifications d'accessibilité sur le livre empaqueté."
@@ -6560,8 +6596,14 @@ msgstr "Passer pour l'instant"
 msgid "Skip intro"
 msgstr "Passer l'intro"
 
+msgid "Skip page and continue"
+msgstr "Ignorer la page et continuer"
+
 msgid "Skip segmentation for images whose shortest side is below this threshold."
 msgstr "Ignorer la segmentation pour les images dont le côté le plus court est inférieur à ce seuil."
+
+msgid "Skip this page and continue the step, or stop the step entirely."
+msgstr "Ignorez cette page et continuez l’étape, ou arrêtez complètement l’étape."
 
 msgid "Skipped"
 msgstr "Ignoré"
@@ -6760,6 +6802,9 @@ msgstr "L'étape a échoué"
 
 msgid "Step run failed"
 msgstr "L'exécution de l'étape a échoué"
+
+msgid "Stop step"
+msgstr "Arrêter l’étape"
 
 msgid "Storyboard"
 msgstr "Scénarimage"
@@ -7793,6 +7838,9 @@ msgstr "vidéos"
 
 msgid "Videos"
 msgstr "Vidéos"
+
+msgid "View details"
+msgstr "Voir les détails"
 
 msgid "View HTML source"
 msgstr "Voir le code source HTML"
