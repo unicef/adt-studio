@@ -138,7 +138,7 @@ export function createStageRoutes(
     return c.json({ status: result.status, label, fromStage, toStage })
   })
 
-  // POST /books/:label/stages/cancel — Cancel the active run and clear the queue.
+  // POST /books/:label/stages/cancel — Cancel the active run. Queued runs remain queued.
   app.post("/books/:label/stages/cancel", (c) => {
     const { label } = c.req.param()
     const result = stageService.cancelStageRun(label)

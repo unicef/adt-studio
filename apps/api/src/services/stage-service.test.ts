@@ -116,20 +116,53 @@ describe("stage-service cancellation", () => {
     expect(stepRunStatuses(label).has("page-sectioning")).toBe(false)
   })
 
-  it("empties the queue on cancel and does not run queued jobs", async () => {
-    const label = "cancel-queue"
+  it("preserves queued jobs when cancelling the active run and drains them after cancel", async () => {
+    const label = "cancel-active-preserve-queue"
     makeBook(label)
     const bus = createBookEventBus()
-    const rc = controllableRunner()
-    const svc = createStageService(rc.runner, bus)
+    const runInvocations: string[] = []
+    let rejectFirst: ((err: unknown) => void) | undefined
+    let calls = 0
+    const runner: StageRunner = {
+      run(_label: string, options: StageRunOptions) {
+        calls++
+        runInvocations.push(`${options.fromStage}->${options.toStage}`)
+        return new Promise<void>((resolve, reject) => {
+          if (calls === 1) {
+            rejectFirst = reject
+            return
+          }
+          resolve()
+        })
+      },
+    }
+    const svc = createStageService(runner, bus)
 
-    svc.startStageRun(label, baseOptions(label))
+    svc.startStageRun(label, {
+      ...baseOptions(label),
+      fromStage: "captions",
+      toStage: "captions",
+    })
     await tick()
-    const queued = svc.startStageRun(label, baseOptions(label))
+    const queued = svc.startStageRun(label, {
+      ...baseOptions(label),
+      fromStage: "glossary",
+      toStage: "glossary",
+    })
     expect(queued.status).toBe("queued")
     expect(svc.getStatus(label).queue).toHaveLength(1)
 
     svc.cancelStageRun(label)
+    expect(svc.getStatus(label).active?.status).toBe("cancelling")
+    expect(svc.getStatus(label).queue).toEqual([
+      expect.objectContaining({ fromStage: "glossary", toStage: "glossary" }),
+    ])
+    expect(runInvocations).toEqual(["captions->captions"])
+
+    rejectFirst?.(new Error("cancelled"))
+    await tick()
+
+    expect(runInvocations).toEqual(["captions->captions", "glossary->glossary"])
     expect(svc.getStatus(label).queue).toHaveLength(0)
   })
 

@@ -94,9 +94,10 @@ export interface StageService {
     label: string,
     options: StageRunOptions
   ): { status: "started" | "queued"; id: string }
-  /** Request cancellation of the active run and clear the queue. Returns
-   *  "cancelling" while the run unwinds, "cancelled" if only a queue was
-   *  cleared, or null when there is nothing to cancel (→ 404). */
+  /** Request cancellation of the active run. Queued runs are preserved and will
+   *  start after the active run unwinds. Returns "cancelling" while the run
+   *  unwinds, "cancelled" if only a queue was cleared, or null when there is
+   *  nothing to cancel (→ 404). */
   cancelStageRun(label: string): { status: "cancelling" | "cancelled" } | null
 }
 
@@ -315,9 +316,6 @@ export function createStageService(
       }
 
       if (active?.status === "running") {
-        // Empty the queue first: cancelling a run without clearing the queue
-        // would just start the next item straight after.
-        if (state) state.queue = []
         active.status = "cancelling"
         active.controller.abort()
         // Unblock any pending page-error decision so the runner unwinds now
