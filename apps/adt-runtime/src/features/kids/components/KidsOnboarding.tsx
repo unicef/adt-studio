@@ -103,7 +103,6 @@ export function KidsOnboarding() {
   const playerName = playerNameDraft.trim()
   const showBuddy = step !== "welcome" && step !== "name"
   const pageStyle = {
-    "--kids-onboarding-accent": "#0284C7",
     background: "linear-gradient(180deg, #C9E6F9 0%, #A5D2F0 100%)",
   } as CSSProperties
 
