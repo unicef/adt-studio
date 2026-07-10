@@ -125,7 +125,8 @@ export function KidsOnboarding() {
   )
   const buddyName = buddyNameDraft.trim() || defaultBuddyName
   const playerName = playerNameDraft.trim()
-  const showBuddy = step !== "welcome" && step !== "name" && step !== "start"
+  const showBuddy =
+    step !== "welcome" && step !== "name" && step !== "pick" && step !== "start"
   const pageStyle = {
     background: "linear-gradient(180deg, #C9E6F9 0%, #A5D2F0 100%)",
   } as CSSProperties
@@ -233,7 +234,7 @@ export function KidsOnboarding() {
               key={`${step}-hero`}
               className={cn(!reduceMotion && "motion-safe:animate-kidsBuddyPop")}
             >
-              {showBuddy ? (
+              {step === "pick" ? null : showBuddy ? (
                 <div
                   className="grid aspect-square w-full max-w-56 place-items-center rounded-full bg-white/70"
                   style={
@@ -433,7 +434,7 @@ function NeutralOnboardingVisual({
       />
       <div
         className={cn(
-          "relative grid h-[62%] w-[62%] place-items-center rounded-[2rem] bg-white shadow-[0_6px_0_#C4DFF2]",
+          "relative grid h-[62%] w-[62%] place-items-center overflow-hidden rounded-[2rem] bg-white shadow-[0_6px_0_#C4DFF2]",
           animateWelcome && "motion-safe:animate-kidsBounceIn",
         )}
         style={animateWelcome ? { animationDelay: "60ms" } : undefined}
