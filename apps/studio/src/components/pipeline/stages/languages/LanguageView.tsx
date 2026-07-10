@@ -81,10 +81,12 @@ import { useLingui } from "@lingui/react/macro";
 // pinned one. Mirrors resolveVoice()/resolveSpeechModel() in @adt/pipeline (and
 // config/voices.yaml) so we never show an OpenAI voice/model for a Gemini/Azure provider.
 // Values are voice/model identifiers, not user-facing copy — display only.
-// eslint-disable-next-line lingui/no-unlocalized-strings -- voice identifiers
+
 const DEFAULT_TTS_VOICE: Record<string, string> = {
   openai: "alloy",
+// eslint-disable-next-line lingui/no-unlocalized-strings -- voice identifiers
   azure: "en-US-JennyNeural",
+// eslint-disable-next-line lingui/no-unlocalized-strings -- voice identifiers
   gemini: "Kore",
 };
 const DEFAULT_TTS_MODEL: Record<string, string> = {

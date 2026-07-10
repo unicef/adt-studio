@@ -16,6 +16,7 @@ import { useLingui } from "@lingui/react"
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { Button } from "@/components/ui/button"
+import { toast } from "@/components/ui/sonner"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useAccessibilityAssessment } from "@/hooks/use-debug"
 import { useBookTasks } from "@/hooks/use-book-tasks"
@@ -76,7 +77,7 @@ export function StageSidebar({
   const { i18n } = useLingui()
   const matchRoute = useMatchRoute()
   const search = useSearch({ strict: false }) as { tab?: string }
-  const { stageState } = useBookRun()
+  const { stageState, cancelRun, isCancelling } = useBookRun()
   const { data: accessibilityAssessment } = useAccessibilityAssessment(bookLabel)
   const { data: signLanguageData } = useSignLanguageVideos(bookLabel)
   const { data: packageStatus } = usePackageAdtStatus(bookLabel)
@@ -193,6 +194,7 @@ export function StageSidebar({
     const stepAriaLabel = statusKey
       ? i18n._(msg`${stepLabel}: ${getStageStatusLabelI18n(statusKey)}`)
       : stepLabel
+    const cancelStepLabel = i18n._(msg`Cancel ${stepLabel} step`)
 
     const nextStep = STAGES[index + 1]
     const nextGroup = nextStep && "group" in nextStep ? (nextStep as { group?: StageGroup }).group : undefined
@@ -207,7 +209,7 @@ export function StageSidebar({
         {/* Step row */}
         <div
           className={cn(
-            "group/row flex items-center py-2 text-sm transition-colors overflow-hidden",
+            "group/row relative flex items-center py-2 text-sm transition-colors overflow-hidden",
             x.gap,
             isActive
               ? cn(step.color, "text-white font-medium rounded-l-[14px] ml-0.5 pl-2 pr-2.5")
@@ -262,6 +264,32 @@ export function StageSidebar({
               {stepLabel}
             </span>
           </Link>
+
+          {state === "running" && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                if (isCancelling) return
+                cancelRun()
+                toast.info(i18n._(msg`Cancelling ${stepLabel} step`))
+              }}
+              disabled={isCancelling}
+              title={cancelStepLabel}
+              aria-label={cancelStepLabel}
+              className={cn(
+                "pointer-events-none absolute left-2.5 top-1/2 z-30 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-red-600 text-white opacity-0 shadow-sm ring-2 ring-background transition-opacity focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-red-300 group-hover/row:pointer-events-auto group-hover/row:opacity-100",
+                isCancelling ? "cursor-default bg-red-500/80" : "cursor-pointer hover:bg-red-700",
+              )}
+            >
+              {isCancelling ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <CircleStop className="h-3.5 w-3.5" aria-hidden="true" />
+              )}
+            </button>
+          )}
 
           {settingsTabs ? (
             <Link

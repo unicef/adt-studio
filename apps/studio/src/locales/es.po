@@ -1567,6 +1567,9 @@ msgstr "Cancelar"
 msgid "Cancel {stageLabel}"
 msgstr "Cancelar {stageLabel}"
 
+msgid "Cancel {stepLabel} step"
+msgstr "Cancelar paso {stepLabel}"
+
 msgid "Cancel download"
 msgstr "Cancelar descarga"
 
@@ -1576,11 +1579,17 @@ msgstr "Cancelar ejecución"
 msgid "Cancelling {stageLabel}"
 msgstr "Cancelando {stageLabel}"
 
+msgid "Cancelling {stepLabel} step"
+msgstr "Cancelando paso {stepLabel}"
+
 msgid "Cancelling run"
 msgstr "Cancelando ejecución"
 
 msgid "Cancelling run…"
 msgstr "Cancelando ejecución…"
+
+#~ msgid "Cancelling step"
+#~ msgstr "Cancelando paso"
 
 msgid "Cancelling..."
 msgstr "Cancelando..."

@@ -1568,6 +1568,9 @@ msgstr "Anulo"
 msgid "Cancel {stageLabel}"
 msgstr "Anulo {stageLabel}"
 
+msgid "Cancel {stepLabel} step"
+msgstr "Anulo hapin {stepLabel}"
+
 msgid "Cancel download"
 msgstr "Anulo shkarkimin"
 
@@ -1577,11 +1580,17 @@ msgstr "Anulo ekzekutimin"
 msgid "Cancelling {stageLabel}"
 msgstr "Duke anuluar {stageLabel}"
 
+msgid "Cancelling {stepLabel} step"
+msgstr "Duke anuluar hapin {stepLabel}"
+
 msgid "Cancelling run"
 msgstr "Duke anuluar ekzekutimin"
 
 msgid "Cancelling run…"
 msgstr "Duke anuluar ekzekutimin…"
+
+#~ msgid "Cancelling step"
+#~ msgstr "Duke anuluar hapin"
 
 msgid "Cancelling..."
 msgstr "Duke anuluar..."
