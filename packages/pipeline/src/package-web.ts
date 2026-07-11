@@ -69,6 +69,8 @@ export interface PackageAdtWebOptions {
     readAloud?: boolean
     quizzes?: boolean
     signLanguage?: boolean
+    kidsMode?: boolean
+    kidsBuddies?: string[]
   }
   defaultSettings?: {
     dockLayout?: {
@@ -660,6 +662,16 @@ export async function packageAdtWeb(
     }
   }
 
+  // kids-voice/ — pre-generated buddy voice clips + per-language manifests.
+  // Copied wholesale; the runtime resolves ./content/kids-voice/<lang>/ and
+  // degrades to text-only bubbles when a language has no pack.
+  if (features?.kidsMode !== false) {
+    const kidsVoiceSrc = path.join(bookDir, "kids-voice")
+    if (fs.existsSync(kidsVoiceSrc)) {
+      copyDirRecursive(kidsVoiceSrc, path.join(contentDir, "kids-voice"))
+    }
+  }
+
   // ------------------------------------------------------------------
   // config.json
   // ------------------------------------------------------------------
@@ -691,6 +703,10 @@ export async function packageAdtWeb(
       characterDisplay: false,
       highlight: highlightEnabled,
       activities: hasQuiz || hasActivitySections,
+      kidsMode: features?.kidsMode !== false,
+      ...(features?.kidsBuddies?.length
+        ? { kidsBuddies: features.kidsBuddies }
+        : {}),
     },
     analytics: {
       enabled: false,
