@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@adt/types": "workspace:*",
     "@atlaskit/pragmatic-drag-and-drop": "^1.8.1",
     "@base-ui/react": "^1.4.1",
     "@radix-ui/react-dialog": "^1.1.15",

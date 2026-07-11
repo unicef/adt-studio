@@ -4,6 +4,11 @@
  * This data layer is intentionally UI-free so onboarding, settings, and
  * runtime chrome can all render the same buddy choices later.
  */
+import {
+  KIDS_BUDDIES,
+  KIDS_BUDDY_IDS,
+  type KidsBuddyId,
+} from "@adt/types/kids"
 import type {
   BuddyArt,
   BuddyPalette,
@@ -14,15 +19,9 @@ import { CAT_BUDDY } from "@/features/kids/assets/buddies/cat"
 import { DINO_BUDDY } from "@/features/kids/assets/buddies/dino"
 import { ROBOT_BUDDY } from "@/features/kids/assets/buddies/robot"
 
-export const KIDS_CHARACTER_IDS = [
-  "dino",
-  "robot",
-  "bunny",
-  "cat",
-  "alien",
-] as const
+export const KIDS_CHARACTER_IDS = KIDS_BUDDY_IDS
 
-export type KidsCharacterId = (typeof KIDS_CHARACTER_IDS)[number]
+export type KidsCharacterId = KidsBuddyId
 
 export interface KidsCharacter {
   id: KidsCharacterId
@@ -33,48 +32,26 @@ export interface KidsCharacter {
   art: BuddyArt
 }
 
-export const KIDS_CHARACTERS: readonly KidsCharacter[] = [
-  {
-    id: "dino",
-    labelKey: "kids-character-dino",
-    labelFallback: "Dinosaur",
-    defaultNameKey: "kids-character-dino-default-name",
-    defaultNameFallback: "Rex",
-    art: DINO_BUDDY,
-  },
-  {
-    id: "robot",
-    labelKey: "kids-character-robot",
-    labelFallback: "Robot",
-    defaultNameKey: "kids-character-robot-default-name",
-    defaultNameFallback: "Bolt",
-    art: ROBOT_BUDDY,
-  },
-  {
-    id: "bunny",
-    labelKey: "kids-character-bunny",
-    labelFallback: "Bunny",
-    defaultNameKey: "kids-character-bunny-default-name",
-    defaultNameFallback: "Pip",
-    art: BUNNY_BUDDY,
-  },
-  {
-    id: "cat",
-    labelKey: "kids-character-cat",
-    labelFallback: "Cat",
-    defaultNameKey: "kids-character-cat-default-name",
-    defaultNameFallback: "Luna",
-    art: CAT_BUDDY,
-  },
-  {
-    id: "alien",
-    labelKey: "kids-character-alien",
-    labelFallback: "Alien",
-    defaultNameKey: "kids-character-alien-default-name",
-    defaultNameFallback: "Zibby",
-    art: ALIEN_BUDDY,
-  },
-]
+const BUDDY_ART: Record<KidsCharacterId, BuddyArt> = {
+  dino: DINO_BUDDY,
+  robot: ROBOT_BUDDY,
+  bunny: BUNNY_BUDDY,
+  cat: CAT_BUDDY,
+  alien: ALIEN_BUDDY,
+}
+
+// Roster metadata (ids, labels, default names) is shared with the Studio
+// voice generator via @adt/types/kids; only the SVG art wiring is local.
+export const KIDS_CHARACTERS: readonly KidsCharacter[] = KIDS_BUDDIES.map(
+  (buddy) => ({
+    id: buddy.id,
+    labelKey: buddy.labelKey,
+    labelFallback: buddy.labelFallback,
+    defaultNameKey: buddy.defaultNameKey,
+    defaultNameFallback: buddy.defaultNameFallback,
+    art: BUDDY_ART[buddy.id],
+  }),
+)
 
 export const BUDDY_BACKGROUNDS: readonly { id: string; value: string }[] = [
   { id: "sunbeam", value: "#FEF3C7" },

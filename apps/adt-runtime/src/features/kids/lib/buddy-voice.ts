@@ -1,10 +1,11 @@
 /**
  * Kids voice pack playback.
  *
- * Books may ship pre-generated buddy voice clips per language:
+ * Books may ship pre-generated buddy voice clips per language (produced by
+ * the Studio kids-voice generator, packaged by package-web):
  *
- *   assets/kids-voice/<lang>/manifest.json
- *   assets/kids-voice/<lang>/<character>/<line-key>.mp3
+ *   content/kids-voice/<lang>/manifest.json
+ *   content/kids-voice/<lang>/<character>/<line-key>.mp3
  *
  * Manifest shape: `{ version, characters: { [characterId]: { [lineKey]:
  * "relative/file.mp3" } } }` with files relative to the manifest's folder.
@@ -24,7 +25,7 @@ const manifestCache = new Map<string, Promise<KidsVoiceManifest | null>>()
 let currentAudio: HTMLAudioElement | null = null
 
 function voiceBase(lang: string): string {
-  return `./assets/kids-voice/${lang}`
+  return `./content/kids-voice/${lang}`
 }
 
 export function loadKidsVoiceManifest(

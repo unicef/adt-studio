@@ -46,7 +46,7 @@ describe("buddy-voice", () => {
     const played = await playBuddyLine("en", "dino", "kids-buddy-greet")
     expect(played).toBe(true)
     expect(AudioMock.instances[0]?.src).toBe(
-      "./assets/kids-voice/en/dino/kids-buddy-greet.mp3",
+      "./content/kids-voice/en/dino/kids-buddy-greet.mp3",
     )
     expect(AudioMock.instances[0]?.play).toHaveBeenCalled()
   })
