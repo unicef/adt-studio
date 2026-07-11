@@ -13,6 +13,7 @@ const PROMPT_MODELS_FILE = ".models.json"
 const PROMPT_CURRENT_VERSION_FILE = ".current"
 const VALID_VERSION_FILE = /^\d{8}T\d{9}Z-\d{3}\.liquid$/
 const BUILT_IN_PROMPT_MODEL_OWNERS = new Map<string, string>([
+  ["openai_gpt_5_6_sol", "openai:gpt-5.6-sol"],
   ["openai_gpt_5_5", "openai:gpt-5.5"],
 ])
 
