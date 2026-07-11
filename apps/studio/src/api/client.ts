@@ -207,6 +207,42 @@ export interface RunStagesOptions {
   renderOnly?: boolean
 }
 
+
+export interface KidsModeConfig {
+  enabled: boolean
+  buddies: string[]
+}
+
+export interface KidsVoiceLanguageStatus {
+  language: string
+  hasPack: boolean
+  clipCount: number
+  characters: string[]
+}
+
+export interface KidsVoiceStatus {
+  languages: KidsVoiceLanguageStatus[]
+}
+
+export interface KidsVoiceClipSummary {
+  language: string
+  character: string
+  lineKey: string
+  fileName: string
+  cached: boolean
+}
+
+export interface KidsVoiceGenerationSummary {
+  languages: string[]
+  characters: string[]
+  model: string
+  total: number
+  generated: number
+  cachedHits: number
+  dryRun: boolean
+  clips: KidsVoiceClipSummary[]
+}
+
 function buildApiHeaders(
   apiKey: string,
   providerCredentials?: StageRunProviderCredentials
@@ -734,6 +770,29 @@ export const api = {
         body: JSON.stringify(data),
       },
     ),
+
+  getKidsMode: (label: string) =>
+    request<KidsModeConfig>(`/books/${label}/kids-mode`),
+
+  updateKidsMode: (label: string, config: KidsModeConfig) =>
+    request<KidsModeConfig>(`/books/${label}/kids-mode`, {
+      method: "PUT",
+      body: JSON.stringify(config),
+    }),
+
+  getKidsVoiceStatus: (label: string) =>
+    request<KidsVoiceStatus>(`/books/${label}/kids-voice`),
+
+  generateKidsVoice: (
+    label: string,
+    body: { languages?: string[]; characters?: string[]; dryRun?: boolean },
+    apiKey?: string,
+  ) =>
+    request<KidsVoiceGenerationSummary>(`/books/${label}/kids-voice/generate`, {
+      method: "POST",
+      headers: apiKey ? { "X-OpenAI-Key": apiKey } : undefined,
+      body: JSON.stringify(body),
+    }),
 
   regenerateBookSummary: (label: string, apiKey: string) =>
     request<{ taskId?: string; status?: string; version?: number }>(
