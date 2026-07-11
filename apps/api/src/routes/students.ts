@@ -1,5 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
+import yaml from "js-yaml"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
@@ -30,6 +31,18 @@ function normalizeProfile(input: z.infer<typeof AccessibilityProfileInput>): { t
 }
 function normalizeTemplate(input: z.infer<typeof TemplateInput>): { category: string; criteria: string; supportLevel: "low" | "moderate" | "high"; recommendations: string[]; adaptationRules: Record<string, boolean>; examples: string[] } {
   return { ...input, criteria: input.criteria ?? "", recommendations: input.recommendations ?? [], adaptationRules: input.adaptationRules ?? {}, examples: input.examples ?? [] }
+}
+
+function applyPersonalizationConfig(derivedDir: string, rules: Record<string, boolean>): void {
+  const needsEasyRead = Boolean(rules.simplifyLanguage || rules.shortenActivities || rules.chunkContent)
+  if (!needsEasyRead && !rules.generateAudio) return
+  const configPath = path.join(derivedDir, "config.yaml")
+  const config = (yaml.load(fs.readFileSync(configPath, "utf-8")) ?? {}) as Record<string, unknown>
+  if (needsEasyRead) {
+    const easyRead = (config.easy_read ?? {}) as Record<string, unknown>
+    config.easy_read = { ...easyRead, enabled: true, tts: Boolean(rules.generateAudio || easyRead.tts) }
+  }
+  fs.writeFileSync(configPath, yaml.dump(config, { noRefs: true }))
 }
 
 export function createStudentRoutes(booksDir: string): Hono {
@@ -117,6 +130,7 @@ export function createStudentRoutes(booksDir: string): Hono {
       const newDbPath = path.join(derivedDir, `${derivedBookLabel}.db`)
       fs.renameSync(oldDbPath, newDbPath)
       const plan = buildAccessibilityPlan(student)
+      applyPersonalizationConfig(derivedDir, plan.rules)
       const storage = createBookStorage(derivedBookLabel, booksDir)
       try {
         const profileName = student.accessibilityProfiles[0]?.name ?? student.firstName
