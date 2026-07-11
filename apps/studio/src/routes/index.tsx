@@ -628,6 +628,12 @@ function HomePage() {
               </Link>
             </Button>
             <Button variant="outline" size="sm" asChild>
+              <Link to="/students" className="gap-1.5">
+                <User className="h-3.5 w-3.5" />
+                <Trans>Students</Trans>
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
               <Link to="/books/new" className="gap-1.5">
                 <Plus className="h-3.5 w-3.5" />
                 <Trans>Add Book</Trans>
