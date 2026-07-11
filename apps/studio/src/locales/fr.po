@@ -1817,6 +1817,18 @@ msgstr "Fermer le panneau de modification"
 msgid "Close style editor"
 msgstr "Fermer l'éditeur de style"
 
+msgid "Cloud sync failed"
+msgstr "Échec de la synchronisation cloud"
+
+msgid "Cloud synchronization failed. You can retry from the workspace."
+msgstr "Échec de la synchronisation cloud. Vous pouvez réessayer depuis l'espace de travail."
+
+msgid "Cloud synchronization, parent delivery, and recent activity."
+msgstr "Synchronisation cloud, livraison parentale et activité récente."
+
+msgid "Cloudflare account ID"
+msgstr "ID de compte Cloudflare"
+
 msgid "Clownfish, sea turtles, and parrotfish are just a few of the thousands of species that depend on reefs for food, shelter, and nursery grounds."
 msgstr "Les poissons-clowns, les tortues de mer et les poissons-perroquets ne sont que quelques-unes des milliers d'espèces qui dépendent des récifs pour se nourrir, s'abriter et se reproduire."
 
@@ -1922,11 +1934,29 @@ msgstr "Confirmer la fusion"
 #~ msgid "Confirm Rerun"
 #~ msgstr "Confirmer Rerun"
 
+msgid "Connect a workspace before viewing analytics."
+msgstr "Connectez un espace de travail avant de voir les analyses."
+
 msgid "Connect an AI provider"
 msgstr "Connectez un fournisseur d'IA"
 
 msgid "Connect the Classroom Worker by setting VITE_CLASSROOM_API_URL, then restart Studio. For local development, use the URL printed by wrangler dev."
 msgstr "Connectez le Classroom Worker en définissant VITE_CLASSROOM_API_URL, puis redémarrez Studio. Pour le développement local, utilisez l'URL imprimée par wrangler dev."
+
+msgid "Connect to your Workspace"
+msgstr "Connectez-vous à votre espace de travail"
+
+msgid "Connect workspace"
+msgstr "Connecter l'espace de travail"
+
+msgid "Connect Workspace"
+msgstr "Connecter l'Espace de Travail"
+
+msgid "Connect your Cloudflare workspace to save students and materials."
+msgstr "Connectez votre espace de travail Cloudflare pour enregistrer les étudiants et les matériaux."
+
+msgid "Connecting your Cloudflare workspace…"
+msgstr "Connexion de votre espace de travail Cloudflare…"
 
 msgid "Consulting the style council..."
 msgstr "Consultation du conseil de style..."
@@ -2160,6 +2190,9 @@ msgstr "Plage personnalisée"
 msgid "Custom section {index}"
 msgstr "Section personnalisée {index}"
 
+msgid "D1 database ID"
+msgstr "ID de base de données D1"
+
 msgid "Debug mode is not enabled."
 msgstr "Le mode débogage n'est pas activé."
 
@@ -2277,6 +2310,9 @@ msgstr "Supprimer l'élément"
 
 msgid "Delete failed"
 msgstr "Supprimer échoué"
+
+msgid "Delete profile"
+msgstr "Supprimer le profil"
 
 msgid "Delete quiz"
 msgstr "Supprimer le quiz"
@@ -3013,6 +3049,9 @@ msgstr "Filtre les images décoratives ou non pertinentes sur chaque page."
 
 msgid "Final Page"
 msgstr "Page finale"
+
+msgid "Finish workspace setup"
+msgstr "Terminer la configuration de l'espace de travail"
 
 #~ msgid "First"
 #~ msgstr "Premier"
@@ -3966,6 +4005,9 @@ msgstr "Charger les matériaux"
 msgid "Loading accessibility summary..."
 msgstr "Chargement du résumé d'accessibilité..."
 
+msgid "Loading activity…"
+msgstr "Chargement de l'activité…"
+
 msgid "Loading book config…"
 msgstr "Chargement de la configuration du livre…"
 
@@ -4152,8 +4194,20 @@ msgstr "Correspond au design original du livre avec une certaine flexibilité."
 msgid "Material"
 msgstr "Matériau"
 
+msgid "Material successfully sent to parent."
+msgstr "Matériel envoyé avec succès au parent."
+
+msgid "Materials generated"
+msgstr "Matériaux générés"
+
+msgid "Materials sent"
+msgstr "Matériaux envoyés"
+
 msgid "Materials shared"
 msgstr "Matériaux partagés"
+
+msgid "Materials synced"
+msgstr "Matériaux synchronisés"
 
 msgid "Max height"
 msgstr "Hauteur max"
@@ -4728,6 +4782,9 @@ msgstr "Aucune vidéo assignée pour le moment"
 msgid "No voice mappings configured."
 msgstr "Aucune correspondance de voix configurée."
 
+msgid "No workspace activity yet."
+msgstr "Aucune activité d'espace de travail pour le moment."
+
 msgid "Nodes"
 msgstr "Nodes"
 
@@ -5186,6 +5243,9 @@ msgstr "paragraphe"
 msgid "Paragraph"
 msgstr "Paragraphe"
 
+msgid "Parent email"
+msgstr "Email du parent"
+
 msgid "Parent or guardian email"
 msgstr "Email du parent ou tuteur"
 
@@ -5270,6 +5330,9 @@ msgstr "Modifications en attente"
 
 msgid "Pending materials"
 msgstr "Matériaux en attente"
+
+msgid "Pending uploads"
+msgstr "Téléversements en attente"
 
 msgid "Pending..."
 msgstr "En attente..."
@@ -5470,6 +5533,9 @@ msgstr "Nom du profil"
 msgid "profiles"
 msgstr "profils"
 
+msgid "Profiles created"
+msgstr "Profils créés"
+
 msgid "Progress"
 msgstr "Progression"
 
@@ -5620,6 +5686,9 @@ msgstr "Les quiz ont été générés par l'IA à partir des pages de votre livr
 msgid "Quote"
 msgstr "Citation"
 
+msgid "R2 bucket name"
+msgstr "Nom du bucket R2"
+
 msgid "Radius"
 msgstr "Rayon"
 
@@ -5724,6 +5793,9 @@ msgstr "Réaliste / Photo"
 
 msgid "Rearranging atoms of HTML..."
 msgstr "Réarrangement des atomes de HTML..."
+
+msgid "Recent activity"
+msgstr "Activité récente"
 
 msgid "Recommended"
 msgstr "Recommandé"
@@ -6523,6 +6595,9 @@ msgstr "Application web ADT autonome"
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Renvoyez cette archive de projet au coordinateur pour la fusionner dans le livre source."
 
+msgid "Send to Parent"
+msgstr "Envoyer au parent"
+
 msgid "Separator"
 msgstr "Séparateur"
 
@@ -7028,6 +7103,9 @@ msgstr "SW"
 msgid "Symbiosis"
 msgstr "Symbiose"
 
+msgid "Synced to Cloudflare"
+msgstr "Synchronisé avec Cloudflare"
+
 msgid "Synthesizes narration audio for each page."
 msgstr "Synthétise l'audio de narration pour chaque page."
 
@@ -7073,6 +7151,9 @@ msgstr "Tâches En cours"
 
 msgid "Teacher ID"
 msgstr "ID enseignant"
+
+msgid "Teacher workspace"
+msgstr "Espace de travail enseignant"
 
 msgid "Teaching dashboard"
 msgstr "Tableau de bord pédagogique"
@@ -8223,6 +8304,9 @@ msgstr "Votre livre"
 
 msgid "Your Books"
 msgstr "Vos livres"
+
+msgid "Your Cloudflare account is connected. Add the resources that ADT Studio will use."
+msgstr "Votre compte Cloudflare est connecté. Ajoutez les ressources qu'ADT Studio utilisera."
 
 msgid "Your first ADT <0>starts here.</0>"
 msgstr "Votre premier ADT <0>commence ici.</0>"

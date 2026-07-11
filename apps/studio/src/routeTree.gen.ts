@@ -9,12 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from "./routes/__root"
+import { Route as WorkspaceRouteImport } from "./routes/workspace"
 import { Route as StudentsRouteImport } from "./routes/students"
 import { Route as OnboardingRouteImport } from "./routes/onboarding"
 import { Route as DashboardRouteImport } from "./routes/dashboard"
 import { Route as ClassroomSessionsRouteImport } from "./routes/classroom-sessions"
 import { Route as IndexRouteImport } from "./routes/index"
+import { Route as WorkspaceIndexRouteImport } from "./routes/workspace.index"
 import { Route as StudentsIndexRouteImport } from "./routes/students.index"
+import { Route as WorkspaceSetupRouteImport } from "./routes/workspace.setup"
+import { Route as WorkspaceCallbackRouteImport } from "./routes/workspace.callback"
 import { Route as StudentsNewRouteImport } from "./routes/students.new"
 import { Route as StudentsStudentIdRouteImport } from "./routes/students.$studentId"
 import { Route as BooksNewRouteImport } from "./routes/books.new"
@@ -27,6 +31,11 @@ import { Route as BooksLabelStepIndexRouteImport } from "./routes/books.$label.$
 import { Route as BooksLabelStepSettingsRouteImport } from "./routes/books.$label.$step.settings"
 import { Route as BooksLabelStepPageIdRouteImport } from "./routes/books.$label.$step.$pageId"
 
+const WorkspaceRoute = WorkspaceRouteImport.update({
+  id: "/workspace",
+  path: "/workspace",
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StudentsRoute = StudentsRouteImport.update({
   id: "/students",
   path: "/students",
@@ -52,10 +61,25 @@ const IndexRoute = IndexRouteImport.update({
   path: "/",
   getParentRoute: () => rootRouteImport,
 } as any)
+const WorkspaceIndexRoute = WorkspaceIndexRouteImport.update({
+  id: "/",
+  path: "/",
+  getParentRoute: () => WorkspaceRoute,
+} as any)
 const StudentsIndexRoute = StudentsIndexRouteImport.update({
   id: "/",
   path: "/",
   getParentRoute: () => StudentsRoute,
+} as any)
+const WorkspaceSetupRoute = WorkspaceSetupRouteImport.update({
+  id: "/setup",
+  path: "/setup",
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceCallbackRoute = WorkspaceCallbackRouteImport.update({
+  id: "/callback",
+  path: "/callback",
+  getParentRoute: () => WorkspaceRoute,
 } as any)
 const StudentsNewRoute = StudentsNewRouteImport.update({
   id: "/new",
@@ -119,12 +143,16 @@ export interface FileRoutesByFullPath {
   "/dashboard": typeof DashboardRoute
   "/onboarding": typeof OnboardingRoute
   "/students": typeof StudentsRouteWithChildren
+  "/workspace": typeof WorkspaceRouteWithChildren
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
   "/students/$studentId": typeof StudentsStudentIdRoute
   "/students/new": typeof StudentsNewRoute
+  "/workspace/callback": typeof WorkspaceCallbackRoute
+  "/workspace/setup": typeof WorkspaceSetupRoute
   "/students/": typeof StudentsIndexRoute
+  "/workspace/": typeof WorkspaceIndexRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/books/$label/": typeof BooksLabelIndexRoute
@@ -141,7 +169,10 @@ export interface FileRoutesByTo {
   "/books/new": typeof BooksNewRoute
   "/students/$studentId": typeof StudentsStudentIdRoute
   "/students/new": typeof StudentsNewRoute
+  "/workspace/callback": typeof WorkspaceCallbackRoute
+  "/workspace/setup": typeof WorkspaceSetupRoute
   "/students": typeof StudentsIndexRoute
+  "/workspace": typeof WorkspaceIndexRoute
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/books/$label": typeof BooksLabelIndexRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
@@ -155,12 +186,16 @@ export interface FileRoutesById {
   "/dashboard": typeof DashboardRoute
   "/onboarding": typeof OnboardingRoute
   "/students": typeof StudentsRouteWithChildren
+  "/workspace": typeof WorkspaceRouteWithChildren
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
   "/students/$studentId": typeof StudentsStudentIdRoute
   "/students/new": typeof StudentsNewRoute
+  "/workspace/callback": typeof WorkspaceCallbackRoute
+  "/workspace/setup": typeof WorkspaceSetupRoute
   "/students/": typeof StudentsIndexRoute
+  "/workspace/": typeof WorkspaceIndexRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/books/$label/": typeof BooksLabelIndexRoute
@@ -176,12 +211,16 @@ export interface FileRouteTypes {
     | "/dashboard"
     | "/onboarding"
     | "/students"
+    | "/workspace"
     | "/books/$label"
     | "/books/import"
     | "/books/new"
     | "/students/$studentId"
     | "/students/new"
+    | "/workspace/callback"
+    | "/workspace/setup"
     | "/students/"
+    | "/workspace/"
     | "/books/$label/$step"
     | "/books/$label/debug"
     | "/books/$label/"
@@ -198,7 +237,10 @@ export interface FileRouteTypes {
     | "/books/new"
     | "/students/$studentId"
     | "/students/new"
+    | "/workspace/callback"
+    | "/workspace/setup"
     | "/students"
+    | "/workspace"
     | "/books/$label/debug"
     | "/books/$label"
     | "/books/$label/$step/$pageId"
@@ -211,12 +253,16 @@ export interface FileRouteTypes {
     | "/dashboard"
     | "/onboarding"
     | "/students"
+    | "/workspace"
     | "/books/$label"
     | "/books/import"
     | "/books/new"
     | "/students/$studentId"
     | "/students/new"
+    | "/workspace/callback"
+    | "/workspace/setup"
     | "/students/"
+    | "/workspace/"
     | "/books/$label/$step"
     | "/books/$label/debug"
     | "/books/$label/"
@@ -231,6 +277,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   OnboardingRoute: typeof OnboardingRoute
   StudentsRoute: typeof StudentsRouteWithChildren
+  WorkspaceRoute: typeof WorkspaceRouteWithChildren
   BooksLabelRoute: typeof BooksLabelRouteWithChildren
   BooksImportRoute: typeof BooksImportRoute
   BooksNewRoute: typeof BooksNewRoute
@@ -238,6 +285,13 @@ export interface RootRouteChildren {
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
+    "/workspace": {
+      id: "/workspace"
+      path: "/workspace"
+      fullPath: "/workspace"
+      preLoaderRoute: typeof WorkspaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     "/students": {
       id: "/students"
       path: "/students"
@@ -273,12 +327,33 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    "/workspace/": {
+      id: "/workspace/"
+      path: "/"
+      fullPath: "/workspace/"
+      preLoaderRoute: typeof WorkspaceIndexRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
     "/students/": {
       id: "/students/"
       path: "/"
       fullPath: "/students/"
       preLoaderRoute: typeof StudentsIndexRouteImport
       parentRoute: typeof StudentsRoute
+    }
+    "/workspace/setup": {
+      id: "/workspace/setup"
+      path: "/setup"
+      fullPath: "/workspace/setup"
+      preLoaderRoute: typeof WorkspaceSetupRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    "/workspace/callback": {
+      id: "/workspace/callback"
+      path: "/callback"
+      fullPath: "/workspace/callback"
+      preLoaderRoute: typeof WorkspaceCallbackRouteImport
+      parentRoute: typeof WorkspaceRoute
     }
     "/students/new": {
       id: "/students/new"
@@ -376,6 +451,22 @@ const StudentsRouteWithChildren = StudentsRoute._addFileChildren(
   StudentsRouteChildren,
 )
 
+interface WorkspaceRouteChildren {
+  WorkspaceCallbackRoute: typeof WorkspaceCallbackRoute
+  WorkspaceSetupRoute: typeof WorkspaceSetupRoute
+  WorkspaceIndexRoute: typeof WorkspaceIndexRoute
+}
+
+const WorkspaceRouteChildren: WorkspaceRouteChildren = {
+  WorkspaceCallbackRoute: WorkspaceCallbackRoute,
+  WorkspaceSetupRoute: WorkspaceSetupRoute,
+  WorkspaceIndexRoute: WorkspaceIndexRoute,
+}
+
+const WorkspaceRouteWithChildren = WorkspaceRoute._addFileChildren(
+  WorkspaceRouteChildren,
+)
+
 interface BooksLabelStepRouteChildren {
   BooksLabelStepPageIdRoute: typeof BooksLabelStepPageIdRoute
   BooksLabelStepSettingsRoute: typeof BooksLabelStepSettingsRoute
@@ -414,6 +505,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   OnboardingRoute: OnboardingRoute,
   StudentsRoute: StudentsRouteWithChildren,
+  WorkspaceRoute: WorkspaceRouteWithChildren,
   BooksLabelRoute: BooksLabelRouteWithChildren,
   BooksImportRoute: BooksImportRoute,
   BooksNewRoute: BooksNewRoute,

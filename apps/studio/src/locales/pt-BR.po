@@ -1815,6 +1815,18 @@ msgstr "Fechar painel de edição"
 msgid "Close style editor"
 msgstr "Fechar editor de estilo"
 
+msgid "Cloud sync failed"
+msgstr "Sincronização com a nuvem falhou"
+
+msgid "Cloud synchronization failed. You can retry from the workspace."
+msgstr "Sincronização com a nuvem falhou. Você pode tentar novamente do espaço de trabalho."
+
+msgid "Cloud synchronization, parent delivery, and recent activity."
+msgstr "Sincronização na nuvem, entrega aos pais e atividade recente."
+
+msgid "Cloudflare account ID"
+msgstr "ID da conta Cloudflare"
+
 msgid "Clownfish, sea turtles, and parrotfish are just a few of the thousands of species that depend on reefs for food, shelter, and nursery grounds."
 msgstr "Peixes-palhaço, tartarugas marinhas e peixes-papagaio são apenas algumas das milhares de espécies que dependem dos recifes para alimentação, abrigo e áreas de reprodução."
 
@@ -1920,11 +1932,29 @@ msgstr "Confirmar mesclagem"
 #~ msgid "Confirm Rerun"
 #~ msgstr "Confirmar reexecução"
 
+msgid "Connect a workspace before viewing analytics."
+msgstr "Conecte um espaço de trabalho antes de ver as análises."
+
 msgid "Connect an AI provider"
 msgstr "Conecte um provedor de IA"
 
 msgid "Connect the Classroom Worker by setting VITE_CLASSROOM_API_URL, then restart Studio. For local development, use the URL printed by wrangler dev."
 msgstr "Conecte o Classroom Worker configurando VITE_CLASSROOM_API_URL, depois reinicie o Studio. Para desenvolvimento local, use a URL impressa pelo wrangler dev."
+
+msgid "Connect to your Workspace"
+msgstr "Conectar ao seu Workspace"
+
+msgid "Connect workspace"
+msgstr "Conectar workspace"
+
+msgid "Connect Workspace"
+msgstr "Conectar Workspace"
+
+msgid "Connect your Cloudflare workspace to save students and materials."
+msgstr "Conecte seu workspace Cloudflare para salvar alunos e materiais."
+
+msgid "Connecting your Cloudflare workspace…"
+msgstr "Conectando seu workspace Cloudflare…"
 
 msgid "Consulting the style council..."
 msgstr "Consultando o conselho de estilo..."
@@ -2158,6 +2188,9 @@ msgstr "Intervalo personalizado"
 msgid "Custom section {index}"
 msgstr "Custom section {index}"
 
+msgid "D1 database ID"
+msgstr "ID do banco de dados D1"
+
 msgid "Debug mode is not enabled."
 msgstr "Modo de depuração não está ativado."
 
@@ -2275,6 +2308,9 @@ msgstr "Excluir elemento"
 
 msgid "Delete failed"
 msgstr "Delete failed"
+
+msgid "Delete profile"
+msgstr "Excluir perfil"
 
 msgid "Delete quiz"
 msgstr "Excluir questionário"
@@ -3011,6 +3047,9 @@ msgstr "Filtra imagens decorativas ou sem conteúdo em cada página."
 
 msgid "Final Page"
 msgstr "Página Final"
+
+msgid "Finish workspace setup"
+msgstr "Concluir configuração do workspace"
 
 #~ msgid "First"
 #~ msgstr "Primeira"
@@ -3964,6 +4003,9 @@ msgstr "Carregar materiais"
 msgid "Loading accessibility summary..."
 msgstr "Loading accessibility summary..."
 
+msgid "Loading activity…"
+msgstr "Carregando atividade…"
+
 msgid "Loading book config…"
 msgstr "Carregando configuração do livro…"
 
@@ -4150,8 +4192,20 @@ msgstr "Corresponde ao design original do livro com alguma flexibilidade."
 msgid "Material"
 msgstr "Material"
 
+msgid "Material successfully sent to parent."
+msgstr "Material enviado com sucesso para o responsável."
+
+msgid "Materials generated"
+msgstr "Materiais gerados"
+
+msgid "Materials sent"
+msgstr "Materiais enviados"
+
 msgid "Materials shared"
 msgstr "Materiais compartilhados"
+
+msgid "Materials synced"
+msgstr "Materiais sincronizados"
 
 msgid "Max height"
 msgstr "Altura máx"
@@ -4726,6 +4780,9 @@ msgstr "Nenhum vídeo atribuído ainda"
 msgid "No voice mappings configured."
 msgstr "Nenhum mapeamento de voz configurado."
 
+msgid "No workspace activity yet."
+msgstr "Ainda não há atividade no espaço de trabalho."
+
 msgid "Nodes"
 msgstr "Nodes"
 
@@ -5184,6 +5241,9 @@ msgstr "parágrafo"
 msgid "Paragraph"
 msgstr "Parágrafo"
 
+msgid "Parent email"
+msgstr "Email do responsável"
+
 msgid "Parent or guardian email"
 msgstr "Email do responsável"
 
@@ -5268,6 +5328,9 @@ msgstr "Edições pendentes"
 
 msgid "Pending materials"
 msgstr "Materiais pendentes"
+
+msgid "Pending uploads"
+msgstr "Uploads pendentes"
 
 msgid "Pending..."
 msgstr "Pendente..."
@@ -5468,6 +5531,9 @@ msgstr "Nome do perfil"
 msgid "profiles"
 msgstr "perfis"
 
+msgid "Profiles created"
+msgstr "Perfis criados"
+
 msgid "Progress"
 msgstr "Progresso"
 
@@ -5618,6 +5684,9 @@ msgstr "Os questionários foram gerados por IA a partir das páginas do seu livr
 msgid "Quote"
 msgstr "Citação"
 
+msgid "R2 bucket name"
+msgstr "Nome do bucket R2"
+
 msgid "Radius"
 msgstr "Raio"
 
@@ -5722,6 +5791,9 @@ msgstr "Realista / Foto"
 
 msgid "Rearranging atoms of HTML..."
 msgstr "Reorganizando os átomos de HTML..."
+
+msgid "Recent activity"
+msgstr "Atividade recente"
 
 msgid "Recommended"
 msgstr "Recomendado"
@@ -6521,6 +6593,9 @@ msgstr "Aplicativo web ADT autônomo"
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Envie este arquivo de projeto de volta ao coordenador para mesclá-lo no livro de origem."
 
+msgid "Send to Parent"
+msgstr "Enviar para o responsável"
+
 msgid "Separator"
 msgstr "Separador"
 
@@ -7026,6 +7101,9 @@ msgstr "SW"
 msgid "Symbiosis"
 msgstr "Simbiose"
 
+msgid "Synced to Cloudflare"
+msgstr "Sincronizado com o Cloudflare"
+
 msgid "Synthesizes narration audio for each page."
 msgstr "Sintetiza áudio de narração para cada página."
 
@@ -7071,6 +7149,9 @@ msgstr "Tasks Running"
 
 msgid "Teacher ID"
 msgstr "ID do professor"
+
+msgid "Teacher workspace"
+msgstr "Espaço de trabalho do professor"
 
 msgid "Teaching dashboard"
 msgstr "Painel de ensino"
@@ -8221,6 +8302,9 @@ msgstr "Seu livro"
 
 msgid "Your Books"
 msgstr "Seus livros"
+
+msgid "Your Cloudflare account is connected. Add the resources that ADT Studio will use."
+msgstr "Sua conta Cloudflare está conectada. Adicione os recursos que o ADT Studio usará."
 
 msgid "Your first ADT <0>starts here.</0>"
 msgstr "Seu primeiro ADT <0>começa aqui.</0>"

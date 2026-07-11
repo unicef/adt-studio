@@ -1816,6 +1816,18 @@ msgstr "Mbyll panelin e redaktimit"
 msgid "Close style editor"
 msgstr "Mbyll redaktorin e stilit"
 
+msgid "Cloud sync failed"
+msgstr "Sinkronizimi me cloud dështoi"
+
+msgid "Cloud synchronization failed. You can retry from the workspace."
+msgstr "Sinkronizimi me cloud dështoi. Mund të provoni përsëri nga hapësira e punës."
+
+msgid "Cloud synchronization, parent delivery, and recent activity."
+msgstr "Sinkronizimi i cloud, dërgesa për prindërit dhe aktiviteti i fundit."
+
+msgid "Cloudflare account ID"
+msgstr "ID e llogarisë Cloudflare"
+
 msgid "Clownfish, sea turtles, and parrotfish are just a few of the thousands of species that depend on reefs for food, shelter, and nursery grounds."
 msgstr "Peshqit klovn, breshkat e detit dhe peshqit papagall janë vetëm disa nga mijëra speciet që varen nga rifet për ushqim, strehim dhe vendlindje."
 
@@ -1921,11 +1933,29 @@ msgstr "Konfirmoni bashkimin"
 #~ msgid "Confirm Rerun"
 #~ msgstr "Konfirmoni Rikryerjen"
 
+msgid "Connect a workspace before viewing analytics."
+msgstr "Lidhu një hapësirë pune para se të shikosh analitikën."
+
 msgid "Connect an AI provider"
 msgstr "Lidheni një ofrues AI"
 
 msgid "Connect the Classroom Worker by setting VITE_CLASSROOM_API_URL, then restart Studio. For local development, use the URL printed by wrangler dev."
 msgstr "Lidhu me Classroom Worker duke vendosur VITE_CLASSROOM_API_URL, pastaj rinis Studio. Për zhvillim lokal, përdor URL-në e printuar nga wrangler dev."
+
+msgid "Connect to your Workspace"
+msgstr "Lidhu me Hapësirën tënde të Punës"
+
+msgid "Connect workspace"
+msgstr "Lidhu hapësirën e punës"
+
+msgid "Connect Workspace"
+msgstr "Lidhu Hapësirën e Punës"
+
+msgid "Connect your Cloudflare workspace to save students and materials."
+msgstr "Lidhu hapësirën tënde të punës Cloudflare për të ruajtur studentët dhe materialet."
+
+msgid "Connecting your Cloudflare workspace…"
+msgstr "Duke lidhur hapësirën tënde të punës Cloudflare…"
 
 msgid "Consulting the style council..."
 msgstr "Po konsultohet këshilli i stilit..."
@@ -2159,6 +2189,9 @@ msgstr "Interval i personalizuar"
 msgid "Custom section {index}"
 msgstr "Seksion i personalizuar {index}"
 
+msgid "D1 database ID"
+msgstr "ID e bazës së të dhënave D1"
+
 msgid "Debug mode is not enabled."
 msgstr "Modaliteti i korrigjimit nuk është aktivizuar."
 
@@ -2276,6 +2309,9 @@ msgstr "Fshi elementin"
 
 msgid "Delete failed"
 msgstr "Fshirja dështoi"
+
+msgid "Delete profile"
+msgstr "Fshi profilin"
 
 msgid "Delete quiz"
 msgstr "Fshi kuizin"
@@ -3012,6 +3048,9 @@ msgstr "Filtron imazhet dekorative ose pa përmbajtje nga çdo faqe."
 
 msgid "Final Page"
 msgstr "Faqja e fundit"
+
+msgid "Finish workspace setup"
+msgstr "Përfundo konfigurimin e hapësirës së punës"
 
 #~ msgid "First"
 #~ msgstr "E para"
@@ -3965,6 +4004,9 @@ msgstr "Ngarko materialet"
 msgid "Loading accessibility summary..."
 msgstr "Duke ngarkuar përmbledhjen e aksesueshmërisë..."
 
+msgid "Loading activity…"
+msgstr "Duke ngarkuar aktivitetin…"
+
 msgid "Loading book config…"
 msgstr "Po ngarkohet konfigurimi i librit…"
 
@@ -4151,8 +4193,20 @@ msgstr "Përputhet me dizajnin origjinal të librit me pak fleksibilitet."
 msgid "Material"
 msgstr "Material"
 
+msgid "Material successfully sent to parent."
+msgstr "Materiali u dërgua me sukses te prindi."
+
+msgid "Materials generated"
+msgstr "Materialet e gjeneruara"
+
+msgid "Materials sent"
+msgstr "Materialet e dërguara"
+
 msgid "Materials shared"
 msgstr "Materialet e ndara"
+
+msgid "Materials synced"
+msgstr "Materialet e sinkronizuara"
 
 msgid "Max height"
 msgstr "Lartësia maksimale"
@@ -4727,6 +4781,9 @@ msgstr "Nuk ka ende video të caktuara"
 msgid "No voice mappings configured."
 msgstr "Nuk ka vendosje zëri të konfiguruara."
 
+msgid "No workspace activity yet."
+msgstr "Ende nuk ka aktivitet në hapësirën e punës."
+
 msgid "Nodes"
 msgstr "Nyje"
 
@@ -5185,6 +5242,9 @@ msgstr "paragraf"
 msgid "Paragraph"
 msgstr "Paragraf"
 
+msgid "Parent email"
+msgstr "Emaili i prindit"
+
 msgid "Parent or guardian email"
 msgstr "Emaili i prindit ose kujdestarit"
 
@@ -5269,6 +5329,9 @@ msgstr "Ndryshime në pritje"
 
 msgid "Pending materials"
 msgstr "Materialet në pritje"
+
+msgid "Pending uploads"
+msgstr "Ngarkime në pritje"
 
 msgid "Pending..."
 msgstr "Në pritje..."
@@ -5469,6 +5532,9 @@ msgstr "Emri i profilit"
 msgid "profiles"
 msgstr "profile"
 
+msgid "Profiles created"
+msgstr "Profilet e krijuara"
+
 msgid "Progress"
 msgstr "Progresi"
 
@@ -5619,6 +5685,9 @@ msgstr "Kuizet u gjeneruan nga AI nga faqet e librit tuaj. Klikoni çdo pyetje, 
 msgid "Quote"
 msgstr "Citat"
 
+msgid "R2 bucket name"
+msgstr "Emri i kovës R2"
+
 msgid "Radius"
 msgstr "Rrezja"
 
@@ -5723,6 +5792,9 @@ msgstr "Realist / Foto"
 
 msgid "Rearranging atoms of HTML..."
 msgstr "Duke riorganizuar atomet e HTML-it..."
+
+msgid "Recent activity"
+msgstr "Aktiviteti i fundit"
 
 msgid "Recommended"
 msgstr "I rekomanduar"
@@ -6522,6 +6594,9 @@ msgstr "Aplikacion web ADT i pavarur"
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Dërgojeni këtë arkiv projekti te koordinatori për ta bashkuar në librin burim."
 
+msgid "Send to Parent"
+msgstr "Dërgo te Prindi"
+
 msgid "Separator"
 msgstr "Ndarës"
 
@@ -7027,6 +7102,9 @@ msgstr "JP"
 msgid "Symbiosis"
 msgstr "Simbiozë"
 
+msgid "Synced to Cloudflare"
+msgstr "Sinkronizuar me Cloudflare"
+
 msgid "Synthesizes narration audio for each page."
 msgstr "Sintetizon audion e rrëfimit për çdo faqe."
 
@@ -7072,6 +7150,9 @@ msgstr "Detyrat po Ekzekutohen"
 
 msgid "Teacher ID"
 msgstr "ID e mësuesit"
+
+msgid "Teacher workspace"
+msgstr "Hapësira e punës së mësuesit"
 
 msgid "Teaching dashboard"
 msgstr "Paneli i mësimdhënies"
@@ -8222,6 +8303,9 @@ msgstr "Libri yt"
 
 msgid "Your Books"
 msgstr "Librat tuaj"
+
+msgid "Your Cloudflare account is connected. Add the resources that ADT Studio will use."
+msgstr "Llogaria juaj Cloudflare është lidhur. Shto burimet që do të përdorë ADT Studio."
 
 msgid "Your first ADT <0>starts here.</0>"
 msgstr "ADT-ja juaj e parë <0>fillon këtu.</0>"

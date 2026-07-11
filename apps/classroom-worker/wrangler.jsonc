@@ -2,6 +2,6 @@
   "name": "adt-classroom-sessions",
   "main": "src/index.ts",
   "compatibility_date": "2026-07-10",
-  "d1_databases": [{ "binding": "DB", "database_name": "adt-classroom", "database_id": "REPLACE_WITH_D1_DATABASE_ID", "migrations_dir": "migrations" }],
+  "d1_databases": [{ "binding": "DB", "database_name": "adt-classroom", "database_id": "2c6a5bc9-c1d9-4375-8af9-904b4ecc6a3d", "migrations_dir": "migrations" }],
   "r2_buckets": [{ "binding": "MATERIALS", "bucket_name": "adt-classroom-materials" }]
 }

@@ -45,6 +45,9 @@ import {
 import type { BookSummary } from "@/api/client"
 import { getBookCoverUrl } from "@/api/client"
 import { cn } from "@/lib/utils"
+import { getSyncedMaterial } from "@/features/workspace/material-sync"
+import { getWorkspace } from "@/features/workspace/config"
+import { classroomApi } from "@/api/classroom-client"
 
 type BookSortKey = "modified" | "created" | "alphabetical"
 
@@ -191,6 +194,15 @@ function DetailRow({
       <span className="truncate">{value}</span>
     </div>
   )
+}
+
+function CloudMaterialActions({ label }: { label: string }) {
+  const { t } = useLingui()
+  const stored = getSyncedMaterial(label)
+  const [email, setEmail] = useState(stored?.parentEmail ?? "")
+  const [sent, setSent] = useState(false)
+  if (!stored) return null
+  return <div className="mt-3 rounded-md border border-primary/20 bg-primary/5 p-3"><p className={stored.material.syncStatus === "synced" ? "text-xs text-green-700" : "text-xs text-destructive"}>{stored.material.syncStatus === "synced" ? t`Synced to Cloudflare` : t`Cloud sync failed`}</p><div className="mt-2 flex flex-wrap gap-2"><Input value={email} type="email" onChange={(event) => setEmail(event.target.value)} placeholder={t`Parent email`} className="h-8 max-w-xs text-xs" /><Button size="sm" disabled={!email || sent} onClick={async () => { const workspace = getWorkspace(); if (!workspace) return; await classroomApi.sendToParent(workspace.teacherId, stored.material.id, email); setSent(true) }}><Trans>Send to Parent</Trans></Button></div>{sent && <p className="mt-2 text-xs text-green-700"><Trans>Material successfully sent to parent.</Trans></p>}</div>
 }
 
 function BookRow({
@@ -388,6 +400,7 @@ function BookRow({
             completedSet={completedSet}
             pipelineStages={pipelineStages}
           />
+          <CloudMaterialActions label={book.label} />
           </div>
         </Link>
 

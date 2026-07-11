@@ -111,6 +111,12 @@ export function createStudentRoutes(booksDir: string): Hono {
       const plan = buildAccessibilityPlan(student)
       const storage = createBookStorage(derivedBookLabel, booksDir)
       try {
+        const profileName = student.accessibilityProfiles[0]?.name ?? student.firstName
+        const materialTitle = `${profileName} material`
+        const metadata = storage.getLatestNodeData("metadata", "book")?.data
+        if (metadata && typeof metadata === "object") {
+          storage.putNodeData("metadata", "book", { ...(metadata as Record<string, unknown>), title: materialTitle })
+        }
         storage.putNodeData("personalization", "material", { studentId: student.id, sourceBookLabel, plan, promptContext: personalizationPromptContext(plan), generatedAt: new Date().toISOString() })
       } finally { storage.close() }
       const material = library.createMaterial(student.id, sourceBookLabel, derivedBookLabel, plan.rules)

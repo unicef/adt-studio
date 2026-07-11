@@ -1,0 +1,11 @@
+ALTER TABLE students ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'synced';
+ALTER TABLE students ADD COLUMN last_sync_at TEXT;
+ALTER TABLE students ADD COLUMN sync_error TEXT;
+ALTER TABLE materials ADD COLUMN sync_status TEXT NOT NULL DEFAULT 'pending';
+ALTER TABLE materials ADD COLUMN r2_uploaded_at TEXT;
+ALTER TABLE materials ADD COLUMN last_sync_attempt TEXT;
+ALTER TABLE materials ADD COLUMN sync_error TEXT;
+CREATE TABLE material_deliveries (id TEXT PRIMARY KEY, teacher_id TEXT NOT NULL, student_id TEXT, material_id TEXT NOT NULL REFERENCES materials(id) ON DELETE CASCADE, parent_email TEXT, status TEXT NOT NULL, sent_at TEXT NOT NULL);
+CREATE TABLE activity_logs (id TEXT PRIMARY KEY, teacher_id TEXT NOT NULL, type TEXT NOT NULL, entity_id TEXT NOT NULL, description TEXT NOT NULL, created_at TEXT NOT NULL);
+CREATE INDEX idx_deliveries_teacher ON material_deliveries(teacher_id, sent_at DESC);
+CREATE INDEX idx_activity_teacher ON activity_logs(teacher_id, created_at DESC);

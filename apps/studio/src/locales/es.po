@@ -1815,6 +1815,18 @@ msgstr "Cerrar panel de edición"
 msgid "Close style editor"
 msgstr "Cerrar editor de estilo"
 
+msgid "Cloud sync failed"
+msgstr "Sincronización con la nube fallida"
+
+msgid "Cloud synchronization failed. You can retry from the workspace."
+msgstr "La sincronización con la nube falló. Puedes reintentar desde el espacio de trabajo."
+
+msgid "Cloud synchronization, parent delivery, and recent activity."
+msgstr "Sincronización en la nube, entrega a padres y actividad reciente."
+
+msgid "Cloudflare account ID"
+msgstr "ID de cuenta de Cloudflare"
+
 msgid "Clownfish, sea turtles, and parrotfish are just a few of the thousands of species that depend on reefs for food, shelter, and nursery grounds."
 msgstr "Los peces payaso, tortugas marinas y peces loro son solo algunas de las miles de especies que dependen de los arrecifes para alimento, refugio y áreas de cría."
 
@@ -1920,11 +1932,29 @@ msgstr "Confirmar fusión"
 #~ msgid "Confirm Rerun"
 #~ msgstr "Confirmar reejecutar"
 
+msgid "Connect a workspace before viewing analytics."
+msgstr "Conecta un espacio de trabajo antes de ver análisis."
+
 msgid "Connect an AI provider"
 msgstr "Conecta un proveedor de IA"
 
 msgid "Connect the Classroom Worker by setting VITE_CLASSROOM_API_URL, then restart Studio. For local development, use the URL printed by wrangler dev."
 msgstr "Conecta el Classroom Worker configurando VITE_CLASSROOM_API_URL, luego reinicia Studio. Para desarrollo local, usa la URL impresa por wrangler dev."
+
+msgid "Connect to your Workspace"
+msgstr "Conectar a tu espacio de trabajo"
+
+msgid "Connect workspace"
+msgstr "Conectar espacio de trabajo"
+
+msgid "Connect Workspace"
+msgstr "Conectar Espacio de Trabajo"
+
+msgid "Connect your Cloudflare workspace to save students and materials."
+msgstr "Conecta tu espacio de trabajo de Cloudflare para guardar estudiantes y materiales."
+
+msgid "Connecting your Cloudflare workspace…"
+msgstr "Conectando tu espacio de trabajo de Cloudflare…"
 
 msgid "Consulting the style council..."
 msgstr "Consultando al consejo de estilo..."
@@ -2158,6 +2188,9 @@ msgstr "Intervalo personalizado"
 msgid "Custom section {index}"
 msgstr "Custom section {index}"
 
+msgid "D1 database ID"
+msgstr "ID de base de datos D1"
+
 msgid "Debug mode is not enabled."
 msgstr "El modo de depuración no está habilitado."
 
@@ -2275,6 +2308,9 @@ msgstr "Eliminar elemento"
 
 msgid "Delete failed"
 msgstr "Delete failed"
+
+msgid "Delete profile"
+msgstr "Eliminar perfil"
 
 msgid "Delete quiz"
 msgstr "Eliminar cuestionario"
@@ -3011,6 +3047,9 @@ msgstr "Filtra imágenes decorativas o sin contenido en cada página."
 
 msgid "Final Page"
 msgstr "Página Final"
+
+msgid "Finish workspace setup"
+msgstr "Finalizar configuración del espacio de trabajo"
 
 #~ msgid "First"
 #~ msgstr "Primera"
@@ -3964,6 +4003,9 @@ msgstr "Cargar materiales"
 msgid "Loading accessibility summary..."
 msgstr "Loading accessibility summary..."
 
+msgid "Loading activity…"
+msgstr "Cargando actividad…"
+
 msgid "Loading book config…"
 msgstr "Cargando configuración del libro…"
 
@@ -4150,8 +4192,20 @@ msgstr "Coincide con el diseño original del libro con cierta flexibilidad."
 msgid "Material"
 msgstr "Material"
 
+msgid "Material successfully sent to parent."
+msgstr "Material enviado con éxito al padre."
+
+msgid "Materials generated"
+msgstr "Materiales generados"
+
+msgid "Materials sent"
+msgstr "Materiales enviados"
+
 msgid "Materials shared"
 msgstr "Materiales compartidos"
+
+msgid "Materials synced"
+msgstr "Materiales sincronizados"
 
 msgid "Max height"
 msgstr "Altura máx"
@@ -4726,6 +4780,9 @@ msgstr "Aún no hay videos asignados"
 msgid "No voice mappings configured."
 msgstr "No hay asignaciones de voz configuradas."
 
+msgid "No workspace activity yet."
+msgstr "Aún no hay actividad en el espacio de trabajo."
+
 msgid "Nodes"
 msgstr "Nodes"
 
@@ -5184,6 +5241,9 @@ msgstr "párrafo"
 msgid "Paragraph"
 msgstr "Párrafo"
 
+msgid "Parent email"
+msgstr "Correo electrónico del padre"
+
 msgid "Parent or guardian email"
 msgstr "Correo electrónico del padre o tutor"
 
@@ -5268,6 +5328,9 @@ msgstr "Cambios pendientes"
 
 msgid "Pending materials"
 msgstr "Materiales pendientes"
+
+msgid "Pending uploads"
+msgstr "Cargas pendientes"
 
 msgid "Pending..."
 msgstr "Pendiente..."
@@ -5468,6 +5531,9 @@ msgstr "Nombre del perfil"
 msgid "profiles"
 msgstr "perfiles"
 
+msgid "Profiles created"
+msgstr "Perfiles creados"
+
 msgid "Progress"
 msgstr "Progreso"
 
@@ -5618,6 +5684,9 @@ msgstr "Los cuestionarios fueron generados por IA a partir de las páginas de tu
 msgid "Quote"
 msgstr "Cita"
 
+msgid "R2 bucket name"
+msgstr "Nombre del bucket R2"
+
 msgid "Radius"
 msgstr "Radio"
 
@@ -5722,6 +5791,9 @@ msgstr "Realista / Foto"
 
 msgid "Rearranging atoms of HTML..."
 msgstr "Reorganizando los átomos de HTML..."
+
+msgid "Recent activity"
+msgstr "Actividad reciente"
 
 msgid "Recommended"
 msgstr "Recomendado"
@@ -6521,6 +6593,9 @@ msgstr "Aplicación web ADT autónoma"
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Envía este archivo de proyecto al coordinador para combinarlo en el libro de origen."
 
+msgid "Send to Parent"
+msgstr "Enviar al padre"
+
 msgid "Separator"
 msgstr "Separador"
 
@@ -7026,6 +7101,9 @@ msgstr "SW"
 msgid "Symbiosis"
 msgstr "Simbiosis"
 
+msgid "Synced to Cloudflare"
+msgstr "Sincronizado con Cloudflare"
+
 msgid "Synthesizes narration audio for each page."
 msgstr "Sintetiza audio de narración para cada página."
 
@@ -7071,6 +7149,9 @@ msgstr "Tasks Running"
 
 msgid "Teacher ID"
 msgstr "ID del profesor"
+
+msgid "Teacher workspace"
+msgstr "Espacio de trabajo del profesor"
 
 msgid "Teaching dashboard"
 msgstr "Panel de enseñanza"
@@ -8221,6 +8302,9 @@ msgstr "Tu libro"
 
 msgid "Your Books"
 msgstr "Tus libros"
+
+msgid "Your Cloudflare account is connected. Add the resources that ADT Studio will use."
+msgstr "Tu cuenta de Cloudflare está conectada. Añade los recursos que usará ADT Studio."
 
 msgid "Your first ADT <0>starts here.</0>"
 msgstr "Tu primer ADT <0>empieza aquí.</0>"
