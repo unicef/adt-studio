@@ -191,6 +191,7 @@ export const AppConfig = z
         theme: z.enum(["light", "dark", "system"]).optional(),
         icon_size: z.enum(["sm", "md", "lg"]).optional(),
         reduce_motion: z.boolean().optional(),
+        easy_read: z.boolean().optional(),
       })
       .optional(),
     locked_settings: z

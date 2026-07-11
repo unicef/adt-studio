@@ -129,6 +129,7 @@ function applyConfiguredSettings(config: AppConfig): void {
   seed("theme", "theme", themeAtom, defaults?.theme)
   seed("iconSize", "iconSize", iconSizeAtom, defaults?.iconSize)
   seed("reduceMotion", "reduceMotion", reduceMotionAtom, defaults?.reduceMotion)
+  seed("easyRead", "easyReadMode", easyReadModeAtom, defaults?.easyRead)
 }
 
 function readPersistedLanguage(): string | null {
@@ -159,6 +160,9 @@ export async function bootRuntime(): Promise<void> {
     store.set(appConfigAtom, config)
     setStorageMode(pickStorageMode(config))
     applyConfiguredSettings(config)
+    window.dispatchEvent(new CustomEvent("adt:easy-read-state", {
+      detail: { enabled: store.get(easyReadModeAtom) as boolean },
+    }))
 
     const htmlLang = document.documentElement.getAttribute("lang")
     const persisted = readPersistedLanguage()
@@ -295,10 +299,16 @@ export function subscribeLanguageChanges(): () => void {
   })
 
   const unsubEasyRead = store.sub(easyReadModeAtom, () => applyDOMTranslations())
+  const onEasyReadChange = (event: Event) => {
+    const enabled = (event as CustomEvent<{ enabled?: unknown }>).detail?.enabled
+    if (typeof enabled === "boolean") store.set(easyReadModeAtom, enabled)
+  }
+  window.addEventListener("adt:easy-read-change", onEasyReadChange)
 
   return () => {
     unsubLanguage()
     unsubEasyRead()
+    window.removeEventListener("adt:easy-read-change", onEasyReadChange)
   }
 }
 

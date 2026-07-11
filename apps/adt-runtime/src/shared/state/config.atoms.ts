@@ -40,7 +40,7 @@ export interface AppAnalytics {
   srcUrl?: string
 }
 
-export type LockableSetting = "dockLayout" | "theme" | "iconSize" | "reduceMotion"
+export type LockableSetting = "dockLayout" | "theme" | "iconSize" | "reduceMotion" | "easyRead"
 
 export interface DefaultSettings {
   dockLayout?: {
@@ -51,6 +51,7 @@ export interface DefaultSettings {
   theme?: "light" | "dark" | "system"
   iconSize?: "sm" | "md" | "lg"
   reduceMotion?: boolean
+  easyRead?: boolean
 }
 
 export interface AppConfig {

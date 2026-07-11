@@ -79,6 +79,7 @@ export interface PackageAdtWebOptions {
     theme?: "light" | "dark" | "system"
     iconSize?: "sm" | "md" | "lg"
     reduceMotion?: boolean
+    easyRead?: boolean
   }
   lockedSettings?: ("dockLayout" | "theme" | "iconSize" | "reduceMotion")[]
   fixedLayout?: boolean
@@ -191,6 +192,9 @@ export function computePackagingInputHash(options: ComputePackagingInputHashOpti
     title: options.title,
     bundleVersion: options.bundleVersion ?? "1",
     applyBodyBackground: options.applyBodyBackground ?? false,
+    // Bump when generated page markup changes. This ensures existing books are
+    // repackaged instead of serving a stale cached HTML shell.
+    pageTemplateVersion: "easy-read-toggle-v3",
   }))
 
   // 3. Book config (affects rendering, accessibility, etc.)
@@ -302,6 +306,7 @@ export async function packageAdtWeb(
   const easyReadRow = storage.getLatestNodeData("easy-read", "book")
   const easyRead = easyReadRow?.data as EasyReadOutput | undefined
   const easyReadEntries = flattenEasyReadEntries(easyRead)
+  const hasEasyRead = easyReadEntries.length > 0
 
   // ------------------------------------------------------------------
   // Process pages
@@ -410,6 +415,7 @@ export async function packageAdtWeb(
             applyBodyBackground,
             fixedViewport,
             bodyFontFamily,
+            easyReadAvailable: hasEasyRead,
           })
           fs.writeFileSync(path.join(adtDir, filename), pageHtml)
 
@@ -460,6 +466,7 @@ export async function packageAdtWeb(
         skipContentWrapper: true,
         applyBodyBackground,
         bodyFontFamily,
+        easyReadAvailable: hasEasyRead,
       })
       fs.writeFileSync(path.join(adtDir, quizFilename), quizPageHtml)
 
@@ -665,7 +672,6 @@ export async function packageAdtWeb(
   // ------------------------------------------------------------------
   const hasGlossary = (features?.glossary !== false) && (glossary !== undefined && glossary.items.some((item) => !item.pruned))
   const hasQuiz = (features?.quizzes !== false) && (quizData !== undefined && quizData.quizzes.length > 0)
-  const hasEasyRead = easyReadEntries.length > 0
 
   const hasSignLanguageVideos = (features?.signLanguage !== false) && storage.getSignLanguageVideos().some((v) => v.sectionId !== null)
 
@@ -699,8 +705,14 @@ export async function packageAdtWeb(
       srcUrl: "https://unisitetracker.unicef.io/matomo.js",
     },
   }
-  if (defaultSettings && Object.keys(defaultSettings).length > 0) {
-    configJson.defaultSettings = defaultSettings
+  if ((defaultSettings && Object.keys(defaultSettings).length > 0) || hasEasyRead) {
+    // A package with generated Easy Read text should open in that mode unless
+    // the export explicitly supplies a different default. This also upgrades
+    // existing personalized books when they are republished.
+    configJson.defaultSettings = {
+      ...defaultSettings,
+      ...(defaultSettings?.easyRead === undefined && hasEasyRead ? { easyRead: true } : {}),
+    }
   }
   if (lockedSettings && lockedSettings.length > 0) {
     configJson.lockedSettings = lockedSettings
@@ -1121,6 +1133,8 @@ export interface RenderPageOptions {
    *  the global Merriweather rule from fonts.css and the family is loaded via
    *  Google Fonts. Omit (fixed-layout / serif default) to keep Merriweather. */
   bodyFontFamily?: string
+  /** Whether the package includes simplified Easy Read text alternatives. */
+  easyReadAvailable?: boolean
 }
 
 /**
@@ -1184,6 +1198,70 @@ export function renderPageHtml(opts: RenderPageOptions): string {
     opts.activityAnswers && Object.keys(opts.activityAnswers).length > 0
       ? `\n    <script type="text/javascript">\n        window.correctAnswers = JSON.parse('${escapeInlineScriptJson(JSON.stringify(opts.activityAnswers))}');\n    </script>`
       : ""
+
+  // The full reader also exposes this preference in its language and settings
+  // panels. Keep a persistent, visible control on the reading page so a
+  // learner does not have to discover those panels before using the generated
+  // Easy Read alternative. The runtime reads the same JSON localStorage value
+  // on page load and applies the matching text catalog immediately.
+  const easyReadToggle = opts.easyReadAvailable && !opts.embed
+    ? `
+    <button id="adt-easy-read-toggle" type="button" aria-pressed="false">Easy Read: Off</button>
+    <script>
+      (() => {
+        const button = document.getElementById("adt-easy-read-toggle")
+        if (!button) return
+
+        const isEnabled = () => {
+          try {
+            return JSON.parse(localStorage.getItem("easyReadMode") || "false") === true
+          } catch {
+            return false
+          }
+        }
+        const update = (enabled = isEnabled()) => {
+          button.setAttribute("aria-pressed", String(enabled))
+          button.textContent = enabled ? "Easy Read: On" : "Easy Read: Off"
+        }
+
+        update()
+        window.addEventListener("adt:easy-read-state", (event) => {
+          const enabled = event.detail?.enabled
+          if (typeof enabled === "boolean") update(enabled)
+        })
+        button.addEventListener("click", () => {
+          const enabled = !isEnabled()
+          localStorage.setItem("easyReadMode", JSON.stringify(enabled))
+          window.dispatchEvent(new CustomEvent("adt:easy-read-change", { detail: { enabled } }))
+          update(enabled)
+        })
+      })()
+    </script>
+    <style>
+      #adt-easy-read-toggle {
+        position: fixed;
+        top: 1rem;
+        right: 1rem;
+        z-index: 60;
+        border: 2px solid #1d4ed8;
+        border-radius: 9999px;
+        background: #ffffff;
+        color: #1e3a8a;
+        cursor: pointer;
+        font: 600 0.9375rem/1.25 system-ui, sans-serif;
+        padding: 0.625rem 0.875rem;
+        box-shadow: 0 2px 8px rgb(15 23 42 / 0.2);
+      }
+      #adt-easy-read-toggle[aria-pressed="true"] {
+        background: #1d4ed8;
+        color: #ffffff;
+      }
+      #adt-easy-read-toggle:focus-visible {
+        outline: 3px solid #f59e0b;
+        outline-offset: 3px;
+      }
+    </style>`
+    : ""
 
   const normalizedContent = stripContentEditable(promoteFirstHeadingToH1(opts.content))
 
@@ -1289,13 +1367,14 @@ ${mathScript}${embedStyles}${bodyFontStyle}</head>
 <body${opts.fixedViewport ? ` style="margin:0;overflow:hidden;width:${opts.fixedViewport.width}px;height:${opts.fixedViewport.height}px"` : ` class="min-h-screen flex items-center justify-center"${bodyStyle}`}>
 ${mainBlock}
 ${answersScript}
+${easyReadToggle}
     <div class="relative z-50" id="interface-container"></div>
     <div class="relative z-50" id="nav-container"></div>
 ${opts.embed
       ? `    <script src="./assets/base.bundle.min.js?v=${escapeAttr(opts.bundleVersion)}" type="module"></script>`
       : `    <script src="./assets/offline-preloader.js"></script>
     <script src="./assets/scorm.js"></script>
-    <script src="./assets/base.bundle.local.js"></script>`}
+    <script src="./assets/base.bundle.local.js?v=${escapeAttr(opts.bundleVersion)}"></script>`}
 </body>
 
 </html>

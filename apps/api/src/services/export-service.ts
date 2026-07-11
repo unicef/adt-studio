@@ -57,6 +57,7 @@ export interface ExportDefaultSettings {
   theme?: "light" | "dark" | "system"
   iconSize?: "sm" | "md" | "lg"
   reduceMotion?: boolean
+  easyRead?: boolean
 }
 
 /**
@@ -118,6 +119,9 @@ export async function prepareExport(
             : {}),
           ...(config.default_settings.reduce_motion !== undefined
             ? { reduceMotion: config.default_settings.reduce_motion }
+            : {}),
+          ...(config.default_settings.easy_read !== undefined
+            ? { easyRead: config.default_settings.easy_read }
             : {}),
         }
       : undefined

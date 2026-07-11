@@ -118,6 +118,25 @@ describe("renderPageHtml", () => {
     expect(html).toContain('href="./assets/fonts.css"')
   })
 
+  it("adds an Easy Read control only when simplified content is available", () => {
+    const html = renderPageHtml({
+      content: "<p>Hello</p>",
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Test",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+      easyReadAvailable: true,
+    })
+
+    expect(html).toContain('id="adt-easy-read-toggle"')
+    expect(html).toContain('localStorage.setItem("easyReadMode"')
+    expect(html).toContain('new CustomEvent("adt:easy-read-change"')
+    expect(html).not.toContain("window.location.reload()")
+    expect(html).toContain("Easy Read: Off")
+  })
+
   it("strips contenteditable left over from the storyboard editor", () => {
     const html = renderPageHtml({
       content: `<p data-id="x" contenteditable="true" style="font-family:Arial">Edited</p>`,
@@ -621,8 +640,9 @@ describe("packageAdtWeb", () => {
 
     const configJson = JSON.parse(
       fs.readFileSync(path.join(bookDir, "adt", "assets", "config.json"), "utf-8"),
-    ) as { features: { easyRead: boolean } }
+    ) as { features: { easyRead: boolean }; defaultSettings: { easyRead: boolean } }
     expect(configJson.features.easyRead).toBe(true)
+    expect(configJson.defaultSettings.easyRead).toBe(true)
   })
 
   it("inserts quiz pages even when the anchor page has no rendered sections", async () => {

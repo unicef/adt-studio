@@ -41,6 +41,8 @@ function applyPersonalizationConfig(derivedDir: string, rules: Record<string, bo
   if (needsEasyRead) {
     const easyRead = (config.easy_read ?? {}) as Record<string, unknown>
     config.easy_read = { ...easyRead, enabled: true, tts: Boolean(rules.generateAudio || easyRead.tts) }
+    const defaultSettings = (config.default_settings ?? {}) as Record<string, unknown>
+    config.default_settings = { ...defaultSettings, easy_read: true }
   }
   fs.writeFileSync(configPath, yaml.dump(config, { noRefs: true }))
 }
