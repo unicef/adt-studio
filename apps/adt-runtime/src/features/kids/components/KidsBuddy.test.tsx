@@ -19,7 +19,6 @@ import {
   buddySpeechAtom,
   kidsBuddyAtom,
   kidsLastSpotAtom,
-  kidsModeAtom,
   kidsOnboardingDoneAtom,
   kidsPlayerNameAtom,
 } from "@/features/kids/state/kids.atoms"
@@ -107,9 +106,8 @@ function createKidsStore({
   const store = createStore()
   store.set(appConfigAtom, {
     languages: { available: languages, default: languages[0] ?? "en" },
-    features,
+    features: { ...features, kidsMode },
   })
-  store.set(kidsModeAtom, kidsMode)
   store.set(kidsOnboardingDoneAtom, true)
   store.set(kidsPlayerNameAtom, playerName)
   store.set(reduceMotionAtom, reduceMotion)

@@ -11,10 +11,8 @@ import { createStore, Provider } from "jotai"
 import type { ReactNode } from "react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { readAloudModeAtom } from "@/features/audio/state/audio.atoms"
-import { SettingsTab } from "@/features/settings/components/SettingsTab"
 import {
   kidsBuddyAtom,
-  kidsModeAtom,
   kidsOnboardingDoneAtom,
   kidsPlayerNameAtom,
 } from "@/features/kids/state/kids.atoms"
@@ -82,21 +80,17 @@ function createKidsStore({
   const store = createStore()
   store.set(appConfigAtom, {
     languages: { available: ["en"], default: "en" },
-    features: { ...features, ...featureOverrides },
+    features: { ...features, ...featureOverrides, kidsMode },
   })
-  store.set(kidsModeAtom, kidsMode)
   store.set(kidsOnboardingDoneAtom, onboardingDone)
   store.set(kidsPlayerNameAtom, "")
   store.set(kidsBuddyAtom, {
     character: "dino",
     palette: "classic",
     backgroundColor: "#FEF3C7",
-    name: "",
   })
   store.set(reduceMotionAtom, reduceMotion)
-  store.set(translationsAtom, {
-    "kids-meet-buddy-again": "Meet your buddy again",
-  })
+  store.set(translationsAtom, {})
   return store
 }
 
@@ -388,12 +382,19 @@ describe("KidsOnboarding", () => {
     expect(step.className).not.toContain("animate-kidsBuddyPop")
   })
 
-  it("lets Settings replay onboarding when kids mode is enabled", () => {
-    const store = createKidsStore({ onboardingDone: true })
-    renderWithStore(<SettingsTab />, store)
+  it("respects the packed roster from features.kidsBuddies", () => {
+    renderWithStore(
+      <KidsChrome />,
+      createKidsStore({
+        featureOverrides: { kidsBuddies: ["bunny", "cat"] },
+      }),
+    )
+    goToPickPage()
 
-    fireEvent.click(screen.getByText("Meet your buddy again"))
-
-    expect(store.get(kidsOnboardingDoneAtom)).toBe(false)
+    expect(screen.getByTestId("kids-onboarding-character-bunny")).not.toBeNull()
+    expect(screen.getByTestId("kids-onboarding-character-cat")).not.toBeNull()
+    expect(screen.queryByTestId("kids-onboarding-character-dino")).toBeNull()
+    expect(screen.queryByTestId("kids-onboarding-character-robot")).toBeNull()
+    expect(screen.queryByTestId("kids-onboarding-character-alien")).toBeNull()
   })
 })

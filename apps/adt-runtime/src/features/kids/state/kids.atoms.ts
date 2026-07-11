@@ -1,9 +1,10 @@
 /**
  * Kids mode state.
  *
- * The persisted atom stores the reader's preference. The active atom also
- * respects per-book feature flags so a packaged book can hide kids mode
- * without clearing the reader's saved preference.
+ * Whether a book is a kids book is an author-time decision made in Studio
+ * and packed into the book's config (`features.kidsMode`) — readers never
+ * toggle it. Per-reader state (onboarding done, chosen buddy, last spot)
+ * stays persisted locally.
  */
 import { atom } from "jotai"
 import { appConfigAtom } from "@/shared/state/config.atoms"
@@ -19,16 +20,14 @@ import {
   type KidsCharacterId,
 } from "@/features/kids/lib/characters"
 
-export const kidsModeAtom = persistedBoolAtom("kidsMode", false)
 export const kidsOnboardingDoneAtom = persistedBoolAtom(
   "kidsOnboardingDone",
   false,
 )
 
-export const kidsModeActiveAtom = atom((get) => {
-  const enabled = get(appConfigAtom).features.kidsMode !== false
-  return enabled && get(kidsModeAtom)
-})
+export const kidsModeActiveAtom = atom(
+  (get) => get(appConfigAtom).features.kidsMode === true,
+)
 
 export interface KidsBuddyConfig {
   character: KidsCharacterId

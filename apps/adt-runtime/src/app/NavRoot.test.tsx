@@ -3,7 +3,6 @@ import { cleanup, render } from "@testing-library/react"
 import { createStore, Provider } from "jotai"
 import type { ReactNode } from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { kidsModeAtom } from "@/features/kids/state/kids.atoms"
 import { translationsAtom } from "@/features/language/state/language.atoms"
 import { SettingsTab } from "@/features/settings/components/SettingsTab"
 import { appConfigAtom, type AppFeatures } from "@/shared/state/config.atoms"
@@ -61,9 +60,8 @@ function createRuntimeStore({
   const store = createStore()
   store.set(appConfigAtom, {
     languages: { available: ["en"], default: "en" },
-    features,
+    features: { ...features, kidsMode },
   })
-  store.set(kidsModeAtom, kidsMode)
   store.set(translationsAtom, {
     "settings-section-kids": "Kids",
     "kids-mode-label": "Kids mode",
@@ -98,11 +96,8 @@ describe("NavRoot kids mode", () => {
     expect(queryByTestId("bottom-dock")).toBeNull()
   })
 
-  it("ignores persisted kids mode and hides Kids settings when the feature is disabled", () => {
-    const store = createRuntimeStore({
-      kidsMode: true,
-      features: { kidsMode: false },
-    })
+  it("offers no reader-facing kids mode toggle in Settings", () => {
+    const store = createRuntimeStore({ kidsMode: false })
 
     const { queryByTestId, queryByText } = render(
       <Provider store={store}>
