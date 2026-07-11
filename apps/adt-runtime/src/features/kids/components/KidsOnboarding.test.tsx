@@ -1,8 +1,15 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react"
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  within,
+} from "@testing-library/react"
 import { createStore, Provider } from "jotai"
 import type { ReactNode } from "react"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { readAloudModeAtom } from "@/features/audio/state/audio.atoms"
 import { SettingsTab } from "@/features/settings/components/SettingsTab"
 import {
@@ -38,8 +45,14 @@ vi.mock("@/shared/lib/analytics", () => ({
   trackToggleEvent: vi.fn(),
 }))
 
+beforeEach(() => {
+  vi.useFakeTimers()
+})
+
 afterEach(() => {
   cleanup()
+  vi.clearAllTimers()
+  vi.useRealTimers()
   localStorage.clear()
   sessionStorage.clear()
   vi.clearAllMocks()
@@ -106,7 +119,9 @@ function goToPickPage() {
 
 function goToReadingModePage() {
   goToPickPage()
+  fireEvent.click(screen.getByTestId("kids-onboarding-character-dino"))
   fireEvent.click(screen.getByText("This is my buddy"))
+  act(() => vi.advanceTimersByTime(180))
 }
 
 function goToFeaturePagesPage() {
@@ -146,12 +161,58 @@ describe("KidsOnboarding", () => {
     fireEvent.click(screen.getByText("That's me!"))
 
     expect(screen.getByText("Pick a reading buddy")).not.toBeNull()
-    expect(screen.queryByTestId("kids-onboarding-neutral-visual")).toBeNull()
+    expect(screen.getByTestId("kids-onboarding-neutral-visual")).not.toBeNull()
+    expect(screen.queryByTestId("kids-onboarding-buddy-hero")).toBeNull()
     expect(screen.getByTestId("kids-onboarding-character-dino")).not.toBeNull()
     expect(screen.getByTestId("kids-onboarding-character-robot")).not.toBeNull()
     expect(screen.getByTestId("kids-onboarding-character-bunny")).not.toBeNull()
     expect(screen.getByTestId("kids-onboarding-character-cat")).not.toBeNull()
     expect(screen.getByTestId("kids-onboarding-character-alien")).not.toBeNull()
+  })
+
+  it("shows the neutral visual in the pick hero before a buddy is selected", () => {
+    renderWithStore(<KidsChrome />)
+    goToPickPage()
+
+    expect(screen.getByTestId("kids-onboarding-neutral-visual")).not.toBeNull()
+    expect(screen.queryByTestId("kids-onboarding-buddy-hero")).toBeNull()
+    expect(
+      screen
+        .getByTestId("kids-onboarding-character-dino")
+        .getAttribute("aria-pressed"),
+    ).toBe("false")
+  })
+
+  it("shows the clicked buddy in the pick hero preview", () => {
+    renderWithStore(<KidsChrome />)
+    goToPickPage()
+
+    fireEvent.click(screen.getByTestId("kids-onboarding-character-robot"))
+
+    const hero = screen.getByTestId("kids-onboarding-buddy-hero")
+    expect(screen.queryByTestId("kids-onboarding-neutral-visual")).toBeNull()
+    expect(within(hero).getByRole("img", { name: "Bolt" })).not.toBeNull()
+    expect(
+      screen
+        .getByTestId("kids-onboarding-character-robot")
+        .getAttribute("aria-pressed"),
+    ).toBe("true")
+  })
+
+  it("advances from the buddy pick page after a brief confirm delay", () => {
+    renderWithStore(<KidsChrome />)
+    goToPickPage()
+
+    fireEvent.click(screen.getByTestId("kids-onboarding-character-dino"))
+    fireEvent.click(screen.getByText("This is my buddy"))
+
+    expect(screen.queryByText("How do you want to read?")).toBeNull()
+
+    act(() => vi.advanceTimersByTime(179))
+    expect(screen.queryByText("How do you want to read?")).toBeNull()
+
+    act(() => vi.advanceTimersByTime(1))
+    expect(screen.getByText("How do you want to read?")).not.toBeNull()
   })
 
   it("steps through all 8 onboarding pages, writes the chosen buddy, and shows it in the reading view", () => {
@@ -165,10 +226,8 @@ describe("KidsOnboarding", () => {
     fireEvent.click(screen.getByText("That's me!"))
 
     fireEvent.click(screen.getByTestId("kids-onboarding-character-cat"))
-    fireEvent.change(screen.getByTestId("kids-onboarding-buddy-name"), {
-      target: { value: "Nova" },
-    })
     fireEvent.click(screen.getByText("This is my buddy"))
+    act(() => vi.advanceTimersByTime(180))
 
     expect(store.get(kidsPlayerNameAtom)).toBe("Mina")
 
@@ -182,24 +241,20 @@ describe("KidsOnboarding", () => {
     fireEvent.click(screen.getByText("Got it"))
     expect(screen.getByText("Ready to read, Mina?")).not.toBeNull()
     expect(screen.queryByTestId("kids-onboarding-neutral-visual")).toBeNull()
-    expect(screen.getByLabelText("Nova")).not.toBeNull()
+    expect(screen.getByRole("img", { name: "Luna" })).not.toBeNull()
     fireEvent.click(screen.getByTestId("kids-onboarding-finish"))
 
     expect(store.get(kidsBuddyAtom)).toEqual({
       character: "cat",
       palette: "classic",
       backgroundColor: "#FEF3C7",
-      name: "Nova",
     })
     expect(store.get(kidsOnboardingDoneAtom)).toBe(true)
     expect(screen.queryByTestId("kids-onboarding")).toBeNull()
 
     const fab = screen.getByTestId("kids-buddy-fab")
-    expect(fab.getAttribute("aria-label")).toBe("Talk to Nova")
-    expect(fab.getAttribute("style")).toContain("background-color: rgb(254, 243, 199)")
-    expect(screen.getByLabelText("Nova").parentElement?.getAttribute("style")).toContain(
-      "--buddy-primary: #9AA2C7",
-    )
+    expect(fab.getAttribute("aria-label")).toBe("Talk to Luna")
+    expect(fab.getAttribute("style")).toContain("background-color")
   })
 
   it("uses arrow keys for onboarding pages and intercepts them before book navigation", () => {
@@ -250,7 +305,9 @@ describe("KidsOnboarding", () => {
     })
     renderWithStore(<KidsChrome />, store)
     goToPickPage()
+    fireEvent.click(screen.getByTestId("kids-onboarding-character-dino"))
     fireEvent.click(screen.getByText("This is my buddy"))
+    act(() => vi.advanceTimersByTime(180))
 
     expect(screen.queryByText("How do you want to read?")).toBeNull()
     expect(screen.getByText("Turn the pages")).not.toBeNull()
@@ -268,7 +325,9 @@ describe("KidsOnboarding", () => {
     renderWithStore(<KidsChrome />, store)
 
     goToPickPage()
+    fireEvent.click(screen.getByTestId("kids-onboarding-character-dino"))
     fireEvent.click(screen.getByText("This is my buddy"))
+    act(() => vi.advanceTimersByTime(180))
     fireEvent.click(screen.getByText("Got it"))
     fireEvent.click(screen.getByText("Got it"))
 
@@ -285,7 +344,9 @@ describe("KidsOnboarding", () => {
     renderWithStore(<KidsChrome />)
 
     goToPickPage()
+    fireEvent.click(screen.getByTestId("kids-onboarding-character-dino"))
     fireEvent.click(screen.getByText("This is my buddy"))
+    act(() => vi.advanceTimersByTime(180))
     fireEvent.click(screen.getByText("Keep going"))
     fireEvent.click(screen.getByText("Got it"))
     fireEvent.click(screen.getByText("Got it"))

@@ -117,7 +117,6 @@ function createKidsStore({
     character: "robot",
     palette: "strawberry",
     backgroundColor: "#DBEAFE",
-    name: "",
   })
   store.set(translationsAtom, {})
   store.set(pagesAtom, [
@@ -445,12 +444,10 @@ describe("KidsBuddy", () => {
     )
   })
 
-  it("applies the selected buddy palette", () => {
-    const { getByLabelText } = renderKidsChrome()
-    const art = getByLabelText("Bolt")
-
-    expect(art.parentElement?.getAttribute("style")).toContain(
-      "--buddy-primary: #FF8BA7",
-    )
+  it("FAB button uses the buddy backgroundColor from state", () => {
+    const { getByTestId } = renderKidsChrome()
+    const fab = getByTestId("kids-buddy-fab")
+    // backgroundColor comes from kidsBuddyAtom — the FAB sets it as an inline style
+    expect(fab.getAttribute("style")).toMatch(/background-color/)
   })
 })

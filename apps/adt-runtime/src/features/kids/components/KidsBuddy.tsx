@@ -19,9 +19,12 @@ import {
   playBarVisibleAtom,
 } from "@/features/audio/state/audio.atoms"
 import { useAudioPlayerContext } from "@/features/audio/hooks/AudioPlayerContext"
-import { buddyPaletteVars } from "@/features/kids/assets/buddies/buddy-art"
 import { KidsActionButton } from "@/features/kids/components/KidsActionButton"
-import { KidsBuddyArt } from "@/features/kids/components/KidsBuddyArt"
+import { KidsBuddyImage } from "@/features/kids/components/KidsBuddyImage"
+import {
+  getBuddyImages,
+  type BuddyExpression,
+} from "@/features/kids/assets/buddy-images"
 import {
   KidsDialogClose,
   KidsLanguageDialog,
@@ -29,6 +32,7 @@ import {
   KidsStoryMapDialog,
 } from "@/features/kids/components/kids-dialogs"
 import { useBuddySpeech } from "@/features/kids/hooks/useBuddySpeech"
+import { BUDDY_LINES } from "@/features/kids/lib/buddy-lines"
 import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
 import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
 import {
@@ -39,7 +43,7 @@ import {
   kidsPlayerNameAtom,
   kidsStoryMapDialogOpenAtom,
 } from "@/features/kids/state/kids.atoms"
-import { getCharacter, getPalette } from "@/features/kids/lib/characters"
+import { getCharacter } from "@/features/kids/lib/characters"
 import { appConfigAtom } from "@/shared/state/config.atoms"
 import { trackToggleEvent } from "@/shared/lib/analytics"
 import { cn } from "@/shared/lib/utils"
@@ -87,11 +91,15 @@ export function KidsBuddy() {
     () => getCharacter(buddy.character),
     [buddy.character],
   )
-  const buddyName =
-    buddy.name.trim() ||
-    tk(character.defaultNameKey, character.defaultNameFallback)
-  const palette = getPalette(character.art, buddy.palette)
-  const paletteVars = buddyPaletteVars(palette)
+  const buddyName = tk(
+    character.defaultNameKey,
+    character.defaultNameFallback,
+  )
+  const fabVariant: BuddyExpression = open
+    ? "happy"
+    : speech
+      ? "excited"
+      : "standing"
   const readLabel = isPlaying
     ? tk("kids-action-pause", "Take a break")
     : tk("kids-action-read", "Read to me")
@@ -112,16 +120,12 @@ export function KidsBuddy() {
     if (typeof window === "undefined") return
     if (window.sessionStorage.getItem(GREETING_SESSION_KEY) === "true") return
     window.sessionStorage.setItem(GREETING_SESSION_KEY, "true")
-    say(
-      playerName
-        ? tk(
-            "kids-buddy-greet-name",
-            "Hi ${name}! Tap me if you need help.",
-            { name: playerName },
-          )
-        : tk("kids-buddy-greet", "Hi! Tap me if you need help."),
-    )
-  }, [playerName, say, tk])
+    if (playerName) {
+      say(BUDDY_LINES.greetName, { name: playerName })
+    } else {
+      say(BUDDY_LINES.greet)
+    }
+  }, [playerName, say])
 
   useEffect(() => {
     if (open) {
@@ -152,32 +156,21 @@ export function KidsBuddy() {
     setOpen((value) => !value)
   }
 
-  const confirm = (key: string, fallback: string) => say(tk(key, fallback))
-
   const handleRead = () => {
     setPlayBarVisible(true)
     togglePlayPause()
-    confirm(
-      isPlaying ? "kids-confirm-read-break" : "kids-confirm-read-start",
-      isPlaying ? "Okay, taking a break." : "Okay! I will read with you.",
-    )
+    say(isPlaying ? BUDDY_LINES.readBreak : BUDDY_LINES.readStart)
   }
 
   const handleSpeed = () => {
     const next = nextSpeed(speed)
     setSpeed(next)
     if (next === 0.75) {
-      confirm(
-        "kids-confirm-speed-slow",
-        "Okay! Now I read slowly, like a turtle.",
-      )
+      say(BUDDY_LINES.speedSlow)
     } else if (next === 1.3) {
-      confirm(
-        "kids-confirm-speed-fast",
-        "Okay! Now I read quickly, like a rabbit.",
-      )
+      say(BUDDY_LINES.speedFast)
     } else {
-      confirm("kids-confirm-speed-normal", "Okay! Now I read at normal speed.")
+      say(BUDDY_LINES.speedNormal)
     }
   }
 
@@ -185,43 +178,34 @@ export function KidsBuddy() {
     const next = !signLanguage
     trackToggleEvent("SignLanguage", next)
     setSignLanguage(next)
-    confirm(
-      next ? "kids-confirm-sign-on" : "kids-confirm-sign-off",
-      next ? "Sign language is on!" : "Sign language is off.",
-    )
+    say(next ? BUDDY_LINES.signOn : BUDDY_LINES.signOff)
   }
 
   const toggleEasyRead = () => {
     const next = !easyRead
     trackToggleEvent("EasyRead", next)
     setEasyRead(next)
-    confirm(
-      next ? "kids-confirm-easy-read-on" : "kids-confirm-easy-read-off",
-      next ? "Big letters are on!" : "Big letters are off.",
-    )
+    say(next ? BUDDY_LINES.easyReadOn : BUDDY_LINES.easyReadOff)
   }
 
   const toggleGlossary = () => {
     const next = !glossary
     trackToggleEvent("GlossaryHighlight", next)
     setGlossary(next)
-    confirm(
-      next ? "kids-confirm-glossary-on" : "kids-confirm-glossary-off",
-      next ? "Word helper is on!" : "Word helper is off.",
-    )
+    say(next ? BUDDY_LINES.glossaryOn : BUDDY_LINES.glossaryOff)
   }
 
   const openEli5 = () => {
     setEli5Mode(true)
     setEli5Open(true)
     setOpen(false)
-    confirm("kids-confirm-eli5-open", "I opened a simpler explanation.")
+    say(BUDDY_LINES.eli5Open)
   }
 
   const openNotepad = () => {
     setNotepadOpen(true)
     setOpen(false)
-    confirm("kids-confirm-notes-open", "Your notes are open.")
+    say(BUDDY_LINES.notesOpen)
   }
 
   return (
@@ -242,7 +226,7 @@ export function KidsBuddy() {
             reduceMotion
               ? "transition-none"
               : "transition-all duration-200 ease-out",
-            !reduceMotion && "motion-safe:animate-kidsPanelOpen",
+            !reduceMotion && "animate-kidsPanelOpen",
             "after:absolute after:-bottom-2 after:right-8 after:h-5 after:w-5 after:rotate-45 after:border-b-2 after:border-r-2 after:border-sky-100 after:bg-white",
           )}
         >
@@ -403,13 +387,16 @@ export function KidsBuddy() {
         )}
         style={{ backgroundColor: buddy.backgroundColor }}
       >
-        <span style={paletteVars as CSSProperties}>
-          <KidsBuddyArt
-            art={character.art}
-            title={buddyName}
-            className="block h-[68px] w-[68px] [&_svg]:h-full [&_svg]:w-full"
-          />
-        </span>
+        <KidsBuddyImage
+          key={fabVariant}
+          images={getBuddyImages(buddy.character)}
+          variant={fabVariant}
+          title={buddyName}
+          className={cn(
+            "h-[68px] w-[68px]",
+            !reduceMotion && "animate-kidsBuddyPop",
+          )}
+        />
       </button>
     </div>
   )

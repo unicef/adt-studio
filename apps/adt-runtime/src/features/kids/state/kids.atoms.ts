@@ -34,14 +34,12 @@ export interface KidsBuddyConfig {
   character: KidsCharacterId
   palette: string
   backgroundColor: string
-  name: string
 }
 
 export const kidsBuddyAtom = persistedJsonAtom<KidsBuddyConfig>("kidsBuddy", {
   character: KIDS_CHARACTERS[0].id,
   palette: KIDS_CHARACTERS[0].art.palettes[0].id,
   backgroundColor: BUDDY_BACKGROUNDS[0].value,
-  name: "",
 })
 
 export const kidsPlayerNameAtom = persistedStringAtom("kidsPlayerName", "")

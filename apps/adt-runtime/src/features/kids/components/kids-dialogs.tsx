@@ -8,6 +8,7 @@ import {
   type RefObject,
 } from "react"
 import { useBuddySpeech } from "@/features/kids/hooks/useBuddySpeech"
+import { BUDDY_LINES } from "@/features/kids/lib/buddy-lines"
 import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
 import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
 import {
@@ -60,9 +61,9 @@ export function KidsLanguageDialog() {
                 setCurrentLanguage(language)
                 setOpen(false)
                 say(
-                  tk("kids-confirm-language", "Okay, ${language} is on!", {
-                    language: name,
-                  }),
+                  BUDDY_LINES.languageOn,
+                  { language: name },
+                  { language },
                 )
               }}
               className={cn(
@@ -228,7 +229,7 @@ function KidsModal({
           "relative grid max-h-[min(80vh,42rem)] w-full gap-4 overflow-hidden rounded-[2rem] bg-white p-5 text-slate-900 shadow-2xl ring-2 ring-sky-100",
           wide ? "max-w-2xl" : "max-w-lg",
           "transition-all duration-200 ease-out",
-          !reduceMotion && "motion-safe:animate-kidsBuddyPop",
+          !reduceMotion && "animate-kidsBuddyPop",
         )}
       >
         <div className="flex items-start justify-between gap-4">

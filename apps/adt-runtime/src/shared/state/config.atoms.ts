@@ -21,6 +21,8 @@ export interface AppFeatures {
   activities?: boolean
   state?: boolean
   kidsMode?: boolean
+  /** Buddy roster packed by Studio; empty/absent means all built-ins. */
+  kidsBuddies?: string[]
   /**
    * Opt into cookie-backed atom persistence instead of the default
    * `localStorage`. Use only for legacy multi-book deployments on a shared

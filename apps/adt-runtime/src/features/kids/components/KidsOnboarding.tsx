@@ -21,7 +21,18 @@ import {
   type RefObject,
 } from "react"
 import { readAloudModeAtom } from "@/features/audio/state/audio.atoms"
-import { KidsBuddyArt } from "@/features/kids/components/KidsBuddyArt"
+import { KidsBuddyImage } from "@/features/kids/components/KidsBuddyImage"
+import {
+  getBuddyImages,
+  type BuddyExpression,
+} from "@/features/kids/assets/buddy-images"
+import {
+  getPickPhrases,
+  pickRandomPhrase,
+  type BuddyPhrase,
+} from "@/features/kids/lib/buddy-phrases"
+import { playBuddyLine } from "@/features/kids/lib/buddy-voice"
+import { currentLanguageAtom } from "@/features/language/state/language.atoms"
 import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
 import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
 import {
@@ -83,6 +94,15 @@ const STEP_TITLE_CLASS =
   "text-balance text-4xl font-extrabold leading-tight text-slate-950 focus:outline-none sm:text-5xl"
 const STEP_COPY_CLASS =
   "max-w-xl text-balance text-xl font-medium leading-relaxed text-slate-700 sm:text-2xl"
+const PICK_CONFIRM_DELAY_MS = 180
+
+/** Buddy expression per feature-tour step — swaps keep the buddy lively. */
+const STEP_EXPRESSIONS: Partial<Record<OnboardingStep, BuddyExpression>> = {
+  "reading-mode": "thinking",
+  "feature-pages": "excited",
+  "feature-help": "encouraging",
+  "feature-abilities": "surprised",
+}
 
 function animationDelayStyle(index: number, delayMs = 50): CSSProperties {
   return { animationDelay: `${index * delayMs}ms` }
@@ -101,19 +121,31 @@ export function KidsOnboarding() {
   const [stepIndex, setStepIndex] = useState(0)
   const [navigationDirection, setNavigationDirection] =
     useState<NavigationDirection>("forward")
+  const language = useAtomValue(currentLanguageAtom)
+  const roster = useMemo(() => {
+    const allowed = appConfig.features.kidsBuddies
+    if (!allowed?.length) return KIDS_CHARACTERS
+    const filtered = KIDS_CHARACTERS.filter((entry) =>
+      allowed.includes(entry.id),
+    )
+    return filtered.length > 0 ? filtered : KIDS_CHARACTERS
+  }, [appConfig.features.kidsBuddies])
   const [playerNameDraft, setPlayerNameDraft] = useState(currentPlayerName)
-  const [characterId, setCharacterId] = useState(currentBuddy.character)
+  const [characterId, setCharacterId] = useState(() =>
+    roster.some((entry) => entry.id === currentBuddy.character)
+      ? currentBuddy.character
+      : roster[0].id,
+  )
+  const [hasPickedCharacter, setHasPickedCharacter] = useState(false)
+  const [isPickConfirming, setIsPickConfirming] = useState(false)
+  const [pickPhrase, setPickPhrase] = useState<BuddyPhrase | null>(null)
   const character = useMemo(() => getCharacter(characterId), [characterId])
   const palette = character.art.palettes[0]
   const backgroundColor = BUDDY_BACKGROUNDS[0].value
-  const defaultBuddyName = tk(
-    character.defaultNameKey,
-    character.defaultNameFallback,
-  )
-  const [buddyNameDraft, setBuddyNameDraft] = useState(
-    currentBuddy.name.trim() || defaultBuddyName,
-  )
   const headingRef = useRef<HTMLHeadingElement>(null)
+  const pickConfirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  )
   const steps = appConfig.features.readAloud
     ? READ_ALOUD_STEPS
     : NO_READ_ALOUD_STEPS
@@ -123,7 +155,10 @@ export function KidsOnboarding() {
     "Step ${step} of ${total}. ",
     { step: String(stepIndex + 1), total: String(steps.length) },
   )
-  const buddyName = buddyNameDraft.trim() || defaultBuddyName
+  const buddyName = tk(
+    character.defaultNameKey,
+    character.defaultNameFallback,
+  )
   const playerName = playerNameDraft.trim()
   const showBuddy =
     step !== "welcome" && step !== "name" && step !== "pick" && step !== "start"
@@ -135,11 +170,34 @@ export function KidsOnboarding() {
     headingRef.current?.focus()
   }, [step])
 
+  useEffect(() => {
+    return () => {
+      if (pickConfirmTimeoutRef.current) {
+        clearTimeout(pickConfirmTimeoutRef.current)
+      }
+    }
+  }, [])
+
   const goNext = useCallback(() => {
     if (step === "name") setPlayerName(playerName)
     setNavigationDirection("forward")
     setStepIndex((value) => Math.min(value + 1, steps.length - 1))
   }, [playerName, setPlayerName, step, steps.length])
+
+  const confirmPickAndGoNext = useCallback(() => {
+    if (!hasPickedCharacter || reduceMotion) {
+      goNext()
+      return
+    }
+    if (pickConfirmTimeoutRef.current) return
+
+    setIsPickConfirming(true)
+    pickConfirmTimeoutRef.current = setTimeout(() => {
+      pickConfirmTimeoutRef.current = null
+      setIsPickConfirming(false)
+      goNext()
+    }, PICK_CONFIRM_DELAY_MS)
+  }, [goNext, hasPickedCharacter, reduceMotion])
 
   const goBack = useCallback(() => {
     setNavigationDirection("back")
@@ -147,9 +205,11 @@ export function KidsOnboarding() {
   }, [])
 
   const selectCharacter = (next: KidsCharacter) => {
-    const nextDefaultName = tk(next.defaultNameKey, next.defaultNameFallback)
+    const phrase = pickRandomPhrase(getPickPhrases(next.id), pickPhrase)
+    setHasPickedCharacter(true)
     setCharacterId(next.id)
-    setBuddyNameDraft(nextDefaultName)
+    setPickPhrase(phrase)
+    void playBuddyLine(language, next.id, phrase.key)
   }
 
   const finish = useCallback(() => {
@@ -157,12 +217,10 @@ export function KidsOnboarding() {
       character: character.id,
       palette: palette.id,
       backgroundColor,
-      name: buddyName,
     })
     setOnboardingDone(true)
   }, [
     backgroundColor,
-    buddyName,
     character.id,
     palette.id,
     setBuddy,
@@ -174,8 +232,12 @@ export function KidsOnboarding() {
       finish()
       return
     }
+    if (step === "pick") {
+      confirmPickAndGoNext()
+      return
+    }
     goNext()
-  }, [finish, goNext, step])
+  }, [confirmPickAndGoNext, finish, goNext, step])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -226,40 +288,46 @@ export function KidsOnboarding() {
           data-testid="kids-onboarding-step"
           className={cn(
             "mx-auto flex w-full max-w-[40rem] flex-1 flex-col items-center justify-between gap-6 py-6 text-center",
-            reduceMotion ? "transition-none" : "motion-safe:animate-kidsBuddyPop",
+            reduceMotion ? "transition-none" : "animate-kidsBuddyPop",
           )}
         >
           <div className="flex w-full flex-1 flex-col items-center justify-center gap-7">
             <div
               key={`${step}-hero`}
-              className={cn("flex w-full justify-center", !reduceMotion && "motion-safe:animate-kidsBuddyPop")}
+              className={cn("flex w-full justify-center", !reduceMotion && "animate-kidsBuddyPop")}
             >
-              {step === "pick" ? null : showBuddy ? (
-                <div
-                  className="grid aspect-square w-full max-w-56 place-items-center rounded-full bg-white/70"
-                  style={
-                    {
-                      ...buddyPaletteVars(palette),
-                    } as CSSProperties
-                  }
-                >
-                  <span
-                    key={character.id}
-                    className={cn(
-                      "grid w-[82%] place-items-center",
-                      !reduceMotion && "animate-kidsWiggle",
-                    )}
-                  >
-                    <KidsBuddyArt
-                      art={character.art}
-                      palette={palette}
-                      title={buddyName}
-                      className={cn(
-                        "block w-full",
-                        !reduceMotion && "kids-buddy-idle",
-                      )}
-                    />
-                  </span>
+              {step === "pick" ? (
+                hasPickedCharacter ? (
+                  <BuddyHero
+                    buddyName={buddyName}
+                    character={character}
+                    palette={palette}
+                    reduceMotion={reduceMotion}
+                    isCelebrating={isPickConfirming}
+                    speech={
+                      pickPhrase
+                        ? tk(pickPhrase.key, pickPhrase.fallback, {
+                            name: buddyName,
+                          })
+                        : undefined
+                    }
+                  />
+                ) : (
+                  <NeutralOnboardingVisual
+                    reduceMotion={reduceMotion}
+                    isWelcome={false}
+                  />
+                )
+              ) : showBuddy ? (
+                <div className="grid aspect-square w-full max-w-56 place-items-center rounded-full bg-white/70">
+                  <KidsBuddyImage
+                    key={`${character.id}-${STEP_EXPRESSIONS[step] ?? "standing"}`}
+                    images={getBuddyImages(character.id)}
+                    variant={STEP_EXPRESSIONS[step] ?? "standing"}
+                    title={buddyName}
+                    animate={!reduceMotion}
+                    className="w-[82%]"
+                  />
                 </div>
               ) : step === "start" ? (
                 <StartHero
@@ -282,8 +350,8 @@ export function KidsOnboarding() {
                 "flex w-full flex-col items-center justify-center gap-5",
                 !reduceMotion &&
                   (navigationDirection === "forward"
-                    ? "motion-safe:animate-kidsSlideFromRight"
-                    : "motion-safe:animate-kidsSlideFromLeft"),
+                    ? "animate-kidsSlideFromRight"
+                    : "animate-kidsSlideFromLeft"),
               )}
               style={!reduceMotion ? { animationDelay: "60ms" } : undefined}
             >
@@ -298,11 +366,9 @@ export function KidsOnboarding() {
                 <BuddyStep
                   headingRef={headingRef}
                   stepPosition={stepPosition}
-                  selectedId={character.id}
-                  buddyName={buddyNameDraft}
+                  roster={roster}
+                  selectedId={hasPickedCharacter ? character.id : null}
                   onSelect={selectCharacter}
-                  onNameChange={setBuddyNameDraft}
-                  onNext={goNext}
                 />
               ) : null}
               {step === "name" ? (
@@ -353,7 +419,7 @@ export function KidsOnboarding() {
               <div className="flex min-h-20 w-full shrink-0 items-start justify-center pb-3 pt-1">
                 <OnboardingPrimaryAction
                   step={step}
-                  onNext={goNext}
+                  onNext={step === "pick" ? confirmPickAndGoNext : goNext}
                   onFinish={finish}
                 />
               </div>
@@ -428,14 +494,14 @@ function NeutralOnboardingVisual({
         className={cn(
           "absolute h-[70%] w-[70%] rounded-full bg-sky-200/60 blur-2xl",
           !reduceMotion && !isWelcome && "motion-safe:animate-pulse",
-          animateWelcome && "motion-safe:animate-kidsBounceIn",
+          animateWelcome && "animate-kidsBounceIn",
         )}
         aria-hidden="true"
       />
       <div
         className={cn(
           "relative grid h-[62%] w-[62%] place-items-center overflow-hidden rounded-[2rem] bg-white shadow-[0_6px_0_#C4DFF2]",
-          animateWelcome && "motion-safe:animate-kidsBounceIn",
+          animateWelcome && "animate-kidsBounceIn",
         )}
         style={animateWelcome ? { animationDelay: "60ms" } : undefined}
       >
@@ -449,7 +515,7 @@ function NeutralOnboardingVisual({
         <Sparkles
           className={cn(
             "absolute right-4 top-4 h-7 w-7 text-[#FFB700]",
-            animateWelcome && "motion-safe:animate-kidsSparkle",
+            animateWelcome && "animate-kidsSparkle",
           )}
           style={animateWelcome ? { animationDelay: "240ms" } : undefined}
           aria-hidden="true"
@@ -457,12 +523,71 @@ function NeutralOnboardingVisual({
         <Sparkles
           className={cn(
             "absolute bottom-4 left-4 h-6 w-6 text-sky-400",
-            animateWelcome && "motion-safe:animate-kidsSparkle",
+            animateWelcome && "animate-kidsSparkle",
           )}
           style={animateWelcome ? { animationDelay: "340ms" } : undefined}
           aria-hidden="true"
         />
       </div>
+    </div>
+  )
+}
+
+function BuddyHero({
+  buddyName,
+  character,
+  palette,
+  reduceMotion,
+  isCelebrating = false,
+  speech,
+}: {
+  buddyName: string
+  character: KidsCharacter
+  palette: BuddyPalette
+  reduceMotion: boolean
+  isCelebrating?: boolean
+  speech?: string
+}) {
+  return (
+    <div className="relative">
+      <div
+        data-testid="kids-onboarding-buddy-hero"
+        className="grid aspect-square w-56 max-w-full place-items-center rounded-full bg-white/70"
+        style={
+          {
+            ...buddyPaletteVars(palette),
+            animation:
+              isCelebrating && !reduceMotion
+                ? `kidsWiggle ${PICK_CONFIRM_DELAY_MS}ms ease-out both`
+                : undefined,
+          } as CSSProperties
+        }
+      >
+        <KidsBuddyImage
+          key={character.id}
+          images={getBuddyImages(character.id)}
+          variant={isCelebrating ? "happy" : "standing"}
+          title={buddyName}
+          animate={!isCelebrating && !reduceMotion}
+          className="w-[82%]"
+        />
+      </div>
+      {speech ? (
+        <div
+          key={speech}
+          data-testid="kids-onboarding-buddy-speech"
+          role="status"
+          className={cn(
+            "absolute -right-2 -top-4 w-max max-w-[min(13rem,38vw)] translate-x-1/2 rounded-2xl bg-white px-4 py-2.5",
+            "text-balance text-left text-base font-bold leading-snug text-slate-950",
+            "shadow-[0_3px_0_#C4DFF2] ring-2 ring-sky-100",
+            "after:absolute after:-bottom-1.5 after:left-4 after:h-4 after:w-4 after:rotate-45 after:rounded-sm after:border-b-2 after:border-r-2 after:border-sky-100 after:bg-white",
+            !reduceMotion && "animate-kidsBuddyPop",
+          )}
+        >
+          {speech}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -522,7 +647,7 @@ function WelcomeStep({
           stepPosition={stepPosition}
           className={cn(
             "max-w-2xl",
-            !reduceMotion && "motion-safe:animate-kidsFadeUp",
+            !reduceMotion && "animate-kidsFadeUp",
           )}
           style={!reduceMotion ? { animationDelay: "160ms" } : undefined}
         >
@@ -534,7 +659,7 @@ function WelcomeStep({
         <p
           className={cn(
             STEP_COPY_CLASS,
-            !reduceMotion && "motion-safe:animate-kidsFadeUp",
+            !reduceMotion && "animate-kidsFadeUp",
           )}
           style={!reduceMotion ? { animationDelay: "240ms" } : undefined}
         >
@@ -547,7 +672,7 @@ function WelcomeStep({
       <p
         className={cn(
           "flex flex-wrap items-center justify-center gap-3 text-base font-semibold text-slate-600",
-          !reduceMotion && "motion-safe:animate-kidsFadeUp",
+          !reduceMotion && "animate-kidsFadeUp",
         )}
         style={!reduceMotion ? { animationDelay: "340ms" } : undefined}
       >
@@ -597,45 +722,27 @@ function NameStep({
 function BuddyStep({
   headingRef,
   stepPosition,
+  roster,
   selectedId,
-  buddyName,
   onSelect,
-  onNameChange,
-  onNext,
 }: {
   headingRef: RefObject<HTMLHeadingElement | null>
   stepPosition: string
-  selectedId: string
-  buddyName: string
+  roster: readonly KidsCharacter[]
+  selectedId: string | null
   onSelect: (character: KidsCharacter) => void
-  onNameChange: (value: string) => void
-  onNext: () => void
 }) {
   const { tk } = useKidsTranslation()
   const reduceMotion = usePrefersReducedMotion()
-  const selected = getCharacter(selectedId)
-  const selectedName = tk(
-    selected.defaultNameKey,
-    selected.defaultNameFallback,
-  )
   return (
     <div className="flex w-full flex-col items-center gap-5">
-      <div className="flex flex-col items-center gap-2">
-        <StepTitle headingRef={headingRef} stepPosition={stepPosition}>
-          {tk("kids-onboarding-buddy-title", "Pick a reading buddy")}
-        </StepTitle>
-        <p className="text-balance text-lg font-medium leading-relaxed text-slate-700 sm:text-xl">
-          {tk("kids-onboarding-buddy-hi", "Hi! I am ${name}.", {
-            name: selectedName,
-          })}
-        </p>
-      </div>
+      <StepTitle headingRef={headingRef} stepPosition={stepPosition}>
+        {tk("kids-onboarding-buddy-title", "Pick a reading buddy")}
+      </StepTitle>
 
-      <div className="grid w-full grid-cols-2 gap-3 sm:grid-cols-5">
-        {KIDS_CHARACTERS.map((character, index) => {
+      <div className="flex w-full flex-wrap justify-center gap-3">
+        {roster.map((character, index) => {
           const name = tk(character.defaultNameKey, character.defaultNameFallback)
-          const label = tk(character.labelKey, character.labelFallback)
-          const palette = character.art.palettes[0]
           const selected = character.id === selectedId
           return (
             <button
@@ -646,7 +753,7 @@ function BuddyStep({
               aria-current={selected ? "true" : undefined}
               onClick={() => onSelect(character)}
               className={cn(
-                "relative flex min-h-36 flex-col items-center justify-between gap-2 rounded-2xl border-[3px] bg-white p-3 text-center shadow-[0_4px_0_#C4DFF2] transition-[transform,box-shadow,border-color,background-color] duration-200 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-700",
+                "relative flex min-h-36 w-[10.5rem] max-w-[calc(50%-0.375rem)] flex-col items-center justify-between gap-2 rounded-2xl border-[3px] bg-white p-3 text-center shadow-[0_4px_0_#C4DFF2] transition-[transform,box-shadow,border-color,background-color] duration-200 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-700",
                 selected
                   ? "border-sky-600 bg-sky-50"
                   : "border-slate-200",
@@ -671,34 +778,18 @@ function BuddyStep({
                 </span>
               ) : null}
               <span className="grid aspect-square w-20 place-items-center rounded-2xl bg-sky-50">
-                <KidsBuddyArt
-                  art={character.art}
-                  palette={palette}
-                  title={name}
-                  className="block w-16"
+                <KidsBuddyImage
+                  images={getBuddyImages(character.id)}
+                  variant="standing"
+                  className="w-16 h-16"
                 />
               </span>
-              <span className="text-base font-bold text-slate-950">{label}</span>
+              <span className="text-base font-bold text-slate-950">{name}</span>
             </button>
           )
         })}
       </div>
 
-      <label className="flex w-full max-w-xl flex-col gap-3 rounded-2xl bg-white p-4 text-left shadow-[0_4px_0_#C4DFF2] ring-2 ring-sky-100">
-        <span className="text-base font-bold text-slate-900">
-          {tk("kids-onboarding-rename-title", "Buddy name")}
-        </span>
-        <input
-          data-testid="kids-onboarding-buddy-name"
-          value={buddyName}
-          onChange={(event) => onNameChange(event.target.value)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter") onNext()
-          }}
-          className="min-h-14 rounded-2xl border-2 border-sky-200 bg-white px-4 text-xl font-bold text-slate-950 outline-none transition focus:border-sky-500 focus:ring-4 focus:ring-sky-100"
-          autoComplete="off"
-        />
-      </label>
     </div>
   )
 }
@@ -963,18 +1054,13 @@ function StartHero({
         className="absolute inset-[12%] rounded-full bg-[radial-gradient(circle,rgba(255,200,0,0.24)_0%,rgba(255,255,255,0)_68%)]"
         aria-hidden="true"
       />
-      <div
-        className="relative z-10 grid aspect-square w-[74%] place-items-center rounded-full bg-white/90 shadow-[0_8px_0_#C4DFF2] ring-4 ring-white"
-        style={buddyPaletteVars(palette) as CSSProperties}
-      >
-        <KidsBuddyArt
-          art={character.art}
-          palette={palette}
+      <div className="relative z-10 grid aspect-square w-[74%] place-items-center rounded-full bg-white/90 shadow-[0_8px_0_#C4DFF2] ring-4 ring-white">
+        <KidsBuddyImage
+          images={getBuddyImages(character.id)}
+          variant="happy"
           title={buddyName}
-          className={cn(
-            "block w-[88%]",
-            !reduceMotion && "animate-kidsWiggle",
-          )}
+          animate={!reduceMotion}
+          className="w-[88%]"
         />
       </div>
       <div className="absolute bottom-1 z-20 rounded-full bg-[#FFC800] px-5 py-2 text-lg font-black text-slate-950 shadow-[0_4px_0_#DFA000] ring-4 ring-white">
