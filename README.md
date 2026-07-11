@@ -223,6 +223,11 @@ pnpm exec playwright install --with-deps chromium
 ```
 
 The browser opens automatically at `http://localhost:5173`. The API runs at `http://localhost:3001`.
+Both servers bind to `0.0.0.0`, so other devices on the same network can use the
+private-IP URL printed by Vite (for example, `http://192.168.1.20:5173`). Live
+quiz QR codes automatically use this private-IP address instead of `localhost`.
+For a reverse proxy or container deployment, set `LIVE_QUIZ_BASE_URL` to the
+externally reachable Studio origin.
 On first run, `pnpm dev` compiles all packages (~1 min). Subsequent runs are fast (incremental build).
 
 ### Running the desktop app

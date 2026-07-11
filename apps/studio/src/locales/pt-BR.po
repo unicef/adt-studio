@@ -109,6 +109,10 @@ msgstr "{0} × {1}px · {2} pontos"
 #~ msgid "{0} added"
 #~ msgstr "{0} adicionadas"
 
+#. placeholder {0}: snapshot.reveal.answerCounts[index]
+msgid "{0} answers"
+msgstr "{0} respostas"
+
 #. placeholder {0}: String(totalAudioFiles)
 msgid "{0} audio"
 msgstr "{0} áudios"
@@ -173,6 +177,10 @@ msgstr "{0} items need changes on this page"
 msgid "{0} items with unsaved changes"
 msgstr "{0} itens com alterações não salvas"
 
+#. placeholder {0}: snapshot.participantCount
+msgid "{0} joined"
+msgstr "{0} entraram"
+
 #. placeholder {0}: String(outputLanguages.length)
 msgid "{0} languages"
 msgstr "{0} idiomas"
@@ -219,6 +227,11 @@ msgstr "{0} páginas"
 msgid "{0} pending"
 msgstr "{0} pendentes"
 
+#. placeholder {0}: participant.score
+#. placeholder {0}: participant?.score ?? 0
+msgid "{0} points"
+msgstr "{0} pontos"
+
 #. placeholder {0}: String(displayQuizzes.length)
 msgid "{0} questions"
 msgstr "{0} questões"
@@ -245,6 +258,10 @@ msgstr "{0} textos"
 #. placeholder {0}: outputLanguages.length
 msgid "{0} translations"
 msgstr "{0} traduções"
+
+#. placeholder {0}: unprocessed.length
+msgid "{0} waiting to be processed"
+msgstr "{0} aguardando processamento"
 
 #. placeholder {0}: String(generatedAudioCount)
 #. placeholder {1}: String(speakableEntries.length)
@@ -288,6 +305,10 @@ msgstr "Há {0}min"
 #. placeholder {0}: String(Math.floor(diff / 1000))
 msgid "{0}s ago"
 msgstr "Há {0}s"
+
+#. placeholder {0}: snapshot.participantCount
+msgid "{answeredCount} of {0} answered"
+msgstr "{answeredCount} de {0} responderam"
 
 msgid "{count} {count, plural, one {issue} other {issues}}"
 msgstr "{count} {count, plural, one {problema} other {problemas}}"
@@ -795,6 +816,9 @@ msgstr "Adicione uma chave de API nas configurações do Livro para executar tra
 msgid "Add an API key to re-run"
 msgstr "Adicione uma chave de API para reexecutar"
 
+msgid "Add an API key to reprocess comments."
+msgstr "Adicione uma chave de API para reprocessar os comentários."
+
 msgid "Add at least one output language to run translation."
 msgstr "Adicione pelo menos um idioma de saída para executar tradução."
 
@@ -1121,6 +1145,9 @@ msgstr "Resposta"
 
 msgid "Answer Prompt"
 msgstr "Prompt de resposta"
+
+msgid "Answer saved. Take your time and wait for the group."
+msgstr "Resposta salva. Faça no seu tempo e espere o grupo."
 
 msgid "answer_key"
 msgstr "gabarito"
@@ -1659,6 +1686,9 @@ msgstr "Gráfico / Tabela"
 #~ msgid "Check for updates"
 #~ msgstr "Verificar atualizações"
 
+msgid "Check the room code with your teacher and try the link again."
+msgstr "Confira o código da sala com o professor e tente o link novamente."
+
 msgid "Checked"
 msgstr "Checked"
 
@@ -1776,6 +1806,9 @@ msgstr "Clone failed"
 msgid "Close"
 msgstr "Close"
 
+msgid "Close comment box"
+msgstr "Fechar caixa de comentários"
+
 msgid "Close edit panel"
 msgstr "Fechar painel de edição"
 
@@ -1821,8 +1854,14 @@ msgstr "Em breve"
 msgid "Comment"
 msgstr "Comment"
 
+msgid "Comment sent"
+msgstr "Comentário enviado"
+
 msgid "Comments"
 msgstr "Comments"
+
+msgid "Comments will appear here as participants send them."
+msgstr "Os comentários aparecerão aqui conforme os participantes os enviarem."
 
 msgid "Completed"
 msgstr "Concluído"
@@ -1886,6 +1925,9 @@ msgstr "Confirmar mesclagem"
 
 msgid "Connect an AI provider"
 msgstr "Conecte um provedor de IA"
+
+msgid "Connection paused. We are trying again…"
+msgstr "Conexão pausada. Estamos tentando novamente…"
 
 msgid "Consulting the style council..."
 msgstr "Consultando o conselho de estilo..."
@@ -1955,6 +1997,12 @@ msgstr "Copiar detalhes do erro"
 
 msgid "Copy error output"
 msgstr "Copiar saída de erro"
+
+msgid "Copy join link"
+msgstr "Copiar link de entrada"
+
+msgid "Copy review link"
+msgstr "Copiar link de revisão"
 
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Os recifes de coral cobrem menos de 1% do fundo do oceano, mas sustentam cerca de 25% de todas as espécies marinhas. Frequentemente chamados de 'florestas tropicais do mar', esses ecossistemas subaquáticos são construídos por pequenos animais chamados pólipos de coral."
@@ -2218,6 +2266,9 @@ msgstr "Excluir todo o áudio"
 
 msgid "Delete book"
 msgstr "Excluir livro"
+
+msgid "Delete comment"
+msgstr "Excluir comentário"
 
 msgid "Delete element"
 msgstr "Excluir elemento"
@@ -2642,6 +2693,9 @@ msgstr "Fim"
 msgid "End page"
 msgstr "End page"
 
+msgid "End session"
+msgstr "Encerrar sessão"
+
 msgid "Endpoint"
 msgstr "Endpoint"
 
@@ -2741,6 +2795,9 @@ msgstr "Cada seção tem um vídeo"
 msgid "Every Storyboard section has a sign-language video assigned. You can switch to Covered or All to review or replace them."
 msgstr "Cada seção do Storyboard tem um vídeo em linguagem de sinais atribuído. Você pode alternar para Coberto ou Todos para revisar ou substituí-los."
 
+msgid "Everyone plays together. You decide when each question moves on."
+msgstr "Todos jogam juntos. Você decide quando passar para cada pergunta."
+
 msgid "Example Books"
 msgstr "Livros de Exemplo"
 
@@ -2767,6 +2824,9 @@ msgstr "Expiração"
 
 msgid "Explain the term in simple language."
 msgstr "Explique o termo em linguagem simples."
+
+msgid "Explore the preview and leave helpful comments for your teacher."
+msgstr "Explore a prévia e deixe comentários úteis para o professor."
 
 msgid "Export"
 msgstr "Exportar"
@@ -2960,6 +3020,9 @@ msgstr "Filtra imagens decorativas ou sem conteúdo em cada página."
 
 msgid "Final Page"
 msgstr "Página Final"
+
+msgid "Finish the quiz"
+msgstr "Terminar o quiz"
 
 #~ msgid "First"
 #~ msgstr "Primeira"
@@ -3248,6 +3311,9 @@ msgstr "Ir para início"
 msgid "Go to Storyboard"
 msgstr "Ir para Storyboard"
 
+msgid "Good try! Here is the answer."
+msgstr "Boa tentativa! Aqui está a resposta."
+
 msgid "Google"
 msgstr "Google"
 
@@ -3268,6 +3334,9 @@ msgstr "Entendi"
 
 msgid "Grade Level"
 msgstr "Nível de Série"
+
+msgid "Great playing!"
+msgstr "Vocês jogaram muito bem!"
 
 msgid "Group each page's text and images into typed sections with a structured content tree. Sections drive how downstream stages render, translate, and read the book aloud."
 msgstr "Agrupe o texto e as imagens de cada página em seções classificadas com uma árvore de conteúdo estruturada. As seções determinam como as etapas posteriores renderizam, traduzem e leem o livro em voz alta."
@@ -3683,6 +3752,12 @@ msgstr "sua língua original"
 msgid "Jane Reviewer"
 msgstr "Jane Reviewer"
 
+msgid "Join the game"
+msgstr "Entrar no jogo"
+
+msgid "Joining the room…"
+msgstr "Entrando na sala…"
+
 msgid "Jump to page"
 msgstr "Ir para a página"
 
@@ -3775,6 +3850,9 @@ msgstr "Menos usado"
 #~ msgid "Leave"
 #~ msgstr "Sair"
 
+msgid "Leave a comment"
+msgstr "Deixar um comentário"
+
 msgid "Leave at None to run segmentation on all qualifying images (subject to pipeline rules)."
 msgstr "Deixe em Nenhum para executar segmentação em todas as imagens qualificadas (sujeito às regras do pipeline)."
 
@@ -3808,6 +3886,9 @@ msgstr "Legenda"
 msgid "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 msgstr "Deixe o modelo escrever títulos de capítulos descritivos com base no conteúdo de cada seção. Melhor para livros de histórias ou quando os títulos estão ausentes."
 
+msgid "Let's play together!"
+msgstr "Vamos jogar juntos!"
+
 msgid "Library apps"
 msgstr "Aplicativos de biblioteca"
 
@@ -3826,6 +3907,9 @@ msgstr "Língua Portuguesa - 3° Ano"
 msgid "Link"
 msgstr "Link"
 
+msgid "Link copied"
+msgstr "Link copiado"
+
 msgid "Link page"
 msgstr "Vincular página"
 
@@ -3843,6 +3927,12 @@ msgstr "Ouvindo os dados"
 
 msgid "Live"
 msgstr "Ao vivo"
+
+msgid "Live preview review"
+msgstr "Revisão da prévia ao vivo"
+
+msgid "Live quiz"
+msgstr "Quiz ao vivo"
 
 msgid "LLM Calls"
 msgstr "Chamadas LLM"
@@ -4347,6 +4437,9 @@ msgstr "Próxima seção faltante"
 msgid "Next page"
 msgstr "Próxima página"
 
+msgid "Next question"
+msgstr "Próxima pergunta"
+
 msgid "Next slide"
 msgstr "Próximo slide"
 
@@ -4756,6 +4849,9 @@ msgstr "Abra em qualquer leitor EPUB 3, leitor eletrônico ou ferramenta de aces
 msgid "Open page preview for {pageId}"
 msgstr "Abrir pré-visualização da página {0}"
 
+msgid "Open preview"
+msgstr "Abrir prévia"
+
 msgid "Open Preview"
 msgstr "Open Preview"
 
@@ -4785,6 +4881,9 @@ msgstr "Chave da OpenAI necessária"
 
 msgid "OpenAI Voice"
 msgstr "Voz OpenAI"
+
+msgid "Opening the live room…"
+msgstr "Abrindo a sala ao vivo…"
 
 msgid "Optional"
 msgstr "Opcional"
@@ -5107,6 +5206,12 @@ msgstr "Informações da parte"
 msgid "Part of {0}"
 msgstr "Parte de {0}"
 
+msgid "Participants"
+msgstr "Participantes"
+
+msgid "Participants can explore the preview and comment on individual pages."
+msgstr "Os participantes podem explorar a prévia e comentar páginas específicas."
+
 msgid "Parts"
 msgstr "Partes"
 
@@ -5239,8 +5344,14 @@ msgstr "As plantas criam açúcar pela <0>fotossíntese</0>, dividem-se por <1>m
 msgid "Play"
 msgstr "Reproduzir"
 
+msgid "Play live"
+msgstr "Jogar ao vivo"
+
 msgid "Play video"
 msgstr "Reproduzir vídeo"
+
+msgid "Players"
+msgstr "Participantes"
 
 msgid "Polishing paragraphs to perfection..."
 msgstr "Polindo parágrafos até a perfeição..."
@@ -5278,6 +5389,12 @@ msgstr "Prefira termos centrais ao assunto do livro. Pule vocabulário genérico
 
 msgid "Preparing speech..."
 msgstr "Preparando o áudio..."
+
+msgid "Preparing the live room…"
+msgstr "Preparando a sala ao vivo…"
+
+msgid "Preparing the review room…"
+msgstr "Preparando a sala de revisão…"
 
 msgid "Preserves the source PDF's exact page layout"
 msgstr "Preserva o layout de página exato do PDF de origem"
@@ -5335,6 +5452,9 @@ msgstr "Processar apenas um intervalo de páginas aqui."
 
 #~ msgid "Process the whole book here"
 #~ msgstr "Processar o livro inteiro aqui"
+
+msgid "Processed"
+msgstr "Processado"
 
 msgid "Processing metadata…"
 msgstr "Processando metadados…"
@@ -5408,6 +5528,12 @@ msgstr "Extrai os metadados do livro — título, autor, idioma — do PDF."
 msgid "px"
 msgstr "px"
 
+msgid "QR code for live preview review"
+msgstr "Código QR para a revisão da prévia ao vivo"
+
+msgid "QR code to join live quiz"
+msgstr "Código QR para entrar no quiz ao vivo"
+
 msgid "Quality"
 msgstr "Qualidade"
 
@@ -5416,6 +5542,11 @@ msgstr "Parâmetro de consulta"
 
 msgid "question"
 msgstr "pergunta"
+
+#. placeholder {0}: snapshot.questionIndex + 1
+#. placeholder {1}: snapshot.questionCount
+msgid "Question {0} of {1}"
+msgstr "Pergunta {0} de {1}"
 
 msgid "queued"
 msgstr "na fila"
@@ -5604,6 +5735,9 @@ msgstr "Recomendado para"
 msgid "Recommended for {0}"
 msgstr "Recomendado para {0}"
 
+msgid "Reconnecting to the live room…"
+msgstr "Reconectando à sala ao vivo…"
+
 msgid "Record reviewer findings for the current page and save them to the active validation session."
 msgstr "Record reviewer findings for the current page and save them to the active validation session."
 
@@ -5665,6 +5799,7 @@ msgid "Remove"
 msgstr "Remover"
 
 #. placeholder {0}: displayLang(code)
+#. placeholder {0}: participant.name
 #. placeholder {0}: term.word
 msgid "Remove {0}"
 msgstr "Remover {0}"
@@ -5761,6 +5896,12 @@ msgstr "Substituir questionários"
 msgid "Replace this audio file"
 msgstr "Substituir este arquivo de áudio"
 
+msgid "Reprocess comments"
+msgstr "Reprocessar comentários"
+
+msgid "Reprocessing…"
+msgstr "Reprocessando…"
+
 msgid "Require comment on failure"
 msgstr "Require comment on failure"
 
@@ -5849,6 +5990,9 @@ msgstr "Revise e refine cada bloco simplificado lado a lado com o original antes
 msgid "Review areas with the most items marked as needing changes in this session."
 msgstr "Review areas with the most items marked as needing changes in this session."
 
+msgid "Review live"
+msgstr "Revisar ao vivo"
+
 msgid "Review one session at a time to inspect page coverage and flagged findings."
 msgstr "Review one session at a time to inspect page coverage and flagged findings."
 
@@ -5857,6 +6001,12 @@ msgstr "Review progress"
 
 msgid "Review pruned sections"
 msgstr "Revisar seções excluídas"
+
+msgid "Review room not found"
+msgstr "Sala de revisão não encontrada"
+
+msgid "Review the book together"
+msgstr "Vamos revisar o livro juntos"
 
 msgid "Review the project details below and confirm the import."
 msgstr "Revise os detalhes do projeto abaixo e confirme a importação."
@@ -5902,6 +6052,16 @@ msgstr "O aumento das temperaturas dos oceanos causa o branqueamento dos corais 
 
 msgid "Role"
 msgstr "Função"
+
+#. placeholder {0}: snapshot.code
+msgid "Room {0}"
+msgstr "Sala {0}"
+
+msgid "Room code"
+msgstr "Código da sala"
+
+msgid "Room not found"
+msgstr "Sala não encontrada"
 
 msgid "Row"
 msgstr "Linha"
@@ -6096,6 +6256,9 @@ msgstr "Save failed"
 msgid "Save page review"
 msgstr "Save page review"
 
+msgid "Save quiz changes before starting a live session."
+msgstr "Salve as alterações do quiz antes de iniciar uma sessão ao vivo."
+
 msgid "Save selection"
 msgstr "Salvar seleção"
 
@@ -6113,6 +6276,9 @@ msgstr "Saved. Re-package Preview to apply."
 
 msgid "Saving…"
 msgstr "Salvando…"
+
+msgid "Scan to join"
+msgstr "Escaneie para entrar"
 
 msgid "Scene 04"
 msgstr "Cena 04"
@@ -6386,6 +6552,9 @@ msgstr "Selecionar \\\"Nenhum\\\" permite que o LLM escolha seu próprio estilo 
 msgid "Self-contained ADT web app"
 msgstr "Aplicativo web ADT autônomo"
 
+msgid "Send comment"
+msgstr "Enviar comentário"
+
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Envie este arquivo de projeto de volta ao coordenador para mesclá-lo no livro de origem."
 
@@ -6479,6 +6648,9 @@ msgstr "Mostrar apenas os termos que você adicionou manualmente"
 
 msgid "Show reviewer validation"
 msgstr "Show reviewer validation"
+
+msgid "Show the answer"
+msgstr "Mostrar a resposta"
 
 msgid "Show:"
 msgstr "Mostrar:"
@@ -6585,6 +6757,9 @@ msgstr "Atualização de software"
 
 msgid "Software update status"
 msgstr "Status da atualização de software"
+
+msgid "Some comments could not be processed."
+msgstr "Alguns comentários não puderam ser processados."
 
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Algumas páginas não têm camada de texto incorporada — o texto foi recuperado a partir da imagem da página. Prefira um PDF baseado em texto."
@@ -6733,6 +6908,9 @@ msgstr "Start page"
 
 msgid "Start reviewer validation"
 msgstr "Start reviewer validation"
+
+msgid "Start the first question"
+msgstr "Iniciar a primeira pergunta"
 
 msgid "Start typing to see words from the book…"
 msgstr "Comece a digitar para ver palavras do livro…"
@@ -7058,6 +7236,15 @@ msgstr "A escolha ideal para romances, focada em uma experiência de leitura lim
 msgid "The inside cover of the book."
 msgstr "A contracapa interna do livro."
 
+msgid "The live connection had a problem. Reconnecting…"
+msgstr "A conexão ao vivo teve um problema. Reconectando…"
+
+msgid "The live quiz is finished."
+msgstr "O quiz ao vivo terminou."
+
+msgid "The live room could not be created."
+msgstr "Não foi possível criar a sala ao vivo."
+
 msgid "The Lost Forest"
 msgstr "A Floresta Perdida"
 
@@ -7109,6 +7296,9 @@ msgstr "A rápida raposa marrom salta sobre o cão preguiçoso."
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "A estratégia de renderização usada para seções sem um mapeamento explícito."
 
+msgid "The review room could not be created."
+msgstr "Não foi possível criar a sala de revisão."
+
 msgid "The river meets the sea"
 msgstr "O rio encontra o mar"
 
@@ -7120,6 +7310,12 @@ msgstr "O sol aquece a água nos oceanos, lagos e rios, transformando-a em vapor
 
 msgid "The table of contents."
 msgstr "O índice."
+
+msgid "The teacher ended the review"
+msgstr "O professor encerrou a revisão"
+
+msgid "The teacher ended the session"
+msgstr "O professor encerrou a sessão"
 
 msgid "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "O índice lista as seções classificadas colocadas pelo Storyboard. Termine o Storyboard antes de executar esta etapa."
@@ -7516,6 +7712,9 @@ msgstr "Tente o problema prático"
 msgid "Try this screen again"
 msgstr "Tente esta tela novamente"
 
+msgid "Trying to reconnect…"
+msgstr "Tentando reconectar…"
+
 msgid "Tune how text is simplified in the Easy Read Prompt settings. After running, each block becomes editable here in the Easy Read step."
 msgstr "Ajuste como o texto é simplificado nas configurações do Prompt de Leitura Fácil. Após a execução, cada bloco fica editável aqui na etapa de Leitura Fácil."
 
@@ -7545,6 +7744,9 @@ msgstr "Template de duas colunas para conteúdo narrativo"
 
 msgid "Type"
 msgstr "Tipo"
+
+msgid "Type the name you want your group to see."
+msgstr "Digite o nome que você quer mostrar ao grupo."
 
 msgid "Typed Sections"
 msgstr "Seções Classificadas"
@@ -7590,6 +7792,9 @@ msgstr "Unknown"
 
 msgid "Unknown criterion"
 msgstr "Unknown criterion"
+
+msgid "Unknown page"
+msgstr "Página desconhecida"
 
 msgid "Unknown stage"
 msgstr "Etapa desconhecida"
@@ -7849,6 +8054,12 @@ msgstr "Aguarde o término da geração do glossário"
 msgid "Wait for storyboard to complete"
 msgstr "Aguarde a conclusão do storyboard"
 
+msgid "Wait for the next question."
+msgstr "Espere a próxima pergunta."
+
+msgid "Wait here. Your teacher will start the first question."
+msgstr "Espere aqui. Seu professor iniciará a primeira pergunta."
+
 msgid "WAITING"
 msgstr "AGUARDANDO"
 
@@ -7857,6 +8068,12 @@ msgstr "Aguardando saída da API…"
 
 msgid "Waiting for page to be processed..."
 msgstr "Aguardando a página ser processada..."
+
+msgid "Waiting for participants…"
+msgstr "Aguardando participantes…"
+
+msgid "Waiting for players to join…"
+msgstr "Esperando participantes entrarem…"
 
 msgid "Wall Clock"
 msgstr "Tempo decorrido"
@@ -7922,6 +8139,9 @@ msgstr "Qual é a principal função das raízes de uma planta?"
 msgid "What it does"
 msgstr "O que faz"
 
+msgid "What should be improved on this page?"
+msgstr "O que deve ser melhorado nesta página?"
+
 msgid "What should the AI change?"
 msgstr "O que a IA deve alterar?"
 
@@ -7970,6 +8190,9 @@ msgstr "Livro todo"
 msgid "Whole-book checks for packaged ADT output, plus reviewer findings captured from Preview."
 msgstr "Whole-book checks for packaged ADT output, plus reviewer findings captured from Preview."
 
+msgid "Why this answer is right"
+msgstr "Por que esta resposta está certa"
+
 msgid "Wide multilingual coverage with neural voices for many locales."
 msgstr "Ampla cobertura multilíngue com vozes neurais para muitos locais."
 
@@ -8012,8 +8235,20 @@ msgstr "Envolve solicitações de 'Editar esta imagem'. A IA recebe a imagem ori
 msgid "Wraps 'Generate new' requests. Supports user_prompt, style, and image_type variables. Uses Liquid syntax for conditionals."
 msgstr "Envolve solicitações de 'Gerar nova'. Suporta variáveis user_prompt, style e image_type. Usa sintaxe Liquid para condicionais."
 
+msgid "Yes — well done!"
+msgstr "Isso — muito bem!"
+
+msgid "You are in!"
+msgstr "Você entrou!"
+
+msgid "You can close this page now."
+msgstr "Você já pode fechar esta página."
+
 msgid "You can export at this stage"
 msgstr "Você pode exportar nesta etapa"
+
+msgid "You finished the quiz together."
+msgstr "Vocês terminaram o quiz juntos."
 
 msgid "You have changes that haven't been saved yet. If you quit now, they'll be lost."
 msgstr "Você tem alterações que ainda não foram salvas. Se sair agora, elas serão perdidas."
@@ -8023,6 +8258,12 @@ msgstr "Você tem alterações que ainda não foram salvas. Se sair agora, elas 
 
 msgid "You haven't added any terms manually yet"
 msgstr "Você ainda não adicionou nenhum termo manualmente"
+
+msgid "You left the review room"
+msgstr "Você saiu da sala de revisão"
+
+msgid "You left the room"
+msgstr "Você saiu da sala"
 
 msgid "You're all set"
 msgstr "Tudo certo"
@@ -8048,6 +8289,9 @@ msgstr "Seu livro"
 msgid "Your Books"
 msgstr "Seus livros"
 
+msgid "Your comments"
+msgstr "Seus comentários"
+
 msgid "Your first ADT <0>starts here.</0>"
 msgstr "Seu primeiro ADT <0>começa aqui.</0>"
 
@@ -8065,6 +8309,12 @@ msgstr "Sua fonte foi aplicada ao livro todo."
 
 msgid "Your fonts"
 msgstr "Suas fontes"
+
+msgid "Your name"
+msgstr "Seu nome"
+
+msgid "Your points"
+msgstr "Seus pontos"
 
 msgid "Z → A"
 msgstr "Z → A"

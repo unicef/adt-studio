@@ -5,6 +5,7 @@ import { unzipSync } from "fflate"
 import { Hono } from "hono"
 import { cors } from "hono/cors"
 import { logger } from "hono/logger"
+import { serveStatic } from "@hono/node-server/serve-static"
 import { errorHandler } from "./middleware/error-handler.js"
 import { healthRoutes } from "./routes/health.js"
 import { createBookRoutes } from "./routes/books.js"
@@ -31,6 +32,10 @@ import { createSpeechConfigRoutes } from "./routes/speech-config.js"
 import { createReviewerValidationRoutes } from "./routes/reviewer-validation.js"
 import { createTocRoutes } from "./routes/toc.js"
 import { createSignLanguageVideoRoutes } from "./routes/sign-language-videos.js"
+import { createQuizLiveSessionRoutes } from "./routes/quiz-live-sessions.js"
+import { createQuizLiveSessionService } from "./services/quiz-live-session-service.js"
+import { createPreviewLiveSessionRoutes } from "./routes/preview-live-sessions.js"
+import { createPreviewLiveSessionService } from "./services/preview-live-session-service.js"
 
 // Resolve paths relative to monorepo root (2 levels up from apps/api/)
 const projectRoot = path.resolve(
@@ -71,6 +76,8 @@ const eventBus = createBookEventBus()
 const stageRunner = createStageRunner()
 const stageService = createStageService(stageRunner, eventBus)
 const taskService = createTaskService(eventBus)
+const quizLiveSessionService = createQuizLiveSessionService()
+const previewLiveSessionService = createPreviewLiveSessionService()
 
 const app = new Hono()
 
@@ -88,6 +95,16 @@ app.use(
 )
 app.onError(errorHandler)
 
+// The packaged desktop app uses app:// internally, which peers cannot open.
+// Serve the compiled SPA from the local API as well so its public /play route
+// is reachable over the teacher's LAN. Docker/nginx serves these files itself.
+const studioAssetsDir = process.env.STUDIO_ASSETS_DIR
+if (studioAssetsDir && fs.existsSync(studioAssetsDir)) {
+  app.use("/assets/*", serveStatic({ root: studioAssetsDir }))
+  app.get("/play/*", serveStatic({ root: studioAssetsDir, path: "index.html" }))
+  app.get("/review/*", serveStatic({ root: studioAssetsDir, path: "index.html" }))
+}
+
 app.route("/api", healthRoutes)
 app.route("/api", createBookRoutes(booksDir, webAssetsDir, configPath, taskService))
 app.route("/api", createPageRoutes(booksDir, promptsDir, webAssetsDir, configPath, taskService))
@@ -95,6 +112,14 @@ app.route("/api", createGlossaryRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createTocRoutes(booksDir))
 app.route("/api", createDebugRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createQuizRoutes(booksDir, promptsDir, configPath))
+app.route(
+  "/api",
+  createQuizLiveSessionRoutes(booksDir, quizLiveSessionService)
+)
+app.route(
+  "/api",
+  createPreviewLiveSessionRoutes(booksDir, previewLiveSessionService)
+)
 app.route("/api", createPackageRoutes(booksDir, webAssetsDir, configPath, taskService))
 app.route("/api", createPromptRoutes(promptsDir, booksDir))
 app.route("/api", createTextCatalogRoutes(booksDir))

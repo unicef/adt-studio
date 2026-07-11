@@ -219,6 +219,28 @@ export {
 } from "./quiz.js"
 
 export {
+  QuizLiveStatus,
+  QuizLiveQuestion,
+  QuizLiveParticipant,
+  QuizLiveReveal,
+  QuizLiveSessionSnapshot,
+  QuizLiveClientMessage,
+  QuizLiveServerMessage,
+  CreateQuizLiveSessionRequest,
+  CreateQuizLiveSessionResponse,
+} from "./quiz-live-session.js"
+
+export {
+  PreviewLiveParticipant,
+  PreviewLiveComment,
+  PreviewLiveSessionSnapshot,
+  PreviewLiveClientMessage,
+  PreviewLiveServerMessage,
+  CreatePreviewLiveSessionRequest,
+  CreatePreviewLiveSessionResponse,
+} from "./preview-live-session.js"
+
+export {
   TextCatalogEntry,
   TextCatalogOutput,
   TextCatalogCategory,

@@ -20,6 +20,10 @@ import {
 } from "@/lib/accessibility-summary"
 import { PreviewAccessibilityCard } from "./PreviewAccessibilityCard"
 import { PreviewValidationCard } from "./PreviewValidationCard"
+import { Button } from "@/components/ui/button"
+import { Radio } from "lucide-react"
+import { useStepHeader } from "../components/StepViewRouter"
+import { LivePreviewReviewDialog } from "./LivePreviewReviewDialog"
 
 const HIGHLIGHT_STYLE_ID = "adt-preview-a11y-highlights"
 const HIGHLIGHT_ATTR = "data-adt-a11y-hover"
@@ -27,6 +31,7 @@ const HIGHLIGHT_SEVERITY_ATTR = "data-adt-a11y-hover-severity"
 const HIGHLIGHT_PAGE_ATTR = "data-adt-a11y-hover-page"
 
 export function PreviewView({ bookLabel }: { bookLabel: string }) {
+  const { setExtra } = useStepHeader()
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const search = useSearch({ strict: false }) as { previewHref?: string }
@@ -66,12 +71,32 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   }>({ sectionId: null, href: null, title: null, hasImages: false, hasActivity: false, signLanguageEnabled: false })
   const [accessibilityCardExpanded, setAccessibilityCardExpanded] = useState(false)
   const [validationCardExpanded, setValidationCardExpanded] = useState(false)
+  const [showLiveReview, setShowLiveReview] = useState(false)
   const { data, isLoading: assessmentLoading, error: assessmentError } = useAccessibilityAssessment(bookLabel)
   const { data: packageStatus } = usePackageAdtStatus(bookLabel, {
     refetchInterval: pendingVersion && !ready ? 1_000 : false,
   })
   const reviewerValidationCatalog = useReviewerValidationCatalog(bookLabel)
   const reviewerValidationEnabled = reviewerValidationCatalog.data?.enabled ?? false
+
+  useEffect(() => {
+    if (!ready) {
+      setExtra(null)
+      return
+    }
+    setExtra(
+      <Button
+        size="sm"
+        variant="outline"
+        className="ml-auto h-8 gap-1.5 border-white/40 bg-white/10 text-xs text-white hover:bg-white/20 hover:text-white"
+        onClick={() => setShowLiveReview(true)}
+      >
+        <Radio className="h-3.5 w-3.5" />
+        <Trans>Review live</Trans>
+      </Button>,
+    )
+    return () => setExtra(null)
+  }, [ready, setExtra])
 
   const assessment = data?.assessment ?? null
   const matchedPage = useMemo(
@@ -308,29 +333,61 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     })
   }, [bookLabel, currentPreviewPage.href, navigate, navigatePreviewToHref, ready, search.previewHref])
 
+  const livePreviewReviewDialog = (
+    <LivePreviewReviewDialog
+      open={showLiveReview}
+      onOpenChange={setShowLiveReview}
+      bookLabel={bookLabel}
+      previewVersion={version}
+    />
+  )
+
   if (isStatusLoading || prunedLoading) {
-    return <LoadingState stageSlug="preview" label={<Trans>Loading preview...</Trans>} />
+    return (
+      <>
+        <LoadingState stageSlug="preview" label={<Trans>Loading preview...</Trans>} />
+        {livePreviewReviewDialog}
+      </>
+    )
   }
 
   if (!storyboardDone) {
-    return <StageBlockedState bookLabel={bookLabel} reason="storyboard-missing" stageLabel={<Trans>Preview</Trans>} />
+    return (
+      <>
+        <StageBlockedState bookLabel={bookLabel} reason="storyboard-missing" stageLabel={<Trans>Preview</Trans>} />
+        {livePreviewReviewDialog}
+      </>
+    )
   }
 
   if (allPruned) {
-    return <StageBlockedState bookLabel={bookLabel} reason="all-pruned" stageLabel={<Trans>Preview</Trans>} />
+    return (
+      <>
+        <StageBlockedState bookLabel={bookLabel} reason="all-pruned" stageLabel={<Trans>Preview</Trans>} />
+        {livePreviewReviewDialog}
+      </>
+    )
   }
 
   if (packaging) {
-    return <LoadingState stageSlug="preview" label={<Trans>Packaging preview...</Trans>} />
+    return (
+      <>
+        <LoadingState stageSlug="preview" label={<Trans>Packaging preview...</Trans>} />
+        {livePreviewReviewDialog}
+      </>
+    )
   }
 
   if (error) {
     return (
-      <div className="p-4 max-w-xl">
-        <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2">
-          <p className="text-xs text-red-700 whitespace-pre-wrap break-words">{error}</p>
+      <>
+        <div className="p-4 max-w-xl">
+          <div className="rounded-md bg-red-50 border border-red-200 px-3 py-2">
+            <p className="text-xs text-red-700 whitespace-pre-wrap break-words">{error}</p>
+          </div>
         </div>
-      </div>
+        {livePreviewReviewDialog}
+      </>
     )
   }
 
@@ -364,7 +421,8 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
         }
       : { width: "100%", height: "100%" }
     return (
-      <div ref={wrapperRef} className="relative h-full w-full bg-muted/20 overflow-auto">
+      <>
+        <div ref={wrapperRef} className="relative h-full w-full bg-muted/20 overflow-auto">
         <div style={sizerStyle}>
           <iframe
             ref={iframeRef}
@@ -414,11 +472,13 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
             })}
           />
         ) : null}
-      </div>
+        </div>
+        {livePreviewReviewDialog}
+      </>
     )
   }
 
-  return null
+  return <>{livePreviewReviewDialog}</>
 }
 
 /** Parse a pixel value (e.g. "1587px") to a number, or null for missing/non-px values. */

@@ -33,6 +33,10 @@ const extraResources = [
     from: "../../assets",
     to: "assets",
   },
+  {
+    from: "../studio/dist",
+    to: "studio",
+  },
 ];
 
 const version = process.env.APP_VERSION || require("./package.json").version;

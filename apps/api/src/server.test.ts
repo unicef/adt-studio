@@ -24,6 +24,10 @@ describe("startServer", () => {
     expect(cleanupFn).toHaveBeenCalledTimes(1)
     expect(cleanupFn).toHaveBeenCalledWith("/tmp/books")
     expect(serveFn).toHaveBeenCalledTimes(1)
+    expect(serveFn).toHaveBeenCalledWith(
+      expect.objectContaining({ hostname: "0.0.0.0" }),
+      expect.any(Function)
+    )
     expect(order).toEqual(["cleanup", "serve"])
   })
 })

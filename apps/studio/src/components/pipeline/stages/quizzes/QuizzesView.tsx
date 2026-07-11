@@ -8,6 +8,7 @@ import {
   Search,
   X,
   Plus,
+  Radio,
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@/api/client";
@@ -40,6 +41,7 @@ import { AddQuizDialog } from "./AddQuizDialog";
 import { useApiKey } from "@/hooks/use-api-key";
 import { useStageStatus } from "@/hooks/use-stage-status";
 import { useLingui } from "@lingui/react/macro";
+import { LiveQuizHostDialog } from "./LiveQuizHostDialog";
 
 type QuizData = QuizGenerationOutput;
 
@@ -136,6 +138,7 @@ export function QuizzesView({
   const quizzesStatus = useStageStatus("quizzes");
   const [activeQuizId, setActiveQuizId] = useState<string | null>(null);
   const [showAdd, setShowAdd] = useState(false);
+  const [showLive, setShowLive] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
   const pageNumberById = useMemo(() => {
@@ -431,6 +434,17 @@ export function QuizzesView({
               />
               <Button
                 size="sm"
+                variant="outline"
+                className="h-8 gap-1.5 border-orange-300 bg-orange-50 text-xs font-semibold text-orange-800 hover:bg-orange-100"
+                disabled={dirty}
+                title={dirty ? t`Save quiz changes before starting a live session.` : undefined}
+                onClick={() => setShowLive(true)}
+              >
+                <Radio className="h-3.5 w-3.5" />
+                {t`Play live`}
+              </Button>
+              <Button
+                size="sm"
                 className="h-8 gap-1.5 bg-orange-600 text-xs text-white hover:bg-orange-700"
                 disabled={!hasApiKey || quizzesStatus.isRunning}
                 title={
@@ -575,6 +589,11 @@ export function QuizzesView({
           <AddQuizDialog
             open={showAdd}
             onOpenChange={setShowAdd}
+            bookLabel={bookLabel}
+          />
+          <LiveQuizHostDialog
+            open={showLive}
+            onOpenChange={setShowLive}
             bookLabel={bookLabel}
           />
           <PageLightbox

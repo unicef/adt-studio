@@ -1,5 +1,5 @@
 import { dirname, join } from "path";
-import { utilityProcess, type UtilityProcess } from "electron";
+import { app, utilityProcess, type UtilityProcess } from "electron";
 import { resolvePaths } from "./paths";
 import { waitForApiReady } from "./wait-ready";
 import type { LogForwarder } from "./types";
@@ -32,10 +32,9 @@ async function startApiServer(): Promise<{
     "Debug mode": isApiDebugMode ? "true" : "false",
   });
 
-  // PORT is intentionally omitted — under ADT_ENVIRONMENT=electron the API
-  // defaults to `0`, so the OS picks a free port. The actual port is
-  // reported back via `process.parentPort.postMessage` once the server
-  // binds (see `apps/api/src/server.ts`).
+  // Development uses the Studio Vite proxy's standard API port so the LAN
+  // URL (for example, http://192.168.x.x:5173) works outside Electron too.
+  // Packaged builds still use port 0, allowing the OS to select a free port.
   apiProcess = utilityProcess.fork(paths.serverPath, [], {
     cwd: paths.root,
     stdio: "pipe",
@@ -49,7 +48,9 @@ async function startApiServer(): Promise<{
       PROJECT_ROOT: paths.root,
       ADT_RESOURCES_ZIP: paths.adtResourcesZip,
       WEB_ASSETS_DIR: paths.webAssetsDir,
+      STUDIO_ASSETS_DIR: paths.studioAssetsDir,
       ADT_ENVIRONMENT: "electron",
+      ...(!app.isPackaged ? { PORT: process.env.PORT ?? "3001" } : {}),
     },
   });
 

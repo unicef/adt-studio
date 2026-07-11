@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from "./routes/__root"
 import { Route as OnboardingRouteImport } from "./routes/onboarding"
 import { Route as IndexRouteImport } from "./routes/index"
+import { Route as ReviewCodeRouteImport } from "./routes/review.$code"
+import { Route as PlayCodeRouteImport } from "./routes/play.$code"
 import { Route as BooksNewRouteImport } from "./routes/books.new"
 import { Route as BooksImportRouteImport } from "./routes/books.import"
 import { Route as BooksLabelRouteImport } from "./routes/books.$label"
@@ -29,6 +31,16 @@ const OnboardingRoute = OnboardingRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: "/",
   path: "/",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReviewCodeRoute = ReviewCodeRouteImport.update({
+  id: "/review/$code",
+  path: "/review/$code",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlayCodeRoute = PlayCodeRouteImport.update({
+  id: "/play/$code",
+  path: "/play/$code",
   getParentRoute: () => rootRouteImport,
 } as any)
 const BooksNewRoute = BooksNewRouteImport.update({
@@ -83,6 +95,8 @@ export interface FileRoutesByFullPath {
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
+  "/play/$code": typeof PlayCodeRoute
+  "/review/$code": typeof ReviewCodeRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/books/$label/": typeof BooksLabelIndexRoute
@@ -95,6 +109,8 @@ export interface FileRoutesByTo {
   "/onboarding": typeof OnboardingRoute
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
+  "/play/$code": typeof PlayCodeRoute
+  "/review/$code": typeof ReviewCodeRoute
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/books/$label": typeof BooksLabelIndexRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
@@ -108,6 +124,8 @@ export interface FileRoutesById {
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
+  "/play/$code": typeof PlayCodeRoute
+  "/review/$code": typeof ReviewCodeRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/books/$label/": typeof BooksLabelIndexRoute
@@ -123,6 +141,8 @@ export interface FileRouteTypes {
     | "/books/$label"
     | "/books/import"
     | "/books/new"
+    | "/play/$code"
+    | "/review/$code"
     | "/books/$label/$step"
     | "/books/$label/debug"
     | "/books/$label/"
@@ -135,6 +155,8 @@ export interface FileRouteTypes {
     | "/onboarding"
     | "/books/import"
     | "/books/new"
+    | "/play/$code"
+    | "/review/$code"
     | "/books/$label/debug"
     | "/books/$label"
     | "/books/$label/$step/$pageId"
@@ -147,6 +169,8 @@ export interface FileRouteTypes {
     | "/books/$label"
     | "/books/import"
     | "/books/new"
+    | "/play/$code"
+    | "/review/$code"
     | "/books/$label/$step"
     | "/books/$label/debug"
     | "/books/$label/"
@@ -161,6 +185,8 @@ export interface RootRouteChildren {
   BooksLabelRoute: typeof BooksLabelRouteWithChildren
   BooksImportRoute: typeof BooksImportRoute
   BooksNewRoute: typeof BooksNewRoute
+  PlayCodeRoute: typeof PlayCodeRoute
+  ReviewCodeRoute: typeof ReviewCodeRoute
 }
 
 declare module "@tanstack/react-router" {
@@ -177,6 +203,20 @@ declare module "@tanstack/react-router" {
       path: "/"
       fullPath: "/"
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/review/$code": {
+      id: "/review/$code"
+      path: "/review/$code"
+      fullPath: "/review/$code"
+      preLoaderRoute: typeof ReviewCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/play/$code": {
+      id: "/play/$code"
+      path: "/play/$code"
+      fullPath: "/play/$code"
+      preLoaderRoute: typeof PlayCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/books/new": {
@@ -283,6 +323,8 @@ const rootRouteChildren: RootRouteChildren = {
   BooksLabelRoute: BooksLabelRouteWithChildren,
   BooksImportRoute: BooksImportRoute,
   BooksNewRoute: BooksNewRoute,
+  PlayCodeRoute: PlayCodeRoute,
+  ReviewCodeRoute: ReviewCodeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

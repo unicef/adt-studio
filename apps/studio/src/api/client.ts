@@ -13,6 +13,10 @@ import type {
   ReviewerValidationInstruction,
   ReviewerValidationSection,
   ReviewerValidationSession,
+  CreateQuizLiveSessionResponse,
+  QuizLiveSessionSnapshot,
+  CreatePreviewLiveSessionResponse,
+  PreviewLiveSessionSnapshot,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 
@@ -32,6 +36,24 @@ export function resolveBaseUrl(
 // Guard for test/SSR environments where window is not defined
 export const BASE_URL =
   typeof window !== "undefined" ? resolveBaseUrl() : "/api"
+
+export function getQuizLiveWebSocketUrl(code: string): string {
+  const url = new URL(
+    `${BASE_URL}/quiz-sessions/${encodeURIComponent(code)}/ws`,
+    window.location.href,
+  )
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:"
+  return url.toString()
+}
+
+export function getPreviewLiveWebSocketUrl(code: string): string {
+  const url = new URL(
+    `${BASE_URL}/preview-live-sessions/${encodeURIComponent(code)}/ws`,
+    window.location.href,
+  )
+  url.protocol = url.protocol === "https:" ? "wss:" : "ws:"
+  return url.toString()
+}
 
 export function getAdtUrl(label: string): string {
   return `${BASE_URL}/books/${label}/adt`
@@ -1237,6 +1259,45 @@ export const api = {
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(120_000),
       }
+    ),
+
+  createQuizLiveSession: (label: string, quizIndexes?: number[]) =>
+    request<CreateQuizLiveSessionResponse>(`/books/${label}/quiz-sessions`, {
+      method: "POST",
+      body: JSON.stringify({
+        quizIndexes,
+        joinBaseUrl:
+          window.location.protocol === "http:" ||
+          window.location.protocol === "https:"
+            ? window.location.origin
+            : undefined,
+      }),
+    }),
+
+  getQuizLiveSession: (code: string) =>
+    request<QuizLiveSessionSnapshot>(
+      `/quiz-sessions/${encodeURIComponent(code)}`,
+    ),
+
+  createPreviewLiveSession: (label: string, previewVersion: string) =>
+    request<CreatePreviewLiveSessionResponse>(
+      `/books/${label}/preview-live-sessions`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          previewVersion,
+          joinBaseUrl:
+            window.location.protocol === "http:" ||
+            window.location.protocol === "https:"
+              ? window.location.origin
+              : undefined,
+        }),
+      },
+    ),
+
+  getPreviewLiveSession: (code: string) =>
+    request<PreviewLiveSessionSnapshot>(
+      `/preview-live-sessions/${encodeURIComponent(code)}`,
     ),
 
   getGlossary: (label: string) =>

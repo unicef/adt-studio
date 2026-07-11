@@ -17,6 +17,7 @@ export interface ApiServerPaths {
   configPath: string;
   adtResourcesZip: string;
   webAssetsDir: string;
+  studioAssetsDir: string;
 }
 
 export function resolvePaths(): ApiServerPaths {
@@ -44,6 +45,7 @@ export function resolvePaths(): ApiServerPaths {
       configPath: join(root, "config.yaml"),
       adtResourcesZip: join(root, "assets", "adt-resources.zip"),
       webAssetsDir: join(root, "assets", "adt"),
+      studioAssetsDir: join(root, "studio"),
     };
   }
 
@@ -55,5 +57,6 @@ export function resolvePaths(): ApiServerPaths {
     configPath: join(root, "config.yaml"),
     adtResourcesZip: join(root, "assets", "adt-resources.zip"),
     webAssetsDir: join(root, "assets", "adt"),
+    studioAssetsDir: join(root, "apps", "studio", "dist"),
   };
 }
