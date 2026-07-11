@@ -900,6 +900,9 @@ export const api = {
   getStagesStatus: (label: string) =>
     request<StageRunStatus>(`/books/${label}/stages/status`),
 
+  getPersonalizedMaterialRecipient: (label: string) =>
+    request<{ parentEmail: string }>(`/materials/personalized/${encodeURIComponent(label)}/recipient`),
+
   getPages: (label: string) =>
     request<PageSummaryItem[]>(`/books/${label}/pages`),
 

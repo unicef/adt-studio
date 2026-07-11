@@ -1016,6 +1016,13 @@ async function runStoryboardStep(
       `[stage-run] ${label}: rendering storyboard for ${totalPages} pages (concurrency=${effectiveConcurrency})`
     )
 
+    // Keep the persisted step lifecycle in sync with the actual render work.
+    // Without this event, the normal (non-fixed-layout) storyboard path jumped
+    // straight from idle to complete/error. That left the UI unable to report
+    // a running storyboard accurately and meant errors were not consistently
+    // attached to the web-rendering step.
+    progress.emit({ type: "step-start", step: "web-rendering" })
+
     await ensureBookGoogleFontsCached(storage, resolveFontsCacheDir(booksDir))
 
     let completedRendering = 0

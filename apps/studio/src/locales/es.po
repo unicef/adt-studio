@@ -2043,6 +2043,9 @@ msgstr "Corrige los metadatos extraídos del documento."
 msgid "Could not load the Google Fonts catalog. Check your connection and try again."
 msgstr "No se pudo cargar el catálogo de Google Fonts. Comprueba tu conexión e inténtalo de nuevo."
 
+msgid "Could not publish the interactive material."
+msgstr "No se pudo publicar el material interactivo."
+
 msgid "Could not read image dimensions"
 msgstr "No se pudieron leer las dimensiones de la imagen"
 
@@ -3736,6 +3739,9 @@ msgstr "Interactivo"
 msgid "Interactive assessment questions"
 msgstr "Preguntas de evaluación interactivas"
 
+msgid "Interactive material published. Open it in a new tab."
+msgstr "Material interactivo publicado. Ábralo en una pestaña nueva."
+
 msgid "Interactive page: AI conversion from the original PDF."
 msgstr "Página interactiva: conversión por IA del PDF original."
 
@@ -4918,6 +4924,9 @@ msgstr "Abrir vista previa de la imagen"
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Ábrelo en cualquier lector EPUB 3, lector electrónico o herramienta de accesibilidad."
 
+msgid "Open material"
+msgstr "Abrir material"
+
 msgid "Open page preview for {pageId}"
 msgstr "Abrir vista previa de la página {0}"
 
@@ -5588,11 +5597,17 @@ msgstr "Eliminado: {0}"
 msgid "PT"
 msgstr "PT"
 
+msgid "Publish interactive version"
+msgstr "Publicar versión interactiva"
+
 msgid "published in"
 msgstr "publicado en"
 
 msgid "Publisher"
 msgstr "Editorial"
+
+msgid "Publishing..."
+msgstr "Publicando..."
 
 msgid "Pull structured content from the source PDF. Extraction identifies headings, paragraphs, lists, and images so downstream stages work with clean, typed content instead of raw PDF."
 msgstr "Extrae contenido estructurado del PDF fuente. La extracción identifica encabezados, párrafos, listas e imágenes para que las etapas posteriores trabajen con contenido limpio y escrito en lugar de PDF sin procesar."
@@ -7151,6 +7166,9 @@ msgid "Teacher ID"
 msgstr "ID del profesor"
 
 msgid "Teacher workspace"
+msgstr "Espacio de trabajo del profesor"
+
+msgid "Teacher Workspace"
 msgstr "Espacio de trabajo del profesor"
 
 msgid "Teaching dashboard"

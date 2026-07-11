@@ -2043,6 +2043,9 @@ msgstr "Correct the metadata extracted from the document."
 msgid "Could not load the Google Fonts catalog. Check your connection and try again."
 msgstr "Could not load the Google Fonts catalog. Check your connection and try again."
 
+msgid "Could not publish the interactive material."
+msgstr "Could not publish the interactive material."
+
 msgid "Could not read image dimensions"
 msgstr "Could not read image dimensions"
 
@@ -3736,6 +3739,9 @@ msgstr "Interactive"
 msgid "Interactive assessment questions"
 msgstr "Interactive assessment questions"
 
+msgid "Interactive material published. Open it in a new tab."
+msgstr "Interactive material published. Open it in a new tab."
+
 msgid "Interactive page: AI conversion from the original PDF."
 msgstr "Interactive page: AI conversion from the original PDF."
 
@@ -4918,6 +4924,9 @@ msgstr "Open image preview"
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 
+msgid "Open material"
+msgstr "Open material"
+
 msgid "Open page preview for {pageId}"
 msgstr "Open page preview for {pageId}"
 
@@ -5588,11 +5597,17 @@ msgstr "Pruned: {reason}"
 msgid "PT"
 msgstr "PT"
 
+msgid "Publish interactive version"
+msgstr "Publish interactive version"
+
 msgid "published in"
 msgstr "published in"
 
 msgid "Publisher"
 msgstr "Publisher"
+
+msgid "Publishing..."
+msgstr "Publishing..."
 
 msgid "Pull structured content from the source PDF. Extraction identifies headings, paragraphs, lists, and images so downstream stages work with clean, typed content instead of raw PDF."
 msgstr "Pull structured content from the source PDF. Extraction identifies headings, paragraphs, lists, and images so downstream stages work with clean, typed content instead of raw PDF."
@@ -7152,6 +7167,9 @@ msgstr "Teacher ID"
 
 msgid "Teacher workspace"
 msgstr "Teacher workspace"
+
+msgid "Teacher Workspace"
+msgstr "Teacher Workspace"
 
 msgid "Teaching dashboard"
 msgstr "Teaching dashboard"

@@ -121,6 +121,10 @@ export function createStudentLibrary(booksDir: string) {
       db.run("INSERT INTO materials VALUES (?, ?, ?, ?, ?, 'ready', ?)", [id, studentId, sourceBookLabel, derivedBookLabel, JSON.stringify(adaptationPlan), now])
       return { id, studentId, sourceBookLabel, derivedBookLabel, adaptationPlan, status: "ready", createdAt: now }
     },
+    getMaterialRecipient(derivedBookLabel: string): { parentEmail: string } | null {
+      const row = db.all("SELECT s.parent_email FROM materials m JOIN students s ON s.id=m.student_id WHERE m.derived_book_label=? AND s.archived_at IS NULL", [derivedBookLabel])[0] as { parent_email: string } | undefined
+      return row ? { parentEmail: row.parent_email } : null
+    },
     createAssignment(studentId: string, materialId: string): MaterialAssignment {
       const id = randomUUID(), now = new Date().toISOString()
       db.run("INSERT INTO material_assignments VALUES (?, ?, ?, 'PENDING', ?, NULL)", [id, studentId, materialId, now])

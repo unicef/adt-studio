@@ -2044,6 +2044,9 @@ msgstr "Korrigjoni meta të dhënat e nxjerra nga dokumenti."
 msgid "Could not load the Google Fonts catalog. Check your connection and try again."
 msgstr "Katalogu i Google Fonts nuk u ngarkua dot. Kontrolloni lidhjen tuaj dhe provoni përsëri."
 
+msgid "Could not publish the interactive material."
+msgstr "Materiali interaktiv nuk mund të publikohej."
+
 msgid "Could not read image dimensions"
 msgstr "Nuk u lexuan dot përmasat e imazhit"
 
@@ -3737,6 +3740,9 @@ msgstr "Interaktiv"
 msgid "Interactive assessment questions"
 msgstr "Pyetje vlerësuese interaktive"
 
+msgid "Interactive material published. Open it in a new tab."
+msgstr "Materiali interaktiv u publikua. Hapeni në një skedë të re."
+
 msgid "Interactive page: AI conversion from the original PDF."
 msgstr "Faqe interaktive: konvertim me AI nga PDF origjinal."
 
@@ -4919,6 +4925,9 @@ msgstr "Hapni pamjen paraprake të imazhit"
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Hapeni në çdo lexues EPUB 3, e-reader, ose mjet aksesueshmërie."
 
+msgid "Open material"
+msgstr "Hap materialin"
+
 msgid "Open page preview for {pageId}"
 msgstr "Hapni pamjen paraprake të faqes për {pageId}"
 
@@ -5589,11 +5598,17 @@ msgstr "Shkurtuar: {reason}"
 msgid "PT"
 msgstr "PT"
 
+msgid "Publish interactive version"
+msgstr "Publiko versionin interaktiv"
+
 msgid "published in"
 msgstr "botuar në"
 
 msgid "Publisher"
 msgstr "Botuesi"
+
+msgid "Publishing..."
+msgstr "Po publikohet..."
 
 msgid "Pull structured content from the source PDF. Extraction identifies headings, paragraphs, lists, and images so downstream stages work with clean, typed content instead of raw PDF."
 msgstr "Nxirrni përmbajtje të strukturuar nga PDF-ja burimore. Nxjerrja identifikon titujt, paragrafet, listat dhe imazhet, kështu që fazat pasuese punojnë me përmbajtje të pastër dhe të tipizuar në vend të PDF-së bruto."
@@ -7153,6 +7168,9 @@ msgstr "ID e mësuesit"
 
 msgid "Teacher workspace"
 msgstr "Hapësira e punës së mësuesit"
+
+msgid "Teacher Workspace"
+msgstr "Hapësira e Punës për Mësuesin"
 
 msgid "Teaching dashboard"
 msgstr "Paneli i mësimdhënies"

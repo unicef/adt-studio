@@ -42,6 +42,7 @@
     "color": "^5.0.3",
     "dompurify": "^3.4.11",
     "embla-carousel-react": "^8.6.0",
+    "fflate": "^0.8.2",
     "lucide-react": "^0.469.0",
     "pdfjs-dist": "^5.5.207",
     "react": "^19.0.0",

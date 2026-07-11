@@ -543,6 +543,12 @@ describe("createStageRunner storyboard render-only", () => {
     expect(
       events.some(
         (event) =>
+          event.type === "step-start" && event.step === "web-rendering"
+      )
+    ).toBe(true)
+    expect(
+      events.some(
+        (event) =>
           event.type === "step-complete" && event.step === "web-rendering"
       )
     ).toBe(true)

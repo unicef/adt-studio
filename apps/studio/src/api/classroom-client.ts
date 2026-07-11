@@ -4,6 +4,7 @@ export interface WorkspaceAnalytics { totalProfiles: number; totalMaterials: num
 
 const baseUrl = (import.meta.env.VITE_CLASSROOM_API_URL ?? "https://adt-classroom-sessions.elasticsounds.workers.dev").replace(/\/$/, "")
 export function classroomConfigured() { return Boolean(baseUrl) }
+export function getPublicMaterialUrl(materialId: string, teacherId: string) { return `${baseUrl}/materials/${materialId}/view?teacherId=${encodeURIComponent(teacherId)}` }
 async function request<T>(teacherId: string, path: string, init?: RequestInit): Promise<T> {
   if (!baseUrl) throw new Error("Classroom API URL is not configured")
   const response = await fetch(`${baseUrl}${path}`, { ...init, headers: { "Content-Type": "application/json", "X-Teacher-Id": teacherId, ...init?.headers } })
@@ -20,4 +21,8 @@ export const classroomApi = {
   sendToParent: (teacherId: string, materialId: string, parentEmail: string) => request<{ status: string; sentAt: string }>(teacherId, `/materials/${materialId}/deliveries`, { method: "POST", body: JSON.stringify({ parentEmail }) }),
   retryMaterialSync: (teacherId: string, materialId: string) => request<ClassroomMaterial>(teacherId, `/materials/${materialId}/sync`, { method: "POST" }),
   uploadMaterialContent: (teacherId: string, materialId: string, content: ArrayBuffer) => request<ClassroomMaterial>(teacherId, `/materials/${materialId}/content`, { method: "PUT", headers: { "Content-Type": "application/zip" }, body: content }),
+  async uploadMaterialFile(teacherId: string, materialId: string, path: string, content: Uint8Array): Promise<void> {
+    const response = await fetch(`${baseUrl}/materials/${materialId}/files/${path.split("/").map(encodeURIComponent).join("/")}`, { method: "PUT", headers: { "Content-Type": "application/octet-stream", "X-Teacher-Id": teacherId }, body: Uint8Array.from(content).buffer })
+    if (!response.ok) throw new Error((await response.json().catch(() => ({ error: response.statusText }))).error)
+  },
 }

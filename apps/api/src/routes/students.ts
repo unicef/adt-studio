@@ -92,6 +92,14 @@ export function createStudentRoutes(booksDir: string): Hono {
     const library = createStudentLibrary(booksDir)
     try { return c.json(library.dashboard()) } finally { library.close() }
   })
+  app.get("/materials/personalized/:label/recipient", (c) => {
+    const library = createStudentLibrary(booksDir)
+    try {
+      const recipient = library.getMaterialRecipient(parseBookLabel(c.req.param("label")))
+      if (!recipient) throw new HTTPException(404, { message: "Personalized material not found" })
+      return c.json(recipient)
+    } finally { library.close() }
+  })
 
   app.post("/materials/personalized", async (c) => {
     const input = parseOr400(GenerateInput, await c.req.json())

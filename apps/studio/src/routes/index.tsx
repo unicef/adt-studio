@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { createFileRoute, Link, redirect } from "@tanstack/react-router"
 import { hasCompletedOnboarding } from "@/hooks/use-onboarding"
 import {
@@ -43,11 +44,12 @@ import {
   getStageDescriptionI18n,
 } from "@/components/pipeline/pipeline-i18n"
 import type { BookSummary } from "@/api/client"
-import { getBookCoverUrl } from "@/api/client"
+import { api, getBookCoverUrl } from "@/api/client"
 import { cn } from "@/lib/utils"
-import { getSyncedMaterial } from "@/features/workspace/material-sync"
+import { getSyncedMaterial, publishInteractiveMaterial } from "@/features/workspace/material-sync"
 import { getWorkspace } from "@/features/workspace/config"
 import { classroomApi } from "@/api/classroom-client"
+import { getPublicMaterialUrl } from "@/api/classroom-client"
 
 type BookSortKey = "modified" | "created" | "alphabetical"
 
@@ -199,10 +201,28 @@ function DetailRow({
 function CloudMaterialActions({ label }: { label: string }) {
   const { t } = useLingui()
   const stored = getSyncedMaterial(label)
-  const [email, setEmail] = useState(stored?.parentEmail ?? "")
+  const workspace = getWorkspace()
+  const { data: cloudMaterials } = useQuery({
+    queryKey: ["workspace", "materials", workspace?.teacherId],
+    queryFn: () => classroomApi.materials(workspace!.teacherId),
+    enabled: Boolean(workspace),
+  })
+  const cloudMaterial = cloudMaterials?.find((material) => {
+    try { return (JSON.parse(material.body) as { sourceBookLabel?: string }).sourceBookLabel === label } catch { return false }
+  })
+  const material = stored?.material ?? cloudMaterial
+  const cloudParentEmail = (() => { try { return cloudMaterial ? (JSON.parse(cloudMaterial.body) as { parentEmail?: string }).parentEmail ?? "" : "" } catch { return "" } })()
+  const { data: recipient } = useQuery({ queryKey: ["personalized-material", label, "recipient"], queryFn: () => api.getPersonalizedMaterialRecipient(label), enabled: Boolean(material) })
+  const [email, setEmail] = useState(stored?.parentEmail ?? cloudParentEmail)
   const [sent, setSent] = useState(false)
-  if (!stored) return null
-  return <div className="mt-3 rounded-md border border-primary/20 bg-primary/5 p-3"><p className={stored.material.syncStatus === "synced" ? "text-xs text-green-700" : "text-xs text-destructive"}>{stored.material.syncStatus === "synced" ? t`Synced to Cloudflare` : t`Cloud sync failed`}</p><div className="mt-2 flex flex-wrap gap-2"><Input value={email} type="email" onChange={(event) => setEmail(event.target.value)} placeholder={t`Parent email`} className="h-8 max-w-xs text-xs" /><Button size="sm" disabled={!email || sent} onClick={async () => { const workspace = getWorkspace(); if (!workspace) return; await classroomApi.sendToParent(workspace.teacherId, stored.material.id, email); setSent(true) }}><Trans>Send to Parent</Trans></Button></div>{sent && <p className="mt-2 text-xs text-green-700"><Trans>Material successfully sent to parent.</Trans></p>}</div>
+  const [sending, setSending] = useState(false)
+  const [sendError, setSendError] = useState<string | null>(null)
+  const [publishing, setPublishing] = useState(false)
+  const [published, setPublished] = useState(false)
+  const [publishError, setPublishError] = useState<string | null>(null)
+  useEffect(() => { if (!email) setEmail(stored?.parentEmail ?? cloudParentEmail ?? recipient?.parentEmail ?? "") }, [cloudParentEmail, email, recipient?.parentEmail, stored?.parentEmail])
+  if (!material) return null
+  return <div className="mt-3 rounded-md border border-primary/20 bg-primary/5 p-3"><p className={material.syncStatus === "synced" ? "text-xs text-green-700" : "text-xs text-destructive"}>{material.syncStatus === "synced" ? t`Synced to Cloudflare` : t`Cloud sync failed`}</p><div className="mt-2 flex flex-wrap gap-2"><Input value={email} type="email" onChange={(event) => setEmail(event.target.value)} placeholder={t`Parent email`} className="h-8 max-w-xs text-xs" /><Button size="sm" disabled={!email || sent || sending} onClick={async () => { if (!workspace) return; setSending(true); setSendError(null); try { await classroomApi.sendToParent(workspace.teacherId, material.id, email); setSent(true) } catch (error) { setSendError(error instanceof Error ? error.message : t`Cloud sync failed`) } finally { setSending(false) } }}><Trans>Send to Parent</Trans></Button><Button size="sm" variant="outline" disabled={publishing} onClick={async () => { setPublishing(true); setPublishError(null); try { await publishInteractiveMaterial(label, material); setPublished(true) } catch (error) { setPublishError(error instanceof Error ? error.message : t`Could not publish the interactive material.`) } finally { setPublishing(false) } }}>{publishing ? <Trans>Publishing...</Trans> : <Trans>Publish interactive version</Trans>}</Button>{workspace && <Button size="sm" variant="outline" asChild><a href={getPublicMaterialUrl(material.id, workspace.teacherId)} target="_blank" rel="noreferrer"><Trans>Open material</Trans></a></Button>}</div>{sent && <p className="mt-2 text-xs text-green-700"><Trans>Material successfully sent to parent.</Trans></p>}{sendError && <p className="mt-2 text-xs text-destructive">{sendError}</p>}{published && <p className="mt-2 text-xs text-green-700"><Trans>Interactive material published. Open it in a new tab.</Trans></p>}{publishError && <p className="mt-2 text-xs text-destructive">{publishError}</p>}</div>
 }
 
 function BookRow({
@@ -400,7 +420,6 @@ function BookRow({
             completedSet={completedSet}
             pipelineStages={pipelineStages}
           />
-          <CloudMaterialActions label={book.label} />
           </div>
         </Link>
 
@@ -430,6 +449,9 @@ function BookRow({
             <Trash2 className="h-4 w-4" />
           </Button>
         </div>
+      </div>
+      <div className="px-5 pb-5">
+        <CloudMaterialActions label={book.label} />
       </div>
     </div>
   )
@@ -599,6 +621,12 @@ function HomePage() {
                 </SelectContent>
               </Select>
             )}
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/workspace" className="gap-1.5">
+                <User className="h-3.5 w-3.5" />
+                <Trans>Teacher Workspace</Trans>
+              </Link>
+            </Button>
             <Button variant="outline" size="sm" asChild>
               <Link to="/books/new" className="gap-1.5">
                 <Plus className="h-3.5 w-3.5" />
