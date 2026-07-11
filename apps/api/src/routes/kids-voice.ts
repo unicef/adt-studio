@@ -35,6 +35,42 @@ const GenerateKidsVoiceBody = z
   })
   .strict()
 
+const KidsModeConfigBody = z
+  .object({
+    enabled: z.boolean(),
+    buddies: z
+      .array(z.enum(KIDS_BUDDY_IDS as unknown as [string, ...string[]]))
+      .min(1),
+  })
+  .strict()
+
+export interface KidsModeConfig {
+  enabled: boolean
+  buddies: string[]
+}
+
+const KIDS_MODE_CONFIG_FILE = "kids-mode.json"
+
+/**
+ * Author-time kids mode decision, stored as a flat file in the book dir
+ * (book-level storage). Preview and export read it to stamp
+ * `features.kidsMode` / `features.kidsBuddies` into the packaged config —
+ * the reader never toggles kids mode.
+ */
+export function readKidsModeConfig(bookDir: string): KidsModeConfig {
+  const file = path.join(bookDir, KIDS_MODE_CONFIG_FILE)
+  const fallback: KidsModeConfig = { enabled: false, buddies: [...KIDS_BUDDY_IDS] }
+  if (!fs.existsSync(file)) return fallback
+  try {
+    const parsed = KidsModeConfigBody.safeParse(
+      JSON.parse(fs.readFileSync(file, "utf8")),
+    )
+    return parsed.success ? parsed.data : fallback
+  } catch {
+    return fallback
+  }
+}
+
 function safeParseLabel(label: string): string {
   try {
     return parseBookLabel(label)
@@ -117,6 +153,36 @@ export function createKidsVoiceRoutes(
 ): Hono {
   const app = new Hono()
 
+  app.get("/books/:label/kids-mode", (c) => {
+    const safeLabel = safeParseLabel(c.req.param("label"))
+    const bookDir = getBookDir(booksDir, safeLabel)
+    return c.json(readKidsModeConfig(bookDir))
+  })
+
+  app.put("/books/:label/kids-mode", async (c) => {
+    const safeLabel = safeParseLabel(c.req.param("label"))
+    const bookDir = getBookDir(booksDir, safeLabel)
+
+    let body: unknown
+    try {
+      body = await c.req.json()
+    } catch {
+      throw new HTTPException(400, { message: "Invalid JSON body" })
+    }
+    const parsed = KidsModeConfigBody.safeParse(body)
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid kids mode config: ${parsed.error.message}`,
+      })
+    }
+
+    fs.writeFileSync(
+      path.join(bookDir, KIDS_MODE_CONFIG_FILE),
+      `${JSON.stringify(parsed.data, null, 2)}\n`,
+    )
+    return c.json(parsed.data)
+  })
+
   app.get("/books/:label/kids-voice", (c) => {
     const safeLabel = safeParseLabel(c.req.param("label"))
     const bookDir = getBookDir(booksDir, safeLabel)
@@ -190,7 +256,9 @@ export function createKidsVoiceRoutes(
       })
     }
 
-    const characters = resolveCharacters(parsed.data.characters)
+    const characters = resolveCharacters(
+      parsed.data.characters ?? readKidsModeConfig(bookDir).buddies,
+    )
 
     const model = resolveSpeechModel(
       "openai",

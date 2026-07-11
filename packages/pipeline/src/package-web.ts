@@ -665,7 +665,7 @@ export async function packageAdtWeb(
   // kids-voice/ — pre-generated buddy voice clips + per-language manifests.
   // Copied wholesale; the runtime resolves ./content/kids-voice/<lang>/ and
   // degrades to text-only bubbles when a language has no pack.
-  if (features?.kidsMode !== false) {
+  if (features?.kidsMode === true) {
     const kidsVoiceSrc = path.join(bookDir, "kids-voice")
     if (fs.existsSync(kidsVoiceSrc)) {
       copyDirRecursive(kidsVoiceSrc, path.join(contentDir, "kids-voice"))
@@ -703,8 +703,9 @@ export async function packageAdtWeb(
       characterDisplay: false,
       highlight: highlightEnabled,
       activities: hasQuiz || hasActivitySections,
-      kidsMode: features?.kidsMode !== false,
-      ...(features?.kidsBuddies?.length
+      // Author-time opt-in from Studio (kids-mode.json); readers never toggle.
+      kidsMode: features?.kidsMode === true,
+      ...(features?.kidsMode === true && features?.kidsBuddies?.length
         ? { kidsBuddies: features.kidsBuddies }
         : {}),
     },

@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { isTtsExcluded, parseBookLabel } from "@adt/types"
+import { readKidsModeConfig, type KidsModeConfig } from "./kids-voice.js"
 import {
   WebRenderingOutput,
   type SpeechConfig,
@@ -436,6 +437,7 @@ function buildPreviewConfig(
   speechConfig?: SpeechConfig,
   configuredOutputLanguages?: string[],
   fixedLayout?: boolean,
+  kidsMode?: KidsModeConfig,
 ) {
   const glossary = getGlossary(storage)
   const hasGlossary = glossary !== undefined && glossary.items.length > 0
@@ -515,6 +517,10 @@ function buildPreviewConfig(
       characterDisplay: false,
       highlight: highlightEnabled,
       activities: hasQuiz || hasActivitySections,
+      kidsMode: kidsMode?.enabled === true,
+      ...(kidsMode?.enabled && kidsMode.buddies.length > 0
+        ? { kidsBuddies: kidsMode.buddies }
+        : {}),
     },
     analytics: {
       enabled: false,
@@ -575,7 +581,7 @@ export function createAdtPreviewRoutes(
   app.get("/books/:label/adt-preview/assets/config.json", (c) => {
     const safeLabel = parseBookLabel(c.req.param("label"))
     const bookConfig = loadBookConfig(safeLabel, booksDir, configPath)
-    const previewConfig = withStorage(c.req.param("label"), (storage) => {
+    const previewConfig = withStorage(c.req.param("label"), (storage, _label, bookDir) => {
       const language = getBookLanguage(storage)
       return buildPreviewConfig(
         storage,
@@ -584,6 +590,7 @@ export function createAdtPreviewRoutes(
         bookConfig.speech,
         bookConfig.output_languages,
         isFixedLayoutBook(bookConfig),
+        readKidsModeConfig(bookDir),
       )
     })
     setNoStoreHeaders(c)
@@ -872,6 +879,30 @@ export function createAdtPreviewRoutes(
 
     if (!fs.existsSync(resolved)) {
       throw new HTTPException(404, { message: "Audio file not found" })
+    }
+
+    c.header("Content-Type", getMimeType(resolved))
+    return c.body(fs.readFileSync(resolved))
+  })
+
+  // /content/kids-voice/* — buddy voice manifests + clips straight from the
+  // book dir (mirrors what package-web copies into content/kids-voice/).
+  app.get("/books/:label/adt-preview/content/kids-voice/*", (c) => {
+    const { label } = c.req.param()
+    const { bookDir } = resolveBook(label)
+
+    const voicePath = c.req.path.split("/content/kids-voice/")[1]
+    if (!voicePath) {
+      throw new HTTPException(400, { message: "Missing kids-voice path" })
+    }
+
+    const voiceDir = path.join(bookDir, "kids-voice")
+    const resolved = path.resolve(voiceDir, voicePath)
+    if (!resolved.startsWith(path.resolve(voiceDir) + path.sep)) {
+      throw new HTTPException(403, { message: "Forbidden" })
+    }
+    if (!fs.existsSync(resolved)) {
+      throw new HTTPException(404, { message: "Kids voice file not found" })
     }
 
     c.header("Content-Type", getMimeType(resolved))

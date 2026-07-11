@@ -5,6 +5,7 @@ import { parseBookLabel } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
 import { packageAdtWeb, packageWebpub, packageEpub, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
 import { createZipStream } from "./zip-util.js"
+import { readKidsModeConfig } from "../routes/kids-voice.js"
 import { readPartInfo } from "./book-service.js"
 
 export interface ExportResult {
@@ -149,7 +150,16 @@ export async function prepareExport(
       webAssetsDir,
       applyBodyBackground: config.apply_body_background,
       speechConfig: config.speech,
-      features,
+      // The kids-mode decision is author-time book state (kids-mode.json);
+      // explicit export-request flags still win when provided.
+      features: (() => {
+        const kidsConfig = readKidsModeConfig(bookDir)
+        return {
+          ...features,
+          kidsMode: features?.kidsMode ?? kidsConfig.enabled,
+          kidsBuddies: features?.kidsBuddies ?? kidsConfig.buddies,
+        }
+      })(),
       defaultSettings: mergedDefaultSettings,
       lockedSettings: config.locked_settings,
       fixedLayout: isFixedLayoutBook(config),
