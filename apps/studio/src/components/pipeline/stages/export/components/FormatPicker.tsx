@@ -1,4 +1,5 @@
-import { Check } from "lucide-react"
+import { Check, Cloud } from "lucide-react"
+import { Trans } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
 import { buildExportFormatConfig, type ExportFormat } from "../export-formats"
 import type { useLingui } from "@lingui/react/macro"
@@ -11,12 +12,14 @@ export function FormatPicker({
   t,
   errorFormat,
   isPart,
+  cloudMaterialUrl,
 }: {
   selected: ExportFormat
   onSelect: (format: ExportFormat) => void
   t: ReturnType<typeof useLingui>["t"]
   errorFormat?: ExportFormat | null
   isPart?: boolean
+  cloudMaterialUrl?: string | null
 }) {
   const formats = buildExportFormatConfig(t, { isPart })
   return (
@@ -88,6 +91,24 @@ export function FormatPicker({
           </li>
         )
       })}
+      {cloudMaterialUrl && (
+        <li>
+          <a
+            href={cloudMaterialUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="group relative flex w-full items-center gap-3 rounded-lg border-2 border-orange-200 bg-orange-50 px-3 py-2.5 text-left transition-[background-color,border-color,box-shadow] duration-200 ease-out hover:border-orange-300 hover:bg-orange-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400/60"
+          >
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-orange-200 bg-orange-50">
+              <Cloud className="h-4 w-4 text-orange-600" aria-hidden />
+            </span>
+            <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <span className="truncate text-[13px] font-semibold text-[#0a0a0a]"><Trans>Open Cloudflare version</Trans></span>
+              <span className="text-[11.5px] leading-relaxed text-[#737373]"><Trans>Open the published interactive material in a new tab.</Trans></span>
+            </span>
+          </a>
+        </li>
+      )}
     </ul>
   )
 }

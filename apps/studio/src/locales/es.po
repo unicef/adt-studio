@@ -1827,6 +1827,9 @@ msgstr "Sincronización en la nube, entrega a padres y actividad reciente."
 msgid "Cloudflare account ID"
 msgstr "ID de cuenta de Cloudflare"
 
+msgid "Cloudflare-hosted export link"
+msgstr "Enlace de exportación alojado en Cloudflare"
+
 msgid "Clownfish, sea turtles, and parrotfish are just a few of the thousands of species that depend on reefs for food, shelter, and nursery grounds."
 msgstr "Los peces payaso, tortugas marinas y peces loro son solo algunas de las miles de especies que dependen de los arrecifes para alimento, refugio y áreas de cría."
 
@@ -4915,6 +4918,9 @@ msgstr "Open a page to review"
 msgid "Open a page to see page-level findings"
 msgstr "Open a page to see page-level findings"
 
+msgid "Open Cloudflare version"
+msgstr "Abrir versión de Cloudflare"
+
 msgid "Open edit panel"
 msgstr "Abrir panel de edición"
 
@@ -4935,6 +4941,9 @@ msgstr "Open Preview"
 
 msgid "Open source PDF in a new tab"
 msgstr "Abrir el PDF de origen en una nueva pestaña"
+
+msgid "Open the published interactive material in a new tab."
+msgstr "Abra el material interactivo publicado en una nueva pestaña."
 
 msgid "Open the Quizzes stage to edit this quiz"
 msgstr "Abre la etapa de Cuestionarios para editar este cuestionario"

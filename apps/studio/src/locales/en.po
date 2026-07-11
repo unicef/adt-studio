@@ -1827,6 +1827,9 @@ msgstr "Cloud synchronization, parent delivery, and recent activity."
 msgid "Cloudflare account ID"
 msgstr "Cloudflare account ID"
 
+msgid "Cloudflare-hosted export link"
+msgstr "Cloudflare-hosted export link"
+
 msgid "Clownfish, sea turtles, and parrotfish are just a few of the thousands of species that depend on reefs for food, shelter, and nursery grounds."
 msgstr "Clownfish, sea turtles, and parrotfish are just a few of the thousands of species that depend on reefs for food, shelter, and nursery grounds."
 
@@ -4915,6 +4918,9 @@ msgstr "Open a page to review"
 msgid "Open a page to see page-level findings"
 msgstr "Open a page to see page-level findings"
 
+msgid "Open Cloudflare version"
+msgstr "Open Cloudflare version"
+
 msgid "Open edit panel"
 msgstr "Open edit panel"
 
@@ -4935,6 +4941,9 @@ msgstr "Open Preview"
 
 msgid "Open source PDF in a new tab"
 msgstr "Open source PDF in a new tab"
+
+msgid "Open the published interactive material in a new tab."
+msgstr "Open the published interactive material in a new tab."
 
 msgid "Open the Quizzes stage to edit this quiz"
 msgstr "Open the Quizzes stage to edit this quiz"

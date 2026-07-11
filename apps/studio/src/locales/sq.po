@@ -1828,6 +1828,9 @@ msgstr "Sinkronizimi i cloud, dërgesa për prindërit dhe aktiviteti i fundit."
 msgid "Cloudflare account ID"
 msgstr "ID e llogarisë Cloudflare"
 
+msgid "Cloudflare-hosted export link"
+msgstr "Lidhje eksporti e strehuar në Cloudflare"
+
 msgid "Clownfish, sea turtles, and parrotfish are just a few of the thousands of species that depend on reefs for food, shelter, and nursery grounds."
 msgstr "Peshqit klovn, breshkat e detit dhe peshqit papagall janë vetëm disa nga mijëra speciet që varen nga rifet për ushqim, strehim dhe vendlindje."
 
@@ -4916,6 +4919,9 @@ msgstr "Hapni një faqe për rishikim"
 msgid "Open a page to see page-level findings"
 msgstr "Hapni një faqe për të parë gjetjet në nivel faqeje"
 
+msgid "Open Cloudflare version"
+msgstr "Hap versionin Cloudflare"
+
 msgid "Open edit panel"
 msgstr "Hapni panelin e redaktimit"
 
@@ -4936,6 +4942,9 @@ msgstr "Hapni Pamjen Paraprake"
 
 msgid "Open source PDF in a new tab"
 msgstr "Hapni PDF-in burimor në një skedë të re"
+
+msgid "Open the published interactive material in a new tab."
+msgstr "Hap materialin interaktiv të publikuar në një skedë të re."
 
 msgid "Open the Quizzes stage to edit this quiz"
 msgstr "Hapni fazën Kuizet për të redaktuar këtë kuiz"

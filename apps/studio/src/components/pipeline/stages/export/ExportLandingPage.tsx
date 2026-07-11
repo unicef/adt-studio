@@ -1,4 +1,5 @@
 import { useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Info } from "lucide-react"
 import { LandingPageShell } from "@/components/pipeline/components/LandingPageShell"
@@ -24,6 +25,8 @@ import { ExportDialog } from "./ExportDialog"
 import { FormatPicker } from "./components/FormatPicker"
 import { ExportPreview } from "./components/ExportPreview"
 import { useCapturedPreviewSettings } from "@/hooks/use-preview-settings-listener"
+import { getWorkspace } from "@/features/workspace/config"
+import { classroomApi, getPublicMaterialUrl } from "@/api/classroom-client"
 
 export function ExportLandingPage({ bookLabel }: { bookLabel: string }) {
   const { stageState, isStatusLoading } = useBookRun()
@@ -73,6 +76,18 @@ function ExportLandingBody({
     quizzes: true,
     signLanguage: true,
   })
+  const workspace = getWorkspace()
+  const { data: cloudMaterials } = useQuery({
+    queryKey: ["workspace", "materials", workspace?.teacherId],
+    queryFn: () => classroomApi.materials(workspace!.teacherId),
+    enabled: Boolean(workspace),
+  })
+  const cloudMaterial = cloudMaterials?.find((material) => {
+    try { return (JSON.parse(material.body) as { sourceBookLabel?: string }).sourceBookLabel === bookLabel } catch { return false }
+  })
+  const cloudMaterialUrl = workspace && cloudMaterial
+    ? getPublicMaterialUrl(cloudMaterial.id, workspace.teacherId)
+    : null
 
   const handleOpenDialog = () => {
     setExportDialogOpen(true)
@@ -159,6 +174,7 @@ function ExportLandingBody({
             t={t}
             errorFormat={error?.format ?? null}
             isPart={isPart}
+            cloudMaterialUrl={cloudMaterialUrl}
           />
         </SettingsField>
       </SettingsCard>
