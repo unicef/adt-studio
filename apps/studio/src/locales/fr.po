@@ -1751,6 +1751,9 @@ msgstr "Classic Storybook"
 msgid "Classifying images…"
 msgstr "Classification des images…"
 
+msgid "Classroom sessions"
+msgstr "Sessions de classe"
+
 msgid "Clean & focused"
 msgstr "Épuré et ciblé"
 
@@ -1922,6 +1925,9 @@ msgstr "Confirmer la fusion"
 msgid "Connect an AI provider"
 msgstr "Connectez un fournisseur d'IA"
 
+msgid "Connect the Classroom Worker by setting VITE_CLASSROOM_API_URL, then restart Studio. For local development, use the URL printed by wrangler dev."
+msgstr "Connectez le Classroom Worker en définissant VITE_CLASSROOM_API_URL, puis redémarrez Studio. Pour le développement local, utilisez l'URL imprimée par wrangler dev."
+
 msgid "Consulting the style council..."
 msgstr "Consultation du conseil de style..."
 
@@ -1991,6 +1997,9 @@ msgstr "Copier les détails de l'erreur"
 msgid "Copy error output"
 msgstr "Copier la sortie d'erreur"
 
+msgid "Copy join link"
+msgstr "Copier le lien de participation"
+
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Les récifs coralliens couvrent moins de 1 % du fond océanique, mais ils abritent environ 25 % de toutes les espèces marines. Souvent appelés les « forêts tropicales de la mer », ces écosystèmes sous-marins sont construits par de minuscules animaux appelés polypes coralliens."
 
@@ -2057,6 +2066,9 @@ msgstr "Créer une nouvelle image à partir d'une description textuelle"
 
 msgid "Create a reviewer session for this book."
 msgstr "Créer une session de révision pour ce livre."
+
+msgid "Create a temporary join code for one of your saved materials."
+msgstr "Créer un code de participation temporaire pour l'un de vos matériaux enregistrés."
 
 msgid "Create ADT"
 msgstr "Créer ADT"
@@ -3739,6 +3751,9 @@ msgstr "sa langue originale"
 msgid "Jane Reviewer"
 msgstr "Jane Reviewer"
 
+msgid "Join code"
+msgstr "Code de participation"
+
 msgid "Jump to page"
 msgstr "Aller à la page"
 
@@ -3945,6 +3960,9 @@ msgstr "Segmentation basée sur le LLM pour détecter et séparer les images com
 msgid "LMS-ready with completion tracking"
 msgstr "Prêt pour LMS avec suivi de l'achèvement"
 
+msgid "Load materials"
+msgstr "Charger les matériaux"
+
 msgid "Loading accessibility summary..."
 msgstr "Chargement du résumé d'accessibilité..."
 
@@ -4130,6 +4148,9 @@ msgstr "Correspondre à la source"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Correspond au design original du livre avec une certaine flexibilité."
+
+msgid "Material"
+msgstr "Matériau"
 
 msgid "Materials shared"
 msgstr "Matériaux partagés"
@@ -6520,6 +6541,12 @@ msgstr "Grave"
 msgid "Session comments"
 msgstr "Commentaires de session"
 
+msgid "Session duration in minutes"
+msgstr "Durée de la session en minutes"
+
+msgid "Session ready"
+msgstr "Session prête"
+
 msgid "Sessions"
 msgstr "Sessions"
 
@@ -6835,6 +6862,9 @@ msgstr "Fichier EPUB 3 standard pour liseuses, applications de lecture et outils
 msgid "Start"
 msgstr "Démarrer"
 
+msgid "Start a classroom session"
+msgstr "Démarrer une session de classe"
+
 msgid "Start a reviewer session"
 msgstr "Démarrer une session de révision"
 
@@ -7040,6 +7070,9 @@ msgstr "Tâche en cours..."
 
 msgid "Tasks Running"
 msgstr "Tâches En cours"
+
+msgid "Teacher ID"
+msgstr "ID enseignant"
 
 msgid "Teaching dashboard"
 msgstr "Tableau de bord pédagogique"
@@ -7692,6 +7725,12 @@ msgstr "Types utilisés lors du découpage des pages en sections. Les types éla
 msgid "Typography"
 msgstr "Typographie"
 
+msgid "Unable to create session"
+msgstr "Impossible de créer la session"
+
+msgid "Unable to load materials"
+msgstr "Impossible de charger les matériaux"
+
 msgid "Unable to load reviewer checklist settings."
 msgstr "Impossible de charger les paramètres de la liste de contrôle du réviseur."
 
@@ -8202,6 +8241,9 @@ msgstr "Votre police a été appliquée à tout le livre."
 
 msgid "Your fonts"
 msgstr "Vos polices"
+
+msgid "Your teacher identifier"
+msgstr "Votre identifiant enseignant"
 
 msgid "Z → A"
 msgstr "Z → A"

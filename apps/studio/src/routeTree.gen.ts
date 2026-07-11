@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from "./routes/__root"
 import { Route as StudentsRouteImport } from "./routes/students"
 import { Route as OnboardingRouteImport } from "./routes/onboarding"
 import { Route as DashboardRouteImport } from "./routes/dashboard"
+import { Route as ClassroomSessionsRouteImport } from "./routes/classroom-sessions"
 import { Route as IndexRouteImport } from "./routes/index"
 import { Route as StudentsIndexRouteImport } from "./routes/students.index"
 import { Route as StudentsNewRouteImport } from "./routes/students.new"
@@ -39,6 +40,11 @@ const OnboardingRoute = OnboardingRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: "/dashboard",
   path: "/dashboard",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ClassroomSessionsRoute = ClassroomSessionsRouteImport.update({
+  id: "/classroom-sessions",
+  path: "/classroom-sessions",
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -109,6 +115,7 @@ const BooksLabelStepPageIdRoute = BooksLabelStepPageIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
+  "/classroom-sessions": typeof ClassroomSessionsRoute
   "/dashboard": typeof DashboardRoute
   "/onboarding": typeof OnboardingRoute
   "/students": typeof StudentsRouteWithChildren
@@ -127,6 +134,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
+  "/classroom-sessions": typeof ClassroomSessionsRoute
   "/dashboard": typeof DashboardRoute
   "/onboarding": typeof OnboardingRoute
   "/books/import": typeof BooksImportRoute
@@ -143,6 +151,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   "/": typeof IndexRoute
+  "/classroom-sessions": typeof ClassroomSessionsRoute
   "/dashboard": typeof DashboardRoute
   "/onboarding": typeof OnboardingRoute
   "/students": typeof StudentsRouteWithChildren
@@ -163,6 +172,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | "/"
+    | "/classroom-sessions"
     | "/dashboard"
     | "/onboarding"
     | "/students"
@@ -181,6 +191,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | "/"
+    | "/classroom-sessions"
     | "/dashboard"
     | "/onboarding"
     | "/books/import"
@@ -196,6 +207,7 @@ export interface FileRouteTypes {
   id:
     | "__root__"
     | "/"
+    | "/classroom-sessions"
     | "/dashboard"
     | "/onboarding"
     | "/students"
@@ -215,6 +227,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ClassroomSessionsRoute: typeof ClassroomSessionsRoute
   DashboardRoute: typeof DashboardRoute
   OnboardingRoute: typeof OnboardingRoute
   StudentsRoute: typeof StudentsRouteWithChildren
@@ -244,6 +257,13 @@ declare module "@tanstack/react-router" {
       path: "/dashboard"
       fullPath: "/dashboard"
       preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/classroom-sessions": {
+      id: "/classroom-sessions"
+      path: "/classroom-sessions"
+      fullPath: "/classroom-sessions"
+      preLoaderRoute: typeof ClassroomSessionsRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/": {
@@ -390,6 +410,7 @@ const BooksLabelRouteWithChildren = BooksLabelRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ClassroomSessionsRoute: ClassroomSessionsRoute,
   DashboardRoute: DashboardRoute,
   OnboardingRoute: OnboardingRoute,
   StudentsRoute: StudentsRouteWithChildren,

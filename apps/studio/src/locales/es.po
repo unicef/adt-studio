@@ -1749,6 +1749,9 @@ msgstr "Libro infantil clásico"
 msgid "Classifying images…"
 msgstr "Clasificando imágenes…"
 
+msgid "Classroom sessions"
+msgstr "Sesiones de aula"
+
 msgid "Clean & focused"
 msgstr "Limpio y enfocado"
 
@@ -1920,6 +1923,9 @@ msgstr "Confirmar fusión"
 msgid "Connect an AI provider"
 msgstr "Conecta un proveedor de IA"
 
+msgid "Connect the Classroom Worker by setting VITE_CLASSROOM_API_URL, then restart Studio. For local development, use the URL printed by wrangler dev."
+msgstr "Conecta el Classroom Worker configurando VITE_CLASSROOM_API_URL, luego reinicia Studio. Para desarrollo local, usa la URL impresa por wrangler dev."
+
 msgid "Consulting the style council..."
 msgstr "Consultando al consejo de estilo..."
 
@@ -1989,6 +1995,9 @@ msgstr "Copiar detalles del error"
 msgid "Copy error output"
 msgstr "Copiar salida de error"
 
+msgid "Copy join link"
+msgstr "Copiar enlace de unión"
+
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Los arrecifes de coral cubren menos del 1% del fondo oceánico, pero sostienen aproximadamente el 25% de todas las especies marinas. A menudo llamados 'los bosques lluviosos del mar', estos ecosistemas submarinos son construidos por pequeños animales llamados pólipos de coral."
 
@@ -2055,6 +2064,9 @@ msgstr "Crea una nueva imagen a partir de una descripción de texto"
 
 msgid "Create a reviewer session for this book."
 msgstr "Create a reviewer session for this book."
+
+msgid "Create a temporary join code for one of your saved materials."
+msgstr "Crear un código de unión temporal para uno de tus materiales guardados."
 
 msgid "Create ADT"
 msgstr "Crear ADT"
@@ -3737,6 +3749,9 @@ msgstr "su idioma original"
 msgid "Jane Reviewer"
 msgstr "Jane Reviewer"
 
+msgid "Join code"
+msgstr "Código de unión"
+
 msgid "Jump to page"
 msgstr "Saltar a la página"
 
@@ -3943,6 +3958,9 @@ msgstr "Segmentación basada en LLM para detectar y dividir imágenes compuestas
 msgid "LMS-ready with completion tracking"
 msgstr "Listo para LMS con seguimiento de finalización"
 
+msgid "Load materials"
+msgstr "Cargar materiales"
+
 msgid "Loading accessibility summary..."
 msgstr "Loading accessibility summary..."
 
@@ -4128,6 +4146,9 @@ msgstr "Coincidir con la Fuente"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Coincide con el diseño original del libro con cierta flexibilidad."
+
+msgid "Material"
+msgstr "Material"
 
 msgid "Materials shared"
 msgstr "Materiales compartidos"
@@ -6518,6 +6539,12 @@ msgstr "Serious"
 msgid "Session comments"
 msgstr "Session comments"
 
+msgid "Session duration in minutes"
+msgstr "Duración de la sesión en minutos"
+
+msgid "Session ready"
+msgstr "Sesión lista"
+
 msgid "Sessions"
 msgstr "Sessions"
 
@@ -6833,6 +6860,9 @@ msgstr "Archivo EPUB 3 estándar para lectores electrónicos, aplicaciones de le
 msgid "Start"
 msgstr "Inicio"
 
+msgid "Start a classroom session"
+msgstr "Iniciar una sesión de aula"
+
 msgid "Start a reviewer session"
 msgstr "Start a reviewer session"
 
@@ -7038,6 +7068,9 @@ msgstr "Tarea en ejecución..."
 
 msgid "Tasks Running"
 msgstr "Tasks Running"
+
+msgid "Teacher ID"
+msgstr "ID del profesor"
 
 msgid "Teaching dashboard"
 msgstr "Panel de enseñanza"
@@ -7690,6 +7723,12 @@ msgstr "Tipos usados durante el seccionamiento de páginas. Los tipos eliminados
 msgid "Typography"
 msgstr "Tipografía"
 
+msgid "Unable to create session"
+msgstr "No se puede crear la sesión"
+
+msgid "Unable to load materials"
+msgstr "No se pueden cargar los materiales"
+
 msgid "Unable to load reviewer checklist settings."
 msgstr "Unable to load reviewer checklist settings."
 
@@ -8200,6 +8239,9 @@ msgstr "Tu fuente se ha aplicado a todo el libro."
 
 msgid "Your fonts"
 msgstr "Tus fuentes"
+
+msgid "Your teacher identifier"
+msgstr "Tu identificador de profesor"
 
 msgid "Z → A"
 msgstr "Z → A"

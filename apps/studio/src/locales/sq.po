@@ -1750,6 +1750,9 @@ msgstr "Libër Klasik Tregimesh"
 msgid "Classifying images…"
 msgstr "Po klasifikohen imazhet…"
 
+msgid "Classroom sessions"
+msgstr "Sesione të klasës"
+
 msgid "Clean & focused"
 msgstr "I pastër dhe i fokusuar"
 
@@ -1921,6 +1924,9 @@ msgstr "Konfirmoni bashkimin"
 msgid "Connect an AI provider"
 msgstr "Lidheni një ofrues AI"
 
+msgid "Connect the Classroom Worker by setting VITE_CLASSROOM_API_URL, then restart Studio. For local development, use the URL printed by wrangler dev."
+msgstr "Lidhu me Classroom Worker duke vendosur VITE_CLASSROOM_API_URL, pastaj rinis Studio. Për zhvillim lokal, përdor URL-në e printuar nga wrangler dev."
+
 msgid "Consulting the style council..."
 msgstr "Po konsultohet këshilli i stilit..."
 
@@ -1990,6 +1996,9 @@ msgstr "Kopjo detajet e gabimit"
 msgid "Copy error output"
 msgstr "Kopjo daljen e gabimit"
 
+msgid "Copy join link"
+msgstr "Kopjo lidhjen e bashkimit"
+
 msgid "Coral reefs cover less than 1% of the ocean floor, yet they support roughly 25% of all marine species. Often called the 'rainforests of the sea,' these underwater ecosystems are built by tiny animals called coral polyps."
 msgstr "Rifet koraliere mbulojnë më pak se 1% të dyshemesë së oqeanit, por mbështesin rreth 25% të të gjitha specieve detare. Shpesh të quajtura 'pyjet e shiut të detit', këto ekosisteme nënujore ndërtohen nga kafshë të vogla të quajtura polipe korali."
 
@@ -2056,6 +2065,9 @@ msgstr "Krijoni një imazh të ri nga një përshkrim teksti"
 
 msgid "Create a reviewer session for this book."
 msgstr "Krijoni një sesion rishikuesi për këtë libër."
+
+msgid "Create a temporary join code for one of your saved materials."
+msgstr "Krijo një kod të përkohshëm bashkimi për një nga materialet e tua të ruajtura."
 
 msgid "Create ADT"
 msgstr "Krijo ADT"
@@ -3738,6 +3750,9 @@ msgstr "gjuhën e saj origjinale"
 msgid "Jane Reviewer"
 msgstr "Jane Rishikuese"
 
+msgid "Join code"
+msgstr "Kodi i bashkimit"
+
 msgid "Jump to page"
 msgstr "Kalo te faqja"
 
@@ -3944,6 +3959,9 @@ msgstr "Segmentim i bazuar në LLM për të zbuluar dhe ndarë imazhet e kompozu
 msgid "LMS-ready with completion tracking"
 msgstr "Gati për LMS me gjurmim të përfundimit"
 
+msgid "Load materials"
+msgstr "Ngarko materialet"
+
 msgid "Loading accessibility summary..."
 msgstr "Duke ngarkuar përmbledhjen e aksesueshmërisë..."
 
@@ -4129,6 +4147,9 @@ msgstr "Përputhje me Burimin"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Përputhet me dizajnin origjinal të librit me pak fleksibilitet."
+
+msgid "Material"
+msgstr "Material"
 
 msgid "Materials shared"
 msgstr "Materialet e ndara"
@@ -6519,6 +6540,12 @@ msgstr "Serioz"
 msgid "Session comments"
 msgstr "Komente sesioni"
 
+msgid "Session duration in minutes"
+msgstr "Kohëzgjatja e sesionit në minuta"
+
+msgid "Session ready"
+msgstr "Sesioni gati"
+
 msgid "Sessions"
 msgstr "Sesione"
 
@@ -6834,6 +6861,9 @@ msgstr "Skedar standard EPUB 3 për lexues elektronikë, aplikacione leximi dhe 
 msgid "Start"
 msgstr "Fillo"
 
+msgid "Start a classroom session"
+msgstr "Fillo një sesion klase"
+
 msgid "Start a reviewer session"
 msgstr "Fillo një sesion rishikimi"
 
@@ -7039,6 +7069,9 @@ msgstr "Detyra po ekzekutohet..."
 
 msgid "Tasks Running"
 msgstr "Detyrat po Ekzekutohen"
+
+msgid "Teacher ID"
+msgstr "ID e mësuesit"
 
 msgid "Teaching dashboard"
 msgstr "Paneli i mësimdhënies"
@@ -7691,6 +7724,12 @@ msgstr "Llojet e përdorura gjatë seksionimit të faqes. Llojet e prera klasifi
 msgid "Typography"
 msgstr "Tipografia"
 
+msgid "Unable to create session"
+msgstr "Nuk mund të krijohet sesioni"
+
+msgid "Unable to load materials"
+msgstr "Nuk mund të ngarkohen materialet"
+
 msgid "Unable to load reviewer checklist settings."
 msgstr "Nuk mund të ngarkohen cilësimet e listës së kontrollit të rishikuesit."
 
@@ -8201,6 +8240,9 @@ msgstr "Fonti juaj u zbatua në të gjithë librin."
 
 msgid "Your fonts"
 msgstr "Fontet e tua"
+
+msgid "Your teacher identifier"
+msgstr "Identifikuesi juaj i mësuesit"
 
 msgid "Z → A"
 msgstr "Z → A"
