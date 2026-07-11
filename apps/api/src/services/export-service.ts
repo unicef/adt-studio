@@ -45,6 +45,8 @@ export interface ExportFeatures {
   readAloud?: boolean
   quizzes?: boolean
   signLanguage?: boolean
+  kidsMode?: boolean
+  kidsBuddies?: string[]
   languages?: string[]
 }
 
