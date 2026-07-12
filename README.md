@@ -77,6 +77,41 @@
 ### Ships everywhere
 Export to **Web · WebPub · EPUB 3 · SCORM** — drop into any LMS, library platform, or website.
 
+## Teacher Workspace and Accessible Classroom Sessions
+
+This fork adds a **Teacher Workspace** extension for creating, managing, and sharing accessible learning materials for individual students. It keeps the normal ADT Studio workflow intact: teachers still create and review a source book in Studio, then create a personalized derivative for a selected student.
+
+### What the extension provides
+
+- **Student and accessibility-profile management** — create, edit, and delete student records and profiles with support needs such as simplified language, chunked content, symbol/image support, audio support, attention support, notes, and parent contact details.
+- **Personalized material generation** — creates a separately labelled material for the selected student without replacing the source book. Easy Read and speech stages are enabled when the selected profile requires them.
+- **Accessible interactive reader** — generated materials retain the full ADT package, including Easy Read text, speech/audio assets, images, translations, activities, and navigation. Easy Read is enabled by default for packages that include it and can be switched on or off in the reader.
+- **Cloudflare synchronization and publishing** — the interactive package is uploaded to Cloudflare R2 and indexed in Cloudflare D1. Publishing uploads the extracted reader files as well as the downloadable archive; uploads are bounded and retried so large packages remain reliable.
+- **One-click access and parent delivery tracking** — the Material Library provides an interactive public-reader link and a parent-delivery action. Delivery is currently recorded in the workspace; it does not send a real email provider message.
+- **Classroom-session API foundation** — the Cloudflare Worker exposes infrastructure for temporary join-code sessions, anonymous participation, responses, completion events, and tokenized parent shares. These endpoints are designed for future classroom/session UI work.
+
+### Teacher workflow
+
+1. Open **Students** from the Studio dashboard and create a student with an accessibility profile and parent email.
+2. Generate a personalized material from that profile. The source book is preserved; the derivative is named for the student/profile.
+3. Complete the normal Studio stages. When Easy Read or audio was selected, the required accessibility stages run for the derivative.
+4. In the Material Library, use **Publish interactive version**. The package is synchronized to Cloudflare and includes all generated reader assets.
+5. Select **Open material** to open the Cloudflare-hosted interactive reader in a new tab, or use **Send to Parent** to record a parent delivery.
+
+### Extension architecture
+
+| Component | Responsibility |
+|-----------|----------------|
+| `apps/studio` | Teacher Workspace, Students, profile controls, material publishing, and reader links. |
+| `apps/api` | Local student library, profile/material generation, personalization configuration, and ADT package generation. |
+| `apps/classroom-worker` | Cloudflare Worker API for workspace records, material synchronization, sessions, participation, and parent shares. |
+| Cloudflare D1 | Teacher-scoped students, materials, deliveries, sessions, participants, and parent-share metadata. |
+| Cloudflare R2 | Interactive reader files and downloadable material archives. |
+
+### Cloudflare configuration
+
+The Studio client uses `VITE_CLASSROOM_API_URL` for the Classroom Worker URL. It falls back to the configured development Worker URL when the variable is absent. The Worker requires D1 and R2 bindings; see [`apps/classroom-worker/wrangler.jsonc`](apps/classroom-worker/wrangler.jsonc) and [`apps/classroom-worker/migrations`](apps/classroom-worker/migrations) for the deployment configuration and schema migrations.
+
 ## See ADTs in action
 
 These are live ADTs generated from real PDF source files. They span the spectrum from **fully unedited AI output** to **textbook content with hands-on curation** — pick one to get a feel for what the pipeline produces at each level of human involvement.
@@ -257,6 +292,7 @@ adt-studio/
 ├── apps/                    # Application tier
 │   ├── api/                 # Hono HTTP server
 │   ├── studio/              # React SPA (Vite + TanStack)
+│   ├── classroom-worker/    # Cloudflare Worker, D1, and R2 classroom backend
 │   └── desktop/             # Electron desktop wrapper
 │
 ├── templates/               # Layout templates
