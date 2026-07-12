@@ -15,8 +15,11 @@ import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import {
   KIDS_BUDDY_IDS,
+  KIDS_OPENAI_VOICES,
   KIDS_VOICE_DIR,
   parseBookLabel,
+  resolveKidsBuddyVoice,
+  type KidsBuddyVoiceConfig,
   type KidsVoiceManifest,
 } from "@adt/types"
 import { createTTSSynthesizer } from "@adt/llm"
@@ -24,6 +27,7 @@ import {
   generateKidsVoicePack,
   loadBookConfig,
   normalizeLocale,
+  resolveKidsVoiceCacheDir,
   resolveSpeechModel,
 } from "@adt/pipeline"
 
@@ -51,6 +55,33 @@ export interface KidsModeConfig {
 
 const KIDS_MODE_CONFIG_FILE = "kids-mode.json"
 
+const KidsVoiceOverrideBody = z
+  .object({
+    voice: z.enum(KIDS_OPENAI_VOICES as unknown as [string, ...string[]]),
+    instructions: z.string().trim().min(1),
+  })
+  .strict()
+
+const KidsVoicesConfigFile = z
+  .object({
+    overrides: z.record(
+      z.string(),
+      z
+        .object({
+          voice: z.string(),
+          instructions: z.string(),
+        })
+        .strict(),
+    ),
+  })
+  .strict()
+
+export interface KidsVoicesConfig {
+  overrides: Record<string, KidsBuddyVoiceConfig>
+}
+
+const KIDS_VOICES_CONFIG_FILE = "kids-voices.json"
+
 /**
  * Author-time kids mode decision, stored as a flat file in the book dir
  * (book-level storage). Preview and export read it to stamp
@@ -63,6 +94,27 @@ export function readKidsModeConfig(bookDir: string): KidsModeConfig {
   if (!fs.existsSync(file)) return fallback
   try {
     const parsed = KidsModeConfigBody.safeParse(
+      JSON.parse(fs.readFileSync(file, "utf8")),
+    )
+    return parsed.success ? parsed.data : fallback
+  } catch {
+    return fallback
+  }
+}
+
+/**
+ * Author-time per-buddy voice overrides (voice id + instructions prompt),
+ * stored as a flat file in the book dir (book-level storage). Generation
+ * merges these over each buddy's shared default (`resolveKidsBuddyVoice`);
+ * an edit changes the TTS cache key so it triggers regeneration of that
+ * buddy's clips.
+ */
+export function readKidsVoicesConfig(bookDir: string): KidsVoicesConfig {
+  const file = path.join(bookDir, KIDS_VOICES_CONFIG_FILE)
+  const fallback: KidsVoicesConfig = { overrides: {} }
+  if (!fs.existsSync(file)) return fallback
+  try {
+    const parsed = KidsVoicesConfigFile.safeParse(
       JSON.parse(fs.readFileSync(file, "utf8")),
     )
     return parsed.success ? parsed.data : fallback
@@ -183,6 +235,89 @@ export function createKidsVoiceRoutes(
     return c.json(parsed.data)
   })
 
+  app.get("/books/:label/kids-voices", (c) => {
+    const safeLabel = safeParseLabel(c.req.param("label"))
+    const bookDir = getBookDir(booksDir, safeLabel)
+    const { overrides } = readKidsVoicesConfig(bookDir)
+
+    const buddies = KIDS_BUDDY_IDS.map((id) => {
+      const resolved = resolveKidsBuddyVoice(id, overrides)
+      return {
+        id,
+        voice: resolved.voice,
+        instructions: resolved.instructions,
+        isDefault: !overrides[id],
+      }
+    })
+
+    return c.json({ buddies, voices: KIDS_OPENAI_VOICES })
+  })
+
+  app.put("/books/:label/kids-voices/:buddyId", async (c) => {
+    const safeLabel = safeParseLabel(c.req.param("label"))
+    const bookDir = getBookDir(booksDir, safeLabel)
+    const buddyId = c.req.param("buddyId")
+    if (!(KIDS_BUDDY_IDS as readonly string[]).includes(buddyId)) {
+      throw new HTTPException(404, { message: `Unknown buddy: ${buddyId}` })
+    }
+
+    let body: unknown
+    try {
+      body = await c.req.json()
+    } catch {
+      throw new HTTPException(400, { message: "Invalid JSON body" })
+    }
+    const parsed = KidsVoiceOverrideBody.safeParse(body)
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid voice override: ${parsed.error.message}`,
+      })
+    }
+
+    const config = readKidsVoicesConfig(bookDir)
+    config.overrides[buddyId] = {
+      voice: parsed.data.voice,
+      instructions: parsed.data.instructions,
+    }
+    fs.writeFileSync(
+      path.join(bookDir, KIDS_VOICES_CONFIG_FILE),
+      `${JSON.stringify(config, null, 2)}\n`,
+    )
+
+    return c.json({
+      id: buddyId,
+      voice: parsed.data.voice,
+      instructions: parsed.data.instructions,
+      isDefault: false,
+    })
+  })
+
+  app.delete("/books/:label/kids-voices/:buddyId", (c) => {
+    const safeLabel = safeParseLabel(c.req.param("label"))
+    const bookDir = getBookDir(booksDir, safeLabel)
+    const buddyId = c.req.param("buddyId")
+    if (!(KIDS_BUDDY_IDS as readonly string[]).includes(buddyId)) {
+      throw new HTTPException(404, { message: `Unknown buddy: ${buddyId}` })
+    }
+
+    const config = readKidsVoicesConfig(bookDir)
+    if (buddyId in config.overrides) {
+      delete config.overrides[buddyId]
+      fs.writeFileSync(
+        path.join(bookDir, KIDS_VOICES_CONFIG_FILE),
+        `${JSON.stringify(config, null, 2)}\n`,
+      )
+    }
+
+    const fallback = resolveKidsBuddyVoice(buddyId)
+    return c.json({
+      id: buddyId,
+      voice: fallback.voice,
+      instructions: fallback.instructions,
+      isDefault: true,
+    })
+  })
+
   app.get("/books/:label/kids-voice", (c) => {
     const safeLabel = safeParseLabel(c.req.param("label"))
     const bookDir = getBookDir(booksDir, safeLabel)
@@ -269,13 +404,19 @@ export function createKidsVoiceRoutes(
     try {
       const result = await generateKidsVoicePack({
         bookDir,
-        cacheDir: path.join(bookDir, ".cache"),
+        // Clips are book-independent — cache globally so the second book's
+        // generation is a pure cache hit. The per-book .cache is kept as a
+        // read-through fallback so packs generated before this change
+        // migrate without re-paying the API.
+        cacheDir: resolveKidsVoiceCacheDir(booksDir),
+        fallbackCacheDirs: [path.join(bookDir, ".cache")],
         languages,
         characters,
         translationsByLanguage: loadInterfaceTranslations(
           webAssetsDir,
           languages,
         ),
+        voiceOverrides: readKidsVoicesConfig(bookDir).overrides,
         ttsSynthesizer: createTTSSynthesizer(openaiApiKey),
         model,
         dryRun,

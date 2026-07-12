@@ -150,14 +150,19 @@ export async function prepareExport(
       webAssetsDir,
       applyBodyBackground: config.apply_body_background,
       speechConfig: config.speech,
-      // The kids-mode decision is author-time book state (kids-mode.json);
-      // explicit export-request flags still win when provided.
+      // The kids-mode decision is author-time book state (kids-mode.json).
+      // It is stamped onto every export server-side, regardless of whatever
+      // the Studio client sends for these two keys — the reader never toggles
+      // kids mode, so the export can't be steered by client-supplied flags.
       features: (() => {
         const kidsConfig = readKidsModeConfig(bookDir)
+        const { kidsMode: _kidsMode, kidsBuddies: _kidsBuddies, ...rest } = features ?? {}
         return {
-          ...features,
-          kidsMode: features?.kidsMode ?? kidsConfig.enabled,
-          kidsBuddies: features?.kidsBuddies ?? kidsConfig.buddies,
+          ...rest,
+          kidsMode: kidsConfig.enabled,
+          ...(kidsConfig.enabled && kidsConfig.buddies.length > 0
+            ? { kidsBuddies: kidsConfig.buddies }
+            : {}),
         }
       })(),
       defaultSettings: mergedDefaultSettings,
