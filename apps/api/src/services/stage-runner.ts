@@ -561,7 +561,15 @@ async function runExtractStep(
   const storage = createBookStorage(label, booksDir)
 
   try {
-    const pdfPath = path.join(path.resolve(booksDir), label, `${label}.pdf`)
+    const bookDir = path.join(path.resolve(booksDir), label)
+    const expectedPdfPath = path.join(bookDir, `${label}.pdf`)
+    // Student derivatives created before the filename migration retained the
+    // original source label for their copied PDF. Accept that single legacy
+    // PDF so an interrupted personalized run can be retried successfully.
+    const legacyPdf = fs.existsSync(expectedPdfPath)
+      ? null
+      : fs.readdirSync(bookDir).find((entry) => entry.toLowerCase().endsWith(".pdf"))
+    const pdfPath = legacyPdf ? path.join(bookDir, legacyPdf) : expectedPdfPath
     const config = loadBookConfig(label, booksDir, configPath)
 
     // Step 1: Extract PDF

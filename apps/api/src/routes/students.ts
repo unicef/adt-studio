@@ -135,6 +135,9 @@ export function createStudentRoutes(booksDir: string): Hono {
       const oldDbPath = path.join(derivedDir, `${sourceBookLabel}.db`)
       const newDbPath = path.join(derivedDir, `${derivedBookLabel}.db`)
       fs.renameSync(oldDbPath, newDbPath)
+      const oldPdfPath = path.join(derivedDir, `${sourceBookLabel}.pdf`)
+      const newPdfPath = path.join(derivedDir, `${derivedBookLabel}.pdf`)
+      if (fs.existsSync(oldPdfPath)) fs.renameSync(oldPdfPath, newPdfPath)
       const plan = buildAccessibilityPlan(selectedProfile
         ? { ...student, accessibilityProfiles: [selectedProfile] }
         : student)
