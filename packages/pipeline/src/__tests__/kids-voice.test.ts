@@ -4,6 +4,7 @@ import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { getKidsSpeakableLines } from "@adt/types"
 import {
+  computeKidsVoicePackFingerprint,
   generateKidsVoicePack,
   resolveKidsLineText,
 } from "../kids-voice.js"
@@ -116,6 +117,70 @@ describe("generateKidsVoicePack", () => {
     expect(secondSynth.synthesize).not.toHaveBeenCalled()
   })
 
+  it("shares one global cache across books — the second book costs nothing", async () => {
+    const globalCache = path.join(tmpDir, ".kids-voice-cache")
+    const bookA = path.join(tmpDir, "book-a")
+    const bookB = path.join(tmpDir, "book-b")
+    const shared = {
+      cacheDir: globalCache,
+      languages: ["en"],
+      characters: ["bunny"] as string[],
+      translationsByLanguage: { en: {} },
+      model: "gpt-4o-mini-tts",
+    }
+    await generateKidsVoicePack({
+      ...shared,
+      bookDir: bookA,
+      ttsSynthesizer: makeSynth(),
+    })
+
+    const secondSynth = makeSynth()
+    const bookBRun = await generateKidsVoicePack({
+      ...shared,
+      bookDir: bookB,
+      ttsSynthesizer: secondSynth,
+    })
+    expect(bookBRun.cachedHits).toBe(bookBRun.total)
+    expect(secondSynth.synthesize).not.toHaveBeenCalled()
+    expect(
+      fs.existsSync(
+        path.join(bookB, "kids-voice", "en", "bunny", "kids-buddy-greet.mp3"),
+      ),
+    ).toBe(true)
+  })
+
+  it("promotes legacy per-book cache hits into the primary cache", async () => {
+    const legacyCache = path.join(tmpDir, ".cache")
+    const globalCache = path.join(tmpDir, ".kids-voice-cache")
+    const options = {
+      bookDir: tmpDir,
+      languages: ["en"],
+      characters: ["cat"] as string[],
+      translationsByLanguage: { en: {} },
+      model: "gpt-4o-mini-tts",
+    }
+    // Seed the legacy location the way the pre-global-cache route did.
+    await generateKidsVoicePack({
+      ...options,
+      cacheDir: legacyCache,
+      ttsSynthesizer: makeSynth(),
+    })
+
+    const synth = makeSynth()
+    const migrated = await generateKidsVoicePack({
+      ...options,
+      cacheDir: globalCache,
+      fallbackCacheDirs: [legacyCache],
+      ttsSynthesizer: synth,
+    })
+    expect(migrated.cachedHits).toBe(migrated.total)
+    expect(synth.synthesize).not.toHaveBeenCalled()
+    // Promoted: the global cache now holds the clips itself.
+    expect(fs.readdirSync(path.join(globalCache, "tts")).length).toBe(
+      migrated.total,
+    )
+  })
+
   it("dry run reports the plan without writing or synthesizing", async () => {
     const synth = makeSynth()
     const result = await generateKidsVoicePack({
@@ -152,5 +217,74 @@ describe("generateKidsVoicePack", () => {
         model: "gpt-4o-mini-tts",
       }),
     ).rejects.toThrow(/Invalid language code/)
+  })
+
+  it("a voice override changes the cache identity — re-synthesizes even though the default was already cached", async () => {
+    const cacheDir = path.join(tmpDir, ".cache")
+    const baseOptions = {
+      bookDir: tmpDir,
+      cacheDir,
+      languages: ["en"],
+      characters: ["dino"] as string[],
+      translationsByLanguage: { en: {} },
+      model: "gpt-4o-mini-tts",
+    }
+
+    // Prime the cache with the default voice.
+    await generateKidsVoicePack({
+      ...baseOptions,
+      ttsSynthesizer: makeSynth(),
+    })
+
+    // Re-run unchanged: fully cached, no synthesis.
+    const unchangedSynth = makeSynth()
+    const unchangedRun = await generateKidsVoicePack({
+      ...baseOptions,
+      ttsSynthesizer: unchangedSynth,
+    })
+    expect(unchangedRun.cachedHits).toBe(unchangedRun.total)
+    expect(unchangedSynth.synthesize).not.toHaveBeenCalled()
+
+    // Re-run with an override: cache key changes, so it must resynthesize.
+    const overriddenSynth = makeSynth()
+    const overriddenRun = await generateKidsVoicePack({
+      ...baseOptions,
+      ttsSynthesizer: overriddenSynth,
+      voiceOverrides: {
+        dino: { voice: "nova", instructions: "A completely different tone." },
+      },
+    })
+    expect(overriddenRun.cachedHits).toBe(0)
+    expect(overriddenRun.generated).toBe(overriddenRun.total)
+    expect(overriddenSynth.synthesize).toHaveBeenCalledTimes(
+      overriddenRun.total,
+    )
+    for (const call of overriddenSynth.synthesize.mock.calls) {
+      expect(call[0].voice).toBe("nova")
+      expect(call[0].instructions).toBe("A completely different tone.")
+    }
+  })
+})
+
+describe("computeKidsVoicePackFingerprint", () => {
+  it("changes when a voice override is supplied and is stable when omitted", () => {
+    const base = {
+      language: "en",
+      characters: ["dino"],
+      dict: {},
+      model: "gpt-4o-mini-tts",
+    }
+
+    const withoutOverride = computeKidsVoicePackFingerprint(base)
+    const sameAgain = computeKidsVoicePackFingerprint(base)
+    expect(sameAgain).toBe(withoutOverride)
+
+    const withOverride = computeKidsVoicePackFingerprint({
+      ...base,
+      voiceOverrides: {
+        dino: { voice: "nova", instructions: "A completely different tone." },
+      },
+    })
+    expect(withOverride).not.toBe(withoutOverride)
   })
 })

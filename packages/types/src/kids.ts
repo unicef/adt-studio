@@ -41,10 +41,18 @@ export interface KidsBuddyMeta {
   voice: KidsBuddyVoice
 }
 
+/**
+ * Voice direction contract: base rules keep every buddy child-appropriate;
+ * each preset then acts a distinct character — affect, pacing, pitch, and
+ * speech quirks. Changing a preset changes the TTS cache key, so edits here
+ * intentionally trigger regeneration of that buddy's clips.
+ */
 const VOICE_STYLE_BASE =
-  "You voice a friendly reading-buddy character in a children's book app. " +
-  "Speak slowly, warmly and clearly for a young child. Keep the energy " +
-  "gentle and encouraging, never sarcastic."
+  "You voice a friendly reading-buddy character in a children's book app, " +
+  "speaking to a young child (ages 4-8). Always warm, clear and encouraging, " +
+  "never sarcastic or scary. Articulate every word cleanly. When the text is " +
+  "in a language other than English, stay fully in that language with a " +
+  "natural native accent while keeping the same character."
 
 export const KIDS_BUDDIES: readonly KidsBuddyMeta[] = [
   {
@@ -54,8 +62,14 @@ export const KIDS_BUDDIES: readonly KidsBuddyMeta[] = [
     defaultNameKey: "kids-character-dino-default-name",
     defaultNameFallback: "Rex",
     voice: {
-      voice: "ash",
-      instructions: `${VOICE_STYLE_BASE} You are Rex, a big gentle dinosaur: a deep, warm, slightly goofy voice.`,
+      voice: "onyx",
+      instructions:
+        `${VOICE_STYLE_BASE} Character: Rex, a huge but gentle dinosaur. ` +
+        "Voice affect: very deep, rumbly and resonant, like a giant speaking " +
+        "softly so he doesn't scare anyone; a little goofy and lovable. " +
+        "Pacing: slow and unhurried, with big friendly pauses. Pitch: as low " +
+        "as possible while staying warm. Quirks: a hint of a happy growl on " +
+        "exclamations, as if a purring volcano learned to talk.",
     },
   },
   {
@@ -66,7 +80,15 @@ export const KIDS_BUDDIES: readonly KidsBuddyMeta[] = [
     defaultNameFallback: "Bolt",
     voice: {
       voice: "echo",
-      instructions: `${VOICE_STYLE_BASE} You are Bolt, a cheerful little robot: crisp, upbeat, lightly mechanical cadence.`,
+      instructions:
+        `${VOICE_STYLE_BASE} Character: Bolt, a cheerful little helper robot. ` +
+        "Voice affect: bright, precise and chipper with a subtly synthetic, " +
+        "digital quality. Pacing: evenly spaced words with a light staccato " +
+        "rhythm, tiny mechanical micro-pauses between phrases. Pitch: medium, " +
+        "very consistent, minimal natural drift — pleasantly machine-like, " +
+        "never cold. Quirks: pronounce onomatopoeia like 'beep boop' crisply " +
+        "and happily, as genuine robot sounds; end sentences with upbeat, " +
+        "clipped precision.",
     },
   },
   {
@@ -77,7 +99,12 @@ export const KIDS_BUDDIES: readonly KidsBuddyMeta[] = [
     defaultNameFallback: "Pip",
     voice: {
       voice: "nova",
-      instructions: `${VOICE_STYLE_BASE} You are Pip, a small bouncy bunny: bright, light and quick, always a smile in the voice.`,
+      instructions:
+        `${VOICE_STYLE_BASE} Character: Pip, a small, bouncy, excitable bunny. ` +
+        "Voice affect: light, bright and youthful, always smiling. Pacing: " +
+        "quick and springy, like happy hops, but never rushed past clarity. " +
+        "Pitch: high and sweet. Quirks: little bursts of delight on " +
+        "exclamations, an eager bounce on words like 'hop' and 'let's go'.",
     },
   },
   {
@@ -87,8 +114,14 @@ export const KIDS_BUDDIES: readonly KidsBuddyMeta[] = [
     defaultNameKey: "kids-character-cat-default-name",
     defaultNameFallback: "Luna",
     voice: {
-      voice: "coral",
-      instructions: `${VOICE_STYLE_BASE} You are Luna, a cozy calm cat: soft, soothing, unhurried.`,
+      voice: "sage",
+      instructions:
+        `${VOICE_STYLE_BASE} Character: Luna, a cozy, serene cat. ` +
+        "Voice affect: soft, smooth and soothing, like a bedtime story by a " +
+        "fireplace. Pacing: slow, silky and unhurried, with relaxed, drawn-out " +
+        "vowels. Pitch: gentle medium-low, almost a purr. Quirks: a faint " +
+        "contented purr-like warmth under 'mmm' and 'meow' sounds; sentences " +
+        "land softly like paws.",
     },
   },
   {
@@ -98,14 +131,79 @@ export const KIDS_BUDDIES: readonly KidsBuddyMeta[] = [
     defaultNameKey: "kids-character-alien-default-name",
     defaultNameFallback: "Zibby",
     voice: {
-      voice: "verse",
-      instructions: `${VOICE_STYLE_BASE} You are Zibby, a curious friendly alien: playful, wondering, a little melodic.`,
+      voice: "fable",
+      instructions:
+        `${VOICE_STYLE_BASE} Character: Zibby, a curious, wonder-struck little ` +
+        "alien discovering Earth through books. Voice affect: playful and " +
+        "melodic with an otherworldly sing-song lilt, as if every sentence is " +
+        "a small discovery. Pacing: floaty and musical — speeds up with " +
+        "excitement, slows down in awe. Pitch: medium-high, gliding up and " +
+        "down more than a human would. Quirks: pronounce made-up words like " +
+        "'zoop' with joyful precision; frequent tones of amazement.",
     },
   },
 ]
 
 export function getKidsBuddyMeta(id: string): KidsBuddyMeta {
   return KIDS_BUDDIES.find((buddy) => buddy.id === id) ?? KIDS_BUDDIES[0]
+}
+
+// ---------------------------------------------------------------------------
+// Per-book voice overrides
+// ---------------------------------------------------------------------------
+
+/** OpenAI TTS voice ids offered for buddy voice customization. */
+export const KIDS_OPENAI_VOICES = [
+  "alloy",
+  "ash",
+  "ballad",
+  "coral",
+  "echo",
+  "fable",
+  "onyx",
+  "nova",
+  "sage",
+  "shimmer",
+  "verse",
+] as const
+
+export type KidsOpenAiVoice = (typeof KIDS_OPENAI_VOICES)[number]
+
+/** A buddy's resolved (or overridden) voice + instructions pair. */
+export interface KidsBuddyVoiceConfig {
+  voice: string
+  instructions: string
+}
+
+/** The shared default voice config for a buddy, falling back to the first buddy for unknown ids. */
+export function getKidsBuddyDefaultVoice(id: string): KidsBuddyVoiceConfig {
+  return { ...getKidsBuddyMeta(id).voice }
+}
+
+/**
+ * Resolve a buddy's effective voice config: the shared default merged with a
+ * per-book override, field by field. An override field is ignored (falls
+ * back to the default) when it's missing, an unknown voice id, or
+ * empty/whitespace instructions.
+ */
+export function resolveKidsBuddyVoice(
+  id: string,
+  overrides?: Record<string, Partial<KidsBuddyVoiceConfig>>,
+): KidsBuddyVoiceConfig {
+  const fallback = getKidsBuddyDefaultVoice(id)
+  const override = overrides?.[id]
+  if (!override) return fallback
+
+  const voice =
+    override.voice && (KIDS_OPENAI_VOICES as readonly string[]).includes(override.voice)
+      ? override.voice
+      : fallback.voice
+  const instructions =
+    override.instructions && override.instructions.trim().length > 0
+      ? override.instructions
+      : fallback.instructions
+
+  return { voice, instructions }
 }
 
 // ---------------------------------------------------------------------------

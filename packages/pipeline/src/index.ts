@@ -294,6 +294,7 @@ export {
 export {
   generateKidsVoicePack,
   resolveKidsLineText,
+  resolveKidsVoiceCacheDir,
   computeKidsVoicePackFingerprint,
   type GenerateKidsVoicePackOptions,
   type KidsVoiceClipPlan,

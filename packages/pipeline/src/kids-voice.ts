@@ -24,6 +24,8 @@ import {
   KIDS_VOICE_MANIFEST_VERSION,
   getKidsBuddyMeta,
   getKidsSpeakableLines,
+  resolveKidsBuddyVoice,
+  type KidsBuddyVoiceConfig,
   type KidsVoiceManifest,
 } from "@adt/types"
 import type { TTSSynthesizer } from "@adt/llm"
@@ -34,6 +36,18 @@ import {
 } from "./speech.js"
 
 const SAFE_SEGMENT_RE = /^[A-Za-z0-9._-]+$/
+
+/**
+ * Kids voice clips are book-independent (same lines, voices, and languages
+ * everywhere), so they cache globally — one generation pays for every book.
+ * Mirrors the Google Fonts cache pattern (`FONTS_CACHE_DIR`).
+ */
+export function resolveKidsVoiceCacheDir(booksDir: string): string {
+  return (
+    process.env.KIDS_VOICE_CACHE_DIR ||
+    path.join(path.resolve(booksDir), ".kids-voice-cache")
+  )
+}
 
 export interface KidsVoiceClipPlan {
   language: string
@@ -55,10 +69,23 @@ export interface KidsVoiceGenerationResult {
 export interface GenerateKidsVoicePackOptions {
   bookDir: string
   cacheDir: string
+  /**
+   * Older cache locations checked on a primary-cache miss (e.g. the legacy
+   * per-book `.cache`). Hits are promoted into `cacheDir` so the migration
+   * is one-way and free.
+   */
+  fallbackCacheDirs?: string[]
   languages: string[]
   characters: string[]
   /** language → merged interface-translation catalog for that language. */
   translationsByLanguage: Record<string, Record<string, string>>
+  /**
+   * Per-book overrides of a buddy's voice id/instructions, keyed by buddy id.
+   * Merged over the shared default per field — an edit changes the TTS
+   * cache key, so it intentionally triggers regeneration of that buddy's
+   * clips.
+   */
+  voiceOverrides?: Record<string, Partial<KidsBuddyVoiceConfig>>
   ttsSynthesizer: TTSSynthesizer
   model: string
   format?: string
@@ -119,9 +146,11 @@ export async function generateKidsVoicePack(
   const {
     bookDir,
     cacheDir,
+    fallbackCacheDirs = [],
     languages,
     characters,
     translationsByLanguage,
+    voiceOverrides,
     ttsSynthesizer,
     model,
     format = "mp3",
@@ -149,7 +178,7 @@ export async function generateKidsVoicePack(
     const dict = translationsByLanguage[safeLanguage] ?? {}
     for (const characterId of characters) {
       const safeCharacter = assertSafeSegment(characterId, "character id")
-      const meta = getKidsBuddyMeta(safeCharacter)
+      const voice = resolveKidsBuddyVoice(safeCharacter, voiceOverrides)
       for (const line of getKidsSpeakableLines(safeCharacter)) {
         const text = stripEmojis(
           resolveKidsLineText({
@@ -166,8 +195,8 @@ export async function generateKidsVoicePack(
           characterId: safeCharacter,
           lineKey: assertSafeSegment(line.key, "line key"),
           text,
-          voice: meta.voice.voice,
-          instructions: meta.voice.instructions,
+          voice: voice.voice,
+          instructions: voice.instructions,
         })
       }
     }
@@ -187,7 +216,23 @@ export async function generateKidsVoicePack(
     })
     const cachePath = path.resolve(cacheRoot, `${hash}.${safeFormat}`)
     assertWithinBase(cacheRoot, cachePath, "cache file")
-    const cached = fs.existsSync(cachePath)
+    let cached = fs.existsSync(cachePath)
+    if (!cached) {
+      for (const fallbackDir of fallbackCacheDirs) {
+        const fallbackPath = path.resolve(
+          fallbackDir,
+          "tts",
+          `${hash}.${safeFormat}`,
+        )
+        if (!fs.existsSync(fallbackPath)) continue
+        if (!dryRun) {
+          fs.mkdirSync(cacheRoot, { recursive: true })
+          fs.copyFileSync(fallbackPath, cachePath)
+        }
+        cached = true
+        break
+      }
+    }
 
     const fileName = `${item.characterId}/${item.lineKey}.${safeFormat}`
     const clip: KidsVoiceClipPlan = {
@@ -265,11 +310,19 @@ export function computeKidsVoicePackFingerprint(options: {
   dict: Record<string, string>
   model: string
   provider?: string
+  voiceOverrides?: Record<string, Partial<KidsBuddyVoiceConfig>>
 }): string {
-  const { language, characters, dict, model, provider = "openai" } = options
+  const {
+    language,
+    characters,
+    dict,
+    model,
+    provider = "openai",
+    voiceOverrides,
+  } = options
   const texts: Record<string, string> = {}
   for (const characterId of [...characters].sort()) {
-    const meta = getKidsBuddyMeta(characterId)
+    const voice = resolveKidsBuddyVoice(characterId, voiceOverrides)
     for (const line of getKidsSpeakableLines(characterId)) {
       texts[`${characterId}:${line.key}`] = resolveKidsLineText({
         lineKey: line.key,
@@ -278,7 +331,7 @@ export function computeKidsVoicePackFingerprint(options: {
         characterId,
         dict,
       })
-      texts[`${characterId}:voice`] = `${meta.voice.voice}|${meta.voice.instructions}`
+      texts[`${characterId}:voice`] = `${voice.voice}|${voice.instructions}`
     }
   }
   return crypto
