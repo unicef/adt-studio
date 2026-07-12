@@ -269,6 +269,7 @@ describe("KidsBuddy", () => {
     expect(screen.queryByTestId("kids-action-notes")).not.toBeNull()
     expect(screen.queryByTestId("kids-action-language")).not.toBeNull()
     expect(screen.queryByTestId("kids-action-story-map")).not.toBeNull()
+    expect(screen.queryByTestId("kids-action-meet-again")).not.toBeNull()
   })
 
   it("omits flag-disabled buddy actions and hides language when only one language exists", () => {
@@ -379,6 +380,20 @@ describe("KidsBuddy", () => {
     expect(
       screen.getByTestId("kids-action-easy-read").getAttribute("aria-pressed"),
     ).toBe("true")
+  })
+
+  it("replays onboarding when 'Meet my buddy again' is tapped", () => {
+    const store = createKidsStore()
+    renderKidsChrome(store)
+    openBuddy()
+
+    expect(store.get(kidsOnboardingDoneAtom)).toBe(true)
+
+    fireEvent.click(screen.getByTestId("kids-action-meet-again"))
+
+    expect(store.get(kidsOnboardingDoneAtom)).toBe(false)
+    expect(screen.queryByTestId("kids-buddy-panel")).toBeNull()
+    expect(screen.queryByTestId("kids-onboarding")).not.toBeNull()
   })
 
   it("lists story sections and navigates when a section is tapped", async () => {

@@ -8,6 +8,7 @@ import {
   NotebookPen,
   Pause,
   Rabbit,
+  RotateCcw,
   Sparkles,
   Turtle,
   Volume2,
@@ -40,6 +41,7 @@ import {
   kidsBuddyPanelOpenAtom,
   kidsBuddyAtom,
   kidsLanguageDialogOpenAtom,
+  kidsOnboardingDoneAtom,
   kidsPlayerNameAtom,
   kidsStoryMapDialogOpenAtom,
 } from "@/features/kids/state/kids.atoms"
@@ -81,6 +83,7 @@ export function KidsBuddy() {
   const setNotepadOpen = useSetAtom(notepadOpenAtom)
   const setLanguageDialogOpen = useSetAtom(kidsLanguageDialogOpenAtom)
   const setStoryMapDialogOpen = useSetAtom(kidsStoryMapDialogOpenAtom)
+  const setOnboardingDone = useSetAtom(kidsOnboardingDoneAtom)
   const languageCount = config.languages.available.length
   const fabRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -206,6 +209,11 @@ export function KidsBuddy() {
     setNotepadOpen(true)
     setOpen(false)
     say(BUDDY_LINES.notesOpen)
+  }
+
+  const meetBuddyAgain = () => {
+    setOnboardingDone(false)
+    setOpen(false)
   }
 
   return (
@@ -360,6 +368,14 @@ export function KidsBuddy() {
                 icon={<Map className="h-5 w-5" />}
                 label={tk("kids-action-story-map", "Story map")}
                 onClick={() => setStoryMapDialogOpen(true)}
+              />
+
+              <KidsActionButton
+                testId="kids-action-meet-again"
+                variant="list"
+                icon={<RotateCcw className="h-5 w-5" />}
+                label={tk("kids-action-meet-again", "Meet my buddy again")}
+                onClick={meetBuddyAgain}
               />
             </div>
           </div>

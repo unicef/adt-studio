@@ -19,15 +19,22 @@ import {
   KIDS_CHARACTERS,
   type KidsCharacterId,
 } from "@/features/kids/lib/characters"
+import { getKidsModePreviewOverride } from "@/features/kids/lib/kids-preview"
 
 export const kidsOnboardingDoneAtom = persistedBoolAtom(
   "kidsOnboardingDone",
   false,
 )
 
-export const kidsModeActiveAtom = atom(
-  (get) => get(appConfigAtom).features.kidsMode === true,
-)
+// Studio's preview lets the author toggle KIDS vs REGULAR chrome without
+// touching the packed book decision (see kids-preview.ts). The override
+// wins when present (and only ever applies in the dev/authoring preview
+// context); otherwise the packed `features.kidsMode` config decides.
+export const kidsModeActiveAtom = atom((get) => {
+  const override = getKidsModePreviewOverride()
+  if (override) return override === "on"
+  return get(appConfigAtom).features.kidsMode === true
+})
 
 export interface KidsBuddyConfig {
   character: KidsCharacterId
