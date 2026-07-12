@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Aaladaha maamulaha waxaa lagu darayaa cusboonaysiin soo socota.",
     "main-menu-label": "Liiska weyn",
     "cover-label": "Daboolka",
-    "print-page-label": "Daabac boggii"
+    "print-page-label": "Daabac boggii",
+    "feedback-speed-slow": "Now I will read slowly",
+    "feedback-speed-normal": "Now I will read at normal speed",
+    "feedback-speed-fast": "Now I will read fast",
+    "feedback-speed-very-fast": "Now I will read very fast",
+    "feedback-read-aloud-on": "Read aloud is on",
+    "feedback-read-aloud-off": "Read aloud is off",
+    "feedback-easy-read-on": "Easy Read is on",
+    "feedback-easy-read-off": "Easy Read is off",
+    "feedback-language-changed": "Language changed to ${language}",
+    "feedback-language-changed-audio": "Language changed",
+    "feedback-volume-muted": "Sound muted",
+    "feedback-volume-unmuted": "Sound on",
+    "feedback-volume-level": "Volume ${percent}%",
+    "feedback-volume-level-audio": "Volume changed"
 }

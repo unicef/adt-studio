@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "سيتم نقل أدوات المسؤول في تحديث لاحق.",
     "main-menu-label": "القائمة الرئيسية",
     "cover-label": "الغلاف",
-    "print-page-label": "طباعة الصفحة"
+    "print-page-label": "طباعة الصفحة",
+    "feedback-speed-slow": "سأقرأ الآن ببطء",
+    "feedback-speed-normal": "سأقرأ الآن بالسرعة العادية",
+    "feedback-speed-fast": "سأقرأ الآن بسرعة",
+    "feedback-speed-very-fast": "سأقرأ الآن بسرعة كبيرة",
+    "feedback-read-aloud-on": "تم تشغيل القراءة بصوت عال",
+    "feedback-read-aloud-off": "تم إيقاف القراءة بصوت عال",
+    "feedback-easy-read-on": "تم تشغيل القراءة السهلة",
+    "feedback-easy-read-off": "تم إيقاف القراءة السهلة",
+    "feedback-language-changed": "تم تغيير اللغة إلى ${language}",
+    "feedback-language-changed-audio": "تم تغيير اللغة",
+    "feedback-volume-muted": "تم كتم الصوت",
+    "feedback-volume-unmuted": "تم تشغيل الصوت",
+    "feedback-volume-level": "مستوى الصوت ${percent}%",
+    "feedback-volume-level-audio": "تم تغيير مستوى الصوت"
 }

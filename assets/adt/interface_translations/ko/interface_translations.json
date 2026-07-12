@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "관리자 도구는 후속 업데이트에서 추가될 예정입니다.",
     "main-menu-label": "주 메뉴",
     "cover-label": "표지",
-    "print-page-label": "페이지 인쇄"
+    "print-page-label": "페이지 인쇄",
+    "feedback-speed-slow": "이제 천천히 읽겠습니다",
+    "feedback-speed-normal": "이제 보통 속도로 읽겠습니다",
+    "feedback-speed-fast": "이제 빠르게 읽겠습니다",
+    "feedback-speed-very-fast": "이제 매우 빠르게 읽겠습니다",
+    "feedback-read-aloud-on": "소리 내어 읽기가 켜졌습니다",
+    "feedback-read-aloud-off": "소리 내어 읽기가 꺼졌습니다",
+    "feedback-easy-read-on": "쉬운 읽기가 켜졌습니다",
+    "feedback-easy-read-off": "쉬운 읽기가 꺼졌습니다",
+    "feedback-language-changed": "언어가 ${language}(으)로 변경되었습니다",
+    "feedback-language-changed-audio": "언어가 변경되었습니다",
+    "feedback-volume-muted": "소리가 음소거되었습니다",
+    "feedback-volume-unmuted": "소리가 켜졌습니다",
+    "feedback-volume-level": "볼륨 ${percent}%",
+    "feedback-volume-level-audio": "볼륨이 변경되었습니다"
 }

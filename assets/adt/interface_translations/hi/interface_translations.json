@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "व्यवस्थापक उपकरण आगामी अपडेट में जोड़े जाएंगे।",
     "main-menu-label": "मुख्य मेनू",
     "cover-label": "आवरण",
-    "print-page-label": "पृष्ठ प्रिंट करें"
+    "print-page-label": "पृष्ठ प्रिंट करें",
+    "feedback-speed-slow": "अब मैं धीरे पढ़ूँगा",
+    "feedback-speed-normal": "अब मैं सामान्य गति से पढ़ूँगा",
+    "feedback-speed-fast": "अब मैं तेज़ पढ़ूँगा",
+    "feedback-speed-very-fast": "अब मैं बहुत तेज़ पढ़ूँगा",
+    "feedback-read-aloud-on": "ज़ोर से पढ़ना चालू है",
+    "feedback-read-aloud-off": "ज़ोर से पढ़ना बंद है",
+    "feedback-easy-read-on": "आसान पठन चालू है",
+    "feedback-easy-read-off": "आसान पठन बंद है",
+    "feedback-language-changed": "भाषा ${language} में बदल दी गई है",
+    "feedback-language-changed-audio": "भाषा बदल दी गई है",
+    "feedback-volume-muted": "ध्वनि म्यूट है",
+    "feedback-volume-unmuted": "ध्वनि चालू है",
+    "feedback-volume-level": "वॉल्यूम ${percent}%",
+    "feedback-volume-level-audio": "वॉल्यूम बदल दिया गया है"
 }

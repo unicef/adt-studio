@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Yönetici araçları sonraki bir güncellemede eklenecektir.",
     "main-menu-label": "Ana Menü",
     "cover-label": "Kapak",
-    "print-page-label": "Sayfayı Yazdır"
+    "print-page-label": "Sayfayı Yazdır",
+    "feedback-speed-slow": "Şimdi yavaş okuyacağım",
+    "feedback-speed-normal": "Şimdi normal hızda okuyacağım",
+    "feedback-speed-fast": "Şimdi hızlı okuyacağım",
+    "feedback-speed-very-fast": "Şimdi çok hızlı okuyacağım",
+    "feedback-read-aloud-on": "Sesli okuma açık",
+    "feedback-read-aloud-off": "Sesli okuma kapalı",
+    "feedback-easy-read-on": "Kolay okuma açık",
+    "feedback-easy-read-off": "Kolay okuma kapalı",
+    "feedback-language-changed": "Dil ${language} olarak değiştirildi",
+    "feedback-language-changed-audio": "Dil değiştirildi",
+    "feedback-volume-muted": "Ses kapatıldı",
+    "feedback-volume-unmuted": "Ses açık",
+    "feedback-volume-level": "Ses düzeyi ${percent}%",
+    "feedback-volume-level-audio": "Ses düzeyi değiştirildi"
 }

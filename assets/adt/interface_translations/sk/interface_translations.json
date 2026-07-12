@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Nástroje správcu budú pridané v ďalšej aktualizácii.",
     "main-menu-label": "Hlavné menu",
     "cover-label": "Obal",
-    "print-page-label": "Vytlačiť stránku"
+    "print-page-label": "Vytlačiť stránku",
+    "feedback-speed-slow": "Teraz budem čítať pomaly",
+    "feedback-speed-normal": "Teraz budem čítať normálnou rýchlosťou",
+    "feedback-speed-fast": "Teraz budem čítať rýchlo",
+    "feedback-speed-very-fast": "Teraz budem čítať veľmi rýchlo",
+    "feedback-read-aloud-on": "Čítanie nahlas je zapnuté",
+    "feedback-read-aloud-off": "Čítanie nahlas je vypnuté",
+    "feedback-easy-read-on": "Jednoduché čítanie je zapnuté",
+    "feedback-easy-read-off": "Jednoduché čítanie je vypnuté",
+    "feedback-language-changed": "Jazyk zmenený na ${language}",
+    "feedback-language-changed-audio": "Jazyk zmenený",
+    "feedback-volume-muted": "Zvuk stlmený",
+    "feedback-volume-unmuted": "Zvuk zapnutý",
+    "feedback-volume-level": "Hlasitosť ${percent}%",
+    "feedback-volume-level-audio": "Hlasitosť zmenená"
 }

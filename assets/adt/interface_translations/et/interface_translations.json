@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Administraatori tööriistad lisatakse järgmises uuenduses.",
     "main-menu-label": "Peamenüü",
     "cover-label": "Kaas",
-    "print-page-label": "Prindi leht"
+    "print-page-label": "Prindi leht",
+    "feedback-speed-slow": "Nüüd loen aeglaselt",
+    "feedback-speed-normal": "Nüüd loen tavakiirusel",
+    "feedback-speed-fast": "Nüüd loen kiiresti",
+    "feedback-speed-very-fast": "Nüüd loen väga kiiresti",
+    "feedback-read-aloud-on": "Ettelugemine on sisse lülitatud",
+    "feedback-read-aloud-off": "Ettelugemine on välja lülitatud",
+    "feedback-easy-read-on": "Lihtne lugemine on sisse lülitatud",
+    "feedback-easy-read-off": "Lihtne lugemine on välja lülitatud",
+    "feedback-language-changed": "Keel muudeti keeleks ${language}",
+    "feedback-language-changed-audio": "Keel muudetud",
+    "feedback-volume-muted": "Heli vaigistatud",
+    "feedback-volume-unmuted": "Heli sisse lülitatud",
+    "feedback-volume-level": "Helitugevus ${percent}%",
+    "feedback-volume-level-audio": "Helitugevus muudetud"
 }

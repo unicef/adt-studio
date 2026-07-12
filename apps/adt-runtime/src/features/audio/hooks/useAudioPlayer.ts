@@ -16,6 +16,7 @@ import {
   currentLanguageAtom,
   translationsAtom,
 } from "@/features/language/state/language.atoms"
+import { registerSpeechPlaybackController } from "@/features/audio/runtime/speech-playback-controller"
 import { easyReadModeAtom } from "@/shared/state/ui.atoms"
 import {
   clearBlockHighlight,
@@ -130,11 +131,13 @@ export function useAudioPlayer(): UseAudioPlayer {
   const wordHighlightModeRef = useRef(wordHighlightMode)
   const speedRef = useRef(speed)
   const volumeRef = useRef(volume)
+  const readAloudModeRef = useRef(readAloudMode)
   const initialResumeRef = useRef<boolean>(isPlaying || autoplayMode)
 
   wordHighlightModeRef.current = wordHighlightMode
   speedRef.current = speed
   volumeRef.current = volume
+  readAloudModeRef.current = readAloudMode
 
   const items = useMemo(() => {
     const all = gatherPlayableItems(audioFiles, translations, easyReadMode)
@@ -288,6 +291,26 @@ export function useAudioPlayer(): UseAudioPlayer {
     setIsPlaying(false)
   }, [setIsPlaying])
 
+  const pauseForFeedback = useCallback(() => {
+    const audio = audioRef.current
+    if (!audio || audio.paused) return false
+    audio.pause()
+    setIsPlaying(false)
+    return true
+  }, [setIsPlaying])
+
+  const resumeAfterFeedback = useCallback(async () => {
+    const audio = audioRef.current
+    if (!readAloudModeRef.current || !audio || !audio.src || audio.ended) return
+    try {
+      await audio.play()
+      setIsPlaying(true)
+    } catch (err) {
+      console.warn("[adt-runtime] audio.play() rejected after feedback", err)
+      setIsPlaying(false)
+    }
+  }, [setIsPlaying])
+
   const play = useCallback(() => {
     if (items.length === 0) return
     setReadAloudMode(true)
@@ -354,6 +377,13 @@ export function useAudioPlayer(): UseAudioPlayer {
   useEffect(() => {
     if (audioRef.current) audioRef.current.volume = Math.max(0, Math.min(1, volume))
   }, [volume])
+
+  useEffect(() => {
+    return registerSpeechPlaybackController({
+      pauseForFeedback,
+      resumeAfterFeedback,
+    })
+  }, [pauseForFeedback, resumeAfterFeedback])
 
   useEffect(() => {
     if (isPlaying && audioRef.current) playAtIndex(currentIndex)

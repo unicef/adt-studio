@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Narzędzia administracyjne zostaną dodane w przyszłej aktualizacji.",
     "main-menu-label": "Menu główne",
     "cover-label": "Okładka",
-    "print-page-label": "Drukuj stronę"
+    "print-page-label": "Drukuj stronę",
+    "feedback-speed-slow": "Teraz będę czytać wolno",
+    "feedback-speed-normal": "Teraz będę czytać z normalną prędkością",
+    "feedback-speed-fast": "Teraz będę czytać szybko",
+    "feedback-speed-very-fast": "Teraz będę czytać bardzo szybko",
+    "feedback-read-aloud-on": "Czytanie na głos jest włączone",
+    "feedback-read-aloud-off": "Czytanie na głos jest wyłączone",
+    "feedback-easy-read-on": "Łatwe czytanie jest włączone",
+    "feedback-easy-read-off": "Łatwe czytanie jest wyłączone",
+    "feedback-language-changed": "Język zmieniono na ${language}",
+    "feedback-language-changed-audio": "Język zmieniony",
+    "feedback-volume-muted": "Dźwięk wyciszony",
+    "feedback-volume-unmuted": "Dźwięk włączony",
+    "feedback-volume-level": "Głośność ${percent}%",
+    "feedback-volume-level-audio": "Głośność zmieniona"
 }

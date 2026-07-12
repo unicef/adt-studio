@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Admin-Werkzeuge werden in einem nachfolgenden Update bereitgestellt.",
     "main-menu-label": "Hauptmenü",
     "cover-label": "Cover",
-    "print-page-label": "Seite drucken"
+    "print-page-label": "Seite drucken",
+    "feedback-speed-slow": "Jetzt lese ich langsam",
+    "feedback-speed-normal": "Jetzt lese ich mit normaler Geschwindigkeit",
+    "feedback-speed-fast": "Jetzt lese ich schnell",
+    "feedback-speed-very-fast": "Jetzt lese ich sehr schnell",
+    "feedback-read-aloud-on": "Vorlesen ist eingeschaltet",
+    "feedback-read-aloud-off": "Vorlesen ist ausgeschaltet",
+    "feedback-easy-read-on": "Leichte Sprache ist eingeschaltet",
+    "feedback-easy-read-off": "Leichte Sprache ist ausgeschaltet",
+    "feedback-language-changed": "Sprache geändert zu ${language}",
+    "feedback-language-changed-audio": "Sprache geändert",
+    "feedback-volume-muted": "Ton stummgeschaltet",
+    "feedback-volume-unmuted": "Ton eingeschaltet",
+    "feedback-volume-level": "Lautstärke ${percent}%",
+    "feedback-volume-level-audio": "Lautstärke geändert"
 }

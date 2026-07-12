@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Τα εργαλεία διαχείρισης θα προστεθούν σε επόμενη ενημέρωση.",
     "main-menu-label": "Κύριο μενού",
     "cover-label": "Εξώφυλλο",
-    "print-page-label": "Εκτύπωση σελίδας"
+    "print-page-label": "Εκτύπωση σελίδας",
+    "feedback-speed-slow": "Τώρα θα διαβάζω αργά",
+    "feedback-speed-normal": "Τώρα θα διαβάζω με κανονική ταχύτητα",
+    "feedback-speed-fast": "Τώρα θα διαβάζω γρήγορα",
+    "feedback-speed-very-fast": "Τώρα θα διαβάζω πολύ γρήγορα",
+    "feedback-read-aloud-on": "Η ανάγνωση δυνατά είναι ενεργή",
+    "feedback-read-aloud-off": "Η ανάγνωση δυνατά είναι ανενεργή",
+    "feedback-easy-read-on": "Η εύκολη ανάγνωση είναι ενεργή",
+    "feedback-easy-read-off": "Η εύκολη ανάγνωση είναι ανενεργή",
+    "feedback-language-changed": "Η γλώσσα άλλαξε σε ${language}",
+    "feedback-language-changed-audio": "Η γλώσσα άλλαξε",
+    "feedback-volume-muted": "Ο ήχος είναι σε σίγαση",
+    "feedback-volume-unmuted": "Ο ήχος είναι ενεργός",
+    "feedback-volume-level": "Ένταση ${percent}%",
+    "feedback-volume-level-audio": "Η ένταση άλλαξε"
 }

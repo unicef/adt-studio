@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Gli strumenti di amministrazione saranno aggiunti in un futuro aggiornamento.",
     "main-menu-label": "Menu principale",
     "cover-label": "Copertina",
-    "print-page-label": "Stampa pagina"
+    "print-page-label": "Stampa pagina",
+    "feedback-speed-slow": "Ora leggerò lentamente",
+    "feedback-speed-normal": "Ora leggerò a velocità normale",
+    "feedback-speed-fast": "Ora leggerò velocemente",
+    "feedback-speed-very-fast": "Ora leggerò molto velocemente",
+    "feedback-read-aloud-on": "Lettura ad alta voce attivata",
+    "feedback-read-aloud-off": "Lettura ad alta voce disattivata",
+    "feedback-easy-read-on": "Lettura facile attivata",
+    "feedback-easy-read-off": "Lettura facile disattivata",
+    "feedback-language-changed": "Lingua cambiata in ${language}",
+    "feedback-language-changed-audio": "Lingua cambiata",
+    "feedback-volume-muted": "Audio disattivato",
+    "feedback-volume-unmuted": "Audio attivato",
+    "feedback-volume-level": "Volume ${percent}%",
+    "feedback-volume-level-audio": "Volume modificato"
 }

@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "অ্যাডমিন টুল পরবর্তী আপডেটে যোগ করা হবে।",
     "main-menu-label": "প্রধান মেনু",
     "cover-label": "কভার",
-    "print-page-label": "পৃষ্ঠা মুদ্রণ করুন"
+    "print-page-label": "পৃষ্ঠা মুদ্রণ করুন",
+    "feedback-speed-slow": "এখন আমি ধীরে পড়ব",
+    "feedback-speed-normal": "এখন আমি স্বাভাবিক গতিতে পড়ব",
+    "feedback-speed-fast": "এখন আমি দ্রুত পড়ব",
+    "feedback-speed-very-fast": "এখন আমি খুব দ্রুত পড়ব",
+    "feedback-read-aloud-on": "উচ্চস্বরে পড়া চালু হয়েছে",
+    "feedback-read-aloud-off": "উচ্চস্বরে পড়া বন্ধ হয়েছে",
+    "feedback-easy-read-on": "সহজ পাঠ চালু হয়েছে",
+    "feedback-easy-read-off": "সহজ পাঠ বন্ধ হয়েছে",
+    "feedback-language-changed": "ভাষা ${language}-এ পরিবর্তন করা হয়েছে",
+    "feedback-language-changed-audio": "ভাষা পরিবর্তন করা হয়েছে",
+    "feedback-volume-muted": "শব্দ নিঃশব্দ করা হয়েছে",
+    "feedback-volume-unmuted": "শব্দ চালু হয়েছে",
+    "feedback-volume-level": "ভলিউম ${percent}%",
+    "feedback-volume-level-audio": "ভলিউম পরিবর্তন করা হয়েছে"
 }

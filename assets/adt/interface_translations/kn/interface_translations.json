@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "ನಿರ್ವಾಹಕ ಪರಿಕರಗಳನ್ನು ಮುಂದಿನ ನವೀಕರಣದಲ್ಲಿ ಸೇರಿಸಲಾಗುತ್ತದೆ.",
     "main-menu-label": "ಮುಖ್ಯ ಮೆನು",
     "cover-label": "ಮುಖಪುಟ",
-    "print-page-label": "ಪುಟ ಮುದ್ರಿಸಿ"
+    "print-page-label": "ಪುಟ ಮುದ್ರಿಸಿ",
+    "feedback-speed-slow": "ಈಗ ನಾನು ನಿಧಾನವಾಗಿ ಓದುತ್ತೇನೆ",
+    "feedback-speed-normal": "ಈಗ ನಾನು ಸಾಮಾನ್ಯ ವೇಗದಲ್ಲಿ ಓದುತ್ತೇನೆ",
+    "feedback-speed-fast": "ಈಗ ನಾನು ವೇಗವಾಗಿ ಓದುತ್ತೇನೆ",
+    "feedback-speed-very-fast": "ಈಗ ನಾನು ತುಂಬಾ ವೇಗವಾಗಿ ಓದುತ್ತೇನೆ",
+    "feedback-read-aloud-on": "ಜೋರಾಗಿ ಓದುವಿಕೆ ಆನ್ ಆಗಿದೆ",
+    "feedback-read-aloud-off": "ಜೋರಾಗಿ ಓದುವಿಕೆ ಆಫ್ ಆಗಿದೆ",
+    "feedback-easy-read-on": "ಸುಲಭ ಓದು ಆನ್ ಆಗಿದೆ",
+    "feedback-easy-read-off": "ಸುಲಭ ಓದು ಆಫ್ ಆಗಿದೆ",
+    "feedback-language-changed": "ಭಾಷೆ ${language} ಗೆ ಬದಲಾಯಿಸಲಾಗಿದೆ",
+    "feedback-language-changed-audio": "ಭಾಷೆ ಬದಲಾಯಿಸಲಾಗಿದೆ",
+    "feedback-volume-muted": "ಧ್ವನಿ ಮ್ಯೂಟ್ ಆಗಿದೆ",
+    "feedback-volume-unmuted": "ಧ್ವನಿ ಆನ್ ಆಗಿದೆ",
+    "feedback-volume-level": "ವಾಲ್ಯೂಮ್ ${percent}%",
+    "feedback-volume-level-audio": "ವಾಲ್ಯೂಮ್ ಬದಲಾಯಿಸಲಾಗಿದೆ"
 }

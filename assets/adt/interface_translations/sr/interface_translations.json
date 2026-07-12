@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Алатке администратора биће додате у наредном ажурирању.",
     "main-menu-label": "Главни мени",
     "cover-label": "Корица",
-    "print-page-label": "Штампај страницу"
+    "print-page-label": "Штампај страницу",
+    "feedback-speed-slow": "Сада ћу читати споро",
+    "feedback-speed-normal": "Сада ћу читати нормалном брзином",
+    "feedback-speed-fast": "Сада ћу читати брзо",
+    "feedback-speed-very-fast": "Сада ћу читати веома брзо",
+    "feedback-read-aloud-on": "Читање наглас је укључено",
+    "feedback-read-aloud-off": "Читање наглас је искључено",
+    "feedback-easy-read-on": "Лако читање је укључено",
+    "feedback-easy-read-off": "Лако читање је искључено",
+    "feedback-language-changed": "Језик је промењен на ${language}",
+    "feedback-language-changed-audio": "Језик је промењен",
+    "feedback-volume-muted": "Звук је искључен",
+    "feedback-volume-unmuted": "Звук је укључен",
+    "feedback-volume-level": "Јачина звука ${percent}%",
+    "feedback-volume-level-audio": "Јачина звука је промењена"
 }

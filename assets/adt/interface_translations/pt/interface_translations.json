@@ -161,5 +161,19 @@
     "admin-popup-stub-message": "As ferramentas de administração serão adicionadas numa atualização posterior.",
     "main-menu-label": "Menu principal",
     "cover-label": "Capa",
-    "print-page-label": "Imprimir página"
+    "print-page-label": "Imprimir página",
+    "feedback-speed-slow": "Agora vou ler devagar",
+    "feedback-speed-normal": "Agora vou ler à velocidade normal",
+    "feedback-speed-fast": "Agora vou ler rápido",
+    "feedback-speed-very-fast": "Agora vou ler muito rápido",
+    "feedback-read-aloud-on": "Leitura em voz alta ativada",
+    "feedback-read-aloud-off": "Leitura em voz alta desativada",
+    "feedback-easy-read-on": "Leitura fácil ativada",
+    "feedback-easy-read-off": "Leitura fácil desativada",
+    "feedback-language-changed": "Idioma alterado para ${language}",
+    "feedback-language-changed-audio": "Idioma alterado",
+    "feedback-volume-muted": "Som silenciado",
+    "feedback-volume-unmuted": "Som ativado",
+    "feedback-volume-level": "Volume ${percent}%",
+    "feedback-volume-level-audio": "Volume alterado"
 }

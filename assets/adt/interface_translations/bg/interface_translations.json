@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Инструментите за администратор ще бъдат добавени в следваща версия.",
     "main-menu-label": "Главно меню",
     "cover-label": "Корица",
-    "print-page-label": "Принтирай страницата"
+    "print-page-label": "Принтирай страницата",
+    "feedback-speed-slow": "Сега ще чета бавно",
+    "feedback-speed-normal": "Сега ще чета с нормална скорост",
+    "feedback-speed-fast": "Сега ще чета бързо",
+    "feedback-speed-very-fast": "Сега ще чета много бързо",
+    "feedback-read-aloud-on": "Четенето на глас е включено",
+    "feedback-read-aloud-off": "Четенето на глас е изключено",
+    "feedback-easy-read-on": "Лесното четене е включено",
+    "feedback-easy-read-off": "Лесното четене е изключено",
+    "feedback-language-changed": "Езикът е променен на ${language}",
+    "feedback-language-changed-audio": "Езикът е променен",
+    "feedback-volume-muted": "Звукът е заглушен",
+    "feedback-volume-unmuted": "Звукът е включен",
+    "feedback-volume-level": "Сила на звука ${percent}%",
+    "feedback-volume-level-audio": "Силата на звука е променена"
 }

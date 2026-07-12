@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "དོ་དམ་གྱི་ལག་ཆ་ཚུ་འོང་འགྱུར་ནང་བསྐྲུན་འགྱུར།",
     "main-menu-label": "གཙོ་བོའི་ཐོ་འགྲེམ",
     "cover-label": "ལེབ་ཤོག",
-    "print-page-label": "ཤོག་ལེབ་པར་སྐྲུན"
+    "print-page-label": "ཤོག་ལེབ་པར་སྐྲུན",
+    "feedback-speed-slow": "ད་ངས་ག་ལེར་ཀློག་འོང་",
+    "feedback-speed-normal": "ད་ངས་མགྱོགས་ཚད་རང་བཞིན་ནང་ཀློག་འོང་",
+    "feedback-speed-fast": "ད་ངས་མགྱོགས་པར་ཀློག་འོང་",
+    "feedback-speed-very-fast": "ད་ངས་ཧ་ཅང་མགྱོགས་པར་ཀློག་འོང་",
+    "feedback-read-aloud-on": "སྐད་ཆེན་པོས་ཀློག་པ་ཨཱོན་ཡོད་",
+    "feedback-read-aloud-off": "སྐད་ཆེན་པོས་ཀློག་པ་ཨོཕ་ཡོད་",
+    "feedback-easy-read-on": "ཀློག་སླ་པོ་ཨཱོན་ཡོད་",
+    "feedback-easy-read-off": "ཀློག་སླ་པོ་ཨོཕ་ཡོད་",
+    "feedback-language-changed": "སྐད་ཡིག་ ${language} ལུ་བསྒྱུར་ཡོད་",
+    "feedback-language-changed-audio": "སྐད་ཡིག་བསྒྱུར་ཡོད་",
+    "feedback-volume-muted": "སྒྲ་མེདཔ་བཟོ་ཡོད་",
+    "feedback-volume-unmuted": "སྒྲ་ཨཱོན་ཡོད་",
+    "feedback-volume-level": "སྒྲ་ཚད་ ${percent}%",
+    "feedback-volume-level-audio": "སྒྲ་ཚད་བསྒྱུར་ཡོད་"
 }

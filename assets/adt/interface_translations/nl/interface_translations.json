@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Beheertools worden toegevoegd in een volgende update.",
     "main-menu-label": "Hoofdmenu",
     "cover-label": "Omslag",
-    "print-page-label": "Pagina afdrukken"
+    "print-page-label": "Pagina afdrukken",
+    "feedback-speed-slow": "Nu lees ik langzaam",
+    "feedback-speed-normal": "Nu lees ik op normale snelheid",
+    "feedback-speed-fast": "Nu lees ik snel",
+    "feedback-speed-very-fast": "Nu lees ik heel snel",
+    "feedback-read-aloud-on": "Voorlezen staat aan",
+    "feedback-read-aloud-off": "Voorlezen staat uit",
+    "feedback-easy-read-on": "Makkelijk lezen staat aan",
+    "feedback-easy-read-off": "Makkelijk lezen staat uit",
+    "feedback-language-changed": "Taal gewijzigd naar ${language}",
+    "feedback-language-changed-audio": "Taal gewijzigd",
+    "feedback-volume-muted": "Geluid gedempt",
+    "feedback-volume-unmuted": "Geluid aan",
+    "feedback-volume-level": "Volume ${percent}%",
+    "feedback-volume-level-audio": "Volume gewijzigd"
 }

@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Idaragdag ang mga tool ng admin sa susunod na pag-update.",
     "main-menu-label": "Pangunahing Menu",
     "cover-label": "Pabalat",
-    "print-page-label": "I-print ang Pahina"
+    "print-page-label": "I-print ang Pahina",
+    "feedback-speed-slow": "Ngayon ay magbabasa ako nang mabagal",
+    "feedback-speed-normal": "Ngayon ay magbabasa ako sa normal na bilis",
+    "feedback-speed-fast": "Ngayon ay magbabasa ako nang mabilis",
+    "feedback-speed-very-fast": "Ngayon ay magbabasa ako nang napakabilis",
+    "feedback-read-aloud-on": "Naka-on ang pagbasa nang malakas",
+    "feedback-read-aloud-off": "Naka-off ang pagbasa nang malakas",
+    "feedback-easy-read-on": "Naka-on ang madaling pagbasa",
+    "feedback-easy-read-off": "Naka-off ang madaling pagbasa",
+    "feedback-language-changed": "Pinalitan ang wika sa ${language}",
+    "feedback-language-changed-audio": "Pinalitan ang wika",
+    "feedback-volume-muted": "Naka-mute ang tunog",
+    "feedback-volume-unmuted": "Naka-on ang tunog",
+    "feedback-volume-level": "Volume ${percent}%",
+    "feedback-volume-level-audio": "Binago ang volume"
 }

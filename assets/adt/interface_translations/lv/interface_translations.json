@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Administratora rīki tiks pievienoti turpmākā atjauninājumā.",
     "main-menu-label": "Galvenā izvēlne",
     "cover-label": "Vāks",
-    "print-page-label": "Drukāt lapu"
+    "print-page-label": "Drukāt lapu",
+    "feedback-speed-slow": "Tagad lasīšu lēni",
+    "feedback-speed-normal": "Tagad lasīšu normālā ātrumā",
+    "feedback-speed-fast": "Tagad lasīšu ātri",
+    "feedback-speed-very-fast": "Tagad lasīšu ļoti ātri",
+    "feedback-read-aloud-on": "Lasīšana balsī ir ieslēgta",
+    "feedback-read-aloud-off": "Lasīšana balsī ir izslēgta",
+    "feedback-easy-read-on": "Vieglā lasīšana ir ieslēgta",
+    "feedback-easy-read-off": "Vieglā lasīšana ir izslēgta",
+    "feedback-language-changed": "Valoda mainīta uz ${language}",
+    "feedback-language-changed-audio": "Valoda mainīta",
+    "feedback-volume-muted": "Skaņa izslēgta",
+    "feedback-volume-unmuted": "Skaņa ieslēgta",
+    "feedback-volume-level": "Skaļums ${percent}%",
+    "feedback-volume-level-audio": "Skaļums mainīts"
 }

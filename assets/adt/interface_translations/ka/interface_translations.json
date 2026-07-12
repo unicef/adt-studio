@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "ადმინისტრატორის ხელსაწყოები დაემატება შემდეგ განახლებაში.",
     "main-menu-label": "მთავარი მენიუ",
     "cover-label": "ყდა",
-    "print-page-label": "გვერდის ბეჭდვა"
+    "print-page-label": "გვერდის ბეჭდვა",
+    "feedback-speed-slow": "ახლა ნელა წავიკითხავ",
+    "feedback-speed-normal": "ახლა ნორმალური სიჩქარით წავიკითხავ",
+    "feedback-speed-fast": "ახლა სწრაფად წავიკითხავ",
+    "feedback-speed-very-fast": "ახლა ძალიან სწრაფად წავიკითხავ",
+    "feedback-read-aloud-on": "ხმამაღლა კითხვა ჩართულია",
+    "feedback-read-aloud-off": "ხმამაღლა კითხვა გამორთულია",
+    "feedback-easy-read-on": "მარტივი კითხვა ჩართულია",
+    "feedback-easy-read-off": "მარტივი კითხვა გამორთულია",
+    "feedback-language-changed": "ენა შეიცვალა ${language}-ზე",
+    "feedback-language-changed-audio": "ენა შეიცვალა",
+    "feedback-volume-muted": "ხმა დადუმებულია",
+    "feedback-volume-unmuted": "ხმა ჩართულია",
+    "feedback-volume-level": "ხმის დონე ${percent}%",
+    "feedback-volume-level-audio": "ხმის დონე შეიცვალა"
 }

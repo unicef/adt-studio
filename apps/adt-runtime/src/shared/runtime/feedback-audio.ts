@@ -75,9 +75,27 @@ async function playUrl(url: string): Promise<boolean> {
   try {
     audio.pause()
     audio.currentTime = 0
+    audio.onended = null
+    audio.onerror = null
+    const finished = new Promise<boolean>((resolve) => {
+      const cleanup = () => {
+        audio.onended = null
+        audio.onerror = null
+      }
+      audio.onended = () => {
+        cleanup()
+        resolve(true)
+      }
+      audio.onerror = () => {
+        cleanup()
+        resolve(false)
+      }
+    })
     await audio.play()
-    return true
+    return await finished
   } catch {
+    audio.onended = null
+    audio.onerror = null
     return false
   }
 }

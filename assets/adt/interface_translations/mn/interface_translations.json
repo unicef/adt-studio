@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Админ хэрэгслүүд дараагийн шинэчлэлд нэмэгдэх болно.",
     "main-menu-label": "Үндсэн цэс",
     "cover-label": "Хавтас",
-    "print-page-label": "Хуудас хэвлэх"
+    "print-page-label": "Хуудас хэвлэх",
+    "feedback-speed-slow": "Одоо би удаан уншина",
+    "feedback-speed-normal": "Одоо би хэвийн хурдаар уншина",
+    "feedback-speed-fast": "Одоо би хурдан уншина",
+    "feedback-speed-very-fast": "Одоо би маш хурдан уншина",
+    "feedback-read-aloud-on": "Чангаар унших асаалттай",
+    "feedback-read-aloud-off": "Чангаар унших унтраалттай",
+    "feedback-easy-read-on": "Хялбар уншлага асаалттай",
+    "feedback-easy-read-off": "Хялбар уншлага унтраалттай",
+    "feedback-language-changed": "Хэл ${language} болж өөрчлөгдлөө",
+    "feedback-language-changed-audio": "Хэл өөрчлөгдлөө",
+    "feedback-volume-muted": "Дуу хаагдлаа",
+    "feedback-volume-unmuted": "Дуу асаалттай",
+    "feedback-volume-level": "Дууны хэмжээ ${percent}%",
+    "feedback-volume-level-audio": "Дууны хэмжээ өөрчлөгдлөө"
 }

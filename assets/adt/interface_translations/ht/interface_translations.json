@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Zouti administratè yo ap mete nan yon mizajou pita.",
     "main-menu-label": "Meni prensipal",
     "cover-label": "Kouvèti",
-    "print-page-label": "Enprime paj"
+    "print-page-label": "Enprime paj",
+    "feedback-speed-slow": "Kounye a mwen pral li dousman",
+    "feedback-speed-normal": "Kounye a mwen pral li ak vitès nòmal",
+    "feedback-speed-fast": "Kounye a mwen pral li vit",
+    "feedback-speed-very-fast": "Kounye a mwen pral li trè vit",
+    "feedback-read-aloud-on": "Lekti awotvwa aktive",
+    "feedback-read-aloud-off": "Lekti awotvwa dezaktive",
+    "feedback-easy-read-on": "Lekti fasil aktive",
+    "feedback-easy-read-off": "Lekti fasil dezaktive",
+    "feedback-language-changed": "Lang lan chanje an ${language}",
+    "feedback-language-changed-audio": "Lang lan chanje",
+    "feedback-volume-muted": "Son an koupe",
+    "feedback-volume-unmuted": "Son an aktive",
+    "feedback-volume-level": "Volim ${percent}%",
+    "feedback-volume-level-audio": "Volim nan chanje"
 }

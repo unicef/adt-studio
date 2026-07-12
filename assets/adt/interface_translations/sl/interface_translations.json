@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Skrbniška orodja bodo dodana v prihodnji posodobitvi.",
     "main-menu-label": "Glavni meni",
     "cover-label": "Naslovnica",
-    "print-page-label": "Natisni stran"
+    "print-page-label": "Natisni stran",
+    "feedback-speed-slow": "Zdaj bom bral počasi",
+    "feedback-speed-normal": "Zdaj bom bral z običajno hitrostjo",
+    "feedback-speed-fast": "Zdaj bom bral hitro",
+    "feedback-speed-very-fast": "Zdaj bom bral zelo hitro",
+    "feedback-read-aloud-on": "Branje na glas je vklopljeno",
+    "feedback-read-aloud-off": "Branje na glas je izklopljeno",
+    "feedback-easy-read-on": "Enostavno branje je vklopljeno",
+    "feedback-easy-read-off": "Enostavno branje je izklopljeno",
+    "feedback-language-changed": "Jezik spremenjen v ${language}",
+    "feedback-language-changed-audio": "Jezik spremenjen",
+    "feedback-volume-muted": "Zvok utišan",
+    "feedback-volume-unmuted": "Zvok vklopljen",
+    "feedback-volume-level": "Glasnost ${percent}%",
+    "feedback-volume-level-audio": "Glasnost spremenjena"
 }

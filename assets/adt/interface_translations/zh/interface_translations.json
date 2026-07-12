@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "管理工具将在后续更新中加入。",
     "main-menu-label": "主菜单",
     "cover-label": "封面",
-    "print-page-label": "打印页面"
+    "print-page-label": "打印页面",
+    "feedback-speed-slow": "现在我会慢慢读",
+    "feedback-speed-normal": "现在我会以正常速度读",
+    "feedback-speed-fast": "现在我会快速读",
+    "feedback-speed-very-fast": "现在我会非常快速地读",
+    "feedback-read-aloud-on": "朗读已开启",
+    "feedback-read-aloud-off": "朗读已关闭",
+    "feedback-easy-read-on": "简易阅读已开启",
+    "feedback-easy-read-off": "简易阅读已关闭",
+    "feedback-language-changed": "语言已更改为${language}",
+    "feedback-language-changed-audio": "语言已更改",
+    "feedback-volume-muted": "声音已静音",
+    "feedback-volume-unmuted": "声音已开启",
+    "feedback-volume-level": "音量 ${percent}%",
+    "feedback-volume-level-audio": "音量已更改"
 }

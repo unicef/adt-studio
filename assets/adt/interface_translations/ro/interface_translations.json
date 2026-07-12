@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Instrumentele de administrare vor fi adăugate într-o actualizare ulterioară.",
     "main-menu-label": "Meniu principal",
     "cover-label": "Copertă",
-    "print-page-label": "Imprimă pagina"
+    "print-page-label": "Imprimă pagina",
+    "feedback-speed-slow": "Acum voi citi lent",
+    "feedback-speed-normal": "Acum voi citi la viteză normală",
+    "feedback-speed-fast": "Acum voi citi rapid",
+    "feedback-speed-very-fast": "Acum voi citi foarte rapid",
+    "feedback-read-aloud-on": "Citirea cu voce tare este activată",
+    "feedback-read-aloud-off": "Citirea cu voce tare este dezactivată",
+    "feedback-easy-read-on": "Citirea ușoară este activată",
+    "feedback-easy-read-off": "Citirea ușoară este dezactivată",
+    "feedback-language-changed": "Limba a fost schimbată în ${language}",
+    "feedback-language-changed-audio": "Limba a fost schimbată",
+    "feedback-volume-muted": "Sunet dezactivat",
+    "feedback-volume-unmuted": "Sunet activat",
+    "feedback-volume-level": "Volum ${percent}%",
+    "feedback-volume-level-audio": "Volumul a fost schimbat"
 }

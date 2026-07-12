@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "ایڈمن ٹولز آنے والے اپ ڈیٹ میں شامل کیے جائیں گے۔",
     "main-menu-label": "مرکزی مینو",
     "cover-label": "سرورق",
-    "print-page-label": "صفحہ پرنٹ کریں"
+    "print-page-label": "صفحہ پرنٹ کریں",
+    "feedback-speed-slow": "اب میں آہستہ پڑھوں گا",
+    "feedback-speed-normal": "اب میں عام رفتار سے پڑھوں گا",
+    "feedback-speed-fast": "اب میں تیزی سے پڑھوں گا",
+    "feedback-speed-very-fast": "اب میں بہت تیزی سے پڑھوں گا",
+    "feedback-read-aloud-on": "بلند آواز میں پڑھنا آن ہے",
+    "feedback-read-aloud-off": "بلند آواز میں پڑھنا آف ہے",
+    "feedback-easy-read-on": "آسان پڑھائی آن ہے",
+    "feedback-easy-read-off": "آسان پڑھائی آف ہے",
+    "feedback-language-changed": "زبان ${language} میں تبدیل کر دی گئی ہے",
+    "feedback-language-changed-audio": "زبان تبدیل کر دی گئی ہے",
+    "feedback-volume-muted": "آواز خاموش کر دی گئی ہے",
+    "feedback-volume-unmuted": "آواز آن ہے",
+    "feedback-volume-level": "آواز ${percent}%",
+    "feedback-volume-level-audio": "آواز کی سطح تبدیل کر دی گئی ہے"
 }

@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Các công cụ quản trị sẽ được thêm trong bản cập nhật sắp tới.",
     "main-menu-label": "Menu chính",
     "cover-label": "Bìa",
-    "print-page-label": "In trang"
+    "print-page-label": "In trang",
+    "feedback-speed-slow": "Bây giờ tôi sẽ đọc chậm",
+    "feedback-speed-normal": "Bây giờ tôi sẽ đọc ở tốc độ bình thường",
+    "feedback-speed-fast": "Bây giờ tôi sẽ đọc nhanh",
+    "feedback-speed-very-fast": "Bây giờ tôi sẽ đọc rất nhanh",
+    "feedback-read-aloud-on": "Đọc thành tiếng đã bật",
+    "feedback-read-aloud-off": "Đọc thành tiếng đã tắt",
+    "feedback-easy-read-on": "Đọc dễ đã bật",
+    "feedback-easy-read-off": "Đọc dễ đã tắt",
+    "feedback-language-changed": "Đã đổi ngôn ngữ sang ${language}",
+    "feedback-language-changed-audio": "Đã đổi ngôn ngữ",
+    "feedback-volume-muted": "Đã tắt tiếng",
+    "feedback-volume-unmuted": "Đã bật tiếng",
+    "feedback-volume-level": "Âm lượng ${percent}%",
+    "feedback-volume-level-audio": "Đã đổi âm lượng"
 }

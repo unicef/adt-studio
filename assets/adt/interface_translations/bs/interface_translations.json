@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Administratorski alati će biti dodani u sljedećoj verziji.",
     "main-menu-label": "Glavni meni",
     "cover-label": "Naslovnica",
-    "print-page-label": "Štampaj stranicu"
+    "print-page-label": "Štampaj stranicu",
+    "feedback-speed-slow": "Sada ću čitati sporo",
+    "feedback-speed-normal": "Sada ću čitati normalnom brzinom",
+    "feedback-speed-fast": "Sada ću čitati brzo",
+    "feedback-speed-very-fast": "Sada ću čitati veoma brzo",
+    "feedback-read-aloud-on": "Čitanje naglas je uključeno",
+    "feedback-read-aloud-off": "Čitanje naglas je isključeno",
+    "feedback-easy-read-on": "Lako čitanje je uključeno",
+    "feedback-easy-read-off": "Lako čitanje je isključeno",
+    "feedback-language-changed": "Jezik je promijenjen na ${language}",
+    "feedback-language-changed-audio": "Jezik je promijenjen",
+    "feedback-volume-muted": "Zvuk je isključen",
+    "feedback-volume-unmuted": "Zvuk je uključen",
+    "feedback-volume-level": "Jačina zvuka ${percent}%",
+    "feedback-volume-level-audio": "Jačina zvuka je promijenjena"
 }

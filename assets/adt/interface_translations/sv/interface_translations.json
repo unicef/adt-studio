@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Administrationsverktygen läggs till i en kommande uppdatering.",
     "main-menu-label": "Huvudmeny",
     "cover-label": "Omslag",
-    "print-page-label": "Skriv ut sida"
+    "print-page-label": "Skriv ut sida",
+    "feedback-speed-slow": "Nu läser jag långsamt",
+    "feedback-speed-normal": "Nu läser jag i normal hastighet",
+    "feedback-speed-fast": "Nu läser jag snabbt",
+    "feedback-speed-very-fast": "Nu läser jag mycket snabbt",
+    "feedback-read-aloud-on": "Högläsning är på",
+    "feedback-read-aloud-off": "Högläsning är av",
+    "feedback-easy-read-on": "Lättläst är på",
+    "feedback-easy-read-off": "Lättläst är av",
+    "feedback-language-changed": "Språket ändrat till ${language}",
+    "feedback-language-changed-audio": "Språket ändrat",
+    "feedback-volume-muted": "Ljudet är avstängt",
+    "feedback-volume-unmuted": "Ljudet är på",
+    "feedback-volume-level": "Volym ${percent}%",
+    "feedback-volume-level-audio": "Volymen ändrad"
 }

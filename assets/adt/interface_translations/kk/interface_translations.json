@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Әкімші құралдары келесі жаңартуда қосылады.",
     "main-menu-label": "Негізгі мәзір",
     "cover-label": "Мұқаба",
-    "print-page-label": "Бетті басып шығару"
+    "print-page-label": "Бетті басып шығару",
+    "feedback-speed-slow": "Енді баяу оқимын",
+    "feedback-speed-normal": "Енді қалыпты жылдамдықпен оқимын",
+    "feedback-speed-fast": "Енді жылдам оқимын",
+    "feedback-speed-very-fast": "Енді өте жылдам оқимын",
+    "feedback-read-aloud-on": "Дауыстап оқу қосылды",
+    "feedback-read-aloud-off": "Дауыстап оқу өшірілді",
+    "feedback-easy-read-on": "Жеңіл оқу қосылды",
+    "feedback-easy-read-off": "Жеңіл оқу өшірілді",
+    "feedback-language-changed": "Тіл ${language} тіліне өзгертілді",
+    "feedback-language-changed-audio": "Тіл өзгертілді",
+    "feedback-volume-muted": "Дыбыс өшірілді",
+    "feedback-volume-unmuted": "Дыбыс қосылды",
+    "feedback-volume-level": "Дыбыс деңгейі ${percent}%",
+    "feedback-volume-level-audio": "Дыбыс деңгейі өзгертілді"
 }

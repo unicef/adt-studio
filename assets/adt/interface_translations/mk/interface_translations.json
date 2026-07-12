@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Алатките за администрација ќе бидат додадени во следно ажурирање.",
     "main-menu-label": "Главно мени",
     "cover-label": "Корица",
-    "print-page-label": "Печати страница"
+    "print-page-label": "Печати страница",
+    "feedback-speed-slow": "Сега ќе читам бавно",
+    "feedback-speed-normal": "Сега ќе читам со нормална брзина",
+    "feedback-speed-fast": "Сега ќе читам брзо",
+    "feedback-speed-very-fast": "Сега ќе читам многу брзо",
+    "feedback-read-aloud-on": "Читањето на глас е вклучено",
+    "feedback-read-aloud-off": "Читањето на глас е исклучено",
+    "feedback-easy-read-on": "Лесното читање е вклучено",
+    "feedback-easy-read-off": "Лесното читање е исклучено",
+    "feedback-language-changed": "Јазикот е сменет на ${language}",
+    "feedback-language-changed-audio": "Јазикот е сменет",
+    "feedback-volume-muted": "Звукот е исклучен",
+    "feedback-volume-unmuted": "Звукот е вклучен",
+    "feedback-volume-level": "Јачина на звук ${percent}%",
+    "feedback-volume-level-audio": "Јачината на звукот е сменета"
 }

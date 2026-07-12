@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Инструменты администратора будут добавлены в одном из следующих обновлений.",
     "main-menu-label": "Главное меню",
     "cover-label": "Обложка",
-    "print-page-label": "Печать страницы"
+    "print-page-label": "Печать страницы",
+    "feedback-speed-slow": "Теперь я буду читать медленно",
+    "feedback-speed-normal": "Теперь я буду читать с обычной скоростью",
+    "feedback-speed-fast": "Теперь я буду читать быстро",
+    "feedback-speed-very-fast": "Теперь я буду читать очень быстро",
+    "feedback-read-aloud-on": "Чтение вслух включено",
+    "feedback-read-aloud-off": "Чтение вслух выключено",
+    "feedback-easy-read-on": "Легкое чтение включено",
+    "feedback-easy-read-off": "Легкое чтение выключено",
+    "feedback-language-changed": "Язык изменен на ${language}",
+    "feedback-language-changed-audio": "Язык изменен",
+    "feedback-volume-muted": "Звук отключен",
+    "feedback-volume-unmuted": "Звук включен",
+    "feedback-volume-level": "Громкость ${percent}%",
+    "feedback-volume-level-audio": "Громкость изменена"
 }

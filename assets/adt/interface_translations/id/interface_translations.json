@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Alat admin akan ditambahkan pada pembaruan mendatang.",
     "main-menu-label": "Menu Utama",
     "cover-label": "Sampul",
-    "print-page-label": "Cetak Halaman"
+    "print-page-label": "Cetak Halaman",
+    "feedback-speed-slow": "Sekarang saya akan membaca pelan",
+    "feedback-speed-normal": "Sekarang saya akan membaca dengan kecepatan normal",
+    "feedback-speed-fast": "Sekarang saya akan membaca cepat",
+    "feedback-speed-very-fast": "Sekarang saya akan membaca sangat cepat",
+    "feedback-read-aloud-on": "Baca nyaring aktif",
+    "feedback-read-aloud-off": "Baca nyaring nonaktif",
+    "feedback-easy-read-on": "Baca mudah aktif",
+    "feedback-easy-read-off": "Baca mudah nonaktif",
+    "feedback-language-changed": "Bahasa diubah ke ${language}",
+    "feedback-language-changed-audio": "Bahasa diubah",
+    "feedback-volume-muted": "Suara dibisukan",
+    "feedback-volume-unmuted": "Suara aktif",
+    "feedback-volume-level": "Volume ${percent}%",
+    "feedback-volume-level-audio": "Volume diubah"
 }

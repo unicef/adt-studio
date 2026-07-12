@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "የአስተዳዳሪ መሣሪያዎች በቀጣዩ ስሪት ውስጥ ይተላለፋሉ።",
     "main-menu-label": "ዋና ምናሌ",
     "cover-label": "ሽፋን",
-    "print-page-label": "ገጽ አትም"
+    "print-page-label": "ገጽ አትም",
+    "feedback-speed-slow": "አሁን በቀስታ አነባለሁ",
+    "feedback-speed-normal": "አሁን በመደበኛ ፍጥነት አነባለሁ",
+    "feedback-speed-fast": "አሁን በፍጥነት አነባለሁ",
+    "feedback-speed-very-fast": "አሁን በጣም በፍጥነት አነባለሁ",
+    "feedback-read-aloud-on": "ጮክ ብሎ ማንበብ ተነቅቷል",
+    "feedback-read-aloud-off": "ጮክ ብሎ ማንበብ ጠፍቷል",
+    "feedback-easy-read-on": "ቀላል ንባብ ተነቅቷል",
+    "feedback-easy-read-off": "ቀላል ንባብ ጠፍቷል",
+    "feedback-language-changed": "ቋንቋው ወደ ${language} ተቀይሯል",
+    "feedback-language-changed-audio": "ቋንቋው ተቀይሯል",
+    "feedback-volume-muted": "ድምፁ ተዘግቷል",
+    "feedback-volume-unmuted": "ድምፁ ተነቅቷል",
+    "feedback-volume-level": "የድምፅ መጠን ${percent}%",
+    "feedback-volume-level-audio": "የድምፅ መጠን ተቀይሯል"
 }

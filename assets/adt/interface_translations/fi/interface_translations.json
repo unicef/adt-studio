@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Ylläpitäjän työkalut lisätään myöhemmässä päivityksessä.",
     "main-menu-label": "Päävalikko",
     "cover-label": "Kansi",
-    "print-page-label": "Tulosta sivu"
+    "print-page-label": "Tulosta sivu",
+    "feedback-speed-slow": "Nyt luen hitaasti",
+    "feedback-speed-normal": "Nyt luen normaalilla nopeudella",
+    "feedback-speed-fast": "Nyt luen nopeasti",
+    "feedback-speed-very-fast": "Nyt luen hyvin nopeasti",
+    "feedback-read-aloud-on": "Ääneen luku on päällä",
+    "feedback-read-aloud-off": "Ääneen luku on pois päältä",
+    "feedback-easy-read-on": "Helppo luku on päällä",
+    "feedback-easy-read-off": "Helppo luku on pois päältä",
+    "feedback-language-changed": "Kieleksi vaihdettu ${language}",
+    "feedback-language-changed-audio": "Kieli vaihdettu",
+    "feedback-volume-muted": "Ääni mykistetty",
+    "feedback-volume-unmuted": "Ääni päällä",
+    "feedback-volume-level": "Äänenvoimakkuus ${percent}%",
+    "feedback-volume-level-audio": "Äänenvoimakkuutta muutettu"
 }

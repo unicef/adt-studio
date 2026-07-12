@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Les eines d'administració s'inclouran en una actualització posterior.",
     "main-menu-label": "Menú principal",
     "cover-label": "Coberta",
-    "print-page-label": "Imprimeix la pàgina"
+    "print-page-label": "Imprimeix la pàgina",
+    "feedback-speed-slow": "Ara llegiré a poc a poc",
+    "feedback-speed-normal": "Ara llegiré a velocitat normal",
+    "feedback-speed-fast": "Ara llegiré ràpid",
+    "feedback-speed-very-fast": "Ara llegiré molt ràpid",
+    "feedback-read-aloud-on": "Lectura en veu alta activada",
+    "feedback-read-aloud-off": "Lectura en veu alta desactivada",
+    "feedback-easy-read-on": "Lectura fàcil activada",
+    "feedback-easy-read-off": "Lectura fàcil desactivada",
+    "feedback-language-changed": "Idioma canviat a ${language}",
+    "feedback-language-changed-audio": "Idioma canviat",
+    "feedback-volume-muted": "So silenciat",
+    "feedback-volume-unmuted": "So activat",
+    "feedback-volume-level": "Volum ${percent}%",
+    "feedback-volume-level-audio": "Volum canviat"
 }

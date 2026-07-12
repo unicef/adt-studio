@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Zana za msimamizi zitaongezwa katika sasisho lijalo.",
     "main-menu-label": "Menyu Kuu",
     "cover-label": "Jalada",
-    "print-page-label": "Chapisha Ukurasa"
+    "print-page-label": "Chapisha Ukurasa",
+    "feedback-speed-slow": "Sasa nitasoma polepole",
+    "feedback-speed-normal": "Sasa nitasoma kwa kasi ya kawaida",
+    "feedback-speed-fast": "Sasa nitasoma haraka",
+    "feedback-speed-very-fast": "Sasa nitasoma haraka sana",
+    "feedback-read-aloud-on": "Kusoma kwa sauti kumewashwa",
+    "feedback-read-aloud-off": "Kusoma kwa sauti kumezimwa",
+    "feedback-easy-read-on": "Usomaji rahisi umewashwa",
+    "feedback-easy-read-off": "Usomaji rahisi umezimwa",
+    "feedback-language-changed": "Lugha imebadilishwa kuwa ${language}",
+    "feedback-language-changed-audio": "Lugha imebadilishwa",
+    "feedback-volume-muted": "Sauti imezimwa",
+    "feedback-volume-unmuted": "Sauti imewashwa",
+    "feedback-volume-level": "Sauti ${percent}%",
+    "feedback-volume-level-audio": "Kiwango cha sauti kimebadilishwa"
 }

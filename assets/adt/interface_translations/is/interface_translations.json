@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Stjórnandatólunum verður bætt við í síðari uppfærslu.",
     "main-menu-label": "Aðalvalmynd",
     "cover-label": "Forsíða",
-    "print-page-label": "Prenta síðu"
+    "print-page-label": "Prenta síðu",
+    "feedback-speed-slow": "Nú mun ég lesa hægt",
+    "feedback-speed-normal": "Nú mun ég lesa á venjulegum hraða",
+    "feedback-speed-fast": "Nú mun ég lesa hratt",
+    "feedback-speed-very-fast": "Nú mun ég lesa mjög hratt",
+    "feedback-read-aloud-on": "Upplestur er kveiktur",
+    "feedback-read-aloud-off": "Upplestur er slökktur",
+    "feedback-easy-read-on": "Auðlestur er kveiktur",
+    "feedback-easy-read-off": "Auðlestur er slökktur",
+    "feedback-language-changed": "Tungumáli breytt í ${language}",
+    "feedback-language-changed-audio": "Tungumáli breytt",
+    "feedback-volume-muted": "Hljóð þaggað",
+    "feedback-volume-unmuted": "Hljóð kveikt",
+    "feedback-volume-level": "Hljóðstyrkur ${percent}%",
+    "feedback-volume-level-audio": "Hljóðstyrk breytt"
 }

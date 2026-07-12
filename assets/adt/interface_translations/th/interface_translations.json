@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "เครื่องมือสำหรับผู้ดูแลระบบจะถูกเพิ่มในการอัปเดตครั้งต่อไป",
     "main-menu-label": "เมนูหลัก",
     "cover-label": "ปก",
-    "print-page-label": "พิมพ์หน้า"
+    "print-page-label": "พิมพ์หน้า",
+    "feedback-speed-slow": "ตอนนี้ฉันจะอ่านช้า",
+    "feedback-speed-normal": "ตอนนี้ฉันจะอ่านด้วยความเร็วปกติ",
+    "feedback-speed-fast": "ตอนนี้ฉันจะอ่านเร็ว",
+    "feedback-speed-very-fast": "ตอนนี้ฉันจะอ่านเร็วมาก",
+    "feedback-read-aloud-on": "เปิดการอ่านออกเสียงแล้ว",
+    "feedback-read-aloud-off": "ปิดการอ่านออกเสียงแล้ว",
+    "feedback-easy-read-on": "เปิดการอ่านแบบง่ายแล้ว",
+    "feedback-easy-read-off": "ปิดการอ่านแบบง่ายแล้ว",
+    "feedback-language-changed": "เปลี่ยนภาษาเป็น ${language} แล้ว",
+    "feedback-language-changed-audio": "เปลี่ยนภาษาแล้ว",
+    "feedback-volume-muted": "ปิดเสียงแล้ว",
+    "feedback-volume-unmuted": "เปิดเสียงแล้ว",
+    "feedback-volume-level": "ระดับเสียง ${percent}%",
+    "feedback-volume-level-audio": "เปลี่ยนระดับเสียงแล้ว"
 }

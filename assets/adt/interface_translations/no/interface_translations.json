@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Administratorverktøyene legges til i en senere oppdatering.",
     "main-menu-label": "Hovedmeny",
     "cover-label": "Forside",
-    "print-page-label": "Skriv ut side"
+    "print-page-label": "Skriv ut side",
+    "feedback-speed-slow": "Nå leser jeg sakte",
+    "feedback-speed-normal": "Nå leser jeg i normal hastighet",
+    "feedback-speed-fast": "Nå leser jeg raskt",
+    "feedback-speed-very-fast": "Nå leser jeg veldig raskt",
+    "feedback-read-aloud-on": "Høytlesing er på",
+    "feedback-read-aloud-off": "Høytlesing er av",
+    "feedback-easy-read-on": "Lettlest er på",
+    "feedback-easy-read-off": "Lettlest er av",
+    "feedback-language-changed": "Språk endret til ${language}",
+    "feedback-language-changed-audio": "Språk endret",
+    "feedback-volume-muted": "Lyd dempet",
+    "feedback-volume-unmuted": "Lyd på",
+    "feedback-volume-level": "Volum ${percent}%",
+    "feedback-volume-level-audio": "Volum endret"
 }

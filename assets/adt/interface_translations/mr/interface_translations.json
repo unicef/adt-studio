@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "प्रशासक साधने पुढील अपडेटमध्ये जोडली जातील.",
     "main-menu-label": "मुख्य मेनू",
     "cover-label": "मुखपृष्ठ",
-    "print-page-label": "पृष्ठ मुद्रित करा"
+    "print-page-label": "पृष्ठ मुद्रित करा",
+    "feedback-speed-slow": "आता मी हळू वाचेन",
+    "feedback-speed-normal": "आता मी सामान्य वेगाने वाचेन",
+    "feedback-speed-fast": "आता मी जलद वाचेन",
+    "feedback-speed-very-fast": "आता मी खूप जलद वाचेन",
+    "feedback-read-aloud-on": "मोठ्याने वाचन सुरू आहे",
+    "feedback-read-aloud-off": "मोठ्याने वाचन बंद आहे",
+    "feedback-easy-read-on": "सुलभ वाचन सुरू आहे",
+    "feedback-easy-read-off": "सुलभ वाचन बंद आहे",
+    "feedback-language-changed": "भाषा ${language} मध्ये बदलली आहे",
+    "feedback-language-changed-audio": "भाषा बदलली आहे",
+    "feedback-volume-muted": "आवाज म्यूट केला आहे",
+    "feedback-volume-unmuted": "आवाज सुरू आहे",
+    "feedback-volume-level": "आवाजाची पातळी ${percent}%",
+    "feedback-volume-level-audio": "आवाजाची पातळी बदलली आहे"
 }

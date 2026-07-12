@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "நிர்வாக கருவிகள் வரும் புதுப்பிப்பில் சேர்க்கப்படும்.",
     "main-menu-label": "முதன்மை மெனு",
     "cover-label": "அட்டை",
-    "print-page-label": "பக்கத்தை அச்சிடு"
+    "print-page-label": "பக்கத்தை அச்சிடு",
+    "feedback-speed-slow": "இப்போது நான் மெதுவாகப் படிப்பேன்",
+    "feedback-speed-normal": "இப்போது நான் சாதாரண வேகத்தில் படிப்பேன்",
+    "feedback-speed-fast": "இப்போது நான் வேகமாகப் படிப்பேன்",
+    "feedback-speed-very-fast": "இப்போது நான் மிகவும் வேகமாகப் படிப்பேன்",
+    "feedback-read-aloud-on": "உரக்க வாசித்தல் இயக்கப்பட்டது",
+    "feedback-read-aloud-off": "உரக்க வாசித்தல் நிறுத்தப்பட்டது",
+    "feedback-easy-read-on": "எளிய வாசிப்பு இயக்கப்பட்டது",
+    "feedback-easy-read-off": "எளிய வாசிப்பு நிறுத்தப்பட்டது",
+    "feedback-language-changed": "மொழி ${language} ஆக மாற்றப்பட்டது",
+    "feedback-language-changed-audio": "மொழி மாற்றப்பட்டது",
+    "feedback-volume-muted": "ஒலி முடக்கப்பட்டது",
+    "feedback-volume-unmuted": "ஒலி இயக்கப்பட்டது",
+    "feedback-volume-level": "ஒலி அளவு ${percent}%",
+    "feedback-volume-level-audio": "ஒலி அளவு மாற்றப்பட்டது"
 }

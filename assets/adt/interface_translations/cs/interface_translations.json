@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Nástroje správce budou přidány v další aktualizaci.",
     "main-menu-label": "Hlavní nabídka",
     "cover-label": "Obálka",
-    "print-page-label": "Vytisknout stránku"
+    "print-page-label": "Vytisknout stránku",
+    "feedback-speed-slow": "Nyní budu číst pomalu",
+    "feedback-speed-normal": "Nyní budu číst normální rychlostí",
+    "feedback-speed-fast": "Nyní budu číst rychle",
+    "feedback-speed-very-fast": "Nyní budu číst velmi rychle",
+    "feedback-read-aloud-on": "Čtení nahlas je zapnuto",
+    "feedback-read-aloud-off": "Čtení nahlas je vypnuto",
+    "feedback-easy-read-on": "Snadné čtení je zapnuto",
+    "feedback-easy-read-off": "Snadné čtení je vypnuto",
+    "feedback-language-changed": "Jazyk změněn na ${language}",
+    "feedback-language-changed-audio": "Jazyk změněn",
+    "feedback-volume-muted": "Zvuk ztlumen",
+    "feedback-volume-unmuted": "Zvuk zapnut",
+    "feedback-volume-level": "Hlasitost ${percent}%",
+    "feedback-volume-level-audio": "Hlasitost změněna"
 }

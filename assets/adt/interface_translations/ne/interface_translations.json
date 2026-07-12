@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "प्रशासक उपकरणहरू आगामी अपडेटमा थपिनेछन्।",
     "main-menu-label": "मुख्य मेनु",
     "cover-label": "कभर",
-    "print-page-label": "पेज प्रिन्ट गर्नुहोस्"
+    "print-page-label": "पेज प्रिन्ट गर्नुहोस्",
+    "feedback-speed-slow": "अब म बिस्तारै पढ्नेछु",
+    "feedback-speed-normal": "अब म सामान्य गतिमा पढ्नेछु",
+    "feedback-speed-fast": "अब म छिटो पढ्नेछु",
+    "feedback-speed-very-fast": "अब म धेरै छिटो पढ्नेछु",
+    "feedback-read-aloud-on": "ठूलो स्वरमा पढ्ने सुविधा सक्रिय छ",
+    "feedback-read-aloud-off": "ठूलो स्वरमा पढ्ने सुविधा बन्द छ",
+    "feedback-easy-read-on": "सजिलो पढाइ सक्रिय छ",
+    "feedback-easy-read-off": "सजिलो पढाइ बन्द छ",
+    "feedback-language-changed": "भाषा ${language} मा परिवर्तन भयो",
+    "feedback-language-changed-audio": "भाषा परिवर्तन भयो",
+    "feedback-volume-muted": "ध्वनि मौन गरिएको छ",
+    "feedback-volume-unmuted": "ध्वनि सक्रिय छ",
+    "feedback-volume-level": "भोल्युम ${percent}%",
+    "feedback-volume-level-audio": "भोल्युम परिवर्तन भयो"
 }

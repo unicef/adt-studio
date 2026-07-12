@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "စီမံခန့်ခွဲမှု ကိရိယာများကို နောက်ထပ်အပ်ဒိတ်တွင် ထည့်သွင်းပါမည်။",
     "main-menu-label": "ပင်မ မီနူး",
     "cover-label": "အဖုံး",
-    "print-page-label": "စာမျက်နှာ ပုံနှိပ်ပါ"
+    "print-page-label": "စာမျက်နှာ ပုံနှိပ်ပါ",
+    "feedback-speed-slow": "ယခု နှေးနှေး ဖတ်ပါမည်",
+    "feedback-speed-normal": "ယခု ပုံမှန်အမြန်နှုန်းဖြင့် ဖတ်ပါမည်",
+    "feedback-speed-fast": "ယခု မြန်မြန် ဖတ်ပါမည်",
+    "feedback-speed-very-fast": "ယခု အလွန်မြန်မြန် ဖတ်ပါမည်",
+    "feedback-read-aloud-on": "အသံထွက်ဖတ်ခြင်း ဖွင့်ထားသည်",
+    "feedback-read-aloud-off": "အသံထွက်ဖတ်ခြင်း ပိတ်ထားသည်",
+    "feedback-easy-read-on": "လွယ်ကူသောဖတ်ခြင်း ဖွင့်ထားသည်",
+    "feedback-easy-read-off": "လွယ်ကူသောဖတ်ခြင်း ပိတ်ထားသည်",
+    "feedback-language-changed": "ဘာသာစကားကို ${language} သို့ ပြောင်းထားသည်",
+    "feedback-language-changed-audio": "ဘာသာစကား ပြောင်းထားသည်",
+    "feedback-volume-muted": "အသံ ပိတ်ထားသည်",
+    "feedback-volume-unmuted": "အသံ ဖွင့်ထားသည်",
+    "feedback-volume-level": "အသံအတိုးအကျယ် ${percent}%",
+    "feedback-volume-level-audio": "အသံအတိုးအကျယ် ပြောင်းထားသည်"
 }

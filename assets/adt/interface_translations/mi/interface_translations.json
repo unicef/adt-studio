@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Ka tāpirihia ngā taputapu kaiwhakahaere i te whakahōutanga whai muri.",
     "main-menu-label": "Tahua matua",
     "cover-label": "Uhi",
-    "print-page-label": "Tā te whārangi"
+    "print-page-label": "Tā te whārangi",
+    "feedback-speed-slow": "Inaianei ka pānui pōturi au",
+    "feedback-speed-normal": "Inaianei ka pānui au i te tere noa",
+    "feedback-speed-fast": "Inaianei ka pānui tere au",
+    "feedback-speed-very-fast": "Inaianei ka pānui tino tere au",
+    "feedback-read-aloud-on": "Kua whakakāngia te pānui ā-waha",
+    "feedback-read-aloud-off": "Kua whakawetohia te pānui ā-waha",
+    "feedback-easy-read-on": "Kua whakakāngia te pānui māmā",
+    "feedback-easy-read-off": "Kua whakawetohia te pānui māmā",
+    "feedback-language-changed": "Kua hurihia te reo ki ${language}",
+    "feedback-language-changed-audio": "Kua hurihia te reo",
+    "feedback-volume-muted": "Kua wahangū te oro",
+    "feedback-volume-unmuted": "Kua whakakāngia te oro",
+    "feedback-volume-level": "Rōrahi ${percent}%",
+    "feedback-volume-level-audio": "Kua hurihia te rōrahi"
 }

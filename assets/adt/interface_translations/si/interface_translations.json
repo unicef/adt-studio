@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "පරිපාලන මෙවලම් ඉදිරි යාවත්කාලීනයේදී එකතු කරනු ලැබේ.",
     "main-menu-label": "ප්‍රධාන මෙනුව",
     "cover-label": "කවරය",
-    "print-page-label": "පිටුව මුද්‍රණය"
+    "print-page-label": "පිටුව මුද්‍රණය",
+    "feedback-speed-slow": "දැන් මම සෙමින් කියවන්නම්",
+    "feedback-speed-normal": "දැන් මම සාමාන්‍ය වේගයෙන් කියවන්නම්",
+    "feedback-speed-fast": "දැන් මම වේගයෙන් කියවන්නම්",
+    "feedback-speed-very-fast": "දැන් මම ඉතා වේගයෙන් කියවන්නම්",
+    "feedback-read-aloud-on": "ශබ්දයෙන් කියවීම සක්‍රියයි",
+    "feedback-read-aloud-off": "ශබ්දයෙන් කියවීම අක්‍රියයි",
+    "feedback-easy-read-on": "සරල කියවීම සක්‍රියයි",
+    "feedback-easy-read-off": "සරල කියවීම අක්‍රියයි",
+    "feedback-language-changed": "භාෂාව ${language} වෙත වෙනස් කර ඇත",
+    "feedback-language-changed-audio": "භාෂාව වෙනස් කර ඇත",
+    "feedback-volume-muted": "ශබ්දය නිහඬ කර ඇත",
+    "feedback-volume-unmuted": "ශබ්දය සක්‍රියයි",
+    "feedback-volume-level": "ශබ්ද මට්ටම ${percent}%",
+    "feedback-volume-level-audio": "ශබ්ද මට්ටම වෙනස් කර ඇත"
 }

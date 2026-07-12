@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Az adminisztrátori eszközök egy következő frissítésben kerülnek bevezetésre.",
     "main-menu-label": "Főmenü",
     "cover-label": "Borító",
-    "print-page-label": "Oldal nyomtatása"
+    "print-page-label": "Oldal nyomtatása",
+    "feedback-speed-slow": "Most lassan fogok olvasni",
+    "feedback-speed-normal": "Most normál sebességgel fogok olvasni",
+    "feedback-speed-fast": "Most gyorsan fogok olvasni",
+    "feedback-speed-very-fast": "Most nagyon gyorsan fogok olvasni",
+    "feedback-read-aloud-on": "A felolvasás be van kapcsolva",
+    "feedback-read-aloud-off": "A felolvasás ki van kapcsolva",
+    "feedback-easy-read-on": "A könnyű olvasás be van kapcsolva",
+    "feedback-easy-read-off": "A könnyű olvasás ki van kapcsolva",
+    "feedback-language-changed": "A nyelv erre változott: ${language}",
+    "feedback-language-changed-audio": "A nyelv megváltozott",
+    "feedback-volume-muted": "A hang elnémítva",
+    "feedback-volume-unmuted": "A hang bekapcsolva",
+    "feedback-volume-level": "Hangerő ${percent}%",
+    "feedback-volume-level-audio": "A hangerő megváltozott"
 }

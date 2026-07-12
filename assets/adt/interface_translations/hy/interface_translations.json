@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Ադմինիստրատորի գործիքները կավելացվեն հաջորդ թարմացման ընթացքում։",
     "main-menu-label": "Հիմնական ընտրացանկ",
     "cover-label": "Շապիկ",
-    "print-page-label": "Տպել էջը"
+    "print-page-label": "Տպել էջը",
+    "feedback-speed-slow": "Հիմա կկարդամ դանդաղ",
+    "feedback-speed-normal": "Հիմա կկարդամ նորմալ արագությամբ",
+    "feedback-speed-fast": "Հիմա կկարդամ արագ",
+    "feedback-speed-very-fast": "Հիմա կկարդամ շատ արագ",
+    "feedback-read-aloud-on": "Բարձրաձայն ընթերցումը միացված է",
+    "feedback-read-aloud-off": "Բարձրաձայն ընթերցումը անջատված է",
+    "feedback-easy-read-on": "Հեշտ ընթերցումը միացված է",
+    "feedback-easy-read-off": "Հեշտ ընթերցումը անջատված է",
+    "feedback-language-changed": "Լեզուն փոխվել է՝ ${language}",
+    "feedback-language-changed-audio": "Լեզուն փոխվել է",
+    "feedback-volume-muted": "Ձայնը անջատված է",
+    "feedback-volume-unmuted": "Ձայնը միացված է",
+    "feedback-volume-level": "Ձայնի ուժգնություն ${percent}%",
+    "feedback-volume-level-audio": "Ձայնի ուժգնությունը փոխվել է"
 }

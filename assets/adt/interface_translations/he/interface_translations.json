@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "כלי הניהול יתווספו בעדכון עתידי.",
     "main-menu-label": "תפריט ראשי",
     "cover-label": "כריכה",
-    "print-page-label": "הדפס דף"
+    "print-page-label": "הדפס דף",
+    "feedback-speed-slow": "עכשיו אקרא לאט",
+    "feedback-speed-normal": "עכשיו אקרא במהירות רגילה",
+    "feedback-speed-fast": "עכשיו אקרא מהר",
+    "feedback-speed-very-fast": "עכשיו אקרא מהר מאוד",
+    "feedback-read-aloud-on": "קריאה בקול מופעלת",
+    "feedback-read-aloud-off": "קריאה בקול כבויה",
+    "feedback-easy-read-on": "קריאה קלה מופעלת",
+    "feedback-easy-read-off": "קריאה קלה כבויה",
+    "feedback-language-changed": "השפה שונתה ל-${language}",
+    "feedback-language-changed-audio": "השפה שונתה",
+    "feedback-volume-muted": "הצליל הושתק",
+    "feedback-volume-unmuted": "הצליל מופעל",
+    "feedback-volume-level": "עוצמת קול ${percent}%",
+    "feedback-volume-level-audio": "עוצמת הקול שונתה"
 }

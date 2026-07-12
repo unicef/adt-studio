@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Administratorværktøjer tilføjes i en kommende opdatering.",
     "main-menu-label": "Hovedmenu",
     "cover-label": "Forside",
-    "print-page-label": "Udskriv side"
+    "print-page-label": "Udskriv side",
+    "feedback-speed-slow": "Nu læser jeg langsomt",
+    "feedback-speed-normal": "Nu læser jeg med normal hastighed",
+    "feedback-speed-fast": "Nu læser jeg hurtigt",
+    "feedback-speed-very-fast": "Nu læser jeg meget hurtigt",
+    "feedback-read-aloud-on": "Højtlæsning er slået til",
+    "feedback-read-aloud-off": "Højtlæsning er slået fra",
+    "feedback-easy-read-on": "Let læsning er slået til",
+    "feedback-easy-read-off": "Let læsning er slået fra",
+    "feedback-language-changed": "Sproget er ændret til ${language}",
+    "feedback-language-changed-audio": "Sproget er ændret",
+    "feedback-volume-muted": "Lyden er slået fra",
+    "feedback-volume-unmuted": "Lyden er slået til",
+    "feedback-volume-level": "Lydstyrke ${percent}%",
+    "feedback-volume-level-audio": "Lydstyrken er ændret"
 }

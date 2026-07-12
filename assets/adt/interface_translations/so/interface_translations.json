@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Aaladaha maamulaha waxaa lagu darayaa cusboonaysiin soo socota.",
     "main-menu-label": "Liiska weyn",
     "cover-label": "Daboolka",
-    "print-page-label": "Daabac boggii"
+    "print-page-label": "Daabac boggii",
+    "feedback-speed-slow": "Hadda waxaan u akhrin doonaa si gaabis ah",
+    "feedback-speed-normal": "Hadda waxaan u akhrin doonaa xawaare caadi ah",
+    "feedback-speed-fast": "Hadda waxaan u akhrin doonaa si degdeg ah",
+    "feedback-speed-very-fast": "Hadda waxaan u akhrin doonaa si aad u degdeg ah",
+    "feedback-read-aloud-on": "Akhriska codka dheer waa daaran yahay",
+    "feedback-read-aloud-off": "Akhriska codka dheer waa dansan yahay",
+    "feedback-easy-read-on": "Akhriska fudud waa daaran yahay",
+    "feedback-easy-read-off": "Akhriska fudud waa dansan yahay",
+    "feedback-language-changed": "Luuqadda waxaa loo beddelay ${language}",
+    "feedback-language-changed-audio": "Luuqadda waa la beddelay",
+    "feedback-volume-muted": "Codka waa la aamusiyay",
+    "feedback-volume-unmuted": "Codka waa daaran yahay",
+    "feedback-volume-level": "Mugga ${percent}%",
+    "feedback-volume-level-audio": "Mugga waa la beddelay"
 }

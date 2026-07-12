@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Mjetet e administrimit do të shtohen në një përditësim të mëvonshëm.",
     "main-menu-label": "Menyja kryesore",
     "cover-label": "Kopertina",
-    "print-page-label": "Printo faqen"
+    "print-page-label": "Printo faqen",
+    "feedback-speed-slow": "Tani do të lexoj ngadalë",
+    "feedback-speed-normal": "Tani do të lexoj me shpejtësi normale",
+    "feedback-speed-fast": "Tani do të lexoj shpejt",
+    "feedback-speed-very-fast": "Tani do të lexoj shumë shpejt",
+    "feedback-read-aloud-on": "Leximi me zë është aktiv",
+    "feedback-read-aloud-off": "Leximi me zë është joaktiv",
+    "feedback-easy-read-on": "Leximi i lehtë është aktiv",
+    "feedback-easy-read-off": "Leximi i lehtë është joaktiv",
+    "feedback-language-changed": "Gjuha u ndryshua në ${language}",
+    "feedback-language-changed-audio": "Gjuha u ndryshua",
+    "feedback-volume-muted": "Zëri u hesht",
+    "feedback-volume-unmuted": "Zëri u aktivizua",
+    "feedback-volume-level": "Volumi ${percent}%",
+    "feedback-volume-level-audio": "Volumi u ndryshua"
 }

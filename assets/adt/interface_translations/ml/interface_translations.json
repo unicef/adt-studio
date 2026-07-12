@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "അഡ്മിൻ ടൂളുകൾ വരാനിരിക്കുന്ന അപ്ഡേറ്റിൽ ചേർക്കും.",
     "main-menu-label": "പ്രധാന മെനു",
     "cover-label": "പുറംചട്ട",
-    "print-page-label": "പേജ് പ്രിന്റ് ചെയ്യുക"
+    "print-page-label": "പേജ് പ്രിന്റ് ചെയ്യുക",
+    "feedback-speed-slow": "ഇപ്പോൾ ഞാൻ മന്ദഗതിയിൽ വായിക്കും",
+    "feedback-speed-normal": "ഇപ്പോൾ ഞാൻ സാധാരണ വേഗത്തിൽ വായിക്കും",
+    "feedback-speed-fast": "ഇപ്പോൾ ഞാൻ വേഗത്തിൽ വായിക്കും",
+    "feedback-speed-very-fast": "ഇപ്പോൾ ഞാൻ വളരെ വേഗത്തിൽ വായിക്കും",
+    "feedback-read-aloud-on": "ഉച്ചത്തിൽ വായിക്കൽ ഓണാക്കി",
+    "feedback-read-aloud-off": "ഉച്ചത്തിൽ വായിക്കൽ ഓഫാക്കി",
+    "feedback-easy-read-on": "എളുപ്പവായന ഓണാക്കി",
+    "feedback-easy-read-off": "എളുപ്പവായന ഓഫാക്കി",
+    "feedback-language-changed": "ഭാഷ ${language} ആയി മാറ്റി",
+    "feedback-language-changed-audio": "ഭാഷ മാറ്റി",
+    "feedback-volume-muted": "ശബ്ദം മ്യൂട്ട് ചെയ്തു",
+    "feedback-volume-unmuted": "ശബ്ദം ഓണാക്കി",
+    "feedback-volume-level": "വോള്യം ${percent}%",
+    "feedback-volume-level-audio": "വോള്യം മാറ്റി"
 }

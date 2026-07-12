@@ -12,6 +12,15 @@ import {
 import { easyReadModeAtom } from "@/shared/state/ui.atoms"
 import { announceToScreenReader } from "@/shared/lib/aria-live"
 import { playFeedbackAudio, type FeedbackAudioKey } from "@/shared/runtime/feedback-audio"
+import {
+  pauseSpeechForFeedback,
+  resumeSpeechAfterFeedback,
+} from "@/features/audio/runtime/speech-playback-controller"
+
+const FEEDBACK_SPEECH_GAP_VERY_FAST_MS = 100
+const FEEDBACK_SPEECH_GAP_FAST_MS = 150
+const FEEDBACK_SPEECH_GAP_NORMAL_MS = 200
+const FEEDBACK_SPEECH_GAP_SLOW_MS = 300
 
 interface FeedbackDefinition {
   audioKey: FeedbackAudioKey
@@ -49,7 +58,10 @@ function notifyFeedback(
   const message = translateFeedback(definition, variables)
   toast.success(message, { id: "adt-change-feedback", duration: 2800 })
   announceToScreenReader(message)
-  void playFeedbackAudio(definition.audioKey)
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
 function speedFeedback(speed: number): FeedbackDefinition {
@@ -57,6 +69,13 @@ function speedFeedback(speed: number): FeedbackDefinition {
   if (speed >= 2) return FEEDBACK.speedVeryFast
   if (speed > 1) return FEEDBACK.speedFast
   return FEEDBACK.speedNormal
+}
+
+function feedbackSpeechGapMs(speed: number): number {
+  if (speed <= 0.5) return FEEDBACK_SPEECH_GAP_SLOW_MS
+  if (speed >= 2) return FEEDBACK_SPEECH_GAP_VERY_FAST_MS
+  if (speed > 1) return FEEDBACK_SPEECH_GAP_FAST_MS
+  return FEEDBACK_SPEECH_GAP_NORMAL_MS
 }
 
 export function subscribeChangeFeedback(): () => void {
@@ -68,10 +87,36 @@ export function subscribeChangeFeedback(): () => void {
   let lastLanguage = store.get(currentLanguageAtom) as string
   let pendingLanguage: string | null = null
   let volumeTimer: ReturnType<typeof setTimeout> | null = null
+  let disposed = false
+  let feedbackQueue = Promise.resolve()
+
+  const playQueuedFeedback = (audioKey: FeedbackAudioKey): void => {
+    feedbackQueue = feedbackQueue
+      .catch(() => {})
+      .then(async () => {
+        if (disposed) return
+        const resumeSpeech = pauseSpeechForFeedback()
+        const speechGapMs = feedbackSpeechGapMs(store.get(audioSpeedAtom) as number)
+        await wait(speechGapMs)
+        if (disposed) return
+        await playFeedbackAudio(audioKey)
+        if (!resumeSpeech || disposed) return
+        await wait(speechGapMs)
+        if (!disposed) await resumeSpeechAfterFeedback()
+      })
+  }
+
+  const notifyAndPlayFeedback = (
+    definition: FeedbackDefinition,
+    variables: Record<string, string> = {},
+  ): void => {
+    notifyFeedback(definition, variables)
+    playQueuedFeedback(definition.audioKey)
+  }
 
   const notifyVolumeLevel = (volume: number): void => {
     const percent = String(Math.round(Math.max(0, Math.min(1, volume)) * 100))
-    notifyFeedback(FEEDBACK.volumeLevel, { percent })
+    notifyAndPlayFeedback(FEEDBACK.volumeLevel, { percent })
   }
 
   const unsubs = [
@@ -79,19 +124,19 @@ export function subscribeChangeFeedback(): () => void {
       const next = store.get(audioSpeedAtom) as number
       if (next === lastSpeed) return
       lastSpeed = next
-      notifyFeedback(speedFeedback(next))
+      notifyAndPlayFeedback(speedFeedback(next))
     }),
     store.sub(readAloudModeAtom, () => {
       const next = store.get(readAloudModeAtom) as boolean
       if (next === lastReadAloud) return
       lastReadAloud = next
-      notifyFeedback(next ? FEEDBACK.readAloudOn : FEEDBACK.readAloudOff)
+      notifyAndPlayFeedback(next ? FEEDBACK.readAloudOn : FEEDBACK.readAloudOff)
     }),
     store.sub(easyReadModeAtom, () => {
       const next = store.get(easyReadModeAtom) as boolean
       if (next === lastEasyRead) return
       lastEasyRead = next
-      notifyFeedback(next ? FEEDBACK.easyReadOn : FEEDBACK.easyReadOff)
+      notifyAndPlayFeedback(next ? FEEDBACK.easyReadOn : FEEDBACK.easyReadOff)
     }),
     store.sub(audioVolumeAtom, () => {
       const next = store.get(audioVolumeAtom) as number
@@ -102,9 +147,9 @@ export function subscribeChangeFeedback(): () => void {
 
       if (volumeTimer) clearTimeout(volumeTimer)
       if (isMuted) {
-        notifyFeedback(FEEDBACK.volumeMuted)
+        notifyAndPlayFeedback(FEEDBACK.volumeMuted)
       } else if (wasMuted) {
-        notifyFeedback(FEEDBACK.volumeUnmuted)
+        notifyAndPlayFeedback(FEEDBACK.volumeUnmuted)
       } else {
         volumeTimer = setTimeout(() => notifyVolumeLevel(next), 500)
       }
@@ -119,11 +164,12 @@ export function subscribeChangeFeedback(): () => void {
       if (!pendingLanguage) return
       const language = store.get(translationsAtom)["language-name"] || pendingLanguage
       pendingLanguage = null
-      notifyFeedback(FEEDBACK.languageChanged, { language })
+      notifyAndPlayFeedback(FEEDBACK.languageChanged, { language })
     }),
   ]
 
   return () => {
+    disposed = true
     if (volumeTimer) clearTimeout(volumeTimer)
     for (const unsub of unsubs) unsub()
   }

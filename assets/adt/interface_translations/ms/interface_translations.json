@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Alat pentadbir akan ditambah dalam kemas kini akan datang.",
     "main-menu-label": "Menu Utama",
     "cover-label": "Muka depan",
-    "print-page-label": "Cetak Halaman"
+    "print-page-label": "Cetak Halaman",
+    "feedback-speed-slow": "Sekarang saya akan membaca perlahan",
+    "feedback-speed-normal": "Sekarang saya akan membaca pada kelajuan biasa",
+    "feedback-speed-fast": "Sekarang saya akan membaca laju",
+    "feedback-speed-very-fast": "Sekarang saya akan membaca sangat laju",
+    "feedback-read-aloud-on": "Baca kuat dihidupkan",
+    "feedback-read-aloud-off": "Baca kuat dimatikan",
+    "feedback-easy-read-on": "Bacaan mudah dihidupkan",
+    "feedback-easy-read-off": "Bacaan mudah dimatikan",
+    "feedback-language-changed": "Bahasa ditukar kepada ${language}",
+    "feedback-language-changed-audio": "Bahasa ditukar",
+    "feedback-volume-muted": "Bunyi disenyapkan",
+    "feedback-volume-unmuted": "Bunyi dihidupkan",
+    "feedback-volume-level": "Kelantangan ${percent}%",
+    "feedback-volume-level-audio": "Kelantangan ditukar"
 }

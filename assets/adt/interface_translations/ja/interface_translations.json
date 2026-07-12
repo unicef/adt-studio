@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "管理者ツールは今後のアップデートで追加されます。",
     "main-menu-label": "メインメニュー",
     "cover-label": "表紙",
-    "print-page-label": "ページを印刷"
+    "print-page-label": "ページを印刷",
+    "feedback-speed-slow": "これからゆっくり読みます",
+    "feedback-speed-normal": "これから通常の速さで読みます",
+    "feedback-speed-fast": "これから速く読みます",
+    "feedback-speed-very-fast": "これからとても速く読みます",
+    "feedback-read-aloud-on": "読み上げをオンにしました",
+    "feedback-read-aloud-off": "読み上げをオフにしました",
+    "feedback-easy-read-on": "やさしい読み方をオンにしました",
+    "feedback-easy-read-off": "やさしい読み方をオフにしました",
+    "feedback-language-changed": "言語を${language}に変更しました",
+    "feedback-language-changed-audio": "言語を変更しました",
+    "feedback-volume-muted": "音声をミュートしました",
+    "feedback-volume-unmuted": "音声をオンにしました",
+    "feedback-volume-level": "音量 ${percent}%",
+    "feedback-volume-level-audio": "音量を変更しました"
 }

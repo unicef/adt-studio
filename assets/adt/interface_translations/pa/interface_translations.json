@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "ਪ੍ਰਬੰਧਕ ਟੂਲ ਆਉਣ ਵਾਲੇ ਅੱਪਡੇਟ ਵਿੱਚ ਜੋੜੇ ਜਾਣਗੇ।",
     "main-menu-label": "ਮੁੱਖ ਮੇਨੂ",
     "cover-label": "ਕਵਰ",
-    "print-page-label": "ਪੰਨਾ ਛਾਪੋ"
+    "print-page-label": "ਪੰਨਾ ਛਾਪੋ",
+    "feedback-speed-slow": "ਹੁਣ ਮੈਂ ਹੌਲੀ ਪੜ੍ਹਾਂਗਾ",
+    "feedback-speed-normal": "ਹੁਣ ਮੈਂ ਆਮ ਗਤੀ ਨਾਲ ਪੜ੍ਹਾਂਗਾ",
+    "feedback-speed-fast": "ਹੁਣ ਮੈਂ ਤੇਜ਼ ਪੜ੍ਹਾਂਗਾ",
+    "feedback-speed-very-fast": "ਹੁਣ ਮੈਂ ਬਹੁਤ ਤੇਜ਼ ਪੜ੍ਹਾਂਗਾ",
+    "feedback-read-aloud-on": "ਉੱਚੀ ਆਵਾਜ਼ ਵਿੱਚ ਪੜ੍ਹਨਾ ਚਾਲੂ ਹੈ",
+    "feedback-read-aloud-off": "ਉੱਚੀ ਆਵਾਜ਼ ਵਿੱਚ ਪੜ੍ਹਨਾ ਬੰਦ ਹੈ",
+    "feedback-easy-read-on": "ਆਸਾਨ ਪੜ੍ਹਾਈ ਚਾਲੂ ਹੈ",
+    "feedback-easy-read-off": "ਆਸਾਨ ਪੜ੍ਹਾਈ ਬੰਦ ਹੈ",
+    "feedback-language-changed": "ਭਾਸ਼ਾ ${language} ਵਿੱਚ ਬਦਲੀ ਗਈ ਹੈ",
+    "feedback-language-changed-audio": "ਭਾਸ਼ਾ ਬਦਲੀ ਗਈ ਹੈ",
+    "feedback-volume-muted": "ਆਵਾਜ਼ ਮਿਊਟ ਹੈ",
+    "feedback-volume-unmuted": "ਆਵਾਜ਼ ਚਾਲੂ ਹੈ",
+    "feedback-volume-level": "ਵਾਲਿਊਮ ${percent}%",
+    "feedback-volume-level-audio": "ਵਾਲਿਊਮ ਬਦਲਿਆ ਗਿਆ ਹੈ"
 }

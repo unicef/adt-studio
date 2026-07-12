@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "నిర్వాహక సాధనాలు రాబోయే అప్‌డేట్‌లో జోడించబడతాయి.",
     "main-menu-label": "ప్రధాన మెను",
     "cover-label": "కవర్",
-    "print-page-label": "పేజీని ముద్రించండి"
+    "print-page-label": "పేజీని ముద్రించండి",
+    "feedback-speed-slow": "ఇప్పుడు నేను నెమ్మదిగా చదువుతాను",
+    "feedback-speed-normal": "ఇప్పుడు నేను సాధారణ వేగంతో చదువుతాను",
+    "feedback-speed-fast": "ఇప్పుడు నేను వేగంగా చదువుతాను",
+    "feedback-speed-very-fast": "ఇప్పుడు నేను చాలా వేగంగా చదువుతాను",
+    "feedback-read-aloud-on": "బిగ్గరగా చదవడం ఆన్‌లో ఉంది",
+    "feedback-read-aloud-off": "బిగ్గరగా చదవడం ఆఫ్‌లో ఉంది",
+    "feedback-easy-read-on": "సులభ పఠనం ఆన్‌లో ఉంది",
+    "feedback-easy-read-off": "సులభ పఠనం ఆఫ్‌లో ఉంది",
+    "feedback-language-changed": "భాష ${language} కి మార్చబడింది",
+    "feedback-language-changed-audio": "భాష మార్చబడింది",
+    "feedback-volume-muted": "శబ్దం మ్యూట్ చేయబడింది",
+    "feedback-volume-unmuted": "శబ్దం ఆన్‌లో ఉంది",
+    "feedback-volume-level": "వాల్యూమ్ ${percent}%",
+    "feedback-volume-level-audio": "వాల్యూమ్ మార్చబడింది"
 }

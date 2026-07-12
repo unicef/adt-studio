@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Cov cuab yeej tswj yuav ntxiv rau hauv kev hloov tom ntej.",
     "main-menu-label": "Lub ntsiab zaub mov",
     "cover-label": "Daim npog",
-    "print-page-label": "Luam tawm nplooj ntawv"
+    "print-page-label": "Luam tawm nplooj ntawv",
+    "feedback-speed-slow": "Tam sim no kuv yuav nyeem qeeb",
+    "feedback-speed-normal": "Tam sim no kuv yuav nyeem ceev li qub",
+    "feedback-speed-fast": "Tam sim no kuv yuav nyeem ceev",
+    "feedback-speed-very-fast": "Tam sim no kuv yuav nyeem ceev heev",
+    "feedback-read-aloud-on": "Nyeem nrov tau qhib lawm",
+    "feedback-read-aloud-off": "Nyeem nrov tau kaw lawm",
+    "feedback-easy-read-on": "Nyeem yooj yim tau qhib lawm",
+    "feedback-easy-read-off": "Nyeem yooj yim tau kaw lawm",
+    "feedback-language-changed": "Hom lus hloov mus rau ${language}",
+    "feedback-language-changed-audio": "Hom lus hloov lawm",
+    "feedback-volume-muted": "Suab raug tua lawm",
+    "feedback-volume-unmuted": "Suab qhib lawm",
+    "feedback-volume-level": "Suab nrov ${percent}%",
+    "feedback-volume-level-audio": "Suab nrov hloov lawm"
 }

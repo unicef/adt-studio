@@ -121,5 +121,19 @@
     "admin-popup-stub-message": "Інструменти адміністратора будуть додані в наступному оновленні.",
     "main-menu-label": "Головне меню",
     "cover-label": "Обкладинка",
-    "print-page-label": "Друк сторінки"
+    "print-page-label": "Друк сторінки",
+    "feedback-speed-slow": "Тепер я читатиму повільно",
+    "feedback-speed-normal": "Тепер я читатиму зі звичайною швидкістю",
+    "feedback-speed-fast": "Тепер я читатиму швидко",
+    "feedback-speed-very-fast": "Тепер я читатиму дуже швидко",
+    "feedback-read-aloud-on": "Читання вголос увімкнено",
+    "feedback-read-aloud-off": "Читання вголос вимкнено",
+    "feedback-easy-read-on": "Легке читання увімкнено",
+    "feedback-easy-read-off": "Легке читання вимкнено",
+    "feedback-language-changed": "Мову змінено на ${language}",
+    "feedback-language-changed-audio": "Мову змінено",
+    "feedback-volume-muted": "Звук вимкнено",
+    "feedback-volume-unmuted": "Звук увімкнено",
+    "feedback-volume-level": "Гучність ${percent}%",
+    "feedback-volume-level-audio": "Гучність змінено"
 }
