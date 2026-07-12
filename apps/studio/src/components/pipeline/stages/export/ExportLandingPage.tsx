@@ -1,7 +1,6 @@
 import { useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { Link } from "@tanstack/react-router"
-import { Baby, ChevronRight, Info } from "lucide-react"
+import { Info } from "lucide-react"
 import { LandingPageShell } from "@/components/pipeline/components/LandingPageShell"
 import { StageBlockedState } from "@/components/pipeline/components/StageBlockedState"
 import { LoadingState } from "@/components/pipeline/components/LoadingState"
@@ -163,28 +162,6 @@ function ExportLandingBody({
           />
         </SettingsField>
       </SettingsCard>
-
-      <Link
-        to="/books/$label/kids"
-        params={{ label: bookLabel }}
-        className="flex items-center justify-between gap-3 rounded-xl border border-[#e5e5e5] bg-white p-5 transition hover:border-[#c9c9c9]"
-      >
-        <div className="flex items-center gap-3">
-          <Baby className="h-5 w-5 text-indigo-700" />
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[15px] font-semibold tracking-tight text-[#0a0a0a]">
-              <Trans>Kids Mode</Trans>
-            </span>
-            <span className="text-[12.5px] leading-relaxed text-[#737373]">
-              <Trans>
-                Make this a kids book: pick the reading buddies and generate
-                their voices.
-              </Trans>
-            </span>
-          </div>
-        </div>
-        <ChevronRight className="h-4 w-4 shrink-0 text-[#737373]" />
-      </Link>
 
       <ExportDialog
         open={exportDialogOpen}

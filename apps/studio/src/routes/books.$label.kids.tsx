@@ -7,5 +7,13 @@ export const Route = createFileRoute("/books/$label/kids")({
 
 function KidsPage() {
   const { label } = Route.useParams()
-  return <KidsModeScreen bookLabel={label} />
+  // The book layout's Outlet wrapper is `overflow-hidden`, so each view must
+  // own its scroll region (step views get this from StepViewRouter; this
+  // standalone route provides it directly). Without it the tall Kids Mode
+  // page clips at the fold with no way to scroll.
+  return (
+    <div className="flex flex-1 flex-col min-h-0 overflow-auto">
+      <KidsModeScreen bookLabel={label} />
+    </div>
+  )
 }

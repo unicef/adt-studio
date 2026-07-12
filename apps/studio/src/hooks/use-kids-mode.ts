@@ -55,3 +55,50 @@ export function useGenerateKidsVoice(bookLabel: string) {
     },
   })
 }
+
+export function useKidsVoices(bookLabel: string) {
+  return useQuery({
+    queryKey: ["books", bookLabel, "kids-voices"],
+    queryFn: () => api.getKidsVoices(bookLabel),
+    enabled: !!bookLabel,
+  })
+}
+
+export function useUpdateKidsBuddyVoice(bookLabel: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (options: {
+      buddyId: string
+      voice: string
+      instructions: string
+    }) =>
+      api.updateKidsBuddyVoice(bookLabel, options.buddyId, {
+        voice: options.voice,
+        instructions: options.instructions,
+      }),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ["books", bookLabel, "kids-voices"],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: ["books", bookLabel, "kids-voice"],
+      })
+    },
+  })
+}
+
+export function useResetKidsBuddyVoice(bookLabel: string) {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (buddyId: string) =>
+      api.resetKidsBuddyVoice(bookLabel, buddyId),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({
+        queryKey: ["books", bookLabel, "kids-voices"],
+      })
+      void queryClient.invalidateQueries({
+        queryKey: ["books", bookLabel, "kids-voice"],
+      })
+    },
+  })
+}

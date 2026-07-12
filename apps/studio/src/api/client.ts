@@ -37,6 +37,15 @@ export function getAdtUrl(label: string): string {
   return `${BASE_URL}/books/${label}/adt`
 }
 
+export function getKidsVoiceClipUrl(
+  label: string,
+  language: string,
+  buddyId: string,
+  lineKey: string,
+): string {
+  return `${BASE_URL}/books/${label}/adt-preview/content/kids-voice/${language}/${buddyId}/${lineKey}.mp3`
+}
+
 export function getAudioUrl(
   label: string,
   language: string,
@@ -241,6 +250,18 @@ export interface KidsVoiceGenerationSummary {
   cachedHits: number
   dryRun: boolean
   clips: KidsVoiceClipSummary[]
+}
+
+export interface KidsBuddyVoiceOverride {
+  id: string
+  voice: string
+  instructions: string
+  isDefault: boolean
+}
+
+export interface KidsVoicesResponse {
+  voices: string[]
+  buddies: KidsBuddyVoiceOverride[]
 }
 
 function buildApiHeaders(
@@ -792,6 +813,24 @@ export const api = {
       method: "POST",
       headers: apiKey ? { "X-OpenAI-Key": apiKey } : undefined,
       body: JSON.stringify(body),
+    }),
+
+  getKidsVoices: (label: string) =>
+    request<KidsVoicesResponse>(`/books/${label}/kids-voices`),
+
+  updateKidsBuddyVoice: (
+    label: string,
+    buddyId: string,
+    body: { voice: string; instructions: string },
+  ) =>
+    request<KidsBuddyVoiceOverride>(`/books/${label}/kids-voices/${buddyId}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+
+  resetKidsBuddyVoice: (label: string, buddyId: string) =>
+    request<KidsBuddyVoiceOverride>(`/books/${label}/kids-voices/${buddyId}`, {
+      method: "DELETE",
     }),
 
   regenerateBookSummary: (label: string, apiKey: string) =>
