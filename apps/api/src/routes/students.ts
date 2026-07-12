@@ -15,7 +15,7 @@ import {
 import { buildAccessibilityPlan, personalizationPromptContext } from "@adt/pipeline"
 
 const TemplateInput = AccessibilityTemplate.omit({ id: true, createdAt: true, updatedAt: true })
-const GenerateInput = z.object({ studentId: z.string().uuid(), sourceBookLabel: z.string() })
+const GenerateInput = z.object({ studentId: z.string().uuid(), sourceBookLabel: z.string(), profileId: z.string().uuid().optional() })
 const DeliveryInput = z.object({ method: z.enum(["manual", "email", "share-link"]).default("manual"), recipient: z.string().max(320).default("") })
 
 function parseOr400<T>(schema: z.ZodType<T>, body: unknown): T {
@@ -125,23 +125,29 @@ export function createStudentRoutes(booksDir: string): Hono {
     try {
       const student = library.getStudent(input.studentId)
       if (!student) throw new HTTPException(404, { message: "Student not found" })
+      const selectedProfile = input.profileId
+        ? student.accessibilityProfiles.find((profile) => profile.id === input.profileId)
+        : undefined
+      if (input.profileId && !selectedProfile) throw new HTTPException(400, { message: "Accessibility profile not found for this student" })
       const derivedBookLabel = `${sourceBookLabel}-student-${student.id.slice(0, 8)}-${Date.now()}`
       const derivedDir = path.join(path.resolve(booksDir), derivedBookLabel)
       fs.cpSync(sourceDir, derivedDir, { recursive: true, errorOnExist: true })
       const oldDbPath = path.join(derivedDir, `${sourceBookLabel}.db`)
       const newDbPath = path.join(derivedDir, `${derivedBookLabel}.db`)
       fs.renameSync(oldDbPath, newDbPath)
-      const plan = buildAccessibilityPlan(student)
+      const plan = buildAccessibilityPlan(selectedProfile
+        ? { ...student, accessibilityProfiles: [selectedProfile] }
+        : student)
       applyPersonalizationConfig(derivedDir, plan.rules)
       const storage = createBookStorage(derivedBookLabel, booksDir)
       try {
-        const profileName = student.accessibilityProfiles[0]?.name ?? student.firstName
+        const profileName = selectedProfile?.name ?? student.accessibilityProfiles[0]?.name ?? student.firstName
         const materialTitle = `${profileName} material`
         const metadata = storage.getLatestNodeData("metadata", "book")?.data
         if (metadata && typeof metadata === "object") {
           storage.putNodeData("metadata", "book", { ...(metadata as Record<string, unknown>), title: materialTitle })
         }
-        storage.putNodeData("personalization", "material", { studentId: student.id, sourceBookLabel, plan, promptContext: personalizationPromptContext(plan), generatedAt: new Date().toISOString() })
+        storage.putNodeData("personalization", "material", { studentId: student.id, selectedProfileId: selectedProfile?.id ?? null, sourceBookLabel, plan, promptContext: personalizationPromptContext(plan), generatedAt: new Date().toISOString() })
       } finally { storage.close() }
       const material = library.createMaterial(student.id, sourceBookLabel, derivedBookLabel, plan.rules)
       const assignment = library.createAssignment(student.id, material.id)

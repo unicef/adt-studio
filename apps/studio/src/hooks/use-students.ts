@@ -28,5 +28,5 @@ export function useDeleteStudentProfile(studentId: string) {
 }
 export function useGeneratePersonalizedMaterial() {
   const queryClient = useQueryClient()
-  return useMutation({ mutationFn: ({ studentId, sourceBookLabel }: { studentId: string; sourceBookLabel: string }) => api.generatePersonalizedMaterial(studentId, sourceBookLabel), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["students"] }); queryClient.invalidateQueries({ queryKey: ["books"] }); queryClient.invalidateQueries({ queryKey: ["student-dashboard"] }) } })
+  return useMutation({ mutationFn: ({ studentId, sourceBookLabel, profileId }: { studentId: string; sourceBookLabel: string; profileId?: string }) => api.generatePersonalizedMaterial(studentId, sourceBookLabel, profileId), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["students"] }); queryClient.invalidateQueries({ queryKey: ["books"] }); queryClient.invalidateQueries({ queryKey: ["student-dashboard"] }) } })
 }
