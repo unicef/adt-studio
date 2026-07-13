@@ -24,6 +24,7 @@ import { useApiKey } from "@/hooks/use-api-key"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { PageGroupingVisual } from "./components/PageGroupingVisual"
 import { SpreadPickerDialog } from "@/components/spread-picker/SpreadPickerDialog"
+import { normalizeLeads } from "@/components/spread-picker/pairs"
 import { getSourcePdfUrl } from "@/api/client"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -93,8 +94,8 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
   )
 
   const pageRangeDisabled = sourcePdfPending || !totalPages
-  const markedSpreads = spreadPairs.length
-  const sortedSpreadPairs = [...spreadPairs].sort((a, b) => a - b)
+  const markedPairs = normalizeLeads(spreadPairs, pageRange[0], pageRange[1])
+  const markedSpreads = markedPairs.length
   const showSpreadsRow = spreadMode === "single" && totalPages > 0
 
   const handleRun = () => {
@@ -248,7 +249,7 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
                 </div>
                 {markedSpreads > 0 && (
                   <div className="flex flex-wrap gap-1.5">
-                    {sortedSpreadPairs.map((lead) => (
+                    {markedPairs.map((lead) => (
                       <span
                         key={lead}
                         className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-medium tabular-nums text-blue-700"

@@ -10,6 +10,7 @@ import {
 import { useLingui } from "@lingui/react/macro"
 import { Link2, Unlink, BookOpen, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { normalizeLeads } from "./pairs"
 
 interface PageGroupingEditorProps {
   startPage: number
@@ -48,20 +49,6 @@ function buildGroups(startPage: number, endPage: number, leads: Set<number>): Gr
     }
   }
   return groups
-}
-
-/** Drop out-of-range and overlapping leads so the persisted list stays clean. */
-export function normalizeLeads(leads: number[], startPage: number, endPage: number): number[] {
-  const sorted = [...new Set(leads)].sort((a, b) => a - b)
-  const out: number[] = []
-  let consumedUpTo = startPage - 1
-  for (const lead of sorted) {
-    if (lead < startPage || lead + 1 > endPage) continue
-    if (lead <= consumedUpTo) continue
-    out.push(lead)
-    consumedUpTo = lead + 1
-  }
-  return out
 }
 
 export function PageGroupingEditor({
@@ -364,7 +351,6 @@ function SpreadTile({
   const { t } = useLingui()
   return (
     <div className="group relative shrink-0 rounded-lg border-2 border-primary bg-primary/5 p-1.5 shadow-md transition-all">
-      {/* Persistent "spread" label so merged pairs read at a glance */}
       <span className="pointer-events-none absolute -top-2.5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-foreground shadow">
         <Link2 className="h-3 w-3" strokeWidth={2.5} aria-hidden />
         {t`Spread ${left}–${right}`}
@@ -378,7 +364,6 @@ function SpreadTile({
           <PageThumb page={right} src={rightSrc} aspect={aspect} onMeasure={onMeasure} />
           <PageBadge>{right}</PageBadge>
         </div>
-        {/* Link node sitting on the seam — the "these are joined" cue */}
         <span
           className="pointer-events-none absolute left-1/2 top-1/2 z-10 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-primary text-primary-foreground shadow-md"
           aria-hidden

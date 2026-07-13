@@ -11,6 +11,7 @@ import {
   getPdfPageCount,
 } from "@/components/wizard/shared/pdfMetadata"
 import { SpreadPickerDialog } from "@/components/spread-picker/SpreadPickerDialog"
+import { normalizeLeads } from "@/components/spread-picker/pairs"
 
 function parsePositiveInt(raw: string): number | undefined {
   const n = Number(raw.trim())
@@ -63,16 +64,13 @@ export function MarkSpreads() {
     return null
   }
 
-  // Spreads only apply to a single-page base.
   const isSingle = pageGrouping === "single"
 
   const startPage = scope === "range" ? parsePositiveInt(startPageRaw) ?? 1 : 1
   const endPage =
     scope === "range" ? parsePositiveInt(endPageRaw) ?? pageCount : pageCount
 
-  const markedPairs = spreadPairs
-    .filter((p) => p >= startPage && p + 1 <= endPage)
-    .sort((a, b) => a - b)
+  const markedPairs = normalizeLeads(spreadPairs, startPage, endPage)
   const spreadCount = markedPairs.length
   const accent = getPresetAccent(selectedPreset)
 

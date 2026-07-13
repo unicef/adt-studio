@@ -13,6 +13,7 @@ import {
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { usePdfPreviewPages } from "@/components/wizard/shared/usePdfPreviewPages"
 import { PageGroupingEditor } from "./PageGroupingEditor"
+import { normalizeLeads } from "./pairs"
 
 const RENDER_WIDTH = 520
 
@@ -55,7 +56,7 @@ export function SpreadPickerDialog({
   })
 
   const spreadCount = useMemo(
-    () => spreadPairs.filter((p) => p >= startPage && p + 1 <= endPage).length,
+    () => normalizeLeads(spreadPairs, startPage, endPage).length,
     [spreadPairs, startPage, endPage],
   )
 

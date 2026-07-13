@@ -270,7 +270,6 @@ export async function extractPdf(
 
   const pages: ExtractedPage[] = [];
 
-  // Group pages: automatic spread pairing, or single pages with manual merges.
   const logicalGroups = computeGroups(start, end, { spreadMode, spreadPairs });
   const totalLogical = logicalGroups.length;
 
@@ -383,10 +382,8 @@ export function computeGroups(
     return groups;
   }
 
-  // Single base with manual merge overrides. `spreadPairs` holds 1-indexed
-  // leading page numbers; convert to 0-indexed leading indices. A lead only
-  // merges if its partner is still inside the range, and the loop advances
-  // past a consumed partner so overlapping leads can't double-merge a page.
+  // Single base: 1-indexed leads → 0-indexed; greedy so overlapping leads
+  // can't double-merge a page.
   const mergeLeads = new Set((spreadPairs ?? []).map((p) => p - 1));
   let i = start;
   while (i < end) {
