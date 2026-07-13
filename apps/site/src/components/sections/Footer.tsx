@@ -51,7 +51,7 @@ const COLUMNS: LinkCol[] = [
       ...(DOCS_ENABLED
         ? [
             { label: msg`Documentation`, href: "/docs" },
-            { label: msg`Quickstart`, href: "/docs/quickstart" },
+            { label: msg`Quickstart`, href: "/docs/import-pdf" },
           ]
         : []),
       {

@@ -8,9 +8,9 @@ import { Kbd, KbdGroup } from "@/components/docs/Kbd";
 import { useModKey } from "@/lib/useModKey";
 
 const POPULAR: { label: MessageDescriptor; splat: string }[] = [
-  { label: msg`Quick Start`, splat: "quickstart" },
+  { label: msg`Quick Start`, splat: "import-pdf" },
   { label: msg`Installation`, splat: "install" },
-  { label: msg`The Pipeline`, splat: "pipeline" },
+  { label: msg`The Pipeline`, splat: "extract" },
 ];
 
 /** Hero for the docs Overview: eyebrow, headline, value prop, search, popular links. */

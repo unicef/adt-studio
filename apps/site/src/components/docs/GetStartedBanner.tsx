@@ -7,7 +7,7 @@ import { STAGES } from "@/data/stages";
  * Featured "Get Started" cover card for the docs Overview — a gradient panel
  * with a subtle glow, the app icon centered above the pipeline stages (each in
  * its own brand color), and the heading/description bottom-left on a shadow
- * scrim. Links to the Quick Start.
+ * scrim. Links to the first conversion guide.
  */
 export function GetStartedBanner() {
   const { i18n } = useLingui();
@@ -15,7 +15,7 @@ export function GetStartedBanner() {
   return (
     <Link
       to="/docs/$"
-      params={{ _splat: "quickstart" }}
+      params={{ _splat: "import-pdf" }}
       className="not-prose group relative mt-8 flex w-full flex-col overflow-hidden rounded-2xl border border-fd-border shadow-sm transition-shadow hover:shadow-lg sm:aspect-[3/2] sm:items-center sm:justify-center"
     >
       {/* Gradient base */}

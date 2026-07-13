@@ -19,7 +19,7 @@ type Category = {
 
 const CATEGORIES: Category[] = [
   {
-    href: "/docs/quickstart",
+    href: "/docs/import-pdf",
     icon: Rocket,
     title: msg`Quickstart`,
     desc: msg`From a PDF to an accessible book in minutes.`,
@@ -31,13 +31,13 @@ const CATEGORIES: Category[] = [
     desc: msg`Set up on macOS, Windows, or Linux.`,
   },
   {
-    href: "/docs/pipeline",
+    href: "/docs/extract",
     icon: Workflow,
     title: msg`The pipeline`,
     desc: msg`Every stage, from extraction to output.`,
   },
   {
-    href: "/docs/concepts",
+    href: "/docs/what-is-an-adt",
     icon: Lightbulb,
     title: msg`Core concepts`,
     desc: msg`Books, versions, and how it all thinks.`,

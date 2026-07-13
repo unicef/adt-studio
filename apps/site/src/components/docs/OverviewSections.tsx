@@ -26,11 +26,11 @@ interface NavCard {
 
 const START: NavCard[] = [
   { icon: Download, title: msg`Installation`, desc: msg`Run ADT Studio as a desktop app or with Docker.`, splat: "install", color: "#2563eb" },
-  { icon: FolderPlus, title: msg`Create a New Project`, desc: msg`Start your first book and load a PDF.`, splat: "new-project", color: "#7c3aed" },
-  { icon: Zap, title: msg`Quick Start`, desc: msg`Go from a PDF to a finished book, end to end.`, splat: "quickstart", color: "#d97706" },
-  { icon: Lightbulb, title: msg`Core Concepts`, desc: msg`The ideas the whole app is built on.`, splat: "concepts", color: "#0d9488" },
-  { icon: Workflow, title: msg`The Pipeline`, desc: msg`How extraction and generation actually work.`, splat: "pipeline", color: "#e11d48" },
-  { icon: KeyRound, title: msg`LLM Providers & API Keys`, desc: msg`Connect a model and track cost.`, splat: "llm", color: "#059669" },
+  { icon: FolderPlus, title: msg`Create a New Project`, desc: msg`Start your first book and load a PDF.`, splat: "import-pdf", color: "#7c3aed" },
+  { icon: Zap, title: msg`Quick Start`, desc: msg`Go from a PDF to a finished book, end to end.`, splat: "what-type-of-content", color: "#d97706" },
+  { icon: Lightbulb, title: msg`Core Concepts`, desc: msg`The ideas the whole app is built on.`, splat: "what-is-an-adt", color: "#0d9488" },
+  { icon: Workflow, title: msg`The Pipeline`, desc: msg`How extraction and generation actually work.`, splat: "extract", color: "#e11d48" },
+  { icon: KeyRound, title: msg`LLM Providers & API Keys`, desc: msg`Connect a model and track cost.`, splat: "api-keys", color: "#059669" },
 ];
 
 /** Visual card grid replacing the plain "where to begin" link list. */
