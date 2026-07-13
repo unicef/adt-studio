@@ -3,6 +3,7 @@ import { useStore } from "@tanstack/react-form"
 import { BookOpen } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { useWizardForm } from "@/components/wizard/wizardForm"
 import { getPresetAccent } from "@/components/wizard/constants"
 import {
@@ -55,10 +56,15 @@ export function MarkSpreads() {
     }
   }, [file])
 
-  // Spreads only apply to a single-page base; split defers extraction entirely.
-  if (pageGrouping !== "single" || scope === "split" || !file || pageCount === 0) {
+  // Structural preconditions: no PDF, or split scope (extraction deferred).
+  // The single/spread toggle is handled by an animated collapse below so the
+  // card can smoothly enter and leave.
+  if (scope === "split" || !file || pageCount === 0) {
     return null
   }
+
+  // Spreads only apply to a single-page base.
+  const isSingle = pageGrouping === "single"
 
   const startPage = scope === "range" ? parsePositiveInt(startPageRaw) ?? 1 : 1
   const endPage =
@@ -72,35 +78,45 @@ export function MarkSpreads() {
 
   return (
     <div
-      className="flex flex-col gap-3 rounded-lg border p-4 transition-colors"
-      style={{ borderColor: `${accent.bg}33`, backgroundColor: `${accent.bg}0d` }}
+      className={cn(
+        "grid transition-[grid-template-rows,opacity] duration-300 ease-in-out motion-reduce:transition-none",
+        isSingle ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+      )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3">
+      <div
+        className="min-h-0 overflow-hidden"
+        aria-hidden={!isSingle}
+        inert={!isSingle ? true : undefined}
+      >
+        <div className="mt-3 flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-3.5">
+          <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-2.5">
           <div
-            className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
-            style={{ backgroundColor: `${accent.bg}1f`, color: accent.text }}
+            className="mt-px flex h-7 w-7 shrink-0 items-center justify-center rounded-md"
+            style={{ backgroundColor: `${accent.bg}14`, color: accent.text }}
           >
-            <BookOpen className="h-4 w-4" aria-hidden />
+            <BookOpen className="h-3.5 w-3.5" aria-hidden />
           </div>
           <div className="flex flex-col gap-0.5">
-            <p className="text-sm font-medium text-foreground">
-              <Trans>Does your book have any spreads?</Trans>
+            <p className="text-[13px] font-medium text-foreground">
+              <Trans>A few pages that are actually spreads?</Trans>
             </p>
-            <p className="text-xs leading-relaxed text-[#737373]">
+            <p className="text-xs leading-relaxed text-muted-foreground">
               <Trans>
-                Single mode keeps each page separate. If a few illustrations
-                actually span two facing pages, mark those pairs so they're kept
-                together as spreads instead of being split down the middle.
+                Single mode processes each page on its own. If an illustration
+                runs across two facing pages, mark that pair so it's kept
+                together instead of split down the middle. Most books don't need
+                this.
               </Trans>
             </p>
           </div>
         </div>
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           size="sm"
           className="shrink-0"
+          style={{ color: accent.text }}
           onClick={() => setOpen(true)}
         >
           {spreadCount === 0 ? t`Mark spreads` : t`Edit spreads`}
@@ -125,15 +141,17 @@ export function MarkSpreads() {
         </div>
       )}
 
-      <SpreadPickerDialog
-        open={open}
-        onOpenChange={setOpen}
-        file={file}
-        startPage={startPage}
-        endPage={endPage}
-        spreadPairs={spreadPairs}
-        onChange={(next) => form.setFieldValue("spreadPairs", next)}
-      />
+          <SpreadPickerDialog
+            open={open}
+            onOpenChange={setOpen}
+            file={file}
+            startPage={startPage}
+            endPage={endPage}
+            spreadPairs={spreadPairs}
+            onChange={(next) => form.setFieldValue("spreadPairs", next)}
+          />
+        </div>
+      </div>
     </div>
   )
 }
