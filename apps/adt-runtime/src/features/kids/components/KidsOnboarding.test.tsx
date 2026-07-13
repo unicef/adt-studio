@@ -16,7 +16,7 @@ import {
   kidsOnboardingDoneAtom,
   kidsPlayerNameAtom,
 } from "@/features/kids/state/kids.atoms"
-import { translationsAtom } from "@/features/language/state/language.atoms"
+import { currentLanguageAtom, translationsAtom } from "@/features/language/state/language.atoms"
 import { appConfigAtom, type AppFeatures } from "@/shared/state/config.atoms"
 import { reduceMotionAtom } from "@/shared/state/ui.atoms"
 import { KidsChrome } from "./KidsChrome"
@@ -35,12 +35,20 @@ const audioMock = vi.hoisted(() => ({
   },
 }))
 
+const buddyVoiceMock = vi.hoisted(() => ({
+  playBuddyLine: vi.fn().mockResolvedValue(true),
+}))
+
 vi.mock("@/features/audio/hooks/AudioPlayerContext", () => ({
   useAudioPlayerContext: () => audioMock.player,
 }))
 
 vi.mock("@/shared/lib/analytics", () => ({
   trackToggleEvent: vi.fn(),
+}))
+
+vi.mock("@/features/kids/lib/buddy-voice", () => ({
+  playBuddyLine: buddyVoiceMock.playBuddyLine,
 }))
 
 beforeEach(() => {
@@ -98,29 +106,36 @@ function renderWithStore(ui: ReactNode, store = createKidsStore()) {
   return render(<Provider store={store}>{ui}</Provider>)
 }
 
+/** welcome -> reading-mode (first step after welcome, per the reference flow). */
+function goToReadingModePage() {
+  fireEvent.click(screen.getByText("Let's go!"))
+}
+
+/**
+ * welcome -> [reading-mode] -> name. The "Keep going" click only applies
+ * when the reading-mode step exists (readAloud feature on) — when the book
+ * has no read-aloud feature, "Let's go!" lands directly on the name step.
+ */
+function goToNamePage() {
+  goToReadingModePage()
+  const keepGoing = screen.queryByText("Keep going")
+  if (keepGoing) fireEvent.click(keepGoing)
+}
+
 function goToBuddyPage() {
   goToNamePage()
   fireEvent.click(screen.getByText("That's me!"))
-}
-
-function goToNamePage() {
-  fireEvent.click(screen.getByText("Let's go!"))
 }
 
 function goToPickPage() {
   goToBuddyPage()
 }
 
-function goToReadingModePage() {
+function goToFeaturePagesPage() {
   goToPickPage()
   fireEvent.click(screen.getByTestId("kids-onboarding-character-dino"))
   fireEvent.click(screen.getByText("This is my buddy"))
   act(() => vi.advanceTimersByTime(180))
-}
-
-function goToFeaturePagesPage() {
-  goToReadingModePage()
-  fireEvent.click(screen.getByText("Keep going"))
 }
 
 describe("KidsOnboarding", () => {
@@ -146,6 +161,13 @@ describe("KidsOnboarding", () => {
     expect(screen.queryByLabelText("Rex")).toBeNull()
 
     fireEvent.click(screen.getByText("Let's go!"))
+
+    expect(screen.getByText("How do you want to read?")).not.toBeNull()
+    expect(screen.getByTestId("kids-onboarding-neutral-visual")).not.toBeNull()
+    expect(screen.queryByTestId("kids-onboarding-character-dino")).toBeNull()
+    expect(screen.queryByLabelText("Rex")).toBeNull()
+
+    fireEvent.click(screen.getByText("Keep going"))
 
     expect(screen.getByText("What should I call you?")).not.toBeNull()
     expect(screen.getByTestId("kids-onboarding-neutral-visual")).not.toBeNull()
@@ -200,13 +222,13 @@ describe("KidsOnboarding", () => {
     fireEvent.click(screen.getByTestId("kids-onboarding-character-dino"))
     fireEvent.click(screen.getByText("This is my buddy"))
 
-    expect(screen.queryByText("How do you want to read?")).toBeNull()
+    expect(screen.queryByText("Turn the pages")).toBeNull()
 
     act(() => vi.advanceTimersByTime(179))
-    expect(screen.queryByText("How do you want to read?")).toBeNull()
+    expect(screen.queryByText("Turn the pages")).toBeNull()
 
     act(() => vi.advanceTimersByTime(1))
-    expect(screen.getByText("How do you want to read?")).not.toBeNull()
+    expect(screen.getByText("Turn the pages")).not.toBeNull()
   })
 
   it("steps through all 8 onboarding pages, writes the chosen buddy, and shows it in the reading view", () => {
@@ -214,6 +236,9 @@ describe("KidsOnboarding", () => {
     renderWithStore(<KidsChrome />, store)
 
     fireEvent.click(screen.getByText("Let's go!"))
+    expect(screen.getByText("How do you want to read?")).not.toBeNull()
+    fireEvent.click(screen.getByText("Keep going"))
+
     fireEvent.change(screen.getByTestId("kids-onboarding-player-name"), {
       target: { value: "Mina" },
     })
@@ -225,8 +250,6 @@ describe("KidsOnboarding", () => {
 
     expect(store.get(kidsPlayerNameAtom)).toBe("Mina")
 
-    expect(screen.getByText("How do you want to read?")).not.toBeNull()
-    fireEvent.click(screen.getByText("Keep going"))
     expect(screen.getByText("Turn the pages")).not.toBeNull()
     fireEvent.click(screen.getByText("Got it"))
     expect(screen.getByText("Ask me anytime")).not.toBeNull()
@@ -258,7 +281,7 @@ describe("KidsOnboarding", () => {
 
     fireEvent.keyDown(document.body, { key: "ArrowRight" })
 
-    expect(screen.getByText("What should I call you?")).not.toBeNull()
+    expect(screen.getByText("How do you want to read?")).not.toBeNull()
     expect(downstreamPageNav).not.toHaveBeenCalled()
 
     fireEvent.keyDown(document.body, { key: "ArrowLeft" })
@@ -341,7 +364,6 @@ describe("KidsOnboarding", () => {
     fireEvent.click(screen.getByTestId("kids-onboarding-character-dino"))
     fireEvent.click(screen.getByText("This is my buddy"))
     act(() => vi.advanceTimersByTime(180))
-    fireEvent.click(screen.getByText("Keep going"))
     fireEvent.click(screen.getByText("Got it"))
     fireEvent.click(screen.getByText("Got it"))
 
@@ -396,5 +418,116 @@ describe("KidsOnboarding", () => {
     expect(screen.queryByTestId("kids-onboarding-character-dino")).toBeNull()
     expect(screen.queryByTestId("kids-onboarding-character-robot")).toBeNull()
     expect(screen.queryByTestId("kids-onboarding-character-alien")).toBeNull()
+  })
+
+  it("puts the reading-mode choice right after welcome, before the name step", () => {
+    renderWithStore(<KidsChrome />)
+
+    expect(screen.getByText("Hi! Welcome to your reading adventure.")).not.toBeNull()
+
+    fireEvent.click(screen.getByText("Let's go!"))
+
+    expect(screen.getByText("How do you want to read?")).not.toBeNull()
+    expect(screen.queryByText("What should I call you?")).toBeNull()
+
+    fireEvent.click(screen.getByText("Keep going"))
+
+    expect(screen.getByText("What should I call you?")).not.toBeNull()
+  })
+
+  it("shows no narrator play button and never calls the narrator voice when reading it myself", () => {
+    renderWithStore(<KidsChrome />)
+
+    goToReadingModePage()
+    expect(screen.queryByTestId("kids-onboarding-narrator-play")).toBeNull()
+
+    fireEvent.click(screen.getByText("I'll read it myself"))
+    expect(screen.queryByTestId("kids-onboarding-narrator-play")).toBeNull()
+
+    fireEvent.click(screen.getByText("Keep going"))
+    expect(screen.getByText("What should I call you?")).not.toBeNull()
+    expect(screen.queryByTestId("kids-onboarding-narrator-play")).toBeNull()
+
+    const narratorCalls = buddyVoiceMock.playBuddyLine.mock.calls.filter(
+      ([, characterId]) => characterId === "narrator",
+    )
+    expect(narratorCalls).toHaveLength(0)
+  })
+
+  it("shows the narrator play button and autoplays the step's line once when reading aloud is on", () => {
+    renderWithStore(<KidsChrome />)
+
+    goToReadingModePage()
+    fireEvent.click(screen.getByText("Read it to me"))
+
+    expect(screen.getByTestId("kids-onboarding-narrator-play")).not.toBeNull()
+    expect(buddyVoiceMock.playBuddyLine).toHaveBeenCalledWith(
+      "en",
+      "narrator",
+      "kids-onboarding-read-title",
+    )
+
+    const callsAfterChoice = buddyVoiceMock.playBuddyLine.mock.calls.length
+    fireEvent.click(screen.getByText("Keep going"))
+
+    expect(screen.getByText("What should I call you?")).not.toBeNull()
+    expect(screen.getByTestId("kids-onboarding-narrator-play")).not.toBeNull()
+    expect(buddyVoiceMock.playBuddyLine).toHaveBeenCalledWith(
+      "en",
+      "narrator",
+      "kids-onboarding-name-title",
+    )
+    expect(buddyVoiceMock.playBuddyLine.mock.calls.length).toBeGreaterThan(
+      callsAfterChoice,
+    )
+  })
+
+  it("autoplays the narrator line on mount when read aloud was already on", () => {
+    const store = createKidsStore()
+    store.set(readAloudModeAtom, true)
+    renderWithStore(<KidsChrome />, store)
+
+    expect(buddyVoiceMock.playBuddyLine).toHaveBeenCalledWith(
+      "en",
+      "narrator",
+      "kids-onboarding-welcome-title",
+    )
+    expect(screen.getByTestId("kids-onboarding-narrator-play")).not.toBeNull()
+  })
+
+  it("replays the current step's narrator line when the play button is clicked", () => {
+    const store = createKidsStore()
+    store.set(readAloudModeAtom, true)
+    renderWithStore(<KidsChrome />, store)
+
+    buddyVoiceMock.playBuddyLine.mockClear()
+    fireEvent.click(screen.getByTestId("kids-onboarding-narrator-play"))
+
+    expect(buddyVoiceMock.playBuddyLine).toHaveBeenCalledWith(
+      "en",
+      "narrator",
+      "kids-onboarding-welcome-title",
+    )
+  })
+
+  it("hides the narrator play button on the final start step (no narrator line)", () => {
+    const store = createKidsStore()
+    store.set(readAloudModeAtom, true)
+    renderWithStore(<KidsChrome />, store)
+
+    goToNamePage()
+    fireEvent.change(screen.getByTestId("kids-onboarding-player-name"), {
+      target: { value: "Mina" },
+    })
+    fireEvent.click(screen.getByText("That's me!"))
+    fireEvent.click(screen.getByTestId("kids-onboarding-character-dino"))
+    fireEvent.click(screen.getByText("This is my buddy"))
+    act(() => vi.advanceTimersByTime(180))
+    fireEvent.click(screen.getByText("Got it"))
+    fireEvent.click(screen.getByText("Got it"))
+    fireEvent.click(screen.getByText("Got it"))
+
+    expect(screen.getByText("Ready to read, Mina?")).not.toBeNull()
+    expect(screen.queryByTestId("kids-onboarding-narrator-play")).toBeNull()
   })
 })

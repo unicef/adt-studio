@@ -20,6 +20,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react"
+import { KIDS_NARRATOR_ID } from "@adt/types/kids"
 import { readAloudModeAtom } from "@/features/audio/state/audio.atoms"
 import { KidsBuddyImage } from "@/features/kids/components/KidsBuddyImage"
 import {
@@ -68,9 +69,9 @@ type NavigationDirection = "forward" | "back"
 
 const READ_ALOUD_STEPS: OnboardingStep[] = [
   "welcome",
+  "reading-mode",
   "name",
   "pick",
-  "reading-mode",
   "feature-pages",
   "feature-help",
   "feature-abilities",
@@ -98,10 +99,25 @@ const PICK_CONFIRM_DELAY_MS = 180
 
 /** Buddy expression per feature-tour step — swaps keep the buddy lively. */
 const STEP_EXPRESSIONS: Partial<Record<OnboardingStep, BuddyExpression>> = {
-  "reading-mode": "thinking",
   "feature-pages": "excited",
   "feature-help": "encouraging",
   "feature-abilities": "surprised",
+}
+
+/**
+ * Neutral-narrator line for each onboarding step, reusing the same keys the
+ * step's own title is translated with (`@adt/types/kids` narrator registry).
+ * Steps missing here (e.g. "start") are never narrated and never show the
+ * play button — the buddy has already taken over confirmations by then.
+ */
+const STEP_NARRATOR_LINE_KEY: Partial<Record<OnboardingStep, string>> = {
+  welcome: "kids-onboarding-welcome-title",
+  "reading-mode": "kids-onboarding-read-title",
+  name: "kids-onboarding-name-title",
+  pick: "kids-onboarding-buddy-title",
+  "feature-pages": "kids-onboarding-pages-title",
+  "feature-help": "kids-onboarding-help-title",
+  "feature-abilities": "kids-onboarding-abilities-title",
 }
 
 function animationDelayStyle(index: number, delayMs = 50): CSSProperties {
@@ -161,7 +177,14 @@ export function KidsOnboarding() {
   )
   const playerName = playerNameDraft.trim()
   const showBuddy =
-    step !== "welcome" && step !== "name" && step !== "pick" && step !== "start"
+    step !== "welcome" &&
+    step !== "name" &&
+    step !== "pick" &&
+    step !== "reading-mode" &&
+    step !== "start"
+  const narratorLineKey = STEP_NARRATOR_LINE_KEY[step]
+  const [lastNarratedStep, setLastNarratedStep] =
+    useState<OnboardingStep | null>(null)
   const pageStyle = {
     background: "linear-gradient(180deg, #C9E6F9 0%, #A5D2F0 100%)",
   } as CSSProperties
@@ -177,6 +200,21 @@ export function KidsOnboarding() {
       }
     }
   }, [])
+
+  // Neutral narrator reads the current step's headline once per step entry,
+  // only while read-aloud is on — the "I'll read it myself" path stays
+  // fully silent (no autoplay, no play button).
+  useEffect(() => {
+    if (!readAloud || !narratorLineKey) return
+    if (lastNarratedStep === step) return
+    setLastNarratedStep(step)
+    void playBuddyLine(language, KIDS_NARRATOR_ID, narratorLineKey)
+  }, [language, lastNarratedStep, narratorLineKey, readAloud, step])
+
+  const replayNarratorLine = useCallback(() => {
+    if (!narratorLineKey) return
+    void playBuddyLine(language, KIDS_NARRATOR_ID, narratorLineKey)
+  }, [language, narratorLineKey])
 
   const goNext = useCallback(() => {
     if (step === "name") setPlayerName(playerName)
@@ -278,6 +316,20 @@ export function KidsOnboarding() {
             >
               <ArrowLeft className="h-6 w-6" aria-hidden="true" />
             </button>
+          ) : (
+            <span className="min-h-12 min-w-12" aria-hidden="true" />
+          )}
+
+          {readAloud && narratorLineKey ? (
+            <NarratorPlayButton
+              label={
+                lastNarratedStep === step
+                  ? tk("kids-onboarding-replay", "Read it again")
+                  : tk("kids-onboarding-play", "Read this to me")
+              }
+              onClick={replayNarratorLine}
+              reduceMotion={reduceMotion}
+            />
           ) : (
             <span className="min-h-12 min-w-12" aria-hidden="true" />
           )}
@@ -1219,6 +1271,33 @@ function PrimaryButton({
       )}
     >
       {children}
+    </button>
+  )
+}
+
+function NarratorPlayButton({
+  label,
+  onClick,
+  reduceMotion,
+}: {
+  label: string
+  onClick: () => void
+  reduceMotion: boolean
+}) {
+  return (
+    <button
+      type="button"
+      data-testid="kids-onboarding-narrator-play"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={cn(
+        "inline-flex min-h-12 min-w-12 items-center justify-center rounded-full bg-[#FFC800] text-slate-900 shadow-[0_3px_0_#DFA000] ring-2 ring-white transition-[transform,box-shadow] focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-600",
+        !reduceMotion &&
+          "hover:-translate-y-[1px] hover:shadow-[0_4px_0_#DFA000] active:translate-y-[2px] active:shadow-[0_1px_0_#DFA000]",
+      )}
+    >
+      <Volume2 className="h-6 w-6" aria-hidden="true" />
     </button>
   )
 }
