@@ -171,6 +171,13 @@ export const AppConfig = z
     image_cropping: StepConfig.optional(),
     layout_type: LayoutType.optional(),
     spread_mode: z.boolean().optional(),
+    /**
+     * Manual spread overrides for a single-page (non-`spread_mode`) book:
+     * 1-indexed leading page numbers, each merged with the page that follows
+     * it into a two-page spread. Lets a mostly-single book carry a few real
+     * spreads. Ignored when `spread_mode` is true (that uses automatic pairing).
+     */
+    spread_pairs: z.array(z.number().int().min(1)).optional(),
     split_mode: z.boolean().optional(),
     vector_text_grouping: z.boolean().optional(),
     apply_body_background: z.boolean().optional(),

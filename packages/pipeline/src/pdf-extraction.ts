@@ -10,6 +10,7 @@ export interface ExtractOptions {
   startPage?: number
   endPage?: number
   spreadMode?: boolean
+  spreadPairs?: number[]
   vectorTextGrouping?: boolean
   /** Whether the book renders fixed-layout. Gates the entire positioned-text
    *  extraction pipeline (stream-order recorder + paragraph parsing), which is
@@ -24,7 +25,7 @@ export async function extractPDF(
   storage: Storage,
   progress: Progress
 ): Promise<void> {
-  const { pdfPath, startPage, endPage, spreadMode, vectorTextGrouping, fixedLayout, fontsCacheDir } =
+  const { pdfPath, startPage, endPage, spreadMode, spreadPairs, vectorTextGrouping, fixedLayout, fontsCacheDir } =
     options
 
   progress.emit({ type: "step-start", step: "extract" })
@@ -45,7 +46,7 @@ export async function extractPDF(
     const pdfBuffer = fs.readFileSync(pdfPath)
 
     const { pdfMetadata, pages } = extractPdfStream(
-      { pdfBuffer, startPage, endPage, spreadMode, vectorTextGrouping, fixedLayout },
+      { pdfBuffer, startPage, endPage, spreadMode, spreadPairs, vectorTextGrouping, fixedLayout },
       (p) => {
         progress.emit({
           type: "step-progress",
