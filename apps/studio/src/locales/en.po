@@ -339,6 +339,9 @@ msgstr "{issueCount} {0}"
 msgid "{issuesLabel}, {reviewLabel}"
 msgstr "{issuesLabel}, {reviewLabel}"
 
+msgid "{markedSpreads} {markedSpreads, plural, one {spread} other {spreads}} marked."
+msgstr "{markedSpreads} {markedSpreads, plural, one {spread} other {spreads}} marked."
+
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 
@@ -379,6 +382,9 @@ msgstr "{reviewed}/{0} checked"
 
 msgid "{sections} sections"
 msgstr "{sections} sections"
+
+msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} marked."
+msgstr "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} marked."
 
 msgid "{stageLabel} isn't ready yet — every section in the Storyboard is currently pruned, so there's nothing to run on. Restore at least one section in Storyboard to continue."
 msgstr "{stageLabel} isn't ready yet — every section in the Storyboard is currently pruned, so there's nothing to run on. Restore at least one section in Storyboard to continue."
@@ -511,6 +517,12 @@ msgstr "A book with this name already exists."
 
 msgid "A close, long-term relationship between two different species, often benefiting both."
 msgstr "A close, long-term relationship between two different species, often benefiting both."
+
+msgid "A few pages that are actually spreads?"
+msgstr "A few pages that are actually spreads?"
+
+msgid "A few spreads in a single book"
+msgstr "A few spreads in a single book"
 
 msgid "A figure of speech that describes one thing as if it were another to draw a comparison."
 msgstr "A figure of speech that describes one thing as if it were another to draw a comparison."
@@ -1053,6 +1065,9 @@ msgstr "All Categories"
 msgid "All issues and manual review items"
 msgstr "All issues and manual review items"
 
+msgid "All pages"
+msgstr "All pages"
+
 msgid "All pages are pruned"
 msgstr "All pages are pruned"
 
@@ -1437,6 +1452,9 @@ msgstr "Book order"
 
 msgid "Book package ready"
 msgstr "Book package ready"
+
+msgid "Book pages. Scroll horizontally to see more."
+msgstr "Book pages. Scroll horizontally to see more."
 
 msgid "Book part"
 msgstr "Book part"
@@ -1982,6 +2000,9 @@ msgstr "Couldn't check for updates"
 
 msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
 msgstr "Couldn't load the PDF preview. The pages can still be split using the controls."
+
+msgid "Couldn't load the PDF preview. You can still mark spreads once the pages load."
+msgstr "Couldn't load the PDF preview. You can still mark spreads once the pages load."
 
 msgid "Couldn't read this PDF"
 msgstr "Couldn't read this PDF"
@@ -2546,6 +2567,9 @@ msgstr "Edit Prompt"
 
 msgid "Edit Prompts"
 msgstr "Edit Prompts"
+
+msgid "Edit spreads"
+msgstr "Edit spreads"
 
 #~ msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
 #~ msgstr "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
@@ -3284,6 +3308,9 @@ msgstr "Hand out page-range parts and merge them back later."
 #~ msgid "Handwriting"
 #~ msgstr "Handwriting"
 
+msgid "Have a few pages that are actually spreads? Mark them so they're kept together."
+msgstr "Have a few pages that are actually spreads? Mark them so they're kept together."
+
 msgid "Header"
 msgstr "Header"
 
@@ -3829,6 +3856,9 @@ msgstr "Link"
 msgid "Link page"
 msgstr "Link page"
 
+msgid "Linked pages are kept together as one spread."
+msgstr "Linked pages are kept together as one spread."
+
 msgid "Linked to: {value}"
 msgstr "Linked to: {value}"
 
@@ -3924,6 +3954,9 @@ msgstr "Loading page..."
 
 msgid "Loading pages..."
 msgstr "Loading pages..."
+
+msgid "Loading pages…"
+msgstr "Loading pages…"
 
 msgid "Loading preview"
 msgstr "Loading preview"
@@ -4048,6 +4081,9 @@ msgstr "Mark as decorative"
 msgid "Mark as decorative (hidden from screen readers)"
 msgstr "Mark as decorative (hidden from screen readers)"
 
+msgid "Mark spreads"
+msgstr "Mark spreads"
+
 msgid "Match Design"
 msgstr "Match Design"
 
@@ -4125,6 +4161,11 @@ msgstr "merge into previous page"
 
 msgid "Merge into previous page"
 msgstr "Merge into previous page"
+
+#. placeholder {0}: prev[0]
+#. placeholder {1}: group[0]
+msgid "Merge pages {0} and {1} into a spread"
+msgstr "Merge pages {0} and {1} into a spread"
 
 msgid "Merge part"
 msgstr "Merge part"
@@ -4265,6 +4306,9 @@ msgstr "Monospace"
 
 msgid "More info"
 msgstr "More info"
+
+msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle."
+msgstr "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle."
 
 msgid "Most used"
 msgstr "Most used"
@@ -4590,6 +4634,12 @@ msgstr "No segmentation needed for this image"
 
 msgid "No source image"
 msgstr "No source image"
+
+msgid "No spreads marked — every page stays single."
+msgstr "No spreads marked — every page stays single."
+
+msgid "No spreads marked yet. Switch to All pages and link two facing pages to create one."
+msgstr "No spreads marked yet. Switch to All pages and link two facing pages to create one."
 
 msgid "No storyboard sections found. Run Storyboard to generate sections you can match videos to."
 msgstr "No storyboard sections found. Run Storyboard to generate sections you can match videos to."
@@ -4971,6 +5021,9 @@ msgstr "Page {n}"
 
 #~ msgid "Page {p}"
 #~ msgstr "Page {p}"
+
+msgid "Page {page}"
+msgstr "Page {page}"
 
 msgid "Page {pageId}"
 msgstr "Page {pageId}"
@@ -6138,6 +6191,12 @@ msgstr "SCORM Package"
 msgid "Screen readers cannot interpret images without text alternatives. Adding captions ensures blind and low-vision readers understand every illustration."
 msgstr "Screen readers cannot interpret images without text alternatives. Adding captions ensures blind and low-vision readers understand every illustration."
 
+msgid "Scroll to more pages"
+msgstr "Scroll to more pages"
+
+msgid "Scroll to previous pages"
+msgstr "Scroll to previous pages"
+
 msgid "Search books"
 msgstr "Search books"
 
@@ -6528,6 +6587,9 @@ msgstr "Single composited image"
 msgid "Single Mode"
 msgstr "Single Mode"
 
+msgid "Single mode processes each page on its own. If an illustration runs across two facing pages, mark that pair so it's kept together instead of split down the middle. Most books don't need this."
+msgstr "Single mode processes each page on its own. If an illustration runs across two facing pages, mark that pair so it's kept together instead of split down the middle. Most books don't need this."
+
 msgid "Single Page"
 msgstr "Single Page"
 
@@ -6585,6 +6647,9 @@ msgstr "Software update"
 
 msgid "Software update status"
 msgstr "Software update status"
+
+msgid "Some books are mostly single pages but have a few illustrations that run across two facing pages. In Single mode you can mark just those pairs as spreads so they're kept together, while every other page stays on its own. After choosing Single, use \"Mark spreads\" below to link them."
+msgstr "Some books are mostly single pages but have a few illustrations that run across two facing pages. In Single mode you can mark just those pairs as spreads so they're kept together, while every other page stays on its own. After choosing Single, use \"Mark spreads\" below to link them."
 
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
@@ -6646,6 +6711,9 @@ msgstr "Speech Prompts"
 msgid "Speech Settings"
 msgstr "Speech Settings"
 
+msgid "Split"
+msgstr "Split"
+
 #. placeholder {0}: book.split.splitPages
 #. placeholder {1}: book.split.totalPages
 msgid "Split · {0}/{1}"
@@ -6689,11 +6757,20 @@ msgstr "Split preview"
 msgid "Split segments"
 msgstr "Split segments"
 
+msgid "Split spread {left}–{right} back into single pages"
+msgstr "Split spread {left}–{right} back into single pages"
+
 msgid "Spread"
 msgstr "Spread"
 
+msgid "Spread {left}–{right}"
+msgstr "Spread {left}–{right}"
+
 msgid "Spread Mode"
 msgstr "Spread Mode"
+
+msgid "Spreads only"
+msgstr "Spreads only"
 
 msgid "Sprinkling some digital fairy dust..."
 msgstr "Sprinkling some digital fairy dust..."
