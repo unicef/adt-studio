@@ -5,6 +5,7 @@ import { Button } from "@/components/Button";
 import { SearchTrigger } from "@/components/SearchTrigger";
 import { PdfToBookDiagram } from "@/components/PdfToBookDiagram";
 import { cn } from "@/lib/cn";
+import { DOCS_ENABLED } from "@/lib/flags";
 import { withBase } from "@/lib/href";
 import {
   formatRelativeDate,
@@ -127,7 +128,9 @@ export function WelcomeScene() {
               <Trans>Download for free</Trans>
               <ArrowRight className="h-4 w-4" />
             </Button>
-            <SearchTrigger source="hero" className="w-full sm:w-[230px]" />
+            {DOCS_ENABLED && (
+              <SearchTrigger source="hero" className="w-full sm:w-[230px]" />
+            )}
           </div>
 
           <div

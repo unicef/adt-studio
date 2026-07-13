@@ -1,6 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { source } from '@/lib/source';
 import { createFromSource } from 'fumadocs-core/search/server';
+import { DOCS_ENABLED } from '@/lib/flags';
 import { ORAMA_LANGUAGE } from '@/i18n/locales';
 
 // One index partition per locale, each tokenized in its own language.
@@ -14,7 +15,10 @@ const server = createFromSource(source, {
 export const Route = createFileRoute('/api/search')({
   server: {
     handlers: {
-      GET: () => server.staticGET(),
+      GET: () =>
+        DOCS_ENABLED
+          ? server.staticGET()
+          : new Response(null, { status: 404 }),
     },
   },
 });

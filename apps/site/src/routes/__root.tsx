@@ -12,6 +12,7 @@ import appCss from '@/styles/app.css?url';
 import { RootProvider } from 'fumadocs-ui/provider/tanstack';
 import SearchDialog from '@/components/search';
 import { docsUiI18n } from '@/lib/fumadocs-ui-i18n';
+import { DOCS_ENABLED } from '@/lib/flags';
 import { activateDetectedLocale } from '@/i18n/setup';
 import { trackPageView } from '@/lib/matomo';
 import { seo } from '@/lib/seo';
@@ -104,7 +105,7 @@ function LocalizedShell() {
 
   return (
     <RootProvider
-      search={{ SearchDialog }}
+      search={DOCS_ENABLED ? { SearchDialog } : { enabled: false }}
       theme={{ enabled: false }}
       i18n={docsUiI18n(lingui.locale)}
     >

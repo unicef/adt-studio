@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from '@tanstack/react-router';
+import { createFileRoute, Link, notFound, redirect } from '@tanstack/react-router';
 import { DocsLayout } from 'fumadocs-ui/layouts/notebook';
 import { createServerFn } from '@tanstack/react-start';
 import { slugsToMarkdownPath, source } from '@/lib/source';
@@ -14,10 +14,14 @@ import { Suspense, useMemo } from 'react';
 import { useMDXComponents } from '@/components/mdx';
 import { translatePageTree } from '@/lib/docs-i18n';
 import { useLocalizedContent } from '@/lib/useLocalizedContent';
+import { DOCS_ENABLED } from '@/lib/flags';
 import { DEFAULT_LOCALE } from '@/i18n/locales';
 
 export const Route = createFileRoute('/docs/$')({
   component: Page,
+  beforeLoad: () => {
+    if (!DOCS_ENABLED) throw redirect({ to: '/' });
+  },
   loader: async ({ params }) => {
     const slugs = params._splat?.split('/') ?? [];
     const data = await loader({ data: slugs });

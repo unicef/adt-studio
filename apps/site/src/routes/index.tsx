@@ -9,6 +9,7 @@ import { ShowcaseScene } from "@/components/sections/ShowcaseScene";
 import { ReleasesScene } from "@/components/sections/ReleasesScene";
 import { DocsScene } from "@/components/sections/DocsScene";
 import { FinaleScene } from "@/components/sections/FinaleScene";
+import { DOCS_ENABLED } from "@/lib/flags";
 import { seo } from "@/lib/seo";
 
 export const Route = createFileRoute("/")({
@@ -40,7 +41,7 @@ function Home() {
       <CarouselScene />
       <ShowcaseScene />
       <ReleasesScene />
-      <DocsScene />
+      {DOCS_ENABLED && <DocsScene />}
       <FinaleScene />
     </LandingShell>
   );
