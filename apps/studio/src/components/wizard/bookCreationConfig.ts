@@ -69,6 +69,10 @@ export function buildConfigOverrides(values: WizardFormValues): Record<string, u
     if (validPageRange && parsedEndPage !== undefined) config.end_page = parsedEndPage
   }
   if (values.scope === "split") config.split_mode = true
+  // Manual spreads apply only to a single-page base; ignored otherwise.
+  if (values.pageGrouping === "single" && values.spreadPairs.length > 0) {
+    config.spread_pairs = [...new Set(values.spreadPairs)].sort((a, b) => a - b)
+  }
   if (values.imageSegmentation && values.segmentationMinSide.trim()) {
     const n = Number(values.segmentationMinSide.trim())
     if (Number.isInteger(n) && n >= 0) config.image_segmentation = { min_side: n }

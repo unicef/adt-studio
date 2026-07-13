@@ -23,6 +23,10 @@ import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { usePersistConfig } from "@/hooks/use-persist-config"
 import { PageGroupingVisual } from "./components/PageGroupingVisual"
+import { SpreadPickerDialog } from "@/components/spread-picker/SpreadPickerDialog"
+import { getSourcePdfUrl } from "@/api/client"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { ExtractPreview } from "./components/ExtractPreview"
 
 type SpreadModeKey = "single" | "spread"
@@ -45,12 +49,15 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
 
   const [pageRange, setPageRange] = useState<[number, number]>([1, 1])
   const [spreadMode, setSpreadMode] = useState<SpreadModeKey>("single")
+  const [spreadPairs, setSpreadPairs] = useState<number[]>([])
+  const [spreadPickerOpen, setSpreadPickerOpen] = useState(false)
   const [vectorTextGrouping, setVectorTextGrouping] = useState(true)
 
   useEffect(() => {
     if (!bookConfigData) return
     const c = bookConfigData.config
     setSpreadMode(c.spread_mode === true ? "spread" : "single")
+    setSpreadPairs(Array.isArray(c.spread_pairs) ? c.spread_pairs.map(Number) : [])
     setVectorTextGrouping(c.vector_text_grouping !== false)
     const start = c.start_page != null ? Number(c.start_page) : 1
     const end = c.end_page != null ? Number(c.end_page) : Math.max(start, totalPages || 1)
@@ -67,6 +74,11 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
     persist({ spread_mode: value === "spread" })
   }
 
+  const handleSpreadPairsChange = (next: number[]) => {
+    setSpreadPairs(next)
+    persist({ spread_pairs: next })
+  }
+
   const handleVectorTextChange = (next: boolean) => {
     setVectorTextGrouping(next)
     persist({ vector_text_grouping: next })
@@ -81,6 +93,9 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
   )
 
   const pageRangeDisabled = sourcePdfPending || !totalPages
+  const markedSpreads = spreadPairs.length
+  const sortedSpreadPairs = [...spreadPairs].sort((a, b) => a - b)
+  const showSpreadsRow = spreadMode === "single" && totalPages > 0
 
   const handleRun = () => {
     if (!hasApiKey || status.isRunning) return
@@ -206,6 +221,55 @@ export function ExtractLandingPage({ bookLabel }: { bookLabel: string }) {
             options={spreadOptions}
             value={spreadMode}
             onValueChange={handleSpreadModeChange}
+          />
+          <div
+            className={cn(
+              "grid transition-[grid-template-rows] duration-300 ease-out",
+              showSpreadsRow ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+            )}
+          >
+            <div className="overflow-hidden">
+              <div className="mt-4 flex flex-col gap-3 border-t border-[#f0f0f0] pt-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-[13px] leading-relaxed text-[#737373]">
+                    {markedSpreads === 0
+                      ? t`Have a few pages that are actually spreads? Mark them so they're kept together.`
+                      : t`${markedSpreads} {markedSpreads, plural, one {spread} other {spreads}} marked.`}
+                  </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSpreadPickerOpen(true)}
+                    disabled={isPart}
+                  >
+                    {markedSpreads === 0 ? t`Mark spreads` : t`Edit spreads`}
+                  </Button>
+                </div>
+                {markedSpreads > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {sortedSpreadPairs.map((lead) => (
+                      <span
+                        key={lead}
+                        className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-medium tabular-nums text-blue-700"
+                      >
+                        {lead}–{lead + 1}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <SpreadPickerDialog
+            open={spreadPickerOpen}
+            onOpenChange={setSpreadPickerOpen}
+            src={getSourcePdfUrl(bookLabel)}
+            startPage={pageRange[0]}
+            endPage={pageRange[1]}
+            spreadPairs={spreadPairs}
+            onChange={handleSpreadPairsChange}
+            disabled={isPart}
           />
         </SettingsField>
       </SettingsCard>

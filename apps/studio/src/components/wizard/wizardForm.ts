@@ -24,6 +24,10 @@ export const defaultWizardValues = {
   outputLanguages: [] as string[],
   renderStrategy: "" as RenderStrategyId | "",
   pageGrouping: "" as WizardPageGrouping,
+  /** UI-only: 1-indexed leading page numbers marked as spreads while in Single
+   *  grouping. Each merges with the following page. Emitted as `spread_pairs`
+   *  only when `pageGrouping === "single"`. */
+  spreadPairs: [] as number[],
   sectioningMode: "" as WizardSectioningMode,
   activitiesGenerator: false,
   imageCropping: false,

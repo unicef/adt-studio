@@ -1,5 +1,6 @@
 import { RenderStrategyPicker } from "./RenderStrategyPicker"
 import { PageGroupingMode } from "./PageGroupingMode"
+import { MarkSpreads } from "./MarkSpreads"
 import { SectioningMode } from "./SectioningMode"
 
 export function Step2() {
@@ -7,6 +8,7 @@ export function Step2() {
     <div className="flex flex-col gap-6 p-8">
       <RenderStrategyPicker />
       <PageGroupingMode />
+      <MarkSpreads />
       <SectioningMode />
     </div>
   )
