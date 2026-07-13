@@ -26,9 +26,11 @@ import { createTTSSynthesizer } from "@adt/llm"
 import {
   generateKidsVoicePack,
   loadBookConfig,
+  loadVoicesConfig,
   normalizeLocale,
   resolveKidsVoiceCacheDir,
   resolveSpeechModel,
+  resolveVoice,
 } from "@adt/pipeline"
 
 const GenerateKidsVoiceBody = z
@@ -81,6 +83,46 @@ export interface KidsVoicesConfig {
 }
 
 const KIDS_VOICES_CONFIG_FILE = "kids-voices.json"
+
+/**
+ * Style instructions for the neutral narrator track — plain, warm reading of
+ * onboarding UI copy in the book's own narration voice, with no character
+ * persona (unlike the buddy voice presets in `@adt/types/kids`).
+ */
+const KIDS_NARRATOR_INSTRUCTIONS =
+  "Read this children's book app text clearly, warmly and naturally at a " +
+  "gentle pace for a young child. You are a neutral, friendly narrator — " +
+  "no character voice or accent."
+
+/** Mirrors `apps/api/src/routes/tts.ts`'s `getConfigDir` — same resolution rule. */
+function getConfigDir(configPath?: string): string {
+  return configPath
+    ? path.join(path.dirname(configPath), "config")
+    : path.resolve(process.cwd(), "config")
+}
+
+/**
+ * The book narration voice per requested language — same resolution the TTS
+ * pipeline uses for read-aloud speech (`config.speech.voice` default,
+ * overridden per-language by `config/voices.yaml`).
+ */
+function resolveBookNarrationVoices(
+  languages: string[],
+  config: ReturnType<typeof loadBookConfig>,
+  configPath?: string,
+): Record<string, string> {
+  const voiceMaps = loadVoicesConfig(getConfigDir(configPath))
+  const result: Record<string, string> = {}
+  for (const language of languages) {
+    result[language] = resolveVoice(
+      "openai",
+      language,
+      voiceMaps,
+      config.speech?.voice,
+    )
+  }
+  return result
+}
 
 /**
  * Author-time kids mode decision, stored as a flat file in the book dir
@@ -250,7 +292,25 @@ export function createKidsVoiceRoutes(
       }
     })
 
-    return c.json({ buddies, voices: KIDS_OPENAI_VOICES })
+    // The buddy dropdown shouldn't offer the book's own narration voice —
+    // picking it would make a buddy sound like the narrator. If every voice
+    // would be excluded (e.g. narration uses every offered voice across
+    // languages), fall back to the full list rather than leaving nothing to
+    // pick.
+    const config = loadBookConfig(safeLabel, booksDir, configPath)
+    const bookLanguages = getBookLanguages(safeLabel, booksDir, configPath)
+    const narrationVoices = new Set(
+      Object.values(
+        resolveBookNarrationVoices(bookLanguages, config, configPath),
+      ),
+    )
+    const filteredVoices = KIDS_OPENAI_VOICES.filter(
+      (voice) => !narrationVoices.has(voice),
+    )
+    const voices =
+      filteredVoices.length > 0 ? filteredVoices : KIDS_OPENAI_VOICES
+
+    return c.json({ buddies, voices })
   })
 
   app.put("/books/:label/kids-voices/:buddyId", async (c) => {
@@ -401,9 +461,26 @@ export function createKidsVoiceRoutes(
       config.speech?.model,
     )
 
+    // Refresh the narrator track (book narration voice, neutral direction)
+    // for every affected language alongside every generate run — per-buddy
+    // or global — so it never goes stale relative to the book's own voice.
+    const narratorVoiceByLanguage: Record<
+      string,
+      { voice: string; instructions: string }
+    > = {}
+    for (const [language, voice] of Object.entries(
+      resolveBookNarrationVoices(languages, config, configPath),
+    )) {
+      narratorVoiceByLanguage[language] = {
+        voice,
+        instructions: KIDS_NARRATOR_INSTRUCTIONS,
+      }
+    }
+
     try {
       const result = await generateKidsVoicePack({
         bookDir,
+        narratorVoiceByLanguage,
         // Clips are book-independent — cache globally so the second book's
         // generation is a pure cache hit. The per-book .cache is kept as a
         // read-through fallback so packs generated before this change

@@ -2,7 +2,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { getKidsSpeakableLines } from "@adt/types"
+import { KIDS_NARRATOR_ID, getKidsNarratorLines, getKidsSpeakableLines } from "@adt/types"
 import {
   computeKidsVoicePackFingerprint,
   generateKidsVoicePack,
@@ -266,6 +266,114 @@ describe("generateKidsVoicePack", () => {
   })
 })
 
+describe("generateKidsVoicePack — narrator track", () => {
+  it("generates a narrator track under the narrator id with the given book voice", async () => {
+    const synth = makeSynth()
+    const result = await generateKidsVoicePack({
+      bookDir: tmpDir,
+      cacheDir: path.join(tmpDir, ".cache"),
+      languages: ["en"],
+      characters: ["dino"],
+      translationsByLanguage: { en: {} },
+      narratorVoiceByLanguage: {
+        en: { voice: "alloy", instructions: "Neutral narrator voice." },
+      },
+      ttsSynthesizer: synth,
+      model: "gpt-4o-mini-tts",
+    })
+
+    const buddyLines = getKidsSpeakableLines("dino").length
+    const narratorLines = getKidsNarratorLines().length
+    expect(result.total).toBe(buddyLines + narratorLines)
+
+    const manifestPath = path.join(tmpDir, "kids-voice", "en", "manifest.json")
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"))
+    expect(Object.keys(manifest.characters).sort()).toEqual(
+      ["dino", KIDS_NARRATOR_ID].sort(),
+    )
+    expect(manifest.characters[KIDS_NARRATOR_ID]["kids-onboarding-welcome-title"]).toBe(
+      `${KIDS_NARRATOR_ID}/kids-onboarding-welcome-title.mp3`,
+    )
+    expect(
+      fs.existsSync(
+        path.join(
+          tmpDir,
+          "kids-voice",
+          "en",
+          KIDS_NARRATOR_ID,
+          "kids-onboarding-welcome-title.mp3",
+        ),
+      ),
+    ).toBe(true)
+
+    const narratorCalls = synth.synthesize.mock.calls.filter(
+      (call) => call[0].voice === "alloy" && call[0].instructions === "Neutral narrator voice.",
+    )
+    expect(narratorCalls).toHaveLength(narratorLines)
+  })
+
+  it("respects a different voice per language", async () => {
+    const synth = makeSynth()
+    await generateKidsVoicePack({
+      bookDir: tmpDir,
+      cacheDir: path.join(tmpDir, ".cache"),
+      languages: ["en", "es"],
+      characters: ["dino"],
+      translationsByLanguage: { en: {}, es: {} },
+      narratorVoiceByLanguage: {
+        en: { voice: "alloy", instructions: "English narrator." },
+        es: { voice: "nova", instructions: "Spanish narrator." },
+      },
+      ttsSynthesizer: synth,
+      model: "gpt-4o-mini-tts",
+    })
+
+    const enManifest = JSON.parse(
+      fs.readFileSync(
+        path.join(tmpDir, "kids-voice", "en", "manifest.json"),
+        "utf8",
+      ),
+    )
+    const esManifest = JSON.parse(
+      fs.readFileSync(
+        path.join(tmpDir, "kids-voice", "es", "manifest.json"),
+        "utf8",
+      ),
+    )
+    expect(Object.keys(enManifest.characters)).toContain(KIDS_NARRATOR_ID)
+    expect(Object.keys(esManifest.characters)).toContain(KIDS_NARRATOR_ID)
+
+    const enCalls = synth.synthesize.mock.calls.filter(
+      (call) => call[0].instructions === "English narrator.",
+    )
+    const esCalls = synth.synthesize.mock.calls.filter(
+      (call) => call[0].instructions === "Spanish narrator.",
+    )
+    expect(enCalls.every((call) => call[0].voice === "alloy")).toBe(true)
+    expect(esCalls.every((call) => call[0].voice === "nova")).toBe(true)
+    expect(enCalls.length).toBe(getKidsNarratorLines().length)
+    expect(esCalls.length).toBe(getKidsNarratorLines().length)
+  })
+
+  it("omitting narratorVoiceByLanguage produces no narrator track", async () => {
+    const synth = makeSynth()
+    const result = await generateKidsVoicePack({
+      bookDir: tmpDir,
+      cacheDir: path.join(tmpDir, ".cache"),
+      languages: ["en"],
+      characters: ["dino"],
+      translationsByLanguage: { en: {} },
+      ttsSynthesizer: synth,
+      model: "gpt-4o-mini-tts",
+    })
+
+    expect(result.total).toBe(getKidsSpeakableLines("dino").length)
+    const manifestPath = path.join(tmpDir, "kids-voice", "en", "manifest.json")
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"))
+    expect(Object.keys(manifest.characters)).not.toContain(KIDS_NARRATOR_ID)
+  })
+})
+
 describe("computeKidsVoicePackFingerprint", () => {
   it("changes when a voice override is supplied and is stable when omitted", () => {
     const base = {
@@ -286,5 +394,42 @@ describe("computeKidsVoicePackFingerprint", () => {
       },
     })
     expect(withOverride).not.toBe(withoutOverride)
+  })
+
+  it("changes when the narrator voice for that language changes", () => {
+    const base = {
+      language: "en",
+      characters: ["dino"],
+      dict: {},
+      model: "gpt-4o-mini-tts",
+    }
+
+    const withoutNarrator = computeKidsVoicePackFingerprint(base)
+
+    const withNarrator = computeKidsVoicePackFingerprint({
+      ...base,
+      narratorVoiceByLanguage: {
+        en: { voice: "alloy", instructions: "Neutral narrator." },
+      },
+    })
+    expect(withNarrator).not.toBe(withoutNarrator)
+
+    const withDifferentNarratorVoice = computeKidsVoicePackFingerprint({
+      ...base,
+      narratorVoiceByLanguage: {
+        en: { voice: "nova", instructions: "Neutral narrator." },
+      },
+    })
+    expect(withDifferentNarratorVoice).not.toBe(withNarrator)
+
+    // A narrator entry for a different language doesn't affect this
+    // language's fingerprint.
+    const withOtherLanguageNarrator = computeKidsVoicePackFingerprint({
+      ...base,
+      narratorVoiceByLanguage: {
+        es: { voice: "nova", instructions: "Neutral narrator." },
+      },
+    })
+    expect(withOtherLanguageNarrator).toBe(withoutNarrator)
   })
 })

@@ -357,6 +357,71 @@ export function getKidsSpeakableLines(id: string): readonly KidsBuddyLine[] {
 }
 
 // ---------------------------------------------------------------------------
+// Narrator track (neutral, non-buddy voice = the book's narration voice)
+// ---------------------------------------------------------------------------
+
+/**
+ * Not a buddy — deliberately excluded from `KIDS_BUDDY_IDS`. Identifies the
+ * neutral narration track that reads existing onboarding copy in the book's
+ * own narration voice, rather than a character voice.
+ */
+export const KIDS_NARRATOR_ID = "narrator" as const
+
+/**
+ * Onboarding lines read by the neutral narrator track. Reuses the existing
+ * onboarding translation keys and their verbatim English fallbacks — plain
+ * text only, no `${name}` interpolation (the narrator has no character
+ * identity to inject).
+ */
+export const KIDS_NARRATOR_LINES: readonly KidsBuddyLine[] = [
+  {
+    key: "kids-onboarding-welcome-title",
+    fallback: "Hi! Welcome to your reading adventure.",
+  },
+  {
+    key: "kids-onboarding-welcome-copy",
+    fallback:
+      "I'm going to be your reading buddy - first, let's get to know you.",
+  },
+  {
+    key: "kids-onboarding-name-title",
+    fallback: "What should I call you?",
+  },
+  {
+    key: "kids-onboarding-read-title",
+    fallback: "How do you want to read?",
+  },
+  {
+    key: "kids-onboarding-buddy-title",
+    fallback: "Pick a reading buddy",
+  },
+  {
+    key: "kids-onboarding-pages-title",
+    fallback: "Turn the pages",
+  },
+  {
+    key: "kids-onboarding-pages-copy",
+    fallback: "Press the arrow keys to go forward and back.",
+  },
+  {
+    key: "kids-onboarding-help-title",
+    fallback: "Ask me anytime",
+  },
+  {
+    key: "kids-onboarding-help-copy",
+    fallback: "Tap your buddy or press the L key when you want help.",
+  },
+  {
+    key: "kids-onboarding-abilities-title",
+    fallback: "Here's what I can do",
+  },
+]
+
+export function getKidsNarratorLines(): readonly KidsBuddyLine[] {
+  return KIDS_NARRATOR_LINES
+}
+
+// ---------------------------------------------------------------------------
 // Voice pack contract
 // ---------------------------------------------------------------------------
 

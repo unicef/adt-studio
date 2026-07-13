@@ -21,8 +21,10 @@ import fs from "node:fs"
 import path from "node:path"
 import {
   KIDS_LANGUAGE_NAMES,
+  KIDS_NARRATOR_ID,
   KIDS_VOICE_MANIFEST_VERSION,
   getKidsBuddyMeta,
+  getKidsNarratorLines,
   getKidsSpeakableLines,
   resolveKidsBuddyVoice,
   type KidsBuddyVoiceConfig,
@@ -86,6 +88,13 @@ export interface GenerateKidsVoicePackOptions {
    * clips.
    */
   voiceOverrides?: Record<string, Partial<KidsBuddyVoiceConfig>>
+  /**
+   * Per-language voice for the neutral narrator track (the book's own
+   * narration voice, not a buddy). Languages without an entry get no
+   * narrator track. Omitting this option entirely disables the narrator
+   * track for every language (unchanged behavior).
+   */
+  narratorVoiceByLanguage?: Record<string, KidsBuddyVoiceConfig>
   ttsSynthesizer: TTSSynthesizer
   model: string
   format?: string
@@ -151,6 +160,7 @@ export async function generateKidsVoicePack(
     characters,
     translationsByLanguage,
     voiceOverrides,
+    narratorVoiceByLanguage,
     ttsSynthesizer,
     model,
     format = "mp3",
@@ -197,6 +207,22 @@ export async function generateKidsVoicePack(
           text,
           voice: voice.voice,
           instructions: voice.instructions,
+        })
+      }
+    }
+
+    const narratorVoice = narratorVoiceByLanguage?.[safeLanguage]
+    if (narratorVoice) {
+      for (const line of getKidsNarratorLines()) {
+        const text = stripEmojis(dict[line.key] || line.fallback).trim()
+        if (!isSpeakableText(text)) continue
+        work.push({
+          language: safeLanguage,
+          characterId: KIDS_NARRATOR_ID,
+          lineKey: assertSafeSegment(line.key, "line key"),
+          text,
+          voice: narratorVoice.voice,
+          instructions: narratorVoice.instructions,
         })
       }
     }
@@ -311,6 +337,7 @@ export function computeKidsVoicePackFingerprint(options: {
   model: string
   provider?: string
   voiceOverrides?: Record<string, Partial<KidsBuddyVoiceConfig>>
+  narratorVoiceByLanguage?: Record<string, KidsBuddyVoiceConfig>
 }): string {
   const {
     language,
@@ -319,6 +346,7 @@ export function computeKidsVoicePackFingerprint(options: {
     model,
     provider = "openai",
     voiceOverrides,
+    narratorVoiceByLanguage,
   } = options
   const texts: Record<string, string> = {}
   for (const characterId of [...characters].sort()) {
@@ -333,6 +361,14 @@ export function computeKidsVoicePackFingerprint(options: {
       })
       texts[`${characterId}:voice`] = `${voice.voice}|${voice.instructions}`
     }
+  }
+  const narratorVoice = narratorVoiceByLanguage?.[language]
+  if (narratorVoice) {
+    for (const line of getKidsNarratorLines()) {
+      texts[`${KIDS_NARRATOR_ID}:${line.key}`] = dict[line.key] || line.fallback
+    }
+    texts[`${KIDS_NARRATOR_ID}:voice`] =
+      `${narratorVoice.voice}|${narratorVoice.instructions}`
   }
   return crypto
     .createHash("sha256")
