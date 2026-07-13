@@ -4,7 +4,7 @@ import { LandingShell } from "@/components/LandingShell";
 import { WelcomeScene } from "@/components/sections/WelcomeScene";
 import { TrustStrip } from "@/components/sections/TrustStrip";
 import { FeaturesScene } from "@/components/sections/FeaturesScene";
-import { CarouselScene } from "@/components/sections/CarouselScene";
+import { DemoScene } from "@/components/sections/DemoScene";
 import { ShowcaseScene } from "@/components/sections/ShowcaseScene";
 import { ReleasesScene } from "@/components/sections/ReleasesScene";
 import { DocsScene } from "@/components/sections/DocsScene";
@@ -38,7 +38,7 @@ function Home() {
       <WelcomeScene />
       <TrustStrip />
       <FeaturesScene />
-      <CarouselScene />
+      <DemoScene />
       <ShowcaseScene />
       <ReleasesScene />
       {DOCS_ENABLED && <DocsScene />}
