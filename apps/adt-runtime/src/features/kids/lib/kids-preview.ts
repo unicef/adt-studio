@@ -38,19 +38,8 @@ export function isKidsPreviewContext(): boolean {
   if (typeof window === "undefined") return false
   if (process.env.NODE_ENV === "development") return true
   try {
-    // Studio's preview tags the iframe URL with this param on first load…
-    if (
-      new URLSearchParams(window.location.search).get("kidsOnboarding") ===
-      "preview"
-    ) {
-      return true
-    }
-  } catch {
-    // ignore — fall through to the iframe check
-  }
-  try {
-    // …and, since in-preview navigation can drop the query string, treat any
-    // iframed runtime as a preview context. A shipped book runs standalone
+    // Any iframed runtime is a preview context — Studio's preview always runs
+    // the book in an iframe. A shipped book runs standalone
     // (window.parent === window), so this never fires for real readers.
     if (window.parent !== window) return true
   } catch {

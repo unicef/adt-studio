@@ -85,9 +85,9 @@ FAB bottom-right (idle bob, reduce-motion aware; expression swaps standing/happy
 
 Sky-blue gradient world with drifting CSS clouds; white chunky cards with 3px borders and **hard offset shadows** (`0 4px 0 <edge>`) pressed down via transform+box-shadow only; sunny-yellow primary CTA (`#FFC800` face / `#DFA000` edge); selection = **full sky-500 fill + white checkmark**; Lucide icons; ≥44px targets; visible focus rings; `reduceMotionAtom` + OS `prefers-reduced-motion` respected throughout. Note the Tailwind v4 trap: custom classes in `@layer utilities` get **no variant support** — the kids animation classes are used unprefixed and gated in JS via `usePrefersReducedMotion`.
 
-### Dev/preview affordances (remove before shipping)
+### Studio preview override
 
-Two `KidsChrome` conveniences fire only on the dev server (`NODE_ENV=development`) or in an iframed runtime (the Studio preview): a once-per-tab onboarding replay, and a "↻ Redo intro" button. A shipped standalone book never sees either. Note: the esbuild runtime build defines only `process.env.NODE_ENV` — `import.meta.env` is undefined and **reading it throws**.
+The Studio preview lets an author flip the book between the KIDS and REGULAR chrome without touching the packed decision. The preview iframe tags its URL with `?kidsMode=on|off`; the runtime honors it (persisted per-tab in sessionStorage so it survives page turns) **only in the preview context** — `isKidsPreviewContext()` = the dev server (`NODE_ENV=development`) or any iframed runtime (`window.parent !== window`). A shipped standalone book runs top-level, so a stray `?kidsMode=` is ignored. Note: the esbuild runtime build defines only `process.env.NODE_ENV` — `import.meta.env` is undefined and **reading it throws**. Onboarding replay for authors lives in the buddy panel ("Meet my buddy again"), not a dev-only button.
 
 ## Feature ↔ research mapping
 

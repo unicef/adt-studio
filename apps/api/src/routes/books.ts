@@ -903,8 +903,8 @@ export function createBookRoutes(
         throw new HTTPException(404, { message: "ADT has no pages" })
       }
       // Preserve the version segment and the query string in the redirect —
-      // the Studio preview rides params on the root URL (kidsOnboarding,
-      // kidsMode) that the runtime must see on the first real page load.
+      // the Studio preview rides the `kidsMode` param on the root URL that the
+      // runtime must see on the first real page load.
       const versionMatch = reqPath.match(/\/adt\/(v-[^/]+)/)
       const versionPrefix = versionMatch ? `${versionMatch[1]}/` : ""
       const query = new URL(c.req.url).search

@@ -397,10 +397,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
         <div style={sizerStyle}>
           <iframe
             ref={iframeRef}
-            // `?kidsOnboarding=preview` lets the runtime replay kids onboarding
-            // in the Studio preview (dev/authoring only). No effect unless kids
-            // mode is on; shipped books never carry this param.
-            src={`${getAdtUrl(bookLabel)}/v-${version}/?kidsOnboarding=preview${kidsParam ? `&kidsMode=${kidsParam}` : ""}`}
+            src={`${getAdtUrl(bookLabel)}/v-${version}/${kidsParam ? `?kidsMode=${kidsParam}` : ""}`}
             className="border-0"
             style={iframeStyle}
             title="ADT Preview"

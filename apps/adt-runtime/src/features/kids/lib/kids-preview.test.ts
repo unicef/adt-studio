@@ -27,17 +27,12 @@ afterEach(() => {
 })
 
 describe("isKidsPreviewContext", () => {
-  it("is false outside dev/iframe/onboarding-preview contexts", () => {
+  it("is false outside dev/iframe contexts (standalone shipped book)", () => {
     expect(isKidsPreviewContext()).toBe(false)
   })
 
-  it("is true when the runtime is iframed", () => {
+  it("is true when the runtime is iframed (Studio preview)", () => {
     enterIframeContext()
-    expect(isKidsPreviewContext()).toBe(true)
-  })
-
-  it("is true when the URL carries ?kidsOnboarding=preview, even standalone", () => {
-    setSearch("?kidsOnboarding=preview")
     expect(isKidsPreviewContext()).toBe(true)
   })
 })
