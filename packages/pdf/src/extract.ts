@@ -342,6 +342,34 @@ export function extractPdfStream(
 }
 
 /**
+ * Extract a specific set of page groups from a PDF — used to (re)build only the
+ * pages affected by a spread merge/split, without re-extracting the whole book.
+ * Each group is 1 or 2 zero-indexed page indices (a single page or a spread).
+ */
+export async function extractPages(input: {
+  pdfBuffer: Buffer;
+  groups: number[][];
+  vectorTextGrouping?: boolean;
+  fixedLayout?: boolean;
+}): Promise<ExtractedPage[]> {
+  const { pdfBuffer, groups, vectorTextGrouping = true, fixedLayout = false } = input;
+  const doc = openPdfFromBuffer(pdfBuffer);
+  try {
+    const pages: ExtractedPage[] = [];
+    for (const group of groups) {
+      const page =
+        group.length === 2
+          ? await extractSpreadPage(doc, group[0], group[1], vectorTextGrouping, fixedLayout)
+          : await extractPage(doc, group[0], vectorTextGrouping, fixedLayout);
+      pages.push(page);
+    }
+    return pages;
+  } finally {
+    doc.destroy();
+  }
+}
+
+/**
  * Compute logical page groups from a 0-indexed page range.
  *
  * - Spread base (`spreadMode`): the first selected page is standalone, then

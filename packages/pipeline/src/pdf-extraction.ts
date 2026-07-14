@@ -1,9 +1,10 @@
 import fs from "node:fs"
-import { extractPdfStream, type ExtractStreamResult } from "@adt/pdf"
+import { extractPdfStream, samplePageEdges, type ExtractStreamResult } from "@adt/pdf"
 import type { Storage } from "@adt/storage"
 import type { Progress } from "./progress.js"
 import { toBookMetadata } from "./metadata-model.js"
 import { ensureBookGoogleFontsCached } from "./fonts-bundle.js"
+import { detectSpreads, type SpreadEdgeSample } from "./spread-detection.js"
 
 export interface ExtractOptions {
   pdfPath: string
@@ -63,6 +64,10 @@ export async function extractPDF(
 
     let serifChars = 0
     let sansChars = 0
+    // In single-page mode, sample each page's inner edges as we go so we can
+    // suggest likely spreads afterwards — the page render is already in hand,
+    // so this is essentially free (no second pass over the images).
+    const edgeSamples: SpreadEdgeSample[] = []
     for await (const page of pages) {
       storage.putExtractedPage(page)
       // Store positioned text (paragraphs + viewport dims). Always available so
@@ -74,7 +79,27 @@ export async function extractPDF(
       }
       serifChars += page.fontStats?.serifChars ?? 0
       sansChars += page.fontStats?.sansChars ?? 0
+
+      if (!spreadMode) {
+        try {
+          const { leftEdge, rightEdge } = samplePageEdges(page.pageImage.buffer)
+          edgeSamples.push({
+            pageNumber: page.pageNumber,
+            leftEdge,
+            rightEdge,
+            textLength: page.text?.length ?? 0,
+          })
+        } catch {
+          // Non-fatal — spread suggestions are best-effort.
+        }
+      }
     }
+
+    // Store spread suggestions (single-page base only). Empty array clears any
+    // stale suggestions from a previous run.
+    storage.putNodeData("spread-suggestions", "book", {
+      suggestions: !spreadMode && edgeSamples.length >= 2 ? detectSpreads(edgeSamples) : [],
+    })
 
     // Book-level font profile: the dominant body-text category (serif vs sans)
     // across all pages, used to pick a reflowable base font. null when the book
