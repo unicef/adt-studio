@@ -22,7 +22,7 @@ const CAROUSEL_SINGLE_TITLE = msg`Single Mode`
 const CAROUSEL_SINGLE_DESCRIPTION = msg`When your PDF isn't built around facing pages, single mode keeps every page separate: nothing is merged across a spread. That matches how most textbooks, novels, and reference books are read - one page at a time.`
 
 const CAROUSEL_MIXED_TITLE = msg`A few spreads in a single book`
-const CAROUSEL_MIXED_DESCRIPTION = msg`Some books are mostly single pages but have a few illustrations that run across two facing pages. In Single mode you can mark just those pairs as spreads so they're kept together, while every other page stays on its own. After choosing Single, use "Mark spreads" below to link them.`
+const CAROUSEL_MIXED_DESCRIPTION = msg`Some books are mostly single pages but have a few illustrations that run across two facing pages. Choose Single here — then, after extraction, the Extract view detects those spreads and lets you merge just those pairs while every other page stays on its own.`
 
 function SpreadDiagram() {
   return (
