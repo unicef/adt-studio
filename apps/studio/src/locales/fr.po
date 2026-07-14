@@ -341,11 +341,14 @@ msgstr "{issueCount} {0}"
 msgid "{issuesLabel}, {reviewLabel}"
 msgstr "{issuesLabel}, {reviewLabel}"
 
-msgid "{markedSpreads} {markedSpreads, plural, one {spread} other {spreads}} marked."
-msgstr ""
+#~ msgid "{markedSpreads} {markedSpreads, plural, one {spread} other {spreads}} marked."
+#~ msgstr ""
 
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 sur {total} pages fusionnées} one {# sur {total} pages fusionnées} other {# sur {total} pages fusionnées}}"
+
+msgid "{mergedCount} {mergedCount, plural, one {spread} other {spreads}} merged."
+msgstr ""
 
 msgid "{missingAudioCount} missing"
 msgstr "{missingAudioCount} manquant"
@@ -520,8 +523,8 @@ msgstr "Un livre avec ce nom existe déjà."
 msgid "A close, long-term relationship between two different species, often benefiting both."
 msgstr "Une relation étroite et à long terme entre deux espèces différentes, souvent bénéfique pour les deux."
 
-msgid "A few pages that are actually spreads?"
-msgstr ""
+#~ msgid "A few pages that are actually spreads?"
+#~ msgstr ""
 
 msgid "A few spreads in a single book"
 msgstr ""
@@ -1205,6 +1208,12 @@ msgstr "Appliquer page background colors"
 
 msgid "Apply Segmentation"
 msgstr "Appliquer Segmentation"
+
+msgid "Apply spreads"
+msgstr ""
+
+msgid "Applying…"
+msgstr ""
 
 msgid "AR"
 msgstr "AR"
@@ -1997,6 +2006,9 @@ msgstr "Impossible de lire les dimensions de l'image"
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "Impossible de lire ce PDF. Le fichier est peut-être corrompu ou protégé par un mot de passe."
 
+msgid "Couldn't apply the spreads — please try again."
+msgstr ""
+
 msgid "Couldn't check for updates"
 msgstr "Impossible de rechercher des mises à jour"
 
@@ -2308,6 +2320,12 @@ msgstr "Malgré le mauvais temps, l'expédition a poursuivi sa route vers le som
 msgid "Detailed, technical captions for college and adult readers."
 msgstr "Des sous-titres détaillés et techniques pour les lecteurs universitaires et adultes."
 
+msgid "Detected {confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} — confirm which to merge"
+msgstr ""
+
+msgid "Detected {left}–{right}"
+msgstr ""
+
 msgid "Detected Font"
 msgstr "Police détectée"
 
@@ -2359,8 +2377,8 @@ msgstr "Abandonner et quitter"
 #~ msgid "Discard unsaved changes?"
 #~ msgstr "Ignorer les modifications non enregistrées ?"
 
-#~ msgid "Dismiss"
-#~ msgstr "Ignorer"
+msgid "Dismiss"
+msgstr "Ignorer"
 
 msgid "Display"
 msgstr "Affichage"
@@ -2868,6 +2886,9 @@ msgstr "Extrait Texte"
 msgid "Extracting..."
 msgstr "Extraction..."
 
+msgid "Extraction is running — you can review spreads once it finishes."
+msgstr ""
+
 msgid "Extraction is skipped now. After the book is created, use the Split & merge panel on its overview to export page-range parts and merge the completed results back."
 msgstr "L'extraction est ignorée pour l'instant. Une fois le livre créé, utilisez le panneau Diviser et fusionner de sa vue d'ensemble pour exporter des parties par plage de pages et fusionner les résultats terminés."
 
@@ -3310,8 +3331,8 @@ msgstr "Distribuez des parties par plage de pages et fusionnez-les plus tard."
 #~ msgid "Handwriting"
 #~ msgstr "Manuscrite"
 
-msgid "Have a few pages that are actually spreads? Mark them so they're kept together."
-msgstr ""
+#~ msgid "Have a few pages that are actually spreads? Mark them so they're kept together."
+#~ msgstr ""
 
 msgid "Header"
 msgstr "En-tête"
@@ -5898,6 +5919,9 @@ msgstr "Annuler le changement de langue"
 msgid "Revert to {originalLanguageName}"
 msgstr "Revenir à {originalLanguageName}"
 
+msgid "Review {selectedCount} selected"
+msgstr ""
+
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Examinez et peaufinez chaque bloc simplifié côte à côte avec l'original avant l'emballage."
 
@@ -6589,8 +6613,8 @@ msgstr "Image composite unique"
 msgid "Single Mode"
 msgstr "Mode simple"
 
-msgid "Single mode processes each page on its own. If an illustration runs across two facing pages, mark that pair so it's kept together instead of split down the middle. Most books don't need this."
-msgstr ""
+#~ msgid "Single mode processes each page on its own. If an illustration runs across two facing pages, mark that pair so it's kept together instead of split down the middle. Most books don't need this."
+#~ msgstr ""
 
 msgid "Single Page"
 msgstr "Page unique"
@@ -6650,8 +6674,11 @@ msgstr "Mise à jour logicielle"
 msgid "Software update status"
 msgstr "Statut de la mise à jour logicielle"
 
-msgid "Some books are mostly single pages but have a few illustrations that run across two facing pages. In Single mode you can mark just those pairs as spreads so they're kept together, while every other page stays on its own. After choosing Single, use \"Mark spreads\" below to link them."
+msgid "Some books are mostly single pages but have a few illustrations that run across two facing pages. Choose Single here — then, after extraction, the Extract view detects those spreads and lets you merge just those pairs while every other page stays on its own."
 msgstr ""
+
+#~ msgid "Some books are mostly single pages but have a few illustrations that run across two facing pages. In Single mode you can mark just those pairs as spreads so they're kept together, while every other page stays on its own. After choosing Single, use \"Mark spreads\" below to link them."
+#~ msgstr ""
 
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Certaines pages n'ont pas de couche de texte intégrée — le texte a été récupéré à partir de l'image de la page. Préférez un PDF basé sur du texte."
@@ -7227,6 +7254,9 @@ msgstr "Ces fonctionnalités améliorent l'accès pour les personnes handicapée
 msgid "These pages have no embedded text layer, but the Sectioning step recovered text from the page images — so this PDF looks scanned or image-based. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "Ces pages n'ont pas de couche de texte intégrée, mais l'étape de Sectionnement a récupéré du texte à partir des images des pages — ce PDF semble donc numérisé ou basé sur des images. Le pipeline peut toujours fonctionner à partir du texte récupéré, mais pour de meilleurs résumés, métadonnées et traductions, essayez d'obtenir une version de ce PDF basée sur du texte (avec une vraie couche de texte) plutôt qu'une copie numérisée."
 
+msgid "These pages were extracted one at a time. If an illustration runs across two facing pages, merge those pairs so they're kept together."
+msgstr ""
+
 msgid "These stages are optional. They don't depend on each other — run any of them in any order once the core pipeline is complete."
 msgstr "Ces étapes sont facultatives. Elles ne dépendent pas les unes des autres — exécutez-les dans n'importe quel ordre une fois le pipeline principal terminé."
 
@@ -7621,6 +7651,9 @@ msgstr "Histoire en deux colonnes"
 
 msgid "Two-column template for story content"
 msgstr "Modèle à deux colonnes pour le contenu narratif"
+
+msgid "Two-page spreads"
+msgstr ""
 
 msgid "Type"
 msgstr "Type"

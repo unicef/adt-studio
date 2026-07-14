@@ -340,11 +340,14 @@ msgstr "{issueCount} {0}"
 msgid "{issuesLabel}, {reviewLabel}"
 msgstr "{issuesLabel}, {reviewLabel}"
 
-msgid "{markedSpreads} {markedSpreads, plural, one {spread} other {spreads}} marked."
-msgstr ""
+#~ msgid "{markedSpreads} {markedSpreads, plural, one {spread} other {spreads}} marked."
+#~ msgstr ""
 
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 nga {total} faqe të bashkuara} one {# nga {total} faqe të bashkuara} other {# nga {total} faqe të bashkuara}}"
+
+msgid "{mergedCount} {mergedCount, plural, one {spread} other {spreads}} merged."
+msgstr ""
 
 msgid "{missingAudioCount} missing"
 msgstr "{missingAudioCount} mungojnë"
@@ -519,8 +522,8 @@ msgstr "Një libër me këtë emër ekziston tashmë."
 msgid "A close, long-term relationship between two different species, often benefiting both."
 msgstr "Një marrëdhënie e ngushtë afatgjatë midis dy specieve të ndryshme, shpesh duke përfituar të dyja."
 
-msgid "A few pages that are actually spreads?"
-msgstr ""
+#~ msgid "A few pages that are actually spreads?"
+#~ msgstr ""
 
 msgid "A few spreads in a single book"
 msgstr ""
@@ -1204,6 +1207,12 @@ msgstr "Apliko ngjyrat e sfondit të faqes"
 
 msgid "Apply Segmentation"
 msgstr "Apliko segmentimin"
+
+msgid "Apply spreads"
+msgstr ""
+
+msgid "Applying…"
+msgstr ""
 
 msgid "AR"
 msgstr "AR"
@@ -1996,6 +2005,9 @@ msgstr "Nuk u lexuan dot përmasat e imazhit"
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "Nuk u mund të lexohet ky PDF. Skedari mund të jetë i dëmtuar ose i mbrojtur me fjalëkalim."
 
+msgid "Couldn't apply the spreads — please try again."
+msgstr ""
+
 msgid "Couldn't check for updates"
 msgstr "Nuk u arrit të kontrollohen përditësimet"
 
@@ -2307,6 +2319,12 @@ msgstr "Pavarësisht motit të keq, ekspedita vazhdoi drejt majës, pa u tërheq
 msgid "Detailed, technical captions for college and adult readers."
 msgstr "Tituj të detajuar dhe teknikë për lexues të universitetit dhe të rritur."
 
+msgid "Detected {confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} — confirm which to merge"
+msgstr ""
+
+msgid "Detected {left}–{right}"
+msgstr ""
+
 msgid "Detected Font"
 msgstr "Fonti i zbuluar"
 
@@ -2358,8 +2376,8 @@ msgstr "Hidh poshtë dhe dil"
 #~ msgid "Discard unsaved changes?"
 #~ msgstr "Hidh poshtë ndryshimet e paruajtura?"
 
-#~ msgid "Dismiss"
-#~ msgstr "Hiqe"
+msgid "Dismiss"
+msgstr "Hiqe"
 
 msgid "Display"
 msgstr "Shfaqje"
@@ -2867,6 +2885,9 @@ msgstr "Tekst i nxjerrë"
 msgid "Extracting..."
 msgstr "Duke nxjerrë..."
 
+msgid "Extraction is running — you can review spreads once it finishes."
+msgstr ""
+
 msgid "Extraction is skipped now. After the book is created, use the Split & merge panel on its overview to export page-range parts and merge the completed results back."
 msgstr "Nxjerrja anashkalohet tani. Pasi të krijohet libri, përdorni panelin Ndaj dhe bashko në përmbledhjen e tij për të eksportuar pjesë sipas intervalit të faqeve dhe për të bashkuar rezultatet e përfunduara."
 
@@ -3309,8 +3330,8 @@ msgstr "Shpërndani pjesë sipas intervalit të faqeve dhe bashkojini më vonë.
 #~ msgid "Handwriting"
 #~ msgstr "Shkrim dore"
 
-msgid "Have a few pages that are actually spreads? Mark them so they're kept together."
-msgstr ""
+#~ msgid "Have a few pages that are actually spreads? Mark them so they're kept together."
+#~ msgstr ""
 
 msgid "Header"
 msgstr "Titull"
@@ -5897,6 +5918,9 @@ msgstr "Kthe ndryshimin e gjuhës"
 msgid "Revert to {originalLanguageName}"
 msgstr "Kthehu te {originalLanguageName}"
 
+msgid "Review {selectedCount} selected"
+msgstr ""
+
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Rishikoni dhe rafinoni çdo bllok të thjeshtëzuar krahas origjinalit përpara paketimit."
 
@@ -6588,8 +6612,8 @@ msgstr "Imazh i vetëm i kompozuar"
 msgid "Single Mode"
 msgstr "Modalitet i Vetëm"
 
-msgid "Single mode processes each page on its own. If an illustration runs across two facing pages, mark that pair so it's kept together instead of split down the middle. Most books don't need this."
-msgstr ""
+#~ msgid "Single mode processes each page on its own. If an illustration runs across two facing pages, mark that pair so it's kept together instead of split down the middle. Most books don't need this."
+#~ msgstr ""
 
 msgid "Single Page"
 msgstr "Faqe e Vetme"
@@ -6649,8 +6673,11 @@ msgstr "Përditësim softueri"
 msgid "Software update status"
 msgstr "Gjendja e përditësimit të softuerit"
 
-msgid "Some books are mostly single pages but have a few illustrations that run across two facing pages. In Single mode you can mark just those pairs as spreads so they're kept together, while every other page stays on its own. After choosing Single, use \"Mark spreads\" below to link them."
+msgid "Some books are mostly single pages but have a few illustrations that run across two facing pages. Choose Single here — then, after extraction, the Extract view detects those spreads and lets you merge just those pairs while every other page stays on its own."
 msgstr ""
+
+#~ msgid "Some books are mostly single pages but have a few illustrations that run across two facing pages. In Single mode you can mark just those pairs as spreads so they're kept together, while every other page stays on its own. After choosing Single, use \"Mark spreads\" below to link them."
+#~ msgstr ""
 
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Disa faqe nuk kanë shtresë teksti të integruar — teksti u rikuperua nga imazhi i faqes. Preferoni një PDF të bazuar në tekst."
@@ -7226,6 +7253,9 @@ msgstr "Këto veçori përmirësojnë aksesin për personat me aftësi të kufiz
 msgid "These pages have no embedded text layer, but the Sectioning step recovered text from the page images — so this PDF looks scanned or image-based. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "Këto faqe nuk kanë shtresë teksti të integruar, por hapi i Seksionimit rikuperoi tekst nga imazhet e faqeve — pra ky PDF duket i skanuar ose i bazuar në imazhe. Procesi ende mund të punojë me tekstin e rikuperuar, por për përmbledhje, metadata dhe përkthime më të mira, provoni të siguroni një version të këtij PDF-je të bazuar në tekst (me një shtresë teksti reale) në vend të një kopjeje të skanuar."
 
+msgid "These pages were extracted one at a time. If an illustration runs across two facing pages, merge those pairs so they're kept together."
+msgstr ""
+
 msgid "These stages are optional. They don't depend on each other — run any of them in any order once the core pipeline is complete."
 msgstr "Këto faza janë opsionale. Ato nuk varen nga njëra-tjetra — ekzekuto cilëndo prej tyre në çfarëdo rendi pasi të jetë plotësuar tubi kryesor."
 
@@ -7620,6 +7650,9 @@ msgstr "Tregim me Dy Kolona"
 
 msgid "Two-column template for story content"
 msgstr "Shabllon me dy kolona për përmbajtje tregimesh"
+
+msgid "Two-page spreads"
+msgstr ""
 
 msgid "Type"
 msgstr "Lloji"
