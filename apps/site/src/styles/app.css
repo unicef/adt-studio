@@ -2,7 +2,20 @@
 @import 'fumadocs-ui/css/neutral.css';
 @import 'fumadocs-ui/css/preset.css';
 
+/*
+ * Fraunces (variable, opsz+wght) — display serif for headlines only.
+ * Body text stays Atkinson Hyperlegible for readability.
+ */
+@font-face {
+  font-family: 'Fraunces';
+  src: url('../assets/fonts/fraunces-latin-vf.woff2') format('woff2-variations');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme inline {
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --font-sans:
     "Atkinson Hyperlegible", ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial,
@@ -40,17 +53,20 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  /* Warm paper neutrals: lightness unchanged from the old pure-gray values
+     (contrast preserved), with a whisper of warm chroma so surfaces read as
+     paper rather than screen. */
+  --background: oklch(0.995 0.004 90);
+  --foreground: oklch(0.148 0.008 65);
+  --card: oklch(0.999 0.002 90);
+  --card-foreground: oklch(0.148 0.008 65);
   --primary: oklch(0.623 0.189 260);
-  --primary-foreground: oklch(1 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --border: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.995 0.004 90);
+  --muted: oklch(0.968 0.007 90);
+  --muted-foreground: oklch(0.55 0.018 75);
+  --accent: oklch(0.965 0.009 90);
+  --accent-foreground: oklch(0.205 0.008 65);
+  --border: oklch(0.918 0.01 85);
   --ring: oklch(0.623 0.189 260);
   --radius: 0.625rem;
 
