@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/Button";
 import { SearchTrigger } from "@/components/SearchTrigger";
-import { PdfToBookDiagram } from "@/components/PdfToBookDiagram";
+import { HeroBook } from "@/components/HeroBook";
 import { TextReveal } from "@/components/motion/beui/text-reveal";
 import { Magnetic } from "@/components/motion/beui/magnetic";
 import { cn } from "@/lib/cn";
@@ -211,11 +211,7 @@ export function WelcomeScene() {
           )}
           style={{ transitionDelay: "300ms" }}
         >
-          <div className="relative h-[294px] w-full max-w-[336px] sm:h-[420px] sm:max-w-[480px]">
-            <div className="absolute inset-0 origin-top-left scale-[0.7] sm:scale-100">
-              <PdfToBookDiagram mounted={mounted} />
-            </div>
-          </div>
+          <HeroBook />
         </div>
       </div>
 
