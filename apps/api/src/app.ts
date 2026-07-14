@@ -19,6 +19,7 @@ import { createEasyReadRoutes } from "./routes/easy-read.js"
 import { createBookSummaryRoutes } from "./routes/book-summary.js"
 import { createFontRoutes } from "./routes/fonts.js"
 import { createTTSRoutes } from "./routes/tts.js"
+import { createKidsVoiceRoutes } from "./routes/kids-voice.js"
 import { createStageRoutes } from "./routes/stages.js"
 import { createTaskRoutes } from "./routes/tasks.js"
 import { createBookEventBus } from "./services/book-event-bus.js"
@@ -102,6 +103,7 @@ app.route("/api", createEasyReadRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createBookSummaryRoutes(booksDir, promptsDir, configPath, taskService))
 app.route("/api", createFontRoutes(booksDir, promptsDir, configPath, taskService))
 app.route("/api", createTTSRoutes(booksDir, configPath, taskService))
+app.route("/api", createKidsVoiceRoutes(booksDir, webAssetsDir, configPath))
 app.route(
   "/api",
   createStageRoutes(stageService, eventBus, booksDir, promptsDir, webAssetsDir, configPath)

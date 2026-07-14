@@ -291,3 +291,12 @@ export {
   FIXED_LAYOUT_SECTIONING_NODE,
   PAGE_SECTIONING_NODE,
 } from "./render-sectioning.js"
+export {
+  generateKidsVoicePack,
+  resolveKidsLineText,
+  resolveKidsVoiceCacheDir,
+  computeKidsVoicePackFingerprint,
+  type GenerateKidsVoicePackOptions,
+  type KidsVoiceClipPlan,
+  type KidsVoiceGenerationResult,
+} from "./kids-voice.js"

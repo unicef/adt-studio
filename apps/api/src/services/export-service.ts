@@ -5,6 +5,7 @@ import { parseBookLabel } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
 import { packageAdtWeb, packageWebpub, packageEpub, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
 import { createZipStream } from "./zip-util.js"
+import { readKidsModeConfig } from "../routes/kids-voice.js"
 import { readPartInfo } from "./book-service.js"
 
 export interface ExportResult {
@@ -45,6 +46,8 @@ export interface ExportFeatures {
   readAloud?: boolean
   quizzes?: boolean
   signLanguage?: boolean
+  kidsMode?: boolean
+  kidsBuddies?: string[]
   languages?: string[]
 }
 
@@ -147,7 +150,21 @@ export async function prepareExport(
       webAssetsDir,
       applyBodyBackground: config.apply_body_background,
       speechConfig: config.speech,
-      features,
+      // The kids-mode decision is author-time book state (kids-mode.json).
+      // It is stamped onto every export server-side, regardless of whatever
+      // the Studio client sends for these two keys — the reader never toggles
+      // kids mode, so the export can't be steered by client-supplied flags.
+      features: (() => {
+        const kidsConfig = readKidsModeConfig(bookDir)
+        const { kidsMode: _kidsMode, kidsBuddies: _kidsBuddies, ...rest } = features ?? {}
+        return {
+          ...rest,
+          kidsMode: kidsConfig.enabled,
+          ...(kidsConfig.enabled && kidsConfig.buddies.length > 0
+            ? { kidsBuddies: kidsConfig.buddies }
+            : {}),
+        }
+      })(),
       defaultSettings: mergedDefaultSettings,
       lockedSettings: config.locked_settings,
       fixedLayout: isFixedLayoutBook(config),

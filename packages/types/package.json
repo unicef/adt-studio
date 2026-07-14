@@ -12,6 +12,10 @@
     "./fingerprint": {
       "types": "./dist/fingerprint.d.ts",
       "default": "./dist/fingerprint.js"
+    },
+    "./kids": {
+      "types": "./dist/kids.d.ts",
+      "default": "./dist/kids.js"
     }
   },
   "dependencies": {

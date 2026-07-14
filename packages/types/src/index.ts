@@ -318,3 +318,31 @@ export {
   type AccessibilityAuditIpcUtilityToMain,
   type AccessibilityAuditIpcReply,
 } from "./accessibility-audit-ipc.js"
+
+// Kids Mode shared constants (browser-safe, zod-free). The book runtime
+// imports these via the "@adt/types/kids" subpath to keep zod out of the
+// shipped bundle; server-side consumers may use either entry point.
+export {
+  KIDS_BUDDY_IDS,
+  KIDS_BUDDIES,
+  KIDS_BUDDY_LINES,
+  KIDS_NARRATOR_ID,
+  KIDS_NARRATOR_LINES,
+  KIDS_VOICE_DIR,
+  KIDS_VOICE_MANIFEST_VERSION,
+  KIDS_LANGUAGE_NAMES,
+  KIDS_OPENAI_VOICES,
+  getKidsBuddyMeta,
+  getKidsPickPhrases,
+  getKidsSpeakableLines,
+  getKidsNarratorLines,
+  getKidsBuddyDefaultVoice,
+  resolveKidsBuddyVoice,
+  type KidsBuddyId,
+  type KidsBuddyMeta,
+  type KidsBuddyVoice,
+  type KidsBuddyVoiceConfig,
+  type KidsOpenAiVoice,
+  type KidsBuddyLine,
+  type KidsVoiceManifest,
+} from "./kids.js"
