@@ -122,13 +122,12 @@
     "dock-label": "Controlos do leitor",
     "dock-align-spread": "Espaçado",
     "dock-layout-preview": "Posição da barra de ferramentas",
+    "exit-activity-mode": "Sair do modo atividade",
     "settings-section-reading": "Leitura",
     "settings-section-toolbar": "Barra de ferramentas",
     "settings-section-toolbar-hint": "Clique na pré-visualização para escolher onde fica a barra.",
     "settings-section-behavior": "Comportamento",
     "settings-section-accessibility": "Acessibilidade",
-    "settings-section-kids": "Crianças",
-    "kids-mode-label": "Modo infantil",
     "theme-label": "Tema",
     "theme-light": "Claro",
     "theme-dark": "Escuro",
@@ -162,6 +161,5 @@
     "admin-popup-stub-message": "As ferramentas de administração serão adicionadas numa atualização posterior.",
     "main-menu-label": "Menu principal",
     "cover-label": "Capa",
-    "print-page-label": "Imprimir página",
-    "kids-meet-buddy-again": "Meet your buddy again"
+    "print-page-label": "Imprimir página"
 }
