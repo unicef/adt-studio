@@ -1171,6 +1171,9 @@ msgstr "Clés API"
 msgid "API Keys"
 msgstr "Clés API"
 
+msgid "API keys saved."
+msgstr "Clés API enregistrées."
+
 msgid "API Logs"
 msgstr "Journaux API"
 
@@ -1183,6 +1186,9 @@ msgstr "Apparence"
 #. placeholder {0}: pages.join(", ")
 msgid "Appears on pages {0}"
 msgstr "Apparaît sur les pages {0}"
+
+msgid "Application"
+msgstr "Application"
 
 msgid "Application Programming Interface — a set of rules that allows programs to communicate."
 msgstr "Interface de programmation d'applications — un ensemble de règles permettant aux programmes de communiquer."
@@ -1711,6 +1717,9 @@ msgstr "Choisir des images..."
 msgid "Choose Provider"
 msgstr "Choisir le fournisseur"
 
+msgid "Choose the model used when a pipeline step does not specify its own model."
+msgstr "Choisissez le modèle utilisé lorsqu’une étape du pipeline ne spécifie pas son propre modèle."
+
 msgid "Choose the part file that was shared with you, or export it again."
 msgstr "Choisissez le fichier de partie qui vous a été partagé, ou exportez-le à nouveau."
 
@@ -1908,6 +1917,9 @@ msgstr "Configurer les fonctionnalités à inclure dans l'exportation"
 
 #~ msgid "Configure provider credentials and global prompt fallbacks used by ADT Studio."
 #~ msgstr "Configurez les identifiants des fournisseurs et les prompts de fallback globaux utilisés par ADT Studio."
+
+msgid "Configure provider credentials used by AI pipeline features on this machine."
+msgstr "Configurez les identifiants des fournisseurs utilisés par les fonctionnalités du pipeline d’IA sur cette machine."
 
 msgid "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
 msgstr "Configurez les identifiants des fournisseurs utilisés quand ADT Studio exécute les étapes du pipeline d'IA sur cette machine."
@@ -3420,6 +3432,9 @@ msgstr "Masquer"
 msgid "Hide AI edit history"
 msgstr "Masquer l'historique des modifications IA"
 
+msgid "Hide API key"
+msgstr "Masquer la clé API"
+
 msgid "Hide error details"
 msgstr "Masquer les détails de l'erreur"
 
@@ -3697,6 +3712,9 @@ msgstr "Augmenter l'indentation"
 
 msgid "Individual sides"
 msgstr "Côtés individuels"
+
+msgid "Individual steps can still override this model in their own settings."
+msgstr "Les étapes individuelles peuvent toujours remplacer ce modèle dans leurs propres paramètres."
 
 msgid "Infographic"
 msgstr "Infographie"
@@ -5348,6 +5366,12 @@ msgstr "Pipeline · extraction"
 msgid "Pipeline · storyboard"
 msgstr "Pipeline · storyboard"
 
+msgid "Pipeline default"
+msgstr "Valeur par défaut du pipeline"
+
+msgid "Pipeline fallback model"
+msgstr "Modèle de secours du pipeline"
+
 msgid "Pipeline features"
 msgstr "Fonctionnalités du pipeline"
 
@@ -5487,8 +5511,8 @@ msgstr "Fichier de prompt supprimé."
 msgid "Prompt folder deleted."
 msgstr "Dossier de prompts supprimé."
 
-msgid "Prompt Settings"
-msgstr "Paramètres des prompts"
+#~ msgid "Prompt Settings"
+#~ msgstr "Paramètres des prompts"
 
 msgid "Prompt template"
 msgstr "Modèle d'invite"
@@ -5498,6 +5522,9 @@ msgstr "Invite modèle non trouvé."
 
 msgid "Prompt version selected."
 msgstr "Version du prompt sélectionnée."
+
+msgid "Prompts"
+msgstr "Prompts"
 
 msgid "Provider"
 msgstr "Provider"
@@ -6561,8 +6588,14 @@ msgstr "Paramètres"
 msgid "Settings for this step are not yet available."
 msgstr "Les paramètres pour cette étape ne sont pas encore disponibles."
 
+msgid "Settings navigation"
+msgstr "Navigation des paramètres"
+
 msgid "Shadow"
 msgstr "Ombre"
+
+msgid "Shared prompt versions"
+msgstr "Versions partagées des prompts"
 
 msgid "Ship"
 msgstr "Livrer"
@@ -6588,6 +6621,9 @@ msgstr "Afficher toutes les pages"
 
 msgid "Show all translations"
 msgstr "Afficher toutes les traductions"
+
+msgid "Show API key"
+msgstr "Afficher la clé API"
 
 msgid "Show error details"
 msgstr "Afficher les détails de l'erreur"
@@ -7733,8 +7769,8 @@ msgstr "Mise à jour disponible"
 #~ msgid "Update downloaded. Restart to install."
 #~ msgstr "Mise à jour téléchargée. Redémarrer pour installer."
 
-msgid "Update model"
-msgstr "Mettre à jour le modèle"
+#~ msgid "Update model"
+#~ msgstr "Mettre à jour le modèle"
 
 msgid "Update ready to install"
 msgstr "Mise à jour prête à être installée"
@@ -7869,8 +7905,8 @@ msgstr "Utilisé pour les modèles Gemini — LLM (gemini-2.5-pro, etc.) et TTS 
 msgid "Used for this quiz"
 msgstr "Utilisée pour ce quiz"
 
-msgid "Used when a pipeline step does not specify its own model."
-msgstr "Utilisé lorsqu’une étape du pipeline ne spécifie pas son propre modèle."
+#~ msgid "Used when a pipeline step does not specify its own model."
+#~ msgstr "Utilisé lorsqu’une étape du pipeline ne spécifie pas son propre modèle."
 
 msgid "Using fallback"
 msgstr "Fallback utilisé"

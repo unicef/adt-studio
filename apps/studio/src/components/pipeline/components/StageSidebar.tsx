@@ -270,7 +270,7 @@ export function StageSidebar({
           ) : step.slug === "book" ? (
             <button
               type="button"
-              onClick={openSettings}
+              onClick={() => openSettings("api-keys")}
               title={i18n._(msg`API Key Settings`)}
               className={cn(
                 "shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors cursor-pointer",

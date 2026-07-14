@@ -30,7 +30,7 @@ function ApiKeysSettingsField() {
       label={<Trans>Provider credentials</Trans>}
       hint={<Trans>Keys are stored locally in this browser or desktop session and are sent only with run requests.</Trans>}
     >
-      <Button type="button" variant="outline" className="w-fit gap-2" onClick={openSettings}>
+      <Button type="button" variant="outline" className="w-fit gap-2" onClick={() => openSettings("api-keys")}>
         <KeyRound className="h-4 w-4" />
         <Trans>Open API key settings</Trans>
       </Button>

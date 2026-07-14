@@ -1169,6 +1169,9 @@ msgstr "API keys"
 msgid "API Keys"
 msgstr "API Keys"
 
+msgid "API keys saved."
+msgstr "API keys saved."
+
 msgid "API Logs"
 msgstr "API Logs"
 
@@ -1181,6 +1184,9 @@ msgstr "Appearance"
 #. placeholder {0}: pages.join(", ")
 msgid "Appears on pages {0}"
 msgstr "Appears on pages {0}"
+
+msgid "Application"
+msgstr "Application"
 
 msgid "Application Programming Interface — a set of rules that allows programs to communicate."
 msgstr "Application Programming Interface — a set of rules that allows programs to communicate."
@@ -1709,6 +1715,9 @@ msgstr "Choose images..."
 msgid "Choose Provider"
 msgstr "Choose Provider"
 
+msgid "Choose the model used when a pipeline step does not specify its own model."
+msgstr "Choose the model used when a pipeline step does not specify its own model."
+
 msgid "Choose the part file that was shared with you, or export it again."
 msgstr "Choose the part file that was shared with you, or export it again."
 
@@ -1906,6 +1915,9 @@ msgstr "Configure features to include in the export"
 
 #~ msgid "Configure provider credentials and global prompt fallbacks used by ADT Studio."
 #~ msgstr "Configure provider credentials and global prompt fallbacks used by ADT Studio."
+
+msgid "Configure provider credentials used by AI pipeline features on this machine."
+msgstr "Configure provider credentials used by AI pipeline features on this machine."
 
 msgid "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
 msgstr "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
@@ -3418,6 +3430,9 @@ msgstr "Hide"
 msgid "Hide AI edit history"
 msgstr "Hide AI edit history"
 
+msgid "Hide API key"
+msgstr "Hide API key"
+
 msgid "Hide error details"
 msgstr "Hide error details"
 
@@ -3695,6 +3710,9 @@ msgstr "Increase indent"
 
 msgid "Individual sides"
 msgstr "Individual sides"
+
+msgid "Individual steps can still override this model in their own settings."
+msgstr "Individual steps can still override this model in their own settings."
 
 msgid "Infographic"
 msgstr "Infographic"
@@ -5346,6 +5364,12 @@ msgstr "Pipeline · extract"
 msgid "Pipeline · storyboard"
 msgstr "Pipeline · storyboard"
 
+msgid "Pipeline default"
+msgstr "Pipeline default"
+
+msgid "Pipeline fallback model"
+msgstr "Pipeline fallback model"
+
 msgid "Pipeline features"
 msgstr "Pipeline features"
 
@@ -5485,8 +5509,8 @@ msgstr "Prompt file deleted."
 msgid "Prompt folder deleted."
 msgstr "Prompt folder deleted."
 
-msgid "Prompt Settings"
-msgstr "Prompt Settings"
+#~ msgid "Prompt Settings"
+#~ msgstr "Prompt Settings"
 
 msgid "Prompt template"
 msgstr "Prompt template"
@@ -5496,6 +5520,9 @@ msgstr "Prompt template not found."
 
 msgid "Prompt version selected."
 msgstr "Prompt version selected."
+
+msgid "Prompts"
+msgstr "Prompts"
 
 msgid "Provider"
 msgstr "Provider"
@@ -6559,8 +6586,14 @@ msgstr "Settings"
 msgid "Settings for this step are not yet available."
 msgstr "Settings for this step are not yet available."
 
+msgid "Settings navigation"
+msgstr "Settings navigation"
+
 msgid "Shadow"
 msgstr "Shadow"
+
+msgid "Shared prompt versions"
+msgstr "Shared prompt versions"
 
 msgid "Ship"
 msgstr "Ship"
@@ -6586,6 +6619,9 @@ msgstr "Show all pages"
 
 msgid "Show all translations"
 msgstr "Show all translations"
+
+msgid "Show API key"
+msgstr "Show API key"
 
 msgid "Show error details"
 msgstr "Show error details"
@@ -7731,8 +7767,8 @@ msgstr "Update available"
 #~ msgid "Update downloaded. Restart to install."
 #~ msgstr "Update downloaded. Restart to install."
 
-msgid "Update model"
-msgstr "Update model"
+#~ msgid "Update model"
+#~ msgstr "Update model"
 
 msgid "Update ready to install"
 msgstr "Update ready to install"
@@ -7867,8 +7903,8 @@ msgstr "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemi
 msgid "Used for this quiz"
 msgstr "Used for this quiz"
 
-msgid "Used when a pipeline step does not specify its own model."
-msgstr "Used when a pipeline step does not specify its own model."
+#~ msgid "Used when a pipeline step does not specify its own model."
+#~ msgstr "Used when a pipeline step does not specify its own model."
 
 msgid "Using fallback"
 msgstr "Using fallback"

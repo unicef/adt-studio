@@ -13,10 +13,7 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { toast } from "@/components/ui/sonner";
-import {
-  LLM_MODEL_GROUPS,
-  ModelSelect,
-} from "@/components/pipeline/components/ModelSelect";
+import { LLM_MODEL_GROUPS } from "@/components/pipeline/components/ModelSelect";
 import { PromptLiquidGuideDialog } from "@/components/pipeline/components/PromptViewer/PromptLiquidGuideDialog";
 import {
   promptModelForSelectedModel,
@@ -54,13 +51,6 @@ type DeleteModelVariables = {
   promptNames: string[];
 };
 
-function normalizeDefaultModelInput(value: string): string {
-  const normalized = normalizePromptModelInput(value);
-  return normalized && !normalized.includes(":")
-    ? `openai:${normalized}`
-    : normalized;
-}
-
 export function GlobalPromptsSettings({
   embedded = false,
 }: { embedded?: boolean } = {}) {
@@ -68,7 +58,6 @@ export function GlobalPromptsSettings({
   const queryClient = useQueryClient();
   const [selectedPrompt, setSelectedPrompt] = useState("");
   const [model, setModel] = useState(DEFAULT_MODEL);
-  const [defaultModelDraft, setDefaultModelDraft] = useState(DEFAULT_MODEL);
   const [treeFilter, setTreeFilter] = useState("");
   const [draft, setDraft] = useState<string | null>(null);
   const [isDiffOpen, setIsDiffOpen] = useState(false);
@@ -115,7 +104,6 @@ export function GlobalPromptsSettings({
   useEffect(() => {
     if (defaultModelQuery.data?.model && !defaultModelInitializedRef.current) {
       defaultModelInitializedRef.current = true;
-      setDefaultModelDraft(defaultModelQuery.data.model);
       if (model === DEFAULT_MODEL) setModel(defaultModelQuery.data.model);
     }
   }, [defaultModelQuery.data?.model, model]);
@@ -213,33 +201,6 @@ export function GlobalPromptsSettings({
         error instanceof Error
           ? error.message
           : t`Unable to save global prompt.`,
-      );
-    },
-  });
-
-  const defaultModelMutation = useMutation({
-    mutationFn: () => {
-      const normalizedModel = normalizeDefaultModelInput(defaultModelDraft);
-      if (!normalizedModel) throw new Error(t`Enter a model id.`);
-      return api.updateDefaultModel(normalizedModel);
-    },
-    onSuccess: async (saved) => {
-      setDefaultModelDraft(saved.model);
-      setModel(saved.model);
-      setDraft(null);
-      queryClient.setQueryData(["default-model"], saved);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["global-config"] }),
-        queryClient.invalidateQueries({ queryKey: ["prompts"] }),
-        queryClient.invalidateQueries({ queryKey: ["prompt-versions"] }),
-      ]);
-      toast.success(t`Default model updated.`);
-    },
-    onError: (error) => {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : t`Unable to update the default model.`,
       );
     },
   });
@@ -429,11 +390,6 @@ export function GlobalPromptsSettings({
     promptListQuery.isLoading || promptModelsQuery.isLoading;
   const isPromptEditorLoading = isPromptFilesLoading || promptQuery.isLoading;
   const isSavingPrompt = saveMutation.isPending || resetMutation.isPending;
-  const normalizedDefaultModel = normalizeDefaultModelInput(defaultModelDraft);
-  const savedDefaultModel = defaultModelId;
-  const isDefaultModelDirty = normalizedDefaultModel.length > 0
-    && normalizedDefaultModel !== savedDefaultModel;
-
   useFloatingSave({
     id: "global-prompts",
     dirty: !isPromptEditorLoading && (isDirty || hasResettableVersion),
@@ -457,7 +413,7 @@ export function GlobalPromptsSettings({
           : "flex h-full min-h-[calc(100vh-2.5rem)] flex-col gap-4 p-4"
       }
     >
-      <div className="flex shrink-0 flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <div className="flex shrink-0 flex-col gap-3">
         <div>
           <h2 className="text-lg font-semibold tracking-tight text-foreground">
             <Trans>Global prompts</Trans>
@@ -471,49 +427,6 @@ export function GlobalPromptsSettings({
           </p>
         </div>
 
-        <div className="w-full rounded-md border bg-muted/20 p-3 lg:max-w-xl">
-          <Label htmlFor="global-default-model" className="text-xs font-medium text-foreground">
-            <Trans>Default model</Trans>
-          </Label>
-          <div className="mt-1.5 flex flex-col gap-2 sm:flex-row">
-            <ModelSelect
-              inputId="global-default-model"
-              value={defaultModelDraft}
-              onChange={setDefaultModelDraft}
-              placeholder={DEFAULT_MODEL}
-              groups={modelGroups}
-              className="min-w-0 flex-1"
-              inputClassName="h-9 font-mono text-xs"
-              disabled={defaultModelQuery.isLoading || defaultModelMutation.isPending}
-              commitOnInput
-            />
-            <Button
-              type="button"
-              size="sm"
-              className="h-9 shrink-0"
-              disabled={
-                defaultModelQuery.isLoading
-                || defaultModelMutation.isPending
-                || !isDefaultModelDirty
-              }
-              onClick={() => {
-                if (canDiscardDraft()) defaultModelMutation.mutate();
-              }}
-            >
-              {defaultModelMutation.isPending
-                ? <Trans>Saving...</Trans>
-                : <Trans>Update model</Trans>}
-            </Button>
-          </div>
-          <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
-            <Trans>Used when a pipeline step does not specify its own model.</Trans>
-          </p>
-          {defaultModelQuery.isError && (
-            <p role="alert" className="mt-1 text-xs text-destructive">
-              <Trans>Unable to load the default model.</Trans>
-            </p>
-          )}
-        </div>
       </div>
 
       <div

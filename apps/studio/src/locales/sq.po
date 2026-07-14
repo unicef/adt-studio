@@ -1170,6 +1170,9 @@ msgstr "Çelësat API"
 msgid "API Keys"
 msgstr "Çelësat API"
 
+msgid "API keys saved."
+msgstr "Çelësat API u ruajtën."
+
 msgid "API Logs"
 msgstr "Regjistrat API"
 
@@ -1182,6 +1185,9 @@ msgstr "Pamja"
 #. placeholder {0}: pages.join(", ")
 msgid "Appears on pages {0}"
 msgstr "Shfaqet në faqet {0}"
+
+msgid "Application"
+msgstr "Aplikacioni"
 
 msgid "Application Programming Interface — a set of rules that allows programs to communicate."
 msgstr "Ndërfaqe Programimi Aplikacioni — një grup rregullash që lejon programet të komunikojnë."
@@ -1710,6 +1716,9 @@ msgstr "Zgjidhni imazhe..."
 msgid "Choose Provider"
 msgstr "Zgjidhni Ofruesin"
 
+msgid "Choose the model used when a pipeline step does not specify its own model."
+msgstr "Zgjidhni modelin që përdoret kur një hap i pipeline-it nuk përcakton modelin e vet."
+
 msgid "Choose the part file that was shared with you, or export it again."
 msgstr "Zgjidhni skedarin e pjesës që ju është ndarë, ose eksportojeni përsëri."
 
@@ -1907,6 +1916,9 @@ msgstr "Konfiguroni funksionet për t'i përfshirë në eksportim"
 
 #~ msgid "Configure provider credentials and global prompt fallbacks used by ADT Studio."
 #~ msgstr "Konfiguro kredencialet e ofruesve dhe promptet globale fallback që përdor ADT Studio."
+
+msgid "Configure provider credentials used by AI pipeline features on this machine."
+msgstr "Konfiguroni kredencialet e ofruesve që përdoren nga veçoritë e pipeline-it të IA-së në këtë pajisje."
 
 msgid "Configure the provider credentials used when ADT Studio runs AI pipeline steps on this machine."
 msgstr "Konfiguro kredencialet e ofruesve që përdoren kur ADT Studio ekzekuton hapat e pipeline-it të IA-së në këtë makinë."
@@ -3419,6 +3431,9 @@ msgstr "Fshih"
 msgid "Hide AI edit history"
 msgstr "Fshih historikun e editimeve të AI"
 
+msgid "Hide API key"
+msgstr "Fshih çelësin API"
+
 msgid "Hide error details"
 msgstr "Fshih detajet e gabimit"
 
@@ -3696,6 +3711,9 @@ msgstr "Rrit dhëmbëzimin"
 
 msgid "Individual sides"
 msgstr "Anë individuale"
+
+msgid "Individual steps can still override this model in their own settings."
+msgstr "Hapat individualë mund ta anashkalojnë këtë model në cilësimet e tyre."
 
 msgid "Infographic"
 msgstr "Infografikë"
@@ -5347,6 +5365,12 @@ msgstr "Pipeline · nxjerrje"
 msgid "Pipeline · storyboard"
 msgstr "Pipeline · storyboard"
 
+msgid "Pipeline default"
+msgstr "Parazgjedhja e pipeline-it"
+
+msgid "Pipeline fallback model"
+msgstr "Modeli rezervë i pipeline-it"
+
 msgid "Pipeline features"
 msgstr "Veçoritë e Pipeline"
 
@@ -5486,8 +5510,8 @@ msgstr "Skedari i promptit u fshi."
 msgid "Prompt folder deleted."
 msgstr "Dosja e prompteve u fshi."
 
-msgid "Prompt Settings"
-msgstr "Cilësimet e promptit"
+#~ msgid "Prompt Settings"
+#~ msgstr "Cilësimet e promptit"
 
 msgid "Prompt template"
 msgstr "Shabllon prompt"
@@ -5497,6 +5521,9 @@ msgstr "Shablloni i prompt-it nuk u gjet."
 
 msgid "Prompt version selected."
 msgstr "Versioni i promptit u zgjodh."
+
+msgid "Prompts"
+msgstr "Promptet"
 
 msgid "Provider"
 msgstr "Ofruesi"
@@ -6560,8 +6587,14 @@ msgstr "Cilësime"
 msgid "Settings for this step are not yet available."
 msgstr "Cilësimet për këtë hap nuk janë ende të disponueshme."
 
+msgid "Settings navigation"
+msgstr "Navigimi i cilësimeve"
+
 msgid "Shadow"
 msgstr "Hije"
+
+msgid "Shared prompt versions"
+msgstr "Versionet e përbashkëta të prompt-eve"
 
 msgid "Ship"
 msgstr "Dërgo"
@@ -6587,6 +6620,9 @@ msgstr "Shfaq të gjitha faqet"
 
 msgid "Show all translations"
 msgstr "Shfaq të gjitha përkthimet"
+
+msgid "Show API key"
+msgstr "Shfaq çelësin API"
 
 msgid "Show error details"
 msgstr "Shfaq detajet e gabimit"
@@ -7732,8 +7768,8 @@ msgstr "Përditësim i disponueshëm"
 #~ msgid "Update downloaded. Restart to install."
 #~ msgstr "Përditësimi u shkarkua. Rinisni për të instaluar."
 
-msgid "Update model"
-msgstr "Përditëso modelin"
+#~ msgid "Update model"
+#~ msgstr "Përditëso modelin"
 
 msgid "Update ready to install"
 msgstr "Përditësimi është gati për instalim"
@@ -7868,8 +7904,8 @@ msgstr "Përdoret për modelet Gemini — si LLM (gemini-2.5-pro, etj.) ashtu ed
 msgid "Used for this quiz"
 msgstr "Përdoret për këtë kuiz"
 
-msgid "Used when a pipeline step does not specify its own model."
-msgstr "Përdoret kur një hap i pipeline-it nuk specifikon modelin e vet."
+#~ msgid "Used when a pipeline step does not specify its own model."
+#~ msgstr "Përdoret kur një hap i pipeline-it nuk specifikon modelin e vet."
 
 msgid "Using fallback"
 msgstr "Po përdoret fallback"
