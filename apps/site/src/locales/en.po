@@ -76,6 +76,9 @@ msgstr "Always editable"
 msgid "An accessible book, <0>ready to ship</0>."
 msgstr "An accessible book, <0>ready to ship</0>."
 
+msgid "Any device, any size"
+msgstr "Any device, any size"
+
 msgid "Architecture"
 msgstr "Architecture"
 
@@ -96,6 +99,9 @@ msgstr "Available for"
 
 msgid "Back to home"
 msgstr "Back to home"
+
+#~ msgid "Before · PDF → After · Accessible web"
+#~ msgstr "Before · PDF → After · Accessible web"
 
 msgid "Beta"
 msgstr "Beta"
@@ -139,6 +145,9 @@ msgstr "Chapter 3"
 msgid "Choose a preset that matches your content — textbook, storyboard, reference, or custom — and ADT Studio tailors the pipeline accordingly."
 msgstr "Choose a preset that matches your content — textbook, storyboard, reference, or custom — and ADT Studio tailors the pipeline accordingly."
 
+msgid "Close"
+msgstr "Close"
+
 msgid "Close menu"
 msgstr "Close menu"
 
@@ -180,6 +189,17 @@ msgstr "Custom"
 
 msgid "Delivered"
 msgstr "Delivered"
+
+#. placeholder {0}: index + 1
+#. placeholder {1}: DEMOS.length
+msgid "Demo {0} of {1}"
+msgstr "Demo {0} of {1}"
+
+msgid "Demo videos"
+msgstr "Demo videos"
+
+msgid "Demos"
+msgstr "Demos"
 
 msgid "Dense text, tables, glossaries. Best for technical material and documentation."
 msgstr "Dense text, tables, glossaries. Best for technical material and documentation."
@@ -231,6 +251,9 @@ msgstr "Download for free"
 msgid "downloads to date"
 msgstr "downloads to date"
 
+msgid "Drag-and-drop exercises generated from the book's own content, fully keyboard-accessible."
+msgstr "Drag-and-drop exercises generated from the book's own content, fully keyboard-accessible."
+
 msgid "Drop a PDF to get started"
 msgstr "Drop a PDF to get started"
 
@@ -239,6 +262,9 @@ msgstr "Drop in a PDF and watch it flow through every stage — from raw pages t
 
 msgid "Drop in a PDF to kick things off. ADT Studio organizes it into a new book project so you don't start from zero."
 msgstr "Drop in a PDF to kick things off. ADT Studio organizes it into a new book project so you don't start from zero."
+
+msgid "Easy-read, text-to-voice, sign language and glossary: readers toggle what they need, per book."
+msgstr "Easy-read, text-to-voice, sign language and glossary: readers toggle what they need, per book."
 
 msgid "Edit & enrich"
 msgstr "Edit & enrich"
@@ -255,8 +281,14 @@ msgstr "English"
 msgid "Entities are versioned, never replaced. You can always roll back to an earlier result."
 msgstr "Entities are versioned, never replaced. You can always roll back to an earlier result."
 
+msgid "Equations become real MathML that screen readers pronounce correctly, heard here through NVDA."
+msgstr "Equations become real MathML that screen readers pronounce correctly, heard here through NVDA."
+
 msgid "Every accessibility feature, <0>built in from page one</0>."
 msgstr "Every accessibility feature, <0>built in from page one</0>."
+
+msgid "Every accommodation, one panel"
+msgstr "Every accommodation, one panel"
 
 msgid "Every book lives in a single, shareable directory — zip it, move it, hand it off."
 msgstr "Every book lives in a single, shareable directory — zip it, move it, hand it off."
@@ -348,6 +380,10 @@ msgstr "Glossary"
 msgid "Go from a PDF to a finished book, end to end."
 msgstr "Go from a PDF to a finished book, end to end."
 
+#. placeholder {0}: i18n._(d.title)
+msgid "Go to {0}"
+msgstr "Go to {0}"
+
 msgid "Grouping content by purpose, then laying out every section as reviewable HTML."
 msgstr "Grouping content by purpose, then laying out every section as reviewable HTML."
 
@@ -392,6 +428,9 @@ msgstr "Install the app, create a project, and produce your first accessible boo
 
 msgid "Installation"
 msgstr "Installation"
+
+msgid "Interactive activities"
+msgstr "Interactive activities"
 
 msgid "Introduction"
 msgstr "Introduction"
@@ -441,11 +480,17 @@ msgstr "LLM Providers & API Keys"
 msgid "Made possible by"
 msgstr "Made possible by"
 
+msgid "Math that reads aloud"
+msgstr "Math that reads aloud"
+
 msgid "MIT licensed"
 msgstr "MIT licensed"
 
 msgid "Narration · 0:42"
 msgstr "Narration · 0:42"
+
+msgid "Narration follows the text word by word, with playback speed and voice controls."
+msgstr "Narration follows the text word by word, with playback speed and voice controls."
 
 #~ msgid "Need <0>help</0>?"
 #~ msgstr "Need <0>help</0>?"
@@ -462,6 +507,9 @@ msgstr "New"
 msgid "Newest first, with the full notes inline — what changed, why it matters, and the screenshots to back it up."
 msgstr "Newest first, with the full notes inline — what changed, why it matters, and the screenshots to back it up."
 
+msgid "Next demo"
+msgstr "Next demo"
+
 #. placeholder {0}: meta.label
 msgid "No {0} build yet"
 msgstr "No {0} build yet"
@@ -471,6 +519,9 @@ msgstr "No account needed"
 
 #~ msgid "No black boxes"
 #~ msgstr "No black boxes"
+
+#~ msgid "No mockups: every clip is an unedited screen capture of a real textbook moving through the pipeline."
+#~ msgstr "No mockups: every clip is an unedited screen capture of a real textbook moving through the pipeline."
 
 msgid "No release notes were provided for this version."
 msgstr "No release notes were provided for this version."
@@ -547,6 +598,9 @@ msgstr "Parsing pages into text, figures, and layout boxes — cached by content
 msgid "Pause"
 msgstr "Pause"
 
+msgid "Pause demo"
+msgstr "Pause demo"
+
 msgid "Pick a preset"
 msgstr "Pick a preset"
 
@@ -565,6 +619,12 @@ msgstr "Pipeline Overview"
 msgid "Play"
 msgstr "Play"
 
+msgid "Play {title} fullscreen"
+msgstr "Play {title} fullscreen"
+
+msgid "Play demo"
+msgstr "Play demo"
+
 msgid "Popular:"
 msgstr "Popular:"
 
@@ -576,6 +636,9 @@ msgstr "Pre-release — APIs and behavior may still change before the stable cut
 
 #~ msgid "Preview"
 #~ msgstr "Preview"
+
+msgid "Previous demo"
+msgstr "Previous demo"
 
 msgid "Primary"
 msgstr "Primary"
@@ -607,6 +670,12 @@ msgstr "Read release {0}"
 
 msgid "Read this release"
 msgstr "Read this release"
+
+msgid "Read-aloud with word highlighting"
+msgstr "Read-aloud with word highlighting"
+
+msgid "Real books, before & after"
+msgstr "Real books, before & after"
 
 msgid "Recover headings, paragraphs, figures, tables and alt-text from the source PDF as real semantic HTML — built for screen readers."
 msgstr "Recover headings, paragraphs, figures, tables and alt-text from the source PDF as real semantic HTML — built for screen readers."
@@ -690,6 +759,9 @@ msgstr "See all releases on GitHub"
 msgid "See examples"
 msgstr "See examples"
 
+msgid "See it in action"
+msgstr "See it in action"
+
 msgid "Segmenting scenes"
 msgstr "Segmenting scenes"
 
@@ -771,6 +843,12 @@ msgstr "The pipeline"
 msgid "The Pipeline"
 msgstr "The Pipeline"
 
+msgid "The same book reflows from desktop to phone without losing audio, structure or activities."
+msgstr "The same book reflows from desktop to phone without losing audio, structure or activities."
+
+msgid "Three real textbooks (Cuaderno 5, Momo and Katko) turned from flat PDFs into accessible interactive books."
+msgstr "Three real textbooks (Cuaderno 5, Momo and Katko) turned from flat PDFs into accessible interactive books."
+
 msgid "Translate"
 msgstr "Translate"
 
@@ -789,6 +867,9 @@ msgstr "Turn any PDF into an <0>accessible book</0>"
 msgid "Turn any textbook into something every student can read, hear, see, and understand — audio, structured layouts, translations, and sign language, all built in."
 msgstr "Turn any textbook into something every student can read, hear, see, and understand — audio, structured layouts, translations, and sign language, all built in."
 
+msgid "Up next: {nextTitle}"
+msgstr "Up next: {nextTitle}"
+
 msgid "View release on GitHub"
 msgstr "View release on GitHub"
 
@@ -797,6 +878,12 @@ msgstr "View source"
 
 msgid "WAITING"
 msgstr "WAITING"
+
+msgid "Watch a flat PDF become an accessible book."
+msgstr "Watch a flat PDF become an accessible book."
+
+msgid "Watch fullscreen"
+msgstr "Watch fullscreen"
 
 msgid "We couldn't fetch the latest release. Try the release page directly, or pick another platform below."
 msgstr "We couldn't fetch the latest release. Try the release page directly, or pick another platform below."

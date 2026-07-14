@@ -17,6 +17,7 @@ const LINKS: { href: string; id: string; label: MessageDescriptor }[] = [
   { href: "/#top", id: "top", label: msg`Home` },
   { href: "/#features", id: "features", label: msg`Features` },
   { href: "/#carousel", id: "carousel", label: msg`How it works` },
+  { href: "/#demos", id: "demos", label: msg`Demos` },
   { href: "/#showcase", id: "showcase", label: msg`Output` },
   { href: "/#releases", id: "releases", label: msg`Releases` },
   ...(DOCS_ENABLED
