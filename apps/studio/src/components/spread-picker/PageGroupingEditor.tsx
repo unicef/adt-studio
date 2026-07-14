@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react"
 import { useLingui } from "@lingui/react/macro"
-import { Link2, Unlink, BookOpen, ChevronLeft, ChevronRight } from "lucide-react"
+import { Link2, Unlink, BookOpen, ChevronLeft, ChevronRight, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { normalizeLeads } from "./pairs"
 
@@ -22,6 +22,8 @@ interface PageGroupingEditorProps {
   pageThumbnails: string[]
   /** When true, only the marked spreads are shown (review filter). */
   onlySpreads?: boolean
+  /** Leads (1-indexed) that came from auto-detection — shown with a badge. */
+  suggestedLeads?: number[]
   disabled?: boolean
 }
 
@@ -58,9 +60,11 @@ export function PageGroupingEditor({
   onChange,
   pageThumbnails,
   onlySpreads = false,
+  suggestedLeads,
   disabled = false,
 }: PageGroupingEditorProps) {
   const { t } = useLingui()
+  const suggested = useMemo(() => new Set(suggestedLeads ?? []), [suggestedLeads])
   const leads = useMemo(() => new Set(spreadPairs), [spreadPairs])
   const groups = useMemo(
     () => buildGroups(startPage, endPage, leads),
@@ -131,6 +135,7 @@ export function PageGroupingEditor({
                 aspect={aspect}
                 onMeasure={measure}
                 onSplit={() => split(group[0])}
+                suggested={suggested.has(group[0])}
                 disabled={disabled}
               />
             ) : (
@@ -337,6 +342,7 @@ function SpreadTile({
   aspect,
   onMeasure,
   onSplit,
+  suggested,
   disabled,
 }: {
   left: number
@@ -346,14 +352,29 @@ function SpreadTile({
   aspect: number
   onMeasure: (ratio: number) => void
   onSplit: () => void
+  suggested: boolean
   disabled: boolean
 }) {
   const { t } = useLingui()
   return (
-    <div className="group relative shrink-0 rounded-lg border-2 border-primary bg-primary/5 p-1.5 shadow-md transition-all">
-      <span className="pointer-events-none absolute -top-2.5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full bg-primary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary-foreground shadow">
-        <Link2 className="h-3 w-3" strokeWidth={2.5} aria-hidden />
-        {t`Spread ${left}–${right}`}
+    <div
+      className={cn(
+        "group relative shrink-0 rounded-lg border-2 p-1.5 shadow-md transition-all",
+        suggested ? "border-amber-500 bg-amber-500/5" : "border-primary bg-primary/5",
+      )}
+    >
+      <span
+        className={cn(
+          "pointer-events-none absolute -top-2.5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow",
+          suggested ? "bg-amber-500" : "bg-primary",
+        )}
+      >
+        {suggested ? (
+          <Sparkles className="h-3 w-3" strokeWidth={2.5} aria-hidden />
+        ) : (
+          <Link2 className="h-3 w-3" strokeWidth={2.5} aria-hidden />
+        )}
+        {suggested ? t`Detected ${left}–${right}` : t`Spread ${left}–${right}`}
       </span>
       <div className="relative flex overflow-hidden rounded">
         <div className="relative border-r border-dashed border-primary/50">

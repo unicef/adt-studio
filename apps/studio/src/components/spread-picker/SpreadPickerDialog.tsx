@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Loader2, AlertTriangle, Link2 } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import {
@@ -30,6 +30,10 @@ interface SpreadPickerDialogProps {
   spreadPairs: number[]
   onChange: (next: number[]) => void
   disabled?: boolean
+  /** Leads (1-indexed) that came from auto-detection — badged in the strip. */
+  suggestedLeads?: number[]
+  /** Which view to open on ("spreads" jumps straight to the marked pairs). */
+  defaultView?: PageView
 }
 
 export function SpreadPickerDialog({
@@ -42,9 +46,16 @@ export function SpreadPickerDialog({
   spreadPairs,
   onChange,
   disabled = false,
+  suggestedLeads,
+  defaultView = "all",
 }: SpreadPickerDialogProps) {
   const { t } = useLingui()
-  const [view, setView] = useState<PageView>("all")
+  const [view, setView] = useState<PageView>(defaultView)
+
+  // Reset to the requested view each time the dialog opens.
+  useEffect(() => {
+    if (open) setView(defaultView)
+  }, [open, defaultView])
 
   // Only load the PDF while the dialog is open — avoids rendering every page in
   // the background for books the user never opens the picker for.
@@ -134,6 +145,7 @@ export function SpreadPickerDialog({
                 onChange={onChange}
                 pageThumbnails={pages}
                 onlySpreads={view === "spreads"}
+                suggestedLeads={suggestedLeads}
                 disabled={disabled}
               />
             </>

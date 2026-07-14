@@ -747,6 +747,17 @@ export const api = {
   getSourcePdfInfo: (label: string) =>
     request<{ pageCount: number }>(`/books/${label}/source-pdf/info`),
 
+  getSpreadSuggestions: (label: string) =>
+    request<{ suggestions: { lead: number; confidence: number }[] }>(
+      `/books/${label}/spread-suggestions`,
+    ),
+
+  applySpreads: (label: string, spreadPairs: number[]) =>
+    request<{ merged: number; removed: number; pageCount: number }>(
+      `/books/${label}/spreads/apply`,
+      { method: "POST", body: JSON.stringify({ spreadPairs }) },
+    ),
+
   getBookFonts: (label: string) => request<BookFontsResponse>(`/books/${label}/fonts`),
 
   getGoogleFontsCatalog: () =>
