@@ -139,14 +139,14 @@ export function PageGroupingMode() {
         Diagram: SingleDiagram,
       },
       {
-        title: i18n._(CAROUSEL_MIXED_TITLE),
-        description: i18n._(CAROUSEL_MIXED_DESCRIPTION),
-        Diagram: MixedDiagram,
-      },
-      {
         title: i18n._(CAROUSEL_SPREAD_TITLE),
         description: i18n._(CAROUSEL_SPREAD_DESCRIPTION),
         Diagram: SpreadDiagram,
+      },
+      {
+        title: i18n._(CAROUSEL_MIXED_TITLE),
+        description: i18n._(CAROUSEL_MIXED_DESCRIPTION),
+        Diagram: MixedDiagram,
       },
     ],
     [i18n.locale],
