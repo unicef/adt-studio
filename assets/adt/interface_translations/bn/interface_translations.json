@@ -121,5 +121,8 @@
     "admin-popup-stub-message": "অ্যাডমিন টুল পরবর্তী আপডেটে যোগ করা হবে।",
     "main-menu-label": "প্রধান মেনু",
     "cover-label": "কভার",
-    "print-page-label": "পৃষ্ঠা মুদ্রণ করুন"
+    "print-page-label": "পৃষ্ঠা মুদ্রণ করুন",
+    "settings-section-kids": "শিশুরা",
+    "kids-mode-label": "শিশু মোড",
+    "kids-meet-buddy-again": "Meet your buddy again"
 }

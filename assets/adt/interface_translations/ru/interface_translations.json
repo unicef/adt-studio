@@ -121,5 +121,8 @@
     "admin-popup-stub-message": "Инструменты администратора будут добавлены в одном из следующих обновлений.",
     "main-menu-label": "Главное меню",
     "cover-label": "Обложка",
-    "print-page-label": "Печать страницы"
+    "print-page-label": "Печать страницы",
+    "settings-section-kids": "Дети",
+    "kids-mode-label": "Детский режим",
+    "kids-meet-buddy-again": "Meet your buddy again"
 }

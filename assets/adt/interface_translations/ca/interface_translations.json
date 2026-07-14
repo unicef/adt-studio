@@ -121,5 +121,8 @@
     "admin-popup-stub-message": "Les eines d'administració s'inclouran en una actualització posterior.",
     "main-menu-label": "Menú principal",
     "cover-label": "Coberta",
-    "print-page-label": "Imprimeix la pàgina"
+    "print-page-label": "Imprimeix la pàgina",
+    "settings-section-kids": "Infants",
+    "kids-mode-label": "Mode infantil",
+    "kids-meet-buddy-again": "Meet your buddy again"
 }

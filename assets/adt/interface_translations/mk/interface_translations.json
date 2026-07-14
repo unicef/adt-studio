@@ -121,5 +121,8 @@
     "admin-popup-stub-message": "Алатките за администрација ќе бидат додадени во следно ажурирање.",
     "main-menu-label": "Главно мени",
     "cover-label": "Корица",
-    "print-page-label": "Печати страница"
+    "print-page-label": "Печати страница",
+    "settings-section-kids": "Деца",
+    "kids-mode-label": "Детски режим",
+    "kids-meet-buddy-again": "Meet your buddy again"
 }

@@ -121,5 +121,8 @@
     "admin-popup-stub-message": "Gli strumenti di amministrazione saranno aggiunti in un futuro aggiornamento.",
     "main-menu-label": "Menu principale",
     "cover-label": "Copertina",
-    "print-page-label": "Stampa pagina"
+    "print-page-label": "Stampa pagina",
+    "settings-section-kids": "Bambini",
+    "kids-mode-label": "Modalità bambini",
+    "kids-meet-buddy-again": "Meet your buddy again"
 }

@@ -121,5 +121,8 @@
     "admin-popup-stub-message": "管理者ツールは今後のアップデートで追加されます。",
     "main-menu-label": "メインメニュー",
     "cover-label": "表紙",
-    "print-page-label": "ページを印刷"
+    "print-page-label": "ページを印刷",
+    "settings-section-kids": "子ども",
+    "kids-mode-label": "キッズモード",
+    "kids-meet-buddy-again": "Meet your buddy again"
 }

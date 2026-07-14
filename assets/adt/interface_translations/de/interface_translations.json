@@ -121,5 +121,8 @@
     "admin-popup-stub-message": "Admin-Werkzeuge werden in einem nachfolgenden Update bereitgestellt.",
     "main-menu-label": "Hauptmenü",
     "cover-label": "Cover",
-    "print-page-label": "Seite drucken"
+    "print-page-label": "Seite drucken",
+    "settings-section-kids": "Kinder",
+    "kids-mode-label": "Kindermodus",
+    "kids-meet-buddy-again": "Meet your buddy again"
 }

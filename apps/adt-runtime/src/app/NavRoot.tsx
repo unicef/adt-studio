@@ -1,8 +1,11 @@
+import { useAtomValue } from "jotai";
 import { BottomDock } from "@/features/dock/components/BottomDock";
 import { TooltipProvider } from "@/shared/ui/tooltip";
 import { ActivityDock } from "@/features/activity/components/ActivityDock";
 import { ActivityConfetti } from "@/features/activity/components/ActivityConfetti";
 import { Dock } from "@/features/dock/components/Dock";
+import { KidsChrome } from "@/features/kids/components/KidsChrome";
+import { kidsModeActiveAtom } from "@/features/kids/state/kids.atoms";
 
 /**
  * The React tree mounted into `<div id="nav-container">`. Holds the unified
@@ -16,11 +19,13 @@ import { Dock } from "@/features/dock/components/Dock";
  * its own provider.
  */
 export function NavRoot() {
+  const kidsModeActive = useAtomValue(kidsModeActiveAtom);
+
   return (
     <TooltipProvider delay={300} closeDelay={120}>
       <Dock>
         <ActivityDock />
-        <BottomDock />
+        {kidsModeActive ? <KidsChrome /> : <BottomDock />}
       </Dock>
       <ActivityConfetti />
     </TooltipProvider>

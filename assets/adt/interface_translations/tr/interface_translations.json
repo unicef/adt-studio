@@ -121,5 +121,8 @@
     "admin-popup-stub-message": "Yönetici araçları sonraki bir güncellemede eklenecektir.",
     "main-menu-label": "Ana Menü",
     "cover-label": "Kapak",
-    "print-page-label": "Sayfayı Yazdır"
+    "print-page-label": "Sayfayı Yazdır",
+    "settings-section-kids": "Çocuklar",
+    "kids-mode-label": "Çocuk modu",
+    "kids-meet-buddy-again": "Meet your buddy again"
 }

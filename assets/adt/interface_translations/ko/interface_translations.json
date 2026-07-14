@@ -121,5 +121,8 @@
     "admin-popup-stub-message": "관리자 도구는 후속 업데이트에서 추가될 예정입니다.",
     "main-menu-label": "주 메뉴",
     "cover-label": "표지",
-    "print-page-label": "페이지 인쇄"
+    "print-page-label": "페이지 인쇄",
+    "settings-section-kids": "어린이",
+    "kids-mode-label": "어린이 모드",
+    "kids-meet-buddy-again": "Meet your buddy again"
 }

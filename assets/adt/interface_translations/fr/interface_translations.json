@@ -126,12 +126,13 @@
     "dock-label": "Commandes du lecteur",
     "dock-align-spread": "Réparti",
     "dock-layout-preview": "Position de la barre d'outils",
-    "exit-activity-mode": "Quitter le mode activité",
     "settings-section-reading": "Lecture",
     "settings-section-toolbar": "Barre d'outils",
     "settings-section-toolbar-hint": "Cliquez sur l'aperçu pour choisir l'emplacement de la barre.",
     "settings-section-behavior": "Comportement",
     "settings-section-accessibility": "Accessibilité",
+    "settings-section-kids": "Enfants",
+    "kids-mode-label": "Mode enfants",
     "theme-label": "Thème",
     "theme-light": "Clair",
     "theme-dark": "Sombre",
@@ -165,5 +166,6 @@
     "admin-popup-stub-message": "Les outils d'administration seront ajoutés dans une prochaine mise à jour.",
     "main-menu-label": "Menu principal",
     "cover-label": "Couverture",
-    "print-page-label": "Imprimer la page"
+    "print-page-label": "Imprimer la page",
+    "kids-meet-buddy-again": "Retrouve ton compagnon"
 }

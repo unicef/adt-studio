@@ -121,5 +121,8 @@
     "admin-popup-stub-message": "Ylläpitäjän työkalut lisätään myöhemmässä päivityksessä.",
     "main-menu-label": "Päävalikko",
     "cover-label": "Kansi",
-    "print-page-label": "Tulosta sivu"
+    "print-page-label": "Tulosta sivu",
+    "settings-section-kids": "Lapset",
+    "kids-mode-label": "Lasten tila",
+    "kids-meet-buddy-again": "Meet your buddy again"
 }

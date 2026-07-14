@@ -121,5 +121,8 @@
     "admin-popup-stub-message": "Инструментите за администратор ще бъдат добавени в следваща версия.",
     "main-menu-label": "Главно меню",
     "cover-label": "Корица",
-    "print-page-label": "Принтирай страницата"
+    "print-page-label": "Принтирай страницата",
+    "settings-section-kids": "Деца",
+    "kids-mode-label": "Детски режим",
+    "kids-meet-buddy-again": "Meet your buddy again"
 }

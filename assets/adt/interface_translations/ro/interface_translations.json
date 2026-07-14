@@ -121,5 +121,8 @@
     "admin-popup-stub-message": "Instrumentele de administrare vor fi adăugate într-o actualizare ulterioară.",
     "main-menu-label": "Meniu principal",
     "cover-label": "Copertă",
-    "print-page-label": "Imprimă pagina"
+    "print-page-label": "Imprimă pagina",
+    "settings-section-kids": "Copii",
+    "kids-mode-label": "Mod pentru copii",
+    "kids-meet-buddy-again": "Meet your buddy again"
 }

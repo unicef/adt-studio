@@ -167,6 +167,8 @@
     "settings-section-toolbar-hint": "Click the preview to choose where the toolbar sits.",
     "settings-section-behavior": "Behavior",
     "settings-section-accessibility": "Accessibility",
+    "settings-section-kids": "Kids",
+    "kids-mode-label": "Kids mode",
     "settings-section-shortcuts": "Keyboard shortcuts",
     "shortcut-then": "then",
     "shortcut-toc-label": "Open table of contents",
@@ -189,5 +191,6 @@
     "admin-popup-stub-message": "Admin tools will be ported in a follow-up.",
     "main-menu-label": "Main Menu",
     "cover-label": "Cover",
-    "print-page-label": "Print Page"
+    "print-page-label": "Print Page",
+    "kids-meet-buddy-again": "Meet your buddy again"
 }

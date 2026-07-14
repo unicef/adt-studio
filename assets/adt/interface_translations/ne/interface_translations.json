@@ -121,5 +121,8 @@
     "admin-popup-stub-message": "प्रशासक उपकरणहरू आगामी अपडेटमा थपिनेछन्।",
     "main-menu-label": "मुख्य मेनु",
     "cover-label": "कभर",
-    "print-page-label": "पेज प्रिन्ट गर्नुहोस्"
+    "print-page-label": "पेज प्रिन्ट गर्नुहोस्",
+    "settings-section-kids": "बालबालिका",
+    "kids-mode-label": "बालबालिका मोड",
+    "kids-meet-buddy-again": "Meet your buddy again"
 }

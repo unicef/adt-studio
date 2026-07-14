@@ -121,5 +121,8 @@
     "admin-popup-stub-message": "Administratorski alati će biti dodani u sljedećoj verziji.",
     "main-menu-label": "Glavni meni",
     "cover-label": "Naslovnica",
-    "print-page-label": "Štampaj stranicu"
+    "print-page-label": "Štampaj stranicu",
+    "settings-section-kids": "Djeca",
+    "kids-mode-label": "Dječiji način",
+    "kids-meet-buddy-again": "Meet your buddy again"
 }

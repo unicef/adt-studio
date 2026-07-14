@@ -121,5 +121,8 @@
     "admin-popup-stub-message": "நிர்வாக கருவிகள் வரும் புதுப்பிப்பில் சேர்க்கப்படும்.",
     "main-menu-label": "முதன்மை மெனு",
     "cover-label": "அட்டை",
-    "print-page-label": "பக்கத்தை அச்சிடு"
+    "print-page-label": "பக்கத்தை அச்சிடு",
+    "settings-section-kids": "குழந்தைகள்",
+    "kids-mode-label": "குழந்தைகள் முறை",
+    "kids-meet-buddy-again": "Meet your buddy again"
 }
