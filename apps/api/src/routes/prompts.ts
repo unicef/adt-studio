@@ -1,10 +1,7 @@
 import path from "node:path"
 import fs from "node:fs"
 import { Hono } from "hono"
-import {
-  promptNameForModel,
-  resolvePromptModelId,
-} from "@adt/llm"
+import { resolvePromptModelId } from "@adt/llm"
 
 const VALID_NAME = /^[a-zA-Z0-9_]+$/
 const VALID_MODEL_ID = /^[a-zA-Z][a-zA-Z0-9]*:[a-zA-Z0-9][a-zA-Z0-9_.-]{0,159}$/
@@ -30,7 +27,10 @@ interface PromptVersionSummary {
   isCurrent: boolean
 }
 
-export function createPromptRoutes(promptsDir: string, booksDir: string) {
+export function createPromptRoutes(
+  promptsDir: string,
+  booksDir: string,
+) {
   const app = new Hono()
   const templatesDir = path.join(path.dirname(promptsDir), "templates")
 
@@ -112,7 +112,7 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
       return c.json({ error: "Prompt not found" }, 404)
     }
 
-    const resolvedName = promptNameForModel(name, modelId)
+    const resolvedName = promptNameForResolvedModel(name, modelId)
     const versionDir = path.join(promptsDir, PROMPT_VERSIONS_DIR, resolvedName)
     const versionPath = path.join(versionDir, version)
     if (!fs.existsSync(versionPath)) {
@@ -167,7 +167,7 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
       return c.json({ error: "Prompt not found" }, 404)
     }
 
-    const resolvedName = promptNameForModel(name, modelId)
+    const resolvedName = promptNameForResolvedModel(name, modelId)
     const versionDir = path.join(promptsDir, PROMPT_VERSIONS_DIR, resolvedName)
     fs.mkdirSync(versionDir, { recursive: true })
     const version = createPromptVersionName(versionDir)
@@ -191,7 +191,7 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
       return c.json({ error: "Prompt not found" }, 404)
     }
 
-    const resolvedName = promptNameForModel(name, modelId)
+    const resolvedName = promptNameForResolvedModel(name, modelId)
     const versionDir = path.join(promptsDir, PROMPT_VERSIONS_DIR, resolvedName)
     if (fs.existsSync(versionDir)) {
       fs.rmSync(versionDir, { recursive: true, force: true })
@@ -252,7 +252,7 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
       return c.json({ error: "Prompt not found" }, 404)
     }
 
-    const resolvedName = promptNameForModel(name, modelId)
+    const resolvedName = promptNameForResolvedModel(name, modelId)
     const versionDir = path.join(booksDir, label, "prompts", PROMPT_VERSIONS_DIR, resolvedName)
     const versionPath = path.join(versionDir, version)
     if (!fs.existsSync(versionPath)) {
@@ -304,7 +304,7 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
       return c.json({ error: "Prompt not found" }, 404)
     }
 
-    const resolvedName = promptNameForModel(name, modelId)
+    const resolvedName = promptNameForResolvedModel(name, modelId)
     const bookPromptsDir = path.join(booksDir, label, "prompts")
     const versionDir = path.join(bookPromptsDir, PROMPT_VERSIONS_DIR, resolvedName)
     if (fs.existsSync(versionDir)) {
@@ -357,7 +357,7 @@ export function createPromptRoutes(promptsDir: string, booksDir: string) {
     // Write an immutable book-level prompt version. Existing flat overrides are
     // still read for compatibility, but new saves are versioned.
     const bookPromptsDir = path.join(booksDir, label, "prompts")
-    const resolvedName = promptNameForModel(name, modelId)
+    const resolvedName = promptNameForResolvedModel(name, modelId)
     const versionDir = path.join(bookPromptsDir, PROMPT_VERSIONS_DIR, resolvedName)
     fs.mkdirSync(versionDir, { recursive: true })
     const version = createPromptVersionName(versionDir)
@@ -615,7 +615,7 @@ function listPromptVersions(options: {
   versions: PromptVersionSummary[]
 } {
   const { root, promptsDir, booksDir, label, name, modelId } = options
-  const resolvedName = promptNameForModel(name, modelId)
+  const resolvedName = promptNameForResolvedModel(name, modelId)
   const fallback = readPromptVersionFallback({ root, promptsDir, booksDir, label, name, modelId })
   const versionDir = path.join(root, PROMPT_VERSIONS_DIR, resolvedName)
   const currentVersion = readCurrentPromptVersion(versionDir) ?? latestVersionFile(root, resolvedName)
@@ -674,7 +674,7 @@ function readPrompt(options: {
   version?: string
 } | null {
   const { promptsDir, booksDir, label, name, modelId } = options
-  const resolvedName = promptNameForModel(name, modelId)
+  const resolvedName = promptNameForResolvedModel(name, modelId)
   if (resolvedName !== name) {
     const variant = readModelPrompt({ promptsDir, booksDir, label, name, resolvedName, modelId })
     if (variant) {
@@ -694,7 +694,7 @@ function readPromptVersionFallback(options: {
   modelId: string | null
 }): { content: string; resolvedName: string } | null {
   const { root, promptsDir, booksDir, label, name, modelId } = options
-  const resolvedName = promptNameForModel(name, modelId)
+  const resolvedName = promptNameForResolvedModel(name, modelId)
 
   if (modelId && resolvedName !== name) {
     const rootModelPrompt = readModelPromptFallbackFromRoot(root, name, resolvedName, modelId)
@@ -924,6 +924,15 @@ function isPromptModelFolder(name: string): boolean {
   return name !== PROMPT_VERSIONS_DIR
     && name !== "node_modules"
     && VALID_NAME.test(name)
+}
+
+function promptNameForResolvedModel(
+  promptName: string,
+  modelId: string | null,
+): string {
+  return modelId
+    ? `${promptName}__${promptModelFolderName(modelId)}`
+    : promptName
 }
 
 function promptModelFolderName(modelId: string): string {

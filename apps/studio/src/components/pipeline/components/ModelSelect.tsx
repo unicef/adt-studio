@@ -9,6 +9,7 @@ export interface ModelGroup {
 }
 
 interface ModelSelectProps {
+  inputId?: string
   value: string
   onChange: (value: string) => void
   placeholder?: string
@@ -17,17 +18,23 @@ interface ModelSelectProps {
   className?: string
   /** CSS classes merged onto the inner input element (height, font-size, etc.) */
   inputClassName?: string
+  disabled?: boolean
+  /** Mirrors free-text typing to onChange instead of waiting for Enter. */
+  commitOnInput?: boolean
   /** When true (default), selected values are prefixed as "provider:model". When false, only the bare model name is emitted. */
   prefixProvider?: boolean
 }
 
 export function ModelSelect({
+  inputId,
   value,
   onChange,
   placeholder = "openai:gpt-5.4",
   groups,
   className,
   inputClassName,
+  disabled = false,
+  commitOnInput = false,
   prefixProvider = true,
 }: ModelSelectProps) {
   const { t } = useLingui()
@@ -84,6 +91,7 @@ export function ModelSelect({
   const handleInputChange = (val: string) => {
     setSearch(val)
     setIsSearching(true)
+    if (commitOnInput) onChange(val)
     if (!open) setOpen(true)
   }
 
@@ -139,11 +147,15 @@ export function ModelSelect({
       <div className="flex items-center">
         <div className="relative flex-1">
           <input
+            id={inputId}
             ref={inputRef}
             type="text"
+            disabled={disabled}
             value={displayValue}
             onChange={(e) => handleInputChange(e.target.value)}
-            onFocus={() => setOpen(true)}
+            onFocus={() => {
+              if (!disabled) setOpen(true)
+            }}
             onBlur={handleBlur}
             onKeyDown={handleInputKeyDown}
             placeholder={placeholder}
@@ -153,7 +165,7 @@ export function ModelSelect({
             )}
           />
           <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
-            {value && (
+            {value && !disabled && (
               <button
                 type="button"
                 onClick={clearValue}
@@ -166,6 +178,7 @@ export function ModelSelect({
             )}
             <button
               type="button"
+              disabled={disabled}
               onClick={() => { setOpen(!open); if (!open) inputRef.current?.focus() }}
               className="p-1 rounded hover:bg-muted text-muted-foreground"
               tabIndex={-1}

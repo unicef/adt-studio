@@ -15,6 +15,7 @@ const IMAGE_MARKER_START = "\x00IMG:"
 const IMAGE_MARKER_END = "\x00"
 const PROMPT_VERSIONS_DIR = ".versions"
 const PROMPT_CURRENT_VERSION_FILE = ".current"
+const BASE_PROMPT_MODEL_ID = "openai:gpt-5.4"
 
 export interface PromptRenderOptions {
   modelId?: string
@@ -105,7 +106,7 @@ export function resolvePromptModelId(modelId: string | undefined): string | null
   const normalized = modelId.trim().toLowerCase()
   if (!normalized) return null
   const canonical = normalized.includes(":") ? normalized : `openai:${normalized}`
-  if (canonical === "openai:gpt-5.4") return null
+  if (canonical === BASE_PROMPT_MODEL_ID) return null
   return canonical
 }
 

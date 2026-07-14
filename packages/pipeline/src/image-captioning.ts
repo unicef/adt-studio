@@ -54,6 +54,7 @@ export function buildCaptionConfig(appConfig: AppConfig): CaptionConfig {
     modelId:
       appConfig.image_captioning?.model ??
       appConfig.page_sectioning?.model ??
+      appConfig.default_model ??
       "openai:gpt-4.1",
     maxRetries:
       appConfig.image_captioning?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,

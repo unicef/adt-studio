@@ -1542,6 +1542,15 @@ export const api = {
   getGlobalConfig: () =>
     request<{ config: Record<string, unknown> }>(`/config`),
 
+  getDefaultModel: () =>
+    request<{ model: string }>(`/config/default-model`),
+
+  updateDefaultModel: (model: string) =>
+    request<{ model: string }>(`/config/default-model`, {
+      method: "PUT",
+      body: JSON.stringify({ model }),
+    }),
+
   getSpeechInstructions: () =>
     request<Record<string, string>>("/speech-config/instructions"),
 

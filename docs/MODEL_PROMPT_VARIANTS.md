@@ -144,8 +144,9 @@ Rules:
   serialization and still preserves the same input/output contract.
 - Do not rename Liquid variables. If a model needs clearer instructions, add
   prose around the same variables.
-- Treat `openai:gpt-5.4` and bare `gpt-5.4` as the base/default prompt model;
-  they do not produce a model folder.
+- Treat `openai:gpt-5.4` and bare `gpt-5.4` as the base prompt model; they do
+  not produce a model folder. The runtime `default_model` is independent: when
+  it names another model, that model's prompt folder is still resolved first.
 - Bare model ids are canonicalized as OpenAI model ids. For example, `gpt-5.5`
   resolves to `openai:gpt-5.5` and folder `openai_gpt_5_5`.
 

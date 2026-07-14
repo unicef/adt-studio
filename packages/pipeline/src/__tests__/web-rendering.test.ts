@@ -90,6 +90,18 @@ describe("buildRenderStrategyResolver", () => {
     expect(config.templateName).toBe("")
   })
 
+  it("uses the configured global default model when a strategy has no override", () => {
+    const appConfig: AppConfig = {
+      role_types: { heading: "Heading" },
+      structure_types: { paragraph: "Paragraph" },
+      default_model: "google:gemini-2.5-pro",
+    }
+
+    expect(buildRenderStrategyResolver(appConfig)("anything").modelId).toBe(
+      "google:gemini-2.5-pro",
+    )
+  })
+
   it("falls back to default strategy when section strategy name is missing", () => {
     const appConfig: AppConfig = {
       role_types: { heading: "Heading" },

@@ -26,6 +26,7 @@ type PromptFileTreeProps = {
   filter: string
   selectedKey: string
   selectedModel: string
+  defaultModelId: string
   deletingKey: string | null
   deletingModelId: string | null
   onSelectPrompt: (promptName: string, modelId: string) => void
@@ -55,6 +56,7 @@ export function PromptFileTree({
   filter,
   selectedKey,
   selectedModel,
+  defaultModelId,
   deletingKey,
   deletingModelId,
   onSelectPrompt,
@@ -62,14 +64,18 @@ export function PromptFileTree({
   onDeletePrompt,
   onDeleteModel,
 }: PromptFileTreeProps) {
-  const [openFolders, setOpenFolders] = useState<Set<string>>(() => new Set([DEFAULT_MODEL]))
+  const [openFolders, setOpenFolders] = useState<Set<string>>(
+    () => new Set([defaultModelId || DEFAULT_MODEL]),
+  )
   const normalizedFilter = filter.trim().toLowerCase()
 
   const modelFolders = useMemo<ModelPromptFolder[]>(
     () => modelGroups.flatMap((group) =>
       group.models.map((model) => {
         const modelId = `${group.provider}:${model}`
-        const existingPrompts = prompts.filter((prompt) => promptExistsForModel(prompt, modelId))
+        const existingPrompts = prompts.filter((prompt) => (
+          promptExistsForModel(prompt, modelId)
+        ))
         const projectDefaultPrompts = existingPrompts.filter((prompt) => (
           isProjectDefaultPromptVariant(prompt, modelId)
         ))
@@ -80,7 +86,10 @@ export function PromptFileTree({
           prompts: existingPrompts.map((prompt) => ({
             name: prompt.name,
             fileName: promptFileNameForModel(prompt.name, modelId),
-            isProjectDefault: isProjectDefaultPromptVariant(prompt, modelId),
+            isProjectDefault: isProjectDefaultPromptVariant(
+              prompt,
+              modelId,
+            ),
           })),
         }
       }),
@@ -108,8 +117,11 @@ export function PromptFileTree({
   )
 
   useEffect(() => {
-    setOpenFolders((current) => new Set([...current, selectedModel || DEFAULT_MODEL]))
-  }, [selectedModel])
+    setOpenFolders((current) => new Set([
+      ...current,
+      selectedModel || defaultModelId || DEFAULT_MODEL,
+    ]))
+  }, [defaultModelId, selectedModel])
 
   useEffect(() => {
     if (!normalizedFilter) return
@@ -130,7 +142,7 @@ export function PromptFileTree({
         {visibleFolders.map((folder) => {
           const isOpen = openFolders.has(folder.modelId) || normalizedFilter.length > 0
           const FolderIcon = isOpen ? FolderOpen : Folder
-          const isDefaultFolder = folder.modelId === DEFAULT_MODEL
+          const isDefaultFolder = folder.modelId === defaultModelId
           const isSelectedFolder = selectedModel === folder.modelId
           const canDeleteFolder = !isDefaultFolder && !folder.hasProjectDefaultFiles
           return (
@@ -202,7 +214,7 @@ export function PromptFileTree({
                           promptName={prompt.name}
                           fileName={prompt.fileName}
                           modelGroups={modelGroups}
-                          defaultTargetModel={selectedModel || DEFAULT_MODEL}
+                          defaultTargetModel={selectedModel || defaultModelId}
                           isActive={isSelectedFile || deletingKey === itemKey}
                           isDeleting={deletingKey === itemKey}
                           canDelete={!prompt.isProjectDefault}
@@ -223,7 +235,10 @@ export function PromptFileTree({
   )
 }
 
-function isProjectDefaultPromptVariant(prompt: PromptSummary, modelId: string): boolean {
+function isProjectDefaultPromptVariant(
+  prompt: PromptSummary,
+  modelId: string,
+): boolean {
   if (modelId === DEFAULT_MODEL) return true
   const variantName = promptNameForSelectedModel(prompt.name, modelId)
   if (!prompt.variants.includes(variantName)) return false

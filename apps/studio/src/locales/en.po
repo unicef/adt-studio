@@ -2190,8 +2190,11 @@ msgstr "Default model"
 msgid "Default model cannot be used as a template target."
 msgstr "Default model cannot be used as a template target."
 
-msgid "Default model uses the base prompt files and does not need model-specific copies."
-msgstr "Default model uses the base prompt files and does not need model-specific copies."
+msgid "Default model updated."
+msgstr "Default model updated."
+
+#~ msgid "Default model uses the base prompt files and does not need model-specific copies."
+#~ msgstr "Default model uses the base prompt files and does not need model-specific copies."
 
 msgid "Default N/A"
 msgstr "Default N/A"
@@ -6218,6 +6221,9 @@ msgstr "Save your work first if you want to keep these changes."
 msgid "Saved. Re-package Preview to apply."
 msgstr "Saved. Re-package Preview to apply."
 
+msgid "Saving..."
+msgstr "Saving..."
+
 msgid "Saving…"
 msgstr "Saving…"
 
@@ -7638,6 +7644,9 @@ msgstr "Unable to delete prompt folder."
 msgid "Unable to load reviewer checklist settings."
 msgstr "Unable to load reviewer checklist settings."
 
+msgid "Unable to load the default model."
+msgstr "Unable to load the default model."
+
 msgid "Unable to render PDF preview."
 msgstr "Unable to render PDF preview."
 
@@ -7652,6 +7661,9 @@ msgstr "Unable to save global prompt."
 
 msgid "Unable to select prompt version."
 msgstr "Unable to select prompt version."
+
+msgid "Unable to update the default model."
+msgstr "Unable to update the default model."
 
 msgid "Unassign video"
 msgstr "Unassign video"
@@ -7718,6 +7730,9 @@ msgstr "Update available"
 
 #~ msgid "Update downloaded. Restart to install."
 #~ msgstr "Update downloaded. Restart to install."
+
+msgid "Update model"
+msgstr "Update model"
 
 msgid "Update ready to install"
 msgstr "Update ready to install"
@@ -7851,6 +7866,9 @@ msgstr "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemi
 
 msgid "Used for this quiz"
 msgstr "Used for this quiz"
+
+msgid "Used when a pipeline step does not specify its own model."
+msgstr "Used when a pipeline step does not specify its own model."
 
 msgid "Using fallback"
 msgstr "Using fallback"

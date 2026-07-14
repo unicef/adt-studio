@@ -50,7 +50,9 @@ export function PromptViewer({
 }: PromptViewerProps) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
-  const promptModelId = hideModel ? null : promptModelForSelectedModel(model)
+  const promptModelId = hideModel
+    ? null
+    : promptModelForSelectedModel(model)
 
   const { data: promptData, isLoading } = useQuery({
     queryKey: ["prompts", promptName, bookLabel, promptModelId],

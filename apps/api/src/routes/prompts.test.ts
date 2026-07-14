@@ -179,6 +179,30 @@ describe("GET /prompts", () => {
 })
 
 describe("GET /prompts/:name", () => {
+  it("keeps GPT-5.4 as the base and resolves GPT-5.6-sol variants", async () => {
+    writePrompt("section", "GPT-5.4 base")
+    writeModelPrompt("openai_gpt_5_6_sol", "section", "GPT-5.6-sol variant")
+    const configuredApp = createPromptRoutes(promptsDir, booksDir)
+
+    const defaultResponse = await configuredApp.request(
+      "/prompts/section?model=openai%3Agpt-5.4",
+    )
+    const variantResponse = await configuredApp.request(
+      "/prompts/section?model=openai%3Agpt-5.6-sol",
+    )
+
+    expect(await defaultResponse.json()).toMatchObject({
+      content: "GPT-5.4 base",
+      resolvedName: "section",
+      modelId: null,
+    })
+    expect(await variantResponse.json()).toMatchObject({
+      content: "GPT-5.6-sol variant",
+      resolvedName: "section__openai_gpt_5_6_sol",
+      modelId: "openai:gpt-5.6-sol",
+    })
+  })
+
   it("returns prompt content", async () => {
     writePrompt("page_sectioning", "Hello {{ page }}")
     const res = await app().request("/prompts/page_sectioning")

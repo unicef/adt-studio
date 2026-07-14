@@ -5,6 +5,19 @@ import { ReviewerValidationConfig } from "./reviewer-validation-config.js"
 import { REFLOWABLE_FONT_SETTINGS } from "./reflowable-fonts.js"
 
 export const DEFAULT_LLM_MAX_RETRIES = 5
+export const DEFAULT_LLM_MODEL_ID = "openai:gpt-5.4"
+
+export const LLMModelId = z
+  .string()
+  .trim()
+  .regex(/^[a-zA-Z][a-zA-Z0-9]*:[a-zA-Z0-9][a-zA-Z0-9_.-]{0,159}$/)
+  .transform((value) => value.toLowerCase())
+export type LLMModelId = z.infer<typeof LLMModelId>
+
+export const DefaultModelConfig = z.object({
+  model: LLMModelId,
+})
+export type DefaultModelConfig = z.infer<typeof DefaultModelConfig>
 
 export const RateLimitConfig = z.object({
   requests_per_minute: z.number().int().min(1),
@@ -108,6 +121,7 @@ export type AccessibilityAssessmentConfig = z.infer<typeof AccessibilityAssessme
 
 export const AppConfig = z
   .object({
+    default_model: LLMModelId.optional(),
     structure_types: z.record(z.string(), z.string()),
     role_types: z.record(z.string(), z.string()),
     section_types: z.record(z.string(), z.string()).optional(),

@@ -2192,8 +2192,11 @@ msgstr "Par défaut modèle"
 msgid "Default model cannot be used as a template target."
 msgstr "Le modèle par défaut ne peut pas être utilisé comme cible de modèle."
 
-msgid "Default model uses the base prompt files and does not need model-specific copies."
-msgstr "Le modèle par défaut utilise les fichiers de prompt de base et n'a pas besoin de copies spécifiques au modèle."
+msgid "Default model updated."
+msgstr "Modèle par défaut mis à jour."
+
+#~ msgid "Default model uses the base prompt files and does not need model-specific copies."
+#~ msgstr "Le modèle par défaut utilise les fichiers de prompt de base et n'a pas besoin de copies spécifiques au modèle."
 
 msgid "Default N/A"
 msgstr "Par défaut N/A"
@@ -6220,6 +6223,9 @@ msgstr "Enregistrez d'abord votre travail si vous souhaitez conserver ces modifi
 msgid "Saved. Re-package Preview to apply."
 msgstr "Enregistré. Ré-empaquetez l'aperçu pour appliquer."
 
+msgid "Saving..."
+msgstr "Enregistrement..."
+
 msgid "Saving…"
 msgstr "Enregistrement…"
 
@@ -7640,6 +7646,9 @@ msgstr "Impossible de supprimer le dossier de prompts."
 msgid "Unable to load reviewer checklist settings."
 msgstr "Impossible de charger les paramètres de la liste de contrôle du réviseur."
 
+msgid "Unable to load the default model."
+msgstr "Impossible de charger le modèle par défaut."
+
 msgid "Unable to render PDF preview."
 msgstr "Impossible d'afficher l'aperçu du PDF."
 
@@ -7654,6 +7663,9 @@ msgstr "Impossible d'enregistrer le prompt global."
 
 msgid "Unable to select prompt version."
 msgstr "Impossible de sélectionner la version du prompt."
+
+msgid "Unable to update the default model."
+msgstr "Impossible de mettre à jour le modèle par défaut."
 
 msgid "Unassign video"
 msgstr "Désassigner la vidéo"
@@ -7720,6 +7732,9 @@ msgstr "Mise à jour disponible"
 
 #~ msgid "Update downloaded. Restart to install."
 #~ msgstr "Mise à jour téléchargée. Redémarrer pour installer."
+
+msgid "Update model"
+msgstr "Mettre à jour le modèle"
 
 msgid "Update ready to install"
 msgstr "Mise à jour prête à être installée"
@@ -7853,6 +7868,9 @@ msgstr "Utilisé pour les modèles Gemini — LLM (gemini-2.5-pro, etc.) et TTS 
 
 msgid "Used for this quiz"
 msgstr "Utilisée pour ce quiz"
+
+msgid "Used when a pipeline step does not specify its own model."
+msgstr "Utilisé lorsqu’une étape du pipeline ne spécifie pas son propre modèle."
 
 msgid "Using fallback"
 msgstr "Fallback utilisé"

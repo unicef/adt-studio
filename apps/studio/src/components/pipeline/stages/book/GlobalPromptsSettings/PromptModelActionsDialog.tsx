@@ -70,7 +70,9 @@ export function PromptModelActionsDialog({
   const targetPromptModelId = promptModelForSelectedModel(normalizedTargetModel)
   const staticModelIds = useMemo(() => new Set(modelIdsFromGroups(LLM_MODEL_GROUPS)), [])
   const missingPrompts = useMemo(
-    () => promptSummaries.filter((prompt) => !promptExistsForModel(prompt, normalizedTargetModel)),
+    () => promptSummaries.filter((prompt) => (
+      !promptExistsForModel(prompt, normalizedTargetModel)
+    )),
     [normalizedTargetModel, promptSummaries],
   )
   const isDefaultModel = isDefaultPromptModelId(normalizedTargetModel)
@@ -95,7 +97,7 @@ export function PromptModelActionsDialog({
       return
     }
     if (isDefaultModel || !targetPromptModelId) {
-      toast.error(t`Default model uses the base prompt files and does not need model-specific copies.`)
+      toast.error(t`This model already has prompt files for every base prompt.`)
       return
     }
 
@@ -157,7 +159,7 @@ export function PromptModelActionsDialog({
 
           <div className="rounded-md border bg-muted/20 p-3 text-xs leading-5 text-muted-foreground">
             {isDefaultModel ? (
-              <Trans>Default model uses the base prompt files and does not need model-specific copies.</Trans>
+              <Trans>This model already has prompt files for every base prompt.</Trans>
             ) : missingPrompts.length === 0 ? (
               <Trans>This model already has prompt files for every base prompt.</Trans>
             ) : (

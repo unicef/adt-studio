@@ -2190,8 +2190,11 @@ msgstr "Modelo predeterminado"
 msgid "Default model cannot be used as a template target."
 msgstr "El modelo predeterminado no se puede usar como destino de plantilla."
 
-msgid "Default model uses the base prompt files and does not need model-specific copies."
-msgstr "El modelo predeterminado usa los archivos de prompt base y no necesita copias específicas del modelo."
+msgid "Default model updated."
+msgstr "Modelo predeterminado actualizado."
+
+#~ msgid "Default model uses the base prompt files and does not need model-specific copies."
+#~ msgstr "El modelo predeterminado usa los archivos de prompt base y no necesita copias específicas del modelo."
 
 msgid "Default N/A"
 msgstr "Default N/A"
@@ -6218,6 +6221,9 @@ msgstr "Guarda tu trabajo primero si quieres conservar estos cambios."
 msgid "Saved. Re-package Preview to apply."
 msgstr "Saved. Re-package Preview to apply."
 
+msgid "Saving..."
+msgstr "Guardando..."
+
 msgid "Saving…"
 msgstr "Guardando…"
 
@@ -7638,6 +7644,9 @@ msgstr "No se pudo eliminar la carpeta de prompts."
 msgid "Unable to load reviewer checklist settings."
 msgstr "Unable to load reviewer checklist settings."
 
+msgid "Unable to load the default model."
+msgstr "No se pudo cargar el modelo predeterminado."
+
 msgid "Unable to render PDF preview."
 msgstr "No se puede renderizar la vista previa del PDF."
 
@@ -7652,6 +7661,9 @@ msgstr "No se pudo guardar el prompt global."
 
 msgid "Unable to select prompt version."
 msgstr "No se pudo seleccionar la versión del prompt."
+
+msgid "Unable to update the default model."
+msgstr "No se pudo actualizar el modelo predeterminado."
 
 msgid "Unassign video"
 msgstr "Desasignar video"
@@ -7718,6 +7730,9 @@ msgstr "Actualización disponible"
 
 #~ msgid "Update downloaded. Restart to install."
 #~ msgstr "Actualización descargada. Reinicia para instalar."
+
+msgid "Update model"
+msgstr "Actualizar modelo"
 
 msgid "Update ready to install"
 msgstr "Actualización lista para instalar"
@@ -7851,6 +7866,9 @@ msgstr "Utilizada para modelos Gemini — tanto LLM (gemini-2.5-pro, etc.) como 
 
 msgid "Used for this quiz"
 msgstr "Se usa en este cuestionario"
+
+msgid "Used when a pipeline step does not specify its own model."
+msgstr "Se utiliza cuando un paso del pipeline no especifica su propio modelo."
 
 msgid "Using fallback"
 msgstr "Usando fallback"

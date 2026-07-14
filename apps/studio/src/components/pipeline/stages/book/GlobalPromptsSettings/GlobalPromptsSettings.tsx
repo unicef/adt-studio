@@ -13,7 +13,10 @@ import {
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
 import { toast } from "@/components/ui/sonner";
-import { LLM_MODEL_GROUPS } from "@/components/pipeline/components/ModelSelect";
+import {
+  LLM_MODEL_GROUPS,
+  ModelSelect,
+} from "@/components/pipeline/components/ModelSelect";
 import { PromptLiquidGuideDialog } from "@/components/pipeline/components/PromptViewer/PromptLiquidGuideDialog";
 import {
   promptModelForSelectedModel,
@@ -51,6 +54,13 @@ type DeleteModelVariables = {
   promptNames: string[];
 };
 
+function normalizeDefaultModelInput(value: string): string {
+  const normalized = normalizePromptModelInput(value);
+  return normalized && !normalized.includes(":")
+    ? `openai:${normalized}`
+    : normalized;
+}
+
 export function GlobalPromptsSettings({
   embedded = false,
 }: { embedded?: boolean } = {}) {
@@ -58,9 +68,11 @@ export function GlobalPromptsSettings({
   const queryClient = useQueryClient();
   const [selectedPrompt, setSelectedPrompt] = useState("");
   const [model, setModel] = useState(DEFAULT_MODEL);
+  const [defaultModelDraft, setDefaultModelDraft] = useState(DEFAULT_MODEL);
   const [treeFilter, setTreeFilter] = useState("");
   const [draft, setDraft] = useState<string | null>(null);
   const [isDiffOpen, setIsDiffOpen] = useState(false);
+  const defaultModelInitializedRef = useRef(false);
   const currentSelectionRef = useRef<{
     promptName: string;
     modelId: string | null;
@@ -83,14 +95,30 @@ export function GlobalPromptsSettings({
     () => promptModelsQuery.data?.models ?? [],
     [promptModelsQuery.data],
   );
+  const defaultModelQuery = useQuery({
+    queryKey: ["default-model"],
+    queryFn: api.getDefaultModel,
+  });
+  const defaultModelId = defaultModelQuery.data?.model ?? DEFAULT_MODEL;
   const modelGroups = useMemo(
-    () => mergePromptModelGroups(LLM_MODEL_GROUPS, promptModels),
-    [promptModels],
+    () => mergePromptModelGroups(
+      LLM_MODEL_GROUPS,
+      [...promptModels, defaultModelId],
+    ),
+    [defaultModelId, promptModels],
   );
   const staticModelIds = useMemo(
     () => new Set(modelIdsFromGroups(LLM_MODEL_GROUPS)),
     [],
   );
+
+  useEffect(() => {
+    if (defaultModelQuery.data?.model && !defaultModelInitializedRef.current) {
+      defaultModelInitializedRef.current = true;
+      setDefaultModelDraft(defaultModelQuery.data.model);
+      if (model === DEFAULT_MODEL) setModel(defaultModelQuery.data.model);
+    }
+  }, [defaultModelQuery.data?.model, model]);
 
   useEffect(() => {
     if (!selectedPrompt && promptSummaries.length > 0) {
@@ -189,6 +217,33 @@ export function GlobalPromptsSettings({
     },
   });
 
+  const defaultModelMutation = useMutation({
+    mutationFn: () => {
+      const normalizedModel = normalizeDefaultModelInput(defaultModelDraft);
+      if (!normalizedModel) throw new Error(t`Enter a model id.`);
+      return api.updateDefaultModel(normalizedModel);
+    },
+    onSuccess: async (saved) => {
+      setDefaultModelDraft(saved.model);
+      setModel(saved.model);
+      setDraft(null);
+      queryClient.setQueryData(["default-model"], saved);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["global-config"] }),
+        queryClient.invalidateQueries({ queryKey: ["prompts"] }),
+        queryClient.invalidateQueries({ queryKey: ["prompt-versions"] }),
+      ]);
+      toast.success(t`Default model updated.`);
+    },
+    onError: (error) => {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : t`Unable to update the default model.`,
+      );
+    },
+  });
+
   const resetMutation = useMutation({
     mutationFn: () => api.resetPrompt(selectedPrompt, promptModelId),
     onSuccess: async (resetPrompt) => {
@@ -216,10 +271,13 @@ export function GlobalPromptsSettings({
 
   const deletePromptMutation = useMutation({
     mutationFn: ({ promptName, modelId }: DeletePromptVariables) => {
-      if (modelId === DEFAULT_MODEL) {
+      if (isDefaultPromptModelId(modelId)) {
         throw new Error(t`Default prompt files cannot be deleted.`);
       }
-      return api.resetPrompt(promptName, promptModelForSelectedModel(modelId));
+      return api.resetPrompt(
+        promptName,
+        promptModelForSelectedModel(modelId),
+      );
     },
     onSuccess: async (resetPrompt, { promptName, modelId }) => {
       const deletedPromptModelId = promptModelForSelectedModel(modelId);
@@ -247,7 +305,7 @@ export function GlobalPromptsSettings({
 
   const deleteModelMutation = useMutation({
     mutationFn: async ({ modelId, promptNames }: DeleteModelVariables) => {
-      if (modelId === DEFAULT_MODEL) {
+      if (isDefaultPromptModelId(modelId)) {
         throw new Error(t`Default prompt folders cannot be deleted.`);
       }
 
@@ -267,7 +325,7 @@ export function GlobalPromptsSettings({
     },
     onSuccess: async (_, { modelId }) => {
       if (model === modelId) {
-        setModel(DEFAULT_MODEL);
+        setModel(defaultModelId);
         setDraft(null);
       }
       await Promise.all([
@@ -305,9 +363,7 @@ export function GlobalPromptsSettings({
         undefined,
         promptModelForSelectedModel(sourceModelId),
       );
-      const targetPromptModelId = promptModelForSelectedModel(
-        normalizedTargetModel,
-      );
+      const targetPromptModelId = promptModelForSelectedModel(normalizedTargetModel);
       const savedPrompt = await api.updatePrompt(
         promptName,
         sourcePrompt.content,
@@ -373,6 +429,10 @@ export function GlobalPromptsSettings({
     promptListQuery.isLoading || promptModelsQuery.isLoading;
   const isPromptEditorLoading = isPromptFilesLoading || promptQuery.isLoading;
   const isSavingPrompt = saveMutation.isPending || resetMutation.isPending;
+  const normalizedDefaultModel = normalizeDefaultModelInput(defaultModelDraft);
+  const savedDefaultModel = defaultModelId;
+  const isDefaultModelDirty = normalizedDefaultModel.length > 0
+    && normalizedDefaultModel !== savedDefaultModel;
 
   useFloatingSave({
     id: "global-prompts",
@@ -397,17 +457,63 @@ export function GlobalPromptsSettings({
           : "flex h-full min-h-[calc(100vh-2.5rem)] flex-col gap-4 p-4"
       }
     >
-      <div className="shrink-0">
-        <h2 className="text-lg font-semibold tracking-tight text-foreground">
-          <Trans>Global prompts</Trans>
-        </h2>
-        <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
-          <Trans>
-            Edit fallback prompts used by every book. Saving creates a global
-            prompt version; reset removes the version and returns to the shipped
-            default file.
-          </Trans>
-        </p>
+      <div className="flex shrink-0 flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight text-foreground">
+            <Trans>Global prompts</Trans>
+          </h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
+            <Trans>
+              Edit fallback prompts used by every book. Saving creates a global
+              prompt version; reset removes the version and returns to the shipped
+              default file.
+            </Trans>
+          </p>
+        </div>
+
+        <div className="w-full rounded-md border bg-muted/20 p-3 lg:max-w-xl">
+          <Label htmlFor="global-default-model" className="text-xs font-medium text-foreground">
+            <Trans>Default model</Trans>
+          </Label>
+          <div className="mt-1.5 flex flex-col gap-2 sm:flex-row">
+            <ModelSelect
+              inputId="global-default-model"
+              value={defaultModelDraft}
+              onChange={setDefaultModelDraft}
+              placeholder={DEFAULT_MODEL}
+              groups={modelGroups}
+              className="min-w-0 flex-1"
+              inputClassName="h-9 font-mono text-xs"
+              disabled={defaultModelQuery.isLoading || defaultModelMutation.isPending}
+              commitOnInput
+            />
+            <Button
+              type="button"
+              size="sm"
+              className="h-9 shrink-0"
+              disabled={
+                defaultModelQuery.isLoading
+                || defaultModelMutation.isPending
+                || !isDefaultModelDirty
+              }
+              onClick={() => {
+                if (canDiscardDraft()) defaultModelMutation.mutate();
+              }}
+            >
+              {defaultModelMutation.isPending
+                ? <Trans>Saving...</Trans>
+                : <Trans>Update model</Trans>}
+            </Button>
+          </div>
+          <p className="mt-1.5 text-xs leading-5 text-muted-foreground">
+            <Trans>Used when a pipeline step does not specify its own model.</Trans>
+          </p>
+          {defaultModelQuery.isError && (
+            <p role="alert" className="mt-1 text-xs text-destructive">
+              <Trans>Unable to load the default model.</Trans>
+            </p>
+          )}
+        </div>
       </div>
 
       <div
@@ -456,6 +562,7 @@ export function GlobalPromptsSettings({
                   filter={treeFilter}
                   selectedKey={selectedTreeKey}
                   selectedModel={model}
+                  defaultModelId={defaultModelId}
                   deletingKey={deletingTreeKey}
                   deletingModelId={deletingModelId}
                   onSelectPrompt={selectPromptFile}

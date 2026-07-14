@@ -21,16 +21,23 @@ export function modelIdsFromGroups(groups: ModelGroup[]): string[] {
   return groups.flatMap((group) => group.models.map((model) => `${group.provider}:${model}`))
 }
 
-export function isDefaultPromptModelId(modelId: string): boolean {
+export function isDefaultPromptModelId(
+  modelId: string,
+): boolean {
   const normalized = normalizePromptModelInput(modelId)
-  return normalized.length > 0 && promptModelForSelectedModel(normalized) == null
+  return normalized.length > 0
+    && promptModelForSelectedModel(normalized) == null
 }
 
-export function removeDefaultPromptModelGroups(groups: ModelGroup[]): ModelGroup[] {
+export function removeDefaultPromptModelGroups(
+  groups: ModelGroup[],
+): ModelGroup[] {
   return groups
     .map((group) => ({
       ...group,
-      models: group.models.filter((model) => !isDefaultPromptModelId(`${group.provider}:${model}`)),
+      models: group.models.filter((model) => (
+        !isDefaultPromptModelId(`${group.provider}:${model}`)
+      )),
     }))
     .filter((group) => group.models.length > 0)
 }
@@ -86,7 +93,9 @@ export function promptExistsForModel(
 ): boolean {
   const promptModelId = promptModelForSelectedModel(modelId)
   if (!promptModelId) return true
-  return prompt.variants.includes(promptNameForSelectedModel(prompt.name, promptModelId))
+  return prompt.variants.includes(
+    promptNameForSelectedModel(prompt.name, promptModelId),
+  )
 }
 
 export function updatePromptCaches(

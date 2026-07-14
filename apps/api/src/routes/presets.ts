@@ -3,7 +3,12 @@ import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import yaml from "js-yaml"
-import { StyleguideName } from "@adt/types"
+import {
+  AppConfig,
+  DEFAULT_LLM_MODEL_ID,
+  DefaultModelConfig,
+  StyleguideName,
+} from "@adt/types"
 
 export function createPresetRoutes(configPath: string): Hono {
   const app = new Hono()
@@ -99,6 +104,41 @@ table{border-collapse:collapse;width:100%;margin:0.75rem 0;}th,td{border:1px sol
     const content = fs.readFileSync(configPath, "utf-8")
     const parsed = yaml.load(content) as Record<string, unknown>
     return c.json({ config: parsed })
+  })
+
+  // Return the global fallback text-generation model.
+  app.get("/config/default-model", (c) => {
+    if (!fs.existsSync(configPath)) {
+      throw new HTTPException(404, { message: "Global config not found" })
+    }
+
+    const content = fs.readFileSync(configPath, "utf-8")
+    const parsed = AppConfig.parse(yaml.load(content))
+    return c.json({ model: parsed.default_model ?? DEFAULT_LLM_MODEL_ID })
+  })
+
+  // Update only the fallback model while preserving config.yaml formatting.
+  app.put("/config/default-model", async (c) => {
+    if (!fs.existsSync(configPath)) {
+      throw new HTTPException(404, { message: "Global config not found" })
+    }
+
+    const result = DefaultModelConfig.safeParse(await c.req.json())
+    if (!result.success) {
+      throw new HTTPException(400, { message: "Invalid default model id" })
+    }
+
+    const content = fs.readFileSync(configPath, "utf-8")
+    const parsed = yaml.load(content) as Record<string, unknown>
+    AppConfig.parse({ ...parsed, default_model: result.data.model })
+
+    const modelLine = `default_model: ${JSON.stringify(result.data.model)}`
+    const updated = /^default_model:\s*.*$/m.test(content)
+      ? content.replace(/^default_model:\s*.*$/m, modelLine)
+      : `${modelLine}\n\n${content}`
+    fs.writeFileSync(configPath, updated, "utf-8")
+
+    return c.json(result.data)
   })
 
   return app

@@ -5,6 +5,7 @@ import {
   type PageSectioningSection,
   type TypeDef,
   DEFAULT_LLM_MAX_RETRIES,
+  DEFAULT_LLM_MODEL_ID,
   buildPageSectioningLLMSchema,
   buildPageSectioningRefinementLLMSchema,
 } from "@adt/types"
@@ -702,7 +703,7 @@ export function buildPageSectioningConfig(
     disabledSectionTypes: [...disabledSet],
     promptName: appConfig.page_sectioning?.prompt ?? "page_sectioning",
     refinementPromptName: "page_sectioning_refinement",
-    modelId: appConfig.page_sectioning?.model ?? "openai:gpt-5.4",
+    modelId: appConfig.page_sectioning?.model ?? appConfig.default_model ?? DEFAULT_LLM_MODEL_ID,
     maxRetries:
       appConfig.page_sectioning?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,
     maxRefinements: appConfig.page_sectioning?.max_refinements ?? 0,

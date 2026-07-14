@@ -2191,8 +2191,11 @@ msgstr "Modeli parazgjedhës"
 msgid "Default model cannot be used as a template target."
 msgstr "Modeli i parazgjedhur nuk mund të përdoret si destinacion shablloni."
 
-msgid "Default model uses the base prompt files and does not need model-specific copies."
-msgstr "Modeli i parazgjedhur përdor skedarët bazë të promptit dhe nuk ka nevojë për kopje specifike për modelin."
+msgid "Default model updated."
+msgstr "Modeli i parazgjedhur u përditësua."
+
+#~ msgid "Default model uses the base prompt files and does not need model-specific copies."
+#~ msgstr "Modeli i parazgjedhur përdor skedarët bazë të promptit dhe nuk ka nevojë për kopje specifike për modelin."
 
 msgid "Default N/A"
 msgstr "Parazgjedhje N/A"
@@ -6219,6 +6222,9 @@ msgstr "Ruaje punën tënde më parë nëse dëshiron t'i mbash këto ndryshime.
 msgid "Saved. Re-package Preview to apply."
 msgstr "U ruajt. Ri-pako Parapamjen për ta aplikuar."
 
+msgid "Saving..."
+msgstr "Duke ruajtur..."
+
 msgid "Saving…"
 msgstr "Po ruhet…"
 
@@ -7639,6 +7645,9 @@ msgstr "Nuk u arrit të fshihej dosja e prompteve."
 msgid "Unable to load reviewer checklist settings."
 msgstr "Nuk mund të ngarkohen cilësimet e listës së kontrollit të rishikuesit."
 
+msgid "Unable to load the default model."
+msgstr "Nuk mund të ngarkohej modeli i parazgjedhur."
+
 msgid "Unable to render PDF preview."
 msgstr "Pamja paraprake e PDF nuk mund të shfaqet."
 
@@ -7653,6 +7662,9 @@ msgstr "Nuk mund të ruhet prompti global."
 
 msgid "Unable to select prompt version."
 msgstr "Nuk mund të zgjidhet versioni i promptit."
+
+msgid "Unable to update the default model."
+msgstr "Nuk mund të përditësohej modeli i parazgjedhur."
 
 msgid "Unassign video"
 msgstr "Hiq caktimin e videos"
@@ -7719,6 +7731,9 @@ msgstr "Përditësim i disponueshëm"
 
 #~ msgid "Update downloaded. Restart to install."
 #~ msgstr "Përditësimi u shkarkua. Rinisni për të instaluar."
+
+msgid "Update model"
+msgstr "Përditëso modelin"
 
 msgid "Update ready to install"
 msgstr "Përditësimi është gati për instalim"
@@ -7852,6 +7867,9 @@ msgstr "Përdoret për modelet Gemini — si LLM (gemini-2.5-pro, etj.) ashtu ed
 
 msgid "Used for this quiz"
 msgstr "Përdoret për këtë kuiz"
+
+msgid "Used when a pipeline step does not specify its own model."
+msgstr "Përdoret kur një hap i pipeline-it nuk specifikon modelin e vet."
 
 msgid "Using fallback"
 msgstr "Po përdoret fallback"

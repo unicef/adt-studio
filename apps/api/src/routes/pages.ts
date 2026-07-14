@@ -2243,7 +2243,10 @@ export function createPageRoutes(
 
       // Build segmentation config — always use default model for manual segmentation
       const config = loadBookConfig(safeLabel, booksDir, configPath)
-      const modelId = config.image_segmentation?.model || "openai:gpt-5.4"
+      const modelId =
+        config.image_segmentation?.model
+        || config.default_model
+        || "openai:gpt-5.4"
       const promptName = config.image_segmentation?.prompt ?? "image_segmentation"
       const maxRetries =
         config.image_segmentation?.max_retries ?? DEFAULT_LLM_MAX_RETRIES
@@ -2457,9 +2460,13 @@ export function createPageRoutes(
 
     try {
       const bookPromptsDir = path.join(bookDir, "prompts")
+      const appConfig = loadBookConfig(safeLabel, booksDir, configPath)
       const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
       const cacheDir = path.join(bookDir, ".cache")
-      const config = buildStyleguideGenerationConfig()
+      const config = buildStyleguideGenerationConfig(
+        undefined,
+        appConfig.default_model,
+      )
       const llmModel = createLLMModel({
         modelId: config.modelId,
         cacheDir,

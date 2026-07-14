@@ -256,6 +256,35 @@ describe("createPromptEngine", () => {
     })
   })
 
+  it("uses a GPT-5.6-sol variant even when it is the runtime default model", async () => {
+    const dir = tmpDir()
+    fs.writeFileSync(
+      path.join(dir, "section.liquid"),
+      `{% chat role: "user" %}Base{% endchat %}`,
+    )
+    fs.writeFileSync(
+      path.join(dir, "section__openai_gpt_5_6_sol.liquid"),
+      `{% chat role: "user" %}Variant{% endchat %}`,
+    )
+
+    const engine = createPromptEngine(dir)
+    const resolution = engine.resolvePrompt("section", {
+      modelId: "openai:gpt-5.6-sol",
+    })
+    const messages = await engine.renderPrompt(
+      "section",
+      {},
+      { modelId: "openai:gpt-5.6-sol" },
+    )
+
+    expect(resolution.resolvedName).toBe("section__openai_gpt_5_6_sol")
+    expect(resolution.modelId).toBe("openai:gpt-5.6-sol")
+    expect(messages[0]).toEqual({
+      role: "user",
+      content: [{ type: "text", text: "Variant" }],
+    })
+  })
+
   it("falls back to the base prompt when a model-specific variant is missing", async () => {
     const dir = tmpDir()
     fs.writeFileSync(

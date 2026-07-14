@@ -2,6 +2,7 @@ import {
   BookSummaryOutput,
   type AppConfig,
   DEFAULT_LLM_MAX_RETRIES,
+  DEFAULT_LLM_MODEL_ID,
 } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
 import { buildLanguageContext, normalizeLocale } from "./language-context.js"
@@ -67,7 +68,7 @@ export function buildBookSummaryConfig(
 ): BookSummaryConfig {
   return {
     promptName: appConfig.book_summary?.prompt ?? "book_summary",
-    modelId: appConfig.book_summary?.model ?? "openai:gpt-5.4",
+    modelId: appConfig.book_summary?.model ?? appConfig.default_model ?? DEFAULT_LLM_MODEL_ID,
     maxRetries:
       appConfig.book_summary?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,
     outputLanguage: normalizeLocale(language ?? appConfig.editing_language ?? "en"),
