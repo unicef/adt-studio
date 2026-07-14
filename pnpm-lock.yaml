@@ -37,6 +37,9 @@ importers:
 
   apps/adt-runtime:
     dependencies:
+      '@adt/types':
+        specifier: workspace:*
+        version: link:../../packages/types
       '@atlaskit/pragmatic-drag-and-drop':
         specifier: ^1.8.1
         version: 1.8.1
