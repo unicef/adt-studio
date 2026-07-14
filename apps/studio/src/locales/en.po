@@ -68,6 +68,12 @@ msgstr "(p.{0})"
 msgid "(template)"
 msgstr "(template)"
 
+#. placeholder {0}: buddies.length
+#. placeholder {1}: KIDS_BUDDIES.length
+#. placeholder {2}: KIDS_BUDDIES.length
+msgid "{0, plural, one {# of {1} shipping} other {# of {2} shipping}}"
+msgstr "{0, plural, one {# of {1} shipping} other {# of {2} shipping}}"
+
 #. placeholder {0}: preview.addedPageNumbers.length
 #. placeholder {0}: result.addedPages
 msgid "{0, plural, one {# page added} other {# pages added}}"
@@ -234,6 +240,10 @@ msgstr "{0} sections"
 msgid "{0} selected images are no longer in the storyboard."
 msgstr "{0} selected images are no longer in the storyboard."
 
+#. placeholder {0}: selectedBuddy.defaultNameFallback
+msgid "{0} ships with this book"
+msgstr "{0} ships with this book"
+
 #. placeholder {0}: String(visibleCount)
 msgid "{0} terms"
 msgstr "{0} terms"
@@ -245,6 +255,10 @@ msgstr "{0} texts"
 #. placeholder {0}: outputLanguages.length
 msgid "{0} translations"
 msgstr "{0} translations"
+
+#. placeholder {0}: selectedBuddy.defaultNameFallback
+msgid "{0}'s voice pack"
+msgstr "{0}'s voice pack"
 
 #. placeholder {0}: String(generatedAudioCount)
 #. placeholder {1}: String(speakableEntries.length)
@@ -288,6 +302,9 @@ msgstr "{0}m ago"
 #. placeholder {0}: String(Math.floor(diff / 1000))
 msgid "{0}s ago"
 msgstr "{0}s ago"
+
+msgid "{buddyCount, plural, one {# buddy} other {# buddies}}"
+msgstr "{buddyCount, plural, one {# buddy} other {# buddies}}"
 
 msgid "{count} {count, plural, one {issue} other {issues}}"
 msgstr "{count} {count, plural, one {issue} other {issues}}"
@@ -351,8 +368,14 @@ msgstr "{missingForCurrentStage} entry/entries are missing audio. Re-run to gene
 msgid "{missingForCurrentStage} entry/entries are missing translations. Re-run to fill the missing items."
 msgstr "{missingForCurrentStage} entry/entries are missing translations. Re-run to fill the missing items."
 
+msgid "{name}'s expressions"
+msgstr "{name}'s expressions"
+
 msgid "{needsChanges} flagged"
 msgstr "{needsChanges} flagged"
+
+msgid "{packCount, plural, one {# voice pack} other {# voice packs}}"
+msgstr "{packCount, plural, one {# voice pack} other {# voice packs}}"
 
 msgid "{pageCount} {pageCount, plural, one {page} other {pages}}"
 msgstr "{pageCount} {pageCount, plural, one {page} other {pages}}"
@@ -517,6 +540,9 @@ msgstr "A figure of speech that describes one thing as if it were another to dra
 
 msgid "A fill-in-the-blank activity."
 msgstr "A fill-in-the-blank activity."
+
+msgid "A friendly character fronts every reading tool, from text-to-speech to font size."
+msgstr "A friendly character fronts every reading tool, from text-to-speech to font size."
 
 msgid "A glossary term with this word already exists."
 msgstr "A glossary term with this word already exists."
@@ -843,6 +869,9 @@ msgstr "Add language"
 msgid "Add Language"
 msgstr "Add Language"
 
+msgid "Add languages to the book to generate voice packs."
+msgstr "Add languages to the book to generate voice packs."
+
 msgid "Add languages to translate the book content into."
 msgstr "Add languages to translate the book content into."
 
@@ -896,6 +925,15 @@ msgstr "Add your first book"
 
 msgid "Add your first term"
 msgstr "Add your first term"
+
+msgid "Add your OpenAI key in Settings to generate voices."
+msgstr "Add your OpenAI key in Settings to generate voices."
+
+msgid "Add your OpenAI key in Settings to generate."
+msgstr "Add your OpenAI key in Settings to generate."
+
+msgid "Add your own buddy"
+msgstr "Add your own buddy"
 
 msgid "added"
 msgstr "added"
@@ -1050,6 +1088,9 @@ msgstr "All categories"
 msgid "All Categories"
 msgstr "All Categories"
 
+msgid "All expressions"
+msgstr "All expressions"
+
 msgid "All issues and manual review items"
 msgstr "All issues and manual review items"
 
@@ -1180,6 +1221,9 @@ msgstr "Appears on pages {0}"
 msgid "Application Programming Interface — a set of rules that allows programs to communicate."
 msgstr "Application Programming Interface — a set of rules that allows programs to communicate."
 
+msgid "Applies to the live preview and every exported format — readers can't turn it off."
+msgstr "Applies to the live preview and every exported format — readers can't turn it off."
+
 msgid "Apply"
 msgstr "Apply"
 
@@ -1265,6 +1309,12 @@ msgstr "Audio narration (largest impact on file size)"
 msgid "Audio Player"
 msgstr "Audio Player"
 
+msgid "Audition"
+msgstr "Audition"
+
+msgid "Audition language"
+msgstr "Audition language"
+
 msgid "Author"
 msgstr "Author"
 
@@ -1319,14 +1369,23 @@ msgstr "Back"
 msgid "Back Cover"
 msgstr "Back Cover"
 
+msgid "Back to book"
+msgstr "Back to book"
+
 msgid "Back to books"
 msgstr "Back to books"
 
 msgid "Back to Editor"
 msgstr "Back to Editor"
 
+msgid "Back to kids UI"
+msgstr "Back to kids UI"
+
 msgid "Back to preview"
 msgstr "Back to preview"
+
+msgid "Back to regular UI"
+msgstr "Back to regular UI"
 
 msgid "Back to Speech overview"
 msgstr "Back to Speech overview"
@@ -1340,6 +1399,9 @@ msgstr "Background"
 #. placeholder {0}: section.backgroundColor
 msgid "Background: {0}"
 msgstr "Background: {0}"
+
+msgid "Baked into the book"
+msgstr "Baked into the book"
 
 msgid "base"
 msgstr "base"
@@ -1482,6 +1544,15 @@ msgstr "Browse and edit Liquid templates used for template-based rendering strat
 
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Browse every Storyboard section and upload, replace, or remove its sign-language video."
+
+msgid "Buddies"
+msgstr "Buddies"
+
+msgid "Buddy stage view"
+msgstr "Buddy stage view"
+
+msgid "Buddy-guided interface"
+msgstr "Buddy-guided interface"
 
 msgid "Build"
 msgstr "Build"
@@ -1653,11 +1724,17 @@ msgstr "Chapter books with images"
 msgid "Chapter One"
 msgstr "Chapter One"
 
+msgid "Character art"
+msgstr "Character art"
+
 msgid "Chart / Graph"
 msgstr "Chart / Graph"
 
 #~ msgid "Check for updates"
 #~ msgstr "Check for updates"
+
+msgid "Check plan"
+msgstr "Check plan"
 
 msgid "Checked"
 msgstr "Checked"
@@ -2095,6 +2172,9 @@ msgstr "Current Preview Page"
 msgid "Custom"
 msgstr "Custom"
 
+msgid "Custom buddies are coming soon"
+msgstr "Custom buddies are coming soon"
+
 msgid "Custom Instructions"
 msgstr "Custom Instructions"
 
@@ -2360,6 +2440,12 @@ msgstr "Done"
 msgid "DONE"
 msgstr "DONE"
 
+#. placeholder {0}: lastRun.total
+#. placeholder {1}: lastRun.generated
+#. placeholder {2}: lastRun.cachedHits
+msgid "Done: {0} clips ready — {1} newly generated, {2} from cache."
+msgstr "Done: {0} clips ready — {1} newly generated, {2} from cache."
+
 msgid "Download a full backup of this project"
 msgstr "Download a full backup of this project"
 
@@ -2483,6 +2569,9 @@ msgstr "e.g., Make the background brighter, add more trees..."
 msgid "Each block was simplified by AI. Edit any Easy Read text to refine it against the original, then Save. Changes are stored as a new version, so you can always roll back or regenerate."
 msgstr "Each block was simplified by AI. Edit any Easy Read text to refine it against the original, then Save. Changes are stored as a new version, so you can always roll back or regenerate."
 
+msgid "Each buddy talks in the reader's language, generated once per language and cached for offline use."
+msgstr "Each buddy talks in the reader's language, generated once per language and cached for offline use."
+
 msgid "Each iteration is one LLM call. Lower values are faster and cheaper; higher values give the reviewer more chances to fix problems."
 msgstr "Each iteration is one LLM call. Lower values are faster and cheaper; higher values give the reviewer more chances to fix problems."
 
@@ -2565,6 +2654,9 @@ msgstr "Editable per block"
 msgid "edited"
 msgstr "edited"
 
+msgid "Edited"
+msgstr "Edited"
+
 msgid "Edited in"
 msgstr "Edited in"
 
@@ -2573,6 +2665,9 @@ msgstr "Edited manually"
 
 msgid "Editing"
 msgstr "Editing"
+
+msgid "Editing character art is coming soon"
+msgstr "Editing character art is coming soon"
 
 msgid "Editing is disabled while the storyboard is running"
 msgstr "Editing is disabled while the storyboard is running"
@@ -2635,6 +2730,9 @@ msgstr "Enabled"
 
 msgid "Enabled axe tags"
 msgstr "Enabled axe tags"
+
+msgid "Encouraging"
+msgstr "Encouraging"
 
 msgid "End"
 msgstr "End"
@@ -2743,6 +2841,9 @@ msgstr "Every Storyboard section has a sign-language video assigned. You can swi
 
 msgid "Example Books"
 msgstr "Example Books"
+
+msgid "Excited"
+msgstr "Excited"
 
 msgid "Exclude from read-aloud"
 msgstr "Exclude from read-aloud"
@@ -3108,6 +3209,12 @@ msgstr "Generate a simplified, easier-to-read version of every text block in the
 msgid "Generate a single quiz from specific pages and place it at a chosen location."
 msgstr "Generate a single quiz from specific pages and place it at a chosen location."
 
+msgid "Generate all buddy voices"
+msgstr "Generate all buddy voices"
+
+msgid "Generate all languages"
+msgstr "Generate all languages"
+
 msgid "Generate and customize the table of contents for the book navigation."
 msgstr "Generate and customize the table of contents for the book navigation."
 
@@ -3147,6 +3254,9 @@ msgstr "Generate quiz"
 msgid "Generate Styleguide from Pages"
 msgstr "Generate Styleguide from Pages"
 
+msgid "Generate voices to preview lines"
+msgstr "Generate voices to preview lines"
+
 msgid "Generate with AI"
 msgstr "Generate with AI"
 
@@ -3173,6 +3283,9 @@ msgstr "Generates comprehension questions and activities from the book."
 
 msgid "Generates descriptive alt-text for images so screen readers can describe them."
 msgstr "Generates descriptive alt-text for images so screen readers can describe them."
+
+msgid "Generates every shipped buddy in every book language."
+msgstr "Generates every shipped buddy in every book language."
 
 msgid "Generates the interactive HTML for this activity type."
 msgstr "Generates the interactive HTML for this activity type."
@@ -3284,6 +3397,9 @@ msgstr "Hand out page-range parts and merge them back later."
 #~ msgid "Handwriting"
 #~ msgstr "Handwriting"
 
+msgid "Happy"
+msgstr "Happy"
+
 msgid "Header"
 msgstr "Header"
 
@@ -3316,6 +3432,9 @@ msgstr "Hide AI edit history"
 
 msgid "Hide error details"
 msgstr "Hide error details"
+
+msgid "Hide Kids Mode details"
+msgstr "Hide Kids Mode details"
 
 msgid "High"
 msgstr "High"
@@ -3713,6 +3832,12 @@ msgstr "Key must start with sk-"
 msgid "Keyboard & navigation"
 msgstr "Keyboard & navigation"
 
+msgid "Kids Mode"
+msgstr "Kids Mode"
+
+msgid "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience: the reader picks a reading buddy that fronts every accessibility feature. It's an authoring decision baked into the live preview and every export — readers can't turn it off or change buddies themselves."
+msgstr "Kids Mode swaps the standard reading menus for a friendly, buddy-guided experience: the reader picks a reading buddy that fronts every accessibility feature. It's an authoring decision baked into the live preview and every export — readers can't turn it off or change buddies themselves."
+
 #. placeholder {0}: afterPage.pageNumber
 msgid "Knowledge check generated from the source pages, after page {0}."
 msgstr "Knowledge check generated from the source pages, after page {0}."
@@ -3819,6 +3944,9 @@ msgstr "Lila wandered between the tall pines, her flashlight catching glimmers o
 
 msgid "lines"
 msgstr "lines"
+
+msgid "Lines"
+msgstr "Lines"
 
 msgid "Língua Portuguesa - 3° Ano"
 msgstr "Língua Portuguesa - 3° Ano"
@@ -4014,6 +4142,9 @@ msgstr "Lower values produce more consistent styling across pages."
 
 msgid "Make sure you're uploading a .zip file exported from ADT Studio."
 msgstr "Make sure you're uploading a .zip file exported from ADT Studio."
+
+msgid "Make this a kids book: pick the reading buddies and generate their voices."
+msgstr "Make this a kids book: pick the reading buddies and generate their voices."
 
 msgid "Manage all sections"
 msgstr "Manage all sections"
@@ -4378,6 +4509,9 @@ msgstr "No audio for this page"
 msgid "No books match your search"
 msgstr "No books match your search"
 
+msgid "No buddy voices generated yet — check the plan to see cost before generating."
+msgstr "No buddy voices generated yet — check the plan to see cost before generating."
+
 msgid "No captioned images yet. Run the image-captioning step first."
 msgstr "No captioned images yet. Run the image-captioning step first."
 
@@ -4690,8 +4824,14 @@ msgstr "of"
 msgid "Off"
 msgstr "Off"
 
+msgid "Off by default"
+msgstr "Off by default"
+
 msgid "On"
 msgstr "On"
+
+msgid "On for this book"
+msgstr "On for this book"
 
 msgid "One Column"
 msgstr "One Column"
@@ -5209,6 +5349,9 @@ msgstr "Pick the languages you want to translate to. The book's original languag
 msgid "Pick which voice each language uses for narration, including regional accents."
 msgstr "Pick which voice each language uses for narration, including regional accents."
 
+msgid "Picking phrases"
+msgstr "Picking phrases"
+
 msgid "Picture books and early readers"
 msgstr "Picture books and early readers"
 
@@ -5233,11 +5376,23 @@ msgstr "Pipeline Stages"
 msgid "Pixel Art"
 msgstr "Pixel Art"
 
+#. placeholder {0}: lastRun.total
+#. placeholder {1}: lastRun.languages.length
+#. placeholder {2}: lastRun.characters.length
+#. placeholder {3}: lastRun.cachedHits
+#. placeholder {4}: lastRun.total - lastRun.cachedHits
+#. placeholder {5}: lastRun.model
+msgid "Plan: {0} clips across {1} language(s) × {2} buddies — {3} already cached, {4} would call the API (model {5})."
+msgstr "Plan: {0} clips across {1} language(s) × {2} buddies — {3} already cached, {4} would call the API (model {5})."
+
 msgid "Plants create sugar via <0>photosynthesis</0>, divide by <1>mitosis</1>, and absorb water by <2>osmosis</2>."
 msgstr "Plants create sugar via <0>photosynthesis</0>, divide by <1>mitosis</1>, and absorb water by <2>osmosis</2>."
 
 msgid "Play"
 msgstr "Play"
+
+msgid "Play this line"
+msgstr "Play this line"
 
 msgid "Play video"
 msgstr "Play video"
@@ -5300,11 +5455,17 @@ msgstr "Preview"
 #~ msgid "Preview & split pages"
 #~ msgstr "Preview & split pages"
 
+msgid "Preview kids UI"
+msgstr "Preview kids UI"
+
 msgid "Preview linked page"
 msgstr "Preview linked page"
 
 msgid "Preview of the HTML/CSS patterns used for LLM-generated pages."
 msgstr "Preview of the HTML/CSS patterns used for LLM-generated pages."
+
+msgid "Preview regular UI"
+msgstr "Preview regular UI"
 
 msgid "Preview: per-sentence"
 msgstr "Preview: per-sentence"
@@ -5585,6 +5746,9 @@ msgstr "Readium-compatible digital book"
 msgid "Reads in"
 msgstr "Reads in"
 
+msgid "Ready"
+msgstr "Ready"
+
 msgid "Real books processed with this preset — before and after."
 msgstr "Real books processed with this preset — before and after."
 
@@ -5778,6 +5942,9 @@ msgstr "Reset fonts"
 
 msgid "Reset fonts to default?"
 msgstr "Reset fonts to default?"
+
+msgid "Reset to default"
+msgstr "Reset to default"
 
 msgid "Reset to defaults"
 msgstr "Reset to defaults"
@@ -6101,6 +6268,9 @@ msgstr "Save selection"
 
 msgid "Save settings"
 msgstr "Save settings"
+
+msgid "Save voice"
+msgstr "Save voice"
 
 msgid "Save your work first if you want to keep these changes."
 msgstr "Save your work first if you want to keep these changes."
@@ -6446,6 +6616,9 @@ msgstr "Shadow"
 msgid "Ship"
 msgstr "Ship"
 
+msgid "Ships with this book"
+msgstr "Ships with this book"
+
 msgid "Short, simple sentences for kindergarten through 5th grade."
 msgstr "Short, simple sentences for kindergarten through 5th grade."
 
@@ -6473,6 +6646,9 @@ msgstr "Show error details"
 
 msgid "Show fewer"
 msgstr "Show fewer"
+
+msgid "Show Kids Mode details"
+msgstr "Show Kids Mode details"
 
 msgid "Show only the terms you added manually"
 msgstr "Show only the terms you added manually"
@@ -6512,6 +6688,9 @@ msgstr "Sign language video overlays for each page"
 
 msgid "Sign language videos provide access for deaf and hard of hearing readers who may not be fluent in written language."
 msgstr "Sign language videos provide access for deaf and hard of hearing readers who may not be fluent in written language."
+
+msgid "Signature"
+msgstr "Signature"
 
 msgid "Simplified Easy Read text variants."
 msgstr "Simplified Easy Read text variants."
@@ -6689,6 +6868,9 @@ msgstr "Split preview"
 msgid "Split segments"
 msgstr "Split segments"
 
+msgid "Spoken buddy voices"
+msgstr "Spoken buddy voices"
+
 msgid "Spread"
 msgstr "Spread"
 
@@ -6712,6 +6894,9 @@ msgstr "Standard e-book for readers & libraries"
 
 msgid "Standard EPUB 3 file for e-readers, reading apps, and accessibility tools. Interactive features (quizzes, TTS) work in readers that support JavaScript."
 msgstr "Standard EPUB 3 file for e-readers, reading apps, and accessibility tools. Interactive features (quizzes, TTS) work in readers that support JavaScript."
+
+msgid "Standing"
+msgstr "Standing"
 
 msgid "Start"
 msgstr "Start"
@@ -6819,6 +7004,9 @@ msgstr "Style guide"
 msgid "Style Guide"
 msgstr "Style Guide"
 
+msgid "Style instructions"
+msgstr "Style instructions"
+
 msgid "Style reference"
 msgstr "Style reference"
 
@@ -6860,6 +7048,9 @@ msgstr "Summary Prompt"
 
 msgid "Sun"
 msgstr "Sun"
+
+msgid "Surprised"
+msgstr "Surprised"
 
 msgid "SW"
 msgstr "SW"
@@ -7034,6 +7225,10 @@ msgstr "The default TTS instruction applied to every language unless overridden 
 msgid "The entire page is treated as a single section - all text and images stay together as one unit. Best for storybooks, reference books, and any content where each page is self-contained."
 msgstr "The entire page is treated as a single section - all text and images stay together as one unit. Best for storybooks, reference books, and any content where each page is self-contained."
 
+#. placeholder {0}: selectedBuddy.defaultNameFallback
+msgid "The expression set {0} uses across the reading experience"
+msgstr "The expression set {0} uses across the reading experience"
+
 msgid "The file may be damaged or incomplete. Try downloading it again from the source."
 msgstr "The file may be damaged or incomplete. Try downloading it again from the source."
 
@@ -7166,6 +7361,12 @@ msgstr "They produce flowers to attract pollinators."
 msgid "They release oxygen directly into the air."
 msgstr "They release oxygen directly into the air."
 
+msgid "Things {name} says"
+msgstr "Things {name} says"
+
+msgid "Thinking"
+msgstr "Thinking"
+
 msgid "This archive can't be opened safely"
 msgstr "This archive can't be opened safely"
 
@@ -7221,6 +7422,9 @@ msgstr "This image is marked decorative — click to un-mark"
 
 msgid "This is <0>ADT Studio</0>."
 msgstr "This is <0>ADT Studio</0>."
+
+msgid "This is a kids book"
+msgstr "This is a kids book"
 
 msgid "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
 msgstr "This is a preview of the options you have selected for your book, each option affects the preview in a different way."
@@ -7521,6 +7725,9 @@ msgstr "Tune how text is simplified in the Easy Read Prompt settings. After runn
 
 msgid "Turn any PDF into a fully accessible book — audio, translations, structured HTML layouts — all generated from your source file, <0>all editable</0>, <1>all yours</1>."
 msgstr "Turn any PDF into a fully accessible book — audio, translations, structured HTML layouts — all generated from your source file, <0>all editable</0>, <1>all yours</1>."
+
+msgid "Turn on kids mode to configure buddies and voices."
+msgstr "Turn on kids mode to configure buddies and voices."
 
 msgid "Turn this on to show the Validation review card in Preview and the Reviewer Validation tab in the Validation step."
 msgstr "Turn this on to show the Validation review card in Preview and the Reviewer Validation tab in the Validation step."
@@ -7833,6 +8040,9 @@ msgstr "Voice"
 
 msgid "Voice Mappings"
 msgstr "Voice Mappings"
+
+msgid "Voice preset"
+msgstr "Voice preset"
 
 msgid "Voices"
 msgstr "Voices"
