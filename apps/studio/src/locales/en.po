@@ -277,6 +277,9 @@ msgstr "{0}m ago"
 msgid "{0}s ago"
 msgstr "{0}s ago"
 
+msgid "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
+msgstr "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
+
 msgid "{count} {count, plural, one {issue} other {issues}}"
 msgstr "{count} {count, plural, one {issue} other {issues}}"
 
@@ -371,8 +374,11 @@ msgstr "{reviewed}/{0} checked"
 msgid "{sections} sections"
 msgstr "{sections} sections"
 
-msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} marked."
-msgstr "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} marked."
+#~ msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} marked."
+#~ msgstr "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} marked."
+
+msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} selected."
+msgstr "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} selected."
 
 msgid "{stageLabel} isn't ready yet — every section in the Storyboard is currently pruned, so there's nothing to run on. Restore at least one section in Storyboard to continue."
 msgstr "{stageLabel} isn't ready yet — every section in the Storyboard is currently pruned, so there's nothing to run on. Restore at least one section in Storyboard to continue."
@@ -1183,11 +1189,11 @@ msgstr "Apply page background colors"
 msgid "Apply Segmentation"
 msgstr "Apply Segmentation"
 
-msgid "Apply spreads"
-msgstr "Apply spreads"
+#~ msgid "Apply spreads"
+#~ msgstr "Apply spreads"
 
-msgid "Applying…"
-msgstr "Applying…"
+#~ msgid "Applying…"
+#~ msgstr "Applying…"
 
 msgid "AR"
 msgstr "AR"
@@ -2279,8 +2285,8 @@ msgstr "Despite the inclement weather, the expedition pressed on toward the summ
 msgid "Detailed, technical captions for college and adult readers."
 msgstr "Detailed, technical captions for college and adult readers."
 
-msgid "Detected {confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} — confirm which to merge"
-msgstr "Detected {confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} — confirm which to merge"
+#~ msgid "Detected {confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} — confirm which to merge"
+#~ msgstr "Detected {confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} — confirm which to merge"
 
 msgid "Detected {left}–{right}"
 msgstr "Detected {left}–{right}"
@@ -4121,6 +4127,12 @@ msgstr "Merged"
 msgid "Merged · {0}/{1}"
 msgstr "Merged · {0}/{1}"
 
+msgid "Merged {left}–{right}"
+msgstr "Merged {left}–{right}"
+
+msgid "Merging spreads…"
+msgstr "Merging spreads…"
+
 msgid "Merging…"
 msgstr "Merging…"
 
@@ -4226,8 +4238,11 @@ msgstr "Monospace"
 msgid "More info"
 msgstr "More info"
 
-msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle."
-msgstr "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle."
+#~ msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle."
+#~ msgstr "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle."
+
+msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle. Nothing changes until you press Apply."
+msgstr "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle. Nothing changes until you press Apply."
 
 msgid "Most used"
 msgstr "Most used"
@@ -5791,8 +5806,8 @@ msgstr "Revert language change"
 msgid "Revert to {originalLanguageName}"
 msgstr "Revert to {originalLanguageName}"
 
-msgid "Review {selectedCount} selected"
-msgstr "Review {selectedCount} selected"
+#~ msgid "Review {selectedCount} selected"
+#~ msgstr "Review {selectedCount} selected"
 
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Review and refine each simplified block side-by-side with the original before packaging."
@@ -5808,6 +5823,9 @@ msgstr "Review progress"
 
 msgid "Review pruned sections"
 msgstr "Review pruned sections"
+
+msgid "Review spreads"
+msgstr "Review spreads"
 
 msgid "Review the project details below and confirm the import."
 msgstr "Review the project details below and confirm the import."
@@ -7731,6 +7749,9 @@ msgid "wcag2a\n"
 msgstr "wcag2a\n"
 "wcag2aa\n"
 "best-practice"
+
+msgid "We compared the page edges and think these facing pages are spreads. Open Review to merge the ones that are — cancelling changes nothing."
+msgstr "We compared the page edges and think these facing pages are spreads. Open Review to merge the ones that are — cancelling changes nothing."
 
 msgid "We hit a snag while loading this view. You can try this screen again or reload the whole app."
 msgstr "We hit a snag while loading this view. You can try this screen again or reload the whole app."

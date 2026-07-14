@@ -277,6 +277,9 @@ msgstr "Há {0}min"
 msgid "{0}s ago"
 msgstr "Há {0}s"
 
+msgid "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
+msgstr "{confirmCount} {confirmCount, plural, one {possível página dupla detectada} other {possíveis páginas duplas detectadas}}"
+
 msgid "{count} {count, plural, one {issue} other {issues}}"
 msgstr "{count} {count, plural, one {problema} other {problemas}}"
 
@@ -371,8 +374,11 @@ msgstr "{reviewed}/{0} checked"
 msgid "{sections} sections"
 msgstr "{sections} seções"
 
-msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} marked."
-msgstr "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} marcado."
+#~ msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} marked."
+#~ msgstr "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} marcado."
+
+msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} selected."
+msgstr "{spreadCount} {spreadCount, plural, one {página dupla selecionada} other {páginas duplas selecionadas}}"
 
 msgid "{stageLabel} isn't ready yet — every section in the Storyboard is currently pruned, so there's nothing to run on. Restore at least one section in Storyboard to continue."
 msgstr "{stageLabel} ainda não está pronto — todas as seções no Storyboard estão atualmente excluídas, então não há nada para executar. Restaure pelo menos uma seção no Storyboard para continuar."
@@ -1183,11 +1189,11 @@ msgstr "Aplicar cores de fundo da página"
 msgid "Apply Segmentation"
 msgstr "Apply Segmentation"
 
-msgid "Apply spreads"
-msgstr "Aplicar spreads"
+#~ msgid "Apply spreads"
+#~ msgstr "Aplicar spreads"
 
-msgid "Applying…"
-msgstr "Aplicando…"
+#~ msgid "Applying…"
+#~ msgstr "Aplicando…"
 
 msgid "AR"
 msgstr "AR"
@@ -2279,8 +2285,8 @@ msgstr "Apesar do mau tempo, a expedição seguiu em frente rumo ao cume, sem se
 msgid "Detailed, technical captions for college and adult readers."
 msgstr "Legendas detalhadas e técnicas para leitores universitários e adultos."
 
-msgid "Detected {confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} — confirm which to merge"
-msgstr "Detectado {confirmCount} possível {confirmCount, plural, one {spread} other {spreads}} — confirme qual mesclar"
+#~ msgid "Detected {confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} — confirm which to merge"
+#~ msgstr "Detectado {confirmCount} possível {confirmCount, plural, one {spread} other {spreads}} — confirme qual mesclar"
 
 msgid "Detected {left}–{right}"
 msgstr "Detectado {left}–{right}"
@@ -4121,6 +4127,12 @@ msgstr "Mesclado"
 msgid "Merged · {0}/{1}"
 msgstr "Mescladas · {0}/{1}"
 
+msgid "Merged {left}–{right}"
+msgstr "Mescladas {left}–{right}"
+
+msgid "Merging spreads…"
+msgstr "Mesclando páginas duplas…"
+
 msgid "Merging…"
 msgstr "Mesclando…"
 
@@ -4226,8 +4238,11 @@ msgstr "Monoespaçada"
 msgid "More info"
 msgstr "Mais informações"
 
-msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle."
-msgstr "A maioria dos livros é lida uma página de cada vez. Se o seu tiver uma ilustração que abrange duas páginas opostas, vincule essas páginas para que sejam processadas juntas como um único spread em vez de serem divididas ao meio."
+#~ msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle."
+#~ msgstr "A maioria dos livros é lida uma página de cada vez. Se o seu tiver uma ilustração que abrange duas páginas opostas, vincule essas páginas para que sejam processadas juntas como um único spread em vez de serem divididas ao meio."
+
+msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle. Nothing changes until you press Apply."
+msgstr "A maioria dos livros é lida uma página por vez. Se o seu tem uma ilustração que abrange duas páginas frente a frente, vincule essas páginas para que sejam processadas juntas como uma única página dupla em vez de serem cortadas ao meio. Nada muda até você pressionar Aplicar."
 
 msgid "Most used"
 msgstr "Mais usado"
@@ -5791,8 +5806,8 @@ msgstr "Reverter alteração de idioma"
 msgid "Revert to {originalLanguageName}"
 msgstr "Reverter para {originalLanguageName}"
 
-msgid "Review {selectedCount} selected"
-msgstr "Revisar {selectedCount} selecionado(s)"
+#~ msgid "Review {selectedCount} selected"
+#~ msgstr "Revisar {selectedCount} selecionado(s)"
 
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Revise e refine cada bloco simplificado lado a lado com o original antes de empacotar."
@@ -5808,6 +5823,9 @@ msgstr "Review progress"
 
 msgid "Review pruned sections"
 msgstr "Revisar seções excluídas"
+
+msgid "Review spreads"
+msgstr "Revisar páginas duplas"
 
 msgid "Review the project details below and confirm the import."
 msgstr "Revise os detalhes do projeto abaixo e confirme a importação."
@@ -7731,6 +7749,9 @@ msgid "wcag2a\n"
 msgstr "wcag2a\n"
 "wcag2aa\n"
 "best-practice"
+
+msgid "We compared the page edges and think these facing pages are spreads. Open Review to merge the ones that are — cancelling changes nothing."
+msgstr "Comparamos as bordas das páginas e achamos que estas páginas frente a frente são páginas duplas. Abra Revisar para mesclar as que forem — cancelar não muda nada."
 
 msgid "We hit a snag while loading this view. You can try this screen again or reload the whole app."
 msgstr "Encontramos um problema ao carregar esta visualização. Você pode tentar esta tela novamente ou recarregar todo o aplicativo."

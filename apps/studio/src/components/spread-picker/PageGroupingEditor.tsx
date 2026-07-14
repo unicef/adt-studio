@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from "react"
 import { useLingui } from "@lingui/react/macro"
-import { Link2, Unlink, BookOpen, ChevronLeft, ChevronRight, Sparkles } from "lucide-react"
+import { Link2, Unlink, BookOpen, ChevronLeft, ChevronRight, Sparkles, Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { normalizeLeads } from "./pairs"
 
@@ -24,6 +24,8 @@ interface PageGroupingEditorProps {
   onlySpreads?: boolean
   /** Leads (1-indexed) that came from auto-detection — shown with a badge. */
   suggestedLeads?: number[]
+  /** Leads (1-indexed) already merged in the extracted book — shown as merged. */
+  mergedLeads?: number[]
   disabled?: boolean
 }
 
@@ -61,18 +63,18 @@ export function PageGroupingEditor({
   pageThumbnails,
   onlySpreads = false,
   suggestedLeads,
+  mergedLeads,
   disabled = false,
 }: PageGroupingEditorProps) {
   const { t } = useLingui()
   const suggested = useMemo(() => new Set(suggestedLeads ?? []), [suggestedLeads])
+  const merged = useMemo(() => new Set(mergedLeads ?? []), [mergedLeads])
   const leads = useMemo(() => new Set(spreadPairs), [spreadPairs])
   const groups = useMemo(
     () => buildGroups(startPage, endPage, leads),
     [startPage, endPage, leads],
   )
 
-  // Measured once from the first page that loads; keeps every tile's reserved
-  // width correct so the scroll extent doesn't grow as images decode.
   const [aspect, setAspect] = useState<number>(DEFAULT_ASPECT)
   const measuredRef = useRef(false)
   const measure = useCallback((ratio: number) => {
@@ -135,6 +137,7 @@ export function PageGroupingEditor({
                 aspect={aspect}
                 onMeasure={measure}
                 onSplit={() => split(group[0])}
+                merged={merged.has(group[0])}
                 suggested={suggested.has(group[0])}
                 disabled={disabled}
               />
@@ -342,6 +345,7 @@ function SpreadTile({
   aspect,
   onMeasure,
   onSplit,
+  merged,
   suggested,
   disabled,
 }: {
@@ -352,32 +356,41 @@ function SpreadTile({
   aspect: number
   onMeasure: (ratio: number) => void
   onSplit: () => void
+  merged: boolean
   suggested: boolean
   disabled: boolean
 }) {
   const { t } = useLingui()
+  const frame = merged
+    ? "border-emerald-500 bg-emerald-500/5"
+    : suggested
+      ? "border-amber-500 bg-amber-500/5"
+      : "border-primary bg-primary/5"
+  const pill = merged ? "bg-emerald-600" : suggested ? "bg-amber-500" : "bg-primary"
+  const label = merged
+    ? t`Merged ${left}–${right}`
+    : suggested
+      ? t`Detected ${left}–${right}`
+      : t`Spread ${left}–${right}`
+  const Icon = merged ? Check : suggested ? Sparkles : Link2
   return (
     <div
       className={cn(
         "group relative shrink-0 rounded-lg border-2 p-1.5 shadow-md transition-all",
-        suggested ? "border-amber-500 bg-amber-500/5" : "border-primary bg-primary/5",
+        frame,
       )}
     >
       <span
         className={cn(
           "pointer-events-none absolute -top-2.5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow",
-          suggested ? "bg-amber-500" : "bg-primary",
+          pill,
         )}
       >
-        {suggested ? (
-          <Sparkles className="h-3 w-3" strokeWidth={2.5} aria-hidden />
-        ) : (
-          <Link2 className="h-3 w-3" strokeWidth={2.5} aria-hidden />
-        )}
-        {suggested ? t`Detected ${left}–${right}` : t`Spread ${left}–${right}`}
+        <Icon className="h-3 w-3" strokeWidth={2.5} aria-hidden />
+        {label}
       </span>
       <div className="relative flex overflow-hidden rounded">
-        <div className="relative border-r border-dashed border-primary/50">
+        <div className="relative border-r border-dashed border-black/10">
           <PageThumb page={left} src={leftSrc} aspect={aspect} onMeasure={onMeasure} />
           <PageBadge>{left}</PageBadge>
         </div>
@@ -386,7 +399,10 @@ function SpreadTile({
           <PageBadge>{right}</PageBadge>
         </div>
         <span
-          className="pointer-events-none absolute left-1/2 top-1/2 z-10 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-primary text-primary-foreground shadow-md"
+          className={cn(
+            "pointer-events-none absolute left-1/2 top-1/2 z-10 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white text-white shadow-md",
+            pill,
+          )}
           aria-hidden
         >
           <Link2 className="h-4 w-4" strokeWidth={2.5} />

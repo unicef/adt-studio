@@ -278,6 +278,9 @@ msgstr "{0}m më parë"
 msgid "{0}s ago"
 msgstr "{0}s më parë"
 
+msgid "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
+msgstr "{confirmCount} {confirmCount, plural, one {fletë e dyfishtë e mundshme e zbuluar} other {fletë të dyfishta të mundshme të zbuluara}}"
+
 msgid "{count} {count, plural, one {issue} other {issues}}"
 msgstr "{count} {count, plural, one {problem} other {probleme}}"
 
@@ -372,8 +375,11 @@ msgstr "{reviewed}/{0} të kontrolluar"
 msgid "{sections} sections"
 msgstr "{sections} seksione"
 
-msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} marked."
-msgstr "{spreadCount} {spreadCount, plural, one {faqe e përbashkët} other {faqe të përbashkëta}} të shënuara."
+#~ msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} marked."
+#~ msgstr "{spreadCount} {spreadCount, plural, one {faqe e përbashkët} other {faqe të përbashkëta}} të shënuara."
+
+msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} selected."
+msgstr "{spreadCount} {spreadCount, plural, one {fletë e dyfishtë e zgjedhur} other {fletë të dyfishta të zgjedhura}}"
 
 msgid "{stageLabel} isn't ready yet — every section in the Storyboard is currently pruned, so there's nothing to run on. Restore at least one section in Storyboard to continue."
 msgstr "{stageLabel} nuk është gati ende — çdo seksion në Storyboard është aktualisht i prerë, kështu që nuk ka asgjë për të ekzekutuar. Rivendosni të paktën një seksion në Storyboard për të vazhduar."
@@ -1184,11 +1190,11 @@ msgstr "Apliko ngjyrat e sfondit të faqes"
 msgid "Apply Segmentation"
 msgstr "Apliko segmentimin"
 
-msgid "Apply spreads"
-msgstr "Apliko faqet e përbashkëta"
+#~ msgid "Apply spreads"
+#~ msgstr "Apliko faqet e përbashkëta"
 
-msgid "Applying…"
-msgstr "Duke aplikuar…"
+#~ msgid "Applying…"
+#~ msgstr "Duke aplikuar…"
 
 msgid "AR"
 msgstr "AR"
@@ -2280,8 +2286,8 @@ msgstr "Pavarësisht motit të keq, ekspedita vazhdoi drejt majës, pa u tërheq
 msgid "Detailed, technical captions for college and adult readers."
 msgstr "Tituj të detajuar dhe teknikë për lexues të universitetit dhe të rritur."
 
-msgid "Detected {confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} — confirm which to merge"
-msgstr "U zbuluan {confirmCount} {confirmCount, plural, one {faqe e përbashkët} other {faqe të përbashkëta}} të mundshme — konfirmoni cilat të bashkohen"
+#~ msgid "Detected {confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} — confirm which to merge"
+#~ msgstr "U zbuluan {confirmCount} {confirmCount, plural, one {faqe e përbashkët} other {faqe të përbashkëta}} të mundshme — konfirmoni cilat të bashkohen"
 
 msgid "Detected {left}–{right}"
 msgstr "U zbuluan {left}–{right}"
@@ -4122,6 +4128,12 @@ msgstr "U bashkua"
 msgid "Merged · {0}/{1}"
 msgstr "Bashkuar · {0}/{1}"
 
+msgid "Merged {left}–{right}"
+msgstr "Të bashkuara {left}–{right}"
+
+msgid "Merging spreads…"
+msgstr "Duke bashkuar fletët e dyfishta…"
+
 msgid "Merging…"
 msgstr "Po bashkohet…"
 
@@ -4227,8 +4239,11 @@ msgstr "Monospace"
 msgid "More info"
 msgstr "Më shumë informacion"
 
-msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle."
-msgstr "Shumica e librave lexohen një faqe në një kohë. Nëse libri juaj ka një ilustrim që shtrihet në dy faqe përballë, lidhni ato faqe që të përpunohen së bashku si një faqe e përbashkët në vend që të ndahen në mes."
+#~ msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle."
+#~ msgstr "Shumica e librave lexohen një faqe në një kohë. Nëse libri juaj ka një ilustrim që shtrihet në dy faqe përballë, lidhni ato faqe që të përpunohen së bashku si një faqe e përbashkët në vend që të ndahen në mes."
+
+msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle. Nothing changes until you press Apply."
+msgstr "Shumica e librave lexohen faqe për faqe. Nëse i yti ka një ilustrim që shtrihet në dy faqe përballë, lidhi ato faqe që të përpunohen bashkë si një fletë e vetme e dyfishtë në vend që të ndahen në mes. Asgjë nuk ndryshon derisa të shtypni Zbato."
 
 msgid "Most used"
 msgstr "Më i përdorur"
@@ -5792,8 +5807,8 @@ msgstr "Kthe ndryshimin e gjuhës"
 msgid "Revert to {originalLanguageName}"
 msgstr "Kthehu te {originalLanguageName}"
 
-msgid "Review {selectedCount} selected"
-msgstr "Rishiko {selectedCount} të zgjedhura"
+#~ msgid "Review {selectedCount} selected"
+#~ msgstr "Rishiko {selectedCount} të zgjedhura"
 
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Rishikoni dhe rafinoni çdo bllok të thjeshtëzuar krahas origjinalit përpara paketimit."
@@ -5809,6 +5824,9 @@ msgstr "Progresi i rishikimit"
 
 msgid "Review pruned sections"
 msgstr "Rishiko seksionet e hequra"
+
+msgid "Review spreads"
+msgstr "Shqyrto fletët e dyfishta"
 
 msgid "Review the project details below and confirm the import."
 msgstr "Rishikoni detajet e projektit më poshtë dhe konfirmoni importimin."
@@ -7732,6 +7750,9 @@ msgid "wcag2a\n"
 msgstr "wcag2a\n"
 "wcag2aa\n"
 "best-practice"
+
+msgid "We compared the page edges and think these facing pages are spreads. Open Review to merge the ones that are — cancelling changes nothing."
+msgstr "Krahasuam skajet e faqeve dhe mendojmë se këto faqe përballë janë fletë të dyfishta. Hap Shqyrto për të bashkuar ato që janë — anulimi nuk ndryshon asgjë."
 
 msgid "We hit a snag while loading this view. You can try this screen again or reload the whole app."
 msgstr "Ndesh një problem gjatë ngarkimit të kësaj pamjeje. Mund të provosh këtë ekran sërish ose të ringarko të gjithë aplikacionin."

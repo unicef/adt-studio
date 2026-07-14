@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useLingui } from "@lingui/react/macro"
-import { Loader2, BookOpen, Sparkles, Check } from "lucide-react"
+import { Loader2, BookOpen, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { useBook } from "@/hooks/use-books"
@@ -43,7 +43,7 @@ export function SpreadReview({ bookLabel }: { bookLabel: string }) {
   const [spreadPairs, setSpreadPairs] = useState<number[]>([])
   const [open, setOpen] = useState(false)
   const [pickerView, setPickerView] = useState<"all" | "spreads">("all")
-  const [excluded, setExcluded] = useState<Set<number>>(new Set())
+  const [pickerSelection, setPickerSelection] = useState<number[]>([])
   const [dismissed, setDismissed] = useState<Set<number>>(new Set())
 
   const applyMutation = useMutation({
@@ -57,8 +57,6 @@ export function SpreadReview({ bookLabel }: { bookLabel: string }) {
     setSpreadPairs(Array.isArray(config.spread_pairs) ? config.spread_pairs.map(Number) : [])
   }, [config])
 
-  // Re-detection runs inline during extraction, so refresh suggestions once a
-  // (re-)extract finishes — otherwise the confirm card shows stale results.
   const prevRunning = useRef(extractRunning)
   useEffect(() => {
     if (prevRunning.current && !extractRunning) {
@@ -76,10 +74,7 @@ export function SpreadReview({ bookLabel }: { bookLabel: string }) {
   if (!config || !singleBase || isPart || totalPages === 0) return null
 
   const markedPairs = normalizeLeads(spreadPairs, startPage, endPage)
-  const markedSpreads = markedPairs.length
 
-  // What's actually merged in the extracted pages right now (ids like pgLLLRRR),
-  // so we can tell an applied spread from one that's still pending.
   const appliedLeads = new Set<number>()
   for (const p of pages ?? []) {
     const m = /^pg(\d{3})(\d{3})$/.exec(p.pageId)
@@ -87,49 +82,37 @@ export function SpreadReview({ bookLabel }: { bookLabel: string }) {
   }
   const mergedCount = appliedLeads.size
   const markedSet = new Set(markedPairs)
-  const pending =
-    markedPairs.some((l) => !appliedLeads.has(l)) ||
-    [...appliedLeads].some((l) => !markedSet.has(l))
 
-  // Auto-detected pairs the user hasn't acted on yet (not merged, not already
-  // marked, not dismissed this session).
   const toConfirm = (suggestionData?.suggestions ?? [])
     .filter(
       (s) => !appliedLeads.has(s.lead) && !markedSet.has(s.lead) && !dismissed.has(s.lead),
     )
     .sort((a, b) => a.lead - b.lead)
-  const selectedLeads = toConfirm.map((s) => s.lead).filter((l) => !excluded.has(l))
   const confirmCount = toConfirm.length
-  const selectedCount = selectedLeads.length
-
   const suggestedLeads = (suggestionData?.suggestions ?? []).map((s) => s.lead)
+
+  const pendingLeads = toConfirm.map((s) => s.lead)
 
   const applyChange = (next: number[]) => {
     setSpreadPairs(next)
     persist({ spread_pairs: next })
   }
 
-  const openPicker = (initial: "all" | "spreads") => {
+  const commitAndMerge = (next: number[]) => {
+    applyChange(next)
+    applyMutation.mutate(next)
+    if (pickerSelection.length > 0) {
+      setDismissed((prev) => new Set([...prev, ...pickerSelection]))
+    }
+  }
+
+  const openPicker = (initial: "all" | "spreads", selection: number[] = []) => {
     setPickerView(initial)
+    setPickerSelection(selection)
     setOpen(true)
   }
 
-  const reviewSelected = () => {
-    if (selectedLeads.length === 0) return
-    applyChange(normalizeLeads([...spreadPairs, ...selectedLeads], startPage, endPage))
-    openPicker("spreads")
-  }
-
-  const toggle = (lead: number) =>
-    setExcluded((prev) => {
-      const nextSet = new Set(prev)
-      if (nextSet.has(lead)) nextSet.delete(lead)
-      else nextSet.add(lead)
-      return nextSet
-    })
-
-  const dismissAll = () =>
-    setDismissed((prev) => new Set([...prev, ...toConfirm.map((s) => s.lead)]))
+  const dismissAll = () => setDismissed((prev) => new Set([...prev, ...pendingLeads]))
 
   return (
     <div
@@ -151,15 +134,17 @@ export function SpreadReview({ bookLabel }: { bookLabel: string }) {
             </p>
           </div>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => openPicker("all")}
-          disabled={extractRunning}
-        >
-          {markedSpreads === 0 ? t`Mark spreads` : t`Edit spreads`}
-        </Button>
+        {pendingLeads.length === 0 && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => openPicker("all")}
+            disabled={extractRunning}
+          >
+            {mergedCount === 0 ? t`Mark spreads` : t`Edit spreads`}
+          </Button>
+        )}
       </div>
 
       {extractRunning && (
@@ -169,42 +154,35 @@ export function SpreadReview({ bookLabel }: { bookLabel: string }) {
       )}
 
       {toConfirm.length > 0 && (
-        <div className="ml-[38px] flex flex-col gap-2 rounded-md border border-blue-200 bg-blue-50/60 p-3">
-          <div className="flex items-center gap-1.5 text-[12px] font-medium text-blue-800">
+        <div className="ml-[38px] flex flex-col gap-2 rounded-md border border-amber-300 bg-amber-50/70 p-3">
+          <div className="flex items-center gap-1.5 text-[12px] font-semibold text-amber-800">
             <Sparkles className="h-3.5 w-3.5" aria-hidden />
-            {t`Detected ${confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} — confirm which to merge`}
+            {t`${confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected`}
           </div>
+          <p className="text-[12px] leading-relaxed text-amber-900/80">
+            {t`We compared the page edges and think these facing pages are spreads. Open Review to merge the ones that are — cancelling changes nothing.`}
+          </p>
           <div className="flex flex-wrap gap-1.5">
-            {toConfirm.map((s) => {
-              const on = !excluded.has(s.lead)
-              return (
-                <button
-                  key={s.lead}
-                  type="button"
-                  onClick={() => toggle(s.lead)}
-                  aria-pressed={on}
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium tabular-nums transition-colors",
-                    on
-                      ? "border-blue-600 bg-blue-600 text-white"
-                      : "border-blue-200 bg-white text-blue-700",
-                  )}
-                >
-                  {on && <Check className="h-3 w-3" strokeWidth={3} aria-hidden />}
-                  {s.lead}–{s.lead + 1}
-                </button>
-              )
-            })}
+            {toConfirm.map((s) => (
+              <span
+                key={s.lead}
+                className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-white px-2 py-0.5 text-[11px] font-medium tabular-nums text-amber-800"
+              >
+                <Sparkles className="h-2.5 w-2.5" aria-hidden />
+                {s.lead}–{s.lead + 1}
+              </span>
+            ))}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               type="button"
               size="sm"
-              onClick={reviewSelected}
-              disabled={selectedCount === 0 || extractRunning}
-              className="bg-blue-600 hover:bg-blue-700"
+              onClick={() => openPicker("spreads", pendingLeads)}
+              disabled={extractRunning}
+              className="bg-amber-500 text-white hover:bg-amber-600"
             >
-              {t`Review ${selectedCount} selected`}
+              <Sparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden />
+              {t`Review spreads`}
             </Button>
             <Button type="button" variant="ghost" size="sm" onClick={dismissAll}>
               {t`Dismiss`}
@@ -213,41 +191,16 @@ export function SpreadReview({ bookLabel }: { bookLabel: string }) {
         </div>
       )}
 
-      {pending && (
-        <div className="flex flex-wrap items-center gap-2 pl-[38px]">
-          <div className="flex flex-wrap gap-1.5">
-            {markedPairs.map((lead) => (
-              <span
-                key={lead}
-                className="inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-2 py-0.5 text-[11px] font-medium tabular-nums text-blue-700"
-              >
-                {lead}–{lead + 1}
-              </span>
-            ))}
-          </div>
-          <Button
-            type="button"
-            size="sm"
-            onClick={() => applyMutation.mutate(markedPairs)}
-            disabled={applyMutation.isPending || extractRunning}
-            className="ml-auto bg-blue-600 hover:bg-blue-700"
-          >
-            {applyMutation.isPending ? (
-              <>
-                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" aria-hidden />
-                {t`Applying…`}
-              </>
-            ) : (
-              t`Apply spreads`
-            )}
-          </Button>
-        </div>
-      )}
-      {!pending && mergedCount > 0 && (
+      {applyMutation.isPending ? (
+        <p className="flex items-center gap-1.5 pl-[38px] text-[12px] text-muted-foreground">
+          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+          {t`Merging spreads…`}
+        </p>
+      ) : mergedCount > 0 ? (
         <p className="pl-[38px] text-[12px] text-muted-foreground">
           {t`${mergedCount} {mergedCount, plural, one {spread} other {spreads}} merged.`}
         </p>
-      )}
+      ) : null}
 
       {applyMutation.isError && (
         <p className="pl-[38px] text-[12px] text-red-600">
@@ -262,8 +215,10 @@ export function SpreadReview({ bookLabel }: { bookLabel: string }) {
         startPage={startPage}
         endPage={endPage}
         spreadPairs={spreadPairs}
-        onChange={applyChange}
+        onChange={commitAndMerge}
         suggestedLeads={suggestedLeads}
+        mergedLeads={[...appliedLeads]}
+        initialSelection={pickerSelection}
         defaultView={pickerView}
       />
     </div>

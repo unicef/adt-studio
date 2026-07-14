@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { Loader2, AlertTriangle, Link2 } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import {
@@ -8,8 +8,8 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-  DialogClose,
 } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 import { SegmentedControl } from "@/components/ui/segmented-control"
 import { usePdfPreviewPages } from "@/components/wizard/shared/usePdfPreviewPages"
 import { PageGroupingEditor } from "./PageGroupingEditor"
@@ -27,11 +27,17 @@ interface SpreadPickerDialogProps {
   src?: string
   startPage: number
   endPage: number
+  /** Committed spreads (what's actually saved). */
   spreadPairs: number[]
+  /** Called once with the final set when the user confirms (Done). */
   onChange: (next: number[]) => void
   disabled?: boolean
   /** Leads (1-indexed) that came from auto-detection — badged in the strip. */
   suggestedLeads?: number[]
+  /** Leads (1-indexed) already merged in the extracted book — badged as merged. */
+  mergedLeads?: number[]
+  /** Extra leads to pre-link in the draft on open (e.g. suggestions under review). */
+  initialSelection?: number[]
   /** Which view to open on ("spreads" jumps straight to the marked pairs). */
   defaultView?: PageView
 }
@@ -47,18 +53,23 @@ export function SpreadPickerDialog({
   onChange,
   disabled = false,
   suggestedLeads,
+  mergedLeads,
+  initialSelection,
   defaultView = "all",
 }: SpreadPickerDialogProps) {
   const { t } = useLingui()
   const [view, setView] = useState<PageView>(defaultView)
+  const [draft, setDraft] = useState<number[]>(spreadPairs)
+  const prevOpen = useRef(false)
 
-  // Reset to the requested view each time the dialog opens.
   useEffect(() => {
-    if (open) setView(defaultView)
-  }, [open, defaultView])
+    if (open && !prevOpen.current) {
+      setDraft(normalizeLeads([...spreadPairs, ...(initialSelection ?? [])], startPage, endPage))
+      setView(defaultView)
+    }
+    prevOpen.current = open
+  }, [open, spreadPairs, initialSelection, startPage, endPage, defaultView])
 
-  // Only load the PDF while the dialog is open — avoids rendering every page in
-  // the background for books the user never opens the picker for.
   const { pages, isLoading, error } = usePdfPreviewPages({
     file: open ? file : null,
     src: open ? src : undefined,
@@ -67,8 +78,8 @@ export function SpreadPickerDialog({
   })
 
   const spreadCount = useMemo(
-    () => normalizeLeads(spreadPairs, startPage, endPage).length,
-    [spreadPairs, startPage, endPage],
+    () => normalizeLeads(draft, startPage, endPage).length,
+    [draft, startPage, endPage],
   )
 
   const pageCount = Math.max(0, endPage - startPage + 1)
@@ -81,19 +92,24 @@ export function SpreadPickerDialog({
     [t],
   )
 
+  const done = () => {
+    onChange(normalizeLeads(draft, startPage, endPage))
+    onOpenChange(false)
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex h-[90vh] max-h-[900px] w-full max-w-[960px] flex-col gap-4">
         <DialogHeader>
           <DialogTitle>
-            <Trans>Mark spreads</Trans>
+            <Trans>Review spreads</Trans>
           </DialogTitle>
           <DialogDescription>
             <Trans>
               Most books are read one page at a time. If yours has an
               illustration that spans two facing pages, link those pages so
               they're processed together as a single spread instead of being
-              split down the middle.
+              split down the middle. Nothing changes until you press Apply.
             </Trans>
           </DialogDescription>
         </DialogHeader>
@@ -141,11 +157,12 @@ export function SpreadPickerDialog({
               <PageGroupingEditor
                 startPage={startPage}
                 endPage={endPage}
-                spreadPairs={spreadPairs}
-                onChange={onChange}
+                spreadPairs={draft}
+                onChange={setDraft}
                 pageThumbnails={pages}
                 onlySpreads={view === "spreads"}
                 suggestedLeads={suggestedLeads}
+                mergedLeads={mergedLeads}
                 disabled={disabled}
               />
             </>
@@ -156,11 +173,22 @@ export function SpreadPickerDialog({
           <span className="text-[13px] text-muted-foreground">
             {spreadCount === 0
               ? t`No spreads marked — every page stays single.`
-              : t`${spreadCount} {spreadCount, plural, one {spread} other {spreads}} marked.`}
+              : t`${spreadCount} {spreadCount, plural, one {spread} other {spreads}} selected.`}
           </span>
-          <DialogClose className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-            <Trans>Done</Trans>
-          </DialogClose>
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="ghost" size="sm" onClick={() => onOpenChange(false)}>
+              {t`Cancel`}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              onClick={done}
+              disabled={disabled}
+              className="bg-primary hover:bg-primary/90"
+            >
+              {t`Apply`}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
