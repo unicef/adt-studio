@@ -37,6 +37,15 @@ export function getAdtUrl(label: string): string {
   return `${BASE_URL}/books/${label}/adt`
 }
 
+export function getKidsVoiceClipUrl(
+  label: string,
+  language: string,
+  buddyId: string,
+  lineKey: string,
+): string {
+  return `${BASE_URL}/books/${label}/adt-preview/content/kids-voice/${language}/${buddyId}/${lineKey}.mp3`
+}
+
 export function getAudioUrl(
   label: string,
   language: string,
@@ -206,6 +215,53 @@ export interface RunStagesOptions {
   toStage: string
   /** When true, skip page-sectioning and only re-render from existing section data. */
   renderOnly?: boolean
+}
+
+export interface KidsModeConfig {
+  enabled: boolean
+  buddies: string[]
+}
+
+export interface KidsVoiceLanguageStatus {
+  language: string
+  hasPack: boolean
+  clipCount: number
+  characters: string[]
+}
+
+export interface KidsVoiceStatus {
+  languages: KidsVoiceLanguageStatus[]
+}
+
+export interface KidsVoiceClipSummary {
+  language: string
+  character: string
+  lineKey: string
+  fileName: string
+  cached: boolean
+}
+
+export interface KidsVoiceGenerationSummary {
+  languages: string[]
+  characters: string[]
+  model: string
+  total: number
+  generated: number
+  cachedHits: number
+  dryRun: boolean
+  clips: KidsVoiceClipSummary[]
+}
+
+export interface KidsBuddyVoiceOverride {
+  id: string
+  voice: string
+  instructions: string
+  isDefault: boolean
+}
+
+export interface KidsVoicesResponse {
+  voices: string[]
+  buddies: KidsBuddyVoiceOverride[]
 }
 
 function buildApiHeaders(
@@ -735,6 +791,47 @@ export const api = {
         body: JSON.stringify(data),
       },
     ),
+
+  getKidsMode: (label: string) =>
+    request<KidsModeConfig>(`/books/${label}/kids-mode`),
+
+  updateKidsMode: (label: string, config: KidsModeConfig) =>
+    request<KidsModeConfig>(`/books/${label}/kids-mode`, {
+      method: "PUT",
+      body: JSON.stringify(config),
+    }),
+
+  getKidsVoiceStatus: (label: string) =>
+    request<KidsVoiceStatus>(`/books/${label}/kids-voice`),
+
+  generateKidsVoice: (
+    label: string,
+    body: { languages?: string[]; characters?: string[]; dryRun?: boolean },
+    apiKey?: string,
+  ) =>
+    request<KidsVoiceGenerationSummary>(`/books/${label}/kids-voice/generate`, {
+      method: "POST",
+      headers: apiKey ? { "X-OpenAI-Key": apiKey } : undefined,
+      body: JSON.stringify(body),
+    }),
+
+  getKidsVoices: (label: string) =>
+    request<KidsVoicesResponse>(`/books/${label}/kids-voices`),
+
+  updateKidsBuddyVoice: (
+    label: string,
+    buddyId: string,
+    body: { voice: string; instructions: string },
+  ) =>
+    request<KidsBuddyVoiceOverride>(`/books/${label}/kids-voices/${buddyId}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+
+  resetKidsBuddyVoice: (label: string, buddyId: string) =>
+    request<KidsBuddyVoiceOverride>(`/books/${label}/kids-voices/${buddyId}`, {
+      method: "DELETE",
+    }),
 
   regenerateBookSummary: (label: string, apiKey: string) =>
     request<{ taskId?: string; status?: string; version?: number }>(

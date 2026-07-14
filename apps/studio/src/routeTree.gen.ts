@@ -15,6 +15,7 @@ import { Route as BooksNewRouteImport } from "./routes/books.new"
 import { Route as BooksImportRouteImport } from "./routes/books.import"
 import { Route as BooksLabelRouteImport } from "./routes/books.$label"
 import { Route as BooksLabelIndexRouteImport } from "./routes/books.$label.index"
+import { Route as BooksLabelKidsRouteImport } from "./routes/books.$label.kids"
 import { Route as BooksLabelDebugRouteImport } from "./routes/books.$label.debug"
 import { Route as BooksLabelStepRouteImport } from "./routes/books.$label.$step"
 import { Route as BooksLabelStepIndexRouteImport } from "./routes/books.$label.$step.index"
@@ -51,6 +52,11 @@ const BooksLabelIndexRoute = BooksLabelIndexRouteImport.update({
   path: "/",
   getParentRoute: () => BooksLabelRoute,
 } as any)
+const BooksLabelKidsRoute = BooksLabelKidsRouteImport.update({
+  id: "/kids",
+  path: "/kids",
+  getParentRoute: () => BooksLabelRoute,
+} as any)
 const BooksLabelDebugRoute = BooksLabelDebugRouteImport.update({
   id: "/debug",
   path: "/debug",
@@ -85,6 +91,7 @@ export interface FileRoutesByFullPath {
   "/books/new": typeof BooksNewRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
+  "/books/$label/kids": typeof BooksLabelKidsRoute
   "/books/$label/": typeof BooksLabelIndexRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
   "/books/$label/$step/settings": typeof BooksLabelStepSettingsRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
   "/books/$label/debug": typeof BooksLabelDebugRoute
+  "/books/$label/kids": typeof BooksLabelKidsRoute
   "/books/$label": typeof BooksLabelIndexRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
   "/books/$label/$step/settings": typeof BooksLabelStepSettingsRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   "/books/new": typeof BooksNewRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
+  "/books/$label/kids": typeof BooksLabelKidsRoute
   "/books/$label/": typeof BooksLabelIndexRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
   "/books/$label/$step/settings": typeof BooksLabelStepSettingsRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | "/books/new"
     | "/books/$label/$step"
     | "/books/$label/debug"
+    | "/books/$label/kids"
     | "/books/$label/"
     | "/books/$label/$step/$pageId"
     | "/books/$label/$step/settings"
@@ -136,6 +146,7 @@ export interface FileRouteTypes {
     | "/books/import"
     | "/books/new"
     | "/books/$label/debug"
+    | "/books/$label/kids"
     | "/books/$label"
     | "/books/$label/$step/$pageId"
     | "/books/$label/$step/settings"
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | "/books/new"
     | "/books/$label/$step"
     | "/books/$label/debug"
+    | "/books/$label/kids"
     | "/books/$label/"
     | "/books/$label/$step/$pageId"
     | "/books/$label/$step/settings"
@@ -205,6 +217,13 @@ declare module "@tanstack/react-router" {
       path: "/"
       fullPath: "/books/$label/"
       preLoaderRoute: typeof BooksLabelIndexRouteImport
+      parentRoute: typeof BooksLabelRoute
+    }
+    "/books/$label/kids": {
+      id: "/books/$label/kids"
+      path: "/kids"
+      fullPath: "/books/$label/kids"
+      preLoaderRoute: typeof BooksLabelKidsRouteImport
       parentRoute: typeof BooksLabelRoute
     }
     "/books/$label/debug": {
@@ -264,12 +283,14 @@ const BooksLabelStepRouteWithChildren = BooksLabelStepRoute._addFileChildren(
 interface BooksLabelRouteChildren {
   BooksLabelStepRoute: typeof BooksLabelStepRouteWithChildren
   BooksLabelDebugRoute: typeof BooksLabelDebugRoute
+  BooksLabelKidsRoute: typeof BooksLabelKidsRoute
   BooksLabelIndexRoute: typeof BooksLabelIndexRoute
 }
 
 const BooksLabelRouteChildren: BooksLabelRouteChildren = {
   BooksLabelStepRoute: BooksLabelStepRouteWithChildren,
   BooksLabelDebugRoute: BooksLabelDebugRoute,
+  BooksLabelKidsRoute: BooksLabelKidsRoute,
   BooksLabelIndexRoute: BooksLabelIndexRoute,
 }
 

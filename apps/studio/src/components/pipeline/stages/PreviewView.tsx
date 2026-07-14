@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef, useCallback, useMemo, type CSSProperties } from "react"
 import type { AccessibilityFinding } from "@adt/types"
 import { Trans } from "@lingui/react/macro"
+import { Baby } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+import { useKidsMode } from "@/hooks/use-kids-mode"
 import { StageBlockedState } from "@/components/pipeline/components/StageBlockedState"
 import { LoadingState } from "@/components/pipeline/components/LoadingState"
 import { useAllPagesPruned } from "@/hooks/use-all-pages-pruned"
@@ -66,6 +70,13 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   }>({ sectionId: null, href: null, title: null, hasImages: false, hasActivity: false, signLanguageEnabled: false })
   const [accessibilityCardExpanded, setAccessibilityCardExpanded] = useState(false)
   const [validationCardExpanded, setValidationCardExpanded] = useState(false)
+  // Author-facing preview override: flip the book between KIDS and REGULAR
+  // chrome without touching the packed kids-mode decision. null = follow the
+  // book decision. The runtime honors a `kidsMode=on|off` URL param only in
+  // the dev/authoring preview context (see the runtime's kids-preview.ts).
+  const [kidsPreview, setKidsPreview] = useState<"on" | "off" | null>(null)
+  const { data: kidsModeConfig } = useKidsMode(bookLabel)
+  const packedKidsMode = kidsModeConfig?.enabled
   const { data, isLoading: assessmentLoading, error: assessmentError } = useAccessibilityAssessment(bookLabel)
   const { data: packageStatus } = usePackageAdtStatus(bookLabel, {
     refetchInterval: pendingVersion && !ready ? 1_000 : false,
@@ -271,6 +282,12 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     return () => window.removeEventListener("adt:repackage", handler)
   }, [runPackage, storyboardDone])
 
+  const toggleKidsPreview = useCallback(() => {
+    setKidsPreview((current) =>
+      current !== null ? null : packedKidsMode ? "off" : "on",
+    )
+  }, [packedKidsMode])
+
   const navigatePreviewToHref = useCallback((href: string) => {
     const iframe = iframeRef.current
     const iframeWindow = iframe?.contentWindow
@@ -363,18 +380,64 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
           margin: "0 auto",
         }
       : { width: "100%", height: "100%" }
+    // `kidsMode=on|off` drives the runtime's preview-only chrome override
+    // (dev/authoring context only — a shipped book ignores it). The runtime
+    // persists the override in tab-scoped sessionStorage so it survives page
+    // turns (each is a full page load that drops the query string). Because
+    // of that persistence, the "follow the book" state sends the packed
+    // decision explicitly (once known) instead of omitting the param — a
+    // bare URL would let a stale override from an earlier toggle leak across
+    // preview remounts. Every state transition changes the src string, so
+    // React re-sets the attribute and the iframe reloads with the new chrome.
+    const kidsParam =
+      kidsPreview ??
+      (packedKidsMode === undefined ? null : packedKidsMode ? "on" : "off")
     return (
       <div ref={wrapperRef} className="relative h-full w-full bg-muted/20 overflow-auto">
         <div style={sizerStyle}>
           <iframe
             ref={iframeRef}
-            src={`${getAdtUrl(bookLabel)}/v-${version}/`}
+            // `?kidsOnboarding=preview` lets the runtime replay kids onboarding
+            // in the Studio preview (dev/authoring only). No effect unless kids
+            // mode is on; shipped books never carry this param.
+            src={`${getAdtUrl(bookLabel)}/v-${version}/?kidsOnboarding=preview${kidsParam ? `&kidsMode=${kidsParam}` : ""}`}
             className="border-0"
             style={iframeStyle}
             title="ADT Preview"
             onLoad={syncCurrentPreviewPage}
           />
         </div>
+
+        {packedKidsMode !== undefined ? (
+          <div
+            className={cn(
+              "absolute right-4 top-4 z-30 transition-all duration-200 ease-out",
+              accessibilityCardExpanded
+                ? "pointer-events-none -translate-y-1 opacity-0"
+                : "translate-y-0 opacity-100",
+            )}
+          >
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={toggleKidsPreview}
+              className="gap-1.5 rounded-full bg-background/95 shadow-md backdrop-blur-sm supports-[backdrop-filter]:bg-background/90"
+            >
+              <Baby className="h-4 w-4" />
+              {packedKidsMode ? (
+                kidsPreview === "off" ? (
+                  <Trans>Back to kids UI</Trans>
+                ) : (
+                  <Trans>Preview regular UI</Trans>
+                )
+              ) : kidsPreview === "on" ? (
+                <Trans>Back to regular UI</Trans>
+              ) : (
+                <Trans>Preview kids UI</Trans>
+              )}
+            </Button>
+          </div>
+        ) : null}
 
         <PreviewAccessibilityCard
           label={bookLabel}

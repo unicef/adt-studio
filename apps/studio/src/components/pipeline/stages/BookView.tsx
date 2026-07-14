@@ -4,13 +4,14 @@ import {
   AlertTriangle,
   ArrowDown,
   ArrowRight,
+  Baby,
   Check,
   ChevronRight,
   Copy,
   FileText,
   type LucideIcon,
 } from "lucide-react"
-import { Trans, useLingui } from "@lingui/react/macro"
+import { Plural, Trans, useLingui } from "@lingui/react/macro"
 import { type StageName } from "@adt/types"
 import {
   getBookOverviewStages,
@@ -30,6 +31,7 @@ import {
   getStepLabelI18n,
 } from "../pipeline-i18n"
 import { useBookRun } from "@/hooks/use-book-run"
+import { useKidsMode, useKidsVoiceStatus } from "@/hooks/use-kids-mode"
 import { useAccessibilityAssessment } from "@/hooks/use-debug"
 import { useBook, usePackageAdtStatus } from "@/hooks/use-books"
 import { getSourcePdfUrl } from "@/api/client"
@@ -209,6 +211,7 @@ export function BookView({ bookLabel }: ViewProps) {
             steps={grouped.enhancements}
             layout="grid"
             cardPropsFor={cardPropsFor}
+            extraCards={<KidsModeHomeCard bookLabel={bookLabel} />}
           />
         </div>
       )}
@@ -542,6 +545,7 @@ function OptionalGroupSection({
   steps,
   layout,
   cardPropsFor,
+  extraCards,
 }: {
   phaseNumber: number
   title: ReactNode
@@ -550,6 +554,7 @@ function OptionalGroupSection({
   steps: NonBookStageDefinition[]
   layout: "grid" | "stack"
   cardPropsFor: (step: NonBookStageDefinition) => HomeStageCardProps
+  extraCards?: ReactNode
 }) {
   return (
     <section className="flex flex-col gap-3">
@@ -588,9 +593,111 @@ function OptionalGroupSection({
           {steps.map((step) => (
             <HomeStageCard key={step.slug} {...cardPropsFor(step)} />
           ))}
+          {extraCards}
         </div>
       </div>
     </section>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// KidsModeHomeCard — plain link card in the Enhancements cluster that opens
+// the Kids Mode screen. Mirrors the HomeStageCard visual language.
+// ---------------------------------------------------------------------------
+
+function KidsModeHomeCard({ bookLabel }: { bookLabel: string }) {
+  const navigate = useNavigate()
+  const { data: kidsConfig } = useKidsMode(bookLabel)
+  const { data: voiceStatus } = useKidsVoiceStatus(bookLabel)
+
+  const enabled = kidsConfig?.enabled ?? false
+  const buddyCount = kidsConfig?.buddies.length ?? 0
+  const packCount =
+    voiceStatus?.languages.filter((entry) => entry.hasPack).length ?? 0
+
+  const handleCardClick = () => {
+    navigate({
+      to: "/books/$label/kids",
+      params: { label: bookLabel },
+    })
+  }
+
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={handleCardClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          handleCardClick()
+        }
+      }}
+      className={cn(
+        "group relative flex cursor-pointer flex-col overflow-hidden rounded-2xl border border-border/70 bg-card text-left transition-all",
+        "hover:border-foreground/15 hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      )}
+    >
+      <div aria-hidden className="absolute inset-y-0 left-0 w-1 bg-sky-500" />
+
+      <div className="flex items-start gap-5 p-5">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-sky-500 shadow-sm">
+          <Baby className="h-6 w-6 text-white" strokeWidth={2} />
+        </div>
+
+        <div className="flex min-w-0 flex-1 flex-col gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <h3 className="text-lg font-bold leading-tight tracking-tight text-foreground">
+              <Trans>Kids Mode</Trans>
+            </h3>
+            {enabled ? (
+              <Badge className="border-transparent bg-emerald-100 text-[10px] uppercase tracking-wider text-emerald-900 hover:bg-emerald-100">
+                <Trans>On</Trans>
+              </Badge>
+            ) : (
+              <Badge
+                variant="outline"
+                className="text-[10px] uppercase tracking-wider text-muted-foreground"
+              >
+                <Trans>Off</Trans>
+              </Badge>
+            )}
+          </div>
+
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            <Trans>
+              Make this a kids book: pick the reading buddies and generate
+              their voices.
+            </Trans>
+          </p>
+
+          {enabled && (
+            <p className="text-xs text-muted-foreground tabular-nums">
+              <Plural
+                value={buddyCount}
+                one="# buddy"
+                other="# buddies"
+              />
+              {packCount > 0 && (
+                <>
+                  {" · "}
+                  <Plural
+                    value={packCount}
+                    one="# voice pack"
+                    other="# voice packs"
+                  />
+                </>
+              )}
+            </p>
+          )}
+        </div>
+
+        <ChevronRight
+          aria-hidden
+          className="h-5 w-5 shrink-0 self-center text-muted-foreground/40 transition-colors group-hover:text-foreground/70"
+        />
+      </div>
+    </div>
   )
 }
 
