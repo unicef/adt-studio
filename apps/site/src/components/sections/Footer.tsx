@@ -3,7 +3,6 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import type { MessageDescriptor } from "@lingui/core";
 import { GithubIcon } from "@/components/icons/GithubIcon";
 import { SupportersStrip } from "@/components/sections/SupportersStrip";
-import { DOCS_ENABLED } from "@/lib/flags";
 import { withBase } from "@/lib/href";
 
 type LinkCol = {
@@ -48,12 +47,8 @@ const COLUMNS: LinkCol[] = [
   {
     title: msg`Docs`,
     links: [
-      ...(DOCS_ENABLED
-        ? [
-            { label: msg`Documentation`, href: "/docs" },
-            { label: msg`Quickstart`, href: "/docs/quickstart" },
-          ]
-        : []),
+      { label: msg`Documentation`, href: "/docs" },
+      { label: msg`Quickstart`, href: "/docs/quickstart" },
       {
         label: msg`Guidelines`,
         href: "https://github.com/unicef/adt-studio/blob/main/docs/GUIDELINES.md",

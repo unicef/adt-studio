@@ -6,7 +6,6 @@ import mdx from 'fumadocs-mdx/vite';
 import { nitro } from 'nitro/vite';
 import { lingui } from '@lingui/vite-plugin';
 import * as babel from '@babel/core';
-import { DOCS_ENABLED } from './src/lib/flags';
 
 /**
  * @vitejs/plugin-react v6 transforms with oxc and no longer accepts a `babel`
@@ -66,9 +65,8 @@ export default defineConfig({
         { path: '/' },
         { path: '/download' },
         { path: '/releases' },
-        // Docs are gated behind DOCS_ENABLED while the content is in progress.
-        // Skip prerendering them so no /docs pages ship until the flag flips.
-        ...(DOCS_ENABLED ? [{ path: '/docs' }, { path: '/api/search' }] : []),
+        { path: '/docs' },
+        { path: '/api/search' },
       ],
     }),
     linguiMacro(),

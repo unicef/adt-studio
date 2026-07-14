@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound, redirect } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { staticFunctionMiddleware } from "@tanstack/start-static-server-functions";
 import { DocsLayout } from "fumadocs-ui/layouts/notebook";
@@ -13,7 +13,6 @@ import { translatePageTree } from "@/lib/docs-i18n";
 import { useLocalizedContent } from "@/lib/useLocalizedContent";
 import { SidebarBanner } from "@/components/docs/SidebarBanner";
 import { useMDXComponents } from "@/components/mdx";
-import { DOCS_ENABLED } from "@/lib/flags";
 import { seo } from "@/lib/seo";
 import { DEFAULT_LOCALE } from "@/i18n/locales";
 
@@ -48,9 +47,6 @@ const clientLoader = browserCollections.docs.createClientLoader({
 
 export const Route = createFileRoute("/docs/")({
   component: Page,
-  beforeLoad: () => {
-    if (!DOCS_ENABLED) throw redirect({ to: "/" });
-  },
   loader: async () => {
     const data = await loader();
     await clientLoader.preload(data.path);
