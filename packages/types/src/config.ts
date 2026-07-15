@@ -134,6 +134,7 @@ export const AppConfig = z
       .enum(["dynamic", "match_source", "template"])
       .optional(),
     image_filters: ImageFilters.optional(),
+    font_assignment: StepConfig.optional(),
     image_meaningfulness: StepConfig.optional(),
     glossary: StepConfig.optional(),
     toc_generation: StepConfig.optional(),
@@ -170,6 +171,7 @@ export const AppConfig = z
     image_cropping: StepConfig.optional(),
     layout_type: LayoutType.optional(),
     spread_mode: z.boolean().optional(),
+    split_mode: z.boolean().optional(),
     vector_text_grouping: z.boolean().optional(),
     apply_body_background: z.boolean().optional(),
     generate_activities: z.boolean().optional(),

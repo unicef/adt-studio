@@ -10,6 +10,7 @@ import { useApiKey } from "@/hooks/use-api-key"
 import { useBooks, useCreateBook } from "@/hooks/use-books"
 import { useWizard } from "./index"
 import { useWizardForm } from "./wizardForm"
+import { usePageTitle } from "@/hooks/use-page-title"
 import { STEPS } from "./steps"
 import { buildConfigOverrides } from "./bookCreationConfig"
 import { getPresetAccent, type PresetAccent } from "./constants"
@@ -38,6 +39,7 @@ function WizardHeader({ step, accent }: { step: number; accent: PresetAccent }) 
           <span />
         )}
         <span
+          id="wizard-step-position"
           className="text-[14px] font-bold leading-5 uppercase tracking-wide animate-wizard-enter"
           style={{ color: accent.text, transition: "color 0.4s ease" }}
         >
@@ -45,7 +47,14 @@ function WizardHeader({ step, accent }: { step: number; accent: PresetAccent }) 
         </span>
       </div>
       <div className="flex flex-col gap-1">
-        <h1 className="text-[30px] font-semibold leading-9 tracking-[-0.75px] text-black">
+        {/* Focus target on step change; described by the "Step X of N" text so a
+            screen reader reads the step title together with the position. */}
+        <h1
+          id="wizard-step-heading"
+          tabIndex={-1}
+          aria-describedby="wizard-step-position"
+          className="text-[30px] font-semibold leading-9 tracking-[-0.75px] text-black outline-none"
+        >
           {i18n._(def.title)}
         </h1>
         <p className="text-[14px] font-medium text-[#737373]">{i18n._(def.description)}</p>
@@ -219,6 +228,28 @@ export function BookCreationWizard() {
   const hintDescriptor = stepDef?.hint?.(values, stepValidationContext) ?? null
   const hint = hintDescriptor ? i18n._(hintDescriptor) : undefined
 
+  // Orientation for screen-reader users moving through the wizard.
+  const pageTitle =
+    phase === "upload"
+      ? t`Add Book: Upload PDF`
+      : currentStep === 0
+        ? t`Add Book: Choose a preset`
+        : stepDef
+          ? i18n._(stepDef.title)
+          : t`Add Book`
+  // For the multi-step phase we move focus to the step heading (below), which
+  // reads the title, so don't also announce it; for upload/preset there is no
+  // such heading, so announce instead.
+  usePageTitle(pageTitle, { announce: phase === "upload" || currentStep === 0 })
+
+  // The footer and step container remount on step change (key={currentStep}),
+  // dropping keyboard focus to <body>. Move it to the new step's heading so a
+  // screen-reader user is never stranded mid-page.
+  useEffect(() => {
+    if (currentStep < 1) return
+    document.getElementById("wizard-step-heading")?.focus()
+  }, [currentStep])
+
   function handleScrollToInvalid() {
     const fieldId = stepDef?.scrollToFirstInvalid?.(values, stepValidationContext)
     if (!fieldId) return
@@ -270,8 +301,12 @@ export function BookCreationWizard() {
       })
 
       // Kick off extraction automatically so the user lands on the book home
-      // with the Extract stage already running.
-      if (hasApiKey) {
+      // with the Extract stage already running — but only when the user intends
+      // to process the book here ("whole" or windowed "range"). For the "split"
+      // scope we skip it: each contributor extracts their own page-range part,
+      // so extracting the full book on this machine would be the very cost the
+      // split feature avoids.
+      if (values.scope !== "split" && hasApiKey) {
         try {
           await api.runStages(
             book.label,
@@ -291,6 +326,11 @@ export function BookCreationWizard() {
         }
       }
 
+      // When splitting, surface the Split & merge panel on the overview.
+      if (values.scope === "split" && typeof window !== "undefined") {
+        window.sessionStorage.setItem("adt:focus-parts", book.label)
+      }
+
       navigate({ to: "/books/$label/$step", params: { label: book.label, step: "book" } })
     } catch (error) {
       creatingRef.current = false
@@ -302,8 +342,21 @@ export function BookCreationWizard() {
 
   const isFixedLayout = values.renderStrategy === "fixed_layout"
 
+  // When scoping to a page range, preview exactly which pages will be processed
+  // — emphasise the selected range and dim the rest. Only once a bound is typed,
+  // so an untouched range doesn't read as "whole book selected". An empty end
+  // means "to the last page"; the preview clamps it to the real page count.
+  const previewRange =
+    values.scope === "range" && (values.startPage !== "" || values.endPage !== "")
+      ? {
+          startPage: parseInt(values.startPage) || 1,
+          endPage: parseInt(values.endPage) || Number.MAX_SAFE_INTEGER,
+        }
+      : null
+
   function renderPreviewContent({mobileMode}: {mobileMode: boolean} = {mobileMode: false}) {
-    if (currentStep === 1) return <PdfCoverPreview file={file} width={650} height={812} />
+    if (currentStep === 1)
+      return <PdfCoverPreview file={file} width={650} height={812} highlightRange={previewRange} />
     if (currentStep === 2) return <LayoutPreview strategy={renderStrategy} />
     if (currentStep === 3) {
       if (isFixedLayout) return <PdfCoverPreview file={file} width={650} height={812} />

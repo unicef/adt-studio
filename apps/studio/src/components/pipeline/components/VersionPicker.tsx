@@ -12,6 +12,7 @@ import {
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { useLingui } from "@lingui/react/macro"
+import { STEP_TO_STAGE, type StageName } from "@adt/types"
 import { api } from "@/api/client"
 import type { VersionEntry } from "@/api/client"
 import {
@@ -119,8 +120,12 @@ export function VersionPicker({
     <PendingChip icon={stepPending.icon}>{i18n._(stepPending.label)}</PendingChip>
   ) : undefined
 
+  const stage: StageName =
+    step === "text-catalog-translation" ? "translate" : STEP_TO_STAGE[step]
+
   useFloatingSave({
     id: `${step}:${itemId}`,
+    stage,
     dirty: dirty && renderSaveBar && currentVersion != null,
     saving,
     label: pendingLabel ?? defaultLabel,

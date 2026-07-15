@@ -1,6 +1,7 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
 import { useCallback, useEffect, useMemo, useRef } from "react"
 import {
+  activeMediaAtom,
   audioSpeedAtom,
   audioVolumeAtom,
   autoplayModeAtom,
@@ -113,8 +114,11 @@ export function useAudioPlayer(): UseAudioPlayer {
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const activeRef = useRef<ActiveHighlight | null>(null)
   const hasAutoStartedRef = useRef<boolean>(false)
+  const playSessionRef = useRef(0)
   const [isPlaying, setIsPlaying] = useAtom(isPlayingAtom)
   const [currentIndex, setCurrentIndex] = useAtom(currentAudioIndexAtom)
+  const activeMedia = useAtomValue(activeMediaAtom)
+  const setActiveMedia = useSetAtom(activeMediaAtom)
   const audioFiles = useAtomValue(audioFilesAtom)
   const translations = useAtomValue(translationsAtom)
   const language = useAtomValue(currentLanguageAtom) as string
@@ -195,6 +199,8 @@ export function useAudioPlayer(): UseAudioPlayer {
 
   const playAtIndex = useCallback(
     (index: number) => {
+      hasAutoStartedRef.current = true
+      const session = ++playSessionRef.current
       if (index < 0 || index >= items.length) {
         stopAndClear()
         setIsPlaying(false)
@@ -262,8 +268,13 @@ export function useAudioPlayer(): UseAudioPlayer {
       setCurrentIndex(index)
       audio
         .play()
-        .then(() => setIsPlaying(true))
+        .then(() => {
+          if (session !== playSessionRef.current) return
+          setActiveMedia("tts")
+          setIsPlaying(true)
+        })
         .catch((err) => {
+          if (session !== playSessionRef.current) return
           console.warn("[adt-runtime] audio.play() rejected", err)
           teardownActive()
           setIsPlaying(false)
@@ -274,6 +285,7 @@ export function useAudioPlayer(): UseAudioPlayer {
       language,
       setIsPlaying,
       setCurrentIndex,
+      setActiveMedia,
       stopAndClear,
       setupHighlight,
       teardownActive,
@@ -300,12 +312,22 @@ export function useAudioPlayer(): UseAudioPlayer {
     ) {
       audio
         .play()
-        .then(() => setIsPlaying(true))
+        .then(() => {
+          setActiveMedia("tts")
+          setIsPlaying(true)
+        })
         .catch(() => setIsPlaying(false))
       return
     }
     playAtIndex(currentIndex || 0)
-  }, [items.length, currentIndex, playAtIndex, setIsPlaying, setReadAloudMode])
+  }, [
+    items.length,
+    currentIndex,
+    playAtIndex,
+    setActiveMedia,
+    setIsPlaying,
+    setReadAloudMode,
+  ])
 
   const togglePlayPause = useCallback(() => {
     const audio = audioRef.current
@@ -346,6 +368,20 @@ export function useAudioPlayer(): UseAudioPlayer {
     setIsPlaying(false)
     setCurrentIndex(0)
   }, [readAloudMode, stopAndClear, setIsPlaying, setCurrentIndex])
+
+  useEffect(() => {
+    if (activeMedia !== "sign-language") return
+    stopAndClear()
+    setIsPlaying(false)
+    setCurrentIndex(0)
+    setReadAloudMode(false)
+  }, [
+    activeMedia,
+    stopAndClear,
+    setIsPlaying,
+    setCurrentIndex,
+    setReadAloudMode,
+  ])
 
   useEffect(() => {
     if (audioRef.current) audioRef.current.playbackRate = speed

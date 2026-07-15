@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo, type ChangeEvent } from "react"
 import { createPortal } from "react-dom"
 import { Link } from "@tanstack/react-router"
-import { AudioLines, ChevronDown, ChevronRight, ChevronUp, Languages, Loader2, Play, Pause, Plus, RotateCcw, Save, Settings, Trash2, Type, Upload, WandSparkles, X } from "lucide-react"
+import { AudioLines, ChevronDown, ChevronRight, ChevronUp, Languages, Loader2, Play, Pause, Plus, RotateCcw, Save, Settings, Trash2, Type, Upload, Volume2, VolumeX, WandSparkles, X } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, getAudioUrl, BASE_URL } from "@/api/client"
 import type { TextCatalogEntry, WordTimestamp, WordTimestampEntry } from "@/api/client"
@@ -29,7 +29,9 @@ import { resolveTranslationLanguageState } from "./lib/translations-view-state"
 import {
   type CatalogCategory,
   getEntryCategory,
+  getEntryTtsExclusion,
   isAnswerEntry,
+  isEasyReadEntry,
   isGlossaryEntry,
   isImageEntry,
 } from "./lib/catalog-entries"
@@ -57,7 +59,7 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const { data: book, isLoading: isBookLoading } = useBook(bookLabel)
   const queryClient = useQueryClient()
-  const { stageState, queueRun, error: runError } = useBookRun()
+  const { stageState, stepProgress, queueRun, error: runError } = useBookRun()
   const { isTaskRunning } = useBookTasks(bookLabel)
   const { apiKey, hasApiKey, azureKey, azureRegion, geminiKey } = useApiKey()
   const translateState = stageState("translate")
@@ -83,7 +85,8 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
   const stageMissing = useStageMissingCounts(bookLabel)
   const missingForCurrentStage =
     isSpeechStage ? stageMissing.speech : stageMissing.translate
-  const showMissingBanner = stageDone && !isRunning && missingForCurrentStage > 0
+  const showMissingBanner =
+    (stageDone || (isSpeechStage && hasStageError)) && !isRunning && missingForCurrentStage > 0
 
   const handleDeleteTTS = useCallback(async () => {
     await api.deleteTTS(bookLabel)
@@ -119,6 +122,28 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
     ? speechConfig as Record<string, unknown>
     : null
   const wordHighlightingEnabled = speechConfigRecord?.word_highlighting === true
+  const configExcludedTextIds = useMemo(
+    () => Array.isArray(speechConfigRecord?.excluded_text_ids)
+      ? (speechConfigRecord.excluded_text_ids as string[])
+      : [],
+    [speechConfigRecord]
+  )
+  const [pendingExcludedTextIds, setPendingExcludedTextIds] = useState<string[] | null>(null)
+  const pendingExcludedTextIdsRef = useRef<string[] | null>(null)
+  const configUpdateQueueRef = useRef<Promise<unknown>>(Promise.resolve())
+  const effectiveExcludedTextIds = pendingExcludedTextIds ?? configExcludedTextIds
+  // Effective read-aloud exclusions (merged config) — category-level from the
+  // speech settings plus individually muted entry ids.
+  const ttsExclusionConfig = useMemo(() => ({
+    excluded_categories: Array.isArray(speechConfigRecord?.excluded_categories)
+      ? (speechConfigRecord.excluded_categories as string[])
+      : undefined,
+    excluded_text_ids: effectiveExcludedTextIds,
+  }), [effectiveExcludedTextIds, speechConfigRecord])
+  const excludedTextIdSet = useMemo(
+    () => new Set(ttsExclusionConfig.excluded_text_ids ?? []),
+    [ttsExclusionConfig]
+  )
   const outputLanguages = Array.from(
     new Set(((merged?.output_languages as string[] | undefined) ?? []).map((code) => normalizeLocale(code)))
   )
@@ -184,21 +209,14 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
     (hasExplicitOutputLanguages ? (outputLanguages[0] ?? editingLanguage) : editingLanguage)
   const currentLanguageUsesGemini =
     !!audioLang && languageUsesSpeechProvider(audioLang, "gemini", speechConfig)
-  const geminiRoutedLanguages = (
-    outputLanguages.length > 0
-      ? outputLanguages
-      : editingLanguage
-        ? [editingLanguage]
-        : []
-  ).filter((language, index, array) =>
-    languageUsesSpeechProvider(language, "gemini", speechConfig) &&
-    array.indexOf(language) === index
-  )
-  const allowGeminiPartialView =
-    isSpeechStage &&
-    hasStageError &&
-    geminiRoutedLanguages.length > 0
-  const showRunCard = (!stageDone || isRunning) && !allowGeminiPartialView
+  // Speech keeps the entry list on screen during runs (audio fills in live via
+  // the run's snapshot) and after failures (failed rows are marked); the run
+  // card only shows before the first speech run. Translate keeps the original
+  // behavior: run card until the stage is done.
+  const showRunCard = isSpeechStage
+    ? !(stageDone || isRunning || hasStageError)
+    : (!stageDone || isRunning)
+  const ttsProgress = isSpeechStage && isRunning ? stepProgress("tts") : undefined
 
   const toggleWordHighlighting = useCallback(() => {
     const currentConfig = { ...(bookConfigData?.config ?? {}) } as Record<string, unknown>
@@ -211,6 +229,40 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
     }
     updateConfig.mutate({ label: bookLabel, config: currentConfig })
   }, [bookConfigData?.config, bookLabel, updateConfig, wordHighlightingEnabled])
+
+  const toggleEntryMuted = useCallback((textId: string) => {
+    const currentConfig = { ...(bookConfigData?.config ?? {}) } as Record<string, unknown>
+    const existingSpeech = currentConfig.speech && typeof currentConfig.speech === "object"
+      ? { ...(currentConfig.speech as Record<string, unknown>) }
+      : {}
+    // Toggle against the effective (merged) exclusions so the write matches
+    // what the user currently sees.
+    const next = new Set(pendingExcludedTextIdsRef.current ?? effectiveExcludedTextIds)
+    if (next.has(textId)) next.delete(textId)
+    else next.add(textId)
+    const nextIds = Array.from(next)
+    pendingExcludedTextIdsRef.current = nextIds
+    setPendingExcludedTextIds(nextIds)
+    currentConfig.speech = {
+      ...existingSpeech,
+      // Empty array is intentional: it overrides any project-level excluded ids.
+      excluded_text_ids: nextIds,
+    }
+    configUpdateQueueRef.current = configUpdateQueueRef.current
+      .catch(() => undefined)
+      .then(async () => {
+        const updated = await updateConfig.mutateAsync({ label: bookLabel, config: currentConfig })
+        await queryClient.invalidateQueries({ queryKey: ["debug", "config", bookLabel] })
+        return updated
+      })
+      .finally(() => {
+        if (pendingExcludedTextIdsRef.current === nextIds) {
+          pendingExcludedTextIdsRef.current = null
+          setPendingExcludedTextIds(null)
+        }
+      })
+    void configUpdateQueueRef.current.catch(() => undefined)
+  }, [bookConfigData?.config, bookLabel, effectiveExcludedTextIds, queryClient, updateConfig])
 
   // Fetch word timestamps for the active language on the speech page
   const { data: timestampData } = useQuery({
@@ -286,6 +338,14 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
       audioMap.set(e.textId, { fileName: e.fileName, voice: e.voice, cacheKey: e.cacheKey })
     }
   }
+  // Per-item generation failures for the selected language (from the last run,
+  // or streamed live while a run is in progress)
+  const failedAudioMap = new Map<string, string>()
+  if (ttsData && audioLang) {
+    for (const f of ttsData.languages[audioLang]?.failed ?? []) {
+      failedAudioMap.set(f.textId, f.error)
+    }
+  }
   // Separate base-language audio map for the source column in translation view
   const baseAudioMap = new Map<string, { fileName: string; voice: string; cacheKey?: string }>()
   if (ttsData && editingLanguage && ttsData.languages[editingLanguage] && audioLang !== editingLanguage) {
@@ -309,8 +369,12 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
   const totalAudioFiles = ttsData
     ? Object.values(ttsData.languages).reduce((sum, lang) => sum + lang.entries.length, 0)
     : 0
-  const generatedAudioCount = displayEntries.filter((entry) => audioMap.has(entry.id)).length
-  const missingAudioCount = Math.max(displayEntries.length - generatedAudioCount, 0)
+  // Muted entries neither need audio nor count as missing
+  const speakableEntries = displayEntries.filter(
+    (entry) => !getEntryTtsExclusion(entry.id, ttsExclusionConfig).excluded
+  )
+  const generatedAudioCount = speakableEntries.filter((entry) => audioMap.has(entry.id)).length
+  const missingAudioCount = Math.max(speakableEntries.length - generatedAudioCount, 0)
 
   // Track playback state for the currently-playing entry (only one plays at a time)
   const [playingEntryId, setPlayingEntryId] = useState<string | null>(null)
@@ -460,15 +524,42 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
     [audioLang, apiKey, transcribeMutation]
   )
 
+  // Resolve speech config summary for display.
+  const speechSummary = useMemo(() => {
+    const provider =
+      (speechConfig && typeof speechConfig === "object"
+        ? ((speechConfig as Record<string, unknown>).default_provider as string)
+        : undefined) ?? "openai"
+    const defaultVoice = DEFAULT_TTS_VOICE[provider] ?? DEFAULT_TTS_VOICE.openai
+    const defaultModel = DEFAULT_TTS_MODEL[provider] ?? DEFAULT_TTS_MODEL.openai
+    if (!speechConfig || typeof speechConfig !== "object") {
+      return { provider, voice: defaultVoice, model: defaultModel }
+    }
+    const sc = speechConfig as Record<string, unknown>
+    const voice = (sc.voice as string) ?? defaultVoice
+    const model = (sc.model as string) ?? undefined
+    const providers = sc.providers as Record<string, Record<string, unknown>> | undefined
+    const providerModel = providers?.[provider]?.model as string | undefined
+    return { provider, voice, model: providerModel ?? model ?? defaultModel }
+  }, [speechConfig])
+
   const headerControls = catalog ? (
     <div className="flex items-center gap-1.5 ml-auto">
+      {isSpeechStage && isRunning && (
+        <span className="text-[10px] bg-white/20 rounded-full px-2 py-0.5 inline-flex items-center gap-1">
+          <Loader2 className="w-2.5 h-2.5 animate-spin" />
+          {ttsProgress?.totalPages
+            ? t`Generating ${String(ttsProgress.page ?? 0)}/${String(ttsProgress.totalPages)}`
+            : t`Preparing speech...`}
+        </span>
+      )}
       <span className="text-[10px] bg-white/20 rounded-full px-2 py-0.5">{t`${String(displayEntries.length)} texts`}</span>
       {outputLanguages.length > 1 && (
         <span className="text-[10px] bg-white/20 rounded-full px-2 py-0.5">{t`${String(outputLanguages.length)} languages`}</span>
       )}
       {currentLanguageUsesGemini ? (
         <span className="text-[10px] bg-white/20 rounded-full px-2 py-0.5">
-          {t`${String(generatedAudioCount)}/${String(displayEntries.length)} audio`}
+          {t`${String(generatedAudioCount)}/${String(speakableEntries.length)} audio`}
         </span>
       ) : totalAudioFiles > 0 && (
         <span className="text-[10px] bg-white/20 rounded-full px-2 py-0.5">{t`${String(totalAudioFiles)} audio`}</span>
@@ -519,7 +610,7 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
               if (!window.confirm(t`Are you sure you want to generate word-level timestamps for ${langDisplay}?`)) return
               transcribeAllMutation.mutate(audioLang)
             }}
-            disabled={!apiKey || totalAudioFiles === 0 || transcribeAllMutation.isPending || isTaskRunning("transcribe-timestamps")}
+            disabled={!apiKey || totalAudioFiles === 0 || isRunning || transcribeAllMutation.isPending || isTaskRunning("transcribe-timestamps")}
             title={apiKey ? t`Calculate word timestamps for all entries` : t`OpenAI key required`}
             className="text-white/60 hover:text-white transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-default"
           >
@@ -531,7 +622,7 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
               if (!window.confirm(t`Are you sure you want to delete generated speech?`)) return
               handleDeleteTTS()
             }}
-            disabled={totalAudioFiles === 0}
+            disabled={totalAudioFiles === 0 || isRunning}
             title={t`Delete all speech`}
             className="text-white/60 hover:text-white transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-default"
           >
@@ -545,25 +636,6 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
   if (!showRunCard && isLoading) {
     return <LoadingState stageSlug="translate" label={t`Loading text catalog...`} />
   }
-
-  // Resolve speech config summary for display
-  const speechSummary = useMemo(() => {
-    const provider =
-      (speechConfig && typeof speechConfig === "object"
-        ? ((speechConfig as Record<string, unknown>).default_provider as string)
-        : undefined) ?? "openai"
-    const defaultVoice = DEFAULT_TTS_VOICE[provider] ?? DEFAULT_TTS_VOICE.openai
-    const defaultModel = DEFAULT_TTS_MODEL[provider] ?? DEFAULT_TTS_MODEL.openai
-    if (!speechConfig || typeof speechConfig !== "object") {
-      return { provider, voice: defaultVoice, model: defaultModel }
-    }
-    const sc = speechConfig as Record<string, unknown>
-    const voice = (sc.voice as string) ?? defaultVoice
-    const model = (sc.model as string) ?? undefined
-    const providers = sc.providers as Record<string, Record<string, unknown>> | undefined
-    const providerModel = providers?.[provider]?.model as string | undefined
-    return { provider, voice, model: providerModel ?? model ?? defaultModel }
-  }, [speechConfig])
 
   if (showRunCard || !catalog || entries.length === 0) {
     return (
@@ -678,7 +750,7 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
     <div className="flex flex-col h-full">
       {/* Fixed header: alerts, language tabs, column headers */}
       <div className="shrink-0 px-4 pt-4 space-y-3">
-        {allowGeminiPartialView && runError && (
+        {isSpeechStage && hasStageError && runError && (
           <Alert variant="destructive" className="rounded-md">
             <AlertDescription className="text-xs whitespace-pre-wrap break-words">
               {runError}
@@ -830,6 +902,47 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
             const baseAudio = baseAudioMap.get(entry.id)
             const isImg = isImageEntry(entry.id)
             const isAnswer = isAnswerEntry(entry.id)
+            const exclusion = getEntryTtsExclusion(entry.id, ttsExclusionConfig)
+            // Easy Read variants inherit their source entry's mute — only the
+            // source row can undo it, so lock the toggle on the variant row.
+            const mutedViaSource =
+              exclusion.byId && isEasyReadEntry(entry.id) && !excludedTextIdSet.has(entry.id)
+            const muteLockedReason = exclusion.byCategory
+              ? t`Muted by a content type switch in the Speech settings`
+              : mutedViaSource
+                ? t`Muted via its source text entry`
+                : undefined
+            const muteToggle = (
+              <TtsMuteToggle
+                muted={exclusion.excluded}
+                lockedReason={muteLockedReason}
+                onToggle={() => toggleEntryMuted(entry.id)}
+              />
+            )
+            // Audio status for the selected language: a recorded failure shows
+            // immediately (even mid-run); plain "no audio" only after a run has
+            // finished. Muting an entry clears both — it no longer needs audio.
+            const audioFailure =
+              isSpeechStage && !isAnswer && !exclusion.excluded && !audio
+                ? failedAudioMap.get(entry.id)
+                : undefined
+            const audioMissing =
+              isSpeechStage && !isAnswer && !exclusion.excluded && !audio && !audioFailure &&
+              !isRunning && (stageDone || hasStageError)
+            const audioStatusBadges = (
+              <>
+                {audioFailure && (
+                  <span title={audioFailure} className="ml-1.5 text-[9px] font-medium text-red-700 bg-red-100 rounded px-1 py-0.5 cursor-help">
+                    {t`Failed`}
+                  </span>
+                )}
+                {audioMissing && (
+                  <span className="ml-1.5 text-[9px] font-medium text-amber-700 bg-amber-100 rounded px-1 py-0.5">
+                    {t`No audio`}
+                  </span>
+                )}
+              </>
+            )
 
             return (
               <div
@@ -863,7 +976,10 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
                           <span className="text-[10px] text-muted-foreground">
                             {entry.id}
                             {isAnswer && <span className="ml-1.5 text-[9px] font-medium text-amber-700 bg-amber-100 rounded px-1 py-0.5">{t`Answer`}</span>}
-                            {isSpeechStage && audio && <span className="ml-1.5 text-[9px] text-muted-foreground/60">{audio.fileName}</span>}
+                            {exclusion.excluded && <span className="ml-1.5 text-[9px] font-medium text-rose-700 bg-rose-100 rounded px-1 py-0.5">{t`Muted`}</span>}
+                            {audioStatusBadges}
+                            {isSpeechStage && audio && !exclusion.excluded && <span className="ml-1.5 text-[9px] text-muted-foreground/60">{audio.fileName}</span>}
+                            {muteToggle}
                           </span>
                           <HighlightedText
                             text={entry.text}
@@ -873,7 +989,7 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
                           />
                         </div>
                       </div>
-                      {isSpeechStage && !isAnswer && <AudioAction
+                      {isSpeechStage && !isAnswer && !exclusion.excluded && (audio || !isRunning) && <AudioAction
                         audio={audio}
                         audioLang={audioLang}
                         bookLabel={bookLabel}
@@ -930,12 +1046,14 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
                               <span className="text-[10px] text-muted-foreground">
                                 {entry.id}
                                 {isAnswer && <span className="ml-1.5 text-[9px] font-medium text-amber-700 bg-amber-100 rounded px-1 py-0.5">{t`Answer`}</span>}
-                                {isSpeechStage && baseAudio && <span className="ml-1.5 text-[9px] text-muted-foreground/60">{baseAudio.fileName}</span>}
+                                {exclusion.excluded && <span className="ml-1.5 text-[9px] font-medium text-rose-700 bg-rose-100 rounded px-1 py-0.5">{t`Muted`}</span>}
+                                {isSpeechStage && baseAudio && !exclusion.excluded && <span className="ml-1.5 text-[9px] text-muted-foreground/60">{baseAudio.fileName}</span>}
+                                {muteToggle}
                               </span>
                               <p className="text-sm leading-relaxed mt-0.5">{entry.text}</p>
                             </div>
                           </div>
-                          {isSpeechStage && !isAnswer && baseAudio && editingLanguage && (
+                          {isSpeechStage && !isAnswer && !exclusion.excluded && baseAudio && editingLanguage && (
                             <WaveformPlayer
                               key={`base-${editingLanguage}:${baseAudio.fileName}:${baseAudio.cacheKey ?? ""}`}
                               audioUrl={getAudioUrl(bookLabel, editingLanguage, baseAudio.fileName, baseAudio.cacheKey)}
@@ -971,7 +1089,8 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
                             <div className="min-w-0 flex-1">
                             <span className="text-[10px] text-muted-foreground">
                               &nbsp;
-                              {isSpeechStage && audio && <span className="text-[9px] text-muted-foreground/60">{audio.fileName}</span>}
+                              {audioStatusBadges}
+                              {isSpeechStage && audio && !exclusion.excluded && <span className="text-[9px] text-muted-foreground/60">{audio.fileName}</span>}
                             </span>
                             {isSpeechStage ? (
                               <HighlightedText
@@ -992,7 +1111,7 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
                             )}
                             </div>
                           </div>
-                          {isSpeechStage && !isAnswer && <AudioAction
+                          {isSpeechStage && !isAnswer && !exclusion.excluded && (audio || !isRunning) && <AudioAction
                             audio={audio}
                             audioLang={audioLang}
                             bookLabel={bookLabel}
@@ -1489,6 +1608,35 @@ function WordTimestampViewer({ timestamps, onSave, isSaving, columns = 2 }: {
         </div>
       )}
     </div>
+  )
+}
+
+/** Per-entry read-aloud mute toggle. Locked (non-interactive) when the mute
+ * comes from a content-type switch or is inherited from the source entry. */
+function TtsMuteToggle({ muted, lockedReason, onToggle }: {
+  muted: boolean
+  lockedReason?: string
+  onToggle: () => void
+}) {
+  const { t } = useLingui()
+  const title = lockedReason ?? (muted ? t`Include in read-aloud` : t`Exclude from read-aloud`)
+  return (
+    <button
+      type="button"
+      onClick={lockedReason ? undefined : onToggle}
+      disabled={!!lockedReason}
+      title={title}
+      aria-label={title}
+      className={cn(
+        "ml-1.5 inline-flex items-center justify-center w-4 h-4 rounded align-middle transition-colors",
+        muted
+          ? "text-rose-600 hover:bg-rose-50"
+          : "text-muted-foreground/40 hover:text-foreground hover:bg-muted",
+        lockedReason ? "opacity-50 cursor-default" : "cursor-pointer",
+      )}
+    >
+      {muted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
+    </button>
   )
 }
 

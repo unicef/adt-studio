@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import type { ApiLogEntry } from '../main/api-server/types'
 import type { UpdateStatus } from '../main/services/auto-updater'
+import type { PostUpdateInfo } from '../main/services/update-state'
 
 type ApiLogCallback = (entry: ApiLogEntry) => void
 type MaximizeChangeCallback = (isMaximized: boolean) => void
@@ -15,6 +16,13 @@ const windowControls = {
   toggleMaximize: (): Promise<boolean> =>
     ipcRenderer.invoke('window:toggle-maximize'),
   close: (): Promise<void> => ipcRenderer.invoke('window:close'),
+  confirmClose: (): void => ipcRenderer.send('window:confirm-close'),
+  cancelClose: (): void => ipcRenderer.send('window:cancel-close'),
+  onCloseRequested: (cb: () => void): (() => void) => {
+    const handler = () => cb()
+    ipcRenderer.on('window:close-requested', handler)
+    return () => ipcRenderer.off('window:close-requested', handler)
+  },
   isMaximized: (): Promise<boolean> => ipcRenderer.invoke('window:is-maximized'),
   isFullscreen: (): Promise<boolean> =>
     ipcRenderer.invoke('window:is-fullscreen'),
@@ -35,9 +43,12 @@ const windowControls = {
 const updates = {
   check: (): Promise<UpdateStatus> => ipcRenderer.invoke('updates:check'),
   download: (): Promise<UpdateStatus> => ipcRenderer.invoke('updates:download'),
+  cancel: (): Promise<UpdateStatus> => ipcRenderer.invoke('updates:cancel'),
   install: (): Promise<void> => ipcRenderer.invoke('updates:install'),
   installOnQuit: (): Promise<void> => ipcRenderer.invoke('updates:install-on-quit'),
   getStatus: (): Promise<UpdateStatus> => ipcRenderer.invoke('updates:get-status'),
+  getPostUpdate: (): Promise<PostUpdateInfo | null> =>
+    ipcRenderer.invoke('updates:get-post-update'),
   onStatus: (cb: UpdateStatusCallback): (() => void) => {
     const handler = (_: Electron.IpcRendererEvent, status: UpdateStatus) =>
       cb(status)

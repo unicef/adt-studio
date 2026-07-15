@@ -5,7 +5,7 @@ import { streamSSE } from "hono/streaming"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage, openBookDb } from "@adt/storage"
-import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageClearNodes, getStageClearOrder } from "@adt/types"
+import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder } from "@adt/types"
 import type { StageService } from "../services/stage-service.js"
 import type { BookEventBus, BookSSEEvent } from "../services/book-event-bus.js"
 
@@ -19,7 +19,7 @@ const StageRunBody = z
 
 /** Build a beforeRun callback that clears downstream data for a stage.
  *  The returned function is idempotent — only runs once even if called multiple times. */
-function makeBeforeRun(label: string, fromStage: StageName, booksDir: string): () => void {
+function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string): () => void {
   let ran = false
   return () => {
     if (ran) return
@@ -30,7 +30,7 @@ function makeBeforeRun(label: string, fromStage: StageName, booksDir: string): (
         // clearExtractedData also clears step_runs
         storage.clearExtractedData()
       } else {
-        const nodes = getStageClearNodes(fromStage)
+        const nodes = getStageRerunClearNodes(fromStage, toStage)
         if (nodes.length > 0) {
           storage.clearNodesByType(nodes)
         }
@@ -103,7 +103,7 @@ export function createStageRoutes(
 
     console.log(`[stages] ${label}: ${fromStage}→${toStage}${renderOnly ? " (render-only)" : ""} azureKey=${azureSpeechKey ? "set" : "NOT SET"} azureRegion=${azureSpeechRegion ?? "NOT SET"} geminiKey=${geminiApiKey ? "set" : "NOT SET"}`)
 
-    const clearData = makeBeforeRun(label, fromStage, booksDir)
+    const clearData = makeBeforeRun(label, fromStage, toStage, booksDir)
 
     const result = stageService.startStageRun(label, {
       booksDir,

@@ -8,7 +8,6 @@ import temml from "temml"
 import type { Storage } from "@adt/storage"
 import type {
   ContentNodeData,
-  PageSectioningOutput,
   PageSectioningSection,
   TextCatalogOutput,
   EasyReadOutput,
@@ -23,16 +22,27 @@ import type {
   Quiz,
   ImageCaptioningOutput,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema } from "@adt/types"
-import { googleFontsReferencedIn, googleFontsCss2Url } from "@adt/types"
-import { reflowableFontChain } from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, isTtsExcluded } from "@adt/types"
+import {
+  GOOGLE_FONTS,
+  googleFontsReferencedIn,
+  googleFontsCss2Url,
+  primaryFontFamily,
+} from "@adt/types"
+import { reflowableFontChain, bookBodyFont, bookFontFamilyChain } from "@adt/types"
 import { bundleGoogleFontsIntoCss } from "../google-fonts-bundle.js"
+import {
+  bundleBookFontsIntoCss,
+  readBookFontRegistry,
+  resolveFontsCacheDir,
+} from "../fonts-bundle.js"
 import type { Progress } from "../progress.js"
 import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
 import { getBaseLanguage, normalizeLocale } from "../language-context.js"
 import { buildTextCatalog } from "../text-catalog.js"
 import { flattenEasyReadEntries } from "../easy-read.js"
+import { getRenderSectioning } from "../render-sectioning.js"
 import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "../html-semantics.js"
 import { escapeHtml, escapeAttr, escapeInlineScriptJson } from "../html-escape.js"
 import { buildTailwindCss } from "../tailwind.js"
@@ -115,11 +125,13 @@ export function getWordTimestamps(
 
 function buildRuntimeTimecodeMap(
   timestamps: WordTimestampOutput | undefined,
+  speechConfig?: SpeechConfig,
 ): Record<string, RuntimeTimecodeEntry> {
   const map: Record<string, RuntimeTimecodeEntry> = {}
 
   for (const [textId, entry] of Object.entries(timestamps?.entries ?? {})) {
     if (entry.words.length === 0) continue
+    if (isTtsExcluded(textId, speechConfig)) continue
     map[textId] = {
       timecodes: [
         null,
@@ -309,8 +321,9 @@ export async function packageAdtWeb(
   for (const page of pages) {
     const quizzes = quizzesByAfterPageId.get(page.pageId) ?? []
 
-    const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-    const sectioning = structuringRow?.data as PageSectioningOutput | undefined
+    // Resolver: fixed-layout books package from the positioned tree (its ids +
+    // 1-section/page shape match the rendered HTML the runtime hydrates).
+    const sectioning = getRenderSectioning(storage, page.pageId)
     const imageCaptionMap = loadImageCaptionMap(storage, page.pageId)
     const decorativeImageIds = buildDecorativeImageIdSet(storage, page.pageId)
 
@@ -561,6 +574,9 @@ export async function packageAdtWeb(
 
       if (ttsData?.entries) {
         for (const entry of ttsData.entries) {
+          // Exclusions apply at packaging time too, so muting an element
+          // takes effect without regenerating speech.
+          if (isTtsExcluded(entry.textId, speechConfig)) continue
           const srcFile = path.join(bookDir, "audio", lang, entry.fileName)
           const legacySrcFile = path.join(bookDir, "audio", legacyLang, entry.fileName)
           const resolvedSrcFile = fs.existsSync(srcFile) ? srcFile : legacySrcFile
@@ -580,7 +596,7 @@ export async function packageAdtWeb(
     writeJson(
       path.join(timecodeDir, "timecode_output.json"),
       highlightEnabled
-        ? buildRuntimeTimecodeMap(getWordTimestamps(storage, lang))
+        ? buildRuntimeTimecodeMap(getWordTimestamps(storage, lang), speechConfig)
         : {},
     )
 
@@ -732,21 +748,37 @@ export async function packageAdtWeb(
   const activityIds = collectActivityIds(adtDir, pageList)
   generateScormAdapter(assetsDir, activityIds)
 
-  // Bundle any Google Fonts the book uses (fetch the woff2, inline as base64
-  // @font-face) so they render under file:// / offline; the online <link> in
-  // each page stays as the fallback when the fetch fails. Runs before
-  // inlineFontsInCss, which only rewrites local ./fonts/ urls and leaves these
-  // data: URIs alone.
+  // Bundle any Google Fonts the book uses (fetch the woff2 into assets/fonts/
+  // and link them) so they render under file:// / offline; the online <link>
+  // in each page stays as the fallback when the fetch fails. @font-face url()
+  // loads work under file:// — unlike fetch(), which the offline preloader
+  // patches — so fonts are linked, not base64-inlined.
   progress.emit({ type: "step-progress", step, message: "Bundling fonts..." })
-  const bundledFonts = await bundleGoogleFontsIntoCss(adtDir)
+  const fontsCacheDir = resolveFontsCacheDir(path.dirname(bookDir))
+
+  const fontRegistry = readBookFontRegistry(storage)
+  let bundledBookFonts: string[] = []
+  if (fontRegistry.fonts.length > 0) {
+    bundledBookFonts = await bundleBookFontsIntoCss(adtDir, fontRegistry, {
+      bookFontsDir: path.join(bookDir, "fonts"),
+      googleCacheDir: fontsCacheDir,
+    })
+    if (bundledBookFonts.length > 0) {
+      progress.emit({
+        type: "step-progress",
+        step,
+        message: `Bundled book fonts: ${bundledBookFonts.join(", ")}`,
+      })
+    }
+  }
+
+  const bundledFonts = await bundleGoogleFontsIntoCss(adtDir, {
+    cacheDir: fontsCacheDir,
+    excludeFamilies: bundledBookFonts,
+  })
   if (bundledFonts.length > 0) {
     progress.emit({ type: "step-progress", step, message: `Bundled fonts: ${bundledFonts.join(", ")}` })
   }
-
-  // Inline fonts as base64 in fonts.css so `@font-face` works under file://
-  // (browsers treat each file:// path as a unique origin and block cross-origin
-  // font requests; data: URIs sidestep this entirely).
-  inlineFontsInCss(adtDir)
 
   // Offline preloader must run after all asset writes — it snapshots the
   // final state of every file it inlines (page HTML, content JSON, nav.html).
@@ -889,6 +921,12 @@ body {
 
 export interface InjectWebpubStylesOptions {
   fixedLayout?: boolean
+  /**
+   * Extra CSS rules appended inside the injected `<style>` block. Used by the
+   * EPUB packager to ship export-only affordances (e.g. the glossref dotted
+   * underline) without leaking them into the web/webpub output.
+   */
+  extraCss?: string
 }
 
 /**
@@ -896,7 +934,12 @@ export interface InjectWebpubStylesOptions {
  * `</head>` that overrides reader-injected column pagination CSS.
  */
 export function injectWebpubStyles(dir: string, options?: InjectWebpubStylesOptions): void {
-  const css = options?.fixedLayout ? FIXED_LAYOUT_OVERRIDE_CSS : REFLOWABLE_OVERRIDE_CSS
+  const base = options?.fixedLayout ? FIXED_LAYOUT_OVERRIDE_CSS : REFLOWABLE_OVERRIDE_CSS
+  // Splice any caller-supplied rules in before the closing tag so they share
+  // the single injected <style> block. Function replacer so `$` in the CSS
+  // isn't interpreted as a replacement pattern (`$&`, `$1`, …).
+  const extra = options?.extraCss
+  const css = extra ? base.replace("</style>", () => `${extra}\n</style>`) : base
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const fullPath = path.join(dir, entry.name)
     if (entry.isDirectory()) {
@@ -961,6 +1004,13 @@ function injectOpacityClass(html: string): string {
 }
 
 
+export function stripContentEditable(html: string): string {
+  return html.replace(
+    /\s+contenteditable(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/gi,
+    "",
+  )
+}
+
 /**
  * Resolve the reflowable base-font CSS chain for a book, or undefined when no
  * override is needed (fixed-layout books keep original fonts; the serif default
@@ -971,6 +1021,10 @@ export function resolveReflowableFontChain(
   storage: Storage,
   opts: { fixedLayout?: boolean; reflowableFont?: string },
 ): string | undefined {
+  if (!opts.fixedLayout) {
+    const bodyFont = bookBodyFont(readBookFontRegistry(storage))
+    if (bodyFont) return bookFontFamilyChain(bodyFont)
+  }
   const row = storage.getLatestNodeData("font-profile", "book")
   // The font profile only records the auto-detected categories (serif/sans).
   const category = (row?.data as { category?: "serif" | "sans" | null } | undefined)?.category ?? null
@@ -988,7 +1042,7 @@ export function renderPageHtml(opts: RenderPageOptions): string {
       ? `\n    <script type="text/javascript">\n        window.correctAnswers = JSON.parse('${escapeInlineScriptJson(JSON.stringify(opts.activityAnswers))}');\n    </script>`
       : ""
 
-  const normalizedContent = promoteFirstHeadingToH1(opts.content)
+  const normalizedContent = stripContentEditable(promoteFirstHeadingToH1(opts.content))
 
   // INVARIANT: every page MUST render all TTS-scannable content inside
   // <div id="content">. The reader's gatherAudioElements scans #content for
@@ -1059,6 +1113,14 @@ ${fallbackHeadingHtml}${contentBlock}
   // (above) declares the body family. The bundled Merriweather remains the
   // fallback for everything else.
   const googleFamilies = googleFontsReferencedIn(normalizedContent + bodyFontStyle)
+  const bodyPrimary = opts.bodyFontFamily ? primaryFontFamily(opts.bodyFontFamily) : ""
+  if (
+    bodyPrimary &&
+    GOOGLE_FONTS.some((font) => font.family === bodyPrimary) &&
+    !googleFamilies.includes(bodyPrimary)
+  ) {
+    googleFamilies.push(bodyPrimary)
+  }
   const googleFontsUrl = googleFontsCss2Url(googleFamilies)
   const googleFontsLinks = googleFontsUrl
     ? `
@@ -1878,30 +1940,6 @@ async function renderAgentsMd(
 // ---------------------------------------------------------------------------
 // SCORM + Offline support generators
 // ---------------------------------------------------------------------------
-
-/**
- * Rewrite `assets/fonts.css` so each `@font-face` `url('./fonts/X.woff2')`
- * becomes a `data:font/woff2;base64,...` URI, then delete `assets/fonts/`.
- * Required for `file://` (double-click) mode: browsers treat every file path
- * as a unique origin and block cross-origin font fetches, even though the
- * woff2 lives in the same directory tree.
- */
-function inlineFontsInCss(adtDir: string): void {
-  const cssPath = path.join(adtDir, "assets", "fonts.css")
-  if (!fs.existsSync(cssPath)) return
-  const original = fs.readFileSync(cssPath, "utf-8")
-  const updated = original.replace(
-    /url\(\s*['"]?(?:\.\/)?fonts\/([^'")]+\.woff2)['"]?\s*\)\s*format\(\s*['"]woff2['"]\s*\)/g,
-    (_match, file: string) => {
-      const fontPath = path.join(adtDir, "assets", "fonts", file)
-      const b64 = fs.readFileSync(fontPath).toString("base64")
-      return `url('data:font/woff2;base64,${b64}') format('woff2')`
-    },
-  )
-  if (updated === original) return
-  fs.writeFileSync(cssPath, updated)
-  fs.rmSync(path.join(adtDir, "assets", "fonts"), { recursive: true, force: true })
-}
 
 /**
  * Generate `assets/offline-preloader.js` — inlines all JSON/HTML files that

@@ -108,10 +108,12 @@ jobs:
 
       - uses: pnpm/action-setup@v4
 
+      # No `cache: pnpm` here: this job never runs `pnpm install`, so the
+      # pnpm store is never created and the post-run cache save fails with
+      # "Path Validation Error: Path(s) specified ... do(es) not exist".
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
 
       - name: Update issue template version dropdowns
         env:
@@ -302,7 +304,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_PAT }}
 
       - name: Restore staged release metadata
         uses: actions/download-artifact@v4
@@ -331,7 +333,7 @@ jobs:
             git tag "$TAG"
             git push origin "$TAG"
           else
-            git commit -m "chore(release): $TAG"
+            git commit -m "chore(release): $TAG [skip ci]"
             git tag "$TAG"
             git push origin --atomic HEAD:"$BRANCH" "refs/tags/$TAG"
           fi

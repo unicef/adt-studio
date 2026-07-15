@@ -21,6 +21,32 @@ export {
 } from "./google-fonts.js"
 
 export {
+  BookFontSource,
+  BookFontRole,
+  BookFontCategory,
+  BookFontFormat,
+  BOOK_FONT_FORMATS,
+  BookFontFace,
+  BookFontLicense,
+  BookFont,
+  BookFontRegistry,
+  FONT_REGISTRY_NODE,
+  FONT_REGISTRY_ITEM_ID,
+  FONT_ASSIGNMENT_NODE,
+  FONT_ASSIGNMENT_ITEM_ID,
+  bookFontIdFromName,
+  bookFontsReferencedIn,
+  bookBodyFont,
+  bookFontFamilyChain,
+  classifyFontLicenseOpenSource,
+} from "./book-fonts.js"
+
+export {
+  FontAssignment,
+  FontAssignmentOutput,
+} from "./font-assignment.js"
+
+export {
   type FontCategory,
   type DetectedFontCategory,
   type ReflowableFont,
@@ -44,6 +70,7 @@ export {
   STAGE_BY_NAME,
   ALL_STEP_NAMES,
   PAGE_PROGRESS_STEPS,
+  BOOK_LEVEL_STAGES,
 } from "./pipeline.js"
 
 export {
@@ -52,11 +79,19 @@ export {
   STAGE_OUTPUT_NODES,
   getStageClearOrder,
   getStageClearNodes,
+  getStageRerunClearNodes,
   getCacheResourcesForNode,
   getCacheResourcesForNodes,
   getCacheResourcesForStageOutput,
   getCacheResourcesForStageClear,
 } from "./pipeline-effects.js"
+
+// NOTE: fingerprint.* is intentionally NOT re-exported here. It imports
+// `node:crypto`, which is unavailable in the browser, and this root barrel is
+// imported by the Studio SPA (for PIPELINE and friends). Node-only consumers
+// import it from the "@adt/types/fingerprint" subpath instead.
+
+export { PartRange, PartManifest, ExportedPartEntry, PartsLedger } from "./part.js"
 
 export { ProgressEvent } from "./progress.js"
 
@@ -153,6 +188,8 @@ export { BookMetadata } from "./metadata.js"
 
 export { BookSummaryOutput } from "./book-summary.js"
 
+export { ExtractionWarning } from "./extraction-warning.js"
+
 export {
   SectionRendering,
   WebRenderingOutput,
@@ -184,6 +221,8 @@ export {
 export {
   TextCatalogEntry,
   TextCatalogOutput,
+  TextCatalogCategory,
+  getTextCatalogCategory,
 } from "./text-catalog.js"
 
 export {
@@ -196,7 +235,10 @@ export {
   TTSProviderConfig,
   SpeechConfig,
   isSpeechWordHighlightingEnabled,
+  type TtsExclusionConfig,
+  isTtsExcluded,
   SpeechFileEntry,
+  SpeechFailedEntry,
   TTSOutput,
   WordTimestamp,
   WordTimestampEntry,

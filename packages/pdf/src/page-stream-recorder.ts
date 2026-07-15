@@ -15,11 +15,13 @@
  * The recorder is page-scoped and stateless across pages: callers run it
  * once per page and consume the resulting `StreamOp[]`.
  */
+import { createHash } from "node:crypto"
 import mupdf, {
   type BlendMode,
   type Color,
   type ColorSpace,
   type Document as MupdfDocument,
+  type Image as MupdfImage,
   type Matrix as MupdfMatrix,
   type StrokeState,
 } from "mupdf"
@@ -89,6 +91,14 @@ export interface ImageStreamOp extends BaseStreamOp {
   /** Composed alpha at draw time: product of every enclosing transparency
    *  group's alpha and the per-op `alpha` argument. 1.0 when fully opaque. */
   alpha: number
+  /** Pixel-content digest of the image drawn by this op, present only when the
+   *  recorder was run with `hashImages: true`. Lets `stampRasterPlacementsFromOps`
+   *  pick the EXACT extracted XObject when several share identical native
+   *  dimensions (e.g. a PDF whose pages share one resource dictionary listing
+   *  multiple same-size full-page images — dimension-only matching can't tell
+   *  them apart). Undefined when hashing was disabled (the common,
+   *  unambiguous case). See `hashImagePixels`. */
+  contentDigest?: string
 }
 
 export interface PathStreamOp extends BaseStreamOp {
@@ -124,17 +134,58 @@ export type StreamOp =
 type AnyPage = ReturnType<MupdfDocument["loadPage"]>
 
 /**
+ * Compute a content digest of an image's decoded pixels. Used to disambiguate
+ * which extracted XObject a draw op refers to when several share identical
+ * native dimensions (dimension-only matching in `stampRasterPlacementsFromOps`
+ * can't tell them apart). Hashes the raw native pixmap samples so the SAME
+ * digest is produced wherever the same XObject is decoded — both here (stream
+ * recording) and at raster extraction (`extractRasterImagesFromPdf`), which
+ * both call `toPixmap()` on the same underlying image object.
+ */
+export function hashImagePixels(image: MupdfImage): string {
+  const px = image.toPixmap()
+  try {
+    return createHash("sha256").update(px.getPixels()).digest("hex").slice(0, 16)
+  } finally {
+    px.destroy()
+  }
+}
+
+/**
  * Run `page` through a recording device; return draw ops in stream order.
  *
  * Clip-only ops (`clipPath`, `clipImageMask`, `popClip`, etc.) are tracked
  * internally for the `activeClipBbox` field but not emitted, since they
  * don't draw pixels themselves.
+ *
+ * `opts.hashImages` makes each image op carry a `contentDigest` (see
+ * `hashImagePixels`). It's off by default because decoding every image to a
+ * pixmap just to hash it is wasted work for the overwhelmingly common case
+ * where a page's images all have distinct dimensions; callers enable it only
+ * when they've detected a same-dimension collision among extracted images.
  */
-export function recordPageStream(page: AnyPage): StreamOp[] {
+export function recordPageStream(
+  page: AnyPage,
+  opts: { hashImages?: boolean } = {},
+): StreamOp[] {
+  const { hashImages = false } = opts
   const ops: StreamOp[] = []
   const clipStack: ClipPath[] = []
   const groupStack: { blendMode: BlendMode; alpha: number }[] = []
   let seqno = 0
+
+  // Content digest for an image op, computed only when requested. Guarded:
+  // a decode failure on an unusual image (imagemask, exotic colorspace) must
+  // degrade to "no digest" — the matcher then falls back to dimension order —
+  // rather than throwing out of `page.run` and aborting the whole page.
+  const imageDigest = (image: MupdfImage): { contentDigest?: string } => {
+    if (!hashImages) return {}
+    try {
+      return { contentDigest: hashImagePixels(image) }
+    } catch {
+      return {}
+    }
+  }
 
   const activeClipBbox = (): BBox | null =>
     clipStack.length > 0 ? clipStack[clipStack.length - 1].bbox : null
@@ -246,6 +297,7 @@ export function recordPageStream(page: AnyPage): StreamOp[] {
         activeClipPaths: activeClipPaths(),
         blendMode: activeBlendMode(),
         alpha: composedAlpha(alpha ?? 1),
+        ...imageDigest(image),
       })
     },
     fillImageMask(image, ctm, _cs, _color, alpha) {
@@ -260,6 +312,7 @@ export function recordPageStream(page: AnyPage): StreamOp[] {
         activeClipPaths: activeClipPaths(),
         blendMode: activeBlendMode(),
         alpha: composedAlpha(alpha ?? 1),
+        ...imageDigest(image),
       })
     },
     clipImageMask(_image, ctm) {

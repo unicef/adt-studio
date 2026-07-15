@@ -16,6 +16,7 @@ import {
 
 import { registerAppInfoIpc } from "./ipc/app-info";
 import { registerTitleBarIpc } from "./ipc/title-bar";
+import { registerWindowCloseIpc } from "./ipc/window-close";
 import { registerFileDialogIpc } from "./ipc/file-dialog";
 import { registerSplashIpc } from "./ipc/splash";
 import { registerUpdatesIpc } from "./ipc/updates";
@@ -32,6 +33,7 @@ import {
 } from "./protocols/studio-app";
 
 import { checkForUpdates } from "./services/auto-updater";
+import { initPostUpdateDetection } from "./services/update-state";
 import { setStartupError } from "./services/debug-info";
 
 protocol.registerSchemesAsPrivileged([
@@ -48,12 +50,14 @@ app.whenReady().then(async () => {
   registerAppInfoIpc();
   registerSplashIpc();
   registerUpdatesIpc();
+  initPostUpdateDetection();
 
   const splashWindow = createSplashWindow();
 
   registerStudioAppProtocol(join(__dirname, "../renderer"));
   registerHtmlRenderProtocol();
   registerTitleBarIpc();
+  registerWindowCloseIpc();
   registerFileDialogIpc();
 
   let apiProcess: Electron.UtilityProcess;
@@ -100,7 +104,7 @@ app.whenReady().then(async () => {
   });
 });
 
-app.on("before-quit", () => {
+app.on("will-quit", () => {
   stopApiServer();
 });
 

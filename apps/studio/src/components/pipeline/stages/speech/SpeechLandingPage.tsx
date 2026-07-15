@@ -88,7 +88,7 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
 
   const handleRun = () => {
     if (!hasApiKey || !translateReady || status.isRunning) return
-    queueRun({ fromStage: "speech", toStage: "speech", apiKey })
+    queueRun({ fromStage: "speech", toStage: "speech", apiKey, viewAfter: true })
   }
 
   const providerKeyAvailable: Record<ProviderKey, boolean> = {

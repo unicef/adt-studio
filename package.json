@@ -33,13 +33,18 @@
     "jsdom": "^27.4.0",
     "tsx": "^4.21.0",
     "typescript": "^5",
-    "vitest": "^4.0.18"
+    "vitest": "^4.1.9"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
       "esbuild",
       "electron"
-    ]
+    ],
+    "overrides": {
+      "form-data": "^4.0.6",
+      "@xmldom/xmldom": "0.9.10",
+      "plist>@xmldom/xmldom": "^0.8.13"
+    }
   },
   "license": "AGPL-3.0-or-later"
 }

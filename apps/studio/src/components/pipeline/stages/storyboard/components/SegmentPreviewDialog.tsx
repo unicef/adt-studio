@@ -1,6 +1,10 @@
 import { useState, useRef, useCallback, useEffect } from "react"
 import { Loader2 } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
+import { NO_DRAG_REGION } from "@/constants"
+import { usePlatform } from "@/hooks/use-platform"
+import { useWindowControls } from "@/hooks/use-window-controls"
+import { MacOSTrafficLightSpacer } from "@/components/title-bar"
 
 export interface SegmentRegion {
   label: string
@@ -34,6 +38,9 @@ export function SegmentPreviewDialog({
   onClose,
 }: SegmentPreviewDialogProps) {
   const { t } = useLingui()
+  const platform = usePlatform()
+  const { available: hasWindowControls } = useWindowControls()
+  const showMacOSSpacer = hasWindowControls && platform === "macos"
   const [regions, setRegions] = useState<SegmentRegion[]>(initialRegions)
   const [applying, setApplying] = useState(false)
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
@@ -203,10 +210,13 @@ export function SegmentPreviewDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/80 flex flex-col">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-background border-b shrink-0">
-        <h2 className="text-sm font-medium">
+    <div className="fixed inset-0 z-[100] bg-black/80 flex flex-col" style={NO_DRAG_REGION}>
+      {/* Header — see ImageCropDialog: the overlay must opt out of the app's
+          title-bar drag region so these buttons stay clickable in the packaged
+          desktop app; `drag-region` keeps the empty header area draggable. */}
+      <div className="flex items-center justify-between px-4 py-3 bg-background border-b shrink-0 drag-region">
+        <h2 className="flex items-center text-sm font-medium">
+          {showMacOSSpacer && <MacOSTrafficLightSpacer />}
           <Trans>Segment Preview</Trans>
           <span className="ml-2 text-xs text-muted-foreground">
             {t`${regionCount} {regionCount, plural, one {region} other {regions}} detected`}

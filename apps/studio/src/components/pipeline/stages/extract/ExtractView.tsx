@@ -1,16 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { AlignLeft, ArrowLeft, ArrowRight, BookOpen, Building2, FileText, Globe, Image, Loader2, User } from "lucide-react"
+import { AlignLeft, ArrowLeft, ArrowRight, FileText, Image, TriangleAlert } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
-import { useBook } from "@/hooks/use-books"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { ExtractPageDetail } from "./components/ExtractPageDetail"
+import { BookHeader } from "./BookHeader"
 import { LoadingState } from "../../components/LoadingState"
 import { useStepHeader } from "../../components/StepViewRouter"
 import { StageRunCard } from "../../components/StageRunCard"
 import { StageEmptyState } from "../../components/StageEmptyState"
+import { LandingPageWarning } from "../../components/LandingPageWarning"
 import type { PageSummaryItem } from "@/api/client"
 
 /** Returns true once the element has scrolled into view. */
@@ -83,6 +84,16 @@ function PageCard({
         <div className="flex items-center justify-between mb-0.5">
           <span className="text-xs font-medium"><Trans>Page {String(page.pageNumber)}</Trans></span>
           <div className="flex items-center gap-2">
+            {page.extractionWarning && (
+              <span
+                role="img"
+                aria-label={t`No embedded text layer — text was recovered from the page image`}
+                title={t`No embedded text layer — text was recovered from the page image`}
+                className="flex items-center text-amber-600"
+              >
+                <TriangleAlert className="h-2.5 w-2.5" aria-hidden="true" />
+              </span>
+            )}
             {page.wordCount > 0 && (
               <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
                 <AlignLeft className="h-2.5 w-2.5" />
@@ -107,82 +118,6 @@ function PageCard({
 }
 
 
-function BookBanner({ bookLabel, pages, metadataRunning }: { bookLabel: string; pages: PageSummaryItem[] | undefined; metadataRunning?: boolean }) {
-  const { t } = useLingui()
-  const { data: book } = useBook(bookLabel)
-  const coverPageNumber = book?.metadata?.cover_page_number ?? 1
-  const coverPage = pages?.find((p) => p.pageNumber === coverPageNumber)
-  const { data: coverImage } = usePageImage(bookLabel, coverPage?.pageId ?? "")
-
-  if (!book) return null
-
-  const title = book.title ?? book.metadata?.title ?? bookLabel
-  const authors = book.metadata?.authors?.join(", ")
-  const publisher = book.publisher ?? book.metadata?.publisher
-  const language = book.languageCode ?? book.metadata?.language_code
-
-  return (
-    <div className="flex gap-5 items-start p-4 pb-0">
-      {/* Cover thumbnail */}
-      <div className="shrink-0 w-24 rounded-md overflow-hidden shadow-sm bg-muted">
-        {coverImage ? (
-          <img
-            src={`data:image/png;base64,${coverImage.imageBase64}`}
-            alt={t`Cover of ${title}`}
-            className="w-full h-auto block"
-          />
-        ) : (
-          <div className="w-full aspect-[3/4] flex items-center justify-center text-muted-foreground">
-            <BookOpen className="w-8 h-8" />
-          </div>
-        )}
-      </div>
-
-      {/* Metadata */}
-      <div className="flex-1 min-w-0 space-y-2">
-        <h3 className="text-lg font-semibold tracking-tight truncate">{title}</h3>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          {authors && (
-            <span className="flex items-center gap-1">
-              <User className="w-3 h-3" />
-              {authors}
-            </span>
-          )}
-          {publisher && (
-            <span className="flex items-center gap-1">
-              <Building2 className="w-3 h-3" />
-              {publisher}
-            </span>
-          )}
-          {language && (
-            <span className="flex items-center gap-1">
-              <Globe className="w-3 h-3" />
-              {language}
-            </span>
-          )}
-          {book.pageCount > 0 && (
-            <span className="flex items-center gap-1">
-              <FileText className="w-3 h-3" />
-              {book.pageCount} {book.pageCount === 1 ? t`page` : t`pages`}
-            </span>
-          )}
-        </div>
-        {book.bookSummary?.summary && (
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            {book.bookSummary.summary}
-          </p>
-        )}
-        {metadataRunning && !book.metadata && (
-          <div className="flex items-center gap-2 rounded border border-dashed p-2 text-xs text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
-            <Trans>Processing metadata…</Trans>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
 export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
   const { t } = useLingui()
   const { data: pages, isLoading } = usePages(bookLabel)
@@ -198,13 +133,10 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
   const metadataRunning = stepState("metadata") === "running"
   // Show pages progressively: once pages appear in the DB (during or after
   // the PDF extraction step), display the grid. Only show the run card when
-  // no pages exist yet — remaining steps run in the background TaskIndicator.
+  // no pages exist yet — remaining steps (and re-queued derived steps like
+  // book-summary) run in the background TaskIndicator without hiding the grid.
   const hasPages = (pages ?? []).length > 0
-  const showRunCard = extractError
-    ? true
-    : extractRunning
-      ? !hasPages
-      : !extractDone
+  const showRunCard = extractError ? true : !hasPages
 
   const handleRetryExtract = useCallback(() => {
     if (!hasApiKey || extractRunning) return
@@ -212,6 +144,7 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
   }, [hasApiKey, extractRunning, apiKey, queueRun])
 
   const pageList = pages ?? []
+  const warnPages = pageList.filter((p) => p.extractionWarning)
   const currentIndex = selectedPageId ? pageList.findIndex((p) => p.pageId === selectedPageId) : -1
   const selectedPage = currentIndex >= 0 ? pageList[currentIndex] : null
   const prevPageId = currentIndex > 0 ? pageList[currentIndex - 1].pageId : null
@@ -302,7 +235,9 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
   // Page grid view
   return (
     <div>
-      {!showRunCard && pageList.length > 0 && <BookBanner bookLabel={bookLabel} pages={pages} metadataRunning={metadataRunning} />}
+      {!showRunCard && pageList.length > 0 && (
+        <BookHeader bookLabel={bookLabel} pages={pages} metadataRunning={metadataRunning} />
+      )}
       <div className="p-4">
       {showRunCard ? (
         <StageRunCard
@@ -320,16 +255,36 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
           subtitle={t`Run the pipeline to extract content`}
         />
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-          {pageList.map((page) => (
-            <PageCard
-              key={page.pageId}
-              bookLabel={bookLabel}
-              page={page}
-              onClick={() => setSelectedPageId(page.pageId)}
-            />
-          ))}
-        </div>
+        <>
+          {warnPages.length > 0 && (
+            <div className="mb-4">
+              <LandingPageWarning
+                variant="prereq"
+                title={t`${warnPages.length} of ${pageList.length} pages had no extracted text`}
+                description={
+                  <Trans>
+                    These pages have no embedded text layer, but the Sectioning
+                    step recovered text from the page images — so this PDF looks
+                    scanned or image-based. The pipeline can still work from the
+                    recovered text, but for better summaries, metadata, and
+                    translations, try to obtain a text-based version of this PDF
+                    (one with a real text layer) rather than a scanned copy.
+                  </Trans>
+                }
+              />
+            </div>
+          )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            {pageList.map((page) => (
+              <PageCard
+                key={page.pageId}
+                bookLabel={bookLabel}
+                page={page}
+                onClick={() => setSelectedPageId(page.pageId)}
+              />
+            ))}
+          </div>
+        </>
       )}
       </div>
     </div>

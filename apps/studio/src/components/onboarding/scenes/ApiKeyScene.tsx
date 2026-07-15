@@ -157,7 +157,7 @@ export function ApiKeyStep(_props: OnboardingStepProps) {
             ))}
           </TabsList>
 
-          <div className="relative grid overflow-hidden">
+          <div className="relative grid overflow-hidden px-2 py-2">
             <AnimatedTabsContent value="openai" active={tab}>
               <div className="space-y-2">
                 <Label htmlFor="onb-openai-key">

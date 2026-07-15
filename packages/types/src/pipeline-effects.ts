@@ -1,4 +1,4 @@
-import { PIPELINE } from "./pipeline.js"
+import { PIPELINE, STAGE_ORDER } from "./pipeline.js"
 import type { StageName, StepName } from "./pipeline.js"
 
 export type PipelineNodeName =
@@ -7,6 +7,11 @@ export type PipelineNodeName =
   // Sub-product of the `extract` step — written alongside the main
   // page data, not its own pipeline step.
   | "positioned-text"
+  // Sub-product of the `storyboard` step for fixed-layout books — the
+  // positioned section tree used for fixed-layout rendering and the content
+  // pipeline. Kept separate from `page-sectioning` (which always holds the
+  // semantic tree) so switching render strategy never destroys sectioning.
+  | "fixed-layout-sectioning"
 
 /**
  * Shared, UI-agnostic cache/resource tags used by apps to derive
@@ -27,6 +32,7 @@ export type PipelineCacheResource =
 const EXTRA_STAGE_OUTPUT_NODES: Partial<Record<StageName, readonly PipelineNodeName[]>> = {
   "translate": ["text-catalog-translation"],
   "extract": ["positioned-text"],
+  "storyboard": ["fixed-layout-sectioning"],
 }
 
 /** All node_data node names written by each stage. */
@@ -95,6 +101,7 @@ const NODE_CACHE_RESOURCES: Record<PipelineNodeName, readonly PipelineCacheResou
   "accessibility-assessment": ["debug"],
   "text-catalog-translation": ["text-catalog"],
   "positioned-text": ["pages"],
+  "fixed-layout-sectioning": ["pages"],
 }
 
 const CACHE_RESOURCE_ORDER: readonly PipelineCacheResource[] = [
@@ -156,6 +163,33 @@ export function getStageClearNodes(stage: StageName): PipelineNodeName[] {
   }
 
   return nodes
+}
+
+/** Stages whose handler merges its own prior output on re-run (e.g. glossary
+ * preserves manual, edited, and pruned terms) rather than replacing it. */
+const STAGES_PRESERVING_OWN_OUTPUT: readonly StageName[] = ["glossary"]
+
+/** Like getStageClearNodes(fromStage), but keeps a merge-preserving stage's own
+ * output when that stage is inside the [fromStage, toStage] run range so its
+ * handler can re-merge the prior version. Outside the range it is still cleared. */
+export function getStageRerunClearNodes(
+  fromStage: StageName,
+  toStage: StageName
+): PipelineNodeName[] {
+  const clearNodes = getStageClearNodes(fromStage)
+  const fromIndex = STAGE_ORDER.indexOf(fromStage)
+  const toIndex = STAGE_ORDER.indexOf(toStage)
+
+  const preservedNodes = new Set<PipelineNodeName>()
+  for (const stage of STAGES_PRESERVING_OWN_OUTPUT) {
+    const index = STAGE_ORDER.indexOf(stage)
+    if (index >= fromIndex && index <= toIndex) {
+      for (const node of STAGE_OUTPUT_NODES[stage]) preservedNodes.add(node)
+    }
+  }
+
+  if (preservedNodes.size === 0) return clearNodes
+  return clearNodes.filter((node) => !preservedNodes.has(node))
 }
 
 /** Resource tags that should be refreshed when a node is updated or cleared. */

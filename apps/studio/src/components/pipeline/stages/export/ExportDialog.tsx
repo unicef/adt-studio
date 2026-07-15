@@ -35,6 +35,7 @@ import {
 import { useBook } from "@/hooks/use-books";
 import { usePages, usePageImage } from "@/hooks/use-pages";
 import { useBookConfig } from "@/hooks/use-book-config";
+import { usePartInfo } from "@/hooks/use-parts";
 import { getDisplayName, normalizeLocale } from "@/lib/languages";
 import {
   useAvailableExportFeatures,
@@ -566,7 +567,8 @@ export function ExportDialog({
   const { t } = useLingui();
   const availableFeatures = useAvailableExportFeatures(bookLabel);
   const allFeatures = useAllProjectFeatures(bookLabel);
-  const formatConfigByType = buildExportFormatConfig(t);
+  const { data: partInfo } = usePartInfo(bookLabel);
+  const formatConfigByType = buildExportFormatConfig(t, { isPart: !!partInfo });
 
   const { data: configData } = useBookConfig(bookLabel);
   const { data: book } = useBook(bookLabel);

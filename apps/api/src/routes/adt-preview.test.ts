@@ -284,7 +284,7 @@ describe("ADT preview routes", () => {
     expect(pages.at(-1)).toEqual({ section_id: "qz001", href: "qz001.html" })
   })
 
-  it("serves runtime timecodes and enables highlight when word timestamps exist", async () => {
+	  it("serves runtime timecodes and enables highlight when word timestamps exist", async () => {
     fs.writeFileSync(
       path.join(tmpDir, label, "config.yaml"),
       "speech:\n  word_highlighting: true\n",
@@ -347,9 +347,82 @@ describe("ADT preview routes", () => {
     const config = await configRes.json() as { bundleVersion: string; features: { highlight: boolean } }
     expect(config.features.highlight).toBe(true)
     expect(config.bundleVersion).not.toBe("1")
-  })
+	  })
 
-  it("enables highlight fallback when TTS exists without stored word timestamps", async () => {
+	  it("excludes muted entries from preview audio and timecode maps", async () => {
+	    fs.writeFileSync(
+	      path.join(tmpDir, label, "config.yaml"),
+	      "speech:\n  word_highlighting: true\n  excluded_text_ids:\n    - pg001_t002\n",
+	    )
+	    const storage = createBookStorage(label, tmpDir)
+	    try {
+	      storage.putNodeData("tts", "en", {
+	        entries: [
+	          {
+	            textId: "pg001_t001",
+	            language: "en",
+	            fileName: "pg001_t001.mp3",
+	            voice: "alloy",
+	            model: "gpt-4o-mini-tts",
+	            cached: false,
+	          },
+	          {
+	            textId: "pg001_t002",
+	            language: "en",
+	            fileName: "pg001_t002.mp3",
+	            voice: "alloy",
+	            model: "gpt-4o-mini-tts",
+	            cached: false,
+	          },
+	        ],
+	        generatedAt: "2026-01-01T00:00:00.000Z",
+	      })
+	      storage.putNodeData("tts-timestamps", "en", {
+	        entries: {
+	          pg001_t001: {
+	            textId: "pg001_t001",
+	            language: "en",
+	            duration: 0.4,
+	            words: [{ word: "Hello", start: 0, end: 0.4 }],
+	          },
+	          pg001_t002: {
+	            textId: "pg001_t002",
+	            language: "en",
+	            duration: 0.4,
+	            words: [{ word: "Muted", start: 0, end: 0.4 }],
+	          },
+	        },
+	        generatedAt: "2026-01-01T00:00:00.000Z",
+	      })
+	    } finally {
+	      storage.close()
+	    }
+
+	    const app = createAdtPreviewRoutes(tmpDir, webAssetsDir, path.resolve(process.cwd(), "config.yaml"))
+
+	    const audioRes = await app.request(`/books/${label}/adt-preview/content/i18n/en/audios.json`)
+	    expect(audioRes.status).toBe(200)
+	    expect(await audioRes.json()).toEqual({
+	      pg001_t001: "pg001_t001.mp3",
+	    })
+
+	    const timecodeRes = await app.request(
+	      `/books/${label}/adt-preview/content/i18n/en/timecode/timecode_output.json`,
+	    )
+	    expect(timecodeRes.status).toBe(200)
+	    expect(await timecodeRes.json()).toEqual({
+	      pg001_t001: {
+	        timecodes: [
+	          null,
+	          {
+	            word_timestamps: [{ text: "Hello", start: 0, end: 0.4 }],
+	          },
+	        ],
+	      },
+	    })
+	  })
+
+	  it("enables highlight fallback when TTS exists without stored word timestamps", async () => {
     fs.writeFileSync(
       path.join(tmpDir, label, "config.yaml"),
       "speech:\n  word_highlighting: true\n",

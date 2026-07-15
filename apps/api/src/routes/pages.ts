@@ -4,8 +4,9 @@ import path from "node:path"
 import { z } from "zod"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel, ImageClassificationOutput, PageSectioningOutput, WebRenderingOutput, ImageCaptioningOutput, ImageSegmentRegion, DEFAULT_LLM_MAX_RETRIES, primaryFontFamily, reflowableFontChain } from "@adt/types"
-import type { ContentNodeData } from "@adt/types"
+import { parseBookLabel, ImageClassificationOutput, PageSectioningOutput, WebRenderingOutput, ImageCaptioningOutput, ImageSegmentRegion, DEFAULT_LLM_MAX_RETRIES, primaryFontFamily, reflowableFontChain, BookFontRegistry, bookBodyFont, bookFontFamilyChain } from "@adt/types"
+import type { ContentNodeData, ExtractionWarning } from "@adt/types"
+import { classifyExtractionWarning, flattenVisibleSectioningText } from "../services/extraction-warning.js"
 import { openBookDb } from "@adt/storage"
 import { createBookStorage } from "@adt/storage"
 import type { Storage } from "@adt/storage"
@@ -14,9 +15,11 @@ import type { TaskService } from "../services/task-service.js"
 import {
   segmentPageImages,
   getSegmentedImageId,
+  segmentBoundsOnPage,
   loadBookConfig,
   applyCrop,
   generateStyleguide,
+  buildBookFontsPromptContext,
   buildStyleguideGenerationConfig,
   buildScreenshotHtml,
   createScreenshotRenderer,
@@ -66,6 +69,10 @@ interface PageSummary {
   renderingVersion: number | null
   sectioningVersion: number | null
   sections: PageSummarySection[]
+  /** `text-layer-missing` when the page's embedded text layer was empty but the
+   *  Sectioning step (vision) recovered text from the page image (a scanned /
+   *  image-only page); null otherwise. */
+  extractionWarning: ExtractionWarning | null
 }
 
 interface PageDetail {
@@ -97,6 +104,10 @@ interface PageDetail {
    *  fixed-layout books and for the Merriweather default (no override needed).
    *  Mirrors what packaging/preview inject, so the storyboard preview can match. */
   reflowableFontFamily: string | null
+  /** `text-layer-missing` when the page's embedded text layer was empty but the
+   *  Sectioning step (vision) recovered text from the page image (a scanned /
+   *  image-only page); null otherwise. */
+  extractionWarning: ExtractionWarning | null
   versions: {
     sectioning: number | null
     imageClassification: number | null
@@ -671,6 +682,10 @@ export function createPageRoutes(
         renderingVersion: renderingByPage.get(p.page_id)?.version ?? null,
         sectioningVersion: sectioningVersions.get(p.page_id) ?? null,
         sections: sectionsByPage.get(p.page_id) ?? [],
+        // Cross-check: empty extracted text layer, but the Sectioning step
+        // recovered text from the page image → the PDF isn't exposing this
+        // page's text directly (scanned/image-only page).
+        extractionWarning: classifyExtractionWarning(p.text, structuredText.get(p.page_id)),
       }))
 
       return c.json(result)
@@ -738,12 +753,26 @@ export function createPageRoutes(
       let reflowableFontFamily: string | null = null
       try {
         const cfg = loadBookConfig(safeLabel, booksDir, configPath)
+        const fixedLayout = isFixedLayoutBook(cfg)
+        if (!fixedLayout) {
+          const registryRows = db.all(
+            "SELECT data FROM node_data WHERE node = 'font-registry' AND item_id = 'book' ORDER BY version DESC LIMIT 1",
+            []
+          ) as Array<{ data: string }>
+          const registryParsed = registryRows.length > 0
+            ? BookFontRegistry.safeParse(JSON.parse(registryRows[0].data))
+            : null
+          const bodyFont = registryParsed?.success ? bookBodyFont(registryParsed.data) : null
+          if (bodyFont) reflowableFontFamily = bookFontFamilyChain(bodyFont)
+        }
         // Same resolver packaging + preview use, so the Extract display and the
         // storyboard preview can't drift from the shipped output.
-        reflowableFontFamily = reflowableFontChain(fontProfile?.category ?? null, {
-          fixedLayout: isFixedLayoutBook(cfg),
-          reflowableFont: cfg.reflowable_font,
-        })
+        if (!reflowableFontFamily) {
+          reflowableFontFamily = reflowableFontChain(fontProfile?.category ?? null, {
+            fixedLayout,
+            reflowableFont: cfg.reflowable_font,
+          })
+        }
       } catch {
         // config unavailable → no override
       }
@@ -756,6 +785,21 @@ export function createPageRoutes(
         const parsed = PageSectioningOutput.safeParse(sectioningNode.data)
         if (parsed.success) sectioningTreeForUI = parsed.data
       }
+
+      // Cross-check the empty text layer against the Sectioning step's
+      // vision-recovered text (see classifyExtractionWarning). Read from the raw
+      // stored blob — the SAME source the pages-summary route uses — so the
+      // warning stays consistent across the grid badge, banners, sidebar, and
+      // this detail view even when the blob doesn't fully validate against the
+      // canonical schema. Only walked when the text layer is empty, since
+      // classifyExtractionWarning short-circuits on non-empty text.
+      const recoveredSectioningText =
+        page.text.trim().length === 0
+          ? flattenVisibleSectioningText(
+              (sectioningNode?.data as { sections?: Array<{ isPruned?: boolean; nodes?: unknown[] }> } | null)
+                ?.sections
+            )
+          : ""
 
       // Per-image meta (width/height/bounds) — sourced directly from the
       // images table rather than node_data so it reflects the latest state.
@@ -796,6 +840,7 @@ export function createPageRoutes(
         fonts: derivePageFonts(positionedTextNode?.data),
         fontProfile,
         reflowableFontFamily,
+        extractionWarning: classifyExtractionWarning(page.text, recoveredSectioningText),
         versions: {
           sectioning: sectioningNode?.version ?? null,
           imageClassification: imageClassNode?.version ?? null,
@@ -2233,7 +2278,13 @@ export function createPageRoutes(
 
       const imgResult = segResult.results[0]
       if (!imgResult || !imgResult.needsSegmentation || !imgResult.segments || imgResult.segments.length === 0) {
-        return c.json({ segmented: false })
+        // Still return dimensions so callers can offer a manual single-region
+        // fallback (open the segment editor with one full-image box).
+        return c.json({
+          segmented: false,
+          imageWidth: imageMeta.width,
+          imageHeight: imageMeta.height,
+        })
       }
 
       return c.json({
@@ -2286,6 +2337,10 @@ export function createPageRoutes(
       const imageBase64 = storage.getImageBase64(imageId)
       const buffer = Buffer.from(imageBase64, "base64")
 
+      // Source image's placement on the page, so each segment can record where
+      // it was extracted from (for recrop-from-page overlay).
+      const sourceMeta = storage.getPageImages(pageId).find((img) => img.imageId === imageId)
+
       const version = storage.putNodeData("image-segmentation", pageId, {
         results: [{
           imageId,
@@ -2310,6 +2365,10 @@ export function createPageRoutes(
           cropBottom: region.cropBottom,
         })
 
+        const bounds = sourceMeta?.bounds
+          ? segmentBoundsOnPage(sourceMeta.bounds, sourceMeta.width, sourceMeta.height, region)
+          : undefined
+
         const segIndex = i + 1
         storage.putSegmentedImage({
           sourceImageId: imageId,
@@ -2319,6 +2378,7 @@ export function createPageRoutes(
           buffer: cropped,
           width,
           height,
+          bounds,
         })
         segments.push({
           imageId: getSegmentedImageId(imageId, segIndex, version),
@@ -2371,6 +2431,7 @@ export function createPageRoutes(
     // Load page images
     const storage = createBookStorage(safeLabel, booksDir)
     const pageImages: Array<{ pageId: string; pageNumber: number; imageBase64: string }> = []
+    let bookFonts: ReturnType<typeof buildBookFontsPromptContext> = []
     try {
       const pages = storage.getPages()
       for (const pageId of pageIds) {
@@ -2385,6 +2446,7 @@ export function createPageRoutes(
           imageBase64,
         })
       }
+      bookFonts = buildBookFontsPromptContext(storage)
     } finally {
       storage.close()
     }
@@ -2405,7 +2467,7 @@ export function createPageRoutes(
       })
 
       const result = await generateStyleguide(
-        { pageImages },
+        { pageImages, bookFonts },
         config,
         llmModel
       )

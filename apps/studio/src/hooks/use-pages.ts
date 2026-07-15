@@ -3,12 +3,14 @@ import { api } from "@/api/client"
 
 export function usePages(
   label: string,
-  options?: { refetchInterval?: number | false; refetchOnMount?: boolean | "always" }
+  options?: { refetchInterval?: number | false; refetchOnMount?: boolean | "always"; enabled?: boolean }
 ) {
   return useQuery({
     queryKey: ["books", label, "pages"],
     queryFn: () => api.getPages(label),
-    enabled: !!label,
+    // `enabled: false` still subscribes to (and re-renders on) the cached query
+    // populated by other observers — it just won't trigger its own fetch.
+    enabled: !!label && (options?.enabled ?? true),
     refetchOnMount: options?.refetchOnMount,
     refetchInterval: options?.refetchInterval ?? false,
   })

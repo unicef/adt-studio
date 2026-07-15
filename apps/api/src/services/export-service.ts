@@ -1,19 +1,11 @@
 import fs from "node:fs"
 import path from "node:path"
-import { Zip, ZipDeflate, ZipPassThrough } from "fflate"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
 import { packageAdtWeb, packageWebpub, packageEpub, loadBookConfig, normalizeLocale, isFixedLayoutBook } from "@adt/pipeline"
-
-/** File extensions that are already compressed — skip deflation to save CPU */
-const COMPRESSED_EXTS = new Set([
-  ".jpg", ".jpeg", ".png", ".gif", ".webp", ".avif",
-  ".mp3", ".mp4", ".ogg", ".wav", ".aac", ".m4a", ".opus", ".flac",
-  ".zip", ".gz", ".br", ".zst",
-  ".woff", ".woff2",
-  ".pdf", ".db",
-])
+import { createZipStream } from "./zip-util.js"
+import { readPartInfo } from "./book-service.js"
 
 export interface ExportResult {
   stream: ReadableStream<Uint8Array>
@@ -188,8 +180,25 @@ export async function exportProject(
 
   const title = readBookTitle(safeLabel, resolvedDir)
 
+  // When this book is an imported page-range part, name the returned archive
+  // with the same part convention as the coordinator's handout (exportPart),
+  // plus a "-processed" marker — so the coordinator can tell, from the filename
+  // alone, that it's a finished part of a known book/range ready to merge.
+  // The merge identifies a part from part.json *inside* the zip, never the
+  // filename, so this is purely cosmetic.
+  const part = readPartInfo(bookDir)
+  if (part) {
+    const { startPage, endPage } = part.range
+    const pad3 = (n: number) => String(n).padStart(3, "0")
+    return {
+      stream: createZipStream(bookDir, { excludeDirs: new Set(["adt", "webpub"]) }),
+      filename: `${title}-part-${startPage}-${endPage}-processed.zip`,
+      safeFilename: `${part.sourceLabel}-p${pad3(startPage)}-${pad3(endPage)}-processed.zip`,
+    }
+  }
+
   return {
-    stream: createZipStream(bookDir, new Set(["adt", "webpub"])),
+    stream: createZipStream(bookDir, { excludeDirs: new Set(["adt", "webpub"]) }),
     filename: `${title}-project.zip`,
     safeFilename: `${safeLabel}-project.zip`,
   }
@@ -305,60 +314,4 @@ export async function exportEpub(
     filename: `${title}.epub`,
     safeFilename: `${safeLabel}.epub`,
   }
-}
-
-/**
- * Collect relative file paths under a directory (lightweight — no file content read).
- */
-function collectFilePaths(dir: string, prefix = "", excludeDirs?: Set<string>): string[] {
-  const result: string[] = []
-  const entries = fs.readdirSync(dir, { withFileTypes: true })
-  for (const entry of entries) {
-    const zipPath = prefix ? `${prefix}/${entry.name}` : entry.name
-    if (entry.isDirectory()) {
-      if (excludeDirs && !prefix && excludeDirs.has(entry.name)) continue
-      result.push(...collectFilePaths(path.join(dir, entry.name), zipPath, excludeDirs))
-    } else if (entry.isFile()) {
-      result.push(zipPath)
-    }
-  }
-  return result
-}
-
-/**
- * Create a streaming ZIP of a directory. Files are read and compressed one at a
- * time so memory stays bounded regardless of total directory size.
- */
-function createZipStream(sourceDir: string, excludeDirs?: Set<string>): ReadableStream<Uint8Array> {
-  const filePaths = collectFilePaths(sourceDir, "", excludeDirs)
-
-  return new ReadableStream({
-    async start(controller) {
-      const zip = new Zip((err, chunk, final) => {
-        if (err) { controller.error(err); return }
-        if (chunk.length > 0) controller.enqueue(chunk)
-        if (final) controller.close()
-      })
-
-      for (let i = 0; i < filePaths.length; i++) {
-        const relPath = filePaths[i]
-        const absPath = path.join(sourceDir, relPath)
-        const data = new Uint8Array(fs.readFileSync(absPath))
-        const ext = path.extname(relPath).toLowerCase()
-
-        const file = COMPRESSED_EXTS.has(ext)
-          ? new ZipPassThrough(relPath)
-          : new ZipDeflate(relPath, { level: 6 })
-
-        zip.add(file)
-        file.push(data, true)
-
-        // Yield to event loop every 50 files to avoid blocking
-        if (i % 50 === 49) {
-          await new Promise(resolve => setTimeout(resolve, 0))
-        }
-      }
-      zip.end()
-    },
-  })
 }

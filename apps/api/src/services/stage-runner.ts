@@ -7,6 +7,9 @@ import { createLLMModel, createPromptEngine, createRateLimiter, renderLiquidTemp
 import type { LlmLogEntry } from "@adt/llm"
 import {
   extractPDF,
+  resolveFontsCacheDir,
+  buildBookFontsPromptContext,
+  ensureBookGoogleFontsCached,
   extractMetadata,
   buildMetadataConfig,
   classifyPageImages,
@@ -25,15 +28,14 @@ import {
   captionPageImages,
   buildCaptionConfig,
   extractImageIds,
-  generateGlossary,
+  regenerateGlossaryPreservingEdits,
   buildGlossaryConfig,
-  mergeGeneratedGlossaryWithManualItems,
-  getPrunedGlossaryWords,
   generateToc,
   buildTocGenerationConfig,
   generateAllQuizzes,
   buildQuizGenerationConfig,
   // Master step imports
+  getRenderSectioning,
   buildTextCatalog,
   buildEasyReadConfig,
   buildEasyReadSourceBlocks,
@@ -67,6 +69,7 @@ import {
   getCroppedImageId,
   segmentPageImages,
   applySegmentation,
+  segmentBoundsOnPage,
   buildSegmentationConfig,
   getSegmentedImageId,
   createScreenshotRenderer,
@@ -77,18 +80,19 @@ import type { PageSectioningConfig, TranslationConfig, QuizPageInput, ProviderRo
 import { loadStyleguideContent } from "./styleguide.js"
 import { createTTSSynthesizer, createAzureTTSSynthesizer, createGeminiTTSSynthesizer } from "@adt/llm"
 import type { TTSSynthesizer } from "@adt/llm"
-import { STAGE_ORDER } from "@adt/types"
+import { STAGE_ORDER, isTtsExcluded } from "@adt/types"
+import { beginSpeechRun, endSpeechRun } from "./speech-progress.js"
 import type {
   AppConfig,
   ImageClassificationOutput,
   PageSectioningOutput,
   WebRenderingOutput,
   ImageCaptioningOutput,
-  GlossaryOutput,
   TextCatalogOutput,
   TextCatalogEntry,
   EasyReadOutput,
   SpeechFileEntry,
+  SpeechFailedEntry,
   TTSOutput,
   WordTimestampEntry,
   WordTimestampOutput,
@@ -570,6 +574,7 @@ async function runExtractStep(
         spreadMode: config.spread_mode,
         vectorTextGrouping: config.vector_text_grouping,
         fixedLayout: isFixedLayoutBook(config),
+        fontsCacheDir: resolveFontsCacheDir(booksDir),
       },
       storage,
       progress
@@ -631,10 +636,14 @@ async function runExtractStep(
     progress.emit({ type: "step-complete", step: "metadata" })
     console.log(`[stage-run] ${label}: metadata complete (lang=${metadataResult.language_code})`)
 
-    // Step 3: Book summary from raw page text (no sectioning required).
+    // Step 3: Book summary from raw page text (no sectioning required). Written
+    // in the book's detected language (just extracted above), not English.
     progress.emit({ type: "step-start", step: "book-summary" })
     try {
-      const bookSummaryConfig = buildBookSummaryConfig(config)
+      const summaryLanguage = normalizeLocale(
+        config.editing_language ?? metadataResult.language_code ?? "en"
+      )
+      const bookSummaryConfig = buildBookSummaryConfig(config, summaryLanguage)
       const summaryModel = createLLMModel({
         modelId: bookSummaryConfig.modelId,
         cacheDir,
@@ -987,17 +996,17 @@ async function runStoryboardStep(
     const effectiveConcurrency = config.concurrency ?? 32
 
     if (isFixedLayoutBook(config)) {
-      // Fixed-layout: both sectioning and rendering happen here, driven
-      // off the positioned-text + image-filtering data the extract step
-      // already wrote. No LLM call. Emit start/complete for both steps so
-      // the progress UI mirrors the reflowable flow's two-step shape.
+      // Fixed-layout: build the positioned tree (into `fixed-layout-sectioning`)
+      // and render from it, driven off the positioned-text + image-filtering
+      // data the extract step already wrote. No LLM call. This is the
+      // web-rendering step only — the semantic `page-sectioning` is owned and
+      // already produced by the sectioning stage, so we don't re-emit its
+      // progress here (that would wrongly re-mark the sectioning stage running).
       console.log(`[stage-run] ${label}: fixed-layout rendering for ${totalPages} pages`)
-      progress.emit({ type: "step-start", step: "page-sectioning" })
       progress.emit({ type: "step-start", step: "web-rendering" })
       const { processFixedLayoutPages } = await import("@adt/pipeline")
       const imageUrlPrefix = `/api/books/${label}/images`
       processFixedLayoutPages(storage, imageUrlPrefix)
-      progress.emit({ type: "step-complete", step: "page-sectioning" })
       progress.emit({ type: "step-complete", step: "web-rendering" })
       console.log(`[stage-run] ${label}: fixed-layout rendering complete`)
       return
@@ -1006,6 +1015,8 @@ async function runStoryboardStep(
     console.log(
       `[stage-run] ${label}: rendering storyboard for ${totalPages} pages (concurrency=${effectiveConcurrency})`
     )
+
+    await ensureBookGoogleFontsCached(storage, resolveFontsCacheDir(booksDir))
 
     let completedRendering = 0
     const failedPages: string[] = []
@@ -1061,6 +1072,7 @@ async function runStoryboardStep(
               sectioning: sectioning,
               images: renderImages,
               styleguide: styleguideContent,
+              bookFonts: buildBookFontsPromptContext(storage),
             },
             resolveRenderConfig,
             resolveRenderModel,
@@ -1177,12 +1189,12 @@ async function runQuizzesStep(
     const quizPages: QuizPageInput[] = []
     for (const page of pages) {
       const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
-      const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-      if (!renderingRow || !structuringRow) continue
+      const sectioning = getRenderSectioning(storage, page.pageId)
+      if (!renderingRow || !sectioning) continue
       quizPages.push({
         pageId: page.pageId,
         rendering: renderingRow.data as WebRenderingOutput,
-        sectioning: structuringRow.data as PageSectioningOutput,
+        sectioning,
       })
     }
 
@@ -1313,8 +1325,7 @@ async function runCaptionsStep(
 
           const rendering = renderingRow.data as WebRenderingOutput
           // Filter out pruned sections before extracting image IDs
-          const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-          const sectioning = structuringRow?.data as PageSectioningOutput | undefined
+          const sectioning = getRenderSectioning(storage, page.pageId)
           const htmlSections = rendering.sections
             .filter((s) => !sectioning?.sections[s.sectionIndex]?.isPruned)
             .map((s) => s.html)
@@ -1463,18 +1474,12 @@ async function runGlossaryStep(
 
     console.log(`[stage-run] ${label}: generating glossary from ${pages.length} pages`)
 
-    const existingGlossaryRow = storage.getLatestNodeData("glossary", "book")
-    const existingGlossary = existingGlossaryRow?.data as GlossaryOutput | undefined
-
-    const excludedWords = getPrunedGlossaryWords(existingGlossary?.items ?? [])
-
-    const generatedGlossary = await generateGlossary({
+    const glossary = await regenerateGlossaryPreservingEdits({
       storage,
       pages,
       config: glossaryConfig,
       llmModel: glossaryModel,
       concurrency: effectiveConcurrency,
-      excludedWords,
       onBatchComplete: (completed, total) => {
         progress.emit({
           type: "step-progress",
@@ -1485,10 +1490,6 @@ async function runGlossaryStep(
         })
       },
     })
-    const glossary = mergeGeneratedGlossaryWithManualItems(
-      generatedGlossary,
-      existingGlossary?.items ?? [],
-    )
     storage.putNodeData("glossary", "book", glossary)
 
     progress.emit({
@@ -2162,11 +2163,16 @@ async function runSpeechStep(
     const ttsWorkItems: TTSWorkItem[] = []
     const textByLanguage = new Map<string, Map<string, string>>()
     const ttsResultsByLang = new Map<string, SpeechFileEntry[]>()
+    const failedByLang = new Map<string, SpeechFailedEntry[]>()
     const reusedEntriesByLang = new Map<string, number>()
     for (const lang of outputLanguages) {
       ttsResultsByLang.set(lang, [])
+      failedByLang.set(lang, [])
       reusedEntriesByLang.set(lang, 0)
     }
+    // Expose the (live-mutated) result arrays so GET /tts can serve a
+    // progressive snapshot while this run is active. Cleared in `finally`.
+    beginSpeechRun(label, ttsResultsByLang, failedByLang)
 
     for (const lang of outputLanguages) {
       const baseSource = getBaseLanguage(sourceLanguage)
@@ -2191,6 +2197,9 @@ async function runSpeechStep(
 
       const languageTextMap = new Map<string, string>()
       for (const entry of entries) {
+        // Excluded entries get no audio at all — not generated, not reused
+        // into the new TTS output version.
+        if (isTtsExcluded(entry.id, config.speech)) continue
         languageTextMap.set(entry.id, entry.text)
 
         const provider = resolveProviderForLanguage(lang, routing)
@@ -2361,6 +2370,7 @@ async function runSpeechStep(
           const durationMs = Date.now() - startMs
           console.error(`[stage-run] ${label}: TTS failed for ${item.textId} (${item.language}): ${msg}`)
           failedItems.push(`${item.textId}: ${msg}`)
+          failedByLang.get(item.language)?.push({ textId: item.textId, error: msg })
           if (provider === "gemini") {
             geminiFailedItems.push(`${item.textId}: ${msg}`)
           }
@@ -2413,9 +2423,11 @@ async function runSpeechStep(
     for (const lang of outputLanguages) {
       const entries = ttsResultsByLang.get(lang)
       if (!entries) continue
+      const failed = failedByLang.get(lang) ?? []
       const output: TTSOutput = {
         entries,
         generatedAt: new Date().toISOString(),
+        ...(failed.length > 0 ? { failed } : {}),
       }
       storage.putNodeData("tts", lang, output)
     }
@@ -2485,6 +2497,7 @@ async function runSpeechStep(
 
     console.log(`[stage-run] ${label}: speech complete`)
   } finally {
+    endSpeechRun(label)
     storage.close()
   }
 }
@@ -2678,7 +2691,12 @@ async function runSegmentationPass(
           (imageId) => storage.getImageBase64(imageId),
           segDims,
         )
+        const srcMeta = new Map(images.map((img) => [img.imageId, img]))
         for (const seg of applied) {
+          const src = srcMeta.get(seg.sourceImageId)
+          const bounds = src?.bounds
+            ? segmentBoundsOnPage(src.bounds, src.width, src.height, seg)
+            : undefined
           storage.putSegmentedImage({
             sourceImageId: seg.sourceImageId,
             segmentIndex: seg.segmentIndex,
@@ -2687,6 +2705,7 @@ async function runSegmentationPass(
             buffer: seg.buffer,
             width: seg.width,
             height: seg.height,
+            bounds,
           })
           existing.images.push({
             imageId: getSegmentedImageId(seg.sourceImageId, seg.segmentIndex, segVersion),

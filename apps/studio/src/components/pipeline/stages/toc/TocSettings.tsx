@@ -1,34 +1,17 @@
 import { useState } from "react"
-import { createPortal } from "react-dom"
-import { useNavigate } from "@tanstack/react-router"
-import { Play } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
-import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
 import { PromptViewer } from "@/components/pipeline/components/PromptViewer"
-import { useBookRun } from "@/hooks/use-book-run"
+import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
 import { useStepConfig } from "@/hooks/use-step-config"
 import { useLingui } from "@lingui/react/macro"
 
-export function TocSettings({ bookLabel, headerTarget }: { bookLabel: string; headerTarget?: HTMLDivElement | null }) {
+export function TocSettings({ bookLabel }: { bookLabel: string; headerTarget?: HTMLDivElement | null }) {
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
-  const { apiKey, hasApiKey } = useApiKey()
-  const { queueRun } = useBookRun()
-  const navigate = useNavigate()
-  const [showRerunDialog, setShowRerunDialog] = useState(false)
   const [generationPromptDraft, setGenerationPromptDraft] = useState<string | null>(null)
 
   const [dirty, setDirty] = useState<Record<string, boolean>>({})
@@ -51,25 +34,24 @@ export function TocSettings({ bookLabel, headerTarget }: { bookLabel: string; he
     return overrides
   }
 
-  const confirmSaveAndRerun = async () => {
+  const save = async () => {
     if (generationPromptDraft != null) {
       await api.updatePrompt("toc_generation", generationPromptDraft, bookLabel)
     }
-
-    const overrides = buildOverrides()
-    updateConfig.mutate(
-      { label: bookLabel, config: overrides },
-      {
-        onSuccess: async () => {
-          setDirty({})
-          setGenerationPromptDraft(null)
-          setShowRerunDialog(false)
-          queueRun({ fromStage: "toc", toStage: "toc", apiKey })
-          navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "toc" } })
-        },
-      },
-    )
+    await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
+    setDirty({})
+    setGenerationPromptDraft(null)
   }
+
+  const isDirty = Object.keys(dirty).length > 0 || generationPromptDraft != null
+  useStageSettingsBar({
+    stage: "toc",
+    bookLabel,
+    dirty: isDirty,
+    dirtyTabs: isDirty ? ["general"] : [],
+    saving: updateConfig.isPending,
+    save,
+  })
 
   return (
     <div className="h-full max-w-4xl">
@@ -84,38 +66,6 @@ export function TocSettings({ bookLabel, headerTarget }: { bookLabel: string; he
         onMaxRetriesChange={tocGen.onMaxRetriesChange}
         onContentChange={setGenerationPromptDraft}
       />
-
-      {headerTarget && createPortal(
-        <Button
-          size="sm"
-          className="h-7 px-2.5 text-xs bg-black/15 text-white hover:bg-black/25"
-          onClick={() => setShowRerunDialog(true)}
-          disabled={updateConfig.isPending || !hasApiKey}
-        >
-          <Play className="mr-1.5 h-3.5 w-3.5" />
-          {t`Save & Rerun`}
-        </Button>,
-        headerTarget,
-      )}
-
-      <Dialog open={showRerunDialog} onOpenChange={setShowRerunDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t`Save & Rerun TOC Generation`}</DialogTitle>
-            <DialogDescription>
-              {t`This will save your settings and re-generate the table of contents.`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRerunDialog(false)}>
-              {t`Cancel`}
-            </Button>
-            <Button onClick={confirmSaveAndRerun} disabled={updateConfig.isPending}>
-              {updateConfig.isPending ? t`Saving...` : t`Confirm Rerun`}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

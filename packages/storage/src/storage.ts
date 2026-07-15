@@ -40,6 +40,12 @@ export interface SegmentedImageInput {
   buffer: Buffer
   width: number
   height: number
+  /**
+   * Placement of this segment on the page in PDF points (top-left origin),
+   * derived from the source image's placement. Persisted so recrop-from-page
+   * can overlay the crop box where the segment was extracted.
+   */
+  bounds?: { x: number; y: number; width: number; height: number }
 }
 
 export interface TranslatedImageInput {

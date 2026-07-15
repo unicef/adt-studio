@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import { X } from "lucide-react"
 import { useLingui } from "@lingui/react/macro"
+import { NO_DRAG_REGION } from "@/constants"
 
 interface ImageLightboxProps {
   src: string
@@ -27,6 +28,7 @@ export function ImageLightbox({ src, alt, caption, onClose }: ImageLightboxProps
     <div
       className="fixed inset-0 z-[120] bg-black/85 flex items-center justify-center p-6 cursor-zoom-out"
       onClick={onClose}
+      style={NO_DRAG_REGION}
     >
       <button
         type="button"

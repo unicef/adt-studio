@@ -155,6 +155,33 @@ describe("exportProject", () => {
     expect(result.filename).toBe("not-accepted-project.zip")
   })
 
+  it("names a processed part archive with the part convention", async () => {
+    // An imported part carries part.json in the book dir; the returned project
+    // archive should be named like the coordinator's handout plus "-processed".
+    createTestDb("my-book-p051-100")
+    addPages("my-book-p051-100", 1)
+    fs.writeFileSync(
+      path.join(tmpDir, "my-book-p051-100", "part.json"),
+      JSON.stringify({
+        adtPart: 1,
+        sourceLabel: "my-book",
+        title: null,
+        range: { startPage: 51, endPage: 100 },
+        pageCount: 200,
+        fingerprint: {},
+        identityHash: "id",
+        semanticsHash: "sem",
+        createdAt: "2026-01-01T00:00:00.000Z",
+        partLabelSuggestion: "my-book-p051-100",
+      })
+    )
+
+    const result = await exportProject("my-book-p051-100", tmpDir)
+    // No metadata title → display name falls back to the label.
+    expect(result.filename).toBe("my-book-p051-100-part-51-100-processed.zip")
+    expect(result.safeFilename).toBe("my-book-p051-100-processed.zip")
+  })
+
   it("throws for non-existent book", async () => {
     await expect(exportProject("ghost", tmpDir)).rejects.toThrow("not found")
   })

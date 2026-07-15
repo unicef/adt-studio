@@ -2,7 +2,7 @@ import { useBooks } from "@/hooks/use-books"
 import { useWizardForm } from "../wizardForm"
 import { PresetViewer } from "./PresetViewer"
 import { PdfField } from "./PdfField"
-import { PageRange } from "./PageRange"
+import { Scope } from "./Scope"
 import { ProjectNameField } from "./ProjectNameField"
 import { createProjectLabelSchema } from "./projectLabelSchema"
 
@@ -32,7 +32,7 @@ export function Step1() {
         )}
       </form.Field>
 
-      <PageRange />
+      <Scope />
     </div>
   )
 }

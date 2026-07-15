@@ -16,9 +16,9 @@
     "@adt/pipeline": "workspace:*",
     "@adt/storage": "workspace:*",
     "@adt/types": "workspace:*",
-    "@hono/node-server": "^1.14.0",
+    "@hono/node-server": "^2.0.5",
     "fflate": "^0.8.2",
-    "hono": "^4.7.0",
+    "hono": "^4.12.25",
     "js-yaml": "^4.1.0",
     "zod": "^3.24.0"
   },

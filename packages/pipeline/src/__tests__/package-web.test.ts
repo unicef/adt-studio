@@ -6,6 +6,7 @@ import type { Storage, PageData } from "@adt/storage"
 import {
   computePackagingInputHash,
   buildGlossaryJson,
+  injectWebpubStyles,
   packageAdtWeb,
   renderPageHtml,
   resolveReflowableFontChain,
@@ -98,7 +99,7 @@ function createMinimalStorage(): Storage {
 }
 
 describe("renderPageHtml", () => {
-  it("does not emit font preload links (fonts are inlined as base64 in fonts.css for file:// support)", () => {
+  it("does not emit font preload links (fonts are declared in fonts.css)", () => {
     const html = renderPageHtml({
       content: "<p>Hello</p>",
       language: "en",
@@ -115,6 +116,21 @@ describe("renderPageHtml", () => {
     expect(html).not.toContain('rel="preload"')
     expect(html).not.toContain("Merriweather-VariableFont.woff2")
     expect(html).toContain('href="./assets/fonts.css"')
+  })
+
+  it("strips contenteditable left over from the storyboard editor", () => {
+    const html = renderPageHtml({
+      content: `<p data-id="x" contenteditable="true" style="font-family:Arial">Edited</p>`,
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Test",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+    })
+
+    expect(html).not.toMatch(/contenteditable/i)
+    expect(html).toContain('style="font-family:Arial"')
   })
 
   it("injects a Google Fonts stylesheet for fonts the page actually uses", () => {
@@ -149,6 +165,22 @@ describe("renderPageHtml", () => {
     expect(html).toMatch(/<style>[\s\S]*body, p, h1[\s\S]*font-family:/)
     // The body family is also loaded from Google Fonts.
     expect(html).toContain("fonts.googleapis.com/css2?family=Atkinson+Hyperlegible")
+  })
+
+  it("does not load an unregistered body family from Google Fonts", () => {
+    const html = renderPageHtml({
+      content: "<p>Hello</p>",
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Test",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+      bodyFontFamily: "'Aguafina Script','Merriweather',sans-serif",
+    })
+
+    expect(html).toContain("'Aguafina Script','Merriweather',sans-serif")
+    expect(html).not.toContain("fonts.googleapis.com/css2?family=Aguafina+Script")
   })
 
   it("omits the base-font override when bodyFontFamily is unset", () => {
@@ -213,7 +245,7 @@ describe("renderPageHtml", () => {
     expect(html).not.toContain("scorm.js")
   })
 
-  it("does not reference woff2 fonts directly (they are inlined as base64 in fonts.css)", () => {
+  it("does not reference woff2 fonts directly (they are declared in fonts.css)", () => {
     const html = renderPageHtml({
       content: "<p>Hello</p>",
       language: "en",
@@ -278,11 +310,28 @@ describe("renderPageHtml", () => {
 })
 
 describe("resolveReflowableFontChain", () => {
-  const fakeStorage = (category: string | null) =>
+  const fakeStorage = (category: string | null, registry?: unknown) =>
     ({
       getLatestNodeData: (node: string) =>
-        node === "font-profile" ? { data: { category }, version: 1 } : null,
+        node === "font-profile"
+          ? { data: { category }, version: 1 }
+          : node === "font-registry" && registry
+            ? { data: registry, version: 1 }
+            : null,
     }) as unknown as Storage
+
+  const bodyFontRegistry = {
+    fonts: [
+      {
+        id: "aguafina-script",
+        family: "Aguafina Script",
+        source: "google",
+        faces: [],
+        role: "body",
+        roleLockedByUser: true,
+      },
+    ],
+  }
 
   it("returns undefined for fixed-layout books (keep original fonts)", () => {
     expect(resolveReflowableFontChain(fakeStorage("sans"), { fixedLayout: true })).toBeUndefined()
@@ -303,6 +352,20 @@ describe("resolveReflowableFontChain", () => {
     expect(resolveReflowableFontChain(fakeStorage("serif"), { reflowableFont: "lora" })).toBe(
       "Lora,'Merriweather',serif",
     )
+  })
+
+  it("prefers an attached font assigned the body role", () => {
+    expect(
+      resolveReflowableFontChain(fakeStorage("sans", bodyFontRegistry), {
+        reflowableFont: "lora",
+      }),
+    ).toBe("'Aguafina Script','Merriweather',sans-serif")
+  })
+
+  it("ignores body-role fonts for fixed-layout books", () => {
+    expect(
+      resolveReflowableFontChain(fakeStorage("sans", bodyFontRegistry), { fixedLayout: true }),
+    ).toBeUndefined()
   })
 })
 
@@ -771,6 +834,116 @@ describe("packageAdtWeb", () => {
       "utf-8",
     )
     expect(preloader).toContain("timecode/timecode_output.json")
+  })
+
+  it("drops read-aloud excluded entries from audios.json and timecodes", async () => {
+    const bookDir = path.join(tmpDir, "book")
+    const webAssetsDir = path.join(tmpDir, "assets-web")
+    const audioDir = path.join(bookDir, "audio", "en")
+    fs.mkdirSync(bookDir, { recursive: true })
+    fs.mkdirSync(audioDir, { recursive: true })
+    createWebAssets(webAssetsDir)
+    fs.writeFileSync(path.join(audioDir, "pg001_t001.mp3"), "audio")
+    fs.writeFileSync(path.join(audioDir, "pg001_t002.mp3"), "audio")
+    fs.writeFileSync(path.join(audioDir, "pg001_im001.mp3"), "audio")
+
+    const pages: PageData[] = [
+      { pageId: "pg001", pageNumber: 1, text: "Page one" },
+    ]
+
+    const ttsEntry = (textId: string) => ({
+      textId,
+      language: "en",
+      fileName: `${textId}.mp3`,
+      voice: "alloy",
+      model: "gpt-4o-mini-tts",
+      cached: false,
+    })
+    const timestampEntry = (textId: string) => ({
+      textId,
+      language: "en",
+      duration: 0.5,
+      words: [{ word: "Hello", start: 0, end: 0.5 }],
+    })
+
+    const storage = createMockStorage(pages, {
+      "web-rendering": {
+        pg001: {
+          sections: [
+            {
+              sectionIndex: 0,
+              sectionType: "content",
+              reasoning: "ok",
+              html: '<p data-id="pg001_t001">Kept</p><p data-id="pg001_t002">Muted</p>',
+            },
+          ],
+        },
+      },
+      "page-sectioning": {
+        pg001: {
+          reasoning: "ok",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "content",
+              nodes: [],
+              backgroundColor: "#fff",
+              textColor: "#000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+      },
+      "tts": {
+        en: {
+          entries: [ttsEntry("pg001_t001"), ttsEntry("pg001_t002"), ttsEntry("pg001_im001")],
+          generatedAt: "2026-01-01T00:00:00.000Z",
+        },
+      },
+      "tts-timestamps": {
+        en: {
+          entries: {
+            pg001_t001: timestampEntry("pg001_t001"),
+            pg001_t002: timestampEntry("pg001_t002"),
+            pg001_im001: timestampEntry("pg001_im001"),
+          },
+          generatedAt: "2026-01-01T00:00:00.000Z",
+        },
+      },
+    })
+
+    await packageAdtWeb(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Book Title",
+      webAssetsDir,
+      speechConfig: {
+        word_highlighting: true,
+        excluded_text_ids: ["pg001_t002"],
+        excluded_categories: ["captions"],
+      },
+    })
+
+    const audios = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "adt", "content", "i18n", "en", "audios.json"), "utf-8"),
+    ) as Record<string, string>
+    expect(audios).toEqual({ pg001_t001: "pg001_t001.mp3" })
+
+    const bundledAudioDir = path.join(bookDir, "adt", "content", "i18n", "en", "audio")
+    expect(fs.existsSync(path.join(bundledAudioDir, "pg001_t001.mp3"))).toBe(true)
+    expect(fs.existsSync(path.join(bundledAudioDir, "pg001_t002.mp3"))).toBe(false)
+    expect(fs.existsSync(path.join(bundledAudioDir, "pg001_im001.mp3"))).toBe(false)
+
+    const timecodes = JSON.parse(
+      fs.readFileSync(
+        path.join(bookDir, "adt", "content", "i18n", "en", "timecode", "timecode_output.json"),
+        "utf-8",
+      ),
+    ) as Record<string, unknown>
+    expect(Object.keys(timecodes)).toEqual(["pg001_t001"])
   })
 
   it("emits defaultSettings and lockedSettings in config.json when provided", async () => {
@@ -1888,6 +2061,41 @@ describe("injectActivitiesBundle", () => {
   })
 })
 
+describe("injectWebpubStyles", () => {
+  let tmpDir: string
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "inject-styles-"))
+  })
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  function writePage(): string {
+    const p = path.join(tmpDir, "index.html")
+    fs.writeFileSync(p, "<html><head><title>t</title></head><body>x</body></html>")
+    return p
+  }
+
+  it("splices extraCss into the injected <style> block, before </style>", () => {
+    const p = writePage()
+    injectWebpubStyles(tmpDir, { fixedLayout: true, extraCss: ".glossref { color: red }" })
+    const html = fs.readFileSync(p, "utf-8")
+    expect(html).toContain(".glossref { color: red }")
+    // Inside the single injected style block, not after it.
+    const styleClose = html.indexOf("</style>")
+    expect(html.indexOf(".glossref")).toBeLessThan(styleClose)
+    expect(html.indexOf(".glossref")).toBeGreaterThan(html.indexOf("<style>"))
+  })
+
+  it("omits extraCss when not provided", () => {
+    const p = writePage()
+    injectWebpubStyles(tmpDir, { fixedLayout: true })
+    expect(fs.readFileSync(p, "utf-8")).not.toContain(".glossref")
+  })
+})
+
 describe("packageWebpub", () => {
   let tmpDir: string
 
@@ -2002,6 +2210,8 @@ describe("packageWebpub", () => {
     expect(html).toContain("columns: auto !important")
     expect(html).toContain("flex-direction: column !important")
     expect(html).toContain("max-width: 100% !important")
+    // The glossref affordance is EPUB-only; webpub must not carry it.
+    expect(html).not.toContain(".glossref")
   })
 
   it("writes a valid webpub manifest with scrolled presentation", async () => {

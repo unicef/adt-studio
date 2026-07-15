@@ -1,5 +1,6 @@
 import { useEffect, useCallback, useRef, createContext, useContext, useState } from "react"
 import { useQueryClient, useQuery } from "@tanstack/react-query"
+import { useNavigate } from "@tanstack/react-router"
 import { i18n } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
 import {
@@ -7,11 +8,15 @@ import {
   BASE_URL,
   type TaskInfoResponse,
   type StageRunProviderCredentials,
+  type PageSummaryItem,
+  type PageDetail,
 } from "@/api/client"
 import { STEP_TO_STAGE, PIPELINE, getStageClearOrder, PAGE_PROGRESS_STEPS } from "@adt/types"
 import type { StageName } from "@adt/types"
 import { isStageComplete } from "./run-state"
 import { playCompletionSound } from "@/lib/completion-sound"
+import { useAnnouncer } from "@/components/a11y/LiveRegionAnnouncer"
+import { getStageLabelI18n, getStageRunningLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { bookTasksKey } from "./use-book-tasks"
 import { invalidateStoryboardDependents } from "./use-page-mutations"
 import { useApiKey } from "./use-api-key"
@@ -36,6 +41,12 @@ export interface QueueRunOptions {
   /** When true, skip page-sectioning and only re-render from existing section data. */
   renderOnly?: boolean
   providerCredentials?: StageRunProviderCredentials
+  /**
+   * When true, navigate to the `toStage` step view after queueing. A no-op from
+   * the step index (it already swaps to the view once running); a real switch
+   * from the settings/overview route, so the run progression stays visible.
+   */
+  viewAfter?: boolean
 }
 
 /** Shape returned by the enriched GET /books/:label/step-status endpoint. */
@@ -93,6 +104,15 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   const queryClient = useQueryClient()
   const { anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey } = useApiKey()
 
+  // Screen-reader announcements for long-running jobs. Held in a ref so the
+  // always-on SSE effect (keyed on [label, queryClient]) can announce without
+  // re-subscribing whenever the announcer identity changes.
+  const { announce } = useAnnouncer()
+  const announceRef = useRef(announce)
+  announceRef.current = announce
+
+  const navigate = useNavigate()
+
   // Primary source of truth: enriched step-status from the server
   const { data, isPending } = useQuery<StepStatusResponse>({
     queryKey: stepStatusKey(label),
@@ -115,6 +135,9 @@ export function useBookRunStatus(label: string): BookRunContextValue {
 
   // Throttle progressive page invalidations during storyboard runs
   const lastPageInvalidateRef = useRef<number>(0)
+
+  // Throttle progressive TTS-list invalidations during speech runs
+  const lastTtsInvalidateRef = useRef<number>(0)
 
   // Serialized run queue — chains API calls so they arrive in click order
   const runChainRef = useRef<Promise<void>>(Promise.resolve())
@@ -160,6 +183,16 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         })
         // Clear progress for this step
         progressRef.current.delete(pipelineStep)
+        // For page-processing steps, the runner has just cleared this step's
+        // page data (e.g. web-rendering on a re-run). Refetch the page list now
+        // so views reflect the empty state immediately — that's what flips the
+        // storyboard step to its "loading pages" panel at the start of a re-run
+        // instead of leaving the stale preview on screen. Page data then streams
+        // back via the throttled step-progress invalidations below.
+        if ((PAGE_PROGRESS_STEPS as ReadonlySet<string>).has(pipelineStep)) {
+          lastPageInvalidateRef.current = Date.now()
+          queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
+        }
       } else if (d.type === "step-progress") {
         const message = typeof d.message === "string" && d.message.trim().length > 0
           ? d.message
@@ -203,6 +236,16 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             queryClient.invalidateQueries({ queryKey: ["books", label, "pages"] })
           }
         }
+        // Progressively refresh the TTS list during speech generation — GET
+        // /tts serves the run's live snapshot, so each completed audio shows
+        // up in the Speech view as it lands (throttled to ~2s).
+        if (pipelineStep === "tts") {
+          const now = Date.now()
+          if (now - lastTtsInvalidateRef.current > 2000) {
+            lastTtsInvalidateRef.current = now
+            queryClient.invalidateQueries({ queryKey: ["books", label, "tts"] })
+          }
+        }
       } else if (d.type === "step-complete" || d.type === "step-skip") {
         // Mark step as done/skipped, recompute stage state
         const nextStepState: StepState = d.type === "step-skip" ? "skipped" : "done"
@@ -232,7 +275,12 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             stepMessages,
           }
         })
-        if (stageJustCompleted) playCompletionSound()
+        if (stageJustCompleted) {
+          playCompletionSound()
+          // The chime alone tells a sighted user nothing about *which* stage
+          // finished; announce it so screen-reader users know they can proceed.
+          announceRef.current(i18n._(msg`${getStageLabelI18n(uiStage)} complete`))
+        }
         progressRef.current.delete(pipelineStep)
 
         // Also invalidate data queries for the completed step's stage
@@ -253,7 +301,14 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             error: d.error ?? i18n._(msg`Step failed`),
           }
         })
+        // Assertive: a failed step blocks progress; the user needs to know now.
+        announceRef.current(i18n._(msg`${getStageLabelI18n(uiStage)} failed`), "assertive")
         progressRef.current.delete(pipelineStep)
+        // Speech errors persist per-item failures into the TTS output —
+        // refetch so the Speech view can mark the failed entries.
+        if (pipelineStep === "tts") {
+          queryClient.invalidateQueries({ queryKey: ["books", label, "tts"] })
+        }
       }
     })
 
@@ -334,6 +389,10 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           if (completedTask?.kind === "transcribe-timestamps") {
             queryClient.invalidateQueries({ queryKey: ["books", label, "tts-timestamps"] })
           }
+          if (completedTask?.kind === "book-summary") {
+            // Refresh the book detail so the banner shows the new summary.
+            queryClient.invalidateQueries({ queryKey: ["books", label] })
+          }
           // Always refetch tasks so we pick up the final state even if we missed start
           queryClient.invalidateQueries({ queryKey: bookTasksKey(label) })
         } else if (d.type === "task-error") {
@@ -349,7 +408,20 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         return { tasks }
       })
 
-      if (d.type === "task-complete") playCompletionSound()
+      if (d.type === "task-complete") {
+        playCompletionSound()
+        const kind =
+          d.kind ??
+          queryClient
+            .getQueryData<{ tasks: TaskInfoResponse[] }>(tasksKey)
+            ?.tasks.find((t) => t.taskId === d.taskId)?.kind
+        announceRef.current(taskCompleteMessage(kind))
+      } else if (d.type === "task-error") {
+        announceRef.current(
+          d.error ? i18n._(msg`Task failed: ${d.error}`) : i18n._(msg`Task failed`),
+          "assertive",
+        )
+      }
     })
 
     return () => {
@@ -362,7 +434,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
   // ------------------------------------------------------------------
   const queueRun = useCallback(
     (options: QueueRunOptions) => {
-      const { fromStage, toStage, apiKey, renderOnly } = options
+      const { fromStage, toStage, apiKey, renderOnly, viewAfter } = options
       const providerCredentials: StageRunProviderCredentials = {
         anthropicApiKey: anthropicKey || undefined,
         googleApiKey: googleKey || undefined,
@@ -406,6 +478,55 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         }
       })
 
+      // Optimistically clear the page data this run will regenerate, so the
+      // step view immediately mirrors a first-time run instead of leaving stale
+      // content up. Without this, a fast/cached re-run finishes before the async
+      // refetch ever observes the cleared backend state. Extract re-extracts the
+      // PDF (the pages themselves are dropped → empty the list); storyboard
+      // clears web-rendering (page.rendering / hasRendering); sectioning/extract
+      // also clear page-sectioning (sectioningTree / sectionCount).
+      const clearsPages = stagesToClear.has("extract" as StageName)
+      const clearsRendering = stagesToClear.has("storyboard" as StageName)
+      const clearsSectioning =
+        stagesToClear.has("sectioning" as StageName) || stagesToClear.has("extract" as StageName)
+      if (clearsPages) {
+        // Extract drops and rebuilds every page — empty the list so the extract
+        // view shows its from-scratch run card while pages re-extract.
+        queryClient.setQueryData<PageSummaryItem[]>(["books", label, "pages"], [])
+      } else if (clearsRendering || clearsSectioning) {
+        // Page list summaries (sidebar + run-card gating).
+        queryClient.setQueryData<PageSummaryItem[]>(["books", label, "pages"], (old) =>
+          old?.map((p) => ({
+            ...p,
+            ...(clearsRendering ? { hasRendering: false, renderingVersion: null } : {}),
+            ...(clearsSectioning
+              ? { sectionCount: 0, sections: [], prunedSections: [], sectioningVersion: null }
+              : {}),
+          }))
+        )
+        // Page detail caches (the storyboard preview reads page.rendering).
+        // Match only the per-page detail queries (key length 4), not the list
+        // (length 3) or the image queries (length 5).
+        queryClient.setQueriesData<PageDetail>(
+          {
+            queryKey: ["books", label, "pages"],
+            predicate: (q) => q.queryKey.length === 4 && q.queryKey[2] === "pages",
+          },
+          (old) =>
+            old
+              ? {
+                  ...old,
+                  ...(clearsRendering ? { rendering: null } : {}),
+                  ...(clearsSectioning ? { sectioningTree: null } : {}),
+                }
+              : old,
+        )
+      }
+
+      // Immediate spoken confirmation that the (button-click) run has started —
+      // long LLM stages otherwise give a screen-reader user no feedback at all.
+      announceRef.current(getStageRunningLabelI18n(fromStage))
+
       // Clear cosmetic progress only for downstream steps being reset
       for (const stage of stagesToClear) {
         const stageDef = PIPELINE.find((s) => s.name === stage)
@@ -418,6 +539,10 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       }
       setProgressTick((t) => t + 1)
 
+      if (viewAfter) {
+        navigate({ to: "/books/$label/$step", params: { label, step: toStage } })
+      }
+
       // Chain the API call so they arrive in click order
       runChainRef.current = runChainRef.current.then(async () => {
         try {
@@ -429,7 +554,7 @@ export function useBookRunStatus(label: string): BookRunContextValue {
         }
       })
     },
-    [label, queryClient, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey]
+    [label, navigate, queryClient, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion, geminiKey]
   )
 
   // ------------------------------------------------------------------
@@ -488,6 +613,24 @@ export function useBookRunStatus(label: string): BookRunContextValue {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/** Localized screen-reader announcement for a completed ad-hoc background task. */
+function taskCompleteMessage(kind: string | undefined): string {
+  switch (kind) {
+    case "package-adt":
+      return i18n._(msg`Book package ready`)
+    case "image-generate":
+      return i18n._(msg`Image generated`)
+    case "ai-edit":
+      return i18n._(msg`Image edit complete`)
+    case "re-render":
+      return i18n._(msg`Page re-rendered`)
+    case "transcribe-timestamps":
+      return i18n._(msg`Word highlighting ready`)
+    default:
+      return i18n._(msg`Task complete`)
+  }
+}
 
 function invalidateBookQueries(qc: ReturnType<typeof useQueryClient>, label: string) {
   qc.invalidateQueries({ queryKey: ["books", label] })

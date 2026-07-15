@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import {
   getStageClearNodes,
+  getStageRerunClearNodes,
   getCacheResourcesForNode,
   getCacheResourcesForStageOutput,
   getCacheResourcesForStageClear,
@@ -18,6 +19,14 @@ describe("pipeline effects", () => {
       "package-web",
       "accessibility-assessment",
     ])
+  })
+
+  it("spares the glossary node only when the glossary stage is re-run", () => {
+    expect(getStageClearNodes("glossary")).toContain("glossary")
+    expect(getStageRerunClearNodes("glossary", "glossary")).not.toContain("glossary")
+    expect(getStageRerunClearNodes("storyboard", "package")).not.toContain("glossary")
+    expect(getStageClearNodes("storyboard")).toContain("glossary")
+    expect(getStageRerunClearNodes("storyboard", "storyboard")).toContain("glossary")
   })
 
   it("derives stage-clear cache resources from cleared nodes", () => {

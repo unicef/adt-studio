@@ -1,5 +1,6 @@
 import type { LLMModel } from "@adt/llm"
 import { StyleguideGenerationOutput } from "@adt/types"
+import type { BookFontPromptEntry } from "./fonts-bundle.js"
 export type { StyleguideGenerationOutput } from "@adt/types"
 
 export interface StyleguideGenerationInput {
@@ -8,6 +9,7 @@ export interface StyleguideGenerationInput {
     pageNumber: number
     imageBase64: string
   }>
+  bookFonts?: BookFontPromptEntry[]
 }
 
 export interface StyleguideGenerationConfig {
@@ -43,6 +45,7 @@ export async function generateStyleguide(
       page_number: p.pageNumber,
       image_base64: p.imageBase64,
     })),
+    book_fonts: input.bookFonts ?? [],
   }
 
   const result = await llmModel.generateObject<StyleguideGenerationOutput>({
