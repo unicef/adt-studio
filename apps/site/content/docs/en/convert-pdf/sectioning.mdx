@@ -19,14 +19,27 @@ The structure defined here drives almost everything that comes later:
 
 A few minutes of review here saves much more correction time later.
 
+## The sectioning screen
+
+For each page, you get a split view: the original page image on one side, and an editable tree of that page's content on the other. Every piece of content — a heading, a paragraph, an activity, an image — is a node in that tree.
+
+- **Structure** comes from where a node sits in the tree, not from a numbered heading level. There's no H1/H2/H3 — a node is nested under whichever node it belongs to, and marked with a role (like "heading") through a dropdown on the node itself.
+- **Reading order** is just the order nodes appear in the tree. Drag a node by its handle and drop it where it belongs to reorder content.
+- **Noise removal** is a per-node toggle — an eye icon that excludes a node from the rendered output without deleting it. Repeated headers, footers, and page numbers are excluded by default, but check that nothing else slipped through (or got excluded by mistake).
+- **Activities and special content** get their own types — a per-section dropdown lets you mark something as, say, a matching activity or a multiple-choice question, rather than leaving it as plain text.
+
+A row menu on each node also lets you add text, add an image, group nodes together, duplicate, or delete — for the cases where the AI missed something or split content incorrectly.
+
+<Callout title="Bird's-eye view">
+Switch to **Overview** to see every page's sections in one table — page, section, type, content, and parts — instead of reviewing one page at a time.
+</Callout>
+
 ## What to look for
 
-- **Are the chapter and heading levels right?** A heading detected at the wrong level changes the hierarchy of everything beneath it.
+- **Is the structure right?** A node nested in the wrong place, or given the wrong role, changes the hierarchy of everything beneath it.
 - **Is the reading order correct?** Especially in two-column layouts, check that content flows in the order a reader should encounter it.
-- **Is there leftover noise?** Repeated headers, footers, and page numbers are sometimes picked up during extraction. Remove them here.
-- **Are activities and special content recognised?** Exercises, boxes, and figures should be labelled as what they are, not as plain text.
-
-{/* dynamic: describe the sectioning screen and its controls with the app's exact terms — verify against current UI */}
+- **Is there leftover noise?** Repeated headers, footers, and page numbers are usually excluded automatically — but double-check, and exclude anything else that shouldn't be read aloud or shown.
+- **Are activities and special content recognised?** Exercises, boxes, and figures should carry the right type, not sit as plain text.
 
 ## When you're done
 

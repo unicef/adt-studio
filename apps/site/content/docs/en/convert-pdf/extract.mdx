@@ -6,60 +6,81 @@ icon: ScanText
 
 Extraction is the step where ADT Studio reads your PDF and converts it into structured content — text, figures, and layout — that all later steps build on. This is where the AI does its first and most important pass over your book.
 
-Before extraction runs, you configure how it should treat your document. This configuration happens in a few sub-steps.
-
-{/* dynamic: this entire page mirrors app screens closely. Verify all step names, preset names, and field labels against the current UI before publishing, and re-verify after app updates. */}
+Before extraction runs, you configure how it should treat your document. This configuration happens in a few sub-steps, right after you upload your PDF.
 
 <Steps>
 
 <Step>
-### Choose a preset
+### Choose a Preset
 
 A preset is a starting configuration that matches the kind of document you are converting. It pre-selects sensible settings so you don't have to configure everything manually.
 
-{/* TO VERIFY: the exact preset names and descriptions currently offered in the app. List each preset with a one-line example of when to use it, using the app's exact terms. */}
+- **Textbooks & Activities** — structured chapters and exercises. Best for educational content with complex layouts.
+- **Storybook** — large images and narrative flow. Best for illustrated books, paired with high-fidelity narration.
+- **Reference** — dense text, tables, and glossaries. Best for technical material and documentation.
+- **Custom** — full control over render strategies, pruning, and filters, with nothing pre-selected for you.
 
-Presets are a starting point, not a commitment. After choosing one, you can still adjust any individual setting.
+Presets are a starting point, not a commitment. After choosing one, you can still adjust any individual setting in the steps below. Switching presets later resets the configuration you've already changed, so pick the closest match first.
+
+![The "Choose a Preset" screen, showing four preset cards: Textbooks & Activities, Storybook, Reference, and Custom](./extract-preset.png)
 </Step>
 
 <Step>
-### Basic information
+### Basic Information
 
-Here you confirm the essential facts about your book: its title, the language of the source document, and other identifying details that will travel with the ADT.
+Here you confirm the essentials:
 
-{/* TO VERIFY: exact fields shown in the Basic information step. */}
+- **PDF File** — the file you just uploaded.
+- **Project Name** — the unique identifier ADT Studio uses as your book's folder name. It's suggested from your file name, but you can change it.
+- **Page Range** — if you don't want to convert the whole book, drag the sliders to pick the pages to digitize. Handy for testing on one chapter of a long PDF before committing to the whole thing.
+
+There's no separate "book title" or "source language" field here — the project name doubles as the identifier, and language is set later in the Languages step.
 </Step>
 
 <Step>
-### Visual layout
+### Visual Layout
 
-This step tells ADT Studio how your document is visually organised, so extraction can interpret the pages correctly. ADT Studio will already suggest what fits best for the preset you chose — in most cases you can accept the suggestion.
+This step tells ADT Studio how your document is visually organised, so extraction can interpret the pages correctly:
 
-{/* TO VERIFY: exact options in the Visual layout step and how the suggestion behaviour works. */}
+- **Render Strategy** — how pages get rebuilt (template-based, which is fast and free, or AI-powered, which adapts per page at the cost of extra processing).
+- **Page Grouping Mode** — **Spread** or **Single**, whether facing pages are treated as one visual unit or independently.
+- **Section Mode** — **Page Mode** or **Dynamic Mode**, how content is chunked into sections.
+
+ADT Studio marks the option it recommends for your chosen preset — in most cases you can accept the suggestion.
 </Step>
 
 <Step>
-### Content processing
+### Content Processing
 
-Here you choose which AI-powered processing runs on your content during extraction.
+Here you choose which AI-powered processing runs on your content during extraction:
 
-{/* TO VERIFY: exact toggles/options in the Content processing step, with the app's exact terms. */}
+- **Activity Converter** — detect and structure exercises and activities.
+- **Figure Extraction** — pull out images and diagrams as separate figures.
+- **Smart Cropping** — automatically crop extracted images to their meaningful content.
+- **Image Segmentation** — split composite images into their individual parts, with a **Minimum image dimension** setting for how small a segment can be.
+- **Image Filter Size** — a **Min Size** and **Max Size** (in pixels) that filter out images too small or too large to be meaningful (e.g. decorative dividers or full-page backgrounds).
 
 You do not need to enable everything now. Features you skip here can generally be run later — see [Enhance your ADT](/docs/enhance).
+
+![The "Content Processing" screen, with toggles for Activity Converter, Figure Extraction, Smart Cropping, and Image Segmentation, plus Image Filter Size sliders](./extract-content-processing.png)
 </Step>
 
 <Step>
 ### Languages
 
-If your ADT should exist in more than one language, you select the target languages here. Translation happens with AI support and each additional language adds processing (and therefore cost).
+- **Editing Language** — the language you'll work in while reviewing and editing content. Leave it empty to use the book's own language.
+- **Output Languages** — one or more languages to translate the final ADT into. Leave empty to output only in the book's language.
 
-{/* TO VERIFY: exact behaviour of the Languages step — whether it can be changed later, and how it interacts with the Language enhancement step. */}
+Adding output languages here doesn't translate anything immediately — it sets what the later [Language](/docs/enhance/language) stage will translate into once you reach it. Each additional language adds processing, and therefore cost, at that later stage.
 </Step>
 
 <Step>
-### Run the extraction
+### Create your ADT
 
-Once your PDF is imported and your settings are configured, you extract content into your ADT. This process happens page by page — it can take a few minutes depending on the length of your document. You can follow the progress in the interface.
+Once your settings are configured, select **Create ADT**. This is also the moment ADT Studio actually creates your project folder (see [Import a PDF](/docs/convert-pdf/import-pdf)).
+
+- If you already have an API key saved, extraction — and an initial pass of sectioning — starts automatically. This runs page by page and can take a few minutes depending on the length of your document; you can follow progress in the interface.
+- If you don't have an API key saved yet, your project is created with your settings in place, and you start extraction yourself afterward from the book's **Extract** stage (a **Run** button on that stage kicks it off).
 
 When extraction finishes, your book exists as structured content inside ADT Studio — ready for the next step: [Sectioning](/docs/convert-pdf/sectioning).
 </Step>

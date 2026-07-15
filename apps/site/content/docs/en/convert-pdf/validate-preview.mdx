@@ -4,35 +4,41 @@ description: "Check your ADT with your own eyes — and with automated accessibi
 icon: ShieldCheck
 ---
 
-Before enhancing or exporting, take a moment to confirm that what you have is right. This happens in two complementary ways.
+Before enhancing or exporting, take a moment to confirm that what you have is right. This happens in two complementary ways: **Preview** and **Validation**, both available as soon as your storyboard is built.
+
+<Callout title="Available now, useful throughout">
+Preview and Validation aren't a one-time checkpoint — they're stages you can reopen at any point later on. What they show only reflects what's been generated so far, so a quick look now (structure and layout) is worth repeating after [Enhance your ADT](/docs/enhance) (once quizzes, captions, translations, and narration exist too) and again before you export.
+</Callout>
 
 ## Preview: check it as a reader
 
-The preview shows your ADT as a reader will experience it. Open it and go through the book — not as its producer, but as someone encountering it for the first time.
+The **Preview** stage packages what you have so far and shows it in an embedded view of the actual reader-facing ADT — not a mockup. Open it and go through the book — not as its producer, but as someone encountering it for the first time.
 
 - Does the content read naturally, in the right order?
 - Do images appear where they should?
 - Does navigation work — can you move between sections easily?
 
+While browsing the preview, a floating **Accessibility Findings** card lets you flag issues yourself as you spot them — these become part of your Validation results as reviewer findings, alongside the automated checks below.
+
 ## Validate: check it against accessibility standards
 
-ADT Studio includes an **accessibility evaluator** that checks your ADT against WCAG, the international accessibility standard. It flags issues before you publish:
+The **Validation** stage runs an automated **Accessibility Summary**: your packaged ADT checked against WCAG, the international accessibility standard, using industry-standard tooling. It flags issues before you publish:
 
 - Missing image descriptions
 - Structural problems
 - Contrast issues
 - Similar accessibility barriers
 
+Your own reviewer findings from Preview sit alongside these automated results, so you get both machine-checked and human-checked issues in one place.
+
 <Callout type="warn" title="This is not a formality">
 Accessibility validation **is the point of the tool**. An ADT that fails these checks is not yet doing its job for the learners who depend on it.
 </Callout>
 
-{/* dynamic: describe how validation results are shown and resolved in the app — verify against current UI */}
-
 ## Fix, rerun, repeat
 
-If validation or your own review surfaces problems, go back to the step responsible — [Sectioning](/docs/convert-pdf/sectioning) for structure issues, [Storyboard](/docs/convert-pdf/storyboard) for layout issues — fix it, and rerun. Only the affected work is redone; everything else is reused.
+If validation or your own review surfaces problems, go back to the step responsible — [Sectioning](/docs/convert-pdf/sectioning) for structure issues, [Storyboard](/docs/convert-pdf/storyboard) for layout issues — fix it, and rerun. Only the affected work is redone; everything else is reused. Then revisit Validation to refresh the results against your fix.
 
 ## When you're done
 
-Your ADT is solid. Now make it richer: [Enhance your ADT](/docs/enhance).
+Your structure and layout are solid. Now make the book richer: [Enhance your ADT](/docs/enhance) — and remember to come back to Preview and Validation once that's done, for the full picture before you export.
