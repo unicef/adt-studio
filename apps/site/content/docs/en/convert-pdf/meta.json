@@ -1,0 +1,5 @@
+{
+  "title": "Convert a PDF into an ADT",
+  "icon": "Workflow",
+  "pages": ["import-pdf", "extract", "sectioning", "storyboard", "validate-preview"]
+}

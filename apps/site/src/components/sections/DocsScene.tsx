@@ -25,7 +25,7 @@ const CATEGORIES: Category[] = [
     desc: msg`From a PDF to an accessible book in minutes.`,
   },
   {
-    href: "/docs/install",
+    href: "/docs/get-started/install",
     icon: Download,
     title: msg`Install`,
     desc: msg`Set up on macOS, Windows, or Linux.`,

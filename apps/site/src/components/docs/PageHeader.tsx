@@ -1,7 +1,9 @@
+import type { CSSProperties, ReactNode } from "react";
 import { DocsDescription, DocsTitle } from "fumadocs-ui/layouts/notebook/page";
 import { useTreeContext, useTreePath } from "fumadocs-ui/contexts/tree";
 import { getBreadcrumbItemsFromPath } from "fumadocs-core/breadcrumb";
-import type { ReactNode } from "react";
+import { icons } from "lucide-react";
+import { DOCS_COLORS } from "@/data/docs-colors";
 
 /**
  * Section eyebrow above the page title — the name of the sidebar group the
@@ -27,14 +29,39 @@ function Eyebrow() {
 export function PageHeader({
   title,
   description,
+  icon,
+  docsPath,
 }: {
   title: ReactNode;
   description?: ReactNode;
+  icon?: string;
+  /** URL slug path (e.g. "convert-pdf/extract", "" for the root) — looked
+   * up in `DOCS_COLORS` for the page's icon + brand color, matching the app.
+   * Falls back to the frontmatter `icon` (uncolored) if not in the map. */
+  docsPath?: string;
 }) {
+  const entry = docsPath !== undefined ? DOCS_COLORS[docsPath] : undefined;
+  const Icon = entry?.icon ?? (icon ? icons[icon as keyof typeof icons] : undefined);
+  const color = entry?.hex;
+
   return (
     <div className="mb-8">
       <Eyebrow />
-      <DocsTitle className="mb-0">{title}</DocsTitle>
+      <div className="flex items-center gap-2.5">
+        {Icon ? (
+          color ? (
+            <span
+              style={{ "--c": color } as CSSProperties}
+              className="grid size-10 shrink-0 place-items-center rounded-xl bg-[color-mix(in_oklab,var(--c)_13%,transparent)] text-[var(--c)]"
+            >
+              <Icon className="size-5" aria-hidden />
+            </span>
+          ) : (
+            <Icon className="size-7 shrink-0 text-fd-muted-foreground" aria-hidden />
+          )
+        ) : null}
+        <DocsTitle className="mb-0">{title}</DocsTitle>
+      </div>
       {description ? (
         <DocsDescription className="mb-0 mt-2">{description}</DocsDescription>
       ) : null}

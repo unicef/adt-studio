@@ -15,7 +15,7 @@ export function GetStartedBanner() {
   return (
     <Link
       to="/docs/$"
-      params={{ _splat: "quickstart" }}
+      params={{ _splat: "get-started" }}
       className="not-prose group relative mt-8 flex w-full flex-col overflow-hidden rounded-2xl border border-fd-border shadow-sm transition-shadow hover:shadow-lg sm:aspect-[3/2] sm:items-center sm:justify-center"
     >
       {/* Gradient base */}

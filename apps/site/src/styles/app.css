@@ -235,6 +235,26 @@
   }
 }
 
+/*
+ * fumadocs' default <Card>/<Cards> render as a plain bordered box with only a
+ * faint hover tint — reads as static text, not a clickable link. Give linked
+ * cards a real shadow, a hover lift, and a pointer cursor everywhere they're
+ * used across the docs, so they read as interactive.
+ */
+a[data-card] {
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease,
+    border-color 150ms ease;
+}
+a[data-card]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px -8px rgba(0, 0, 0, 0.18);
+  border-color: color-mix(in oklab, var(--color-fd-primary) 45%, var(--color-fd-border));
+}
+
 /* Logo: aligned with the nav items, minimal padding around it. */
 #nd-sidebar > div:first-child {
   padding-top: 0.75rem;
@@ -386,6 +406,14 @@ html > body[data-scroll-locked] {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+}
+
+/* fumadocs' typography preset sets `<strong>` to font-weight: 500 inside a
+   Tailwind layer, which reads as barely-emphasized at normal body sizes.
+   Unlayered so it wins over the layered preset regardless of specificity,
+   giving **bold** text in docs content a real bold weight. */
+.prose strong {
+  font-weight: 700;
 }
 
 /* Landing-only scroll experience — scoped so docs/blog keep normal scrolling */

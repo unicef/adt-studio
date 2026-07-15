@@ -38,6 +38,9 @@ msgstr "Livro acessível"
 msgid "accessible books."
 msgstr "livros acessíveis."
 
+msgid "Accessible by design"
+msgstr "Acessível por design"
+
 msgid "ADT Studio"
 msgstr "ADT Studio"
 
@@ -77,6 +80,12 @@ msgstr "Sempre editável"
 msgid "An accessible book, <0>ready to ship</0>."
 msgstr "Um livro acessível, <0>pronto para enviar</0>."
 
+msgid "An introduction to accessible digital textbooks and this tool."
+msgstr ""
+
+msgid "Answers to common questions and issues."
+msgstr ""
+
 msgid "Architecture"
 msgstr "Arquitetura"
 
@@ -113,6 +122,9 @@ msgstr "Ver toda a documentação"
 #~ msgid "Browse the docs"
 #~ msgstr ""
 
+msgid "Built to last"
+msgstr "Feito para durar"
+
 msgid "Built with"
 msgstr "Desenvolvido com"
 
@@ -125,6 +137,9 @@ msgstr "Em cache e inspecionável"
 msgid "Captions"
 msgstr "Legendas"
 
+msgid "Captions, quizzes, narration, translations, and more."
+msgstr ""
+
 msgid "Change language"
 msgstr "Mudar idioma"
 
@@ -136,6 +151,9 @@ msgstr "Registro de alterações"
 
 msgid "Chapter 3"
 msgstr "Capítulo 3"
+
+msgid "Checked against WCAG standards before every export."
+msgstr "Verificado com base nos padrões WCAG antes de cada exportação."
 
 msgid "Choose a preset that matches your content — textbook, storyboard, reference, or custom — and ADT Studio tailors the pipeline accordingly."
 msgstr "Escolha um preset que corresponda ao seu conteúdo — livro didático, storyboard, referência ou personalizado — e o ADT Studio ajusta o pipeline de acordo."
@@ -152,11 +170,14 @@ msgstr "Comunidade e suporte"
 msgid "Configure each stage — extract, storyboard, layout — then let ADT Studio build the book. Review the output, correct anything that needs a human touch."
 msgstr "Configure cada etapa — extração, storyboard, layout — e deixe o ADT Studio construir o livro. Revise o resultado, corrija qualquer coisa que precise de um toque humano."
 
-msgid "Connect a model and track cost."
-msgstr "Conecte um modelo e acompanhe o custo."
+#~ msgid "Connect a model and track cost."
+#~ msgstr "Conecte um modelo e acompanhe o custo."
 
 msgid "Contents"
 msgstr "Sumário"
+
+msgid "Convert a PDF into an ADT"
+msgstr ""
 
 msgid "Core concepts"
 msgstr "Conceitos essenciais"
@@ -178,6 +199,9 @@ msgstr "Criar um novo projeto"
 
 msgid "Custom"
 msgstr "Personalizado"
+
+msgid "Deliberately simple — easy to maintain, update, and extend."
+msgstr "Deliberadamente simples — fácil de manter, atualizar e ampliar."
 
 msgid "Delivered"
 msgstr "Entregue"
@@ -253,11 +277,17 @@ msgstr "EN · PT · ES"
 msgid "English"
 msgstr "Inglês"
 
+msgid "Enhance your ADT"
+msgstr ""
+
 msgid "Entities are versioned, never replaced. You can always roll back to an earlier result."
 msgstr "As entidades são versionadas, nunca substituídas. Você sempre pode voltar a um resultado anterior."
 
 msgid "Every accessibility feature, <0>built in from page one</0>."
 msgstr "Cada recurso de acessibilidade, <0>embutido desde a primeira página</0>."
+
+msgid "Every AI call, and its cost, is saved and inspectable."
+msgstr "Cada chamada à IA, e seu custo, é salva e pode ser consultada."
 
 msgid "Every book lives in a single, shareable directory — zip it, move it, hand it off."
 msgstr "Cada livro vive em um único diretório compartilhável — compacte, mova e entregue."
@@ -283,11 +313,20 @@ msgstr "Cada envio do ADT Studio."
 msgid "Every stage, from extraction to output."
 msgstr "Cada etapa, da extração ao resultado."
 
+msgid "Every version is kept. Roll back to any earlier result, any time."
+msgstr "Cada versão é mantida. Volte a qualquer resultado anterior quando quiser."
+
 #~ msgid "Everything about a book — sources, prompts, outputs, history — lives in a single directory. Zip it, share it, back it up."
 #~ msgstr "Tudo sobre um livro — fontes, prompts, saídas, histórico — vive em um único diretório. Compacte, compartilhe, faça backup."
 
+msgid "Everything in one place"
+msgstr "Tudo em um só lugar"
+
 msgid "Export to a reader"
 msgstr "Exportar para um leitor"
+
+msgid "Export your ADT"
+msgstr ""
 
 msgid "Extract"
 msgstr "Extrair"
@@ -325,6 +364,9 @@ msgstr "De PDF para"
 msgid "Full control over render strategies, pruning, and filters."
 msgstr "Controle total sobre estratégias de renderização, poda e filtros."
 
+msgid "Full transparency"
+msgstr "Transparência total"
+
 msgid "Generate studio-quality text-to-speech for every page, with speaker control and per-language voices — no recording needed."
 msgstr "Gere texto-para-fala de qualidade de estúdio para cada página, com controle de locutor e vozes por idioma — sem necessidade de gravação."
 
@@ -346,8 +388,8 @@ msgstr "GitHub"
 msgid "Glossary"
 msgstr "Glossário"
 
-msgid "Go from a PDF to a finished book, end to end."
-msgstr "Vá de um PDF a um livro pronto, do início ao fim."
+#~ msgid "Go from a PDF to a finished book, end to end."
+#~ msgstr "Vá de um PDF a um livro pronto, do início ao fim."
 
 msgid "Grouping content by purpose, then laying out every section as reviewable HTML."
 msgstr "Agrupando conteúdo por propósito, depois organizando cada seção como HTML revisável."
@@ -367,8 +409,8 @@ msgstr "Aqui está o que foi enviado na última versão — e há muito mais de 
 msgid "Home"
 msgstr "Início"
 
-msgid "How extraction and generation actually work."
-msgstr "Como a extração e a geração realmente funcionam."
+#~ msgid "How extraction and generation actually work."
+#~ msgstr "Como a extração e a geração realmente funcionam."
 
 msgid "How it works"
 msgstr "Como funciona"
@@ -384,6 +426,9 @@ msgstr "Se o seu dispositivo foi detectado incorretamente, <0>veja todos os down
 
 msgid "Image Captions"
 msgstr "Legendas de imagens"
+
+msgid "Import, extract, section, storyboard, and validate."
+msgstr ""
 
 msgid "Install"
 msgstr "Instalação"
@@ -482,6 +527,12 @@ msgstr "Nenhum lançamento publicado ainda — volte quando a primeira build for
 msgid "No releases yet — once the first build ships, it'll show up here."
 msgstr "Nenhum lançamento ainda — assim que a primeira build for publicada, aparecerá aqui."
 
+msgid "No repeated work"
+msgstr "Sem trabalho repetido"
+
+msgid "Nothing is ever lost"
+msgstr "Nada é perdido"
+
 #~ msgid "Nothing is overwritten"
 #~ msgstr "Nada é sobrescrito"
 
@@ -502,6 +553,9 @@ msgstr "Um livro, todos os formatos"
 
 msgid "One book, one folder"
 msgstr "Um livro, uma pasta"
+
+msgid "One folder holds the whole book — source, settings, every version."
+msgstr "Uma única pasta contém todo o livro — fonte, configurações e cada versão."
 
 #~ msgid "One folder per book"
 #~ msgstr "Uma pasta por livro"
@@ -538,6 +592,9 @@ msgstr "Empacotamento"
 
 msgid "Package the finished book with every accessibility feature baked in — ready for a kid to open, listen, and read along."
 msgstr "Empacote o livro finalizado com todos os recursos de acessibilidade embutidos — pronto para uma criança abrir, ouvir e ler junto."
+
+msgid "Package your finished ADT for distribution."
+msgstr ""
 
 msgid "Parsing pages"
 msgstr "Analisando páginas"
@@ -640,8 +697,8 @@ msgstr "Resolvendo o último lançamento..."
 #~ msgid "Results are cached at the LLM call level. Tweak a prompt and only the affected steps re-run — fast, deterministic, inspectable."
 #~ msgstr "Os resultados são armazenados em cache no nível da chamada LLM. Ajuste um prompt e apenas as etapas afetadas serão reexecutadas — rápido, determinístico, inspecionável."
 
-msgid "Run ADT Studio as a desktop app or with Docker."
-msgstr "Execute o ADT Studio como aplicativo de desktop ou com o Docker."
+#~ msgid "Run ADT Studio as a desktop app or with Docker."
+#~ msgstr "Execute o ADT Studio como aplicativo de desktop ou com o Docker."
 
 msgid "Run the pipeline"
 msgstr "Executar o pipeline"
@@ -727,8 +784,8 @@ msgstr "Comece a construir livros acessíveis."
 msgid "Start from a PDF"
 msgstr "Comece de um PDF"
 
-msgid "Start your first book and load a PDF."
-msgstr "Comece seu primeiro livro e carregue um PDF."
+#~ msgid "Start your first book and load a PDF."
+#~ msgstr "Comece seu primeiro livro e carregue um PDF."
 
 msgid "Storyboard"
 msgstr "Storyboard"
@@ -760,8 +817,8 @@ msgstr "Livros Didáticos e Atividades"
 msgid "The documentation walks you through ADT Studio end to end — from installing the app to mastering every step of building an accessible book."
 msgstr "A documentação guia você pelo ADT Studio de ponta a ponta — da instalação do aplicativo ao domínio de cada etapa da criação de um livro acessível."
 
-msgid "The ideas the whole app is built on."
-msgstr "As ideias sobre as quais todo o aplicativo é construído."
+#~ msgid "The ideas the whole app is built on."
+#~ msgstr "As ideias sobre as quais todo o aplicativo é construído."
 
 msgid "The output"
 msgstr "A saída"
@@ -769,8 +826,8 @@ msgstr "A saída"
 msgid "The pipeline"
 msgstr "O pipeline"
 
-msgid "The Pipeline"
-msgstr "O pipeline"
+#~ msgid "The Pipeline"
+#~ msgstr "O pipeline"
 
 msgid "Translate"
 msgstr "Traduzir"
@@ -789,6 +846,9 @@ msgstr "Transforme qualquer PDF em um <0>livro acessível</0>"
 
 msgid "Turn any textbook into something every student can read, hear, see, and understand — audio, structured layouts, translations, and sign language, all built in."
 msgstr "Transforme qualquer livro didático em algo que todo aluno possa ler, ouvir, ver e entender — áudio, layouts estruturados, traduções e língua de sinais, tudo embutido."
+
+msgid "Unchanged steps reuse cached results instantly, at no extra cost."
+msgstr "Etapas inalteradas reaproveitam instantaneamente os resultados salvos, sem custo adicional."
 
 msgid "View release on GitHub"
 msgstr "Ver lançamento no GitHub"
@@ -818,8 +878,14 @@ msgstr "Não fornecemos um instalador pré-construído para {0} nesta versão. E
 msgid "What happens when you drop in a PDF"
 msgstr "O que acontece quando você solta um PDF"
 
+msgid "What is an ADT?"
+msgstr ""
+
 msgid "What it does"
 msgstr "O que faz"
+
+msgid "What to know and set up before converting your first PDF."
+msgstr ""
 
 msgid "When the pipeline finishes, you get a clean bundle with every accessibility feature baked in — ready for a classroom, a publisher, or a kid on the couch."
 msgstr "Quando o pipeline termina, você obtém um pacote limpo com todos os recursos de acessibilidade embutidos — pronto para uma sala de aula, um editor ou uma criança no sofá."

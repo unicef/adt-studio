@@ -1,0 +1,5 @@
+{
+  "title": "Get Started",
+  "icon": "Rocket",
+  "pages": ["what-is-an-adt", "what-is-adt-studio", "what-type-of-content", "install", "api-keys"]
+}

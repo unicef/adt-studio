@@ -1,0 +1,64 @@
+---
+title: "What type of content can become an ADT?"
+description: "Understand which PDFs work well for conversion, what to watch out for, and how to set yourself up for a good first result."
+icon: FileSearch
+---
+
+ADT Studio can process most PDFs — but not all PDFs convert equally well. The quality of the output depends significantly on the quality and structure of the source file. This page helps you understand what works, what doesn't, and why.
+
+<Callout title="Starting out?">
+Use a short, simple PDF for your first conversion — ideally 10 to 30 pages, with clear headings and straightforward text. This lets you see the full pipeline without long processing times, and makes it easier to understand what the tool does at each step before you work with more complex material.
+</Callout>
+
+## What makes a good source PDF
+
+<Steps>
+
+<Step>
+### A real text layer
+
+The most important factor. Can you **select text** with your mouse in a PDF viewer, word by word? If so, the text exists as real characters and ADT Studio can extract it reliably.
+
+- ✅ Highlights individual words → usable text layer
+- 🚫 Selects the whole page like an image, or nothing at all → no usable text layer
+</Step>
+
+<Step>
+### A clear, consistent structure
+
+ADT Studio's AI identifies headings, sections, paragraphs, figures, and activities by pattern. The more **predictable** the structure — consistent heading styles, clear breaks between sections — the less manual correction you'll need after extraction.
+</Step>
+
+<Step>
+### A predictable layout
+
+**Single- or two-column layouts** are handled best. Complex layouts — magazine-style grids, overlapping text boxes, content that depends on precise spatial positioning — are harder to interpret correctly.
+</Step>
+
+</Steps>
+
+## What to be careful about
+
+- **Scanned or image-based PDFs** — a scan is a photograph of a page, with no text layer. ADT Studio cannot extract readable text from it the way it can from a real text-layer PDF.
+- **Complex tables** — tables spanning multiple pages or with merged cells are harder to extract accurately and may need manual review. Simple tables (a few columns, clear headers, consistent rows) extract well.
+- **Headers, footers, and page numbers** — repeated headers and footers are often picked up during extraction. ADT Studio filters most of these automatically, but any that slip through need manual removal during sectioning.
+- **Heavily designed or branded documents** — full-page background images, text over photos, and decorative overlaps make it harder for the tool to tell content from decoration.
+
+{/* TO VERIFY: can we recommend OCR as a pre-processing step? Is there a specific tool the ADT team suggests? */}
+
+## Quick reference
+
+| Status | Characteristic | What to expect |
+|---|---|---|
+| ✅ Works well | Selectable text layer | Reliable extraction |
+| ✅ Works well | Clear, consistent heading structure | Reliable sectioning |
+| ✅ Works well | Single or two-column layout | Strong output |
+| ✅ Works well | Simple tables (clear headers, consistent rows) | Extracts well |
+| ⚠️ Use with caution | Complex multi-page or merged-cell tables | Will need manual review |
+| ⚠️ Use with caution | Repeated headers, footers, page numbers | May appear in content, remove during sectioning |
+| ⚠️ Use with caution | Heavy graphic design or branded layout | May need manual correction |
+| 🚫 Avoid | Scanned or image-only PDF (no text layer) | Text cannot be extracted |
+
+## Ready to continue?
+
+[Installation and minimum requirements →](/docs/get-started/install)

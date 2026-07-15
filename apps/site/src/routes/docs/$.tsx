@@ -13,6 +13,7 @@ import { useLingui } from '@lingui/react';
 import { Suspense, useMemo } from 'react';
 import { useMDXComponents } from '@/components/mdx';
 import { translatePageTree } from '@/lib/docs-i18n';
+import { limitIconsToTopLevel } from '@/lib/docs-sidebar';
 import { useLocalizedContent } from '@/lib/useLocalizedContent';
 import { DEFAULT_LOCALE } from '@/i18n/locales';
 
@@ -37,6 +38,7 @@ const loader = createServerFn({
 
     return {
       path: page.path,
+      docsPath: slugs.join('/'),
       markdownUrl: slugsToMarkdownPath(page.slugs).url,
       pageTree: await source.serializePageTree(
         source.getPageTree(DEFAULT_LOCALE),
@@ -50,9 +52,11 @@ const clientLoader = browserCollections.docs.createClientLoader({
     {
       markdownUrl,
       path,
+      docsPath,
     }: {
       markdownUrl: string;
       path: string;
+      docsPath: string;
     },
   ) {
     return (
@@ -62,6 +66,8 @@ const clientLoader = browserCollections.docs.createClientLoader({
         <PageHeader
           title={frontmatter.title}
           description={frontmatter.description}
+          icon={frontmatter.icon}
+          docsPath={docsPath}
         />
         <DocsBody>
           <MDX components={useMDXComponents()} />
@@ -72,10 +78,10 @@ const clientLoader = browserCollections.docs.createClientLoader({
 });
 
 function Page() {
-  const { pageTree, path, markdownUrl } = useFumadocsLoader(Route.useLoaderData());
+  const { pageTree, path, markdownUrl, docsPath } = useFumadocsLoader(Route.useLoaderData());
   const { i18n } = useLingui();
   const base = baseOptions();
-  const tree = useMemo(() => translatePageTree(pageTree), [pageTree]);
+  const tree = useMemo(() => limitIconsToTopLevel(translatePageTree(pageTree)), [pageTree]);
   // Load the translated MDX for the active locale when it exists (English
   // fallback), preloading it before swapping so hydration matches the
   // prerendered (default-locale) HTML.
@@ -90,7 +96,7 @@ function Page() {
     >
       <Link to={markdownUrl} hidden />
       <Suspense>
-        {clientLoader.useContent(contentPath, { markdownUrl, path })}
+        {clientLoader.useContent(contentPath, { markdownUrl, path, docsPath })}
       </Suspense>
     </DocsLayout>
   );
