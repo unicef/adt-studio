@@ -2021,7 +2021,7 @@ describe("packageWebpub", () => {
     )
     expect(manifest["@context"]).toBe("https://readium.org/webpub-manifest/context.jsonld")
     expect(manifest.metadata.title).toBe("My Test Book")
-    expect(manifest.metadata.language).toBe("en")
+    expect(manifest.metadata.language).toEqual(["en"])
     expect(manifest.metadata.presentation.overflow).toBe("scrolled")
     expect(manifest.metadata.presentation.spread).toBe("none")
     expect(manifest.metadata.author).toBe("Author")
@@ -2076,6 +2076,29 @@ describe("packageWebpub", () => {
     expect(a11y.feature).toContain("readingOrder")
     expect(a11y.hazard).toEqual(["none"])
     expect(typeof a11y.summary).toBe("string")
+  })
+
+  it("exposes the language list and keeps the manifest standards-clean", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage)
+    packageWebpub(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Test Book",
+      webAssetsDir,
+    })
+
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
+    )
+    // Languages listed in the standard metadata.language array.
+    expect(manifest.metadata.language).toEqual(["en"])
+    // No proprietary feature block — ADT-only features live in config.json.
+    expect(manifest.metadata["https://adt.unicef.org/schema#features"]).toBeUndefined()
+    // Image captions are on by default → standard alternativeText feature.
+    expect(manifest.metadata.accessibility.feature).toContain("alternativeText")
   })
 
   it("strips the embedded runtime but keeps the feature data contract", async () => {

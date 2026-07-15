@@ -50,8 +50,10 @@ export function packageWebpub(
   // The reading app owns the UI; ship content + feature data only.
   stripRuntimeBundle(webpubDir)
 
-  // Override config: disable navigation controls and tutorial for embedded reading
+  // Override config: disable navigation controls and tutorial for embedded
+  // reading. Also capture the features + languages to surface in the manifest.
   let features: Record<string, unknown> = {}
+  let availableLanguages: string[] = []
   const configPath = path.join(webpubDir, "assets", "config.json")
   if (fs.existsSync(configPath)) {
     const config = JSON.parse(fs.readFileSync(configPath, "utf-8"))
@@ -59,6 +61,14 @@ export function packageWebpub(
     config.features.showTutorial = false
     writeJson(configPath, config)
     features = config.features ?? {}
+    const available: string[] = Array.isArray(config.languages?.available)
+      ? config.languages.available
+      : []
+    const defaultLang: string | undefined = config.languages?.default
+    // All available languages, default first.
+    availableLanguages = defaultLang && available.includes(defaultLang)
+      ? [defaultLang, ...available.filter((l) => l !== defaultLang)]
+      : available
   }
 
   // Inject CSS into HTML pages to prevent readers (e.g. Thorium) from applying
@@ -77,7 +87,7 @@ export function packageWebpub(
   const manifestMetadata: Record<string, unknown> = {
     "@type": "http://schema.org/Book",
     title,
-    language: options.language,
+    language: availableLanguages.length > 0 ? availableLanguages : [options.language],
     modified: new Date().toISOString(),
     // Tell readers to scroll each page rather than paginating into columns,
     // and not to display two pages side-by-side (spread).
