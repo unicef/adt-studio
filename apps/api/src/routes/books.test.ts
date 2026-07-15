@@ -1400,6 +1400,61 @@ describe("GET /books/:label/export-adt", () => {
   })
 })
 
+describe("GET /books/:label/adt/* — kids buddy art", () => {
+  function createPackagedBook(label: string): void {
+    createTestBook(label)
+    const adtDir = path.join(tmpDir, label, "adt")
+    fs.mkdirSync(adtDir, { recursive: true })
+    fs.writeFileSync(path.join(adtDir, "index.html"), "<html></html>")
+  }
+
+  function createSharedBuddyAssets(label: string): string {
+    const webAssetsDir = path.join(tmpDir, `${label}-web-assets`)
+    const buddyPath = path.join(webAssetsDir, "kids-buddies", "dino", "dino_1.png")
+    fs.mkdirSync(path.dirname(buddyPath), { recursive: true })
+    fs.writeFileSync(buddyPath, "SHARED-PNG")
+    return webAssetsDir
+  }
+
+  const buddyUrl = (label: string) =>
+    `/books/${label}/adt/assets/kids-buddies/dino/dino_1.png`
+
+  it("serves buddy art live from the shared web assets when the book was not packaged with it", async () => {
+    // A non-kids book packaged without buddy art, previewed with the kids
+    // chrome forced on ("Preview kids UI"): the runtime still requests the PNG.
+    createPackagedBook("buddy-fallback")
+    const webAssetsDir = createSharedBuddyAssets("buddy-fallback")
+    const app = createBookRoutes(tmpDir, webAssetsDir)
+    const res = await app.request(buddyUrl("buddy-fallback"))
+    expect(res.status).toBe(200)
+    expect(res.headers.get("Content-Type")).toBe("image/png")
+    expect(Buffer.from(await res.arrayBuffer()).toString()).toBe("SHARED-PNG")
+  })
+
+  it("prefers the packaged buddy art over the shared fallback", async () => {
+    createPackagedBook("buddy-packaged")
+    const webAssetsDir = createSharedBuddyAssets("buddy-packaged")
+    const packagedBuddy = path.join(
+      tmpDir, "buddy-packaged", "adt", "assets", "kids-buddies", "dino", "dino_1.png",
+    )
+    fs.mkdirSync(path.dirname(packagedBuddy), { recursive: true })
+    fs.writeFileSync(packagedBuddy, "PACKAGED-PNG")
+    const app = createBookRoutes(tmpDir, webAssetsDir)
+    const res = await app.request(buddyUrl("buddy-packaged"))
+    expect(res.status).toBe(200)
+    expect(Buffer.from(await res.arrayBuffer()).toString()).toBe("PACKAGED-PNG")
+  })
+
+  it("returns 404 when buddy art is absent from both the package and the shared assets", async () => {
+    createPackagedBook("buddy-missing")
+    const webAssetsDir = path.join(tmpDir, "buddy-missing-web-assets")
+    fs.mkdirSync(webAssetsDir, { recursive: true })
+    const app = createBookRoutes(tmpDir, webAssetsDir)
+    const res = await app.request(buddyUrl("buddy-missing"))
+    expect(res.status).toBe(404)
+  })
+})
+
 describe("GET /books/:label/images/:imageId", () => {
   function createBookWithImage(label: string): void {
     const storage = createBookStorage(label, tmpDir)

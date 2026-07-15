@@ -959,6 +959,34 @@ export function createBookRoutes(
       return c.body(fs.readFileSync(voicePath))
     }
 
+    // Buddy art is only packaged into kids books, but the Studio preview can
+    // force the kids chrome on any book ("Preview kids UI"). When the packaged
+    // book lacks the buddy PNGs, serve them live from the shared web assets dir
+    // so the forced preview still renders — same rationale as kids-voice above.
+    if (filePath.startsWith("assets/kids-buddies/") && webAssetsDir) {
+      const packagedBuddy = path.resolve(adtDir, filePath)
+      const inPackage =
+        packagedBuddy.startsWith(adtDir + path.sep) &&
+        fs.existsSync(packagedBuddy) &&
+        fs.statSync(packagedBuddy).isFile()
+      if (!inPackage) {
+        const buddiesDir = path.resolve(webAssetsDir, "kids-buddies")
+        const sharedBuddy = path.resolve(
+          buddiesDir,
+          filePath.slice("assets/kids-buddies/".length),
+        )
+        if (!sharedBuddy.startsWith(buddiesDir + path.sep)) {
+          throw new HTTPException(400, { message: "Invalid path" })
+        }
+        if (fs.existsSync(sharedBuddy) && fs.statSync(sharedBuddy).isFile()) {
+          const ext = path.extname(sharedBuddy).toLowerCase()
+          c.header("Content-Type", MIME_TYPES[ext] ?? "application/octet-stream")
+          c.header("Cache-Control", "no-store")
+          return c.body(fs.readFileSync(sharedBuddy))
+        }
+      }
+    }
+
     const resolvedPath = path.resolve(adtDir, filePath)
     if (!resolvedPath.startsWith(adtDir + path.sep)) {
       throw new HTTPException(400, { message: "Invalid path" })

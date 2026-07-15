@@ -732,7 +732,11 @@ export async function packageAdtWeb(
   progress.emit({ type: "step-progress", step, message: "Copying web assets..." })
 
   const assetsDir = path.join(adtDir, "assets")
-  copyDirRecursive(webAssetsDir, assetsDir, new Set(["interface_translations"]))
+  copyDirRecursive(
+    webAssetsDir,
+    assetsDir,
+    new Set(["interface_translations", "kids-buddies"]),
+  )
 
   // Copy only required interface translations
   const itSrc = path.join(webAssetsDir, "interface_translations")
@@ -746,6 +750,16 @@ export async function packageAdtWeb(
       if (src) {
         copyDirRecursive(src, path.join(itDest, lang))
       }
+    }
+  }
+
+  // kids-buddies/ — PNG buddy expression sets. The runtime references them
+  // book-relative (./assets/kids-buddies/<id>/<id>_<n>.png) instead of baking
+  // them into the shared bundle, so they only ship with kids books.
+  if (features?.kidsMode === true) {
+    const buddiesSrc = path.join(webAssetsDir, "kids-buddies")
+    if (fs.existsSync(buddiesSrc)) {
+      copyDirRecursive(buddiesSrc, path.join(assetsDir, "kids-buddies"))
     }
   }
 
