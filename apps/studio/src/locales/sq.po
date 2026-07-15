@@ -1296,6 +1296,12 @@ msgstr "Përshtaton automatikisht paraqitjen bazuar në përmbajtjen e çdo faqe
 msgid "Automatically create quizzes across the whole book at a set frequency."
 msgstr "Krijo automatikisht teste në të gjithë librin me një frekuencë të caktuar."
 
+msgid "Available beta versions"
+msgstr "Versionet beta të disponueshme"
+
+#~ msgid "Available versions"
+#~ msgstr "Versionet e disponueshme"
+
 msgid "Avg Duration"
 msgstr "Kohëzgjatja mesatare"
 
@@ -1387,6 +1393,9 @@ msgstr "Beta"
 
 msgid "Beta release"
 msgstr "Version beta"
+
+msgid "Beta versions"
+msgstr "Versionet beta"
 
 msgid "Bit Rate"
 msgstr "Shpejtësia e bitit"
@@ -1683,6 +1692,9 @@ msgstr "Zgjidhni një preset që përputhet me përmbajtjen tuaj — tekst shkol
 
 msgid "Choose an existing image from this project"
 msgstr "Zgjidhni një imazh ekzistues nga ky projekt"
+
+msgid "Choose any available beta version to install."
+msgstr "Zgjidhni çdo version beta të disponueshëm për ta instaluar."
 
 msgid "Choose features to include in this export"
 msgstr "Zgjidhni funksionet për t'i përfshirë në këtë eksportim"
@@ -2090,8 +2102,8 @@ msgstr "Vlerat aktuale efektive"
 msgid "Current Preview Page"
 msgstr "Faqja aktuale e pamjes paraprake"
 
-#~ msgid "Current version"
-#~ msgstr "Versioni aktual"
+msgid "Current version"
+msgstr "Versioni aktual"
 
 msgid "Custom"
 msgstr "I personalizuar"
@@ -2107,6 +2119,9 @@ msgstr "Interval i personalizuar"
 
 msgid "Custom section {index}"
 msgstr "Seksion i personalizuar {index}"
+
+msgid "Date unavailable"
+msgstr "Data nuk është e disponueshme"
 
 msgid "Debug mode is not enabled."
 msgstr "Modaliteti i korrigjimit nuk është aktivizuar."
@@ -2360,6 +2375,9 @@ msgstr "U krye"
 
 msgid "DONE"
 msgstr "KRYER"
+
+#~ msgid "Downgrade"
+#~ msgstr "Kthim në version më të vjetër"
 
 msgid "Download a full backup of this project"
 msgstr "Shkarko një kopje rezervë të plotë të këtij projekti"
@@ -3617,8 +3635,17 @@ msgstr "Vendos kuizin këtu"
 msgid "Inside Cover"
 msgstr "Kapaku i brendshëm"
 
+msgid "Install older version"
+msgstr "Instalo versionin më të vjetër"
+
 msgid "Install on quit"
 msgstr "Instalo gjatë daljes"
+
+msgid "Install update"
+msgstr "Instalo përditësimin"
+
+msgid "Installed"
+msgstr "I instaluar"
 
 msgid "Installing update…"
 msgstr "Duke instaluar përditësimin…"
@@ -3754,6 +3781,9 @@ msgstr "Imazhe të mëdha, rrjedhje narrative. Më i miri për libra të ilustru
 
 msgid "Last modified"
 msgstr "Modifikuar së fundmi"
+
+msgid "Last week"
+msgstr "Java e kaluar"
 
 msgid "Launch the app with"
 msgstr "Hap aplikacionin me"
@@ -3973,6 +4003,9 @@ msgstr "Duke ngarkuar katalogun e tekstit..."
 
 msgid "Loading validation..."
 msgstr "Duke ngarkuar vërtetimin..."
+
+msgid "Loading versions…"
+msgstr "Versionet po ngarkohen…"
 
 msgid "Loading voice mappings..."
 msgstr "Duke ngarkuar hartëzimet e zërit..."
@@ -4376,6 +4409,9 @@ msgstr "Pa audio"
 msgid "No audio for this page"
 msgstr "Nuk ka audio për këtë faqe"
 
+msgid "No beta versions are available for this platform."
+msgstr "Nuk ka versione beta të disponueshme për këtë platformë."
+
 msgid "No books match your search"
 msgstr "Asnjë libër nuk përputhet me kërkimin tuaj"
 
@@ -4552,6 +4588,9 @@ msgstr "Asnjë kuiz nuk përputhet me kërkimin tuaj"
 
 #~ msgid "No readable text extracted from this page"
 #~ msgstr "Nuk u nxor tekst i lexueshëm nga kjo faqe"
+
+msgid "No release notes were provided for this version."
+msgstr "Nuk u dhanë shënime të versionit për këtë version."
 
 msgid "No rendered content for this section"
 msgstr "Nuk ka përmbajtje të gjeneruar për këtë seksion"
@@ -5280,6 +5319,9 @@ msgstr "Preferoni terma qendrore për lëndën e librit. Anashkaloni fjalor gjen
 msgid "Preparing speech..."
 msgstr "Duke përgatitur audion..."
 
+msgid "Preparing…"
+msgstr "Duke u përgatitur…"
+
 msgid "Preserves the source PDF's exact page layout"
 msgstr "Ruan paraqitjen e saktë të faqes nga PDF-ja burimore"
 
@@ -5623,6 +5665,9 @@ msgstr "Referencë"
 msgid "Refinement Prompt"
 msgstr "Kërkesa e Rafinimit"
 
+msgid "Refresh list"
+msgstr "Rifresko listën"
+
 msgid "Refresh validation"
 msgstr "Rifresko validimin"
 
@@ -5655,6 +5700,9 @@ msgstr "I relaksuar"
 
 msgid "Release"
 msgstr "Publikim"
+
+msgid "Release notes"
+msgstr "Shënimet e versionit"
 
 msgid "Release to upload"
 msgstr "Lëshoni për të ngarkuar"
@@ -6334,6 +6382,9 @@ msgstr "Zgjidhni një modalitet seksioni për të vazhduar"
 
 msgid "Select a style guide to preview how it styles the generated pages - typography, colors, and component layout."
 msgstr "Zgjidhni një udhëzues stili për të parë paraprakisht si stilon faqet e gjeneruara - tipografi, ngjyra dhe paraqitje komponentësh."
+
+msgid "Select a version to see its release notes."
+msgstr "Zgjidhni një version për të parë shënimet e tij."
 
 msgid "Select activity mode..."
 msgstr "Zgjidhni modalitetin e aktivitetit..."
@@ -7331,6 +7382,9 @@ msgstr "Kjo sesion po përdor një fotografi të vjetër të listës së kontrol
 msgid "This text is only perceptible to assistive technologies."
 msgstr "Ky tekst perceptohet vetëm nga teknologjitë ndihmëse."
 
+msgid "This week"
+msgstr "Këtë javë"
+
 #~ msgid "This will save your Easy Read settings and generate a new editable Easy Read version."
 #~ msgstr "Kjo do të ruajë cilësimet tuaja Easy Read dhe do të gjenerojë një version të ri të redaktueshëm Easy Read."
 
@@ -7405,6 +7459,9 @@ msgstr "Mënyra TOC"
 
 msgid "TOC Preview"
 msgstr "Paraparimimi TOC"
+
+msgid "Today"
+msgstr "Sot"
 
 msgid "Toggle model list"
 msgstr "Ndrysho listën e modeleve"
@@ -7621,6 +7678,9 @@ msgstr "Kuiz pa titull"
 
 msgid "Unverified license"
 msgstr "Licencë e paverifikuar"
+
+#~ msgid "Update"
+#~ msgstr "Përditësim"
 
 msgid "Update available"
 msgstr "Përditësim i disponueshëm"
@@ -8012,6 +8072,9 @@ msgstr "Mbështjell kërkesat 'Redakto këtë imazh'. AI-ja merr imazhin origjin
 
 msgid "Wraps 'Generate new' requests. Supports user_prompt, style, and image_type variables. Uses Liquid syntax for conditionals."
 msgstr "Mbështjell kërkesat 'Gjenero të re'. Mbështet variablat user_prompt, style dhe image_type. Përdor sintaksën Liquid për kushtet."
+
+msgid "Yesterday"
+msgstr "Dje"
 
 msgid "You can export at this stage"
 msgstr "Mund të eksportosh në këtë fazë"

@@ -5,7 +5,16 @@ import {
   type ProgressInfo,
   type UpdateInfo,
 } from "electron-updater";
+import {
+  betaReleaseDownloadUrl,
+  fetchBetaReleaseCatalog,
+  isBetaReleaseVersion,
+  type AvailableRelease,
+  type BetaRelease,
+} from "./release-catalog";
 import { recordPendingInstall } from "./update-state";
+
+export type { AvailableRelease } from "./release-catalog";
 
 export type UpdateStatus =
   | { phase: "idle" }
@@ -32,20 +41,20 @@ export type UpdateStatus =
 
 type StatusListener = (status: UpdateStatus) => void;
 
-function isPrereleaseVersion(version: string): boolean {
-  return version.includes("-beta");
-}
-
 const listeners = new Set<StatusListener>();
 let lastStatus: UpdateStatus = { phase: "idle" };
 let lastInfo: UpdateInfo | null = null;
 let cancellationToken: CancellationToken | null = null;
+let betaReleases: BetaRelease[] = [];
+let activeBetaRelease: BetaRelease | null = null;
 
-function normalizeReleaseNotes(notes: UpdateInfo["releaseNotes"]): string | undefined {
+function normalizeReleaseNotes(
+  notes: UpdateInfo["releaseNotes"],
+): string | undefined {
   if (!notes) return undefined;
   if (typeof notes === "string") return notes;
   return notes
-    .map((entry) => (typeof entry === "string" ? entry : entry.note ?? ""))
+    .map((entry) => (typeof entry === "string" ? entry : (entry.note ?? "")))
     .filter(Boolean)
     .join("\n\n");
 }
@@ -64,7 +73,9 @@ function emitAvailableFromLastInfo(): void {
     phase: "available",
     version: lastInfo.version,
     releaseDate: lastInfo.releaseDate,
-    releaseNotes: normalizeReleaseNotes(lastInfo.releaseNotes),
+    releaseNotes:
+      normalizeReleaseNotes(lastInfo.releaseNotes) ??
+      activeBetaRelease?.releaseNotes,
     totalBytes: lastInfo.files?.[0]?.size,
   });
 }
@@ -89,7 +100,7 @@ let configured = false;
 
 function configure(): void {
   if (configured) return;
-  const isBeta = isPrereleaseVersion(app.getVersion());
+  const isBeta = isBetaReleaseVersion(app.getVersion());
 
   configured = true;
 
@@ -97,7 +108,7 @@ function configure(): void {
   autoUpdater.autoInstallOnAppQuit = false;
   autoUpdater.allowPrerelease = isBeta;
   autoUpdater.channel = isBeta ? "beta" : "latest";
-  autoUpdater.allowDowngrade = false;
+  autoUpdater.allowDowngrade = isBeta;
   autoUpdater.logger = console;
 
   autoUpdater.on("checking-for-update", () => {
@@ -109,7 +120,8 @@ function configure(): void {
     // up on the channel feed, ignore it — installing it would silently turn a
     // beta install into a stable one. Stable installs already ignore betas via
     // `allowPrerelease = false`, so this guard only matters for beta builds.
-    if (isBeta && !isPrereleaseVersion(info.version)) {
+    if (isBeta && !isBetaReleaseVersion(info.version)) {
+      lastInfo = null;
       emit({ phase: "not-available" });
       return;
     }
@@ -119,12 +131,15 @@ function configure(): void {
       phase: "available",
       version: info.version,
       releaseDate: info.releaseDate,
-      releaseNotes: normalizeReleaseNotes(info.releaseNotes),
+      releaseNotes:
+        normalizeReleaseNotes(info.releaseNotes) ??
+        activeBetaRelease?.releaseNotes,
       totalBytes,
     });
   });
 
   autoUpdater.on("update-not-available", () => {
+    lastInfo = null;
     emit({ phase: "not-available" });
   });
 
@@ -141,7 +156,9 @@ function configure(): void {
 
   autoUpdater.on("update-downloaded", (info: UpdateInfo) => {
     lastInfo = info;
-    const releaseNotes = normalizeReleaseNotes(info.releaseNotes);
+    const releaseNotes =
+      normalizeReleaseNotes(info.releaseNotes) ??
+      activeBetaRelease?.releaseNotes;
     recordPendingInstall(info.version, releaseNotes);
     emit({
       phase: "downloaded",
@@ -171,6 +188,20 @@ export async function checkForUpdates(): Promise<UpdateStatus> {
   configure();
 
   try {
+    if (isBetaReleaseVersion(app.getVersion())) {
+      betaReleases = await fetchBetaReleaseCatalog(app.getVersion());
+      const newestUpgrade = betaReleases.find(
+        (release) => release.direction === "upgrade",
+      );
+      if (!newestUpgrade) {
+        lastInfo = null;
+        emit({ phase: "not-available" });
+        return lastStatus;
+      }
+      return await checkBetaRelease(newestUpgrade);
+    }
+
+    activeBetaRelease = null;
     await autoUpdater.checkForUpdates();
     return lastStatus;
   } catch (err) {
@@ -178,6 +209,65 @@ export async function checkForUpdates(): Promise<UpdateStatus> {
     emit({ phase: "error", message });
     return lastStatus;
   }
+}
+
+/**
+ * Return every installable release on the beta track, including the currently
+ * installed version and older versions that can be selected for downgrade.
+ */
+export async function listAvailableVersions(
+  force = false,
+): Promise<AvailableRelease[]> {
+  if (!isBetaReleaseVersion(app.getVersion())) return [];
+
+  betaReleases = await fetchBetaReleaseCatalog(app.getVersion(), { force });
+  return betaReleases.map(
+    ({ tagName: _tagName, updaterChannel: _updaterChannel, ...release }) =>
+      release,
+  );
+}
+
+/**
+ * Point electron-updater at one specific beta release. The version is resolved
+ * against the GitHub release catalog rather than interpolated from renderer
+ * input, so only a published, platform-compatible release can be selected.
+ */
+export async function selectVersion(version: string): Promise<UpdateStatus> {
+  if (!app.isPackaged || !isBetaReleaseVersion(app.getVersion())) {
+    emit({ phase: "not-available" });
+    return lastStatus;
+  }
+
+  configure();
+
+  try {
+    if (!betaReleases.some((release) => release.version === version)) {
+      betaReleases = await fetchBetaReleaseCatalog(app.getVersion());
+    }
+    const target = betaReleases.find((release) => release.version === version);
+    if (!target) {
+      throw new Error("The selected beta version is no longer available");
+    }
+    return await checkBetaRelease(target);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    emit({ phase: "error", message });
+    return lastStatus;
+  }
+}
+
+async function checkBetaRelease(target: BetaRelease): Promise<UpdateStatus> {
+  lastInfo = null;
+  activeBetaRelease = target;
+  autoUpdater.allowPrerelease = true;
+  autoUpdater.allowDowngrade = true;
+  autoUpdater.channel = target.updaterChannel;
+  autoUpdater.setFeedURL({
+    provider: "generic",
+    url: betaReleaseDownloadUrl(target),
+  });
+  await autoUpdater.checkForUpdates();
+  return lastStatus;
 }
 
 /**

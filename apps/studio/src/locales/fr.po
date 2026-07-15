@@ -1297,6 +1297,12 @@ msgstr "Adapte automatiquement la mise en page en fonction du contenu de chaque 
 msgid "Automatically create quizzes across the whole book at a set frequency."
 msgstr "Créez automatiquement des quiz dans tout le livre selon une fréquence définie."
 
+msgid "Available beta versions"
+msgstr "Versions bêta disponibles"
+
+#~ msgid "Available versions"
+#~ msgstr "Versions disponibles"
+
 msgid "Avg Duration"
 msgstr "Avg Durée"
 
@@ -1388,6 +1394,9 @@ msgstr "Beta"
 
 msgid "Beta release"
 msgstr "Version bêta"
+
+msgid "Beta versions"
+msgstr "Versions bêta"
 
 msgid "Bit Rate"
 msgstr "Débit binaire"
@@ -1684,6 +1693,9 @@ msgstr "Choisissez un préréglage qui correspond à votre contenu — manuel, s
 
 msgid "Choose an existing image from this project"
 msgstr "Choisissez une image existante de ce projet"
+
+msgid "Choose any available beta version to install."
+msgstr "Choisissez n’importe quelle version bêta disponible à installer."
 
 msgid "Choose features to include in this export"
 msgstr "Choisissez les fonctionnalités à inclure dans cette exportation"
@@ -2091,8 +2103,8 @@ msgstr "Valeurs effectives actuelles"
 msgid "Current Preview Page"
 msgstr "Page d'aperçu actuelle"
 
-#~ msgid "Current version"
-#~ msgstr "Version actuelle"
+msgid "Current version"
+msgstr "Version actuelle"
 
 msgid "Custom"
 msgstr "Personnalisé"
@@ -2108,6 +2120,9 @@ msgstr "Plage personnalisée"
 
 msgid "Custom section {index}"
 msgstr "Section personnalisée {index}"
+
+msgid "Date unavailable"
+msgstr "Date indisponible"
 
 msgid "Debug mode is not enabled."
 msgstr "Le mode débogage n'est pas activé."
@@ -2361,6 +2376,9 @@ msgstr "Terminé"
 
 msgid "DONE"
 msgstr "TERMINÉ"
+
+#~ msgid "Downgrade"
+#~ msgstr "Rétrogradation"
 
 msgid "Download a full backup of this project"
 msgstr "Télécharger une sauvegarde complète de ce projet"
@@ -3618,8 +3636,17 @@ msgstr "Insérer le quiz ici"
 msgid "Inside Cover"
 msgstr "Page de garde"
 
+msgid "Install older version"
+msgstr "Installer une version antérieure"
+
 msgid "Install on quit"
 msgstr "Installer à la fermeture"
+
+msgid "Install update"
+msgstr "Installer la mise à jour"
+
+msgid "Installed"
+msgstr "Installée"
 
 msgid "Installing update…"
 msgstr "Installation de la mise à jour…"
@@ -3755,6 +3782,9 @@ msgstr "Grandes images, flux narratif. Idéal pour les livres illustrés avec de
 
 msgid "Last modified"
 msgstr "Dernière modification"
+
+msgid "Last week"
+msgstr "La semaine dernière"
 
 msgid "Launch the app with"
 msgstr "Lancer l'application avec"
@@ -3974,6 +4004,9 @@ msgstr "Chargement du catalogue de texte..."
 
 msgid "Loading validation..."
 msgstr "Chargement de la validation..."
+
+msgid "Loading versions…"
+msgstr "Chargement des versions…"
 
 msgid "Loading voice mappings..."
 msgstr "Chargement des correspondances de voix..."
@@ -4377,6 +4410,9 @@ msgstr "Pas d'audio"
 msgid "No audio for this page"
 msgstr "Pas de son pour cette page"
 
+msgid "No beta versions are available for this platform."
+msgstr "Aucune version bêta n’est disponible pour cette plateforme."
+
 msgid "No books match your search"
 msgstr "Aucun livre ne correspond à votre recherche"
 
@@ -4553,6 +4589,9 @@ msgstr "Aucun quiz ne correspond à votre recherche"
 
 #~ msgid "No readable text extracted from this page"
 #~ msgstr "Aucun texte lisible extrait de cette page"
+
+msgid "No release notes were provided for this version."
+msgstr "Aucune note de version n’a été fournie pour cette version."
 
 msgid "No rendered content for this section"
 msgstr "Aucun contenu rendu pour cette section"
@@ -5281,6 +5320,9 @@ msgstr "Privilégiez les termes centraux au sujet du livre. Évitez le vocabulai
 msgid "Preparing speech..."
 msgstr "Préparation de la synthèse vocale..."
 
+msgid "Preparing…"
+msgstr "Préparation…"
+
 msgid "Preserves the source PDF's exact page layout"
 msgstr "Préserve la mise en page exacte du PDF source"
 
@@ -5624,6 +5666,9 @@ msgstr "Référence"
 msgid "Refinement Prompt"
 msgstr "Prompt de raffinement"
 
+msgid "Refresh list"
+msgstr "Actualiser la liste"
+
 msgid "Refresh validation"
 msgstr "Actualiser validation"
 
@@ -5656,6 +5701,9 @@ msgstr "Détendu"
 
 msgid "Release"
 msgstr "Version"
+
+msgid "Release notes"
+msgstr "Notes de version"
 
 msgid "Release to upload"
 msgstr "Relâchez pour importer"
@@ -6335,6 +6383,9 @@ msgstr "Sélectionnez un mode de section pour continuer"
 
 msgid "Select a style guide to preview how it styles the generated pages - typography, colors, and component layout."
 msgstr "Sélectionnez un guide de style pour prévisualiser comment il stylise les pages générées — typographie, couleurs et disposition des composants."
+
+msgid "Select a version to see its release notes."
+msgstr "Sélectionnez une version pour afficher ses notes de version."
 
 msgid "Select activity mode..."
 msgstr "Sélectionnez le mode d'activité..."
@@ -7332,6 +7383,9 @@ msgstr "Cette session utilise un ancien instantané de la liste de contrôle du 
 msgid "This text is only perceptible to assistive technologies."
 msgstr "Ce texte n'est perceptible que par les technologies d'assistance."
 
+msgid "This week"
+msgstr "Cette semaine"
+
 #~ msgid "This will save your Easy Read settings and generate a new editable Easy Read version."
 #~ msgstr "Cela enregistrera vos paramètres Lecture Facile et générera une nouvelle version Lecture Facile modifiable."
 
@@ -7406,6 +7460,9 @@ msgstr "Mode table des matières"
 
 msgid "TOC Preview"
 msgstr "Aperçu de la table des matières"
+
+msgid "Today"
+msgstr "Aujourd’hui"
 
 msgid "Toggle model list"
 msgstr "Afficher/masquer la liste des modèles"
@@ -7622,6 +7679,9 @@ msgstr "Quiz sans titre"
 
 msgid "Unverified license"
 msgstr "Licence non vérifiée"
+
+#~ msgid "Update"
+#~ msgstr "Mise à jour"
 
 msgid "Update available"
 msgstr "Mise à jour disponible"
@@ -8013,6 +8073,9 @@ msgstr "Encapsule les requêtes « Modifier cette image ». L'IA reçoit l'image
 
 msgid "Wraps 'Generate new' requests. Supports user_prompt, style, and image_type variables. Uses Liquid syntax for conditionals."
 msgstr "Encapsule les requêtes « Générer nouveau ». Prend en charge les variables user_prompt, style et image_type. Utilise la syntaxe Liquid pour les conditions."
+
+msgid "Yesterday"
+msgstr "Hier"
 
 msgid "You can export at this stage"
 msgstr "Vous pouvez exporter à cette étape"

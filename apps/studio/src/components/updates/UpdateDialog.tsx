@@ -20,6 +20,7 @@ import {
 import { useAppVersion } from "@/hooks/use-app-version"
 import { useUpdateStatus, type UpdateStatus } from "@/hooks/use-update-status"
 import { formatBytes, cn } from "@/lib/utils"
+import { BetaVersionsView } from "./BetaVersionsView"
 import { formatVersion, getReleaseChannel } from "./release-banner-utils"
 
 export interface UpdateDialogProps {
@@ -54,30 +55,49 @@ export function UpdateDialog({
   const live = useUpdateStatus()
   const status = statusOverride ?? live.status
   const { check, download, cancel, install, installOnQuit } = live
+  const showBetaVersions =
+    currentVersion != null &&
+    getReleaseChannel(currentVersion) === "beta" &&
+    status.phase !== "downloading" &&
+    status.phase !== "downloaded" &&
+    status.phase !== "installing"
 
   const close = () => onOpenChange(false)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange} modal={modal}>
-      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-[500px]">
+      <DialogContent
+        className={cn(
+          "gap-0 overflow-hidden p-0",
+          showBetaVersions ? "sm:max-w-5xl" : "sm:max-w-125",
+        )}
+      >
         <DialogDescription className="sr-only">
           <Trans>Software update status</Trans>
         </DialogDescription>
-        <UpdateStateSurface
-          status={status}
-          currentVersion={currentVersion}
-          TitleTag={DialogTitle}
-          onCheck={check}
-          onDownload={download}
-          onCancel={cancel}
-          onInstallNow={install}
-          onInstallLater={async () => {
-            await installOnQuit()
-            close()
-          }}
-          onClose={close}
-          onShowWhatsNew={onShowWhatsNew}
-        />
+        {showBetaVersions ? (
+          <BetaVersionsView
+            status={status}
+            currentVersion={currentVersion}
+            onClose={close}
+          />
+        ) : (
+          <UpdateStateSurface
+            status={status}
+            currentVersion={currentVersion}
+            TitleTag={DialogTitle}
+            onCheck={check}
+            onDownload={download}
+            onCancel={cancel}
+            onInstallNow={install}
+            onInstallLater={async () => {
+              await installOnQuit()
+              close()
+            }}
+            onClose={close}
+            onShowWhatsNew={onShowWhatsNew}
+          />
+        )}
       </DialogContent>
     </Dialog>
   )
@@ -275,9 +295,7 @@ function buildView({
       loading: true,
       icon: <Loader2 className="size-6 animate-spin" />,
       title: <Trans>Installing update…</Trans>,
-      subtitle: (
-        <Trans>ADT Studio will restart to finish installing.</Trans>
-      ),
+      subtitle: <Trans>ADT Studio will restart to finish installing.</Trans>,
       body: <IndeterminateBar />,
     }
   }

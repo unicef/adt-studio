@@ -85,6 +85,14 @@ type ElectronUpdateStatus =
   | { phase: "installing"; version: string }
   | { phase: "error"; message: string }
 
+interface ElectronAvailableRelease {
+  version: string
+  releaseDate?: string
+  releaseNotes?: string
+  totalBytes?: number
+  direction: "upgrade" | "current" | "downgrade"
+}
+
 interface ElectronPostUpdateInfo {
   version: string
   releaseNotes?: string
@@ -97,6 +105,8 @@ interface ElectronUpdatesApi {
   install: () => Promise<void>
   installOnQuit: () => Promise<void>
   getStatus: () => Promise<ElectronUpdateStatus>
+  listVersions: (force?: boolean) => Promise<ElectronAvailableRelease[]>
+  selectVersion: (version: string) => Promise<ElectronUpdateStatus>
   getPostUpdate: () => Promise<ElectronPostUpdateInfo | null>
   onStatus: (cb: (status: ElectronUpdateStatus) => void) => () => void
 }

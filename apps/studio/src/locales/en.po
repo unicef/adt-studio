@@ -1295,6 +1295,12 @@ msgstr "Automatically adapts the layout based on each page's content using AI."
 msgid "Automatically create quizzes across the whole book at a set frequency."
 msgstr "Automatically create quizzes across the whole book at a set frequency."
 
+msgid "Available beta versions"
+msgstr "Available beta versions"
+
+#~ msgid "Available versions"
+#~ msgstr "Available versions"
+
 msgid "Avg Duration"
 msgstr "Avg Duration"
 
@@ -1386,6 +1392,9 @@ msgstr "Beta"
 
 msgid "Beta release"
 msgstr "Beta release"
+
+msgid "Beta versions"
+msgstr "Beta versions"
 
 msgid "Bit Rate"
 msgstr "Bit Rate"
@@ -1682,6 +1691,9 @@ msgstr "Choose a preset that matches your content — textbook, storyboard, refe
 
 msgid "Choose an existing image from this project"
 msgstr "Choose an existing image from this project"
+
+msgid "Choose any available beta version to install."
+msgstr "Choose any available beta version to install."
 
 msgid "Choose features to include in this export"
 msgstr "Choose features to include in this export"
@@ -2089,8 +2101,8 @@ msgstr "Current effective values"
 msgid "Current Preview Page"
 msgstr "Current Preview Page"
 
-#~ msgid "Current version"
-#~ msgstr "Current version"
+msgid "Current version"
+msgstr "Current version"
 
 msgid "Custom"
 msgstr "Custom"
@@ -2106,6 +2118,9 @@ msgstr "Custom range"
 
 msgid "Custom section {index}"
 msgstr "Custom section {index}"
+
+msgid "Date unavailable"
+msgstr "Date unavailable"
 
 msgid "Debug mode is not enabled."
 msgstr "Debug mode is not enabled."
@@ -2359,6 +2374,9 @@ msgstr "Done"
 
 msgid "DONE"
 msgstr "DONE"
+
+#~ msgid "Downgrade"
+#~ msgstr "Downgrade"
 
 msgid "Download a full backup of this project"
 msgstr "Download a full backup of this project"
@@ -3616,8 +3634,17 @@ msgstr "Insert the quiz here"
 msgid "Inside Cover"
 msgstr "Inside Cover"
 
+msgid "Install older version"
+msgstr "Install older version"
+
 msgid "Install on quit"
 msgstr "Install on quit"
+
+msgid "Install update"
+msgstr "Install update"
+
+msgid "Installed"
+msgstr "Installed"
 
 msgid "Installing update…"
 msgstr "Installing update…"
@@ -3753,6 +3780,9 @@ msgstr "Large images, narrative flow. Best for illustrated books with high-fidel
 
 msgid "Last modified"
 msgstr "Last modified"
+
+msgid "Last week"
+msgstr "Last week"
 
 msgid "Launch the app with"
 msgstr "Launch the app with"
@@ -3972,6 +4002,9 @@ msgstr "Loading text catalog..."
 
 msgid "Loading validation..."
 msgstr "Loading validation..."
+
+msgid "Loading versions…"
+msgstr "Loading versions…"
 
 msgid "Loading voice mappings..."
 msgstr "Loading voice mappings..."
@@ -4375,6 +4408,9 @@ msgstr "No audio"
 msgid "No audio for this page"
 msgstr "No audio for this page"
 
+msgid "No beta versions are available for this platform."
+msgstr "No beta versions are available for this platform."
+
 msgid "No books match your search"
 msgstr "No books match your search"
 
@@ -4551,6 +4587,9 @@ msgstr "No quizzes match your search"
 
 #~ msgid "No readable text extracted from this page"
 #~ msgstr "No readable text extracted from this page"
+
+msgid "No release notes were provided for this version."
+msgstr "No release notes were provided for this version."
 
 msgid "No rendered content for this section"
 msgstr "No rendered content for this section"
@@ -5279,6 +5318,9 @@ msgstr "Prefer terms central to the book's subject matter. Skip generic vocabula
 msgid "Preparing speech..."
 msgstr "Preparing speech..."
 
+msgid "Preparing…"
+msgstr "Preparing…"
+
 msgid "Preserves the source PDF's exact page layout"
 msgstr "Preserves the source PDF's exact page layout"
 
@@ -5622,6 +5664,9 @@ msgstr "Reference"
 msgid "Refinement Prompt"
 msgstr "Refinement Prompt"
 
+msgid "Refresh list"
+msgstr "Refresh list"
+
 msgid "Refresh validation"
 msgstr "Refresh validation"
 
@@ -5654,6 +5699,9 @@ msgstr "Relaxed"
 
 msgid "Release"
 msgstr "Release"
+
+msgid "Release notes"
+msgstr "Release notes"
 
 msgid "Release to upload"
 msgstr "Release to upload"
@@ -6333,6 +6381,9 @@ msgstr "Select a section mode to continue"
 
 msgid "Select a style guide to preview how it styles the generated pages - typography, colors, and component layout."
 msgstr "Select a style guide to preview how it styles the generated pages - typography, colors, and component layout."
+
+msgid "Select a version to see its release notes."
+msgstr "Select a version to see its release notes."
 
 msgid "Select activity mode..."
 msgstr "Select activity mode..."
@@ -7330,6 +7381,9 @@ msgstr "This session is using an older reviewer checklist snapshot. Newer checkl
 msgid "This text is only perceptible to assistive technologies."
 msgstr "This text is only perceptible to assistive technologies."
 
+msgid "This week"
+msgstr "This week"
+
 #~ msgid "This will save your Easy Read settings and generate a new editable Easy Read version."
 #~ msgstr "This will save your Easy Read settings and generate a new editable Easy Read version."
 
@@ -7404,6 +7458,9 @@ msgstr "TOC Mode"
 
 msgid "TOC Preview"
 msgstr "TOC Preview"
+
+msgid "Today"
+msgstr "Today"
 
 msgid "Toggle model list"
 msgstr "Toggle model list"
@@ -7620,6 +7677,9 @@ msgstr "Untitled quiz"
 
 msgid "Unverified license"
 msgstr "Unverified license"
+
+#~ msgid "Update"
+#~ msgstr "Update"
 
 msgid "Update available"
 msgstr "Update available"
@@ -8011,6 +8071,9 @@ msgstr "Wraps 'Edit this image' requests. The AI receives the original image alo
 
 msgid "Wraps 'Generate new' requests. Supports user_prompt, style, and image_type variables. Uses Liquid syntax for conditionals."
 msgstr "Wraps 'Generate new' requests. Supports user_prompt, style, and image_type variables. Uses Liquid syntax for conditionals."
+
+msgid "Yesterday"
+msgstr "Yesterday"
 
 msgid "You can export at this stage"
 msgstr "You can export at this stage"

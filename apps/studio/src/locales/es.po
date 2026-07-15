@@ -1295,6 +1295,12 @@ msgstr "Adapta automáticamente el diseño según el contenido de cada página u
 msgid "Automatically create quizzes across the whole book at a set frequency."
 msgstr "Crea cuestionarios automáticamente en todo el libro con una frecuencia determinada."
 
+msgid "Available beta versions"
+msgstr "Versiones beta disponibles"
+
+#~ msgid "Available versions"
+#~ msgstr "Versiones disponibles"
+
 msgid "Avg Duration"
 msgstr "Duración media"
 
@@ -1386,6 +1392,9 @@ msgstr "Beta"
 
 msgid "Beta release"
 msgstr "Versión beta"
+
+msgid "Beta versions"
+msgstr "Versiones beta"
 
 msgid "Bit Rate"
 msgstr "Tasa de bits"
@@ -1682,6 +1691,9 @@ msgstr "Elige un preajuste que coincida con tu contenido — libro de texto, gui
 
 msgid "Choose an existing image from this project"
 msgstr "Elige una imagen existente de este proyecto"
+
+msgid "Choose any available beta version to install."
+msgstr "Elige cualquier versión beta disponible para instalar."
 
 msgid "Choose features to include in this export"
 msgstr "Elige características para incluir en esta exportación"
@@ -2089,8 +2101,8 @@ msgstr "Current effective values"
 msgid "Current Preview Page"
 msgstr "Current Preview Page"
 
-#~ msgid "Current version"
-#~ msgstr "Versión actual"
+msgid "Current version"
+msgstr "Versión actual"
 
 msgid "Custom"
 msgstr "Personalizado"
@@ -2106,6 +2118,9 @@ msgstr "Intervalo personalizado"
 
 msgid "Custom section {index}"
 msgstr "Custom section {index}"
+
+msgid "Date unavailable"
+msgstr "Fecha no disponible"
 
 msgid "Debug mode is not enabled."
 msgstr "El modo de depuración no está habilitado."
@@ -2359,6 +2374,9 @@ msgstr "Hecho"
 
 msgid "DONE"
 msgstr "HECHO"
+
+#~ msgid "Downgrade"
+#~ msgstr "Bajar de versión"
 
 msgid "Download a full backup of this project"
 msgstr "Descargar una copia de seguridad completa de este proyecto"
@@ -3616,8 +3634,17 @@ msgstr "Insertar el cuestionario aquí"
 msgid "Inside Cover"
 msgstr "Contraportada interna"
 
+msgid "Install older version"
+msgstr "Instalar versión anterior"
+
 msgid "Install on quit"
 msgstr "Instalar al salir"
+
+msgid "Install update"
+msgstr "Instalar actualización"
+
+msgid "Installed"
+msgstr "Instalada"
 
 msgid "Installing update…"
 msgstr "Instalando actualización…"
@@ -3753,6 +3780,9 @@ msgstr "Imágenes grandes, flujo narrativo. Mejor para libros ilustrados con voc
 
 msgid "Last modified"
 msgstr "Última modificación"
+
+msgid "Last week"
+msgstr "La semana pasada"
 
 msgid "Launch the app with"
 msgstr "Iniciar la aplicación con"
@@ -3972,6 +4002,9 @@ msgstr "Cargando catálogo de textos..."
 
 msgid "Loading validation..."
 msgstr "Cargando validación..."
+
+msgid "Loading versions…"
+msgstr "Cargando versiones…"
 
 msgid "Loading voice mappings..."
 msgstr "Cargando asignaciones de voz..."
@@ -4375,6 +4408,9 @@ msgstr "Sin audio"
 msgid "No audio for this page"
 msgstr "No hay audio para esta página"
 
+msgid "No beta versions are available for this platform."
+msgstr "No hay versiones beta disponibles para esta plataforma."
+
 msgid "No books match your search"
 msgstr "Ningún libro coincide con tu búsqueda"
 
@@ -4551,6 +4587,9 @@ msgstr "Ningún cuestionario coincide con tu búsqueda"
 
 #~ msgid "No readable text extracted from this page"
 #~ msgstr "No se extrajo texto legible de esta página"
+
+msgid "No release notes were provided for this version."
+msgstr "No se proporcionaron notas de la versión para esta versión."
 
 msgid "No rendered content for this section"
 msgstr "Sin contenido renderizado para esta sección"
@@ -5279,6 +5318,9 @@ msgstr "Prefiere términos centrales al tema del libro. Omite vocabulario genér
 msgid "Preparing speech..."
 msgstr "Preparando el audio..."
 
+msgid "Preparing…"
+msgstr "Preparando…"
+
 msgid "Preserves the source PDF's exact page layout"
 msgstr "Conserva el diseño de página exacto del PDF original"
 
@@ -5622,6 +5664,9 @@ msgstr "Referencia"
 msgid "Refinement Prompt"
 msgstr "Prompt de refinamiento"
 
+msgid "Refresh list"
+msgstr "Actualizar lista"
+
 msgid "Refresh validation"
 msgstr "Refresh validation"
 
@@ -5654,6 +5699,9 @@ msgstr "Relajado"
 
 msgid "Release"
 msgstr "Lanzamiento"
+
+msgid "Release notes"
+msgstr "Notas de la versión"
 
 msgid "Release to upload"
 msgstr "Suelta para subir"
@@ -6333,6 +6381,9 @@ msgstr "Selecciona un modo de sección para continuar"
 
 msgid "Select a style guide to preview how it styles the generated pages - typography, colors, and component layout."
 msgstr "Selecciona una guía de estilo para previsualizar cómo estiliza las páginas generadas - tipografía, colores y diseño de componentes."
+
+msgid "Select a version to see its release notes."
+msgstr "Selecciona una versión para ver sus notas."
 
 msgid "Select activity mode..."
 msgstr "Seleccionar modo de actividad..."
@@ -7330,6 +7381,9 @@ msgstr "This session is using an older reviewer checklist snapshot. Newer checkl
 msgid "This text is only perceptible to assistive technologies."
 msgstr "Este texto solo es perceptible para tecnologías de asistencia."
 
+msgid "This week"
+msgstr "Esta semana"
+
 #~ msgid "This will save your Easy Read settings and generate a new editable Easy Read version."
 #~ msgstr "Esto guardará tu configuración de Lectura Fácil y generará una nueva versión editable de Lectura Fácil."
 
@@ -7404,6 +7458,9 @@ msgstr "Modo TOC"
 
 msgid "TOC Preview"
 msgstr "Vista previa de TOC"
+
+msgid "Today"
+msgstr "Hoy"
 
 msgid "Toggle model list"
 msgstr "Alternar lista de modelos"
@@ -7620,6 +7677,9 @@ msgstr "Cuestionario sin título"
 
 msgid "Unverified license"
 msgstr "Licencia sin verificar"
+
+#~ msgid "Update"
+#~ msgstr "Actualización"
 
 msgid "Update available"
 msgstr "Actualización disponible"
@@ -8011,6 +8071,9 @@ msgstr "Envuelve solicitudes de 'Editar esta imagen'. La IA recibe la imagen ori
 
 msgid "Wraps 'Generate new' requests. Supports user_prompt, style, and image_type variables. Uses Liquid syntax for conditionals."
 msgstr "Envuelve solicitudes de 'Generar nueva'. Soporta variables user_prompt, style e image_type. Usa sintaxis Liquid para condicionales."
+
+msgid "Yesterday"
+msgstr "Ayer"
 
 msgid "You can export at this stage"
 msgstr "Puedes exportar en esta etapa"
