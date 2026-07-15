@@ -24,7 +24,13 @@ import type {
   TTSOutput,
   WebRenderingOutput,
 } from "@adt/types"
+import { isTtsExcluded } from "@adt/types"
 import { extractPDF } from "./pdf-extraction.js"
+import {
+  resolveFontsCacheDir,
+  buildBookFontsPromptContext,
+  ensureBookGoogleFontsCached,
+} from "./fonts-bundle.js"
 import { extractMetadata, buildMetadataConfig } from "./metadata-extraction.js"
 import { generateBookSummary, buildBookSummaryConfig } from "./book-summary.js"
 import {
@@ -34,12 +40,12 @@ import {
 import { classifyPageImages, buildImageClassifyConfig } from "./image-filtering.js"
 import { filterPageImageMeaningfulness, buildMeaningfulnessConfig } from "./image-meaningfulness.js"
 import { cropPageImages, applyCrops, buildCroppingConfig, getCroppedImageId } from "./image-cropping.js"
-import { segmentPageImages, applySegmentation, buildSegmentationConfig, getSegmentedImageId } from "./image-segmentation.js"
+import { segmentPageImages, applySegmentation, segmentBoundsOnPage, buildSegmentationConfig, getSegmentedImageId } from "./image-segmentation.js"
 import { renderPage, buildRenderStrategyResolver } from "./web-rendering.js"
 import { translatePageTree, buildTranslationConfig } from "./translation.js"
 import { createTemplateEngine } from "./render-template.js"
 import { captionPageImages, buildCaptionConfig, extractImageIds } from "./image-captioning.js"
-import { generateGlossary, buildGlossaryConfig } from "./glossary.js"
+import { regenerateGlossaryPreservingEdits, buildGlossaryConfig } from "./glossary.js"
 import { generateToc, buildTocGenerationConfig } from "./toc-generation.js"
 import { generateAllQuizzes, buildQuizGenerationConfig, type QuizPageInput } from "./quiz-generation.js"
 import { buildTextCatalog } from "./text-catalog.js"
@@ -59,6 +65,7 @@ import {
 } from "./speech.js"
 import { packageAdtWeb } from "./package-web.js"
 import { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rendering.js"
+import { getRenderSectioning } from "./render-sectioning.js"
 import { runAccessibilityAssessment } from "./accessibility-assessment.js"
 import { loadBookConfig } from "./config.js"
 import { nullProgress, type Progress } from "./progress.js"
@@ -179,7 +186,6 @@ export async function runFullPipeline(
 
     // Build all step configs upfront
     const metadataConfig = buildMetadataConfig(config)
-    const bookSummaryConfig = buildBookSummaryConfig(config)
     const pageSectioningConfig = buildPageSectioningConfig(config)
     const imageClassifyConfig = buildImageClassifyConfig(config)
     const meaningfulnessConfig = buildMeaningfulnessConfig(config)
@@ -204,6 +210,7 @@ export async function runFullPipeline(
           // Gates the positioned-text pipeline (fixed-layout rendering is its
           // only consumer). Must match stage-runner so re-runs are consistent.
           fixedLayout: isFixedLayoutBook(config),
+          fontsCacheDir: resolveFontsCacheDir(booksRoot),
         },
         storage,
         progressOnly(p),
@@ -229,6 +236,9 @@ export async function runFullPipeline(
         pageNumber: page.pageNumber,
         text: page.text,
       }))
+      // Resolve the language from the metadata step (book-summary depends on it)
+      // so the summary is written in the book's actual language, not English.
+      const bookSummaryConfig = buildBookSummaryConfig(config, getLanguage(storage, config))
       const model = getModel(bookSummaryConfig.modelId)
       const result = await generateBookSummary(summaryPages, bookSummaryConfig, model)
       storage.putNodeData("book-summary", "book", result)
@@ -294,7 +304,12 @@ export async function runFullPipeline(
               (imageId) => storage.getImageBase64(imageId),
               segDims,
             )
+            const srcMeta = new Map(allImages.map((img) => [img.imageId, img]))
             for (const seg of applied) {
+              const src = srcMeta.get(seg.sourceImageId)
+              const bounds = src?.bounds
+                ? segmentBoundsOnPage(src.bounds, src.width, src.height, seg)
+                : undefined
               storage.putSegmentedImage({
                 sourceImageId: seg.sourceImageId,
                 segmentIndex: seg.segmentIndex,
@@ -303,6 +318,7 @@ export async function runFullPipeline(
                 buffer: seg.buffer,
                 width: seg.width,
                 height: seg.height,
+                bounds,
               })
               const segImageId = getSegmentedImageId(seg.sourceImageId, seg.segmentIndex, segVersion)
               imageClassification.images.push({
@@ -451,15 +467,11 @@ export async function runFullPipeline(
     const isFixedLayout = isFixedLayoutBook(config)
 
     executors.set("page-sectioning", async (p) => {
-      if (isFixedLayout) {
-        // Fixed-layout: both sectioning and rendering happen here, driven
-        // off the positioned-text + image-filtering data the extract step
-        // already wrote. No LLM call.
-        const imageUrlPrefix = `/api/books/${label}/images`
-        processFixedLayoutPages(storage, imageUrlPrefix)
-        p.emit({ type: "step-progress", step: "page-sectioning", message: "fixed-layout pages" })
-        return
-      }
+      // Semantic LLM sectioning runs for ALL books (including fixed-layout) so
+      // `page-sectioning` always holds the editable semantic tree, the
+      // Sectioning view never empties, and the render strategy can be toggled
+      // without re-sectioning. Fixed-layout's positioned tree + rendering is
+      // produced in the web-rendering step instead (see below).
       const model = getModel(pageSectioningConfig.modelId)
       const pages = storage.getPages()
       const totalPages = pages.length
@@ -527,8 +539,17 @@ export async function runFullPipeline(
     })
 
     executors.set("web-rendering", async (p) => {
-      // Fixed-layout rendering is already done in page-sectioning step
-      if (isFixedLayout) return
+      if (isFixedLayout) {
+        // Fixed-layout: build the positioned tree (into `fixed-layout-sectioning`)
+        // and render from it. Driven off positioned-text + image-filtering; no
+        // LLM call. `page-sectioning` (semantic) is left intact.
+        const imageUrlPrefix = `/api/books/${label}/images`
+        processFixedLayoutPages(storage, imageUrlPrefix)
+        p.emit({ type: "step-progress", step: "web-rendering", message: "fixed-layout pages" })
+        return
+      }
+
+      await ensureBookGoogleFontsCached(storage, resolveFontsCacheDir(booksRoot))
 
       const renderModels = new Map<string, LLMModel>()
       const resolveRenderModel = (modelId: string): LLMModel => {
@@ -558,7 +579,14 @@ export async function runFullPipeline(
         }
         const pageImageBase64 = storage.getPageImageBase64(page.pageId)
         const result = await renderPage(
-          { label, pageId: page.pageId, pageImageBase64, sectioning: sectioning, images: renderImages },
+          {
+            label,
+            pageId: page.pageId,
+            pageImageBase64,
+            sectioning: sectioning,
+            images: renderImages,
+            bookFonts: buildBookFontsPromptContext(storage),
+          },
           resolveRenderConfig,
           resolveRenderModel,
           templateEngine,
@@ -586,12 +614,12 @@ export async function runFullPipeline(
       const quizPages: QuizPageInput[] = []
       for (const page of pages) {
         const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
-        const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-        if (!renderingRow || !structuringRow) continue
+        const sectioning = getRenderSectioning(storage, page.pageId)
+        if (!renderingRow || !sectioning) continue
         quizPages.push({
           pageId: page.pageId,
           rendering: renderingRow.data as WebRenderingOutput,
-          sectioning: structuringRow.data as PageSectioningOutput,
+          sectioning,
         })
       }
       if (quizPages.length > 0) {
@@ -625,8 +653,7 @@ export async function runFullPipeline(
         const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
         if (!renderingRow) return
         const rendering = renderingRow.data as WebRenderingOutput
-        const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-        const sectioning = structuringRow?.data as PageSectioningOutput | undefined
+        const sectioning = getRenderSectioning(storage, page.pageId)
         const htmlSections = rendering.sections
           .filter((s) => !sectioning?.sections[s.sectionIndex]?.isPruned)
           .map((s) => s.html)
@@ -664,7 +691,8 @@ export async function runFullPipeline(
       const glossaryConfig = buildGlossaryConfig(config, language)
       const model = getModel(glossaryConfig.modelId)
       const pages = storage.getPages()
-      const glossary = await generateGlossary({
+
+      const glossary = await regenerateGlossaryPreservingEdits({
         storage,
         pages,
         config: glossaryConfig,
@@ -729,12 +757,24 @@ export async function runFullPipeline(
         return
       }
       const model = getModel(easyReadConfig.modelId)
-      const output = await generateEasyRead(blocks, easyReadConfig, model)
+      const totalEntries = blocks.reduce((sum, block) => sum + block.entries.length, 0)
+      const output = await generateEasyRead(blocks, easyReadConfig, model, {
+        concurrency: effectiveConcurrency,
+        onProgress: (completed, total) => {
+          p.emit({
+            type: "step-progress",
+            step: "easy-read",
+            message: `${completed}/${total}`,
+            page: completed,
+            totalPages: total,
+          })
+        },
+      })
       storage.putNodeData("easy-read", "book", output)
       p.emit({
         type: "step-progress",
         step: "easy-read",
-        message: `${output.blocks.reduce((sum, block) => sum + block.entries.length, 0)} entries`,
+        message: `${totalEntries} entries`,
       })
     })
 
@@ -855,6 +895,7 @@ export async function runFullPipeline(
           entries = (translatedRow.data as TextCatalogOutput).entries
         }
         for (const entry of entries) {
+          if (isTtsExcluded(entry.id, config.speech)) continue
           workItems.push({ textId: entry.id, text: entry.text, language: lang })
         }
       }
@@ -869,7 +910,13 @@ export async function runFullPipeline(
         const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
         const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
         const voice = resolveVoice(provider, item.language, voiceMaps, config.speech?.voice)
-        const instructions = provider === "openai" ? resolveInstructions(item.language, instructionsMap) : ""
+        // OpenAI + Gemini both receive resolved instructions (Gemini embeds them in
+        // the prompt text); Azure has no instruction channel. Must match stage-runner.ts
+        // and tts.ts so the shared TTS cache key (computeSpeechCacheKey) stays consistent.
+        const instructions =
+          provider === "openai" || provider === "gemini"
+            ? resolveInstructions(item.language, instructionsMap)
+            : ""
         const ttsSynthesizer = getSynthesizer(provider)
         const entry = await generateSpeechFile({
           textId: item.textId,

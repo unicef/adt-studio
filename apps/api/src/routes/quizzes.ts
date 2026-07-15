@@ -8,7 +8,6 @@ import {
   QuizGenerationOutput,
   type Quiz,
   type WebRenderingOutput,
-  type PageSectioningOutput,
 } from "@adt/types"
 import { openBookDb, createBookStorage } from "@adt/storage"
 import {
@@ -16,6 +15,7 @@ import {
   generateQuiz,
   loadBookConfig,
   normalizeLocale,
+  getRenderSectioning,
   type QuizPageInput,
 } from "@adt/pipeline"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
@@ -196,12 +196,12 @@ export function createQuizRoutes(
       const batch: QuizPageInput[] = []
       for (const pageId of orderedPageIds) {
         const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
-        const sectioningRow = storage.getLatestNodeData("page-sectioning", pageId)
-        if (!renderingRow || !sectioningRow) continue
+        const sectioning = getRenderSectioning(storage, pageId)
+        if (!renderingRow || !sectioning) continue
         batch.push({
           pageId,
           rendering: renderingRow.data as WebRenderingOutput,
-          sectioning: sectioningRow.data as PageSectioningOutput,
+          sectioning,
         })
       }
 

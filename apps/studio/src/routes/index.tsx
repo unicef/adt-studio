@@ -15,12 +15,15 @@ import {
   Search,
   CalendarPlus,
   Clock,
+  Scissors,
+  Puzzle,
 } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { StudioTopBar } from "@/components/StudioTopBar"
+import { usePageTitle } from "@/hooks/use-page-title"
 import { Badge } from "@/components/ui/badge"
 import {
   Select,
@@ -41,6 +44,7 @@ import {
 } from "@/components/pipeline/pipeline-i18n"
 import type { BookSummary } from "@/api/client"
 import { getBookCoverUrl } from "@/api/client"
+import { cn } from "@/lib/utils"
 
 type BookSortKey = "modified" | "created" | "alphabetical"
 
@@ -205,7 +209,10 @@ function BookRow({
     [book.completedStages],
   )
   const [coverFailed, setCoverFailed] = useState(false)
-  const showCover = book.pageCount > 0 && !coverFailed
+  // Show the cover when there are extracted pages OR a source PDF — the server
+  // falls back to rendering page 1 from the PDF for un-extracted books (e.g. a
+  // freshly-split shell). onError still drops to the placeholder if neither works.
+  const showCover = (book.pageCount > 0 || book.hasSourcePdf) && !coverFailed
   const coverUrl = useMemo(
     () => getBookCoverUrl(book.label, book.modifiedAt),
     [book.label, book.modifiedAt],
@@ -225,7 +232,7 @@ function BookRow({
         {/* Main content — clickable */}
         <Link
           to="/books/$label/$step"
-          params={{ label: book.label, step: "extract" }}
+          params={{ label: book.label, step: "book" }}
           className="flex flex-1 min-w-0 gap-4 p-5"
         >
           {/* Cover thumbnail */}
@@ -252,11 +259,47 @@ function BookRow({
           {/* Top: title + badges */}
           <div className="flex items-start justify-between gap-3 mb-3">
             <div className="flex items-center gap-2.5 min-w-0">
-              <h3 className="font-semibold text-base truncate">
+              <h2 className="font-semibold text-base truncate">
                 {book.title ?? book.label}
-              </h3>
+              </h2>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
+              {book.part && (
+                <Badge
+                  variant="outline"
+                  className="gap-1 border-part/40 bg-part/10 px-2 py-0.5 text-[11px] text-part"
+                  title={t`Part of ${book.part.sourceLabel}`}
+                >
+                  <Puzzle className="h-3 w-3" />
+                  <Trans>
+                    Part · pages {book.part.range.startPage}–{book.part.range.endPage}
+                  </Trans>
+                </Badge>
+              )}
+              {book.split && (
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "gap-1 px-2 py-0.5 text-[11px]",
+                    book.split.fullyMerged
+                      ? "border-emerald-300 bg-emerald-100 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200"
+                      : "border-part/40 bg-part/10 text-part",
+                  )}
+                  title={t`Split into ${book.split.exportedParts} part(s) · ${book.split.splitPages}/${book.split.totalPages} pages split off · ${book.split.mergedPages}/${book.split.totalPages} merged back`}
+                >
+                  <Scissors className="h-3 w-3" />
+                  {book.split.fullyMerged ? (
+                    // Done: every page split off and merged back.
+                    <Trans>All parts merged</Trans>
+                  ) : !book.split.fullySplit ? (
+                    // Still carving: how much has been handed out as parts.
+                    <Trans>Split · {book.split.splitPages}/{book.split.totalPages}</Trans>
+                  ) : (
+                    // Fully split, now collecting completed parts back.
+                    <Trans>Merged · {book.split.mergedPages}/{book.split.totalPages}</Trans>
+                  )}
+                </Badge>
+              )}
               {book.needsRebuild && (
                 <Badge variant="destructive" className="text-[11px] px-2 py-0.5">
                   <Trans>Needs rebuild</Trans>
@@ -267,7 +310,7 @@ function BookRow({
                   {book.languageCode.toUpperCase()}
                 </Badge>
               )}
-              {!book.needsRebuild && (
+              {!book.needsRebuild && !book.split && (
                 <Badge
                   variant={book.pageCount > 0 ? "default" : "secondary"}
                   className="text-[11px] px-2 py-0.5"
@@ -356,7 +399,11 @@ function BookRow({
             className="h-8 w-8 text-muted-foreground hover:text-primary"
             asChild
           >
-            <Link to="/books/$label/$step" params={{ label: book.label, step: "extract" }}>
+            <Link
+              to="/books/$label/$step"
+              params={{ label: book.label, step: "book" }}
+              aria-label={t`Edit ${book.title ?? book.label}`}
+            >
               <Pencil className="h-4 w-4" />
             </Link>
           </Button>
@@ -365,6 +412,7 @@ function BookRow({
             size="icon"
             className="h-8 w-8 text-muted-foreground hover:text-destructive"
             onClick={() => onDelete(book.label)}
+            aria-label={t`Delete ${book.title ?? book.label}`}
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -376,6 +424,7 @@ function BookRow({
 
 function HomePage() {
   const { t } = useLingui()
+  usePageTitle(t`Your Books`)
   const { data: books, isLoading, error } = useBooks()
   const deleteMutation = useDeleteBook()
   const [deleteLabel, setDeleteLabel] = useState<string | null>(null)
@@ -480,7 +529,7 @@ function HomePage() {
       {/* Right — books list (70%) */}
       <div className="flex-1 min-w-0 overflow-auto p-5">
         <div className="flex items-center justify-between mb-4 gap-3">
-          <h2 className="text-sm font-medium text-muted-foreground">
+          <h1 className="text-sm font-medium text-muted-foreground">
             <Trans>Your Books</Trans>
             {totalBooks > 0 && (
               <span
@@ -492,7 +541,7 @@ function HomePage() {
                   : `(${totalBooks})`}
               </span>
             )}
-          </h2>
+          </h1>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
               <Link to="/books/import" className="gap-1.5 text-muted-foreground">

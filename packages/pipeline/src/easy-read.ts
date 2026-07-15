@@ -1,10 +1,12 @@
 import { z } from "zod"
 import { parseDocument, DomUtils } from "htmlparser2"
 import type { AppConfig, EasyReadOutput, TextCatalogEntry, WebRenderingOutput, PageSectioningOutput } from "@adt/types"
-import { DEFAULT_LLM_MAX_RETRIES, EasyReadOutput as EasyReadOutputSchema, WebRenderingOutput as WebRenderingOutputSchema, PageSectioningOutput as PageSectioningOutputSchema } from "@adt/types"
+import { DEFAULT_LLM_MAX_RETRIES, EasyReadOutput as EasyReadOutputSchema, WebRenderingOutput as WebRenderingOutputSchema } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import type { Storage, PageData } from "@adt/storage"
 import { buildLanguageContext, normalizeLocale } from "./language-context.js"
+import { getRenderSectioning } from "./render-sectioning.js"
+import { processWithConcurrency } from "./concurrency.js"
 
 export const DEFAULT_EASY_READ_MODEL_ID = "openai:gpt-4.1"
 
@@ -128,14 +130,15 @@ export function buildEasyReadSourceBlocks(
 
   for (const page of pages) {
     const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
-    const sectioningRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-    if (!renderingRow || !sectioningRow) continue
+    // Resolver: fixed-layout books pair against the positioned tree (its ids
+    // match the rendered HTML data-ids the runtime swaps Easy Read text into).
+    const sectioning = getRenderSectioning(storage, page.pageId)
+    if (!renderingRow || !sectioning) continue
 
     const rendering = WebRenderingOutputSchema.safeParse(renderingRow.data)
-    const sectioning = PageSectioningOutputSchema.safeParse(sectioningRow.data)
-    if (!rendering.success || !sectioning.success) continue
+    if (!rendering.success) continue
 
-    blocks.push(...buildPageEasyReadBlocks(page, rendering.data, sectioning.data))
+    blocks.push(...buildPageEasyReadBlocks(page, rendering.data, sectioning))
   }
 
   return blocks
@@ -196,57 +199,95 @@ export function buildPageEasyReadBlocks(
   return blocks
 }
 
+/**
+ * Adapt the texts of ONE section (block) into Easy Read.
+ *
+ * Pure with respect to shared state — it owns no caller state and returns its
+ * results keyed by `sourceId`, so many blocks can be processed concurrently.
+ * The section's full text is passed as `section_text` context on every call;
+ * `batchSize` only caps the per-call size for unusually large sections (the
+ * common case is a single call per section).
+ */
+export async function rewriteBlockEasyRead(
+  block: EasyReadOutput["blocks"][number],
+  config: EasyReadConfig,
+  llmModel: LLMModel,
+): Promise<Map<string, string>> {
+  const rewrittenBySourceId = new Map<string, string>()
+  const sectionText = block.entries.map((entry) => entry.originalText).join("\n")
+
+  for (let i = 0; i < block.entries.length; i += config.batchSize) {
+    const batch = block.entries.slice(i, i + config.batchSize)
+    const texts = batch.map((entry, index) => ({ index, text: entry.originalText }))
+    const result = await llmModel.generateObject<{ texts: string[] }>({
+      schema: easyReadSchema,
+      prompt: config.promptName,
+      context: {
+        ...buildLanguageContext(config.language),
+        section_text: sectionText,
+        section_type: block.sectionType,
+        texts,
+      },
+      validate: (raw: unknown): ValidationResult => {
+        const r = raw as { texts?: string[] }
+        if (!Array.isArray(r.texts) || r.texts.length !== batch.length) {
+          return {
+            valid: false,
+            errors: [
+              `Expected ${batch.length} Easy Read texts but got ${Array.isArray(r.texts) ? r.texts.length : "none"}.`,
+            ],
+          }
+        }
+        return { valid: true, errors: [] }
+      },
+      maxRetries: config.maxRetries,
+      maxTokens: 16384,
+      log: {
+        taskType: "easy-read",
+        promptName: config.promptName,
+        pageId: block.pageId,
+      },
+    })
+
+    batch.forEach((entry, index) => {
+      rewrittenBySourceId.set(entry.sourceId, result.object.texts[index] ?? entry.originalText)
+    })
+  }
+
+  return rewrittenBySourceId
+}
+
+export interface GenerateEasyReadOptions {
+  /** Maximum number of sections processed in parallel. Defaults to 1 (sequential). */
+  concurrency?: number
+  /** Called after each section finishes, with the cumulative entry counts. */
+  onProgress?: (completed: number, total: number) => void
+}
+
 export async function generateEasyRead(
   blocks: EasyReadOutput["blocks"],
   config: EasyReadConfig,
   llmModel: LLMModel,
+  options?: GenerateEasyReadOptions,
 ): Promise<EasyReadOutput> {
   if (!config.enabled || blocks.length === 0) {
     return createEmptyEasyReadOutput()
   }
 
+  const totalEntries = blocks.reduce((sum, block) => sum + block.entries.length, 0)
   const rewrittenBySourceId = new Map<string, string>()
+  let completed = 0
 
-  for (const block of blocks) {
-    const sectionText = block.entries.map((entry) => entry.originalText).join("\n")
-    for (let i = 0; i < block.entries.length; i += config.batchSize) {
-      const batch = block.entries.slice(i, i + config.batchSize)
-      const texts = batch.map((entry, index) => ({ index, text: entry.originalText }))
-      const result = await llmModel.generateObject<{ texts: string[] }>({
-        schema: easyReadSchema,
-        prompt: config.promptName,
-        context: {
-          ...buildLanguageContext(config.language),
-          section_text: sectionText,
-          section_type: block.sectionType,
-          texts,
-        },
-        validate: (raw: unknown): ValidationResult => {
-          const r = raw as { texts?: string[] }
-          if (!Array.isArray(r.texts) || r.texts.length !== batch.length) {
-            return {
-              valid: false,
-              errors: [
-                `Expected ${batch.length} Easy Read texts but got ${Array.isArray(r.texts) ? r.texts.length : "none"}.`,
-              ],
-            }
-          }
-          return { valid: true, errors: [] }
-        },
-        maxRetries: config.maxRetries,
-        maxTokens: 16384,
-        log: {
-          taskType: "easy-read",
-          promptName: config.promptName,
-          pageId: block.pageId,
-        },
-      })
-
-      batch.forEach((entry, index) => {
-        rewrittenBySourceId.set(entry.sourceId, result.object.texts[index] ?? entry.originalText)
-      })
+  // Each block writes a disjoint set of sourceIds, so concurrent writes to the
+  // shared map never collide.
+  await processWithConcurrency(blocks, options?.concurrency ?? 1, async (block) => {
+    const rewritten = await rewriteBlockEasyRead(block, config, llmModel)
+    for (const [sourceId, text] of rewritten) {
+      rewrittenBySourceId.set(sourceId, text)
     }
-  }
+    completed += block.entries.length
+    options?.onProgress?.(completed, totalEntries)
+  })
 
   const rewrittenBlocks = blocks.map((block) => ({
     ...block,

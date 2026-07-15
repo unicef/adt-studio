@@ -1,6 +1,13 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Dark mode is driven by a `.dark` class (see the `.dark { … }` token block
+ * below), not the OS. Without this, Tailwind v4 defaults the `dark:` variant to
+ * `@media (prefers-color-scheme: dark)`, so `dark:` utilities would fire on a
+ * dark-mode OS while the class-based surfaces stay light — e.g. pale
+ * `dark:text-amber-200` on a light `bg-amber-50`, making warnings illegible. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif,
@@ -27,6 +34,8 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  /* Accent for the split & merge parts UI (chips, selection, coverage). */
+  --color-part: #2b7fff;
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
@@ -48,6 +57,7 @@
   --animate-accordion-up: accordion-up 0.2s ease-out;
   --animate-wizard-enter: wizard-enter 0.25s ease-out;
   --animate-fade-ring: fade-ring 1.5s ease-out forwards;
+  --animate-indeterminate: indeterminate 1.15s ease-in-out infinite;
   --animate-btn-label-enter: btn-label-enter 0.22s cubic-bezier(0.22, 1, 0.36, 1);
   --animate-btn-final-enter: btn-final-enter 0.38s cubic-bezier(0.22, 1, 0.36, 1);
   --animate-btn-label-enter: btn-label-enter 0.22s cubic-bezier(0.22, 1, 0.36, 1);
@@ -182,6 +192,15 @@
   }
   100% {
     opacity: 0;
+  }
+}
+
+@keyframes indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
   }
 }
 

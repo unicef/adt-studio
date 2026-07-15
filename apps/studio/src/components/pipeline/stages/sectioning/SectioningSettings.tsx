@@ -1,20 +1,10 @@
 import { useState, useEffect, useMemo } from "react"
-import { createPortal } from "react-dom"
-import { useNavigate } from "@tanstack/react-router"
-import { Play, Plus, X } from "lucide-react"
+import { Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { PruneToggle } from "@/components/pipeline/components/PruneToggle"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import {
   Select,
   SelectContent,
@@ -24,10 +14,10 @@ import {
 } from "@/components/ui/select"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
-import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
 import { PromptViewer } from "@/components/pipeline/components/PromptViewer"
-import { useBookRun } from "@/hooks/use-book-run"
+import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
+import { useDirtyTabTracker } from "@/hooks/use-settings-dirty-tabs"
 import { useStepConfig } from "@/hooks/use-step-config"
 import { Trans } from "@lingui/react/macro"
 import { msg } from "@lingui/core/macro"
@@ -79,15 +69,11 @@ function getSectionTypeDisplayLabel(value: string): string {
   return label || value.replace(/_/g, " ")
 }
 
-export function SectioningSettings({ bookLabel, headerTarget, tab = "section-types" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
+export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
-  const { apiKey, hasApiKey } = useApiKey()
-  const { queueRun } = useBookRun()
-  const navigate = useNavigate()
-  const [showRerunDialog, setShowRerunDialog] = useState(false)
 
   // Section Types state
   const [sectionTypes, setSectionTypes] = useState<Record<string, string>>({})
@@ -102,6 +88,10 @@ export function SectioningSettings({ bookLabel, headerTarget, tab = "section-typ
   const [roleTypes, setRoleTypes] = useState<Record<string, string>>({})
   const [prunedRoleTypes, setPrunedRoleTypes] = useState<Set<string>>(new Set())
 
+  // Activities on/off — a single flag honored by sectioning and web-rendering
+  // (via the `activity_` prefix), so it never drifts from a per-type list.
+  const [generateActivities, setGenerateActivities] = useState(true)
+
   // Sectioning state
   const [sectioningMode, setSectioningMode] = useState("dynamic")
   const [maxRefinements, setMaxRefinements] = useState("")
@@ -109,8 +99,12 @@ export function SectioningSettings({ bookLabel, headerTarget, tab = "section-typ
   const [refinementPromptDraft, setRefinementPromptDraft] = useState<string | null>(null)
 
   // Track dirty state
+  const { markedTabs, markTab, resetMarkedTabs } = useDirtyTabTracker()
   const [dirty, setDirty] = useState<Record<string, boolean>>({})
-  const markDirty = (field: string) => setDirty((prev) => ({ ...prev, [field]: true }))
+  const markDirty = (field: string) => {
+    setDirty((prev) => ({ ...prev, [field]: true }))
+    markTab(tab)
+  }
 
   const merged = activeConfigData?.merged as Record<string, unknown> | undefined
   const sectioning = useStepConfig(merged, "page_sectioning", markDirty)
@@ -150,6 +144,7 @@ export function SectioningSettings({ bookLabel, headerTarget, tab = "section-typ
       if (ps.mode) setSectioningMode(String(ps.mode))
       setMaxRefinements(ps.max_refinements != null ? String(ps.max_refinements) : "")
     }
+    setGenerateActivities(m.generate_activities !== false)
   }, [activeConfigData])
 
   // Section Types handlers
@@ -291,6 +286,9 @@ export function SectioningSettings({ bookLabel, headerTarget, tab = "section-typ
     if (shouldWrite("disabled_section_types")) {
       overrides.disabled_section_types = Array.from(disabledSectionTypes)
     }
+    if (shouldWrite("generate_activities")) {
+      overrides.generate_activities = generateActivities
+    }
     if (shouldWrite("section_render_strategies")) {
       const baseStrategies = (m?.section_render_strategies ?? {}) as Record<string, string>
       const stratWithDeletions: Record<string, string | null> = { ...sectionRenderStrategies }
@@ -332,7 +330,7 @@ export function SectioningSettings({ bookLabel, headerTarget, tab = "section-typ
     return overrides
   }
 
-  const confirmSaveAndRerun = async () => {
+  const save = async () => {
     if (sectioningPromptDraft != null) {
       await api.updatePrompt("page_sectioning", sectioningPromptDraft, bookLabel)
     }
@@ -340,21 +338,27 @@ export function SectioningSettings({ bookLabel, headerTarget, tab = "section-typ
       await api.updatePrompt("page_sectioning_refinement", refinementPromptDraft, bookLabel)
     }
 
-    const overrides = buildOverrides()
-    updateConfig.mutate(
-      { label: bookLabel, config: overrides },
-      {
-        onSuccess: () => {
-          setDirty({})
-          setSectioningPromptDraft(null)
-          setRefinementPromptDraft(null)
-          setShowRerunDialog(false)
-          queueRun({ fromStage: "sectioning", toStage: "sectioning", apiKey })
-          navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "sectioning" } })
-        },
-      }
-    )
+    await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
+    setDirty({})
+    setSectioningPromptDraft(null)
+    setRefinementPromptDraft(null)
+    resetMarkedTabs()
   }
+
+  const dirtyTabs = [
+    ...markedTabs,
+    ...(sectioningPromptDraft != null ? ["sectioning-prompt"] : []),
+    ...(refinementPromptDraft != null ? ["refinement-prompt"] : []),
+  ].filter((tabKey, i, all) => all.indexOf(tabKey) === i)
+
+  useStageSettingsBar({
+    stage: "sectioning",
+    bookLabel,
+    dirty: dirtyTabs.length > 0,
+    dirtyTabs,
+    saving: updateConfig.isPending,
+    save,
+  })
 
   const activityNames = useMemo(() => {
     const strategies = (merged?.render_strategies ?? {}) as Record<string, { render_type?: string }>
@@ -368,19 +372,11 @@ export function SectioningSettings({ bookLabel, headerTarget, tab = "section-typ
     return Array.from(names)
   }, [merged, sectionTypes])
 
-  const anyActivitiesEnabled = activityNames.length > 0 &&
-    activityNames.some((name) => !disabledSectionTypes.has(name))
+  const hasActivityTypes = activityNames.length > 0
 
   const toggleAllActivities = (enabled: boolean) => {
-    markDirty("disabled_section_types")
-    setDisabledSectionTypes((prev) => {
-      const next = new Set(prev)
-      for (const name of activityNames) {
-        if (enabled) next.delete(name)
-        else next.add(name)
-      }
-      return next
-    })
+    markDirty("generate_activities")
+    setGenerateActivities(enabled)
   }
 
   const orderedStructureEntries = useMemo(
@@ -468,17 +464,17 @@ export function SectioningSettings({ bookLabel, headerTarget, tab = "section-typ
           <p className="text-xs text-muted-foreground mb-3">
             {<Trans>Types used during page sectioning. Pruned types are classified but excluded from rendering. Disabled types are hidden from the LLM entirely.</Trans>}
           </p>
-          {activityNames.length > 0 && (
+          {hasActivityTypes && (
             <div className="flex items-center gap-3 mb-3">
               <Switch
-                checked={anyActivitiesEnabled}
+                checked={generateActivities}
                 onCheckedChange={toggleAllActivities}
               />
               <Label className="text-xs">
-                {anyActivitiesEnabled ? <Trans>Activities enabled</Trans> : <Trans>Activities disabled</Trans>}
+                {generateActivities ? <Trans>Activities enabled</Trans> : <Trans>Activities disabled</Trans>}
               </Label>
               <p className="text-xs text-muted-foreground">
-                {anyActivitiesEnabled
+                {generateActivities
                   ? <Trans>Activity section types are available for classification and rendering.</Trans>
                   : <Trans>Activity section types are hidden from the classifier and skipped during rendering.</Trans>}
               </p>
@@ -494,7 +490,9 @@ export function SectioningSettings({ bookLabel, headerTarget, tab = "section-typ
             </div>
             {Object.entries(sectionTypes).map(([key, description]) => {
               const pruned = prunedSectionTypes.has(key)
-              const disabled = disabledSectionTypes.has(key)
+              const disabled =
+                disabledSectionTypes.has(key) ||
+                (!generateActivities && key.startsWith("activity_"))
               const renderOverride = sectionRenderStrategies[key] ?? ""
               return (
                 <div
@@ -764,38 +762,6 @@ export function SectioningSettings({ bookLabel, headerTarget, tab = "section-typ
           </div>
         </div>
       )}
-
-      {headerTarget && createPortal(
-        <Button
-          size="sm"
-          className="h-7 px-2.5 text-xs bg-black/15 text-white hover:bg-black/25"
-          onClick={() => setShowRerunDialog(true)}
-          disabled={updateConfig.isPending || !hasApiKey}
-        >
-          <Play className="mr-1.5 h-3.5 w-3.5" />
-          {<Trans>Save & Rerun</Trans>}
-        </Button>,
-        headerTarget
-      )}
-
-      <Dialog open={showRerunDialog} onOpenChange={setShowRerunDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{<Trans>Save & Rerun Sectioning</Trans>}</DialogTitle>
-            <DialogDescription>
-              {<Trans>This will save your settings and re-run sectioning for all pages.</Trans>}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRerunDialog(false)}>
-              {<Trans>Cancel</Trans>}
-            </Button>
-            <Button onClick={confirmSaveAndRerun} disabled={updateConfig.isPending}>
-              {updateConfig.isPending ? t`Saving...` : t`Confirm Rerun`}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

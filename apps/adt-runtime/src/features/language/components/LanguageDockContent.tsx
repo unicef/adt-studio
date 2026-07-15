@@ -1,4 +1,4 @@
-import { useAtom } from "jotai"
+import { useAtom, useAtomValue } from "jotai"
 import { useMemo, useState } from "react"
 import { currentLanguageAtom } from "@/features/language/state/language.atoms"
 import { useAvailableLanguages } from "@/features/language/hooks/useAvailableLanguages"
@@ -6,6 +6,10 @@ import { useTranslation } from "@/features/language/hooks/useTranslation"
 import { cn } from "@/shared/lib/utils"
 import { ScrollArea } from "@/shared/ui/scroll-area"
 import { DockContent } from "@/features/dock/components/DockLayout"
+import { ToggleRow } from "@/features/settings/components/ToggleRow"
+import { appConfigAtom } from "@/shared/state/config.atoms"
+import { easyReadModeAtom } from "@/shared/state/ui.atoms"
+import { trackToggleEvent } from "@/shared/lib/analytics"
 
 interface LanguageContentProps {
   onSelect?: () => void
@@ -16,6 +20,8 @@ export function LanguageContent({ onSelect }: LanguageContentProps) {
   const { languages, names } = useAvailableLanguages()
   const { t } = useTranslation()
   const [query, setQuery] = useState("")
+  const features = useAtomValue(appConfigAtom).features
+  const [easyRead, setEasyRead] = useAtom(easyReadModeAtom)
 
   const filtered = useMemo(() => {
     if (!query.trim()) return languages
@@ -68,6 +74,19 @@ export function LanguageContent({ onSelect }: LanguageContentProps) {
           ) : null}
         </ul>
       </ScrollArea>
+      {features.easyRead ? (
+        <div className="px-2.5">
+          <ToggleRow
+            label={t("easy-read-label") || "Easy Read"}
+            checked={easyRead}
+            onChange={(next) => {
+              trackToggleEvent("EasyRead", next)
+              setEasyRead(next)
+            }}
+            borderTop
+          />
+        </div>
+      ) : null}
     </DockContent>
   )
 }

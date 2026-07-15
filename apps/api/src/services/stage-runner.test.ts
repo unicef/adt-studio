@@ -740,6 +740,122 @@ output_languages:
       verify.close()
     }
   })
+
+  // Regression: a present-but-empty text-catalog node (e.g. persisted by
+  // GET /text-catalog when the book was opened before Storyboard rendered)
+  // previously stuck — Translate only rebuilt when the node was absent, so the
+  // empty catalog silently skipped all translation. Translate must rebuild it.
+  it("rebuilds a stale empty text-catalog instead of skipping translation", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-translate-emptycatalog-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+output_languages:
+  - fr
+`
+    )
+
+    // Seed a book with rendered text AND a stale, empty text-catalog node.
+    const seed = createBookStorage("translate-empty-catalog", booksDir)
+    try {
+      seed.putExtractedPage({
+        pageId: "pg001",
+        pageNumber: 1,
+        text: "Page text",
+        pageImage: {
+          imageId: "pg001_page",
+          buffer: Buffer.from("fake-page-image"),
+          format: "png",
+          hash: "hash-page",
+          width: 800,
+          height: 600,
+        },
+        images: [],
+      })
+      seed.putNodeData("web-rendering", "pg001", {
+        sections: [
+          {
+            sectionIndex: 0,
+            sectionType: "content",
+            reasoning: "",
+            html: '<p data-id="pg001_t001">Hello world</p>',
+          },
+        ],
+      })
+      // The poison: a persisted catalog with zero entries.
+      seed.putNodeData("text-catalog", "book", {
+        entries: [],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+      const seeded = seed.getLatestNodeData("text-catalog", "book")?.data as
+        | { entries?: unknown[] }
+        | undefined
+      expect(seeded?.entries?.length).toBe(0)
+    } finally {
+      seed.close()
+    }
+
+    easyReadGenerateObjectMock.mockImplementation(async (options: {
+      context?: { texts?: Array<{ text: string }> }
+      validate?: (raw: unknown, context: unknown) => { valid: boolean; errors: string[] }
+    }) => {
+      const texts = options.context?.texts ?? []
+      const object = { translations: texts.map((t) => `FR: ${t.text}`) }
+      const validation = options.validate?.(object, options.context)
+      if (validation && !validation.valid) {
+        throw new Error(validation.errors.join("\n"))
+      }
+      return { object, usage: { inputTokens: 1, outputTokens: 1 } }
+    })
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await runner.run(
+      "translate-empty-catalog",
+      {
+        booksDir,
+        apiKey: "sk-test",
+        promptsDir,
+        configPath,
+        fromStage: "translate",
+        toStage: "translate",
+      },
+      { emit: (event) => events.push(event) }
+    )
+
+    // Translation must run, not skip on the stale empty catalog.
+    expect(
+      events.some(
+        (event) => event.type === "step-skip" && event.step === "catalog-translation"
+      )
+    ).toBe(false)
+    expect(
+      events.some(
+        (event) => event.type === "step-start" && event.step === "catalog-translation"
+      )
+    ).toBe(true)
+
+    const verify = createBookStorage("translate-empty-catalog", booksDir)
+    try {
+      const catalog = verify.getLatestNodeData("text-catalog", "book")?.data as
+        | { entries?: unknown[] }
+        | undefined
+      expect(catalog?.entries?.length).toBeGreaterThan(0)
+
+      const frTranslation = verify.getLatestNodeData("text-catalog-translation", "fr")
+        ?.data as { entries?: unknown[] } | undefined
+      expect(frTranslation?.entries?.length).toBeGreaterThan(0)
+    } finally {
+      verify.close()
+    }
+  })
 })
 
 describe("createStageRunner speech Gemini partial failures", () => {

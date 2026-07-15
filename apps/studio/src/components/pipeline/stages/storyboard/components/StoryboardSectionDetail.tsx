@@ -67,7 +67,7 @@ import {
   DEVICE_WIDTHS,
   useDeviceView,
 } from "./style-editor/device-breakpoint"
-import { ImageCropDialog } from "./ImageCropDialog"
+import { ImageCropDialog, pageBoundsToCropRect } from "./ImageCropDialog"
 import { AiImageDialog } from "./AiImageDialog"
 import { AddImageDialog } from "./AddImageDialog"
 import { ReplaceFromBookDialog } from "./ReplaceFromBookDialog"
@@ -710,6 +710,12 @@ export function StoryboardSectionDetail({
   const section = sectioningData?.sections[sectionIndex]
   const renderingData = pendingRendering ?? page.rendering
   const renderedSection = getRenderedSectionByIndex(renderingData, sectionIndex)
+  // Fixed-layout pages style every element via inline CSS (the `<p>`'s own
+  // `style` + per-run `data-segments`), not Tailwind classes — so the class
+  // editor's changes are always overridden and never apply. Disable the
+  // class-based style controls for these pages until inline-style editing
+  // lands; image actions, prune/delete, and inline text edits still work.
+  const isFixedLayout = renderedSection?.sectionType === "fixed-layout-page"
   const renderingDirty = pendingRendering != null || hasUnflushedEdits
 
   // When server-delivered HTML for the current section changes to something we
@@ -868,6 +874,7 @@ export function StoryboardSectionDetail({
   }
   useFloatingSave({
     id: `storyboard:${pageId}`,
+    stage: "storyboard",
     dirty: dirty || renderingDirty,
     saving,
     labelKey: pendingChipCats.join(","),
@@ -1398,6 +1405,25 @@ export function StoryboardSectionDetail({
       if (!fullHtml) return
       setSelectedElementClasses(classes)
       previewFrameRef.current?.refreshCss(fullHtml)
+      pendingHtmlRef.current = { html: fullHtml, sectionIndex }
+      setHasUnflushedEdits(true)
+      markPending("style")
+    },
+    [page.rendering, sectionIndex, markPending]
+  )
+
+  // Inline-style edits (e.g. per-element font-family). Unlike class edits these
+  // need no Tailwind rebuild, so we skip refreshCss; we re-snapshot the
+  // element's computed/inline typography so the inspector reflects the change.
+  const handleStyleChange = useCallback(
+    (dataId: string, property: string, value: string) => {
+      if (!page.rendering) return
+      if (Date.now() - lastDiscardAtRef.current < 250) return
+      const fullHtml = previewFrameRef.current?.setElementStyleProp(dataId, property, value)
+      if (!fullHtml) return
+      setSelectedComputedTypography(
+        previewFrameRef.current?.getComputedTypographyStyles(dataId) ?? null
+      )
       pendingHtmlRef.current = { html: fullHtml, sectionIndex }
       setHasUnflushedEdits(true)
       markPending("style")
@@ -2625,7 +2651,10 @@ export function StoryboardSectionDetail({
             : null
         }
         onClassesChange={handleClassesChange}
+        onStyleChange={handleStyleChange}
         deviceView={deviceView}
+        isFixedLayout={isFixedLayout}
+        bookLabel={bookLabel}
       />
     </div>
 
@@ -2639,13 +2668,21 @@ export function StoryboardSectionDetail({
     />
 
     {/* Image crop dialog */}
-    {cropTarget && (
-      <ImageCropDialog
-        imageSrc={recropPageSrc ?? `${BASE_URL}/books/${bookLabel}/images/${cropTarget}`}
-        onApply={handleCropApply}
-        onClose={() => { setCropTarget(null); setRecropPageSrc(null) }}
-      />
-    )}
+    {cropTarget && (() => {
+      // Overlay the original placement only when recropping from the full page;
+      // an in-place crop uses the image itself, where the full frame is correct.
+      const bounds = recropPageSrc
+        ? page.imagesMeta.find((m) => m.imageId === cropTarget)?.bounds
+        : undefined
+      return (
+        <ImageCropDialog
+          imageSrc={recropPageSrc ?? `${BASE_URL}/books/${bookLabel}/images/${cropTarget}`}
+          initialRect={bounds ? pageBoundsToCropRect(bounds) : undefined}
+          onApply={handleCropApply}
+          onClose={() => { setCropTarget(null); setRecropPageSrc(null) }}
+        />
+      )
+    })()}
 
     {/* Replace from book dialog */}
     {replaceFromBookTarget && (

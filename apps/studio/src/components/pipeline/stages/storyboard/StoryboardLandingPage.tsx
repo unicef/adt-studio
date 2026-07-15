@@ -240,7 +240,7 @@ export function StoryboardLandingPage({ bookLabel }: { bookLabel: string }) {
       : !sectioningCovered
         ? "sectioning"
         : "storyboard"
-    queueRun({ fromStage, toStage: "storyboard", apiKey })
+    queueRun({ fromStage, toStage: "storyboard", apiKey, viewAfter: true })
   }
 
   const isAi = AI_STRATEGIES.has(defaultRenderStrategy)

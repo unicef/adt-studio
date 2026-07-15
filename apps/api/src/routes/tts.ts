@@ -7,6 +7,7 @@ import { z } from "zod"
 import {
   parseBookLabel,
   TTSOutput,
+  isTtsExcluded,
   type SpeechFileEntry,
   type TTSProviderConfig,
   type TextCatalogEntry,
@@ -24,8 +25,10 @@ import {
 import {
   getBaseLanguage,
   loadBookConfig,
+  loadSpeechInstructions,
   loadVoicesConfig,
   normalizeLocale,
+  resolveInstructions,
   resolveProviderForLanguage,
   resolveSpeechFormat,
   resolveSpeechModel,
@@ -34,6 +37,7 @@ import {
   generateWordTimestamps,
   type ProviderRouting,
 } from "@adt/pipeline"
+import { getLiveSpeechRun } from "../services/speech-progress.js"
 
 const GenerateSingleTTSBody = z
   .object({
@@ -156,13 +160,20 @@ function getLatestTtsEntries(
   storage: ReturnType<typeof createBookStorage>,
   language: string
 ): SpeechFileEntry[] {
+  return getLatestTtsOutput(storage, language)?.entries ?? []
+}
+
+function getLatestTtsOutput(
+  storage: ReturnType<typeof createBookStorage>,
+  language: string
+): TTSOutput | undefined {
   const normalizedLanguage = normalizeLocale(language)
   const legacyLanguage = normalizedLanguage.replace("-", "_")
   const row =
     storage.getLatestNodeData("tts", normalizedLanguage) ??
     storage.getLatestNodeData("tts", legacyLanguage)
 
-  return row ? (row.data as { entries?: SpeechFileEntry[] }).entries ?? [] : []
+  return row ? (row.data as TTSOutput) : undefined
 }
 
 function mergeSpeechEntry(
@@ -179,6 +190,23 @@ function mergeSpeechEntry(
       (order.get(left.textId) ?? Number.MAX_SAFE_INTEGER) -
       (order.get(right.textId) ?? Number.MAX_SAFE_INTEGER)
   )
+}
+
+function buildUpdatedTtsOutput(
+  storage: ReturnType<typeof createBookStorage>,
+  language: string,
+  entries: SpeechFileEntry[],
+  resolvedTextId: string
+): TTSOutput {
+  const previous = getLatestTtsOutput(storage, language)
+  const failed = (previous?.failed ?? []).filter(
+    (entry) => entry.textId !== resolvedTextId
+  )
+  return {
+    entries,
+    generatedAt: new Date().toISOString(),
+    ...(failed.length > 0 ? { failed } : {}),
+  }
 }
 
 function getTtsCompletionSummary(
@@ -208,6 +236,7 @@ function getTtsCompletionSummary(
       getLatestTtsEntries(storage, language).map((entry) => entry.textId)
     )
     for (const entry of expectedEntries) {
+      if (isTtsExcluded(entry.id, config.speech)) continue
       if (!availableIds.has(entry.id)) {
         remainingItems++
       }
@@ -353,6 +382,46 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
     }
 
+    const resolvedBooksDir = path.resolve(booksDir)
+    const mapEntries = (language: string, entries: Array<{ textId: string; fileName: string; voice: string; model: string; cached: boolean; provider?: string }>) => {
+      const audioDir = path.join(resolvedBooksDir, safeLabel, "audio", language)
+      return entries.map((e) => {
+        let cacheKey: string | undefined
+        try {
+          cacheKey = fs.statSync(path.join(audioDir, e.fileName)).mtimeMs.toString(36)
+        } catch {
+          // file missing — leave cacheKey undefined
+        }
+        return {
+          textId: e.textId,
+          fileName: e.fileName,
+          voice: e.voice,
+          model: e.model,
+          cached: e.cached,
+          provider: e.provider,
+          cacheKey,
+        }
+      })
+    }
+
+    const languages: Record<string, { entries: Array<{ textId: string; fileName: string; voice: string; model: string; cached: boolean; provider?: string; cacheKey?: string }>; failed?: Array<{ textId: string; error: string }>; generatedAt: string; version: number }> = {}
+
+    // While a speech run is active, serve its live snapshot — node data is
+    // only persisted at the end of the run, but audio files land on disk per
+    // item, so this lets the Speech view fill in progressively.
+    const live = getLiveSpeechRun(safeLabel)
+    if (live) {
+      for (const [lang, data] of Object.entries(live.languages)) {
+        languages[lang] = {
+          entries: mapEntries(lang, data.entries),
+          ...(data.failed.length > 0 ? { failed: data.failed } : {}),
+          generatedAt: live.startedAt,
+          version: 0,
+        }
+      }
+      return c.json({ languages, live: true })
+    }
+
     const db = openBookDb(dbPath)
     try {
       // TTS is stored per language: node="tts", item_id=language code
@@ -365,32 +434,16 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         ["tts", "tts"]
       ) as Array<{ item_id: string; data: string; version: number }>
 
-      const languages: Record<string, { entries: Array<{ textId: string; fileName: string; voice: string; model: string; cached: boolean; provider?: string; cacheKey?: string }>; generatedAt: string; version: number }> = {}
-      const resolvedBooksDir = path.resolve(booksDir)
       for (const row of rows) {
         try {
           const parsed = JSON.parse(row.data)
           const validated = TTSOutput.safeParse(parsed)
           if (!validated.success) continue
-          const audioDir = path.join(resolvedBooksDir, safeLabel, "audio", row.item_id)
           languages[row.item_id] = {
-            entries: validated.data.entries.map((e) => {
-              let cacheKey: string | undefined
-              try {
-                cacheKey = fs.statSync(path.join(audioDir, e.fileName)).mtimeMs.toString(36)
-              } catch {
-                // file missing — leave cacheKey undefined
-              }
-              return {
-                textId: e.textId,
-                fileName: e.fileName,
-                voice: e.voice,
-                model: e.model,
-                cached: e.cached,
-                provider: e.provider,
-                cacheKey,
-              }
-            }),
+            entries: mapEntries(row.item_id, validated.data.entries),
+            ...(validated.data.failed && validated.data.failed.length > 0
+              ? { failed: validated.data.failed }
+              : {}),
             generatedAt: validated.data.generatedAt,
             version: row.version,
           }
@@ -557,10 +610,11 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         languageEntries.map((entry) => entry.id)
       )
 
-      const version = storage.putNodeData("tts", normalizedLanguage, {
-        entries: mergedEntries,
-        generatedAt: new Date().toISOString(),
-      })
+      const version = storage.putNodeData(
+        "tts",
+        normalizedLanguage,
+        buildUpdatedTtsOutput(storage, normalizedLanguage, mergedEntries, textEntry.id)
+      )
 
       clearWordTimestampEntry(storage, normalizedLanguage, textEntry.id)
 
@@ -684,6 +738,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
       const configDir = getConfigDir(configPath)
       const voiceMaps = loadVoicesConfig(configDir)
+      const instructionsMap = loadSpeechInstructions(configDir)
       const model = resolveSpeechModel(provider, providerConfigs, config.speech?.model)
       const format = resolveSpeechFormat(provider, config.speech?.format)
       const voice = resolveVoice(
@@ -715,7 +770,14 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           language: normalizedLanguage,
           model: options.targetModel,
           voice: options.targetVoice,
-          instructions: "",
+          // Gemini embeds these in the prompt text; OpenAI uses its instructions
+          // field. Azure has no instruction channel. Mirrors stage-runner.ts so the
+          // single-item cache key matches the batch path.
+          instructions:
+            options.targetProvider === "openai" ||
+            options.targetProvider === "gemini"
+              ? resolveInstructions(normalizedLanguage, instructionsMap)
+              : "",
           format,
           bookDir,
           cacheDir,
@@ -788,10 +850,11 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           languageEntries.map((item) => item.id)
         )
 
-        const version = storage.putNodeData("tts", normalizedLanguage, {
-          entries: mergedEntries,
-          generatedAt: new Date().toISOString(),
-        })
+        const version = storage.putNodeData(
+          "tts",
+          normalizedLanguage,
+          buildUpdatedTtsOutput(storage, normalizedLanguage, mergedEntries, textEntry.id)
+        )
 
         const completion = getTtsCompletionSummary(
           storage,
@@ -862,10 +925,11 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                 languageEntries.map((item) => item.id)
               )
 
-              const version = storage.putNodeData("tts", normalizedLanguage, {
-                entries: mergedEntries,
-                generatedAt: new Date().toISOString(),
-              })
+              const version = storage.putNodeData(
+                "tts",
+                normalizedLanguage,
+                buildUpdatedTtsOutput(storage, normalizedLanguage, mergedEntries, textEntry.id)
+              )
 
               const completion = getTtsCompletionSummary(
                 storage,

@@ -91,6 +91,7 @@ docker run -p 8080:80 -v ./books:/app/books adt-studio
 | `BOOKS_DIR` | `/app/books` | `-v ./books:/app/books` |
 | `PROMPTS_DIR` | `/app/prompts` | `-v ./prompts:/app/prompts` |
 | `CONFIG_PATH` | `/app/config.yaml` | `-v ./config.yaml:/app/config.yaml:ro` |
+| `FONTS_CACHE_DIR` | `<BOOKS_DIR>/.fonts-cache` | Global Google Fonts cache shared across books (persists in the books volume by default) |
 | `PORT` | `3001` | Internal only — nginx proxies to this |
 
 **`TEMPLATES_DIR` trap:** The Dockerfile and `docker-compose.yml` set `TEMPLATES_DIR=/app/templates` but the application **never reads this env var**. Templates dir is always derived from `path.join(path.dirname(PROMPTS_DIR), "templates")`. To use a custom templates directory, mount it as a sibling of `prompts/` — i.e. override `PROMPTS_DIR` and keep `templates/` next to it.
@@ -160,7 +161,7 @@ Or create a new tag in the GitHub UI pointing at `main`.
 
 ## Internationalization (i18n)
 
-The Studio app uses **Lingui v5** for i18n. All user-visible text in `apps/studio/` must be translated to all supported locales: **`en`, `pt-BR`, `es`, `fr`**.
+The Studio app uses **Lingui v5** for i18n. All user-visible text in `apps/studio/` must be translated to all supported locales: **`en`, `pt-BR`, `es`, `fr`, `sq`**.
 
 ### Rules
 - **Every user-visible string must be wrapped** in a Lingui macro — no raw string literals in JSX or component output
@@ -168,7 +169,7 @@ The Studio app uses **Lingui v5** for i18n. All user-visible text in `apps/studi
   - In JSX content: `<Trans>Your string</Trans>`
   - In non-React code (utils, constants): `msg\`Your string\`` + `i18n._()` at runtime
 - **After adding or changing any string**, run `pnpm --filter @adt/studio extract` to update all `.po` catalog files and commit them alongside the code change
-- **All locales must be fully translated** — no empty `msgstr` entries in `es.po`, `pt-BR.po`, or `fr.po`
+- **All locales must be fully translated** — no empty `msgstr` entries in `es.po`, `pt-BR.po`, `fr.po`, or `sq.po`
 - CI enforces both rules automatically via the `i18n` job in `.github/workflows/ci.yml`
 
 ### Available locales
@@ -177,6 +178,7 @@ Defined in `apps/studio/src/i18n/locales.ts` (single source of truth for locale 
 - `pt-BR` — Portuguese (Brazil)
 - `es` — Spanish
 - `fr` — French
+- `sq` — Albanian (Kosovo)
 
 ### ESLint — hardcoded string detection
 The `lingui/no-unlocalized-strings` rule in `apps/studio/eslint.config.js` flags raw strings that should be wrapped in a macro. It has an `ignoreNames` list for prop names whose values are never user-visible (e.g. `variant`, `className`, `href`).

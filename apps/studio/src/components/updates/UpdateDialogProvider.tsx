@@ -9,7 +9,10 @@ import {
   type ReactNode,
 } from "react"
 import { UpdateDialog } from "./UpdateDialog"
+import { PostUpdateDialog } from "./PostUpdateDialog"
+import { useAppVersion } from "@/hooks/use-app-version"
 import { useUpdateStatus } from "@/hooks/use-update-status"
+import { isElectron } from "@/lib/utils"
 
 interface UpdateDialogContextValue {
   openUpdateDialog: () => void
@@ -27,8 +30,14 @@ export function useUpdateDialog(): UpdateDialogContextValue {
 
 export function UpdateDialogProvider({ children }: { children: ReactNode }) {
   const { status, check } = useUpdateStatus()
+  const currentVersion = useAppVersion()
   const [open, setOpen] = useState(false)
   const autoOpenedFor = useRef<string | null>(null)
+
+  const [postUpdate, setPostUpdate] = useState<ElectronPostUpdateInfo | null>(
+    null,
+  )
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false)
 
   const phase = status.phase
   const hasPendingUpdate =
@@ -41,6 +50,17 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
     setOpen(true)
   }, [status])
 
+  useEffect(() => {
+    if (!isElectron() || !window.api?.updates?.getPostUpdate) return
+    let cancelled = false
+    window.api.updates.getPostUpdate().then((info) => {
+      if (!cancelled && info) setPostUpdate(info)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   const openUpdateDialog = useCallback(() => {
     setOpen(true)
     if (phase === "idle" || phase === "not-available" || phase === "error") {
@@ -48,15 +68,41 @@ export function UpdateDialogProvider({ children }: { children: ReactNode }) {
     }
   }, [phase, check])
 
+  const showWhatsNew = useCallback(() => {
+    setOpen(false)
+    setWhatsNewOpen(true)
+  }, [])
+
   const value = useMemo(
     () => ({ openUpdateDialog, hasPendingUpdate }),
     [openUpdateDialog, hasPendingUpdate],
   )
 
+  const whatsNewVersion = postUpdate?.version ?? currentVersion ?? ""
+  const whatsNewNotes = postUpdate?.releaseNotes
+  const showPostUpdate = Boolean(postUpdate) || whatsNewOpen
+
   return (
     <UpdateDialogContext value={value}>
       {children}
-      <UpdateDialog open={open} onOpenChange={setOpen} />
+      <UpdateDialog
+        open={open}
+        onOpenChange={setOpen}
+        onShowWhatsNew={showWhatsNew}
+      />
+      {showPostUpdate && (
+        <PostUpdateDialog
+          open
+          onOpenChange={(next) => {
+            if (!next) {
+              setPostUpdate(null)
+              setWhatsNewOpen(false)
+            }
+          }}
+          version={whatsNewVersion}
+          releaseNotes={whatsNewNotes}
+        />
+      )}
     </UpdateDialogContext>
   )
 }

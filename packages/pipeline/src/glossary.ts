@@ -3,12 +3,12 @@ import type { AppConfig, GlossaryItem, GlossaryOutput } from "@adt/types"
 import {
   glossaryLLMSchema,
   WebRenderingOutput,
-  PageSectioningOutput,
   DEFAULT_LLM_MAX_RETRIES,
 } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
 import type { Storage, PageData } from "@adt/storage"
 import { processWithConcurrency } from "./concurrency.js"
+import { getRenderSectioning } from "./render-sectioning.js"
 import { buildLanguageContext } from "./language-context.js"
 
 export interface GlossaryConfig {
@@ -147,14 +147,11 @@ export function collectPageTexts(
       )
     }
     const rendering = parsed.data
-    // Filter out pruned sections
-    const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-    const sectioning = structuringRow
-      ? PageSectioningOutput.safeParse(structuringRow.data)
-      : null
+    // Filter out pruned sections (resolver: positioned tree for fixed-layout)
+    const sectioning = getRenderSectioning(storage, page.pageId)
     const htmlParts = rendering.sections
       .filter(
-        (s) => !sectioning?.success || !sectioning.data.sections[s.sectionIndex]?.isPruned
+        (s) => !sectioning || !sectioning.sections[s.sectionIndex]?.isPruned
       )
       .map((s) => s.html)
     const text = stripHtml(htmlParts.join(" "))
@@ -271,6 +268,22 @@ export async function generateGlossary(
   }
 
   return aiGlossary
+}
+
+/** Regenerate the glossary while preserving manually added, edited, and pruned
+ * terms from the previous version. Shared by both pipeline runners so the
+ * behavior can't drift; the caller persists the returned glossary. Relies on the
+ * prior glossary node surviving any pre-run clear (see getStageRerunClearNodes). */
+export async function regenerateGlossaryPreservingEdits(
+  options: Omit<GenerateGlossaryOptions, "excludedWords">
+): Promise<GlossaryOutput> {
+  const existingRow = options.storage.getLatestNodeData("glossary", "book")
+  const existingItems = (existingRow?.data as GlossaryOutput | undefined)?.items ?? []
+  const generated = await generateGlossary({
+    ...options,
+    excludedWords: getPrunedGlossaryWords(existingItems),
+  })
+  return mergeGeneratedGlossaryWithManualItems(generated, existingItems)
 }
 
 export interface GenerateGlossaryItemOptions {

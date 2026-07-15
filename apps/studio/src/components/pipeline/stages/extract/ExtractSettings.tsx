@@ -1,45 +1,25 @@
 import { useState, useEffect } from "react"
-import { createPortal } from "react-dom"
-import { useNavigate } from "@tanstack/react-router"
-import { Play } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import { LanguagePicker } from "@/components/LanguagePicker"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
-import { useApiKey } from "@/hooks/use-api-key"
 import { api } from "@/api/client"
 import { PromptViewer } from "@/components/pipeline/components/PromptViewer"
-import { useBookRun } from "@/hooks/use-book-run"
+import { useStageSettingsBar } from "@/hooks/use-stage-settings-bar"
+import { useDirtyTabTracker } from "@/hooks/use-settings-dirty-tabs"
 import { useStepConfig } from "@/hooks/use-step-config"
 import { normalizeLocale } from "@/lib/languages"
 import { useLingui } from "@lingui/react/macro"
 
-export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
+export function ExtractSettings({ bookLabel, tab = "general" }: { bookLabel: string; headerTarget?: HTMLDivElement | null; tab?: string }) {
   const { t } = useLingui()
   const { data: bookConfigData } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
-  const { apiKey, hasApiKey } = useApiKey()
-  const { queueRun } = useBookRun()
-  const navigate = useNavigate()
-  const [showRerunDialog, setShowRerunDialog] = useState(false)
 
   // Form state
-  const [startPage, setStartPage] = useState("")
-  const [endPage, setEndPage] = useState("")
-  const [spreadMode, setSpreadMode] = useState(false)
-  const [vectorTextGrouping, setVectorTextGrouping] = useState(true)
   const [editingLanguage, setEditingLanguage] = useState("")
   const [minSide, setMinSide] = useState("")
   const [maxSide, setMaxSide] = useState("")
@@ -54,8 +34,12 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
   const [segmentationPromptDraft, setSegmentationPromptDraft] = useState<string | null>(null)
 
   // Track which field groups the user has actually touched
+  const { markedTabs, markTab, resetMarkedTabs } = useDirtyTabTracker()
   const [dirty, setDirty] = useState<Record<string, boolean>>({})
-  const markDirty = (field: string) => setDirty((prev) => ({ ...prev, [field]: true }))
+  const markDirty = (field: string) => {
+    setDirty((prev) => ({ ...prev, [field]: true }))
+    markTab(tab)
+  }
 
   const merged = activeConfigData?.merged as Record<string, unknown> | undefined
   const metadata = useStepConfig(merged, "metadata", markDirty)
@@ -67,11 +51,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
   useEffect(() => {
     if (!bookConfigData) return
     const c = bookConfigData.config
-    setSpreadMode(c.spread_mode === true)
-    setVectorTextGrouping(c.vector_text_grouping !== false)
     if (c.editing_language) setEditingLanguage(normalizeLocale(String(c.editing_language)))
-    if (c.start_page != null) setStartPage(String(c.start_page))
-    if (c.end_page != null) setEndPage(String(c.end_page))
   }, [bookConfigData])
 
   // Load image filters, and segmentation min_side from active (merged) config
@@ -106,18 +86,6 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
     }
 
     // Only write managed fields if touched or already in book config
-    if (shouldWrite("spread_mode")) {
-      overrides.spread_mode = spreadMode
-    }
-    if (shouldWrite("vector_text_grouping")) {
-      overrides.vector_text_grouping = vectorTextGrouping
-    }
-    if (shouldWrite("start_page")) {
-      overrides.start_page = startPage.trim() ? Number(startPage) : undefined
-    }
-    if (shouldWrite("end_page")) {
-      overrides.end_page = endPage.trim() ? Number(endPage) : undefined
-    }
     if (shouldWrite("editing_language") || editingLanguage.trim()) {
       const normalized = normalizeLocale(editingLanguage.trim())
       overrides.editing_language = normalized || undefined
@@ -156,7 +124,7 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
     return overrides
   }
 
-  const confirmSaveAndRerun = async () => {
+  const save = async () => {
     // Save any edited prompts first
     const promptSaves: Promise<unknown>[] = []
     if (metadataPromptDraft != null) promptSaves.push(api.updatePrompt("metadata_extraction", metadataPromptDraft, bookLabel))
@@ -165,97 +133,36 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
     if (segmentationPromptDraft != null) promptSaves.push(api.updatePrompt("image_segmentation", segmentationPromptDraft, bookLabel))
     if (promptSaves.length > 0) await Promise.all(promptSaves)
 
-    const overrides = buildOverrides()
-    updateConfig.mutate(
-      { label: bookLabel, config: overrides },
-      {
-        onSuccess: async () => {
-          setDirty({})
-          setMetadataPromptDraft(null)
-          setMeaningfulnessPromptDraft(null)
-          setCroppingPromptDraft(null)
-          setSegmentationPromptDraft(null)
-          setShowRerunDialog(false)
-          queueRun({ fromStage: "extract", toStage: "extract", apiKey })
-          navigate({ to: "/books/$label/$step", params: { label: bookLabel, step: "extract" } })
-        },
-      }
-    )
+    await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
+    setDirty({})
+    setMetadataPromptDraft(null)
+    setMeaningfulnessPromptDraft(null)
+    setCroppingPromptDraft(null)
+    setSegmentationPromptDraft(null)
+    resetMarkedTabs()
   }
+
+  const dirtyTabs = [
+    ...markedTabs,
+    ...(metadataPromptDraft != null ? ["metadata-prompt"] : []),
+    ...(meaningfulnessPromptDraft != null ? ["meaningfulness-prompt"] : []),
+    ...(croppingPromptDraft != null ? ["cropping-prompt"] : []),
+    ...(segmentationPromptDraft != null ? ["segmentation-prompt"] : []),
+  ].filter((tabKey, i, all) => all.indexOf(tabKey) === i)
+
+  useStageSettingsBar({
+    stage: "extract",
+    bookLabel,
+    dirty: dirtyTabs.length > 0,
+    dirtyTabs,
+    saving: updateConfig.isPending,
+    save,
+  })
 
   return (
     <div className={tab === "metadata-prompt" || tab === "meaningfulness-prompt" || tab === "cropping-prompt" || tab === "segmentation-prompt" ? "h-full max-w-4xl" : "p-4 space-y-6"}>
       {tab === "general" && (
         <>
-          {/* Page Range */}
-          <div>
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-              {t`Page Range`}
-            </h3>
-            <div className="flex items-center gap-2">
-              <Input
-                type="number"
-                min={1}
-                value={startPage}
-                onChange={(e) => { setStartPage(e.target.value); markDirty("start_page") }}
-                placeholder={t`First`}
-                className="w-24"
-              />
-              <span className="text-xs text-muted-foreground">{t`to`}</span>
-              <Input
-                type="number"
-                min={1}
-                value={endPage}
-                onChange={(e) => { setEndPage(e.target.value); markDirty("end_page") }}
-                placeholder={t`Last`}
-                className="w-24"
-              />
-            </div>
-            <p className="text-xs text-muted-foreground mt-1.5">
-              {t`Leave empty to process all pages.`}
-            </p>
-          </div>
-
-          {/* Spread Mode */}
-          <div>
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-              {t`Spread Mode`}
-            </h3>
-            <div className="flex items-center gap-2">
-              <Switch
-                id="spread-mode"
-                checked={spreadMode}
-                onCheckedChange={(v) => { setSpreadMode(v); markDirty("spread_mode") }}
-              />
-              <Label htmlFor="spread-mode" className="text-sm font-normal">
-                {t`Merge facing pages as spreads`}
-              </Label>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1.5">
-              {t`Enable for scanned books where two pages appear on a single PDF page.`}
-            </p>
-          </div>
-
-          {/* Vector + Text Grouping */}
-          <div>
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-              {t`Vector Extraction`}
-            </h3>
-            <div className="flex items-center gap-2">
-              <Switch
-                id="vector-text-grouping"
-                checked={vectorTextGrouping}
-                onCheckedChange={(v) => { setVectorTextGrouping(v); markDirty("vector_text_grouping") }}
-              />
-              <Label htmlFor="vector-text-grouping" className="text-sm font-normal">
-                {t`Include text overlays in vector groups`}
-              </Label>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1.5">
-              {t`When enabled, text labels near vector images (e.g. chart dimensions, speech bubbles) are grouped together and extracted as raster crops. Disable to extract only the core vector shapes without text.`}
-            </p>
-          </div>
-
           {/* Editing Language */}
           <div className="max-w-sm">
             <LanguagePicker
@@ -443,37 +350,6 @@ export function ExtractSettings({ bookLabel, headerTarget, tab = "general" }: { 
         </div>
       )}
 
-      {headerTarget && createPortal(
-        <Button
-          size="sm"
-          className="h-7 px-2.5 text-xs bg-black/15 text-white hover:bg-black/25"
-          onClick={() => setShowRerunDialog(true)}
-          disabled={updateConfig.isPending || !hasApiKey}
-        >
-          <Play className="mr-1.5 h-3.5 w-3.5" />
-          {t`Save & Rerun`}
-        </Button>,
-        headerTarget
-      )}
-
-      <Dialog open={showRerunDialog} onOpenChange={setShowRerunDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t`Save & Rerun Extraction`}</DialogTitle>
-            <DialogDescription>
-              {t`This will save your settings and re-run the extraction pipeline. Any manual edits to extracted text will be overwritten for affected pages.`}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowRerunDialog(false)}>
-              {t`Cancel`}
-            </Button>
-            <Button onClick={confirmSaveAndRerun} disabled={updateConfig.isPending}>
-              {updateConfig.isPending ? t`Saving...` : t`Confirm Rerun`}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }

@@ -1,18 +1,20 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react"
-import { AlertTriangle, Check, Crop, Eye, EyeOff, FileText, Image, ImageOff, Layers, Loader2, ChevronDown, Square, Type, X } from "lucide-react"
+import { AlertTriangle, Check, Crop, Eye, EyeOff, FileText, Image, ImageOff, Layers, Loader2, ChevronDown, Scissors, Square, Type, X } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
 import { usePage, usePageImage } from "@/hooks/use-pages"
 import { api, BASE_URL } from "@/api/client"
 import { useActiveConfig } from "@/hooks/use-debug"
+import { useApiKey } from "@/hooks/use-api-key"
 import { useBookRun } from "@/hooks/use-book-run"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
-import { ImageCropDialog } from "@/components/pipeline/stages/storyboard/components/ImageCropDialog"
+import { ImageCropDialog, pageBoundsToCropRect } from "@/components/pipeline/stages/storyboard/components/ImageCropDialog"
+import { SegmentPreviewDialog, type SegmentRegion } from "@/components/pipeline/stages/storyboard/components/SegmentPreviewDialog"
 import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
 import { usePendingChanges } from "@/components/pipeline/components/change-summary"
 import { resolveReflowableFont } from "@adt/types"
 
-function ImageCard({ imageId, bookLabel, isPruned, reason, bounds, onTogglePrune, onRecrop, cacheBust }: { imageId: string; bookLabel: string; isPruned?: boolean; reason?: string; bounds?: { x: number; y: number; width: number; height: number }; onTogglePrune?: () => void; onRecrop?: () => void; cacheBust?: number }) {
+function ImageCard({ imageId, bookLabel, isPruned, reason, bounds, onTogglePrune, onRecrop, onSegment, segmenting, cacheBust }: { imageId: string; bookLabel: string; isPruned?: boolean; reason?: string; bounds?: { x: number; y: number; width: number; height: number }; onTogglePrune?: () => void; onRecrop?: () => void; onSegment?: () => void; segmenting?: boolean; cacheBust?: number }) {
   const { t } = useLingui()
   const [dimensions, setDimensions] = useState<{ w: number; h: number } | null>(null)
   // eslint-disable-next-line lingui/no-unlocalized-strings
@@ -40,6 +42,24 @@ function ImageCard({ imageId, bookLabel, isPruned, reason, bounds, onTogglePrune
             title={t`Recrop from page`}
           >
             <Crop className="h-3 w-3 text-white" />
+          </button>
+        )}
+        {onSegment && (
+          <button
+            type="button"
+            onClick={onSegment}
+            disabled={segmenting}
+            className={`flex items-center justify-center w-5 h-5 rounded-full cursor-pointer transition-colors disabled:cursor-default ${
+              segmenting
+                ? "bg-orange-500"
+                : "bg-black/30 opacity-0 group-hover:opacity-100 hover:bg-black/50"
+            }`}
+            title={segmenting ? t`Segmenting…` : t`Segment image`}
+          >
+            {segmenting
+              ? <Loader2 className="h-3 w-3 text-white animate-spin" />
+              : <Scissors className="h-3 w-3 text-white" />
+            }
           </button>
         )}
         <button
@@ -101,6 +121,7 @@ export function ExtractPageDetail({
   const { data: page, isLoading } = usePage(bookLabel, pageId)
   const { data: imageData } = usePageImage(bookLabel, pageId)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
+  const { apiKey, hasApiKey } = useApiKey()
   const [pageImageDims, setPageImageDims] = useState<{ w: number; h: number } | null>(null)
   const { stageState, stepState } = useBookRun()
   const storyboardRunning = stageState("storyboard") === "running" || stageState("storyboard") === "queued"
@@ -112,6 +133,16 @@ export function ExtractPageDetail({
   const [cropTarget, setCropTarget] = useState<string | null>(null)
   const [cropPageSrc, setCropPageSrc] = useState<string | null>(null)
   const [cacheBust, setCacheBust] = useState(0)
+  // Image segmentation state
+  const [segmentingId, setSegmentingId] = useState<string | null>(null)
+  const [segmentPreview, setSegmentPreview] = useState<{
+    imageId: string
+    imageSrc: string
+    imageWidth: number
+    imageHeight: number
+    regions: SegmentRegion[]
+  } | null>(null)
+  const [segmentError, setSegmentError] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
   // Clear pending state when page changes
@@ -119,6 +150,9 @@ export function ExtractPageDetail({
     setPendingImageData(null)
     setCropTarget(null)
     setCropPageSrc(null)
+    setSegmentingId(null)
+    setSegmentPreview(null)
+    setSegmentError(null)
   }, [pageId])
 
   const handleRecropFromPage = useCallback(async (imageId: string) => {
@@ -154,6 +188,81 @@ export function ExtractPageDetail({
       setCropPageSrc(null)
     }
   }, [cropTarget, bookLabel, pageId, queryClient, pendingImageData, page?.imageClassification])
+
+  // Run LLM segmentation analysis on an extracted image (phase 1: get bounding
+  // boxes). The editor always opens: if the LLM detects a composite we seed its
+  // boxes, otherwise we seed a single full-image box the user can adjust to crop.
+  const handleSegment = useCallback(async (imageId: string) => {
+    if (!hasApiKey || segmentingId) return
+    setSegmentError(null)
+    setSegmentingId(imageId)
+    try {
+      const result = await api.segmentImage(bookLabel, imageId, pageId, apiKey)
+      const width = result.imageWidth
+      const height = result.imageHeight
+      if (!width || !height) {
+        setSegmentError(t`Could not read image dimensions`)
+        return
+      }
+      const regions: SegmentRegion[] =
+        result.regions && result.regions.length > 0
+          ? result.regions
+          : [{ label: t`Region`, cropLeft: 0, cropTop: 0, cropRight: width, cropBottom: height }]
+      setSegmentPreview({
+        imageId,
+        imageSrc: `${BASE_URL}/books/${bookLabel}/images/${imageId}`,
+        imageWidth: width,
+        imageHeight: height,
+        regions,
+      })
+    } catch (err) {
+      setSegmentError(err instanceof Error ? err.message : t`Segmentation failed`)
+    } finally {
+      setSegmentingId(null)
+    }
+  }, [bookLabel, pageId, apiKey, hasApiKey, segmentingId, t])
+
+  // Apply confirmed segmentation (phase 2: crop, save, and add the new segment
+  // images to the image-filtering classification. The original is kept but
+  // pruned so it stays inspectable/restorable rather than disappearing).
+  const handleSegmentApply = useCallback(async (confirmedRegions: SegmentRegion[]) => {
+    if (!segmentPreview) return
+    const { imageId } = segmentPreview
+    setSegmentError(null)
+    try {
+      const result = await api.applySegmentation(bookLabel, imageId, pageId, confirmedRegions)
+      if (!result.segments || result.segments.length === 0) {
+        throw new Error(t`Segmentation produced no valid segments`)
+      }
+      const base = pendingImageData ?? page?.imageClassification
+      if (base) {
+        const updated = {
+          ...base,
+          images: base.images.flatMap((img) =>
+            img.imageId === imageId
+              ? [
+                  { ...img, isPruned: true, reason: "segmented" },
+                  ...result.segments.map((seg) => ({ imageId: seg.imageId, isPruned: false })),
+                ]
+              : [img]
+          ),
+        }
+        await api.updateImageClassification(bookLabel, pageId, updated)
+      }
+      await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
+      setPendingImageData(null)
+      setCacheBust((n) => n + 1)
+      // Close only after success — keeps the dialog (and the user's adjusted
+      // regions) up while applying, so it can show its spinner and stay open
+      // for retry if the apply fails.
+      setSegmentPreview(null)
+    } catch (err) {
+      setSegmentError(err instanceof Error ? err.message : t`Segmentation apply failed`)
+      // Rethrow so SegmentPreviewDialog resets its applying state and the user
+      // can retry without re-running the (paid) LLM analysis.
+      throw err
+    }
+  }, [segmentPreview, bookLabel, pageId, queryClient, pendingImageData, page?.imageClassification, t])
 
   // Effective data: pending if dirty, otherwise server
   const imageClassData = pendingImageData ?? page?.imageClassification ?? null
@@ -262,6 +371,22 @@ export function ExtractPageDetail({
           )
         })()}
 
+        {/* Segmentation error notice */}
+        {segmentError && (
+          <div className="flex items-center gap-2 rounded border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+            <span className="flex-1">{segmentError}</span>
+            <button
+              type="button"
+              onClick={() => setSegmentError(null)}
+              className="shrink-0 rounded p-0.5 cursor-pointer hover:bg-black/5 dark:hover:bg-white/10"
+              title={t`Close`}
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+        )}
+
         {/* Page image */}
         {imageData ? (
           <div className="rounded border overflow-hidden shadow-sm">
@@ -324,6 +449,8 @@ export function ExtractPageDetail({
                     bounds={boundsByImageId.get(img.imageId)}
                     onTogglePrune={() => toggleImagePrune(img.imageId)}
                     onRecrop={!storyboardRunning ? () => handleRecropFromPage(img.imageId) : undefined}
+                    onSegment={hasApiKey && !storyboardRunning ? () => handleSegment(img.imageId) : undefined}
+                    segmenting={segmentingId === img.imageId}
                     cacheBust={cacheBust}
                   />
                 </div>
@@ -406,6 +533,23 @@ export function ExtractPageDetail({
               {page.text}
             </div>
           </div>
+        ) : page.extractionWarning ? (
+          <div className="rounded border border-amber-200 bg-amber-50 p-3">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-amber-800 uppercase tracking-wider mb-1">
+              <AlertTriangle className="h-3 w-3" />
+              <Trans>No text extracted</Trans>
+            </div>
+            <p className="text-xs text-amber-700 leading-relaxed">
+              <Trans>
+                This page's embedded text layer is empty, but the Sectioning step
+                recovered text from the page image — so it looks like a scanned or
+                image-only page. The pipeline can still work from the recovered
+                text, but for better summaries, metadata, and translations, try to
+                obtain a text-based version of this PDF (one with a real text
+                layer) rather than a scanned copy.
+              </Trans>
+            </p>
+          </div>
         ) : (
           <div className="text-sm text-muted-foreground py-8 text-center">
             <Trans>No extracted text yet. Run the pipeline first.</Trans>
@@ -414,11 +558,27 @@ export function ExtractPageDetail({
 
       </div>
       </div>
-      {cropTarget && cropPageSrc && (
-        <ImageCropDialog
-          imageSrc={cropPageSrc}
-          onApply={handleCropApply}
-          onClose={() => { setCropTarget(null); setCropPageSrc(null) }}
+      {cropTarget && cropPageSrc && (() => {
+        // Recrop is always from the full page image — overlay the selection on
+        // the region this image originally came from when its bounds are known.
+        const bounds = boundsByImageId.get(cropTarget)
+        return (
+          <ImageCropDialog
+            imageSrc={cropPageSrc}
+            initialRect={bounds ? pageBoundsToCropRect(bounds) : undefined}
+            onApply={handleCropApply}
+            onClose={() => { setCropTarget(null); setCropPageSrc(null) }}
+          />
+        )
+      })()}
+      {segmentPreview && (
+        <SegmentPreviewDialog
+          imageSrc={segmentPreview.imageSrc}
+          imageWidth={segmentPreview.imageWidth}
+          imageHeight={segmentPreview.imageHeight}
+          regions={segmentPreview.regions}
+          onApply={handleSegmentApply}
+          onClose={() => setSegmentPreview(null)}
         />
       )}
     </div>

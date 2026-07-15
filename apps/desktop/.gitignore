@@ -7,3 +7,5 @@ out
 *.log*
 
 .p12
+
+electron.vite.config.*.mjs

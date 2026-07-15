@@ -195,17 +195,22 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       const filename = `${segId}.png`
       fs.writeFileSync(path.join(paths.imagesDir, filename), input.buffer)
 
+      const b = input.bounds
       db.run(
         `INSERT INTO images
-           (image_id, page_id, path, hash, width, height, source)
-         VALUES (?, ?, ?, ?, ?, ?, ?)
+           (image_id, page_id, path, hash, width, height, source, bounds_x, bounds_y, bounds_w, bounds_h)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT (image_id) DO UPDATE SET
            page_id = excluded.page_id,
            path = excluded.path,
            hash = excluded.hash,
            width = excluded.width,
            height = excluded.height,
-           source = excluded.source`,
+           source = excluded.source,
+           bounds_x = excluded.bounds_x,
+           bounds_y = excluded.bounds_y,
+           bounds_w = excluded.bounds_w,
+           bounds_h = excluded.bounds_h`,
         [
           segId,
           input.pageId,
@@ -214,6 +219,10 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
           input.width,
           input.height,
           "segment",
+          b ? b.x : null,
+          b ? b.y : null,
+          b ? b.width : null,
+          b ? b.height : null,
         ]
       )
     },
@@ -493,7 +502,7 @@ function clearImageFiles(imagesDir: string): void {
 function clearExtractedRows(db: sqlite.Database): void {
   db.exec("BEGIN IMMEDIATE")
   try {
-    db.run("DELETE FROM node_data")
+    db.run("DELETE FROM node_data WHERE node NOT IN ('font-registry', 'font-assignment')")
     db.run("DELETE FROM images")
     db.run("DELETE FROM pages")
     db.run("DELETE FROM step_runs")

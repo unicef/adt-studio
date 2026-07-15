@@ -970,6 +970,55 @@ describe("processFixedLayoutPages", () => {
     }
   })
 
+  it("writes the positioned tree to fixed-layout-sectioning and leaves page-sectioning untouched", () => {
+    const booksRoot = fs.mkdtempSync(path.join(os.tmpdir(), "adt-fixlayout-test-"))
+    tmpDirs.push(booksRoot)
+
+    const storage = createBookStorage("test-book", booksRoot)
+    try {
+      const positionedText: PositionedTextOutput = {
+        drawItems: [
+          { kind: "image", imageId: "pg001_im001", bounds: { x: 50, y: 50, width: 300, height: 200 } },
+        ],
+        pageWidth: 400,
+        pageHeight: 300,
+        renderWidth: 800,
+        renderHeight: 600,
+      }
+      storage.putExtractedPage({
+        pageId: "pg001",
+        pageNumber: 1,
+        text: "",
+        pageImage: makeImage("pg001_page", "pg001", 800, 600),
+        images: [makeImage("pg001_im001", "pg001", 600, 400, { x: 50, y: 50, width: 300, height: 200 })],
+        positionedText,
+      })
+      storage.putNodeData("positioned-text", "pg001", positionedText)
+      storage.putNodeData("image-filtering", "pg001", {
+        images: [
+          { imageId: "pg001_page", isPruned: true, reason: "full-page render" },
+          { imageId: "pg001_im001", isPruned: false },
+        ],
+      })
+      // A pre-existing semantic page-sectioning that must NOT be clobbered.
+      const semantic = { reasoning: "semantic", sections: [] }
+      storage.putNodeData("page-sectioning", "pg001", semantic)
+
+      processFixedLayoutPages(storage, "/images")
+
+      // Positioned tree goes to the dedicated node…
+      const fixed = storage.getLatestNodeData("fixed-layout-sectioning", "pg001")
+      expect(fixed).not.toBeNull()
+      expect((fixed!.data as { sections: Array<{ sectionType: string }> }).sections[0].sectionType)
+        .toBe("fixed-layout-page")
+      // …and the semantic page-sectioning is preserved unchanged.
+      const pageSectioning = storage.getLatestNodeData("page-sectioning", "pg001")
+      expect(pageSectioning!.data).toEqual(semantic)
+    } finally {
+      storage.close()
+    }
+  })
+
   it("excludes images that image-filtering marked pruned", () => {
     // Fixed-layout trusts image-filtering's pruning decisions: the wizard
     // writes image_filters that disable size/complexity/meaningfulness

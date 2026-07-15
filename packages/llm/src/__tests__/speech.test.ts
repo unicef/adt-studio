@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
-import { createGeminiTTSSynthesizer } from "../speech.js"
+import { createGeminiTTSSynthesizer, transcribeWithWhisper } from "../speech.js"
 
 describe("createGeminiTTSSynthesizer", () => {
   const fetchMock = vi.fn<typeof fetch>()
@@ -227,5 +227,191 @@ describe("createGeminiTTSSynthesizer", () => {
     ).rejects.toThrow(
       /response did not include audio data\. Response summary: text="The selected voice is unavailable for this request\."/
     )
+  })
+
+  it("embeds instructions as a Director's Chair prompt when provided", async () => {
+    const pcmBytes = new Uint8Array([1, 2, 3, 4])
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    inlineData: {
+                      data: Buffer.from(pcmBytes).toString("base64"),
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    )
+
+    const synth = createGeminiTTSSynthesizer({ apiKey: "gm-test" })
+    await synth.synthesize({
+      model: "gemini-3.1-flash-tts-preview",
+      voice: "Kore",
+      input: "Përshëndetje!",
+      responseFormat: "wav",
+      instructions: "Speak with a Pristina, Kosovo accent.",
+    })
+
+    const sentText = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))
+      .contents[0].parts[0].text as string
+    // Instructions go above the transcript delimiter, transcript below it.
+    expect(sentText).toBe(
+      "### PERFORMANCE\nSpeak with a Pristina, Kosovo accent.\n\n#### TRANSCRIPT\nPërshëndetje!"
+    )
+    // The model must never receive a systemInstruction (rejected by the TTS models).
+    expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).not.toHaveProperty(
+      "systemInstruction"
+    )
+  })
+
+  it("sends the bare transcript when instructions are empty or absent", async () => {
+    const pcmBytes = new Uint8Array([1, 2, 3, 4])
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            { content: { parts: [{ inlineData: { data: Buffer.from(pcmBytes).toString("base64") } } ] } },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    )
+
+    const synth = createGeminiTTSSynthesizer({ apiKey: "gm-test" })
+    await synth.synthesize({
+      model: "gemini-3.1-flash-tts-preview",
+      voice: "Kore",
+      input: "Hello world",
+      responseFormat: "wav",
+      instructions: "   ",
+    })
+
+    expect(
+      JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body)).contents[0].parts[0].text
+    ).toBe("Hello world")
+  })
+
+  it("re-wraps the short-text punctuation retry with instructions", async () => {
+    const pcmBytes = new Uint8Array([9, 10, 11, 12])
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            candidates: [{ content: { parts: [{ text: "No audio returned." }] } }],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            candidates: [
+              { content: { parts: [{ inlineData: { data: Buffer.from(pcmBytes).toString("base64") } } ] } },
+            ],
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } }
+        )
+      )
+
+    const synth = createGeminiTTSSynthesizer({ apiKey: "gm-test" })
+    await synth.synthesize({
+      model: "gemini-3.1-flash-tts-preview",
+      voice: "Kore",
+      input: "Po",
+      responseFormat: "wav",
+      instructions: "Kosovo accent.",
+    })
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    // Retry appends terminal punctuation to the transcript, still inside the wrapper.
+    expect(
+      JSON.parse(String(fetchMock.mock.calls[1]?.[1]?.body)).contents[0].parts[0].text
+    ).toBe("### PERFORMANCE\nKosovo accent.\n\n#### TRANSCRIPT\nPo.")
+  })
+})
+
+describe("transcribeWithWhisper", () => {
+  const fetchMock = vi.fn<typeof fetch>()
+
+  beforeEach(() => {
+    fetchMock.mockReset()
+    vi.stubGlobal("fetch", fetchMock)
+  })
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  const transcriptionResponse = () =>
+    new Response(
+      JSON.stringify({
+        text: "vera",
+        duration: 0.9,
+        words: [{ word: "vera", start: 0, end: 0.9 }],
+      }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    )
+
+  it("retries without the language hint when the API rejects it with a 400", async () => {
+    fetchMock
+      .mockResolvedValueOnce(
+        new Response("Invalid language 'sq'. Supported languages are: ...", {
+          status: 400,
+        }),
+      )
+      .mockResolvedValueOnce(transcriptionResponse())
+
+    const result = await transcribeWithWhisper(
+      Buffer.from([1, 2, 3, 4]),
+      "pg016017_p007.mp3",
+      "sk-test",
+      "sq",
+      "VERA",
+    )
+
+    expect(result.words).toEqual([{ word: "vera", start: 0, end: 0.9 }])
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+
+    // First attempt carries the language hint; the retry drops it.
+    const firstBody = fetchMock.mock.calls[0]?.[1]?.body as FormData
+    const retryBody = fetchMock.mock.calls[1]?.[1]?.body as FormData
+    expect(firstBody.get("language")).toBe("sq")
+    expect(retryBody.has("language")).toBe(false)
+    // The prompt is preserved across the retry.
+    expect(retryBody.get("prompt")).toBe("VERA")
+  })
+
+  it("does not retry (and surfaces the error) on a non-language failure", async () => {
+    fetchMock.mockResolvedValue(
+      new Response("incorrect api key provided", { status: 401 }),
+    )
+
+    await expect(
+      transcribeWithWhisper(Buffer.from([1]), "x.mp3", "sk-bad", "sq"),
+    ).rejects.toThrow(/Whisper transcription failed \(401\)/)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("succeeds on the first call without retrying when the language is accepted", async () => {
+    fetchMock.mockResolvedValue(transcriptionResponse())
+
+    const result = await transcribeWithWhisper(
+      Buffer.from([1, 2]),
+      "y.mp3",
+      "sk-test",
+      "en",
+    )
+
+    expect(result.duration).toBe(0.9)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 })

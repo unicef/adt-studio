@@ -115,8 +115,30 @@ const FORMAT_VISUALS: Record<ExportFormat, FormatVisual> = {
   },
 }
 
-export function ExportPreview({ format }: { format: ExportFormat }) {
-  const visual = FORMAT_VISUALS[format]
+export function ExportPreview({
+  format,
+  isPart,
+}: {
+  format: ExportFormat
+  isPart?: boolean
+}) {
+  const base = FORMAT_VISUALS[format]
+  // A book part exports the project archive as the "Completed Part" the
+  // coordinator merges back — reframe the project preview to match.
+  const visual: FormatVisual =
+    isPart && format === "project"
+      ? {
+          ...base,
+          eyebrow: <Trans>Completed Part</Trans>,
+          tagline: <Trans>Return to coordinator</Trans>,
+          footerHint: (
+            <Trans>
+              Send this project archive back to the coordinator to merge into the
+              source book.
+            </Trans>
+          ),
+        }
+      : base
   const FormatIcon = visual.Icon
 
   return (

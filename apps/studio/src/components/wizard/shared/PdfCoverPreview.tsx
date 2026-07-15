@@ -8,11 +8,22 @@ import {
   usePdfPreviewPages,
 } from "@/components/wizard/shared/usePdfPreviewPages"
 import { PreviewShell } from "@/components/wizard/shared/PreviewShell"
+import { PdfPageBadge } from "@/components/wizard/shared/PdfPageBadge"
+
+export interface PreviewRange {
+  startPage: number
+  endPage: number
+}
 
 interface PdfCoverPreviewProps {
   file?: File | null
   width: number
   height: number
+  /**
+   * When set, pages inside the range are emphasised and pages outside it are
+   * dimmed — a live preview of exactly which pages will be processed.
+   */
+  highlightRange?: PreviewRange | null
 }
 
 const BOOK_PREVIEW_LABEL = msg`Book preview`
@@ -38,7 +49,19 @@ function PdfCoverPlaceholder({ label }: { label: string }) {
   )
 }
 
-function PdfCoverCanvas({ file, width, height, label }: { file: File; width: number; height: number; label: string }) {
+function PdfCoverCanvas({
+  file,
+  width,
+  height,
+  label,
+  highlightRange,
+}: {
+  file: File
+  width: number
+  height: number
+  label: string
+  highlightRange?: PreviewRange | null
+}) {
   const { i18n } = useLingui()
   const { pages, pageLabels, isLoading } = usePdfPreviewPages({
     file,
@@ -68,21 +91,39 @@ function PdfCoverCanvas({ file, width, height, label }: { file: File; width: num
         )}
       >
         {pages.map((dataUrl, index) => {
-          const pageLabel = getPreviewPageLabel(pageLabels, index)
+          const pageNum = index + 1
+          const printedLabel = getPreviewPageLabel(pageLabels, index)
+          // No range → every page is active (unchanged behaviour). An open-ended
+          // range is clamped to the last rendered page.
+          const active =
+            !highlightRange ||
+            (pageNum >= highlightRange.startPage &&
+              pageNum <= Math.min(highlightRange.endPage, pages.length))
           return (
-            <div key={index} className="relative scroll-mt-3">
+            <div
+              key={index}
+              className={cn(
+                "relative scroll-mt-3 transition-opacity",
+                active ? "opacity-100" : "opacity-40",
+              )}
+            >
               <img
                 src={dataUrl}
+                loading="lazy"
+                decoding="async"
                 alt={i18n._(
                   pdfPagePreviewMsg.id,
-                  { pageLabel },
+                  { pageLabel: pageNum },
                   { message: pdfPagePreviewMsg.message },
                 )}
-                className="h-auto w-full rounded-md border border-[#e5e5e5] bg-white shadow-sm"
+                className={cn(
+                  "h-auto w-full rounded-md border bg-white shadow-sm",
+                  highlightRange && active
+                    ? "border-primary ring-2 ring-primary/40"
+                    : "border-[#e5e5e5]",
+                )}
               />
-              <div className="pointer-events-none absolute bottom-2 left-2 z-10 rounded-md border border-border/70 bg-background/90 px-2 py-1 text-[11px] font-semibold tabular-nums text-foreground shadow-sm backdrop-blur-sm supports-[backdrop-filter]:bg-background/75">
-                {pageLabel}
-              </div>
+              <PdfPageBadge pageNum={pageNum} printedLabel={printedLabel} />
             </div>
           )
         })}
@@ -91,9 +132,17 @@ function PdfCoverCanvas({ file, width, height, label }: { file: File; width: num
   )
 }
 
-export function PdfCoverPreview({ file, width, height }: PdfCoverPreviewProps) {
+export function PdfCoverPreview({ file, width, height, highlightRange }: PdfCoverPreviewProps) {
   const { i18n } = useLingui()
   const label = i18n._(BOOK_PREVIEW_LABEL)
   if (!file) return <PdfCoverPlaceholder label={label} />
-  return <PdfCoverCanvas file={file} width={width} height={height} label={label} />
+  return (
+    <PdfCoverCanvas
+      file={file}
+      width={width}
+      height={height}
+      label={label}
+      highlightRange={highlightRange}
+    />
+  )
 }

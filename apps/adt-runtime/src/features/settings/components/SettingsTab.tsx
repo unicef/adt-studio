@@ -32,7 +32,7 @@ export function SettingsTab() {
   const iconSizeLocked = isSettingLocked(config, "iconSize");
   const reduceMotionLocked = isSettingLocked(config, "reduceMotion");
   const showAccessibilitySection =
-    !themeLocked || !iconSizeLocked || !reduceMotionLocked || !!features.easyRead;
+    !themeLocked || !iconSizeLocked || !reduceMotionLocked;
   const [easyRead, setEasyRead] = useAtom(easyReadModeAtom);
   const [stateMode, setStateMode] = useAtom(stateModeAtom);
   const [readAloud, setReadAloud] = useAtom(readAloudModeAtom);
@@ -49,50 +49,61 @@ export function SettingsTab() {
       setter(next);
     };
 
-  const showReadingSection = features.readAloud;
+  const showReadingSection = features.readAloud || !!features.easyRead;
   const showTtsSubsettings = readAloud;
 
   return (
     <div className="flex flex-col gap-1 px-4 pb-6">
       {showReadingSection ? (
         <SettingsSection title={t("settings-section-reading") || "Reading"}>
-          <ToggleRow
-            label={t("tts-label") || "Text to speech"}
-            checked={readAloud}
-            onChange={wrap("ReadAloud", setReadAloud)}
-          />
-          {showTtsSubsettings ? (
+          {features.easyRead ? (
+            <ToggleRow
+              label={t("easy-read-label") || "Easy Read"}
+              checked={easyRead}
+              onChange={wrap("EasyRead", setEasyRead)}
+            />
+          ) : null}
+          {features.readAloud ? (
             <>
-              {features.autoplay ? (
-                <ToggleRow
-                  label={t("autoplay-label") || "Autoplay"}
-                  checked={autoplay}
-                  onChange={wrap("Autoplay", setAutoplay)}
-                />
-              ) : null}
-              {features.describeImages ? (
-                <ToggleRow
-                  label={t("describe-images-label") || "Describe images"}
-                  checked={describeImages}
-                  onChange={wrap("DescribeImages", setDescribeImages)}
-                />
-              ) : null}
-              <SegmentedRow<"word" | "sentence">
-                label={t("highlight-mode-label") || "Highlight"}
-                value={wordHighlight ? "word" : "sentence"}
-                onChange={(v) => {
-                  const next = v === "word";
-                  trackToggleEvent("WordHighlight", next);
-                  setWordHighlight(next);
-                }}
-                options={[
-                  { value: "word", label: t("highlight-word") || "Word" },
-                  {
-                    value: "sentence",
-                    label: t("highlight-sentence") || "Sentence",
-                  },
-                ]}
+              <ToggleRow
+                label={t("tts-label") || "Text to speech"}
+                checked={readAloud}
+                onChange={wrap("ReadAloud", setReadAloud)}
               />
+              {showTtsSubsettings ? (
+                <>
+                  {features.autoplay ? (
+                    <ToggleRow
+                      label={t("autoplay-label") || "Autoplay"}
+                      checked={autoplay}
+                      onChange={wrap("Autoplay", setAutoplay)}
+                    />
+                  ) : null}
+                  {features.describeImages ? (
+                    <ToggleRow
+                      label={t("describe-images-label") || "Describe images"}
+                      checked={describeImages}
+                      onChange={wrap("DescribeImages", setDescribeImages)}
+                    />
+                  ) : null}
+                  <SegmentedRow<"word" | "sentence">
+                    label={t("highlight-mode-label") || "Highlight"}
+                    value={wordHighlight ? "word" : "sentence"}
+                    onChange={(v) => {
+                      const next = v === "word";
+                      trackToggleEvent("WordHighlight", next);
+                      setWordHighlight(next);
+                    }}
+                    options={[
+                      { value: "word", label: t("highlight-word") || "Word" },
+                      {
+                        value: "sentence",
+                        label: t("highlight-sentence") || "Sentence",
+                      },
+                    ]}
+                  />
+                </>
+              ) : null}
             </>
           ) : null}
         </SettingsSection>
@@ -108,13 +119,6 @@ export function SettingsTab() {
         <SettingsSection
           title={t("settings-section-accessibility") || "Accessibility"}
         >
-          {features.easyRead ? (
-            <ToggleRow
-              label={t("easy-read-label") || "Easy Read"}
-              checked={easyRead}
-              onChange={wrap("EasyRead", setEasyRead)}
-            />
-          ) : null}
           {!themeLocked ? (
             <SegmentedRow<Theme>
               label={t("theme-label") || "Theme"}

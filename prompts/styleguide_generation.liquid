@@ -93,6 +93,13 @@ Do NOT include any `<img>` tags with real images — only use gradient placehold
 
 {% chat role: "user" %}
 Please analyze these page images from a book and generate both a comprehensive styleguide markdown AND a preview HTML file.
+{% if book_fonts.size > 0 %}
+
+The user attached these fonts for this book. The Text Styles section MUST use ONLY these font families (each with a sensible generic fallback), applied according to their roles:
+{% for font in book_fonts %}- "{{ font.family }}" — role: {{ font.role }}{% if font.category %} ({{ font.category }}){% endif %}{% if font.usage_notes %} — {{ font.usage_notes }}{% endif %}
+{% endfor %}
+Reference them via inline `style="font-family: '...'"` (or Tailwind arbitrary values like `font-['Family_Name']`) in the styleguide HTML examples. Ignore fonts with role `unassigned`.
+{% endif %}
 
 {% for image in page_images %}
 Page {{ image.page_number }}:

@@ -72,7 +72,7 @@ export function QuizzesLandingPage({ bookLabel }: { bookLabel: string }) {
 
   const handleRun = () => {
     if (!hasApiKey || !storyboardReady || status.isRunning) return
-    queueRun({ fromStage: "quizzes", toStage: "quizzes", apiKey })
+    queueRun({ fromStage: "quizzes", toStage: "quizzes", apiKey, viewAfter: true })
   }
 
   const disabledReason = !hasApiKey ? (

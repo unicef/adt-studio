@@ -1,6 +1,7 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 import type { ApiLogEntry } from '../main/api-server/types'
 import type { UpdateStatus } from '../main/services/auto-updater'
+import type { PostUpdateInfo } from '../main/services/update-state'
 import type { DebugSnapshot } from '../main/services/debug-info'
 
 export type ElectronPlatform = NodeJS.Platform
@@ -9,6 +10,9 @@ export interface WindowControlsApi {
   minimize: () => Promise<void>
   toggleMaximize: () => Promise<boolean>
   close: () => Promise<void>
+  confirmClose: () => void
+  cancelClose: () => void
+  onCloseRequested: (cb: () => void) => () => void
   isMaximized: () => Promise<boolean>
   isFullscreen: () => Promise<boolean>
   onMaximizeChange: (cb: (isMaximized: boolean) => void) => () => void
@@ -23,9 +27,11 @@ export interface SaveFileDialogOptions {
 export interface UpdatesApi {
   check: () => Promise<UpdateStatus>
   download: () => Promise<UpdateStatus>
+  cancel: () => Promise<UpdateStatus>
   install: () => Promise<void>
   installOnQuit: () => Promise<void>
   getStatus: () => Promise<UpdateStatus>
+  getPostUpdate: () => Promise<PostUpdateInfo | null>
   onStatus: (cb: (status: UpdateStatus) => void) => () => void
 }
 

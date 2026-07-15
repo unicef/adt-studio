@@ -59,13 +59,22 @@ export const EXPORT_FORMAT_CONFIG: Record<ExportFormat, Omit<FormatConfig, "labe
 /**
  * Build complete format config with translated labels and descriptions.
  * Must be called at runtime with the i18n translator.
+ *
+ * When `isPart` is set the Project Archive is reframed as the "Completed Part"
+ * the coordinator merges back — it's the recommended export for a book part.
  */
-export function buildExportFormatConfig(t: (msg: any) => string): Record<ExportFormat, FormatConfig> {
+export function buildExportFormatConfig(
+  t: (msg: any) => string,
+  opts: { isPart?: boolean } = {},
+): Record<ExportFormat, FormatConfig> {
   return {
     project: {
       ...EXPORT_FORMAT_CONFIG.project,
-      label: t(msg`Project Archive`),
-      description: t(msg`Back up or transfer the full project including the database, PDF, and all pipeline outputs.`),
+      label: opts.isPart ? t(msg`Completed Part`) : t(msg`Project Archive`),
+      description: opts.isPart
+        ? t(msg`Send this project archive back to the coordinator to merge into the source book.`)
+        : t(msg`Back up or transfer the full project including the database, PDF, and all pipeline outputs.`),
+      badge: opts.isPart ? t(msg`Recommended`) : undefined,
     },
     adt: {
       ...EXPORT_FORMAT_CONFIG.adt,

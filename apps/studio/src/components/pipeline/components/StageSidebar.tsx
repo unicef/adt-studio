@@ -6,6 +6,7 @@ import {
   Loader2,
   RotateCcw,
   Settings,
+  TriangleAlert,
 } from "lucide-react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
@@ -17,6 +18,8 @@ import { useBookRun } from "@/hooks/use-book-run"
 import { useAccessibilityAssessment } from "@/hooks/use-debug"
 import { useBookTasks } from "@/hooks/use-book-tasks"
 import { useStageMissingCounts } from "@/hooks/use-stage-missing-counts"
+import { useDirtyTabsForStage } from "@/hooks/use-settings-dirty-tabs"
+import { getSettingsTabs } from "../settings-tabs"
 import { usePackageAdtStatus } from "@/hooks/use-books"
 import { useSignLanguageVideos } from "@/hooks/use-sign-language-videos"
 import { StepProgressRing } from "./StepProgressRing"
@@ -31,41 +34,8 @@ import {
 } from "../stage-config"
 import { useSettingsDialog } from "@/routes/__root"
 import type { TaskInfoResponse } from "@/api/client"
-import { getStageLabelI18n, getStepLabelI18n } from "../pipeline-i18n"
+import { getStageLabelI18n, getStepLabelI18n, getStageStatusLabelI18n } from "../pipeline-i18n"
 import { ALL_STEP_NAMES } from "@adt/types"
-
-const SETTINGS_TAB_MESSAGE: Record<string, MessageDescriptor> = {
-  general: msg`General`,
-  overview: msg`Overview`,
-  "image-processing": msg`Image Processing`,
-  "section-types": msg`Section Types`,
-  "container-types": msg`Container Types`,
-  "text-types": msg`Text Types`,
-  "metadata-prompt": msg`Metadata Prompt`,
-  prompt: msg`Extraction Prompt`,
-  "meaningfulness-prompt": msg`Meaningfulness Prompt`,
-  "cropping-prompt": msg`Cropping Prompt`,
-  "segmentation-prompt": msg`Segmentation Prompt`,
-  "book-summary-prompt": msg`Summary Prompt`,
-  "sectioning-prompt": msg`Sectioning Prompt`,
-  "refinement-prompt": msg`Refinement Prompt`,
-  "rendering-prompt": msg`AI Rendering`,
-  "rendering-template": msg`Template Rendering`,
-  "activity-prompts": msg`Activity Rendering`,
-  "image-generation": msg`Image Generation`,
-  "visual-review-prompt": msg`Visual Review`,
-  "quiz-prompt": msg`Quiz Prompt`,
-  "glossary-prompt": msg`Glossary Prompt`,
-  "caption-prompt": msg`Caption Prompt`,
-  languages: msg`Languages`,
-  "translation-prompt": msg`Translation Prompt`,
-  "image-translation": msg`Image Translation`,
-  speech: msg`Speech Settings`,
-  "speech-prompts": msg`Speech Prompts`,
-  voices: msg`Voices`,
-  "toc-prompt": msg`Generation Prompt`,
-  "easy-read-prompt": msg`Easy Read Prompt`,
-}
 
 const STAGE_GROUP_LABELS: Record<StageGroup, MessageDescriptor> = {
   convert: msg`Core Pipeline`,
@@ -81,75 +51,10 @@ const TASK_KIND_LABELS: Record<string, MessageDescriptor> = {
   "ai-edit": msg`AI Edit`,
   "prepare-export": msg`Export`,
   "transcribe-timestamps": msg`Timestamps`,
+  "book-summary": msg`Book Summary`,
+  "font-assignment": msg`Font Analysis`,
 }
 
-function getSettingsTabs(
-  slug: string,
-  i18n: ReturnType<typeof useLingui>["i18n"],
-  showOverviewTab: boolean,
-): { key: string; label: string }[] | undefined {
-  const tabs: Record<string, { key: string; label: string }[]> = {
-    extract: [
-      { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE.general) },
-      { key: "metadata-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["metadata-prompt"]) },
-      { key: "meaningfulness-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["meaningfulness-prompt"]) },
-      { key: "cropping-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["cropping-prompt"]) },
-      { key: "segmentation-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["segmentation-prompt"]) },
-    ],
-    sectioning: [
-      { key: "section-types", label: i18n._(SETTINGS_TAB_MESSAGE["section-types"]) },
-      { key: "sectioning-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["sectioning-prompt"]) },
-      { key: "refinement-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["refinement-prompt"]) },
-      { key: "container-types", label: i18n._(SETTINGS_TAB_MESSAGE["container-types"]) },
-      { key: "text-types", label: i18n._(SETTINGS_TAB_MESSAGE["text-types"]) },
-    ],
-    storyboard: [
-      { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE.general) },
-      { key: "rendering-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["rendering-prompt"]) },
-      { key: "rendering-template", label: i18n._(SETTINGS_TAB_MESSAGE["rendering-template"]) },
-      { key: "activity-prompts", label: i18n._(SETTINGS_TAB_MESSAGE["activity-prompts"]) },
-      { key: "image-generation", label: i18n._(SETTINGS_TAB_MESSAGE["image-generation"]) },
-      { key: "visual-review-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["visual-review-prompt"]) },
-    ],
-    quizzes: [
-      { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE.general) },
-      { key: "prompt", label: i18n._(SETTINGS_TAB_MESSAGE["quiz-prompt"]) },
-    ],
-    glossary: [
-      { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE["glossary-prompt"]) },
-    ],
-    toc: [
-      { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE["toc-prompt"]) },
-    ],
-    "easy-read": [
-      { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE["easy-read-prompt"]) },
-    ],
-    captions: [
-      { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE["caption-prompt"]) },
-    ],
-    translate: [
-      { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE.languages) },
-      { key: "prompt", label: i18n._(SETTINGS_TAB_MESSAGE["translation-prompt"]) },
-      { key: "image-translation", label: i18n._(SETTINGS_TAB_MESSAGE["image-translation"]) },
-    ],
-    speech: [
-      { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE.speech) },
-      { key: "speech-prompts", label: i18n._(SETTINGS_TAB_MESSAGE["speech-prompts"]) },
-      { key: "voices", label: i18n._(SETTINGS_TAB_MESSAGE.voices) },
-    ],
-    validation: [
-      { key: "general", label: i18n._(msg`Accessibility`) },
-      { key: "reviewer-checklist", label: i18n._(msg`Reviewer Checklist`) },
-    ],
-  }
-  const stageTabs = tabs[slug]
-  if (!stageTabs) return undefined
-  if (!showOverviewTab) return stageTabs
-  return [
-    { key: "overview", label: i18n._(SETTINGS_TAB_MESSAGE.overview) },
-    ...stageTabs,
-  ]
-}
 
 export function StageSidebar({
   bookLabel,
@@ -178,6 +83,12 @@ export function StageSidebar({
   const stageMissing = useStageMissingCounts(bookLabel)
   const translateNeedsRerun = stageMissing.translate > 0
   const speechNeedsRerun = stageMissing.speech > 0
+  const activeDirtyTabs = useDirtyTabsForStage(activeStep)
+  const { data: sidebarPages } = usePages(bookLabel, { enabled: false })
+  const hasNoTextLayer = (sidebarPages ?? []).some((p) => p.extractionWarning)
+  const noTextLayerLabel = i18n._(
+    msg`Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF.`
+  )
 
   const currentState = stageState(activeStep)
   const stageHasContent =
@@ -274,6 +185,13 @@ export function StageSidebar({
 
     const stepLabel = step.slug === "book" ? toCamelLabel(bookLabel) : getStageLabelI18n(step.slug)
 
+    // Expose stage status to screen readers — the visual ring/color carries it
+    // for sighted users, but the link's accessible name must say it too.
+    const statusKey = step.slug === "book" ? undefined : stageNeedsRerun ? "needs-update" : state
+    const stepAriaLabel = statusKey
+      ? i18n._(msg`${stepLabel}: ${getStageStatusLabelI18n(statusKey)}`)
+      : stepLabel
+
     const nextStep = STAGES[index + 1]
     const nextGroup = nextStep && "group" in nextStep ? (nextStep as { group?: StageGroup }).group : undefined
     const showConnector = index < STAGES.length - 1 && nextGroup === stepGroup
@@ -301,6 +219,8 @@ export function StageSidebar({
               : { label: bookLabel, step: step.slug }}
             className={cn("flex items-center gap-2.5 min-w-7", x.flex1)}
             title={stepLabel}
+            aria-label={stepAriaLabel}
+            aria-current={isActive ? "page" : undefined}
           >
             <div className="relative shrink-0">
               <div
@@ -316,6 +236,16 @@ export function StageSidebar({
                 <Icon className="w-3.5 h-3.5" />
               </div>
               <StepProgressRing size={28} state={ringState} colorClass={isActive ? "bg-white" : step.color} />
+              {step.slug === "extract" && hasNoTextLayer && (
+                <span
+                  role="img"
+                  aria-label={noTextLayerLabel}
+                  title={noTextLayerLabel}
+                  className="absolute -top-1 -right-1 z-20 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-amber-500 ring-2 ring-background"
+                >
+                  <TriangleAlert className="w-2 h-2 text-white" aria-hidden="true" />
+                </span>
+              )}
             </div>
             <span className={cn("truncate hidden", x.showLabel)}>
               {stepLabel}
@@ -388,8 +318,18 @@ export function StageSidebar({
                   to="/books/$label/$step/settings"
                   params={{ label: bookLabel, step: step.slug }}
                   search={{ tab: tab.key }}
+                  aria-current={activeTab === tab.key ? "page" : undefined}
+                  aria-label={activeDirtyTabs.has(tab.key) ? i18n._(msg`${tab.label} (unsaved changes)`) : undefined}
                 >
-                  {tab.label}
+                  <span className="flex items-center gap-1.5">
+                    {tab.label}
+                    {activeDirtyTabs.has(tab.key) && (
+                      <span
+                        aria-hidden
+                        className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500"
+                      />
+                    )}
+                  </span>
                 </Link>
               </Button>
             ))}
@@ -400,7 +340,7 @@ export function StageSidebar({
   })
 
   return (
-    <nav className="flex flex-col flex-1 min-h-0">
+    <nav className="flex flex-col flex-1 min-h-0" aria-label={i18n._(msg`Pipeline stages`)}>
       <div className="flex flex-1 min-h-0">
         {/* Stage rail */}
         <div className={cn(

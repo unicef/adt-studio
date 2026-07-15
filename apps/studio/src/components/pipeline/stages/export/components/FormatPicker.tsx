@@ -10,13 +10,15 @@ export function FormatPicker({
   onSelect,
   t,
   errorFormat,
+  isPart,
 }: {
   selected: ExportFormat
   onSelect: (format: ExportFormat) => void
   t: ReturnType<typeof useLingui>["t"]
   errorFormat?: ExportFormat | null
+  isPart?: boolean
 }) {
-  const formats = buildExportFormatConfig(t)
+  const formats = buildExportFormatConfig(t, { isPart })
   return (
     <ul className="flex flex-col gap-1.5">
       {FORMAT_ORDER.map((fmt) => {

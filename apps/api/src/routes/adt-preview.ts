@@ -4,10 +4,9 @@ import { createHash } from "node:crypto"
 import { pathToFileURL } from "node:url"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel } from "@adt/types"
+import { isTtsExcluded, parseBookLabel } from "@adt/types"
 import {
   WebRenderingOutput,
-  PageSectioningOutput,
   type SpeechConfig,
   type TextCatalogOutput,
   type EasyReadOutput,
@@ -39,6 +38,7 @@ import {
   convertLatexToMathml,
   isFixedLayoutBook,
   resolveReflowableFontChain,
+  getRenderSectioning,
 } from "@adt/pipeline"
 
 // ---------------------------------------------------------------------------
@@ -224,6 +224,7 @@ function getWordTimestamps(
 
 function buildRuntimeTimecodeMap(
   timestamps: WordTimestampOutput | undefined,
+  speechConfig?: SpeechConfig,
 ): Record<string, {
   timecodes: [null, {
     word_timestamps: Array<{ text: string; start: number; end: number }>
@@ -237,6 +238,7 @@ function buildRuntimeTimecodeMap(
 
   for (const [textId, entry] of Object.entries(timestamps?.entries ?? {})) {
     if (entry.words.length === 0) continue
+    if (isTtsExcluded(textId, speechConfig)) continue
     map[textId] = {
       timecodes: [
         null,
@@ -274,9 +276,7 @@ function buildSectionIdToPageIndex(storage: Storage): Map<string, number> {
     if (renderRow) {
       const parsed = WebRenderingOutput.safeParse(renderRow.data)
       if (parsed.success && parsed.data.sections.length > 0) {
-        const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-        const structuringParsed = structuringRow ? PageSectioningOutput.safeParse(structuringRow.data) : null
-        const sectioning = structuringParsed?.success ? structuringParsed.data : undefined
+        const sectioning = getRenderSectioning(storage, page.pageId)
         const sections = [...parsed.data.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
         for (const rs of sections) {
           const sectionMeta = sectioning?.sections?.[rs.sectionIndex]
@@ -318,11 +318,7 @@ function buildPagesManifest(storage: Storage): Array<{ section_id: string; href:
       const parsed = WebRenderingOutput.safeParse(renderRow.data)
       if (parsed.success && parsed.data.sections.length > 0) {
         // Get sectioning data for sectionIds and page numbers
-        const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-        const structuringParsed = structuringRow
-          ? PageSectioningOutput.safeParse(structuringRow.data)
-          : null
-        const sectioning = structuringParsed?.success ? structuringParsed.data : undefined
+        const sectioning = getRenderSectioning(storage, page.pageId)
 
         // One entry per rendered section (stable by sectionIndex), skip pruned
         const sections = [...parsed.data.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
@@ -408,9 +404,7 @@ function buildHeadingBasedToc(storage: Storage): Array<{ section_id: string; hre
     const parsed = WebRenderingOutput.safeParse(renderRow.data)
     if (!parsed.success || parsed.data.sections.length === 0) continue
 
-    const sectioningRow = storage.getLatestNodeData("page-sectioning", page.pageId)
-    const sectioningParsed = sectioningRow ? PageSectioningOutput.safeParse(sectioningRow.data) : null
-    const sectioning = sectioningParsed?.success ? sectioningParsed.data : undefined
+    const sectioning = getRenderSectioning(storage, page.pageId)
 
     const sections = [...parsed.data.sections].sort((a, b) => a.sectionIndex - b.sectionIndex)
     for (const rs of sections) {
@@ -767,7 +761,8 @@ export function createAdtPreviewRoutes(
   // /content/i18n/:lang/audios.json — Audio file mapping
   app.get("/books/:label/adt-preview/content/i18n/:lang/audios.json", (c) => {
     const lang = normalizeLocale(c.req.param("lang"))
-    const audioMap = withStorage(c.req.param("label"), (storage) => {
+    const audioMap = withStorage(c.req.param("label"), (storage, safeLabel) => {
+      const speechConfig = loadBookConfig(safeLabel, booksDir, configPath).speech
       const legacyLang = lang.replace("-", "_")
       const ttsRow =
         storage.getLatestNodeData("tts", lang) ??
@@ -775,7 +770,10 @@ export function createAdtPreviewRoutes(
       const ttsData = ttsRow?.data as TTSOutput | undefined
       const map: Record<string, string> = {}
       if (ttsData?.entries) {
-        for (const entry of ttsData.entries) map[entry.textId] = entry.fileName
+        for (const entry of ttsData.entries) {
+          if (isTtsExcluded(entry.textId, speechConfig)) continue
+          map[entry.textId] = entry.fileName
+        }
       }
       return map
     })
@@ -791,7 +789,7 @@ export function createAdtPreviewRoutes(
     const bookConfig = loadBookConfig(safeLabel, booksDir, configPath)
     const timecodes = bookConfig.speech?.word_highlighting === true
       ? withStorage(c.req.param("label"), (storage) =>
-          buildRuntimeTimecodeMap(getWordTimestamps(storage, lang))
+          buildRuntimeTimecodeMap(getWordTimestamps(storage, lang), bookConfig.speech)
         )
       : {}
     setNoStoreHeaders(c)
@@ -980,12 +978,9 @@ export function createAdtPreviewRoutes(
       }
 
       // Get sectioning to look up sectionId → sectionIndex mapping
-      const sectioningRow = storage.getLatestNodeData("page-sectioning", ownerPageId)
-      const sectioningParsed = sectioningRow
-        ? PageSectioningOutput.safeParse(sectioningRow.data)
-        : null
-      const resolvedIndex = sectioningParsed?.success
-        ? sectioningParsed.data.sections.findIndex((s) => s.sectionId === pageId)
+      const sectioning = getRenderSectioning(storage, ownerPageId)
+      const resolvedIndex = sectioning
+        ? sectioning.sections.findIndex((s) => s.sectionId === pageId)
         : -1
       const targetSectionIndex = resolvedIndex >= 0 ? resolvedIndex : fallbackSectionIndex
       const renderedSection = parsed.data.sections.find((s) => s.sectionIndex === targetSectionIndex)
@@ -999,8 +994,8 @@ export function createAdtPreviewRoutes(
       const manifestIndex = manifest.findIndex((e) => e.section_id === pageId)
       const previewBundleVersion = getPreviewContentVersion(storage, webAssetsDir)
 
-      const sectionMeta = sectioningParsed?.success
-        ? sectioningParsed.data.sections[targetSectionIndex]
+      const sectionMeta = sectioning
+        ? sectioning.sections[targetSectionIndex]
         : undefined
       const preferredImageAltMap = buildPreferredImageAltMap(storage, ownerPageId, sectionMeta)
       const decorativeImageIds = buildDecorativeImageIdSet(storage, ownerPageId)

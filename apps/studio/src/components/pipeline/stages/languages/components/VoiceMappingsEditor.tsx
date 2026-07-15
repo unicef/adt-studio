@@ -1,13 +1,18 @@
 import { useState, useEffect } from "react"
-import { createPortal } from "react-dom"
+import { useNavigate } from "@tanstack/react-router"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { Save, Plus, X } from "lucide-react"
+import { Plus, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { api } from "@/api/client"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
+import { useFloatingSave } from "@/components/pipeline/components/floating-save"
+import { useSettingsRemount } from "@/hooks/use-settings-remount"
+import { useRegisterDirtyTabs } from "@/hooks/use-settings-dirty-tabs"
+import { useBookRun } from "@/hooks/use-book-run"
+import { useApiKey } from "@/hooks/use-api-key"
 import { useLingui } from "@lingui/react/macro"
 
 interface VoiceMappingsEditorProps {
@@ -26,9 +31,13 @@ interface VoiceRow {
   gemini: string
 }
 
-export function VoiceMappingsEditor({ bookLabel, headerTarget }: VoiceMappingsEditorProps) {
+export function VoiceMappingsEditor({ bookLabel }: VoiceMappingsEditorProps) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
+  const remount = useSettingsRemount()
+  const { queueRun } = useBookRun()
+  const { apiKey, hasApiKey } = useApiKey()
+  const navigate = useNavigate()
   const { data: bookConfigData, isLoading: isBookConfigLoading } = useBookConfig(bookLabel)
   const { data: activeConfigData } = useActiveConfig(bookLabel)
   const updateConfig = useUpdateBookConfig()
@@ -155,25 +164,43 @@ export function VoiceMappingsEditor({ bookLabel, headerTarget }: VoiceMappingsEd
     }
   }
 
+  useRegisterDirtyTabs(
+    "settings:voice-mappings",
+    "speech",
+    dirtyMappings || dirtyDefaultVoice ? ["voices"] : [],
+    true,
+  )
+  useFloatingSave({
+    id: "settings:voice-mappings",
+    dirty: dirtyMappings || dirtyDefaultVoice,
+    saving: saving || updateConfig.isPending,
+    onSaveAndRerun: async () => {
+      await handleSave()
+      queueRun({ fromStage: "speech", toStage: "speech", apiKey })
+      navigate({
+        to: "/books/$label/$step",
+        params: { label: bookLabel, step: "speech" },
+        ignoreBlocker: true,
+      })
+    },
+    onSaveStay: async () => {
+      await handleSave()
+      queueRun({ fromStage: "speech", toStage: "speech", apiKey })
+    },
+    onDiscard: remount,
+    rerunDisabledReason: !hasApiKey
+      ? t`Add an API key to re-run`
+      : dirtyDefaultVoice && isBookConfigLoading
+        ? t`Loading book config…`
+        : undefined,
+  })
+
   if (isLoading) {
     return <div className="p-4 text-sm text-muted-foreground">{t`Loading voice mappings...`}</div>
   }
 
   return (
     <div className="p-4 space-y-4">
-      {headerTarget && createPortal(
-        <Button
-          size="sm"
-          className="h-7 px-2.5 text-xs bg-black/15 text-white hover:bg-black/25"
-          onClick={handleSave}
-          disabled={saving || updateConfig.isPending || (!dirtyMappings && !dirtyDefaultVoice) || (dirtyDefaultVoice && isBookConfigLoading)}
-        >
-          <Save className="mr-1.5 h-3.5 w-3.5" />
-          {saving ? t`Saving...` : t`Save`}
-        </Button>,
-        headerTarget
-      )}
-
       <div className="space-y-1.5">
         <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           {t`Default Voice`}

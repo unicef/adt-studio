@@ -1,5 +1,11 @@
 import { app, BrowserWindow } from "electron";
-import { autoUpdater, type ProgressInfo, type UpdateInfo } from "electron-updater";
+import {
+  autoUpdater,
+  CancellationToken,
+  type ProgressInfo,
+  type UpdateInfo,
+} from "electron-updater";
+import { recordPendingInstall } from "./update-state";
 
 export type UpdateStatus =
   | { phase: "idle" }
@@ -21,10 +27,10 @@ export type UpdateStatus =
       total: number;
     }
   | { phase: "downloaded"; version: string; releaseNotes?: string }
+  | { phase: "installing"; version: string }
   | { phase: "error"; message: string };
 
 type StatusListener = (status: UpdateStatus) => void;
-
 
 function isPrereleaseVersion(version: string): boolean {
   return version.includes("-beta");
@@ -33,6 +39,7 @@ function isPrereleaseVersion(version: string): boolean {
 const listeners = new Set<StatusListener>();
 let lastStatus: UpdateStatus = { phase: "idle" };
 let lastInfo: UpdateInfo | null = null;
+let cancellationToken: CancellationToken | null = null;
 
 function normalizeReleaseNotes(notes: UpdateInfo["releaseNotes"]): string | undefined {
   if (!notes) return undefined;
@@ -46,6 +53,20 @@ function normalizeReleaseNotes(notes: UpdateInfo["releaseNotes"]): string | unde
 function emit(status: UpdateStatus): void {
   lastStatus = status;
   for (const fn of listeners) fn(status);
+}
+
+function emitAvailableFromLastInfo(): void {
+  if (!lastInfo) {
+    emit({ phase: "not-available" });
+    return;
+  }
+  emit({
+    phase: "available",
+    version: lastInfo.version,
+    releaseDate: lastInfo.releaseDate,
+    releaseNotes: normalizeReleaseNotes(lastInfo.releaseNotes),
+    totalBytes: lastInfo.files?.[0]?.size,
+  });
 }
 
 export function onUpdateStatus(fn: StatusListener): () => void {
@@ -120,14 +141,17 @@ function configure(): void {
 
   autoUpdater.on("update-downloaded", (info: UpdateInfo) => {
     lastInfo = info;
+    const releaseNotes = normalizeReleaseNotes(info.releaseNotes);
+    recordPendingInstall(info.version, releaseNotes);
     emit({
       phase: "downloaded",
       version: info.version,
-      releaseNotes: normalizeReleaseNotes(info.releaseNotes),
+      releaseNotes,
     });
   });
 
   autoUpdater.on("error", (err: Error) => {
+    if (cancellationToken?.cancelled) return;
     emit({ phase: "error", message: err?.message ?? String(err) });
   });
 }
@@ -171,14 +195,30 @@ export async function downloadUpdate(): Promise<UpdateStatus> {
     return lastStatus;
   }
 
+  cancellationToken = new CancellationToken();
+
   try {
-    await autoUpdater.downloadUpdate();
+    await autoUpdater.downloadUpdate(cancellationToken);
     return lastStatus;
   } catch (err) {
+    if (cancellationToken?.cancelled) {
+      emitAvailableFromLastInfo();
+      return lastStatus;
+    }
     const message = err instanceof Error ? err.message : String(err);
     emit({ phase: "error", message });
     return lastStatus;
+  } finally {
+    cancellationToken = null;
   }
+}
+
+export function cancelUpdate(): UpdateStatus {
+  if (lastStatus.phase !== "downloading") return lastStatus;
+
+  cancellationToken?.cancel();
+  emitAvailableFromLastInfo();
+  return lastStatus;
 }
 
 /**
@@ -187,6 +227,8 @@ export async function downloadUpdate(): Promise<UpdateStatus> {
  */
 export function quitAndInstall(): void {
   if (lastStatus.phase !== "downloaded") return;
+  const version = lastStatus.version;
+  emit({ phase: "installing", version });
   autoUpdater.quitAndInstall(true, true);
 }
 

@@ -73,7 +73,7 @@ export function CaptionsLandingPage({ bookLabel }: { bookLabel: string }) {
 
   const handleRun = () => {
     if (!hasApiKey || !storyboardReady || status.isRunning) return
-    queueRun({ fromStage: "captions", toStage: "captions", apiKey })
+    queueRun({ fromStage: "captions", toStage: "captions", apiKey, viewAfter: true })
   }
 
   const gradeOptions = useMemo(

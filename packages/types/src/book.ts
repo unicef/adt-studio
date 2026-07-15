@@ -1,6 +1,7 @@
 import { z } from "zod"
 import { BookMetadata } from "./metadata.js"
 import { BookSummaryOutput } from "./book-summary.js"
+import { PartRange } from "./part.js"
 
 export const BookLabel = z
   .string()
@@ -22,6 +23,22 @@ export const BookSummary = z.object({
   completedStages: z.array(z.string()),
   createdAt: z.string(),
   modifiedAt: z.string(),
+  /** Set when this book was imported as a page-range part of a larger book. */
+  part: z
+    .object({ sourceLabel: z.string(), range: PartRange })
+    .nullable(),
+  /** Set when this book has been split into parts (coordinator side). */
+  split: z
+    .object({
+      totalPages: z.number().int(),
+      exportedParts: z.number().int(),
+      /** Distinct pages covered by exported parts (split-off progress). */
+      splitPages: z.number().int(),
+      mergedPages: z.number().int(),
+      fullySplit: z.boolean(),
+      fullyMerged: z.boolean(),
+    })
+    .nullable(),
 })
 export type BookSummary = z.infer<typeof BookSummary>
 

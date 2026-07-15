@@ -7,6 +7,7 @@ interface UseUpdateStatus {
   status: UpdateStatus
   check: () => Promise<void>
   download: () => Promise<void>
+  cancel: () => Promise<void>
   install: () => Promise<void>
   installOnQuit: () => Promise<void>
 }
@@ -40,6 +41,12 @@ export function useUpdateStatus(): UseUpdateStatus {
     await window.api.updates.download()
   }, [])
 
+  const cancel = useCallback(async () => {
+    if (!isElectron() || !window.api?.updates) return
+    const result = await window.api.updates.cancel()
+    setStatus(result)
+  }, [])
+
   const install = useCallback(async () => {
     if (!isElectron() || !window.api?.updates) return
     await window.api.updates.install()
@@ -50,5 +57,5 @@ export function useUpdateStatus(): UseUpdateStatus {
     await window.api.updates.installOnQuit()
   }, [])
 
-  return { status, check, download, install, installOnQuit }
+  return { status, check, download, cancel, install, installOnQuit }
 }

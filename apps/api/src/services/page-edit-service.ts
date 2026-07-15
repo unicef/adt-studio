@@ -3,7 +3,7 @@ import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
 import type { LLMModel } from "@adt/llm"
-import { renderPage, buildRenderStrategyResolver, createTemplateEngine, loadBookConfig, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID, buildScreenshotHtml, SCREENSHOT_VIEWPORTS } from "@adt/pipeline"
+import { renderPage, buildRenderStrategyResolver, buildBookFontsPromptContext, createTemplateEngine, loadBookConfig, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID, buildScreenshotHtml, SCREENSHOT_VIEWPORTS } from "@adt/pipeline"
 import type { VisualRefinementDeps } from "@adt/pipeline"
 import { PageSectioningOutput, WebRenderingOutput, webRenderingLLMSchema, editVerifyLLMSchema } from "@adt/types"
 import { loadStyleguideContent } from "./styleguide.js"
@@ -174,6 +174,7 @@ export async function reRenderPage(
         sectioning: structuringForRender,
         images: renderImages,
         styleguide: styleguideContent,
+        bookFonts: buildBookFontsPromptContext(storage),
         userPrompt: prompt,
       },
       resolveRenderConfig,

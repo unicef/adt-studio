@@ -6,15 +6,75 @@ import {
   BookLabel,
   BookMetadata,
   BookSummaryOutput,
+  PartManifest,
+  PartsLedger,
   PIPELINE,
   type BookSummary,
   type BookDetail,
+  type PartRange,
 } from "@adt/types"
 import { openBookDb } from "@adt/storage"
 
 type BookDb = ReturnType<typeof openBookDb>
 
 export type { BookSummary, BookDetail }
+
+/** If the book directory holds a part manifest, return its source + window. */
+export function readPartInfo(
+  bookDir: string,
+): { sourceLabel: string; range: PartRange } | null {
+  const manifestPath = path.join(bookDir, "part.json")
+  if (!fs.existsSync(manifestPath)) return null
+  try {
+    const parsed = PartManifest.safeParse(JSON.parse(fs.readFileSync(manifestPath, "utf-8")))
+    return parsed.success
+      ? { sourceLabel: parsed.data.sourceLabel, range: parsed.data.range }
+      : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * If the book has been split (a parts ledger exists with exported ranges),
+ * summarize split/merge coverage for the library card. `mergedPages` is the
+ * number of pages already present in the book (the COUNT(*) listBooks runs).
+ * Inlines a tiny coverage counter to avoid a book-service ↔ part-service cycle.
+ */
+export function readSplitSummary(
+  bookDir: string,
+  mergedPages: number,
+): BookSummary["split"] {
+  const ledgerPath = path.join(bookDir, "parts-ledger.json")
+  if (!fs.existsSync(ledgerPath)) return null
+  let ledger: PartsLedger
+  try {
+    const parsed = PartsLedger.safeParse(JSON.parse(fs.readFileSync(ledgerPath, "utf-8")))
+    if (!parsed.success) return null
+    ledger = parsed.data
+  } catch {
+    return null
+  }
+  if (ledger.exported.length === 0) return null
+
+  // Legacy ledgers predate `pageCount`; fall back to the furthest exported page.
+  const totalPages =
+    ledger.pageCount ?? ledger.exported.reduce((max, e) => Math.max(max, e.endPage), 0)
+
+  const covered = new Set<number>()
+  for (const e of ledger.exported) {
+    for (let p = Math.max(1, e.startPage); p <= Math.min(totalPages, e.endPage); p++) covered.add(p)
+  }
+
+  return {
+    totalPages,
+    exportedParts: ledger.exported.length,
+    splitPages: covered.size,
+    mergedPages,
+    fullySplit: totalPages > 0 && covered.size === totalPages,
+    fullyMerged: totalPages > 0 && mergedPages >= totalPages,
+  }
+}
 
 function computeCompletedStages(db: BookDb, bookDir: string): string[] {
   const rows = db.all("SELECT step, status FROM step_runs") as Array<{
@@ -50,13 +110,20 @@ function resolveTimestamps(
   pdfPath: string
 ): { createdAt: string; modifiedAt: string } {
   const dirStat = fs.statSync(bookDir)
-  const createdMs = dirStat.birthtimeMs || dirStat.ctimeMs
 
-  const candidates: number[] = [dirStat.mtimeMs]
-  if (fs.existsSync(dbPath)) candidates.push(fs.statSync(dbPath).mtimeMs)
-  if (fs.existsSync(pdfPath)) candidates.push(fs.statSync(pdfPath).mtimeMs)
+  // Derive timestamps from content files, never the directory's mtime/ctime:
+  // node-sqlite3-wasm's `.db.lock` churn on every DB open bumps both to "now" on
+  // each launch (POSIX), which would collapse the sort to last-launch time.
+  const configPath = path.join(bookDir, "config.yaml")
+  const mtimes: number[] = []
+  if (fs.existsSync(dbPath)) mtimes.push(fs.statSync(dbPath).mtimeMs)
+  if (fs.existsSync(pdfPath)) mtimes.push(fs.statSync(pdfPath).mtimeMs)
+  if (fs.existsSync(configPath)) mtimes.push(fs.statSync(configPath).mtimeMs)
 
-  const modifiedMs = Math.max(...candidates)
+  const modifiedMs = mtimes.length > 0 ? Math.max(...mtimes) : dirStat.mtimeMs
+  const createdMs =
+    dirStat.birthtimeMs || (mtimes.length > 0 ? Math.min(...mtimes) : dirStat.mtimeMs)
+
   return { createdAt: toIsoDate(createdMs), modifiedAt: toIsoDate(modifiedMs) }
 }
 
@@ -145,6 +212,8 @@ export function listBooks(booksDir: string): BookSummary[] {
       completedStages,
       createdAt,
       modifiedAt,
+      part: readPartInfo(bookDir),
+      split: readSplitSummary(bookDir, pageCount),
     })
   }
 
@@ -243,6 +312,8 @@ export function getBook(label: string, booksDir: string): BookDetail {
     completedStages,
     createdAt,
     modifiedAt,
+    part: readPartInfo(bookDir),
+    split: readSplitSummary(bookDir, pageCount),
     metadata,
     bookSummary,
   }
@@ -287,6 +358,8 @@ export function createBook(
     completedStages: [],
     createdAt: nowIso,
     modifiedAt: nowIso,
+    part: null,
+    split: null,
   }
 }
 

@@ -3,6 +3,7 @@ import { extractPdfStream, type ExtractStreamResult } from "@adt/pdf"
 import type { Storage } from "@adt/storage"
 import type { Progress } from "./progress.js"
 import { toBookMetadata } from "./metadata-model.js"
+import { ensureBookGoogleFontsCached } from "./fonts-bundle.js"
 
 export interface ExtractOptions {
   pdfPath: string
@@ -15,6 +16,7 @@ export interface ExtractOptions {
    *  consumed only by fixed-layout rendering, and enables the metric-based
    *  spacing cleanup. Reflowable books skip all of it. */
   fixedLayout?: boolean
+  fontsCacheDir?: string
 }
 
 export async function extractPDF(
@@ -22,11 +24,24 @@ export async function extractPDF(
   storage: Storage,
   progress: Progress
 ): Promise<void> {
-  const { pdfPath, startPage, endPage, spreadMode, vectorTextGrouping, fixedLayout } = options
+  const { pdfPath, startPage, endPage, spreadMode, vectorTextGrouping, fixedLayout, fontsCacheDir } =
+    options
 
   progress.emit({ type: "step-start", step: "extract" })
 
   try {
+    if (fontsCacheDir) {
+      progress.emit({ type: "step-progress", step: "extract", message: "Caching book fonts..." })
+      const { failed } = await ensureBookGoogleFontsCached(storage, fontsCacheDir)
+      for (const f of failed) {
+        progress.emit({
+          type: "step-progress",
+          step: "extract",
+          message: `Font "${f.family}" could not be downloaded yet (${f.error}) — will retry at package time`,
+        })
+      }
+    }
+
     const pdfBuffer = fs.readFileSync(pdfPath)
 
     const { pdfMetadata, pages } = extractPdfStream(

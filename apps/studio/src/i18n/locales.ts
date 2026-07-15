@@ -1,3 +1,5 @@
+import { i18n } from "@lingui/core"
+
 /**
  * Single source of truth for supported locales.
  *
@@ -10,8 +12,23 @@
  *
  * See docs/I18N_ADD_LANGUAGE.md for the full guide.
  */
-export const LOCALES = ["en", "pt-BR", "es", "fr"] as const
+export const LOCALES = ["en", "pt-BR", "es", "fr", "sq"] as const
 export type AppLocale = (typeof LOCALES)[number]
+
+/**
+ * Activate a locale AND reflect it on `<html lang>`.
+ *
+ * Always use this instead of calling `i18n.activate()` directly: screen readers
+ * pick their pronunciation voice from the document language, so a stale `lang`
+ * attribute makes Spanish/French/Portuguese content be read with an English
+ * voice (WCAG 3.1.1 / 3.1.2). BCP-47 codes like "pt-BR" are valid `lang` values.
+ */
+export function activateLocale(locale: AppLocale): void {
+  i18n.activate(locale)
+  if (typeof document !== "undefined") {
+    document.documentElement.lang = locale
+  }
+}
 
 /** Flag emoji for each locale, shown in the language switcher UI. */
 export const LOCALE_FLAGS: Record<AppLocale, string> = {
@@ -19,6 +36,7 @@ export const LOCALE_FLAGS: Record<AppLocale, string> = {
   "pt-BR": "🇧🇷",
   es: "🇪🇸",
   fr: "🇫🇷",
+  sq: "🇽🇰",
 }
 
 /**
@@ -30,4 +48,5 @@ export const LOCALE_NAMES: Record<string, string> = {
   "pt-BR": "Brazilian Portuguese",
   es: "Spanish",
   fr: "French",
+  sq: "Albanian",
 }

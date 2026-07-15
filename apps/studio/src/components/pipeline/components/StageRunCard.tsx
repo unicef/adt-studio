@@ -200,14 +200,21 @@ export function StageRunCard({
         {showRunButton && (
           <div className="shrink-0">
             {isRunning ? (
-              <div
-                onClick={(e) => { e.stopPropagation(); e.preventDefault() }}
+              // Keep a real (disabled) button so the control stays in the a11y
+              // tree with an accessible name and an announced busy state, rather
+              // than vanishing into a nameless spinner <div>.
+              <button
+                type="button"
+                disabled
+                aria-busy="true"
+                aria-label={t`Running ${stageLabel}`}
                 className={cn(
-                "flex items-center justify-center w-12 h-12 rounded-full opacity-60 cursor-default",
-                color, "text-white",
-              )}>
+                  "flex items-center justify-center w-12 h-12 rounded-full opacity-60 cursor-default",
+                  color, "text-white",
+                )}
+              >
                 <Loader2 className="w-5 h-5 animate-spin" />
-              </div>
+              </button>
             ) : (
               <Button
                 variant="ghost"
@@ -219,6 +226,13 @@ export function StageRunCard({
                 )}
                 disabled={disabled}
                 onClick={(e) => { e.stopPropagation(); e.preventDefault(); onRun() }}
+                aria-label={
+                  hasError
+                    ? t`Retry ${stageLabel}`
+                    : isCompleted
+                      ? t`Re-run ${stageLabel}`
+                      : t`Run ${stageLabel}`
+                }
                 title={
                   hasError
                     ? t`Retry`

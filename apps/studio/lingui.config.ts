@@ -1,7 +1,8 @@
 import { defineConfig } from "@lingui/conf"
+import { formatter } from "@lingui/format-po"
 
 export default defineConfig({
-  locales: ["en", "pt-BR", "es", "fr"],
+  locales: ["en", "pt-BR", "es", "fr", "sq"],
   sourceLocale: "en",
   catalogs: [
     {
@@ -10,8 +11,5 @@ export default defineConfig({
       exclude: ["src/locales/**", "**/*.d.ts"],
     },
   ],
-  format: "po",
-  formatOptions: {
-    origins: false,
-  },
+  format: formatter({ origins: false }),
 })

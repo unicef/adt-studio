@@ -13,6 +13,14 @@ export function isElectron(): boolean {
     typeof window.api === "object"
   )
 }
+export function isZipFile(f: File): boolean {
+  return (
+    f.name.endsWith(".zip") ||
+    f.type === "application/zip" ||
+    f.type === "application/x-zip-compressed"
+  )
+}
+
 export function formatBytes(bytes: number): string {
   /* eslint-disable-next-line lingui/no-unlocalized-strings */
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`

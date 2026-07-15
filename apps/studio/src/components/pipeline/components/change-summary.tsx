@@ -1,5 +1,5 @@
 import { Eye, EyeOff, Pencil, Plus, Trash2, type LucideIcon } from "lucide-react"
-import type { ReactNode } from "react"
+import { useMemo, type ReactNode } from "react"
 import { useLingui } from "@lingui/react/macro"
 import { PendingChip } from "./floating-save"
 
@@ -94,34 +94,44 @@ export function usePendingChanges<T>(opts: PendingChangesOptions<T>): {
     }
   }
 
-  const verbs: Record<ChangeKind, string> = {
-    added: t`added`,
-    edited: t`edited`,
-    removed: t`removed`,
-    pruned: t`pruned`,
-    restored: t`restored`,
-  }
-
   const active = KIND_ORDER.filter((k) => (counts[k] ?? 0) > 0)
   const labelKey = active.map((k) => `${k}:${counts[k]}`).join("|")
 
-  const label =
-    active.length === 0 ? (
-      <span className="text-[11px] font-medium text-foreground">
-        {t`Unsaved changes`}
-      </span>
-    ) : (
+  // Memoize the rendered label so it keeps a stable identity across renders
+  // unless its content (labelKey) or the active locale (noun/verbs) actually
+  // changes. Returning fresh JSX every render makes effects that depend on this
+  // node — e.g. a stage's `setExtra` header injection — re-run on every render,
+  // which loops into "Maximum update depth exceeded" (React #185). `labelKey`
+  // fully encodes which kinds and counts are shown, so it is a sufficient key.
+  const label = useMemo(() => {
+    if (!labelKey) {
+      return (
+        <span className="text-[11px] font-medium text-foreground">
+          {t`Unsaved changes`}
+        </span>
+      )
+    }
+    const verbs: Record<ChangeKind, string> = {
+      added: t`added`,
+      edited: t`edited`,
+      removed: t`removed`,
+      pruned: t`pruned`,
+      restored: t`restored`,
+    }
+    const parts = labelKey.split("|").map((seg) => {
+      const [kind, count] = seg.split(":")
+      return { kind: kind as ChangeKind, n: Number(count) }
+    })
+    return (
       <div className="flex items-center gap-1">
-        {active.map((k) => {
-          const n = counts[k] as number
-          return (
-            <PendingChip key={k} icon={KIND_ICON[k]}>
-              {n} {n === 1 ? noun.one : noun.other} {verbs[k]}
-            </PendingChip>
-          )
-        })}
+        {parts.map(({ kind, n }) => (
+          <PendingChip key={kind} icon={KIND_ICON[kind]}>
+            {n} {n === 1 ? noun.one : noun.other} {verbs[kind]}
+          </PendingChip>
+        ))}
       </div>
     )
+  }, [labelKey, noun.one, noun.other, t])
 
   return { label, labelKey, hasChanges: active.length > 0 }
 }

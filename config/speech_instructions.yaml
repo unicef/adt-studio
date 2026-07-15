@@ -1,5 +1,14 @@
 default: Speak in a cheerful and positive tone.
 en: Speak in a cheerful and positive tone.
+sq: |
+  Style: Warm, natural, child-friendly conversational cadence at a calm, measured pace.
+  Accent: Speak in an authentic Albanian accent native to Pristina, Kosovo. Use Gheg
+  dialect pacing, local regional vowel drops, and the distinct inflections typical of
+  Kosovo. Do not use a standard Tirana accent.
+
+  DO NOT CHANGE THE TEXT ITSELF. Read exactly what is written in Albanian. Do not
+  translate, paraphrase, or swap words. Use pronunciation influence only — never change
+  the vocabulary or grammar. Speak in a cheerful and positive tone.
 en-tz: |
   Speak it in a Tanzanian English accent. Use the pronunciation and
   intonation typical of Tanzania. Maintain a calm, conversational tone.

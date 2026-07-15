@@ -155,6 +155,53 @@ describe("createBookStorage", () => {
     storage.close()
   })
 
+  it("persists segment placement bounds and returns them in getPageImages", () => {
+    const { storage } = createTempStorage()
+    storage.putExtractedPage(makePage(1))
+
+    storage.putSegmentedImage({
+      sourceImageId: "pg001_im001",
+      segmentIndex: 1,
+      pageId: "pg001",
+      version: 1,
+      buffer: fakePng(80, 60),
+      width: 80,
+      height: 60,
+      bounds: { x: 12, y: 34, width: 80, height: 60 },
+    })
+
+    const seg = storage
+      .getPageImages("pg001")
+      .find((img) => img.imageId === "pg001_im001_seg001_v1")
+    expect(seg).toBeDefined()
+    expect(seg!.bounds).toEqual({ x: 12, y: 34, width: 80, height: 60 })
+
+    storage.close()
+  })
+
+  it("stores a segment without bounds when none are provided", () => {
+    const { storage } = createTempStorage()
+    storage.putExtractedPage(makePage(1))
+
+    storage.putSegmentedImage({
+      sourceImageId: "pg001_im001",
+      segmentIndex: 1,
+      pageId: "pg001",
+      version: 1,
+      buffer: fakePng(80, 60),
+      width: 80,
+      height: 60,
+    })
+
+    const seg = storage
+      .getPageImages("pg001")
+      .find((img) => img.imageId === "pg001_im001_seg001_v1")
+    expect(seg).toBeDefined()
+    expect(seg!.bounds).toBeUndefined()
+
+    storage.close()
+  })
+
   it("writes translated image variants and looks them up by source id", () => {
     const { storage, paths } = createTempStorage()
     storage.putExtractedPage(makePage(1))

@@ -72,7 +72,7 @@ export const PIPELINE: StageDef[] = [
     steps: [
       { name: "extract", label: "PDF Extraction", pageProgress: true },
       { name: "metadata", label: "Metadata", dependsOn: ["extract"] },
-      { name: "book-summary", label: "Book Summary", dependsOn: ["extract"] },
+      { name: "book-summary", label: "Book Summary", dependsOn: ["metadata"] },
       { name: "image-filtering", label: "Image Filtering", dependsOn: ["extract"], pageProgress: true },
       { name: "image-segmentation", label: "Image Segmentation", dependsOn: ["image-filtering"], pageProgress: true },
       { name: "image-meaningfulness", label: "Image Meaningfulness", dependsOn: ["image-segmentation"], pageProgress: true },
@@ -193,4 +193,13 @@ export const ALL_STEP_NAMES: ReadonlySet<StepName> = new Set(
 /** Steps that process pages individually and emit page-level progress */
 export const PAGE_PROGRESS_STEPS: ReadonlySet<StepName> = new Set(
   PIPELINE.flatMap((stage) => stage.steps.filter((step) => step.pageProgress).map((step) => step.name))
+)
+
+/**
+ * Stages that aggregate across the whole book (no per-page step). Running one of
+ * these over a partially-merged split book yields output that silently omits the
+ * pages not yet merged back, so the UI warns before running them.
+ */
+export const BOOK_LEVEL_STAGES: ReadonlySet<StageName> = new Set(
+  PIPELINE.filter((stage) => !stage.steps.some((step) => step.pageProgress)).map((stage) => stage.name)
 )

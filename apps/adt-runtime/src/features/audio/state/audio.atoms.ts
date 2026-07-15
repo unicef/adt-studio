@@ -31,6 +31,9 @@ export const currentAudioIndexAtom = ephemeralAtom(0)
 export const playBarVisibleAtom = ephemeralAtom(false)
 export const speedMenuOpenAtom = ephemeralAtom(false)
 
+export type ActiveMediaKind = "tts" | "sign-language"
+export const activeMediaAtom = ephemeralAtom<ActiveMediaKind | null>(null)
+
 /**
  * The list of `[data-id]`-bearing nodes the runtime found in `#content`,
  * in reading order. Each one becomes a TTS unit. Populated once per page

@@ -12,10 +12,11 @@ import {
   FileText,
   Loader2,
   SlidersHorizontal,
+  Eye,
 } from "lucide-react"
 import { SectionActionsDropdown } from "./SectionActionsDropdown"
 import { SectionEditToolbar } from "./SectionEditToolbar"
-import { ImageCropDialog } from "./ImageCropDialog"
+import { ImageCropDialog, pageBoundsToCropRect } from "./ImageCropDialog"
 import { AiImageDialog } from "./AiImageDialog"
 import { SectionTreeEditor } from "@/components/section-tree-editor/SectionTreeEditor"
 import { useApiKey } from "@/hooks/use-api-key"
@@ -412,6 +413,15 @@ function PageSectionRows({
             <span className="text-muted-foreground text-[10px] ml-1">
               — {sections.length} {sections.length === 1 ? t`section` : t`sections`}
             </span>
+            {page.extractionWarning && (
+              <span
+                className="inline-flex items-center gap-0.5 text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1 rounded"
+                title={t`Text recovered from the page image — this page has no embedded text layer`}
+              >
+                <Eye className="h-3 w-3" />
+                <Trans>vision</Trans>
+              </span>
+            )}
             {reasoning && reasoning !== "No content to section" && (
               <>
                 {reasoningOpen ? (
@@ -1009,13 +1019,23 @@ function SectionDetail({
       />
 
       {/* Crop dialog */}
-      {cropTarget && (
-        <ImageCropDialog
-          imageSrc={recropPageSrc ?? `${BASE_URL}/books/${bookLabel}/images/${cropTarget}`}
-          onApply={handleCropApply}
-          onClose={() => { setCropTarget(null); setRecropPageSrc(null) }}
-        />
-      )}
+      {cropTarget && (() => {
+        // Overlay the original placement only when recropping from the full page;
+        // an in-place crop uses the image itself, where the full frame is correct.
+        const bounds = recropPageSrc
+          ? queryClient
+              .getQueryData<PageDetail>(["books", bookLabel, "pages", pageId])
+              ?.imagesMeta.find((m) => m.imageId === cropTarget)?.bounds
+          : undefined
+        return (
+          <ImageCropDialog
+            imageSrc={recropPageSrc ?? `${BASE_URL}/books/${bookLabel}/images/${cropTarget}`}
+            initialRect={bounds ? pageBoundsToCropRect(bounds) : undefined}
+            onApply={handleCropApply}
+            onClose={() => { setCropTarget(null); setRecropPageSrc(null) }}
+          />
+        )
+      })()}
 
       {/* AI image dialog */}
       {aiImageTarget && (
