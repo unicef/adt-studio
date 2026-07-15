@@ -3,10 +3,10 @@
  *
  * Shipped in WebPub exports — which strip the full ADT runtime — so interactive
  * activities (quizzes, fill-in-the-blank, sorting, etc.) still work when the
- * book is opened inside a host reader. It reuses the activity initializers from
- * the full runtime but loads only what they need (config, pages manifest,
- * translations) — no reader chrome (TOC, glossary, TTS, sign language) — and
- * renders a minimal Submit/Next control.
+ * book is opened inside a host reader. It reuses the activity initializers AND
+ * the real Submit/Next button (DockActivityActions) from the full runtime, but
+ * loads only what they need (config, pages manifest, translations) — no reader
+ * chrome (TOC, glossary, TTS, sign language).
  *
  * On success the initializers navigate the page directly (window.location.href
  * to the next reading-order entry). The host reader tracks that page change via
@@ -18,6 +18,8 @@ import {
   getDefaultStore,
   useAtomValue,
 } from "jotai"
+import { TooltipProvider } from "@/shared/ui/tooltip"
+import { DockActivityActions } from "@/features/activity/components/DockActivityActions"
 import { loadAppConfig, pickLanguage, pickStorageMode } from "@/shared/runtime/config"
 import { loadPagesManifest } from "@/shared/runtime/manifest-loader"
 import { loadTranslations } from "@/features/language/runtime/i18n"
@@ -29,14 +31,7 @@ import {
   currentSectionIdAtom,
   pagesAtom,
 } from "@/features/navigation/state/nav.atoms"
-import {
-  activityModeAtom,
-  isActivityPageAtom,
-  submitEnabledAtom,
-  submitLabelAtom,
-  submitStateAtom,
-  validateHandlerAtom,
-} from "@/features/activity/state/activity.atoms"
+import { activityModeAtom, isActivityPageAtom } from "@/features/activity/state/activity.atoms"
 import { initializeQuizActivity } from "@/features/activity/runtime/activity-quiz"
 import { initializeMultiSelectActivity } from "@/features/activity/runtime/activity-multi-select"
 import { initializeFillInTheBlankActivity } from "@/features/activity/runtime/activity-fill-in-the-blank"
@@ -48,19 +43,13 @@ import { initializeMatchingActivity } from "@/features/activity/runtime/activity
 const store = getDefaultStore()
 
 /**
- * Minimal Submit / Next control. Reads the same atoms the full runtime's dock
- * button does, but renders an inline-styled button so it doesn't depend on the
- * per-book Tailwind build (which doesn't scan this bundle).
+ * Fixed-position shell around the shared Submit/Next button. (The full runtime's
+ * positioning lives in ActivityDock, which is coupled to the dock context; here
+ * we only need a minimal centered container.)
  */
 function ActivityControls() {
-  const enabled = useAtomValue(submitEnabledAtom)
-  const validate = useAtomValue(validateHandlerAtom)
-  const state = useAtomValue(submitStateAtom)
-  const labelOverride = useAtomValue(submitLabelAtom)
-
-  const label = labelOverride ?? (state === "next" ? "Next" : "Check")
-  const disabled = !enabled || !validate
-
+  const activityMode = useAtomValue(activityModeAtom)
+  if (!activityMode) return null
   return (
     <div
       style={{
@@ -71,29 +60,9 @@ function ActivityControls() {
         display: "flex",
         justifyContent: "center",
         zIndex: 56,
-        pointerEvents: "none",
       }}
     >
-      <button
-        type="button"
-        onClick={validate ?? undefined}
-        disabled={disabled}
-        style={{
-          pointerEvents: "auto",
-          padding: "0.75rem 1.5rem",
-          fontSize: "1rem",
-          fontWeight: 600,
-          color: "#fff",
-          border: "none",
-          borderRadius: "0.75rem",
-          cursor: disabled ? "default" : "pointer",
-          opacity: disabled ? 0.5 : 1,
-          boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-          backgroundColor: state === "next" ? "#059669" : "#2563eb",
-        }}
-      >
-        {label}
-      </button>
+      <DockActivityActions />
     </div>
   )
 }
@@ -101,6 +70,11 @@ function ActivityControls() {
 function readMeta(name: string): string | null {
   if (typeof document === "undefined") return null
   return document.querySelector(`meta[name="${name}"]`)?.getAttribute("content") ?? null
+}
+
+function readIsActivityPage(): boolean {
+  if (typeof document === "undefined") return false
+  return !!document.querySelector('section[data-section-type^="activity_"]')
 }
 
 /**
@@ -125,8 +99,9 @@ async function bootActivities(): Promise<void> {
   const pageNumber = pageNumberRaw ? Number.parseInt(pageNumberRaw, 10) : Number.NaN
   store.set(currentPageNumberAtom, Number.isFinite(pageNumber) ? pageNumber : null)
 
-  store.set(isActivityPageAtom, true)
-  store.set(activityModeAtom, true)
+  const isActivity = readIsActivityPage()
+  store.set(isActivityPageAtom, isActivity)
+  store.set(activityModeAtom, isActivity)
 
   initializeQuizActivity()
   initializeMultiSelectActivity()
@@ -150,7 +125,9 @@ function mount(): void {
   const container = ensureContainer("nav-container")
   createRoot(container).render(
     <JotaiProvider store={store}>
-      <ActivityControls />
+      <TooltipProvider delay={300} closeDelay={120}>
+        <ActivityControls />
+      </TooltipProvider>
     </JotaiProvider>,
   )
   void bootActivities().catch((err) => {
