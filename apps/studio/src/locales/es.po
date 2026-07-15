@@ -5266,6 +5266,9 @@ msgstr "Reproducir"
 msgid "Play video"
 msgstr "Reproducir video"
 
+msgid "Please wait for the current operation to finish"
+msgstr "Espera a que termine la operación actual"
+
 msgid "Polishing paragraphs to perfection..."
 msgstr "Puliendo párrafos a la perfección..."
 

@@ -5266,6 +5266,9 @@ msgstr "Play"
 msgid "Play video"
 msgstr "Play video"
 
+msgid "Please wait for the current operation to finish"
+msgstr "Please wait for the current operation to finish"
+
 msgid "Polishing paragraphs to perfection..."
 msgstr "Polishing paragraphs to perfection..."
 

@@ -438,6 +438,36 @@ function saveStoryboardNode(
   return version
 }
 
+/** Renumber sectionIds to the canonical `${pageId}_sec${NNN}` sequence. */
+function renumberSectionIds(
+  sections: Array<{ sectionId: string }>,
+  pageId: string
+): void {
+  for (let i = 0; i < sections.length; i++) {
+    sections[i].sectionId = `${pageId}_sec${String(i + 1).padStart(3, "0")}`
+  }
+}
+
+/** Point each rendering entry's data-section-id at its (re)numbered section. */
+function rewriteRenderingSectionIds(
+  entries: Array<{ sectionIndex: number; html: string }>,
+  sections: Array<{ sectionId: string }>
+): void {
+  for (const rs of entries) {
+    if (rs.sectionIndex < 0 || rs.sectionIndex >= sections.length) {
+      throw new HTTPException(400, { message: "Rendering contains invalid section indexes" })
+    }
+    const expectedId = sections[rs.sectionIndex]?.sectionId
+    if (!expectedId) {
+      throw new HTTPException(400, { message: "Unable to map rendering section to sectionId" })
+    }
+    rs.html = rs.html.replace(
+      /data-section-id="[^"]*"/,
+      `data-section-id="${expectedId}"`
+    )
+  }
+}
+
 function createNodeIdFactory(
   pageId: string,
   sections: Array<{ nodes: ContentNodeData[] }>
@@ -1478,10 +1508,7 @@ export function createPageRoutes(
       const newSections = [...sectioning.sections]
       newSections.splice(idx + 1, 0, clonedSection)
 
-      // Renumber all sectionIds to maintain {pageId}_sec{NNN} convention
-      for (let i = 0; i < newSections.length; i++) {
-        newSections[i].sectionId = `${pageId}_sec${String(i + 1).padStart(3, "0")}`
-      }
+      renumberSectionIds(newSections, pageId)
 
       const updatedSectioning = { ...sectioning, sections: newSections }
 
@@ -1516,20 +1543,7 @@ export function createPageRoutes(
           shifted.splice(insertPos, 0, clonedRendering)
         }
 
-        // Update data-section-id in each rendering's HTML to match new sectionIds
-        for (const rs of shifted) {
-          if (rs.sectionIndex < 0 || rs.sectionIndex >= newSections.length) {
-            throw new HTTPException(400, { message: "Rendering contains invalid section indexes" })
-          }
-          const expectedId = newSections[rs.sectionIndex]?.sectionId
-          if (!expectedId) {
-            throw new HTTPException(400, { message: "Unable to map rendering section to sectionId" })
-          }
-          rs.html = rs.html.replace(
-            /data-section-id="[^"]*"/,
-            `data-section-id="${expectedId}"`
-          )
-        }
+        rewriteRenderingSectionIds(shifted, newSections)
         updatedRendering = { sections: shifted }
       }
       const sectioningVersion = saveStoryboardNode(storage, "page-sectioning", pageId, updatedSectioning)
@@ -1649,22 +1663,44 @@ export function createPageRoutes(
         }
       }
 
-      const newSections = [...sectioning.sections]
-      newSections[idx] = {
+      // Narrow cross-page provenance per half: a half keeps a source page
+      // only while it still contains nodes originating from it (node ids
+      // embed their source page as a `${pageId}_` prefix).
+      const narrowSourcePageIds = (nodes: ContentNodeData[]): string[] | undefined => {
+        const containsPrefix = (list: ContentNodeData[], prefix: string): boolean =>
+          list.some(
+            (node) =>
+              node.nodeId.startsWith(prefix) ||
+              (node.children ? containsPrefix(node.children, prefix) : false)
+          )
+        const kept = (section.sourcePageIds ?? []).filter((sourcePageId) =>
+          containsPrefix(nodes, `${sourcePageId}_`)
+        )
+        return kept.length > 0 ? kept : undefined
+      }
+
+      const keptSection = {
         ...section,
         nodes: keptNodes,
         ...(keptPlacement ? { placement: keptPlacement } : {}),
       }
-      newSections.splice(idx + 1, 0, {
+      const movedSection = {
         ...section,
         nodes: movedNodes,
         ...(movedPlacement ? { placement: movedPlacement } : {}),
-      })
-
-      // Renumber all sectionIds
-      for (let i = 0; i < newSections.length; i++) {
-        newSections[i].sectionId = `${pageId}_sec${String(i + 1).padStart(3, "0")}`
       }
+      delete keptSection.sourcePageIds
+      delete movedSection.sourcePageIds
+      const keptProvenance = narrowSourcePageIds(keptNodes)
+      const movedProvenance = narrowSourcePageIds(movedNodes)
+      if (keptProvenance) keptSection.sourcePageIds = keptProvenance
+      if (movedProvenance) movedSection.sourcePageIds = movedProvenance
+
+      const newSections = [...sectioning.sections]
+      newSections[idx] = keptSection
+      newSections.splice(idx + 1, 0, movedSection)
+
+      renumberSectionIds(newSections, pageId)
 
       const updatedSectioning = { ...sectioning, sections: newSections }
 
@@ -1687,20 +1723,7 @@ export function createPageRoutes(
             s.sectionIndex > idx ? { ...s, sectionIndex: s.sectionIndex + 1 } : { ...s }
           )
 
-        // Update data-section-id in each rendering's HTML to match new sectionIds
-        for (const rs of shifted) {
-          if (rs.sectionIndex < 0 || rs.sectionIndex >= newSections.length) {
-            throw new HTTPException(400, { message: "Rendering contains invalid section indexes" })
-          }
-          const expectedId = newSections[rs.sectionIndex]?.sectionId
-          if (!expectedId) {
-            throw new HTTPException(400, { message: "Unable to map rendering section to sectionId" })
-          }
-          rs.html = rs.html.replace(
-            /data-section-id="[^"]*"/,
-            `data-section-id="${expectedId}"`
-          )
-        }
+        rewriteRenderingSectionIds(shifted, newSections)
         updatedRendering = { sections: shifted }
       }
 
@@ -1804,10 +1827,7 @@ export function createPageRoutes(
       }
       newSections.splice(removeIdx, 1)
 
-      // Renumber all sectionIds
-      for (let i = 0; i < newSections.length; i++) {
-        newSections[i].sectionId = `${pageId}_sec${String(i + 1).padStart(3, "0")}`
-      }
+      renumberSectionIds(newSections, pageId)
 
       const updatedSectioning = { ...sectioning, sections: newSections }
 
@@ -1849,20 +1869,7 @@ export function createPageRoutes(
           }
         }
 
-        // Update data-section-id in each rendering's HTML to match new sectionIds
-        for (const rs of shifted) {
-          if (rs.sectionIndex < 0 || rs.sectionIndex >= newSections.length) {
-            throw new HTTPException(400, { message: "Rendering contains invalid section indexes" })
-          }
-          const expectedId = newSections[rs.sectionIndex]?.sectionId
-          if (!expectedId) {
-            throw new HTTPException(400, { message: "Unable to map rendering section to sectionId" })
-          }
-          rs.html = rs.html.replace(
-            /data-section-id="[^"]*"/,
-            `data-section-id="${expectedId}"`
-          )
-        }
+        rewriteRenderingSectionIds(shifted, newSections)
         updatedRendering = { sections: shifted }
       }
 
@@ -1988,15 +1995,9 @@ export function createPageRoutes(
       const newSrcSections = [...srcSectioning.sections]
       newSrcSections.splice(idx, 1)
 
-      // Renumber source sections
-      for (let i = 0; i < newSrcSections.length; i++) {
-        newSrcSections[i].sectionId = `${pageId}_sec${String(i + 1).padStart(3, "0")}`
-      }
+      renumberSectionIds(newSrcSections, pageId)
 
-      // Renumber target sections (IDs stay with target page prefix)
-      for (let i = 0; i < newTgtSections.length; i++) {
-        newTgtSections[i].sectionId = `${targetPageId}_sec${String(i + 1).padStart(3, "0")}`
-      }
+      renumberSectionIds(newTgtSections, targetPageId)
 
       // Save updated sectionings
       const srcVersion = saveStoryboardNode(storage, "page-sectioning", pageId, {
@@ -2076,10 +2077,7 @@ export function createPageRoutes(
       const newSections = [...sectioning.sections]
       newSections.splice(idx, 1)
 
-      // Renumber all sectionIds
-      for (let i = 0; i < newSections.length; i++) {
-        newSections[i].sectionId = `${pageId}_sec${String(i + 1).padStart(3, "0")}`
-      }
+      renumberSectionIds(newSections, pageId)
 
       const updatedSectioning = { ...sectioning, sections: newSections }
 
@@ -2109,20 +2107,7 @@ export function createPageRoutes(
           }
         }
 
-        // Update data-section-id in each rendering's HTML to match new sectionIds
-        for (const rs of shifted) {
-          if (rs.sectionIndex < 0 || rs.sectionIndex >= newSections.length) {
-            throw new HTTPException(400, { message: "Rendering contains invalid section indexes" })
-          }
-          const expectedId = newSections[rs.sectionIndex]?.sectionId
-          if (!expectedId) {
-            throw new HTTPException(400, { message: "Unable to map rendering section to sectionId" })
-          }
-          rs.html = rs.html.replace(
-            /data-section-id="[^"]*"/,
-            `data-section-id="${expectedId}"`
-          )
-        }
+        rewriteRenderingSectionIds(shifted, newSections)
         updatedRendering = { sections: shifted }
       }
 

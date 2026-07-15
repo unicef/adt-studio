@@ -5268,6 +5268,9 @@ msgstr "Lire"
 msgid "Play video"
 msgstr "Lire la vidéo"
 
+msgid "Please wait for the current operation to finish"
+msgstr "Veuillez attendre la fin de l'opération en cours"
+
 msgid "Polishing paragraphs to perfection..."
 msgstr "Peaufinage des paragraphes à la perfection..."
 

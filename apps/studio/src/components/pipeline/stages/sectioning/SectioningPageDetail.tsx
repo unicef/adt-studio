@@ -388,7 +388,9 @@ export function SectioningPageDetail({
                     }
                     disabled={structuralDisabled}
                     disabledReason={
-                      dirty ? t`Save or discard your edits first` : undefined
+                      dirty
+                        ? t`Save or discard your edits first`
+                        : t`Please wait for the current operation to finish`
                     }
                     pruneDisabled={saving || structuralBusy}
                   />

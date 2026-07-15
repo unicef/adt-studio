@@ -669,6 +669,55 @@ describe("Page routes", () => {
       }
     })
 
+    it("narrows sourcePageIds to the half that still contains foreign content", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("page-sectioning", `${label}_p1`, {
+          reasoning: "sectioned",
+          sections: [
+            {
+              sectionId: `${label}_p1_sec001`,
+              sectionType: "activity_multiple_choice",
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+              nodes: [
+                { nodeId: `${label}_p1_n0001`, isPruned: false, role: "text", text: "Local" },
+                { nodeId: `${label}_p9_n0001`, isPruned: false, role: "text", text: "Merged in" },
+              ],
+              sourcePageIds: [`${label}_p9`],
+            },
+          ],
+        })
+      } finally {
+        storage.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/split`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ beforeNodeIndex: 1 }),
+        }
+      )
+      expect(res.status).toBe(200)
+
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        const row = verify.getLatestNodeData("page-sectioning", `${label}_p1`)
+        const sectioning = row?.data as {
+          sections: Array<{ sourcePageIds?: string[] }>
+        }
+        // Only the half holding the merged-in nodes keeps the provenance.
+        expect(sectioning.sections[0].sourcePageIds).toBeUndefined()
+        expect(sectioning.sections[1].sourcePageIds).toEqual([`${label}_p9`])
+      } finally {
+        verify.close()
+      }
+    })
+
     it("returns 400 when splitting before the first node of the section", async () => {
       seedThreeNodeSection()
 

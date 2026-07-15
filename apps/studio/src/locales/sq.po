@@ -5267,6 +5267,9 @@ msgstr "Luaj"
 msgid "Play video"
 msgstr "Luaj videon"
 
+msgid "Please wait for the current operation to finish"
+msgstr "Prisni derisa të përfundojë veprimi aktual"
+
 msgid "Polishing paragraphs to perfection..."
 msgstr "Polisim paragrafet deri në përsosmëri..."
 
