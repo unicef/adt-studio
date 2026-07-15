@@ -263,7 +263,6 @@ describe("KidsOnboarding", () => {
 
     expect(store.get(kidsBuddyAtom)).toEqual({
       character: "cat",
-      palette: "classic",
       backgroundColor: "#FEF3C7",
     })
     expect(store.get(kidsOnboardingDoneAtom)).toBe(true)

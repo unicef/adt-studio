@@ -38,13 +38,11 @@ export const kidsModeActiveAtom = atom((get) => {
 
 export interface KidsBuddyConfig {
   character: KidsCharacterId
-  palette: string
   backgroundColor: string
 }
 
 export const kidsBuddyAtom = persistedJsonAtom<KidsBuddyConfig>("kidsBuddy", {
   character: KIDS_CHARACTERS[0].id,
-  palette: KIDS_CHARACTERS[0].art.palettes[0].id,
   backgroundColor: BUDDY_BACKGROUNDS[0].value,
 })
 

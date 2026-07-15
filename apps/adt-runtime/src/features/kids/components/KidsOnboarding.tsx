@@ -47,10 +47,6 @@ import {
   kidsOnboardingDoneAtom,
   kidsPlayerNameAtom,
 } from "@/features/kids/state/kids.atoms"
-import {
-  buddyPaletteVars,
-  type BuddyPalette,
-} from "@/features/kids/assets/buddies/buddy-art"
 import { isTypingTarget } from "@/features/navigation/lib/typing-target"
 import { cn } from "@/shared/lib/utils"
 import { appConfigAtom, type AppFeatures } from "@/shared/state/config.atoms"
@@ -156,7 +152,6 @@ export function KidsOnboarding() {
   const [isPickConfirming, setIsPickConfirming] = useState(false)
   const [pickPhrase, setPickPhrase] = useState<BuddyPhrase | null>(null)
   const character = useMemo(() => getCharacter(characterId), [characterId])
-  const palette = character.art.palettes[0]
   const backgroundColor = BUDDY_BACKGROUNDS[0].value
   const headingRef = useRef<HTMLHeadingElement>(null)
   const pickConfirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
@@ -253,14 +248,12 @@ export function KidsOnboarding() {
   const finish = useCallback(() => {
     setBuddy({
       character: character.id,
-      palette: palette.id,
       backgroundColor,
     })
     setOnboardingDone(true)
   }, [
     backgroundColor,
     character.id,
-    palette.id,
     setBuddy,
     setOnboardingDone,
   ])
@@ -353,7 +346,6 @@ export function KidsOnboarding() {
                   <BuddyHero
                     buddyName={buddyName}
                     character={character}
-                    palette={palette}
                     reduceMotion={reduceMotion}
                     isCelebrating={isPickConfirming}
                     speech={
@@ -385,7 +377,6 @@ export function KidsOnboarding() {
                 <StartHero
                   buddyName={buddyName}
                   character={character}
-                  palette={palette}
                   reduceMotion={reduceMotion}
                 />
               ) : (
@@ -588,14 +579,12 @@ function NeutralOnboardingVisual({
 function BuddyHero({
   buddyName,
   character,
-  palette,
   reduceMotion,
   isCelebrating = false,
   speech,
 }: {
   buddyName: string
   character: KidsCharacter
-  palette: BuddyPalette
   reduceMotion: boolean
   isCelebrating?: boolean
   speech?: string
@@ -607,7 +596,6 @@ function BuddyHero({
         className="grid aspect-square w-56 max-w-full place-items-center rounded-full bg-white/70"
         style={
           {
-            ...buddyPaletteVars(palette),
             animation:
               isCelebrating && !reduceMotion
                 ? `kidsWiggle ${PICK_CONFIRM_DELAY_MS}ms ease-out both`
@@ -1092,12 +1080,10 @@ function FeatureAbilitiesStep({
 function StartHero({
   buddyName,
   character,
-  palette,
   reduceMotion,
 }: {
   buddyName: string
   character: KidsCharacter
-  palette: BuddyPalette
   reduceMotion: boolean
 }) {
   return (
