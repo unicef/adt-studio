@@ -10,7 +10,7 @@ import { classifyExtractionWarning, flattenVisibleSectioningText } from "../serv
 import { openBookDb } from "@adt/storage"
 import { createBookStorage } from "@adt/storage"
 import type { Storage } from "@adt/storage"
-import { detectSpreads, type SpreadEdgeSample } from "@adt/pipeline"
+import { detectSpreads, type SpreadEdgeSample, classifyPageImages, buildImageClassifyConfig } from "@adt/pipeline"
 import { samplePageEdges, extractPages, computeGroups, countPdfPages } from "@adt/pdf"
 import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
 import type { TaskService } from "../services/task-service.js"
@@ -998,12 +998,22 @@ export function createPageRoutes(
         vectorTextGrouping: config.vector_text_grouping !== false,
         fixedLayout: isFixedLayoutBook(config),
       })
+      const imageClassifyConfig = {
+        ...buildImageClassifyConfig(config),
+        getImageBytes: (imageId: string) =>
+          Buffer.from(storage.getImageBase64(imageId), "base64"),
+      }
       for (const page of newPages) {
         storage.putExtractedPage(page)
         storage.putNodeData("positioned-text", page.pageId, page.positionedText)
         if (page.extractionDebug) {
           storage.putNodeData("extraction-debug", page.pageId, page.extractionDebug)
         }
+        storage.putNodeData(
+          "image-filtering",
+          page.pageId,
+          classifyPageImages(page.pageId, storage.getPageImages(page.pageId), imageClassifyConfig),
+        )
       }
     }
     for (const id of toRemove) storage.deletePage(id)
