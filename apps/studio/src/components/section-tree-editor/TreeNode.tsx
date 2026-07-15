@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ComponentType } from "react"
+import { useState, type ComponentType } from "react"
 import {
   ChevronDown,
   ChevronRight,
@@ -32,6 +32,7 @@ import { useLingui } from "@lingui/react/macro"
 import type { ContentNodeData } from "@adt/types"
 import { BASE_URL } from "@/api/client"
 import { cn } from "@/lib/utils"
+import { ActionMenu, type ActionMenuItem } from "@/components/ui/action-menu"
 import {
   Select,
   SelectContent,
@@ -231,66 +232,21 @@ function DragHandle({
 
 // ── Kebab action menu ────────────────────────────────────────────
 
-type MenuItem = {
-  icon: ComponentType<{ className?: string }>
-  label: string
-  onClick: () => void
-  danger?: boolean
-  hidden?: boolean
-}
-
 function RowMenu({
   items,
   disabled,
 }: {
-  items: MenuItem[]
+  items: ActionMenuItem[]
   disabled?: boolean
 }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!open) return
-    const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener("mousedown", onDown)
-    return () => document.removeEventListener("mousedown", onDown)
-  }, [open])
-  const visibleItems = items.filter((it) => !it.hidden)
-  if (visibleItems.length === 0) return null
   return (
-    <div className="relative" ref={ref} onClick={(e) => e.stopPropagation()}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        disabled={disabled}
-        className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30"
-      >
-        <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 min-w-[160px] rounded-md border bg-popover py-1 text-xs shadow-md">
-          {visibleItems.map((item, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => {
-                setOpen(false)
-                item.onClick()
-              }}
-              disabled={disabled}
-              className={cn(
-                "flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-accent transition-colors disabled:opacity-30",
-                item.danger && "text-red-600 hover:bg-red-50"
-              )}
-            >
-              <item.icon className="h-3.5 w-3.5" />
-              {item.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+    <ActionMenu
+      trigger={<MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />}
+      triggerClassName="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30"
+      triggerDisabled={disabled}
+      items={items}
+      itemsDisabled={disabled}
+    />
   )
 }
 

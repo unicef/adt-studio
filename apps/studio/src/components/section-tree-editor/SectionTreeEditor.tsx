@@ -1,11 +1,5 @@
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ComponentType,
-} from "react"
+import { useCallback, useMemo, useState, type ComponentType } from "react"
+import { ActionMenu, type ActionMenuItem } from "@/components/ui/action-menu"
 import { useLingui } from "@lingui/react/macro"
 import {
   ChevronDown,
@@ -74,12 +68,7 @@ export interface SectionTreeEditorProps {
   sectionMergeItems?: FooterMenuItem[]
 }
 
-export interface FooterMenuItem {
-  icon?: ComponentType<{ className?: string }>
-  label: string
-  onClick: () => void
-  disabled?: boolean
-}
+export type FooterMenuItem = ActionMenuItem
 
 const DEFAULT_ID_PREFIX = "user_node"
 
@@ -437,54 +426,26 @@ function FooterMenuButton({
   items: FooterMenuItem[]
   disabled?: boolean
 }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!open) return
-    const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener("mousedown", onDown)
-    return () => document.removeEventListener("mousedown", onDown)
-  }, [open])
-  if (items.length === 0) return null
   return (
-    <div className="relative" ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        disabled={disabled}
-        className={cn(
-          "flex items-center gap-1.5 rounded border border-dashed px-3 py-1.5 text-xs transition-colors",
-          disabled
-            ? "border-muted-foreground/20 text-muted-foreground/50 cursor-default"
-            : "border-muted-foreground/30 hover:border-muted-foreground/60 text-muted-foreground hover:text-foreground cursor-pointer"
-        )}
-      >
-        <Icon className="h-3.5 w-3.5" />
-        {label}
-        <ChevronDown className="h-3 w-3 opacity-60" />
-      </button>
-      {open && (
-        <div className="absolute left-0 top-full z-50 mt-1 min-w-[200px] rounded-md border bg-popover py-1 text-xs shadow-md">
-          {items.map((item, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => {
-                setOpen(false)
-                item.onClick()
-              }}
-              disabled={item.disabled}
-              className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-accent transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
-            >
-              {item.icon ? <item.icon className="h-3.5 w-3.5" /> : null}
-              {item.label}
-            </button>
-          ))}
-        </div>
+    <ActionMenu
+      trigger={
+        <>
+          <Icon className="h-3.5 w-3.5" />
+          {label}
+          <ChevronDown className="h-3 w-3 opacity-60" />
+        </>
+      }
+      triggerClassName={cn(
+        "flex items-center gap-1.5 rounded border border-dashed px-3 py-1.5 text-xs transition-colors",
+        disabled
+          ? "border-muted-foreground/20 text-muted-foreground/50 cursor-default"
+          : "border-muted-foreground/30 hover:border-muted-foreground/60 text-muted-foreground hover:text-foreground cursor-pointer"
       )}
-    </div>
+      triggerDisabled={disabled}
+      items={items}
+      align="left"
+      menuClassName="min-w-[200px]"
+    />
   )
 }
 

@@ -41,7 +41,7 @@ import { classifyPageImages, buildImageClassifyConfig } from "./image-filtering.
 import { filterPageImageMeaningfulness, buildMeaningfulnessConfig } from "./image-meaningfulness.js"
 import { cropPageImages, applyCrops, buildCroppingConfig, getCroppedImageId } from "./image-cropping.js"
 import { segmentPageImages, applySegmentation, segmentBoundsOnPage, buildSegmentationConfig, getSegmentedImageId } from "./image-segmentation.js"
-import { renderPage, buildRenderStrategyResolver, collectReferencedImageIds } from "./web-rendering.js"
+import { renderPage, buildRenderStrategyResolver, collectReferencedImageIds, collectSourcePageImages } from "./web-rendering.js"
 import { translatePageTree, buildTranslationConfig } from "./translation.js"
 import { createTemplateEngine } from "./render-template.js"
 import { captionPageImages, buildCaptionConfig, extractImageIds } from "./image-captioning.js"
@@ -593,21 +593,10 @@ export async function runFullPipeline(
         const pageImageBase64 = storage.getPageImageBase64(page.pageId)
         // Page images for content merged in from other pages (cross-page
         // merges) — per-section provenance recorded in sourcePageIds.
-        const sourcePageIds = new Set<string>()
-        for (const s of sectioning.sections) {
-          for (const id of s.sourcePageIds ?? []) sourcePageIds.add(id)
-        }
-        let sourcePageImages: Map<string, string> | undefined
-        if (sourcePageIds.size > 0) {
-          sourcePageImages = new Map()
-          for (const id of sourcePageIds) {
-            try {
-              sourcePageImages.set(id, storage.getPageImageBase64(id))
-            } catch {
-              // Source page no longer exists — render without its image.
-            }
-          }
-        }
+        const sourcePageImages = collectSourcePageImages(
+          sectioning.sections,
+          (id) => storage.getPageImageBase64(id)
+        )
         const result = await renderPage(
           {
             label,

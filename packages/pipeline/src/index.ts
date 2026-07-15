@@ -65,6 +65,7 @@ export {
   buildRenderStrategyResolver,
   buildRenderContext,
   collectReferencedImageIds,
+  collectSourcePageImages,
   GROUP_CONTAINER_STRUCTURES,
   type RenderConfig,
   type VisualRefinementConfig,

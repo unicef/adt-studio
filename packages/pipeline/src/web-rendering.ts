@@ -172,6 +172,32 @@ export function collectReferencedImageIds(
 }
 
 /**
+ * Build the pageId → page-image map for every page referenced by any
+ * section's `sourcePageIds` (cross-page merges). Getter failures (source
+ * page deleted) are skipped. Returns undefined when no section carries
+ * cross-page provenance.
+ */
+export function collectSourcePageImages(
+  sections: PageSectioningSection[],
+  getPageImageBase64: (pageId: string) => string
+): Map<string, string> | undefined {
+  const ids = new Set<string>()
+  for (const section of sections) {
+    for (const id of section.sourcePageIds ?? []) ids.add(id)
+  }
+  if (ids.size === 0) return undefined
+  const images = new Map<string, string>()
+  for (const id of ids) {
+    try {
+      images.set(id, getPageImageBase64(id))
+    } catch {
+      // Source page no longer exists — render without its image.
+    }
+  }
+  return images
+}
+
+/**
  * Walk a section's content tree once and produce the Liquid-friendly render
  * context. Pruned nodes are dropped. Leaves, image references, and
  * group/activity container node_ids are collected in DFS order so the
