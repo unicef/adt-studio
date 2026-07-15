@@ -34,9 +34,18 @@ export async function renderSectionLlm(
   const taskType = isActivity ? "activity-rendering" : "web-rendering"
   const { section, context: renderContext } = input
 
+  // Page images for content merged in from other pages — the prompt shows
+  // them after the hosting page's image so the LLM doesn't force-match all
+  // content against a page image that doesn't contain it.
+  const sourcePages = (input.sourcePages ?? []).map((sp) => ({
+    page_id: sp.pageId,
+    image_base64: sp.imageBase64,
+  }))
+
   const promptContext = {
     label: input.label,
     page_image_base64: input.pageImageBase64,
+    source_pages: sourcePages,
     section_id: section.sectionId,
     section_type: section.sectionType,
     nodes: renderContext.nodes,
@@ -97,12 +106,14 @@ export async function renderSectionLlm(
       timeoutMs: vr.timeoutMs,
       temperature: vr.temperature,
       pageImageBase64: input.pageImageBase64,
+      additionalPageImages: input.sourcePages,
       promptContext: {
         page_image_base64: input.pageImageBase64,
         section_type: section.sectionType,
         current_html: generatedHtml,
         nodes: renderContext.nodes,
         leaf_texts: renderContext.leaf_texts,
+        has_merged_content: sourcePages.length > 0,
       },
       originalImageIntroText: "Here is the original page image (this is what the rendered page should resemble):",
       firstIterationScreenshotsText: "\nHere are screenshots of the current rendered HTML at three viewport sizes:\n",

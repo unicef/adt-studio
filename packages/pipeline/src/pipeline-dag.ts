@@ -41,7 +41,7 @@ import { classifyPageImages, buildImageClassifyConfig } from "./image-filtering.
 import { filterPageImageMeaningfulness, buildMeaningfulnessConfig } from "./image-meaningfulness.js"
 import { cropPageImages, applyCrops, buildCroppingConfig, getCroppedImageId } from "./image-cropping.js"
 import { segmentPageImages, applySegmentation, segmentBoundsOnPage, buildSegmentationConfig, getSegmentedImageId } from "./image-segmentation.js"
-import { renderPage, buildRenderStrategyResolver } from "./web-rendering.js"
+import { renderPage, buildRenderStrategyResolver, collectReferencedImageIds } from "./web-rendering.js"
 import { translatePageTree, buildTranslationConfig } from "./translation.js"
 import { createTemplateEngine } from "./render-template.js"
 import { captionPageImages, buildCaptionConfig, extractImageIds } from "./image-captioning.js"
@@ -577,7 +577,37 @@ export async function runFullPipeline(
           const dims = pageDims.get(imageId)
           renderImages.set(imageId, { base64: storage.getImageBase64(imageId), width: dims?.width, height: dims?.height })
         }
+        // Sections can reference images extracted on other pages (cross-page
+        // merges, images added from another page) — those are not in this
+        // page's image-filtering output, so pull them in by walking the tree.
+        for (const imageId of collectReferencedImageIds(sectioning.sections)) {
+          if (renderImages.has(imageId)) continue
+          try {
+            const dims = storage.getImageDimensions(imageId)
+            renderImages.set(imageId, { base64: storage.getImageBase64(imageId), width: dims?.width ?? undefined, height: dims?.height ?? undefined })
+          } catch {
+            // Image file no longer exists — leave it out; the renderer emits
+            // the URL reference without pixels.
+          }
+        }
         const pageImageBase64 = storage.getPageImageBase64(page.pageId)
+        // Page images for content merged in from other pages (cross-page
+        // merges) — per-section provenance recorded in sourcePageIds.
+        const sourcePageIds = new Set<string>()
+        for (const s of sectioning.sections) {
+          for (const id of s.sourcePageIds ?? []) sourcePageIds.add(id)
+        }
+        let sourcePageImages: Map<string, string> | undefined
+        if (sourcePageIds.size > 0) {
+          sourcePageImages = new Map()
+          for (const id of sourcePageIds) {
+            try {
+              sourcePageImages.set(id, storage.getPageImageBase64(id))
+            } catch {
+              // Source page no longer exists — render without its image.
+            }
+          }
+        }
         const result = await renderPage(
           {
             label,
@@ -585,6 +615,7 @@ export async function runFullPipeline(
             pageImageBase64,
             sectioning: sectioning,
             images: renderImages,
+            sourcePageImages,
             bookFonts: buildBookFontsPromptContext(storage),
           },
           resolveRenderConfig,

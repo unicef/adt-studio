@@ -1,6 +1,21 @@
-import { useCallback, useMemo, useState } from "react"
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentType,
+} from "react"
 import { useLingui } from "@lingui/react/macro"
-import { Plus } from "lucide-react"
+import {
+  ChevronDown,
+  FilePlus,
+  FolderPlus,
+  Image as ImageIcon,
+  Merge,
+  Plus,
+  Scissors,
+} from "lucide-react"
 import type { ContentNodeData, PageSectioningSection } from "@adt/types"
 import {
   addContainer,
@@ -8,10 +23,13 @@ import {
   deleteNode,
   duplicateNode,
   editLeafText,
+  mergeAdjacentContainers,
+  mergeContainerWithPrevious,
   moveNode,
   nestNode,
   setContainerStructure,
   setLeafRole,
+  splitContainerBefore,
   toggleNodePruned,
   unnestNode,
   findNode,
@@ -36,6 +54,31 @@ export interface SectionTreeEditorProps {
   onLeafDeleted?: (nodeId: string) => void
   /** Called whenever a change happens that needs a re-render (structural change). */
   onStructuralChange?: () => void
+  /**
+   * When provided, a "split" divider is shown between top-level nodes.
+   * Called with the index of the first node that should move into the new
+   * section (i.e. split happens before `nodes[beforeNodeIndex]`).
+   */
+  onSplitBefore?: (beforeNodeIndex: number) => void
+  /**
+   * When provided, every node's menu offers "Split into new section" —
+   * called with the node that should start the new section (works at any
+   * depth; ancestor groups are split along the way).
+   */
+  onSplitSection?: (nodeId: string) => void
+  /**
+   * Section-level merge entries for the footer "Merge" menu (e.g. merge
+   * with the previous/next section or page). When provided, the menu is
+   * shown with these entries plus the built-in group-merge action.
+   */
+  sectionMergeItems?: FooterMenuItem[]
+}
+
+export interface FooterMenuItem {
+  icon?: ComponentType<{ className?: string }>
+  label: string
+  onClick: () => void
+  disabled?: boolean
 }
 
 const DEFAULT_ID_PREFIX = "user_node"
@@ -56,6 +99,9 @@ export function SectionTreeEditor({
   onLeafDuplicated,
   onLeafDeleted,
   onStructuralChange,
+  onSplitBefore,
+  onSplitSection,
+  sectionMergeItems,
 }: SectionTreeEditorProps) {
   const { t } = useLingui()
   const [drag, setDrag] = useState<DragState | null>(null)
@@ -166,6 +212,42 @@ export function SectionTreeEditor({
     [section.nodes, applyNodes, onStructuralChange]
   )
 
+  const handleSplitGroup = useCallback(
+    (nodeId: string) => {
+      const next = splitContainerBefore(section.nodes, nodeId, idFactory)
+      if (next !== section.nodes) {
+        applyNodes(next)
+        onStructuralChange?.()
+      }
+    },
+    [section.nodes, applyNodes, idFactory, onStructuralChange]
+  )
+
+  const handleMergeGroup = useCallback(
+    (nodeId: string) => {
+      const next = mergeContainerWithPrevious(section.nodes, nodeId)
+      if (next !== section.nodes) {
+        applyNodes(next)
+        onStructuralChange?.()
+      }
+    },
+    [section.nodes, applyNodes, onStructuralChange]
+  )
+
+  // Result of collapsing adjacent same-structure groups — reference-equal to
+  // the current nodes when there is nothing to merge.
+  const adjacentGroupsMerged = useMemo(
+    () => mergeAdjacentContainers(section.nodes),
+    [section.nodes]
+  )
+
+  const handleMergeAdjacentGroups = useCallback(() => {
+    if (adjacentGroupsMerged !== section.nodes) {
+      applyNodes(adjacentGroupsMerged)
+      onStructuralChange?.()
+    }
+  }, [adjacentGroupsMerged, section.nodes, applyNodes, onStructuralChange])
+
   const handleAddContainerAtRoot = useCallback(() => {
     const structure =
       (containerStructures && Object.keys(containerStructures)[0]) ?? "group"
@@ -271,6 +353,11 @@ export function SectionTreeEditor({
             onAddChildLeaf={handleAddChildLeaf}
             onAddChildContainer={handleAddChildContainer}
             onDrop={handleDrop}
+            onSplitGroup={handleSplitGroup}
+            onSplitSection={onSplitSection}
+            onMergeGroup={handleMergeGroup}
+            prevSiblingIsContainer={i > 0 && !section.nodes[i - 1].role}
+            firstInSection={i === 0}
             defaultTextRole={defaultTextRole}
             defaultStructure={defaultStructure}
           />
@@ -280,6 +367,12 @@ export function SectionTreeEditor({
             onDrop={handleDrop}
             canHostContainer
           />
+          {onSplitBefore && i < section.nodes.length - 1 && (
+            <SplitDivider
+              onSplit={() => onSplitBefore(i + 1)}
+              disabled={disabled}
+            />
+          )}
         </div>
       ))}
 
@@ -290,21 +383,138 @@ export function SectionTreeEditor({
       )}
 
       <div className="flex items-center gap-2 pt-2">
-        <button
-          type="button"
-          onClick={handleAddContainerAtRoot}
+        <FooterMenuButton
+          icon={Plus}
+          label={t`Add`}
           disabled={disabled}
-          className={cn(
-            "flex items-center gap-1.5 rounded border border-dashed px-3 py-1.5 text-xs transition-colors",
-            disabled
-              ? "border-muted-foreground/20 text-muted-foreground/50 cursor-default"
-              : "border-muted-foreground/30 hover:border-muted-foreground/60 text-muted-foreground hover:text-foreground cursor-pointer"
-          )}
-        >
-          <Plus className="h-3.5 w-3.5" />
-          {t`Add group`}
-        </button>
+          items={[
+            {
+              icon: FolderPlus,
+              label: t`Add group`,
+              onClick: handleAddContainerAtRoot,
+            },
+            {
+              icon: FilePlus,
+              label: t`Add text`,
+              onClick: () => handleAddChildLeaf(null, defaultTextRole),
+            },
+            {
+              icon: ImageIcon,
+              label: t`Add image`,
+              onClick: () => handleAddChildLeaf(null, "image"),
+            },
+          ]}
+        />
+        {sectionMergeItems && (
+          <FooterMenuButton
+            icon={Merge}
+            label={t`Merge`}
+            disabled={disabled}
+            items={[
+              ...sectionMergeItems,
+              {
+                icon: FolderPlus,
+                label: t`Merge adjacent groups`,
+                onClick: handleMergeAdjacentGroups,
+                disabled: adjacentGroupsMerged === section.nodes,
+              },
+            ]}
+          />
+        )}
       </div>
+    </div>
+  )
+}
+
+function FooterMenuButton({
+  icon: Icon,
+  label,
+  items,
+  disabled,
+}: {
+  icon: ComponentType<{ className?: string }>
+  label: string
+  items: FooterMenuItem[]
+  disabled?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onDown = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener("mousedown", onDown)
+    return () => document.removeEventListener("mousedown", onDown)
+  }, [open])
+  if (items.length === 0) return null
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        disabled={disabled}
+        className={cn(
+          "flex items-center gap-1.5 rounded border border-dashed px-3 py-1.5 text-xs transition-colors",
+          disabled
+            ? "border-muted-foreground/20 text-muted-foreground/50 cursor-default"
+            : "border-muted-foreground/30 hover:border-muted-foreground/60 text-muted-foreground hover:text-foreground cursor-pointer"
+        )}
+      >
+        <Icon className="h-3.5 w-3.5" />
+        {label}
+        <ChevronDown className="h-3 w-3 opacity-60" />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full z-50 mt-1 min-w-[200px] rounded-md border bg-popover py-1 text-xs shadow-md">
+          {items.map((item, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                item.onClick()
+              }}
+              disabled={item.disabled}
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-accent transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default"
+            >
+              {item.icon ? <item.icon className="h-3.5 w-3.5" /> : null}
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function SplitDivider({
+  onSplit,
+  disabled,
+}: {
+  onSplit: () => void
+  disabled?: boolean
+}) {
+  const { t } = useLingui()
+  return (
+    <div className="flex items-center gap-2 py-0.5 opacity-30 hover:opacity-100 transition-opacity">
+      <div className="flex-1 border-t border-dashed border-muted-foreground/40" />
+      <button
+        type="button"
+        onClick={onSplit}
+        disabled={disabled}
+        title={t`Split into two sections at this point`}
+        className={cn(
+          "flex items-center gap-1 rounded-full border border-dashed px-2 py-0.5 text-[10px] text-muted-foreground transition-colors",
+          disabled
+            ? "cursor-default opacity-50"
+            : "hover:border-primary hover:text-primary cursor-pointer"
+        )}
+      >
+        <Scissors className="h-3 w-3" />
+        {t`Split`}
+      </button>
+      <div className="flex-1 border-t border-dashed border-muted-foreground/40" />
     </div>
   )
 }

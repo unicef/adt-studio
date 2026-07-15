@@ -23,6 +23,10 @@ export interface SectionActionsDropdownProps {
   /** Called before destructive merge actions to show confirmation. If not provided, merges fire immediately. */
   onConfirmMerge?: (label: string, action: () => void) => void
   disabled: boolean
+  /** Message shown at the top of the menu while disabled. */
+  disabledReason?: string
+  /** Overrides `disabled` for the prune toggle (a local edit on some screens). */
+  pruneDisabled?: boolean
 }
 
 /**
@@ -42,6 +46,8 @@ export function SectionActionsDropdown({
   onDelete,
   onConfirmMerge,
   disabled,
+  disabledReason,
+  pruneDisabled,
 }: SectionActionsDropdownProps) {
   const { t } = useLingui()
   const [open, setOpen] = useState(false)
@@ -88,12 +94,12 @@ export function SectionActionsDropdown({
       {open && (
         <div className="absolute right-0 top-full z-50 mt-1 min-w-[200px] rounded-md border bg-popover py-1 text-xs shadow-md">
           {disabled && (
-            <p className="px-3 py-1.5 text-[10px] text-muted-foreground italic">{t`Actions disabled while storyboard is running`}</p>
+            <p className="px-3 py-1.5 text-[10px] text-muted-foreground italic">{disabledReason ?? t`Actions disabled while storyboard is running`}</p>
           )}
           <button
             type="button"
             onClick={() => handleAction(onTogglePrune)}
-            disabled={disabled}
+            disabled={pruneDisabled ?? disabled}
             className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-accent transition-colors disabled:opacity-30"
           >
             {isPruned ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
@@ -114,12 +120,12 @@ export function SectionActionsDropdown({
           {canMergeCrossPagePrev && (
             <button
               type="button"
-              onClick={() => wrapMerge(t`merge into previous page`, () => onMergeCrossPage!("prev"))}
+              onClick={() => wrapMerge(t`merge this section into the last section of the previous page`, () => onMergeCrossPage!("prev"))}
               disabled={disabled}
               className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-accent transition-colors disabled:opacity-30"
             >
               <Merge className="h-3.5 w-3.5" />
-              {t`Merge into previous page`}
+              {t`Merge with last section of previous page`}
             </button>
           )}
           {canMergeNext && (
@@ -136,12 +142,12 @@ export function SectionActionsDropdown({
           {canMergeCrossPageNext && (
             <button
               type="button"
-              onClick={() => wrapMerge(t`merge into next page`, () => onMergeCrossPage!("next"))}
+              onClick={() => wrapMerge(t`merge this section into the first section of the next page`, () => onMergeCrossPage!("next"))}
               disabled={disabled}
               className="flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-accent transition-colors disabled:opacity-30"
             >
               <Merge className="h-3.5 w-3.5 rotate-180" />
-              {t`Merge into next page`}
+              {t`Merge with first section of next page`}
             </button>
           )}
           <button

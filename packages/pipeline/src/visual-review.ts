@@ -29,6 +29,12 @@ export interface RunVisualReviewLoopOptions {
   timeoutMs: number
   temperature?: number
   pageImageBase64?: string
+  /**
+   * Page images for content merged into the section from other pages —
+   * shown after the primary page image so the reviewer doesn't flag merged
+   * content as missing from the original.
+   */
+  additionalPageImages?: Array<{ pageId: string; imageBase64: string }>
   promptContext?: Record<string, unknown>
   originalImageIntroText?: string
   firstIterationScreenshotsText: string
@@ -88,6 +94,7 @@ export async function runVisualReviewLoop(
     timeoutMs,
     temperature,
     pageImageBase64,
+    additionalPageImages,
     promptContext,
     originalImageIntroText = "Here is the original page image for reference:",
     firstIterationScreenshotsText,
@@ -149,6 +156,15 @@ export async function runVisualReviewLoop(
       userParts.push(
         { type: "text", text: originalImageIntroText },
         { type: "image", image: pageImageBase64 },
+      )
+    }
+    for (const sp of additionalPageImages ?? []) {
+      userParts.push(
+        {
+          type: "text",
+          text: `This section also includes content merged from another page (${sp.pageId}). That content does NOT appear in the page image above — use this additional page image as its visual reference:`,
+        },
+        { type: "image", image: sp.imageBase64 },
       )
     }
     userParts.push({

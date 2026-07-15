@@ -923,6 +923,21 @@ export const api = {
       method: "POST",
     }),
 
+  splitSection: (
+    label: string,
+    pageId: string,
+    sectionIndex: number,
+    at: { beforeNodeIndex: number } | { beforeNodeId: string }
+  ) =>
+    request<{
+      splitSectionIndex: number
+      sectioningVersion: number
+      renderingVersion: number | null
+    }>(`/books/${label}/pages/${pageId}/sections/${sectionIndex}/split`, {
+      method: "POST",
+      body: JSON.stringify(at),
+    }),
+
   mergeSection: (
     label: string,
     pageId: string,

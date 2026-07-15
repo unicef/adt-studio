@@ -4101,8 +4101,14 @@ msgstr "Références médicales"
 msgid "Medium"
 msgstr "Moyen"
 
+msgid "Merge"
+msgstr "Fusionner"
+
 msgid "Merge a completed part"
 msgstr "Fusionner une partie terminée"
+
+msgid "Merge adjacent groups"
+msgstr "Fusionner les groupes adjacents"
 
 msgid "Merge another"
 msgstr "Fusionner une autre"
@@ -4116,20 +4122,32 @@ msgstr "Fusionner une autre partie"
 msgid "Merge failed"
 msgstr "La fusion a échoué"
 
-msgid "merge into next page"
-msgstr "fusionner avec la page suivante"
+#~ msgid "merge into next page"
+#~ msgstr "fusionner avec la page suivante"
 
-msgid "Merge into next page"
-msgstr "Fusionner avec la page suivante"
+#~ msgid "Merge into next page"
+#~ msgstr "Fusionner avec la page suivante"
 
-msgid "merge into previous page"
-msgstr "fusionner avec la page précédente"
+#~ msgid "merge into previous page"
+#~ msgstr "fusionner avec la page précédente"
 
-msgid "Merge into previous page"
-msgstr "Fusionner avec la page précédente"
+#~ msgid "Merge into previous page"
+#~ msgstr "Fusionner avec la page précédente"
 
 msgid "Merge part"
 msgstr "Fusionner la partie"
+
+msgid "merge this section into the first section of the next page"
+msgstr "fusionner cette section avec la première section de la page suivante"
+
+msgid "merge this section into the last section of the previous page"
+msgstr "fusionner cette section avec la dernière section de la page précédente"
+
+msgid "Merge with first section of next page"
+msgstr "Fusionner avec la première section de la page suivante"
+
+msgid "Merge with last section of previous page"
+msgstr "Fusionner avec la dernière section de la page précédente"
 
 msgid "merge with next"
 msgstr "fusionner avec suivant"
@@ -4145,6 +4163,9 @@ msgstr "fusionner avec précédent"
 
 msgid "Merge with previous"
 msgstr "Fusionner avec précédent"
+
+msgid "Merge with previous group"
+msgstr "Fusionner avec le groupe précédent"
 
 msgid "merge with previous section"
 msgstr "fusionner avec la section précédente"
@@ -4787,6 +4808,9 @@ msgstr "Clé OpenAI requise"
 
 msgid "OpenAI Voice"
 msgstr "OpenAI Voix"
+
+msgid "Operation failed"
+msgstr "L'opération a échoué"
 
 msgid "Optional"
 msgstr "Facultatif"
@@ -6095,6 +6119,12 @@ msgstr "Enregistrer la liste de contrôle"
 msgid "Save failed"
 msgstr "L'enregistrement a échoué"
 
+msgid "Save or discard your edits before splitting"
+msgstr "Enregistrez ou abandonnez vos modifications avant de diviser"
+
+msgid "Save or discard your edits first"
+msgstr "Enregistrez ou abandonnez d'abord vos modifications"
+
 msgid "Save page review"
 msgstr "Enregistrer la révision de la page"
 
@@ -6648,6 +6678,9 @@ msgstr "Parole Invites"
 msgid "Speech Settings"
 msgstr "Paramètres de la parole"
 
+msgid "Split"
+msgstr "Diviser"
+
 #. placeholder {0}: book.split.splitPages
 #. placeholder {1}: book.split.totalPages
 msgid "Split · {0}/{1}"
@@ -6665,6 +6698,9 @@ msgstr "Divisé · {0}/{1}"
 msgid "Split & merge"
 msgstr "Diviser et fusionner"
 
+msgid "Split group here"
+msgstr "Diviser le groupe ici"
+
 msgid "Split into"
 msgstr "Diviser en"
 
@@ -6679,11 +6715,17 @@ msgstr "Diviser en"
 msgid "Split into {0} part(s) · {1}/{2} pages split off · {3}/{4} merged back"
 msgstr "Divisé en {0} partie(s) · {1}/{2} pages séparées · {3}/{4} fusionnées"
 
+msgid "Split into new section"
+msgstr "Diviser en une nouvelle section"
+
 msgid "Split into parts"
 msgstr "Diviser en parties"
 
 #~ msgid "Split into parts for others"
 #~ msgstr "Diviser en parties pour d'autres"
+
+msgid "Split into two sections at this point"
+msgstr "Diviser en deux sections à cet endroit"
 
 msgid "Split preview"
 msgstr "Aperçu de la division"

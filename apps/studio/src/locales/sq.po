@@ -4100,8 +4100,14 @@ msgstr "Referenca mjekësore"
 msgid "Medium"
 msgstr "Mesatar"
 
+msgid "Merge"
+msgstr "Bashko"
+
 msgid "Merge a completed part"
 msgstr "Bashko një pjesë të përfunduar"
+
+msgid "Merge adjacent groups"
+msgstr "Bashko grupet ngjitur"
 
 msgid "Merge another"
 msgstr "Bashko një tjetër"
@@ -4115,20 +4121,32 @@ msgstr "Bashko një pjesë tjetër"
 msgid "Merge failed"
 msgstr "Bashkimi dështoi"
 
-msgid "merge into next page"
-msgstr "bashko me faqen tjetër"
+#~ msgid "merge into next page"
+#~ msgstr "bashko me faqen tjetër"
 
-msgid "Merge into next page"
-msgstr "Bashko me faqen tjetër"
+#~ msgid "Merge into next page"
+#~ msgstr "Bashko me faqen tjetër"
 
-msgid "merge into previous page"
-msgstr "bashko me faqen e mëparshme"
+#~ msgid "merge into previous page"
+#~ msgstr "bashko me faqen e mëparshme"
 
-msgid "Merge into previous page"
-msgstr "Bashko me faqen e mëparshme"
+#~ msgid "Merge into previous page"
+#~ msgstr "Bashko me faqen e mëparshme"
 
 msgid "Merge part"
 msgstr "Bashko pjesën"
+
+msgid "merge this section into the first section of the next page"
+msgstr "bashkoni këtë seksion me seksionin e parë të faqes tjetër"
+
+msgid "merge this section into the last section of the previous page"
+msgstr "bashkoni këtë seksion me seksionin e fundit të faqes së mëparshme"
+
+msgid "Merge with first section of next page"
+msgstr "Bashko me seksionin e parë të faqes tjetër"
+
+msgid "Merge with last section of previous page"
+msgstr "Bashko me seksionin e fundit të faqes së mëparshme"
 
 msgid "merge with next"
 msgstr "bashko me të ardhshmin"
@@ -4144,6 +4162,9 @@ msgstr "bashko me të mëparshmit"
 
 msgid "Merge with previous"
 msgstr "Bashko me të mëparshmit"
+
+msgid "Merge with previous group"
+msgstr "Bashko me grupin e mëparshëm"
 
 msgid "merge with previous section"
 msgstr "bashko me seksionin e mëparshëm"
@@ -4786,6 +4807,9 @@ msgstr "Kërkohet çelësi i OpenAI"
 
 msgid "OpenAI Voice"
 msgstr "Zëri i OpenAI"
+
+msgid "Operation failed"
+msgstr "Veprimi dështoi"
 
 msgid "Optional"
 msgstr "Opsionale"
@@ -6094,6 +6118,12 @@ msgstr "Ruaj listën e kontrollit"
 msgid "Save failed"
 msgstr "Ruajtja dështoi"
 
+msgid "Save or discard your edits before splitting"
+msgstr "Ruani ose hidhni poshtë ndryshimet para se të ndani"
+
+msgid "Save or discard your edits first"
+msgstr "Fillimisht ruani ose hidhni poshtë ndryshimet"
+
 msgid "Save page review"
 msgstr "Ruaj rishikimin e faqes"
 
@@ -6647,6 +6677,9 @@ msgstr "Prompte të të Folurit"
 msgid "Speech Settings"
 msgstr "Cilësimet e të Folurit"
 
+msgid "Split"
+msgstr "Ndaj"
+
 #. placeholder {0}: book.split.splitPages
 #. placeholder {1}: book.split.totalPages
 msgid "Split · {0}/{1}"
@@ -6664,6 +6697,9 @@ msgstr "Ndarë · {0}/{1}"
 msgid "Split & merge"
 msgstr "Ndaj dhe bashko"
 
+msgid "Split group here"
+msgstr "Ndaje grupin këtu"
+
 msgid "Split into"
 msgstr "Ndaje në"
 
@@ -6678,11 +6714,17 @@ msgstr "Ndaje në"
 msgid "Split into {0} part(s) · {1}/{2} pages split off · {3}/{4} merged back"
 msgstr "I ndarë në {0} pjesë · {1}/{2} faqe të ndara · {3}/{4} të bashkuara"
 
+msgid "Split into new section"
+msgstr "Ndaje në një seksion të ri"
+
 msgid "Split into parts"
 msgstr "Ndaje në pjesë"
 
 #~ msgid "Split into parts for others"
 #~ msgstr "Ndaje në pjesë për të tjerët"
+
+msgid "Split into two sections at this point"
+msgstr "Ndajeni në dy seksione në këtë pikë"
 
 msgid "Split preview"
 msgstr "Pamja paraprake e ndarjes"

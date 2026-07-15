@@ -16,11 +16,14 @@ import {
   Link2,
   MessageCircle,
   MoreHorizontal,
+  Merge,
   PanelTop,
   PenLine,
   Puzzle,
   Quote,
+  Scissors,
   Sigma,
+  SquareSplitVertical,
   Tag,
   Type as TypeIcon,
   Trash2,
@@ -161,6 +164,16 @@ export interface TreeNodeProps {
   onAddChildLeaf: (parentNodeId: string | null, role: string) => void
   onAddChildContainer: (parentNodeId: string | null, structure: string) => void
   onDrop: (sourceNodeId: string, target: DropIntent) => void
+  /** Split the node's parent group in two, this node starting the new group. */
+  onSplitGroup?: (nodeId: string) => void
+  /** Split the section in two, this node starting the new section. */
+  onSplitSection?: (nodeId: string) => void
+  /** Merge this container into its previous sibling container. */
+  onMergeGroup?: (nodeId: string) => void
+  /** True when the node's previous sibling is a container. */
+  prevSiblingIsContainer?: boolean
+  /** True when the node is the first node of its section at every level. */
+  firstInSection?: boolean
   defaultTextRole: string
   defaultStructure: string
 }
@@ -347,9 +360,15 @@ function ContainerNode(props: TreeNodeProps) {
     onAddChildLeaf,
     onAddChildContainer,
     onDrop,
+    onSplitGroup,
+    onSplitSection,
+    onMergeGroup,
+    prevSiblingIsContainer,
+    firstInSection,
     defaultTextRole,
     defaultStructure,
     parentNodeId,
+    indexInParent,
     bookLabel,
     textRoles,
     onEditText,
@@ -493,6 +512,25 @@ function ContainerNode(props: TreeNodeProps) {
                 onClick: () => onNest(node.nodeId, defaultStructure),
               },
               {
+                icon: SquareSplitVertical,
+                label: t`Split group here`,
+                onClick: () => onSplitGroup!(node.nodeId),
+                hidden:
+                  !onSplitGroup || parentNodeId == null || indexInParent === 0,
+              },
+              {
+                icon: Scissors,
+                label: t`Split into new section`,
+                onClick: () => onSplitSection!(node.nodeId),
+                hidden: !onSplitSection || firstInSection,
+              },
+              {
+                icon: Merge,
+                label: t`Merge with previous group`,
+                onClick: () => onMergeGroup!(node.nodeId),
+                hidden: !onMergeGroup || !prevSiblingIsContainer,
+              },
+              {
                 icon: FilePlus,
                 label: t`Add text`,
                 onClick: () => onAddChildLeaf(node.nodeId, defaultTextRole),
@@ -571,6 +609,11 @@ function ContainerNode(props: TreeNodeProps) {
                 onAddChildLeaf={onAddChildLeaf}
                 onAddChildContainer={onAddChildContainer}
                 onDrop={onDrop}
+                onSplitGroup={onSplitGroup}
+                onSplitSection={onSplitSection}
+                onMergeGroup={onMergeGroup}
+                prevSiblingIsContainer={i > 0 && !children[i - 1].role}
+                firstInSection={firstInSection && i === 0}
                 defaultTextRole={defaultTextRole}
                 defaultStructure={defaultStructure}
               />
@@ -603,7 +646,11 @@ function TextLeaf(props: TreeNodeProps) {
     onDuplicate,
     onNest,
     onUnnest,
+    onSplitGroup,
+    onSplitSection,
+    firstInSection,
     parentNodeId,
+    indexInParent,
     defaultStructure,
   } = props
   const { t } = useLingui()
@@ -706,6 +753,19 @@ function TextLeaf(props: TreeNodeProps) {
               onClick: () => onNest(node.nodeId, defaultStructure),
             },
             {
+              icon: SquareSplitVertical,
+              label: t`Split group here`,
+              onClick: () => onSplitGroup!(node.nodeId),
+              hidden:
+                !onSplitGroup || parentNodeId == null || indexInParent === 0,
+            },
+            {
+              icon: Scissors,
+              label: t`Split into new section`,
+              onClick: () => onSplitSection!(node.nodeId),
+              hidden: !onSplitSection || firstInSection,
+            },
+            {
               icon: Copy,
               label: t`Duplicate`,
               onClick: () => onDuplicate(node.nodeId),
@@ -741,6 +801,11 @@ function ImageLeaf(props: TreeNodeProps) {
     onTogglePruned,
     onDelete,
     onDuplicate,
+    onSplitGroup,
+    onSplitSection,
+    firstInSection,
+    parentNodeId,
+    indexInParent,
   } = props
   const { t } = useLingui()
   const isDragging = props.drag?.nodeId === node.nodeId
@@ -796,6 +861,19 @@ function ImageLeaf(props: TreeNodeProps) {
         <RowMenu
           disabled={disabled}
           items={[
+            {
+              icon: SquareSplitVertical,
+              label: t`Split group here`,
+              onClick: () => onSplitGroup!(node.nodeId),
+              hidden:
+                !onSplitGroup || parentNodeId == null || indexInParent === 0,
+            },
+            {
+              icon: Scissors,
+              label: t`Split into new section`,
+              onClick: () => onSplitSection!(node.nodeId),
+              hidden: !onSplitSection || firstInSection,
+            },
             {
               icon: Copy,
               label: t`Duplicate`,

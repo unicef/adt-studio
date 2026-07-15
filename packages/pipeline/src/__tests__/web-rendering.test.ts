@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { AppConfig, ContentNodeData } from "@adt/types"
 import type { LLMModel, GenerateObjectResult, GenerateObjectOptions } from "@adt/llm"
-import { buildRenderStrategyResolver, renderPage, type RenderConfig } from "../web-rendering.js"
+import { buildRenderStrategyResolver, collectReferencedImageIds, renderPage, type RenderConfig } from "../web-rendering.js"
 import type { TemplateEngine } from "../render-template.js"
 
 const defaultResolveConfig = (): RenderConfig => ({
@@ -1090,5 +1090,156 @@ describe("buildRenderStrategyResolver — activity", () => {
     expect(config.renderType).toBe("activity")
     expect(config.promptName).toBe("activity_open_ended_answer")
     expect(config.answerPromptName).toBe("")
+  })
+})
+
+describe("collectReferencedImageIds", () => {
+  const leaf = (nodeId: string, role = "text"): ContentNodeData => ({
+    nodeId,
+    isPruned: false,
+    role,
+    ...(role !== "image" ? { text: "" } : {}),
+  })
+
+  const section = (nodes: ContentNodeData[], isPruned = false) => ({
+    sectionId: "p1_sec001",
+    sectionType: "content",
+    backgroundColor: "#fff",
+    textColor: "#000",
+    pageNumber: 1,
+    isPruned,
+    nodes,
+  })
+
+  it("collects image ids at any depth, including foreign-page ids", () => {
+    const ids = collectReferencedImageIds([
+      section([
+        leaf("p1_n0001"),
+        leaf("p1_im001", "image"),
+        {
+          nodeId: "p1_n0002",
+          isPruned: false,
+          structure: "group",
+          children: [leaf("p5_im003", "image")],
+        },
+      ]),
+    ])
+    expect([...ids].sort()).toEqual(["p1_im001", "p5_im003"])
+  })
+
+  it("skips pruned images, pruned subtrees, and pruned sections", () => {
+    const prunedImage = { ...leaf("p1_im001", "image"), isPruned: true }
+    const prunedGroup: ContentNodeData = {
+      nodeId: "p1_n0001",
+      isPruned: true,
+      structure: "group",
+      children: [leaf("p1_im002", "image")],
+    }
+    const ids = collectReferencedImageIds([
+      section([prunedImage, prunedGroup, leaf("p1_im003", "image")]),
+      section([leaf("p1_im004", "image")], true),
+    ])
+    expect([...ids]).toEqual(["p1_im003"])
+  })
+})
+
+describe("renderPage — cross-page merged sections", () => {
+  it("passes source page images for sections with sourcePageIds", async () => {
+    let capturedContext: Record<string, unknown> | undefined
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        capturedContext = opts.context
+        return {
+          object: {
+            reasoning: "test",
+            content:
+              '<div id="content" class="container"><section data-section-type="text_only" data-section-id="pg006_sec001"><p data-id="pg005_n0001">Hello</p></section></div>',
+          } as T,
+        } as GenerateObjectResult<T>
+      },
+    }
+
+    await renderPage(
+      {
+        label: "test-book",
+        pageId: "pg006",
+        pageImageBase64: "targetpageimg",
+        sectioning: {
+          reasoning: "test",
+          sections: [
+            {
+              sectionId: "pg006_sec001",
+              sectionType: "text_only",
+              nodes: [
+                groupNode("pg005_gp001", "paragraph", [
+                  leafNode("pg005_n0001", "section_text", "Hello"),
+                ]),
+              ],
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 6,
+              isPruned: false,
+              sourcePageIds: ["pg005"],
+            },
+          ],
+        },
+        images: new Map(),
+        sourcePageImages: new Map([["pg005", "sourcepageimg"]]),
+      },
+      defaultResolveConfig,
+      fakeLlm
+    )
+
+    expect(capturedContext?.source_pages).toEqual([
+      { page_id: "pg005", image_base64: "sourcepageimg" },
+    ])
+    expect(capturedContext?.page_image_base64).toBe("targetpageimg")
+  })
+
+  it("passes an empty source_pages list for ordinary sections", async () => {
+    let capturedContext: Record<string, unknown> | undefined
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        capturedContext = opts.context
+        return {
+          object: {
+            reasoning: "test",
+            content:
+              '<div id="content" class="container"><section data-section-type="text_only" data-section-id="pg001_sec001"><p data-id="pg001_n0001">Hello</p></section></div>',
+          } as T,
+        } as GenerateObjectResult<T>
+      },
+    }
+
+    await renderPage(
+      {
+        label: "test-book",
+        pageId: "pg001",
+        pageImageBase64: "img",
+        sectioning: {
+          reasoning: "test",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "text_only",
+              nodes: [
+                groupNode("pg001_gp001", "paragraph", [
+                  leafNode("pg001_n0001", "section_text", "Hello"),
+                ]),
+              ],
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+        images: new Map(),
+      },
+      defaultResolveConfig,
+      fakeLlm
+    )
+
+    expect(capturedContext?.source_pages).toEqual([])
   })
 })

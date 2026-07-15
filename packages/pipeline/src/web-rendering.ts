@@ -77,6 +77,12 @@ export interface RenderContext {
   group_ids: string[]
 }
 
+/** A page image supplied as an extra visual reference for merged-in content. */
+export interface SourcePageImage {
+  pageId: string
+  imageBase64: string
+}
+
 export interface RenderSectionInput {
   label: string
   pageId: string
@@ -84,6 +90,12 @@ export interface RenderSectionInput {
   sectionIndex: number
   section: PageSectioningSection
   context: RenderContext
+  /**
+   * Page images for content merged into this section from other pages
+   * (section.sourcePageIds) — shown to the LLM alongside the hosting page's
+   * image so merged content has a visual reference.
+   */
+  sourcePages?: SourcePageImage[]
   styleguide?: string
   bookFonts?: BookFontPromptEntry[]
   /** Optional user instructions appended to the LLM prompt during re-render */
@@ -96,6 +108,11 @@ export interface RenderPageInput {
   pageImageBase64: string
   sectioning: PageSectioningOutput
   images: Map<string, { base64: string; width?: number; height?: number }>
+  /**
+   * Page images keyed by pageId for every page referenced by any section's
+   * `sourcePageIds`. Sections pick their own subset at render time.
+   */
+  sourcePageImages?: Map<string, string>
   styleguide?: string
   bookFonts?: BookFontPromptEntry[]
   /** Optional user instructions appended to the LLM prompt during re-render */
@@ -127,6 +144,31 @@ export const GROUP_CONTAINER_STRUCTURES: ReadonlySet<string> = new Set([
 
 function imageUrlFor(label: string, imageId: string): string {
   return `/api/books/${label}/images/${imageId}`
+}
+
+/**
+ * Collect the imageIds of every unpruned image leaf referenced by the given
+ * sections. Sections can reference images extracted on other pages (cross-page
+ * merges, images added from another page), so render-image maps must be built
+ * from this set — not from the hosting page's own image list alone.
+ */
+export function collectReferencedImageIds(
+  sections: PageSectioningSection[]
+): Set<string> {
+  const ids = new Set<string>()
+  const walk = (node: ContentNodeData): void => {
+    if (node.isPruned) return
+    if (node.role === "image") {
+      ids.add(node.nodeId)
+      return
+    }
+    for (const child of node.children ?? []) walk(child)
+  }
+  for (const section of sections) {
+    if (section.isPruned) continue
+    for (const top of section.nodes) walk(top)
+  }
+  return ids
 }
 
 /**
@@ -238,6 +280,12 @@ export async function renderPage(
 
     const config = resolveConfig(section.sectionType)
 
+    const sourcePages: SourcePageImage[] = []
+    for (const sourcePageId of section.sourcePageIds ?? []) {
+      const imageBase64 = input.sourcePageImages?.get(sourcePageId)
+      if (imageBase64) sourcePages.push({ pageId: sourcePageId, imageBase64 })
+    }
+
     const sectionInput: RenderSectionInput = {
       label: input.label,
       pageId: input.pageId,
@@ -245,6 +293,7 @@ export async function renderPage(
       sectionIndex: i,
       section,
       context,
+      ...(sourcePages.length > 0 && { sourcePages }),
       styleguide: input.styleguide,
       bookFonts: input.bookFonts,
       userPrompt: input.userPrompt,
