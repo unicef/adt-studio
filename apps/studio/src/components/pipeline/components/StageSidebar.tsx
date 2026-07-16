@@ -4,11 +4,11 @@ import { Link, useMatchRoute, useSearch } from "@tanstack/react-router"
 import { Trans } from "@lingui/react/macro"
 import {
   AlertCircle,
-  CircleStop,
   Loader2,
   RotateCcw,
   Settings,
   TriangleAlert,
+  X,
 } from "lucide-react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
@@ -279,14 +279,15 @@ export function StageSidebar({
               title={cancelStepLabel}
               aria-label={cancelStepLabel}
               className={cn(
-                "pointer-events-none absolute left-2.5 top-1/2 z-30 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-red-600 text-white opacity-0 shadow-sm ring-2 ring-background transition-opacity focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-red-300 group-hover/row:pointer-events-auto group-hover/row:opacity-100",
+                "pointer-events-none absolute top-1/2 z-30 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-red-600 text-white opacity-0 shadow-sm ring-2 ring-background transition-opacity focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-red-300 group-hover/row:pointer-events-auto group-hover/row:opacity-100",
+                isActive ? "left-2" : "left-2.5",
                 isCancelling ? "cursor-default bg-red-500/80" : "cursor-pointer hover:bg-red-700",
               )}
             >
               {isCancelling ? (
                 <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
               ) : (
-                <CircleStop className="h-3.5 w-3.5" aria-hidden="true" />
+                <X className="size-3.5 stroke-3" aria-hidden="true" />
               )}
             </button>
           )}
@@ -523,7 +524,7 @@ function TaskIndicator({ bookLabel }: { bookLabel: string }) {
             {isCancelling ? (
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
             ) : (
-              <CircleStop className="w-3.5 h-3.5" />
+              <X className="w-3.5 h-3.5" />
             )}
           </button>
         )}

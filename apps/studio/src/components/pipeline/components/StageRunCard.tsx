@@ -1,6 +1,6 @@
 import { type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { ArrowRight, Check, CircleStop, Loader2, Minus, Play, RotateCcw, XCircle } from "lucide-react"
+import { ArrowRight, Check, CircleStop, Loader2, Minus, Play, RotateCcw, X, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -218,7 +218,7 @@ export function StageRunCard({
               ) : (
                 // Running — the spinner button doubles as a stop control.
                 <Button
-                  variant="ghost"
+                  variant="destructive"
                   size="icon"
                   onClick={(e) => { e.stopPropagation(); e.preventDefault(); cancelRun() }}
                   aria-label={t`Cancel ${stageLabel}`}
@@ -230,7 +230,7 @@ export function StageRunCard({
                   )}
                 >
                   <Loader2 className="w-5 h-5 animate-spin group-hover/stop:hidden" />
-                  <CircleStop className="w-5 h-5 hidden group-hover/stop:block" />
+                  <X className="w-5 h-5 hidden group-hover/stop:block" />
                 </Button>
               )
             ) : (

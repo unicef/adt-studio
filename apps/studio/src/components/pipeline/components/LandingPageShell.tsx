@@ -1,6 +1,6 @@
 import { useState, type CSSProperties, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { Play, Loader2, Settings, CircleStop } from "lucide-react"
+import { Play, Loader2, Settings, CircleStop, Square, X } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { useBookRun } from "@/hooks/use-book-run"
 import { cn } from "@/lib/utils"
@@ -106,7 +106,7 @@ export function LandingPageShell({
       className={cn(
         "h-10 px-5 font-medium text-white transition-[background-color,opacity] border-0",
         "disabled:opacity-60 disabled:cursor-default",
-        "bg-gray-600 hover:bg-gray-700"
+        "bg-red-500 hover:bg-red-700"
       )}
     >
       {isCancelling ? (
@@ -116,7 +116,7 @@ export function LandingPageShell({
         </>
       ) : (
         <>
-          <CircleStop className="w-4 h-4 mr-2" />
+          <X className="size-5 mr-2" />
           <Trans>Cancel</Trans>
         </>
       )}

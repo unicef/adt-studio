@@ -189,6 +189,8 @@ describe("StageSidebar", () => {
 
     const cancelButton = screen.getByTitle("Cancel Storyboard step")
     expect(cancelButton.className).toContain("bg-red-600")
+    expect(cancelButton.className).toContain("left-2")
+    expect(cancelButton.className).not.toContain("left-2.5")
 
     fireEvent.click(cancelButton)
 
