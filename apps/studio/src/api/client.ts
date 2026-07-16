@@ -815,6 +815,20 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
+  translateKidsInterface: (
+    label: string,
+    body: { languages?: string[] },
+    apiKey?: string,
+  ) =>
+    request<{ languages: string[]; keyCount: number }>(
+      `/books/${label}/kids-interface/translate`,
+      {
+        method: "POST",
+        headers: apiKey ? { "X-OpenAI-Key": apiKey } : undefined,
+        body: JSON.stringify(body),
+      },
+    ),
+
   getKidsVoices: (label: string) =>
     request<KidsVoicesResponse>(`/books/${label}/kids-voices`),
 

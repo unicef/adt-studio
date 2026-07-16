@@ -56,6 +56,17 @@ export function useGenerateKidsVoice(bookLabel: string) {
   })
 }
 
+export function useTranslateKidsInterface(bookLabel: string) {
+  return useMutation({
+    mutationFn: (options: { languages?: string[]; apiKey?: string }) =>
+      api.translateKidsInterface(
+        bookLabel,
+        { languages: options.languages },
+        options.apiKey,
+      ),
+  })
+}
+
 export function useKidsVoices(bookLabel: string) {
   return useQuery({
     queryKey: ["books", bookLabel, "kids-voices"],

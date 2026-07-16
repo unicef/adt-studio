@@ -22,15 +22,18 @@ import {
   type KidsBuddyVoiceConfig,
   type KidsVoiceManifest,
 } from "@adt/types"
-import { createTTSSynthesizer } from "@adt/llm"
+import { createLLMModel, createPromptEngine, createTTSSynthesizer } from "@adt/llm"
+import { createBookStorage } from "@adt/storage"
 import {
   generateKidsVoicePack,
   loadBookConfig,
   loadVoicesConfig,
   normalizeLocale,
+  readKidsInterfaceOverrides,
   resolveKidsVoiceCacheDir,
   resolveSpeechModel,
   resolveVoice,
+  translateKidsInterface,
 } from "@adt/pipeline"
 
 const GenerateKidsVoiceBody = z
@@ -38,6 +41,12 @@ const GenerateKidsVoiceBody = z
     languages: z.array(z.string().min(1)).optional(),
     characters: z.array(z.string().min(1)).optional(),
     dryRun: z.boolean().optional(),
+  })
+  .strict()
+
+const TranslateKidsInterfaceBody = z
+  .object({
+    languages: z.array(z.string().min(1)).optional(),
   })
   .strict()
 
@@ -201,6 +210,7 @@ function getBookLanguages(
 
 function loadInterfaceTranslations(
   webAssetsDir: string,
+  bookDir: string,
   languages: string[],
 ): Record<string, Record<string, string>> {
   const result: Record<string, Record<string, string>> = {}
@@ -211,18 +221,20 @@ function loadInterfaceTranslations(
       lang,
       "interface_translations.json",
     )
-    if (!fs.existsSync(file)) {
-      result[lang] = {}
-      continue
+    let shared: Record<string, string> = {}
+    if (fs.existsSync(file)) {
+      try {
+        shared = JSON.parse(fs.readFileSync(file, "utf8")) as Record<
+          string,
+          string
+        >
+      } catch {
+        shared = {}
+      }
     }
-    try {
-      result[lang] = JSON.parse(fs.readFileSync(file, "utf8")) as Record<
-        string,
-        string
-      >
-    } catch {
-      result[lang] = {}
-    }
+    // Merge the book's translated kids UI strings so buddy/narrator clips bake
+    // from the localized text rather than the English fallback.
+    result[lang] = { ...shared, ...readKidsInterfaceOverrides(bookDir, lang) }
   }
   return result
 }
@@ -243,6 +255,7 @@ function resolveCharacters(requested: string[] | undefined): string[] {
 export function createKidsVoiceRoutes(
   booksDir: string,
   webAssetsDir: string,
+  promptsDir: string,
   configPath?: string,
 ): Hono {
   const app = new Hono()
@@ -491,6 +504,7 @@ export function createKidsVoiceRoutes(
         characters,
         translationsByLanguage: loadInterfaceTranslations(
           webAssetsDir,
+          bookDir,
           languages,
         ),
         voiceOverrides: readKidsVoicesConfig(bookDir).overrides,
@@ -514,6 +528,79 @@ export function createKidsVoiceRoutes(
           err instanceof Error ? err.message : String(err)
         }`,
       })
+    }
+  })
+
+  // Translate the kids UI strings into the book's output languages so the
+  // onboarding + buddy menu are localized and voice packs bake from the
+  // translated text (run this before generating voices for a new language).
+  app.post("/books/:label/kids-interface/translate", async (c) => {
+    const safeLabel = safeParseLabel(c.req.param("label"))
+    const bookDir = getBookDir(booksDir, safeLabel)
+
+    const openaiApiKey = c.req.header("X-OpenAI-Key")?.trim()
+    if (!openaiApiKey) {
+      throw new HTTPException(400, {
+        message: "OpenAI API key required. Set X-OpenAI-Key header.",
+      })
+    }
+
+    let body: unknown = {}
+    const raw = await c.req.text()
+    if (raw.trim().length > 0) {
+      try {
+        body = JSON.parse(raw)
+      } catch {
+        throw new HTTPException(400, { message: "Invalid JSON body" })
+      }
+    }
+    const parsed = TranslateKidsInterfaceBody.safeParse(body)
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid translate request: ${parsed.error.message}`,
+      })
+    }
+
+    const config = loadBookConfig(safeLabel, booksDir, configPath)
+    const sourceLanguage = normalizeLocale(config.editing_language ?? "en")
+    const bookLanguages = getBookLanguages(safeLabel, booksDir, configPath)
+    const targetLanguages = (
+      parsed.data.languages?.map((code) => normalizeLocale(code)) ??
+      bookLanguages
+    ).filter((code) => bookLanguages.includes(code))
+
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const bookPromptsDir = path.join(bookDir, "prompts")
+      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+      const llmModel = createLLMModel({
+        modelId:
+          config.translation?.model ??
+          config.page_sectioning?.model ??
+          "openai:gpt-4.1",
+        cacheDir: path.join(bookDir, ".cache"),
+        promptEngine,
+        onLog: (entry) => storage.appendLlmLog(entry),
+        credentials: { openaiApiKey },
+      })
+
+      const result = await translateKidsInterface({
+        bookDir,
+        webAssetsDir,
+        sourceLanguage,
+        targetLanguages,
+        appConfig: config,
+        llmModel,
+      })
+      return c.json(result)
+    } catch (err) {
+      throw new HTTPException(502, {
+        message: `Kids interface translation failed: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      })
+    } finally {
+      storage.close()
     }
   })
 

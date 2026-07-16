@@ -8,6 +8,7 @@ import {
   ChevronDown,
   CircleDashed,
   Images,
+  Languages,
   Loader2,
   MessageSquareText,
   Mic,
@@ -55,6 +56,7 @@ import {
   useKidsVoiceStatus,
   useKidsVoices,
   useResetKidsBuddyVoice,
+  useTranslateKidsInterface,
   useUpdateKidsBuddyVoice,
   useUpdateKidsMode,
 } from "@/hooks/use-kids-mode"
@@ -190,6 +192,7 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
   const { data: voiceStatus } = useKidsVoiceStatus(bookLabel)
   const { data: voicesData } = useKidsVoices(bookLabel)
   const generateVoice = useGenerateKidsVoice(bookLabel)
+  const translateInterface = useTranslateKidsInterface(bookLabel)
   const updateBuddyVoice = useUpdateKidsBuddyVoice(bookLabel)
   const resetBuddyVoice = useResetKidsBuddyVoice(bookLabel)
   const { apiKey, hasApiKey } = useApiKey()
@@ -337,6 +340,10 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
           setVoiceError(err instanceof Error ? err.message : String(err)),
       },
     )
+  }
+
+  const runTranslate = () => {
+    translateInterface.mutate({ apiKey })
   }
 
   const pendingVariables = generateVoice.isPending
@@ -621,6 +628,36 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={
+                    !enabled ||
+                    !hasApiKey ||
+                    translateInterface.isPending ||
+                    languages.length <= 1
+                  }
+                  onClick={runTranslate}
+                  className="shrink-0 bg-white"
+                >
+                  {translateInterface.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Languages className="h-3.5 w-3.5" />
+                  )}
+                  <Trans>Translate interface</Trans>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" sideOffset={6} variant="light">
+                <Trans>
+                  Translates the kids onboarding and menu into the book's other
+                  languages. Run this before generating voices so clips speak
+                  the translated text.
+                </Trans>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
                   size="sm"
                   disabled={
                     !enabled ||
@@ -691,6 +728,32 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
                 )}
               </p>
             )}
+
+          {enabled && (translateInterface.data || translateInterface.error) && (
+            <p
+              className={cn(
+                "max-w-md text-right text-[12px] leading-snug",
+                translateInterface.isError ? "text-red-600" : "text-[#737373]",
+              )}
+            >
+              {translateInterface.isError ? (
+                translateInterface.error instanceof Error ? (
+                  translateInterface.error.message
+                ) : (
+                  String(translateInterface.error)
+                )
+              ) : (translateInterface.data?.languages.length ?? 0) > 0 ? (
+                <Trans>
+                  Translated the kids interface into{" "}
+                  {translateInterface.data?.languages.length} language(s).
+                </Trans>
+              ) : (
+                <Trans>
+                  Nothing to translate — the book has no other languages.
+                </Trans>
+              )}
+            </p>
+          )}
 
           {!enabled && (
             <p className="text-[12px] text-[#737373]">
@@ -906,7 +969,7 @@ export function KidsModeScreen({ bookLabel }: { bookLabel: string }) {
           </div>
 
           {/* RIGHT — inspector */}
-          <aside className="flex min-h-0 w-[336px] shrink-0 flex-col gap-2.5 overflow-y-auto border-l border-[#e5e5e5] pl-4">
+          <aside className="flex min-h-0 w-[336px] shrink-0 flex-col gap-2.5 overflow-y-auto border-l border-[#e5e5e5] py-1 pl-4 pr-1">
             <div className="flex shrink-0 items-center gap-3 pb-1">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-50">
                 <img
@@ -1249,7 +1312,7 @@ function ExpressionGallery({
     <div
       role="tablist"
       aria-label={t`${name}'s expressions`}
-      className="flex w-full items-stretch gap-1.5 overflow-x-auto px-0.5 py-1"
+      className="flex w-full items-stretch gap-1.5 overflow-x-auto px-1 py-1.5"
     >
       {expressions.map((expression) => {
         const label = i18n._(expression.label)

@@ -8,6 +8,7 @@ import { createKidsVoiceRoutes } from "./kids-voice.js"
 let tmpDir: string
 let booksDir: string
 let webAssetsDir: string
+let promptsDir: string
 let configPath: string
 
 /**
@@ -30,9 +31,11 @@ beforeEach(() => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-kids-voice-route-"))
   booksDir = path.join(tmpDir, "books")
   webAssetsDir = path.join(tmpDir, "web-assets")
+  promptsDir = path.join(tmpDir, "prompts")
   configPath = path.join(tmpDir, "config.yaml")
   fs.mkdirSync(booksDir, { recursive: true })
   fs.mkdirSync(webAssetsDir, { recursive: true })
+  fs.mkdirSync(promptsDir, { recursive: true })
   writeBaseConfig()
 })
 
@@ -45,7 +48,7 @@ function createTestBook(label: string): void {
 }
 
 function makeApp() {
-  return createKidsVoiceRoutes(booksDir, webAssetsDir, configPath)
+  return createKidsVoiceRoutes(booksDir, webAssetsDir, promptsDir, configPath)
 }
 
 describe("GET /books/:label/kids-voices", () => {
