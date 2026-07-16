@@ -18,7 +18,8 @@ const START: NavCard[] = [
   { title: msg`What is an ADT?`, desc: msg`An introduction to accessible digital textbooks and this tool.`, splat: "get-started/what-is-an-adt" },
   { title: msg`Get Started`, desc: msg`What to know and set up before converting your first PDF.`, splat: "get-started" },
   { title: msg`Convert a PDF into an ADT`, desc: msg`Import, extract, section, storyboard, and validate.`, splat: "convert-pdf" },
-  { title: msg`Enhance your ADT`, desc: msg`Captions, quizzes, narration, translations, and more.`, splat: "enhance" },
+  { title: msg`Enhance your ADT`, desc: msg`Captions, quizzes, Easy Read, sign language, and more.`, splat: "enhance" },
+  { title: msg`Localize your ADT`, desc: msg`Reach more languages, with narrated audio for each.`, splat: "localize" },
   { title: msg`Export your ADT`, desc: msg`Package your finished ADT for distribution.`, splat: "export" },
   { title: msg`Troubleshooting & FAQ`, desc: msg`Answers to common questions and issues.`, splat: "faq" },
 ];

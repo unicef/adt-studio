@@ -17,7 +17,6 @@ import {
   LayoutGrid,
   ShieldCheck,
   Image,
-  Baseline,
   Hand,
   AudioLines,
   Languages,
@@ -48,6 +47,7 @@ export const DOCS_COLORS: Record<string, { icon: LucideIcon; hex: string }> = {
   "get-started": { icon: Rocket, hex: "#7c3aed" },
   "convert-pdf": { icon: Workflow, hex: "#d97706" },
   enhance: { icon: Lightbulb, hex: "#0d9488" },
+  localize: { icon: Globe, hex: "#db2777" },
   export: { icon: FileDown, hex: "#4338ca" }, // app stage "export"
   faq: { icon: LifeBuoy, hex: "#16a34a" },
   "reporting-issues": { icon: Bug, hex: "#dc2626" },
@@ -68,13 +68,15 @@ export const DOCS_COLORS: Record<string, { icon: LucideIcon; hex: string }> = {
 
   // Enhance your ADT
   "enhance/captions": { icon: Image, hex: "#0d9488" }, // app stage "captions"
-  "enhance/easy-read": { icon: Baseline, hex: "#16a34a" },
+  "enhance/easy-read": { icon: FileText, hex: "#c026d3" }, // app stage "easy-read"
   "enhance/sign-language": { icon: Hand, hex: "#0891b2" }, // app stage "sign-language"
-  "enhance/speech": { icon: AudioLines, hex: "#e11d48" }, // app stage "speech"
-  "enhance/language": { icon: Languages, hex: "#db2777" }, // app stage "translate"
   "enhance/quizzes": { icon: CircleHelp, hex: "#ea580c" }, // app stage "quizzes"
   "enhance/glossary": { icon: BookOpen, hex: "#65a30d" }, // app stage "glossary"
   "enhance/table-of-contents": { icon: List, hex: "#d97706" }, // app stage "toc"
+
+  // Localize your ADT
+  "localize/language": { icon: Languages, hex: "#db2777" }, // app stage "translate"
+  "localize/speech": { icon: AudioLines, hex: "#e11d48" }, // app stage "speech"
 
   // Export formats (not separate pages — used only by the Cards on export.mdx)
   "export/project-archive": { icon: FolderArchive, hex: "#4338ca" },

@@ -147,7 +147,7 @@ const VARIANTS = {
     satellites: [Tag, Search],
     caption: () => <Trans>Key terms, defined for the reader.</Trans>,
   },
-  "enhance/language": {
+  "localize/language": {
     satellites: [Globe, ArrowLeftRight],
     caption: () => <Trans>One book, many languages.</Trans>,
   },
@@ -159,7 +159,7 @@ const VARIANTS = {
     satellites: [Video, Accessibility],
     caption: () => <Trans>Text and sign language, side by side.</Trans>,
   },
-  "enhance/speech": {
+  "localize/speech": {
     satellites: [Volume2, Play],
     caption: () => <Trans>Listen to the book, page by page.</Trans>,
   },
