@@ -192,6 +192,14 @@ export {
   type CatalogTranslationConfig,
 } from "./catalog-translation.js"
 export {
+  translateKidsInterface,
+  readKidsInterfaceOverrides,
+  readKidsInterfaceSource,
+  KIDS_I18N_DIR,
+  type TranslateKidsInterfaceOptions,
+  type TranslateKidsInterfaceResult,
+} from "./kids-interface-translation.js"
+export {
   translateImage,
   buildImageTranslationConfig,
   type TranslateImageOptions,

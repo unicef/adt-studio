@@ -49,6 +49,7 @@ import type { Progress } from "./progress.js"
 import { nullProgress } from "./progress.js"
 import { getGlossaryItemTextId } from "./glossary.js"
 import { getBaseLanguage, normalizeLocale } from "./language-context.js"
+import { readKidsInterfaceOverrides } from "./kids-interface-translation.js"
 import { buildTextCatalog } from "./text-catalog.js"
 import { flattenEasyReadEntries } from "./easy-read.js"
 import { getRenderSectioning } from "./render-sectioning.js"
@@ -749,6 +750,25 @@ export async function packageAdtWeb(
       const src = fs.existsSync(langSrc) ? langSrc : fs.existsSync(baseLangSrc) ? baseLangSrc : null
       if (src) {
         copyDirRecursive(src, path.join(itDest, lang))
+      }
+      // Merge the book's translated kids UI strings (generated in Studio) on
+      // top of the shared catalog so a non-English kids book's runtime UI is
+      // localized. No-op when the book has none.
+      const kidsOverrides = readKidsInterfaceOverrides(bookDir, lang)
+      if (Object.keys(kidsOverrides).length > 0) {
+        const catalogPath = path.join(
+          itDest,
+          lang,
+          "interface_translations.json",
+        )
+        const base = fs.existsSync(catalogPath)
+          ? (JSON.parse(fs.readFileSync(catalogPath, "utf8")) as Record<
+              string,
+              string
+            >)
+          : {}
+        fs.mkdirSync(path.join(itDest, lang), { recursive: true })
+        writeJson(catalogPath, { ...base, ...kidsOverrides })
       }
     }
   }
