@@ -98,6 +98,12 @@ export interface TranslateKidsInterfaceOptions {
   targetLanguages: string[]
   appConfig: AppConfig
   llmModel: LLMModel
+  /**
+   * Re-translate even languages whose override already covers every source
+   * key. Off by default so voice generation can cheaply ensure translations
+   * exist without redoing complete ones.
+   */
+  force?: boolean
 }
 
 export interface TranslateKidsInterfaceResult {
@@ -136,6 +142,10 @@ export async function translateKidsInterface(
 
   const languages: string[] = []
   for (const lang of targets) {
+    if (!options.force) {
+      const existing = readKidsInterfaceOverrides(options.bookDir, lang)
+      if (keys.every((key) => key in existing)) continue
+    }
     const translated = await translateCatalogBatch(
       entries,
       lang,

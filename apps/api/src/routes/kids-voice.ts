@@ -260,6 +260,46 @@ export function createKidsVoiceRoutes(
 ): Hono {
   const app = new Hono()
 
+  // Translate the kids UI into the given languages, storing per-book overrides.
+  // Shared by the explicit "Translate interface" endpoint (force = true) and
+  // the voice generator (force = false — only fills untranslated languages so
+  // clips never bake from English text).
+  async function runKidsInterfaceTranslation(options: {
+    safeLabel: string
+    bookDir: string
+    config: ReturnType<typeof loadBookConfig>
+    targetLanguages: string[]
+    openaiApiKey: string
+    force: boolean
+  }): Promise<{ languages: string[]; keyCount: number }> {
+    const storage = createBookStorage(options.safeLabel, booksDir)
+    try {
+      const bookPromptsDir = path.join(options.bookDir, "prompts")
+      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+      const llmModel = createLLMModel({
+        modelId:
+          options.config.translation?.model ??
+          options.config.page_sectioning?.model ??
+          "openai:gpt-4.1",
+        cacheDir: path.join(options.bookDir, ".cache"),
+        promptEngine,
+        onLog: (entry) => storage.appendLlmLog(entry),
+        credentials: { openaiApiKey: options.openaiApiKey },
+      })
+      return await translateKidsInterface({
+        bookDir: options.bookDir,
+        webAssetsDir,
+        sourceLanguage: normalizeLocale(options.config.editing_language ?? "en"),
+        targetLanguages: options.targetLanguages,
+        appConfig: options.config,
+        llmModel,
+        force: options.force,
+      })
+    } finally {
+      storage.close()
+    }
+  }
+
   app.get("/books/:label/kids-mode", (c) => {
     const safeLabel = safeParseLabel(c.req.param("label"))
     const bookDir = getBookDir(booksDir, safeLabel)
@@ -491,6 +531,20 @@ export function createKidsVoiceRoutes(
     }
 
     try {
+      // Ensure the kids UI is translated for the target languages first, so
+      // buddy/narrator clips bake from the localized text instead of English.
+      // Skips already-complete languages (no redundant LLM calls).
+      if (!dryRun && openaiApiKey) {
+        await runKidsInterfaceTranslation({
+          safeLabel,
+          bookDir,
+          config,
+          targetLanguages: languages,
+          openaiApiKey,
+          force: false,
+        })
+      }
+
       const result = await generateKidsVoicePack({
         bookDir,
         narratorVoiceByLanguage,
@@ -562,35 +616,20 @@ export function createKidsVoiceRoutes(
     }
 
     const config = loadBookConfig(safeLabel, booksDir, configPath)
-    const sourceLanguage = normalizeLocale(config.editing_language ?? "en")
     const bookLanguages = getBookLanguages(safeLabel, booksDir, configPath)
     const targetLanguages = (
       parsed.data.languages?.map((code) => normalizeLocale(code)) ??
       bookLanguages
     ).filter((code) => bookLanguages.includes(code))
 
-    const storage = createBookStorage(safeLabel, booksDir)
     try {
-      const bookPromptsDir = path.join(bookDir, "prompts")
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
-      const llmModel = createLLMModel({
-        modelId:
-          config.translation?.model ??
-          config.page_sectioning?.model ??
-          "openai:gpt-4.1",
-        cacheDir: path.join(bookDir, ".cache"),
-        promptEngine,
-        onLog: (entry) => storage.appendLlmLog(entry),
-        credentials: { openaiApiKey },
-      })
-
-      const result = await translateKidsInterface({
+      const result = await runKidsInterfaceTranslation({
+        safeLabel,
         bookDir,
-        webAssetsDir,
-        sourceLanguage,
+        config,
         targetLanguages,
-        appConfig: config,
-        llmModel,
+        openaiApiKey,
+        force: true,
       })
       return c.json(result)
     } catch (err) {
@@ -599,8 +638,6 @@ export function createKidsVoiceRoutes(
           err instanceof Error ? err.message : String(err)
         }`,
       })
-    } finally {
-      storage.close()
     }
   })
 
