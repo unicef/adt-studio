@@ -35,7 +35,7 @@ export interface SectionTreeEditorProps {
   /** Called after a leaf is deleted. Parent can remove the preview DOM element. */
   onLeafDeleted?: (nodeId: string) => void
   /** Called whenever a change happens that needs a re-render (structural change). */
-  onStructuralChange?: () => void
+  onStructuralChange?: (kind?: "reorder") => void
 }
 
 const DEFAULT_ID_PREFIX = "user_node"
@@ -220,7 +220,7 @@ export function SectionTreeEditor({
       })
       if (next !== section.nodes) {
         applyNodes(next)
-        onStructuralChange?.()
+        onStructuralChange?.("reorder")
       }
     },
     [section.nodes, applyNodes, onStructuralChange]

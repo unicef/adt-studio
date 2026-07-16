@@ -1,8 +1,23 @@
 import { describe, expect, it } from "vitest"
-import type { GenerateObjectResult, LLMModel } from "@adt/llm"
+import path from "node:path"
+import { createPromptEngine, type GenerateObjectResult, type LLMModel } from "@adt/llm"
 import { runVisualReviewLoop } from "../visual-review.js"
 
 describe("runVisualReviewLoop", () => {
+  it("treats a user-directed storyboard order as authoritative", async () => {
+    const engine = createPromptEngine(path.resolve(process.cwd(), "prompts"))
+    const messages = await engine.renderPrompt("visual_review", {
+      viewports: [],
+      intentional_reading_order: true,
+    })
+    const system = messages.find((message) => message.role === "system")
+    const content = typeof system?.content === "string" ? system.content : ""
+
+    expect(content).toContain("Treat the order in the current HTML as authoritative")
+    expect(content).toContain("the user intentionally chose the current order")
+    expect(content).not.toContain("completely wrong ordering")
+  })
+
   it("applies a validated revision and returns approved result", async () => {
     let call = 0
     const fakeModel: LLMModel = {

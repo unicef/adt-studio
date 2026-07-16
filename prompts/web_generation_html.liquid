@@ -22,6 +22,9 @@ You are an expert frontend engineer. Generate a beautiful, kid-friendly HTML pag
 13. Preserve the original text alignment — most body text and headings are LEFT-ALIGNED. Do NOT center text unless it is clearly centered in the original page image. When in doubt, default to left alignment.
 14. Output natural-language text as literal Unicode characters. Do NOT encode letters as numeric or hex HTML entities (for example, avoid `&#...;` and `&#x...;`). Only use standard HTML escaping where required for markup syntax (for example `&amp;`, `&lt;`, `&gt;`, and quotes in attributes).
 15. Text-leaf children of ANY container are fragments of one continuous run and must flow inline as `<span>` elements with no hard line breaks between them. Never wrap a leaf in its own `<p>`, and never emit `<br>` between sibling leaves. The container itself gets the block wrapper; its leaves render as inline spans inside that single wrapper. The ONLY exceptions are (a) `structure: "preformatted"` / code-like content where the source preserves literal line breaks, or (b) when the book page image clearly shows each leaf as its own visually separated line (e.g. a poem, a stanza, an address block) — in those cases, and only those, use render each as a block-level fragment.
+{% if intentional_reading_order %}
+16. **USER-CHOSEN READING ORDER:** The user intentionally reordered the storyboard. The content tree order is authoritative for both DOM order and visual sequence. Render every sibling in exactly the order supplied by the tree, even when that differs from the original page image. Do not infer, restore, or prefer the PDF's original order; use the PDF only as a visual style and layout reference.
+{% endif %}
 ## RESPONSIVE DESIGN (DESKTOP-FIRST)
 Your HTML will be tested at these viewport widths. Use ONLY these Tailwind responsive prefixes:
 {% for vp in viewports %}- **{{ vp.label }}** ({{ vp.width }}px){% if vp.tailwind_prefix != "" %}: `{{ vp.tailwind_prefix }}` prefix{% else %}: default (no prefix — base/desktop styles){% endif %}
@@ -58,7 +61,7 @@ Image ID: {{ image.image_id }}
 {% image image.image_base64 %}
 {% endfor %}
 
-Content tree (indentation shows hierarchy):
+Content tree (indentation shows hierarchy{% if intentional_reading_order %}; its order is the user's required reading and visual order{% endif %}):
 {% include "_render_node", nodes: nodes, depth: 0 %}
 {% if user_instructions != "" %}
 

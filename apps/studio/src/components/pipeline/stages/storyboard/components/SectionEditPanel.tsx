@@ -45,7 +45,7 @@ interface SectionEditPanelProps {
   onLeafTextEdited: (nodeId: string, text: string) => void
   onLeafDuplicated: (sourceNodeId: string, newNodeId: string) => void
   onLeafDeleted: (nodeId: string) => void
-  onStructuralChange: () => void
+  onStructuralChange: (kind?: "reorder") => void
   onMergeSection: (dir: "prev" | "next") => void
   onMergeCrossPage?: (dir: "prev" | "next") => void
   hasPrevPage?: boolean

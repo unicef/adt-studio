@@ -219,6 +219,7 @@ describe("page-edit-service", () => {
         label,
         pageId,
         sectionIndex: 1,
+        intentionalReadingOrder: true,
         booksDir: tmpDir,
         promptsDir: tmpDir,
         configPath: path.resolve(process.cwd(), "config.yaml"),

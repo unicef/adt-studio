@@ -88,6 +88,8 @@ export interface RenderSectionInput {
   bookFonts?: BookFontPromptEntry[]
   /** Optional user instructions appended to the LLM prompt during re-render */
   userPrompt?: string
+  /** The user intentionally changed the source PDF's reading order. */
+  intentionalReadingOrder?: boolean
 }
 
 export interface RenderPageInput {
@@ -100,6 +102,8 @@ export interface RenderPageInput {
   bookFonts?: BookFontPromptEntry[]
   /** Optional user instructions appended to the LLM prompt during re-render */
   userPrompt?: string
+  /** The user intentionally changed the source PDF's reading order. */
+  intentionalReadingOrder?: boolean
 }
 
 export type ResolveLLMModel = LLMModel | ((modelId: string) => LLMModel)
@@ -248,6 +252,7 @@ export async function renderPage(
       styleguide: input.styleguide,
       bookFonts: input.bookFonts,
       userPrompt: input.userPrompt,
+      intentionalReadingOrder: input.intentionalReadingOrder,
     }
 
     let rendering: SectionRendering

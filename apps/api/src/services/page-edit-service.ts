@@ -14,6 +14,8 @@ export interface ReRenderOptions {
   sectionIndex?: number
   /** Optional user prompt/instructions to guide the LLM during re-render */
   prompt?: string
+  /** The user intentionally changed the source PDF's reading order. */
+  intentionalReadingOrder?: boolean
   booksDir: string
   promptsDir: string
   webAssetsDir?: string
@@ -48,7 +50,7 @@ export interface AiEditSectionResult {
 export async function reRenderPage(
   options: ReRenderOptions
 ): Promise<ReRenderResult> {
-  const { label, pageId, sectionIndex, prompt, booksDir, promptsDir, webAssetsDir, configPath, apiKey } = options
+  const { label, pageId, sectionIndex, prompt, intentionalReadingOrder, booksDir, promptsDir, webAssetsDir, configPath, apiKey } = options
 
   // Set API key
   const previousKey = process.env.OPENAI_API_KEY
@@ -176,6 +178,7 @@ export async function reRenderPage(
         styleguide: styleguideContent,
         bookFonts: buildBookFontsPromptContext(storage),
         userPrompt: prompt,
+        intentionalReadingOrder,
       },
       resolveRenderConfig,
       resolveRenderModel,

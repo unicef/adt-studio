@@ -416,6 +416,10 @@ export function StoryboardSectionDetail({
   // Tracks whether pending sectioning changes require LLM re-render on save.
   // Pure prune/delete can be resolved locally; unprune/type change/reorder need LLM.
   const needsRerenderRef = useRef(false)
+  // A user-directed reorder intentionally changes the PDF's reading order. The
+  // re-render must follow the edited tree without a visual reviewer undoing it
+  // merely because it no longer matches the original page.
+  const intentionalReadingOrderRef = useRef(false)
 
   // Inline editing state
   const [selectedElement, setSelectedElement] = useState<{
@@ -612,6 +616,7 @@ export function StoryboardSectionDetail({
     setSaving(false)
     setActivityPreviewMode(false)
     needsRerenderRef.current = false
+    intentionalReadingOrderRef.current = false
   }, [pageId, sectionIndex])
 
   // Reset scroll position when page or section changes
@@ -660,6 +665,7 @@ export function StoryboardSectionDetail({
     setSaving(true)
     setPanelOpen(false)
     const shouldRerender = needsRerenderRef.current
+    const intentionalReadingOrder = intentionalReadingOrderRef.current
     try {
       const minDelay = new Promise((r) => setTimeout(r, 400))
 
@@ -689,6 +695,7 @@ export function StoryboardSectionDetail({
       setPendingRendering(null)
       setPendingCategories(new Set())
       needsRerenderRef.current = false
+      intentionalReadingOrderRef.current = false
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
       invalidateStoryboardDependents(queryClient, bookLabel)
@@ -697,7 +704,14 @@ export function StoryboardSectionDetail({
       // Only re-render when changes require LLM (e.g., unprune, type change, reorder)
       // Skip for pure prune/delete — those are already handled by local HTML removal
       if (shouldRerender && hasApiKey) {
-        api.reRenderPage(bookLabel, pageId, apiKey, sectionIndex).catch(() => {})
+        api.reRenderPage(
+          bookLabel,
+          pageId,
+          apiKey,
+          sectionIndex,
+          undefined,
+          intentionalReadingOrder,
+        ).catch(() => {})
       }
     } catch (err) {
       setAiError(err instanceof Error ? err.message : t`Save failed`)
@@ -718,6 +732,7 @@ export function StoryboardSectionDetail({
     pendingHtmlRef.current = null
     setHasUnflushedEdits(false)
     needsRerenderRef.current = false
+    intentionalReadingOrderRef.current = false
     previewFrameRef.current?.resetContent()
   }
 
@@ -1209,8 +1224,9 @@ export function StoryboardSectionDetail({
     [removeElementsFromRendering]
   )
 
-  const handleStructuralChange = useCallback(() => {
+  const handleStructuralChange = useCallback((kind?: "reorder") => {
     needsRerenderRef.current = true
+    if (kind === "reorder") intentionalReadingOrderRef.current = true
   }, [])
 
   // Handle inline text edit from BookPreviewFrame

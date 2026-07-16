@@ -1160,11 +1160,16 @@ export function createPageRoutes(
 
     // Optional prompt for LLM guidance during re-render
     let prompt: string | undefined
+    let intentionalReadingOrder = false
     try {
       const body = await c.req.json()
-      const parsed = z.object({ prompt: z.string().optional() }).safeParse(body)
+      const parsed = z.object({
+        prompt: z.string().optional(),
+        intentionalReadingOrder: z.boolean().optional(),
+      }).safeParse(body)
       if (parsed.success) {
         prompt = parsed.data.prompt
+        intentionalReadingOrder = parsed.data.intentionalReadingOrder ?? false
       }
     } catch {
       // No body or not JSON — that's fine, prompt is optional
@@ -1214,6 +1219,7 @@ export function createPageRoutes(
             pageId,
             sectionIndex,
             prompt,
+            intentionalReadingOrder,
             booksDir,
             promptsDir,
             webAssetsDir,
@@ -1232,6 +1238,7 @@ export function createPageRoutes(
       pageId,
       sectionIndex,
       prompt,
+      intentionalReadingOrder,
       booksDir,
       promptsDir,
       webAssetsDir,

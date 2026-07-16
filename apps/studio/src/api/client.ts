@@ -966,13 +966,22 @@ export const api = {
       method: "DELETE",
     }),
 
-  reRenderPage: (label: string, pageId: string, apiKey: string, sectionIndex?: number, prompt?: string) =>
+  reRenderPage: (
+    label: string,
+    pageId: string,
+    apiKey: string,
+    sectionIndex?: number,
+    prompt?: string,
+    intentionalReadingOrder?: boolean,
+  ) =>
     request<{ taskId?: string; status?: string; version?: number; rendering?: { sections: SectionRendering[] } }>(
       `/books/${label}/pages/${pageId}/re-render${sectionIndex !== undefined ? `?sectionIndex=${sectionIndex}` : ""}`,
       {
         method: "POST",
         headers: { "X-OpenAI-Key": apiKey },
-        ...(prompt ? { body: JSON.stringify({ prompt }) } : {}),
+        ...(prompt || intentionalReadingOrder
+          ? { body: JSON.stringify({ prompt, intentionalReadingOrder }) }
+          : {}),
         signal: AbortSignal.timeout(30_000), // Just submitting a task now
       }
     ),

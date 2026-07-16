@@ -48,6 +48,7 @@ export async function renderSectionLlm(
     viewports: getViewportBreakpoints(),
     _isActivity: isActivity,
     user_instructions: input.userPrompt ?? "",
+    intentional_reading_order: input.intentionalReadingOrder ?? false,
   }
 
   const result = await llmModel.generateObject<{
@@ -103,6 +104,7 @@ export async function renderSectionLlm(
         current_html: generatedHtml,
         nodes: renderContext.nodes,
         leaf_texts: renderContext.leaf_texts,
+        intentional_reading_order: input.intentionalReadingOrder ?? false,
       },
       originalImageIntroText: "Here is the original page image (this is what the rendered page should resemble):",
       firstIterationScreenshotsText: "\nHere are screenshots of the current rendered HTML at three viewport sizes:\n",
