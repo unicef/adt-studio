@@ -37,6 +37,8 @@ const audioMock = vi.hoisted(() => ({
 
 const buddyVoiceMock = vi.hoisted(() => ({
   playBuddyLine: vi.fn().mockResolvedValue(true),
+  playBuddyLineSequence: vi.fn().mockResolvedValue(undefined),
+  stopBuddyLine: vi.fn(),
 }))
 
 vi.mock("@/features/audio/hooks/AudioPlayerContext", () => ({
@@ -49,6 +51,8 @@ vi.mock("@/shared/lib/analytics", () => ({
 
 vi.mock("@/features/kids/lib/buddy-voice", () => ({
   playBuddyLine: buddyVoiceMock.playBuddyLine,
+  playBuddyLineSequence: buddyVoiceMock.playBuddyLineSequence,
+  stopBuddyLine: buddyVoiceMock.stopBuddyLine,
 }))
 
 beforeEach(() => {
@@ -315,18 +319,16 @@ describe("KidsOnboarding", () => {
     expect(store.get(readAloudModeAtom)).toBe(true)
   })
 
-  it("skips the reading mode page when read aloud is disabled", () => {
+  it("keeps the reading-mode choice even when the book has no read-aloud audio", () => {
+    // The intro narrator rides the kids-voice track, so the read-to-me choice
+    // is offered regardless of the book's own speech (readAloud) feature.
     const store = createKidsStore({
       featureOverrides: { readAloud: false },
     })
     renderWithStore(<KidsChrome />, store)
-    goToPickPage()
-    fireEvent.click(screen.getByTestId("kids-onboarding-character-dino"))
-    fireEvent.click(screen.getByText("This is my buddy"))
-    act(() => vi.advanceTimersByTime(180))
+    fireEvent.click(screen.getByText("Let's go!"))
 
-    expect(screen.queryByText("How do you want to read?")).toBeNull()
-    expect(screen.getByText("Turn the pages")).not.toBeNull()
+    expect(screen.getByText("How do you want to read?")).not.toBeNull()
   })
 
   it("lists only enabled abilities on the abilities page", () => {
@@ -434,78 +436,86 @@ describe("KidsOnboarding", () => {
     expect(screen.getByText("What should I call you?")).not.toBeNull()
   })
 
-  it("shows no narrator play button and never calls the narrator voice when reading it myself", () => {
+  it("stops narration and hides the pause button once reading it myself", () => {
     renderWithStore(<KidsChrome />)
 
     goToReadingModePage()
-    expect(screen.queryByTestId("kids-onboarding-narrator-play")).toBeNull()
+    // Reading out loud by default → the bottom pause control is present.
+    expect(screen.getByTestId("kids-onboarding-narrator-play")).not.toBeNull()
 
     fireEvent.click(screen.getByText("I'll read it myself"))
+    expect(buddyVoiceMock.stopBuddyLine).toHaveBeenCalled()
     expect(screen.queryByTestId("kids-onboarding-narrator-play")).toBeNull()
 
+    const sequencesAfterChoice =
+      buddyVoiceMock.playBuddyLineSequence.mock.calls.length
     fireEvent.click(screen.getByText("Keep going"))
     expect(screen.getByText("What should I call you?")).not.toBeNull()
     expect(screen.queryByTestId("kids-onboarding-narrator-play")).toBeNull()
 
-    const narratorCalls = buddyVoiceMock.playBuddyLine.mock.calls.filter(
-      ([, characterId]) => characterId === "narrator",
+    // No further narration once the child opted to read themselves.
+    expect(buddyVoiceMock.playBuddyLineSequence.mock.calls.length).toBe(
+      sequencesAfterChoice,
     )
-    expect(narratorCalls).toHaveLength(0)
   })
 
-  it("shows the narrator play button and autoplays the step's line once when reading aloud is on", () => {
+  it("reads the step's title then description once when reading aloud is on", () => {
     renderWithStore(<KidsChrome />)
 
     goToReadingModePage()
     fireEvent.click(screen.getByText("Read it to me"))
 
     expect(screen.getByTestId("kids-onboarding-narrator-play")).not.toBeNull()
-    expect(buddyVoiceMock.playBuddyLine).toHaveBeenCalledWith(
+    expect(buddyVoiceMock.playBuddyLineSequence).toHaveBeenCalledWith(
       "en",
       "narrator",
-      "kids-onboarding-read-title",
+      ["kids-onboarding-read-title"],
     )
 
-    const callsAfterChoice = buddyVoiceMock.playBuddyLine.mock.calls.length
     fireEvent.click(screen.getByText("Keep going"))
 
     expect(screen.getByText("What should I call you?")).not.toBeNull()
     expect(screen.getByTestId("kids-onboarding-narrator-play")).not.toBeNull()
-    expect(buddyVoiceMock.playBuddyLine).toHaveBeenCalledWith(
+    expect(buddyVoiceMock.playBuddyLineSequence).toHaveBeenCalledWith(
       "en",
       "narrator",
-      "kids-onboarding-name-title",
-    )
-    expect(buddyVoiceMock.playBuddyLine.mock.calls.length).toBeGreaterThan(
-      callsAfterChoice,
+      ["kids-onboarding-name-title"],
     )
   })
 
-  it("autoplays the narrator line on mount when read aloud was already on", () => {
+  it("narrates the welcome title and description on mount when reading aloud", () => {
     const store = createKidsStore()
     store.set(readAloudModeAtom, true)
     renderWithStore(<KidsChrome />, store)
 
-    expect(buddyVoiceMock.playBuddyLine).toHaveBeenCalledWith(
+    expect(buddyVoiceMock.playBuddyLineSequence).toHaveBeenCalledWith(
       "en",
       "narrator",
-      "kids-onboarding-welcome-title",
+      ["kids-onboarding-welcome-title", "kids-onboarding-welcome-copy"],
     )
     expect(screen.getByTestId("kids-onboarding-narrator-play")).not.toBeNull()
   })
 
-  it("replays the current step's narrator line when the play button is clicked", () => {
+  it("pauses then resumes the narration from the bottom control", () => {
     const store = createKidsStore()
     store.set(readAloudModeAtom, true)
     renderWithStore(<KidsChrome />, store)
 
-    buddyVoiceMock.playBuddyLine.mockClear()
-    fireEvent.click(screen.getByTestId("kids-onboarding-narrator-play"))
+    const button = screen.getByTestId("kids-onboarding-narrator-play")
+    // Starts reading out loud (pressed = playing).
+    expect(button.getAttribute("aria-pressed")).toBe("true")
 
-    expect(buddyVoiceMock.playBuddyLine).toHaveBeenCalledWith(
+    buddyVoiceMock.playBuddyLineSequence.mockClear()
+    fireEvent.click(button) // pause
+    expect(button.getAttribute("aria-pressed")).toBe("false")
+    expect(buddyVoiceMock.stopBuddyLine).toHaveBeenCalled()
+    expect(buddyVoiceMock.playBuddyLineSequence).not.toHaveBeenCalled()
+
+    fireEvent.click(button) // resume → replays the current step's lines
+    expect(buddyVoiceMock.playBuddyLineSequence).toHaveBeenCalledWith(
       "en",
       "narrator",
-      "kids-onboarding-welcome-title",
+      ["kids-onboarding-welcome-title", "kids-onboarding-welcome-copy"],
     )
   })
 

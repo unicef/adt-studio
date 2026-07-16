@@ -9,6 +9,7 @@ import {
   Pause,
   Rabbit,
   RotateCcw,
+  Settings2,
   Sparkles,
   Turtle,
   Volume2,
@@ -27,17 +28,22 @@ import {
   type BuddyExpression,
 } from "@/features/kids/assets/buddy-images"
 import {
+  KidsAccessibilityDialog,
   KidsDialogClose,
   KidsLanguageDialog,
   KidsResumeChip,
   KidsStoryMapDialog,
 } from "@/features/kids/components/kids-dialogs"
+import { useAvailableLanguages } from "@/features/language/hooks/useAvailableLanguages"
 import { useBuddySpeech } from "@/features/kids/hooks/useBuddySpeech"
+import { useBuddyIdleChatter } from "@/features/kids/hooks/useBuddyIdleChatter"
 import { BUDDY_LINES } from "@/features/kids/lib/buddy-lines"
 import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
 import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
 import {
   buddySpeechAtom,
+  kidsAccessibilityDialogOpenAtom,
+  kidsBuddyChatterAtom,
   kidsBuddyPanelOpenAtom,
   kidsBuddyAtom,
   kidsLanguageDialogOpenAtom,
@@ -83,12 +89,22 @@ export function KidsBuddy() {
   const setNotepadOpen = useSetAtom(notepadOpenAtom)
   const setLanguageDialogOpen = useSetAtom(kidsLanguageDialogOpenAtom)
   const setStoryMapDialogOpen = useSetAtom(kidsStoryMapDialogOpenAtom)
+  const setAccessibilityDialogOpen = useSetAtom(kidsAccessibilityDialogOpenAtom)
+  const chatter = useAtomValue(kidsBuddyChatterAtom)
   const setOnboardingDone = useSetAtom(kidsOnboardingDoneAtom)
-  const languageCount = config.languages.available.length
+  // Only count languages whose content is actually packaged; a book may
+  // declare a language whose texts.json is empty (nothing to switch to).
+  const languageCount = useAvailableLanguages().languages.length
   const fabRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const panelCloseRef = useRef<HTMLButtonElement>(null)
   const wasOpenRef = useRef(false)
+
+  useBuddyIdleChatter({
+    say,
+    character: buddy.character,
+    enabled: chatter && !open && !isPlaying,
+  })
 
   const character = useMemo(
     () => getCharacter(buddy.character),
@@ -211,6 +227,11 @@ export function KidsBuddy() {
     say(BUDDY_LINES.notesOpen)
   }
 
+  const openComfort = () => {
+    setAccessibilityDialogOpen(true)
+    say(BUDDY_LINES.comfortOpen)
+  }
+
   const meetBuddyAgain = () => {
     setOnboardingDone(false)
     setOpen(false)
@@ -239,7 +260,7 @@ export function KidsBuddy() {
           )}
         >
           <div
-            className="relative z-10 flex max-h-[calc(min(72vh,34rem)-2rem)] flex-col gap-4 overflow-y-auto pr-1 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+            className="relative z-10 flex max-h-[calc(min(72vh,34rem)-2rem)] flex-col gap-4 overflow-y-auto px-1.5 py-2 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
             role="region"
             aria-label={tk("kids-buddy-actions-region", "Buddy actions")}
             tabIndex={0}
@@ -286,6 +307,14 @@ export function KidsBuddy() {
                   />
                 </>
               ) : null}
+
+              <KidsActionButton
+                testId="kids-action-comfort"
+                variant="list"
+                icon={<Settings2 className="h-5 w-5" />}
+                label={tk("kids-action-comfort", "Make it comfy")}
+                onClick={openComfort}
+              />
 
               {features.signLanguage ? (
                 <KidsActionButton
@@ -384,6 +413,7 @@ export function KidsBuddy() {
 
       <KidsLanguageDialog />
       <KidsStoryMapDialog />
+      <KidsAccessibilityDialog />
 
       <button
         ref={fabRef}

@@ -23,6 +23,10 @@ export interface KidsVoiceManifest {
 const manifestCache = new Map<string, Promise<KidsVoiceManifest | null>>()
 
 let currentAudio: HTMLAudioElement | null = null
+// Bumped whenever playback changes (a new single line, a new sequence, or a
+// stop) so an in-flight `playBuddyLineSequence` knows it was superseded and
+// halts instead of talking over the newer audio.
+let playbackToken = 0
 
 function voiceBase(lang: string): string {
   return `./content/kids-voice/${lang}`
@@ -65,6 +69,7 @@ export async function playBuddyLine(
   if (typeof window === "undefined" || typeof Audio === "undefined") {
     return false
   }
+  playbackToken++ // any single line supersedes a running sequence
   try {
     const manifest = await loadKidsVoiceManifest(lang)
     const file = manifest?.characters?.[characterId]?.[lineKey]
@@ -78,4 +83,46 @@ export async function playBuddyLine(
   } catch {
     return false
   }
+}
+
+/**
+ * Play several clips back-to-back for one character (e.g. a step's title then
+ * its description), waiting for each to finish. A newer `playBuddyLine`,
+ * another sequence, or `stopBuddyLine` supersedes an in-flight sequence.
+ * Missing clips are skipped; nothing throws.
+ */
+export async function playBuddyLineSequence(
+  lang: string,
+  characterId: string,
+  lineKeys: readonly string[],
+): Promise<void> {
+  if (typeof window === "undefined" || typeof Audio === "undefined") return
+  const token = ++playbackToken
+  const manifest = await loadKidsVoiceManifest(lang)
+  for (const lineKey of lineKeys) {
+    if (token !== playbackToken) return
+    const file = manifest?.characters?.[characterId]?.[lineKey]
+    if (!file) continue
+    currentAudio?.pause()
+    const audio = new Audio(`${voiceBase(lang)}/${file}`)
+    currentAudio = audio
+    await new Promise<void>((resolve) => {
+      let settled = false
+      const done = () => {
+        if (settled) return
+        settled = true
+        resolve()
+      }
+      audio.addEventListener("ended", done, { once: true })
+      audio.addEventListener("error", done, { once: true })
+      Promise.resolve(audio.play()).catch(() => done())
+    })
+  }
+}
+
+/** Stop the currently-playing clip or sequence, if any. Safe to call anytime. */
+export function stopBuddyLine(): void {
+  playbackToken++
+  currentAudio?.pause()
+  currentAudio = null
 }

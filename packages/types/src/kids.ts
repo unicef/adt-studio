@@ -283,6 +283,10 @@ export const KIDS_BUDDY_LINES = {
     key: "kids-confirm-language",
     fallback: "Okay, ${language} is on!",
   },
+  comfortOpen: {
+    key: "kids-confirm-comfort-open",
+    fallback: "Let's make reading nice and comfy!",
+  },
 } as const satisfies Record<string, KidsBuddyLine>
 
 const GENERIC_PICK_PHRASES: readonly KidsBuddyLine[] = [
@@ -346,6 +350,55 @@ export function getKidsPickPhrases(id: string): readonly KidsBuddyLine[] {
 }
 
 /**
+ * Ambient "idle chatter" the buddy says unprompted while the child reads, to
+ * feel alive and encouraging. Kept short, warm, and never task-related.
+ */
+const GENERIC_IDLE_PHRASES: readonly KidsBuddyLine[] = [
+  { key: "kids-idle-doing-great", fallback: "You're doing great!" },
+  { key: "kids-idle-love-reading", fallback: "I love reading with you." },
+  { key: "kids-idle-good-story", fallback: "What a good story!" },
+  { key: "kids-idle-keep-going", fallback: "Keep going — you've got this!" },
+  { key: "kids-idle-super-reader", fallback: "You're a super reader!" },
+  { key: "kids-idle-favorite", fallback: "Reading with you is my favorite." },
+]
+
+const BUDDY_IDLE_PHRASES: Partial<
+  Record<KidsBuddyId, readonly KidsBuddyLine[]>
+> = {
+  dino: [
+    { key: "kids-idle-dino-next", fallback: "Rawr! What happens next?" },
+    { key: "kids-idle-dino-stomp", fallback: "Stomp stomp — this is fun!" },
+  ],
+  robot: [
+    { key: "kids-idle-robot-fun", fallback: "Beep boop — reading is fun!" },
+    { key: "kids-idle-robot-power", fallback: "Story power: full!" },
+  ],
+  bunny: [
+    { key: "kids-idle-bunny-next", fallback: "Hop! I can't wait for the next page!" },
+    { key: "kids-idle-bunny-fun", fallback: "This is so much fun!" },
+  ],
+  cat: [
+    { key: "kids-idle-cat-cozy", fallback: "Mmm, this is so cozy." },
+    { key: "kids-idle-cat-purr", fallback: "Purr... such a nice story." },
+  ],
+  alien: [
+    { key: "kids-idle-alien-amazing", fallback: "Zoop! Earth books are amazing!" },
+    { key: "kids-idle-alien-wonder", fallback: "Wow, what will we discover next?" },
+  ],
+}
+
+/**
+ * Idle-chatter pool for one buddy: character-specific lines plus the shared
+ * generic pool. Buddies without a specific pool get the generic pool.
+ */
+export function getKidsIdlePhrases(id: string): readonly KidsBuddyLine[] {
+  return [
+    ...(BUDDY_IDLE_PHRASES[id as KidsBuddyId] ?? []),
+    ...GENERIC_IDLE_PHRASES,
+  ]
+}
+
+/**
  * Every line needing its own clip for one character — the voice generator's
  * work list. Lines with a `voiceKey` reuse another clip and are excluded.
  */
@@ -353,7 +406,7 @@ export function getKidsSpeakableLines(id: string): readonly KidsBuddyLine[] {
   const shared: KidsBuddyLine[] = Object.values(KIDS_BUDDY_LINES).filter(
     (line) => !("voiceKey" in line),
   )
-  return [...shared, ...getKidsPickPhrases(id)]
+  return [...shared, ...getKidsPickPhrases(id), ...getKidsIdlePhrases(id)]
 }
 
 // ---------------------------------------------------------------------------

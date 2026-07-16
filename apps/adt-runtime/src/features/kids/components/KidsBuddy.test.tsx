@@ -21,6 +21,8 @@ import {
   kidsLastSpotAtom,
   kidsOnboardingDoneAtom,
   kidsPlayerNameAtom,
+  kidsReadingFontAtom,
+  kidsTextScaleAtom,
 } from "@/features/kids/state/kids.atoms"
 import {
   currentLanguageAtom,
@@ -113,7 +115,6 @@ function createKidsStore({
   store.set(reduceMotionAtom, reduceMotion)
   store.set(kidsBuddyAtom, {
     character: "robot",
-    palette: "strawberry",
     backgroundColor: "#DBEAFE",
   })
   store.set(translationsAtom, {})
@@ -185,6 +186,30 @@ describe("KidsBuddy", () => {
     )
 
     expect(second.queryByTestId("kids-speech-bubble")).toBeNull()
+  })
+
+  it("opens reading comfort and applies text size + font to the book content", () => {
+    const store = createKidsStore()
+    renderKidsChrome(store)
+    openBuddy()
+
+    fireEvent.click(screen.getByTestId("kids-action-comfort"))
+
+    // Kid-friendly comfort controls are present.
+    expect(screen.getByText("Text size")).not.toBeNull()
+    expect(screen.getByText("Letters")).not.toBeNull()
+    expect(screen.getByText("My buddy chats with me")).not.toBeNull()
+
+    fireEvent.click(screen.getByText("Bigger"))
+    expect(store.get(kidsTextScaleAtom)).toBe("1.5")
+
+    fireEvent.click(screen.getByText("Spaced"))
+    expect(store.get(kidsReadingFontAtom)).toBe("spaced")
+
+    const css =
+      document.getElementById("kids-reading-comfort")?.textContent ?? ""
+    expect(css).toContain("#content { zoom: 1.5; }")
+    expect(css).toContain("letter-spacing: 0.06em !important")
   })
 
   it("shows the default open-panel prompt with the player name", () => {

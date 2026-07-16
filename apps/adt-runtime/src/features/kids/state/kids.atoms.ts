@@ -48,11 +48,25 @@ export const kidsBuddyAtom = persistedJsonAtom<KidsBuddyConfig>("kidsBuddy", {
 
 export const kidsPlayerNameAtom = persistedStringAtom("kidsPlayerName", "")
 
+// Reading-comfort (accessibility) preferences, persisted per reader.
+// Text scale drives a CSS `zoom` on the book content; "1" = no change.
+export type KidsTextScale = "1" | "1.25" | "1.5" | "2"
+export const kidsTextScaleAtom = persistedStringAtom("kidsTextScale", "1")
+
+// Font style for the book content: the book's own font, a plain sans-serif,
+// or a spaced dyslexia-friendly treatment.
+export type KidsReadingFont = "default" | "plain" | "spaced"
+export const kidsReadingFontAtom = persistedStringAtom("kidsReadingFont", "default")
+
+// Whether the buddy chats unprompted while the child reads (idle chatter).
+export const kidsBuddyChatterAtom = persistedBoolAtom("kidsBuddyChatter", true)
+
 export const buddySpeechAtom = ephemeralAtom<string | null>(null)
 export const kidsBuddyPanelOpenAtom = ephemeralAtom(false)
 
 export const kidsLanguageDialogOpenAtom = ephemeralAtom(false)
 export const kidsStoryMapDialogOpenAtom = ephemeralAtom(false)
+export const kidsAccessibilityDialogOpenAtom = ephemeralAtom(false)
 export const kidsResumeChipDismissedAtom = ephemeralAtom(false)
 
 export interface KidsLastSpot {

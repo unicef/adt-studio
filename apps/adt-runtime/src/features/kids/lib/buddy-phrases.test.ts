@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  getIdlePhrases,
   getPickPhrases,
   pickRandomPhrase,
 } from "@/features/kids/lib/buddy-phrases"
@@ -15,6 +16,23 @@ describe("buddy-phrases", () => {
         expect(phrase.fallback.length).toBeGreaterThan(0)
       }
     }
+  })
+
+  it("provides a non-empty idle-chatter pool for every character", () => {
+    for (const id of KIDS_CHARACTER_IDS) {
+      const phrases = getIdlePhrases(id)
+      expect(phrases.length).toBeGreaterThan(0)
+      for (const phrase of phrases) {
+        expect(phrase.key).toMatch(/^kids-idle-/)
+        expect(phrase.fallback.length).toBeGreaterThan(0)
+      }
+    }
+  })
+
+  it("gives characters distinct idle pools via character-specific lines", () => {
+    const dino = getIdlePhrases("dino").map((phrase) => phrase.key)
+    const cat = getIdlePhrases("cat").map((phrase) => phrase.key)
+    expect(dino).not.toEqual(cat)
   })
 
   it("gives characters distinct pools via character-specific phrases", () => {

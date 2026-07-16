@@ -1,4 +1,4 @@
-import { Check, X } from "lucide-react"
+import { Check, MessageCircle, X } from "lucide-react"
 import { useAtom, useAtomValue } from "jotai"
 import {
   useEffect,
@@ -8,15 +8,22 @@ import {
   type RefObject,
 } from "react"
 import { useBuddySpeech } from "@/features/kids/hooks/useBuddySpeech"
+import { useAvailableLanguages } from "@/features/language/hooks/useAvailableLanguages"
 import { BUDDY_LINES } from "@/features/kids/lib/buddy-lines"
 import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
 import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
 import {
+  kidsAccessibilityDialogOpenAtom,
+  kidsBuddyChatterAtom,
   kidsLanguageDialogOpenAtom,
   kidsLastSpotAtom,
+  kidsReadingFontAtom,
   kidsResumeChipDismissedAtom,
   kidsStoryMapDialogOpenAtom,
+  kidsTextScaleAtom,
   type KidsLastSpot,
+  type KidsReadingFont,
+  type KidsTextScale,
 } from "@/features/kids/state/kids.atoms"
 import { currentLanguageAtom } from "@/features/language/state/language.atoms"
 import { navigateToHref } from "@/features/navigation/lib/page-navigation"
@@ -28,15 +35,16 @@ import {
   type TocEntry,
 } from "@/features/navigation/state/nav.atoms"
 import { cn } from "@/shared/lib/utils"
-import { appConfigAtom } from "@/shared/state/config.atoms"
 
 const RESUME_SESSION_KEY = "kidsLastSpotOfferChecked"
 
 export function KidsLanguageDialog() {
   const { tk } = useKidsTranslation()
-  const config = useAtomValue(appConfigAtom)
   const [open, setOpen] = useAtom(kidsLanguageDialogOpenAtom)
   const [currentLanguage, setCurrentLanguage] = useAtom(currentLanguageAtom)
+  // Only the languages whose content is actually packaged in this book — a
+  // declared language with an empty texts.json would switch nothing.
+  const { languages, names } = useAvailableLanguages()
   const { say } = useBuddySpeech()
   const reduceMotion = usePrefersReducedMotion()
 
@@ -49,9 +57,12 @@ export function KidsLanguageDialog() {
       closeLabel={tk("kids-dialog-close", "Close")}
     >
       <div className="grid gap-2">
-        {config.languages.available.map((language) => {
+        {languages.map((language) => {
           const active = language === currentLanguage
-          const name = getLanguageName(language)
+          // Prefer the book's own language-name catalog (handles locale
+          // variants like en-US / pt-BR); fall back to a built-in map, then
+          // the raw code.
+          const name = names[language] ?? getLanguageName(language)
           return (
             <button
               type="button"
@@ -113,7 +124,7 @@ export function KidsStoryMapDialog() {
       wide
     >
       <div
-        className="grid max-h-[60vh] gap-2 overflow-y-auto pr-1 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+        className="grid max-h-[60vh] gap-2 overflow-y-auto px-1.5 py-2 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
         role="region"
         aria-label={tk("kids-story-map-list-region", "Story map sections")}
         tabIndex={0}
@@ -139,6 +150,158 @@ export function KidsStoryMapDialog() {
             </button>
           )
         })}
+      </div>
+    </KidsModal>
+  )
+}
+
+export function KidsAccessibilityDialog() {
+  const { tk } = useKidsTranslation()
+  const [open, setOpen] = useAtom(kidsAccessibilityDialogOpenAtom)
+  const [scale, setScale] = useAtom(kidsTextScaleAtom)
+  const [font, setFont] = useAtom(kidsReadingFontAtom)
+  const [chatter, setChatter] = useAtom(kidsBuddyChatterAtom)
+  const reduceMotion = usePrefersReducedMotion()
+
+  const sizeOptions: { value: KidsTextScale; label: string; px: string }[] = [
+    { value: "1", label: tk("kids-comfort-size-normal", "Normal"), px: "text-lg" },
+    { value: "1.25", label: tk("kids-comfort-size-big", "Big"), px: "text-2xl" },
+    { value: "1.5", label: tk("kids-comfort-size-bigger", "Bigger"), px: "text-3xl" },
+    { value: "2", label: tk("kids-comfort-size-biggest", "Biggest"), px: "text-4xl" },
+  ]
+
+  const fontOptions: {
+    value: KidsReadingFont
+    label: string
+    className: string
+  }[] = [
+    {
+      value: "default",
+      label: tk("kids-comfort-font-book", "Book"),
+      className: "",
+    },
+    {
+      value: "plain",
+      label: tk("kids-comfort-font-plain", "Plain"),
+      className: "font-sans",
+    },
+    {
+      value: "spaced",
+      label: tk("kids-comfort-font-spaced", "Spaced"),
+      className: "font-sans tracking-wide [word-spacing:0.16em]",
+    },
+  ]
+
+  return (
+    <KidsModal
+      open={open}
+      onClose={() => setOpen(false)}
+      title={tk("kids-comfort-title", "Make it comfy")}
+      reduceMotion={reduceMotion}
+      closeLabel={tk("kids-dialog-close", "Close")}
+    >
+      <div className="grid gap-5">
+        <fieldset className="grid gap-2">
+          <legend className="mb-1 text-lg font-black text-slate-950">
+            {tk("kids-comfort-size-label", "Text size")}
+          </legend>
+          <div className="grid grid-cols-4 gap-2">
+            {sizeOptions.map((option) => {
+              const active = scale === option.value
+              return (
+                <button
+                  type="button"
+                  key={option.value}
+                  aria-pressed={active}
+                  onClick={() => setScale(option.value)}
+                  className={cn(
+                    "flex min-h-20 flex-col items-center justify-center gap-1 rounded-2xl bg-white px-2 py-2 shadow-sm ring-1 ring-slate-200",
+                    "transition-all duration-150 hover:bg-sky-50 active:scale-[0.98]",
+                    "focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500",
+                    active && "bg-[#FFF6D6] ring-2 ring-[#FFC800]",
+                  )}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn("font-black leading-none text-slate-900", option.px)}
+                  >
+                    A
+                  </span>
+                  <span className="text-sm font-bold text-slate-700">
+                    {option.label}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </fieldset>
+
+        <fieldset className="grid gap-2">
+          <legend className="mb-1 text-lg font-black text-slate-950">
+            {tk("kids-comfort-font-label", "Letters")}
+          </legend>
+          <div className="grid grid-cols-3 gap-2">
+            {fontOptions.map((option) => {
+              const active = font === option.value
+              return (
+                <button
+                  type="button"
+                  key={option.value}
+                  aria-pressed={active}
+                  onClick={() => setFont(option.value)}
+                  className={cn(
+                    "flex min-h-20 flex-col items-center justify-center gap-1 rounded-2xl bg-white px-2 py-2 shadow-sm ring-1 ring-slate-200",
+                    "transition-all duration-150 hover:bg-sky-50 active:scale-[0.98]",
+                    "focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500",
+                    active && "bg-[#FFF6D6] ring-2 ring-[#FFC800]",
+                  )}
+                >
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "text-2xl font-bold leading-none text-slate-900",
+                      option.className,
+                    )}
+                  >
+                    Aa
+                  </span>
+                  <span className="text-sm font-bold text-slate-700">
+                    {option.label}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </fieldset>
+
+        <button
+          type="button"
+          aria-pressed={chatter}
+          onClick={() => setChatter((value) => !value)}
+          className={cn(
+            "flex min-h-16 items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-left shadow-sm ring-1 ring-slate-200",
+            "transition-all duration-150 hover:bg-sky-50 active:scale-[0.99]",
+            "focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500",
+            chatter && "bg-[#FFF6D6] ring-2 ring-[#FFC800]",
+          )}
+        >
+          <span className="flex items-center gap-3">
+            <MessageCircle className="h-6 w-6 text-slate-700" aria-hidden="true" />
+            <span className="text-lg font-extrabold text-slate-900">
+              {tk("kids-comfort-chatter-label", "My buddy chats with me")}
+            </span>
+          </span>
+          <span
+            className={cn(
+              "rounded-full px-3 py-1 text-sm font-black",
+              chatter ? "bg-[#FFC800] text-slate-950" : "bg-slate-200 text-slate-600",
+            )}
+          >
+            {chatter
+              ? tk("kids-comfort-chatter-on", "On")
+              : tk("kids-comfort-chatter-off", "Off")}
+          </span>
+        </button>
       </div>
     </KidsModal>
   )

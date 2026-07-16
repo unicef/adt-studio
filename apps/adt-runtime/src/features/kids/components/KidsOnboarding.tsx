@@ -5,6 +5,8 @@ import {
   Check,
   Gauge,
   Map,
+  Pause,
+  Play,
   Sparkles,
   Volume2,
   type LucideIcon,
@@ -32,7 +34,11 @@ import {
   pickRandomPhrase,
   type BuddyPhrase,
 } from "@/features/kids/lib/buddy-phrases"
-import { playBuddyLine } from "@/features/kids/lib/buddy-voice"
+import {
+  playBuddyLine,
+  playBuddyLineSequence,
+  stopBuddyLine,
+} from "@/features/kids/lib/buddy-voice"
 import { currentLanguageAtom } from "@/features/language/state/language.atoms"
 import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
 import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
@@ -63,19 +69,13 @@ type OnboardingStep =
 
 type NavigationDirection = "forward" | "back"
 
-const READ_ALOUD_STEPS: OnboardingStep[] = [
+// The intro always narrates via the kids-voice narrator track and always
+// offers the read-to-me / read-myself choice, independent of the book's own
+// speech (readAloud) feature — a kids book can ship a narrator voice pack
+// even when its page content has no TTS audio.
+const ONBOARDING_STEPS: OnboardingStep[] = [
   "welcome",
   "reading-mode",
-  "name",
-  "pick",
-  "feature-pages",
-  "feature-help",
-  "feature-abilities",
-  "start",
-]
-
-const NO_READ_ALOUD_STEPS: OnboardingStep[] = [
-  "welcome",
   "name",
   "pick",
   "feature-pages",
@@ -101,19 +101,23 @@ const STEP_EXPRESSIONS: Partial<Record<OnboardingStep, BuddyExpression>> = {
 }
 
 /**
- * Neutral-narrator line for each onboarding step, reusing the same keys the
- * step's own title is translated with (`@adt/types/kids` narrator registry).
+ * Neutral-narrator lines for each onboarding step, read in order — the step's
+ * title followed by its description where one exists. Keys reuse the same
+ * translation keys the step renders (`@adt/types/kids` narrator registry).
  * Steps missing here (e.g. "start") are never narrated and never show the
  * play button — the buddy has already taken over confirmations by then.
  */
-const STEP_NARRATOR_LINE_KEY: Partial<Record<OnboardingStep, string>> = {
-  welcome: "kids-onboarding-welcome-title",
-  "reading-mode": "kids-onboarding-read-title",
-  name: "kids-onboarding-name-title",
-  pick: "kids-onboarding-buddy-title",
-  "feature-pages": "kids-onboarding-pages-title",
-  "feature-help": "kids-onboarding-help-title",
-  "feature-abilities": "kids-onboarding-abilities-title",
+const STEP_NARRATOR_LINE_KEYS: Partial<Record<OnboardingStep, string[]>> = {
+  welcome: ["kids-onboarding-welcome-title", "kids-onboarding-welcome-copy"],
+  "reading-mode": ["kids-onboarding-read-title"],
+  name: ["kids-onboarding-name-title"],
+  pick: ["kids-onboarding-buddy-title"],
+  "feature-pages": [
+    "kids-onboarding-pages-title",
+    "kids-onboarding-pages-copy",
+  ],
+  "feature-help": ["kids-onboarding-help-title", "kids-onboarding-help-copy"],
+  "feature-abilities": ["kids-onboarding-abilities-title"],
 }
 
 function animationDelayStyle(index: number, delayMs = 50): CSSProperties {
@@ -157,9 +161,7 @@ export function KidsOnboarding() {
   const pickConfirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   )
-  const steps = appConfig.features.readAloud
-    ? READ_ALOUD_STEPS
-    : NO_READ_ALOUD_STEPS
+  const steps = ONBOARDING_STEPS
   const step = steps[Math.min(stepIndex, steps.length - 1)]
   const stepPosition = tk(
     "kids-onboarding-step-position",
@@ -177,12 +179,20 @@ export function KidsOnboarding() {
     step !== "pick" &&
     step !== "reading-mode" &&
     step !== "start"
-  const narratorLineKey = STEP_NARRATOR_LINE_KEY[step]
+  const narratorLineKeys = STEP_NARRATOR_LINE_KEYS[step]
   const [lastNarratedStep, setLastNarratedStep] =
     useState<OnboardingStep | null>(null)
+  const [narrationPaused, setNarrationPaused] = useState(false)
   const pageStyle = {
     background: "linear-gradient(180deg, #C9E6F9 0%, #A5D2F0 100%)",
   } as CSSProperties
+
+  // The intro starts reading out loud by default. The child can pause it here
+  // or choose "I'll read it myself" on the reading-mode step. This is the
+  // buddy-guided narrator, independent of the book's own read-aloud audio.
+  useEffect(() => {
+    setReadAloud(true)
+  }, [setReadAloud])
 
   useEffect(() => {
     headingRef.current?.focus()
@@ -196,20 +206,32 @@ export function KidsOnboarding() {
     }
   }, [])
 
-  // Neutral narrator reads the current step's headline once per step entry,
-  // only while read-aloud is on — the "I'll read it myself" path stays
-  // fully silent (no autoplay, no play button).
+  // Neutral narrator reads the current step's title then its description once
+  // per step entry, while read-aloud is on and not paused — the "I'll read it
+  // myself" path (and an explicit pause) stays fully silent.
   useEffect(() => {
-    if (!readAloud || !narratorLineKey) return
+    if (!readAloud || narrationPaused || !narratorLineKeys) return
     if (lastNarratedStep === step) return
     setLastNarratedStep(step)
-    void playBuddyLine(language, KIDS_NARRATOR_ID, narratorLineKey)
-  }, [language, lastNarratedStep, narratorLineKey, readAloud, step])
+    void playBuddyLineSequence(language, KIDS_NARRATOR_ID, narratorLineKeys)
+  }, [language, lastNarratedStep, narratorLineKeys, narrationPaused, readAloud, step])
 
   const replayNarratorLine = useCallback(() => {
-    if (!narratorLineKey) return
-    void playBuddyLine(language, KIDS_NARRATOR_ID, narratorLineKey)
-  }, [language, narratorLineKey])
+    if (!narratorLineKeys) return
+    void playBuddyLineSequence(language, KIDS_NARRATOR_ID, narratorLineKeys)
+  }, [language, narratorLineKeys])
+
+  // Bottom-center play/pause toggle for the intro narration.
+  const toggleNarration = useCallback(() => {
+    setNarrationPaused((paused) => {
+      if (paused) {
+        replayNarratorLine()
+        return false
+      }
+      stopBuddyLine()
+      return true
+    })
+  }, [replayNarratorLine])
 
   const goNext = useCallback(() => {
     if (step === "name") setPlayerName(playerName)
@@ -313,19 +335,7 @@ export function KidsOnboarding() {
             <span className="min-h-12 min-w-12" aria-hidden="true" />
           )}
 
-          {readAloud && narratorLineKey ? (
-            <NarratorPlayButton
-              label={
-                lastNarratedStep === step
-                  ? tk("kids-onboarding-replay", "Read it again")
-                  : tk("kids-onboarding-play", "Read this to me")
-              }
-              onClick={replayNarratorLine}
-              reduceMotion={reduceMotion}
-            />
-          ) : (
-            <span className="min-h-12 min-w-12" aria-hidden="true" />
-          )}
+          <span className="min-h-12 min-w-12" aria-hidden="true" />
         </div>
 
         <div
@@ -428,7 +438,13 @@ export function KidsOnboarding() {
                   headingRef={headingRef}
                   stepPosition={stepPosition}
                   readAloud={readAloud}
-                  onReadAloudChange={setReadAloud}
+                  onReadAloudChange={(value) => {
+                    setReadAloud(value)
+                    // Choosing "Read it to me" clears any earlier pause so the
+                    // narrator resumes; "I'll read myself" stops it entirely.
+                    setNarrationPaused(false)
+                    if (!value) stopBuddyLine()
+                  }}
                 />
               ) : null}
               {step === "feature-pages" ? (
@@ -469,6 +485,21 @@ export function KidsOnboarding() {
             </div>
           </div>
         </div>
+
+        {readAloud && narratorLineKeys ? (
+          <div className="flex w-full shrink-0 items-center justify-center pb-1">
+            <NarratorPlayButton
+              paused={narrationPaused}
+              label={
+                narrationPaused
+                  ? tk("kids-onboarding-play", "Read this to me")
+                  : tk("kids-onboarding-pause", "Pause reading")
+              }
+              onClick={toggleNarration}
+              reduceMotion={reduceMotion}
+            />
+          </div>
+        ) : null}
 
         <ProgressDots steps={steps} index={stepIndex} />
       </div>
@@ -1033,7 +1064,7 @@ function FeatureAbilitiesStep({
       </StepTitle>
 
       <div
-        className="flex max-h-[min(52vh,28rem)] w-full flex-col gap-3 overflow-y-auto pr-1 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+        className="flex max-h-[min(52vh,28rem)] w-full flex-col gap-3 overflow-y-auto px-1.5 py-2 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
         role="region"
         aria-label={tk(
           "kids-onboarding-abilities-region",
@@ -1262,10 +1293,12 @@ function PrimaryButton({
 }
 
 function NarratorPlayButton({
+  paused,
   label,
   onClick,
   reduceMotion,
 }: {
+  paused: boolean
   label: string
   onClick: () => void
   reduceMotion: boolean
@@ -1274,6 +1307,7 @@ function NarratorPlayButton({
     <button
       type="button"
       data-testid="kids-onboarding-narrator-play"
+      aria-pressed={!paused}
       onClick={onClick}
       aria-label={label}
       title={label}
@@ -1283,7 +1317,11 @@ function NarratorPlayButton({
           "hover:-translate-y-[1px] hover:shadow-[0_4px_0_#DFA000] active:translate-y-[2px] active:shadow-[0_1px_0_#DFA000]",
       )}
     >
-      <Volume2 className="h-6 w-6" aria-hidden="true" />
+      {paused ? (
+        <Play className="h-6 w-6" fill="currentColor" aria-hidden="true" />
+      ) : (
+        <Pause className="h-6 w-6" fill="currentColor" aria-hidden="true" />
+      )}
     </button>
   )
 }

@@ -5,6 +5,7 @@
  * bundle free of the rest of the types package).
  */
 import {
+  getKidsIdlePhrases,
   getKidsPickPhrases,
   type KidsBuddyLine,
 } from "@adt/types/kids"
@@ -12,6 +13,9 @@ import {
 export type BuddyPhrase = KidsBuddyLine
 
 export const getPickPhrases = getKidsPickPhrases
+
+/** Ambient lines the buddy says unprompted while the child reads. */
+export const getIdlePhrases = getKidsIdlePhrases
 
 /** Random phrase from the pool, never repeating `current` when avoidable. */
 export function pickRandomPhrase(
