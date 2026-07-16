@@ -8,7 +8,7 @@ import {
   type RefObject,
 } from "react"
 import { useBuddySpeech } from "@/features/kids/hooks/useBuddySpeech"
-import { useAvailableLanguages } from "@/features/language/hooks/useAvailableLanguages"
+import { useKidsAvailableLanguages } from "@/features/kids/hooks/useKidsAvailableLanguages"
 import { BUDDY_LINES } from "@/features/kids/lib/buddy-lines"
 import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
 import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
@@ -42,9 +42,9 @@ export function KidsLanguageDialog() {
   const { tk } = useKidsTranslation()
   const [open, setOpen] = useAtom(kidsLanguageDialogOpenAtom)
   const [currentLanguage, setCurrentLanguage] = useAtom(currentLanguageAtom)
-  // Only the languages whose content is actually packaged in this book — a
-  // declared language with an empty texts.json would switch nothing.
-  const { languages, names } = useAvailableLanguages()
+  // Languages the kids reader can meaningfully switch to — the book content
+  // or the kids interface (buddy UI + onboarding + voices) is translated.
+  const { languages, names } = useKidsAvailableLanguages()
   const { say } = useBuddySpeech()
   const reduceMotion = usePrefersReducedMotion()
 

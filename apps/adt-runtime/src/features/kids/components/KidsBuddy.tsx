@@ -34,7 +34,7 @@ import {
   KidsResumeChip,
   KidsStoryMapDialog,
 } from "@/features/kids/components/kids-dialogs"
-import { useAvailableLanguages } from "@/features/language/hooks/useAvailableLanguages"
+import { useKidsAvailableLanguages } from "@/features/kids/hooks/useKidsAvailableLanguages"
 import { useBuddySpeech } from "@/features/kids/hooks/useBuddySpeech"
 import { useBuddyIdleChatter } from "@/features/kids/hooks/useBuddyIdleChatter"
 import { BUDDY_LINES } from "@/features/kids/lib/buddy-lines"
@@ -92,9 +92,10 @@ export function KidsBuddy() {
   const setAccessibilityDialogOpen = useSetAtom(kidsAccessibilityDialogOpenAtom)
   const chatter = useAtomValue(kidsBuddyChatterAtom)
   const setOnboardingDone = useSetAtom(kidsOnboardingDoneAtom)
-  // Only count languages whose content is actually packaged; a book may
-  // declare a language whose texts.json is empty (nothing to switch to).
-  const languageCount = useAvailableLanguages().languages.length
+  // Count languages the kids reader can meaningfully switch to (book content
+  // or the kids interface is translated) — a book may declare a language with
+  // nothing translated yet.
+  const languageCount = useKidsAvailableLanguages().languages.length
   const fabRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
   const panelCloseRef = useRef<HTMLButtonElement>(null)
