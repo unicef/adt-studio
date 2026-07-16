@@ -2,7 +2,11 @@ import fs from "node:fs"
 import path from "node:path"
 import crypto from "node:crypto"
 import yaml from "js-yaml"
-import type { SpeechFileEntry, TTSProviderConfig } from "@adt/types"
+import {
+  DEFAULT_OPENAI_TTS_MODEL_ID,
+  type SpeechFileEntry,
+  type TTSProviderConfig,
+} from "@adt/types"
 import type { RateLimiter, TTSSynthesizer, WhisperTranscriptionResult } from "@adt/llm"
 import { transcribeWithWhisper } from "@adt/llm"
 import { getBaseLanguage, normalizeLocale } from "./language-context.js"
@@ -17,7 +21,6 @@ const SAFE_LANGUAGE_RE = /^[A-Za-z0-9_-]+$/
 const SAFE_FORMAT_RE = /^[a-z0-9]+$/
 const DEFAULT_OPENAI_VOICE = "alloy"
 const DEFAULT_GEMINI_VOICE = "Kore"
-const DEFAULT_OPENAI_MODEL = "gpt-4o-mini-tts"
 const DEFAULT_AZURE_MODEL = "azure-tts"
 const DEFAULT_GEMINI_MODEL = "gemini-2.5-pro-preview-tts"
 const DEFAULT_AUDIO_FORMAT = "mp3"
@@ -158,7 +161,7 @@ export function resolveSpeechModel(
 
   if (provider === "azure") return DEFAULT_AZURE_MODEL
   if (provider === "gemini") return DEFAULT_GEMINI_MODEL
-  return defaultModel?.trim() || DEFAULT_OPENAI_MODEL
+  return defaultModel?.trim() || DEFAULT_OPENAI_TTS_MODEL_ID
 }
 
 export function resolveSpeechFormat(

@@ -1185,8 +1185,8 @@ msgstr "Aparência"
 msgid "Appears on pages {0}"
 msgstr "Aparece nas páginas {0}"
 
-msgid "Application"
-msgstr "Aplicativo"
+#~ msgid "Application"
+#~ msgstr "Aplicativo"
 
 msgid "Application Programming Interface — a set of rules that allows programs to communicate."
 msgstr "Interface de programação de aplicativos (API) — conjunto de regras que permite que programas se comuniquem."
@@ -1445,6 +1445,9 @@ msgstr "Idioma do livro"
 
 msgid "Book metadata (title, authors, publisher) was taken from this part and now appears in the Extract step, where you can edit it."
 msgstr "Os metadados do livro (título, autores, editora) foram extraídos desta parte e agora aparecem na etapa de Extração, onde você pode editá-los."
+
+msgid "Book model overrides updated."
+msgstr "Substituições de modelos do livro atualizadas."
 
 msgid "Book order"
 msgstr "Ordem do livro"
@@ -1715,8 +1718,8 @@ msgstr "Escolher imagens..."
 msgid "Choose Provider"
 msgstr "Escolher provedor"
 
-msgid "Choose the model used when a pipeline step does not specify its own model."
-msgstr "Escolha o modelo usado quando uma etapa da pipeline não especificar seu próprio modelo."
+#~ msgid "Choose the model used when a pipeline step does not specify its own model."
+#~ msgstr "Escolha o modelo usado quando uma etapa da pipeline não especificar seu próprio modelo."
 
 msgid "Choose the part file that was shared with you, or export it again."
 msgstr "Escolha o arquivo de parte que foi compartilhado com você, ou exporte-o novamente."
@@ -2196,14 +2199,20 @@ msgstr "Padrão (herdar)"
 msgid "Default (no text detected yet)"
 msgstr "Padrão (nenhum texto detectado ainda)"
 
+#~ msgid "Default LLM"
+#~ msgstr "LLM padrão"
+
+msgid "Default LLM updated."
+msgstr "LLM padrão atualizado."
+
 msgid "Default model"
 msgstr "Modelo padrão"
 
 msgid "Default model cannot be used as a template target."
 msgstr "O modelo padrão não pode ser usado como destino de template."
 
-msgid "Default model updated."
-msgstr "Modelo padrão atualizado."
+#~ msgid "Default model updated."
+#~ msgstr "Modelo padrão atualizado."
 
 #~ msgid "Default model uses the base prompt files and does not need model-specific copies."
 #~ msgstr "O modelo padrão usa os arquivos de prompt base e não precisa de cópias específicas por modelo."
@@ -2587,6 +2596,9 @@ msgstr "Cada bloco foi simplificado por IA. Edite qualquer texto de Leitura Fác
 msgid "Each iteration is one LLM call. Lower values are faster and cheaper; higher values give the reviewer more chances to fix problems."
 msgstr "Cada iteração é uma chamada LLM. Valores menores são mais rápidos e baratos; valores maiores dão ao revisor mais chances de corrigir problemas."
 
+msgid "Each kind of pipeline task uses a compatible model. Image generation and speech use their own task-specific defaults."
+msgstr "Cada tipo de tarefa do pipeline usa um modelo compatível. A geração de imagens e de fala usa seus próprios padrões específicos por tarefa."
+
 msgid "Each polyp secretes a hard calcium carbonate skeleton. Over hundreds of years, millions of these skeletons build up into the massive reef structures we see today."
 msgstr "Cada pólipo secreta um esqueleto duro de carbonato de cálcio. Ao longo de centenas de anos, milhões desses esqueletos formam as enormes estruturas de recifes que vemos hoje."
 
@@ -2757,6 +2769,9 @@ msgstr "Inglês"
 
 msgid "Enhancements"
 msgstr "Melhorias"
+
+msgid "Enter a model id for each task."
+msgstr "Informe um ID de modelo para cada tarefa."
 
 msgid "Enter a model id."
 msgstr "Informe um id de modelo."
@@ -3118,6 +3133,9 @@ msgstr "Fonte"
 
 msgid "Font Analysis"
 msgstr "Análise de Fontes"
+
+msgid "Font assignment, styleguide generation, and visual review also use this default unless overridden."
+msgstr "A atribuição de fontes, a geração do guia de estilo e a revisão visual também usam esse padrão, a menos que ele seja substituído."
 
 msgid "Fonts"
 msgstr "Fontes"
@@ -3577,6 +3595,9 @@ msgstr "Imagem gerada"
 msgid "Image Generation"
 msgstr "Geração de imagens"
 
+msgid "Image generation and editing"
+msgstr "Geração e edição de imagens"
+
 msgid "Image Generation Prompt"
 msgstr "Prompt de geração de imagem"
 
@@ -3711,8 +3732,8 @@ msgstr "Aumentar recuo"
 msgid "Individual sides"
 msgstr "Lados individuais"
 
-msgid "Individual steps can still override this model in their own settings."
-msgstr "Etapas individuais ainda podem substituir este modelo em suas próprias configurações."
+#~ msgid "Individual steps can still override this model in their own settings."
+#~ msgstr "Etapas individuais ainda podem substituir este modelo em suas próprias configurações."
 
 msgid "Infographic"
 msgstr "Infográfico"
@@ -3992,6 +4013,9 @@ msgstr "Segmentação de imagem por LLM"
 
 msgid "LLM meaningfulness filter"
 msgstr "Filtro de relevância por LLM"
+
+msgid "LLM model"
+msgstr "Modelo de LLM"
 
 msgid "LLM positions text over background images"
 msgstr "LLM posiciona texto sobre imagens de fundo"
@@ -4372,6 +4396,9 @@ msgstr "Modelo"
 
 #~ msgid "Model {normalizedTargetModel} added."
 #~ msgstr "Modelo {normalizedTargetModel} adicionado."
+
+msgid "Model overrides"
+msgstr "Substituições de modelos"
 
 #~ msgid "Model variant"
 #~ msgstr "Variante de modelo"
@@ -5032,6 +5059,12 @@ msgstr "Tokens de saída"
 msgid "Overall page note"
 msgstr "Overall page note"
 
+#~ msgid "Override specialized models for this book. Empty fields inherit the platform defaults."
+#~ msgstr "Substitua os modelos especializados para este livro. Campos vazios herdam os padrões da plataforma."
+
+msgid "Override the default LLM and specialized models for this book. Empty fields inherit the platform defaults."
+msgstr "Substitua o LLM padrão e os modelos especializados para este livro. Campos vazios herdam os padrões da plataforma."
+
 msgid "Overview"
 msgstr "Visão geral"
 
@@ -5364,8 +5397,8 @@ msgstr "Pipeline · extração"
 msgid "Pipeline · storyboard"
 msgstr "Pipeline · storyboard"
 
-msgid "Pipeline default"
-msgstr "Padrão da pipeline"
+#~ msgid "Pipeline default"
+#~ msgstr "Padrão da pipeline"
 
 msgid "Pipeline fallback model"
 msgstr "Modelo fallback da pipeline"
@@ -5379,11 +5412,26 @@ msgstr "Etapas do pipeline"
 msgid "Pipeline Stages"
 msgstr "Etapas do pipeline"
 
+msgid "Pipeline tasks using {savedModel}"
+msgstr "Tarefas do pipeline que usam {savedModel}"
+
 msgid "Pixel Art"
 msgstr "Pixel Art"
 
 msgid "Plants create sugar via <0>photosynthesis</0>, divide by <1>mitosis</1>, and absorb water by <2>osmosis</2>."
 msgstr "As plantas criam açúcar pela <0>fotossíntese</0>, dividem-se por <1>mitose</1>, e absorvem água por <2>osmose</2>."
+
+msgid "Platform default"
+msgstr "Padrão da plataforma"
+
+msgid "Platform default: {platformImageModel}"
+msgstr "Padrão da plataforma: {platformImageModel}"
+
+msgid "Platform default: {platformLlmModel}"
+msgstr "Padrão da plataforma: {platformLlmModel}"
+
+msgid "Platform default: {platformSpeechModel}"
+msgstr "Padrão da plataforma: {platformSpeechModel}"
 
 msgid "Play"
 msgstr "Reproduzir"
@@ -6786,6 +6834,9 @@ msgstr "Páginas específicas"
 msgid "Speech"
 msgstr "Fala"
 
+msgid "Speech generation"
+msgstr "Geração de fala"
+
 msgid "Speech Generation"
 msgstr "Geração de fala"
 
@@ -7050,6 +7101,15 @@ msgstr "Task Running"
 msgid "Task running..."
 msgstr "Tarefa em execução..."
 
+msgid "Task-specific defaults"
+msgstr "Padrões específicos por tarefa"
+
+#~ msgid "Task-specific model defaults"
+#~ msgstr "Padrões de modelo específicos por tarefa"
+
+msgid "Task-specific model defaults updated."
+msgstr "Padrões de modelos específicos por tarefa atualizados."
+
 msgid "Tasks Running"
 msgstr "Tasks Running"
 
@@ -7296,6 +7356,12 @@ msgstr "Estas páginas não têm camada de texto incorporada, mas a etapa de Sec
 
 msgid "These stages are optional. They don't depend on each other — run any of them in any order once the core pipeline is complete."
 msgstr "Essas etapas são opcionais. Elas não dependem umas das outras — execute qualquer uma em qualquer ordem após a conclusão do pipeline principal."
+
+msgid "These tasks inherit the default LLM unless their own settings specify another model."
+msgstr "Essas tarefas herdam o LLM padrão, a menos que suas próprias configurações especifiquem outro modelo."
+
+msgid "These tasks require specialized models and do not inherit the default LLM above."
+msgstr "Essas tarefas exigem modelos especializados e não herdam o LLM padrão acima."
 
 msgid "These values reflect either the saved book override or the latest packaged defaults."
 msgstr "These values reflect either the saved book override or the latest packaged defaults."
@@ -7680,8 +7746,17 @@ msgstr "Não foi possível excluir a pasta de prompts."
 msgid "Unable to load reviewer checklist settings."
 msgstr "Unable to load reviewer checklist settings."
 
-msgid "Unable to load the default model."
-msgstr "Não foi possível carregar o modelo padrão."
+msgid "Unable to load the default LLM."
+msgstr "Não foi possível carregar o LLM padrão."
+
+#~ msgid "Unable to load the default model."
+#~ msgstr "Não foi possível carregar o modelo padrão."
+
+msgid "Unable to load the model settings."
+msgstr "Não foi possível carregar as configurações de modelos."
+
+msgid "Unable to load the task-specific model defaults."
+msgstr "Não foi possível carregar os padrões de modelos específicos por tarefa."
 
 msgid "Unable to render PDF preview."
 msgstr "Não foi possível renderizar a pré-visualização do PDF."
@@ -7698,8 +7773,17 @@ msgstr "Não foi possível salvar o prompt global."
 msgid "Unable to select prompt version."
 msgstr "Não foi possível selecionar a versão do prompt."
 
-msgid "Unable to update the default model."
-msgstr "Não foi possível atualizar o modelo padrão."
+msgid "Unable to update the book model overrides."
+msgstr "Não foi possível atualizar as substituições de modelos do livro."
+
+msgid "Unable to update the default LLM."
+msgstr "Não foi possível atualizar o LLM padrão."
+
+#~ msgid "Unable to update the default model."
+#~ msgstr "Não foi possível atualizar o modelo padrão."
+
+msgid "Unable to update the task-specific model defaults."
+msgstr "Não foi possível atualizar os padrões de modelos específicos por tarefa."
 
 msgid "Unassign video"
 msgstr "Desatribuir vídeo"
@@ -7891,6 +7975,9 @@ msgstr "Use este formato para fazer backup do projeto ou movê-lo para outra má
 msgid "Used for"
 msgstr "Usada para"
 
+msgid "Used for AI image generation, editing, and these pipeline tasks:"
+msgstr "Usado para geração e edição de imagens com IA e para estas tarefas do pipeline:"
+
 msgid "Used for Azure Speech TTS provider."
 msgstr "Utilizada para o provedor de TTS do Azure Speech."
 
@@ -7899,6 +7986,12 @@ msgstr "Utilizada para modelos Claude (claude-opus-4-6, claude-sonnet-4-6, etc.)
 
 msgid "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)"
 msgstr "Utilizada para modelos Gemini — tanto LLM (gemini-2.5-pro, etc.) quanto TTS (gemini-2.5-pro-preview-tts, etc.)"
+
+msgid "Used for OpenAI text-to-speech in these pipeline tasks:"
+msgstr "Usado para conversão de texto em fala da OpenAI nestas tarefas do pipeline:"
+
+#~ msgid "Used for text generation and visual analysis when a step does not specify an LLM. Individual steps can still override it."
+#~ msgstr "Usado para geração de texto e análise visual quando uma etapa não especifica um LLM. Etapas individuais ainda podem substituí-lo."
 
 msgid "Used for this quiz"
 msgstr "Usada neste questionário"

@@ -5,6 +5,7 @@ export const SETTINGS_TAB_MESSAGE: Record<string, MessageDescriptor> = {
   general: msg`General`,
   overview: msg`Overview`,
   "api-keys": msg`API Keys`,
+  models: msg`Models`,
   "global-prompts": msg`Global Prompts`,
   fonts: msg`Fonts`,
   "image-processing": msg`Image Processing`,
@@ -45,7 +46,7 @@ export function getSettingsTabs(
   const tabs: Record<string, { key: string; label: string }[]> = {
     book: [
       { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE["api-keys"]) },
-      { key: "global-prompts", label: i18n._(SETTINGS_TAB_MESSAGE["global-prompts"]) },
+      { key: "models", label: i18n._(SETTINGS_TAB_MESSAGE.models) },
     ],
     extract: [
       { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE.general) },

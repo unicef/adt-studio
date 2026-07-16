@@ -1185,8 +1185,8 @@ msgstr "Appearance"
 msgid "Appears on pages {0}"
 msgstr "Appears on pages {0}"
 
-msgid "Application"
-msgstr "Application"
+#~ msgid "Application"
+#~ msgstr "Application"
 
 msgid "Application Programming Interface — a set of rules that allows programs to communicate."
 msgstr "Application Programming Interface — a set of rules that allows programs to communicate."
@@ -1445,6 +1445,9 @@ msgstr "Book Language"
 
 msgid "Book metadata (title, authors, publisher) was taken from this part and now appears in the Extract step, where you can edit it."
 msgstr "Book metadata (title, authors, publisher) was taken from this part and now appears in the Extract step, where you can edit it."
+
+msgid "Book model overrides updated."
+msgstr "Book model overrides updated."
 
 msgid "Book order"
 msgstr "Book order"
@@ -1715,8 +1718,8 @@ msgstr "Choose images..."
 msgid "Choose Provider"
 msgstr "Choose Provider"
 
-msgid "Choose the model used when a pipeline step does not specify its own model."
-msgstr "Choose the model used when a pipeline step does not specify its own model."
+#~ msgid "Choose the model used when a pipeline step does not specify its own model."
+#~ msgstr "Choose the model used when a pipeline step does not specify its own model."
 
 msgid "Choose the part file that was shared with you, or export it again."
 msgstr "Choose the part file that was shared with you, or export it again."
@@ -2196,14 +2199,20 @@ msgstr "Default (inherit)"
 msgid "Default (no text detected yet)"
 msgstr "Default (no text detected yet)"
 
+#~ msgid "Default LLM"
+#~ msgstr "Default LLM"
+
+msgid "Default LLM updated."
+msgstr "Default LLM updated."
+
 msgid "Default model"
 msgstr "Default model"
 
 msgid "Default model cannot be used as a template target."
 msgstr "Default model cannot be used as a template target."
 
-msgid "Default model updated."
-msgstr "Default model updated."
+#~ msgid "Default model updated."
+#~ msgstr "Default model updated."
 
 #~ msgid "Default model uses the base prompt files and does not need model-specific copies."
 #~ msgstr "Default model uses the base prompt files and does not need model-specific copies."
@@ -2587,6 +2596,9 @@ msgstr "Each block was simplified by AI. Edit any Easy Read text to refine it ag
 msgid "Each iteration is one LLM call. Lower values are faster and cheaper; higher values give the reviewer more chances to fix problems."
 msgstr "Each iteration is one LLM call. Lower values are faster and cheaper; higher values give the reviewer more chances to fix problems."
 
+msgid "Each kind of pipeline task uses a compatible model. Image generation and speech use their own task-specific defaults."
+msgstr "Each kind of pipeline task uses a compatible model. Image generation and speech use their own task-specific defaults."
+
 msgid "Each polyp secretes a hard calcium carbonate skeleton. Over hundreds of years, millions of these skeletons build up into the massive reef structures we see today."
 msgstr "Each polyp secretes a hard calcium carbonate skeleton. Over hundreds of years, millions of these skeletons build up into the massive reef structures we see today."
 
@@ -2757,6 +2769,9 @@ msgstr "English"
 
 msgid "Enhancements"
 msgstr "Enhancements"
+
+msgid "Enter a model id for each task."
+msgstr "Enter a model id for each task."
 
 msgid "Enter a model id."
 msgstr "Enter a model id."
@@ -3118,6 +3133,9 @@ msgstr "Font"
 
 msgid "Font Analysis"
 msgstr "Font Analysis"
+
+msgid "Font assignment, styleguide generation, and visual review also use this default unless overridden."
+msgstr "Font assignment, styleguide generation, and visual review also use this default unless overridden."
 
 msgid "Fonts"
 msgstr "Fonts"
@@ -3577,6 +3595,9 @@ msgstr "Image generated"
 msgid "Image Generation"
 msgstr "Image Generation"
 
+msgid "Image generation and editing"
+msgstr "Image generation and editing"
+
 msgid "Image Generation Prompt"
 msgstr "Image Generation Prompt"
 
@@ -3711,8 +3732,8 @@ msgstr "Increase indent"
 msgid "Individual sides"
 msgstr "Individual sides"
 
-msgid "Individual steps can still override this model in their own settings."
-msgstr "Individual steps can still override this model in their own settings."
+#~ msgid "Individual steps can still override this model in their own settings."
+#~ msgstr "Individual steps can still override this model in their own settings."
 
 msgid "Infographic"
 msgstr "Infographic"
@@ -3992,6 +4013,9 @@ msgstr "LLM image segmentation"
 
 msgid "LLM meaningfulness filter"
 msgstr "LLM meaningfulness filter"
+
+msgid "LLM model"
+msgstr "LLM model"
 
 msgid "LLM positions text over background images"
 msgstr "LLM positions text over background images"
@@ -4372,6 +4396,9 @@ msgstr "Model"
 
 #~ msgid "Model {normalizedTargetModel} added."
 #~ msgstr "Model {normalizedTargetModel} added."
+
+msgid "Model overrides"
+msgstr "Model overrides"
 
 #~ msgid "Model variant"
 #~ msgstr "Model variant"
@@ -5032,6 +5059,12 @@ msgstr "Output Tokens"
 msgid "Overall page note"
 msgstr "Overall page note"
 
+#~ msgid "Override specialized models for this book. Empty fields inherit the platform defaults."
+#~ msgstr "Override specialized models for this book. Empty fields inherit the platform defaults."
+
+msgid "Override the default LLM and specialized models for this book. Empty fields inherit the platform defaults."
+msgstr "Override the default LLM and specialized models for this book. Empty fields inherit the platform defaults."
+
 msgid "Overview"
 msgstr "Overview"
 
@@ -5364,8 +5397,8 @@ msgstr "Pipeline · extract"
 msgid "Pipeline · storyboard"
 msgstr "Pipeline · storyboard"
 
-msgid "Pipeline default"
-msgstr "Pipeline default"
+#~ msgid "Pipeline default"
+#~ msgstr "Pipeline default"
 
 msgid "Pipeline fallback model"
 msgstr "Pipeline fallback model"
@@ -5379,11 +5412,26 @@ msgstr "Pipeline stages"
 msgid "Pipeline Stages"
 msgstr "Pipeline Stages"
 
+msgid "Pipeline tasks using {savedModel}"
+msgstr "Pipeline tasks using {savedModel}"
+
 msgid "Pixel Art"
 msgstr "Pixel Art"
 
 msgid "Plants create sugar via <0>photosynthesis</0>, divide by <1>mitosis</1>, and absorb water by <2>osmosis</2>."
 msgstr "Plants create sugar via <0>photosynthesis</0>, divide by <1>mitosis</1>, and absorb water by <2>osmosis</2>."
+
+msgid "Platform default"
+msgstr "Platform default"
+
+msgid "Platform default: {platformImageModel}"
+msgstr "Platform default: {platformImageModel}"
+
+msgid "Platform default: {platformLlmModel}"
+msgstr "Platform default: {platformLlmModel}"
+
+msgid "Platform default: {platformSpeechModel}"
+msgstr "Platform default: {platformSpeechModel}"
 
 msgid "Play"
 msgstr "Play"
@@ -6786,6 +6834,9 @@ msgstr "Specific pages"
 msgid "Speech"
 msgstr "Speech"
 
+msgid "Speech generation"
+msgstr "Speech generation"
+
 msgid "Speech Generation"
 msgstr "Speech Generation"
 
@@ -7050,6 +7101,15 @@ msgstr "Task Running"
 msgid "Task running..."
 msgstr "Task running..."
 
+msgid "Task-specific defaults"
+msgstr "Task-specific defaults"
+
+#~ msgid "Task-specific model defaults"
+#~ msgstr "Task-specific model defaults"
+
+msgid "Task-specific model defaults updated."
+msgstr "Task-specific model defaults updated."
+
 msgid "Tasks Running"
 msgstr "Tasks Running"
 
@@ -7296,6 +7356,12 @@ msgstr "These pages have no embedded text layer, but the Sectioning step recover
 
 msgid "These stages are optional. They don't depend on each other — run any of them in any order once the core pipeline is complete."
 msgstr "These stages are optional. They don't depend on each other — run any of them in any order once the core pipeline is complete."
+
+msgid "These tasks inherit the default LLM unless their own settings specify another model."
+msgstr "These tasks inherit the default LLM unless their own settings specify another model."
+
+msgid "These tasks require specialized models and do not inherit the default LLM above."
+msgstr "These tasks require specialized models and do not inherit the default LLM above."
 
 msgid "These values reflect either the saved book override or the latest packaged defaults."
 msgstr "These values reflect either the saved book override or the latest packaged defaults."
@@ -7680,8 +7746,17 @@ msgstr "Unable to delete prompt folder."
 msgid "Unable to load reviewer checklist settings."
 msgstr "Unable to load reviewer checklist settings."
 
-msgid "Unable to load the default model."
-msgstr "Unable to load the default model."
+msgid "Unable to load the default LLM."
+msgstr "Unable to load the default LLM."
+
+#~ msgid "Unable to load the default model."
+#~ msgstr "Unable to load the default model."
+
+msgid "Unable to load the model settings."
+msgstr "Unable to load the model settings."
+
+msgid "Unable to load the task-specific model defaults."
+msgstr "Unable to load the task-specific model defaults."
 
 msgid "Unable to render PDF preview."
 msgstr "Unable to render PDF preview."
@@ -7698,8 +7773,17 @@ msgstr "Unable to save global prompt."
 msgid "Unable to select prompt version."
 msgstr "Unable to select prompt version."
 
-msgid "Unable to update the default model."
-msgstr "Unable to update the default model."
+msgid "Unable to update the book model overrides."
+msgstr "Unable to update the book model overrides."
+
+msgid "Unable to update the default LLM."
+msgstr "Unable to update the default LLM."
+
+#~ msgid "Unable to update the default model."
+#~ msgstr "Unable to update the default model."
+
+msgid "Unable to update the task-specific model defaults."
+msgstr "Unable to update the task-specific model defaults."
 
 msgid "Unassign video"
 msgstr "Unassign video"
@@ -7891,6 +7975,9 @@ msgstr "Use this format to back up the project or move it to another machine."
 msgid "Used for"
 msgstr "Used for"
 
+msgid "Used for AI image generation, editing, and these pipeline tasks:"
+msgstr "Used for AI image generation, editing, and these pipeline tasks:"
+
 msgid "Used for Azure Speech TTS provider."
 msgstr "Used for Azure Speech TTS provider."
 
@@ -7899,6 +7986,12 @@ msgstr "Used for Claude models (claude-opus-4-6, claude-sonnet-4-6, etc.)"
 
 msgid "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)"
 msgstr "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)"
+
+msgid "Used for OpenAI text-to-speech in these pipeline tasks:"
+msgstr "Used for OpenAI text-to-speech in these pipeline tasks:"
+
+#~ msgid "Used for text generation and visual analysis when a step does not specify an LLM. Individual steps can still override it."
+#~ msgstr "Used for text generation and visual analysis when a step does not specify an LLM. Individual steps can still override it."
 
 msgid "Used for this quiz"
 msgstr "Used for this quiz"

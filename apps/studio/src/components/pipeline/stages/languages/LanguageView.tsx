@@ -3,6 +3,7 @@ import { createPortal } from "react-dom"
 import { Link } from "@tanstack/react-router"
 import { AudioLines, ChevronDown, ChevronRight, ChevronUp, Languages, Loader2, Play, Pause, Plus, RotateCcw, Save, Settings, Trash2, Type, Upload, Volume2, VolumeX, WandSparkles, X } from "lucide-react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { DEFAULT_OPENAI_TTS_MODEL_ID } from "@adt/types"
 import { api, getAudioUrl, BASE_URL } from "@/api/client"
 import type { TextCatalogEntry, WordTimestamp, WordTimestampEntry } from "@/api/client"
 import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
@@ -48,7 +49,7 @@ import { useLingui } from "@lingui/react/macro"
 // Values are voice/model identifiers, not user-facing copy — display only.
 // eslint-disable-next-line lingui/no-unlocalized-strings -- voice identifiers
 const DEFAULT_TTS_VOICE: Record<string, string> = { openai: "alloy", azure: "en-US-JennyNeural", gemini: "Kore" }
-const DEFAULT_TTS_MODEL: Record<string, string> = { openai: "gpt-4o-mini-tts", azure: "azure-tts", gemini: "gemini-2.5-pro-preview-tts" }
+const DEFAULT_TTS_MODEL: Record<string, string> = { openai: DEFAULT_OPENAI_TTS_MODEL_ID, azure: "azure-tts", gemini: "gemini-2.5-pro-preview-tts" }
 
 export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageId, onSelectPage }: { bookLabel: string; stageSlug?: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
   const isSpeechStage = stageSlug === "speech"
@@ -531,7 +532,14 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
         ? ((speechConfig as Record<string, unknown>).default_provider as string)
         : undefined) ?? "openai"
     const defaultVoice = DEFAULT_TTS_VOICE[provider] ?? DEFAULT_TTS_VOICE.openai
-    const defaultModel = DEFAULT_TTS_MODEL[provider] ?? DEFAULT_TTS_MODEL.openai
+    const configuredOpenAIDefault =
+      typeof merged?.default_speech_generation_model === "string"
+        ? merged.default_speech_generation_model
+        : DEFAULT_TTS_MODEL.openai
+    const defaultModel =
+      provider === "openai"
+        ? configuredOpenAIDefault
+        : DEFAULT_TTS_MODEL[provider] ?? configuredOpenAIDefault
     if (!speechConfig || typeof speechConfig !== "object") {
       return { provider, voice: defaultVoice, model: defaultModel }
     }
@@ -541,7 +549,7 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
     const providers = sc.providers as Record<string, Record<string, unknown>> | undefined
     const providerModel = providers?.[provider]?.model as string | undefined
     return { provider, voice, model: providerModel ?? model ?? defaultModel }
-  }, [speechConfig])
+  }, [merged?.default_speech_generation_model, speechConfig])
 
   const headerControls = catalog ? (
     <div className="flex items-center gap-1.5 ml-auto">

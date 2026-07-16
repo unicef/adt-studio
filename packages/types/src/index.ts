@@ -62,6 +62,7 @@ export {
 export {
   StepName,
   StageName,
+  ModelDefaultKind,
   type StepDef,
   type StageDef,
   PIPELINE,
@@ -69,6 +70,7 @@ export {
   STEP_TO_STAGE,
   STAGE_BY_NAME,
   ALL_STEP_NAMES,
+  STEPS_BY_DEFAULT_MODEL_KIND,
   PAGE_PROGRESS_STEPS,
   BOOK_LEVEL_STAGES,
 } from "./pipeline.js"
@@ -110,8 +112,12 @@ export {
   StyleguideName,
   DEFAULT_LLM_MAX_RETRIES,
   DEFAULT_LLM_MODEL_ID,
+  DEFAULT_IMAGE_GENERATION_MODEL_ID,
+  DEFAULT_OPENAI_TTS_MODEL_ID,
   LLMModelId,
+  SpeechGenerationModelId,
   DefaultModelConfig,
+  SpecializedModelDefaultsConfig,
   StepConfig,
   QuizGenerationConfig,
   EasyReadConfig,

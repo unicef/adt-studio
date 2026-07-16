@@ -31,7 +31,7 @@ export function SettingsNavigation({ activeSection }: { activeSection: SettingsS
   ]
 
   return (
-    <aside className="shrink-0 border-b md:w-64 md:border-b-0 md:border-r">
+    <aside className="shrink-0 border-b bg-muted/20 md:w-64 md:border-b-0 md:border-r">
       <nav aria-label={t`Settings navigation`} className="grid grid-cols-3 gap-1 p-2 md:flex md:flex-col md:px-3">
         {items.map(({ section, icon: Icon, label, shortLabel }) => {
           const isActive = activeSection === section
@@ -42,10 +42,10 @@ export function SettingsNavigation({ activeSection }: { activeSection: SettingsS
               search={{ section }}
               aria-current={isActive ? "page" : undefined}
               className={cn(
-                "flex min-h-8 min-w-0 items-center gap-2 rounded-lg p-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "flex min-h-10 min-w-0 items-center gap-2 rounded-md border p-2 text-left transition-[background-color,border-color,color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 isActive
-                  ? "bg-accent text-accent-foreground"
-                  : "text-muted-foreground hover:bg-accent/60 hover:text-foreground",
+                  ? "border-border bg-background text-foreground"
+                  : "border-transparent text-muted-foreground hover:border-border/70 hover:bg-background/60 hover:text-foreground",
               )}
             >
               <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />

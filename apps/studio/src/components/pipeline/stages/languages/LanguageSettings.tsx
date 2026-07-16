@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router"
 import { Lock, ArrowLeft } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import type { StageName } from "@adt/types"
+import { DEFAULT_IMAGE_GENERATION_MODEL_ID, type StageName } from "@adt/types"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -78,6 +78,10 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
   }
 
   const merged = activeConfigData?.merged as Record<string, unknown> | undefined
+  const defaultImageGenerationModel =
+    typeof merged?.default_image_generation_model === "string"
+      ? merged.default_image_generation_model
+      : DEFAULT_IMAGE_GENERATION_MODEL_ID
   const translation = useStepConfig(merged, "translation", markDirty)
   const imageTranslation = useStepConfig(merged, "image_translation", markDirty)
 
@@ -365,7 +369,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
             <ModelSelect
               value={imageModel}
               onChange={(v) => { setImageModel(v); markDirty("image_translation") }}
-              placeholder="openai:gpt-image-2"
+              placeholder={defaultImageGenerationModel}
               groups={IMAGE_MODEL_GROUPS}
               prefixProvider
               className="max-w-md"

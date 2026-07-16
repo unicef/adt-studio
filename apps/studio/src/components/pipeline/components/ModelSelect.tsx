@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react"
-import { ChevronDown, X } from "lucide-react"
+import { Check, ChevronDown, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { useLingui } from "@lingui/react/macro"
 
@@ -12,7 +12,8 @@ interface ModelSelectProps {
   inputId?: string
   value: string
   onChange: (value: string) => void
-  placeholder?: string
+  /** Task-specific example or fallback shown while the field is empty. */
+  placeholder: string
   groups: ModelGroup[]
   /** CSS classes for the outer container (width, margin, etc.) */
   className?: string
@@ -29,7 +30,7 @@ export function ModelSelect({
   inputId,
   value,
   onChange,
-  placeholder = "openai:gpt-5.4",
+  placeholder,
   groups,
   className,
   inputClassName,
@@ -160,16 +161,16 @@ export function ModelSelect({
             onKeyDown={handleInputKeyDown}
             placeholder={placeholder}
             className={cn(
-              "flex h-10 w-full rounded-md border border-input bg-background pl-3 pr-16 py-2 text-base ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+              "flex h-10 w-full rounded-md border border-input bg-background py-2 pl-3 pr-20 text-base ring-offset-background transition-[border-color,box-shadow] duration-150 placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
               inputClassName
             )}
           />
-          <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+          <div className="absolute right-0 top-1/2 flex -translate-y-1/2 items-center">
             {value && !disabled && (
               <button
                 type="button"
                 onClick={clearValue}
-                className="p-1 rounded hover:bg-muted text-muted-foreground"
+                className="grid size-10 place-items-center text-muted-foreground transition-[background-color,color,transform] duration-150 ease-out hover:bg-muted/70 hover:text-foreground motion-safe:active:scale-[0.96]"
                 tabIndex={-1}
                 aria-label={t`Clear model`}
               >
@@ -180,21 +181,21 @@ export function ModelSelect({
               type="button"
               disabled={disabled}
               onClick={() => { setOpen(!open); if (!open) inputRef.current?.focus() }}
-              className="p-1 rounded hover:bg-muted text-muted-foreground"
+              className="grid size-10 place-items-center text-muted-foreground transition-[background-color,color,transform] duration-150 ease-out hover:bg-muted/70 hover:text-foreground motion-safe:active:scale-[0.96]"
               tabIndex={-1}
               aria-label={t`Toggle model list`}
             >
-              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", open && "rotate-180")} />
+              <ChevronDown className={cn("size-3.5", open && "rotate-180")} />
             </button>
           </div>
         </div>
       </div>
 
       {open && filtered.length > 0 && (
-        <div className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-md border bg-popover text-popover-foreground shadow-md">
+        <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-md border bg-popover text-popover-foreground">
           {filtered.map((group) => (
             <div key={group.provider}>
-              <div className="px-3 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              <div className="sticky top-0 z-10 border-b bg-popover px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                 {group.provider}
               </div>
               {group.models.map((model) => {
@@ -206,12 +207,15 @@ export function ModelSelect({
                     type="button"
                     onClick={() => selectModel(group.provider, model)}
                     className={cn(
-                      "flex w-full items-center px-3 py-1.5 text-sm cursor-pointer hover:bg-accent hover:text-accent-foreground",
-                      isSelected && "bg-accent text-accent-foreground"
+                      "flex min-h-10 w-full cursor-pointer items-center px-3 py-2 text-left font-mono text-sm transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                      isSelected && "bg-primary/10 text-foreground"
                     )}
                   >
-                    {prefixProvider && <span className="text-muted-foreground mr-1">{group.provider}:</span>}
-                    <span>{model}</span>
+                    <span className="min-w-0 flex-1 truncate">
+                      {prefixProvider && <span className="mr-1 text-muted-foreground">{group.provider}:</span>}
+                      <span>{model}</span>
+                    </span>
+                    {isSelected && <Check className="ml-2 size-3.5 shrink-0 text-primary" aria-hidden="true" />}
                   </button>
                 )
               })}

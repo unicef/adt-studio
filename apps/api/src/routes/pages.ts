@@ -4,7 +4,7 @@ import path from "node:path"
 import { z } from "zod"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel, ImageClassificationOutput, PageSectioningOutput, WebRenderingOutput, ImageCaptioningOutput, ImageSegmentRegion, DEFAULT_LLM_MAX_RETRIES, primaryFontFamily, reflowableFontChain, BookFontRegistry, bookBodyFont, bookFontFamilyChain } from "@adt/types"
+import { parseBookLabel, ImageClassificationOutput, PageSectioningOutput, WebRenderingOutput, ImageCaptioningOutput, ImageSegmentRegion, DEFAULT_IMAGE_GENERATION_MODEL_ID, DEFAULT_LLM_MAX_RETRIES, primaryFontFamily, reflowableFontChain, BookFontRegistry, bookBodyFont, bookFontFamilyChain } from "@adt/types"
 import type { ContentNodeData, ExtractionWarning } from "@adt/types"
 import { classifyExtractionWarning, flattenVisibleSectioningText } from "../services/extraction-warning.js"
 import { openBookDb } from "@adt/storage"
@@ -188,6 +188,7 @@ interface AiImageGenParams {
   /** "swap" replaces targetImageId, "add" appends to section */
   mode?: "swap" | "add"
   booksDir: string
+  modelId: string
 }
 
 async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
@@ -196,6 +197,7 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
   const {
     bookDir, dbPath, apiKey, pageId, prompt,
     referenceImageId, targetImageId, style, imageType, styleImageId, promptsDir,
+    modelId,
   } = params
 
   // Choose the correct prompt template: edit vs generate
@@ -284,7 +286,7 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
   try {
     generated = await generateImageWithCache({
       apiKey,
-      modelId: "openai:gpt-image-2",
+      modelId,
       prompt: finalPrompt,
       size: size as `${number}x${number}`,
       referenceImages,
@@ -1934,7 +1936,7 @@ export function createPageRoutes(
     }
   })
 
-  // POST /books/:label/images/ai-generate — Generate image via gpt-image-2
+  // POST /books/:label/images/ai-generate — Generate or edit an image.
   app.post("/books/:label/images/ai-generate", async (c) => {
     try {
       const { label } = c.req.param()
@@ -1996,6 +1998,10 @@ export function createPageRoutes(
       const desc = referenceImageId
         ? `Editing image ${referenceImageId}`
         : `Generating image for ${pageId}`
+      const modelId = configPath
+        ? loadBookConfig(safeLabel, booksDir, configPath)
+            .default_image_generation_model ?? DEFAULT_IMAGE_GENERATION_MODEL_ID
+        : DEFAULT_IMAGE_GENERATION_MODEL_ID
 
       // Submit as task if TaskService is available
       if (taskService) {
@@ -2009,6 +2015,7 @@ export function createPageRoutes(
               prompt, referenceImageId, targetImageId,
               style, imageType, styleImageId, promptsDir,
               sectionIndex, mode, booksDir,
+              modelId,
             })
           },
           { pageId, url: `/books/${safeLabel}/storyboard/${pageId}` }
@@ -2022,6 +2029,7 @@ export function createPageRoutes(
         prompt, referenceImageId, targetImageId,
         style, imageType, styleImageId, promptsDir,
         sectionIndex, mode, booksDir,
+        modelId,
       })
       return c.json(result)
     } catch (err) {

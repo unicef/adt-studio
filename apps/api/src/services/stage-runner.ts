@@ -2115,7 +2115,8 @@ async function runSpeechStep(
     const voiceMaps = loadVoicesConfig(configDir)
     const instructionsMap = loadSpeechInstructions(configDir)
 
-    const speechModel = config.speech?.model
+    const speechModel =
+      config.speech?.model ?? config.default_speech_generation_model
     const defaultProvider = config.speech?.default_provider ?? "openai"
     const providerConfigs = config.speech?.providers ?? {}
     const routing: ProviderRouting = { providers: providerConfigs, defaultProvider }

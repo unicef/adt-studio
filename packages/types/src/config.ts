@@ -6,6 +6,8 @@ import { REFLOWABLE_FONT_SETTINGS } from "./reflowable-fonts.js"
 
 export const DEFAULT_LLM_MAX_RETRIES = 5
 export const DEFAULT_LLM_MODEL_ID = "openai:gpt-5.4"
+export const DEFAULT_IMAGE_GENERATION_MODEL_ID = "openai:gpt-image-2"
+export const DEFAULT_OPENAI_TTS_MODEL_ID = "gpt-4o-mini-tts"
 
 export const LLMModelId = z
   .string()
@@ -14,10 +16,25 @@ export const LLMModelId = z
   .transform((value) => value.toLowerCase())
 export type LLMModelId = z.infer<typeof LLMModelId>
 
+export const SpeechGenerationModelId = z
+  .string()
+  .trim()
+  .regex(/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,159}$/)
+  .transform((value) => value.toLowerCase())
+export type SpeechGenerationModelId = z.infer<typeof SpeechGenerationModelId>
+
 export const DefaultModelConfig = z.object({
   model: LLMModelId,
 })
 export type DefaultModelConfig = z.infer<typeof DefaultModelConfig>
+
+export const SpecializedModelDefaultsConfig = z.object({
+  imageGeneration: LLMModelId,
+  speechGeneration: SpeechGenerationModelId,
+})
+export type SpecializedModelDefaultsConfig = z.infer<
+  typeof SpecializedModelDefaultsConfig
+>
 
 export const RateLimitConfig = z.object({
   requests_per_minute: z.number().int().min(1),
@@ -54,7 +71,7 @@ export type PageSectioningConfig = z.infer<typeof PageSectioningConfig>
 
 export const ImageTranslationConfig = StepConfig.extend({
   enabled: z.boolean().optional(),
-  /** Image model id (e.g. "openai:gpt-image-2"). When unset, the step is a no-op. */
+  /** Step-specific image model id. When unset, the book/platform default is used. */
   image_model: z.string().optional(),
   /** Image IDs the user has chosen to translate. Empty = no images regenerated. */
   selected_image_ids: z.array(z.string()).optional(),
@@ -122,6 +139,8 @@ export type AccessibilityAssessmentConfig = z.infer<typeof AccessibilityAssessme
 export const AppConfig = z
   .object({
     default_model: LLMModelId.optional(),
+    default_image_generation_model: LLMModelId.optional(),
+    default_speech_generation_model: SpeechGenerationModelId.optional(),
     structure_types: z.record(z.string(), z.string()),
     role_types: z.record(z.string(), z.string()),
     section_types: z.record(z.string(), z.string()).optional(),

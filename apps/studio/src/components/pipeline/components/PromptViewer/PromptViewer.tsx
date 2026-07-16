@@ -30,6 +30,7 @@ import {
   promptNameForSelectedModel,
 } from "./promptModel"
 import type { PromptViewerProps } from "./types"
+import { useEffectiveDefaultModel } from "@/hooks/use-effective-default-model"
 
 export function PromptViewer({
   promptName,
@@ -42,7 +43,7 @@ export function PromptViewer({
   onContentChange,
   maxRetries,
   onMaxRetriesChange,
-  modelPlaceholder = "openai:gpt-5.4",
+  modelPlaceholder,
   modelGroups = LLM_MODEL_GROUPS,
   enabled = true,
   hideModel = false,
@@ -50,6 +51,8 @@ export function PromptViewer({
 }: PromptViewerProps) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
+  const effectiveDefaultModel = useEffectiveDefaultModel(bookLabel)
+  const resolvedModelPlaceholder = modelPlaceholder ?? effectiveDefaultModel
   const promptModelId = hideModel
     ? null
     : promptModelForSelectedModel(model)
@@ -184,7 +187,7 @@ export function PromptViewer({
                 <ModelSelect
                   value={model ?? ""}
                   onChange={handleModelChange}
-                  placeholder={modelPlaceholder}
+                  placeholder={resolvedModelPlaceholder}
                   groups={modelGroups}
                   className="min-w-0 flex-1"
                   inputClassName="h-9 text-xs"

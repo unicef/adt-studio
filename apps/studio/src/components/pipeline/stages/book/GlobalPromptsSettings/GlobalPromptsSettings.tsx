@@ -410,7 +410,7 @@ export function GlobalPromptsSettings({
       className={
         embedded
           ? "flex h-[72vh] min-h-130 flex-col gap-3 p-4"
-          : "flex h-full min-h-[calc(100vh-2.5rem)] flex-col gap-4 p-4"
+          : "flex h-full min-h-[calc(100vh-2.5rem)] flex-col gap-4 p-5"
       }
     >
       <div className="flex shrink-0 flex-col gap-3">

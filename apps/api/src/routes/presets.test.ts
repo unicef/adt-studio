@@ -64,3 +64,62 @@ describe("global default model", () => {
     expect(response.status).toBe(400)
   })
 })
+
+describe("global specialized model defaults", () => {
+  it("returns built-in defaults when no overrides are configured", async () => {
+    const response = await createPresetRoutes(configPath).request(
+      "/config/specialized-model-defaults",
+    )
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({
+      imageGeneration: "openai:gpt-image-2",
+      speechGeneration: "gpt-4o-mini-tts",
+    })
+  })
+
+  it("updates both defaults without discarding config formatting", async () => {
+    const app = createPresetRoutes(configPath)
+    const response = await app.request(
+      "/config/specialized-model-defaults",
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageGeneration: " OpenAI:DALL-E-3 ",
+          speechGeneration: " TTS-1-HD ",
+        }),
+      },
+    )
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({
+      imageGeneration: "openai:dall-e-3",
+      speechGeneration: "tts-1-hd",
+    })
+    const content = fs.readFileSync(configPath, "utf-8")
+    expect(content).toContain("# keep this comment")
+    expect(content).toContain(
+      'default_image_generation_model: "openai:dall-e-3"',
+    )
+    expect(content).toContain(
+      'default_speech_generation_model: "tts-1-hd"',
+    )
+  })
+
+  it("rejects invalid specialized model ids", async () => {
+    const response = await createPresetRoutes(configPath).request(
+      "/config/specialized-model-defaults",
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imageGeneration: "gpt-image-2",
+          speechGeneration: "../invalid",
+        }),
+      },
+    )
+
+    expect(response.status).toBe(400)
+  })
+})

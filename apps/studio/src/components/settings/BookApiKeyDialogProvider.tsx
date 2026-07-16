@@ -1,9 +1,21 @@
-import { useMemo } from "react"
-import { Trans } from "@lingui/react/macro"
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react"
 import { useApiKey } from "@/hooks/use-api-key"
 import { ApiKeyDialog } from "./ApiKeyDialog"
 
-export function ApiKeysSettings() {
+type BookApiKeyDialogContextValue = {
+  openApiKeyDialog: () => void
+}
+
+const BookApiKeyDialogContext = createContext<BookApiKeyDialogContextValue>({
+  openApiKeyDialog: () => {},
+})
+
+export function useBookApiKeyDialog() {
+  return useContext(BookApiKeyDialogContext)
+}
+
+export function BookApiKeyDialogProvider({ children }: { children: ReactNode }) {
+  const [open, setOpen] = useState(false)
   const {
     apiKey,
     setApiKey,
@@ -22,29 +34,25 @@ export function ApiKeysSettings() {
     setGeminiKey,
   } = useApiKey()
 
-  const saveGoogleKey = useMemo(
-    () => (key: string) => {
+  const openApiKeyDialog = useCallback(() => setOpen(true), [])
+  const saveGoogleKey = useCallback(
+    (key: string) => {
       setGoogleKey(key)
       setGeminiKey(key)
     },
     [setGeminiKey, setGoogleKey],
   )
+  const contextValue = useMemo(
+    () => ({ openApiKeyDialog }),
+    [openApiKeyDialog],
+  )
 
   return (
-    <div className="mx-auto flex w-full flex-col gap-6 p-5">
-      <header>
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
-          <Trans>API keys</Trans>
-        </h1>
-        <p className="mt-1.5 max-w-2xl text-sm leading-6 text-muted-foreground">
-          <Trans>Configure provider credentials used by AI pipeline features on this machine.</Trans>
-        </p>
-      </header>
-
+    <BookApiKeyDialogContext value={contextValue}>
+      {children}
       <ApiKeyDialog
-        embedded
-        open
-        onOpenChange={() => {}}
+        open={open}
+        onOpenChange={setOpen}
         apiKey={apiKey}
         onSaveApiKey={setApiKey}
         anthropicKey={anthropicKey}
@@ -60,6 +68,6 @@ export function ApiKeysSettings() {
         azureRegion={azureRegion}
         onSaveAzureRegion={setAzureRegion}
       />
-    </div>
+    </BookApiKeyDialogContext>
   )
 }

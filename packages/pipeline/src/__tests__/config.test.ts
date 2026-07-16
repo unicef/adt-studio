@@ -77,6 +77,8 @@ describe("loadBookConfig", () => {
   paragraph: Paragraph
 role_types:
   heading: Heading
+default_image_generation_model: openai:gpt-image-2
+default_speech_generation_model: gpt-4o-mini-tts
 page_sectioning:
   prompt: page_sectioning
   model: openai:gpt-4o
@@ -93,6 +95,8 @@ pruned_role_types:
       `concurrency: 7
 start_page: 3
 end_page: 8
+default_image_generation_model: openai:dall-e-3
+default_speech_generation_model: tts-1-hd
 pruned_role_types:
   - footer
 `
@@ -106,6 +110,8 @@ pruned_role_types:
     expect(config.start_page).toBe(3)
     expect(config.end_page).toBe(8)
     expect(config.pruned_role_types).toEqual(["footer"])
+    expect(config.default_image_generation_model).toBe("openai:dall-e-3")
+    expect(config.default_speech_generation_model).toBe("tts-1-hd")
   })
 
   it("rejects invalid persisted page ranges", () => {
