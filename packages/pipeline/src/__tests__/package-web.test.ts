@@ -15,7 +15,7 @@ import {
   convertLatexToMathml,
   convertLatexString,
 } from "../packaging/web.js"
-import { packageWebpub, nestTocEntries, injectActivitiesBundle } from "../packaging/webpub.js"
+import { packageWebpub, nestTocEntries, injectActivitiesBundle, injectFixedLayoutScaler } from "../packaging/webpub.js"
 
 function createMockStorage(
   pages: PageData[],
@@ -2096,6 +2096,45 @@ describe("injectWebpubStyles", () => {
   })
 })
 
+describe("injectFixedLayoutScaler", () => {
+  let tmpDir: string
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "inject-scaler-"))
+  })
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  const fixedPage = (): string =>
+    `<html><head></head><body style="margin:0;overflow:hidden;width:595px;height:420px"><main><div id="content" data-fl-reference-width="595" style="position:relative;width:595px;height:420px;margin:0 auto;overflow:hidden"></div></main></body></html>`
+
+  it("injects the scaler into fixed-layout pages and skips reflowable ones", () => {
+    const fixed = path.join(tmpDir, "index.html")
+    const reflow = path.join(tmpDir, "quiz.html")
+    fs.writeFileSync(fixed, fixedPage())
+    fs.writeFileSync(reflow, `<html><head></head><body><div id="content"><p>reflow</p></div></body></html>`)
+
+    injectFixedLayoutScaler(tmpDir)
+
+    const fixedOut = fs.readFileSync(fixed, "utf-8")
+    expect(fixedOut).toContain('id="fl-scaler"')
+    expect(fixedOut).toContain("window.innerWidth / w")
+    expect(fixedOut).toContain("window.addEventListener(\"resize\", fit)")
+    expect(fixedOut).toContain("parseFloat(content.style.width)")
+    expect(fs.readFileSync(reflow, "utf-8")).not.toContain("fl-scaler")
+  })
+
+  it("does not double-inject", () => {
+    const fixed = path.join(tmpDir, "index.html")
+    fs.writeFileSync(fixed, fixedPage())
+    injectFixedLayoutScaler(tmpDir)
+    injectFixedLayoutScaler(tmpDir)
+    const out = fs.readFileSync(fixed, "utf-8")
+    expect(out.match(/id="fl-scaler"/g)).toHaveLength(1)
+  })
+})
+
 describe("packageWebpub", () => {
   let tmpDir: string
 
@@ -2245,6 +2284,28 @@ describe("packageWebpub", () => {
       type: "application/webpub+json",
     })
     expect(manifest.resources.length).toBeGreaterThan(0)
+  })
+
+  it("declares fixed layout in the manifest for fixed-layout books", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage)
+    packageWebpub(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "My Test Book",
+      webAssetsDir,
+      fixedLayout: true,
+    })
+
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
+    )
+    expect(manifest.metadata.presentation.layout).toBe("fixed")
+    expect(manifest.metadata.presentation.fit).toBe("contain")
+    expect(manifest.metadata.presentation.spread).toBe("none")
+    expect(manifest.metadata.presentation.overflow).toBeUndefined()
   })
 
   it("emits pageList and landmarks navigation collections", async () => {

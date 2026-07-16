@@ -80,6 +80,10 @@ export function packageWebpub(
   // and validates answers (the bundle file survives stripRuntimeBundle).
   injectActivitiesBundle(webpubDir)
 
+  if (options.fixedLayout) {
+    injectFixedLayoutScaler(webpubDir)
+  }
+
   // Load metadata for manifest
   const metadataRow = storage.getLatestNodeData("metadata", "book")
   const metadata = metadataRow?.data as BookMetadata | undefined
@@ -89,12 +93,12 @@ export function packageWebpub(
     title,
     language: availableLanguages.length > 0 ? availableLanguages : [options.language],
     modified: new Date().toISOString(),
-    // Tell readers to scroll each page rather than paginating into columns,
-    // and not to display two pages side-by-side (spread).
-    presentation: {
-      overflow: "scrolled",
-      spread: "none",
-    },
+    // Fixed-layout books must be declared fixed (like the EPUB OPF's
+    // rendition:layout). Otherwise a reader treats the absolutely-positioned
+    // page as reflowable and it collapses to 0 height.
+    presentation: options.fixedLayout
+      ? { layout: "fixed", fit: "contain", spread: "none" }
+      : { overflow: "scrolled", spread: "none" },
   }
   if (metadata?.authors?.length) {
     manifestMetadata.author = metadata.authors.join(", ")
@@ -206,6 +210,23 @@ function buildTocCollection(webpubDir: string): TocLink[] {
   }
 }
 
+/**
+ * Walk every `.html` file under `dir` and run `transform` on its contents.
+ * A returned string is written back; `null` leaves the file untouched.
+ */
+function transformHtmlFiles(dir: string, transform: (html: string) => string | null): void {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name)
+    if (entry.isDirectory()) {
+      transformHtmlFiles(fullPath, transform)
+    } else if (entry.isFile() && entry.name.endsWith(".html")) {
+      const html = fs.readFileSync(fullPath, "utf-8")
+      const next = transform(html)
+      if (next !== null && next !== html) fs.writeFileSync(fullPath, next)
+    }
+  }
+}
+
 const ACTIVITY_SECTION_MARKER = 'data-section-type="activity_'
 const ACTIVITIES_SCRIPT_TAG = '    <script src="./assets/activities.bundle.local.js"></script>\n'
 
@@ -215,17 +236,65 @@ const ACTIVITIES_SCRIPT_TAG = '    <script src="./assets/activities.bundle.local
  * boot an idle runtime.
  */
 export function injectActivitiesBundle(dir: string): void {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const fullPath = path.join(dir, entry.name)
-    if (entry.isDirectory()) {
-      injectActivitiesBundle(fullPath)
-    } else if (entry.isFile() && entry.name.endsWith(".html")) {
-      const html = fs.readFileSync(fullPath, "utf-8")
-      if (!html.includes(ACTIVITY_SECTION_MARKER)) continue
-      if (html.includes("activities.bundle.local.js")) continue
-      fs.writeFileSync(fullPath, html.replace("</body>", `${ACTIVITIES_SCRIPT_TAG}</body>`))
-    }
-  }
+  transformHtmlFiles(dir, (html) => {
+    if (!html.includes(ACTIVITY_SECTION_MARKER)) return null
+    if (html.includes("activities.bundle.local.js")) return null
+    return html.replace("</body>", `${ACTIVITIES_SCRIPT_TAG}</body>`)
+  })
+}
+
+// Self-contained scaler: fits `#content` to the viewport for readers that
+// don't honor the manifest's fixed-layout hint. The `!important` rules override
+// the fixed-layout CSS injected in <head> so the page can flex-center.
+const FIXED_LAYOUT_SCALER = `    <style id="fl-scaler">
+      html, body { width: 100% !important; height: 100% !important; }
+      body {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 !important;
+        overflow: hidden !important;
+      }
+      #content { flex: none !important; margin: 0 !important; transform-origin: center center !important; }
+    </style>
+    <script>
+      (function () {
+        var content = document.getElementById("content")
+        if (!content) return
+        // Declared size, not offsetWidth — a page preloaded hidden reports 0.
+        var w = parseFloat(content.style.width) || content.offsetWidth
+        var h = parseFloat(content.style.height) || content.offsetHeight
+        if (!w || !h) return
+        function fit() {
+          content.style.transform = "scale(" + Math.min(window.innerWidth / w, window.innerHeight / h) + ")"
+        }
+        fit()
+        window.addEventListener("resize", fit)
+      })()
+    </script>
+`
+
+/** A fixed-layout page — its `#content` carries explicit pixel dimensions. */
+function isFixedLayoutPage(html: string): boolean {
+  const contentTag = html.match(/<div\b[^>]*\bid="content"[^>]*>/i)
+  if (!contentTag) return false
+  return (
+    /width:\s*\d+(?:\.\d+)?px/i.test(contentTag[0]) &&
+    /height:\s*\d+(?:\.\d+)?px/i.test(contentTag[0])
+  )
+}
+
+/**
+ * Inject the fixed-layout scaler into every page whose `#content` carries
+ * explicit pixel dimensions (i.e. a fixed-layout page). Reflowable pages in the
+ * same book — e.g. quiz pages — have no sized `#content` and are left untouched.
+ */
+export function injectFixedLayoutScaler(dir: string): void {
+  transformHtmlFiles(dir, (html) => {
+    if (html.includes('id="fl-scaler"')) return null
+    if (!isFixedLayoutPage(html)) return null
+    return html.replace("</body>", `${FIXED_LAYOUT_SCALER}</body>`)
+  })
 }
 
 function collectWebpubResources(
