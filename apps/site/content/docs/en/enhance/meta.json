@@ -2,13 +2,11 @@
   "title": "Enhance your ADT",
   "icon": "Lightbulb",
   "pages": [
-    "---Accessibility & narration---",
     "captions",
     "easy-read",
     "sign-language",
     "speech",
     "language",
-    "---Content enrichment---",
     "quizzes",
     "glossary",
     "table-of-contents"

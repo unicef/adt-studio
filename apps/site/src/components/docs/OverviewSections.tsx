@@ -58,25 +58,21 @@ export function WhereToBegin() {
   );
 }
 
-const PRINCIPLES: { icon: LucideIcon; title: MessageDescriptor; desc: MessageDescriptor; color: string }[] = [
-  { icon: FolderArchive, title: msg`One book, one folder`, desc: msg`Every book lives in a single, shareable directory — zip it, move it, hand it off.`, color: "#2563eb" },
-  { icon: History, title: msg`Nothing overwritten`, desc: msg`Entities are versioned, never replaced. You can always roll back to an earlier result.`, color: "#7c3aed" },
-  { icon: Eye, title: msg`Cached & inspectable`, desc: msg`Every LLM call is cached and openable. Change the inputs and only the changed work reruns.`, color: "#0d9488" },
+const PRINCIPLES: { icon: LucideIcon; title: MessageDescriptor; desc: MessageDescriptor }[] = [
+  { icon: FolderArchive, title: msg`One book, one folder`, desc: msg`Every book lives in a single, shareable directory — zip it, move it, hand it off.` },
+  { icon: History, title: msg`Nothing overwritten`, desc: msg`Entities are versioned, never replaced. You can always roll back to an earlier result.` },
+  { icon: Eye, title: msg`Cached & inspectable`, desc: msg`Every LLM call is cached and openable. Change the inputs and only the changed work reruns.` },
 ];
 
-/** Three-up principles grid replacing the "why it exists" wall of text. */
+/** Three-up principles grid replacing the "why it exists" wall of text. Not
+ * clickable, so icons are plain (muted, no color chip) rather than branded. */
 export function Principles() {
   const { i18n } = useLingui();
   return (
     <div className="not-prose mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-      {PRINCIPLES.map(({ icon: Icon, title, desc, color }) => (
+      {PRINCIPLES.map(({ icon: Icon, title, desc }) => (
         <div key={i18n._(title)} className="flex flex-col gap-2.5">
-          <span
-            style={{ "--c": color } as CSSProperties}
-            className="grid size-10 place-items-center rounded-xl bg-[color-mix(in_oklab,var(--c)_13%,transparent)] text-[var(--c)]"
-          >
-            <Icon className="size-5" />
-          </span>
+          <Icon className="size-6 text-fd-muted-foreground" />
           <span className="font-semibold text-fd-foreground">
             {i18n._(title)}
           </span>

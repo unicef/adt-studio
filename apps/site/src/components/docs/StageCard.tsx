@@ -12,11 +12,15 @@ export function StageCards({ children }: { children: ReactNode }) {
 }
 
 /**
- * A colored card matching the Overview page's `WhereToBegin` look — same
- * chip-style icon, same hover treatment. `slug` is a key into `DOCS_COLORS`
- * (icon + color only); `href`, if given, is the docs path to link to (e.g.
- * "convert-pdf/extract"). Omit `href` for a non-interactive card (e.g. the
- * export format options, which aren't separate pages).
+ * A card matching the Overview page's `WhereToBegin` look. `slug` is a key
+ * into `DOCS_COLORS` (icon + color only); `href`, if given, is the docs path
+ * to link to (e.g. "convert-pdf/extract"). Omit `href` for a non-interactive
+ * card (e.g. the export format options, which aren't separate pages).
+ *
+ * Icon prominence follows clickability: a linked card keeps its brand-color
+ * chip (it's a nav affordance, so it should stand out); a non-interactive
+ * card renders the icon plain, in the same muted color as the body text, so
+ * it doesn't read as something you can click.
  */
 export function StageCard({
   slug,
@@ -32,24 +36,27 @@ export function StageCard({
   const entry = DOCS_COLORS[slug];
   const Icon = entry?.icon;
   const color = entry?.hex ?? "#64748b";
+  const clickable = Boolean(href);
 
   const inner = (
     <>
       {Icon ? (
-        <span className="grid size-9 place-items-center rounded-lg bg-[color-mix(in_oklab,var(--c)_13%,transparent)] text-[var(--c)] transition-colors group-hover:bg-[color-mix(in_oklab,var(--c)_20%,transparent)]">
-          <Icon className="size-[1.15rem]" />
-        </span>
+        clickable ? (
+          <span className="grid size-9 place-items-center rounded-lg bg-[color-mix(in_oklab,var(--c)_13%,transparent)] text-[var(--c)] transition-colors group-hover:bg-[color-mix(in_oklab,var(--c)_20%,transparent)]">
+            <Icon className="size-[1.15rem]" />
+          </span>
+        ) : (
+          <Icon className="size-6 text-fd-muted-foreground" />
+        )
       ) : null}
       <span className="font-semibold text-fd-foreground">{title}</span>
       <span className="text-sm leading-relaxed text-fd-muted-foreground">{description}</span>
     </>
   );
 
-  const style = { "--c": color } as CSSProperties;
-
   if (!href) {
     return (
-      <div style={style} className="flex flex-col gap-2 rounded-xl border border-fd-border bg-[var(--fd-content-surface)] p-4">
+      <div className="flex flex-col gap-2 rounded-xl border border-fd-border bg-[var(--fd-content-surface)] p-4">
         {inner}
       </div>
     );
@@ -59,7 +66,7 @@ export function StageCard({
     <Link
       to="/docs/$"
       params={{ _splat: href }}
-      style={style}
+      style={{ "--c": color } as CSSProperties}
       className="group flex flex-col gap-2 rounded-xl border border-fd-border bg-[var(--fd-content-surface)] p-4 no-underline shadow-sm transition-all hover:border-[color-mix(in_oklab,var(--c)_45%,transparent)] hover:shadow-md"
     >
       {inner}

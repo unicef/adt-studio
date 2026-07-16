@@ -1,4 +1,5 @@
 import defaultMdxComponents from 'fumadocs-ui/mdx';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
 import type { MDXComponents } from 'mdx/types';
@@ -8,10 +9,14 @@ import { WhereToBegin, Principles } from '@/components/docs/OverviewSections';
 import { StageCard, StageCards } from '@/components/docs/StageCard';
 import { PartnersStrip } from '@/components/docs/PartnersStrip';
 import { PrincipleCards } from '@/components/docs/PrincipleCards';
+import { FeatureVisual } from '@/components/docs/FeatureVisual';
+import { SectionBanner } from '@/components/docs/SectionBanner';
 
 export function getMDXComponents(components?: MDXComponents) {
   return {
     ...defaultMdxComponents,
+    Accordion,
+    Accordions,
     Step,
     Steps,
     Tab,
@@ -24,6 +29,8 @@ export function getMDXComponents(components?: MDXComponents) {
     StageCards,
     PartnersStrip,
     PrincipleCards,
+    FeatureVisual,
+    SectionBanner,
     ...components,
   } satisfies MDXComponents;
 }
