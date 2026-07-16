@@ -126,12 +126,16 @@ type RenderingData = NonNullable<PageDetail["rendering"]>
 
 // `_el#` data-ids are assigned by the iframe at runtime to give the inspector
 // a stable handle on container elements; they must not be persisted.
+// `data-adt-placeholder` is an edit-mode-only hint on blank elements — also
+// stripped so it never leaks into saved/packaged HTML.
 function stripTransientIds(rendering: RenderingData): RenderingData {
   return {
     ...rendering,
     sections: rendering.sections.map((s) => ({
       ...s,
-      html: s.html.replace(/\s+data-id="_el\d+"/g, ""),
+      html: s.html
+        .replace(/\s+data-id="_el\d+"/g, "")
+        .replace(/\s+data-adt-placeholder="[^"]*"/g, ""),
     })),
   }
 }
@@ -220,6 +224,20 @@ function buildEditInstructions(savedHtml: string, pendingHtml: string): string {
     const dataId = pendingEl.getAttribute("data-id")
     if (!dataId) return
     const savedEl = savedDoc.querySelector(`[data-id="${dataId}"]`)
+
+    // Added elements (present in pending but not saved — e.g. a blank group/text
+    // the user inserted). Describe the new element so the LLM keeps it, even when
+    // it is empty and has no classes (which the class/text branches would skip).
+    if (!savedEl) {
+      const tag = pendingEl.tagName.toLowerCase()
+      const cls = (pendingEl.getAttribute("class") ?? "").trim()
+      const txt = pendingEl.tagName !== "IMG" ? (pendingEl.textContent?.trim() ?? "") : ""
+      let line = `- Add a new <${tag} data-id="${dataId}"> element the user inserted — keep it`
+      if (cls) line += ` with these Tailwind classes: "${cls}"`
+      if (txt) line += ` containing the text: "${txt}"`
+      lines.push(line)
+      return
+    }
 
     // Class changes
     const pendingClasses = pendingEl.getAttribute("class") ?? ""
@@ -1050,6 +1068,69 @@ export function StoryboardSectionDetail({
     [pendingRendering, page.rendering, sectionIndex, markPending]
   )
 
+  // Inject a brand-new blank element (a text <p> or a container <div>) into the
+  // rendered HTML so a node added in the tree editor is immediately present in
+  // the preview with a real data-id — selectable and stylable without an LLM
+  // re-render. `placeholder` is shown (edit-mode only, via CSS) while the
+  // element is empty. Returns the new full HTML, or null if nothing was inserted.
+  const insertBlankElementInRendering = useCallback(
+    (
+      nodeId: string,
+      kind: "text" | "container",
+      afterNodeId?: string | null,
+      placeholder?: string
+    ): string | null => {
+      const rBase = pendingRendering ?? page.rendering
+      if (!rBase) return null
+      const currentSection = getRenderedSectionByIndex(rBase, sectionIndex)
+      if (!currentSection?.html) return null
+
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(currentSection.html, "text/html")
+
+      const el = doc.createElement(kind === "text" ? "p" : "div")
+      el.setAttribute("data-id", nodeId)
+      if (placeholder) el.setAttribute("data-adt-placeholder", placeholder)
+
+      // Insert after the anchor node's block-level target when provided, so the
+      // new element lands where the tree appended it; otherwise append to the
+      // section's content wrapper (or body as a last resort).
+      let inserted = false
+      if (afterNodeId) {
+        const anchor = doc.querySelector(`[data-id="${afterNodeId}"]`)
+        if (anchor) {
+          const blockParent = anchor.closest("div, p, figure, li, tr")
+          const target =
+            blockParent && !blockParent.getAttribute("data-section-id")
+              ? blockParent
+              : anchor
+          target.parentNode?.insertBefore(el, target.nextSibling)
+          inserted = true
+        }
+      }
+      if (!inserted) {
+        const wrapper =
+          doc.getElementById("content") ??
+          doc.querySelector("section[data-section-id]") ??
+          doc.body
+        wrapper.appendChild(el)
+      }
+
+      const newHtml = doc.body.innerHTML
+      const updated: RenderingData = {
+        ...rBase,
+        sections: rBase.sections.map((s) => {
+          if (s.sectionIndex !== sectionIndex) return s
+          return { ...s, html: newHtml }
+        }),
+      }
+      setPendingRendering(updated)
+      markPending("elements")
+      return newHtml
+    },
+    [pendingRendering, page.rendering, sectionIndex, markPending]
+  )
+
   // Replace textContent of a single [data-id="..."] element in the rendered HTML.
   const updateElementTextInRendering = useCallback(
     (dataId: string, newText: string) => {
@@ -1250,6 +1331,52 @@ export function StoryboardSectionDetail({
     // Snapshot element classes once at selection time (not during render)
     setSelectedElementClasses(previewFrameRef.current?.getElementClasses(dataId) ?? null)
   }, [])
+
+  // Select an element that lives in the preview but wasn't clicked there (e.g.
+  // just inserted, or chosen from the section tree). The iframe re-injects the
+  // pending HTML asynchronously, so wait a frame for the element's rect, with a
+  // single fallback retry if it isn't laid out yet.
+  const selectByDataId = useCallback(
+    (dataId: string, tagName?: string) => {
+      let tries = 0
+      const attempt = () => {
+        const rect = previewFrameRef.current?.getElementRect(dataId)
+        if (rect) {
+          handleSelectElement(dataId, rect, tagName)
+        } else if (tries++ < 1) {
+          requestAnimationFrame(attempt)
+        }
+      }
+      requestAnimationFrame(attempt)
+    },
+    [handleSelectElement]
+  )
+
+  // Open the style pane for a node chosen in the section tree.
+  const handleTreeNodeSelected = useCallback(
+    (nodeId: string, tagName?: string) => {
+      selectByDataId(nodeId, tagName)
+    },
+    [selectByDataId]
+  )
+
+  // SectionTreeEditor add callbacks — inject a real element into the rendered
+  // HTML (no LLM re-render) and auto-select it so the user can style it.
+  const handleLeafAdded = useCallback(
+    (nodeId: string, parentNodeId: string | null) => {
+      insertBlankElementInRendering(nodeId, "text", parentNodeId, t`Empty text`)
+      selectByDataId(nodeId, "p")
+    },
+    [insertBlankElementInRendering, selectByDataId, t]
+  )
+
+  const handleContainerAdded = useCallback(
+    (nodeId: string, parentNodeId: string | null) => {
+      insertBlankElementInRendering(nodeId, "container", parentNodeId, t`Empty group`)
+      selectByDataId(nodeId, "div")
+    },
+    [insertBlankElementInRendering, selectByDataId, t]
+  )
 
   const handleClassesChange = useCallback(
     (dataId: string, classes: string[]) => {
@@ -2282,6 +2409,9 @@ export function StoryboardSectionDetail({
         onLeafTextEdited={handleLeafTextEdited}
         onLeafDuplicated={handleLeafDuplicated}
         onLeafDeleted={handleLeafDeleted}
+        onLeafAdded={handleLeafAdded}
+        onContainerAdded={handleContainerAdded}
+        onSelectNode={handleTreeNodeSelected}
         onStructuralChange={handleStructuralChange}
         onMergeSection={handleMergeSection}
         onMergeCrossPage={handleMergeCrossPage}

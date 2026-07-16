@@ -16,6 +16,7 @@ import {
   Link2,
   MessageCircle,
   MoreHorizontal,
+  Palette,
   PanelTop,
   PenLine,
   Puzzle,
@@ -161,6 +162,8 @@ export interface TreeNodeProps {
   onAddChildLeaf: (parentNodeId: string | null, role: string) => void
   onAddChildContainer: (parentNodeId: string | null, structure: string) => void
   onDrop: (sourceNodeId: string, target: DropIntent) => void
+  /** Select this node for styling — opens the style pane for its preview element. */
+  onSelectNode?: (nodeId: string, tagName?: string) => void
   defaultTextRole: string
   defaultStructure: string
 }
@@ -213,6 +216,37 @@ function DragHandle({
     >
       <GripVertical className="h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
     </div>
+  )
+}
+
+// ── Select-for-styling button ────────────────────────────────────
+
+function StyleButton({
+  nodeId,
+  tagName,
+  onSelectNode,
+  disabled,
+}: {
+  nodeId: string
+  tagName?: string
+  onSelectNode?: (nodeId: string, tagName?: string) => void
+  disabled?: boolean
+}) {
+  const { t } = useLingui()
+  if (!onSelectNode) return null
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation()
+        onSelectNode(nodeId, tagName)
+      }}
+      disabled={disabled}
+      className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30"
+      title={t`Edit styles`}
+    >
+      <Palette className="h-3 w-3 text-muted-foreground" />
+    </button>
   )
 }
 
@@ -347,6 +381,7 @@ function ContainerNode(props: TreeNodeProps) {
     onAddChildLeaf,
     onAddChildContainer,
     onDrop,
+    onSelectNode,
     defaultTextRole,
     defaultStructure,
     parentNodeId,
@@ -465,6 +500,12 @@ function ContainerNode(props: TreeNodeProps) {
           )}
         </button>
         <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/head:opacity-100 transition-opacity">
+          <StyleButton
+            nodeId={node.nodeId}
+            tagName="div"
+            onSelectNode={onSelectNode}
+            disabled={disabled}
+          />
           <button
             type="button"
             onClick={() => onTogglePruned(node.nodeId)}
@@ -571,6 +612,7 @@ function ContainerNode(props: TreeNodeProps) {
                 onAddChildLeaf={onAddChildLeaf}
                 onAddChildContainer={onAddChildContainer}
                 onDrop={onDrop}
+                onSelectNode={onSelectNode}
                 defaultTextRole={defaultTextRole}
                 defaultStructure={defaultStructure}
               />
@@ -603,6 +645,7 @@ function TextLeaf(props: TreeNodeProps) {
     onDuplicate,
     onNest,
     onUnnest,
+    onSelectNode,
     parentNodeId,
     defaultStructure,
   } = props
@@ -678,6 +721,12 @@ function TextLeaf(props: TreeNodeProps) {
         disabled={disabled}
       />
       <div className="shrink-0 flex items-center gap-0.5 self-center ml-auto opacity-0 group-hover/row:opacity-100 transition-opacity">
+        <StyleButton
+          nodeId={node.nodeId}
+          tagName="p"
+          onSelectNode={onSelectNode}
+          disabled={disabled}
+        />
         <button
           type="button"
           onClick={() => onTogglePruned(node.nodeId)}

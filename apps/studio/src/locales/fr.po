@@ -2549,6 +2549,9 @@ msgstr "Modifier Invite"
 msgid "Edit Prompts"
 msgstr "Modifier Invites"
 
+msgid "Edit styles"
+msgstr "Modifier les styles"
+
 #~ msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
 #~ msgstr "Modifiez le modèle Liquid/HTML ci-dessous. Les modifications sont enregistrées lorsque vous cliquez sur Enregistrer et relancer."
 
@@ -2606,11 +2609,17 @@ msgstr "Vide"
 msgid "Empty container"
 msgstr "Conteneur vide"
 
+msgid "Empty group"
+msgstr "Groupe vide"
+
 msgid "Empty section"
 msgstr "Section vide"
 
 msgid "Empty section — add a container below to start"
 msgstr "Section vide — ajouter un conteneur ci-dessous pour commencer"
+
+msgid "Empty text"
+msgstr "Texte vide"
 
 msgid "en"
 msgstr "en"

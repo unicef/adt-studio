@@ -67,6 +67,11 @@ const FL_MAX_SCALE = 2
 export interface BookPreviewFrameHandle {
   /** Get the iframe element's bounding rect in the viewport */
   getIframeRect: () => DOMRect | null
+  /** Get an element's bounding rect (in the iframe's own coordinate space) by
+   *  data-id. Returns null when the element isn't in the iframe yet. Used to
+   *  place the selection toolbar when selection is driven from outside the
+   *  preview (e.g. clicking a node in the section tree). */
+  getElementRect: (dataId: string) => DOMRect | null
   /** Regenerate Tailwind CSS including the given extra HTML, then inject into iframe.
    *  Use after AI edits introduce new Tailwind classes not yet in the DB. */
   refreshCss: (extraHtml: string) => Promise<void>
@@ -158,6 +163,12 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
 
   useImperativeHandle(ref, () => ({
     getIframeRect: () => iframeRef.current?.getBoundingClientRect() ?? null,
+    getElementRect: (dataId: string): DOMRect | null => {
+      const doc = iframeRef.current?.contentDocument
+      if (!doc) return null
+      const el = doc.querySelector(`[data-id="${CSS.escape(dataId)}"]`) as HTMLElement | null
+      return el?.getBoundingClientRect() ?? null
+    },
     refreshCss: async (extraHtml: string) => {
       const id = ++refreshIdRef.current
       const doc = iframeRef.current?.contentDocument

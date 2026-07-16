@@ -2548,6 +2548,9 @@ msgstr "Redakto Prompt-in"
 msgid "Edit Prompts"
 msgstr "Redakto Prompt-et"
 
+msgid "Edit styles"
+msgstr "Redakto stilet"
+
 #~ msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
 #~ msgstr "Redaktoni shabllonin Liquid/HTML më poshtë. Ndryshimet ruhen kur klikoni Ruaj dhe Riekzekuto."
 
@@ -2605,11 +2608,17 @@ msgstr "Bosh"
 msgid "Empty container"
 msgstr "Kontejner bosh"
 
+msgid "Empty group"
+msgstr "Grup bosh"
+
 msgid "Empty section"
 msgstr "Seksion bosh"
 
 msgid "Empty section — add a container below to start"
 msgstr "Seksion bosh — shtoni një kontejner më poshtë për të filluar"
+
+msgid "Empty text"
+msgstr "Tekst bosh"
 
 msgid "en"
 msgstr "en"

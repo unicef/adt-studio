@@ -2547,6 +2547,9 @@ msgstr "Edit Prompt"
 msgid "Edit Prompts"
 msgstr "Edit Prompts"
 
+msgid "Edit styles"
+msgstr "Edit styles"
+
 #~ msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
 #~ msgstr "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
 
@@ -2604,11 +2607,17 @@ msgstr "Empty"
 msgid "Empty container"
 msgstr "Empty container"
 
+msgid "Empty group"
+msgstr "Empty group"
+
 msgid "Empty section"
 msgstr "Empty section"
 
 msgid "Empty section — add a container below to start"
 msgstr "Empty section — add a container below to start"
+
+msgid "Empty text"
+msgstr "Empty text"
 
 msgid "en"
 msgstr "en"

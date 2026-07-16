@@ -34,6 +34,12 @@ export interface SectionTreeEditorProps {
   onLeafDuplicated?: (sourceNodeId: string, newNodeId: string) => void
   /** Called after a leaf is deleted. Parent can remove the preview DOM element. */
   onLeafDeleted?: (nodeId: string) => void
+  /** Called after a blank text leaf is added. Parent injects it into preview HTML. */
+  onLeafAdded?: (nodeId: string, parentNodeId: string | null) => void
+  /** Called after a blank container is added. Parent injects it into preview HTML. */
+  onContainerAdded?: (nodeId: string, parentNodeId: string | null) => void
+  /** Called when a node is selected for styling. Parent opens the style pane. */
+  onSelectNode?: (nodeId: string, tagName?: string) => void
   /** Called whenever a change happens that needs a re-render (structural change). */
   onStructuralChange?: () => void
 }
@@ -55,6 +61,9 @@ export function SectionTreeEditor({
   onLeafTextEdited,
   onLeafDuplicated,
   onLeafDeleted,
+  onLeafAdded,
+  onContainerAdded,
+  onSelectNode,
   onStructuralChange,
 }: SectionTreeEditorProps) {
   const { t } = useLingui()
@@ -166,43 +175,52 @@ export function SectionTreeEditor({
     [section.nodes, applyNodes, onStructuralChange]
   )
 
+  // Wrap idFactory so we can capture the id it mints — addLeaf/addContainer
+  // don't return the new node's id. Mirrors the trick used in handleDuplicate.
+  const captureNewId = useCallback(
+    (mint: (idFactory: IdFactory) => void): string | null => {
+      let newId: string | null = null
+      const wrappedFactory: IdFactory = () => {
+        const id = idFactory()
+        if (newId == null) newId = id
+        return id
+      }
+      mint(wrappedFactory)
+      return newId
+    },
+    [idFactory]
+  )
+
   const handleAddContainerAtRoot = useCallback(() => {
     const structure =
       (containerStructures && Object.keys(containerStructures)[0]) ?? "group"
-    applyNodes(
-      addContainer(section.nodes, null, {
-        structure,
-        idFactory,
-      })
+    const newId = captureNewId((factory) =>
+      applyNodes(addContainer(section.nodes, null, { structure, idFactory: factory }))
     )
-    onStructuralChange?.()
-  }, [section.nodes, applyNodes, containerStructures, idFactory, onStructuralChange])
+    if (newId) onContainerAdded?.(newId, null)
+    else onStructuralChange?.()
+  }, [section.nodes, applyNodes, containerStructures, captureNewId, onContainerAdded, onStructuralChange])
 
   const handleAddChildLeaf = useCallback(
     (parentNodeId: string | null, role: string) => {
-      applyNodes(
-        addLeaf(section.nodes, parentNodeId, {
-          role,
-          text: "",
-          idFactory,
-        })
+      const newId = captureNewId((factory) =>
+        applyNodes(addLeaf(section.nodes, parentNodeId, { role, text: "", idFactory: factory }))
       )
-      onStructuralChange?.()
+      if (newId) onLeafAdded?.(newId, parentNodeId)
+      else onStructuralChange?.()
     },
-    [section.nodes, applyNodes, idFactory, onStructuralChange]
+    [section.nodes, applyNodes, captureNewId, onLeafAdded, onStructuralChange]
   )
 
   const handleAddChildContainer = useCallback(
     (parentNodeId: string | null, structure: string) => {
-      applyNodes(
-        addContainer(section.nodes, parentNodeId, {
-          structure,
-          idFactory,
-        })
+      const newId = captureNewId((factory) =>
+        applyNodes(addContainer(section.nodes, parentNodeId, { structure, idFactory: factory }))
       )
-      onStructuralChange?.()
+      if (newId) onContainerAdded?.(newId, parentNodeId)
+      else onStructuralChange?.()
     },
-    [section.nodes, applyNodes, idFactory, onStructuralChange]
+    [section.nodes, applyNodes, captureNewId, onContainerAdded, onStructuralChange]
   )
 
   const handleDrop = useCallback(
@@ -271,6 +289,7 @@ export function SectionTreeEditor({
             onAddChildLeaf={handleAddChildLeaf}
             onAddChildContainer={handleAddChildContainer}
             onDrop={handleDrop}
+            onSelectNode={onSelectNode}
             defaultTextRole={defaultTextRole}
             defaultStructure={defaultStructure}
           />

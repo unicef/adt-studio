@@ -71,9 +71,15 @@ export const INTERACTIVE_SCRIPT = `<script>
     }, '*');
   }
 
+  // Container tags are styled, not text-edited — selecting them must not make
+  // them contentEditable (a blank <div> group carries a real data-id but is a
+  // container, so it would otherwise wrongly enter text-edit mode).
+  var CONTAINER_TAGS = { DIV: 1, SECTION: 1, FIGURE: 1, UL: 1, OL: 1, TABLE: 1, TR: 1, TBODY: 1, THEAD: 1 };
+
   function startEditing(el) {
     if (editing === el) return;
     if (el.tagName === 'IMG') return;
+    if (CONTAINER_TAGS[el.tagName]) return;
     editing = el;
     // Save the current MathML display before swapping to LaTeX
     savedDisplayHtml = el.innerHTML;
@@ -217,5 +223,21 @@ export const INTERACTIVE_STYLES = `body[data-editable="true"] *:hover:not(:has(*
       cursor: pointer;
     }
     body[data-editable="true"] img[data-id] { position: relative; z-index: 1; }
+    /* Empty blanks (freshly added text/div) collapse to zero size and can't be
+       hovered/clicked — give them a hittable box and a placeholder in edit mode
+       so they're selectable. Cleared automatically once they gain content. */
+    body[data-editable="true"] [data-id]:empty {
+      display: block;
+      min-height: 1.5rem;
+      min-width: 2rem;
+      outline: 1px dashed rgba(124, 58, 237, 0.5);
+      outline-offset: 2px;
+    }
+    body[data-editable="true"] [data-id]:empty::before {
+      content: attr(data-adt-placeholder);
+      color: rgba(124, 58, 237, 0.6);
+      font-size: 0.75rem;
+      font-style: italic;
+    }
     [data-adt-selected] { outline: 2px solid rgb(124, 58, 237) !important; outline-offset: 2px !important; }
     [data-adt-editing] { outline: 2px solid rgb(91, 33, 182) !important; outline-offset: 2px !important; }`
