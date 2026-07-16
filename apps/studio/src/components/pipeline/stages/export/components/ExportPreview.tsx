@@ -19,6 +19,7 @@ import {
   Globe,
   GraduationCap,
   Home,
+  Landmark,
   Library,
   Lock,
   Search,
@@ -110,6 +111,20 @@ const FORMAT_VISUALS: Record<ExportFormat, FormatVisual> = {
     footerHint: (
       <Trans>
         Open in any EPUB 3 reader, e-reader, or accessibility tool.
+      </Trans>
+    ),
+  },
+  pnld: {
+    accent: "bg-teal-600",
+    accentSoft: "bg-teal-50",
+    accentText: "text-teal-700",
+    accentBorder: "border-teal-200",
+    Icon: Landmark,
+    eyebrow: <Trans>PNLD Digital Work</Trans>,
+    tagline: <Trans>FNDE-ready HTML5 package (.zip)</Trans>,
+    footerHint: (
+      <Trans>
+        Submit to the FNDE PNLD Digital platform and validate with VALIDE.
       </Trans>
     ),
   },
