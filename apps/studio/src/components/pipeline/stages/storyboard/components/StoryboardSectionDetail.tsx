@@ -762,7 +762,13 @@ export function StoryboardSectionDetail({
           sectionIndex,
           editedHtml
         )
-        if (updatedSectioning !== sBase) {
+        // Persist sectioning when there are pending structural changes (e.g. a
+        // blank group/text the user just added) OR when text back-propagation
+        // changed it. Saving a rendering edit also injects a new node into
+        // `pendingSectioning`; without saving it here that node lives only in
+        // the rendering and disappears from the tree on reload, leaving
+        // sectioning a version behind (the version-mismatch users saw).
+        if (pendingSectioning != null || updatedSectioning !== sBase) {
           await api.updateSectioning(bookLabel, pageId, updatedSectioning)
         }
       }
