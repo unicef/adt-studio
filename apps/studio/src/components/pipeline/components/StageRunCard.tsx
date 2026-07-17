@@ -1,6 +1,6 @@
 import { type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { ArrowRight, Check, CircleStop, Loader2, Minus, Play, RotateCcw, X, XCircle } from "lucide-react"
+import { ArrowRight, Check, Loader2, Minus, Play, RotateCcw, X, XCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"

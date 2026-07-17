@@ -85,7 +85,8 @@ export interface BookRunContextValue {
   isStatusLoading: boolean
   /** Queue a stage run */
   queueRun(options: QueueRunOptions): void
-  /** Request cancellation of the active run (and clear the queue). */
+  /** Request cancellation of the active run. Queued runs are preserved and
+   *  start after it unwinds (a queue with no active run is cleared instead). */
   cancelRun(): void
   /** Page failures awaiting a skip/stop decision (interactive mode). */
   pendingDecisions: PendingDecision[]

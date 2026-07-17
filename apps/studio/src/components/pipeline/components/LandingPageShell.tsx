@@ -1,6 +1,6 @@
 import { useState, type CSSProperties, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { Play, Loader2, Settings, CircleStop, Square, X } from "lucide-react"
+import { Play, Loader2, Settings, X } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
 import { useBookRun } from "@/hooks/use-book-run"
 import { cn } from "@/lib/utils"

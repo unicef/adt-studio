@@ -151,15 +151,6 @@ function isCancellation(
   return signals.some((s) => s?.aborted === true)
 }
 
-function combineSignals(
-  ...signals: Array<AbortSignal | undefined>
-): AbortSignal | undefined {
-  const present = signals.filter((s): s is AbortSignal => Boolean(s))
-  if (present.length === 0) return undefined
-  if (present.length === 1) return present[0]
-  return AbortSignal.any(present)
-}
-
 interface FailedPage {
   pageId: string
   step: StepName

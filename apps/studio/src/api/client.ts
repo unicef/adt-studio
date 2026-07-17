@@ -890,8 +890,10 @@ export const api = {
   getStagesStatus: (label: string) =>
     request<StageRunStatus>(`/books/${label}/stages/status`),
 
-  /** Cancel the active run and clear the queue. A 404 (nothing to cancel — the
-   *  run may have finished between the click and this request) resolves silently. */
+  /** Cancel the active run. Queued runs are preserved and start after it unwinds;
+   *  a pending queue with no active run is cleared instead. A 404 (nothing to
+   *  cancel — the run may have finished between the click and this request)
+   *  resolves silently. */
   cancelRun: async (label: string): Promise<void> => {
     const res = await fetch(`${BASE_URL}/books/${label}/stages/cancel`, {
       method: "POST",
