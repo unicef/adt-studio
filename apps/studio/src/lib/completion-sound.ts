@@ -56,3 +56,46 @@ export function playCompletionSound(): void {
     // Audio not available — silently ignore
   }
 }
+
+/**
+ * Play a short two-note descending tone (E5 → C5) to signal an error.
+ * Same synthesis approach as the completion chime — no assets, no deps.
+ */
+export function playErrorSound(): void {
+  try {
+    const ctx = getAudioContext()
+
+    if (ctx.state === "suspended") {
+      void ctx.resume()
+    }
+
+    const now = ctx.currentTime
+    const volume = 0.15
+
+    // Two-note descending tone: E5 (659 Hz) → C5 (523 Hz)
+    const notes = [
+      { freq: 659.25, start: 0, duration: 0.14 },
+      { freq: 523.25, start: 0.12, duration: 0.22 },
+    ]
+
+    for (const note of notes) {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+
+      osc.type = "sine"
+      osc.frequency.setValueAtTime(note.freq, now + note.start)
+
+      gain.gain.setValueAtTime(0, now + note.start)
+      gain.gain.linearRampToValueAtTime(volume, now + note.start + 0.015)
+      gain.gain.exponentialRampToValueAtTime(0.001, now + note.start + note.duration)
+
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+
+      osc.start(now + note.start)
+      osc.stop(now + note.start + note.duration + 0.01)
+    }
+  } catch {
+    // Audio not available — silently ignore
+  }
+}

@@ -5,21 +5,23 @@ import { streamSSE } from "hono/streaming"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import { createBookStorage, openBookDb } from "@adt/storage"
-import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageClearNodes, getStageClearOrder } from "@adt/types"
+import { StageName, STAGE_ORDER, PIPELINE, parseBookLabel, getStageRerunClearNodes, getStageClearOrder, PageErrorPolicy, DecisionBody } from "@adt/types"
 import type { StageService } from "../services/stage-service.js"
 import type { BookEventBus, BookSSEEvent } from "../services/book-event-bus.js"
+import type { PageErrorDecisions } from "../services/page-error-decisions.js"
 
 const StageRunBody = z
   .object({
     fromStage: StageName,
     toStage: StageName,
     renderOnly: z.boolean().optional(),
+    pageErrorPolicy: PageErrorPolicy.optional(),
   })
   .strict()
 
 /** Build a beforeRun callback that clears downstream data for a stage.
  *  The returned function is idempotent — only runs once even if called multiple times. */
-function makeBeforeRun(label: string, fromStage: StageName, booksDir: string): () => void {
+function makeBeforeRun(label: string, fromStage: StageName, toStage: StageName, booksDir: string): () => void {
   let ran = false
   return () => {
     if (ran) return
@@ -30,7 +32,7 @@ function makeBeforeRun(label: string, fromStage: StageName, booksDir: string): (
         // clearExtractedData also clears step_runs
         storage.clearExtractedData()
       } else {
-        const nodes = getStageClearNodes(fromStage)
+        const nodes = getStageRerunClearNodes(fromStage, toStage)
         if (nodes.length > 0) {
           storage.clearNodesByType(nodes)
         }
@@ -59,6 +61,7 @@ function formatStepErrors(stepErrors: Record<string, string>): string {
 export function createStageRoutes(
   stageService: StageService,
   eventBus: BookEventBus,
+  decisions: PageErrorDecisions,
   booksDir: string,
   promptsDir: string,
   webAssetsDir: string,
@@ -91,7 +94,7 @@ export function createStageRoutes(
       })
     }
 
-    const { fromStage, toStage, renderOnly } = parsed.data
+    const { fromStage, toStage, renderOnly, pageErrorPolicy } = parsed.data
 
     const anthropicApiKey = c.req.header("X-Anthropic-API-Key") || undefined
     const googleApiKey = c.req.header("X-Google-API-Key") || undefined
@@ -103,7 +106,7 @@ export function createStageRoutes(
 
     console.log(`[stages] ${label}: ${fromStage}→${toStage}${renderOnly ? " (render-only)" : ""} azureKey=${azureSpeechKey ? "set" : "NOT SET"} azureRegion=${azureSpeechRegion ?? "NOT SET"} geminiKey=${geminiApiKey ? "set" : "NOT SET"}`)
 
-    const clearData = makeBeforeRun(label, fromStage, booksDir)
+    const clearData = makeBeforeRun(label, fromStage, toStage, booksDir)
 
     const result = stageService.startStageRun(label, {
       booksDir,
@@ -118,6 +121,7 @@ export function createStageRoutes(
       fromStage,
       toStage,
       renderOnly,
+      pageErrorPolicy,
       azureSpeechKey,
       azureSpeechRegion,
       geminiApiKey,
@@ -132,6 +136,42 @@ export function createStageRoutes(
     }
 
     return c.json({ status: result.status, label, fromStage, toStage })
+  })
+
+  // POST /books/:label/stages/cancel — Cancel the active run. Queued runs remain queued.
+  app.post("/books/:label/stages/cancel", (c) => {
+    const { label } = c.req.param()
+    const result = stageService.cancelStageRun(label)
+    if (!result) {
+      // Nothing to cancel. Benign race: the run may have completed between the
+      // click and this request — the frontend treats 404 as silent success.
+      throw new HTTPException(404, { message: "No active run to cancel" })
+    }
+    return c.json(result, 202)
+  })
+
+  // POST /books/:label/stages/decision — Resolve a pending page-error decision.
+  app.post("/books/:label/stages/decision", async (c) => {
+    let body: unknown
+    try {
+      body = await c.req.json()
+    } catch {
+      throw new HTTPException(400, { message: "Invalid JSON body" })
+    }
+    const parsed = DecisionBody.safeParse(body)
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid decision: ${parsed.error.message}`,
+      })
+    }
+    const { decisionId, action, applyToAll } = parsed.data
+    const ok = decisions.resolveDecision(decisionId, action, applyToAll)
+    if (!ok) {
+      // Already resolved (timeout/cancel) or unknown — the frontend drops the
+      // stale dialog silently on 409.
+      throw new HTTPException(409, { message: "Decision already resolved" })
+    }
+    return c.json({ ok: true })
   })
 
   // GET /books/:label/step-status — Unified stage + step status
@@ -210,7 +250,9 @@ export function createStageRoutes(
         if (row?.status === "error" && row.error) {
           stepErrors[step.name] = row.error
         }
-        if (status === "running" && row?.message) {
+        // Surface the message for running steps (page X/Y) and for done steps
+        // (e.g. "Completed — 2 page(s) skipped") so a skip note survives refetch.
+        if ((status === "running" || status === "done") && row?.message) {
           stepMessages[step.name] = row.message
         }
       }
@@ -249,12 +291,20 @@ export function createStageRoutes(
     const hasStepMessages = Object.keys(stepMessages).length > 0
     const error = active?.error ?? (hasStepErrors ? formatStepErrors(stepErrors) : null)
 
+    // Expose the run's job status so `isCancelling` (and any future run-level
+    // state) survives a refresh, and any pending page-error decisions so the
+    // decision dialog can be recovered via polling after a reconnect/F5.
+    const runStatus = active?.status ?? "idle"
+    const pendingDecisions = decisions.getPendingDecisions(label)
+
     return c.json({
       stages,
       steps,
       error,
       stepErrors: hasStepErrors ? stepErrors : null,
       stepMessages: hasStepMessages ? stepMessages : null,
+      runStatus,
+      pendingDecisions,
     })
   })
 
@@ -311,6 +361,21 @@ export function createStageRoutes(
                     error: event.error,
                   }),
                 })
+              } else if (event.type === "stage-run-cancelled") {
+                await stream.writeSSE({
+                  event: "cancelled",
+                  data: JSON.stringify({ label: event.label }),
+                })
+              } else if (event.type === "decision-required") {
+                await stream.writeSSE({
+                  event: "decision-required",
+                  data: JSON.stringify({
+                    decisionId: event.decisionId,
+                    step: event.step,
+                    pageId: event.pageId,
+                    error: event.error,
+                  }),
+                })
               } else if (event.type === "task") {
                 await stream.writeSSE({
                   event: "task",
@@ -336,7 +401,9 @@ export function createStageRoutes(
     if (!active) {
       return c.json({ status: "idle", label, queue: [] })
     }
-    return c.json({ ...active, queue })
+    // Omit the internal AbortController from the serialized payload.
+    const { controller: _controller, ...activepublic } = active
+    return c.json({ ...activepublic, queue })
   })
 
   // Removed Feb 2026: POST /books/:label/steps/run was renamed to /stages/run.

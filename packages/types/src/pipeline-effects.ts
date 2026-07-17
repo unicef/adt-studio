@@ -1,4 +1,4 @@
-import { PIPELINE } from "./pipeline.js"
+import { PIPELINE, STAGE_ORDER } from "./pipeline.js"
 import type { StageName, StepName } from "./pipeline.js"
 
 export type PipelineNodeName =
@@ -163,6 +163,33 @@ export function getStageClearNodes(stage: StageName): PipelineNodeName[] {
   }
 
   return nodes
+}
+
+/** Stages whose handler merges its own prior output on re-run (e.g. glossary
+ * preserves manual, edited, and pruned terms) rather than replacing it. */
+const STAGES_PRESERVING_OWN_OUTPUT: readonly StageName[] = ["glossary"]
+
+/** Like getStageClearNodes(fromStage), but keeps a merge-preserving stage's own
+ * output when that stage is inside the [fromStage, toStage] run range so its
+ * handler can re-merge the prior version. Outside the range it is still cleared. */
+export function getStageRerunClearNodes(
+  fromStage: StageName,
+  toStage: StageName
+): PipelineNodeName[] {
+  const clearNodes = getStageClearNodes(fromStage)
+  const fromIndex = STAGE_ORDER.indexOf(fromStage)
+  const toIndex = STAGE_ORDER.indexOf(toStage)
+
+  const preservedNodes = new Set<PipelineNodeName>()
+  for (const stage of STAGES_PRESERVING_OWN_OUTPUT) {
+    const index = STAGE_ORDER.indexOf(stage)
+    if (index >= fromIndex && index <= toIndex) {
+      for (const node of STAGE_OUTPUT_NODES[stage]) preservedNodes.add(node)
+    }
+  }
+
+  if (preservedNodes.size === 0) return clearNodes
+  return clearNodes.filter((node) => !preservedNodes.has(node))
 }
 
 /** Resource tags that should be refreshed when a node is updated or cleared. */

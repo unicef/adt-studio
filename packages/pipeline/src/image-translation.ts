@@ -33,6 +33,7 @@ export interface TranslateImageOptions {
   cacheDir?: string
   log?: { taskType: string; pageId?: string; promptName: string }
   onLog?: (entry: LlmLogEntry) => void
+  signal?: AbortSignal
 }
 
 export interface TranslatedImageResult {
@@ -65,6 +66,7 @@ export async function translateImage(
     cacheDir: options.cacheDir,
     log: options.log,
     onLog: options.onLog,
+    signal: options.signal,
   })
 
   const buffer = Buffer.from(result.base64, "base64")

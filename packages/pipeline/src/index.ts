@@ -64,6 +64,8 @@ export {
   renderPage,
   buildRenderStrategyResolver,
   buildRenderContext,
+  collectReferencedImageIds,
+  collectSourcePageImages,
   GROUP_CONTAINER_STRUCTURES,
   type RenderConfig,
   type VisualRefinementConfig,
@@ -118,6 +120,7 @@ export {
 } from "./image-captioning.js"
 export {
   generateGlossary,
+  regenerateGlossaryPreservingEdits,
   generateGlossaryItem,
   buildGlossaryConfig,
   stripHtml,

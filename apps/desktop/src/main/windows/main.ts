@@ -1,9 +1,10 @@
-import { app, shell, BrowserWindow, dialog } from "electron";
+import { app, shell, BrowserWindow } from "electron";
 import { join } from "path";
 import { is } from "@electron-toolkit/utils";
 import icon from "../../../build/icon.png?asset";
 import betaIcon from "../../../build/beta-icons/icon.png?asset";
 import { STUDIO_APP_ORIGIN } from "../protocols/studio-app";
+import { attachCloseGuard } from "../ipc/window-close";
 
 const appIcon = app.getVersion().includes("-beta") ? betaIcon : icon;
 
@@ -45,22 +46,7 @@ export function createMainWindow(): BrowserWindow {
     mainWindow.show();
   });
 
-  mainWindow.webContents.on("will-prevent-unload", async (event) => {
-    // TODO: ADD TRANSLATIONS
-    const { response } = await dialog.showMessageBox(mainWindow, {
-      type: "warning",
-      buttons: ["Stay", "Quit"],
-      defaultId: 0,
-      cancelId: 0,
-      noLink: true,
-      message: "Leave the app?",
-      detail: "Your current progress will be lost.",
-    });
-
-    if (response === 1) {
-      event.preventDefault();
-    }
-  });
+  attachCloseGuard(mainWindow);
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
     shell.openExternal(details.url);

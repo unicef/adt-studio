@@ -296,6 +296,9 @@ msgstr "{count} {count, plural, one {problem} other {probleme}}"
 msgid "{count} {count, plural, one {manual review item} other {manual review items}}"
 msgstr "{count} {count, plural, one {element për rishikim manual} other {elemente për rishikim manual}}"
 
+msgid "{count} pages failed in {stageLabel}"
+msgstr "{count} faqe dështuan te {stageLabel}"
+
 msgid "{count} translations"
 msgstr "{count} përkthime"
 
@@ -343,14 +346,8 @@ msgstr "{issuesLabel}, {reviewLabel}"
 msgid "{label} desktop size"
 msgstr "Madhësia e {label} në desktop"
 
-#~ msgid "{label} desktop size in pixels"
-#~ msgstr "Madhësia e {label} në desktop, në piksel"
-
 msgid "{label} mobile size"
 msgstr "Madhësia e {label} në celular"
-
-#~ msgid "{label} mobile size in pixels"
-#~ msgstr "Madhësia e {label} në celular, në piksel"
 
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 nga {total} faqe të bashkuara} one {# nga {total} faqe të bashkuara} other {# nga {total} faqe të bashkuara}}"
@@ -548,6 +545,12 @@ msgstr "Një aktivitet me zgjedhje të shumëfishtë."
 
 #~ msgid "A new version is available for download."
 #~ msgstr "Një version i ri është i disponueshëm për shkarkim."
+
+msgid "A page failed in {stageLabel}"
+msgstr "Një faqe dështoi te {stageLabel}"
+
+msgid "A page failed in {stepLabel}"
+msgstr "Një faqe dështoi te {stepLabel}"
 
 msgid "A question worth asking"
 msgstr "Një pyetje që vlen të bëhet"
@@ -1205,6 +1208,9 @@ msgstr "Apliko ngjyrat e sfondit të faqes"
 msgid "Apply Segmentation"
 msgstr "Apliko segmentimin"
 
+msgid "Apply to all errors in this run"
+msgstr "Zbato për të gjitha gabimet e këtij ekzekutimi"
+
 msgid "AR"
 msgstr "AR"
 
@@ -1463,6 +1469,9 @@ msgstr "Pamje paraprake e librit"
 msgid "Book Preview"
 msgstr "Pamje paraprake e librit"
 
+msgid "Book setup"
+msgstr "Konfigurimi i librit"
+
 msgid "Book Summary"
 msgstr "Përmbledhje e librit"
 
@@ -1565,8 +1574,38 @@ msgstr "Thirrje"
 msgid "Cancel"
 msgstr "Anulo"
 
+msgid "Cancel {stageLabel}"
+msgstr "Anulo {stageLabel}"
+
+msgid "Cancel {stepLabel} step"
+msgstr "Anulo hapin {stepLabel}"
+
 msgid "Cancel download"
 msgstr "Anulo shkarkimin"
+
+msgid "Cancel run"
+msgstr "Anulo ekzekutimin"
+
+msgid "Cancelling {stageLabel}"
+msgstr "Duke anuluar {stageLabel}"
+
+msgid "Cancelling {stepLabel} step"
+msgstr "Duke anuluar hapin {stepLabel}"
+
+msgid "Cancelling run"
+msgstr "Duke anuluar ekzekutimin"
+
+msgid "Cancelling run…"
+msgstr "Duke anuluar ekzekutimin…"
+
+#~ msgid "Cancelling step"
+#~ msgstr "Duke anuluar hapin"
+
+msgid "Cancelling..."
+msgstr "Duke anuluar..."
+
+msgid "Cancelling…"
+msgstr "Duke anuluar…"
 
 #. placeholder {0}: String(MAX_ENTRIES)
 msgid "capped at {0}"
@@ -2134,12 +2173,6 @@ msgstr "Dekorativ"
 
 msgid "Decrease {label}"
 msgstr "Zvogëlo {label}"
-
-#~ msgid "Decrease {label} desktop size"
-#~ msgstr "Zvogëlo madhësinë e {label} në desktop"
-
-#~ msgid "Decrease {label} mobile size"
-#~ msgstr "Zvogëlo madhësinë e {label} në celular"
 
 msgid "Decrease indent"
 msgstr "Zvogëlo dhëmbëzimin"
@@ -3010,9 +3043,6 @@ msgstr "Paraqitje e fiksuar me dy kolona"
 msgid "Fixed-layout books use the original page images as backgrounds with positioned text extracted from the PDF. Activities detection, figure extraction, and image cropping or segmentation don't apply to this layout."
 msgstr "Librat me paraqitje të fiksuar përdorin imazhet origjinale të faqeve si sfond me tekst të pozicionuar të nxjerrë nga PDF-i. Zbulimi i aktiviteteve, nxjerrja e figurave dhe prerja ose segmentimi i imazheve nuk zbatohen për këtë paraqitje."
 
-#~ msgid "Fixed, accessible sizes applied to every page. Each role scales fluidly between its mobile and desktop size, and these override any size the AI picks — so headings and body text stay consistent across the whole book."
-#~ msgstr "Madhësi fikse dhe të aksesueshme që zbatohen në çdo faqe. Çdo rol shkallëzohet në mënyrë të rrjedhshme mes madhësisë së tij në celular dhe në desktop, dhe ato mbizotërojnë çdo madhësi që zgjedh IA-ja — kështu titujt dhe teksti i trupit mbeten të qëndrueshëm në të gjithë librin."
-
 msgid "Fixed, accessible sizes applied to every page. Sizes use the book's Tailwind scale (pick a token or type an exact px), scale fluidly between mobile and desktop, and override any size the AI picks — so headings and body text stay consistent across the whole book."
 msgstr "Madhësi fikse dhe të aksesueshme që zbatohen në çdo faqe. Madhësitë përdorin shkallën Tailwind të librit (zgjidhni një token ose shkruani një vlerë të saktë në px), shkallëzohen në mënyrë të rrjedhshme mes celularit dhe desktopit, dhe mbizotërojnë çdo madhësi që zgjedh IA-ja — kështu titujt dhe teksti i trupit mbeten të qëndrueshëm në të gjithë librin."
 
@@ -3620,12 +3650,6 @@ msgstr "Përfshin:"
 msgid "Increase {label}"
 msgstr "Rrit {label}"
 
-#~ msgid "Increase {label} desktop size"
-#~ msgstr "Rrit madhësinë e {label} në desktop"
-
-#~ msgid "Increase {label} mobile size"
-#~ msgstr "Rrit madhësinë e {label} në celular"
-
 msgid "Increase indent"
 msgstr "Rrit dhëmbëzimin"
 
@@ -3826,6 +3850,12 @@ msgstr "Lëre bosh për të dalë vetëm në gjuhën e librit."
 
 msgid "Leave empty to use the book language."
 msgstr "Lëre bosh për të përdorur gjuhën e librit."
+
+msgid "Leave setup"
+msgstr "Dil nga konfigurimi"
+
+msgid "Leave without finishing?"
+msgstr "Dil pa përfunduar?"
 
 msgid "Legal and compliance manuals"
 msgstr "Manuale ligjore dhe të pajtueshmërisë"
@@ -4136,8 +4166,14 @@ msgstr "Referenca mjekësore"
 msgid "Medium"
 msgstr "Mesatar"
 
+msgid "Merge"
+msgstr "Bashko"
+
 msgid "Merge a completed part"
 msgstr "Bashko një pjesë të përfunduar"
+
+msgid "Merge adjacent groups"
+msgstr "Bashko grupet ngjitur"
 
 msgid "Merge another"
 msgstr "Bashko një tjetër"
@@ -4151,20 +4187,32 @@ msgstr "Bashko një pjesë tjetër"
 msgid "Merge failed"
 msgstr "Bashkimi dështoi"
 
-msgid "merge into next page"
-msgstr "bashko me faqen tjetër"
+#~ msgid "merge into next page"
+#~ msgstr "bashko me faqen tjetër"
 
-msgid "Merge into next page"
-msgstr "Bashko me faqen tjetër"
+#~ msgid "Merge into next page"
+#~ msgstr "Bashko me faqen tjetër"
 
-msgid "merge into previous page"
-msgstr "bashko me faqen e mëparshme"
+#~ msgid "merge into previous page"
+#~ msgstr "bashko me faqen e mëparshme"
 
-msgid "Merge into previous page"
-msgstr "Bashko me faqen e mëparshme"
+#~ msgid "Merge into previous page"
+#~ msgstr "Bashko me faqen e mëparshme"
 
 msgid "Merge part"
 msgstr "Bashko pjesën"
+
+msgid "merge this section into the first section of the next page"
+msgstr "bashkoni këtë seksion me seksionin e parë të faqes tjetër"
+
+msgid "merge this section into the last section of the previous page"
+msgstr "bashkoni këtë seksion me seksionin e fundit të faqes së mëparshme"
+
+msgid "Merge with first section of next page"
+msgstr "Bashko me seksionin e parë të faqes tjetër"
+
+msgid "Merge with last section of previous page"
+msgstr "Bashko me seksionin e fundit të faqes së mëparshme"
 
 msgid "merge with next"
 msgstr "bashko me të ardhshmin"
@@ -4180,6 +4228,9 @@ msgstr "bashko me të mëparshmit"
 
 msgid "Merge with previous"
 msgstr "Bashko me të mëparshmit"
+
+msgid "Merge with previous group"
+msgstr "Bashko me grupin e mëparshëm"
 
 msgid "merge with previous section"
 msgstr "bashko me seksionin e mëparshëm"
@@ -4823,6 +4874,9 @@ msgstr "Kërkohet çelësi i OpenAI"
 msgid "OpenAI Voice"
 msgstr "Zëri i OpenAI"
 
+msgid "Operation failed"
+msgstr "Veprimi dështoi"
+
 msgid "Optional"
 msgstr "Opsionale"
 
@@ -5279,6 +5333,9 @@ msgstr "Luaj"
 msgid "Play video"
 msgstr "Luaj videon"
 
+msgid "Please wait for the current operation to finish"
+msgstr "Prisni derisa të përfundojë veprimi aktual"
+
 msgid "Polishing paragraphs to perfection..."
 msgstr "Polisim paragrafet deri në përsosmëri..."
 
@@ -5459,6 +5516,12 @@ msgstr "në radhë"
 
 msgid "Queued"
 msgstr "Në radhë"
+
+msgid "Quit anyway"
+msgstr "Dil gjithsesi"
+
+msgid "Quit without saving?"
+msgstr "Dil pa ruajtur?"
 
 msgid "quiz"
 msgstr "kuiz"
@@ -5950,6 +6013,9 @@ msgstr "Ekzekuto {stageLabel}"
 msgid "Run {upstreamLabel} first"
 msgstr "Ekzekuto {upstreamLabel} së pari"
 
+msgid "Run cancelled"
+msgstr "Ekzekutimi u anulua"
+
 msgid "Run Captions"
 msgstr "Ekzekuto Titujt"
 
@@ -6025,8 +6091,8 @@ msgstr "Duke ekzekutuar"
 msgid "RUNNING"
 msgstr "NË EKZEKUTIM"
 
-msgid "Running {stageLabel}"
-msgstr "Duke ekzekutuar {stageLabel}"
+#~ msgid "Running {stageLabel}"
+#~ msgstr "Duke ekzekutuar {stageLabel}"
 
 msgid "Running Sectioning will run Extract first, then section the extracted pages."
 msgstr "Ekzekutimi i Seksionimit do të ekzekutojë Ekstraktimin së pari, pastaj do të seksionojë faqet e ekstraktuara."
@@ -6037,8 +6103,8 @@ msgstr "Ekzekutimi i Storyboard-it do të ekzekutojë fazat kryesore të mëpars
 msgid "Running Validation..."
 msgstr "Duke ekzekutuar Validimin..."
 
-msgid "Running..."
-msgstr "Duke ekzekutuar..."
+#~ msgid "Running..."
+#~ msgstr "Duke ekzekutuar..."
 
 msgid "Runs accessibility checks against the packaged book."
 msgstr "Ekzekuton kontrolle aksesueshmërie kundrejt librit të paketuar."
@@ -6124,6 +6190,12 @@ msgstr "Ruaj listën e kontrollit"
 msgid "Save failed"
 msgstr "Ruajtja dështoi"
 
+msgid "Save or discard your edits before splitting"
+msgstr "Ruani ose hidhni poshtë ndryshimet para se të ndani"
+
+msgid "Save or discard your edits first"
+msgstr "Fillimisht ruani ose hidhni poshtë ndryshimet"
+
 msgid "Save page review"
 msgstr "Ruaj rishikimin e faqes"
 
@@ -6135,6 +6207,9 @@ msgstr "Ruaj cilësimet"
 
 msgid "Save text sizes"
 msgstr "Ruaj madhësitë e tekstit"
+
+msgid "Save your work first if you want to keep these changes."
+msgstr "Ruaje punën tënde më parë nëse dëshiron t'i mbash këto ndryshime."
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "U ruajt. Ri-pako Parapamjen për ta aplikuar."
@@ -6592,8 +6667,14 @@ msgstr "Kalo tani"
 msgid "Skip intro"
 msgstr "Kalo hyrjen"
 
+msgid "Skip page and continue"
+msgstr "Kapërce faqen dhe vazhdo"
+
 msgid "Skip segmentation for images whose shortest side is below this threshold."
 msgstr "Kalo segmentimin për imazhet çdofaqja më e shkurtër e të cilave është nën këtë prag."
+
+msgid "Skip this page and continue the step, or stop the step entirely."
+msgstr "Kapërce këtë faqe dhe vazhdo hapin, ose ndale hapin plotësisht."
 
 msgid "Skipped"
 msgstr "Kaluar"
@@ -6680,6 +6761,9 @@ msgstr "Prompte të të Folurit"
 msgid "Speech Settings"
 msgstr "Cilësimet e të Folurit"
 
+msgid "Split"
+msgstr "Ndaj"
+
 #. placeholder {0}: book.split.splitPages
 #. placeholder {1}: book.split.totalPages
 msgid "Split · {0}/{1}"
@@ -6697,6 +6781,9 @@ msgstr "Ndarë · {0}/{1}"
 msgid "Split & merge"
 msgstr "Ndaj dhe bashko"
 
+msgid "Split group here"
+msgstr "Ndaje grupin këtu"
+
 msgid "Split into"
 msgstr "Ndaje në"
 
@@ -6711,11 +6798,17 @@ msgstr "Ndaje në"
 msgid "Split into {0} part(s) · {1}/{2} pages split off · {3}/{4} merged back"
 msgstr "I ndarë në {0} pjesë · {1}/{2} faqe të ndara · {3}/{4} të bashkuara"
 
+msgid "Split into new section"
+msgstr "Ndaje në një seksion të ri"
+
 msgid "Split into parts"
 msgstr "Ndaje në pjesë"
 
 #~ msgid "Split into parts for others"
 #~ msgstr "Ndaje në pjesë për të tjerët"
+
+msgid "Split into two sections at this point"
+msgstr "Ndajeni në dy seksione në këtë pikë"
 
 msgid "Split preview"
 msgstr "Pamja paraprake e ndarjes"
@@ -6792,6 +6885,9 @@ msgstr "Hapi dështoi"
 
 msgid "Step run failed"
 msgstr "Ekzekutimi i hapit dështoi"
+
+msgid "Stop step"
+msgstr "Ndalo hapin"
 
 msgid "Storyboard"
 msgstr "Storyboard"
@@ -7082,6 +7178,9 @@ msgstr "I gjithë faqja trajtohet si një seksion i vetëm — i gjithë teksti 
 
 msgid "The file may be damaged or incomplete. Try downloading it again from the source."
 msgstr "Skedari mund të jetë i dëmtuar ose i paplotë. Provo ta shkarkosh sërish nga burimi."
+
+msgid "The file you uploaded and the options you picked won't be kept."
+msgstr "Skedari që ngarkove dhe opsionet që zgjodhe nuk do të ruhen."
 
 msgid "The following terms are used throughout this manual. Familiarity with these definitions is required before proceeding to the implementation chapters."
 msgstr "Termat e mëposhtëm përdoren gjatë gjithë këtij manuali. Njohja me këto përkufizime kërkohet para se të vazhdohet me kapitujt e zbatimit."
@@ -7835,6 +7934,9 @@ msgstr "video"
 msgid "Videos"
 msgstr "Video"
 
+msgid "View details"
+msgstr "Shiko detajet"
+
 msgid "View HTML source"
 msgstr "Shiko burimin HTML"
 
@@ -8058,6 +8160,9 @@ msgstr "Mbështjell kërkesat 'Gjenero të re'. Mbështet variablat user_prompt,
 msgid "You can export at this stage"
 msgstr "Mund të eksportosh në këtë fazë"
 
+msgid "You have changes that haven't been saved yet. If you quit now, they'll be lost."
+msgstr "Ke ndryshime që ende nuk janë ruajtur. Nëse del tani, ato do të humbasin."
+
 #~ msgid "You have unsaved changes. If you leave, they'll be lost."
 #~ msgstr "Ke ndryshime të paruajtura. Nëse largohesh, ato do të humbasin."
 
@@ -8069,6 +8174,9 @@ msgstr "Je gati"
 
 msgid "You're now running ADT Studio {label}"
 msgstr "Tani po përdor ADT Studio {label}"
+
+msgid "You're partway through setting up a book. There's nothing to save yet — leaving now discards your progress and you'll start over."
+msgstr "Je duke konfiguruar një libër dhe ende s'ka asgjë për të ruajtur — nëse del tani, progresi yt humbet dhe do të fillosh nga e para."
 
 msgid "You're running the latest version of ADT Studio."
 msgstr "Po përdor versionin më të fundit të ADT Studio."

@@ -14,7 +14,10 @@ The screenshots show a **single section**, which is typically only a SUBSET of t
 - The rendered section will typically occupy the full viewport width, even if in the original it only takes up a column, a strip, or a small portion of the page. This is correct and expected — do NOT reject for this.
 - Other content visible in the original page image (other sections, headers, footers, page numbers, surrounding text, neighboring images) is NOT part of this section and MUST NOT appear in the rendering. Do NOT flag missing content that belongs to a different section.
 - Match layout, hierarchy, alignment, and styling against the corresponding region only. For example, if the section is a two-column block within a larger page, compare its column structure to that block — not to the page as a whole.
-
+{% if has_merged_content %}
+## MERGED CONTENT FROM ANOTHER PAGE
+This section combines content merged from MORE THAN ONE original page (for example an activity or passage that continues across a page break). Additional continuation page images are provided after the primary page image. When locating this section's content, check ALL of the provided page images — part of the rendering appears only in a continuation page image. Do NOT flag that content as extraneous, hallucinated, or missing from the original merely because it is absent from the primary page image, and do NOT remove it.
+{% endif %}
 ## WHAT MAKES A GOOD RENDERING
 - Text is readable at all viewport sizes with appropriate sizing
 - No overlapping text or elements — content flows cleanly

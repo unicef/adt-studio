@@ -42,11 +42,11 @@ import { classifyPageImages, buildImageClassifyConfig } from "./image-filtering.
 import { filterPageImageMeaningfulness, buildMeaningfulnessConfig } from "./image-meaningfulness.js"
 import { cropPageImages, applyCrops, buildCroppingConfig, getCroppedImageId } from "./image-cropping.js"
 import { segmentPageImages, applySegmentation, segmentBoundsOnPage, buildSegmentationConfig, getSegmentedImageId } from "./image-segmentation.js"
-import { renderPage, buildRenderStrategyResolver } from "./web-rendering.js"
+import { renderPage, buildRenderStrategyResolver, collectReferencedImageIds, collectSourcePageImages } from "./web-rendering.js"
 import { translatePageTree, buildTranslationConfig } from "./translation.js"
 import { createTemplateEngine } from "./render-template.js"
 import { captionPageImages, buildCaptionConfig, extractImageIds } from "./image-captioning.js"
-import { generateGlossary, buildGlossaryConfig } from "./glossary.js"
+import { regenerateGlossaryPreservingEdits, buildGlossaryConfig } from "./glossary.js"
 import { generateToc, buildTocGenerationConfig } from "./toc-generation.js"
 import { generateAllQuizzes, buildQuizGenerationConfig, type QuizPageInput } from "./quiz-generation.js"
 import { buildTextCatalog } from "./text-catalog.js"
@@ -580,7 +580,26 @@ export async function runFullPipeline(
           const dims = pageDims.get(imageId)
           renderImages.set(imageId, { base64: storage.getImageBase64(imageId), width: dims?.width, height: dims?.height })
         }
+        // Sections can reference images extracted on other pages (cross-page
+        // merges, images added from another page) — those are not in this
+        // page's image-filtering output, so pull them in by walking the tree.
+        for (const imageId of collectReferencedImageIds(sectioning.sections)) {
+          if (renderImages.has(imageId)) continue
+          try {
+            const dims = storage.getImageDimensions(imageId)
+            renderImages.set(imageId, { base64: storage.getImageBase64(imageId), width: dims?.width ?? undefined, height: dims?.height ?? undefined })
+          } catch {
+            // Image file no longer exists — leave it out; the renderer emits
+            // the URL reference without pixels.
+          }
+        }
         const pageImageBase64 = storage.getPageImageBase64(page.pageId)
+        // Page images for content merged in from other pages (cross-page
+        // merges) — per-section provenance recorded in sourcePageIds.
+        const sourcePageImages = collectSourcePageImages(
+          sectioning.sections,
+          (id) => storage.getPageImageBase64(id)
+        )
         const result = await renderPage(
           {
             label,
@@ -588,6 +607,7 @@ export async function runFullPipeline(
             pageImageBase64,
             sectioning: sectioning,
             images: renderImages,
+            sourcePageImages,
             bookFonts: buildBookFontsPromptContext(storage),
             typography,
           },
@@ -695,7 +715,8 @@ export async function runFullPipeline(
       const glossaryConfig = buildGlossaryConfig(config, language)
       const model = getModel(glossaryConfig.modelId)
       const pages = storage.getPages()
-      const glossary = await generateGlossary({
+
+      const glossary = await regenerateGlossaryPreservingEdits({
         storage,
         pages,
         config: glossaryConfig,

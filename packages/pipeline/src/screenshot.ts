@@ -37,10 +37,16 @@ export interface ScreenshotRenderer {
   /** Render HTML to a PNG screenshot and return it as base64. */
   screenshot(
     html: string,
-    viewport?: { width: number; height: number }
+    viewport?: { width: number; height: number },
+    options?: { signal?: AbortSignal },
   ): Promise<string>
   /** Release browser resources. */
   close(): Promise<void>
+}
+
+function throwIfAborted(signal?: AbortSignal): void {
+  if (!signal?.aborted) return
+  throw signal.reason instanceof Error ? signal.reason : new Error("Operation aborted")
 }
 
 /**
@@ -61,18 +67,29 @@ export async function _createScreenshotRenderer(): Promise<ScreenshotRenderer> {
   return {
     async screenshot(
       html: string,
-      viewport = { width: 1024, height: 768 }
+      viewport = { width: 1024, height: 768 },
+      options: { signal?: AbortSignal } = {},
     ): Promise<string> {
+      throwIfAborted(options.signal)
       const context = await browser.newContext({ viewport })
+      const onAbort = () => {
+        void context.close().catch(() => {})
+      }
+      options.signal?.addEventListener("abort", onAbort, { once: true })
       try {
+        throwIfAborted(options.signal)
         const page = await context.newPage()
         await page.setContent(html, { waitUntil: "load" })
+        throwIfAborted(options.signal)
         // Wait for web fonts to finish loading before screenshotting
         await page.waitForFunction("document.fonts.ready")
+        throwIfAborted(options.signal)
         const buffer = await page.screenshot({ fullPage: true, type: "png" })
+        throwIfAborted(options.signal)
         return buffer.toString("base64")
       } finally {
-        await context.close()
+        options.signal?.removeEventListener("abort", onAbort)
+        await context.close().catch(() => {})
       }
     },
 
@@ -126,23 +143,35 @@ export async function _createElectronScreenshotRenderer(): Promise<ScreenshotRen
   return {
     async screenshot(
       html: string,
-      viewport = { width: 1024, height: 768 }
+      viewport = { width: 1024, height: 768 },
+      options: { signal?: AbortSignal } = {},
     ): Promise<string> {
+      throwIfAborted(options.signal)
       const id = randomUUID()
       return new Promise((resolve, reject) => {
+        const cleanup = () => {
+          parentPort.off("message", onMessage)
+          options.signal?.removeEventListener("abort", onAbort)
+        }
         const onMessage = (ev: { data: unknown }) => {
           const parsed = screenshotIpcReplySchema.safeParse(ev.data)
           if (!parsed.success) return
           const msg = parsed.data
           if (msg.id !== id) return
-          parentPort.off("message", onMessage)
+          cleanup()
           if ("error" in msg) {
             reject(new Error(msg.error))
             return
           }
           resolve(msg.base64)
         }
+        const onAbort = () => {
+          cleanup()
+          parentPort.postMessage(screenshotIpcCloseSchema.parse({ type: "screenshot-close" }))
+          reject(new Error("Operation aborted"))
+        }
         parentPort.on("message", onMessage)
+        options.signal?.addEventListener("abort", onAbort, { once: true })
         const payload = screenshotIpcRequestSchema.parse({
           type: "screenshot-base64",
           id,

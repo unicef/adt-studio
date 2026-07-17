@@ -295,6 +295,9 @@ msgstr "{count} {count, plural, one {problema} other {problemas}}"
 msgid "{count} {count, plural, one {manual review item} other {manual review items}}"
 msgstr "{count} {count, plural, one {elemento de revisión manual} other {elementos de revisión manual}}"
 
+msgid "{count} pages failed in {stageLabel}"
+msgstr "{count} páginas fallaron en {stageLabel}"
+
 msgid "{count} translations"
 msgstr "{count} traducciones"
 
@@ -342,14 +345,8 @@ msgstr "{issuesLabel}, {reviewLabel}"
 msgid "{label} desktop size"
 msgstr "Tamaño de {label} en escritorio"
 
-#~ msgid "{label} desktop size in pixels"
-#~ msgstr "Tamaño de {label} en escritorio, en píxeles"
-
 msgid "{label} mobile size"
 msgstr "Tamaño de {label} en móvil"
-
-#~ msgid "{label} mobile size in pixels"
-#~ msgstr "Tamaño de {label} en móvil, en píxeles"
 
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 de {total} páginas combinadas} one {# de {total} páginas combinadas} other {# de {total} páginas combinadas}}"
@@ -547,6 +544,12 @@ msgstr "Una actividad de selección múltiple."
 
 #~ msgid "A new version is available for download."
 #~ msgstr "Una nueva versión está disponible para descargar."
+
+msgid "A page failed in {stageLabel}"
+msgstr "Una página falló en {stageLabel}"
+
+msgid "A page failed in {stepLabel}"
+msgstr "Una página falló en {stepLabel}"
 
 msgid "A question worth asking"
 msgstr "Una pregunta que vale la pena hacer"
@@ -1204,6 +1207,9 @@ msgstr "Aplicar colores de fondo de página"
 msgid "Apply Segmentation"
 msgstr "Apply Segmentation"
 
+msgid "Apply to all errors in this run"
+msgstr "Aplicar a todos los errores de esta ejecución"
+
 msgid "AR"
 msgstr "AR"
 
@@ -1462,6 +1468,9 @@ msgstr "Vista previa del libro"
 msgid "Book Preview"
 msgstr "Vista Previa del Libro"
 
+msgid "Book setup"
+msgstr "Configuración del libro"
+
 msgid "Book Summary"
 msgstr "Resumen del libro"
 
@@ -1564,8 +1573,38 @@ msgstr "Llamadas"
 msgid "Cancel"
 msgstr "Cancelar"
 
+msgid "Cancel {stageLabel}"
+msgstr "Cancelar {stageLabel}"
+
+msgid "Cancel {stepLabel} step"
+msgstr "Cancelar paso {stepLabel}"
+
 msgid "Cancel download"
 msgstr "Cancelar descarga"
+
+msgid "Cancel run"
+msgstr "Cancelar ejecución"
+
+msgid "Cancelling {stageLabel}"
+msgstr "Cancelando {stageLabel}"
+
+msgid "Cancelling {stepLabel} step"
+msgstr "Cancelando paso {stepLabel}"
+
+msgid "Cancelling run"
+msgstr "Cancelando ejecución"
+
+msgid "Cancelling run…"
+msgstr "Cancelando ejecución…"
+
+#~ msgid "Cancelling step"
+#~ msgstr "Cancelando paso"
+
+msgid "Cancelling..."
+msgstr "Cancelando..."
+
+msgid "Cancelling…"
+msgstr "Cancelando…"
 
 #. placeholder {0}: String(MAX_ENTRIES)
 msgid "capped at {0}"
@@ -2133,12 +2172,6 @@ msgstr "Decorativa"
 
 msgid "Decrease {label}"
 msgstr "Disminuir {label}"
-
-#~ msgid "Decrease {label} desktop size"
-#~ msgstr "Reducir el tamaño de {label} en escritorio"
-
-#~ msgid "Decrease {label} mobile size"
-#~ msgstr "Reducir el tamaño de {label} en móvil"
 
 msgid "Decrease indent"
 msgstr "Disminuir sangría"
@@ -3009,9 +3042,6 @@ msgstr "Plantilla de diseño fijo de dos columnas"
 msgid "Fixed-layout books use the original page images as backgrounds with positioned text extracted from the PDF. Activities detection, figure extraction, and image cropping or segmentation don't apply to this layout."
 msgstr "Los libros de diseño fijo usan las imágenes originales de las páginas como fondo con texto posicionado extraído del PDF. La detección de actividades, extracción de figuras, recorte o segmentación de imágenes no aplican a este diseño."
 
-#~ msgid "Fixed, accessible sizes applied to every page. Each role scales fluidly between its mobile and desktop size, and these override any size the AI picks — so headings and body text stay consistent across the whole book."
-#~ msgstr "Tamaños fijos y accesibles que se aplican a todas las páginas. Cada rol se escala de forma fluida entre su tamaño en móvil y en escritorio, y estos anulan cualquier tamaño que elija la IA, de modo que los títulos y el texto del cuerpo se mantienen coherentes en todo el libro."
-
 msgid "Fixed, accessible sizes applied to every page. Sizes use the book's Tailwind scale (pick a token or type an exact px), scale fluidly between mobile and desktop, and override any size the AI picks — so headings and body text stay consistent across the whole book."
 msgstr "Tamaños fijos y accesibles que se aplican a todas las páginas. Los tamaños usan la escala de Tailwind del libro (elige un token o escribe un valor exacto en px), se escalan de forma fluida entre móvil y escritorio, y anulan cualquier tamaño que elija la IA, de modo que los títulos y el texto del cuerpo se mantienen coherentes en todo el libro."
 
@@ -3619,12 +3649,6 @@ msgstr "Incluye:"
 msgid "Increase {label}"
 msgstr "Aumentar {label}"
 
-#~ msgid "Increase {label} desktop size"
-#~ msgstr "Aumentar el tamaño de {label} en escritorio"
-
-#~ msgid "Increase {label} mobile size"
-#~ msgstr "Aumentar el tamaño de {label} en móvil"
-
 msgid "Increase indent"
 msgstr "Aumentar sangría"
 
@@ -3825,6 +3849,12 @@ msgstr "Dejar vacío para generar solo en el idioma del libro."
 
 msgid "Leave empty to use the book language."
 msgstr "Deja vacío para usar el idioma del libro."
+
+msgid "Leave setup"
+msgstr "Salir de la configuración"
+
+msgid "Leave without finishing?"
+msgstr "¿Salir sin terminar?"
 
 msgid "Legal and compliance manuals"
 msgstr "Manuales legales y de cumplimiento"
@@ -4135,8 +4165,14 @@ msgstr "Referencias médicas"
 msgid "Medium"
 msgstr "Medio"
 
+msgid "Merge"
+msgstr "Fusionar"
+
 msgid "Merge a completed part"
 msgstr "Fusionar una parte completada"
+
+msgid "Merge adjacent groups"
+msgstr "Fusionar grupos adyacentes"
 
 msgid "Merge another"
 msgstr "Fusionar otra"
@@ -4150,20 +4186,32 @@ msgstr "Combinar otra parte"
 msgid "Merge failed"
 msgstr "Merge failed"
 
-msgid "merge into next page"
-msgstr "fusionar en la página siguiente"
+#~ msgid "merge into next page"
+#~ msgstr "fusionar en la página siguiente"
 
-msgid "Merge into next page"
-msgstr "Fusionar en la página siguiente"
+#~ msgid "Merge into next page"
+#~ msgstr "Fusionar en la página siguiente"
 
-msgid "merge into previous page"
-msgstr "fusionar en la página anterior"
+#~ msgid "merge into previous page"
+#~ msgstr "fusionar en la página anterior"
 
-msgid "Merge into previous page"
-msgstr "Fusionar en la página anterior"
+#~ msgid "Merge into previous page"
+#~ msgstr "Fusionar en la página anterior"
 
 msgid "Merge part"
 msgstr "Fusionar parte"
+
+msgid "merge this section into the first section of the next page"
+msgstr "fusionar esta sección con la primera sección de la página siguiente"
+
+msgid "merge this section into the last section of the previous page"
+msgstr "fusionar esta sección con la última sección de la página anterior"
+
+msgid "Merge with first section of next page"
+msgstr "Fusionar con la primera sección de la página siguiente"
+
+msgid "Merge with last section of previous page"
+msgstr "Fusionar con la última sección de la página anterior"
 
 msgid "merge with next"
 msgstr "fusionar con la siguiente"
@@ -4179,6 +4227,9 @@ msgstr "fusionar con la anterior"
 
 msgid "Merge with previous"
 msgstr "Fusionar con la anterior"
+
+msgid "Merge with previous group"
+msgstr "Fusionar con el grupo anterior"
 
 msgid "merge with previous section"
 msgstr "fusionar con la sección anterior"
@@ -4822,6 +4873,9 @@ msgstr "Se requiere clave de OpenAI"
 msgid "OpenAI Voice"
 msgstr "Voz OpenAI"
 
+msgid "Operation failed"
+msgstr "La operación falló"
+
 msgid "Optional"
 msgstr "Opcional"
 
@@ -5278,6 +5332,9 @@ msgstr "Reproducir"
 msgid "Play video"
 msgstr "Reproducir video"
 
+msgid "Please wait for the current operation to finish"
+msgstr "Espera a que termine la operación actual"
+
 msgid "Polishing paragraphs to perfection..."
 msgstr "Puliendo párrafos a la perfección..."
 
@@ -5458,6 +5515,12 @@ msgstr "en cola"
 
 msgid "Queued"
 msgstr "En cola"
+
+msgid "Quit anyway"
+msgstr "Salir de todos modos"
+
+msgid "Quit without saving?"
+msgstr "¿Salir sin guardar?"
 
 msgid "quiz"
 msgstr "cuestionario"
@@ -5949,6 +6012,9 @@ msgstr "Ejecutar {0}"
 msgid "Run {upstreamLabel} first"
 msgstr "Ejecuta {upstreamLabel} primero"
 
+msgid "Run cancelled"
+msgstr "Ejecución cancelada"
+
 msgid "Run Captions"
 msgstr "Ejecutar Subtítulos"
 
@@ -6024,8 +6090,8 @@ msgstr "En ejecución"
 msgid "RUNNING"
 msgstr "EN CURSO"
 
-msgid "Running {stageLabel}"
-msgstr "Ejecutando {stageLabel}"
+#~ msgid "Running {stageLabel}"
+#~ msgstr "Ejecutando {stageLabel}"
 
 msgid "Running Sectioning will run Extract first, then section the extracted pages."
 msgstr "Ejecutar Sectioning ejecutará primero Extracción y luego dividirá en secciones las páginas extraídas."
@@ -6036,8 +6102,8 @@ msgstr "Ejecutar Storyboard ejecutará primero las etapas principales anteriores
 msgid "Running Validation..."
 msgstr "Running Validation..."
 
-msgid "Running..."
-msgstr "Ejecutando..."
+#~ msgid "Running..."
+#~ msgstr "Ejecutando..."
 
 msgid "Runs accessibility checks against the packaged book."
 msgstr "Realiza comprobaciones de accesibilidad en el libro empaquetado."
@@ -6123,6 +6189,12 @@ msgstr "Save checklist"
 msgid "Save failed"
 msgstr "Save failed"
 
+msgid "Save or discard your edits before splitting"
+msgstr "Guarda o descarta tus cambios antes de dividir"
+
+msgid "Save or discard your edits first"
+msgstr "Primero guarda o descarta tus cambios"
+
 msgid "Save page review"
 msgstr "Save page review"
 
@@ -6134,6 +6206,9 @@ msgstr "Save settings"
 
 msgid "Save text sizes"
 msgstr "Guardar tamaños de texto"
+
+msgid "Save your work first if you want to keep these changes."
+msgstr "Guarda tu trabajo primero si quieres conservar estos cambios."
 
 msgid "Saved. Re-package Preview to apply."
 msgstr "Saved. Re-package Preview to apply."
@@ -6591,8 +6666,14 @@ msgstr "Omitir por ahora"
 msgid "Skip intro"
 msgstr "Omitir intro"
 
+msgid "Skip page and continue"
+msgstr "Omitir página y continuar"
+
 msgid "Skip segmentation for images whose shortest side is below this threshold."
 msgstr "Omitir segmentación para imágenes cuyo lado más corto esté por debajo de este umbral."
+
+msgid "Skip this page and continue the step, or stop the step entirely."
+msgstr "Omite esta página y continúa el paso, o detén el paso por completo."
 
 msgid "Skipped"
 msgstr "Omitido"
@@ -6679,6 +6760,9 @@ msgstr "Indicaciones de voz"
 msgid "Speech Settings"
 msgstr "Configuración de Voz"
 
+msgid "Split"
+msgstr "Dividir"
+
 #. placeholder {0}: book.split.splitPages
 #. placeholder {1}: book.split.totalPages
 msgid "Split · {0}/{1}"
@@ -6696,6 +6780,9 @@ msgstr "Dividido · {0}/{1}"
 msgid "Split & merge"
 msgstr "Dividir y fusionar"
 
+msgid "Split group here"
+msgstr "Dividir el grupo aquí"
+
 msgid "Split into"
 msgstr "Dividir en"
 
@@ -6710,11 +6797,17 @@ msgstr "Dividir en"
 msgid "Split into {0} part(s) · {1}/{2} pages split off · {3}/{4} merged back"
 msgstr "Dividido en {0} parte(s) · {1}/{2} páginas separadas · {3}/{4} fusionadas"
 
+msgid "Split into new section"
+msgstr "Dividir en una nueva sección"
+
 msgid "Split into parts"
 msgstr "Dividir en partes"
 
 #~ msgid "Split into parts for others"
 #~ msgstr "Dividir en partes para otros"
+
+msgid "Split into two sections at this point"
+msgstr "Dividir en dos secciones en este punto"
 
 msgid "Split preview"
 msgstr "Previsualización de división"
@@ -6791,6 +6884,9 @@ msgstr "Step failed"
 
 msgid "Step run failed"
 msgstr "Step run failed"
+
+msgid "Stop step"
+msgstr "Detener paso"
 
 msgid "Storyboard"
 msgstr "Storyboard"
@@ -7081,6 +7177,9 @@ msgstr "Toda la página se trata como una sola sección - todo el texto e imáge
 
 msgid "The file may be damaged or incomplete. Try downloading it again from the source."
 msgstr "El archivo puede estar dañado o incompleto. Intenta descargarlo nuevamente desde la fuente."
+
+msgid "The file you uploaded and the options you picked won't be kept."
+msgstr "No se conservarán el archivo que subiste ni las opciones que elegiste."
 
 msgid "The following terms are used throughout this manual. Familiarity with these definitions is required before proceeding to the implementation chapters."
 msgstr "Los siguientes términos se utilizan a lo largo de este manual. Se requiere familiaridad con estas definiciones antes de proceder a los capítulos de implementación."
@@ -7834,6 +7933,9 @@ msgstr "videos"
 msgid "Videos"
 msgstr "Videos"
 
+msgid "View details"
+msgstr "Ver detalles"
+
 msgid "View HTML source"
 msgstr "Ver código HTML"
 
@@ -8057,6 +8159,9 @@ msgstr "Envuelve solicitudes de 'Generar nueva'. Soporta variables user_prompt, 
 msgid "You can export at this stage"
 msgstr "Puedes exportar en esta etapa"
 
+msgid "You have changes that haven't been saved yet. If you quit now, they'll be lost."
+msgstr "Tienes cambios que aún no se han guardado. Si sales ahora, se perderán."
+
 #~ msgid "You have unsaved changes. If you leave, they'll be lost."
 #~ msgstr "Tienes cambios no guardados. Si sales, se perderán."
 
@@ -8068,6 +8173,9 @@ msgstr "Todo listo"
 
 msgid "You're now running ADT Studio {label}"
 msgstr "Ahora estás usando ADT Studio {label}"
+
+msgid "You're partway through setting up a book. There's nothing to save yet — leaving now discards your progress and you'll start over."
+msgstr "Estás configurando un libro y todavía no hay nada que guardar: si sales ahora, descartarás tu progreso y tendrás que empezar de nuevo."
 
 msgid "You're running the latest version of ADT Studio."
 msgstr "Estás usando la última versión de ADT Studio."

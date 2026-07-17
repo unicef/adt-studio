@@ -79,6 +79,7 @@ export {
   STAGE_OUTPUT_NODES,
   getStageClearOrder,
   getStageClearNodes,
+  getStageRerunClearNodes,
   getCacheResourcesForNode,
   getCacheResourcesForNodes,
   getCacheResourcesForStageOutput,
@@ -93,6 +94,13 @@ export {
 export { PartRange, PartManifest, ExportedPartEntry, PartsLedger } from "./part.js"
 
 export { ProgressEvent } from "./progress.js"
+
+export {
+  PageErrorPolicy,
+  PageErrorAction,
+  PendingDecision,
+  DecisionBody,
+} from "./page-error.js"
 
 export {
   TaskKind,
@@ -151,6 +159,10 @@ export {
   addContainer,
   nestNode,
   unnestNode,
+  splitContainerBefore,
+  splitNodesBefore,
+  mergeContainerWithPrevious,
+  mergeAdjacentContainers,
   replaceNodeId,
   cloneNodeWithNewIds,
   collectPrunedLeafIds,
