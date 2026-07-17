@@ -97,8 +97,9 @@ export interface Storage {
 
   /** Mark a pipeline step as started (running). */
   markStepStarted(step: string): void
-  /** Mark a pipeline step as completed successfully. */
-  markStepCompleted(step: string): void
+  /** Mark a pipeline step as completed successfully. Optionally persist a
+   *  completion message (e.g. "Completed — 2 page(s) skipped"). */
+  markStepCompleted(step: string, message?: string): void
   /** Mark a pipeline step as skipped. */
   markStepSkipped(step: string): void
   /** Record a step error. Can be called multiple times (last error wins). */
@@ -109,6 +110,9 @@ export interface Storage {
   getStepRuns(): Array<{ step: string; status: string; error: string | null; message: string | null }>
   /** Clear step run records for specific steps (used when clearing downstream data). */
   clearStepRuns(steps: string[]): void
+  /** Delete step run records still marked 'running'. Used when a run is
+   *  cancelled: in-flight steps return to idle rather than showing as errored. */
+  clearRunningStepRuns(): void
 
   /** Get a compact fingerprint of all entity versions for cache invalidation. */
   getNodeVersionFingerprint(excludeNodes?: string[]): Array<{ node: string; itemId: string; version: number }>

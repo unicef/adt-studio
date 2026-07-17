@@ -1,12 +1,15 @@
 // @vitest-environment jsdom
 import React from "react"
 import { afterEach, describe, expect, it, vi } from "vitest"
-import { cleanup, render, screen } from "@testing-library/react"
+import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 
-const stageStateMock = vi.fn((slug: string) => {
+const defaultStageState = (slug: string) => {
   if (slug === "storyboard" || slug === "validation") return "done"
   return "idle"
-})
+}
+const stageStateMock = vi.fn(defaultStageState)
+const cancelRunMock = vi.fn()
+const toastInfoMock = vi.fn()
 const matchRouteMock = vi.fn(() => true)
 const searchMock = { tab: "reviewer-checklist" }
 
@@ -64,7 +67,15 @@ vi.mock("@/hooks/use-book-run", () => ({
     stageState: stageStateMock,
     stepState: vi.fn(() => "idle"),
     stepProgress: vi.fn(() => null),
+    cancelRun: cancelRunMock,
+    isCancelling: false,
   }),
+}))
+
+vi.mock("@/components/ui/sonner", () => ({
+  toast: {
+    info: toastInfoMock,
+  },
 }))
 
 vi.mock("@/hooks/use-debug", () => ({
@@ -118,6 +129,7 @@ vi.mock("@/routes/books.$label", () => ({
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
+  stageStateMock.mockImplementation(defaultStageState)
 })
 
 describe("StageSidebar", () => {
@@ -139,5 +151,50 @@ describe("StageSidebar", () => {
     expect(screen.getByText("Reviewer Checklist")).toBeTruthy()
     expect(container.textContent).toContain("Validation")
     expect(container.textContent).toContain("Preview")
+  })
+
+  it("shows a red error badge on failed stages", async () => {
+    stageStateMock.mockImplementation((slug: string) => {
+      if (slug === "storyboard") return "error"
+      return defaultStageState(slug)
+    })
+
+    const { StageSidebar } = await import("./components/StageSidebar")
+    const { container } = render(
+      <StageSidebar
+        bookLabel="demo-book"
+        activeStep="storyboard"
+      />,
+    )
+
+    const errorBadge = screen.getByTitle("Storyboard: failed")
+    expect(errorBadge.className).toContain("bg-red-600")
+    expect(errorBadge.getAttribute("role")).toBe("img")
+    expect(container.querySelector('circle[stroke="#ef4444"]')).toBeNull()
+  })
+
+  it("shows a cancel button over a running stage icon and requests cancellation", async () => {
+    stageStateMock.mockImplementation((slug: string) => {
+      if (slug === "storyboard") return "running"
+      return defaultStageState(slug)
+    })
+
+    const { StageSidebar } = await import("./components/StageSidebar")
+    render(
+      <StageSidebar
+        bookLabel="demo-book"
+        activeStep="storyboard"
+      />,
+    )
+
+    const cancelButton = screen.getByTitle("Cancel Storyboard step")
+    expect(cancelButton.className).toContain("bg-red-600")
+    expect(cancelButton.className).toContain("left-2")
+    expect(cancelButton.className).not.toContain("left-2.5")
+
+    fireEvent.click(cancelButton)
+
+    expect(cancelRunMock).toHaveBeenCalledTimes(1)
+    expect(toastInfoMock).toHaveBeenCalledWith("Cancelling Storyboard step")
   })
 })

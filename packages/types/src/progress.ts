@@ -16,6 +16,7 @@ export const ProgressEvent = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("step-complete"),
     step: StepName,
+    message: z.string().optional(),
   }),
   z.object({
     type: z.literal("step-skip"),
