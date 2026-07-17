@@ -2,7 +2,7 @@ import fs from "node:fs"
 import path from "node:path"
 import crypto from "node:crypto"
 import yaml from "js-yaml"
-import type { SpeechFileEntry, TTSProviderConfig } from "@adt/types"
+import type { SpeechFileEntry, TTSProviderConfig, TTSRateLimitConfig } from "@adt/types"
 import type { RateLimiter, TTSSynthesizer, WhisperTranscriptionResult } from "@adt/llm"
 import { transcribeWithWhisper } from "@adt/llm"
 import { getBaseLanguage, normalizeLocale } from "./language-context.js"
@@ -19,7 +19,9 @@ const DEFAULT_OPENAI_VOICE = "alloy"
 const DEFAULT_GEMINI_VOICE = "Kore"
 const DEFAULT_OPENAI_MODEL = "gpt-4o-mini-tts"
 const DEFAULT_AZURE_MODEL = "azure-tts"
-const DEFAULT_GEMINI_MODEL = "gemini-2.5-pro-preview-tts"
+// Flash is the default: lower latency and higher documented throughput than Pro.
+// Users can switch to Pro (or any model) via `speech.providers.gemini.model`.
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash-preview-tts"
 const DEFAULT_AUDIO_FORMAT = "mp3"
 const GEMINI_AUDIO_FORMAT = "wav"
 
@@ -167,6 +169,71 @@ export function resolveSpeechFormat(
 ): string {
   if (provider === "gemini") return GEMINI_AUDIO_FORMAT
   return defaultFormat?.trim().toLowerCase() || DEFAULT_AUDIO_FORMAT
+}
+
+// ---------------------------------------------------------------------------
+// Gemini TTS rate-limit resolution
+// ---------------------------------------------------------------------------
+
+// Documented per-minute request ceilings for Gemini-TTS (Google Cloud TTS QPM:
+// flash-tts 150, pro-tts 125). These are used only as the *optimistic starting
+// point* for the adaptive limiter — it backs off automatically when the
+// account's real Gemini API tier turns out to be lower, so being generous here
+// is safe.
+const GEMINI_TTS_FLASH_RPM = 150
+const GEMINI_TTS_PRO_RPM = 125
+const GEMINI_TTS_UNKNOWN_RPM = 100
+// Floor the adaptive limiter may drop to. Kept low enough to fall under a
+// free-tier quota; recovery (reward) probes back up when calls succeed.
+const GEMINI_TTS_MIN_RPM = 3
+
+/** Documented requests-per-minute ceiling for a given Gemini TTS model. */
+export function getDocumentedGeminiTtsRpm(model: string): number {
+  const normalized = model.toLowerCase()
+  if (normalized.includes("flash")) return GEMINI_TTS_FLASH_RPM
+  if (normalized.includes("pro")) return GEMINI_TTS_PRO_RPM
+  return GEMINI_TTS_UNKNOWN_RPM
+}
+
+export interface ResolvedGeminiTtsRateLimit {
+  /** "auto" starts at the documented ceiling; "fixed" starts at a user-pinned value. */
+  mode: "auto" | "fixed"
+  startRpm: number
+  minRpm: number
+  maxRpm: number
+}
+
+/**
+ * Resolve the adaptive rate-limiter bounds for Gemini TTS from config.
+ *
+ * - No config or `requests_per_minute: "auto"` → start at the documented ceiling
+ *   for the model and let the limiter self-tune (this is the default).
+ * - `requests_per_minute: <number>` → pin the starting ceiling to that number
+ *   (the limiter still backs off below it on 429s).
+ * - `min_requests_per_minute` / `max_requests_per_minute` override the floor/ceiling.
+ */
+export function resolveGeminiTtsRateLimit(args: {
+  model: string
+  rateLimit?: TTSRateLimitConfig
+}): ResolvedGeminiTtsRateLimit {
+  const documented = getDocumentedGeminiTtsRpm(args.model)
+  const rl = args.rateLimit
+  const rpm = rl?.requests_per_minute
+  const minRpm = Math.max(1, rl?.min_requests_per_minute ?? GEMINI_TTS_MIN_RPM)
+
+  if (rpm === undefined || rpm === "auto") {
+    const maxRpm = Math.max(minRpm, rl?.max_requests_per_minute ?? documented)
+    return { mode: "auto", startRpm: maxRpm, minRpm, maxRpm }
+  }
+
+  // Fixed numeric ceiling: start there, but still allow adaptive back-off.
+  const maxRpm = Math.max(minRpm, rl?.max_requests_per_minute ?? rpm)
+  return {
+    mode: "fixed",
+    startRpm: Math.min(rpm, maxRpm),
+    minRpm: Math.min(minRpm, rpm),
+    maxRpm,
+  }
 }
 
 // ---------------------------------------------------------------------------

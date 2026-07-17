@@ -3,8 +3,8 @@ import fs from "node:fs"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import type { Storage } from "@adt/storage"
-import { createLLMModel, createPromptEngine, createRateLimiter, renderLiquidTemplate } from "@adt/llm"
-import type { LlmLogEntry } from "@adt/llm"
+import { createLLMModel, createPromptEngine, createRateLimiter, createAdaptiveRateLimiter, renderLiquidTemplate } from "@adt/llm"
+import type { LlmLogEntry, AdaptiveRateLimiter } from "@adt/llm"
 import {
   extractPDF,
   resolveFontsCacheDir,
@@ -54,6 +54,7 @@ import {
   resolveInstructions,
   resolveProviderForLanguage,
   resolveSpeechModel,
+  resolveGeminiTtsRateLimit,
   resolveSpeechFormat,
   computeSpeechCacheKey,
   generateSpeechFile,
@@ -109,8 +110,10 @@ import type {
 } from "./stage-service.js"
 
 const DEFAULT_METADATA_PAGES = 3
-const GEMINI_TTS_SAFE_REQUESTS_PER_MINUTE = 10
-const GEMINI_TTS_MAX_RATE_LIMIT_RETRIES = 2
+// Per-item retry budget for a 429/quota response. Higher than a plain fixed
+// limiter would need, because the adaptive limiter starts optimistically high
+// and takes a few back-off steps to converge on the account's real quota.
+const GEMINI_TTS_MAX_RATE_LIMIT_RETRIES = 4
 const GEMINI_TTS_DEFAULT_RETRY_DELAY_MS = 6_000
 const GEMINI_TTS_MAX_RETRY_DELAY_MS = 20_000
 
@@ -2251,16 +2254,24 @@ async function runSpeechStep(
     const hasGeminiTts = outputLanguages.some(
       (lang) => resolveProviderForLanguage(lang, routing) === "gemini"
     )
-    const geminiTtsRequestsPerMinute = Math.min(
-      config.rate_limit?.requests_per_minute ?? GEMINI_TTS_SAFE_REQUESTS_PER_MINUTE,
-      GEMINI_TTS_SAFE_REQUESTS_PER_MINUTE
-    )
-    const geminiTtsRateLimiter = hasGeminiTts
-      ? createRateLimiter(geminiTtsRequestsPerMinute)
+    // Adaptive limiter: start at the documented ceiling for the selected model
+    // (or a user-pinned value) and back off on 429s, so a generous quota runs
+    // fast while a smaller tier self-throttles instead of erroring out.
+    const geminiTtsModel = resolveSpeechModel("gemini", providerConfigs, speechModel)
+    const geminiTtsRate = resolveGeminiTtsRateLimit({
+      model: geminiTtsModel,
+      rateLimit: providerConfigs.gemini?.rate_limit,
+    })
+    const geminiTtsRateLimiter: AdaptiveRateLimiter | undefined = hasGeminiTts
+      ? createAdaptiveRateLimiter({
+          startRpm: geminiTtsRate.startRpm,
+          minRpm: geminiTtsRate.minRpm,
+          maxRpm: geminiTtsRate.maxRpm,
+        })
       : undefined
     if (geminiTtsRateLimiter) {
       console.log(
-        `[stage-run] ${label}: Gemini TTS limiter active at ${geminiTtsRequestsPerMinute} req/min`
+        `[stage-run] ${label}: Gemini TTS adaptive limiter — model=${geminiTtsModel} mode=${geminiTtsRate.mode} start=${geminiTtsRate.startRpm} range=${geminiTtsRate.minRpm}-${geminiTtsRate.maxRpm} req/min`
       )
     }
 
@@ -2307,6 +2318,11 @@ async function runSpeechStep(
                 rateLimiter: provider === "gemini" ? geminiTtsRateLimiter : undefined,
                 provider,
               })
+              // A real (non-cached) success means the current rate held —
+              // let the limiter probe back toward the ceiling.
+              if (provider === "gemini" && entry && !entry.cached) {
+                geminiTtsRateLimiter?.reward()
+              }
               break
             } catch (err) {
               const msg = toErrorMessage(err)
@@ -2321,8 +2337,12 @@ async function runSpeechStep(
                     GEMINI_TTS_DEFAULT_RETRY_DELAY_MS * attemptCount,
                     GEMINI_TTS_MAX_RETRY_DELAY_MS
                   )
+                // Halve the shared rate and pause all workers for the retry
+                // window, so one 429 throttles the whole batch instead of every
+                // item discovering the limit independently.
+                geminiTtsRateLimiter?.penalize(retryDelayMs)
                 console.warn(
-                  `[stage-run] ${label}: Gemini TTS rate limited for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms`
+                  `[stage-run] ${label}: Gemini TTS rate limited for ${item.textId} (${item.language}); backing off to ${geminiTtsRateLimiter?.currentRpm() ?? "?"} req/min, retrying ${attemptCount + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms`
                 )
                 await sleep(retryDelayMs)
                 continue

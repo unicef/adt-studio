@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest"
-import { createRateLimiter } from "../rate-limiter.js"
+import { createRateLimiter, createAdaptiveRateLimiter } from "../rate-limiter.js"
 
 describe("createRateLimiter", () => {
   afterEach(() => {
@@ -76,5 +76,90 @@ describe("createRateLimiter", () => {
 
     await Promise.all([p1, p2])
     expect(order).toEqual([1, 2])
+  })
+})
+
+describe("createAdaptiveRateLimiter", () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it("halves the rate on penalize, never below the floor", () => {
+    const limiter = createAdaptiveRateLimiter({ startRpm: 100, minRpm: 5, maxRpm: 100 })
+    expect(limiter.currentRpm()).toBe(100)
+    limiter.penalize()
+    expect(limiter.currentRpm()).toBe(50)
+    limiter.penalize()
+    expect(limiter.currentRpm()).toBe(25)
+    for (let i = 0; i < 10; i++) limiter.penalize()
+    expect(limiter.currentRpm()).toBe(5)
+  })
+
+  it("raises the rate after enough rewards, capped at max", () => {
+    const limiter = createAdaptiveRateLimiter({
+      startRpm: 10,
+      minRpm: 5,
+      maxRpm: 100,
+      rewardEvery: 3,
+    })
+    // increaseStep = floor(maxRpm / 10) = 10
+    limiter.reward()
+    limiter.reward()
+    expect(limiter.currentRpm()).toBe(10) // not enough successes yet
+    limiter.reward()
+    expect(limiter.currentRpm()).toBe(20) // +10 after 3
+    for (let i = 0; i < 100; i++) limiter.reward()
+    expect(limiter.currentRpm()).toBe(100) // capped at max
+  })
+
+  it("admits an initial burst then throttles to the rate", async () => {
+    vi.useFakeTimers()
+    const limiter = createAdaptiveRateLimiter({
+      startRpm: 60,
+      minRpm: 5,
+      maxRpm: 60,
+      burst: 2,
+    })
+
+    // burst=2 → first two are immediate
+    await limiter.acquire()
+    await limiter.acquire()
+
+    let resolved = false
+    const promise = limiter.acquire().then(() => {
+      resolved = true
+    })
+    expect(resolved).toBe(false)
+
+    // 60 rpm → 1 token per second
+    await vi.advanceTimersByTimeAsync(1_500)
+    await promise
+    expect(resolved).toBe(true)
+  })
+
+  it("pauses all acquisition for the retry window given to penalize", async () => {
+    vi.useFakeTimers()
+    const limiter = createAdaptiveRateLimiter({
+      startRpm: 60,
+      minRpm: 5,
+      maxRpm: 60,
+      burst: 5,
+    })
+
+    await limiter.acquire()
+    limiter.penalize(5_000) // rate halves, no tokens admitted for 5s
+    expect(limiter.currentRpm()).toBe(30)
+
+    let resolved = false
+    const promise = limiter.acquire().then(() => {
+      resolved = true
+    })
+
+    await vi.advanceTimersByTimeAsync(4_000)
+    expect(resolved).toBe(false) // still within the pause window
+
+    await vi.advanceTimersByTimeAsync(6_000) // pause elapsed + one token refilled at 30 rpm
+    await promise
+    expect(resolved).toBe(true)
   })
 })
