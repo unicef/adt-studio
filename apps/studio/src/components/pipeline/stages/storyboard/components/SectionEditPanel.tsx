@@ -48,6 +48,7 @@ interface SectionEditPanelProps {
   onLeafAdded: (nodeId: string, parentNodeId: string | null) => void
   onContainerAdded: (nodeId: string, parentNodeId: string | null) => void
   onSelectNode: (nodeId: string, tagName?: string) => void
+  renderedDataIds: Set<string>
   onStructuralChange: () => void
   onMergeSection: (dir: "prev" | "next") => void
   onMergeCrossPage?: (dir: "prev" | "next") => void
@@ -90,6 +91,7 @@ export function SectionEditPanel({
   onLeafAdded,
   onContainerAdded,
   onSelectNode,
+  renderedDataIds,
   onStructuralChange,
   onMergeSection,
   onMergeCrossPage,
@@ -291,6 +293,7 @@ export function SectionEditPanel({
           onLeafAdded={onLeafAdded}
           onContainerAdded={onContainerAdded}
           onSelectNode={onSelectNode}
+          renderedDataIds={renderedDataIds}
           onStructuralChange={onStructuralChange}
         />
 

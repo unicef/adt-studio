@@ -72,6 +72,14 @@ export interface BookPreviewFrameHandle {
    *  place the selection toolbar when selection is driven from outside the
    *  preview (e.g. clicking a node in the section tree). */
   getElementRect: (dataId: string) => DOMRect | null
+  /** Locate a container element by the nearest common ancestor of its descendant
+   *  leaves (which carry data-ids), assigning it a transient data-id if needed.
+   *  Groups aren't tagged with their tree nodeId in the rendered HTML, so this is
+   *  how the section tree selects a pre-existing group for styling. Returns the
+   *  resolved data-id, rect and tag, or null when no descendant leaf is present. */
+  selectContainerByDescendants: (
+    leafDataIds: string[]
+  ) => { dataId: string; rect: DOMRect; tagName: string } | null
   /** Regenerate Tailwind CSS including the given extra HTML, then inject into iframe.
    *  Use after AI edits introduce new Tailwind classes not yet in the DB. */
   refreshCss: (extraHtml: string) => Promise<void>
@@ -168,6 +176,53 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       if (!doc) return null
       const el = doc.querySelector(`[data-id="${CSS.escape(dataId)}"]`) as HTMLElement | null
       return el?.getBoundingClientRect() ?? null
+    },
+    selectContainerByDescendants: (leafDataIds: string[]) => {
+      const doc = iframeRef.current?.contentDocument
+      if (!doc) return null
+      const els = leafDataIds
+        .map((id) => doc.querySelector(`[data-id="${CSS.escape(id)}"]`) as HTMLElement | null)
+        .filter((e): e is HTMLElement => e != null)
+      if (els.length === 0) return null
+
+      // Nearest common ancestor of all present leaves.
+      const chain = (n: HTMLElement | null) => {
+        const out: HTMLElement[] = []
+        while (n) { out.push(n); n = n.parentElement }
+        return out
+      }
+      const firstChain = new Set(chain(els[0]))
+      let ancestor: HTMLElement | null = els[0]
+      for (let i = 1; i < els.length; i++) {
+        let n: HTMLElement | null = els[i]
+        while (n && !firstChain.has(n)) n = n.parentElement
+        ancestor = n
+        if (!ancestor) return null
+      }
+      // For a single leaf the "common ancestor" is the leaf itself — climb to its
+      // parent so we target the wrapping container, not the leaf.
+      if (ancestor && els.includes(ancestor)) ancestor = ancestor.parentElement
+
+      const content = doc.getElementById("content")
+      if (
+        !ancestor ||
+        ancestor === doc.body ||
+        ancestor === content ||
+        ancestor.getAttribute("data-section-id") != null
+      ) {
+        return null
+      }
+
+      let dataId = ancestor.getAttribute("data-id")
+      if (!dataId) {
+        // Transient id (stripped on save, like preview-click container selection).
+        const nums = Array.from(doc.querySelectorAll('[data-id^="_el"]'))
+          .map((e) => parseInt((e.getAttribute("data-id") ?? "").slice(3), 10))
+          .filter((n) => !Number.isNaN(n))
+        dataId = `_el${(nums.length ? Math.max(...nums) : 0) + 1}`
+        ancestor.setAttribute("data-id", dataId)
+      }
+      return { dataId, rect: ancestor.getBoundingClientRect(), tagName: ancestor.tagName.toLowerCase() }
     },
     refreshCss: async (extraHtml: string) => {
       const id = ++refreshIdRef.current

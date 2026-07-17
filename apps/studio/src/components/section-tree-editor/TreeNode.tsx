@@ -164,8 +164,22 @@ export interface TreeNodeProps {
   onDrop: (sourceNodeId: string, target: DropIntent) => void
   /** Select this node for styling — opens the style pane for its preview element. */
   onSelectNode?: (nodeId: string, tagName?: string) => void
+  /** data-ids present in the rendered HTML — gates the "Edit styles" button. */
+  renderedDataIds?: Set<string>
   defaultTextRole: string
   defaultStructure: string
+}
+
+// A node is stylable when its own element is in the rendered HTML, or (for a
+// container) at least one descendant leaf is — enough for the parent to locate
+// its wrapping element via the common ancestor of those leaves.
+function nodeHasRenderTarget(node: ContentNodeData, ids: Set<string> | undefined): boolean {
+  if (!ids) return false
+  if (ids.has(node.nodeId)) return true
+  for (const child of node.children ?? []) {
+    if (nodeHasRenderTarget(child, ids)) return true
+  }
+  return false
 }
 
 export function TreeNode(props: TreeNodeProps) {
@@ -382,6 +396,7 @@ function ContainerNode(props: TreeNodeProps) {
     onAddChildContainer,
     onDrop,
     onSelectNode,
+    renderedDataIds,
     defaultTextRole,
     defaultStructure,
     parentNodeId,
@@ -500,12 +515,14 @@ function ContainerNode(props: TreeNodeProps) {
           )}
         </button>
         <div className="ml-auto flex items-center gap-0.5 opacity-0 group-hover/head:opacity-100 transition-opacity">
-          <StyleButton
-            nodeId={node.nodeId}
-            tagName="div"
-            onSelectNode={onSelectNode}
-            disabled={disabled}
-          />
+          {nodeHasRenderTarget(node, renderedDataIds) && (
+            <StyleButton
+              nodeId={node.nodeId}
+              tagName="div"
+              onSelectNode={onSelectNode}
+              disabled={disabled}
+            />
+          )}
           <button
             type="button"
             onClick={() => onTogglePruned(node.nodeId)}
@@ -613,6 +630,7 @@ function ContainerNode(props: TreeNodeProps) {
                 onAddChildContainer={onAddChildContainer}
                 onDrop={onDrop}
                 onSelectNode={onSelectNode}
+                renderedDataIds={renderedDataIds}
                 defaultTextRole={defaultTextRole}
                 defaultStructure={defaultStructure}
               />
@@ -646,6 +664,7 @@ function TextLeaf(props: TreeNodeProps) {
     onNest,
     onUnnest,
     onSelectNode,
+    renderedDataIds,
     parentNodeId,
     defaultStructure,
   } = props
@@ -721,12 +740,14 @@ function TextLeaf(props: TreeNodeProps) {
         disabled={disabled}
       />
       <div className="shrink-0 flex items-center gap-0.5 self-center ml-auto opacity-0 group-hover/row:opacity-100 transition-opacity">
-        <StyleButton
-          nodeId={node.nodeId}
-          tagName="p"
-          onSelectNode={onSelectNode}
-          disabled={disabled}
-        />
+        {nodeHasRenderTarget(node, renderedDataIds) && (
+          <StyleButton
+            nodeId={node.nodeId}
+            tagName="p"
+            onSelectNode={onSelectNode}
+            disabled={disabled}
+          />
+        )}
         <button
           type="button"
           onClick={() => onTogglePruned(node.nodeId)}

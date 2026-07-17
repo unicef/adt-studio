@@ -40,6 +40,9 @@ export interface SectionTreeEditorProps {
   onContainerAdded?: (nodeId: string, parentNodeId: string | null) => void
   /** Called when a node is selected for styling. Parent opens the style pane. */
   onSelectNode?: (nodeId: string, tagName?: string) => void
+  /** data-ids present in the rendered HTML — gates the per-node "Edit styles"
+   *  button so it only shows for nodes that can actually be located & styled. */
+  renderedDataIds?: Set<string>
   /** Called whenever a change happens that needs a re-render (structural change). */
   onStructuralChange?: () => void
 }
@@ -64,6 +67,7 @@ export function SectionTreeEditor({
   onLeafAdded,
   onContainerAdded,
   onSelectNode,
+  renderedDataIds,
   onStructuralChange,
 }: SectionTreeEditorProps) {
   const { t } = useLingui()
@@ -290,6 +294,7 @@ export function SectionTreeEditor({
             onAddChildContainer={handleAddChildContainer}
             onDrop={handleDrop}
             onSelectNode={onSelectNode}
+            renderedDataIds={renderedDataIds}
             defaultTextRole={defaultTextRole}
             defaultStructure={defaultStructure}
           />

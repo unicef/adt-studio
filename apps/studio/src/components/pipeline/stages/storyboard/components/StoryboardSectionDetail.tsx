@@ -31,6 +31,7 @@ import type {
 } from "@adt/types"
 import {
   addImageLeaf,
+  collectLeafIdsInSubtree,
   collectLeafNodes,
   collectPrunedLeafIds,
   deleteNode,
@@ -1358,12 +1359,31 @@ export function StoryboardSectionDetail({
     [handleSelectElement]
   )
 
-  // Open the style pane for a node chosen in the section tree.
+  // Open the style pane for a node chosen in the section tree. Leaves (and blank
+  // elements we injected) carry their nodeId as a data-id, so we select them
+  // directly. Containers aren't tagged with their nodeId in the rendered HTML, so
+  // we locate their wrapping element via the common ancestor of their descendant
+  // leaves instead.
   const handleTreeNodeSelected = useCallback(
     (nodeId: string, tagName?: string) => {
+      const direct = previewFrameRef.current?.getElementRect(nodeId)
+      if (direct) {
+        handleSelectElement(nodeId, direct, tagName)
+        return
+      }
+      const node = section ? findNode(section.nodes, nodeId) : null
+      if (node && !node.role) {
+        const leafIds = collectLeafIdsInSubtree(node)
+        const hit = previewFrameRef.current?.selectContainerByDescendants(leafIds)
+        if (hit) {
+          handleSelectElement(hit.dataId, hit.rect, hit.tagName)
+          return
+        }
+      }
+      // Freshly injected element may not be in the iframe yet — retry next frame.
       selectByDataId(nodeId, tagName)
     },
-    [selectByDataId]
+    [handleSelectElement, section, selectByDataId]
   )
 
   // SectionTreeEditor add callbacks — inject a real element into the rendered
@@ -1943,6 +1963,16 @@ export function StoryboardSectionDetail({
   // Compute pruned data-ids for optimistic preview feedback
   const prunedDataIds = useMemo(() => collectPrunedLeafIds(nodes), [nodes])
 
+  // data-ids present in the current section's rendered HTML. Used to gate the
+  // tree's "Edit styles" button: a node is stylable only when its element (or,
+  // for a container, at least one descendant leaf) exists in the preview.
+  const renderedDataIds = useMemo(() => {
+    const ids = new Set<string>()
+    const html = renderedSection?.html ?? ""
+    for (const m of html.matchAll(/data-id="([^"]+)"/g)) ids.add(m[1])
+    return ids
+  }, [renderedSection?.html])
+
   // Compute changed elements by diffing pending vs saved state
   const changedElements = useMemo(() => {
     if (!pendingRendering && !pendingSectioning) return []
@@ -2418,6 +2448,7 @@ export function StoryboardSectionDetail({
         onLeafAdded={handleLeafAdded}
         onContainerAdded={handleContainerAdded}
         onSelectNode={handleTreeNodeSelected}
+        renderedDataIds={renderedDataIds}
         onStructuralChange={handleStructuralChange}
         onMergeSection={handleMergeSection}
         onMergeCrossPage={handleMergeCrossPage}
