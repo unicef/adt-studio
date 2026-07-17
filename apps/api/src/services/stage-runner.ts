@@ -116,6 +116,10 @@ const DEFAULT_METADATA_PAGES = 3
 const GEMINI_TTS_MAX_RATE_LIMIT_RETRIES = 4
 const GEMINI_TTS_DEFAULT_RETRY_DELAY_MS = 6_000
 const GEMINI_TTS_MAX_RETRY_DELAY_MS = 20_000
+// Backoff for transient server errors (500/empty audio). These clear quickly
+// and aren't a rate signal, so they get a shorter delay than a 429 and do not
+// throttle the shared limiter.
+const GEMINI_TTS_TRANSIENT_RETRY_DELAY_MS = 1_500
 
 class StepError extends Error {
   readonly step: StepName
@@ -151,6 +155,15 @@ function textCatalogsEqual(
 
 function isGeminiTtsRateLimitMessage(message: string): boolean {
   return /\(429\)|quota exceeded|rate limit|too many requests/i.test(message)
+}
+
+// Transient Gemini server-side failures that typically clear on a plain retry
+// (Google's own 500 message says "Please retry"). Unlike a 429 these are not a
+// rate signal, so they must not penalize the adaptive limiter.
+function isGeminiTtsTransientError(message: string): boolean {
+  return /\(50\d\)|internal error|did not include audio|overloaded|unavailable|try again/i.test(
+    message
+  )
 }
 
 function parseGeminiRetryDelayMs(message: string): number | null {
@@ -2326,23 +2339,41 @@ async function runSpeechStep(
               break
             } catch (err) {
               const msg = toErrorMessage(err)
-              if (
+              const rateLimited =
+                provider === "gemini" && isGeminiTtsRateLimitMessage(msg)
+              const transient =
                 provider === "gemini" &&
-                isGeminiTtsRateLimitMessage(msg) &&
+                !rateLimited &&
+                isGeminiTtsTransientError(msg)
+              if (
+                (rateLimited || transient) &&
                 attemptCount <= GEMINI_TTS_MAX_RATE_LIMIT_RETRIES
               ) {
-                const retryDelayMs =
-                  parseGeminiRetryDelayMs(msg) ??
-                  Math.min(
-                    GEMINI_TTS_DEFAULT_RETRY_DELAY_MS * attemptCount,
-                    GEMINI_TTS_MAX_RETRY_DELAY_MS
+                if (rateLimited) {
+                  const retryDelayMs =
+                    parseGeminiRetryDelayMs(msg) ??
+                    Math.min(
+                      GEMINI_TTS_DEFAULT_RETRY_DELAY_MS * attemptCount,
+                      GEMINI_TTS_MAX_RETRY_DELAY_MS
+                    )
+                  // Halve the shared rate and pause all workers for the retry
+                  // window, so one 429 throttles the whole batch instead of every
+                  // item discovering the limit independently.
+                  geminiTtsRateLimiter?.penalize(retryDelayMs)
+                  console.warn(
+                    `[stage-run] ${label}: Gemini TTS rate limited for ${item.textId} (${item.language}); backing off to ${geminiTtsRateLimiter?.currentRpm() ?? "?"} req/min, retrying ${attemptCount + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms`
                   )
-                // Halve the shared rate and pause all workers for the retry
-                // window, so one 429 throttles the whole batch instead of every
-                // item discovering the limit independently.
-                geminiTtsRateLimiter?.penalize(retryDelayMs)
+                  await sleep(retryDelayMs)
+                  continue
+                }
+                // Transient server error (500/empty audio): retry without
+                // penalizing the limiter — it's a Gemini hiccup, not a rate issue.
+                const retryDelayMs = Math.min(
+                  GEMINI_TTS_TRANSIENT_RETRY_DELAY_MS * attemptCount,
+                  GEMINI_TTS_MAX_RETRY_DELAY_MS
+                )
                 console.warn(
-                  `[stage-run] ${label}: Gemini TTS rate limited for ${item.textId} (${item.language}); backing off to ${geminiTtsRateLimiter?.currentRpm() ?? "?"} req/min, retrying ${attemptCount + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms`
+                  `[stage-run] ${label}: Gemini TTS transient error for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms: ${msg}`
                 )
                 await sleep(retryDelayMs)
                 continue
@@ -2454,13 +2485,16 @@ async function runSpeechStep(
 
     if (geminiFailedItems.length > 0) {
       const summary = `${geminiFailedItems.length} Gemini TTS item(s) failed. Missing Gemini audio can be generated one by one from the Speech view.`
-      progress.emit({
-        type: "step-error",
-        step: "tts",
-        error: summary,
-      })
+      // Complete the step with gaps rather than erroring. The failed items are
+      // persisted per-language in the TTS output (`failed`) and surfaced in the
+      // Speech/Language view for one-by-one regeneration, so a stray transient
+      // failure shouldn't leave the whole stage incomplete and block the export.
+      progress.emit({ type: "step-progress", step: "tts", message: summary })
+      progress.emit({ type: "step-complete", step: "tts" })
       progress.emit({ type: "step-skip", step: "word-timestamps" })
-      console.log(`[stage-run] ${label}: speech completed with Gemini TTS gaps`)
+      console.warn(
+        `[stage-run] ${label}: speech completed with ${geminiFailedItems.length} Gemini TTS gap(s)`
+      )
       return
     }
 

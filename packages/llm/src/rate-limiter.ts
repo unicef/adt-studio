@@ -169,11 +169,22 @@ export function createAdaptiveRateLimiter(
       })
     },
     penalize(retryAfterMs?: number): void {
+      const now = Date.now()
+      // Collapse a burst of concurrent 429s from the same wave into a single
+      // back-off step instead of halving once per in-flight request. A 429 that
+      // arrives while we're still paused belongs to the wave that already
+      // triggered the current back-off, so just (re)extend the pause window.
+      if (now < pausedUntil) {
+        if (retryAfterMs && retryAfterMs > 0) {
+          pausedUntil = Math.max(pausedUntil, now + retryAfterMs)
+        }
+        return
+      }
       rpm = Math.max(minRpm, Math.floor(rpm / 2))
       tokens = 0
       successStreak = 0
       if (retryAfterMs && retryAfterMs > 0) {
-        pausedUntil = Date.now() + retryAfterMs
+        pausedUntil = now + retryAfterMs
       }
     },
     reward(): void {

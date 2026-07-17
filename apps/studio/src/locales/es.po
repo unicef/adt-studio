@@ -238,7 +238,7 @@ msgstr "{0} imágenes seleccionadas ya no están en el guion gráfico."
 msgid "{0} terms"
 msgstr "{0} términos"
 
-#. placeholder {0}: String(displayEntries.length)
+#. placeholder {0}: String(visibleEntries.length)
 msgid "{0} texts"
 msgstr "{0} textos"
 
@@ -6462,6 +6462,9 @@ msgstr "Mostrar todas"
 msgid "Show all {0}"
 msgstr "Show all {0}"
 
+msgid "Show all entries"
+msgstr "Mostrar todas las entradas"
+
 msgid "Show all pages"
 msgstr "Mostrar todas las páginas"
 
@@ -6473,6 +6476,9 @@ msgstr "Mostrar detalles del error"
 
 msgid "Show fewer"
 msgstr "Show fewer"
+
+msgid "Show only entries missing audio"
+msgstr "Mostrar solo las entradas sin audio"
 
 msgid "Show only the terms you added manually"
 msgstr "Mostrar solo los términos que agregaste manualmente"

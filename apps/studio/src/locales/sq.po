@@ -239,7 +239,7 @@ msgstr "{0} imazhe të zgjedhura nuk janë më në storyboard."
 msgid "{0} terms"
 msgstr "{0} terma"
 
-#. placeholder {0}: String(displayEntries.length)
+#. placeholder {0}: String(visibleEntries.length)
 msgid "{0} texts"
 msgstr "{0} tekste"
 
@@ -6463,6 +6463,9 @@ msgstr "Shfaq të gjitha"
 msgid "Show all {0}"
 msgstr "Shfaq të gjitha {0}"
 
+msgid "Show all entries"
+msgstr "Shfaq të gjitha hyrjet"
+
 msgid "Show all pages"
 msgstr "Shfaq të gjitha faqet"
 
@@ -6474,6 +6477,9 @@ msgstr "Shfaq detajet e gabimit"
 
 msgid "Show fewer"
 msgstr "Shfaq më pak"
+
+msgid "Show only entries missing audio"
+msgstr "Shfaq vetëm hyrjet pa audio"
 
 msgid "Show only the terms you added manually"
 msgstr "Shfaq vetëm termat që shtuat manualisht"

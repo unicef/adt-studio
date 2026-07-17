@@ -162,4 +162,49 @@ describe("createAdaptiveRateLimiter", () => {
     await promise
     expect(resolved).toBe(true)
   })
+
+  it("collapses a burst of 429s within the pause window into one back-off step", () => {
+    vi.useFakeTimers()
+    const limiter = createAdaptiveRateLimiter({ startRpm: 120, minRpm: 5, maxRpm: 120 })
+
+    // A wave of concurrent 429s: the first backs off, the rest arrive while
+    // still paused and must not compound the halving.
+    limiter.penalize(5_000)
+    expect(limiter.currentRpm()).toBe(60)
+    limiter.penalize(5_000)
+    limiter.penalize(3_000)
+    limiter.penalize(5_000)
+    expect(limiter.currentRpm()).toBe(60)
+
+    // Once the pause elapses, a fresh 429 counts as a new congestion event.
+    vi.advanceTimersByTime(5_001)
+    limiter.penalize(5_000)
+    expect(limiter.currentRpm()).toBe(30)
+  })
+
+  it("extends the pause window when a later 429 asks for longer", async () => {
+    vi.useFakeTimers()
+    const limiter = createAdaptiveRateLimiter({
+      startRpm: 60,
+      minRpm: 5,
+      maxRpm: 60,
+      burst: 5,
+    })
+
+    limiter.penalize(2_000)
+    limiter.penalize(8_000) // arrives during the pause, asks for a longer window
+    expect(limiter.currentRpm()).toBe(30) // one back-off step, not two
+
+    let resolved = false
+    const promise = limiter.acquire().then(() => {
+      resolved = true
+    })
+
+    await vi.advanceTimersByTimeAsync(3_000) // past the first window, inside the extended one
+    expect(resolved).toBe(false)
+
+    await vi.advanceTimersByTimeAsync(8_000) // past the extended window + a token refilled at 30 rpm
+    await promise
+    expect(resolved).toBe(true)
+  })
 })

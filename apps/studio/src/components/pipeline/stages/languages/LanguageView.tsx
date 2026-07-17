@@ -154,6 +154,9 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
 
   const [selectedLang, setSelectedLang] = useState<string | null>(null)
   const [categoryFilter, setCategoryFilter] = useState<CatalogCategory>("all")
+  // When active, the entry list is narrowed to speakable items that have no
+  // audio yet (toggled from the "N missing" pill in the header).
+  const [showMissingOnly, setShowMissingOnly] = useState(false)
   const [lightbox, setLightbox] = useState<{ src: string; caption?: string } | null>(null)
 
   // Map of `${sourceImageId}::${language}` → translated image id, used to
@@ -375,6 +378,18 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
   )
   const generatedAudioCount = speakableEntries.filter((entry) => audioMap.has(entry.id)).length
   const missingAudioCount = Math.max(speakableEntries.length - generatedAudioCount, 0)
+  // Speakable entries still without audio — the same set the "N missing" pill
+  // counts. When the Missing filter is on, the list renders only these.
+  const missingEntries = speakableEntries.filter((entry) => !audioMap.has(entry.id))
+  const missingFilterActive = isSpeechStage && showMissingOnly && missingAudioCount > 0
+  const visibleEntries = missingFilterActive ? missingEntries : displayEntries
+
+  // Once every missing item has been generated (or the language changes so the
+  // pill disappears), drop back to the full list instead of leaving the user
+  // staring at an empty filtered view.
+  useEffect(() => {
+    if (showMissingOnly && missingAudioCount === 0) setShowMissingOnly(false)
+  }, [showMissingOnly, missingAudioCount])
 
   // Track playback state for the currently-playing entry (only one plays at a time)
   const [playingEntryId, setPlayingEntryId] = useState<string | null>(null)
@@ -382,7 +397,7 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
 
   const scrollRef = useRef<HTMLDivElement>(null)
   const virtualizer = useVirtualizer({
-    count: displayEntries.length,
+    count: visibleEntries.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => 60,
     overscan: 5,
@@ -553,7 +568,7 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
             : t`Preparing speech...`}
         </span>
       )}
-      <span className="text-[10px] bg-white/20 rounded-full px-2 py-0.5">{t`${String(displayEntries.length)} texts`}</span>
+      <span className="text-[10px] bg-white/20 rounded-full px-2 py-0.5">{t`${String(visibleEntries.length)} texts`}</span>
       {outputLanguages.length > 1 && (
         <span className="text-[10px] bg-white/20 rounded-full px-2 py-0.5">{t`${String(outputLanguages.length)} languages`}</span>
       )}
@@ -565,9 +580,25 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
         <span className="text-[10px] bg-white/20 rounded-full px-2 py-0.5">{t`${String(totalAudioFiles)} audio`}</span>
       )}
       {currentLanguageUsesGemini && missingAudioCount > 0 && (
-        <span className="text-[10px] bg-amber-100 text-amber-900 rounded-full px-2 py-0.5">
+        <button
+          type="button"
+          onClick={() => setShowMissingOnly((v) => !v)}
+          aria-pressed={missingFilterActive}
+          title={
+            missingFilterActive
+              ? t`Show all entries`
+              : t`Show only entries missing audio`
+          }
+          className={cn(
+            "text-[10px] rounded-full px-2 py-0.5 inline-flex items-center gap-1 transition-colors cursor-pointer",
+            missingFilterActive
+              ? "bg-amber-500 text-white hover:bg-amber-600"
+              : "bg-amber-100 text-amber-900 hover:bg-amber-200"
+          )}
+        >
           {t`${missingAudioCount} missing`}
-        </span>
+          {missingFilterActive && <X className="w-2.5 h-2.5" />}
+        </button>
       )}
       {selectedLang && translationVersion != null && !isSourceLang && !isSpeechStage && (
         <VersionPicker
@@ -872,7 +903,7 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
         </div>
         )}
 
-        {!isSourceLang && !isSourceLanguagePending && displayEntries.length > 0 && (
+        {!isSourceLang && !isSourceLanguagePending && visibleEntries.length > 0 && (
           <div className="grid grid-cols-2 gap-3 px-3 py-1.5">
             <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
               {displayLang(editingLanguage)}
@@ -896,7 +927,7 @@ export function LanguageView({ bookLabel, stageSlug = "translate", selectedPageI
       <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-4 pb-4">
         <div style={{ height: virtualizer.getTotalSize(), width: "100%", position: "relative" }}>
           {virtualizer.getVirtualItems().map((virtualRow) => {
-            const entry = displayEntries[virtualRow.index]
+            const entry = visibleEntries[virtualRow.index]
             const translated = translatedMap.get(entry.id)
             const audio = audioMap.get(entry.id)
             const baseAudio = baseAudioMap.get(entry.id)
