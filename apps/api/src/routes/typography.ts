@@ -4,7 +4,7 @@ import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { BookTypography, parseBookLabel } from "@adt/types"
 import { createBookStorage } from "@adt/storage"
-import { readTypography, TYPOGRAPHY_NODE, TYPOGRAPHY_ITEM } from "@adt/pipeline"
+import { readTypography, resolveDetectedTypography, TYPOGRAPHY_NODE, TYPOGRAPHY_ITEM } from "@adt/pipeline"
 
 function safeParseLabel(label: string): string {
   try {
@@ -37,6 +37,8 @@ export function createTypographyRoutes(booksDir: string): Hono {
         data: readTypography(storage),
         version: saved?.version ?? 0,
         isDefault: !saved,
+        // The book's detected-scale sizes, so the editor can "Reset to detected".
+        detected: resolveDetectedTypography(storage),
       })
     } finally {
       storage.close()

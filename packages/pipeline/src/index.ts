@@ -292,6 +292,7 @@ export {
 } from "./type-scale.js"
 export {
   readTypography,
+  resolveDetectedTypography,
   buildTypographyCss,
   resolveTypographyCss,
   typographyPreservationErrors,

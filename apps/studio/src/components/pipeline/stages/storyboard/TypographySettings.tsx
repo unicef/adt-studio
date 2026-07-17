@@ -92,10 +92,10 @@ export function TypographySettings({ bookLabel }: { bookLabel: string }) {
       </h3>
       <p className="text-xs text-muted-foreground mb-4">
         <Trans>
-          Fixed, accessible sizes applied to every page. Sizes use the book's Tailwind scale
-          (pick a token or type an exact px), scale fluidly between mobile and desktop, and
-          override any size the AI picks — so headings and body text stay consistent across the
-          whole book.
+          One text scale for the whole book. It starts from the book's own detected sizes (never
+          below 16px), so pages stay close to the original. Use “Accessible sizes” to scale the
+          book up, or set each role yourself — pick a Tailwind token or type an exact px. These
+          override any size the AI picks, so text stays consistent across every page.
         </Trans>
       </p>
 
@@ -154,9 +154,18 @@ export function TypographySettings({ bookLabel }: { bookLabel: string }) {
       </div>
 
       <div className="mt-5 flex items-center gap-2">
-        <Button variant="outline" size="sm" onClick={() => setStyles(DEFAULT_TYPOGRAPHY.styles)}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            if (data?.detected.styles) setStyles(data.detected.styles)
+          }}
+        >
           <RotateCcw className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
-          {t`Reset to defaults`}
+          {t`Reset to detected`}
+        </Button>
+        <Button variant="outline" size="sm" onClick={() => setStyles(DEFAULT_TYPOGRAPHY.styles)}>
+          {t`Accessible sizes`}
         </Button>
         <Button size="sm" onClick={handleSave} disabled={!dirty || update.isPending}>
           {update.isPending ? (

@@ -8,18 +8,23 @@ import {
   TYPOGRAPHY_NODE,
 } from "../typography.js"
 
-const fakeStorage = (typography?: unknown) =>
+// No pages and no type-scale node → detected scale is null → accessible default.
+const fakeStorage = (typography?: unknown, typeScale?: unknown) =>
   ({
-    getLatestNodeData: (node: string) =>
-      node === TYPOGRAPHY_NODE && typography ? { data: typography, version: 1 } : null,
+    getPages: () => [],
+    getLatestNodeData: (node: string) => {
+      if (node === TYPOGRAPHY_NODE && typography) return { data: typography, version: 1 }
+      if (node === "type-scale" && typeScale) return { data: typeScale, version: 1 }
+      return null
+    },
   }) as unknown as Storage
 
 describe("readTypography", () => {
-  it("falls back to accessible defaults when no node is stored", () => {
+  it("falls back to accessible defaults when nothing is saved and no scale is detected", () => {
     expect(readTypography(fakeStorage())).toEqual(DEFAULT_TYPOGRAPHY)
   })
 
-  it("falls back to defaults when the stored map is empty or malformed", () => {
+  it("falls back when the stored map is empty or malformed", () => {
     expect(readTypography(fakeStorage({ styles: [] }))).toEqual(DEFAULT_TYPOGRAPHY)
     expect(readTypography(fakeStorage({ nonsense: true }))).toEqual(DEFAULT_TYPOGRAPHY)
   })
@@ -29,6 +34,20 @@ describe("readTypography", () => {
       styles: [{ key: "body", label: "Body", className: "adt-body", desktopPx: 22, mobilePx: 17 }],
     }
     expect(readTypography(fakeStorage(custom))).toEqual(custom)
+  })
+
+  it("seeds from the detected scale (flat, floored at 16px) when nothing is saved", () => {
+    const detected = {
+      bodyPx: 12, h1Px: 30, h2Px: 20, h3Px: 14, captionPx: 9, sampleChars: 100, observed: [],
+    }
+    const result = readTypography(fakeStorage(undefined, detected))
+    const byKey = Object.fromEntries(result.styles.map((s) => [s.key, s]))
+    // Below-16 sizes are lifted to 16; larger sizes are kept; mobile == desktop.
+    expect(byKey.body).toMatchObject({ desktopPx: 16, mobilePx: 16 }) // 12 → 16
+    expect(byKey.subheading).toMatchObject({ desktopPx: 16, mobilePx: 16 }) // 14 → 16
+    expect(byKey.caption).toMatchObject({ desktopPx: 16, mobilePx: 16 }) // 9 → 16
+    expect(byKey.chapter_title).toMatchObject({ desktopPx: 30, mobilePx: 30 }) // kept, flat
+    expect(byKey.section_heading).toMatchObject({ desktopPx: 20, mobilePx: 20 })
   })
 })
 

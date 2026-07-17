@@ -665,6 +665,9 @@ msgstr "Acessibilidade, desde a primeira <0>página.</0>"
 msgid "Accessible book"
 msgstr "Livro acessível"
 
+msgid "Accessible sizes"
+msgstr "Tamanhos acessíveis"
+
 msgid "Actions disabled while storyboard is running"
 msgstr "Ações desabilitadas enquanto o storyboard está em execução"
 
@@ -3042,8 +3045,8 @@ msgstr "Layout fixo de duas colunas (template)"
 msgid "Fixed-layout books use the original page images as backgrounds with positioned text extracted from the PDF. Activities detection, figure extraction, and image cropping or segmentation don't apply to this layout."
 msgstr "Livros de layout fixo usam as imagens originais das páginas como fundo com texto posicionado extraído do PDF. Detecção de atividades, extração de figuras, recorte ou segmentação de imagens não se aplicam a este layout."
 
-msgid "Fixed, accessible sizes applied to every page. Sizes use the book's Tailwind scale (pick a token or type an exact px), scale fluidly between mobile and desktop, and override any size the AI picks — so headings and body text stay consistent across the whole book."
-msgstr "Tamanhos fixos e acessíveis aplicados a todas as páginas. Os tamanhos usam a escala Tailwind do livro (escolha um token ou digite um valor exato em px), são dimensionados de forma fluida entre celular e desktop, e substituem qualquer tamanho escolhido pela IA — assim os títulos e o texto do corpo permanecem consistentes em todo o livro."
+#~ msgid "Fixed, accessible sizes applied to every page. Sizes use the book's Tailwind scale (pick a token or type an exact px), scale fluidly between mobile and desktop, and override any size the AI picks — so headings and body text stay consistent across the whole book."
+#~ msgstr "Tamanhos fixos e acessíveis aplicados a todas as páginas. Os tamanhos usam a escala Tailwind do livro (escolha um token ou digite um valor exato em px), são dimensionados de forma fluida entre celular e desktop, e substituem qualquer tamanho escolhido pela IA — assim os títulos e o texto do corpo permanecem consistentes em todo o livro."
 
 msgid "flagged"
 msgstr "flagged"
@@ -4789,6 +4792,9 @@ msgstr "Uma coluna para cada seção. Limpo e previsível."
 msgid "One tag per line or comma-separated. Leave as-is to keep the current package defaults."
 msgstr "One tag per line or comma-separated. Leave as-is to keep the current package defaults."
 
+msgid "One text scale for the whole book. It starts from the book's own detected sizes (never below 16px), so pages stay close to the original. Use “Accessible sizes” to scale the book up, or set each role yourself — pick a Tailwind token or type an exact px. These override any size the AI picks, so text stays consistent across every page."
+msgstr "Uma única escala de texto para todo o livro. Ela parte dos tamanhos detectados do próprio livro (nunca abaixo de 16px), para que as páginas fiquem próximas do original. Use “Tamanhos acessíveis” para ampliar o livro, ou defina cada função você mesmo — escolha um token do Tailwind ou digite um valor exato em px. Eles substituem qualquer tamanho escolhido pela IA, assim o texto permanece consistente em todas as páginas."
+
 msgid "Only images that appear in the storyboard (have captions) can be selected."
 msgstr "Só é possível selecionar imagens que aparecem no storyboard (com legendas)."
 
@@ -5874,6 +5880,9 @@ msgstr "Redefinir as fontes para o padrão?"
 
 msgid "Reset to defaults"
 msgstr "Reset to defaults"
+
+msgid "Reset to detected"
+msgstr "Redefinir para o detectado"
 
 msgid "Reset to inherited"
 msgstr "Redefinir para herdado"

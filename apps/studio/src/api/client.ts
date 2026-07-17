@@ -762,7 +762,7 @@ export const api = {
   getBookFonts: (label: string) => request<BookFontsResponse>(`/books/${label}/fonts`),
 
   getTypography: (label: string) =>
-    request<{ data: BookTypography; version: number; isDefault: boolean }>(
+    request<{ data: BookTypography; version: number; isDefault: boolean; detected: BookTypography }>(
       `/books/${label}/typography`
     ),
 

@@ -666,6 +666,9 @@ msgstr "Aksesueshmëria, që nga <0>faqja e parë.</0>"
 msgid "Accessible book"
 msgstr "Libër i aksesueshëm"
 
+msgid "Accessible sizes"
+msgstr "Madhësi të aksesueshme"
+
 msgid "Actions disabled while storyboard is running"
 msgstr "Veprimet janë çaktivizuara ndërsa storyboard-i është në ekzekutim"
 
@@ -3043,8 +3046,8 @@ msgstr "Paraqitje e fiksuar me dy kolona"
 msgid "Fixed-layout books use the original page images as backgrounds with positioned text extracted from the PDF. Activities detection, figure extraction, and image cropping or segmentation don't apply to this layout."
 msgstr "Librat me paraqitje të fiksuar përdorin imazhet origjinale të faqeve si sfond me tekst të pozicionuar të nxjerrë nga PDF-i. Zbulimi i aktiviteteve, nxjerrja e figurave dhe prerja ose segmentimi i imazheve nuk zbatohen për këtë paraqitje."
 
-msgid "Fixed, accessible sizes applied to every page. Sizes use the book's Tailwind scale (pick a token or type an exact px), scale fluidly between mobile and desktop, and override any size the AI picks — so headings and body text stay consistent across the whole book."
-msgstr "Madhësi fikse dhe të aksesueshme që zbatohen në çdo faqe. Madhësitë përdorin shkallën Tailwind të librit (zgjidhni një token ose shkruani një vlerë të saktë në px), shkallëzohen në mënyrë të rrjedhshme mes celularit dhe desktopit, dhe mbizotërojnë çdo madhësi që zgjedh IA-ja — kështu titujt dhe teksti i trupit mbeten të qëndrueshëm në të gjithë librin."
+#~ msgid "Fixed, accessible sizes applied to every page. Sizes use the book's Tailwind scale (pick a token or type an exact px), scale fluidly between mobile and desktop, and override any size the AI picks — so headings and body text stay consistent across the whole book."
+#~ msgstr "Madhësi fikse dhe të aksesueshme që zbatohen në çdo faqe. Madhësitë përdorin shkallën Tailwind të librit (zgjidhni një token ose shkruani një vlerë të saktë në px), shkallëzohen në mënyrë të rrjedhshme mes celularit dhe desktopit, dhe mbizotërojnë çdo madhësi që zgjedh IA-ja — kështu titujt dhe teksti i trupit mbeten të qëndrueshëm në të gjithë librin."
 
 msgid "flagged"
 msgstr "shënuar"
@@ -4790,6 +4793,9 @@ msgstr "Një kolonë për çdo seksion. E pastër dhe e parashikueshme."
 msgid "One tag per line or comma-separated. Leave as-is to keep the current package defaults."
 msgstr "Një etiketë për rresht ose të ndara me presje. Lërini siç janë për të mbajtur paracaktimet aktuale të paketës."
 
+msgid "One text scale for the whole book. It starts from the book's own detected sizes (never below 16px), so pages stay close to the original. Use “Accessible sizes” to scale the book up, or set each role yourself — pick a Tailwind token or type an exact px. These override any size the AI picks, so text stays consistent across every page."
+msgstr "Një shkallë e vetme teksti për të gjithë librin. Nis nga madhësitë e zbuluara të vetë librit (kurrë nën 16px), kështu që faqet mbeten afër origjinalit. Përdor “Madhësi të aksesueshme” për ta zmadhuar librin, ose cakto vetë çdo rol — zgjidh një token Tailwind ose shkruaj një vlerë të saktë në px. Këto mbizotërojnë çdo madhësi që zgjedh IA-ja, kështu teksti mbetet i qëndrueshëm në çdo faqe."
+
 msgid "Only images that appear in the storyboard (have captions) can be selected."
 msgstr "Mund të zgjidhen vetëm imazhet që shfaqen në storyboard (kanë tituj)."
 
@@ -5875,6 +5881,9 @@ msgstr "Të rivendosen fontet në parazgjedhje?"
 
 msgid "Reset to defaults"
 msgstr "Rivendos në paracaktimet"
+
+msgid "Reset to detected"
+msgstr "Rikthe te e zbuluara"
 
 msgid "Reset to inherited"
 msgstr "Rivendos në të trashëguarën"

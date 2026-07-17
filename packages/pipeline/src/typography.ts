@@ -1,21 +1,24 @@
 /**
  * Book typography — the editable, deterministic type scale.
  *
- * Sizes live in an editable `BookTypography` map (Fonts tab), NOT derived from
- * the PDF. `buildTypographyCss` turns the map into CSS on the semantic `adt-*`
- * classes the renderer emits; it is appended unlayered after Tailwind so it
- * wins over any `text-*` utility, making text size deterministic and identical
- * across every page regardless of what the generation model chose. Sizes scale
- * fluidly between the mobile floor and desktop target via `clamp()`.
- *
- * The detected `type-scale` (see ./type-scale.ts) is kept only as a hint/seed
- * for the editor — it no longer drives rendered sizes.
+ * A book's effective type scale is: its SAVED map (Fonts tab) if present, else
+ * the DETECTED per-book scale (the PDF's own sizes, floored at 16px for
+ * accessibility) so the book renders close to its original. The large
+ * `DEFAULT_TYPOGRAPHY` is an opt-in "accessible" preset the user applies in the
+ * editor, not the automatic default. `buildTypographyCss` turns the map into
+ * CSS on the semantic `adt-*` classes, appended unlayered after Tailwind so it
+ * wins over any `text-*` utility — text size is deterministic and identical
+ * across every page.
  */
 import type { Storage } from "@adt/storage"
-import { BookTypography, DEFAULT_TYPOGRAPHY } from "@adt/types"
+import { BookTypography, DEFAULT_TYPOGRAPHY, type TypeScale } from "@adt/types"
+import { readTypeScale } from "./type-scale.js"
 
 export const TYPOGRAPHY_NODE = "typography"
 export const TYPOGRAPHY_ITEM = "book"
+
+/** WCAG-recommended minimum body size; seeded sizes never fall below this. */
+const MIN_ACCESSIBLE_PX = 16
 
 // Fluid-type viewport range (px). Below MIN → mobile size; above MAX → desktop.
 const FLUID_MIN_VW = 640
@@ -37,14 +40,42 @@ function clampFontSize(mobilePx: number, desktopPx: number): string {
   return `clamp(${mobilePx}px, ${fluid}, ${desktopPx}px)`
 }
 
-/** Read the book's typography, falling back to accessible defaults. */
+/** Map a detected PDF scale onto the editable typography styles. Sizes are
+ *  flat (mobile = desktop — the PDF isn't responsive) and floored at 16px so
+ *  the seeded book stays close to its original yet meets the a11y minimum. */
+function typographyFromDetected(scale: TypeScale): BookTypography {
+  const style = (key: string, label: string, className: string, px: number) => {
+    const v = Math.max(MIN_ACCESSIBLE_PX, Math.round(px))
+    return { key, label, className, desktopPx: v, mobilePx: v }
+  }
+  return {
+    styles: [
+      style("chapter_title", "Chapter title", "adt-h1", scale.h1Px),
+      style("section_heading", "Section heading", "adt-h2", scale.h2Px),
+      style("subheading", "Subheading", "adt-h3", scale.h3Px),
+      style("body", "Body", "adt-body", scale.bodyPx),
+      style("caption", "Caption", "adt-caption", scale.captionPx),
+    ],
+  }
+}
+
+/** The book's detected-scale typography (original PDF sizes, 16px-floored), or
+ *  the accessible default when the book has no detectable text. This is the
+ *  automatic default and the editor's "Reset to detected" target. */
+export function resolveDetectedTypography(storage: Storage): BookTypography {
+  const detected = readTypeScale(storage)
+  return detected ? typographyFromDetected(detected) : DEFAULT_TYPOGRAPHY
+}
+
+/** The book's effective typography: the saved map if present, else the detected
+ *  per-book scale (see {@link resolveDetectedTypography}). */
 export function readTypography(storage: Storage): BookTypography {
   const row = storage.getLatestNodeData(TYPOGRAPHY_NODE, TYPOGRAPHY_ITEM)
   if (row?.data) {
     const parsed = BookTypography.safeParse(row.data)
     if (parsed.success && parsed.data.styles.length > 0) return parsed.data
   }
-  return DEFAULT_TYPOGRAPHY
+  return resolveDetectedTypography(storage)
 }
 
 /**
