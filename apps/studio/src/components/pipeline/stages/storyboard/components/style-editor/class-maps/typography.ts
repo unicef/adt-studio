@@ -78,9 +78,16 @@ export const FONT_SIZE_TOKEN_LIST: ReadonlyArray<{
   value: number
 }> = FONT_SIZE_TOKENS.map(([label, value]) => ({ label, value }))
 
+const LINE_HEIGHT_CLASS_RE =
+  /^leading-(none|tight|snug|normal|relaxed|loose|\[[\d.]+\])$/
+
+// Size also matches leading-* classes: `leading-*` sets `--tw-leading`, which
+// always outranks a text-* token's own line-height, so applying a size must
+// strip stale leading classes for the token's natural leading to take effect.
 export const fontSizeClassMap: ClassMap<number> = {
   matches: (cls) =>
-    /^text-(xs|sm|base|lg|xl|[2-9]xl|\[[\d.]+(?:px|rem|em)\])$/.test(cls),
+    /^text-(xs|sm|base|lg|xl|[2-9]xl|\[[\d.]+(?:px|rem|em)\])$/.test(cls) ||
+    LINE_HEIGHT_CLASS_RE.test(cls),
   fromClasses(classes) {
     let last: number | null = null
     for (const cls of classes) {
@@ -143,8 +150,7 @@ const LEADING_VALUE_TO_TOKEN = new Map<number, string>(
 )
 
 export const lineHeightClassMap: ClassMap<number> = {
-  matches: (cls) =>
-    /^leading-(none|tight|snug|normal|relaxed|loose|\[[\d.]+\])$/.test(cls),
+  matches: (cls) => LINE_HEIGHT_CLASS_RE.test(cls),
   fromClasses(classes) {
     let last: number | null = null
     for (const cls of classes) {

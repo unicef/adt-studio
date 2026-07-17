@@ -2063,8 +2063,8 @@ async function buildTailwindCss(
   typographyCss?: string,
 ): Promise<void> {
   const outputPath = path.join(adtDir, "content", "tailwind_output.css")
-  // Appended AFTER (outside) Tailwind's @layer output so these unlayered rules
-  // win over text-* utilities wherever a page applies an .adt-* class.
+  // The .adt-* rules live in @layer components, so they default the role sizes
+  // while element-level text-* utilities (utilities layer) keep priority.
   const suffix = typographyCss ? `\n${typographyCss}\n` : ""
 
   // In Tauri sidecar mode, postcss/tailwindcss cannot run inside the pkg binary.
@@ -2146,7 +2146,7 @@ export async function buildPreviewTailwindCss(
       `${sourceDirectives}\n${inputCss}`,
       { from: TAILWIND_VIRTUAL_FROM },
     )
-    // Append unlayered so the .adt-* size classes win over text-* utilities.
+    // .adt-* size rules ship in @layer components — text-* utilities keep priority.
     return typographyCss ? `${result.css}\n${typographyCss}\n` : result.css
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true })

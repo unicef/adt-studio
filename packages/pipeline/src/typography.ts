@@ -6,9 +6,9 @@
  * accessibility) so the book renders close to its original. The large
  * `DEFAULT_TYPOGRAPHY` is an opt-in "accessible" preset the user applies in the
  * editor, not the automatic default. `buildTypographyCss` turns the map into
- * CSS on the semantic `adt-*` classes, appended unlayered after Tailwind so it
- * wins over any `text-*` utility — text size is deterministic and identical
- * across every page.
+ * CSS on the semantic `adt-*` classes, emitted inside `@layer components` so
+ * the roles are the default everywhere while an explicit `text-*` utility
+ * (utilities layer) on the same element still takes priority.
  */
 import type { Storage } from "@adt/storage"
 import { BookTypography, DEFAULT_TYPOGRAPHY, type TypeScale } from "@adt/types"
@@ -80,23 +80,26 @@ export function readTypography(storage: Storage): BookTypography {
 
 /**
  * Render the typography map as raw CSS: one fluid `font-size` rule per semantic
- * class. Appended AFTER (and outside) Tailwind's `@layer` output so these
- * unlayered rules win over `text-*` utilities — the size is pinned per role.
+ * class. Emitted inside `@layer components` — declared before `utilities` in
+ * the compiled Tailwind output — so the role sizes apply by default but a
+ * `text-*` utility on the same element overrides them, no `!important` needed.
  */
 export function buildTypographyCss(typography: BookTypography): string {
   const rules = typography.styles.map((s) => {
     const weight = s.fontWeight ? ` font-weight: ${s.fontWeight};` : ""
-    // Pin a unitless line-height too, so leading tracks the pinned font-size.
-    // Without this, a residual `text-*` utility's line-height would stay while
-    // our font-size wins → cramped/overlapping text.
+    // Pin a unitless line-height too, so leading tracks the role's font-size
+    // and a size override brings its own utility line-height along with it.
     return `.${s.className} { font-size: ${clampFontSize(s.mobilePx, s.desktopPx)}; line-height: ${lineHeightFor(s.className)};${weight} }`
   })
   return `
 /* ── ADT book typography (editable, accessible type scale) ──
-   Fixed size per role, applied via the semantic classes the renderer emits.
-   Unlayered so these win over any Tailwind text-* utility; fluid between the
-   mobile and desktop targets via clamp(). Edit on the Fonts tab. */
-${rules.join("\n")}`.trim()
+   Default size per role, applied via the semantic classes the renderer emits.
+   Lives in @layer components so an explicit text-* utility (utilities layer)
+   on the element keeps priority; fluid between the mobile and desktop targets
+   via clamp(). Edit on the Fonts tab. */
+@layer components {
+${rules.join("\n")}
+}`.trim()
 }
 
 /** Convenience: read the map and render its CSS. */
@@ -144,9 +147,9 @@ export function typographyPreservationErrors(original: string, candidate: string
     )
   }
   // Also reject added Tailwind text-size utilities (text-xs…text-9xl, text-[..]).
-  // A residual `text-*` on an `adt-*` element leaves its own line-height while
-  // the pinned size wins → cramped text; the model is told not to emit these,
-  // so treat any newly-added one as a regression.
+  // A `text-*` utility outranks the role's @layer components size, so a
+  // model-added one silently changes the deterministic scale; the model is
+  // told not to emit these, so treat any newly-added one as a regression.
   const textSizeRe = /\btext-(?:xs|sm|base|lg|xl|[2-9]xl|\[[^\]]+\])\b/g
   const txtBefore = (original.match(textSizeRe) ?? []).length
   const txtAfter = (candidate.match(textSizeRe) ?? []).length
