@@ -1677,8 +1677,8 @@ msgstr "Cambiar Preajuste"
 msgid "Change the book language?"
 msgstr "¿Cambiar el idioma del libro?"
 
-msgid "Changes apply the next time you run Storyboard and Export."
-msgstr "Los cambios se aplican la próxima vez que ejecutes Storyboard y Exportar."
+#~ msgid "Changes apply the next time you run Storyboard and Export."
+#~ msgstr "Los cambios se aplican la próxima vez que ejecutes Storyboard y Exportar."
 
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Cambiar las fuentes afecta cómo se renderizan las páginas — vuelve a ejecutar Storyboard y Exportar para aplicar las nuevas fuentes."
@@ -7127,8 +7127,14 @@ msgstr "Roles de texto que el LLM puede asignar al texto en el árbol de conteni
 msgid "Text sizes"
 msgstr "Tamaños de texto"
 
-msgid "Text sizes saved. Re-run Storyboard and Export to apply them."
-msgstr "Tamaños de texto guardados. Vuelve a ejecutar Storyboard y Exportar para aplicarlos."
+msgid "Text sizes apply immediately here — re-export to include them in a downloaded book."
+msgstr "Los tamaños de texto se aplican aquí de inmediato; vuelve a exportar para incluirlos en el libro descargado."
+
+msgid "Text sizes saved."
+msgstr "Tamaños de texto guardados."
+
+#~ msgid "Text sizes saved. Re-run Storyboard and Export to apply them."
+#~ msgstr "Tamaños de texto guardados. Vuelve a ejecutar Storyboard y Exportar para aplicarlos."
 
 msgid "Text Types"
 msgstr "Tipos de texto"

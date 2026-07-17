@@ -1677,8 +1677,8 @@ msgstr "Change Preset"
 msgid "Change the book language?"
 msgstr "Change the book language?"
 
-msgid "Changes apply the next time you run Storyboard and Export."
-msgstr "Changes apply the next time you run Storyboard and Export."
+#~ msgid "Changes apply the next time you run Storyboard and Export."
+#~ msgstr "Changes apply the next time you run Storyboard and Export."
 
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
@@ -7127,8 +7127,14 @@ msgstr "Text roles the LLM may assign to text in the content tree. Pruned roles 
 msgid "Text sizes"
 msgstr "Text sizes"
 
-msgid "Text sizes saved. Re-run Storyboard and Export to apply them."
-msgstr "Text sizes saved. Re-run Storyboard and Export to apply them."
+msgid "Text sizes apply immediately here — re-export to include them in a downloaded book."
+msgstr "Text sizes apply immediately here — re-export to include them in a downloaded book."
+
+msgid "Text sizes saved."
+msgstr "Text sizes saved."
+
+#~ msgid "Text sizes saved. Re-run Storyboard and Export to apply them."
+#~ msgstr "Text sizes saved. Re-run Storyboard and Export to apply them."
 
 msgid "Text Types"
 msgstr "Text Types"

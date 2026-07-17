@@ -69,7 +69,7 @@ export function TypographySettings({ bookLabel }: { bookLabel: string }) {
       {
         onSuccess: () => {
           setStyles(fixed)
-          toast.success(t`Text sizes saved. Re-run Storyboard and Export to apply them.`)
+          toast.success(t`Text sizes saved.`)
         },
         onError: (err) => toast.error(err.message),
       },
@@ -176,7 +176,7 @@ export function TypographySettings({ bookLabel }: { bookLabel: string }) {
       </div>
 
       <p className="mt-3 text-xs text-muted-foreground">
-        <Trans>Changes apply the next time you run Storyboard and Export.</Trans>
+        <Trans>Text sizes apply immediately here — re-export to include them in a downloaded book.</Trans>
       </p>
     </div>
   )

@@ -1678,8 +1678,8 @@ msgstr "Ndrysho Presetin"
 msgid "Change the book language?"
 msgstr "Të ndryshohet gjuha e librit?"
 
-msgid "Changes apply the next time you run Storyboard and Export."
-msgstr "Ndryshimet zbatohen herën tjetër që ekzekutoni Storyboard dhe Eksportin."
+#~ msgid "Changes apply the next time you run Storyboard and Export."
+#~ msgstr "Ndryshimet zbatohen herën tjetër që ekzekutoni Storyboard dhe Eksportin."
 
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Ndryshimi i fonteve ndikon në mënyrën se si shfaqen faqet — riekzekutoni Storyboard dhe Eksportin për të zbatuar fontet e reja."
@@ -7128,8 +7128,14 @@ msgstr "Rolet tekstuale që LLM mund t'u caktojë teksteve në pemën e përmbaj
 msgid "Text sizes"
 msgstr "Madhësitë e tekstit"
 
-msgid "Text sizes saved. Re-run Storyboard and Export to apply them."
-msgstr "Madhësitë e tekstit u ruajtën. Riekzekutoni Storyboard dhe Eksportin për t'i zbatuar."
+msgid "Text sizes apply immediately here — re-export to include them in a downloaded book."
+msgstr "Madhësitë e tekstit zbatohen menjëherë këtu — rieksporto për t'i përfshirë në librin e shkarkuar."
+
+msgid "Text sizes saved."
+msgstr "Madhësitë e tekstit u ruajtën."
+
+#~ msgid "Text sizes saved. Re-run Storyboard and Export to apply them."
+#~ msgstr "Madhësitë e tekstit u ruajtën. Riekzekutoni Storyboard dhe Eksportin për t'i zbatuar."
 
 msgid "Text Types"
 msgstr "Llojet e Tekstit"
