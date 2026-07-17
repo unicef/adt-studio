@@ -23,6 +23,7 @@ import { createStageRoutes } from "./routes/stages.js"
 import { createTaskRoutes } from "./routes/tasks.js"
 import { createBookEventBus } from "./services/book-event-bus.js"
 import { createStageService } from "./services/stage-service.js"
+import { createPageErrorDecisions } from "./services/page-error-decisions.js"
 import { createStageRunner } from "./services/stage-runner.js"
 import { createTaskService } from "./services/task-service.js"
 import { createPresetRoutes } from "./routes/presets.js"
@@ -68,8 +69,9 @@ if (adtResourcesZip && fs.existsSync(adtResourcesZip)) {
 }
 
 const eventBus = createBookEventBus()
+const pageErrorDecisions = createPageErrorDecisions(eventBus)
 const stageRunner = createStageRunner()
-const stageService = createStageService(stageRunner, eventBus)
+const stageService = createStageService(stageRunner, eventBus, pageErrorDecisions)
 const taskService = createTaskService(eventBus)
 
 const app = new Hono()
@@ -104,7 +106,7 @@ app.route("/api", createFontRoutes(booksDir, promptsDir, configPath, taskService
 app.route("/api", createTTSRoutes(booksDir, configPath, taskService))
 app.route(
   "/api",
-  createStageRoutes(stageService, eventBus, booksDir, promptsDir, webAssetsDir, configPath)
+  createStageRoutes(stageService, eventBus, pageErrorDecisions, booksDir, promptsDir, webAssetsDir, configPath)
 )
 app.route("/api", createTaskRoutes(taskService))
 app.route("/api", createPresetRoutes(configPath))

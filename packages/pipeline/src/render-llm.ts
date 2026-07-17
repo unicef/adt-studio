@@ -3,7 +3,7 @@ import { webRenderingLLMSchema, activityAnswersLLMSchema } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import { validateSectionHtml } from "./validate-html.js"
 import { getViewportBreakpoints, type ScreenshotRenderer } from "./screenshot.js"
-import type { RenderConfig, RenderSectionInput } from "./web-rendering.js"
+import type { RenderConfig, RenderExecutionOptions, RenderSectionInput } from "./web-rendering.js"
 import { runVisualReviewLoop } from "./visual-review.js"
 
 /** Dependencies for the optional visual refinement loop. */
@@ -29,14 +29,24 @@ export async function renderSectionLlm(
   config: RenderConfig,
   llmModel: LLMModel,
   visualRefinement?: VisualRefinementDeps,
+  options: RenderExecutionOptions = {},
 ): Promise<SectionRendering> {
   const isActivity = config.renderType === "activity"
   const taskType = isActivity ? "activity-rendering" : "web-rendering"
   const { section, context: renderContext } = input
 
+  // Page images for content merged in from other pages — the prompt shows
+  // them after the hosting page's image so the LLM doesn't force-match all
+  // content against a page image that doesn't contain it.
+  const sourcePages = (input.sourcePages ?? []).map((sp) => ({
+    page_id: sp.pageId,
+    image_base64: sp.imageBase64,
+  }))
+
   const promptContext = {
     label: input.label,
     page_image_base64: input.pageImageBase64,
+    source_pages: sourcePages,
     section_id: section.sectionId,
     section_type: section.sectionType,
     nodes: renderContext.nodes,
@@ -62,6 +72,7 @@ export async function renderSectionLlm(
     maxTokens: 16384,
     temperature: config.temperature,
     timeoutMs: config.timeoutMs,
+    signal: options.signal,
     log: {
       taskType,
       pageId: input.pageId,
@@ -97,17 +108,20 @@ export async function renderSectionLlm(
       timeoutMs: vr.timeoutMs,
       temperature: vr.temperature,
       pageImageBase64: input.pageImageBase64,
+      additionalPageImages: input.sourcePages,
       promptContext: {
         page_image_base64: input.pageImageBase64,
         section_type: section.sectionType,
         current_html: generatedHtml,
         nodes: renderContext.nodes,
         leaf_texts: renderContext.leaf_texts,
+        has_merged_content: sourcePages.length > 0,
       },
       originalImageIntroText: "Here is the original page image (this is what the rendered page should resemble):",
       firstIterationScreenshotsText: "\nHere are screenshots of the current rendered HTML at three viewport sizes:\n",
       nextIterationScreenshotsText: "Here are the updated screenshots after your revision:\n",
       trailingContextText: `Section type: ${section.sectionType}`,
+      signal: options.signal,
       validateHtml: (candidateHtml) => {
         const check = validateWebRendering(
           { reasoning: "visual-review", content: candidateHtml },
@@ -140,6 +154,7 @@ export async function renderSectionLlm(
       maxTokens: 4096,
       temperature: config.temperature,
       timeoutMs: config.timeoutMs,
+      signal: options.signal,
       log: {
         taskType: "activity-answers",
         pageId: input.pageId,

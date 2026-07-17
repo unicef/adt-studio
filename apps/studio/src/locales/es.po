@@ -295,6 +295,9 @@ msgstr "{count} {count, plural, one {problema} other {problemas}}"
 msgid "{count} {count, plural, one {manual review item} other {manual review items}}"
 msgstr "{count} {count, plural, one {elemento de revisión manual} other {elementos de revisión manual}}"
 
+msgid "{count} pages failed in {stageLabel}"
+msgstr "{count} páginas fallaron en {stageLabel}"
+
 msgid "{count} translations"
 msgstr "{count} traducciones"
 
@@ -535,6 +538,12 @@ msgstr "Una actividad de selección múltiple."
 
 #~ msgid "A new version is available for download."
 #~ msgstr "Una nueva versión está disponible para descargar."
+
+msgid "A page failed in {stageLabel}"
+msgstr "Una página falló en {stageLabel}"
+
+msgid "A page failed in {stepLabel}"
+msgstr "Una página falló en {stepLabel}"
 
 msgid "A question worth asking"
 msgstr "Una pregunta que vale la pena hacer"
@@ -1189,6 +1198,9 @@ msgstr "Aplicar colores de fondo de página"
 msgid "Apply Segmentation"
 msgstr "Apply Segmentation"
 
+msgid "Apply to all errors in this run"
+msgstr "Aplicar a todos los errores de esta ejecución"
+
 msgid "AR"
 msgstr "AR"
 
@@ -1552,8 +1564,38 @@ msgstr "Llamadas"
 msgid "Cancel"
 msgstr "Cancelar"
 
+msgid "Cancel {stageLabel}"
+msgstr "Cancelar {stageLabel}"
+
+msgid "Cancel {stepLabel} step"
+msgstr "Cancelar paso {stepLabel}"
+
 msgid "Cancel download"
 msgstr "Cancelar descarga"
+
+msgid "Cancel run"
+msgstr "Cancelar ejecución"
+
+msgid "Cancelling {stageLabel}"
+msgstr "Cancelando {stageLabel}"
+
+msgid "Cancelling {stepLabel} step"
+msgstr "Cancelando paso {stepLabel}"
+
+msgid "Cancelling run"
+msgstr "Cancelando ejecución"
+
+msgid "Cancelling run…"
+msgstr "Cancelando ejecución…"
+
+#~ msgid "Cancelling step"
+#~ msgstr "Cancelando paso"
+
+msgid "Cancelling..."
+msgstr "Cancelando..."
+
+msgid "Cancelling…"
+msgstr "Cancelando…"
 
 #. placeholder {0}: String(MAX_ENTRIES)
 msgid "capped at {0}"
@@ -4099,8 +4141,14 @@ msgstr "Referencias médicas"
 msgid "Medium"
 msgstr "Medio"
 
+msgid "Merge"
+msgstr "Fusionar"
+
 msgid "Merge a completed part"
 msgstr "Fusionar una parte completada"
+
+msgid "Merge adjacent groups"
+msgstr "Fusionar grupos adyacentes"
 
 msgid "Merge another"
 msgstr "Fusionar otra"
@@ -4114,20 +4162,32 @@ msgstr "Combinar otra parte"
 msgid "Merge failed"
 msgstr "Merge failed"
 
-msgid "merge into next page"
-msgstr "fusionar en la página siguiente"
+#~ msgid "merge into next page"
+#~ msgstr "fusionar en la página siguiente"
 
-msgid "Merge into next page"
-msgstr "Fusionar en la página siguiente"
+#~ msgid "Merge into next page"
+#~ msgstr "Fusionar en la página siguiente"
 
-msgid "merge into previous page"
-msgstr "fusionar en la página anterior"
+#~ msgid "merge into previous page"
+#~ msgstr "fusionar en la página anterior"
 
-msgid "Merge into previous page"
-msgstr "Fusionar en la página anterior"
+#~ msgid "Merge into previous page"
+#~ msgstr "Fusionar en la página anterior"
 
 msgid "Merge part"
 msgstr "Fusionar parte"
+
+msgid "merge this section into the first section of the next page"
+msgstr "fusionar esta sección con la primera sección de la página siguiente"
+
+msgid "merge this section into the last section of the previous page"
+msgstr "fusionar esta sección con la última sección de la página anterior"
+
+msgid "Merge with first section of next page"
+msgstr "Fusionar con la primera sección de la página siguiente"
+
+msgid "Merge with last section of previous page"
+msgstr "Fusionar con la última sección de la página anterior"
 
 msgid "merge with next"
 msgstr "fusionar con la siguiente"
@@ -4143,6 +4203,9 @@ msgstr "fusionar con la anterior"
 
 msgid "Merge with previous"
 msgstr "Fusionar con la anterior"
+
+msgid "Merge with previous group"
+msgstr "Fusionar con el grupo anterior"
 
 msgid "merge with previous section"
 msgstr "fusionar con la sección anterior"
@@ -4786,6 +4849,9 @@ msgstr "Se requiere clave de OpenAI"
 msgid "OpenAI Voice"
 msgstr "Voz OpenAI"
 
+msgid "Operation failed"
+msgstr "La operación falló"
+
 msgid "Optional"
 msgstr "Opcional"
 
@@ -5241,6 +5307,9 @@ msgstr "Reproducir"
 
 msgid "Play video"
 msgstr "Reproducir video"
+
+msgid "Please wait for the current operation to finish"
+msgstr "Espera a que termine la operación actual"
 
 msgid "Polishing paragraphs to perfection..."
 msgstr "Puliendo párrafos a la perfección..."
@@ -5919,6 +5988,9 @@ msgstr "Ejecutar {0}"
 msgid "Run {upstreamLabel} first"
 msgstr "Ejecuta {upstreamLabel} primero"
 
+msgid "Run cancelled"
+msgstr "Ejecución cancelada"
+
 msgid "Run Captions"
 msgstr "Ejecutar Subtítulos"
 
@@ -5994,8 +6066,8 @@ msgstr "En ejecución"
 msgid "RUNNING"
 msgstr "EN CURSO"
 
-msgid "Running {stageLabel}"
-msgstr "Ejecutando {stageLabel}"
+#~ msgid "Running {stageLabel}"
+#~ msgstr "Ejecutando {stageLabel}"
 
 msgid "Running Sectioning will run Extract first, then section the extracted pages."
 msgstr "Ejecutar Sectioning ejecutará primero Extracción y luego dividirá en secciones las páginas extraídas."
@@ -6006,8 +6078,8 @@ msgstr "Ejecutar Storyboard ejecutará primero las etapas principales anteriores
 msgid "Running Validation..."
 msgstr "Running Validation..."
 
-msgid "Running..."
-msgstr "Ejecutando..."
+#~ msgid "Running..."
+#~ msgstr "Ejecutando..."
 
 msgid "Runs accessibility checks against the packaged book."
 msgstr "Realiza comprobaciones de accesibilidad en el libro empaquetado."
@@ -6092,6 +6164,12 @@ msgstr "Save checklist"
 
 msgid "Save failed"
 msgstr "Save failed"
+
+msgid "Save or discard your edits before splitting"
+msgstr "Guarda o descarta tus cambios antes de dividir"
+
+msgid "Save or discard your edits first"
+msgstr "Primero guarda o descarta tus cambios"
 
 msgid "Save page review"
 msgstr "Save page review"
@@ -6564,8 +6642,14 @@ msgstr "Omitir por ahora"
 msgid "Skip intro"
 msgstr "Omitir intro"
 
+msgid "Skip page and continue"
+msgstr "Omitir página y continuar"
+
 msgid "Skip segmentation for images whose shortest side is below this threshold."
 msgstr "Omitir segmentación para imágenes cuyo lado más corto esté por debajo de este umbral."
+
+msgid "Skip this page and continue the step, or stop the step entirely."
+msgstr "Omite esta página y continúa el paso, o detén el paso por completo."
 
 msgid "Skipped"
 msgstr "Omitido"
@@ -6652,6 +6736,9 @@ msgstr "Indicaciones de voz"
 msgid "Speech Settings"
 msgstr "Configuración de Voz"
 
+msgid "Split"
+msgstr "Dividir"
+
 #. placeholder {0}: book.split.splitPages
 #. placeholder {1}: book.split.totalPages
 msgid "Split · {0}/{1}"
@@ -6669,6 +6756,9 @@ msgstr "Dividido · {0}/{1}"
 msgid "Split & merge"
 msgstr "Dividir y fusionar"
 
+msgid "Split group here"
+msgstr "Dividir el grupo aquí"
+
 msgid "Split into"
 msgstr "Dividir en"
 
@@ -6683,11 +6773,17 @@ msgstr "Dividir en"
 msgid "Split into {0} part(s) · {1}/{2} pages split off · {3}/{4} merged back"
 msgstr "Dividido en {0} parte(s) · {1}/{2} páginas separadas · {3}/{4} fusionadas"
 
+msgid "Split into new section"
+msgstr "Dividir en una nueva sección"
+
 msgid "Split into parts"
 msgstr "Dividir en partes"
 
 #~ msgid "Split into parts for others"
 #~ msgstr "Dividir en partes para otros"
+
+msgid "Split into two sections at this point"
+msgstr "Dividir en dos secciones en este punto"
 
 msgid "Split preview"
 msgstr "Previsualización de división"
@@ -6764,6 +6860,9 @@ msgstr "Step failed"
 
 msgid "Step run failed"
 msgstr "Step run failed"
+
+msgid "Stop step"
+msgstr "Detener paso"
 
 msgid "Storyboard"
 msgstr "Storyboard"
@@ -7797,6 +7896,9 @@ msgstr "videos"
 
 msgid "Videos"
 msgstr "Videos"
+
+msgid "View details"
+msgstr "Ver detalles"
 
 msgid "View HTML source"
 msgstr "Ver código HTML"

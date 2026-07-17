@@ -1,7 +1,8 @@
 import { useState, type CSSProperties, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { Play, Loader2, Settings } from "lucide-react"
+import { Play, Loader2, Settings, X } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
+import { useBookRun } from "@/hooks/use-book-run"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -69,6 +70,7 @@ export function LandingPageShell({
   const [confirmOpen, setConfirmOpen] = useState(false)
   const downstreamAffected = useDownstreamWithOutput(stageSlug)
   const needsConfirmation = isCompleted && downstreamAffected.length > 0
+  const { isCancelling, cancelRun } = useBookRun()
 
   const accentStyle: CSSProperties = {}
   if (accentColor) {
@@ -97,7 +99,29 @@ export function LandingPageShell({
 
   const stageLabel = getStageLabelI18n(stageSlug)
 
-  const runButton = (
+  const runButton = isRunning ? (
+    <Button
+      onClick={() => cancelRun()}
+      disabled={isCancelling}
+      className={cn(
+        "h-10 px-5 font-medium text-white transition-[background-color,opacity] border-0",
+        "disabled:opacity-60 disabled:cursor-default",
+        "bg-red-500 hover:bg-red-700"
+      )}
+    >
+      {isCancelling ? (
+        <>
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          <Trans>Cancelling...</Trans>
+        </>
+      ) : (
+        <>
+          <X className="size-5 mr-2" />
+          <Trans>Cancel</Trans>
+        </>
+      )}
+    </Button>
+  ) : (
     <Button
       onClick={handleRunClick}
       disabled={isDisabled}
@@ -107,17 +131,8 @@ export function LandingPageShell({
         hasError ? errorColorClass : colorClass
       )}
     >
-      {isRunning ? (
-        <>
-          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          <Trans>Running...</Trans>
-        </>
-      ) : (
-        <>
-          <Play className="w-4 h-4 mr-2" />
-          {isCompleted || hasError ? rerunLabel : runLabel}
-        </>
-      )}
+      <Play className="w-4 h-4 mr-2" />
+      {isCompleted || hasError ? rerunLabel : runLabel}
     </Button>
   )
 

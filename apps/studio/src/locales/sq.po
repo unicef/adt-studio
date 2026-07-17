@@ -296,6 +296,9 @@ msgstr "{count} {count, plural, one {problem} other {probleme}}"
 msgid "{count} {count, plural, one {manual review item} other {manual review items}}"
 msgstr "{count} {count, plural, one {element për rishikim manual} other {elemente për rishikim manual}}"
 
+msgid "{count} pages failed in {stageLabel}"
+msgstr "{count} faqe dështuan te {stageLabel}"
+
 msgid "{count} translations"
 msgstr "{count} përkthime"
 
@@ -536,6 +539,12 @@ msgstr "Një aktivitet me zgjedhje të shumëfishtë."
 
 #~ msgid "A new version is available for download."
 #~ msgstr "Një version i ri është i disponueshëm për shkarkim."
+
+msgid "A page failed in {stageLabel}"
+msgstr "Një faqe dështoi te {stageLabel}"
+
+msgid "A page failed in {stepLabel}"
+msgstr "Një faqe dështoi te {stepLabel}"
 
 msgid "A question worth asking"
 msgstr "Një pyetje që vlen të bëhet"
@@ -1190,6 +1199,9 @@ msgstr "Apliko ngjyrat e sfondit të faqes"
 msgid "Apply Segmentation"
 msgstr "Apliko segmentimin"
 
+msgid "Apply to all errors in this run"
+msgstr "Zbato për të gjitha gabimet e këtij ekzekutimi"
+
 msgid "AR"
 msgstr "AR"
 
@@ -1553,8 +1565,38 @@ msgstr "Thirrje"
 msgid "Cancel"
 msgstr "Anulo"
 
+msgid "Cancel {stageLabel}"
+msgstr "Anulo {stageLabel}"
+
+msgid "Cancel {stepLabel} step"
+msgstr "Anulo hapin {stepLabel}"
+
 msgid "Cancel download"
 msgstr "Anulo shkarkimin"
+
+msgid "Cancel run"
+msgstr "Anulo ekzekutimin"
+
+msgid "Cancelling {stageLabel}"
+msgstr "Duke anuluar {stageLabel}"
+
+msgid "Cancelling {stepLabel} step"
+msgstr "Duke anuluar hapin {stepLabel}"
+
+msgid "Cancelling run"
+msgstr "Duke anuluar ekzekutimin"
+
+msgid "Cancelling run…"
+msgstr "Duke anuluar ekzekutimin…"
+
+#~ msgid "Cancelling step"
+#~ msgstr "Duke anuluar hapin"
+
+msgid "Cancelling..."
+msgstr "Duke anuluar..."
+
+msgid "Cancelling…"
+msgstr "Duke anuluar…"
 
 #. placeholder {0}: String(MAX_ENTRIES)
 msgid "capped at {0}"
@@ -4100,8 +4142,14 @@ msgstr "Referenca mjekësore"
 msgid "Medium"
 msgstr "Mesatar"
 
+msgid "Merge"
+msgstr "Bashko"
+
 msgid "Merge a completed part"
 msgstr "Bashko një pjesë të përfunduar"
+
+msgid "Merge adjacent groups"
+msgstr "Bashko grupet ngjitur"
 
 msgid "Merge another"
 msgstr "Bashko një tjetër"
@@ -4115,20 +4163,32 @@ msgstr "Bashko një pjesë tjetër"
 msgid "Merge failed"
 msgstr "Bashkimi dështoi"
 
-msgid "merge into next page"
-msgstr "bashko me faqen tjetër"
+#~ msgid "merge into next page"
+#~ msgstr "bashko me faqen tjetër"
 
-msgid "Merge into next page"
-msgstr "Bashko me faqen tjetër"
+#~ msgid "Merge into next page"
+#~ msgstr "Bashko me faqen tjetër"
 
-msgid "merge into previous page"
-msgstr "bashko me faqen e mëparshme"
+#~ msgid "merge into previous page"
+#~ msgstr "bashko me faqen e mëparshme"
 
-msgid "Merge into previous page"
-msgstr "Bashko me faqen e mëparshme"
+#~ msgid "Merge into previous page"
+#~ msgstr "Bashko me faqen e mëparshme"
 
 msgid "Merge part"
 msgstr "Bashko pjesën"
+
+msgid "merge this section into the first section of the next page"
+msgstr "bashkoni këtë seksion me seksionin e parë të faqes tjetër"
+
+msgid "merge this section into the last section of the previous page"
+msgstr "bashkoni këtë seksion me seksionin e fundit të faqes së mëparshme"
+
+msgid "Merge with first section of next page"
+msgstr "Bashko me seksionin e parë të faqes tjetër"
+
+msgid "Merge with last section of previous page"
+msgstr "Bashko me seksionin e fundit të faqes së mëparshme"
 
 msgid "merge with next"
 msgstr "bashko me të ardhshmin"
@@ -4144,6 +4204,9 @@ msgstr "bashko me të mëparshmit"
 
 msgid "Merge with previous"
 msgstr "Bashko me të mëparshmit"
+
+msgid "Merge with previous group"
+msgstr "Bashko me grupin e mëparshëm"
 
 msgid "merge with previous section"
 msgstr "bashko me seksionin e mëparshëm"
@@ -4787,6 +4850,9 @@ msgstr "Kërkohet çelësi i OpenAI"
 msgid "OpenAI Voice"
 msgstr "Zëri i OpenAI"
 
+msgid "Operation failed"
+msgstr "Veprimi dështoi"
+
 msgid "Optional"
 msgstr "Opsionale"
 
@@ -5242,6 +5308,9 @@ msgstr "Luaj"
 
 msgid "Play video"
 msgstr "Luaj videon"
+
+msgid "Please wait for the current operation to finish"
+msgstr "Prisni derisa të përfundojë veprimi aktual"
 
 msgid "Polishing paragraphs to perfection..."
 msgstr "Polisim paragrafet deri në përsosmëri..."
@@ -5920,6 +5989,9 @@ msgstr "Ekzekuto {stageLabel}"
 msgid "Run {upstreamLabel} first"
 msgstr "Ekzekuto {upstreamLabel} së pari"
 
+msgid "Run cancelled"
+msgstr "Ekzekutimi u anulua"
+
 msgid "Run Captions"
 msgstr "Ekzekuto Titujt"
 
@@ -5995,8 +6067,8 @@ msgstr "Duke ekzekutuar"
 msgid "RUNNING"
 msgstr "NË EKZEKUTIM"
 
-msgid "Running {stageLabel}"
-msgstr "Duke ekzekutuar {stageLabel}"
+#~ msgid "Running {stageLabel}"
+#~ msgstr "Duke ekzekutuar {stageLabel}"
 
 msgid "Running Sectioning will run Extract first, then section the extracted pages."
 msgstr "Ekzekutimi i Seksionimit do të ekzekutojë Ekstraktimin së pari, pastaj do të seksionojë faqet e ekstraktuara."
@@ -6007,8 +6079,8 @@ msgstr "Ekzekutimi i Storyboard-it do të ekzekutojë fazat kryesore të mëpars
 msgid "Running Validation..."
 msgstr "Duke ekzekutuar Validimin..."
 
-msgid "Running..."
-msgstr "Duke ekzekutuar..."
+#~ msgid "Running..."
+#~ msgstr "Duke ekzekutuar..."
 
 msgid "Runs accessibility checks against the packaged book."
 msgstr "Ekzekuton kontrolle aksesueshmërie kundrejt librit të paketuar."
@@ -6093,6 +6165,12 @@ msgstr "Ruaj listën e kontrollit"
 
 msgid "Save failed"
 msgstr "Ruajtja dështoi"
+
+msgid "Save or discard your edits before splitting"
+msgstr "Ruani ose hidhni poshtë ndryshimet para se të ndani"
+
+msgid "Save or discard your edits first"
+msgstr "Fillimisht ruani ose hidhni poshtë ndryshimet"
 
 msgid "Save page review"
 msgstr "Ruaj rishikimin e faqes"
@@ -6565,8 +6643,14 @@ msgstr "Kalo tani"
 msgid "Skip intro"
 msgstr "Kalo hyrjen"
 
+msgid "Skip page and continue"
+msgstr "Kapërce faqen dhe vazhdo"
+
 msgid "Skip segmentation for images whose shortest side is below this threshold."
 msgstr "Kalo segmentimin për imazhet çdofaqja më e shkurtër e të cilave është nën këtë prag."
+
+msgid "Skip this page and continue the step, or stop the step entirely."
+msgstr "Kapërce këtë faqe dhe vazhdo hapin, ose ndale hapin plotësisht."
 
 msgid "Skipped"
 msgstr "Kaluar"
@@ -6653,6 +6737,9 @@ msgstr "Prompte të të Folurit"
 msgid "Speech Settings"
 msgstr "Cilësimet e të Folurit"
 
+msgid "Split"
+msgstr "Ndaj"
+
 #. placeholder {0}: book.split.splitPages
 #. placeholder {1}: book.split.totalPages
 msgid "Split · {0}/{1}"
@@ -6670,6 +6757,9 @@ msgstr "Ndarë · {0}/{1}"
 msgid "Split & merge"
 msgstr "Ndaj dhe bashko"
 
+msgid "Split group here"
+msgstr "Ndaje grupin këtu"
+
 msgid "Split into"
 msgstr "Ndaje në"
 
@@ -6684,11 +6774,17 @@ msgstr "Ndaje në"
 msgid "Split into {0} part(s) · {1}/{2} pages split off · {3}/{4} merged back"
 msgstr "I ndarë në {0} pjesë · {1}/{2} faqe të ndara · {3}/{4} të bashkuara"
 
+msgid "Split into new section"
+msgstr "Ndaje në një seksion të ri"
+
 msgid "Split into parts"
 msgstr "Ndaje në pjesë"
 
 #~ msgid "Split into parts for others"
 #~ msgstr "Ndaje në pjesë për të tjerët"
+
+msgid "Split into two sections at this point"
+msgstr "Ndajeni në dy seksione në këtë pikë"
 
 msgid "Split preview"
 msgstr "Pamja paraprake e ndarjes"
@@ -6765,6 +6861,9 @@ msgstr "Hapi dështoi"
 
 msgid "Step run failed"
 msgstr "Ekzekutimi i hapit dështoi"
+
+msgid "Stop step"
+msgstr "Ndalo hapin"
 
 msgid "Storyboard"
 msgstr "Storyboard"
@@ -7798,6 +7897,9 @@ msgstr "video"
 
 msgid "Videos"
 msgstr "Video"
+
+msgid "View details"
+msgstr "Shiko detajet"
 
 msgid "View HTML source"
 msgstr "Shiko burimin HTML"

@@ -393,6 +393,570 @@ describe("Page routes", () => {
     })
   })
 
+  describe("POST /api/books/:label/pages/:pageId/sections/:sectionIndex/split", () => {
+    /** Seed page 1 with one section of three top-level nodes (last one nested). */
+    function seedThreeNodeSection(options?: { placement?: boolean; rendering?: boolean }) {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("page-sectioning", `${label}_p1`, {
+          reasoning: "sectioned",
+          sections: [
+            {
+              sectionId: `${label}_p1_sec001`,
+              sectionType: "activity_multiple_choice",
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+              nodes: [
+                { nodeId: `${label}_p1_n0001`, isPruned: false, role: "text", text: "Instructions" },
+                { nodeId: `${label}_p1_n0002`, isPruned: false, role: "text", text: "Question 1" },
+                {
+                  nodeId: `${label}_p1_n0003`,
+                  isPruned: false,
+                  structure: "group",
+                  children: [
+                    { nodeId: `${label}_p1_n0004`, isPruned: false, role: "text", text: "Question 2" },
+                  ],
+                },
+              ],
+              ...(options?.placement
+                ? {
+                    viewport: { width: 595, height: 842 },
+                    placement: {
+                      [`${label}_p1_n0001`]: { textAlign: "center" },
+                      [`${label}_p1_n0002`]: { textAlign: "right" },
+                      [`${label}_p1_n0004`]: { textAlign: "center" },
+                    },
+                  }
+                : {}),
+            },
+            {
+              sectionId: `${label}_p1_sec002`,
+              sectionType: "content",
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+              nodes: [
+                { nodeId: `${label}_p1_n0005`, isPruned: false, role: "text", text: "Other section" },
+              ],
+            },
+          ],
+        })
+        if (options?.rendering) {
+          storage.putNodeData("web-rendering", `${label}_p1`, {
+            sections: [
+              {
+                sectionIndex: 0,
+                sectionType: "activity_multiple_choice",
+                reasoning: "rendered",
+                html: `<section data-section-id="${label}_p1_sec001"><p>Activity</p></section>`,
+              },
+              {
+                sectionIndex: 1,
+                sectionType: "content",
+                reasoning: "rendered",
+                html: `<section data-section-id="${label}_p1_sec002"><p>Other</p></section>`,
+              },
+            ],
+          })
+        }
+      } finally {
+        storage.close()
+      }
+    }
+
+    it("splits a section before a top-level node and renumbers sectionIds", async () => {
+      seedThreeNodeSection({ rendering: true })
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/split`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ beforeNodeIndex: 1 }),
+        }
+      )
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.splitSectionIndex).toBe(1)
+
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        const sectioningRow = verify.getLatestNodeData("page-sectioning", `${label}_p1`)
+        const sectioning = sectioningRow?.data as {
+          sections: Array<{
+            sectionId: string
+            sectionType: string
+            nodes: Array<{ nodeId: string }>
+          }>
+        }
+        expect(sectioning.sections).toHaveLength(3)
+        expect(sectioning.sections.map((s) => s.sectionId)).toEqual([
+          `${label}_p1_sec001`,
+          `${label}_p1_sec002`,
+          `${label}_p1_sec003`,
+        ])
+        expect(sectioning.sections[0].nodes.map((n) => n.nodeId)).toEqual([
+          `${label}_p1_n0001`,
+        ])
+        expect(sectioning.sections[1].nodes.map((n) => n.nodeId)).toEqual([
+          `${label}_p1_n0002`,
+          `${label}_p1_n0003`,
+        ])
+        // Both halves inherit the original section type.
+        expect(sectioning.sections[0].sectionType).toBe("activity_multiple_choice")
+        expect(sectioning.sections[1].sectionType).toBe("activity_multiple_choice")
+        // The untouched section shifts to index 2.
+        expect(sectioning.sections[2].nodes.map((n) => n.nodeId)).toEqual([
+          `${label}_p1_n0005`,
+        ])
+
+        // Rendering: split section's entry dropped, other section shifted +1
+        // with its data-section-id rewritten.
+        const renderingRow = verify.getLatestNodeData("web-rendering", `${label}_p1`)
+        const rendering = renderingRow?.data as {
+          sections: Array<{ sectionIndex: number; html: string }>
+        }
+        expect(rendering.sections).toHaveLength(1)
+        expect(rendering.sections[0].sectionIndex).toBe(2)
+        expect(rendering.sections[0].html).toContain(
+          `data-section-id="${label}_p1_sec003"`
+        )
+      } finally {
+        verify.close()
+      }
+    })
+
+    it("partitions the fixed-layout placement sidecar by subtree", async () => {
+      seedThreeNodeSection({ placement: true })
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/split`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ beforeNodeIndex: 1 }),
+        }
+      )
+
+      expect(res.status).toBe(200)
+
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        const sectioningRow = verify.getLatestNodeData("page-sectioning", `${label}_p1`)
+        const sectioning = sectioningRow?.data as {
+          sections: Array<{
+            viewport?: { width: number; height: number }
+            placement?: Record<string, unknown>
+          }>
+        }
+        expect(Object.keys(sectioning.sections[0].placement ?? {})).toEqual([
+          `${label}_p1_n0001`,
+        ])
+        // Placement for the nested leaf n0004 follows its moved parent n0003.
+        expect(Object.keys(sectioning.sections[1].placement ?? {}).sort()).toEqual([
+          `${label}_p1_n0002`,
+          `${label}_p1_n0004`,
+        ])
+        expect(sectioning.sections[0].viewport).toEqual({ width: 595, height: 842 })
+        expect(sectioning.sections[1].viewport).toEqual({ width: 595, height: 842 })
+      } finally {
+        verify.close()
+      }
+    })
+
+    it("splits before a nested node, splitting ancestor containers", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("page-sectioning", `${label}_p1`, {
+          reasoning: "sectioned",
+          sections: [
+            {
+              sectionId: `${label}_p1_sec001`,
+              sectionType: "activity_multiple_choice",
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+              nodes: [
+                { nodeId: `${label}_p1_n0001`, isPruned: false, role: "text", text: "Intro" },
+                {
+                  nodeId: `${label}_p1_n0002`,
+                  isPruned: false,
+                  structure: "group",
+                  children: [
+                    { nodeId: `${label}_p1_n0003`, isPruned: false, role: "text", text: "Q1" },
+                    { nodeId: `${label}_p1_n0004`, isPruned: false, role: "text", text: "Q2" },
+                    { nodeId: `${label}_p1_n0005`, isPruned: false, role: "text", text: "Q3" },
+                  ],
+                },
+              ],
+              placement: {
+                [`${label}_p1_n0001`]: { textAlign: "center" },
+                [`${label}_p1_n0002`]: { textAlign: "right" },
+                [`${label}_p1_n0004`]: { textAlign: "center" },
+              },
+            },
+          ],
+        })
+      } finally {
+        storage.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/split`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ beforeNodeId: `${label}_p1_n0004` }),
+        }
+      )
+
+      expect(res.status).toBe(200)
+
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        const sectioningRow = verify.getLatestNodeData("page-sectioning", `${label}_p1`)
+        const sectioning = sectioningRow?.data as {
+          sections: Array<{
+            sectionId: string
+            nodes: Array<{
+              nodeId: string
+              structure?: string
+              children?: Array<{ nodeId: string }>
+            }>
+            placement?: Record<string, unknown>
+          }>
+        }
+        expect(sectioning.sections).toHaveLength(2)
+
+        // Kept half: intro leaf + the original group trimmed to Q1.
+        const kept = sectioning.sections[0]
+        expect(kept.nodes.map((n) => n.nodeId)).toEqual([
+          `${label}_p1_n0001`,
+          `${label}_p1_n0002`,
+        ])
+        expect(kept.nodes[1].children?.map((c) => c.nodeId)).toEqual([
+          `${label}_p1_n0003`,
+        ])
+
+        // Moved half: a fresh-id group shell carrying Q2 and Q3.
+        const moved = sectioning.sections[1]
+        expect(moved.nodes).toHaveLength(1)
+        const shell = moved.nodes[0]
+        expect(shell.structure).toBe("group")
+        expect(shell.nodeId).not.toBe(`${label}_p1_n0002`)
+        expect(shell.nodeId).toMatch(new RegExp(`^${label}_p1_n\\d{4}$`))
+        expect(shell.children?.map((c) => c.nodeId)).toEqual([
+          `${label}_p1_n0004`,
+          `${label}_p1_n0005`,
+        ])
+
+        // Placement follows the nodes; the original group shell's entry
+        // stays with the kept half.
+        expect(Object.keys(kept.placement ?? {}).sort()).toEqual([
+          `${label}_p1_n0001`,
+          `${label}_p1_n0002`,
+        ])
+        expect(Object.keys(moved.placement ?? {})).toEqual([
+          `${label}_p1_n0004`,
+        ])
+      } finally {
+        verify.close()
+      }
+    })
+
+    it("narrows sourcePageIds to the half that still contains foreign content", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("page-sectioning", `${label}_p1`, {
+          reasoning: "sectioned",
+          sections: [
+            {
+              sectionId: `${label}_p1_sec001`,
+              sectionType: "activity_multiple_choice",
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+              nodes: [
+                { nodeId: `${label}_p1_n0001`, isPruned: false, role: "text", text: "Local" },
+                { nodeId: `${label}_p9_n0001`, isPruned: false, role: "text", text: "Merged in" },
+              ],
+              sourcePageIds: [`${label}_p9`],
+            },
+          ],
+        })
+      } finally {
+        storage.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/split`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ beforeNodeIndex: 1 }),
+        }
+      )
+      expect(res.status).toBe(200)
+
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        const row = verify.getLatestNodeData("page-sectioning", `${label}_p1`)
+        const sectioning = row?.data as {
+          sections: Array<{ sourcePageIds?: string[] }>
+        }
+        // Only the half holding the merged-in nodes keeps the provenance.
+        expect(sectioning.sections[0].sourcePageIds).toBeUndefined()
+        expect(sectioning.sections[1].sourcePageIds).toEqual([`${label}_p9`])
+      } finally {
+        verify.close()
+      }
+    })
+
+    it("returns 400 when splitting before the first node of the section", async () => {
+      seedThreeNodeSection()
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/split`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ beforeNodeId: `${label}_p1_n0001` }),
+        }
+      )
+      expect(res.status).toBe(400)
+    })
+
+    it("returns 400 unless exactly one of beforeNodeIndex/beforeNodeId is given", async () => {
+      seedThreeNodeSection()
+
+      const neither = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/split`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({}),
+        }
+      )
+      expect(neither.status).toBe(400)
+
+      const both = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/split`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            beforeNodeIndex: 1,
+            beforeNodeId: `${label}_p1_n0002`,
+          }),
+        }
+      )
+      expect(both.status).toBe(400)
+    })
+
+    it("returns 400 when beforeNodeIndex is out of range or zero", async () => {
+      seedThreeNodeSection()
+
+      const outOfRange = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/split`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ beforeNodeIndex: 3 }),
+        }
+      )
+      expect(outOfRange.status).toBe(400)
+
+      const zero = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/split`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ beforeNodeIndex: 0 }),
+        }
+      )
+      expect(zero.status).toBe(400)
+    })
+  })
+
+  describe("POST /api/books/:label/pages/:pageId/sections/:sectionIndex/merge", () => {
+    it("merges adjacent sections and unions the placement sidecar", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("page-sectioning", `${label}_p1`, {
+          reasoning: "sectioned",
+          sections: [
+            {
+              sectionId: `${label}_p1_sec001`,
+              sectionType: "content",
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+              nodes: [
+                { nodeId: `${label}_p1_n0001`, isPruned: false, role: "text", text: "First" },
+              ],
+              viewport: { width: 595, height: 842 },
+              placement: { [`${label}_p1_n0001`]: { textAlign: "center" } },
+            },
+            {
+              sectionId: `${label}_p1_sec002`,
+              sectionType: "content",
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+              nodes: [
+                { nodeId: `${label}_p1_n0002`, isPruned: false, role: "text", text: "Second" },
+              ],
+              placement: { [`${label}_p1_n0002`]: { textAlign: "right" } },
+            },
+          ],
+        })
+      } finally {
+        storage.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/merge?direction=next`,
+        { method: "POST" }
+      )
+
+      expect(res.status).toBe(200)
+      const body = await res.json()
+      expect(body.mergedSectionIndex).toBe(0)
+
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        const sectioningRow = verify.getLatestNodeData("page-sectioning", `${label}_p1`)
+        const sectioning = sectioningRow?.data as {
+          sections: Array<{
+            sectionId: string
+            nodes: Array<{ nodeId: string }>
+            viewport?: { width: number; height: number }
+            placement?: Record<string, unknown>
+          }>
+        }
+        expect(sectioning.sections).toHaveLength(1)
+        expect(sectioning.sections[0].sectionId).toBe(`${label}_p1_sec001`)
+        expect(sectioning.sections[0].nodes.map((n) => n.nodeId)).toEqual([
+          `${label}_p1_n0001`,
+          `${label}_p1_n0002`,
+        ])
+        expect(Object.keys(sectioning.sections[0].placement ?? {}).sort()).toEqual([
+          `${label}_p1_n0001`,
+          `${label}_p1_n0002`,
+        ])
+        expect(sectioning.sections[0].viewport).toEqual({ width: 595, height: 842 })
+      } finally {
+        verify.close()
+      }
+    })
+  })
+
+  describe("POST /api/books/:label/pages/:pageId/sections/:sectionIndex/merge-cross-page", () => {
+    function seedBothPages(sourceExtra?: Partial<{ sourcePageIds: string[] }>) {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("page-sectioning", `${label}_p1`, {
+          reasoning: "sectioned",
+          sections: [
+            {
+              sectionId: `${label}_p1_sec001`,
+              sectionType: "activity_multiple_choice",
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+              nodes: [
+                { nodeId: `${label}_p1_n0001`, isPruned: false, role: "text", text: "Continued activity" },
+              ],
+              ...sourceExtra,
+            },
+          ],
+        })
+        storage.putNodeData("page-sectioning", `${label}_p2`, {
+          reasoning: "sectioned",
+          sections: [
+            {
+              sectionId: `${label}_p2_sec001`,
+              sectionType: "activity_multiple_choice",
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 2,
+              isPruned: false,
+              nodes: [
+                { nodeId: `${label}_p2_n0001`, isPruned: false, role: "text", text: "Question 4" },
+              ],
+            },
+          ],
+        })
+      } finally {
+        storage.close()
+      }
+    }
+
+    it("records the source page in the target section's sourcePageIds", async () => {
+      seedBothPages()
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/merge-cross-page?direction=next`,
+        { method: "POST" }
+      )
+
+      expect(res.status).toBe(200)
+
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        const tgtRow = verify.getLatestNodeData("page-sectioning", `${label}_p2`)
+        const tgt = tgtRow?.data as {
+          sections: Array<{
+            nodes: Array<{ nodeId: string }>
+            sourcePageIds?: string[]
+          }>
+        }
+        expect(tgt.sections).toHaveLength(1)
+        // Moved nodes prepended, provenance recorded.
+        expect(tgt.sections[0].nodes.map((n) => n.nodeId)).toEqual([
+          `${label}_p1_n0001`,
+          `${label}_p2_n0001`,
+        ])
+        expect(tgt.sections[0].sourcePageIds).toEqual([`${label}_p1`])
+      } finally {
+        verify.close()
+      }
+    })
+
+    it("carries prior provenance from the moved section", async () => {
+      seedBothPages({ sourcePageIds: [`${label}_p0`] })
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/merge-cross-page?direction=next`,
+        { method: "POST" }
+      )
+      expect(res.status).toBe(200)
+
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        const tgtRow = verify.getLatestNodeData("page-sectioning", `${label}_p2`)
+        const tgt = tgtRow?.data as {
+          sections: Array<{ sourcePageIds?: string[] }>
+        }
+        expect(tgt.sections[0].sourcePageIds?.sort()).toEqual([
+          `${label}_p0`,
+          `${label}_p1`,
+        ])
+      } finally {
+        verify.close()
+      }
+    })
+  })
+
   describe("POST /api/books/:label/pages/:pageId/re-render", () => {
     it("returns 400 when X-OpenAI-Key header is missing", async () => {
       const res = await app.request(

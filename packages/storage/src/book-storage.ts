@@ -321,7 +321,15 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       )
     },
 
-    markStepCompleted(step: string): void {
+    markStepCompleted(step: string, message?: string): void {
+      if (message !== undefined) {
+        db.run(
+          `INSERT INTO step_runs (step, status, completed_at, message) VALUES (?, 'done', ?, ?)
+           ON CONFLICT (step) DO UPDATE SET status='done', completed_at=excluded.completed_at, message=excluded.message`,
+          [step, new Date().toISOString(), message]
+        )
+        return
+      }
       db.run(
         `INSERT INTO step_runs (step, status, completed_at) VALUES (?, 'done', ?)
          ON CONFLICT (step) DO UPDATE SET status='done', completed_at=excluded.completed_at`,
@@ -363,6 +371,10 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       if (steps.length === 0) return
       const placeholders = steps.map(() => "?").join(", ")
       db.run(`DELETE FROM step_runs WHERE step IN (${placeholders})`, steps)
+    },
+
+    clearRunningStepRuns(): void {
+      db.run("DELETE FROM step_runs WHERE status = 'running'")
     },
 
     getLatestNodeData(node: string, itemId: string): NodeDataRow | null {

@@ -78,7 +78,9 @@ CRITICAL:
 {% chat role: "user" %}
 This is the base64 image of the entire page from the textbook for context only.
 {% image page_image_base64 %}
-
+{% if source_pages.size > 0 %}{% for sp in source_pages %}This section ALSO includes content that was MERGED FROM ANOTHER PAGE ({{ sp.page_id }}) — for example an activity or passage that continues across a page break. That merged content is NOT visible in the main page image above. Use the following continuation page image as its visual reference, and do NOT drop, shrink, or de-emphasize the merged content because it is absent from the main page image:
+{% image sp.image_base64 %}
+{% endfor %}{% endif %}
 {% for image in images %}
 Image ID: {{ image.image_id }}{% if image.width %} ({{ image.width }}×{{ image.height }}px){% endif %}
 {% image image.image_base64 %}

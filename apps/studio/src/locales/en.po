@@ -295,6 +295,9 @@ msgstr "{count} {count, plural, one {issue} other {issues}}"
 msgid "{count} {count, plural, one {manual review item} other {manual review items}}"
 msgstr "{count} {count, plural, one {manual review item} other {manual review items}}"
 
+msgid "{count} pages failed in {stageLabel}"
+msgstr "{count} pages failed in {stageLabel}"
+
 msgid "{count} translations"
 msgstr "{count} translations"
 
@@ -535,6 +538,12 @@ msgstr "A multiple choice activity."
 
 #~ msgid "A new version is available for download."
 #~ msgstr "A new version is available for download."
+
+msgid "A page failed in {stageLabel}"
+msgstr "A page failed in {stageLabel}"
+
+msgid "A page failed in {stepLabel}"
+msgstr "A page failed in {stepLabel}"
 
 msgid "A question worth asking"
 msgstr "A question worth asking"
@@ -1189,6 +1198,9 @@ msgstr "Apply page background colors"
 msgid "Apply Segmentation"
 msgstr "Apply Segmentation"
 
+msgid "Apply to all errors in this run"
+msgstr "Apply to all errors in this run"
+
 msgid "AR"
 msgstr "AR"
 
@@ -1552,8 +1564,38 @@ msgstr "Calls"
 msgid "Cancel"
 msgstr "Cancel"
 
+msgid "Cancel {stageLabel}"
+msgstr "Cancel {stageLabel}"
+
+msgid "Cancel {stepLabel} step"
+msgstr "Cancel {stepLabel} step"
+
 msgid "Cancel download"
 msgstr "Cancel download"
+
+msgid "Cancel run"
+msgstr "Cancel run"
+
+msgid "Cancelling {stageLabel}"
+msgstr "Cancelling {stageLabel}"
+
+msgid "Cancelling {stepLabel} step"
+msgstr "Cancelling {stepLabel} step"
+
+msgid "Cancelling run"
+msgstr "Cancelling run"
+
+msgid "Cancelling run…"
+msgstr "Cancelling run…"
+
+#~ msgid "Cancelling step"
+#~ msgstr "Cancelling step"
+
+msgid "Cancelling..."
+msgstr "Cancelling..."
+
+msgid "Cancelling…"
+msgstr "Cancelling…"
 
 #. placeholder {0}: String(MAX_ENTRIES)
 msgid "capped at {0}"
@@ -4099,8 +4141,14 @@ msgstr "Medical references"
 msgid "Medium"
 msgstr "Medium"
 
+msgid "Merge"
+msgstr "Merge"
+
 msgid "Merge a completed part"
 msgstr "Merge a completed part"
+
+msgid "Merge adjacent groups"
+msgstr "Merge adjacent groups"
 
 msgid "Merge another"
 msgstr "Merge another"
@@ -4114,20 +4162,32 @@ msgstr "Merge another part"
 msgid "Merge failed"
 msgstr "Merge failed"
 
-msgid "merge into next page"
-msgstr "merge into next page"
+#~ msgid "merge into next page"
+#~ msgstr "merge into next page"
 
-msgid "Merge into next page"
-msgstr "Merge into next page"
+#~ msgid "Merge into next page"
+#~ msgstr "Merge into next page"
 
-msgid "merge into previous page"
-msgstr "merge into previous page"
+#~ msgid "merge into previous page"
+#~ msgstr "merge into previous page"
 
-msgid "Merge into previous page"
-msgstr "Merge into previous page"
+#~ msgid "Merge into previous page"
+#~ msgstr "Merge into previous page"
 
 msgid "Merge part"
 msgstr "Merge part"
+
+msgid "merge this section into the first section of the next page"
+msgstr "merge this section into the first section of the next page"
+
+msgid "merge this section into the last section of the previous page"
+msgstr "merge this section into the last section of the previous page"
+
+msgid "Merge with first section of next page"
+msgstr "Merge with first section of next page"
+
+msgid "Merge with last section of previous page"
+msgstr "Merge with last section of previous page"
 
 msgid "merge with next"
 msgstr "merge with next"
@@ -4143,6 +4203,9 @@ msgstr "merge with previous"
 
 msgid "Merge with previous"
 msgstr "Merge with previous"
+
+msgid "Merge with previous group"
+msgstr "Merge with previous group"
 
 msgid "merge with previous section"
 msgstr "merge with previous section"
@@ -4786,6 +4849,9 @@ msgstr "OpenAI key required"
 msgid "OpenAI Voice"
 msgstr "OpenAI Voice"
 
+msgid "Operation failed"
+msgstr "Operation failed"
+
 msgid "Optional"
 msgstr "Optional"
 
@@ -5241,6 +5307,9 @@ msgstr "Play"
 
 msgid "Play video"
 msgstr "Play video"
+
+msgid "Please wait for the current operation to finish"
+msgstr "Please wait for the current operation to finish"
 
 msgid "Polishing paragraphs to perfection..."
 msgstr "Polishing paragraphs to perfection..."
@@ -5919,6 +5988,9 @@ msgstr "Run {stageLabel}"
 msgid "Run {upstreamLabel} first"
 msgstr "Run {upstreamLabel} first"
 
+msgid "Run cancelled"
+msgstr "Run cancelled"
+
 msgid "Run Captions"
 msgstr "Run Captions"
 
@@ -5994,8 +6066,8 @@ msgstr "Running"
 msgid "RUNNING"
 msgstr "RUNNING"
 
-msgid "Running {stageLabel}"
-msgstr "Running {stageLabel}"
+#~ msgid "Running {stageLabel}"
+#~ msgstr "Running {stageLabel}"
 
 msgid "Running Sectioning will run Extract first, then section the extracted pages."
 msgstr "Running Sectioning will run Extract first, then section the extracted pages."
@@ -6006,8 +6078,8 @@ msgstr "Running Storyboard will run the earlier core stages it depends on first,
 msgid "Running Validation..."
 msgstr "Running Validation..."
 
-msgid "Running..."
-msgstr "Running..."
+#~ msgid "Running..."
+#~ msgstr "Running..."
 
 msgid "Runs accessibility checks against the packaged book."
 msgstr "Runs accessibility checks against the packaged book."
@@ -6092,6 +6164,12 @@ msgstr "Save checklist"
 
 msgid "Save failed"
 msgstr "Save failed"
+
+msgid "Save or discard your edits before splitting"
+msgstr "Save or discard your edits before splitting"
+
+msgid "Save or discard your edits first"
+msgstr "Save or discard your edits first"
 
 msgid "Save page review"
 msgstr "Save page review"
@@ -6564,8 +6642,14 @@ msgstr "Skip for now"
 msgid "Skip intro"
 msgstr "Skip intro"
 
+msgid "Skip page and continue"
+msgstr "Skip page and continue"
+
 msgid "Skip segmentation for images whose shortest side is below this threshold."
 msgstr "Skip segmentation for images whose shortest side is below this threshold."
+
+msgid "Skip this page and continue the step, or stop the step entirely."
+msgstr "Skip this page and continue the step, or stop the step entirely."
 
 msgid "Skipped"
 msgstr "Skipped"
@@ -6652,6 +6736,9 @@ msgstr "Speech Prompts"
 msgid "Speech Settings"
 msgstr "Speech Settings"
 
+msgid "Split"
+msgstr "Split"
+
 #. placeholder {0}: book.split.splitPages
 #. placeholder {1}: book.split.totalPages
 msgid "Split · {0}/{1}"
@@ -6669,6 +6756,9 @@ msgstr "Split · {0}/{1}"
 msgid "Split & merge"
 msgstr "Split & merge"
 
+msgid "Split group here"
+msgstr "Split group here"
+
 msgid "Split into"
 msgstr "Split into"
 
@@ -6683,11 +6773,17 @@ msgstr "Split into"
 msgid "Split into {0} part(s) · {1}/{2} pages split off · {3}/{4} merged back"
 msgstr "Split into {0} part(s) · {1}/{2} pages split off · {3}/{4} merged back"
 
+msgid "Split into new section"
+msgstr "Split into new section"
+
 msgid "Split into parts"
 msgstr "Split into parts"
 
 #~ msgid "Split into parts for others"
 #~ msgstr "Split into parts for others"
+
+msgid "Split into two sections at this point"
+msgstr "Split into two sections at this point"
 
 msgid "Split preview"
 msgstr "Split preview"
@@ -6764,6 +6860,9 @@ msgstr "Step failed"
 
 msgid "Step run failed"
 msgstr "Step run failed"
+
+msgid "Stop step"
+msgstr "Stop step"
 
 msgid "Storyboard"
 msgstr "Storyboard"
@@ -7797,6 +7896,9 @@ msgstr "videos"
 
 msgid "Videos"
 msgstr "Videos"
+
+msgid "View details"
+msgstr "View details"
 
 msgid "View HTML source"
 msgstr "View HTML source"

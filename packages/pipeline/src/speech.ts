@@ -290,6 +290,8 @@ export interface GenerateSpeechFileOptions {
   ttsSynthesizer: TTSSynthesizer
   rateLimiter?: RateLimiter
   provider?: string
+  /** Run cancellation — aborts the rate-limiter wait and the TTS request. */
+  signal?: AbortSignal
 }
 
 /**
@@ -313,6 +315,7 @@ export async function generateSpeechFile(
     ttsSynthesizer,
     rateLimiter,
     provider,
+    signal,
   } = options
 
   // Strip emojis and validate
@@ -365,13 +368,15 @@ export async function generateSpeechFile(
   }
 
   // Generate speech via shared LLM TTS client
-  await rateLimiter?.acquire()
+  await rateLimiter?.acquire(signal)
+  signal?.throwIfAborted()
   const audioBytes = await ttsSynthesizer.synthesize({
     model,
     voice,
     input: sanitized,
     responseFormat: safeFormat,
     instructions: instructions || undefined,
+    signal,
   })
 
   const buffer = Buffer.from(audioBytes)
