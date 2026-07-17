@@ -137,7 +137,7 @@ export function createAdaptiveRateLimiter(
   let lastRefill = Date.now()
   let pausedUntil = 0
   let successStreak = 0
-  const waiters: Array<() => void> = []
+  const waiters: Array<{ grant: () => void }> = []
   let draining = false
 
   function capacity(): number {
@@ -166,7 +166,7 @@ export function createAdaptiveRateLimiter(
       refill()
       while (waiters.length > 0 && admit()) {
         tokens -= 1
-        waiters.shift()!()
+        waiters.shift()!.grant()
       }
       if (waiters.length > 0) {
         const waitForPause = Math.max(0, pausedUntil - Date.now())
@@ -180,14 +180,33 @@ export function createAdaptiveRateLimiter(
   }
 
   return {
-    acquire(): Promise<void> {
+    acquire(signal?: AbortSignal): Promise<void> {
+      if (signal?.aborted) {
+        return Promise.reject(signal.reason)
+      }
+
       refill()
       if (admit()) {
         tokens -= 1
         return Promise.resolve()
       }
-      return new Promise<void>((resolve) => {
-        waiters.push(resolve)
+
+      // No token available: park until one refills. Honor the abort signal so
+      // cancelled work never sits in the queue (mirrors createRateLimiter).
+      return new Promise<void>((resolve, reject) => {
+        const waiter = {
+          grant: () => {
+            signal?.removeEventListener("abort", onAbort)
+            resolve()
+          },
+        }
+        const onAbort = () => {
+          const index = waiters.indexOf(waiter)
+          if (index !== -1) waiters.splice(index, 1)
+          reject(signal?.reason)
+        }
+        signal?.addEventListener("abort", onAbort, { once: true })
+        waiters.push(waiter)
         scheduleDrain()
       })
     },

@@ -245,4 +245,47 @@ describe("createAdaptiveRateLimiter", () => {
     await promise
     expect(resolved).toBe(true)
   })
+
+  it("rejects immediately when the signal is already aborted", async () => {
+    const limiter = createAdaptiveRateLimiter({ startRpm: 3, minRpm: 3, maxRpm: 3 })
+    const controller = new AbortController()
+    controller.abort()
+
+    await expect(limiter.acquire(controller.signal)).rejects.toMatchObject({
+      name: "AbortError",
+    })
+  })
+
+  it("rejects queued waiters when the signal aborts and frees their slot", async () => {
+    vi.useFakeTimers()
+    const limiter = createAdaptiveRateLimiter({
+      startRpm: 2,
+      minRpm: 2,
+      maxRpm: 2,
+      burst: 1,
+    })
+
+    // Drain the bucket so the next acquire queues.
+    await limiter.acquire()
+
+    const controller = new AbortController()
+    const aborted = limiter.acquire(controller.signal)
+    const abortedResult = aborted.then(
+      () => "resolved",
+      (err: { name?: string }) => err?.name ?? "rejected"
+    )
+
+    controller.abort()
+    expect(await abortedResult).toBe("AbortError")
+
+    // The aborted waiter must not consume the next token: a later waiter
+    // gets it as soon as one refills.
+    let granted = false
+    const next = limiter.acquire().then(() => {
+      granted = true
+    })
+    await vi.advanceTimersByTimeAsync(60_000)
+    await next
+    expect(granted).toBe(true)
+  })
 })
