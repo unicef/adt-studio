@@ -166,6 +166,90 @@ describe("generateToc", () => {
     expect(capturedContext?.original_toc_text).toContain("Original printed TOC")
   })
 
+  it("collects headings from the semantic tree for fixed-layout pages", async () => {
+    let capturedContext: Record<string, unknown> | null = null
+    const llm = makeLlm((opts) => {
+      capturedContext = opts.context as Record<string, unknown>
+    })
+
+    // Fixed-layout: the render (positioned) tree has only text/image roles;
+    // the heading lives in the semantic page-sectioning tree.
+    const storage = {
+      getLatestNodeData: (node: string) => {
+        if (node === "fixed-layout-sectioning") {
+          return {
+            version: 1,
+            data: {
+              reasoning: "",
+              sections: [
+                {
+                  sectionId: "pg001_sec001",
+                  sectionType: "fixed-layout-page",
+                  backgroundColor: "#fff",
+                  textColor: "#000",
+                  isPruned: false,
+                  pageNumber: 1,
+                  viewport: { width: 595, height: 420 },
+                  nodes: [
+                    { nodeId: "pg001_im001", isPruned: false, role: "image" },
+                    { nodeId: "pg001_t001", isPruned: false, role: "text", text: "The Real Title" },
+                  ],
+                },
+              ],
+            },
+          }
+        }
+        if (node === "page-sectioning") {
+          return {
+            version: 1,
+            data: {
+              reasoning: "",
+              sections: [
+                {
+                  sectionId: "pg001_sec001",
+                  sectionType: "fixed-layout-page",
+                  backgroundColor: "#fff",
+                  textColor: "#000",
+                  isPruned: false,
+                  pageNumber: 1,
+                  nodes: [
+                    { nodeId: "pg001_h001", isPruned: false, role: "heading", text: "The Real Title" },
+                  ],
+                },
+              ],
+            },
+          }
+        }
+        if (node === "web-rendering") {
+          return {
+            version: 1,
+            data: {
+              sections: [
+                { sectionIndex: 0, sectionType: "fixed-layout-page", reasoning: "", html: "<div>x</div>" },
+              ],
+            },
+          }
+        }
+        return null
+      },
+    } as unknown as Storage
+
+    await generateToc({
+      storage,
+      pages,
+      config: {
+        ...buildTocGenerationConfig({ role_types: {}, structure_types: {} }, "English"),
+        mode: "dynamic",
+      },
+      llmModel: llm,
+    })
+
+    expect(capturedContext).not.toBeNull()
+    expect(capturedContext?.headings).toEqual([
+      { sectionId: "pg001_sec001", title: "The Real Title", textType: "heading" },
+    ])
+  })
+
   it("suppresses original TOC in dynamic mode even when present", async () => {
     let capturedContext: Record<string, unknown> | null = null
     const llm = makeLlm((opts) => {
