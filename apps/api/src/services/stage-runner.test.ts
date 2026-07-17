@@ -1091,6 +1091,81 @@ speech:
     }
   })
 
+  it("stops admitting TTS items and unwinds without step errors when the run is cancelled", async () => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
+    const booksDir = path.join(tmpDir, "books")
+    const promptsDir = path.join(tmpDir, "prompts")
+    const configPath = path.join(tmpDir, "config.yaml")
+    fs.mkdirSync(promptsDir, { recursive: true })
+    fs.writeFileSync(
+      configPath,
+      `role_types:
+  section_text: Main body text
+structure_types:
+  paragraph: Paragraph
+concurrency: 1
+speech:
+  default_provider: gemini
+  providers:
+    gemini:
+      languages:
+        - en
+`
+    )
+    seedTextAndSpeechBook(booksDir, "gemini-tts-cancel")
+    // Second catalog entry so there is still work queued when the cancel lands.
+    const seedStorage = createBookStorage("gemini-tts-cancel", booksDir)
+    try {
+      seedStorage.putNodeData("text-catalog", "book", {
+        entries: [
+          { id: "pg001_t001", text: "Hello world" },
+          { id: "pg001_t002", text: "Second entry" },
+        ],
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      })
+    } finally {
+      seedStorage.close()
+    }
+
+    const controller = new AbortController()
+    generateSpeechFileMock.mockImplementation(async () => {
+      controller.abort()
+      return undefined
+    })
+
+    const events: ProgressEvent[] = []
+    const runner = createStageRunner()
+    await expect(
+      runner.run(
+        "gemini-tts-cancel",
+        {
+          booksDir,
+          apiKey: "sk-test",
+          geminiApiKey: "gm-test",
+          promptsDir,
+          configPath,
+          fromStage: "speech",
+          toStage: "speech",
+          signal: controller.signal,
+        },
+        { emit: (event) => events.push(event) }
+      )
+    ).rejects.toThrow("Run cancelled")
+
+    // The second item must never start once the cancel has landed.
+    expect(generateSpeechFileMock).toHaveBeenCalledTimes(1)
+    // A cancel is not a failure: no step-error, and no partial tts output committed.
+    expect(events.some((event) => event.type === "step-error")).toBe(false)
+    const storage = createBookStorage("gemini-tts-cancel", booksDir)
+    try {
+      expect(storage.getLatestNodeData("tts", "en")).toBeFalsy()
+      const ttsStep = storage.getStepRuns().find((step) => step.step === "tts")
+      expect(ttsStep?.status).not.toBe("error")
+    } finally {
+      storage.close()
+    }
+  })
+
   it("stores word timestamps for generated speech files", async () => {
     tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "stage-runner-tts-"))
     const booksDir = path.join(tmpDir, "books")

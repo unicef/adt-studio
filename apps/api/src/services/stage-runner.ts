@@ -363,8 +363,24 @@ function parseGeminiRetryDelayMs(message: string): number | null {
   return Math.min(baseMs > 0 ? baseMs + 250 : 0, GEMINI_TTS_MAX_RETRY_DELAY_MS)
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+/** Resolves early (never rejects) when the signal aborts, so retry backoffs
+ *  don't hold a cancelled run open — callers re-check the signal after. */
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal?.aborted) {
+      resolve()
+      return
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort)
+      resolve()
+    }, ms)
+    const onAbort = () => {
+      clearTimeout(timer)
+      resolve()
+    }
+    signal?.addEventListener("abort", onAbort, { once: true })
+  })
 }
 
 function wrapStepError(step: StepName, err: unknown): never {
@@ -587,6 +603,8 @@ interface GenerateSpeechWordTimestampsOptions {
   textByLanguage: Map<string, Map<string, string>>
   concurrency: number
   progress: StageRunProgress
+  /** Run cancel — stops admitting new transcription items. */
+  signal?: AbortSignal
 }
 
 async function generateSpeechWordTimestamps(
@@ -605,6 +623,7 @@ async function generateSpeechWordTimestamps(
     textByLanguage,
     concurrency,
     progress,
+    signal,
   } = options
 
   const entriesByLanguage = new Map<string, Record<string, WordTimestampEntry>>()
@@ -674,6 +693,7 @@ async function generateSpeechWordTimestamps(
         emitWordTimestampStepProgress(progress, completed, workItems.length, failedItems.length)
       }
     },
+    { runSignal: signal },
   )
 
   return { entriesByLanguage, failedItems }
@@ -2605,12 +2625,14 @@ async function runSpeechStep(
                 ttsSynthesizer,
                 rateLimiter: provider === "gemini" ? geminiTtsRateLimiter : undefined,
                 provider,
+                signal: options.signal,
               })
               break
             } catch (err) {
               const msg = toErrorMessage(err)
               if (
                 provider === "gemini" &&
+                !options.signal?.aborted &&
                 isGeminiTtsRateLimitMessage(msg) &&
                 attemptCount <= GEMINI_TTS_MAX_RATE_LIMIT_RETRIES
               ) {
@@ -2623,7 +2645,8 @@ async function runSpeechStep(
                 console.warn(
                   `[stage-run] ${label}: Gemini TTS rate limited for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms`
                 )
-                await sleep(retryDelayMs)
+                await sleep(retryDelayMs, options.signal)
+                if (options.signal?.aborted) throw new RunCancelledError()
                 continue
               }
               throw err
@@ -2665,6 +2688,11 @@ async function runSpeechStep(
             ttsResultsByLang.get(item.language)?.push(entry)
           }
         } catch (err) {
+          // Run cancel — re-throw so processWithConcurrency unwinds; an aborted
+          // item is not a failure (it re-runs cheaply via the TTS cache).
+          if (isCancellation(err, [options.signal])) {
+            throw err instanceof RunCancelledError ? err : new RunCancelledError()
+          }
           const msg = toErrorMessage(err)
           const durationMs = Date.now() - startMs
           console.error(`[stage-run] ${label}: TTS failed for ${item.textId} (${item.language}): ${msg}`)
@@ -2712,7 +2740,8 @@ async function runSpeechStep(
 
         completedItems++
         emitSpeechStepProgress(progress, completedItems, totalItems, failedItems.length, reusedItems)
-      }
+      },
+      { runSignal: options.signal }
     )
 
     if (failedItems.length > 0) {
@@ -2760,6 +2789,7 @@ async function runSpeechStep(
         textByLanguage,
         concurrency: effectiveConcurrency,
         progress,
+        signal: options.signal,
       })
       wordTimestampsByLang = generatedWordTimestamps.entriesByLanguage
       timestampFailedItems = generatedWordTimestamps.failedItems
