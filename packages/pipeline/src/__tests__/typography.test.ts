@@ -33,11 +33,12 @@ describe("readTypography", () => {
 })
 
 describe("buildTypographyCss", () => {
-  it("emits one fluid clamp rule per semantic class", () => {
+  it("emits one fluid clamp rule per semantic class, with a pinned line-height", () => {
     const css = buildTypographyCss(DEFAULT_TYPOGRAPHY)
     expect(css).toContain(".adt-body { font-size: clamp(16px,")
-    expect(css).toContain("24px); }") // body desktop ceiling
+    expect(css).toContain("24px); line-height: 1.55;") // body: desktop ceiling + leading
     expect(css).toContain(".adt-h1 { font-size: clamp(30px,")
+    expect(css).toContain("line-height: 1.2;") // headings get tight leading
     // Every default style produces a rule.
     for (const s of DEFAULT_TYPOGRAPHY.styles) {
       expect(css).toContain(`.${s.className} { font-size: clamp(`)
@@ -48,7 +49,7 @@ describe("buildTypographyCss", () => {
     const css = buildTypographyCss({
       styles: [{ key: "body", label: "Body", className: "adt-body", desktopPx: 18, mobilePx: 18 }],
     })
-    expect(css).toContain(".adt-body { font-size: 18px; }")
+    expect(css).toContain(".adt-body { font-size: 18px; line-height: 1.55; }")
     // The rule itself must be a fixed size, not a clamp expression.
     expect(css).not.toMatch(/\.adt-body \{ font-size: clamp/)
   })
@@ -72,11 +73,17 @@ describe("typographyPreservationErrors", () => {
   })
 
   it("flags a dropped adt-* class", () => {
-    // One adt-body removed, one swapped for text-lg.
-    const revised = '<h1 class="adt-h1">T</h1><p class="adt-body">a</p><p class="text-lg">b</p><figcaption class="adt-caption">c</figcaption>'
+    // One adt-body paragraph removed entirely (no text-* added).
+    const revised = '<h1 class="adt-h1">T</h1><p class="adt-body">a</p><figcaption class="adt-caption">c</figcaption>'
     const errors = typographyPreservationErrors(original, revised)
     expect(errors.length).toBe(1)
     expect(errors[0]).toContain("adt-body")
+  })
+
+  it("flags an added text-* size utility", () => {
+    const revised = original.replace('<p class="adt-body">a</p>', '<p class="adt-body text-2xl">a</p>')
+    const errors = typographyPreservationErrors(original, revised)
+    expect(errors.some((e) => e.includes("text-*"))).toBe(true)
   })
 
   it("flags an added inline font-size", () => {

@@ -237,7 +237,8 @@ export function FontSettings({ bookLabel }: { bookLabel: string }) {
         </p>
       )}
 
-      <TypographySettings bookLabel={bookLabel} />
+      {/* key by book so editor state resets on book change (no cross-book leak) */}
+      <TypographySettings key={bookLabel} bookLabel={bookLabel} />
     </div>
   )
 }

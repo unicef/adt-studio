@@ -1372,16 +1372,17 @@ const LEGACY_QUIZ_THEME: QuizTheme = {
  *  a colored header band over a pale card body with rounded option cards,
  *  typography via the `adt-*` type scale, colors via CSS variables. */
 function bookQuizTheme(palette: QuizPalette): QuizTheme {
-  const { ink, accent, accentSoft, headerText, body, optionFill, submit, submitText } = palette
+  const { accent, accentSoft, headerText, body, optionFill, submit, submitText, optionText, selectedText } = palette
   return {
     styleBlock: `<style>
     #simple-main {
-        --quiz-ink: ${ink};
         --quiz-accent: ${accent};
         --quiz-accent-soft: ${accentSoft};
         --quiz-header-text: ${headerText};
         --quiz-body: ${body};
         --quiz-option: ${optionFill};
+        --quiz-option-text: ${optionText};
+        --quiz-selected-text: ${selectedText};
         --quiz-submit: ${submit};
         --quiz-submit-text: ${submitText};
     }
@@ -1391,7 +1392,7 @@ function bookQuizTheme(palette: QuizPalette): QuizTheme {
     #simple-main .activity-option {
         background-color: var(--quiz-option);
         border-color: var(--quiz-accent);
-        color: var(--quiz-ink);
+        color: var(--quiz-option-text);
         box-shadow: 0 6px 0 0 rgba(0, 0, 0, 0.10);
     }
     #simple-main .activity-option:hover {
@@ -1410,7 +1411,7 @@ function bookQuizTheme(palette: QuizPalette): QuizTheme {
         transform: translateY(-3px);
     }
     #simple-main .activity-option.selected-option .option-text {
-        color: var(--quiz-accent);
+        color: var(--quiz-selected-text);
         font-weight: 600;
     }
     #simple-main [data-submit-target] button {

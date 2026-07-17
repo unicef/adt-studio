@@ -21,6 +21,13 @@ export const TYPOGRAPHY_ITEM = "book"
 const FLUID_MIN_VW = 640
 const FLUID_MAX_VW = 1280
 
+/** Sensible unitless leading per role — tight for headings, roomy for body. */
+function lineHeightFor(className: string): number {
+  if (className === "adt-body") return 1.55
+  if (className === "adt-caption") return 1.4
+  return 1.2
+}
+
 /** A `clamp()` that scales from `mobilePx` (at 640px) to `desktopPx` (at 1280px). */
 function clampFontSize(mobilePx: number, desktopPx: number): string {
   if (desktopPx <= mobilePx) return `${desktopPx}px`
@@ -48,7 +55,10 @@ export function readTypography(storage: Storage): BookTypography {
 export function buildTypographyCss(typography: BookTypography): string {
   const rules = typography.styles.map((s) => {
     const weight = s.fontWeight ? ` font-weight: ${s.fontWeight};` : ""
-    return `.${s.className} { font-size: ${clampFontSize(s.mobilePx, s.desktopPx)};${weight} }`
+    // Pin a unitless line-height too, so leading tracks the pinned font-size.
+    // Without this, a residual `text-*` utility's line-height would stay while
+    // our font-size wins → cramped/overlapping text.
+    return `.${s.className} { font-size: ${clampFontSize(s.mobilePx, s.desktopPx)}; line-height: ${lineHeightFor(s.className)};${weight} }`
   })
   return `
 /* ── ADT book typography (editable, accessible type scale) ──
@@ -80,6 +90,11 @@ function countClass(html: string, cls: string): number {
  */
 export function typographyPreservationErrors(original: string, candidate: string): string[] {
   const errors: string[] = []
+  // Only guard sections that actually use the type scale. If the original has
+  // no `adt-*` classes (e.g. template-rendered sections), there's nothing to
+  // protect and added `text-*`/inline sizes are harmless.
+  const originalTypoCount = TYPOGRAPHY_CLASSES.reduce((n, cls) => n + countClass(original, cls), 0)
+  if (originalTypoCount === 0) return errors
   for (const cls of TYPOGRAPHY_CLASSES) {
     const before = countClass(original, cls)
     const after = countClass(candidate, cls)
@@ -95,6 +110,18 @@ export function typographyPreservationErrors(original: string, candidate: string
   if (fsAfter > fsBefore) {
     errors.push(
       "Typography changed: do not add inline `font-size` — font size is fixed by the book's `adt-*` classes.",
+    )
+  }
+  // Also reject added Tailwind text-size utilities (text-xs…text-9xl, text-[..]).
+  // A residual `text-*` on an `adt-*` element leaves its own line-height while
+  // the pinned size wins → cramped text; the model is told not to emit these,
+  // so treat any newly-added one as a regression.
+  const textSizeRe = /\btext-(?:xs|sm|base|lg|xl|[2-9]xl|\[[^\]]+\])\b/g
+  const txtBefore = (original.match(textSizeRe) ?? []).length
+  const txtAfter = (candidate.match(textSizeRe) ?? []).length
+  if (txtAfter > txtBefore) {
+    errors.push(
+      "Typography changed: do not add `text-*` size utilities (text-sm … text-9xl) — size is fixed by the `adt-*` classes.",
     )
   }
   return errors

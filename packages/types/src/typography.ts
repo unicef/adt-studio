@@ -7,25 +7,34 @@ import { z } from "zod"
  * size the generation model might otherwise choose. `desktopPx`/`mobilePx` are
  * the clamp() ceiling/floor; the rendered size scales fluidly between them.
  */
+/** Min/max font size (px) accepted anywhere a typography size is written. */
+export const TYPOGRAPHY_MIN_PX = 8
+export const TYPOGRAPHY_MAX_PX = 200
+
 export const TypographyStyle = z.object({
   /** Stable id (e.g. "body", "chapter_title"). */
-  key: z.string(),
+  key: z.string().min(1),
   /** Human label for the Fonts-tab editor. */
-  label: z.string(),
-  /** Semantic class the renderer applies and this size targets (e.g. "adt-h1"). */
-  className: z.string(),
+  label: z.string().min(1),
+  /**
+   * Semantic class the renderer applies and this size targets (e.g. "adt-h1").
+   * Interpolated straight into a CSS selector at render/package time, so it is
+   * constrained here — NOT only at the API route — to prevent CSS injection
+   * from any writer of the `typography` node (import/seed/migration/etc.).
+   */
+  className: z.string().regex(/^adt-[a-z0-9-]+$/),
   /** Target size on desktop (clamp ceiling), px. */
-  desktopPx: z.number(),
+  desktopPx: z.number().min(TYPOGRAPHY_MIN_PX).max(TYPOGRAPHY_MAX_PX),
   /** Minimum size on mobile (clamp floor), px. */
-  mobilePx: z.number(),
+  mobilePx: z.number().min(TYPOGRAPHY_MIN_PX).max(TYPOGRAPHY_MAX_PX),
   /** Optional weight override. Omitted → the styleguide keeps control of weight. */
-  fontWeight: z.number().optional(),
+  fontWeight: z.number().int().min(100).max(900).optional(),
 })
 export type TypographyStyle = z.infer<typeof TypographyStyle>
 
 /** The book's editable typography scale — one source of truth for text sizes. */
 export const BookTypography = z.object({
-  styles: z.array(TypographyStyle),
+  styles: z.array(TypographyStyle).min(1),
 })
 export type BookTypography = z.infer<typeof BookTypography>
 

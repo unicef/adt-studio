@@ -98,4 +98,48 @@ describe("PUT /books/:label/typography", () => {
     })
     expect(res.status).toBe(400)
   })
+
+  it("rejects an empty styles array", async () => {
+    createTestBook("empty-styles")
+    const app = createTypographyRoutes(tmpDir)
+    const res = await app.request("/books/empty-styles/typography", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ styles: [] }),
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it("returns 400 (not 500) for a malformed JSON body", async () => {
+    createTestBook("bad-json")
+    const app = createTypographyRoutes(tmpDir)
+    const res = await app.request("/books/bad-json/typography", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: "{not json",
+    })
+    expect(res.status).toBe(400)
+  })
+
+  it("is append-only: each save creates a new version, latest wins", async () => {
+    createTestBook("versioned")
+    const app = createTypographyRoutes(tmpDir)
+    const put = (styles: unknown) =>
+      app.request("/books/versioned/typography", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ styles }),
+      })
+    const bodyAt = (px: number) =>
+      DEFAULT_TYPOGRAPHY.styles.map((s) => (s.key === "body" ? { ...s, desktopPx: px } : s))
+
+    const first = await (await put(bodyAt(22))).json()
+    expect(first.version).toBe(1)
+    const second = await (await put(bodyAt(28))).json()
+    expect(second.version).toBe(2)
+
+    const latest = await (await app.request("/books/versioned/typography")).json()
+    expect(latest.version).toBe(2)
+    expect(latest.data.styles.find((s: { key: string }) => s.key === "body").desktopPx).toBe(28)
+  })
 })

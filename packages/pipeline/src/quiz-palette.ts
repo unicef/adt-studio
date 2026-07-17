@@ -32,6 +32,10 @@ export interface QuizPalette {
   submit: string
   /** Readable text on the submit button. */
   submitText: string
+  /** Contrast-safe text on an option card (ink, or a fallback if it fails AA). */
+  optionText: string
+  /** Contrast-safe text on the selected option. */
+  selectedText: string
 }
 
 const DEFAULT_SURFACE = "#FFFFFF"
@@ -88,6 +92,22 @@ function relativeLuminance({ r, g, b }: Rgb): number {
 /** Readable foreground (white or near-black) for a background color. */
 function readableText(bg: Rgb): string {
   return relativeLuminance(bg) < 0.42 ? "#FFFFFF" : "#1F2937"
+}
+
+/** WCAG contrast ratio between two colors (1–21). */
+function contrastRatio(a: Rgb, b: Rgb): number {
+  const la = relativeLuminance(a)
+  const lb = relativeLuminance(b)
+  const [hi, lo] = la >= lb ? [la, lb] : [lb, la]
+  return (hi + 0.05) / (lo + 0.05)
+}
+
+/** Keep `fg` on `bg` only if it clears AA (4.5:1); otherwise fall back to a
+ *  guaranteed-readable white/near-black. */
+function ensureReadable(fg: string, bg: Rgb): string {
+  const fgRgb = parseHex(fg)
+  if (fgRgb && contrastRatio(fgRgb, bg) >= 4.5) return fg
+  return readableText(bg)
 }
 
 function mostFrequent(values: string[]): string | null {
@@ -166,6 +186,15 @@ export function colorCandidatesFromHtml(html: string): string[] {
 function buildPalette(surface: string, ink: string, accent: string): QuizPalette {
   const a = parseHex(accent)!
   const submit = mixWhite(a, 0.35)
+  const optionFill = mixWhite(a, 0.93)
+  const optionFillRgb = parseHex(optionFill)!
+  // Selected background = accentSoft (0.16 accent) composited over the option
+  // fill — approximate the resulting solid color to contrast-check its text.
+  const selectedBg: Rgb = {
+    r: Math.round(0.16 * a.r + 0.84 * optionFillRgb.r),
+    g: Math.round(0.16 * a.g + 0.84 * optionFillRgb.g),
+    b: Math.round(0.16 * a.b + 0.84 * optionFillRgb.b),
+  }
   return {
     surface,
     ink,
@@ -173,9 +202,11 @@ function buildPalette(surface: string, ink: string, accent: string): QuizPalette
     accentSoft: `rgba(${a.r}, ${a.g}, ${a.b}, 0.16)`,
     headerText: readableText(a),
     body: mixWhite(a, 0.86),
-    optionFill: mixWhite(a, 0.93),
+    optionFill,
     submit,
     submitText: readableText(parseHex(submit)!),
+    optionText: ensureReadable(ink, optionFillRgb),
+    selectedText: ensureReadable(accent, selectedBg),
   }
 }
 
