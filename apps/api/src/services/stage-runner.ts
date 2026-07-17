@@ -23,6 +23,8 @@ import {
   loadBookConfig,
   renderPage,
   buildRenderStrategyResolver,
+  collectReferencedImageIds,
+  collectSourcePageImages,
   createTemplateEngine,
   // Proof step imports
   captionPageImages,
@@ -1060,8 +1062,27 @@ async function runStoryboardStep(
             const dims = pageDims.get(imageId)
             renderImages.set(imageId, { base64: storage.getImageBase64(imageId), width: dims?.width, height: dims?.height })
           }
+          // Sections can reference images extracted on other pages (cross-page
+          // merges, images added from another page) — those are not in this
+          // page's image-filtering output, so pull them in by walking the tree.
+          for (const imageId of collectReferencedImageIds(sectioning.sections)) {
+            if (renderImages.has(imageId)) continue
+            try {
+              const dims = storage.getImageDimensions(imageId)
+              renderImages.set(imageId, { base64: storage.getImageBase64(imageId), width: dims?.width ?? undefined, height: dims?.height ?? undefined })
+            } catch {
+              // Image file no longer exists — leave it out; the renderer emits
+              // the URL reference without pixels.
+            }
+          }
 
           const pageImageBase64 = storage.getPageImageBase64(page.pageId)
+          // Page images for content merged in from other pages (cross-page
+          // merges) — per-section provenance recorded in sourcePageIds.
+          const sourcePageImages = collectSourcePageImages(
+            sectioning.sections,
+            (id) => storage.getPageImageBase64(id)
+          )
 
           console.log(`[stage-run] ${label}: rendering ${page.pageId}`)
           const renderResult = await renderPage(
@@ -1071,6 +1092,7 @@ async function runStoryboardStep(
               pageImageBase64,
               sectioning: sectioning,
               images: renderImages,
+              sourcePageImages,
               styleguide: styleguideContent,
               bookFonts: buildBookFontsPromptContext(storage),
             },
