@@ -70,6 +70,7 @@ export interface Storage {
   clearExtractedData(): void
   clearNodesByType(nodes: string[]): void
   putExtractedPage(page: ExtractedPage): void
+  deletePage(pageId: string): void
 
   getPages(): PageData[]
   getPageImageBase64(pageId: string): string

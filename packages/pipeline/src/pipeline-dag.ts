@@ -207,6 +207,7 @@ export async function runFullPipeline(
           startPage: startPage ?? config.start_page,
           endPage: endPage ?? config.end_page,
           spreadMode: config.spread_mode,
+          spreadPairs: config.spread_pairs,
           vectorTextGrouping: config.vector_text_grouping,
           // Gates the positioned-text pipeline (fixed-layout rendering is its
           // only consumer). Must match stage-runner so re-runs are consistent.

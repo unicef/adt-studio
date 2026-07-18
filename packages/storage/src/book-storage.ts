@@ -78,6 +78,24 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       }
     },
 
+    deletePage(pageId: string): void {
+      const rows = db.all("SELECT path FROM images WHERE page_id = ?", [pageId]) as Array<{
+        path: string
+      }>
+      for (const r of rows) {
+        try {
+          const filePath = path.resolve(paths.bookDir, r.path)
+          ensureWithinRoot(filePath, paths.bookDir)
+          if (fs.existsSync(filePath)) fs.rmSync(filePath)
+        } catch {
+          // Best effort — the DB rows are removed regardless.
+        }
+      }
+      db.run("DELETE FROM images WHERE page_id = ?", [pageId])
+      db.run("DELETE FROM pages WHERE page_id = ?", [pageId])
+      db.run("DELETE FROM node_data WHERE item_id = ?", [pageId])
+    },
+
     getPages(): PageData[] {
       const rows = db.all(
         "SELECT page_id, page_number, text FROM pages ORDER BY page_number"

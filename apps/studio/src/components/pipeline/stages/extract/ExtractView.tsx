@@ -6,6 +6,7 @@ import { usePages, usePageImage } from "@/hooks/use-pages"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
 import { ExtractPageDetail } from "./components/ExtractPageDetail"
+import { SpreadReview } from "./components/SpreadReview"
 import { BookHeader } from "./BookHeader"
 import { LoadingState } from "../../components/LoadingState"
 import { useStepHeader } from "../../components/StepViewRouter"
@@ -282,6 +283,7 @@ export function ExtractView({ bookLabel, selectedPageId: selectedPageIdProp, onS
               />
             </div>
           )}
+          <SpreadReview bookLabel={bookLabel} />
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {pageList.map((page) => (
               <PageCard

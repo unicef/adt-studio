@@ -823,6 +823,7 @@ async function runExtractStep(
         startPage: config.start_page,
         endPage: config.end_page,
         spreadMode: config.spread_mode,
+        spreadPairs: config.spread_pairs,
         vectorTextGrouping: config.vector_text_grouping,
         fixedLayout: isFixedLayoutBook(config),
         fontsCacheDir: resolveFontsCacheDir(booksDir),

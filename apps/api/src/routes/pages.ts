@@ -10,6 +10,8 @@ import { classifyExtractionWarning, flattenVisibleSectioningText } from "../serv
 import { openBookDb } from "@adt/storage"
 import { createBookStorage } from "@adt/storage"
 import type { Storage } from "@adt/storage"
+import { detectSpreads, type SpreadEdgeSample, classifyPageImages, buildImageClassifyConfig } from "@adt/pipeline"
+import { samplePageEdges, extractPages, computeGroups, countPdfPages } from "@adt/pdf"
 import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
 import type { TaskService } from "../services/task-service.js"
 import {
@@ -928,6 +930,131 @@ export function createPageRoutes(
     } finally {
       db.close()
     }
+  })
+
+  // GET /books/:label/spread-suggestions — Detect likely two-page spreads by
+  // seam continuity across the extracted page renders.
+  app.get("/books/:label/spread-suggestions", (c) => {
+    const { label } = c.req.param()
+    const safeLabel = parseBookLabel(label)
+    const dbPath = getDbPath(safeLabel, booksDir)
+
+    if (!fs.existsSync(dbPath)) {
+      throw new HTTPException(404, {
+        message: `Book not found or not yet extracted: ${safeLabel}`,
+      })
+    }
+
+    const storage = createBookStorage(safeLabel, booksDir)
+
+    // Prefer suggestions computed inline during extraction.
+    const stored = storage.getLatestNodeData("spread-suggestions", "book")
+    const storedSuggestions = (stored?.data as { suggestions?: unknown } | undefined)?.suggestions
+    if (Array.isArray(storedSuggestions)) {
+      return c.json({ suggestions: storedSuggestions })
+    }
+
+    // Fallback for books extracted before inline detection: compute on the fly.
+    const samples: SpreadEdgeSample[] = []
+    for (const page of storage.getPages()) {
+      let base64: string
+      try {
+        base64 = storage.getPageImageBase64(page.pageId)
+      } catch {
+        continue
+      }
+      const { leftEdge, rightEdge } = samplePageEdges(Buffer.from(base64, "base64"))
+      samples.push({
+        pageNumber: page.pageNumber,
+        leftEdge,
+        rightEdge,
+        textLength: page.text?.length ?? 0,
+      })
+    }
+
+    return c.json({ suggestions: detectSpreads(samples) })
+  })
+
+  // POST /books/:label/spreads/apply — Reconcile the extracted pages to the
+  // given spread pairs by (re)extracting only the affected pairs and splicing
+  // them in, instead of re-running the whole extraction.
+  app.post("/books/:label/spreads/apply", async (c) => {
+    const { label } = c.req.param()
+    const safeLabel = parseBookLabel(label)
+    const dbPath = getDbPath(safeLabel, booksDir)
+
+    if (!fs.existsSync(dbPath)) {
+      throw new HTTPException(404, {
+        message: `Book not found or not yet extracted: ${safeLabel}`,
+      })
+    }
+
+    const body = await c.req.json().catch(() => ({}))
+    const parsed = z
+      .object({ spreadPairs: z.array(z.number().int().min(1)).default([]) })
+      .safeParse(body)
+    if (!parsed.success) {
+      throw new HTTPException(400, { message: "Invalid spreadPairs" })
+    }
+    const spreadPairs = parsed.data.spreadPairs
+
+    const pdfPath = path.join(path.resolve(booksDir), safeLabel, `${safeLabel}.pdf`)
+    if (!fs.existsSync(pdfPath)) {
+      throw new HTTPException(404, { message: `Source PDF not found: ${safeLabel}` })
+    }
+
+    const config = loadBookConfig(safeLabel, booksDir, configPath)
+    const pdfBuffer = fs.readFileSync(pdfPath)
+    const total = countPdfPages(pdfBuffer)
+    const start = (config.start_page ?? 1) - 1
+    const end = Math.min(config.end_page ?? total, total)
+
+    const idOf = (g: number[]) =>
+      g.length === 2
+        ? "pg" + String(g[0] + 1).padStart(3, "0") + String(g[1] + 1).padStart(3, "0")
+        : "pg" + String(g[0] + 1).padStart(3, "0")
+
+    const desiredGroups = computeGroups(start, end, { spreadMode: false, spreadPairs })
+    const desiredIds = new Set(desiredGroups.map(idOf))
+
+    const storage = createBookStorage(safeLabel, booksDir)
+    const currentIds = new Set(storage.getPages().map((p) => p.pageId))
+
+    const toAdd = desiredGroups.filter((g) => !currentIds.has(idOf(g)))
+    const toRemove = [...currentIds].filter((id) => !desiredIds.has(id))
+
+    if (toAdd.length > 0) {
+      const newPages = await extractPages({
+        pdfBuffer,
+        groups: toAdd,
+        vectorTextGrouping: config.vector_text_grouping !== false,
+        fixedLayout: isFixedLayoutBook(config),
+      })
+      const imageClassifyConfig = {
+        ...buildImageClassifyConfig(config),
+        getImageBytes: (imageId: string) =>
+          Buffer.from(storage.getImageBase64(imageId), "base64"),
+      }
+      for (const page of newPages) {
+        storage.putExtractedPage(page)
+        storage.putNodeData("positioned-text", page.pageId, page.positionedText)
+        if (page.extractionDebug) {
+          storage.putNodeData("extraction-debug", page.pageId, page.extractionDebug)
+        }
+        storage.putNodeData(
+          "image-filtering",
+          page.pageId,
+          classifyPageImages(page.pageId, storage.getPageImages(page.pageId), imageClassifyConfig),
+        )
+      }
+    }
+    for (const id of toRemove) storage.deletePage(id)
+
+    return c.json({
+      merged: toAdd.length,
+      removed: toRemove.length,
+      pageCount: storage.getPages().length,
+    })
   })
 
   // GET /books/:label/pages/:pageId/sections/:sectionIndex/screenshot — Rendered section as PNG
