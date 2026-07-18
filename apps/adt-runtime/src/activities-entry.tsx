@@ -18,8 +18,10 @@ import {
   getDefaultStore,
   useAtomValue,
 } from "jotai"
+import { Toaster } from "sonner"
 import { TooltipProvider } from "@/shared/ui/tooltip"
 import { DockActivityActions } from "@/features/activity/components/DockActivityActions"
+import { ActivityConfetti } from "@/features/activity/components/ActivityConfetti"
 import { loadAppConfig, pickLanguage, pickStorageMode } from "@/shared/runtime/config"
 import { loadPagesManifest } from "@/shared/runtime/manifest-loader"
 import { loadTranslations } from "@/features/language/runtime/i18n"
@@ -127,7 +129,9 @@ function mount(): void {
     <JotaiProvider store={store}>
       <TooltipProvider delay={300} closeDelay={120}>
         <ActivityControls />
+        <ActivityConfetti />
       </TooltipProvider>
+      <Toaster position="top-center" richColors closeButton />
     </JotaiProvider>,
   )
   void bootActivities().catch((err) => {
