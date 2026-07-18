@@ -274,7 +274,9 @@ Return JSON:
 {% chat role: "user" %}
 Page image for context (use this to determine EXACT positions for each text group):
 {% image page_image_base64 %}
-
+{% if source_pages.size > 0 %}{% for sp in source_pages %}This section ALSO includes content that was MERGED FROM ANOTHER PAGE ({{ sp.page_id }}) — for example an activity or passage that continues across a page break. That merged content is NOT visible in the main page image above. Use the following continuation page image as its visual reference, and do NOT drop, shrink, or de-emphasize the merged content because it is absent from the main page image:
+{% image sp.image_base64 %}
+{% endfor %}{% endif %}
 Section ID: {{ section_id }}
 Section type: {{ section_type }}
 

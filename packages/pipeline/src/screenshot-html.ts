@@ -20,6 +20,13 @@ export interface BuildScreenshotHtmlOptions {
   webAssetsDir: string
   /** HTML lang attribute. Defaults to "en". */
   language?: string
+  /**
+   * Book typography CSS (fixed size per text role). Appended to the compiled
+   * Tailwind CSS so screenshot review sees the same fixed sizes the packaged
+   * book uses — otherwise the reviewer would "correct" sizes that the final
+   * bundle pins, causing drift.
+   */
+  typographyCss?: string
 }
 
 /**
@@ -35,6 +42,7 @@ export async function buildScreenshotHtml(
     images,
     webAssetsDir,
     language = "en",
+    typographyCss,
   } = options
 
   // Rewrite image src attributes to inline base64 data URIs
@@ -43,7 +51,8 @@ export async function buildScreenshotHtml(
   // Build Tailwind CSS from the section content
   const tailwindCss = await buildPreviewTailwindCss(
     htmlWithInlineImages,
-    webAssetsDir
+    webAssetsDir,
+    typographyCss
   )
 
   // Build inline font-face CSS with base64-encoded font files

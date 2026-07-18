@@ -94,7 +94,8 @@ class ImageTag extends Tag {
     // "undefined" (or "") as the image payload — which the LLM SDK rejects
     // with the cryptic "Content string is not a base64-encoded media." Skipping
     // lets templates reference optional images (e.g. `{% image page_image_base64 %}`)
-    // without wrapping every use in an `{% if %}`.
+    // without wrapping every use in an `{% if %}`. `.trim()` also drops
+    // whitespace-only values, which are equally invalid base64.
     if (typeof val !== "string" || val.trim() === "") return
     emitter.write(`${IMAGE_MARKER_START}${val}${IMAGE_MARKER_END}`)
   }

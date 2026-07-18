@@ -92,6 +92,28 @@ describe("createPromptEngine", () => {
     expect(JSON.stringify(content)).not.toContain("undefined")
   })
 
+  it("skips image tags whose value is undefined or empty", async () => {
+    const dir = tmpDir()
+    fs.writeFileSync(
+      path.join(dir, "img_undefined.liquid"),
+      `{% chat role: "user" %}Before.
+{% image page.missing %}
+After.{% endchat %}`
+    )
+
+    const engine = createPromptEngine(dir)
+    const messages = await engine.renderPrompt("img_undefined", {
+      page: {},
+    })
+
+    expect(messages).toHaveLength(1)
+    const content = messages[0].content as Array<{ type: string; text?: string }>
+    // No image part — just the surrounding text.
+    expect(content.every((p) => p.type === "text")).toBe(true)
+    expect(content.map((p) => p.text).join(" ")).toContain("Before.")
+    expect(content.map((p) => p.text).join(" ")).toContain("After.")
+  })
+
   it("renders for-loops in templates", async () => {
     const dir = tmpDir()
     fs.writeFileSync(

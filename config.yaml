@@ -282,6 +282,8 @@ section_render_strategies:
   activity_open_ended_answer: activity_open_ended_answer
 
 quiz_generation:
+  # Style quizzes to match the book (typography + colors derived from the book).
+  match_book_style: true
   quiz_section_types:
     - boxed_text
     - text_only
@@ -310,6 +312,31 @@ image_filters:
 
 # rate_limit:
 #   requests_per_minute: 60
+
+# Text-to-speech (read-aloud) settings. `default_provider` and per-language
+# `providers` routing decide which engine synthesizes each language.
+#
+# Gemini defaults to the faster gemini-2.5-flash-preview-tts model; set `model`
+# to switch to Pro (higher quality, slower, lower throughput).
+#
+# `rate_limit` controls the adaptive request limiter for Gemini TTS:
+#   - requests_per_minute: auto  → start at the model's documented ceiling
+#     (flash 150 / pro 125) and automatically back off on 429s, then recover.
+#     This is the default when omitted.
+#   - requests_per_minute: 30    → pin the starting ceiling to a fixed number
+#     (still backs off on 429s).
+#   - min_/max_requests_per_minute → override the adaptive floor/ceiling.
+#
+# speech:
+#   default_provider: gemini
+#   providers:
+#     gemini:
+#       model: gemini-2.5-flash-preview-tts   # or gemini-2.5-pro-preview-tts
+#       languages: [en, es, fr, pt-BR, sq]
+#       rate_limit:
+#         requests_per_minute: auto
+#         min_requests_per_minute: 3
+#         max_requests_per_minute: 150
 
 # Reader-customization defaults and locks applied to the exported web ADT.
 # `default_settings` seeds the reader's starting values (only overrides

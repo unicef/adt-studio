@@ -31,7 +31,7 @@ import type {
   Quiz,
   ImageCaptioningOutput,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema, isTtsExcluded } from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, isTtsExcluded, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
 import {
   GOOGLE_FONTS,
   googleFontsReferencedIn,
@@ -45,6 +45,8 @@ import {
   readBookFontRegistry,
   resolveFontsCacheDir,
 } from "./fonts-bundle.js"
+import { resolveTypographyCss } from "./typography.js"
+import { resolveQuizPalette, type QuizPalette } from "./quiz-palette.js"
 import type { Progress } from "./progress.js"
 import { nullProgress } from "./progress.js"
 import { getGlossaryItemTextId } from "./glossary.js"
@@ -85,6 +87,9 @@ export interface PackageAdtWebOptions {
   /** `reflowable_font` config value (font id or "auto"). Selects the reflowable
    *  base font; ignored for fixed-layout books. */
   reflowableFont?: string
+  /** Style quizzes to match the book (typography + derived palette). Defaults
+   *  to true. When false, quizzes use the generic cream/gray template. */
+  quizMatchBookStyle?: boolean
 }
 
 interface PageEntry {
@@ -156,6 +161,11 @@ function buildRuntimeTimecodeMap(
   return map
 }
 
+// Folded into the packaging cache hash so already-packaged books regenerate
+// when renderPageHtml's output format changes (which book inputs don't capture).
+// Bump on any such change.
+const PACKAGING_FORMAT_VERSION = 4
+
 export interface ComputePackagingInputHashOptions {
   storage: Storage
   bookDir: string
@@ -185,6 +195,7 @@ export function computePackagingInputHash(options: ComputePackagingInputHashOpti
 
   // 2. Packaging options that affect output
   hash.update(JSON.stringify({
+    formatVersion: PACKAGING_FORMAT_VERSION,
     label: options.label,
     language: options.language,
     outputLanguages: options.outputLanguages,
@@ -248,12 +259,20 @@ export async function packageAdtWeb(
     lockedSettings,
     fixedLayout,
     reflowableFont,
+    quizMatchBookStyle,
   } = options
   const language = normalizeLocale(rawLanguage)
   const outputLanguages = Array.from(new Set(rawOutputLanguages.map((code) => normalizeLocale(code))))
   // Reflowable base font (serif/sans default from the detected profile, or an
   // explicit override). undefined for fixed-layout / Merriweather-default.
   const bodyFontFamily = resolveReflowableFontChain(storage, { fixedLayout, reflowableFont })
+  // Book typography CSS (fixed size per text role), appended to the compiled
+  // Tailwind stylesheet so every page shares the same sizes.
+  const typographyCss = resolveTypographyCss(storage)
+  // Quiz styling: match the book (typography + derived palette) when enabled AND
+  // the book has a detectable accent color; otherwise keep the clean white default.
+  const quizPalette = (quizMatchBookStyle ?? true) ? resolveQuizPalette(storage) : null
+  const quizStyle = quizPalette ? { palette: quizPalette } : null
 
   const step = "package-web" as const
   progress.emit({ type: "step-start", step })
@@ -446,7 +465,7 @@ export async function packageAdtWeb(
       const isFirstPage = pageList.length === 0
       const quizFilename = isFirstPage ? "index.html" : `${quizId}.html`
 
-      const quizHtmlContent = renderQuizHtml(quiz, quizId, catalog)
+      const quizHtmlContent = renderQuizHtml(quiz, quizId, catalog, quizStyle)
       const quizPageHtml = renderPageHtml({
         content: quizHtmlContent,
         language,
@@ -745,7 +764,7 @@ export async function packageAdtWeb(
   // Build Tailwind CSS
   // ------------------------------------------------------------------
   progress.emit({ type: "step-progress", step, message: "Building Tailwind CSS..." })
-  await buildTailwindCss(adtDir, webAssetsDir)
+  await buildTailwindCss(adtDir, webAssetsDir, typographyCss)
 
   // ------------------------------------------------------------------
   // SCORM + Offline support
@@ -1014,9 +1033,16 @@ body {
   max-width: none !important;
 }
 
-/* Content wrapper: preserve position:relative and explicit dimensions */
+/* Content wrapper: native size, no injected scale/centering — Readium/EPUB
+   readers size pre-paginated pages themselves, so neutralize the browser
+   reader's viewport-fit transform (renderPageHtml's fixed-layout fit script). */
 #content {
   opacity: 1 !important;
+  visibility: visible !important;
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
   margin: 0 !important;
 }
 
@@ -1036,6 +1062,57 @@ body {
   border-radius: 0.15em;
 }
 </style>`
+
+/**
+ * Fit script for fixed-layout pages in the browser web reader (studio preview +
+ * standalone). Scales `#content` to the viewport from first paint — no iframe
+ * transform, so no native-size flash and the reader's fixed dock stays at the
+ * pane bottom. `#content` starts hidden and is revealed once positioned
+ * (`<noscript>` reveals it without JS). The dock band is read from the
+ * `--dock-height` CSS var (published by `Dock.tsx`), with `dockReserveFallbackPx`
+ * for the first paint before the dock mounts. Neutralized for WebPub/Readium by
+ * FIXED_LAYOUT_OVERRIDE_CSS.
+ */
+function fixedLayoutWebFit(dockReserveFallbackPx: number): { headStyle: string; bodyScript: string } {
+  const headStyle = `    <style>
+      html { width: 100%; height: 100%; }
+      #content { visibility: hidden; }
+    </style>
+    <noscript><style>#content { visibility: visible !important; }</style></noscript>`
+  const bodyScript = `    <script>
+      (function () {
+        var c = document.getElementById("content");
+        if (!c) return;
+        var W = parseFloat(c.style.width) || c.offsetWidth || 1;
+        var H = parseFloat(c.style.height) || c.offsetHeight || 1;
+        var ref = parseFloat(c.getAttribute("data-fl-reference-width"));
+        var refW = ref > 0 ? ref : W;
+        var FALLBACK = ${dockReserveFallbackPx};
+        function dock() {
+          var v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--dock-height"));
+          return v > 0 ? v : FALLBACK;
+        }
+        function fit() {
+          var DOCK = dock();
+          var byW = window.innerWidth / refW;
+          var byH = (window.innerHeight - DOCK) / H;
+          var s = Math.min(${FIXED_LAYOUT_MAX_SCALE}, byW, byH > 0 ? byH : byW);
+          c.style.position = "absolute";
+          c.style.left = "50%";
+          c.style.top = "calc((100% - " + DOCK + "px) / 2)";
+          c.style.margin = "0";
+          c.style.transformOrigin = "center center";
+          c.style.transform = "translate(-50%, -50%) scale(" + s + ")";
+          c.style.visibility = "visible";
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        window.addEventListener("load", fit);
+        window.addEventListener("adt:dock-resize", fit);
+      })();
+    </script>`
+  return { headStyle, bodyScript }
+}
 
 export interface InjectWebpubStylesOptions {
   fixedLayout?: boolean
@@ -1282,6 +1359,9 @@ ${fallbackHeadingHtml}${contentBlock}
     <link href="${escapeAttr(googleFontsUrl)}" rel="stylesheet">`
     : ""
 
+  // 96 is the first-paint dock-band fallback; 0 in embed mode (dock hidden).
+  const flFit = opts.fixedViewport ? fixedLayoutWebFit(opts.embed ? 0 : 96) : null
+
   return `<!DOCTYPE html>
 <html lang="${escapeAttr(opts.language)}">
 
@@ -1294,11 +1374,11 @@ ${fallbackHeadingHtml}${contentBlock}
     <link href="./content/tailwind_output.css" rel="stylesheet">
     <link href="./assets/libs/fontawesome/css/all.min.css" rel="stylesheet">
     <link href="./assets/fonts.css" rel="stylesheet">${googleFontsLinks}${customActivityStub}
-${mathScript}${embedStyles}${bodyFontStyle}</head>
+${mathScript}${embedStyles}${bodyFontStyle}${flFit ? `${flFit.headStyle}\n` : ""}</head>
 
-<body${opts.fixedViewport ? ` style="margin:0;overflow:hidden;width:${opts.fixedViewport.width}px;height:${opts.fixedViewport.height}px"` : ` class="min-h-screen flex items-center justify-center"${bodyStyle}`}>
+<body${opts.fixedViewport ? ` style="margin:0;overflow:hidden;width:100%;height:100%"` : ` class="min-h-screen flex items-center justify-center"${bodyStyle}`}>
 ${mainBlock}
-${answersScript}
+${flFit ? `${flFit.bodyScript}\n` : ""}${answersScript}
     <div class="relative z-50" id="interface-container"></div>
     <div class="relative z-50" id="nav-container"></div>
 ${opts.embed
@@ -1320,11 +1400,123 @@ export function pad3(n: number): string {
   return String(n).padStart(3, "0")
 }
 
+/** Book-styled quiz theming derived from the book's palette. When absent,
+ *  `renderQuizHtml` uses the legacy cream/gray/blue template. */
+export interface QuizStyle {
+  palette: QuizPalette
+}
+
+interface QuizTheme {
+  styleBlock: string
+  cardClass: string
+  headerClass: string
+  bodyOpen: string
+  bodyClose: string
+  questionClass: string
+  optionLabelClass: string
+  optionTextClass: string
+  feedbackClass: string
+}
+
+const LEGACY_QUIZ_THEME: QuizTheme = {
+  styleBlock: `<style>
+    .activity-option.selected-option {
+        border-color: #1d4ed8;
+        border-width: 4px;
+        background-color: rgba(59, 130, 246, 0.18);
+        box-shadow: 0 14px 0 rgba(29, 78, 216, 0.35);
+        transform: translateY(-3px);
+    }
+
+    .activity-option.selected-option .option-text {
+        color: #1e3a8a;
+        font-weight: 600;
+    }
+</style>`,
+  cardClass: "w-full max-w-3xl rounded-3xl p-10",
+  headerClass: "text-center",
+  bodyOpen: "",
+  bodyClose: "",
+  questionClass: "text-3xl font-bold text-gray-900 tracking-tight",
+  optionLabelClass:
+    "activity-option w-[34rem] max-w-full cursor-pointer rounded-2xl border-2 border-gray-900 bg-[#FFFAF5] px-8 py-6 text-center text-xl font-medium text-gray-900 shadow-[0_6px_0_0_rgba(0,0,0,0.65)] transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-green-300 hover:translate-y-[-2px] hover:shadow-[0_8px_0_0_rgba(0,0,0,0.55)]",
+  optionTextClass: "option-text block text-lg md:text-2xl text-gray-900",
+  feedbackClass:
+    "feedback-container hidden w-full rounded-md border border-transparent bg-transparent px-3 py-2 text-gray-700",
+}
+
+/** Build a quiz theme from the book palette — the book's callout aesthetic:
+ *  a colored header band over a pale card body with rounded option cards,
+ *  typography via the `adt-*` type scale, colors via CSS variables. */
+function bookQuizTheme(palette: QuizPalette): QuizTheme {
+  const { accent, accentSoft, headerText, body, optionFill, submit, submitText, optionText, selectedText } = palette
+  return {
+    styleBlock: `<style>
+    #simple-main {
+        --quiz-accent: ${accent};
+        --quiz-accent-soft: ${accentSoft};
+        --quiz-header-text: ${headerText};
+        --quiz-body: ${body};
+        --quiz-option: ${optionFill};
+        --quiz-option-text: ${optionText};
+        --quiz-selected-text: ${selectedText};
+        --quiz-submit: ${submit};
+        --quiz-submit-text: ${submitText};
+    }
+    #simple-main .quiz-card { background-color: var(--quiz-body); box-shadow: 0 12px 34px rgba(0, 0, 0, 0.10); }
+    #simple-main .quiz-header { background-color: var(--quiz-accent); }
+    #simple-main .quiz-question { color: var(--quiz-header-text); }
+    #simple-main .activity-option {
+        background-color: var(--quiz-option);
+        border-color: var(--quiz-accent);
+        color: var(--quiz-option-text);
+        box-shadow: 0 6px 0 0 rgba(0, 0, 0, 0.10);
+    }
+    #simple-main .activity-option:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 0 0 rgba(0, 0, 0, 0.12);
+    }
+    #simple-main .activity-option:focus,
+    #simple-main .activity-option:focus-within {
+        outline: 3px solid var(--quiz-accent);
+        outline-offset: 2px;
+    }
+    #simple-main .activity-option.selected-option {
+        border-color: var(--quiz-accent);
+        border-width: 4px;
+        background-color: var(--quiz-accent-soft);
+        transform: translateY(-3px);
+    }
+    #simple-main .activity-option.selected-option .option-text {
+        color: var(--quiz-selected-text);
+        font-weight: 600;
+    }
+    #simple-main [data-submit-target] button {
+        background-color: var(--quiz-submit);
+        color: var(--quiz-submit-text);
+        border-color: var(--quiz-submit);
+    }
+</style>`,
+    cardClass: "quiz-card w-full max-w-3xl overflow-hidden rounded-3xl",
+    headerClass: "quiz-header px-8 py-8 text-center",
+    bodyOpen: `<div class="quiz-body px-6 py-10 md:px-10">`,
+    bodyClose: `</div>`,
+    questionClass: "quiz-question adt-h2 font-bold tracking-tight",
+    optionLabelClass:
+      "activity-option w-[34rem] max-w-full cursor-pointer rounded-2xl border-2 px-8 py-6 text-center adt-body font-medium transition-all duration-200",
+    optionTextClass: "option-text block adt-body",
+    feedbackClass:
+      "feedback-container hidden w-full rounded-md border border-transparent bg-transparent px-3 py-2 adt-caption",
+  }
+}
+
 export function renderQuizHtml(
   quiz: Quiz,
   quizId: string,
   catalog: TextCatalogOutput | undefined,
+  style?: QuizStyle | null,
 ): string {
+  const theme = style ? bookQuizTheme(style.palette) : LEGACY_QUIZ_THEME
   const questionId = `${quizId}_que`
   const texts = new Map<string, string>()
   if (catalog?.entries) {
@@ -1354,7 +1546,7 @@ export function renderQuizHtml(
 
     optionsHtml += `
                     <label
-                        class="activity-option w-full max-w-xl cursor-pointer rounded-2xl border-2 border-gray-900 bg-[#FFFAF5] px-8 py-6 text-center text-xl font-medium text-gray-900 shadow-[0_6px_0_0_rgba(0,0,0,0.65)] transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-green-300 hover:translate-y-[-2px] hover:shadow-[0_8px_0_0_rgba(0,0,0,0.55)]"
+                        class="${theme.optionLabelClass}"
                         data-activity-item="${escapeAttr(optionId)}"
                         data-explanation="${escapeAttr(expText)}"${expIdAttr}
                         tabindex="0"
@@ -1369,13 +1561,13 @@ export function renderQuizHtml(
                         />
                         <span
                             id="${escapeAttr(optionId)}-option-label"
-                            class="option-text block text-lg md:text-2xl text-gray-900"
+                            class="${theme.optionTextClass}"
                             data-id="${escapeAttr(optionId)}"
                         >
                             ${escapeHtml(optionText)}
                         </span>
 
-                        <div class="feedback-container hidden w-full rounded-md border border-transparent bg-transparent px-3 py-2 text-gray-700" aria-live="polite">
+                        <div class="${theme.feedbackClass}" aria-live="polite">
                             <span aria-hidden="true" class="feedback-icon mr-2"></span>
                             <span class="feedback-text"></span>
                         </div>
@@ -1386,20 +1578,7 @@ export function renderQuizHtml(
 
   const questionText = texts.get(questionId) ?? quiz.question
 
-  return `<style>
-    .activity-option.selected-option {
-        border-color: #1d4ed8;
-        border-width: 4px;
-        background-color: rgba(59, 130, 246, 0.18);
-        box-shadow: 0 14px 0 rgba(29, 78, 216, 0.35);
-        transform: translateY(-3px);
-    }
-
-    .activity-option.selected-option .option-text {
-        color: #1e3a8a;
-        font-weight: 600;
-    }
-</style>
+  return `${theme.styleBlock}
 
 <div id="content" class="container content mx-auto w-full min-h-screen px-8 py-8 flex items-center justify-center opacity-0">
     <section
@@ -1411,17 +1590,17 @@ export function renderQuizHtml(
         data-option-explanations='${escapeAttr(JSON.stringify(explanationMapping))}'
     >
         <div class="flex w-full flex-col items-center gap-10 px-6 py-10">
-            <div class="w-full max-w-3xl rounded-3xl p-10">
-                <header class="text-center">
+            <div class="${theme.cardClass}">
+                <header class="${theme.headerClass}">
                     <p
                         id="${escapeAttr(quizId)}-question-label"
-                        class="text-3xl font-bold text-gray-900 tracking-tight"
+                        class="${theme.questionClass}"
                         data-id="${escapeAttr(questionId)}"
                     >
                         ${escapeHtml(questionText)}
                     </p>
                 </header>
-
+                ${theme.bodyOpen}
                 <div
                     class="mt-8 flex flex-col items-center gap-6"
                     role="group"
@@ -1433,7 +1612,7 @@ ${optionsHtml}
                 <div class="mt-10 flex flex-col items-center gap-4">
                     <div data-submit-target class="flex flex-wrap items-center justify-center gap-4"></div>
                 </div>
-
+                ${theme.bodyClose}
             </div>
         </div>
     </section>
@@ -1958,14 +2137,19 @@ export function convertLatexToMathml(html: string): string {
 async function buildTailwindCss(
   adtDir: string,
   webAssetsDir: string,
+  typographyCss?: string,
 ): Promise<void> {
   const outputPath = path.join(adtDir, "content", "tailwind_output.css")
+  // The .adt-* rules live in @layer components, so they default the role sizes
+  // while element-level text-* utilities (utilities layer) keep priority.
+  const suffix = typographyCss ? `\n${typographyCss}\n` : ""
 
   // In Tauri sidecar mode, postcss/tailwindcss cannot run inside the pkg binary.
   // bundle.mjs pre-builds tailwind_output.css into webAssetsDir before zipping.
   const preBuilt = path.join(webAssetsDir, "tailwind_output.css")
   if (fs.existsSync(preBuilt)) {
     fs.copyFileSync(preBuilt, outputPath)
+    if (suffix) fs.appendFileSync(outputPath, suffix)
     return
   }
 
@@ -1994,7 +2178,7 @@ async function buildTailwindCss(
     { from: TAILWIND_VIRTUAL_FROM },
   )
 
-  fs.writeFileSync(outputPath, result.css)
+  fs.writeFileSync(outputPath, result.css + suffix)
 }
 
 /** Convert Windows backslashes to forward slashes for `@source` paths. */
@@ -2009,6 +2193,7 @@ function toPosix(p: string): string {
 export async function buildPreviewTailwindCss(
   contentHtml: string,
   webAssetsDir: string,
+  typographyCss?: string,
 ): Promise<string> {
   const postcss = (await import("postcss")).default
   const tailwindcss = (await import("@tailwindcss/postcss")).default
@@ -2038,7 +2223,8 @@ export async function buildPreviewTailwindCss(
       `${sourceDirectives}\n${inputCss}`,
       { from: TAILWIND_VIRTUAL_FROM },
     )
-    return result.css
+    // .adt-* size rules ship in @layer components — text-* utilities keep priority.
+    return typographyCss ? `${result.css}\n${typographyCss}\n` : result.css
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true })
   }

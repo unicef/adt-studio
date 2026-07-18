@@ -4,6 +4,8 @@ export interface SynthesizeSpeechOptions {
   input: string
   responseFormat: string
   instructions?: string
+  /** Aborts the in-flight HTTP request (run cancellation). */
+  signal?: AbortSignal
 }
 
 export interface TTSSynthesizer {
@@ -306,6 +308,7 @@ export function createAzureTTSSynthesizer(
           "X-Microsoft-OutputFormat": outputFormat,
         },
         body: ssml,
+        signal: options.signal,
       })
       if (!response.ok) {
         const message = await response.text()
@@ -346,6 +349,7 @@ export function createTTSSynthesizer(apiKey?: string): TTSSynthesizer {
           response_format: options.responseFormat,
           instructions: options.instructions,
         }),
+        signal: options.signal,
       })
       if (!response.ok) {
         const message = await response.text()
@@ -410,6 +414,7 @@ export function createGeminiTTSSynthesizer(
               },
             },
           }),
+          signal: options.signal,
         })
 
         const responseText = await response.text()

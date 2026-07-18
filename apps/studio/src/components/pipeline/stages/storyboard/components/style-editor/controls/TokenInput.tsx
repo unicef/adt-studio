@@ -8,7 +8,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useElementContext } from "../element-context"
+import { useOptionalElementContext } from "../element-context"
 import { NumericInput } from "./NumericInput"
 
 export interface TokenChoice {
@@ -37,7 +37,10 @@ export function TokenInput({
   className,
 }: TokenInputProps) {
   const matched = tokens.find((t) => t.value === value)
-  const { dataId } = useElementContext()
+  // Optional: present only inside the style-editor sidebar. Used to close the
+  // popover when the selected element changes (iframe clicks bypass Radix's
+  // outside-click). Absent when this control is reused elsewhere.
+  const dataId = useOptionalElementContext()?.dataId
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<"custom" | "variables">(
     matched ? "variables" : "custom",
