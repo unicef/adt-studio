@@ -50,8 +50,12 @@ export function Dock({ children }: DockProps) {
     const el = dockRef.current;
     if (!el) return;
     const update = () => {
-      const w = el.getBoundingClientRect().width;
-      document.documentElement.style.setProperty("--dock-width", `${w}px`);
+      const rect = el.getBoundingClientRect();
+      document.documentElement.style.setProperty("--dock-width", `${rect.width}px`);
+      // --dock-height + event let fixed-layout pages reserve the dock band and
+      // re-fit (the fit script runs before the dock mounts; see package-web.ts).
+      document.documentElement.style.setProperty("--dock-height", `${rect.height}px`);
+      window.dispatchEvent(new Event("adt:dock-resize"));
     };
     update();
     const ro = new ResizeObserver(update);
@@ -59,6 +63,7 @@ export function Dock({ children }: DockProps) {
     return () => {
       ro.disconnect();
       document.documentElement.style.removeProperty("--dock-width");
+      document.documentElement.style.removeProperty("--dock-height");
     };
   }, []);
 

@@ -202,6 +202,7 @@ export { BookSummaryOutput } from "./book-summary.js"
 export { ExtractionWarning } from "./extraction-warning.js"
 
 export {
+  FIXED_LAYOUT_MAX_SCALE,
   SectionRendering,
   WebRenderingOutput,
   webRenderingLLMSchema,

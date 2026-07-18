@@ -31,7 +31,7 @@ import type {
   Quiz,
   ImageCaptioningOutput,
 } from "@adt/types"
-import { WebRenderingOutput as WebRenderingOutputSchema, isTtsExcluded } from "@adt/types"
+import { WebRenderingOutput as WebRenderingOutputSchema, isTtsExcluded, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
 import {
   GOOGLE_FONTS,
   googleFontsReferencedIn,
@@ -156,6 +156,11 @@ function buildRuntimeTimecodeMap(
   return map
 }
 
+// Folded into the packaging cache hash so already-packaged books regenerate
+// when renderPageHtml's output format changes (which book inputs don't capture).
+// Bump on any such change.
+const PACKAGING_FORMAT_VERSION = 4
+
 export interface ComputePackagingInputHashOptions {
   storage: Storage
   bookDir: string
@@ -185,6 +190,7 @@ export function computePackagingInputHash(options: ComputePackagingInputHashOpti
 
   // 2. Packaging options that affect output
   hash.update(JSON.stringify({
+    formatVersion: PACKAGING_FORMAT_VERSION,
     label: options.label,
     language: options.language,
     outputLanguages: options.outputLanguages,
@@ -1014,9 +1020,16 @@ body {
   max-width: none !important;
 }
 
-/* Content wrapper: preserve position:relative and explicit dimensions */
+/* Content wrapper: native size, no injected scale/centering — Readium/EPUB
+   readers size pre-paginated pages themselves, so neutralize the browser
+   reader's viewport-fit transform (renderPageHtml's fixed-layout fit script). */
 #content {
   opacity: 1 !important;
+  visibility: visible !important;
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
   margin: 0 !important;
 }
 
@@ -1036,6 +1049,57 @@ body {
   border-radius: 0.15em;
 }
 </style>`
+
+/**
+ * Fit script for fixed-layout pages in the browser web reader (studio preview +
+ * standalone). Scales `#content` to the viewport from first paint — no iframe
+ * transform, so no native-size flash and the reader's fixed dock stays at the
+ * pane bottom. `#content` starts hidden and is revealed once positioned
+ * (`<noscript>` reveals it without JS). The dock band is read from the
+ * `--dock-height` CSS var (published by `Dock.tsx`), with `dockReserveFallbackPx`
+ * for the first paint before the dock mounts. Neutralized for WebPub/Readium by
+ * FIXED_LAYOUT_OVERRIDE_CSS.
+ */
+function fixedLayoutWebFit(dockReserveFallbackPx: number): { headStyle: string; bodyScript: string } {
+  const headStyle = `    <style>
+      html { width: 100%; height: 100%; }
+      #content { visibility: hidden; }
+    </style>
+    <noscript><style>#content { visibility: visible !important; }</style></noscript>`
+  const bodyScript = `    <script>
+      (function () {
+        var c = document.getElementById("content");
+        if (!c) return;
+        var W = parseFloat(c.style.width) || c.offsetWidth || 1;
+        var H = parseFloat(c.style.height) || c.offsetHeight || 1;
+        var ref = parseFloat(c.getAttribute("data-fl-reference-width"));
+        var refW = ref > 0 ? ref : W;
+        var FALLBACK = ${dockReserveFallbackPx};
+        function dock() {
+          var v = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--dock-height"));
+          return v > 0 ? v : FALLBACK;
+        }
+        function fit() {
+          var DOCK = dock();
+          var byW = window.innerWidth / refW;
+          var byH = (window.innerHeight - DOCK) / H;
+          var s = Math.min(${FIXED_LAYOUT_MAX_SCALE}, byW, byH > 0 ? byH : byW);
+          c.style.position = "absolute";
+          c.style.left = "50%";
+          c.style.top = "calc((100% - " + DOCK + "px) / 2)";
+          c.style.margin = "0";
+          c.style.transformOrigin = "center center";
+          c.style.transform = "translate(-50%, -50%) scale(" + s + ")";
+          c.style.visibility = "visible";
+        }
+        fit();
+        window.addEventListener("resize", fit);
+        window.addEventListener("load", fit);
+        window.addEventListener("adt:dock-resize", fit);
+      })();
+    </script>`
+  return { headStyle, bodyScript }
+}
 
 export interface InjectWebpubStylesOptions {
   fixedLayout?: boolean
@@ -1272,6 +1336,9 @@ ${fallbackHeadingHtml}${contentBlock}
     <link href="${escapeAttr(googleFontsUrl)}" rel="stylesheet">`
     : ""
 
+  // 96 is the first-paint dock-band fallback; 0 in embed mode (dock hidden).
+  const flFit = opts.fixedViewport ? fixedLayoutWebFit(opts.embed ? 0 : 96) : null
+
   return `<!DOCTYPE html>
 <html lang="${escapeAttr(opts.language)}">
 
@@ -1284,11 +1351,11 @@ ${fallbackHeadingHtml}${contentBlock}
     <link href="./content/tailwind_output.css" rel="stylesheet">
     <link href="./assets/libs/fontawesome/css/all.min.css" rel="stylesheet">
     <link href="./assets/fonts.css" rel="stylesheet">${googleFontsLinks}
-${mathScript}${embedStyles}${bodyFontStyle}</head>
+${mathScript}${embedStyles}${bodyFontStyle}${flFit ? `${flFit.headStyle}\n` : ""}</head>
 
-<body${opts.fixedViewport ? ` style="margin:0;overflow:hidden;width:${opts.fixedViewport.width}px;height:${opts.fixedViewport.height}px"` : ` class="min-h-screen flex items-center justify-center"${bodyStyle}`}>
+<body${opts.fixedViewport ? ` style="margin:0;overflow:hidden;width:100%;height:100%"` : ` class="min-h-screen flex items-center justify-center"${bodyStyle}`}>
 ${mainBlock}
-${answersScript}
+${flFit ? `${flFit.bodyScript}\n` : ""}${answersScript}
     <div class="relative z-50" id="interface-container"></div>
     <div class="relative z-50" id="nav-container"></div>
 ${opts.embed
