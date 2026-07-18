@@ -3,7 +3,7 @@ import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
 import type { LLMModel } from "@adt/llm"
-import { renderPage, buildRenderStrategyResolver, buildBookFontsPromptContext, createTemplateEngine, loadBookConfig, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID, buildScreenshotHtml, SCREENSHOT_VIEWPORTS } from "@adt/pipeline"
+import { renderPage, buildRenderStrategyResolver, buildBookFontsPromptContext, collectReferencedImageIds, collectSourcePageImages, createTemplateEngine, loadBookConfig, createScreenshotRenderer, runVisualReviewLoop, DEFAULT_VISUAL_REVIEW_MODEL_ID, buildScreenshotHtml, SCREENSHOT_VIEWPORTS } from "@adt/pipeline"
 import type { VisualRefinementDeps } from "@adt/pipeline"
 import { PageSectioningOutput, WebRenderingOutput, webRenderingLLMSchema, editVerifyLLMSchema } from "@adt/types"
 import { loadStyleguideContent } from "./styleguide.js"
@@ -79,23 +79,7 @@ export async function reRenderPage(
     for (const img of allImages) {
       renderImages.set(img.imageId, { base64: storage.getImageBase64(img.imageId), width: img.width, height: img.height })
     }
-    // Walk the tree to find any image leaf nodeIds not already covered
-    const collectImageIds = (
-      node: { role?: string; nodeId?: string; isPruned?: boolean; children?: unknown[] },
-      out: Set<string>,
-    ): void => {
-      if (node.isPruned) return
-      if (node.role === "image" && node.nodeId) out.add(node.nodeId)
-      if (Array.isArray(node.children)) {
-        for (const c of node.children) collectImageIds(c as Parameters<typeof collectImageIds>[0], out)
-      }
-    }
-    const referencedIds = new Set<string>()
-    for (const section of sectioning.sections) {
-      if (section.isPruned) continue
-      for (const n of section.nodes) collectImageIds(n, referencedIds)
-    }
-    for (const imageId of referencedIds) {
+    for (const imageId of collectReferencedImageIds(sectioning.sections)) {
       if (!renderImages.has(imageId)) {
         const dims = storage.getImageDimensions(imageId)
         renderImages.set(imageId, { base64: storage.getImageBase64(imageId), width: dims?.width, height: dims?.height })
@@ -130,6 +114,13 @@ export async function reRenderPage(
 
     // Get page image
     const pageImageBase64 = storage.getPageImageBase64(pageId)
+
+    // Page images for content merged in from other pages (cross-page merges) —
+    // per-section provenance recorded in sourcePageIds.
+    const sourcePageImages = collectSourcePageImages(
+      sectioning.sections,
+      (id) => storage.getPageImageBase64(id)
+    )
 
     if (sectionIndex !== undefined && (sectionIndex < 0 || sectionIndex >= sectioning.sections.length)) {
       throw new Error(`Section index ${sectionIndex} out of range`)
@@ -173,6 +164,7 @@ export async function reRenderPage(
         pageImageBase64,
         sectioning: structuringForRender,
         images: renderImages,
+        sourcePageImages,
         styleguide: styleguideContent,
         bookFonts: buildBookFontsPromptContext(storage),
         userPrompt: prompt,

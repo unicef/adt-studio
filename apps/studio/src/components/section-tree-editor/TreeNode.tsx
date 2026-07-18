@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ComponentType } from "react"
+import { useState, type ComponentType } from "react"
 import {
   ChevronDown,
   ChevronRight,
@@ -16,11 +16,14 @@ import {
   Link2,
   MessageCircle,
   MoreHorizontal,
+  Merge,
   PanelTop,
   PenLine,
   Puzzle,
   Quote,
+  Scissors,
   Sigma,
+  SquareSplitVertical,
   Tag,
   Type as TypeIcon,
   Trash2,
@@ -29,6 +32,7 @@ import { useLingui } from "@lingui/react/macro"
 import type { ContentNodeData } from "@adt/types"
 import { BASE_URL } from "@/api/client"
 import { cn } from "@/lib/utils"
+import { ActionMenu, type ActionMenuItem } from "@/components/ui/action-menu"
 import {
   Select,
   SelectContent,
@@ -161,6 +165,16 @@ export interface TreeNodeProps {
   onAddChildLeaf: (parentNodeId: string | null, role: string) => void
   onAddChildContainer: (parentNodeId: string | null, structure: string) => void
   onDrop: (sourceNodeId: string, target: DropIntent) => void
+  /** Split the node's parent group in two, this node starting the new group. */
+  onSplitGroup?: (nodeId: string) => void
+  /** Split the section in two, this node starting the new section. */
+  onSplitSection?: (nodeId: string) => void
+  /** Merge this container into its previous sibling container. */
+  onMergeGroup?: (nodeId: string) => void
+  /** True when the node's previous sibling is a container. */
+  prevSiblingIsContainer?: boolean
+  /** True when the node is the first node of its section at every level. */
+  firstInSection?: boolean
   defaultTextRole: string
   defaultStructure: string
 }
@@ -218,66 +232,21 @@ function DragHandle({
 
 // ── Kebab action menu ────────────────────────────────────────────
 
-type MenuItem = {
-  icon: ComponentType<{ className?: string }>
-  label: string
-  onClick: () => void
-  danger?: boolean
-  hidden?: boolean
-}
-
 function RowMenu({
   items,
   disabled,
 }: {
-  items: MenuItem[]
+  items: ActionMenuItem[]
   disabled?: boolean
 }) {
-  const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    if (!open) return
-    const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
-    }
-    document.addEventListener("mousedown", onDown)
-    return () => document.removeEventListener("mousedown", onDown)
-  }, [open])
-  const visibleItems = items.filter((it) => !it.hidden)
-  if (visibleItems.length === 0) return null
   return (
-    <div className="relative" ref={ref} onClick={(e) => e.stopPropagation()}>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        disabled={disabled}
-        className="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30"
-      >
-        <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-      </button>
-      {open && (
-        <div className="absolute right-0 top-full z-50 mt-1 min-w-[160px] rounded-md border bg-popover py-1 text-xs shadow-md">
-          {visibleItems.map((item, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => {
-                setOpen(false)
-                item.onClick()
-              }}
-              disabled={disabled}
-              className={cn(
-                "flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-accent transition-colors disabled:opacity-30",
-                item.danger && "text-red-600 hover:bg-red-50"
-              )}
-            >
-              <item.icon className="h-3.5 w-3.5" />
-              {item.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+    <ActionMenu
+      trigger={<MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />}
+      triggerClassName="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer disabled:opacity-30"
+      triggerDisabled={disabled}
+      items={items}
+      itemsDisabled={disabled}
+    />
   )
 }
 
@@ -347,9 +316,15 @@ function ContainerNode(props: TreeNodeProps) {
     onAddChildLeaf,
     onAddChildContainer,
     onDrop,
+    onSplitGroup,
+    onSplitSection,
+    onMergeGroup,
+    prevSiblingIsContainer,
+    firstInSection,
     defaultTextRole,
     defaultStructure,
     parentNodeId,
+    indexInParent,
     bookLabel,
     textRoles,
     onEditText,
@@ -493,6 +468,25 @@ function ContainerNode(props: TreeNodeProps) {
                 onClick: () => onNest(node.nodeId, defaultStructure),
               },
               {
+                icon: SquareSplitVertical,
+                label: t`Split group here`,
+                onClick: () => onSplitGroup!(node.nodeId),
+                hidden:
+                  !onSplitGroup || parentNodeId == null || indexInParent === 0,
+              },
+              {
+                icon: Scissors,
+                label: t`Split into new section`,
+                onClick: () => onSplitSection!(node.nodeId),
+                hidden: !onSplitSection || firstInSection,
+              },
+              {
+                icon: Merge,
+                label: t`Merge with previous group`,
+                onClick: () => onMergeGroup!(node.nodeId),
+                hidden: !onMergeGroup || !prevSiblingIsContainer,
+              },
+              {
                 icon: FilePlus,
                 label: t`Add text`,
                 onClick: () => onAddChildLeaf(node.nodeId, defaultTextRole),
@@ -571,6 +565,11 @@ function ContainerNode(props: TreeNodeProps) {
                 onAddChildLeaf={onAddChildLeaf}
                 onAddChildContainer={onAddChildContainer}
                 onDrop={onDrop}
+                onSplitGroup={onSplitGroup}
+                onSplitSection={onSplitSection}
+                onMergeGroup={onMergeGroup}
+                prevSiblingIsContainer={i > 0 && !children[i - 1].role}
+                firstInSection={firstInSection && i === 0}
                 defaultTextRole={defaultTextRole}
                 defaultStructure={defaultStructure}
               />
@@ -603,7 +602,11 @@ function TextLeaf(props: TreeNodeProps) {
     onDuplicate,
     onNest,
     onUnnest,
+    onSplitGroup,
+    onSplitSection,
+    firstInSection,
     parentNodeId,
+    indexInParent,
     defaultStructure,
   } = props
   const { t } = useLingui()
@@ -706,6 +709,19 @@ function TextLeaf(props: TreeNodeProps) {
               onClick: () => onNest(node.nodeId, defaultStructure),
             },
             {
+              icon: SquareSplitVertical,
+              label: t`Split group here`,
+              onClick: () => onSplitGroup!(node.nodeId),
+              hidden:
+                !onSplitGroup || parentNodeId == null || indexInParent === 0,
+            },
+            {
+              icon: Scissors,
+              label: t`Split into new section`,
+              onClick: () => onSplitSection!(node.nodeId),
+              hidden: !onSplitSection || firstInSection,
+            },
+            {
               icon: Copy,
               label: t`Duplicate`,
               onClick: () => onDuplicate(node.nodeId),
@@ -741,6 +757,11 @@ function ImageLeaf(props: TreeNodeProps) {
     onTogglePruned,
     onDelete,
     onDuplicate,
+    onSplitGroup,
+    onSplitSection,
+    firstInSection,
+    parentNodeId,
+    indexInParent,
   } = props
   const { t } = useLingui()
   const isDragging = props.drag?.nodeId === node.nodeId
@@ -796,6 +817,19 @@ function ImageLeaf(props: TreeNodeProps) {
         <RowMenu
           disabled={disabled}
           items={[
+            {
+              icon: SquareSplitVertical,
+              label: t`Split group here`,
+              onClick: () => onSplitGroup!(node.nodeId),
+              hidden:
+                !onSplitGroup || parentNodeId == null || indexInParent === 0,
+            },
+            {
+              icon: Scissors,
+              label: t`Split into new section`,
+              onClick: () => onSplitSection!(node.nodeId),
+              hidden: !onSplitSection || firstInSection,
+            },
             {
               icon: Copy,
               label: t`Duplicate`,

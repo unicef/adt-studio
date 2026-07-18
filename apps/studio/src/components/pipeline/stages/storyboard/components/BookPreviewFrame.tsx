@@ -23,7 +23,7 @@ import {
   weightToToken,
 } from "./iframe-computed-styles"
 import { INTERACTIVE_SCRIPT, INTERACTIVE_STYLES } from "./iframe-interactive"
-import { primaryFontFamily, googleFontsCss2Url } from "@adt/types"
+import { primaryFontFamily, googleFontsCss2Url, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
 
 export type { ComputedTypographyStyles }
 
@@ -58,11 +58,6 @@ function parsePxStyle(value: string | undefined): number | null {
   const match = /^(\d+(?:\.\d+)?)px$/.exec(value.trim())
   return match ? parseFloat(match[1]) : null
 }
-
-// Upper bound for upscaling fixed-layout pages so small-page PDFs fill the
-// preview panel instead of rendering boxed. 2× keeps rasterised assets from
-// getting unacceptably soft while still filling the panel for typical books.
-const FL_MAX_SCALE = 2
 
 export interface BookPreviewFrameHandle {
   /** Get the iframe element's bounding rect in the viewport */
@@ -760,12 +755,14 @@ ${selectors}:hover {
   // page shares one scale — a full spread fills the panel, a single cover/end
   // page renders centered at its natural fraction (e.g. half) of the panel
   // rather than being upscaled to fill it. Small books (reference width below
-  // the panel) still upscale up to FL_MAX_SCALE so they don't render boxed.
+  // the panel) still upscale up to FIXED_LAYOUT_MAX_SCALE so they don't render
+  // boxed — the same cap the packaged reader's fit script uses, so the preview
+  // reads at the size edited here.
   // Reflowable: fit to the device-frame base width, desktop capped at 1× and
   // mobile/tablet grown up to a target visible width for legibility.
   useEffect(() => {
     if (fixedLayoutSize) {
-      setScale(Math.min(FL_MAX_SCALE, availableWidth / fixedLayoutSize.referenceWidth))
+      setScale(Math.min(FIXED_LAYOUT_MAX_SCALE, availableWidth / fixedLayoutSize.referenceWidth))
       return
     }
     const fitScale = Math.max(0, availableWidth / baseWidth)

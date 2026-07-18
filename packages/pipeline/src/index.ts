@@ -6,6 +6,12 @@ export {
 export { processWithConcurrency } from "./concurrency.js"
 export { extractPDF, type ExtractOptions } from "./pdf-extraction.js"
 export {
+  detectSpreads,
+  type SpreadEdgeSample,
+  type SpreadSuggestion,
+  type SpreadDetectionOptions,
+} from "./spread-detection.js"
+export {
   sectionPage,
   runValidator as validatePageSectioning,
   finalizePageSectioning,
@@ -64,6 +70,8 @@ export {
   renderPage,
   buildRenderStrategyResolver,
   buildRenderContext,
+  collectReferencedImageIds,
+  collectSourcePageImages,
   GROUP_CONTAINER_STRUCTURES,
   type RenderConfig,
   type VisualRefinementConfig,

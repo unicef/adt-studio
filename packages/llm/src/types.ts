@@ -32,6 +32,9 @@ export interface GenerateObjectOptions {
   maxTokens?: number
   temperature?: number
   timeoutMs?: number
+  /** External cancellation signal. Combined with the internal request timeout;
+   *  when it aborts, the in-flight call aborts and the retry loop stops. */
+  signal?: AbortSignal
   log?: {
     taskType: string
     pageId?: string

@@ -29,6 +29,34 @@ export function decodePng(pngBuffer: Buffer): {
 }
 
 /**
+ * Sample grayscale strips down the left and right edges of a page render.
+ * Used by spread detection to compare a facing pair's shared gutter: a spread's
+ * art is continuous across it. Samples a few pixels in from each edge to dodge
+ * border artefacts, at `sampleCount` evenly spaced rows (top→bottom, 0..255).
+ */
+export function samplePageEdges(
+  pngBuffer: Buffer,
+  sampleCount = 48,
+): { leftEdge: number[]; rightEdge: number[] } {
+  const { data, width, height } = decodePng(pngBuffer);
+  const channels = Math.max(1, Math.round(data.length / (width * height)));
+  const gray = (x: number, y: number): number => {
+    const i = (y * width + x) * channels;
+    return channels >= 3 ? (data[i] + data[i + 1] + data[i + 2]) / 3 : data[i];
+  };
+  const leftX = Math.min(2, width - 1);
+  const rightX = Math.max(0, width - 3);
+  const leftEdge: number[] = [];
+  const rightEdge: number[] = [];
+  for (let i = 0; i < sampleCount; i++) {
+    const y = Math.min(height - 1, Math.floor(((i + 0.5) * height) / sampleCount));
+    leftEdge.push(gray(leftX, y));
+    rightEdge.push(gray(rightX, y));
+  }
+  return { leftEdge, rightEdge };
+}
+
+/**
  * Stitch two PNG images side by side (left | right).
  * Height is the max of both; shorter image is top-aligned with transparent padding.
  */

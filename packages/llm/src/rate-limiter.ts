@@ -1,5 +1,11 @@
 export interface RateLimiter {
-  acquire(): Promise<void>
+  /** Waits for a token. Rejects with `signal.reason` if the signal aborts
+   *  first (or is already aborted), so cancelled work never sits in the queue. */
+  acquire(signal?: AbortSignal): Promise<void>
+}
+
+interface Waiter {
+  grant: () => void
 }
 
 /**
@@ -12,7 +18,8 @@ export function createRateLimiter(requestsPerMinute: number): RateLimiter {
   const refillRate = requestsPerMinute / 60_000 // tokens per ms
   let tokens = requestsPerMinute
   let lastRefill = Date.now()
-  const waiters: Array<() => void> = []
+  const waiters: Waiter[] = []
+  let drainScheduled = false
 
   function refill() {
     const now = Date.now()
@@ -22,7 +29,11 @@ export function createRateLimiter(requestsPerMinute: number): RateLimiter {
   }
 
   return {
-    acquire(): Promise<void> {
+    acquire(signal?: AbortSignal): Promise<void> {
+      if (signal?.aborted) {
+        return Promise.reject(signal.reason)
+      }
+
       refill()
 
       if (tokens >= 1) {
@@ -31,23 +42,35 @@ export function createRateLimiter(requestsPerMinute: number): RateLimiter {
       }
 
       // Wait for enough time for 1 token to refill
-      return new Promise<void>((resolve) => {
-        waiters.push(resolve)
-
-        if (waiters.length === 1) {
-          scheduleDrain()
+      return new Promise<void>((resolve, reject) => {
+        const waiter: Waiter = {
+          grant: () => {
+            signal?.removeEventListener("abort", onAbort)
+            resolve()
+          },
         }
+        const onAbort = () => {
+          const index = waiters.indexOf(waiter)
+          if (index !== -1) waiters.splice(index, 1)
+          reject(signal?.reason)
+        }
+        signal?.addEventListener("abort", onAbort, { once: true })
+        waiters.push(waiter)
+        scheduleDrain()
       })
     },
   }
 
   function scheduleDrain() {
+    if (drainScheduled) return
+    drainScheduled = true
     const msPerToken = 1 / refillRate
     setTimeout(() => {
+      drainScheduled = false
       refill()
       while (waiters.length > 0 && tokens >= 1) {
         tokens -= 1
-        waiters.shift()!()
+        waiters.shift()!.grant()
       }
       if (waiters.length > 0) {
         scheduleDrain()
