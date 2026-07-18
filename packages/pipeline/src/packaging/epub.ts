@@ -116,6 +116,7 @@ export function packageEpub(
   // when the book actually has glossary terms.
   injectWebpubStyles(oebpsDir, {
     fixedLayout: options.fixedLayout,
+    neutralizeFixedLayoutFit: true,
     extraCss: glossaryEntries.length > 0 ? GLOSSREF_CSS : undefined,
   })
 

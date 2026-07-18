@@ -902,16 +902,12 @@ body {
   max-width: none !important;
 }
 
-/* Content wrapper: native size, no injected scale/centering — Readium/EPUB
-   readers size pre-paginated pages themselves, so neutralize the browser
-   reader's viewport-fit transform (renderPageHtml's fixed-layout fit script). */
+/* Content wrapper: keep it visible. Positioning/scale is left to the browser
+   fit script (renderPageHtml's fixedLayoutWebFit) for WebPub, or neutralized
+   for EPUB via FIXED_LAYOUT_FIT_NEUTRALIZE_CSS. */
 #content {
   opacity: 1 !important;
   visibility: visible !important;
-  position: relative !important;
-  left: auto !important;
-  top: auto !important;
-  transform: none !important;
   margin: 0 !important;
 }
 
@@ -929,6 +925,20 @@ body {
 .-epub-media-overlay-active {
   background: rgba(255, 235, 59, 0.4);
   border-radius: 0.15em;
+}
+</style>`
+
+/* Appended to the fixed-layout overrides for EPUB only. EPUB/Readium readers
+   size pre-paginated pages themselves, so neutralize renderPageHtml's browser
+   fit script (fixedLayoutWebFit) — the page renders at native size and the
+   reader scales it. WebPub keeps the fit: generic web readers don't reliably
+   scale fixed-layout pages, so the page must fit itself. */
+const FIXED_LAYOUT_FIT_NEUTRALIZE_CSS = `<style>
+#content {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
 }
 </style>`
 
@@ -986,6 +996,13 @@ function fixedLayoutWebFit(dockReserveFallbackPx: number): { headStyle: string; 
 export interface InjectWebpubStylesOptions {
   fixedLayout?: boolean
   /**
+   * Neutralize the browser fixed-layout fit script so the page renders at
+   * native size and the reader scales it. Set for EPUB (Readium/EPUB readers
+   * size pre-paginated pages themselves); omitted for WebPub, whose generic
+   * readers rely on the fit script.
+   */
+  neutralizeFixedLayoutFit?: boolean
+  /**
    * Extra CSS rules appended inside the injected `<style>` block. Used by the
    * EPUB packager to ship export-only affordances (e.g. the glossref dotted
    * underline) without leaking them into the web/webpub output.
@@ -1003,7 +1020,10 @@ export function injectWebpubStyles(dir: string, options?: InjectWebpubStylesOpti
   // the single injected <style> block. Function replacer so `$` in the CSS
   // isn't interpreted as a replacement pattern (`$&`, `$1`, …).
   const extra = options?.extraCss
-  const css = extra ? base.replace("</style>", () => `${extra}\n</style>`) : base
+  let css = extra ? base.replace("</style>", () => `${extra}\n</style>`) : base
+  if (options?.fixedLayout && options?.neutralizeFixedLayoutFit) {
+    css = `${css}\n${FIXED_LAYOUT_FIT_NEUTRALIZE_CSS}`
+  }
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const fullPath = path.join(dir, entry.name)
     if (entry.isDirectory()) {
