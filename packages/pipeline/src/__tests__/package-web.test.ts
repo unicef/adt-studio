@@ -2274,7 +2274,8 @@ describe("packageWebpub", () => {
     const manifest = JSON.parse(
       fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
     )
-    expect(manifest.metadata.presentation.layout).toBe("fixed")
+    expect(manifest.metadata.layout).toBe("fixed")
+    expect(manifest.metadata.presentation.layout).toBeUndefined()
     expect(manifest.metadata.presentation.fit).toBe("contain")
     expect(manifest.metadata.presentation.spread).toBe("none")
     expect(manifest.metadata.presentation.overflow).toBeUndefined()
