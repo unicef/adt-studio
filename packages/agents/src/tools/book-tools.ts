@@ -144,7 +144,7 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
   function executeWithLog<TArgs, TResult>(
     name: string,
     fn: (args: TArgs) => Promise<TResult> | TResult,
-  ): (args: TArgs) => Promise<TResult> {
+  ): (args: TArgs) => Promise<TResult | { ok: false; error: string }> {
     return async (args: TArgs) => {
       try {
         const result = await fn(args)
@@ -153,7 +153,14 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)
         calls.push({ name, args, result: null, error: message })
-        throw err
+        // Return the error to the model as this tool's result instead of
+        // throwing. In the AI SDK, a thrown execute() rejects generateText and
+        // aborts the WHOLE run — so a single recoverable failure (malformed
+        // sectioningJson, a missing <script>, a write to the wrong page) would
+        // kill the run with no chance for the model to self-correct. Returning
+        // the error lets the model retry on the next step; maxSteps still
+        // bounds the loop, and the failure is recorded in `calls` for the caller.
+        return { ok: false as const, error: message }
       }
     }
   }
@@ -443,7 +450,14 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
 
           const rendering = loadRendering(ctx.storage, pageId)
           const existingSectioning = loadSectioning(ctx.storage, pageId)
-          const nextIndex = rendering.sections.length
+          // sectionIndex is the index into page-sectioning.sections (that is
+          // how renderPage assigns it and how getPage/getSection/updateSection
+          // map back). renderPage SKIPS pruned/empty sections, so
+          // rendering.sections can have gaps and be shorter than the sectioning
+          // array — using its length here would collide with an existing
+          // section's index. The new section is appended at the end of the
+          // sectioning array, so its index is the sectioning array's length.
+          const nextIndex = existingSectioning.sections.length
           const sectionId = `${pageId}_s${nextIndex}`
 
           // Promote agent-emitted nodes (no isPruned) to ContentNodeData.
@@ -569,7 +583,12 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
 
           const rendering = loadRendering(ctx.storage, pageId)
           const sectioning = loadSectioning(ctx.storage, pageId)
-          const nextIndex = rendering.sections.length
+          // sectionIndex is the index into page-sectioning.sections (see
+          // createTemplatedActivity for the full rationale). rendering.sections
+          // can be shorter than the sectioning array because renderPage skips
+          // pruned/empty sections, so basing the index on it collides with an
+          // existing section. Append at the sectioning array's length instead.
+          const nextIndex = sectioning.sections.length
           const sectionId = `${pageId}_s${nextIndex}`
 
           // For custom activities, the script encodes correctness — but we

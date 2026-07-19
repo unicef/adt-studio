@@ -1,8 +1,9 @@
 import { generateObject } from "ai"
 import { z } from "zod"
 import type { Storage } from "@adt/storage"
-import { WebRenderingOutput } from "@adt/types"
+import { WebRenderingOutput, PageSectioningOutput } from "@adt/types"
 import { resolveAgentModel, type AgentCredentials } from "./resolve-model.js"
+import { buildSectioningSectionFromHtml } from "./tools/build-sectioning.js"
 import {
   LAYOUT_MIRROR_SYSTEM_PROMPT,
   buildLayoutMirrorUserPrompt,
@@ -68,6 +69,21 @@ function loadSectionHtml(
     )
   }
   return { html: section.html, rendering: parsed.data }
+}
+
+function loadSectioning(
+  storage: Storage,
+  pageId: string,
+): PageSectioningOutput {
+  const row = storage.getLatestNodeData("page-sectioning", pageId)
+  if (!row) {
+    throw new Error(`Page ${pageId} has no page-sectioning data`)
+  }
+  const parsed = PageSectioningOutput.safeParse(row.data)
+  if (!parsed.success) {
+    throw new Error(`Invalid page-sectioning data for ${pageId}`)
+  }
+  return parsed.data
 }
 
 function extractDataIds(html: string): Set<string> {
@@ -166,6 +182,34 @@ export async function mirrorLayout(
             : s,
         ),
       }
+
+      // Rebuild the sectioning tree from the rewritten HTML so it stays in sync
+      // with the section's markup — updateSection in book-tools does the same.
+      // Without this, a mirror that legitimately drops elements (allowed up to
+      // the ¼ threshold above) leaves orphaned sectioning leaves keyed by
+      // data-ids no longer present, which desyncs the edit panel and corrupts
+      // downstream text-catalog / TTS / translation.
+      const targetSection = rendering.sections.find(
+        (s) => s.sectionIndex === target.sectionIndex,
+      )
+      const sectioning = loadSectioning(storage, target.pageId)
+      const oldSection = sectioning.sections[target.sectionIndex]
+      const sectionId =
+        oldSection?.sectionId ?? `${target.pageId}_s${target.sectionIndex}`
+      const sectionType =
+        targetSection?.sectionType ?? oldSection?.sectionType ?? "content"
+      const newSectioningSection = buildSectioningSectionFromHtml({
+        html: cleaned,
+        sectionId,
+        sectionType,
+      })
+      const updatedSectioning: PageSectioningOutput = {
+        ...sectioning,
+        sections: sectioning.sections.map((s, i) =>
+          i === target.sectionIndex ? newSectioningSection : s,
+        ),
+      }
+      storage.putNodeData("page-sectioning", target.pageId, updatedSectioning)
       const version = storage.putNodeData(
         "web-rendering",
         target.pageId,
