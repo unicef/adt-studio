@@ -31,32 +31,6 @@ function toCredentials(keys: AgentApiKeys): AgentCredentials {
 }
 
 /**
- * Temporarily export each supplied key to the env var its SDK reads by default,
- * for any code path that constructs a default provider client instead of
- * receiving explicit credentials. Returns a restore function that puts the
- * previous values back (deleting ones we introduced).
- */
-function applyProviderEnv(keys: AgentApiKeys): () => void {
-  const map: Record<string, string | undefined> = {
-    OPENAI_API_KEY: keys.openaiApiKey,
-    ANTHROPIC_API_KEY: keys.anthropicApiKey,
-    GOOGLE_GENERATIVE_AI_API_KEY: keys.googleApiKey,
-  }
-  const restore: Array<[string, string | undefined]> = []
-  for (const [name, value] of Object.entries(map)) {
-    if (!value) continue
-    restore.push([name, process.env[name]])
-    process.env[name] = value
-  }
-  return () => {
-    for (const [name, previous] of restore) {
-      if (previous === undefined) delete process.env[name]
-      else process.env[name] = previous
-    }
-  }
-}
-
-/**
  * Resolve the model id for the agents from book config, falling back to a
  * sensible default. Mirrors how page-edit-service derives the editing model
  * from page_sectioning config — both are "thoughtful" LLM tasks.
@@ -117,8 +91,6 @@ export async function layoutMirrorService(
     onProgress,
   } = options
 
-  const restoreEnv = applyProviderEnv(options)
-
   const storage = createBookStorage(label, booksDir)
   try {
     const modelId = resolveAgentModelId(label, booksDir, configPath)
@@ -146,7 +118,6 @@ export async function layoutMirrorService(
     return result
   } finally {
     storage.close()
-    restoreEnv()
   }
 }
 
@@ -179,8 +150,6 @@ export async function generateActivityService(
     mode,
     onProgress,
   } = options
-
-  const restoreEnv = applyProviderEnv(options)
 
   const storage = createBookStorage(label, booksDir)
   try {
@@ -243,6 +212,5 @@ export async function generateActivityService(
     return result
   } finally {
     storage.close()
-    restoreEnv()
   }
 }

@@ -51,6 +51,49 @@ function parseActivityMode(v: unknown): ActivityMode {
   return ACTIVITY_MODES.includes(v as ActivityMode) ? (v as ActivityMode) : "auto"
 }
 
+/** Max sections a single layout-mirror request may rewrite. Each target is one
+ * sequential LLM call, so an unbounded list is an unbounded, uncancellable job. */
+const MAX_MIRROR_TARGETS = 50
+/** Max characters for free-text fields that flow into an LLM prompt. */
+const MAX_TEXT_INPUT = 4000
+/** Max activity/layout agent jobs running concurrently in this process. Each
+ * job runs a multi-step LLM agent, so unbounded concurrency saturates the
+ * process and multiplies cost. Excess requests are rejected with 429. */
+const MAX_CONCURRENT_AGENT_JOBS = 4
+let runningAgentJobs = 0
+
+async function readJsonBody<T>(c: Context): Promise<T> {
+  try {
+    return (await c.req.json()) as T
+  } catch {
+    throw new HTTPException(400, { message: "Invalid JSON body" })
+  }
+}
+
+/**
+ * Reserve a concurrency slot (throwing 429 if the cap is reached) and wrap the
+ * executor so the slot is released when it settles. The check + increment run
+ * synchronously (no await between), so concurrent requests can't over-commit.
+ */
+function gateAgentJob(
+  run: (emitProgress?: (msg: string, percent?: number) => void) => Promise<unknown>,
+): (emitProgress?: (msg: string, percent?: number) => void) => Promise<unknown> {
+  if (runningAgentJobs >= MAX_CONCURRENT_AGENT_JOBS) {
+    throw new HTTPException(429, {
+      message:
+        "Too many activity/layout agent jobs are running. Wait for one to finish and try again.",
+    })
+  }
+  runningAgentJobs++
+  return async (emitProgress) => {
+    try {
+      return await run(emitProgress)
+    } finally {
+      runningAgentJobs--
+    }
+  }
+}
+
 function parseTarget(v: {
   pageId?: unknown
   sectionIndex?: unknown
@@ -91,7 +134,7 @@ export function createAgentRoutes(
 
     const apiKeys = readAgentKeys(c)
 
-    const body = (await c.req.json()) as LayoutMirrorRequestBody
+    const body = await readJsonBody<LayoutMirrorRequestBody>(c)
     if (!body.source) {
       throw new HTTPException(400, { message: "Missing source" })
     }
@@ -100,12 +143,22 @@ export function createAgentRoutes(
     if (!Array.isArray(body.targets) || body.targets.length === 0) {
       throw new HTTPException(400, { message: "Missing targets" })
     }
+    if (body.targets.length > MAX_MIRROR_TARGETS) {
+      throw new HTTPException(400, {
+        message: `Too many targets (${body.targets.length}); max ${MAX_MIRROR_TARGETS} per request.`,
+      })
+    }
     const targets = body.targets.map(parseTarget)
 
     const instruction =
       typeof body.instruction === "string" ? body.instruction : undefined
+    if (instruction && instruction.length > MAX_TEXT_INPUT) {
+      throw new HTTPException(400, {
+        message: `instruction is too long (max ${MAX_TEXT_INPUT} characters).`,
+      })
+    }
 
-    const run = (emitProgress?: (msg: string, percent?: number) => void) =>
+    const run = gateAgentJob((emitProgress) =>
       layoutMirrorService({
         label: safeLabel,
         booksDir,
@@ -117,7 +170,8 @@ export function createAgentRoutes(
         onProgress: emitProgress
           ? (message: string) => emitProgress(message)
           : undefined,
-      })
+      }),
+    )
 
     if (taskService) {
       const targetsLabel = targets
@@ -153,12 +207,17 @@ export function createAgentRoutes(
 
     const apiKeys = readAgentKeys(c)
 
-    const body = (await c.req.json()) as GenerateActivityRequestBody
+    const body = await readJsonBody<GenerateActivityRequestBody>(c)
     if (typeof body.anchorPageId !== "string" || !body.anchorPageId) {
       throw new HTTPException(400, { message: "Missing anchorPageId" })
     }
     if (typeof body.description !== "string" || !body.description.trim()) {
       throw new HTTPException(400, { message: "Missing description" })
+    }
+    if (body.description.length > MAX_TEXT_INPUT) {
+      throw new HTTPException(400, {
+        message: `description is too long (max ${MAX_TEXT_INPUT} characters).`,
+      })
     }
     const anchorPageId = body.anchorPageId
     const description = body.description
@@ -168,7 +227,7 @@ export function createAgentRoutes(
     // Defaults to "auto"; an unknown value falls back to "auto" too.
     const mode = parseActivityMode(body.mode)
 
-    const run = (emitProgress?: (msg: string, percent?: number) => void) =>
+    const run = gateAgentJob((emitProgress) =>
       generateActivityService({
         label: safeLabel,
         booksDir,
@@ -182,7 +241,8 @@ export function createAgentRoutes(
         onProgress: emitProgress
           ? (message: string) => emitProgress(message)
           : undefined,
-      })
+      }),
+    )
 
     if (taskService) {
       const desc = `Generating activity on ${anchorPageId}`
