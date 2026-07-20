@@ -1,5 +1,6 @@
 import { pathToFileURL } from "node:url";
 import {
+  betaNumberOf,
   compareCore,
   compareReleaseVersions,
   formatCore,
@@ -19,9 +20,9 @@ const BETA_BUMPS = {
 export function calculateReleaseVersion(tags, releaseType, pullRequestNumber) {
   const versions = tags.map(parseReleaseTag).filter(Boolean);
   const stable = versions
-    .filter((version) => version.beta == null)
+    .filter((version) => version.prerelease == null)
     .sort(compareReleaseVersions)
-    .at(-1) ?? { major: 0, minor: 0, patch: 0, beta: null, staging: null };
+    .at(-1) ?? { major: 0, minor: 0, patch: 0, prerelease: null };
 
   if (
     releaseType === "major" ||
@@ -38,7 +39,7 @@ export function calculateReleaseVersion(tags, releaseType, pullRequestNumber) {
 
   const candidate = bumpCore(stable, betaBump);
   const latestBeta = versions
-    .filter((version) => version.beta != null)
+    .filter((version) => betaNumberOf(version) != null)
     .sort(compareReleaseVersions)
     .at(-1);
   const continueBetaLine =
@@ -56,7 +57,7 @@ export function calculateReleaseVersion(tags, releaseType, pullRequestNumber) {
     return `${formatCore(core)}-beta-${pullRequestNumber}`;
   }
 
-  const betaNumber = continueBetaLine ? (latestBeta.beta ?? 0) + 1 : 1;
+  const betaNumber = continueBetaLine ? betaNumberOf(latestBeta) + 1 : 1;
   return `${formatCore(core)}-beta.${betaNumber}`;
 }
 

@@ -3,6 +3,7 @@ import {
   calculateReleaseVersion,
   parseReleaseTag,
 } from "./calculate-release-version.mjs";
+import { isBetaVersion } from "./release-version.mjs";
 
 const tags = [
   "v0.6.9",
@@ -48,6 +49,15 @@ describe("calculateReleaseVersion", () => {
     );
   });
 
+  it("ignores non-beta pre-release tags when picking the beta line", () => {
+    expect(
+      calculateReleaseVersion(
+        [...tags, "v0.8.0-rc.1", "v0.8.0-electron", "v0.7.5-beta-123"],
+        "beta",
+      ),
+    ).toBe("0.7.5-beta.1");
+  });
+
   it("creates a staging version from the next beta core and PR number", () => {
     expect(calculateReleaseVersion(tags, "staging", "123")).toBe(
       "0.7.5-beta-123",
@@ -68,25 +78,39 @@ describe("calculateReleaseVersion", () => {
 });
 
 describe("parseReleaseTag", () => {
-  it("accepts stable, beta, and staging tags only", () => {
+  it("parses core and any semver pre-release into dot-separated identifiers", () => {
     expect(parseReleaseTag("v1.2.3")).toMatchObject({
-      beta: null,
-      staging: null,
+      major: 1,
+      minor: 2,
+      patch: 3,
+      prerelease: null,
     });
     expect(parseReleaseTag("1.2.3-beta.4")).toMatchObject({
-      beta: 4,
-      staging: null,
-    });
-    expect(parseReleaseTag("1.2.3-beta-45")).toMatchObject({
-      beta: 0,
-      staging: 45,
+      prerelease: ["beta", 4],
     });
     expect(parseReleaseTag("1.2.3-beta.0")).toMatchObject({
-      beta: 0,
-      staging: null,
+      prerelease: ["beta", 0],
     });
-    expect(parseReleaseTag("1.2.3-beta-0")).toBeNull();
-    expect(parseReleaseTag("1.2.3-rc.1")).toBeNull();
+    expect(parseReleaseTag("1.2.3-rc.10")).toMatchObject({
+      prerelease: ["rc", 10],
+    });
+    expect(parseReleaseTag("1.2.3-alpha.1.2")).toMatchObject({
+      prerelease: ["alpha", 1, 2],
+    });
+  });
+
+  it("treats a hyphenated suffix as one alphanumeric identifier", () => {
+    expect(parseReleaseTag("1.2.3-beta-45")).toMatchObject({
+      prerelease: ["beta-45"],
+    });
+    expect(parseReleaseTag("1.2.3-beta-0")).toMatchObject({
+      prerelease: ["beta-0"],
+    });
+  });
+
+  it("rejects tags that are not semver", () => {
+    expect(parseReleaseTag("not-a-release")).toBeNull();
+    expect(parseReleaseTag("1.2")).toBeNull();
   });
 
   it("rejects numeric identifiers with leading zeros (semver)", () => {
@@ -94,6 +118,23 @@ describe("parseReleaseTag", () => {
     expect(parseReleaseTag("1.02.3")).toBeNull();
     expect(parseReleaseTag("1.2.03")).toBeNull();
     expect(parseReleaseTag("1.2.3-beta.01")).toBeNull();
-    expect(parseReleaseTag("1.2.3-beta-01")).toBeNull();
+  });
+
+  it("allows leading zeros inside alphanumeric identifiers (semver)", () => {
+    expect(parseReleaseTag("1.2.3-beta-01")).toMatchObject({
+      prerelease: ["beta-01"],
+    });
+  });
+});
+
+describe("isBetaVersion", () => {
+  it("accepts only beta pre-releases, including staging builds", () => {
+    expect(isBetaVersion(parseReleaseTag("1.2.3-beta.4"))).toBe(true);
+    expect(isBetaVersion(parseReleaseTag("1.2.3-beta"))).toBe(true);
+    expect(isBetaVersion(parseReleaseTag("1.2.3-beta-45"))).toBe(true);
+    expect(isBetaVersion(parseReleaseTag("1.2.3"))).toBe(false);
+    expect(isBetaVersion(parseReleaseTag("1.2.3-rc.1"))).toBe(false);
+    expect(isBetaVersion(parseReleaseTag("1.2.3-electron"))).toBe(false);
+    expect(isBetaVersion(parseReleaseTag("1.2.3-betafix.1"))).toBe(false);
   });
 });

@@ -1,33 +1,65 @@
 import { execFileSync } from "node:child_process";
 
 export const RELEASE_VERSION_PATTERN =
-  /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-beta(?:\.(0|[1-9]\d*)|-([1-9]\d*))?)?$/i;
+  /^[vV]?(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)(?:-(?<prerelease>(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+(?<buildmetadata>[0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$/;
 
 export function parseReleaseTag(value) {
   const match = value.trim().match(RELEASE_VERSION_PATTERN);
   if (!match) return null;
-  const major = Number(match[1]);
-  const minor = Number(match[2]);
-  const patch = Number(match[3]);
-  const beta =
-    match[4] == null ? (/-beta/i.test(value) ? 0 : null) : Number(match[4]);
-  const staging = match[5] == null ? null : Number(match[5]);
-  if (
-    ![major, minor, patch, beta ?? 0, staging ?? 0].every(Number.isSafeInteger)
-  ) {
-    return null;
-  }
-  return { major, minor, patch, beta, staging };
+  const major = Number(match.groups.major);
+  const minor = Number(match.groups.minor);
+  const patch = Number(match.groups.patch);
+  const prerelease =
+    match.groups.prerelease == null
+      ? null
+      : match.groups.prerelease
+          .split(".")
+          .map((id) => (/^\d+$/.test(id) ? Number(id) : id));
+  const numbers = [major, minor, patch, ...(prerelease ?? [])].filter(
+    (part) => typeof part === "number",
+  );
+  if (!numbers.every(Number.isSafeInteger)) return null;
+  return { major, minor, patch, prerelease };
+}
+
+export function isBetaVersion(version) {
+  const first = version.prerelease?.[0];
+  return (
+    first === "beta" || (typeof first === "string" && first.startsWith("beta-"))
+  );
+}
+
+export function betaNumberOf(version) {
+  const pre = version.prerelease;
+  if (pre && pre[0] === "beta" && typeof pre[1] === "number") return pre[1];
+  return null;
 }
 
 export function compareReleaseVersions(left, right) {
   const core = compareCore(left, right);
   if (core !== 0) return core;
-  if (left.beta == null && right.beta == null) return 0;
-  if (left.beta == null) return 1;
-  if (right.beta == null) return -1;
-  if (left.beta !== right.beta) return left.beta - right.beta;
-  return (left.staging ?? 0) - (right.staging ?? 0);
+  return comparePrerelease(left.prerelease, right.prerelease);
+}
+
+function comparePrerelease(left, right) {
+  if (left == null && right == null) return 0;
+  if (left == null) return 1;
+  if (right == null) return -1;
+  const shared = Math.min(left.length, right.length);
+  for (let i = 0; i < shared; i++) {
+    const identifier = compareIdentifier(left[i], right[i]);
+    if (identifier !== 0) return identifier;
+  }
+  return left.length - right.length;
+}
+
+function compareIdentifier(left, right) {
+  const leftNumeric = typeof left === "number";
+  const rightNumeric = typeof right === "number";
+  if (leftNumeric && rightNumeric) return left - right;
+  if (leftNumeric) return -1;
+  if (rightNumeric) return 1;
+  return left < right ? -1 : left > right ? 1 : 0;
 }
 
 export function compareCore(left, right) {

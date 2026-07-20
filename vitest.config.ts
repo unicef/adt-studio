@@ -52,6 +52,11 @@ export default defineConfig({
           include: ["apps/desktop/src/**/*.test.ts"],
           environment: "node",
         },
+        resolve: {
+          alias: {
+            "@root": fileURLToPath(new URL(".", import.meta.url)),
+          },
+        },
       },
       {
         test: {

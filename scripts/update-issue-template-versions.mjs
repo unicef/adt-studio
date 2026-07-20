@@ -15,6 +15,7 @@ import { readFileSync, writeFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import {
   compareReleaseVersions,
+  isBetaVersion,
   listGitTags,
   parseReleaseTag,
 } from "./release-version.mjs";
@@ -35,13 +36,10 @@ function topVersions(candidates) {
   }
   const desc = (a, b) => compareReleaseVersions(b, a);
   const official = versions
-    .filter((v) => v.beta === null)
+    .filter((v) => v.prerelease === null)
     .sort(desc)
     .slice(0, KEEP_OFFICIAL);
-  const beta = versions
-    .filter((v) => v.beta !== null)
-    .sort(desc)
-    .slice(0, KEEP_BETA);
+  const beta = versions.filter(isBetaVersion).sort(desc).slice(0, KEEP_BETA);
   return {
     topBeta: beta.map((v) => v.raw),
     topOfficial: official.map((v) => v.raw),

@@ -1,3 +1,9 @@
+import {
+  compareReleaseVersions as compareParsedReleaseVersions,
+  isBetaVersion,
+  parseReleaseTag,
+} from "@root/scripts/release-version.mjs";
+
 export type ReleaseDirection = "upgrade" | "current" | "downgrade";
 
 export interface AvailableRelease {
@@ -26,14 +32,6 @@ export interface GitHubRelease {
   assets: GitHubReleaseAsset[];
 }
 
-interface ParsedReleaseVersion {
-  major: number;
-  minor: number;
-  patch: number;
-  beta: number | null;
-  staging: number | null;
-}
-
 const RELEASES_URL =
   "https://api.github.com/repos/unicef/adt-studio/releases?per_page=100";
 const RELEASE_DOWNLOAD_URL =
@@ -43,52 +41,20 @@ const CACHE_TTL_MS = 5 * 60 * 1000;
 let releaseCache: { releases: GitHubRelease[]; expiresAt: number } | undefined;
 let releaseRequest: Promise<GitHubRelease[]> | undefined;
 
-export function parseReleaseVersion(
-  value: string,
-): ParsedReleaseVersion | null {
-  const match = value.match(
-    /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-beta(?:\.(0|[1-9]\d*)|-([1-9]\d*))?)?$/i,
-  );
-  if (!match) return null;
-
-  const major = Number(match[1]);
-  const minor = Number(match[2]);
-  const patch = Number(match[3]);
-  const beta =
-    match[4] == null ? (/-beta/i.test(value) ? 0 : null) : Number(match[4]);
-  const staging = match[5] == null ? null : Number(match[5]);
-
-  if (
-    ![major, minor, patch, beta ?? 0, staging ?? 0].every(Number.isSafeInteger)
-  ) {
-    return null;
-  }
-
-  return { major, minor, patch, beta, staging };
-}
-
 export function isBetaReleaseVersion(value: string): boolean {
-  return parseReleaseVersion(value)?.beta != null;
+  const parsed = parseReleaseTag(value);
+  return parsed !== null && isBetaVersion(parsed);
 }
 
 export function compareReleaseVersions(left: string, right: string): number {
-  const a = parseReleaseVersion(left);
-  const b = parseReleaseVersion(right);
+  const a = parseReleaseTag(left);
+  const b = parseReleaseTag(right);
   if (!a || !b) {
     throw new Error(
       `Cannot compare invalid release versions: ${left}, ${right}`,
     );
   }
-
-  for (const key of ["major", "minor", "patch"] as const) {
-    if (a[key] !== b[key]) return a[key] - b[key];
-  }
-
-  if (a.beta == null && b.beta == null) return 0;
-  if (a.beta == null) return 1;
-  if (b.beta == null) return -1;
-  if (a.beta !== b.beta) return a.beta - b.beta;
-  return (a.staging ?? 0) - (b.staging ?? 0);
+  return compareParsedReleaseVersions(a, b);
 }
 
 export function createBetaReleaseCatalog(
@@ -96,7 +62,7 @@ export function createBetaReleaseCatalog(
   currentVersion: string,
   platform: NodeJS.Platform,
 ): BetaRelease[] {
-  if (!parseReleaseVersion(currentVersion)) return [];
+  if (!parseReleaseTag(currentVersion)) return [];
 
   return releases
     .flatMap((release): BetaRelease[] => {
