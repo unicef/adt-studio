@@ -149,6 +149,12 @@ export {
 } from "./toc-generation.js"
 export { validateSectionHtml } from "./validate-html.js"
 export {
+  propagateSectioningTextToRendering,
+  type PropagateResult,
+  type SkippedSection,
+  type SectionSkipReason,
+} from "./propagate-sectioning-text.js"
+export {
   generateQuiz,
   generateAllQuizzes,
   buildQuizGenerationConfig,
