@@ -14,11 +14,13 @@ import {
   FlaskConical,
   Loader2,
   RefreshCw,
+  Search,
   TriangleAlert,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import type { AvailableRelease, UpdateStatus } from "@/hooks/use-update-status"
 import {
   useBetaUpdateVersions,
@@ -27,6 +29,7 @@ import {
 import { cn, formatBytes } from "@/lib/utils"
 import { formatVersion } from "./release-banner-utils"
 import { ReleaseNotesMarkdown } from "./ReleaseNotesMarkdown"
+import { ReleaseSourceCard } from "./ReleaseSourceCard"
 
 interface BetaVersionsViewProps {
   status: UpdateStatus
@@ -48,6 +51,7 @@ export function BetaVersionsView({
 }: BetaVersionsViewProps) {
   const { t, i18n } = useLingui()
   const [selectedVersion, setSelectedVersion] = useState<string>()
+  const [search, setSearch] = useState("")
   const versionsQuery = useBetaUpdateVersions(currentVersion)
   const installMutation = useInstallBetaVersion()
   const versions = versionsQuery.data ?? EMPTY_RELEASES
@@ -79,9 +83,13 @@ export function BetaVersionsView({
     () => versions.find((release) => release.version === selectedVersion),
     [selectedVersion, versions],
   )
+  const filteredVersions = useMemo(
+    () => filterVersionsByQuery(versions, search),
+    [versions, search],
+  )
   const groupedVersions = useMemo(
-    () => groupVersionsByReleaseDate(versions),
-    [versions],
+    () => groupVersionsByReleaseDate(filteredVersions),
+    [filteredVersions],
   )
 
   const startInstall = () => {
@@ -113,9 +121,22 @@ export function BetaVersionsView({
       </div>
 
       <div className="grid min-h-0 flex-1 sm:grid-cols-[18rem_minmax(0,1fr)]">
-        <div className="min-h-0 border-b  sm:border-b-0 sm:border-r">
+        <div className="flex min-h-0 flex-col border-b sm:border-b-0 sm:border-r">
+          {!loading && versions.length > 0 && (
+            <div className="shrink-0 border-b px-3 pt-3 pb-2">
+              <Input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t`Search versions…`}
+                aria-label={t`Search versions`}
+                prependIcon={<Search className="h-3.5 w-3.5" aria-hidden="true" />}
+                className="h-8 text-[13px]"
+              />
+            </div>
+          )}
           <div
-            className="max-h-40 overflow-auto py-4 px-2 sm:max-h-none sm:h-[calc(100%-2.5rem)]"
+            className="max-h-40 overflow-auto py-4 px-2 sm:max-h-none sm:flex-1"
             aria-label={t`Available beta versions`}
             aria-busy={versionsQuery.isFetching}
           >
@@ -128,6 +149,19 @@ export function BetaVersionsView({
               <p className="px-3 py-6 text-sm text-muted-foreground">
                 <Trans>No beta versions are available for this platform.</Trans>
               </p>
+            ) : filteredVersions.length === 0 ? (
+              <div className="px-3 py-6 text-center text-sm text-muted-foreground">
+                <p>
+                  <Trans>No versions match your search.</Trans>
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="mt-1 cursor-pointer text-xs font-medium text-muted-foreground transition-colors hover:text-foreground hover:underline"
+                >
+                  <Trans>Clear search</Trans>
+                </button>
+              </div>
             ) : (
               <div className="space-y-6">
                 {groupedVersions.map((group) => (
@@ -198,6 +232,9 @@ export function BetaVersionsView({
               )}
 
               <div className="min-h-0 flex-1 overflow-auto border-y px-5 py-4">
+                {selected.source && (
+                  <ReleaseSourceCard source={selected.source} />
+                )}
                 <h3 className="mb-3 text-sm font-semibold">
                   <Trans>Release notes</Trans>
                 </h3>
@@ -357,6 +394,18 @@ interface ReleaseDateGroup {
   kind: DateGroupKind
   month?: Dayjs
   releases: AvailableRelease[]
+}
+
+export function filterVersionsByQuery(
+  versions: AvailableRelease[],
+  query: string,
+): AvailableRelease[] {
+  const trimmed = query.trim().toLowerCase()
+  if (!trimmed) return versions
+  const needle = trimmed.startsWith("v") ? trimmed.slice(1) : trimmed
+  return versions.filter((release) =>
+    release.version.toLowerCase().includes(needle),
+  )
 }
 
 export function groupVersionsByReleaseDate(

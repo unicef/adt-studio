@@ -190,6 +190,38 @@ case-insensitive, and only the head commit of the push is inspected.
 Stable Docker releases update both their version tag and `latest`. Beta images
 publish only their version tag and cannot overwrite `latest`.
 
+### Beta release provenance
+
+For beta prereleases only, `finalize` generates release notes for the exact
+commit built by the desktop and Docker jobs, then appends a machine-readable,
+human-friendly final section with this grammar:
+
+```markdown
+### Release source
+
+- Branch: `develop`
+- Built from: [`<sha>`](https://github.com/unicef/adt-studio/commit/<sha>) <subject>
+- Last change: [`<sha>`](https://github.com/unicef/adt-studio/commit/<sha>) <subject>
+- PR [#<number>](https://github.com/unicef/adt-studio/pull/<number>) `<head>` → `<base>` by @<author> — <title>
+- Compare: [<previous-tag>...<tag>](https://github.com/unicef/adt-studio/compare/<previous-tag>...<tag>)
+```
+
+Missing values are omitted. The previous tag must be an ancestor of the build
+commit; numbered beta tags are preferred, with an ancestral stable tag as the
+fallback. The PR list is capped, while the Compare link covers the complete
+range.
+
+Do not edit `### Release source` by hand. It is a parsing contract and must
+remain the last section of the release body. Newer apps remove it from the
+ordinary release notes and show its fields in the Beta versions source card;
+older apps display it as normal Markdown. The updater also strips the HTML form
+rendered by GitHub's feed before showing update notes.
+
+If composition or provenance lookup fails, the workflow discards the temporary
+file and lets `gh release create --generate-notes` produce the release normally.
+Stable releases do not run the composer and retain their existing generated-note
+behavior.
+
 ## Desktop channels
 
 Beta and stable are separate desktop products and can be installed together.

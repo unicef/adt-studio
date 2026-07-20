@@ -69,7 +69,7 @@ export function UpdateDialog({
       <DialogContent
         className={cn(
           "gap-0 overflow-hidden p-0",
-          showBetaVersions ? "sm:max-w-5xl" : "sm:max-w-125",
+          showBetaVersions ? "sm:max-w-7xl" : "sm:max-w-125",
         )}
       >
         <DialogDescription className="sr-only">

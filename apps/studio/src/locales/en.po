@@ -1474,6 +1474,9 @@ msgstr "Borders"
 msgid "Boxed Text"
 msgstr "Boxed Text"
 
+msgid "Branch"
+msgstr "Branch"
+
 msgid "Branch out"
 msgstr "Branch out"
 
@@ -1518,6 +1521,9 @@ msgstr "Builds a glossary of key terms and definitions found in the text."
 
 msgid "Builds the table of contents from the book's sections."
 msgstr "Builds the table of contents from the book's sections."
+
+msgid "Built from"
+msgstr "Built from"
 
 msgid "Bundles the rendered book into a deployable web package."
 msgstr "Bundles the rendered book into a deployable web package."
@@ -3781,6 +3787,9 @@ msgstr "Large images, narrative flow. Best for illustrated books with high-fidel
 #~ msgid "Last"
 #~ msgstr "Last"
 
+msgid "Last change"
+msgstr "Last change"
+
 msgid "Last modified"
 msgstr "Last modified"
 
@@ -4657,6 +4666,9 @@ msgstr "No versions"
 msgid "No versions found for {node} / {itemId}"
 msgstr "No versions found for {node} / {itemId}"
 
+msgid "No versions match your search."
+msgstr "No versions match your search."
+
 msgid "No videos assigned yet"
 msgstr "No videos assigned yet"
 
@@ -4786,6 +4798,12 @@ msgstr "Open a page to review"
 msgid "Open a page to see page-level findings"
 msgstr "Open a page to see page-level findings"
 
+msgid "Open commit {shortSha}"
+msgstr "Open commit {shortSha}"
+
+msgid "Open comparison"
+msgstr "Open comparison"
+
 msgid "Open edit panel"
 msgstr "Open edit panel"
 
@@ -4800,6 +4818,10 @@ msgstr "Open page preview for {pageId}"
 
 msgid "Open Preview"
 msgstr "Open Preview"
+
+#. placeholder {0}: pr.number
+msgid "Open pull request {0}"
+msgstr "Open pull request {0}"
 
 msgid "Open source PDF in a new tab"
 msgstr "Open source PDF in a new tab"
@@ -6227,6 +6249,12 @@ msgstr "Search style guides..."
 
 msgid "Search terms or definitions…"
 msgstr "Search terms or definitions…"
+
+msgid "Search versions"
+msgstr "Search versions"
+
+msgid "Search versions…"
+msgstr "Search versions…"
 
 msgid "Search..."
 msgstr "Search..."
@@ -7854,6 +7882,9 @@ msgstr "videos"
 
 msgid "Videos"
 msgstr "Videos"
+
+msgid "View all changes"
+msgstr "View all changes"
 
 msgid "View HTML source"
 msgstr "View HTML source"

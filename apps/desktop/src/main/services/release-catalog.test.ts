@@ -1,12 +1,33 @@
 import { describe, expect, it } from "vitest";
+import { formatReleaseSourceSection } from "@root/scripts/release-source-notes.mjs";
 import {
   betaReleaseDownloadUrl,
   compareReleaseVersions,
   createBetaReleaseCatalog,
   isBetaReleaseVersion,
+  parseGitHubRelease,
   type GitHubReleaseAsset,
   type GitHubRelease,
 } from "./release-catalog";
+
+const releaseSource = {
+  branch: "develop",
+  buildCommit: {
+    sha: "1a2b3c4",
+    url: "https://github.com/unicef/adt-studio/commit/1a2b3c4",
+    subject: "RELEASE: beta",
+  },
+  prs: [
+    {
+      number: 123,
+      url: "https://github.com/unicef/adt-studio/pull/123",
+      headRef: "feat/source",
+      baseRef: "develop",
+      author: "alice",
+      title: "Show release source",
+    },
+  ],
+};
 
 function release(
   tagName: string,
@@ -25,6 +46,30 @@ function release(
 }
 
 describe("release catalog version handling", () => {
+  it("parses release provenance and removes its markdown section", () => {
+    const body = `# Changes\n\n- Added provenance\n\n${formatReleaseSourceSection(releaseSource)}`;
+    const [parsed] = parseGitHubRelease({
+      tag_name: "v0.8.0-beta.1",
+      draft: false,
+      body,
+      assets: [],
+    });
+
+    expect(parsed.releaseNotes).toBe("# Changes\n\n- Added provenance");
+    expect(parsed.releaseNotes).not.toContain("Release source");
+    expect(parsed.source).toEqual(releaseSource);
+  });
+
+  it("leaves release bodies without provenance untouched", () => {
+    const body = "# Changes\n\nOrdinary release notes";
+    const [parsed] = parseGitHubRelease({
+      tag_name: "v0.8.0-beta.1",
+      body,
+    });
+    expect(parsed.releaseNotes).toBe(body);
+    expect(parsed.source).toBeUndefined();
+  });
+
   it("orders beta increments independently of a stable release", () => {
     expect(
       compareReleaseVersions("0.7.4-beta.5", "0.7.4-beta.1"),
@@ -96,6 +141,17 @@ describe("release catalog version handling", () => {
     );
 
     expect(entry.updaterChannel).toBe("beta");
+  });
+
+  it("propagates provenance into beta catalog entries", () => {
+    const candidate = release("v0.7.4-beta.5");
+    candidate.source = releaseSource;
+    const [entry] = createBetaReleaseCatalog(
+      [candidate],
+      "v0.7.4-beta.1",
+      "win32",
+    );
+    expect(entry.source).toEqual(releaseSource);
   });
 
   it("excludes releases without updater metadata for the current platform", () => {

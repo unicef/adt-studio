@@ -5,6 +5,7 @@ import {
   type ProgressInfo,
   type UpdateInfo,
 } from "electron-updater";
+import { stripReleaseSourceSection } from "@root/scripts/release-source-notes.mjs";
 import {
   betaReleaseDownloadUrl,
   fetchBetaReleaseCatalog,
@@ -52,11 +53,16 @@ function normalizeReleaseNotes(
   notes: UpdateInfo["releaseNotes"],
 ): string | undefined {
   if (!notes) return undefined;
-  if (typeof notes === "string") return notes;
-  return notes
-    .map((entry) => (typeof entry === "string" ? entry : (entry.note ?? "")))
-    .filter(Boolean)
-    .join("\n\n");
+  const normalized =
+    typeof notes === "string"
+      ? notes
+      : notes
+          .map((entry) =>
+            typeof entry === "string" ? entry : (entry.note ?? ""),
+          )
+          .filter(Boolean)
+          .join("\n\n");
+  return stripReleaseSourceSection(normalized);
 }
 
 function emit(status: UpdateStatus): void {

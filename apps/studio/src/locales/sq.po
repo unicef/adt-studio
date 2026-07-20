@@ -1475,6 +1475,9 @@ msgstr "Kufij"
 msgid "Boxed Text"
 msgstr "Tekst i inkuadruar"
 
+msgid "Branch"
+msgstr "Dega"
+
 msgid "Branch out"
 msgstr "Zgjero"
 
@@ -1519,6 +1522,9 @@ msgstr "Ndërton një glosar me termat kryesorë dhe përkufizimet e gjetura në
 
 msgid "Builds the table of contents from the book's sections."
 msgstr "Ndërton tabelën e përmbajtjes nga seksionet e librit."
+
+msgid "Built from"
+msgstr "Ndërtuar nga"
 
 msgid "Bundles the rendered book into a deployable web package."
 msgstr "Paketonn librin e renderuar në një paketë ueb të vendosshme."
@@ -3782,6 +3788,9 @@ msgstr "Imazhe të mëdha, rrjedhje narrative. Më i miri për libra të ilustru
 #~ msgid "Last"
 #~ msgstr "I fundit"
 
+msgid "Last change"
+msgstr "Ndryshimi i fundit"
+
 msgid "Last modified"
 msgstr "Modifikuar së fundmi"
 
@@ -4658,6 +4667,9 @@ msgstr "Nuk ka versione"
 msgid "No versions found for {node} / {itemId}"
 msgstr "Nuk u gjetën versione për {node} / {itemId}"
 
+msgid "No versions match your search."
+msgstr "Asnjë version nuk përputhet me kërkimin tuaj."
+
 msgid "No videos assigned yet"
 msgstr "Nuk ka ende video të caktuara"
 
@@ -4787,6 +4799,12 @@ msgstr "Hapni një faqe për rishikim"
 msgid "Open a page to see page-level findings"
 msgstr "Hapni një faqe për të parë gjetjet në nivel faqeje"
 
+msgid "Open commit {shortSha}"
+msgstr "Hap commit-in {shortSha}"
+
+msgid "Open comparison"
+msgstr "Hap krahasimin"
+
 msgid "Open edit panel"
 msgstr "Hapni panelin e redaktimit"
 
@@ -4801,6 +4819,10 @@ msgstr "Hapni pamjen paraprake të faqes për {pageId}"
 
 msgid "Open Preview"
 msgstr "Hapni Pamjen Paraprake"
+
+#. placeholder {0}: pr.number
+msgid "Open pull request {0}"
+msgstr "Hap pull request-in {0}"
 
 msgid "Open source PDF in a new tab"
 msgstr "Hapni PDF-in burimor në një skedë të re"
@@ -6228,6 +6250,12 @@ msgstr "Kërko udhëzues stili..."
 
 msgid "Search terms or definitions…"
 msgstr "Kërko terma ose përkufizime…"
+
+msgid "Search versions"
+msgstr "Kërko versione"
+
+msgid "Search versions…"
+msgstr "Kërko versione…"
 
 msgid "Search..."
 msgstr "Kërko..."
@@ -7855,6 +7883,9 @@ msgstr "video"
 
 msgid "Videos"
 msgstr "Video"
+
+msgid "View all changes"
+msgstr "Shiko të gjitha ndryshimet"
 
 msgid "View HTML source"
 msgstr "Shiko burimin HTML"

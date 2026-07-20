@@ -300,6 +300,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: write
+      pull-requests: read
     outputs:
       tag: ${{ needs.prepare.outputs.tag }}
       version: ${{ needs.prepare.outputs.version }}
@@ -308,6 +309,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.RELEASE_PAT }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
       - name: Restore staged release metadata
         uses: actions/download-artifact@v4
@@ -321,6 +327,23 @@ jobs:
           pattern: installers-*
           path: dist
           merge-multiple: true # flatten the per-OS artifacts into one dir
+
+      - name: Compose beta release notes
+        if: needs.prepare.outputs.prerelease == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          TRIGGER_SHA: ${{ github.sha }}
+        run: |
+          rm -f release-notes.tmp release-notes.md
+          if node scripts/compose-release-notes.mjs > release-notes.tmp && [ -s release-notes.tmp ]; then
+            mv release-notes.tmp release-notes.md
+          else
+            rm -f release-notes.tmp release-notes.md
+            echo "::warning::Could not compose release notes; gh release create will generate them."
+          fi
 
       - name: Commit release metadata and push tag
         id: commit
@@ -357,9 +380,13 @@ jobs:
         run: |
           PRERELEASE_FLAG=""
           [[ "$PRERELEASE" == "true" ]] && PRERELEASE_FLAG="--prerelease"
+          NOTES_ARGS=(--generate-notes)
+          if [[ "$PRERELEASE" == "true" && -s release-notes.md ]]; then
+            NOTES_ARGS=(--notes-file release-notes.md)
+          fi
           gh release create "$TAG" --repo "$REPO" \
             --title "ADT Studio $TAG" \
-            --generate-notes $PRERELEASE_FLAG \
+            "${NOTES_ARGS[@]}" $PRERELEASE_FLAG \
             dist/* \
             docker-compose.yml \
             scripts/windows-setup-and-run.bat

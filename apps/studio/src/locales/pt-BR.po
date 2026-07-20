@@ -1474,6 +1474,9 @@ msgstr "Bordas"
 msgid "Boxed Text"
 msgstr "Texto em caixa"
 
+msgid "Branch"
+msgstr "Branch"
+
 msgid "Branch out"
 msgstr "Ramificar"
 
@@ -1518,6 +1521,9 @@ msgstr "Cria um glossário de termos-chave e definições encontrados no texto."
 
 msgid "Builds the table of contents from the book's sections."
 msgstr "Cria o índice a partir das seções do livro."
+
+msgid "Built from"
+msgstr "Compilado a partir de"
 
 msgid "Bundles the rendered book into a deployable web package."
 msgstr "Agrupa o livro renderizado em um pacote web implantável."
@@ -3781,6 +3787,9 @@ msgstr "Imagens grandes, fluxo narrativo. Melhor para livros ilustrados com voze
 #~ msgid "Last"
 #~ msgstr "Última"
 
+msgid "Last change"
+msgstr "Última alteração"
+
 msgid "Last modified"
 msgstr "Última modificação"
 
@@ -4657,6 +4666,9 @@ msgstr "Sem versões"
 msgid "No versions found for {node} / {itemId}"
 msgstr "Nenhuma versão encontrada para {node} / {itemId}"
 
+msgid "No versions match your search."
+msgstr "Nenhuma versão corresponde à sua busca."
+
 msgid "No videos assigned yet"
 msgstr "Nenhum vídeo atribuído ainda"
 
@@ -4786,6 +4798,12 @@ msgstr "Open a page to review"
 msgid "Open a page to see page-level findings"
 msgstr "Open a page to see page-level findings"
 
+msgid "Open commit {shortSha}"
+msgstr "Abrir commit {shortSha}"
+
+msgid "Open comparison"
+msgstr "Abrir comparação"
+
 msgid "Open edit panel"
 msgstr "Abrir painel de edição"
 
@@ -4800,6 +4818,10 @@ msgstr "Abrir pré-visualização da página {0}"
 
 msgid "Open Preview"
 msgstr "Open Preview"
+
+#. placeholder {0}: pr.number
+msgid "Open pull request {0}"
+msgstr "Abrir pull request {0}"
 
 msgid "Open source PDF in a new tab"
 msgstr "Abrir o PDF de origem em uma nova aba"
@@ -6227,6 +6249,12 @@ msgstr "Buscar guias de estilo..."
 
 msgid "Search terms or definitions…"
 msgstr "Buscar termos ou definições…"
+
+msgid "Search versions"
+msgstr "Buscar versões"
+
+msgid "Search versions…"
+msgstr "Buscar versões…"
 
 msgid "Search..."
 msgstr "Buscar..."
@@ -7854,6 +7882,9 @@ msgstr "vídeos"
 
 msgid "Videos"
 msgstr "Vídeos"
+
+msgid "View all changes"
+msgstr "Ver todas as alterações"
 
 msgid "View HTML source"
 msgstr "Ver código HTML"

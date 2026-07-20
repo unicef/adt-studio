@@ -90,7 +90,31 @@ interface ElectronAvailableRelease {
   releaseDate?: string
   releaseNotes?: string
   totalBytes?: number
+  source?: ElectronReleaseSource
   direction: "upgrade" | "current" | "downgrade"
+}
+
+interface ElectronReleaseSourcePullRequest {
+  number: number
+  url: string
+  headRef?: string
+  baseRef?: string
+  author?: string
+  title?: string
+}
+
+interface ElectronReleaseSourceCommit {
+  sha: string
+  url: string
+  subject?: string
+}
+
+interface ElectronReleaseSource {
+  branch?: string
+  buildCommit?: ElectronReleaseSourceCommit
+  changeCommit?: ElectronReleaseSourceCommit
+  prs: ElectronReleaseSourcePullRequest[]
+  compare?: { label: string; url: string }
 }
 
 interface ElectronPostUpdateInfo {

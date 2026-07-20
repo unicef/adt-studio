@@ -36,6 +36,7 @@ vi.mock("@/components/ui/dialog", () => ({
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
+  vi.restoreAllMocks()
   Reflect.deleteProperty(window, "api")
 })
 
@@ -43,12 +44,35 @@ describe("BetaVersionsView", () => {
   it("shows release notes and allows selecting an older version", async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     vi.setSystemTime(new Date(2026, 6, 14, 12))
+    const open = vi.spyOn(window, "open").mockImplementation(() => null)
     const listVersions = vi.fn().mockResolvedValue([
       {
         version: "0.7.4-beta.3",
         direction: "upgrade",
         releaseDate: new Date(2026, 6, 14, 9).toISOString(),
         releaseNotes: "# Changes\n\n- Fixed the updater",
+        source: {
+          branch: "develop",
+          buildCommit: {
+            sha: "1a2b3c4d5e6f",
+            url: "https://github.com/unicef/adt-studio/commit/1a2b3c4d5e6f",
+            subject: "RELEASE: beta",
+          },
+          prs: [
+            {
+              number: 123,
+              url: "https://github.com/unicef/adt-studio/pull/123",
+              headRef: "feat/source",
+              baseRef: "develop",
+              author: "alice",
+              title: "Show release source",
+            },
+          ],
+          compare: {
+            label: "v0.7.4-beta.2...v0.7.4-beta.3",
+            url: "https://github.com/unicef/adt-studio/compare/v0.7.4-beta.2...v0.7.4-beta.3",
+          },
+        },
       },
       {
         version: "0.7.4-beta.2",
@@ -97,6 +121,18 @@ describe("BetaVersionsView", () => {
     )
 
     expect(await screen.findByText("Fixed the updater")).toBeTruthy()
+    expect(screen.getByRole("heading", { name: "Source" })).toBeTruthy()
+    expect(screen.getByText("feat/source → develop · @alice")).toBeTruthy()
+    const pullRequest = screen.getByRole("link", {
+      name: "Open pull request 123",
+    })
+    expect(pullRequest.textContent).toContain("#123 · Show release source")
+    fireEvent.click(screen.getByRole("link", { name: "Open comparison" }))
+    expect(open).toHaveBeenCalledWith(
+      "https://github.com/unicef/adt-studio/compare/v0.7.4-beta.2...v0.7.4-beta.3",
+      "_blank",
+      "noopener,noreferrer",
+    )
     expect(screen.getByText("Today")).toBeTruthy()
     expect(screen.getByText("Yesterday")).toBeTruthy()
     expect(screen.getByText("Last week")).toBeTruthy()
@@ -105,6 +141,7 @@ describe("BetaVersionsView", () => {
     expect(screen.queryByText(/Back up your books before downgrading/)).toBeNull()
     fireEvent.click(screen.getByText("v0.7.4-beta.2"))
     expect(screen.getByText("Current version")).toBeTruthy()
+    expect(screen.queryByRole("heading", { name: "Source" })).toBeNull()
     expect(screen.queryByText(/Back up your books before downgrading/)).toBeNull()
     fireEvent.click(screen.getByText("v0.7.4-beta.1"))
     expect(await screen.findByText("Previous behavior")).toBeTruthy()

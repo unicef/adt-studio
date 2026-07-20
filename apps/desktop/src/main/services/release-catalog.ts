@@ -3,6 +3,10 @@ import {
   isBetaVersion,
   parseReleaseTag,
 } from "@root/scripts/release-version.mjs";
+import {
+  parseReleaseSourceSection,
+  type ReleaseSource,
+} from "@root/scripts/release-source-notes.mjs";
 
 export type ReleaseDirection = "upgrade" | "current" | "downgrade";
 
@@ -11,6 +15,7 @@ export interface AvailableRelease {
   releaseDate?: string;
   releaseNotes?: string;
   totalBytes?: number;
+  source?: ReleaseSource;
   direction: ReleaseDirection;
 }
 
@@ -29,6 +34,7 @@ export interface GitHubRelease {
   draft: boolean;
   releaseDate?: string;
   releaseNotes?: string;
+  source?: ReleaseSource;
   assets: GitHubReleaseAsset[];
 }
 
@@ -78,6 +84,7 @@ export function createBetaReleaseCatalog(
           version,
           releaseDate: release.releaseDate,
           releaseNotes: release.releaseNotes,
+          source: release.source,
           totalBytes: installerSize(release.assets, platform),
           direction:
             comparison > 0
@@ -178,8 +185,13 @@ async function requestGitHubReleases(now: number): Promise<GitHubRelease[]> {
   return releases;
 }
 
-function parseGitHubRelease(value: unknown): GitHubRelease[] {
+export function parseGitHubRelease(value: unknown): GitHubRelease[] {
   if (!isRecord(value) || typeof value.tag_name !== "string") return [];
+
+  const parsedNotes =
+    typeof value.body === "string"
+      ? parseReleaseSourceSection(value.body)
+      : undefined;
 
   const assets = Array.isArray(value.assets)
     ? value.assets.flatMap((asset): GitHubReleaseAsset[] => {
@@ -199,7 +211,8 @@ function parseGitHubRelease(value: unknown): GitHubRelease[] {
       draft: value.draft === true,
       releaseDate:
         typeof value.published_at === "string" ? value.published_at : undefined,
-      releaseNotes: typeof value.body === "string" ? value.body : undefined,
+      releaseNotes: parsedNotes?.notes,
+      source: parsedNotes?.source,
       assets,
     },
   ];
