@@ -650,6 +650,9 @@ msgstr "About page grouping"
 msgid "About section mode"
 msgstr "About section mode"
 
+msgid "Accent color"
+msgstr "Accent color"
+
 msgid "Accent Prompt"
 msgstr "Accent Prompt"
 
@@ -730,6 +733,9 @@ msgstr "Activity Detection"
 
 msgid "Activity Rendering"
 msgstr "Activity Rendering"
+
+msgid "Activity saved"
+msgstr "Activity saved"
 
 msgid "Activity section types are available for classification and rendering."
 msgstr "Activity section types are available for classification and rendering."
@@ -885,6 +891,12 @@ msgstr "Add languages to translate the book content into."
 msgid "Add new font"
 msgstr "Add new font"
 
+msgid "Add option"
+msgstr "Add option"
+
+msgid "Add question"
+msgstr "Add question"
+
 msgid "Add quiz"
 msgstr "Add quiz"
 
@@ -899,6 +911,9 @@ msgstr "Add section"
 
 msgid "Add sizing field"
 msgstr "Add sizing field"
+
+msgid "Add step"
+msgstr "Add step"
 
 msgid "Add term"
 msgstr "Add term"
@@ -932,6 +947,9 @@ msgstr "Add your first book"
 
 msgid "Add your first term"
 msgstr "Add your first term"
+
+msgid "Add your OpenAI API key first"
+msgstr "Add your OpenAI API key first"
 
 msgid "added"
 msgstr "added"
@@ -1167,6 +1185,9 @@ msgstr "answer_key"
 msgid "Answers"
 msgstr "Answers"
 
+#~ msgid "Answers (separate alternatives with |)"
+#~ msgstr "Answers (separate alternatives with |)"
+
 msgid "Answers revealed in activities."
 msgstr "Answers revealed in activities."
 
@@ -1370,8 +1391,11 @@ msgstr "Back Cover"
 msgid "Back to books"
 msgstr "Back to books"
 
-msgid "Back to Editor"
-msgstr "Back to Editor"
+msgid "Back to classic activity"
+msgstr "Back to classic activity"
+
+#~ msgid "Back to Editor"
+#~ msgstr "Back to Editor"
 
 msgid "Back to preview"
 msgstr "Back to preview"
@@ -1437,6 +1461,9 @@ msgstr "Beta release"
 
 msgid "Bit Rate"
 msgstr "Bit Rate"
+
+msgid "Blank reference"
+msgstr "Blank reference"
 
 msgid "Blocked"
 msgstr "Blocked"
@@ -2019,6 +2046,9 @@ msgstr "Control which axe checks run during packaging for this document. Changes
 msgid "Controls how page content is grouped during the sectioning step."
 msgstr "Controls how page content is grouped during the sectioning step."
 
+msgid "Conversion failed"
+msgstr "Conversion failed"
+
 msgid "Conversion of light into chemical energy."
 msgstr "Conversion of light into chemical energy."
 
@@ -2028,8 +2058,17 @@ msgstr "Convert a PDF"
 msgid "Convert any textbook into an accessible digital edition — audio, structured layouts, translations, and sign-language, built in from the very first page."
 msgstr "Convert any textbook into an accessible digital edition — audio, structured layouts, translations, and sign-language, built in from the very first page."
 
+msgid "Convert to step-by-step"
+msgstr "Convert to step-by-step"
+
 msgid "Converted"
 msgstr "Converted"
+
+msgid "Converted to a step-by-step activity"
+msgstr "Converted to a step-by-step activity"
+
+msgid "Converting…"
+msgstr "Converting…"
 
 msgid "Copied"
 msgstr "Copied"
@@ -2051,6 +2090,9 @@ msgstr "Core Pipeline"
 
 msgid "Correct answer"
 msgstr "Correct answer"
+
+msgid "Correct answer (alternatives separated by |)"
+msgstr "Correct answer (alternatives separated by |)"
 
 msgid "Correct the metadata extracted from the document."
 msgstr "Correct the metadata extracted from the document."
@@ -2318,11 +2360,17 @@ msgstr "Delete element"
 msgid "Delete failed"
 msgstr "Delete failed"
 
+msgid "Delete option"
+msgstr "Delete option"
+
 msgid "Delete quiz"
 msgstr "Delete quiz"
 
 msgid "Delete section"
 msgstr "Delete section"
+
+msgid "Delete step"
+msgstr "Delete step"
 
 msgid "Delete this quiz"
 msgstr "Delete this quiz"
@@ -2627,6 +2675,9 @@ msgstr "Edit {0}"
 
 msgid "Edit & enrich"
 msgstr "Edit & enrich"
+
+msgid "Edit activity"
+msgstr "Edit activity"
 
 msgid "Edit book details"
 msgstr "Edit book details"
@@ -3027,6 +3078,15 @@ msgstr "Falls back to"
 msgid "Fast, consistent results with no AI cost"
 msgstr "Fast, consistent results with no AI cost"
 
+msgid "Feedback"
+msgstr "Feedback"
+
+msgid "Feedback generated — review it and save"
+msgstr "Feedback generated — review it and save"
+
+msgid "Feedback generation failed"
+msgstr "Feedback generation failed"
+
 msgid "Fig 3.1 — The water cycle: evaporation, condensation, precipitation."
 msgstr "Fig 3.1 — The water cycle: evaporation, condensation, precipitation."
 
@@ -3162,6 +3222,9 @@ msgstr "French"
 msgid "From attached fonts · Body text"
 msgstr "From attached fonts · Body text"
 
+msgid "From book"
+msgstr "From book"
+
 msgid "From page"
 msgstr "From page"
 
@@ -3233,6 +3296,9 @@ msgstr "Generate comprehension quizzes and activities based on the book content.
 
 msgid "Generate descriptive captions for every image in the book. Pick a reading level so captions match your audience, and add custom instructions if you want to nudge the tone or focus."
 msgstr "Generate descriptive captions for every image in the book. Pick a reading level so captions match your audience, and add custom instructions if you want to nudge the tone or focus."
+
+msgid "Generate feedback"
+msgstr "Generate feedback"
 
 msgid "Generate from pages"
 msgstr "Generate from pages"
@@ -3446,6 +3512,9 @@ msgstr "Highlights words in sync with the audio. Adds noticeable time to speech 
 msgid "Hill"
 msgstr "Hill"
 
+msgid "Hint when wrong (don't reveal the answer)"
+msgstr "Hint when wrong (don't reveal the answer)"
+
 msgid "História e Sociedade - Vol. 1"
 msgstr "História e Sociedade - Vol. 1"
 
@@ -3596,6 +3665,9 @@ msgstr "Image Segmentation Prompt"
 msgid "Image selection"
 msgstr "Image selection"
 
+msgid "Image size"
+msgstr "Image size"
+
 msgid "Image Translation"
 msgstr "Image Translation"
 
@@ -3733,6 +3805,9 @@ msgstr "Installing update…"
 msgid "Institution"
 msgstr "Institution"
 
+msgid "Instructions"
+msgstr "Instructions"
+
 msgid "Interactive"
 msgstr "Interactive"
 
@@ -3741,6 +3816,9 @@ msgstr "Interactive assessment questions"
 
 msgid "Interactive page: AI conversion from the original PDF."
 msgstr "Interactive page: AI conversion from the original PDF."
+
+msgid "Interactive step-by-step activity."
+msgstr "Interactive step-by-step activity."
 
 msgid "Intro"
 msgstr "Intro"
@@ -4319,6 +4397,9 @@ msgstr "Merging spreads…"
 msgid "Merging…"
 msgstr "Merging…"
 
+msgid "Message when correct (may include the answer)"
+msgstr "Message when correct (may include the answer)"
+
 msgid "Messages"
 msgstr "Messages"
 
@@ -4429,6 +4510,12 @@ msgstr "Most books are read one page at a time. If yours has an illustration tha
 
 msgid "Most used"
 msgstr "Most used"
+
+msgid "Move down"
+msgstr "Move down"
+
+msgid "Move up"
+msgstr "Move up"
 
 msgid "Multi-format publications"
 msgstr "Multi-format publications"
@@ -4959,6 +5046,12 @@ msgstr "OpenAI Voice"
 msgid "Operation failed"
 msgstr "Operation failed"
 
+msgid "Option columns"
+msgstr "Option columns"
+
+msgid "Option text"
+msgstr "Option text"
+
 msgid "Optional"
 msgstr "Optional"
 
@@ -4994,6 +5087,9 @@ msgstr "Optional. Terms added here are pinned to the glossary so they always app
 
 msgid "Optionally translate burned-in text inside images (signs, labels, callouts). Select the images to localize — leaving the list empty keeps images in the source language."
 msgstr "Optionally translate burned-in text inside images (signs, labels, callouts). Select the images to localize — leaving the list empty keeps images in the source language."
+
+msgid "Options — the selected radio marks the correct answer"
+msgstr "Options — the selected radio marks the correct answer"
 
 msgid "options are deterministic;"
 msgstr "options are deterministic;"
@@ -5596,6 +5692,13 @@ msgstr "Query param"
 msgid "question"
 msgstr "question"
 
+#. placeholder {0}: si + 1
+msgid "Question {0}"
+msgstr "Question {0}"
+
+msgid "Question prompt"
+msgstr "Question prompt"
+
 msgid "queued"
 msgstr "queued"
 
@@ -5873,6 +5976,9 @@ msgstr "Remove font {0}"
 msgid "Remove from group"
 msgstr "Remove from group"
 
+msgid "Remove image"
+msgstr "Remove image"
+
 msgid "Remove manual glossary term"
 msgstr "Remove manual glossary term"
 
@@ -5927,6 +6033,9 @@ msgstr "Replace from book"
 
 msgid "Replace from Book"
 msgstr "Replace from Book"
+
+msgid "Replace image"
+msgstr "Replace image"
 
 msgid "Replace PDF"
 msgstr "Replace PDF"
@@ -6269,6 +6378,9 @@ msgstr "Save & Re-run"
 #~ msgid "Save & Rerun Translations"
 #~ msgstr "Save & Rerun Translations"
 
+msgid "Save activity"
+msgstr "Save activity"
+
 msgid "Save changes"
 msgstr "Save changes"
 
@@ -6598,6 +6710,9 @@ msgstr "Self-contained ADT web app"
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Send this project archive back to the coordinator to merge into the source book."
 
+msgid "Sentence with blank markers"
+msgstr "Sentence with blank markers"
+
 msgid "Separator"
 msgstr "Separator"
 
@@ -6794,6 +6909,9 @@ msgstr "slide"
 #. placeholder {0}: i + 1
 msgid "Slide {0}"
 msgstr "Slide {0}"
+
+msgid "Small"
+msgstr "Small"
 
 msgid "Smart Cropping"
 msgstr "Smart Cropping"
@@ -6994,6 +7112,10 @@ msgstr "Stay"
 msgid "Step"
 msgstr "Step"
 
+#. placeholder {0}: si + 1
+msgid "Step {0}"
+msgstr "Step {0}"
+
 #. placeholder {0}: STEPS.length
 msgid "Step {step} of {0}"
 msgstr "Step {step} of {0}"
@@ -7003,6 +7125,21 @@ msgstr "Step failed"
 
 msgid "Step run failed"
 msgstr "Step run failed"
+
+#~ msgid "Step-by-step"
+#~ msgstr "Step-by-step"
+
+msgid "Step-by-step activity"
+msgstr "Step-by-step activity"
+
+msgid "Step-by-step activity preview"
+msgstr "Step-by-step activity preview"
+
+#~ msgid "Step-by-step activity: edit the structured content below."
+#~ msgstr "Step-by-step activity: edit the structured content below."
+
+msgid "Steps"
+msgstr "Steps"
 
 msgid "Stop step"
 msgstr "Stop step"
@@ -7117,6 +7254,9 @@ msgstr "Sun"
 
 msgid "SW"
 msgstr "SW"
+
+msgid "Switching presentation failed"
+msgstr "Switching presentation failed"
 
 msgid "Symbiosis"
 msgstr "Symbiosis"
@@ -7377,6 +7517,9 @@ msgstr "The rendering strategy used for sections without an explicit mapping."
 
 msgid "The river meets the sea"
 msgstr "The river meets the sea"
+
+msgid "The section was edited after conversion — switch back to classic and convert again to refresh the steps."
+msgstr "The section was edited after conversion — switch back to classic and convert again to refresh the steps."
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
@@ -8289,6 +8432,13 @@ msgstr "Wraps 'Edit this image' requests. The AI receives the original image alo
 
 msgid "Wraps 'Generate new' requests. Supports user_prompt, style, and image_type variables. Uses Liquid syntax for conditionals."
 msgstr "Wraps 'Generate new' requests. Supports user_prompt, style, and image_type variables. Uses Liquid syntax for conditionals."
+
+msgid "Write correct/incorrect feedback for every step with AI"
+msgstr "Write correct/incorrect feedback for every step with AI"
+
+#. placeholder {0}: `[[blank:item-${n}]]`
+msgid "Write your sentence with a {0} marker."
+msgstr "Write your sentence with a {0} marker."
 
 msgid "You can export at this stage"
 msgstr "You can export at this stage"

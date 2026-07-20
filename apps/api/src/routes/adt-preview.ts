@@ -41,6 +41,11 @@ import {
   isFixedLayoutBook,
   resolveReflowableFontChain,
   getRenderSectioning,
+  readEditableActivities,
+  enabledEditableActivity,
+  renderEditableActivityHtml,
+  resolveEditableActivityImages,
+  DEFAULT_QUIZ_PALETTE,
 } from "@adt/pipeline"
 
 // ---------------------------------------------------------------------------
@@ -1003,25 +1008,51 @@ export function createAdtPreviewRoutes(
       const sectionMeta = sectioning
         ? sectioning.sections[targetSectionIndex]
         : undefined
-      const preferredImageAltMap = buildPreferredImageAltMap(storage, ownerPageId, sectionMeta)
-      const decorativeImageIds = buildDecorativeImageIdSet(storage, ownerPageId)
-      const { html: previewSectionHtml } = rewriteImageUrls(
-        renderedSection.html,
-        label,
-        new Map<string, string>(),
-        preferredImageAltMap,
-        decorativeImageIds,
+
+      // Step-by-step override: an enabled editable activity replaces the
+      // stored LLM HTML with the stepper shell, matching packaged output.
+      const stepperActivity = enabledEditableActivity(
+        readEditableActivities(storage, ownerPageId),
+        targetSectionIndex,
+        renderedSection.sectionType,
       )
 
-      const previewHasMath = /(?:\\\(|\\\)|\\\[|\\\]|\$[^$]+\$|\\frac|\\sqrt|\\sum|\\int|\\text\{|\\hat\{|\\circ)/.test(previewSectionHtml)
+      const preferredImageAltMap = buildPreferredImageAltMap(storage, ownerPageId, sectionMeta)
+      const decorativeImageIds = buildDecorativeImageIdSet(storage, ownerPageId)
+      let previewSectionHtml: string
+      if (stepperActivity) {
+        const stepperPalette =
+          ((config.quiz_generation?.match_book_style ?? true)
+            ? resolveQuizPalette(storage)
+            : null) ?? DEFAULT_QUIZ_PALETTE
+        // Empty image map (preview serves stored srcs directly) but the same
+        // curated alt/decorative handling as packaged output.
+        const resolved = resolveEditableActivityImages(stepperActivity, new Map(), {
+          preferredAltMap: preferredImageAltMap,
+          decorativeImageIds,
+        })
+        previewSectionHtml = renderEditableActivityHtml(resolved.activity, {
+          palette: stepperPalette,
+        })
+      } else {
+        ;({ html: previewSectionHtml } = rewriteImageUrls(
+          renderedSection.html,
+          label,
+          new Map<string, string>(),
+          preferredImageAltMap,
+          decorativeImageIds,
+        ))
+      }
+
+      const previewHasMath = !stepperActivity && /(?:\\\(|\\\)|\\\[|\\\]|\$[^$]+\$|\\frac|\\sqrt|\\sum|\\int|\\text\{|\\hat\{|\\circ)/.test(previewSectionHtml)
 
       const html = renderPageHtml({
-        content: convertLatexToMathml(previewSectionHtml),
+        content: stepperActivity ? previewSectionHtml : convertLatexToMathml(previewSectionHtml),
         language,
         sectionId: pageId,
         pageTitle: title,
         pageIndex: manifestIndex >= 0 ? manifestIndex + 1 : 1,
-        activityAnswers: renderedSection.activityAnswers,
+        activityAnswers: stepperActivity ? undefined : renderedSection.activityAnswers,
         hasMath: previewHasMath,
         bundleVersion: previewBundleVersion,
         applyBodyBackground,

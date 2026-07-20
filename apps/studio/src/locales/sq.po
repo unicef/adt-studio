@@ -651,6 +651,9 @@ msgstr "Grupimi i faqes informative"
 msgid "About section mode"
 msgstr "Modaliteti i seksionit informativ"
 
+msgid "Accent color"
+msgstr "Ngjyra e theksit"
+
 msgid "Accent Prompt"
 msgstr "Prompt Akcenti"
 
@@ -731,6 +734,9 @@ msgstr "Zbulimi i Aktivitetit"
 
 msgid "Activity Rendering"
 msgstr "Renderimi i Aktivitetit"
+
+msgid "Activity saved"
+msgstr "Aktiviteti u ruajt"
 
 msgid "Activity section types are available for classification and rendering."
 msgstr "Llojet e seksioneve të aktiviteteve janë të disponueshme për klasifikim dhe renderim."
@@ -886,6 +892,12 @@ msgstr "Shto gjuhë për të përkthyer përmbajtjen e librit."
 msgid "Add new font"
 msgstr "Shto font të ri"
 
+msgid "Add option"
+msgstr "Shto opsion"
+
+msgid "Add question"
+msgstr "Shto pyetje"
+
 msgid "Add quiz"
 msgstr "Shto kuiz"
 
@@ -900,6 +912,9 @@ msgstr "Shto seksion"
 
 msgid "Add sizing field"
 msgstr "Shto fushë madhësie"
+
+msgid "Add step"
+msgstr "Shto hap"
 
 msgid "Add term"
 msgstr "Shto term"
@@ -933,6 +948,9 @@ msgstr "Shto librin tuaj të parë"
 
 msgid "Add your first term"
 msgstr "Shto termin tuaj të parë"
+
+msgid "Add your OpenAI API key first"
+msgstr "Shtoni fillimisht çelësin tuaj API të OpenAI"
 
 msgid "added"
 msgstr "shtuar"
@@ -1168,6 +1186,9 @@ msgstr "answer_key"
 msgid "Answers"
 msgstr "Përgjigjet"
 
+#~ msgid "Answers (separate alternatives with |)"
+#~ msgstr "Përgjigjet (ndani alternativat me |)"
+
 msgid "Answers revealed in activities."
 msgstr "Përgjigjet që shfaqen në aktivitete."
 
@@ -1371,8 +1392,11 @@ msgstr "Kapaku i pasëm"
 msgid "Back to books"
 msgstr "Kthehu te librat"
 
-msgid "Back to Editor"
-msgstr "Kthehu te redaktori"
+msgid "Back to classic activity"
+msgstr "Kthehu te aktiviteti klasik"
+
+#~ msgid "Back to Editor"
+#~ msgstr "Kthehu te redaktori"
 
 msgid "Back to preview"
 msgstr "Kthehu te pamja paraprake"
@@ -1438,6 +1462,9 @@ msgstr "Version beta"
 
 msgid "Bit Rate"
 msgstr "Shpejtësia e bitit"
+
+msgid "Blank reference"
+msgstr "Referenca e vendit bosh"
 
 msgid "Blocked"
 msgstr "Bllokuar"
@@ -2020,6 +2047,9 @@ msgstr "Kontrolloni cilat kontrolle axe ekzekutohen gjatë paketimit për këtë
 msgid "Controls how page content is grouped during the sectioning step."
 msgstr "Kontrollon si grupohet përmbajtja e faqes gjatë hapit të seksionimit."
 
+msgid "Conversion failed"
+msgstr "Konvertimi dështoi"
+
 msgid "Conversion of light into chemical energy."
 msgstr "Shndërrimi i dritës në energji kimike."
 
@@ -2029,8 +2059,17 @@ msgstr "Konverto një PDF"
 msgid "Convert any textbook into an accessible digital edition — audio, structured layouts, translations, and sign-language, built in from the very first page."
 msgstr "Konverto çdo tekst shkollor në një botim dixhital të aksesueshëm — audio, faqosje të strukturuara, përkthime dhe gjuhë shenjash, të integruara që nga faqja e parë."
 
+msgid "Convert to step-by-step"
+msgstr "Konverto në hap pas hapi"
+
 msgid "Converted"
 msgstr "Konvertuar"
+
+msgid "Converted to a step-by-step activity"
+msgstr "U konvertua në aktivitet hap pas hapi"
+
+msgid "Converting…"
+msgstr "Duke konvertuar…"
 
 msgid "Copied"
 msgstr "Kopjuar"
@@ -2052,6 +2091,9 @@ msgstr "Zinxhiri Kryesor"
 
 msgid "Correct answer"
 msgstr "Përgjigje e saktë"
+
+msgid "Correct answer (alternatives separated by |)"
+msgstr "Përgjigja e saktë (alternativat ndahen me |)"
 
 msgid "Correct the metadata extracted from the document."
 msgstr "Korrigjoni meta të dhënat e nxjerra nga dokumenti."
@@ -2319,11 +2361,17 @@ msgstr "Fshi elementin"
 msgid "Delete failed"
 msgstr "Fshirja dështoi"
 
+msgid "Delete option"
+msgstr "Fshi opsionin"
+
 msgid "Delete quiz"
 msgstr "Fshi kuizin"
 
 msgid "Delete section"
 msgstr "Fshi seksionin"
+
+msgid "Delete step"
+msgstr "Fshi hapin"
 
 msgid "Delete this quiz"
 msgstr "Fshi këtë kuiz"
@@ -2628,6 +2676,9 @@ msgstr "Redakto {0}"
 
 msgid "Edit & enrich"
 msgstr "Redakto dhe pasuro"
+
+msgid "Edit activity"
+msgstr "Modifiko aktivitetin"
 
 msgid "Edit book details"
 msgstr "Modifiko detajet e librit"
@@ -3028,6 +3079,15 @@ msgstr "Kthehet te"
 msgid "Fast, consistent results with no AI cost"
 msgstr "Rezultate të shpejta dhe konsistente pa kosto AI"
 
+msgid "Feedback"
+msgstr "Reagimi"
+
+msgid "Feedback generated — review it and save"
+msgstr "Reagimi u gjenerua — rishikojeni dhe ruajeni"
+
+msgid "Feedback generation failed"
+msgstr "Gjenerimi i reagimit dështoi"
+
 msgid "Fig 3.1 — The water cycle: evaporation, condensation, precipitation."
 msgstr "Fig 3.1 — Cikli i ujit: avullim, kondensim, reshje."
 
@@ -3163,6 +3223,9 @@ msgstr "Frëngjisht"
 msgid "From attached fonts · Body text"
 msgstr "Nga fontet e bashkëngjitura · Teksti kryesor"
 
+msgid "From book"
+msgstr "Nga libri"
+
 msgid "From page"
 msgstr "Nga faqja"
 
@@ -3234,6 +3297,9 @@ msgstr "Gjenero kuize dhe aktivitete të kuptimit bazuar në përmbajtjen e libr
 
 msgid "Generate descriptive captions for every image in the book. Pick a reading level so captions match your audience, and add custom instructions if you want to nudge the tone or focus."
 msgstr "Gjenero tituj përshkrues për çdo imazh në libër. Zgjidh një nivel leximi që titujt të përputhen me audiencën tuaj dhe shto udhëzime të personalizuara nëse doni të ndikoni tonin ose fokusimin."
+
+msgid "Generate feedback"
+msgstr "Gjenero reagimin"
 
 msgid "Generate from pages"
 msgstr "Gjenero nga faqet"
@@ -3447,6 +3513,9 @@ msgstr "Thekson fjalët në sinkronizim me audion. Shton kohë të dukshme në g
 msgid "Hill"
 msgstr "Kodër"
 
+msgid "Hint when wrong (don't reveal the answer)"
+msgstr "Këshillë kur gabon (mos e zbulo përgjigjen)"
+
 msgid "História e Sociedade - Vol. 1"
 msgstr "História e Sociedade - Vol. 1"
 
@@ -3597,6 +3666,9 @@ msgstr "Prompt i Segmentimit të Imazheve"
 msgid "Image selection"
 msgstr "Zgjedhja e imazhit"
 
+msgid "Image size"
+msgstr "Madhësia e imazhit"
+
 msgid "Image Translation"
 msgstr "Përkthimi i Imazheve"
 
@@ -3734,6 +3806,9 @@ msgstr "Duke instaluar përditësimin…"
 msgid "Institution"
 msgstr "Institucion"
 
+msgid "Instructions"
+msgstr "Udhëzimet"
+
 msgid "Interactive"
 msgstr "Interaktiv"
 
@@ -3742,6 +3817,9 @@ msgstr "Pyetje vlerësuese interaktive"
 
 msgid "Interactive page: AI conversion from the original PDF."
 msgstr "Faqe interaktive: konvertim me AI nga PDF origjinal."
+
+msgid "Interactive step-by-step activity."
+msgstr "Aktivitet interaktiv hap pas hapi."
 
 msgid "Intro"
 msgstr "Hyrje"
@@ -4320,6 +4398,9 @@ msgstr "Duke bashkuar fletët e dyfishta…"
 msgid "Merging…"
 msgstr "Po bashkohet…"
 
+msgid "Message when correct (may include the answer)"
+msgstr "Mesazh kur përgjigjet saktë (mund të përfshijë përgjigjen)"
+
 msgid "Messages"
 msgstr "Mesazhe"
 
@@ -4430,6 +4511,12 @@ msgstr "Shumica e librave lexohen faqe për faqe. Nëse i yti ka një ilustrim q
 
 msgid "Most used"
 msgstr "Më i përdorur"
+
+msgid "Move down"
+msgstr "Zhvendos poshtë"
+
+msgid "Move up"
+msgstr "Zhvendos lart"
 
 msgid "Multi-format publications"
 msgstr "Botime me shumë formate"
@@ -4960,6 +5047,12 @@ msgstr "Zëri i OpenAI"
 msgid "Operation failed"
 msgstr "Veprimi dështoi"
 
+msgid "Option columns"
+msgstr "Kolonat e opsioneve"
+
+msgid "Option text"
+msgstr "Teksti i opsionit"
+
 msgid "Optional"
 msgstr "Opsionale"
 
@@ -4995,6 +5088,9 @@ msgstr "Opsionale. Termat e shtuar këtu janë të ngjitur në glosarium, kësht
 
 msgid "Optionally translate burned-in text inside images (signs, labels, callouts). Select the images to localize — leaving the list empty keeps images in the source language."
 msgstr "Opsionalisht, përktheni tekstin e integruar brenda imazheve (shenja, etiketa, thirrje). Zgjidhni imazhet për lokalizim — lënia e listës bosh i mban imazhet në gjuhën burimore."
+
+msgid "Options — the selected radio marks the correct answer"
+msgstr "Opsionet — butoni i zgjedhur shënon përgjigjen e saktë"
 
 msgid "options are deterministic;"
 msgstr "opsionet janë deterministe;"
@@ -5597,6 +5693,13 @@ msgstr "Parametri i pyetjes"
 msgid "question"
 msgstr "pyetje"
 
+#. placeholder {0}: si + 1
+msgid "Question {0}"
+msgstr "Pyetja {0}"
+
+msgid "Question prompt"
+msgstr "Teksti i pyetjes"
+
 msgid "queued"
 msgstr "në radhë"
 
@@ -5874,6 +5977,9 @@ msgstr "Hiq fontin {0}"
 msgid "Remove from group"
 msgstr "Hiq nga grupi"
 
+msgid "Remove image"
+msgstr "Hiq imazhin"
+
 msgid "Remove manual glossary term"
 msgstr "Hiq termin manual të glosariumit"
 
@@ -5928,6 +6034,9 @@ msgstr "Zëvendëso nga libri"
 
 msgid "Replace from Book"
 msgstr "Zëvendëso nga Libri"
+
+msgid "Replace image"
+msgstr "Zëvendëso imazhin"
 
 msgid "Replace PDF"
 msgstr "Zëvendëso PDF-in"
@@ -6270,6 +6379,9 @@ msgstr "Ruaj dhe ri-ekzekuto"
 #~ msgid "Save & Rerun Translations"
 #~ msgstr "Ruaj dhe Riekzekuto Përkthimet"
 
+msgid "Save activity"
+msgstr "Ruaj aktivitetin"
+
 msgid "Save changes"
 msgstr "Ruaj ndryshimet"
 
@@ -6599,6 +6711,9 @@ msgstr "Aplikacion web ADT i pavarur"
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Dërgojeni këtë arkiv projekti te koordinatori për ta bashkuar në librin burim."
 
+msgid "Sentence with blank markers"
+msgstr "Fjali me shënues të vendeve bosh"
+
 msgid "Separator"
 msgstr "Ndarës"
 
@@ -6795,6 +6910,9 @@ msgstr "rrëshqitëse"
 #. placeholder {0}: i + 1
 msgid "Slide {0}"
 msgstr "Rrëshqitëse {0}"
+
+msgid "Small"
+msgstr "I vogël"
 
 msgid "Smart Cropping"
 msgstr "Prerje Inteligjente"
@@ -6995,6 +7113,10 @@ msgstr "Qëndro"
 msgid "Step"
 msgstr "Hapi"
 
+#. placeholder {0}: si + 1
+msgid "Step {0}"
+msgstr "Hapi {0}"
+
 #. placeholder {0}: STEPS.length
 msgid "Step {step} of {0}"
 msgstr "Hapi {step} nga {0}"
@@ -7004,6 +7126,21 @@ msgstr "Hapi dështoi"
 
 msgid "Step run failed"
 msgstr "Ekzekutimi i hapit dështoi"
+
+#~ msgid "Step-by-step"
+#~ msgstr "Hap pas hapi"
+
+msgid "Step-by-step activity"
+msgstr "Aktivitet hap pas hapi"
+
+msgid "Step-by-step activity preview"
+msgstr "Pamja paraprake e aktivitetit hap pas hapi"
+
+#~ msgid "Step-by-step activity: edit the structured content below."
+#~ msgstr "Aktivitet hap pas hapi: modifikoni përmbajtjen e strukturuar më poshtë."
+
+msgid "Steps"
+msgstr "Hapat"
 
 msgid "Stop step"
 msgstr "Ndalo hapin"
@@ -7118,6 +7255,9 @@ msgstr "Diell"
 
 msgid "SW"
 msgstr "JP"
+
+msgid "Switching presentation failed"
+msgstr "Ndryshimi i prezantimit dështoi"
 
 msgid "Symbiosis"
 msgstr "Simbiozë"
@@ -7378,6 +7518,9 @@ msgstr "Strategjia e renderimit e përdorur për seksionet pa një hartëzim eks
 
 msgid "The river meets the sea"
 msgstr "Lumi takon detin"
+
+msgid "The section was edited after conversion — switch back to classic and convert again to refresh the steps."
+msgstr "Seksioni u modifikua pas konvertimit — kthehuni te versioni klasik dhe konvertojeni sërish për të rifreskuar hapat."
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "Storyboard duhet të plotësohet para gjenerimit të {stageName}. Ekzekuto fazën Storyboard fillimisht."
@@ -8290,6 +8433,13 @@ msgstr "Mbështjell kërkesat 'Redakto këtë imazh'. AI-ja merr imazhin origjin
 
 msgid "Wraps 'Generate new' requests. Supports user_prompt, style, and image_type variables. Uses Liquid syntax for conditionals."
 msgstr "Mbështjell kërkesat 'Gjenero të re'. Mbështet variablat user_prompt, style dhe image_type. Përdor sintaksën Liquid për kushtet."
+
+msgid "Write correct/incorrect feedback for every step with AI"
+msgstr "Shkruani me AI reagimin e saktë/gabuar për çdo hap"
+
+#. placeholder {0}: `[[blank:item-${n}]]`
+msgid "Write your sentence with a {0} marker."
+msgstr "Shkruani fjalinë tuaj me një shënues {0}."
 
 msgid "You can export at this stage"
 msgstr "Mund të eksportosh në këtë fazë"

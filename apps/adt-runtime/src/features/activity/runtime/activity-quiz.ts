@@ -25,8 +25,10 @@ import { showActivityProgressToast } from "@/features/activity/lib/progress-toas
  *     group tracks its own selection + validation state independently.
  *     Standalone quiz pages use a single synthetic group.
  */
+// :not([data-activity-variant="stepper"]) — sections converted to the
+// step-by-step presentation are rendered by activity-stepper.tsx instead.
 const QUIZ_SELECTOR =
-  'section[data-section-type="activity_quiz"], section[data-section-type="activity_multiple_choice"]'
+  'section[data-section-type="activity_quiz"]:not([data-activity-variant="stepper"]), section[data-section-type="activity_multiple_choice"]:not([data-activity-variant="stepper"])'
 const CORRECT_ANSWERS_SCRIPT_ID = "quiz-correct-answers"
 const DEFAULT_GROUP_KEY = "__default__"
 

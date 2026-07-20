@@ -67,6 +67,7 @@ import { initializeOpenEndedActivity } from "@/features/activity/runtime/activit
 import { initializeTrueFalseActivity } from "@/features/activity/runtime/activity-true-false"
 import { initializeSortingActivity } from "@/features/activity/runtime/activity-sorting"
 import { initializeMatchingActivity } from "@/features/activity/runtime/activity-matching"
+import { initializeStepperActivity } from "@/features/activity/runtime/activity-stepper"
 
 function readCurrentSectionId(): string | null {
   if (typeof document === "undefined") return null
@@ -190,6 +191,9 @@ export async function bootRuntime(): Promise<void> {
     initAnalytics(config.analytics)
     showMainContent()
     processGlossaryLocateHint()
+    // Stepper first — sections it owns carry data-activity-variant="stepper"
+    // and are excluded from the classic initializers' selectors.
+    initializeStepperActivity()
     initializeQuizActivity()
     initializeMultiSelectActivity()
     initializeFillInTheBlankActivity()

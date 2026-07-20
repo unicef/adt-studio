@@ -287,6 +287,7 @@ export {
 export {
   resolveQuizPalette,
   deriveQuizPalette,
+  paletteWithAccent,
   DEFAULT_QUIZ_PALETTE,
   type QuizPalette,
 } from "./quiz-palette.js"
@@ -327,3 +328,24 @@ export {
   FIXED_LAYOUT_SECTIONING_NODE,
   PAGE_SECTIONING_NODE,
 } from "./render-sectioning.js"
+export {
+  extractEditableActivity,
+  supportsEditableActivity,
+  type ExtractResult,
+} from "./extract-editable-activity.js"
+export {
+  readEditableActivities,
+  enabledEditableActivity,
+  resolveEditableActivityImages,
+  renderEditableActivityHtml,
+  renderEditableActivityStaticHtml,
+  replaceStepperShellsWithStaticHtml,
+  STEPPER_VARIANT,
+  type EditableActivitiesRow,
+  type ResolveEditableActivityImageOptions,
+  type StepperPayload,
+} from "./render-editable-activity.js"
+export {
+  generateActivityFeedback,
+  type ActivityFeedbackConfig,
+} from "./activity-feedback.js"

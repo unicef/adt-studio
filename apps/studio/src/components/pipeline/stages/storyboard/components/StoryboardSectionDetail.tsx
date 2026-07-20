@@ -57,7 +57,15 @@ import {
 } from "./BookPreviewFrame"
 import { SectionEditPanel } from "./SectionEditPanel"
 import { StorySectionBanner } from "./StorySectionBanner"
-import { Puzzle } from "lucide-react"
+import { EditableActivityPanel } from "./EditableActivityPanel"
+import { StepperActivityPreview } from "./StepperActivityPreview"
+import {
+  useConvertEditableActivity,
+  useEditableActivities,
+  useSetEditableActivityPresentation,
+} from "@/hooks/use-editable-activities"
+import { toast } from "sonner"
+import { Puzzle, ListChecks } from "lucide-react"
 import { StyleEditorPanel } from "./style-editor"
 import { ViewportToggle } from "./style-editor/ViewportToggle"
 import {
@@ -545,8 +553,27 @@ export function StoryboardSectionDetail({
     onGeneratingChange?.(aiImageGen?.status === "generating")
   }, [aiImageGen?.status])
 
-  // Activity preview mode (try the activity in the editor)
-  const [activityPreviewMode, setActivityPreviewMode] = useState(false)
+  // Activity preview mode (try the activity in the editor). Activities load
+  // interactive by default — matching the step-by-step presentation — and
+  // "Edit activity" in the banner switches to the WYSIWYG editor. The
+  // per-section reset effect below restores it to interactive on navigation.
+  const [activityPreviewMode, setActivityPreviewMode] = useState(true)
+
+  // Editable (step-by-step) activity — stored in its own node, opt-in per
+  // section. Only fetched when the page actually contains an activity section.
+  const pageHasActivitySection = Boolean(
+    (page.sectioningTree as SectioningData | null)?.sections?.some((s) =>
+      s.sectionType?.startsWith("activity_"),
+    ),
+  )
+  const editableActivitiesQuery = useEditableActivities(
+    bookLabel,
+    pageId,
+    pageHasActivitySection,
+  )
+  const convertEditableActivity = useConvertEditableActivity(bookLabel, pageId)
+  const setEditablePresentation = useSetEditableActivityPresentation(bookLabel, pageId)
+  const [editActivityPanelOpen, setEditActivityPanelOpen] = useState(false)
 
   // AI edit state
   const [aiInstruction, setAiInstruction] = useState("")
@@ -610,7 +637,10 @@ export function StoryboardSectionDetail({
     setAiInstruction("")
     setAiError(null)
     setSaving(false)
-    setActivityPreviewMode(false)
+    // Activities open interactive (matching step-by-step); "Edit activity"
+    // in the banner opts into the WYSIWYG editor per section.
+    setActivityPreviewMode(true)
+    setEditActivityPanelOpen(false)
     needsRerenderRef.current = false
   }, [pageId, sectionIndex])
 
@@ -1886,6 +1916,42 @@ export function StoryboardSectionDetail({
   )
   const activityTypeLabel = section?.sectionType ? getSectionTypeLabel(section.sectionType) : ""
 
+  // Editable (step-by-step) state for this section. Conversion extracts the
+  // rendered HTML into structured steps stored in the separate
+  // `editable-activity` node; the classic HTML is never modified.
+  const editableEntry = editableActivitiesQuery.data?.activities?.[String(sectionIndex)]
+  const editableVersion = editableActivitiesQuery.data?.version ?? 0
+  const stepperEnabled = Boolean(editableEntry?.enabled)
+  const canBeStepByStep =
+    section?.sectionType === "activity_fill_in_the_blank" ||
+    section?.sectionType === "activity_multiple_choice"
+  const editableBusy =
+    convertEditableActivity.isPending || setEditablePresentation.isPending
+
+  const handleToggleStepper = () => {
+    if (editableEntry) {
+      const enabling = !editableEntry.enabled
+      if (!enabling) setEditActivityPanelOpen(false)
+      setEditablePresentation.mutate(
+        { sectionIndex, enabled: enabling },
+        {
+          onError: (err) =>
+            toast.error(err instanceof Error ? err.message : t`Switching presentation failed`),
+        },
+      )
+    } else {
+      convertEditableActivity.mutate(sectionIndex, {
+        onSuccess: (result) => {
+          toast.success(t`Converted to a step-by-step activity`)
+          if (result.warnings.length > 0) toast.warning(result.warnings.join(" "))
+          setEditActivityPanelOpen(true)
+        },
+        onError: (err) =>
+          toast.error(err instanceof Error ? err.message : t`Conversion failed`),
+      })
+    }
+  }
+
   // Header controls rendered via portal into the purple step header
   const headerControls = (
     <>
@@ -2036,15 +2102,102 @@ export function StoryboardSectionDetail({
                 tone="violet"
                 icon={<Puzzle className="w-4 h-4" />}
                 title={activityTypeLabel || t`Activity`}
-                subtitle={t`Interactive page: AI conversion from the original PDF.`}
+                subtitle={
+                  stepperEnabled
+                    ? t`Interactive step-by-step activity.`
+                    : t`Interactive page: AI conversion from the original PDF.`
+                }
+                action={
+                  <div className="flex items-center gap-2">
+                    {stepperEnabled ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => setEditActivityPanelOpen((v) => !v)}
+                          className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors cursor-pointer"
+                        >
+                          <ListChecks className="h-3.5 w-3.5" />
+                          {t`Edit activity`}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleToggleStepper}
+                          disabled={editableBusy}
+                          className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          <PenLine className="h-3.5 w-3.5" />
+                          {t`Back to classic activity`}
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        {/* Classic activities load interactive; this switches
+                            to the WYSIWYG editor and back. */}
+                        <button
+                          type="button"
+                          onClick={() => setActivityPreviewMode((v) => !v)}
+                          className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors cursor-pointer"
+                        >
+                          {activityPreviewMode ? (
+                            <>
+                              <PenLine className="h-3.5 w-3.5" />
+                              {t`Edit activity`}
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-3.5 w-3.5" />
+                              {t`Try Activity`}
+                            </>
+                          )}
+                        </button>
+                        {canBeStepByStep && (
+                          <button
+                            type="button"
+                            onClick={handleToggleStepper}
+                            disabled={editableBusy}
+                            className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            <ListChecks className="h-3.5 w-3.5" />
+                            {editableBusy ? t`Converting…` : t`Convert to step-by-step`}
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                }
               />
             )}
-            {activityPreviewMode ? (
-              <iframe
-                src={`${BASE_URL}/books/${bookLabel}/adt-preview/${pageId}_sec${String(sectionIndex + 1).padStart(3, "0")}.html?embed=1&v=${page.versions.rendering ?? 0}`}
-                className="w-full rounded border"
-                style={{ height: "80vh" }}
-              />
+            {stepperEnabled && editableEntry ? (
+              <>
+                {editableEntry.sourceRenderingVersion !== undefined &&
+                  (page.versions.rendering ?? 0) !== editableEntry.sourceRenderingVersion && (
+                    <div className="mb-2 flex justify-center">
+                      <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded">
+                        {t`The section was edited after conversion — switch back to classic and convert again to refresh the steps.`}
+                      </span>
+                    </div>
+                  )}
+                <StepperActivityPreview
+                  key={`stepper-${sectionIndex}-${editableVersion}`}
+                  src={`${BASE_URL}/books/${bookLabel}/adt-preview/${pageId}_sec${String(sectionIndex + 1).padStart(3, "0")}.html?embed=1&v=ea${editableVersion}`}
+                  deviceView={deviceView}
+                />
+              </>
+            ) : isActivitySection && activityPreviewMode ? (
+              <>
+                {renderingDirty && (
+                  <div className="mb-2 flex justify-center">
+                    <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded">
+                      {t`Save changes first to preview the latest version`}
+                    </span>
+                  </div>
+                )}
+                <StepperActivityPreview
+                  key={`classic-${sectionIndex}-${page.versions.rendering ?? 0}`}
+                  src={`${BASE_URL}/books/${bookLabel}/adt-preview/${pageId}_sec${String(sectionIndex + 1).padStart(3, "0")}.html?embed=1&v=${page.versions.rendering ?? 0}`}
+                  deviceView={deviceView}
+                />
+              </>
             ) : (
               <BookPreviewFrame
                   ref={previewFrameRef}
@@ -2239,29 +2392,25 @@ export function StoryboardSectionDetail({
         </div>
       )}
 
-      {/* Activity preview toggle — absolute on outer wrapper, sits left of the debug console button */}
-      {section.sectionType.startsWith("activity_") && renderedSection?.html && (
-        <div className="absolute bottom-4 right-16 z-30 flex items-center gap-2">
-          {activityPreviewMode && renderingDirty && (
-            <span className="text-[10px] text-amber-600 bg-white/90 px-2 py-1 rounded shadow-sm">
-              {t`Save changes first to preview the latest version`}
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={() => setActivityPreviewMode((v) => !v)}
-            className="flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 shadow-md border border-blue-200 transition-colors cursor-pointer opacity-80 hover:opacity-100"
-          >
-            {activityPreviewMode ? (
-              <><PenLine className="h-3 w-3" />{t`Back to Editor`}</>
-            ) : (
-              <><Play className="h-3 w-3" />{t`Try Activity`}</>
-            )}
-          </button>
-        </div>
+
+
+
+      {/* Slide-out step-by-step activity editor (CMS). The key MUST include
+          book+page: the component instance survives page navigation, and a
+          colliding key would keep another page's draft alive — saving it
+          would corrupt this page's activity. */}
+      {editableEntry && (
+        <EditableActivityPanel
+          key={`${bookLabel}-${pageId}-${sectionIndex}-${editableVersion}`}
+          open={editActivityPanelOpen && stepperEnabled}
+          onClose={() => setEditActivityPanelOpen(false)}
+          bookLabel={bookLabel}
+          pageId={pageId}
+          sectionIndex={sectionIndex}
+          activity={editableEntry}
+          activities={editableActivitiesQuery.data?.activities ?? {}}
+        />
       )}
-
-
 
       {/* Slide-out section data panel */}
       {section && (
