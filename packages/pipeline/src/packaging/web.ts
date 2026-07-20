@@ -2418,6 +2418,36 @@ function pickDefaultLanguage(
  */
 export const NON_READER_FILES = new Set(["imsmanifest.xml", "AGENTS.md"])
 
+/**
+ * File-extension → MIME type for the resources listed in an export manifest
+ * (EPUB OPF, WebPub `resources`). Shared so both packagers label fonts, video,
+ * and images consistently instead of falling back to application/octet-stream.
+ */
+export const EXPORT_MIME_TYPES: Record<string, string> = {
+  ".xhtml": "application/xhtml+xml",
+  ".html": "text/html",
+  ".css": "text/css",
+  ".js": "application/javascript",
+  ".json": "application/json",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+  ".webp": "image/webp",
+  ".mp3": "audio/mpeg",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".ogg": "audio/ogg",
+  ".wav": "audio/wav",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".ttf": "font/ttf",
+  ".otf": "font/otf",
+  ".dic": "application/octet-stream",
+  ".smil": "application/smil+xml",
+}
+
 export function copyDirRecursive(
   src: string,
   dest: string,

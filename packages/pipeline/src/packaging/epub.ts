@@ -3,7 +3,7 @@ import path from "node:path"
 import { JSDOM } from "jsdom"
 import type { Storage } from "@adt/storage"
 import type { BookMetadata, TocGenerationOutput, WordTimestampOutput } from "@adt/types"
-import { type PackageAdtWebOptions, NON_READER_FILES, copyDirRecursive, injectWebpubStyles, getWordTimestamps, pad3 } from "./web.js"
+import { type PackageAdtWebOptions, EXPORT_MIME_TYPES, NON_READER_FILES, copyDirRecursive, injectWebpubStyles, getWordTimestamps, pad3 } from "./web.js"
 import { htmlToXhtml } from "../html-semantics.js"
 import { stripRuntimeBundle } from "./strip-runtime-bundle.js"
 
@@ -275,30 +275,6 @@ export function packageEpub(
 // File enumeration
 // ---------------------------------------------------------------------------
 
-const EPUB_MIME_TYPES: Record<string, string> = {
-  ".xhtml": "application/xhtml+xml",
-  ".html": "text/html",
-  ".css": "text/css",
-  ".js": "application/javascript",
-  ".json": "application/json",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".svg": "image/svg+xml",
-  ".webp": "image/webp",
-  ".mp3": "audio/mpeg",
-  ".mp4": "video/mp4",
-  ".ogg": "audio/ogg",
-  ".wav": "audio/wav",
-  ".woff": "font/woff",
-  ".woff2": "font/woff2",
-  ".ttf": "font/ttf",
-  ".otf": "font/otf",
-  ".dic": "application/octet-stream",
-  ".smil": "application/smil+xml",
-}
-
 function collectFiles(
   baseDir: string,
   dir: string,
@@ -313,7 +289,7 @@ function collectFiles(
       const ext = path.extname(entry.name).toLowerCase()
       out.push({
         href: relPath,
-        mediaType: EPUB_MIME_TYPES[ext] ?? "application/octet-stream",
+        mediaType: EXPORT_MIME_TYPES[ext] ?? "application/octet-stream",
       })
     }
   }

@@ -6,22 +6,12 @@ import { stripRuntimeBundle } from "./strip-runtime-bundle.js"
 import {
   type PackageAdtWebOptions,
   type PageEntry,
+  EXPORT_MIME_TYPES,
   NON_READER_FILES,
   copyDirRecursive,
   injectWebpubStyles,
   writeJson,
 } from "./web.js"
-
-const WEBPUB_MIME_TYPES: Record<string, string> = {
-  ".html": "text/html",
-  ".css": "text/css",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".mp3": "audio/mpeg",
-  ".js": "application/javascript",
-  ".json": "application/json",
-}
 
 /**
  * Package the book as a Readium WebPub directory at `{bookDir}/webpub/`.
@@ -132,9 +122,12 @@ export function packageWebpub(
     title: page.page_number != null ? String(page.page_number) : page.section_id,
   }))
 
-  // Enumerate all files as resources
-  const resources: Array<{ href: string; type: string }> = []
-  collectWebpubResources(webpubDir, webpubDir, resources)
+  // Enumerate all files as resources, excluding the reading-order documents
+  // (Readium's `resources` holds items NOT already in `readingOrder`).
+  const readingOrderHrefs = new Set(readingOrder.map((entry) => entry.href))
+  const allResources: Array<{ href: string; type: string }> = []
+  collectWebpubResources(webpubDir, webpubDir, allResources)
+  const resources = allResources.filter((r) => !readingOrderHrefs.has(r.href))
 
   // Navigation collections the reader uses to build its own UI
   const toc = buildTocCollection(webpubDir)
@@ -258,7 +251,7 @@ function collectWebpubResources(
       const ext = path.extname(entry.name).toLowerCase()
       out.push({
         href: relPath,
-        type: WEBPUB_MIME_TYPES[ext] ?? "application/octet-stream",
+        type: EXPORT_MIME_TYPES[ext] ?? "application/octet-stream",
       })
     }
   }

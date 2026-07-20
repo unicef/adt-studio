@@ -2231,6 +2231,37 @@ describe("packageWebpub", () => {
     expect(hrefs).not.toContain("AGENTS.md")
   })
 
+  it("labels resources by MIME type and excludes reading-order docs", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage)
+    // A font that would otherwise fall through to application/octet-stream.
+    const fontDir = path.join(bookDir, "adt", "assets", "fonts")
+    fs.mkdirSync(fontDir, { recursive: true })
+    fs.writeFileSync(path.join(fontDir, "book.woff2"), "font")
+
+    packageWebpub(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Test Book",
+      webAssetsDir,
+    })
+
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
+    )
+    const font = manifest.resources.find((r: { href: string }) => r.href.endsWith("book.woff2"))
+    expect(font?.type).toBe("font/woff2")
+    // Reading-order documents must not be duplicated into resources.
+    const resourceHrefs = manifest.resources.map((r: { href: string }) => r.href)
+    const readingOrderHrefs = manifest.readingOrder.map((r: { href: string }) => r.href)
+    expect(readingOrderHrefs).toContain("index.html")
+    for (const href of readingOrderHrefs) {
+      expect(resourceHrefs).not.toContain(href)
+    }
+  })
+
   it("injects CSS overrides into HTML pages", async () => {
     const { bookDir, webAssetsDir, storage } = setupBook()
     await buildAdtFirst(bookDir, webAssetsDir, storage)
