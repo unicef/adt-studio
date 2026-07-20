@@ -260,6 +260,158 @@ describe("Page routes", () => {
 
       expect(res.status).toBe(404)
     })
+
+    // The rendered HTML is a snapshot of the sectioning text, so an edit in the
+    // Sectioning view has to be pushed into it or the Storyboard shows stale copy.
+    describe("storyboard text propagation", () => {
+      const sectionHtml = (text: string) =>
+        `<div class="container content" id="content"><section data-section-type="content" data-section-id="${label}_p1_sec001"><p data-id="${label}_p1_n001">${text}</p></section></div>`
+
+      /** Replace the fixture's placeholder HTML with realistically rendered markup. */
+      function seedRendering(pageId: string, text: string): void {
+        const storage = createBookStorage(label, tmpDir)
+        try {
+          storage.putNodeData("web-rendering", pageId, {
+            sections: [
+              {
+                sectionIndex: 0,
+                sectionType: "content",
+                reasoning: "rendered",
+                html: sectionHtml(text),
+              },
+            ],
+          })
+        } finally {
+          storage.close()
+        }
+      }
+
+      function readRenderingHtml(pageId: string): string {
+        const storage = createBookStorage(label, tmpDir)
+        try {
+          const row = storage.getLatestNodeData("web-rendering", pageId)
+          const data = row?.data as { sections: Array<{ html: string }> }
+          return data.sections[0].html
+        } finally {
+          storage.close()
+        }
+      }
+
+      function putSectioning(text: string, nodes?: unknown) {
+        return app.request(
+          `/api/books/${label}/pages/${label}_p1/sectioning`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              reasoning: "edited",
+              sections: [
+                {
+                  sectionId: `${label}_p1_sec001`,
+                  sectionType: "content",
+                  backgroundColor: "#ffffff",
+                  textColor: "#000000",
+                  pageNumber: 1,
+                  isPruned: false,
+                  nodes: nodes ?? [
+                    {
+                      nodeId: `${label}_p1_n001`,
+                      isPruned: false,
+                      role: "text",
+                      text,
+                    },
+                  ],
+                },
+              ],
+            }),
+          }
+        )
+      }
+
+      it("pushes edited text into the stored rendering", async () => {
+        seedRendering(`${label}_p1`, "Hello world")
+
+        const res = await putSectioning("Goodbye world")
+
+        expect(res.status).toBe(200)
+        expect((await res.json()).needsRerender).toBe(false)
+        const html = readRenderingHtml(`${label}_p1`)
+        expect(html).toContain("Goodbye world")
+        expect(html).not.toContain("Hello world")
+        // Surrounding markup survives — we substitute text, not re-render.
+        expect(html).toContain('data-section-type="content"')
+      })
+
+      it("leaves other pages' renderings untouched", async () => {
+        seedRendering(`${label}_p1`, "Hello world")
+        seedRendering(`${label}_p2`, "Page two copy")
+
+        await putSectioning("Goodbye world")
+
+        expect(readRenderingHtml(`${label}_p2`)).toContain("Page two copy")
+      })
+
+      it("reports needsRerender and leaves HTML alone on a structural edit", async () => {
+        seedRendering(`${label}_p1`, "Hello world")
+
+        const res = await putSectioning("", [
+          {
+            nodeId: `${label}_p1_n001`,
+            isPruned: false,
+            role: "text",
+            text: "Hello world",
+          },
+          {
+            nodeId: `${label}_p1_n002`,
+            isPruned: false,
+            role: "text",
+            text: "A newly added paragraph",
+          },
+        ])
+
+        expect(res.status).toBe(200)
+        expect((await res.json()).needsRerender).toBe(true)
+        // Half-patching a drifted section would be worse than leaving it stale.
+        expect(readRenderingHtml(`${label}_p1`)).toBe(sectionHtml("Hello world"))
+      })
+
+      it("skips propagation for fixed-layout pages", async () => {
+        seedRendering(`${label}_p1`, "Hello world")
+        const storage = createBookStorage(label, tmpDir)
+        try {
+          // Fixed-layout pages render from the positioned tree, whose data-ids
+          // are unrelated to the semantic tree being edited here.
+          storage.putNodeData("fixed-layout-sectioning", `${label}_p1`, {
+            reasoning: "positioned",
+            sections: [],
+          })
+        } finally {
+          storage.close()
+        }
+
+        const res = await putSectioning("Goodbye world")
+
+        expect(res.status).toBe(200)
+        expect((await res.json()).needsRerender).toBe(false)
+        expect(readRenderingHtml(`${label}_p1`)).toContain("Hello world")
+      })
+
+      it("saves normally when the page has no rendering yet", async () => {
+        const storage = createBookStorage(label, tmpDir)
+        try {
+          storage.clearNodesByType(["web-rendering"])
+        } finally {
+          storage.close()
+        }
+
+        const res = await putSectioning("Goodbye world")
+
+        expect(res.status).toBe(200)
+        const body = await res.json()
+        expect(body.version).toBe(2)
+        expect(body.needsRerender).toBe(false)
+      })
+    })
   })
 
   describe("PUT /api/books/:label/pages/:pageId/image-filtering", () => {
