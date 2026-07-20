@@ -297,6 +297,15 @@ describe("Page routes", () => {
         }
       }
 
+      function readRenderingVersion(pageId: string): number {
+        const storage = createBookStorage(label, tmpDir)
+        try {
+          return storage.getLatestNodeData("web-rendering", pageId)?.version ?? 0
+        } finally {
+          storage.close()
+        }
+      }
+
       function putSectioning(text: string, nodes?: unknown) {
         return app.request(
           `/api/books/${label}/pages/${label}_p1/sectioning`,
@@ -340,6 +349,17 @@ describe("Page routes", () => {
         expect(html).not.toContain("Hello world")
         // Surrounding markup survives — we substitute text, not re-render.
         expect(html).toContain('data-section-type="content"')
+      })
+
+      // The Storyboard iframe is cache-busted by the rendering version, so a
+      // propagated edit has to bump it or the user keeps seeing the old page.
+      it("bumps the rendering version so the preview reloads", async () => {
+        seedRendering(`${label}_p1`, "Hello world")
+        const before = readRenderingVersion(`${label}_p1`)
+
+        await putSectioning("Goodbye world")
+
+        expect(readRenderingVersion(`${label}_p1`)).toBeGreaterThan(before)
       })
 
       it("leaves other pages' renderings untouched", async () => {
