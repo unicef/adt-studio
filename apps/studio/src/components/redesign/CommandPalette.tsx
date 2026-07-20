@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { useNavigate } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { Search, House, BookMarked, Split, Settings, Plus, Upload, CornerDownLeft, BookOpen } from "lucide-react"
+import { Search, House, BookMarked, Split, Settings, Plus, Upload, CornerDownLeft, BookOpen, type LucideIcon } from "lucide-react"
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog"
+import { cn } from "@/lib/utils"
 import type { BookSummary } from "@/api/client"
 import { toBookVM } from "./data"
+import { Kbd } from "./ui/Kbd"
 import type { RedesignView } from "./types"
 
 interface PaletteItem {
   id: string
   title: string
   sub?: string
-  icon?: typeof House
+  icon?: LucideIcon
   coverBg?: string
   run: () => void
 }
@@ -82,10 +85,7 @@ export function CommandPalette({ open, onClose, books, locale, onNavigate, onOpe
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        e.preventDefault()
-        onClose()
-      } else if (e.key === "ArrowDown") {
+      if (e.key === "ArrowDown") {
         e.preventDefault()
         setActive((i) => Math.min(flat.length - 1, i + 1))
       } else if (e.key === "ArrowUp") {
@@ -104,21 +104,20 @@ export function CommandPalette({ open, onClose, books, locale, onNavigate, onOpe
     return () => window.removeEventListener("keydown", onKey)
   }, [open, flat, active, onClose])
 
-  if (!open) return null
-
   let runningIndex = -1
 
   return (
-    <div
-      onClick={onClose}
-      style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,.42)", zIndex: 200, display: "flex", justifyContent: "center", alignItems: "flex-start", paddingTop: 94 }}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{ width: 600, maxWidth: "92vw", maxHeight: "66vh", display: "flex", flexDirection: "column", background: "var(--popover)", border: "1px solid var(--border)", borderRadius: 16, boxShadow: "var(--shadow-xl)", overflow: "hidden" }}
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent
+        aria-describedby={undefined}
+        className="top-[12%] block max-w-[600px] translate-y-0 gap-0 overflow-hidden p-0 [&>button]:hidden"
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "15px 18px", borderBottom: "1px solid var(--border)" }}>
-          <Search className="lucide" style={{ width: 18, height: 18, color: "var(--muted-foreground)" }} />
+        <DialogTitle className="sr-only">
+          <Trans>Command palette</Trans>
+        </DialogTitle>
+
+        <div className="flex items-center gap-3 border-b px-4 py-3.5">
+          <Search className="size-[18px] text-muted-foreground" />
           <input
             ref={inputRef}
             value={query}
@@ -127,16 +126,15 @@ export function CommandPalette({ open, onClose, books, locale, onNavigate, onOpe
               setActive(0)
             }}
             placeholder={t`Search books, actions and settings…`}
-            style={{ flex: 1, border: 0, outline: 0, background: "transparent", font: "400 15px var(--font-sans)", color: "var(--foreground)" }}
+            className="flex-1 bg-transparent text-[15px] outline-none placeholder:text-muted-foreground"
           />
-          <span className="kbd">
-            <b><Trans>Esc</Trans></b>
-          </span>
+          <Kbd keys={[t`Esc`]} />
         </div>
-        <div style={{ flex: 1, overflow: "auto", padding: 8 }}>
+
+        <div className="max-h-[46vh] overflow-auto p-2">
           {groups.map((g) => (
             <div key={g.label}>
-              <div style={{ font: "600 11px var(--font-sans)", letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--muted-foreground)", padding: "10px 12px 5px" }}>
+              <div className="px-3 pb-1.5 pt-2.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">
                 {g.label}
               </div>
               {g.items.map((it) => {
@@ -152,52 +150,49 @@ export function CommandPalette({ open, onClose, books, locale, onNavigate, onOpe
                       onClose()
                     }}
                     onMouseEnter={() => setActive(idx)}
-                    style={{ display: "flex", alignItems: "center", gap: 12, padding: "9px 12px", borderRadius: 10, cursor: "pointer", background: isActive ? "var(--muted)" : "transparent" }}
+                    className={cn(
+                      "flex cursor-pointer items-center gap-3 rounded-[10px] px-3 py-2.5",
+                      isActive && "bg-muted",
+                    )}
                   >
                     {it.coverBg ? (
-                      <span style={{ width: 24, height: 32, borderRadius: 4, flex: "none", background: it.coverBg, boxShadow: "var(--shadow-sm)" }} />
+                      <span className="h-8 w-6 shrink-0 rounded-sm shadow-sm" style={{ background: it.coverBg }} />
                     ) : (
-                      <span style={{ width: 30, height: 30, borderRadius: 9, flex: "none", background: "var(--brand-50)", color: "var(--brand-600)", display: "grid", placeItems: "center" }}>
-                        {Icon ? <Icon className="lucide" style={{ width: 16, height: 16 }} /> : <BookOpen className="lucide" style={{ width: 16, height: 16 }} />}
+                      <span className="grid size-[30px] shrink-0 place-items-center rounded-[9px] bg-brand-50 text-brand-600">
+                        {Icon ? <Icon className="size-4" /> : <BookOpen className="size-4" />}
                       </span>
                     )}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ font: "500 13.5px var(--font-sans)", color: "var(--foreground)" }}>{it.title}</div>
-                      {it.sub && (
-                        <div style={{ font: "400 12px var(--font-sans)", color: "var(--muted-foreground)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                          {it.sub}
-                        </div>
-                      )}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[13.5px] font-medium text-foreground">{it.title}</div>
+                      {it.sub && <div className="truncate text-xs text-muted-foreground">{it.sub}</div>}
                     </div>
-                    {isActive && <CornerDownLeft className="lucide" style={{ width: 14, height: 14, color: "var(--muted-foreground)" }} />}
+                    {isActive && <CornerDownLeft className="size-3.5 text-muted-foreground" />}
                   </div>
                 )
               })}
             </div>
           ))}
           {flat.length === 0 && (
-            <div style={{ textAlign: "center", padding: "34px 20px", color: "var(--muted-foreground)", font: "400 13px var(--font-sans)" }}>
-              <Trans>No results for &quot;{query}&quot;</Trans>
+            <div className="px-5 py-9 text-center text-[13px] text-muted-foreground">
+              <Trans>No results for “{query}”</Trans>
             </div>
           )}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 16, padding: "10px 16px", borderTop: "1px solid var(--border)", background: "var(--muted)" }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, font: "400 11.5px var(--font-sans)", color: "var(--muted-foreground)" }}>
-            <span className="kbd">
-              <b>↑</b>
-              <b>↓</b>
-            </span>
+
+        <div className="flex items-center gap-4 border-t bg-muted px-4 py-2.5 text-[11.5px] text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
+            <Kbd keys={["↑", "↓"]} />
             <Trans>navigate</Trans>
           </span>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 6, font: "400 11.5px var(--font-sans)", color: "var(--muted-foreground)" }}>
-            <span className="kbd">
-              <b>↵</b>
-            </span>
+          <span className="inline-flex items-center gap-1.5">
+            <Kbd keys={["↵"]} />
             <Trans>open</Trans>
           </span>
-          <span style={{ marginLeft: "auto", font: "600 11px var(--font-mono)", color: "var(--muted-foreground)" }}><Trans>⌘K to toggle</Trans></span>
+          <span className="ml-auto font-mono text-[11px]">
+            <Trans>⌘K to toggle</Trans>
+          </span>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
