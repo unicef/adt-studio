@@ -102,12 +102,17 @@ describe("BetaVersionsView", () => {
     expect(screen.getByText("Last week")).toBeTruthy()
     expect(screen.getByText("June 2026")).toBeTruthy()
     expect(document.querySelector(".lucide-arrow-down")).toBeNull()
+    expect(screen.queryByText(/Back up your books before downgrading/)).toBeNull()
     fireEvent.click(screen.getByText("v0.7.4-beta.2"))
     expect(screen.getByText("Current version")).toBeTruthy()
+    expect(screen.queryByText(/Back up your books before downgrading/)).toBeNull()
     fireEvent.click(screen.getByText("v0.7.4-beta.1"))
     expect(await screen.findByText("Previous behavior")).toBeTruthy()
     expect(screen.queryByText("Current version")).toBeNull()
     expect(screen.queryByText("Downgrade")).toBeNull()
+    expect(
+      screen.getByText(/Back up your books before downgrading/),
+    ).toBeTruthy()
 
     fireEvent.click(
       screen.getByRole("button", { name: "Install older version" }),

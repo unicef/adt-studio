@@ -14,6 +14,7 @@ import {
   FlaskConical,
   Loader2,
   RefreshCw,
+  TriangleAlert,
 } from "lucide-react"
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -176,6 +177,25 @@ export function BetaVersionsView({
                   </p>
                 </div>
               </div>
+
+              {selected.direction === "downgrade" && (
+                <div
+                  role="alert"
+                  className="mx-5 mb-1 flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-400"
+                >
+                  <TriangleAlert
+                    className="mt-0.5 size-4 shrink-0"
+                    aria-hidden="true"
+                  />
+                  <span>
+                    <Trans>
+                      Installing an older version can break books or settings
+                      that were created or edited with a newer one. Back up your
+                      books before downgrading.
+                    </Trans>
+                  </span>
+                </div>
+              )}
 
               <div className="min-h-0 flex-1 overflow-auto border-y px-5 py-4">
                 <h3 className="mb-3 text-sm font-semibold">

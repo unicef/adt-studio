@@ -211,10 +211,6 @@ export async function checkForUpdates(): Promise<UpdateStatus> {
   }
 }
 
-/**
- * Return every installable release on the beta track, including the currently
- * installed version and older versions that can be selected for downgrade.
- */
 export async function listAvailableVersions(
   force = false,
 ): Promise<AvailableRelease[]> {
@@ -227,11 +223,6 @@ export async function listAvailableVersions(
   );
 }
 
-/**
- * Point electron-updater at one specific beta release. The version is resolved
- * against the GitHub release catalog rather than interpolated from renderer
- * input, so only a published, platform-compatible release can be selected.
- */
 export async function selectVersion(version: string): Promise<UpdateStatus> {
   if (!app.isPackaged || !isBetaReleaseVersion(app.getVersion())) {
     emit({ phase: "not-available" });

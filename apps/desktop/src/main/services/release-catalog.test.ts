@@ -30,13 +30,37 @@ describe("release catalog version handling", () => {
       compareReleaseVersions("0.7.4-beta.5", "0.7.4-beta.1"),
     ).toBeGreaterThan(0);
     expect(compareReleaseVersions("0.7.4", "0.7.4-beta.5")).toBeGreaterThan(0);
+    expect(
+      compareReleaseVersions("0.7.5-beta.1", "0.7.5-beta-123"),
+    ).toBeGreaterThan(0);
+  });
+
+  it("distinguishes staging versions from different pull requests", () => {
+    expect(
+      compareReleaseVersions("0.7.5-beta-123", "0.7.5-beta-45"),
+    ).not.toBe(0);
+    expect(compareReleaseVersions("0.7.5-beta-123", "0.7.5-beta-123")).toBe(0);
+    expect(
+      compareReleaseVersions("0.7.5-beta-123", "0.7.5-beta"),
+    ).not.toBe(0);
   });
 
   it("recognizes only supported beta versions", () => {
     expect(isBetaReleaseVersion("0.7.4-beta.5")).toBe(true);
     expect(isBetaReleaseVersion("v0.7.4-beta")).toBe(true);
+    expect(isBetaReleaseVersion("0.7.4-beta.0")).toBe(true);
+    expect(isBetaReleaseVersion("0.7.5-beta-123")).toBe(true);
+    expect(isBetaReleaseVersion("0.7.5-beta-0")).toBe(false);
     expect(isBetaReleaseVersion("0.7.4")).toBe(false);
     expect(isBetaReleaseVersion("0.7.4-rc.1")).toBe(false);
+  });
+
+  it("rejects numeric identifiers with leading zeros (semver)", () => {
+    expect(isBetaReleaseVersion("01.7.4-beta.1")).toBe(false);
+    expect(isBetaReleaseVersion("0.07.4-beta.1")).toBe(false);
+    expect(isBetaReleaseVersion("0.7.04-beta.1")).toBe(false);
+    expect(isBetaReleaseVersion("0.7.4-beta.01")).toBe(false);
+    expect(isBetaReleaseVersion("0.7.4-beta-01")).toBe(false);
   });
 
   it("lists beta upgrades, current release, and downgrades while ignoring stable", () => {

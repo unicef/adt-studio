@@ -31,6 +31,7 @@ interface ParsedReleaseVersion {
   minor: number;
   patch: number;
   beta: number | null;
+  staging: number | null;
 }
 
 const RELEASES_URL =
@@ -45,20 +46,25 @@ let releaseRequest: Promise<GitHubRelease[]> | undefined;
 export function parseReleaseVersion(
   value: string,
 ): ParsedReleaseVersion | null {
-  const match = value.match(/^v?(\d+)\.(\d+)\.(\d+)(?:-beta(?:\.(\d+))?)?$/);
+  const match = value.match(
+    /^v?(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-beta(?:\.(0|[1-9]\d*)|-([1-9]\d*))?)?$/i,
+  );
   if (!match) return null;
 
   const major = Number(match[1]);
   const minor = Number(match[2]);
   const patch = Number(match[3]);
   const beta =
-    match[4] == null ? (value.includes("-beta") ? 0 : null) : Number(match[4]);
+    match[4] == null ? (/-beta/i.test(value) ? 0 : null) : Number(match[4]);
+  const staging = match[5] == null ? null : Number(match[5]);
 
-  if (![major, minor, patch, beta ?? 0].every(Number.isSafeInteger)) {
+  if (
+    ![major, minor, patch, beta ?? 0, staging ?? 0].every(Number.isSafeInteger)
+  ) {
     return null;
   }
 
-  return { major, minor, patch, beta };
+  return { major, minor, patch, beta, staging };
 }
 
 export function isBetaReleaseVersion(value: string): boolean {
@@ -81,7 +87,8 @@ export function compareReleaseVersions(left: string, right: string): number {
   if (a.beta == null && b.beta == null) return 0;
   if (a.beta == null) return 1;
   if (b.beta == null) return -1;
-  return a.beta - b.beta;
+  if (a.beta !== b.beta) return a.beta - b.beta;
+  return (a.staging ?? 0) - (b.staging ?? 0);
 }
 
 export function createBetaReleaseCatalog(

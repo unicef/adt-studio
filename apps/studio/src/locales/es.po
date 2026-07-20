@@ -3646,6 +3646,9 @@ msgstr "Instalar actualización"
 msgid "Installed"
 msgstr "Instalada"
 
+msgid "Installing an older version can break books or settings that were created or edited with a newer one. Back up your books before downgrading."
+msgstr "Instalar una versión anterior puede dañar libros o ajustes creados o editados con una más reciente. Haz una copia de seguridad de tus libros antes de volver a una versión anterior."
+
 msgid "Installing update…"
 msgstr "Instalando actualización…"
 

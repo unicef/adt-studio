@@ -3647,6 +3647,9 @@ msgstr "Instalo përditësimin"
 msgid "Installed"
 msgstr "I instaluar"
 
+msgid "Installing an older version can break books or settings that were created or edited with a newer one. Back up your books before downgrading."
+msgstr "Instalimi i një versioni më të vjetër mund të dëmtojë librat ose cilësimet e krijuara apo të modifikuara me një version më të ri. Bëni një kopje rezervë të librave tuaj përpara se të ktheheni në një version më të vjetër."
+
 msgid "Installing update…"
 msgstr "Duke instaluar përditësimin…"
 

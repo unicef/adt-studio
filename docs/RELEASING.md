@@ -1,256 +1,207 @@
 # Releasing
 
-This document describes how ADT Studio is versioned and released, the branching
-model behind it, and exactly what the release pipeline
-([`.github/workflows/release.yml`](../.github/workflows/release.yml)) does.
+ADT Studio builds signed staging artifacts for mergeable PRs targeting
+`develop` that carry the `staging` label, then publishes beta releases from
+`develop` and stable releases from `main`.
 
-> **TL;DR**
-> - Feature branches merge into **`develop`** → produces **beta** releases (`vX.Y.Z-beta.N`), published often for QA.
-> - Once a beta is validated, **`develop`** merges into **`main`** → produces a **stable** release (`vX.Y.Z`).
-> - You never push a tag by hand. You trigger a release with a `RELEASE:` commit (or the manual button); the pipeline creates the tag, builds everything, and publishes the GitHub release.
+## Branch and release flow
 
----
-
-## Branching & release model
-
+```text
+feature/* or fix/*
+        |
+        | PR to develop
+        v
+CI: unit tests + typecheck + i18n + Docker
+        |
+        | all checks pass, the PR has no conflicts,
+        | and the PR carries the `staging` label
+        v
+staging/pr-<pr>-<merge-hash>
+version: X.Y.Z-beta-<pr>
+        |
+        | signed desktop artifacts for QA
+        v
+merge PR to develop -> beta release -> merge to main -> stable release
 ```
- feature/*  ──merge──▶  develop  ──merge──▶  main
-                          │                    │
-                          ▼                    ▼
-                   beta release          stable release
-                 vX.Y.Z-beta.N               vX.Y.Z
-              (frequent, for QA)        (validated, public)
+
+| Branch                    | Purpose                        | Version example          |
+| ------------------------- | ------------------------------ | ------------------------ |
+| `feature/*`, `fix/*`      | Development                    | Existing package version |
+| `staging/pr-123-a1b2c3d4` | Test the exact candidate merge | `0.7.5-beta-123`         |
+| `develop`                 | Beta releases                  | `0.7.5-beta.1`           |
+| `main`                    | Stable releases                | `0.7.5`                  |
+
+## PR staging
+
+[`create-staging.yml`](../.github/workflows/create-staging.yml) observes the
+completed [CI](../.github/workflows/ci.yml) run and continues only when:
+
+- the PR targets `develop`;
+- the PR is not a draft;
+- its source branch belongs to this repository;
+- the PR carries the `staging` label;
+- the `test`, `i18n`, and `docker` jobs all succeeded.
+
+Staging is opt-in because it signs installers with the production
+certificates. Add the `staging` label to a PR that needs QA artifacts; if CI
+already finished, re-run the CI workflow (or push a commit) so the staging
+listener fires again.
+
+GitHub creates a temporary merge commit for a mergeable PR. CI records and
+tests that commit, and the staging branch is created from that exact SHA, so the
+build contains the PR already merged with the current `develop`. The staging
+workflow also confirms that the PR merge ref still points to the recorded SHA.
+A conflicting PR does not receive a merge commit and therefore cannot reach
+this job.
+
+Before creating staging, CI also checks that the PR head has not changed while
+the jobs were running. Commits that only touch the translation catalogs under
+`apps/studio/src/locales/` — such as the auto-translate commit CI itself pushes
+— are tolerated, and staging continues from the current merge commit. Any other
+change stops staging until a CI run succeeds for the current head and base
+commits. If GitHub has not reported the PR's mergeability by the time the
+listener runs, the workflow fails visibly and can be re-run.
+
+The branch name includes the PR number and the first eight characters of the
+tested merge SHA. After checking out that merge, the workflow updates
+`apps/desktop/package.json` and creates one staging-only version commit on top:
+
+```text
+branch:  staging/pr-123-a1b2c3d4
+version: 0.7.5-beta-123
+package: apps/desktop/package.json
 ```
 
-| Branch | Release track | Tag format | Audience | Cadence |
-|--------|---------------|------------|----------|---------|
-| `develop` | **beta** (prerelease) | `vX.Y.Z-beta.N` | QA / internal testers | Frequent |
-| `main` | **stable** | `vX.Y.Z` | End users | On approval |
+After pushing the branch, CI explicitly dispatches
+[`staging-build.yml`](../.github/workflows/staging-build.yml). That workflow
+validates that the version and `package.json` contain the PR number and that the
+parent of the version commit is the tested merge hash. It then produces signed
+Windows, macOS, and Linux installers. Artifacts are retained for 14 days.
+Staging does not create a tag, GitHub Release, or Docker image.
 
-**The contract is enforced by the pipeline** (see [Branch contract](#branch-contract)):
-- A release on `develop` **must** be a `vX.Y.Z-beta.N` tag — a stable tag is rejected.
-- A release on `main` **must** be a `vX.Y.Z` tag — a prerelease tag is rejected.
+GitHub requires both `workflow_run` listeners and manually dispatched workflows
+to exist on the repository's default branch. When this feature is deployed for
+the first time, `create-staging.yml` and `staging-build.yml` must therefore be
+promoted to the default branch before PR staging can run.
 
-This guarantees a beta never leaks to the stable channel and vice versa.
+Old staging branches can be deleted after the PR is merged or closed.
 
-### Day-to-day flow
+## Version calculation
 
-1. Developers open PRs from `feature/*` branches into **`develop`**.
-2. When enough has landed, a maintainer cuts a **beta** from `develop` (see
-   [Triggering a release](#triggering-a-release)). QA installs/updates and tests it.
-3. More betas (`-beta.2`, `-beta.3`, …) are cut as fixes land — this is meant to
-   be frequent and cheap.
-4. Once a beta line is approved, **`develop` is merged into `main`** and a
-   **stable** release is cut from `main`.
+Version numbers are calculated by
+[`scripts/calculate-release-version.mjs`](../scripts/calculate-release-version.mjs)
+from the repository tags. The user never types a complete version.
 
----
+| Selected type | Base                                   | Example when the latest stable is `v0.7.4` |
+| ------------- | -------------------------------------- | ------------------------------------------ |
+| `major`       | Latest stable tag                      | `v1.0.0`                                   |
+| `minor`       | Latest stable tag                      | `v0.8.0`                                   |
+| `patch`       | Latest stable tag                      | `v0.7.5`                                   |
+| `beta`        | Active beta line, or next stable patch | `v0.7.5-beta.1`                            |
+| `beta-minor`  | Active beta line, or next stable minor | `v0.8.0-beta.1`                            |
+| `beta-major`  | Active beta line, or next stable major | `v1.0.0-beta.1`                            |
+
+If `v0.7.5-beta.2` already exists and is ahead of the latest stable tag, the
+next beta is `v0.7.5-beta.3`. Once `v0.7.5` is stable, the next beta line starts
+at `v0.7.6-beta.1`. A beta bump only starts a new line when it lands above the
+active one: after `v0.8.0-beta.1`, plain `beta` continues with `v0.8.0-beta.2`,
+while `beta-major` starts `v1.0.0-beta.1`.
+
+Staging uses the same next-beta core but substitutes the beta increment with the
+PR number. For example, PR 123 becomes `0.7.5-beta-123`. Staging versions are
+never used as release tags.
+
+## Tag protection
+
+Because every future version is derived from the existing `v*` tags, a tag
+created by hand — or an accidental `git push --tags` — permanently shifts all
+later calculations. **Never create a `v*` tag manually.** The release pipeline
+is the only thing that creates them, in the `finalize` job, authenticated with
+the `RELEASE_PAT` secret.
+
+The `v*` tag namespace is locked with a repository ruleset so only the release
+automation can create, update, or delete those tags. The ruleset is checked in
+at [`.github/rulesets/protect-release-tags.json`](../.github/rulesets/protect-release-tags.json)
+and blocks creation/update/deletion of `refs/tags/v*` for everyone except the
+**Repository admin** role (`actor_id: 5`).
+
+To apply it:
+
+- **UI** — Settings → Rules → Rulesets → **New ruleset → Import a ruleset**,
+  select the JSON file, and enable it.
+- **API** —
+  ```bash
+  gh api --method POST repos/unicef/adt-studio/rulesets \
+    --input .github/rulesets/protect-release-tags.json
+  ```
+
+For the pipeline to keep tagging, the account that owns `RELEASE_PAT` must be
+able to bypass the ruleset — keep it a **repository admin** (the bypass actor in
+the JSON). If you move release automation to a GitHub App or a non-admin machine
+account instead, replace the bypass actor accordingly (e.g. an `Integration`
+actor for an App) and re-import.
 
 ## Triggering a release
 
-There are two ways to start a release. Both run the exact same pipeline.
+### GitHub UI
 
-### 1. `RELEASE:` commit (recommended)
+Open **Actions -> Release -> Run workflow**, select the release branch, and
+choose `beta`, `beta-minor`, `beta-major`, `patch`, `minor`, or `major` from
+the **Version increment** list.
 
-Push a commit to `develop` or `main` whose **subject line** starts with `RELEASE:`
-followed by the tag:
+The branch contract is enforced:
+
+- `develop` accepts only `beta`, `beta-minor`, or `beta-major`;
+- `main` accepts `patch`, `minor`, or `major`.
+
+Releases from `develop` and `main` share one concurrency group, so two runs
+never calculate versions from the same tag state.
+
+### Release commit
+
+Automation may alternatively push a commit whose complete subject is a release
+type:
 
 ```bash
-# On develop — beta
-git commit --allow-empty -m "RELEASE: v0.8.0-beta.1"
+# On develop
+git commit --allow-empty -m "RELEASE: beta"
 git push origin develop
 
-# On main — stable
-git commit --allow-empty -m "RELEASE: v0.8.0"
+# On main
+git commit --allow-empty -m "RELEASE: patch"
 git push origin main
 ```
 
-Notes:
-- The `RELEASE:` prefix is matched **case-insensitively** by the tag extractor.
-- The `v` prefix is optional in the message — it is added automatically.
-- Only the **head commit** of the push is inspected.
+`RELEASE: minor` and `RELEASE: major` are also accepted on `main`, and
+`RELEASE: beta-minor` and `RELEASE: beta-major` on `develop`. Matching is
+case-insensitive, and only the head commit of the push is inspected.
 
-### 2. Manual dispatch
+## Release pipeline
 
-From the GitHub UI: **Actions → Release → Run workflow**, pick the branch, and
-enter the tag (e.g. `v0.8.0-beta.1` on `develop`, `v0.8.0` on `main`).
+[`release.yml`](../.github/workflows/release.yml) has four stages:
 
----
+1. `prepare` calculates the next version, validates the branch contract, bumps
+   `apps/desktop/package.json`, and updates issue-template versions.
+2. `desktop` builds and signs installers for Windows, macOS, and Linux.
+3. `docker` builds and publishes the combined application image to GHCR.
+4. `finalize` commits release metadata, creates the tag, and publishes the
+   GitHub Release only after all builds succeed.
 
-## Pipeline overview
+Stable Docker releases update both their version tag and `latest`. Beta images
+publish only their version tag and cannot overwrite `latest`.
 
-The workflow runs four jobs. Builds happen first; the tag and the public release
-are created **only after every build succeeds**, so a failed build never leaves a
-dangling tag or a half-published release.
+## Desktop channels
 
-```
-              ┌─────────────┐
-              │   prepare   │  validate tag, classify beta/stable,
-              │             │  bump version, stage metadata
-              └──────┬──────┘
-                     │
-          ┌──────────┴──────────┐
-          ▼                     ▼
-   ┌─────────────┐       ┌─────────────┐
-   │   desktop   │       │   docker    │   (run in parallel)
-   │ (3 OS matrix)│      │ build & push │
-   └──────┬──────┘       └──────┬──────┘
-          └──────────┬──────────┘
-                     ▼
-              ┌─────────────┐
-              │  finalize   │  commit metadata, push tag,
-              │             │  create GitHub release
-              └─────────────┘
-```
+Beta and stable are separate desktop products and can be installed together.
+Any version containing `-beta` uses the beta product identity and updater
+channel, including staging versions such as `0.7.5-beta-123`.
 
-### `prepare`
+| Installed build             | Updater channel | Receives        |
+| --------------------------- | --------------- | --------------- |
+| Stable (`X.Y.Z`)            | `latest`        | Stable releases |
+| Beta (`X.Y.Z-beta.N`)       | `beta`          | Beta releases   |
+| Staging (`X.Y.Z-beta-<pr>`) | `beta`          | Beta releases   |
 
-Gated by `if`: runs only on a manual dispatch **or** when the head commit subject
-starts with `RELEASE:`. It then:
-
-1. **Extracts the tag** from the commit subject or the dispatch input, prepends
-   `v` if missing, and validates its character set (also blocks injection).
-2. **Rejects a tag that already exists** on the remote — bump the version instead.
-3. **Classifies the tag**:
-   - `vX.Y.Z-beta[.N]` → `prerelease = true`
-   - `vX.Y.Z` → `prerelease = false`
-   - anything else → **error** (the only accepted formats are stable and beta).
-4. <a id="branch-contract"></a>**Enforces the branch contract**:
-   - `develop` only accepts beta tags.
-   - `main` only accepts stable tags.
-5. **Computes the Docker tag list**: always `ghcr.io/unicef/adt-studio:<tag>`;
-   stable releases additionally move `:latest`.
-6. **Bumps `apps/desktop/package.json`** to the release version (used by
-   electron-builder for installer naming and the auto-update channel).
-7. **Updates the issue-template version dropdowns** and stages the changed files
-   as a `release-metadata` artifact (committed later by `finalize`).
-
-### `desktop`
-
-Matrix build across **macOS, Windows, and Linux**. For each OS it builds the
-workspace, builds the Electron app, packages installers, and signs them:
-
-| OS | Output | Signing |
-|----|--------|---------|
-| macOS | `.dmg`, `.zip` | Apple Developer ID + notarization |
-| Windows | `.exe` (NSIS) | Azure Trusted Signing via `jsign` |
-| Linux | `.AppImage`, `.deb` | — |
-
-Installers and the auto-update channel manifests (`latest*.yml` for stable,
-`beta*.yml` for beta) are uploaded as per-OS artifacts.
-
-### `docker`
-
-Builds the combined single-image (`app` target) and pushes it to GHCR with the
-tags computed in `prepare`:
-
-- **Stable** → `ghcr.io/unicef/adt-studio:vX.Y.Z` **and** `:latest`
-- **Beta** → `ghcr.io/unicef/adt-studio:vX.Y.Z-beta.N` **only** (never `:latest`)
-
-A beta image therefore never overwrites the `:latest` tag that production
-`docker run` / `docker compose` users pull.
-
-### `finalize`
-
-Runs only after `desktop` and `docker` both succeed. It:
-
-1. Restores the staged metadata and downloads all installer artifacts.
-2. Commits the metadata bump (`chore(release): <tag>`) and pushes it to the
-   release branch. *(This push uses `GITHUB_TOKEN`, which by design does **not**
-   re-trigger the workflow — no release loop.)*
-3. Creates and pushes the git **tag**.
-4. Generates a standalone `docker-compose.yml` from the release template.
-5. Creates the **GitHub release** with auto-generated notes, attaching the
-   installers, the `docker-compose.yml`, and the Windows launcher script.
-   Beta releases are marked as **pre-release** (`--prerelease`), so they never
-   become GitHub's "Latest release".
-
----
-
-## Side-by-side installs (desktop)
-
-Beta and stable are **distinct products** and can be installed at the same time
-without overwriting each other. The identity is keyed off the `-beta` in the
-version (see [`apps/desktop/electron-builder.js`](../apps/desktop/electron-builder.js)):
-
-| | Stable | Beta |
-|---|--------|------|
-| `appId` | `com.nees.adt-studio` | `com.nees.adt-studio.beta` |
-| `productName` | `ADT-Studio` | `ADT-Studio-Beta` |
-| Install dir / shortcut / uninstall entry | separate | separate |
-| `userData` (books, config, cache) | separate | separate |
-
-Because the install location, Start Menu shortcut, Windows uninstall key, and
-the Electron `userData` directory all derive from `appId` / `productName`, the
-two builds never collide. The main process sets a matching `AppUserModelId` per
-channel ([`src/main/index.ts`](../apps/desktop/src/main/index.ts)) so taskbar
-grouping and notifications stay separate too.
-
-## Auto-updates (desktop)
-
-The desktop app follows the **release channel that matches the build it is
-running**, and each track is closed — a build never crosses over to the other
-channel:
-
-| Installed build | Update channel | Sees |
-|-----------------|----------------|------|
-| Stable (`vX.Y.Z`) | `latest` | Stable releases only |
-| Beta (`vX.Y.Z-beta.N`) | `beta` | Beta releases only |
-
-This is configured in
-[`apps/desktop/src/main/services/auto-updater.ts`](../apps/desktop/src/main/services/auto-updater.ts):
-the updater enables prereleases and selects the `beta` channel **only** when the
-running version is itself a beta; stable installs use the `latest` channel and
-ignore prereleases.
-
-> **Beta stays beta.** A beta install must never auto-update onto a stable
-> build — doing so would silently graduate a beta into a stable install (and,
-> with separate identities, would orphan its data). Two safeguards enforce this:
-> 1. **Manifest level** — `generateUpdatesFilesForAllChannels` is **off**, so a
->    stable release only writes `latest.yml` and never overwrites `beta.yml`.
->    Beta installs reading `beta.yml` therefore only ever see newer betas.
-> 2. **Runtime level** — the updater rejects any non-beta version offered to a
->    beta build, as defense-in-depth.
->
-> To move a tester from beta to stable, install the stable build separately
-> (they coexist) and uninstall the beta if desired.
-
-The Docker distribution has no equivalent channel crossover: users pin an
-explicit image tag, and only `:latest` moves with stable releases.
-
----
-
-## What gets published
-
-Each release produces:
-
-- **Desktop installers** — Windows `.exe`, macOS `.dmg`/`.zip`, Linux
-  `.AppImage`/`.deb`, plus the `*.yml` auto-update manifests.
-- **Docker image** — pushed to `ghcr.io/unicef/adt-studio` (see tag rules above).
-- **GitHub release** — installers + a ready-to-use `docker-compose.yml` +
-  `windows-setup-and-run.bat`, with auto-generated changelog notes. Marked
-  pre-release for betas.
-
----
-
-## Quick reference
-
-```bash
-# Cut a beta from develop (QA build)
-git switch develop
-git commit --allow-empty -m "RELEASE: v0.8.0-beta.1"
-git push origin develop
-
-# Promote to stable: merge develop → main, then cut a stable release
-git switch main
-git merge --no-ff develop
-git commit --allow-empty -m "RELEASE: v0.8.0"
-git push origin main
-```
-
-| Rule | Stable (`main`) | Beta (`develop`) |
-|------|-----------------|------------------|
-| Tag format | `vX.Y.Z` | `vX.Y.Z-beta.N` |
-| GitHub release | normal | pre-release |
-| Docker `:latest` | moved | untouched |
-| Desktop channel | `latest` | `beta` |
-| Frequency | on approval | frequent |
+The version browser accepts numbered beta releases and PR-qualified staging
+builds. Staging artifacts themselves are not listed remotely because they are
+workflow artifacts rather than GitHub Releases.
