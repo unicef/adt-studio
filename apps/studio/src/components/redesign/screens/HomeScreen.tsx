@@ -5,7 +5,10 @@ import { msg } from "@lingui/core/macro"
 import { i18n } from "@lingui/core"
 import { Plus, Scissors, ArrowRight } from "lucide-react"
 import type { BookSummary } from "@/api/client"
+import { Button } from "@/components/ui/button"
 import { BookCover } from "../BookCover"
+import { StageDiscs } from "../ui/StageDiscs"
+import { Eyebrow } from "../ui/Eyebrow"
 import { toBookVM, type BookVM } from "../data"
 import type { RedesignView } from "../types"
 
@@ -23,18 +26,22 @@ function greeting(): string {
   return i18n._(msg`Good evening.`)
 }
 
-function DiscRow({ discs, size = 17 }: { discs: BookVM["discs"]; size?: number }) {
+const sectionLabel = "text-[11.5px] font-medium uppercase tracking-[0.08em] text-muted-foreground"
+
+function RecentBookCard({ book, onOpen }: { book: BookVM; onOpen: () => void }) {
   return (
-    <div className="dscrow">
-      {discs.map((d) => {
-        const Icon = d.icon
-        return (
-          <div key={d.slug} className="sd" style={{ width: size, height: size, background: d.hex, color: "#fff" }}>
-            <Icon className="lucide" />
-          </div>
-        )
-      })}
-    </div>
+    <button type="button" onClick={onOpen} className="flex w-[150px] shrink-0 flex-col gap-2.5 text-left">
+      <div className="h-[200px] w-[150px] overflow-hidden rounded-[9px] shadow-md">
+        <BookCover title={book.displayTitle} author={book.authors} cover={book.cover} />
+      </div>
+      <div>
+        <div className="truncate text-[12.5px] font-semibold leading-tight">{book.displayTitle}</div>
+        <div className="mt-0.5 truncate text-[11.5px] text-muted-foreground">
+          {book.authors} · {book.pagesText}
+        </div>
+        {book.hasStages && <StageDiscs discs={book.discs} size={18} max={5} className="mt-2" />}
+      </div>
+    </button>
   )
 }
 
@@ -43,9 +50,7 @@ export function HomeScreen({ books, locale, onOpenAdd, onNavigate }: HomeScreenP
   const openBook = (label: string) => navigate({ to: "/books/$label/$step", params: { label, step: "book" } })
 
   const vms = useMemo(() => {
-    const sorted = [...books].sort(
-      (a, b) => new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime(),
-    )
+    const sorted = [...books].sort((a, b) => new Date(b.modifiedAt).getTime() - new Date(a.modifiedAt).getTime())
     return sorted.map((b) => toBookVM(b, locale))
   }, [books, locale])
 
@@ -55,24 +60,12 @@ export function HomeScreen({ books, locale, onOpenAdd, onNavigate }: HomeScreenP
   const dateLabel = new Intl.DateTimeFormat(locale, { weekday: "long", month: "long", day: "numeric" }).format(new Date())
 
   return (
-    <div style={{ position: "relative", height: "100%", overflow: "auto", padding: "14px 34px 24px", background: "var(--background)" }}>
-      <div
-        className="drift"
-        style={{
-          position: "absolute",
-          width: 440,
-          height: 440,
-          right: -80,
-          top: -120,
-          borderRadius: "50%",
-          background: "radial-gradient(circle, rgba(43,127,255,.12), transparent 70%)",
-          pointerEvents: "none",
-        }}
-      />
-      <div style={{ position: "relative" }}>
-        <div className="eyb">{dateLabel}</div>
-        <div style={{ font: "700 24px/1.1 var(--font-sans)", letterSpacing: "-0.025em", margin: "6px 0 3px" }}>{greeting()}</div>
-        <div style={{ font: "400 15px var(--font-sans)", color: "var(--muted-foreground)" }}>
+    <div className="relative h-full overflow-auto bg-background px-[34px] pb-6 pt-3.5">
+      <div className="drift pointer-events-none absolute -top-[120px] right-[-80px] size-[440px] rounded-full bg-[radial-gradient(circle,rgba(43,127,255,.12),transparent_70%)]" />
+      <div className="relative">
+        <Eyebrow>{dateLabel}</Eyebrow>
+        <div className="mb-[3px] mt-1.5 text-2xl font-bold leading-[1.1] tracking-[-0.025em]">{greeting()}</div>
+        <div className="text-[15px] text-muted-foreground">
           <Plural value={books.length} one="# book in production" other="# books in production" />
           {splitCount > 0 && (
             <>
@@ -85,174 +78,131 @@ export function HomeScreen({ books, locale, onOpenAdd, onNavigate }: HomeScreenP
 
         {feature ? (
           <>
-            <div style={{ margin: "13px 0 9px" }} className="seclbl">
+            <div className={`mb-2.5 mt-3.5 ${sectionLabel}`}>
               <Trans>Jump back in</Trans>
             </div>
-            <div style={{ display: "flex", gap: 20 }}>
-              <div className="brow" style={{ flex: 1, cursor: "pointer" }} onClick={() => openBook(feature.label)}>
-                <div className="covbox" style={{ width: 150, alignSelf: "stretch", borderRadius: 0 }}>
+            <div className="flex gap-5">
+              <button
+                type="button"
+                onClick={() => openBook(feature.label)}
+                className="group flex flex-1 items-stretch overflow-hidden rounded-2xl border bg-card text-left shadow-sm transition-all hover:-translate-y-px hover:border-brand-300 hover:shadow-md"
+              >
+                <div className="w-[150px] shrink-0 self-stretch">
                   <BookCover title={feature.displayTitle} author={feature.authors} cover={feature.cover} />
                 </div>
-                <div className="brow-body" style={{ padding: "13px 20px", gap: 9, justifyContent: "center" }}>
+                <div className="flex flex-col justify-center gap-2.5 px-5 py-3.5">
                   <div>
-                    <div className="seclbl" style={{ marginBottom: 7 }}>
+                    <div className={`mb-[7px] ${sectionLabel}`}>
                       <Trans>Last edited {feature.modified}</Trans>
                     </div>
-                    <h3 style={{ font: "700 20px/1.15 var(--font-sans)", letterSpacing: "-0.02em", margin: 0 }}>
-                      {feature.displayTitle}
-                    </h3>
-                    <div style={{ font: "400 13px var(--font-sans)", color: "var(--muted-foreground)", marginTop: 5 }}>
+                    <h3 className="text-xl font-bold leading-[1.15] tracking-[-0.02em]">{feature.displayTitle}</h3>
+                    <div className="mt-1.5 text-[13px] text-muted-foreground">
                       {feature.authors} · {feature.pagesText}
                     </div>
                   </div>
-                  {feature.hasStages && <DiscRow discs={feature.discs} />}
-                  <div style={{ display: "flex", gap: 10, marginTop: 2 }}>
-                    <button
-                      className="btn btn-pri btn-sm"
+                  {feature.hasStages && <StageDiscs discs={feature.discs} />}
+                  <div className="mt-0.5 flex gap-2.5">
+                    <Button
+                      size="sm"
                       onClick={(e) => {
                         e.stopPropagation()
                         openBook(feature.label)
                       }}
                     >
                       <Trans>Continue editing</Trans>
-                      <ArrowRight className="lucide" style={{ width: 14, height: 14 }} />
-                    </button>
-                    <button className="btn btn-out btn-sm" onClick={(e) => e.stopPropagation()}>
+                      <ArrowRight className="size-3.5" />
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={(e) => e.stopPropagation()}>
                       <Trans>Preview</Trans>
-                    </button>
+                    </Button>
                   </div>
                 </div>
-              </div>
+              </button>
 
-              <div style={{ width: 230, display: "flex", flexDirection: "column", gap: 10 }}>
-                <div
+              <div className="flex w-[230px] flex-col gap-2.5">
+                <button
+                  type="button"
                   onClick={onOpenAdd}
-                  style={{
-                    flex: 1,
-                    background: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 14,
-                    boxShadow: "var(--shadow-sm)",
-                    padding: 13,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 7,
-                    cursor: "pointer",
-                  }}
+                  className="flex flex-1 flex-col gap-[7px] rounded-2xl border bg-card p-3.5 text-left shadow-sm transition-colors hover:border-brand-300"
                 >
-                  <div style={{ width: 34, height: 34, borderRadius: 9, background: "var(--brand-50)", display: "grid", placeItems: "center", color: "var(--brand-600)" }}>
-                    <Plus className="lucide" style={{ width: 20, height: 20 }} />
-                  </div>
-                  <div style={{ font: "600 14px var(--font-sans)" }}><Trans>New book</Trans></div>
-                  <div style={{ font: "400 12px/1.45 var(--font-sans)", color: "var(--muted-foreground)" }}><Trans>Upload a PDF to begin.</Trans></div>
-                </div>
-                <div
+                  <span className="grid size-[34px] place-items-center rounded-[9px] bg-brand-50 text-brand-600">
+                    <Plus className="size-5" />
+                  </span>
+                  <span className="text-sm font-semibold">
+                    <Trans>New book</Trans>
+                  </span>
+                  <span className="text-xs leading-[1.45] text-muted-foreground">
+                    <Trans>Upload a PDF to begin.</Trans>
+                  </span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => onNavigate("handoffs")}
-                  style={{
-                    flex: 1,
-                    background: "var(--card)",
-                    border: "1px solid var(--border)",
-                    borderRadius: 14,
-                    boxShadow: "var(--shadow-sm)",
-                    padding: 13,
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: 7,
-                    cursor: "pointer",
-                  }}
+                  className="flex flex-1 flex-col gap-[7px] rounded-2xl border bg-card p-3.5 text-left shadow-sm transition-colors hover:border-brand-300"
                 >
-                  <div style={{ display: "flex", alignItems: "center", gap: 9 }}>
-                    <div style={{ width: 34, height: 34, borderRadius: 9, background: "var(--brand-50)", display: "grid", placeItems: "center", color: "var(--brand-700)" }}>
-                      <Scissors className="lucide" style={{ width: 20, height: 20 }} />
-                    </div>
-                  </div>
-                  <div style={{ font: "600 14px var(--font-sans)" }}><Trans>Split & merge</Trans></div>
-                  <div style={{ font: "400 12px/1.45 var(--font-sans)", color: "var(--muted-foreground)" }}>
+                  <span className="grid size-[34px] place-items-center rounded-[9px] bg-brand-50 text-brand-700">
+                    <Scissors className="size-5" />
+                  </span>
+                  <span className="text-sm font-semibold">
+                    <Trans>Split & merge</Trans>
+                  </span>
+                  <span className="text-xs leading-[1.45] text-muted-foreground">
                     <Trans>Break a book into parts and merge them back.</Trans>
-                  </div>
-                </div>
+                  </span>
+                </button>
               </div>
             </div>
           </>
         ) : (
-          <div
+          <button
+            type="button"
             onClick={onOpenAdd}
-            style={{
-              marginTop: 22,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              border: "2px dashed var(--border)",
-              borderRadius: 14,
-              background: "var(--card)",
-              padding: "56px 20px",
-              cursor: "pointer",
-            }}
+            className="mt-[22px] flex w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed bg-card px-5 py-14 transition-colors hover:border-brand-400 hover:bg-brand-50/40"
           >
-            <div style={{ width: 46, height: 46, borderRadius: 999, background: "var(--brand-50)", display: "grid", placeItems: "center", color: "var(--brand-600)" }}>
-              <Plus className="lucide" style={{ width: 22, height: 22 }} />
-            </div>
-            <div style={{ font: "600 15px var(--font-sans)" }}><Trans>Add your first book</Trans></div>
-            <div style={{ font: "400 12.5px var(--font-sans)", color: "var(--muted-foreground)" }}><Trans>Upload a PDF to get started</Trans></div>
-          </div>
+            <span className="grid size-[46px] place-items-center rounded-full bg-brand-50 text-brand-600">
+              <Plus className="size-[22px]" />
+            </span>
+            <span className="text-[15px] font-semibold">
+              <Trans>Add your first book</Trans>
+            </span>
+            <span className="text-[12.5px] text-muted-foreground">
+              <Trans>Upload a PDF to get started</Trans>
+            </span>
+          </button>
         )}
 
         {feature && (
           <>
-            <div style={{ display: "flex", alignItems: "baseline", margin: "15px 0 10px" }}>
-              <span style={{ font: "700 16px var(--font-sans)", letterSpacing: "-0.01em", color: "var(--foreground)" }}><Trans>Your library</Trans></span>
-              <span style={{ marginLeft: 9, font: "400 13px var(--font-sans)", color: "var(--muted-foreground)" }}>
+            <div className="mb-2.5 mt-4 flex items-baseline">
+              <span className="text-base font-bold tracking-[-0.01em]">
+                <Trans>Your library</Trans>
+              </span>
+              <span className="ml-2.5 text-[13px] text-muted-foreground">
                 <Plural value={books.length} one="# book" other="# books" />
               </span>
-              <span
+              <button
+                type="button"
                 onClick={() => onNavigate("library")}
-                style={{ marginLeft: "auto", font: "500 12.5px var(--font-sans)", color: "var(--brand-700)", cursor: "pointer" }}
+                className="ml-auto text-[12.5px] font-medium text-brand-700 hover:underline"
               >
                 <Trans>View all →</Trans>
-              </span>
+              </button>
             </div>
-            <div style={{ display: "flex", gap: 18, overflowX: "auto", paddingBottom: 4 }}>
-              <div style={{ width: 150, flex: "none", display: "flex", flexDirection: "column", gap: 9, cursor: "pointer" }} onClick={onOpenAdd}>
-                <div
-                  style={{
-                    width: 150,
-                    height: 200,
-                    border: "2px dashed var(--border)",
-                    borderRadius: 9,
-                    display: "grid",
-                    placeItems: "center",
-                    color: "var(--muted-foreground)",
-                  }}
-                >
-                  <Plus className="lucide" style={{ width: 20, height: 20 }} />
-                </div>
-                <div style={{ font: "500 12.5px var(--font-sans)", color: "var(--muted-foreground)" }}><Trans>Add new book</Trans></div>
-              </div>
+            <div className="flex gap-[18px] overflow-x-auto pb-1">
+              <button
+                type="button"
+                onClick={onOpenAdd}
+                className="flex w-[150px] shrink-0 flex-col gap-2.5 text-left"
+              >
+                <span className="grid h-[200px] w-[150px] place-items-center rounded-[9px] border-2 border-dashed text-muted-foreground transition-colors hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600">
+                  <Plus className="size-5" />
+                </span>
+                <span className="text-[12.5px] font-medium text-muted-foreground">
+                  <Trans>Add new book</Trans>
+                </span>
+              </button>
               {recents.map((b) => (
-                <div
-                  key={b.label}
-                  style={{ width: 150, flex: "none", display: "flex", flexDirection: "column", gap: 9, cursor: "pointer" }}
-                  onClick={() => openBook(b.label)}
-                >
-                  <div className="covbox" style={{ width: 150, height: 200, borderRadius: 9, boxShadow: "var(--shadow-md)" }}>
-                    <BookCover title={b.displayTitle} author={b.authors} cover={b.cover} />
-                  </div>
-                  <div>
-                    <div style={{ font: "600 12.5px/1.25 var(--font-sans)", color: "var(--foreground)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {b.displayTitle}
-                    </div>
-                    <div style={{ font: "400 11.5px var(--font-sans)", color: "var(--muted-foreground)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {b.authors} · {b.pagesText}
-                    </div>
-                    {b.hasStages && (
-                      <div style={{ marginTop: 8 }}>
-                        <DiscRow discs={b.discs.slice(0, 5)} size={18} />
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <RecentBookCard key={b.label} book={b} onOpen={() => openBook(b.label)} />
               ))}
             </div>
           </>
