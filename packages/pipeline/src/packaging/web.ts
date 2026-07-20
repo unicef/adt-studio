@@ -2411,6 +2411,13 @@ function pickDefaultLanguage(
   return matchingBase ?? availableLanguages[0] ?? preferredLanguage
 }
 
+/**
+ * Files in the ADT `adt/` package that must not ship in a reader-ready export
+ * (EPUB/WebPub): the SCORM package manifest and the repo's AGENTS.md. Pass as
+ * the `skip` set when copying `adt/` into an export directory.
+ */
+export const NON_READER_FILES = new Set(["imsmanifest.xml", "AGENTS.md"])
+
 export function copyDirRecursive(
   src: string,
   dest: string,

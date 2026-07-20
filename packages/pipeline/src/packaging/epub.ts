@@ -3,7 +3,7 @@ import path from "node:path"
 import { JSDOM } from "jsdom"
 import type { Storage } from "@adt/storage"
 import type { BookMetadata, TocGenerationOutput, WordTimestampOutput } from "@adt/types"
-import { type PackageAdtWebOptions, copyDirRecursive, injectWebpubStyles, getWordTimestamps, pad3 } from "./web.js"
+import { type PackageAdtWebOptions, NON_READER_FILES, copyDirRecursive, injectWebpubStyles, getWordTimestamps, pad3 } from "./web.js"
 import { htmlToXhtml } from "../html-semantics.js"
 import { stripRuntimeBundle } from "./strip-runtime-bundle.js"
 
@@ -33,9 +33,6 @@ interface PageEntry {
   href: string
   page_number?: number
 }
-
-/** Files/dirs in adt/ root that are SCORM/offline-specific and not needed in EPUB. */
-const EPUB_SKIP = new Set(["imsmanifest.xml", "AGENTS.md"])
 
 /**
  * Visual affordance for in-text glossary references (EPUB only). The web
@@ -87,7 +84,7 @@ export function packageEpub(
   if (fs.existsSync(epubDir)) fs.rmSync(epubDir, { recursive: true })
 
   // Copy adt/ -> epub/OEBPS/, skipping SCORM-specific files
-  copyDirRecursive(adtDir, oebpsDir, EPUB_SKIP)
+  copyDirRecursive(adtDir, oebpsDir, NON_READER_FILES)
 
   // EPUB readers provide nav/settings/playback natively (read-aloud via the
   // SMIL overlays below), so drop the embedded runtime (React bundle, offline

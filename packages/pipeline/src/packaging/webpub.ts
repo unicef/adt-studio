@@ -6,6 +6,7 @@ import { stripRuntimeBundle } from "./strip-runtime-bundle.js"
 import {
   type PackageAdtWebOptions,
   type PageEntry,
+  NON_READER_FILES,
   copyDirRecursive,
   injectWebpubStyles,
   writeJson,
@@ -43,9 +44,10 @@ export function packageWebpub(
 
   const webpubDir = path.join(bookDir, "webpub")
 
-  // Copy adt/ -> webpub/
+  // Copy adt/ -> webpub/, dropping SCORM/non-reader files (imsmanifest.xml,
+  // AGENTS.md) so they don't ship or get listed in the manifest resources.
   if (fs.existsSync(webpubDir)) fs.rmSync(webpubDir, { recursive: true })
-  copyDirRecursive(adtDir, webpubDir)
+  copyDirRecursive(adtDir, webpubDir, NON_READER_FILES)
 
   // The reading app owns the UI; ship content + feature data only.
   stripRuntimeBundle(webpubDir)

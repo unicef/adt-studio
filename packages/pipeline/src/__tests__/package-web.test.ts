@@ -2205,6 +2205,32 @@ describe("packageWebpub", () => {
     expect(config.features.showTutorial).toBe(false)
   })
 
+  it("drops SCORM/non-reader files and omits them from manifest resources", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage)
+    // packageAdtWeb emits imsmanifest.xml; add a stray AGENTS.md too.
+    fs.writeFileSync(path.join(bookDir, "adt", "AGENTS.md"), "stray")
+    expect(fs.existsSync(path.join(bookDir, "adt", "imsmanifest.xml"))).toBe(true)
+
+    packageWebpub(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Test Book",
+      webAssetsDir,
+    })
+
+    expect(fs.existsSync(path.join(bookDir, "webpub", "imsmanifest.xml"))).toBe(false)
+    expect(fs.existsSync(path.join(bookDir, "webpub", "AGENTS.md"))).toBe(false)
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
+    )
+    const hrefs = manifest.resources.map((r: { href: string }) => r.href)
+    expect(hrefs).not.toContain("imsmanifest.xml")
+    expect(hrefs).not.toContain("AGENTS.md")
+  })
+
   it("injects CSS overrides into HTML pages", async () => {
     const { bookDir, webAssetsDir, storage } = setupBook()
     await buildAdtFirst(bookDir, webAssetsDir, storage)
