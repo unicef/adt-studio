@@ -281,6 +281,18 @@ export function EditableActivityPanel({
     })
   }
 
+  const removeOption = (stepIndex: number, optionIndex: number) => {
+    if (draft.kind !== "multiple-choice") return
+    const step = draft.steps[stepIndex]
+    const options = step.options.filter((_, i) => i !== optionIndex)
+    // Removing the correct option would leave the step with none, which fails
+    // validation on save — re-assign correctness to the first remaining option.
+    if (!options.some((o) => o.correct) && options.length > 0) {
+      options[0] = { ...options[0], correct: true }
+    }
+    updateMcStep(stepIndex, { ...step, options })
+  }
+
   const addOption = (stepIndex: number) => {
     if (draft.kind !== "multiple-choice") return
     const step = draft.steps[stepIndex]
@@ -663,12 +675,7 @@ export function EditableActivityPanel({
                         />
                         <button
                           type="button"
-                          onClick={() =>
-                            updateMcStep(si, {
-                              ...step,
-                              options: step.options.filter((_, i) => i !== oi),
-                            })
-                          }
+                          onClick={() => removeOption(si, oi)}
                           disabled={step.options.length <= 2}
                           className="p-1 rounded hover:bg-red-100 text-red-600 disabled:opacity-30 cursor-pointer"
                           title={t`Delete option`}
