@@ -61,7 +61,7 @@ export function HomeScreen({ books, locale, onOpenAdd, onNavigate }: HomeScreenP
 
   return (
     <div className="relative h-full overflow-auto bg-background px-[34px] pb-6 pt-3.5">
-      <div className="drift pointer-events-none absolute -top-[120px] right-[-80px] size-[440px] rounded-full bg-[radial-gradient(circle,rgba(43,127,255,.12),transparent_70%)]" />
+      <div className="pointer-events-none absolute -top-[120px] right-[-80px] size-[440px] animate-hero-drift rounded-full bg-[radial-gradient(circle,rgba(43,127,255,.12),transparent_70%)]" />
       <div className="relative">
         <Eyebrow>{dateLabel}</Eyebrow>
         <div className="mb-[3px] mt-1.5 text-2xl font-bold leading-[1.1] tracking-[-0.025em]">{greeting()}</div>

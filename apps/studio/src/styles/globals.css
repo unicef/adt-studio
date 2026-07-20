@@ -80,6 +80,7 @@
   --animate-preview-label-enter: preview-label-enter 0.28s cubic-bezier(0.22, 1, 0.36, 1);
   --animate-onboarding-fade-up: onboarding-fade-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-onboarding-fade-in: onboarding-fade-in 0.8s ease-out both;
+  --animate-hero-drift: hero-drift 14s ease-in-out infinite;
   --animate-onboarding-drift-a: onboarding-drift-a 22s ease-in-out infinite;
   --animate-onboarding-drift-b: onboarding-drift-b 28s ease-in-out infinite;
   --animate-onboarding-icon-float: onboarding-icon-float 5s ease-in-out infinite;
@@ -235,6 +236,10 @@
   }
 }
 
+@keyframes hero-drift {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(20px, -14px); }
+}
 @keyframes onboarding-drift-a {
   0%,
   100% {

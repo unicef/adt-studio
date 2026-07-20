@@ -17,7 +17,6 @@ import { HandoffsScreen } from "./screens/HandoffsScreen"
 import { SettingsScreen } from "./screens/SettingsScreen"
 import { Kbd } from "./ui/Kbd"
 import type { RedesignView } from "./types"
-import "./redesign.css"
 
 const SHORTCUTS: { keys: string[]; label: MessageDescriptor }[] = [
   { keys: ["⌘", "K"], label: msg`Open command palette` },
@@ -63,7 +62,7 @@ export function RedesignShell() {
   }
 
   return (
-    <div className="adt-redesign flex h-full w-full overflow-hidden bg-background text-foreground">
+    <div className="flex h-full w-full overflow-hidden bg-background text-foreground">
       <AppSidebar
         activeView={view}
         onNavigate={navigateView}
