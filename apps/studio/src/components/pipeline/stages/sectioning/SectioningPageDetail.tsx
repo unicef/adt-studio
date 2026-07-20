@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import { createPortal } from "react-dom"
 import { Eye } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
@@ -7,6 +7,7 @@ import type { PageSectioningOutput, PageSectioningSection } from "@adt/types"
 import { api, type PageDetail } from "@/api/client"
 import { usePageImage } from "@/hooks/use-pages"
 import { useApiKey } from "@/hooks/use-api-key"
+import { useBookTasks, bookTasksKey } from "@/hooks/use-book-tasks"
 import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
 import { cn } from "@/lib/utils"
 import { SectionTreeEditor } from "@/components/section-tree-editor/SectionTreeEditor"
@@ -88,8 +89,8 @@ export function SectioningPageDetail({
   >({})
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
-  const [needsRerender, setNeedsRerender] = useState(false)
-  const [rerendering, setRerendering] = useState(false)
+  // Sections the server couldn't bring in sync by substituting text.
+  const [rerenderSections, setRerenderSections] = useState<number[]>([])
   const [structuralBusy, setStructuralBusy] = useState(false)
   const [confirmMerge, setConfirmMerge] = useState<{
     action: () => void
@@ -101,10 +102,38 @@ export function SectioningPageDetail({
   useEffect(() => {
     setPendingBySectionId({})
     setSaveError(null)
-    setNeedsRerender(false)
+    setRerenderSections([])
     setConfirmMerge(null)
     setConfirmDelete(null)
   }, [pageId])
+
+  // Re-render runs as a background task, so derive progress from the task list
+  // rather than from the submit call — which returns as soon as it's queued.
+  // This also reconnects to a run still in flight after navigating away.
+  const { tasks: bookTasks } = useBookTasks(bookLabel)
+  const rerendering = useMemo(
+    () =>
+      bookTasks.some(
+        (t) => t.kind === "re-render" && t.pageId === pageId && t.status === "running"
+      ),
+    [bookTasks, pageId]
+  )
+
+  // Clear the notice only once the render we were waiting on has finished, and
+  // pull in the HTML it produced.
+  const wasRerenderingRef = useRef(false)
+  useEffect(() => {
+    if (wasRerenderingRef.current && !rerendering) {
+      setRerenderSections([])
+      void queryClient.invalidateQueries({
+        queryKey: ["books", bookLabel, "pages", pageId],
+      })
+      invalidateStoryboardDependents(queryClient, bookLabel)
+    }
+    wasRerenderingRef.current = rerendering
+  }, [rerendering, bookLabel, pageId, queryClient])
+
+  const needsRerender = rerenderSections.length > 0
 
   const sectionsFromServer = page.sectioningTree?.sections ?? []
   const mergedSections: PageSectioningSection[] = useMemo(
@@ -134,16 +163,16 @@ export function SectioningPageDetail({
         reasoning: page.sectioningTree?.reasoning ?? "",
         sections: mergedSections,
       }
-      const { needsRerender } = await api.updateSectioning(
+      const { rerenderSections } = await api.updateSectioning(
         bookLabel,
         pageId,
         payload
       )
       setPendingBySectionId({})
       // Text edits are pushed straight into the rendered HTML by the server.
-      // A structural change can't be, so offer a re-render rather than firing
-      // one off silently — it costs an LLM call and replaces the section's layout.
-      setNeedsRerender(needsRerender)
+      // Anything it couldn't sync needs a re-render, which we offer rather than
+      // fire off silently — it costs an LLM call and replaces the layout.
+      setRerenderSections(rerenderSections)
       await queryClient.invalidateQueries({
         queryKey: ["books", bookLabel, "pages", pageId],
       })
@@ -168,22 +197,30 @@ export function SectioningPageDetail({
   ])
 
   const handleRerender = useCallback(async () => {
-    if (rerendering || !hasApiKey) return
-    setRerendering(true)
+    if (rerendering || !hasApiKey || rerenderSections.length === 0) return
     setSaveError(null)
     try {
-      await api.reRenderPage(bookLabel, pageId, apiKey)
-      setNeedsRerender(false)
-      await queryClient.invalidateQueries({
-        queryKey: ["books", bookLabel, "pages", pageId],
-      })
-      invalidateStoryboardDependents(queryClient, bookLabel)
+      // Re-render only the sections that fell out of sync — a whole-page render
+      // would also discard the layout of every section that is already correct.
+      for (const sectionIndex of rerenderSections) {
+        await api.reRenderPage(bookLabel, pageId, apiKey, sectionIndex)
+      }
+      // Pick up the queued tasks so `rerendering` turns on without waiting for
+      // the next poll.
+      await queryClient.invalidateQueries({ queryKey: bookTasksKey(bookLabel) })
     } catch (err) {
       setSaveError(err instanceof Error ? err.message : t`Re-render failed`)
-    } finally {
-      setRerendering(false)
     }
-  }, [rerendering, hasApiKey, bookLabel, pageId, apiKey, queryClient, t])
+  }, [
+    rerendering,
+    hasApiKey,
+    rerenderSections,
+    bookLabel,
+    pageId,
+    apiKey,
+    queryClient,
+    t,
+  ])
 
   // Server-side structural ops (merge/split/clone/delete) rewrite sectionIds,
   // so they are blocked while there are unsaved local edits.

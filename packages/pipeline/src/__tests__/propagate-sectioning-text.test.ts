@@ -362,6 +362,25 @@ describe("propagateSectioningTextToRendering", () => {
     expect(result.needsRerender).toBe(true)
   })
 
+  // A section whose stored HTML can't be parsed as a section is stale after an
+  // edit just like a structurally drifted one, and a re-render fixes both.
+  it("reports drift for HTML it cannot patch, rather than failing silently", () => {
+    const sectioning: PageSectioningOutput = {
+      reasoning: "",
+      sections: [section("pg001_sec001", [leaf("pg001_tx001", "Edited")])],
+    }
+    const stored = rendering([
+      { sectionIndex: 0, html: "<div>Legacy markup with no section</div>" },
+    ])
+
+    const result = propagateSectioningTextToRendering(sectioning, stored, LABEL)
+
+    expect(result.changed).toBe(false)
+    expect(result.needsRerender).toBe(true)
+    expect(result.skipped[0].reason).toBe("invalid")
+    expect(result.rendering.sections[0].html).toBe(stored.sections[0].html)
+  })
+
   it("stays quiet when neither side has content", () => {
     const result = propagateSectioningTextToRendering(
       { reasoning: "", sections: [] },

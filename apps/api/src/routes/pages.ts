@@ -453,36 +453,51 @@ function saveStoryboardNode(
  * `clearNodesByType` would discard every other page's rendering for a one-word
  * change.
  *
- * Returns true when a section drifted structurally and needs a re-render.
+ * Returns the section indices that could not be synced and need re-rendering.
+ * Best-effort: the sectioning row is already committed by the time this runs,
+ * so a failure here must never turn a successful save into an error.
  */
 function propagateTextToStoryboard(
   storage: Storage,
   label: string,
   pageId: string,
   sectioning: PageSectioningOutputType
-): boolean {
-  // Fixed-layout pages render from the positioned tree in
-  // `fixed-layout-sectioning`, built from extraction draw-items rather than
-  // this semantic tree, and their data-ids belong to that tree. There is
-  // nothing here to propagate, and reporting drift would only send the user
-  // to a re-render that cannot help.
-  if (storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId)) return false
+): number[] {
+  try {
+    // Fixed-layout pages render from the positioned tree in
+    // `fixed-layout-sectioning`, built from extraction draw-items rather than
+    // this semantic tree, and their data-ids belong to that tree. There is
+    // nothing here to propagate, and reporting drift would only send the user
+    // to a re-render that cannot help.
+    if (storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId)) return []
 
-  const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
-  if (!renderingRow) return false
+    const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
+    if (!renderingRow) return []
 
-  const rendering = WebRenderingOutput.safeParse(renderingRow.data)
-  if (!rendering.success) return false
+    const rendering = WebRenderingOutput.safeParse(renderingRow.data)
+    if (!rendering.success) return []
 
-  const result = propagateSectioningTextToRendering(
-    sectioning,
-    rendering.data,
-    label
-  )
-  if (result.changed) {
-    storage.putNodeData("web-rendering", pageId, result.rendering)
+    const result = propagateSectioningTextToRendering(
+      sectioning,
+      rendering.data,
+      label
+    )
+    if (result.changed) {
+      storage.putNodeData("web-rendering", pageId, result.rendering)
+    }
+    for (const skip of result.skipped) {
+      console.log(
+        `[sectioning-save] ${label}/${pageId}: section ${skip.sectionIndex} not synced (${skip.reason}): ${skip.errors.join("; ")}`
+      )
+    }
+    return result.skipped.map((s) => s.sectionIndex)
+  } catch (err) {
+    console.error(
+      `[sectioning-save] ${label}/${pageId}: text propagation failed`,
+      err
+    )
+    return []
   }
-  return result.needsRerender
 }
 
 /** Renumber sectionIds to the canonical `${pageId}_sec${NNN}` sequence. */
@@ -1233,13 +1248,17 @@ export function createPageRoutes(
       // Sectioning change cascades to everything downstream
       clearCaptionData(storage)
 
-      const needsRerender = propagateTextToStoryboard(
+      const rerenderSections = propagateTextToStoryboard(
         storage,
         safeLabel,
         pageId,
         parsed.data
       )
-      return c.json({ version, needsRerender })
+      return c.json({
+        version,
+        needsRerender: rerenderSections.length > 0,
+        rerenderSections,
+      })
     } finally {
       storage.close()
     }

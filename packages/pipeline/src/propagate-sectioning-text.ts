@@ -34,7 +34,12 @@ export interface PropagateResult {
   updatedSectionIndices: number[]
   /** Sections that could not be updated, with the reason. */
   skipped: SkippedSection[]
-  /** True when any section drifted structurally and needs a re-render to resync. */
+  /**
+   * True when any section could not be brought in sync by substituting text.
+   * Covers both reasons: a re-render regenerates the section's HTML from the
+   * current tree, which resolves structural drift and replaces HTML that was
+   * too malformed to patch.
+   */
   needsRerender: boolean
 }
 
@@ -192,6 +197,9 @@ export function propagateSectioningTextToRendering(
     changed,
     updatedSectionIndices,
     skipped,
-    needsRerender: skipped.some((s) => s.reason === "structural"),
+    // Any skip leaves that section stale. Reporting only structural drift would
+    // let a section with unpatchable HTML fail silently — the user's edit saves,
+    // the storyboard keeps the old copy, and nothing says so.
+    needsRerender: skipped.length > 0,
   }
 }

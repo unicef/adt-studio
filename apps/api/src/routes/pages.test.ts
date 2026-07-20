@@ -390,9 +390,28 @@ describe("Page routes", () => {
         ])
 
         expect(res.status).toBe(200)
-        expect((await res.json()).needsRerender).toBe(true)
+        const body = await res.json()
+        expect(body.needsRerender).toBe(true)
+        // The client re-renders just these sections rather than the whole page.
+        expect(body.rerenderSections).toEqual([0])
         // Half-patching a drifted section would be worse than leaving it stale.
         expect(readRenderingHtml(`${label}_p1`)).toBe(sectionHtml("Hello world"))
+      })
+
+      it("saves successfully even when the rendering node is unreadable", async () => {
+        const storage = createBookStorage(label, tmpDir)
+        try {
+          storage.putNodeData("web-rendering", `${label}_p1`, { bogus: true })
+        } finally {
+          storage.close()
+        }
+
+        const res = await putSectioning("Goodbye world")
+
+        // Propagation is best-effort — the sectioning row is already committed,
+        // so a problem here must never surface as a failed save.
+        expect(res.status).toBe(200)
+        expect((await res.json()).version).toBe(2)
       })
 
       it("skips propagation for fixed-layout pages", async () => {
