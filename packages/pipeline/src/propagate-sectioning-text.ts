@@ -172,6 +172,21 @@ export function propagateSectioningTextToRendering(
     return { ...stored, html: outcome.html }
   })
 
+  // A section the renderer never produced HTML for is drift too. Empty sections
+  // are skipped at render time by design, so only flag ones that would actually
+  // have rendered something.
+  const renderedIndices = new Set(rendering.sections.map((s) => s.sectionIndex))
+  sectioning.sections.forEach((section, index) => {
+    if (renderedIndices.has(index)) return
+    const context = buildRenderContext(section, new Map(), label)
+    if (context.leaf_texts.length === 0 && context.image_refs.length === 0) return
+    skipped.push({
+      sectionIndex: index,
+      reason: "structural",
+      errors: [`No rendered section at index ${index}`],
+    })
+  })
+
   return {
     rendering: changed ? { ...rendering, sections: nextSections } : rendering,
     changed,

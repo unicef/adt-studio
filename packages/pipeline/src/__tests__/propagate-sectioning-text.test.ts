@@ -309,13 +309,62 @@ describe("propagateSectioningTextToRendering", () => {
     expect(result.rendering.sections[1].html).toBe(stored.sections[1].html)
   })
 
-  it("handles an empty rendering without error", () => {
+  it("flags a section that has content but was never rendered", () => {
+    const sectioning: PageSectioningOutput = {
+      reasoning: "",
+      sections: [
+        section("pg001_sec001", [leaf("pg001_tx001", "Rendered")]),
+        section("pg001_sec002", [leaf("pg001_tx002", "Never rendered")]),
+      ],
+    }
+    const stored = rendering([
+      { sectionIndex: 0, html: html(`<p data-id="pg001_tx001">Rendered</p>`) },
+    ])
+
+    const result = propagateSectioningTextToRendering(sectioning, stored, LABEL)
+
+    expect(result.needsRerender).toBe(true)
+    expect(result.skipped.map((s) => s.sectionIndex)).toContain(1)
+  })
+
+  it("ignores an empty section the renderer skips by design", () => {
+    const sectioning: PageSectioningOutput = {
+      reasoning: "",
+      sections: [
+        section("pg001_sec001", [leaf("pg001_tx001", "Rendered")]),
+        section("pg001_sec002", []),
+      ],
+    }
+    const stored = rendering([
+      { sectionIndex: 0, html: html(`<p data-id="pg001_tx001">Rendered</p>`) },
+    ])
+
+    const result = propagateSectioningTextToRendering(sectioning, stored, LABEL)
+
+    expect(result.needsRerender).toBe(false)
+    expect(result.skipped).toEqual([])
+  })
+
+  // A rendering node that exists but has no sections is drift. The separate
+  // "page was never rendered" case is short-circuited by the caller.
+  it("reports drift when the rendering has no sections at all", () => {
     const sectioning: PageSectioningOutput = {
       reasoning: "",
       sections: [section("pg001_sec001", [leaf("pg001_tx001", "Text")])],
     }
     const result = propagateSectioningTextToRendering(
       sectioning,
+      { sections: [] },
+      LABEL
+    )
+
+    expect(result.changed).toBe(false)
+    expect(result.needsRerender).toBe(true)
+  })
+
+  it("stays quiet when neither side has content", () => {
+    const result = propagateSectioningTextToRendering(
+      { reasoning: "", sections: [] },
       { sections: [] },
       LABEL
     )
