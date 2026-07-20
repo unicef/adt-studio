@@ -1,0 +1,284 @@
+import type { ReactNode } from "react"
+import { useState } from "react"
+import { useLingui } from "@lingui/react/macro"
+import { Trans } from "@lingui/react/macro"
+import { msg } from "@lingui/core/macro"
+import type { MessageDescriptor } from "@lingui/core"
+import {
+  Plus,
+  Search,
+  House,
+  BookMarked,
+  Split,
+  Settings,
+  CircleHelp,
+  ChevronRight,
+  ChevronsUpDown,
+  BookOpen,
+  Library,
+  Keyboard,
+  Sparkles,
+  RotateCcw,
+  Bug,
+  Info,
+  ArrowUpRight,
+  HardDrive,
+  type LucideIcon,
+} from "lucide-react"
+import { useNavigate } from "@tanstack/react-router"
+import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { DRAG_REGION } from "@/constants"
+import { cn } from "@/lib/utils"
+import { Kbd } from "./ui/Kbd"
+import type { RedesignView } from "./types"
+
+const DOCS_LABEL: Record<RedesignView, MessageDescriptor> = {
+  home: msg`Home guide`,
+  library: msg`Library guide`,
+  handoffs: msg`Split & merge guide`,
+  settings: msg`Settings guide`,
+}
+
+export interface AppSidebarProps {
+  activeView: RedesignView
+  onNavigate: (view: RedesignView) => void
+  libraryCount: number
+  handoffsCount: number
+  onOpenPalette: () => void
+  onOpenAdd: () => void
+  onOpenShortcuts: () => void
+}
+
+function MenuRow({
+  icon: Icon,
+  children,
+  trailing,
+  onClick,
+}: {
+  icon: LucideIcon
+  children: ReactNode
+  trailing?: ReactNode
+  onClick?: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
+    >
+      <Icon className="size-4 shrink-0 text-muted-foreground" />
+      <span className="flex-1 truncate">{children}</span>
+      {trailing}
+    </button>
+  )
+}
+
+export function AppSidebar({
+  activeView,
+  onNavigate,
+  libraryCount,
+  handoffsCount,
+  onOpenPalette,
+  onOpenAdd,
+  onOpenShortcuts,
+}: AppSidebarProps) {
+  const { t, i18n } = useLingui()
+  const navigate = useNavigate()
+  const [wsOpen, setWsOpen] = useState(false)
+  const [helpOpen, setHelpOpen] = useState(false)
+
+  const items: { view: RedesignView; label: string; icon: LucideIcon; count?: number }[] = [
+    { view: "home", label: t`Home`, icon: House },
+    { view: "library", label: t`Library`, icon: BookMarked, count: libraryCount },
+    { view: "handoffs", label: t`Split & merge`, icon: Split, count: handoffsCount },
+    { view: "settings", label: t`Settings`, icon: Settings },
+  ]
+
+  return (
+    <div className="flex w-64 shrink-0 flex-col overflow-auto border-r bg-sidebar px-3 pb-3 pt-4">
+      <div style={DRAG_REGION} className="flex items-center gap-2.5 px-1.5 pb-4">
+        <img src="/logo.png" alt="" className="size-8 rounded-[9px] shadow-[0_2px_7px_rgba(43,127,255,0.42)]" />
+        <div className="flex min-w-0 flex-1 flex-col gap-px leading-[1.1]">
+          <b className="truncate text-[14.5px]">ADT Studio</b>
+          <span className="text-[9.5px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+            <Trans>Accessible textbooks</Trans>
+          </span>
+        </div>
+      </div>
+
+      <Button onClick={onOpenAdd} size="sm" className="mb-3 w-full">
+        <Plus className="size-3.5" />
+        <Trans>Add book</Trans>
+      </Button>
+
+      <button
+        type="button"
+        onClick={onOpenPalette}
+        className="flex h-9 items-center gap-2.5 rounded-[10px] border bg-card px-3 text-muted-foreground transition-all hover:border-brand-300 hover:shadow-[0_0_0_3px_var(--brand-50)]"
+      >
+        <Search className="size-[15px]" />
+        <span className="flex-1 text-left text-[13px]">
+          <Trans>Search books…</Trans>
+        </span>
+        <Kbd keys={["⌘", "K"]} />
+      </button>
+
+      <nav className="mt-2 flex flex-col gap-0.5">
+        {items.map((item) => {
+          const Icon = item.icon
+          const active = activeView === item.view
+          return (
+            <button
+              key={item.view}
+              type="button"
+              onClick={() => onNavigate(item.view)}
+              className={cn(
+                "flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium transition-colors",
+                active
+                  ? "bg-card font-semibold text-brand-700 shadow-[0_1px_2px_rgba(15,23,42,0.08),0_0_0_1px_rgba(15,23,42,0.05)]"
+                  : "text-foreground hover:bg-black/5 dark:hover:bg-white/5",
+              )}
+            >
+              <Icon className="size-[17px]" />
+              <span className="flex-1 text-left">{item.label}</span>
+              {item.count != null && (
+                <span
+                  className={cn(
+                    "min-w-[21px] rounded-full px-1.5 text-center font-mono text-[11px] font-semibold",
+                    active ? "bg-brand-100 text-brand-700" : "bg-black/5 text-muted-foreground dark:bg-white/10",
+                  )}
+                >
+                  {item.count}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </nav>
+
+      <div className="min-h-3.5 flex-1" />
+
+      <div className="flex flex-col gap-0.5 pt-1.5">
+        <Popover open={wsOpen} onOpenChange={setWsOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="flex items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-left transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+            >
+              <span className="grid size-[26px] shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
+                <HardDrive className="size-3.5" />
+              </span>
+              <div className="min-w-0 flex-1 leading-[1.15]">
+                <div className="truncate text-[12.5px] font-semibold">
+                  <Trans>Local account</Trans>
+                </div>
+                <div className="text-[10.5px] text-muted-foreground">
+                  <Trans>This computer</Trans>
+                </div>
+              </div>
+              <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent side="top" align="start" className="w-60 p-1.5">
+            <div className="flex items-center gap-2.5 px-2 py-2">
+              <span className="grid size-7 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
+                <HardDrive className="size-[15px]" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-[12.5px] font-semibold">
+                  <Trans>Working locally</Trans>
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  <Trans>Books stay on this computer</Trans>
+                </div>
+              </div>
+            </div>
+            <div className="mx-1.5 my-1 h-px bg-border" />
+            <MenuRow
+              icon={Settings}
+              onClick={() => {
+                setWsOpen(false)
+                onNavigate("settings")
+              }}
+            >
+              <Trans>Open settings</Trans>
+            </MenuRow>
+          </PopoverContent>
+        </Popover>
+
+        <Popover open={helpOpen} onOpenChange={setHelpOpen}>
+          <PopoverTrigger asChild>
+            <button
+              type="button"
+              className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-medium text-foreground transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+            >
+              <CircleHelp className="size-[17px]" />
+              <span className="flex-1 text-left">
+                <Trans>Help</Trans>
+              </span>
+              <ChevronRight className="size-[15px] text-muted-foreground" />
+            </button>
+          </PopoverTrigger>
+          <PopoverContent side="top" align="start" className="w-[262px] p-1.5">
+            <button
+              type="button"
+              onClick={() => setHelpOpen(false)}
+              className="flex w-full items-center gap-2.5 rounded-lg bg-brand-50 px-2.5 py-2.5 text-left transition-colors hover:bg-brand-100"
+            >
+              <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-brand-600 text-white">
+                <BookOpen className="size-[15px]" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-[13px] font-semibold text-brand-800">{i18n._(DOCS_LABEL[activeView])}</div>
+                <div className="text-[11px] text-brand-700">
+                  <Trans>Open the relevant doc page</Trans>
+                </div>
+              </div>
+              <ArrowUpRight className="size-3.5 text-brand-600" />
+            </button>
+            <div className="mx-1.5 my-1.5 h-px bg-border" />
+            <MenuRow icon={Library} trailing={<ArrowUpRight className="size-3.5 text-muted-foreground" />} onClick={() => setHelpOpen(false)}>
+              <Trans>Browse documentation</Trans>
+            </MenuRow>
+            <MenuRow
+              icon={Keyboard}
+              trailing={<Kbd keys={["?"]} />}
+              onClick={() => {
+                setHelpOpen(false)
+                onOpenShortcuts()
+              }}
+            >
+              <Trans>Keyboard shortcuts</Trans>
+            </MenuRow>
+            <MenuRow icon={Sparkles} onClick={() => setHelpOpen(false)}>
+              <Trans>What&apos;s new</Trans>
+            </MenuRow>
+            <MenuRow
+              icon={RotateCcw}
+              onClick={() => {
+                setHelpOpen(false)
+                navigate({ to: "/onboarding" })
+              }}
+            >
+              <Trans>Restart onboarding tour</Trans>
+            </MenuRow>
+            <div className="mx-1.5 my-1.5 h-px bg-border" />
+            <MenuRow icon={Bug} trailing={<ArrowUpRight className="size-3.5 text-muted-foreground" />} onClick={() => setHelpOpen(false)}>
+              <Trans>Report an issue</Trans>
+            </MenuRow>
+            <MenuRow
+              icon={Info}
+              onClick={() => {
+                setHelpOpen(false)
+                onNavigate("settings")
+              }}
+            >
+              <Trans>About ADT Studio</Trans>
+            </MenuRow>
+          </PopoverContent>
+        </Popover>
+      </div>
+    </div>
+  )
+}
