@@ -81,14 +81,15 @@ export function packageWebpub(
     title,
     language: availableLanguages.length > 0 ? availableLanguages : [options.language],
     modified: new Date().toISOString(),
-    // Fixed-layout books must be declared fixed (like the EPUB OPF's
-    // rendition:layout); otherwise a reader treats the absolutely-positioned
-    // page as reflowable and it collapses to 0 height. `layout` is a top-level
-    // metadata property in the current Readium context — not presentation.layout,
-    // which is deprecated.
+    // Fixed-layout books must be declared fixed; otherwise a reader treats the
+    // absolutely-positioned page as reflowable and it collapses to 0 height.
+    // `layout` is a top-level metadata property in the current Readium context,
+    // but it's ALSO mirrored into presentation.layout (the pre-context location)
+    // — some readers still switch to fixed-layout rendering only off the old
+    // key, and dropping it regressed those to the 0-height collapse.
     ...(options.fixedLayout ? { layout: "fixed" } : {}),
     presentation: options.fixedLayout
-      ? { fit: "contain", spread: "none" }
+      ? { layout: "fixed", fit: "contain", spread: "none" }
       : { overflow: "scrolled", spread: "none" },
   }
   if (metadata?.authors?.length) {
