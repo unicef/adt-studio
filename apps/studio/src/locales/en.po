@@ -828,6 +828,9 @@ msgstr "Add an API key in Book settings to run TOC generation."
 msgid "Add an API key in Book settings to run translation."
 msgstr "Add an API key in Book settings to run translation."
 
+msgid "Add an API key to re-render"
+msgstr "Add an API key to re-render"
+
 msgid "Add an API key to re-run"
 msgstr "Add an API key to re-run"
 
@@ -5695,6 +5698,9 @@ msgstr "Re-render this section"
 msgid "Re-rendering..."
 msgstr "Re-rendering..."
 
+msgid "Re-rendering…"
+msgstr "Re-rendering…"
+
 msgid "Re-run"
 msgstr "Re-run"
 
@@ -7012,6 +7018,9 @@ msgstr "Storyboard"
 
 msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 msgstr "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
+
+msgid "Storyboard is out of date"
+msgstr "Storyboard is out of date"
 
 msgid "Storyboard not ready"
 msgstr "Storyboard not ready"

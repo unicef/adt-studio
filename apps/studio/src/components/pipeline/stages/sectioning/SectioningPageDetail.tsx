@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import type { PageSectioningOutput, PageSectioningSection } from "@adt/types"
 import { api, type PageDetail } from "@/api/client"
 import { usePageImage } from "@/hooks/use-pages"
+import { useApiKey } from "@/hooks/use-api-key"
 import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
 import { cn } from "@/lib/utils"
 import { SectionTreeEditor } from "@/components/section-tree-editor/SectionTreeEditor"
@@ -50,6 +51,7 @@ export function SectioningPageDetail({
 }) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
+  const { apiKey, hasApiKey } = useApiKey()
   const { headerSlotEl } = useStepHeader()
   const { data: imageData } = usePageImage(bookLabel, pageId)
 
@@ -86,6 +88,8 @@ export function SectioningPageDetail({
   >({})
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [needsRerender, setNeedsRerender] = useState(false)
+  const [rerendering, setRerendering] = useState(false)
   const [structuralBusy, setStructuralBusy] = useState(false)
   const [confirmMerge, setConfirmMerge] = useState<{
     action: () => void
@@ -97,6 +101,7 @@ export function SectioningPageDetail({
   useEffect(() => {
     setPendingBySectionId({})
     setSaveError(null)
+    setNeedsRerender(false)
     setConfirmMerge(null)
     setConfirmDelete(null)
   }, [pageId])
@@ -129,8 +134,16 @@ export function SectioningPageDetail({
         reasoning: page.sectioningTree?.reasoning ?? "",
         sections: mergedSections,
       }
-      await api.updateSectioning(bookLabel, pageId, payload)
+      const { needsRerender } = await api.updateSectioning(
+        bookLabel,
+        pageId,
+        payload
+      )
       setPendingBySectionId({})
+      // Text edits are pushed straight into the rendered HTML by the server.
+      // A structural change can't be, so offer a re-render rather than firing
+      // one off silently — it costs an LLM call and replaces the section's layout.
+      setNeedsRerender(needsRerender)
       await queryClient.invalidateQueries({
         queryKey: ["books", bookLabel, "pages", pageId],
       })
@@ -153,6 +166,24 @@ export function SectioningPageDetail({
     queryClient,
     t,
   ])
+
+  const handleRerender = useCallback(async () => {
+    if (rerendering || !hasApiKey) return
+    setRerendering(true)
+    setSaveError(null)
+    try {
+      await api.reRenderPage(bookLabel, pageId, apiKey)
+      setNeedsRerender(false)
+      await queryClient.invalidateQueries({
+        queryKey: ["books", bookLabel, "pages", pageId],
+      })
+      invalidateStoryboardDependents(queryClient, bookLabel)
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : t`Re-render failed`)
+    } finally {
+      setRerendering(false)
+    }
+  }, [rerendering, hasApiKey, bookLabel, pageId, apiKey, queryClient, t])
 
   // Server-side structural ops (merge/split/clone/delete) rewrite sectionIds,
   // so they are blocked while there are unsaved local edits.
@@ -247,6 +278,31 @@ export function SectioningPageDetail({
       {saveError ? (
         <span className="text-xs text-destructive">{saveError}</span>
       ) : null}
+      {needsRerender && !dirty ? (
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-xs text-white/70">
+            <Trans>Storyboard is out of date</Trans>
+          </span>
+          <button
+            type="button"
+            onClick={handleRerender}
+            disabled={rerendering || !hasApiKey}
+            title={hasApiKey ? undefined : t`Add an API key to re-render`}
+            className={cn(
+              "text-xs px-2.5 py-1 rounded transition-colors",
+              rerendering || !hasApiKey
+                ? "bg-secondary/60 text-secondary-foreground/70 cursor-default"
+                : "bg-secondary text-secondary-foreground hover:bg-secondary/80 cursor-pointer"
+            )}
+          >
+            {rerendering ? (
+              <Trans>Re-rendering…</Trans>
+            ) : (
+              <Trans>Re-render</Trans>
+            )}
+          </button>
+        </div>
+      ) : null}
       {dirty ? (
         <div className="ml-auto flex items-center gap-2">
           <button
@@ -277,7 +333,9 @@ export function SectioningPageDetail({
           </button>
         </div>
       ) : null}
-      <div className={cn("flex gap-1", dirty ? "" : "ml-auto")}>{navigationArrows}</div>
+      <div className={cn("flex gap-1", dirty || needsRerender ? "" : "ml-auto")}>
+        {navigationArrows}
+      </div>
     </div>
   )
 

@@ -829,6 +829,9 @@ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar gjener
 msgid "Add an API key in Book settings to run translation."
 msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar përkthimin."
 
+msgid "Add an API key to re-render"
+msgstr ""
+
 msgid "Add an API key to re-run"
 msgstr "Shto një çelës API për të ri-ekzekutuar"
 
@@ -5696,6 +5699,9 @@ msgstr "Ri-renderizo këtë seksion"
 msgid "Re-rendering..."
 msgstr "Po ri-renderizohet..."
 
+msgid "Re-rendering…"
+msgstr ""
+
 msgid "Re-run"
 msgstr "Ri-ekzekuto"
 
@@ -7013,6 +7019,9 @@ msgstr "Storyboard"
 
 msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 msgstr "Storyboard-i është ekzekutuar tashmë. Ndryshimet e bëra këtu nuk do të hyjnë në fuqi derisa storyboard-i të ri-ekzekutohet."
+
+msgid "Storyboard is out of date"
+msgstr ""
 
 msgid "Storyboard not ready"
 msgstr "Storyboard-i nuk është gati"

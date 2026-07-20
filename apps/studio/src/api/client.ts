@@ -958,8 +958,10 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  // `needsRerender` is set when the edit changed the section's structure, which
+  // can't be reflected in the existing rendered HTML by substituting text.
   updateSectioning: (label: string, pageId: string, data: unknown) =>
-    request<{ version: number }>(`/books/${label}/pages/${pageId}/sectioning`, {
+    request<{ version: number; needsRerender: boolean }>(`/books/${label}/pages/${pageId}/sectioning`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),
