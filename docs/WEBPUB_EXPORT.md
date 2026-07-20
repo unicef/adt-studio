@@ -75,12 +75,14 @@ when the book produced a table of contents.
 
 ### `metadata.presentation`
 
-Reflowable and fixed-layout books declare different presentation hints:
+Reflowable and fixed-layout books declare different presentation hints. `layout`
+is a top-level `metadata` property (Readium default context); `fit`, `spread`,
+and `overflow` sit under `metadata.presentation`:
 
-| Book type | `presentation` |
-|-----------|----------------|
-| Reflowable | `{ "overflow": "scrolled", "spread": "none" }` |
-| Fixed-layout | `{ "layout": "fixed", "fit": "contain", "spread": "none" }` |
+| Book type | Declared as |
+|-----------|-------------|
+| Reflowable | `presentation: { "overflow": "scrolled", "spread": "none" }` |
+| Fixed-layout | `layout: "fixed"` + `presentation: { "fit": "contain", "spread": "none" }` |
 
 For **fixed-layout** books:
 
