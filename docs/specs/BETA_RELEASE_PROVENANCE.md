@@ -1,6 +1,6 @@
 # Proveniência de versões beta: PR, branch, commit e mudanças no browser de versões
 
-> **Status:** implementado em 2026-07-20.
+> **Status:** proveniência implementada em 2026-07-20; melhoria de títulos planejada, ainda não implementada.
 > Revisão validada contra o código em 2026-07-20 (branch `fix/beta-version-updates`).
 
 ## Correções aplicadas nesta revisão
@@ -15,10 +15,11 @@
 8. **[Ordem do workflow] Composição antes da criação da tag** — o endpoint `releases/generate-notes` aceita uma tag ainda inexistente quando `target_commitish` é informado. O compose passa `target_commitish=$TRIGGER_SHA` e roda antes de "Commit release metadata and push tag", evitando publicar a tag antes de a composição terminar e fazendo as notes descreverem o mesmo snapshot usado pelos builds.
 9. **[Fallback atômico] Arquivo parcial nunca é aceito** — o script monta toda a saída em memória e só então escreve uma vez no stdout. O workflow redireciona para `release-notes.tmp` e só renomeia para `release-notes.md` quando o comando termina com sucesso e o arquivo não está vazio; em qualquer falha remove ambos e `gh release create --generate-notes` permanece como fallback.
 10. **[Escopo] Primeira implementação restrita a betas** — o step de composição roda somente quando `needs.prepare.outputs.prerelease == 'true'`. Releases estáveis de `main` não recebem a seção `### Release source`, não usam o novo resolver e continuam no caminho atual de `gh release create --generate-notes`. Isso reduz o risco sem retirar funcionalidade do `BetaVersionsView`, que só lista betas.
+11. **[Hierarquia visual] Título editorial antes da versão** — quando o primeiro bloco do markdown for um heading editorial válido, o browser usa esse texto como título principal da release e move `vX.Y.Z-beta.N` para a linha secundária. Releases antigas, notes sem heading e headings genéricos continuam usando a versão como título, portanto a melhoria é retrocompatível e não produz listas cheias de “What's Changed”.
 
 ## Contexto
 
-As versões beta são cortadas de `develop` logo após merges de PRs, mas hoje o app não mostra de onde cada beta veio — o `BetaVersionsView` exibe apenas versão, data, tamanho e as release notes auto-geradas. O objetivo é embutir metadados de proveniência (PR(s) de origem, branch, commit exato usado pelo build, última mudança opcional e link de comparação) nas release notes no momento do release (CI) e exibi-los como um card estruturado no browser de versões beta.
+As versões beta são cortadas de `develop` logo após merges de PRs. O browser já consegue mostrar versão, data, tamanho, notes e proveniência, mas a lista continua pouco informativa quando todas as entradas são identificadas primeiro por números. O objetivo desta revisão é usar um título editorial presente no markdown como informação principal, manter a versão como metadado secundário e preservar os metadados de proveniência (PR(s) de origem, branch, commit exato usado pelo build, última mudança opcional e link de comparação).
 
 **Decisão-chave de formato:** os metadados serão uma **seção markdown visível** (`### Release source`) anexada **sempre ao fim** das notes — *não* um comentário HTML com JSON. Verificado: `ReleaseNotesMarkdown.parseBlocks` (linha 135) renderiza qualquer linha desconhecida como parágrafo, então um comentário HTML apareceria como texto cru em apps beta já instalados. A seção visível degrada bem (apps antigos a renderizam como heading + lista com links; o GitHub web também) e o app novo faz parse, remove a seção e renderiza o card. Ser sempre a última seção do corpo é parte do contrato — permite o strip "do marcador até o fim" no caso HTML (ver etapa 4).
 
@@ -47,6 +48,31 @@ interface ReleaseSource {
 }
 ```
 
+### Contrato do título editorial
+
+O título é opcional e pertence ao conteúdo editorial das release notes, não à seção de proveniência. Para ser usado pelo app, deve ser o **primeiro bloco não vazio** do corpo e usar heading ATX de nível 1 a 3:
+
+```markdown
+## Reliable translations and persistent glossary edits
+
+This beta keeps edited glossary terms across re-runs and restores translated
+production builds.
+
+### What's Changed
+...
+
+### Release source
+...
+```
+
+- `parseReleaseTitle(notes)` retorna `{ title?: string, notes: string }`.
+- Aceitar somente título de uma linha, depois de remover marcação inline, com 1–120 caracteres.
+- Quando válido, remover apenas o heading inicial das notes entregues ao renderer para o título não aparecer duas vezes; o parágrafo seguinte permanece.
+- Não promover headings genéricos, comparados sem diferenciar caixa e pontuação: `What's Changed`, `Whats Changed`, `Changes`, `Changelog` e `Release notes`.
+- Se o primeiro bloco não for um heading válido, se o título for genérico ou se o parse falhar, retornar `title: undefined` e manter as notes intactas.
+- `### Release source` continua reservado e obrigatório como última seção; nunca pode ser usado como título.
+- O nome do GitHub Release (`ADT Studio v...`) não é fallback editorial. Sem título no markdown, o app usa a própria versão, que é estável e já está disponível localmente.
+
 ## Etapas
 
 ### 1. Módulo compartilhado de formato/parse (o contrato)
@@ -55,8 +81,9 @@ interface ReleaseSource {
   - `formatReleaseSourceSection(source)` → seção markdown (omite linhas ausentes; `""` se vazio).
   - `parseReleaseSourceSection(body)` → `{ notes, source | undefined }` — localiza a **última** ocorrência do heading (hardening contra colisão com conteúdo das notes), parseia as bullets contíguas, remove a seção; tolerante a linhas desconhecidas, CRLF e seção ausente/corrompida (retorna `source: undefined` sem quebrar).
   - `stripReleaseSourceSection(body)` → `string` — remove a seção em **qualquer das duas formas**: heading markdown (delegando ao parse) **ou** a forma HTML renderizada pelo feed do GitHub (`<h3>Release source</h3>` até o fim do corpo — válido porque a seção é, por contrato, sempre a última). Usada pelo caminho do electron-updater (etapa 4), onde as notes chegam como HTML.
+  - Adicionar `parseReleaseTitle(notes)` → `{ title, notes }` conforme o contrato acima. Executar este parse **depois** de remover `Release source`, para o heading reservado nunca competir com o título editorial.
 - **Novo `scripts/release-source-notes.d.mts`** (espelha o padrão de `scripts/release-version.d.mts`), exportando também os tipos `ReleaseSource`/`ReleaseSourcePullRequest`.
-- **Novo `scripts/release-source-notes.test.mjs`** — round-trip format→parse; strip preservando o resto das notes; linhas malformadas; URLs hostis; títulos com `—`/backticks; CRLF; heading duplicado (usa o último); `stripReleaseSourceSection` nas formas markdown e HTML.
+- **`scripts/release-source-notes.test.mjs`** — manter os testes de proveniência e acrescentar: título editorial em headings `#`/`##`/`###`; remoção do heading aceito; rejeição de títulos genéricos, longos ou fora do primeiro bloco; fallback sem mutar as notes; CRLF e marcação inline.
 - Verificado: o main process já importa de `@root/scripts/*.mjs` (alias em `apps/desktop/tsconfig.node.json:14` e `electron.vite.config.ts:11`; o projeto `desktop` do vitest raiz também tem o alias), e o projeto `main-scripts` do vitest raiz já roda `scripts/**/*.test.mjs` — CI e app usam o MESMO módulo.
 
 ### 2. Script de composição das notes no CI
@@ -90,16 +117,16 @@ interface ReleaseSource {
 
 ### 4. Processo main do Electron (parse + strip)
 
-- **`apps/desktop/src/main/services/release-catalog.ts`**: importar `parseReleaseSourceSection` + `type ReleaseSource` de `@root/scripts/release-source-notes.mjs`; adicionar `source?: ReleaseSource` a `GitHubRelease` e `AvailableRelease` (`BetaRelease` herda); em `parseGitHubRelease`, parsear o `body` → `releaseNotes` recebe as notes já sem a seção, `source` recebe o objeto; propagar `source` em `createBetaReleaseCatalog`. **Exportar `parseGitHubRelease`** — hoje é privada e só chamada no caminho de rede, então sem exportá-la o parse ficaria fora do alcance dos testes (o teste atual constrói `GitHubRelease` fixtures direto).
+- **`apps/desktop/src/main/services/release-catalog.ts`**: importar `parseReleaseTitle` junto de `parseReleaseSourceSection`; adicionar `title?: string` a `GitHubRelease` e `AvailableRelease` (`BetaRelease` herda). Em `parseGitHubRelease`, remover primeiro a seção de origem e depois extrair o heading editorial: `releaseNotes` recebe as notes sem `Release source` e sem o heading de título aceito; `title` e `source` recebem os valores correspondentes. Propagar ambos em `createBetaReleaseCatalog`.
 - **`apps/desktop/src/main/services/auto-updater.ts`**: `listAvailableVersions` já repassa campos extras via rest-spread (verificado, linhas 220-224 — sem mudança); em `normalizeReleaseNotes`, passar o resultado por `stripReleaseSourceSection(...)` — **não** por `parseReleaseSourceSection().notes`: o canal normal usa o provider `github` do electron-updater, que entrega as notes como **HTML** do feed atom (não markdown), então só o strip de duas formas cobre esse caminho. O fallback `?? activeBetaRelease?.releaseNotes` já vem limpo do catálogo.
 - Preload (`index.ts`/`index.d.ts`) não muda — reexporta tipos do auto-updater (verificado).
-- **`release-catalog.test.ts`**: testes de `parseGitHubRelease` com body construído via `formatReleaseSourceSection` importado (trava o round-trip real CI→app); asserts de `source` e de que `releaseNotes` não contém mais "Release source"; payloads sem seção intocados; propagação de `source` em `createBetaReleaseCatalog`.
+- **`release-catalog.test.ts`**: além do round-trip de proveniência, verificar `title`, remoção do heading editorial das notes, headings genéricos sem promoção, payloads sem título/seção preservados e propagação conjunta de `title`/`source` em `createBetaReleaseCatalog`.
 
 ### 5. Tipos do renderer
 
-- **`apps/studio/src/vite-env.d.ts`**: espelhar manualmente `ElectronReleaseSource`/`ElectronReleaseSourcePullRequest`/commit e adicionar `source?` a `ElectronAvailableRelease` (linha 88 — verificado). Hooks não mudam (`AvailableRelease` é alias em `use-update-status.ts:5` — verificado). O espelhamento manual é o padrão já estabelecido e respeita a regra de camadas (studio não importa de `scripts/`).
+- **`apps/studio/src/vite-env.d.ts`**: adicionar `title?: string` a `ElectronAvailableRelease`, junto do `source?` já existente. Hooks não mudam (`AvailableRelease` é alias em `use-update-status.ts`). O título vem de conteúdo remoto e é renderizado como texto React, nunca como HTML.
 
-### 6. UI — card de origem
+### 6. UI — título, versão secundária e card de origem
 
 - **Novo `apps/studio/src/components/updates/ReleaseSourceCard.tsx`**: card (`rounded-lg border bg-muted/30 px-4 py-3`) com heading `<Trans>Source</Trans>` e linhas:
   - PRs: ícone `GitPullRequest`, link externo `#123 · título`; linha secundária `GitBranch` com `headRef → baseRef` e autor.
@@ -108,8 +135,13 @@ interface ReleaseSource {
   - Compare: `GitCompareArrows` + link `<Trans>View all changes</Trans>`.
   - Links: mesmo padrão de `ReleaseNotesMarkdown.renderInline` — `window.open(href, "_blank", "noopener,noreferrer")`; renderizar como link só se `href.startsWith("https://github.com/")` (defesa em profundidade além do filtro no parse).
   - Todas as strings via macros Lingui (inclusive aria-labels com `` t`...` ``).
-- **`BetaVersionsView.tsx`**: dentro da região rolável de detalhes (div `border-y px-5 py-4`, linha 233 — verificado), acima do heading "Release notes": `{selected.source && <ReleaseSourceCard source={selected.source} />}`. Sem `source` (releases antigas) → nada renderiza.
-- **`BetaVersionsView.test.tsx`** (existe — verificado): fixture com `source` como objeto literal (o round-trip format→parse é coberto nos testes do desktop; o studio não importa de `scripts/`); asserts do link do PR, branch, compare; `window.open` stubado com `vi.fn()`; ausência do card sem `source`.
+- **`BetaVersionSidebar.tsx` / `VersionOption`**:
+  - Com `release.title`: título editorial como texto primário (`text-sm font-medium`, até duas linhas); subtítulo compacto começa por `vX.Y.Z-beta.N`, seguido de data e estado.
+  - Sem `release.title`: manter `vX.Y.Z-beta.N` como texto primário e data/estado no subtítulo, sem repetir a versão.
+  - A versão continua sempre disponível visualmente e no nome acessível do botão. Não truncar o título para uma única linha; limitar a duas linhas para equilibrar legibilidade e densidade.
+- **`BetaVersionDetails.tsx`**: quando houver título, mostrá-lo como heading principal; mover versão, data e tamanho para a linha de metadados imediatamente abaixo. Sem título, manter a versão como heading atual. Badges `Current version`/`Downgrade` permanecem associados ao heading principal.
+- **`beta-version-utils.ts`**: `filterVersionsByQuery` passa a pesquisar tanto `release.title` quanto `release.version`, sem diferenciar caixa; buscar `v0.7.4` continua funcionando.
+- **`BetaVersionsView.test.tsx`**: fixture com título editorial e `source`; asserts de que o título aparece primeiro, a versão aparece como subtítulo, o heading foi removido das notes, busca encontra por palavras do título e releases sem título continuam usando a versão. Manter os asserts de PR, branch, compare e fallback sem `source`.
 
 ### 7. i18n
 
@@ -117,11 +149,13 @@ interface ReleaseSource {
 
 ### 8. Docs
 
-- **`docs/RELEASING.md`**: subseção "Beta release provenance" documentando que a composição se aplica somente a prereleases beta, a gramática exata da seção `### Release source` (avisar para não editar essa seção à mão no corpo dos releases — e que ela deve permanecer a última seção do corpo), o parse/strip pelo app, o fallback `--generate-notes` e o fato de releases estáveis permanecerem inalterados.
+- **`docs/RELEASING.md`**: subseção "Beta release provenance" documentando que a composição se aplica somente a prereleases beta, a gramática exata da seção `### Release source`, o heading editorial inicial opcional, os títulos genéricos que não são promovidos, o fallback visual para a versão, o parse/strip pelo app, o fallback `--generate-notes` e o fato de releases estáveis permanecerem inalterados.
 
 ## Riscos e casos de borda (endereçados no design)
 
 - Apps antigos: renderizam a seção como markdown normal (motivo da escolha do formato).
+- Releases antigas ou sem título editorial: continuam identificadas pela versão; não há migração obrigatória de bodies existentes.
+- Notes auto-geradas que começam em `## What's Changed`: o heading é deliberadamente considerado genérico, permanece nas notes e a lista usa a versão até alguém adicionar um heading editorial antes dele.
 - Releases estáveis: o step de composição é pulado por condição do workflow; não recebem `### Release source` e seguem usando somente `--generate-notes`.
 - Canal de auto-update (provider `github`): notes chegam como HTML → coberto por `stripReleaseSourceSection` de duas formas; se o strip HTML falhar num formato inesperado de feed, a degradação é a seção visível (legível por design), nunca texto quebrado novo — o comportamento atual do app com HTML nas notes já é esse.
 - `workflow_dispatch` / primeiro release sem tag anterior / push direto sem PR / head em `chore(release)`: `buildCommit` continua sendo o SHA exato compilado; `changeCommit` é apenas contexto opcional; o script degrada os demais campos individualmente (sem linha Compare, PRs via API do commit, card só com build/branch).
@@ -136,8 +170,9 @@ interface ReleaseSource {
 1. `pnpm vitest run` (cobre `scripts/**/*.test.mjs`, desktop e studio), `pnpm typecheck`, `pnpm lint` (o ESLint do Lingui pega strings não traduzidas).
 2. `pnpm --filter @adt/studio extract` + conferir ausência de `msgstr ""` novos nas 4 locales não-en.
 3. Dry-run local do compose: `GH_TOKEN=$(gh auth token) REPO=unicef/adt-studio TAG=<próxima-tag-ainda-inexistente> BRANCH=develop TRIGGER_SHA=<sha-exato-a-compilar> node scripts/compose-release-notes.mjs` e inspecionar a seção emitida. Confirmar que `Built from` aponta exatamente para `TRIGGER_SHA` e que a tag anterior escolhida é ancestral desse SHA.
-4. Fim a fim: cortar um beta real (`RELEASE: beta` em develop), inspecionar o corpo do GitHub Release, abrir "Beta versions" num build beta empacotado (e num beta antigo instalado, para confirmar degradação graciosa) e verificar card, links externos e notes sem a seção. **Adicionalmente**: disparar um check de update pelo canal normal num build beta e confirmar que o banner de update não mostra a seção (valida o strip da forma HTML).
+4. Teste editorial sem novo build de release: substituir temporariamente o body de `v0.7.4-beta.4` pelo conteúdo de `docs/specs/BETA_4_RELEASE_NOTES_TEST.md`, usar Refresh no browser de versões e confirmar “Reliable translations and persistent glossary edits” como título, `v0.7.4-beta.4` como subtítulo e ausência do heading duplicado nas notes.
+5. Fim a fim: cortar um beta real (`RELEASE: beta` em develop), inspecionar o corpo do GitHub Release, abrir "Beta versions" num build beta empacotado (e num beta antigo instalado, para confirmar degradação graciosa) e verificar título, versão secundária, card, links externos e notes sem a seção. **Adicionalmente**: disparar um check de update pelo canal normal num build beta e confirmar que o banner de update não mostra a seção (valida o strip da forma HTML).
 
 ## Sequência sugerida de commits
 
-1. `release-source-notes.mjs` + d.mts + testes → 2. `compose-release-notes.mjs` + testes → 3. `release.yml` (permissions + fetch-depth + compose + fallback) → 4. main process + testes → 5. tipos + `ReleaseSourceCard` + view + testes → 6. i18n → 7. docs. (App e CI podem ser mergeados em qualquer ordem — o parser tolera seção ausente e apps antigos toleram a seção nova.)
+1. `parseReleaseTitle` + d.mts + testes → 2. catálogo/tipos do desktop + testes → 3. tipo do renderer → 4. sidebar, detalhes, busca e testes → 5. i18n/extract se algum novo msgid for necessário → 6. docs. A mudança de título é independente da geração de proveniência já implementada e degrada para a versão quando o markdown não adere ao novo contrato.

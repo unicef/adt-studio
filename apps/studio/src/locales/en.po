@@ -1507,6 +1507,9 @@ msgstr "Build a glossary of key terms found in the book. Choose how much ground 
 msgid "Build a navigable table of contents for the book. Decide whether entries mirror the typed section headings exactly or whether the model rephrases them into descriptive chapter titles."
 msgstr "Build a navigable table of contents for the book. Decide whether entries mirror the typed section headings exactly or whether the model rephrases them into descriptive chapter titles."
 
+msgid "Build commit"
+msgstr "Build commit"
+
 msgid "Build the storyboard first"
 msgstr "Build the storyboard first"
 
@@ -1522,8 +1525,8 @@ msgstr "Builds a glossary of key terms and definitions found in the text."
 msgid "Builds the table of contents from the book's sections."
 msgstr "Builds the table of contents from the book's sections."
 
-msgid "Built from"
-msgstr "Built from"
+#~ msgid "Built from"
+#~ msgstr "Built from"
 
 msgid "Bundles the rendered book into a deployable web package."
 msgstr "Bundles the rendered book into a deployable web package."
@@ -1698,8 +1701,8 @@ msgstr "Choose a preset that matches your content — textbook, storyboard, refe
 msgid "Choose an existing image from this project"
 msgstr "Choose an existing image from this project"
 
-msgid "Choose any available beta version to install."
-msgstr "Choose any available beta version to install."
+#~ msgid "Choose any available beta version to install."
+#~ msgstr "Choose any available beta version to install."
 
 msgid "Choose features to include in this export"
 msgstr "Choose features to include in this export"
@@ -1841,6 +1844,9 @@ msgstr "Comment"
 
 msgid "Comments"
 msgstr "Comments"
+
+msgid "Compare"
+msgstr "Compare"
 
 msgid "Completed"
 msgstr "Completed"
@@ -2381,8 +2387,8 @@ msgstr "Done"
 msgid "DONE"
 msgstr "DONE"
 
-#~ msgid "Downgrade"
-#~ msgstr "Downgrade"
+msgid "Downgrade"
+msgstr "Downgrade"
 
 msgid "Download a full backup of this project"
 msgstr "Download a full backup of this project"
@@ -3793,8 +3799,8 @@ msgstr "Last change"
 msgid "Last modified"
 msgstr "Last modified"
 
-msgid "Last week"
-msgstr "Last week"
+#~ msgid "Last week"
+#~ msgstr "Last week"
 
 msgid "Launch the app with"
 msgstr "Launch the app with"
@@ -4374,6 +4380,9 @@ msgstr "New session"
 msgid "new_type_key"
 msgstr "new_type_key"
 
+msgid "Newer"
+msgstr "Newer"
+
 msgid "Newest"
 msgstr "Newest"
 
@@ -4591,6 +4600,9 @@ msgstr "No preview available."
 msgid "No pruned terms"
 msgstr "No pruned terms"
 
+msgid "No pull requests are associated with this release."
+msgstr "No pull requests are associated with this release."
+
 msgid "No quizzes for this page"
 msgstr "No quizzes for this page"
 
@@ -4641,6 +4653,9 @@ msgstr "No segmentation needed for this image"
 
 msgid "No source image"
 msgstr "No source image"
+
+msgid "No source information was provided for this version."
+msgstr "No source information was provided for this version."
 
 msgid "No storyboard sections found. Run Storyboard to generate sections you can match videos to."
 msgstr "No storyboard sections found. Run Storyboard to generate sections you can match videos to."
@@ -4744,6 +4759,9 @@ msgstr "of"
 msgid "Off"
 msgstr "Off"
 
+msgid "Older"
+msgstr "Older"
+
 msgid "On"
 msgstr "On"
 
@@ -4798,8 +4816,13 @@ msgstr "Open a page to review"
 msgid "Open a page to see page-level findings"
 msgstr "Open a page to see page-level findings"
 
-msgid "Open commit {shortSha}"
-msgstr "Open commit {shortSha}"
+#. placeholder {0}: source.buildCommit.sha.slice(0, 7)
+#. placeholder {0}: source.changeCommit.sha.slice(0, 7)
+msgid "Open commit {0}"
+msgstr "Open commit {0}"
+
+#~ msgid "Open commit {shortSha}"
+#~ msgstr "Open commit {shortSha}"
 
 msgid "Open comparison"
 msgstr "Open comparison"
@@ -4819,7 +4842,7 @@ msgstr "Open page preview for {pageId}"
 msgid "Open Preview"
 msgstr "Open Preview"
 
-#. placeholder {0}: pr.number
+#. placeholder {0}: pullRequest.number
 msgid "Open pull request {0}"
 msgstr "Open pull request {0}"
 
@@ -5465,6 +5488,9 @@ msgstr "published in"
 
 msgid "Publisher"
 msgstr "Publisher"
+
+msgid "Pull requests"
+msgstr "Pull requests"
 
 msgid "Pull structured content from the source PDF. Extraction identifies headings, paragraphs, lists, and images so downstream stages work with clean, typed content instead of raw PDF."
 msgstr "Pull structured content from the source PDF. Extraction identifies headings, paragraphs, lists, and images so downstream stages work with clean, typed content instead of raw PDF."
@@ -6973,6 +6999,9 @@ msgstr "Tailwind classes"
 msgid "Takes liberties and produces something similar."
 msgstr "Takes liberties and produces something similar."
 
+msgid "Target"
+msgstr "Target"
+
 msgid "Task complete"
 msgstr "Task complete"
 
@@ -7412,8 +7441,8 @@ msgstr "This session is using an older reviewer checklist snapshot. Newer checkl
 msgid "This text is only perceptible to assistive technologies."
 msgstr "This text is only perceptible to assistive technologies."
 
-msgid "This week"
-msgstr "This week"
+#~ msgid "This week"
+#~ msgstr "This week"
 
 #~ msgid "This will save your Easy Read settings and generate a new editable Easy Read version."
 #~ msgstr "This will save your Easy Read settings and generate a new editable Easy Read version."
@@ -7490,8 +7519,8 @@ msgstr "TOC Mode"
 msgid "TOC Preview"
 msgstr "TOC Preview"
 
-msgid "Today"
-msgstr "Today"
+#~ msgid "Today"
+#~ msgstr "Today"
 
 msgid "Toggle model list"
 msgstr "Toggle model list"
@@ -7883,8 +7912,8 @@ msgstr "videos"
 msgid "Videos"
 msgstr "Videos"
 
-msgid "View all changes"
-msgstr "View all changes"
+#~ msgid "View all changes"
+#~ msgstr "View all changes"
 
 msgid "View HTML source"
 msgstr "View HTML source"
@@ -8106,8 +8135,8 @@ msgstr "Wraps 'Edit this image' requests. The AI receives the original image alo
 msgid "Wraps 'Generate new' requests. Supports user_prompt, style, and image_type variables. Uses Liquid syntax for conditionals."
 msgstr "Wraps 'Generate new' requests. Supports user_prompt, style, and image_type variables. Uses Liquid syntax for conditionals."
 
-msgid "Yesterday"
-msgstr "Yesterday"
+#~ msgid "Yesterday"
+#~ msgstr "Yesterday"
 
 msgid "You can export at this stage"
 msgstr "You can export at this stage"

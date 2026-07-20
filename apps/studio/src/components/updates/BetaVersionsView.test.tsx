@@ -121,8 +121,17 @@ describe("BetaVersionsView", () => {
     )
 
     expect(await screen.findByText("Fixed the updater")).toBeTruthy()
-    expect(screen.getByRole("heading", { name: "Source" })).toBeTruthy()
-    expect(screen.getByText("feat/source → develop · @alice")).toBeTruthy()
+    const releaseNotesHeading = screen.getByRole("heading", {
+      name: "Release notes",
+    })
+    const sourceHeading = screen.getByRole("heading", { name: "Source" })
+    expect(
+      releaseNotesHeading.compareDocumentPosition(sourceHeading) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+    expect(screen.getByText(/feat\/source → develop/)).toBeTruthy()
+    expect(screen.getAllByText("develop").length).toBeGreaterThan(0)
+    expect(screen.getByText("@alice")).toBeTruthy()
     const pullRequest = screen.getByRole("link", {
       name: "Open pull request 123",
     })
@@ -133,20 +142,28 @@ describe("BetaVersionsView", () => {
       "_blank",
       "noopener,noreferrer",
     )
-    expect(screen.getByText("Today")).toBeTruthy()
-    expect(screen.getByText("Yesterday")).toBeTruthy()
-    expect(screen.getByText("Last week")).toBeTruthy()
-    expect(screen.getByText("June 2026")).toBeTruthy()
+    expect(screen.queryByText("Today")).toBeNull()
+    expect(screen.queryByText("Yesterday")).toBeNull()
+    expect(screen.queryByText("Last week")).toBeNull()
+    expect(screen.queryByText("June 2026")).toBeNull()
     expect(document.querySelector(".lucide-arrow-down")).toBeNull()
-    expect(screen.queryByText(/Back up your books before downgrading/)).toBeNull()
+    expect(
+      screen.queryByText(/Back up your books before downgrading/),
+    ).toBeNull()
     fireEvent.click(screen.getByText("v0.7.4-beta.2"))
     expect(screen.getByText("Current version")).toBeTruthy()
-    expect(screen.queryByRole("heading", { name: "Source" })).toBeNull()
-    expect(screen.queryByText(/Back up your books before downgrading/)).toBeNull()
+    expect(screen.queryByRole("button", { name: "Installed" })).toBeNull()
+    expect(screen.getByRole("heading", { name: "Source" })).toBeTruthy()
+    expect(
+      screen.getByText("No source information was provided for this version."),
+    ).toBeTruthy()
+    expect(
+      screen.queryByText(/Back up your books before downgrading/),
+    ).toBeNull()
     fireEvent.click(screen.getByText("v0.7.4-beta.1"))
     expect(await screen.findByText("Previous behavior")).toBeTruthy()
     expect(screen.queryByText("Current version")).toBeNull()
-    expect(screen.queryByText("Downgrade")).toBeNull()
+    expect(screen.getByText("Downgrade")).toBeTruthy()
     expect(
       screen.getByText(/Back up your books before downgrading/),
     ).toBeTruthy()

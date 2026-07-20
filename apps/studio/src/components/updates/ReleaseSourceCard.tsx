@@ -6,9 +6,10 @@ import {
   GitPullRequest,
 } from "lucide-react"
 import type { ReactNode } from "react"
+import { cn } from "@/lib/utils"
 
 interface ReleaseSourceCardProps {
-  source: ElectronReleaseSource
+  source?: ElectronReleaseSource
 }
 
 function isGitHubUrl(href: string): boolean {
@@ -19,10 +20,12 @@ function ExternalLink({
   href,
   label,
   children,
+  className,
 }: {
   href: string
   label: string
   children: ReactNode
+  className?: string
 }) {
   if (!isGitHubUrl(href)) return <span>{children}</span>
   return (
@@ -33,7 +36,10 @@ function ExternalLink({
         event.preventDefault()
         window.open(href, "_blank", "noopener,noreferrer")
       }}
-      className="rounded-sm font-medium text-primary underline underline-offset-2 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      className={cn(
+        "rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        className,
+      )}
     >
       {children}
     </a>
@@ -42,109 +48,159 @@ function ExternalLink({
 
 export function ReleaseSourceCard({ source }: ReleaseSourceCardProps) {
   const { t } = useLingui()
+  const targetBranch = source?.prs.find((pr) => pr.baseRef)?.baseRef
 
-  const commitRow = (commit: ElectronReleaseSourceCommit, label: ReactNode) => {
-    const shortSha = commit.sha.slice(0, 7)
-    return (
-      <div className="flex min-w-0 items-start gap-2.5">
-        <GitCommitHorizontal
-          className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+  return (
+    <aside className="min-h-0 overflow-auto border-t px-4 py-4 md:border-t-0 md:border-l">
+      <div className="flex items-center justify-between gap-3">
+        <h3 className="text-balance text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+          <Trans>Source</Trans>
+        </h3>
+        {source?.compare && (
+          <ExternalLink
+            href={source.compare.url}
+            label={t`Open comparison`}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-primary transition-colors hover:text-primary/80"
+          >
+            <GitCompareArrows className="size-3.5" aria-hidden="true" />
+            <Trans>Compare</Trans>
+          </ExternalLink>
+        )}
+      </div>
+
+      {!source ? (
+        <p className="mt-4 text-pretty text-sm text-muted-foreground">
+          <Trans>No source information was provided for this version.</Trans>
+        </p>
+      ) : (
+        <>
+          <dl className="mt-3 space-y-2 text-xs">
+            {source.buildCommit && (
+              <SourceMetadata label={<Trans>Build commit</Trans>}>
+                <ExternalLink
+                  href={source.buildCommit.url}
+                  label={t`Open commit ${source.buildCommit.sha.slice(0, 7)}`}
+                  className="inline-flex items-center gap-1 font-mono text-primary hover:underline"
+                >
+                  <GitCommitHorizontal className="size-3.5" aria-hidden="true" />
+                  {source.buildCommit.sha.slice(0, 7)}
+                </ExternalLink>
+              </SourceMetadata>
+            )}
+            {source.branch && (
+              <SourceMetadata label={<Trans>Branch</Trans>}>
+                <span className="font-mono text-[11px]">{source.branch}</span>
+              </SourceMetadata>
+            )}
+            {targetBranch && (
+              <SourceMetadata label={<Trans>Target</Trans>}>
+                <span className="font-mono text-[11px]">{targetBranch}</span>
+              </SourceMetadata>
+            )}
+            {source.changeCommit &&
+              source.changeCommit.sha !== source.buildCommit?.sha && (
+                <SourceMetadata label={<Trans>Last change</Trans>}>
+                  <ExternalLink
+                    href={source.changeCommit.url}
+                    label={t`Open commit ${source.changeCommit.sha.slice(0, 7)}`}
+                    className="font-mono text-[11px] text-primary hover:underline"
+                  >
+                    {source.changeCommit.sha.slice(0, 7)}
+                  </ExternalLink>
+                </SourceMetadata>
+              )}
+          </dl>
+
+          <div className="mt-5 flex items-center justify-between gap-2">
+            <h4 className="text-balance text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              <Trans>Pull requests</Trans>
+            </h4>
+            <span className="text-xs text-muted-foreground">
+              {source.prs.length}
+            </span>
+          </div>
+
+          {source.prs.length > 0 ? (
+            <div className="mt-2 space-y-2">
+              {source.prs.map((pr) => (
+                <PullRequestCard key={pr.number} pullRequest={pr} />
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-pretty text-xs text-muted-foreground">
+              <Trans>No pull requests are associated with this release.</Trans>
+            </p>
+          )}
+        </>
+      )}
+    </aside>
+  )
+}
+
+function SourceMetadata({
+  label,
+  children,
+}: {
+  label: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <div className="grid grid-cols-[auto_minmax(0,1fr)] items-baseline gap-3">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 truncate text-right text-foreground">{children}</dd>
+    </div>
+  )
+}
+
+function PullRequestCard({
+  pullRequest,
+}: {
+  pullRequest: ElectronReleaseSourcePullRequest
+}) {
+  const { t } = useLingui()
+
+  return (
+    <article className="rounded-lg p-3 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+      <div className="flex items-start gap-2">
+        <GitPullRequest
+          className="mt-0.5 size-3.5 shrink-0 text-muted-foreground"
           aria-hidden="true"
         />
-        <div className="flex min-w-0 items-baseline gap-2 text-sm">
-          <span className="shrink-0">
-            <span className="text-muted-foreground">{label}: </span>
-            <ExternalLink href={commit.url} label={t`Open commit ${shortSha}`}>
-              <span className="font-mono text-xs">{shortSha}</span>
-            </ExternalLink>
-          </span>
-          {commit.subject && (
-            <span
-              className="truncate text-muted-foreground"
-              title={commit.subject}
-            >
-              {commit.subject}
+        <div className="min-w-0">
+          <ExternalLink
+            href={pullRequest.url}
+            label={t`Open pull request ${pullRequest.number}`}
+            className="group block text-pretty text-xs font-medium leading-5"
+          >
+            <span className="text-primary underline decoration-primary/30 underline-offset-2 group-hover:decoration-primary">
+              #{pullRequest.number}
             </span>
+            {pullRequest.title && (
+              <span className="text-foreground"> · {pullRequest.title}</span>
+            )}
+          </ExternalLink>
+
+          {(pullRequest.author || pullRequest.headRef || pullRequest.baseRef) && (
+            <div className="mt-1 flex flex-wrap items-center gap-1 text-[11px] text-muted-foreground">
+              {pullRequest.author && <span>@{pullRequest.author}</span>}
+              {pullRequest.author &&
+                (pullRequest.headRef || pullRequest.baseRef) && (
+                  <span aria-hidden>·</span>
+                )}
+              {(pullRequest.headRef || pullRequest.baseRef) && (
+                <span className="inline-flex min-w-0 items-center gap-1 font-mono">
+                  <GitBranch className="size-3 shrink-0" aria-hidden="true" />
+                  <span className="truncate">
+                    {pullRequest.headRef}
+                    {pullRequest.headRef && pullRequest.baseRef && " → "}
+                    {pullRequest.baseRef}
+                  </span>
+                </span>
+              )}
+            </div>
           )}
         </div>
       </div>
-    )
-  }
-
-  return (
-    <section className="mb-5 rounded-lg border bg-muted/30 px-4 py-3">
-      <h3 className="mb-3 text-balance text-sm font-semibold">
-        <Trans>Source</Trans>
-      </h3>
-
-      <div className="space-y-3">
-        {source.prs.map((pr) => {
-          const refs =
-            pr.headRef && pr.baseRef
-              ? `${pr.headRef} → ${pr.baseRef}`
-              : undefined
-          return (
-            <div key={pr.number} className="flex min-w-0 items-start gap-2.5">
-              <GitPullRequest
-                className="mt-0.5 size-4 shrink-0 text-muted-foreground"
-                aria-hidden="true"
-              />
-              <div className="min-w-0 text-sm">
-                <ExternalLink
-                  href={pr.url}
-                  label={t`Open pull request ${pr.number}`}
-                >
-                  #{pr.number}
-                  {pr.title ? ` · ${pr.title}` : ""}
-                </ExternalLink>
-                {(refs || pr.author) && (
-                  <div className="mt-1 flex items-start gap-1.5 text-xs text-muted-foreground">
-                    <GitBranch
-                      className="mt-px size-3.5 shrink-0"
-                      aria-hidden="true"
-                    />
-                    <span className="text-pretty">
-                      {refs}
-                      {refs && pr.author ? " · " : ""}
-                      {pr.author ? `@${pr.author}` : ""}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )
-        })}
-
-        {source.prs.length === 0 && source.branch && (
-          <div className="flex items-center gap-2.5 text-sm">
-            <GitBranch
-              className="size-4 shrink-0 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <span className="text-muted-foreground">
-              <Trans>Branch</Trans>: {source.branch}
-            </span>
-          </div>
-        )}
-
-        {source.buildCommit &&
-          commitRow(source.buildCommit, <Trans>Built from</Trans>)}
-        {source.changeCommit &&
-          source.changeCommit.sha !== source.buildCommit?.sha &&
-          commitRow(source.changeCommit, <Trans>Last change</Trans>)}
-
-        {source.compare && (
-          <div className="flex items-center gap-2.5 text-sm">
-            <GitCompareArrows
-              className="size-4 shrink-0 text-muted-foreground"
-              aria-hidden="true"
-            />
-            <ExternalLink href={source.compare.url} label={t`Open comparison`}>
-              <Trans>View all changes</Trans>
-            </ExternalLink>
-          </div>
-        )}
-      </div>
-    </section>
+    </article>
   )
 }

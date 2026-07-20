@@ -1508,6 +1508,9 @@ msgstr "Ndërto një glosar me termat kryesorë të gjetura në libër. Zgjidh s
 msgid "Build a navigable table of contents for the book. Decide whether entries mirror the typed section headings exactly or whether the model rephrases them into descriptive chapter titles."
 msgstr "Ndërto një tabelë përmbajtjeje të navigueshme për librin. Vendosni nëse shënimet pasqyrojnë saktësisht titujt e seksioneve të shkruara apo modeli i rifrazon ato në tituj kapitujsh përshkrues."
 
+msgid "Build commit"
+msgstr "Commit-i i ndërtimit"
+
 msgid "Build the storyboard first"
 msgstr "Ndërtoni fillimisht storyboard-in"
 
@@ -1523,8 +1526,8 @@ msgstr "Ndërton një glosar me termat kryesorë dhe përkufizimet e gjetura në
 msgid "Builds the table of contents from the book's sections."
 msgstr "Ndërton tabelën e përmbajtjes nga seksionet e librit."
 
-msgid "Built from"
-msgstr "Ndërtuar nga"
+#~ msgid "Built from"
+#~ msgstr "Ndërtuar nga"
 
 msgid "Bundles the rendered book into a deployable web package."
 msgstr "Paketonn librin e renderuar në një paketë ueb të vendosshme."
@@ -1699,8 +1702,8 @@ msgstr "Zgjidhni një preset që përputhet me përmbajtjen tuaj — tekst shkol
 msgid "Choose an existing image from this project"
 msgstr "Zgjidhni një imazh ekzistues nga ky projekt"
 
-msgid "Choose any available beta version to install."
-msgstr "Zgjidhni çdo version beta të disponueshëm për ta instaluar."
+#~ msgid "Choose any available beta version to install."
+#~ msgstr "Zgjidhni çdo version beta të disponueshëm për ta instaluar."
 
 msgid "Choose features to include in this export"
 msgstr "Zgjidhni funksionet për t'i përfshirë në këtë eksportim"
@@ -1842,6 +1845,9 @@ msgstr "Koment"
 
 msgid "Comments"
 msgstr "Komente"
+
+msgid "Compare"
+msgstr "Krahaso"
 
 msgid "Completed"
 msgstr "Përfunduar"
@@ -2382,8 +2388,8 @@ msgstr "U krye"
 msgid "DONE"
 msgstr "KRYER"
 
-#~ msgid "Downgrade"
-#~ msgstr "Kthim në version më të vjetër"
+msgid "Downgrade"
+msgstr "Kthim në version më të vjetër"
 
 msgid "Download a full backup of this project"
 msgstr "Shkarko një kopje rezervë të plotë të këtij projekti"
@@ -3794,8 +3800,8 @@ msgstr "Ndryshimi i fundit"
 msgid "Last modified"
 msgstr "Modifikuar së fundmi"
 
-msgid "Last week"
-msgstr "Java e kaluar"
+#~ msgid "Last week"
+#~ msgstr "Java e kaluar"
 
 msgid "Launch the app with"
 msgstr "Hap aplikacionin me"
@@ -4375,6 +4381,9 @@ msgstr "Sesion i ri"
 msgid "new_type_key"
 msgstr "new_type_key"
 
+msgid "Newer"
+msgstr "Më i ri"
+
 msgid "Newest"
 msgstr "Më të rejat"
 
@@ -4592,6 +4601,9 @@ msgstr "Nuk ka pamje paraprake."
 msgid "No pruned terms"
 msgstr "Nuk ka terma të hequr"
 
+msgid "No pull requests are associated with this release."
+msgstr "Asnjë pull request nuk është i lidhur me këtë version."
+
 msgid "No quizzes for this page"
 msgstr "Nuk ka kuize për këtë faqe"
 
@@ -4642,6 +4654,9 @@ msgstr "Nuk nevojitet segmentim për këtë imazh"
 
 msgid "No source image"
 msgstr "Nuk ka imazh burimor"
+
+msgid "No source information was provided for this version."
+msgstr "Nuk u dha asnjë informacion burimi për këtë version."
 
 msgid "No storyboard sections found. Run Storyboard to generate sections you can match videos to."
 msgstr "Nuk u gjetën seksione storyboard. Ekzekutoni Storyboard-in për të gjeneruar seksione me të cilat mund të përputhni video."
@@ -4745,6 +4760,9 @@ msgstr "nga"
 msgid "Off"
 msgstr "Joaktiv"
 
+msgid "Older"
+msgstr "Më i vjetër"
+
 msgid "On"
 msgstr "Aktiv"
 
@@ -4799,8 +4817,13 @@ msgstr "Hapni një faqe për rishikim"
 msgid "Open a page to see page-level findings"
 msgstr "Hapni një faqe për të parë gjetjet në nivel faqeje"
 
-msgid "Open commit {shortSha}"
-msgstr "Hap commit-in {shortSha}"
+#. placeholder {0}: source.buildCommit.sha.slice(0, 7)
+#. placeholder {0}: source.changeCommit.sha.slice(0, 7)
+msgid "Open commit {0}"
+msgstr "Hap commit-in {0}"
+
+#~ msgid "Open commit {shortSha}"
+#~ msgstr "Hap commit-in {shortSha}"
 
 msgid "Open comparison"
 msgstr "Hap krahasimin"
@@ -4820,7 +4843,7 @@ msgstr "Hapni pamjen paraprake të faqes për {pageId}"
 msgid "Open Preview"
 msgstr "Hapni Pamjen Paraprake"
 
-#. placeholder {0}: pr.number
+#. placeholder {0}: pullRequest.number
 msgid "Open pull request {0}"
 msgstr "Hap pull request-in {0}"
 
@@ -5466,6 +5489,9 @@ msgstr "botuar në"
 
 msgid "Publisher"
 msgstr "Botuesi"
+
+msgid "Pull requests"
+msgstr "Pull request-e"
 
 msgid "Pull structured content from the source PDF. Extraction identifies headings, paragraphs, lists, and images so downstream stages work with clean, typed content instead of raw PDF."
 msgstr "Nxirrni përmbajtje të strukturuar nga PDF-ja burimore. Nxjerrja identifikon titujt, paragrafet, listat dhe imazhet, kështu që fazat pasuese punojnë me përmbajtje të pastër dhe të tipizuar në vend të PDF-së bruto."
@@ -6974,6 +7000,9 @@ msgstr "Klasa Tailwind"
 msgid "Takes liberties and produces something similar."
 msgstr "Merr liri dhe prodhon diçka të ngjashme."
 
+msgid "Target"
+msgstr "Objektivi"
+
 msgid "Task complete"
 msgstr "Detyra u krye"
 
@@ -7413,8 +7442,8 @@ msgstr "Kjo sesion po përdor një fotografi të vjetër të listës së kontrol
 msgid "This text is only perceptible to assistive technologies."
 msgstr "Ky tekst perceptohet vetëm nga teknologjitë ndihmëse."
 
-msgid "This week"
-msgstr "Këtë javë"
+#~ msgid "This week"
+#~ msgstr "Këtë javë"
 
 #~ msgid "This will save your Easy Read settings and generate a new editable Easy Read version."
 #~ msgstr "Kjo do të ruajë cilësimet tuaja Easy Read dhe do të gjenerojë një version të ri të redaktueshëm Easy Read."
@@ -7491,8 +7520,8 @@ msgstr "Mënyra TOC"
 msgid "TOC Preview"
 msgstr "Paraparimimi TOC"
 
-msgid "Today"
-msgstr "Sot"
+#~ msgid "Today"
+#~ msgstr "Sot"
 
 msgid "Toggle model list"
 msgstr "Ndrysho listën e modeleve"
@@ -7884,8 +7913,8 @@ msgstr "video"
 msgid "Videos"
 msgstr "Video"
 
-msgid "View all changes"
-msgstr "Shiko të gjitha ndryshimet"
+#~ msgid "View all changes"
+#~ msgstr "Shiko të gjitha ndryshimet"
 
 msgid "View HTML source"
 msgstr "Shiko burimin HTML"
@@ -8107,8 +8136,8 @@ msgstr "Mbështjell kërkesat 'Redakto këtë imazh'. AI-ja merr imazhin origjin
 msgid "Wraps 'Generate new' requests. Supports user_prompt, style, and image_type variables. Uses Liquid syntax for conditionals."
 msgstr "Mbështjell kërkesat 'Gjenero të re'. Mbështet variablat user_prompt, style dhe image_type. Përdor sintaksën Liquid për kushtet."
 
-msgid "Yesterday"
-msgstr "Dje"
+#~ msgid "Yesterday"
+#~ msgstr "Dje"
 
 msgid "You can export at this stage"
 msgstr "Mund të eksportosh në këtë fazë"

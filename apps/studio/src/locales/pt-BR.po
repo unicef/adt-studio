@@ -1507,6 +1507,9 @@ msgstr "Construa um glossário de termos-chave encontrados no livro. Escolha qua
 msgid "Build a navigable table of contents for the book. Decide whether entries mirror the typed section headings exactly or whether the model rephrases them into descriptive chapter titles."
 msgstr "Construa um índice navegável para o livro. Decida se as entradas espelham exatamente os títulos das seções classificadas ou se o modelo as reformula em títulos de capítulos descritivos."
 
+msgid "Build commit"
+msgstr "Commit de build"
+
 msgid "Build the storyboard first"
 msgstr "Construa o storyboard primeiro"
 
@@ -1522,8 +1525,8 @@ msgstr "Cria um glossário de termos-chave e definições encontrados no texto."
 msgid "Builds the table of contents from the book's sections."
 msgstr "Cria o índice a partir das seções do livro."
 
-msgid "Built from"
-msgstr "Compilado a partir de"
+#~ msgid "Built from"
+#~ msgstr "Compilado a partir de"
 
 msgid "Bundles the rendered book into a deployable web package."
 msgstr "Agrupa o livro renderizado em um pacote web implantável."
@@ -1698,8 +1701,8 @@ msgstr "Escolha um preset que combine com seu conteúdo — livro didático, sto
 msgid "Choose an existing image from this project"
 msgstr "Escolha uma imagem existente deste projeto"
 
-msgid "Choose any available beta version to install."
-msgstr "Escolha qualquer versão beta disponível para instalar."
+#~ msgid "Choose any available beta version to install."
+#~ msgstr "Escolha qualquer versão beta disponível para instalar."
 
 msgid "Choose features to include in this export"
 msgstr "Escolha as características para incluir nesta exportação"
@@ -1841,6 +1844,9 @@ msgstr "Comment"
 
 msgid "Comments"
 msgstr "Comments"
+
+msgid "Compare"
+msgstr "Comparar"
 
 msgid "Completed"
 msgstr "Concluído"
@@ -2381,8 +2387,8 @@ msgstr "Concluído"
 msgid "DONE"
 msgstr "CONCLUÍDO"
 
-#~ msgid "Downgrade"
-#~ msgstr "Downgrade"
+msgid "Downgrade"
+msgstr "Downgrade"
 
 msgid "Download a full backup of this project"
 msgstr "Baixar um backup completo deste projeto"
@@ -3793,8 +3799,8 @@ msgstr "Última alteração"
 msgid "Last modified"
 msgstr "Última modificação"
 
-msgid "Last week"
-msgstr "Semana passada"
+#~ msgid "Last week"
+#~ msgstr "Semana passada"
 
 msgid "Launch the app with"
 msgstr "Iniciar o aplicativo com"
@@ -4374,6 +4380,9 @@ msgstr "New session"
 msgid "new_type_key"
 msgstr "novo_tipo"
 
+msgid "Newer"
+msgstr "Mais recente"
+
 msgid "Newest"
 msgstr "Mais recentes"
 
@@ -4591,6 +4600,9 @@ msgstr "Nenhuma pré-visualização disponível."
 msgid "No pruned terms"
 msgstr "Nenhum termo podado"
 
+msgid "No pull requests are associated with this release."
+msgstr "Nenhum pull request está associado a esta versão."
+
 msgid "No quizzes for this page"
 msgstr "Nenhum quiz para esta página"
 
@@ -4641,6 +4653,9 @@ msgstr "No segmentation needed for this image"
 
 msgid "No source image"
 msgstr "Nenhuma imagem de origem"
+
+msgid "No source information was provided for this version."
+msgstr "Nenhuma informação de origem foi fornecida para esta versão."
 
 msgid "No storyboard sections found. Run Storyboard to generate sections you can match videos to."
 msgstr "Nenhuma seção de storyboard encontrada. Execute o Storyboard para gerar seções que você pode associar a vídeos."
@@ -4744,6 +4759,9 @@ msgstr "of"
 msgid "Off"
 msgstr "Desligado"
 
+msgid "Older"
+msgstr "Mais antiga"
+
 msgid "On"
 msgstr "Ligado"
 
@@ -4798,8 +4816,13 @@ msgstr "Open a page to review"
 msgid "Open a page to see page-level findings"
 msgstr "Open a page to see page-level findings"
 
-msgid "Open commit {shortSha}"
-msgstr "Abrir commit {shortSha}"
+#. placeholder {0}: source.buildCommit.sha.slice(0, 7)
+#. placeholder {0}: source.changeCommit.sha.slice(0, 7)
+msgid "Open commit {0}"
+msgstr "Abrir commit {0}"
+
+#~ msgid "Open commit {shortSha}"
+#~ msgstr "Abrir commit {shortSha}"
 
 msgid "Open comparison"
 msgstr "Abrir comparação"
@@ -4819,7 +4842,7 @@ msgstr "Abrir pré-visualização da página {0}"
 msgid "Open Preview"
 msgstr "Open Preview"
 
-#. placeholder {0}: pr.number
+#. placeholder {0}: pullRequest.number
 msgid "Open pull request {0}"
 msgstr "Abrir pull request {0}"
 
@@ -5465,6 +5488,9 @@ msgstr "publicado em"
 
 msgid "Publisher"
 msgstr "Editora"
+
+msgid "Pull requests"
+msgstr "Pull requests"
 
 msgid "Pull structured content from the source PDF. Extraction identifies headings, paragraphs, lists, and images so downstream stages work with clean, typed content instead of raw PDF."
 msgstr "Extraia conteúdo estruturado do PDF de origem. A extração identifica títulos, parágrafos, listas e imagens para que as etapas posteriores trabalhem com conteúdo limpo e digitado em vez de PDF bruto."
@@ -6973,6 +6999,9 @@ msgstr "Classes Tailwind"
 msgid "Takes liberties and produces something similar."
 msgstr "Toma liberdades e produz algo semelhante."
 
+msgid "Target"
+msgstr "Destino"
+
 msgid "Task complete"
 msgstr "Tarefa concluída"
 
@@ -7412,8 +7441,8 @@ msgstr "This session is using an older reviewer checklist snapshot. Newer checkl
 msgid "This text is only perceptible to assistive technologies."
 msgstr "Este texto é perceptível apenas para tecnologias assistivas."
 
-msgid "This week"
-msgstr "Esta semana"
+#~ msgid "This week"
+#~ msgstr "Esta semana"
 
 #~ msgid "This will save your Easy Read settings and generate a new editable Easy Read version."
 #~ msgstr "Isso salvará suas configurações de Leitura Fácil e gerará uma nova versão editável de Leitura Fácil."
@@ -7490,8 +7519,8 @@ msgstr "Modo do Sumário"
 msgid "TOC Preview"
 msgstr "Pré-visualização do Sumário"
 
-msgid "Today"
-msgstr "Hoje"
+#~ msgid "Today"
+#~ msgstr "Hoje"
 
 msgid "Toggle model list"
 msgstr "Alternar lista de modelos"
@@ -7883,8 +7912,8 @@ msgstr "vídeos"
 msgid "Videos"
 msgstr "Vídeos"
 
-msgid "View all changes"
-msgstr "Ver todas as alterações"
+#~ msgid "View all changes"
+#~ msgstr "Ver todas as alterações"
 
 msgid "View HTML source"
 msgstr "Ver código HTML"
@@ -8106,8 +8135,8 @@ msgstr "Envolve solicitações de 'Editar esta imagem'. A IA recebe a imagem ori
 msgid "Wraps 'Generate new' requests. Supports user_prompt, style, and image_type variables. Uses Liquid syntax for conditionals."
 msgstr "Envolve solicitações de 'Gerar nova'. Suporta variáveis user_prompt, style e image_type. Usa sintaxe Liquid para condicionais."
 
-msgid "Yesterday"
-msgstr "Ontem"
+#~ msgid "Yesterday"
+#~ msgstr "Ontem"
 
 msgid "You can export at this stage"
 msgstr "Você pode exportar nesta etapa"
