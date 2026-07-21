@@ -3,8 +3,8 @@ import { TriangleAlert } from "lucide-react"
 import type { AvailableRelease } from "@/hooks/use-update-status"
 import { formatBytes } from "@/lib/utils"
 import { formatReleaseDate } from "./beta-version-utils"
-import { formatVersion } from "./release-banner-utils"
-import { ReleaseNotesMarkdown } from "./ReleaseNotesMarkdown"
+import { formatVersion } from "../release-banner-utils"
+import { ReleaseNotesMarkdown } from "../ReleaseNotesMarkdown"
 
 interface BetaVersionDetailsProps {
   release?: AvailableRelease

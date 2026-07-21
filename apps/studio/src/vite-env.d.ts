@@ -87,6 +87,10 @@ type ElectronUpdateStatus =
 
 interface ElectronAvailableRelease {
   version: string
+  title?: string
+  description?: string
+  coverUrl?: string
+  coverAlt?: string
   releaseDate?: string
   releaseNotes?: string
   totalBytes?: number
@@ -111,6 +115,9 @@ interface ElectronReleaseSourceCommit {
 
 interface ElectronReleaseSource {
   branch?: string
+  title?: string
+  description?: string
+  coverUrl?: string
   buildCommit?: ElectronReleaseSourceCommit
   changeCommit?: ElectronReleaseSourceCommit
   prs: ElectronReleaseSourcePullRequest[]

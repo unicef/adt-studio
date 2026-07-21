@@ -9,7 +9,7 @@ import {
   filterVersionsByQuery,
   formatReleaseDate,
 } from "./beta-version-utils"
-import { formatVersion } from "./release-banner-utils"
+import { formatVersion } from "../release-banner-utils"
 
 interface BetaVersionSidebarProps {
   versions: AvailableRelease[]

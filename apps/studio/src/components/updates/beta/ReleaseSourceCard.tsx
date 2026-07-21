@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils"
 
 interface ReleaseSourceCardProps {
   source?: ElectronReleaseSource
+  className?: string
 }
 
 function isGitHubUrl(href: string): boolean {
@@ -46,12 +47,20 @@ function ExternalLink({
   )
 }
 
-export function ReleaseSourceCard({ source }: ReleaseSourceCardProps) {
+export function ReleaseSourceCard({
+  source,
+  className,
+}: ReleaseSourceCardProps) {
   const { t } = useLingui()
   const targetBranch = source?.prs.find((pr) => pr.baseRef)?.baseRef
 
   return (
-    <aside className="min-h-0 overflow-auto border-t px-4 py-4 md:border-t-0 md:border-l">
+    <aside
+      className={cn(
+        "min-h-0 overflow-auto rounded-lg border bg-card p-4 shadow-none",
+        className,
+      )}
+    >
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-balance text-xs font-semibold tracking-wide text-muted-foreground uppercase">
           <Trans>Source</Trans>
@@ -160,7 +169,7 @@ function PullRequestCard({
   const { t } = useLingui()
 
   return (
-    <article className="rounded-lg p-3 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+    <article className="rounded-lg border bg-secondary p-3 shadow-none">
       <div className="flex items-start gap-2">
         <GitPullRequest
           className="mt-0.5 size-3.5 shrink-0 text-muted-foreground"

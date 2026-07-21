@@ -15,6 +15,9 @@ export interface ReleaseSourceCommit {
 
 export interface ReleaseSource {
   branch?: string;
+  title?: string;
+  description?: string;
+  coverUrl?: string;
   buildCommit?: ReleaseSourceCommit;
   changeCommit?: ReleaseSourceCommit;
   prs: ReleaseSourcePullRequest[];
@@ -27,5 +30,11 @@ export declare function formatReleaseSourceSection(
 export declare function parseReleaseSourceSection(body: string): {
   notes: string;
   source?: ReleaseSource;
+};
+export declare function parseReleasePresentation(body: string): {
+  title?: string;
+  coverUrl?: string;
+  coverAlt?: string;
+  notes: string;
 };
 export declare function stripReleaseSourceSection(body: string): string;

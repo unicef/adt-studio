@@ -8,7 +8,7 @@ import {
 import { useAppVersion } from "@/hooks/use-app-version"
 import { useUpdateStatus, type UpdateStatus } from "@/hooks/use-update-status"
 import { cn } from "@/lib/utils"
-import { BetaVersionsView } from "./BetaVersionsView"
+import { BetaVersionsView } from "./beta/BetaVersionsView"
 import { getReleaseChannel } from "./release-banner-utils"
 import { UpdateStateSurface } from "./UpdateStateSurface"
 
@@ -45,8 +45,10 @@ export function UpdateDialog({
       <DialogContent
         overlayClassName="bg-black/55 backdrop-blur-[1px] data-[state=closed]:duration-150 data-[state=open]:duration-200 motion-reduce:animate-none"
         className={cn(
-          "gap-0 overflow-hidden border-0 p-0 shadow-2xl ring-1 ring-black/5 data-[state=closed]:duration-150 data-[state=open]:duration-200 motion-reduce:animate-none dark:ring-white/10 sm:rounded-xl [&>button]:top-2 [&>button]:right-2",
-          showBetaVersions ? "sm:max-w-7xl" : "sm:max-w-125",
+          "gap-0 overflow-hidden p-0 data-[state=closed]:duration-150 data-[state=open]:duration-200 motion-reduce:animate-none sm:rounded-xl [&>button]:top-2 [&>button]:right-2",
+          showBetaVersions
+            ? "border shadow-none sm:max-w-5xl"
+            : "border-0 shadow-2xl ring-1 ring-black/5 dark:ring-white/10 sm:max-w-125",
         )}
       >
         <DialogDescription className="sr-only">

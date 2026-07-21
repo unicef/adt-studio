@@ -234,6 +234,10 @@ msgstr "{0} sections"
 msgid "{0} selected images are no longer in the storyboard."
 msgstr "{0} selected images are no longer in the storyboard."
 
+#. placeholder {0}: formatVersion(group.series)
+#~ msgid "{0} series"
+#~ msgstr "{0} series"
+
 #. placeholder {0}: String(visibleCount)
 msgid "{0} terms"
 msgstr "{0} terms"
@@ -925,6 +929,9 @@ msgstr "ADT Book - {0}"
 msgid "ADT Package"
 msgstr "ADT Package"
 
+msgid "ADT Studio"
+msgstr "ADT Studio"
+
 msgid "ADT Studio uses your own API keys to run the pipeline. Keys are stored locally on this device and never sent anywhere else."
 msgstr "ADT Studio uses your own API keys to run the pipeline. Keys are stored locally on this device and never sent anywhere else."
 
@@ -1325,6 +1332,9 @@ msgstr "Back"
 msgid "Back Cover"
 msgstr "Back Cover"
 
+msgid "Back to beta versions"
+msgstr "Back to beta versions"
+
 msgid "Back to books"
 msgstr "Back to books"
 
@@ -1392,6 +1402,9 @@ msgstr "Beta"
 
 msgid "Beta release"
 msgstr "Beta release"
+
+msgid "Beta release library"
+msgstr "Beta release library"
 
 msgid "Beta versions"
 msgstr "Beta versions"
@@ -1491,6 +1504,9 @@ msgstr "Browse all Google Fonts…"
 
 msgid "Browse and edit Liquid templates used for template-based rendering strategies."
 msgstr "Browse and edit Liquid templates used for template-based rendering strategies."
+
+#~ msgid "Browse beta releases by series."
+#~ msgstr "Browse beta releases by series."
 
 msgid "Browse every Storyboard section and upload, replace, or remove its sign-language video."
 msgstr "Browse every Storyboard section and upload, replace, or remove its sign-language video."
@@ -1691,6 +1707,9 @@ msgstr "Checklist item"
 
 msgid "choice"
 msgstr "choice"
+
+msgid "Choose a beta release to install."
+msgstr "Choose a beta release to install."
 
 msgid "Choose a Preset"
 msgstr "Choose a Preset"
@@ -2018,6 +2037,9 @@ msgstr "Course"
 
 msgid "Cover"
 msgstr "Cover"
+
+msgid "Cover for {title}"
+msgstr "Cover for {title}"
 
 msgid "Cover of {displayTitle}"
 msgstr "Cover of {displayTitle}"
@@ -2524,6 +2546,9 @@ msgstr "Each prompt is applied to whichever provider its language is routed to �
 
 msgid "Each section introduces a new theme with worked examples, followed by short practice activities at the end of the page."
 msgstr "Each section introduces a new theme with worked examples, followed by short practice activities at the end of the page."
+
+msgid "Earlier"
+msgstr "Earlier"
 
 msgid "Earlier stages haven't run yet"
 msgstr "Earlier stages haven't run yet"
@@ -3646,6 +3671,9 @@ msgstr "Insert the quiz here"
 msgid "Inside Cover"
 msgstr "Inside Cover"
 
+msgid "Install an older beta?"
+msgstr "Install an older beta?"
+
 msgid "Install older version"
 msgstr "Install older version"
 
@@ -3933,6 +3961,9 @@ msgstr "LMS-ready with completion tracking"
 
 msgid "Loading accessibility summary..."
 msgstr "Loading accessibility summary..."
+
+msgid "Loading beta versions…"
+msgstr "Loading beta versions…"
 
 msgid "Loading book config…"
 msgstr "Loading book config…"
@@ -4432,6 +4463,15 @@ msgstr "No audio for this page"
 msgid "No beta versions are available for this platform."
 msgstr "No beta versions are available for this platform."
 
+msgid "No beta versions are available."
+msgstr "No beta versions are available."
+
+msgid "No beta versions found"
+msgstr "No beta versions found"
+
+#~ msgid "No beta versions match your search."
+#~ msgstr "No beta versions match your search."
+
 msgid "No books match your search"
 msgstr "No books match your search"
 
@@ -4827,6 +4867,9 @@ msgstr "Open commit {0}"
 msgid "Open comparison"
 msgstr "Open comparison"
 
+msgid "Open details for {title}"
+msgstr "Open details for {title}"
+
 msgid "Open edit panel"
 msgstr "Open edit panel"
 
@@ -4939,6 +4982,9 @@ msgstr "osmosis"
 
 msgid "Other"
 msgstr "Other"
+
+#~ msgid "Other beta versions"
+#~ msgstr "Other beta versions"
 
 msgid "Other images"
 msgstr "Other images"
@@ -5715,6 +5761,9 @@ msgstr "Reference"
 msgid "Refinement Prompt"
 msgstr "Refinement Prompt"
 
+msgid "Refresh beta versions"
+msgstr "Refresh beta versions"
+
 msgid "Refresh list"
 msgstr "Refresh list"
 
@@ -5750,6 +5799,9 @@ msgstr "Relaxed"
 
 msgid "Release"
 msgstr "Release"
+
+#~ msgid "Release library"
+#~ msgstr "Release library"
 
 msgid "Release notes"
 msgstr "Release notes"
@@ -5962,6 +6014,9 @@ msgstr "Review the project details below and confirm the import."
 
 msgid "Review the source PDF details below and continue to configure how your book will be converted into an Accessible Digital Textbook."
 msgstr "Review the source PDF details below and continue to configure how your book will be converted into an Accessible Digital Textbook."
+
+#~ msgid "Review this beta release and its notes before installing."
+#~ msgstr "Review this beta release and its notes before installing."
 
 msgid "Reviewer checklist"
 msgstr "Reviewer checklist"
@@ -6237,11 +6292,17 @@ msgstr "SCORM Package"
 msgid "Screen readers cannot interpret images without text alternatives. Adding captions ensures blind and low-vision readers understand every illustration."
 msgstr "Screen readers cannot interpret images without text alternatives. Adding captions ensures blind and low-vision readers understand every illustration."
 
+msgid "Search beta versions"
+msgstr "Search beta versions"
+
 msgid "Search books"
 msgstr "Search books"
 
 msgid "Search books..."
 msgstr "Search books..."
+
+msgid "Search by title, version, or description…"
+msgstr "Search by title, version, or description…"
 
 msgid "Search captions or image IDs…"
 msgstr "Search captions or image IDs…"
@@ -6415,6 +6476,9 @@ msgstr "Segmenting..."
 msgid "Segmenting…"
 msgstr "Segmenting…"
 
+#~ msgid "Select {title}"
+#~ msgstr "Select {title}"
+
 msgid "Select a .zip project archive exported from ADT Studio."
 msgstr "Select a .zip project archive exported from ADT Studio."
 
@@ -6438,6 +6502,9 @@ msgstr "Select a section mode to continue"
 
 msgid "Select a style guide to preview how it styles the generated pages - typography, colors, and component layout."
 msgstr "Select a style guide to preview how it styles the generated pages - typography, colors, and component layout."
+
+#~ msgid "Select a version to see details and installation options."
+#~ msgstr "Select a version to see details and installation options."
 
 msgid "Select a version to see its release notes."
 msgstr "Select a version to see its release notes."
@@ -6477,6 +6544,9 @@ msgstr "Select the pages the quiz is written from, then choose where it appears 
 
 msgid "Select up to 5 pages to use as visual references. The LLM will analyze them and generate a styleguide."
 msgstr "Select up to 5 pages to use as visual references. The LLM will analyze them and generate a styleguide."
+
+#~ msgid "Selected"
+#~ msgstr "Selected"
 
 msgid "Selected images"
 msgstr "Selected images"
@@ -7627,6 +7697,9 @@ msgstr "Try again"
 msgid "Try another file"
 msgstr "Try another file"
 
+msgid "Try another title, version, or description."
+msgstr "Try another title, version, or description."
+
 msgid "Try the practice problem"
 msgstr "Try the practice problem"
 
@@ -7933,6 +8006,9 @@ msgstr "View page"
 msgid "View page {pageNum} larger"
 msgstr "View page {pageNum} larger"
 
+#~ msgid "View release details"
+#~ msgstr "View release details"
+
 msgid "vision"
 msgstr "vision"
 
@@ -8137,6 +8213,10 @@ msgstr "Wraps 'Generate new' requests. Supports user_prompt, style, and image_ty
 
 #~ msgid "Yesterday"
 #~ msgstr "Yesterday"
+
+#. placeholder {0}: formatVersion(release.version)
+msgid "You are about to install {0}. Books or settings edited with a newer version may not work as expected. Back up your books before continuing."
+msgstr "You are about to install {0}. Books or settings edited with a newer version may not work as expected. Back up your books before continuing."
 
 msgid "You can export at this stage"
 msgstr "You can export at this stage"

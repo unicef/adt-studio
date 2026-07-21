@@ -4,6 +4,7 @@ import {
   parseReleaseTag,
 } from "@root/scripts/release-version.mjs";
 import {
+  parseReleasePresentation,
   parseReleaseSourceSection,
   type ReleaseSource,
 } from "@root/scripts/release-source-notes.mjs";
@@ -12,6 +13,10 @@ export type ReleaseDirection = "upgrade" | "current" | "downgrade";
 
 export interface AvailableRelease {
   version: string;
+  title?: string;
+  description?: string;
+  coverUrl?: string;
+  coverAlt?: string;
   releaseDate?: string;
   releaseNotes?: string;
   totalBytes?: number;
@@ -34,6 +39,10 @@ export interface GitHubRelease {
   draft: boolean;
   releaseDate?: string;
   releaseNotes?: string;
+  title?: string;
+  description?: string;
+  coverUrl?: string;
+  coverAlt?: string;
   source?: ReleaseSource;
   assets: GitHubReleaseAsset[];
 }
@@ -82,6 +91,10 @@ export function createBetaReleaseCatalog(
           tagName: release.tagName,
           updaterChannel,
           version,
+          title: release.title,
+          description: release.description,
+          coverUrl: release.coverUrl,
+          coverAlt: release.coverAlt,
           releaseDate: release.releaseDate,
           releaseNotes: release.releaseNotes,
           source: release.source,
@@ -188,10 +201,13 @@ async function requestGitHubReleases(now: number): Promise<GitHubRelease[]> {
 export function parseGitHubRelease(value: unknown): GitHubRelease[] {
   if (!isRecord(value) || typeof value.tag_name !== "string") return [];
 
-  const parsedNotes =
+  const parsedSource =
     typeof value.body === "string"
       ? parseReleaseSourceSection(value.body)
       : undefined;
+  const presentation = parsedSource
+    ? parseReleasePresentation(parsedSource.notes)
+    : undefined;
 
   const assets = Array.isArray(value.assets)
     ? value.assets.flatMap((asset): GitHubReleaseAsset[] => {
@@ -211,8 +227,12 @@ export function parseGitHubRelease(value: unknown): GitHubRelease[] {
       draft: value.draft === true,
       releaseDate:
         typeof value.published_at === "string" ? value.published_at : undefined,
-      releaseNotes: parsedNotes?.notes,
-      source: parsedNotes?.source,
+      releaseNotes: presentation?.notes,
+      title: parsedSource?.source?.title ?? presentation?.title,
+      description: parsedSource?.source?.description,
+      coverUrl: parsedSource?.source?.coverUrl ?? presentation?.coverUrl,
+      coverAlt: presentation?.coverAlt,
+      source: parsedSource?.source,
       assets,
     },
   ];

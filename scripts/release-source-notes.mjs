@@ -1,5 +1,16 @@
 const HEADING = "### Release source";
 const GITHUB_URL_PREFIX = "https://github.com/";
+const COVER_URL_PREFIXES = [
+  "https://github.com/user-attachments/",
+  "https://user-images.githubusercontent.com/",
+];
+const GENERIC_RELEASE_TITLES = new Set([
+  "what's changed",
+  "whats changed",
+  "changes",
+  "changelog",
+  "release notes",
+]);
 
 function githubUrl(value) {
   return typeof value === "string" && value.startsWith(GITHUB_URL_PREFIX);
@@ -33,6 +44,11 @@ export function formatReleaseSourceSection(source) {
   const branch = codeValue(source.branch);
   if (branch) lines.push(`- Branch: \`${branch}\``);
 
+  const coverUrl = codeValue(source.coverUrl);
+  if (coverUrl && isAllowedCoverUrl(coverUrl)) {
+    lines.push(`- Cover: \`${coverUrl}\``);
+  }
+
   const build = formatCommit("Built from", source.buildCommit);
   if (build) lines.push(build);
   const change = formatCommit("Last change", source.changeCommit);
@@ -62,6 +78,14 @@ export function formatReleaseSourceSection(source) {
     if (label && !label.includes("]")) {
       lines.push(`- Compare: [${label}](${source.compare.url})`);
     }
+  }
+
+  const title = validEditorialTitle(codeValue(source.title));
+  if (title) lines.push(`- Title: \`${title}\``);
+
+  const description = codeValue(source.description);
+  if (description && description.length <= 500) {
+    lines.push(`- Description: \`${description}\``);
   }
 
   return lines.length ? `${HEADING}\n\n${lines.join("\n")}` : "";
@@ -124,6 +148,28 @@ export function parseReleaseSourceSection(body) {
       continue;
     }
 
+    const cover = line.match(/^- Cover: `([^`\r\n]+)`$/);
+    if (cover && isAllowedCoverUrl(cover[1])) {
+      source.coverUrl = cover[1];
+      recognized++;
+      continue;
+    }
+
+    const title = line.match(/^- Title: `([^`\r\n]+)`$/);
+    const validTitle = title ? validEditorialTitle(title[1]) : undefined;
+    if (validTitle) {
+      source.title = validTitle;
+      recognized++;
+      continue;
+    }
+
+    const description = line.match(/^- Description: `([^`\r\n]+)`$/);
+    if (description && description[1].trim().length <= 500) {
+      source.description = description[1].trim();
+      recognized++;
+      continue;
+    }
+
     const buildCommit = parseCommit(line, "Built from");
     if (buildCommit) {
       source.buildCommit = buildCommit;
@@ -158,6 +204,66 @@ export function parseReleaseSourceSection(body) {
   return {
     notes: body.slice(0, headingIndex).trimEnd(),
     source,
+  };
+}
+
+function plainInlineText(value) {
+  return value
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[\*_~`]/g, "")
+    .replace(/\\([\\`*_[\]{}()#+\-.!])/g, "$1")
+    .trim();
+}
+
+function isAllowedCoverUrl(value) {
+  return COVER_URL_PREFIXES.some((prefix) => value.startsWith(prefix));
+}
+
+function validEditorialTitle(value) {
+  if (!value) return undefined;
+  const title = plainInlineText(value);
+  return title &&
+    title.length <= 120 &&
+    !GENERIC_RELEASE_TITLES.has(title.toLowerCase())
+    ? title
+    : undefined;
+}
+
+/**
+ * Extracts optional editorial metadata from the first block of beta notes.
+ * The accepted title and cover are removed so details do not repeat the hero.
+ */
+export function parseReleasePresentation(body) {
+  if (typeof body !== "string" || !body) {
+    return { notes: typeof body === "string" ? body : "" };
+  }
+
+  const heading = body.match(
+    /^((?:[ \t]*\r?\n)*[ \t]*)#{1,3}[ \t]+([^\r\n]+?)[ \t]*(?:\r?\n|$)/,
+  );
+  if (!heading) return { notes: body };
+
+  const title = validEditorialTitle(heading[2]);
+  if (!title) return { notes: body };
+
+  let rest = body.slice(heading[0].length);
+  let coverUrl;
+  let coverAlt;
+  const cover = rest.match(
+    /^((?:[ \t]*\r?\n)*[ \t]*)!\[([^\]\r\n]*)\]\((https:\/\/[^)\s]+)(?:[ \t]+["'][^"']*["'])?\)[ \t]*(?:\r?\n|$)/,
+  );
+  if (cover && isAllowedCoverUrl(cover[3])) {
+    coverUrl = cover[3];
+    coverAlt = plainInlineText(cover[2]) || undefined;
+    rest = rest.slice(cover[0].length);
+  }
+
+  return {
+    title,
+    coverUrl,
+    coverAlt,
+    notes: rest.replace(/^(?:[ \t]*\r?\n)+/, ""),
   };
 }
 

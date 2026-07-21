@@ -12,6 +12,11 @@ import {
 
 const releaseSource = {
   branch: "develop",
+  title: "Reliable translations and persistent glossary edits",
+  description:
+    "This beta keeps manually edited glossary terms across re-runs.",
+  coverUrl:
+    "https://github.com/user-attachments/assets/7565356c-97ea-4969-9ad1-3cf47d134be5",
   buildCommit: {
     sha: "1a2b3c4",
     url: "https://github.com/unicef/adt-studio/commit/1a2b3c4",
@@ -47,7 +52,7 @@ function release(
 
 describe("release catalog version handling", () => {
   it("parses release provenance and removes its markdown section", () => {
-    const body = `# Changes\n\n- Added provenance\n\n${formatReleaseSourceSection(releaseSource)}`;
+    const body = `### What's Changed\n\n- Added provenance\n\n${formatReleaseSourceSection(releaseSource)}`;
     const [parsed] = parseGitHubRelease({
       tag_name: "v0.8.0-beta.1",
       draft: false,
@@ -55,7 +60,11 @@ describe("release catalog version handling", () => {
       assets: [],
     });
 
-    expect(parsed.releaseNotes).toBe("# Changes\n\n- Added provenance");
+    expect(parsed.title).toBe(releaseSource.title);
+    expect(parsed.description).toBe(releaseSource.description);
+    expect(parsed.coverUrl).toBe(releaseSource.coverUrl);
+    expect(parsed.coverAlt).toBeUndefined();
+    expect(parsed.releaseNotes).toBe("### What's Changed\n\n- Added provenance");
     expect(parsed.releaseNotes).not.toContain("Release source");
     expect(parsed.source).toEqual(releaseSource);
   });
@@ -68,6 +77,16 @@ describe("release catalog version handling", () => {
     });
     expect(parsed.releaseNotes).toBe(body);
     expect(parsed.source).toBeUndefined();
+  });
+
+  it("preserves generic release headings as notes", () => {
+    const body = "## What's Changed\n\n- Fixed the updater";
+    const [parsed] = parseGitHubRelease({
+      tag_name: "v0.8.0-beta.1",
+      body,
+    });
+    expect(parsed.title).toBeUndefined();
+    expect(parsed.releaseNotes).toBe(body);
   });
 
   it("orders beta increments independently of a stable release", () => {
@@ -146,12 +165,21 @@ describe("release catalog version handling", () => {
   it("propagates provenance into beta catalog entries", () => {
     const candidate = release("v0.7.4-beta.5");
     candidate.source = releaseSource;
+    candidate.title = "Clearer beta updates";
+    candidate.description = "A concise beta summary.";
+    candidate.coverUrl =
+      "https://github.com/user-attachments/assets/cover-id";
+    candidate.coverAlt = "Update cover";
     const [entry] = createBetaReleaseCatalog(
       [candidate],
       "v0.7.4-beta.1",
       "win32",
     );
     expect(entry.source).toEqual(releaseSource);
+    expect(entry.title).toBe("Clearer beta updates");
+    expect(entry.description).toBe("A concise beta summary.");
+    expect(entry.coverUrl).toBe(candidate.coverUrl);
+    expect(entry.coverAlt).toBe("Update cover");
   });
 
   it("excludes releases without updater metadata for the current platform", () => {

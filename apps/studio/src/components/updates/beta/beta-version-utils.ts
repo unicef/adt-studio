@@ -36,9 +36,40 @@ export function filterVersionsByQuery(
   const trimmed = query.trim().toLowerCase()
   if (!trimmed) return versions
   const needle = trimmed.startsWith("v") ? trimmed.slice(1) : trimmed
-  return versions.filter((release) =>
-    release.version.toLowerCase().includes(needle),
+  return versions.filter(
+    (release) =>
+      release.version.toLowerCase().includes(needle) ||
+      release.title?.toLowerCase().includes(trimmed) ||
+      release.description?.toLowerCase().includes(trimmed),
   )
+}
+
+export function getReleaseSummary(notes?: string): string | undefined {
+  if (!notes) return undefined
+
+  const paragraphs = notes.replace(/\r\n/g, "\n").split(/\n\s*\n/)
+  for (const paragraph of paragraphs) {
+    const line = paragraph.replace(/\s*\n\s*/g, " ").trim()
+    if (
+      !line ||
+      /^#{1,6}\s/.test(line) ||
+      /^[-*+]\s/.test(line) ||
+      /^!\[/.test(line) ||
+      /^<[^>]+>/.test(line)
+    ) {
+      continue
+    }
+
+    const plain = line
+      .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+      .replace(/[\*_~`]/g, "")
+      .trim()
+    if (!plain) continue
+    return plain.length > 220 ? `${plain.slice(0, 217).trimEnd()}…` : plain
+  }
+
+  return undefined
 }
 
 export function groupVersionsByReleaseDate(
