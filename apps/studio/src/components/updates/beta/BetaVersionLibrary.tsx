@@ -1,5 +1,6 @@
 import { useLingui } from "@lingui/react/macro"
 import { type KeyboardEvent, useEffect, useRef, useState } from "react"
+import { Badge } from "@/components/ui/badge"
 import {
   Card,
   CardContent,
@@ -9,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import type { AvailableRelease } from "@/hooks/use-update-status"
-import { cn } from "@/lib/utils"
+import { cn, formatBytes } from "@/lib/utils"
 import { ReleaseCover } from "./ReleaseCover"
 import { ReleaseDirectionBadge } from "./ReleaseDirectionBadge"
 import { formatVersion } from "../release-banner-utils"
@@ -117,8 +118,15 @@ export function BetaVersionLibrary({
                     {formatVersion(release.version)}
                   </CardDescription>
                 </CardHeader>
-                <CardFooter className="mt-auto justify-between gap-2 p-3 pt-0">
+                <CardFooter className="mt-auto flex-wrap gap-2 p-3 pt-0">
                   <ReleaseDirectionBadge direction={release.direction} />
+                  {release.totalBytes != null && (
+                    <span
+                      className="ml-auto font-mono text-xs tabular-nums text-accent-foreground"
+                    >
+                      {formatBytes(release.totalBytes)}
+                    </span>
+                  )}
                 </CardFooter>
               </Card>
             </button>
