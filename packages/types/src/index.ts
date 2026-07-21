@@ -245,6 +245,7 @@ export {
 
 export {
   TTSProviderConfig,
+  TTSRateLimitConfig,
   SpeechConfig,
   isSpeechWordHighlightingEnabled,
   type TtsExclusionConfig,
@@ -293,6 +294,10 @@ export {
   TextSegment,
   TextBlockBounds,
 } from "./positioned-text.js"
+
+export { TypeScale } from "./type-scale.js"
+
+export { TypographyStyle, BookTypography, DEFAULT_TYPOGRAPHY } from "./typography.js"
 
 export {
   ReviewerValidationStatus,

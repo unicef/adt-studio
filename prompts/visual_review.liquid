@@ -27,19 +27,24 @@ This section combines content merged from MORE THAN ONE original page (for examp
 - Attractive appearance — subtle enhancements like light transparent backgrounds behind text for readability are encouraged
 
 ## WHAT TO FIX
-- Overlapping text or elements (this is the most important issue to fix)
+- Overlapping text or elements (this is the most important issue to fix) — this INCLUDES a chapter badge, circle, or callout positioned with `absolute` that sits on top of body text. Fix it by keeping such elements in normal document flow (or floated with `float-right`), NOT absolutely positioned over the content
 - Text hidden behind images — text overlays MUST have `z-10` or higher so they always render above images. Different browsers may stack elements differently, so explicit z-index is required
-- Content that is cut off or hidden
-- Text that is unreadably small or excessively large
-- Images that are missing, broken, wildly misplaced, or stretched beyond their natural size (use `max-w-full` not `w-full` to prevent upscaling)
+- Content that is cut off or accidentally hidden (EXCEPTION: text intentionally hidden with `sr-only` — e.g. a transcription of words already baked into an image — is NOT a defect; leave it hidden, do not surface it)
+- Text that is genuinely unreadable — but do NOT treat the book's large accessible type as a defect, and NEVER shrink it (see the typography rule under RULES). The intentionally large text is required, even if the original page used smaller text
+- Images that are missing, broken, wildly misplaced, or distorted (stretched to the wrong aspect ratio — keep `h-auto` so proportions are preserved)
+- Content images (photos, diagrams, illustrations) rendered as small thumbnails when the original shows them filling much of the page — enlarge them to fill the content column (`w-full h-auto`); modest upscaling of a low-resolution source is fine and preferable to a tiny image
+- A header/banner whose title or badge is misaligned or clipped — the banner background may span the full width, but its text must sit in the same centered `max-w-5xl` reading column as the body and must never be cut off
 - Text alignment that differs from the original — body text and headings that are left-aligned in the original should NOT be centered (and vice versa)
 - Layout that fundamentally differs from the original (e.g., wrong number of columns, completely wrong ordering)
+- A large empty gap or dead whitespace beside a callout/sidebar panel — this happens when the body text is placed in a side-by-side row next to a tall sidebar and the remaining text continues below the whole row. Fix it by FLOATING the panel (`float-right w-[34%] ml-8 mb-6 max-lg:float-none max-lg:w-full max-lg:ml-0`) and letting all body paragraphs flow as ONE continuous column, so text wraps beside the panel and then continues full-width below it with no gap
 - Content that doesn't reflow at smaller viewports (overflowing, horizontal scroll)
 
 ## WHAT IS ACCEPTABLE (do NOT reject for these)
 - Light transparent backgrounds behind text to improve readability
 - Minor differences in spacing, padding, or margins vs the original
-- Slightly different font sizes if readability is maintained
+- The book's fixed, large accessible typography (the `adt-*` classes) — this is intentional and REQUIRED; accept it as-is and never reduce it or swap it for smaller `text-*` sizes, even if the original page used smaller text
+- Text hidden with `sr-only` because it is already legible inside an image — this is intentional (kept for screen readers / read-aloud, not shown on screen); keep it `sr-only` and do NOT make it visible or treat it as missing
+- Content images upscaled modestly to fill the reading column (do NOT reject or shrink them for this)
 - Responsive adaptations (e.g., a two-column layout stacking to single column on mobile, or overlay text flowing below the image on mobile instead of on top of it)
 - Color or background differences that maintain the overall feel
 - Subtle styling improvements that enhance the appearance
@@ -59,6 +64,7 @@ The base (no-prefix) classes are the DESKTOP design — overlay and side-by-side
 - Preserve ALL text content exactly — do not change, add, or remove any words
 - Preserve ALL image tags and their data-id attributes
 - Only change layout and styling: Tailwind CSS classes, inline styles, spacing, positioning
+- Do NOT change font SIZE. Preserve EVERY `adt-*` class (`adt-h1`, `adt-h2`, `adt-h3`, `adt-body`, `adt-caption`) exactly as it appears in the input — never remove or rename them, and never add a `text-xs`…`text-9xl`, `text-[..]`, or inline `font-size` to a text element. The book's type scale is fixed and deterministic; changing it here breaks page-to-page consistency. If a heading/body looks "too big" vs the original, that is INTENTIONAL — leave it. Adjust only layout, positioning, spacing, and color.
 - Keep the <section> wrapper and its role/data-section-type/data-section-id attributes
 - Do NOT add <script>, <iframe>, <object>, or <embed> tags
 - Do NOT add event handler attributes (onclick, onload, etc.)

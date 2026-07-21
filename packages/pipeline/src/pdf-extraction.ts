@@ -4,6 +4,13 @@ import type { Storage } from "@adt/storage"
 import type { Progress } from "./progress.js"
 import { toBookMetadata } from "./metadata-model.js"
 import { ensureBookGoogleFontsCached } from "./fonts-bundle.js"
+import {
+  tallyFontSizes,
+  mergeTallies,
+  deriveTypeScaleFromHistogram,
+  TYPE_SCALE_NODE,
+  TYPE_SCALE_ITEM,
+} from "./type-scale.js"
 import { detectSpreads, type SpreadEdgeSample } from "./spread-detection.js"
 
 export interface ExtractOptions {
@@ -64,6 +71,9 @@ export async function extractPDF(
 
     let serifChars = 0
     let sansChars = 0
+    // Character-weighted font-size histogram across all pages, used to derive
+    // the book-wide type scale (body + heading tiers) below.
+    const sizeHist = new Map<number, number>()
     // In single-page mode, sample each page's inner edges as we go so we can
     // suggest likely spreads afterwards — the page render is already in hand,
     // so this is essentially free (no second pass over the images).
@@ -79,6 +89,7 @@ export async function extractPDF(
       }
       serifChars += page.fontStats?.serifChars ?? 0
       sansChars += page.fontStats?.sansChars ?? 0
+      mergeTallies(sizeHist, tallyFontSizes(page.positionedText))
 
       if (!spreadMode) {
         try {
@@ -107,6 +118,12 @@ export async function extractPDF(
     const category =
       serifChars === 0 && sansChars === 0 ? null : serifChars >= sansChars ? "serif" : "sans"
     storage.putNodeData("font-profile", "book", { category, serifChars, sansChars })
+
+    // Book-level type scale: baseline size per text role, derived from the
+    // extracted font sizes. Shared as CSS tokens at render time so every page
+    // renders paragraphs/headings at the same size. null when no text.
+    const typeScale = deriveTypeScaleFromHistogram(sizeHist)
+    if (typeScale) storage.putNodeData(TYPE_SCALE_NODE, TYPE_SCALE_ITEM, typeScale)
 
     progress.emit({ type: "step-complete", step: "extract" })
   } catch (err) {

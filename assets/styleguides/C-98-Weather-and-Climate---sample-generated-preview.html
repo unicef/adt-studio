@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Style Guide Preview</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Acme&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    .preview-label { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 0.7rem; letter-spacing: 0.05em; text-transform: uppercase; color: #6b7280; border-bottom: 1px solid #e5e7eb; padding-bottom: 0.25rem; margin-bottom: 1rem; }
+    .preview-section { border: 2px dashed #d1d5db; border-radius: 1rem; padding: 2rem; margin-bottom: 2.5rem; background: #fafafa; }
+    .preview-divider { border-top: 3px solid #7c3aed; margin: 3rem 0; }
+    .adt-h1 { font-size: 30px; }
+    .adt-h2 { font-size: 24px; }
+    .adt-h3 { font-size: 20px; }
+    .adt-body { font-size: 16px; }
+    .adt-caption { font-size: 14px; }
+    @media (min-width: 768px) {
+      .adt-h1 { font-size: 48px; }
+      .adt-h2 { font-size: 36px; }
+      .adt-h3 { font-size: 30px; }
+      .adt-body { font-size: 24px; }
+      .adt-caption { font-size: 18px; }
+    }
+  </style>
+</head>
+<body class="bg-[#FFFFFF] text-[#111111]">
+  <div class="mx-auto max-w-7xl px-6 py-10">
+    <header class="mb-10">
+      <h1 class="adt-h1 font-bold text-[#0B8D5A]" style="font-family: 'Kalam', cursive;">Style Guide Preview</h1>
+      <p class="mt-3 adt-body text-[#111111]" style="font-family: 'Acme', sans-serif;">A cheerful elementary science book theme with bold green chapter bands, rounded learning callouts, and large readable text.</p>
+    </header>
+
+    <div class="preview-divider"></div>
+
+    <section>
+      <h2 class="mb-6 text-2xl font-bold text-[#0B8D5A]" style="font-family: 'Kalam', cursive;">Text Styles</h2>
+
+      <div class="preview-section">
+        <div class="preview-label">book_title — h1</div>
+        <div class="rounded-xl bg-[#0B8D5A] p-6">
+          <h1 class="adt-h1 font-bold leading-tight tracking-tight text-white" style="font-family: 'Kalam', cursive;">The Atmosphere and Air Pressure</h1>
+        </div>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">book_subtitle — h2</div>
+        <h2 class="adt-h2 font-bold leading-snug text-[#0B8D5A]" style="font-family: 'Kalam', cursive;">Water in the Atmosphere</h2>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">chapter_title — h1</div>
+        <div class="rounded-xl bg-[#0B8D5A] p-6">
+          <h1 class="adt-h1 font-bold leading-tight tracking-tight text-white" style="font-family: 'Kalam', cursive;">Water in the Atmosphere</h1>
+        </div>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">section_heading — h2</div>
+        <h2 class="adt-h2 font-bold leading-snug text-[#0B8D5A]" style="font-family: 'Kalam', cursive;">Water Falls to Earth as Precipitation</h2>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">activity_title — h3</div>
+        <h3 class="adt-h3 font-bold leading-snug text-[#0B8D5A]" style="font-family: 'Kalam', cursive;">Vocabulary</h3>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">section_text — p</div>
+        <p class="adt-body font-normal leading-[1.55] text-[#111111]" style="font-family: 'Acme', sans-serif;">Weather is what the air outside is like at any one time and place. Young readers should be able to scan each line easily and notice key science words quickly.</p>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">instruction_text — p</div>
+        <p class="adt-body font-normal leading-[1.55] text-[#111111]" style="font-family: 'Acme', sans-serif;">Look outside and describe the clouds. Then explain whether the air feels warm, cool, dry, or damp.</p>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">standalone_text — p</div>
+        <p class="adt-body font-normal leading-[1.55] text-[#111111]" style="font-family: 'Acme', sans-serif;">Rain is important because it helps plants, animals, and people survive.</p>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">image_associated_text — figcaption</div>
+        <figcaption class="adt-caption font-semibold leading-snug text-[#1A1A1A]" style="font-family: 'Acme', sans-serif;">Several inches of snow can fall when there is enough water in the atmosphere and the temperature is low enough.</figcaption>
+      </div>
+    </section>
+
+    <div class="preview-divider"></div>
+
+    <section>
+      <h2 class="mb-6 text-2xl font-bold text-[#0B8D5A]" style="font-family: 'Kalam', cursive;">Components</h2>
+
+      <div class="preview-section">
+        <div class="preview-label">Chapter Badge</div>
+        <div class="flex justify-center">
+          <div class="flex h-40 w-40 flex-col items-center justify-center rounded-full border-[10px] border-[#6FAE8A] bg-white text-center shadow-sm">
+            <div class="adt-h3 font-bold text-[#0B8D5A]" style="font-family: 'Kalam', cursive;">Chapter</div>
+            <div class="adt-h1 font-bold leading-none text-[#0B8D5A]" style="font-family: 'Kalam', cursive;">2</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">Content Card</div>
+        <div class="max-w-xl overflow-hidden rounded-[2rem] bg-[#D5E1D8]">
+          <div class="bg-[#0B8D5A] px-6 py-4">
+            <h3 class="adt-h3 font-bold text-white" style="font-family: 'Kalam', cursive;">Vocabulary</h3>
+          </div>
+          <div class="space-y-4 px-6 py-5">
+            <p class="adt-body leading-[1.45] text-[#111111]" style="font-family: 'Acme', sans-serif;"><span class="font-bold text-[#0B8D5A]">water vapor, n.</span> the gas form of water</p>
+            <p class="adt-body leading-[1.45] text-[#111111]" style="font-family: 'Acme', sans-serif;"><span class="font-bold text-[#0B8D5A]">precipitation, n.</span> water that falls from the sky</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">Text Group</div>
+        <div class="max-w-4xl space-y-6">
+          <p class="adt-body font-normal leading-[1.55] text-[#111111]" style="font-family: 'Acme', sans-serif;">You can observe the weather by looking outside, measuring rainfall, and watching which way the wind blows.</p>
+          <p class="adt-body font-normal leading-[1.55] text-[#111111]" style="font-family: 'Acme', sans-serif;">To understand what causes weather, we need to learn about the <span class="font-bold text-[#0B8D5A]">atmosphere</span>.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="preview-divider"></div>
+
+    <section>
+      <h2 class="mb-6 text-2xl font-bold text-[#0B8D5A]" style="font-family: 'Kalam', cursive;">Image Styles</h2>
+
+      <div class="preview-section">
+        <div class="preview-label">Single Image</div>
+        <div class="h-72 w-full bg-gradient-to-br from-emerald-200 via-lime-200 to-green-400"></div>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">Image Grid</div>
+        <div class="grid grid-cols-2 gap-6 md:grid-cols-3">
+          <div class="h-44 bg-gradient-to-br from-sky-100 to-blue-300"></div>
+          <div class="h-44 bg-gradient-to-br from-lime-100 to-green-300"></div>
+          <div class="h-44 bg-gradient-to-br from-stone-100 to-zinc-300"></div>
+        </div>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">Text and Image Side by Side</div>
+        <div class="grid grid-cols-[1fr_1.1fr] gap-8 max-md:grid-cols-1">
+          <div class="space-y-4">
+            <h3 class="adt-h3 font-bold text-[#0B8D5A]" style="font-family: 'Kalam', cursive;">Rain Supports Life</h3>
+            <p class="adt-body leading-[1.55] text-[#111111]" style="font-family: 'Acme', sans-serif;">Places with many green plants often receive enough rain to keep the soil moist and healthy.</p>
+          </div>
+          <div class="h-72 w-full bg-gradient-to-br from-green-200 via-emerald-300 to-lime-400"></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="preview-divider"></div>
+
+    <section>
+      <h2 class="mb-6 text-2xl font-bold text-[#0B8D5A]" style="font-family: 'Kalam', cursive;">Page Templates</h2>
+
+      <div class="preview-section">
+        <div class="preview-label">Chapter Start Page</div>
+        <div class="overflow-hidden rounded-2xl bg-white shadow-xl">
+          <div class="bg-[#0B8D5A] px-6 py-10 sm:py-12">
+            <div class="mx-auto grid w-full max-w-5xl grid-cols-[minmax(0,1fr)_220px] items-start gap-8 max-md:grid-cols-1">
+              <h1 class="adt-h1 max-w-2xl font-bold leading-tight tracking-tight text-white" style="font-family: 'Kalam', cursive;">The Atmosphere and Air Pressure</h1>
+              <div class="flex justify-center md:justify-end">
+                <div class="flex h-40 w-40 flex-col items-center justify-center rounded-full border-[10px] border-[#6FAE8A] bg-white text-center">
+                  <div class="adt-h3 font-bold text-[#0B8D5A]" style="font-family: 'Kalam', cursive;">Chapter</div>
+                  <div class="adt-h1 font-bold leading-none text-[#0B8D5A]" style="font-family: 'Kalam', cursive;">1</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="px-8 py-8">
+            <aside class="float-right w-[34%] ml-8 mb-6 max-lg:float-none max-lg:w-full max-lg:ml-0">
+              <div class="overflow-hidden rounded-[1.75rem] bg-[#D5E1D8]">
+                <div class="bg-[#0B8D5A] px-6 py-4">
+                  <h3 class="adt-h3 font-bold text-[#F2E36D]" style="font-family: 'Kalam', cursive;">Big Question</h3>
+                </div>
+                <div class="px-6 py-5">
+                  <p class="adt-body leading-[1.45] text-[#111111]" style="font-family: 'Acme', sans-serif;">What is the atmosphere, and what is weather?</p>
+                </div>
+              </div>
+            </aside>
+            <p class="adt-body leading-[1.55] text-[#111111]" style="font-family: 'Acme', sans-serif;">Suppose a friend asked you what the weather is like today. What would you say? How would you know?</p>
+            <p class="mt-6 adt-body leading-[1.55] text-[#111111]" style="font-family: 'Acme', sans-serif;">You might say it is cold and raining. <span class="font-bold text-[#0B8D5A]">Weather</span> is what the air outside is like at any one time and place.</p>
+            <div class="clear-both"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="preview-section">
+        <div class="preview-label">Regular Content Page</div>
+        <div class="overflow-hidden rounded-2xl bg-white shadow-xl p-8">
+          <h2 class="adt-h2 mb-8 font-bold leading-snug text-[#0B8D5A]" style="font-family: 'Kalam', cursive;">Water Falls to Earth as Precipitation</h2>
+          <aside class="float-right w-[34%] ml-8 mb-6 max-lg:float-none max-lg:w-full max-lg:ml-0">
+            <div class="overflow-hidden rounded-[1.75rem] bg-[#D5E1D8]">
+              <div class="bg-[#0B8D5A] px-6 py-4">
+                <h3 class="adt-h3 font-bold text-white" style="font-family: 'Kalam', cursive;">Vocabulary</h3>
+              </div>
+              <div class="space-y-4 px-6 py-5">
+                <p class="adt-body leading-[1.45] text-[#111111]" style="font-family: 'Acme', sans-serif;"><span class="font-bold text-[#0B8D5A]">water vapor, n.</span> the gas form of water</p>
+                <p class="adt-body leading-[1.45] text-[#111111]" style="font-family: 'Acme', sans-serif;"><span class="font-bold text-[#0B8D5A]">precipitation, n.</span> rain, snow, sleet, or hail</p>
+              </div>
+            </div>
+          </aside>
+          <p class="adt-body leading-[1.55] text-[#111111]" style="font-family: 'Acme', sans-serif;">One of the gases in our atmosphere is <span class="font-bold text-[#0B8D5A]">water vapor</span>. When water vapor cools, it may change into tiny droplets of liquid water.</p>
+          <p class="mt-6 adt-body leading-[1.55] text-[#111111]" style="font-family: 'Acme', sans-serif;">This liquid water may fall from the sky. This is <span class="font-bold text-[#0B8D5A]">precipitation</span>. Precipitation can take the form of rain, snow, sleet, or hail.</p>
+          <p class="mt-6 adt-body leading-[1.55] text-[#111111]" style="font-family: 'Acme', sans-serif;">The type of precipitation that falls depends on air temperature. Rain falls when the temperature is above freezing, while snow and sleet form when the air is much colder.</p>
+          <div class="clear-both"></div>
+          <div class="mt-8 grid grid-cols-[minmax(0,1fr)_16rem] gap-4 items-end max-md:grid-cols-1">
+            <div class="h-72 w-full bg-gradient-to-br from-slate-100 via-blue-100 to-slate-300"></div>
+            <figcaption class="adt-caption font-semibold leading-snug text-[#1A1A1A]" style="font-family: 'Acme', sans-serif;">Several inches of snow can fall when there is enough water in the atmosphere and the temperature is low enough.</figcaption>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="preview-divider"></div>
+
+    <section>
+      <h2 class="mb-6 text-2xl font-bold text-[#0B8D5A]" style="font-family: 'Kalam', cursive;">Required Structure Reference</h2>
+      <div class="preview-section">
+        <div class="preview-label">Outer Container HTML</div>
+        <pre class="overflow-x-auto rounded-xl bg-slate-900 p-6 text-sm text-slate-100"><code>&lt;div class="container content mx-auto flex min-h-screen w-full items-start justify-center px-6 py-12"
+    data-background-color="<span class="text-yellow-300">BACKGROUND_COLOR</span>" id="content"&gt;
+  &lt;section class="w-full" data-section-id="<span class="text-green-300">SECTION_ID</span>" data-section-type="<span class="text-cyan-300">SECTION_TYPE</span>" data-text-color="<span class="text-pink-300">TEXT_COLOR</span>"
+      id="simple-main"&gt;
+    &lt;!-- Content goes here --&gt;
+  &lt;/section&gt;
+&lt;/div&gt;</code></pre>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

@@ -4,6 +4,7 @@ import { AddQuizDialog } from "./AddQuizDialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { useBookConfig, useUpdateBookConfig } from "@/hooks/use-book-config"
 import { useActiveConfig } from "@/hooks/use-debug"
 import { useApiKey } from "@/hooks/use-api-key"
@@ -34,6 +35,7 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
   const [showAddQuiz, setShowAddQuiz] = useState(false)
 
   const [pagesPerQuiz, setPagesPerQuiz] = useState("")
+  const [matchBookStyle, setMatchBookStyle] = useState(true)
   const [promptDraft, setPromptDraft] = useState<string | null>(null)
   const [sectionTypes, setSectionTypes] = useState<Record<string, string>>({})
   const [quizSectionTypes, setQuizSectionTypes] = useState<Set<string>>(new Set())
@@ -59,6 +61,7 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
       if (Array.isArray(qg.quiz_section_types)) {
         setQuizSectionTypes(new Set(qg.quiz_section_types as string[]))
       }
+      setMatchBookStyle(qg.match_book_style !== false)
     }
     if (m.section_types && typeof m.section_types === "object") {
       const all = m.section_types as Record<string, string>
@@ -94,6 +97,9 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
       }
       if (dirty.quiz_section_types || "quiz_section_types" in existing) {
         nextQuizGeneration.quiz_section_types = Array.from(quizSectionTypes)
+      }
+      if (dirty.match_book_style || "match_book_style" in existing) {
+        nextQuizGeneration.match_book_style = matchBookStyle
       }
       overrides.quiz_generation = nextQuizGeneration
     }
@@ -141,6 +147,23 @@ export function QuizzesSettings({ bookLabel, tab = "general" }: { bookLabel: str
             <p className="text-xs text-muted-foreground">
               {t`Number of pages of content to include per quiz question.`}
             </p>
+          </div>
+
+          <div className="flex items-center justify-between gap-3 rounded-md border p-3">
+            <div className="space-y-0.5">
+              <Label className="text-xs">{t`Match book style`}</Label>
+              <p className="text-xs text-muted-foreground">
+                {t`Style quizzes to match the book's fonts, text sizes, and colors. Turn off for the generic quiz style.`}
+              </p>
+            </div>
+            <Switch
+              checked={matchBookStyle}
+              onCheckedChange={(v) => {
+                setMatchBookStyle(v)
+                markDirty("quiz_generation")
+                markDirty("match_book_style")
+              }}
+            />
           </div>
 
           <div className="space-y-2 rounded-md border p-3">

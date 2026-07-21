@@ -9,6 +9,8 @@ import {
   resolveInstructions,
   resolveSpeechModel,
   resolveSpeechFormat,
+  resolveGeminiTtsRateLimit,
+  getDocumentedGeminiTtsRpm,
   generateSpeechFile,
   loadVoicesConfig,
   loadSpeechInstructions,
@@ -158,13 +160,61 @@ describe("resolveSpeechModel", () => {
   })
 
   it("falls back to provider defaults when provider model is not configured", () => {
-    expect(resolveSpeechModel("gemini", {})).toBe("gemini-2.5-pro-preview-tts")
+    expect(resolveSpeechModel("gemini", {})).toBe("gemini-2.5-flash-preview-tts")
     expect(resolveSpeechModel("azure", {})).toBe("azure-tts")
     expect(resolveSpeechModel("openai", {})).toBe("gpt-4o-mini-tts")
   })
 
   it("uses the shared default model for non-provider-specific fallbacks", () => {
     expect(resolveSpeechModel("openai", {}, "gpt-4o-audio")).toBe("gpt-4o-audio")
+  })
+})
+
+describe("getDocumentedGeminiTtsRpm", () => {
+  it("maps flash and pro models to their documented ceilings", () => {
+    expect(getDocumentedGeminiTtsRpm("gemini-2.5-flash-preview-tts")).toBe(150)
+    expect(getDocumentedGeminiTtsRpm("gemini-2.5-pro-preview-tts")).toBe(125)
+  })
+
+  it("falls back to a conservative ceiling for unknown models", () => {
+    expect(getDocumentedGeminiTtsRpm("gemini-x-tts")).toBe(100)
+  })
+})
+
+describe("resolveGeminiTtsRateLimit", () => {
+  it("defaults to auto mode starting at the model's documented ceiling", () => {
+    const flash = resolveGeminiTtsRateLimit({ model: "gemini-2.5-flash-preview-tts" })
+    expect(flash).toEqual({ mode: "auto", startRpm: 150, minRpm: 3, maxRpm: 150 })
+
+    const pro = resolveGeminiTtsRateLimit({ model: "gemini-2.5-pro-preview-tts" })
+    expect(pro).toEqual({ mode: "auto", startRpm: 125, minRpm: 3, maxRpm: 125 })
+  })
+
+  it("treats requests_per_minute: auto the same as omitting it", () => {
+    expect(
+      resolveGeminiTtsRateLimit({
+        model: "gemini-2.5-flash-preview-tts",
+        rateLimit: { requests_per_minute: "auto" },
+      })
+    ).toEqual({ mode: "auto", startRpm: 150, minRpm: 3, maxRpm: 150 })
+  })
+
+  it("pins the starting ceiling to a numeric requests_per_minute", () => {
+    expect(
+      resolveGeminiTtsRateLimit({
+        model: "gemini-2.5-flash-preview-tts",
+        rateLimit: { requests_per_minute: 30 },
+      })
+    ).toEqual({ mode: "fixed", startRpm: 30, minRpm: 3, maxRpm: 30 })
+  })
+
+  it("honors explicit min/max overrides in auto mode", () => {
+    expect(
+      resolveGeminiTtsRateLimit({
+        model: "gemini-2.5-flash-preview-tts",
+        rateLimit: { min_requests_per_minute: 10, max_requests_per_minute: 60 },
+      })
+    ).toEqual({ mode: "auto", startRpm: 60, minRpm: 10, maxRpm: 60 })
   })
 })
 

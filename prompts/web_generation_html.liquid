@@ -22,13 +22,23 @@ You are an expert frontend engineer. Generate a beautiful, kid-friendly HTML pag
 13. Preserve the original text alignment — most body text and headings are LEFT-ALIGNED. Do NOT center text unless it is clearly centered in the original page image. When in doubt, default to left alignment.
 14. Output natural-language text as literal Unicode characters. Do NOT encode letters as numeric or hex HTML entities (for example, avoid `&#...;` and `&#x...;`). Only use standard HTML escaping where required for markup syntax (for example `&amp;`, `&lt;`, `&gt;`, and quotes in attributes).
 15. Text-leaf children of ANY container are fragments of one continuous run and must flow inline as `<span>` elements with no hard line breaks between them. Never wrap a leaf in its own `<p>`, and never emit `<br>` between sibling leaves. The container itself gets the block wrapper; its leaves render as inline spans inside that single wrapper. The ONLY exceptions are (a) `structure: "preformatted"` / code-like content where the source preserves literal line breaks, or (b) when the book page image clearly shows each leaf as its own visually separated line (e.g. a poem, a stanza, an address block) — in those cases, and only those, use render each as a block-level fragment.
+## LAYOUT
+- Use the SAME page container on EVERY page so the reading column sits in the same position throughout the book. Put the section content in one fixed-width column — `mx-auto w-full max-w-5xl` — with the same horizontal padding on every page (e.g. `px-8 max-sm:px-5`). NEVER vary the max-width (do not use max-w-2xl/3xl/4xl on some pages and max-w-5xl on others) or the padding between pages. Top-align content; vertically center (`items-center`) ONLY on cover / title sections.
+- Full-bleed header bands: a top header/banner or colored strip MAY span the full page width so its background color bleeds edge-to-edge, but its TEXT and any badge MUST sit in the SAME `max-w-5xl mx-auto` column (same horizontal padding) as the body, so the title lines up with the body text below it. Put the banner's inner content in `<div class="mx-auto w-full max-w-5xl px-8 max-sm:px-5">…</div>`. Let the banner size to its content — do NOT give it a fixed height or `overflow-hidden` that clips the title or badge. Place the chapter badge/circle INSIDE the banner's own flex row (normal flow, e.g. title on the left and badge on the right); never `absolute`-position the badge so it overlaps the body content below.
+- Keep the running body text as ONE continuous column in reading order. Do NOT split it into a side-by-side row (body text beside a sidebar) followed by a separate full-width block underneath — when the sidebar is taller than the top text, that leaves a large empty gap on the page. This is the single most common layout mistake; avoid it.
+- When the section pairs running text with a narrow callout/sidebar panel (e.g. Vocabulary, Big Question, a tip box), FLOAT the panel so the text wraps beside it and then flows full-width below it with no gap. Emit, in this order: any full-width header/banner, then the floated panel, then ALL body paragraphs as normal siblings. Example:
+  `<aside class="float-right w-[34%] ml-8 mb-6 max-lg:float-none max-lg:w-full max-lg:ml-0"> …panel… </aside>` followed by the `<p class="adt-body">` paragraphs in reading order.
+- A wide element that must sit BELOW everything (a full-width image or diagram) should clear the float with `clear-both`.
+- Use a real multi-column split (flex/grid) ONLY when both columns hold comparable, self-contained content (e.g. a paired image + its explanation) — never for a short sidebar beside long running text.
+- Size content images (photos, diagrams, illustrations) to the layout, matching how prominently they appear in the original page image. A standalone image should fill the content column (`w-full h-auto`); images paired in a row each fill their share of the row. Do NOT render content images as small thumbnails — prefer filling the available width even if it means modestly upscaling a low-resolution source. Keep an image small ONLY if it is a genuinely small inline icon or decoration in the original.
+- Text baked into an image: if an image already contains legible text (a labeled diagram, a poster, a text graphic) and that same text is also provided as an associated text leaf, do NOT show the words twice. Render the image on its own, and emit the associated text leaf as VISUALLY HIDDEN with `sr-only` (it stays available to read-aloud and screen readers but is not drawn on screen). Never overlay or caption a transcription on top of text that is already legible inside the image. Only overlay/caption text on an image when the words are NOT already present in the image.
 ## RESPONSIVE DESIGN (DESKTOP-FIRST)
 Your HTML will be tested at these viewport widths. Use ONLY these Tailwind responsive prefixes:
 {% for vp in viewports %}- **{{ vp.label }}** ({{ vp.width }}px){% if vp.tailwind_prefix != "" %}: `{{ vp.tailwind_prefix }}` prefix{% else %}: default (no prefix — base/desktop styles){% endif %}
 {% endfor %}
 Do NOT use `sm:`, `md:`, `lg:`, `xl:`, `2xl:`, or any other prefixes not listed above.
 The base (no-prefix) classes are the DESKTOP design. Use `max-lg:` to override styles at tablet and below, and `max-sm:` to override at mobile only. On smaller viewports, favor single-column stacked layouts — switch multi-column desktop layouts to a stacked column with `max-lg:flex-col`.
-Example: `class="flex flex-row max-lg:flex-col"` or `class="text-lg max-lg:text-base max-sm:text-sm"`
+Example: `class="flex flex-row max-lg:flex-col"` or `class="gap-8 max-lg:gap-4 max-sm:gap-2"`
 {% if styleguide != "" %}
 
 ## STYLEGUIDE (FOLLOW EXACTLY)
@@ -43,6 +53,18 @@ The user attached these fonts for this book. Whenever you set an explicit `font-
 {% for font in book_fonts %}- "{{ font.family }}" — role: {{ font.role }}{% if font.category %} ({{ font.category }}){% endif %}{% if font.usage_notes %} — {{ font.usage_notes }}{% endif %}
 {% endfor %}
 Apply each font according to its role: `heading` for titles and headings, `paragraph` for paragraph `<p>` elements only, `body` for broader running text, `caption` for captions/footnotes, `decorative` sparingly for ornamental display text, `mono` for code or tabular content. Ignore fonts with role `unassigned`.
+{% endif %}
+{% if typography.size > 0 %}
+
+## TYPOGRAPHY (FIXED SIZES — USE THESE CLASSES)
+
+This book uses a fixed, accessible type scale. Font SIZE is applied automatically from these semantic classes and is identical on every page, so pages stay consistent even though they are generated one at a time.
+{% for s in typography %}- `{{ s.className }}` — {{ s.label }} ({{ s.mobilePx }}px mobile → {{ s.desktopPx }}px desktop)
+{% endfor %}
+Rules:
+- Put the right class directly on each text element: main chapter/display title → `adt-h1`; section headings → `adt-h2`; minor or callout/sidebar headings → `adt-h3`; paragraphs, running text, list items → `adt-body`; captions and image labels → `adt-caption`.
+- Do NOT set any font-size utility (`text-sm` … `text-6xl`, `text-[..]`) or inline `font-size` — sizing comes only from the `adt-*` class, scales fluidly between mobile and desktop, and cannot be overridden. Handle responsiveness with LAYOUT (stack columns with `max-lg:flex-col`, adjust spacing), not font size.
+- Keep using Tailwind for everything else (font weight, color, spacing, alignment).
 {% endif %}
 {% endchat %}
 

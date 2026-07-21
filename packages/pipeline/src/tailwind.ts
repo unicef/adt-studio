@@ -15,14 +15,19 @@ const TAILWIND_VIRTUAL_FROM = path.join(PIPELINE_PACKAGE_DIR, "_tailwind_input.c
 export async function buildTailwindCss(
   adtDir: string,
   webAssetsDir: string,
+  typographyCss?: string,
 ): Promise<void> {
   const outputPath = path.join(adtDir, "content", "tailwind_output.css")
+  // The .adt-* rules live in @layer components, so they default the role sizes
+  // while element-level text-* utilities (utilities layer) keep priority.
+  const suffix = typographyCss ? `\n${typographyCss}\n` : ""
 
   // In Tauri sidecar mode, postcss/tailwindcss cannot run inside the pkg binary.
   // bundle.mjs pre-builds tailwind_output.css into webAssetsDir before zipping.
   const preBuilt = path.join(webAssetsDir, "tailwind_output.css")
   if (fs.existsSync(preBuilt)) {
     fs.copyFileSync(preBuilt, outputPath)
+    if (suffix) fs.appendFileSync(outputPath, suffix)
     return
   }
 
@@ -51,7 +56,7 @@ export async function buildTailwindCss(
     { from: TAILWIND_VIRTUAL_FROM },
   )
 
-  fs.writeFileSync(outputPath, result.css)
+  fs.writeFileSync(outputPath, result.css + suffix)
 }
 
 /** Convert Windows backslashes to forward slashes for `@source` paths. */
@@ -66,6 +71,7 @@ function toPosix(p: string): string {
 export async function buildPreviewTailwindCss(
   contentHtml: string,
   webAssetsDir: string,
+  typographyCss?: string,
 ): Promise<string> {
   const postcss = (await import("postcss")).default
   const tailwindcss = (await import("@tailwindcss/postcss")).default
@@ -95,7 +101,8 @@ export async function buildPreviewTailwindCss(
       `${sourceDirectives}\n${inputCss}`,
       { from: TAILWIND_VIRTUAL_FROM },
     )
-    return result.css
+    // .adt-* size rules ship in @layer components — text-* utilities keep priority.
+    return typographyCss ? `${result.css}\n${typographyCss}\n` : result.css
   } finally {
     fs.rmSync(tempDir, { recursive: true, force: true })
   }

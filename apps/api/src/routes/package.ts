@@ -269,6 +269,7 @@ async function runPackaging(
       speechConfig: config.speech,
       fixedLayout: isFixedLayoutBook(config),
       reflowableFont: config.reflowable_font,
+      quizMatchBookStyle: config.quiz_generation?.match_book_style ?? true,
     })
     fs.writeFileSync(versionPath, bundleVersion, "utf-8")
 

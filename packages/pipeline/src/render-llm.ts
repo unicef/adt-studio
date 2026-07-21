@@ -5,6 +5,8 @@ import { validateSectionHtml } from "./validate-html.js"
 import { getViewportBreakpoints, type ScreenshotRenderer } from "./screenshot.js"
 import type { RenderConfig, RenderExecutionOptions, RenderSectionInput } from "./web-rendering.js"
 import { runVisualReviewLoop } from "./visual-review.js"
+import { buildTypographyCss, typographyPreservationErrors } from "./typography.js"
+import { DEFAULT_TYPOGRAPHY } from "@adt/types"
 
 /** Dependencies for the optional visual refinement loop. */
 export interface VisualRefinementDeps {
@@ -55,6 +57,7 @@ export async function renderSectionLlm(
     group_ids: renderContext.group_ids,
     styleguide: input.styleguide ?? "",
     book_fonts: input.bookFonts ?? [],
+    typography: (input.typography ?? DEFAULT_TYPOGRAPHY).styles,
     viewports: getViewportBreakpoints(),
     _isActivity: isActivity,
     user_instructions: input.userPrompt ?? "",
@@ -102,6 +105,7 @@ export async function renderSectionLlm(
         screenshotRenderer: visualRefinement.screenshotRenderer,
         webAssetsDir: visualRefinement.webAssetsDir,
         storeScreenshot: visualRefinement.storeScreenshot,
+        typographyCss: buildTypographyCss(input.typography ?? DEFAULT_TYPOGRAPHY),
       },
       promptName: vr.promptName,
       maxIterations: vr.maxIterations,
@@ -129,7 +133,13 @@ export async function renderSectionLlm(
         )
         if (!check.valid) return { valid: false, errors: check.errors }
         const cleaned = check.cleaned as { reasoning: string; content: string } | undefined
-        return { valid: true, errors: [], cleanedHtml: cleaned?.content }
+        const cleanedHtml = cleaned?.content ?? candidateHtml
+        // Deterministic guard: reject any revision that strips the fixed type
+        // scale (the reviewer tends to shrink the intentionally-large text by
+        // removing adt-* classes). Rejected revisions keep the prior good HTML.
+        const typoErrors = typographyPreservationErrors(generatedHtml, cleanedHtml)
+        if (typoErrors.length > 0) return { valid: false, errors: typoErrors }
+        return { valid: true, errors: [], cleanedHtml }
       },
     })
     generatedHtml = review.html

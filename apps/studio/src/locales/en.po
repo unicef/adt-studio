@@ -238,7 +238,7 @@ msgstr "{0} selected images are no longer in the storyboard."
 msgid "{0} terms"
 msgstr "{0} terms"
 
-#. placeholder {0}: String(displayEntries.length)
+#. placeholder {0}: String(visibleEntries.length)
 msgid "{0} texts"
 msgstr "{0} texts"
 
@@ -344,6 +344,12 @@ msgstr "{issueCount} {0}"
 
 msgid "{issuesLabel}, {reviewLabel}"
 msgstr "{issuesLabel}, {reviewLabel}"
+
+msgid "{label} desktop size"
+msgstr "{label} desktop size"
+
+msgid "{label} mobile size"
+msgstr "{label} mobile size"
 
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
@@ -632,6 +638,9 @@ msgstr "A wide-angle view down a fluorescent-lit supermarket aisle, with stacked
 msgid "A–Z"
 msgstr "A–Z"
 
+msgid "Aa"
+msgstr "Aa"
+
 msgid "ABC"
 msgstr "ABC"
 
@@ -670,6 +679,9 @@ msgstr "Accessibility, from the first <0>page.</0>"
 
 msgid "Accessible book"
 msgstr "Accessible book"
+
+msgid "Accessible sizes"
+msgstr "Accessible sizes"
 
 msgid "Actions disabled while storyboard is running"
 msgstr "Actions disabled while storyboard is running"
@@ -1692,6 +1704,9 @@ msgstr "Change Preset"
 msgid "Change the book language?"
 msgstr "Change the book language?"
 
+#~ msgid "Changes apply the next time you run Storyboard and Export."
+#~ msgstr "Changes apply the next time you run Storyboard and Export."
+
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 
@@ -1721,6 +1736,9 @@ msgstr "Chapter books with images"
 
 msgid "Chapter One"
 msgstr "Chapter One"
+
+msgid "Chapter title"
+msgstr "Chapter title"
 
 msgid "Chart / Graph"
 msgstr "Chart / Graph"
@@ -3072,6 +3090,9 @@ msgstr "Fixed two-column template layout"
 msgid "Fixed-layout books use the original page images as backgrounds with positioned text extracted from the PDF. Activities detection, figure extraction, and image cropping or segmentation don't apply to this layout."
 msgstr "Fixed-layout books use the original page images as backgrounds with positioned text extracted from the PDF. Activities detection, figure extraction, and image cropping or segmentation don't apply to this layout."
 
+#~ msgid "Fixed, accessible sizes applied to every page. Sizes use the book's Tailwind scale (pick a token or type an exact px), scale fluidly between mobile and desktop, and override any size the AI picks — so headings and body text stay consistent across the whole book."
+#~ msgstr "Fixed, accessible sizes applied to every page. Sizes use the book's Tailwind scale (pick a token or type an exact px), scale fluidly between mobile and desktop, and override any size the AI picks — so headings and body text stay consistent across the whole book."
+
 msgid "flagged"
 msgstr "flagged"
 
@@ -4063,6 +4084,9 @@ msgstr "Loading template..."
 msgid "Loading text catalog..."
 msgstr "Loading text catalog..."
 
+msgid "Loading text sizes…"
+msgstr "Loading text sizes…"
+
 msgid "Loading validation..."
 msgstr "Loading validation..."
 
@@ -4143,6 +4167,9 @@ msgstr "Mark as decorative (hidden from screen readers)"
 
 msgid "Mark spreads"
 msgstr "Mark spreads"
+
+msgid "Match book style"
+msgstr "Match book style"
 
 msgid "Match Design"
 msgstr "Match Design"
@@ -4841,6 +4868,9 @@ msgstr "One column for every section. Clean and predictable."
 
 msgid "One tag per line or comma-separated. Leave as-is to keep the current package defaults."
 msgstr "One tag per line or comma-separated. Leave as-is to keep the current package defaults."
+
+msgid "One text scale for the whole book. It starts from the book's own detected sizes (never below 16px), so pages stay close to the original. Use “Accessible sizes” to scale the book up, or set each role yourself — pick a Tailwind token or type an exact px. These override any size the AI picks, so text stays consistent across every page."
+msgstr "One text scale for the whole book. It starts from the book's own detected sizes (never below 16px), so pages stay close to the original. Use “Accessible sizes” to scale the book up, or set each role yourself — pick a Tailwind token or type an exact px. These override any size the AI picks, so text stays consistent across every page."
 
 msgid "Only images that appear in the storyboard (have captions) can be selected."
 msgstr "Only images that appear in the storyboard (have captions) can be selected."
@@ -5931,6 +5961,9 @@ msgstr "Reset fonts to default?"
 msgid "Reset to defaults"
 msgstr "Reset to defaults"
 
+msgid "Reset to detected"
+msgstr "Reset to detected"
+
 msgid "Reset to inherited"
 msgstr "Reset to inherited"
 
@@ -6266,6 +6299,9 @@ msgstr "Save selection"
 msgid "Save settings"
 msgstr "Save settings"
 
+msgid "Save text sizes"
+msgstr "Save text sizes"
+
 msgid "Save your work first if you want to keep these changes."
 msgstr "Save your work first if you want to keep these changes."
 
@@ -6392,6 +6428,9 @@ msgstr "Section 3 · Overview"
 
 msgid "Section 3.2"
 msgstr "Section 3.2"
+
+msgid "Section heading"
+msgstr "Section heading"
 
 msgid "Section label"
 msgstr "Section label"
@@ -6632,6 +6671,9 @@ msgstr "Show all"
 msgid "Show all {0}"
 msgstr "Show all {0}"
 
+msgid "Show all entries"
+msgstr "Show all entries"
+
 msgid "Show all pages"
 msgstr "Show all pages"
 
@@ -6643,6 +6685,9 @@ msgstr "Show error details"
 
 msgid "Show fewer"
 msgstr "Show fewer"
+
+msgid "Show only entries missing audio"
+msgstr "Show only entries missing audio"
 
 msgid "Show only the terms you added manually"
 msgstr "Show only the terms you added manually"
@@ -7022,6 +7067,9 @@ msgstr "Style guide"
 msgid "Style Guide"
 msgstr "Style Guide"
 
+msgid "Style quizzes to match the book's fonts, text sizes, and colors. Turn off for the generic quiz style."
+msgstr "Style quizzes to match the book's fonts, text sizes, and colors. Turn off for the generic quiz style."
+
 msgid "Style reference"
 msgstr "Style reference"
 
@@ -7039,6 +7087,9 @@ msgstr "Styleguide Preview — {styleguide}"
 
 msgid "styles"
 msgstr "styles"
+
+msgid "Subheading"
+msgstr "Subheading"
 
 msgid "Submit"
 msgstr "Submit"
@@ -7182,6 +7233,18 @@ msgstr "Text recovered from the page image — this page has no embedded text la
 
 msgid "Text roles the LLM may assign to text in the content tree. Pruned roles are classified but excluded from rendering."
 msgstr "Text roles the LLM may assign to text in the content tree. Pruned roles are classified but excluded from rendering."
+
+msgid "Text sizes"
+msgstr "Text sizes"
+
+msgid "Text sizes apply immediately here — re-export to include them in a downloaded book."
+msgstr "Text sizes apply immediately here — re-export to include them in a downloaded book."
+
+msgid "Text sizes saved."
+msgstr "Text sizes saved."
+
+#~ msgid "Text sizes saved. Re-run Storyboard and Export to apply them."
+#~ msgstr "Text sizes saved. Re-run Storyboard and Export to apply them."
 
 msgid "Text Types"
 msgstr "Text Types"

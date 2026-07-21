@@ -179,6 +179,9 @@ export {
   resolveProviderForLanguage,
   resolveSpeechModel,
   resolveSpeechFormat,
+  resolveGeminiTtsRateLimit,
+  getDocumentedGeminiTtsRpm,
+  type ResolvedGeminiTtsRateLimit,
   isSpeakableText,
   stripEmojis,
   loadVoicesConfig,
@@ -276,10 +279,35 @@ export {
   buildDecorativeImageIdSet,
   rewriteImageUrls,
   renderQuizHtml,
+  type QuizStyle,
   buildQuizAnswers,
   pad3,
   convertLatexToMathml,
 } from "./packaging/web.js"
+export {
+  resolveQuizPalette,
+  deriveQuizPalette,
+  DEFAULT_QUIZ_PALETTE,
+  type QuizPalette,
+} from "./quiz-palette.js"
+export {
+  tallyFontSizes,
+  mergeTallies,
+  deriveTypeScale,
+  deriveTypeScaleFromHistogram,
+  readTypeScale,
+  TYPE_SCALE_NODE,
+  TYPE_SCALE_ITEM,
+} from "./type-scale.js"
+export {
+  readTypography,
+  resolveDetectedTypography,
+  buildTypographyCss,
+  resolveTypographyCss,
+  typographyPreservationErrors,
+  TYPOGRAPHY_NODE,
+  TYPOGRAPHY_ITEM,
+} from "./typography.js"
 export {
   runAccessibilityAssessment,
   type RunAccessibilityAssessmentOptions,

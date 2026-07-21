@@ -10,6 +10,9 @@ export interface VisualReviewDeps {
   screenshotRenderer: ScreenshotRenderer
   webAssetsDir: string
   storeScreenshot?: (base64: string) => void
+  /** Book typography CSS so review screenshots use the same pinned sizes the
+   *  packaged book does (avoids the reviewer fighting the shared scale). */
+  typographyCss?: string
 }
 
 export interface VisualReviewValidation {
@@ -135,6 +138,7 @@ export async function runVisualReviewLoop(
       label,
       images,
       webAssetsDir: deps.webAssetsDir,
+      typographyCss: deps.typographyCss,
     })
 
     // Render all viewport screenshots in parallel — they're independent and

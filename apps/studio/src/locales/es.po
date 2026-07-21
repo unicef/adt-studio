@@ -238,7 +238,7 @@ msgstr "{0} imágenes seleccionadas ya no están en el guion gráfico."
 msgid "{0} terms"
 msgstr "{0} términos"
 
-#. placeholder {0}: String(displayEntries.length)
+#. placeholder {0}: String(visibleEntries.length)
 msgid "{0} texts"
 msgstr "{0} textos"
 
@@ -344,6 +344,12 @@ msgstr "{issueCount} {0}"
 
 msgid "{issuesLabel}, {reviewLabel}"
 msgstr "{issuesLabel}, {reviewLabel}"
+
+msgid "{label} desktop size"
+msgstr "Tamaño de {label} en escritorio"
+
+msgid "{label} mobile size"
+msgstr "Tamaño de {label} en móvil"
 
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 de {total} páginas combinadas} one {# de {total} páginas combinadas} other {# de {total} páginas combinadas}}"
@@ -632,6 +638,9 @@ msgstr "Una vista de gran angular por un pasillo de supermercado iluminado con l
 msgid "A–Z"
 msgstr "A–Z"
 
+msgid "Aa"
+msgstr "Aa"
+
 msgid "ABC"
 msgstr "ABC"
 
@@ -670,6 +679,9 @@ msgstr "Accesibilidad, desde la primera <0>página.</0>"
 
 msgid "Accessible book"
 msgstr "Libro accesible"
+
+msgid "Accessible sizes"
+msgstr "Tamaños accesibles"
 
 msgid "Actions disabled while storyboard is running"
 msgstr "Acciones deshabilitadas mientras el storyboard se está ejecutando"
@@ -1692,6 +1704,9 @@ msgstr "Cambiar Preajuste"
 msgid "Change the book language?"
 msgstr "¿Cambiar el idioma del libro?"
 
+#~ msgid "Changes apply the next time you run Storyboard and Export."
+#~ msgstr "Los cambios se aplican la próxima vez que ejecutes Storyboard y Exportar."
+
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Cambiar las fuentes afecta cómo se renderizan las páginas — vuelve a ejecutar Storyboard y Exportar para aplicar las nuevas fuentes."
 
@@ -1721,6 +1736,9 @@ msgstr "Libros de capítulos con imágenes"
 
 msgid "Chapter One"
 msgstr "Capítulo Uno"
+
+msgid "Chapter title"
+msgstr "Título de capítulo"
 
 msgid "Chart / Graph"
 msgstr "Gráfico / Tabla"
@@ -3072,6 +3090,9 @@ msgstr "Plantilla de diseño fijo de dos columnas"
 msgid "Fixed-layout books use the original page images as backgrounds with positioned text extracted from the PDF. Activities detection, figure extraction, and image cropping or segmentation don't apply to this layout."
 msgstr "Los libros de diseño fijo usan las imágenes originales de las páginas como fondo con texto posicionado extraído del PDF. La detección de actividades, extracción de figuras, recorte o segmentación de imágenes no aplican a este diseño."
 
+#~ msgid "Fixed, accessible sizes applied to every page. Sizes use the book's Tailwind scale (pick a token or type an exact px), scale fluidly between mobile and desktop, and override any size the AI picks — so headings and body text stay consistent across the whole book."
+#~ msgstr "Tamaños fijos y accesibles que se aplican a todas las páginas. Los tamaños usan la escala de Tailwind del libro (elige un token o escribe un valor exacto en px), se escalan de forma fluida entre móvil y escritorio, y anulan cualquier tamaño que elija la IA, de modo que los títulos y el texto del cuerpo se mantienen coherentes en todo el libro."
+
 msgid "flagged"
 msgstr "flagged"
 
@@ -4063,6 +4084,9 @@ msgstr "Loading template..."
 msgid "Loading text catalog..."
 msgstr "Cargando catálogo de textos..."
 
+msgid "Loading text sizes…"
+msgstr "Cargando tamaños de texto…"
+
 msgid "Loading validation..."
 msgstr "Cargando validación..."
 
@@ -4143,6 +4167,9 @@ msgstr "Marcar como decorativo (oculto para lectores de pantalla)"
 
 msgid "Mark spreads"
 msgstr "Marcar dobles páginas"
+
+msgid "Match book style"
+msgstr "Combinar con el estilo del libro"
 
 msgid "Match Design"
 msgstr "Coincidir con el diseño"
@@ -4841,6 +4868,9 @@ msgstr "Una columna para cada sección. Limpio y predecible."
 
 msgid "One tag per line or comma-separated. Leave as-is to keep the current package defaults."
 msgstr "One tag per line or comma-separated. Leave as-is to keep the current package defaults."
+
+msgid "One text scale for the whole book. It starts from the book's own detected sizes (never below 16px), so pages stay close to the original. Use “Accessible sizes” to scale the book up, or set each role yourself — pick a Tailwind token or type an exact px. These override any size the AI picks, so text stays consistent across every page."
+msgstr "Una sola escala de texto para todo el libro. Parte de los tamaños detectados del propio libro (nunca por debajo de 16px), de modo que las páginas se mantienen cerca del original. Usa «Tamaños accesibles» para ampliar el libro, o define cada rol tú mismo: elige un token de Tailwind o escribe un valor exacto en px. Estos anulan cualquier tamaño que elija la IA, así el texto se mantiene coherente en todas las páginas."
 
 msgid "Only images that appear in the storyboard (have captions) can be selected."
 msgstr "Solo se pueden seleccionar imágenes que aparezcan en el storyboard (con subtítulos)."
@@ -5931,6 +5961,9 @@ msgstr "¿Restablecer las fuentes predeterminadas?"
 msgid "Reset to defaults"
 msgstr "Reset to defaults"
 
+msgid "Reset to detected"
+msgstr "Restablecer a lo detectado"
+
 msgid "Reset to inherited"
 msgstr "Restablecer a heredado"
 
@@ -6266,6 +6299,9 @@ msgstr "Guardar selección"
 msgid "Save settings"
 msgstr "Save settings"
 
+msgid "Save text sizes"
+msgstr "Guardar tamaños de texto"
+
 msgid "Save your work first if you want to keep these changes."
 msgstr "Guarda tu trabajo primero si quieres conservar estos cambios."
 
@@ -6392,6 +6428,9 @@ msgstr "Sección 3 · Resumen"
 
 msgid "Section 3.2"
 msgstr "Sección 3.2"
+
+msgid "Section heading"
+msgstr "Encabezado de sección"
 
 msgid "Section label"
 msgstr "Section label"
@@ -6632,6 +6671,9 @@ msgstr "Mostrar todas"
 msgid "Show all {0}"
 msgstr "Show all {0}"
 
+msgid "Show all entries"
+msgstr "Mostrar todas las entradas"
+
 msgid "Show all pages"
 msgstr "Mostrar todas las páginas"
 
@@ -6643,6 +6685,9 @@ msgstr "Mostrar detalles del error"
 
 msgid "Show fewer"
 msgstr "Show fewer"
+
+msgid "Show only entries missing audio"
+msgstr "Mostrar solo las entradas sin audio"
 
 msgid "Show only the terms you added manually"
 msgstr "Mostrar solo los términos que agregaste manualmente"
@@ -7022,6 +7067,9 @@ msgstr "Guía de estilo"
 msgid "Style Guide"
 msgstr "Guía de Estilo"
 
+msgid "Style quizzes to match the book's fonts, text sizes, and colors. Turn off for the generic quiz style."
+msgstr "Aplica a los cuestionarios las fuentes, tamaños de texto y colores del libro. Desactívalo para usar el estilo genérico de cuestionario."
+
 msgid "Style reference"
 msgstr "Referencia de estilo"
 
@@ -7039,6 +7087,9 @@ msgstr "Vista previa de guía de estilo — {0}"
 
 msgid "styles"
 msgstr "estilos"
+
+msgid "Subheading"
+msgstr "Subtítulo"
 
 msgid "Submit"
 msgstr "Enviar"
@@ -7182,6 +7233,18 @@ msgstr "Texto recuperado a partir de la imagen de la página — esta página no
 
 msgid "Text roles the LLM may assign to text in the content tree. Pruned roles are classified but excluded from rendering."
 msgstr "Roles de texto que el LLM puede asignar al texto en el árbol de contenido. Los roles podados se clasifican pero se excluyen del renderizado."
+
+msgid "Text sizes"
+msgstr "Tamaños de texto"
+
+msgid "Text sizes apply immediately here — re-export to include them in a downloaded book."
+msgstr "Los tamaños de texto se aplican aquí de inmediato; vuelve a exportar para incluirlos en el libro descargado."
+
+msgid "Text sizes saved."
+msgstr "Tamaños de texto guardados."
+
+#~ msgid "Text sizes saved. Re-run Storyboard and Export to apply them."
+#~ msgstr "Tamaños de texto guardados. Vuelve a ejecutar Storyboard y Exportar para aplicarlos."
 
 msgid "Text Types"
 msgstr "Tipos de texto"
