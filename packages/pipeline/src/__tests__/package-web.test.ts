@@ -2343,6 +2343,7 @@ describe("packageWebpub", () => {
     expect(manifest["@context"]).toBe("https://readium.org/webpub-manifest/context.jsonld")
     expect(manifest.metadata.title).toBe("My Test Book")
     expect(manifest.metadata.language).toEqual(["en"])
+    expect(manifest.metadata.conformsTo).toContain("https://readium.org/webpub-manifest/profiles/epub")
     expect(manifest.metadata.presentation.overflow).toBe("scrolled")
     expect(manifest.metadata.presentation.spread).toBe("none")
     expect(manifest.metadata.author).toBe("Author")
@@ -2375,9 +2376,9 @@ describe("packageWebpub", () => {
       fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
     )
     expect(manifest.metadata.layout).toBe("fixed")
-    // Mirrored into presentation.layout too — some readers only switch to
-    // fixed-layout rendering off the pre-context key.
-    expect(manifest.metadata.presentation.layout).toBe("fixed")
+    expect(manifest.metadata.conformsTo).toContain("https://readium.org/webpub-manifest/profiles/epub")
+    // No deprecated presentation.layout — conformsTo makes readers honor metadata.layout.
+    expect(manifest.metadata.presentation.layout).toBeUndefined()
     expect(manifest.metadata.presentation.fit).toBe("contain")
     expect(manifest.metadata.presentation.spread).toBe("none")
     expect(manifest.metadata.presentation.overflow).toBeUndefined()

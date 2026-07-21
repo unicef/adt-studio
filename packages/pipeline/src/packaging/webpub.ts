@@ -13,6 +13,9 @@ import {
   writeJson,
 } from "./web.js"
 
+/** Readium WebPub manifest EPUB profile — declared in `metadata.conformsTo`. */
+const EPUB_PROFILE = "https://readium.org/webpub-manifest/profiles/epub"
+
 /**
  * Package the book as a Readium WebPub directory at `{bookDir}/webpub/`.
  *
@@ -78,18 +81,19 @@ export function packageWebpub(
 
   const manifestMetadata: Record<string, unknown> = {
     "@type": "http://schema.org/Book",
+    // Declare the Readium WebPub EPUB profile. Required for the profile's
+    // features — notably, readers only apply fixed-layout handling (reading
+    // `metadata.layout`) when the publication conforms to the EPUB profile.
+    conformsTo: [EPUB_PROFILE],
     title,
     language: availableLanguages.length > 0 ? availableLanguages : [options.language],
     modified: new Date().toISOString(),
-    // Fixed-layout books must be declared fixed; otherwise a reader treats the
+    // Fixed-layout books must be declared fixed via top-level `metadata.layout`
+    // (the current Readium context); otherwise a reader treats the
     // absolutely-positioned page as reflowable and it collapses to 0 height.
-    // `layout` is a top-level metadata property in the current Readium context,
-    // but it's ALSO mirrored into presentation.layout (the pre-context location)
-    // — some readers still switch to fixed-layout rendering only off the old
-    // key, and dropping it regressed those to the 0-height collapse.
     ...(options.fixedLayout ? { layout: "fixed" } : {}),
     presentation: options.fixedLayout
-      ? { layout: "fixed", fit: "contain", spread: "none" }
+      ? { fit: "contain", spread: "none" }
       : { overflow: "scrolled", spread: "none" },
   }
   if (metadata?.authors?.length) {

@@ -75,16 +75,18 @@ when the book produced a table of contents.
 
 ### `metadata.presentation`
 
-Reflowable and fixed-layout books declare different presentation hints. `layout`
-is a top-level `metadata` property (Readium default context) and is also mirrored
-into `metadata.presentation.layout` (the pre-context location) for readers that
-still switch to fixed-layout rendering only off the old key. `fit`, `spread`, and
-`overflow` sit under `metadata.presentation`:
+The manifest declares the Readium **EPUB profile** via `metadata.conformsTo`
+(`["https://readium.org/webpub-manifest/profiles/epub"]`). This is required for
+the profile's features — readers only apply fixed-layout handling (reading
+`metadata.layout`) when the publication conforms to the EPUB profile.
+
+`layout` is a top-level `metadata` property (Readium default context); `fit`,
+`spread`, and `overflow` sit under `metadata.presentation`:
 
 | Book type | Declared as |
 |-----------|-------------|
 | Reflowable | `presentation: { "overflow": "scrolled", "spread": "none" }` |
-| Fixed-layout | `layout: "fixed"` + `presentation: { "layout": "fixed", "fit": "contain", "spread": "none" }` |
+| Fixed-layout | `layout: "fixed"` + `presentation: { "fit": "contain", "spread": "none" }` |
 
 For **fixed-layout** books:
 
