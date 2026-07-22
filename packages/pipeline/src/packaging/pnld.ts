@@ -5,15 +5,14 @@ import type { BookMetadata, TocGenerationOutput } from "@adt/types"
 import {
   type PackageAdtWebOptions,
   type PageEntry,
+  EXPORT_MIME_TYPES,
+  NON_READER_FILES,
   copyDirRecursive,
   injectWebpubStyles,
 } from "./web.js"
 import { stripRuntimeBundle } from "./strip-runtime-bundle.js"
 
 export type PackagePnldOptions = PackageAdtWebOptions
-
-/** Files/dirs in adt/ root that are SCORM/offline-specific and not needed in PNLD. */
-const PNLD_SKIP = new Set(["imsmanifest.xml", "AGENTS.md"])
 
 /**
  * Package a PNLD "Obra Digital" (.zip) from the existing ADT web package.
@@ -49,8 +48,8 @@ export function packagePnld(storage: Storage, options: PackagePnldOptions): void
   const pnldDir = path.join(bookDir, "pnld")
   if (fs.existsSync(pnldDir)) fs.rmSync(pnldDir, { recursive: true })
 
-  // Copy adt/ -> pnld/, skipping SCORM-specific files
-  copyDirRecursive(adtDir, pnldDir, PNLD_SKIP)
+  // Copy adt/ -> pnld/, skipping SCORM/non-reader files
+  copyDirRecursive(adtDir, pnldDir, NON_READER_FILES)
 
   // VALIDE provides its own reader chrome, so drop the embedded runtime
   // (React bundle, offline preloader, SCORM adapter) exactly like EPUB/WebPub.
@@ -278,27 +277,6 @@ function moveDirContents(srcDir: string, destDir: string): void {
 // File enumeration
 // ---------------------------------------------------------------------------
 
-const PNLD_MIME_TYPES: Record<string, string> = {
-  ".html": "text/html",
-  ".css": "text/css",
-  ".js": "application/javascript",
-  ".json": "application/json",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".svg": "image/svg+xml",
-  ".webp": "image/webp",
-  ".mp3": "audio/mpeg",
-  ".mp4": "video/mp4",
-  ".ogg": "audio/ogg",
-  ".wav": "audio/wav",
-  ".woff": "font/woff",
-  ".woff2": "font/woff2",
-  ".ttf": "font/ttf",
-  ".otf": "font/otf",
-}
-
 function collectFiles(
   baseDir: string,
   dir: string,
@@ -311,7 +289,7 @@ function collectFiles(
     } else if (entry.isFile()) {
       const relPath = path.relative(baseDir, fullPath).replace(/\\/g, "/")
       const ext = path.extname(entry.name).toLowerCase()
-      out.push({ href: relPath, mediaType: PNLD_MIME_TYPES[ext] ?? "application/octet-stream" })
+      out.push({ href: relPath, mediaType: EXPORT_MIME_TYPES[ext] ?? "application/octet-stream" })
     }
   }
 }
