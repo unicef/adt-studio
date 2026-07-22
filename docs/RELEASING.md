@@ -51,8 +51,10 @@ GitHub creates a temporary merge commit for a mergeable PR. CI records and
 tests that commit, and the staging branch is created from that exact SHA, so the
 build contains the PR already merged with the current `develop`. The staging
 workflow also confirms that the PR merge ref still points to the recorded SHA.
-A conflicting PR does not receive a merge commit and therefore cannot reach
-this job.
+A conflicting PR does not receive a merge commit and therefore normally cannot
+reach this job. If mergeability has flipped to conflicting by the time the
+listener runs, the workflow fails visibly instead of skipping silently, so the
+conflict is surfaced before any staging branch is created.
 
 Before creating staging, CI also checks that the PR head has not changed while
 the jobs were running. Commits that only touch the translation catalogs under

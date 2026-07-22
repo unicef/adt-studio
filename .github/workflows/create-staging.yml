@@ -94,8 +94,8 @@ jobs:
             exit 1
           fi
           if [[ "$MERGEABLE" != "true" ]]; then
-            echo "PR #$PR_NUMBER is not currently mergeable."
-            exit 0
+            echo "::error::PR #$PR_NUMBER has merge conflicts with develop; resolve them before staging."
+            exit 1
           fi
 
           git fetch origin "pull/$PR_NUMBER/merge"

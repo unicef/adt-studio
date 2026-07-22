@@ -1,6 +1,5 @@
 import { useLingui } from "@lingui/react/macro"
 import { type KeyboardEvent, useEffect, useRef, useState } from "react"
-import { Badge } from "@/components/ui/badge"
 import {
   Card,
   CardContent,
