@@ -226,6 +226,9 @@ export function rewriteContentPage(
     )
   }
 
+  // Spec requires the content language on <body> (adt only sets it on <html>).
+  out = out.replace(/<body\b(?![^>]*\blang=)([^>]*)>/i, `<body lang="${escapeXml(language)}"$1>`)
+
   // Pagination: one printed page per content file, marked at the top of <main>.
   if (pageNumber != null) {
     out = out.replace(/<main\b[^>]*>/i, (m) => `${m}\n${paginationMarkup(pageNumber, language)}`)

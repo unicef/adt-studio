@@ -84,6 +84,19 @@ describe("rewriteContentPage", () => {
     expect(rewriteContentPage(raw, null, "pt-BR")).not.toContain("doc-pagebreak")
   })
 
+  it("adds lang to <body> (spec requires it; adt only sets it on <html>)", () => {
+    const noBodyLang = raw.replace("<body>", `<body class="x">`)
+    const out = rewriteContentPage(noBodyLang, 1, "pt-BR")
+    expect(out).toContain(`<body lang="pt-BR" class="x">`)
+  })
+
+  it("does not duplicate lang on a body that already has it", () => {
+    const withLang = raw.replace("<body>", `<body lang="es">`)
+    const out = rewriteContentPage(withLang, 1, "pt-BR")
+    expect(out.match(/<body[^>]*\blang=/g)).toHaveLength(1)
+    expect(out).toContain(`<body lang="es">`)
+  })
+
   it("uses the numeral (no spelled aria-label) for non-pt languages", () => {
     const out = rewriteContentPage(raw, 25, "en")
     expect(out).toContain('<p role="doc-pagebreak">')
