@@ -67,6 +67,9 @@ msgstr "ADT Studio takes one PDF and rebuilds it as a fully-editable, fully-your
 msgid "AI providers & cost"
 msgstr "AI providers & cost"
 
+msgid "AI providers and costs"
+msgstr "AI providers and costs"
+
 msgid "Also available on"
 msgstr "Also available on"
 
@@ -171,9 +174,6 @@ msgstr "Coming soon"
 
 msgid "Configure each stage — extract, storyboard, layout — then let ADT Studio build the book. Review the output, correct anything that needs a human touch."
 msgstr "Configure each stage — extract, storyboard, layout — then let ADT Studio build the book. Review the output, correct anything that needs a human touch."
-
-msgid "Content type"
-msgstr "Content type"
 
 msgid "Content type"
 msgstr "Content type"
@@ -368,6 +368,9 @@ msgstr "Features"
 msgid "Fig 3.1 — The water cycle: evaporation, condensation, precipitation."
 msgstr "Fig 3.1 — The water cycle: evaporation, condensation, precipitation."
 
+msgid "Formats"
+msgstr "Formats"
+
 msgid "Free forever"
 msgstr "Free forever"
 
@@ -423,8 +426,8 @@ msgstr "Grouping content by purpose, then laying out every section as reviewable
 msgid "Guidelines"
 msgstr "Guidelines"
 
-msgid "Help"
-msgstr "Help"
+#~ msgid "Help"
+#~ msgstr "Help"
 
 msgid "Here's what shipped in the latest version — and there are plenty more where this came from."
 msgstr "Here's what shipped in the latest version — and there are plenty more where this came from."
@@ -453,9 +456,6 @@ msgstr "Import"
 msgid "Import a PDF"
 msgstr "Import a PDF"
 
-msgid "Import"
-msgstr "Import"
-
 msgid "Import, extract, section, storyboard, and validate."
 msgstr "Import, extract, section, storyboard, and validate."
 
@@ -468,14 +468,17 @@ msgstr "Install the app, create a project, and produce your first accessible boo
 msgid "Installation"
 msgstr "Installation"
 
+msgid "Installation and minimum requirements"
+msgstr "Installation and minimum requirements"
+
 msgid "Installing"
 msgstr "Installing"
 
 msgid "Interactive activities"
 msgstr "Interactive activities"
 
-msgid "Introduction"
-msgstr "Introduction"
+#~ msgid "Introduction"
+#~ msgstr "Introduction"
 
 msgid "Issues"
 msgstr "Issues"
@@ -510,17 +513,11 @@ msgstr "License"
 msgid "Listen to the book, page by page."
 msgstr "Listen to the book, page by page."
 
-msgid "Listen to the book, page by page."
-msgstr "Listen to the book, page by page."
-
 msgid "LIVE"
 msgstr "LIVE"
 
 #~ msgid "LLM Providers & API Keys"
 #~ msgstr "LLM Providers & API Keys"
-
-msgid "Localize your ADT"
-msgstr "Localize your ADT"
 
 msgid "Localize your ADT"
 msgstr "Localize your ADT"
@@ -640,6 +637,9 @@ msgstr "Pause"
 msgid "Pause demo"
 msgstr "Pause demo"
 
+msgid "Personalize further"
+msgstr "Personalize further"
+
 msgid "Pick a preset"
 msgstr "Pick a preset"
 
@@ -688,8 +688,8 @@ msgstr "Project"
 msgid "Project Archive"
 msgstr "Project Archive"
 
-msgid "Quick Start"
-msgstr "Quick Start"
+#~ msgid "Quick Start"
+#~ msgstr "Quick Start"
 
 msgid "Quickstart"
 msgstr "Quickstart"
@@ -849,9 +849,6 @@ msgstr "Table of contents"
 msgid "Text and sign language, side by side."
 msgstr "Text and sign language, side by side."
 
-msgid "Text and sign language, side by side."
-msgstr "Text and sign language, side by side."
-
 msgid "Textbooks & Activities"
 msgstr "Textbooks & Activities"
 
@@ -869,9 +866,6 @@ msgstr "The same content, in plainer language."
 
 msgid "Three real textbooks (Cuaderno 5, Momo and Katko) turned from flat PDFs into accessible interactive books."
 msgstr "Three real textbooks (Cuaderno 5, Momo and Katko) turned from flat PDFs into accessible interactive books."
-
-msgid "The same content, in plainer language."
-msgstr "The same content, in plainer language."
 
 msgid "Translate"
 msgstr "Translate"
@@ -896,6 +890,9 @@ msgstr "Up next: {nextTitle}"
 
 msgid "Validate"
 msgstr "Validate"
+
+msgid "Validate and preview"
+msgstr "Validate and preview"
 
 msgid "View release on GitHub"
 msgstr "View release on GitHub"
