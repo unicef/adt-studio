@@ -1,0 +1,68 @@
+---
+title: "Quel type de contenu peut devenir un ADT ?"
+description: "Comprenez quels PDF se convertissent bien, ce à quoi faire attention, et comment vous mettre en position d'obtenir un bon premier résultat."
+icon: FileSearch
+---
+
+ADT Studio peut traiter la plupart des PDF — mais tous les PDF ne se convertissent pas aussi bien les uns que les autres. La qualité du résultat dépend largement de la qualité et de la structure du fichier source. Cette page vous aide à comprendre ce qui fonctionne, ce qui ne fonctionne pas, et pourquoi.
+
+<Callout title="Pourquoi seulement des PDF ? Pourquoi ne puis-je pas créer un livre à partir de zéro ici ?">
+ADT Studio **convertit du contenu existant — il ne crée pas de nouveau contenu.** Cela suit le mandat de l'UNICEF derrière le projet : aider les pays à rendre accessibles les programmes scolaires qu'ils possèdent déjà, plutôt que de générer de nouveaux supports pédagogiques. Aujourd'hui, le PDF est le seul format source pris en charge.
+
+Si vous partez de rien, créez d'abord le livre dans un outil de création généraliste (Word, Google Docs, Canva, InDesign, etc.), exportez-le en PDF, puis importez ce PDF dans ADT Studio pour le rendre accessible.
+</Callout>
+
+<Callout title="Vous débutez ?">
+Utilisez un PDF court et simple pour votre première conversion — idéalement 10 à 30 pages, avec des titres clairs et un texte direct. Cela vous permet de découvrir l'ensemble du pipeline sans longs temps de traitement, et facilite la compréhension de ce que fait l'outil à chaque étape avant de travailler avec un contenu plus complexe.
+</Callout>
+
+## Ce qui fait un bon PDF source
+
+<Steps>
+
+<Step>
+### Une véritable couche de texte
+
+Le facteur le plus important. Pouvez-vous **sélectionner du texte** avec votre souris dans une visionneuse PDF, mot par mot ? Si oui, le texte existe sous forme de véritables caractères et ADT Studio peut l'extraire de manière fiable.
+
+- ✅ Surligne des mots individuels → couche de texte utilisable
+- 🚫 Sélectionne toute la page comme une image, ou rien du tout → pas de couche de texte utilisable
+</Step>
+
+<Step>
+### Une structure claire et cohérente
+
+L'IA d'ADT Studio identifie les titres, sections, paragraphes, figures et activités par reconnaissance de motifs. Plus la structure est **prévisible** — styles de titres cohérents, ruptures claires entre les sections — moins vous aurez besoin de corrections manuelles après l'extraction.
+</Step>
+
+<Step>
+### Une mise en page prévisible
+
+Les **mises en page à une ou deux colonnes** sont les mieux gérées. Les mises en page complexes — grilles façon magazine, zones de texte qui se chevauchent, contenu dépendant d'un positionnement spatial précis — sont plus difficiles à interpréter correctement.
+</Step>
+
+</Steps>
+
+## À quoi faire attention
+
+- **PDF scannés ou basés sur des images** — un scan est une photographie d'une page, sans couche de texte. ADT Studio ne peut pas en extraire du texte lisible comme il le ferait pour un PDF avec une véritable couche de texte. Faire d'abord passer le scan par un outil d'OCR (reconnaissance optique de caractères) peut lui ajouter une véritable couche de texte — n'importe quel outil d'OCR générique fonctionne, il s'agit d'une étape de préparation en dehors d'ADT Studio lui-même.
+- **Tableaux complexes** — les tableaux s'étendant sur plusieurs pages ou avec des cellules fusionnées sont plus difficiles à extraire avec précision et peuvent nécessiter une révision manuelle. Les tableaux simples (quelques colonnes, en-têtes clairs, lignes cohérentes) s'extraient bien.
+- **En-têtes, pieds de page et numéros de page** — les en-têtes et pieds de page répétés sont souvent captés pendant l'extraction. ADT Studio en filtre la plupart automatiquement, mais ceux qui passent au travers nécessitent une suppression manuelle pendant le découpage.
+- **Documents fortement stylisés ou à identité visuelle marquée** — les images de fond pleine page, le texte sur des photos et les chevauchements décoratifs rendent plus difficile pour l'outil de distinguer le contenu de la décoration.
+
+## Aide-mémoire
+
+| Statut | Caractéristique | À quoi s'attendre |
+|---|---|---|
+| ✅ Fonctionne bien | Couche de texte sélectionnable | Extraction fiable |
+| ✅ Fonctionne bien | Structure de titres claire et cohérente | Découpage fiable |
+| ✅ Fonctionne bien | Mise en page à une ou deux colonnes | Résultat solide |
+| ✅ Fonctionne bien | Tableaux simples (en-têtes clairs, lignes cohérentes) | S'extrait bien |
+| ⚠️ À utiliser avec prudence | Tableaux complexes multi-pages ou à cellules fusionnées | Nécessitera une révision manuelle |
+| ⚠️ À utiliser avec prudence | En-têtes, pieds de page, numéros de page répétés | Peuvent apparaître dans le contenu, à retirer pendant le découpage |
+| ⚠️ À utiliser avec prudence | Design graphique poussé ou mise en page à forte identité visuelle | Peut nécessiter une correction manuelle |
+| 🚫 À éviter | PDF scanné ou uniquement composé d'images (pas de couche de texte) | Le texte ne peut pas être extrait |
+
+## Prêt à continuer ?
+
+[Installation et configuration minimale requise →](/docs/get-started/install)

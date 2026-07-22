@@ -1,0 +1,34 @@
+---
+title: "Idioma"
+description: "Disponibilize seu ADT em mais de um idioma."
+icon: Languages
+---
+
+Uma fonte, muitos idiomas. O ADT Studio pode traduzir o conteúdo do seu livro com apoio de IA, então um único esforço de conversão pode atender alunos em vários idiomas — incluindo alunos cujo primeiro idioma não é o idioma de instrução.
+
+Isso é diferente da subetapa **Idiomas** durante a [extração de conteúdo](/docs/convert-pdf/extract) — aquela etapa apenas seleciona para quais idiomas o seu ADT será direcionado; esta é a etapa em que as traduções para cada um desses idiomas são de fato geradas.
+
+## Decisões a tomar
+
+- **De quais idiomas seu público realmente precisa?** Cada idioma adiciona processamento de IA e, portanto, custo. Escolha com base nas salas de aula que o ADT vai alcançar.
+- **Quem revisa a tradução?** A tradução por IA é um bom ponto de partida, mas a linguagem do currículo, a terminologia local e o contexto cultural merecem uma checagem humana — idealmente por um educador que conheça o público.
+- **As imagens também devem ser traduzidas?** Se uma figura tiver texto incorporado — uma placa, um rótulo, uma chamada de diagrama — decida se vale a pena regenerar essa imagem com o texto traduzido, ou deixá-la no idioma de origem.
+
+## Configurar e gerar
+
+A Tradução precisa que as seções do seu livro já estejam tipadas e organizadas — se o [Storyboard](/docs/convert-pdf/storyboard) ainda não estiver concluído, a etapa avisa isso em vez de permitir que você a execute. Quando estiver pronto, abra a etapa **Idioma** e defina:
+
+- **Idiomas de Saída** — adicione todos os idiomas que você quer gerar junto ao original. Isso é independente dos (e pode ser diferente dos) idiomas de saída que você escolheu durante a extração; o idioma original do livro nunca é alterado.
+- **Traduções de Imagens** (opcional) — escolha imagens específicas para regenerar com o texto embutido traduzido, usando **Escolher imagens...**. Deixar a lista vazia mantém todas as imagens no idioma de origem. Esta opção só lista imagens depois que [Legendas de Imagens](/docs/enhance/captions) tiver sido executado — é a legendagem que identifica quais imagens têm texto que vale a pena traduzir.
+
+Quando estiver pronto, selecione **Executar Tradução**. Cada idioma de saída é gerado a partir do conteúdo tipado do livro — isso não é uma revisão de uma tradução pré-existente, é onde a tradução é produzida.
+
+![A etapa Idioma antes de ser executada, mostrando as configurações de Idiomas de Saída e Traduções de Imagens ao lado de uma prévia do plano de tradução](./language-stage.png)
+
+## Revisar e editar
+
+Depois que a tradução é executada, cada item — texto da página, legendas, respostas de atividades, termos do glossário, texto de Leitura Fácil — se torna editável por idioma de saída. Filtre por categoria de conteúdo ou por página, alterne entre idiomas com os seletores de idioma, e use o filtro **Faltando** para ir direto a qualquer coisa que não tenha sido traduzida. As edições são salvas como uma nova versão, com o seletor de versões para pré-visualizar ou reverter.
+
+## Quando terminar
+
+Com as traduções prontas, a narração vem a seguir: [Fala](/docs/localize/speech) gera áudio de voz em cada um dos idiomas do seu ADT.

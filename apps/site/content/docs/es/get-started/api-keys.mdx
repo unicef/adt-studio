@@ -1,0 +1,78 @@
+---
+title: "Proveedores de IA y costos"
+description: "Por qué ADT Studio necesita un proveedor de IA, cómo conectar uno y cuánto cuesta."
+icon: KeyRound
+---
+
+Convertir un PDF en un ADT depende de la inteligencia artificial — para estructurar contenido, describir imágenes, generar narración, crear cuestionarios y traducir. Esas capacidades de IA provienen de un **proveedor de IA** externo, al que conectas ADT Studio mediante una **clave de API**. Esta página explica qué significa eso, cómo configurarlo y qué esperar en términos de costo.
+
+<Callout title="En resumen">
+**ADT Studio en sí es gratuito**, software de código abierto (AGPL-3.0). **El proveedor de IA que conectes puede cobrar por el uso** — ese costo va al proveedor, no a ADT Studio ni a UNICEF. **Los programas oficiales de países ADT pueden acceder a créditos de API** en lugar de pagar directamente — consulta más abajo.
+</Callout>
+
+## Por qué ADT Studio necesita un proveedor de IA
+
+ADT Studio se encarga de la orquestación: lee tu PDF, gestiona el proceso, almacena tu trabajo y empaqueta el resultado. Pero los pasos inteligentes — entender el contenido, escribir descripciones de imágenes, producir narración natural, generar preguntas de comprensión — los realiza un modelo de lenguaje de gran escala (un "LLM").
+
+ADT Studio no incluye su propio modelo de IA. En cambio, se conecta a un proveedor que ofrece uno — así tú eliges el proveedor, controlas el costo y puedes ver exactamente qué hace cada llamada de IA.
+
+## ¿Qué es una clave de API?
+
+Una **clave de API** es un código privado que permite a ADT Studio usar tu cuenta con un proveedor de IA. Piénsalo como una contraseña que dice "esta herramienta tiene permiso para hacer solicitudes de IA en mi nombre, y cobrarlas a mi cuenta".
+
+<Steps>
+
+<Step>
+### Obtén una clave de tu proveedor
+
+Regístrate con el proveedor de IA de tu elección y genera una clave de API desde su panel de control.
+</Step>
+
+<Step>
+### Agrégala a ADT Studio
+
+Pega la clave en la sección de **Configuración** de ADT Studio. A partir de ese momento, ADT Studio puede usar el modelo de IA del proveedor cuando ejecutes los pasos que lo necesiten.
+
+Si es la primera vez que abres ADT Studio, no necesitas buscarla por tu cuenta — el asistente de configuración inicial te pide que agregues tu clave de API directamente la primera vez que abres la aplicación.
+</Step>
+
+</Steps>
+
+Dos cosas a tener en cuenta:
+
+- **Mantenla privada.** Cualquiera con tu clave puede usar tu cuenta de IA y generar costos. Trátala como una contraseña — no la compartas ni la publiques en ningún lugar público.
+- **Se queda en tu máquina.** ADT Studio guarda tu clave localmente. Se usa solo para comunicarse con el proveedor que elegiste.
+
+## ¿Qué proveedores de IA puedo usar?
+
+Hoy, el proceso principal de conversión (extracción, descripciones de imágenes, traducción, cuestionarios y el resto) depende de **OpenAI**, con soporte creciente para otros proveedores.
+
+El único paso con verdadera elección de proveedor ya disponible es la **narración (texto a voz)**: puedes elegir entre **OpenAI**, **Google Gemini** y **Azure** por idioma, y comparar voces antes de decidir. Consulta [Voz](/docs/localize/speech).
+
+A medida que se amplíe el soporte de proveedores, podrás cambiar de proveedor para más partes del proceso — sin quedar atado a una sola opción por costo, calidad o cobertura de idiomas.
+
+## ¿Cuánto cuesta?
+
+No hay una única respuesta — el costo depende de tres factores:
+
+- **Proveedor y modelo.** Distintos proveedores cobran tarifas distintas, y dentro de un mismo proveedor, los modelos más capaces cuestan más que los más ligeros.
+- **Extensión del documento.** Los proveedores de IA cobran según la cantidad de contenido procesado. Un texto de 20 páginas cuesta mucho menos que un libro de texto de 300 páginas.
+- **Funciones que ejecutes.** Extraer y estructurar el texto es la base. La narración, la traducción a varios idiomas, las descripciones de imágenes y los cuestionarios agregan cada uno llamadas de IA — y costo.
+
+ADT Studio te ayuda a mantener el control de esto de dos maneras. Primero, cada llamada de IA se **almacena en caché** — si vuelves a ejecutar un paso sin cambiar nada, reutiliza el resultado anterior sin costo adicional. Segundo, la herramienta te muestra el **costo de cada llamada**, para que puedas ver a dónde va tu gasto en lugar de enfrentarte a una factura sorpresa.
+
+Para un documento corto típico, los costos son modestos — a menudo unos pocos dólares. Los documentos más largos con muchas funciones activadas cuestan más. La mejor manera de entender tus propios costos es ejecutar primero un documento corto y revisar las cifras reportadas antes de escalar.
+
+## Créditos de API para programas de países ADT
+
+Si formas parte de un **programa oficial de país ADT o de un socio implementador**, es posible que puedas acceder a créditos de API en lugar de pagar directamente el uso de IA.
+
+{/* TO VERIFY: the exact process and eligibility for API credits, and the right contact point. Confirm with the ADT team before publishing specifics. */}
+
+Para saber si esto aplica en tu caso y cómo solicitar acceso, contacta al equipo de ADT a través de la [iniciativa Accessible Textbooks for All](https://www.accessibletextbooksforall.org).
+
+## ¿Listo para continuar?
+
+Una vez que tu proveedor de IA esté conectado, estás listo para convertir tu primer PDF.
+
+[Convierte un PDF en un ADT →](/docs/convert-pdf/import-pdf)

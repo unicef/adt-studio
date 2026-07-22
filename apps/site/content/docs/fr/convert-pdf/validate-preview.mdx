@@ -1,0 +1,46 @@
+---
+title: "Valider et prévisualiser"
+description: "Vérifiez votre ADT de vos propres yeux — et avec des contrôles d'accessibilité automatisés."
+icon: ShieldCheck
+---
+
+Avant d'enrichir ou d'exporter, prenez un moment pour confirmer que ce que vous avez est correct. Cela se fait de deux façons complémentaires : **Aperçu** et **Validation**, toutes deux disponibles dès que votre storyboard est construit.
+
+<Callout title="Disponible dès maintenant, utile tout au long du processus">
+L'Aperçu et la Validation ne sont pas un point de contrôle unique — ce sont des étapes que vous pouvez rouvrir à tout moment par la suite. Ce qu'elles montrent ne reflète que ce qui a été généré jusqu'ici, donc un rapide coup d'œil maintenant (structure et mise en page) vaut la peine d'être répété après [Enrichir votre ADT](/docs/enhance) (une fois que les quiz, légendes, traductions et narration existent aussi) et à nouveau avant d'exporter.
+</Callout>
+
+## Aperçu : le vérifier en tant que lecteur
+
+L'étape **Aperçu** empaquette ce que vous avez jusqu'ici et le montre dans une vue intégrée de l'ADT réel destiné aux lecteurs — pas une maquette. Ouvrez-le et parcourez le livre — non pas en tant que son producteur, mais comme quelqu'un qui le découvre pour la première fois.
+
+- Le contenu se lit-il naturellement, dans le bon ordre ?
+- Les images apparaissent-elles là où elles devraient ?
+- La navigation fonctionne-t-elle — peut-on se déplacer facilement entre les sections ?
+
+Pendant la navigation dans l'aperçu, une carte flottante **Constats d'accessibilité** affiche en direct les résultats des contrôles d'accessibilité automatisés (voir ci-dessous) pour la page où vous vous trouvez, sans avoir besoin de passer à la Validation.
+
+Si la validation par un relecteur est activée pour le livre, une seconde carte flottante **Validation** permet à un relecteur nommé de parcourir une liste de contrôle structurée pendant sa navigation : ouvrir une session (nom du relecteur, institution, langue, plage de pages), puis marquer chaque critère **Réussi**, **À corriger**, **N/A** ou **Non revu** par page, avec un espace pour un commentaire et une correction suggérée. Ceci est optionnel et distinct des contrôles automatisés.
+
+## Valider : le vérifier par rapport aux normes d'accessibilité
+
+L'étape **Validation** exécute un **Résumé d'accessibilité** automatisé : votre ADT empaqueté vérifié par rapport aux WCAG, la norme internationale d'accessibilité, à l'aide d'outils standards du secteur. Elle signale les problèmes avant que vous ne publiiez :
+
+- Descriptions d'images manquantes
+- Problèmes structurels
+- Problèmes de contraste
+- Obstacles d'accessibilité similaires
+
+Là où la validation par un relecteur est activée, la même étape comporte aussi un onglet **Validation par relecteur** résumant les résultats de la liste de contrôle de chaque session, afin que vous ayez à la fois les problèmes vérifiés par machine et ceux vérifiés par des humains au même endroit.
+
+<Callout type="warn" title="Ce n'est pas une formalité">
+La validation d'accessibilité **est la raison d'être de l'outil**. Un ADT qui échoue à ces contrôles ne remplit pas encore son rôle pour les apprenants qui en dépendent.
+</Callout>
+
+## Corriger, relancer, répéter
+
+Si la validation ou votre propre révision révèle des problèmes, revenez à l'étape responsable — [Découpage](/docs/convert-pdf/sectioning) pour les problèmes de structure, [Storyboard](/docs/convert-pdf/storyboard) pour les problèmes de mise en page — corrigez-les, et relancez. Seul le travail concerné est refait ; tout le reste est réutilisé. Puis revenez à la Validation pour rafraîchir les résultats après votre correction.
+
+## Une fois terminé
+
+Votre structure et votre mise en page sont solides. Il est temps d'enrichir le livre : [Enrichir votre ADT](/docs/enhance) — et n'oubliez pas de revenir à l'Aperçu et à la Validation une fois cela fait, pour avoir une vue d'ensemble complète avant d'exporter.

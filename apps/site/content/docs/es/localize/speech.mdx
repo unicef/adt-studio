@@ -1,0 +1,29 @@
+---
+title: "Voz"
+description: "Agrega narración de audio para que los estudiantes puedan escuchar el libro."
+icon: AudioLines
+---
+
+La narración convierte el texto en audio, para que los estudiantes puedan escuchar el libro — esencial para estudiantes con discapacidad visual o dificultades de lectura, y valioso para cualquiera que aprenda mejor escuchando.
+
+ADT Studio genera **texto a voz localizado**: narración natural con la voz adecuada para cada idioma de tu ADT.
+
+## Decisiones a tomar
+
+- **¿Qué contenido se narra?** Un ajuste de **Contenido para leer en voz alta** te permite incluir o excluir cada categoría de forma independiente — texto de página, descripciones de imágenes, respuestas de actividades, entradas del glosario y texto de Lectura Fácil.
+- **¿La voz encaja con la audiencia y el idioma?** Una voz que suena natural en un idioma puede no estar disponible o no ser apropiada en otro. Escucha muestras antes de generar el libro completo.
+- **Comprueba la pronunciación de nombres y términos locales.** El texto a voz puede tropezar con nombres propios, topónimos y vocabulario específico del currículo. Revisa puntualmente las secciones que los contienen — o reemplaza solo el audio de esa entrada (ver más abajo).
+- **¿Los lectores necesitan resaltado a nivel de palabra?** Activarlo calcula automáticamente las marcas de tiempo de las palabras durante la generación, para que el lector pueda seguir palabra por palabra mientras se narra.
+
+## Configurar y generar
+
+Voz necesita que tu contenido traducido esté listo primero. Abre la etapa **Voz** y define una voz por idioma y proveedor, además de:
+
+- **Resaltado a nivel de palabra** — cuando está activado, las marcas de tiempo de las palabras se calculan automáticamente a medida que se genera el habla. Si lo dejas desactivado, igual puedes calcular las marcas de tiempo manualmente más tarde desde la vista de Voz.
+- **Contenido para leer en voz alta** — activa qué categorías de texto se narran.
+
+![La etapa Voz antes de ejecutarse, mostrando la configuración de Proveedor y Resaltado para el lector junto a una vista previa de audio de muestra](./speech-stage.png)
+
+## Revisar, reemplazar y editar
+
+Una vez generada la narración, explora las entradas por idioma, filtra solo las que todavía **faltan** de audio, y previsualiza cada versión con el selector de versiones. Si la narración de IA pronuncia mal un nombre o término, no estás limitado a regenerar — cada entrada tiene una acción de **Subir tu propio archivo de audio** (o **Reemplazar este archivo de audio** si ya existe uno), para que puedas sustituir un clip grabado manualmente por ese fragmento de texto específico sin tocar nada más.

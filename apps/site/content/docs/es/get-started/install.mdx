@@ -1,9 +1,84 @@
 ---
-title: "Instalación"
-description: "Descarga e instala la aplicación de escritorio ADT Studio, o ejecútala con Docker."
+title: "Instalación y requisitos mínimos"
+description: "Cómo instalar ADT Studio en tu computadora, y qué necesita tu máquina para ejecutarlo."
 icon: Download
 ---
 
-Descarga e instala la aplicación de escritorio ADT Studio, o ejecútala con Docker.
+ADT Studio se ejecuta localmente en tu computadora. Para casi todo el mundo, la aplicación de escritorio es la forma de instalarlo — descárgala, haz doble clic, ábrela, como cualquier programa normal.
 
-> 📝 *Esta página está en construcción.*
+## Instala la aplicación de escritorio
+
+La aplicación de escritorio está disponible para **Windows** y **macOS**.
+
+<Steps>
+
+<Step>
+### Descarga
+Ve a la [página de descargas de ADT Studio](https://unicef.github.io/adt-studio/download/) y descarga el instalador para tu sistema.
+</Step>
+
+<Step>
+### Instálala
+Abre el archivo descargado y sigue los pasos de instalación.
+</Step>
+
+<Step>
+### Abre ADT Studio
+Ábrelo como cualquier otra aplicación en tu computadora.
+</Step>
+
+</Steps>
+
+## Requisitos mínimos
+
+| Requisito | Detalles |
+|---|---|
+| **Windows** | Windows 10 o más reciente, solo 64 bits. Windows 7, 8 y 8.1, así como los sistemas de 32 bits, no son compatibles. |
+| **macOS** | macOS 12 (Monterey) o más reciente, en Apple Silicon (arm64). Actualmente no hay una versión para Intel ni Universal — los Mac con Intel no son compatibles. |
+| **Conexión a internet** | Necesaria durante la instalación, al aplicar actualizaciones y durante la conversión de PDF (para el procesamiento con IA). No es necesaria para abrir o usar un ADT terminado. |
+| **Una clave de API de un proveedor de IA** | Necesaria antes de poder convertir un PDF. Consulta [Proveedores de IA y costos](/docs/get-started/api-keys). |
+
+<Callout title="¿Trabajas con un libro largo en una máquina más lenta?">
+Los libros muy largos o complejos pueden ser exigentes de procesar de una sola vez, y en máquinas menos potentes esto ha provocado, en algunos casos, que la aplicación se cierre a mitad del proceso. Si eso ocurre, usa **Dividir y combinar** para separar el libro en partes más pequeñas, procesarlas por separado (incluso entre distintas personas o máquinas) y reensamblar los resultados después — consulta [Dividir un libro en partes](/docs/convert-pdf/extract#splitting-a-book-into-parts).
+</Callout>
+
+## Notas
+
+- **Actualizaciones.** ADT Studio se actualiza automáticamente, así que nunca necesitas descargar ni ejecutar un nuevo instalador a mano. La actualización en sí igual se descarga a través de internet en segundo plano, así que se necesita conexión para que se aplique una versión nueva.
+- **¿Algo no funciona?** Consulta la página de [Solución de problemas y FAQ](/docs/faq), o [informa del problema](/docs/reporting-issues).
+
+## Opción para desarrolladores: ejecutarlo desde el código fuente
+
+Si quieres compilar ADT Studio tú mismo, contribuir al proyecto o ejecutarlo en un entorno donde el instalador empaquetado no encaje, puedes ejecutarlo directamente desde el código fuente, usando las mismas herramientas que usarías para cualquier proyecto de software: un IDE, Git y Node.js.
+
+<Steps>
+
+<Step>
+### Requisitos previos
+[Node.js](https://nodejs.org/) 20+, [pnpm](https://pnpm.io/) 9+ y [Git](https://git-scm.com/). Ejecutar la propia aplicación de escritorio (en lugar de solo la versión de desarrollo basada en el navegador) además requiere el [toolchain de Rust](https://rustup.rs/).
+</Step>
+
+<Step>
+### Clona e instala
+```
+git clone git@github.com:unicef/adt-studio.git
+cd adt-studio
+pnpm install
+```
+</Step>
+
+<Step>
+### Ejecútalo
+```
+pnpm dev
+```
+Esto inicia los servidores de desarrollo de la API y de Studio, y abre la aplicación en tu navegador. Consulta el [repositorio de GitHub](https://github.com/unicef/adt-studio) para la configuración completa, incluyendo cómo iniciar la aplicación de escritorio (`pnpm dev:desktop`) en lugar de la versión de navegador.
+</Step>
+
+</Steps>
+
+Autoalojarlo en infraestructura compartida (por ejemplo, para un entorno gestionado por TI) también es posible — consulta [¿Puedo autoalojar ADT Studio para mi organización?](/docs/faq#for-developers-and-it) en la FAQ.
+
+## ¿Listo para continuar?
+
+[Proveedores de IA y costos →](/docs/get-started/api-keys)

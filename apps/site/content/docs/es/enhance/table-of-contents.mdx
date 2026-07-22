@@ -1,0 +1,30 @@
+---
+title: "Índice"
+description: "Dales a los lectores un mapa del libro."
+icon: List
+---
+
+El índice se construye a partir de las secciones que [Storyboard](/docs/convert-pdf/storyboard) coloca en las páginas — las cuales a su vez provienen de la estructura que confirmaste durante el [Seccionamiento](/docs/convert-pdf/sectioning). Le da a cada lector — y a cada lector de pantalla — un mapa navegable del libro.
+
+## Decisiones a tomar
+
+- **¿Refleja el libro real?** Si algo se ve mal aquí — capítulos faltantes, anidamiento extraño, títulos incorrectos — la causa casi siempre está más arriba, en el seccionamiento o el storyboard, no en el índice mismo. Corrige la estructura ahí y el índice lo sigue.
+- **¿La profundidad es la correcta?** Un índice con cada pequeño subencabezado puede ser más difícil de navegar que uno con una estructura clara y poco profunda.
+- **¿Textual o reformulado?** Eso es exactamente lo que decide el **Modo de índice** — ver más abajo.
+
+## Configurar y generar
+
+Índice necesita que Storyboard termine primero. Cuando esté listo, abre la etapa **Índice** y elige un **Modo de índice**:
+
+- **Extraer** — usa los encabezados de sección de forma textual. Rápido, determinista, y conserva la redacción original.
+- **Dinámico** — deja que el modelo escriba títulos de capítulo descriptivos a partir del contenido de cada sección. Ideal para cuentos ilustrados, o cuando faltan encabezados.
+
+Una vista previa de muestra en vivo, a la derecha, muestra una lista de contenidos anidada que coincide con el modo que elegiste. Cuando estés listo, selecciona **Ejecutar índice**.
+
+![La etapa Índice antes de ejecutarse, mostrando la elección de Modo de índice junto a una vista previa de muestra del índice](./toc-stage.png)
+
+## Revisar y editar
+
+Una vez generado el índice, busca entradas por título, y usa **Agregar entrada** para insertar una manualmente. El título de cada fila es editable en el lugar, y las flechas de sangría lo suben o bajan un nivel de anidamiento (hasta tres niveles de profundidad) — usa **Eliminar** para quitar una por completo.
+
+Cada entrada enlaza a una sección del libro — el selector de enlaces te permite buscar y reasignar esa sección, y el ícono de enlace externo junto a ella abre la página enlazada en una nueva pestaña para que confirmes que apunta a donde debe.

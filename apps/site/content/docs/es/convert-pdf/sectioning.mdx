@@ -1,0 +1,47 @@
+---
+title: "Seccionamiento"
+description: "Revisa y perfecciona cómo se divide tu libro en capítulos, encabezados y bloques de contenido."
+icon: Network
+---
+
+Un libro es más que una secuencia de páginas — tiene capítulos, encabezados, párrafos, actividades, figuras. El seccionamiento es donde esa estructura se identifica y se confirma.
+
+El seccionamiento es su propia etapa, que se ejecuta después de la [extracción](/docs/convert-pdf/extract) — la IA etiqueta capítulos, encabezados y contenido pedagógico aquí, no durante la extracción en sí. Una vez ejecutada, este es tu momento para revisar ese trabajo: comprobar que la estructura coincide con el libro real, corregir lo que se leyó mal y limpiar lo que no pertenece.
+
+## Por qué importa
+
+La estructura definida aquí impulsa casi todo lo que viene después:
+
+- El **índice** se construye a partir de ella
+- La **navegación** para los lectores (incluidos los usuarios de lectores de pantalla) depende de ella
+- Los **cuestionarios y el glosario** se generan por sección, así que límites incorrectos producen contenido desajustado
+- La **narración** sigue el orden de lectura que ella define
+
+Unos minutos de revisión aquí ahorran mucho más tiempo de corrección después.
+
+## La pantalla de seccionamiento
+
+Para cada página, obtienes una vista dividida: la imagen de la página original en un lado, y un árbol editable del contenido de esa página en el otro. Cada pieza de contenido — un encabezado, un párrafo, una actividad, una imagen — es un nodo en ese árbol.
+
+- La **estructura** proviene de dónde se ubica un nodo en el árbol, no de un nivel de encabezado numerado. No hay H1/H2/H3 — un nodo se anida bajo el nodo al que pertenece, y se marca con un rol (como "encabezado") mediante un menú desplegable en el propio nodo.
+- El **orden de lectura** es simplemente el orden en que aparecen los nodos en el árbol. Arrastra un nodo por su asa y suéltalo donde corresponda para reordenar el contenido.
+- La **eliminación de ruido** es un interruptor por nodo — un ícono de ojo que excluye un nodo del resultado renderizado sin eliminarlo. Los encabezados, pies de página y números de página repetidos se excluyen por defecto, pero comprueba que no se haya colado nada más (o que no se haya excluido algo por error).
+- Las **actividades y el contenido especial** tienen sus propios tipos — un menú desplegable por sección te permite marcar algo como, digamos, una actividad de emparejamiento o una pregunta de opción múltiple, en lugar de dejarlo como texto plano.
+
+Un menú por fila en cada nodo también te permite agregar texto, agregar una imagen, agrupar nodos, duplicar o eliminar — para los casos en que la IA pasó algo por alto o dividió el contenido incorrectamente.
+
+<Callout title="Vista panorámica">
+Cambia a **Vista general** para ver las secciones de cada página en una sola tabla — página, sección, tipo, contenido y partes — en lugar de revisar una página a la vez.
+</Callout>
+
+## Qué revisar
+
+- **¿La estructura es correcta?** Un nodo anidado en el lugar equivocado, o con el rol equivocado, cambia la jerarquía de todo lo que está debajo.
+- **¿El orden de lectura es correcto?** Especialmente en diseños de dos columnas, comprueba que el contenido fluya en el orden en que un lector debería encontrarlo.
+- **¿Queda ruido sobrante?** Los encabezados, pies de página y números de página repetidos suelen excluirse automáticamente — pero verifícalo, y excluye cualquier otra cosa que no deba leerse en voz alta ni mostrarse.
+- **¿Se reconocen las actividades y el contenido especial?** Los ejercicios, recuadros y figuras deben llevar el tipo correcto, no quedar como texto plano.
+- **¿Una página lleva una advertencia de "sin capa de texto"?** Una marca en una página significa que su capa de texto del PDF estaba vacía y el contenido mostrado se recuperó a partir de la imagen de la página en su lugar — dale a esas páginas una lectura más atenta, ya que la recuperación basada en visión es más propensa a errores que la lectura de texto incorporado.
+
+## Cuando termines
+
+Con la estructura confirmada, sigue el lado visual de tu ADT: [Storyboard](/docs/convert-pdf/storyboard).

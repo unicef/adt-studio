@@ -1,0 +1,133 @@
+---
+title: "Extraer contenido"
+description: "Convierte las páginas de tu PDF en contenido estructurado y editable."
+icon: ScanText
+---
+
+La extracción es el paso donde ADT Studio lee tu PDF y lo convierte en contenido estructurado — texto, figuras y diseño — sobre el cual se construyen todos los pasos posteriores. Aquí es donde la IA hace su primer y más importante recorrido por tu libro.
+
+Antes de que se ejecute la extracción, configuras cómo debe tratarse tu documento. Esta configuración ocurre en unos pocos subpasos, justo después de subir tu PDF.
+
+<Steps>
+
+<Step>
+### Elige un preajuste
+
+Un preajuste es una configuración inicial que corresponde al tipo de documento que estás convirtiendo. Preselecciona ajustes sensatos para que no tengas que configurar todo manualmente.
+
+- **Libros de texto y actividades** — capítulos y ejercicios estructurados. Ideal para contenido educativo con diseños complejos.
+- **Cuento ilustrado** — imágenes grandes y flujo narrativo. Ideal para libros ilustrados, combinados con narración de alta fidelidad.
+- **Referencia** — texto denso, tablas y glosarios. Ideal para material técnico y documentación.
+- **Personalizado** — control total sobre las estrategias de renderizado, la poda y los filtros, sin nada preseleccionado para ti.
+
+Los preajustes son un punto de partida, no un compromiso. Después de elegir uno, todavía puedes ajustar cualquier configuración individual en los pasos siguientes. Cambiar de preajuste más tarde reinicia la configuración que ya modificaste, así que elige primero el que más se parezca.
+
+![La pantalla "Elige un preajuste", mostrando cuatro tarjetas de preajuste: Libros de texto y actividades, Cuento ilustrado, Referencia y Personalizado](./extract-preset.png)
+
+Cada clip a continuación pasa una página impresa real por todo el proceso para su preajuste correspondiente — extracción, diseño y las funciones de accesibilidad que lo acompañan.
+
+**Libros de texto y actividades** — un capítulo de ciencias impreso y una página de actividad de cuaderno, ambos reconstruidos como contenido estructurado y accesible.
+
+<video controls playsInline aria-label="A printed science textbook chapter on biomes is converted into an accessible e-learning page with easy-read mode, a glossary, and sign language." className="w-full rounded-lg border border-[color:var(--color-border)]">
+  <source src="/videos/los-biomas.mp4" type="video/mp4" />
+</video>
+
+<video controls playsInline aria-label="A printed workbook activity page is converted into an AI-generated, interactive accessible activity." className="w-full rounded-lg border border-[color:var(--color-border)]">
+  <source src="/videos/cuaderno5.mp4" type="video/mp4" />
+</video>
+
+**Referencia** — una página densa y de varias columnas de un libro de texto, reconstruida como un diseño web responsivo y semántico.
+
+<video controls playsInline aria-label="A complex, multi-column printed textbook page is converted into a responsive web layout." className="w-full rounded-lg border border-[color:var(--color-border)]">
+  <source src="/videos/brazil.mp4" type="video/mp4" />
+</video>
+
+**Cuento ilustrado** — una página de cuento ilustrado gana narración de texto a voz, descripciones de imágenes, traducciones y un cuestionario.
+
+<video controls playsInline aria-label="An illustrated storybook page gains text-to-speech narration, image descriptions, translations, and an interactive quiz." className="w-full rounded-lg border border-[color:var(--color-border)]">
+  <source src="/videos/momo.mp4" type="video/mp4" />
+</video>
+</Step>
+
+<Step>
+### Información básica
+
+Aquí confirmas lo esencial:
+
+- **Archivo PDF** — el archivo que acabas de subir.
+- **Nombre del proyecto** — el identificador único que ADT Studio usa como nombre de la carpeta de tu libro. Se sugiere a partir del nombre de tu archivo, pero puedes cambiarlo.
+- **¿Cuánto de este libro quieres procesar?** — **Libro completo** para convertir todo, **Rango de páginas** para elegir un subconjunto (útil para probar con un capítulo de un PDF largo antes de comprometerte con todo el libro), o **Dividir en partes** para repartir partes por rango de páginas entre distintas personas y combinar su trabajo terminado en un solo libro más adelante (consulta [Dividir un libro en partes](#splitting-a-book-into-parts) más abajo).
+
+No hay un campo separado de "título del libro" o "idioma de origen" aquí — el nombre del proyecto funciona también como identificador, y el idioma se establece más adelante en el paso Idiomas.
+</Step>
+
+<Step>
+### Diseño visual
+
+Este paso le indica a ADT Studio cómo está organizado visualmente tu documento, para que la extracción pueda interpretar las páginas correctamente:
+
+- **Estrategia de renderizado** — cómo se reconstruyen las páginas (basada en plantillas, que es rápida y gratuita, o impulsada por IA, que se adapta a cada página a costa de un procesamiento adicional).
+- **Modo de agrupación de páginas** — **Doble página** o **Página individual**, si las páginas enfrentadas se tratan como una sola unidad visual o de forma independiente.
+- **Modo de sección** — **Modo de página** o **Modo dinámico**, cómo se fragmenta el contenido en secciones.
+
+ADT Studio marca la opción que recomienda para tu preajuste elegido — en la mayoría de los casos puedes aceptar la sugerencia.
+</Step>
+
+<Step>
+### Procesamiento de contenido
+
+Aquí eliges qué procesamiento impulsado por IA se ejecuta sobre tu contenido durante la extracción:
+
+- **Conversor de actividades** — detecta y estructura ejercicios y actividades.
+- **Extracción de figuras** — extrae imágenes y diagramas como figuras separadas.
+- **Recorte inteligente** — recorta automáticamente las imágenes extraídas a su contenido significativo.
+- **Segmentación de imágenes** — divide imágenes compuestas en sus partes individuales, con un ajuste de **Dimensión mínima de imagen** para qué tan pequeño puede ser un segmento.
+- **Tamaño de filtro de imágenes** — un **Tamaño mínimo** y **Tamaño máximo** (en píxeles) que filtran las imágenes demasiado pequeñas o demasiado grandes para ser significativas (por ejemplo, separadores decorativos o fondos de página completa).
+
+No necesitas activar todo ahora. Las funciones que omitas aquí generalmente se pueden ejecutar más tarde — consulta [Mejora tu ADT](/docs/enhance).
+
+![La pantalla "Procesamiento de contenido", con interruptores para Conversor de actividades, Extracción de figuras, Recorte inteligente y Segmentación de imágenes, más los controles deslizantes de Tamaño de filtro de imágenes](./extract-content-processing.png)
+</Step>
+
+<Step>
+### Idiomas
+
+- **Idioma de edición** — el idioma en el que trabajarás al revisar y editar el contenido. Déjalo vacío para usar el idioma propio del libro.
+- **Idiomas de salida** — uno o más idiomas a los que traducir el ADT final. Déjalo vacío para generar salida solo en el idioma del libro.
+
+Agregar idiomas de salida aquí no traduce nada de inmediato — establece lo que la etapa posterior de [Idioma](/docs/localize/language) traducirá una vez que llegues a ella. Cada idioma adicional agrega procesamiento, y por lo tanto costo, en esa etapa posterior.
+</Step>
+
+<Step>
+### Crea tu ADT
+
+Una vez configurados tus ajustes, selecciona **Crear ADT**. Este es también el momento en que ADT Studio realmente crea la carpeta de tu proyecto (consulta [Importar un PDF](/docs/convert-pdf/import-pdf)).
+
+- Si ya tienes una clave de API guardada, la extracción comienza automáticamente. Esto se ejecuta página por página y puede tardar unos minutos según la extensión de tu documento; puedes seguir el progreso en la interfaz. El seccionamiento es un paso separado — lo ejecutas tú mismo después, desde la etapa **Seccionamiento** del libro.
+- Si aún no tienes una clave de API guardada, tu proyecto se crea con tu configuración lista, y tú mismo inicias la extracción después desde la etapa **Extraer** del libro (un botón **Ejecutar** en esa etapa la pone en marcha).
+
+Si una página falla durante la extracción, ADT Studio se detiene y te pide que decidas: **omitir esta página y continuar**, o **detener el paso**. Hay una casilla para aplicar la misma decisión a cada falla posterior en esa ejecución, para que una página problemática no te obligue a vigilar el resto.
+
+Cuando termina la extracción, tu libro existe como contenido estructurado dentro de ADT Studio — listo para el siguiente paso: [Seccionamiento](/docs/convert-pdf/sectioning).
+</Step>
+
+</Steps>
+
+## Corregir los metadatos del libro
+
+Una vez que se ha ejecutado la extracción, el título, los autores, la editorial y el idioma del libro aparecen en la parte superior de la etapa Extraer, junto con el número de páginas y un resumen escrito por la IA. Selecciona **Editar metadatos del libro** para corregir cualquier cosa que la IA haya interpretado mal.
+
+Cambiar el idioma se trata de forma distinta al resto de los campos: dado que la narración, la traducción, las descripciones, el glosario y los cuestionarios se generan por idioma, ADT Studio te advierte que las etapas posteriores ya completadas se reiniciarán y necesitarán ejecutarse de nuevo antes de que confirmes el cambio. Tus secciones de página se conservan de cualquier forma.
+
+## Dividir un libro en partes
+
+Para un libro largo, **Dividir en partes** te permite repartir rangos de páginas entre distintas personas (o procesarlos tú mismo por separado) y reensamblar los resultados después, en lugar de que una sola persona ejecute todo el libro de principio a fin. Un panel de **Dividir y combinar** en la vista general del libro maneja ambas direcciones:
+
+- **Exportar una parte** — elige un rango de páginas y expórtalo como su propio `.zip` de proyecto. Quien lo reciba lo abre en su propio ADT Studio y trabaja la extracción, el seccionamiento y el resto, como un libro normal.
+- **Combinar una parte completada** — sube el `.zip` exportado de una parte terminada de vuelta al libro de origen. ADT Studio te muestra una vista previa de lo que cambiaría (páginas agregadas o reemplazadas, cualquier advertencia) antes de que confirmes, y te avisa si la parte se procesó con prompts o modelos distintos al resto del libro. Las etapas a nivel de libro (como el resumen del libro) se marcan como obsoletas y necesitan volver a ejecutarse una vez que se haya combinado cada parte, ya que dependen de que el libro completo esté presente.
+
+Los metadatos del libro (título, autores, editorial) viajan con la parte que contenga la página 1 — hasta que esa parte se combine, el libro permanece sin título.
+
+<Callout title="Bueno saberlo">
+Si cambias un ajuste y ejecutas la extracción de nuevo, ADT Studio **solo rehace el trabajo afectado por tu cambio**. Todo lo demás se reutiliza instantáneamente a partir de los resultados guardados, sin costo adicional. Y nada se pierde: los resultados anteriores se conservan y puedes volver a ellos.
+</Callout>

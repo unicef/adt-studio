@@ -1,0 +1,38 @@
+---
+title: "Formats"
+description: "Les formats dans lesquels ADT Studio peut empaqueter votre ADT, et comment distribuer chacun d'eux."
+icon: Package
+---
+
+Votre dossier de projet reste la référence. Vous pouvez exporter le même livre vers plusieurs formats, et réexporter à tout moment après avoir apporté des modifications.
+
+{/* dynamic: format list and their exact names — verify against current UI on each update */}
+
+<StageCards>
+  <StageCard slug="export/project-archive" title="Archive du projet" description="L'intégralité du dossier de projet sous forme d'un seul fichier — pour transmettre ou sauvegarder le travail lui-même. Une autre personne peut l'ouvrir dans ADT Studio et reprendre exactement là où vous vous étiez arrêté, avec toutes les versions et tous les paramètres intacts." />
+  <StageCard slug="export/web" title="Export Web" description="L'ADT sous forme de site web autonome. Hébergé sur n'importe quel serveur web ou ouvert localement, fonctionne dans n'importe quel navigateur moderne. La façon la plus directe de mettre un ADT devant des lecteurs, et le format utilisé par les démonstrations publiques d'ADT." />
+  <StageCard slug="export/scorm" title="Export SCORM" description="Un package pour les systèmes de gestion de l'apprentissage (LMS). Une norme largement prise en charge — si votre ministère, réseau scolaire ou organisation utilise un LMS (comme Moodle), ce format permet de téléverser l'ADT comme contenu de cours." />
+  <StageCard slug="export/webpub" title="Export WebPub" description="Bêta — un format de publication web basé sur des normes, conçu pour les plateformes de lecture numérique et les systèmes de bibliothèque. Il fonctionne, mais est encore en maturation." />
+  <StageCard slug="export/epub" title="Export EPUB" description="Bêta — le format standard pour les livres numériques, lisible dans la plupart des applications et appareils de lecture. Il fonctionne, mais est encore en maturation." />
+</StageCards>
+
+### Vous ne savez pas quel format vous convient ?
+
+| Si les lecteurs l'ouvriront dans... | Utilisez... |
+|---|---|
+| Un navigateur | Export Web |
+| Une plateforme d'apprentissage | SCORM |
+| Une liseuse électronique | EPUB |
+| Un autre utilisateur d'ADT Studio | Archive du projet |
+
+## Distribution
+
+La façon dont vous livrez l'ADT exporté dépend de votre contexte :
+
+- **Environnements hors ligne et à faible connectivité** — les ADT exportés peuvent être préchargés sur des tablettes ou partagés sous forme de fichiers. Une fois sur l'appareil, aucun accès internet n'est nécessaire.
+- **Plateformes d'apprentissage** — téléversez le package SCORM vers votre LMS comme n'importe quel support de cours.
+- **Hébergement web** — publiez l'Export Web sur n'importe quel serveur ; les lecteurs n'ont besoin que d'un navigateur et du lien.
+
+## Après la distribution
+
+Si le contenu source change ou que vous améliorez une fonctionnalité, relancez les étapes concernées et exportez à nouveau. Les versions antérieures restent dans votre dossier de projet — rien n'est perdu, et vous pouvez toujours voir ce qui a changé.

@@ -1,0 +1,34 @@
+---
+title: "Língua de sinais"
+description: "Integre vídeos em língua de sinais junto ao seu conteúdo."
+icon: Hand
+---
+
+Para muitos alunos surdos, a língua de sinais é sua primeira língua — e o texto escrito é uma segunda língua. Vídeos em língua de sinais incorporados junto ao conteúdo tornam um ADT genuinamente acessível para esses alunos, em vez de apenas tecnicamente legível.
+
+ADTs produzidos pela iniciativa já incluíram língua de sinais em línguas de sinais nacionais (por exemplo, ASL e LIBRAS em ADTs existentes).
+
+## Decisões a tomar
+
+- **Qual língua de sinais?** As línguas de sinais não são universais — cada país (às vezes cada região) tem a sua própria. A escolha certa depende de onde o ADT será usado.
+- **Qual é a origem dos vídeos?** O conteúdo em língua de sinais requer intérpretes humanos e produção de vídeo — ele não é gerado automaticamente pela ferramenta. Cada vídeo é filmado para **uma seção do Storyboard** — as mesmas seções usadas em todo o restante do livro — então uma passagem completa de língua de sinais significa produzir um vídeo por seção, não um único vídeo para o livro inteiro. Esta etapa serve para organizar vídeos que você já tem, não para produzi-los.
+
+<Callout title="Faça isso quando o livro já estiver definido">
+Como cada vídeo corresponde a uma seção do Storyboard, a produção de língua de sinais normalmente deve começar somente depois que o conteúdo e o fluxo de seções do livro estiverem finalizados e aprovados — voltar atrás para regravar vídeos depois que uma seção muda ou é reestruturada tem um custo alto. Trate a Língua de Sinais como uma das últimas etapas a executar, não uma das primeiras.
+</Callout>
+
+## Enviando e atribuindo vídeos
+
+A Língua de Sinais precisa que as seções do seu livro já estejam montadas — se o [Storyboard](/docs/convert-pdf/storyboard) ainda não estiver concluído, a etapa avisa isso em vez de permitir que você a execute. Quando estiver pronto, abra a etapa **Língua de Sinais**: não há nenhuma etapa de IA para executar aqui, apenas vídeos para enviar e associar a seções, um de cada vez.
+
+- **Adicionar vídeos** para enviar um ou mais arquivos `.mp4`/`.webm`. Os vídeos enviados começam **não atribuídos** até que você os associe a uma seção.
+- **Atribuir** cada vídeo a uma seção do Storyboard em um menu suspenso — um vídeo por seção. Uma barra de **Cobertura** mostra quantas das seções do livro têm um vídeo, e um atalho de **Próxima seção faltante** leva diretamente para a próxima lacuna.
+- **Gerenciar todas as seções** abre uma lista completa de todas as seções, para que você possa revisar ou reatribuir vídeos além do fluxo um de cada vez.
+
+O leitor exibe o vídeo correspondente em um pequeno player conforme o usuário rola a página.
+
+![A etapa Língua de Sinais antes de qualquer vídeo ser enviado, mostrando cobertura zero ao lado de uma prévia do leitor solicitando um vídeo](./sign-language-stage.png)
+
+<Callout title="Não faz parte do pipeline de IA">
+A Língua de Sinais não executa nem regenera nada — é puro gerenciamento de recursos. Não há nada para executar novamente quando o conteúdo anterior muda; se o texto de uma seção mudar de forma significativa, reavalie se o vídeo dela ainda corresponde.
+</Callout>

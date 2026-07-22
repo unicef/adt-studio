@@ -1,8 +1,207 @@
 ---
 title: "Solución de problemas y FAQ"
 description: "Respuestas a preguntas frecuentes y consejos para solucionar problemas."
+icon: LifeBuoy
 ---
 
-Respuestas a preguntas frecuentes y consejos para solucionar problemas.
+Respuestas a las preguntas que surgen con más frecuencia, agrupadas según lo que estés intentando hacer. Si no encuentras la tuya aquí, revisa [Informar de problemas](/docs/reporting-issues) — puede que alguien ya la haya preguntado en GitHub.
 
-> 📝 *Esta página está en construcción.*
+<SectionBanner slug="faq" />
+
+## General
+
+<Accordions>
+
+<Accordion title="¿Qué es ADT Studio, en una frase?">
+Una herramienta gratuita y de código abierto que convierte un PDF en un Libro de Texto Digital Accesible (ADT) — contenido estructurado, narración, traducciones y lengua de señas, producidos mediante un proceso guiado que no requiere programar. Consulta [¿Qué es ADT Studio?](/docs/get-started/what-is-adt-studio)
+</Accordion>
+
+<Accordion title="¿ADT Studio es realmente gratis?">
+Sí. ADT Studio en sí es gratuito y de código abierto (AGPL-3.0). El único costo es el uso del proveedor de IA que conectes — ese cargo va al proveedor, no a ADT Studio ni a UNICEF. Consulta [Proveedores de IA y costos](/docs/get-started/api-keys).
+</Accordion>
+
+<Accordion title="¿Necesito saber programar para usarlo?">
+No. La aplicación es un asistente guiado, paso a paso, desde la importación de un PDF hasta la exportación de un ADT terminado. La programación solo entra en juego si quieres compilar ADT Studio desde el código fuente o contribuir al proyecto.
+</Accordion>
+
+<Accordion title="¿Por qué no puedo crear un libro nuevo desde cero en ADT Studio — por qué solo acepta PDFs?">
+ADT Studio es una herramienta de **conversión**, no de autoría. Existe para hacer accesible el contenido curricular *ya existente* de los países — ese es el mandato de UNICEF detrás del proyecto — no para generar contenido pedagógico nuevo. Hoy, el PDF es el único formato de origen compatible. Si necesitas crear contenido primero, usa una herramienta de autoría de propósito general (Word, Google Docs, Canva, etc.), expórtalo como PDF y luego impórtalo en ADT Studio. Consulta [¿Qué tipo de contenido puede convertirse en un ADT?](/docs/get-started/what-type-of-content)
+</Accordion>
+
+<Accordion title="¿Funciona sin conexión a internet?">
+Parcialmente. Los pasos de procesamiento con IA (extracción, narración, traducción, etc.) necesitan internet para comunicarse con tu proveedor de IA. Un **ADT terminado y exportado funciona completamente sin conexión** — ese es justamente el objetivo, ya que está pensado para aulas con poco ancho de banda o sin conexión.
+</Accordion>
+
+<Accordion title="¿Dónde se ha usado realmente ADT Studio?">
+Los pilotos con evidencia documentada abarcan países de África, el Caribe y América Latina, como parte de la iniciativa [Accessible Textbooks for All](https://www.accessibletextbooksforall.org) de UNICEF — consulta ese sitio para la lista actual de países participantes. Consulta las [demos en vivo](/docs/get-started/what-is-adt-studio#where-adt-studio-has-been-used) para ver ejemplos de lo que produce la herramienta.
+</Accordion>
+
+</Accordions>
+
+## Por qué existe ADT Studio
+
+<Accordions>
+
+<Accordion title="¿Por qué se creó ADT Studio?">
+Porque la mayoría de los materiales curriculares en países de ingresos bajos y medios son impresos e inaccesibles, y los niños con discapacidad quedan desproporcionadamente excluidos como resultado. ADT Studio fue creado por UNICEF, como parte de la iniciativa [Accessible Textbooks for All](https://www.accessibletextbooksforall.org), para cerrar esa brecha combinando IA con revisión humana — en lugar de producir una versión accesible de cada libro desde cero, a mano, cada vez.
+</Accordion>
+
+<Accordion title="¿Qué impacto ha tenido ADT Studio hasta ahora?">
+La iniciativa Accessible Textbooks for All hace seguimiento de su alcance — países activos, estudiantes alcanzados, docentes capacitados — en su propio sitio, ya que esas cifras crecen con cada nuevo piloto. Consulta el [sitio de la iniciativa](https://www.accessibletextbooksforall.org) para ver los números actuales, o [Dónde se ha usado ADT Studio](/docs/get-started/what-is-adt-studio#where-adt-studio-has-been-used) para pilotos específicos y demos en vivo.
+</Accordion>
+
+<Accordion title="¿Cómo se compara esto con producir libros de texto accesibles de la manera tradicional?">
+Tradicionalmente, los gobiernos contratan a editoriales para producir versiones accesibles de libros de texto físicos — normalmente entre $20 y $100 por página y de 3 a 6 meses por libro, razón por la cual la mayoría de los estudiantes con discapacidad terminan sin ninguna versión accesible. Convertir el mismo contenido mediante el proceso de ADT Studio cuesta aproximadamente $1 por página en uso de IA (una reducción de ~20 veces — consulta [Proveedores de IA y costos](/docs/get-started/api-keys)) y toma del orden de minutos para los pasos automatizados, antes de la validación humana.
+</Accordion>
+
+<Accordion title="¿Cómo empieza un país u organización a usar ADT Studio?">
+Cualquiera puede descargar y probar ADT Studio por su cuenta. Sin embargo, incorporarlo como parte de un programa nacional generalmente pasa por la iniciativa Accessible Textbooks for All, y en términos generales se ve así: expresar interés a través de tu **Oficina de País de UNICEF**, ser presentado a la **Iniciativa ADT**, recibir capacitación sobre la **Hoja de Ruta de Implementación de ADT** y sobre ADT Studio en sí, establecer los **comités de gobernanza e implementación** correspondientes, elaborar un **plan de trabajo**, y luego **pilotar, documentar, aprender y escalar**. Este proceso no es rígido — se adapta al contexto de cada país — así que trátalo como una forma general y no como una lista de verificación estricta. Consulta la [iniciativa Accessible Textbooks for All](https://www.accessibletextbooksforall.org) para ponerte en contacto e iniciar esa conversación.
+</Accordion>
+
+</Accordions>
+
+## Instalación y ejecución
+
+<Accordions>
+
+<Accordion title="¿Cómo debería instalar ADT Studio?">
+Para casi todo el mundo, instala la **aplicación de escritorio** — como cualquier programa normal, para Windows o macOS. Si quieres compilarla desde el código fuente, contribuir al proyecto o alojarla tú mismo (por ejemplo, para un entorno gestionado por TI), consulta [Instalación](/docs/get-started/install), incluyendo las [notas para desarrolladores / autoalojamiento](/docs/get-started/install#option-for-developers-run-it-from-source).
+</Accordion>
+
+<Accordion title="¿ADT Studio funciona en Linux?">
+La aplicación de escritorio empaquetada actualmente está dirigida a Windows y macOS. En Linux, puedes ejecutar ADT Studio desde el código fuente (consulta [Opción para desarrolladores](/docs/get-started/install#option-for-developers-run-it-from-source)) o alojarlo tú mismo con Docker — consulta [¿Puedo autoalojar ADT Studio para mi organización?](#for-developers-and-it) más abajo.
+</Accordion>
+
+<Accordion title="¿Necesito instalar algo más, como Node.js?">
+No — no para *usar* ADT Studio. La aplicación de escritorio es autocontenida. Node.js, Git y el resto de las herramientas solo se necesitan si estás ejecutando ADT Studio desde el código fuente, compilando el proyecto o desarrollando sobre él.
+</Accordion>
+
+<Accordion title="¿Cómo actualizo a una versión más nueva?">
+La aplicación de escritorio se actualiza automáticamente — no necesitas descargar ni ejecutar un nuevo instalador tú mismo. La actualización igualmente se descarga a través de internet en segundo plano, así que necesita conexión para aplicarse. Si estás autoalojando con Docker, descarga la imagen más reciente (`ghcr.io/unicef/adt-studio:latest`) o la etiqueta de una versión específica.
+</Accordion>
+
+<Accordion title="¿Dónde se almacenan realmente los datos de mi libro?">
+Todo lo relacionado con un libro — el PDF de origen, la configuración, el contenido generado y cada versión — vive en una sola carpeta de proyecto en tu máquina (o en el volumen `books` montado, si estás autoalojando con Docker). Nada se envía a ningún lado, excepto el contenido específico enviado a tu proveedor de IA para procesar un paso.
+</Accordion>
+
+</Accordions>
+
+## Proveedores de IA, claves y costo
+
+<Accordions>
+
+<Accordion title="¿Qué proveedor de IA debería usar?">
+ADT Studio está avanzando hacia la compatibilidad con múltiples proveedores de IA, pero hoy el proceso principal se apoya sobre todo en OpenAI. La narración (texto a voz) ya te permite elegir entre OpenAI, Google Gemini y Azure. Consulta [Proveedores de IA y costos](/docs/get-started/api-keys).
+</Accordion>
+
+<Accordion title="¿Mi clave de API está segura?">
+Tu clave se guarda localmente en tu máquina y se usa solo para comunicarse con el proveedor que conectaste. Trátala como una contraseña — cualquiera que la tenga puede generar costos en tu cuenta. Nunca la pegues en una incidencia de GitHub ni en una captura de pantalla.
+</Accordion>
+
+<Accordion title="¿Cuánto me costará convertir un libro?">
+Depende del proveedor/modelo, de la extensión de tu documento y de qué funciones opcionales (narración, traducción, cuestionarios, descripciones de imágenes) actives. Cada llamada de IA se almacena en caché, así que volver a ejecutar un paso que no has cambiado no cuesta nada adicional, y ADT Studio te muestra el costo de cada llamada a medida que avanzas. Consulta [¿Cuánto cuesta?](/docs/get-started/api-keys#how-much-does-it-cost)
+</Accordion>
+
+<Accordion title="Formo parte de un programa gubernamental o ministerial — ¿igual tengo que pagar yo el uso de IA?">
+Los programas oficiales de países ADT y sus socios implementadores pueden acceder a créditos de API en lugar de pagar directamente. Ponte en contacto a través de la [iniciativa Accessible Textbooks for All](https://www.accessibletextbooksforall.org) para verificar tu elegibilidad.
+</Accordion>
+
+<Accordion title="¿Por qué volver a ejecutar un paso me siguió costando dinero?">
+El almacenamiento en caché se basa en las entradas exactas de una llamada al LLM — modelo, prompt y parámetros. Si cambiaste alguno de esos elementos (o el contenido previo del que depende el paso), la clave de caché cambia y se trata como trabajo nuevo. Volver a ejecutar sin cambiar nada reutiliza el resultado en caché sin costo adicional.
+</Accordion>
+
+</Accordions>
+
+## Conversión de un PDF
+
+<Accordions>
+
+<Accordion title="¿Por qué la extracción salió desordenada o con texto faltante?">
+La causa más común es el PDF de origen: si no puedes seleccionar palabras individuales en un visor de PDF normal, el archivo no tiene una capa de texto real (a menudo es un escaneo), y el texto no puede extraerse de forma confiable. Consulta [¿Qué tipo de contenido puede convertirse en un ADT?](/docs/get-started/what-type-of-content) para saber qué hace bueno a un archivo de origen.
+</Accordion>
+
+<Accordion title="¿Puedo convertir un PDF escaneado?">
+No de forma confiable — un escaneo es una fotografía de una página sin texto subyacente, así que ADT Studio no tiene nada que extraer. Primero ejecuta un OCR (reconocimiento óptico de caracteres) sobre él, o empieza a partir de una versión del documento que tenga una capa de texto real.
+</Accordion>
+
+<Accordion title="Mi PDF tiene tablas complejas o un diseño tipo revista — ¿funcionará?">
+Las tablas simples (encabezados claros, filas consistentes) se extraen bien. Las tablas de varias páginas o con celdas combinadas, y los diseños complejos o con marca (cuadros de texto superpuestos, texto sobre imágenes), son más difíciles de interpretar para la herramienta y por lo general necesitan revisión manual después de la extracción. Los diseños de una o dos columnas funcionan mejor.
+</Accordion>
+
+<Accordion title="Cometí un error en un paso anterior — ¿tengo que empezar de nuevo?">
+No. Puedes volver atrás y volver a ejecutar cualquier paso anterior; solo se rehace el trabajo afectado, y se conserva cada versión anterior para que puedas revertir. Nada se sobrescribe silenciosamente.
+</Accordion>
+
+<Accordion title="¿Cuánto tarda la conversión?">
+Depende de la extensión del documento y de qué funciones ejecutes — los documentos más largos y más pasos impulsados por IA (narración, traducción, cuestionarios) tardan más. Empezar con un documento corto de 10 a 30 páginas es la forma más rápida de ver el proceso completo y hacerte una idea de los tiempos antes de comprometerte con un libro de texto completo.
+</Accordion>
+
+</Accordions>
+
+## Funciones de accesibilidad y mejora
+
+<Accordions>
+
+<Accordion title="¿Qué idiomas admite ADT Studio para traducción y narración?">
+Esto depende de la cobertura de idiomas de tu proveedor de IA. La calidad de la traducción y la disponibilidad de voces varían según el idioma — escucha muestras de narración y haz que un revisor humano (idealmente un docente familiarizado con la audiencia) verifique las traducciones antes de publicar.
+</Accordion>
+
+<Accordion title="¿ADT Studio genera video en lengua de señas automáticamente?">
+No. La lengua de señas no la genera el proceso de IA — requiere intérpretes humanos y video producido por separado, que integras junto a tu contenido. La lengua de señas tampoco es universal, así que la elección correcta (por ejemplo, ASL, LIBRAS) depende de dónde se usará el ADT. Consulta [Lengua de señas](/docs/enhance/sign-language).
+</Accordion>
+
+<Accordion title="¿Tengo que usar todas las funciones de mejora (cuestionarios, glosario, descripciones, etc.)?">
+No — cada una es opcional y funciona de manera independiente. Activa solo lo que un libro determinado necesite; un lector simple puede necesitar solo el texto principal y la narración, mientras que un libro de texto completo podría usarlas todas.
+</Accordion>
+
+<Accordion title="¿Cómo sé si mi ADT es realmente accesible antes de publicarlo?">
+Usa [Validar y previsualizar](/docs/convert-pdf/validate-preview): la vista previa muestra el ADT tal como lo experimentaría un lector, y la validación ejecuta una verificación automática de accesibilidad WCAG (descripciones de imágenes faltantes, contraste, problemas estructurales) junto con cualquier problema que señales tú mismo. Trata una validación fallida como un obstáculo real, no como un trámite.
+</Accordion>
+
+</Accordions>
+
+## Exportación y distribución
+
+<Accordions>
+
+<Accordion title="¿Qué formato de exportación debería usar?">
+Navegador → **Exportación web**. Sistema de gestión del aprendizaje (por ejemplo, Moodle) → **SCORM**. Lector de libros electrónicos → **EPUB** (beta). Un paquete listo para apps de lectura, con cuestionarios funcionales pero sin interfaz incorporada → **WebPub** (beta). Entregar el proyecto a otro usuario de ADT Studio → **Archivo del proyecto**. Consulta [Exporta tu ADT](/docs/export).
+</Accordion>
+
+<Accordion title="Necesito corregir algo después de exportar — ¿tengo que rehacer toda la exportación?">
+No. Tu carpeta de proyecto sigue siendo la fuente de verdad, así que puedes volver a ejecutar solo el paso afectado y luego volver a exportar. También puedes exportar el mismo libro a varios formatos en cualquier momento.
+</Accordion>
+
+<Accordion title="¿Puede otra persona continuar mi proyecto en su propia computadora?">
+Sí — usa **Archivo del proyecto** para empaquetar toda la carpeta del proyecto, incluyendo cada versión y configuración, en un solo archivo. Esa persona lo abre en su propio ADT Studio con la opción [Importar un proyecto](/docs/convert-pdf/import-pdf) y retoma exactamente donde lo dejaste.
+</Accordion>
+
+</Accordions>
+
+## Para desarrolladores y TI
+
+<Accordions>
+
+<Accordion title="¿Pueden varias personas trabajar en el mismo libro a la vez?">
+ADT Studio no está construido como un editor multiusuario en tiempo real — cada carpeta de proyecto está pensada para que la trabaje una sola persona (o se transfiera de forma secuencial mediante Archivo del proyecto), en lugar de ser editada simultáneamente por varias personas a la vez.
+</Accordion>
+
+<Accordion title="¿Puedo autoalojar ADT Studio para mi organización?">
+Sí, usando Docker — una opción más técnica, útil para entornos gestionados por TI o Linux, que te da exactamente las mismas funciones que la aplicación de escritorio. Ejecuta un solo comando:
+
+```
+docker run -p 8080:80 -v ./books:/app/books ghcr.io/unicef/adt-studio:latest
+```
+
+o descarga el archivo `docker-compose.yml` desde la [última versión](https://github.com/unicef/adt-studio/releases/latest) y ejecuta `docker compose up`. En cualquier caso, abre `http://localhost:8080` en tu navegador, y los datos de tu libro se guardan en la carpeta `books` montada. También puedes montar tu propio directorio `prompts` y archivo de configuración sobre los predeterminados. **Requisito:** tener [Docker](https://docs.docker.com/get-docker/) instalado en tu máquina.
+</Accordion>
+
+<Accordion title="¿El código está abierto para revisión o contribución?">
+Sí — ADT Studio tiene licencia AGPL-3.0 y se desarrolla abiertamente en [GitHub](https://github.com/unicef/adt-studio). Los reportes de errores, solicitudes de funciones y pull requests son bienvenidos; consulta [Informar de problemas](/docs/reporting-issues) para saber cómo presentar uno.
+</Accordion>
+
+</Accordions>
+
+## ¿Sigues atascado?
+
+Si tu pregunta no está respondida aquí, [busca o abre una incidencia en GitHub](/docs/reporting-issues) — incluye tu sistema operativo, la versión de ADT Studio y los pasos que llevaron al problema, para que el equipo pueda ayudarte rápidamente.

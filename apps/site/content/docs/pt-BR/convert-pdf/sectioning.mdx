@@ -1,0 +1,47 @@
+---
+title: "Seccionamento"
+description: "Revise e refine como seu livro é dividido em capítulos, títulos e blocos de conteúdo."
+icon: Network
+---
+
+Um livro é mais do que uma sequência de páginas — ele tem capítulos, títulos, parágrafos, atividades, figuras. O Seccionamento é onde essa estrutura é identificada e confirmada.
+
+O Seccionamento é uma etapa própria, executada após a [extração](/docs/convert-pdf/extract) — é aqui, e não durante a extração em si, que a IA rotula capítulos, títulos e conteúdo pedagógico. Depois que ela roda, chega o seu momento de revisar esse trabalho: verifique se a estrutura corresponde ao livro real, corrija o que foi lido incorretamente e limpe o que não deveria estar ali.
+
+## Por que isso importa
+
+A estrutura definida aqui orienta quase tudo o que vem depois:
+
+- O **sumário** é montado a partir dela
+- A **navegação** para os leitores (inclusive usuários de leitor de tela) depende dela
+- **Questionários e glossário** são gerados por seção, então limites errados produzem conteúdo incompatível
+- A **narração** segue a ordem de leitura que ela define
+
+Alguns minutos de revisão aqui economizam muito mais tempo de correção depois.
+
+## A tela de seccionamento
+
+Para cada página, você tem uma visão dividida: a imagem original da página de um lado, e uma árvore editável do conteúdo dessa página do outro. Cada elemento de conteúdo — um título, um parágrafo, uma atividade, uma imagem — é um nó nessa árvore.
+
+- A **estrutura** vem de onde um nó está posicionado na árvore, não de um nível de título numerado. Não há H1/H2/H3 — um nó fica aninhado sob o nó ao qual pertence, e é marcado com uma função (como "título") por meio de um menu suspenso no próprio nó.
+- A **ordem de leitura** é simplesmente a ordem em que os nós aparecem na árvore. Arraste um nó pela sua alça e solte-o onde ele deve ficar para reordenar o conteúdo.
+- A **remoção de ruído** é um alternador por nó — um ícone de olho que exclui um nó da saída renderizada sem excluí-lo de fato. Cabeçalhos repetidos, rodapés e números de página são excluídos por padrão, mas verifique se mais nada passou despercebido (ou foi excluído por engano).
+- **Atividades e conteúdo especial** têm seus próprios tipos — um menu suspenso por seção permite marcar algo como, por exemplo, uma atividade de correspondência ou uma questão de múltipla escolha, em vez de deixá-lo como texto simples.
+
+Um menu de linha em cada nó também permite adicionar texto, adicionar uma imagem, agrupar nós, duplicar ou excluir — para os casos em que a IA perdeu algo ou dividiu o conteúdo incorretamente.
+
+<Callout title="Visão geral">
+Alterne para **Visão geral** para ver as seções de todas as páginas em uma única tabela — página, seção, tipo, conteúdo e partes — em vez de revisar uma página por vez.
+</Callout>
+
+## O que verificar
+
+- **A estrutura está correta?** Um nó aninhado no lugar errado, ou com a função errada, muda a hierarquia de tudo abaixo dele.
+- **A ordem de leitura está correta?** Especialmente em layouts de duas colunas, verifique se o conteúdo flui na ordem em que um leitor deveria encontrá-lo.
+- **Sobrou algum ruído?** Cabeçalhos repetidos, rodapés e números de página costumam ser excluídos automaticamente — mas verifique novamente e exclua qualquer outra coisa que não deva ser lida em voz alta ou exibida.
+- **Atividades e conteúdo especial foram reconhecidos?** Exercícios, caixas e figuras devem ter o tipo correto, e não permanecer como texto simples.
+- **Alguma página carrega um aviso de "sem camada de texto"?** Um sinalizador em uma página significa que a camada de texto do PDF estava vazia e o conteúdo exibido foi recuperado a partir da imagem da página — dê uma atenção maior a essas páginas, já que a recuperação baseada em visão é mais sujeita a erros do que a leitura de texto incorporado.
+
+## Quando terminar
+
+Com a estrutura confirmada, o lado visual do seu ADT vem a seguir: [Storyboard](/docs/convert-pdf/storyboard).

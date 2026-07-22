@@ -1,0 +1,29 @@
+---
+title: "Fala"
+description: "Adicione narração em áudio para que os alunos possam ouvir o livro."
+icon: AudioLines
+---
+
+A narração transforma texto em áudio, para que os alunos possam ouvir o livro — essencial para alunos com deficiência visual ou dificuldades de leitura, e valiosa para qualquer pessoa que aprenda melhor ouvindo.
+
+O ADT Studio gera **texto para fala localizado**: narração natural na voz certa para cada idioma do seu ADT.
+
+## Decisões a tomar
+
+- **Qual conteúdo é narrado?** Uma configuração de **Conteúdo para Leitura em Voz Alta** permite incluir ou excluir cada categoria de forma independente — texto da página, legendas de imagem, respostas de atividades, entradas do glossário e texto de Leitura Fácil.
+- **A voz combina com o público e o idioma?** Uma voz que soa natural em um idioma pode não estar disponível ou ser adequada em outro. Ouça amostras antes de gerar o livro inteiro.
+- **Verifique a pronúncia de nomes e termos locais.** A conversão de texto em fala pode tropeçar em nomes próprios, nomes de lugares e vocabulário específico do currículo. Faça uma verificação pontual das seções que os contêm — ou substitua apenas o áudio daquela entrada (veja abaixo).
+- **Os leitores precisam de destaque por palavra?** Ativar essa opção calcula automaticamente as marcações de tempo de cada palavra durante a geração, para que o leitor possa acompanhar palavra por palavra enquanto ela é narrada.
+
+## Configurar e gerar
+
+A Fala precisa que o conteúdo traduzido já esteja pronto. Abra a etapa **Fala** e defina uma voz por idioma e provedor, além de:
+
+- **Destaque por palavra** — quando ativado, as marcações de tempo das palavras são calculadas automaticamente conforme a fala é gerada. Se você deixar desativado, ainda é possível calcular as marcações manualmente depois, na visão de Fala.
+- **Conteúdo para Leitura em Voz Alta** — alterne quais categorias de texto são narradas.
+
+![A etapa Fala antes de ser executada, mostrando as configurações de Provedor e Destaque para o Leitor ao lado de uma prévia de amostra de áudio](./speech-stage.png)
+
+## Revisar, substituir e editar
+
+Depois que a narração for gerada, navegue pelas entradas por idioma, filtre apenas as que ainda estão **Faltando** áudio, e pré-visualize cada versão com o seletor de versões. Se a narração por IA pronunciar incorretamente um nome ou termo, você não está limitado a regenerar tudo — cada entrada tem uma ação de **Enviar seu próprio arquivo de áudio** (ou **Substituir este arquivo de áudio**, se já existir um), para que você possa substituir um trecho gravado manualmente por aquele único pedaço de texto, sem mexer em mais nada.

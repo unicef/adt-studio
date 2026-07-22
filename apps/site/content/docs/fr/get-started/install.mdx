@@ -1,9 +1,84 @@
 ---
-title: "Installation"
-description: "Téléchargez et installez l'application de bureau ADT Studio, ou exécutez-la avec Docker."
+title: "Installation et configuration minimale requise"
+description: "Comment installer ADT Studio sur votre ordinateur, et ce dont votre machine a besoin pour l'exécuter."
 icon: Download
 ---
 
-Téléchargez et installez l'application de bureau ADT Studio, ou exécutez-la avec Docker.
+ADT Studio s'exécute localement sur votre ordinateur. Pour presque tout le monde, l'application de bureau est le moyen de l'installer — téléchargez-la, double-cliquez dessus, ouvrez-la, comme n'importe quel programme classique.
 
-> 📝 *Cette page est en cours de rédaction.*
+## Installer l'application de bureau
+
+L'application de bureau est disponible pour **Windows** et **macOS**.
+
+<Steps>
+
+<Step>
+### Téléchargement
+Rendez-vous sur la [page de téléchargement d'ADT Studio](https://unicef.github.io/adt-studio/download/) et téléchargez l'installateur correspondant à votre système.
+</Step>
+
+<Step>
+### Installez-la
+Ouvrez le fichier téléchargé et suivez les étapes d'installation.
+</Step>
+
+<Step>
+### Lancez ADT Studio
+Ouvrez-la comme n'importe quelle autre application sur votre ordinateur.
+</Step>
+
+</Steps>
+
+## Configuration minimale requise
+
+| Configuration requise | Détails |
+|---|---|
+| **Windows** | Windows 10 ou plus récent, 64 bits uniquement. Windows 7, 8 et 8.1, ainsi que les systèmes 32 bits, ne sont pas pris en charge. |
+| **macOS** | macOS 12 (Monterey) ou plus récent, sur Apple Silicon (arm64). Il n'existe actuellement pas de version Intel ni universelle — les Mac Intel ne sont pas pris en charge. |
+| **Connexion internet** | Requise lors de l'installation, lors de l'application des mises à jour, et pendant la conversion de PDF (pour le traitement par l'IA). Non requise pour ouvrir ou utiliser un ADT terminé. |
+| **Une clé API d'un fournisseur d'IA** | Requise avant de pouvoir convertir un PDF. Voir [Fournisseurs d'IA et coûts](/docs/get-started/api-keys). |
+
+<Callout title="Vous travaillez sur un livre volumineux avec une machine moins puissante ?">
+Les livres très longs ou complexes peuvent être exigeants à traiter en une seule fois, et sur des machines moins puissantes, cela a parfois provoqué un plantage de l'application en cours d'exécution. Si cela se produit, utilisez **Diviser et fusionner** pour découper le livre en parties plus petites, les traiter séparément (éventuellement par différentes personnes ou sur différentes machines), puis réassembler les résultats ensuite — voir [Diviser un livre en parties](/docs/convert-pdf/extract#splitting-a-book-into-parts).
+</Callout>
+
+## À noter
+
+- **Mises à jour.** ADT Studio se met à jour automatiquement, vous n'avez donc jamais besoin de télécharger ni d'exécuter vous-même un nouvel installateur. La mise à jour elle-même est tout de même récupérée en arrière-plan via internet, une connexion internet est donc nécessaire pour qu'une nouvelle version s'applique.
+- **Quelque chose ne fonctionne pas ?** Consultez la page [Dépannage et FAQ](/docs/faq), ou [signalez le problème](/docs/reporting-issues).
+
+## Option pour les développeurs : exécuter à partir des sources
+
+Si vous souhaitez compiler ADT Studio vous-même, contribuer au projet, ou l'exécuter dans un environnement où l'installateur packagé ne convient pas — vous pouvez l'exécuter directement à partir des sources, en utilisant les mêmes outils que pour n'importe quel projet logiciel : un IDE, Git et Node.js.
+
+<Steps>
+
+<Step>
+### Prérequis
+[Node.js](https://nodejs.org/) 20+, [pnpm](https://pnpm.io/) 9+, et [Git](https://git-scm.com/). Pour exécuter l'interface de bureau elle-même (plutôt que seulement la version de développement dans le navigateur), il faut en plus la [chaîne d'outils Rust](https://rustup.rs/).
+</Step>
+
+<Step>
+### Clonez et installez
+```
+git clone git@github.com:unicef/adt-studio.git
+cd adt-studio
+pnpm install
+```
+</Step>
+
+<Step>
+### Exécutez-la
+```
+pnpm dev
+```
+Cela démarre les serveurs de développement de l'API et de Studio, et ouvre l'application dans votre navigateur. Voir le [dépôt GitHub](https://github.com/unicef/adt-studio) pour la configuration complète, y compris comment lancer l'interface de bureau (`pnpm dev:desktop`) plutôt que la version navigateur.
+</Step>
+
+</Steps>
+
+L'auto-hébergement sur une infrastructure partagée (par exemple pour un environnement géré par un service informatique) est également possible — voir [Puis-je auto-héberger ADT Studio pour mon organisation ?](/docs/faq#for-developers-and-it) dans la FAQ.
+
+## Prêt à continuer ?
+
+[Fournisseurs d'IA et coûts →](/docs/get-started/api-keys)

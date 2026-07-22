@@ -1,0 +1,68 @@
+---
+title: "¿Qué tipo de contenido puede convertirse en un ADT?"
+description: "Entiende qué PDFs funcionan bien para la conversión, qué tener en cuenta y cómo prepararte para un buen primer resultado."
+icon: FileSearch
+---
+
+ADT Studio puede procesar la mayoría de los PDFs — pero no todos los PDFs se convierten igual de bien. La calidad del resultado depende en gran medida de la calidad y estructura del archivo de origen. Esta página te ayuda a entender qué funciona, qué no, y por qué.
+
+<Callout title="¿Por qué solo PDFs? ¿Por qué no puedo crear un libro desde cero aquí?">
+ADT Studio **convierte contenido existente — no genera contenido nuevo.** Eso sigue el mandato de UNICEF detrás del proyecto: ayudar a los países a hacer accesibles los currículos que ya tienen, en lugar de generar material pedagógico nuevo. Hoy, el PDF es el único formato de origen compatible.
+
+Si estás empezando desde cero, crea primero el libro en una herramienta de autoría de propósito general (Word, Google Docs, Canva, InDesign, etc.), expórtalo como PDF y luego importa ese PDF en ADT Studio para hacerlo accesible.
+</Callout>
+
+<Callout title="¿Estás empezando?">
+Usa un PDF corto y simple para tu primera conversión — idealmente de 10 a 30 páginas, con encabezados claros y texto sencillo. Esto te permite ver el proceso completo sin tiempos de procesamiento largos, y facilita entender qué hace la herramienta en cada paso antes de trabajar con material más complejo.
+</Callout>
+
+## Qué hace bueno a un PDF de origen
+
+<Steps>
+
+<Step>
+### Una capa de texto real
+
+El factor más importante. ¿Puedes **seleccionar texto** con el mouse en un visor de PDF, palabra por palabra? Si es así, el texto existe como caracteres reales y ADT Studio puede extraerlo de forma confiable.
+
+- ✅ Resalta palabras individuales → capa de texto utilizable
+- 🚫 Selecciona toda la página como si fuera una imagen, o no selecciona nada → sin capa de texto utilizable
+</Step>
+
+<Step>
+### Una estructura clara y consistente
+
+La IA de ADT Studio identifica encabezados, secciones, párrafos, figuras y actividades por patrón. Cuanto más **predecible** sea la estructura — estilos de encabezado consistentes, separaciones claras entre secciones — menos corrección manual necesitarás después de la extracción.
+</Step>
+
+<Step>
+### Un diseño predecible
+
+Los **diseños de una o dos columnas** se manejan mejor. Los diseños complejos — cuadrículas tipo revista, cuadros de texto superpuestos, contenido que depende de un posicionamiento espacial preciso — son más difíciles de interpretar correctamente.
+</Step>
+
+</Steps>
+
+## Con qué tener cuidado
+
+- **PDFs escaneados o basados en imágenes** — un escaneo es una fotografía de una página, sin capa de texto. ADT Studio no puede extraer texto legible de él de la misma forma que puede hacerlo con un PDF con una capa de texto real. Pasar el escaneo primero por una herramienta de OCR (reconocimiento óptico de caracteres) puede agregar una capa de texto real — cualquier herramienta de OCR general funciona, este es un paso de preparación fuera de ADT Studio.
+- **Tablas complejas** — las tablas que abarcan varias páginas o que tienen celdas combinadas son más difíciles de extraer con precisión y pueden necesitar revisión manual. Las tablas simples (pocas columnas, encabezados claros, filas consistentes) se extraen bien.
+- **Encabezados, pies de página y números de página** — los encabezados y pies de página repetidos suelen recogerse durante la extracción. ADT Studio filtra automáticamente la mayoría, pero cualquiera que se cuele necesita eliminarse manualmente durante el seccionamiento.
+- **Documentos con mucho diseño o marca** — las imágenes de fondo a página completa, el texto sobre fotos y las superposiciones decorativas dificultan que la herramienta distinga el contenido de la decoración.
+
+## Referencia rápida
+
+| Estado | Característica | Qué esperar |
+|---|---|---|
+| ✅ Funciona bien | Capa de texto seleccionable | Extracción confiable |
+| ✅ Funciona bien | Estructura de encabezados clara y consistente | Seccionamiento confiable |
+| ✅ Funciona bien | Diseño de una o dos columnas | Resultado sólido |
+| ✅ Funciona bien | Tablas simples (encabezados claros, filas consistentes) | Se extraen bien |
+| ⚠️ Usar con precaución | Tablas complejas de varias páginas o con celdas combinadas | Necesitarán revisión manual |
+| ⚠️ Usar con precaución | Encabezados, pies de página y números de página repetidos | Pueden aparecer en el contenido; eliminar durante el seccionamiento |
+| ⚠️ Usar con precaución | Diseño gráfico intenso o de marca | Puede necesitar corrección manual |
+| 🚫 Evitar | PDF escaneado o solo con imágenes (sin capa de texto) | El texto no se puede extraer |
+
+## ¿Listo para continuar?
+
+[Instalación y requisitos mínimos →](/docs/get-started/install)

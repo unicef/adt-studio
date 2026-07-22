@@ -1,0 +1,46 @@
+---
+title: "Validar y previsualizar"
+description: "Revisa tu ADT con tus propios ojos — y con verificaciones automáticas de accesibilidad."
+icon: ShieldCheck
+---
+
+Antes de mejorar o exportar, tómate un momento para confirmar que lo que tienes está correcto. Esto sucede de dos formas complementarias: **Vista previa** y **Validación**, ambas disponibles tan pronto como se construye tu storyboard.
+
+<Callout title="Disponible ahora, útil en todo momento">
+La vista previa y la validación no son un punto de control único — son etapas que puedes volver a abrir en cualquier momento posterior. Lo que muestran solo refleja lo que se ha generado hasta ahora, así que un vistazo rápido ahora (estructura y diseño) vale la pena repetirlo después de [Mejora tu ADT](/docs/enhance) (una vez que también existan cuestionarios, descripciones, traducciones y narración) y de nuevo antes de exportar.
+</Callout>
+
+## Vista previa: revísalo como un lector
+
+La etapa de **Vista previa** empaqueta lo que tienes hasta ahora y lo muestra en una vista integrada del ADT real, tal como lo vería un lector — no una maqueta. Ábrelo y recorre el libro — no como su productor, sino como alguien que lo encuentra por primera vez.
+
+- ¿El contenido se lee de forma natural, en el orden correcto?
+- ¿Las imágenes aparecen donde deberían?
+- ¿Funciona la navegación — puedes moverte entre secciones fácilmente?
+
+Mientras navegas la vista previa, una tarjeta flotante de **Hallazgos de accesibilidad** muestra una lectura en vivo de las verificaciones automáticas de accesibilidad (ver más abajo) para la página en la que te encuentras, sin necesidad de cambiar a Validación.
+
+Si la validación por revisores está activada para el libro, una segunda tarjeta flotante de **Validación** permite que un revisor identificado trabaje a través de una lista de verificación estructurada mientras navega: abre una sesión (nombre del revisor, institución, idioma, rango de páginas), luego marca cada criterio como **Aprobado**, **Necesita cambios**, **N/A** o **No revisado** por página, con espacio para un comentario y una corrección sugerida. Esto es opcional y separado de las verificaciones automáticas.
+
+## Validar: compruébalo frente a los estándares de accesibilidad
+
+La etapa de **Validación** ejecuta un **Resumen de accesibilidad** automático: tu ADT empaquetado verificado contra WCAG, el estándar internacional de accesibilidad, usando herramientas estándar de la industria. Señala problemas antes de que publiques:
+
+- Descripciones de imágenes faltantes
+- Problemas estructurales
+- Problemas de contraste
+- Barreras de accesibilidad similares
+
+Donde la validación por revisores está activada, la misma etapa también tiene una pestaña de **Validación por revisores** que resume los resultados de la lista de verificación de cada sesión, para que tengas en un solo lugar tanto los problemas verificados por máquina como los verificados por humanos.
+
+<Callout type="warn" title="Esto no es un trámite">
+La validación de accesibilidad **es el propósito de la herramienta**. Un ADT que no pasa estas verificaciones todavía no está cumpliendo su función para los estudiantes que dependen de él.
+</Callout>
+
+## Corrige, vuelve a ejecutar, repite
+
+Si la validación o tu propia revisión detectan problemas, vuelve al paso responsable — [Seccionamiento](/docs/convert-pdf/sectioning) para problemas de estructura, [Storyboard](/docs/convert-pdf/storyboard) para problemas de diseño — corrígelo, y vuelve a ejecutarlo. Solo se rehace el trabajo afectado; todo lo demás se reutiliza. Luego vuelve a Validación para actualizar los resultados según tu corrección.
+
+## Cuando termines
+
+Tu estructura y diseño son sólidos. Ahora enriquece el libro: [Mejora tu ADT](/docs/enhance) — y recuerda volver a Vista previa y Validación una vez que eso esté hecho, para tener el panorama completo antes de exportar.

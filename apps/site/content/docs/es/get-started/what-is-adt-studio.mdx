@@ -1,0 +1,53 @@
+---
+title: "¿Qué es ADT Studio?"
+description: "La herramienta de escritorio de código abierto que convierte un PDF en un ADT — cómo funciona, cuánto cuesta y dónde se ha usado."
+icon: AppWindow
+---
+
+**ADT Studio es una herramienta que convierte un PDF en un libro de texto digital accesible** — narración de audio, diseños estructurados, traducciones y lengua de señas, todo incorporado, sin necesidad de programar.
+
+- **Se ejecuta en tu máquina.** El PDF de origen se queda contigo; solo las llamadas de IA necesitan internet, y un ADT terminado funciona completamente **sin conexión**.
+- **Guiado, paso a paso.** Desde importar un PDF hasta exportar un paquete terminado — sin necesidad de programar.
+- **Orientado hacia la elección de proveedor de IA.** Hoy, el proceso principal se apoya en OpenAI, con soporte creciente para otros proveedores. La mayoría de los proveedores cobran por uso — consulta [Proveedores de IA y costos](/docs/get-started/api-keys).
+- **Gratuito y de código abierto.** Con licencia [AGPL-3.0](https://github.com/unicef/adt-studio/blob/develop/LICENSE), código fuente en [GitHub](https://github.com/unicef/adt-studio) — libre para que cualquiera lo use.
+
+## Quién está detrás de ADT Studio
+
+ADT Studio se desarrolla como un proyecto de código abierto por **UNICEF**, con el apoyo de **OpenAI**, **NEES** y **Ceibal**.
+
+<PartnersStrip />
+
+## Dónde se ha usado ADT Studio
+
+Los pilotos con evidencia documentada abarcan países de África, el Caribe y América Latina, como parte de la iniciativa. UNICEF Innocenti ha realizado investigación sobre la implementación en varios de estos contextos. Consulta la [iniciativa Accessible Textbooks for All](https://www.accessibletextbooksforall.org) para ver la lista actual de países participantes.
+
+Tres demos en vivo dan una idea de lo que produce la herramienta, desde resultado puramente generado por IA hasta contenido revisado a fondo:
+
+<Cards>
+  <Card title="Momo and the Leopards" description="Un cuento multilingüe de Bután, sin ediciones manuales al resultado de la IA." href="https://unicef.github.io/adt-momo-storybook/" />
+  <Card title="Queremos Participar" description="Un texto informativo de Uruguay, ligeramente editado tras el procesamiento con IA." href="https://unicef.github.io/adt-queremos-participar/" />
+  <Card title="Cuaderno 5, Capítulo 1" description="Un libro de texto de 5º grado con actividades, de Uruguay, con una curaduría humana más extensa." href="https://unicef.github.io/ADT-cuaderno5-chapter1/" />
+</Cards>
+
+{/* dynamic: verify demo links against repo README on each release.
+   Checked 2026-07-22: the three demo links (Momo and the Leopards, Queremos Participar, Cuaderno 5) are real —
+   added to README.md on main via PR #356 (merged 2026-04-28), under a "See ADTs in action" section.
+   They are not a recent/stray addition, but they currently exist on `main` only — this branch's README (off `develop`)
+   doesn't have that section, so it can't be used as the source to verify against; check with dev if that's expected
+   drift between branches or if it needs to be pulled into develop too.
+   Country list and reach numbers are intentionally NOT hardcoded here — they change too often to keep in sync
+   with docs review cycles. Point readers to the initiative site instead of restating figures in this file. */}
+
+## Los principios detrás de ADT Studio
+
+ADT Studio está construido en torno a seis ideas que definen cómo funciona.
+
+<PrincipleCards />
+
+## ADT Studio y el Diseño Universal para el Aprendizaje
+
+ADT Studio pone en práctica el **[Diseño Universal para el Aprendizaje (DUA)](https://www.accessibletextbooksforall.org/universal-design-learning)** — diseñar contenido que funcione para la más amplia gama de estudiantes desde el principio, en lugar de adaptarlo después. Un ADT cumple directamente con el primer principio del DUA: el mismo contenido, ofrecido a través de múltiples vías de acceso — lectura, escucha, descripciones de imágenes, cambio de idioma — a gran escala.
+
+## ¿Listo para continuar?
+
+[¿Qué tipo de contenido puede convertirse en un ADT? →](/docs/get-started/what-type-of-content)

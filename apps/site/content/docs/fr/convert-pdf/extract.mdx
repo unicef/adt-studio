@@ -1,0 +1,133 @@
+---
+title: "Extraire le contenu"
+description: "Transformez les pages de votre PDF en contenu structuré et modifiable."
+icon: ScanText
+---
+
+L'extraction est l'étape où ADT Studio lit votre PDF et le convertit en contenu structuré — texte, figures et mise en page — sur lequel s'appuient toutes les étapes suivantes. C'est ici que l'IA effectue sa première et plus importante passe sur votre livre.
+
+Avant que l'extraction ne s'exécute, vous configurez la manière dont elle doit traiter votre document. Cette configuration se déroule en quelques sous-étapes, juste après avoir téléversé votre PDF.
+
+<Steps>
+
+<Step>
+### Choisir un préréglage
+
+Un préréglage est une configuration de départ adaptée au type de document que vous convertissez. Il présélectionne des paramètres sensés pour vous éviter de tout configurer manuellement.
+
+- **Manuels et activités** — chapitres structurés et exercices. Idéal pour un contenu pédagogique aux mises en page complexes.
+- **Livre d'histoires** — grandes images et fil narratif. Idéal pour les livres illustrés, associés à une narration de haute fidélité.
+- **Référence** — texte dense, tableaux et glossaires. Idéal pour le matériel technique et la documentation.
+- **Personnalisé** — contrôle total sur les stratégies de rendu, l'élagage et les filtres, sans rien de présélectionné pour vous.
+
+Les préréglages sont un point de départ, pas un engagement définitif. Après en avoir choisi un, vous pouvez encore ajuster n'importe quel paramètre individuel dans les étapes ci-dessous. Changer de préréglage ensuite réinitialise la configuration que vous avez déjà modifiée, choisissez donc d'abord celui qui correspond le mieux.
+
+![L'écran « Choisir un préréglage », montrant quatre cartes de préréglages : Manuels et activités, Livre d'histoires, Référence et Personnalisé](./extract-preset.png)
+
+Chaque extrait ci-dessous fait passer une véritable page imprimée à travers l'ensemble du pipeline pour son préréglage correspondant — extraction, mise en page, et les fonctionnalités d'accessibilité qui l'accompagnent.
+
+**Manuels et activités** — un chapitre de manuel de sciences imprimé et une page d'activité de cahier d'exercices, tous deux reconstruits en contenu structuré et accessible.
+
+<video controls playsInline aria-label="A printed science textbook chapter on biomes is converted into an accessible e-learning page with easy-read mode, a glossary, and sign language." className="w-full rounded-lg border border-[color:var(--color-border)]">
+  <source src="/videos/los-biomas.mp4" type="video/mp4" />
+</video>
+
+<video controls playsInline aria-label="A printed workbook activity page is converted into an AI-generated, interactive accessible activity." className="w-full rounded-lg border border-[color:var(--color-border)]">
+  <source src="/videos/cuaderno5.mp4" type="video/mp4" />
+</video>
+
+**Référence** — une page de manuel imprimée dense et à plusieurs colonnes, reconstruite en une mise en page web réactive et sémantique.
+
+<video controls playsInline aria-label="A complex, multi-column printed textbook page is converted into a responsive web layout." className="w-full rounded-lg border border-[color:var(--color-border)]">
+  <source src="/videos/brazil.mp4" type="video/mp4" />
+</video>
+
+**Livre d'histoires** — une page de récit illustrée acquiert une narration par synthèse vocale, des descriptions d'images, des traductions et un quiz.
+
+<video controls playsInline aria-label="An illustrated storybook page gains text-to-speech narration, image descriptions, translations, and an interactive quiz." className="w-full rounded-lg border border-[color:var(--color-border)]">
+  <source src="/videos/momo.mp4" type="video/mp4" />
+</video>
+</Step>
+
+<Step>
+### Informations de base
+
+Ici, vous confirmez l'essentiel :
+
+- **Fichier PDF** — le fichier que vous venez de téléverser.
+- **Nom du projet** — l'identifiant unique qu'ADT Studio utilise comme nom de dossier pour votre livre. Il est suggéré à partir du nom de votre fichier, mais vous pouvez le modifier.
+- **Quelle partie de ce livre voulez-vous traiter ?** — **Livre entier** pour tout convertir, **Plage de pages** pour choisir un sous-ensemble (pratique pour tester sur un chapitre d'un long PDF avant de s'engager sur l'ensemble), ou **Diviser en parties** pour répartir des plages de pages entre différentes personnes et fusionner leur travail terminé en un seul livre par la suite (voir [Diviser un livre en parties](#splitting-a-book-into-parts) ci-dessous).
+
+Il n'y a pas de champ séparé pour un « titre du livre » ou une « langue source » ici — le nom du projet fait office d'identifiant, et la langue est définie plus tard dans l'étape Langues.
+</Step>
+
+<Step>
+### Mise en page visuelle
+
+Cette étape indique à ADT Studio comment votre document est organisé visuellement, afin que l'extraction puisse interpréter correctement les pages :
+
+- **Stratégie de rendu** — comment les pages sont reconstruites (basée sur un modèle, ce qui est rapide et gratuit, ou pilotée par l'IA, qui s'adapte page par page au prix d'un traitement supplémentaire).
+- **Mode de regroupement des pages** — **Double page** ou **Page seule**, selon que les pages en vis-à-vis sont traitées comme une seule unité visuelle ou indépendamment.
+- **Mode de sectionnement** — **Mode page** ou **Mode dynamique**, comment le contenu est découpé en sections.
+
+ADT Studio marque l'option qu'il recommande pour le préréglage choisi — dans la plupart des cas, vous pouvez accepter la suggestion.
+</Step>
+
+<Step>
+### Traitement du contenu
+
+Ici, vous choisissez quel traitement piloté par l'IA s'exécute sur votre contenu pendant l'extraction :
+
+- **Convertisseur d'activités** — détecte et structure les exercices et activités.
+- **Extraction de figures** — extrait les images et diagrammes en tant que figures séparées.
+- **Recadrage intelligent** — recadre automatiquement les images extraites sur leur contenu pertinent.
+- **Segmentation d'images** — divise les images composites en leurs éléments individuels, avec un paramètre **Dimension minimale d'image** pour la petitesse acceptable d'un segment.
+- **Taille de filtre d'image** — une **Taille min.** et une **Taille max.** (en pixels) qui filtrent les images trop petites ou trop grandes pour être significatives (par exemple des séparateurs décoratifs ou des fonds pleine page).
+
+Vous n'avez pas besoin de tout activer maintenant. Les fonctionnalités que vous ignorez ici peuvent généralement être exécutées plus tard — voir [Enrichir votre ADT](/docs/enhance).
+
+![L'écran « Traitement du contenu », avec des interrupteurs pour le Convertisseur d'activités, l'Extraction de figures, le Recadrage intelligent et la Segmentation d'images, ainsi que des curseurs de Taille de filtre d'image](./extract-content-processing.png)
+</Step>
+
+<Step>
+### Langues
+
+- **Langue d'édition** — la langue dans laquelle vous travaillerez pendant la révision et l'édition du contenu. Laissez vide pour utiliser la langue propre du livre.
+- **Langues de sortie** — une ou plusieurs langues dans lesquelles traduire l'ADT final. Laissez vide pour ne produire que dans la langue du livre.
+
+Ajouter des langues de sortie ici ne traduit rien immédiatement — cela définit ce que l'étape ultérieure [Langue](/docs/localize/language) traduira une fois que vous l'atteindrez. Chaque langue supplémentaire ajoute du traitement, et donc un coût, à cette étape ultérieure.
+</Step>
+
+<Step>
+### Créer votre ADT
+
+Une fois vos paramètres configurés, sélectionnez **Créer l'ADT**. C'est aussi le moment où ADT Studio crée réellement votre dossier de projet (voir [Importer un PDF](/docs/convert-pdf/import-pdf)).
+
+- Si vous avez déjà une clé API enregistrée, l'extraction démarre automatiquement. Elle s'exécute page par page et peut prendre quelques minutes selon la longueur de votre document ; vous pouvez suivre la progression dans l'interface. Le découpage est une étape distincte — vous l'exécutez vous-même ensuite, depuis l'étape **Découpage** du livre.
+- Si vous n'avez pas encore de clé API enregistrée, votre projet est créé avec vos paramètres en place, et vous démarrez vous-même l'extraction ensuite depuis l'étape **Extraction** du livre (un bouton **Exécuter** sur cette étape la lance).
+
+Si une page échoue pendant l'extraction, ADT Studio se met en pause et vous demande de décider : **ignorer cette page et continuer**, ou **arrêter l'étape**. Une case à cocher permet d'appliquer le même choix à tous les échecs suivants de cette exécution, afin qu'une seule mauvaise page ne vous oblige pas à surveiller tout le reste.
+
+Une fois l'extraction terminée, votre livre existe sous forme de contenu structuré dans ADT Studio — prêt pour l'étape suivante : [Découpage](/docs/convert-pdf/sectioning).
+</Step>
+
+</Steps>
+
+## Corriger les métadonnées du livre
+
+Une fois l'extraction exécutée, le titre du livre, les auteurs, l'éditeur et la langue apparaissent en haut de l'étape Extraction, avec le nombre de pages et un résumé rédigé par l'IA. Sélectionnez **Modifier les métadonnées du livre** pour corriger tout ce que l'IA aurait mal interprété.
+
+Changer la langue est traité différemment des autres champs : puisque la narration, la traduction, les légendes, le glossaire et les quiz sont tous générés par langue, ADT Studio vous avertit que les étapes en aval déjà terminées seront réinitialisées et devront être relancées avant que vous ne confirmiez le changement. Vos sections de page sont conservées dans tous les cas.
+
+## Diviser un livre en parties
+
+Pour un livre volumineux, **Diviser en parties** permet de répartir des plages de pages entre différentes personnes (ou de les traiter séparément vous-même) et de réassembler les résultats ensuite, plutôt qu'une seule personne exécute tout le livre du début à la fin. Un panneau **Diviser et fusionner** sur l'aperçu du livre gère les deux sens :
+
+- **Exporter une partie** — choisissez une plage de pages et exportez-la comme son propre projet `.zip`. La personne qui la reçoit l'ouvre dans son propre ADT Studio et parcourt l'extraction, le découpage et le reste, comme pour un livre normal.
+- **Fusionner une partie terminée** — téléversez le `.zip` exporté d'une partie terminée dans le livre source. ADT Studio prévisualise ce qui changerait (pages ajoutées ou remplacées, avertissements éventuels) avant que vous ne confirmiez, et signale si la partie a été traitée avec des prompts ou des modèles différents du reste du livre. Les étapes au niveau du livre (comme le résumé du livre) sont marquées comme obsolètes et doivent être relancées une fois que chaque partie est fusionnée, car elles dépendent de la présence de l'intégralité du livre.
+
+Les métadonnées du livre (titre, auteurs, éditeur) voyagent avec la partie qui contient la page 1 — tant que cette partie n'est pas fusionnée, le livre reste sans titre.
+
+<Callout title="Bon à savoir">
+Si vous modifiez un paramètre et relancez l'extraction, ADT Studio **ne refait que le travail concerné par votre changement**. Tout le reste est réutilisé instantanément à partir des résultats enregistrés, sans coût supplémentaire. Et rien n'est perdu : les résultats antérieurs sont conservés et vous pouvez y revenir.
+</Callout>

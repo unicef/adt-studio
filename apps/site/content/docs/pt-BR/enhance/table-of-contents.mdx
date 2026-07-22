@@ -1,0 +1,30 @@
+---
+title: "Sumário"
+description: "Dê aos leitores um mapa do livro."
+icon: List
+---
+
+O sumário é montado a partir das seções que o [Storyboard](/docs/convert-pdf/storyboard) organiza em páginas — que, por sua vez, vêm da estrutura que você confirmou durante o [Seccionamento](/docs/convert-pdf/sectioning). Ele dá a cada leitor — e a cada leitor de tela — um mapa navegável do livro.
+
+## Decisões a tomar
+
+- **Ele reflete o livro real?** Se algo parecer errado aqui — capítulos ausentes, aninhamento estranho, títulos incorretos — a causa quase sempre está a montante, no seccionamento ou no storyboard, não no sumário em si. Corrija a estrutura lá e o sumário acompanha.
+- **A profundidade está certa?** Um sumário com cada pequeno subtítulo pode ser mais difícil de navegar do que um com uma estrutura clara e rasa.
+- **Literal ou reformulado?** É exatamente isso que o **Modo de Sumário** decide — veja abaixo.
+
+## Configurar e gerar
+
+O Sumário precisa que o Storyboard esteja concluído primeiro. Quando estiver pronto, abra a etapa **Sumário** e escolha um **Modo de Sumário**:
+
+- **Extrair** — usa os títulos das seções literalmente. Rápido, determinístico e preserva a redação original.
+- **Dinâmico** — deixa o modelo escrever títulos de capítulo descritivos a partir do conteúdo de cada seção. Ideal para livros de histórias, ou quando os títulos estão ausentes.
+
+Uma prévia de amostra ao vivo à direita mostra uma lista de conteúdo aninhada correspondente ao modo escolhido. Quando estiver pronto, selecione **Executar Sumário**.
+
+![A etapa Sumário antes de ser executada, mostrando a escolha do Modo de Sumário ao lado de uma prévia de amostra do sumário](./toc-stage.png)
+
+## Revisar e editar
+
+Depois que o sumário for gerado, pesquise entradas por título, e use **Adicionar entrada** para inserir uma manualmente. O título de cada linha é editável no local, e as setas de recuo o movem para cima ou para baixo em um nível de aninhamento (até três níveis de profundidade) — use **Remover** para excluir uma entrada por completo.
+
+Cada entrada é vinculada a uma seção do livro — o seletor de vínculo permite pesquisar e reatribuir essa seção, e o ícone de link externo ao lado abre a página vinculada em uma nova aba para que você confirme se ela aponta para o lugar certo.

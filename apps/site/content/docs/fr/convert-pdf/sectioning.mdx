@@ -1,0 +1,47 @@
+---
+title: "Découpage"
+description: "Vérifiez et affinez la manière dont votre livre est divisé en chapitres, titres et blocs de contenu."
+icon: Network
+---
+
+Un livre est plus qu'une suite de pages — il a des chapitres, des titres, des paragraphes, des activités, des figures. Le découpage est l'étape où cette structure est identifiée et confirmée.
+
+Le découpage est sa propre étape, exécutée après l'[extraction](/docs/convert-pdf/extract) — c'est ici que l'IA étiquette les chapitres, les titres et le contenu pédagogique, pas pendant l'extraction elle-même. Une fois qu'il a été exécuté, c'est le moment de revoir ce travail : vérifier que la structure correspond au livre réel, corriger ce qui a été mal interprété, et nettoyer ce qui n'a pas sa place.
+
+## Pourquoi c'est important
+
+La structure définie ici pilote presque tout ce qui vient ensuite :
+
+- La **table des matières** en est construite
+- La **navigation** pour les lecteurs (y compris les utilisateurs de lecteurs d'écran) en dépend
+- Les **quiz et le glossaire** sont générés par section, donc de mauvaises limites produisent un contenu mal aligné
+- La **narration** suit l'ordre de lecture qu'elle définit
+
+Quelques minutes de révision ici évitent beaucoup plus de temps de correction plus tard.
+
+## L'écran de découpage
+
+Pour chaque page, vous obtenez une vue divisée : l'image originale de la page d'un côté, et un arbre modifiable du contenu de cette page de l'autre. Chaque élément de contenu — un titre, un paragraphe, une activité, une image — est un nœud de cet arbre.
+
+- La **structure** vient de la position d'un nœud dans l'arbre, pas d'un niveau de titre numéroté. Il n'y a pas de H1/H2/H3 — un nœud est imbriqué sous celui auquel il appartient, et marqué avec un rôle (comme « titre ») via un menu déroulant sur le nœud lui-même.
+- L'**ordre de lecture** est simplement l'ordre d'apparition des nœuds dans l'arbre. Faites glisser un nœud par sa poignée et déposez-le là où il doit se trouver pour réordonner le contenu.
+- La **suppression du bruit** est un interrupteur par nœud — une icône en forme d'œil qui exclut un nœud du résultat rendu sans le supprimer. Les en-têtes, pieds de page et numéros de page répétés sont exclus par défaut, mais vérifiez que rien d'autre n'est passé au travers (ou n'a été exclu par erreur).
+- Les **activités et le contenu spécial** ont leurs propres types — un menu déroulant par section permet de marquer quelque chose comme, par exemple, une activité d'appariement ou une question à choix multiple, plutôt que de le laisser comme texte brut.
+
+Un menu par ligne sur chaque nœud permet aussi d'ajouter du texte, d'ajouter une image, de regrouper des nœuds ensemble, de dupliquer ou de supprimer — pour les cas où l'IA a manqué quelque chose ou a mal divisé le contenu.
+
+<Callout title="Vue d'ensemble">
+Passez en mode **Aperçu global** pour voir les sections de chaque page dans un seul tableau — page, section, type, contenu et parties — plutôt que de revoir une page à la fois.
+</Callout>
+
+## Ce qu'il faut vérifier
+
+- **La structure est-elle correcte ?** Un nœud imbriqué au mauvais endroit, ou doté du mauvais rôle, modifie la hiérarchie de tout ce qui se trouve en dessous.
+- **L'ordre de lecture est-il correct ?** Notamment dans les mises en page à deux colonnes, vérifiez que le contenu s'enchaîne dans l'ordre où un lecteur devrait le rencontrer.
+- **Reste-t-il du bruit ?** Les en-têtes, pieds de page et numéros de page répétés sont généralement exclus automatiquement — mais vérifiez, et excluez tout ce qui ne devrait pas être lu à voix haute ou affiché.
+- **Les activités et le contenu spécial sont-ils reconnus ?** Les exercices, encadrés et figures devraient porter le bon type, et non rester en texte brut.
+- **Une page porte-t-elle un avertissement « pas de couche de texte » ?** Un signal sur une page indique que la couche de texte du PDF était vide et que le contenu affiché a été récupéré depuis l'image de la page à la place — accordez à ces pages une lecture plus attentive, car la récupération basée sur la vision est plus sujette aux erreurs que la lecture du texte intégré.
+
+## Une fois terminé
+
+La structure confirmée, l'aspect visuel de votre ADT vient ensuite : [Storyboard](/docs/convert-pdf/storyboard).

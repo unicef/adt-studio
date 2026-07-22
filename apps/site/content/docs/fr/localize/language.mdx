@@ -1,0 +1,34 @@
+---
+title: "Langue"
+description: "Rendez votre ADT disponible en plus d'une langue."
+icon: Languages
+---
+
+Une source, plusieurs langues. ADT Studio peut traduire le contenu de votre livre avec l'aide de l'IA, afin qu'un seul effort de conversion puisse servir des apprenants dans plusieurs langues — y compris des apprenants dont la première langue n'est pas la langue d'enseignement.
+
+Ceci est différent de la sous-étape **Langues** pendant l'[extraction de contenu](/docs/convert-pdf/extract) — cette étape se contente de sélectionner les langues visées par votre ADT ; c'est ici que les traductions pour chacune de ces langues sont réellement générées.
+
+## Décisions à prendre
+
+- **Quelles langues votre public a-t-il réellement besoin ?** Chaque langue ajoute du traitement par l'IA, et donc un coût. Choisissez en fonction des classes que l'ADT touchera.
+- **Qui révise la traduction ?** La traduction par l'IA est un bon point de départ, mais le langage du programme scolaire, la terminologie locale et le contexte culturel méritent une vérification humaine — idéalement par un enseignant connaissant le public.
+- **Les images doivent-elles aussi être traduites ?** Si une figure contient du texte incrusté — un panneau, une étiquette, une légende de diagramme — décidez s'il vaut la peine de régénérer cette image avec un texte traduit, ou de la laisser dans la langue source.
+
+## Configurer et générer
+
+La traduction nécessite que les sections de votre livre soient d'abord typées et placées — si le [Storyboard](/docs/convert-pdf/storyboard) n'est pas terminé, l'étape vous en informe au lieu de vous laisser l'exécuter. Une fois prête, ouvrez l'étape **Langue** et définissez :
+
+- **Langues de sortie** — ajoutez chaque langue que vous souhaitez générer aux côtés de l'original. Cela est indépendant des langues de sortie choisies pendant l'extraction (et peut en différer) ; la langue d'origine du livre n'est jamais modifiée.
+- **Traductions d'images** (optionnel) — choisissez des images spécifiques à régénérer avec un texte incrusté traduit, via **Choisir des images...**. Laisser la liste vide conserve chaque image dans la langue source. Cette option ne liste des images qu'une fois que les [Légendes d'images](/docs/enhance/captions) ont été exécutées — c'est le légendage qui identifie quelles images ont du texte qui mérite d'être traduit.
+
+Une fois prêt, sélectionnez **Exécuter la traduction**. Chaque langue de sortie est générée à partir du contenu typé du livre — ce n'est pas la révision d'une traduction préexistante, c'est l'endroit où la traduction est produite.
+
+![L'étape Langue avant son exécution, montrant les paramètres Langues de sortie et Traductions d'images aux côtés d'un aperçu du plan de traduction](./language-stage.png)
+
+## Réviser et modifier
+
+Une fois la traduction exécutée, chaque entrée — texte de page, légendes, réponses d'activités, termes de glossaire, texte en lecture facile — devient modifiable par langue de sortie. Filtrez par catégorie de contenu ou par page, basculez entre les langues avec les puces de langue, et utilisez le filtre **Manquant** pour aller directement à ce qui n'a pas été traduit. Les modifications sont enregistrées comme une nouvelle version, avec le sélecteur de version pour prévisualiser ou revenir en arrière.
+
+## Une fois terminé
+
+Les traductions en place, la narration vient ensuite : [Parole](/docs/localize/speech) génère une voix audio dans chacune des langues de votre ADT.
