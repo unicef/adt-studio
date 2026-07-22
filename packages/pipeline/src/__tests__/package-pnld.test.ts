@@ -69,6 +69,26 @@ describe("rewriteContentPage", () => {
     )
     expect(rewriteContentPage(withRobots).match(/name="robots"/g)).toHaveLength(1)
   })
+
+  it("injects a doc-pagebreak marker with the page number when provided", () => {
+    const out = rewriteContentPage(raw, 25, "pt-BR")
+    expect(out).toContain('<p role="doc-pagebreak">')
+    expect(out).toContain('<span class="page_number" data-book="pagina"')
+    expect(out).toContain('aria-label="vinte e cinco"')
+    expect(out).toMatch(/>25<\/span>/)
+    // sits at the top of <main>
+    expect(out).toMatch(/<main>\s*<p role="doc-pagebreak">/)
+  })
+
+  it("omits pagination when the page has no number", () => {
+    expect(rewriteContentPage(raw, null, "pt-BR")).not.toContain("doc-pagebreak")
+  })
+
+  it("uses the numeral (no spelled aria-label) for non-pt languages", () => {
+    const out = rewriteContentPage(raw, 25, "en")
+    expect(out).toContain('<p role="doc-pagebreak">')
+    expect(out).not.toContain("aria-label=")
+  })
 })
 
 describe("buildOpf", () => {

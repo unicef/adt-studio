@@ -30,10 +30,11 @@ export type PackagePnldOptions = PackageAdtWebOptions
  *   ├── index.html          ← main page / nav document (root)
  *   └── cover.<ext>         ← cover image (root)
  *
- * The package is validated by the official VALIDE Desktop reader. Semantic
- * `data-book` attributes and `doc-pagebreak` pagination markup are intentionally
- * left for a follow-up pass once we can iterate against VALIDE — this pass
- * produces the structurally-correct package.
+ * The package is validated by the official VALIDE Desktop reader. Pagination
+ * (`doc-pagebreak` markers) and the `pagina`/`sumario` `data-book` roles are
+ * emitted; the remaining semantic `data-book` roles (unit/chapter titles,
+ * glossary, footnotes, credits, …) are left for a follow-up pass once we can
+ * iterate against VALIDE.
  *
  * Requires `packageAdtWeb` to have been run first.
  */
@@ -83,7 +84,7 @@ export function packagePnld(storage: Storage, options: PackagePnldOptions): void
   // pageList maps each spine entry to its final `content/<section_id>.html`
   // href (adt names the first page `index.html`, which PNLD reserves for the
   // nav document, so every page is renamed to its section id).
-  const pageList = reorganize(pnldDir, rawPages)
+  const pageList = reorganize(pnldDir, rawPages, language)
 
   // ------------------------------------------------------------------
   // Detect cover image (kept at root as required by the spec)
@@ -125,7 +126,7 @@ export function packagePnld(storage: Storage, options: PackagePnldOptions): void
  * and rewrite the internal references in each content page. Returns the final
  * page list (reading order) with `href` pointing at `content/<section_id>.html`.
  */
-function reorganize(pnldDir: string, rawPages: PageEntry[]): PageEntry[] {
+function reorganize(pnldDir: string, rawPages: PageEntry[], language: string): PageEntry[] {
   const resourcesDir = path.join(pnldDir, "resources")
   const stylesDir = path.join(resourcesDir, "styles")
   const fontsDir = path.join(resourcesDir, "fonts")
@@ -179,8 +180,12 @@ function reorganize(pnldDir: string, rawPages: PageEntry[]): PageEntry[] {
 
   // 7. Write the rewritten content pages into the fresh content/ dir.
   fs.mkdirSync(contentDir, { recursive: true })
+  const pageNumbers = new Map(pageList.map((p) => [p.section_id, p.page_number ?? null]))
   for (const [sectionId, html] of stagedPages) {
-    fs.writeFileSync(path.join(contentDir, `${sectionId}.html`), rewriteContentPage(html))
+    fs.writeFileSync(
+      path.join(contentDir, `${sectionId}.html`),
+      rewriteContentPage(html, pageNumbers.get(sectionId) ?? null, language),
+    )
   }
 
   // 8. Rewrite CSS url() references now that fonts moved to resources/fonts.
@@ -189,8 +194,16 @@ function reorganize(pnldDir: string, rawPages: PageEntry[]): PageEntry[] {
   return pageList
 }
 
-/** Rewrite a content page's asset references for the content/ subfolder location. */
-export function rewriteContentPage(html: string): string {
+/**
+ * Rewrite a content page's asset references for the content/ subfolder location
+ * and, when the page carries a printed page number, inject the spec's
+ * `doc-pagebreak` marker at the top of `<main>`.
+ */
+export function rewriteContentPage(
+  html: string,
+  pageNumber: number | null = null,
+  language = "pt-BR",
+): string {
   let out = html
     .replace(/\.\/content\/tailwind_output\.css/g, "../resources/styles/tailwind_output.css")
     .replace(/\.\/assets\/fonts\.css/g, "../resources/styles/fonts.css")
@@ -212,7 +225,23 @@ export function rewriteContentPage(html: string): string {
       '$1\n    <meta name="robots" content="noindex, nofollow" />',
     )
   }
+
+  // Pagination: one printed page per content file, marked at the top of <main>.
+  if (pageNumber != null) {
+    out = out.replace(/<main\b[^>]*>/i, (m) => `${m}\n${paginationMarkup(pageNumber, language)}`)
+  }
   return out
+}
+
+/**
+ * The PNLD page-break marker (spec §pagination): a `doc-pagebreak` paragraph
+ * with a screen-reader "Página" label and the numeral in a `page_number` span
+ * carrying `data-book="pagina"` and a spelled-out `aria-label` (pt-BR).
+ */
+function paginationMarkup(pageNumber: number, language: string): string {
+  const spoken = spellPageNumber(pageNumber, language)
+  const aria = spoken ? ` aria-label="${escapeXml(spoken)}"` : ""
+  return `      <p role="doc-pagebreak"><span class="screen-reader-only">${escapeXml(pageWord(language))}</span><span class="page_number" data-book="pagina"${aria}>${pageNumber}</span></p>`
 }
 
 /** Rewrite `url(...)` font references in the relocated stylesheets. */
@@ -473,4 +502,50 @@ function escapeXml(str: string): string {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&apos;")
+}
+
+// Cardinal number words for the page-break `aria-label`. PNLD targets pt-BR;
+// other languages fall back to the numeral (no aria-label).
+const PT_UNITS = ["", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove"]
+const PT_TEENS = ["dez", "onze", "doze", "treze", "catorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"]
+const PT_TENS = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"]
+const PT_HUNDREDS = ["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"]
+
+/** Spelled-out page number for the aria-label, or null when we use the numeral. */
+function spellPageNumber(n: number, language: string): string | null {
+  if (!Number.isInteger(n) || n < 0) return null
+  if (language.toLowerCase().slice(0, 2) !== "pt") return null
+  return spellPtBr(n)
+}
+
+/** Spell a non-negative integer in Brazilian Portuguese cardinals (0–9999). */
+function spellPtBr(n: number): string {
+  if (n === 0) return "zero"
+  if (n >= 10000) return String(n) // out of range for page numbers; leave numeric
+  const thousands = Math.floor(n / 1000)
+  const rest = n % 1000
+  const parts: string[] = []
+  if (thousands > 0) parts.push(thousands === 1 ? "mil" : `${spellPtBrUnder1000(thousands)} mil`)
+  if (rest > 0) parts.push(spellPtBrUnder1000(rest))
+  // pt-BR inserts "e" before a final chunk that is < 100 or an exact hundred.
+  if (parts.length === 2) return parts.join(rest < 100 || rest % 100 === 0 ? " e " : " ")
+  return parts[0]
+}
+
+function spellPtBrUnder1000(n: number): string {
+  if (n === 100) return "cem"
+  const h = Math.floor(n / 100)
+  const rem = n % 100
+  const segs: string[] = []
+  if (h > 0) segs.push(PT_HUNDREDS[h])
+  if (rem > 0) segs.push(spellPtBrUnder100(rem))
+  return segs.join(" e ")
+}
+
+function spellPtBrUnder100(n: number): string {
+  if (n < 10) return PT_UNITS[n]
+  if (n < 20) return PT_TEENS[n - 10]
+  const t = Math.floor(n / 10)
+  const u = n % 10
+  return u === 0 ? PT_TENS[t] : `${PT_TENS[t]} e ${PT_UNITS[u]}`
 }
