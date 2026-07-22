@@ -54,30 +54,34 @@ The Accessible Textbooks for All initiative tracks its reach — countries activ
 Traditionally, governments contract publishers to produce accessible versions of physical textbooks — typically $20–$100 per page and 3 to 6 months per book, which is why most learners with disabilities end up with no accessible version at all. Converting the same content through ADT Studio's pipeline costs roughly $1 per page in AI usage (a ~20x reduction — see [AI providers and costs](/docs/get-started/api-keys)) and takes on the order of minutes for the automated steps, ahead of human validation.
 </Accordion>
 
+<Accordion title="How does a country or organisation start using ADT Studio?">
+Anyone can download and try ADT Studio on its own. Bringing it in as part of a national programme, though, generally runs through the Accessible Textbooks for All initiative, and broadly looks something like: express interest through your **UNICEF Country Office**, get introduced to the **ADT Initiative**, receive training on the **ADT Implementation Roadmap** and ADT Studio itself, establish the relevant **governance and implementation committees**, put together a **workplan**, then **pilot, document, learn, and scale**. This process isn't rigidly fixed — it adapts to each country's context — so treat it as a general shape rather than a strict checklist. See the [Accessible Textbooks for All initiative](https://www.accessibletextbooksforall.org) to get in touch and start that conversation.
+</Accordion>
+
 </Accordions>
 
 ## Installing and running it
 
 <Accordions>
 
-<Accordion title="Desktop app or Docker — which should I choose?">
-If you're not sure, use the **desktop app** — install like any normal program for Windows or macOS. Docker is a more technical option, useful for IT-managed environments or Linux. Both give you exactly the same features. See [Installation](/docs/get-started/install).
+<Accordion title="How should I install ADT Studio?">
+For almost everyone, install the **desktop app** — like any normal program, for Windows or macOS. If you want to build it from source, contribute to the project, or self-host it (e.g. for an IT-managed environment), see [Installation](/docs/get-started/install), including the [developer / self-hosting notes](/docs/get-started/install#option-for-developers-run-it-from-source).
 </Accordion>
 
 <Accordion title="Does ADT Studio run on Linux?">
-The packaged desktop app currently targets Windows and macOS. On Linux, run ADT Studio through **Docker** — see the [Docker install steps](/docs/get-started/install#option-2-docker).
+The packaged desktop app currently targets Windows and macOS. On Linux, either run ADT Studio from source (see [Option for developers](/docs/get-started/install#option-for-developers-run-it-from-source)) or self-host it with Docker — see [Can I self-host ADT Studio for my organisation?](#for-developers-and-it) below.
 </Accordion>
 
 <Accordion title="Do I need to install anything else, like Node.js?">
-No — not to *use* ADT Studio. The desktop app and the Docker image are self-contained. Node.js and the rest of the toolchain are only needed if you're building the project from source or developing on it.
+No — not to *use* ADT Studio. The desktop app is self-contained. Node.js, Git, and the rest of the toolchain are only needed if you're running ADT Studio from source, building the project, or developing on it.
 </Accordion>
 
 <Accordion title="How do I update to a newer version?">
-The desktop app updates itself automatically — new versions apply without you downloading or reinstalling anything. For Docker, pull the latest image (`ghcr.io/unicef/adt-studio:latest`) or the tag for a specific release.
+The desktop app updates itself automatically — you don't need to download or run a new installer yourself. The update is still fetched over the internet in the background, so it needs a connection to apply. If you're self-hosting with Docker, pull the latest image (`ghcr.io/unicef/adt-studio:latest`) or the tag for a specific release.
 </Accordion>
 
 <Accordion title="Where is my book data actually stored?">
-Everything for a book — the source PDF, settings, generated content, and every version — lives in one project folder on your machine (or in the mounted `books` volume, for Docker). Nothing is sent anywhere except the specific content sent to your AI provider to process a step.
+Everything for a book — the source PDF, settings, generated content, and every version — lives in one project folder on your machine (or in the mounted `books` volume, if you're self-hosting with Docker). Nothing is sent anywhere except the specific content sent to your AI provider to process a step.
 </Accordion>
 
 </Accordions>
@@ -87,7 +91,7 @@ Everything for a book — the source PDF, settings, generated content, and every
 <Accordions>
 
 <Accordion title="Which AI provider should I use?">
-ADT Studio is LLM-agnostic — it's designed to work with major AI providers rather than lock you into one, so you can pick based on cost, quality, or language support and switch later. See [AI providers and costs](/docs/get-started/api-keys).
+ADT Studio is working toward supporting multiple AI providers, but today the main pipeline relies primarily on OpenAI. Narration (text-to-speech) already lets you choose between OpenAI, Google Gemini, and Azure. See [AI providers and costs](/docs/get-started/api-keys).
 </Accordion>
 
 <Accordion title="Is my API key safe?">
@@ -183,7 +187,13 @@ ADT Studio isn't built as a real-time multi-user editor — each project folder 
 </Accordion>
 
 <Accordion title="Can I self-host ADT Studio for my organisation?">
-Yes — that's what the Docker install is for. Run it via `docker compose` or the published image on your own infrastructure, mounting your own `books` and `prompts` directories and config file. See [Installation: Docker](/docs/get-started/install#option-2-docker).
+Yes, using Docker — a more technical option, useful for IT-managed environments or Linux, that gives you exactly the same features as the desktop app. Either run a single command:
+
+```
+docker run -p 8080:80 -v ./books:/app/books ghcr.io/unicef/adt-studio:latest
+```
+
+or download the `docker-compose.yml` file from the [latest release](https://github.com/unicef/adt-studio/releases/latest) and run `docker compose up`. Either way, open `http://localhost:8080` in your browser, and your book data is saved in the mounted `books` folder. You can also mount your own `prompts` directory and config file on top of the defaults. **Requirement:** [Docker](https://docs.docker.com/get-docker/) installed on your machine.
 </Accordion>
 
 <Accordion title="Is the code open for review or contribution?">

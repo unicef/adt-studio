@@ -45,11 +45,11 @@ Two things to keep in mind:
 
 ## Which AI providers can I use?
 
-ADT Studio is **LLM-agnostic**, meaning it is designed to work with the major AI providers rather than being locked to a single one. It works with the models many teams already use.
+Today, the main conversion pipeline (extraction, image descriptions, translation, quizzes, and the rest) relies on **OpenAI**, with growing support for other providers.
 
-{/* TO VERIFY with dev team: the exact list of supported providers and models. The repo confirms OpenAI is supported and used by default, and states the tool works with major LLMs — but a definitive supported-provider list should be confirmed before publishing. */}
+The one step with real provider choice already available is **narration (text-to-speech)**: you can pick between **OpenAI**, **Google Gemini**, and **Azure** per language, and compare voices before committing. See [Speech](/docs/localize/speech).
 
-Because providers change their models and pricing regularly, ADT Studio does not tie you to one choice. If a provider becomes cheaper, better, or more suitable for your languages, you can switch.
+As provider support expands, you'll be able to switch providers for more of the pipeline — without being tied to one choice for cost, quality, or language coverage.
 
 ## How much does it cost?
 

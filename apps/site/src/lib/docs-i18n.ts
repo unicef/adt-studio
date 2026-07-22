@@ -42,36 +42,40 @@ export function localizedContentPath(path: string, locale: string): string {
  * pages are added or renamed.
  */
 const SIDEBAR_LABELS: Record<string, MessageDescriptor> = {
-  // Section headers (meta.json separators)
-  Introduction: msg`Introduction`,
-  "Get Started": msg`Get Started`,
-  Learn: msg`Learn`,
-  Help: msg`Help`,
   // Top-level pages
   Overview: msg`Overview`,
-  Installation: msg`Installation`,
-  "Create a New Project": msg`Create a New Project`,
-  "Quick Start": msg`Quick Start`,
-  "Core Concepts": msg`Core Concepts`,
-  Pipeline: msg`Pipeline`,
-  Templates: msg`Templates`,
-  "LLM Providers & API Keys": msg`LLM Providers & API Keys`,
-  "Output Bundles": msg`Output Bundles`,
-  "Troubleshooting & FAQ": msg`Troubleshooting & FAQ`,
-  "Reporting Issues": msg`Reporting Issues`,
-  "Community & Support": msg`Community & Support`,
-  // Pipeline section
-  "Pipeline Overview": msg`Pipeline Overview`,
-  Extract: msg`Extract`,
+  "Get Started": msg`Get Started`,
+  "What is an ADT?": msg`What is an ADT?`,
+  "What is ADT Studio?": msg`What is ADT Studio?`,
+  "What type of content can become an ADT?": msg`What type of content can become an ADT?`,
+  "Installation and minimum requirements": msg`Installation and minimum requirements`,
+  "AI providers and costs": msg`AI providers and costs`,
+  // Convert a PDF into an ADT
+  "Convert a PDF into an ADT": msg`Convert a PDF into an ADT`,
+  "Import a PDF": msg`Import a PDF`,
+  "Extract content": msg`Extract content`,
   Sectioning: msg`Sectioning`,
   Storyboard: msg`Storyboard`,
+  "Validate and preview": msg`Validate and preview`,
+  // Enhance your ADT
+  "Enhance your ADT": msg`Enhance your ADT`,
+  "Image captions": msg`Image captions`,
+  "Easy Read": msg`Easy Read`,
+  "Sign language": msg`Sign language`,
   Quizzes: msg`Quizzes`,
-  "Image Captions": msg`Image Captions`,
   Glossary: msg`Glossary`,
-  "Table of Contents": msg`Table of Contents`,
-  Translate: msg`Translate`,
+  "Table of contents": msg`Table of contents`,
+  // Localize your ADT
+  "Localize your ADT": msg`Localize your ADT`,
+  Language: msg`Language`,
   Speech: msg`Speech`,
-  Package: msg`Package`,
+  // Export your ADT
+  "Export your ADT": msg`Export your ADT`,
+  Formats: msg`Formats`,
+  "Personalize further": msg`Personalize further`,
+  // Help
+  "Troubleshooting & FAQ": msg`Troubleshooting & FAQ`,
+  "Reporting Issues": msg`Reporting Issues`,
 };
 
 /**

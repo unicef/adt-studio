@@ -31,6 +31,12 @@ msgstr "© {0} ADT Studio — MIT licensed."
 msgid "4 languages"
 msgstr "4 languages"
 
+msgid "A map through every chapter."
+msgstr "A map through every chapter."
+
+msgid "Accessibility"
+msgstr "Accessibility"
+
 msgid "Accessible book"
 msgstr "Accessible book"
 
@@ -64,6 +70,12 @@ msgstr "ADT Studio is currently in"
 msgid "ADT Studio takes one PDF and rebuilds it as a fully-editable, fully-yours accessible book — with the pieces that used to take a team of specialists."
 msgstr "ADT Studio takes one PDF and rebuilds it as a fully-editable, fully-yours accessible book — with the pieces that used to take a team of specialists."
 
+msgid "AI providers & cost"
+msgstr "AI providers & cost"
+
+msgid "AI providers and costs"
+msgstr "AI providers and costs"
+
 msgid "Also available on"
 msgstr "Also available on"
 
@@ -84,6 +96,9 @@ msgstr "An introduction to accessible digital textbooks and this tool."
 
 msgid "Answers to common questions and issues."
 msgstr "Answers to common questions and issues."
+
+msgid "API keys"
+msgstr "API keys"
 
 msgid "Architecture"
 msgstr "Architecture"
@@ -136,8 +151,11 @@ msgstr "Cached & inspectable"
 msgid "Captions"
 msgstr "Captions"
 
-msgid "Captions, quizzes, narration, translations, and more."
-msgstr "Captions, quizzes, narration, translations, and more."
+msgid "Captions, quizzes, Easy Read, sign language, and more."
+msgstr "Captions, quizzes, Easy Read, sign language, and more."
+
+#~ msgid "Captions, quizzes, narration, translations, and more."
+#~ msgstr "Captions, quizzes, narration, translations, and more."
 
 msgid "Change language"
 msgstr "Change language"
@@ -151,6 +169,9 @@ msgstr "Changelog"
 msgid "Chapter 3"
 msgstr "Chapter 3"
 
+msgid "Check understanding as you read."
+msgstr "Check understanding as you read."
+
 msgid "Checked against WCAG standards before every export."
 msgstr "Checked against WCAG standards before every export."
 
@@ -163,8 +184,8 @@ msgstr "Close menu"
 msgid "Coming soon"
 msgstr "Coming soon"
 
-msgid "Community & Support"
-msgstr "Community & Support"
+#~ msgid "Community & Support"
+#~ msgstr "Community & Support"
 
 msgid "Configure each stage — extract, storyboard, layout — then let ADT Studio build the book. Review the output, correct anything that needs a human touch."
 msgstr "Configure each stage — extract, storyboard, layout — then let ADT Studio build the book. Review the output, correct anything that needs a human touch."
@@ -172,17 +193,23 @@ msgstr "Configure each stage — extract, storyboard, layout — then let ADT St
 #~ msgid "Connect a model and track cost."
 #~ msgstr "Connect a model and track cost."
 
+msgid "Content type"
+msgstr "Content type"
+
 msgid "Contents"
 msgstr "Contents"
 
 msgid "Convert a PDF into an ADT"
 msgstr "Convert a PDF into an ADT"
 
+msgid "Converting"
+msgstr "Converting"
+
 msgid "Core concepts"
 msgstr "Core concepts"
 
-msgid "Core Concepts"
-msgstr "Core Concepts"
+#~ msgid "Core Concepts"
+#~ msgstr "Core Concepts"
 
 msgid "Couldn’t load the changelog"
 msgstr "Couldn’t load the changelog"
@@ -193,8 +220,8 @@ msgstr "Couldn't reach GitHub"
 msgid "Cover · Chapter 1"
 msgstr "Cover · Chapter 1"
 
-msgid "Create a New Project"
-msgstr "Create a New Project"
+#~ msgid "Create a New Project"
+#~ msgstr "Create a New Project"
 
 msgid "Custom"
 msgstr "Custom"
@@ -216,6 +243,9 @@ msgstr "Desktop only"
 
 msgid "Detecting figures"
 msgstr "Detecting figures"
+
+msgid "Developers"
+msgstr "Developers"
 
 msgid "Docs"
 msgstr "Docs"
@@ -264,6 +294,9 @@ msgstr "Drop in a PDF and watch it flow through every stage — from raw pages t
 msgid "Drop in a PDF to kick things off. ADT Studio organizes it into a new book project so you don't start from zero."
 msgstr "Drop in a PDF to kick things off. ADT Studio organizes it into a new book project so you don't start from zero."
 
+msgid "Easy Read"
+msgstr "Easy Read"
+
 msgid "Edit & enrich"
 msgstr "Edit & enrich"
 
@@ -282,6 +315,9 @@ msgstr "Enhance your ADT"
 msgid "Entities are versioned, never replaced. You can always roll back to an earlier result."
 msgstr "Entities are versioned, never replaced. You can always roll back to an earlier result."
 
+msgid "EPUB"
+msgstr "EPUB"
+
 msgid "Every accessibility feature, <0>built in from page one</0>."
 msgstr "Every accessibility feature, <0>built in from page one</0>."
 
@@ -299,6 +335,9 @@ msgstr "Every book, every learner."
 
 msgid "Every LLM call is cached and openable. Change the inputs and only the changed work reruns."
 msgstr "Every LLM call is cached and openable. Change the inputs and only the changed work reruns."
+
+msgid "Every meaningful image gets a description."
+msgstr "Every meaningful image gets a description."
 
 #~ msgid "Every prompt, every LLM call, every cost is visible. Audit the whole pipeline or hand it off to the next person with confidence."
 #~ msgstr "Every prompt, every LLM call, every cost is visible. Audit the whole pipeline or hand it off to the next person with confidence."
@@ -327,8 +366,14 @@ msgstr "Export to a reader"
 msgid "Export your ADT"
 msgstr "Export your ADT"
 
+msgid "Exporting"
+msgstr "Exporting"
+
 msgid "Extract"
 msgstr "Extract"
+
+msgid "Extract content"
+msgstr "Extract content"
 
 msgid "Extract, structure, translate, narrate, and package — all on your machine and fully inspectable. Go from install to your first finished book."
 msgstr "Extract, structure, translate, narrate, and package — all on your machine and fully inspectable. Go from install to your first finished book."
@@ -341,6 +386,9 @@ msgstr "Fig 3.1 — The water cycle: evaporation, condensation, precipitation."
 
 #~ msgid "Find anything in the docs, <0>fast</0>."
 #~ msgstr "Find anything in the docs, <0>fast</0>."
+
+msgid "Formats"
+msgstr "Formats"
 
 msgid "Free forever"
 msgstr "Free forever"
@@ -365,6 +413,9 @@ msgstr "Full control over render strategies, pruning, and filters."
 
 msgid "Full transparency"
 msgstr "Full transparency"
+
+msgid "General"
+msgstr "General"
 
 msgid "Generate studio-quality text-to-speech for every page, with speaker control and per-language voices — no recording needed."
 msgstr "Generate studio-quality text-to-speech for every page, with speaker control and per-language voices — no recording needed."
@@ -399,8 +450,8 @@ msgstr "Guidelines"
 #~ msgid "Guides, core concepts and a walkthrough of every pipeline stage — searchable, and always in step with the latest release."
 #~ msgstr "Guides, core concepts and a walkthrough of every pipeline stage — searchable, and always in step with the latest release."
 
-msgid "Help"
-msgstr "Help"
+#~ msgid "Help"
+#~ msgstr "Help"
 
 msgid "Here's what shipped in the latest version — and there are plenty more where this came from."
 msgstr "Here's what shipped in the latest version — and there are plenty more where this came from."
@@ -423,8 +474,17 @@ msgstr "HTML, audio, translations and sign-language — exported together as a s
 msgid "If your device has been wrongly detected, <0>see all downloads</0>. Please report any issues you encounter on <1>GitHub</1>."
 msgstr "If your device has been wrongly detected, <0>see all downloads</0>. Please report any issues you encounter on <1>GitHub</1>."
 
-msgid "Image Captions"
-msgstr "Image Captions"
+msgid "Image captions"
+msgstr "Image captions"
+
+#~ msgid "Image Captions"
+#~ msgstr "Image Captions"
+
+msgid "Import"
+msgstr "Import"
+
+msgid "Import a PDF"
+msgstr "Import a PDF"
 
 msgid "Import, extract, section, storyboard, and validate."
 msgstr "Import, extract, section, storyboard, and validate."
@@ -438,11 +498,20 @@ msgstr "Install the app, create a project, and produce your first accessible boo
 msgid "Installation"
 msgstr "Installation"
 
-msgid "Introduction"
-msgstr "Introduction"
+msgid "Installation and minimum requirements"
+msgstr "Installation and minimum requirements"
+
+msgid "Installing"
+msgstr "Installing"
+
+#~ msgid "Introduction"
+#~ msgstr "Introduction"
 
 msgid "Issues"
 msgstr "Issues"
+
+msgid "Key terms, defined for the reader."
+msgstr "Key terms, defined for the reader."
 
 msgid "Language"
 msgstr "Language"
@@ -462,8 +531,8 @@ msgstr "Layer on translations, text-to-speech, and a glossary — all inspectabl
 msgid "Laying out spreads"
 msgstr "Laying out spreads"
 
-msgid "Learn"
-msgstr "Learn"
+#~ msgid "Learn"
+#~ msgstr "Learn"
 
 #~ msgid "Learn it once, <0>build any book</0>."
 #~ msgstr "Learn it once, <0>build any book</0>."
@@ -474,11 +543,17 @@ msgstr "License"
 #~ msgid "Linux"
 #~ msgstr "Linux"
 
+msgid "Listen to the book, page by page."
+msgstr "Listen to the book, page by page."
+
 msgid "LIVE"
 msgstr "LIVE"
 
-msgid "LLM Providers & API Keys"
-msgstr "LLM Providers & API Keys"
+#~ msgid "LLM Providers & API Keys"
+#~ msgstr "LLM Providers & API Keys"
+
+msgid "Localize your ADT"
+msgstr "Localize your ADT"
 
 #~ msgid "macOS"
 #~ msgstr "macOS"
@@ -550,6 +625,9 @@ msgstr "On GitHub"
 msgid "One book, every format"
 msgstr "One book, every format"
 
+msgid "One book, many languages."
+msgstr "One book, many languages."
+
 msgid "One book, one folder"
 msgstr "One book, one folder"
 
@@ -580,8 +658,8 @@ msgstr "Open-source desktop pipeline for turning PDFs into accessible books — 
 msgid "Output"
 msgstr "Output"
 
-msgid "Output Bundles"
-msgstr "Output Bundles"
+#~ msgid "Output Bundles"
+#~ msgstr "Output Bundles"
 
 msgid "Overview"
 msgstr "Overview"
@@ -604,11 +682,14 @@ msgstr "Parsing pages into text, figures, and layout boxes — cached by content
 msgid "Pause"
 msgstr "Pause"
 
+msgid "Personalize further"
+msgstr "Personalize further"
+
 msgid "Pick a preset"
 msgstr "Pick a preset"
 
-msgid "Pipeline"
-msgstr "Pipeline"
+#~ msgid "Pipeline"
+#~ msgstr "Pipeline"
 
 msgid "Pipeline · extract"
 msgstr "Pipeline · extract"
@@ -616,8 +697,8 @@ msgstr "Pipeline · extract"
 msgid "Pipeline · storyboard"
 msgstr "Pipeline · storyboard"
 
-msgid "Pipeline Overview"
-msgstr "Pipeline Overview"
+#~ msgid "Pipeline Overview"
+#~ msgstr "Pipeline Overview"
 
 msgid "Play"
 msgstr "Play"
@@ -643,8 +724,11 @@ msgstr "Product"
 msgid "Project"
 msgstr "Project"
 
-msgid "Quick Start"
-msgstr "Quick Start"
+msgid "Project Archive"
+msgstr "Project Archive"
+
+#~ msgid "Quick Start"
+#~ msgstr "Quick Start"
 
 msgid "Quickstart"
 msgstr "Quickstart"
@@ -654,6 +738,9 @@ msgstr "Quizzes"
 
 msgid "Raw notes on GitHub"
 msgstr "Raw notes on GitHub"
+
+msgid "Reach more languages, with narrated audio for each."
+msgstr "Reach more languages, with narrated audio for each."
 
 msgid "Read on any device"
 msgstr "Read on any device"
@@ -713,6 +800,9 @@ msgstr "science · chapter 3"
 
 msgid "Science Textbook"
 msgstr "Science Textbook"
+
+msgid "SCORM"
+msgstr "SCORM"
 
 msgid "Scroll to next section"
 msgstr "Scroll to next section"
@@ -804,11 +894,17 @@ msgstr "Successfully uploaded"
 msgid "Supported by"
 msgstr "Supported by"
 
-msgid "Table of Contents"
-msgstr "Table of Contents"
+msgid "Table of contents"
+msgstr "Table of contents"
 
-msgid "Templates"
-msgstr "Templates"
+#~ msgid "Table of Contents"
+#~ msgstr "Table of Contents"
+
+#~ msgid "Templates"
+#~ msgstr "Templates"
+
+msgid "Text and sign language, side by side."
+msgstr "Text and sign language, side by side."
 
 msgid "Textbooks & Activities"
 msgstr "Textbooks & Activities"
@@ -827,6 +923,9 @@ msgstr "The pipeline"
 
 #~ msgid "The Pipeline"
 #~ msgstr "The Pipeline"
+
+msgid "The same content, in plainer language."
+msgstr "The same content, in plainer language."
 
 msgid "Translate"
 msgstr "Translate"
@@ -848,6 +947,12 @@ msgstr "Turn any textbook into something every student can read, hear, see, and 
 
 msgid "Unchanged steps reuse cached results instantly, at no extra cost."
 msgstr "Unchanged steps reuse cached results instantly, at no extra cost."
+
+msgid "Validate"
+msgstr "Validate"
+
+msgid "Validate and preview"
+msgstr "Validate and preview"
 
 msgid "View release on GitHub"
 msgstr "View release on GitHub"
@@ -871,11 +976,20 @@ msgstr "We don’t ship a mobile version. To install ADT Studio, open this page 
 msgid "We don't ship a prebuilt installer for {0} in this release. Pick another platform below or follow progress on GitHub."
 msgstr "We don't ship a prebuilt installer for {0} in this release. Pick another platform below or follow progress on GitHub."
 
+msgid "Web"
+msgstr "Web"
+
+msgid "WebPub"
+msgstr "WebPub"
+
 #~ msgid "Website"
 #~ msgstr "Website"
 
 msgid "What happens when you drop in a PDF"
 msgstr "What happens when you drop in a PDF"
+
+msgid "What is ADT Studio?"
+msgstr "What is ADT Studio?"
 
 msgid "What is an ADT?"
 msgstr "What is an ADT?"
@@ -885,6 +999,9 @@ msgstr "What it does"
 
 msgid "What to know and set up before converting your first PDF."
 msgstr "What to know and set up before converting your first PDF."
+
+msgid "What type of content can become an ADT?"
+msgstr "What type of content can become an ADT?"
 
 msgid "When the pipeline finishes, you get a clean bundle with every accessibility feature baked in — ready for a classroom, a publisher, or a kid on the couch."
 msgstr "When the pipeline finishes, you get a clean bundle with every accessibility feature baked in — ready for a classroom, a publisher, or a kid on the couch."
