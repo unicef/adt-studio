@@ -39,10 +39,12 @@ jobs:
             echo "$NEW"
             exit 1
           fi
-      - name: Check docs MDX translations
-        # Reports per-locale coverage; fails on structural errors (orphan
-        # translations, missing frontmatter title, unknown locale folders).
-        run: node apps/site/scripts/check-translations.mjs
+      - name: Check translations are complete
+        # Blocks the PR when translations are not fully done: any empty msgstr
+        # in a target-locale .po, any untranslated docs page, or any placeholder
+        # stub. Also fails on structural errors (orphans, missing title, unknown
+        # locale folder). Drop --strict to only report coverage.
+        run: node apps/site/scripts/check-translations.mjs --strict
       # Build first: the Vite plugin generates src/routeTree.gen.ts (gitignored)
       # which the type-check needs — there's no standalone generator for it.
       - name: Build

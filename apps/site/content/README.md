@@ -239,9 +239,11 @@ Two complementary checks run in `site-ci.yml`:
 
 - **UI strings** — `lingui extract` must leave no new unwrapped strings (every
   visible component string must be in a macro). Fails the build otherwise.
-- **MDX content** — `scripts/check-translations.mjs` reports per-locale
-  coverage and **fails** on structural errors: an *orphan* translation (a
-  `<locale>/<path>.mdx` with no English source — usually a page that was renamed
-  or deleted), a translated page missing its frontmatter `title`, or a
-  mis-cased locale folder. Missing translations are only a warning — untranslated
-  pages fall back to English, so you translate incrementally.
+- **Translation completeness** — `scripts/check-translations.mjs --strict`
+  **blocks the PR** unless translations are fully done. It always fails on
+  structural errors (an *orphan* translation — a `<locale>/<path>.mdx` with no
+  English source, usually a renamed/deleted page — a translated page missing its
+  frontmatter `title`, or a mis-cased locale folder). Under `--strict` (CI) it
+  **also** fails when a target-locale `.po` has any empty `msgstr`, when a docs
+  page is untranslated in some locale, or when a translated page is only a
+  placeholder stub. Run it without `--strict` locally to just see coverage.

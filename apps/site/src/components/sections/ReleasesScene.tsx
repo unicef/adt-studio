@@ -2,6 +2,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { ArrowRight, ArrowUpRight, Sparkles, Tag } from "lucide-react";
 import { SectionEyebrow } from "@/components/SectionEyebrow";
 import { cn } from "@/lib/cn";
+import { withBase } from "@/lib/href";
 import {
   firstImageFromBody,
   firstParagraphFromBody,
@@ -103,7 +104,7 @@ function HeroSpotlight({ release }: { release: GithubRelease }) {
   const cover = firstImageFromBody(release.body);
   const excerpt = firstParagraphFromBody(release.body, 240);
   const sections = summarizeSections(release.body).slice(0, 4);
-  const detailHref = `/releases/${encodeURIComponent(release.tag_name)}`;
+  const detailHref = withBase(`/releases/${encodeURIComponent(release.tag_name)}`);
 
   return (
     <article
