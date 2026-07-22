@@ -121,9 +121,6 @@ msgstr "Beta"
 msgid "Book creation stages"
 msgstr "Book creation stages"
 
-msgid "Books, versions, and how it all thinks."
-msgstr "Books, versions, and how it all thinks."
-
 msgid "Browse all documentation"
 msgstr "Browse all documentation"
 
@@ -186,9 +183,6 @@ msgstr "Convert a PDF into an ADT"
 
 msgid "Converting"
 msgstr "Converting"
-
-msgid "Core concepts"
-msgstr "Core concepts"
 
 msgid "Core Concepts"
 msgstr "Core Concepts"
@@ -341,9 +335,6 @@ msgstr "Every reader opens the same book, with the features they need on tap."
 msgid "Every ship of ADT Studio."
 msgstr "Every ship of ADT Studio."
 
-msgid "Every stage, from extraction to output."
-msgstr "Every stage, from extraction to output."
-
 msgid "Every version is kept. Roll back to any earlier result, any time."
 msgstr "Every version is kept. Roll back to any earlier result, any time."
 
@@ -382,9 +373,6 @@ msgstr "French"
 
 msgid "Fresh off the <0>press</0>."
 msgstr "Fresh off the <0>press</0>."
-
-msgid "From a PDF to an accessible book in minutes."
-msgstr "From a PDF to an accessible book in minutes."
 
 msgid "From PDF to"
 msgstr "From PDF to"
@@ -780,9 +768,6 @@ msgstr "See it in action"
 msgid "Segmenting scenes"
 msgstr "Segmenting scenes"
 
-msgid "Set up on macOS, Windows, or Linux."
-msgstr "Set up on macOS, Windows, or Linux."
-
 msgid "Ship the same book in every language you need. Translate text, captions and alt-text in one pass — review, edit, re-run."
 msgstr "Ship the same book in every language you need. Translate text, captions and alt-text in one pass — review, edit, re-run."
 
@@ -848,9 +833,6 @@ msgstr "The documentation walks you through ADT Studio end to end — from insta
 
 msgid "The output"
 msgstr "The output"
-
-msgid "The pipeline"
-msgstr "The pipeline"
 
 msgid "The same book reflows from desktop to phone without losing audio, structure or activities."
 msgstr "The same book reflows from desktop to phone without losing audio, structure or activities."

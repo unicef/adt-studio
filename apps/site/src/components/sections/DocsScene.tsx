@@ -1,4 +1,4 @@
-import { ArrowRight, Download, Lightbulb, Rocket, Workflow } from "lucide-react";
+import { ArrowRight, FileDown, LifeBuoy, Rocket, Workflow } from "lucide-react";
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { MessageDescriptor } from "@lingui/core";
@@ -19,28 +19,28 @@ type Category = {
 
 const CATEGORIES: Category[] = [
   {
-    href: "/docs/quickstart",
+    href: "/docs/get-started",
     icon: Rocket,
-    title: msg`Quickstart`,
-    desc: msg`From a PDF to an accessible book in minutes.`,
+    title: msg`Get Started`,
+    desc: msg`What to know and set up before converting your first PDF.`,
   },
   {
-    href: "/docs/get-started/install",
-    icon: Download,
-    title: msg`Install`,
-    desc: msg`Set up on macOS, Windows, or Linux.`,
-  },
-  {
-    href: "/docs/pipeline",
+    href: "/docs/convert-pdf",
     icon: Workflow,
-    title: msg`The pipeline`,
-    desc: msg`Every stage, from extraction to output.`,
+    title: msg`Convert a PDF into an ADT`,
+    desc: msg`Import, extract, section, storyboard, and validate.`,
   },
   {
-    href: "/docs/concepts",
-    icon: Lightbulb,
-    title: msg`Core concepts`,
-    desc: msg`Books, versions, and how it all thinks.`,
+    href: "/docs/export",
+    icon: FileDown,
+    title: msg`Export your ADT`,
+    desc: msg`Package your finished ADT for distribution.`,
+  },
+  {
+    href: "/docs/faq",
+    icon: LifeBuoy,
+    title: msg`Troubleshooting & FAQ`,
+    desc: msg`Answers to common questions and issues.`,
   },
 ];
 

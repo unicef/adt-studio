@@ -122,9 +122,6 @@ msgstr "Beta"
 msgid "Book creation stages"
 msgstr "Etapas de criação do livro"
 
-msgid "Books, versions, and how it all thinks."
-msgstr "Livros, versões e como tudo funciona."
-
 msgid "Browse all documentation"
 msgstr "Ver toda a documentação"
 
@@ -187,9 +184,6 @@ msgstr "Converter um PDF em um ADT"
 
 msgid "Converting"
 msgstr "Conversão"
-
-msgid "Core concepts"
-msgstr "Conceitos essenciais"
 
 msgid "Core Concepts"
 msgstr "Conceitos centrais"
@@ -342,9 +336,6 @@ msgstr "Todo leitor abre o mesmo livro, com os recursos que precisam à disposi�
 msgid "Every ship of ADT Studio."
 msgstr "Cada envio do ADT Studio."
 
-msgid "Every stage, from extraction to output."
-msgstr "Cada etapa, da extração ao resultado."
-
 msgid "Every version is kept. Roll back to any earlier result, any time."
 msgstr "Cada versão é mantida. Volte a qualquer resultado anterior quando quiser."
 
@@ -383,9 +374,6 @@ msgstr "Francês"
 
 msgid "Fresh off the <0>press</0>."
 msgstr "Quentinho do <0>forno</0>."
-
-msgid "From a PDF to an accessible book in minutes."
-msgstr "De um PDF a um livro acessível em minutos."
 
 msgid "From PDF to"
 msgstr "De PDF para"
@@ -781,9 +769,6 @@ msgstr "Veja em ação"
 msgid "Segmenting scenes"
 msgstr "Segmentando cenas"
 
-msgid "Set up on macOS, Windows, or Linux."
-msgstr "Instale no macOS, Windows ou Linux."
-
 msgid "Ship the same book in every language you need. Translate text, captions and alt-text in one pass — review, edit, re-run."
 msgstr "Envie o mesmo livro em todos os idiomas que você precisa. Traduza texto, legendas e texto alternativo em uma única passagem — revise, edite, reexecute."
 
@@ -849,9 +834,6 @@ msgstr "A documentação guia você pelo ADT Studio de ponta a ponta — da inst
 
 msgid "The output"
 msgstr "A saída"
-
-msgid "The pipeline"
-msgstr "O pipeline"
 
 msgid "The same book reflows from desktop to phone without losing audio, structure or activities."
 msgstr "O mesmo livro se adapta do computador ao celular sem perder áudio, estrutura ou atividades."

@@ -122,9 +122,6 @@ msgstr "Beta"
 msgid "Book creation stages"
 msgstr "Etapas de creación del libro"
 
-msgid "Books, versions, and how it all thinks."
-msgstr "Libros, versiones y cómo funciona todo por dentro."
-
 msgid "Browse all documentation"
 msgstr "Ver toda la documentación"
 
@@ -187,9 +184,6 @@ msgstr "Convierte un PDF en un ADT"
 
 msgid "Converting"
 msgstr "Conversión"
-
-msgid "Core concepts"
-msgstr "Conceptos clave"
 
 msgid "Core Concepts"
 msgstr "Conceptos básicos"
@@ -342,9 +336,6 @@ msgstr "Cada lector abre el mismo libro, con las características que necesita a
 msgid "Every ship of ADT Studio."
 msgstr "Cada versión de ADT Studio."
 
-msgid "Every stage, from extraction to output."
-msgstr "Cada etapa, desde la extracción hasta el resultado."
-
 msgid "Every version is kept. Roll back to any earlier result, any time."
 msgstr "Se conserva cada versión. Puedes volver a cualquier resultado anterior en cualquier momento."
 
@@ -383,9 +374,6 @@ msgstr "Francés"
 
 msgid "Fresh off the <0>press</0>."
 msgstr "Recién salido de la <0>prensa</0>."
-
-msgid "From a PDF to an accessible book in minutes."
-msgstr "De un PDF a un libro accesible en minutos."
 
 msgid "From PDF to"
 msgstr "De PDF a"
@@ -781,9 +769,6 @@ msgstr "Míralo en acción"
 msgid "Segmenting scenes"
 msgstr "Segmentando escenas"
 
-msgid "Set up on macOS, Windows, or Linux."
-msgstr "Instálalo en macOS, Windows o Linux."
-
 msgid "Ship the same book in every language you need. Translate text, captions and alt-text in one pass — review, edit, re-run."
 msgstr "Publica el mismo libro en cada idioma que necesites. Traduce texto, subtítulos y texto alternativo en una sola pasada — revisa, edita, reejecuta."
 
@@ -849,9 +834,6 @@ msgstr "La documentación te guía por ADT Studio de principio a fin: desde inst
 
 msgid "The output"
 msgstr "La salida"
-
-msgid "The pipeline"
-msgstr "El pipeline"
 
 msgid "The same book reflows from desktop to phone without losing audio, structure or activities."
 msgstr "El mismo libro se adapta del ordenador al teléfono sin perder audio, estructura ni actividades."

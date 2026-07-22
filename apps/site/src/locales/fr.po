@@ -122,9 +122,6 @@ msgstr "Bêta"
 msgid "Book creation stages"
 msgstr "Étapes de création du livre"
 
-msgid "Books, versions, and how it all thinks."
-msgstr "Livres, versions et la logique de l’ensemble."
-
 msgid "Browse all documentation"
 msgstr "Voir toute la documentation"
 
@@ -187,9 +184,6 @@ msgstr "Convertir un PDF en ADT"
 
 msgid "Converting"
 msgstr "Conversion"
-
-msgid "Core concepts"
-msgstr "Concepts clés"
 
 msgid "Core Concepts"
 msgstr "Concepts clés"
@@ -342,9 +336,6 @@ msgstr "Chaque lecteur ouvre le même livre, avec les fonctionnalités dont il a
 msgid "Every ship of ADT Studio."
 msgstr "Chaque version d'ADT Studio."
 
-msgid "Every stage, from extraction to output."
-msgstr "Chaque étape, de l’extraction au résultat."
-
 msgid "Every version is kept. Roll back to any earlier result, any time."
 msgstr "Chaque version est conservée. Revenez à un résultat antérieur à tout moment."
 
@@ -383,9 +374,6 @@ msgstr "Français"
 
 msgid "Fresh off the <0>press</0>."
 msgstr "Tout juste sorti de <0>l'imprimerie</0>."
-
-msgid "From a PDF to an accessible book in minutes."
-msgstr "D’un PDF à un livre accessible en quelques minutes."
 
 msgid "From PDF to"
 msgstr "De PDF à"
@@ -781,9 +769,6 @@ msgstr "Voir en action"
 msgid "Segmenting scenes"
 msgstr "Segmentation des scènes"
 
-msgid "Set up on macOS, Windows, or Linux."
-msgstr "Installez-le sur macOS, Windows ou Linux."
-
 msgid "Ship the same book in every language you need. Translate text, captions and alt-text in one pass — review, edit, re-run."
 msgstr "Publiez le même livre dans chaque langue dont vous avez besoin. Traduisez le texte, les sous-titres et les textes alternatifs en une seule fois — révisez, éditez, relancez."
 
@@ -849,9 +834,6 @@ msgstr "La documentation vous accompagne dans ADT Studio de bout en bout — de 
 
 msgid "The output"
 msgstr "La sortie"
-
-msgid "The pipeline"
-msgstr "Le pipeline"
 
 msgid "The same book reflows from desktop to phone without losing audio, structure or activities."
 msgstr "Le même livre s'adapte de l'ordinateur au téléphone sans perdre l'audio, la structure ni les activités."
