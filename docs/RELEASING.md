@@ -13,8 +13,9 @@ feature/* or fix/*
         v
 CI: unit tests + typecheck + i18n + Docker
         |
-        | all checks pass, the PR has no conflicts,
-        | and the PR carries the `staging` label
+        | manually run "Create PR Staging" for the PR; it continues only when
+        | that CI run succeeded, the PR has no conflicts, and it carries the
+        | `staging` label
         v
 staging/pr-<pr>-<merge-hash>
 version: X.Y.Z-beta-<pr>
@@ -33,36 +34,39 @@ merge PR to develop -> beta release -> merge to main -> stable release
 
 ## PR staging
 
-[`create-staging.yml`](../.github/workflows/create-staging.yml) observes the
-completed [CI](../.github/workflows/ci.yml) run and continues only when:
+[`create-staging.yml`](../.github/workflows/create-staging.yml) is triggered
+manually from **Actions -> Create PR Staging -> Run workflow**, passing the PR
+number. It continues only when:
 
 - the PR targets `develop`;
 - the PR is not a draft;
 - its source branch belongs to this repository;
 - the PR carries the `staging` label;
-- the `test`, `i18n`, and `docker` jobs all succeeded.
+- the latest [CI](../.github/workflows/ci.yml) run for the PR's head completed
+  with `conclusion == success` (every CI job — `staging-metadata`, `test`,
+  `i18n`, and `docker` — passed).
 
 Staging is opt-in because it signs installers with the production
-certificates. Add the `staging` label to a PR that needs QA artifacts; if CI
-already finished, re-run the CI workflow (or push a commit) so the staging
-listener fires again.
+certificates: it never runs on its own, and it stages only the PR number you
+choose. Add the `staging` label to a PR that needs QA artifacts, wait for its
+CI run to finish green, then run the workflow for that PR. If CI has not
+completed successfully for the current head, staging fails with a clear error.
 
-GitHub creates a temporary merge commit for a mergeable PR. CI records and
-tests that commit, and the staging branch is created from that exact SHA, so the
-build contains the PR already merged with the current `develop`. The staging
-workflow also confirms that the PR merge ref still points to the recorded SHA.
-A conflicting PR does not receive a merge commit and therefore normally cannot
-reach this job. If mergeability has flipped to conflicting by the time the
-listener runs, the workflow fails visibly instead of skipping silently, so the
-conflict is surfaced before any staging branch is created.
+GitHub creates a temporary merge commit for a mergeable PR. CI records that
+commit as the `staging-metadata` artifact, and the staging branch is created
+from that exact SHA, so the build contains the PR already merged with the
+current `develop`. The staging workflow also confirms that the PR merge ref
+still points to the recorded SHA. A conflicting PR is not mergeable, so the
+workflow fails visibly instead of skipping silently, surfacing the conflict
+before any staging branch is created.
 
-Before creating staging, CI also checks that the PR head has not changed while
-the jobs were running. Commits that only touch the translation catalogs under
-`apps/studio/src/locales/` — such as the auto-translate commit CI itself pushes
-— are tolerated, and staging continues from the current merge commit. Any other
-change stops staging until a CI run succeeds for the current head and base
-commits. If GitHub has not reported the PR's mergeability by the time the
-listener runs, the workflow fails visibly and can be re-run.
+Before creating staging, the workflow also checks that the PR head has not
+changed since the CI run it verified. Commits that only touch the translation
+catalogs under `apps/studio/src/locales/` — such as the auto-translate commit
+CI itself pushes — are tolerated, and staging continues from the current merge
+commit. Any other change fails the run until CI succeeds for the current head
+and base commits. If GitHub has not reported the PR's mergeability by the time
+the workflow runs, it fails visibly and can be re-run.
 
 The branch name includes the PR number and the first eight characters of the
 tested merge SHA. After checking out that merge, the workflow updates
@@ -74,17 +78,17 @@ version: 0.7.5-beta-123
 package: apps/desktop/package.json
 ```
 
-After pushing the branch, CI explicitly dispatches
+After pushing the branch, the workflow explicitly dispatches
 [`staging-build.yml`](../.github/workflows/staging-build.yml). That workflow
 validates that the version and `package.json` contain the PR number and that the
 parent of the version commit is the tested merge hash. It then produces signed
 Windows, macOS, and Linux installers. Artifacts are retained for 14 days.
 Staging does not create a tag, GitHub Release, or Docker image.
 
-GitHub requires both `workflow_run` listeners and manually dispatched workflows
-to exist on the repository's default branch. When this feature is deployed for
-the first time, `create-staging.yml` and `staging-build.yml` must therefore be
-promoted to the default branch before PR staging can run.
+GitHub requires manually dispatched workflows to exist on the repository's
+default branch. When this feature is deployed for the first time,
+`create-staging.yml` and `staging-build.yml` must therefore be promoted to the
+default branch before PR staging can run.
 
 Old staging branches can be deleted after the PR is merged or closed.
 
