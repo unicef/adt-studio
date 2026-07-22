@@ -850,7 +850,8 @@ ${selectors}:hover {
       className={className}
       style={{
         height: visibleHeight,
-        overflow: "hidden",
+        overflowX: "hidden",
+        overflowY: "visible",
         display: "flex",
         justifyContent: "center",
       }}
