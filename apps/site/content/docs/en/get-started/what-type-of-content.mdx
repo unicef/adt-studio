@@ -6,6 +6,12 @@ icon: FileSearch
 
 ADT Studio can process most PDFs — but not all PDFs convert equally well. The quality of the output depends significantly on the quality and structure of the source file. This page helps you understand what works, what doesn't, and why.
 
+<Callout title="Why only PDFs? Why can't I create a book from scratch here?">
+ADT Studio **converts existing content — it doesn't author new content.** That follows the UNICEF mandate behind the project: helping countries make the curricula they already have accessible, rather than generating new pedagogical material. Today, PDF is the only supported source format.
+
+If you're starting from nothing, create the book first in a general-purpose authoring tool (Word, Google Docs, Canva, InDesign, etc.), export it as a PDF, then bring that PDF into ADT Studio to make it accessible.
+</Callout>
+
 <Callout title="Starting out?">
 Use a short, simple PDF for your first conversion — ideally 10 to 30 pages, with clear headings and straightforward text. This lets you see the full pipeline without long processing times, and makes it easier to understand what the tool does at each step before you work with more complex material.
 </Callout>
@@ -39,12 +45,10 @@ ADT Studio's AI identifies headings, sections, paragraphs, figures, and activiti
 
 ## What to be careful about
 
-- **Scanned or image-based PDFs** — a scan is a photograph of a page, with no text layer. ADT Studio cannot extract readable text from it the way it can from a real text-layer PDF.
+- **Scanned or image-based PDFs** — a scan is a photograph of a page, with no text layer. ADT Studio cannot extract readable text from it the way it can from a real text-layer PDF. Running the scan through an OCR (optical character recognition) tool first can add a real text layer — any general OCR tool works, this is a preparation step outside ADT Studio itself.
 - **Complex tables** — tables spanning multiple pages or with merged cells are harder to extract accurately and may need manual review. Simple tables (a few columns, clear headers, consistent rows) extract well.
 - **Headers, footers, and page numbers** — repeated headers and footers are often picked up during extraction. ADT Studio filters most of these automatically, but any that slip through need manual removal during sectioning.
 - **Heavily designed or branded documents** — full-page background images, text over photos, and decorative overlaps make it harder for the tool to tell content from decoration.
-
-{/* TO VERIFY: can we recommend OCR as a pre-processing step? Is there a specific tool the ADT team suggests? */}
 
 ## Quick reference
 

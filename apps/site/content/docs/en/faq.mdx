@@ -24,12 +24,34 @@ Yes. ADT Studio itself is free and open source (AGPL-3.0). The only cost is usag
 No. The app is a guided, step-by-step wizard from importing a PDF to exporting a finished ADT. Coding only comes in if you want to build ADT Studio from source or contribute to the project.
 </Accordion>
 
+<Accordion title="Why can't I create a new book from scratch in ADT Studio — why does it only accept PDFs?">
+ADT Studio is a **conversion** tool, not an authoring tool. It exists to make countries' *existing* curriculum content accessible — that's the UNICEF mandate behind it — not to generate new pedagogical content. Today, PDF is the only supported source format. If you need to create content first, use a general-purpose authoring tool (Word, Google Docs, Canva, etc.), export it as a PDF, then bring that into ADT Studio. See [What type of content can become an ADT?](/docs/get-started/what-type-of-content)
+</Accordion>
+
 <Accordion title="Does it work without an internet connection?">
 Partially. The AI processing steps (extraction, narration, translation, etc.) need internet to reach your AI provider. A **finished, exported ADT works fully offline** — that's the point, since it's built for low-bandwidth and offline classrooms.
 </Accordion>
 
 <Accordion title="Where has ADT Studio actually been used?">
-Pilots with documented evidence include Kenya, Uganda, Rwanda, the Dominican Republic, Colombia, Jamaica, Nicaragua, Paraguay, and Uruguay, as part of UNICEF's [Accessible Textbooks for All](https://www.accessibletextbooksforall.org) initiative. See [live demos](/docs/get-started/what-is-adt-studio#where-adt-studio-has-been-used).
+Pilots with documented evidence span countries across Africa, the Caribbean, and Latin America, as part of UNICEF's [Accessible Textbooks for All](https://www.accessibletextbooksforall.org) initiative — see that site for the current list of participating countries. See [live demos](/docs/get-started/what-is-adt-studio#where-adt-studio-has-been-used) for examples of what the tool produces.
+</Accordion>
+
+</Accordions>
+
+## Why ADT Studio exists
+
+<Accordions>
+
+<Accordion title="Why was ADT Studio created?">
+Because most curriculum materials in low- and middle-income countries are printed and inaccessible, and children with disabilities are disproportionately left out as a result. ADT Studio was built by UNICEF, as part of the [Accessible Textbooks for All](https://www.accessibletextbooksforall.org) initiative, to close that gap with AI plus human review — instead of producing an accessible version of each book from scratch, by hand, every time.
+</Accordion>
+
+<Accordion title="What impact has ADT Studio had so far?">
+The Accessible Textbooks for All initiative tracks its reach — countries active, students reached, teachers trained — on its own site, since those figures grow with each new pilot. See the [initiative site](https://www.accessibletextbooksforall.org) for current numbers, or [Where ADT Studio has been used](/docs/get-started/what-is-adt-studio#where-adt-studio-has-been-used) for specific pilots and live demos.
+</Accordion>
+
+<Accordion title="How does this compare to producing accessible textbooks the traditional way?">
+Traditionally, governments contract publishers to produce accessible versions of physical textbooks — typically $20–$100 per page and 3 to 6 months per book, which is why most learners with disabilities end up with no accessible version at all. Converting the same content through ADT Studio's pipeline costs roughly $1 per page in AI usage (a ~20x reduction — see [AI providers and costs](/docs/get-started/api-keys)) and takes on the order of minutes for the automated steps, ahead of human validation.
 </Accordion>
 
 </Accordions>
@@ -139,7 +161,7 @@ Use [Validate and preview](/docs/convert-pdf/validate-preview): Preview shows th
 <Accordions>
 
 <Accordion title="Which export format should I use?">
-Browser → **Web Export**. Learning management system (e.g. Moodle) → **SCORM**. E-reader → **EPUB** (beta). Handing the project to another ADT Studio user → **Project Archive**. See [Export your ADT](/docs/export).
+Browser → **Web Export**. Learning management system (e.g. Moodle) → **SCORM**. E-reader → **EPUB** (beta). A reading-app-ready package with working quizzes but no embedded UI → **WebPub** (beta). Handing the project to another ADT Studio user → **Project Archive**. See [Export your ADT](/docs/export).
 </Accordion>
 
 <Accordion title="I need to fix something after exporting — do I have to redo the whole export?">

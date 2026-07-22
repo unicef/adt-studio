@@ -11,8 +11,20 @@ ADTs produced with the initiative have included sign language in national sign l
 ## Decisions to make
 
 - **Which sign language?** Sign languages are not universal — each country (sometimes each region) has its own. The right choice depends on where the ADT will be used.
-- **What is the source of the videos?** Sign language content requires human signers and video production — it is not generated automatically by the tool.
+- **What is the source of the videos?** Sign language content requires human signers and video production — it is not generated automatically by the tool. This stage is for organizing videos you already have, not producing them.
 
-{/* TO VERIFY with dev team: how sign language videos are integrated in the current app — what format is expected, how they are linked to content sections, and what the workflow looks like. */}
+## Uploading and assigning videos
 
-{/* dynamic: describe the sign language step in the app — verify against current UI */}
+Sign Language needs your book's sections built first — if [Storyboard](/docs/convert-pdf/storyboard) isn't finished yet, the stage tells you so instead of letting you run it. Once it's ready, open the **Sign Language** stage: there's no AI step to run here, just videos to upload and match to sections.
+
+- **Add videos** to upload one or more `.mp4`/`.webm` files. Uploaded videos start out **unassigned** until you match them to a section.
+- **Assign** each video to a Storyboard section from a dropdown — one video per section. A **Coverage** bar shows how many of the book's sections have a video, and a **Next missing section** shortcut jumps straight to the next gap.
+- **Manage all sections** opens a full list of every section, so you can review or reassign videos beyond the one-at-a-time flow.
+
+The reader shows the matching video in a small player as the user scrolls through the page.
+
+![The Sign Language stage before any videos are uploaded, showing zero coverage alongside a reader preview prompting for a video](./sign-language-stage.png)
+
+<Callout title="Not part of the AI pipeline">
+Sign Language doesn't run or regenerate anything — it's pure asset management. There's nothing to rerun when upstream content changes; if a section's text changes meaningfully, revisit whether its video still matches.
+</Callout>

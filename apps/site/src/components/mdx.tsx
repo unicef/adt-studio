@@ -2,7 +2,10 @@ import defaultMdxComponents from 'fumadocs-ui/mdx';
 import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
 import { Step, Steps } from 'fumadocs-ui/components/steps';
 import { Tab, Tabs } from 'fumadocs-ui/components/tabs';
+import { ImageZoom } from 'fumadocs-ui/components/image-zoom';
 import type { MDXComponents } from 'mdx/types';
+import type { ComponentProps } from 'react';
+import { cn } from '@/lib/cn';
 import { DocsHero } from '@/components/docs/DocsHero';
 import { GetStartedBanner } from '@/components/docs/GetStartedBanner';
 import { WhereToBegin, Principles } from '@/components/docs/OverviewSections';
@@ -15,6 +18,24 @@ import { SectionBanner } from '@/components/docs/SectionBanner';
 export function getMDXComponents(components?: MDXComponents) {
   return {
     ...defaultMdxComponents,
+    img: (props: ComponentProps<typeof ImageZoom>) => (
+      <ImageZoom
+        {...props}
+        className={cn(
+          'rounded-lg border border-[color:var(--color-border)]',
+          props.className,
+        )}
+      />
+    ),
+    video: (props: ComponentProps<'video'>) => (
+      <video
+        {...props}
+        className={cn(
+          'w-full rounded-lg border border-[color:var(--color-border)]',
+          props.className,
+        )}
+      />
+    ),
     Accordion,
     Accordions,
     Step,

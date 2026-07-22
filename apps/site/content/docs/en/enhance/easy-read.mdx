@@ -8,11 +8,23 @@ Easy Read is an adaptation of the content into simpler language and structure �
 
 An Easy Read version is not a summary and not a replacement. It is the same content, made more approachable, offered alongside the original.
 
-{/* TO VERIFY with dev team: current state of the Easy Read feature in the app — is it available, in progress, or planned? This page should not go live before that is confirmed. */}
-
 ## Decisions to make
 
 - **Does your audience need it?** If the ADT will be used in inclusive classrooms, an Easy Read version widens who can participate meaningfully.
 - **Review is essential.** Simplifying content is a pedagogical act. Check that the simplified version preserves the meaning and does not talk down to the reader.
 
-{/* dynamic: describe how Easy Read is generated and edited in the app — verify against current UI */}
+## Configure and generate
+
+Easy Read needs your book's pages laid out first — if [Storyboard](/docs/convert-pdf/storyboard) isn't finished yet, the stage tells you so instead of letting you run it. Tune the **Easy Read Prompt** (and how many blocks are processed per batch) in settings if you want to steer the simplification, then select **Run Easy Read**.
+
+![The Easy Read stage before it has run, showing the reader-controlled, editable, and versioned callouts alongside a sample Easy Read preview](./easy-read-stage.png)
+
+## Review and edit
+
+Once it's generated, every simplified text block sits side-by-side with its original, grouped by page. Search across original or Easy Read text, and jump between pages if the book has several. Select a block's Easy Read text to edit it in place.
+
+Readers switch between the original and simplified text with an Easy Read toggle in the ADT itself — this stage doesn't remove or replace the original, it produces the alternate version alongside it. Every edit and re-run is saved as a new version, so you can always roll back.
+
+<Callout title="Not a replacement">
+The point of Easy Read isn't to make the "real" version disappear — it's to give readers a choice. A well-reviewed Easy Read block reads as its own complete thought, not a note about the original.
+</Callout>

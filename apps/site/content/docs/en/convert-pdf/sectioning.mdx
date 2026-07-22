@@ -6,7 +6,7 @@ icon: Network
 
 A book is more than a sequence of pages — it has chapters, headings, paragraphs, activities, figures. Sectioning is where that structure is identified and confirmed.
 
-During extraction, the AI already labelled chapters, headings, and pedagogic content automatically. Sectioning is your moment to review that work: check that the structure matches the real book, fix what was misread, and clean out what doesn't belong.
+Sectioning is its own stage, run after [extraction](/docs/convert-pdf/extract) — the AI labels chapters, headings, and pedagogic content here, not during extraction itself. Once it's run, this is your moment to review that work: check that the structure matches the real book, fix what was misread, and clean out what doesn't belong.
 
 ## Why it matters
 
@@ -40,6 +40,7 @@ Switch to **Overview** to see every page's sections in one table — page, secti
 - **Is the reading order correct?** Especially in two-column layouts, check that content flows in the order a reader should encounter it.
 - **Is there leftover noise?** Repeated headers, footers, and page numbers are usually excluded automatically — but double-check, and exclude anything else that shouldn't be read aloud or shown.
 - **Are activities and special content recognised?** Exercises, boxes, and figures should carry the right type, not sit as plain text.
+- **Does a page carry a "no text layer" warning?** A flag on a page means its PDF text layer was empty and the content shown was recovered from the page image instead — give those pages a closer read, since vision-based recovery is more error-prone than reading embedded text.
 
 ## When you're done
 

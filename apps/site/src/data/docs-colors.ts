@@ -27,6 +27,8 @@ import {
   GraduationCap,
   BookMarked,
   Tablet,
+  PencilRuler,
+  Package,
   type LucideIcon,
 } from "lucide-react";
 
@@ -78,7 +80,11 @@ export const DOCS_COLORS: Record<string, { icon: LucideIcon; hex: string }> = {
   "localize/language": { icon: Languages, hex: "#db2777" }, // app stage "translate"
   "localize/speech": { icon: AudioLines, hex: "#e11d48" }, // app stage "speech"
 
-  // Export formats (not separate pages — used only by the Cards on export.mdx)
+  // Export your ADT
+  "export/formats": { icon: Package, hex: "#6366f1" },
+  "export/personalize": { icon: PencilRuler, hex: "#f59e0b" },
+
+  // Export formats (not separate pages — used only by the Cards on export/formats.mdx)
   "export/project-archive": { icon: FolderArchive, hex: "#4338ca" },
   "export/web": { icon: Globe, hex: "#2563eb" },
   "export/scorm": { icon: GraduationCap, hex: "#7c3aed" },
