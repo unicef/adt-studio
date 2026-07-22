@@ -26,6 +26,7 @@
     "fumadocs-mdx": "^15.0.12",
     "fumadocs-ui": "^16.10.5",
     "lucide-react": "^1.20.0",
+    "motion": "^12.42.2",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",

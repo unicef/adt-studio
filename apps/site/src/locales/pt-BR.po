@@ -89,6 +89,9 @@ msgstr "Uma introdução aos livros didáticos digitais acessíveis e a esta fer
 msgid "Answers to common questions and issues."
 msgstr "Respostas para perguntas e problemas comuns."
 
+msgid "Any device, any size"
+msgstr "Qualquer dispositivo, qualquer tamanho"
+
 msgid "API keys"
 msgstr "Chaves de API"
 
@@ -158,6 +161,9 @@ msgstr "Verificado com base nos padrões WCAG antes de cada exportação."
 msgid "Choose a preset that matches your content — textbook, storyboard, reference, or custom — and ADT Studio tailors the pipeline accordingly."
 msgstr "Escolha um preset que corresponda ao seu conteúdo — livro didático, storyboard, referência ou personalizado — e o ADT Studio ajusta o pipeline de acordo."
 
+msgid "Close"
+msgstr "Fechar"
+
 msgid "Close menu"
 msgstr "Fechar menu"
 
@@ -209,6 +215,17 @@ msgstr "Deliberadamente simples — fácil de manter, atualizar e ampliar."
 msgid "Delivered"
 msgstr "Entregue"
 
+#. placeholder {0}: index + 1
+#. placeholder {1}: DEMOS.length
+msgid "Demo {0} of {1}"
+msgstr "Demo {0} de {1}"
+
+msgid "Demo videos"
+msgstr "Vídeos de demonstração"
+
+msgid "Demos"
+msgstr "Demos"
+
 msgid "Dense text, tables, glossaries. Best for technical material and documentation."
 msgstr "Texto denso, tabelas, glossários. Melhor para material técnico e documentação."
 
@@ -256,6 +273,9 @@ msgstr "Baixar gratuitamente"
 msgid "downloads to date"
 msgstr "downloads até o momento"
 
+msgid "Drag-and-drop exercises generated from the book's own content, fully keyboard-accessible."
+msgstr "Exercícios de arrastar e soltar gerados a partir do próprio conteúdo do livro, totalmente acessíveis por teclado."
+
 msgid "Drop a PDF to get started"
 msgstr "Solte um PDF para começar"
 
@@ -267,6 +287,9 @@ msgstr "Solte um PDF para começar. O ADT Studio o organiza em um novo projeto d
 
 msgid "Easy Read"
 msgstr "Leitura Fácil"
+
+msgid "Easy-read, text-to-voice, sign language and glossary: readers toggle what they need, per book."
+msgstr "Leitura fácil, texto para voz, língua de sinais e glossário: cada leitor ativa o que precisa, em cada livro."
 
 msgid "Edit & enrich"
 msgstr "Editar e enriquecer"
@@ -289,8 +312,14 @@ msgstr "As entidades são versionadas, nunca substituídas. Você sempre pode vo
 msgid "EPUB"
 msgstr "EPUB"
 
+msgid "Equations become real MathML that screen readers pronounce correctly, heard here through NVDA."
+msgstr "As equações viram MathML de verdade que os leitores de tela pronunciam corretamente, aqui pelo NVDA."
+
 msgid "Every accessibility feature, <0>built in from page one</0>."
 msgstr "Cada recurso de acessibilidade, <0>embutido desde a primeira página</0>."
+
+msgid "Every accommodation, one panel"
+msgstr "Todos os recursos, um só painel"
 
 msgid "Every AI call, and its cost, is saved and inspectable."
 msgstr "Cada chamada à IA, e seu custo, é salva e pode ser consultada."
@@ -391,6 +420,10 @@ msgstr "GitHub"
 msgid "Glossary"
 msgstr "Glossário"
 
+#. placeholder {0}: i18n._(d.title)
+msgid "Go to {0}"
+msgstr "Ir para {0}"
+
 msgid "Grouping content by purpose, then laying out every section as reviewable HTML."
 msgstr "Agrupando conteúdo por propósito, depois organizando cada seção como HTML revisável."
 
@@ -435,6 +468,9 @@ msgstr "Instalação"
 
 msgid "Installing"
 msgstr "Instalação"
+
+msgid "Interactive activities"
+msgstr "Atividades interativas"
 
 msgid "Introduction"
 msgstr "Introdução"
@@ -484,11 +520,17 @@ msgstr "Localize seu ADT"
 msgid "Made possible by"
 msgstr "Tornado possível por"
 
+msgid "Math that reads aloud"
+msgstr "Matemática que é lida em voz alta"
+
 msgid "MIT licensed"
 msgstr "Licença MIT"
 
 msgid "Narration · 0:42"
 msgstr "Narração · 0:42"
+
+msgid "Narration follows the text word by word, with playback speed and voice controls."
+msgstr "A narração acompanha o texto palavra por palavra, com controle de velocidade e de voz."
 
 msgid "Need help? <0>We got you.</0>"
 msgstr "Precisa de ajuda? <0>Conta com a gente.</0>"
@@ -498,6 +540,9 @@ msgstr "Novo"
 
 msgid "Newest first, with the full notes inline — what changed, why it matters, and the screenshots to back it up."
 msgstr "Mais recentes primeiro, com as notas completas em linha — o que mudou, por que é importante e as capturas de tela para apoiar."
+
+msgid "Next demo"
+msgstr "Próxima demo"
 
 #. placeholder {0}: meta.label
 msgid "No {0} build yet"
@@ -584,6 +629,9 @@ msgstr "Analisando páginas em texto, figuras e caixas de layout — armazenado 
 msgid "Pause"
 msgstr "Pausar"
 
+msgid "Pause demo"
+msgstr "Pausar demo"
+
 msgid "Pick a preset"
 msgstr "Escolha um preset"
 
@@ -602,6 +650,12 @@ msgstr "Visão geral do pipeline"
 msgid "Play"
 msgstr "Reproduzir"
 
+msgid "Play {title} fullscreen"
+msgstr "Reproduzir {title} em tela cheia"
+
+msgid "Play demo"
+msgstr "Reproduzir demo"
+
 msgid "Popular:"
 msgstr "Populares:"
 
@@ -610,6 +664,9 @@ msgstr "Português (BR)"
 
 msgid "Pre-release — APIs and behavior may still change before the stable cut."
 msgstr "Pré-lançamento — APIs e comportamento ainda podem mudar antes da versão estável."
+
+msgid "Previous demo"
+msgstr "Demo anterior"
 
 msgid "Primary"
 msgstr "Principal"
@@ -647,6 +704,12 @@ msgstr "Leia o lançamento {0}"
 
 msgid "Read this release"
 msgstr "Leia este lançamento"
+
+msgid "Read-aloud with word highlighting"
+msgstr "Leitura em voz alta com destaque de palavras"
+
+msgid "Real books, before & after"
+msgstr "Livros reais, antes e depois"
 
 msgid "Recover headings, paragraphs, figures, tables and alt-text from the source PDF as real semantic HTML — built for screen readers."
 msgstr "Recupere cabeçalhos, parágrafos, figuras, tabelas e texto alternativo do PDF de origem como HTML semântico real — feito para leitores de tela."
@@ -711,6 +774,9 @@ msgstr "Veja todos os lançamentos no GitHub"
 
 msgid "See examples"
 msgstr "Veja exemplos"
+
+msgid "See it in action"
+msgstr "Veja em ação"
 
 msgid "Segmenting scenes"
 msgstr "Segmentando cenas"
@@ -787,8 +853,14 @@ msgstr "A saída"
 msgid "The pipeline"
 msgstr "O pipeline"
 
+msgid "The same book reflows from desktop to phone without losing audio, structure or activities."
+msgstr "O mesmo livro se adapta do computador ao celular sem perder áudio, estrutura ou atividades."
+
 msgid "The same content, in plainer language."
 msgstr "O mesmo conteúdo, em linguagem mais simples."
+
+msgid "Three real textbooks (Cuaderno 5, Momo and Katko) turned from flat PDFs into accessible interactive books."
+msgstr "Três livros didáticos reais (Cuaderno 5, Momo e Katko) transformados de PDFs estáticos em livros interativos acessíveis."
 
 msgid "Translate"
 msgstr "Traduzir"
@@ -808,6 +880,9 @@ msgstr "Transforme qualquer livro didático em algo que todo aluno possa ler, ou
 msgid "Unchanged steps reuse cached results instantly, at no extra cost."
 msgstr "Etapas inalteradas reaproveitam instantaneamente os resultados salvos, sem custo adicional."
 
+msgid "Up next: {nextTitle}"
+msgstr "A seguir: {nextTitle}"
+
 msgid "Validate"
 msgstr "Validar"
 
@@ -819,6 +894,12 @@ msgstr "Ver código-fonte"
 
 msgid "WAITING"
 msgstr "AGUARDANDO"
+
+msgid "Watch a flat PDF become an accessible book."
+msgstr "Veja um PDF estático virar um livro acessível."
+
+msgid "Watch fullscreen"
+msgstr "Assistir em tela cheia"
 
 msgid "We couldn't fetch the latest release. Try the release page directly, or pick another platform below."
 msgstr "Não conseguimos buscar o último lançamento. Tente a página de lançamento diretamente ou escolha outra plataforma abaixo."
