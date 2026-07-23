@@ -1521,6 +1521,9 @@ msgstr "Boxed Texte"
 msgid "Branch out"
 msgstr "Bifurquer"
 
+msgid "Brazilian PNLD digital work (.zip) with HTML5 content, content.opf and toc.ncx metadata, for submission to the FNDE VALIDE reader."
+msgstr "Œuvre numérique PNLD brésilienne (.zip) avec contenu HTML5 et métadonnées content.opf et toc.ncx, à soumettre au lecteur VALIDE du FNDE."
+
 msgid "Breakpoint override"
 msgstr "Remplacement de point de rupture"
 
@@ -3110,6 +3113,9 @@ msgstr "Vecteur plat"
 msgid "Flexible"
 msgstr "Flexible"
 
+msgid "FNDE-ready HTML5 package (.zip)"
+msgstr "Paquet HTML5 prêt pour le FNDE (.zip)"
+
 msgid "Font"
 msgstr "Police"
 
@@ -3495,6 +3501,9 @@ msgstr "Comment ajouter des quiz"
 
 msgid "HTML"
 msgstr "HTML"
+
+msgid "HTML5 + EPUB"
+msgstr "HTML5 + EPUB"
 
 msgid "I understand the part was processed with different prompts/models and want to merge it anyway."
 msgstr "Je comprends que la partie a été traitée avec des prompts/modèles différents et je veux la fusionner quand même."
@@ -5092,6 +5101,9 @@ msgstr "Empaquetez et prévisualisez l'application web ADT finale."
 msgid "Package preview to generate results"
 msgstr "Empaqueter l'aperçu pour générer les résultats"
 
+msgid "Package structure"
+msgstr "Structure du paquet"
+
 msgid "Package the book for distribution. Pick a format, choose what content goes in, and we'll bundle everything into a downloadable archive."
 msgstr "Emballez le livre pour la distribution. Choisissez un format, sélectionnez le contenu à inclure, et nous regrouperons le tout dans une archive téléchargeable."
 
@@ -5422,6 +5434,18 @@ msgstr "Lire la vidéo"
 
 msgid "Please wait for the current operation to finish"
 msgstr "Veuillez attendre la fin de l'opération en cours"
+
+msgid "PNLD Digital · FNDE"
+msgstr "PNLD Digital · FNDE"
+
+msgid "PNLD Digital Work"
+msgstr "Œuvre numérique PNLD"
+
+msgid "PNLD Export"
+msgstr "Exporter en PNLD"
+
+msgid "PNLD Package"
+msgstr "Paquet PNLD"
 
 msgid "Polishing paragraphs to perfection..."
 msgstr "Peaufinage des paragraphes à la perfection..."
@@ -7096,6 +7120,9 @@ msgstr "Sous-titre"
 msgid "Submit"
 msgstr "Soumettre"
 
+msgid "Submit to the FNDE PNLD Digital platform and validate with VALIDE."
+msgstr "Soumettez à la plateforme PNLD Digital du FNDE et validez avec VALIDE."
+
 msgid "Success"
 msgstr "Succès"
 
@@ -8021,6 +8048,9 @@ msgstr "Utilisé pour les modèles Gemini — LLM (gemini-2.5-pro, etc.) et TTS 
 
 msgid "Used for this quiz"
 msgstr "Utilisée pour ce quiz"
+
+msgid "Validates in VALIDE Desktop — the official PNLD reader"
+msgstr "Validé dans VALIDE Desktop — le lecteur officiel du PNLD"
 
 msgid "Validation"
 msgstr "Validation"
