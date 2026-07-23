@@ -3,7 +3,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { PNG } from "pngjs"
-import { buildOpf, buildNcx, buildIndex, rewriteContentPage, ensureJpegCover, relocateFeatureData } from "../packaging/pnld.js"
+import { buildOpf, buildNcx, buildIndex, rewriteContentPage, ensureJpegCover, buildAdtSidecar } from "../packaging/pnld.js"
 import type { PageEntry } from "../packaging/web.js"
 
 const PAGES: PageEntry[] = [
@@ -226,26 +226,49 @@ describe("ensureJpegCover", () => {
   })
 })
 
-describe("relocateFeatureData", () => {
-  it("moves content/i18n into resources/i18n, preserving structure", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-i18n-"))
-    const audioDir = path.join(dir, "content", "i18n", "pt-BR", "audio")
-    fs.mkdirSync(audioDir, { recursive: true })
-    fs.writeFileSync(path.join(audioDir, "pg001_n0001.mp3"), "audio")
-    fs.writeFileSync(path.join(dir, "content", "i18n", "pt-BR", "glossary.json"), "{}")
+describe("buildAdtSidecar", () => {
+  it("preserves config, manifests, feature data, and the bundle under resources/adt", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-adt-"))
+    fs.mkdirSync(path.join(dir, "assets", "interface_translations", "pt-BR"), { recursive: true })
+    fs.mkdirSync(path.join(dir, "content", "i18n", "pt-BR", "audio"), { recursive: true })
+    fs.writeFileSync(path.join(dir, "assets", "config.json"), "{}")
+    fs.writeFileSync(path.join(dir, "assets", "activities.bundle.local.js"), "//bundle")
+    fs.writeFileSync(path.join(dir, "assets", "interface_translations", "pt-BR", "interface_translations.json"), "{}")
+    fs.writeFileSync(path.join(dir, "content", "pages.json"), "[]")
+    fs.writeFileSync(path.join(dir, "content", "toc.json"), "[]")
+    fs.writeFileSync(path.join(dir, "content", "i18n", "pt-BR", "audio", "pg001.mp3"), "a")
 
-    relocateFeatureData(dir)
+    buildAdtSidecar(dir)
 
-    expect(fs.existsSync(path.join(dir, "content", "i18n"))).toBe(false)
-    expect(fs.existsSync(path.join(dir, "resources", "i18n", "pt-BR", "audio", "pg001_n0001.mp3"))).toBe(true)
-    expect(fs.existsSync(path.join(dir, "resources", "i18n", "pt-BR", "glossary.json"))).toBe(true)
+    const adt = path.join(dir, "resources", "adt")
+    expect(fs.existsSync(path.join(adt, "assets", "config.json"))).toBe(true)
+    expect(fs.existsSync(path.join(adt, "assets", "activities.bundle.local.js"))).toBe(true)
+    expect(fs.existsSync(path.join(adt, "assets", "interface_translations", "pt-BR", "interface_translations.json"))).toBe(true)
+    expect(fs.existsSync(path.join(adt, "content", "pages.json"))).toBe(true)
+    expect(fs.existsSync(path.join(adt, "content", "i18n", "pt-BR", "audio", "pg001.mp3"))).toBe(true)
     fs.rmSync(dir, { recursive: true, force: true })
   })
 
-  it("is a no-op when there is no i18n data", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-i18n-"))
-    fs.mkdirSync(path.join(dir, "content"), { recursive: true })
-    expect(() => relocateFeatureData(dir)).not.toThrow()
+  it("is a no-op when the runtime layer is absent", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-adt-"))
+    expect(() => buildAdtSidecar(dir)).not.toThrow()
     fs.rmSync(dir, { recursive: true, force: true })
+  })
+})
+
+describe("rewriteContentPage — activities bundle", () => {
+  const activity = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /></head><body><main><section data-section-type="activity_multiple_choice"></section></main></body></html>`
+  const plain = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /></head><body><main><section data-section-type="text_only"></section></main></body></html>`
+
+  it("injects the adt-base meta + bundle on activity pages", () => {
+    const out = rewriteContentPage(activity, 1, "pt-BR")
+    expect(out).toContain('<meta name="adt-base" content="../resources/adt/" />')
+    expect(out).toContain('<script src="../resources/adt/assets/activities.bundle.local.js"></script>')
+  })
+
+  it("leaves non-activity pages without the bundle", () => {
+    const out = rewriteContentPage(plain, 1, "pt-BR")
+    expect(out).not.toContain("activities.bundle.local.js")
+    expect(out).not.toContain("adt-base")
   })
 })

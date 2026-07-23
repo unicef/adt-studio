@@ -8,6 +8,7 @@
  * and `fetchContentFiles`, restructured around atoms.
  */
 import { getDefaultStore } from "jotai"
+import { runtimeBase } from "@/shared/runtime/base-path.js"
 import {
   audioFilesAtom,
   imageFilesAtom,
@@ -86,7 +87,7 @@ async function loadInterfaceTranslations(
   lang: string,
   versionParam: string,
 ): Promise<Record<string, string>> {
-  const url = `./assets/interface_translations/${lang}/interface_translations.json${versionParam}`
+  const url = `${runtimeBase()}assets/interface_translations/${lang}/interface_translations.json${versionParam}`
   const data = await safeJsonFetch<Record<string, string>>(url, "interface translations")
   return data ?? {}
 }
@@ -102,7 +103,7 @@ async function loadContentFiles(
   lang: string,
   versionParam: string,
 ): Promise<ContentBundle> {
-  const base = `./content/i18n/${lang}`
+  const base = `${runtimeBase()}content/i18n/${lang}`
   const [texts, audios, videos, images] = await Promise.all([
     safeJsonFetch<Record<string, string>>(`${base}/texts.json${versionParam}`, "texts.json"),
     safeJsonFetch<Record<string, string>>(`${base}/audios.json${versionParam}`, "audios.json"),

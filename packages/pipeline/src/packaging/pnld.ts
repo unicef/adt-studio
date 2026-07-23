@@ -170,10 +170,10 @@ function reorganize(pnldDir: string, rawPages: PageEntry[], language: string): P
     stagedPages.set(sectionId, fs.readFileSync(srcPath, "utf-8"))
   }
 
-  // 5b. Feature data → resources/i18n so the reader can access every ADT
-  //     feature (read-aloud audio, sign-language video, glossary/texts/timecode
-  //     JSON). content/ must stay HTML-only per spec, so it can't live there.
-  relocateFeatureData(pnldDir)
+  // 5b. Preserve the ADT runtime layer (config, translations, manifests,
+  //     feature data, activities bundle) into resources/adt/ so activities work
+  //     and the reader can reach every feature — before assets/ + content/ go.
+  buildAdtSidecar(pnldDir)
 
   // 6. Remove everything that isn't part of the PNLD structure.
   if (fs.existsSync(adtContentDir)) fs.rmSync(adtContentDir, { recursive: true })
@@ -230,6 +230,21 @@ export function rewriteContentPage(
 
   // Spec requires the content language on <body> (adt only sets it on <html>).
   out = out.replace(/<body\b(?![^>]*\blang=)([^>]*)>/i, `<body lang="${escapeXml(language)}"$1>`)
+
+  // Activity pages load the standalone activities bundle (submit/validate +
+  // confetti/toast + next-page nav), like WebPub. `adt-base` points the
+  // bundle's runtime loaders at the resources/adt sidecar (pages live in
+  // content/, so it resolves one level up).
+  if (out.includes('data-section-type="activity_')) {
+    out = out.replace(
+      /<\/head>/i,
+      '    <meta name="adt-base" content="../resources/adt/" />\n</head>',
+    )
+    out = out.replace(
+      /<\/body>/i,
+      '    <script src="../resources/adt/assets/activities.bundle.local.js"></script>\n</body>',
+    )
+  }
 
   // Pagination: one printed page per content file, marked at the top of <main>.
   if (pageNumber != null) {
@@ -288,16 +303,32 @@ function removeStrayRootFiles(pnldDir: string): void {
 }
 
 /**
- * Move the ADT feature tree (`content/i18n/**` — read-aloud audio,
- * sign-language video, and the glossary/texts/timecode JSON) into
- * `resources/i18n/`, preserving its per-language structure. `content/` must be
- * HTML-only per the spec, so the feature data is carried under `resources/`
- * where the reader can access every ADT feature.
+ * Preserve the ADT runtime layer into a `resources/adt/` sidecar, mirroring the
+ * adt/webpub layout (`assets/` + `content/`) so the standalone activities
+ * bundle works unchanged via `<meta name="adt-base">`. Carries everything the
+ * reader + bundle need: the config, interface translations, page/toc manifests,
+ * the per-language feature data (read-aloud audio, sign-language video,
+ * glossary/texts/timecode), and the activities bundle itself. Must run before
+ * `assets/` and `content/` are deleted; `content/` itself stays HTML-only.
  */
-export function relocateFeatureData(pnldDir: string): void {
-  const src = path.join(pnldDir, "content", "i18n")
+export function buildAdtSidecar(pnldDir: string): void {
+  const adt = path.join(pnldDir, "resources", "adt")
+  const assets = path.join(pnldDir, "assets")
+  const content = path.join(pnldDir, "content")
+
+  moveFile(path.join(assets, "config.json"), path.join(adt, "assets", "config.json"))
+  moveFile(
+    path.join(assets, "activities.bundle.local.js"),
+    path.join(adt, "assets", "activities.bundle.local.js"),
+  )
+  moveDir(path.join(assets, "interface_translations"), path.join(adt, "assets", "interface_translations"))
+  moveFile(path.join(content, "pages.json"), path.join(adt, "content", "pages.json"))
+  moveFile(path.join(content, "toc.json"), path.join(adt, "content", "toc.json"))
+  moveDir(path.join(content, "i18n"), path.join(adt, "content", "i18n"))
+}
+
+function moveDir(src: string, dest: string): void {
   if (!fs.existsSync(src)) return
-  const dest = path.join(pnldDir, "resources", "i18n")
   fs.mkdirSync(path.dirname(dest), { recursive: true })
   fs.rmSync(dest, { recursive: true, force: true })
   fs.renameSync(src, dest)
