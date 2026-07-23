@@ -102,6 +102,16 @@ automatic teardown only fires for PRs whose base is `develop`, mirroring the
 staging contract, so closing a same-branch PR that targets another base never
 removes the staging build.
 
+The trigger is **`pull_request_target`**, not `pull_request`. A `pull_request`
+workflow runs the copy of the file that lives on the PR *head* branch, which
+would re-couple cleanup to the branch under test — a stale copy on an old
+feature branch would compute the wrong slug and delete the wrong release.
+`pull_request_target` always runs `develop`'s copy of this workflow with a write
+token, so cleanup behaviour is defined in exactly one place. It never checks out
+or executes PR code — it only calls the GitHub API by PR number — so it carries
+none of the untrusted-code risk that normally makes `pull_request_target`
+dangerous.
+
 Every deletion is idempotent and silent: if the pre-release, tag, or branch is
 already gone, the step logs that it is skipping and exits successfully. It never
 fails a run because there was nothing left to remove.
