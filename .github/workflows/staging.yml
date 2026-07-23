@@ -1,93 +1,92 @@
-name: Staging Build
+name: Staging
 
 on:
   workflow_dispatch:
-    inputs:
-      staging_ref:
-        description: "Staging branch created by CI"
-        required: true
-        type: string
-      staging_version:
-        description: "Version calculated by CI"
-        required: true
-        type: string
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: staging-build-${{ inputs.staging_ref }}
+  group: staging-${{ github.ref_name }}
   cancel-in-progress: false
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 jobs:
-  prepare:
+  stage:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     outputs:
-      version: ${{ steps.version.outputs.version }}
-      commit: ${{ steps.version.outputs.commit }}
+      slug: ${{ steps.stage.outputs.slug }}
+      branch: ${{ steps.stage.outputs.branch }}
+      version: ${{ steps.stage.outputs.version }}
+      commit: ${{ steps.stage.outputs.commit }}
     steps:
-      - name: Validate staging branch
-        env:
-          STAGING_REF: ${{ inputs.staging_ref }}
-        run: |
-          if [[ ! "$STAGING_REF" =~ ^staging/pr-[0-9]+-[0-9a-f]{8}$ ]]; then
-            echo "::error::Invalid staging branch: $STAGING_REF"
-            exit 1
-          fi
-
-      - uses: actions/checkout@v4
+      - name: Check out source branch
+        uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.staging_ref }}
           fetch-depth: 0
 
-      - name: Validate staging version
-        id: version
+      - name: Merge with develop and create staging branch
+        id: stage
         shell: bash
         env:
-          STAGING_REF: ${{ inputs.staging_ref }}
-          STAGING_VERSION: ${{ inputs.staging_version }}
+          REF_NAME: ${{ github.ref_name }}
+          SOURCE_SHA: ${{ github.sha }}
         run: |
-          if [[ ! "$STAGING_REF" =~ ^staging/pr-([1-9][0-9]*)-([0-9a-f]{8})$ ]]; then
-            echo "::error::Invalid staging branch: $STAGING_REF"
+          if [[ "$REF_NAME" == "develop" || "$REF_NAME" == "main" || "$REF_NAME" == staging/* ]]; then
+            echo "::error::Staging cannot run from '$REF_NAME'. Select a feature or fix branch."
             exit 1
           fi
-          PR_NUMBER="${BASH_REMATCH[1]}"
-          EXPECTED_MERGE_SHA="${BASH_REMATCH[2]}"
-          MERGE_SHA=$(git rev-parse HEAD^)
-          ACTUAL_MERGE_SHA="${MERGE_SHA:0:8}"
-          PACKAGE_VERSION=$(node -p "require('./apps/desktop/package.json').version")
-          VERSION="$STAGING_VERSION"
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-beta-([1-9][0-9]*)$ ]]; then
-            echo "::error::Invalid staging version: $VERSION"
+
+          SLUG=$(echo "$REF_NAME" | tr '[:upper:]' '[:lower:]' | sed -e 's/[^a-z0-9-]/-/g' -e 's/-\{2,\}/-/g' -e 's/^-//' -e 's/-$//')
+          if [[ -z "$SLUG" ]]; then
+            echo "::error::Branch '$REF_NAME' produced an empty staging slug."
             exit 1
           fi
-          VERSION_PR="${BASH_REMATCH[1]}"
-          if [[ "$ACTUAL_MERGE_SHA" != "$EXPECTED_MERGE_SHA" ]]; then
-            echo "::error::Branch suffix does not match the tested merge commit: $ACTUAL_MERGE_SHA"
+          STAGING_BRANCH="staging/$SLUG"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git fetch origin develop
+          git checkout --detach origin/develop
+          if ! git merge --no-edit "$SOURCE_SHA"; then
+            git merge --abort || true
+            echo "::error::Branch '$REF_NAME' has conflicts with develop; resolve them before staging."
             exit 1
           fi
-          if [[ "$VERSION_PR" != "$PR_NUMBER" ]]; then
-            echo "::error::Version does not match PR #$PR_NUMBER: $VERSION"
-            exit 1
-          fi
-          if [[ "$PACKAGE_VERSION" != "$VERSION" ]]; then
-            echo "::error::package.json version is $PACKAGE_VERSION, expected $VERSION"
-            exit 1
-          fi
-          CHANGED_FILES=$(git diff-tree --no-commit-id --name-only -r HEAD)
-          if [[ "$CHANGED_FILES" != "apps/desktop/package.json" ]]; then
-            echo "::error::Staging version commit changed unexpected files: $CHANGED_FILES"
-            exit 1
-          fi
+
+          VERSION=$(node scripts/calculate-release-version.mjs staging "$SLUG")
+          (
+            cd apps/desktop
+            npm version "$VERSION" --no-git-tag-version --ignore-scripts
+          )
+          git add apps/desktop/package.json
+          git commit -m "chore(staging): set '$SLUG' version to $VERSION"
+          git push --force origin "HEAD:refs/heads/$STAGING_BRANCH"
+
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+          echo "branch=$STAGING_BRANCH" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
+      - name: Add staging summary
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          STAGING_BRANCH: ${{ steps.stage.outputs.branch }}
+          VERSION: ${{ steps.stage.outputs.version }}
+        run: |
+          {
+            echo "### Staging ready for \`$REF_NAME\`"
+            echo "- Branch: \`$STAGING_BRANCH\`"
+            echo "- Version: \`$VERSION\`"
+            echo "- Built from \`$REF_NAME\` merged with \`develop\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
   desktop:
-    needs: prepare
+    needs: stage
     strategy:
       fail-fast: false
       matrix:
@@ -98,11 +97,11 @@ jobs:
     permissions:
       contents: read
     env:
-      APP_VERSION: ${{ needs.prepare.outputs.version }}
+      APP_VERSION: ${{ needs.stage.outputs.version }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.prepare.outputs.commit }}
+          ref: ${{ needs.stage.outputs.commit }}
 
       - uses: pnpm/action-setup@v4
 
@@ -193,7 +192,7 @@ jobs:
       - name: Upload staging installers
         uses: actions/upload-artifact@v4
         with:
-          name: staging-${{ needs.prepare.outputs.version }}-${{ matrix.os }}
+          name: staging-${{ needs.stage.outputs.version }}-${{ matrix.os }}
           retention-days: 14
           if-no-files-found: error
           path: |

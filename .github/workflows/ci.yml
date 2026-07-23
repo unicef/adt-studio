@@ -11,19 +11,6 @@ permissions:
   contents: read
 
 jobs:
-  staging-metadata:
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Record tested merge commit
-        shell: bash
-        run: echo "$GITHUB_SHA" > staging-merge-sha.txt
-      - uses: actions/upload-artifact@v4
-        with:
-          name: staging-metadata
-          path: staging-merge-sha.txt
-          retention-days: 1
-
   test:
     runs-on: ubuntu-latest
     steps:

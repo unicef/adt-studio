@@ -17,7 +17,7 @@ const BETA_BUMPS = {
   staging: "patch",
 };
 
-export function calculateReleaseVersion(tags, releaseType, pullRequestNumber) {
+export function calculateReleaseVersion(tags, releaseType, stagingSlug) {
   const versions = tags.map(parseReleaseTag).filter(Boolean);
   const stable = versions
     .filter((version) => version.prerelease == null)
@@ -49,12 +49,12 @@ export function calculateReleaseVersion(tags, releaseType, pullRequestNumber) {
   const core = continueBetaLine ? latestBeta : candidate;
 
   if (releaseType === "staging") {
-    if (!pullRequestNumber || !/^[1-9]\d*$/.test(pullRequestNumber)) {
+    if (!stagingSlug || !/^[0-9A-Za-z-]+$/.test(stagingSlug)) {
       throw new Error(
-        "Staging versions require a positive pull request number",
+        "Staging versions require a branch slug (letters, numbers, and hyphens)",
       );
     }
-    return `${formatCore(core)}-beta-${pullRequestNumber}`;
+    return `${formatCore(core)}-beta-${stagingSlug}`;
   }
 
   const betaNumber = continueBetaLine ? betaNumberOf(latestBeta) + 1 : 1;
@@ -74,17 +74,17 @@ function bumpCore(version, bump) {
 }
 
 function main() {
-  const [, , releaseType, pullRequestNumber] = process.argv;
+  const [, , releaseType, stagingSlug] = process.argv;
   if (!releaseType) {
     console.error(
-      "Usage: node scripts/calculate-release-version.mjs <major|minor|patch|beta|beta-minor|beta-major|staging> [pull-request-number]",
+      "Usage: node scripts/calculate-release-version.mjs <major|minor|patch|beta|beta-minor|beta-major|staging> [staging-slug]",
     );
     process.exitCode = 1;
     return;
   }
   try {
     console.log(
-      calculateReleaseVersion(listGitTags(), releaseType, pullRequestNumber),
+      calculateReleaseVersion(listGitTags(), releaseType, stagingSlug),
     );
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
