@@ -1917,6 +1917,26 @@ export function StoryboardSectionDetail({
         onSave={saveRendering}
         onDiscard={discardAll}
         renderSaveBar={false}
+        renderPreview={(data, onReady) => {
+          const sec = getRenderedSectionByIndex(data as RenderingData, sectionIndex)
+          if (!sec) {
+            return (
+              <div className="flex h-full items-center justify-center p-2 text-center text-[11px] text-muted-foreground">
+                {t`This section doesn't exist in this version.`}
+              </div>
+            )
+          }
+          return (
+            <BookPreviewFrame
+              html={sec.html}
+              bookLabel={bookLabel}
+              editable={false}
+              applyBodyBackground
+              bodyFontFamily={pageDetail?.reflowableFontFamily ?? undefined}
+              onReady={onReady}
+            />
+          )
+        }}
       />
       <ViewportToggle
         value={deviceView}

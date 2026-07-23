@@ -115,6 +115,9 @@ export interface BookPreviewFrameProps {
    *  family from Google Fonts and overrides the global Merriweather, matching
    *  packaged output. Omit for fixed-layout (keeps per-span fonts). */
   bodyFontFamily?: string
+  /** Fires once the iframe has loaded, fonts are ready, and content injected —
+   *  useful for revealing the frame after a loading skeleton. */
+  onReady?: () => void
 }
 
 /**
@@ -144,6 +147,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   deviceView,
   onVisibleWidthChange,
   bodyFontFamily,
+  onReady,
 }, ref) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -815,6 +819,10 @@ ${selectors}:hover {
   useEffect(() => {
     onVisibleWidthChange?.(visibleWidth)
   }, [visibleWidth, onVisibleWidthChange])
+
+  useEffect(() => {
+    if (iframeReady) onReady?.()
+  }, [iframeReady, onReady])
 
   // Fixed-layout pages carry explicit pixel dimensions and ignore device
   // chrome. Reflowable: mobile/tablet keep their fixed device-screen height
