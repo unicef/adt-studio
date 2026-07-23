@@ -3,7 +3,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { PNG } from "pngjs"
-import { buildOpf, buildNcx, buildIndex, rewriteContentPage, ensureJpegCover } from "../packaging/pnld.js"
+import { buildOpf, buildNcx, buildIndex, rewriteContentPage, ensureJpegCover, relocateFeatureData } from "../packaging/pnld.js"
 import type { PageEntry } from "../packaging/web.js"
 
 const PAGES: PageEntry[] = [
@@ -222,6 +222,30 @@ describe("ensureJpegCover", () => {
   it("returns undefined when there is no cover", () => {
     const dir = tmp()
     expect(ensureJpegCover(dir)).toBeUndefined()
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+})
+
+describe("relocateFeatureData", () => {
+  it("moves content/i18n into resources/i18n, preserving structure", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-i18n-"))
+    const audioDir = path.join(dir, "content", "i18n", "pt-BR", "audio")
+    fs.mkdirSync(audioDir, { recursive: true })
+    fs.writeFileSync(path.join(audioDir, "pg001_n0001.mp3"), "audio")
+    fs.writeFileSync(path.join(dir, "content", "i18n", "pt-BR", "glossary.json"), "{}")
+
+    relocateFeatureData(dir)
+
+    expect(fs.existsSync(path.join(dir, "content", "i18n"))).toBe(false)
+    expect(fs.existsSync(path.join(dir, "resources", "i18n", "pt-BR", "audio", "pg001_n0001.mp3"))).toBe(true)
+    expect(fs.existsSync(path.join(dir, "resources", "i18n", "pt-BR", "glossary.json"))).toBe(true)
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("is a no-op when there is no i18n data", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-i18n-"))
+    fs.mkdirSync(path.join(dir, "content"), { recursive: true })
+    expect(() => relocateFeatureData(dir)).not.toThrow()
     fs.rmSync(dir, { recursive: true, force: true })
   })
 })

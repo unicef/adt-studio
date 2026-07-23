@@ -170,6 +170,11 @@ function reorganize(pnldDir: string, rawPages: PageEntry[], language: string): P
     stagedPages.set(sectionId, fs.readFileSync(srcPath, "utf-8"))
   }
 
+  // 5b. Feature data → resources/i18n so the reader can access every ADT
+  //     feature (read-aloud audio, sign-language video, glossary/texts/timecode
+  //     JSON). content/ must stay HTML-only per spec, so it can't live there.
+  relocateFeatureData(pnldDir)
+
   // 6. Remove everything that isn't part of the PNLD structure.
   if (fs.existsSync(adtContentDir)) fs.rmSync(adtContentDir, { recursive: true })
   if (fs.existsSync(assetsDir)) fs.rmSync(assetsDir, { recursive: true })
@@ -280,6 +285,22 @@ function removeStrayRootFiles(pnldDir: string): void {
     if (/^cover\.(png|jpe?g)$/i.test(entry.name)) continue
     fs.rmSync(path.join(pnldDir, entry.name))
   }
+}
+
+/**
+ * Move the ADT feature tree (`content/i18n/**` — read-aloud audio,
+ * sign-language video, and the glossary/texts/timecode JSON) into
+ * `resources/i18n/`, preserving its per-language structure. `content/` must be
+ * HTML-only per the spec, so the feature data is carried under `resources/`
+ * where the reader can access every ADT feature.
+ */
+export function relocateFeatureData(pnldDir: string): void {
+  const src = path.join(pnldDir, "content", "i18n")
+  if (!fs.existsSync(src)) return
+  const dest = path.join(pnldDir, "resources", "i18n")
+  fs.mkdirSync(path.dirname(dest), { recursive: true })
+  fs.rmSync(dest, { recursive: true, force: true })
+  fs.renameSync(src, dest)
 }
 
 function moveFile(src: string, dest: string): void {
