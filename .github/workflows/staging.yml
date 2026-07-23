@@ -236,6 +236,7 @@ jobs:
           TAG: ${{ needs.stage.outputs.version }}
           BRANCH: ${{ github.ref_name }}
           TRIGGER_SHA: ${{ needs.stage.outputs.commit }}
+          SOURCE_SHA: ${{ github.sha }}
         run: |
           rm -f release-notes.tmp release-notes.md
           if node scripts/compose-release-notes.mjs > release-notes.tmp && [ -s release-notes.tmp ]; then

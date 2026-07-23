@@ -84,17 +84,30 @@ any existing release (and its tag) ending in `-beta-<slug>`, then recreates it
 from the current build. Staging does not create a `v*` tag or a Docker image.
 
 > Because the pre-release is a real GitHub Release, every beta-channel install
-> sees it in the version browser. Delete stale staging releases once the source
-> branch is merged or abandoned.
+> sees it in the version browser. Stale staging releases are torn down
+> automatically (see below); delete them by hand only if you skip that path.
+
+## Staging cleanup
+
+[`staging-cleanup.yml`](../.github/workflows/staging-cleanup.yml) tears down a
+branch's staging footprint automatically when its pull request closes (merged or
+not). It derives the slug from the PR head branch with the same rules as the
+staging workflow, deletes any pre-release ending in `-beta-<slug>` (with its
+tag), and deletes the `staging/<slug>` branch.
+
+Every deletion is idempotent and silent: if the pre-release, tag, or branch is
+already gone, the step logs that it is skipping and exits successfully. It never
+fails a run because there was nothing left to remove.
+
+It can also be run manually from **Actions -> Staging cleanup -> Run workflow**,
+selecting the branch to clean up — useful when a branch has no open pull request
+(never opened, or already deleted).
 
 GitHub requires manually dispatched workflows to exist on the repository's
 default branch, and the **Use workflow from** selector only lists branches that
 contain the workflow file. When this feature is deployed for the first time,
 `staging.yml` must be promoted to `develop`; feature and fix branches cut from
 `develop` afterward inherit it automatically.
-
-Old staging branches can be deleted after the source branch is merged or
-abandoned.
 
 ## Version calculation
 

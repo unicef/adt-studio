@@ -5,6 +5,7 @@ import {
   extractPullRequestNumbers,
   resolveLastChangeCommit,
   resolvePreviousTag,
+  selectStagingPullRequest,
 } from "./compose-release-notes.mjs";
 
 describe("release note composition helpers", () => {
@@ -80,6 +81,47 @@ describe("release note composition helpers", () => {
       resolveLastChangeCommit("fix: RELEASE: beta", parent),
     ).toBeUndefined();
     expect(parent).toHaveBeenCalledTimes(2);
+  });
+
+  it("prefers the open PR targeting develop when several are open", () => {
+    const chosen = selectStagingPullRequest([
+      { number: 10, state: "open", base: { ref: "main" }, updated_at: "3" },
+      { number: 11, state: "open", base: { ref: "develop" }, updated_at: "1" },
+      { number: 12, state: "closed", base: { ref: "develop" }, updated_at: "9" },
+    ]);
+    expect(chosen?.number).toBe(11);
+  });
+
+  it("breaks ties by most recently updated, then highest number", () => {
+    expect(
+      selectStagingPullRequest([
+        { number: 20, state: "open", base: { ref: "develop" }, updated_at: "1" },
+        { number: 21, state: "open", base: { ref: "develop" }, updated_at: "2" },
+      ])?.number,
+    ).toBe(21);
+    expect(
+      selectStagingPullRequest([
+        { number: 30, state: "open", base: { ref: "develop" }, updated_at: "2" },
+        { number: 31, state: "open", base: { ref: "develop" }, updated_at: "2" },
+      ])?.number,
+    ).toBe(31);
+  });
+
+  it("falls back to a non-develop open PR when none target develop", () => {
+    expect(
+      selectStagingPullRequest([
+        { number: 40, state: "open", base: { ref: "release/x" }, updated_at: "1" },
+      ])?.number,
+    ).toBe(40);
+  });
+
+  it("returns undefined when there is no open PR", () => {
+    expect(selectStagingPullRequest([])).toBeUndefined();
+    expect(
+      selectStagingPullRequest([
+        { number: 50, state: "closed", base: { ref: "develop" } },
+      ]),
+    ).toBeUndefined();
   });
 
   it("writes no partial stdout when composition fails", () => {

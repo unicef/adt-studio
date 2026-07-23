@@ -108,8 +108,11 @@ function warn(message, error) {
   process.stderr.write(`warning: ${message}: ${detail}\n`);
 }
 
-function pullRequestFromPayload(value) {
-  if (!value || typeof value !== "object" || value.merged_at == null) {
+function pullRequestFromPayload(value, { requireMerged = true } = {}) {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+  if (requireMerged && value.merged_at == null) {
     return undefined;
   }
   const number = value.number;
@@ -153,12 +156,37 @@ function pullRequestFromPayload(value) {
   };
 }
 
+export function selectStagingPullRequest(pulls) {
+  const open = (Array.isArray(pulls) ? pulls : []).filter(
+    (pull) =>
+      pull &&
+      typeof pull === "object" &&
+      pull.state === "open" &&
+      Number.isSafeInteger(pull.number),
+  );
+  if (!open.length) return undefined;
+
+  const targetsDevelop = (pull) =>
+    pull.base && typeof pull.base === "object" && pull.base.ref === "develop"
+      ? 0
+      : 1;
+
+  return [...open].sort(
+    (left, right) =>
+      targetsDevelop(left) - targetsDevelop(right) ||
+      String(right.updated_at ?? "").localeCompare(
+        String(left.updated_at ?? ""),
+      ) ||
+      right.number - left.number,
+  )[0];
+}
+
 function parseJson(value) {
   return JSON.parse(value);
 }
 
 export function composeReleaseNotes(
-  { repo, tag, branch, triggerSha },
+  { repo, tag, branch, triggerSha, sourceSha },
   dependencies = {},
 ) {
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo ?? "")) {
@@ -219,20 +247,29 @@ export function composeReleaseNotes(
 
   let pullRequestNumbers = [];
   try {
-    if (previousTag) {
-      pullRequestNumbers = extractPullRequestNumbers(
-        runGit(["log", "--format=%s", `${previousTag}..${triggerSha}`]),
+    if (sourceSha) {
+      const chosen = selectStagingPullRequest(
+        parseJson(runGh([`repos/${repo}/commits/${sourceSha}/pulls`])),
       );
-    }
-    if (!pullRequestNumbers.length) {
-      const payload = parseJson(
-        runGh([`repos/${repo}/commits/${triggerSha}/pulls`]),
-      );
-      if (Array.isArray(payload)) {
-        pullRequestNumbers = payload
-          .map((item) => item?.number)
-          .filter((number) => Number.isSafeInteger(number) && number > 0)
-          .slice(0, MAX_PULL_REQUESTS);
+      const pullRequest =
+        chosen && pullRequestFromPayload(chosen, { requireMerged: false });
+      if (pullRequest) source.prs.push(pullRequest);
+    } else {
+      if (previousTag) {
+        pullRequestNumbers = extractPullRequestNumbers(
+          runGit(["log", "--format=%s", `${previousTag}..${triggerSha}`]),
+        );
+      }
+      if (!pullRequestNumbers.length) {
+        const payload = parseJson(
+          runGh([`repos/${repo}/commits/${triggerSha}/pulls`]),
+        );
+        if (Array.isArray(payload)) {
+          pullRequestNumbers = payload
+            .map((item) => item?.number)
+            .filter((number) => Number.isSafeInteger(number) && number > 0)
+            .slice(0, MAX_PULL_REQUESTS);
+        }
       }
     }
   } catch (error) {
@@ -273,6 +310,7 @@ function main() {
       tag: process.env.TAG,
       branch: process.env.BRANCH,
       triggerSha: process.env.TRIGGER_SHA,
+      sourceSha: process.env.SOURCE_SHA,
     });
     process.stdout.write(output);
   } catch (error) {
