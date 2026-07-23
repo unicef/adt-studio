@@ -169,6 +169,7 @@ jobs:
       contents: read
     env:
       APP_VERSION: ${{ needs.prepare.outputs.version }}
+      SKIP_NOTARIZE: ${{ vars.SKIP_NOTARIZE }}
     steps:
       - uses: actions/checkout@v4
 
@@ -211,7 +212,7 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
       - name: Acquire Azure code signing token
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-latest' && env.SKIP_NOTARIZE != 'true'
         shell: bash
         env:
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
