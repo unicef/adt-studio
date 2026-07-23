@@ -58,21 +58,24 @@ describe("calculateReleaseVersion", () => {
     ).toBe("0.7.5-beta.1");
   });
 
-  it("creates a staging version from the next beta core and PR number", () => {
+  it("creates a staging version from the next beta core and branch slug", () => {
     expect(calculateReleaseVersion(tags, "staging", "123")).toBe(
       "0.7.5-beta-123",
     );
+    expect(
+      calculateReleaseVersion(tags, "staging", "feature-new-beta-workflow"),
+    ).toBe("0.7.5-beta-feature-new-beta-workflow");
   });
 
-  it("rejects invalid types and staging PR numbers", () => {
+  it("rejects invalid types and staging slugs", () => {
     expect(() => calculateReleaseVersion(tags, "rc")).toThrow(
       "Unsupported release type",
     );
     expect(() =>
-      calculateReleaseVersion(tags, "staging", "unsafe/number"),
-    ).toThrow("pull request number");
-    expect(() => calculateReleaseVersion(tags, "staging", "0")).toThrow(
-      "pull request number",
+      calculateReleaseVersion(tags, "staging", "unsafe/slug"),
+    ).toThrow("branch slug");
+    expect(() => calculateReleaseVersion(tags, "staging", "")).toThrow(
+      "branch slug",
     );
   });
 });
