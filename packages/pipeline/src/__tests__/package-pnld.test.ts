@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest"
-import { buildOpf, buildNcx, buildIndex, rewriteContentPage } from "../packaging/pnld.js"
+import fs from "node:fs"
+import os from "node:os"
+import path from "node:path"
+import { PNG } from "pngjs"
+import { buildOpf, buildNcx, buildIndex, rewriteContentPage, ensureJpegCover } from "../packaging/pnld.js"
 import type { PageEntry } from "../packaging/web.js"
 
 const PAGES: PageEntry[] = [
@@ -181,5 +185,43 @@ describe("buildIndex", () => {
     expect(index).toContain(`<a href="content/pg001_sec001.html">Página 1</a>`)
     expect(index).toContain(`<a href="content/pg002_sec001.html">Página 2</a>`)
     expect((index.match(/<li>/g) ?? [])).toHaveLength(PAGES.length)
+  })
+})
+
+describe("ensureJpegCover", () => {
+  function tmp(): string {
+    return fs.mkdtempSync(path.join(os.tmpdir(), "pnld-cover-"))
+  }
+  function writePng(dir: string): void {
+    const png = new PNG({ width: 4, height: 4 })
+    for (let i = 0; i < png.data.length; i += 4) {
+      png.data[i] = 200; png.data[i + 1] = 100; png.data[i + 2] = 50; png.data[i + 3] = 255
+    }
+    fs.writeFileSync(path.join(dir, "cover.png"), PNG.sync.write(png))
+  }
+
+  it("converts a PNG cover to cover.jpeg and drops the PNG", () => {
+    const dir = tmp()
+    writePng(dir)
+    const href = ensureJpegCover(dir)
+    expect(href).toBe("cover.jpeg")
+    expect(fs.existsSync(path.join(dir, "cover.png"))).toBe(false)
+    const jpg = fs.readFileSync(path.join(dir, "cover.jpeg"))
+    expect(jpg[0]).toBe(0xff) // JPEG SOI marker
+    expect(jpg[1]).toBe(0xd8)
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("keeps an existing jpeg cover untouched", () => {
+    const dir = tmp()
+    fs.writeFileSync(path.join(dir, "cover.jpg"), "x")
+    expect(ensureJpegCover(dir)).toBe("cover.jpg")
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("returns undefined when there is no cover", () => {
+    const dir = tmp()
+    expect(ensureJpegCover(dir)).toBeUndefined()
+    fs.rmSync(dir, { recursive: true, force: true })
   })
 })

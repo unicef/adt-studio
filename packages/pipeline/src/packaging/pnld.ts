@@ -1,5 +1,7 @@
 import fs from "node:fs"
 import path from "node:path"
+import jpeg from "jpeg-js"
+import { PNG } from "pngjs"
 import type { Storage } from "@adt/storage"
 import type { BookMetadata, TocGenerationOutput } from "@adt/types"
 import {
@@ -87,15 +89,10 @@ export function packagePnld(storage: Storage, options: PackagePnldOptions): void
   const pageList = reorganize(pnldDir, rawPages, language)
 
   // ------------------------------------------------------------------
-  // Detect cover image (kept at root as required by the spec)
+  // Cover image (root). The reader requires cover.jpg/cover.jpeg, so a PNG
+  // cover (what adt usually emits) is converted to JPEG.
   // ------------------------------------------------------------------
-  let coverHref: string | undefined
-  for (const name of ["cover.jpg", "cover.jpeg", "cover.png"]) {
-    if (fs.existsSync(path.join(pnldDir, name))) {
-      coverHref = name
-      break
-    }
-  }
+  const coverHref = ensureJpegCover(pnldDir)
 
   // ------------------------------------------------------------------
   // Enumerate every packaged file for the OPF manifest
@@ -308,6 +305,28 @@ function moveDirContents(srcDir: string, destDir: string): void {
 // ---------------------------------------------------------------------------
 // File enumeration
 // ---------------------------------------------------------------------------
+
+/**
+ * Ensure the root cover is `cover.jpg`/`cover.jpeg` — the reader rejects the
+ * package otherwise. An existing JPEG cover is kept as-is; a PNG cover (what adt
+ * usually emits) is decoded and re-encoded to `cover.jpeg`, and the PNG dropped.
+ * Returns the cover href, or undefined when no cover is present.
+ */
+export function ensureJpegCover(pnldDir: string): string | undefined {
+  const existingJpeg = ["cover.jpg", "cover.jpeg"].find((n) =>
+    fs.existsSync(path.join(pnldDir, n)),
+  )
+  if (existingJpeg) return existingJpeg
+
+  const pngPath = path.join(pnldDir, "cover.png")
+  if (!fs.existsSync(pngPath)) return undefined
+
+  const png = PNG.sync.read(fs.readFileSync(pngPath))
+  const encoded = jpeg.encode({ data: png.data, width: png.width, height: png.height }, 85)
+  fs.writeFileSync(path.join(pnldDir, "cover.jpeg"), encoded.data)
+  fs.rmSync(pngPath)
+  return "cover.jpeg"
+}
 
 function collectFiles(
   baseDir: string,
