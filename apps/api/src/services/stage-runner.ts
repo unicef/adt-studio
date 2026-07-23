@@ -2542,6 +2542,9 @@ async function runSpeechStep(
     // needs an OpenAI key for the Whisper alignment pass. Non-page entries
     // (glossary, quiz, easy-read) and non-Gemini languages keep per-entry.
     const batchByPage = config.speech?.batch_by_page === true && !!options.apiKey?.trim()
+    if (config.speech?.batch_by_page === true && !options.apiKey?.trim()) {
+      console.warn(`[stage-run] ${label}: batch_by_page is enabled but no OpenAI key was provided; falling back to per-entry TTS (the Whisper alignment pass needs an OpenAI key)`)
+    }
     interface PageGroup { language: string; pageKey: string; entries: { id: string; text: string }[] }
     const pageGroups = new Map<string, PageGroup>()
     const textByLanguage = new Map<string, Map<string, string>>()
@@ -2588,10 +2591,14 @@ async function runSpeechStep(
         // Route page-scoped entries of a Gemini language into a per-page group
         // (generated together below). Skips the per-entry reuse check — page
         // audio is cached at the page level inside generatePageSpeechFiles.
+        // Entries with an existing MANUAL recording are left on the per-entry
+        // path so canReuseSpeechEntry's manual guard preserves them (batching
+        // would otherwise overwrite the uploaded audio).
         if (
           batchByPage &&
           resolveProviderForLanguage(lang, routing) === "gemini" &&
-          isBatchableSpeechEntry(entry.id)
+          isBatchableSpeechEntry(entry.id) &&
+          existingSpeechEntries.get(entry.id)?.provider !== "manual"
         ) {
           const pageKey = batchPageKeyOf(entry.id)!
           const groupKey = `${lang}::${pageKey}`
@@ -2695,6 +2702,32 @@ async function runSpeechStep(
           const outputFormat = resolveSpeechFormat("gemini", config.speech?.format)
           const voice = resolveVoice("gemini", group.language, voiceMaps, config.speech?.voice)
           const instructions = resolveInstructions(group.language, instructionsMap)
+          const startMs = Date.now()
+          // Record the page synthesis in the LLM log (transparency + cost
+          // tracking), mirroring the per-entry path so batched Gemini calls
+          // aren't invisible.
+          const emitPageLog = (o: { success: boolean; cacheHit: boolean; attempt: number; error?: string }) => {
+            const preview = group.entries.map((e) => e.text).join(" ").slice(0, 300)
+            const logEntry: LlmLogEntry = {
+              requestId: crypto.randomUUID(),
+              timestamp: new Date().toISOString(),
+              taskType: "tts",
+              pageId: group.pageKey,
+              promptName: "tts-gemini",
+              modelId: `gemini/${providerModel}`,
+              cacheHit: o.cacheHit,
+              success: o.success,
+              errorCount: o.success ? 0 : 1,
+              attempt: Math.max(o.attempt, 1),
+              durationMs: Date.now() - startMs,
+              messages: [{
+                role: "user",
+                content: [{ type: "text" as const, text: `[${group.language}] voice=${voice} (page ${group.pageKey}, ${group.entries.length} entries)${o.error ? `\nERROR: ${o.error}` : ""}\n${preview}` }],
+              }],
+            }
+            storage.appendLlmLog(logEntry)
+            progress.emit({ type: "llm-log", step: "tts", itemId: group.pageKey, promptName: logEntry.promptName, modelId: logEntry.modelId, cacheHit: o.cacheHit, durationMs: logEntry.durationMs })
+          }
           let attempt = 0
           while (true) {
             attempt++
@@ -2717,7 +2750,11 @@ async function runSpeechStep(
                 signal: options.signal,
               })
               for (const e of entries) ttsResultsByLang.get(group.language)?.push(e)
-              geminiTtsRateLimiter?.reward()
+              // A page served from cache makes no request — don't reward the
+              // limiter for it (mirrors the per-entry `!entry.cached` guard).
+              const pageCached = entries.length > 0 && entries.every((e) => e.cached)
+              if (entries.length > 0 && !pageCached) geminiTtsRateLimiter?.reward()
+              emitPageLog({ success: true, cacheHit: pageCached, attempt })
               break
             } catch (err) {
               if (isCancellation(err, [options.signal])) {
@@ -2725,7 +2762,13 @@ async function runSpeechStep(
               }
               const msg = toErrorMessage(err)
               const rateLimited = isGeminiTtsRateLimitMessage(msg)
-              const transient = !rateLimited && isGeminiTtsTransientError(msg)
+              // generatePageSpeechFiles also calls OpenAI Whisper (alignment); a
+              // transient Whisper error (429/5xx) is retryable too, but it must NOT
+              // penalize the Gemini limiter (different service). Retrying prevents a
+              // transient hiccup from failing the whole page and — via
+              // geminiFailedItems — skipping word-timestamps for the entire book.
+              const whisperTransient = /Whisper transcription failed \((?:429|5\d\d)\)/.test(msg)
+              const transient = (!rateLimited && isGeminiTtsTransientError(msg)) || whisperTransient
               if (
                 (rateLimited || transient) &&
                 !options.signal?.aborted &&
@@ -2741,6 +2784,7 @@ async function runSpeechStep(
                 continue
               }
               console.error(`[stage-run] ${label}: page-batched TTS failed for ${group.pageKey} (${group.language}): ${msg}`)
+              emitPageLog({ success: false, cacheHit: false, attempt, error: msg })
               for (const e of group.entries) {
                 failedItems.push(`${e.id}: ${msg}`)
                 failedByLang.get(group.language)?.push({ textId: e.id, error: msg })

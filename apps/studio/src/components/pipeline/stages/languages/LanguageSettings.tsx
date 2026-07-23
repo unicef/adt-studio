@@ -183,10 +183,11 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
           languages: geminiLangs.length > 0 ? geminiLangs : undefined,
         }
       }
-      // Guard the Gemini sampling inputs: temperature must be finite; seed must
-      // be a finite integer (the SpeechConfig schema enforces `.int()`, so a
-      // stray decimal or non-number would fail config load). Invalid → omit,
-      // which falls back to the pinned defaults.
+      // Guard the Gemini sampling inputs against values the SpeechConfig schema
+      // rejects — an out-of-range value would be written to config.yaml and then
+      // make AppConfig.parse throw on the next load, breaking the book. Clamp
+      // temperature to the schema's [0, 2]; seed must be a finite integer.
+      // Invalid/blank → omit, which disables that param (Gemini's own default).
       const tempRaw = Number(geminiTemperature.trim())
       const seedRaw = Number(geminiSeed.trim())
       overrides.speech = {
@@ -197,7 +198,7 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
         providers: Object.keys(providers).length > 0 ? providers : undefined,
         bit_rate: bitRate.trim() || undefined,
         sample_rate: sampleRate.trim() ? Number(sampleRate.trim()) : undefined,
-        temperature: geminiTemperature.trim() && Number.isFinite(tempRaw) ? tempRaw : undefined,
+        temperature: geminiTemperature.trim() && Number.isFinite(tempRaw) ? Math.min(2, Math.max(0, tempRaw)) : undefined,
         seed: geminiSeed.trim() && Number.isFinite(seedRaw) ? Math.trunc(seedRaw) : undefined,
         batch_by_page: batchByPage || undefined,
         word_highlighting: wordHighlighting,

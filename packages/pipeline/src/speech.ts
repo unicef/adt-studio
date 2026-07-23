@@ -580,7 +580,12 @@ export async function generatePageSpeechFiles(
     const fileName = `${range.id}.${safeFormat}`
     const outputPath = path.resolve(audioDir, fileName)
     assertWithinBase(audioDir, outputPath, "audio file")
-    fs.writeFileSync(outputPath, slice)
+    // Only write when the bytes actually change, so an unchanged slice keeps its
+    // mtime — GET /tts derives its cache-busting `?v=` from mtime, so rewriting
+    // identical audio every run would force the reader to refetch needlessly.
+    if (!fs.existsSync(outputPath) || !fs.readFileSync(outputPath).equals(slice)) {
+      fs.writeFileSync(outputPath, slice)
+    }
     results.push({ textId: range.id, language: normalizedLanguage, fileName, voice, model, cached, provider })
   }
   return results
