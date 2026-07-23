@@ -360,8 +360,10 @@ function moveDirContents(srcDir: string, destDir: string): void {
 
 /**
  * Ensure the root cover is `cover.jpg`/`cover.jpeg` — the reader rejects the
- * package otherwise. An existing JPEG cover is kept as-is; a PNG cover (what adt
- * usually emits) is decoded and re-encoded to `cover.jpeg`, and the PNG dropped.
+ * package otherwise. An existing JPEG cover is kept; a JPEG mislabeled `.png` is
+ * renamed; a real PNG cover (what adt emits) is decoded and re-encoded to
+ * `cover.jpeg`. If the file isn't a decodable image the original is kept as-is
+ * rather than failing the export (a real book always has a valid PNG cover).
  * Returns the cover href, or undefined when no cover is present.
  */
 export function ensureJpegCover(pnldDir: string): string | undefined {
@@ -373,11 +375,25 @@ export function ensureJpegCover(pnldDir: string): string | undefined {
   const pngPath = path.join(pnldDir, "cover.png")
   if (!fs.existsSync(pngPath)) return undefined
 
-  const png = PNG.sync.read(fs.readFileSync(pngPath))
-  const encoded = jpeg.encode({ data: png.data, width: png.width, height: png.height }, 85)
-  fs.writeFileSync(path.join(pnldDir, "cover.jpeg"), encoded.data)
-  fs.rmSync(pngPath)
-  return "cover.jpeg"
+  const buf = fs.readFileSync(pngPath)
+  // Already JPEG under a .png name — just rename.
+  if (buf[0] === 0xff && buf[1] === 0xd8) {
+    fs.renameSync(pngPath, path.join(pnldDir, "cover.jpeg"))
+    return "cover.jpeg"
+  }
+  // Real PNG (89 50 4E 47) — decode and re-encode to JPEG.
+  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) {
+    try {
+      const png = PNG.sync.read(buf)
+      const encoded = jpeg.encode({ data: png.data, width: png.width, height: png.height }, 85)
+      fs.writeFileSync(path.join(pnldDir, "cover.jpeg"), encoded.data)
+      fs.rmSync(pngPath)
+      return "cover.jpeg"
+    } catch {
+      // Corrupt PNG — fall through and keep the original.
+    }
+  }
+  return "cover.png"
 }
 
 function collectFiles(

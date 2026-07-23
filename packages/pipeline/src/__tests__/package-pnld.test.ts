@@ -219,6 +219,14 @@ describe("ensureJpegCover", () => {
     fs.rmSync(dir, { recursive: true, force: true })
   })
 
+  it("keeps a non-decodable cover as-is instead of throwing", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-cover-"))
+    fs.writeFileSync(path.join(dir, "cover.png"), Buffer.from("fake-png-data"))
+    expect(ensureJpegCover(dir)).toBe("cover.png")
+    expect(fs.existsSync(path.join(dir, "cover.png"))).toBe(true)
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
   it("returns undefined when there is no cover", () => {
     const dir = tmp()
     expect(ensureJpegCover(dir)).toBeUndefined()
