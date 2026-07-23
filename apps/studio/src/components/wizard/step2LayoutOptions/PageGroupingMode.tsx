@@ -1,5 +1,6 @@
 import { useMemo } from "react"
 import { useStore } from "@tanstack/react-form"
+import { Link2 } from "lucide-react"
 import { msg } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Label } from "@/components/ui/label"
@@ -19,6 +20,9 @@ const CAROUSEL_SPREAD_DESCRIPTION = msg`Many printed books are designed with fac
 
 const CAROUSEL_SINGLE_TITLE = msg`Single Mode`
 const CAROUSEL_SINGLE_DESCRIPTION = msg`When your PDF isn't built around facing pages, single mode keeps every page separate: nothing is merged across a spread. That matches how most textbooks, novels, and reference books are read - one page at a time.`
+
+const CAROUSEL_MIXED_TITLE = msg`A few spreads in a single book`
+const CAROUSEL_MIXED_DESCRIPTION = msg`Some books are mostly single pages but have a few illustrations that run across two facing pages. Choose Single here — then, after extraction, the Extract view detects those spreads and lets you merge just those pairs while every other page stays on its own.`
 
 function SpreadDiagram() {
   return (
@@ -72,6 +76,38 @@ function SingleDiagram() {
   )
 }
 
+function MixedDiagram() {
+  const { i18n } = useLingui()
+  const L = SINGLE_DIAGRAM_PAGE_LABELS
+
+  const single = (label: string) => (
+    <div className="flex h-[72px] w-10 items-center justify-center rounded border border-border bg-background text-[8px] text-muted-foreground">
+      {label}
+    </div>
+  )
+
+  return (
+    <div className="flex items-end justify-center gap-2 py-2">
+      {single(i18n._(L[0]))}
+      <div className="relative flex h-[72px] w-[72px] rounded border border-primary/50 bg-primary/5">
+        <div className="flex h-full w-full">
+          <div className="flex flex-1 items-center justify-center border-r border-dashed border-primary/30 text-[8px] text-primary">
+            {i18n._(L[1])}
+          </div>
+          <div className="flex flex-1 items-center justify-center text-[8px] text-primary">
+            {i18n._(L[2])}
+          </div>
+        </div>
+        <span className="absolute left-1/2 top-1/2 flex h-4 w-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white bg-primary text-primary-foreground">
+          <Link2 className="h-2.5 w-2.5" strokeWidth={2.5} aria-hidden />
+        </span>
+      </div>
+      {single(i18n._(L[3]))}
+      {single(i18n._(L[4]))}
+    </div>
+  )
+}
+
 export function PageGroupingMode() {
   const form = useWizardForm()
   const pageGrouping = useStore(form.store, (s) => s.values.pageGrouping)
@@ -106,6 +142,11 @@ export function PageGroupingMode() {
         title: i18n._(CAROUSEL_SPREAD_TITLE),
         description: i18n._(CAROUSEL_SPREAD_DESCRIPTION),
         Diagram: SpreadDiagram,
+      },
+      {
+        title: i18n._(CAROUSEL_MIXED_TITLE),
+        description: i18n._(CAROUSEL_MIXED_DESCRIPTION),
+        Diagram: MixedDiagram,
       },
     ],
     [i18n.locale],

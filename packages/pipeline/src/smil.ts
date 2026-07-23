@@ -9,7 +9,7 @@
  * diverge, an EPUB reader gets a single highlight for the whole paragraph
  * instead of (potentially) wrong word timing.
  */
-import { escapeHtml } from "./package-web.js"
+import { escapeHtml } from "./html-escape.js"
 
 export interface SmilWordTimestamp {
   word: string

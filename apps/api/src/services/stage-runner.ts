@@ -3,12 +3,13 @@ import fs from "node:fs"
 import path from "node:path"
 import { createBookStorage } from "@adt/storage"
 import type { Storage } from "@adt/storage"
-import { createLLMModel, createPromptEngine, createRateLimiter, renderLiquidTemplate } from "@adt/llm"
-import type { LlmLogEntry } from "@adt/llm"
+import { createLLMModel, createPromptEngine, createRateLimiter, createAdaptiveRateLimiter, renderLiquidTemplate } from "@adt/llm"
+import type { LlmLogEntry, AdaptiveRateLimiter } from "@adt/llm"
 import {
   extractPDF,
   resolveFontsCacheDir,
   buildBookFontsPromptContext,
+  readTypography,
   ensureBookGoogleFontsCached,
   extractMetadata,
   buildMetadataConfig,
@@ -23,6 +24,8 @@ import {
   loadBookConfig,
   renderPage,
   buildRenderStrategyResolver,
+  collectReferencedImageIds,
+  collectSourcePageImages,
   createTemplateEngine,
   // Proof step imports
   captionPageImages,
@@ -54,6 +57,7 @@ import {
   resolveInstructions,
   resolveProviderForLanguage,
   resolveSpeechModel,
+  resolveGeminiTtsRateLimit,
   resolveSpeechFormat,
   computeSpeechCacheKey,
   generateSpeechFile,
@@ -81,6 +85,7 @@ import { loadStyleguideContent } from "./styleguide.js"
 import { createTTSSynthesizer, createAzureTTSSynthesizer, createGeminiTTSSynthesizer } from "@adt/llm"
 import type { TTSSynthesizer } from "@adt/llm"
 import { STAGE_ORDER, isTtsExcluded } from "@adt/types"
+import type { PageErrorPolicy, PageErrorAction } from "@adt/types"
 import { beginSpeechRun, endSpeechRun } from "./speech-progress.js"
 import type {
   AppConfig,
@@ -109,10 +114,16 @@ import type {
 } from "./stage-service.js"
 
 const DEFAULT_METADATA_PAGES = 3
-const GEMINI_TTS_SAFE_REQUESTS_PER_MINUTE = 10
-const GEMINI_TTS_MAX_RATE_LIMIT_RETRIES = 2
+// Per-item retry budget for a 429/quota response. Higher than a plain fixed
+// limiter would need, because the adaptive limiter starts optimistically high
+// and takes a few back-off steps to converge on the account's real quota.
+const GEMINI_TTS_MAX_RATE_LIMIT_RETRIES = 4
 const GEMINI_TTS_DEFAULT_RETRY_DELAY_MS = 6_000
 const GEMINI_TTS_MAX_RETRY_DELAY_MS = 20_000
+// Backoff for transient server errors (500/empty audio). These clear quickly
+// and aren't a rate signal, so they get a shorter delay than a 429 and do not
+// throttle the shared limiter.
+const GEMINI_TTS_TRANSIENT_RETRY_DELAY_MS = 1_500
 
 class StepError extends Error {
   readonly step: StepName
@@ -126,6 +137,198 @@ class StepError extends Error {
 
 function toErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err)
+}
+
+/** Thrown at a cancellation checkpoint. Distinguished from real errors so the
+ *  general catch neither records step errors nor emits step-error on cancel. */
+export class RunCancelledError extends Error {
+  constructor(message = "Run cancelled") {
+    super(message)
+    this.name = "RunCancelledError"
+  }
+}
+
+/** True when an error is (or was caused by) an abort from one of the given
+ *  signals. Detection is by signal state, not error name: the internal timeout
+ *  and the external cancel both surface as AbortError/TimeoutError and SDKs wrap
+ *  them, so `err.name` is unreliable. A TimeoutError with intact signals is a
+ *  normal page failure and returns false here. */
+function isCancellation(
+  err: unknown,
+  signals: Array<AbortSignal | undefined>
+): boolean {
+  if (err instanceof RunCancelledError) return true
+  return signals.some((s) => s?.aborted === true)
+}
+
+interface FailedPage {
+  pageId: string
+  step: StepName
+  msg: string
+}
+
+/** One-shot admission gate for processWithConcurrency. Closed while a page-error
+ *  decision is pending (interactive mode) so no new items start; in-flight work
+ *  continues. Opened again once the decision resolves. */
+class AdmissionGate {
+  private closed = false
+  private waiters: Array<() => void> = []
+  close(): void {
+    this.closed = true
+  }
+  open(): void {
+    this.closed = false
+    const waiters = this.waiters
+    this.waiters = []
+    for (const w of waiters) w()
+  }
+  wait(): Promise<void> {
+    if (!this.closed) return Promise.resolve()
+    return new Promise((resolve) => this.waiters.push(resolve))
+  }
+}
+
+interface PageFailureContext {
+  step: StepName
+  pageId: string
+  err: unknown
+  failedPages: FailedPage[]
+  /** step name → set of pageIds skipped by user decision (interactive mode). */
+  skippedByStep: Map<string, Set<string>>
+  progress: StageRunProgress
+  runSignal?: AbortSignal
+  /** Aborts the current step when the user chooses "stop". */
+  stepController: AbortController
+  gate: AdmissionGate
+  policy: PageErrorPolicy
+  requestDecision?: (input: {
+    step: StepName
+    pageId: string
+    error: string
+  }) => Promise<PageErrorAction>
+}
+
+/** Shared handling for a page failure inside a per-page step. Covers all six
+ *  emission points. Returns after recording/handling; throws only to unwind a
+ *  run cancel (an aborted page is not a failure — it re-runs cheaply via cache). */
+async function handlePageFailure(ctx: PageFailureContext): Promise<void> {
+  const { runSignal, stepController } = ctx
+
+  // 1. Run cancel — re-throw so the run tears down at once.
+  if (isCancellation(ctx.err, [runSignal])) {
+    throw ctx.err instanceof RunCancelledError ? ctx.err : new RunCancelledError()
+  }
+  // 2. Step already stopping (a prior "stop" decision aborted in-flight work) —
+  //    swallow quietly; the step throws its own StepError after the loop.
+  if (stepController.signal.aborted) return
+
+  const msg = toErrorMessage(ctx.err)
+  // Emit step-error as before (per-page). In interactive mode this briefly paints
+  // the step red until the decision resolves; the step-complete hygiene clears it.
+  ctx.progress.emit({
+    type: "step-error",
+    step: ctx.step,
+    error: `${ctx.pageId} failed: ${msg}`,
+  })
+
+  if (ctx.policy === "ask" && ctx.requestDecision) {
+    ctx.gate.close()
+    let action: PageErrorAction
+    try {
+      action = await ctx.requestDecision({
+        step: ctx.step,
+        pageId: ctx.pageId,
+        error: msg,
+      })
+    } finally {
+      ctx.gate.open()
+    }
+    if (action === "skip") {
+      let set = ctx.skippedByStep.get(ctx.step)
+      if (!set) {
+        set = new Set()
+        ctx.skippedByStep.set(ctx.step, set)
+      }
+      set.add(ctx.pageId)
+      return
+    }
+    // "stop": abort the step. processWithConcurrency stops admitting new items;
+    // the step then throws a StepError so it's marked error and later stages halt.
+    stepController.abort()
+    return
+  }
+
+  // Default "stop" policy: accumulate and fail the step at the end.
+  ctx.failedPages.push({ pageId: ctx.pageId, step: ctx.step, msg })
+}
+
+/** Per-step failure-handling dependencies, built once per page-processing step
+ *  and reused for every page. `progress`, `step`, `pageId` and `err` are supplied
+ *  per call by reportPageFailure. */
+type PageFailureDeps = Omit<
+  PageFailureContext,
+  "step" | "pageId" | "err" | "progress"
+>
+
+/** Build the per-step failure deps from run options. */
+function buildPageFailureDeps(
+  options: StageRunOptions,
+  shared: {
+    failedPages: FailedPage[]
+    skippedByStep: Map<string, Set<string>>
+    gate: AdmissionGate
+    stepController: AbortController
+  }
+): PageFailureDeps {
+  return {
+    ...shared,
+    runSignal: options.signal,
+    policy: options.pageErrorPolicy ?? "stop",
+    requestDecision: options.requestPageDecision,
+  }
+}
+
+function reportPageFailure(
+  deps: PageFailureDeps,
+  progress: StageRunProgress,
+  step: StepName,
+  pageId: string,
+  err: unknown
+): Promise<void> {
+  return handlePageFailure({ ...deps, progress, step, pageId, err })
+}
+
+/** Compose the "Completed — N page(s) skipped" message, or undefined if none. */
+function skipMessage(
+  skippedByStep: Map<string, Set<string>>,
+  step: StepName
+): string | undefined {
+  const n = skippedByStep.get(step)?.size ?? 0
+  return n > 0 ? `Completed — ${n} page(s) skipped` : undefined
+}
+
+/** Finalize one page-processing step: throw if it accumulated real failures
+ *  ("stop" policy), otherwise emit step-complete (with a skip message if the
+ *  user chose to skip pages). */
+function finishPageStep(
+  progress: StageRunProgress,
+  step: StepName,
+  deps: Pick<PageFailureDeps, "failedPages" | "skippedByStep">
+): void {
+  const failures = deps.failedPages.filter((f) => f.step === step)
+  if (failures.length > 0) {
+    throw new StepError(
+      step,
+      `${failures.length} page(s) failed:\n${failures
+        .map((f) => `${f.pageId}: ${f.msg}`)
+        .join("\n")}`
+    )
+  }
+  progress.emit({
+    type: "step-complete",
+    step,
+    message: skipMessage(deps.skippedByStep, step),
+  })
 }
 
 /**
@@ -150,6 +353,15 @@ function isGeminiTtsRateLimitMessage(message: string): boolean {
   return /\(429\)|quota exceeded|rate limit|too many requests/i.test(message)
 }
 
+// Transient Gemini server-side failures that typically clear on a plain retry
+// (Google's own 500 message says "Please retry"). Unlike a 429 these are not a
+// rate signal, so they must not penalize the adaptive limiter.
+function isGeminiTtsTransientError(message: string): boolean {
+  return /\(50\d\)|internal error|did not include audio|overloaded|unavailable|try again/i.test(
+    message
+  )
+}
+
 function parseGeminiRetryDelayMs(message: string): number | null {
   const match = message.match(/retry in ([\d.]+)s/i)
   if (!match) return null
@@ -161,8 +373,24 @@ function parseGeminiRetryDelayMs(message: string): number | null {
   return Math.min(baseMs > 0 ? baseMs + 250 : 0, GEMINI_TTS_MAX_RETRY_DELAY_MS)
 }
 
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
+/** Resolves early (never rejects) when the signal aborts, so retry backoffs
+ *  don't hold a cancelled run open — callers re-check the signal after. */
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal?.aborted) {
+      resolve()
+      return
+    }
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort)
+      resolve()
+    }, ms)
+    const onAbort = () => {
+      clearTimeout(timer)
+      resolve()
+    }
+    signal?.addEventListener("abort", onAbort, { once: true })
+  })
 }
 
 function wrapStepError(step: StepName, err: unknown): never {
@@ -181,22 +409,46 @@ export function buildStageRunnerImageClassifyConfig(
   }
 }
 
+interface ConcurrencyControls {
+  /** Run cancel — never start remaining items; throw RunCancelledError. */
+  runSignal?: AbortSignal
+  /** Step "stop" — stop admitting new items (in-flight ones finish). */
+  stopSignal?: AbortSignal
+  /** Pause admission while a page-error decision is pending. */
+  gate?: AdmissionGate
+}
+
 async function processWithConcurrency<T>(
   items: T[],
   concurrency: number,
-  fn: (item: T) => Promise<void>
+  fn: (item: T) => Promise<void>,
+  controls?: ConcurrencyControls
 ): Promise<void> {
   const executing = new Set<Promise<void>>()
-  for (const item of items) {
-    const p = fn(item).finally(() => {
-      executing.delete(p)
-    })
-    executing.add(p)
-    if (executing.size >= concurrency) {
-      await Promise.race(executing)
+  try {
+    for (const item of items) {
+      if (controls?.runSignal?.aborted) throw new RunCancelledError()
+      if (controls?.gate) await controls.gate.wait()
+      // Re-check after the gate: a cancel or "stop" may have arrived while paused.
+      if (controls?.runSignal?.aborted) throw new RunCancelledError()
+      if (controls?.stopSignal?.aborted) break
+      const p = fn(item).finally(() => {
+        executing.delete(p)
+      })
+      executing.add(p)
+      if (executing.size >= concurrency) {
+        await Promise.race(executing)
+      }
     }
+    await Promise.all(executing)
+  } catch (err) {
+    // Drain any still-running items so none are orphaned (which would surface as
+    // unhandled rejections when they later abort). On cancel their rejections are
+    // expected; swallow them and re-throw a single RunCancelledError.
+    await Promise.allSettled(executing)
+    if (isCancellation(err, [controls?.runSignal])) throw new RunCancelledError()
+    throw err
   }
-  await Promise.all(executing)
 }
 
 function emitSpeechStepProgress(
@@ -361,6 +613,8 @@ interface GenerateSpeechWordTimestampsOptions {
   textByLanguage: Map<string, Map<string, string>>
   concurrency: number
   progress: StageRunProgress
+  /** Run cancel — stops admitting new transcription items. */
+  signal?: AbortSignal
 }
 
 async function generateSpeechWordTimestamps(
@@ -379,6 +633,7 @@ async function generateSpeechWordTimestamps(
     textByLanguage,
     concurrency,
     progress,
+    signal,
   } = options
 
   const entriesByLanguage = new Map<string, Record<string, WordTimestampEntry>>()
@@ -448,6 +703,7 @@ async function generateSpeechWordTimestamps(
         emitWordTimestampStepProgress(progress, completed, workItems.length, failedItems.length)
       }
     },
+    { runSignal: signal },
   )
 
   return { entriesByLanguage, failedItems }
@@ -500,11 +756,14 @@ export function createStageRunner(): StageRunner {
         const trackingProgress: StageRunProgress = {
           emit(event) {
             if (event.type === "step-start") {
+              // Cancellation checkpoint before every step: a cancel that lands
+              // between steps stops the run here, before the step is recorded.
+              if (options.signal?.aborted) throw new RunCancelledError()
               runningSteps.add(event.step)
               completionStorage.markStepStarted(event.step)
             } else if (event.type === "step-complete") {
               runningSteps.delete(event.step)
-              completionStorage.markStepCompleted(event.step)
+              completionStorage.markStepCompleted(event.step, event.message)
             } else if (event.type === "step-skip") {
               runningSteps.delete(event.step)
               completionStorage.markStepSkipped(event.step)
@@ -519,10 +778,18 @@ export function createStageRunner(): StageRunner {
         }
 
         for (let i = fromIndex; i <= toIndex; i++) {
+          if (options.signal?.aborted) throw new RunCancelledError()
           const stage = STAGE_ORDER[i]
           await STAGE_RUNNERS[stage](label, options, trackingProgress)
         }
       } catch (err) {
+        // A cancel is a deliberate action, not a failure: don't record step
+        // errors or emit step-error (that would paint the sidebar red and, with
+        // the error toast/sound, beep on cancel). Just re-throw — executeJob's
+        // abort branch handles persistence cleanup.
+        if (isCancellation(err, [options.signal])) {
+          throw err
+        }
         const message = toErrorMessage(err)
         for (const step of runningSteps) {
           completionStorage.recordStepError(step, message)
@@ -572,6 +839,7 @@ async function runExtractStep(
         startPage: config.start_page,
         endPage: config.end_page,
         spreadMode: config.spread_mode,
+        spreadPairs: config.spread_pairs,
         vectorTextGrouping: config.vector_text_grouping,
         fixedLayout: isFixedLayoutBook(config),
         fontsCacheDir: resolveFontsCacheDir(booksDir),
@@ -615,6 +883,7 @@ async function runExtractStep(
       rateLimiter,
       onLog: onLlmLog,
       credentials: llmCredentials,
+      signal: options.signal,
     })
 
     const pages = storage.getPages()
@@ -651,6 +920,7 @@ async function runExtractStep(
         rateLimiter,
         onLog: onLlmLog,
         credentials: llmCredentials,
+        signal: options.signal,
       })
       const summaryPages = pages.map((page) => ({
         pageNumber: page.pageNumber,
@@ -661,6 +931,9 @@ async function runExtractStep(
       progress.emit({ type: "step-complete", step: "book-summary" })
       console.log(`[stage-run] ${label}: book summary complete`)
     } catch (err) {
+      // A cancel aborts the summary LLM call — re-throw without emitting
+      // step-error so the run tears down cleanly rather than showing a failure.
+      if (isCancellation(err, [options.signal])) throw err
       const msg = toErrorMessage(err)
       console.error(`[stage-run] ${label}: book summary failed: ${msg}`)
       progress.emit({ type: "step-error", step: "book-summary", error: msg })
@@ -682,6 +955,7 @@ async function runExtractStep(
           rateLimiter,
           onLog: onLlmLog,
           credentials: llmCredentials,
+          signal: options.signal,
         })
       : null
 
@@ -693,6 +967,7 @@ async function runExtractStep(
           rateLimiter,
           onLog: onLlmLog,
           credentials: llmCredentials,
+          signal: options.signal,
         })
       : null
 
@@ -704,6 +979,7 @@ async function runExtractStep(
           rateLimiter,
           onLog: onLlmLog,
           credentials: llmCredentials,
+          signal: options.signal,
         })
       : null
 
@@ -712,31 +988,59 @@ async function runExtractStep(
     console.log(`[stage-run] ${label}: classifying images for ${totalPages} pages (concurrency=${effectiveConcurrency})`)
 
     const pageResults = new Map<string, ImageClassificationOutput>()
-    const failedPages: string[] = []
+    // The four classification passes share one failure/skip/gate/step-controller
+    // context: a "stop" decision in any pass halts the whole classification phase,
+    // and the end-of-stage throw considers real (non-skipped) failures per step.
+    const failedPages: FailedPage[] = []
+    const skippedByStep = new Map<string, Set<string>>()
+    const gate = new AdmissionGate()
+    const stepController = new AbortController()
+    const pageFailureDeps = buildPageFailureDeps(options, {
+      failedPages,
+      skippedByStep,
+      gate,
+      stepController,
+    })
 
     await runFilterPass(
       label, pages, storage, imageClassifyConfig,
-      effectiveConcurrency, pageResults, failedPages, progress
+      effectiveConcurrency, pageResults, pageFailureDeps, progress
     )
 
-    await runMeaningfulnessPass(
-      label, pages, storage, meaningfulnessConfig, meaningfulnessModel,
-      effectiveConcurrency, pageResults, failedPages, progress
-    )
+    if (!stepController.signal.aborted) {
+      await runMeaningfulnessPass(
+        label, pages, storage, meaningfulnessConfig, meaningfulnessModel,
+        effectiveConcurrency, pageResults, pageFailureDeps, progress
+      )
+    }
 
-    await runSegmentationPass(
-      label, pages, storage, segmentationConfig, segmentationModel,
-      effectiveConcurrency, pageResults, progress
-    )
+    if (!stepController.signal.aborted) {
+      await runSegmentationPass(
+        label, pages, storage, segmentationConfig, segmentationModel,
+        effectiveConcurrency, pageResults, progress, options.signal
+      )
+    }
 
-    await runCroppingPass(
-      label, pages, storage, croppingConfig, croppingModel,
-      effectiveConcurrency, pageResults, progress
-    )
+    if (!stepController.signal.aborted) {
+      await runCroppingPass(
+        label, pages, storage, croppingConfig, croppingModel,
+        effectiveConcurrency, pageResults, progress, options.signal
+      )
+    }
 
+    // A "stop" decision aborts the classification phase; the failing step is
+    // already recorded as error via its per-page step-error.
+    if (stepController.signal.aborted) {
+      throw new Error("Stopped by a page-error decision")
+    }
+
+    // Only real (non-skipped) failures fail the stage — matches the per-pass
+    // step-complete gating in runFilterPass/runMeaningfulnessPass.
     if (failedPages.length > 0) {
       throw new Error(
-        `${failedPages.length} page(s) failed:\n${failedPages.join("\n")}`
+        `${failedPages.length} page(s) failed:\n${failedPages
+          .map((f) => `${f.pageId} [${f.step}]: ${f.msg}`)
+          .join("\n")}`
       )
     }
   } finally {
@@ -798,6 +1102,7 @@ async function runSectioningStep(
       rateLimiter,
       onLog: onLlmLog,
       credentials: llmCredentials,
+      signal: options.signal,
     })
 
     const translationModel = translationConfig
@@ -808,6 +1113,7 @@ async function runSectioningStep(
           rateLimiter,
           onLog: onLlmLog,
           credentials: llmCredentials,
+          signal: options.signal,
         })
       : null
 
@@ -820,7 +1126,16 @@ async function runSectioningStep(
     progress.emit({ type: "step-start", step: "page-sectioning" })
     let completedStructuring = 0
     let completedTranslation = 0
-    const failedPages: string[] = []
+    const failedPages: FailedPage[] = []
+    const skippedByStep = new Map<string, Set<string>>()
+    const gate = new AdmissionGate()
+    const stepController = new AbortController()
+    const pageFailureDeps = buildPageFailureDeps(options, {
+      failedPages,
+      skippedByStep,
+      gate,
+      stepController,
+    })
 
     await processWithConcurrency(
       pages,
@@ -876,28 +1191,21 @@ async function runSectioningStep(
             })
           }
         } catch (err) {
-          const msg = toErrorMessage(err)
           const step = err instanceof StepError ? err.step : "page-sectioning"
-          console.error(`[stage-run] ${label}: ${page.pageId} failed at ${step}: ${msg}`)
-          failedPages.push(`${page.pageId} [${step}]: ${msg}`)
-          progress.emit({
-            type: "step-error",
-            step,
-            error: `${page.pageId} failed: ${msg}`,
-          })
+          console.error(`[stage-run] ${label}: ${page.pageId} failed at ${step}: ${toErrorMessage(err)}`)
+          await reportPageFailure(pageFailureDeps, progress, step, page.pageId, err)
         }
       },
+      { runSignal: options.signal, stopSignal: stepController.signal, gate },
     )
 
-    if (failedPages.length > 0) {
-      throw new Error(
-        `${failedPages.length} page(s) failed:\n${failedPages.join("\n")}`
-      )
+    if (stepController.signal.aborted) {
+      throw new StepError("page-sectioning", "Stopped by a page-error decision")
     }
 
-    progress.emit({ type: "step-complete", step: "page-sectioning" })
+    finishPageStep(progress, "page-sectioning", pageFailureDeps)
     if (translationConfig) {
-      progress.emit({ type: "step-complete", step: "translation" })
+      finishPageStep(progress, "translation", pageFailureDeps)
     } else {
       progress.emit({ type: "step-skip", step: "translation" })
     }
@@ -966,6 +1274,7 @@ async function runStoryboardStep(
         rateLimiter,
         onLog: onLlmLog,
         credentials: llmCredentials,
+        signal: options.signal,
       })
       renderModels.set(modelId, model)
       return model
@@ -994,6 +1303,8 @@ async function runStoryboardStep(
     const pages = storage.getPages()
     const totalPages = pages.length
     const effectiveConcurrency = config.concurrency ?? 32
+    // Book typography (editable size-per-role map) — resolve once, share with all pages.
+    const typography = readTypography(storage)
 
     if (isFixedLayoutBook(config)) {
       // Fixed-layout: build the positioned tree (into `fixed-layout-sectioning`)
@@ -1019,13 +1330,24 @@ async function runStoryboardStep(
     await ensureBookGoogleFontsCached(storage, resolveFontsCacheDir(booksDir))
 
     let completedRendering = 0
-    const failedPages: string[] = []
+    const failedPages: FailedPage[] = []
+    const skippedByStep = new Map<string, Set<string>>()
+    const gate = new AdmissionGate()
+    const stepController = new AbortController()
+    const pageFailureDeps = buildPageFailureDeps(options, {
+      failedPages,
+      skippedByStep,
+      gate,
+      stepController,
+    })
 
     await processWithConcurrency(
       pages,
       effectiveConcurrency,
       async (page: PageData) => {
         try {
+          if (options.signal?.aborted) throw new RunCancelledError()
+
           const structuringRow = storage.getLatestNodeData("page-sectioning", page.pageId)
           if (!structuringRow) {
             console.log(
@@ -1057,11 +1379,32 @@ async function runStoryboardStep(
           )
           const renderImages = new Map<string, { base64: string; width?: number; height?: number }>()
           for (const imageId of unprunedImageIds) {
+            if (options.signal?.aborted) throw new RunCancelledError()
             const dims = pageDims.get(imageId)
             renderImages.set(imageId, { base64: storage.getImageBase64(imageId), width: dims?.width, height: dims?.height })
           }
+          // Sections can reference images extracted on other pages (cross-page
+          // merges, images added from another page) — those are not in this
+          // page's image-filtering output, so pull them in by walking the tree.
+          for (const imageId of collectReferencedImageIds(sectioning.sections)) {
+            if (renderImages.has(imageId)) continue
+            try {
+              const dims = storage.getImageDimensions(imageId)
+              renderImages.set(imageId, { base64: storage.getImageBase64(imageId), width: dims?.width ?? undefined, height: dims?.height ?? undefined })
+            } catch {
+              // Image file no longer exists — leave it out; the renderer emits
+              // the URL reference without pixels.
+            }
+          }
 
+          if (options.signal?.aborted) throw new RunCancelledError()
           const pageImageBase64 = storage.getPageImageBase64(page.pageId)
+          // Page images for content merged in from other pages (cross-page
+          // merges) — per-section provenance recorded in sourcePageIds.
+          const sourcePageImages = collectSourcePageImages(
+            sectioning.sections,
+            (id) => storage.getPageImageBase64(id)
+          )
 
           console.log(`[stage-run] ${label}: rendering ${page.pageId}`)
           const renderResult = await renderPage(
@@ -1071,14 +1414,18 @@ async function runStoryboardStep(
               pageImageBase64,
               sectioning: sectioning,
               images: renderImages,
+              sourcePageImages,
               styleguide: styleguideContent,
               bookFonts: buildBookFontsPromptContext(storage),
+              typography,
             },
             resolveRenderConfig,
             resolveRenderModel,
             templateEngine,
             visualRefinement,
+            { signal: options.signal },
           )
+          if (options.signal?.aborted) throw new RunCancelledError()
           storage.putNodeData("web-rendering", page.pageId, renderResult)
           completedRendering++
           progress.emit({
@@ -1089,27 +1436,22 @@ async function runStoryboardStep(
             totalPages,
           })
         } catch (err) {
-          const msg = toErrorMessage(err)
-          console.error(
-            `[stage-run] ${label}: ${page.pageId} failed at web-rendering: ${msg}`
-          )
-          failedPages.push(`${page.pageId} [web-rendering]: ${msg}`)
-          progress.emit({
-            type: "step-error",
-            step: "web-rendering",
-            error: `${page.pageId} failed: ${msg}`,
-          })
+          if (!isCancellation(err, [options.signal])) {
+            console.error(
+              `[stage-run] ${label}: ${page.pageId} failed at web-rendering: ${toErrorMessage(err)}`
+            )
+          }
+          await reportPageFailure(pageFailureDeps, progress, "web-rendering", page.pageId, err)
         }
-      }
+      },
+      { runSignal: options.signal, stopSignal: stepController.signal, gate },
     )
 
-    if (failedPages.length > 0) {
-      throw new Error(
-        `${failedPages.length} page(s) failed:\n${failedPages.join("\n")}`
-      )
+    if (stepController.signal.aborted) {
+      throw new StepError("web-rendering", "Stopped by a page-error decision")
     }
 
-    progress.emit({ type: "step-complete", step: "web-rendering" })
+    finishPageStep(progress, "web-rendering", pageFailureDeps)
     console.log(`[stage-run] ${label}: storyboard complete`)
   } finally {
     if (visualRefinement) {
@@ -1178,6 +1520,7 @@ async function runQuizzesStep(
       rateLimiter,
       onLog: onLlmLog,
       credentials: llmCredentials,
+      signal: options.signal,
     })
 
     const effectiveConcurrency = config.concurrency ?? 32
@@ -1283,13 +1626,23 @@ async function runCaptionsStep(
       rateLimiter,
       onLog: onLlmLog,
       credentials: llmCredentials,
+      signal: options.signal,
     })
 
     const pages = storage.getPages()
     const totalPages = pages.length
     const effectiveConcurrency = config.concurrency ?? 32
     let completedCaptions = 0
-    const failedPages: string[] = []
+    const failedPages: FailedPage[] = []
+    const skippedByStep = new Map<string, Set<string>>()
+    const gate = new AdmissionGate()
+    const stepController = new AbortController()
+    const pageFailureDeps = buildPageFailureDeps(options, {
+      failedPages,
+      skippedByStep,
+      gate,
+      stepController,
+    })
 
     progress.emit({ type: "step-start", step: "image-captioning" })
     progress.emit({
@@ -1388,24 +1741,17 @@ async function runCaptionsStep(
             totalPages,
           })
         } catch (err) {
-          const msg = toErrorMessage(err)
-          failedPages.push(`${page.pageId}: ${msg}`)
-          progress.emit({
-            type: "step-error",
-            step: "image-captioning",
-            error: `${page.pageId} failed: ${msg}`,
-          })
+          await reportPageFailure(pageFailureDeps, progress, "image-captioning", page.pageId, err)
         }
-      }
+      },
+      { runSignal: options.signal, stopSignal: stepController.signal, gate },
     )
 
-    if (failedPages.length > 0) {
-      throw new Error(
-        `${failedPages.length} page(s) failed captioning:\n${failedPages.join("\n")}`
-      )
+    if (stepController.signal.aborted) {
+      throw new StepError("image-captioning", "Stopped by a page-error decision")
     }
 
-    progress.emit({ type: "step-complete", step: "image-captioning" })
+    finishPageStep(progress, "image-captioning", pageFailureDeps)
     console.log(`[stage-run] ${label}: captions complete`)
   } finally {
     storage.close()
@@ -1465,6 +1811,7 @@ async function runGlossaryStep(
       rateLimiter,
       onLog: onLlmLog,
       credentials: llmCredentials,
+      signal: options.signal,
     })
 
     const pages = storage.getPages()
@@ -1556,6 +1903,7 @@ async function runTocStep(
       rateLimiter,
       onLog: onLlmLog,
       credentials: llmCredentials,
+      signal: options.signal,
     })
 
     const pages = storage.getPages()
@@ -1684,6 +2032,7 @@ async function runEasyReadStep(
           rateLimiter,
           onLog: onLlmLog,
           credentials: llmCredentials,
+          signal: options.signal,
         })
         const totalEntries = blocks.reduce((sum, block) => sum + block.entries.length, 0)
         progress.emit({
@@ -1818,6 +2167,7 @@ async function runTranslateStep(
         rateLimiter,
         onLog: onLlmLog,
         credentials: llmCredentials,
+        signal: options.signal,
       })
 
       const batchSize = translationConfig.batchSize
@@ -1874,7 +2224,8 @@ async function runTranslateStep(
             page: completedBatches,
             totalPages: totalBatches,
           })
-        }
+        },
+        { runSignal: options.signal },
       )
 
       for (const lang of targetLanguages) {
@@ -2016,6 +2367,7 @@ async function runTranslateStep(
                 promptName,
               },
               onLog: onLlmLog,
+              signal: options.signal,
             })
 
             storage.putTranslatedImage({
@@ -2027,6 +2379,7 @@ async function runTranslateStep(
               height: result.height,
             })
           } catch (err) {
+            if (isCancellation(err, [options.signal])) throw err
             const message = toErrorMessage(err)
             console.warn(
               `[stage-run] ${label}: image-translation failed for ${item.imageId} → ${item.targetLanguage}: ${message}`
@@ -2041,7 +2394,7 @@ async function runTranslateStep(
               totalPages: total,
             })
           }
-        })
+        }, { runSignal: options.signal })
 
         progress.emit({ type: "step-complete", step: "image-translation" })
         console.log(`[stage-run] ${label}: image translation complete (${completed}/${total})`)
@@ -2251,16 +2604,24 @@ async function runSpeechStep(
     const hasGeminiTts = outputLanguages.some(
       (lang) => resolveProviderForLanguage(lang, routing) === "gemini"
     )
-    const geminiTtsRequestsPerMinute = Math.min(
-      config.rate_limit?.requests_per_minute ?? GEMINI_TTS_SAFE_REQUESTS_PER_MINUTE,
-      GEMINI_TTS_SAFE_REQUESTS_PER_MINUTE
-    )
-    const geminiTtsRateLimiter = hasGeminiTts
-      ? createRateLimiter(geminiTtsRequestsPerMinute)
+    // Adaptive limiter: start at the documented ceiling for the selected model
+    // (or a user-pinned value) and back off on 429s, so a generous quota runs
+    // fast while a smaller tier self-throttles instead of erroring out.
+    const geminiTtsModel = resolveSpeechModel("gemini", providerConfigs, speechModel)
+    const geminiTtsRate = resolveGeminiTtsRateLimit({
+      model: geminiTtsModel,
+      rateLimit: providerConfigs.gemini?.rate_limit,
+    })
+    const geminiTtsRateLimiter: AdaptiveRateLimiter | undefined = hasGeminiTts
+      ? createAdaptiveRateLimiter({
+          startRpm: geminiTtsRate.startRpm,
+          minRpm: geminiTtsRate.minRpm,
+          maxRpm: geminiTtsRate.maxRpm,
+        })
       : undefined
     if (geminiTtsRateLimiter) {
       console.log(
-        `[stage-run] ${label}: Gemini TTS limiter active at ${geminiTtsRequestsPerMinute} req/min`
+        `[stage-run] ${label}: Gemini TTS adaptive limiter — model=${geminiTtsModel} mode=${geminiTtsRate.mode} start=${geminiTtsRate.startRpm} range=${geminiTtsRate.minRpm}-${geminiTtsRate.maxRpm} req/min`
       )
     }
 
@@ -2306,25 +2667,56 @@ async function runSpeechStep(
                 ttsSynthesizer,
                 rateLimiter: provider === "gemini" ? geminiTtsRateLimiter : undefined,
                 provider,
+                signal: options.signal,
               })
+              // A real (non-cached) success means the current rate held —
+              // let the limiter probe back toward the ceiling.
+              if (provider === "gemini" && entry && !entry.cached) {
+                geminiTtsRateLimiter?.reward()
+              }
               break
             } catch (err) {
               const msg = toErrorMessage(err)
-              if (
+              const rateLimited =
+                provider === "gemini" && isGeminiTtsRateLimitMessage(msg)
+              const transient =
                 provider === "gemini" &&
-                isGeminiTtsRateLimitMessage(msg) &&
+                !rateLimited &&
+                isGeminiTtsTransientError(msg)
+              if (
+                (rateLimited || transient) &&
+                !options.signal?.aborted &&
                 attemptCount <= GEMINI_TTS_MAX_RATE_LIMIT_RETRIES
               ) {
-                const retryDelayMs =
-                  parseGeminiRetryDelayMs(msg) ??
-                  Math.min(
-                    GEMINI_TTS_DEFAULT_RETRY_DELAY_MS * attemptCount,
-                    GEMINI_TTS_MAX_RETRY_DELAY_MS
+                if (rateLimited) {
+                  const retryDelayMs =
+                    parseGeminiRetryDelayMs(msg) ??
+                    Math.min(
+                      GEMINI_TTS_DEFAULT_RETRY_DELAY_MS * attemptCount,
+                      GEMINI_TTS_MAX_RETRY_DELAY_MS
+                    )
+                  // Halve the shared rate and pause all workers for the retry
+                  // window, so one 429 throttles the whole batch instead of every
+                  // item discovering the limit independently.
+                  geminiTtsRateLimiter?.penalize(retryDelayMs)
+                  console.warn(
+                    `[stage-run] ${label}: Gemini TTS rate limited for ${item.textId} (${item.language}); backing off to ${geminiTtsRateLimiter?.currentRpm() ?? "?"} req/min, retrying ${attemptCount + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms`
                   )
-                console.warn(
-                  `[stage-run] ${label}: Gemini TTS rate limited for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms`
+                  await sleep(retryDelayMs, options.signal)
+                  if (options.signal?.aborted) throw new RunCancelledError()
+                  continue
+                }
+                // Transient server error (500/empty audio): retry without
+                // penalizing the limiter — it's a Gemini hiccup, not a rate issue.
+                const retryDelayMs = Math.min(
+                  GEMINI_TTS_TRANSIENT_RETRY_DELAY_MS * attemptCount,
+                  GEMINI_TTS_MAX_RETRY_DELAY_MS
                 )
-                await sleep(retryDelayMs)
+                console.warn(
+                  `[stage-run] ${label}: Gemini TTS transient error for ${item.textId} (${item.language}); retrying ${attemptCount + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms: ${msg}`
+                )
+                await sleep(retryDelayMs, options.signal)
+                if (options.signal?.aborted) throw new RunCancelledError()
                 continue
               }
               throw err
@@ -2366,6 +2758,11 @@ async function runSpeechStep(
             ttsResultsByLang.get(item.language)?.push(entry)
           }
         } catch (err) {
+          // Run cancel — re-throw so processWithConcurrency unwinds; an aborted
+          // item is not a failure (it re-runs cheaply via the TTS cache).
+          if (isCancellation(err, [options.signal])) {
+            throw err instanceof RunCancelledError ? err : new RunCancelledError()
+          }
           const msg = toErrorMessage(err)
           const durationMs = Date.now() - startMs
           console.error(`[stage-run] ${label}: TTS failed for ${item.textId} (${item.language}): ${msg}`)
@@ -2413,7 +2810,8 @@ async function runSpeechStep(
 
         completedItems++
         emitSpeechStepProgress(progress, completedItems, totalItems, failedItems.length, reusedItems)
-      }
+      },
+      { runSignal: options.signal }
     )
 
     if (failedItems.length > 0) {
@@ -2434,13 +2832,16 @@ async function runSpeechStep(
 
     if (geminiFailedItems.length > 0) {
       const summary = `${geminiFailedItems.length} Gemini TTS item(s) failed. Missing Gemini audio can be generated one by one from the Speech view.`
-      progress.emit({
-        type: "step-error",
-        step: "tts",
-        error: summary,
-      })
+      // Complete the step with gaps rather than erroring. The failed items are
+      // persisted per-language in the TTS output (`failed`) and surfaced in the
+      // Speech/Language view for one-by-one regeneration, so a stray transient
+      // failure shouldn't leave the whole stage incomplete and block the export.
+      progress.emit({ type: "step-progress", step: "tts", message: summary })
+      progress.emit({ type: "step-complete", step: "tts" })
       progress.emit({ type: "step-skip", step: "word-timestamps" })
-      console.log(`[stage-run] ${label}: speech completed with Gemini TTS gaps`)
+      console.warn(
+        `[stage-run] ${label}: speech completed with ${geminiFailedItems.length} Gemini TTS gap(s)`
+      )
       return
     }
 
@@ -2461,6 +2862,7 @@ async function runSpeechStep(
         textByLanguage,
         concurrency: effectiveConcurrency,
         progress,
+        signal: options.signal,
       })
       wordTimestampsByLang = generatedWordTimestamps.entriesByLanguage
       timestampFailedItems = generatedWordTimestamps.failedItems
@@ -2509,39 +2911,48 @@ async function runFilterPass(
   config: ReturnType<typeof buildStageRunnerImageClassifyConfig>,
   concurrency: number,
   results: Map<string, ImageClassificationOutput>,
-  failedPages: string[],
+  deps: PageFailureDeps,
   progress: StageRunProgress,
 ): Promise<void> {
   const total = pages.length
   let completed = 0
   progress.emit({ type: "step-start", step: "image-filtering" })
-  await processWithConcurrency(pages, concurrency, async (page) => {
-    try {
-      const images = storage.getPageImages(page.pageId)
-      const result = classifyPageImages(page.pageId, images, config)
-      results.set(page.pageId, result)
-      storage.putNodeData("image-filtering", page.pageId, result)
-    } catch (err) {
-      const msg = toErrorMessage(err)
-      console.error(`[stage-run] ${label}: ${page.pageId} failed at image-filtering: ${msg}`)
-      failedPages.push(`${page.pageId} [image-filtering]: ${msg}`)
-      progress.emit({
-        type: "step-error",
-        step: "image-filtering",
-        error: `${page.pageId} failed: ${msg}`,
-      })
-    } finally {
-      completed++
-      progress.emit({
-        type: "step-progress",
-        step: "image-filtering",
-        message: `${completed}/${total}`,
-        page: completed,
-        totalPages: total,
-      })
-    }
-  })
-  progress.emit({ type: "step-complete", step: "image-filtering" })
+  await processWithConcurrency(
+    pages,
+    concurrency,
+    async (page) => {
+      try {
+        const images = storage.getPageImages(page.pageId)
+        const result = classifyPageImages(page.pageId, images, config)
+        results.set(page.pageId, result)
+        storage.putNodeData("image-filtering", page.pageId, result)
+      } catch (err) {
+        console.error(`[stage-run] ${label}: ${page.pageId} failed at image-filtering: ${toErrorMessage(err)}`)
+        await reportPageFailure(deps, progress, "image-filtering", page.pageId, err)
+      } finally {
+        completed++
+        progress.emit({
+          type: "step-progress",
+          step: "image-filtering",
+          message: `${completed}/${total}`,
+          page: completed,
+          totalPages: total,
+        })
+      }
+    },
+    { runSignal: deps.runSignal, stopSignal: deps.stepController.signal, gate: deps.gate },
+  )
+  // Only mark the step done when it had no real failures of its own and wasn't
+  // stopped. A spurious step-complete here would overwrite the per-page error in
+  // the DB with "done", leaving the run failing with no step attributed.
+  const failed = deps.failedPages.some((f) => f.step === "image-filtering")
+  if (!failed && !deps.stepController.signal.aborted) {
+    progress.emit({
+      type: "step-complete",
+      step: "image-filtering",
+      message: skipMessage(deps.skippedByStep, "image-filtering"),
+    })
+  }
 }
 
 async function runMeaningfulnessPass(
@@ -2552,7 +2963,7 @@ async function runMeaningfulnessPass(
   model: ReturnType<typeof createLLMModel> | null,
   concurrency: number,
   results: Map<string, ImageClassificationOutput>,
-  failedPages: string[],
+  deps: PageFailureDeps,
   progress: StageRunProgress,
 ): Promise<void> {
   if (!config || !model) {
@@ -2563,7 +2974,10 @@ async function runMeaningfulnessPass(
   const total = pages.length
   let completed = 0
   progress.emit({ type: "step-start", step: "image-meaningfulness" })
-  await processWithConcurrency(pages, concurrency, async (page) => {
+  await processWithConcurrency(
+    pages,
+    concurrency,
+    async (page) => {
     const existing = results.get(page.pageId)
     if (!existing) {
       completed++
@@ -2605,14 +3019,8 @@ async function runMeaningfulnessPass(
         storage.putNodeData("image-filtering", page.pageId, updated)
       }
     } catch (err) {
-      const msg = toErrorMessage(err)
-      console.error(`[stage-run] ${label}: ${page.pageId} failed at image-meaningfulness: ${msg}`)
-      failedPages.push(`${page.pageId} [image-meaningfulness]: ${msg}`)
-      progress.emit({
-        type: "step-error",
-        step: "image-meaningfulness",
-        error: `${page.pageId} failed: ${msg}`,
-      })
+      console.error(`[stage-run] ${label}: ${page.pageId} failed at image-meaningfulness: ${toErrorMessage(err)}`)
+      await reportPageFailure(deps, progress, "image-meaningfulness", page.pageId, err)
     } finally {
       completed++
       progress.emit({
@@ -2623,8 +3031,17 @@ async function runMeaningfulnessPass(
         totalPages: total,
       })
     }
-  })
-  progress.emit({ type: "step-complete", step: "image-meaningfulness" })
+    },
+    { runSignal: deps.runSignal, stopSignal: deps.stepController.signal, gate: deps.gate },
+  )
+  const failed = deps.failedPages.some((f) => f.step === "image-meaningfulness")
+  if (!failed && !deps.stepController.signal.aborted) {
+    progress.emit({
+      type: "step-complete",
+      step: "image-meaningfulness",
+      message: skipMessage(deps.skippedByStep, "image-meaningfulness"),
+    })
+  }
 }
 
 async function runSegmentationPass(
@@ -2636,6 +3053,7 @@ async function runSegmentationPass(
   concurrency: number,
   results: Map<string, ImageClassificationOutput>,
   progress: StageRunProgress,
+  runSignal?: AbortSignal,
 ): Promise<void> {
   if (!config || !model) {
     progress.emit({ type: "step-skip", step: "image-segmentation" })
@@ -2725,6 +3143,7 @@ async function runSegmentationPass(
         }
       }
     } catch (err) {
+      if (isCancellation(err, [runSignal])) throw err
       console.error(`[stage-run] ${label}: image segmentation failed for ${page.pageId}: ${toErrorMessage(err)}`)
     } finally {
       completed++
@@ -2736,7 +3155,8 @@ async function runSegmentationPass(
         totalPages: total,
       })
     }
-  })
+  }, { runSignal })
+  if (runSignal?.aborted) return
   progress.emit({ type: "step-complete", step: "image-segmentation" })
 }
 
@@ -2749,6 +3169,7 @@ async function runCroppingPass(
   concurrency: number,
   results: Map<string, ImageClassificationOutput>,
   progress: StageRunProgress,
+  runSignal?: AbortSignal,
 ): Promise<void> {
   if (!config || !model) {
     progress.emit({ type: "step-skip", step: "image-cropping" })
@@ -2824,6 +3245,7 @@ async function runCroppingPass(
         }
       }
     } catch (err) {
+      if (isCancellation(err, [runSignal])) throw err
       console.error(`[stage-run] ${label}: image cropping failed for ${page.pageId}: ${toErrorMessage(err)}`)
     } finally {
       completed++
@@ -2835,6 +3257,7 @@ async function runCroppingPass(
         totalPages: total,
       })
     }
-  })
+  }, { runSignal })
+  if (runSignal?.aborted) return
   progress.emit({ type: "step-complete", step: "image-cropping" })
 }

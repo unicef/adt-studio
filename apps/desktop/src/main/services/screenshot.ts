@@ -16,22 +16,26 @@ async function screenshot(
     show: false,
     webPreferences: { offscreen: true },
   });
+  windows.add(win);
 
-  const loadPromise = new Promise<void>((resolve, reject) => {
-    win.webContents.once("did-finish-load", resolve);
-    win.webContents.once("did-fail-load", (_, _code, desc) =>
-      reject(new Error(desc)),
-    );
-  });
+  try {
+    const loadPromise = new Promise<void>((resolve, reject) => {
+      win.webContents.once("did-finish-load", resolve);
+      win.webContents.once("did-fail-load", (_, _code, desc) =>
+        reject(new Error(desc)),
+      );
+    });
 
-  await win.loadURL(`html-render://${id}`);
-  await loadPromise;
+    await win.loadURL(`html-render://${id}`);
+    await loadPromise;
 
-  const image = await win.webContents.capturePage();
-  win.destroy();
-  htmlStore.delete(id);
-
-  return image.toPNG().toString("base64");
+    const image = await win.webContents.capturePage();
+    return image.toPNG().toString("base64");
+  } finally {
+    windows.delete(win);
+    if (!win.isDestroyed()) win.destroy();
+    htmlStore.delete(id);
+  }
 }
 
 async function close(): Promise<void> {

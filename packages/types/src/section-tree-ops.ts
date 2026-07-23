@@ -342,6 +342,145 @@ export function unnestNode(
   return inserted
 }
 
+// Split the parent container of `nodeId` into two sibling containers of the
+// same structure: the parent keeps the children before `nodeId`; a new
+// container (fresh id, same structure/prune state) takes `nodeId` and its
+// following siblings. No-op when the node is at top level or is its parent's
+// first child (nothing to leave behind).
+export function splitContainerBefore(
+  nodes: ContentNodeData[],
+  nodeId: string,
+  idFactory: IdFactory
+): ContentNodeData[] {
+  const loc = locate(nodes, nodeId)
+  if (!loc || loc.parent == null || loc.index === 0) return nodes
+  const parentLoc = locate(nodes, loc.parent.nodeId)
+  if (!parentLoc) return nodes
+
+  const sibling: ContentNodeData = {
+    ...loc.parent,
+    nodeId: idFactory(),
+    children: loc.parentChildren.slice(loc.index),
+  }
+  const trimmed = mapNode(nodes, loc.parent.nodeId, (parent) => ({
+    ...parent,
+    children: (parent.children ?? []).slice(0, loc.index),
+  }))
+  return insertNode(
+    trimmed,
+    parentLoc.parent?.nodeId ?? null,
+    parentLoc.index + 1,
+    sibling
+  )
+}
+
+// Merge a container into its previous sibling container: its children are
+// appended to the previous sibling and the container itself is removed.
+// No-op unless the node and its previous sibling are both containers.
+export function mergeContainerWithPrevious(
+  nodes: ContentNodeData[],
+  nodeId: string
+): ContentNodeData[] {
+  const loc = locate(nodes, nodeId)
+  if (!loc || loc.index === 0) return nodes
+  const node = loc.parentChildren[loc.index]
+  const prev = loc.parentChildren[loc.index - 1]
+  if (node.role || prev.role) return nodes
+  const merged: ContentNodeData = {
+    ...prev,
+    children: [...(prev.children ?? []), ...(node.children ?? [])],
+  }
+  const replaceIn = (list: ContentNodeData[]): ContentNodeData[] => {
+    const next = [...list]
+    next.splice(loc.index - 1, 2, merged)
+    return next
+  }
+  if (loc.parent == null) return replaceIn(nodes)
+  return mapNode(nodes, loc.parent.nodeId, (parent) => ({
+    ...parent,
+    children: replaceIn(parent.children ?? []),
+  }))
+}
+
+// Collapse every run of adjacent sibling containers sharing a structure and
+// prune state into the first container of the run, recursively. Reading
+// order is preserved; leaves and differing containers act as run breaks.
+export function mergeAdjacentContainers(
+  nodes: ContentNodeData[]
+): ContentNodeData[] {
+  const walk = (list: ContentNodeData[]): ContentNodeData[] => {
+    let changed = false
+    const out: ContentNodeData[] = []
+    for (let node of list) {
+      if (node.children) {
+        const nextChildren = walk(node.children)
+        if (nextChildren !== node.children) {
+          node = { ...node, children: nextChildren }
+          changed = true
+        }
+      }
+      const prev = out[out.length - 1]
+      if (
+        prev &&
+        !prev.role &&
+        !node.role &&
+        prev.structure === node.structure &&
+        prev.isPruned === node.isPruned
+      ) {
+        out[out.length - 1] = {
+          ...prev,
+          children: [...(prev.children ?? []), ...(node.children ?? [])],
+        }
+        changed = true
+        continue
+      }
+      out.push(node)
+    }
+    return changed ? out : list
+  }
+  return walk(nodes)
+}
+
+// Split a section's node tree in two immediately before `nodeId`, splitting
+// every ancestor container along the path. Ancestor shells on the moved side
+// get fresh ids (the target node and everything below it keep theirs);
+// ancestor shells left empty on the kept side are dropped. Returns null when
+// the node isn't found or when the kept half would be empty (the node is the
+// first node of the tree at every level).
+export function splitNodesBefore(
+  nodes: ContentNodeData[],
+  nodeId: string,
+  idFactory: IdFactory
+): { before: ContentNodeData[]; after: ContentNodeData[] } | null {
+  const path = findNodePath(nodes, nodeId)
+  if (!path) return null
+
+  const split = (
+    list: ContentNodeData[],
+    depth: number
+  ): { before: ContentNodeData[]; after: ContentNodeData[] } => {
+    const target = path[depth]
+    const index = list.indexOf(target)
+    const before = list.slice(0, index)
+    const after = list.slice(index + 1)
+    if (depth === path.length - 1) {
+      return { before, after: [target, ...after] }
+    }
+    const inner = split(target.children ?? [], depth + 1)
+    if (inner.before.length > 0) {
+      before.push({ ...target, children: inner.before })
+    }
+    return {
+      before,
+      after: [{ ...target, nodeId: idFactory(), children: inner.after }, ...after],
+    }
+  }
+
+  const result = split(nodes, 0)
+  if (result.before.length === 0 || result.after.length === 0) return null
+  return result
+}
+
 // Change a single node's nodeId. Used to swap an image leaf's id when a new
 // file replaces the old one (crop, replace, AI generate), since an image
 // leaf's nodeId IS its imageId.

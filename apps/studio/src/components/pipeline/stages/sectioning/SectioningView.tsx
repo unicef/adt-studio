@@ -251,6 +251,8 @@ export function SectioningView({ bookLabel, selectedPageId: selectedPageIdProp, 
       page={page}
       navigationExtra={navigationExtra}
       navigationArrows={navigationArrows}
+      hasPrevPage={canGoPrev}
+      hasNextPage={canGoNext}
     />
   )
 }

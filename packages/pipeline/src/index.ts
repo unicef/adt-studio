@@ -6,6 +6,12 @@ export {
 export { processWithConcurrency } from "./concurrency.js"
 export { extractPDF, type ExtractOptions } from "./pdf-extraction.js"
 export {
+  detectSpreads,
+  type SpreadEdgeSample,
+  type SpreadSuggestion,
+  type SpreadDetectionOptions,
+} from "./spread-detection.js"
+export {
   sectionPage,
   runValidator as validatePageSectioning,
   finalizePageSectioning,
@@ -64,6 +70,8 @@ export {
   renderPage,
   buildRenderStrategyResolver,
   buildRenderContext,
+  collectReferencedImageIds,
+  collectSourcePageImages,
   GROUP_CONTAINER_STRUCTURES,
   type RenderConfig,
   type VisualRefinementConfig,
@@ -171,6 +179,9 @@ export {
   resolveProviderForLanguage,
   resolveSpeechModel,
   resolveSpeechFormat,
+  resolveGeminiTtsRateLimit,
+  getDocumentedGeminiTtsRpm,
+  type ResolvedGeminiTtsRateLimit,
   isSpeakableText,
   stripEmojis,
   loadVoicesConfig,
@@ -249,10 +260,12 @@ export {
 export {
   packageEpub,
   type PackageEpubOptions,
-} from "./package-epub.js"
+} from "./packaging/epub.js"
+export { packageWebpub } from "./packaging/webpub.js"
+export { buildPreviewTailwindCss } from "./tailwind.js"
+export { htmlToXhtml } from "./html-semantics.js"
 export {
   packageAdtWeb,
-  packageWebpub,
   computePackagingInputHash,
   type PackageAdtWebOptions,
   type ComputePackagingInputHashOptions,
@@ -260,18 +273,41 @@ export {
   resolveReflowableFontChain,
   NAV_HTML,
   type RenderPageOptions,
-  buildPreviewTailwindCss,
   buildGlossaryJson,
   buildImageMap,
   buildPreferredImageAltMap,
   buildDecorativeImageIdSet,
   rewriteImageUrls,
-  htmlToXhtml,
   renderQuizHtml,
+  type QuizStyle,
   buildQuizAnswers,
   pad3,
   convertLatexToMathml,
-} from "./package-web.js"
+} from "./packaging/web.js"
+export {
+  resolveQuizPalette,
+  deriveQuizPalette,
+  DEFAULT_QUIZ_PALETTE,
+  type QuizPalette,
+} from "./quiz-palette.js"
+export {
+  tallyFontSizes,
+  mergeTallies,
+  deriveTypeScale,
+  deriveTypeScaleFromHistogram,
+  readTypeScale,
+  TYPE_SCALE_NODE,
+  TYPE_SCALE_ITEM,
+} from "./type-scale.js"
+export {
+  readTypography,
+  resolveDetectedTypography,
+  buildTypographyCss,
+  resolveTypographyCss,
+  typographyPreservationErrors,
+  TYPOGRAPHY_NODE,
+  TYPOGRAPHY_ITEM,
+} from "./typography.js"
 export {
   runAccessibilityAssessment,
   type RunAccessibilityAssessmentOptions,

@@ -243,7 +243,7 @@ msgstr "{0} imazhe të zgjedhura nuk janë më në storyboard."
 msgid "{0} terms"
 msgstr "{0} terma"
 
-#. placeholder {0}: String(displayEntries.length)
+#. placeholder {0}: String(visibleEntries.length)
 msgid "{0} texts"
 msgstr "{0} tekste"
 
@@ -294,11 +294,17 @@ msgstr "{0}m më parë"
 msgid "{0}s ago"
 msgstr "{0}s më parë"
 
+msgid "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
+msgstr "{confirmCount} {confirmCount, plural, one {fletë e dyfishtë e mundshme e zbuluar} other {fletë të dyfishta të mundshme të zbuluara}}"
+
 msgid "{count} {count, plural, one {issue} other {issues}}"
 msgstr "{count} {count, plural, one {problem} other {probleme}}"
 
 msgid "{count} {count, plural, one {manual review item} other {manual review items}}"
 msgstr "{count} {count, plural, one {element për rishikim manual} other {elemente për rishikim manual}}"
+
+msgid "{count} pages failed in {stageLabel}"
+msgstr "{count} faqe dështuan te {stageLabel}"
 
 msgid "{count} translations"
 msgstr "{count} përkthime"
@@ -344,8 +350,17 @@ msgstr "{issueCount} {0}"
 msgid "{issuesLabel}, {reviewLabel}"
 msgstr "{issuesLabel}, {reviewLabel}"
 
+msgid "{label} desktop size"
+msgstr "Madhësia e {label} në desktop"
+
+msgid "{label} mobile size"
+msgstr "Madhësia e {label} në celular"
+
 msgid "{merged, plural, =0 {0 of {total} pages merged} one {# of {total} pages merged} other {# of {total} pages merged}}"
 msgstr "{merged, plural, =0 {0 nga {total} faqe të bashkuara} one {# nga {total} faqe të bashkuara} other {# nga {total} faqe të bashkuara}}"
+
+msgid "{mergedCount} {mergedCount, plural, one {spread} other {spreads}} merged."
+msgstr "{mergedCount} {mergedCount, plural, one {faqe e përbashkët} other {faqe të përbashkëta}} të bashkuara."
 
 msgid "{missingAudioCount} missing"
 msgstr "{missingAudioCount} mungojnë"
@@ -384,6 +399,12 @@ msgstr "{reviewed}/{0} të kontrolluar"
 
 msgid "{sections} sections"
 msgstr "{sections} seksione"
+
+#~ msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} marked."
+#~ msgstr "{spreadCount} {spreadCount, plural, one {faqe e përbashkët} other {faqe të përbashkëta}} të shënuara."
+
+msgid "{spreadCount} {spreadCount, plural, one {spread} other {spreads}} selected."
+msgstr "{spreadCount} {spreadCount, plural, one {fletë e dyfishtë e zgjedhur} other {fletë të dyfishta të zgjedhura}}"
 
 msgid "{stageLabel} isn't ready yet — every section in the Storyboard is currently pruned, so there's nothing to run on. Restore at least one section in Storyboard to continue."
 msgstr "{stageLabel} nuk është gati ende — çdo seksion në Storyboard është aktualisht i prerë, kështu që nuk ka asgjë për të ekzekutuar. Rivendosni të paktën një seksion në Storyboard për të vazhduar."
@@ -517,6 +538,9 @@ msgstr "Një libër me këtë emër ekziston tashmë."
 msgid "A close, long-term relationship between two different species, often benefiting both."
 msgstr "Një marrëdhënie e ngushtë afatgjatë midis dy specieve të ndryshme, shpesh duke përfituar të dyja."
 
+msgid "A few spreads in a single book"
+msgstr "Disa faqe të përbashkëta në një libër të vetëm"
+
 msgid "A figure of speech that describes one thing as if it were another to draw a comparison."
 msgstr "Një figurë stilistike që përshkruan diçka sikur të ishte tjetër gjë për të bërë një krahasim."
 
@@ -540,6 +564,12 @@ msgstr "Një aktivitet me zgjedhje të shumëfishtë."
 
 #~ msgid "A new version is available for download."
 #~ msgstr "Një version i ri është i disponueshëm për shkarkim."
+
+msgid "A page failed in {stageLabel}"
+msgstr "Një faqe dështoi te {stageLabel}"
+
+msgid "A page failed in {stepLabel}"
+msgstr "Një faqe dështoi te {stepLabel}"
 
 msgid "A question worth asking"
 msgstr "Një pyetje që vlen të bëhet"
@@ -613,6 +643,9 @@ msgstr "Një pamje me kënd të gjerë poshtë një korridori supermarketi të n
 msgid "A–Z"
 msgstr "A–Z"
 
+msgid "Aa"
+msgstr "Aa"
+
 msgid "ABC"
 msgstr "ABC"
 
@@ -651,6 +684,9 @@ msgstr "Aksesueshmëria, që nga <0>faqja e parë.</0>"
 
 msgid "Accessible book"
 msgstr "Libër i aksesueshëm"
+
+msgid "Accessible sizes"
+msgstr "Madhësi të aksesueshme"
 
 msgid "Actions disabled while storyboard is running"
 msgstr "Veprimet janë çaktivizuara ndërsa storyboard-i është në ekzekutim"
@@ -930,8 +966,8 @@ msgstr "Libër ADT - {0}"
 msgid "ADT Package"
 msgstr "Paketë ADT"
 
-msgid "ADT Studio"
-msgstr "ADT Studio"
+#~ msgid "ADT Studio"
+#~ msgstr "ADT Studio"
 
 msgid "ADT Studio uses your own API keys to run the pipeline. Keys are stored locally on this device and never sent anywhere else."
 msgstr "ADT Studio përdor çelësat tuaj API për të ekzekutuar pipeline-in. Çelësat ruhen lokalisht në këtë pajisje dhe nuk dërgohen asnjëherë askund tjetër."
@@ -1060,6 +1096,9 @@ msgstr "Të Gjitha Kategoritë"
 
 msgid "All issues and manual review items"
 msgstr "Të gjitha problemet dhe elementet e rishikimit manual"
+
+msgid "All pages"
+msgstr "Të gjitha faqet"
 
 msgid "All pages are pruned"
 msgstr "Të gjitha faqet janë prerë"
@@ -1196,6 +1235,15 @@ msgstr "Apliko ngjyrat e sfondit të faqes"
 
 msgid "Apply Segmentation"
 msgstr "Apliko segmentimin"
+
+#~ msgid "Apply spreads"
+#~ msgstr "Apliko faqet e përbashkëta"
+
+msgid "Apply to all errors in this run"
+msgstr "Zbato për të gjitha gabimet e këtij ekzekutimi"
+
+#~ msgid "Applying…"
+#~ msgstr "Duke aplikuar…"
 
 msgid "AR"
 msgstr "AR"
@@ -1461,6 +1509,9 @@ msgstr "Rendi i librit"
 msgid "Book package ready"
 msgstr "Paketa e librit gati"
 
+msgid "Book pages. Scroll horizontally to see more."
+msgstr "Faqet e librit. Lëviz horizontalisht për të parë më shumë."
+
 msgid "Book part"
 msgstr "Pjesë e librit"
 
@@ -1587,8 +1638,38 @@ msgstr "Thirrje"
 msgid "Cancel"
 msgstr "Anulo"
 
+msgid "Cancel {stageLabel}"
+msgstr "Anulo {stageLabel}"
+
+msgid "Cancel {stepLabel} step"
+msgstr "Anulo hapin {stepLabel}"
+
 msgid "Cancel download"
 msgstr "Anulo shkarkimin"
+
+msgid "Cancel run"
+msgstr "Anulo ekzekutimin"
+
+msgid "Cancelling {stageLabel}"
+msgstr "Duke anuluar {stageLabel}"
+
+msgid "Cancelling {stepLabel} step"
+msgstr "Duke anuluar hapin {stepLabel}"
+
+msgid "Cancelling run"
+msgstr "Duke anuluar ekzekutimin"
+
+msgid "Cancelling run…"
+msgstr "Duke anuluar ekzekutimin…"
+
+#~ msgid "Cancelling step"
+#~ msgstr "Duke anuluar hapin"
+
+msgid "Cancelling..."
+msgstr "Duke anuluar..."
+
+msgid "Cancelling…"
+msgstr "Duke anuluar…"
 
 #. placeholder {0}: String(MAX_ENTRIES)
 msgid "capped at {0}"
@@ -1658,6 +1739,9 @@ msgstr "Ndrysho Presetin"
 msgid "Change the book language?"
 msgstr "Të ndryshohet gjuha e librit?"
 
+#~ msgid "Changes apply the next time you run Storyboard and Export."
+#~ msgstr "Ndryshimet zbatohen herën tjetër që ekzekutoni Storyboard dhe Eksportin."
+
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Ndryshimi i fonteve ndikon në mënyrën se si shfaqen faqet — riekzekutoni Storyboard dhe Eksportin për të zbatuar fontet e reja."
 
@@ -1687,6 +1771,9 @@ msgstr "Libra me kapituj dhe imazhe"
 
 msgid "Chapter One"
 msgstr "Kapitulli i Parë"
+
+msgid "Chapter title"
+msgstr "Titulli i kapitullit"
 
 msgid "Chart / Graph"
 msgstr "Tabelë / Grafik"
@@ -2021,11 +2108,17 @@ msgstr "Nuk u lexuan dot përmasat e imazhit"
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "Nuk u mund të lexohet ky PDF. Skedari mund të jetë i dëmtuar ose i mbrojtur me fjalëkalim."
 
+msgid "Couldn't apply the spreads — please try again."
+msgstr "Nuk mund të aplikohej faqet e përbashkëta — ju lutem provoni përsëri."
+
 msgid "Couldn't check for updates"
 msgstr "Nuk u arrit të kontrollohen përditësimet"
 
 msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
 msgstr "Pamja paraprake e PDF-së nuk u ngarkua dot. Faqet mund të ndahen ende duke përdorur kontrollet."
+
+msgid "Couldn't load the PDF preview. You can still mark spreads once the pages load."
+msgstr "Nuk mund të ngarkohej parapamja e PDF-së. Ju ende mund të shënoni faqet e përbashkëta pasi të ngarkohen faqet."
 
 msgid "Couldn't read this PDF"
 msgstr "Nuk mund të lexohej ky PDF"
@@ -2335,6 +2428,12 @@ msgstr "Pavarësisht motit të keq, ekspedita vazhdoi drejt majës, pa u tërheq
 msgid "Detailed, technical captions for college and adult readers."
 msgstr "Tituj të detajuar dhe teknikë për lexues të universitetit dhe të rritur."
 
+#~ msgid "Detected {confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} — confirm which to merge"
+#~ msgstr "U zbuluan {confirmCount} {confirmCount, plural, one {faqe e përbashkët} other {faqe të përbashkëta}} të mundshme — konfirmoni cilat të bashkohen"
+
+msgid "Detected {left}–{right}"
+msgstr "U zbuluan {left}–{right}"
+
 msgid "Detected Font"
 msgstr "Fonti i zbuluar"
 
@@ -2386,8 +2485,8 @@ msgstr "Hidh poshtë dhe dil"
 #~ msgid "Discard unsaved changes?"
 #~ msgstr "Hidh poshtë ndryshimet e paruajtura?"
 
-#~ msgid "Dismiss"
-#~ msgstr "Hiqe"
+msgid "Dismiss"
+msgstr "Hiqe"
 
 msgid "Display"
 msgstr "Shfaqje"
@@ -2602,6 +2701,9 @@ msgstr "Redakto Prompt-in"
 
 msgid "Edit Prompts"
 msgstr "Redakto Prompt-et"
+
+msgid "Edit spreads"
+msgstr "Redakto faqet e përbashkëta"
 
 #~ msgid "Edit the Liquid/HTML template below. Changes are saved when you click Save & Rerun."
 #~ msgstr "Redaktoni shabllonin Liquid/HTML më poshtë. Ndryshimet ruhen kur klikoni Ruaj dhe Riekzekuto."
@@ -2898,6 +3000,9 @@ msgstr "Tekst i nxjerrë"
 msgid "Extracting..."
 msgstr "Duke nxjerrë..."
 
+msgid "Extraction is running — you can review spreads once it finishes."
+msgstr "Ekstraktimi është në proces — mund të rishikoni faqet e përbashkëta pasi të përfundojë."
+
 msgid "Extraction is skipped now. After the book is created, use the Split & merge panel on its overview to export page-range parts and merge the completed results back."
 msgstr "Nxjerrja anashkalohet tani. Pasi të krijohet libri, përdorni panelin Ndaj dhe bashko në përmbledhjen e tij për të eksportuar pjesë sipas intervalit të faqeve dhe për të bashkuar rezultatet e përfunduara."
 
@@ -3040,6 +3145,9 @@ msgstr "Paraqitje e fiksuar me dy kolona"
 
 msgid "Fixed-layout books use the original page images as backgrounds with positioned text extracted from the PDF. Activities detection, figure extraction, and image cropping or segmentation don't apply to this layout."
 msgstr "Librat me paraqitje të fiksuar përdorin imazhet origjinale të faqeve si sfond me tekst të pozicionuar të nxjerrë nga PDF-i. Zbulimi i aktiviteteve, nxjerrja e figurave dhe prerja ose segmentimi i imazheve nuk zbatohen për këtë paraqitje."
+
+#~ msgid "Fixed, accessible sizes applied to every page. Sizes use the book's Tailwind scale (pick a token or type an exact px), scale fluidly between mobile and desktop, and override any size the AI picks — so headings and body text stay consistent across the whole book."
+#~ msgstr "Madhësi fikse dhe të aksesueshme që zbatohen në çdo faqe. Madhësitë përdorin shkallën Tailwind të librit (zgjidhni një token ose shkruani një vlerë të saktë në px), shkallëzohen në mënyrë të rrjedhshme mes celularit dhe desktopit, dhe mbizotërojnë çdo madhësi që zgjedh IA-ja — kështu titujt dhe teksti i trupit mbeten të qëndrueshëm në të gjithë librin."
 
 msgid "flagged"
 msgstr "shënuar"
@@ -3906,6 +4014,9 @@ msgstr "Lidhje"
 msgid "Link page"
 msgstr "Faqe lidhje"
 
+msgid "Linked pages are kept together as one spread."
+msgstr "Faqet e lidhura mbahen së bashku si një faqe e përbashkët."
+
 msgid "Linked to: {value}"
 msgstr "I lidhur me: {value}"
 
@@ -4005,6 +4116,9 @@ msgstr "Duke ngarkuar faqen..."
 msgid "Loading pages..."
 msgstr "Duke ngarkuar faqet..."
 
+msgid "Loading pages…"
+msgstr "Duke ngarkuar faqet…"
+
 msgid "Loading preview"
 msgstr "Duke ngarkuar paraparjen"
 
@@ -4049,6 +4163,9 @@ msgstr "Duke ngarkuar modelin..."
 
 msgid "Loading text catalog..."
 msgstr "Duke ngarkuar katalogun e tekstit..."
+
+msgid "Loading text sizes…"
+msgstr "Po ngarkohen madhësitë e tekstit…"
 
 msgid "Loading validation..."
 msgstr "Duke ngarkuar vërtetimin..."
@@ -4131,6 +4248,12 @@ msgstr "Shëno si dekorativ"
 msgid "Mark as decorative (hidden from screen readers)"
 msgstr "Shëno si dekorativ (i fshehur nga lexuesit e ekranit)"
 
+msgid "Mark spreads"
+msgstr "Shëno faqet e përbashkëta"
+
+msgid "Match book style"
+msgstr "Përputh me stilin e librit"
+
 msgid "Match Design"
 msgstr "Përputhje Dizajni"
 
@@ -4182,8 +4305,14 @@ msgstr "Referenca mjekësore"
 msgid "Medium"
 msgstr "Mesatar"
 
+msgid "Merge"
+msgstr "Bashko"
+
 msgid "Merge a completed part"
 msgstr "Bashko një pjesë të përfunduar"
+
+msgid "Merge adjacent groups"
+msgstr "Bashko grupet ngjitur"
 
 msgid "Merge another"
 msgstr "Bashko një tjetër"
@@ -4197,20 +4326,37 @@ msgstr "Bashko një pjesë tjetër"
 msgid "Merge failed"
 msgstr "Bashkimi dështoi"
 
-msgid "merge into next page"
-msgstr "bashko me faqen tjetër"
+#~ msgid "merge into next page"
+#~ msgstr "bashko me faqen tjetër"
 
-msgid "Merge into next page"
-msgstr "Bashko me faqen tjetër"
+#~ msgid "Merge into next page"
+#~ msgstr "Bashko me faqen tjetër"
 
-msgid "merge into previous page"
-msgstr "bashko me faqen e mëparshme"
+#~ msgid "merge into previous page"
+#~ msgstr "bashko me faqen e mëparshme"
 
-msgid "Merge into previous page"
-msgstr "Bashko me faqen e mëparshme"
+#~ msgid "Merge into previous page"
+#~ msgstr "Bashko me faqen e mëparshme"
+
+#. placeholder {0}: prev[0]
+#. placeholder {1}: group[0]
+msgid "Merge pages {0} and {1} into a spread"
+msgstr "Bashko faqet {0} dhe {1} në një faqe të përbashkët"
 
 msgid "Merge part"
 msgstr "Bashko pjesën"
+
+msgid "merge this section into the first section of the next page"
+msgstr "bashkoni këtë seksion me seksionin e parë të faqes tjetër"
+
+msgid "merge this section into the last section of the previous page"
+msgstr "bashkoni këtë seksion me seksionin e fundit të faqes së mëparshme"
+
+msgid "Merge with first section of next page"
+msgstr "Bashko me seksionin e parë të faqes tjetër"
+
+msgid "Merge with last section of previous page"
+msgstr "Bashko me seksionin e fundit të faqes së mëparshme"
 
 msgid "merge with next"
 msgstr "bashko me të ardhshmin"
@@ -4227,6 +4373,9 @@ msgstr "bashko me të mëparshmit"
 msgid "Merge with previous"
 msgstr "Bashko me të mëparshmit"
 
+msgid "Merge with previous group"
+msgstr "Bashko me grupin e mëparshëm"
+
 msgid "merge with previous section"
 msgstr "bashko me seksionin e mëparshëm"
 
@@ -4241,8 +4390,14 @@ msgstr "U bashkua"
 msgid "Merged · {0}/{1}"
 msgstr "Bashkuar · {0}/{1}"
 
+msgid "Merged {left}–{right}"
+msgstr "Të bashkuara {left}–{right}"
+
 #~ msgid "Merged:"
 #~ msgstr "Bashkuar:"
+
+msgid "Merging spreads…"
+msgstr "Duke bashkuar fletët e dyfishta…"
 
 msgid "Merging…"
 msgstr "Po bashkohet…"
@@ -4348,6 +4503,12 @@ msgstr "Monospace"
 
 msgid "More info"
 msgstr "Më shumë informacion"
+
+#~ msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle."
+#~ msgstr "Shumica e librave lexohen një faqe në një kohë. Nëse libri juaj ka një ilustrim që shtrihet në dy faqe përballë, lidhni ato faqe që të përpunohen së bashku si një faqe e përbashkët në vend që të ndahen në mes."
+
+msgid "Most books are read one page at a time. If yours has an illustration that spans two facing pages, link those pages so they're processed together as a single spread instead of being split down the middle. Nothing changes until you press Apply."
+msgstr "Shumica e librave lexohen faqe për faqe. Nëse i yti ka një ilustrim që shtrihet në dy faqe përballë, lidhi ato faqe që të përpunohen bashkë si një fletë e vetme e dyfishtë në vend që të ndahen në mes. Asgjë nuk ndryshon derisa të shtypni Zbato."
 
 msgid "Most used"
 msgstr "Më i përdorur"
@@ -4698,6 +4859,12 @@ msgstr "Nuk ka imazh burimor"
 msgid "No source information was provided for this version."
 msgstr "Nuk u dha asnjë informacion burimi për këtë version."
 
+msgid "No spreads marked — every page stays single."
+msgstr "Asnjë faqe e përbashkët e shënuar — çdo faqe mbetet e vetme."
+
+msgid "No spreads marked yet. Switch to All pages and link two facing pages to create one."
+msgstr "Ende nuk janë shënuar faqe të përbashkëta. Ndrysho në Të gjitha faqet dhe lidh dy faqe përballë për të krijuar një."
+
 msgid "No storyboard sections found. Run Storyboard to generate sections you can match videos to."
 msgstr "Nuk u gjetën seksione storyboard. Ekzekutoni Storyboard-in për të gjeneruar seksione me të cilat mund të përputhni video."
 
@@ -4815,6 +4982,9 @@ msgstr "Një kolonë për çdo seksion. E pastër dhe e parashikueshme."
 msgid "One tag per line or comma-separated. Leave as-is to keep the current package defaults."
 msgstr "Një etiketë për rresht ose të ndara me presje. Lërini siç janë për të mbajtur paracaktimet aktuale të paketës."
 
+msgid "One text scale for the whole book. It starts from the book's own detected sizes (never below 16px), so pages stay close to the original. Use “Accessible sizes” to scale the book up, or set each role yourself — pick a Tailwind token or type an exact px. These override any size the AI picks, so text stays consistent across every page."
+msgstr "Një shkallë e vetme teksti për të gjithë librin. Nis nga madhësitë e zbuluara të vetë librit (kurrë nën 16px), kështu që faqet mbeten afër origjinalit. Përdor “Madhësi të aksesueshme” për ta zmadhuar librin, ose cakto vetë çdo rol — zgjidh një token Tailwind ose shkruaj një vlerë të saktë në px. Këto mbizotërojnë çdo madhësi që zgjedh IA-ja, kështu teksti mbetet i qëndrueshëm në çdo faqe."
+
 msgid "Only images that appear in the storyboard (have captions) can be selected."
 msgstr "Mund të zgjidhen vetëm imazhet që shfaqen në storyboard (kanë tituj)."
 
@@ -4916,6 +5086,9 @@ msgstr "Kërkohet çelësi i OpenAI"
 
 msgid "OpenAI Voice"
 msgstr "Zëri i OpenAI"
+
+msgid "Operation failed"
+msgstr "Veprimi dështoi"
 
 msgid "Optional"
 msgstr "Opsionale"
@@ -5105,6 +5278,9 @@ msgstr "Faqja {n}"
 
 #~ msgid "Page {p}"
 #~ msgstr "Faqja {p}"
+
+msgid "Page {page}"
+msgstr "Faqe {page}"
 
 msgid "Page {pageId}"
 msgstr "Faqja {pageId}"
@@ -5375,6 +5551,9 @@ msgstr "Luaj"
 
 msgid "Play video"
 msgstr "Luaj videon"
+
+msgid "Please wait for the current operation to finish"
+msgstr "Prisni derisa të përfundojë veprimi aktual"
 
 msgid "Polishing paragraphs to perfection..."
 msgstr "Polisim paragrafet deri në përsosmëri..."
@@ -5762,8 +5941,8 @@ msgstr "Referencë"
 msgid "Refinement Prompt"
 msgstr "Kërkesa e Rafinimit"
 
-msgid "Refresh beta versions"
-msgstr "Rifresko versionet beta"
+#~ msgid "Refresh beta versions"
+#~ msgstr "Rifresko versionet beta"
 
 msgid "Refresh list"
 msgstr "Rifresko listën"
@@ -5934,6 +6113,9 @@ msgstr "Të rivendosen fontet në parazgjedhje?"
 msgid "Reset to defaults"
 msgstr "Rivendos në paracaktimet"
 
+msgid "Reset to detected"
+msgstr "Rikthe te e zbuluara"
+
 msgid "Reset to inherited"
 msgstr "Rivendos në të trashëguarën"
 
@@ -5995,6 +6177,9 @@ msgstr "Kthe ndryshimin e gjuhës"
 msgid "Revert to {originalLanguageName}"
 msgstr "Kthehu te {originalLanguageName}"
 
+#~ msgid "Review {selectedCount} selected"
+#~ msgstr "Rishiko {selectedCount} të zgjedhura"
+
 msgid "Review and refine each simplified block side-by-side with the original before packaging."
 msgstr "Rishikoni dhe rafinoni çdo bllok të thjeshtëzuar krahas origjinalit përpara paketimit."
 
@@ -6009,6 +6194,9 @@ msgstr "Progresi i rishikimit"
 
 msgid "Review pruned sections"
 msgstr "Rishiko seksionet e hequra"
+
+msgid "Review spreads"
+msgstr "Shqyrto fletët e dyfishta"
 
 msgid "Review the project details below and confirm the import."
 msgstr "Rishikoni detajet e projektit më poshtë dhe konfirmoni importimin."
@@ -6073,6 +6261,9 @@ msgstr "Ekzekuto {stageLabel}"
 
 msgid "Run {upstreamLabel} first"
 msgstr "Ekzekuto {upstreamLabel} së pari"
+
+msgid "Run cancelled"
+msgstr "Ekzekutimi u anulua"
 
 msgid "Run Captions"
 msgstr "Ekzekuto Titujt"
@@ -6149,8 +6340,8 @@ msgstr "Duke ekzekutuar"
 msgid "RUNNING"
 msgstr "NË EKZEKUTIM"
 
-msgid "Running {stageLabel}"
-msgstr "Duke ekzekutuar {stageLabel}"
+#~ msgid "Running {stageLabel}"
+#~ msgstr "Duke ekzekutuar {stageLabel}"
 
 msgid "Running Sectioning will run Extract first, then section the extracted pages."
 msgstr "Ekzekutimi i Seksionimit do të ekzekutojë Ekstraktimin së pari, pastaj do të seksionojë faqet e ekstraktuara."
@@ -6161,8 +6352,8 @@ msgstr "Ekzekutimi i Storyboard-it do të ekzekutojë fazat kryesore të mëpars
 msgid "Running Validation..."
 msgstr "Duke ekzekutuar Validimin..."
 
-msgid "Running..."
-msgstr "Duke ekzekutuar..."
+#~ msgid "Running..."
+#~ msgstr "Duke ekzekutuar..."
 
 msgid "Runs accessibility checks against the packaged book."
 msgstr "Ekzekuton kontrolle aksesueshmërie kundrejt librit të paketuar."
@@ -6248,6 +6439,12 @@ msgstr "Ruaj listën e kontrollit"
 msgid "Save failed"
 msgstr "Ruajtja dështoi"
 
+msgid "Save or discard your edits before splitting"
+msgstr "Ruani ose hidhni poshtë ndryshimet para se të ndani"
+
+msgid "Save or discard your edits first"
+msgstr "Fillimisht ruani ose hidhni poshtë ndryshimet"
+
 msgid "Save page review"
 msgstr "Ruaj rishikimin e faqes"
 
@@ -6256,6 +6453,9 @@ msgstr "Ruaj zgjedhjen"
 
 msgid "Save settings"
 msgstr "Ruaj cilësimet"
+
+msgid "Save text sizes"
+msgstr "Ruaj madhësitë e tekstit"
 
 msgid "Save your work first if you want to keep these changes."
 msgstr "Ruaje punën tënde më parë nëse dëshiron t'i mbash këto ndryshime."
@@ -6292,6 +6492,12 @@ msgstr "Paketë SCORM"
 
 msgid "Screen readers cannot interpret images without text alternatives. Adding captions ensures blind and low-vision readers understand every illustration."
 msgstr "Lexuesit e ekranit nuk mund të interpretojnë imazhet pa alternativa tekstuale. Shtimi i titujve siguron që lexuesit e verbër dhe me shikim të dobët të kuptojnë çdo ilustrim."
+
+msgid "Scroll to more pages"
+msgstr "Lëviz për më shumë faqe"
+
+msgid "Scroll to previous pages"
+msgstr "Lëviz te faqet e mëparshme"
 
 msgid "Search beta versions"
 msgstr "Kërko versionet beta"
@@ -6389,6 +6595,9 @@ msgstr "Seksioni 3 · Përmbledhje"
 
 msgid "Section 3.2"
 msgstr "Seksioni 3.2"
+
+msgid "Section heading"
+msgstr "Titull seksioni"
 
 msgid "Section label"
 msgstr "Etiketë seksioni"
@@ -6641,6 +6850,9 @@ msgstr "Shfaq të gjitha"
 msgid "Show all {0}"
 msgstr "Shfaq të gjitha {0}"
 
+msgid "Show all entries"
+msgstr "Shfaq të gjitha hyrjet"
+
 msgid "Show all pages"
 msgstr "Shfaq të gjitha faqet"
 
@@ -6652,6 +6864,9 @@ msgstr "Shfaq detajet e gabimit"
 
 msgid "Show fewer"
 msgstr "Shfaq më pak"
+
+msgid "Show only entries missing audio"
+msgstr "Shfaq vetëm hyrjet pa audio"
 
 msgid "Show only the terms you added manually"
 msgstr "Shfaq vetëm termat që shtuat manualisht"
@@ -6737,8 +6952,14 @@ msgstr "Kalo tani"
 msgid "Skip intro"
 msgstr "Kalo hyrjen"
 
+msgid "Skip page and continue"
+msgstr "Kapërce faqen dhe vazhdo"
+
 msgid "Skip segmentation for images whose shortest side is below this threshold."
 msgstr "Kalo segmentimin për imazhet çdofaqja më e shkurtër e të cilave është nën këtë prag."
+
+msgid "Skip this page and continue the step, or stop the step entirely."
+msgstr "Kapërce këtë faqe dhe vazhdo hapin, ose ndale hapin plotësisht."
 
 msgid "Skipped"
 msgstr "Kaluar"
@@ -6764,6 +6985,9 @@ msgstr "Përditësim softueri"
 
 msgid "Software update status"
 msgstr "Gjendja e përditësimit të softuerit"
+
+msgid "Some books are mostly single pages but have a few illustrations that run across two facing pages. Choose Single here — then, after extraction, the Extract view detects those spreads and lets you merge just those pairs while every other page stays on its own."
+msgstr "Disa libra janë kryesisht faqe të vetme, por kanë disa ilustrime që shtrihen në dy faqe përballë. Zgjidhni e Vetme këtu — pastaj, pas ekstraktimit, pamja e Ekstraktit zbulon ato faqe të përbashkëta dhe ju lejon të bashkoni vetëm ato çifte ndërsa çdo faqe tjetër mbetet më vete."
 
 msgid "Some pages have no embedded text layer — text was recovered from the page image. Prefer a text-based PDF."
 msgstr "Disa faqe nuk kanë shtresë teksti të integruar — teksti u rikuperua nga imazhi i faqes. Preferoni një PDF të bazuar në tekst."
@@ -6825,6 +7049,9 @@ msgstr "Prompte të të Folurit"
 msgid "Speech Settings"
 msgstr "Cilësimet e të Folurit"
 
+msgid "Split"
+msgstr "Ndaj"
+
 #. placeholder {0}: book.split.splitPages
 #. placeholder {1}: book.split.totalPages
 msgid "Split · {0}/{1}"
@@ -6842,6 +7069,9 @@ msgstr "Ndarë · {0}/{1}"
 msgid "Split & merge"
 msgstr "Ndaj dhe bashko"
 
+msgid "Split group here"
+msgstr "Ndaje grupin këtu"
+
 msgid "Split into"
 msgstr "Ndaje në"
 
@@ -6856,11 +7086,17 @@ msgstr "Ndaje në"
 msgid "Split into {0} part(s) · {1}/{2} pages split off · {3}/{4} merged back"
 msgstr "I ndarë në {0} pjesë · {1}/{2} faqe të ndara · {3}/{4} të bashkuara"
 
+msgid "Split into new section"
+msgstr "Ndaje në një seksion të ri"
+
 msgid "Split into parts"
 msgstr "Ndaje në pjesë"
 
 #~ msgid "Split into parts for others"
 #~ msgstr "Ndaje në pjesë për të tjerët"
+
+msgid "Split into two sections at this point"
+msgstr "Ndajeni në dy seksione në këtë pikë"
 
 msgid "Split preview"
 msgstr "Pamja paraprake e ndarjes"
@@ -6868,11 +7104,20 @@ msgstr "Pamja paraprake e ndarjes"
 msgid "Split segments"
 msgstr "Ndaj segmentet"
 
+msgid "Split spread {left}–{right} back into single pages"
+msgstr "Nda faqen e përbashkët {left}–{right} përsëri në faqe të vetme"
+
 msgid "Spread"
 msgstr "Shpërndarje"
 
+msgid "Spread {left}–{right}"
+msgstr "Faqe e përbashkët {left}–{right}"
+
 msgid "Spread Mode"
 msgstr "Modalitet Shpërndarjeje"
+
+msgid "Spreads only"
+msgstr "Vetëm faqe të përbashkëta"
 
 msgid "Sprinkling some digital fairy dust..."
 msgstr "Duke spërkatur pak pluhur magjik dixhital..."
@@ -6938,6 +7183,9 @@ msgstr "Hapi dështoi"
 msgid "Step run failed"
 msgstr "Ekzekutimi i hapit dështoi"
 
+msgid "Stop step"
+msgstr "Ndalo hapin"
+
 msgid "Storyboard"
 msgstr "Storyboard"
 
@@ -6998,6 +7246,9 @@ msgstr "Udhëzues stili"
 msgid "Style Guide"
 msgstr "Udhëzues Stili"
 
+msgid "Style quizzes to match the book's fonts, text sizes, and colors. Turn off for the generic quiz style."
+msgstr "Stilizon kuizet që të përputhen me fontet, madhësitë e tekstit dhe ngjyrat e librit. Çaktivizoje për stilin e përgjithshëm të kuizit."
+
 msgid "Style reference"
 msgstr "Referencë stili"
 
@@ -7015,6 +7266,9 @@ msgstr "Parashikim i Udhëzuesit të Stilit — {styleguide}"
 
 msgid "styles"
 msgstr "stile"
+
+msgid "Subheading"
+msgstr "Nëntitull"
 
 msgid "Submit"
 msgstr "Dërgo"
@@ -7161,6 +7415,18 @@ msgstr "Teksti u rikuperua nga imazhi i faqes — kjo faqe nuk ka shtresë tekst
 
 msgid "Text roles the LLM may assign to text in the content tree. Pruned roles are classified but excluded from rendering."
 msgstr "Rolet tekstuale që LLM mund t'u caktojë teksteve në pemën e përmbajtjes. Rolet e eliminuara klasifikohen por përjashtohen nga renderimi."
+
+msgid "Text sizes"
+msgstr "Madhësitë e tekstit"
+
+msgid "Text sizes apply immediately here — re-export to include them in a downloaded book."
+msgstr "Madhësitë e tekstit zbatohen menjëherë këtu — rieksporto për t'i përfshirë në librin e shkarkuar."
+
+msgid "Text sizes saved."
+msgstr "Madhësitë e tekstit u ruajtën."
+
+#~ msgid "Text sizes saved. Re-run Storyboard and Export to apply them."
+#~ msgstr "Madhësitë e tekstit u ruajtën. Riekzekutoni Storyboard dhe Eksportin për t'i zbatuar."
 
 msgid "Text Types"
 msgstr "Llojet e Tekstit"
@@ -7329,6 +7595,9 @@ msgstr "Këto veçori përmirësojnë aksesin për personat me aftësi të kufiz
 
 msgid "These pages have no embedded text layer, but the Sectioning step recovered text from the page images — so this PDF looks scanned or image-based. The pipeline can still work from the recovered text, but for better summaries, metadata, and translations, try to obtain a text-based version of this PDF (one with a real text layer) rather than a scanned copy."
 msgstr "Këto faqe nuk kanë shtresë teksti të integruar, por hapi i Seksionimit rikuperoi tekst nga imazhet e faqeve — pra ky PDF duket i skanuar ose i bazuar në imazhe. Procesi ende mund të punojë me tekstin e rikuperuar, por për përmbledhje, metadata dhe përkthime më të mira, provoni të siguroni një version të këtij PDF-je të bazuar në tekst (me një shtresë teksti reale) në vend të një kopjeje të skanuar."
+
+msgid "These pages were extracted one at a time. If an illustration runs across two facing pages, merge those pairs so they're kept together."
+msgstr "Këto faqe u ekstraktuan një nga një. Nëse një ilustrim shtrihet në dy faqe përballë, bashkoni ato çifte që të mbahen së bashku."
 
 msgid "These stages are optional. They don't depend on each other — run any of them in any order once the core pipeline is complete."
 msgstr "Këto faza janë opsionale. Ato nuk varen nga njëra-tjetra — ekzekuto cilëndo prej tyre në çfarëdo rendi pasi të jetë plotësuar tubi kryesor."
@@ -7734,6 +8003,9 @@ msgstr "Tregim me Dy Kolona"
 msgid "Two-column template for story content"
 msgstr "Shabllon me dy kolona për përmbajtje tregimesh"
 
+msgid "Two-page spreads"
+msgstr "Faqe të përbashkëta me dy faqe"
+
 msgid "Type"
 msgstr "Lloji"
 
@@ -7989,6 +8261,9 @@ msgstr "Video"
 #~ msgid "View all changes"
 #~ msgstr "Shiko të gjitha ndryshimet"
 
+msgid "View details"
+msgstr "Shiko detajet"
+
 msgid "View HTML source"
 msgstr "Shiko burimin HTML"
 
@@ -8082,6 +8357,9 @@ msgid "wcag2a\n"
 msgstr "wcag2a\n"
 "wcag2aa\n"
 "best-practice"
+
+msgid "We compared the page edges and think these facing pages are spreads. Open Review to merge the ones that are — cancelling changes nothing."
+msgstr "Krahasuam skajet e faqeve dhe mendojmë se këto faqe përballë janë fletë të dyfishta. Hap Shqyrto për të bashkuar ato që janë — anulimi nuk ndryshon asgjë."
 
 msgid "We hit a snag while loading this view. You can try this screen again or reload the whole app."
 msgstr "Ndesh një problem gjatë ngarkimit të kësaj pamjeje. Mund të provosh këtë ekran sërish ose të ringarko të gjithë aplikacionin."

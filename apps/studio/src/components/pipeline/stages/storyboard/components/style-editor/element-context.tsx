@@ -54,3 +54,10 @@ export function useElementContext(): ElementCtx {
   }
   return ctx
 }
+
+/** Like {@link useElementContext} but returns null instead of throwing when no
+ *  provider is present — lets generic controls (e.g. TokenInput) be reused
+ *  outside the style-editor sidebar. */
+export function useOptionalElementContext(): ElementCtx | null {
+  return useContext(ElementContext)
+}
