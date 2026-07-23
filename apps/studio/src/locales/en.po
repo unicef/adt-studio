@@ -1401,6 +1401,9 @@ msgstr "Base URL"
 msgid "Basic Information"
 msgstr "Basic Information"
 
+msgid "Batch a whole page per request (experimental)"
+msgstr "Batch a whole page per request (experimental)"
+
 msgid "Batch size"
 msgstr "Batch size"
 
@@ -3201,8 +3204,17 @@ msgstr "Gemini"
 msgid "Gemini API key is required to generate audio."
 msgstr "Gemini API key is required to generate audio."
 
+#~ msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. A lower temperature (e.g. 0.4) reduces that variation and a fixed seed makes delivery reproducible. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
+#~ msgstr "Gemini generates each sentence in its own request, so its tone can drift between sentences. A lower temperature (e.g. 0.4) reduces that variation and a fixed seed makes delivery reproducible. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
+
+msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. Set a lower temperature (e.g. 0.4) to reduce that variation and a fixed seed to make delivery reproducible; leave both empty to disable them and use Gemini's own defaults. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
+msgstr "Gemini generates each sentence in its own request, so its tone can drift between sentences. Set a lower temperature (e.g. 0.4) to reduce that variation and a fixed seed to make delivery reproducible; leave both empty to disable them and use Gemini's own defaults. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
+
 msgid "Gemini Voice"
 msgstr "Gemini Voice"
+
+msgid "Gemini voice consistency"
+msgstr "Gemini voice consistency"
 
 msgid "General"
 msgstr "General"
@@ -6483,6 +6495,9 @@ msgstr "See examples"
 msgid "See the book & pick pages"
 msgstr "See the book & pick pages"
 
+msgid "Seed"
+msgstr "Seed"
+
 msgid "Segment"
 msgstr "Segment"
 
@@ -7120,6 +7135,9 @@ msgstr "SW"
 
 msgid "Symbiosis"
 msgstr "Symbiosis"
+
+msgid "Synthesize each page's text in a single Gemini request so tone flows naturally across sentences, then split the audio back into per-sentence clips. Needs an OpenAI key (used to align the split). Gemini-routed languages only."
+msgstr "Synthesize each page's text in a single Gemini request so tone flows naturally across sentences, then split the audio back into per-sentence clips. Needs an OpenAI key (used to align the split). Gemini-routed languages only."
 
 msgid "Synthesizes narration audio for each page."
 msgstr "Synthesizes narration audio for each page."

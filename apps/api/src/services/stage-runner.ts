@@ -61,6 +61,7 @@ import {
   resolveSpeechFormat,
   computeSpeechCacheKey,
   generateSpeechFile,
+  generatePageSpeechFiles,
   generateWordTimestamps,
   stripEmojis,
   generateBookSummary,
@@ -556,6 +557,24 @@ function getExistingSpeechEntries(
   return new Map(entries.map((entry) => [entry.textId, entry]))
 }
 
+/**
+ * Page id a text-catalog entry belongs to (`pg001`, spread `pg001002`), or null
+ * for book-level ids (glossary/quiz) that carry no page prefix. Matches the id
+ * convention `pg<NNN>[_sec…]` with an optional `_easy_read` suffix. Used to
+ * group entries for page-batched TTS.
+ */
+function batchPageKeyOf(textId: string): string | null {
+  const base = textId.replace(/_easy_read$/, "")
+  const m = /^(pg\d+)/.exec(base)
+  return m ? m[1] : null
+}
+
+/** Whether an entry participates in page-batched TTS: page-scoped and not an
+ *  easy-read alternate (easy-read tracks stay per-entry). */
+function isBatchableSpeechEntry(textId: string): boolean {
+  return !textId.endsWith("_easy_read") && batchPageKeyOf(textId) !== null
+}
+
 function canReuseSpeechEntry(
   entry: SpeechFileEntry | undefined,
   options: {
@@ -568,6 +587,8 @@ function canReuseSpeechEntry(
     voice: string
     instructions: string
     format: string
+    geminiTemperature?: number
+    geminiSeed?: number
   },
 ): entry is SpeechFileEntry {
   if (!entry) return false
@@ -591,6 +612,8 @@ function canReuseSpeechEntry(
     model: options.model,
     instructions: options.instructions,
     provider: options.provider,
+    geminiTemperature: options.geminiTemperature,
+    geminiSeed: options.geminiSeed,
   })
   const cachePath = resolveSpeechCachePath(options.cacheDir, cacheKey, options.format.toLowerCase())
   if (!cachePath || !fs.existsSync(cachePath)) return false
@@ -2514,6 +2537,13 @@ async function runSpeechStep(
       language: string
     }
     const ttsWorkItems: TTSWorkItem[] = []
+    // Page-batched TTS (experimental, Gemini only): a page's entries are
+    // synthesized in one request then sliced back into per-entry files, which
+    // needs an OpenAI key for the Whisper alignment pass. Non-page entries
+    // (glossary, quiz, easy-read) and non-Gemini languages keep per-entry.
+    const batchByPage = config.speech?.batch_by_page === true && !!options.apiKey?.trim()
+    interface PageGroup { language: string; pageKey: string; entries: { id: string; text: string }[] }
+    const pageGroups = new Map<string, PageGroup>()
     const textByLanguage = new Map<string, Map<string, string>>()
     const ttsResultsByLang = new Map<string, SpeechFileEntry[]>()
     const failedByLang = new Map<string, SpeechFailedEntry[]>()
@@ -2555,6 +2585,25 @@ async function runSpeechStep(
         if (isTtsExcluded(entry.id, config.speech)) continue
         languageTextMap.set(entry.id, entry.text)
 
+        // Route page-scoped entries of a Gemini language into a per-page group
+        // (generated together below). Skips the per-entry reuse check — page
+        // audio is cached at the page level inside generatePageSpeechFiles.
+        if (
+          batchByPage &&
+          resolveProviderForLanguage(lang, routing) === "gemini" &&
+          isBatchableSpeechEntry(entry.id)
+        ) {
+          const pageKey = batchPageKeyOf(entry.id)!
+          const groupKey = `${lang}::${pageKey}`
+          let group = pageGroups.get(groupKey)
+          if (!group) {
+            group = { language: lang, pageKey, entries: [] }
+            pageGroups.set(groupKey, group)
+          }
+          group.entries.push({ id: entry.id, text: entry.text })
+          continue
+        }
+
         const provider = resolveProviderForLanguage(lang, routing)
         const providerModel = resolveSpeechModel(provider, providerConfigs, speechModel)
         const outputFormat = resolveSpeechFormat(provider, config.speech?.format)
@@ -2580,6 +2629,8 @@ async function runSpeechStep(
             voice,
             instructions,
             format: outputFormat,
+            geminiTemperature: config.speech?.temperature,
+            geminiSeed: config.speech?.seed,
           })
         ) {
           ttsResultsByLang.get(lang)?.push(existingEntry)
@@ -2592,7 +2643,8 @@ async function runSpeechStep(
       textByLanguage.set(lang, languageTextMap)
     }
 
-    const totalItems = ttsWorkItems.length
+    const batchedEntryCount = [...pageGroups.values()].reduce((n, g) => n + g.entries.length, 0)
+    const totalItems = ttsWorkItems.length + batchedEntryCount
     let completedItems = 0
 
     const reusedItems = [...reusedEntriesByLang.values()].reduce((sum, count) => sum + count, 0)
@@ -2627,6 +2679,82 @@ async function runSpeechStep(
 
     const failedItems: string[] = []
     const geminiFailedItems: string[] = []
+
+    // ── Page-batched pre-pass (Gemini) ──────────────────────────────
+    // One synthesis request per page (consistent tone), sliced into per-entry
+    // files. Shares the adaptive rate limiter, cancellation, and progress with
+    // the per-entry loop below.
+    if (pageGroups.size > 0) {
+      const groups = [...pageGroups.values()]
+      console.log(`[stage-run] ${label}: page-batched TTS — ${groups.length} page group(s), ${batchedEntryCount} entries`)
+      await processWithConcurrency(
+        groups,
+        effectiveConcurrency,
+        async (group: PageGroup) => {
+          const providerModel = resolveSpeechModel("gemini", providerConfigs, speechModel)
+          const outputFormat = resolveSpeechFormat("gemini", config.speech?.format)
+          const voice = resolveVoice("gemini", group.language, voiceMaps, config.speech?.voice)
+          const instructions = resolveInstructions(group.language, instructionsMap)
+          let attempt = 0
+          while (true) {
+            attempt++
+            try {
+              const entries = await generatePageSpeechFiles({
+                entries: group.entries,
+                language: group.language,
+                model: providerModel,
+                voice,
+                instructions,
+                format: outputFormat,
+                bookDir,
+                cacheDir,
+                ttsSynthesizer: getSynthesizer("gemini"),
+                whisperApiKey: options.apiKey!,
+                rateLimiter: geminiTtsRateLimiter,
+                provider: "gemini",
+                geminiTemperature: config.speech?.temperature,
+                geminiSeed: config.speech?.seed,
+                signal: options.signal,
+              })
+              for (const e of entries) ttsResultsByLang.get(group.language)?.push(e)
+              geminiTtsRateLimiter?.reward()
+              break
+            } catch (err) {
+              if (isCancellation(err, [options.signal])) {
+                throw err instanceof RunCancelledError ? err : new RunCancelledError()
+              }
+              const msg = toErrorMessage(err)
+              const rateLimited = isGeminiTtsRateLimitMessage(msg)
+              const transient = !rateLimited && isGeminiTtsTransientError(msg)
+              if (
+                (rateLimited || transient) &&
+                !options.signal?.aborted &&
+                attempt <= GEMINI_TTS_MAX_RATE_LIMIT_RETRIES
+              ) {
+                const retryDelayMs = rateLimited
+                  ? (parseGeminiRetryDelayMs(msg) ?? Math.min(GEMINI_TTS_DEFAULT_RETRY_DELAY_MS * attempt, GEMINI_TTS_MAX_RETRY_DELAY_MS))
+                  : Math.min(GEMINI_TTS_TRANSIENT_RETRY_DELAY_MS * attempt, GEMINI_TTS_MAX_RETRY_DELAY_MS)
+                if (rateLimited) geminiTtsRateLimiter?.penalize(retryDelayMs)
+                console.warn(`[stage-run] ${label}: page-batched TTS ${rateLimited ? "rate limited" : "transient error"} for ${group.pageKey} (${group.language}); retry ${attempt + 1}/${GEMINI_TTS_MAX_RATE_LIMIT_RETRIES + 1} in ${retryDelayMs}ms`)
+                await sleep(retryDelayMs, options.signal)
+                if (options.signal?.aborted) throw new RunCancelledError()
+                continue
+              }
+              console.error(`[stage-run] ${label}: page-batched TTS failed for ${group.pageKey} (${group.language}): ${msg}`)
+              for (const e of group.entries) {
+                failedItems.push(`${e.id}: ${msg}`)
+                failedByLang.get(group.language)?.push({ textId: e.id, error: msg })
+                geminiFailedItems.push(`${e.id}: ${msg}`)
+              }
+              break
+            }
+          }
+          completedItems += group.entries.length
+          emitSpeechStepProgress(progress, completedItems, totalItems, failedItems.length, reusedItems)
+        },
+        { runSignal: options.signal }
+      )
+    }
 
     await processWithConcurrency(
       ttsWorkItems,
@@ -2667,6 +2795,8 @@ async function runSpeechStep(
                 ttsSynthesizer,
                 rateLimiter: provider === "gemini" ? geminiTtsRateLimiter : undefined,
                 provider,
+                geminiTemperature: config.speech?.temperature,
+                geminiSeed: config.speech?.seed,
                 signal: options.signal,
               })
               // A real (non-cached) success means the current rate held —

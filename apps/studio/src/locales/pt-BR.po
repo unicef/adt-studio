@@ -1401,6 +1401,9 @@ msgstr "URL base"
 msgid "Basic Information"
 msgstr "Informações Básicas"
 
+msgid "Batch a whole page per request (experimental)"
+msgstr "Agrupar uma página inteira por requisição (experimental)"
+
 msgid "Batch size"
 msgstr "Tamanho do lote"
 
@@ -3201,8 +3204,17 @@ msgstr "Gemini"
 msgid "Gemini API key is required to generate audio."
 msgstr "É necessária uma chave de API do Gemini para gerar áudio."
 
+#~ msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. A lower temperature (e.g. 0.4) reduces that variation and a fixed seed makes delivery reproducible. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
+#~ msgstr "O Gemini gera cada frase em sua própria requisição, então o tom pode variar entre as frases. Uma temperatura mais baixa (ex.: 0,4) reduz essa variação e uma semente fixa torna a leitura reproduzível. Afeta apenas os idiomas roteados para o Gemini — o OpenAI e o Azure ignoram esses valores. Alterar qualquer um deles regenera o áudio do Gemini na próxima execução."
+
+msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. Set a lower temperature (e.g. 0.4) to reduce that variation and a fixed seed to make delivery reproducible; leave both empty to disable them and use Gemini's own defaults. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
+msgstr "O Gemini gera cada frase em sua própria requisição, então o tom pode variar entre as frases. Defina uma temperatura mais baixa (ex.: 0,4) para reduzir essa variação e uma semente fixa para tornar a leitura reproduzível; deixe ambos vazios para desativá-los e usar os valores padrão do Gemini. Afeta apenas os idiomas roteados para o Gemini — o OpenAI e o Azure ignoram esses valores. Alterar qualquer um deles regenera o áudio do Gemini na próxima execução."
+
 msgid "Gemini Voice"
 msgstr "Voz do Gemini"
+
+msgid "Gemini voice consistency"
+msgstr "Consistência de voz do Gemini"
 
 msgid "General"
 msgstr "Geral"
@@ -6483,6 +6495,9 @@ msgstr "Ver exemplos"
 msgid "See the book & pick pages"
 msgstr "Ver o livro e escolher páginas"
 
+msgid "Seed"
+msgstr "Semente"
+
 msgid "Segment"
 msgstr "Segmentar"
 
@@ -7120,6 +7135,9 @@ msgstr "SW"
 
 msgid "Symbiosis"
 msgstr "Simbiose"
+
+msgid "Synthesize each page's text in a single Gemini request so tone flows naturally across sentences, then split the audio back into per-sentence clips. Needs an OpenAI key (used to align the split). Gemini-routed languages only."
+msgstr "Sintetiza o texto de cada página em uma única requisição do Gemini para que o tom flua naturalmente entre as frases e depois divide o áudio de volta em clipes por frase. Precisa de uma chave da OpenAI (usada para alinhar a divisão). Apenas para idiomas roteados para o Gemini."
 
 msgid "Synthesizes narration audio for each page."
 msgstr "Sintetiza áudio de narração para cada página."

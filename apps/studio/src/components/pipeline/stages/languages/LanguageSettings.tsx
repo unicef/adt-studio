@@ -63,6 +63,9 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
   const [geminiLanguages, setGeminiLanguages] = useState("")
   const [bitRate, setBitRate] = useState("")
   const [sampleRate, setSampleRate] = useState("")
+  const [geminiTemperature, setGeminiTemperature] = useState("")
+  const [geminiSeed, setGeminiSeed] = useState("")
+  const [batchByPage, setBatchByPage] = useState(false)
   const [wordHighlighting, setWordHighlighting] = useState(false)
   const [easyReadTts, setEasyReadTts] = useState(false)
   const [excludedCategories, setExcludedCategories] = useState<Set<string>>(new Set())
@@ -106,6 +109,9 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
       if (s.default_provider) setDefaultProvider(String(s.default_provider))
       if (s.bit_rate) setBitRate(String(s.bit_rate))
       if (s.sample_rate) setSampleRate(String(s.sample_rate))
+      if (typeof s.temperature === "number") setGeminiTemperature(String(s.temperature))
+      if (typeof s.seed === "number") setGeminiSeed(String(s.seed))
+      setBatchByPage(s.batch_by_page === true)
       setWordHighlighting(s.word_highlighting === true)
       setExcludedCategories(
         new Set(Array.isArray(s.excluded_categories) ? (s.excluded_categories as string[]) : [])
@@ -177,6 +183,12 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
           languages: geminiLangs.length > 0 ? geminiLangs : undefined,
         }
       }
+      // Guard the Gemini sampling inputs: temperature must be finite; seed must
+      // be a finite integer (the SpeechConfig schema enforces `.int()`, so a
+      // stray decimal or non-number would fail config load). Invalid → omit,
+      // which falls back to the pinned defaults.
+      const tempRaw = Number(geminiTemperature.trim())
+      const seedRaw = Number(geminiSeed.trim())
       overrides.speech = {
         ...existing,
         model: speechModel.trim() || undefined,
@@ -185,6 +197,9 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
         providers: Object.keys(providers).length > 0 ? providers : undefined,
         bit_rate: bitRate.trim() || undefined,
         sample_rate: sampleRate.trim() ? Number(sampleRate.trim()) : undefined,
+        temperature: geminiTemperature.trim() && Number.isFinite(tempRaw) ? tempRaw : undefined,
+        seed: geminiSeed.trim() && Number.isFinite(seedRaw) ? Math.trunc(seedRaw) : undefined,
+        batch_by_page: batchByPage || undefined,
         word_highlighting: wordHighlighting,
         excluded_categories: Array.from(excludedCategories),
       }
@@ -304,6 +319,9 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
           geminiLanguages={geminiLanguages} setGeminiLanguages={setGeminiLanguages}
           bitRate={bitRate} setBitRate={setBitRate}
           sampleRate={sampleRate} setSampleRate={setSampleRate}
+          geminiTemperature={geminiTemperature} setGeminiTemperature={setGeminiTemperature}
+          geminiSeed={geminiSeed} setGeminiSeed={setGeminiSeed}
+          batchByPage={batchByPage} setBatchByPage={setBatchByPage}
           wordHighlighting={wordHighlighting} setWordHighlighting={setWordHighlighting}
           markDirty={markDirty}
         />
@@ -546,6 +564,9 @@ function SpeechLanguageCards({
   geminiLanguages, setGeminiLanguages,
   bitRate, setBitRate,
   sampleRate, setSampleRate,
+  geminiTemperature, setGeminiTemperature,
+  geminiSeed, setGeminiSeed,
+  batchByPage, setBatchByPage,
   wordHighlighting, setWordHighlighting,
   markDirty,
 }: {
@@ -563,6 +584,9 @@ function SpeechLanguageCards({
   geminiLanguages: string; setGeminiLanguages: (v: string) => void
   bitRate: string; setBitRate: (v: string) => void
   sampleRate: string; setSampleRate: (v: string) => void
+  geminiTemperature: string; setGeminiTemperature: (v: string) => void
+  geminiSeed: string; setGeminiSeed: (v: string) => void
+  batchByPage: boolean; setBatchByPage: (v: boolean) => void
   wordHighlighting: boolean; setWordHighlighting: (v: boolean) => void
   markDirty: (field: string) => void
 }) {
@@ -712,6 +736,51 @@ function SpeechLanguageCards({
               placeholder="24000"
               className="w-24 h-8 text-xs"
             />
+          </div>
+        </div>
+        {/* Gemini sampling — keeps prosody consistent across the independent
+            per-sentence requests. Only applies to Gemini-routed languages. */}
+        <div className="space-y-2 pt-2">
+          <Label className="text-[11px] font-medium text-muted-foreground">
+            {t`Gemini voice consistency`}
+          </Label>
+          <div className="flex gap-4 flex-wrap">
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t`Temperature`}</Label>
+              <Input
+                value={geminiTemperature}
+                onChange={(e) => { setGeminiTemperature(e.target.value); markDirty("speech") }}
+                placeholder="0.4"
+                inputMode="decimal"
+                className="w-24 h-8 text-xs"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t`Seed`}</Label>
+              <Input
+                value={geminiSeed}
+                onChange={(e) => { setGeminiSeed(e.target.value); markDirty("speech") }}
+                placeholder="42"
+                inputMode="numeric"
+                className="w-24 h-8 text-xs"
+              />
+            </div>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            {t`Gemini generates each sentence in its own request, so its tone can drift between sentences. Set a lower temperature (e.g. 0.4) to reduce that variation and a fixed seed to make delivery reproducible; leave both empty to disable them and use Gemini's own defaults. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run.`}
+          </p>
+          <div className="flex items-start gap-3 pt-2">
+            <Switch
+              id="batch-by-page"
+              checked={batchByPage}
+              onCheckedChange={(v) => { setBatchByPage(v); markDirty("speech") }}
+            />
+            <div className="space-y-1 flex-1">
+              <Label htmlFor="batch-by-page" className="text-xs">{t`Batch a whole page per request (experimental)`}</Label>
+              <p className="text-[11px] text-muted-foreground">
+                {t`Synthesize each page's text in a single Gemini request so tone flows naturally across sentences, then split the audio back into per-sentence clips. Needs an OpenAI key (used to align the split). Gemini-routed languages only.`}
+              </p>
+            </div>
           </div>
         </div>
         <div className="flex items-start gap-3 pt-2">

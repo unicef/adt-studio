@@ -791,6 +791,8 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                   })
                 : createTTSSynthesizer(openaiApiKey),
           provider: options.targetProvider,
+          geminiTemperature: config.speech?.temperature,
+          geminiSeed: config.speech?.seed,
         })
 
       try {
