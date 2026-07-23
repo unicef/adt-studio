@@ -2171,6 +2171,9 @@ msgstr "Prompt-i i prerjes"
 msgid "Crops each image to its visible bounding box."
 msgstr "Pret çdo imazh sipas kufirit të tij të dukshëm."
 
+msgid "current"
+msgstr "aktual"
+
 msgid "Current"
 msgstr "Aktual"
 
@@ -3862,6 +3865,9 @@ msgstr "Imazhe të mëdha, rrjedhje narrative. Më i miri për libra të ilustru
 
 msgid "Last modified"
 msgstr "Modifikuar së fundmi"
+
+msgid "latest"
+msgstr "më i fundit"
 
 msgid "Launch the app with"
 msgstr "Hap aplikacionin me"
@@ -7588,6 +7594,9 @@ msgstr "Kjo rikthen fontin e parazgjedhur në çdo faqe dhe pastron mbishkrimet 
 msgid "This screen couldn’t load"
 msgstr "Ky ekran nuk mund të ngarkohej"
 
+msgid "This section doesn't exist in this version."
+msgstr "Kjo seksion nuk ekziston në këtë version."
+
 msgid "This section has no storyboard rendering yet"
 msgstr "Ky seksion nuk ka ende renderim storyboard"
 
@@ -8021,6 +8030,9 @@ msgstr "Përdoret për modelet Gemini — si LLM (gemini-2.5-pro, etj.) ashtu ed
 msgid "Used for this quiz"
 msgstr "Përdoret për këtë kuiz"
 
+msgid "v{hovered} preview"
+msgstr "paraqitje v{hovered}"
+
 msgid "Validation"
 msgstr "Vërtetim"
 
@@ -8049,6 +8061,9 @@ msgstr "Versioni {current}"
 
 #~ msgid "Version {targetVersion}"
 #~ msgstr "Versioni {targetVersion}"
+
+msgid "Version history"
+msgstr "Historia e versionit"
 
 msgid "Versioned"
 msgstr "Me version"

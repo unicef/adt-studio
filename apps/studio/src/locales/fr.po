@@ -2172,6 +2172,9 @@ msgstr "Cropping Invite"
 msgid "Crops each image to its visible bounding box."
 msgstr "Recadre chaque image à sa boîte englobante visible."
 
+msgid "current"
+msgstr "actuel"
+
 msgid "Current"
 msgstr "Actuel"
 
@@ -3863,6 +3866,9 @@ msgstr "Grandes images, flux narratif. Idéal pour les livres illustrés avec de
 
 msgid "Last modified"
 msgstr "Dernière modification"
+
+msgid "latest"
+msgstr "dernier"
 
 msgid "Launch the app with"
 msgstr "Lancer l'application avec"
@@ -7589,6 +7595,9 @@ msgstr "Cela restaure la police par défaut sur toutes les pages et efface les r
 msgid "This screen couldn’t load"
 msgstr "Cet écran n'a pas pu se charger"
 
+msgid "This section doesn't exist in this version."
+msgstr "Cette section n'existe pas dans cette version."
+
 msgid "This section has no storyboard rendering yet"
 msgstr "Cette section n'a pas encore de rendu de scénarimage"
 
@@ -8022,6 +8031,9 @@ msgstr "Utilisé pour les modèles Gemini — LLM (gemini-2.5-pro, etc.) et TTS 
 msgid "Used for this quiz"
 msgstr "Utilisée pour ce quiz"
 
+msgid "v{hovered} preview"
+msgstr "aperçu v{hovered}"
+
 msgid "Validation"
 msgstr "Validation"
 
@@ -8050,6 +8062,9 @@ msgstr "Version {current}"
 
 #~ msgid "Version {targetVersion}"
 #~ msgstr "Version {targetVersion}"
+
+msgid "Version history"
+msgstr "Historique des versions"
 
 msgid "Versioned"
 msgstr "Versionné"

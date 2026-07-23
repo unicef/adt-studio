@@ -2170,6 +2170,9 @@ msgstr "Prompt de recorte"
 msgid "Crops each image to its visible bounding box."
 msgstr "Recorta cada imagem para sua caixa delimitadora visível."
 
+msgid "current"
+msgstr "atual"
+
 msgid "Current"
 msgstr "Atual"
 
@@ -3861,6 +3864,9 @@ msgstr "Imagens grandes, fluxo narrativo. Melhor para livros ilustrados com voze
 
 msgid "Last modified"
 msgstr "Última modificação"
+
+msgid "latest"
+msgstr "mais recente"
 
 msgid "Launch the app with"
 msgstr "Iniciar o aplicativo com"
@@ -7587,6 +7593,9 @@ msgstr "Isso restaura a fonte padrão em todas as páginas e limpa os ajustes de
 msgid "This screen couldn’t load"
 msgstr "Esta tela não pôde ser carregada"
 
+msgid "This section doesn't exist in this version."
+msgstr "Esta seção não existe nesta versão."
+
 msgid "This section has no storyboard rendering yet"
 msgstr "Esta seção ainda não tem renderização de storyboard"
 
@@ -8020,6 +8029,9 @@ msgstr "Utilizada para modelos Gemini — tanto LLM (gemini-2.5-pro, etc.) quant
 msgid "Used for this quiz"
 msgstr "Usada neste questionário"
 
+msgid "v{hovered} preview"
+msgstr "prévia v{hovered}"
+
 msgid "Validation"
 msgstr "Validation"
 
@@ -8048,6 +8060,9 @@ msgstr "Versão {current}"
 
 #~ msgid "Version {targetVersion}"
 #~ msgstr "Versão {targetVersion}"
+
+msgid "Version history"
+msgstr "Histórico de versões"
 
 msgid "Versioned"
 msgstr "Versionado"

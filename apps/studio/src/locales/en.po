@@ -2170,6 +2170,9 @@ msgstr "Cropping Prompt"
 msgid "Crops each image to its visible bounding box."
 msgstr "Crops each image to its visible bounding box."
 
+msgid "current"
+msgstr "current"
+
 msgid "Current"
 msgstr "Current"
 
@@ -3861,6 +3864,9 @@ msgstr "Large images, narrative flow. Best for illustrated books with high-fidel
 
 msgid "Last modified"
 msgstr "Last modified"
+
+msgid "latest"
+msgstr "latest"
 
 msgid "Launch the app with"
 msgstr "Launch the app with"
@@ -7587,6 +7593,9 @@ msgstr "This restores the default fallback font across every page and clears per
 msgid "This screen couldn’t load"
 msgstr "This screen couldn’t load"
 
+msgid "This section doesn't exist in this version."
+msgstr "This section doesn't exist in this version."
+
 msgid "This section has no storyboard rendering yet"
 msgstr "This section has no storyboard rendering yet"
 
@@ -8020,6 +8029,9 @@ msgstr "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemi
 msgid "Used for this quiz"
 msgstr "Used for this quiz"
 
+msgid "v{hovered} preview"
+msgstr "v{hovered} preview"
+
 msgid "Validation"
 msgstr "Validation"
 
@@ -8048,6 +8060,9 @@ msgstr "Version {current}"
 
 #~ msgid "Version {targetVersion}"
 #~ msgstr "Version {targetVersion}"
+
+msgid "Version history"
+msgstr "Version history"
 
 msgid "Versioned"
 msgstr "Versioned"
