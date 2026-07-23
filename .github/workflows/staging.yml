@@ -202,3 +202,70 @@ jobs:
             apps/desktop/release/*.exe
             apps/desktop/release/*.deb
             apps/desktop/release/*.AppImage
+            apps/desktop/release/*.blockmap
+            apps/desktop/release/latest*.yml
+            apps/desktop/release/beta*.yml
+
+  publish:
+    needs: [stage, desktop]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.stage.outputs.commit }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Download staging installers
+        uses: actions/download-artifact@v4
+        with:
+          pattern: staging-*
+          path: dist
+          merge-multiple: true
+
+      - name: Compose staging release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ needs.stage.outputs.version }}
+          BRANCH: ${{ github.ref_name }}
+          TRIGGER_SHA: ${{ needs.stage.outputs.commit }}
+        run: |
+          rm -f release-notes.tmp release-notes.md
+          if node scripts/compose-release-notes.mjs > release-notes.tmp && [ -s release-notes.tmp ]; then
+            mv release-notes.tmp release-notes.md
+          else
+            rm -f release-notes.tmp release-notes.md
+            echo "::warning::Could not compose staging release notes; gh will generate them."
+          fi
+
+      - name: Publish staging pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ needs.stage.outputs.version }}
+          SLUG: ${{ needs.stage.outputs.slug }}
+          TARGET: ${{ needs.stage.outputs.commit }}
+        run: |
+          EXISTING=$(gh release list --repo "$REPO" --limit 200 --json tagName \
+            --jq '.[].tagName' | { grep -E -- "-beta-${SLUG}$" || true; })
+          for release in $EXISTING; do
+            gh release delete "$release" --repo "$REPO" --yes --cleanup-tag
+          done
+
+          NOTES_ARGS=(--generate-notes)
+          if [ -s release-notes.md ]; then
+            NOTES_ARGS=(--notes-file release-notes.md)
+          fi
+          gh release create "$TAG" --repo "$REPO" \
+            --target "$TARGET" \
+            --title "ADT Studio $TAG" \
+            --prerelease \
+            "${NOTES_ARGS[@]}" \
+            dist/*

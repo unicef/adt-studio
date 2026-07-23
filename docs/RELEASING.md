@@ -59,9 +59,33 @@ package: apps/desktop/package.json
 
 The staging branch is deterministic per source branch and force-pushed on every
 run, so re-running the workflow for a branch that already has a staging branch
-simply rebuilds it against the current `develop`. The same job then produces
-signed Windows, macOS, and Linux installers. Artifacts are retained for 14 days.
-Staging does not create a tag, GitHub Release, or Docker image.
+simply rebuilds it against the current `develop`. The build job then produces
+signed Windows, macOS, and Linux installers plus their updater metadata
+(`beta*.yml`, `*.blockmap`), retained as workflow artifacts for 14 days.
+
+A final `publish` job creates a GitHub **pre-release** from those artifacts so QA
+can install the exact candidate through the in-app beta version browser. The
+release body is composed by
+[`scripts/compose-release-notes.mjs`](../scripts/compose-release-notes.mjs),
+including the `### Release source` section the app parses for provenance.
+
+The pre-release is tagged with the version itself — `0.7.5-beta-<slug>`, **with
+no `v` prefix**. This matters for two reasons:
+
+- The `v*` tag namespace is protected (only the release automation's
+  `RELEASE_PAT` may create `v*` tags), and staging runs with the default
+  `GITHUB_TOKEN`. A bare, unprefixed tag stays outside that ruleset.
+- Version calculation ignores it: `betaNumberOf` only counts numbered
+  `beta.N` tags and stable calculation skips any prerelease, so a
+  `-beta-<slug>` tag never shifts a future release version.
+
+The `publish` job is idempotent per slug: before creating the release it deletes
+any existing release (and its tag) ending in `-beta-<slug>`, then recreates it
+from the current build. Staging does not create a `v*` tag or a Docker image.
+
+> Because the pre-release is a real GitHub Release, every beta-channel install
+> sees it in the version browser. Delete stale staging releases once the source
+> branch is merged or abandoned.
 
 GitHub requires manually dispatched workflows to exist on the repository's
 default branch, and the **Use workflow from** selector only lists branches that
