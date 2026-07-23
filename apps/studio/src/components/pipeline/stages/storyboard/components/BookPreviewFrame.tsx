@@ -121,6 +121,10 @@ export interface BookPreviewFrameProps {
   /** Lightweight read-only mode for tiny previews: don't block first paint on
    *  web-font loading and skip LaTeX→MathML conversion. Approximate but fast. */
   thumbnail?: boolean
+  /** Recompile Tailwind for this frame's own HTML once ready, so a version
+   *  whose classes aren't in the shared tailwind_output.css still renders
+   *  correctly. Needed for accurate version previews (adds one CSS request). */
+  autoRefreshCss?: boolean
 }
 
 /**
@@ -152,6 +156,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   bodyFontFamily,
   onReady,
   thumbnail = false,
+  autoRefreshCss = false,
 }, ref) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -159,34 +164,40 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
 
   const assetsPrefix = previewAssetsUrl(bookLabel)
 
+  // Recompile Tailwind for the given HTML and inject the result, so classes not
+  // present in the static tailwind_output.css (e.g. classes unique to another
+  // version) still get styled. Called imperatively by the live editor, and
+  // self-triggered by preview frames via `autoRefreshCss`.
+  const refreshCssInternal = useCallback(async (extraHtml: string) => {
+    const id = ++refreshIdRef.current
+    const doc = iframeRef.current?.contentDocument
+    if (!doc?.head) return
+    const res = await fetch(`${assetsPrefix}/content/tailwind_output.css`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ extraHtml }),
+    })
+    if (id !== refreshIdRef.current || !res.ok) return
+    const css = await res.text()
+    if (id !== refreshIdRef.current) return
+    const styleId = "adt-dynamic-css"
+    let styleEl = doc.getElementById(styleId) as HTMLStyleElement | null
+    if (!styleEl) {
+      styleEl = doc.createElement("style")
+      styleEl.id = styleId
+      doc.head.appendChild(styleEl)
+    }
+    styleEl.textContent = css
+    requestAnimationFrame(() => {
+      const main = doc.querySelector("main")
+      const h = (main ?? doc.body)?.scrollHeight
+      if (h && h > 0) setContentHeight(h)
+    })
+  }, [assetsPrefix])
+
   useImperativeHandle(ref, () => ({
     getIframeRect: () => iframeRef.current?.getBoundingClientRect() ?? null,
-    refreshCss: async (extraHtml: string) => {
-      const id = ++refreshIdRef.current
-      const doc = iframeRef.current?.contentDocument
-      if (!doc?.head) return
-      const res = await fetch(`${assetsPrefix}/content/tailwind_output.css`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ extraHtml }),
-      })
-      if (id !== refreshIdRef.current || !res.ok) return
-      const css = await res.text()
-      if (id !== refreshIdRef.current) return
-      const styleId = "adt-dynamic-css"
-      let styleEl = doc.getElementById(styleId) as HTMLStyleElement | null
-      if (!styleEl) {
-        styleEl = doc.createElement("style")
-        styleEl.id = styleId
-        doc.head.appendChild(styleEl)
-      }
-      styleEl.textContent = css
-      requestAnimationFrame(() => {
-        const main = doc.querySelector("main")
-        const h = (main ?? doc.body)?.scrollHeight
-        if (h && h > 0) setContentHeight(h)
-      })
-    },
+    refreshCss: refreshCssInternal,
     getElementClasses: (dataId: string): string[] => {
       const doc = iframeRef.current?.contentDocument
       if (!doc) return []
@@ -830,6 +841,12 @@ ${selectors}:hover {
   useEffect(() => {
     if (iframeReady) onReady?.()
   }, [iframeReady, onReady])
+
+  // Preview frames self-recompile Tailwind for their own HTML once ready, so a
+  // version using classes absent from the shared stylesheet renders correctly.
+  useEffect(() => {
+    if (iframeReady && autoRefreshCss) void refreshCssInternal(sanitizedHtmlRef.current)
+  }, [iframeReady, autoRefreshCss, refreshCssInternal])
 
   // Fixed-layout pages carry explicit pixel dimensions and ignore device
   // chrome. Reflowable: mobile/tablet keep their fixed device-screen height

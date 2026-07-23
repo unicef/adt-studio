@@ -1943,6 +1943,7 @@ export function StoryboardSectionDetail({
               bookLabel={bookLabel}
               editable={false}
               thumbnail
+              autoRefreshCss
               applyBodyBackground
               bodyFontFamily={pageDetail?.reflowableFontFamily ?? undefined}
               onReady={onReady}
