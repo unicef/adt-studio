@@ -4,16 +4,24 @@ on:
   pull_request:
     types: [closed]
   workflow_dispatch:
+    inputs:
+      pr:
+        description: "Pull request number whose staging release to delete"
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: staging-cleanup-${{ github.event.pull_request.head.ref || github.ref_name }}
+  group: staging-cleanup-pr-${{ github.event.pull_request.number || inputs.pr }}
   cancel-in-progress: false
 
 jobs:
   cleanup:
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch'
+          || github.event.pull_request.base.ref == 'develop' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -22,13 +30,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          SOURCE_REF: ${{ github.event.pull_request.head.ref || github.ref_name }}
+          PR: ${{ github.event.pull_request.number || inputs.pr }}
         run: |
-          SLUG=$(echo "$SOURCE_REF" | tr '[:upper:]' '[:lower:]' | sed -e 's/[^a-z0-9-]/-/g' -e 's/-\{2,\}/-/g' -e 's/^-//' -e 's/-$//')
-          if [[ -z "$SLUG" ]]; then
-            echo "No staging slug derived from '$SOURCE_REF'; nothing to clean up."
+          if [[ ! "$PR" =~ ^[0-9]+$ ]]; then
+            echo "No valid PR number ('$PR'); nothing to clean up."
             exit 0
           fi
+          SLUG="pr-$PR"
           STAGING_BRANCH="staging/$SLUG"
 
           RELEASES=$(gh release list --repo "$REPO" --limit 200 --json tagName \

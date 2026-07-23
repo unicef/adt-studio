@@ -156,37 +156,12 @@ function pullRequestFromPayload(value, { requireMerged = true } = {}) {
   };
 }
 
-export function selectStagingPullRequest(pulls) {
-  const open = (Array.isArray(pulls) ? pulls : []).filter(
-    (pull) =>
-      pull &&
-      typeof pull === "object" &&
-      pull.state === "open" &&
-      Number.isSafeInteger(pull.number),
-  );
-  if (!open.length) return undefined;
-
-  const targetsDevelop = (pull) =>
-    pull.base && typeof pull.base === "object" && pull.base.ref === "develop"
-      ? 0
-      : 1;
-
-  return [...open].sort(
-    (left, right) =>
-      targetsDevelop(left) - targetsDevelop(right) ||
-      String(right.updated_at ?? "").localeCompare(
-        String(left.updated_at ?? ""),
-      ) ||
-      right.number - left.number,
-  )[0];
-}
-
 function parseJson(value) {
   return JSON.parse(value);
 }
 
 export function composeReleaseNotes(
-  { repo, tag, branch, triggerSha, sourceSha },
+  { repo, tag, branch, triggerSha, prNumber },
   dependencies = {},
 ) {
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo ?? "")) {
@@ -198,6 +173,14 @@ export function composeReleaseNotes(
     TRIGGER_SHA: triggerSha,
   })) {
     if (!value) throw new Error(`${name} is required`);
+  }
+
+  const pr =
+    prNumber != null && String(prNumber).trim() !== ""
+      ? String(prNumber).trim()
+      : undefined;
+  if (pr && !/^[0-9]+$/.test(pr)) {
+    throw new Error("PR_NUMBER must be a positive integer");
   }
 
   const runGit = dependencies.git ?? git;
@@ -247,12 +230,11 @@ export function composeReleaseNotes(
 
   let pullRequestNumbers = [];
   try {
-    if (sourceSha) {
-      const chosen = selectStagingPullRequest(
-        parseJson(runGh([`repos/${repo}/commits/${sourceSha}/pulls`])),
+    if (pr) {
+      const pullRequest = pullRequestFromPayload(
+        parseJson(runGh([`repos/${repo}/pulls/${pr}`])),
+        { requireMerged: false },
       );
-      const pullRequest =
-        chosen && pullRequestFromPayload(chosen, { requireMerged: false });
       if (pullRequest) source.prs.push(pullRequest);
     } else {
       if (previousTag) {
@@ -310,7 +292,7 @@ function main() {
       tag: process.env.TAG,
       branch: process.env.BRANCH,
       triggerSha: process.env.TRIGGER_SHA,
-      sourceSha: process.env.SOURCE_SHA,
+      prNumber: process.env.PR_NUMBER,
     });
     process.stdout.write(output);
   } catch (error) {

@@ -1,75 +1,80 @@
 # Releasing
 
-ADT Studio builds signed staging artifacts on demand from any feature or fix
-branch, then publishes beta releases from `develop` and stable releases from
-`main`.
+ADT Studio builds signed staging artifacts on demand from any open pull request
+into `develop`, then publishes beta releases from `develop` and stable releases
+from `main`.
 
 ## Branch and release flow
 
 ```text
-feature/* or fix/*
+open PR into develop  (#123)
         |
-        | manually run "Staging", selecting the branch to stage
+        | manually run "Staging" from develop, entering the PR number
         v
-merge with develop (fails if the branch conflicts)
+merge PR head into develop (fails if it conflicts)
         |
         v
-staging/<slug>
-version: X.Y.Z-beta-<slug>
+staging/pr-123
+version: X.Y.Z-beta-pr-123
         |
-        | signed desktop artifacts for QA
+        | signed desktop artifacts + pre-release for QA
         v
-PR to develop -> beta release -> merge to main -> stable release
+merge PR -> beta release -> merge to main -> stable release
 ```
 
-| Branch                             | Purpose                        | Version example                     |
-| ---------------------------------- | ------------------------------ | ----------------------------------- |
-| `feature/*`, `fix/*`               | Development                    | Existing package version            |
-| `staging/feature-new-beta-workflow`| Test the branch merged into develop | `0.7.5-beta-feature-new-beta-workflow` |
-| `develop`                          | Beta releases                  | `0.7.5-beta.1`                      |
-| `main`                             | Stable releases                | `0.7.5`                             |
+| Branch              | Purpose                          | Version example       |
+| ------------------- | -------------------------------- | --------------------- |
+| `feature/*`, `fix/*`| Development                      | Existing package version |
+| `staging/pr-123`    | Test PR #123 merged into develop | `0.7.5-beta-pr-123`   |
+| `develop`           | Beta releases                    | `0.7.5-beta.1`        |
+| `main`              | Stable releases                  | `0.7.5`               |
 
 ## Staging
 
 [`staging.yml`](../.github/workflows/staging.yml) is triggered manually from
-**Actions -> Staging -> Run workflow**. Pick the branch to stage from the
-built-in **Use workflow from** selector — the workflow reads that branch as
-`github.ref_name`; there is no separate input to fill in.
+**Actions -> Staging -> Run workflow**. Always run it **from `develop`** (the
+default ref) and enter the **pull request number** to stage as the single input.
+The workflow is intentionally decoupled from the branch under test: it never
+reads `github.ref_name`, so the feature branch does not need to contain the
+workflow file or be in sync with `develop`. The version of `staging.yml` that
+runs is always develop's.
 
-Staging is opt-in because it signs installers with the production
-certificates: it never runs on its own, and it stages only the branch you
-select. It refuses to run from `develop`, `main`, or any `staging/*` branch.
+Staging is opt-in because it signs installers with the production certificates:
+it never runs on its own, only a user with write access can dispatch it, and it
+validates the target PR before building. The PR must be **open**, must target
+**`develop`**, and must **not come from a fork** — otherwise the run fails with a
+clear error before any signing happens.
 
-The workflow checks out `develop`, merges the selected branch into it, and
-fails with a clear error if the merge conflicts — surfacing the conflict before
-any staging branch is created. The build therefore always reflects the branch
-as it would land on the current `develop`.
+The workflow checks out `develop`, fetches the PR head via
+`refs/pull/<n>/head`, merges it into `develop`, and fails with a clear error if
+the merge conflicts — surfacing the conflict before any staging branch is
+created. The build therefore always reflects the PR as it would land on the
+current `develop`.
 
-The branch name is derived from the selected branch: it is lowercased and every
-character outside `[a-z0-9-]` is collapsed to a hyphen. `feature/New-Beta` maps
-to slug `feature-new-beta` and branch `staging/feature-new-beta`. After the
+The slug is the PR number: PR #123 maps to branch `staging/pr-123`. After the
 merge, the workflow updates `apps/desktop/package.json` and creates one
 staging-only version commit on top:
 
 ```text
-branch:  staging/feature-new-beta-workflow
-version: 0.7.5-beta-feature-new-beta-workflow
+branch:  staging/pr-123
+version: 0.7.5-beta-pr-123
 package: apps/desktop/package.json
 ```
 
-The staging branch is deterministic per source branch and force-pushed on every
-run, so re-running the workflow for a branch that already has a staging branch
-simply rebuilds it against the current `develop`. The build job then produces
-signed Windows, macOS, and Linux installers plus their updater metadata
-(`beta*.yml`, `*.blockmap`), retained as workflow artifacts for 14 days.
+The staging branch is deterministic per PR and force-pushed on every run, so
+re-running staging for a PR that already has a staging branch simply rebuilds it
+against the current `develop`. The build job then produces signed Windows,
+macOS, and Linux installers plus their updater metadata (`beta*.yml`,
+`*.blockmap`), retained as workflow artifacts for 14 days.
 
 A final `publish` job creates a GitHub **pre-release** from those artifacts so QA
 can install the exact candidate through the in-app beta version browser. The
 release body is composed by
 [`scripts/compose-release-notes.mjs`](../scripts/compose-release-notes.mjs),
-including the `### Release source` section the app parses for provenance.
+which receives the PR number directly and renders the `### Release source`
+section the app parses for provenance — no PR discovery heuristics are needed.
 
-The pre-release is tagged with the version itself — `0.7.5-beta-<slug>`, **with
+The pre-release is tagged with the version itself — `0.7.5-beta-pr-<n>`, **with
 no `v` prefix**. This matters for two reasons:
 
 - The `v*` tag namespace is protected (only the release automation's
@@ -77,10 +82,10 @@ no `v` prefix**. This matters for two reasons:
   `GITHUB_TOKEN`. A bare, unprefixed tag stays outside that ruleset.
 - Version calculation ignores it: `betaNumberOf` only counts numbered
   `beta.N` tags and stable calculation skips any prerelease, so a
-  `-beta-<slug>` tag never shifts a future release version.
+  `-beta-pr-<n>` tag never shifts a future release version.
 
-The `publish` job is idempotent per slug: before creating the release it deletes
-any existing release (and its tag) ending in `-beta-<slug>`, then recreates it
+The `publish` job is idempotent per PR: before creating the release it deletes
+any existing release (and its tag) ending in `-beta-pr-<n>`, then recreates it
 from the current build. Staging does not create a `v*` tag or a Docker image.
 
 > Because the pre-release is a real GitHub Release, every beta-channel install
@@ -90,24 +95,25 @@ from the current build. Staging does not create a `v*` tag or a Docker image.
 ## Staging cleanup
 
 [`staging-cleanup.yml`](../.github/workflows/staging-cleanup.yml) tears down a
-branch's staging footprint automatically when its pull request closes (merged or
-not). It derives the slug from the PR head branch with the same rules as the
-staging workflow, deletes any pre-release ending in `-beta-<slug>` (with its
-tag), and deletes the `staging/<slug>` branch.
+PR's staging footprint automatically when the pull request closes (merged or
+not). It keys off the PR number (`pr-<n>`), deletes any pre-release ending in
+`-beta-pr-<n>` (with its tag), and deletes the `staging/pr-<n>` branch. The
+automatic teardown only fires for PRs whose base is `develop`, mirroring the
+staging contract, so closing a same-branch PR that targets another base never
+removes the staging build.
 
 Every deletion is idempotent and silent: if the pre-release, tag, or branch is
 already gone, the step logs that it is skipping and exits successfully. It never
 fails a run because there was nothing left to remove.
 
 It can also be run manually from **Actions -> Staging cleanup -> Run workflow**,
-selecting the branch to clean up — useful when a branch has no open pull request
-(never opened, or already deleted).
+entering the PR number to clean up — useful when a PR has already been deleted
+or was closed before the workflow existed.
 
 GitHub requires manually dispatched workflows to exist on the repository's
-default branch, and the **Use workflow from** selector only lists branches that
-contain the workflow file. When this feature is deployed for the first time,
-`staging.yml` must be promoted to `develop`; feature and fix branches cut from
-`develop` afterward inherit it automatically.
+default branch. Both `staging.yml` and `staging-cleanup.yml` must be present on
+`develop`; because staging is always dispatched from `develop`, the branch under
+test never needs a copy of either file.
 
 ## Version calculation
 
@@ -131,9 +137,8 @@ active one: after `v0.8.0-beta.1`, plain `beta` continues with `v0.8.0-beta.2`,
 while `beta-major` starts `v1.0.0-beta.1`.
 
 Staging uses the same next-beta core but substitutes the beta increment with the
-branch slug. For example, branch `feature/new-beta-workflow` becomes
-`0.7.5-beta-feature-new-beta-workflow`. Staging versions are never used as
-release tags.
+PR slug. For example, PR #123 becomes `0.7.5-beta-pr-123`. Staging versions are
+never used as release tags.
 
 ## Tag protection
 
@@ -250,14 +255,14 @@ behavior.
 
 Beta and stable are separate desktop products and can be installed together.
 Any version containing `-beta` uses the beta product identity and updater
-channel, including staging versions such as `0.7.5-beta-feature-new-beta-workflow`.
+channel, including staging versions such as `0.7.5-beta-pr-123`.
 
-| Installed build               | Updater channel | Receives        |
-| ----------------------------- | --------------- | --------------- |
-| Stable (`X.Y.Z`)              | `latest`        | Stable releases |
-| Beta (`X.Y.Z-beta.N`)         | `beta`          | Beta releases   |
-| Staging (`X.Y.Z-beta-<slug>`) | `beta`          | Beta releases   |
+| Installed build                | Updater channel | Receives        |
+| ------------------------------ | --------------- | --------------- |
+| Stable (`X.Y.Z`)               | `latest`        | Stable releases |
+| Beta (`X.Y.Z-beta.N`)          | `beta`          | Beta releases   |
+| Staging (`X.Y.Z-beta-pr-<n>`)  | `beta`          | Beta releases   |
 
-The version browser accepts numbered beta releases and slug-qualified staging
+The version browser accepts numbered beta releases and PR-qualified staging
 builds. Staging artifacts themselves are not listed remotely because they are
 workflow artifacts rather than GitHub Releases.

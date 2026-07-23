@@ -2,12 +2,17 @@ name: Staging
 
 on:
   workflow_dispatch:
+    inputs:
+      pr:
+        description: "Pull request number to stage (must target develop)"
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: staging-${{ github.ref_name }}
+  group: staging-pr-${{ inputs.pr }}
   cancel-in-progress: false
 
 env:
@@ -22,39 +27,58 @@ jobs:
       branch: ${{ steps.stage.outputs.branch }}
       version: ${{ steps.stage.outputs.version }}
       commit: ${{ steps.stage.outputs.commit }}
+      pr: ${{ steps.stage.outputs.pr }}
+      head_ref: ${{ steps.stage.outputs.head_ref }}
     steps:
-      - name: Check out source branch
+      - name: Check out develop
         uses: actions/checkout@v4
         with:
+          ref: develop
           fetch-depth: 0
 
-      - name: Merge with develop and create staging branch
+      - name: Merge PR into develop and create staging branch
         id: stage
         shell: bash
         env:
-          REF_NAME: ${{ github.ref_name }}
-          SOURCE_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ inputs.pr }}
         run: |
-          if [[ "$REF_NAME" == "develop" || "$REF_NAME" == "main" || "$REF_NAME" == staging/* ]]; then
-            echo "::error::Staging cannot run from '$REF_NAME'. Select a feature or fix branch."
+          if [[ ! "$PR" =~ ^[0-9]+$ ]]; then
+            echo "::error::PR input must be a pull request number."
             exit 1
           fi
 
-          SLUG=$(echo "$REF_NAME" | tr '[:upper:]' '[:lower:]' | sed -e 's/[^a-z0-9-]/-/g' -e 's/-\{2,\}/-/g' -e 's/^-//' -e 's/-$//')
-          if [[ -z "$SLUG" ]]; then
-            echo "::error::Branch '$REF_NAME' produced an empty staging slug."
+          PR_JSON=$(gh pr view "$PR" --repo "$REPO" \
+            --json state,baseRefName,headRefName,isCrossRepository)
+          STATE=$(echo "$PR_JSON" | jq -r '.state')
+          BASE=$(echo "$PR_JSON" | jq -r '.baseRefName')
+          HEAD_REF=$(echo "$PR_JSON" | jq -r '.headRefName')
+          CROSS=$(echo "$PR_JSON" | jq -r '.isCrossRepository')
+
+          if [[ "$STATE" != "OPEN" ]]; then
+            echo "::error::PR #$PR is not open (state: $STATE)."
             exit 1
           fi
+          if [[ "$BASE" != "develop" ]]; then
+            echo "::error::PR #$PR targets '$BASE'; staging only builds pull requests into develop."
+            exit 1
+          fi
+          if [[ "$CROSS" == "true" ]]; then
+            echo "::error::PR #$PR comes from a fork; staging refuses to sign fork code with production certificates."
+            exit 1
+          fi
+
+          SLUG="pr-$PR"
           STAGING_BRANCH="staging/$SLUG"
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git fetch origin develop
-          git checkout --detach origin/develop
-          if ! git merge --no-edit "$SOURCE_SHA"; then
+          git fetch origin "refs/pull/$PR/head"
+          if ! git merge --no-edit FETCH_HEAD; then
             git merge --abort || true
-            echo "::error::Branch '$REF_NAME' has conflicts with develop; resolve them before staging."
+            echo "::error::PR #$PR ('$HEAD_REF') has conflicts with develop; resolve them before staging."
             exit 1
           fi
 
@@ -71,18 +95,21 @@ jobs:
           echo "branch=$STAGING_BRANCH" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          echo "pr=$PR" >> "$GITHUB_OUTPUT"
+          echo "head_ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
 
       - name: Add staging summary
         env:
-          REF_NAME: ${{ github.ref_name }}
+          PR: ${{ steps.stage.outputs.pr }}
+          HEAD_REF: ${{ steps.stage.outputs.head_ref }}
           STAGING_BRANCH: ${{ steps.stage.outputs.branch }}
           VERSION: ${{ steps.stage.outputs.version }}
         run: |
           {
-            echo "### Staging ready for \`$REF_NAME\`"
+            echo "### Staging ready for PR #$PR (\`$HEAD_REF\`)"
             echo "- Branch: \`$STAGING_BRANCH\`"
             echo "- Version: \`$VERSION\`"
-            echo "- Built from \`$REF_NAME\` merged with \`develop\`."
+            echo "- Built from PR #$PR merged with \`develop\`."
           } >> "$GITHUB_STEP_SUMMARY"
 
   desktop:
@@ -234,9 +261,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           TAG: ${{ needs.stage.outputs.version }}
-          BRANCH: ${{ github.ref_name }}
+          BRANCH: ${{ needs.stage.outputs.head_ref }}
           TRIGGER_SHA: ${{ needs.stage.outputs.commit }}
-          SOURCE_SHA: ${{ github.sha }}
+          PR_NUMBER: ${{ needs.stage.outputs.pr }}
         run: |
           rm -f release-notes.tmp release-notes.md
           if node scripts/compose-release-notes.mjs > release-notes.tmp && [ -s release-notes.tmp ]; then

@@ -2,10 +2,10 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it, vi } from "vitest";
 import {
+  composeReleaseNotes,
   extractPullRequestNumbers,
   resolveLastChangeCommit,
   resolvePreviousTag,
-  selectStagingPullRequest,
 } from "./compose-release-notes.mjs";
 
 describe("release note composition helpers", () => {
@@ -83,45 +83,60 @@ describe("release note composition helpers", () => {
     expect(parent).toHaveBeenCalledTimes(2);
   });
 
-  it("prefers the open PR targeting develop when several are open", () => {
-    const chosen = selectStagingPullRequest([
-      { number: 10, state: "open", base: { ref: "main" }, updated_at: "3" },
-      { number: 11, state: "open", base: { ref: "develop" }, updated_at: "1" },
-      { number: 12, state: "closed", base: { ref: "develop" }, updated_at: "9" },
-    ]);
-    expect(chosen?.number).toBe(11);
+  it("fetches the named PR directly and skips commit discovery", () => {
+    const ghCalls = [];
+    const result = composeReleaseNotes(
+      {
+        repo: "o/r",
+        tag: "0.7.5-beta-pr-42",
+        branch: "feature/x",
+        triggerSha: "abc",
+        prNumber: "42",
+      },
+      {
+        git: () => {
+          throw new Error("git should not run for PR-based discovery");
+        },
+        listGitTags: () => [],
+        commitInfo: (sha) => ({
+          sha,
+          url: `https://github.com/o/r/commit/${sha}`,
+          subject: "feat: x",
+        }),
+        warn: () => {},
+        gh: (args) => {
+          ghCalls.push(args[0]);
+          if (args[0] === "repos/o/r/pulls/42") {
+            return JSON.stringify({
+              number: 42,
+              html_url: "https://github.com/o/r/pull/42",
+              merged_at: null,
+              head: { ref: "feature/x", repo: { full_name: "o/r" } },
+              base: { ref: "develop", repo: { full_name: "o/r" } },
+              user: { login: "dev" },
+              title: "Add x",
+            });
+          }
+          return "Generated body";
+        },
+      },
+    );
+    expect(ghCalls).toContain("repos/o/r/pulls/42");
+    expect(ghCalls.some((path) => path.includes("/commits/"))).toBe(false);
+    expect(result).toContain("PR [#42](https://github.com/o/r/pull/42)");
+    expect(result).toContain("Generated body");
   });
 
-  it("breaks ties by most recently updated, then highest number", () => {
-    expect(
-      selectStagingPullRequest([
-        { number: 20, state: "open", base: { ref: "develop" }, updated_at: "1" },
-        { number: 21, state: "open", base: { ref: "develop" }, updated_at: "2" },
-      ])?.number,
-    ).toBe(21);
-    expect(
-      selectStagingPullRequest([
-        { number: 30, state: "open", base: { ref: "develop" }, updated_at: "2" },
-        { number: 31, state: "open", base: { ref: "develop" }, updated_at: "2" },
-      ])?.number,
-    ).toBe(31);
-  });
-
-  it("falls back to a non-develop open PR when none target develop", () => {
-    expect(
-      selectStagingPullRequest([
-        { number: 40, state: "open", base: { ref: "release/x" }, updated_at: "1" },
-      ])?.number,
-    ).toBe(40);
-  });
-
-  it("returns undefined when there is no open PR", () => {
-    expect(selectStagingPullRequest([])).toBeUndefined();
-    expect(
-      selectStagingPullRequest([
-        { number: 50, state: "closed", base: { ref: "develop" } },
-      ]),
-    ).toBeUndefined();
+  it("rejects a non-numeric PR number", () => {
+    expect(() =>
+      composeReleaseNotes({
+        repo: "o/r",
+        tag: "0.7.5-beta-pr-x",
+        branch: "feature/x",
+        triggerSha: "abc",
+        prNumber: "not-a-number",
+      }),
+    ).toThrow(/PR_NUMBER/);
   });
 
   it("writes no partial stdout when composition fails", () => {
