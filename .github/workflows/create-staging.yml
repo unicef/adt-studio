@@ -1,0 +1,223 @@
+name: Create PR Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: "PR number to stage (must target develop with a green CI run)"
+        required: true
+        type: string
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
+
+jobs:
+  create-staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out trusted workflow code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve CI run
+        id: ci
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ inputs.pr_number }}
+        run: |
+          if [[ ! "$PR_NUMBER" =~ ^[1-9][0-9]*$ ]]; then
+            echo "::error::pr_number must be a positive integer, got '$PR_NUMBER'."
+            exit 1
+          fi
+
+          for ATTEMPT in {1..5}; do
+            PR=$(gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER")
+            MERGEABLE=$(jq -r '.mergeable' <<< "$PR")
+            [[ "$MERGEABLE" != "null" ]] && break
+            echo "Waiting for GitHub to calculate mergeability (attempt $ATTEMPT/5)."
+            sleep 2
+          done
+          BASE_REF=$(jq -r '.base.ref' <<< "$PR")
+          BASE_SHA=$(jq -r '.base.sha' <<< "$PR")
+          HEAD_REF=$(jq -r '.head.ref' <<< "$PR")
+          HEAD_SHA=$(jq -r '.head.sha' <<< "$PR")
+          HEAD_REPO=$(jq -r '.head.repo.full_name // ""' <<< "$PR")
+          DRAFT=$(jq -r '.draft' <<< "$PR")
+          HAS_STAGING_LABEL=$(jq -r 'any(.labels[]; .name == "staging")' <<< "$PR")
+
+          if [[ "$BASE_REF" != "develop" || "$HEAD_REPO" != "$GITHUB_REPOSITORY" || "$DRAFT" == "true" ]]; then
+            echo "::error::PR #$PR_NUMBER is not eligible for staging (must be an open, non-draft PR from this repository targeting develop)."
+            exit 1
+          fi
+          if [[ "$HAS_STAGING_LABEL" != "true" ]]; then
+            echo "::error::PR #$PR_NUMBER has no 'staging' label; add the label before staging."
+            exit 1
+          fi
+
+          RUN=$(gh api \
+            "repos/$GITHUB_REPOSITORY/actions/workflows/ci.yml/runs?event=pull_request&branch=$HEAD_REF&per_page=50" \
+            | jq -c --argjson pr "$PR_NUMBER" '
+                [.workflow_runs[]
+                 | select(.status == "completed")
+                 | select(any(.pull_requests[]?; .number == $pr))]
+                | sort_by(.created_at) | last')
+          if [[ -z "$RUN" || "$RUN" == "null" ]]; then
+            echo "::error::No completed CI run found for PR #$PR_NUMBER. Run CI to completion before staging."
+            exit 1
+          fi
+          RUN_ID=$(jq -r '.id' <<< "$RUN")
+          CONCLUSION=$(jq -r '.conclusion // ""' <<< "$RUN")
+          TESTED_HEAD=$(jq -r '.head_sha // ""' <<< "$RUN")
+          TESTED_BASE=$(jq -r --argjson pr "$PR_NUMBER" \
+            'first(.pull_requests[]? | select(.number == $pr) | .base.sha) // ""' <<< "$RUN")
+          if [[ "$CONCLUSION" != "success" ]]; then
+            echo "::error::The latest CI run for PR #$PR_NUMBER concluded '$CONCLUSION', not success. Every CI job must pass before staging."
+            exit 1
+          fi
+
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "head_ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
+          echo "head_sha=$HEAD_SHA" >> "$GITHUB_OUTPUT"
+          echo "base_sha=$BASE_SHA" >> "$GITHUB_OUTPUT"
+          echo "mergeable=$MERGEABLE" >> "$GITHUB_OUTPUT"
+          echo "tested_head=$TESTED_HEAD" >> "$GITHUB_OUTPUT"
+          echo "tested_base=$TESTED_BASE" >> "$GITHUB_OUTPUT"
+
+      - name: Download tested merge metadata
+        uses: actions/download-artifact@v4
+        with:
+          name: staging-metadata
+          path: staging-metadata
+          run-id: ${{ steps.ci.outputs.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Resolve tested pull request
+        id: pr
+        shell: bash
+        env:
+          PR_NUMBER: ${{ steps.ci.outputs.pr_number }}
+          HEAD_REF: ${{ steps.ci.outputs.head_ref }}
+          HEAD_SHA: ${{ steps.ci.outputs.head_sha }}
+          BASE_SHA: ${{ steps.ci.outputs.base_sha }}
+          MERGEABLE: ${{ steps.ci.outputs.mergeable }}
+          TESTED_HEAD: ${{ steps.ci.outputs.tested_head }}
+          TESTED_BASE: ${{ steps.ci.outputs.tested_base }}
+        run: |
+          MERGE_SHA=$(tr -d '\r\n' < staging-metadata/staging-merge-sha.txt)
+          if [[ ! "$MERGE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::Invalid tested merge SHA."
+            exit 1
+          fi
+
+          TRANSLATIONS_ONLY=false
+          if [[ "$HEAD_SHA" != "$TESTED_HEAD" && "$BASE_SHA" == "$TESTED_BASE" ]]; then
+            if git fetch origin "$TESTED_HEAD" "$HEAD_SHA"; then
+              DELTA=$(git diff --name-only "$TESTED_HEAD" "$HEAD_SHA")
+              if [[ -z "$DELTA" ]] || ! grep -qv '^apps/studio/src/locales/' <<< "$DELTA"; then
+                TRANSLATIONS_ONLY=true
+                echo "PR #$PR_NUMBER head only gained translation catalog commits; continuing with the current head."
+              fi
+            fi
+          fi
+          if [[ ( "$HEAD_SHA" != "$TESTED_HEAD" || "$BASE_SHA" != "$TESTED_BASE" ) && "$TRANSLATIONS_ONLY" != "true" ]]; then
+            echo "::error::PR #$PR_NUMBER changed after this CI run; re-run CI for the current head before staging."
+            exit 1
+          fi
+          if [[ "$MERGEABLE" == "null" ]]; then
+            echo "::error::GitHub did not report mergeability for PR #$PR_NUMBER in time. Re-run this workflow."
+            exit 1
+          fi
+          if [[ "$MERGEABLE" != "true" ]]; then
+            echo "::error::PR #$PR_NUMBER has merge conflicts with develop; resolve them before staging."
+            exit 1
+          fi
+
+          git fetch origin "pull/$PR_NUMBER/merge"
+          CURRENT_MERGE_SHA=$(git rev-parse FETCH_HEAD)
+          if [[ "$TRANSLATIONS_ONLY" == "true" ]]; then
+            if [[ "$(git rev-parse "$CURRENT_MERGE_SHA^2")" != "$HEAD_SHA" ]]; then
+              echo "::error::PR #$PR_NUMBER merge ref does not match its head commit."
+              exit 1
+            fi
+            MERGE_SHA="$CURRENT_MERGE_SHA"
+          elif [[ "$CURRENT_MERGE_SHA" != "$MERGE_SHA" ]]; then
+            echo "::error::PR #$PR_NUMBER merge commit changed after this CI run."
+            exit 1
+          fi
+          SHORT_SHA="${MERGE_SHA:0:8}"
+          STAGING_BRANCH="staging/pr-${PR_NUMBER}-${SHORT_SHA}"
+          VERSION=$(node scripts/calculate-release-version.mjs staging "$PR_NUMBER")
+
+          echo "pr_number=$PR_NUMBER" >> "$GITHUB_OUTPUT"
+          echo "head_ref=$HEAD_REF" >> "$GITHUB_OUTPUT"
+          echo "merge_sha=$MERGE_SHA" >> "$GITHUB_OUTPUT"
+          echo "branch=$STAGING_BRANCH" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create staging branch
+        id: stage
+        env:
+          MERGE_SHA: ${{ steps.pr.outputs.merge_sha }}
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+          STAGING_BRANCH: ${{ steps.pr.outputs.branch }}
+          VERSION: ${{ steps.pr.outputs.version }}
+        run: |
+          if git ls-remote --exit-code --heads origin "refs/heads/$STAGING_BRANCH" >/dev/null 2>&1; then
+            echo "Staging branch $STAGING_BRANCH already exists."
+            git fetch origin "refs/heads/$STAGING_BRANCH"
+            git checkout --detach FETCH_HEAD
+            VERSION=$(node -p "require('./apps/desktop/package.json').version")
+            if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-beta-${PR_NUMBER}$ ]]; then
+              echo "::error::Existing staging branch has an invalid package version: $VERSION"
+              exit 1
+            fi
+          else
+            git checkout --detach "$MERGE_SHA"
+            (
+              cd apps/desktop
+              npm version "$VERSION" --no-git-tag-version --ignore-scripts
+            )
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add apps/desktop/package.json
+            git commit -m "chore(staging): set PR #${PR_NUMBER} version to ${VERSION}"
+            git push origin "HEAD:refs/heads/$STAGING_BRANCH"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Dispatch staging build
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          STAGING_BRANCH: ${{ steps.pr.outputs.branch }}
+          STAGING_VERSION: ${{ steps.stage.outputs.version }}
+        run: |
+          gh workflow run staging-build.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref "$DEFAULT_BRANCH" \
+            -f staging_ref="$STAGING_BRANCH" \
+            -f staging_version="$STAGING_VERSION"
+
+      - name: Add staging summary
+        env:
+          PR_NUMBER: ${{ steps.pr.outputs.pr_number }}
+          HEAD_REF: ${{ steps.pr.outputs.head_ref }}
+          STAGING_BRANCH: ${{ steps.pr.outputs.branch }}
+          VERSION: ${{ steps.stage.outputs.version }}
+        run: |
+          {
+            echo "### Staging ready for PR #$PR_NUMBER"
+            echo "- Source: \`$HEAD_REF\`"
+            echo "- Branch: \`$STAGING_BRANCH\`"
+            echo "- Version: \`$VERSION\`"
+            echo "- A separate **Staging Build** workflow was queued."
+          } >> "$GITHUB_STEP_SUMMARY"
