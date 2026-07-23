@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { DebugPanel } from "@/components/debug/DebugPanel"
 import { DebugPanelStateProvider, type DebugTabValue } from "@/components/debug/debug-panel-state"
 import { StageSidebar } from "@/components/pipeline/components/StageSidebar"
+import { PageErrorDecisionDialog } from "@/components/pipeline/components/PageErrorDecisionDialog"
 import { FloatingSaveProvider } from "@/components/pipeline/components/floating-save"
 import { UnsavedChangesGuard } from "@/components/pipeline/components/UnsavedChangesGuard"
 import { SettingsDirtyTabsProvider } from "@/hooks/use-settings-dirty-tabs"
@@ -47,6 +48,7 @@ function BookLayout() {
   return (
     <BookRunProvider value={bookRun}>
       <BookLayoutInner label={label} isRunning={bookRun.isRunning} />
+      <PageErrorDecisionDialog />
     </BookRunProvider>
   )
 }

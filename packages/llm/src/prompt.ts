@@ -89,6 +89,9 @@ class ImageTag extends Tag {
 
   *render(ctx: Context, emitter: Emitter): Generator<unknown, void, unknown> {
     const val = yield this.liquid.evalValue(this.value, ctx)
+    // Skip empty/undefined values — emitting them would produce an image
+    // content part with garbage data that providers reject.
+    if (typeof val !== "string" || val.length === 0) return
     emitter.write(`${IMAGE_MARKER_START}${val}${IMAGE_MARKER_END}`)
   }
 }

@@ -131,12 +131,16 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
         .toLocaleLowerCase()
       return haystack.includes(q)
     })
-    if (sortMode === "default") return list
     const usage = (item: GlossaryItem) => occurrences.get(item.id ?? item.word)?.count ?? 0
+    const firstPage = (item: GlossaryItem) =>
+      occurrences.get(item.id ?? item.word)?.pages[0] ?? Infinity
     const byWord = (a: GlossaryItem, b: GlossaryItem) =>
       a.word.localeCompare(b.word, undefined, { sensitivity: "base" })
     const sorted = [...list]
     switch (sortMode) {
+      case "default":
+        sorted.sort((a, b) => firstPage(a) - firstPage(b) || byWord(a, b))
+        break
       case "az":
         sorted.sort(byWord)
         break
@@ -205,7 +209,9 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
       ...base,
       generatedAt: base.generatedAt || new Date().toISOString(),
       items: base.items.map((item) =>
-        (item.id ?? item.word) === itemId ? { ...item, definition: newDefinition } : item
+        (item.id ?? item.word) === itemId
+          ? { ...item, definition: newDefinition, source: "manual" }
+          : item
       ),
     })
   }
@@ -217,7 +223,9 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
       ...base,
       generatedAt: base.generatedAt || new Date().toISOString(),
       items: base.items.map((item) =>
-        (item.id ?? item.word) === itemId ? { ...item, emojis: newEmojis } : item
+        (item.id ?? item.word) === itemId
+          ? { ...item, emojis: newEmojis, source: "manual" }
+          : item
       ),
     })
   }

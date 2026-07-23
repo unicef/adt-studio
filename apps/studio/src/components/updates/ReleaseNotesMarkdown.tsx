@@ -1,5 +1,6 @@
 import { type ReactNode } from "react"
 import { cn } from "@/lib/utils"
+import { RELEASE_BANNER_ASPECT } from "./release-banner-utils"
 
 export interface ReleaseNotesMarkdownProps {
   children: string
@@ -58,7 +59,10 @@ export function ReleaseNotesMarkdown({
               src={block.src}
               alt={block.alt}
               loading="lazy"
-              className="max-w-full rounded-lg border"
+              className={cn(
+                "w-full rounded-lg border bg-muted/30 object-cover",
+                RELEASE_BANNER_ASPECT,
+              )}
             />
           )
         }

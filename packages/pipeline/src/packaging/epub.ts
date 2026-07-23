@@ -3,7 +3,9 @@ import path from "node:path"
 import { JSDOM } from "jsdom"
 import type { Storage } from "@adt/storage"
 import type { BookMetadata, TocGenerationOutput, WordTimestampOutput } from "@adt/types"
-import { type PackageAdtWebOptions, copyDirRecursive, injectWebpubStyles, htmlToXhtml, getWordTimestamps, pad3 } from "./package-web.js"
+import { type PackageAdtWebOptions, EXPORT_MIME_TYPES, NON_READER_FILES, copyDirRecursive, injectWebpubStyles, getWordTimestamps, pad3 } from "./web.js"
+import { htmlToXhtml } from "../html-semantics.js"
+import { stripRuntimeBundle } from "./strip-runtime-bundle.js"
 
 /**
  * Canonical word-id format used by SMIL fragment refs, EPUB packaging
@@ -13,16 +15,16 @@ import { type PackageAdtWebOptions, copyDirRecursive, injectWebpubStyles, htmlTo
 function wordIdFor(dataId: string, idx: number): string {
   return `${dataId}_w${pad3(idx)}`
 }
-import { buildSmil, formatMediaDuration, type SmilParagraph } from "./smil.js"
-import { tokenizeWords } from "./word-tokenize.js"
-import { styleMapToInline } from "./fixed-layout-rendering.js"
+import { buildSmil, formatMediaDuration, type SmilParagraph } from "../smil.js"
+import { tokenizeWords } from "../word-tokenize.js"
+import { styleMapToInline } from "../fixed-layout-rendering.js"
 import {
   buildGlossaryDocument,
   loadGlossaryEntries,
   wrapGlossaryTerms,
   type GlossaryBacklink,
   type GlossaryEntry,
-} from "./epub-glossary.js"
+} from "../epub-glossary.js"
 
 export type PackageEpubOptions = PackageAdtWebOptions
 
@@ -31,9 +33,6 @@ interface PageEntry {
   href: string
   page_number?: number
 }
-
-/** Files/dirs in adt/ root that are SCORM/offline-specific and not needed in EPUB. */
-const EPUB_SKIP = new Set(["imsmanifest.xml", "AGENTS.md"])
 
 /**
  * Visual affordance for in-text glossary references (EPUB only). The web
@@ -85,19 +84,12 @@ export function packageEpub(
   if (fs.existsSync(epubDir)) fs.rmSync(epubDir, { recursive: true })
 
   // Copy adt/ -> epub/OEBPS/, skipping SCORM-specific files
-  copyDirRecursive(adtDir, oebpsDir, EPUB_SKIP)
+  copyDirRecursive(adtDir, oebpsDir, NON_READER_FILES)
 
-  // Strip SCORM adapter from assets/
-  const scormJs = path.join(oebpsDir, "assets", "scorm.js")
-  if (fs.existsSync(scormJs)) fs.unlinkSync(scormJs)
-  const offlineJs = path.join(oebpsDir, "assets", "offline-preloader.js")
-  if (fs.existsSync(offlineJs)) fs.unlinkSync(offlineJs)
-
-  // Strip the web runtime bundle. EPUB readers provide TOC, page navigation,
-  // settings, and read-aloud playback (the latter via the SMIL media overlays
-  // generated below) natively, so the React dock chrome would just duplicate
-  // them. Audio + word highlighting comes from SMIL; the glossary is lowered
-  // to EPUB-native markup (glossref + doc-glossary + landmarks) below.
+  // EPUB readers provide nav/settings/playback natively (read-aloud via the
+  // SMIL overlays below), so drop the embedded runtime (React bundle, offline
+  // preloader, SCORM adapter). The glossary is lowered to EPUB-native markup
+  // (glossref + doc-glossary + landmarks) below.
   stripRuntimeBundle(oebpsDir)
 
   // ------------------------------------------------------------------
@@ -121,6 +113,7 @@ export function packageEpub(
   // when the book actually has glossary terms.
   injectWebpubStyles(oebpsDir, {
     fixedLayout: options.fixedLayout,
+    neutralizeFixedLayoutFit: true,
     extraCss: glossaryEntries.length > 0 ? GLOSSREF_CSS : undefined,
   })
 
@@ -282,30 +275,6 @@ export function packageEpub(
 // File enumeration
 // ---------------------------------------------------------------------------
 
-const EPUB_MIME_TYPES: Record<string, string> = {
-  ".xhtml": "application/xhtml+xml",
-  ".html": "text/html",
-  ".css": "text/css",
-  ".js": "application/javascript",
-  ".json": "application/json",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".svg": "image/svg+xml",
-  ".webp": "image/webp",
-  ".mp3": "audio/mpeg",
-  ".mp4": "video/mp4",
-  ".ogg": "audio/ogg",
-  ".wav": "audio/wav",
-  ".woff": "font/woff",
-  ".woff2": "font/woff2",
-  ".ttf": "font/ttf",
-  ".otf": "font/otf",
-  ".dic": "application/octet-stream",
-  ".smil": "application/smil+xml",
-}
-
 function collectFiles(
   baseDir: string,
   dir: string,
@@ -320,7 +289,7 @@ function collectFiles(
       const ext = path.extname(entry.name).toLowerCase()
       out.push({
         href: relPath,
-        mediaType: EPUB_MIME_TYPES[ext] ?? "application/octet-stream",
+        mediaType: EXPORT_MIME_TYPES[ext] ?? "application/octet-stream",
       })
     }
   }
@@ -676,32 +645,6 @@ ${navPoints}
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/**
- * Remove `base.bundle.{min,local}.js` and the `<script>` tags that load them
- * from every page. EPUB readers handle nav/settings/playback natively, so
- * the React runtime would only duplicate them.
- */
-function stripRuntimeBundle(oebpsDir: string): void {
-  for (const name of ["base.bundle.min.js", "base.bundle.local.js", "base.bundle.min.js.map"]) {
-    const p = path.join(oebpsDir, "assets", name)
-    if (fs.existsSync(p)) fs.unlinkSync(p)
-  }
-  const SCRIPT_RE = /\s*<script\b[^>]*src=["'][^"']*base\.bundle\.(min|local)\.js[^"']*["'][^>]*>\s*<\/script>/g
-  const walk = (dir: string): void => {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const fullPath = path.join(dir, entry.name)
-      if (entry.isDirectory()) {
-        walk(fullPath)
-      } else if (entry.isFile() && /\.(html|xhtml)$/.test(entry.name)) {
-        const content = fs.readFileSync(fullPath, "utf-8")
-        const stripped = content.replace(SCRIPT_RE, "")
-        if (stripped !== content) fs.writeFileSync(fullPath, stripped)
-      }
-    }
-  }
-  walk(oebpsDir)
-}
 
 function escapeXml(str: string): string {
   return str

@@ -1,4 +1,5 @@
 export type ReleaseChannel = "stable" | "beta"
+export const RELEASE_BANNER_ASPECT = "aspect-[3/2]"
 
 export function getReleaseChannel(version: string): ReleaseChannel {
   return version.toLowerCase().includes("-beta") ? "beta" : "stable"

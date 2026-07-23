@@ -16,6 +16,7 @@ import {
 
 import { registerAppInfoIpc } from "./ipc/app-info";
 import { registerTitleBarIpc } from "./ipc/title-bar";
+import { registerWindowCloseIpc } from "./ipc/window-close";
 import { registerFileDialogIpc } from "./ipc/file-dialog";
 import { registerSplashIpc } from "./ipc/splash";
 import { registerUpdatesIpc } from "./ipc/updates";
@@ -56,6 +57,7 @@ app.whenReady().then(async () => {
   registerStudioAppProtocol(join(__dirname, "../renderer"));
   registerHtmlRenderProtocol();
   registerTitleBarIpc();
+  registerWindowCloseIpc();
   registerFileDialogIpc();
 
   let apiProcess: Electron.UtilityProcess;
@@ -102,7 +104,7 @@ app.whenReady().then(async () => {
   });
 });
 
-app.on("before-quit", () => {
+app.on("will-quit", () => {
   stopApiServer();
 });
 

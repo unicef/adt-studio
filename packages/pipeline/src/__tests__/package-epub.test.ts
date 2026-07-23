@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { mirrorDataIdToId, wrapWordSpans } from "../package-epub.js"
+import { mirrorDataIdToId, wrapWordSpans } from "../packaging/epub.js"
 
 describe("mirrorDataIdToId", () => {
   it("adds id= matching data-id when id is absent", () => {

@@ -873,7 +873,7 @@ export function StoryboardSectionDetail({
 
   const handleMergeCrossPage = (direction: "next" | "prev") => {
     if (merging || dirty || renderingDirty || saving || storyboardRunning) return
-    const label = direction === "prev" ? t`merge into previous page` : t`merge into next page`
+    const label = direction === "prev" ? t`merge this section into the last section of the previous page` : t`merge this section into the first section of the next page`
     setConfirmMerge({ action: () => executeMergeCrossPage(direction), label })
   }
 

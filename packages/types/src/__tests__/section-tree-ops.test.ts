@@ -9,10 +9,14 @@ import {
   editLeafText,
   findNode,
   findNodePath,
+  mergeAdjacentContainers,
+  mergeContainerWithPrevious,
   moveNode,
   nestNode,
   setContainerStructure,
   setLeafRole,
+  splitContainerBefore,
+  splitNodesBefore,
   toggleNodePruned,
   unnestNode,
 } from "../section-tree-ops.js"
@@ -267,5 +271,204 @@ describe("cloneNodeWithNewIds", () => {
     expect(clone.children?.map((c) => c.nodeId)).toEqual(["c_2", "c_3"])
     // Original untouched
     expect(original.nodeId).toBe("image_group_a")
+  })
+})
+
+describe("splitContainerBefore", () => {
+  it("splits the parent group into two siblings before the node", () => {
+    const after = splitContainerBefore(sample(), "t1", makeIdFactory("s"))
+    // group_a keeps children before t1; a new sibling of the same structure
+    // takes t1 and everything after it.
+    expect(after.map((n) => n.nodeId)).toEqual([
+      "group_a",
+      "s_1",
+      "image_group_a",
+      "t2",
+    ])
+    expect(findNode(after, "group_a")?.children?.map((c) => c.nodeId)).toEqual([
+      "h1",
+    ])
+    const sibling = findNode(after, "s_1")
+    expect(sibling?.structure).toBe("group")
+    expect(sibling?.children?.map((c) => c.nodeId)).toEqual(["t1"])
+  })
+
+  it("splits nested containers within their grandparent", () => {
+    const tree = [
+      container("outer", "panel", [
+        container("inner", "group", [leaf("a"), leaf("b"), leaf("c")]),
+      ]),
+    ]
+    const after = splitContainerBefore(tree, "c", makeIdFactory("s"))
+    const outer = findNode(after, "outer")
+    expect(outer?.children?.map((c) => c.nodeId)).toEqual(["inner", "s_1"])
+    expect(findNode(after, "inner")?.children?.map((c) => c.nodeId)).toEqual([
+      "a",
+      "b",
+    ])
+    expect(findNode(after, "s_1")?.children?.map((c) => c.nodeId)).toEqual(["c"])
+  })
+
+  it("preserves the parent's prune state on the new sibling", () => {
+    const tree = [
+      { ...container("g", "group", [leaf("a"), leaf("b")]), isPruned: true },
+    ]
+    const after = splitContainerBefore(tree, "b", makeIdFactory("s"))
+    expect(findNode(after, "s_1")?.isPruned).toBe(true)
+  })
+
+  it("is a no-op for top-level nodes and first children", () => {
+    const before = sample()
+    expect(splitContainerBefore(before, "t2", makeIdFactory())).toBe(before)
+    expect(splitContainerBefore(before, "h1", makeIdFactory())).toBe(before)
+  })
+})
+
+describe("splitNodesBefore", () => {
+  it("splits at a top-level node", () => {
+    const result = splitNodesBefore(sample(), "t2", makeIdFactory("s"))
+    expect(result?.before.map((n) => n.nodeId)).toEqual([
+      "group_a",
+      "image_group_a",
+    ])
+    expect(result?.after.map((n) => n.nodeId)).toEqual(["t2"])
+  })
+
+  it("splits ancestor containers along the path to a nested node", () => {
+    const result = splitNodesBefore(sample(), "t1", makeIdFactory("s"))
+    // Kept half: group_a with only h1.
+    expect(result?.before.map((n) => n.nodeId)).toEqual(["group_a"])
+    expect(result?.before[0].children?.map((c) => c.nodeId)).toEqual(["h1"])
+    // Moved half: a fresh-id clone of group_a carrying t1, then the
+    // following top-level nodes.
+    expect(result?.after.map((n) => n.nodeId)).toEqual([
+      "s_1",
+      "image_group_a",
+      "t2",
+    ])
+    expect(result?.after[0].structure).toBe("group")
+    expect(result?.after[0].children?.map((c) => c.nodeId)).toEqual(["t1"])
+  })
+
+  it("drops ancestor shells left empty on the kept side", () => {
+    const tree = [
+      leaf("intro"),
+      container("outer", "panel", [
+        container("inner", "group", [leaf("a"), leaf("b")]),
+      ]),
+    ]
+    // Splitting before "a" empties both inner and outer on the kept side.
+    const result = splitNodesBefore(tree, "a", makeIdFactory("s"))
+    expect(result?.before.map((n) => n.nodeId)).toEqual(["intro"])
+    expect(result?.after.map((n) => n.nodeId)).toEqual(["s_2"])
+    expect(result?.after[0].children?.map((c) => c.nodeId)).toEqual(["s_1"])
+    expect(result?.after[0].children?.[0].children?.map((c) => c.nodeId)).toEqual([
+      "a",
+      "b",
+    ])
+  })
+
+  it("returns null when the split would leave the kept half empty", () => {
+    const tree = [container("g", "group", [leaf("a"), leaf("b")])]
+    expect(splitNodesBefore(tree, "a", makeIdFactory())).toBeNull()
+  })
+
+  it("returns null for unknown nodes", () => {
+    expect(splitNodesBefore(sample(), "nope", makeIdFactory())).toBeNull()
+  })
+})
+
+describe("mergeContainerWithPrevious", () => {
+  it("appends the container's children into the previous sibling container", () => {
+    const after = mergeContainerWithPrevious(sample(), "image_group_a")
+    expect(after.map((n) => n.nodeId)).toEqual(["group_a", "t2"])
+    expect(findNode(after, "group_a")?.children?.map((c) => c.nodeId)).toEqual([
+      "h1",
+      "t1",
+      "img1",
+      "cap1",
+    ])
+    // The surviving container keeps its own structure.
+    expect(findNode(after, "group_a")?.structure).toBe("group")
+  })
+
+  it("merges nested sibling containers in place", () => {
+    const tree = [
+      container("outer", "panel", [
+        container("g1", "group", [leaf("a")]),
+        container("g2", "group", [leaf("b")]),
+        leaf("tail"),
+      ]),
+    ]
+    const after = mergeContainerWithPrevious(tree, "g2")
+    expect(findNode(after, "outer")?.children?.map((c) => c.nodeId)).toEqual([
+      "g1",
+      "tail",
+    ])
+    expect(findNode(after, "g1")?.children?.map((c) => c.nodeId)).toEqual([
+      "a",
+      "b",
+    ])
+  })
+
+  it("is a no-op when the previous sibling is a leaf, or there is none", () => {
+    const tree = [
+      leaf("t"),
+      container("g", "group", [leaf("a")]),
+    ]
+    expect(mergeContainerWithPrevious(tree, "g")).toBe(tree)
+    expect(mergeContainerWithPrevious(tree, "t")).toBe(tree)
+    const first = sample()
+    expect(mergeContainerWithPrevious(first, "group_a")).toBe(first)
+  })
+})
+
+describe("mergeAdjacentContainers", () => {
+  it("collapses runs of same-structure siblings, keeping order", () => {
+    const tree = [
+      container("g1", "group", [leaf("a")]),
+      container("g2", "group", [leaf("b")]),
+      leaf("t"),
+      container("g3", "group", [leaf("c")]),
+    ]
+    const after = mergeAdjacentContainers(tree)
+    expect(after.map((n) => n.nodeId)).toEqual(["g1", "t", "g3"])
+    expect(findNode(after, "g1")?.children?.map((c) => c.nodeId)).toEqual([
+      "a",
+      "b",
+    ])
+    expect(findNode(after, "g3")?.children?.map((c) => c.nodeId)).toEqual(["c"])
+  })
+
+  it("does not merge containers of different structures", () => {
+    const before = sample() // group followed by image_group
+    expect(mergeAdjacentContainers(before)).toBe(before)
+  })
+
+  it("recurses into nested containers", () => {
+    const tree = [
+      container("outer", "activity", [
+        container("g1", "group", [leaf("a")]),
+        container("g2", "group", [leaf("b")]),
+        container("g3", "group", [leaf("c")]),
+      ]),
+    ]
+    const after = mergeAdjacentContainers(tree)
+    expect(findNode(after, "outer")?.children?.map((c) => c.nodeId)).toEqual([
+      "g1",
+    ])
+    expect(findNode(after, "g1")?.children?.map((c) => c.nodeId)).toEqual([
+      "a",
+      "b",
+      "c",
+    ])
+  })
+
+  it("does not merge across differing prune states", () => {
+    const tree = [
+      container("g1", "group", [leaf("a")]),
+      { ...container("g2", "group", [leaf("b")]), isPruned: true },
+    ]
+    expect(mergeAdjacentContainers(tree)).toBe(tree)
   })
 })

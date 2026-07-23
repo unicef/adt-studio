@@ -9,6 +9,7 @@ import {
 } from "react"
 import type { ImageProcessingPreviewFocus } from "./step3ContentProcessing/imageProcessingPreviewTypes"
 import type { PresetId } from "./constants"
+import { useCloseIntent } from "@/components/close-guard/CloseGuard"
 
 export type WizardPhase = "upload" | "wizard"
 
@@ -36,14 +37,18 @@ export function WizardProvider({ children }: { children: ReactNode }) {
     setPhaseRaw(next)
   }, [])
 
+  const hasProgress = !(phase === "upload" && currentStep === 0)
+
+  useCloseIntent(hasProgress, "wizard")
+
   useEffect(() => {
-    if (phase === "upload" && currentStep === 0) return
+    if (!hasProgress) return
     const handler = (e: BeforeUnloadEvent) => {
       e.preventDefault()
     }
     window.addEventListener("beforeunload", handler)
     return () => window.removeEventListener("beforeunload", handler)
-  }, [phase, currentStep])
+  }, [hasProgress])
 
   const [previewFocus, setPreviewFocusRaw] =
     useState<ImageProcessingPreviewFocus>("idle")

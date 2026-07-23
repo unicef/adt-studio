@@ -79,6 +79,7 @@ export {
   STAGE_OUTPUT_NODES,
   getStageClearOrder,
   getStageClearNodes,
+  getStageRerunClearNodes,
   getCacheResourcesForNode,
   getCacheResourcesForNodes,
   getCacheResourcesForStageOutput,
@@ -93,6 +94,13 @@ export {
 export { PartRange, PartManifest, ExportedPartEntry, PartsLedger } from "./part.js"
 
 export { ProgressEvent } from "./progress.js"
+
+export {
+  PageErrorPolicy,
+  PageErrorAction,
+  PendingDecision,
+  DecisionBody,
+} from "./page-error.js"
 
 export {
   TaskKind,
@@ -151,6 +159,10 @@ export {
   addContainer,
   nestNode,
   unnestNode,
+  splitContainerBefore,
+  splitNodesBefore,
+  mergeContainerWithPrevious,
+  mergeAdjacentContainers,
   replaceNodeId,
   cloneNodeWithNewIds,
   collectPrunedLeafIds,
@@ -190,6 +202,7 @@ export { BookSummaryOutput } from "./book-summary.js"
 export { ExtractionWarning } from "./extraction-warning.js"
 
 export {
+  FIXED_LAYOUT_MAX_SCALE,
   SectionRendering,
   WebRenderingOutput,
   webRenderingLLMSchema,
@@ -232,6 +245,7 @@ export {
 
 export {
   TTSProviderConfig,
+  TTSRateLimitConfig,
   SpeechConfig,
   isSpeechWordHighlightingEnabled,
   type TtsExclusionConfig,
@@ -280,6 +294,10 @@ export {
   TextSegment,
   TextBlockBounds,
 } from "./positioned-text.js"
+
+export { TypeScale } from "./type-scale.js"
+
+export { TypographyStyle, BookTypography, DEFAULT_TYPOGRAPHY } from "./typography.js"
 
 export {
   ReviewerValidationStatus,

@@ -1,9 +1,27 @@
 import { z } from "zod"
 import { TextCatalogCategory, getTextCatalogCategory } from "./text-catalog.js"
 
+export const TTSRateLimitConfig = z.object({
+  /**
+   * Requests per minute for this provider. `"auto"` (the default when omitted)
+   * starts at the documented ceiling for the selected model and adaptively
+   * backs off when the account gets rate-limited, then probes back up. A number
+   * pins the starting ceiling instead (still backs off on 429s).
+   */
+  requests_per_minute: z
+    .union([z.literal("auto"), z.number().int().min(1)])
+    .optional(),
+  /** Floor the adaptive limiter may drop to under sustained throttling. */
+  min_requests_per_minute: z.number().int().min(1).optional(),
+  /** Ceiling the adaptive limiter may recover to (overrides the per-model default). */
+  max_requests_per_minute: z.number().int().min(1).optional(),
+})
+export type TTSRateLimitConfig = z.infer<typeof TTSRateLimitConfig>
+
 export const TTSProviderConfig = z.object({
   model: z.string().optional(),
   languages: z.array(z.string()).optional(),
+  rate_limit: TTSRateLimitConfig.optional(),
 })
 export type TTSProviderConfig = z.infer<typeof TTSProviderConfig>
 
