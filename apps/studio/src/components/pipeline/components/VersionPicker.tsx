@@ -13,6 +13,7 @@ import {
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { useLingui } from "@lingui/react/macro"
+import { useQueryClient } from "@tanstack/react-query"
 import { STEP_TO_STAGE, type StageName } from "@adt/types"
 import { api } from "@/api/client"
 import type { VersionEntry } from "@/api/client"
@@ -77,7 +78,16 @@ interface VersionPickerProps {
   saving: boolean
   dirty: boolean
   bookLabel: string
-  onPreview: (data: unknown) => void
+  /**
+   * Called after a version is restored (pointer moved) so the parent can
+   * refresh derived UI / clear any pending local edits. When provided, picking
+   * a version performs a real restore (rollback) instead of the legacy
+   * preview-as-pending-edit flow.
+   */
+  onRestored?: () => void
+  /** Legacy: load a version's data as a pending edit. Used by steps not yet
+   *  migrated to restore (onRestored). Ignored when onRestored is set. */
+  onPreview?: (data: unknown) => void
   onSave?: () => void
   onDiscard: () => void
   saveDisabledReason?: string
@@ -99,10 +109,11 @@ interface VersionPickerProps {
   pendingLabelKey?: string
   /**
    * Renders a version's stored data as read-only visible content (scaling to
-   * fit its container). When provided, the picker shows a thumbnail strip and a
-   * side-by-side / flip compare modal instead of a plain version list — used by
-   * steps whose content has a rendered form (e.g. storyboard rendering).
-   * `onReady` fires once the content has loaded (drives loading skeletons).
+   * fit its container). When provided, the picker shows a thumbnail chip per
+   * version plus a larger preview of the hovered version, instead of a plain
+   * text list — used by steps whose content has a rendered form (e.g.
+   * storyboard rendering). `onReady` fires once the content has loaded (drives
+   * the loading skeletons).
    */
   renderPreview?: (data: unknown, onReady?: () => void) => ReactNode
 }
@@ -114,6 +125,7 @@ export function VersionPicker({
   saving,
   dirty,
   bookLabel,
+  onRestored,
   onPreview,
   onSave,
   onDiscard,
@@ -124,11 +136,13 @@ export function VersionPicker({
   renderPreview,
 }: VersionPickerProps) {
   const { t, i18n } = useLingui()
+  const queryClient = useQueryClient()
   const styling = STEP_STYLING[step]
   const [open, setOpen] = useState(false)
   const [versions, setVersions] = useState<VersionEntry[] | null>(null)
   const [loadingVersions, setLoadingVersions] = useState(false)
   const [hovered, setHovered] = useState<number | null>(null)
+  const [restoring, setRestoring] = useState(false)
 
   const stepPending = STEP_PENDING[step]
   const defaultLabel = stepPending ? (
@@ -150,7 +164,7 @@ export function VersionPicker({
     saveDisabledReason,
   })
 
-  if (saving) {
+  if (saving || restoring) {
     return (
       <Loader2
         className={`h-3 w-3 animate-spin ${styling.variant === "header" ? "text-white/60" : ""}`}
@@ -166,17 +180,36 @@ export function VersionPicker({
     setOpen(next)
     if (next) {
       if (versions == null) setLoadingVersions(true)
-      const res = await api.getVersionHistory(bookLabel, step, itemId, true)
-      setVersions(res.versions)
-      setLoadingVersions(false)
+      try {
+        const res = await api.getVersionHistory(bookLabel, step, itemId, true)
+        setVersions(res.versions)
+      } finally {
+        setLoadingVersions(false)
+      }
     }
   }
 
-  // Pick a version in the list to load it as a pending edit.
-  const handlePick = (v: VersionEntry) => {
-    setOpen(false)
-    if (v.version === currentVersion) return
-    onPreview(v.data)
+  // Pick a version. With onRestored, roll back to it (move the pointer, no new
+  // version) and refresh. Otherwise fall back to the legacy pending-edit flow.
+  const handlePick = async (v: VersionEntry) => {
+    if (v.version === currentVersion) {
+      setOpen(false)
+      return
+    }
+    if (!onRestored) {
+      setOpen(false)
+      onPreview?.(v.data)
+      return
+    }
+    setRestoring(true)
+    try {
+      await api.restoreVersion(bookLabel, step, itemId, v.version)
+      await queryClient.invalidateQueries({ queryKey: ["books", bookLabel] })
+      onRestored()
+    } finally {
+      setRestoring(false)
+      setOpen(false)
+    }
   }
 
   return (
@@ -280,7 +313,10 @@ export function VersionPicker({
                       {t`v${hovered} preview`}
                     </div>
                     <div className="max-h-[26rem] overflow-auto">
+                      {/* key by version so each switch gets its own loading
+                          skeleton instead of flashing an empty frame */}
                       <PreviewSkeleton
+                        key={hovered}
                         reservedClassName="h-64"
                         render={(onReady) =>
                           renderPreview(

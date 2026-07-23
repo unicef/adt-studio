@@ -566,7 +566,11 @@ export function createPageRoutes(
       const rendered = new Set<string>()
       const renderingByPage = new Map<string, { version: number; activityBySectionIndex: Map<number, boolean> }>()
       const renderRows = db.all(
-        "SELECT item_id, version, data FROM node_data WHERE node = ? ORDER BY version DESC",
+        `SELECT nd.item_id AS item_id, nd.version AS version, nd.data AS data
+         FROM node_data nd
+         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+         WHERE nd.node = ?
+         ORDER BY nd.item_id, (nd.version = nc.version) DESC, nd.version DESC`,
         ["web-rendering"]
       ) as Array<{ item_id: string; version: number; data: string }>
       for (const row of renderRows) {
@@ -606,7 +610,11 @@ export function createPageRoutes(
       // Get image counts per page from image-filtering node data
       const imageCounts = new Map<string, number>()
       const imageRows = db.all(
-        "SELECT item_id, data FROM node_data WHERE node = ? ORDER BY version DESC",
+        `SELECT nd.item_id AS item_id, nd.data AS data
+         FROM node_data nd
+         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+         WHERE nd.node = ?
+         ORDER BY nd.item_id, (nd.version = nc.version) DESC, nd.version DESC`,
         ["image-filtering"]
       ) as Array<{ item_id: string; data: string }>
       for (const row of imageRows) {
@@ -630,7 +638,11 @@ export function createPageRoutes(
       const sectioningVersions = new Map<string, number>()
       const structuredText = new Map<string, string>()
       const structuringRows = db.all(
-        "SELECT item_id, version, data FROM node_data WHERE node = ? ORDER BY version DESC",
+        `SELECT nd.item_id AS item_id, nd.version AS version, nd.data AS data
+         FROM node_data nd
+         LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+         WHERE nd.node = ?
+         ORDER BY nd.item_id, (nd.version = nc.version) DESC, nd.version DESC`,
         ["page-sectioning"]
       ) as Array<{ item_id: string; version: number; data: string }>
       for (const row of structuringRows) {
@@ -756,10 +768,17 @@ export function createPageRoutes(
 
       const page = pageRows[0]
 
-      // Get pipeline outputs (data + version)
+      // Get pipeline outputs (data + version). Reads the *current* version
+      // (node_current pointer), falling back to MAX(version) when unset — so
+      // rolling back to an older version is reflected here.
       const getNodeData = (node: string): { data: unknown; version: number } | null => {
         const rows = db.all(
-          "SELECT data, version FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
+          `SELECT nd.data AS data, nd.version AS version
+           FROM node_data nd
+           LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
+           WHERE nd.node = ? AND nd.item_id = ?
+           ORDER BY (nd.version = nc.version) DESC, nd.version DESC
+           LIMIT 1`,
           [node, pageId]
         ) as Array<{ data: string; version: number }>
         if (rows.length === 0) return null
@@ -1246,6 +1265,44 @@ export function createPageRoutes(
 
       const version = saveStoryboardNode(storage, "web-rendering", pageId, parsed.data)
       return c.json({ version })
+    } finally {
+      storage.close()
+    }
+  })
+
+  // POST /books/:label/versions/:node/:itemId/restore — roll an entity back to
+  // an existing version by moving its current-version pointer (no new version
+  // is created). Generic across steps (node = step name, itemId = page id /
+  // "book" / language code).
+  app.post("/books/:label/versions/:node/:itemId/restore", async (c) => {
+    const { label, node, itemId } = c.req.param()
+    const safeLabel = parseBookLabel(label)
+
+    const parsed = z
+      .object({ version: z.number().int().positive() })
+      .safeParse(await c.req.json().catch(() => ({})))
+    if (!parsed.success) {
+      throw new HTTPException(400, {
+        message: `Invalid restore request: ${parsed.error.message}`,
+      })
+    }
+    const { version } = parsed.data
+
+    // Don't materialize a book directory for a label that doesn't exist.
+    const dbPath = path.join(path.resolve(booksDir), safeLabel, `${safeLabel}.db`)
+    if (!fs.existsSync(dbPath)) {
+      throw new HTTPException(404, { message: `Book not found: ${safeLabel}` })
+    }
+
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const ok = storage.setCurrentNodeVersion(node, itemId, version)
+      if (!ok) {
+        throw new HTTPException(404, {
+          message: `Version ${version} not found for ${node}/${itemId}`,
+        })
+      }
+      return c.json({ node, itemId, version })
     } finally {
       storage.close()
     }

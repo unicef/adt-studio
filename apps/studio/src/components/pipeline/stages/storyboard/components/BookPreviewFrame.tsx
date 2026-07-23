@@ -118,6 +118,9 @@ export interface BookPreviewFrameProps {
   /** Fires once the iframe has loaded, fonts are ready, and content injected —
    *  useful for revealing the frame after a loading skeleton. */
   onReady?: () => void
+  /** Lightweight read-only mode for tiny previews: don't block first paint on
+   *  web-font loading and skip LaTeX→MathML conversion. Approximate but fast. */
+  thumbnail?: boolean
 }
 
 /**
@@ -148,6 +151,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   onVisibleWidthChange,
   bodyFontFamily,
   onReady,
+  thumbnail = false,
 }, ref) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const wrapperRef = useRef<HTMLDivElement>(null)
@@ -302,6 +306,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   const [displayHtml, setDisplayHtml] = useState(sanitizedHtml)
   useEffect(() => {
     setDisplayHtml(sanitizedHtml)
+    if (thumbnail) return // skip math conversion round-trip for tiny previews
     let cancelled = false
     fetch(`${assetsPrefix}/convert-math`, {
       method: "POST",
@@ -316,7 +321,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       })
       .catch(() => {}) // fallback: display without math conversion
     return () => { cancelled = true }
-  }, [sanitizedHtml, assetsPrefix])
+  }, [sanitizedHtml, assetsPrefix, thumbnail])
   latestHtmlRef.current = displayHtml
   sanitizedHtmlRef.current = sanitizedHtml
 
@@ -798,10 +803,12 @@ ${selectors}:hover {
         setIframeReady(true)
         injectContent(latestHtmlRef.current)
       }
-      if (doc.fonts?.ready) {
-        doc.fonts.ready.then(start)
-      } else {
+      // Thumbnails render read-only at tiny scale — don't block first paint on
+      // web-font loading (fonts swap in a beat later, invisible at that size).
+      if (thumbnail || !doc.fonts?.ready) {
         start()
+      } else {
+        doc.fonts.ready.then(start)
       }
     }
 

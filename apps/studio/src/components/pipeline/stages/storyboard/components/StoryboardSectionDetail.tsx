@@ -200,6 +200,15 @@ function getRenderedSectionByIndex(
   return rendering?.sections.find((s) => s.sectionIndex === sectionIndex)
 }
 
+/** Static preview content signals "ready" immediately so the version-picker
+ *  loading skeleton reveals it without waiting for the fallback timer. */
+function ReadyOnMount({ onReady, children }: { onReady?: () => void; children: ReactNode }) {
+  useEffect(() => {
+    onReady?.()
+  }, [onReady])
+  return <>{children}</>
+}
+
 /**
  * Compare pending (edited) HTML against saved (original) HTML and produce
  * structured LLM instructions describing the user's manual edits.
@@ -1913,7 +1922,7 @@ export function StoryboardSectionDetail({
         saving={saving}
         dirty={renderingDirty}
         bookLabel={bookLabel}
-        onPreview={(data) => setPendingRendering(data as RenderingData)}
+        onRestored={discardAll}
         onSave={saveRendering}
         onDiscard={discardAll}
         renderSaveBar={false}
@@ -1921,9 +1930,11 @@ export function StoryboardSectionDetail({
           const sec = getRenderedSectionByIndex(data as RenderingData, sectionIndex)
           if (!sec) {
             return (
-              <div className="flex h-full items-center justify-center p-2 text-center text-[11px] text-muted-foreground">
-                {t`This section doesn't exist in this version.`}
-              </div>
+              <ReadyOnMount onReady={onReady}>
+                <div className="flex h-full items-center justify-center p-2 text-center text-[11px] text-muted-foreground">
+                  {t`This section doesn't exist in this version.`}
+                </div>
+              </ReadyOnMount>
             )
           }
           return (
@@ -1931,6 +1942,7 @@ export function StoryboardSectionDetail({
               html={sec.html}
               bookLabel={bookLabel}
               editable={false}
+              thumbnail
               applyBodyBackground
               bodyFontFamily={pageDetail?.reflowableFontFamily ?? undefined}
               onReady={onReady}
@@ -2320,13 +2332,7 @@ export function StoryboardSectionDetail({
             saving={saving}
             dirty={dirty}
             bookLabel={bookLabel}
-            onPreview={(data) => {
-              const s = data as SectioningData
-              setPendingSectioning(s)
-              if (s.sections && sectionIndex >= s.sections.length) {
-                onNavigateSection?.(Math.max(0, s.sections.length - 1))
-              }
-            }}
+            onRestored={discardAll}
             onSave={saveSectioning}
             onDiscard={discardAll}
             renderSaveBar={false}
