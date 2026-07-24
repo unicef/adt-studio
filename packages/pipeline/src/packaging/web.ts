@@ -1,17 +1,8 @@
 import { createHash } from "node:crypto"
 import fs from "node:fs"
-import os from "node:os"
 import path from "node:path"
-import { fileURLToPath, pathToFileURL } from "node:url"
+import { pathToFileURL } from "node:url"
 
-/**
- * Tailwind v4 resolves `@import "tailwindcss"` relative to the postcss `from`
- * path. webAssetsDir / book directories don't have their own node_modules,
- * so we route the postcss invocation through this package's own directory
- * where tailwindcss + @tailwindcss/postcss are installed.
- */
-const PIPELINE_PACKAGE_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
-const TAILWIND_VIRTUAL_FROM = path.join(PIPELINE_PACKAGE_DIR, "_tailwind_input.css")
 import { parseDocument, DomUtils } from "htmlparser2"
 import temml from "temml"
 import type { Storage } from "@adt/storage"
@@ -39,28 +30,30 @@ import {
   primaryFontFamily,
 } from "@adt/types"
 import { reflowableFontChain, bookBodyFont, bookFontFamilyChain } from "@adt/types"
-import { bundleGoogleFontsIntoCss } from "./google-fonts-bundle.js"
+import { bundleGoogleFontsIntoCss } from "../google-fonts-bundle.js"
 import {
   bundleBookFontsIntoCss,
   readBookFontRegistry,
   resolveFontsCacheDir,
-} from "./fonts-bundle.js"
-import { resolveTypographyCss } from "./typography.js"
-import { resolveQuizPalette, DEFAULT_QUIZ_PALETTE, type QuizPalette } from "./quiz-palette.js"
+} from "../fonts-bundle.js"
+import { resolveTypographyCss } from "../typography.js"
+import { resolveQuizPalette, DEFAULT_QUIZ_PALETTE, type QuizPalette } from "../quiz-palette.js"
 import {
   readEditableActivities,
   enabledEditableActivity,
   resolveEditableActivityImages,
   renderEditableActivityHtml,
-} from "./render-editable-activity.js"
-import type { Progress } from "./progress.js"
-import { nullProgress } from "./progress.js"
-import { getGlossaryItemTextId } from "./glossary.js"
-import { getBaseLanguage, normalizeLocale } from "./language-context.js"
-import { buildTextCatalog } from "./text-catalog.js"
-import { flattenEasyReadEntries } from "./easy-read.js"
-import { getRenderSectioning } from "./render-sectioning.js"
-import { normalizeHtmlSectionSemantics } from "./html-semantics.js"
+} from "../render-editable-activity.js"
+import type { Progress } from "../progress.js"
+import { nullProgress } from "../progress.js"
+import { getGlossaryItemTextId } from "../glossary.js"
+import { getBaseLanguage, normalizeLocale } from "../language-context.js"
+import { buildTextCatalog } from "../text-catalog.js"
+import { flattenEasyReadEntries } from "../easy-read.js"
+import { getRenderSectioning } from "../render-sectioning.js"
+import { normalizeSectionRoles, promoteFirstHeadingToH1 } from "../html-semantics.js"
+import { escapeHtml, escapeAttr, escapeInlineScriptJson } from "../html-escape.js"
+import { buildTailwindCss } from "../tailwind.js"
 
 export interface PackageAdtWebOptions {
   bookDir: string
@@ -98,7 +91,7 @@ export interface PackageAdtWebOptions {
   quizMatchBookStyle?: boolean
 }
 
-interface PageEntry {
+export interface PageEntry {
   section_id: string
   href: string
   page_number?: number
@@ -869,119 +862,8 @@ export async function packageAdtWeb(
 }
 
 // ---------------------------------------------------------------------------
-// WebPub packaging
+// Reader-override styles (shared by the webpub + epub packagers)
 // ---------------------------------------------------------------------------
-
-const WEBPUB_MIME_TYPES: Record<string, string> = {
-  ".html": "text/html",
-  ".css": "text/css",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".mp3": "audio/mpeg",
-  ".js": "application/javascript",
-  ".json": "application/json",
-}
-
-/**
- * Package the book as a Readium WebPub directory at `{bookDir}/webpub/`.
- *
- * Assumes ADT web packaging has already been run (i.e. `{bookDir}/adt/` exists).
- * Copies the ADT directory to `{bookDir}/webpub/`, adds a Readium WebPub
- * manifest, and tweaks config for embedded reading. The caller is responsible
- * for zipping the result into a `.webpub` file.
- */
-export function packageWebpub(
-  storage: Storage,
-  options: PackageAdtWebOptions,
-): void {
-  const { bookDir, title } = options
-
-  const adtDir = path.join(bookDir, "adt")
-  if (!fs.existsSync(adtDir)) {
-    throw new Error("ADT package not found — run packageAdtWeb first")
-  }
-
-  const webpubDir = path.join(bookDir, "webpub")
-
-  // Copy adt/ -> webpub/
-  if (fs.existsSync(webpubDir)) fs.rmSync(webpubDir, { recursive: true })
-  copyDirRecursive(adtDir, webpubDir)
-
-  // Override config: disable navigation controls and tutorial for embedded reading
-  const configPath = path.join(webpubDir, "assets", "config.json")
-  if (fs.existsSync(configPath)) {
-    const config = JSON.parse(fs.readFileSync(configPath, "utf-8"))
-    config.features.showNavigationControls = false
-    config.features.showTutorial = false
-    writeJson(configPath, config)
-  }
-
-  // Inject CSS into HTML pages to prevent readers (e.g. Thorium) from applying
-  // column-based pagination which breaks the single-page ADT layout.
-  injectWebpubStyles(webpubDir, { fixedLayout: options.fixedLayout })
-
-  // Load metadata for manifest
-  const metadataRow = storage.getLatestNodeData("metadata", "book")
-  const metadata = metadataRow?.data as BookMetadata | undefined
-
-  const manifestMetadata: Record<string, unknown> = {
-    "@type": "http://schema.org/Book",
-    title,
-    language: options.language,
-    modified: new Date().toISOString(),
-    // Tell readers to scroll each page rather than paginating into columns,
-    // and not to display two pages side-by-side (spread).
-    presentation: {
-      overflow: "scrolled",
-      spread: "none",
-    },
-  }
-  if (metadata?.authors?.length) {
-    manifestMetadata.author = metadata.authors.join(", ")
-  }
-  if (metadata?.publisher) {
-    manifestMetadata.publisher = metadata.publisher
-  }
-
-  // Links
-  const links: Array<Record<string, string>> = [
-    { rel: "self", href: "manifest.json", type: "application/webpub+json" },
-  ]
-  for (const [filename, mimeType] of [
-    ["cover.png", "image/png"],
-    ["cover.jpg", "image/jpeg"],
-    ["cover.jpeg", "image/jpeg"],
-  ] as const) {
-    if (fs.existsSync(path.join(webpubDir, filename))) {
-      links.push({ rel: "cover", href: filename, type: mimeType })
-      break
-    }
-  }
-
-  // Reading order from pages.json
-  const pagesPath = path.join(webpubDir, "content", "pages.json")
-  const pageList = JSON.parse(fs.readFileSync(pagesPath, "utf-8")) as PageEntry[]
-  const readingOrder = pageList.map((page) => ({
-    href: page.href,
-    type: "text/html",
-    title: page.page_number != null ? String(page.page_number) : page.section_id,
-  }))
-
-  // Enumerate all files as resources
-  const resources: Array<{ href: string; type: string }> = []
-  collectWebpubResources(webpubDir, webpubDir, resources)
-
-  // Write manifest
-  const manifest = {
-    "@context": "https://readium.org/webpub-manifest/context.jsonld",
-    metadata: manifestMetadata,
-    links,
-    readingOrder,
-    resources,
-  }
-  writeJson(path.join(webpubDir, "manifest.json"), manifest)
-}
 
 const REFLOWABLE_OVERRIDE_CSS = `<style>
 /* ── WebPub / EPUB reader overrides (reflowable) ──
@@ -1065,16 +947,12 @@ body {
   max-width: none !important;
 }
 
-/* Content wrapper: native size, no injected scale/centering — Readium/EPUB
-   readers size pre-paginated pages themselves, so neutralize the browser
-   reader's viewport-fit transform (renderPageHtml's fixed-layout fit script). */
+/* Content wrapper: keep it visible. Positioning/scale is left to the browser
+   fit script (renderPageHtml's fixedLayoutWebFit) for WebPub, or neutralized
+   for EPUB via FIXED_LAYOUT_FIT_NEUTRALIZE_CSS. */
 #content {
   opacity: 1 !important;
   visibility: visible !important;
-  position: relative !important;
-  left: auto !important;
-  top: auto !important;
-  transform: none !important;
   margin: 0 !important;
 }
 
@@ -1092,6 +970,20 @@ body {
 .-epub-media-overlay-active {
   background: rgba(255, 235, 59, 0.4);
   border-radius: 0.15em;
+}
+</style>`
+
+/* Appended to the fixed-layout overrides for EPUB only. EPUB/Readium readers
+   size pre-paginated pages themselves, so neutralize renderPageHtml's browser
+   fit script (fixedLayoutWebFit) — the page renders at native size and the
+   reader scales it. WebPub keeps the fit: generic web readers don't reliably
+   scale fixed-layout pages, so the page must fit itself. */
+const FIXED_LAYOUT_FIT_NEUTRALIZE_CSS = `<style>
+#content {
+  position: relative !important;
+  left: auto !important;
+  top: auto !important;
+  transform: none !important;
 }
 </style>`
 
@@ -1149,6 +1041,13 @@ function fixedLayoutWebFit(dockReserveFallbackPx: number): { headStyle: string; 
 export interface InjectWebpubStylesOptions {
   fixedLayout?: boolean
   /**
+   * Neutralize the browser fixed-layout fit script so the page renders at
+   * native size and the reader scales it. Set for EPUB (Readium/EPUB readers
+   * size pre-paginated pages themselves); omitted for WebPub, whose generic
+   * readers rely on the fit script.
+   */
+  neutralizeFixedLayoutFit?: boolean
+  /**
    * Extra CSS rules appended inside the injected `<style>` block. Used by the
    * EPUB packager to ship export-only affordances (e.g. the glossref dotted
    * underline) without leaking them into the web/webpub output.
@@ -1166,7 +1065,10 @@ export function injectWebpubStyles(dir: string, options?: InjectWebpubStylesOpti
   // the single injected <style> block. Function replacer so `$` in the CSS
   // isn't interpreted as a replacement pattern (`$&`, `$1`, …).
   const extra = options?.extraCss
-  const css = extra ? base.replace("</style>", () => `${extra}\n</style>`) : base
+  let css = extra ? base.replace("</style>", () => `${extra}\n</style>`) : base
+  if (options?.fixedLayout && options?.neutralizeFixedLayoutFit) {
+    css = `${css}\n${FIXED_LAYOUT_FIT_NEUTRALIZE_CSS}`
+  }
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const fullPath = path.join(dir, entry.name)
     if (entry.isDirectory()) {
@@ -1178,27 +1080,6 @@ export function injectWebpubStyles(dir: string, options?: InjectWebpubStylesOpti
     }
   }
 }
-
-function collectWebpubResources(
-  baseDir: string,
-  dir: string,
-  out: Array<{ href: string; type: string }>,
-): void {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    const fullPath = path.join(dir, entry.name)
-    if (entry.isDirectory()) {
-      collectWebpubResources(baseDir, fullPath, out)
-    } else if (entry.isFile()) {
-      const relPath = path.relative(baseDir, fullPath).replace(/\\/g, "/")
-      const ext = path.extname(entry.name).toLowerCase()
-      out.push({
-        href: relPath,
-        type: WEBPUB_MIME_TYPES[ext] ?? "application/octet-stream",
-      })
-    }
-  }
-}
-
 
 // ---------------------------------------------------------------------------
 // HTML generation
@@ -1251,10 +1132,6 @@ function injectOpacityClass(html: string): string {
   )
 }
 
-export function promoteFirstHeadingToH1(html: string): string {
-  if (/<h1\b/i.test(html)) return html
-  return html.replace(/<h([2-6])(\b[^>]*)>([\s\S]*?)<\/h\1>/i, '<h1$2>$3</h1>')
-}
 
 export function stripContentEditable(html: string): string {
   return html.replace(
@@ -1788,9 +1665,6 @@ export function buildPreferredImageAltMap(
   return section ? applyDuplicateImageAltPolicy(section, preferredImageAltMap) : preferredImageAltMap
 }
 
-export function normalizeSectionRoles(html: string): string {
-  return normalizeHtmlSectionSemantics(html)
-}
 
 /** Rewrite image URLs from /api/books/{label}/images/{id} to images/{filename} */
 export function rewriteImageUrls(
@@ -1881,22 +1755,6 @@ export function rewriteImageUrls(
  * Uses htmlparser2 to parse and re-serialize in XML mode, and replaces
  * HTML named entities with their numeric equivalents.
  */
-export function htmlToXhtml(html: string): string {
-  const doc = parseDocument(html)
-  let xhtml = DomUtils.getOuterHTML(doc, { xmlMode: true })
-  // Replace common HTML named entities not valid in XML
-  xhtml = xhtml.replace(/&nbsp;/g, "&#160;")
-  xhtml = xhtml.replace(/&mdash;/g, "&#8212;")
-  xhtml = xhtml.replace(/&ndash;/g, "&#8211;")
-  xhtml = xhtml.replace(/&lsquo;/g, "&#8216;")
-  xhtml = xhtml.replace(/&rsquo;/g, "&#8217;")
-  xhtml = xhtml.replace(/&ldquo;/g, "&#8220;")
-  xhtml = xhtml.replace(/&rdquo;/g, "&#8221;")
-  xhtml = xhtml.replace(/&hellip;/g, "&#8230;")
-  xhtml = xhtml.replace(/&bull;/g, "&#8226;")
-  xhtml = xhtml.replace(/&copy;/g, "&#169;")
-  return xhtml
-}
 
 // ---------------------------------------------------------------------------
 // Glossary helpers
@@ -2153,106 +2011,6 @@ export function convertLatexToMathml(html: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// Tailwind CSS build
-// ---------------------------------------------------------------------------
-
-async function buildTailwindCss(
-  adtDir: string,
-  webAssetsDir: string,
-  typographyCss?: string,
-): Promise<void> {
-  const outputPath = path.join(adtDir, "content", "tailwind_output.css")
-  // The .adt-* rules live in @layer components, so they default the role sizes
-  // while element-level text-* utilities (utilities layer) keep priority.
-  const suffix = typographyCss ? `\n${typographyCss}\n` : ""
-
-  // In Tauri sidecar mode, postcss/tailwindcss cannot run inside the pkg binary.
-  // bundle.mjs pre-builds tailwind_output.css into webAssetsDir before zipping.
-  const preBuilt = path.join(webAssetsDir, "tailwind_output.css")
-  if (fs.existsSync(preBuilt)) {
-    fs.copyFileSync(preBuilt, outputPath)
-    if (suffix) fs.appendFileSync(outputPath, suffix)
-    return
-  }
-
-  // Dynamic imports to avoid issues if not installed
-  const postcss = (await import("postcss")).default
-  // @tailwindcss/postcss is the Tailwind v4 plugin. Theme/colors live in CSS
-  // (tailwind_css.css → globals.css) via the @theme inline directive, so the
-  // plugin needs no JS-side config.
-  const tailwindcss = (await import("@tailwindcss/postcss")).default
-
-  const inputCssPath = path.join(webAssetsDir, "tailwind_css.css")
-  const inputCss = fs.existsSync(inputCssPath)
-    ? fs.readFileSync(inputCssPath, "utf-8")
-    : '@import "tailwindcss";'
-
-  // Inject content sources via @source directives. Tailwind v4 scans only
-  // files on disk, so compiled chrome bundles + book HTML files are
-  // referenced by absolute path.
-  const sourceDirectives = [
-    `@source "${toPosix(path.join(adtDir, "**/*.html"))}";`,
-    `@source "${toPosix(path.join(adtDir, "**/*.js"))}";`,
-  ].join("\n")
-
-  const result = await postcss([tailwindcss({ base: adtDir })]).process(
-    `${sourceDirectives}\n${inputCss}`,
-    { from: TAILWIND_VIRTUAL_FROM },
-  )
-
-  fs.writeFileSync(outputPath, result.css + suffix)
-}
-
-/** Convert Windows backslashes to forward slashes for `@source` paths. */
-function toPosix(p: string): string {
-  return p.replace(/\\/g, "/")
-}
-
-/**
- * Build Tailwind CSS for preview and return the CSS string.
- * Scans the given content HTML plus all web asset files for used classes.
- */
-export async function buildPreviewTailwindCss(
-  contentHtml: string,
-  webAssetsDir: string,
-  typographyCss?: string,
-): Promise<string> {
-  const postcss = (await import("postcss")).default
-  const tailwindcss = (await import("@tailwindcss/postcss")).default
-
-  const inputCssPath = path.join(webAssetsDir, "tailwind_css.css")
-  const inputCss = fs.existsSync(inputCssPath)
-    ? fs.readFileSync(inputCssPath, "utf-8")
-    : '@import "tailwindcss";'
-
-  // Tailwind v4 scans files on disk only — there's no equivalent to v3's
-  // `content: [{ raw, extension }]`. For dynamic content (HTML built from
-  // the DB rows), write to a temp file and reference it via @source.
-  // For chrome classes, scan apps/adt-runtime/src directly so JSX class
-  // strings are picked up before they get minified into the bundle.
-  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), "adt-twv4-"))
-  const tempHtml = path.join(tempDir, "preview-content.html")
-  fs.writeFileSync(tempHtml, contentHtml)
-
-  const sourceDirectives = [
-    `@source "${toPosix(tempHtml)}";`,
-    `@source "${toPosix(path.resolve(webAssetsDir, "../../apps/adt-runtime/src"))}";`,
-    `@source "${toPosix(path.join(webAssetsDir, "base.bundle.min.js"))}";`,
-  ].join("\n")
-
-  try {
-    const result = await postcss([tailwindcss({ base: webAssetsDir })]).process(
-      `${sourceDirectives}\n${inputCss}`,
-      { from: TAILWIND_VIRTUAL_FROM },
-    )
-    // .adt-* size rules ship in @layer components — text-* utilities keep priority.
-    return typographyCss ? `${result.css}\n${typographyCss}\n` : result.css
-  } finally {
-    fs.rmSync(tempDir, { recursive: true, force: true })
-  }
-}
-
-// ---------------------------------------------------------------------------
 // JS bundle build (base.js → base.bundle.min.js via esbuild)
 // ---------------------------------------------------------------------------
 
@@ -2290,6 +2048,12 @@ async function buildJsBundle(
   }
   if (fs.existsSync(preBuiltIife)) {
     fs.copyFileSync(preBuiltIife, path.join(outputAssetsDir, "base.bundle.local.js"))
+  }
+  // Standalone activities bundle (used by the webpub export). Built alongside
+  // the base bundle by the same adt-runtime build script above.
+  const preBuiltActivities = path.join(webAssetsDir, "activities.bundle.local.js")
+  if (fs.existsSync(preBuiltActivities)) {
+    fs.copyFileSync(preBuiltActivities, path.join(outputAssetsDir, "activities.bundle.local.js"))
   }
 }
 
@@ -2773,7 +2537,7 @@ function findHeadingText(
   return null
 }
 
-function writeJson(filePath: string, data: unknown): void {
+export function writeJson(filePath: string, data: unknown): void {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2))
 }
 
@@ -2791,17 +2555,41 @@ function pickDefaultLanguage(
   return matchingBase ?? availableLanguages[0] ?? preferredLanguage
 }
 
-function escapeInlineScriptJson(s: string): string {
-  return s
-    .replace(/\\/g, "\\\\")
-    .replace(/'/g, "\\'")
-    .replace(/\r/g, "\\r")
-    .replace(/\n/g, "\\n")
-    .replace(/\u2028/g, "\\u2028")
-    .replace(/\u2029/g, "\\u2029")
-    .replace(/</g, "\\u003c")
-    .replace(/>/g, "\\u003e")
-    .replace(/&/g, "\\u0026")
+/**
+ * Files in the ADT `adt/` package that must not ship in a reader-ready export
+ * (EPUB/WebPub): the SCORM package manifest and the repo's AGENTS.md. Pass as
+ * the `skip` set when copying `adt/` into an export directory.
+ */
+export const NON_READER_FILES = new Set(["imsmanifest.xml", "AGENTS.md"])
+
+/**
+ * File-extension → MIME type for the resources listed in an export manifest
+ * (EPUB OPF, WebPub `resources`). Shared so both packagers label fonts, video,
+ * and images consistently instead of falling back to application/octet-stream.
+ */
+export const EXPORT_MIME_TYPES: Record<string, string> = {
+  ".xhtml": "application/xhtml+xml",
+  ".html": "text/html",
+  ".css": "text/css",
+  ".js": "application/javascript",
+  ".json": "application/json",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".gif": "image/gif",
+  ".svg": "image/svg+xml",
+  ".webp": "image/webp",
+  ".mp3": "audio/mpeg",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".ogg": "audio/ogg",
+  ".wav": "audio/wav",
+  ".woff": "font/woff",
+  ".woff2": "font/woff2",
+  ".ttf": "font/ttf",
+  ".otf": "font/otf",
+  ".dic": "application/octet-stream",
+  ".smil": "application/smil+xml",
 }
 
 export function copyDirRecursive(
@@ -2822,23 +2610,6 @@ export function copyDirRecursive(
       fs.copyFileSync(srcPath, destPath)
     }
   }
-}
-
-export function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-}
-
-function escapeAttr(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
 }
 
 // ---------------------------------------------------------------------------

@@ -10,6 +10,7 @@ import { createPortal } from "react-dom";
 import { Link } from "@tanstack/react-router";
 import {
   AudioLines,
+  Check,
   ChevronDown,
   ChevronRight,
   ChevronUp,
@@ -23,6 +24,7 @@ import {
   Save,
   Settings,
   Trash2,
+  TriangleAlert,
   Type,
   Upload,
   Volume2,
@@ -34,6 +36,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, getAudioUrl, BASE_URL } from "@/api/client";
 import type {
   TextCatalogEntry,
+  TranslationEvaluationStatusResponse,
   WordTimestamp,
   WordTimestampEntry,
 } from "@/api/client";
@@ -60,7 +63,10 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { resolveTranslationLanguageState } from "./lib/translations-view-state";
+import {
+  isTranslationEvaluationEnabled,
+  resolveTranslationLanguageState,
+} from "./lib/translations-view-state";
 import {
   type CatalogCategory,
   getEntryCategory,
@@ -76,6 +82,210 @@ import { WordHighlightPreview } from "./components/WordHighlightPreview";
 import { usePendingChanges } from "../../components/change-summary";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
+
+type TranslationEvaluationItem = NonNullable<
+  NonNullable<TranslationEvaluationStatusResponse["evaluation"]>["items"][number]
+>;
+type ReviewFilter =
+  | "all"
+  | "needs-attention"
+  | "pending-save"
+  | "acceptable"
+  | "accepted-anyway";
+
+function TranslationReviewInline({
+  item,
+  suggestionApplied,
+  onApplySuggestion,
+  onAcceptAnyway,
+  acceptingAnyway,
+}: {
+  item: TranslationEvaluationItem;
+  suggestionApplied: boolean;
+  onApplySuggestion: (suggestedText: string) => void;
+  onAcceptAnyway: () => void;
+  acceptingAnyway: boolean;
+}) {
+  const { t } = useLingui();
+  const [open, setOpen] = useState(!item.accepted_anyway && !item.acceptable);
+
+  // The judge returns raw enum values; these badges are user-facing, so give
+  // them the same treatment the review settings give the same concepts.
+  const issueTypeLabel = (issueType: string): string => {
+    switch (issueType) {
+      case "meaning":
+        return t`Meaning`;
+      case "fluency":
+        return t`Fluency`;
+      case "terminology":
+        return t`Terminology`;
+      case "omission-or-addition":
+        return t`Omission or addition`;
+      case "formatting":
+        return t`Formatting`;
+      case "context":
+        return t`Context`;
+      default:
+        return t`Other`;
+    }
+  };
+  const severityLabel = (severity: string): string => {
+    switch (severity) {
+      case "low":
+        return t`Low`;
+      case "high":
+        return t`High`;
+      default:
+        return t`Medium`;
+    }
+  };
+
+  useEffect(() => {
+    setOpen(!item.accepted_anyway && !item.acceptable);
+  }, [item.acceptable, item.accepted_anyway, item.entry_id, item.rationale]);
+
+  if (item.acceptable) {
+    return (
+      <div className="mt-1.5">
+        <button
+          type="button"
+          onClick={() => setOpen((current) => !current)}
+          className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 hover:bg-emerald-50"
+          title={t`Show review rationale`}
+        >
+          <Check className="h-3 w-3" />
+          {t`Reviewed`}
+        </button>
+        {open ? (
+          <div className="mt-1 rounded-md border border-emerald-200 bg-emerald-50/60 p-2 text-xs text-emerald-950">
+            <div className="font-medium text-emerald-800">{t`Acceptable`}</div>
+            <p className="mt-1 whitespace-pre-wrap leading-relaxed">{item.rationale}</p>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (item.accepted_anyway) {
+    return (
+      <div className="mt-2 inline-flex items-center gap-1 rounded bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700 ring-1 ring-emerald-200">
+        <Check className="h-3 w-3" />
+        {t`Accepted anyway`}
+      </div>
+    );
+  }
+
+  if (suggestionApplied) {
+    return (
+      <div className="mt-2 rounded-md border border-emerald-200 bg-emerald-50/70 p-2.5 text-xs text-emerald-950">
+        <div className="flex min-w-0 items-start gap-2">
+          <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-700" />
+          <div className="min-w-0">
+            <div className="font-medium text-emerald-800">{t`Suggestion applied`}</div>
+            <p className="mt-1 leading-relaxed">{t`Save changes, then run Review again.`}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 rounded-md border border-orange-200 bg-orange-50/70 p-2.5 text-xs text-orange-950">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex min-w-0 items-start gap-2">
+          <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-orange-600" />
+          <div className="min-w-0">
+            <div className="font-medium text-orange-800">{t`Needs attention`}</div>
+            <p className="mt-1 whitespace-pre-wrap leading-relaxed">{item.rationale}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpen((current) => !current)}
+          className="shrink-0 rounded px-1.5 py-0.5 text-[11px] font-medium text-orange-700 hover:bg-orange-100"
+        >
+          {open ? t`Hide` : t`Details`}
+        </button>
+      </div>
+
+      {open ? (
+        <div className="mt-2 space-y-2">
+          {item.issue_types && item.issue_types.length > 0 ? (
+            <div className="flex flex-wrap gap-1">
+              {item.issue_types.map((issueType) => (
+                <span
+                  key={`${item.entry_id}-${issueType}`}
+                  className="rounded bg-white/80 px-1.5 py-0.5 text-[10px] text-orange-800 ring-1 ring-orange-200"
+                >
+                  {issueTypeLabel(issueType)}
+                </span>
+              ))}
+              {item.severity ? (
+                <span className="rounded bg-white/80 px-1.5 py-0.5 text-[10px] text-orange-800 ring-1 ring-orange-200">
+                  {severityLabel(item.severity)}
+                </span>
+              ) : null}
+            </div>
+          ) : null}
+
+          {item.suggested_text ? (
+            <div className="rounded border border-emerald-200 bg-emerald-50 p-2 text-emerald-950">
+              <div className="mb-1 flex flex-wrap items-center gap-1.5">
+                <span className="text-[10px] font-semibold uppercase text-emerald-700">{t`Suggested translation`}</span>
+                {item.suggestion_validated ? (
+                  <span className="rounded bg-white/80 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700 ring-1 ring-emerald-200">
+                    {t`Validated`}
+                  </span>
+                ) : null}
+              </div>
+              <p className="whitespace-pre-wrap leading-relaxed">{item.suggested_text}</p>
+            </div>
+          ) : null}
+
+          {!item.suggested_text && item.suggestion_validated === false ? (
+            <div className="rounded border border-amber-200 bg-amber-50 p-2 text-amber-950">
+              <div className="mb-1 text-[10px] font-semibold uppercase text-amber-700">{t`Suggestion withheld`}</div>
+              <p className="whitespace-pre-wrap leading-relaxed">
+                {item.suggestion_validation_rationale ??
+                  t`No automatic suggestion is shown because the proposed fix did not pass validation.`}
+              </p>
+            </div>
+          ) : null}
+
+          <div className="flex flex-wrap gap-1.5">
+            {item.suggested_text ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-7 border-emerald-300 bg-white px-2 text-xs text-emerald-800 hover:bg-emerald-50"
+                onClick={() => onApplySuggestion(item.suggested_text!)}
+              >
+                <Check className="h-3 w-3" />
+                {t`Apply suggestion`}
+              </Button>
+            ) : null}
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-7 border-orange-300 bg-white px-2 text-xs text-orange-800 hover:bg-orange-100"
+              onClick={onAcceptAnyway}
+              disabled={acceptingAnyway}
+            >
+              {acceptingAnyway ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <Check className="h-3 w-3" />
+              )}
+              {t`Accept anyway`}
+            </Button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 // Per-provider default TTS voice/model shown in the speech summary when the book hasn't
 // pinned one. Mirrors resolveVoice()/resolveSpeechModel() in @adt/pipeline (and
@@ -122,8 +332,18 @@ export function LanguageView({
     isCancelling,
     error: runError,
   } = useBookRun();
-  const { isTaskRunning } = useBookTasks(bookLabel);
-  const { apiKey, hasApiKey, azureKey, azureRegion, geminiKey } = useApiKey();
+  const { isTaskRunning, tasks } = useBookTasks(bookLabel);
+  const {
+    apiKey,
+    hasApiKey,
+    azureKey,
+    azureRegion,
+    geminiKey,
+    anthropicKey,
+    googleKey,
+    customBaseUrl,
+    customApiKey,
+  } = useApiKey();
   const translateState = stageState("translate");
   const speechState = stageState("speech");
   const activeState = isSpeechStage ? speechState : translateState;
@@ -192,6 +412,9 @@ export function LanguageView({
     speechConfig && typeof speechConfig === "object"
       ? (speechConfig as Record<string, unknown>)
       : null;
+  const translationEvaluationEnabled =
+    !!activeConfigData &&
+    isTranslationEvaluationEnabled(merged?.translation_evaluation);
   const wordHighlightingEnabled =
     speechConfigRecord?.word_highlighting === true;
   const configExcludedTextIds = useMemo(
@@ -241,6 +464,10 @@ export function LanguageView({
 
   const [selectedLang, setSelectedLang] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<CatalogCategory>("all");
+  const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("all");
+  const [appliedSuggestionEntryIds, setAppliedSuggestionEntryIds] = useState<
+    Set<string>
+  >(() => new Set());
   // When active, the entry list is narrowed to speakable items that have no
   // audio yet (toggled from the "N missing" pill in the header).
   const [showMissingOnly, setShowMissingOnly] = useState(false);
@@ -292,10 +519,14 @@ export function LanguageView({
     const base = catalog?.entries ?? [];
     return easyReadEntries.length > 0 ? [...base, ...easyReadEntries] : base;
   }, [catalog?.entries, easyReadEntries]);
+  const sourceEntriesById = useMemo(
+    () => new Map(entries.map((entry) => [entry.id, entry.text])),
+    [entries],
+  );
   const pageFilteredEntries = selectedPageId
     ? entries.filter((e) => e.id.startsWith(selectedPageId + "_"))
     : entries;
-  const displayEntries =
+  const categoryFilteredEntries =
     categoryFilter === "all"
       ? pageFilteredEntries
       : pageFilteredEntries.filter(
@@ -442,11 +673,15 @@ export function LanguageView({
   // Reset pending when version or language changes
   useEffect(() => {
     setPendingEntries(null);
+    setAppliedSuggestionEntryIds(new Set());
   }, [translationVersion, selectedLang]);
 
   // Effective translated entries (pending overrides fetched data)
   const effectiveEntries = pendingEntries ?? translatedEntries;
-  const translatedMap = new Map(effectiveEntries.map((e) => [e.id, e.text]));
+  const translatedMap = useMemo(
+    () => new Map(effectiveEntries.map((entry) => [entry.id, entry.text])),
+    [effectiveEntries],
+  );
 
   const {
     label: pendingLabel,
@@ -468,8 +703,19 @@ export function LanguageView({
       entries: pendingEntries,
     });
     setPendingEntries(null);
+    setAppliedSuggestionEntryIds(new Set());
     await queryClient.invalidateQueries({
       queryKey: ["books", bookLabel, "text-catalog"],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["evaluations", "translations", bookLabel],
+    });
+    // Audio was generated from the previous text, so it no longer matches.
+    await queryClient.invalidateQueries({
+      queryKey: ["books", bookLabel, "tts"],
+    });
+    await queryClient.invalidateQueries({
+      queryKey: ["books", bookLabel, "step-status"],
     });
     await minDelay;
     setSaving(false);
@@ -490,6 +736,228 @@ export function LanguageView({
       setPendingEntries([...base, { id: entryId, text: newText }]);
     }
   };
+
+  const applyReviewSuggestion = (entryId: string, suggestedText: string) => {
+    updateEntry(entryId, suggestedText);
+    setAppliedSuggestionEntryIds((current) => {
+      const next = new Set(current);
+      next.add(entryId);
+      return next;
+    });
+  };
+
+  const translationEvaluationKey = [
+    "evaluations",
+    "translations",
+    bookLabel,
+    selectedLang,
+  ] as const;
+  const reviewEntryIds = useMemo(
+    () => categoryFilteredEntries.map((entry) => entry.id),
+    [categoryFilteredEntries],
+  );
+  const translationEvaluation = useQuery({
+    queryKey: translationEvaluationKey,
+    queryFn: () => api.getTranslationEvaluation(bookLabel, selectedLang!),
+    enabled:
+      translationEvaluationEnabled &&
+      !!bookLabel &&
+      !!selectedLang &&
+      !isSourceLang &&
+      !isSpeechStage,
+    retry: false,
+  });
+  const evaluationStatus = translationEvaluationEnabled
+    ? (translationEvaluation.data ?? null)
+    : null;
+  const shouldAutoSurfaceReviewRef = useRef(false);
+  const autoSurfaceAfterReviewVersionRef = useRef<number | null>(null);
+  const hasTranslationEvaluationRunFailure =
+    (evaluationStatus?.evaluation?.metadata?.failed_pages ?? 0) > 0;
+  const evaluationItemsByEntryId = useMemo(() => {
+    const map = new Map<string, TranslationEvaluationItem>();
+    if (
+      !evaluationStatus?.evaluation ||
+      evaluationStatus.isStale ||
+      hasTranslationEvaluationRunFailure
+    )
+      return map;
+    const selectedIds = evaluationStatus.evaluation.metadata?.selected_entry_ids;
+    const visibleIds = new Set(reviewEntryIds);
+    const matchesVisibleScope = selectedIds
+      ? selectedIds.some((entryId) => visibleIds.has(entryId))
+      : true;
+    if (!matchesVisibleScope) return map;
+    for (const item of evaluationStatus.evaluation.items) {
+      if (!visibleIds.has(item.entry_id)) continue;
+      const currentSourceText = sourceEntriesById.get(item.entry_id);
+      const currentTranslatedText = translatedMap.get(item.entry_id);
+      if (item.source_text !== undefined && item.source_text !== currentSourceText)
+        continue;
+      if (
+        item.translated_text !== undefined &&
+        item.translated_text !== currentTranslatedText
+      )
+        continue;
+      map.set(item.entry_id, item);
+    }
+    return map;
+  }, [
+    evaluationStatus,
+    hasTranslationEvaluationRunFailure,
+    reviewEntryIds,
+    sourceEntriesById,
+    translatedMap,
+  ]);
+  const hasReviewResults =
+    translationEvaluationEnabled &&
+    !isSourceLang &&
+    !isSpeechStage &&
+    !!evaluationStatus?.evaluation &&
+    !evaluationStatus.isStale &&
+    !hasTranslationEvaluationRunFailure &&
+    evaluationItemsByEntryId.size > 0;
+  const reviewItemsForCategory = useMemo(
+    () =>
+      categoryFilteredEntries
+        .map((entry) => evaluationItemsByEntryId.get(entry.id))
+        .filter((item): item is TranslationEvaluationItem => !!item),
+    [categoryFilteredEntries, evaluationItemsByEntryId],
+  );
+  const reviewCounts = useMemo(() => {
+    const acceptable = reviewItemsForCategory.filter(
+      (item) => item.acceptable,
+    ).length;
+    const acceptedAnyway = reviewItemsForCategory.filter(
+      (item) => item.accepted_anyway,
+    ).length;
+    const pendingSave = reviewItemsForCategory.filter(
+      (item) =>
+        !item.acceptable &&
+        !item.accepted_anyway &&
+        appliedSuggestionEntryIds.has(item.entry_id),
+    ).length;
+    const needsAttention = reviewItemsForCategory.filter(
+      (item) =>
+        !item.acceptable &&
+        !item.accepted_anyway &&
+        !appliedSuggestionEntryIds.has(item.entry_id),
+    ).length;
+    return {
+      total: reviewItemsForCategory.length,
+      acceptable,
+      acceptedAnyway,
+      pendingSave,
+      needsAttention,
+    };
+  }, [appliedSuggestionEntryIds, reviewItemsForCategory]);
+  const displayEntries = useMemo(() => {
+    if (!hasReviewResults || reviewFilter === "all")
+      return categoryFilteredEntries;
+    return categoryFilteredEntries.filter((entry) => {
+      const item = evaluationItemsByEntryId.get(entry.id);
+      if (!item) return false;
+      if (reviewFilter === "acceptable") return item.acceptable;
+      if (reviewFilter === "accepted-anyway") return item.accepted_anyway;
+      if (reviewFilter === "pending-save") {
+        return (
+          !item.acceptable &&
+          !item.accepted_anyway &&
+          appliedSuggestionEntryIds.has(entry.id)
+        );
+      }
+      return (
+        !item.acceptable &&
+        !item.accepted_anyway &&
+        !appliedSuggestionEntryIds.has(entry.id)
+      );
+    });
+  }, [
+    appliedSuggestionEntryIds,
+    categoryFilteredEntries,
+    evaluationItemsByEntryId,
+    hasReviewResults,
+    reviewFilter,
+  ]);
+  const activeEvaluationTask = useMemo(() => {
+    if (!translationEvaluationEnabled) return null;
+    return (
+      [...tasks]
+        .filter(
+          (task) =>
+            task.kind === "translation-evaluation" &&
+            (task.status === "running" || task.status === "queued"),
+        )
+        .sort((left, right) => (right.startedAt ?? 0) - (left.startedAt ?? 0))[0] ??
+      null
+    );
+  }, [tasks, translationEvaluationEnabled]);
+  const runTranslationReview = useMutation({
+    mutationFn: async () => {
+      if (!translationEvaluationEnabled)
+        throw new Error(
+          i18n._(msg`Translation review is disabled for this book.`),
+        );
+      if (!selectedLang)
+        throw new Error(i18n._(msg`Select a target language first.`));
+      if (reviewEntryIds.length === 0)
+        throw new Error(i18n._(msg`No visible translations to review.`));
+      return api.runTranslationEvaluation(
+        bookLabel,
+        selectedLang,
+        apiKey,
+        {
+          pageId: selectedPageId ?? undefined,
+          entryIds: reviewEntryIds,
+        },
+        {
+          anthropicApiKey: anthropicKey || undefined,
+          googleApiKey: googleKey || undefined,
+          customBaseUrl: customBaseUrl || undefined,
+          customApiKey: customApiKey || undefined,
+        },
+      );
+    },
+    onSuccess: async (result) => {
+      shouldAutoSurfaceReviewRef.current = true;
+      autoSurfaceAfterReviewVersionRef.current =
+        result.status === "current"
+          ? null
+          : (evaluationStatus?.evaluationVersion ?? null);
+      await queryClient.invalidateQueries({
+        queryKey: ["evaluations", "translations", bookLabel],
+      });
+      await queryClient.invalidateQueries({ queryKey: translationEvaluationKey });
+    },
+  });
+  const acceptAnyway = useMutation({
+    mutationFn: async (entryId: string) => {
+      if (!selectedLang)
+        throw new Error(i18n._(msg`Select a target language first.`));
+      return api.acceptTranslationEvaluationItemAnyway(
+        bookLabel,
+        selectedLang,
+        entryId,
+      );
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["evaluations", "translations", bookLabel],
+      });
+      await queryClient.invalidateQueries({ queryKey: translationEvaluationKey });
+    },
+  });
+  const canReviewVisibleTranslations =
+    translationEvaluationEnabled &&
+    !isSourceLang &&
+    !isSpeechStage &&
+    !!selectedLang &&
+    reviewEntryIds.length > 0 &&
+    !runTranslationReview.isPending &&
+    !isTaskRunning("translation-evaluation") &&
+    !dirty;
+  const runTranslationReviewMutate = runTranslationReview.mutate;
+  const runTranslationReviewPending = runTranslationReview.isPending;
 
   // Build audio lookup — use selected language, or editing language when no output languages
   const audioMap = new Map<
@@ -596,6 +1064,39 @@ export function LanguageView({
     estimateSize: () => 60,
     overscan: 5,
   });
+
+  const showReviewFilter = useCallback(
+    (filter: ReviewFilter, scrollToFirst = false) => {
+      setReviewFilter(filter);
+      if (scrollToFirst) {
+        window.setTimeout(
+          () => virtualizer.scrollToIndex(0, { align: "start" }),
+          0,
+        );
+      }
+    },
+    [virtualizer],
+  );
+
+  // After a review finishes, jump straight to what needs attention.
+  useEffect(() => {
+    if (!shouldAutoSurfaceReviewRef.current || !hasReviewResults) return;
+    const currentVersion = evaluationStatus?.evaluationVersion ?? null;
+    const previousVersion = autoSurfaceAfterReviewVersionRef.current;
+    if (previousVersion !== null && currentVersion === previousVersion) return;
+    shouldAutoSurfaceReviewRef.current = false;
+    autoSurfaceAfterReviewVersionRef.current = null;
+    if (reviewCounts.needsAttention > 0) {
+      showReviewFilter("needs-attention", true);
+    } else {
+      showReviewFilter("all");
+    }
+  }, [
+    evaluationStatus?.evaluationVersion,
+    hasReviewResults,
+    reviewCounts.needsAttention,
+    showReviewFilter,
+  ]);
 
   const generateAudioMutation = useMutation({
     mutationFn: async (variables: { textId: string; language: string }) => {
@@ -864,10 +1365,49 @@ export function LanguageView({
             onPreview={(d) => {
               const data = d as { entries?: TextCatalogEntry[] };
               setPendingEntries(data?.entries ?? []);
+              setAppliedSuggestionEntryIds(new Set());
             }}
             onSave={() => saveRef.current()}
-            onDiscard={() => setPendingEntries(null)}
+            onDiscard={() => {
+              setPendingEntries(null);
+              setAppliedSuggestionEntryIds(new Set());
+            }}
           />
+        )}
+      {translationEvaluationEnabled &&
+        selectedLang &&
+        !isSourceLang &&
+        !isSpeechStage && (
+          <button
+            type="button"
+            onClick={() => runTranslationReviewMutate()}
+            disabled={!canReviewVisibleTranslations}
+            title={
+              dirty
+                ? t`Save changes before reviewing`
+                : t`Review visible translations`
+            }
+            className="inline-flex h-6 items-center gap-1 rounded bg-white/20 px-2 text-[10px] font-medium text-white transition-colors hover:bg-white/30 disabled:cursor-default disabled:opacity-40"
+          >
+            {runTranslationReviewPending || activeEvaluationTask ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : hasReviewResults &&
+              reviewCounts.needsAttention === 0 &&
+              reviewCounts.pendingSave === 0 ? (
+              <Check className="h-3 w-3" />
+            ) : (
+              <WandSparkles className="h-3 w-3" />
+            )}
+            {runTranslationReviewPending || activeEvaluationTask
+              ? t`Reviewing...`
+              : hasReviewResults && reviewCounts.needsAttention > 0
+                ? t`${reviewCounts.needsAttention} issue/issues`
+                : hasReviewResults && reviewCounts.pendingSave > 0
+                  ? t`${reviewCounts.pendingSave} pending save`
+                  : hasReviewResults
+                    ? t`Reviewed`
+                    : t`Review`}
+          </button>
         )}
       <div className="w-px h-4 bg-white/20" />
       <button
@@ -1234,6 +1774,157 @@ export function LanguageView({
             </div>
           )}
 
+          {/* Each banner is its own polite live region: the review runs
+              asynchronously, so a screen-reader user would otherwise never hear
+              the outcome. They are alternatives in practice, so at most one
+              announces at a time. */}
+          {!isSourceLang && !isSpeechStage && hasReviewResults && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="rounded-md border border-emerald-200 bg-emerald-50/70 px-3 py-2 text-xs text-emerald-950"
+            >
+                <div className="flex flex-wrap items-center gap-2">
+                  <Check className="h-3.5 w-3.5 shrink-0 text-emerald-700" />
+                  <span className="font-medium text-emerald-900">
+                    {reviewCounts.needsAttention > 0
+                      ? reviewCounts.pendingSave > 0
+                        ? t`Review complete: ${reviewCounts.acceptable} acceptable, ${reviewCounts.needsAttention} need attention, ${reviewCounts.pendingSave} pending save.`
+                        : t`Review complete: ${reviewCounts.acceptable} acceptable, ${reviewCounts.needsAttention} need attention.`
+                      : reviewCounts.pendingSave > 0
+                        ? t`Review complete: ${reviewCounts.acceptable} acceptable, ${reviewCounts.pendingSave} pending save.`
+                        : t`Review complete: all ${reviewCounts.total} reviewed translations are acceptable.`}
+                  </span>
+                  {reviewCounts.pendingSave > 0 && (
+                    <span className="rounded bg-white/70 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 ring-1 ring-emerald-200">
+                      {t`${reviewCounts.pendingSave} pending save`}
+                    </span>
+                  )}
+                  {reviewCounts.acceptedAnyway > 0 && (
+                    <span className="rounded bg-white/70 px-1.5 py-0.5 text-[10px] font-medium text-emerald-800 ring-1 ring-emerald-200">
+                      {t`${reviewCounts.acceptedAnyway} accepted anyway`}
+                    </span>
+                  )}
+                  <div className="ml-auto flex flex-wrap items-center gap-1">
+                    {(
+                      [
+                        ["all", t`All`, reviewCounts.total],
+                        [
+                          "needs-attention",
+                          t`Needs attention`,
+                          reviewCounts.needsAttention,
+                        ],
+                        [
+                          "pending-save",
+                          t`Pending save`,
+                          reviewCounts.pendingSave,
+                        ],
+                        ["acceptable", t`Acceptable`, reviewCounts.acceptable],
+                        [
+                          "accepted-anyway",
+                          t`Accepted anyway`,
+                          reviewCounts.acceptedAnyway,
+                        ],
+                      ] as const
+                    ).map(([filter, label, count]) => {
+                      if (filter !== "all" && count === 0) return null;
+                      return (
+                        <button
+                          key={filter}
+                          type="button"
+                          onClick={() => showReviewFilter(filter)}
+                          aria-pressed={reviewFilter === filter}
+                          className={cn(
+                            "h-6 rounded px-2 text-[11px] font-medium transition-colors",
+                            reviewFilter === filter
+                              ? "bg-emerald-700 text-white"
+                              : "bg-white/80 text-emerald-800 ring-1 ring-emerald-200 hover:bg-emerald-100",
+                          )}
+                        >
+                          {label}
+                          <span className="ml-1 opacity-70 tabular-nums">
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+                    {reviewCounts.needsAttention > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => showReviewFilter("needs-attention", true)}
+                        className="h-6 rounded bg-orange-100 px-2 text-[11px] font-medium text-orange-800 ring-1 ring-orange-200 hover:bg-orange-200"
+                      >
+                        {t`Next issue`}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+          {!isSourceLang && !isSpeechStage && activeEvaluationTask && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="flex items-center gap-2 rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800"
+            >
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>
+                  {activeEvaluationTask.progressMessage ??
+                    t`Translation review is running.`}
+                </span>
+                {typeof activeEvaluationTask.progressPercent === "number" && (
+                  <span className="ml-auto tabular-nums">
+                    {Math.round(activeEvaluationTask.progressPercent)}%
+                  </span>
+                )}
+              </div>
+            )}
+
+          {!isSourceLang && !isSpeechStage && evaluationStatus?.isStale && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"
+            >
+              {t`The saved translation review is stale. Run Review again for the visible translations.`}
+            </div>
+          )}
+
+          {!isSourceLang &&
+            !isSpeechStage &&
+            hasTranslationEvaluationRunFailure && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900"
+              >
+                {t`The last translation review failed before producing reliable item-level results. Run Review again for the visible translations.`}
+              </div>
+            )}
+
+          {translationEvaluationEnabled &&
+            !isSourceLang &&
+            !isSpeechStage &&
+            runTranslationReview.error && (
+              <Alert variant="destructive" className="rounded-md">
+                <AlertDescription className="text-xs whitespace-pre-wrap break-words">
+                  {runTranslationReview.error.message}
+                </AlertDescription>
+              </Alert>
+            )}
+
+          {translationEvaluationEnabled &&
+            !isSourceLang &&
+            !isSpeechStage &&
+            acceptAnyway.error && (
+              <Alert variant="destructive" className="rounded-md">
+                <AlertDescription className="text-xs whitespace-pre-wrap break-words">
+                  {acceptAnyway.error.message}
+                </AlertDescription>
+              </Alert>
+            )}
+
           {!isSourceLang &&
             !isSourceLanguagePending &&
             visibleEntries.length > 0 && (
@@ -1254,6 +1945,25 @@ export function LanguageView({
             stageSlug="translate"
             label={t`Resolving source language...`}
           />
+        ) : hasReviewResults &&
+          displayEntries.length === 0 &&
+          categoryFilteredEntries.length > 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+            <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mb-3">
+              <Check className="w-6 h-6 text-emerald-400" />
+            </div>
+            <p className="text-sm font-medium">
+              {reviewFilter === "needs-attention"
+                ? t`No translations need attention.`
+                : reviewFilter === "acceptable"
+                  ? t`No acceptable review results for this view.`
+                  : reviewFilter === "pending-save"
+                    ? t`No suggestions are pending save in this view.`
+                    : reviewFilter === "accepted-anyway"
+                      ? t`No translations were accepted anyway in this view.`
+                      : t`No review results for this view.`}
+            </p>
+          </div>
         ) : selectedPageId &&
           displayEntries.length === 0 &&
           entries.length > 0 ? (
@@ -1290,6 +2000,7 @@ export function LanguageView({
                 const baseAudio = baseAudioMap.get(entry.id);
                 const isImg = isImageEntry(entry.id);
                 const isAnswer = isAnswerEntry(entry.id);
+                const evaluationItem = evaluationItemsByEntryId.get(entry.id);
                 const exclusion = getEntryTtsExclusion(
                   entry.id,
                   ttsExclusionConfig,
@@ -1592,6 +2303,7 @@ export function LanguageView({
                                       isPlaying={playingEntryId === entry.id}
                                     />
                                   ) : (
+                                    <>
                                     <textarea
                                       value={translated ?? ""}
                                       onChange={(e) =>
@@ -1606,6 +2318,28 @@ export function LanguageView({
                                       }
                                       rows={1}
                                     />
+                                      {evaluationItem ? (
+                                        <TranslationReviewInline
+                                          item={evaluationItem}
+                                          suggestionApplied={appliedSuggestionEntryIds.has(
+                                            entry.id,
+                                          )}
+                                          onApplySuggestion={(suggestedText) =>
+                                            applyReviewSuggestion(
+                                              entry.id,
+                                              suggestedText,
+                                            )
+                                          }
+                                          onAcceptAnyway={() =>
+                                            acceptAnyway.mutate(entry.id)
+                                          }
+                                          acceptingAnyway={
+                                            acceptAnyway.isPending &&
+                                            acceptAnyway.variables === entry.id
+                                          }
+                                        />
+                                      ) : null}
+                                    </>
                                   )}
                                 </div>
                               </div>

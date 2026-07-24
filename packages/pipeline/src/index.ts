@@ -260,10 +260,12 @@ export {
 export {
   packageEpub,
   type PackageEpubOptions,
-} from "./package-epub.js"
+} from "./packaging/epub.js"
+export { packageWebpub } from "./packaging/webpub.js"
+export { buildPreviewTailwindCss } from "./tailwind.js"
+export { htmlToXhtml } from "./html-semantics.js"
 export {
   packageAdtWeb,
-  packageWebpub,
   computePackagingInputHash,
   type PackageAdtWebOptions,
   type ComputePackagingInputHashOptions,
@@ -271,19 +273,17 @@ export {
   resolveReflowableFontChain,
   NAV_HTML,
   type RenderPageOptions,
-  buildPreviewTailwindCss,
   buildGlossaryJson,
   buildImageMap,
   buildPreferredImageAltMap,
   buildDecorativeImageIdSet,
   rewriteImageUrls,
-  htmlToXhtml,
   renderQuizHtml,
   type QuizStyle,
   buildQuizAnswers,
   pad3,
   convertLatexToMathml,
-} from "./package-web.js"
+} from "./packaging/web.js"
 export {
   resolveQuizPalette,
   deriveQuizPalette,

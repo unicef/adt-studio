@@ -1,5 +1,8 @@
 default: Speak in a cheerful and positive tone.
 en: Speak in a cheerful and positive tone.
+en-jm: |-
+  Speak it in a Jamaican English accent. Use the pronunciation and
+  intonation typical of Jamaica. Maintain a calm, conversational and positive tone.
 sq: |
   Style: Warm, natural, child-friendly conversational cadence at a calm, measured pace.
   Accent: Speak in an authentic Albanian accent native to Pristina, Kosovo. Use Gheg

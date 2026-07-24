@@ -64,7 +64,7 @@ import {
   generateSpeechFile,
   type ProviderRouting,
 } from "./speech.js"
-import { packageAdtWeb } from "./package-web.js"
+import { packageAdtWeb } from "./packaging/web.js"
 import { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rendering.js"
 import { getRenderSectioning } from "./render-sectioning.js"
 import { runAccessibilityAssessment } from "./accessibility-assessment.js"

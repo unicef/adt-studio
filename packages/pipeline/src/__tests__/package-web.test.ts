@@ -8,14 +8,14 @@ import {
   buildGlossaryJson,
   injectWebpubStyles,
   packageAdtWeb,
-  packageWebpub,
   renderPageHtml,
   resolveReflowableFontChain,
   renderQuizHtml,
   rewriteImageUrls,
   convertLatexToMathml,
   convertLatexString,
-} from "../package-web.js"
+} from "../packaging/web.js"
+import { packageWebpub, nestTocEntries, injectActivitiesBundle } from "../packaging/webpub.js"
 import { deriveQuizPalette } from "../quiz-palette.js"
 
 function createMockStorage(
@@ -2037,6 +2037,73 @@ describe("convertLatexToMathml (HTML)", () => {
   })
 })
 
+describe("nestTocEntries", () => {
+  it("keeps level-less entries flat", () => {
+    const result = nestTocEntries([
+      { href: "a.html", title: "A" },
+      { href: "b.html", title: "B" },
+    ])
+    expect(result).toEqual([
+      { href: "a.html", title: "A" },
+      { href: "b.html", title: "B" },
+    ])
+  })
+
+  it("nests deeper levels under the preceding entry", () => {
+    const result = nestTocEntries([
+      { href: "ch1.html", title: "Chapter 1", level: 1 },
+      { href: "ch1-1.html", title: "Section 1.1", level: 2 },
+      { href: "ch1-2.html", title: "Section 1.2", level: 2 },
+      { href: "ch2.html", title: "Chapter 2", level: 1 },
+    ])
+    expect(result).toEqual([
+      {
+        href: "ch1.html",
+        title: "Chapter 1",
+        children: [
+          { href: "ch1-1.html", title: "Section 1.1" },
+          { href: "ch1-2.html", title: "Section 1.2" },
+        ],
+      },
+      { href: "ch2.html", title: "Chapter 2" },
+    ])
+  })
+})
+
+describe("injectActivitiesBundle", () => {
+  let tmp: string
+
+  beforeEach(() => {
+    tmp = fs.mkdtempSync(path.join(os.tmpdir(), "inject-activities-"))
+  })
+  afterEach(() => {
+    fs.rmSync(tmp, { recursive: true, force: true })
+  })
+
+  it("injects the bundle only into pages with an activity section", () => {
+    const activityHtml = `<html><body><section data-section-type="activity_quiz"></section></body></html>`
+    const plainHtml = `<html><body><p>No activity here</p></body></html>`
+    fs.writeFileSync(path.join(tmp, "quiz.html"), activityHtml)
+    fs.writeFileSync(path.join(tmp, "plain.html"), plainHtml)
+
+    injectActivitiesBundle(tmp)
+
+    const quiz = fs.readFileSync(path.join(tmp, "quiz.html"), "utf-8")
+    const plain = fs.readFileSync(path.join(tmp, "plain.html"), "utf-8")
+    expect(quiz).toContain("./assets/activities.bundle.local.js")
+    expect(plain).not.toContain("activities.bundle.local.js")
+  })
+
+  it("does not double-inject", () => {
+    const html = `<html><body><section data-section-type="activity_sorting"></section></body></html>`
+    fs.writeFileSync(path.join(tmp, "a.html"), html)
+    injectActivitiesBundle(tmp)
+    injectActivitiesBundle(tmp)
+    const out = fs.readFileSync(path.join(tmp, "a.html"), "utf-8")
+    expect(out.match(/activities\.bundle\.local\.js/g)).toHaveLength(1)
+  })
+})
+
 describe("injectWebpubStyles", () => {
   let tmpDir: string
 
@@ -2069,6 +2136,17 @@ describe("injectWebpubStyles", () => {
     const p = writePage()
     injectWebpubStyles(tmpDir, { fixedLayout: true })
     expect(fs.readFileSync(p, "utf-8")).not.toContain(".glossref")
+  })
+
+  it("neutralizes the fixed-layout fit only when asked (EPUB), not for WebPub", () => {
+    const p = writePage()
+    injectWebpubStyles(tmpDir, { fixedLayout: true })
+    // WebPub keeps the browser fit script active.
+    expect(fs.readFileSync(p, "utf-8")).not.toContain("transform: none")
+
+    const p2 = writePage()
+    injectWebpubStyles(tmpDir, { fixedLayout: true, neutralizeFixedLayoutFit: true })
+    expect(fs.readFileSync(p2, "utf-8")).toContain("transform: none")
   })
 })
 
@@ -2170,6 +2248,63 @@ describe("packageWebpub", () => {
     expect(config.features.showTutorial).toBe(false)
   })
 
+  it("drops SCORM/non-reader files and omits them from manifest resources", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage)
+    // packageAdtWeb emits imsmanifest.xml; add a stray AGENTS.md too.
+    fs.writeFileSync(path.join(bookDir, "adt", "AGENTS.md"), "stray")
+    expect(fs.existsSync(path.join(bookDir, "adt", "imsmanifest.xml"))).toBe(true)
+
+    packageWebpub(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Test Book",
+      webAssetsDir,
+    })
+
+    expect(fs.existsSync(path.join(bookDir, "webpub", "imsmanifest.xml"))).toBe(false)
+    expect(fs.existsSync(path.join(bookDir, "webpub", "AGENTS.md"))).toBe(false)
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
+    )
+    const hrefs = manifest.resources.map((r: { href: string }) => r.href)
+    expect(hrefs).not.toContain("imsmanifest.xml")
+    expect(hrefs).not.toContain("AGENTS.md")
+  })
+
+  it("labels resources by MIME type and excludes reading-order docs", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage)
+    // A font that would otherwise fall through to application/octet-stream.
+    const fontDir = path.join(bookDir, "adt", "assets", "fonts")
+    fs.mkdirSync(fontDir, { recursive: true })
+    fs.writeFileSync(path.join(fontDir, "book.woff2"), "font")
+
+    packageWebpub(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Test Book",
+      webAssetsDir,
+    })
+
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
+    )
+    const font = manifest.resources.find((r: { href: string }) => r.href.endsWith("book.woff2"))
+    expect(font?.type).toBe("font/woff2")
+    // Reading-order documents must not be duplicated into resources.
+    const resourceHrefs = manifest.resources.map((r: { href: string }) => r.href)
+    const readingOrderHrefs = manifest.readingOrder.map((r: { href: string }) => r.href)
+    expect(readingOrderHrefs).toContain("index.html")
+    for (const href of readingOrderHrefs) {
+      expect(resourceHrefs).not.toContain(href)
+    }
+  })
+
   it("injects CSS overrides into HTML pages", async () => {
     const { bookDir, webAssetsDir, storage } = setupBook()
     await buildAdtFirst(bookDir, webAssetsDir, storage)
@@ -2207,7 +2342,8 @@ describe("packageWebpub", () => {
     )
     expect(manifest["@context"]).toBe("https://readium.org/webpub-manifest/context.jsonld")
     expect(manifest.metadata.title).toBe("My Test Book")
-    expect(manifest.metadata.language).toBe("en")
+    expect(manifest.metadata.language).toEqual(["en"])
+    expect(manifest.metadata.conformsTo).toContain("https://readium.org/webpub-manifest/profiles/epub")
     expect(manifest.metadata.presentation.overflow).toBe("scrolled")
     expect(manifest.metadata.presentation.spread).toBe("none")
     expect(manifest.metadata.author).toBe("Author")
@@ -2221,6 +2357,128 @@ describe("packageWebpub", () => {
       type: "application/webpub+json",
     })
     expect(manifest.resources.length).toBeGreaterThan(0)
+  })
+
+  it("declares fixed layout in the manifest for fixed-layout books", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage)
+    packageWebpub(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "My Test Book",
+      webAssetsDir,
+      fixedLayout: true,
+    })
+
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
+    )
+    expect(manifest.metadata.layout).toBe("fixed")
+    expect(manifest.metadata.conformsTo).toContain("https://readium.org/webpub-manifest/profiles/epub")
+    // No deprecated presentation.layout — conformsTo makes readers honor metadata.layout.
+    expect(manifest.metadata.presentation.layout).toBeUndefined()
+    expect(manifest.metadata.presentation.fit).toBe("contain")
+    expect(manifest.metadata.presentation.spread).toBe("none")
+    expect(manifest.metadata.presentation.overflow).toBeUndefined()
+  })
+
+  it("emits pageList and landmarks navigation collections", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage)
+    packageWebpub(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Test Book",
+      webAssetsDir,
+    })
+
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
+    )
+    expect(manifest.pageList).toEqual([{ href: "index.html", title: "1" }])
+    expect(manifest.landmarks).toContainEqual({ rel: "bodymatter", href: "index.html" })
+  })
+
+  it("emits schema.org accessibility metadata derived from features", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage)
+    packageWebpub(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Test Book",
+      webAssetsDir,
+    })
+
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
+    )
+    const a11y = manifest.metadata.accessibility
+    expect(a11y.accessMode).toEqual(expect.arrayContaining(["textual", "visual"]))
+    expect(a11y.feature).toContain("readingOrder")
+    expect(a11y.hazard).toEqual(["none"])
+    expect(typeof a11y.summary).toBe("string")
+  })
+
+  it("exposes the language list and keeps the manifest standards-clean", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage)
+    packageWebpub(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Test Book",
+      webAssetsDir,
+    })
+
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(bookDir, "webpub", "manifest.json"), "utf-8"),
+    )
+    // Languages listed in the standard metadata.language array.
+    expect(manifest.metadata.language).toEqual(["en"])
+    // No proprietary feature block — ADT-only features live in config.json.
+    expect(manifest.metadata["https://adt.unicef.org/schema#features"]).toBeUndefined()
+    // Image captions are on by default → standard alternativeText feature.
+    expect(manifest.metadata.accessibility.feature).toContain("alternativeText")
+  })
+
+  it("strips the embedded runtime but keeps the feature data contract", async () => {
+    const { bookDir, webAssetsDir, storage } = setupBook()
+    await buildAdtFirst(bookDir, webAssetsDir, storage)
+    packageWebpub(storage, {
+      bookDir,
+      label: "book",
+      language: "en",
+      outputLanguages: ["en"],
+      title: "Test Book",
+      webAssetsDir,
+    })
+
+    const webpubDir = path.join(bookDir, "webpub")
+    const assetsDir = path.join(webpubDir, "assets")
+
+    for (const name of [
+      "base.bundle.min.js",
+      "base.bundle.local.js",
+      "offline-preloader.js",
+      "scorm.js",
+    ]) {
+      expect(fs.existsSync(path.join(assetsDir, name))).toBe(false)
+    }
+
+    const html = fs.readFileSync(path.join(webpubDir, "index.html"), "utf-8")
+    expect(html).not.toContain("base.bundle")
+    expect(html).not.toContain("offline-preloader.js")
+    expect(html).not.toContain("scorm.js")
+
+    expect(fs.existsSync(path.join(assetsDir, "config.json"))).toBe(true)
+    expect(fs.existsSync(path.join(webpubDir, "content", "pages.json"))).toBe(true)
   })
 
   it("throws when ADT package has not been built", () => {
