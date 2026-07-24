@@ -121,14 +121,14 @@ describe("packageEpub glossary modes", () => {
 
     // Popover content (the reader extracts the dt/dd fragment): 24px inline
     // text, the term picture, an autoplaying sign-language video, and no
-    // "Page N" backlinks.
+    // "p. N" backlinks.
     const doc = read("glossary.xhtml")
     expect(doc).toContain(`font-size:24px`)
     expect(doc).toContain(`<img src="images/img_volcano.png"`)
     expect(doc).toContain(`<video src="content/i18n/en/video/sl_gl001.mp4"`)
     expect(doc).toContain(`autoplay="autoplay"`)
     expect(doc).not.toContain(`epub:type="backlink"`)
-    expect(doc).not.toContain(">Page 1<")
+    expect(doc).not.toContain(">p. 1<")
     // The video ships inside the bundle (packageAdtWeb copied it).
     expect(exists("content/i18n/en/video/sl_gl001.mp4")).toBe(true)
   })
@@ -172,7 +172,7 @@ describe("packageEpub glossary modes", () => {
     expect(glp1).toContain(`removeAttribute("controls")`)
     expect(glp1).toContain(`epub:type="backlink"`)
     expect(glp1).toContain(`href="index.xhtml#`)
-    expect(glp1).toContain("Page 1")
+    expect(glp1).toContain("p. 1")
     expect(exists("content/i18n/en/video/sl_gl001.mp4")).toBe(true)
 
     // Spine includes the glossary pages as linear items.

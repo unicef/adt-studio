@@ -177,7 +177,7 @@ export function packageEpub(
         ? wrapGlossaryTerms(xhtml, glossaryEntries, hrefForEntry)
         : wrapGlossaryTerms(xhtml, glossaryEntries)
       xhtml = result.xhtml
-      const label = page.page_number != null ? `Page ${page.page_number}` : page.section_id
+      const label = page.page_number != null ? `p. ${page.page_number}` : page.section_id
       for (const occ of result.occurrences) {
         const list = backlinksByEntry.get(occ.entryId) ?? []
         list.push({ href: `${xhtmlHref}#${occ.fragment}`, label })

@@ -4,7 +4,23 @@ import path from "node:path"
 import { z } from "zod"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel, ImageClassificationOutput, PageSectioningOutput, WebRenderingOutput, ImageCaptioningOutput, ImageSegmentRegion, DEFAULT_LLM_MAX_RETRIES, primaryFontFamily, reflowableFontChain, BookFontRegistry, bookBodyFont, bookFontFamilyChain, splitNodesBefore } from "@adt/types"
+import {
+  parseBookLabel,
+  ImageClassificationOutput,
+  PageSectioningOutput,
+  WebRenderingOutput,
+  ImageCaptioningOutput,
+  ImageSegmentRegion,
+  DEFAULT_LLM_MAX_RETRIES,
+  primaryFontFamily,
+  reflowableFontChain,
+  BookFontRegistry,
+  bookBodyFont,
+  bookFontFamilyChain,
+  splitNodesBefore,
+  IMAGE_SET_CHANGE_CLEAR_NODE_TYPES,
+  IMAGE_SET_CHANGE_CLEAR_STEPS,
+} from "@adt/types"
 import type { ContentNodeData, ExtractionWarning } from "@adt/types"
 import { classifyExtractionWarning, flattenVisibleSectioningText } from "../services/extraction-warning.js"
 import { openBookDb } from "@adt/storage"
@@ -405,26 +421,8 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
 
 /** Clear storyboard-dependent data when page text, rendering, or images change. */
 function clearCaptionData(storage: Storage): void {
-  storage.clearNodesByType([
-    "image-captioning",
-    "text-catalog",
-    "easy-read",
-    "text-catalog-translation",
-    "tts",
-    "tts-timestamps",
-    "accessibility-assessment",
-  ])
-  storage.clearStepRuns([
-    "image-captioning",
-    "text-catalog",
-    "easy-read",
-    "catalog-translation",
-    "image-translation",
-    "tts",
-    "word-timestamps",
-    "package-web",
-    "accessibility-assessment",
-  ])
+  storage.clearNodesByType([...IMAGE_SET_CHANGE_CLEAR_NODE_TYPES])
+  storage.clearStepRuns([...IMAGE_SET_CHANGE_CLEAR_STEPS])
 }
 
 /**

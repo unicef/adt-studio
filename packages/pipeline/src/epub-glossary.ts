@@ -47,7 +47,7 @@ export interface GlossaryEntry {
 export interface GlossaryBacklink {
   /** Resolvable href to the occurrence, e.g. `pg002_sec001.xhtml#pg002_p0_w006`. */
   href: string
-  /** Human label for the link, e.g. `Page 3`. */
+  /** Human label for the link, e.g. `p. 3`. */
   label: string
 }
 
@@ -344,7 +344,7 @@ export interface BuildGlossaryDocumentInput {
    * Entry id → in-text occurrences. Only entries present as keys are
    * emitted (a term that never matched has nothing linking to it). The
    * occurrence targets themselves are NOT rendered — the reader's popover
-   * would surface them as stray "Page N" links.
+   * would surface them as stray "p. N" links.
    */
   backlinksByEntry: Map<string, GlossaryBacklink[]>
   /** Glossary item sourceId → OEBPS-relative sign-language video href. */

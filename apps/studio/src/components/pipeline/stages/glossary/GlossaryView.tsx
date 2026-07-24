@@ -45,6 +45,13 @@ import { VersionPicker } from "../../components/VersionPicker"
 import { usePendingChanges } from "../../components/change-summary"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { useLingui } from "@lingui/react/macro"
 import { AddGlossaryDialog } from "./AddGlossaryDialog"
 import { GlossaryImagePickerDialog } from "./components/GlossaryImagePickerDialog"
@@ -483,6 +490,7 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
                   bookLabel={bookLabel}
                   textId={textId}
                   signVideo={signVideoBySectionId.get(textId) ?? null}
+                  signVideos={signVideosData?.videos ?? []}
                   occurrence={occurrences.get(item.id ?? item.word)}
                   occurrenceLoading={occurrencesLoading}
                   onDefinitionChange={updateDefinition}
@@ -623,6 +631,7 @@ function GlossaryItemCard({
   bookLabel,
   textId,
   signVideo,
+  signVideos,
   occurrence,
   occurrenceLoading,
   onDefinitionChange,
@@ -635,6 +644,7 @@ function GlossaryItemCard({
   bookLabel: string
   textId: string
   signVideo: SignLanguageVideo | null
+  signVideos: SignLanguageVideo[]
   occurrence?: TermOccurrence
   occurrenceLoading: boolean
   onDefinitionChange: (itemId: string, definition: string) => void
@@ -754,7 +764,12 @@ function GlossaryItemCard({
               word={item.word}
               onChange={(imageId) => onImageIdChange(itemId, imageId)}
             />
-            <GlossarySignVideo bookLabel={bookLabel} textId={textId} video={signVideo} />
+            <GlossarySignVideo
+              bookLabel={bookLabel}
+              textId={textId}
+              video={signVideo}
+              videos={signVideos}
+            />
           </div>
         )}
       </div>
@@ -838,17 +853,28 @@ function GlossarySignVideo({
   bookLabel,
   textId,
   video,
+  videos,
 }: {
   bookLabel: string
   textId: string
   video: SignLanguageVideo | null
+  videos: SignLanguageVideo[]
 }) {
   const { t } = useLingui()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
   const uploadMutation = useUploadSignLanguageVideo(bookLabel)
   const assignMutation = useAssignSignLanguageVideo(bookLabel)
   const deleteMutation = useDeleteSignLanguageVideo(bookLabel)
   const busy = uploadMutation.isPending || assignMutation.isPending
+  const unassignedVideos = videos.filter((candidate) => !candidate.sectionId)
+
+  const assignVideo = (videoId: string) => {
+    assignMutation.mutate(
+      { videoId, sectionId: textId },
+      { onSuccess: () => setPickerOpen(false) },
+    )
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -857,7 +883,7 @@ function GlossarySignVideo({
     uploadMutation.mutate(file, {
       onSuccess: (data) => {
         if (data?.videoId) {
-          assignMutation.mutate({ videoId: data.videoId, sectionId: textId })
+          assignVideo(data.videoId)
         }
       },
     })
@@ -915,7 +941,7 @@ function GlossarySignVideo({
       ) : (
         <button
           type="button"
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => setPickerOpen(true)}
           disabled={busy}
           className="inline-flex h-7 items-center gap-1 rounded-md border border-dashed border-border/70 px-2 text-[11px] font-medium text-muted-foreground transition-colors hover:border-cyan-300 hover:bg-cyan-50 hover:text-cyan-700 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
         >
@@ -927,6 +953,110 @@ function GlossarySignVideo({
           {t`Add sign language video`}
         </button>
       )}
+
+      <Dialog
+        open={!video && pickerOpen}
+        onOpenChange={(open) => {
+          if (!busy) setPickerOpen(open)
+        }}
+      >
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{t`Add sign language video`}</DialogTitle>
+            <DialogDescription>
+              {t`Choose a previously uploaded video or upload a new one.`}
+            </DialogDescription>
+          </DialogHeader>
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={busy}
+            className="inline-flex h-9 w-fit items-center gap-1.5 rounded-md bg-cyan-600 px-3 text-xs font-medium text-white transition-colors hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {uploadMutation.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+            ) : (
+              <Plus className="h-3.5 w-3.5" aria-hidden />
+            )}
+            {t`Upload new video`}
+          </button>
+
+          <div className="space-y-2">
+            <h4 className="text-xs font-semibold text-foreground">
+              {t`Previously uploaded videos`}
+            </h4>
+            {unassignedVideos.length === 0 ? (
+              <p className="rounded-md border border-dashed px-3 py-6 text-center text-xs text-muted-foreground">
+                {t`No unassigned videos are available.`}
+              </p>
+            ) : (
+              <ul className="max-h-80 space-y-2 overflow-y-auto pr-1">
+                {unassignedVideos.map((candidate) => {
+                  const assigning =
+                    assignMutation.isPending &&
+                    assignMutation.variables?.videoId === candidate.videoId
+                  const deleting =
+                    deleteMutation.isPending &&
+                    deleteMutation.variables === candidate.videoId
+                  return (
+                    <li
+                      key={candidate.videoId}
+                      className="flex items-center gap-3 rounded-lg border bg-card p-2"
+                    >
+                      <video
+                        src={getSignLanguageVideoUrl(bookLabel, candidate.videoId)}
+                        className="h-16 w-24 shrink-0 rounded bg-black object-contain"
+                        controls
+                        muted
+                        preload="metadata"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className="truncate text-xs font-medium text-foreground"
+                          title={candidate.originalName}
+                        >
+                          {candidate.originalName}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          {t`Unassigned`}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => assignVideo(candidate.videoId)}
+                        disabled={busy || deleteMutation.isPending}
+                        className="inline-flex h-8 items-center gap-1 rounded-md bg-cyan-600 px-2.5 text-[11px] font-medium text-white transition-colors hover:bg-cyan-700 disabled:opacity-50"
+                      >
+                        {assigning ? (
+                          <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                        ) : (
+                          <Check className="h-3 w-3" aria-hidden />
+                        )}
+                        {t`Use video`}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteMutation.mutate(candidate.videoId)}
+                        disabled={busy || deleteMutation.isPending}
+                        aria-label={t`Delete video from book`}
+                        title={t`Delete video from book`}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                      >
+                        {deleting ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                        )}
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

@@ -283,7 +283,35 @@ export async function regenerateGlossaryPreservingEdits(
     ...options,
     excludedWords: getPrunedGlossaryWords(existingItems),
   })
-  return mergeGeneratedGlossaryWithManualItems(generated, existingItems)
+  const regenerated = mergeGeneratedGlossaryWithManualItems(generated, existingItems)
+
+  // Media is deliberately not carried across regeneration. Generated terms
+  // can be added, removed, or reordered, so keeping a positional `glNNN`
+  // assignment risks displaying the wrong sign-language clip. Unassign every
+  // glossary video only after generation succeeds, leaving the uploaded file
+  // in the reusable pool. Images live on the versioned glossary entity, so the
+  // new version simply omits their links while older versions remain intact.
+  const existingTextIds = new Set(
+    existingItems.map((item, index) => getGlossaryItemTextId(item, index)),
+  )
+  for (const video of options.storage.getSignLanguageVideos()) {
+    const sectionId = video.sectionId
+    if (
+      sectionId &&
+      (existingTextIds.has(sectionId) || /^gl(?:\d+|_manual_)/.test(sectionId))
+    ) {
+      options.storage.assignSignLanguageVideo(video.videoId, null)
+    }
+  }
+
+  return {
+    ...regenerated,
+    items: regenerated.items.map((item) => {
+      const withoutImage = { ...item }
+      delete withoutImage.imageId
+      return withoutImage
+    }),
+  }
 }
 
 export interface GenerateGlossaryItemOptions {

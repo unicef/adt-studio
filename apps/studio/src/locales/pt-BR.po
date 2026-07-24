@@ -979,6 +979,9 @@ msgstr "Adicionada"
 msgid "Added manually"
 msgstr "Adicionado manualmente"
 
+msgid "Adding a new image resets downstream work"
+msgstr "Adicionar uma nova imagem redefine o trabalho das etapas posteriores"
+
 msgid "Adding languages beyond the original is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 msgstr "Adicionar idiomas além do original não é compatível com Layout Fixo. Se você continuar, poderá obter resultados indesejados."
 
@@ -1879,6 +1882,9 @@ msgstr "Escolha uma Predefinição"
 msgid "Choose a preset that matches your content — textbook, storyboard, reference, or custom — and ADT Studio tailors the pipeline accordingly."
 msgstr "Escolha um preset que combine com seu conteúdo — livro didático, storyboard, referência ou personalizado — e o ADT Studio adapta o pipeline conforme necessário."
 
+msgid "Choose a previously uploaded video or upload a new one."
+msgstr "Escolha um vídeo enviado anteriormente ou envie um novo."
+
 msgid "Choose an existing image from this project"
 msgstr "Escolha uma imagem existente deste projeto"
 
@@ -2140,6 +2146,12 @@ msgstr "Continue page {0}"
 msgid "Continue reviewer validation on page {0}"
 msgstr "Continue reviewer validation on page {0}"
 
+msgid "Continue to crop"
+msgstr "Continuar para recortar"
+
+msgid "Continue to upload"
+msgstr "Continuar para enviar"
+
 msgid "Continuing will reset your current configuration."
 msgstr "Continuar irá redefinir sua configuração atual."
 
@@ -2269,6 +2281,9 @@ msgstr "Criado em {createdLabel}"
 
 msgid "Creates a ZIP archive of the full project — database, source PDF, and all pipeline outputs. Use it to back up or transfer the project to another machine."
 msgstr "Cria um arquivo ZIP do projeto completo — banco de dados, PDF de origem e todas as saídas do pipeline. Use para fazer backup ou transferir o projeto para outra máquina."
+
+msgid "Creating a new glossary image changes the book's image set. The completed stages below will be cleared and need to run again."
+msgstr "A criação de uma nova imagem de glossário altera o conjunto de imagens do livro. As etapas concluídas abaixo serão apagadas e precisarão ser executadas novamente."
 
 msgid "Creating..."
 msgstr "Criando..."
@@ -2477,6 +2492,9 @@ msgstr "Excluir este questionário?"
 
 msgid "Delete video"
 msgstr "Excluir vídeo"
+
+msgid "Delete video from book"
+msgstr "Excluir vídeo do livro"
 
 msgid "Deleting..."
 msgstr "Excluindo..."
@@ -5125,6 +5143,9 @@ msgstr "Nenhuma tradução precisa de atenção."
 msgid "No translations were accepted anyway in this view."
 msgstr "Nenhuma tradução foi aceita mesmo assim nesta visualização."
 
+msgid "No unassigned videos are available."
+msgstr "Não há vídeos não atribuídos disponíveis."
+
 msgid "No versions"
 msgstr "Sem versões"
 
@@ -5932,6 +5953,9 @@ msgstr "Página anterior"
 
 msgid "Previous slide"
 msgstr "Slide anterior"
+
+msgid "Previously uploaded videos"
+msgstr "Vídeos enviados anteriormente"
 
 msgid "Process every page on this machine."
 msgstr "Processar todas as páginas nesta máquina."
@@ -8559,6 +8583,9 @@ msgstr "Enviar imagem"
 msgid "Upload Image"
 msgstr "Enviar imagem"
 
+msgid "Upload new video"
+msgstr "Enviar novo vídeo"
+
 msgid "Upload PDF or drag and drop"
 msgstr "Envie PDF ou arraste e solte"
 
@@ -8625,6 +8652,9 @@ msgstr "Use este formato para fazer backup do projeto ou movê-lo para outra má
 
 msgid "Use this picture"
 msgstr "Usar esta imagem"
+
+msgid "Use video"
+msgstr "Usar vídeo"
 
 msgid "Used for"
 msgstr "Usada para"

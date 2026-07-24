@@ -1,10 +1,14 @@
 import { useRef, useState } from "react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { ArrowLeft, Check, Crop, Images, Loader2, Search, Upload, X } from "lucide-react"
+import { IMAGE_SET_CHANGE_CLEAR_STAGES } from "@adt/types"
 import { api, BASE_URL } from "@/api/client"
 import { useLingui } from "@lingui/react/macro"
+import { CascadeResetDialog } from "@/components/pipeline/components/CascadeResetDialog"
 import { LoadingState } from "@/components/pipeline/components/LoadingState"
+import { useBookRun } from "@/hooks/use-book-run"
 import { usePages } from "@/hooks/use-pages"
+import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
 import { ImageCropDialog } from "@/components/pipeline/stages/storyboard/components/ImageCropDialog"
 
 interface GlossaryImagePickerDialogProps {
@@ -16,6 +20,7 @@ interface GlossaryImagePickerDialogProps {
 }
 
 type View = "grid" | "page-pick"
+type NewImageAction = "crop" | "upload"
 
 /**
  * Image picker for glossary items with three sources:
@@ -33,6 +38,7 @@ export function GlossaryImagePickerDialog({
 }: GlossaryImagePickerDialogProps) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
+  const { stageState, isStatusLoading } = useBookRun()
   const [view, setView] = useState<View>("grid")
   const [filter, setFilter] = useState("")
   const [selected, setSelected] = useState<string | null>(initialSelected ?? null)
@@ -41,6 +47,8 @@ export function GlossaryImagePickerDialog({
   const [loadingCropPageId, setLoadingCropPageId] = useState<string | null>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [pendingNewImageAction, setPendingNewImageAction] =
+    useState<NewImageAction | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const { data: pages } = usePages(bookLabel)
@@ -64,7 +72,28 @@ export function GlossaryImagePickerDialog({
 
   const finishWithNewImage = (imageId: string) => {
     queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "images"] })
+    invalidateStoryboardDependents(queryClient, bookLabel)
     onConfirm(imageId)
+  }
+
+  const affectedStages = IMAGE_SET_CHANGE_CLEAR_STAGES.filter(
+    (stage) => stageState(stage) === "done",
+  )
+
+  const continueNewImageAction = (action: NewImageAction) => {
+    if (action === "crop") {
+      setView("page-pick")
+    } else {
+      fileInputRef.current?.click()
+    }
+  }
+
+  const requestNewImageAction = (action: NewImageAction) => {
+    if (affectedStages.length === 0) {
+      continueNewImageAction(action)
+      return
+    }
+    setPendingNewImageAction(action)
   }
 
   const openCropForPage = async (pageId: string) => {
@@ -109,7 +138,11 @@ export function GlossaryImagePickerDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black/60 flex items-center justify-center p-8">
+    <div
+      className={`fixed inset-0 bg-black/60 flex items-center justify-center p-8 ${
+        pendingNewImageAction ? "z-40" : "z-[100]"
+      }`}
+    >
       <div className="bg-background rounded-xl shadow-2xl w-full max-w-3xl flex flex-col overflow-hidden max-h-[85vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3.5 border-b shrink-0">
@@ -157,8 +190,9 @@ export function GlossaryImagePickerDialog({
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"
-                  onClick={() => setView("page-pick")}
-                  className="flex items-center gap-2.5 rounded-lg border border-dashed px-3 py-2.5 text-left hover:border-lime-500 hover:bg-lime-50/50 transition-colors cursor-pointer"
+                  onClick={() => requestNewImageAction("crop")}
+                  disabled={isStatusLoading}
+                  className="flex items-center gap-2.5 rounded-lg border border-dashed px-3 py-2.5 text-left hover:border-lime-500 hover:bg-lime-50/50 transition-colors cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Crop className="h-4 w-4 text-lime-600 shrink-0" />
                   <span className="min-w-0">
@@ -170,8 +204,8 @@ export function GlossaryImagePickerDialog({
                 </button>
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploading || !pages?.length}
+                  onClick={() => requestNewImageAction("upload")}
+                  disabled={uploading || !pages?.length || isStatusLoading}
                   className="flex items-center gap-2.5 rounded-lg border border-dashed px-3 py-2.5 text-left hover:border-lime-500 hover:bg-lime-50/50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {uploading ? (
@@ -339,6 +373,28 @@ export function GlossaryImagePickerDialog({
           onClose={() => setCropPage(null)}
         />
       )}
+
+      <CascadeResetDialog
+        open={pendingNewImageAction !== null}
+        onOpenChange={(open) => {
+          if (!open) setPendingNewImageAction(null)
+        }}
+        affectedStages={affectedStages}
+        headerStageSlug="glossary"
+        title={t`Adding a new image resets downstream work`}
+        description={t`Creating a new glossary image changes the book's image set. The completed stages below will be cleared and need to run again.`}
+        confirmLabel={
+          pendingNewImageAction === "crop"
+            ? t`Continue to crop`
+            : t`Continue to upload`
+        }
+        confirmColorClass="bg-lime-600 hover:bg-lime-700"
+        onConfirm={() => {
+          const action = pendingNewImageAction
+          setPendingNewImageAction(null)
+          if (action) continueNewImageAction(action)
+        }}
+      />
     </div>
   )
 }

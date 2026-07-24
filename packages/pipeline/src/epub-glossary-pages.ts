@@ -12,7 +12,7 @@
  *     placement per chapter yields per-chapter glossaries; the default
  *     single `end` placement yields a classic back-of-book glossary.
  *   - In-text glossrefs link to the term's entry on the owning glossary
- *     page; each entry carries `epub:type="backlink"` anchors ("Page N")
+ *     page; each entry carries `epub:type="backlink"` anchors ("p. N")
  *     to every occurrence so the reader can return to where they came from
  *     even without the reader's own back affordance.
  *   - Entries show the word, an optional picture, optional emojis, and —

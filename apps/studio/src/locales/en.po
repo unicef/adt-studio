@@ -979,6 +979,9 @@ msgstr "Added"
 msgid "Added manually"
 msgstr "Added manually"
 
+msgid "Adding a new image resets downstream work"
+msgstr "Adding a new image resets downstream work"
+
 msgid "Adding languages beyond the original is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 msgstr "Adding languages beyond the original is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 
@@ -1879,6 +1882,9 @@ msgstr "Choose a Preset"
 msgid "Choose a preset that matches your content — textbook, storyboard, reference, or custom — and ADT Studio tailors the pipeline accordingly."
 msgstr "Choose a preset that matches your content — textbook, storyboard, reference, or custom — and ADT Studio tailors the pipeline accordingly."
 
+msgid "Choose a previously uploaded video or upload a new one."
+msgstr "Choose a previously uploaded video or upload a new one."
+
 msgid "Choose an existing image from this project"
 msgstr "Choose an existing image from this project"
 
@@ -2140,6 +2146,12 @@ msgstr "Continue page {0}"
 msgid "Continue reviewer validation on page {0}"
 msgstr "Continue reviewer validation on page {0}"
 
+msgid "Continue to crop"
+msgstr "Continue to crop"
+
+msgid "Continue to upload"
+msgstr "Continue to upload"
+
 msgid "Continuing will reset your current configuration."
 msgstr "Continuing will reset your current configuration."
 
@@ -2269,6 +2281,9 @@ msgstr "Created {createdLabel}"
 
 msgid "Creates a ZIP archive of the full project — database, source PDF, and all pipeline outputs. Use it to back up or transfer the project to another machine."
 msgstr "Creates a ZIP archive of the full project — database, source PDF, and all pipeline outputs. Use it to back up or transfer the project to another machine."
+
+msgid "Creating a new glossary image changes the book's image set. The completed stages below will be cleared and need to run again."
+msgstr "Creating a new glossary image changes the book's image set. The completed stages below will be cleared and need to run again."
 
 msgid "Creating..."
 msgstr "Creating..."
@@ -2477,6 +2492,9 @@ msgstr "Delete this quiz?"
 
 msgid "Delete video"
 msgstr "Delete video"
+
+msgid "Delete video from book"
+msgstr "Delete video from book"
 
 msgid "Deleting..."
 msgstr "Deleting..."
@@ -5125,6 +5143,9 @@ msgstr "No translations need attention."
 msgid "No translations were accepted anyway in this view."
 msgstr "No translations were accepted anyway in this view."
 
+msgid "No unassigned videos are available."
+msgstr "No unassigned videos are available."
+
 msgid "No versions"
 msgstr "No versions"
 
@@ -5932,6 +5953,9 @@ msgstr "Previous page"
 
 msgid "Previous slide"
 msgstr "Previous slide"
+
+msgid "Previously uploaded videos"
+msgstr "Previously uploaded videos"
 
 msgid "Process every page on this machine."
 msgstr "Process every page on this machine."
@@ -8559,6 +8583,9 @@ msgstr "Upload image"
 msgid "Upload Image"
 msgstr "Upload Image"
 
+msgid "Upload new video"
+msgstr "Upload new video"
+
 msgid "Upload PDF or drag and drop"
 msgstr "Upload PDF or drag and drop"
 
@@ -8625,6 +8652,9 @@ msgstr "Use this format to back up the project or move it to another machine."
 
 msgid "Use this picture"
 msgstr "Use this picture"
+
+msgid "Use video"
+msgstr "Use video"
 
 msgid "Used for"
 msgstr "Used for"
