@@ -152,8 +152,15 @@ section[data-section-type="activity_open_ended_answer"] textarea {
 /*
  * Word-by-word TTS highlight. Forced yellow/black so the active word stays
  * legible regardless of the surrounding text color (the page may render in
- * white, orange, or any other foreground). `transition` smooths the swap
- * between adjacent words.
+ * white, orange, or any other foreground).
+ *
+ * Deliberately NO transition: animating background-color/color over the text
+ * re-rasterizes the glyphs every frame (antialiasing/subpixel rendering shifts
+ * as the background changes), which reads as a subtle vertical shimmer now that
+ * the highlight box covers the whole word in fixed layout. An instant swap
+ * keeps each word fixed in place — matching the EPUB media-overlay highlight
+ * and the reduced-motion path. Horizontal padding/negative-margin net to zero
+ * so the box paint grows without nudging neighbouring words.
  */
 span[data-word-index].bg-yellow-300 {
   background-color: #fde047 !important;
@@ -161,7 +168,6 @@ span[data-word-index].bg-yellow-300 {
   border-radius: 3px;
   padding: 0 1px;
   margin: 0 -1px;
-  transition: background-color 120ms ease, color 120ms ease;
 }
 
 /*
