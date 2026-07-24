@@ -41,18 +41,31 @@ type Element = any
 
 const TITLE_ROLES = new Set(["heading", "header", "title"])
 
-/** nodeId → role for every unpruned leaf of the section tree. */
-function collectLeafRoles(nodes: ContentNodeData[] | undefined): Map<string, string> {
-  const map = new Map<string, string>()
+/** nodeId → role for every unpruned leaf of the section tree, plus per-leaf
+ *  title groups: a visual heading split across several leaves under one tree
+ *  container ("Activity 5:" + "My Family") must be treated as ONE title. */
+function collectLeafInfo(nodes: ContentNodeData[] | undefined): {
+  roles: Map<string, string>
+  titleGroups: Map<string, string[]>
+} {
+  const roles = new Map<string, string>()
+  const titleGroups = new Map<string, string[]>()
   const walk = (ns: ContentNodeData[]) => {
+    const siblingTitles = ns
+      .filter((n) => !n.isPruned && !n.children && TITLE_ROLES.has(n.role ?? ""))
+      .map((n) => n.nodeId)
     for (const n of ns) {
       if (n.isPruned) continue
-      if (n.children) walk(n.children)
-      else if (n.role) map.set(n.nodeId, n.role)
+      if (n.children) {
+        walk(n.children)
+      } else if (n.role) {
+        roles.set(n.nodeId, n.role)
+        if (TITLE_ROLES.has(n.role)) titleGroups.set(n.nodeId, siblingTitles)
+      }
     }
   }
   if (nodes) walk(nodes)
-  return map
+  return { roles, titleGroups }
 }
 
 /** An answer unit: one writable field, or one radio/checkbox group. */
@@ -69,7 +82,7 @@ export function buildActivityOutline(opts: {
   const section = findActivitySection(opts.html)
   if (!section) return outline
 
-  const roles = collectLeafRoles(opts.sectionNodes)
+  const { roles, titleGroups } = collectLeafInfo(opts.sectionNodes)
   const order = buildOrderIndex(section)
   const pos = (el: Element): number => order.get(el) ?? Number.MAX_SAFE_INTEGER
 
@@ -94,10 +107,10 @@ export function buildActivityOutline(opts: {
 
   // ── Answer units ──────────────────────────────────────────────────────
   const writable = findAll(section, (el) => {
-    if (tag(el, "textarea")) return true
+    if (tag(el, "textarea") || tag(el, "select")) return true
     if (!tag(el, "input")) return false
     const type = (attr(el, "type") ?? "text").toLowerCase()
-    return type === "text" || type === ""
+    return type === "text" || type === "" || type === "number"
   })
   const choiceInputs = findAll(section, (el) => {
     if (!tag(el, "input")) return false
@@ -153,19 +166,34 @@ export function buildActivityOutline(opts: {
 
   // ── Header: title, badges, instructions ─────────────────────────────────
   // Title from the tree's heading role — headers are often styled <span>s the
-  // h1–h6 scan misses. Fall back to the first real heading element.
-  const titleEl =
-    textEls.find((el) => TITLE_ROLES.has(roleOf(el) ?? "")) ??
-    (() => {
-      const { el } = extractTitle(section)
-      if (!el) return undefined
-      // extractTitle returns the heading element; anchor to its leaf-most
-      // data-id text so claiming works on the same element set.
-      return textEls.find((t) => under(t, el)) ?? undefined
-    })()
-  if (titleEl) {
-    outline.title = toText(titleEl)
-    claimed.add(titleEl)
+  // h1–h6 scan misses. A heading split across several sibling leaves is one
+  // visual title: claim the whole group and join its rendered texts (dataId
+  // only when a single leaf backs it, so edits stay unambiguous). Fall back
+  // to the first real heading element, claiming every leaf under it.
+  const firstTitleEl = textEls.find((el) => TITLE_ROLES.has(roleOf(el) ?? ""))
+  if (firstTitleEl) {
+    const group = titleGroups.get(attr(firstTitleEl, "data-id") ?? "") ?? []
+    const groupIds = new Set(group)
+    const titleEls = textEls.filter(
+      (el) => el === firstTitleEl || groupIds.has(attr(el, "data-id") ?? ""),
+    )
+    for (const el of titleEls) claimed.add(el)
+    outline.title = {
+      text: titleEls.map((el) => text(el)).join(" "),
+      ...(titleEls.length === 1 ? { dataId: attr(titleEls[0], "data-id") } : {}),
+    }
+  } else {
+    const { title, el } = extractTitle(section)
+    if (el && title) {
+      const titleEls = textEls.filter((t) => under(t, el))
+      for (const t of titleEls) claimed.add(t)
+      // extractTitle's text is the heading's FULL text — keep it even when it
+      // spans several leaves; anchor a dataId only for the single-leaf case.
+      outline.title = {
+        text: title.text,
+        ...(titleEls.length === 1 ? { dataId: attr(titleEls[0], "data-id") } : {}),
+      }
+    }
   }
 
   const instructionEls = textEls.filter(
@@ -237,7 +265,7 @@ export function buildActivityOutline(opts: {
       for (const input of unit.inputs) {
         item.inputs.push({
           itemId: attr(input, "data-activity-item"),
-          kind: tag(input, "textarea") ? "textarea" : "text",
+          kind: tag(input, "textarea") ? "textarea" : tag(input, "select") ? "select" : "text",
           placeholder: attr(input, "placeholder") || undefined,
           ariaLabel: attr(input, "aria-label") || undefined,
         })
@@ -293,35 +321,23 @@ export function buildActivityOutline(opts: {
 }
 
 /**
- * Title + instructions for the step-by-step conversion, resolved from the
- * section tree's roles (with the outline's fallbacks). Multi-sentence
- * instructions are joined; the joined text carries no dataId, which is safe
- * because the stepper's texts are self-contained copies.
- */
-export function resolveActivityHeader(opts: {
-  html: string
-  sectionNodes?: ContentNodeData[]
-}): { title?: ActivityOutlineText; instructions?: ActivityOutlineText } {
-  const outline = buildActivityOutline(opts)
-  const instructions =
-    outline.instructions.length === 0
-      ? undefined
-      : outline.instructions.length === 1
-        ? outline.instructions[0]
-        : { text: outline.instructions.map((i) => i.text).join(" ") }
-  return { title: outline.title, instructions }
-}
-
-/**
  * Override an extracted activity's title/instructions with the tree-resolved
  * header. Fixes the pure-HTML heuristics' failure modes (grade badges read as
  * instructions, styled-span titles missed). Keeps the extractor's own result
- * where the tree has nothing better.
+ * where the tree has nothing better. Multi-sentence instructions are joined;
+ * the joined text carries no dataId, which is safe because the stepper's
+ * texts are self-contained copies.
+ *
+ * Pass `opts.outline` when the outline was already built for the same
+ * html/nodes — otherwise it is computed here (POST convert path).
  */
 export function applyActivityHeader<
   T extends { title?: ActivityOutlineText; instructions?: ActivityOutlineText },
->(activity: T, opts: { html: string; sectionNodes?: ContentNodeData[] }): T {
-  const outline = buildActivityOutline(opts)
+>(
+  activity: T,
+  opts: { html: string; sectionNodes?: ContentNodeData[]; outline?: ActivityOutline },
+): T {
+  const outline = opts.outline ?? buildActivityOutline(opts)
   const instructions =
     outline.instructions.length === 0
       ? undefined

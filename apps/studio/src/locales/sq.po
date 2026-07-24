@@ -2589,6 +2589,9 @@ msgstr "Hidh paketat në çdo host statik për të shërbyer librin si faqe inte
 msgid "Drop ZIP here"
 msgstr "Hidh ZIP-in këtu"
 
+msgid "Dropdown"
+msgstr "Listë me zgjedhje"
+
 msgid "Duplicate"
 msgstr "Dupliko"
 
@@ -5196,6 +5199,9 @@ msgstr "Tjetër"
 
 msgid "Other images"
 msgstr "Imazhe të tjera"
+
+msgid "Other items"
+msgstr "Elemente të tjera"
 
 msgid "Other options"
 msgstr "Opsione të tjera"

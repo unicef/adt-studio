@@ -511,7 +511,14 @@ export function EditableActivityPanel({
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t`Style`}</h3>
           <div className="flex items-center gap-3">
             <label className="text-xs w-24 shrink-0">{t`Accent color`}</label>
-            <ColorPicker value={effectiveAccent} onChange={handleAccentChange} align="start" />
+            <ColorPicker
+              value={effectiveAccent}
+              onChange={handleAccentChange}
+              align="start"
+              // The theme accent schema is 6-digit hex — alpha and
+              // `transparent` would be silently dropped otherwise.
+              opaqueOnly
+            />
             <span className="text-xs text-muted-foreground font-mono min-w-0 truncate">
               {accentLabel}
             </span>

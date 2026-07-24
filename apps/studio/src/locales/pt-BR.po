@@ -2588,6 +2588,9 @@ msgstr "Coloque o pacote em qualquer host estático para servir o livro como um 
 msgid "Drop ZIP here"
 msgstr "Solte o ZIP aqui"
 
+msgid "Dropdown"
+msgstr "Lista suspensa"
+
 msgid "Duplicate"
 msgstr "Duplicar"
 
@@ -5195,6 +5198,9 @@ msgstr "Outro"
 
 msgid "Other images"
 msgstr "Outras imagens"
+
+msgid "Other items"
+msgstr "Outros itens"
 
 msgid "Other options"
 msgstr "Outras opções"

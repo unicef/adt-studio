@@ -40,6 +40,24 @@ function loadSectionNodes(
   return parsed.success ? parsed.data.sections[sectionIndex]?.nodes : undefined
 }
 
+/** resolveQuizPalette scans every page's sectioning + rendering rows — far
+ *  too heavy to run on each per-page GET for a value that is book-level and
+ *  changes only when pages are re-rendered. Short TTL keeps it fresh enough
+ *  for the editor while amortizing the scan. */
+const paletteAccentCache = new Map<string, { at: number; accent: string }>()
+const PALETTE_ACCENT_TTL_MS = 60_000
+
+function bookPaletteAccent(
+  label: string,
+  storage: ReturnType<typeof createBookStorage>,
+): string {
+  const hit = paletteAccentCache.get(label)
+  if (hit && Date.now() - hit.at < PALETTE_ACCENT_TTL_MS) return hit.accent
+  const accent = (resolveQuizPalette(storage) ?? DEFAULT_QUIZ_PALETTE).accent
+  paletteAccentCache.set(label, { at: Date.now(), accent })
+  return accent
+}
+
 function safeParseLabel(label: string): string {
   try {
     return parseBookLabel(label)
@@ -91,7 +109,7 @@ export function createEditableActivitiesRoutes(
         version: row?.version ?? 0,
         // The accent activities render with when no per-activity override is
         // set — lets the editor show the effective color, not a placeholder.
-        paletteAccent: (resolveQuizPalette(storage) ?? DEFAULT_QUIZ_PALETTE).accent,
+        paletteAccent: bookPaletteAccent(safeLabel, storage),
       })
     } finally {
       storage.close()
@@ -183,7 +201,7 @@ export function createEditableActivitiesRoutes(
         })
         return c.json({
           activity: result.activity
-            ? applyActivityHeader(result.activity, { html: section.html, sectionNodes })
+            ? applyActivityHeader(result.activity, { html: section.html, sectionNodes, outline })
             : null,
           outline,
           errors: result.errors,

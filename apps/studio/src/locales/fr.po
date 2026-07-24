@@ -2590,6 +2590,9 @@ msgstr "Déposez le paquet sur n'importe quel hôte statique pour servir le livr
 msgid "Drop ZIP here"
 msgstr "Déposez le ZIP ici"
 
+msgid "Dropdown"
+msgstr "Liste déroulante"
+
 msgid "Duplicate"
 msgstr "Dupliquer"
 
@@ -5197,6 +5200,9 @@ msgstr "Autre"
 
 msgid "Other images"
 msgstr "Autres images"
+
+msgid "Other items"
+msgstr "Autres éléments"
 
 msgid "Other options"
 msgstr "Autres options"

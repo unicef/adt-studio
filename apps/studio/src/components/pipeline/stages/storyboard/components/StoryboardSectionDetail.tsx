@@ -573,9 +573,11 @@ export function StoryboardSectionDetail({
     pageId,
     pageHasActivitySection,
   )
-  // Read-only structure of a classic activity — groups image/prompt/answer per
-  // item in the classic activity editor. Only fetched for the extractable
-  // section types; everything else falls back to the flat editor.
+  const [editActivityPanelOpen, setEditActivityPanelOpen] = useState(false)
+  // Read-only structure + outline of a classic activity — organizes the
+  // classic activity editor. Works for all activity types, but is only
+  // consumed by the edit panel, so don't fetch until it opens (the server
+  // re-parses the section HTML on every call).
   const savedSectionType = (page.sectioningTree as SectioningData | null)?.sections?.[
     sectionIndex
   ]?.sectionType
@@ -584,13 +586,10 @@ export function StoryboardSectionDetail({
     pageId,
     sectionIndex,
     page.versions.rendering ?? 0,
-    // All activity types: the generic input scan applies to every one, even
-    // when the per-item structure doesn't (open-ended, tables, sorting…).
-    Boolean(savedSectionType?.startsWith("activity_")),
+    Boolean(savedSectionType?.startsWith("activity_")) && editActivityPanelOpen,
   )
   const convertEditableActivity = useConvertEditableActivity(bookLabel, pageId)
   const setEditablePresentation = useSetEditableActivityPresentation(bookLabel, pageId)
-  const [editActivityPanelOpen, setEditActivityPanelOpen] = useState(false)
 
   // AI edit state
   const [aiInstruction, setAiInstruction] = useState("")
@@ -1127,27 +1126,6 @@ export function StoryboardSectionDetail({
     [pendingRendering, page.rendering, sectionIndex, markPending]
   )
 
-  // Update a single activity answer value in the rendering
-  const updateAnswer = useCallback(
-    (itemKey: string, value: string) => {
-      const rBase = pendingRendering ?? page.rendering
-      if (!rBase) return
-      const updated = {
-        ...rBase,
-        sections: rBase.sections.map((s) => {
-          if (s.sectionIndex !== sectionIndex) return s
-          return {
-            ...s,
-            activityAnswers: { ...s.activityAnswers, [itemKey]: value },
-          }
-        }),
-      }
-      setPendingRendering(updated)
-      markPending("text")
-    },
-    [pendingRendering, page.rendering, sectionIndex, markPending]
-  )
-
   // Atomic multi-key answer update — marking a multiple-choice option correct
   // must flip the whole radio group (selected → true, siblings → false) in one
   // pending-state write. Booleans stay booleans: the runtime treats any string
@@ -1170,6 +1148,12 @@ export function StoryboardSectionDetail({
       markPending("text")
     },
     [pendingRendering, page.rendering, sectionIndex, markPending]
+  )
+
+  // Update a single activity answer value in the rendering
+  const updateAnswer = useCallback(
+    (itemKey: string, value: string) => updateAnswers({ [itemKey]: value }),
+    [updateAnswers]
   )
 
   // Delete selected block from rendered HTML and remove the matching leaf from sectioning.
@@ -1941,6 +1925,8 @@ export function StoryboardSectionDetail({
 
   // Are there any text leaves or image leaves in the section tree?
   const leafNodes = useMemo(() => collectLeafNodes(nodes), [nodes])
+  // Stable identity — the activity panel's memos and resync effect key on it.
+  const unprunedLeafNodes = useMemo(() => leafNodes.filter((l) => !l.isPruned), [leafNodes])
   const hasTextParts = leafNodes.some((l) => l.role && l.role !== "image")
   const hasImageParts = leafNodes.some((l) => l.role === "image")
 
@@ -2473,7 +2459,7 @@ export function StoryboardSectionDetail({
           open={editActivityPanelOpen}
           onClose={() => setEditActivityPanelOpen(false)}
           bookLabel={bookLabel}
-          leaves={leafNodes.filter((l) => !l.isPruned)}
+          leaves={unprunedLeafNodes}
           answers={renderedSection?.activityAnswers}
           structure={activityStructureQuery.data?.activity ?? null}
           outline={activityStructureQuery.data?.outline ?? null}

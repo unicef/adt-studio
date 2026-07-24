@@ -333,11 +333,7 @@ export {
   supportsEditableActivity,
   type ExtractResult,
 } from "./extract-editable-activity.js"
-export {
-  buildActivityOutline,
-  resolveActivityHeader,
-  applyActivityHeader,
-} from "./activity-outline.js"
+export { buildActivityOutline, applyActivityHeader } from "./activity-outline.js"
 export {
   readEditableActivities,
   enabledEditableActivity,

@@ -2588,6 +2588,9 @@ msgstr "Drop the bundle on any static host to serve the book as a website."
 msgid "Drop ZIP here"
 msgstr "Drop ZIP here"
 
+msgid "Dropdown"
+msgstr "Dropdown"
+
 msgid "Duplicate"
 msgstr "Duplicate"
 
@@ -5195,6 +5198,9 @@ msgstr "Other"
 
 msgid "Other images"
 msgstr "Other images"
+
+msgid "Other items"
+msgstr "Other items"
 
 msgid "Other options"
 msgstr "Other options"

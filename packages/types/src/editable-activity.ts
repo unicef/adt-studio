@@ -221,10 +221,10 @@ export const ActivityOutlineText = z.object({
 })
 export type ActivityOutlineText = z.infer<typeof ActivityOutlineText>
 
-/** A writable answer field (text input / textarea). */
+/** A writable answer field (text/number input, textarea, or select). */
 export const ActivityOutlineInput = z.object({
   itemId: z.string().optional(),
-  kind: z.enum(["text", "textarea"]),
+  kind: z.enum(["text", "textarea", "select"]),
   placeholder: z.string().optional(),
   ariaLabel: z.string().optional(),
 })

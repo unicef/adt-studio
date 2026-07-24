@@ -9,6 +9,9 @@ export function useEditableActivities(label: string, pageId: string, enabled = t
     queryKey: ["editable-activities", label, pageId],
     queryFn: () => api.getEditableActivities(label, pageId),
     enabled: enabled && !!label && !!pageId,
+    // Saves invalidate the key explicitly; don't refire on every focus (the
+    // response includes the server-computed book palette accent).
+    staleTime: 60_000,
   })
 }
 

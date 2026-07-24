@@ -288,6 +288,49 @@ describe("buildActivityOutline", () => {
     expect(fixed.instructions).toEqual({ dataId: "i1", text: "Write the missing letter." })
   })
 
+  it("joins a heading split across sibling leaves into one title", () => {
+    const html = `
+<section data-section-type="activity_open_ended_answer" data-section-id="sec-9">
+  <h1><span data-id="t1">Activity 5:</span> <span data-id="t2">My Family</span></h1>
+  <p data-id="q1">Write about your family.</p>
+  <textarea data-activity-item="item-1" tabindex="0"></textarea>
+</section>`
+    const nodes = [
+      {
+        nodeId: "h1",
+        isPruned: false,
+        structure: "heading",
+        children: [leaf("t1", "heading", "Activity 5:"), leaf("t2", "heading", "My Family")],
+      },
+      leaf("q1", "activity_question", "Write about your family."),
+    ]
+    const o = buildActivityOutline({ html, sectionNodes: nodes })
+    // Joined text, no dataId (a single edit channel can't address two spans).
+    expect(o.title).toEqual({ text: "Activity 5: My Family" })
+    // Both spans are claimed — neither leaks into the item's prompts.
+    expect(o.items[0].prompts.map((p) => p.dataId)).toEqual(["q1"])
+  })
+
+  it("scans select and number inputs as writable answer fields", () => {
+    const html = `
+<section data-section-type="activity_fill_in_a_table" data-section-id="sec-9">
+  <table>
+    <tr><td><span data-id="c1">🍎🍎 + 🍎</span></td><td>
+      <select data-activity-item="item-1"><option>2</option><option>3</option></select>
+    </td></tr>
+    <tr><td><span data-id="c2">⭐️ + ⭐️</span></td><td>
+      <input type="number" data-activity-item="item-2" />
+    </td></tr>
+  </table>
+</section>`
+    const o = buildActivityOutline({ html })
+    expect(o.items.map((i) => i.inputs[0])).toEqual([
+      { itemId: "item-1", kind: "select" },
+      { itemId: "item-2", kind: "text" },
+    ])
+    expect(o.items[0].prompts.map((p) => p.dataId)).toEqual(["c1"])
+  })
+
   it("returns items: [] for input-less activities (header still organized)", () => {
     const o = buildActivityOutline({ html: MC_TEXT_OPTIONS })
     // MC radios DO produce items; a truly inert page produces none.

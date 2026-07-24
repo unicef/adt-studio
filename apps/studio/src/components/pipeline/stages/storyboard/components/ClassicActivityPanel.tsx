@@ -104,33 +104,31 @@ function collectStructureImageIds(activity: EditableActivity | null): Set<string
   return ids
 }
 
-/** dataId → rendered text for the outline's header (+ items when included). */
+/** dataId → rendered text for the outline's header + the given item cards. */
 function collectOutlineTexts(
   outline: ActivityOutline | null,
-  includeItems: boolean,
+  items: ActivityOutlineItem[],
 ): Map<string, string> {
   const map = new Map<string, string>()
-  if (!outline) return map
   const add = (t: ActivityOutlineText | undefined) => {
     if (t?.dataId) map.set(t.dataId, t.text)
   }
-  add(outline.title)
-  outline.badges.forEach(add)
-  outline.instructions.forEach(add)
-  if (includeItems) {
-    for (const item of outline.items) {
-      add(item.number)
-      item.prompts.forEach(add)
-      for (const o of item.options) add(o.text)
-    }
+  if (outline) {
+    add(outline.title)
+    outline.badges.forEach(add)
+    outline.instructions.forEach(add)
+  }
+  for (const item of items) {
+    add(item.number)
+    item.prompts.forEach(add)
+    for (const o of item.options) add(o.text)
   }
   return map
 }
 
-function collectOutlineItemImageIds(outline: ActivityOutline | null): Set<string> {
+function collectOutlineItemImageIds(items: ActivityOutlineItem[]): Set<string> {
   const ids = new Set<string>()
-  if (!outline) return ids
-  for (const item of outline.items) {
+  for (const item of items) {
     for (const id of item.imageIds) ids.add(id)
     for (const o of item.options) if (o.imageId) ids.add(o.imageId)
   }
@@ -138,14 +136,20 @@ function collectOutlineItemImageIds(outline: ActivityOutline | null): Set<string
 }
 
 /** Answer-key item-ids surfaced by the outline's item cards. */
-function collectOutlineItemIds(outline: ActivityOutline | null): Set<string> {
+function collectOutlineItemIds(items: ActivityOutlineItem[]): Set<string> {
   const ids = new Set<string>()
-  if (!outline) return ids
-  for (const item of outline.items) {
+  for (const item of items) {
     for (const input of item.inputs) if (input.itemId) ids.add(input.itemId)
     for (const o of item.options) if (o.itemId) ids.add(o.itemId)
   }
   return ids
+}
+
+/** The answer key stores choice correctness as booleans, but LLM output can
+ *  contain the strings "true"/"false" — mirror the extractor's defensive
+ *  parse so a "false" string never displays as a correct answer. */
+function isCorrectAnswer(value: string | boolean | number | undefined): boolean {
+  return value === true || value === 1 || String(value ?? "").toLowerCase() === "true"
 }
 
 function buildTextMap(
@@ -159,7 +163,7 @@ function buildTextMap(
   // Rendered text wins where we know it (outline + structure texts) — it's
   // what the data-id edit channel actually replaces, and for structure
   // sentences it carries the blank markers the tree text lacks.
-  for (const [dataId, text] of collectOutlineTexts(outline, true)) {
+  for (const [dataId, text] of collectOutlineTexts(outline, outline?.items ?? [])) {
     fromTree[dataId] = text
   }
   for (const [dataId, text] of collectStructureTexts(structure)) {
@@ -197,29 +201,11 @@ export function ClassicActivityPanel({
 }: ClassicActivityPanelProps) {
   const { t } = useLingui()
 
-  // FITB/MC use the structure's richer cards; every other type (or a failed
-  // extraction) uses the outline's item cards.
-  const showOutlineItems = !structure && (outline?.items.length ?? 0) > 0
-
   const structureTextIds = useMemo(
     () => new Set(collectStructureTexts(structure).keys()),
     [structure],
   )
   const structureImageIds = useMemo(() => collectStructureImageIds(structure), [structure])
-  // Item-level outline ids only count as "shown" when the item cards render —
-  // otherwise their texts/images/answers must stay in the flat lists.
-  const outlineTextIds = useMemo(
-    () => new Set(collectOutlineTexts(outline, showOutlineItems).keys()),
-    [outline, showOutlineItems],
-  )
-  const outlineImageIds = useMemo(
-    () => (showOutlineItems ? collectOutlineItemImageIds(outline) : new Set<string>()),
-    [outline, showOutlineItems],
-  )
-  const outlineItemIds = useMemo(
-    () => (showOutlineItems ? collectOutlineItemIds(outline) : new Set<string>()),
-    [outline, showOutlineItems],
-  )
   const groupedItemIds = useMemo(() => {
     const ids = new Set<string>()
     if (!structure) return ids
@@ -232,6 +218,31 @@ export function ClassicActivityPanel({
     }
     return ids
   }, [structure])
+  // FITB/MC use the structure's richer cards; outline cards cover every other
+  // type PLUS any answer unit a successful extraction didn't reach (e.g. a
+  // checkbox group in an MC section) — never all-or-nothing, so no answer is
+  // left without an editing surface.
+  const visibleOutlineItems = useMemo(() => {
+    if (!outline) return []
+    if (!structure) return outline.items
+    return outline.items.filter((item) =>
+      [...item.inputs, ...item.options].every(
+        (x) => !x.itemId || !groupedItemIds.has(x.itemId),
+      ),
+    )
+  }, [outline, structure, groupedItemIds])
+  const outlineTextIds = useMemo(
+    () => new Set(collectOutlineTexts(outline, visibleOutlineItems).keys()),
+    [outline, visibleOutlineItems],
+  )
+  const outlineImageIds = useMemo(
+    () => collectOutlineItemImageIds(visibleOutlineItems),
+    [visibleOutlineItems],
+  )
+  const outlineItemIds = useMemo(
+    () => collectOutlineItemIds(visibleOutlineItems),
+    [visibleOutlineItems],
+  )
 
   // Leaves nothing above claimed — shown as flat lists below the cards
   // (or as the whole editor when there's no grouping at all).
@@ -255,13 +266,12 @@ export function ClassicActivityPanel({
       ),
     [leaves, structureImageIds, outlineImageIds],
   )
+  // Includes boolean (correctness-flag) entries — an answer without a card
+  // must still be visible and editable somewhere.
   const otherAnswerEntries = useMemo(
     () =>
       Object.entries(answers ?? {}).filter(
-        (entry): entry is [string, string | number] =>
-          typeof entry[1] !== "boolean" &&
-          !groupedItemIds.has(entry[0]) &&
-          !outlineItemIds.has(entry[0]),
+        ([itemId]) => !groupedItemIds.has(itemId) && !outlineItemIds.has(itemId),
       ),
     [answers, groupedItemIds, outlineItemIds],
   )
@@ -416,7 +426,11 @@ export function ClassicActivityPanel({
                 {t`Answer area`}
               </span>
               <span className="text-[10px] rounded bg-muted px-1.5 py-0.5 text-muted-foreground shrink-0">
-                {input.kind === "textarea" ? t`Long answer` : t`Short answer`}
+                {input.kind === "textarea"
+                  ? t`Long answer`
+                  : input.kind === "select"
+                    ? t`Dropdown`
+                    : t`Short answer`}
               </span>
             </div>
             {input.itemId &&
@@ -430,40 +444,48 @@ export function ClassicActivityPanel({
           </div>
         ))}
         {/* True/false-style: options share one item-id, the answer is the
-            selected option's value. */}
-        {item.choice === "value" && item.options.length > 0 && (
-          <div className="space-y-1.5">
-            {answersHeading(1)}
-            <div className="flex flex-wrap items-center gap-4">
-              {item.options.map((o, oi) => (
-                <label key={oi} className="flex items-center gap-1.5">
-                  <input
-                    type="radio"
-                    name={`outline-value-${i}`}
-                    checked={String(answers?.[valueItemId ?? ""] ?? "") === (o.value ?? "")}
-                    onChange={() =>
-                      valueItemId && o.value !== undefined
-                        ? onAnswersEdited({ [valueItemId]: o.value })
-                        : undefined
-                    }
-                    title={t`Correct answer`}
-                    className="cursor-pointer accent-green-600"
-                  />
-                  {o.text?.dataId ? (
-                    <Input
-                      value={texts[o.text.dataId] ?? ""}
-                      onChange={(e) => handleTextChange(o.text!.dataId!, e.target.value)}
-                      className="h-7 w-16 text-xs"
-                      aria-label={t`Option text`}
+            selected option's value. Options without value attributes can't
+            drive radios — fall back to the raw answer field. */}
+        {item.choice === "value" &&
+          item.options.length > 0 &&
+          valueItemId &&
+          (item.options.every((o) => o.value !== undefined) ? (
+            <div className="space-y-1.5">
+              {answersHeading(1)}
+              <div className="flex flex-wrap items-center gap-4">
+                {item.options.map((o, oi) => (
+                  <label key={oi} className="flex items-center gap-1.5">
+                    <input
+                      type="radio"
+                      name={`outline-value-${i}`}
+                      checked={
+                        String(answers?.[valueItemId] ?? "").toLowerCase() ===
+                        (o.value ?? "").toLowerCase()
+                      }
+                      onChange={() => onAnswersEdited({ [valueItemId]: o.value! })}
+                      title={t`Correct answer`}
+                      className="cursor-pointer accent-green-600"
                     />
-                  ) : (
-                    <span className="text-xs">{o.text?.text ?? o.value}</span>
-                  )}
-                </label>
-              ))}
+                    {o.text?.dataId ? (
+                      <Input
+                        value={texts[o.text.dataId] ?? ""}
+                        onChange={(e) => handleTextChange(o.text!.dataId!, e.target.value)}
+                        className="h-7 w-16 text-xs"
+                        aria-label={t`Option text`}
+                      />
+                    ) : (
+                      <span className="text-xs">{o.text?.text ?? o.value}</span>
+                    )}
+                  </label>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          ) : answers && valueItemId in answers && typeof answers[valueItemId] !== "boolean" ? (
+            <div className="space-y-1.5">
+              {answersHeading(1)}
+              {answerField(valueItemId)}
+            </div>
+          ) : null)}
         {/* Single-choice (MC-style): the selected radio marks the correct
             option. Multi-select: every checked option is correct. */}
         {(item.choice === "single" || item.choice === "multi") && item.options.length > 0 && (
@@ -479,7 +501,7 @@ export function ClassicActivityPanel({
                 <input
                   type={item.choice === "single" ? "radio" : "checkbox"}
                   name={item.choice === "single" ? `outline-single-${i}` : undefined}
-                  checked={Boolean(answers?.[o.itemId ?? ""])}
+                  checked={isCorrectAnswer(answers?.[o.itemId ?? ""])}
                   onChange={(e) => {
                     if (!o.itemId) return
                     if (item.choice === "single") {
@@ -507,13 +529,18 @@ export function ClassicActivityPanel({
     )
   }
 
-  const headerTexts = outline
-    ? { title: outline.title, badges: outline.badges, instructions: outline.instructions }
-    : {
-        title: structure?.title?.dataId ? structure.title : undefined,
-        badges: [],
-        instructions: structure?.instructions?.dataId ? [structure.instructions] : [],
-      }
+  // Per-field fallback: whatever the outline missed but the extractor found
+  // must still be visible and editable.
+  const headerTexts = {
+    title: outline?.title ?? (structure?.title?.dataId ? structure.title : undefined),
+    badges: outline?.badges ?? [],
+    instructions:
+      outline && outline.instructions.length > 0
+        ? outline.instructions
+        : structure?.instructions?.dataId
+          ? [structure.instructions]
+          : [],
+  }
   const hasHeader =
     headerTexts.title !== undefined ||
     headerTexts.badges.length > 0 ||
@@ -690,7 +717,7 @@ export function ClassicActivityPanel({
                       <input
                         type="radio"
                         name={`classic-correct-${step.id}`}
-                        checked={Boolean(answers?.[option.itemId])}
+                        checked={isCorrectAnswer(answers?.[option.itemId])}
                         onChange={() =>
                           onAnswersEdited(
                             Object.fromEntries(
@@ -729,21 +756,38 @@ export function ClassicActivityPanel({
         )}
 
         {/* Outline item cards — every activity type the structure doesn't
-            cover: open-ended, true/false, multi-select, tables. */}
-        {showOutlineItems && outline && (
+            cover (open-ended, true/false, multi-select, tables), plus answer
+            units a successful FITB/MC extraction missed. */}
+        {visibleOutlineItems.length > 0 && (
           <div className="space-y-3">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t`Items`} ({outline.items.length})
+              {structure ? t`Other items` : t`Items`} ({visibleOutlineItems.length})
             </h3>
-            {outline.items.map((item, i) => outlineItemCard(item, i))}
+            {visibleOutlineItems.map((item, i) => outlineItemCard(item, i))}
           </div>
         )}
 
-        {/* Ungrouped answers (flat — always shown when present) */}
+        {/* Ungrouped answers (flat — always shown when present). Boolean
+            entries are correctness flags: checked = correct. */}
         {otherAnswerEntries.length > 0 && (
           <div className="space-y-1.5">
             {answersHeading(otherAnswerEntries.length)}
-            {otherAnswerEntries.map(([itemId]) => answerField(itemId))}
+            {otherAnswerEntries.map(([itemId, value]) =>
+              typeof value === "boolean" ? (
+                <label key={itemId} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={isCorrectAnswer(value)}
+                    onChange={(e) => onAnswersEdited({ [itemId]: e.target.checked })}
+                    title={t`Correct answer`}
+                    className="cursor-pointer accent-green-600"
+                  />
+                  <span className="text-[10px] font-mono text-muted-foreground">{itemId}</span>
+                </label>
+              ) : (
+                answerField(itemId)
+              ),
+            )}
           </div>
         )}
 
@@ -751,7 +795,8 @@ export function ClassicActivityPanel({
         {otherTextLeaves.length > 0 && (
           <div className="space-y-1.5">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {structure || showOutlineItems ? t`Other text` : t`Text`} ({otherTextLeaves.length})
+              {structure || visibleOutlineItems.length > 0 ? t`Other text` : t`Text`} (
+              {otherTextLeaves.length})
             </h3>
             {otherTextLeaves.map((leaf) => (
               <div key={leaf.nodeId} className="space-y-0.5">
