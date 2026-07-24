@@ -125,6 +125,8 @@ jobs:
       contents: read
     env:
       APP_VERSION: ${{ needs.stage.outputs.version }}
+      # SKIP_NOTARIZE accepts ALL, MAC, WIN, LINUX (comma/space separated).
+      # "true" is treated as ALL for backward compatibility.
       SKIP_NOTARIZE: ${{ vars.SKIP_NOTARIZE }}
     steps:
       - uses: actions/checkout@v4
@@ -163,8 +165,20 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
+      - name: Resolve Windows signing skip
+        id: skip
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: |
+          tokens=" $(echo "${SKIP_NOTARIZE:-}" | tr '[:lower:]' '[:upper:]' | tr ',' ' ') "
+          skip=false
+          case "$tokens" in
+            *" ALL "*|*" TRUE "*|*" WIN "*) skip=true ;;
+          esac
+          echo "win=$skip" >> "$GITHUB_OUTPUT"
+
       - name: Acquire Azure code signing token
-        if: matrix.os == 'windows-latest' && env.SKIP_NOTARIZE != 'true'
+        if: matrix.os == 'windows-latest' && steps.skip.outputs.win != 'true'
         shell: bash
         env:
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
