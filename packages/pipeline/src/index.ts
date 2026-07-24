@@ -334,6 +334,7 @@ export { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rende
 export {
   getRenderSectioning,
   getRenderSectioningRow,
+  getSemanticSectioning,
   FIXED_LAYOUT_SECTIONING_NODE,
   PAGE_SECTIONING_NODE,
 } from "./render-sectioning.js"

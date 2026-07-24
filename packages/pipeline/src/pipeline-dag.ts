@@ -66,7 +66,7 @@ import {
 } from "./speech.js"
 import { packageAdtWeb } from "./packaging/web.js"
 import { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rendering.js"
-import { getRenderSectioning } from "./render-sectioning.js"
+import { getRenderSectioning, getSemanticSectioning } from "./render-sectioning.js"
 import { runAccessibilityAssessment } from "./accessibility-assessment.js"
 import { loadBookConfig } from "./config.js"
 import { nullProgress, type Progress } from "./progress.js"
@@ -639,7 +639,12 @@ export async function runFullPipeline(
       const quizPages: QuizPageInput[] = []
       for (const page of pages) {
         const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
-        const sectioning = getRenderSectioning(storage, page.pageId)
+        // Filter by the SEMANTIC sectioning (real section types like
+        // `text_and_single_image`), not the render sectioning — in fixed-layout
+        // the latter is the positioned tree whose only type is
+        // `fixed-layout-page`, which never matches `quiz_section_types`, so no
+        // quizzes would ever generate.
+        const sectioning = getSemanticSectioning(storage, page.pageId)
         if (!renderingRow || !sectioning) continue
         quizPages.push({
           pageId: page.pageId,

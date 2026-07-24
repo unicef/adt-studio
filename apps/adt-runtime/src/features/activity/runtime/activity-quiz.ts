@@ -8,10 +8,13 @@ import {
   submitEnabledAtom,
   submitLabelAtom,
   submitStateAtom,
+  submitVisibleAtom,
   validateHandlerAtom,
 } from "@/features/activity/state/activity.atoms"
 import { playActivitySound } from "@/features/activity/runtime/sounds"
 import { showActivityProgressToast } from "@/features/activity/lib/progress-toast"
+import { isAnyModalOpen } from "@/features/navigation/lib/modal-state"
+import { dockMenuValueAtom, sidebarOpenAtom } from "@/shared/state/ui.atoms"
 
 /**
  * Quiz (standalone `activity_quiz` page) and in-page `activity_multiple_choice`
@@ -413,6 +416,12 @@ export function initializeQuizActivity(): (() => void) | null {
   const isStandaloneQuiz = sectionType === "activity_quiz"
   const findPostCorrectHref = findNextPageHref
 
+  // Standalone quizzes validate the instant an option is picked — no Submit
+  // button, and the number keys (1/2/3…) pick-and-check too. Embedded
+  // multiple-choice keeps the pick-then-Submit model because a single page can
+  // host several question groups that must all be answered before checking.
+  const immediateValidation = isStandaloneQuiz
+
   const groups = buildGroups(section)
   const hasNextPage = findNextPageHref() !== null
   const hasPostCorrectTarget = findPostCorrectHref() !== null
@@ -430,11 +439,58 @@ export function initializeQuizActivity(): (() => void) | null {
     store.set(submitLabelAtom, null)
     store.set(submitEnabledAtom, false)
     store.set(skipEnabledAtom, hasNextPage)
+    // Immediate-validation quizzes have no button to show.
+    store.set(submitVisibleAtom, !immediateValidation)
+  }
+
+  const validateImmediately = (option: HTMLElement, group: QuestionGroup) => {
+    // Re-clicking the option that's already marked is a no-op so we don't
+    // re-fire confetti / sounds on every repeat click.
+    if (group.validated && group.selected === option) return
+    clearGroupStyles(group, isStandaloneQuiz)
+    const input = option.querySelector<HTMLInputElement>('input[type="radio"]')
+    if (input) input.checked = true
+    option.setAttribute("aria-checked", "true")
+    group.selected = option
+
+    const itemId = getOptionItemId(option)
+    const isCorrect = itemId ? Boolean(correctAnswers[itemId]) : false
+    applyValidationStyle(option, isCorrect, isStandaloneQuiz)
+    showFeedback(option, isCorrect, isStandaloneQuiz)
+    group.validated = true
+    playActivitySound(isCorrect ? "success" : "error")
+
+    if (isCorrect) {
+      store.set(confettiTriggerAtom, store.get(confettiTriggerAtom) + 1)
+      // Reveal the Next button so the reader can advance — parity with the
+      // Submit→Next flow multiple-choice uses. `handleValidate` (the button's
+      // handler) navigates when the state is "next". Enabled only when a next
+      // page actually exists (disabled on the final page).
+      store.set(submitStateAtom, "next")
+      store.set(submitLabelAtom, null)
+      store.set(submitEnabledAtom, hasPostCorrectTarget)
+      store.set(submitVisibleAtom, true)
+    } else {
+      // Wrong pick — keep the button hidden; the reader simply picks again.
+      store.set(submitStateAtom, "submit")
+      store.set(submitLabelAtom, null)
+      store.set(submitEnabledAtom, false)
+      store.set(submitVisibleAtom, false)
+    }
   }
 
   const handleSelect = (option: HTMLElement) => {
     const group = findGroupForOption(groups, option)
     if (!group) return
+    // Land focus on the option label, never the native radio. A focused native
+    // radio arrow-navigates its group and swallows the reader's arrow-key page
+    // turn (e.g. Thorium in the JS EPUB); the label doesn't, so arrow keys pass
+    // through. Selection stays keyboard-accessible via Enter/Space + number keys.
+    if (option !== document.activeElement) option.focus()
+    if (immediateValidation) {
+      validateImmediately(option, group)
+      return
+    }
     if (group.validated) clearGroupStyles(group, isStandaloneQuiz)
     markSelection(option, group, isStandaloneQuiz)
     playActivitySound("drop")
@@ -530,7 +586,7 @@ export function initializeQuizActivity(): (() => void) | null {
 
   const listeners: Array<() => void> = []
   for (const group of groups) {
-    for (const option of group.options) {
+    group.options.forEach((option) => {
       const onClick = () => handleSelect(option)
       const onKey = (e: KeyboardEvent) => {
         if (e.key === "Enter" || e.key === " ") {
@@ -550,6 +606,11 @@ export function initializeQuizActivity(): (() => void) | null {
         'input[type="radio"]',
       )
       if (innerRadio) {
+        // Keep native radios out of the tab order so keyboard focus lands on the
+        // option label (which doesn't arrow-navigate), leaving the reader's
+        // arrow-key page turn free. Selection is still driven by Enter/Space and
+        // the number keys.
+        innerRadio.setAttribute("tabindex", "-1")
         const onChange = () => {
           if (innerRadio.checked) handleSelect(option)
         }
@@ -563,7 +624,47 @@ export function initializeQuizActivity(): (() => void) | null {
         option.removeEventListener("click", onClick)
         option.removeEventListener("keydown", onKey)
       })
+    })
+  }
+
+  // Standalone quiz: pressing a number key picks-and-checks the matching option
+  // (1 → first option, 2 → second, …). Scoped to the single-group quiz page;
+  // multiple-choice keeps arrow-key radio navigation since its number mapping
+  // would be ambiguous across question groups.
+  if (immediateValidation) {
+    const onNumberKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return
+      if (e.altKey || e.ctrlKey || e.metaKey) return
+      // Defer to whatever surface owns the keyboard: an open sidebar, dock
+      // menu, or modal/popover overlays the quiz, so the digit shouldn't reach
+      // it. (Mirrors the guards in useKeyboardPageNav; all no-ops in the WebPub
+      // bundle, which ships none of that chrome.)
+      if (store.get(sidebarOpenAtom) || store.get(dockMenuValueAtom) !== "") {
+        return
+      }
+      if (isAnyModalOpen()) return
+      const active = document.activeElement as HTMLElement | null
+      // Don't hijack digits typed into a real text field. A focused quiz radio
+      // is fine — that's the reader answering, which is exactly what we want.
+      if (
+        active &&
+        (active.isContentEditable ||
+          active.tagName === "TEXTAREA" ||
+          active.tagName === "SELECT" ||
+          (active.tagName === "INPUT" &&
+            (active as HTMLInputElement).type !== "radio"))
+      ) {
+        return
+      }
+      const index = Number.parseInt(e.key, 10) - 1
+      if (!Number.isInteger(index) || index < 0) return
+      const option = groups[0]?.options[index]
+      if (!option) return
+      e.preventDefault()
+      handleSelect(option)
     }
+    document.addEventListener("keydown", onNumberKey)
+    listeners.push(() => document.removeEventListener("keydown", onNumberKey))
   }
 
   store.set(validateHandlerAtom, () => handleValidate)
@@ -595,5 +696,6 @@ export function initializeQuizActivity(): (() => void) | null {
     store.set(skipHandlerAtom, () => null)
     store.set(submitEnabledAtom, false)
     store.set(skipEnabledAtom, false)
+    store.set(submitVisibleAtom, true)
   }
 }

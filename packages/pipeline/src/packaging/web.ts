@@ -1347,6 +1347,12 @@ function bookQuizTheme(palette: QuizPalette): QuizTheme {
         color: var(--quiz-option-text);
         box-shadow: 0 6px 0 0 rgba(0, 0, 0, 0.10);
     }
+    /* Quiz options read larger than body copy — the adt-body scale bottoms
+       out at 16px, which is too small for a tappable answer. Floor at 20px. */
+    #simple-main .activity-option,
+    #simple-main .activity-option .option-text {
+        font-size: 20px;
+    }
     #simple-main .activity-option:hover {
         transform: translateY(-2px);
         box-shadow: 0 8px 0 0 rgba(0, 0, 0, 0.12);
