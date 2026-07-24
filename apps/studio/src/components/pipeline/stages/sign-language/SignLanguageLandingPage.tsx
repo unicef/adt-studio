@@ -34,10 +34,10 @@ import {
   useUploadSignLanguageVideo,
   useAssignSignLanguageVideo,
   useDeleteSignLanguageVideo,
-  useDeleteAllSignLanguageVideos,
 } from "@/hooks/use-sign-language-videos"
 import { getSignLanguageVideoUrl } from "@/api/client"
 import type { SignLanguageVideo } from "@/api/client"
+import { isGlossaryVideoSectionId } from "@/lib/glossary-video"
 import { ManageSectionsDialog } from "./components/ManageSectionsDialog"
 import { SignLanguageReaderPreview } from "./components/SignLanguageReaderPreview"
 import type { FilterValue, SectionEntry } from "./components/types"
@@ -52,17 +52,23 @@ export function SignLanguageLandingPage({ bookLabel }: { bookLabel: string }) {
   const uploadMutation = useUploadSignLanguageVideo(bookLabel)
   const assignMutation = useAssignSignLanguageVideo(bookLabel)
   const deleteMutation = useDeleteSignLanguageVideo(bookLabel)
-  const deleteAllMutation = useDeleteAllSignLanguageVideos(bookLabel)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
   const targetSectionRef = useRef<string | null>(null)
   const [playingVideo, setPlayingVideo] = useState<SignLanguageVideo | null>(null)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false)
+  const [deletingAll, setDeletingAll] = useState(false)
   const [filter, setFilter] = useState<FilterValue>("missing")
   const [manageOpen, setManageOpen] = useState(false)
 
-  const videos = videosData?.videos ?? []
+  // Videos attached to glossary items (sectionId like `gl001` / `gl_manual_*`)
+  // are managed from the Glossary stage — keep them out of the page-section
+  // lists and counts here.
+  const videos = useMemo(
+    () => (videosData?.videos ?? []).filter((v) => !isGlossaryVideoSectionId(v.sectionId)),
+    [videosData],
+  )
 
   // Flat list of sections in book order
   const sectionEntries = useMemo<SectionEntry[]>(() => {
@@ -256,7 +262,7 @@ export function SignLanguageLandingPage({ bookLabel }: { bookLabel: string }) {
                     <button
                       type="button"
                       onClick={() => setConfirmDeleteAll(true)}
-                      disabled={deleteAllMutation.isPending}
+                      disabled={deletingAll}
                       className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11.5px] font-medium text-[#737373] transition-colors hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50"
                     >
                       <Trash2 className="h-3 w-3" aria-hidden />
@@ -490,15 +496,24 @@ export function SignLanguageLandingPage({ bookLabel }: { bookLabel: string }) {
             </button>
             <button
               type="button"
-              onClick={() => {
-                deleteAllMutation.mutate(undefined, {
-                  onSettled: () => setConfirmDeleteAll(false),
-                })
+              onClick={async () => {
+                // Delete only the page-section videos shown here — videos
+                // attached to glossary terms are managed from the Glossary
+                // stage and must survive a "remove all" on this page.
+                setDeletingAll(true)
+                try {
+                  for (const v of videos) {
+                    await deleteMutation.mutateAsync(v.videoId)
+                  }
+                } finally {
+                  setDeletingAll(false)
+                  setConfirmDeleteAll(false)
+                }
               }}
-              disabled={deleteAllMutation.isPending}
+              disabled={deletingAll}
               className="inline-flex items-center gap-1.5 rounded-md bg-rose-600 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-rose-700 disabled:opacity-50"
             >
-              {deleteAllMutation.isPending && (
+              {deletingAll && (
                 <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
               )}
               <Trans>Remove all</Trans>

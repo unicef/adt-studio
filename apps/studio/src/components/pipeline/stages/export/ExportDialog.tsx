@@ -46,6 +46,7 @@ import {
   buildExportFormatConfig,
   type ExportFormat,
 } from "./export-formats";
+import { EpubGlossaryOptions } from "./EpubGlossaryOptions";
 
 function BookCover({ bookLabel }: { bookLabel: string }) {
   const { t } = useLingui();
@@ -837,21 +838,30 @@ export function ExportDialog({
                     </h4>
                     <div className="space-y-1">
                       {availableFeatures.glossary && (
-                        <FeatureToggleRow
-                          icon={BookOpen}
-                          label={<Trans>Glossary</Trans>}
-                          description={
-                            <Trans>Lookup definitions for key terms</Trans>
-                          }
-                          textColor="text-lime-600"
-                          bgLight="bg-lime-50"
-                          borderColor="border-lime-200"
-                          checked={featureToggles.glossary}
-                          onCheckedChange={(v) =>
-                            onFeatureToggleChange("glossary", v)
-                          }
-                          disabled={isPreparing}
-                        />
+                        <>
+                          <FeatureToggleRow
+                            icon={BookOpen}
+                            label={<Trans>Glossary</Trans>}
+                            description={
+                              <Trans>Lookup definitions for key terms</Trans>
+                            }
+                            textColor="text-lime-600"
+                            bgLight="bg-lime-50"
+                            borderColor="border-lime-200"
+                            checked={featureToggles.glossary}
+                            onCheckedChange={(v) =>
+                              onFeatureToggleChange("glossary", v)
+                            }
+                            disabled={isPreparing}
+                          />
+                          {selectedFormat === "epub" &&
+                            featureToggles.glossary && (
+                              <EpubGlossaryOptions
+                                bookLabel={bookLabel}
+                                disabled={isPreparing}
+                              />
+                            )}
+                        </>
                       )}
                       {availableFeatures.readAloud && (
                         <FeatureToggleRow

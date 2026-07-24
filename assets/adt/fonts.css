@@ -52,7 +52,10 @@ body, p, h1, h2, h3, h4, h5, h6, span, div, button, input, textarea, select {
   font-family: "Merriweather", serif;
 }
 
-#nav-container, #nav-container *,
-#interface-container, #interface-container * {
+/* Chrome UI font. FontAwesome marker classes are exempt: this ID+universal
+   selector would otherwise beat FA's `.fa { font-family: "Font Awesome …" }`
+   rule and its ::before glyph would render as a missing character. */
+#nav-container, #nav-container *:not(.fa):not(.fas):not(.far):not(.fab):not(.fa-solid):not(.fa-regular):not(.fa-brands),
+#interface-container, #interface-container *:not(.fa):not(.fas):not(.far):not(.fab):not(.fa-solid):not(.fa-regular):not(.fa-brands) {
   font-family: 'Atkinson Hyperlegible', sans-serif;
 }

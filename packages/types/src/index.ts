@@ -124,6 +124,8 @@ export {
   VisualRefinementStrategyConfig,
   RenderStrategyConfig,
   AccessibilityAssessmentConfig,
+  EpubGlossaryMode,
+  EpubGlossaryConfig,
   AppConfig,
   type TypeDef,
 } from "./config.js"

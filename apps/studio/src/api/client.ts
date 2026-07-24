@@ -393,6 +393,8 @@ export interface GlossaryItem {
   variations: string[]
   emojis: string[]
   pruned?: boolean
+  /** Optional image from the book's images table illustrating the term. */
+  imageId?: string
 }
 
 export interface GlossaryOutput {

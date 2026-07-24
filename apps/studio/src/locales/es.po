@@ -807,6 +807,9 @@ msgstr "Añadir una familia de Google Fonts"
 msgid "Add a language to see translations appear here."
 msgstr "Añade un idioma para ver las traducciones aquí."
 
+msgid "Add a new picture from your disk"
+msgstr "Añade una imagen nueva desde tu disco"
+
 msgid "Add a quiz"
 msgstr "Añadir un cuestionario"
 
@@ -876,6 +879,9 @@ msgstr "Add checklist item to this section"
 msgid "Add custom instructions"
 msgstr "Añadir instrucciones personalizadas"
 
+msgid "Add end of book"
+msgstr "Añadir final del libro"
+
 msgid "Add entry"
 msgstr "Agregar entrada"
 
@@ -906,6 +912,9 @@ msgstr "Agrega idiomas para traducir el contenido del libro."
 msgid "Add new font"
 msgstr "Añadir nueva fuente"
 
+msgid "Add picture"
+msgstr "Añadir imagen"
+
 msgid "Add quiz"
 msgstr "Añadir cuestionario"
 
@@ -917,6 +926,9 @@ msgstr "Add reviewer guidance."
 
 msgid "Add section"
 msgstr "Add section"
+
+msgid "Add sign language video"
+msgstr "Añadir video de lengua de señas"
 
 msgid "Add sizing field"
 msgstr "Agregar campo de tamaño"
@@ -969,6 +981,9 @@ msgstr "Idiomas adicionales"
 msgid "Additional terminology may be introduced in later sections. All terms are listed in the glossary appendix at the end of this document for quick reference."
 msgstr "Se puede introducir terminología adicional en secciones posteriores. Todos los términos están listados en el apéndice de glosario al final de este documento para referencia rápida."
 
+msgid "Adds glossary pages to the book. Terms link to their entry and each entry links back to the text. Works in every reader."
+msgstr "Añade páginas de glosario al libro. Los términos enlazan con su entrada y cada entrada enlaza de vuelta al texto. Funciona en cualquier lector."
+
 msgid "ADT"
 msgstr "ADT"
 
@@ -1020,6 +1035,9 @@ msgstr "después de la página {0}"
 
 msgid "After page {afterNumber}"
 msgstr "Después de la página {afterNumber}"
+
+msgid "After page {placement}"
+msgstr "Después de la página {placement}"
 
 #. placeholder {0}: String(page.pageNumber)
 msgid "after pg {0}"
@@ -1507,6 +1525,9 @@ msgstr "Los datos del libro están desactualizados y deben reconstruirse."
 msgid "Book Fonts"
 msgstr "Fuentes del libro"
 
+msgid "Book images"
+msgstr "Imágenes del libro"
+
 msgid "Book info"
 msgstr "Información del libro"
 
@@ -1551,6 +1572,9 @@ msgstr "Título del libro"
 
 msgid "Borders"
 msgstr "Bordes"
+
+msgid "Both"
+msgstr "Ambos"
 
 msgid "Boxed Text"
 msgstr "Texto en recuadro"
@@ -1743,6 +1767,9 @@ msgstr "Cambiar Preajuste"
 msgid "Change the book language?"
 msgstr "¿Cambiar el idioma del libro?"
 
+msgid "Change the picture for this term"
+msgstr "Cambiar la imagen de este término"
+
 #~ msgid "Changes apply the next time you run Storyboard and Export."
 #~ msgstr "Los cambios se aplican la próxima vez que ejecutes Storyboard y Exportar."
 
@@ -1800,6 +1827,9 @@ msgstr "Checklist item"
 msgid "choice"
 msgstr "opción"
 
+msgid "Choose a picture for this term"
+msgstr "Elegir una imagen para este término"
+
 msgid "Choose a Preset"
 msgstr "Elegir un Preajuste"
 
@@ -1826,6 +1856,9 @@ msgstr "Elegir imágenes..."
 
 msgid "Choose Provider"
 msgstr "Elegir proveedor"
+
+msgid "Choose the page to crop from."
+msgstr "Elige la página de la que recortar."
 
 msgid "Choose the part file that was shared with you, or export it again."
 msgstr "Elige el archivo de parte que te compartieron, o expórtalo de nuevo."
@@ -2206,6 +2239,12 @@ msgstr "Critical"
 msgid "Crop"
 msgstr "Recortar"
 
+msgid "Crop from a page"
+msgstr "Recortar de una página"
+
+msgid "Crop from page"
+msgstr "Recortar de página"
+
 msgid "Crop Image"
 msgstr "Recortar imagen"
 
@@ -2247,6 +2286,9 @@ msgstr "Intervalo personalizado"
 
 msgid "Custom section {index}"
 msgstr "Custom section {index}"
+
+msgid "Cut a region out of any page"
+msgstr "Recorta una región de cualquier página"
 
 msgid "Debug mode is not enabled."
 msgstr "El modo de depuración no está habilitado."
@@ -2642,6 +2684,9 @@ msgstr "ej., Haz el fondo más brillante, añade más árboles..."
 msgid "Each block was simplified by AI. Edit any Easy Read text to refine it against the original, then Save. Changes are stored as a new version, so you can always roll back or regenerate."
 msgstr "Cada bloque fue simplificado por IA. Edita cualquier texto de Lectura Fácil para refinarlo con el original, luego guarda. Los cambios se guardan como una nueva versión, por lo que siempre puedes revertir o regenerar."
 
+msgid "Each glossary page collects the terms used since the previous one."
+msgstr "Cada página de glosario reúne los términos usados desde la anterior."
+
 msgid "Each iteration is one LLM call. Lower values are faster and cheaper; higher values give the reviewer more chances to fix problems."
 msgstr "Cada iteración es una llamada LLM. Valores más bajos son más rápidos y baratos; valores más altos dan al revisor más oportunidades de corregir problemas."
 
@@ -2803,6 +2848,9 @@ msgstr "Enabled axe tags"
 
 msgid "End"
 msgstr "Fin"
+
+msgid "End of book"
+msgstr "Final del libro"
 
 msgid "End page"
 msgstr "End page"
@@ -3107,6 +3155,9 @@ msgstr "Archivo aceptado"
 
 msgid "Filter by image ID or caption..."
 msgstr "Filtrar por ID de imagen o subtítulo..."
+
+msgid "Filter by image ID or page..."
+msgstr "Filtrar por ID de imagen o página..."
 
 msgid "Filter by image ID..."
 msgstr "Filtrar por ID de imagen..."
@@ -3422,8 +3473,17 @@ msgstr "Comenzar"
 msgid "Glossary"
 msgstr "Glosario"
 
+msgid "Glossary format"
+msgstr "Formato del glosario"
+
 msgid "Glossary Generation"
 msgstr "Generación de glosario"
+
+msgid "Glossary page placement"
+msgstr "Ubicación de las páginas de glosario"
+
+msgid "Glossary pages"
+msgstr "Páginas de glosario"
 
 msgid "Glossary Preview"
 msgstr "Vista previa del Glosario"
@@ -4755,8 +4815,14 @@ msgstr "Sin imagen"
 msgid "No image available"
 msgstr "Ninguna imagen disponible"
 
+msgid "No image selected"
+msgstr "Ninguna imagen seleccionada"
+
 msgid "No images in this book"
 msgstr "No hay imágenes en este libro"
+
+msgid "No images in this book yet."
+msgstr "Este libro aún no tiene imágenes."
 
 msgid "No images in this section"
 msgstr "No hay imágenes en esta sección"
@@ -4826,6 +4892,9 @@ msgstr "Aún no se extrajeron páginas. Ejecuta el pipeline para extraer el cont
 
 msgid "No pages found"
 msgstr "No se encontraron páginas"
+
+msgid "No pages in this book yet."
+msgstr "Este libro aún no tiene páginas."
 
 msgid "No PDF"
 msgstr "Sin PDF"
@@ -5349,6 +5418,9 @@ msgstr "Imagen de página como fondo con texto posicionado superpuesto. Preserva
 msgid "Page Mode"
 msgstr "Modo de Página"
 
+msgid "Page number"
+msgstr "Número de página"
+
 msgid "Page preview"
 msgstr "Vista previa de la página"
 
@@ -5553,6 +5625,12 @@ msgstr "Elegir del libro"
 msgid "Pick one layout approach."
 msgstr "Elige un enfoque de diseño."
 
+#~ msgid "Pick one of the book's images to illustrate this glossary term on the glossary page."
+#~ msgstr "Elige una de las imágenes del libro para ilustrar este término en la página del glosario."
+
+msgid "Pick one of the book's images, crop a region from a page, or upload your own picture."
+msgstr "Elige una de las imágenes del libro, recorta una región de una página o sube tu propia imagen."
+
 #~ msgid "Pick page range"
 #~ msgstr "Elegir intervalo de páginas"
 
@@ -5564,6 +5642,9 @@ msgstr "Elige qué voz usa cada idioma para la narración, incluidos los acentos
 
 msgid "Picture books and early readers"
 msgstr "Libros ilustrados y primeros lectores"
+
+msgid "Picture for {word}"
+msgstr "Imagen de {word}"
 
 msgid "Pinned"
 msgstr "Fijada"
@@ -5603,6 +5684,12 @@ msgstr "Puliendo párrafos a la perfección..."
 
 msgid "Polygon"
 msgstr "Polígono"
+
+msgid "Pop-up definitions"
+msgstr "Definiciones emergentes"
+
+msgid "Pop-ups where supported, plus browsable glossary pages in the book."
+msgstr "Definiciones emergentes donde haya soporte, además de páginas de glosario navegables en el libro."
 
 msgid "Popular"
 msgstr "Populares"
@@ -6060,8 +6147,17 @@ msgstr "Quitar la página {0} del cuestionario"
 msgid "Remove PDF"
 msgstr "Eliminar PDF"
 
+msgid "Remove picture"
+msgstr "Quitar imagen"
+
+msgid "Remove placement"
+msgstr "Quitar ubicación"
+
 msgid "Remove section"
 msgstr "Remove section"
+
+msgid "Remove sign language video"
+msgstr "Quitar video de lengua de señas"
 
 msgid "Remove term"
 msgstr "Eliminar término"
@@ -7191,6 +7287,9 @@ msgstr "Libro electrónico estándar para lectores y bibliotecas"
 msgid "Standard EPUB 3 file for e-readers, reading apps, and accessibility tools. Interactive features (quizzes, TTS) work in readers that support JavaScript."
 msgstr "Archivo EPUB 3 estándar para lectores electrónicos, aplicaciones de lectura y herramientas de accesibilidad. Las funciones interactivas (cuestionarios, TTS) funcionan en lectores que admiten JavaScript."
 
+msgid "Standard EPUB glossary — tapping a term shows its definition. Needs reader support (not Apple Books)."
+msgstr "Glosario EPUB estándar: al tocar un término se muestra su definición. Requiere soporte del lector (no Apple Books)."
+
 msgid "Start"
 msgstr "Inicio"
 
@@ -8291,6 +8390,9 @@ msgstr "Use this for checks you intentionally want to suppress, such as known fa
 
 msgid "Use this format to back up the project or move it to another machine."
 msgstr "Usa este formato para respaldar el proyecto o moverlo a otra máquina."
+
+msgid "Use this picture"
+msgstr "Usar esta imagen"
 
 msgid "Used for"
 msgstr "Se usa para"
