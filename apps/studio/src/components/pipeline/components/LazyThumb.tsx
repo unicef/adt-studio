@@ -1,6 +1,25 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
 
 /**
+ * Signals `onReady` on mount — wrap synchronous (non-iframe) preview content so
+ * the version-picker skeleton reveals it immediately instead of waiting for the
+ * fallback timer. Steps whose content is a plain React view (glossary, quizzes,
+ * TOC, …) use this in their `renderPreview`.
+ */
+export function ReadyOnMount({
+  onReady,
+  children,
+}: {
+  onReady?: () => void
+  children: ReactNode
+}) {
+  useEffect(() => {
+    onReady?.()
+  }, [onReady])
+  return <>{children}</>
+}
+
+/**
  * Reserves a stable box and shows a pulsing skeleton until the previewed
  * content signals it's ready (via the `onReady` passed to `render`), then
  * reveals it with a fade. Prevents the multi-stage layout shift an iframe

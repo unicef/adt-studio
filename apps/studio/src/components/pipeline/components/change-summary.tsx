@@ -20,7 +20,7 @@ const KIND_ICON: Record<ChangeKind, LucideIcon> = {
   restored: Eye,
 }
 
-function diffById<T>(
+export function diffById<T>(
   prev: T[],
   next: T[],
   keyOf: (item: T) => string,

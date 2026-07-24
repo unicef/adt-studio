@@ -193,9 +193,28 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
           saveDisabledReason={glossaryRunning ? t`Wait for glossary generation to finish` : undefined}
           pendingLabel={pendingLabel}
           pendingLabelKey={pendingLabelKey}
-          onPreview={(d) => setPending(d as GlossaryData)}
+          onRestored={() => setPending(null)}
           onSave={() => saveRef.current()}
           onDiscard={() => setPending(null)}
+          diff={{
+            items: (d) => (d as GlossaryData | null)?.items?.filter((i) => !i.pruned) ?? [],
+            keyOf: (it) => (it as GlossaryItem).id ?? (it as GlossaryItem).word,
+            isEqual: (a, b) => JSON.stringify(a) === JSON.stringify(b),
+            renderItem: (it) => {
+              const item = it as GlossaryItem
+              return (
+                <span>
+                  <span className="font-semibold text-foreground">
+                    {item.emojis?.[0] ? `${item.emojis[0]} ` : ""}
+                    {item.word}
+                  </span>
+                  {item.definition ? (
+                    <span className="text-muted-foreground"> — {item.definition}</span>
+                  ) : null}
+                </span>
+              )
+            },
+          }}
         />
       </div>
     )

@@ -24,6 +24,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, BASE_URL } from "@/api/client"
 import type { PageDetail } from "@/api/client"
 import { VersionPicker } from "@/components/pipeline/components/VersionPicker"
+import { ReadyOnMount } from "@/components/pipeline/components/LazyThumb"
 import type {
   ContentNodeData,
   PageSectioningOutput,
@@ -200,14 +201,6 @@ function getRenderedSectionByIndex(
   return rendering?.sections.find((s) => s.sectionIndex === sectionIndex)
 }
 
-/** Static preview content signals "ready" immediately so the version-picker
- *  loading skeleton reveals it without waiting for the fallback timer. */
-function ReadyOnMount({ onReady, children }: { onReady?: () => void; children: ReactNode }) {
-  useEffect(() => {
-    onReady?.()
-  }, [onReady])
-  return <>{children}</>
-}
 
 /**
  * Compare pending (edited) HTML against saved (original) HTML and produce

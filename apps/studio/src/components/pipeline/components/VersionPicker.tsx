@@ -3,6 +3,7 @@ import {
   BookOpen,
   Check,
   ChevronDown,
+  GitCompareArrows,
   HelpCircle,
   Image as ImageIcon,
   Languages,
@@ -25,6 +26,11 @@ import {
 import { STAGES } from "../stage-config"
 import { useFloatingSave, PendingChip } from "./floating-save"
 import { LazyThumb, PreviewSkeleton } from "./LazyThumb"
+import {
+  VersionCompareDialog,
+  countChanges,
+  type VersionDiffDescriptor,
+} from "./VersionCompareDialog"
 
 const NEUTRAL_ACCENT = "#4b5563"
 
@@ -116,6 +122,12 @@ interface VersionPickerProps {
    * the loading skeletons).
    */
   renderPreview?: (data: unknown, onReady?: () => void) => ReactNode
+  /**
+   * Book-level list stages (glossary, TOC, quizzes, …) supply this instead of
+   * renderPreview: the picker then shows a per-version change count vs the
+   * current version and a Compare button that opens an item-level diff dialog.
+   */
+  diff?: VersionDiffDescriptor
 }
 
 export function VersionPicker({
@@ -134,6 +146,7 @@ export function VersionPicker({
   pendingLabel,
   pendingLabelKey,
   renderPreview,
+  diff,
 }: VersionPickerProps) {
   const { t, i18n } = useLingui()
   const queryClient = useQueryClient()
@@ -143,6 +156,7 @@ export function VersionPicker({
   const [loadingVersions, setLoadingVersions] = useState(false)
   const [hovered, setHovered] = useState<number | null>(null)
   const [restoring, setRestoring] = useState(false)
+  const [compareOpen, setCompareOpen] = useState(false)
 
   const stepPending = STEP_PENDING[step]
   const defaultLabel = stepPending ? (
@@ -174,7 +188,9 @@ export function VersionPicker({
 
   if (currentVersion == null) return null
 
-  const accentColor = STAGES.find((s) => s.slug === stage)?.hex ?? NEUTRAL_ACCENT
+  const stageDef = STAGES.find((s) => s.slug === stage)
+  const accentColor = stageDef?.hex ?? NEUTRAL_ACCENT
+  const stageIcon = stageDef?.icon ?? GitCompareArrows
 
   const handleOpenChange = async (next: boolean) => {
     setOpen(next)
@@ -189,8 +205,21 @@ export function VersionPicker({
     }
   }
 
-  // Pick a version. With onRestored, roll back to it (move the pointer, no new
-  // version) and refresh. Otherwise fall back to the legacy pending-edit flow.
+  // Roll back to an existing version: move the pointer (no new version) and
+  // refresh. Shared by the list rows and the compare dialog.
+  const restoreTo = async (version: number) => {
+    setRestoring(true)
+    try {
+      await api.restoreVersion(bookLabel, step, itemId, version)
+      await queryClient.invalidateQueries({ queryKey: ["books", bookLabel] })
+      onRestored?.()
+    } finally {
+      setRestoring(false)
+    }
+  }
+
+  // Pick a version. With onRestored, roll back to it. Otherwise fall back to
+  // the legacy pending-edit flow.
   const handlePick = async (v: VersionEntry) => {
     if (v.version === currentVersion) {
       setOpen(false)
@@ -201,16 +230,13 @@ export function VersionPicker({
       onPreview?.(v.data)
       return
     }
-    setRestoring(true)
-    try {
-      await api.restoreVersion(bookLabel, step, itemId, v.version)
-      await queryClient.invalidateQueries({ queryKey: ["books", bookLabel] })
-      onRestored()
-    } finally {
-      setRestoring(false)
-      setOpen(false)
-    }
+    await restoreTo(v.version)
+    setOpen(false)
   }
+
+  const currentData = versions?.find((v) => v.version === currentVersion)?.data
+  const defaultCompare =
+    versions?.find((v) => v.version !== currentVersion)?.version ?? currentVersion
 
   return (
     <>
@@ -227,7 +253,7 @@ export function VersionPicker({
         <PopoverContent
           align="end"
           className={`origin-[var(--radix-popover-content-transform-origin)] motion-reduce:animate-none ${
-            renderPreview ? "w-56 p-0" : "w-auto min-w-[120px] p-1"
+            renderPreview ? "w-56 p-0" : diff ? "w-64 p-0" : "w-auto min-w-[120px] p-1"
           }`}
         >
           {loadingVersions ? (
@@ -329,6 +355,74 @@ export function VersionPicker({
                   </div>
                 )}
               </div>
+            ) : diff ? (
+              <div className="flex flex-col">
+                <div className="flex items-baseline justify-between border-b px-3 py-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                    {t`Version history`}
+                  </span>
+                  <span className="text-[10px] tabular-nums text-muted-foreground/70">
+                    {versions.length}
+                  </span>
+                </div>
+                <div className="max-h-72 overflow-auto p-1">
+                  {versions.map((v, i) => {
+                    const isCurrent = v.version === currentVersion
+                    const isLatest = i === 0
+                    const changes = isCurrent ? 0 : countChanges(diff, currentData, v.data)
+                    return (
+                      <button
+                        key={v.version}
+                        type="button"
+                        onClick={() => handlePick(v)}
+                        className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors cursor-pointer ${
+                          isCurrent ? "" : "hover:bg-accent"
+                        }`}
+                        style={isCurrent ? { backgroundColor: `${accentColor}0f` } : undefined}
+                      >
+                        <span className="flex min-w-0 flex-1 items-center gap-1.5">
+                          <span
+                            className="text-sm font-semibold"
+                            style={{ color: isCurrent ? accentColor : undefined }}
+                          >
+                            v{v.version}
+                          </span>
+                          {isCurrent ? (
+                            <span
+                              className="text-[10px] font-medium uppercase tracking-wide"
+                              style={{ color: accentColor }}
+                            >
+                              {t`current`}
+                            </span>
+                          ) : (
+                            isLatest && (
+                              <span className="text-[10px] text-muted-foreground">{t`latest`}</span>
+                            )
+                          )}
+                        </span>
+                        {!isCurrent && (
+                          <span className="shrink-0 text-[10px] text-muted-foreground">
+                            {changes === 1 ? t`1 change` : t`${changes} changes`}
+                          </span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+                <div className="border-t px-1.5 py-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOpen(false)
+                      setCompareOpen(true)
+                    }}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent cursor-pointer"
+                  >
+                    <GitCompareArrows className="h-3 w-3" />
+                    {t`Compare versions`}
+                  </button>
+                </div>
+              </div>
             ) : (
               versions.map((v) => {
                 const isCurrent = v.version === currentVersion
@@ -358,6 +452,20 @@ export function VersionPicker({
           )}
         </PopoverContent>
       </Popover>
+
+      {diff && versions && versions.length > 0 && (
+        <VersionCompareDialog
+          open={compareOpen}
+          onOpenChange={setCompareOpen}
+          versions={versions}
+          currentVersion={currentVersion}
+          initialSelected={defaultCompare}
+          descriptor={diff}
+          accentColor={accentColor}
+          icon={stageIcon}
+          onRestore={restoreTo}
+        />
+      )}
     </>
   )
 }
