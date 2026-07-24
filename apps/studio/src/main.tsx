@@ -15,14 +15,14 @@ import { messages as frMessages } from "./locales/fr.po"
 import { messages as sqMessages } from "./locales/sq.po"
 import { routeTree } from "./routeTree.gen"
 import "./styles/globals.css"
-import { LOCALES, activateLocale } from "./i18n/locales"
+import { LOCALES, activateLocale, getStoredLocale } from "./i18n/locales"
 import type { AppLocale } from "./i18n/locales"
 export { LOCALES, type AppLocale } from "./i18n/locales"
 
 function detectLocale(): AppLocale {
   const urlLang = new URLSearchParams(window.location.search).get("lang")
   if (urlLang && LOCALES.includes(urlLang as AppLocale)) return urlLang as AppLocale
-  return "en"
+  return getStoredLocale() ?? "en"
 }
 
 i18n.load({ en: enMessages, "pt-BR": ptBRMessages, es: esMessages, fr: frMessages, sq: sqMessages })
