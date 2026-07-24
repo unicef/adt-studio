@@ -4451,6 +4451,9 @@ msgstr "Multi-format publications"
 msgid "multiple choice"
 msgstr "multiple choice"
 
+msgid "Mute all from read-aloud"
+msgstr "Mute all from read-aloud"
+
 msgid "Muted"
 msgstr "Muted"
 
@@ -5189,6 +5192,9 @@ msgstr "Page image as background with positioned text overlay. Preserves the ori
 
 msgid "Page Mode"
 msgstr "Page Mode"
+
+msgid "Page numbers detected — these will be read aloud: {pageNumberPreview}. Mute them all from text-to-speech?"
+msgstr "Page numbers detected — these will be read aloud: {pageNumberPreview}. Mute them all from text-to-speech?"
 
 msgid "Page preview"
 msgstr "Page preview"

@@ -4452,6 +4452,9 @@ msgstr "Botime me shumë formate"
 msgid "multiple choice"
 msgstr "me zgjedhje të shumëfishta"
 
+msgid "Mute all from read-aloud"
+msgstr "Heshtni të gjitha nga leximi me zë"
+
 msgid "Muted"
 msgstr "I heshtur"
 
@@ -5190,6 +5193,9 @@ msgstr "Imazhi i faqes si sfond me tekst të pozicionuar sipër. Ruan kompozimin
 
 msgid "Page Mode"
 msgstr "Modaliteti i Faqes"
+
+msgid "Page numbers detected — these will be read aloud: {pageNumberPreview}. Mute them all from text-to-speech?"
+msgstr "U zbuluan numra faqesh — do të lexohen me zë: {pageNumberPreview}. T'i heshtni të gjitha nga shndërrimi i tekstit në të folur?"
 
 msgid "Page preview"
 msgstr "Pamja paraprake e faqes"

@@ -4453,6 +4453,9 @@ msgstr "Publications multi-format"
 msgid "multiple choice"
 msgstr "choix multiple"
 
+msgid "Mute all from read-aloud"
+msgstr "Tout couper de la lecture à voix haute"
+
 msgid "Muted"
 msgstr "Muet"
 
@@ -5191,6 +5194,9 @@ msgstr "Image de page en arrière-plan avec texte positionné en superposition. 
 
 msgid "Page Mode"
 msgstr "Mode de page"
+
+msgid "Page numbers detected — these will be read aloud: {pageNumberPreview}. Mute them all from text-to-speech?"
+msgstr "Numéros de page détectés — ils seront lus à voix haute : {pageNumberPreview}. Tout couper de la synthèse vocale ?"
 
 msgid "Page preview"
 msgstr "Aperçu de la page"
