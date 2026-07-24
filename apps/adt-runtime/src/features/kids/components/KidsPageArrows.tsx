@@ -1,5 +1,5 @@
-import { useAtomValue } from "jotai"
-import { ChevronLeft, ChevronRight } from "lucide-react"
+import { useAtomValue, useSetAtom } from "jotai"
+import { ChevronLeft, ChevronRight, PartyPopper } from "lucide-react"
 import {
   currentSectionIdAtom,
   pagesAtom,
@@ -8,6 +8,7 @@ import {
   getAdjacentPages,
   navigateToHref,
 } from "@/features/navigation/lib/page-navigation"
+import { kidsFinishedAtom } from "@/features/kids/state/kids.atoms"
 import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
 import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
 import { cn } from "@/shared/lib/utils"
@@ -17,7 +18,11 @@ export function KidsPageArrows() {
   const pages = useAtomValue(pagesAtom)
   const currentSectionId = useAtomValue(currentSectionIdAtom)
   const reduceMotion = usePrefersReducedMotion()
+  const setFinished = useSetAtom(kidsFinishedAtom)
   const { prev, next } = getAdjacentPages(pages, currentSectionId)
+  // On the final page of a multi-page book the "next" arrow becomes a
+  // celebratory finish button that opens the end-of-book screen.
+  const atEnd = !next && pages.length > 1
 
   return (
     <>
@@ -40,6 +45,16 @@ export function KidsPageArrows() {
         >
           <ChevronRight className="h-9 w-9" strokeWidth={3} aria-hidden="true" />
         </KidsArrow>
+      ) : atEnd ? (
+        <KidsArrow
+          side="right"
+          label={tk("kids-finish-book", "Finish the book")}
+          reduceMotion={reduceMotion}
+          finish
+          onClick={() => setFinished(true)}
+        >
+          <PartyPopper className="h-8 w-8" strokeWidth={2.5} aria-hidden="true" />
+        </KidsArrow>
       ) : null}
     </>
   )
@@ -49,12 +64,14 @@ function KidsArrow({
   side,
   label,
   reduceMotion,
+  finish = false,
   onClick,
   children,
 }: {
   side: "left" | "right"
   label: string
   reduceMotion: boolean
+  finish?: boolean
   onClick: () => void
   children: React.ReactNode
 }) {
@@ -62,16 +79,21 @@ function KidsArrow({
     <button
       type="button"
       aria-label={label}
-      data-testid={`kids-page-arrow-${side}`}
+      data-testid={finish ? "kids-finish-book" : `kids-page-arrow-${side}`}
       onClick={onClick}
       className={cn(
         "pointer-events-auto fixed top-1/2 z-[58] flex h-16 w-16 -translate-y-1/2 items-center justify-center rounded-full",
-        "bg-sky-600 text-white shadow-[0_5px_0_#075985] ring-4 ring-white",
+        "text-white ring-4 ring-white",
         "transition-[transform,box-shadow,background-color] duration-200 ease-out",
-        "hover:bg-sky-500 focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFC800]",
+        "focus:outline-none focus-visible:ring-4 focus-visible:ring-[#FFC800]",
+        finish
+          ? "bg-[#FFB300] text-slate-950 shadow-[0_5px_0_#C98A00] hover:bg-[#FFC01F]"
+          : "bg-sky-600 shadow-[0_5px_0_#075985] hover:bg-sky-500",
         side === "left" ? "left-3" : "right-3",
         !reduceMotion &&
-          "hover:translate-y-[calc(-50%-1px)] hover:shadow-[0_6px_0_#075985] active:translate-y-[calc(-50%+4px)] active:shadow-[0_1px_0_#075985]",
+          (finish
+            ? "hover:translate-y-[calc(-50%-1px)] hover:shadow-[0_6px_0_#C98A00] active:translate-y-[calc(-50%+4px)] active:shadow-[0_1px_0_#C98A00] kids-buddy-idle"
+            : "hover:translate-y-[calc(-50%-1px)] hover:shadow-[0_6px_0_#075985] active:translate-y-[calc(-50%+4px)] active:shadow-[0_1px_0_#075985]"),
       )}
     >
       {children}

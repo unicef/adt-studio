@@ -28,6 +28,7 @@ import {
 } from "../../navigation/state/nav.atoms"
 import {
   confettiTriggerAtom,
+  emitActivityResult,
   skipEnabledAtom,
   skipHandlerAtom,
   submitEnabledAtom,
@@ -459,6 +460,7 @@ export function initializeFillInTheBlankActivity(): (() => void) | null {
       result
 
     playActivitySound(allCorrect ? "success" : "error")
+    emitActivityResult(allCorrect)
     showActivityProgressToast({
       total,
       correct: correctCount,

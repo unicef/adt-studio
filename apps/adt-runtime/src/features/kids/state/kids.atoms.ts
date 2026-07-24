@@ -78,6 +78,9 @@ export const kidsAccessibilityDialogOpenAtom = ephemeralAtom(false)
 export const kidsAvatarDialogOpenAtom = ephemeralAtom(false)
 export const kidsResumeChipDismissedAtom = ephemeralAtom(false)
 
+/** True while the end-of-book celebration screen is showing. */
+export const kidsFinishedAtom = ephemeralAtom(false)
+
 export interface KidsLastSpot {
   sectionId: string
   href: string

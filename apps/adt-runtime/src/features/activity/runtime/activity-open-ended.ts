@@ -19,6 +19,7 @@ import {
   currentSectionIdAtom,
 } from "../../navigation/state/nav.atoms"
 import {
+  emitActivityResult,
   skipEnabledAtom,
   skipHandlerAtom,
   submitEnabledAtom,
@@ -236,6 +237,7 @@ export function initializeOpenEndedActivity(): (() => void) | null {
     const allAccepted = total > 0 && cleanCount === total
 
     playActivitySound(allAccepted ? "success" : "error")
+    emitActivityResult(allAccepted)
     // Open-ended doesn't grade for "correct"-ness — there's no answer key. Use
     // "complete" in the progress count and "saved" in the success message.
     showActivityProgressToast(

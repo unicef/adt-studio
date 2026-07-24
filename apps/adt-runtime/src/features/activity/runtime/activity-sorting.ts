@@ -8,6 +8,7 @@ import { translationsAtom } from "@/features/language/state/language.atoms"
 import { pagesAtom, currentSectionIdAtom } from "@/features/navigation/state/nav.atoms"
 import {
   confettiTriggerAtom,
+  emitActivityResult,
   skipEnabledAtom,
   skipHandlerAtom,
   submitEnabledAtom,
@@ -469,6 +470,7 @@ export function initializeSortingActivity(): (() => void) | null {
     validated = true
 
     playActivitySound(allCorrect ? "success" : "error")
+    emitActivityResult(allCorrect)
 
     // total / correct / unfilled feed the shared toast, whose internal
     // identity wrong = total − correct − unfilled then recovers the incorrect

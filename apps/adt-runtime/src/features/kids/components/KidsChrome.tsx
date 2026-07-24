@@ -1,5 +1,7 @@
 import { useAtomValue } from "jotai"
+import { KidsActivityReaction } from "@/features/kids/components/KidsActivityReaction"
 import { KidsBuddy } from "@/features/kids/components/KidsBuddy"
+import { KidsEndingScreen } from "@/features/kids/components/KidsEndingScreen"
 import { KidsOnboarding } from "@/features/kids/components/KidsOnboarding"
 import { KidsPageArrows } from "@/features/kids/components/KidsPageArrows"
 import { KidsSpeechBubble } from "@/features/kids/components/KidsSpeechBubble"
@@ -27,7 +29,9 @@ export function KidsChrome() {
         <>
           <KidsPageArrows />
           <KidsSpeechBubble />
+          <KidsActivityReaction />
           <KidsBuddy />
+          <KidsEndingScreen />
         </>
       ) : null}
     </div>

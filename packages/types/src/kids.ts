@@ -399,6 +399,102 @@ export function getKidsIdlePhrases(id: string): readonly KidsBuddyLine[] {
 }
 
 /**
+ * Said by the buddy when the child answers a quiz/activity CORRECTLY — warm,
+ * celebratory, and short. Never mentions the specific question.
+ */
+const GENERIC_CELEBRATE_PHRASES: readonly KidsBuddyLine[] = [
+  { key: "kids-celebrate-got-it", fallback: "Yes! You got it!" },
+  { key: "kids-celebrate-amazing", fallback: "Amazing work!" },
+  { key: "kids-celebrate-proud", fallback: "I'm so proud of you!" },
+  { key: "kids-celebrate-star", fallback: "You're a superstar, ${name}!" },
+]
+
+const BUDDY_CELEBRATE_PHRASES: Partial<
+  Record<KidsBuddyId, readonly KidsBuddyLine[]>
+> = {
+  dino: [{ key: "kids-celebrate-dino", fallback: "Rawr! That's exactly right!" }],
+  robot: [{ key: "kids-celebrate-robot", fallback: "Beep boop — correct!" }],
+  bunny: [{ key: "kids-celebrate-bunny", fallback: "Hop hooray! You did it!" }],
+  cat: [{ key: "kids-celebrate-cat", fallback: "Purr-fect! Well done!" }],
+  alien: [{ key: "kids-celebrate-alien", fallback: "Zoop! Out of this world!" }],
+}
+
+export function getKidsCelebratePhrases(id: string): readonly KidsBuddyLine[] {
+  return [
+    ...(BUDDY_CELEBRATE_PHRASES[id as KidsBuddyId] ?? []),
+    ...GENERIC_CELEBRATE_PHRASES,
+  ]
+}
+
+/**
+ * Said by the buddy when the child answers INCORRECTLY — gentle, reassuring,
+ * and encouraging. Never scolds; frames mistakes as part of learning.
+ */
+const GENERIC_ENCOURAGE_PHRASES: readonly KidsBuddyLine[] = [
+  { key: "kids-encourage-almost", fallback: "So close! Let's try again." },
+  { key: "kids-encourage-good-try", fallback: "Good try! Give it another go." },
+  {
+    key: "kids-encourage-together",
+    fallback: "Let's think about it together.",
+  },
+  {
+    key: "kids-encourage-mistakes",
+    fallback: "That's okay — mistakes help us learn!",
+  },
+]
+
+const BUDDY_ENCOURAGE_PHRASES: Partial<
+  Record<KidsBuddyId, readonly KidsBuddyLine[]>
+> = {
+  dino: [{ key: "kids-encourage-dino", fallback: "Rawr — try once more!" }],
+  robot: [{ key: "kids-encourage-robot", fallback: "Recalculating… try again!" }],
+  bunny: [{ key: "kids-encourage-bunny", fallback: "Hop back and try again!" }],
+  cat: [{ key: "kids-encourage-cat", fallback: "It's okay, let's try again." }],
+  alien: [{ key: "kids-encourage-alien", fallback: "Zoop! Give it another try!" }],
+}
+
+export function getKidsEncouragePhrases(id: string): readonly KidsBuddyLine[] {
+  return [
+    ...(BUDDY_ENCOURAGE_PHRASES[id as KidsBuddyId] ?? []),
+    ...GENERIC_ENCOURAGE_PHRASES,
+  ]
+}
+
+/**
+ * Said by the buddy on the celebration screen when the child finishes the whole
+ * book. The specific book title is shown on screen (not baked into the clip).
+ */
+const GENERIC_FINISH_PHRASES: readonly KidsBuddyLine[] = [
+  {
+    key: "kids-finish-did-it",
+    fallback: "You did it! You finished the whole book!",
+  },
+  {
+    key: "kids-finish-proud",
+    fallback: "I'm so proud of you, ${name}. What a reader you are!",
+  },
+]
+
+const BUDDY_FINISH_PHRASES: Partial<
+  Record<KidsBuddyId, readonly KidsBuddyLine[]>
+> = {
+  dino: [{ key: "kids-finish-dino", fallback: "Rawr! We read the whole thing!" }],
+  robot: [{ key: "kids-finish-robot", fallback: "Book complete! Great job!" }],
+  bunny: [{ key: "kids-finish-bunny", fallback: "Hop hooray — we finished it!" }],
+  cat: [{ key: "kids-finish-cat", fallback: "Purr… what a lovely story." }],
+  alien: [
+    { key: "kids-finish-alien", fallback: "Zoop! An amazing Earth story!" },
+  ],
+}
+
+export function getKidsFinishPhrases(id: string): readonly KidsBuddyLine[] {
+  return [
+    ...(BUDDY_FINISH_PHRASES[id as KidsBuddyId] ?? []),
+    ...GENERIC_FINISH_PHRASES,
+  ]
+}
+
+/**
  * Every line needing its own clip for one character — the voice generator's
  * work list. Lines with a `voiceKey` reuse another clip and are excluded.
  */
@@ -406,7 +502,14 @@ export function getKidsSpeakableLines(id: string): readonly KidsBuddyLine[] {
   const shared: KidsBuddyLine[] = Object.values(KIDS_BUDDY_LINES).filter(
     (line) => !("voiceKey" in line),
   )
-  return [...shared, ...getKidsPickPhrases(id), ...getKidsIdlePhrases(id)]
+  return [
+    ...shared,
+    ...getKidsPickPhrases(id),
+    ...getKidsIdlePhrases(id),
+    ...getKidsCelebratePhrases(id),
+    ...getKidsEncouragePhrases(id),
+    ...getKidsFinishPhrases(id),
+  ]
 }
 
 // ---------------------------------------------------------------------------

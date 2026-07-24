@@ -1,3 +1,4 @@
+import { getDefaultStore } from "jotai"
 import { ephemeralAtom } from "@/shared/state/persist"
 
 export type ValidateHandler = () => void
@@ -21,3 +22,28 @@ export const selectedWordAtom = ephemeralAtom<string | null>(null)
 export const currentWordAtom = ephemeralAtom<string | null>(null)
 
 export const confettiTriggerAtom = ephemeralAtom(0)
+
+/**
+ * The most recent activity/quiz verdict, broadcast when the child submits.
+ * `token` increments on every judge so subscribers re-fire even on the same
+ * verdict. Consumed by the kids-mode buddy reaction (correct → celebrate,
+ * incorrect → encourage).
+ */
+export interface ActivityResult {
+  correct: boolean
+  token: number
+}
+
+export const activityResultAtom = ephemeralAtom<ActivityResult>({
+  correct: false,
+  token: 0,
+})
+
+/** Broadcast an activity/quiz verdict to subscribers (e.g. the kids buddy). */
+export function emitActivityResult(correct: boolean): void {
+  const store = getDefaultStore()
+  store.set(activityResultAtom, {
+    correct,
+    token: store.get(activityResultAtom).token + 1,
+  })
+}

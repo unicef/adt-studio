@@ -3,6 +3,7 @@ import { translationsAtom } from "@/features/language/state/language.atoms"
 import { pagesAtom, currentSectionIdAtom } from "@/features/navigation/state/nav.atoms"
 import {
   confettiTriggerAtom,
+  emitActivityResult,
   skipEnabledAtom,
   skipHandlerAtom,
   submitEnabledAtom,
@@ -482,6 +483,7 @@ export function initializeQuizActivity(): (() => void) | null {
     }
 
     playActivitySound(allCorrect ? "success" : "error")
+    emitActivityResult(allCorrect)
 
     // Summary toast for multiple-choice. Standalone quiz keeps its
     // per-option text feedback ("Great job!") and skips the toast to avoid
