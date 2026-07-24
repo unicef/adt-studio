@@ -1,6 +1,6 @@
 import { type ReactNode } from "react"
 import { cn } from "@/lib/utils"
-import { RELEASE_BANNER_ASPECT } from "./release-banner-utils"
+import { RELEASE_BANNER_ASPECT, trustedAssetUrl } from "./release-banner-utils"
 
 export interface ReleaseNotesMarkdownProps {
   children: string
@@ -104,7 +104,7 @@ function parseBlocks(markdown: string): Block[] {
     if (image) {
       flushParagraph()
       flushList()
-      const src = safeAssetUrl(image[2])
+      const src = trustedAssetUrl(image[2])
       if (src) blocks.push({ type: "image", alt: image[1], src })
       continue
     }
@@ -216,9 +216,4 @@ function compactLinkLabel(label: string | undefined, href: string): string {
   }
 
   return href
-}
-
-function safeAssetUrl(value: string): string | undefined {
-  if (/^https?:\/\//i.test(value) || value.startsWith("/")) return value
-  return undefined
 }

@@ -3,23 +3,12 @@ import { useQuery } from "@tanstack/react-query"
 import type { AvailableRelease } from "@/hooks/use-update-status"
 import { cn } from "@/lib/utils"
 import { ReleaseFallbackBanner } from "../ReleaseFallbackBanner"
-import { formatVersion } from "../release-banner-utils"
+import { formatVersion, trustedAssetUrl } from "../release-banner-utils"
 
 interface ReleaseCoverProps {
   release: AvailableRelease
   className?: string
   compact?: boolean
-}
-
-const TRUSTED_COVER_PREFIXES = [
-  "https://github.com/user-attachments/",
-  "https://user-images.githubusercontent.com/",
-]
-
-function trustedCoverUrl(url?: string): string | undefined {
-  return url && TRUSTED_COVER_PREFIXES.some((prefix) => url.startsWith(prefix))
-    ? url
-    : undefined
 }
 
 function loadReleaseCover(url: string): Promise<string> {
@@ -38,7 +27,7 @@ export function ReleaseCover({
 }: ReleaseCoverProps) {
   const { t } = useLingui()
   const title = release.title ?? formatVersion(release.version)
-  const coverUrl = trustedCoverUrl(release.coverUrl)
+  const coverUrl = trustedAssetUrl(release.coverUrl)
   const alt = release.coverAlt?.trim() || t`Cover for ${title}`
   const coverQuery = useQuery({
     queryKey: ["desktop-updates", "release-cover", coverUrl],

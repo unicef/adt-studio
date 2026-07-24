@@ -175,6 +175,13 @@ export function composeReleaseNotes(
     if (!value) throw new Error(`${name} is required`);
   }
 
+  if (!/^[0-9a-fA-F]{7,40}$/.test(triggerSha)) {
+    throw new Error("TRIGGER_SHA must be a git commit SHA");
+  }
+  if (!parseReleaseTag(tag)) {
+    throw new Error("TAG must be a valid release version");
+  }
+
   const pr =
     prNumber != null && String(prNumber).trim() !== ""
       ? String(prNumber).trim()

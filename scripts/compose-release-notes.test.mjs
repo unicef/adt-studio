@@ -90,7 +90,7 @@ describe("release note composition helpers", () => {
         repo: "o/r",
         tag: "0.7.5-beta-pr-42",
         branch: "feature/x",
-        triggerSha: "abc",
+        triggerSha: "1a2b3c4",
         prNumber: "42",
       },
       {
@@ -133,7 +133,7 @@ describe("release note composition helpers", () => {
         repo: "o/r",
         tag: "0.7.5-beta-pr-x",
         branch: "feature/x",
-        triggerSha: "abc",
+        triggerSha: "1a2b3c4",
         prNumber: "not-a-number",
       }),
     ).toThrow(/PR_NUMBER/);

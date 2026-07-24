@@ -38,7 +38,23 @@ export function betaNumberOf(version) {
 export function compareReleaseVersions(left, right) {
   const core = compareCore(left, right);
   if (core !== 0) return core;
+  const betaKind = compareBetaKind(left, right);
+  if (betaKind !== 0) return betaKind;
   return comparePrerelease(left.prerelease, right.prerelease);
+}
+
+function isStagingBeta(version) {
+  const first = version.prerelease?.[0];
+  return (
+    typeof first === "string" && first !== "beta" && first.startsWith("beta-")
+  );
+}
+
+function compareBetaKind(left, right) {
+  const leftStaging = isStagingBeta(left);
+  const rightStaging = isStagingBeta(right);
+  if (leftStaging === rightStaging) return 0;
+  return leftStaging ? -1 : 1;
 }
 
 function comparePrerelease(left, right) {

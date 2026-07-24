@@ -47,7 +47,7 @@ export function BetaVersionsView({
   const versionsQuery = useBetaUpdateVersions(currentVersion);
   const installMutation = useInstallBetaVersion();
   const versions = versionsQuery.data ?? EMPTY_RELEASES;
-  const loading = versionsQuery.isPending;
+  const loading = versionsQuery.isLoading;
   const preparing = installMutation.isPending;
   const detectedVersion =
     status.phase === "available" ? status.version : undefined;

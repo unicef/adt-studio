@@ -259,6 +259,10 @@ async function checkBetaRelease(target: BetaRelease): Promise<UpdateStatus> {
   autoUpdater.allowPrerelease = true;
   autoUpdater.allowDowngrade = true;
   autoUpdater.channel = target.updaterChannel;
+  // Host-pinning is load-bearing: betaReleaseDownloadUrl builds the feed from a
+  // hardcoded github.com/unicef/adt-studio host and only varies the URL-encoded
+  // tag. Never let a catalog-supplied field flow into the host, or a malicious
+  // catalog entry could redirect the update feed off the official repo.
   autoUpdater.setFeedURL({
     provider: "generic",
     url: betaReleaseDownloadUrl(target),

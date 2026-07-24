@@ -95,7 +95,7 @@ describe("release catalog version handling", () => {
     ).toBeGreaterThan(0);
     expect(compareReleaseVersions("0.7.4", "0.7.4-beta.5")).toBeGreaterThan(0);
     expect(
-      compareReleaseVersions("0.7.5-beta-123", "0.7.5-beta.1"),
+      compareReleaseVersions("0.7.5-beta.1", "0.7.5-beta-123"),
     ).toBeGreaterThan(0);
   });
 

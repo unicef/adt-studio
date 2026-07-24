@@ -27,4 +27,20 @@ Full Changelog: https://github.com/unicef/adt-studio/compare/v0.7.4-beta.3...v0.
     ).toBeTruthy()
     expect(screen.queryByText(/https:\/\/github\.com/)).toBeNull()
   })
+
+  it("renders images from trusted hosts and drops untrusted ones", () => {
+    render(
+      <ReleaseNotesMarkdown>{`
+![shipped](https://github.com/user-attachments/assets/cover.png)
+
+![tracker](https://evil.example/pixel.png)
+      `}</ReleaseNotesMarkdown>,
+    )
+
+    const images = screen.queryAllByRole("img")
+    expect(images).toHaveLength(1)
+    expect(images[0].getAttribute("src")).toBe(
+      "https://github.com/user-attachments/assets/cover.png",
+    )
+  })
 })
