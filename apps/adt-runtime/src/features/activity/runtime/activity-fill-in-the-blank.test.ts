@@ -14,7 +14,7 @@ const store = getDefaultStore()
 
 declare global {
   interface Window {
-    correctAnswers?: Record<string, string>
+    correctAnswers?: Record<string, unknown>
   }
 }
 

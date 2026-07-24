@@ -7,7 +7,7 @@ import {
   waitFor,
 } from "@testing-library/react"
 import { createStore, Provider } from "jotai"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { audioSpeedAtom } from "@/features/audio/state/audio.atoms"
 import {
   currentPageNumberAtom,
@@ -72,11 +72,44 @@ vi.mock("@/shared/lib/analytics", () => ({
   trackToggleEvent: vi.fn(),
 }))
 
+const LANG_DISPLAY_NAMES: Record<string, string> = {
+  en: "English",
+  es: "Español",
+  "pt-BR": "Português",
+  fr: "Français",
+  sq: "Shqip",
+}
+
+// `useKidsAvailableLanguages` fetches per-language catalogs to decide which
+// languages the buddy can offer. Stub fetch so every declared language counts
+// as available (via a translated kids interface) with its real display name.
+beforeEach(() => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (input: unknown) => {
+      const url = String(input)
+      const match = url.match(/interface_translations\/([^/]+)\//)
+      if (match) {
+        const lang = match[1]
+        return {
+          ok: true,
+          json: async () => ({
+            "language-name": LANG_DISPLAY_NAMES[lang] ?? lang,
+            "kids-action-language": "x",
+          }),
+        } as Response
+      }
+      return { ok: false, json: async () => ({}) } as Response
+    }),
+  )
+})
+
 afterEach(() => {
   cleanup()
   localStorage.clear()
   sessionStorage.clear()
   vi.clearAllMocks()
+  vi.unstubAllGlobals()
   audioMock.player.isPlaying = false
   audioMock.player.hasItems = true
 })
@@ -281,10 +314,12 @@ describe("KidsBuddy", () => {
     expect(region.getAttribute("tabindex")).toBe("0")
   })
 
-  it("renders all enabled buddy actions", () => {
+  it("renders all enabled buddy actions", async () => {
     renderKidsChrome(createKidsStore({ languages: ["en", "es"] }))
     openBuddy()
 
+    // Language availability resolves asynchronously via fetched catalogs.
+    expect(await screen.findByTestId("kids-action-language")).not.toBeNull()
     expect(screen.queryByTestId("kids-action-read")).not.toBeNull()
     expect(screen.queryByTestId("kids-action-speed")).not.toBeNull()
     expect(screen.queryByTestId("kids-action-sign-language")).not.toBeNull()
@@ -292,7 +327,6 @@ describe("KidsBuddy", () => {
     expect(screen.queryByTestId("kids-action-glossary")).not.toBeNull()
     expect(screen.queryByTestId("kids-action-eli5")).not.toBeNull()
     expect(screen.queryByTestId("kids-action-notes")).not.toBeNull()
-    expect(screen.queryByTestId("kids-action-language")).not.toBeNull()
     expect(screen.queryByTestId("kids-action-story-map")).not.toBeNull()
     expect(screen.queryByTestId("kids-action-meet-again")).not.toBeNull()
   })
@@ -438,7 +472,7 @@ describe("KidsBuddy", () => {
     renderKidsChrome(store)
     openBuddy()
 
-    fireEvent.click(screen.getByTestId("kids-action-language"))
+    fireEvent.click(await screen.findByTestId("kids-action-language"))
     fireEvent.click(await screen.findByText("Español"))
 
     expect(store.get(currentLanguageAtom)).toBe("es")

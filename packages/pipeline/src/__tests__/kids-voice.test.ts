@@ -96,6 +96,41 @@ describe("generateKidsVoicePack", () => {
     ).toBe(true)
   })
 
+  it("regenerating one buddy merges into the manifest without orphaning the others", async () => {
+    const shared = {
+      bookDir: tmpDir,
+      cacheDir: path.join(tmpDir, ".cache"),
+      languages: ["en"],
+      translationsByLanguage: { en: {} },
+      model: "gpt-4o-mini-tts",
+    }
+    // First bake two buddies into the same language manifest.
+    await generateKidsVoicePack({
+      ...shared,
+      characters: ["dino", "cat"],
+      ttsSynthesizer: makeSynth(),
+    })
+
+    // Then regenerate a single buddy — the previous behaviour rebuilt the
+    // manifest from scratch and dropped "cat" entirely.
+    await generateKidsVoicePack({
+      ...shared,
+      characters: ["dino"],
+      ttsSynthesizer: makeSynth(),
+    })
+
+    const manifest = JSON.parse(
+      fs.readFileSync(
+        path.join(tmpDir, "kids-voice", "en", "manifest.json"),
+        "utf8",
+      ),
+    )
+    expect(Object.keys(manifest.characters).sort()).toEqual(["cat", "dino"])
+    expect(manifest.characters.cat["kids-buddy-greet"]).toBe(
+      "cat/kids-buddy-greet.mp3",
+    )
+  })
+
   it("serves every clip from cache on a re-run without synthesizing", async () => {
     const options = {
       bookDir: tmpDir,

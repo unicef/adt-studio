@@ -14,7 +14,7 @@
  *   8. initAnalytics() — fire and forget
  *   9. installShowContentFallback() — safety net
  */
-import { getDefaultStore } from "jotai"
+import { getDefaultStore, type WritableAtom } from "jotai"
 import { addFavicons } from "@/shared/runtime/favicon"
 import { loadAppConfig, pickLanguage, pickStorageMode } from "@/shared/runtime/config"
 import { applyImageVariants, applyTranslationsToDOM, loadTranslations } from "@/features/language/runtime/i18n"
@@ -107,7 +107,9 @@ function applyConfiguredSettings(config: AppConfig): void {
   const seed = <T>(
     key: LockableSetting,
     storageKey: string,
-    atom: Parameters<typeof store.set>[0],
+    // Accepts any writable atom — including the persisted async atoms whose
+    // narrower write signatures aren't assignable to store.set's parameter.
+    atom: WritableAtom<unknown, never[], unknown>,
     value: T | undefined,
   ): void => {
     const locked = isSettingLocked(config, key)

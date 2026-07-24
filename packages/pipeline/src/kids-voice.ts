@@ -149,6 +149,36 @@ export function resolveKidsLineText(options: {
   return interpolate(template, { name: buddyName, language: languageName })
 }
 
+/**
+ * Reads a language's already-baked voice manifest from disk, if any. Returns a
+ * mutable copy so callers can merge new clips into it without touching the
+ * on-disk file until the write pass. Version mismatches are ignored (treated as
+ * absent) so a stale schema is rebuilt rather than merged into.
+ */
+function readExistingVoiceManifest(
+  voiceRoot: string,
+  language: string,
+): KidsVoiceManifest | null {
+  const manifestPath = path.resolve(voiceRoot, language, "manifest.json")
+  if (!fs.existsSync(manifestPath)) return null
+  try {
+    const parsed = JSON.parse(fs.readFileSync(manifestPath, "utf8")) as
+      | KidsVoiceManifest
+      | undefined
+    if (
+      !parsed ||
+      parsed.version !== KIDS_VOICE_MANIFEST_VERSION ||
+      typeof parsed.characters !== "object" ||
+      parsed.characters === null
+    ) {
+      return null
+    }
+    return { version: parsed.version, characters: { ...parsed.characters } }
+  } catch {
+    return null
+  }
+}
+
 export async function generateKidsVoicePack(
   options: GenerateKidsVoicePackOptions,
 ): Promise<KidsVoiceGenerationResult> {
@@ -296,10 +326,15 @@ export async function generateKidsVoicePack(
         generated += 1
       }
 
-      const manifest = manifests.get(item.language) ?? {
-        version: KIDS_VOICE_MANIFEST_VERSION,
-        characters: {},
-      }
+      // Seed from the existing on-disk manifest on first touch of a language so
+      // regenerating a single buddy merges into (rather than replaces) the
+      // manifest and never orphans the other buddies' already-baked clips.
+      const manifest =
+        manifests.get(item.language) ??
+        readExistingVoiceManifest(voiceRoot, item.language) ?? {
+          version: KIDS_VOICE_MANIFEST_VERSION,
+          characters: {},
+        }
       manifest.characters[item.characterId] ??= {}
       manifest.characters[item.characterId][item.lineKey] = fileName
       manifests.set(item.language, manifest)

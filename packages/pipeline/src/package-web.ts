@@ -213,6 +213,17 @@ export function computePackagingInputHash(options: ComputePackagingInputHashOpti
   const videoEntries = collectDirectoryFingerprint(videosDir).sort((a, b) => a[0].localeCompare(b[0]))
   hash.update(JSON.stringify(videoEntries))
 
+  // 7. Kids-mode generated assets — voice packs and per-book interface
+  // translation overrides are merged into the bundle at packaging time, so
+  // regenerating them must bust the cache or the packaged book keeps stale audio/text.
+  const kidsVoiceDir = path.join(options.bookDir, "kids-voice")
+  const kidsVoiceEntries = collectDirectoryFingerprint(kidsVoiceDir).sort((a, b) => a[0].localeCompare(b[0]))
+  hash.update(JSON.stringify(kidsVoiceEntries))
+
+  const kidsI18nDir = path.join(options.bookDir, "kids-i18n")
+  const kidsI18nEntries = collectDirectoryFingerprint(kidsI18nDir).sort((a, b) => a[0].localeCompare(b[0]))
+  hash.update(JSON.stringify(kidsI18nEntries))
+
   return hash.digest("hex")
 }
 
