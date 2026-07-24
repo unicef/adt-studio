@@ -4953,6 +4953,9 @@ msgstr "ruído"
 msgid "None"
 msgstr "Nenhum"
 
+msgid "Not compatible with Fixed Layout"
+msgstr "Não compatível com Layout Fixo"
+
 msgid "Not detected"
 msgstr "Não detectado"
 
@@ -6324,6 +6327,9 @@ msgstr "Executar {0}"
 
 msgid "Run {upstreamLabel} first"
 msgstr "Execute {upstreamLabel} primeiro"
+
+msgid "Run anyway"
+msgstr "Executar mesmo assim"
 
 msgid "Run cancelled"
 msgstr "Execução cancelada"
@@ -7744,6 +7750,9 @@ msgstr "Este livro ainda não está completo — as páginas <0>{0}</0> não for
 
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Este livro é renderizado em layout fixo, então mantém as fontes originais do PDF. Fontes anexadas ainda orientam a IA em atividades e páginas geradas."
+
+msgid "This feature is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
+msgstr "Este recurso não é compatível com Layout Fixo. Se você continuar, poderá obter resultados indesejados."
 
 msgid "This file couldn't be read as a ZIP archive"
 msgstr "Este arquivo não pôde ser lido como um arquivo ZIP"

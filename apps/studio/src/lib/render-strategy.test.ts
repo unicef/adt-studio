@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
+  isFixedLayoutConfig,
   listDefaultRenderStrategies,
   listSelectableRenderStrategies,
   normalizeDefaultRenderStrategy,
@@ -43,6 +44,56 @@ describe("listDefaultRenderStrategies", () => {
       "two_column",
       "fixed_layout",
     ])
+  })
+})
+
+describe("isFixedLayoutConfig", () => {
+  const strategies = {
+    llm: { render_type: "llm" },
+    two_column: { render_type: "template" },
+    fixed_layout: { render_type: "fixed_layout" },
+  }
+
+  it("returns false for nullish config", () => {
+    expect(isFixedLayoutConfig(undefined)).toBe(false)
+    expect(isFixedLayoutConfig(null)).toBe(false)
+  })
+
+  it("is true when the book-wide default resolves to fixed_layout", () => {
+    expect(
+      isFixedLayoutConfig({
+        default_render_strategy: "fixed_layout",
+        render_strategies: strategies,
+      })
+    ).toBe(true)
+  })
+
+  it("is false when the default resolves to a reflowable strategy", () => {
+    expect(
+      isFixedLayoutConfig({
+        default_render_strategy: "two_column",
+        render_strategies: strategies,
+      })
+    ).toBe(false)
+  })
+
+  it("is true when any per-section strategy is fixed_layout", () => {
+    expect(
+      isFixedLayoutConfig({
+        default_render_strategy: "two_column",
+        render_strategies: strategies,
+        section_render_strategies: { chapter: "two_column", cover: "fixed_layout" },
+      })
+    ).toBe(true)
+  })
+
+  it("is false when a fixed_layout strategy exists but nothing references it", () => {
+    expect(
+      isFixedLayoutConfig({
+        default_render_strategy: "two_column",
+        render_strategies: strategies,
+      })
+    ).toBe(false)
   })
 })
 

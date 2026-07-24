@@ -4955,6 +4955,9 @@ msgstr "bruit"
 msgid "None"
 msgstr "Aucun"
 
+msgid "Not compatible with Fixed Layout"
+msgstr "Incompatible avec la mise en page fixe"
+
 msgid "Not detected"
 msgstr "Non détecté"
 
@@ -6326,6 +6329,9 @@ msgstr "Exécuter {stageLabel}"
 
 msgid "Run {upstreamLabel} first"
 msgstr "Exécutez d'abord {upstreamLabel}"
+
+msgid "Run anyway"
+msgstr "Exécuter quand même"
 
 msgid "Run cancelled"
 msgstr "Exécution annulée"
@@ -7746,6 +7752,9 @@ msgstr "Ce livre n'est pas encore complet — les pages <0>{0}</0> n'ont pas ét
 
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Ce livre est rendu en mise en page fixe, il conserve donc les polices d'origine du PDF. Les polices jointes guident tout de même l'IA pour les activités et les pages générées."
+
+msgid "This feature is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
+msgstr "Cette fonctionnalité n'est pas compatible avec la mise en page fixe. Si vous continuez, vous pourriez obtenir des résultats indésirables."
 
 msgid "This file couldn't be read as a ZIP archive"
 msgstr "Ce fichier n'a pas pu être lu comme une archive ZIP"

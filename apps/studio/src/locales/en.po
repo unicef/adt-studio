@@ -4953,6 +4953,9 @@ msgstr "noise"
 msgid "None"
 msgstr "None"
 
+msgid "Not compatible with Fixed Layout"
+msgstr "Not compatible with Fixed Layout"
+
 msgid "Not detected"
 msgstr "Not detected"
 
@@ -6324,6 +6327,9 @@ msgstr "Run {stageLabel}"
 
 msgid "Run {upstreamLabel} first"
 msgstr "Run {upstreamLabel} first"
+
+msgid "Run anyway"
+msgstr "Run anyway"
 
 msgid "Run cancelled"
 msgstr "Run cancelled"
@@ -7744,6 +7750,9 @@ msgstr "This book isn't fully assembled yet — pages <0>{0}</0> haven't been me
 
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
+
+msgid "This feature is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
+msgstr "This feature is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 
 msgid "This file couldn't be read as a ZIP archive"
 msgstr "This file couldn't be read as a ZIP archive"

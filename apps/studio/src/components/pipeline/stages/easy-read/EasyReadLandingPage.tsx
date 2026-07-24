@@ -2,7 +2,13 @@ import { ArrowDown, PencilLine, ToggleRight, History } from "lucide-react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { LandingPageShell } from "@/components/pipeline/components/LandingPageShell"
 import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"
+import {
+  FixedLayoutWarningBanner,
+  FixedLayoutWarningTitle,
+  FixedLayoutWarningDescription,
+} from "@/components/pipeline/components/FixedLayoutWarning"
 import { useStageStatus } from "@/hooks/use-stage-status"
+import { useIsFixedLayout } from "@/hooks/use-fixed-layout"
 import { useRunEasyRead } from "./use-run-easy-read"
 
 export function EasyReadLandingPage({ bookLabel }: { bookLabel: string }) {
@@ -10,6 +16,7 @@ export function EasyReadLandingPage({ bookLabel }: { bookLabel: string }) {
   const { runEasyRead, hasApiKey } = useRunEasyRead(bookLabel)
   const status = useStageStatus("easy-read")
   const storyboardReady = useStageStatus("storyboard").isCompleted
+  const isFixedLayout = useIsFixedLayout(bookLabel)
 
   const disabledReason = !hasApiKey ? (
     <Trans>Add an API key in Book settings to generate Easy Read content.</Trans>
@@ -36,7 +43,17 @@ export function EasyReadLandingPage({ bookLabel }: { bookLabel: string }) {
       previewLabel={t`Easy Read Preview`}
       onRun={() => void runEasyRead()}
       preview={<EasyReadPreview />}
+      runWarning={
+        isFixedLayout
+          ? {
+              title: <FixedLayoutWarningTitle />,
+              description: <FixedLayoutWarningDescription />,
+            }
+          : null
+      }
     >
+      <FixedLayoutWarningBanner show={isFixedLayout} />
+
       <div className="flex flex-col gap-2">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
           <Trans>Easy Read</Trans>

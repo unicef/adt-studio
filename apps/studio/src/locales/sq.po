@@ -4954,6 +4954,9 @@ msgstr "zhurmë"
 msgid "None"
 msgstr "Asnjë"
 
+msgid "Not compatible with Fixed Layout"
+msgstr "I papajtueshëm me Paraqitjen e fiksuar"
+
 msgid "Not detected"
 msgstr "Nuk u zbulua"
 
@@ -6325,6 +6328,9 @@ msgstr "Ekzekuto {stageLabel}"
 
 msgid "Run {upstreamLabel} first"
 msgstr "Ekzekuto {upstreamLabel} së pari"
+
+msgid "Run anyway"
+msgstr "Ekzekuto gjithsesi"
 
 msgid "Run cancelled"
 msgstr "Ekzekutimi u anulua"
@@ -7745,6 +7751,9 @@ msgstr "Ky libër ende nuk është plotësuar — faqet <0>{0}</0> nuk janë bas
 
 msgid "This book renders fixed-layout, so it keeps the original PDF fonts. Attached fonts still guide the AI for activities and generated pages."
 msgstr "Ky libër shfaqet me strukturë fikse, kështu që ruan fontet origjinale të PDF-së. Fontet e bashkëngjitura gjithsesi udhëzojnë IA-në për aktivitetet dhe faqet e gjeneruara."
+
+msgid "This feature is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
+msgstr "Kjo veçori nuk është e pajtueshme me Paraqitjen e fiksuar. Nëse vazhdoni, mund të merrni rezultate të padëshiruara."
 
 msgid "This file couldn't be read as a ZIP archive"
 msgstr "Ky skedar nuk mund të lexohej si arkiv ZIP"

@@ -17,6 +17,7 @@ import { BOOK_LEVEL_STAGES, type StageName } from "@adt/types"
 import { PartialMergeNotice } from "@/components/parts/PartialMergeNotice"
 import { getStageLabelI18n } from "../pipeline-i18n"
 import { CascadeResetDialog } from "./CascadeResetDialog"
+import { RunWarningDialog } from "./RunWarningDialog"
 
 export function LandingPageShell({
   bookLabel,
@@ -38,6 +39,7 @@ export function LandingPageShell({
   previewBodyClassName,
   onRun,
   preview,
+  runWarning,
   hideRunButton = false,
   hideAdvancedSettings = false,
   hideFooter = false,
@@ -62,12 +64,19 @@ export function LandingPageShell({
   previewBodyClassName?: string
   onRun: () => void
   preview: ReactNode
+  /**
+   * When set, pressing Run first shows an advisory warning modal (e.g. the
+   * feature is incompatible with the book's fixed-layout mode). The user can
+   * cancel or proceed. Omit/leave null when there's nothing to warn about.
+   */
+  runWarning?: { title: ReactNode; description: ReactNode } | null
   hideRunButton?: boolean
   hideAdvancedSettings?: boolean
   hideFooter?: boolean
   children: ReactNode
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [warnOpen, setWarnOpen] = useState(false)
   const downstreamAffected = useDownstreamWithOutput(stageSlug)
   const needsConfirmation = isCompleted && downstreamAffected.length > 0
   const { isCancelling, cancelRun } = useBookRun()
@@ -84,12 +93,27 @@ export function LandingPageShell({
   const isDisabled = isRunning || !canRun || extraDisabled
   const showTooltip = isDisabled && !isRunning && !!disabledReason
 
-  const handleRunClick = () => {
+  // Run gates, applied outermost-first: fixed-layout (or other) warning, then
+  // the cascade-reset confirmation, then the run itself.
+  const proceedRun = () => {
     if (needsConfirmation) {
       setConfirmOpen(true)
     } else {
       onRun()
     }
+  }
+
+  const handleRunClick = () => {
+    if (runWarning) {
+      setWarnOpen(true)
+    } else {
+      proceedRun()
+    }
+  }
+
+  const handleWarnConfirm = () => {
+    setWarnOpen(false)
+    proceedRun()
   }
 
   const handleConfirm = () => {
@@ -219,6 +243,17 @@ export function LandingPageShell({
         confirmColorClass={hasError ? errorColorClass : colorClass}
         onConfirm={handleConfirm}
       />
+
+      {runWarning && (
+        <RunWarningDialog
+          open={warnOpen}
+          onOpenChange={setWarnOpen}
+          title={runWarning.title}
+          description={runWarning.description}
+          confirmColorClass={hasError ? errorColorClass : colorClass}
+          onConfirm={handleWarnConfirm}
+        />
+      )}
     </div>
   )
 }
