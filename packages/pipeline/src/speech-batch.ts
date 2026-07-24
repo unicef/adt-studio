@@ -39,6 +39,20 @@ export interface WhisperWord {
  *  but it guards against pathological inputs. */
 const MAX_LCS_CELLS = 4_000_000
 
+/**
+ * Languages whose normal writing system does not reliably separate words with
+ * spaces. The current LCS alignment tokenizes on whitespace, so page batching
+ * can produce incorrect slice boundaries for these languages. Keep them on the
+ * per-entry TTS path until the aligner has script-aware tokenization.
+ */
+const PAGE_BATCH_UNSUPPORTED_BASE_LANGUAGES = new Set(["zh", "th"])
+
+export function supportsPageBatchedSpeech(languageCode: string): boolean {
+  const normalized = languageCode.trim().replace(/_/g, "-").toLowerCase()
+  const baseLanguage = normalized.split("-")[0]
+  return !PAGE_BATCH_UNSUPPORTED_BASE_LANGUAGES.has(baseLanguage)
+}
+
 function normalizeToken(s: string): string {
   return s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "")
 }

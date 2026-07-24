@@ -1,5 +1,9 @@
 import { describe, it, expect } from "vitest"
-import { computeEntryTimeRanges, buildPageTranscript } from "../speech-batch.js"
+import {
+  computeEntryTimeRanges,
+  buildPageTranscript,
+  supportsPageBatchedSpeech,
+} from "../speech-batch.js"
 
 const W = (word: string, start: number, end: number) => ({ word, start, end })
 
@@ -12,6 +16,22 @@ describe("buildPageTranscript", () => {
     ])
     expect(t).toBe("Hello world\n\nGoodbye now")
   })
+})
+
+describe("supportsPageBatchedSpeech", () => {
+  it.each(["zh", "zh-CN", "zh_TW", "th", "th-TH"])(
+    "keeps %s on per-entry TTS",
+    (language) => {
+      expect(supportsPageBatchedSpeech(language)).toBe(false)
+    },
+  )
+
+  it.each(["en", "en-JM", "es-UY", "fr"])(
+    "allows page batching for %s",
+    (language) => {
+      expect(supportsPageBatchedSpeech(language)).toBe(true)
+    },
+  )
 })
 
 describe("computeEntryTimeRanges", () => {

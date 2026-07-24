@@ -62,6 +62,7 @@ import {
   computeSpeechCacheKey,
   generateSpeechFile,
   generatePageSpeechFiles,
+  supportsPageBatchedSpeech,
   generateWordTimestamps,
   wavDurationSeconds,
   stripEmojis,
@@ -2592,6 +2593,17 @@ async function runSpeechStep(
       const baseSource = getBaseLanguage(sourceLanguage)
       const baseLang = getBaseLanguage(lang)
       const existingSpeechEntries = getExistingSpeechEntries(storage, lang)
+      const provider = resolveProviderForLanguage(lang, routing)
+      const batchThisLanguage =
+        batchByPage &&
+        provider === "gemini" &&
+        supportsPageBatchedSpeech(lang)
+
+      if (batchByPage && provider === "gemini" && !batchThisLanguage) {
+        console.log(
+          `[stage-run] ${label}: page-batched TTS is disabled for ${lang}; using per-entry TTS`,
+        )
+      }
 
       let entries: TextCatalogEntry[]
       if (baseLang === baseSource) {
@@ -2623,8 +2635,7 @@ async function runSpeechStep(
         // path so canReuseSpeechEntry's manual guard preserves them (batching
         // would otherwise overwrite the uploaded audio).
         if (
-          batchByPage &&
-          resolveProviderForLanguage(lang, routing) === "gemini" &&
+          batchThisLanguage &&
           isBatchableSpeechEntry(entry.id) &&
           existingSpeechEntries.get(entry.id)?.provider !== "manual"
         ) {

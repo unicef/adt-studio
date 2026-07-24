@@ -205,6 +205,7 @@ export {
   findQuietCutSeconds,
   type WavInfo,
 } from "./audio-wav.js"
+export { supportsPageBatchedSpeech } from "./speech-batch.js"
 export {
   translateCatalogBatch,
   buildCatalogTranslationConfig,

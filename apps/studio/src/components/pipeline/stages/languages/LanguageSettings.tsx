@@ -250,16 +250,22 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
       setReviewAdditionalGuidance("")
       setReviewJudgeInstructions(DEFAULT_TRANSLATION_EVALUATION_JUDGE_INSTRUCTIONS)
     }
-    if (m.speech && typeof m.speech === "object") {
-      const s = m.speech as Record<string, unknown>
+    const speech =
+      m.speech && typeof m.speech === "object"
+        ? (m.speech as Record<string, unknown>)
+        : null
+    setGeminiTemperature(
+      typeof speech?.temperature === "number" ? String(speech.temperature) : ""
+    )
+    setGeminiSeed(typeof speech?.seed === "number" ? String(speech.seed) : "")
+    setBatchByPage(speech?.batch_by_page === true)
+    if (speech) {
+      const s = speech
       if (s.model) setSpeechModel(String(s.model))
       if (s.format) setFormat(String(s.format))
       if (s.default_provider) setDefaultProvider(String(s.default_provider))
       if (s.bit_rate) setBitRate(String(s.bit_rate))
       if (s.sample_rate) setSampleRate(String(s.sample_rate))
-      if (typeof s.temperature === "number") setGeminiTemperature(String(s.temperature))
-      if (typeof s.seed === "number") setGeminiSeed(String(s.seed))
-      setBatchByPage(s.batch_by_page === true)
       setWordHighlighting(s.word_highlighting === true)
       setExcludedCategories(
         new Set(Array.isArray(s.excluded_categories) ? (s.excluded_categories as string[]) : [])
@@ -1405,7 +1411,7 @@ function SpeechLanguageCards({
             <div className="space-y-1 flex-1">
               <Label htmlFor="batch-by-page" className="text-xs">{t`Batch a whole page per request (experimental)`}</Label>
               <p className="text-[11px] text-muted-foreground">
-                {t`Synthesize each page's text in a single Gemini request so tone flows naturally across sentences, then split the audio back into per-sentence clips. Needs an OpenAI key (used to align the split). Gemini-routed languages only.`}
+                {t`Synthesize each page's text in a single Gemini request so tone flows naturally across sentences, then split the audio back into per-sentence clips. Needs an OpenAI key (used to align the split). Gemini-routed languages only; Chinese and Thai remain per-entry.`}
               </p>
             </div>
           </div>
