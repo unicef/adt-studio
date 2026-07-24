@@ -59,6 +59,38 @@ describe("isFixedLayoutConfig", () => {
     expect(isFixedLayoutConfig(null)).toBe(false)
   })
 
+  it("is false for every non-fixed book type (the fixed_layout entry is only an available option)", () => {
+    // A real book's render_strategies map always lists fixed_layout as an
+    // available option — but the warning must only fire when it is the SELECTED
+    // strategy. Every other book type must resolve to false.
+    const fullStrategies = {
+      single_column: { render_type: "template" },
+      llm: { render_type: "llm" },
+      "llm-overlay": { render_type: "llm" },
+      two_column: { render_type: "template" },
+      two_column_story: { render_type: "template" },
+      fixed_layout: { render_type: "fixed_layout" },
+    }
+    for (const selected of [
+      "single_column",
+      "llm",
+      "llm-overlay",
+      "two_column",
+      "two_column_story",
+      "dynamic", // legacy sentinel
+      "", // unset
+    ]) {
+      expect(
+        isFixedLayoutConfig({
+          default_render_strategy: selected,
+          render_strategies: fullStrategies,
+        })
+      ).toBe(false)
+    }
+    // Config with no strategy fields at all.
+    expect(isFixedLayoutConfig({})).toBe(false)
+  })
+
   it("is true when the book-wide default resolves to fixed_layout", () => {
     expect(
       isFixedLayoutConfig({
