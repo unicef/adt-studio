@@ -1,7 +1,10 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import type { ApiLogEntry } from '../main/api-server/types'
-import type { UpdateStatus } from '../main/services/auto-updater'
+import type {
+  AvailableRelease,
+  UpdateStatus,
+} from '../main/services/auto-updater'
 import type { PostUpdateInfo } from '../main/services/update-state'
 
 type ApiLogCallback = (entry: ApiLogEntry) => void
@@ -23,7 +26,8 @@ const windowControls = {
     ipcRenderer.on('window:close-requested', handler)
     return () => ipcRenderer.off('window:close-requested', handler)
   },
-  isMaximized: (): Promise<boolean> => ipcRenderer.invoke('window:is-maximized'),
+  isMaximized: (): Promise<boolean> =>
+    ipcRenderer.invoke('window:is-maximized'),
   isFullscreen: (): Promise<boolean> =>
     ipcRenderer.invoke('window:is-fullscreen'),
   onMaximizeChange: (cb: MaximizeChangeCallback): (() => void) => {
@@ -45,8 +49,14 @@ const updates = {
   download: (): Promise<UpdateStatus> => ipcRenderer.invoke('updates:download'),
   cancel: (): Promise<UpdateStatus> => ipcRenderer.invoke('updates:cancel'),
   install: (): Promise<void> => ipcRenderer.invoke('updates:install'),
-  installOnQuit: (): Promise<void> => ipcRenderer.invoke('updates:install-on-quit'),
-  getStatus: (): Promise<UpdateStatus> => ipcRenderer.invoke('updates:get-status'),
+  installOnQuit: (): Promise<void> =>
+    ipcRenderer.invoke('updates:install-on-quit'),
+  getStatus: (): Promise<UpdateStatus> =>
+    ipcRenderer.invoke('updates:get-status'),
+  listVersions: (force = false): Promise<AvailableRelease[]> =>
+    ipcRenderer.invoke('updates:list-versions', force),
+  selectVersion: (version: string): Promise<UpdateStatus> =>
+    ipcRenderer.invoke('updates:select-version', version),
   getPostUpdate: (): Promise<PostUpdateInfo | null> =>
     ipcRenderer.invoke('updates:get-post-update'),
   onStatus: (cb: UpdateStatusCallback): (() => void) => {
@@ -64,7 +74,8 @@ interface SaveFileDialogOptions {
 
 const api = {
   onApiLog: (callback: ApiLogCallback): (() => void) => {
-    const handler = (_: Electron.IpcRendererEvent, entry: ApiLogEntry) => callback(entry)
+    const handler = (_: Electron.IpcRendererEvent, entry: ApiLogEntry) =>
+      callback(entry)
     ipcRenderer.on('api-log', handler)
     return () => ipcRenderer.off('api-log', handler)
   },

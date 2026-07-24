@@ -1,4 +1,4 @@
-import { useAtomValue } from "jotai";
+import { useAtomValue, useSetAtom } from "jotai";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import {
   currentPageNumberAtom,
@@ -6,6 +6,7 @@ import {
   pagesAtom,
   type PageEntry,
 } from "@/features/navigation/state/nav.atoms";
+import { dockMenuValueAtom } from "@/shared/state/ui.atoms";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
 import { DockIconButton } from "@/features/dock/components/DockIconButton";
 
@@ -48,6 +49,8 @@ export function PageNav() {
   const pages = useAtomValue(pagesAtom);
   const currentSectionId = useAtomValue(currentSectionIdAtom);
   const currentPageFromMeta = useAtomValue(currentPageNumberAtom);
+  const dockMenuValue = useAtomValue(dockMenuValueAtom);
+  const setDockMenuValue = useSetAtom(dockMenuValueAtom);
   const { t } = useTranslation();
 
   const idx = pages.findIndex((p) => p.section_id === currentSectionId);
@@ -62,6 +65,11 @@ export function PageNav() {
 
   const go = (href: string | undefined) => {
     if (!href) return;
+    // Turning the page dismisses the read-aloud panel. `dockMenuValue` is
+    // persisted, so clearing it keeps the panel closed on the next document
+    // rather than re-opening. Playback resumes independently via the
+    // persisted `isPlaying` flag, so audio keeps reading the new page.
+    if (dockMenuValue === "audio") setDockMenuValue("");
     window.location.href = href;
   };
 

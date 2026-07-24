@@ -188,14 +188,24 @@ export {
   loadSpeechInstructions,
   computeSpeechCacheKey,
   generateSpeechFile,
+  generatePageSpeechFiles,
   generateWordTimestamps,
   type VoiceMaps,
   type InstructionsMap,
   type GenerateSpeechFileOptions,
+  type GeneratePageSpeechFilesOptions,
   type GenerateWordTimestampsOptions,
   type GenerateWordTimestampsResult,
   type ProviderRouting,
 } from "./speech.js"
+export {
+  parseWavHeader,
+  wavDurationSeconds,
+  sliceWav,
+  findQuietCutSeconds,
+  type WavInfo,
+} from "./audio-wav.js"
+export { supportsPageBatchedSpeech } from "./speech-batch.js"
 export {
   translateCatalogBatch,
   buildCatalogTranslationConfig,

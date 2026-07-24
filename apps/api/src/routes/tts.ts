@@ -9,6 +9,7 @@ import {
   TTSOutput,
   isTtsExcluded,
   type SpeechFileEntry,
+  type SpeechFailedEntry,
   type TTSProviderConfig,
   type TextCatalogEntry,
   type TextCatalogOutput,
@@ -318,15 +319,22 @@ function clearWordTimestampEntry(
 
   if (!row) return
 
-  const existing = (row.data as WordTimestampOutput).entries
-  if (!(textId in existing)) return
+  const data = row.data as WordTimestampOutput
+  const existing = data.entries
+  const failed = data.failed ?? []
+  const hasEntry = textId in existing
+  const hasFailed = failed.some((f) => f.textId === textId)
+  if (!hasEntry && !hasFailed) return
 
   const nextEntries = { ...existing }
   delete nextEntries[textId]
+  // Removing/replacing the audio makes any prior highlighting failure stale.
+  const nextFailed = failed.filter((f) => f.textId !== textId)
 
   storage.putNodeData("tts-timestamps", normalizedLanguage, {
     entries: nextEntries,
     generatedAt: new Date().toISOString(),
+    ...(nextFailed.length > 0 ? { failed: nextFailed } : {}),
   } satisfies WordTimestampOutput)
 }
 
@@ -791,6 +799,8 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
                   })
                 : createTTSSynthesizer(openaiApiKey),
           provider: options.targetProvider,
+          geminiTemperature: config.speech?.temperature,
+          geminiSeed: config.speech?.seed,
         })
 
       try {
@@ -1054,9 +1064,10 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
     try {
       const existingRow = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)
-      const existing = existingRow
-        ? (existingRow.data as WordTimestampOutput).entries
-        : {}
+      const existingData = existingRow
+        ? (existingRow.data as WordTimestampOutput)
+        : undefined
+      const existing = existingData?.entries ?? {}
 
       const updatedEntry: WordTimestampEntry = {
         textId,
@@ -1070,9 +1081,14 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         [textId]: updatedEntry,
       }
 
+      // A manual edit resolves this item — drop it from the failed list while
+      // preserving any other still-failed items.
+      const remainingFailed = (existingData?.failed ?? []).filter((f) => f.textId !== textId)
+
       storage.putNodeData("tts-timestamps", normalizedLanguage, {
         entries: merged,
         generatedAt: new Date().toISOString(),
+        ...(remainingFailed.length > 0 ? { failed: remainingFailed } : {}),
       } satisfies WordTimestampOutput)
 
       return c.json({ ok: true })
@@ -1166,18 +1182,26 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
 
       // Merge into existing timestamps for this language
       const existingRow = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)
-      const existing = existingRow
-        ? (existingRow.data as WordTimestampOutput).entries
-        : {}
+      const existingData = existingRow
+        ? (existingRow.data as WordTimestampOutput)
+        : undefined
+      const existing = existingData?.entries ?? {}
 
       const merged: Record<string, WordTimestampEntry> = {
         ...existing,
         [parsed.data.textId]: timestampEntry,
       }
 
+      // Successful re-transcription resolves this item — drop it from the failed
+      // list while preserving any other still-failed items.
+      const remainingFailed = (existingData?.failed ?? []).filter(
+        (f) => f.textId !== parsed.data.textId,
+      )
+
       storage.putNodeData("tts-timestamps", normalizedLanguage, {
         entries: merged,
         generatedAt: new Date().toISOString(),
+        ...(remainingFailed.length > 0 ? { failed: remainingFailed } : {}),
       } satisfies WordTimestampOutput)
 
       return c.json({ entry: timestampEntry })
@@ -1274,44 +1298,88 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
           }
 
           let count = 0
+          const newlyFailed: SpeechFailedEntry[] = []
+          const succeededIds = new Set<string>()
 
           for (const ttsEntry of toTranscribe) {
-            const audioPath = path.resolve(bookDir, "audio", normalizedLanguage, ttsEntry.fileName)
-            if (!fs.existsSync(audioPath)) continue
+            try {
+              const audioPath = path.resolve(bookDir, "audio", normalizedLanguage, ttsEntry.fileName)
+              if (!fs.existsSync(audioPath)) {
+                throw new Error(`Audio file not found: ${ttsEntry.fileName}`)
+              }
 
-            const audioBuffer = Buffer.from(fs.readFileSync(audioPath))
-            const textPrompt = textMap.get(ttsEntry.textId)
-            const result = await generateWordTimestamps({
-              audioBuffer,
-              fileName: ttsEntry.fileName,
-              apiKey: openaiApiKey,
-              language: baseLanguage,
-              prompt: textPrompt,
-              cacheDir: path.join(bookDir, ".cache"),
-            })
+              const audioBuffer = Buffer.from(fs.readFileSync(audioPath))
+              const textPrompt = textMap.get(ttsEntry.textId)
+              const result = await generateWordTimestamps({
+                audioBuffer,
+                fileName: ttsEntry.fileName,
+                apiKey: openaiApiKey,
+                language: baseLanguage,
+                prompt: textPrompt,
+                cacheDir: path.join(bookDir, ".cache"),
+              })
 
-            const entry: WordTimestampEntry = {
-              textId: ttsEntry.textId,
-              language: normalizedLanguage,
-              words: result.words,
-              duration: result.duration,
+              const entry: WordTimestampEntry = {
+                textId: ttsEntry.textId,
+                language: normalizedLanguage,
+                words: result.words,
+                duration: result.duration,
+              }
+
+              // Write incrementally to avoid overwriting concurrent user edits;
+              // clear this item from the failed list on success.
+              const currentRow = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)
+              const currentData = currentRow
+                ? (currentRow.data as WordTimestampOutput)
+                : undefined
+              const current = currentData?.entries ?? {}
+              const remainingFailed = (currentData?.failed ?? []).filter(
+                (f) => f.textId !== ttsEntry.textId,
+              )
+              storage.putNodeData("tts-timestamps", normalizedLanguage, {
+                entries: { ...current, [ttsEntry.textId]: entry },
+                generatedAt: new Date().toISOString(),
+                ...(remainingFailed.length > 0 ? { failed: remainingFailed } : {}),
+              } satisfies WordTimestampOutput)
+
+              succeededIds.add(ttsEntry.textId)
+              count++
+            } catch (err) {
+              // Record the failure and keep going — one bad item (e.g. an empty
+              // page-number slice) shouldn't abort the whole batch.
+              newlyFailed.push({
+                textId: ttsEntry.textId,
+                error: err instanceof Error ? err.message : String(err),
+              })
             }
-
-            // Write incrementally to avoid overwriting concurrent user edits
-            const currentRow = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)
-            const current = currentRow
-              ? (currentRow.data as WordTimestampOutput).entries
-              : {}
-            storage.putNodeData("tts-timestamps", normalizedLanguage, {
-              entries: { ...current, [ttsEntry.textId]: entry },
-              generatedAt: new Date().toISOString(),
-            } satisfies WordTimestampOutput)
-
-            count++
-            emitProgress(`${count}/${toTranscribe.length}`, Math.round((count / toTranscribe.length) * 100))
+            emitProgress(
+              `${count + newlyFailed.length}/${toTranscribe.length}`,
+              Math.round(((count + newlyFailed.length) / toTranscribe.length) * 100),
+            )
           }
 
-          return { count, skipped: ttsEntries.length - toTranscribe.length }
+          // Fold this batch's failures into the persisted failed list (dropping
+          // any that succeeded in this pass).
+          if (newlyFailed.length > 0) {
+            const currentRow = storage.getLatestNodeData("tts-timestamps", normalizedLanguage)
+            const currentData = currentRow ? (currentRow.data as WordTimestampOutput) : undefined
+            const failedById = new Map<string, SpeechFailedEntry>()
+            for (const f of currentData?.failed ?? []) failedById.set(f.textId, f)
+            for (const f of newlyFailed) failedById.set(f.textId, f)
+            for (const id of succeededIds) failedById.delete(id)
+            const failed = [...failedById.values()]
+            storage.putNodeData("tts-timestamps", normalizedLanguage, {
+              entries: currentData?.entries ?? {},
+              generatedAt: new Date().toISOString(),
+              ...(failed.length > 0 ? { failed } : {}),
+            } satisfies WordTimestampOutput)
+          }
+
+          return {
+            count,
+            skipped: ttsEntries.length - toTranscribe.length,
+            failed: newlyFailed.length,
+          }
         } finally {
           storage.close()
         }

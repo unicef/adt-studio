@@ -37,6 +37,16 @@ const extraResources = [
 
 const version = process.env.APP_VERSION || require("./package.json").version;
 
+const skipTargets = new Set(
+  (process.env.SKIP_NOTARIZE || "")
+    .toUpperCase()
+    .split(/[\s,]+/)
+    .filter(Boolean),
+);
+const shouldSkip = (target) =>
+  skipTargets.has("ALL") || skipTargets.has("TRUE") || skipTargets.has(target);
+const skipMac = shouldSkip("MAC");
+
 const isBeta = version.includes("-beta");
 const appId = isBeta ? "com.nees.adt-studio.beta" : "com.nees.adt-studio";
 const productName = isBeta ? "ADT-Studio-Beta" : "ADT-Studio";
@@ -100,7 +110,8 @@ const config = {
     gatekeeperAssess: false,
     entitlements: "build/entitlements.mac.plist",
     entitlementsInherit: "build/entitlements.mac.plist",
-    identity: "Developer ID Application",
+    identity: skipMac ? null : "Developer ID Application",
+    ...(skipMac ? { notarize: false } : {}),
     extraResources,
     extendInfo: {
       NSCameraUsageDescription:

@@ -173,7 +173,6 @@ function TTSDockButton() {
         onClose={() => setValue("")}
         anchor={btnRef}
         side={side}
-        staysOpen
       >
         <AudioContent />
       </DockPanel>
