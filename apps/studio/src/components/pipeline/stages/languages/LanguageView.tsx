@@ -523,6 +523,31 @@ export function LanguageView({
     () => new Map(entries.map((entry) => [entry.id, entry.text])),
     [entries],
   );
+
+  // Bare-numeric entries (page numbers) still set to be read aloud. Surfaced as
+  // an opt-in banner on the Speech stage: page numbers otherwise get spoken by
+  // TTS, which sounds wrong. Detection is intentionally simple (the user
+  // confirms before muting) — 1–3 digits covers page numbers, including the
+  // doubled forms ("66"/"88") some PDFs emit for shadowed single digits.
+  const [pageNumbersDismissed, setPageNumbersDismissed] = useState(false);
+  const pageNumberEntries = useMemo(() => {
+    if (!isSpeechStage) return [] as { id: string; text: string }[];
+    return entries.filter((e) => {
+      const text = (e.text ?? "").trim();
+      return (
+        /^\d{1,3}$/.test(text) &&
+        !isAnswerEntry(e.id) &&
+        !excludedTextIdSet.has(e.id)
+      );
+    });
+  }, [entries, isSpeechStage, excludedTextIdSet]);
+  const pageNumberPreview = useMemo(() => {
+    const uniq = Array.from(
+      new Set(pageNumberEntries.map((e) => e.text.trim())),
+    ).sort((a, b) => Number(a) - Number(b));
+    const shown = uniq.slice(0, 8).join(", ");
+    return uniq.length > 8 ? `${shown}…` : shown;
+  }, [pageNumberEntries]);
   const pageFilteredEntries = selectedPageId
     ? entries.filter((e) => e.id.startsWith(selectedPageId + "_"))
     : entries;
@@ -585,8 +610,13 @@ export function LanguageView({
     wordHighlightingEnabled,
   ]);
 
-  const toggleEntryMuted = useCallback(
-    (textId: string) => {
+  // Shared writer for the read-aloud exclusion list: applies `mutate` to the
+  // current effective set, persists it, and mirrors the pending state so the UI
+  // updates optimistically. Writes are serialized through configUpdateQueueRef
+  // so rapid edits don't race. Mutating against the effective (merged) set means
+  // the write matches what the user currently sees.
+  const updateExcludedTextIds = useCallback(
+    (mutate: (set: Set<string>) => void) => {
       const currentConfig = { ...(bookConfigData?.config ?? {}) } as Record<
         string,
         unknown
@@ -595,13 +625,10 @@ export function LanguageView({
         currentConfig.speech && typeof currentConfig.speech === "object"
           ? { ...(currentConfig.speech as Record<string, unknown>) }
           : {};
-      // Toggle against the effective (merged) exclusions so the write matches
-      // what the user currently sees.
       const next = new Set(
         pendingExcludedTextIdsRef.current ?? effectiveExcludedTextIds,
       );
-      if (next.has(textId)) next.delete(textId);
-      else next.add(textId);
+      mutate(next);
       const nextIds = Array.from(next);
       pendingExcludedTextIdsRef.current = nextIds;
       setPendingExcludedTextIds(nextIds);
@@ -637,6 +664,26 @@ export function LanguageView({
       queryClient,
       updateConfig,
     ],
+  );
+
+  const toggleEntryMuted = useCallback(
+    (textId: string) => {
+      updateExcludedTextIds((set) => {
+        if (set.has(textId)) set.delete(textId);
+        else set.add(textId);
+      });
+    },
+    [updateExcludedTextIds],
+  );
+
+  const muteEntries = useCallback(
+    (textIds: string[]) => {
+      if (textIds.length === 0) return;
+      updateExcludedTextIds((set) => {
+        for (const id of textIds) set.add(id);
+      });
+    },
+    [updateExcludedTextIds],
   );
 
   // Fetch word timestamps for the active language on the speech page
@@ -980,6 +1027,13 @@ export function LanguageView({
     for (const f of ttsData.languages[audioLang]?.failed ?? []) {
       failedAudioMap.set(f.textId, f.error);
     }
+  }
+  // Per-item word-highlighting (timestamp) failures for the selected language.
+  // These entries have audio but no per-word timings — commonly an empty slice
+  // (e.g. a bare page number) in page-batched mode — so the user can prune them.
+  const failedTimestampMap = new Map<string, string>();
+  for (const f of timestampData?.failed ?? []) {
+    failedTimestampMap.set(f.textId, f.error);
   }
   // Separate base-language audio map for the source column in translation view
   const baseAudioMap = new Map<
@@ -1662,6 +1716,39 @@ export function LanguageView({
             </div>
           )}
 
+          {isSpeechStage &&
+            !pageNumbersDismissed &&
+            pageNumberEntries.length > 0 && (
+              <div className="flex items-center justify-between gap-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2">
+                <div className="text-xs text-amber-900">
+                  {t`Page numbers detected — these will be read aloud: ${pageNumberPreview}. Mute them all from text-to-speech?`}
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-3 text-xs border-amber-300 bg-white text-amber-900 hover:bg-amber-100"
+                    onClick={() =>
+                      muteEntries(pageNumberEntries.map((e) => e.id))
+                    }
+                    disabled={updateConfig.isPending}
+                  >
+                    <VolumeX className="mr-1 h-3 w-3" />
+                    {t`Mute all from read-aloud`}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => setPageNumbersDismissed(true)}
+                    title={t`Dismiss`}
+                    aria-label={t`Dismiss`}
+                    className="text-amber-700 hover:text-amber-900 cursor-pointer"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
+
           {/* Language filter pills — always shown, base language first */}
           {editingLanguage && (
             <div className="flex gap-1.5 items-center flex-wrap">
@@ -2038,6 +2125,17 @@ export function LanguageView({
                   !audioFailure &&
                   !isRunning &&
                   (stageDone || hasStageError);
+                // Word-highlighting failed but the audio itself is fine — the
+                // clip plays, it just has no per-word timings. Only shown when
+                // there's no more fundamental audio problem to report.
+                const timestampFailure =
+                  isSpeechStage &&
+                  !isAnswer &&
+                  !exclusion.excluded &&
+                  !audioFailure &&
+                  !audioMissing
+                    ? failedTimestampMap.get(entry.id)
+                    : undefined;
                 const audioStatusBadges = (
                   <>
                     {audioFailure && (
@@ -2051,6 +2149,14 @@ export function LanguageView({
                     {audioMissing && (
                       <span className="ml-1.5 text-[9px] font-medium text-amber-700 bg-amber-100 rounded px-1 py-0.5">
                         {t`No audio`}
+                      </span>
+                    )}
+                    {timestampFailure && (
+                      <span
+                        title={timestampFailure}
+                        className="ml-1.5 text-[9px] font-medium text-orange-700 bg-orange-100 rounded px-1 py-0.5 cursor-help"
+                      >
+                        {t`Highlighting failed`}
                       </span>
                     )}
                   </>

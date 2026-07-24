@@ -5,12 +5,6 @@ interface DockPanelProps {
   onClose: () => void
   anchor?: React.RefObject<HTMLElement | null>
   side?: "top" | "bottom"
-  /**
-   * When true, the popover ignores outside-click and escape dismissal. The
-   * only ways to close it are programmatic (e.g. clicking Stop in the
-   * panel) or re-clicking the dock trigger button.
-   */
-  staysOpen?: boolean
   children: React.ReactNode
 }
 
@@ -19,7 +13,6 @@ function DockPanel({
   onClose,
   anchor,
   side = "top",
-  staysOpen,
   children,
 }: DockPanelProps) {
   return (
@@ -27,6 +20,10 @@ function DockPanel({
       open={open}
       onOpenChange={(next, eventDetails) => {
         if (next) return
+        // Clicks on a dock trigger button (prev/next page, panel toggles)
+        // are handled by the button's own onClick — don't also treat them as
+        // an outside-press dismissal, or the panel would flicker/toggle. Any
+        // other outside-press (a click in the book) closes the panel.
         if (
           eventDetails.reason === "outside-press" &&
           eventDetails.event &&
@@ -36,17 +33,11 @@ function DockPanel({
         ) {
           return
         }
-        if (
-          staysOpen &&
-          (eventDetails.reason === "outside-press" ||
-            eventDetails.reason === "escape-key")
-        ) {
-          return
-        }
         onClose()
       }}
     >
       <PopoverContent
+        data-dock-panel=""
         side={side}
         align="center"
         sideOffset={12}

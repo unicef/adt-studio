@@ -955,6 +955,8 @@ export async function runFullPipeline(
           cacheDir,
           ttsSynthesizer,
           provider,
+          geminiTemperature: config.speech?.temperature,
+          geminiSeed: config.speech?.seed,
         })
         if (entry) resultsByLang.get(item.language)!.push(entry)
         completedItems++

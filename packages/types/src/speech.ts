@@ -36,6 +36,25 @@ export const SpeechConfig = z.object({
   providers: z.record(z.string(), TTSProviderConfig).optional(),
   bit_rate: z.string().optional(),
   sample_rate: z.number().optional(),
+  /**
+   * Gemini TTS sampling controls. Each sentence is synthesized in its own
+   * stateless request, so the model re-derives prosody every call and the tone
+   * can drift between sentences. A low temperature reduces that variance and a
+   * fixed seed makes delivery reproducible — together they keep the voice
+   * consistent across sentences. Ignored by OpenAI/Azure (their APIs have no
+   * such parameter). When unset, neither is sent and Gemini uses its own
+   * defaults — i.e. sampling control is disabled.
+   */
+  temperature: z.number().min(0).max(2).optional(),
+  seed: z.number().int().optional(),
+  /**
+   * Experimental (Gemini only): synthesize a whole page's text in ONE request
+   * so tone stays consistent across sentences, then slice the page audio back
+   * into per-entry files using a Whisper alignment pass. Requires an OpenAI key
+   * (for Whisper). Non-page entries (glossary, quiz, easy-read) and non-Gemini
+   * languages keep the per-entry path.
+   */
+  batch_by_page: z.boolean().optional(),
   /** Text categories excluded from read-aloud (no audio generated or packaged) */
   excluded_categories: z.array(TextCatalogCategory).optional(),
   /** Individual text ids excluded from read-aloud; also mutes their `_easy_read` variants */
@@ -124,5 +143,10 @@ export type WordTimestampEntry = z.infer<typeof WordTimestampEntry>
 export const WordTimestampOutput = z.object({
   entries: z.record(z.string(), WordTimestampEntry),
   generatedAt: z.string(),
+  /** Per-item word-timestamp failures from the run that produced this output,
+   * so the Speech view can mark them for pruning or one-by-one regeneration
+   * (mirrors {@link TTSOutput.failed}). Cleared for an item on a successful
+   * re-transcription and reset by the next full speech run. */
+  failed: z.array(SpeechFailedEntry).optional(),
 })
 export type WordTimestampOutput = z.infer<typeof WordTimestampOutput>

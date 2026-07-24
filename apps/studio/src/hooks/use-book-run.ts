@@ -908,6 +908,7 @@ function invalidateStageData(qc: ReturnType<typeof useQueryClient>, label: strin
       break
     case "speech":
       qc.invalidateQueries({ queryKey: ["books", label, "tts"] })
+      qc.invalidateQueries({ queryKey: ["books", label, "tts-timestamps"] })
       break
   }
 }
