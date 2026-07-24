@@ -323,7 +323,7 @@ export function KidsAvatarDialog() {
       title={tk("kids-avatar-title", "Your character")}
       reduceMotion={reduceMotion}
       closeLabel={tk("kids-dialog-close", "Close")}
-      wide
+      wider
     >
       <KidsAvatarBuilder value={avatar} onChange={setAvatar} />
     </KidsModal>
@@ -337,6 +337,7 @@ function KidsModal({
   closeLabel,
   reduceMotion,
   wide,
+  wider,
   children,
 }: {
   open: boolean
@@ -345,6 +346,7 @@ function KidsModal({
   closeLabel: string
   reduceMotion: boolean
   wide?: boolean
+  wider?: boolean
   children: ReactNode
 }) {
   const dialogRef = useRef<HTMLDivElement>(null)
@@ -413,7 +415,7 @@ function KidsModal({
         tabIndex={-1}
         className={cn(
           "relative grid max-h-[min(80vh,42rem)] w-full gap-4 overflow-hidden rounded-[2rem] bg-white p-5 text-slate-900 shadow-2xl ring-2 ring-sky-100",
-          wide ? "max-w-2xl" : "max-w-lg",
+          wider ? "max-w-4xl" : wide ? "max-w-2xl" : "max-w-lg",
           "transition-all duration-200 ease-out",
           !reduceMotion && "animate-kidsBuddyPop",
         )}

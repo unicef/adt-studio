@@ -327,8 +327,8 @@ export function KidsOnboarding() {
       style={pageStyle}
     >
       <KidsClouds reduceMotion={reduceMotion} />
-      <div className="relative mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-5 py-5 sm:px-8 lg:px-10">
-        <div className="flex min-h-16 items-center justify-between gap-3">
+      <div className="relative mx-auto flex min-h-dvh w-full max-w-5xl flex-col px-5 py-2 sm:px-8 lg:px-10">
+        <div className="flex min-h-12 items-center justify-between gap-3">
           {stepIndex > 0 ? (
             <button
               type="button"
@@ -349,11 +349,11 @@ export function KidsOnboarding() {
           key={step}
           data-testid="kids-onboarding-step"
           className={cn(
-            "mx-auto flex w-full max-w-[40rem] flex-1 flex-col items-center justify-between gap-6 py-6 text-center",
+            "mx-auto flex w-full max-w-[40rem] flex-1 flex-col items-center justify-between gap-3 py-3 text-center",
             reduceMotion ? "transition-none" : "animate-kidsBuddyPop",
           )}
         >
-          <div className="flex w-full flex-1 flex-col items-center justify-center gap-7">
+          <div className="flex w-full flex-1 flex-col items-center justify-center gap-3">
             <div
               key={`${step}-hero`}
               className={cn("flex w-full justify-center", !reduceMotion && "animate-kidsBuddyPop")}
@@ -380,7 +380,7 @@ export function KidsOnboarding() {
                   />
                 )
               ) : showBuddy ? (
-                <div className="grid aspect-square w-full max-w-56 place-items-center rounded-full bg-white/70">
+                <div className="grid aspect-square w-full max-w-44 place-items-center rounded-full bg-white/70">
                   <KidsBuddyImage
                     key={`${character.id}-${STEP_EXPRESSIONS[step] ?? "standing"}`}
                     images={getBuddyImages(character.id)}
@@ -410,7 +410,7 @@ export function KidsOnboarding() {
             <div
               key={`${step}-text`}
               className={cn(
-                "flex w-full flex-col items-center justify-center gap-5",
+                "flex w-full flex-col items-center justify-center gap-4",
                 !reduceMotion &&
                   (navigationDirection === "forward"
                     ? "animate-kidsSlideFromRight"
@@ -493,7 +493,7 @@ export function KidsOnboarding() {
                 />
               ) : null}
 
-              <div className="flex min-h-20 w-full shrink-0 items-start justify-center pb-3 pt-1">
+              <div className="flex min-h-14 w-full shrink-0 items-start justify-center pb-1 pt-1">
                 <OnboardingPrimaryAction
                   step={step}
                   onNext={step === "pick" ? confirmPickAndGoNext : goNext}
@@ -580,7 +580,7 @@ function NeutralOnboardingVisual({
   return (
     <div
       data-testid="kids-onboarding-neutral-visual"
-      className="relative grid aspect-square w-full max-w-56 place-items-center rounded-full bg-white/70"
+      className="relative grid aspect-square w-full max-w-44 place-items-center rounded-full bg-white/70"
     >
       <div
         className={cn(
@@ -598,7 +598,7 @@ function NeutralOnboardingVisual({
         style={animateWelcome ? { animationDelay: "60ms" } : undefined}
       >
         <span
-          className="text-7xl"
+          className="text-6xl"
           style={animateWelcome ? { animationDelay: "480ms" } : undefined}
           aria-hidden="true"
         >
@@ -824,12 +824,12 @@ function BuddyStep({
   const { tk } = useKidsTranslation()
   const reduceMotion = usePrefersReducedMotion()
   return (
-    <div className="flex w-full flex-col items-center gap-5">
+    <div className="flex w-full flex-col items-center gap-3">
       <StepTitle headingRef={headingRef} stepPosition={stepPosition}>
         {tk("kids-onboarding-buddy-title", "Pick a reading buddy")}
       </StepTitle>
 
-      <div className="flex w-full flex-wrap justify-center gap-3">
+      <div className="flex w-full flex-wrap justify-center gap-2.5">
         {roster.map((character, index) => {
           const name = tk(character.defaultNameKey, character.defaultNameFallback)
           const selected = character.id === selectedId
@@ -842,7 +842,7 @@ function BuddyStep({
               aria-current={selected ? "true" : undefined}
               onClick={() => onSelect(character)}
               className={cn(
-                "relative flex min-h-36 w-[10.5rem] max-w-[calc(50%-0.375rem)] flex-col items-center justify-between gap-2 rounded-2xl border-[3px] bg-white p-3 text-center shadow-[0_4px_0_#C4DFF2] transition-[transform,box-shadow,border-color,background-color] duration-200 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-700",
+                "relative flex min-h-[6.5rem] w-[9.5rem] max-w-[calc(50%-0.375rem)] flex-col items-center justify-between gap-1.5 rounded-2xl border-[3px] bg-white p-2.5 text-center shadow-[0_4px_0_#C4DFF2] transition-[transform,box-shadow,border-color,background-color] duration-200 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-700",
                 selected
                   ? "border-sky-600 bg-sky-50"
                   : "border-slate-200",
@@ -866,14 +866,14 @@ function BuddyStep({
                   <Check className="h-5 w-5" strokeWidth={3.5} />
                 </span>
               ) : null}
-              <span className="grid aspect-square w-20 place-items-center rounded-2xl bg-sky-50">
+              <span className="grid aspect-square w-16 place-items-center rounded-2xl bg-sky-50">
                 <KidsBuddyImage
                   images={getBuddyImages(character.id)}
                   variant="standing"
-                  className="w-16 h-16"
+                  className="w-12 h-12"
                 />
               </span>
-              <span className="text-base font-bold text-slate-950">{name}</span>
+              <span className="text-sm font-bold text-slate-950">{name}</span>
             </button>
           )
         })}
@@ -936,7 +936,7 @@ function AvatarStep({
       <StepTitle headingRef={headingRef} stepPosition={stepPosition}>
         {tk("kids-onboarding-avatar-title", "Make your character")}
       </StepTitle>
-      <KidsAvatarBuilder value={value} onChange={onChange} />
+      <KidsAvatarBuilder value={value} onChange={onChange} dense />
     </StepLayout>
   )
 }
@@ -1098,13 +1098,13 @@ function FeatureAbilitiesStep({
   ]
 
   return (
-    <div className="flex min-h-0 w-full flex-col items-center justify-center gap-5">
+    <div className="flex min-h-0 w-full flex-col items-center justify-center gap-3">
       <StepTitle headingRef={headingRef} stepPosition={stepPosition}>
         {tk("kids-onboarding-abilities-title", "Here's what I can do")}
       </StepTitle>
 
       <div
-        className="flex max-h-[min(52vh,28rem)] w-full flex-col gap-3 overflow-y-auto px-1.5 py-2 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+        className="flex max-h-[min(40vh,22rem)] w-full flex-col gap-2 overflow-y-auto px-1.5 py-1 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
         role="region"
         aria-label={tk(
           "kids-onboarding-abilities-region",
@@ -1116,7 +1116,7 @@ function FeatureAbilitiesStep({
           <div
             key={key}
             className={cn(
-              "flex items-start gap-4 rounded-2xl bg-white p-4 text-left shadow-[0_3px_0_#D9EBF8] ring-2 ring-sky-100",
+              "flex items-start gap-3 rounded-2xl bg-white p-3 text-left shadow-[0_3px_0_#D9EBF8] ring-2 ring-sky-100",
               !reduceMotion && "animate-kidsRiseIn",
             )}
             style={
@@ -1127,17 +1127,17 @@ function FeatureAbilitiesStep({
           >
             <span
               className={cn(
-                "grid h-12 w-12 flex-none place-items-center rounded-2xl",
+                "grid h-10 w-10 flex-none place-items-center rounded-2xl",
                 chip,
               )}
             >
-              <Icon className="h-6 w-6" aria-hidden="true" />
+              <Icon className="h-5 w-5" aria-hidden="true" />
             </span>
-            <span className="flex min-w-0 flex-col gap-1">
-              <span className="text-lg font-bold leading-tight text-slate-950">
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="text-base font-bold leading-tight text-slate-950">
                 {label}
               </span>
-              <span className="text-base font-medium leading-relaxed text-slate-700">
+              <span className="text-sm font-medium leading-relaxed text-slate-700">
                 {description}
               </span>
             </span>
