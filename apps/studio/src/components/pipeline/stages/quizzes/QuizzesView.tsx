@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { api } from "@/api/client";
-import type { QuizGenerationOutput } from "@/api/client";
+import type { QuizGenerationOutput, QuizItem } from "@/api/client";
 import { useQuizzes } from "@/hooks/use-quizzes";
 import { usePageImage, usePages } from "@/hooks/use-pages";
 import { formatPageNumbers } from "./lib/format-page-numbers";
@@ -308,9 +308,26 @@ export function QuizzesView({
           bookLabel={bookLabel}
           pendingLabel={pendingLabel}
           pendingLabelKey={pendingLabelKey}
-          onPreview={(d) => setPending(d as QuizData)}
+          onRestored={() => setPending(null)}
           onSave={() => saveRef.current()}
           onDiscard={() => setPending(null)}
+          diff={{
+            items: (d) => (d as QuizData | null)?.quizzes ?? [],
+            keyOf: (it) => String((it as QuizItem).quizIndex),
+            isEqual: (a, b) => JSON.stringify(a) === JSON.stringify(b),
+            renderItem: (it) => {
+              const q = it as QuizItem;
+              const correct = q.options?.[q.answerIndex]?.text;
+              return (
+                <span>
+                  <span className="font-medium text-foreground">{q.question}</span>
+                  {correct ? (
+                    <span className="mt-0.5 block text-emerald-700">✓ {correct}</span>
+                  ) : null}
+                </span>
+              );
+            },
+          }}
         />
       </div>,
     );
