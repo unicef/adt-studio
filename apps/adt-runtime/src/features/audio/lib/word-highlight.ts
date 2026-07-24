@@ -93,6 +93,23 @@ function wrapWordsFromSegments(element: HTMLElement, segments: Segment[]): boole
     return out
   }
 
+  // Largest segment `font-size` (px) overlapping [start, end), or undefined
+  // when none declares one. Used to size each word wrapper's paint box.
+  const maxSegFontSize = (start: number, end: number): number | undefined => {
+    let max = 0
+    for (let i = 0; i < segments.length; i++) {
+      const segStart = segOffsets[i]
+      const segEnd = segStart + segments[i].text.length
+      if (segEnd <= start) continue
+      if (segStart >= end) break
+      const fsRaw = segments[i].style?.["font-size"]
+      if (!fsRaw) continue
+      const fs = parseFloat(fsRaw)
+      if (Number.isFinite(fs) && fs > max) max = fs
+    }
+    return max > 0 ? max : undefined
+  }
+
   const fragment = doc.createDocumentFragment()
   let charCursor = 0
   for (const seg of plan) {
@@ -116,6 +133,19 @@ function wrapWordsFromSegments(element: HTMLElement, segments: Segment[]): boole
     const end = start + seg.text.length
     const wrap = doc.createElement("span")
     wrap.setAttribute("data-word-index", String(seg.wordIndex))
+    // The word highlight (`.bg-yellow-300`) paints this wrapper's inline
+    // background box, whose height is the wrapper's own font content-area.
+    // Fixed-layout font-size lives only on the inner per-segment pieces, so
+    // an unsized wrapper inherits the page default (~16px) and the yellow bar
+    // renders as a thin sliver behind a large word. Mirror the word's largest
+    // segment size onto the wrapper so the highlight covers the whole word —
+    // same fix as wrapBySegments in packaging/epub.ts. The wrapper holds no
+    // text of its own (the glyphs live in the pieces), so width/advance is
+    // unchanged; emitted inline so auto-fit shrinks it in lockstep.
+    const wordFontSize = maxSegFontSize(start, end)
+    if (wordFontSize !== undefined) {
+      wrap.setAttribute("style", `font-size:${wordFontSize}px`)
+    }
     for (const piece of buildPieces(start, end)) wrap.appendChild(piece)
     fragment.appendChild(wrap)
     charCursor = end
