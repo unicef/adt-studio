@@ -213,9 +213,23 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
           bookLabel={bookLabel}
           pendingLabel={pendingLabel}
           pendingLabelKey={pendingLabelKey}
-          onPreview={(d) => setPending(d as TocData)}
+          onRestored={() => setPending(null)}
           onSave={() => saveRef.current()}
           onDiscard={() => setPending(null)}
+          diff={{
+            items: (d) => (d as TocData | null)?.entries ?? [],
+            keyOf: (it) => (it as TocEntry).id,
+            isEqual: (a, b) => JSON.stringify(a) === JSON.stringify(b),
+            renderItem: (it) => {
+              const entry = it as TocEntry
+              const indent = Math.max(0, Math.min(entry.level ?? 1, 3) - 1) * 12
+              return (
+                <span style={{ paddingLeft: indent }} className="block">
+                  {entry.title || <span className="text-muted-foreground">{t`(untitled)`}</span>}
+                </span>
+              )
+            },
+          }}
         />
       </div>,
     )
