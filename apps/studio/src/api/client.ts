@@ -980,8 +980,11 @@ export const api = {
       body: JSON.stringify(data),
     }),
 
+  // Text edits are pushed into the rendered HTML server-side. `rerenderSections`
+  // lists the sections that couldn't be synced that way (their structure changed,
+  // or their stored HTML was unpatchable) and need re-rendering to catch up.
   updateSectioning: (label: string, pageId: string, data: unknown) =>
-    request<{ version: number }>(`/books/${label}/pages/${pageId}/sectioning`, {
+    request<{ version: number; needsRerender: boolean; rerenderSections: number[] }>(`/books/${label}/pages/${pageId}/sectioning`, {
       method: "PUT",
       body: JSON.stringify(data),
     }),

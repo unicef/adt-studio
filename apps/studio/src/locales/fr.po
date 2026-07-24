@@ -851,6 +851,9 @@ msgstr "Ajoutez une clé API dans les paramètres du livre pour exécuter la gé
 msgid "Add an API key in Book settings to run translation."
 msgstr "Ajoutez une clé API dans les paramètres du livre pour exécuter la traduction."
 
+msgid "Add an API key to re-render"
+msgstr "Ajoutez une clé API pour relancer le rendu"
+
 msgid "Add an API key to re-run"
 msgstr "Ajoutez une clé API pour relancer"
 
@@ -5880,6 +5883,9 @@ msgstr "Re-rendre cette section"
 msgid "Re-rendering..."
 msgstr "Re-rendu en cours..."
 
+msgid "Re-rendering…"
+msgstr "Re-rendu en cours…"
+
 msgid "Re-run"
 msgstr "Relancer"
 
@@ -7256,6 +7262,9 @@ msgstr "Scénarimage"
 
 msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 msgstr "Le scénarimage a déjà été exécuté. Les modifications effectuées ici ne prendront effet que lorsque le scénarimage sera relancé."
+
+msgid "Storyboard is out of date"
+msgstr "Le scénarimage n'est plus à jour"
 
 msgid "Storyboard not ready"
 msgstr "Storyboard non prêt"

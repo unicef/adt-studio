@@ -5,7 +5,7 @@ import { z } from "zod"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { parseBookLabel, ImageClassificationOutput, PageSectioningOutput, WebRenderingOutput, ImageCaptioningOutput, ImageSegmentRegion, DEFAULT_LLM_MAX_RETRIES, primaryFontFamily, reflowableFontChain, BookFontRegistry, bookBodyFont, bookFontFamilyChain, splitNodesBefore } from "@adt/types"
-import type { ContentNodeData, ExtractionWarning } from "@adt/types"
+import type { ContentNodeData, ExtractionWarning, PageSectioningOutput as PageSectioningOutputType } from "@adt/types"
 import { classifyExtractionWarning, flattenVisibleSectioningText } from "../services/extraction-warning.js"
 import { openBookDb } from "@adt/storage"
 import { createBookStorage } from "@adt/storage"
@@ -29,6 +29,8 @@ import {
   createScreenshotRenderer,
   SCREENSHOT_VIEWPORTS,
   isFixedLayoutBook,
+  propagateSectioningTextToRendering,
+  FIXED_LAYOUT_SECTIONING_NODE,
   type ScreenshotRenderer,
 } from "@adt/pipeline"
 import { createLLMModel, createPromptEngine, renderLiquidTemplate, generateImageWithCache } from "@adt/llm"
@@ -440,6 +442,62 @@ function saveStoryboardNode(
   const version = storage.putNodeData(node, itemId, data)
   clearCaptionData(storage)
   return version
+}
+
+/**
+ * Push edited sectioning text into the page's already-rendered storyboard HTML.
+ *
+ * The rendered HTML is a snapshot of the sectioning text taken at render time,
+ * so without this the Storyboard keeps showing the old copy after an edit in
+ * the Sectioning view. Only the edited page's node is touched — the book-wide
+ * `clearNodesByType` would discard every other page's rendering for a one-word
+ * change.
+ *
+ * Returns the section indices that could not be synced and need re-rendering.
+ * Best-effort: the sectioning row is already committed by the time this runs,
+ * so a failure here must never turn a successful save into an error.
+ */
+function propagateTextToStoryboard(
+  storage: Storage,
+  label: string,
+  pageId: string,
+  sectioning: PageSectioningOutputType
+): number[] {
+  try {
+    // Fixed-layout pages render from the positioned tree in
+    // `fixed-layout-sectioning`, built from extraction draw-items rather than
+    // this semantic tree, and their data-ids belong to that tree. There is
+    // nothing here to propagate, and reporting drift would only send the user
+    // to a re-render that cannot help.
+    if (storage.getLatestNodeData(FIXED_LAYOUT_SECTIONING_NODE, pageId)) return []
+
+    const renderingRow = storage.getLatestNodeData("web-rendering", pageId)
+    if (!renderingRow) return []
+
+    const rendering = WebRenderingOutput.safeParse(renderingRow.data)
+    if (!rendering.success) return []
+
+    const result = propagateSectioningTextToRendering(
+      sectioning,
+      rendering.data,
+      label
+    )
+    if (result.changed) {
+      storage.putNodeData("web-rendering", pageId, result.rendering)
+    }
+    for (const skip of result.skipped) {
+      console.log(
+        `[sectioning-save] ${label}/${pageId}: section ${skip.sectionIndex} not synced (${skip.reason}): ${skip.errors.join("; ")}`
+      )
+    }
+    return result.skipped.map((s) => s.sectionIndex)
+  } catch (err) {
+    console.error(
+      `[sectioning-save] ${label}/${pageId}: text propagation failed`,
+      err
+    )
+    return []
+  }
 }
 
 /** Renumber sectionIds to the canonical `${pageId}_sec${NNN}` sequence. */
@@ -1189,7 +1247,18 @@ export function createPageRoutes(
       const version = storage.putNodeData("page-sectioning", pageId, parsed.data)
       // Sectioning change cascades to everything downstream
       clearCaptionData(storage)
-      return c.json({ version })
+
+      const rerenderSections = propagateTextToStoryboard(
+        storage,
+        safeLabel,
+        pageId,
+        parsed.data
+      )
+      return c.json({
+        version,
+        needsRerender: rerenderSections.length > 0,
+        rerenderSections,
+      })
     } finally {
       storage.close()
     }

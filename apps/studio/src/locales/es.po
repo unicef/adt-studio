@@ -849,6 +849,9 @@ msgstr "Añade una clave API en la configuración del libro para ejecutar la gen
 msgid "Add an API key in Book settings to run translation."
 msgstr "Añade una clave API en la configuración del libro para ejecutar traducción."
 
+msgid "Add an API key to re-render"
+msgstr "Agrega una clave de API para volver a renderizar"
+
 msgid "Add an API key to re-run"
 msgstr "Agrega una clave de API para re-ejecutar"
 
@@ -5878,6 +5881,9 @@ msgstr "Re-renderizar esta sección"
 msgid "Re-rendering..."
 msgstr "Volviendo a renderizar..."
 
+msgid "Re-rendering…"
+msgstr "Volviendo a renderizar…"
+
 msgid "Re-run"
 msgstr "Re-ejecutar"
 
@@ -7254,6 +7260,9 @@ msgstr "Storyboard"
 
 msgid "Storyboard has already been run. Changes made here will not take effect until storyboard is re-run."
 msgstr "El storyboard ya se ejecutó. Los cambios realizados aquí no tendrán efecto hasta que se vuelva a ejecutar el storyboard."
+
+msgid "Storyboard is out of date"
+msgstr "El storyboard está desactualizado"
 
 msgid "Storyboard not ready"
 msgstr "Storyboard no está listo"
