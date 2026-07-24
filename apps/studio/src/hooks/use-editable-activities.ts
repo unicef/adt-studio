@@ -12,6 +12,24 @@ export function useEditableActivities(label: string, pageId: string, enabled = t
   })
 }
 
+/** Read-only extraction of a classic activity's structure — used by the
+ *  classic-activity editor to group image/prompt/answer per item. Keyed on
+ *  the rendering version so it refetches after saves/re-renders. */
+export function useActivityStructure(
+  label: string,
+  pageId: string,
+  sectionIndex: number,
+  renderingVersion: number | undefined,
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: ["activity-structure", label, pageId, sectionIndex, renderingVersion ?? 0],
+    queryFn: () => api.getActivityStructure(label, pageId, sectionIndex),
+    enabled: enabled && !!label && !!pageId,
+    staleTime: 30_000,
+  })
+}
+
 export function useConvertEditableActivity(label: string, pageId: string) {
   const queryClient = useQueryClient()
   return useMutation({

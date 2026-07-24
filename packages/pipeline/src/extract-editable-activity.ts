@@ -42,7 +42,7 @@ const HEADING_TAGS = new Set(["h1", "h2", "h3", "h4", "h5", "h6"])
 /** Pure numbering/lettering captions ("1.", "2)", "(b)", "a:") — layout
  *  artifacts of the printed page. The stepper has its own progress counter,
  *  so these are never useful as step labels or instructions. */
-function isIndexLabel(textContent: string): boolean {
+export function isIndexLabel(textContent: string): boolean {
   return /^[([]?([0-9]{1,3}|[a-z])[)\]]?[.:]?$/i.test(textContent.trim())
 }
 
@@ -50,30 +50,30 @@ function isIndexLabel(textContent: string): boolean {
 // DOM helpers
 // ---------------------------------------------------------------------------
 
-function tag(el: Element, name?: string): boolean {
+export function tag(el: Element, name?: string): boolean {
   if (el?.type !== "tag") return false
   return name ? (el.name ?? "").toLowerCase() === name : true
 }
 
-function attr(el: Element, name: string): string | undefined {
+export function attr(el: Element, name: string): string | undefined {
   const v = el?.attribs?.[name]
   return typeof v === "string" ? v : undefined
 }
 
-function hasClass(el: Element, cls: string): boolean {
+export function hasClass(el: Element, cls: string): boolean {
   const raw = attr(el, "class")
   if (!raw) return false
   return raw.split(/\s+/).includes(cls)
 }
 
-function findAll(root: Element, predicate: (el: Element) => boolean): Element[] {
+export function findAll(root: Element, predicate: (el: Element) => boolean): Element[] {
   return DomUtils.findAll(
     (el: Element) => el.type === "tag" && predicate(el),
     root.children ?? [],
   )
 }
 
-function hasAncestor(
+export function hasAncestor(
   node: Element,
   stopAt: Element,
   predicate: (el: Element) => boolean,
@@ -86,7 +86,7 @@ function hasAncestor(
   return false
 }
 
-function text(el: Element): string {
+export function text(el: Element): string {
   return DomUtils.textContent(el).replace(/\s+/g, " ").trim()
 }
 
@@ -94,7 +94,7 @@ function text(el: Element): string {
 // Shared pieces
 // ---------------------------------------------------------------------------
 
-function findActivitySection(html: string): Element | null {
+export function findActivitySection(html: string): Element | null {
   const doc = parseDocument(html)
   const sections = DomUtils.findAll(
     (el: Element) =>
@@ -121,7 +121,7 @@ function extractImage(img: Element): ActivityImage {
 }
 
 /** Document-order index for "does X come before Y" comparisons. */
-function buildOrderIndex(section: Element): Map<Element, number> {
+export function buildOrderIndex(section: Element): Map<Element, number> {
   const all = findAll(section, () => true)
   const index = new Map<Element, number>()
   all.forEach((el, i) => index.set(el, i))
@@ -129,7 +129,7 @@ function buildOrderIndex(section: Element): Map<Element, number> {
   return index
 }
 
-function extractTitle(section: Element): { title?: ActivityText; el: Element | null } {
+export function extractTitle(section: Element): { title?: ActivityText; el: Element | null } {
   const heading = findAll(section, (el) =>
     HEADING_TAGS.has((el.name ?? "").toLowerCase()),
   )[0]

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest"
-import { extractEditableActivity, supportsEditableActivity } from "../extract-editable-activity.js"
+import {
+  extractEditableActivity,
+  supportsEditableActivity,
+} from "../extract-editable-activity.js"
+import { buildActivityOutline, applyActivityHeader } from "../activity-outline.js"
 import {
   renderEditableActivityHtml,
   replaceStepperShellsWithStaticHtml,
@@ -126,6 +130,173 @@ describe("supportsEditableActivity", () => {
     expect(supportsEditableActivity("activity_multiple_choice")).toBe(true)
     expect(supportsEditableActivity("activity_sorting")).toBe(false)
     expect(supportsEditableActivity("activity_fill_in_a_table")).toBe(false)
+  })
+})
+
+describe("buildActivityOutline", () => {
+  // Section tree matching the OPEN_ENDED fixture below — supplies the
+  // semantic roles the HTML lacks.
+  const leaf = (nodeId: string, role: string, text: string) => ({
+    nodeId,
+    isPruned: false,
+    role,
+    text,
+  })
+
+  it("organizes header + item cards for open-ended activities", () => {
+    // Mirrors the listening-and-writing layout: styled-span title (not an
+    // h1-h6), grade badge, two instruction sentences, and per-item cards
+    // holding a letter caption, a multi-sentence question, and a textarea.
+    const html = `
+<section data-section-type="activity_open_ended_answer" data-section-id="sec-9">
+  <span class="text-5xl font-bold" data-id="t1">A Day to Remember</span>
+  <span data-id="t2">GRADE 2</span>
+  <p><span data-id="i1">Answer each question in full sentences.</span><span data-id="i2">Use the lines to write your ideas.</span></p>
+  <div class="item-card">
+    <span data-id="l1">(a)</span>
+    <p data-id="q1">Who is someone who makes you feel happy?</p>
+    <p data-id="q2">Tell us a little about them.</p>
+    <textarea data-activity-item="item-1" tabindex="0"></textarea>
+  </div>
+</section>`
+    const nodes = [
+      leaf("t1", "heading", "A Day to Remember"),
+      leaf("t2", "label", "GRADE 2"),
+      leaf("i1", "activity_instruction", "Answer each question in full sentences."),
+      leaf("i2", "activity_instruction", "Use the lines to write your ideas."),
+      leaf("l1", "activity_number", "(a)"),
+      leaf("q1", "activity_question", "Who is someone who makes you feel happy?"),
+      leaf("q2", "activity_question", "Tell us a little about them."),
+    ]
+    const o = buildActivityOutline({ html, sectionNodes: nodes })
+    expect(o.title).toEqual({ dataId: "t1", text: "A Day to Remember" })
+    expect(o.badges).toEqual([{ dataId: "t2", text: "GRADE 2" }])
+    expect(o.instructions.map((i) => i.dataId)).toEqual(["i1", "i2"])
+    expect(o.items).toHaveLength(1)
+    expect(o.items[0].number).toEqual({ dataId: "l1", text: "(a)" })
+    // BOTH question sentences group into the item — not just the last one.
+    expect(o.items[0].prompts.map((p) => p.dataId)).toEqual(["q1", "q2"])
+    expect(o.items[0].inputs).toEqual([{ itemId: "item-1", kind: "textarea" }])
+  })
+
+  it("builds value-choice items for true/false radio pairs", () => {
+    const html = `
+<section data-section-type="activity_true_false" data-section-id="sec-9">
+  <h1 data-id="t1">Geography</h1>
+  <p data-id="i1">Circle T for True or F for False.</p>
+  <fieldset>
+    <p data-id="n1">1.</p>
+    <span data-id="s1">The Amazon River is in South America.</span>
+    <label><input type="radio" name="question1" value="true" data-activity-item="item-1" /><span data-id="tt1">T</span></label>
+    <label><input type="radio" name="question1" value="false" data-activity-item="item-1" /><span data-id="ff1">F</span></label>
+  </fieldset>
+</section>`
+    const nodes = [
+      leaf("i1", "activity_instruction", "Circle T for True or F for False."),
+      leaf("n1", "activity_number", "1."),
+      leaf("s1", "activity_question", "The Amazon River is in South America."),
+    ]
+    const o = buildActivityOutline({ html, sectionNodes: nodes })
+    expect(o.title?.dataId).toBe("t1")
+    expect(o.items).toHaveLength(1)
+    const item = o.items[0]
+    expect(item.choice).toBe("value")
+    expect(item.number?.dataId).toBe("n1")
+    expect(item.prompts.map((p) => p.dataId)).toEqual(["s1"])
+    expect(item.options).toEqual([
+      { itemId: "item-1", value: "true", text: { dataId: "tt1", text: "T" } },
+      { itemId: "item-1", value: "false", text: { dataId: "ff1", text: "F" } },
+    ])
+  })
+
+  it("builds multi-choice items from checkbox groups, preferring visible option text", () => {
+    const html = `
+<section data-section-type="activity_multi_select" data-section-id="sec-9">
+  <div class="questions" role="group">
+    <label><input type="checkbox" name="g1" value="item-1" data-activity-item="item-1" /><span class="sr-only" data-id="sr1">A</span><span data-id="o1">Lion</span></label>
+    <label><input type="checkbox" name="g1" value="item-2" data-activity-item="item-2" /><span class="sr-only" data-id="sr2">B</span><span data-id="o2">Snake</span></label>
+  </div>
+</section>`
+    const o = buildActivityOutline({ html })
+    expect(o.items).toHaveLength(1)
+    expect(o.items[0].choice).toBe("multi")
+    expect(o.items[0].options.map((x) => [x.itemId, x.text?.dataId])).toEqual([
+      ["item-1", "o1"],
+      ["item-2", "o2"],
+    ])
+  })
+
+  it("adopts a shared prompt stranded above a question's second answer group", () => {
+    // A two-blank sentence: one prompt, two radio groups. The prompt sits
+    // above both groups' cards and must attach to the first bare item.
+    const html = `
+<section data-section-type="activity_multiple_choice" data-section-id="sec-9">
+  <div class="question">
+    <span data-id="n1">3</span>
+    <span data-id="p1">A baby cat is called a ___, and a baby dog is called a ___.</span>
+    <div role="group">
+      <label><input type="radio" name="g1" value="item-1" data-activity-item="item-1" /><span data-id="o1">puppy</span></label>
+      <label><input type="radio" name="g1" value="item-2" data-activity-item="item-2" /><span data-id="o2">kitten</span></label>
+    </div>
+    <div role="group">
+      <label><input type="radio" name="g2" value="item-3" data-activity-item="item-3" /><span data-id="o3">foal</span></label>
+      <label><input type="radio" name="g2" value="item-4" data-activity-item="item-4" /><span data-id="o4">calf</span></label>
+    </div>
+  </div>
+</section>`
+    const o = buildActivityOutline({ html })
+    expect(o.items).toHaveLength(2)
+    expect(o.items[0].number?.dataId).toBe("n1")
+    expect(o.items[0].prompts.map((p) => p.dataId)).toEqual(["p1"])
+    expect(o.items[1].prompts).toEqual([])
+    expect(o.items[1].options).toHaveLength(2)
+  })
+
+  it("groups table inputs with their row's cells", () => {
+    const html = `
+<section data-section-type="activity_fill_in_a_table" data-section-id="sec-9">
+  <table>
+    <tr><td><span data-id="h1">First group</span></td><td><span data-id="h2">Total</span></td></tr>
+    <tr><td><span data-id="c1">🍎🍎</span></td><td><input type="text" data-activity-item="item-1" /></td></tr>
+    <tr><td><span data-id="c2">⭐️⭐️⭐️</span></td><td><input type="text" data-activity-item="item-2" /></td></tr>
+  </table>
+</section>`
+    const o = buildActivityOutline({ html })
+    expect(o.items).toHaveLength(2)
+    expect(o.items[0].prompts.map((p) => p.dataId)).toEqual(["c1"])
+    expect(o.items[0].inputs[0]).toMatchObject({ itemId: "item-1", kind: "text" })
+    expect(o.items[1].prompts.map((p) => p.dataId)).toEqual(["c2"])
+  })
+
+  it("applyActivityHeader overrides badge-as-instructions and span titles", () => {
+    const html = `
+<section data-section-type="activity_fill_in_the_blank" data-section-id="sec-9">
+  <span class="text-5xl" data-id="t1">Missing Letters</span>
+  <span data-id="b1">GRADE 1</span>
+  <span data-id="i1">Write the missing letter.</span>
+  <div class="fitb-sentence"><span data-id="s1">C [[blank:item-1]] T</span></div>
+</section>`
+    const nodes = [
+      leaf("t1", "heading", "Missing Letters"),
+      leaf("b1", "label", "GRADE 1"),
+      leaf("i1", "activity_instruction", "Write the missing letter."),
+      leaf("s1", "text", "C [[blank:item-1]] T"),
+    ]
+    const bad = { title: undefined, instructions: { text: "GRADE 1", dataId: "b1" } }
+    const fixed = applyActivityHeader(bad, { html, sectionNodes: nodes })
+    expect(fixed.title).toEqual({ dataId: "t1", text: "Missing Letters" })
+    expect(fixed.instructions).toEqual({ dataId: "i1", text: "Write the missing letter." })
+  })
+
+  it("returns items: [] for input-less activities (header still organized)", () => {
+    const o = buildActivityOutline({ html: MC_TEXT_OPTIONS })
+    // MC radios DO produce items; a truly inert page produces none.
+    expect(o.items.length).toBeGreaterThan(0)
+    expect(buildActivityOutline({ html: "<p>no section</p>" })).toEqual({
+      badges: [],
+      instructions: [],
+      items: [],
+    })
   })
 })
 

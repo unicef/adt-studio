@@ -37,6 +37,12 @@ import {
 import { useApiKey } from "@/hooks/use-api-key"
 import { Input } from "@/components/ui/input"
 import { ReplaceFromBookDialog } from "./ReplaceFromBookDialog"
+import { ColorPicker } from "./style-editor/controls/ColorPicker"
+import { Select } from "./style-editor/controls/Select"
+import {
+  hexFromTailwindName,
+  tailwindNameFromHex,
+} from "./style-editor/tailwind-palette"
 
 interface EditableActivityPanelProps {
   open: boolean
@@ -47,6 +53,8 @@ interface EditableActivityPanelProps {
   activity: EditableActivity
   /** Full per-page map — saving writes the whole entity. */
   activities: Record<string, EditableActivity>
+  /** Book-derived accent the activity renders with when no override is set. */
+  paletteAccent: string
 }
 
 function resolveImageSrc(bookLabel: string, src: string): string {
@@ -92,6 +100,7 @@ export function EditableActivityPanel({
   sectionIndex,
   activity,
   activities,
+  paletteAccent,
 }: EditableActivityPanelProps) {
   const { t } = useLingui()
   const [draft, setDraft] = useState<EditableActivity>(activity)
@@ -180,6 +189,18 @@ export function EditableActivityPanel({
 
   const setTheme = (patch: Partial<NonNullable<EditableActivity["theme"]>>) => {
     setDraft((d) => ({ ...d, theme: { ...d.theme, ...patch } }))
+  }
+
+  // The swatch always shows the color the activity actually renders with —
+  // the per-activity override when set, otherwise the book palette accent.
+  const effectiveAccent = draft.theme?.accent ?? paletteAccent
+  const accentLabel = tailwindNameFromHex(effectiveAccent) ?? effectiveAccent
+  const handleAccentChange = (next: string) => {
+    // The picker returns a hex (#abc123 / #abc123ff) or a Tailwind token
+    // (violet-500); the schema stores 6-digit hex.
+    const hex = next.startsWith("#") ? next.slice(0, 7) : hexFromTailwindName(next)
+    if (!hex || !/^#[0-9a-fA-F]{6}$/.test(hex)) return
+    setTheme({ accent: hex })
   }
 
   // NOTE on dataId: extracted texts carry the text-catalog id so the reader's
@@ -490,45 +511,45 @@ export function EditableActivityPanel({
           <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t`Style`}</h3>
           <div className="flex items-center gap-3">
             <label className="text-xs w-24 shrink-0">{t`Accent color`}</label>
-            <input
-              type="color"
-              value={draft.theme?.accent ?? "#2563EB"}
-              onChange={(e) => setTheme({ accent: e.target.value })}
-              className="h-7 w-10 cursor-pointer rounded border p-0.5"
-              aria-label={t`Accent color`}
-            />
-            <span className="text-xs text-muted-foreground font-mono">
-              {draft.theme?.accent ?? t`From book`}
+            <ColorPicker value={effectiveAccent} onChange={handleAccentChange} align="start" />
+            <span className="text-xs text-muted-foreground font-mono min-w-0 truncate">
+              {accentLabel}
             </span>
+            {draft.theme?.accent ? (
+              <button
+                type="button"
+                onClick={() => setTheme({ accent: undefined })}
+                title={t`Reset to the book's accent`}
+                className="ml-auto shrink-0 text-[10px] text-muted-foreground hover:text-foreground underline cursor-pointer"
+              >
+                {t`Reset`}
+              </button>
+            ) : (
+              <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">{t`From book`}</span>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <label className="text-xs w-24 shrink-0">{t`Image size`}</label>
-            <select
+            <Select
               value={draft.theme?.imageSize ?? "medium"}
-              onChange={(e) =>
-                setTheme({ imageSize: e.target.value as "small" | "medium" | "large" })
-              }
-              className="h-7 rounded border bg-background px-2 text-xs"
-            >
-              <option value="small">{t`Small`}</option>
-              <option value="medium">{t`Medium`}</option>
-              <option value="large">{t`Large`}</option>
-            </select>
+              onChange={(v) => setTheme({ imageSize: v })}
+              options={[
+                { value: "small", label: t`Small` },
+                { value: "medium", label: t`Medium` },
+                { value: "large", label: t`Large` },
+              ]}
+              className="w-32"
+            />
           </div>
           {draft.kind === "multiple-choice" && (
             <div className="flex items-center gap-3">
               <label className="text-xs w-24 shrink-0">{t`Option columns`}</label>
-              <select
-                value={draft.theme?.optionColumns ?? 2}
-                onChange={(e) => setTheme({ optionColumns: Number(e.target.value) })}
-                className="h-7 rounded border bg-background px-2 text-xs"
-              >
-                {[1, 2, 3, 4].map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
+              <Select
+                value={String(draft.theme?.optionColumns ?? 2)}
+                onChange={(v) => setTheme({ optionColumns: Number(v) })}
+                options={["1", "2", "3", "4"].map((n) => ({ value: n, label: n }))}
+                className="w-32"
+              />
             </div>
           )}
         </div>

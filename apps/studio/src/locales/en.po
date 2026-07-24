@@ -662,6 +662,9 @@ msgstr "Acceptable"
 msgid "Accepted anyway"
 msgstr "Accepted anyway"
 
+msgid "Accepts any answer"
+msgstr "Accepts any answer"
+
 msgid "Accessibility"
 msgstr "Accessibility"
 
@@ -728,6 +731,9 @@ msgstr "Activity 5.1"
 msgid "Activity answers"
 msgstr "Activity answers"
 
+msgid "Activity content"
+msgstr "Activity content"
+
 msgid "Activity Converter"
 msgstr "Activity Converter"
 
@@ -745,6 +751,12 @@ msgstr "Activity section types are available for classification and rendering."
 
 msgid "Activity section types are hidden from the classifier and skipped during rendering."
 msgstr "Activity section types are hidden from the classifier and skipped during rendering."
+
+msgid "Activity text"
+msgstr "Activity text"
+
+msgid "Activity type"
+msgstr "Activity type"
 
 msgid "Activity Types"
 msgstr "Activity Types"
@@ -1179,6 +1191,9 @@ msgstr "and more sections across the page"
 msgid "Answer"
 msgstr "Answer"
 
+msgid "Answer area"
+msgstr "Answer area"
+
 msgid "Answer Prompt"
 msgstr "Answer Prompt"
 
@@ -1397,9 +1412,6 @@ msgstr "Back to books"
 msgid "Back to classic activity"
 msgstr "Back to classic activity"
 
-#~ msgid "Back to Editor"
-#~ msgstr "Back to Editor"
-
 msgid "Back to preview"
 msgstr "Back to preview"
 
@@ -1415,6 +1427,9 @@ msgstr "Background"
 #. placeholder {0}: section.backgroundColor
 msgid "Background: {0}"
 msgstr "Background: {0}"
+
+msgid "Badge"
+msgstr "Badge"
 
 msgid "Balanced"
 msgstr "Balanced"
@@ -1742,6 +1757,9 @@ msgstr "Changing fonts affects how pages are rendered — re-run Storyboard and 
 
 msgid "Changing the language resets downstream work."
 msgstr "Changing the language resets downstream work."
+
+msgid "Changing the type regenerates the activity when you save."
+msgstr "Changing the type regenerates the activity when you save."
 
 msgid "Chapter 1: Introduction"
 msgstr "Chapter 1: Introduction"
@@ -2688,6 +2706,9 @@ msgstr "Edit caption"
 msgid "Edit in Quizzes"
 msgstr "Edit in Quizzes"
 
+msgid "Edit layout"
+msgstr "Edit layout"
+
 msgid "Edit Prompt"
 msgstr "Edit Prompt"
 
@@ -2726,6 +2747,9 @@ msgstr "Editing is disabled while the storyboard is running"
 
 msgid "Editing Language"
 msgstr "Editing Language"
+
+msgid "Edits apply to the matching elements of the activity's layout. To change the layout itself, use \"Edit layout\" in the banner."
+msgstr "Edits apply to the matching elements of the activity's layout. To change the layout itself, use \"Edit layout\" in the banner."
 
 msgid "Edits go to this Tailwind variant prefix"
 msgstr "Edits go to this Tailwind variant prefix"
@@ -3808,6 +3832,9 @@ msgstr "Installing update…"
 msgid "Institution"
 msgstr "Institution"
 
+msgid "Instruction"
+msgstr "Instruction"
+
 msgid "Instructions"
 msgstr "Instructions"
 
@@ -3860,11 +3887,16 @@ msgid "Item"
 msgstr "Item"
 
 #. placeholder {0}: criterionIndex + 1
+#. placeholder {0}: i + 1
+#. placeholder {0}: si + 1
 msgid "Item {0}"
 msgstr "Item {0}"
 
 msgid "Item ID..."
 msgstr "Item ID..."
+
+msgid "Items"
+msgstr "Items"
 
 msgid "Items marked as needing changes for this reviewer session."
 msgstr "Items marked as needing changes for this reviewer session."
@@ -4200,6 +4232,9 @@ msgstr "Lock to a square"
 
 msgid "Logs"
 msgstr "Logs"
+
+msgid "Long answer"
+msgstr "Long answer"
 
 msgid "Looking for the latest version…"
 msgstr "Looking for the latest version…"
@@ -5121,6 +5156,9 @@ msgstr "Optional. Terms added here are pinned to the glossary so they always app
 msgid "Optionally translate burned-in text inside images (signs, labels, callouts). Select the images to localize — leaving the list empty keeps images in the source language."
 msgstr "Optionally translate burned-in text inside images (signs, labels, callouts). Select the images to localize — leaving the list empty keeps images in the source language."
 
+msgid "Options — checked options are the correct answers"
+msgstr "Options — checked options are the correct answers"
+
 msgid "Options — the selected radio marks the correct answer"
 msgstr "Options — the selected radio marks the correct answer"
 
@@ -5160,6 +5198,9 @@ msgstr "Other images"
 
 msgid "Other options"
 msgstr "Other options"
+
+msgid "Other text"
+msgstr "Other text"
 
 msgid "Out for processing"
 msgstr "Out for processing"
@@ -5716,12 +5757,16 @@ msgstr "Query param"
 msgid "question"
 msgstr "question"
 
+#. placeholder {0}: i + 1
 #. placeholder {0}: si + 1
 msgid "Question {0}"
 msgstr "Question {0}"
 
 msgid "Question prompt"
 msgstr "Question prompt"
+
+msgid "Questions"
+msgstr "Questions"
 
 msgid "queued"
 msgstr "queued"
@@ -5949,6 +5994,9 @@ msgstr "Regenerate Easy Read"
 msgid "Regenerate selected images for each output language so that any text burned into them is shown in the target language."
 msgstr "Regenerate selected images for each output language so that any text burned into them is shown in the target language."
 
+msgid "Regenerate this activity with AI (requires a saved state and an API key)"
+msgstr "Regenerate this activity with AI (requires a saved state and an API key)"
+
 msgid "Region"
 msgstr "Region"
 
@@ -6085,6 +6133,9 @@ msgstr "Required"
 msgid "Required Fields"
 msgstr "Required Fields"
 
+msgid "Reset"
+msgstr "Reset"
+
 msgid "Reset default"
 msgstr "Reset default"
 
@@ -6105,6 +6156,9 @@ msgstr "Reset to inherited"
 
 msgid "Reset to inherited defaults"
 msgstr "Reset to inherited defaults"
+
+msgid "Reset to the book's accent"
+msgstr "Reset to the book's accent"
 
 msgid "Reset zoom"
 msgstr "Reset zoom"
@@ -6798,6 +6852,9 @@ msgstr "Shadow"
 
 msgid "Ship"
 msgstr "Ship"
+
+msgid "Short answer"
+msgstr "Short answer"
 
 msgid "Short, simple sentences for kindergarten through 5th grade."
 msgstr "Short, simple sentences for kindergarten through 5th grade."
@@ -7785,6 +7842,9 @@ msgstr "Titles taken verbatim from typed section headings."
 
 msgid "To page"
 msgstr "To page"
+
+msgid "To replace an image, use \"Edit layout\" and click the image."
+msgstr "To replace an image, use \"Edit layout\" and click the image."
 
 msgid "to stream API logs here."
 msgstr "to stream API logs here."

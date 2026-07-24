@@ -662,6 +662,9 @@ msgstr "Aceptable"
 msgid "Accepted anyway"
 msgstr "Aceptado de todos modos"
 
+msgid "Accepts any answer"
+msgstr "Acepta cualquier respuesta"
+
 msgid "Accessibility"
 msgstr "Accessibility"
 
@@ -728,6 +731,9 @@ msgstr "Actividad 5.1"
 msgid "Activity answers"
 msgstr "Respuestas de actividades"
 
+msgid "Activity content"
+msgstr "Contenido de la actividad"
+
 msgid "Activity Converter"
 msgstr "Convertidor de actividades"
 
@@ -745,6 +751,12 @@ msgstr "Los tipos de sección de actividad están disponibles para clasificació
 
 msgid "Activity section types are hidden from the classifier and skipped during rendering."
 msgstr "Los tipos de sección de actividad están ocultos del clasificador y se omiten durante la renderización."
+
+msgid "Activity text"
+msgstr "Texto de la actividad"
+
+msgid "Activity type"
+msgstr "Tipo de actividad"
 
 msgid "Activity Types"
 msgstr "Tipos de Actividad"
@@ -1179,6 +1191,9 @@ msgstr "y más secciones a lo largo de la página"
 msgid "Answer"
 msgstr "Respuesta"
 
+msgid "Answer area"
+msgstr "Área de respuesta"
+
 msgid "Answer Prompt"
 msgstr "Prompt de respuesta"
 
@@ -1397,9 +1412,6 @@ msgstr "Volver a los libros"
 msgid "Back to classic activity"
 msgstr "Volver a la actividad clásica"
 
-#~ msgid "Back to Editor"
-#~ msgstr "Volver al editor"
-
 msgid "Back to preview"
 msgstr "Volver a vista previa"
 
@@ -1415,6 +1427,9 @@ msgstr "Fondo"
 #. placeholder {0}: section.backgroundColor
 msgid "Background: {0}"
 msgstr "Fondo: {0}"
+
+msgid "Badge"
+msgstr "Insignia"
 
 msgid "Balanced"
 msgstr "Equilibrado"
@@ -1742,6 +1757,9 @@ msgstr "Cambiar las fuentes afecta cómo se renderizan las páginas — vuelve a
 
 msgid "Changing the language resets downstream work."
 msgstr "Cambiar el idioma restablece el trabajo posterior."
+
+msgid "Changing the type regenerates the activity when you save."
+msgstr "Cambiar el tipo regenera la actividad al guardar."
 
 msgid "Chapter 1: Introduction"
 msgstr "Capítulo 1: Introducción"
@@ -2688,6 +2706,9 @@ msgstr "Editar leyenda"
 msgid "Edit in Quizzes"
 msgstr "Editar en Cuestionarios"
 
+msgid "Edit layout"
+msgstr "Editar diseño"
+
 msgid "Edit Prompt"
 msgstr "Prompt de edición"
 
@@ -2726,6 +2747,9 @@ msgstr "La edición está deshabilitada mientras el storyboard se está ejecutan
 
 msgid "Editing Language"
 msgstr "Idioma de edición"
+
+msgid "Edits apply to the matching elements of the activity's layout. To change the layout itself, use \"Edit layout\" in the banner."
+msgstr "Los cambios se aplican a los elementos correspondientes del diseño de la actividad. Para cambiar el diseño en sí, usa \"Editar diseño\" en el banner."
 
 msgid "Edits go to this Tailwind variant prefix"
 msgstr "Las ediciones van a este prefijo de variante Tailwind"
@@ -3808,6 +3832,9 @@ msgstr "Instalando actualización…"
 msgid "Institution"
 msgstr "Institution"
 
+msgid "Instruction"
+msgstr "Instrucción"
+
 msgid "Instructions"
 msgstr "Instrucciones"
 
@@ -3860,11 +3887,16 @@ msgid "Item"
 msgstr "Ítem"
 
 #. placeholder {0}: criterionIndex + 1
+#. placeholder {0}: i + 1
+#. placeholder {0}: si + 1
 msgid "Item {0}"
 msgstr "Item {0}"
 
 msgid "Item ID..."
 msgstr "ID del elemento..."
+
+msgid "Items"
+msgstr "Elementos"
 
 msgid "Items marked as needing changes for this reviewer session."
 msgstr "Items marked as needing changes for this reviewer session."
@@ -4200,6 +4232,9 @@ msgstr "Bloquear como cuadrado"
 
 msgid "Logs"
 msgstr "Registros"
+
+msgid "Long answer"
+msgstr "Respuesta larga"
 
 msgid "Looking for the latest version…"
 msgstr "Buscando la última versión…"
@@ -5121,6 +5156,9 @@ msgstr "Opcional. Los términos añadidos aquí se fijan al glosario para que si
 msgid "Optionally translate burned-in text inside images (signs, labels, callouts). Select the images to localize — leaving the list empty keeps images in the source language."
 msgstr "Opcionalmente traduce texto incrustado dentro de imágenes (señales, etiquetas, llamadas). Selecciona las imágenes para localizar — dejar la lista vacía mantiene las imágenes en el idioma original."
 
+msgid "Options — checked options are the correct answers"
+msgstr "Opciones — las opciones marcadas son las respuestas correctas"
+
 msgid "Options — the selected radio marks the correct answer"
 msgstr "Opciones — el botón seleccionado marca la respuesta correcta"
 
@@ -5160,6 +5198,9 @@ msgstr "Otras imágenes"
 
 msgid "Other options"
 msgstr "Otras opciones"
+
+msgid "Other text"
+msgstr "Otro texto"
 
 msgid "Out for processing"
 msgstr "En procesamiento"
@@ -5716,12 +5757,16 @@ msgstr "Parámetro de consulta"
 msgid "question"
 msgstr "pregunta"
 
+#. placeholder {0}: i + 1
 #. placeholder {0}: si + 1
 msgid "Question {0}"
 msgstr "Pregunta {0}"
 
 msgid "Question prompt"
 msgstr "Enunciado de la pregunta"
+
+msgid "Questions"
+msgstr "Preguntas"
 
 msgid "queued"
 msgstr "en cola"
@@ -5949,6 +5994,9 @@ msgstr "Regenerar Lectura Fácil"
 msgid "Regenerate selected images for each output language so that any text burned into them is shown in the target language."
 msgstr "Regenera las imágenes seleccionadas para cada idioma de salida de modo que el texto incrustado en ellas aparezca en el idioma de destino."
 
+msgid "Regenerate this activity with AI (requires a saved state and an API key)"
+msgstr "Regenera esta actividad con IA (requiere un estado guardado y una clave de API)"
+
 msgid "Region"
 msgstr "Región"
 
@@ -6085,6 +6133,9 @@ msgstr "Requerido"
 msgid "Required Fields"
 msgstr "Campos Requeridos"
 
+msgid "Reset"
+msgstr "Restablecer"
+
 msgid "Reset default"
 msgstr "Restablecer valor predeterminado"
 
@@ -6105,6 +6156,9 @@ msgstr "Restablecer a heredado"
 
 msgid "Reset to inherited defaults"
 msgstr "Reset to inherited defaults"
+
+msgid "Reset to the book's accent"
+msgstr "Restablecer al color de acento del libro"
 
 msgid "Reset zoom"
 msgstr "Restablecer zoom"
@@ -6798,6 +6852,9 @@ msgstr "Sombra"
 
 msgid "Ship"
 msgstr "Enviar"
+
+msgid "Short answer"
+msgstr "Respuesta corta"
 
 msgid "Short, simple sentences for kindergarten through 5th grade."
 msgstr "Oraciones cortas y simples para jardín de infancia hasta 5º grado."
@@ -7785,6 +7842,9 @@ msgstr "Títulos tomados textualmente de los encabezados de sección escritos."
 
 msgid "To page"
 msgstr "Hasta la página"
+
+msgid "To replace an image, use \"Edit layout\" and click the image."
+msgstr "Para reemplazar una imagen, usa \"Editar diseño\" y haz clic en la imagen."
 
 msgid "to stream API logs here."
 msgstr "para transmitir registros de API aquí."

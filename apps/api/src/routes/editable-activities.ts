@@ -4,9 +4,11 @@ import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
 import {
+  ContentNodeData,
   EditableActivity,
   EditableActivitiesEntity,
   EDITABLE_ACTIVITY_NODE,
+  PageSectioningOutput,
   WebRenderingOutput,
   parseBookLabel,
   DEFAULT_LLM_MAX_RETRIES,
@@ -15,11 +17,28 @@ import { createBookStorage } from "@adt/storage"
 import {
   extractEditableActivity,
   supportsEditableActivity,
+  buildActivityOutline,
+  applyActivityHeader,
   generateActivityFeedback,
   loadBookConfig,
   normalizeLocale,
+  resolveQuizPalette,
+  DEFAULT_QUIZ_PALETTE,
 } from "@adt/pipeline"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
+
+/** Section-tree nodes for a section — the outline's semantic-role source.
+ *  Best-effort: an unparseable/missing sectioning row just means no roles. */
+function loadSectionNodes(
+  storage: ReturnType<typeof createBookStorage>,
+  pageId: string,
+  sectionIndex: number,
+): ContentNodeData[] | undefined {
+  const row = storage.getLatestNodeData("page-sectioning", pageId)
+  if (!row) return undefined
+  const parsed = PageSectioningOutput.safeParse(row.data)
+  return parsed.success ? parsed.data.sections[sectionIndex]?.nodes : undefined
+}
 
 function safeParseLabel(label: string): string {
   try {
@@ -70,6 +89,9 @@ export function createEditableActivitiesRoutes(
       return c.json({
         activities: parsed?.success ? parsed.data.activities : {},
         version: row?.version ?? 0,
+        // The accent activities render with when no per-activity override is
+        // set — lets the editor show the effective color, not a placeholder.
+        paletteAccent: (resolveQuizPalette(storage) ?? DEFAULT_QUIZ_PALETTE).accent,
       })
     } finally {
       storage.close()
@@ -114,6 +136,65 @@ export function createEditableActivitiesRoutes(
     }
   })
 
+  // GET activity-structure — run the extractor WITHOUT saving anything.
+  // The studio's classic-activity editor uses the result purely as a grouping
+  // index (which data-ids / item-ids / image belong to the same item); edits
+  // still flow through the normal rendering/answer channels.
+  app.get(
+    "/books/:label/pages/:pageId/sections/:sectionIndex/activity-structure",
+    (c) => {
+      const safeLabel = safeParseLabel(c.req.param("label"))
+      requireBook(booksDir, safeLabel)
+      const pageId = c.req.param("pageId")
+      const sectionIndex = parseSectionIndex(c.req.param("sectionIndex"))
+
+      const storage = createBookStorage(safeLabel, booksDir)
+      try {
+        const renderRow = storage.getLatestNodeData("web-rendering", pageId)
+        const rendering = renderRow ? WebRenderingOutput.safeParse(renderRow.data) : null
+        const section = rendering?.success
+          ? rendering.data.sections.find((s) => s.sectionIndex === sectionIndex)
+          : undefined
+        if (!renderRow || !section) {
+          return c.json({
+            activity: null,
+            outline: null,
+            errors: ["No rendering data for this section."],
+          })
+        }
+        // The outline works for every activity type — open-ended, tables,
+        // true/false, multi-select — organizing header texts and item groups
+        // from the section tree's roles + the rendered answer fields.
+        const sectionNodes = loadSectionNodes(storage, pageId, sectionIndex)
+        const outline = buildActivityOutline({ html: section.html, sectionNodes })
+        if (!supportsEditableActivity(section.sectionType)) {
+          return c.json({
+            activity: null,
+            outline,
+            errors: [`Section type "${section.sectionType}" has no structured view.`],
+            renderingVersion: renderRow.version,
+          })
+        }
+        const result = extractEditableActivity({
+          html: section.html,
+          sectionType: section.sectionType,
+          activityAnswers: section.activityAnswers,
+          sourceRenderingVersion: renderRow.version,
+        })
+        return c.json({
+          activity: result.activity
+            ? applyActivityHeader(result.activity, { html: section.html, sectionNodes })
+            : null,
+          outline,
+          errors: result.errors,
+          renderingVersion: renderRow.version,
+        })
+      } finally {
+        storage.close()
+      }
+    },
+  )
+
   // POST convert — extract the section's rendered HTML + answer key into a
   // structured activity and enable the step-by-step presentation.
   app.post(
@@ -157,6 +238,12 @@ export function createEditableActivitiesRoutes(
             422,
           )
         }
+        // The tree-resolved header beats the HTML heuristics (styled-span
+        // titles, grade badges mistaken for instructions).
+        const activity = applyActivityHeader(result.activity, {
+          html: section.html,
+          sectionNodes: loadSectionNodes(storage, pageId, sectionIndex),
+        })
 
         const existingRow = storage.getLatestNodeData(EDITABLE_ACTIVITY_NODE, pageId)
         const existing = existingRow
@@ -164,11 +251,11 @@ export function createEditableActivitiesRoutes(
           : null
         const activities = {
           ...(existing?.success ? existing.data.activities : {}),
-          [String(sectionIndex)]: result.activity,
+          [String(sectionIndex)]: activity,
         }
         const version = storage.putNodeData(EDITABLE_ACTIVITY_NODE, pageId, { activities })
         return c.json({
-          activity: result.activity,
+          activity,
           warnings: result.warnings,
           version,
         })

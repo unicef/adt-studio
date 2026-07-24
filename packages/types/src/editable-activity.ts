@@ -203,3 +203,71 @@ export const activityFeedbackLLMSchema = z.object({
     }),
   ),
 })
+
+// ── Activity outline (classic editor grouping) ─────────────────────────────
+// A type-agnostic, display-only description of an activity's rendered page:
+// header texts plus per-item groups linking prompts, images, and answer
+// fields. Built deterministically from the section tree (semantic roles)
+// and the rendered HTML (input elements + card ancestry). It is purely an
+// organizational index for the studio's activity editor — every edit still
+// flows through the data-id / item-id channels, so a wrong outline can only
+// mis-group the display, never corrupt content.
+
+/** A text on the page. `dataId` (== section-tree nodeId) is the edit channel
+ *  into the rendered HTML; `text` is the rendered text. */
+export const ActivityOutlineText = z.object({
+  dataId: z.string().optional(),
+  text: z.string(),
+})
+export type ActivityOutlineText = z.infer<typeof ActivityOutlineText>
+
+/** A writable answer field (text input / textarea). */
+export const ActivityOutlineInput = z.object({
+  itemId: z.string().optional(),
+  kind: z.enum(["text", "textarea"]),
+  placeholder: z.string().optional(),
+  ariaLabel: z.string().optional(),
+})
+export type ActivityOutlineInput = z.infer<typeof ActivityOutlineInput>
+
+/** One selectable option of a choice item (radio / checkbox). */
+export const ActivityOutlineOption = z.object({
+  itemId: z.string().optional(),
+  /** For value-choice items: the value this option submits (e.g. "true"). */
+  value: z.string().optional(),
+  text: ActivityOutlineText.optional(),
+  imageId: z.string().optional(),
+})
+export type ActivityOutlineOption = z.infer<typeof ActivityOutlineOption>
+
+/**
+ * How a choice item's answer key works:
+ * - "single": options carry their own itemId; exactly one is truthy (MC)
+ * - "multi":  options carry their own itemId; each is true/false (multi-select)
+ * - "value":  options share one itemId; the answer is the chosen value (T/F)
+ */
+export const ActivityOutlineChoice = z.enum(["single", "multi", "value"])
+export type ActivityOutlineChoice = z.infer<typeof ActivityOutlineChoice>
+
+/** One question/item group: everything the learner sees for one answer. */
+export const ActivityOutlineItem = z.object({
+  /** Numbering caption ("1.", "(a)") when present. */
+  number: ActivityOutlineText.optional(),
+  /** Prompt/question sentences (and table-row cells), in page order. */
+  prompts: z.array(ActivityOutlineText),
+  imageIds: z.array(z.string()),
+  inputs: z.array(ActivityOutlineInput),
+  options: z.array(ActivityOutlineOption),
+  choice: ActivityOutlineChoice.optional(),
+})
+export type ActivityOutlineItem = z.infer<typeof ActivityOutlineItem>
+
+export const ActivityOutline = z.object({
+  title: ActivityOutlineText.optional(),
+  /** Decorative header chips (e.g. a "GRADE 3" label). */
+  badges: z.array(ActivityOutlineText),
+  /** Instruction sentences, in page order. */
+  instructions: z.array(ActivityOutlineText),
+  items: z.array(ActivityOutlineItem),
+})
+export type ActivityOutline = z.infer<typeof ActivityOutline>

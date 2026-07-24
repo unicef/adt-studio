@@ -25,7 +25,7 @@ import {
   hexFromTailwindName,
   tailwindNameFromHex,
 } from "../tailwind-palette";
-import { useElementContext } from "../element-context";
+import { useOptionalElementContext } from "../element-context";
 
 interface ColorPickerProps {
   /** Active color — either a hex string (`#abc123`) or a Tailwind token (`violet-500`). */
@@ -61,7 +61,9 @@ export function ColorPicker({
   align = "end",
 }: ColorPickerProps) {
   const hex = isHex(value) ? value : (hexFromTailwindName(value) ?? "#000000");
-  const { dataId } = useElementContext();
+  // Optional so the picker can be reused outside the style-editor sidebar
+  // (e.g. the step-by-step activity panel), where no element is selected.
+  const dataId = useOptionalElementContext()?.dataId ?? null;
   const [open, setOpen] = useState(false);
 
   // Close when the user picks a different element in the preview — clicks

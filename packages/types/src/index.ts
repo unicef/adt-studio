@@ -233,6 +233,12 @@ export {
   EditableActivity,
   EditableActivitiesEntity,
   activityFeedbackLLMSchema,
+  ActivityOutlineText,
+  ActivityOutlineInput,
+  ActivityOutlineOption,
+  ActivityOutlineChoice,
+  ActivityOutlineItem,
+  ActivityOutline,
 } from "./editable-activity.js"
 
 export {

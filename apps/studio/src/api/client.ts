@@ -7,6 +7,7 @@ import type {
   BookMetadata,
   BookSummary,
   BookTypography,
+  ActivityOutline,
   EditableActivity,
   FontAssignmentOutput,
   ExtractionWarning,
@@ -796,9 +797,12 @@ export const api = {
   getBookFonts: (label: string) => request<BookFontsResponse>(`/books/${label}/fonts`),
 
   getEditableActivities: (label: string, pageId: string) =>
-    request<{ activities: Record<string, EditableActivity>; version: number }>(
-      `/books/${label}/pages/${pageId}/editable-activities`,
-    ),
+    request<{
+      activities: Record<string, EditableActivity>
+      version: number
+      /** Book-derived accent used when an activity has no override. */
+      paletteAccent: string
+    }>(`/books/${label}/pages/${pageId}/editable-activities`),
 
   updateEditableActivities: (
     label: string,
@@ -809,6 +813,14 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ activities }),
     }),
+
+  getActivityStructure: (label: string, pageId: string, sectionIndex: number) =>
+    request<{
+      activity: EditableActivity | null
+      outline: ActivityOutline | null
+      errors: string[]
+      renderingVersion?: number
+    }>(`/books/${label}/pages/${pageId}/sections/${sectionIndex}/activity-structure`),
 
   convertEditableActivity: (label: string, pageId: string, sectionIndex: number) =>
     request<{ activity: EditableActivity; warnings: string[]; version: number }>(

@@ -663,6 +663,9 @@ msgstr "E pranueshme"
 msgid "Accepted anyway"
 msgstr "Pranuar gjithsesi"
 
+msgid "Accepts any answer"
+msgstr "Pranon çdo përgjigje"
+
 msgid "Accessibility"
 msgstr "Aksesueshmëria"
 
@@ -729,6 +732,9 @@ msgstr "Aktiviteti 5.1"
 msgid "Activity answers"
 msgstr "Përgjigjet e aktiviteteve"
 
+msgid "Activity content"
+msgstr "Përmbajtja e aktivitetit"
+
 msgid "Activity Converter"
 msgstr "Konvertues Aktivitetesh"
 
@@ -746,6 +752,12 @@ msgstr "Llojet e seksioneve të aktiviteteve janë të disponueshme për klasifi
 
 msgid "Activity section types are hidden from the classifier and skipped during rendering."
 msgstr "Llojet e seksioneve të aktiviteteve janë të fshehura nga klasifikuesi dhe anashkalohen gjatë renderimit."
+
+msgid "Activity text"
+msgstr "Teksti i aktivitetit"
+
+msgid "Activity type"
+msgstr "Lloji i aktivitetit"
 
 msgid "Activity Types"
 msgstr "Llojet e Aktivitetit"
@@ -1180,6 +1192,9 @@ msgstr "dhe seksione të tjera në faqe"
 msgid "Answer"
 msgstr "Përgjigje"
 
+msgid "Answer area"
+msgstr "Zona e përgjigjes"
+
 msgid "Answer Prompt"
 msgstr "Prompt përgjigjeje"
 
@@ -1398,9 +1413,6 @@ msgstr "Kthehu te librat"
 msgid "Back to classic activity"
 msgstr "Kthehu te aktiviteti klasik"
 
-#~ msgid "Back to Editor"
-#~ msgstr "Kthehu te redaktori"
-
 msgid "Back to preview"
 msgstr "Kthehu te pamja paraprake"
 
@@ -1416,6 +1428,9 @@ msgstr "Sfond"
 #. placeholder {0}: section.backgroundColor
 msgid "Background: {0}"
 msgstr "Sfond: {0}"
+
+msgid "Badge"
+msgstr "Stemë"
 
 msgid "Balanced"
 msgstr "I balancuar"
@@ -1743,6 +1758,9 @@ msgstr "Ndryshimi i fonteve ndikon në mënyrën se si shfaqen faqet — riekzek
 
 msgid "Changing the language resets downstream work."
 msgstr "Ndryshimi i gjuhës rivendos punën e mëvonshme."
+
+msgid "Changing the type regenerates the activity when you save."
+msgstr "Ndryshimi i llojit e rigjeneron aktivitetin kur ruani."
 
 msgid "Chapter 1: Introduction"
 msgstr "Kapitulli 1: Hyrje"
@@ -2689,6 +2707,9 @@ msgstr "Redakto titullin"
 msgid "Edit in Quizzes"
 msgstr "Redakto në Kuize"
 
+msgid "Edit layout"
+msgstr "Modifiko strukturën"
+
 msgid "Edit Prompt"
 msgstr "Redakto Prompt-in"
 
@@ -2727,6 +2748,9 @@ msgstr "Redaktimi është i çaktivizuar ndërsa storyboard-i është duke u ekz
 
 msgid "Editing Language"
 msgstr "Gjuha e redaktimit"
+
+msgid "Edits apply to the matching elements of the activity's layout. To change the layout itself, use \"Edit layout\" in the banner."
+msgstr "Ndryshimet zbatohen te elementet përkatëse të strukturës së aktivitetit. Për të ndryshuar vetë strukturën, përdorni \"Modifiko strukturën\" në banderolë."
 
 msgid "Edits go to this Tailwind variant prefix"
 msgstr "Ndryshimet shkojnë tek ky prefiks i variantit Tailwind"
@@ -3809,6 +3833,9 @@ msgstr "Duke instaluar përditësimin…"
 msgid "Institution"
 msgstr "Institucion"
 
+msgid "Instruction"
+msgstr "Udhëzimi"
+
 msgid "Instructions"
 msgstr "Udhëzimet"
 
@@ -3861,11 +3888,16 @@ msgid "Item"
 msgstr "Element"
 
 #. placeholder {0}: criterionIndex + 1
+#. placeholder {0}: i + 1
+#. placeholder {0}: si + 1
 msgid "Item {0}"
 msgstr "Elementi {0}"
 
 msgid "Item ID..."
 msgstr "ID e elementit..."
+
+msgid "Items"
+msgstr "Elementet"
 
 msgid "Items marked as needing changes for this reviewer session."
 msgstr "Elementet e shënuara si që kërkojnë ndryshime për këtë sesion rishikimi."
@@ -4201,6 +4233,9 @@ msgstr "Kyç si katror"
 
 msgid "Logs"
 msgstr "Regjistra"
+
+msgid "Long answer"
+msgstr "Përgjigje e gjatë"
 
 msgid "Looking for the latest version…"
 msgstr "Duke kërkuar versionin më të fundit…"
@@ -5122,6 +5157,9 @@ msgstr "Opsionale. Termat e shtuar këtu janë të ngjitur në glosarium, kësht
 msgid "Optionally translate burned-in text inside images (signs, labels, callouts). Select the images to localize — leaving the list empty keeps images in the source language."
 msgstr "Opsionalisht, përktheni tekstin e integruar brenda imazheve (shenja, etiketa, thirrje). Zgjidhni imazhet për lokalizim — lënia e listës bosh i mban imazhet në gjuhën burimore."
 
+msgid "Options — checked options are the correct answers"
+msgstr "Opsionet — opsionet e shënuara janë përgjigjet e sakta"
+
 msgid "Options — the selected radio marks the correct answer"
 msgstr "Opsionet — butoni i zgjedhur shënon përgjigjen e saktë"
 
@@ -5161,6 +5199,9 @@ msgstr "Imazhe të tjera"
 
 msgid "Other options"
 msgstr "Opsione të tjera"
+
+msgid "Other text"
+msgstr "Tekst tjetër"
 
 msgid "Out for processing"
 msgstr "Në përpunim"
@@ -5717,12 +5758,16 @@ msgstr "Parametri i pyetjes"
 msgid "question"
 msgstr "pyetje"
 
+#. placeholder {0}: i + 1
 #. placeholder {0}: si + 1
 msgid "Question {0}"
 msgstr "Pyetja {0}"
 
 msgid "Question prompt"
 msgstr "Teksti i pyetjes"
+
+msgid "Questions"
+msgstr "Pyetjet"
 
 msgid "queued"
 msgstr "në radhë"
@@ -5950,6 +5995,9 @@ msgstr "Rigenero Easy Read"
 msgid "Regenerate selected images for each output language so that any text burned into them is shown in the target language."
 msgstr "Rigenero imazhet e zgjedhura për çdo gjuhë dalëse, në mënyrë që çdo tekst i djegur mbi to të shfaqet në gjuhën e synuar."
 
+msgid "Regenerate this activity with AI (requires a saved state and an API key)"
+msgstr "Rigjeneroni këtë aktivitet me AI (kërkon gjendje të ruajtur dhe një çelës API)"
+
 msgid "Region"
 msgstr "Rajon"
 
@@ -6086,6 +6134,9 @@ msgstr "E detyrueshme"
 msgid "Required Fields"
 msgstr "Fushat e Detyrueshme"
 
+msgid "Reset"
+msgstr "Rivendos"
+
 msgid "Reset default"
 msgstr "Rivendos parazgjedhjen"
 
@@ -6106,6 +6157,9 @@ msgstr "Rivendos në të trashëguarën"
 
 msgid "Reset to inherited defaults"
 msgstr "Rivendos në paracaktimet e trashëguara"
+
+msgid "Reset to the book's accent"
+msgstr "Rikthe ngjyrën e theksit të librit"
 
 msgid "Reset zoom"
 msgstr "Rivendos zmadhimin"
@@ -6799,6 +6853,9 @@ msgstr "Hije"
 
 msgid "Ship"
 msgstr "Dërgo"
+
+msgid "Short answer"
+msgstr "Përgjigje e shkurtër"
 
 msgid "Short, simple sentences for kindergarten through 5th grade."
 msgstr "Fjali të shkurtra dhe të thjeshta për klasën e parë deri në të pestën."
@@ -7786,6 +7843,9 @@ msgstr "Titujt marrë fjalë për fjalë nga titujt e seksioneve të shtypura."
 
 msgid "To page"
 msgstr "Deri te faqja"
+
+msgid "To replace an image, use \"Edit layout\" and click the image."
+msgstr "Për të zëvendësuar një imazh, përdorni \"Modifiko strukturën\" dhe klikoni mbi imazh."
 
 msgid "to stream API logs here."
 msgstr "për të transmetuar regjistrat API këtu."

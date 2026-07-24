@@ -58,8 +58,10 @@ import {
 import { SectionEditPanel } from "./SectionEditPanel"
 import { StorySectionBanner } from "./StorySectionBanner"
 import { EditableActivityPanel } from "./EditableActivityPanel"
+import { ClassicActivityPanel } from "./ClassicActivityPanel"
 import { StepperActivityPreview } from "./StepperActivityPreview"
 import {
+  useActivityStructure,
   useConvertEditableActivity,
   useEditableActivities,
   useSetEditableActivityPresentation,
@@ -570,6 +572,21 @@ export function StoryboardSectionDetail({
     bookLabel,
     pageId,
     pageHasActivitySection,
+  )
+  // Read-only structure of a classic activity — groups image/prompt/answer per
+  // item in the classic activity editor. Only fetched for the extractable
+  // section types; everything else falls back to the flat editor.
+  const savedSectionType = (page.sectioningTree as SectioningData | null)?.sections?.[
+    sectionIndex
+  ]?.sectionType
+  const activityStructureQuery = useActivityStructure(
+    bookLabel,
+    pageId,
+    sectionIndex,
+    page.versions.rendering ?? 0,
+    // All activity types: the generic input scan applies to every one, even
+    // when the per-item structure doesn't (open-ended, tables, sorting…).
+    Boolean(savedSectionType?.startsWith("activity_")),
   )
   const convertEditableActivity = useConvertEditableActivity(bookLabel, pageId)
   const setEditablePresentation = useSetEditableActivityPresentation(bookLabel, pageId)
@@ -1122,6 +1139,30 @@ export function StoryboardSectionDetail({
           return {
             ...s,
             activityAnswers: { ...s.activityAnswers, [itemKey]: value },
+          }
+        }),
+      }
+      setPendingRendering(updated)
+      markPending("text")
+    },
+    [pendingRendering, page.rendering, sectionIndex, markPending]
+  )
+
+  // Atomic multi-key answer update — marking a multiple-choice option correct
+  // must flip the whole radio group (selected → true, siblings → false) in one
+  // pending-state write. Booleans stay booleans: the runtime treats any string
+  // (including "false") as truthy.
+  const updateAnswers = useCallback(
+    (patch: Record<string, string | boolean>) => {
+      const rBase = pendingRendering ?? page.rendering
+      if (!rBase) return
+      const updated = {
+        ...rBase,
+        sections: rBase.sections.map((s) => {
+          if (s.sectionIndex !== sectionIndex) return s
+          return {
+            ...s,
+            activityAnswers: { ...s.activityAnswers, ...patch },
           }
         }),
       }
@@ -2131,17 +2172,29 @@ export function StoryboardSectionDetail({
                       </>
                     ) : (
                       <>
-                        {/* Classic activities load interactive; this switches
-                            to the WYSIWYG editor and back. */}
+                        {/* Content editing lives in the activity panel;
+                            "Edit layout" opens the WYSIWYG editor for
+                            layout/style work. */}
                         <button
                           type="button"
-                          onClick={() => setActivityPreviewMode((v) => !v)}
+                          onClick={() => setEditActivityPanelOpen((v) => !v)}
                           className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors cursor-pointer"
+                        >
+                          <ListChecks className="h-3.5 w-3.5" />
+                          {t`Edit activity`}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditActivityPanelOpen(false)
+                            setActivityPreviewMode((v) => !v)
+                          }}
+                          className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer"
                         >
                           {activityPreviewMode ? (
                             <>
                               <PenLine className="h-3.5 w-3.5" />
-                              {t`Edit activity`}
+                              {t`Edit layout`}
                             </>
                           ) : (
                             <>
@@ -2409,6 +2462,46 @@ export function StoryboardSectionDetail({
           sectionIndex={sectionIndex}
           activity={editableEntry}
           activities={editableActivitiesQuery.data?.activities ?? {}}
+          paletteAccent={editableActivitiesQuery.data?.paletteAccent ?? "#2563EB"}
+        />
+      )}
+
+      {/* Slide-out classic-activity content editor — the non-converted
+          counterpart: edits answers and data-id texts of the free-form HTML. */}
+      {isActivitySection && !stepperEnabled && (
+        <ClassicActivityPanel
+          open={editActivityPanelOpen}
+          onClose={() => setEditActivityPanelOpen(false)}
+          bookLabel={bookLabel}
+          leaves={leafNodes.filter((l) => !l.isPruned)}
+          answers={renderedSection?.activityAnswers}
+          structure={activityStructureQuery.data?.activity ?? null}
+          outline={activityStructureQuery.data?.outline ?? null}
+          sectionType={section?.sectionType}
+          activityTypes={
+            sectionTypes
+              ? Object.fromEntries(
+                  Object.entries(sectionTypes).filter(([key]) => key.startsWith("activity_")),
+                )
+              : undefined
+          }
+          onChangeType={changeSectionType}
+          onRegenerate={() => handleRerender()}
+          canRegenerate={
+            hasApiKey && !hasActiveTask && !storyboardRunning && !saving && !renderingDirty && !dirty
+          }
+          onTextEdited={handleLeafTextEdited}
+          onAnswerEdited={updateAnswer}
+          onAnswersEdited={updateAnswers}
+          dirty={renderingDirty || dirty}
+          saving={saving}
+          onSave={() => {
+            // Type/tree changes live in pending sectioning — its save path also
+            // persists the rendering AND auto-regenerates when the type changed.
+            if (dirty) void saveSectioning()
+            else void saveRendering()
+          }}
+          onDiscard={discardAll}
         />
       )}
 
