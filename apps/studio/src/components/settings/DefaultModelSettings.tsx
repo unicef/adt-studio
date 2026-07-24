@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Trans, useLingui } from "@lingui/react/macro"
-import { AudioLines, ImageIcon, Loader2 } from "lucide-react"
+import { Link } from "@tanstack/react-router"
+import { AudioLines, ImageIcon, Loader2, TriangleAlert } from "lucide-react"
 import {
   DEFAULT_IMAGE_GENERATION_MODEL_ID,
   DEFAULT_OPENAI_TTS_MODEL_ID,
@@ -10,16 +11,17 @@ import {
 } from "@adt/types"
 import { api } from "@/api/client"
 import {
+  ALL_TTS_MODEL_GROUPS,
   IMAGE_MODEL_GROUPS,
   LLM_MODEL_GROUPS,
   ModelSelect,
-  OPENAI_TTS_MODELS,
 } from "@/components/pipeline/components/ModelSelect"
 import {
   DEFAULT_MODEL,
   mergePromptModelGroups,
   normalizePromptModelInput,
 } from "@/components/pipeline/stages/book/GlobalPromptsSettings/promptSettings"
+import { promptModelForSelectedModel } from "@/components/pipeline/components/PromptViewer/promptModel"
 import { Button } from "@/components/ui/button"
 import { toast } from "@/components/ui/sonner"
 import { getStepLabelI18n } from "@/components/pipeline/pipeline-i18n"
@@ -162,6 +164,14 @@ export function DefaultModelSettings() {
     },
   })
 
+  const promptModels = promptModelsQuery.data?.models ?? []
+  const savedModelRequiresPrompts = promptModelForSelectedModel(savedModel) != null
+  const hasPromptsForSavedModel = promptModels.some(
+    (model) =>
+      normalizePromptModelInput(model) === normalizePromptModelInput(savedModel),
+  )
+  const showPromptWarning = savedModelRequiresPrompts && !hasPromptsForSavedModel
+
   const normalizedDraft = normalizeDefaultModelInput(draft)
   const isDirty = normalizedDraft.length > 0 && normalizedDraft !== savedModel
   const savedSpecializedDefaults = specializedDefaultsQuery.data ?? {
@@ -221,6 +231,31 @@ export function DefaultModelSettings() {
             <p role="alert" className="border-t px-5 py-3 text-sm text-destructive">
               <Trans>Unable to load the default LLM.</Trans>
             </p>
+          )}
+          {showPromptWarning && (
+            <div
+              role="status"
+              className="flex items-start gap-3 border-t border-amber-500/30 bg-amber-500/10 px-5 py-4 text-sm text-foreground"
+            >
+              <TriangleAlert className="mt-0.5 size-4.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />
+              <div className="min-w-0 space-y-1.5">
+                <p className="text-pretty leading-6">
+                  <Trans>
+                    The built-in prompts are optimized for {DEFAULT_MODEL}. You switched
+                    the default LLM to <span className="font-mono">{savedModel}</span>,
+                    so we recommend generating new global prompt files tuned for it.
+                    You can also continue with the existing prompts.
+                  </Trans>
+                </p>
+                <Link
+                  to="/settings"
+                  search={{ section: "prompts" }}
+                  className="inline-flex items-center font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  <Trans>Generate global prompts</Trans>
+                </Link>
+              </div>
+            </div>
           )}
           <div className="border-t bg-muted/20 p-5">
             <h3 className="text-balance break-words text-sm font-semibold text-foreground">
@@ -312,14 +347,14 @@ export function DefaultModelSettings() {
               value={speechDraft}
               onChange={setSpeechDraft}
               placeholder={DEFAULT_OPENAI_TTS_MODEL_ID}
-              groups={OPENAI_TTS_MODELS}
+              groups={ALL_TTS_MODEL_GROUPS}
               inputClassName="h-10 font-mono text-sm"
               disabled={specializedIsLoading || specializedMutation.isPending}
               commitOnInput
               prefixProvider={false}
             />
             <p className="mt-5 text-pretty text-sm leading-6 text-muted-foreground">
-              <Trans>Used for OpenAI text-to-speech in these pipeline tasks:</Trans>
+              <Trans>Used for OpenAI, Azure, and Gemini text-to-speech in these pipeline tasks:</Trans>
             </p>
             <TaskList compact steps={STEPS_BY_DEFAULT_MODEL_KIND["speech-generation"]} />
           </article>

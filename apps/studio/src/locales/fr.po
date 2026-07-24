@@ -3256,6 +3256,9 @@ msgstr "Générez des sous-titres descriptifs pour chaque image du livre. Choisi
 msgid "Generate from pages"
 msgstr "Générer à partir des pages"
 
+msgid "Generate global prompts"
+msgstr "Générer des prompts globaux"
+
 msgid "Generate missing Gemini audio"
 msgstr "Générer l'audio Gemini manquant"
 
@@ -7221,6 +7224,9 @@ msgstr "Le résumé du livre couvre l'ensemble du livre : régénérez-le sur le
 msgid "The book's title and metadata arrive with the part that contains page 1 — merge that part to fill them in."
 msgstr "Le titre et les métadonnées du livre arrivent avec la partie qui contient la page 1 — fusionnez cette partie pour les compléter."
 
+msgid "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the default LLM to <0>{savedModel}</0>, so we recommend generating new global prompt files tuned for it. You can also continue with the existing prompts."
+msgstr "Les prompts intégrés sont optimisés pour {DEFAULT_MODEL}. Vous avez remplacé le LLM par défaut par <0>{savedModel}</0> ; nous vous recommandons donc de générer de nouveaux fichiers de prompts globaux adaptés à ce modèle. Vous pouvez aussi continuer avec les prompts existants."
+
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "La communauté des organismes vivants dans un lieu et la façon dont ils interagissent entre eux et avec leur environnement."
 
@@ -7989,8 +7995,11 @@ msgstr "Utilisé pour les modèles Claude (claude-opus-4-6, claude-sonnet-4-6, e
 msgid "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)"
 msgstr "Utilisé pour les modèles Gemini — LLM (gemini-2.5-pro, etc.) et TTS (gemini-2.5-pro-preview-tts, etc.)"
 
-msgid "Used for OpenAI text-to-speech in these pipeline tasks:"
-msgstr "Utilisé pour la synthèse vocale OpenAI dans ces tâches du pipeline :"
+#~ msgid "Used for OpenAI text-to-speech in these pipeline tasks:"
+#~ msgstr "Utilisé pour la synthèse vocale OpenAI dans ces tâches du pipeline :"
+
+msgid "Used for OpenAI, Azure, and Gemini text-to-speech in these pipeline tasks:"
+msgstr "Utilisé pour la synthèse vocale OpenAI, Azure et Gemini dans ces tâches du pipeline :"
 
 #~ msgid "Used for text generation and visual analysis when a step does not specify an LLM. Individual steps can still override it."
 #~ msgstr "Utilisé pour la génération de texte et l’analyse visuelle lorsqu’une étape ne précise pas de LLM. Chaque étape peut toujours le remplacer."

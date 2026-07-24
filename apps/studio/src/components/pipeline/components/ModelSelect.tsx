@@ -275,6 +275,7 @@ export const IMAGE_MODEL_GROUPS: ModelGroup[] = [
     provider: "openai",
     models: [
       "gpt-image-2",
+      "gpt-image-1.5",
       "dall-e-3",
     ],
   },
@@ -312,4 +313,11 @@ export const GEMINI_TTS_MODELS: ModelGroup[] = [
       "gemini-2.5-pro-preview-tts",
     ],
   },
+]
+
+/** All TTS models across providers — mirrors the speech screen's provider options */
+export const ALL_TTS_MODEL_GROUPS: ModelGroup[] = [
+  ...OPENAI_TTS_MODELS,
+  ...AZURE_TTS_MODELS,
+  ...GEMINI_TTS_MODELS,
 ]

@@ -3254,6 +3254,9 @@ msgstr "Gere legendas descritivas para cada imagem do livro. Escolha um nível d
 msgid "Generate from pages"
 msgstr "Gerar a partir das páginas"
 
+msgid "Generate global prompts"
+msgstr "Gerar prompts globais"
+
 msgid "Generate missing Gemini audio"
 msgstr "Gerar áudio faltante do Gemini"
 
@@ -7219,6 +7222,9 @@ msgstr "O resumo do livro abrange o livro inteiro: regenere-o no livro montado d
 msgid "The book's title and metadata arrive with the part that contains page 1 — merge that part to fill them in."
 msgstr "O título e os metadados do livro chegam com a parte que contém a página 1 — mescle essa parte para preenchê-los."
 
+msgid "The built-in prompts are optimized for {DEFAULT_MODEL}. You switched the default LLM to <0>{savedModel}</0>, so we recommend generating new global prompt files tuned for it. You can also continue with the existing prompts."
+msgstr "Os prompts integrados são otimizados para {DEFAULT_MODEL}. Você alterou o LLM padrão para <0>{savedModel}</0>, então recomendamos gerar novos arquivos de prompts globais ajustados para ele. Você também pode continuar com os prompts existentes."
+
 msgid "The community of living organisms in a place and the way they interact with each other and their environment."
 msgstr "A comunidade de organismos vivos em um lugar e a forma como interagem entre si e com o ambiente."
 
@@ -7987,8 +7993,11 @@ msgstr "Utilizada para modelos Claude (claude-opus-4-6, claude-sonnet-4-6, etc.)
 msgid "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemini-2.5-pro-preview-tts, etc.)"
 msgstr "Utilizada para modelos Gemini — tanto LLM (gemini-2.5-pro, etc.) quanto TTS (gemini-2.5-pro-preview-tts, etc.)"
 
-msgid "Used for OpenAI text-to-speech in these pipeline tasks:"
-msgstr "Usado para conversão de texto em fala da OpenAI nestas tarefas do pipeline:"
+#~ msgid "Used for OpenAI text-to-speech in these pipeline tasks:"
+#~ msgstr "Usado para conversão de texto em fala da OpenAI nestas tarefas do pipeline:"
+
+msgid "Used for OpenAI, Azure, and Gemini text-to-speech in these pipeline tasks:"
+msgstr "Usado para conversão de texto em fala da OpenAI, Azure e Gemini nestas tarefas do pipeline:"
 
 #~ msgid "Used for text generation and visual analysis when a step does not specify an LLM. Individual steps can still override it."
 #~ msgstr "Usado para geração de texto e análise visual quando uma etapa não especifica um LLM. Etapas individuais ainda podem substituí-lo."
