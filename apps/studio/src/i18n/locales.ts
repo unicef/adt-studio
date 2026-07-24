@@ -19,6 +19,28 @@ export type AppLocale = (typeof LOCALES)[number]
 export const LOCALE_STORAGE_KEY = "adt:locale"
 
 /**
+ * Resolve arbitrary BCP-47 locale tag(s) — e.g. from the OS — to a supported
+ * AppLocale. Candidates are tried in order (the list expresses preference);
+ * for each, an exact match wins, otherwise a language-only match (so `es-MX`
+ * → `es`, `pt` → `pt-BR`). Returns `null` when nothing matches.
+ */
+export function matchSupportedLocale(
+  candidates: string | readonly string[],
+): AppLocale | null {
+  const list = typeof candidates === "string" ? [candidates] : candidates
+  for (const raw of list) {
+    if (!raw) continue
+    const exact = LOCALES.find((l) => l.toLowerCase() === raw.toLowerCase())
+    if (exact) return exact
+    const lang = raw.split("-")[0]?.toLowerCase()
+    if (!lang) continue
+    const byLang = LOCALES.find((l) => l.split("-")[0].toLowerCase() === lang)
+    if (byLang) return byLang
+  }
+  return null
+}
+
+/**
  * Read the persisted UI locale, if any. Returns `null` when nothing valid is
  * stored (first launch, cleared storage, or an unsupported value).
  */
