@@ -3446,6 +3446,9 @@ msgstr "Valores mais altos filtram imagens simples ou em branco."
 msgid "Highlight words"
 msgstr "Destacar palavras"
 
+msgid "Highlighting failed"
+msgstr "Falha no destaque"
+
 msgid "Highlights each word as it's narrated. Adds a transcription step so audio aligns with text on the page."
 msgstr "Destaca cada palavra à medida que é narrada. Adiciona uma etapa de transcrição para que o áudio se alinhe com o texto na página."
 

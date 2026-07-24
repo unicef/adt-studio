@@ -143,5 +143,10 @@ export type WordTimestampEntry = z.infer<typeof WordTimestampEntry>
 export const WordTimestampOutput = z.object({
   entries: z.record(z.string(), WordTimestampEntry),
   generatedAt: z.string(),
+  /** Per-item word-timestamp failures from the run that produced this output,
+   * so the Speech view can mark them for pruning or one-by-one regeneration
+   * (mirrors {@link TTSOutput.failed}). Cleared for an item on a successful
+   * re-transcription and reset by the next full speech run. */
+  failed: z.array(SpeechFailedEntry).optional(),
 })
 export type WordTimestampOutput = z.infer<typeof WordTimestampOutput>

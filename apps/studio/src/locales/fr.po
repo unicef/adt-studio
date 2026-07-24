@@ -3448,6 +3448,9 @@ msgstr "Les valeurs plus élevées filtrent les images simples ou vides."
 msgid "Highlight words"
 msgstr "Mettre en surbrillance les mots"
 
+msgid "Highlighting failed"
+msgstr "Échec du surlignage"
+
 msgid "Highlights each word as it's narrated. Adds a transcription step so audio aligns with text on the page."
 msgstr "Met en surbrillance chaque mot au fur et à mesure qu'il est narré. Ajoute une étape de transcription pour que l'audio s'aligne avec le texte sur la page."
 

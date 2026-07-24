@@ -63,6 +63,7 @@ import {
   generateSpeechFile,
   generatePageSpeechFiles,
   generateWordTimestamps,
+  wavDurationSeconds,
   stripEmojis,
   generateBookSummary,
   buildBookSummaryConfig,
@@ -640,11 +641,15 @@ interface GenerateSpeechWordTimestampsOptions {
   signal?: AbortSignal
 }
 
+/** Whisper rejects audio shorter than ~0.1s; an empty page slice is 0s. */
+const MIN_TRANSCRIBABLE_SECONDS = 0.1
+
 async function generateSpeechWordTimestamps(
   options: GenerateSpeechWordTimestampsOptions,
 ): Promise<{
   entriesByLanguage: Map<string, Record<string, WordTimestampEntry>>
-  failedItems: string[]
+  /** Per-language failures (textId + message) so the Speech view can mark them. */
+  failedByLanguage: Map<string, SpeechFailedEntry[]>
 }> {
   const {
     label,
@@ -660,13 +665,15 @@ async function generateSpeechWordTimestamps(
   } = options
 
   const entriesByLanguage = new Map<string, Record<string, WordTimestampEntry>>()
+  const failedByLanguage = new Map<string, SpeechFailedEntry[]>()
   for (const language of outputLanguages) {
     entriesByLanguage.set(language, {})
+    failedByLanguage.set(language, [])
   }
 
   if (!apiKey?.trim()) {
     console.warn(`[stage-run] ${label}: skipping word timestamp generation because no OpenAI key was provided`)
-    return { entriesByLanguage, failedItems: [] }
+    return { entriesByLanguage, failedByLanguage }
   }
 
   const workItems = outputLanguages.flatMap((language) =>
@@ -678,11 +685,11 @@ async function generateSpeechWordTimestamps(
   )
 
   if (workItems.length === 0) {
-    return { entriesByLanguage, failedItems: [] }
+    return { entriesByLanguage, failedByLanguage }
   }
 
-  const failedItems: string[] = []
   let completed = 0
+  let failedCount = 0
 
   emitWordTimestampStepProgress(progress, 0, workItems.length, 0)
 
@@ -697,6 +704,26 @@ async function generateSpeechWordTimestamps(
         }
 
         const audioBuffer = Buffer.from(fs.readFileSync(audioPath))
+
+        // Page-batched slicing can leave an entry with an empty slice when it
+        // isn't spoken distinctly at the page's start (typically a bare page
+        // number): its [onset, nextOnset) range collapses to zero length.
+        // Whisper rejects empty/too-short audio, so detect it up front and
+        // report an actionable failure instead of making a doomed API call.
+        if (entry.fileName.toLowerCase().endsWith(".wav")) {
+          let seconds = Number.NaN
+          try {
+            seconds = wavDurationSeconds(audioBuffer)
+          } catch {
+            seconds = Number.NaN
+          }
+          if (Number.isFinite(seconds) && seconds < MIN_TRANSCRIBABLE_SECONDS) {
+            throw new Error(
+              `Audio is empty (${seconds.toFixed(2)}s) — in page-batched mode this line (often a bare page number) may not have been spoken separately. Prune it or regenerate its audio.`,
+            )
+          }
+        }
+
         const result = await generateWordTimestamps({
           audioBuffer,
           fileName: entry.fileName,
@@ -717,19 +744,20 @@ async function generateSpeechWordTimestamps(
         }
       } catch (err) {
         const message = toErrorMessage(err)
-        failedItems.push(`${language}/${entry.textId}: ${message}`)
+        failedByLanguage.get(language)!.push({ textId: entry.textId, error: message })
+        failedCount++
         console.warn(
           `[stage-run] ${label}: word timestamp generation failed for ${entry.textId} (${language}): ${message}`,
         )
       } finally {
         completed++
-        emitWordTimestampStepProgress(progress, completed, workItems.length, failedItems.length)
+        emitWordTimestampStepProgress(progress, completed, workItems.length, failedCount)
       }
     },
     { runSignal: signal },
   )
 
-  return { entriesByLanguage, failedItems }
+  return { entriesByLanguage, failedByLanguage }
 }
 
 type RunFn = (label: string, options: StageRunOptions, progress: StageRunProgress) => Promise<void>
@@ -3023,7 +3051,7 @@ async function runSpeechStep(
 
     const wordHighlightingEnabled = config.speech?.word_highlighting === true
     let wordTimestampsByLang = new Map<string, Record<string, WordTimestampEntry>>()
-    let timestampFailedItems: string[] = []
+    let timestampFailedByLang = new Map<string, SpeechFailedEntry[]>()
     if (wordHighlightingEnabled) {
       progress.emit({ type: "step-start", step: "word-timestamps" })
       const generatedWordTimestamps = await generateSpeechWordTimestamps({
@@ -3039,34 +3067,49 @@ async function runSpeechStep(
         signal: options.signal,
       })
       wordTimestampsByLang = generatedWordTimestamps.entriesByLanguage
-      timestampFailedItems = generatedWordTimestamps.failedItems
+      timestampFailedByLang = generatedWordTimestamps.failedByLanguage
 
       // Only persist tts-timestamps when we actually generated them. When
       // highlighting is disabled, leave existing rows untouched so that
       // manually-calculated timestamps (via the speech view) are preserved
-      // across speech re-runs.
+      // across speech re-runs. Per-item failures are persisted alongside the
+      // entries so the Speech view can mark them for pruning / one-by-one
+      // regeneration (mirrors the TTS `failed` list).
       const timestampsGeneratedAt = new Date().toISOString()
       for (const lang of outputLanguages) {
         const entries = wordTimestampsByLang.get(lang) ?? {}
+        const failed = timestampFailedByLang.get(lang) ?? []
         storage.putNodeData("tts-timestamps", lang, {
           entries,
           generatedAt: timestampsGeneratedAt,
+          ...(failed.length > 0 ? { failed } : {}),
         } satisfies WordTimestampOutput)
       }
     }
 
+    const totalTimestampFailed = [...timestampFailedByLang.values()].reduce(
+      (sum, items) => sum + items.length,
+      0,
+    )
+
     if (!wordHighlightingEnabled) {
       progress.emit({ type: "step-skip", step: "word-timestamps" })
       console.log(`[stage-run] ${label}: word-level highlighting disabled; skipping timestamp generation`)
-    } else if (timestampFailedItems.length > 0) {
+    } else if (totalTimestampFailed > 0) {
+      // Complete the step with gaps rather than erroring, mirroring the Gemini
+      // TTS gap path above. The failures are persisted per-language in
+      // tts-timestamps (`failed`) and surfaced in the Speech view, so a few
+      // unspeakable entries (e.g. bare page numbers) don't flip the whole
+      // stage to `error` and strand the user on the Speech landing page.
+      const summary = `${totalTimestampFailed} word timestamp item(s) failed. Missing highlighting is marked in the Speech view — prune those items or regenerate them one by one.`
       console.warn(
-        `[stage-run] ${label}: ${timestampFailedItems.length} word timestamp item(s) failed:\n${timestampFailedItems.join("\n")}`,
+        `[stage-run] ${label}: ${summary}\n` +
+          [...timestampFailedByLang.entries()]
+            .flatMap(([lang, items]) => items.map((i) => `${lang}/${i.textId}: ${i.error}`))
+            .join("\n"),
       )
-      progress.emit({
-        type: "step-error",
-        step: "word-timestamps",
-        error: `${timestampFailedItems.length} word timestamp item(s) failed`,
-      })
+      progress.emit({ type: "step-progress", step: "word-timestamps", message: summary })
+      progress.emit({ type: "step-complete", step: "word-timestamps" })
     } else {
       progress.emit({ type: "step-complete", step: "word-timestamps" })
     }

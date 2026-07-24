@@ -551,6 +551,9 @@ export interface WordTimestampEntry {
 export interface WordTimestampResponse {
   entries: Record<string, WordTimestampEntry>
   generatedAt: string | null
+  /** Per-item word-timestamp failures from the last run, so the Speech view can
+   * mark them for pruning or one-by-one regeneration. */
+  failed?: { textId: string; error: string }[]
 }
 
 // --- Debug types ---

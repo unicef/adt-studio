@@ -3446,6 +3446,9 @@ msgstr "Higher values filter out simple or blank images."
 msgid "Highlight words"
 msgstr "Highlight words"
 
+msgid "Highlighting failed"
+msgstr "Highlighting failed"
+
 msgid "Highlights each word as it's narrated. Adds a transcription step so audio aligns with text on the page."
 msgstr "Highlights each word as it's narrated. Adds a transcription step so audio aligns with text on the page."
 

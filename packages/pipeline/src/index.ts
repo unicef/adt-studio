@@ -199,6 +199,13 @@ export {
   type ProviderRouting,
 } from "./speech.js"
 export {
+  parseWavHeader,
+  wavDurationSeconds,
+  sliceWav,
+  findQuietCutSeconds,
+  type WavInfo,
+} from "./audio-wav.js"
+export {
   translateCatalogBatch,
   buildCatalogTranslationConfig,
   getTargetLanguages,

@@ -513,6 +513,13 @@ export function LanguageView({
       failedAudioMap.set(f.textId, f.error);
     }
   }
+  // Per-item word-highlighting (timestamp) failures for the selected language.
+  // These entries have audio but no per-word timings — commonly an empty slice
+  // (e.g. a bare page number) in page-batched mode — so the user can prune them.
+  const failedTimestampMap = new Map<string, string>();
+  for (const f of timestampData?.failed ?? []) {
+    failedTimestampMap.set(f.textId, f.error);
+  }
   // Separate base-language audio map for the source column in translation view
   const baseAudioMap = new Map<
     string,
@@ -1327,6 +1334,17 @@ export function LanguageView({
                   !audioFailure &&
                   !isRunning &&
                   (stageDone || hasStageError);
+                // Word-highlighting failed but the audio itself is fine — the
+                // clip plays, it just has no per-word timings. Only shown when
+                // there's no more fundamental audio problem to report.
+                const timestampFailure =
+                  isSpeechStage &&
+                  !isAnswer &&
+                  !exclusion.excluded &&
+                  !audioFailure &&
+                  !audioMissing
+                    ? failedTimestampMap.get(entry.id)
+                    : undefined;
                 const audioStatusBadges = (
                   <>
                     {audioFailure && (
@@ -1340,6 +1358,14 @@ export function LanguageView({
                     {audioMissing && (
                       <span className="ml-1.5 text-[9px] font-medium text-amber-700 bg-amber-100 rounded px-1 py-0.5">
                         {t`No audio`}
+                      </span>
+                    )}
+                    {timestampFailure && (
+                      <span
+                        title={timestampFailure}
+                        className="ml-1.5 text-[9px] font-medium text-orange-700 bg-orange-100 rounded px-1 py-0.5 cursor-help"
+                      >
+                        {t`Highlighting failed`}
                       </span>
                     )}
                   </>
