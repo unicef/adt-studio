@@ -965,6 +965,9 @@ msgstr "Ajoutée"
 msgid "Added manually"
 msgstr "Ajouté manuellement"
 
+msgid "Adding languages beyond the original is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
+msgstr "Ajouter des langues en plus de l'original n'est pas compatible avec la mise en page fixe. Si vous continuez, vous pourriez obtenir des résultats indésirables."
+
 msgid "Additional Languages"
 msgstr "Langues supplémentaires"
 

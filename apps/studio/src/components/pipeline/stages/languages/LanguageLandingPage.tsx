@@ -8,7 +8,7 @@ import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"
 import {
   FixedLayoutWarningBanner,
   FixedLayoutWarningTitle,
-  FixedLayoutWarningDescription,
+  FixedLayoutExtraLanguagesDescription,
 } from "@/components/pipeline/components/FixedLayoutWarning"
 import {
   SettingsCard,
@@ -158,6 +158,11 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const hasLanguages = outputLanguages.size > 0
+  // Fixed layout only breaks when translating the original into *additional*
+  // languages — running translation with just the original language is fine.
+  const hasAdditionalLanguages = Array.from(outputLanguages).some(
+    (code) => normalizeLocale(code) !== baseLanguage,
+  )
 
   const disabledReason = !hasApiKey ? (
     <Trans>Add an API key in Book settings to run translation.</Trans>
@@ -193,16 +198,14 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
         />
       }
       runWarning={
-        isFixedLayout
+        isFixedLayout && hasAdditionalLanguages
           ? {
               title: <FixedLayoutWarningTitle />,
-              description: <FixedLayoutWarningDescription />,
+              description: <FixedLayoutExtraLanguagesDescription />,
             }
           : null
       }
     >
-      <FixedLayoutWarningBanner show={isFixedLayout} />
-
       <div className="flex flex-col gap-2">
         <h1 className="text-[26px] font-semibold leading-tight tracking-tight text-[#0a0a0a]">
           <Trans>Language</Trans>
@@ -266,6 +269,10 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
               multiple
               renderBadges={false}
               label={t`Add language`}
+            />
+            <FixedLayoutWarningBanner
+              show={isFixedLayout}
+              description={<FixedLayoutExtraLanguagesDescription />}
             />
           </div>
         </SettingsField>

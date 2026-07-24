@@ -964,6 +964,9 @@ msgstr "E shtuar"
 msgid "Added manually"
 msgstr "Shtuar manualisht"
 
+msgid "Adding languages beyond the original is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
+msgstr "Shtimi i gjuhëve përtej origjinalit nuk është i pajtueshëm me Paraqitjen e fiksuar. Nëse vazhdoni, mund të merrni rezultate të padëshiruara."
+
 msgid "Additional Languages"
 msgstr "Gjuhë Shtesë"
 
