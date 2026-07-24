@@ -9,6 +9,15 @@ import { usePageImage } from "@/hooks/use-pages"
 import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
 import { cn } from "@/lib/utils"
 import { SectionTreeEditor } from "@/components/section-tree-editor/SectionTreeEditor"
+import { SectionActionsDropdown } from "@/components/pipeline/stages/storyboard/components/SectionActionsDropdown"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog"
 import {
   Select,
   SelectContent,
@@ -28,12 +37,16 @@ export function SectioningPageDetail({
   page,
   navigationExtra,
   navigationArrows,
+  hasPrevPage,
+  hasNextPage,
 }: {
   bookLabel: string
   pageId: string
   page: PageDetail
   navigationExtra: ReactNode
   navigationArrows: ReactNode
+  hasPrevPage?: boolean
+  hasNextPage?: boolean
 }) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
@@ -73,11 +86,19 @@ export function SectioningPageDetail({
   >({})
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
+  const [structuralBusy, setStructuralBusy] = useState(false)
+  const [confirmMerge, setConfirmMerge] = useState<{
+    action: () => void
+    label: string
+  } | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<number | null>(null)
 
   // Reset pending edits when navigating to a different page.
   useEffect(() => {
     setPendingBySectionId({})
     setSaveError(null)
+    setConfirmMerge(null)
+    setConfirmDelete(null)
   }, [pageId])
 
   const sectionsFromServer = page.sectioningTree?.sections ?? []
@@ -132,6 +153,93 @@ export function SectioningPageDetail({
     queryClient,
     t,
   ])
+
+  // Server-side structural ops (merge/split/clone/delete) rewrite sectionIds,
+  // so they are blocked while there are unsaved local edits.
+  const structuralDisabled = saving || structuralBusy || dirty
+
+  const runStructural = useCallback(
+    async (op: () => Promise<string | null>) => {
+      if (saving || structuralBusy) return
+      setStructuralBusy(true)
+      setSaveError(null)
+      try {
+        const otherPageId = await op()
+        setPendingBySectionId({})
+        await queryClient.invalidateQueries({
+          queryKey: ["books", bookLabel, "pages", pageId],
+        })
+        if (otherPageId) {
+          await queryClient.invalidateQueries({
+            queryKey: ["books", bookLabel, "pages", otherPageId],
+          })
+        }
+        await queryClient.invalidateQueries({
+          queryKey: ["books", bookLabel, "pages"],
+        })
+        invalidateStoryboardDependents(queryClient, bookLabel)
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : t`Operation failed`)
+      } finally {
+        setStructuralBusy(false)
+      }
+    },
+    [saving, structuralBusy, queryClient, bookLabel, pageId, t]
+  )
+
+  const handleMergeSection = (sectionIndex: number, direction: "next" | "prev") =>
+    runStructural(async () => {
+      await api.mergeSection(bookLabel, pageId, sectionIndex, direction)
+      return null
+    })
+
+  const handleMergeCrossPage = (sectionIndex: number, direction: "next" | "prev") =>
+    runStructural(async () => {
+      const result = await api.mergeSectionCrossPage(
+        bookLabel,
+        pageId,
+        sectionIndex,
+        direction
+      )
+      return result.targetPageId
+    })
+
+  const handleCloneSection = (sectionIndex: number) =>
+    runStructural(async () => {
+      await api.cloneSection(bookLabel, pageId, sectionIndex)
+      return null
+    })
+
+  const handleDeleteSection = (sectionIndex: number) =>
+    runStructural(async () => {
+      await api.deleteSection(bookLabel, pageId, sectionIndex)
+      return null
+    })
+
+  // Entry point for the footer "Merge" menu: guard against unsaved edits,
+  // then route through the shared confirmation dialog.
+  const requestSectionMerge = (label: string, action: () => void) => {
+    if (saving || structuralBusy) return
+    if (dirty) {
+      setSaveError(t`Save or discard your edits first`)
+      return
+    }
+    setConfirmMerge({ label, action })
+  }
+
+  const handleSplitSection = (
+    sectionIndex: number,
+    at: { beforeNodeIndex: number } | { beforeNodeId: string }
+  ) => {
+    if (dirty) {
+      setSaveError(t`Save or discard your edits before splitting`)
+      return
+    }
+    void runStructural(async () => {
+      await api.splitSection(bookLabel, pageId, sectionIndex, at)
+      return null
+    })
+  }
 
   const headerControls = (
     <div className="flex-1 flex items-center gap-3 drag-region">
@@ -256,6 +364,37 @@ export function SectioningPageDetail({
                     <Trans>edited</Trans>
                   </span>
                 ) : null}
+                <div className="ml-auto">
+                  <SectionActionsDropdown
+                    sectionIndex={idx}
+                    sectionCount={mergedSections.length}
+                    isPruned={section.isPruned}
+                    hasPrevPage={hasPrevPage}
+                    hasNextPage={hasNextPage}
+                    onTogglePrune={() =>
+                      handleSectionChange({
+                        ...section,
+                        isPruned: !section.isPruned,
+                      })
+                    }
+                    onMerge={(direction) => handleMergeSection(idx, direction)}
+                    onMergeCrossPage={(direction) =>
+                      handleMergeCrossPage(idx, direction)
+                    }
+                    onClone={() => handleCloneSection(idx)}
+                    onDelete={() => setConfirmDelete(idx)}
+                    onConfirmMerge={(label, action) =>
+                      setConfirmMerge({ label, action })
+                    }
+                    disabled={structuralDisabled}
+                    disabledReason={
+                      dirty
+                        ? t`Save or discard your edits first`
+                        : t`Please wait for the current operation to finish`
+                    }
+                    pruneDisabled={saving || structuralBusy}
+                  />
+                </div>
               </div>
               <div className="border rounded bg-muted/20 p-3">
                 <SectionTreeEditor
@@ -265,6 +404,60 @@ export function SectioningPageDetail({
                   textRoles={textTypes}
                   containerStructures={groupTypes}
                   disabled={saving}
+                  onSplitBefore={(beforeNodeIndex) =>
+                    handleSplitSection(idx, { beforeNodeIndex })
+                  }
+                  onSplitSection={(beforeNodeId) =>
+                    handleSplitSection(idx, { beforeNodeId })
+                  }
+                  sectionMergeItems={[
+                    ...(idx > 0
+                      ? [
+                          {
+                            label: t`Merge with previous`,
+                            onClick: () =>
+                              requestSectionMerge(
+                                t`merge with previous section`,
+                                () => void handleMergeSection(idx, "prev")
+                              ),
+                          },
+                        ]
+                      : hasPrevPage
+                        ? [
+                            {
+                              label: t`Merge with last section of previous page`,
+                              onClick: () =>
+                                requestSectionMerge(
+                                  t`merge this section into the last section of the previous page`,
+                                  () => void handleMergeCrossPage(idx, "prev")
+                                ),
+                            },
+                          ]
+                        : []),
+                    ...(idx < mergedSections.length - 1
+                      ? [
+                          {
+                            label: t`Merge with next`,
+                            onClick: () =>
+                              requestSectionMerge(
+                                t`merge with next section`,
+                                () => void handleMergeSection(idx, "next")
+                              ),
+                          },
+                        ]
+                      : hasNextPage
+                        ? [
+                            {
+                              label: t`Merge with first section of next page`,
+                              onClick: () =>
+                                requestSectionMerge(
+                                  t`merge this section into the first section of the next page`,
+                                  () => void handleMergeCrossPage(idx, "next")
+                                ),
+                            },
+                          ]
+                        : []),
+                  ]}
                 />
               </div>
             </div>
@@ -272,6 +465,80 @@ export function SectioningPageDetail({
         )}
       </div>
     </div>
+
+    {/* Merge confirmation dialog */}
+    <Dialog
+      open={!!confirmMerge}
+      onOpenChange={(open) => {
+        if (!open) setConfirmMerge(null)
+      }}
+    >
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{t`Confirm merge`}</DialogTitle>
+          <DialogDescription>
+            {t`Are you sure you want to ${confirmMerge?.label ?? ""}? This action cannot be undone.`}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <button
+            type="button"
+            onClick={() => setConfirmMerge(null)}
+            className="px-3 py-1.5 text-sm rounded border hover:bg-accent transition-colors cursor-pointer"
+          >
+            {t`Cancel`}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const action = confirmMerge?.action
+              setConfirmMerge(null)
+              action?.()
+            }}
+            className="px-3 py-1.5 text-sm rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors cursor-pointer"
+          >
+            {t`Continue`}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    {/* Delete section confirmation dialog */}
+    <Dialog
+      open={confirmDelete !== null}
+      onOpenChange={(open) => {
+        if (!open) setConfirmDelete(null)
+      }}
+    >
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{t`Delete section`}</DialogTitle>
+          <DialogDescription>
+            {t`Are you sure you want to delete this section? This action cannot be undone.`}
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(null)}
+            className="px-3 py-1.5 text-sm rounded border hover:bg-accent transition-colors cursor-pointer"
+          >
+            {t`Cancel`}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const idx = confirmDelete
+              setConfirmDelete(null)
+              if (idx !== null) void handleDeleteSection(idx)
+            }}
+            className="px-3 py-1.5 text-sm rounded bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors cursor-pointer"
+          >
+            {t`Delete`}
+          </button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     </>
   )
 }

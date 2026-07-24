@@ -51,3 +51,19 @@ export function getRenderSectioning(
   const parsed = PageSectioningOutputSchema.safeParse(row.data)
   return parsed.success ? parsed.data : undefined
 }
+
+/**
+ * The semantic `page-sectioning` tree, regardless of render strategy. Unlike
+ * {@link getRenderSectioning} this never returns the positioned fixed-layout
+ * tree, so callers that need semantic roles (e.g. `heading`) — absent from the
+ * positioned tree — read from here.
+ */
+export function getSemanticSectioning(
+  storage: Storage,
+  pageId: string,
+): PageSectioningOutput | undefined {
+  const row = storage.getLatestNodeData(PAGE_SECTIONING_NODE, pageId)
+  if (!row) return undefined
+  const parsed = PageSectioningOutputSchema.safeParse(row.data)
+  return parsed.success ? parsed.data : undefined
+}

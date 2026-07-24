@@ -23,6 +23,7 @@ import { fileURLToPath } from "node:url"
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const monorepoRoot = path.resolve(__dirname, "../..")
 const entry = path.join(__dirname, "src/boot.tsx")
+const activitiesEntry = path.join(__dirname, "src/activities-entry.tsx")
 const outDir = path.resolve(monorepoRoot, "assets/adt")
 const globalsCss = path.join(__dirname, "src/styles/globals.css")
 
@@ -67,6 +68,18 @@ const iifeOptions = {
   sourcemap: dev ? "inline" : false,
 }
 
+// Standalone activities bundle for WebPub exports (which strip the full
+// runtime). IIFE so it loads via a plain `<script src>`.
+const activitiesOptions = {
+  ...sharedOptions,
+  entryPoints: [activitiesEntry],
+  outfile: path.join(outDir, "activities.bundle.local.js"),
+  format: "iife",
+  minify: !dev,
+  globalName: "AdtActivities",
+  sourcemap: dev ? "inline" : false,
+}
+
 /**
  * Mirror src/styles/globals.css → assets/adt/tailwind_css.css. This file is
  * the input for the per-book Tailwind v4 build run by packages/pipeline.
@@ -80,14 +93,15 @@ function copyTailwindEntry() {
 
 if (watch) {
   copyTailwindEntry()
-  const [esmCtx, iifeCtx] = await Promise.all([
+  const [esmCtx, iifeCtx, activitiesCtx] = await Promise.all([
     context(esmOptions),
     context(iifeOptions),
+    context(activitiesOptions),
   ])
-  await Promise.all([esmCtx.watch(), iifeCtx.watch()])
+  await Promise.all([esmCtx.watch(), iifeCtx.watch(), activitiesCtx.watch()])
   console.log("✓ adt-runtime: watching for changes")
 } else {
   copyTailwindEntry()
-  await Promise.all([build(esmOptions), build(iifeOptions)])
-  console.log(`✓ adt-runtime: built → ${path.relative(monorepoRoot, outDir)}/base.bundle.{min,local}.js`)
+  await Promise.all([build(esmOptions), build(iifeOptions), build(activitiesOptions)])
+  console.log(`✓ adt-runtime: built → ${path.relative(monorepoRoot, outDir)}/base.bundle.{min,local}.js + activities.bundle.local.js`)
 }

@@ -152,6 +152,7 @@ export async function prepareExport(
       lockedSettings: config.locked_settings,
       fixedLayout: isFixedLayoutBook(config),
       reflowableFont: config.reflowable_font,
+      quizMatchBookStyle: config.quiz_generation?.match_book_style ?? true,
     }
 
     await packageAdtWeb(storage, opts)

@@ -2,6 +2,7 @@ import { z } from "zod"
 import { ImageFilters } from "./image-filtering.js"
 import { SpeechConfig } from "./speech.js"
 import { ReviewerValidationConfig } from "./reviewer-validation-config.js"
+import { TranslationEvaluationConfig } from "./translation-evaluation.js"
 import { REFLOWABLE_FONT_SETTINGS } from "./reflowable-fonts.js"
 
 export const DEFAULT_LLM_MAX_RETRIES = 5
@@ -23,6 +24,9 @@ export type StepConfig = z.infer<typeof StepConfig>
 export const QuizGenerationConfig = StepConfig.extend({
   pages_per_quiz: z.number().int().min(1).optional(),
   quiz_section_types: z.array(z.string()).optional(),
+  /** Style quizzes to match the book (typography + derived color palette).
+   *  Defaults to ON when absent. */
+  match_book_style: z.boolean().optional(),
 })
 export type QuizGenerationConfig = z.infer<typeof QuizGenerationConfig>
 
@@ -171,6 +175,13 @@ export const AppConfig = z
     image_cropping: StepConfig.optional(),
     layout_type: LayoutType.optional(),
     spread_mode: z.boolean().optional(),
+    /**
+     * Manual spread overrides for a single-page (non-`spread_mode`) book:
+     * 1-indexed leading page numbers, each merged with the page that follows
+     * it into a two-page spread. Lets a mostly-single book carry a few real
+     * spreads. Ignored when `spread_mode` is true (that uses automatic pairing).
+     */
+    spread_pairs: z.array(z.number().int().min(1)).optional(),
     split_mode: z.boolean().optional(),
     vector_text_grouping: z.boolean().optional(),
     apply_body_background: z.boolean().optional(),
@@ -198,6 +209,7 @@ export const AppConfig = z
       .optional(),
     accessibility_assessment: AccessibilityAssessmentConfig.optional(),
     reviewer_validation: ReviewerValidationConfig.optional(),
+    translation_evaluation: TranslationEvaluationConfig.optional(),
   })
   .superRefine((value, ctx) => {
     if (

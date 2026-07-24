@@ -13,7 +13,10 @@ The screenshots show a **single section**, which is typically only a SUBSET of t
 - **Locate the corresponding region** in the original page image that matches this section's content (by matching the text, images, and headings present in the rendered screenshot). Use that region as a reference for what content belongs here — NOT for what it should look like.
 - The rendered section will typically occupy the full viewport width, even if in the original it only takes up a column, a strip, or a small portion of the page. This is correct and expected — do NOT reject for this.
 - Other content visible in the original page image (other sections, headers, footers, page numbers, surrounding text, neighboring images) is NOT part of this section and MUST NOT appear in the rendering. Do NOT flag missing content that belongs to a different section.
-
+{% if has_merged_content %}
+## MERGED CONTENT FROM ANOTHER PAGE
+This section combines content merged from MORE THAN ONE original page (for example an activity or passage that continues across a page break). Additional continuation page images are provided after the primary page image. When locating this section's content, check ALL of the provided page images — part of the rendering appears only in a continuation page image. Do NOT flag that content as extraneous, hallucinated, or missing from the original merely because it is absent from the primary page image, and do NOT remove it.
+{% endif %}
 ## REVIEW PHILOSOPHY: WEB ADAPTATION, NOT REPRODUCTION
 This is a web textbook. The print original is a *reference for content*, not a *target for visual fidelity*. Your job is to confirm the rendered section works as a web page — not to police whether it looks like the printed book.
 

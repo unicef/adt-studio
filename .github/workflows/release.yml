@@ -36,6 +36,7 @@ jobs:
       version: ${{ steps.tag.outputs.version }}
       prerelease: ${{ steps.tag.outputs.prerelease }}
       docker_tags: ${{ steps.tag.outputs.docker_tags }}
+      prev_tag: ${{ steps.tag.outputs.prev_tag }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -96,9 +97,20 @@ jobs:
           if [[ "$PRERELEASE" == "false" ]]; then
             DOCKER_TAGS="$DOCKER_TAGS"$'\n'"ghcr.io/unicef/adt-studio:latest"
           fi
+          # Changelog baseline: pin the previous tag so release-note generation
+          # never falls back to the repo's first commit when GitHub can't infer
+          # an ancestor (stable and beta tags live on divergent branch lines).
+          # Stable releases diff against the previous stable so the notes cover
+          # the whole beta cycle; prereleases diff against the most recent tag.
+          if [[ "$PRERELEASE" == "false" ]]; then
+            PREV_TAG=$(git tag --list 'v*' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)
+          else
+            PREV_TAG=$(git tag --list 'v*' | sort -V | tail -1)
+          fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "prerelease=$PRERELEASE" >> "$GITHUB_OUTPUT"
+          echo "prev_tag=$PREV_TAG" >> "$GITHUB_OUTPUT"
           {
             echo "docker_tags<<EOF"
             echo "$DOCKER_TAGS"
@@ -351,12 +363,15 @@ jobs:
           TAG: ${{ needs.prepare.outputs.tag }}
           REPO: ${{ github.repository }}
           PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+          PREV_TAG: ${{ needs.prepare.outputs.prev_tag }}
         run: |
           PRERELEASE_FLAG=""
           [[ "$PRERELEASE" == "true" ]] && PRERELEASE_FLAG="--prerelease"
+          START_TAG_FLAG=()
+          [[ -n "$PREV_TAG" ]] && START_TAG_FLAG=(--notes-start-tag "$PREV_TAG")
           gh release create "$TAG" --repo "$REPO" \
             --title "ADT Studio $TAG" \
-            --generate-notes $PRERELEASE_FLAG \
+            --generate-notes "${START_TAG_FLAG[@]}" $PRERELEASE_FLAG \
             dist/* \
             docker-compose.yml \
             scripts/windows-setup-and-run.bat

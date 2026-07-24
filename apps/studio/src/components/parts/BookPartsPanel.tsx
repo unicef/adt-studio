@@ -36,12 +36,13 @@ export function BookPartsPanel({ bookLabel }: { bookLabel: string }) {
     partInfoLoading || pdfInfoLoading || splitStatusLoading || configLoading
 
   // Only books in the split/merge world show the panel: those the user chose to
-  // split (`split_mode`), those with existing split activity (covers books
-  // split before the flag existed), and imported parts.
+  // split (`split_mode`), those with real split activity (exported parts or
+  // merged-in parts, tracked in the ledger — not inferred from pages present,
+  // which every extracted book has), and imported parts.
   const splitMode = activeConfig?.merged?.split_mode === true
   const hasSplitActivity =
     !!splitStatus &&
-    (splitStatus.exported.length > 0 || splitStatus.mergedRanges.length > 0)
+    (splitStatus.exported.length > 0 || splitStatus.hasMergeActivity)
   const relevant = !!partInfo || splitMode || hasSplitActivity
 
   // The wizard leaves a one-shot flag to scroll to and briefly highlight this
