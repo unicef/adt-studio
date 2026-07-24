@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react"
 import { isElectron } from "@/lib/utils"
 
 export type UpdateStatus = ElectronUpdateStatus
+export type AvailableRelease = ElectronAvailableRelease
 
 interface UseUpdateStatus {
   status: UpdateStatus
@@ -57,5 +58,12 @@ export function useUpdateStatus(): UseUpdateStatus {
     await window.api.updates.installOnQuit()
   }, [])
 
-  return { status, check, download, cancel, install, installOnQuit }
+  return {
+    status,
+    check,
+    download,
+    cancel,
+    install,
+    installOnQuit,
+  }
 }
