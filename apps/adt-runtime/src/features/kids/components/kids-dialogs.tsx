@@ -12,8 +12,11 @@ import { useKidsAvailableLanguages } from "@/features/kids/hooks/useKidsAvailabl
 import { BUDDY_LINES } from "@/features/kids/lib/buddy-lines"
 import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
 import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
+import { KidsAvatarBuilder } from "@/features/kids/components/KidsAvatarBuilder"
 import {
   kidsAccessibilityDialogOpenAtom,
+  kidsAvatarAtom,
+  kidsAvatarDialogOpenAtom,
   kidsBuddyChatterAtom,
   kidsLanguageDialogOpenAtom,
   kidsLastSpotAtom,
@@ -303,6 +306,26 @@ export function KidsAccessibilityDialog() {
           </span>
         </button>
       </div>
+    </KidsModal>
+  )
+}
+
+export function KidsAvatarDialog() {
+  const { tk } = useKidsTranslation()
+  const [open, setOpen] = useAtom(kidsAvatarDialogOpenAtom)
+  const [avatar, setAvatar] = useAtom(kidsAvatarAtom)
+  const reduceMotion = usePrefersReducedMotion()
+
+  return (
+    <KidsModal
+      open={open}
+      onClose={() => setOpen(false)}
+      title={tk("kids-avatar-title", "Your character")}
+      reduceMotion={reduceMotion}
+      closeLabel={tk("kids-dialog-close", "Close")}
+      wide
+    >
+      <KidsAvatarBuilder value={avatar} onChange={setAvatar} />
     </KidsModal>
   )
 }

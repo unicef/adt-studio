@@ -128,7 +128,8 @@ function goToNamePage() {
 
 function goToBuddyPage() {
   goToNamePage()
-  fireEvent.click(screen.getByText("That's me!"))
+  fireEvent.click(screen.getByText("That's me!")) // name -> avatar
+  fireEvent.click(screen.getByText("This is me!")) // avatar -> pick
 }
 
 function goToPickPage() {
@@ -178,7 +179,13 @@ describe("KidsOnboarding", () => {
     expect(screen.queryByTestId("kids-onboarding-character-dino")).toBeNull()
     expect(screen.queryByLabelText("Rex")).toBeNull()
 
-    fireEvent.click(screen.getByText("That's me!"))
+    fireEvent.click(screen.getByText("That's me!")) // name -> avatar
+
+    // Avatar step: still no buddy character art.
+    expect(screen.getByText("Make your character")).not.toBeNull()
+    expect(screen.queryByTestId("kids-onboarding-character-dino")).toBeNull()
+
+    fireEvent.click(screen.getByText("This is me!")) // avatar -> pick
 
     expect(screen.getByText("Pick a reading buddy")).not.toBeNull()
     expect(screen.getByTestId("kids-onboarding-neutral-visual")).not.toBeNull()
@@ -235,7 +242,7 @@ describe("KidsOnboarding", () => {
     expect(screen.getByText("Turn the pages")).not.toBeNull()
   })
 
-  it("steps through all 8 onboarding pages, writes the chosen buddy, and shows it in the reading view", () => {
+  it("steps through all onboarding pages, writes the chosen buddy, and shows it in the reading view", () => {
     const store = createKidsStore()
     renderWithStore(<KidsChrome />, store)
 
@@ -246,7 +253,10 @@ describe("KidsOnboarding", () => {
     fireEvent.change(screen.getByTestId("kids-onboarding-player-name"), {
       target: { value: "Mina" },
     })
-    fireEvent.click(screen.getByText("That's me!"))
+    fireEvent.click(screen.getByText("That's me!")) // name -> avatar
+
+    expect(screen.getByText("Make your character")).not.toBeNull()
+    fireEvent.click(screen.getByText("This is me!")) // avatar -> pick
 
     fireEvent.click(screen.getByTestId("kids-onboarding-character-cat"))
     fireEvent.click(screen.getByText("This is my buddy"))
@@ -306,7 +316,7 @@ describe("KidsOnboarding", () => {
 
     fireEvent.keyDown(input, { key: "Enter" })
 
-    expect(screen.getByText("Pick a reading buddy")).not.toBeNull()
+    expect(screen.getByText("Make your character")).not.toBeNull()
   })
 
   it("sets read-aloud mode from the reading mode page", () => {
@@ -391,7 +401,7 @@ describe("KidsOnboarding", () => {
     renderWithStore(<KidsChrome />)
 
     const heading = screen.getByRole("heading", {
-      name: /Step 1 of 8\..*Hi! Welcome to your reading adventure\./,
+      name: /Step 1 of 9\..*Hi! Welcome to your reading adventure\./,
     })
     expect(document.activeElement).toBe(heading)
     expect(screen.getByTestId("kids-onboarding-progress-dots")).not.toBeNull()
@@ -528,7 +538,8 @@ describe("KidsOnboarding", () => {
     fireEvent.change(screen.getByTestId("kids-onboarding-player-name"), {
       target: { value: "Mina" },
     })
-    fireEvent.click(screen.getByText("That's me!"))
+    fireEvent.click(screen.getByText("That's me!")) // name -> avatar
+    fireEvent.click(screen.getByText("This is me!")) // avatar -> pick
     fireEvent.click(screen.getByTestId("kids-onboarding-character-dino"))
     fireEvent.click(screen.getByText("This is my buddy"))
     act(() => vi.advanceTimersByTime(180))

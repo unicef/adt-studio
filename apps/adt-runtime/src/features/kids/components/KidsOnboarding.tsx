@@ -22,7 +22,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react"
-import { KIDS_NARRATOR_ID } from "@adt/types/kids"
+import { KIDS_NARRATOR_ID, type KidsAvatarConfig } from "@adt/types/kids"
 import { readAloudModeAtom } from "@/features/audio/state/audio.atoms"
 import { KidsBuddyImage } from "@/features/kids/components/KidsBuddyImage"
 import {
@@ -49,10 +49,12 @@ import {
   type KidsCharacter,
 } from "@/features/kids/lib/characters"
 import {
+  kidsAvatarAtom,
   kidsBuddyAtom,
   kidsOnboardingDoneAtom,
   kidsPlayerNameAtom,
 } from "@/features/kids/state/kids.atoms"
+import { KidsAvatarBuilder } from "@/features/kids/components/KidsAvatarBuilder"
 import { isTypingTarget } from "@/features/navigation/lib/typing-target"
 import { cn } from "@/shared/lib/utils"
 import { appConfigAtom, type AppFeatures } from "@/shared/state/config.atoms"
@@ -60,6 +62,7 @@ import { appConfigAtom, type AppFeatures } from "@/shared/state/config.atoms"
 type OnboardingStep =
   | "welcome"
   | "name"
+  | "avatar"
   | "pick"
   | "reading-mode"
   | "feature-pages"
@@ -77,6 +80,7 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   "welcome",
   "reading-mode",
   "name",
+  "avatar",
   "pick",
   "feature-pages",
   "feature-help",
@@ -111,6 +115,7 @@ const STEP_NARRATOR_LINE_KEYS: Partial<Record<OnboardingStep, string[]>> = {
   welcome: ["kids-onboarding-welcome-title", "kids-onboarding-welcome-copy"],
   "reading-mode": ["kids-onboarding-read-title"],
   name: ["kids-onboarding-name-title"],
+  avatar: ["kids-onboarding-avatar-title"],
   pick: ["kids-onboarding-buddy-title"],
   "feature-pages": [
     "kids-onboarding-pages-title",
@@ -132,6 +137,7 @@ export function KidsOnboarding() {
   const currentPlayerName = useAtomValue(kidsPlayerNameAtom)
   const setPlayerName = useSetAtom(kidsPlayerNameAtom)
   const setBuddy = useSetAtom(kidsBuddyAtom)
+  const [avatar, setAvatar] = useAtom(kidsAvatarAtom)
   const setOnboardingDone = useSetAtom(kidsOnboardingDoneAtom)
   const [readAloud, setReadAloud] = useAtom(readAloudModeAtom)
   const [stepIndex, setStepIndex] = useState(0)
@@ -176,6 +182,7 @@ export function KidsOnboarding() {
   const showBuddy =
     step !== "welcome" &&
     step !== "name" &&
+    step !== "avatar" &&
     step !== "pick" &&
     step !== "reading-mode" &&
     step !== "start"
@@ -389,6 +396,9 @@ export function KidsOnboarding() {
                   character={character}
                   reduceMotion={reduceMotion}
                 />
+              ) : step === "avatar" ? (
+                // The avatar builder has its own big preview — no extra hero.
+                null
               ) : (
                 <NeutralOnboardingVisual
                   reduceMotion={reduceMotion}
@@ -431,6 +441,14 @@ export function KidsOnboarding() {
                   value={playerNameDraft}
                   onChange={setPlayerNameDraft}
                   onNext={goNext}
+                />
+              ) : null}
+              {step === "avatar" ? (
+                <AvatarStep
+                  headingRef={headingRef}
+                  stepPosition={stepPosition}
+                  value={avatar}
+                  onChange={setAvatar}
                 />
               ) : null}
               {step === "reading-mode" ? (
@@ -901,6 +919,28 @@ function ReadingModeStep({
   )
 }
 
+function AvatarStep({
+  headingRef,
+  stepPosition,
+  value,
+  onChange,
+}: {
+  headingRef: RefObject<HTMLHeadingElement | null>
+  stepPosition: string
+  value: KidsAvatarConfig
+  onChange: (next: KidsAvatarConfig) => void
+}) {
+  const { tk } = useKidsTranslation()
+  return (
+    <StepLayout>
+      <StepTitle headingRef={headingRef} stepPosition={stepPosition}>
+        {tk("kids-onboarding-avatar-title", "Make your character")}
+      </StepTitle>
+      <KidsAvatarBuilder value={value} onChange={onChange} />
+    </StepLayout>
+  )
+}
+
 function FeaturePagesStep({
   headingRef,
   stepPosition,
@@ -1248,11 +1288,13 @@ function OnboardingPrimaryAction({
       ? tk("kids-onboarding-lets-go", "Let's go!")
       : step === "name"
         ? tk("kids-onboarding-thats-me", "That's me!")
-        : step === "pick"
-          ? tk("kids-onboarding-buddy-continue", "This is my buddy")
-          : step === "reading-mode"
-            ? tk("kids-onboarding-read-continue", "Keep going")
-            : tk("kids-onboarding-feature-continue", "Got it")
+        : step === "avatar"
+          ? tk("kids-onboarding-avatar-continue", "This is me!")
+          : step === "pick"
+            ? tk("kids-onboarding-buddy-continue", "This is my buddy")
+            : step === "reading-mode"
+              ? tk("kids-onboarding-read-continue", "Keep going")
+              : tk("kids-onboarding-feature-continue", "Got it")
 
   return <PrimaryButton onClick={onNext}>{label}</PrimaryButton>
 }

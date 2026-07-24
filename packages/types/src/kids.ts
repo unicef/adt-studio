@@ -441,6 +441,10 @@ export const KIDS_NARRATOR_LINES: readonly KidsBuddyLine[] = [
     fallback: "What should I call you?",
   },
   {
+    key: "kids-onboarding-avatar-title",
+    fallback: "Make your character",
+  },
+  {
     key: "kids-onboarding-read-title",
     fallback: "How do you want to read?",
   },
@@ -498,4 +502,86 @@ export const KIDS_LANGUAGE_NAMES: Record<string, string> = {
   "pt-br": "Português (Brasil)",
   "pt-BR": "Português (Brasil)",
   sq: "Shqip",
+}
+
+// ---------------------------------------------------------------------------
+// Kid avatar (distinct from the reading buddy)
+// ---------------------------------------------------------------------------
+
+/**
+ * The child's own avatar — a personal character they build, shown in greetings
+ * and beside the buddy during activity reactions / the finish screen. Rendered
+ * offline in the runtime from DiceBear's "adventurer" style; only these IDs are
+ * stored (the art ships in @dicebear/collection). Empty string = "none" for the
+ * optional parts (hair/glasses/earrings/features).
+ */
+export interface KidsAvatarConfig {
+  skinColor: string
+  hair: string
+  hairColor: string
+  eyes: string
+  eyebrows: string
+  mouth: string
+  glasses: string
+  earrings: string
+  features: string
+  backgroundColor: string
+}
+
+/** DiceBear "adventurer" part catalog — the IDs the builder + random offer. */
+const avatarRange = (prefix: string, n: number): string[] =>
+  Array.from({ length: n }, (_, i) => `${prefix}${String(i + 1).padStart(2, "0")}`)
+
+export const KIDS_AVATAR_SKIN_COLORS = [
+  "ffe0bd", "f2d3b1", "ecad80", "c68642", "9e5622", "763900", "4a2f1b",
+] as const
+export const KIDS_AVATAR_HAIR_COLORS = [
+  "0e0e0e", "562306", "6a4e35", "796a45", "ab2a18", "ac6511", "cb6820",
+  "b9a05f", "e5d7a3", "afafaf", "3eac2c", "85c2c6", "dba3be", "592454",
+] as const
+export const KIDS_AVATAR_BACKGROUND_COLORS = [
+  "a5b4fc", "c4f0d0", "fde68a", "fecaca", "e9d5ff", "bae6fd", "f5f5f5",
+] as const
+export const KIDS_AVATAR_HAIR_STYLES = [
+  ...avatarRange("long", 26),
+  ...avatarRange("short", 19),
+]
+export const KIDS_AVATAR_EYES = avatarRange("variant", 26)
+export const KIDS_AVATAR_EYEBROWS = avatarRange("variant", 15)
+export const KIDS_AVATAR_MOUTHS = avatarRange("variant", 30)
+export const KIDS_AVATAR_GLASSES = avatarRange("variant", 5)
+export const KIDS_AVATAR_EARRINGS = avatarRange("variant", 6)
+export const KIDS_AVATAR_FEATURES = ["freckles", "blush", "birthmark"] as const
+
+export const DEFAULT_KIDS_AVATAR: KidsAvatarConfig = {
+  skinColor: "ecad80",
+  hair: "long03",
+  hairColor: "6a4e35",
+  eyes: "variant01",
+  eyebrows: "variant01",
+  mouth: "variant07",
+  glasses: "",
+  earrings: "",
+  features: "",
+  backgroundColor: "a5b4fc",
+}
+
+function pickAvatarPart<T>(arr: readonly T[]): T {
+  return arr[Math.floor(Math.random() * arr.length)]
+}
+
+/** A random-but-pleasant avatar — used by the "surprise me" shuffle. */
+export function randomKidsAvatar(): KidsAvatarConfig {
+  return {
+    skinColor: pickAvatarPart(KIDS_AVATAR_SKIN_COLORS),
+    hair: pickAvatarPart(KIDS_AVATAR_HAIR_STYLES),
+    hairColor: pickAvatarPart(KIDS_AVATAR_HAIR_COLORS),
+    eyes: pickAvatarPart(KIDS_AVATAR_EYES),
+    eyebrows: pickAvatarPart(KIDS_AVATAR_EYEBROWS),
+    mouth: pickAvatarPart(KIDS_AVATAR_MOUTHS),
+    glasses: Math.random() < 0.25 ? pickAvatarPart(KIDS_AVATAR_GLASSES) : "",
+    earrings: Math.random() < 0.25 ? pickAvatarPart(KIDS_AVATAR_EARRINGS) : "",
+    features: Math.random() < 0.3 ? pickAvatarPart(KIDS_AVATAR_FEATURES) : "",
+    backgroundColor: pickAvatarPart(KIDS_AVATAR_BACKGROUND_COLORS),
+  }
 }

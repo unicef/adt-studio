@@ -10,6 +10,7 @@ import {
   Rabbit,
   RotateCcw,
   Settings2,
+  Smile,
   Sparkles,
   Turtle,
   Volume2,
@@ -29,11 +30,13 @@ import {
 } from "@/features/kids/assets/buddy-images"
 import {
   KidsAccessibilityDialog,
+  KidsAvatarDialog,
   KidsDialogClose,
   KidsLanguageDialog,
   KidsResumeChip,
   KidsStoryMapDialog,
 } from "@/features/kids/components/kids-dialogs"
+import { KidsAvatar } from "@/features/kids/components/KidsAvatar"
 import { useKidsAvailableLanguages } from "@/features/kids/hooks/useKidsAvailableLanguages"
 import { useBuddySpeech } from "@/features/kids/hooks/useBuddySpeech"
 import { useBuddyIdleChatter } from "@/features/kids/hooks/useBuddyIdleChatter"
@@ -43,6 +46,8 @@ import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReduced
 import {
   buddySpeechAtom,
   kidsAccessibilityDialogOpenAtom,
+  kidsAvatarAtom,
+  kidsAvatarDialogOpenAtom,
   kidsBuddyChatterAtom,
   kidsBuddyPanelOpenAtom,
   kidsBuddyAtom,
@@ -90,6 +95,8 @@ export function KidsBuddy() {
   const setLanguageDialogOpen = useSetAtom(kidsLanguageDialogOpenAtom)
   const setStoryMapDialogOpen = useSetAtom(kidsStoryMapDialogOpenAtom)
   const setAccessibilityDialogOpen = useSetAtom(kidsAccessibilityDialogOpenAtom)
+  const setAvatarDialogOpen = useSetAtom(kidsAvatarDialogOpenAtom)
+  const avatar = useAtomValue(kidsAvatarAtom)
   const chatter = useAtomValue(kidsBuddyChatterAtom)
   const setOnboardingDone = useSetAtom(kidsOnboardingDoneAtom)
   // Count languages the kids reader can meaningfully switch to (book content
@@ -233,6 +240,10 @@ export function KidsBuddy() {
     say(BUDDY_LINES.comfortOpen)
   }
 
+  const openAvatar = () => {
+    setAvatarDialogOpen(true)
+  }
+
   const meetBuddyAgain = () => {
     setOnboardingDone(false)
     setOpen(false)
@@ -267,14 +278,21 @@ export function KidsBuddy() {
             tabIndex={0}
           >
             <div className="flex items-start justify-between gap-3">
-              <h2
-                id="kids-buddy-panel-message"
-                data-testid="kids-buddy-panel-message"
-                aria-live="polite"
-                className="max-w-[19rem] text-balance text-2xl font-black leading-tight text-slate-950"
-              >
-                {panelMessage}
-              </h2>
+              <div className="flex min-w-0 items-center gap-2.5">
+                <KidsAvatar
+                  config={avatar}
+                  size={44}
+                  className="shrink-0 shadow-[0_2px_0_#C4DFF2] ring-2 ring-white"
+                />
+                <h2
+                  id="kids-buddy-panel-message"
+                  data-testid="kids-buddy-panel-message"
+                  aria-live="polite"
+                  className="max-w-[15rem] text-balance text-2xl font-black leading-tight text-slate-950"
+                >
+                  {panelMessage}
+                </h2>
+              </div>
               <KidsDialogClose
                 buttonRef={panelCloseRef}
                 label={tk("kids-dialog-close", "Close")}
@@ -315,6 +333,14 @@ export function KidsBuddy() {
                 icon={<Settings2 className="h-5 w-5" />}
                 label={tk("kids-action-comfort", "Make it comfy")}
                 onClick={openComfort}
+              />
+
+              <KidsActionButton
+                testId="kids-action-avatar"
+                variant="list"
+                icon={<Smile className="h-5 w-5" />}
+                label={tk("kids-action-avatar", "My character")}
+                onClick={openAvatar}
               />
 
               {features.signLanguage ? (
@@ -415,6 +441,7 @@ export function KidsBuddy() {
       <KidsLanguageDialog />
       <KidsStoryMapDialog />
       <KidsAccessibilityDialog />
+      <KidsAvatarDialog />
 
       <button
         ref={fabRef}

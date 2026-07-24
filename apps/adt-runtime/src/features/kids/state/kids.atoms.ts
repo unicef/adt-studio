@@ -7,6 +7,7 @@
  * stays persisted locally.
  */
 import { atom } from "jotai"
+import { DEFAULT_KIDS_AVATAR, type KidsAvatarConfig } from "@adt/types/kids"
 import { appConfigAtom } from "@/shared/state/config.atoms"
 import {
   ephemeralAtom,
@@ -48,6 +49,13 @@ export const kidsBuddyAtom = persistedJsonAtom<KidsBuddyConfig>("kidsBuddy", {
 
 export const kidsPlayerNameAtom = persistedStringAtom("kidsPlayerName", "")
 
+// The child's own avatar (distinct from the reading buddy), built in
+// onboarding and shown in activity reactions + the finish screen.
+export const kidsAvatarAtom = persistedJsonAtom<KidsAvatarConfig>(
+  "kidsAvatar",
+  DEFAULT_KIDS_AVATAR,
+)
+
 // Reading-comfort (accessibility) preferences, persisted per reader.
 // Text scale drives a CSS `zoom` on the book content; "1" = no change.
 export type KidsTextScale = "1" | "1.25" | "1.5" | "2"
@@ -67,6 +75,7 @@ export const kidsBuddyPanelOpenAtom = ephemeralAtom(false)
 export const kidsLanguageDialogOpenAtom = ephemeralAtom(false)
 export const kidsStoryMapDialogOpenAtom = ephemeralAtom(false)
 export const kidsAccessibilityDialogOpenAtom = ephemeralAtom(false)
+export const kidsAvatarDialogOpenAtom = ephemeralAtom(false)
 export const kidsResumeChipDismissedAtom = ephemeralAtom(false)
 
 export interface KidsLastSpot {
