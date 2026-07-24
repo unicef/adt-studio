@@ -37,6 +37,8 @@ const extraResources = [
 
 const version = process.env.APP_VERSION || require("./package.json").version;
 
+const skipNotarize = process.env.SKIP_NOTARIZE === "true";
+
 const isBeta = version.includes("-beta");
 const appId = isBeta ? "com.nees.adt-studio.beta" : "com.nees.adt-studio";
 const productName = isBeta ? "ADT-Studio-Beta" : "ADT-Studio";
@@ -100,7 +102,8 @@ const config = {
     gatekeeperAssess: false,
     entitlements: "build/entitlements.mac.plist",
     entitlementsInherit: "build/entitlements.mac.plist",
-    identity: "Developer ID Application",
+    identity: skipNotarize ? null : "Developer ID Application",
+    ...(skipNotarize ? { notarize: false } : {}),
     extraResources,
     extendInfo: {
       NSCameraUsageDescription:

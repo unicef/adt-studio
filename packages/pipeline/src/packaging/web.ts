@@ -934,10 +934,18 @@ body {
 
 /* SMIL media-overlay active class — declared in the OPF as
    media:active-class. EPUB readers toggle this on the active text
-   element during read-aloud playback. */
+   element (a per-word span with an id) during read-aloud playback. The
+   word wrapper carries the word's own font-size (set by wrapWordSpans), so
+   this inline background box is sized to the glyphs and covers the whole
+   word. The em radius tracks that font-size; vertical padding gives the
+   highlight a little breathing room without affecting layout (inline
+   vertical padding doesn't shift surrounding text), so toggling the class
+   causes no reflow. */
 .-epub-media-overlay-active {
-  background: rgba(255, 235, 59, 0.4);
-  border-radius: 0.15em;
+  background: rgba(255, 222, 74, 0.55);
+  border-radius: 0.18em;
+  padding-top: 0.05em;
+  padding-bottom: 0.05em;
 }
 </style>`
 

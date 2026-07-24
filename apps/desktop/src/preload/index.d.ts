@@ -1,6 +1,9 @@
 import { ElectronAPI } from '@electron-toolkit/preload'
 import type { ApiLogEntry } from '../main/api-server/types'
-import type { UpdateStatus } from '../main/services/auto-updater'
+import type {
+  AvailableRelease,
+  UpdateStatus,
+} from '../main/services/auto-updater'
 import type { PostUpdateInfo } from '../main/services/update-state'
 import type { DebugSnapshot } from '../main/services/debug-info'
 
@@ -31,6 +34,8 @@ export interface UpdatesApi {
   install: () => Promise<void>
   installOnQuit: () => Promise<void>
   getStatus: () => Promise<UpdateStatus>
+  listVersions: (force?: boolean) => Promise<AvailableRelease[]>
+  selectVersion: (version: string) => Promise<UpdateStatus>
   getPostUpdate: () => Promise<PostUpdateInfo | null>
   onStatus: (cb: (status: UpdateStatus) => void) => () => void
 }
@@ -50,7 +55,10 @@ declare global {
     api: {
       onApiLog: (callback: (entry: ApiLogEntry) => void) => () => void
       isApiDebugMode: () => Promise<boolean>
-      saveFile: (options: SaveFileDialogOptions, data: Uint8Array) => Promise<string | null>
+      saveFile: (
+        options: SaveFileDialogOptions,
+        data: Uint8Array,
+      ) => Promise<string | null>
       apiPort: number
       platform: ElectronPlatform
       version: string

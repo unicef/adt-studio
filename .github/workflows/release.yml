@@ -5,15 +5,24 @@ on:
     branches: [main, develop]
   workflow_dispatch:
     inputs:
-      tag:
-        description: 'Release tag (e.g. v0.8.0 on main, v0.8.0-beta.1 on develop)'
+      release_type:
+        description: "Version increment"
         required: true
+        default: beta
+        type: choice
+        options:
+          - beta
+          - beta-minor
+          - beta-major
+          - patch
+          - minor
+          - major
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.ref_name }}
+  group: release
   cancel-in-progress: false
 
 # Opt JS actions into Node 24 ahead of the June 2026 default — silences the
@@ -47,52 +56,47 @@ jobs:
           echo "Total tags: $(git tag --list | wc -l)"
           git tag --list | sort -V
 
-      - name: Extract tag
+      - name: Calculate release version
         id: tag
         env:
           EVENT_NAME: ${{ github.event_name }}
-          INPUT_TAG: ${{ inputs.tag }}
+          INPUT_RELEASE_TYPE: ${{ inputs.release_type }}
           BRANCH: ${{ github.ref_name }}
         run: |
           MSG=""
           if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            TAG="$INPUT_TAG"
+            RELEASE_TYPE="$INPUT_RELEASE_TYPE"
           else
             MSG=$(git log -1 --pretty=%s)
             shopt -s nocasematch
-            if [[ "$MSG" =~ ^release:[[:space:]]*([^[:space:]]+) ]]; then
-              TAG="${BASH_REMATCH[1]}"
+            if [[ "$MSG" =~ ^release:[[:space:]]*(major|minor|patch|beta-minor|beta-major|beta)[[:space:]]*$ ]]; then
+              RELEASE_TYPE="${BASH_REMATCH[1],,}"
             fi
             shopt -u nocasematch
           fi
-          if [[ -z "$TAG" ]]; then
-            echo "::error::Could not extract tag. event=$EVENT_NAME input='$INPUT_TAG' subject='$MSG'"
+          if [[ -z "$RELEASE_TYPE" ]]; then
+            echo "::error::Could not resolve release type. event=$EVENT_NAME input='$INPUT_RELEASE_TYPE' subject='$MSG'"
             exit 1
           fi
-          [[ "$TAG" =~ ^v ]] || TAG="v$TAG"
-          # Validate charset before propagating downstream. This both rejects
-          # malformed tags and blocks shell / GITHUB_OUTPUT injection via the tag.
-          if [[ ! "$TAG" =~ ^v[0-9A-Za-z.+_-]+$ ]]; then
-            echo "::error::Invalid tag format: $TAG"
+          if [[ "$BRANCH" == "develop" && "$RELEASE_TYPE" != beta* ]]; then
+            echo "::error::develop only ships beta releases. Select beta, beta-minor, or beta-major."
             exit 1
+          fi
+          if [[ "$BRANCH" == "main" && "$RELEASE_TYPE" == beta* ]]; then
+            echo "::error::main only ships stable releases. Select patch, minor, or major."
+            exit 1
+          fi
+          VERSION=$(node scripts/calculate-release-version.mjs "$RELEASE_TYPE")
+          TAG="v$VERSION"
+          if [[ "$RELEASE_TYPE" == beta* ]]; then
+            PRERELEASE=true
+          else
+            PRERELEASE=false
           fi
           if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null 2>&1; then
-            echo "::error::Tag $TAG already exists on origin. Bump the version."
+            echo "::error::Calculated tag $TAG already exists on origin."
             exit 1
           fi
-          if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-beta(\.[0-9]+)?$ ]]; then
-            PRERELEASE=true
-          elif [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            PRERELEASE=false
-          else
-            echo "::error::Tag $TAG must be either vX.Y.Z (stable) or vX.Y.Z-beta[.N]."
-            exit 1
-          fi
-          if [[ "$BRANCH" == "main" && "$PRERELEASE" == "true" ]]; then
-            echo "::error::main only ships stable tags (got $TAG). Use vX.Y.Z."
-            exit 1
-          fi
-          VERSION="${TAG#v}"
           DOCKER_TAGS="ghcr.io/unicef/adt-studio:$TAG"
           if [[ "$PRERELEASE" == "false" ]]; then
             DOCKER_TAGS="$DOCKER_TAGS"$'\n'"ghcr.io/unicef/adt-studio:latest"
@@ -116,7 +120,7 @@ jobs:
             echo "$DOCKER_TAGS"
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
-          echo "Resolved tag: $TAG (version: $VERSION, prerelease: $PRERELEASE)"
+          echo "Resolved tag: $TAG (type: $RELEASE_TYPE, prerelease: $PRERELEASE)"
 
       - uses: pnpm/action-setup@v4
 
@@ -165,6 +169,7 @@ jobs:
       contents: read
     env:
       APP_VERSION: ${{ needs.prepare.outputs.version }}
+      SKIP_NOTARIZE: ${{ vars.SKIP_NOTARIZE }}
     steps:
       - uses: actions/checkout@v4
 
@@ -206,9 +211,8 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
-
       - name: Acquire Azure code signing token
-        if: matrix.os == 'windows-latest'
+        if: matrix.os == 'windows-latest' && env.SKIP_NOTARIZE != 'true'
         shell: bash
         env:
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
@@ -236,7 +240,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: "21"
 
       - name: Cache jsign.jar
         if: matrix.os == 'windows-latest'
@@ -309,6 +313,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: write
+      pull-requests: read
     outputs:
       tag: ${{ needs.prepare.outputs.tag }}
       version: ${{ needs.prepare.outputs.version }}
@@ -317,6 +322,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.RELEASE_PAT }}
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
       - name: Restore staged release metadata
         uses: actions/download-artifact@v4
@@ -330,6 +340,23 @@ jobs:
           pattern: installers-*
           path: dist
           merge-multiple: true # flatten the per-OS artifacts into one dir
+
+      - name: Compose beta release notes
+        if: needs.prepare.outputs.prerelease == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          REPO: ${{ github.repository }}
+          BRANCH: ${{ github.ref_name }}
+          TRIGGER_SHA: ${{ github.sha }}
+        run: |
+          rm -f release-notes.tmp release-notes.md
+          if node scripts/compose-release-notes.mjs > release-notes.tmp && [ -s release-notes.tmp ]; then
+            mv release-notes.tmp release-notes.md
+          else
+            rm -f release-notes.tmp release-notes.md
+            echo "::warning::Could not compose release notes; gh release create will generate them."
+          fi
 
       - name: Commit release metadata and push tag
         id: commit
@@ -369,9 +396,13 @@ jobs:
           [[ "$PRERELEASE" == "true" ]] && PRERELEASE_FLAG="--prerelease"
           START_TAG_FLAG=()
           [[ -n "$PREV_TAG" ]] && START_TAG_FLAG=(--notes-start-tag "$PREV_TAG")
+          NOTES_ARGS=(--generate-notes "${START_TAG_FLAG[@]}")
+          if [[ "$PRERELEASE" == "true" && -s release-notes.md ]]; then
+            NOTES_ARGS=(--notes-file release-notes.md)
+          fi
           gh release create "$TAG" --repo "$REPO" \
             --title "ADT Studio $TAG" \
-            --generate-notes "${START_TAG_FLAG[@]}" $PRERELEASE_FLAG \
+            "${NOTES_ARGS[@]}" $PRERELEASE_FLAG \
             dist/* \
             docker-compose.yml \
             scripts/windows-setup-and-run.bat

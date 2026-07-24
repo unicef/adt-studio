@@ -1,6 +1,6 @@
 import { type ReactNode } from "react"
 import { cn } from "@/lib/utils"
-import { RELEASE_BANNER_ASPECT } from "./release-banner-utils"
+import { RELEASE_BANNER_ASPECT, trustedAssetUrl } from "./release-banner-utils"
 
 export interface ReleaseNotesMarkdownProps {
   children: string
@@ -104,7 +104,7 @@ function parseBlocks(markdown: string): Block[] {
     if (image) {
       flushParagraph()
       flushList()
-      const src = safeAssetUrl(image[2])
+      const src = trustedAssetUrl(image[2])
       if (src) blocks.push({ type: "image", alt: image[1], src })
       continue
     }
@@ -179,7 +179,7 @@ function renderInline(text: string): ReactNode[] {
   while ((match = pattern.exec(text))) {
     if (match.index > cursor) nodes.push(text.slice(cursor, match.index))
     const href = match[2] ?? match[3]
-    const label = match[1] ?? href
+    const label = compactLinkLabel(match[1], href)
     nodes.push(
       <a
         key={`${href}-${match.index}`}
@@ -188,7 +188,7 @@ function renderInline(text: string): ReactNode[] {
           event.preventDefault()
           window.open(href, "_blank", "noopener,noreferrer")
         }}
-        className="font-medium text-primary underline underline-offset-2"
+        className="break-words rounded-sm font-medium text-primary underline decoration-primary/30 underline-offset-2 outline-none hover:decoration-primary focus-visible:ring-2 focus-visible:ring-ring"
       >
         {label}
       </a>,
@@ -200,7 +200,20 @@ function renderInline(text: string): ReactNode[] {
   return nodes
 }
 
-function safeAssetUrl(value: string): string | undefined {
-  if (/^https?:\/\//i.test(value) || value.startsWith("/")) return value
-  return undefined
+function compactLinkLabel(label: string | undefined, href: string): string {
+  if (label) return label
+
+  const pullRequest = href.match(
+    /^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/([1-9]\d*)\/?$/,
+  )
+  if (pullRequest) return `#${pullRequest[1]}`
+
+  const comparison = href.match(
+    /^https:\/\/github\.com\/[^/]+\/[^/]+\/compare\/([^/?#]+)\.\.\.([^/?#]+)\/?$/,
+  )
+  if (comparison) {
+    return `${decodeURIComponent(comparison[1])}…${decodeURIComponent(comparison[2])}`
+  }
+
+  return href
 }

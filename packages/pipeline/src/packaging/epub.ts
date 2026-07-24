@@ -870,9 +870,48 @@ function wrapBySegments(
     wordIdx += 1
     const wrap = doc.createElement("span")
     wrap.setAttribute("id", wordIdFor(dataId, wordIdx))
+    // Fixed-layout words carry font-size only on the inner per-segment
+    // spans; the word wrapper itself would inherit the page's ~16px
+    // default. The media-overlay read-aloud highlight (media:active-class)
+    // paints the *wrapper's* inline background box, whose height is the
+    // wrapper's own font content-area — so without a matching font-size the
+    // yellow bar renders as a ~16px sliver behind a 48px word. Mirror the
+    // word's own (largest) segment size onto the wrapper so the highlight
+    // covers the whole word. Purely a paint-box hint: all glyphs live in the
+    // styled pieces, so the wrapper renders no text and its width/advance is
+    // unchanged. Emitted inline so the runtime auto-fit script shrinks it in
+    // lockstep with the pieces it also targets.
+    const wordFontSize = maxSegmentFontSize(segments, segOffsets, tok.start, tok.end)
+    if (wordFontSize !== undefined) wrap.setAttribute("style", `font-size:${wordFontSize}px`)
     for (const piece of buildPieces(tok.start, tok.end)) wrap.appendChild(piece)
     parent.appendChild(wrap)
   }
+}
+
+/**
+ * Largest `font-size` (in px) among the segments overlapping [start, end)
+ * in concat coordinates, or `undefined` when none of them declares one.
+ * Fixed-layout segment sizes are always authored in px by the renderer, so
+ * a bare number of px is a safe round-trip.
+ */
+function maxSegmentFontSize(
+  segments: { text?: string; style?: Record<string, string> }[],
+  segOffsets: number[],
+  start: number,
+  end: number,
+): number | undefined {
+  let max = 0
+  for (let i = 0; i < segments.length; i++) {
+    const segStart = segOffsets[i]
+    const segEnd = segStart + (segments[i]?.text ?? "").length
+    if (segEnd <= start) continue
+    if (segStart >= end) break
+    const fsRaw = segments[i]?.style?.["font-size"]
+    if (!fsRaw) continue
+    const fs = parseFloat(fsRaw)
+    if (Number.isFinite(fs) && fs > max) max = fs
+  }
+  return max > 0 ? max : undefined
 }
 
 function wrapTextNodes(
