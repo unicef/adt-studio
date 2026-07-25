@@ -117,6 +117,42 @@ describe("initializeQuizActivity — standalone activity_quiz", () => {
     expect(store.get(submitEnabledAtom)).toBe(true)
   })
 
+  it("uses blue for focus, then green or red for the answer verdict", () => {
+    setupStandaloneQuiz()
+    cleanup = initializeQuizActivity()
+
+    const correct = document.querySelector<HTMLElement>(
+      ".activity-option[data-activity-item='item-1']",
+    )!
+    correct.focus()
+    expect(correct.style.outline).toContain("rgb(37, 99, 235)")
+
+    correct.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Enter",
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+    expect(correct.style.borderColor).toBe("rgb(22, 163, 74)")
+    expect(correct.style.outline).toContain("rgb(22, 163, 74)")
+
+    const wrong = document.querySelector<HTMLElement>(
+      ".activity-option[data-activity-item='item-2']",
+    )!
+    wrong.focus()
+    expect(wrong.style.outline).toContain("rgb(37, 99, 235)")
+    wrong.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Enter",
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+    expect(wrong.style.borderColor).toBe("rgb(220, 38, 38)")
+    expect(wrong.style.outline).toContain("rgb(220, 38, 38)")
+  })
+
   it("marks a wrong pick as incorrect immediately (no confetti, no Next)", () => {
     setupStandaloneQuiz()
     cleanup = initializeQuizActivity()
@@ -339,6 +375,28 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
     // Validation runs against the keyboard-selected option.
     store.get(validateHandlerAtom)?.()
     expect(store.get(submitStateAtom)).toBe("submit") // item-2 is the wrong answer
+  })
+
+  it("keeps option labels tabbable without consuming the reader's arrow keys", () => {
+    setupMultipleChoice()
+    cleanup = initializeQuizActivity()
+
+    const radio = document.querySelector<HTMLInputElement>(
+      "input[data-activity-item='item-1']",
+    )!
+    const option = radio.closest<HTMLElement>(".activity-option")!
+
+    expect(option.tabIndex).toBe(0)
+    expect(radio.tabIndex).toBe(-1)
+
+    option.focus()
+    const arrow = new KeyboardEvent("keydown", {
+      key: "ArrowRight",
+      bubbles: true,
+      cancelable: true,
+    })
+    option.dispatchEvent(arrow)
+    expect(arrow.defaultPrevented).toBe(false)
   })
 
   it("handles image-only option labels (no inner text)", () => {

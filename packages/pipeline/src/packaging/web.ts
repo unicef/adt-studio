@@ -1295,6 +1295,12 @@ interface QuizTheme {
 
 const LEGACY_QUIZ_THEME: QuizTheme = {
   styleBlock: `<style>
+    .activity-option:focus,
+    .activity-option:focus-within {
+        outline: 3px solid #2563eb;
+        outline-offset: 2px;
+    }
+
     .activity-option.selected-option {
         border-color: #1d4ed8;
         border-width: 4px;
@@ -1314,7 +1320,7 @@ const LEGACY_QUIZ_THEME: QuizTheme = {
   bodyClose: "",
   questionClass: "text-3xl font-bold text-gray-900 tracking-tight",
   optionLabelClass:
-    "activity-option w-[34rem] max-w-full cursor-pointer rounded-2xl border-2 border-gray-900 bg-[#FFFAF5] px-8 py-6 text-center text-xl font-medium text-gray-900 shadow-[0_6px_0_0_rgba(0,0,0,0.65)] transition-all duration-200 focus:outline-none focus:ring-4 focus:ring-green-300 hover:translate-y-[-2px] hover:shadow-[0_8px_0_0_rgba(0,0,0,0.55)]",
+    "activity-option w-[34rem] max-w-full cursor-pointer rounded-2xl border-2 border-gray-900 bg-[#FFFAF5] px-8 py-6 text-center text-xl font-medium text-gray-900 shadow-[0_6px_0_0_rgba(0,0,0,0.65)] transition-all duration-200 hover:translate-y-[-2px] hover:shadow-[0_8px_0_0_rgba(0,0,0,0.55)]",
   optionTextClass: "option-text block text-lg md:text-2xl text-gray-900",
   feedbackClass:
     "feedback-container hidden w-full rounded-md border border-transparent bg-transparent px-3 py-2 text-gray-700",
@@ -1359,7 +1365,7 @@ function bookQuizTheme(palette: QuizPalette): QuizTheme {
     }
     #simple-main .activity-option:focus,
     #simple-main .activity-option:focus-within {
-        outline: 3px solid var(--quiz-accent);
+        outline: 3px solid #2563eb;
         outline-offset: 2px;
     }
     #simple-main .activity-option.selected-option {

@@ -123,6 +123,8 @@ const MC_OUTLINE_COLORS = {
   incorrect: "rgb(220, 38, 38)", // red-600
 } as const
 
+const QUIZ_FOCUS_OUTLINE = `3px solid ${MC_OUTLINE_COLORS.selected}`
+
 // Only correct/incorrect get a faint wash; selected gets outline only so the
 // option's own background (often supplied by the LLM via a `bg-*` class) is
 // preserved and the user doesn't see a flash to transparent when picking.
@@ -302,7 +304,11 @@ function clearOptionState(option: HTMLElement, isStandaloneQuiz: boolean): void 
   option.setAttribute("aria-checked", "false")
   const input = option.querySelector<HTMLInputElement>('input[type="radio"]')
   if (input) input.checked = false
-  if (!isStandaloneQuiz) {
+  if (isStandaloneQuiz) {
+    option.style.borderColor = ""
+    option.style.outline = ""
+    option.style.outlineOffset = ""
+  } else {
     clearMcOutline(option)
     clearMcBadge(option)
   }
@@ -346,6 +352,12 @@ function applyValidationStyle(
     // Strip the blue selection ring so it doesn't fight the green/red verdict.
     option.classList.remove("selected-option", ...SELECTION_HIGHLIGHT_CLASSES)
     option.classList.add(isCorrect ? "bg-green-50" : "bg-red-50")
+    const verdictColor = isCorrect
+      ? MC_OUTLINE_COLORS.correct
+      : MC_OUTLINE_COLORS.incorrect
+    option.style.borderColor = verdictColor
+    option.style.outline = `3px solid ${verdictColor}`
+    option.style.outlineOffset = "2px"
   } else {
     // Keep the outline (now green/red) so the badge has something to dock on
     // and the verdict is visible from across the page.
@@ -594,10 +606,36 @@ export function initializeQuizActivity(): (() => void) | null {
           handleSelect(option)
         }
       }
+      const onFocus = () => {
+        if (
+          option.hasAttribute("aria-invalid") ||
+          option.hasAttribute(MC_STYLE_FLAG_ATTR)
+        ) {
+          return
+        }
+        option.style.outline = QUIZ_FOCUS_OUTLINE
+        option.style.outlineOffset = "2px"
+      }
+      const onBlur = () => {
+        if (
+          option.hasAttribute("aria-invalid") ||
+          option.hasAttribute(MC_STYLE_FLAG_ATTR)
+        ) {
+          return
+        }
+        option.style.outline = ""
+        option.style.outlineOffset = ""
+      }
       option.addEventListener("click", onClick)
       option.addEventListener("keydown", onKey)
+      option.addEventListener("focus", onFocus)
+      option.addEventListener("blur", onBlur)
       option.setAttribute("role", "radio")
       option.setAttribute("aria-checked", "false")
+      // Focus the label instead of the native radio: Tab can still reach every
+      // answer and Enter/Space selects it, while ArrowLeft/ArrowRight remain
+      // available to host readers such as Apple Books for page navigation.
+      option.setAttribute("tabindex", "0")
 
       // Arrow-key navigation between native radios fires `change` on the new
       // radio without firing `click` on its label. Listen here too so keyboard
@@ -623,6 +661,8 @@ export function initializeQuizActivity(): (() => void) | null {
       listeners.push(() => {
         option.removeEventListener("click", onClick)
         option.removeEventListener("keydown", onKey)
+        option.removeEventListener("focus", onFocus)
+        option.removeEventListener("blur", onBlur)
       })
     })
   }
