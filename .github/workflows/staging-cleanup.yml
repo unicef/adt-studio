@@ -1,0 +1,58 @@
+name: Staging cleanup
+
+on:
+  pull_request_target:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "Pull request number whose staging release to delete"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: staging-cleanup-pr-${{ github.event.pull_request.number || inputs.pr }}
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch'
+          || github.event.pull_request.base.ref == 'develop' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Delete staging pre-release and branch
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number || inputs.pr }}
+        run: |
+          if [[ ! "$PR" =~ ^[0-9]+$ ]]; then
+            echo "No valid PR number ('$PR'); nothing to clean up."
+            exit 0
+          fi
+          SLUG="pr-$PR"
+          STAGING_BRANCH="staging/$SLUG"
+
+          RELEASES=$(gh release list --repo "$REPO" --limit 200 --json tagName \
+            --jq '.[].tagName' | { grep -E -- "-beta-${SLUG}$" || true; })
+          if [[ -z "$RELEASES" ]]; then
+            echo "No staging pre-release found for '$SLUG'; skipping."
+          else
+            for release in $RELEASES; do
+              echo "Deleting staging pre-release $release"
+              gh release delete "$release" --repo "$REPO" --yes --cleanup-tag || true
+            done
+          fi
+
+          if gh api "repos/$REPO/git/refs/heads/$STAGING_BRANCH" >/dev/null 2>&1; then
+            echo "Deleting staging branch $STAGING_BRANCH"
+            gh api -X DELETE "repos/$REPO/git/refs/heads/$STAGING_BRANCH" >/dev/null || true
+          else
+            echo "No staging branch '$STAGING_BRANCH' found; skipping."
+          fi

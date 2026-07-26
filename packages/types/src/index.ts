@@ -313,6 +313,31 @@ export {
 } from "./reviewer-validation.js"
 
 export {
+  DEFAULT_TRANSLATION_EVALUATION_CONTEXT_OPTIONS,
+  DEFAULT_TRANSLATION_EVALUATION_ISSUE_TYPES,
+  DEFAULT_TRANSLATION_EVALUATION_JUDGE_INSTRUCTIONS,
+  DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL,
+  DEFAULT_TRANSLATION_EVALUATION_MAX_RETRIES,
+  DEFAULT_TRANSLATION_EVALUATION_SEVERITY_THRESHOLD,
+  DEFAULT_TRANSLATION_EVALUATION_TEMPERATURE,
+  TranslationEvaluationConfig,
+  TranslationEvaluationContextOptions,
+  TranslationEvaluationIssueType,
+  TranslationEvaluationSeverity,
+  TranslationEvaluationSummary,
+  TranslationEvaluationItem,
+  TranslationEvaluationProvider,
+  TranslationEvaluationJudgeMetadata,
+  TranslationEvaluationMetadata,
+  TranslationEvaluationRunEntry,
+  TranslationEvaluationRunPage,
+  TranslationEvaluationRunRequest,
+  TranslationEvaluationResult,
+  type ResolvedTranslationEvaluationConfig,
+  resolveTranslationEvaluationConfig,
+} from "./translation-evaluation.js"
+
+export {
   screenshotIpcViewportSchema,
   screenshotIpcRequestSchema,
   screenshotIpcCloseSchema,

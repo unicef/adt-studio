@@ -4,6 +4,14 @@ export interface SynthesizeSpeechOptions {
   input: string
   responseFormat: string
   instructions?: string
+  /**
+   * Gemini sampling controls. Lower `temperature` → less prosodic variance
+   * between the independent per-sentence requests; fixed `seed` → reproducible
+   * delivery. Ignored by the OpenAI/Azure synthesizers. When omitted, neither
+   * is sent and Gemini uses its own defaults (i.e. sampling is disabled).
+   */
+  temperature?: number
+  seed?: number
   /** Aborts the in-flight HTTP request (run cancellation). */
   signal?: AbortSignal
 }
@@ -405,6 +413,12 @@ export function createGeminiTTSSynthesizer(
             ],
             generationConfig: {
               responseModalities: ["AUDIO"],
+              // Sampling is opt-in per book (SpeechConfig temperature/seed).
+              // Only send each param when set; when unset we send neither so
+              // Gemini uses its own defaults. Pinning a low temperature + fixed
+              // seed keeps tone consistent across the per-sentence requests.
+              ...(options.temperature !== undefined ? { temperature: options.temperature } : {}),
+              ...(options.seed !== undefined ? { seed: options.seed } : {}),
               speechConfig: {
                 voiceConfig: {
                   prebuiltVoiceConfig: {

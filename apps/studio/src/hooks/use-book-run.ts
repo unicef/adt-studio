@@ -538,6 +538,9 @@ export function useBookRunStatus(label: string): BookRunContextValue {
           if (completedTask?.kind === "transcribe-timestamps") {
             queryClient.invalidateQueries({ queryKey: ["books", label, "tts-timestamps"] })
           }
+          if (completedTask?.kind === "translation-evaluation") {
+            queryClient.invalidateQueries({ queryKey: ["evaluations", "translations", label] })
+          }
           if (completedTask?.kind === "book-summary") {
             // Refresh the book detail so the banner shows the new summary.
             queryClient.invalidateQueries({ queryKey: ["books", label] })
@@ -905,6 +908,7 @@ function invalidateStageData(qc: ReturnType<typeof useQueryClient>, label: strin
       break
     case "speech":
       qc.invalidateQueries({ queryKey: ["books", label, "tts"] })
+      qc.invalidateQueries({ queryKey: ["books", label, "tts-timestamps"] })
       break
   }
 }

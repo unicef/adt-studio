@@ -6,8 +6,18 @@ const TRUSTED_SIGNING_KEYSTORE = "eus.codesigning.azure.net";
 const TRUSTED_SIGNING_ALIAS = "NEES/neespnld";
 
 module.exports = async function (configuration) {
-  if (process.env.SKIP_NOTARIZE === "true") {
-    console.warn(`SKIP_NOTARIZE=true → skipping signature for ${configuration.path}`);
+  const skipTargets = new Set(
+    (process.env.SKIP_NOTARIZE || "")
+      .toUpperCase()
+      .split(/[\s,]+/)
+      .filter(Boolean),
+  );
+  if (
+    skipTargets.has("ALL") ||
+    skipTargets.has("TRUE") ||
+    skipTargets.has("WIN")
+  ) {
+    console.warn(`Windows signing skipped for ${configuration.path}`);
     return;
   }
 
