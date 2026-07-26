@@ -142,7 +142,6 @@ export function packageEpub(
   // ------------------------------------------------------------------
   const pagesJsonPath = path.join(oebpsDir, "content", "pages.json")
   const rawPages = JSON.parse(fs.readFileSync(pagesJsonPath, "utf-8")) as PageEntry[]
-
   // Placement boundaries for in-flow glossary pages (page/both modes) and
   // the per-window occurrence lists that populate them.
   const glossaryBoundaries =
@@ -155,14 +154,48 @@ export function packageEpub(
   // chunked, so those files get a resolve pass afterwards.
   const glossaryHrefFixupFiles: string[] = []
 
+  // Quizzes run via the standalone activities bundle (the JS runtime), which
+  // works across EPUB readers (Apple Books, Thorium). Quiz pages are authored as
+  // reflowable HTML (device-width viewport, flow layout); in a fixed-layout book
+  // that leaves them uncentered and jarring across page turns, so give them the
+  // book's fixed viewport to render as proper pre-paginated pages — same layout
+  // type, size, and centering as every other page. `refViewport` is the most
+  // common fixed viewport across the book's content pages.
+  const refViewport = options.fixedLayout
+    ? findReferenceViewport(oebpsDir, rawPages)
+    : null
+  // Quiz pages carry the activities bundle, so they also need the OPF `scripted`
+  // property for the reading system to enable scripting.
+  const scriptedHrefs = new Set<string>()
   for (const [pageIndex, page] of rawPages.entries()) {
     if (!page.href.endsWith(".html")) continue
     const htmlPath = path.join(oebpsDir, page.href)
     if (!fs.existsSync(htmlPath)) continue
 
-    const html = fs.readFileSync(htmlPath, "utf-8")
+    const rawHtml = fs.readFileSync(htmlPath, "utf-8")
+    const isQuizPage = rawHtml.includes('data-section-type="activity_quiz"')
+    let html = rawHtml
+    // Fixed-layout: swap the quiz page's responsive viewport for the book's fixed
+    // one so the reader lays it out (and centers it) like its pre-paginated
+    // neighbours instead of floating.
+    if (isQuizPage && refViewport) {
+      html = html.replace(
+        /(<meta name="viewport" content=")width=device-width[^"]*(")/,
+        `$1width=${refViewport.width}, height=${refViewport.height}$2`,
+      )
+    }
     let xhtml = convertPageToXhtml(html)
     const xhtmlHref = page.href.replace(/\.html$/, ".xhtml")
+
+    if (isQuizPage) {
+      // Ship the activities bundle so the reader runs the interactive quiz, and
+      // mark the page scripted in the OPF.
+      xhtml = xhtml.replace(
+        "</body>",
+        `    <script src="./assets/activities.bundle.local.js"></script>\n</body>`,
+      )
+      scriptedHrefs.add(xhtmlHref)
+    }
 
     if (glossaryEntries.length > 0) {
       const windowIdx =
@@ -382,7 +415,7 @@ export function packageEpub(
       fixedLayout: options.fixedLayout,
       smilEntries,
       glossaryHref,
-      scriptedHrefs: glossaryScriptedHrefs,
+      scriptedHrefs: new Set([...scriptedHrefs, ...glossaryScriptedHrefs]),
     }),
   )
 
@@ -553,6 +586,42 @@ function parseParagraphs(xhtml: string): Array<{ paragraphId: string; wordIds: s
   return out
 }
 
+/**
+ * The most common fixed viewport (`width=W, height=H`) declared across the
+ * book's pages. Fixed-layout content pages carry an explicit pixel viewport;
+ * quiz pages (authored reflowable) ship `width=device-width` and are ignored.
+ * Returns null when no page declares a fixed viewport.
+ */
+function findReferenceViewport(
+  oebpsDir: string,
+  pages: PageEntry[],
+): { width: number; height: number } | null {
+  const counts = new Map<string, number>()
+  for (const page of pages) {
+    if (!page.href.endsWith(".html")) continue
+    const p = path.join(oebpsDir, page.href)
+    if (!fs.existsSync(p)) continue
+    const m = fs
+      .readFileSync(p, "utf-8")
+      .match(/content="width=(\d+), height=(\d+)"/)
+    if (m) {
+      const key = `${m[1]}x${m[2]}`
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+  }
+  let best: string | null = null
+  let bestN = 0
+  for (const [key, n] of counts) {
+    if (n > bestN) {
+      bestN = n
+      best = key
+    }
+  }
+  if (!best) return null
+  const [w, h] = best.split("x").map(Number)
+  return { width: w, height: h }
+}
+
 function buildOpf(opts: {
   title: string
   authors: string[]
@@ -564,12 +633,11 @@ function buildOpf(opts: {
   fixedLayout?: boolean
   smilEntries?: SmilEntry[]
   glossaryHref?: string
-  /** Extra hrefs whose manifest item needs the `scripted` property even when
-   *  the layout-wide rule wouldn't add it (fixed-layout glossary pages with
-   *  the sign-language toggle script). */
+  /** Page hrefs whose manifest item needs the `scripted` property, including
+   *  quiz pages and fixed-layout glossary pages with sign-language controls. */
   scriptedHrefs?: Set<string>
 }): string {
-  const { title, authors, publisher, language, pageList, allFiles, coverHref, fixedLayout, smilEntries, glossaryHref, scriptedHrefs } = opts
+  const { title, authors, publisher, language, pageList, allFiles, coverHref, fixedLayout, scriptedHrefs, smilEntries, glossaryHref } = opts
   const smilByPage = new Map<string, SmilEntry>()
   for (const e of smilEntries ?? []) smilByPage.set(e.pageHref, e)
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z")
@@ -654,8 +722,15 @@ function buildOpf(opts: {
 
     const props: string[] = []
     if (file.href === coverHref) props.push("cover-image")
-    if (!fixedLayout && pageHrefs.has(file.href)) props.push("scripted")
-    else if (scriptedHrefs?.has(file.href)) props.push("scripted")
+    // Reflowable page docs are `scripted` by default; JS-quiz pages are scripted
+    // regardless of the book's layout. Fixed-layout glossary pages with sign
+    // language controls are also included in scriptedHrefs.
+    if (
+      (!fixedLayout && pageHrefs.has(file.href)) ||
+      scriptedHrefs?.has(file.href)
+    ) {
+      props.push("scripted")
+    }
     const propsAttr = props.length > 0 ? ` properties="${props.join(" ")}"` : ""
     const overlayId = pageHrefToOverlayId.get(file.href)
     const overlayAttr = overlayId ? ` media-overlay="${escapeXml(overlayId)}"` : ""

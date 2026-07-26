@@ -413,6 +413,8 @@ describe("renderQuizHtml", () => {
     // Options are a fixed width so they don't resize when feedback appears.
     expect(html).toContain("w-[34rem]")
     expect(html).not.toContain("w-full max-w-xl")
+    expect(html).toContain("outline: 3px solid #2563eb")
+    expect(html).not.toContain("focus:ring-green-300")
   })
 
   it("themes the quiz as a callout when a style is given, preserving the interactive contract", () => {
@@ -433,6 +435,7 @@ describe("renderQuizHtml", () => {
     expect(html).toContain('data-correct-answers=')
     expect(html).toContain('data-activity-item="qz001_o0"')
     expect(html).toContain('class="option-text block adt-body"')
+    expect(html).toContain("outline: 3px solid #2563eb")
   })
 })
 
