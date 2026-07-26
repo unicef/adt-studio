@@ -3,6 +3,7 @@ import fs from "node:fs"
 import os from "node:os"
 import path from "node:path"
 import { PNG } from "pngjs"
+import jpeg from "jpeg-js"
 import { buildOpf, buildNcx, buildIndex, rewriteContentPage, ensureJpegCover, buildAdtSidecar } from "../packaging/pnld.js"
 import type { PageEntry } from "../packaging/web.js"
 
@@ -45,7 +46,7 @@ describe("rewriteContentPage", () => {
     const out = rewriteContentPage(raw)
     expect(out).toContain(`href="../resources/styles/tailwind_output.css"`)
     expect(out).toContain(`href="../resources/styles/fonts.css"`)
-    expect(out).toContain(`href="../resources/styles/fontawesome-all.min.css"`)
+    expect(out).toContain(`href="../resources/styles/fontawesome-all-min.css"`)
     expect(out).toContain(`src="../resources/scripts/auto-fit.js"`)
   })
 
@@ -72,6 +73,14 @@ describe("rewriteContentPage", () => {
       `<meta charset="utf-8" />\n    <meta name="robots" content="noindex, nofollow" />`,
     )
     expect(rewriteContentPage(withRobots).match(/name="robots"/g)).toHaveLength(1)
+  })
+
+  it("wraps the body in a schema.org/Book itemscope as the first child", () => {
+    const out = rewriteContentPage(raw, 1, "pt-BR")
+    expect(out).toContain('<div itemscope itemtype="https://schema.org/Book">')
+    expect(out).toMatch(/<body[^>]*>\s*<div itemscope itemtype="https:\/\/schema\.org\/Book">/)
+    expect(out).toMatch(/<\/div>\s*<\/body>/)
+    expect(out.match(/schema\.org\/Book/g)).toHaveLength(1)
   })
 
   it("injects a doc-pagebreak marker with the page number when provided", () => {
@@ -181,6 +190,11 @@ describe("buildIndex", () => {
     expect(index).toContain(`<meta name="author" content="Ada Lovelace" />`)
   })
 
+  it("wraps the nav in a schema.org/Book itemscope as the first body child", () => {
+    expect(index).toMatch(/<body[^>]*>\s*<div itemscope itemtype="https:\/\/schema\.org\/Book">/)
+    expect(index).toMatch(/<div itemscope itemtype="https:\/\/schema\.org\/Book">\s*<nav role="doc-toc"/)
+  })
+
   it("links every page in reading order", () => {
     expect(index).toContain(`<a href="content/pg001_sec001.html">Página 1</a>`)
     expect(index).toContain(`<a href="content/pg002_sec001.html">Página 2</a>`)
@@ -192,23 +206,36 @@ describe("ensureJpegCover", () => {
   function tmp(): string {
     return fs.mkdtempSync(path.join(os.tmpdir(), "pnld-cover-"))
   }
-  function writePng(dir: string): void {
-    const png = new PNG({ width: 4, height: 4 })
+  function writePng(dir: string, width = 40, height = 60): void {
+    const png = new PNG({ width, height })
     for (let i = 0; i < png.data.length; i += 4) {
       png.data[i] = 200; png.data[i + 1] = 100; png.data[i + 2] = 50; png.data[i + 3] = 255
     }
     fs.writeFileSync(path.join(dir, "cover.png"), PNG.sync.write(png))
   }
 
-  it("converts a PNG cover to cover.jpeg and drops the PNG", () => {
+  it("converts a PNG cover to cover.jpeg at the spec size and drops the PNG", () => {
     const dir = tmp()
-    writePng(dir)
+    writePng(dir) // portrait source -> 1600x2560
     const href = ensureJpegCover(dir)
     expect(href).toBe("cover.jpeg")
     expect(fs.existsSync(path.join(dir, "cover.png"))).toBe(false)
     const jpg = fs.readFileSync(path.join(dir, "cover.jpeg"))
     expect(jpg[0]).toBe(0xff) // JPEG SOI marker
     expect(jpg[1]).toBe(0xd8)
+    const decoded = jpeg.decode(jpg)
+    expect(decoded.width).toBe(1600)
+    expect(decoded.height).toBe(2560)
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("resizes a landscape cover to 2560x1600", () => {
+    const dir = tmp()
+    writePng(dir, 60, 40) // landscape source -> 2560x1600
+    ensureJpegCover(dir)
+    const decoded = jpeg.decode(fs.readFileSync(path.join(dir, "cover.jpeg")))
+    expect(decoded.width).toBe(2560)
+    expect(decoded.height).toBe(1600)
     fs.rmSync(dir, { recursive: true, force: true })
   })
 

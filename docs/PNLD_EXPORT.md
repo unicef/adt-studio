@@ -25,13 +25,15 @@ the structural documents. The caller zips the result into `<book>.zip`.
     ├── fonts/                    bundled webfonts + FontAwesome glyph fonts
     ├── images/                   page images
     ├── scripts/                  auto-fit.js (+ nothing else runtime)
-    ├── styles/                   tailwind_output.css, fonts.css, fontawesome-all.min.css
+    ├── styles/                   tailwind_output.css, fonts.css, fontawesome-all-min.css
     └── adt/                      ADT feature sidecar (see "Features")
 ```
 
-Folder/file names are lowercase, ASCII, and never start with a digit. Core
-folders (`content`, `resources` and its subfolders) are named in English exactly
-as above. Empty resource subfolders are omitted.
+Folder/file names are lowercase, ASCII, never start with a digit, and carry no
+dot other than the extension separator (so `all.min.css` ships as
+`fontawesome-all-min.css`). Core folders (`content`, `resources` and its
+subfolders) are named in English exactly as above. Empty resource subfolders are
+omitted.
 
 ## `content.opf` (OPF 3.0)
 
@@ -60,6 +62,8 @@ Reading order is **identical** across `index.html`, the OPF `<spine>`, and
 
 - `<meta charset>`, `<title>`, `<meta name="description">`, `<meta name="author">`,
   `<meta name="robots" content="noindex, nofollow">`, `<body lang="pt-BR">`.
+- `<body>` opens with the `<div itemscope itemtype="https://schema.org/Book">`
+  wrapper (like every content page), enclosing the nav.
 - Contains `<nav role="doc-toc" id="toc" data-book="sumario">` with an `<h1>Sumário</h1>`
   and a nested `<ol>` (indented by heading level) linking into `content/*.html`.
 - Declared in the OPF manifest as `<item id="nav" … properties="nav"/>`.
@@ -68,6 +72,8 @@ Reading order is **identical** across `index.html`, the OPF `<spine>`, and
 
 - `<!DOCTYPE html>`, `<html lang>` **and** `<body lang>`, single `<main>`,
   `<meta name="robots" content="noindex, nofollow">`.
+- The `<body>` opens with a `<div itemscope itemtype="https://schema.org/Book">`
+  wrapper (first child) enclosing all content — the spec's structural marker.
 - **Self-contained**: asset references rewritten to `../resources/…`; Google-Fonts
   `<link>`s stripped (bundled `@font-face` covers the same families). No external URLs.
 - **Pagination**: each page (one printed page) opens `<main>` with
@@ -83,10 +89,12 @@ require semantic structures the ADT content model doesn't yet produce.
 
 ## Cover
 
-The reader requires a JPEG cover at the root (`cover.jpg`/`cover.jpeg`). ADT
-emits `cover.png`, so `packagePnld` converts it to `cover.jpeg` (decode via
-`pngjs`, re-encode via `jpeg-js`). A cover already in JPEG is kept; a
-non-decodable placeholder is left as-is rather than failing the export.
+The reader requires a JPEG cover at the root, sized exactly **2560×1600**
+(landscape) or **1600×2560** (portrait, matching the source orientation). ADT
+emits `cover.png`, so `packagePnld` decodes it (`pngjs`, or `jpeg-js` for a JPEG
+source), scales it to fit the spec size preserving aspect ratio, letterboxes the
+remainder on white, and re-encodes to `cover.jpeg` (`jpeg-js`). A non-decodable
+placeholder is left as-is rather than failing the export.
 
 ## Features — `resources/adt/`
 

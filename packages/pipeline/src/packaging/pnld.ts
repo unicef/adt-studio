@@ -140,7 +140,7 @@ function reorganize(pnldDir: string, rawPages: PageEntry[], language: string): P
   moveFile(path.join(assetsDir, "fonts.css"), path.join(stylesDir, "fonts.css"))
   moveFile(
     path.join(assetsDir, "libs", "fontawesome", "css", "all.min.css"),
-    path.join(stylesDir, "fontawesome-all.min.css"),
+    path.join(stylesDir, "fontawesome-all-min.css"),
   )
 
   // 2. Fonts → resources/fonts (bundled webfonts + FontAwesome glyph fonts)
@@ -211,7 +211,7 @@ export function rewriteContentPage(
     .replace(/\.\/assets\/fonts\.css/g, "../resources/styles/fonts.css")
     .replace(
       /\.\/assets\/libs\/fontawesome\/css\/all\.min\.css/g,
-      "../resources/styles/fontawesome-all.min.css",
+      "../resources/styles/fontawesome-all-min.css",
     )
     .replace(/\.\/assets\/auto-fit\.js/g, "../resources/scripts/auto-fit.js")
     .replace(/(src|href)="images\//g, '$1="../resources/images/')
@@ -230,6 +230,13 @@ export function rewriteContentPage(
 
   // Spec requires the content language on <body> (adt only sets it on <html>).
   out = out.replace(/<body\b(?![^>]*\blang=)([^>]*)>/i, `<body lang="${escapeXml(language)}"$1>`)
+
+  // Spec §5.9.3 requires a schema.org/Book itemscope as the first child of <body>.
+  if (!/itemtype="https:\/\/schema\.org\/Book"/.test(out)) {
+    out = out
+      .replace(/(<body\b[^>]*>)/i, '$1\n    <div itemscope itemtype="https://schema.org/Book">')
+      .replace(/<\/body>/i, "    </div>\n</body>")
+  }
 
   // Activity pages load the standalone activities bundle (submit/validate +
   // confetti/toast + next-page nav), like WebPub. `adt-base` points the
@@ -270,7 +277,7 @@ function rewriteStylesheets(stylesDir: string): void {
     // fonts.css: url('./fonts/x') → url('../fonts/x')
     ["fonts.css", (css) => css.replace(/url\((['"]?)\.\/fonts\//g, "url($1../fonts/")],
     // FontAwesome: url(../webfonts/x) → url(../fonts/x)
-    ["fontawesome-all.min.css", (css) => css.replace(/url\((['"]?)\.\.\/webfonts\//g, "url($1../fonts/")],
+    ["fontawesome-all-min.css", (css) => css.replace(/url\((['"]?)\.\.\/webfonts\//g, "url($1../fonts/")],
     // Tailwind output rarely references fonts, but rewrite defensively.
     [
       "tailwind_output.css",
@@ -355,46 +362,121 @@ function moveDirContents(srcDir: string, destDir: string): void {
 }
 
 // ---------------------------------------------------------------------------
-// File enumeration
+// Cover image
 // ---------------------------------------------------------------------------
 
+// PNLD cover dimensions: exactly 2560×1600 (landscape) or 1600×2560 (portrait).
+// The source cover is scaled to fit that box and letterboxed on white.
+const COVER_LONG = 2560
+const COVER_SHORT = 1600
+
 /**
- * Ensure the root cover is `cover.jpg`/`cover.jpeg` — the reader rejects the
- * package otherwise. An existing JPEG cover is kept; a JPEG mislabeled `.png` is
- * renamed; a real PNG cover (what adt emits) is decoded and re-encoded to
- * `cover.jpeg`. If the file isn't a decodable image the original is kept as-is
- * rather than failing the export (a real book always has a valid PNG cover).
- * Returns the cover href, or undefined when no cover is present.
+ * Ensure the root cover is `cover.jpeg` at the spec dimensions — the reader
+ * rejects the package otherwise. The source cover (PNG, what adt emits, or a
+ * JPEG) is decoded, scaled to fit the spec size preserving aspect (letterboxed
+ * on white), and re-encoded to `cover.jpeg`. If the file isn't a decodable
+ * image the original is kept as-is rather than failing the export (a real book
+ * always has a valid cover). Returns the cover href, or undefined when absent.
  */
 export function ensureJpegCover(pnldDir: string): string | undefined {
-  const existingJpeg = ["cover.jpg", "cover.jpeg"].find((n) =>
-    fs.existsSync(path.join(pnldDir, n)),
-  )
-  if (existingJpeg) return existingJpeg
+  const src = ["cover.png", "cover.jpg", "cover.jpeg"]
+    .map((n) => path.join(pnldDir, n))
+    .find((p) => fs.existsSync(p))
+  if (!src) return undefined
 
-  const pngPath = path.join(pnldDir, "cover.png")
-  if (!fs.existsSync(pngPath)) return undefined
+  const buf = fs.readFileSync(src)
+  const decoded = decodeImage(buf)
+  const jpegPath = path.join(pnldDir, "cover.jpeg")
 
-  const buf = fs.readFileSync(pngPath)
-  // Already JPEG under a .png name — just rename.
-  if (buf[0] === 0xff && buf[1] === 0xd8) {
-    fs.renameSync(pngPath, path.join(pnldDir, "cover.jpeg"))
-    return "cover.jpeg"
-  }
-  // Real PNG (89 50 4E 47) — decode and re-encode to JPEG.
-  if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) {
-    try {
-      const png = PNG.sync.read(buf)
-      const encoded = jpeg.encode({ data: png.data, width: png.width, height: png.height }, 85)
-      fs.writeFileSync(path.join(pnldDir, "cover.jpeg"), encoded.data)
-      fs.rmSync(pngPath)
+  if (!decoded) {
+    // Not a decodable image. A JPEG-by-content survives as cover.jpeg; anything
+    // else is left untouched rather than failing the export.
+    if (buf[0] === 0xff && buf[1] === 0xd8) {
+      if (path.resolve(src) !== path.resolve(jpegPath)) fs.renameSync(src, jpegPath)
       return "cover.jpeg"
-    } catch {
-      // Corrupt PNG — fall through and keep the original.
+    }
+    return path.basename(src)
+  }
+
+  const resized = resizeCoverContain(decoded)
+  const encoded = jpeg.encode({ data: resized.data, width: resized.width, height: resized.height }, 85)
+  fs.writeFileSync(jpegPath, encoded.data)
+  if (path.resolve(src) !== path.resolve(jpegPath)) fs.rmSync(src)
+  return "cover.jpeg"
+}
+
+/** Decode a PNG or JPEG buffer to `{ data: RGBA, width, height }`, or null. */
+function decodeImage(buf: Buffer): { data: Uint8Array; width: number; height: number } | null {
+  try {
+    if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4e && buf[3] === 0x47) {
+      return PNG.sync.read(buf)
+    }
+    if (buf[0] === 0xff && buf[1] === 0xd8) {
+      return jpeg.decode(buf, { useTArray: true, formatAsRGBA: true })
+    }
+  } catch {
+    // Corrupt or unsupported — fall through.
+  }
+  return null
+}
+
+/**
+ * Scale an RGBA image to the spec cover size (matching the source orientation),
+ * preserving aspect ratio and letterboxing the remainder on white. Bilinear
+ * sampling; alpha is composited over white so JPEG (no alpha) has no fringing.
+ */
+function resizeCoverContain(img: {
+  data: Uint8Array
+  width: number
+  height: number
+}): { data: Buffer; width: number; height: number } {
+  const { data: src, width: sw, height: sh } = img
+  const targetW = sw >= sh ? COVER_LONG : COVER_SHORT
+  const targetH = sw >= sh ? COVER_SHORT : COVER_LONG
+
+  const scale = Math.min(targetW / sw, targetH / sh)
+  const drawW = Math.max(1, Math.round(sw * scale))
+  const drawH = Math.max(1, Math.round(sh * scale))
+  const offX = Math.floor((targetW - drawW) / 2)
+  const offY = Math.floor((targetH - drawH) / 2)
+
+  const out = Buffer.alloc(targetW * targetH * 4, 0xff) // opaque white
+  const rx = sw / drawW
+  const ry = sh / drawH
+  const rgba = [0, 0, 0, 0]
+  for (let dy = 0; dy < drawH; dy++) {
+    const sy = Math.min(sh - 1, Math.max(0, (dy + 0.5) * ry - 0.5))
+    const y0 = Math.floor(sy)
+    const y1 = Math.min(y0 + 1, sh - 1)
+    const wy = sy - y0
+    for (let dx = 0; dx < drawW; dx++) {
+      const sx = Math.min(sw - 1, Math.max(0, (dx + 0.5) * rx - 0.5))
+      const x0 = Math.floor(sx)
+      const x1 = Math.min(x0 + 1, sw - 1)
+      const wx = sx - x0
+      const i00 = (y0 * sw + x0) * 4
+      const i01 = (y0 * sw + x1) * 4
+      const i10 = (y1 * sw + x0) * 4
+      const i11 = (y1 * sw + x1) * 4
+      const o = ((dy + offY) * targetW + (dx + offX)) * 4
+      for (let c = 0; c < 4; c++) {
+        const top = src[i00 + c] * (1 - wx) + src[i01 + c] * wx
+        const bot = src[i10 + c] * (1 - wx) + src[i11 + c] * wx
+        rgba[c] = top * (1 - wy) + bot * wy
+      }
+      const a = rgba[3] / 255
+      out[o] = Math.round(rgba[0] * a + 255 * (1 - a))
+      out[o + 1] = Math.round(rgba[1] * a + 255 * (1 - a))
+      out[o + 2] = Math.round(rgba[2] * a + 255 * (1 - a))
+      out[o + 3] = 255
     }
   }
-  return "cover.png"
+  return { data: out, width: targetW, height: targetH }
 }
+
+// ---------------------------------------------------------------------------
+// File enumeration
+// ---------------------------------------------------------------------------
 
 function collectFiles(
   baseDir: string,
@@ -553,12 +635,14 @@ export function buildIndex(
   <meta name="robots" content="noindex, nofollow" />
 </head>
 <body lang="${escapeXml(language)}">
-  <nav role="doc-toc" id="toc" data-book="sumario">
-    <h1>${escapeXml(sumarioHeading(language))}</h1>
-    <ol>
+  <div itemscope itemtype="https://schema.org/Book">
+    <nav role="doc-toc" id="toc" data-book="sumario">
+      <h1>${escapeXml(sumarioHeading(language))}</h1>
+      <ol>
 ${tocItems}
-    </ol>
-  </nav>
+      </ol>
+    </nav>
+  </div>
 </body>
 </html>`
 }
