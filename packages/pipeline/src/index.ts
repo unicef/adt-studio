@@ -120,6 +120,8 @@ export {
 export {
   captionPageImages,
   buildCaptionConfig,
+  collectCaptionImageIds,
+  groupGlossaryImageIdsByPage,
   extractImageIds,
   type CaptionConfig,
   type CaptionPageInput,

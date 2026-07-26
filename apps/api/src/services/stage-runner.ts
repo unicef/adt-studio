@@ -30,7 +30,8 @@ import {
   // Proof step imports
   captionPageImages,
   buildCaptionConfig,
-  extractImageIds,
+  collectCaptionImageIds,
+  groupGlossaryImageIdsByPage,
   regenerateGlossaryPreservingEdits,
   buildGlossaryConfig,
   generateToc,
@@ -107,6 +108,7 @@ import type {
   StepName,
   StageName,
   BookSummaryOutput,
+  GlossaryOutput,
 } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
 import type { PageData } from "@adt/storage"
@@ -1653,6 +1655,13 @@ async function runCaptionsStep(
     const summaryRow = storage.getLatestNodeData("book-summary", "book")
     const bookSummary = (summaryRow?.data as BookSummaryOutput | undefined)?.summary
 
+    const glossaryRow = storage.getLatestNodeData("glossary", "book")
+    const glossary = glossaryRow?.data as GlossaryOutput | undefined
+    const glossaryImageIdsByPage = groupGlossaryImageIdsByPage(
+      glossary,
+      (imageId) => storage.getImageMeta(imageId)?.pageId,
+    )
+
     const onLlmLog = (entry: LlmLogEntry) => {
       storage.appendLlmLog(entry)
       const step = entry.taskType as StepName
@@ -1734,7 +1743,10 @@ async function runCaptionsStep(
           const htmlSections = rendering.sections
             .filter((s) => !sectioning?.sections[s.sectionIndex]?.isPruned)
             .map((s) => s.html)
-          const imageIds = extractImageIds(htmlSections)
+          const imageIds = collectCaptionImageIds(
+            htmlSections,
+            glossaryImageIdsByPage.get(page.pageId),
+          )
 
           if (imageIds.length === 0) {
             storage.putNodeData("image-captioning", page.pageId, { captions: [] })
