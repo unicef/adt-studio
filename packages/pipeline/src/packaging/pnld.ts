@@ -148,8 +148,13 @@ function reorganize(pnldDir: string, rawPages: PageEntry[], language: string): P
   moveDirContents(path.join(assetsDir, "fonts"), fontsDir)
   moveDirContents(path.join(assetsDir, "libs", "fontawesome", "webfonts"), fontsDir)
 
-  // 3. Scripts → resources/scripts (only non-runtime scripts survive the strip)
+  // 3. Scripts → resources/scripts. Spec §5.2 requires every script to live in
+  //    this folder, with no extra dots in the filename.
   moveFile(path.join(assetsDir, "auto-fit.js"), path.join(scriptsDir, "auto-fit.js"))
+  moveFile(
+    path.join(assetsDir, "activities.bundle.local.js"),
+    path.join(scriptsDir, "activities-bundle-local.js"),
+  )
 
   // 4. Images → resources/images
   moveDirContents(path.join(pnldDir, "images"), imagesDir)
@@ -249,7 +254,7 @@ export function rewriteContentPage(
     )
     out = out.replace(
       /<\/body>/i,
-      '    <script src="../resources/adt/assets/activities.bundle.local.js"></script>\n</body>',
+      '    <script src="../resources/scripts/activities-bundle-local.js"></script>\n</body>',
     )
   }
 
@@ -314,9 +319,15 @@ function removeStrayRootFiles(pnldDir: string): void {
  * adt/webpub layout (`assets/` + `content/`) so the standalone activities
  * bundle works unchanged via `<meta name="adt-base">`. Carries everything the
  * reader + bundle need: the config, interface translations, page/toc manifests,
- * the per-language feature data (read-aloud audio, sign-language video,
- * glossary/texts/timecode), and the activities bundle itself. Must run before
- * `assets/` and `content/` are deleted; `content/` itself stays HTML-only.
+ * and the per-language feature data (read-aloud audio, sign-language video,
+ * glossary/texts/timecode). Must run before `assets/` and `content/` are
+ * deleted; `content/` itself stays HTML-only. (The activities bundle is not
+ * carried here — it moves to `resources/scripts/` earlier in the reorg.)
+ *
+ * Locale folders are lowercased to satisfy the spec's folder-naming rule
+ * (§5.2.1). The activities bundle derives its fetch language from
+ * `config.languages`, so those locale codes are lowercased in lockstep,
+ * leaving each page's `<html lang>` (the semantic locale) untouched.
  */
 export function buildAdtSidecar(pnldDir: string): void {
   const adt = path.join(pnldDir, "resources", "adt")
@@ -324,14 +335,54 @@ export function buildAdtSidecar(pnldDir: string): void {
   const content = path.join(pnldDir, "content")
 
   moveFile(path.join(assets, "config.json"), path.join(adt, "assets", "config.json"))
-  moveFile(
-    path.join(assets, "activities.bundle.local.js"),
-    path.join(adt, "assets", "activities.bundle.local.js"),
-  )
   moveDir(path.join(assets, "interface_translations"), path.join(adt, "assets", "interface_translations"))
   moveFile(path.join(content, "pages.json"), path.join(adt, "content", "pages.json"))
   moveFile(path.join(content, "toc.json"), path.join(adt, "content", "toc.json"))
   moveDir(path.join(content, "i18n"), path.join(adt, "content", "i18n"))
+
+  lowercaseChildDirs(path.join(adt, "assets", "interface_translations"))
+  lowercaseChildDirs(path.join(adt, "content", "i18n"))
+  lowercaseConfigLanguages(path.join(adt, "assets", "config.json"))
+}
+
+/**
+ * Lowercase every immediate subdirectory name (spec §5.2.1: all folders
+ * lowercase). Renames via a temp name so the case actually changes on
+ * case-insensitive filesystems.
+ */
+function lowercaseChildDirs(dir: string): void {
+  if (!fs.existsSync(dir)) return
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    const lower = entry.name.toLowerCase()
+    if (lower === entry.name) continue
+    const tmp = path.join(dir, `__lc_${lower}`)
+    fs.renameSync(path.join(dir, entry.name), tmp)
+    fs.renameSync(tmp, path.join(dir, lower))
+  }
+}
+
+/**
+ * Lowercase the locale codes in `config.languages` so the activities bundle
+ * resolves the now-lowercase i18n / interface_translations folders (it picks
+ * its fetch language from this config, not from `<html lang>`).
+ */
+function lowercaseConfigLanguages(configPath: string): void {
+  if (!fs.existsSync(configPath)) return
+  try {
+    const config = JSON.parse(fs.readFileSync(configPath, "utf-8"))
+    const langs = config?.languages
+    if (!langs) return
+    if (typeof langs.default === "string") langs.default = langs.default.toLowerCase()
+    if (Array.isArray(langs.available)) {
+      langs.available = langs.available.map((l: unknown) =>
+        typeof l === "string" ? l.toLowerCase() : l,
+      )
+    }
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2))
+  } catch {
+    // Malformed config — leave as-is rather than failing the export.
+  }
 }
 
 function moveDir(src: string, dest: string): void {

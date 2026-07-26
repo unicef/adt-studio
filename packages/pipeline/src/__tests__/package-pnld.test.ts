@@ -262,12 +262,11 @@ describe("ensureJpegCover", () => {
 })
 
 describe("buildAdtSidecar", () => {
-  it("preserves config, manifests, feature data, and the bundle under resources/adt", () => {
+  it("preserves config, manifests, and feature data under resources/adt", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-adt-"))
     fs.mkdirSync(path.join(dir, "assets", "interface_translations", "pt-BR"), { recursive: true })
     fs.mkdirSync(path.join(dir, "content", "i18n", "pt-BR", "audio"), { recursive: true })
     fs.writeFileSync(path.join(dir, "assets", "config.json"), "{}")
-    fs.writeFileSync(path.join(dir, "assets", "activities.bundle.local.js"), "//bundle")
     fs.writeFileSync(path.join(dir, "assets", "interface_translations", "pt-BR", "interface_translations.json"), "{}")
     fs.writeFileSync(path.join(dir, "content", "pages.json"), "[]")
     fs.writeFileSync(path.join(dir, "content", "toc.json"), "[]")
@@ -277,10 +276,40 @@ describe("buildAdtSidecar", () => {
 
     const adt = path.join(dir, "resources", "adt")
     expect(fs.existsSync(path.join(adt, "assets", "config.json"))).toBe(true)
-    expect(fs.existsSync(path.join(adt, "assets", "activities.bundle.local.js"))).toBe(true)
-    expect(fs.existsSync(path.join(adt, "assets", "interface_translations", "pt-BR", "interface_translations.json"))).toBe(true)
+    expect(fs.existsSync(path.join(adt, "assets", "interface_translations", "pt-br", "interface_translations.json"))).toBe(true)
     expect(fs.existsSync(path.join(adt, "content", "pages.json"))).toBe(true)
-    expect(fs.existsSync(path.join(adt, "content", "i18n", "pt-BR", "audio", "pg001.mp3"))).toBe(true)
+    expect(fs.existsSync(path.join(adt, "content", "i18n", "pt-br", "audio", "pg001.mp3"))).toBe(true)
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("lowercases the locale folder names (spec 5.2.1)", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-adt-"))
+    fs.mkdirSync(path.join(dir, "assets", "interface_translations", "pt-BR"), { recursive: true })
+    fs.mkdirSync(path.join(dir, "content", "i18n", "en-US"), { recursive: true })
+
+    buildAdtSidecar(dir)
+
+    const adt = path.join(dir, "resources", "adt")
+    expect(fs.readdirSync(path.join(adt, "assets", "interface_translations"))).toEqual(["pt-br"])
+    expect(fs.readdirSync(path.join(adt, "content", "i18n"))).toEqual(["en-us"])
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("lowercases the locale codes in config.languages", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-adt-"))
+    fs.mkdirSync(path.join(dir, "assets"), { recursive: true })
+    fs.writeFileSync(
+      path.join(dir, "assets", "config.json"),
+      JSON.stringify({ languages: { default: "pt-BR", available: ["pt-BR", "en-US"] } }),
+    )
+
+    buildAdtSidecar(dir)
+
+    const config = JSON.parse(
+      fs.readFileSync(path.join(dir, "resources", "adt", "assets", "config.json"), "utf-8"),
+    )
+    expect(config.languages.default).toBe("pt-br")
+    expect(config.languages.available).toEqual(["pt-br", "en-us"])
     fs.rmSync(dir, { recursive: true, force: true })
   })
 
@@ -298,12 +327,12 @@ describe("rewriteContentPage — activities bundle", () => {
   it("injects the adt-base meta + bundle on activity pages", () => {
     const out = rewriteContentPage(activity, 1, "pt-BR")
     expect(out).toContain('<meta name="adt-base" content="../resources/adt/" />')
-    expect(out).toContain('<script src="../resources/adt/assets/activities.bundle.local.js"></script>')
+    expect(out).toContain('<script src="../resources/scripts/activities-bundle-local.js"></script>')
   })
 
   it("leaves non-activity pages without the bundle", () => {
     const out = rewriteContentPage(plain, 1, "pt-BR")
-    expect(out).not.toContain("activities.bundle.local.js")
+    expect(out).not.toContain("activities-bundle-local.js")
     expect(out).not.toContain("adt-base")
   })
 })

@@ -24,7 +24,7 @@ the structural documents. The caller zips the result into `<book>.zip`.
 └── resources/
     ├── fonts/                    bundled webfonts + FontAwesome glyph fonts
     ├── images/                   page images
-    ├── scripts/                  auto-fit.js (+ nothing else runtime)
+    ├── scripts/                  auto-fit.js, activities-bundle-local.js
     ├── styles/                   tailwind_output.css, fonts.css, fontawesome-all-min.css
     └── adt/                      ADT feature sidecar (see "Features")
 ```
@@ -98,21 +98,28 @@ placeholder is left as-is rather than failing the export.
 
 ## Features — `resources/adt/`
 
-ADT features are **carried, not dropped**. The runtime feature data and the
-standalone activities bundle live under `resources/adt/`, mirroring the adt/web
-layout so the reader (and the activities bundle) can consume every feature:
+ADT features are **carried, not dropped**. The runtime feature data lives under
+`resources/adt/`, mirroring the adt/web layout so the reader (and the activities
+bundle) can consume every feature:
 
 ```
 resources/adt/
 ├── assets/
 │   ├── config.json                     feature flags, languages
-│   ├── interface_translations/<lang>/  chrome strings
-│   └── activities.bundle.local.js      standalone activities runtime
+│   └── interface_translations/<lang>/  chrome strings
 └── content/
     ├── pages.json  toc.json            navigation manifests
     └── i18n/<lang>/                    read-aloud audio, sign-language video,
                                         glossary/texts/timecode JSON
 ```
+
+Locale folders (`<lang>`) are lowercased (`pt-BR` → `pt-br`) to satisfy the
+folder-naming rule; the locale codes in `config.languages` are lowercased in
+lockstep so the activities bundle (which derives its fetch language from that
+config) resolves them, while each page's `<html lang>` keeps the semantic
+locale. The activities runtime itself sits in `resources/scripts/`
+(`activities-bundle-local.js`), not here — the spec requires all scripts in that
+one folder.
 
 ### Interactive activities
 
@@ -124,7 +131,7 @@ each activity page carries:
 
 ```html
 <meta name="adt-base" content="../resources/adt/" />
-<script src="../resources/adt/assets/activities.bundle.local.js"></script>
+<script src="../resources/scripts/activities-bundle-local.js"></script>
 ```
 
 The shared `adt-runtime` loaders resolve `config.json` / manifests / i18n
