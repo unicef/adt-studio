@@ -82,7 +82,7 @@ export function VersionCompareDialog({
 }: VersionCompareDialogProps) {
   const { t } = useLingui()
   const [selected, setSelected] = useSelectedVersion(open, initialSelected)
-  const [showUnchanged, setShowUnchanged] = useState(false)
+  const [showUnchanged, setShowUnchanged] = useState(true)
 
   const dataOf = (v: number) => versions.find((x) => x.version === v)?.data
   const isCurrent = selected === currentVersion
@@ -183,9 +183,11 @@ export function VersionCompareDialog({
               )}
             </>
           )
-        ) : groups.total === 0 && !showUnchanged ? (
+        ) : groups.total === 0 && (!showUnchanged || groups.unchanged.length === 0) ? (
           <p className="py-10 text-center text-sm text-muted-foreground">
-            {t`No differences from the current version.`}
+            {showUnchanged && groups.unchanged.length === 0
+              ? t`This version is empty.`
+              : t`No differences from the current version.`}
           </p>
         ) : (
           <>
