@@ -374,6 +374,58 @@ export function VersionPicker({
     </div>
   ) : null
 
+  // Shared rich-popover layout (header + not-at-latest bar + pinned current +
+  // scrollable list + Compare button). Visual and book modes differ only in the
+  // row renderer, the scroll container, and an optional hover overlay.
+  const richPopover = (
+    rowFn: (v: VersionEntry) => ReactNode,
+    opts: { scrollClassName: string; scrollProps?: Record<string, unknown>; overlay?: ReactNode }
+  ) => (
+    <div className="relative flex flex-col">
+      <div className="flex items-baseline justify-between border-b px-3 py-2">
+        <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          {t`Version history`}
+        </span>
+        <span className="text-[10px] tabular-nums text-muted-foreground/70">
+          {versions?.length ?? 0}
+        </span>
+      </div>
+
+      {/* A3 — surface where "current" is and offer a jump to latest */}
+      {notAtLatestBar}
+
+      {/* A2 — current pinned at the top, always visible */}
+      {currentEntry && (
+        <div className="border-b px-1.5 py-1.5">
+          {sectionLabel(t`Current`)}
+          {rowFn(currentEntry)}
+        </div>
+      )}
+
+      <div className={opts.scrollClassName} {...opts.scrollProps}>
+        {otherVersions.map((v) => rowFn(v))}
+      </div>
+
+      {opts.overlay}
+
+      {(versions?.length ?? 0) > 1 && (
+        <div className="border-t p-1.5">
+          <button
+            type="button"
+            onClick={() => {
+              setOpen(false)
+              setCompareOpen(true)
+            }}
+            className="flex w-full items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent cursor-pointer"
+          >
+            <GitCompareArrows className="h-3 w-3" />
+            {t`Compare versions`}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <>
       <Popover open={open} onOpenChange={handleOpenChange}>
@@ -412,113 +464,38 @@ export function VersionPicker({
             </div>
           ) : versions && versions.length > 0 ? (
             renderPreview ? (
-              <div className="relative flex flex-col">
-                <div className="flex items-baseline justify-between border-b px-3 py-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {t`Version history`}
-                  </span>
-                  <span className="text-[10px] tabular-nums text-muted-foreground/70">
-                    {versions.length}
-                  </span>
-                </div>
-
-                {/* A3 — surface where "current" is and offer a jump to latest */}
-                {notAtLatestBar}
-
-                {/* A2 — current pinned at the top, always visible */}
-                {currentEntry && (
-                  <div className="border-b px-1.5 py-1.5">
-                    {sectionLabel(t`Current`)}
-                    {visualRow(currentEntry)}
-                  </div>
-                )}
-
-                <div
-                  data-thumb-scroll
-                  className="max-h-72 overflow-auto p-1.5"
-                  onMouseLeave={() => setHovered(null)}
-                >
-                  {otherVersions.map((v) => visualRow(v))}
-                </div>
-
-                {/* Floating preview of the hovered version, to the right of the
-                    popover. Shown on hover only; animates in from the left edge. */}
-                {hovered != null && (
-                  <div className="absolute left-full top-0 ml-2 w-[24rem] overflow-hidden rounded-lg border bg-white shadow-xl animate-in fade-in-0 zoom-in-95 slide-in-from-left-2 duration-200 ease-out motion-reduce:animate-none">
-                    <div className="border-b px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
-                      {t`v${hovered} preview`}
+              richPopover(visualRow, {
+                scrollClassName: "max-h-72 overflow-auto p-1.5",
+                scrollProps: {
+                  "data-thumb-scroll": true,
+                  onMouseLeave: () => setHovered(null),
+                },
+                overlay:
+                  hovered != null ? (
+                    <div className="absolute left-full top-0 ml-2 w-[24rem] overflow-hidden rounded-lg border bg-white shadow-xl animate-in fade-in-0 zoom-in-95 slide-in-from-left-2 duration-200 ease-out motion-reduce:animate-none">
+                      <div className="border-b px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
+                        {t`v${hovered} preview`}
+                      </div>
+                      <div ref={previewPaneRef} className="max-h-[26rem] overflow-auto">
+                        {/* key by version so each switch gets its own loading
+                            skeleton instead of flashing an empty frame */}
+                        <PreviewSkeleton
+                          key={hovered}
+                          reservedClassName="h-64"
+                          reservedHeight={previewHeight ?? undefined}
+                          render={(onReady) =>
+                            renderPreview(
+                              versions.find((v) => v.version === hovered)?.data,
+                              onReady
+                            )
+                          }
+                        />
+                      </div>
                     </div>
-                    <div ref={previewPaneRef} className="max-h-[26rem] overflow-auto">
-                      {/* key by version so each switch gets its own loading
-                          skeleton instead of flashing an empty frame */}
-                      <PreviewSkeleton
-                        key={hovered}
-                        reservedClassName="h-64"
-                        reservedHeight={previewHeight ?? undefined}
-                        render={(onReady) =>
-                          renderPreview(
-                            versions.find((v) => v.version === hovered)?.data,
-                            onReady
-                          )
-                        }
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {versions.length > 1 && (
-                  <div className="border-t p-1.5">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setOpen(false)
-                        setCompareOpen(true)
-                      }}
-                      className="flex w-full items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent cursor-pointer"
-                    >
-                      <GitCompareArrows className="h-3 w-3" />
-                      {t`Compare versions`}
-                    </button>
-                  </div>
-                )}
-              </div>
+                  ) : null,
+              })
             ) : diff ? (
-              <div className="flex flex-col">
-                <div className="flex items-baseline justify-between border-b px-3 py-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                    {t`Version history`}
-                  </span>
-                  <span className="text-[10px] tabular-nums text-muted-foreground/70">
-                    {versions.length}
-                  </span>
-                </div>
-
-                {notAtLatestBar}
-
-                {currentEntry && (
-                  <div className="border-b px-1.5 py-1.5">
-                    {sectionLabel(t`Current`)}
-                    {diffRow(currentEntry)}
-                  </div>
-                )}
-
-                <div className="max-h-64 overflow-auto p-1">
-                  {otherVersions.map((v) => diffRow(v))}
-                </div>
-                <div className="border-t px-1.5 py-1.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setOpen(false)
-                      setCompareOpen(true)
-                    }}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent cursor-pointer"
-                  >
-                    <GitCompareArrows className="h-3 w-3" />
-                    {t`Compare versions`}
-                  </button>
-                </div>
-              </div>
+              richPopover(diffRow, { scrollClassName: "max-h-64 overflow-auto p-1" })
             ) : (
               versions.map((v) => {
                 const isCurrent = v.version === currentVersion
