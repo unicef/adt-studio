@@ -2213,8 +2213,8 @@ msgstr "Nuk u hoqën dot {failed} nga {total} video — ju lutem provoni përsë
 msgid "Couldn't apply the spreads — please try again."
 msgstr "Nuk mund të aplikohej faqet e përbashkëta — ju lutem provoni përsëri."
 
-msgid "Couldn't check for updates"
-msgstr "Nuk u arrit të kontrollohen përditësimet"
+#~ msgid "Couldn't check for updates"
+#~ msgstr "Nuk u arrit të kontrollohen përditësimet"
 
 msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
 msgstr "Pamja paraprake e PDF-së nuk u ngarkua dot. Faqet mund të ndahen ende duke përdorur kontrollet."
@@ -8544,6 +8544,9 @@ msgstr "Përditësim i disponueshëm"
 
 #~ msgid "Update downloaded. Restart to install."
 #~ msgstr "Përditësimi u shkarkua. Rinisni për të instaluar."
+
+msgid "Update failed"
+msgstr "Përditësimi dështoi"
 
 msgid "Update ready to install"
 msgstr "Përditësimi është gati për instalim"

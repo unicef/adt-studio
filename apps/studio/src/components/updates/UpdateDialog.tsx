@@ -1,4 +1,5 @@
 import { Trans } from "@lingui/react/macro"
+import { useEffect, useState } from "react"
 import {
   Dialog,
   DialogContent,
@@ -31,12 +32,27 @@ export function UpdateDialog({
   const live = useUpdateStatus()
   const status = statusOverride ?? live.status
   const { check, download, cancel, install, installOnQuit } = live
+  const [inInstallFlow, setInInstallFlow] = useState(false)
+
+  useEffect(() => {
+    if (
+      status.phase === "downloading" ||
+      status.phase === "downloaded" ||
+      status.phase === "installing"
+    ) {
+      setInInstallFlow(true)
+    } else if (status.phase !== "error") {
+      setInInstallFlow(false)
+    }
+  }, [status.phase])
+
   const showBetaVersions =
     currentVersion != null &&
     getReleaseChannel(currentVersion) === "beta" &&
     status.phase !== "downloading" &&
     status.phase !== "downloaded" &&
-    status.phase !== "installing"
+    status.phase !== "installing" &&
+    !(status.phase === "error" && inInstallFlow)
 
   const close = () => onOpenChange(false)
 

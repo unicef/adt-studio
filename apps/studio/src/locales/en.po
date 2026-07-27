@@ -2212,8 +2212,8 @@ msgstr "Could not remove {failed} of {total} videos. Please try again."
 msgid "Couldn't apply the spreads — please try again."
 msgstr "Couldn't apply the spreads — please try again."
 
-msgid "Couldn't check for updates"
-msgstr "Couldn't check for updates"
+#~ msgid "Couldn't check for updates"
+#~ msgstr "Couldn't check for updates"
 
 msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
 msgstr "Couldn't load the PDF preview. The pages can still be split using the controls."
@@ -8543,6 +8543,9 @@ msgstr "Update available"
 
 #~ msgid "Update downloaded. Restart to install."
 #~ msgstr "Update downloaded. Restart to install."
+
+msgid "Update failed"
+msgstr "Update failed"
 
 msgid "Update ready to install"
 msgstr "Update ready to install"

@@ -2212,8 +2212,8 @@ msgstr "No se pudieron eliminar {failed} de {total} videos — por favor, intén
 msgid "Couldn't apply the spreads — please try again."
 msgstr "No se pudieron aplicar las dobles páginas — por favor, inténtalo de nuevo."
 
-msgid "Couldn't check for updates"
-msgstr "No se pudo buscar actualizaciones"
+#~ msgid "Couldn't check for updates"
+#~ msgstr "No se pudo buscar actualizaciones"
 
 msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
 msgstr "No se pudo cargar la vista previa del PDF. Las páginas aún se pueden dividir con los controles."
@@ -8543,6 +8543,9 @@ msgstr "Actualización disponible"
 
 #~ msgid "Update downloaded. Restart to install."
 #~ msgstr "Actualización descargada. Reinicia para instalar."
+
+msgid "Update failed"
+msgstr "Error en la actualización"
 
 msgid "Update ready to install"
 msgstr "Actualización lista para instalar"

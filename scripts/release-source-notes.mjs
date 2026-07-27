@@ -155,17 +155,24 @@ export function parseReleaseSourceSection(body) {
       continue;
     }
 
-    const title = line.match(/^- Title: `([^`\r\n]+)`$/);
-    const validTitle = title ? validEditorialTitle(title[1]) : undefined;
+    const title = line.match(/^- Title: (?:`([^`\r\n]+)`|([^`\r\n]+))$/);
+    const validTitle = title
+      ? validEditorialTitle(title[1] ?? title[2])
+      : undefined;
     if (validTitle) {
       source.title = validTitle;
       recognized++;
       continue;
     }
 
-    const description = line.match(/^- Description: `([^`\r\n]+)`$/);
-    if (description && description[1].trim().length <= 500) {
-      source.description = description[1].trim();
+    const description = line.match(
+      /^- Description: (?:`([^`\r\n]+)`|([^`\r\n]+))$/,
+    );
+    const descriptionValue = description
+      ? (description[1] ?? description[2]).trim()
+      : undefined;
+    if (descriptionValue && descriptionValue.length <= 500) {
+      source.description = descriptionValue;
       recognized++;
       continue;
     }

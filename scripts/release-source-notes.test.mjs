@@ -106,6 +106,24 @@ describe("release source notes", () => {
     });
   });
 
+  it("accepts editorial title and description without backticks", () => {
+    const body = [
+      "### Release source",
+      "",
+      "- Branch: `develop`",
+      "- Title: Model-specific prompts & global prompt settings",
+      "- Description: Introduces **model-specific** prompt support.",
+    ].join("\n");
+    const parsed = parseReleaseSourceSection(body);
+
+    expect(parsed.source?.title).toBe(
+      "Model-specific prompts & global prompt settings",
+    );
+    expect(parsed.source?.description).toBe(
+      "Introduces **model-specific** prompt support.",
+    );
+  });
+
   it("ignores invalid presentation values in the source section", () => {
     const body = [
       "### Release source",

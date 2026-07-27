@@ -2212,8 +2212,8 @@ msgstr "Não foi possível remover {failed} de {total} vídeos — tente novamen
 msgid "Couldn't apply the spreads — please try again."
 msgstr "Não foi possível aplicar os spreads — tente novamente."
 
-msgid "Couldn't check for updates"
-msgstr "Não foi possível verificar atualizações"
+#~ msgid "Couldn't check for updates"
+#~ msgstr "Não foi possível verificar atualizações"
 
 msgid "Couldn't load the PDF preview. The pages can still be split using the controls."
 msgstr "Não foi possível carregar a pré-visualização do PDF. As páginas ainda podem ser divididas usando os controles."
@@ -8543,6 +8543,9 @@ msgstr "Atualização disponível"
 
 #~ msgid "Update downloaded. Restart to install."
 #~ msgstr "Atualização baixada. Reinicie para instalar."
+
+msgid "Update failed"
+msgstr "Falha na atualização"
 
 msgid "Update ready to install"
 msgstr "Atualização pronta para instalar"

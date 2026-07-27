@@ -253,7 +253,7 @@ function buildView({
     return {
       tone: "danger",
       icon: <AlertCircle className="size-6" />,
-      title: <Trans>Couldn't check for updates</Trans>,
+      title: <Trans>Update failed</Trans>,
       subtitle: status.message,
       actions: (
         <>
