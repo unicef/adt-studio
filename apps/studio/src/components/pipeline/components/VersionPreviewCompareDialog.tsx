@@ -29,7 +29,7 @@ interface VersionPreviewCompareDialogProps {
   currentVersion: number
   initialSelected: number
   /** Renders a version's content read-only (`onReady` drives the skeleton). */
-  renderPreview: (data: unknown, onReady?: () => void) => ReactNode
+  renderPreview: (data: unknown, onReady?: () => void, opts?: { lite?: boolean }) => ReactNode
   accentColor: string
   icon: LucideIcon
   onRestore: (version: number) => Promise<void> | void

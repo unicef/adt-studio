@@ -121,9 +121,15 @@ interface VersionPickerProps {
    * version plus a larger preview of the hovered version, instead of a plain
    * text list — used by steps whose content has a rendered form (e.g.
    * storyboard rendering). `onReady` fires once the content has loaded (drives
-   * the loading skeletons).
+   * the loading skeletons). `opts.lite` requests a cheap render for the tiny
+   * list chips (skip per-version Tailwind recompilation / heavy work); the
+   * full-fidelity render is used for the hover preview and the compare dialog.
    */
-  renderPreview?: (data: unknown, onReady?: () => void) => ReactNode
+  renderPreview?: (
+    data: unknown,
+    onReady?: () => void,
+    opts?: { lite?: boolean }
+  ) => ReactNode
   /**
    * Book-level list stages (glossary, TOC, quizzes, …) supply this instead of
    * renderPreview: the picker then shows a per-version change count vs the
@@ -298,7 +304,7 @@ export function VersionPicker({
             <LazyThumb skeletonClassName="h-12">
               <PreviewSkeleton
                 reservedClassName="h-12"
-                render={(onReady) => renderPreview!(v.data, onReady)}
+                render={(onReady) => renderPreview!(v.data, onReady, { lite: true })}
               />
             </LazyThumb>
           </div>

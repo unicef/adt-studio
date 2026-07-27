@@ -1929,7 +1929,7 @@ export function StoryboardSectionDetail({
         onSave={saveRendering}
         onDiscard={discardAll}
         renderSaveBar={false}
-        renderPreview={(data, onReady) => {
+        renderPreview={(data, onReady, opts) => {
           const sec = getRenderedSectionByIndex(data as RenderingData, sectionIndex)
           if (!sec) {
             return (
@@ -1946,7 +1946,10 @@ export function StoryboardSectionDetail({
               bookLabel={bookLabel}
               editable={false}
               thumbnail
-              autoRefreshCss
+              // Skip the per-version Tailwind recompile for the tiny list chips
+              // (base CSS is enough at chip size); keep it for the full-size
+              // hover preview and compare panes where missing classes show.
+              autoRefreshCss={!opts?.lite}
               applyBodyBackground
               bodyFontFamily={pageDetail?.reflowableFontFamily ?? undefined}
               onReady={onReady}
