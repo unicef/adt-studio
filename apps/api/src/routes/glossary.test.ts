@@ -77,6 +77,19 @@ function addRawGlossaryData(label: string, rawData: string): void {
   db.close()
 }
 
+function addCaptionDerivedData(label: string): void {
+  const db = openBookDb(path.join(tmpDir, label, `${label}.db`))
+  db.run(
+    "INSERT INTO node_data (node, item_id, version, data) VALUES (?, ?, ?, ?)",
+    ["image-captioning", "pg001", 1, JSON.stringify({ captions: [] })],
+  )
+  db.run(
+    "INSERT INTO step_runs (step, status, completed_at) VALUES (?, 'done', ?)",
+    ["image-captioning", "2026-01-01T00:00:00.000Z"],
+  )
+  db.close()
+}
+
 describe("GET /books/:label/glossary", () => {
   it("returns null when no glossary exists", async () => {
     createTestBook("no-glossary")
@@ -187,6 +200,118 @@ describe("PUT /books/:label/glossary", () => {
           { id: "gl_manual_soil_def", text: "The top layer of earth" },
         ],
       })
+    } finally {
+      db.close()
+    }
+  })
+
+  it("clears captions and downstream step status when active glossary images change", async () => {
+    createTestBook("change-glossary-image")
+    addRawGlossaryData(
+      "change-glossary-image",
+      JSON.stringify({
+        items: [
+          {
+            word: "Forest",
+            definition: "Trees",
+            variations: [],
+            emojis: [],
+            imageId: "old-image",
+          },
+        ],
+        pageCount: 1,
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      }),
+    )
+    addCaptionDerivedData("change-glossary-image")
+    const app = createGlossaryRoutes(tmpDir)
+
+    const res = await app.request("/books/change-glossary-image/glossary", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: [
+          {
+            word: "Forest",
+            definition: "Trees",
+            variations: [],
+            emojis: [],
+            imageId: "new-image",
+          },
+        ],
+        pageCount: 1,
+        generatedAt: "2026-01-02T00:00:00.000Z",
+      }),
+    })
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({ imageRequirementsChanged: true })
+    const db = openBookDb(
+      path.join(tmpDir, "change-glossary-image", "change-glossary-image.db"),
+    )
+    try {
+      expect(
+        db.all("SELECT 1 FROM node_data WHERE node = 'image-captioning'"),
+      ).toEqual([])
+      expect(
+        db.all("SELECT 1 FROM step_runs WHERE step = 'image-captioning'"),
+      ).toEqual([])
+    } finally {
+      db.close()
+    }
+  })
+
+  it("keeps captions when glossary edits do not change the active image set", async () => {
+    createTestBook("keep-glossary-image")
+    addRawGlossaryData(
+      "keep-glossary-image",
+      JSON.stringify({
+        items: [
+          {
+            word: "Forest",
+            definition: "Trees",
+            variations: [],
+            emojis: [],
+            imageId: "same-image",
+          },
+        ],
+        pageCount: 1,
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      }),
+    )
+    addCaptionDerivedData("keep-glossary-image")
+    const app = createGlossaryRoutes(tmpDir)
+
+    const res = await app.request("/books/keep-glossary-image/glossary", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        items: [
+          {
+            word: "Forest",
+            definition: "A large group of trees",
+            variations: [],
+            emojis: [],
+            imageId: "same-image",
+          },
+        ],
+        pageCount: 1,
+        generatedAt: "2026-01-02T00:00:00.000Z",
+      }),
+    })
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toMatchObject({ imageRequirementsChanged: false })
+    const db = openBookDb(
+      path.join(tmpDir, "keep-glossary-image", "keep-glossary-image.db"),
+    )
+    try {
+      expect(
+        db.all("SELECT 1 FROM node_data WHERE node = 'image-captioning'"),
+      ).toHaveLength(1)
+      expect(
+        db.all("SELECT 1 FROM step_runs WHERE step = 'image-captioning'"),
+      ).toHaveLength(1)
     } finally {
       db.close()
     }

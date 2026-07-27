@@ -3,7 +3,12 @@ import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
-import { GlossaryOutput, parseBookLabel } from "@adt/types"
+import {
+  GlossaryOutput,
+  IMAGE_SET_CHANGE_CLEAR_NODE_TYPES,
+  IMAGE_SET_CHANGE_CLEAR_STEPS,
+  parseBookLabel,
+} from "@adt/types"
 import { openBookDb, createBookStorage } from "@adt/storage"
 import {
   buildTextCatalog,
@@ -22,6 +27,18 @@ function safeParseLabel(label: string): string {
       message: err instanceof Error ? err.message : String(err),
     })
   }
+}
+
+function activeGlossaryImageIds(glossary: GlossaryOutput | undefined): Set<string> {
+  return new Set(
+    glossary?.items
+      .filter((item) => !item.pruned && item.imageId)
+      .map((item) => item.imageId!) ?? [],
+  )
+}
+
+function hasSameValues(left: Set<string>, right: Set<string>): boolean {
+  return left.size === right.size && [...left].every((value) => right.has(value))
 }
 
 export function createGlossaryRoutes(
@@ -95,11 +112,25 @@ export function createGlossaryRoutes(
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
+      const previousRow = storage.getLatestNodeData("glossary", "book")
+      const previous = GlossaryOutput.safeParse(previousRow?.data)
+      const imageRequirementsChanged = !hasSameValues(
+        activeGlossaryImageIds(previous.success ? previous.data : undefined),
+        activeGlossaryImageIds(parsed.data),
+      )
+
       const version = storage.putNodeData("glossary", "book", parsed.data)
+      if (imageRequirementsChanged) {
+        // Captions now include active glossary pictures. Changing that set
+        // invalidates captions and every derived translation/audio/package
+        // result, just like adding or removing an image elsewhere in the book.
+        storage.clearNodesByType([...IMAGE_SET_CHANGE_CLEAR_NODE_TYPES])
+        storage.clearStepRuns([...IMAGE_SET_CHANGE_CLEAR_STEPS])
+      }
       const pages = storage.getPages()
       const catalog = await buildTextCatalog(storage, pages)
       storage.putNodeData("text-catalog", "book", catalog)
-      return c.json({ version })
+      return c.json({ version, imageRequirementsChanged })
     } finally {
       storage.close()
     }

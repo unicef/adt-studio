@@ -583,14 +583,14 @@ describe("getGlossaryItemTextId", () => {
 })
 
 describe("regenerateGlossaryPreservingEdits", () => {
-  it("disconnects glossary media while leaving uploaded videos reusable", async () => {
+  it("preserves media for unchanged words and remaps shifted video ids", async () => {
     const rendering: WebRenderingOutput = {
       sections: [
         {
           sectionIndex: 0,
           sectionType: "content",
           reasoning: "",
-          html: "<p>Forest and river.</p>",
+          html: "<p>Ash, forest and river.</p>",
         },
       ],
     }
@@ -649,21 +649,107 @@ describe("regenerateGlossaryPreservingEdits", () => {
       llmModel: makeFakeLLMModel([
         [
           {
+            word: "Ash",
+            definition: "Powder left after burning",
+            variations: [],
+            emojis: [],
+          },
+          {
             word: "Forest",
             definition: "A large area with trees",
             variations: ["forests"],
             emojis: ["🌲"],
           },
+          {
+            word: "River",
+            definition: "Generated water flow",
+            variations: ["rivers"],
+            emojis: ["🌊"],
+          },
         ],
       ]),
     })
 
-    expect(result.items.every((item) => item.imageId === undefined)).toBe(true)
+    expect(result.items.map((item) => ({ word: item.word, imageId: item.imageId }))).toEqual([
+      { word: "Ash", imageId: undefined },
+      { word: "Forest", imageId: "pg001_im001" },
+      { word: "River", imageId: "pg001_im002" },
+    ])
     expect(assignments).toEqual([
-      { videoId: "v1", sectionId: null },
-      { videoId: "v2", sectionId: null },
+      { videoId: "v1", sectionId: "gl002" },
+      { videoId: "v2", sectionId: "gl003" },
       { videoId: "v4", sectionId: null },
     ])
+  })
+
+  it("detaches videos when their glossary word is removed", async () => {
+    const rendering: WebRenderingOutput = {
+      sections: [
+        {
+          sectionIndex: 0,
+          sectionType: "content",
+          reasoning: "",
+          html: "<p>Forest.</p>",
+        },
+      ],
+    }
+    const existing = {
+      items: [
+        {
+          word: "Mountain",
+          definition: "High land",
+          variations: [],
+          emojis: [],
+          source: "ai" as const,
+          imageId: "pg001_im001",
+        },
+      ],
+      pageCount: 1,
+      generatedAt: "2026-01-01T00:00:00.000Z",
+    }
+    const assignments: Array<{ videoId: string; sectionId: string | null }> = []
+    const storage = {
+      getLatestNodeData: (node: string, itemId: string) => {
+        if (node === "glossary" && itemId === "book") {
+          return { version: 1, data: existing }
+        }
+        if (node === "web-rendering" && itemId === "pg001") {
+          return { version: 1, data: rendering }
+        }
+        return null
+      },
+      getSignLanguageVideos: () => [
+        { videoId: "v1", sectionId: "gl001" },
+        { videoId: "v2", sectionId: "pg001_sec001" },
+      ],
+      assignSignLanguageVideo: (videoId: string, sectionId: string | null) => {
+        assignments.push({ videoId, sectionId })
+      },
+    } as unknown as Storage
+
+    const result = await regenerateGlossaryPreservingEdits({
+      storage,
+      pages: [{ pageId: "pg001", pageNumber: 1, text: "" }],
+      config: buildGlossaryConfig(
+        { role_types: {}, structure_types: {} },
+        "English",
+      ),
+      llmModel: makeFakeLLMModel([
+        [
+          {
+            word: "Forest",
+            definition: "A large area with trees",
+            variations: [],
+            emojis: [],
+          },
+        ],
+      ]),
+    })
+
+    expect(result.items).toHaveLength(1)
+    expect(result.items[0]).toMatchObject({ word: "Forest" })
+    expect(result.items[0].imageId).toBeUndefined()
+    expect(assignments).toEqual([{ videoId: "v1", sectionId: null }])
   })
 })
 

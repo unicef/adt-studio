@@ -1348,10 +1348,13 @@ export const api = {
     request<GlossaryOutput | null>(`/books/${label}/glossary`),
 
   updateGlossary: (label: string, data: unknown) =>
-    request<{ version: number }>(`/books/${label}/glossary`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    }),
+    request<{ version: number; imageRequirementsChanged: boolean }>(
+      `/books/${label}/glossary`,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+      },
+    ),
 
   generateGlossaryItem: (
     label: string,

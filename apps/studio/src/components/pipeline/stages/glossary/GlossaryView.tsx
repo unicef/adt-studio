@@ -28,6 +28,7 @@ import { useQueryClient } from "@tanstack/react-query"
 import { api, BASE_URL, getSignLanguageVideoUrl } from "@/api/client"
 import type { GlossaryItem, GlossaryOutput, SignLanguageVideo, VersionEntry } from "@/api/client"
 import { useGlossary } from "@/hooks/use-glossary"
+import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
 import {
   useSignLanguageVideos,
   useUploadSignLanguageVideo,
@@ -202,8 +203,12 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
     if (!pending) return
     setSaving(true)
     const minDelay = new Promise((r) => setTimeout(r, 400))
-    await api.updateGlossary(bookLabel, pending)
+    const result = await api.updateGlossary(bookLabel, pending)
     setPending(null)
+    if (result.imageRequirementsChanged) {
+      queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
+      invalidateStoryboardDependents(queryClient, bookLabel)
+    }
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "glossary"] }),
       queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "text-catalog"] }),
@@ -275,7 +280,7 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
       generatedAt: base.generatedAt || new Date().toISOString(),
       items: base.items.map((item) =>
         (item.id ?? item.word) === itemId
-          ? { ...item, imageId: newImageId, source: "manual" }
+          ? { ...item, imageId: newImageId }
           : item
       ),
     })
