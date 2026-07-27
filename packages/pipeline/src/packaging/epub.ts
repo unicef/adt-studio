@@ -122,14 +122,48 @@ export function packageEpub(
   // ------------------------------------------------------------------
   const pagesJsonPath = path.join(oebpsDir, "content", "pages.json")
   const rawPages = JSON.parse(fs.readFileSync(pagesJsonPath, "utf-8")) as PageEntry[]
+  // Quizzes run via the standalone activities bundle (the JS runtime), which
+  // works across EPUB readers (Apple Books, Thorium). Quiz pages are authored as
+  // reflowable HTML (device-width viewport, flow layout); in a fixed-layout book
+  // that leaves them uncentered and jarring across page turns, so give them the
+  // book's fixed viewport to render as proper pre-paginated pages — same layout
+  // type, size, and centering as every other page. `refViewport` is the most
+  // common fixed viewport across the book's content pages.
+  const refViewport = options.fixedLayout
+    ? findReferenceViewport(oebpsDir, rawPages)
+    : null
+  // Quiz pages carry the activities bundle, so they also need the OPF `scripted`
+  // property for the reading system to enable scripting.
+  const scriptedHrefs = new Set<string>()
   for (const page of rawPages) {
     if (!page.href.endsWith(".html")) continue
     const htmlPath = path.join(oebpsDir, page.href)
     if (!fs.existsSync(htmlPath)) continue
 
-    const html = fs.readFileSync(htmlPath, "utf-8")
+    const rawHtml = fs.readFileSync(htmlPath, "utf-8")
+    const isQuizPage = rawHtml.includes('data-section-type="activity_quiz"')
+    let html = rawHtml
+    // Fixed-layout: swap the quiz page's responsive viewport for the book's fixed
+    // one so the reader lays it out (and centers it) like its pre-paginated
+    // neighbours instead of floating.
+    if (isQuizPage && refViewport) {
+      html = html.replace(
+        /(<meta name="viewport" content=")width=device-width[^"]*(")/,
+        `$1width=${refViewport.width}, height=${refViewport.height}$2`,
+      )
+    }
     let xhtml = convertPageToXhtml(html)
     const xhtmlHref = page.href.replace(/\.html$/, ".xhtml")
+
+    if (isQuizPage) {
+      // Ship the activities bundle so the reader runs the interactive quiz, and
+      // mark the page scripted in the OPF.
+      xhtml = xhtml.replace(
+        "</body>",
+        `    <script src="./assets/activities.bundle.local.js"></script>\n</body>`,
+      )
+      scriptedHrefs.add(xhtmlHref)
+    }
 
     if (glossaryEntries.length > 0) {
       const result = wrapGlossaryTerms(xhtml, glossaryEntries)
@@ -253,6 +287,7 @@ export function packageEpub(
       allFiles,
       coverHref,
       fixedLayout: options.fixedLayout,
+      scriptedHrefs,
       smilEntries,
       glossaryHref,
     }),
@@ -417,6 +452,42 @@ function parseParagraphs(xhtml: string): Array<{ paragraphId: string; wordIds: s
   return out
 }
 
+/**
+ * The most common fixed viewport (`width=W, height=H`) declared across the
+ * book's pages. Fixed-layout content pages carry an explicit pixel viewport;
+ * quiz pages (authored reflowable) ship `width=device-width` and are ignored.
+ * Returns null when no page declares a fixed viewport.
+ */
+function findReferenceViewport(
+  oebpsDir: string,
+  pages: PageEntry[],
+): { width: number; height: number } | null {
+  const counts = new Map<string, number>()
+  for (const page of pages) {
+    if (!page.href.endsWith(".html")) continue
+    const p = path.join(oebpsDir, page.href)
+    if (!fs.existsSync(p)) continue
+    const m = fs
+      .readFileSync(p, "utf-8")
+      .match(/content="width=(\d+), height=(\d+)"/)
+    if (m) {
+      const key = `${m[1]}x${m[2]}`
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+  }
+  let best: string | null = null
+  let bestN = 0
+  for (const [key, n] of counts) {
+    if (n > bestN) {
+      bestN = n
+      best = key
+    }
+  }
+  if (!best) return null
+  const [w, h] = best.split("x").map(Number)
+  return { width: w, height: h }
+}
+
 function buildOpf(opts: {
   title: string
   authors: string[]
@@ -426,10 +497,12 @@ function buildOpf(opts: {
   allFiles: Array<{ href: string; mediaType: string }>
   coverHref?: string
   fixedLayout?: boolean
+  /** Page hrefs that carry scripts (JS-quiz pages) → need the `scripted` property. */
+  scriptedHrefs?: Set<string>
   smilEntries?: SmilEntry[]
   glossaryHref?: string
 }): string {
-  const { title, authors, publisher, language, pageList, allFiles, coverHref, fixedLayout, smilEntries, glossaryHref } = opts
+  const { title, authors, publisher, language, pageList, allFiles, coverHref, fixedLayout, scriptedHrefs, smilEntries, glossaryHref } = opts
   const smilByPage = new Map<string, SmilEntry>()
   for (const e of smilEntries ?? []) smilByPage.set(e.pageHref, e)
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z")
@@ -514,7 +587,15 @@ function buildOpf(opts: {
 
     const props: string[] = []
     if (file.href === coverHref) props.push("cover-image")
-    if (!fixedLayout && pageHrefs.has(file.href)) props.push("scripted")
+    // Reflowable page docs are `scripted` by default; JS-quiz pages are scripted
+    // regardless of the book's layout (fixed-layout books opt these pages back to
+    // reflowable + scripted so the runtime bundle can run).
+    if (
+      (!fixedLayout && pageHrefs.has(file.href)) ||
+      scriptedHrefs?.has(file.href)
+    ) {
+      props.push("scripted")
+    }
     const propsAttr = props.length > 0 ? ` properties="${props.join(" ")}"` : ""
     const overlayId = pageHrefToOverlayId.get(file.href)
     const overlayAttr = overlayId ? ` media-overlay="${escapeXml(overlayId)}"` : ""
@@ -870,9 +951,48 @@ function wrapBySegments(
     wordIdx += 1
     const wrap = doc.createElement("span")
     wrap.setAttribute("id", wordIdFor(dataId, wordIdx))
+    // Fixed-layout words carry font-size only on the inner per-segment
+    // spans; the word wrapper itself would inherit the page's ~16px
+    // default. The media-overlay read-aloud highlight (media:active-class)
+    // paints the *wrapper's* inline background box, whose height is the
+    // wrapper's own font content-area — so without a matching font-size the
+    // yellow bar renders as a ~16px sliver behind a 48px word. Mirror the
+    // word's own (largest) segment size onto the wrapper so the highlight
+    // covers the whole word. Purely a paint-box hint: all glyphs live in the
+    // styled pieces, so the wrapper renders no text and its width/advance is
+    // unchanged. Emitted inline so the runtime auto-fit script shrinks it in
+    // lockstep with the pieces it also targets.
+    const wordFontSize = maxSegmentFontSize(segments, segOffsets, tok.start, tok.end)
+    if (wordFontSize !== undefined) wrap.setAttribute("style", `font-size:${wordFontSize}px`)
     for (const piece of buildPieces(tok.start, tok.end)) wrap.appendChild(piece)
     parent.appendChild(wrap)
   }
+}
+
+/**
+ * Largest `font-size` (in px) among the segments overlapping [start, end)
+ * in concat coordinates, or `undefined` when none of them declares one.
+ * Fixed-layout segment sizes are always authored in px by the renderer, so
+ * a bare number of px is a safe round-trip.
+ */
+function maxSegmentFontSize(
+  segments: { text?: string; style?: Record<string, string> }[],
+  segOffsets: number[],
+  start: number,
+  end: number,
+): number | undefined {
+  let max = 0
+  for (let i = 0; i < segments.length; i++) {
+    const segStart = segOffsets[i]
+    const segEnd = segStart + (segments[i]?.text ?? "").length
+    if (segEnd <= start) continue
+    if (segStart >= end) break
+    const fsRaw = segments[i]?.style?.["font-size"]
+    if (!fsRaw) continue
+    const fs = parseFloat(fsRaw)
+    if (Number.isFinite(fs) && fs > max) max = fs
+  }
+  return max > 0 ? max : undefined
 }
 
 function wrapTextNodes(

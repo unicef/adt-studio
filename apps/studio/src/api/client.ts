@@ -14,6 +14,7 @@ import type {
   ReviewerValidationInstruction,
   ReviewerValidationSection,
   ReviewerValidationSession,
+  TranslationEvaluationResult,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 
@@ -469,6 +470,27 @@ export interface TextCatalogResponse {
   translations: Record<string, { entries: TextCatalogEntry[]; version: number }>
 }
 
+export interface TranslationEvaluationStatusResponse {
+  language: string
+  currentSourceCatalogVersion: number | null
+  currentTranslationVersion: number | null
+  evaluationVersion: number | null
+  evaluation: TranslationEvaluationResult | null
+  isStale: boolean
+}
+
+export interface TranslationEvaluationStatusesResponse {
+  evaluations: TranslationEvaluationStatusResponse[]
+}
+
+export interface TranslationEvaluationRunResponse {
+  status: "submitted" | "current"
+  taskId: string | null
+  label: string
+  language: string
+  version?: number | null
+}
+
 export interface EasyReadEntry {
   sourceId: string
   easyReadId: string
@@ -551,6 +573,9 @@ export interface WordTimestampEntry {
 export interface WordTimestampResponse {
   entries: Record<string, WordTimestampEntry>
   generatedAt: string | null
+  /** Per-item word-timestamp failures from the last run, so the Speech view can
+   * mark them for pruning or one-by-one regeneration. */
+  failed?: { textId: string; error: string }[]
 }
 
 // --- Debug types ---
@@ -1384,6 +1409,36 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(data),
     }),
+
+  getTranslationEvaluations: (label: string) =>
+    request<TranslationEvaluationStatusesResponse>(`/books/${label}/evaluations/translations`),
+
+  getTranslationEvaluation: (label: string, language: string) =>
+    request<TranslationEvaluationStatusResponse>(`/books/${label}/evaluations/translations/${language}`),
+
+  // The judge model is configurable, so send every provider credential the user
+  // has — the server picks the one matching the configured model.
+  runTranslationEvaluation: (
+    label: string,
+    language: string,
+    apiKey: string,
+    scope: { pageId?: string; entryIds?: string[] } = {},
+    providerCredentials?: StageRunProviderCredentials,
+  ) =>
+    request<TranslationEvaluationRunResponse>(`/books/${label}/evaluations/translations/${language}/run`, {
+      method: "POST",
+      headers: buildApiHeaders(apiKey, providerCredentials),
+      body: JSON.stringify({
+        ...(scope.pageId ? { page_id: scope.pageId } : {}),
+        ...(scope.entryIds && scope.entryIds.length > 0 ? { entry_ids: scope.entryIds } : {}),
+      }),
+    }),
+
+  acceptTranslationEvaluationItemAnyway: (label: string, language: string, entryId: string) =>
+    request<{ version: number; evaluation: TranslationEvaluationResult }>(
+      `/books/${label}/evaluations/translations/${language}/items/${encodeURIComponent(entryId)}/accept-anyway`,
+      { method: "POST" },
+    ),
 
   getStepStatus: (label: string) =>
     request<{

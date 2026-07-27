@@ -59,7 +59,8 @@ describe("createGeminiTTSSynthesizer", () => {
       "Content-Type": "application/json",
       "x-goog-api-key": "gm-test",
     })
-    expect(JSON.parse(String(init?.body))).toMatchObject({
+    const sentBody = JSON.parse(String(init?.body))
+    expect(sentBody).toMatchObject({
       contents: [{ parts: [{ text: "Hello world" }] }],
       generationConfig: {
         responseModalities: ["AUDIO"],
@@ -72,6 +73,38 @@ describe("createGeminiTTSSynthesizer", () => {
         },
       },
     })
+    // Sampling is opt-in: with no temperature/seed provided, neither is sent
+    // so Gemini uses its own defaults.
+    expect(sentBody.generationConfig).not.toHaveProperty("temperature")
+    expect(sentBody.generationConfig).not.toHaveProperty("seed")
+  })
+
+  it("lets caller override temperature and seed (per-book SpeechConfig)", async () => {
+    const pcmBytes = new Uint8Array([1, 2, 3, 4])
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          candidates: [
+            { content: { parts: [{ inlineData: { data: Buffer.from(pcmBytes).toString("base64") } }] } },
+          ],
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      )
+    )
+
+    const synth = createGeminiTTSSynthesizer({ apiKey: "gm-test" })
+    await synth.synthesize({
+      model: "gemini-2.5-pro-preview-tts",
+      voice: "Kore",
+      input: "Hello world",
+      responseFormat: "wav",
+      temperature: 0.15,
+      seed: 7,
+    })
+
+    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))
+    expect(body.generationConfig.temperature).toBe(0.15)
+    expect(body.generationConfig.seed).toBe(7)
   })
 
   it("finds Gemini audio when a text part appears before the audio part", async () => {

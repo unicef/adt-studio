@@ -6,6 +6,8 @@ import type { SpeechFileEntry, TTSProviderConfig, TTSRateLimitConfig } from "@ad
 import type { RateLimiter, TTSSynthesizer, WhisperTranscriptionResult } from "@adt/llm"
 import { transcribeWithWhisper } from "@adt/llm"
 import { getBaseLanguage, normalizeLocale } from "./language-context.js"
+import { computeEntryTimeRanges, buildPageTranscript, type BatchEntry } from "./speech-batch.js"
+import { sliceWav, wavDurationSeconds, findQuietCutSeconds } from "./audio-wav.js"
 
 // ---------------------------------------------------------------------------
 // Emoji stripping
@@ -246,8 +248,28 @@ export function computeSpeechCacheKey(data: {
   model: string
   instructions: string
   provider?: string
+  /** Gemini sampling params for this item (from SpeechConfig). Only folded
+   *  into the key for the Gemini provider, and only when set — an unset value
+   *  isn't sent to Gemini, so it must not change the key. */
+  geminiTemperature?: number
+  geminiSeed?: number
 }): string {
-  const json = JSON.stringify(data)
+  // Gemini output also depends on any sampling params it's sent (temperature +
+  // seed), so fold in whichever are set — tuning them regenerates Gemini audio,
+  // and clearing them (disabling) also produces a distinct key. Gated on
+  // provider so OpenAI/Azure keys are unaffected; a Gemini item with neither
+  // set hashes identically to a request that sends no sampling params. Both
+  // callers (generateSpeechFile and the stage-runner reuse check) pass
+  // `provider`, so they stay in sync automatically.
+  const { geminiTemperature, geminiSeed, ...base } = data
+  const gemini =
+    base.provider === "gemini"
+      ? {
+          ...(geminiTemperature !== undefined ? { geminiTemperature } : {}),
+          ...(geminiSeed !== undefined ? { geminiSeed } : {}),
+        }
+      : {}
+  const json = JSON.stringify({ ...base, ...gemini })
   return crypto.createHash("sha256").update(json).digest("hex")
 }
 
@@ -290,6 +312,11 @@ export interface GenerateSpeechFileOptions {
   ttsSynthesizer: TTSSynthesizer
   rateLimiter?: RateLimiter
   provider?: string
+  /** Gemini sampling params (SpeechConfig temperature/seed). Passed to the
+   *  synthesizer and folded into the cache key for the Gemini provider only.
+   *  Undefined → not sent; Gemini uses its own defaults (sampling disabled). */
+  geminiTemperature?: number
+  geminiSeed?: number
   /** Run cancellation — aborts the rate-limiter wait and the TTS request. */
   signal?: AbortSignal
 }
@@ -315,6 +342,8 @@ export async function generateSpeechFile(
     ttsSynthesizer,
     rateLimiter,
     provider,
+    geminiTemperature,
+    geminiSeed,
     signal,
   } = options
 
@@ -340,6 +369,8 @@ export async function generateSpeechFile(
     model,
     instructions,
     provider,
+    geminiTemperature,
+    geminiSeed,
   })
 
   const fileName = `${safeTextId}.${safeFormat}`
@@ -376,6 +407,8 @@ export async function generateSpeechFile(
     input: sanitized,
     responseFormat: safeFormat,
     instructions: instructions || undefined,
+    temperature: geminiTemperature,
+    seed: geminiSeed,
     signal,
   })
 
@@ -399,6 +432,169 @@ export async function generateSpeechFile(
     provider,
   }
 }
+
+// ---------------------------------------------------------------------------
+// Page-batched speech generation (experimental)
+// ---------------------------------------------------------------------------
+
+export interface GeneratePageSpeechFilesOptions {
+  /** Page entries in reading order (already filtered of TTS-excluded ids). */
+  entries: BatchEntry[]
+  language: string
+  model: string
+  voice: string
+  instructions: string
+  /** Must be `wav` — the page audio is sliced sample-accurately. */
+  format: string
+  bookDir: string
+  cacheDir: string
+  ttsSynthesizer: TTSSynthesizer
+  /** OpenAI key for the Whisper alignment pass that locates sentence bounds. */
+  whisperApiKey: string
+  rateLimiter?: RateLimiter
+  provider?: string
+  geminiTemperature?: number
+  geminiSeed?: number
+  signal?: AbortSignal
+}
+
+/**
+ * Synthesize a whole page in ONE request so tone stays consistent across
+ * sentences, then cut the page audio back into one file per text entry — so
+ * the rest of the pipeline (per-entry word timestamps, EPUB SMIL, web reader)
+ * is unaffected. Sentence boundaries come from a Whisper pass over the page
+ * audio aligned against the known entry texts. Returns one `SpeechFileEntry`
+ * per speakable entry, in input order (non-speakable entries are dropped, as in
+ * the per-entry path). Requires wav output (Gemini).
+ *
+ * The page audio is cached on the full ordered transcript + voice/model/
+ * instructions/sampling; slicing is deterministic, so re-runs of an unchanged
+ * page skip the model entirely and the sliced files are byte-stable (keeping
+ * the downstream Whisper word-timestamp cache warm).
+ */
+export async function generatePageSpeechFiles(
+  options: GeneratePageSpeechFilesOptions,
+): Promise<SpeechFileEntry[]> {
+  const {
+    entries, language, model, voice, instructions, format, bookDir, cacheDir,
+    ttsSynthesizer, whisperApiKey, rateLimiter, provider, geminiTemperature,
+    geminiSeed, signal,
+  } = options
+
+  const safeFormat = assertSafeSegment(format.toLowerCase(), SAFE_FORMAT_RE, "audio format")
+  if (safeFormat !== "wav") {
+    throw new Error(`Page-batched TTS requires wav output; received: ${format}`)
+  }
+  const normalizedLanguage = assertSafeSegment(
+    normalizeLocale(language), SAFE_LANGUAGE_RE, "language code"
+  )
+
+  // Keep only speakable entries (mirrors generateSpeechFile's per-item skip).
+  const usable = entries
+    .map((e) => ({ id: assertSafeSegment(e.id, SAFE_TEXT_ID_RE, "text id"), text: stripEmojis(e.text).trim() }))
+    .filter((e) => isSpeakableText(e.text))
+  if (usable.length === 0) return []
+
+  const transcript = buildPageTranscript(usable)
+
+  // Page-level cache key: the audio depends on the whole ordered transcript
+  // plus the same knobs the per-item key uses.
+  const pageHash = crypto
+    .createHash("sha256")
+    .update(JSON.stringify({
+      entries: usable,
+      voice,
+      model,
+      instructions,
+      provider: provider ?? "",
+      geminiTemperature,
+      geminiSeed,
+      v: "batch-page-1",
+    }))
+    .digest("hex")
+
+  const audioRoot = path.resolve(bookDir, "audio")
+  const audioDir = path.resolve(audioRoot, normalizedLanguage)
+  assertWithinBase(audioRoot, audioDir, "audio directory")
+
+  const pageCacheRoot = path.resolve(cacheDir, "tts-page")
+  const pageCachePath = path.resolve(pageCacheRoot, `${pageHash}.${safeFormat}`)
+  assertWithinBase(pageCacheRoot, pageCachePath, "page cache file")
+
+  // 1) One synthesis request for the whole page (cached).
+  let pageBytes: Buffer
+  let cached = false
+  if (fs.existsSync(pageCachePath)) {
+    pageBytes = fs.readFileSync(pageCachePath)
+    cached = true
+  } else {
+    await rateLimiter?.acquire(signal)
+    signal?.throwIfAborted()
+    const audioBytes = await ttsSynthesizer.synthesize({
+      model,
+      voice,
+      input: transcript,
+      responseFormat: safeFormat,
+      instructions: instructions || undefined,
+      temperature: geminiTemperature,
+      seed: geminiSeed,
+      signal,
+    })
+    pageBytes = Buffer.from(audioBytes)
+    fs.mkdirSync(pageCacheRoot, { recursive: true })
+    fs.writeFileSync(pageCachePath, pageBytes)
+  }
+
+  // 2) Whisper the page (cached on audio hash) to find word onsets.
+  const whisper = await generateWordTimestamps({
+    audioBuffer: pageBytes,
+    fileName: `${pageHash}.${safeFormat}`,
+    apiKey: whisperApiKey,
+    language: getBaseLanguage(language),
+    prompt: transcript,
+    cacheDir,
+  })
+
+  // 3) Slice the page audio into per-entry files at sentence boundaries.
+  const totalDuration = wavDurationSeconds(pageBytes)
+  const ranges = computeEntryTimeRanges(usable, whisper.words, totalDuration)
+
+  // Snap each interior cut back into the quiet gap just before the next
+  // sentence's first word, so boundaries land in the natural pause rather than
+  // on a word attack (avoids clipped onsets / boundary clicks). The shared
+  // boundary moves for both adjacent slices, keeping them contiguous.
+  for (let k = 1; k < ranges.length; k++) {
+    const snapped = findQuietCutSeconds(pageBytes, ranges[k].start, PAGE_SLICE_SNAP_WINDOW_SEC)
+    const bounded = Math.min(Math.max(snapped, ranges[k - 1].start), totalDuration)
+    ranges[k].start = bounded
+    ranges[k - 1].end = bounded
+  }
+
+  fs.mkdirSync(audioDir, { recursive: true })
+  const results: SpeechFileEntry[] = []
+  for (const range of ranges) {
+    signal?.throwIfAborted()
+    // A short edge fade guarantees zero-amplitude slice edges (belt-and-braces
+    // with the silence-snap above) so back-to-back playback has no clicks.
+    const slice = sliceWav(pageBytes, range.start, range.end, PAGE_SLICE_FADE_MS)
+    const fileName = `${range.id}.${safeFormat}`
+    const outputPath = path.resolve(audioDir, fileName)
+    assertWithinBase(audioDir, outputPath, "audio file")
+    // Only write when the bytes actually change, so an unchanged slice keeps its
+    // mtime — GET /tts derives its cache-busting `?v=` from mtime, so rewriting
+    // identical audio every run would force the reader to refetch needlessly.
+    if (!fs.existsSync(outputPath) || !fs.readFileSync(outputPath).equals(slice)) {
+      fs.writeFileSync(outputPath, slice)
+    }
+    results.push({ textId: range.id, language: normalizedLanguage, fileName, voice, model, cached, provider })
+  }
+  return results
+}
+
+/** Window (seconds) before a detected word onset searched for a quiet cut point. */
+const PAGE_SLICE_SNAP_WINDOW_SEC = 0.12
+/** Edge fade (ms) applied to each per-entry slice to prevent boundary clicks. */
+const PAGE_SLICE_FADE_MS = 8
 
 // ---------------------------------------------------------------------------
 // Word timestamp generation (Whisper) with cache

@@ -1,8 +1,21 @@
 import { describe, expect, it } from "vitest"
 import {
+  isTranslationEvaluationEnabled,
   reconcileSourceOutputLanguage,
   resolveTranslationLanguageState,
 } from "./translations-view-state"
+
+describe("isTranslationEvaluationEnabled", () => {
+  it("defaults to enabled when the setting is absent", () => {
+    expect(isTranslationEvaluationEnabled(undefined)).toBe(true)
+    expect(isTranslationEvaluationEnabled({})).toBe(true)
+  })
+
+  it("is disabled only by an explicit false value", () => {
+    expect(isTranslationEvaluationEnabled({ enable_translation_evaluation: false })).toBe(false)
+    expect(isTranslationEvaluationEnabled({ enable_translation_evaluation: true })).toBe(true)
+  })
+})
 
 describe("reconcileSourceOutputLanguage", () => {
   it("seeds the source language when the list is empty", () => {

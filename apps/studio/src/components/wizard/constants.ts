@@ -326,7 +326,10 @@ export const PRESETS: PresetConfig[] = [
         activity_sorting: "activity_sorting",
         activity_open_ended_answer: "activity_open_ended_answer",
       },
-      pruned_role_types: ["header_text", "footer_text", "page_number"],
+      // Role keys must match the actual `role_types` the sectioning LLM assigns
+      // (config.yaml uses bare `header`/`footer`/`page_number`). The `_text`
+      // suffixed variants never match, so header/footer would leak in unpruned.
+      pruned_role_types: ["header", "footer", "page_number"],
       pruned_section_types: ["back_cover", "credits", "inside_cover"],
       image_filters: { min_stddev: 2 },
     },
@@ -400,7 +403,11 @@ export const PRESETS: PresetConfig[] = [
         },
       },
       section_render_strategies: {},
-      pruned_role_types: ["header_text", "footer_text", "page_number"],
+      // Role keys must match the actual `role_types` the sectioning LLM assigns
+      // (config.yaml uses bare `header`/`footer`/`page_number`). The `_text`
+      // suffixed variants never match, so header/footer would leak into the
+      // two-column-story layout unpruned.
+      pruned_role_types: ["header", "footer", "page_number"],
       pruned_section_types: [
         "back_cover",
         "credits",
@@ -487,7 +494,10 @@ export const PRESETS: PresetConfig[] = [
         },
       },
       section_render_strategies: {},
-      pruned_role_types: ["header_text", "footer_text", "page_number"],
+      // Role keys must match the actual `role_types` the sectioning LLM assigns
+      // (config.yaml uses bare `header`/`footer`/`page_number`). The `_text`
+      // suffixed variants never match, so header/footer would leak in unpruned.
+      pruned_role_types: ["header", "footer", "page_number"],
       pruned_section_types: [
         "back_cover",
         "credits",

@@ -13,7 +13,10 @@ export default defineConfig({
       {
         test: {
           name: "studio",
-          include: ["apps/studio/src/**/*.test.ts", "apps/studio/src/**/*.test.tsx"],
+          include: [
+            "apps/studio/src/**/*.test.ts",
+            "apps/studio/src/**/*.test.tsx",
+          ],
         },
         resolve: {
           alias: {
@@ -31,7 +34,9 @@ export default defineConfig({
         },
         resolve: {
           alias: {
-            "@": fileURLToPath(new URL("./apps/adt-runtime/src", import.meta.url)),
+            "@": fileURLToPath(
+              new URL("./apps/adt-runtime/src", import.meta.url),
+            ),
           },
         },
       },
@@ -39,6 +44,18 @@ export default defineConfig({
         test: {
           name: "api",
           include: ["apps/api/src/**/*.test.ts"],
+        },
+      },
+      {
+        test: {
+          name: "desktop",
+          include: ["apps/desktop/src/**/*.test.ts"],
+          environment: "node",
+        },
+        resolve: {
+          alias: {
+            "@root": fileURLToPath(new URL(".", import.meta.url)),
+          },
         },
       },
       {
@@ -58,7 +75,7 @@ export default defineConfig({
           name: "main-scripts",
           include: ["scripts/**/*.test.mjs"],
         },
-      }
+      },
     ],
   },
 })
