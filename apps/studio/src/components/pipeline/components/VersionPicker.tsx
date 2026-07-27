@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
+import { useMemo, useState, type ReactNode } from "react"
 import {
   BookOpen,
   Check,
@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/popover"
 import { STAGES } from "../stage-config"
 import { useFloatingSave, PendingChip } from "./floating-save"
-import { LazyThumb, PreviewSkeleton } from "./LazyThumb"
+import { LazyThumb, PreviewSkeleton, useReservedHeight } from "./LazyThumb"
 import {
   VersionCompareDialog,
   countChanges,
@@ -161,18 +161,7 @@ export function VersionPicker({
   // Reserve the first hovered preview's height for later ones so switching
   // versions doesn't grow the flyout from the skeleton up (same page ≈ same
   // height).
-  const previewPaneRef = useRef<HTMLDivElement>(null)
-  const [previewHeight, setPreviewHeight] = useState<number | null>(null)
-  useEffect(() => {
-    const el = previewPaneRef.current
-    if (!el || hovered == null || typeof ResizeObserver === "undefined") return
-    const ro = new ResizeObserver(() => {
-      const h = el.getBoundingClientRect().height
-      if (h > 40) setPreviewHeight(h)
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [hovered])
+  const [previewPaneRef, previewHeight] = useReservedHeight<HTMLDivElement>(hovered != null)
   const [compareOpen, setCompareOpen] = useState(false)
 
   const stepPending = STEP_PENDING[step]

@@ -1,4 +1,27 @@
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react"
+
+/**
+ * Measures an element's height (while `active`) and returns it, so a loading
+ * skeleton can reserve the same height as the content it replaces and not
+ * grow/shrink on reveal. Returns [ref to attach, measured px | null].
+ */
+export function useReservedHeight<T extends HTMLElement>(
+  active: boolean
+): [RefObject<T | null>, number | null] {
+  const ref = useRef<T>(null)
+  const [height, setHeight] = useState<number | null>(null)
+  useEffect(() => {
+    const el = ref.current
+    if (!el || !active || typeof ResizeObserver === "undefined") return
+    const ro = new ResizeObserver(() => {
+      const h = el.getBoundingClientRect().height
+      if (h > 40) setHeight(h)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [active])
+  return [ref, height]
+}
 
 /**
  * Signals `onReady` on mount — wrap synchronous (non-iframe) preview content so

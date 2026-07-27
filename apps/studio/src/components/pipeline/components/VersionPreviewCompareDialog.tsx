@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react"
+import { useEffect, useState, type CSSProperties, type ReactNode } from "react"
 import { Check, type LucideIcon } from "lucide-react"
 import { useLingui } from "@lingui/react/macro"
 import type { VersionEntry } from "@/api/client"
@@ -9,7 +9,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog"
-import { PreviewSkeleton } from "./LazyThumb"
+import { PreviewSkeleton, useReservedHeight } from "./LazyThumb"
 
 interface VersionPreviewCompareDialogProps {
   open: boolean
@@ -51,18 +51,7 @@ export function VersionPreviewCompareDialog({
   // Measure the current version's rendered height and reserve it for the other
   // versions' skeletons — same page across versions is (almost) the same
   // height, so the skeleton matches the content and doesn't grow on reveal.
-  const currentPaneRef = useRef<HTMLDivElement>(null)
-  const [reservedHeight, setReservedHeight] = useState<number | null>(null)
-  useEffect(() => {
-    const el = currentPaneRef.current
-    if (!el || typeof ResizeObserver === "undefined") return
-    const ro = new ResizeObserver(() => {
-      const h = el.getBoundingClientRect().height
-      if (h > 40) setReservedHeight(h)
-    })
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [open, selected])
+  const [currentPaneRef, reservedHeight] = useReservedHeight<HTMLDivElement>(open)
 
   const dataOf = (v: number) => versions.find((x) => x.version === v)?.data
   const isCurrent = selected === currentVersion
