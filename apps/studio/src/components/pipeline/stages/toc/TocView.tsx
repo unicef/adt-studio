@@ -213,9 +213,34 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
           bookLabel={bookLabel}
           pendingLabel={pendingLabel}
           pendingLabelKey={pendingLabelKey}
-          onPreview={(d) => setPending(d as TocData)}
+          onRestored={() => setPending(null)}
           onSave={() => saveRef.current()}
           onDiscard={() => setPending(null)}
+          diff={{
+            items: (d) => (d as TocData | null)?.entries ?? [],
+            keyOf: (e) => (e as TocEntry).id,
+            isEqual: (a, b) => {
+              const x = a as TocEntry
+              const y = b as TocEntry
+              return (
+                x.title === y.title &&
+                x.sectionId === y.sectionId &&
+                x.href === y.href &&
+                x.level === y.level
+              )
+            },
+            renderItem: (e) => {
+              const s = e as TocEntry
+              return (
+                <span
+                  className="font-medium text-foreground"
+                  style={{ paddingLeft: Math.max(0, (s.level ?? 0) - 1) * 12 }}
+                >
+                  {s.title}
+                </span>
+              )
+            },
+          }}
         />
       </div>,
     )
