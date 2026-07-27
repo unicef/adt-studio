@@ -426,6 +426,54 @@ export function VersionPicker({
     </div>
   )
 
+  // Loading skeleton that mirrors the loaded layout (header + a pinned current
+  // row + a few list rows + the compare button), so the popover keeps its shape
+  // and the reveal doesn't jump. Row shape matches the active mode: a thumbnail
+  // + label for visual, a version + change-count pill for book/diff, or plain
+  // rows for the simple list.
+  const rich = Boolean(renderPreview || diff)
+  const skeletonRow = (key: number) =>
+    renderPreview ? (
+      <div key={key} className="flex w-full items-center gap-2.5 p-1.5">
+        <div className="h-12 w-16 shrink-0 rounded-md bg-muted" />
+        <div className="h-3 w-10 rounded bg-muted" />
+      </div>
+    ) : (
+      <div key={key} className="flex w-full items-center justify-between px-2 py-2">
+        <div className="h-3 w-10 rounded bg-muted" />
+        <div className="h-4 w-14 rounded-full bg-muted" />
+      </div>
+    )
+  const loadingState = (
+    <div role="status" aria-busy className="motion-safe:animate-pulse">
+      <span className="sr-only">{t`Loading versions…`}</span>
+      {rich ? (
+        <div className="flex flex-col">
+          <div className="flex items-center justify-between border-b px-3 py-2.5">
+            <div className="h-2.5 w-24 rounded bg-muted" />
+            <div className="h-2.5 w-3 rounded bg-muted" />
+          </div>
+          <div className="border-b px-1.5 py-1.5">
+            <div className="px-1 pb-1.5 pt-1">
+              <div className="h-2 w-12 rounded bg-muted/70" />
+            </div>
+            {skeletonRow(0)}
+          </div>
+          <div className="space-y-0.5 p-1.5">{[1, 2, 3].map(skeletonRow)}</div>
+          <div className="border-t p-1.5">
+            <div className="h-8 w-full rounded-md bg-muted" />
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-1 p-1">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-6 w-full rounded bg-muted" />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+
   return (
     <>
       <Popover open={open} onOpenChange={handleOpenChange}>
@@ -445,9 +493,7 @@ export function VersionPicker({
           }`}
         >
           {loadingVersions ? (
-            <div className="flex items-center justify-center py-3 px-3">
-              <Loader2 className="h-3 w-3 animate-spin" />
-            </div>
+            loadingState
           ) : loadError ? (
             <div className="flex flex-col items-center gap-1.5 px-3 py-3 text-center">
               <span className="text-xs text-muted-foreground">
