@@ -7561,6 +7561,9 @@ msgstr "Start typing to see words from the book…"
 msgid "Start with a PDF"
 msgstr "Start with a PDF"
 
+msgid "Starting…"
+msgstr "Starting…"
+
 msgid "Stats"
 msgstr "Stats"
 

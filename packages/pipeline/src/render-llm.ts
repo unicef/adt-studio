@@ -2,7 +2,7 @@ import type { SectionRendering } from "@adt/types"
 import { webRenderingLLMSchema, activityAnswersLLMSchema } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
 import { autoRepairUnderlineActivityHtml } from "./activity-underline-repair.js"
-import { validateSectionHtml } from "./validate-html.js"
+import { validateSectionHtml, isEnumerationMarker } from "./validate-html.js"
 import { getViewportBreakpoints, type ScreenshotRenderer } from "./screenshot.js"
 import type { RenderConfig, RenderExecutionOptions, RenderSectionInput } from "./web-rendering.js"
 import { runVisualReviewLoop } from "./visual-review.js"
@@ -272,6 +272,15 @@ export function collectOptionalTextIds(
   const optional = new Set<string>()
   for (const leaf of leafTexts) {
     if (OPTIONAL_TEXT_ROLES.has(leaf.text_type)) {
+      optional.add(leaf.text_id)
+      continue
+    }
+    // Standalone enumeration-marker labels ("1.", "(i)", "(a)"). Matching
+    // activities auto-number their items and reliably drop these provided
+    // marker labels even when the prompt asks to keep them; treat them as
+    // optional so a drop doesn't fail validation and force retries. The LLM is
+    // still free to render them (encouraged by the render prompts).
+    if (leaf.text_type === "label" && isEnumerationMarker(leaf.text ?? "")) {
       optional.add(leaf.text_id)
       continue
     }

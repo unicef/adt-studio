@@ -7562,6 +7562,9 @@ msgstr "Fillo të shkruash për të parë fjalë nga libri…"
 msgid "Start with a PDF"
 msgstr "Fillo me një PDF"
 
+msgid "Starting…"
+msgstr "Po fillon…"
+
 msgid "Stats"
 msgstr "Statistika"
 
