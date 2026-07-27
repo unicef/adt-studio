@@ -1,15 +1,9 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react"
-import { Check, type LucideIcon } from "lucide-react"
+import { type ReactNode } from "react"
+import { type LucideIcon } from "lucide-react"
 import { useLingui } from "@lingui/react/macro"
 import type { VersionEntry } from "@/api/client"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog"
 import { PreviewSkeleton, useReservedHeight } from "./LazyThumb"
+import { VersionCompareShell, useSelectedVersion } from "./VersionCompareShell"
 
 interface VersionPreviewCompareDialogProps {
   open: boolean
@@ -38,15 +32,12 @@ export function VersionPreviewCompareDialog({
   initialSelected,
   renderPreview,
   accentColor,
-  icon: Icon,
+  icon,
   onRestore,
 }: VersionPreviewCompareDialogProps) {
   const { t } = useLingui()
-  const [selected, setSelected] = useState(initialSelected)
-
-  useEffect(() => {
-    if (open) setSelected(initialSelected)
-  }, [open, initialSelected])
+  const [selected, setSelected] = useSelectedVersion(open, initialSelected)
+  const isCurrent = selected === currentVersion
 
   // Measure the current version's rendered height and reserve it for the other
   // versions' skeletons — same page across versions is (almost) the same
@@ -54,7 +45,6 @@ export function VersionPreviewCompareDialog({
   const [currentPaneRef, reservedHeight] = useReservedHeight<HTMLDivElement>(open)
 
   const dataOf = (v: number) => versions.find((x) => x.version === v)?.data
-  const isCurrent = selected === currentVersion
 
   const paneLabel = (label: string, active: boolean) => (
     <div
@@ -68,51 +58,19 @@ export function VersionPreviewCompareDialog({
   )
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        className="flex max-h-[92vh] w-[95vw] max-w-6xl flex-col gap-0 p-0"
-        style={{ "--accent-color": accentColor, "--ring": accentColor } as CSSProperties}
-      >
-        <DialogHeader className="border-b px-6 py-4">
-          <div className="flex items-center gap-2">
-            <Icon className="h-4 w-4" strokeWidth={2.25} style={{ color: accentColor }} aria-hidden />
-            <DialogTitle>{t`Compare versions`}</DialogTitle>
-          </div>
-          <DialogDescription>
-            {t`See the current version and a chosen version rendered side by side.`}
-          </DialogDescription>
-        </DialogHeader>
-
-        {/* Version chips */}
-        <div className="flex flex-wrap items-center gap-1 border-b px-4 py-2.5">
-          {versions.map((v) => {
-            const chipCurrent = v.version === currentVersion
-            const chipSelected = v.version === selected
-            return (
-              <button
-                key={v.version}
-                type="button"
-                onClick={() => setSelected(v.version)}
-                className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors cursor-pointer ${
-                  chipSelected ? "text-white" : "bg-muted text-muted-foreground hover:bg-muted/70"
-                }`}
-                style={chipSelected ? { backgroundColor: accentColor } : undefined}
-              >
-                v{v.version}
-                {chipCurrent && (
-                  <span
-                    className="rounded px-1 py-0.5 text-[9px]"
-                    style={chipSelected ? undefined : { backgroundColor: `${accentColor}1a`, color: accentColor }}
-                  >
-                    {t`current`}
-                  </span>
-                )}
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Rendered comparison */}
+    <VersionCompareShell
+      open={open}
+      onOpenChange={onOpenChange}
+      versions={versions}
+      currentVersion={currentVersion}
+      selected={selected}
+      onSelect={setSelected}
+      accentColor={accentColor}
+      icon={icon}
+      onRestore={onRestore}
+      description={t`See the current version and a chosen version rendered side by side.`}
+      contentClassName="flex max-h-[92vh] w-[95vw] max-w-6xl flex-col gap-0 p-0"
+    >
         <div className="min-w-0 flex-1 overflow-auto bg-muted/30 p-3">
           {isCurrent ? (
             <div className="flex flex-col overflow-hidden rounded-lg border bg-background">
@@ -157,31 +115,6 @@ export function VersionPreviewCompareDialog({
             </div>
           )}
         </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-2 border-t p-3">
-          <button
-            type="button"
-            onClick={() => onOpenChange(false)}
-            className="rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted cursor-pointer"
-          >
-            {t`Cancel`}
-          </button>
-          <button
-            type="button"
-            disabled={isCurrent}
-            onClick={async () => {
-              await onRestore(selected)
-              onOpenChange(false)
-            }}
-            style={{ backgroundColor: accentColor }}
-            className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
-          >
-            <Check className="h-4 w-4" />
-            {t`Use version ${selected}`}
-          </button>
-        </div>
-      </DialogContent>
-    </Dialog>
+    </VersionCompareShell>
   )
 }
