@@ -305,6 +305,9 @@ msgstr "{0}m ago"
 msgid "{0}s ago"
 msgstr "{0}s ago"
 
+msgid "{changes} changes"
+msgstr "{changes} changes"
+
 msgid "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
 msgstr "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
 
@@ -467,6 +470,9 @@ msgstr "0 = deterministic, 2 = max creativity"
 
 msgid "0 = single pass, higher values allow iterative LLM refinement"
 msgstr "0 = single pass, higher values allow iterative LLM refinement"
+
+msgid "1 change"
+msgstr "1 change"
 
 msgid "1 hour"
 msgstr "1 hour"
@@ -2002,6 +2008,9 @@ msgstr "Comments"
 msgid "Compare"
 msgstr "Compare"
 
+msgid "Compare versions"
+msgstr "Compare versions"
+
 msgid "Completed"
 msgstr "Completed"
 
@@ -2270,8 +2279,14 @@ msgstr "Cropping Prompt"
 msgid "Crops each image to its visible bounding box."
 msgstr "Crops each image to its visible bounding box."
 
+msgid "current"
+msgstr "current"
+
 msgid "Current"
 msgstr "Current"
+
+msgid "Current (v{currentVersion})"
+msgstr "Current (v{currentVersion})"
 
 msgid "Current book font"
 msgstr "Current book font"
@@ -4061,6 +4076,9 @@ msgstr "Last modified"
 #~ msgid "Last week"
 #~ msgstr "Last week"
 
+msgid "latest"
+msgstr "latest"
+
 msgid "Launch the app with"
 msgstr "Launch the app with"
 
@@ -4825,6 +4843,9 @@ msgstr "No cover available"
 msgid "No data"
 msgstr "No data"
 
+msgid "No differences from the current version."
+msgstr "No differences from the current version."
+
 msgid "No disabled rules"
 msgstr "No disabled rules"
 
@@ -5169,6 +5190,9 @@ msgstr "One tag per line or comma-separated. Leave as-is to keep the current pac
 
 msgid "One text scale for the whole book. It starts from the book's own detected sizes (never below 16px), so pages stay close to the original. Use “Accessible sizes” to scale the book up, or set each role yourself — pick a Tailwind token or type an exact px. These override any size the AI picks, so text stays consistent across every page."
 msgstr "One text scale for the whole book. It starts from the book's own detected sizes (never below 16px), so pages stay close to the original. Use “Accessible sizes” to scale the book up, or set each role yourself — pick a Tailwind token or type an exact px. These override any size the AI picks, so text stays consistent across every page."
+
+msgid "Only changes"
+msgstr "Only changes"
 
 msgid "Only images that appear in the storyboard (have captions) can be selected."
 msgstr "Only images that appear in the storyboard (have captions) can be selected."
@@ -6903,6 +6927,9 @@ msgstr "See examples"
 msgid "See the book & pick pages"
 msgstr "See the book & pick pages"
 
+msgid "See the current version and a chosen version side by side."
+msgstr "See the current version and a chosen version side by side."
+
 msgid "Seed"
 msgstr "Seed"
 
@@ -7995,6 +8022,9 @@ msgstr "This is Pip! He has a wiggly tail."
 msgid "This is Pip! He is a happy caramel dog with a very wiggly tail. Pip loves the green grass, the bright yellow sun, and making new friends in his garden."
 msgstr "This is Pip! He is a happy caramel dog with a very wiggly tail. Pip loves the green grass, the bright yellow sun, and making new friends in his garden."
 
+msgid "This is the current version."
+msgstr "This is the current version."
+
 msgid "This isn't a completed part"
 msgstr "This isn't a completed part"
 
@@ -8079,6 +8109,9 @@ msgstr "This restores the default fallback font across every page and clears per
 msgid "This screen couldn’t load"
 msgstr "This screen couldn’t load"
 
+msgid "This section doesn't exist in this version."
+msgstr "This section doesn't exist in this version."
+
 msgid "This section has no storyboard rendering yet"
 msgstr "This section has no storyboard rendering yet"
 
@@ -8090,6 +8123,9 @@ msgstr "This session is using an older reviewer checklist snapshot. Newer checkl
 
 msgid "This text is only perceptible to assistive technologies."
 msgstr "This text is only perceptible to assistive technologies."
+
+msgid "This version is empty."
+msgstr "This version is empty."
 
 #~ msgid "This week"
 #~ msgstr "This week"
@@ -8524,6 +8560,9 @@ msgstr "Use this for checks you intentionally want to suppress, such as known fa
 msgid "Use this format to back up the project or move it to another machine."
 msgstr "Use this format to back up the project or move it to another machine."
 
+msgid "Use version {selected}"
+msgstr "Use version {selected}"
+
 msgid "Used for"
 msgstr "Used for"
 
@@ -8538,6 +8577,9 @@ msgstr "Used for Gemini models — both LLM (gemini-2.5-pro, etc.) and TTS (gemi
 
 msgid "Used for this quiz"
 msgstr "Used for this quiz"
+
+msgid "v{hovered} preview"
+msgstr "v{hovered} preview"
 
 msgid "Validated"
 msgstr "Validated"
@@ -8568,8 +8610,14 @@ msgstr "Version {0}"
 msgid "Version {current}"
 msgstr "Version {current}"
 
+msgid "Version {selected}"
+msgstr "Version {selected}"
+
 #~ msgid "Version {targetVersion}"
 #~ msgstr "Version {targetVersion}"
+
+msgid "Version history"
+msgstr "Version history"
 
 msgid "Versioned"
 msgstr "Versioned"

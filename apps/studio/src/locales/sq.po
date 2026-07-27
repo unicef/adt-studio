@@ -306,6 +306,9 @@ msgstr "{0}m më parë"
 msgid "{0}s ago"
 msgstr "{0}s më parë"
 
+msgid "{changes} changes"
+msgstr ""
+
 msgid "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
 msgstr "{confirmCount} {confirmCount, plural, one {fletë e dyfishtë e mundshme e zbuluar} other {fletë të dyfishta të mundshme të zbuluara}}"
 
@@ -468,6 +471,9 @@ msgstr "0 = deterministik, 2 = kreativitet maksimal"
 
 msgid "0 = single pass, higher values allow iterative LLM refinement"
 msgstr "0 = kalim i vetëm, vlerat më të larta lejojnë rafinim iterativ LLM"
+
+msgid "1 change"
+msgstr ""
 
 msgid "1 hour"
 msgstr "1 orë"
@@ -2003,6 +2009,9 @@ msgstr "Komente"
 msgid "Compare"
 msgstr "Krahaso"
 
+msgid "Compare versions"
+msgstr ""
+
 msgid "Completed"
 msgstr "Përfunduar"
 
@@ -2271,8 +2280,14 @@ msgstr "Prompt-i i prerjes"
 msgid "Crops each image to its visible bounding box."
 msgstr "Pret çdo imazh sipas kufirit të tij të dukshëm."
 
+msgid "current"
+msgstr ""
+
 msgid "Current"
 msgstr "Aktual"
+
+msgid "Current (v{currentVersion})"
+msgstr ""
 
 msgid "Current book font"
 msgstr "Fonti aktual i librit"
@@ -4062,6 +4077,9 @@ msgstr "Modifikuar së fundmi"
 #~ msgid "Last week"
 #~ msgstr "Java e kaluar"
 
+msgid "latest"
+msgstr ""
+
 msgid "Launch the app with"
 msgstr "Hap aplikacionin me"
 
@@ -4826,6 +4844,9 @@ msgstr "Nuk ka kopertinë të disponueshme"
 msgid "No data"
 msgstr "Nuk ka të dhëna"
 
+msgid "No differences from the current version."
+msgstr ""
+
 msgid "No disabled rules"
 msgstr "Nuk ka rregulla të çaktiviziuara"
 
@@ -5170,6 +5191,9 @@ msgstr "Një etiketë për rresht ose të ndara me presje. Lërini siç janë p�
 
 msgid "One text scale for the whole book. It starts from the book's own detected sizes (never below 16px), so pages stay close to the original. Use “Accessible sizes” to scale the book up, or set each role yourself — pick a Tailwind token or type an exact px. These override any size the AI picks, so text stays consistent across every page."
 msgstr "Një shkallë e vetme teksti për të gjithë librin. Nis nga madhësitë e zbuluara të vetë librit (kurrë nën 16px), kështu që faqet mbeten afër origjinalit. Përdor “Madhësi të aksesueshme” për ta zmadhuar librin, ose cakto vetë çdo rol — zgjidh një token Tailwind ose shkruaj një vlerë të saktë në px. Këto mbizotërojnë çdo madhësi që zgjedh IA-ja, kështu teksti mbetet i qëndrueshëm në çdo faqe."
+
+msgid "Only changes"
+msgstr ""
 
 msgid "Only images that appear in the storyboard (have captions) can be selected."
 msgstr "Mund të zgjidhen vetëm imazhet që shfaqen në storyboard (kanë tituj)."
@@ -6904,6 +6928,9 @@ msgstr "Shiko shembuj"
 msgid "See the book & pick pages"
 msgstr "Shihni librin dhe zgjidhni faqet"
 
+msgid "See the current version and a chosen version side by side."
+msgstr ""
+
 msgid "Seed"
 msgstr "Fara"
 
@@ -7996,6 +8023,9 @@ msgstr "Ky është Pip! Ai ka bisht që lëkundet."
 msgid "This is Pip! He is a happy caramel dog with a very wiggly tail. Pip loves the green grass, the bright yellow sun, and making new friends in his garden."
 msgstr "Ky është Pip! Ai është një qen i lumtur karamel me bisht shumë lëkundes. Pip i do barin e gjelbër, diellin e ndritshëm të verdhë dhe të bëjë miq të rinj në kopshtin e tij."
 
+msgid "This is the current version."
+msgstr ""
+
 msgid "This isn't a completed part"
 msgstr "Kjo nuk është një pjesë e përfunduar"
 
@@ -8080,6 +8110,9 @@ msgstr "Kjo rikthen fontin e parazgjedhur në çdo faqe dhe pastron mbishkrimet 
 msgid "This screen couldn’t load"
 msgstr "Ky ekran nuk mund të ngarkohej"
 
+msgid "This section doesn't exist in this version."
+msgstr ""
+
 msgid "This section has no storyboard rendering yet"
 msgstr "Ky seksion nuk ka ende renderim storyboard"
 
@@ -8091,6 +8124,9 @@ msgstr "Kjo sesion po përdor një fotografi të vjetër të listës së kontrol
 
 msgid "This text is only perceptible to assistive technologies."
 msgstr "Ky tekst perceptohet vetëm nga teknologjitë ndihmëse."
+
+msgid "This version is empty."
+msgstr ""
 
 #~ msgid "This week"
 #~ msgstr "Këtë javë"
@@ -8525,6 +8561,9 @@ msgstr "Përdor këtë për kontrollet që dëshiron t'i fshehësh me qëllim, s
 msgid "Use this format to back up the project or move it to another machine."
 msgstr "Përdor këtë format për të rezervuar projektin ose për ta zhvendosur në një makinë tjetër."
 
+msgid "Use version {selected}"
+msgstr ""
+
 msgid "Used for"
 msgstr "Përdoret për"
 
@@ -8539,6 +8578,9 @@ msgstr "Përdoret për modelet Gemini — si LLM (gemini-2.5-pro, etj.) ashtu ed
 
 msgid "Used for this quiz"
 msgstr "Përdoret për këtë kuiz"
+
+msgid "v{hovered} preview"
+msgstr ""
 
 msgid "Validated"
 msgstr "I verifikuar"
@@ -8569,8 +8611,14 @@ msgstr "Versioni {0}"
 msgid "Version {current}"
 msgstr "Versioni {current}"
 
+msgid "Version {selected}"
+msgstr ""
+
 #~ msgid "Version {targetVersion}"
 #~ msgstr "Versioni {targetVersion}"
+
+msgid "Version history"
+msgstr ""
 
 msgid "Versioned"
 msgstr "Me version"
