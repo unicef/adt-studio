@@ -188,11 +188,16 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       doc.head.appendChild(styleEl)
     }
     styleEl.textContent = css
-    requestAnimationFrame(() => {
-      const main = doc.querySelector("main")
-      const h = (main ?? doc.body)?.scrollHeight
-      if (h && h > 0) setContentHeight(h)
-    })
+    // Resolve only after the post-CSS height is measured, so callers that
+    // reveal on completion (autoRefreshCss) don't flash a pre-reflow layout.
+    await new Promise<void>((resolve) =>
+      requestAnimationFrame(() => {
+        const main = doc.querySelector("main")
+        const h = (main ?? doc.body)?.scrollHeight
+        if (h && h > 0) setContentHeight(h)
+        resolve()
+      })
+    )
   }, [assetsPrefix])
 
   useImperativeHandle(ref, () => ({
@@ -838,14 +843,28 @@ ${selectors}:hover {
     onVisibleWidthChange?.(visibleWidth)
   }, [visibleWidth, onVisibleWidthChange])
 
-  useEffect(() => {
-    if (iframeReady) onReady?.()
-  }, [iframeReady, onReady])
+  // Keep onReady in a ref so the reveal effect can fire it without re-running
+  // (and re-POSTing the CSS recompile) on every render.
+  const onReadyRef = useRef(onReady)
+  onReadyRef.current = onReady
 
-  // Preview frames self-recompile Tailwind for their own HTML once ready, so a
-  // version using classes absent from the shared stylesheet renders correctly.
+  // Reveal the frame once ready. For preview frames that self-recompile their
+  // CSS (autoRefreshCss), defer "ready" until the recompiled styles are injected
+  // and the post-reflow height is measured — otherwise the content paints with
+  // the base stylesheet and visibly reflows when the correct CSS lands.
   useEffect(() => {
-    if (iframeReady && autoRefreshCss) void refreshCssInternal(sanitizedHtmlRef.current)
+    if (!iframeReady) return
+    if (!autoRefreshCss) {
+      onReadyRef.current?.()
+      return
+    }
+    let cancelled = false
+    void Promise.resolve(refreshCssInternal(sanitizedHtmlRef.current)).then(() => {
+      if (!cancelled) onReadyRef.current?.()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [iframeReady, autoRefreshCss, refreshCssInternal])
 
   // Fixed-layout pages carry explicit pixel dimensions and ignore device
