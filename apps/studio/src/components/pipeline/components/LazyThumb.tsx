@@ -29,10 +29,15 @@ export function ReadyOnMount({
  */
 export function PreviewSkeleton({
   reservedClassName = "h-40",
+  reservedHeight,
   render,
 }: {
   /** Height reserved while loading (released to content height once ready). */
   reservedClassName?: string
+  /** Exact reserved height in px — overrides reservedClassName. Pass the first
+   *  rendered preview's measured height so the skeleton matches the content and
+   *  doesn't grow/shrink on reveal. */
+  reservedHeight?: number
   render: (onReady: () => void) => ReactNode
 }) {
   const [ready, setReady] = useState(false)
@@ -43,8 +48,12 @@ export function PreviewSkeleton({
     return () => clearTimeout(id)
   }, [ready])
 
+  const usePx = !ready && reservedHeight != null && reservedHeight > 0
   return (
-    <div className={`relative ${ready ? "" : `${reservedClassName} overflow-hidden`}`}>
+    <div
+      className={`relative ${ready ? "" : usePx ? "overflow-hidden" : `${reservedClassName} overflow-hidden`}`}
+      style={usePx ? { height: reservedHeight } : undefined}
+    >
       <div className={ready ? "animate-in fade-in-0 duration-200" : "invisible"}>
         {render(() => setReady(true))}
       </div>

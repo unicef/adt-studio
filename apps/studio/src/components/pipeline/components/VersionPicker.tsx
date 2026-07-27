@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import {
   BookOpen,
   Check,
@@ -157,6 +157,21 @@ export function VersionPicker({
   const [loadingVersions, setLoadingVersions] = useState(false)
   const [hovered, setHovered] = useState<number | null>(null)
   const [restoring, setRestoring] = useState(false)
+  // Reserve the first hovered preview's height for later ones so switching
+  // versions doesn't grow the flyout from the skeleton up (same page ≈ same
+  // height).
+  const previewPaneRef = useRef<HTMLDivElement>(null)
+  const [previewHeight, setPreviewHeight] = useState<number | null>(null)
+  useEffect(() => {
+    const el = previewPaneRef.current
+    if (!el || hovered == null || typeof ResizeObserver === "undefined") return
+    const ro = new ResizeObserver(() => {
+      const h = el.getBoundingClientRect().height
+      if (h > 40) setPreviewHeight(h)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [hovered])
   const [compareOpen, setCompareOpen] = useState(false)
 
   const stepPending = STEP_PENDING[step]
@@ -339,12 +354,13 @@ export function VersionPicker({
                     <div className="border-b px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
                       {t`v${hovered} preview`}
                     </div>
-                    <div className="max-h-[26rem] overflow-auto">
+                    <div ref={previewPaneRef} className="max-h-[26rem] overflow-auto">
                       {/* key by version so each switch gets its own loading
                           skeleton instead of flashing an empty frame */}
                       <PreviewSkeleton
                         key={hovered}
                         reservedClassName="h-64"
+                        reservedHeight={previewHeight ?? undefined}
                         render={(onReady) =>
                           renderPreview(
                             versions.find((v) => v.version === hovered)?.data,

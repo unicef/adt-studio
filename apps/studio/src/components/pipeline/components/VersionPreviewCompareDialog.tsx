@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react"
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react"
 import { Check, type LucideIcon } from "lucide-react"
 import { useLingui } from "@lingui/react/macro"
 import type { VersionEntry } from "@/api/client"
@@ -47,6 +47,22 @@ export function VersionPreviewCompareDialog({
   useEffect(() => {
     if (open) setSelected(initialSelected)
   }, [open, initialSelected])
+
+  // Measure the current version's rendered height and reserve it for the other
+  // versions' skeletons — same page across versions is (almost) the same
+  // height, so the skeleton matches the content and doesn't grow on reveal.
+  const currentPaneRef = useRef<HTMLDivElement>(null)
+  const [reservedHeight, setReservedHeight] = useState<number | null>(null)
+  useEffect(() => {
+    const el = currentPaneRef.current
+    if (!el || typeof ResizeObserver === "undefined") return
+    const ro = new ResizeObserver(() => {
+      const h = el.getBoundingClientRect().height
+      if (h > 40) setReservedHeight(h)
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [open, selected])
 
   const dataOf = (v: number) => versions.find((x) => x.version === v)?.data
   const isCurrent = selected === currentVersion
@@ -126,10 +142,11 @@ export function VersionPreviewCompareDialog({
             <div className="grid grid-cols-2 items-start gap-3">
               <div className="flex flex-col overflow-hidden rounded-lg border bg-background">
                 {paneLabel(t`Current (v${currentVersion})`, false)}
-                <div className="max-h-[74vh] overflow-auto">
+                <div ref={currentPaneRef} className="max-h-[74vh] overflow-auto">
                   <PreviewSkeleton
                     key={`cur-${currentVersion}`}
                     reservedClassName="h-[55vh]"
+                    reservedHeight={reservedHeight ?? undefined}
                     render={(onReady) => renderPreview(dataOf(currentVersion), onReady)}
                   />
                 </div>
@@ -143,6 +160,7 @@ export function VersionPreviewCompareDialog({
                   <PreviewSkeleton
                     key={`sel-${selected}`}
                     reservedClassName="h-[55vh]"
+                    reservedHeight={reservedHeight ?? undefined}
                     render={(onReady) => renderPreview(dataOf(selected), onReady)}
                   />
                 </div>
