@@ -244,6 +244,18 @@ export const PRESETS: PresetConfig[] = [
             visual_refinement: { enabled: true, max_iterations: 3 },
           },
         },
+        activity_underline_text: {
+          render_type: "activity",
+          config: {
+            prompt: "activity_underline_text",
+            answer_prompt: "activity_underline_text_answers",
+            model: "openai:gpt-5.4",
+            max_retries: 5,
+            timeout: 180,
+            temperature: 0.3,
+            visual_refinement: { enabled: true, max_iterations: 3 },
+          },
+        },
         activity_true_false: {
           render_type: "activity",
           config: {
@@ -319,6 +331,7 @@ export const PRESETS: PresetConfig[] = [
       section_render_strategies: {
         activity_multiple_choice: "activity_multiple_choice",
         activity_multi_select: "activity_multi_select",
+        activity_underline_text: "activity_underline_text",
         activity_true_false: "activity_true_false",
         activity_fill_in_the_blank: "activity_fill_in_the_blank",
         activity_fill_in_a_table: "activity_fill_in_a_table",
@@ -414,6 +427,7 @@ export const PRESETS: PresetConfig[] = [
         "inside_cover",
         "activity_multiple_choice",
         "activity_multi_select",
+        "activity_underline_text",
         "activity_true_false",
         "activity_fill_in_the_blank",
         "activity_fill_in_a_table",
@@ -504,6 +518,7 @@ export const PRESETS: PresetConfig[] = [
         "inside_cover",
         "activity_multiple_choice",
         "activity_multi_select",
+        "activity_underline_text",
         "activity_true_false",
         "activity_fill_in_the_blank",
         "activity_fill_in_a_table",

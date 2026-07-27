@@ -792,6 +792,9 @@ msgstr "Actividad: Ordenar"
 msgid "Activity: True / False"
 msgstr "Actividad: Verdadero / Falso"
 
+msgid "Activity: Underline Text"
+msgstr "Actividad: Subrayar texto"
+
 msgid "Adaptive layouts generated per page (slower, uses API credits)"
 msgstr "Diseños adaptativos generados por página (más lento, usa créditos de API)"
 
@@ -1188,6 +1191,9 @@ msgstr "Cantidad"
 
 msgid "An activity that does not fit the standard categories."
 msgstr "Una actividad que no encaja en las categorías estándar."
+
+msgid "An activity where the learner underlines one or more words, phrases, or sentences directly in the text."
+msgstr "Una actividad en la que el estudiante subraya una o más palabras, frases u oraciones directamente en el texto."
 
 msgid "An AI image is being generated. Cancel it and navigate?"
 msgstr "Se está generando una imagen con IA. ¿Cancelar y navegar?"

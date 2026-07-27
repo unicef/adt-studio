@@ -36,6 +36,7 @@ import {
 import { activityModeAtom, isActivityPageAtom, submitStateAtom } from "@/features/activity/state/activity.atoms"
 import { initializeQuizActivity } from "@/features/activity/runtime/activity-quiz"
 import { initializeMultiSelectActivity } from "@/features/activity/runtime/activity-multi-select"
+import { initializeUnderlineTextActivity } from "@/features/activity/runtime/activity-underline-text"
 import { initializeFillInTheBlankActivity } from "@/features/activity/runtime/activity-fill-in-the-blank"
 import { initializeOpenEndedActivity } from "@/features/activity/runtime/activity-open-ended"
 import { initializeTrueFalseActivity } from "@/features/activity/runtime/activity-true-false"
@@ -112,6 +113,7 @@ async function bootActivities(): Promise<void> {
 
   initializeQuizActivity()
   initializeMultiSelectActivity()
+  initializeUnderlineTextActivity()
   initializeFillInTheBlankActivity()
   initializeOpenEndedActivity()
   initializeTrueFalseActivity()

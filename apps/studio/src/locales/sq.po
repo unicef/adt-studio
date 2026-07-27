@@ -793,6 +793,9 @@ msgstr "Aktivitet: Renditje"
 msgid "Activity: True / False"
 msgstr "Aktivitet: E Vërtetë / E Gabuar"
 
+msgid "Activity: Underline Text"
+msgstr "Aktivitet: Nënvizo tekstin"
+
 msgid "Adaptive layouts generated per page (slower, uses API credits)"
 msgstr "Paraqitje adaptive të gjeneruara për faqe (më e ngadaltë, përdor kredite API)"
 
@@ -1189,6 +1192,9 @@ msgstr "Sasia"
 
 msgid "An activity that does not fit the standard categories."
 msgstr "Një aktivitet që nuk i përshtatet kategorive standarde."
+
+msgid "An activity where the learner underlines one or more words, phrases, or sentences directly in the text."
+msgstr "Një aktivitet ku nxënësi nënvizon një ose më shumë fjalë, fraza ose fjali drejtpërdrejt në tekst."
 
 msgid "An AI image is being generated. Cancel it and navigate?"
 msgstr "Po gjenerohet një imazh me AI. Ta anulosh dhe të vazhdosh?"

@@ -792,6 +792,9 @@ msgstr "Activity: Sorting"
 msgid "Activity: True / False"
 msgstr "Activity: True / False"
 
+msgid "Activity: Underline Text"
+msgstr "Activity: Underline Text"
+
 msgid "Adaptive layouts generated per page (slower, uses API credits)"
 msgstr "Adaptive layouts generated per page (slower, uses API credits)"
 
@@ -1188,6 +1191,9 @@ msgstr "Amount"
 
 msgid "An activity that does not fit the standard categories."
 msgstr "An activity that does not fit the standard categories."
+
+msgid "An activity where the learner underlines one or more words, phrases, or sentences directly in the text."
+msgstr "An activity where the learner underlines one or more words, phrases, or sentences directly in the text."
 
 msgid "An AI image is being generated. Cancel it and navigate?"
 msgstr "An AI image is being generated. Cancel it and navigate?"

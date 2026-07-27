@@ -274,6 +274,22 @@ function hasEditableElement(node: any): boolean {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+function hasUnderlineOptionDescendant(node: any): boolean {
+  if (node.type === "tag") {
+    const cls = node.attribs?.class
+    if (typeof cls === "string" && cls.split(/\s+/).includes("activity-underline-option")) {
+      return true
+    }
+  }
+  if (node.children) {
+    for (const child of node.children) {
+      if (hasUnderlineOptionDescendant(child)) return true
+    }
+  }
+  return false
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function hasFitbSentenceClass(node: any): boolean {
   let current = node
   while (current) {
@@ -446,7 +462,11 @@ function walkNode(
     }
   }
 
-  if (replacementText !== undefined && !hasEditableElement(node)) {
+  if (
+    replacementText !== undefined &&
+    !hasEditableElement(node) &&
+    !hasUnderlineOptionDescendant(node)
+  ) {
     replaceChildrenWithText(node, replacementText)
   }
 }

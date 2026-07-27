@@ -94,6 +94,13 @@ function isCheckboxWithItem(el: Element): boolean {
   )
 }
 
+function isUnderlineOption(el: Element): boolean {
+  return (
+    el.type === "tag" &&
+    hasClass(el, "activity-underline-option")
+  )
+}
+
 function isWritableTextInput(el: Element): boolean {
   if (tag(el, "textarea")) return true
   if (!tag(el, "input")) return false
@@ -209,6 +216,45 @@ function msLabelMustWrapCheckbox(ctx: ActivityRuleContext): string[] {
         `A <label class="activity-option"> in a multi-select section contains no ` +
           `<input type="checkbox" data-activity-item="..."> descendant. Every option label ` +
           `must wrap a checkbox with a unique data-activity-item.`,
+      )
+    }
+  }
+  return errors
+}
+
+// ---------------------------------------------------------------------------
+// Underline-text rules (inline selectable words / phrases / sentences)
+// ---------------------------------------------------------------------------
+
+function utSectionMustContainOptions(ctx: ActivityRuleContext): string[] {
+  const options = findAll(ctx.section, isUnderlineOption)
+  if (options.length > 0) return []
+  return [
+    `Underline-text activity sections must include at least one element with class="activity-underline-option". ` +
+      `Wrap each selectable word, phrase, or sentence in an inline element carrying that class.`,
+  ]
+}
+
+function utOptionsMustHaveItemIds(ctx: ActivityRuleContext): string[] {
+  const errors: string[] = []
+  for (const option of findAll(ctx.section, isUnderlineOption)) {
+    if (!attr(option, "data-activity-item")) {
+      errors.push(
+        `Each .activity-underline-option must have a unique data-activity-item attribute so the runtime can score selections.`,
+      )
+    }
+  }
+  return errors
+}
+
+function utOptionsMustHaveQuestionGroup(ctx: ActivityRuleContext): string[] {
+  const errors: string[] = []
+  for (const option of findAll(ctx.section, isUnderlineOption)) {
+    const item = attr(option, "data-activity-item") ?? "(missing item id)"
+    if (!attr(option, "data-question-group")) {
+      errors.push(
+        `The .activity-underline-option with data-activity-item="${item}" is missing data-question-group. ` +
+          `Underline activities use question groups to keep multiple prompts independent within one section.`,
       )
     }
   }
@@ -430,6 +476,13 @@ const MULTI_SELECT_RULES: ActivityRule[] = [
   { name: "unique-items", check: uniqueDataActivityItems },
 ]
 
+const UNDERLINE_TEXT_RULES: ActivityRule[] = [
+  { name: "has-options", check: utSectionMustContainOptions },
+  { name: "items-present", check: utOptionsMustHaveItemIds },
+  { name: "question-group-present", check: utOptionsMustHaveQuestionGroup },
+  { name: "unique-items", check: uniqueDataActivityItems },
+]
+
 const TRUE_FALSE_RULES: ActivityRule[] = [
   { name: "fieldset-paired-radios", check: tfFieldsetMustHavePairedRadios },
   { name: "validation-mark-present", check: tfLabelShouldHaveValidationMark },
@@ -450,6 +503,7 @@ export const ACTIVITY_RULES: Record<string, ActivityRule[]> = {
   activity_multiple_choice: MC_RULES,
   activity_quiz: MC_RULES,
   activity_multi_select: MULTI_SELECT_RULES,
+  activity_underline_text: UNDERLINE_TEXT_RULES,
   activity_true_false: TRUE_FALSE_RULES,
   activity_fill_in_the_blank: FITB_RULES,
   activity_fill_in_a_table: FITB_RULES,

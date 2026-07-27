@@ -1,6 +1,7 @@
 import type { SectionRendering } from "@adt/types"
 import { webRenderingLLMSchema, activityAnswersLLMSchema } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
+import { autoRepairUnderlineActivityHtml } from "./activity-underline-repair.js"
 import { validateSectionHtml } from "./validate-html.js"
 import { getViewportBreakpoints, type ScreenshotRenderer } from "./screenshot.js"
 import type { RenderConfig, RenderExecutionOptions, RenderSectionInput } from "./web-rendering.js"
@@ -145,6 +146,11 @@ export async function renderSectionLlm(
     generatedHtml = review.html
   }
 
+  // Persist the same deterministic repair that validation sees. Without this,
+  // underline-text sections can validate against repaired HTML while the saved
+  // web-rendering node still contains the unrepaired LLM output.
+  generatedHtml = autoRepairUnderlineActivityHtml(generatedHtml, section.sectionType)
+
   // Optional: generate activity answers via a second LLM call
   let activityReasoning: string | undefined
   let activityAnswers: Record<string, string | boolean | number> | undefined
@@ -205,9 +211,10 @@ function validateWebRendering(
   const imageUrlPrefix = `/api/books/${label}/images`
   const expectedTexts = new Map(leaf_texts.map((t) => [t.text_id, t.text]))
   const optionalTextIds = collectOptionalTextIds(leaf_texts)
+  const candidateHtml = autoRepairUnderlineActivityHtml(r.content, sectionType)
 
   const check = validateSectionHtml(
-    r.content,
+    candidateHtml,
     allowedTextIds,
     allowedImageIds,
     imageUrlPrefix,
@@ -227,6 +234,7 @@ function validateWebRendering(
       cleaned: { reasoning: r.reasoning, content: check.sectionHtml },
     }
   }
+
   return { valid: check.valid, errors: check.errors }
 }
 
