@@ -3531,6 +3531,9 @@ msgstr "Go to book"
 msgid "Go to home"
 msgstr "Go to home"
 
+msgid "Go to latest"
+msgstr "Go to latest"
+
 msgid "Go to Storyboard"
 msgstr "Go to Storyboard"
 
@@ -4746,8 +4749,8 @@ msgstr "New session"
 msgid "new_type_key"
 msgstr "new_type_key"
 
-#~ msgid "Newer"
-#~ msgstr "Newer"
+msgid "Newer"
+msgstr "Newer"
 
 msgid "Newest"
 msgstr "Newest"
@@ -5181,6 +5184,9 @@ msgstr "Omission or addition"
 
 msgid "On"
 msgstr "On"
+
+msgid "On v{currentVersion} · latest is v{latestVersion}"
+msgstr "On v{currentVersion} · latest is v{latestVersion}"
 
 msgid "One Column"
 msgstr "One Column"

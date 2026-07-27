@@ -3532,6 +3532,9 @@ msgstr "Shko te libri"
 msgid "Go to home"
 msgstr "Shko te kryefaqja"
 
+msgid "Go to latest"
+msgstr ""
+
 msgid "Go to Storyboard"
 msgstr "Shko te Storyboard"
 
@@ -4747,8 +4750,8 @@ msgstr "Sesion i ri"
 msgid "new_type_key"
 msgstr "new_type_key"
 
-#~ msgid "Newer"
-#~ msgstr "Më i ri"
+msgid "Newer"
+msgstr "Më i ri"
 
 msgid "Newest"
 msgstr "Më të rejat"
@@ -5182,6 +5185,9 @@ msgstr "Mungesë ose shtesë"
 
 msgid "On"
 msgstr "Aktiv"
+
+msgid "On v{currentVersion} · latest is v{latestVersion}"
+msgstr ""
 
 msgid "One Column"
 msgstr "Një kolonë"

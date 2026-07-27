@@ -3531,6 +3531,9 @@ msgstr "Ir para o livro"
 msgid "Go to home"
 msgstr "Ir para início"
 
+msgid "Go to latest"
+msgstr ""
+
 msgid "Go to Storyboard"
 msgstr "Ir para Storyboard"
 
@@ -4746,8 +4749,8 @@ msgstr "New session"
 msgid "new_type_key"
 msgstr "novo_tipo"
 
-#~ msgid "Newer"
-#~ msgstr "Mais recente"
+msgid "Newer"
+msgstr "Mais recente"
 
 msgid "Newest"
 msgstr "Mais recentes"
@@ -5181,6 +5184,9 @@ msgstr "Omissão ou adição"
 
 msgid "On"
 msgstr "Ligado"
+
+msgid "On v{currentVersion} · latest is v{latestVersion}"
+msgstr ""
 
 msgid "One Column"
 msgstr "Uma Coluna"

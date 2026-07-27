@@ -254,6 +254,132 @@ export function VersionPicker({
   const defaultCompare =
     versions?.find((v) => v.version !== currentVersion)?.version ?? currentVersion
 
+  // Versions come newest-first, so [0] is the highest (latest) version. After a
+  // rollback the current pointer can be behind the latest.
+  const latestVersion = versions?.[0]?.version ?? currentVersion
+  const notAtLatest = currentVersion !== latestVersion
+  const currentEntry = versions?.find((v) => v.version === currentVersion)
+  const newerThanCurrent = versions?.filter((v) => v.version > currentVersion) ?? []
+  const earlierThanCurrent = versions?.filter((v) => v.version < currentVersion) ?? []
+
+  const sectionLabel = (label: string) => (
+    <div className="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/70">
+      {label}
+    </div>
+  )
+
+  // A single thumbnail-chip row in the visual (renderPreview) popover.
+  const visualRow = (v: VersionEntry) => {
+    const isCurrent = v.version === currentVersion
+    const isLatest = v.version === latestVersion
+    const isActive = hovered === v.version
+    return (
+      <button
+        key={v.version}
+        type="button"
+        onClick={() => handlePick(v)}
+        onMouseEnter={() => setHovered(v.version)}
+        onFocus={() => setHovered(v.version)}
+        className={`flex w-full items-center gap-2.5 rounded-lg p-1.5 text-left transition-colors cursor-pointer ${
+          !isCurrent && isActive ? "bg-accent" : !isCurrent ? "hover:bg-accent/60" : ""
+        }`}
+        style={isCurrent ? { backgroundColor: `${accentColor}0f` } : undefined}
+      >
+        <div className="w-16 shrink-0 overflow-hidden rounded-md border bg-white">
+          <div className="pointer-events-none max-h-14 overflow-hidden">
+            <LazyThumb skeletonClassName="h-12">
+              <PreviewSkeleton
+                reservedClassName="h-12"
+                render={(onReady) => renderPreview!(v.data, onReady)}
+              />
+            </LazyThumb>
+          </div>
+        </div>
+        <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
+          <span
+            className="text-sm font-semibold"
+            style={{ color: isCurrent ? accentColor : undefined }}
+          >
+            v{v.version}
+          </span>
+          {isCurrent ? (
+            <span
+              className="text-[10px] font-medium uppercase tracking-wide"
+              style={{ color: accentColor }}
+            >
+              {t`current`}
+            </span>
+          ) : (
+            isLatest && (
+              <span className="text-[10px] text-muted-foreground">{t`latest`}</span>
+            )
+          )}
+        </span>
+      </button>
+    )
+  }
+
+  // A single row in the book (diff) popover — version + change count vs current.
+  const diffRow = (v: VersionEntry) => {
+    const isCurrent = v.version === currentVersion
+    const isLatest = v.version === latestVersion
+    const changes = isCurrent || !diff ? 0 : countChanges(diff, currentData, v.data)
+    return (
+      <button
+        key={v.version}
+        type="button"
+        onClick={() => handlePick(v)}
+        className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors cursor-pointer ${
+          isCurrent ? "" : "hover:bg-accent"
+        }`}
+        style={isCurrent ? { backgroundColor: `${accentColor}0f` } : undefined}
+      >
+        <span className="flex min-w-0 flex-1 items-center gap-1.5">
+          <span
+            className="text-sm font-semibold"
+            style={{ color: isCurrent ? accentColor : undefined }}
+          >
+            v{v.version}
+          </span>
+          {isCurrent ? (
+            <span
+              className="text-[10px] font-medium uppercase tracking-wide"
+              style={{ color: accentColor }}
+            >
+              {t`current`}
+            </span>
+          ) : (
+            isLatest && (
+              <span className="text-[10px] text-muted-foreground">{t`latest`}</span>
+            )
+          )}
+        </span>
+        {!isCurrent && (
+          <span className="shrink-0 text-[10px] text-muted-foreground">
+            {changes === 1 ? t`1 change` : t`${changes} changes`}
+          </span>
+        )}
+      </button>
+    )
+  }
+
+  // A3 status line — shared by both popover styles when current isn't latest.
+  const notAtLatestBar = notAtLatest ? (
+    <div className="flex items-center justify-between gap-2 border-b bg-muted/40 px-3 py-1.5">
+      <span className="text-[10px] text-muted-foreground">
+        {t`On v${currentVersion} · latest is v${latestVersion}`}
+      </span>
+      <button
+        type="button"
+        onClick={() => restoreTo(latestVersion)}
+        className="rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors hover:bg-accent cursor-pointer"
+        style={{ color: accentColor }}
+      >
+        {t`Go to latest`}
+      </button>
+    </div>
+  ) : null
+
   return (
     <>
       <Popover open={open} onOpenChange={handleOpenChange}>
@@ -288,63 +414,35 @@ export function VersionPicker({
                   </span>
                 </div>
 
+                {/* A3 — surface where "current" is and offer a jump to latest */}
+                {notAtLatestBar}
+
+                {/* A2 — current pinned at the top, always visible */}
+                {currentEntry && (
+                  <div className="border-b px-1.5 py-1.5">
+                    {sectionLabel(t`Current`)}
+                    {visualRow(currentEntry)}
+                  </div>
+                )}
+
+                {/* B2 — the rest grouped relative to current */}
                 <div
                   data-thumb-scroll
-                  className="max-h-80 overflow-auto p-1.5"
+                  className="max-h-72 overflow-auto p-1.5"
                   onMouseLeave={() => setHovered(null)}
                 >
-                  {versions.map((v, i) => {
-                    const isCurrent = v.version === currentVersion
-                    const isLatest = i === 0
-                    const isActive = hovered === v.version
-                    return (
-                      <button
-                        key={v.version}
-                        type="button"
-                        onClick={() => handlePick(v)}
-                        onMouseEnter={() => setHovered(v.version)}
-                        onFocus={() => setHovered(v.version)}
-                        className={`flex w-full items-center gap-2.5 rounded-lg p-1.5 text-left transition-colors cursor-pointer ${
-                          !isCurrent && isActive ? "bg-accent" : !isCurrent ? "hover:bg-accent/60" : ""
-                        }`}
-                        style={isCurrent ? { backgroundColor: `${accentColor}0f` } : undefined}
-                      >
-                        {/* Thumbnail chip — the version's visual identity */}
-                        <div className="w-16 shrink-0 overflow-hidden rounded-md border bg-white">
-                          <div className="pointer-events-none max-h-14 overflow-hidden">
-                            <LazyThumb skeletonClassName="h-12">
-                              <PreviewSkeleton
-                                reservedClassName="h-12"
-                                render={(onReady) => renderPreview(v.data, onReady)}
-                              />
-                            </LazyThumb>
-                          </div>
-                        </div>
-                        <span className="flex min-w-0 flex-1 items-baseline gap-1.5">
-                          <span
-                            className="text-sm font-semibold"
-                            style={{ color: isCurrent ? accentColor : undefined }}
-                          >
-                            v{v.version}
-                          </span>
-                          {isCurrent ? (
-                            <span
-                              className="text-[10px] font-medium uppercase tracking-wide"
-                              style={{ color: accentColor }}
-                            >
-                              {t`current`}
-                            </span>
-                          ) : (
-                            isLatest && (
-                              <span className="text-[10px] text-muted-foreground">
-                                {t`latest`}
-                              </span>
-                            )
-                          )}
-                        </span>
-                      </button>
-                    )
-                  })}
+                  {newerThanCurrent.length > 0 && (
+                    <>
+                      {sectionLabel(t`Newer`)}
+                      {newerThanCurrent.map((v) => visualRow(v))}
+                    </>
+                  )}
+                  {earlierThanCurrent.length > 0 && (
+                    <>
+                      {sectionLabel(t`Earlier`)}
+                      {earlierThanCurrent.map((v) => visualRow(v))}
+                    </>
+                  )}
                 </div>
 
                 {/* Floating preview of the hovered version, to the right of the
@@ -398,49 +496,29 @@ export function VersionPicker({
                     {versions.length}
                   </span>
                 </div>
-                <div className="max-h-72 overflow-auto p-1">
-                  {versions.map((v, i) => {
-                    const isCurrent = v.version === currentVersion
-                    const isLatest = i === 0
-                    const changes = isCurrent ? 0 : countChanges(diff, currentData, v.data)
-                    return (
-                      <button
-                        key={v.version}
-                        type="button"
-                        onClick={() => handlePick(v)}
-                        className={`flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors cursor-pointer ${
-                          isCurrent ? "" : "hover:bg-accent"
-                        }`}
-                        style={isCurrent ? { backgroundColor: `${accentColor}0f` } : undefined}
-                      >
-                        <span className="flex min-w-0 flex-1 items-center gap-1.5">
-                          <span
-                            className="text-sm font-semibold"
-                            style={{ color: isCurrent ? accentColor : undefined }}
-                          >
-                            v{v.version}
-                          </span>
-                          {isCurrent ? (
-                            <span
-                              className="text-[10px] font-medium uppercase tracking-wide"
-                              style={{ color: accentColor }}
-                            >
-                              {t`current`}
-                            </span>
-                          ) : (
-                            isLatest && (
-                              <span className="text-[10px] text-muted-foreground">{t`latest`}</span>
-                            )
-                          )}
-                        </span>
-                        {!isCurrent && (
-                          <span className="shrink-0 text-[10px] text-muted-foreground">
-                            {changes === 1 ? t`1 change` : t`${changes} changes`}
-                          </span>
-                        )}
-                      </button>
-                    )
-                  })}
+
+                {notAtLatestBar}
+
+                {currentEntry && (
+                  <div className="border-b px-1.5 py-1.5">
+                    {sectionLabel(t`Current`)}
+                    {diffRow(currentEntry)}
+                  </div>
+                )}
+
+                <div className="max-h-64 overflow-auto p-1">
+                  {newerThanCurrent.length > 0 && (
+                    <>
+                      {sectionLabel(t`Newer`)}
+                      {newerThanCurrent.map((v) => diffRow(v))}
+                    </>
+                  )}
+                  {earlierThanCurrent.length > 0 && (
+                    <>
+                      {sectionLabel(t`Earlier`)}
+                      {earlierThanCurrent.map((v) => diffRow(v))}
+                    </>
+                  )}
                 </div>
                 <div className="border-t px-1.5 py-1.5">
                   <button
