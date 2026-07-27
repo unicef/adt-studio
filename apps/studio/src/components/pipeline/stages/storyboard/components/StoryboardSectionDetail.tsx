@@ -627,6 +627,16 @@ export function StoryboardSectionDetail({
 
   // Current section data
   const section = sectioningData?.sections[sectionIndex]
+
+  // Keep the viewed section in range — e.g. after rolling back to a version
+  // with fewer sections, clamp to the last one instead of showing a blank pane.
+  useEffect(() => {
+    const count = sectioningData?.sections.length ?? 0
+    if (count > 0 && sectionIndex >= count) {
+      onNavigateSection?.(count - 1)
+    }
+  }, [sectioningData, sectionIndex, onNavigateSection])
+
   const renderingData = pendingRendering ?? page.rendering
   const renderedSection = getRenderedSectionByIndex(renderingData, sectionIndex)
   // Fixed-layout pages style every element via inline CSS (the `<p>`'s own

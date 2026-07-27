@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import {
   BookOpen,
   Check,
@@ -157,6 +157,7 @@ export function VersionPicker({
   const [loadingVersions, setLoadingVersions] = useState(false)
   const [hovered, setHovered] = useState<number | null>(null)
   const [restoring, setRestoring] = useState(false)
+  const [loadError, setLoadError] = useState(false)
   // Reserve the first hovered preview's height for later ones so switching
   // versions doesn't grow the flyout from the skeleton up (same page ≈ same
   // height).
@@ -210,11 +211,15 @@ export function VersionPicker({
 
   const handleOpenChange = async (next: boolean) => {
     setOpen(next)
+    setHovered(null) // don't carry a stale hover-preview across open/close
     if (next) {
       if (versions == null) setLoadingVersions(true)
+      setLoadError(false)
       try {
         const res = await api.getVersionHistory(bookLabel, step, itemId, true)
         setVersions(res.versions)
+      } catch {
+        setLoadError(true)
       } finally {
         setLoadingVersions(false)
       }
@@ -318,11 +323,22 @@ export function VersionPicker({
     )
   }
 
+  // Precompute change counts vs current once per version set (avoids an
+  // O(versions × items) JSON diff on every render while the popover is open).
+  const changeCounts = useMemo(() => {
+    if (!diff || !versions) return null
+    const m = new Map<number, number>()
+    for (const v of versions) {
+      if (v.version !== currentVersion) m.set(v.version, countChanges(diff, currentData, v.data))
+    }
+    return m
+  }, [diff, versions, currentVersion, currentData])
+
   // A single row in the book (diff) popover — version + change count vs current.
   const diffRow = (v: VersionEntry) => {
     const isCurrent = v.version === currentVersion
     const isLatest = v.version === latestVersion
-    const changes = isCurrent || !diff ? 0 : countChanges(diff, currentData, v.data)
+    const changes = isCurrent ? 0 : changeCounts?.get(v.version) ?? 0
     return (
       <button
         key={v.version}
@@ -400,6 +416,20 @@ export function VersionPicker({
           {loadingVersions ? (
             <div className="flex items-center justify-center py-3 px-3">
               <Loader2 className="h-3 w-3 animate-spin" />
+            </div>
+          ) : loadError ? (
+            <div className="flex flex-col items-center gap-1.5 px-3 py-3 text-center">
+              <span className="text-xs text-muted-foreground">
+                {t`Couldn't load versions.`}
+              </span>
+              <button
+                type="button"
+                onClick={() => handleOpenChange(true)}
+                className="rounded px-2 py-0.5 text-[11px] font-medium transition-colors hover:bg-accent cursor-pointer"
+                style={{ color: accentColor }}
+              >
+                {t`Retry`}
+              </button>
             </div>
           ) : versions && versions.length > 0 ? (
             renderPreview ? (
@@ -540,21 +570,9 @@ export function VersionPicker({
         </PopoverContent>
       </Popover>
 
-      {diff && versions && versions.length > 0 && (
-        <VersionCompareDialog
-          open={compareOpen}
-          onOpenChange={setCompareOpen}
-          versions={versions}
-          currentVersion={currentVersion}
-          initialSelected={defaultCompare}
-          descriptor={diff}
-          accentColor={accentColor}
-          icon={stageIcon}
-          onRestore={restoreTo}
-        />
-      )}
-
-      {renderPreview && versions && versions.length > 0 && (
+      {/* Visual takes precedence if both were somehow supplied, so only one
+          compare dialog can ever open. */}
+      {versions && versions.length > 0 && renderPreview ? (
         <VersionPreviewCompareDialog
           open={compareOpen}
           onOpenChange={setCompareOpen}
@@ -566,7 +584,19 @@ export function VersionPicker({
           icon={stageIcon}
           onRestore={restoreTo}
         />
-      )}
+      ) : versions && versions.length > 0 && diff ? (
+        <VersionCompareDialog
+          open={compareOpen}
+          onOpenChange={setCompareOpen}
+          versions={versions}
+          currentVersion={currentVersion}
+          initialSelected={defaultCompare}
+          descriptor={diff}
+          accentColor={accentColor}
+          icon={stageIcon}
+          onRestore={restoreTo}
+        />
+      ) : null}
     </>
   )
 }

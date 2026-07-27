@@ -9,6 +9,7 @@ import type { ContentNodeData, ExtractionWarning } from "@adt/types"
 import { classifyExtractionWarning, flattenVisibleSectioningText } from "../services/extraction-warning.js"
 import { openBookDb } from "@adt/storage"
 import { createBookStorage } from "@adt/storage"
+import { readCurrentNodeRow, CURRENT_VERSION_ORDER } from "@adt/storage"
 import type { Storage } from "@adt/storage"
 import { detectSpreads, type SpreadEdgeSample, classifyPageImages, buildImageClassifyConfig } from "@adt/pipeline"
 import { samplePageEdges, extractPages, computeGroups, countPdfPages } from "@adt/pdf"
@@ -570,7 +571,7 @@ export function createPageRoutes(
          FROM node_data nd
          LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
          WHERE nd.node = ?
-         ORDER BY nd.item_id, (nd.version = nc.version) DESC, nd.version DESC`,
+         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
         ["web-rendering"]
       ) as Array<{ item_id: string; version: number; data: string }>
       for (const row of renderRows) {
@@ -614,7 +615,7 @@ export function createPageRoutes(
          FROM node_data nd
          LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
          WHERE nd.node = ?
-         ORDER BY nd.item_id, (nd.version = nc.version) DESC, nd.version DESC`,
+         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
         ["image-filtering"]
       ) as Array<{ item_id: string; data: string }>
       for (const row of imageRows) {
@@ -642,7 +643,7 @@ export function createPageRoutes(
          FROM node_data nd
          LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
          WHERE nd.node = ?
-         ORDER BY nd.item_id, (nd.version = nc.version) DESC, nd.version DESC`,
+         ORDER BY nd.item_id, ${CURRENT_VERSION_ORDER}`,
         ["page-sectioning"]
       ) as Array<{ item_id: string; version: number; data: string }>
       for (const row of structuringRows) {
@@ -772,17 +773,8 @@ export function createPageRoutes(
       // (node_current pointer), falling back to MAX(version) when unset — so
       // rolling back to an older version is reflected here.
       const getNodeData = (node: string): { data: unknown; version: number } | null => {
-        const rows = db.all(
-          `SELECT nd.data AS data, nd.version AS version
-           FROM node_data nd
-           LEFT JOIN node_current nc ON nc.node = nd.node AND nc.item_id = nd.item_id
-           WHERE nd.node = ? AND nd.item_id = ?
-           ORDER BY (nd.version = nc.version) DESC, nd.version DESC
-           LIMIT 1`,
-          [node, pageId]
-        ) as Array<{ data: string; version: number }>
-        if (rows.length === 0) return null
-        return { data: JSON.parse(rows[0].data), version: rows[0].version }
+        const row = readCurrentNodeRow(db, node, pageId)
+        return row ? { data: JSON.parse(row.data), version: row.version } : null
       }
 
       const sectioningNode = getNodeData("page-sectioning")
@@ -1106,14 +1098,13 @@ export function createPageRoutes(
       const db = openBookDb(dbPath)
       let sectionHtml: string
       try {
-        const rows = db.all(
-          "SELECT data FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
-          ["web-rendering", pageId]
-        ) as Array<{ data: string }>
-        if (rows.length === 0) {
+        // Read the *current* rendering (pointer-aware) so screenshots/exports
+        // match a rolled-back version, not MAX.
+        const row = readCurrentNodeRow(db, "web-rendering", pageId)
+        if (!row) {
           throw new HTTPException(404, { message: `No rendering for page: ${pageId}` })
         }
-        const parsed = WebRenderingOutput.safeParse(JSON.parse(rows[0].data))
+        const parsed = WebRenderingOutput.safeParse(JSON.parse(row.data))
         if (!parsed.success) {
           throw new HTTPException(500, { message: `Rendering data malformed for ${pageId}` })
         }
