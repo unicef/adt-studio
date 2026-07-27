@@ -283,6 +283,20 @@ describe("validateActivityStructure — underline text", () => {
     `)
     expect(errs.some((e) => e.includes("appears 2 times"))).toBe(true)
   })
+
+  it("flags an empty selectable segment as an unnamed control", () => {
+    const errs = check(`
+      <section data-section-type="activity_underline_text">
+        <p>
+          <span data-id="text-1">
+            <span class="activity-underline-option" data-activity-item="item-1" data-question-group="question-group-1">Mimi</span>
+            <span class="activity-underline-option" data-activity-item="item-2" data-question-group="question-group-1"></span>
+          </span>
+        </p>
+      </section>
+    `)
+    expect(errs.some((e) => e.includes("has no text"))).toBe(true)
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -387,6 +401,7 @@ describe("validateActivityStructure — true/false", () => {
     `)
     expect(errs).toEqual([])
   })
+
 })
 
 // ---------------------------------------------------------------------------

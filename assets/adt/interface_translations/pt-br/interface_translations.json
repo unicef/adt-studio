@@ -165,5 +165,10 @@
     "admin-popup-stub-message": "As ferramentas de administração serão adicionadas em uma atualização futura.",
     "main-menu-label": "Menu principal",
     "cover-label": "Capa",
-    "print-page-label": "Imprimir página"
+    "print-page-label": "Imprimir página",
+    "underline-text-options-label": "Sublinhe o texto correto",
+    "underline-question-label": "Pergunta ${n}",
+    "underline-all-correct": "Todas as respostas estão corretas!",
+    "underline-progress-summary": "${correct} corretas, ${wrong} incorretas, ${missing} ainda por encontrar.",
+    "activity-progress-remaining": "restantes"
 }

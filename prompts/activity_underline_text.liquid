@@ -41,6 +41,8 @@ Use this exact outer shell:
 13. If the instruction asks the learner to underline a word, phrase, or grammatical category inside a sentence, the sentence text MUST contain one or more inline selectable spans with class="activity-underline-option". Plain static sentence text with no selectable spans is invalid.
 14. For each question, wrap every plausible candidate answer unit in its own inline element with class="activity-underline-option", a unique `data-activity-item`, and that question's `data-question-group`.
 15. Never leave the answer surface fully static when the learner is expected to click text directly.
+16. Every selectable inline segment MUST contain visible text. The runtime derives each segment's screen-reader name from its own text content, so an empty segment is announced as an unlabeled checkbox. This is validated and will fail.
+17. Keep all selectable segments of one question inside a single shared ancestor (normally that question's `data-id` text wrapper). The runtime labels that ancestor "Question N" so assistive tech can tell which sentence a segment belongs to; segments of one question scattered across unrelated wrappers break that grouping.
 
 ## Underline Activity Structure
 - This activity lets the learner click/tap inline text directly.

@@ -12,6 +12,7 @@ import {
 } from "@/features/activity/state/activity.atoms"
 import { playActivitySound } from "@/features/activity/runtime/sounds"
 import { showActivityProgressToast } from "@/features/activity/lib/progress-toast"
+import { announceToScreenReader } from "@/shared/lib/aria-live"
 
 const UNDERLINE_SELECTOR = 'section[data-section-type="activity_underline_text"]'
 const DEFAULT_GROUP_KEY = "__default__"
@@ -33,6 +34,13 @@ interface UnderlineGroup {
   options: HTMLElement[]
   selected: Set<HTMLElement>
   validated: boolean
+  /**
+   * The element carrying `role="group"` + a localized "Question N" label —
+   * usually the `data-id` text wrapper that contains this group's options.
+   * Screen readers announce the group name when focus enters it, which is what
+   * tells the user which sentence/question a token belongs to.
+   */
+  container: HTMLElement | null
 }
 
 function readCorrectAnswers(section: HTMLElement): Record<string, boolean> {
@@ -66,6 +74,30 @@ function getItemId(option: HTMLElement): string | null {
   return option.getAttribute("data-activity-item")
 }
 
+/**
+ * Smallest ancestor (inside the section) containing every option of a group.
+ * Prefers the `data-id` text wrapper when one wraps them all — that is the
+ * sentence element the question semantically lives in.
+ */
+function findGroupContainer(
+  section: HTMLElement,
+  options: HTMLElement[],
+): HTMLElement | null {
+  if (options.length === 0) return null
+  let candidate: HTMLElement | null = options[0].parentElement
+  while (candidate && candidate !== section) {
+    if (options.every((opt) => candidate!.contains(opt))) break
+    candidate = candidate.parentElement
+  }
+  if (!candidate || candidate === section) {
+    candidate = options[0].closest<HTMLElement>("[data-id]")
+    if (!candidate || !options.every((opt) => candidate!.contains(opt))) {
+      return null
+    }
+  }
+  return candidate
+}
+
 function buildGroups(section: HTMLElement): UnderlineGroup[] {
   const byKey = new Map<string, HTMLElement[]>()
   findOptions(section).forEach((opt) => {
@@ -79,6 +111,7 @@ function buildGroups(section: HTMLElement): UnderlineGroup[] {
     options,
     selected: new Set(),
     validated: false,
+    container: findGroupContainer(section, options),
   }))
 }
 
@@ -201,6 +234,8 @@ export function initializeUnderlineTextActivity(): (() => void) | null {
     let correctPicks = 0
     let wrongPicks = 0
     let missedCorrect = 0
+    let firstWrong: HTMLElement | null = null
+    let firstUnansweredGroup: HTMLElement | null = null
 
     for (const group of groups) {
       if (group.selected.size === 0) {
@@ -209,6 +244,7 @@ export function initializeUnderlineTextActivity(): (() => void) | null {
           const itemId = getItemId(option)
           if (itemId && correctAnswers[itemId]) missedCorrect++
         }
+        if (!firstUnansweredGroup) firstUnansweredGroup = group.options[0] ?? null
         continue
       }
 
@@ -225,6 +261,7 @@ export function initializeUnderlineTextActivity(): (() => void) | null {
           applyOptionStyle(option, "incorrect")
           wrongPicks++
           groupCorrect = false
+          if (!firstWrong) firstWrong = option
         } else {
           clearOptionStyle(option)
           if (shouldBeSelected) {
@@ -254,11 +291,26 @@ export function initializeUnderlineTextActivity(): (() => void) | null {
     )
 
     if (allCorrect) {
+      announceToScreenReader(
+        tr("underline-all-correct", "All answers are correct!"),
+        { assertive: true },
+      )
       store.set(confettiTriggerAtom, store.get(confettiTriggerAtom) + 1)
       store.set(submitStateAtom, "next")
       store.set(submitLabelAtom, null)
       store.set(submitEnabledAtom, hasNextPage)
     } else {
+      const summary = tr(
+        "underline-progress-summary",
+        "${correct} correct, ${wrong} incorrect, ${missing} still to find.",
+      )
+        .replace("${correct}", String(correctPicks))
+        .replace("${wrong}", String(wrongPicks))
+        .replace("${missing}", String(missedCorrect))
+      announceToScreenReader(summary, { assertive: true })
+      // Move focus to the first problem so a keyboard/SR user lands where the
+      // work is, mirroring the true/false activity's behavior.
+      ;(firstWrong ?? firstUnansweredGroup)?.focus()
       store.set(submitStateAtom, "submit")
       store.set(submitLabelAtom, null)
       store.set(submitEnabledAtom, anySelected())
@@ -276,12 +328,23 @@ export function initializeUnderlineTextActivity(): (() => void) | null {
       "aria-label",
       tr("underline-text-options-label", "Underline the correct text"),
     )
+    // Group each question's tokens so AT announces which sentence a token
+    // belongs to when focus enters it. A container shared by several groups is
+    // ambiguous — label it only for the first group that claims it.
+    const labeled = new Set<HTMLElement>()
+    const questionLabel = tr("underline-question-label", "Question ${n}")
+    groups.forEach((group, index) => {
+      const container = group.container
+      if (!container || labeled.has(container)) return
+      labeled.add(container)
+      container.setAttribute("role", "group")
+      container.setAttribute(
+        "aria-label",
+        questionLabel.replace("${n}", String(index + 1)),
+      )
+    })
   }
   applyLocalizedAria()
-
-  function computeOptionName(option: HTMLElement): string {
-    return (option.textContent ?? "").replace(/\s+/g, " ").trim()
-  }
 
   const listeners: Array<() => void> = []
   for (const group of groups) {
@@ -301,10 +364,11 @@ export function initializeUnderlineTextActivity(): (() => void) | null {
       option.setAttribute("role", "checkbox")
       option.setAttribute("aria-checked", "false")
       option.setAttribute("tabindex", "0")
-      if (!option.hasAttribute("aria-label")) {
-        const name = computeOptionName(option)
-        if (name) option.setAttribute("aria-label", name)
-      }
+      // No aria-label: role="checkbox" takes its accessible name from the
+      // element's text content, so the name follows the visible word — even
+      // after a language switch swaps the token text in place. A stale
+      // aria-label set at init would keep announcing the old language.
+      option.removeAttribute("aria-label")
       listeners.push(() => {
         option.removeEventListener("click", onClick)
         option.removeEventListener("keydown", onKey)

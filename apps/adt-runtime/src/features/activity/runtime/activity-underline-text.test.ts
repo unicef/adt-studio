@@ -118,4 +118,99 @@ describe("initializeUnderlineTextActivity", () => {
     expect(optionFor("item-2").getAttribute("data-underline-style-state")).toBe("selected")
     expect(optionFor("item-1").getAttribute("data-underline-style-state")).toBe("selected")
   })
+
+  describe("accessibility semantics", () => {
+    it("exposes each token as a focusable checkbox named by its text content", () => {
+      setupSingleGroup()
+      initializeUnderlineTextActivity()
+      const option = optionFor("item-1")
+      expect(option.getAttribute("role")).toBe("checkbox")
+      expect(option.getAttribute("tabindex")).toBe("0")
+      expect(option.getAttribute("aria-checked")).toBe("false")
+      // Name must come from content so it follows the visible word across
+      // language switches — a static aria-label would go stale.
+      expect(option.hasAttribute("aria-label")).toBe(false)
+      expect(option.textContent).toBe("Mimi")
+    })
+
+    it("groups a question's tokens under a labeled group container", () => {
+      setupSingleGroup()
+      initializeUnderlineTextActivity()
+      const wrapper = document.querySelector<HTMLElement>("[data-id='text-1']")!
+      expect(wrapper.getAttribute("role")).toBe("group")
+      expect(wrapper.getAttribute("aria-label")).toBe("Question 1")
+    })
+
+    it("labels multiple question groups with distinct question numbers", () => {
+      document.body.innerHTML = `
+        <section data-section-type="activity_underline_text" data-section-id="pg021_sec001">
+          <p><span data-id="text-1">
+            <span class="activity-underline-option" data-activity-item="item-1" data-question-group="question-group-1">She</span>
+            <span class="activity-underline-option" data-activity-item="item-2" data-question-group="question-group-1">reads</span>
+          </span></p>
+          <p><span data-id="text-2">
+            <span class="activity-underline-option" data-activity-item="item-3" data-question-group="question-group-2">We</span>
+            <span class="activity-underline-option" data-activity-item="item-4" data-question-group="question-group-2">sing</span>
+          </span></p>
+        </section>
+      `
+      window.correctAnswers = { "item-1": true, "item-3": true }
+      initializeUnderlineTextActivity()
+      expect(
+        document.querySelector("[data-id='text-1']")!.getAttribute("aria-label"),
+      ).toBe("Question 1")
+      expect(
+        document.querySelector("[data-id='text-2']")!.getAttribute("aria-label"),
+      ).toBe("Question 2")
+    })
+
+    it("toggles selection with Enter and Space", () => {
+      setupSingleGroup()
+      initializeUnderlineTextActivity()
+      const option = optionFor("item-1")
+      option.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }))
+      expect(option.getAttribute("aria-checked")).toBe("true")
+      option.dispatchEvent(new KeyboardEvent("keydown", { key: " ", bubbles: true }))
+      expect(option.getAttribute("aria-checked")).toBe("false")
+    })
+
+    it("announces the verdict in the live region after a failed submit", async () => {
+      setupSingleGroup()
+      initializeUnderlineTextActivity()
+      optionFor("item-2").click() // wrong; item-1 stays missed
+      store.get(validateHandlerAtom)?.()
+      await new Promise((resolve) => setTimeout(resolve, 80))
+      const region = document.getElementById("sr-announcement")!
+      expect(region.textContent).toBe("0 correct, 1 incorrect, 1 still to find.")
+    })
+
+    it("announces success in the live region when everything is correct", async () => {
+      setupSingleGroup()
+      initializeUnderlineTextActivity()
+      optionFor("item-1").click()
+      store.get(validateHandlerAtom)?.()
+      await new Promise((resolve) => setTimeout(resolve, 80))
+      const region = document.getElementById("sr-announcement")!
+      expect(region.textContent).toBe("All answers are correct!")
+    })
+
+    it("moves focus to the first wrong token after a failed submit", () => {
+      setupSingleGroup()
+      initializeUnderlineTextActivity()
+      const wrong = optionFor("item-2")
+      wrong.click()
+      store.get(validateHandlerAtom)?.()
+      expect(document.activeElement).toBe(wrong)
+    })
+
+    it("marks only wrongly selected tokens aria-invalid after submit", () => {
+      setupSingleGroup()
+      initializeUnderlineTextActivity()
+      optionFor("item-1").click()
+      optionFor("item-2").click()
+      store.get(validateHandlerAtom)?.()
+      expect(optionFor("item-1").getAttribute("aria-invalid")).toBe("false")
+      expect(optionFor("item-2").getAttribute("aria-invalid")).toBe("true")
+    })
+  })
 })

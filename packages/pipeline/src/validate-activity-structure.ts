@@ -261,6 +261,27 @@ function utOptionsMustHaveQuestionGroup(ctx: ActivityRuleContext): string[] {
   return errors
 }
 
+/**
+ * A selectable token gets its accessible name from its own text content (the
+ * runtime deliberately sets no aria-label so the name follows the visible word
+ * across language switches). An empty token is therefore an unnamed control —
+ * a screen reader announces a bare "checkbox".
+ */
+function utOptionsMustHaveText(ctx: ActivityRuleContext): string[] {
+  const errors: string[] = []
+  for (const option of findAll(ctx.section, isUnderlineOption)) {
+    if (DomUtils.getText(option).trim() === "") {
+      const item = attr(option, "data-activity-item") ?? "(missing item id)"
+      errors.push(
+        `The .activity-underline-option with data-activity-item="${item}" has no text ` +
+          `content. Each selectable segment takes its accessible name from its text, so ` +
+          `an empty segment is announced as an unlabeled checkbox.`,
+      )
+    }
+  }
+  return errors
+}
+
 // ---------------------------------------------------------------------------
 // True/false rules
 // ---------------------------------------------------------------------------
@@ -480,6 +501,7 @@ const UNDERLINE_TEXT_RULES: ActivityRule[] = [
   { name: "has-options", check: utSectionMustContainOptions },
   { name: "items-present", check: utOptionsMustHaveItemIds },
   { name: "question-group-present", check: utOptionsMustHaveQuestionGroup },
+  { name: "options-have-text", check: utOptionsMustHaveText },
   { name: "unique-items", check: uniqueDataActivityItems },
 ]
 
