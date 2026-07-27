@@ -539,6 +539,7 @@ export function VersionPicker({
           accentColor={accentColor}
           icon={stageIcon}
           onRestore={restoreTo}
+          cacheKey={`${bookLabel}:${step}:${itemId}`}
         />
       ) : versions && versions.length > 0 && diff ? (
         <VersionCompareDialog
