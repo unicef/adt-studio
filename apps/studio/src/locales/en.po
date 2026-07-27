@@ -4749,8 +4749,8 @@ msgstr "New session"
 msgid "new_type_key"
 msgstr "new_type_key"
 
-msgid "Newer"
-msgstr "Newer"
+#~ msgid "Newer"
+#~ msgstr "Newer"
 
 msgid "Newest"
 msgstr "Newest"

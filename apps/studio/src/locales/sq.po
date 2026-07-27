@@ -4750,8 +4750,8 @@ msgstr "Sesion i ri"
 msgid "new_type_key"
 msgstr "new_type_key"
 
-msgid "Newer"
-msgstr "Më i ri"
+#~ msgid "Newer"
+#~ msgstr "Më i ri"
 
 msgid "Newest"
 msgstr "Më të rejat"

@@ -259,8 +259,7 @@ export function VersionPicker({
   const latestVersion = versions?.[0]?.version ?? currentVersion
   const notAtLatest = currentVersion !== latestVersion
   const currentEntry = versions?.find((v) => v.version === currentVersion)
-  const newerThanCurrent = versions?.filter((v) => v.version > currentVersion) ?? []
-  const earlierThanCurrent = versions?.filter((v) => v.version < currentVersion) ?? []
+  const otherVersions = versions?.filter((v) => v.version !== currentVersion) ?? []
 
   const sectionLabel = (label: string) => (
     <div className="px-2 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/70">
@@ -425,24 +424,12 @@ export function VersionPicker({
                   </div>
                 )}
 
-                {/* B2 — the rest grouped relative to current */}
                 <div
                   data-thumb-scroll
                   className="max-h-72 overflow-auto p-1.5"
                   onMouseLeave={() => setHovered(null)}
                 >
-                  {newerThanCurrent.length > 0 && (
-                    <>
-                      {sectionLabel(t`Newer`)}
-                      {newerThanCurrent.map((v) => visualRow(v))}
-                    </>
-                  )}
-                  {earlierThanCurrent.length > 0 && (
-                    <>
-                      {sectionLabel(t`Earlier`)}
-                      {earlierThanCurrent.map((v) => visualRow(v))}
-                    </>
-                  )}
+                  {otherVersions.map((v) => visualRow(v))}
                 </div>
 
                 {/* Floating preview of the hovered version, to the right of the
@@ -507,18 +494,7 @@ export function VersionPicker({
                 )}
 
                 <div className="max-h-64 overflow-auto p-1">
-                  {newerThanCurrent.length > 0 && (
-                    <>
-                      {sectionLabel(t`Newer`)}
-                      {newerThanCurrent.map((v) => diffRow(v))}
-                    </>
-                  )}
-                  {earlierThanCurrent.length > 0 && (
-                    <>
-                      {sectionLabel(t`Earlier`)}
-                      {earlierThanCurrent.map((v) => diffRow(v))}
-                    </>
-                  )}
+                  {otherVersions.map((v) => diffRow(v))}
                 </div>
                 <div className="border-t px-1.5 py-1.5">
                   <button
