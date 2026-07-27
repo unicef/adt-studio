@@ -4,9 +4,11 @@ import { Link, useMatchRoute, useSearch } from "@tanstack/react-router"
 import { Trans } from "@lingui/react/macro"
 import {
   AlertCircle,
+  KeyRound,
   Loader2,
   RotateCcw,
   Settings,
+  Terminal,
   TriangleAlert,
   X,
 } from "lucide-react"
@@ -16,7 +18,9 @@ import { useLingui } from "@lingui/react"
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { Button } from "@/components/ui/button"
+import { ActionMenu } from "@/components/ui/action-menu"
 import { toast } from "@/components/ui/sonner"
+import { useDebugPanelState } from "@/components/debug/debug-panel-state"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useAccessibilityAssessment } from "@/hooks/use-debug"
 import { useBookTasks } from "@/hooks/use-book-tasks"
@@ -83,6 +87,7 @@ export function StageSidebar({
   const { data: packageStatus } = usePackageAdtStatus(bookLabel)
   const { tasks } = useBookTasks(bookLabel)
   const { openSettings } = useSettingsDialog()
+  const { openPanel: openDebugPanel } = useDebugPanelState()
   const stageMissing = useStageMissingCounts(bookLabel)
   const translateNeedsRerun = stageMissing.translate > 0
   const speechNeedsRerun = stageMissing.speech > 0
@@ -308,19 +313,28 @@ export function StageSidebar({
               <Settings className="w-3.5 h-3.5" />
             </Link>
           ) : step.slug === "book" ? (
-            <button
-              type="button"
-              onClick={openSettings}
-              title={i18n._(msg`API Key Settings`)}
-              className={cn(
+            <ActionMenu
+              portal
+              trigger={<Settings className="w-3.5 h-3.5" />}
+              triggerClassName={cn(
                 "shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors cursor-pointer",
                 isActive
                   ? "text-white/60 hover:text-white hover:bg-white/20"
                   : "opacity-0 group-hover/row:opacity-100 text-muted-foreground/50 group-hover/row:bg-muted hover:text-foreground hover:bg-muted-foreground/20"
               )}
-            >
-              <Settings className="w-3.5 h-3.5" />
-            </button>
+              items={[
+                {
+                  icon: Terminal,
+                  label: i18n._(msg`Debug Panel`),
+                  onClick: () => openDebugPanel(),
+                },
+                {
+                  icon: KeyRound,
+                  label: i18n._(msg`API Keys`),
+                  onClick: openSettings,
+                },
+              ]}
+            />
           ) : step.slug === "preview" ? (
             <button
               type="button"

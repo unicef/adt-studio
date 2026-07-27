@@ -34,6 +34,7 @@ import { createReviewerValidationRoutes } from "./routes/reviewer-validation.js"
 import { createTocRoutes } from "./routes/toc.js"
 import { createSignLanguageVideoRoutes } from "./routes/sign-language-videos.js"
 import { createTranslationEvaluationRoutes } from "./routes/translation-evaluations.js"
+import { createAssistantRoutes } from "./routes/assistant.js"
 
 // Resolve paths relative to monorepo root (2 levels up from apps/api/)
 const projectRoot = path.resolve(
@@ -47,6 +48,7 @@ const configPath = path.resolve(
 const configFolderPath = path.resolve(
   process.env.CONFIG_FOLDER_PATH ?? path.join(projectRoot, "config")
 )
+const docsBaseUrl = process.env.DOCS_BASE_URL
 
 let webAssetsDir: string
 const adtResourcesZip = process.env.ADT_RESOURCES_ZIP
@@ -118,6 +120,7 @@ app.route("/api", createSpeechConfigRoutes(configPath))
 app.route("/api", createReviewerValidationRoutes(booksDir, configFolderPath, configPath))
 app.route("/api", createSignLanguageVideoRoutes(booksDir))
 app.route("/api", createTranslationEvaluationRoutes(booksDir, configPath, taskService))
+app.route("/api", createAssistantRoutes(booksDir, promptsDir, configPath, docsBaseUrl))
 
 export default app
 export { booksDir }

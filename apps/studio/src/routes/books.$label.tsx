@@ -8,8 +8,7 @@ import {
   useMatchRoute,
   type ErrorComponentProps,
 } from "@tanstack/react-router"
-import { Home, Terminal } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Home } from "lucide-react"
 import { DebugPanel } from "@/components/debug/DebugPanel"
 import { DebugPanelStateProvider, type DebugTabValue } from "@/components/debug/debug-panel-state"
 import { StageSidebar } from "@/components/pipeline/components/StageSidebar"
@@ -198,18 +197,6 @@ function BookLayoutInner({ label, isRunning }: { label: string; isRunning: boole
               />
             )}
           </div>
-
-          {!debugOpen && !isDebugRoute && (
-            <Button
-              variant="outline"
-              size="icon"
-              className="fixed bottom-16 right-4 z-50 h-8 w-8 rounded-full shadow-md opacity-60 hover:opacity-100"
-              onClick={() => openDebugPanel()}
-              title="Debug Panel (Cmd+Shift+D)"
-            >
-              <Terminal className="h-4 w-4" />
-            </Button>
-          )}
         </SectionNavCtx.Provider>
         </SettingsDirtyTabsProvider>
       </FloatingSaveProvider>

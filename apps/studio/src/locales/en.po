@@ -859,6 +859,9 @@ msgstr "Add an API key in Book settings to run translation."
 msgid "Add an API key to re-run"
 msgstr "Add an API key to re-run"
 
+msgid "Add an API key to use the Assistant."
+msgstr "Add an API key to use the Assistant."
+
 msgid "Add at least one output language to run translation."
 msgstr "Add at least one output language to run translation."
 
@@ -1338,6 +1341,18 @@ msgstr "Article"
 msgid "Aside"
 msgstr "Aside"
 
+#~ msgid "Ask a question about this page…"
+#~ msgstr "Ask a question about this page…"
+
+msgid "Ask a question…"
+msgstr "Ask a question…"
+
+#~ msgid "Ask about the page you're currently viewing — I can see what's on it."
+#~ msgstr "Ask about the page you're currently viewing — I can see what's on it."
+
+msgid "Ask about the page you're viewing, or anything about how ADT Studio works — I can see what's on your screen and I'm not limited to it."
+msgstr "Ask about the page you're viewing, or anything about how ADT Studio works — I can see what's on your screen and I'm not limited to it."
+
 msgid "Ask AI to edit..."
 msgstr "Ask AI to edit..."
 
@@ -1352,6 +1367,9 @@ msgstr "Asset"
 
 msgid "Assign..."
 msgstr "Assign..."
+
+msgid "Assistant"
+msgstr "Assistant"
 
 msgid "At the river's edge"
 msgstr "At the river's edge"
@@ -2365,6 +2383,12 @@ msgstr "Cut a region out of any page"
 
 msgid "Debug mode is not enabled."
 msgstr "Debug mode is not enabled."
+
+msgid "Debug Panel"
+msgstr "Debug Panel"
+
+msgid "Debug Panel (Cmd+Shift+D)"
+msgstr "Debug Panel (Cmd+Shift+D)"
 
 msgid "Decorative"
 msgstr "Decorative"
@@ -5308,6 +5332,9 @@ msgstr "Open a page to review"
 msgid "Open a page to see page-level findings"
 msgstr "Open a page to see page-level findings"
 
+msgid "Open assistant"
+msgstr "Open assistant"
+
 #. placeholder {0}: source.buildCommit.sha.slice(0, 7)
 #. placeholder {0}: source.changeCommit.sha.slice(0, 7)
 msgid "Open commit {0}"
@@ -5340,6 +5367,9 @@ msgstr "Open Preview"
 #. placeholder {0}: pullRequest.number
 msgid "Open pull request {0}"
 msgstr "Open pull request {0}"
+
+msgid "Open settings"
+msgstr "Open settings"
 
 msgid "Open source PDF in a new tab"
 msgstr "Open source PDF in a new tab"
@@ -7156,6 +7186,9 @@ msgstr "Selecting \"None\" lets the LLM choose its own styling for each page."
 msgid "Self-contained ADT web app"
 msgstr "Self-contained ADT web app"
 
+msgid "Send"
+msgstr "Send"
+
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Send this project archive back to the coordinator to merge into the source book."
 
@@ -7379,6 +7412,10 @@ msgstr "Some pages have no embedded text layer — text was recovered from the p
 
 msgid "Something went wrong"
 msgstr "Something went wrong"
+
+#. placeholder {0}: err instanceof Error ? err.message : String(err)
+msgid "Something went wrong: {0}"
+msgstr "Something went wrong: {0}"
 
 msgid "Sort"
 msgstr "Sort"
@@ -8049,6 +8086,9 @@ msgstr "They produce flowers to attract pollinators."
 
 msgid "They release oxygen directly into the air."
 msgstr "They release oxygen directly into the air."
+
+msgid "Thinking…"
+msgstr "Thinking…"
 
 msgid "This archive can't be opened safely"
 msgstr "This archive can't be opened safely"

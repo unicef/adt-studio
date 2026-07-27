@@ -314,6 +314,24 @@ export interface AiEditHistoryTurn {
   verify?: { applied: boolean; reason: string }
 }
 
+export interface AssistantChatMessageBody {
+  role: "user" | "assistant"
+  content: string
+}
+
+export interface AssistantChatRequestBody {
+  message: string
+  history: AssistantChatMessageBody[]
+  pageId?: string
+  sectionIndex?: number
+  correlationId?: string
+}
+
+export interface AssistantChatResponseBody {
+  reply: string
+  correlationId: string
+}
+
 export interface PageDetail {
   pageId: string
   pageNumber: number
@@ -1102,6 +1120,17 @@ export const api = {
   aiEditHistory: (label: string, pageId: string, sectionIndex: number) =>
     request<{ history: AiEditHistoryTurn[] }>(
       `/books/${label}/pages/${pageId}/sections/${sectionIndex}/ai-edit-history`,
+    ),
+
+  sendAssistantMessage: (label: string, body: AssistantChatRequestBody, apiKey: string) =>
+    request<AssistantChatResponseBody>(
+      `/books/${label}/assistant/chat`,
+      {
+        method: "POST",
+        headers: { "X-OpenAI-Key": apiKey },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(30_000),
+      }
     ),
 
   listBookImages: (label: string) =>

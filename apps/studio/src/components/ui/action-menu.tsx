@@ -5,6 +5,7 @@ import {
   type ComponentType,
   type ReactNode,
 } from "react"
+import { createPortal } from "react-dom"
 import { cn } from "@/lib/utils"
 
 export interface ActionMenuItem {
@@ -39,6 +40,7 @@ export function ActionMenu({
   itemsDisabled,
   align = "right",
   menuClassName,
+  portal = false,
 }: {
   /** Content of the toggle button. */
   trigger: ReactNode
@@ -51,17 +53,36 @@ export function ActionMenu({
   itemsDisabled?: boolean
   align?: "left" | "right"
   menuClassName?: string
+  /** Render the popup into document.body instead of inline. Needed when the
+   *  trigger sits inside an `overflow-hidden` ancestor (e.g. a row that
+   *  clips content for a hover/width transition) that would otherwise clip
+   *  the popup. Position is computed from the trigger's rect on open. */
+  portal?: boolean
 }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const [portalPos, setPortalPos] = useState<{ top: number; left: number; right: number } | null>(null)
+  const triggerWrapRef = useRef<HTMLDivElement>(null)
+  const portalMenuRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     if (!open) return
     const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+      const target = e.target as Node
+      const insideTrigger = !!triggerWrapRef.current?.contains(target)
+      const insidePortalMenu = portal && !!portalMenuRef.current?.contains(target)
+      if (!insideTrigger && !insidePortalMenu) setOpen(false)
     }
     document.addEventListener("mousedown", onDown)
     return () => document.removeEventListener("mousedown", onDown)
-  }, [open])
+  }, [open, portal])
+
+  const handleTriggerClick = () => {
+    if (!open && portal && triggerWrapRef.current) {
+      const rect = triggerWrapRef.current.getBoundingClientRect()
+      setPortalPos({ top: rect.bottom, left: rect.left, right: window.innerWidth - rect.right })
+    }
+    setOpen((v) => !v)
+  }
 
   // Drop hidden items, then collapse separators left dangling by the filter.
   const entries: ActionMenuEntry[] = []
@@ -78,17 +99,65 @@ export function ActionMenu({
   }
   if (entries.length === 0) return null
 
+  const menuItems = (
+    <>
+      {note}
+      {entries.map((entry, i) =>
+        isSeparator(entry) ? (
+          <div key={i} className="my-1 border-t" />
+        ) : (
+          <button
+            key={i}
+            type="button"
+            onClick={() => {
+              setOpen(false)
+              entry.onClick()
+            }}
+            disabled={itemsDisabled || entry.disabled}
+            className={cn(
+              "flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-accent transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default",
+              entry.danger && "text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
+            )}
+          >
+            {entry.icon ? (
+              <entry.icon className={cn("h-3.5 w-3.5", entry.iconClassName)} />
+            ) : null}
+            {entry.label}
+          </button>
+        )
+      )}
+    </>
+  )
+
   return (
-    <div className="relative" ref={ref} onClick={(e) => e.stopPropagation()}>
+    <div className="relative" ref={triggerWrapRef} onClick={(e) => e.stopPropagation()}>
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={handleTriggerClick}
         disabled={triggerDisabled}
         className={triggerClassName}
       >
         {trigger}
       </button>
-      {open && (
+      {open && portal && portalPos &&
+        createPortal(
+          <div
+            ref={portalMenuRef}
+            style={{
+              position: "fixed",
+              top: portalPos.top + 4,
+              ...(align === "right" ? { right: portalPos.right } : { left: portalPos.left }),
+            }}
+            className={cn(
+              "z-50 min-w-[160px] rounded-md border bg-popover py-1 text-xs shadow-md",
+              menuClassName
+            )}
+          >
+            {menuItems}
+          </div>,
+          document.body
+        )}
+      {open && !portal && (
         <div
           className={cn(
             "absolute top-full z-50 mt-1 min-w-[160px] rounded-md border bg-popover py-1 text-xs shadow-md",
@@ -96,31 +165,7 @@ export function ActionMenu({
             menuClassName
           )}
         >
-          {note}
-          {entries.map((entry, i) =>
-            isSeparator(entry) ? (
-              <div key={i} className="my-1 border-t" />
-            ) : (
-              <button
-                key={i}
-                type="button"
-                onClick={() => {
-                  setOpen(false)
-                  entry.onClick()
-                }}
-                disabled={itemsDisabled || entry.disabled}
-                className={cn(
-                  "flex w-full items-center gap-2 px-3 py-1.5 text-left hover:bg-accent transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-default",
-                  entry.danger && "text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
-                )}
-              >
-                {entry.icon ? (
-                  <entry.icon className={cn("h-3.5 w-3.5", entry.iconClassName)} />
-                ) : null}
-                {entry.label}
-              </button>
-            )
-          )}
+          {menuItems}
         </div>
       )}
     </div>

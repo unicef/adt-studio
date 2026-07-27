@@ -859,6 +859,9 @@ msgstr "Adicione uma chave de API nas configurações do Livro para executar tra
 msgid "Add an API key to re-run"
 msgstr "Adicione uma chave de API para reexecutar"
 
+msgid "Add an API key to use the Assistant."
+msgstr "Adicione uma chave de API para usar o Assistente."
+
 msgid "Add at least one output language to run translation."
 msgstr "Adicione pelo menos um idioma de saída para executar tradução."
 
@@ -1338,6 +1341,18 @@ msgstr "Artigo"
 msgid "Aside"
 msgstr "Aparte"
 
+#~ msgid "Ask a question about this page…"
+#~ msgstr "Faça uma pergunta sobre esta página…"
+
+msgid "Ask a question…"
+msgstr "Faça uma pergunta…"
+
+#~ msgid "Ask about the page you're currently viewing — I can see what's on it."
+#~ msgstr "Pergunte sobre a página que você está vendo agora — consigo ver o que há nela."
+
+msgid "Ask about the page you're viewing, or anything about how ADT Studio works — I can see what's on your screen and I'm not limited to it."
+msgstr "Pergunte sobre a página que você está vendo, ou sobre qualquer aspecto de como o ADT Studio funciona — consigo ver o que há na sua tela, mas não me limito a isso."
+
 msgid "Ask AI to edit..."
 msgstr "Peça para a IA editar..."
 
@@ -1352,6 +1367,9 @@ msgstr "Recurso"
 
 msgid "Assign..."
 msgstr "Atribuir..."
+
+msgid "Assistant"
+msgstr "Assistente"
 
 msgid "At the river's edge"
 msgstr "Na beira do rio"
@@ -2365,6 +2383,12 @@ msgstr "Recorte uma região de qualquer página"
 
 msgid "Debug mode is not enabled."
 msgstr "Modo de depuração não está ativado."
+
+msgid "Debug Panel"
+msgstr "Painel de depuração"
+
+msgid "Debug Panel (Cmd+Shift+D)"
+msgstr "Painel de depuração (Cmd+Shift+D)"
 
 msgid "Decorative"
 msgstr "Decorativa"
@@ -5308,6 +5332,9 @@ msgstr "Open a page to review"
 msgid "Open a page to see page-level findings"
 msgstr "Open a page to see page-level findings"
 
+msgid "Open assistant"
+msgstr "Abrir assistente"
+
 #. placeholder {0}: source.buildCommit.sha.slice(0, 7)
 #. placeholder {0}: source.changeCommit.sha.slice(0, 7)
 msgid "Open commit {0}"
@@ -5340,6 +5367,9 @@ msgstr "Open Preview"
 #. placeholder {0}: pullRequest.number
 msgid "Open pull request {0}"
 msgstr "Abrir pull request {0}"
+
+msgid "Open settings"
+msgstr "Abrir configurações"
 
 msgid "Open source PDF in a new tab"
 msgstr "Abrir o PDF de origem em uma nova aba"
@@ -7156,6 +7186,9 @@ msgstr "Selecionar \\\"Nenhum\\\" permite que o LLM escolha seu próprio estilo 
 msgid "Self-contained ADT web app"
 msgstr "Aplicativo web ADT autônomo"
 
+msgid "Send"
+msgstr "Enviar"
+
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Envie este arquivo de projeto de volta ao coordenador para mesclá-lo no livro de origem."
 
@@ -7379,6 +7412,10 @@ msgstr "Algumas páginas não têm camada de texto incorporada — o texto foi r
 
 msgid "Something went wrong"
 msgstr "Algo deu errado"
+
+#. placeholder {0}: err instanceof Error ? err.message : String(err)
+msgid "Something went wrong: {0}"
+msgstr "Algo deu errado: {0}"
 
 msgid "Sort"
 msgstr "Ordenar"
@@ -8049,6 +8086,9 @@ msgstr "Produzem flores para atrair polinizadores."
 
 msgid "They release oxygen directly into the air."
 msgstr "Liberam oxigênio diretamente no ar."
+
+msgid "Thinking…"
+msgstr "Pensando…"
 
 msgid "This archive can't be opened safely"
 msgstr "Este arquivo não pode ser aberto com segurança"

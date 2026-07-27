@@ -860,6 +860,9 @@ msgstr "Shto një çelës API në cilësimet e Librit për të ekzekutuar përkt
 msgid "Add an API key to re-run"
 msgstr "Shto një çelës API për të ri-ekzekutuar"
 
+msgid "Add an API key to use the Assistant."
+msgstr "Shtoni një çelës API për të përdorur Asistentin."
+
 msgid "Add at least one output language to run translation."
 msgstr "Shto të paktën një gjuhë dalëse për të ekzekutuar përkthimin."
 
@@ -1339,6 +1342,18 @@ msgstr "Artikull"
 msgid "Aside"
 msgstr "Shënim anësor"
 
+#~ msgid "Ask a question about this page…"
+#~ msgstr "Bëni një pyetje rreth kësaj faqeje…"
+
+msgid "Ask a question…"
+msgstr "Bëni një pyetje…"
+
+#~ msgid "Ask about the page you're currently viewing — I can see what's on it."
+#~ msgstr "Pyisni për faqen që po shikoni aktualisht — mund ta shoh çfarë ka në të."
+
+msgid "Ask about the page you're viewing, or anything about how ADT Studio works — I can see what's on your screen and I'm not limited to it."
+msgstr "Pyisni për faqen që po shikoni, ose për çdo gjë rreth mënyrës se si funksionon ADT Studio — mund ta shoh çfarë ka në ekranin tuaj, por nuk kufizohem vetëm tek kjo."
+
 msgid "Ask AI to edit..."
 msgstr "Kërko nga AI të redaktojë..."
 
@@ -1353,6 +1368,9 @@ msgstr "Burim"
 
 msgid "Assign..."
 msgstr "Cakto..."
+
+msgid "Assistant"
+msgstr "Asistenti"
 
 msgid "At the river's edge"
 msgstr "Në buzë të lumit"
@@ -2366,6 +2384,12 @@ msgstr "Prit një zonë nga çdo faqe"
 
 msgid "Debug mode is not enabled."
 msgstr "Modaliteti i korrigjimit nuk është aktivizuar."
+
+msgid "Debug Panel"
+msgstr "Paneli i korrigjimit"
+
+msgid "Debug Panel (Cmd+Shift+D)"
+msgstr "Paneli i korrigjimit (Cmd+Shift+D)"
 
 msgid "Decorative"
 msgstr "Dekorativ"
@@ -5309,6 +5333,9 @@ msgstr "Hapni një faqe për rishikim"
 msgid "Open a page to see page-level findings"
 msgstr "Hapni një faqe për të parë gjetjet në nivel faqeje"
 
+msgid "Open assistant"
+msgstr "Hap asistentin"
+
 #. placeholder {0}: source.buildCommit.sha.slice(0, 7)
 #. placeholder {0}: source.changeCommit.sha.slice(0, 7)
 msgid "Open commit {0}"
@@ -5341,6 +5368,9 @@ msgstr "Hapni Pamjen Paraprake"
 #. placeholder {0}: pullRequest.number
 msgid "Open pull request {0}"
 msgstr "Hap pull request-in {0}"
+
+msgid "Open settings"
+msgstr "Hap cilësimet"
 
 msgid "Open source PDF in a new tab"
 msgstr "Hapni PDF-in burimor në një skedë të re"
@@ -7157,6 +7187,9 @@ msgstr "Zgjedhja e \"Asnjë\" i lejon LLM-it të zgjedhë stilin e tij për çdo
 msgid "Self-contained ADT web app"
 msgstr "Aplikacion web ADT i pavarur"
 
+msgid "Send"
+msgstr "Dërgo"
+
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Dërgojeni këtë arkiv projekti te koordinatori për ta bashkuar në librin burim."
 
@@ -7380,6 +7413,10 @@ msgstr "Disa faqe nuk kanë shtresë teksti të integruar — teksti u rikuperua
 
 msgid "Something went wrong"
 msgstr "Diçka shkoi keq"
+
+#. placeholder {0}: err instanceof Error ? err.message : String(err)
+msgid "Something went wrong: {0}"
+msgstr "Diçka shkoi keq: {0}"
 
 msgid "Sort"
 msgstr "Rendit"
@@ -8050,6 +8087,9 @@ msgstr "Ato prodhojnë lule për të tërhequr polenizuesit."
 
 msgid "They release oxygen directly into the air."
 msgstr "Ato lëshojnë oksigjen drejtpërdrejt në ajër."
+
+msgid "Thinking…"
+msgstr "Duke menduar…"
 
 msgid "This archive can't be opened safely"
 msgstr "Ky arkiv nuk mund të hapet në mënyrë të sigurt"

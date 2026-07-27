@@ -274,6 +274,13 @@ export {
 } from "./toc.js"
 
 export {
+  AssistantChatMessage,
+  AssistantChatRequest,
+  AssistantChatResponse,
+  assistantChatLLMSchema,
+} from "./assistant.js"
+
+export {
   AccessibilityNodeResult,
   AccessibilityFinding,
   AccessibilityPageResult,
