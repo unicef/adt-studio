@@ -31,6 +31,7 @@ import {
   countChanges,
   type VersionDiffDescriptor,
 } from "./VersionCompareDialog"
+import { VersionPreviewCompareDialog } from "./VersionPreviewCompareDialog"
 
 const NEUTRAL_ACCENT = "#4b5563"
 
@@ -354,6 +355,22 @@ export function VersionPicker({
                     </div>
                   </div>
                 )}
+
+                {versions.length > 1 && (
+                  <div className="border-t p-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpen(false)
+                        setCompareOpen(true)
+                      }}
+                      className="flex w-full items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent cursor-pointer"
+                    >
+                      <GitCompareArrows className="h-3 w-3" />
+                      {t`Compare versions`}
+                    </button>
+                  </div>
+                )}
               </div>
             ) : diff ? (
               <div className="flex flex-col">
@@ -461,6 +478,20 @@ export function VersionPicker({
           currentVersion={currentVersion}
           initialSelected={defaultCompare}
           descriptor={diff}
+          accentColor={accentColor}
+          icon={stageIcon}
+          onRestore={restoreTo}
+        />
+      )}
+
+      {renderPreview && versions && versions.length > 0 && (
+        <VersionPreviewCompareDialog
+          open={compareOpen}
+          onOpenChange={setCompareOpen}
+          versions={versions}
+          currentVersion={currentVersion}
+          initialSelected={defaultCompare}
+          renderPreview={renderPreview}
           accentColor={accentColor}
           icon={stageIcon}
           onRestore={restoreTo}

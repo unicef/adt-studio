@@ -2300,6 +2300,9 @@ msgstr "Current Preview Page"
 #~ msgid "Current version"
 #~ msgstr "Current version"
 
+msgid "Current version (v{currentVersion})"
+msgstr "Current version (v{currentVersion})"
+
 msgid "Custom"
 msgstr "Custom"
 
@@ -5728,6 +5731,9 @@ msgstr "Pick a family to attach to the book. It is downloaded when extraction ru
 msgid "Pick a preset"
 msgstr "Pick a preset"
 
+msgid "Pick another version above to compare it with the current one."
+msgstr "Pick another version above to compare it with the current one."
+
 msgid "Pick from book"
 msgstr "Pick from book"
 
@@ -6926,6 +6932,9 @@ msgstr "See examples"
 
 msgid "See the book & pick pages"
 msgstr "See the book & pick pages"
+
+msgid "See the current version and a chosen version rendered side by side."
+msgstr "See the current version and a chosen version rendered side by side."
 
 msgid "See the current version and a chosen version side by side."
 msgstr "See the current version and a chosen version side by side."

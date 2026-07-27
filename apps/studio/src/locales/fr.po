@@ -2302,6 +2302,9 @@ msgstr "Page d'aperçu actuelle"
 #~ msgid "Current version"
 #~ msgstr "Version actuelle"
 
+msgid "Current version (v{currentVersion})"
+msgstr ""
+
 msgid "Custom"
 msgstr "Personnalisé"
 
@@ -5730,6 +5733,9 @@ msgstr "Choisissez une famille à joindre au livre. Elle est téléchargée lors
 msgid "Pick a preset"
 msgstr "Choisissez un préréglage"
 
+msgid "Pick another version above to compare it with the current one."
+msgstr ""
+
 msgid "Pick from book"
 msgstr "Choisir dans le livre"
 
@@ -6928,6 +6934,9 @@ msgstr "Voir les exemples"
 
 msgid "See the book & pick pages"
 msgstr "Voir le livre et choisir les pages"
+
+msgid "See the current version and a chosen version rendered side by side."
+msgstr ""
 
 msgid "See the current version and a chosen version side by side."
 msgstr ""
