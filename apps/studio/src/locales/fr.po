@@ -1,18 +1,17 @@
-#
 msgid ""
 msgstr ""
-"Project-Id-Version: \n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-15 12:41-0400\n"
-"PO-Revision-Date: \n"
-"Last-Translator: \n"
-"Language-Team: \n"
-"Language: fr\n"
+"POT-Creation-Date: 2026-07-27 00:17-0300\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: \n"
 "X-Generator: @lingui/cli\n"
+"Language: fr\n"
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Plural-Forms: \n"
 
 msgid " · {needsChanges} need changes"
 msgstr " · {needsChanges} nécessitent des modifications"
@@ -308,7 +307,7 @@ msgid "{0}s ago"
 msgstr "il y a {0} s"
 
 msgid "{changes} changes"
-msgstr ""
+msgstr "{changes} modifications"
 
 msgid "{confirmCount} possible {confirmCount, plural, one {spread} other {spreads}} detected"
 msgstr "{confirmCount} {confirmCount, plural, one {double page possible détectée} other {doubles pages possibles détectées}}"
@@ -474,7 +473,7 @@ msgid "0 = single pass, higher values allow iterative LLM refinement"
 msgstr "0 = passage unique, les valeurs plus élevées permettent un raffinement itératif du LLM"
 
 msgid "1 change"
-msgstr ""
+msgstr "1 modification"
 
 msgid "1 hour"
 msgstr "1 heure"
@@ -2011,7 +2010,7 @@ msgid "Compare"
 msgstr "Comparer"
 
 msgid "Compare versions"
-msgstr ""
+msgstr "Comparer les versions"
 
 msgid "Completed"
 msgstr "Terminé"
@@ -2185,7 +2184,7 @@ msgid "Couldn't load the PDF preview. You can still mark spreads once the pages 
 msgstr "Impossible de charger l'aperçu PDF. Vous pouvez toujours marquer les fusions une fois les pages chargées."
 
 msgid "Couldn't load versions."
-msgstr ""
+msgstr "Impossible de charger les versions."
 
 msgid "Couldn't read this PDF"
 msgstr "Impossible de lire ce PDF"
@@ -2285,13 +2284,13 @@ msgid "Crops each image to its visible bounding box."
 msgstr "Recadre chaque image à sa boîte englobante visible."
 
 msgid "current"
-msgstr ""
+msgstr "actuelle"
 
 msgid "Current"
 msgstr "Actuel"
 
 msgid "Current (v{currentVersion})"
-msgstr ""
+msgstr "Actuelle (v{currentVersion})"
 
 msgid "Current book font"
 msgstr "Police actuelle du livre"
@@ -2306,7 +2305,7 @@ msgstr "Page d'aperçu actuelle"
 #~ msgstr "Version actuelle"
 
 msgid "Current version (v{currentVersion})"
-msgstr ""
+msgstr "Version actuelle (v{currentVersion})"
 
 msgid "Custom"
 msgstr "Personnalisé"
@@ -3537,7 +3536,7 @@ msgid "Go to home"
 msgstr "Aller à l'accueil"
 
 msgid "Go to latest"
-msgstr ""
+msgstr "Aller à la dernière"
 
 msgid "Go to Storyboard"
 msgstr "Aller au Storyboard"
@@ -4088,7 +4087,7 @@ msgstr "Dernière modification"
 #~ msgstr "La semaine dernière"
 
 #~ msgid "latest"
-#~ msgstr ""
+#~ msgstr "dernière"
 
 msgid "Launch the app with"
 msgstr "Lancer l'application avec"
@@ -4855,7 +4854,7 @@ msgid "No data"
 msgstr "Aucune donnée"
 
 msgid "No differences from the current version."
-msgstr ""
+msgstr "Aucune différence avec la version actuelle."
 
 msgid "No disabled rules"
 msgstr "Aucune règle désactivée"
@@ -5191,7 +5190,7 @@ msgid "On"
 msgstr "Activé"
 
 msgid "On v{currentVersion} · latest is v{latestVersion}"
-msgstr ""
+msgstr "Sur v{currentVersion} · la dernière est v{latestVersion}"
 
 msgid "One Column"
 msgstr "Une colonne"
@@ -5206,7 +5205,7 @@ msgid "One text scale for the whole book. It starts from the book's own detected
 msgstr "Une seule échelle de texte pour tout le livre. Elle part des tailles détectées du livre (jamais en dessous de 16px), afin que les pages restent proches de l'original. Utilisez « Tailles accessibles » pour agrandir le livre, ou définissez chaque rôle vous-même : choisissez un token Tailwind ou saisissez une valeur exacte en px. Elles remplacent toute taille choisie par l'IA, ainsi le texte reste cohérent sur toutes les pages."
 
 msgid "Only changes"
-msgstr ""
+msgstr "Uniquement les modifications"
 
 msgid "Only images that appear in the storyboard (have captions) can be selected."
 msgstr "Seules les images présentes dans le storyboard (avec légendes) peuvent être sélectionnées."
@@ -5743,7 +5742,7 @@ msgid "Pick a preset"
 msgstr "Choisissez un préréglage"
 
 msgid "Pick another version above to compare it with the current one."
-msgstr ""
+msgstr "Choisissez une autre version ci-dessus pour la comparer à l'actuelle."
 
 msgid "Pick from book"
 msgstr "Choisir dans le livre"
@@ -6945,10 +6944,10 @@ msgid "See the book & pick pages"
 msgstr "Voir le livre et choisir les pages"
 
 msgid "See the current version and a chosen version rendered side by side."
-msgstr ""
+msgstr "Voir la version actuelle et une version choisie rendues côte à côte."
 
 msgid "See the current version and a chosen version side by side."
-msgstr ""
+msgstr "Voir la version actuelle et une version choisie côte à côte."
 
 msgid "Seed"
 msgstr "Graine"
@@ -8043,7 +8042,7 @@ msgid "This is Pip! He is a happy caramel dog with a very wiggly tail. Pip loves
 msgstr "Voici Pip ! C'est un joyeux chien caramel avec une queue très remuante. Pip adore l'herbe verte, le soleil jaune éclatant et se faire de nouveaux amis dans son jardin."
 
 msgid "This is the current version."
-msgstr ""
+msgstr "Ceci est la version actuelle."
 
 msgid "This isn't a completed part"
 msgstr "Ceci n'est pas une partie terminée"
@@ -8130,7 +8129,7 @@ msgid "This screen couldn’t load"
 msgstr "Cet écran n'a pas pu se charger"
 
 msgid "This section doesn't exist in this version."
-msgstr ""
+msgstr "Cette section n'existe pas dans cette version."
 
 msgid "This section has no storyboard rendering yet"
 msgstr "Cette section n'a pas encore de rendu de scénarimage"
@@ -8145,7 +8144,7 @@ msgid "This text is only perceptible to assistive technologies."
 msgstr "Ce texte n'est perceptible que par les technologies d'assistance."
 
 msgid "This version is empty."
-msgstr ""
+msgstr "Cette version est vide."
 
 #~ msgid "This week"
 #~ msgstr "Cette semaine"
@@ -8581,7 +8580,7 @@ msgid "Use this format to back up the project or move it to another machine."
 msgstr "Utilisez ce format pour sauvegarder le projet ou le déplacer vers une autre machine."
 
 msgid "Use version {selected}"
-msgstr ""
+msgstr "Utiliser la version {selected}"
 
 msgid "Used for"
 msgstr "Utilisée pour"
@@ -8599,7 +8598,7 @@ msgid "Used for this quiz"
 msgstr "Utilisée pour ce quiz"
 
 msgid "v{hovered} preview"
-msgstr ""
+msgstr "aperçu de v{hovered}"
 
 msgid "Validated"
 msgstr "Validée"
@@ -8631,13 +8630,13 @@ msgid "Version {current}"
 msgstr "Version {current}"
 
 msgid "Version {selected}"
-msgstr ""
+msgstr "Version {selected}"
 
 #~ msgid "Version {targetVersion}"
 #~ msgstr "Version {targetVersion}"
 
 msgid "Version history"
-msgstr ""
+msgstr "Historique des versions"
 
 msgid "Versioned"
 msgstr "Versionné"
