@@ -2207,6 +2207,9 @@ msgstr "Nuk u lexuan dot përmasat e imazhit"
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "Nuk u mund të lexohet ky PDF. Skedari mund të jetë i dëmtuar ose i mbrojtur me fjalëkalim."
 
+msgid "Could not remove {failed} of {total} videos. Please try again."
+msgstr "Nuk u hoqën dot {failed} nga {total} video — ju lutem provoni përsëri."
+
 msgid "Couldn't apply the spreads — please try again."
 msgstr "Nuk mund të aplikohej faqet e përbashkëta — ju lutem provoni përsëri."
 

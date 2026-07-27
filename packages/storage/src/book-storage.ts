@@ -494,17 +494,6 @@ export function createBookStorage(label: string, booksRoot: string): Storage {
       }
     },
 
-    deleteAllSignLanguageVideos(): void {
-      const rows = db.all("SELECT path FROM sign_language_videos") as Array<{ path: string }>
-      for (const row of rows) {
-        const filePath = path.resolve(paths.bookDir, row.path)
-        if (filePath.startsWith(paths.bookDir + path.sep)) {
-          try { fs.unlinkSync(filePath) } catch { /* file may already be gone */ }
-        }
-      }
-      db.run("DELETE FROM sign_language_videos")
-    },
-
     getSignLanguageVideoPath(videoId: string): string | null {
       const rows = db.all("SELECT path FROM sign_language_videos WHERE video_id = ?", [videoId]) as Array<{ path: string }>
       if (rows.length === 0) return null

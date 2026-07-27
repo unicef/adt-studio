@@ -1584,11 +1584,6 @@ export const api = {
       method: "DELETE",
     }),
 
-  deleteAllSignLanguageVideos: (label: string) =>
-    request<{ ok: boolean }>(`/books/${label}/sign-language-videos`, {
-      method: "DELETE",
-    }),
-
   getGlobalConfig: () =>
     request<{ config: Record<string, unknown> }>(`/config`),
 

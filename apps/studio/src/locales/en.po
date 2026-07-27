@@ -2206,6 +2206,9 @@ msgstr "Could not read image dimensions"
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "Could not read this PDF. The file may be corrupted or password-protected."
 
+msgid "Could not remove {failed} of {total} videos. Please try again."
+msgstr "Could not remove {failed} of {total} videos. Please try again."
+
 msgid "Couldn't apply the spreads — please try again."
 msgstr "Couldn't apply the spreads — please try again."
 

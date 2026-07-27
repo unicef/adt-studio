@@ -59,6 +59,7 @@ export function SignLanguageLandingPage({ bookLabel }: { bookLabel: string }) {
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
   const [confirmDeleteAll, setConfirmDeleteAll] = useState(false)
   const [deletingAll, setDeletingAll] = useState(false)
+  const [deleteAllError, setDeleteAllError] = useState<string | null>(null)
   const [filter, setFilter] = useState<FilterValue>("missing")
   const [manageOpen, setManageOpen] = useState(false)
 
@@ -473,7 +474,14 @@ export function SignLanguageLandingPage({ bookLabel }: { bookLabel: string }) {
       </Dialog>
 
       {/* Delete-all confirmation */}
-      <Dialog open={confirmDeleteAll} onOpenChange={setConfirmDeleteAll}>
+      <Dialog
+        open={confirmDeleteAll}
+        onOpenChange={(open) => {
+          if (deletingAll) return
+          setConfirmDeleteAll(open)
+          if (!open) setDeleteAllError(null)
+        }}
+      >
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>
@@ -486,11 +494,23 @@ export function SignLanguageLandingPage({ bookLabel }: { bookLabel: string }) {
               section assignments. This can't be undone.
             </Trans>
           </p>
+          {deleteAllError && (
+            <p
+              role="alert"
+              className="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-[12px] text-rose-700"
+            >
+              {deleteAllError}
+            </p>
+          )}
           <div className="mt-4 flex justify-end gap-2">
             <button
               type="button"
-              onClick={() => setConfirmDeleteAll(false)}
-              className="rounded-md px-3 py-1.5 text-[12px] font-medium text-[#737373] transition-colors hover:bg-[#f5f5f5]"
+              onClick={() => {
+                setConfirmDeleteAll(false)
+                setDeleteAllError(null)
+              }}
+              disabled={deletingAll}
+              className="rounded-md px-3 py-1.5 text-[12px] font-medium text-[#737373] transition-colors hover:bg-[#f5f5f5] disabled:opacity-50"
             >
               <Trans>Cancel</Trans>
             </button>
@@ -500,15 +520,31 @@ export function SignLanguageLandingPage({ bookLabel }: { bookLabel: string }) {
                 // Delete only the page-section videos shown here — videos
                 // attached to glossary terms are managed from the Glossary
                 // stage and must survive a "remove all" on this page.
+                //
+                // Every video is attempted even if one fails, so a single bad
+                // delete can't strand the rest; failures are reported together
+                // and the dialog stays open so the leftovers can be retried
+                // (each success refetches the list, so a retry only re-attempts
+                // what is still there).
                 setDeletingAll(true)
-                try {
-                  for (const v of videos) {
+                setDeleteAllError(null)
+                const total = videos.length
+                let failed = 0
+                for (const v of videos) {
+                  try {
                     await deleteMutation.mutateAsync(v.videoId)
+                  } catch {
+                    failed += 1
                   }
-                } finally {
-                  setDeletingAll(false)
-                  setConfirmDeleteAll(false)
                 }
+                setDeletingAll(false)
+                if (failed > 0) {
+                  setDeleteAllError(
+                    t`Could not remove ${failed} of ${total} videos. Please try again.`,
+                  )
+                  return
+                }
+                setConfirmDeleteAll(false)
               }}
               disabled={deletingAll}
               className="inline-flex items-center gap-1.5 rounded-md bg-rose-600 px-3 py-1.5 text-[12px] font-medium text-white transition-colors hover:bg-rose-700 disabled:opacity-50"
@@ -516,7 +552,7 @@ export function SignLanguageLandingPage({ bookLabel }: { bookLabel: string }) {
               {deletingAll && (
                 <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
               )}
-              <Trans>Remove all</Trans>
+              {deleteAllError ? <Trans>Retry</Trans> : <Trans>Remove all</Trans>}
             </button>
           </div>
         </DialogContent>

@@ -32,11 +32,15 @@ export function SLVideo() {
   const [isDragging, setIsDragging] = useState(false)
   const [aspectRatio, setAspectRatio] = useState<number | null>(null)
 
-  const visible = features.signLanguage && slMode && videoFilename !== null
-
-  const src = visible
-    ? `./content/i18n/${lang}/video/${videoFilename}`
-    : null
+  // `src` is the single source of truth: it is non-null exactly when the
+  // feature is enabled, the toggle is on, and the current page has a video.
+  // Deriving `visible` from it (rather than the other way round) lets the
+  // early return below narrow `src` to a string for the <video> element.
+  const src =
+    features.signLanguage && slMode && videoFilename !== null
+      ? `./content/i18n/${lang}/video/${videoFilename}`
+      : null
+  const visible = src !== null
 
   useEffect(() => {
     const el = containerRef.current
@@ -98,7 +102,7 @@ export function SLVideo() {
     videoRef.current?.pause()
   }, [activeMedia])
 
-  if (!visible) return null
+  if (src === null) return null
 
   const positioned = position !== null
   const baseWidth = 320

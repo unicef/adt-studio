@@ -9,7 +9,9 @@ import {
   IMAGE_SET_CHANGE_CLEAR_STEPS,
   parseBookLabel,
 } from "@adt/types"
+import type { ImageCaptioningOutput } from "@adt/types"
 import { openBookDb, createBookStorage } from "@adt/storage"
+import type { Storage } from "@adt/storage"
 import {
   buildTextCatalog,
   buildGlossaryConfig,
@@ -37,8 +39,39 @@ function activeGlossaryImageIds(glossary: GlossaryOutput | undefined): Set<strin
   )
 }
 
-function hasSameValues(left: Set<string>, right: Set<string>): boolean {
-  return left.size === right.size && [...left].every((value) => right.has(value))
+/** True when the image already has a caption entry on its owning page. */
+function isCaptioned(storage: Storage, imageId: string): boolean {
+  const pageId = storage.getImageMeta(imageId)?.pageId
+  // Unknown image — captioning skips it (groupGlossaryImageIdsByPage needs an
+  // owning page), so a rerun would produce nothing new.
+  if (!pageId) return true
+  const data = storage.getLatestNodeData("image-captioning", pageId)?.data as
+    | ImageCaptioningOutput
+    | undefined
+  return (data?.captions ?? []).some((caption) => caption.imageId === imageId)
+}
+
+/**
+ * Do the glossary's pictures require the captions step to run again?
+ *
+ * Captioning now covers active glossary pictures, so only a picture that is
+ * *newly* attached and has never been captioned changes the captions output.
+ * Two cases deliberately do NOT invalidate anything:
+ *   - picking a picture that already carries a caption (the common case — the
+ *     image is already used somewhere in the book), and
+ *   - removing a picture, which leaves an unused caption behind but no stale
+ *     text-catalog entry (buildTextCatalog only emits captions for images that
+ *     appear in the rendered page HTML).
+ */
+function needsCaptionRerun(
+  storage: Storage,
+  previous: GlossaryOutput | undefined,
+  next: GlossaryOutput,
+): boolean {
+  const previousIds = activeGlossaryImageIds(previous)
+  return [...activeGlossaryImageIds(next)].some(
+    (imageId) => !previousIds.has(imageId) && !isCaptioned(storage, imageId),
+  )
 }
 
 export function createGlossaryRoutes(
@@ -114,16 +147,17 @@ export function createGlossaryRoutes(
     try {
       const previousRow = storage.getLatestNodeData("glossary", "book")
       const previous = GlossaryOutput.safeParse(previousRow?.data)
-      const imageRequirementsChanged = !hasSameValues(
-        activeGlossaryImageIds(previous.success ? previous.data : undefined),
-        activeGlossaryImageIds(parsed.data),
+      const imageRequirementsChanged = needsCaptionRerun(
+        storage,
+        previous.success ? previous.data : undefined,
+        parsed.data,
       )
 
       const version = storage.putNodeData("glossary", "book", parsed.data)
       if (imageRequirementsChanged) {
-        // Captions now include active glossary pictures. Changing that set
-        // invalidates captions and every derived translation/audio/package
-        // result, just like adding or removing an image elsewhere in the book.
+        // A glossary picture that has never been captioned changes the captions
+        // output, which invalidates every derived translation/audio/package
+        // result — same cascade as adding an image elsewhere in the book.
         storage.clearNodesByType([...IMAGE_SET_CHANGE_CLEAR_NODE_TYPES])
         storage.clearStepRuns([...IMAGE_SET_CHANGE_CLEAR_STEPS])
       }

@@ -13,11 +13,18 @@ import { packageEpub, type PackageEpubOptions } from "../packaging/epub.js"
 
 let bookDir: string
 
-function pageHtml(dataId: string, text: string): string {
+function pageHtml(
+  dataId: string,
+  text: string,
+  viewport?: { width: number; height: number },
+): string {
+  const viewportMeta = viewport
+    ? `\n  <meta name="viewport" content="width=${viewport.width}, height=${viewport.height}" />`
+    : ""
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="utf-8" />${viewportMeta}
   <title>t</title>
 </head>
 <body>
@@ -221,6 +228,34 @@ describe("packageEpub glossary modes", () => {
     expect(opf).toMatch(
       /href="glp001\.xhtml" media-type="application\/xhtml\+xml" properties="scripted"/,
     )
+  })
+
+  it("sizes fixed-layout glossary pages from the book's reference viewport, not the cover", () => {
+    // A cover authored at different dimensions than the body pages must not
+    // decide the glossary page size — the majority viewport wins, matching the
+    // one quiz pages are given.
+    const adt = path.join(bookDir, "adt")
+    fs.writeFileSync(
+      path.join(adt, "index.html"),
+      pageHtml("pg001_p0", "A volcano erupts.", { width: 1000, height: 1400 }),
+    )
+    fs.writeFileSync(
+      path.join(adt, "pg002_sec001.html"),
+      pageHtml("pg002_p0", "Hot lava flows.", { width: 800, height: 600 }),
+    )
+    fs.writeFileSync(
+      path.join(adt, "pg003_sec001.html"),
+      pageHtml("pg003_p0", "Deep magma rises.", { width: 800, height: 600 }),
+    )
+
+    packageEpub(storageStub(), options({
+      fixedLayout: true,
+      epubGlossary: { mode: "page" },
+    }))
+
+    const glp1 = read("glp001.xhtml")
+    expect(glp1).toContain(`content="width=800, height=600"`)
+    expect(glp1).not.toContain(`width=1000`)
   })
 
   it("page mode without occurrences emits no glossary pages", () => {

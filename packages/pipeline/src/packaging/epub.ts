@@ -160,7 +160,8 @@ export function packageEpub(
   // that leaves them uncentered and jarring across page turns, so give them the
   // book's fixed viewport to render as proper pre-paginated pages — same layout
   // type, size, and centering as every other page. `refViewport` is the most
-  // common fixed viewport across the book's content pages.
+  // common fixed viewport across the book's content pages; the generated
+  // glossary pages (below) are sized from it too.
   const refViewport = options.fixedLayout
     ? findReferenceViewport(oebpsDir, rawPages)
     : null
@@ -285,7 +286,10 @@ export function packageEpub(
       language,
       heading: glossaryHeading!,
       windows,
-      fixedViewport: options.fixedLayout ? detectFixedViewport(oebpsDir, rawPages) : undefined,
+      // Same reference viewport the quiz pages get, so generated glossary
+      // pages match the book's page size even when the cover or a spread is
+      // authored at different dimensions.
+      fixedViewport: refViewport ?? undefined,
       videoHrefBySourceId: glossaryVideoHrefs,
       signLanguageLabel: loadInterfaceLabel(oebpsDir, language, "sign-language-label", "Sign language"),
     })
@@ -951,27 +955,6 @@ function loadInterfaceLabel(
 
 function loadGlossaryHeading(oebpsDir: string, language: string): string {
   return loadInterfaceLabel(oebpsDir, language, "glossary-label", "Glossary")
-}
-
-/**
- * Read the fixed-layout viewport from the first converted page's
- * `<meta name="viewport">` (emitted by renderPageHtml), so generated glossary
- * pages match the book's page size. Undefined when no page declares one.
- */
-function detectFixedViewport(
-  oebpsDir: string,
-  pages: PageEntry[],
-): { width: number; height: number } | undefined {
-  for (const page of pages) {
-    if (!page.href.endsWith(".xhtml")) continue
-    const p = path.join(oebpsDir, page.href)
-    if (!fs.existsSync(p)) continue
-    const m = fs
-      .readFileSync(p, "utf-8")
-      .match(/name="viewport"\s+content="width=(\d+),\s*height=(\d+)"/)
-    if (m) return { width: Number(m[1]), height: Number(m[2]) }
-  }
-  return undefined
 }
 
 /**
