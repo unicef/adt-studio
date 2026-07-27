@@ -1416,15 +1416,27 @@ export function LanguageView({
             bookLabel={bookLabel}
             pendingLabel={pendingLabel}
             pendingLabelKey={pendingLabelKey}
-            onPreview={(d) => {
-              const data = d as { entries?: TextCatalogEntry[] };
-              setPendingEntries(data?.entries ?? []);
+            onRestored={() => {
+              setPendingEntries(null);
               setAppliedSuggestionEntryIds(new Set());
             }}
             onSave={() => saveRef.current()}
             onDiscard={() => {
               setPendingEntries(null);
               setAppliedSuggestionEntryIds(new Set());
+            }}
+            diff={{
+              items: (d) => (d as { entries?: TextCatalogEntry[] } | null)?.entries ?? [],
+              keyOf: (it) => (it as TextCatalogEntry).id,
+              renderItem: (it) => {
+                const e = it as TextCatalogEntry;
+                return (
+                  <span>
+                    <span className="font-mono text-[10px] text-muted-foreground">{e.id}</span>
+                    {e.text ? <span className="text-foreground"> {e.text}</span> : null}
+                  </span>
+                );
+              },
             }}
           />
         )}
