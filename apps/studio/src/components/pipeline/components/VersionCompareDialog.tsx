@@ -4,7 +4,6 @@ import { useLingui } from "@lingui/react/macro"
 import type { VersionEntry } from "@/api/client"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
-import { AnimatedHeight } from "./LazyThumb"
 import { diffById, stableEqual, KIND_COLOR, KIND_ICON } from "./change-summary"
 import { VersionCompareShell, useSelectedVersion } from "./VersionCompareShell"
 
@@ -149,7 +148,7 @@ export function VersionCompareDialog({
       icon={icon}
       onRestore={onRestore}
       description={t`Review what restoring version ${selected} would change, grouped by edited, added, and removed.`}
-      contentClassName="flex max-h-[90vh] w-[95vw] max-w-3xl flex-col gap-0 overflow-hidden p-0"
+      contentClassName="flex h-[80vh] max-h-[720px] w-[95vw] max-w-3xl flex-col gap-0 overflow-hidden p-0"
       controls={
         <label className="flex cursor-pointer select-none items-center gap-2 text-[11px] text-muted-foreground">
           <Switch checked={showUnchanged} onCheckedChange={setShowUnchanged} />
@@ -157,9 +156,10 @@ export function VersionCompareDialog({
         </label>
       }
     >
-      <div className="min-w-0 overflow-hidden bg-muted/10">
-        <AnimatedHeight>
-          <div className="max-h-[calc(90vh-14rem)] min-h-[200px] space-y-4 overflow-auto p-4">
+      {/* Fixed-height body scrolls internally so the header controls (chips +
+          toggle) and the footer stay put — toggling Unchanged / switching
+          versions never repositions the buttons under the cursor. */}
+      <div className="min-h-0 flex-1 space-y-4 overflow-auto bg-muted/10 p-4">
         {isCurrent ? (
           currentItems.length === 0 ? (
             <p className="py-10 text-center text-sm text-muted-foreground">
@@ -239,8 +239,6 @@ export function VersionCompareDialog({
               )}
           </>
         )}
-          </div>
-        </AnimatedHeight>
       </div>
     </VersionCompareShell>
   )
