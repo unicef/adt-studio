@@ -153,7 +153,7 @@ export function VersionPreviewCompareDialog({
               </div>
               <div
                 className="flex flex-col overflow-hidden rounded-lg border bg-background"
-                style={{ boxShadow: `inset 0 0 0 1px ${accentColor}55` }}
+                style={{ borderColor: accentColor, boxShadow: `0 0 0 1px ${accentColor}` }}
               >
                 {paneLabel(t`Version ${selected}`, true)}
                 <div className="max-h-[74vh] overflow-auto">
