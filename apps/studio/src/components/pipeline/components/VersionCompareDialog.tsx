@@ -1,8 +1,11 @@
 import { useMemo, useState, type ReactNode } from "react"
-import { type LucideIcon } from "lucide-react"
+import { ArrowRight, CircleDot, type LucideIcon } from "lucide-react"
 import { useLingui } from "@lingui/react/macro"
 import type { VersionEntry } from "@/api/client"
-import { diffById } from "./change-summary"
+import { Switch } from "@/components/ui/switch"
+import { Badge } from "@/components/ui/badge"
+import { AnimatedHeight } from "./LazyThumb"
+import { diffById, stableEqual, KIND_COLOR, KIND_ICON } from "./change-summary"
 import { VersionCompareShell, useSelectedVersion } from "./VersionCompareShell"
 
 /**
@@ -14,28 +17,40 @@ import { VersionCompareShell, useSelectedVersion } from "./VersionCompareShell"
 export interface VersionDiffDescriptor {
   items: (data: unknown) => unknown[]
   keyOf: (item: unknown) => string
-  isEqual: (a: unknown, b: unknown) => boolean
+  /** Item equality. Defaults to deep, key-order-insensitive {@link stableEqual}
+   *  — override only for a cheaper/stricter comparison. */
+  isEqual?: (a: unknown, b: unknown) => boolean
   renderItem: (item: unknown) => ReactNode
 }
 
-/** Total number of changes (added + removed + edited) between two versions. */
-export function countChanges(descriptor: VersionDiffDescriptor, from: unknown, to: unknown): number {
+/** Per-kind change counts between two versions. */
+export function diffCounts(
+  descriptor: VersionDiffDescriptor,
+  from: unknown,
+  to: unknown
+): { added: number; edited: number; removed: number; total: number } {
   const { added, removed, changed } = diffById(
     descriptor.items(from),
     descriptor.items(to),
     descriptor.keyOf,
-    descriptor.isEqual
+    descriptor.isEqual ?? stableEqual
   )
-  return added.length + removed.length + changed.length
+  return {
+    added: added.length,
+    edited: changed.length,
+    removed: removed.length,
+    total: added.length + changed.length + removed.length,
+  }
 }
 
-type RowStatus = "same" | "added" | "removed" | "changed"
-interface AlignedRow {
-  key: string
-  left?: unknown
-  right?: unknown
-  status: RowStatus
-}
+// Visual identity for each change kind — a colored, icon-led section instead of
+// per-row color coding, so a scan reads "what was added / edited / removed".
+// Colors/icons come from the shared change-summary source; tints are local.
+const KIND = {
+  edited: { color: KIND_COLOR.edited, icon: KIND_ICON.edited, tint: "border-amber-200 bg-amber-50/60" },
+  added: { color: KIND_COLOR.added, icon: KIND_ICON.added, tint: "border-emerald-200 bg-emerald-50/60" },
+  removed: { color: KIND_COLOR.removed, icon: KIND_ICON.removed, tint: "border-rose-200 bg-rose-50/60" },
+} as const
 
 interface VersionCompareDialogProps {
   open: boolean
@@ -51,9 +66,9 @@ interface VersionCompareDialogProps {
 }
 
 /**
- * Item-level comparison of two versions of a book-level step: the current
- * version on the left, a chosen version on the right, aligned item-by-item and
- * colored by what changed. Applying restores the chosen version.
+ * Item-level comparison of two versions of a book-level step, grouped into
+ * Edited / Added / Removed sections (edits show before → after) so the nature
+ * of each change reads at a glance. Applying restores the chosen version.
  */
 export function VersionCompareDialog({
   open,
@@ -68,75 +83,59 @@ export function VersionCompareDialog({
 }: VersionCompareDialogProps) {
   const { t } = useLingui()
   const [selected, setSelected] = useSelectedVersion(open, initialSelected)
-  const [onlyChanges, setOnlyChanges] = useState(true)
+  const [showUnchanged, setShowUnchanged] = useState(false)
 
   const dataOf = (v: number) => versions.find((x) => x.version === v)?.data
   const isCurrent = selected === currentVersion
 
-  // Align current (left) and selected (right) items by key, preserving the
-  // selected version's order and appending items only present in current.
-  const rows = useMemo<AlignedRow[]>(() => {
-    const { keyOf, isEqual, items } = descriptor
-    const currentItems = items(dataOf(currentVersion))
-    const selectedItems = items(dataOf(selected))
-    const curByKey = new Map(currentItems.map((i) => [keyOf(i), i]))
-    const seen = new Set<string>()
-    const out: AlignedRow[] = []
-    for (const right of selectedItems) {
-      const key = keyOf(right)
-      seen.add(key)
-      const left = curByKey.get(key)
-      out.push({
-        key,
-        left,
-        right,
-        status: left == null ? "added" : isEqual(left, right) ? "same" : "changed",
-      })
-    }
-    for (const left of currentItems) {
-      const key = keyOf(left)
-      if (!seen.has(key)) out.push({ key, left, status: "removed" })
-    }
-    return out
-  }, [selected, currentVersion, versions, descriptor])
+  // Group items by how restoring `selected` would change the current version.
+  const groups = useMemo(() => {
+    const { keyOf, items } = descriptor
+    const isEqual = descriptor.isEqual ?? stableEqual
+    const current = items(dataOf(currentVersion))
+    const sel = items(dataOf(selected))
+    const { added, removed, changed } = diffById(current, sel, keyOf, isEqual)
+    const curByKey = new Map(current.map((i) => [keyOf(i), i]))
+    const unchanged = sel.filter((i) => {
+      const before = curByKey.get(keyOf(i))
+      return before != null && isEqual(before, i)
+    })
+    return { added, removed, changed, unchanged, total: added.length + removed.length + changed.length }
+  }, [descriptor, versions, currentVersion, selected])
 
-  const counts = useMemo(() => {
-    let added = 0
-    let removed = 0
-    let changed = 0
-    for (const r of rows) {
-      if (r.status === "added") added++
-      else if (r.status === "removed") removed++
-      else if (r.status === "changed") changed++
-    }
-    return { added, removed, changed, total: added + removed + changed }
-  }, [rows])
+  const currentItems = descriptor.items(dataOf(currentVersion))
 
-  const visibleRows = onlyChanges ? rows.filter((r) => r.status !== "same") : rows
+  const card = (tint: string, body: ReactNode) => (
+    <div className={`rounded-md border px-2.5 py-1.5 text-xs leading-snug ${tint}`}>{body}</div>
+  )
 
-  const cell = (item: unknown | undefined, status: RowStatus, side: "left" | "right") => {
-    if (item == null) {
-      return <div className="rounded-md border border-dashed border-border/60 bg-muted/20" />
-    }
-    // Highlight only on the side the change lives on: removed on the left,
-    // added on the right, changed on both.
-    let cls = "border-border bg-background"
-    if (status === "changed") cls = "border-amber-300 bg-amber-50"
-    else if (status === "removed" && side === "left") cls = "border-rose-300 bg-rose-50"
-    else if (status === "added" && side === "right") cls = "border-emerald-300 bg-emerald-50"
+  const section = (
+    color: string,
+    Icon: LucideIcon,
+    label: string,
+    count: number,
+    body: ReactNode
+  ) => {
+    if (count === 0) return null
     return (
-      <div className={`rounded-md border px-2 py-1.5 text-xs leading-snug ${cls}`}>
-        {descriptor.renderItem(item)}
-      </div>
+      <section className="space-y-1.5">
+        <div className="flex items-center gap-1.5">
+          <Icon className="h-3.5 w-3.5" strokeWidth={2.25} style={{ color }} aria-hidden />
+          <span className="text-xs font-semibold" style={{ color }}>
+            {label}
+          </span>
+          <Badge
+            variant="secondary"
+            className="h-4 rounded-full px-1.5 text-[10px] tabular-nums"
+            style={{ backgroundColor: `${color}1a`, color }}
+          >
+            {count}
+          </Badge>
+        </div>
+        <div className="space-y-1.5">{body}</div>
+      </section>
     )
   }
-
-  const legendDot = (label: string, n: number, color: string) => (
-    <span className="flex items-center gap-1 text-[11px] text-muted-foreground">
-      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-      {n} {label}
-    </span>
-  )
 
   return (
     <VersionCompareShell
@@ -149,55 +148,99 @@ export function VersionCompareDialog({
       accentColor={accentColor}
       icon={icon}
       onRestore={onRestore}
-      description={t`See the current version and a chosen version side by side.`}
-      contentClassName="flex max-h-[88vh] w-[95vw] max-w-4xl flex-col gap-0 p-0"
+      description={t`Review what restoring version ${selected} would change, grouped by edited, added, and removed.`}
+      contentClassName="flex max-h-[90vh] w-[95vw] max-w-3xl flex-col gap-0 overflow-hidden p-0"
       controls={
-        <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-muted-foreground">
-          <input
-            type="checkbox"
-            checked={onlyChanges}
-            onChange={(e) => setOnlyChanges(e.target.checked)}
-            className="h-3 w-3 cursor-pointer"
-          />
-          {t`Only changes`}
+        <label className="flex cursor-pointer select-none items-center gap-2 text-[11px] text-muted-foreground">
+          <Switch checked={showUnchanged} onCheckedChange={setShowUnchanged} />
+          {t`Show unchanged`}
         </label>
       }
-      footerLeft={
-        <>
-          {legendDot(t`added`, counts.added, "#10b981")}
-          {legendDot(t`edited`, counts.changed, "#f59e0b")}
-          {legendDot(t`removed`, counts.removed, "#f43f5e")}
-        </>
-      }
     >
-      {/* Column headers */}
-      <div className="grid grid-cols-2 gap-3 border-b bg-muted/20 px-4 py-2 text-[11px] font-semibold">
-        <div className="text-muted-foreground">{t`Current (v${currentVersion})`}</div>
-        <div style={{ color: accentColor }}>{t`Version ${selected}`}</div>
-      </div>
-
-      {/* Aligned rows */}
-      <div className="min-h-0 flex-1 overflow-auto bg-muted/10 p-4">
+      <div className="min-w-0 overflow-hidden bg-muted/10">
+        <AnimatedHeight>
+          <div className="max-h-[calc(90vh-14rem)] min-h-[200px] space-y-4 overflow-auto p-4">
         {isCurrent ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            {t`This is the current version.`}
-          </p>
-        ) : visibleRows.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            {onlyChanges && rows.length > 0
-              ? t`No differences from the current version.`
-              : t`This version is empty.`}
+          currentItems.length === 0 ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">
+              {t`This version is empty.`}
+            </p>
+          ) : (
+            <>
+              <p className="text-[11px] text-muted-foreground">
+                {t`This is the active version — pick another above to compare and restore it. Everything it contains:`}
+              </p>
+              {section(
+                accentColor,
+                icon,
+                t`Current version (v${currentVersion})`,
+                currentItems.length,
+                currentItems.map((it) => (
+                  <div key={descriptor.keyOf(it)}>
+                    {card("border-border bg-background", descriptor.renderItem(it))}
+                  </div>
+                ))
+              )}
+            </>
+          )
+        ) : groups.total === 0 && !showUnchanged ? (
+          <p className="py-10 text-center text-sm text-muted-foreground">
+            {t`No differences from the current version.`}
           </p>
         ) : (
-          <div className="space-y-2">
-            {visibleRows.map((r) => (
-              <div key={r.key} className="grid grid-cols-2 gap-3">
-                {cell(r.left, r.status, "left")}
-                {cell(r.right, r.status, "right")}
-              </div>
-            ))}
-          </div>
+          <>
+            {section(
+              KIND.edited.color,
+              KIND.edited.icon,
+              t`Edited`,
+              groups.changed.length,
+              groups.changed.map(({ before, after }) => (
+                <div key={descriptor.keyOf(after)}>
+                  {card(
+                    KIND.edited.tint,
+                    <div className="flex items-center gap-2">
+                      <div className="min-w-0 flex-1 opacity-55">{descriptor.renderItem(before)}</div>
+                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-hidden />
+                      <div className="min-w-0 flex-1">{descriptor.renderItem(after)}</div>
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+            {section(
+              KIND.added.color,
+              KIND.added.icon,
+              t`Added`,
+              groups.added.length,
+              groups.added.map((it) => (
+                <div key={descriptor.keyOf(it)}>{card(KIND.added.tint, descriptor.renderItem(it))}</div>
+              ))
+            )}
+            {section(
+              KIND.removed.color,
+              KIND.removed.icon,
+              t`Removed`,
+              groups.removed.length,
+              groups.removed.map((it) => (
+                <div key={descriptor.keyOf(it)}>{card(KIND.removed.tint, descriptor.renderItem(it))}</div>
+              ))
+            )}
+            {showUnchanged &&
+              section(
+                "#94a3b8",
+                CircleDot,
+                t`Unchanged`,
+                groups.unchanged.length,
+                groups.unchanged.map((it) => (
+                  <div key={descriptor.keyOf(it)}>
+                    {card("border-border bg-background text-muted-foreground", descriptor.renderItem(it))}
+                  </div>
+                ))
+              )}
+          </>
         )}
+          </div>
+        </AnimatedHeight>
       </div>
     </VersionCompareShell>
   )

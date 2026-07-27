@@ -148,40 +148,51 @@ export function PreviewCrossfade({
   value: number
   render: (value: number, onReady: () => void) => ReactNode
 }) {
-  const [stack, setStack] = useState<number[]>([value])
-  const [revealed, setRevealed] = useState<number | null>(null)
-  const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // `ready` = the last version whose content finished loading (the good frame).
+  // `prev` = a ready frame kept underneath while a new `value` loads, dropped
+  // after the crossfade. Only these two frames are ever mounted, so nothing
+  // accumulates and a not-yet-ready frame is never shown.
+  const [ready, setReady] = useState<number | null>(null)
+  const [prev, setPrev] = useState<number | null>(null)
+  const readyRef = useRef<number | null>(null)
+  readyRef.current = ready
+  const dropTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Bring `value` in on top, keeping the current frame beneath until it's ready.
   useEffect(() => {
-    setStack((s) => (s[s.length - 1] === value ? s : [...s.filter((v) => v !== value), value]))
+    if (dropTimer.current) clearTimeout(dropTimer.current)
+    // Keep the last *ready* frame underneath (never a still-loading one) until
+    // the new value is ready. If we're going back to the already-ready frame,
+    // there's nothing to load and no underlay is needed. (`ready` is read via a
+    // ref so this runs only on `value`, not on every load.)
+    const r = readyRef.current
+    setPrev(r != null && r !== value ? r : null)
   }, [value])
 
   useEffect(
     () => () => {
-      if (collapseTimer.current) clearTimeout(collapseTimer.current)
+      if (dropTimer.current) clearTimeout(dropTimer.current)
     },
     []
   )
 
   const handleReady = (v: number) => {
-    if (v !== value) return
-    setRevealed(v)
-    if (collapseTimer.current) clearTimeout(collapseTimer.current)
-    // Drop the old frame(s) after the fade, but only if nothing newer arrived.
-    collapseTimer.current = setTimeout(
-      () => setStack((s) => (s[s.length - 1] === v ? [v] : s)),
-      240
-    )
+    if (v !== value) return // ignore stale / underlay frames
+    setReady(v)
+    if (dropTimer.current) clearTimeout(dropTimer.current)
+    dropTimer.current = setTimeout(() => setPrev(null), 240)
   }
 
-  const firstLoading = stack.length === 1 && revealed !== value
+  const frontReady = ready === value
+  const showUnderlay = prev != null && prev !== value
+  const frames = showUnderlay ? [prev as number, value] : [value]
 
   return (
     <div className="absolute inset-0">
-      {stack.map((v, i) => {
-        const isTop = i === stack.length - 1
-        const hidden = isTop && stack.length > 1 && revealed !== v
+      {frames.map((v) => {
+        const isFront = v === value
+        // Front stays hidden while it loads *only when* there's an underlay to
+        // show meanwhile; with no underlay it renders under the pulse instead.
+        const hidden = isFront && showUnderlay && !frontReady
         return (
           <div
             key={v}
@@ -192,7 +203,7 @@ export function PreviewCrossfade({
           </div>
         )
       })}
-      {firstLoading && <div className="absolute inset-0 animate-pulse bg-muted" />}
+      {!showUnderlay && !frontReady && <div className="absolute inset-0 animate-pulse bg-muted" />}
     </div>
   )
 }

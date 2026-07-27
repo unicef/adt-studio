@@ -199,7 +199,6 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
           diff={{
             items: (d) => (d as GlossaryData | null)?.items?.filter((i) => !i.pruned) ?? [],
             keyOf: (it) => (it as GlossaryItem).id ?? (it as GlossaryItem).word,
-            isEqual: (a, b) => JSON.stringify(a) === JSON.stringify(b),
             renderItem: (it) => {
               const item = it as GlossaryItem
               return (

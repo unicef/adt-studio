@@ -12,12 +12,58 @@ export interface EntityNoun {
 export type ChangeKind = "added" | "edited" | "removed" | "pruned" | "restored"
 
 const KIND_ORDER: ChangeKind[] = ["added", "edited", "removed", "pruned", "restored"]
-const KIND_ICON: Record<ChangeKind, LucideIcon> = {
+
+/** Single source of truth for a change kind's icon — shared by the pending-save
+ *  chips, the version-picker popover, and the compare dialog. */
+export const KIND_ICON: Record<ChangeKind, LucideIcon> = {
   added: Plus,
   edited: Pencil,
   removed: Trash2,
   pruned: EyeOff,
   restored: Eye,
+}
+
+/** Hex color per change kind — used where alpha compositing is needed (e.g.
+ *  `${KIND_COLOR.edited}1a` tinted badges). For solid text prefer
+ *  {@link KIND_TEXT_CLASS} so styling stays in Tailwind utilities. */
+export const KIND_COLOR: Record<ChangeKind, string> = {
+  added: "#10b981",
+  edited: "#f59e0b",
+  removed: "#f43f5e",
+  pruned: "#a3a3a3",
+  restored: "#0ea5e9",
+}
+
+/** Tailwind text-color utility per change kind (mirrors {@link KIND_COLOR}). */
+export const KIND_TEXT_CLASS: Record<ChangeKind, string> = {
+  added: "text-emerald-500",
+  edited: "text-amber-500",
+  removed: "text-rose-500",
+  pruned: "text-neutral-400",
+  restored: "text-sky-500",
+}
+
+/**
+ * Deterministic JSON string with object keys sorted recursively, so equality
+ * checks aren't fooled by key-insertion-order differences between versions
+ * (e.g. one version serialized `{word,…,source}` and another `{source,word,…}`).
+ * Use this for diff descriptors' `isEqual` instead of raw `JSON.stringify`.
+ */
+export function stableStringify(value: unknown): string {
+  return JSON.stringify(value, (_key, val) =>
+    val && typeof val === "object" && !Array.isArray(val)
+      ? Object.fromEntries(
+          Object.keys(val as Record<string, unknown>)
+            .sort()
+            .map((k) => [k, (val as Record<string, unknown>)[k]])
+        )
+      : val
+  )
+}
+
+/** Default item equality for diff descriptors: deep, key-order-insensitive. */
+export function stableEqual(a: unknown, b: unknown): boolean {
+  return stableStringify(a) === stableStringify(b)
 }
 
 export function diffById<T>(

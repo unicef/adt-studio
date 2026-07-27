@@ -11,6 +11,16 @@ import { VersionCompareShell, useSelectedVersion } from "./VersionCompareShell"
 // module scope so it survives dialog unmounts) and seed the skeleton with it on
 // later opens, so they open at the right size with no grow.
 const currentHeightCache = new Map<string, number>()
+// Bounded LRU-ish set: evict the oldest entry (Map preserves insertion order)
+// once the cache grows past the cap, so a long session can't leak unboundedly.
+const HEIGHT_CACHE_CAP = 200
+function rememberHeight(key: string, height: number) {
+  currentHeightCache.delete(key)
+  currentHeightCache.set(key, height)
+  if (currentHeightCache.size > HEIGHT_CACHE_CAP) {
+    currentHeightCache.delete(currentHeightCache.keys().next().value as string)
+  }
+}
 
 interface VersionPreviewCompareDialogProps {
   open: boolean
@@ -73,7 +83,7 @@ export function VersionPreviewCompareDialog({
   const [currentPaneRef, currentMeasured] = useReservedHeight<HTMLDivElement>(open)
   useEffect(() => {
     const k = keyFor(currentVersion)
-    if (k && currentMeasured) currentHeightCache.set(k, currentMeasured)
+    if (k && currentMeasured) rememberHeight(k, currentMeasured)
   }, [cacheKey, currentVersion, currentMeasured])
 
   // The selected pane is pinned to the current pane's measured height (the

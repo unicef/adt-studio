@@ -59,7 +59,8 @@ picker invalidates `["books", label]` to refetch) **plus one of**:
     diff={{
       items: (d) => (d as GlossaryData | null)?.items ?? [],
       keyOf: (it) => (it as GlossaryItem).id ?? (it as GlossaryItem).word,
-      isEqual: (a, b) => JSON.stringify(a) === JSON.stringify(b),
+      // isEqual is optional — defaults to deep, key-order-insensitive equality
+      // (stableEqual). Only override for a cheaper/stricter comparison.
       renderItem: (it) => <span>{(it as GlossaryItem).word}</span>,
     }}
   />

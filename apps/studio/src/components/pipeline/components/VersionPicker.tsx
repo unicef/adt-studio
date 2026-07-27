@@ -25,10 +25,11 @@ import {
 } from "@/components/ui/popover"
 import { STAGES } from "../stage-config"
 import { useFloatingSave, PendingChip } from "./floating-save"
+import { KIND_TEXT_CLASS } from "./change-summary"
 import { LazyThumb, PreviewSkeleton, useReservedHeight } from "./LazyThumb"
 import {
   VersionCompareDialog,
-  countChanges,
+  diffCounts,
   type VersionDiffDescriptor,
 } from "./VersionCompareDialog"
 import { VersionPreviewCompareDialog } from "./VersionPreviewCompareDialog"
@@ -184,6 +185,22 @@ export function VersionPicker({
     saveDisabledReason,
   })
 
+  // Per-kind change counts vs current, precomputed once per version set (avoids
+  // an O(versions × items) diff on every render while the popover is open).
+  // Must stay above the early returns below so hook order is stable. `diff` is
+  // intentionally not a dep: callers pass it as an inline object (new identity
+  // each render) but its logic is structurally constant, so keying on the
+  // version set is both correct and actually memoizes.
+  const changeCounts = useMemo(() => {
+    if (!diff || !versions) return null
+    const currentData = versions.find((v) => v.version === currentVersion)?.data
+    const m = new Map<number, { added: number; edited: number; removed: number; total: number }>()
+    for (const v of versions) {
+      if (v.version !== currentVersion) m.set(v.version, diffCounts(diff, currentData, v.data))
+    }
+    return m
+  }, [versions, currentVersion])
+
   if (saving || restoring) {
     return (
       <Loader2
@@ -244,7 +261,6 @@ export function VersionPicker({
     setOpen(false)
   }
 
-  const currentData = versions?.find((v) => v.version === currentVersion)?.data
   const defaultCompare =
     versions?.find((v) => v.version !== currentVersion)?.version ?? currentVersion
 
@@ -307,21 +323,11 @@ export function VersionPicker({
     )
   }
 
-  // Precompute change counts vs current once per version set (avoids an
-  // O(versions × items) JSON diff on every render while the popover is open).
-  const changeCounts = useMemo(() => {
-    if (!diff || !versions) return null
-    const m = new Map<number, number>()
-    for (const v of versions) {
-      if (v.version !== currentVersion) m.set(v.version, countChanges(diff, currentData, v.data))
-    }
-    return m
-  }, [diff, versions, currentVersion, currentData])
-
-  // A single row in the book (diff) popover — version + change count vs current.
+  // A single row in the book (diff) popover — version + a colored +added /
+  // ~edited / −removed breakdown so the nature of the change reads at a glance.
   const diffRow = (v: VersionEntry) => {
     const isCurrent = v.version === currentVersion
-    const changes = isCurrent ? 0 : changeCounts?.get(v.version) ?? 0
+    const b = isCurrent ? null : changeCounts?.get(v.version)
     return (
       <button
         key={v.version}
@@ -348,11 +354,16 @@ export function VersionPicker({
             </span>
           )}
         </span>
-        {!isCurrent && (
-          <span className="shrink-0 text-[10px] text-muted-foreground">
-            {changes === 1 ? t`1 change` : t`${changes} changes`}
-          </span>
-        )}
+        {b &&
+          (b.total === 0 ? (
+            <span className="shrink-0 text-[10px] text-muted-foreground">{t`no changes`}</span>
+          ) : (
+            <span className="flex shrink-0 items-center gap-1.5 text-[10px] font-semibold tabular-nums">
+              {b.added > 0 && <span className={KIND_TEXT_CLASS.added}>+{b.added}</span>}
+              {b.edited > 0 && <span className={KIND_TEXT_CLASS.edited}>~{b.edited}</span>}
+              {b.removed > 0 && <span className={KIND_TEXT_CLASS.removed}>−{b.removed}</span>}
+            </span>
+          ))}
       </button>
     )
   }
