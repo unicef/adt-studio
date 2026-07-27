@@ -2182,6 +2182,9 @@ msgstr "No se pudo cargar la vista previa del PDF. Las páginas aún se pueden d
 msgid "Couldn't load the PDF preview. You can still mark spreads once the pages load."
 msgstr "No se pudo cargar la vista previa del PDF. Aún puedes marcar dobles páginas una vez que las páginas se carguen."
 
+msgid "Couldn't load versions."
+msgstr ""
+
 msgid "Couldn't read this PDF"
 msgstr "No se pudo leer este PDF"
 
@@ -4082,8 +4085,8 @@ msgstr "Última modificación"
 #~ msgid "Last week"
 #~ msgstr "La semana pasada"
 
-msgid "latest"
-msgstr ""
+#~ msgid "latest"
+#~ msgstr ""
 
 msgid "Launch the app with"
 msgstr "Iniciar la aplicación con"

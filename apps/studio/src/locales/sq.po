@@ -2183,6 +2183,9 @@ msgstr "Pamja paraprake e PDF-së nuk u ngarkua dot. Faqet mund të ndahen ende 
 msgid "Couldn't load the PDF preview. You can still mark spreads once the pages load."
 msgstr "Nuk mund të ngarkohej parapamja e PDF-së. Ju ende mund të shënoni faqet e përbashkëta pasi të ngarkohen faqet."
 
+msgid "Couldn't load versions."
+msgstr ""
+
 msgid "Couldn't read this PDF"
 msgstr "Nuk mund të lexohej ky PDF"
 
@@ -4083,8 +4086,8 @@ msgstr "Modifikuar së fundmi"
 #~ msgid "Last week"
 #~ msgstr "Java e kaluar"
 
-msgid "latest"
-msgstr ""
+#~ msgid "latest"
+#~ msgstr ""
 
 msgid "Launch the app with"
 msgstr "Hap aplikacionin me"

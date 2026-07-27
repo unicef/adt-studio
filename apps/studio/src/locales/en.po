@@ -2182,6 +2182,9 @@ msgstr "Couldn't load the PDF preview. The pages can still be split using the co
 msgid "Couldn't load the PDF preview. You can still mark spreads once the pages load."
 msgstr "Couldn't load the PDF preview. You can still mark spreads once the pages load."
 
+msgid "Couldn't load versions."
+msgstr "Couldn't load versions."
+
 msgid "Couldn't read this PDF"
 msgstr "Couldn't read this PDF"
 
@@ -4082,8 +4085,8 @@ msgstr "Last modified"
 #~ msgid "Last week"
 #~ msgstr "Last week"
 
-msgid "latest"
-msgstr "latest"
+#~ msgid "latest"
+#~ msgstr "latest"
 
 msgid "Launch the app with"
 msgstr "Launch the app with"

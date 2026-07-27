@@ -2184,6 +2184,9 @@ msgstr "Impossible de charger l'aperçu du PDF. Les pages peuvent toujours être
 msgid "Couldn't load the PDF preview. You can still mark spreads once the pages load."
 msgstr "Impossible de charger l'aperçu PDF. Vous pouvez toujours marquer les fusions une fois les pages chargées."
 
+msgid "Couldn't load versions."
+msgstr ""
+
 msgid "Couldn't read this PDF"
 msgstr "Impossible de lire ce PDF"
 
@@ -4084,8 +4087,8 @@ msgstr "Dernière modification"
 #~ msgid "Last week"
 #~ msgstr "La semaine dernière"
 
-msgid "latest"
-msgstr ""
+#~ msgid "latest"
+#~ msgstr ""
 
 msgid "Launch the app with"
 msgstr "Lancer l'application avec"

@@ -275,7 +275,6 @@ export function VersionPicker({
   // A single thumbnail-chip row in the visual (renderPreview) popover.
   const visualRow = (v: VersionEntry) => {
     const isCurrent = v.version === currentVersion
-    const isLatest = v.version === latestVersion
     const isActive = hovered === v.version
     return (
       <button
@@ -306,17 +305,13 @@ export function VersionPicker({
           >
             v{v.version}
           </span>
-          {isCurrent ? (
+          {isCurrent && (
             <span
               className="text-[10px] font-medium uppercase tracking-wide"
               style={{ color: accentColor }}
             >
               {t`current`}
             </span>
-          ) : (
-            isLatest && (
-              <span className="text-[10px] text-muted-foreground">{t`latest`}</span>
-            )
           )}
         </span>
       </button>
@@ -337,7 +332,6 @@ export function VersionPicker({
   // A single row in the book (diff) popover — version + change count vs current.
   const diffRow = (v: VersionEntry) => {
     const isCurrent = v.version === currentVersion
-    const isLatest = v.version === latestVersion
     const changes = isCurrent ? 0 : changeCounts?.get(v.version) ?? 0
     return (
       <button
@@ -356,17 +350,13 @@ export function VersionPicker({
           >
             v{v.version}
           </span>
-          {isCurrent ? (
+          {isCurrent && (
             <span
               className="text-[10px] font-medium uppercase tracking-wide"
               style={{ color: accentColor }}
             >
               {t`current`}
             </span>
-          ) : (
-            isLatest && (
-              <span className="text-[10px] text-muted-foreground">{t`latest`}</span>
-            )
           )}
         </span>
         {!isCurrent && (
