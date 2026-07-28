@@ -67,11 +67,15 @@ export function KidsMenuChat({
       ? [...groupActions, "speed"]
       : groupActions
   const pages = chunk(groupChoices, CHOICES_PER_PAGE)
-  const visibleChoices = pages[page] ?? []
+  // The action list is dynamic, so a group can shrink while a later page is
+  // open — without clamping, the reply column would render zero choices and
+  // hide its own pagination, leaving only "Go back".
+  const pageIndex = Math.min(page, Math.max(pages.length - 1, 0))
+  const visibleChoices = pages[pageIndex] ?? []
   const showReplyAvatar = !visibleChoices.some(
     (choice) => choice !== "speed" && choice.id === "avatar",
   )
-  const viewKey = `${level}-${page}`
+  const viewKey = `${level}-${pageIndex}`
 
   useEffect(
     () => () => {
@@ -224,12 +228,12 @@ export function KidsMenuChat({
               {level !== "root" && pages.length > 1 ? (
                 <PaginationControls
                   model={model}
-                  page={page}
+                  page={pageIndex}
                   pageCount={pages.length}
                   reduceMotion={reduceMotion}
                   direction={direction}
-                  onPrevious={() => changeView(level, page - 1, "back")}
-                  onNext={() => changeView(level, page + 1, "forward")}
+                  onPrevious={() => changeView(level, pageIndex - 1, "back")}
+                  onNext={() => changeView(level, pageIndex + 1, "forward")}
                 />
               ) : null}
 
