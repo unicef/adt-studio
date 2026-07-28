@@ -551,3 +551,34 @@ describe("KidsOnboarding", () => {
     expect(screen.queryByTestId("kids-onboarding-narrator-play")).toBeNull()
   })
 })
+
+describe("KidsOnboarding on a touch-only device", () => {
+  // A phone has no arrow keys, so the page-turning step teaches a shortcut the
+  // child cannot use. The help step stays, because "tap your buddy" is the one
+  // thing a touch user most needs — it just drops the L keycap.
+  beforeEach(() => {
+    vi.stubGlobal("matchMedia", (q: string) => ({
+      matches: q.includes("any-pointer: coarse"),
+      media: q,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }))
+  })
+
+  it("drops the arrow-key step and shows touch wording for help", () => {
+    renderWithStore(<KidsChrome />)
+
+    goToPickPage()
+    fireEvent.click(screen.getByTestId("kids-onboarding-character-dino"))
+    fireEvent.click(screen.getByText("This is my buddy"))
+    act(() => vi.advanceTimersByTime(180))
+
+    // Straight to the help step — "Turn the pages" is gone.
+    expect(screen.queryByText("Turn the pages")).toBeNull()
+    expect(screen.getByText("Ask me anytime")).not.toBeNull()
+    expect(
+      screen.getByText("Tap your buddy whenever you want help."),
+    ).not.toBeNull()
+    expect(screen.queryByText("L")).toBeNull()
+  })
+})

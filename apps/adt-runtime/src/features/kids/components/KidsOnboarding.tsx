@@ -42,6 +42,7 @@ import {
 import { currentLanguageAtom } from "@/features/language/state/language.atoms"
 import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
 import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
+import { useTouchOnlyDevice } from "@/features/kids/hooks/useTouchOnlyDevice"
 import {
   BUDDY_BACKGROUNDS,
   KIDS_CHARACTERS,
@@ -88,6 +89,14 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   "feature-abilities",
   "start",
 ]
+
+/**
+ * Steps that only exist to teach a keyboard shortcut. On a touch device they
+ * are worse than redundant — the child is told to press keys that aren't there.
+ * The help step survives because "tap your buddy" is the thing a phone user
+ * most needs to learn; it just swaps to touch-only wording.
+ */
+const KEYBOARD_ONLY_STEPS = new Set<OnboardingStep>(["feature-pages"])
 
 // Steps whose content benefits from the full screen width (grids of options).
 const WIDE_STEPS = new Set<OnboardingStep>([
@@ -174,7 +183,14 @@ export function KidsOnboarding() {
   const pickConfirmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   )
-  const steps = ONBOARDING_STEPS
+  const touchOnly = useTouchOnlyDevice()
+  const steps = useMemo(
+    () =>
+      touchOnly
+        ? ONBOARDING_STEPS.filter((s) => !KEYBOARD_ONLY_STEPS.has(s))
+        : ONBOARDING_STEPS,
+    [touchOnly],
+  )
   const step = steps[Math.min(stepIndex, steps.length - 1)]
   const stepPosition = tk(
     "kids-onboarding-step-position",
@@ -483,6 +499,7 @@ export function KidsOnboarding() {
                 <FeatureBuddyStep
                   headingRef={headingRef}
                   stepPosition={stepPosition}
+                  touchOnly={touchOnly}
                 />
               ) : null}
               {step === "feature-abilities" ? (
@@ -981,9 +998,11 @@ function FeaturePagesStep({
 function FeatureBuddyStep({
   headingRef,
   stepPosition,
+  touchOnly,
 }: {
   headingRef: RefObject<HTMLHeadingElement | null>
   stepPosition: string
+  touchOnly: boolean
 }) {
   const { tk } = useKidsTranslation()
   return (
@@ -993,13 +1012,18 @@ function FeatureBuddyStep({
           {tk("kids-onboarding-help-title", "Ask me anytime")}
         </StepTitle>
         <p className={STEP_COPY_CLASS}>
-          {tk(
-            "kids-onboarding-help-copy",
-            "Tap your buddy or press the L key when you want help.",
-          )}
+          {touchOnly
+            ? tk(
+                "kids-onboarding-help-copy-touch",
+                "Tap your buddy whenever you want help.",
+              )
+            : tk(
+                "kids-onboarding-help-copy",
+                "Tap your buddy or press the L key when you want help.",
+              )}
         </p>
       </div>
-      <Keycap>L</Keycap>
+      {touchOnly ? null : <Keycap>L</Keycap>}
     </StepLayout>
   )
 }
