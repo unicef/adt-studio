@@ -21,10 +21,37 @@
  * Grouped sentence fields bind to the RENDERED text (which includes
  * [[blank:item-N]] markers) — editing through the tree text would silently
  * strip the markers and break the blanks.
+ *
+ * Controls are wrapped in `Anchored`, tying each to its element in the page
+ * preview (see `activity-link.ts`). Two intensities, and the distinction is
+ * the whole interaction model: with nothing selected, hovering either surface
+ * *previews* the pairing; once something is selected the preview is muted and
+ * only another selection moves the highlight, so the page stays put while you
+ * type. Escape clears the selection and re-arms hover.
  */
-import { useEffect, useMemo, useState } from "react"
+import {
+  createContext,
+  useContext,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react"
 import { useLingui } from "@lingui/react/macro"
-import { Check, ImageIcon, Sparkles, TextCursorInput, X } from "lucide-react"
+import {
+  Check,
+  ImageIcon,
+  Loader2,
+  MousePointerClick,
+  Pencil,
+  Puzzle,
+  Sparkles,
+  TextCursorInput,
+  X,
+} from "lucide-react"
 import type {
   ActivityOutline,
   ActivityOutlineItem,
@@ -36,8 +63,51 @@ import type {
   McStep,
 } from "@adt/types"
 import { BASE_URL } from "@/api/client"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { cn, scrollBehavior } from "@/lib/utils"
 import { getSectionTypeLabel } from "@/lib/section-constants"
+import {
+  answerAnchor,
+  anchorKey,
+  imageAnchor,
+  parseAnchorKey,
+  sameAnchor,
+  textAnchor,
+  type ActivityAnchor,
+} from "./activity-link"
+
+const MIN_PANEL_WIDTH = 380
+const MAX_PANEL_WIDTH = 760
+const DEFAULT_PANEL_WIDTH = 460
+const PANEL_WIDTH_STORAGE_KEY = "adt:activity-panel-width"
+const HINT_DISMISSED_STORAGE_KEY = "adt:activity-panel-hint-dismissed"
+
+/** Sentinel item-id for "no option marked correct" — Radix RadioGroup
+ *  cannot take an empty string as its value. */
+// eslint-disable-next-line lingui/no-unlocalized-strings -- sentinel value, never rendered
+const NO_CHOICE_ID = "__none__"
+
+/**
+ * Suppresses a control's own focus ring. Not a loss of affordance: a field can
+ * only be focused when it is the selection, so `Anchored` is already drawing a
+ * violet outline around it. Without this the answer inputs carry three
+ * concentric rings — emerald border, blue focus ring, violet outline.
+ */
+const NO_INNER_RING = "focus-visible:ring-0 focus-visible:ring-offset-0"
 
 interface ClassicActivityPanelProps {
   open: boolean
@@ -62,6 +132,17 @@ interface ClassicActivityPanelProps {
   onAnswerEdited: (itemId: string, value: string) => void
   /** Atomic multi-key answer update (radio-group correct flips). */
   onAnswersEdited: (patch: Record<string, string | boolean>) => void
+  /** Committed selection — survives pointer movement. */
+  linkedAnchor: ActivityAnchor | null
+  /** Element under the pointer on either surface. Ignored while something is
+   *  selected. */
+  hoveredAnchor: ActivityAnchor | null
+  /** True when the selection came from a click in the page — the matching
+   *  field then scrolls into view and takes focus. Panel-originated ones must
+   *  not scroll, or the view would jump while the user types. */
+  linkedFromPage: boolean
+  onAnchorSelect: (anchor: ActivityAnchor | null) => void
+  onAnchorHover: (anchor: ActivityAnchor | null) => void
   dirty: boolean
   saving: boolean
   onSave: () => void
@@ -172,10 +253,296 @@ function buildTextMap(
   return fromTree
 }
 
+/**
+ * An item's wording as it reads in the printed exercise: blank markers become
+ * underscores. Used for the resting state of a card title — the raw
+ * `[[blank:…]]` source only appears once the title is being edited, which is
+ * the only moment the marker can be broken.
+ *
+ * Not truncated here: the full string stays in the DOM (CSS clips it) so
+ * assistive tech gets the whole sentence, not an ellipsis.
+ */
+function readableText(text: string | undefined): string {
+  if (!text) return ""
+  return text
+    .replace(/\[\[blank:[^\]]+\]\]/g, "___")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
 function imageSrc(bookLabel: string, image: { imageId?: string; src: string }): string {
   if (image.imageId) return `${BASE_URL}/books/${bookLabel}/images/${image.imageId}`
   if (image.src.startsWith("http") || image.src.startsWith("/")) return image.src
   return `${BASE_URL}/books/${bookLabel}/adt-preview/${image.src}`
+}
+
+// ── Page ↔ panel link plumbing ────────────────────────────────────────────
+
+interface LinkContextValue {
+  linked: ActivityAnchor | null
+  hovered: ActivityAnchor | null
+  fromPage: boolean
+}
+
+const LinkContext = createContext<LinkContextValue>({
+  linked: null,
+  hovered: null,
+  fromPage: false,
+})
+
+/**
+ * The anchor an enclosing card has already claimed. An item card highlights as
+ * a whole, so the one field that stands for it must not re-anchor itself —
+ * otherwise two nodes answer to the same anchor and the ring lands on the
+ * inner input instead of the card the pointer is actually over.
+ */
+const ClaimedAnchorContext = createContext<string | null>(null)
+
+/**
+ * Ties one control to its element in the page. Hover and focus reporting is
+ * delegated to the scroll container (see `linkDelegation`) rather than handled
+ * here: anchors nest — a card owns the item, a row inside it owns the answer,
+ * an input inside that owns the option text — and per-element enter/leave
+ * handlers would drop the outer anchor the moment the pointer crossed into an
+ * inner one. One delegated listener resolving `closest("[data-anchor]")`
+ * always picks the innermost.
+ */
+function Anchored({
+  anchor,
+  className,
+  children,
+}: {
+  anchor: ActivityAnchor
+  className?: string
+  children: ReactNode
+}) {
+  const { linked, hovered, fromPage } = useContext(LinkContext)
+  const claimed = useContext(ClaimedAnchorContext)
+  const ref = useRef<HTMLDivElement>(null)
+  // Claimed by the card above: stay out of the way entirely — no anchor
+  // attribute, no ring, no reveal. The card owns all three.
+  const isClaimed = claimed !== null && claimed === anchorKey(anchor)
+  const isLinked = !isClaimed && sameAnchor(linked, anchor)
+  // A selection freezes the pairing: previewing something else while the user
+  // works in a field would drag the page out from under them.
+  const isPreviewed = !isClaimed && !linked && sameAnchor(hovered, anchor)
+
+  useEffect(() => {
+    if (!isLinked || !fromPage) return
+    const el = ref.current
+    if (!el) return
+    el.scrollIntoView({ block: "center", behavior: scrollBehavior() })
+    // Hand over the caret so a page click lands the user ready to type, or on
+    // the choice control when the row has no text field.
+    const focusable =
+      el.querySelector<HTMLElement>("textarea, input, select") ??
+      el.querySelector<HTMLElement>("[role=radio]")
+    focusable?.focus({ preventScroll: true })
+  }, [isLinked, fromPage])
+
+  if (isClaimed) return <div className={className}>{children}</div>
+
+  return (
+    <div
+      ref={ref}
+      data-anchor={anchorKey(anchor)}
+      className={cn(
+        // No outline utilities in the base: `outline-solid` on its own resolves
+        // to the browser's default medium/currentColor outline, which would
+        // draw a black box around every field.
+        "relative rounded-md outline-offset-2 transition-all duration-200 ease-out motion-reduce:transition-none",
+        // Both states are solid here and differ by weight — the dashed outline
+        // is the page's own preview vocabulary and stays there, where it reads
+        // against book content rather than against form controls.
+        isLinked && "outline-2 outline-solid outline-violet-500 dark:outline-violet-400",
+        isPreviewed && "outline-2 outline-solid outline-violet-300 dark:outline-violet-600",
+        className,
+      )}
+    >
+      {children}
+    </div>
+  )
+}
+
+/** Textarea that grows with its content — the row-count heuristic it replaces
+ *  mis-sized wrapped text and jumped a full line at a time while typing. */
+function AutoTextarea({
+  value,
+  onChange,
+  mono,
+  label,
+}: {
+  value: string
+  onChange: (value: string) => void
+  mono?: boolean
+  label: string
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = "auto"
+    el.style.height = `${Math.min(el.scrollHeight, 220)}px`
+  }, [value])
+  return (
+    <Textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      rows={1}
+      aria-label={label}
+      className={cn(
+        "min-h-0 resize-none px-2.5 py-1.5 text-xs leading-relaxed md:text-xs",
+        NO_INNER_RING,
+        "transition-colors duration-200 ease-out motion-reduce:transition-none",
+        "hover:border-violet-300 dark:hover:border-violet-500/50",
+        mono && "font-mono",
+      )}
+    />
+  )
+}
+
+/**
+ * A card's title, which is also the item's main text field — showing both
+ * would print the same sentence twice.
+ *
+ * At rest it is a real `<button>`, not a `<p>`: that keeps it in the tab
+ * order, announces as actionable, and carries the full untruncated sentence as
+ * its accessible name. Activating it (click, Enter, Space) selects the card,
+ * which is what flips `editing` — so the swap is a consequence of selection
+ * rather than a second, separate mode. Focus is moved into the textarea on the
+ * way in; Escape releases the selection and hands focus back.
+ */
+function InlineTitle({
+  value,
+  onChange,
+  label,
+  editing,
+  mono,
+}: {
+  value: string
+  onChange: (value: string) => void
+  label: string
+  editing: boolean
+  mono?: boolean
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+  const buttonRef = useRef<HTMLButtonElement>(null)
+  const wasEditing = useRef(false)
+
+  useLayoutEffect(() => {
+    const el = ref.current
+    if (!editing || !el) return
+    el.style.height = "auto"
+    el.style.height = `${Math.min(el.scrollHeight, 220)}px`
+  }, [editing, value])
+
+  useEffect(() => {
+    if (editing) {
+      wasEditing.current = true
+      ref.current?.focus({ preventScroll: true })
+      return
+    }
+    if (!wasEditing.current) return
+    wasEditing.current = false
+    // Leaving edit mode unmounts the textarea. If that orphaned the focus —
+    // Escape, rather than a click on some other control — put it back on the
+    // button so keyboard users keep their place.
+    if (document.activeElement === document.body) {
+      buttonRef.current?.focus({ preventScroll: true })
+    }
+  }, [editing])
+
+  if (!editing) {
+    return (
+      <button
+        ref={buttonRef}
+        type="button"
+        // Focusing this button must NOT select the card: Escape restores focus
+        // here, and if that re-selected we would bounce straight back into the
+        // editor. Activating it (click / Enter / Space) still selects, via the
+        // container's click delegation.
+        data-title-button="true"
+        aria-label={`${label}: ${readableText(value)}`}
+        className={cn(
+          "flex min-w-0 flex-1 cursor-text items-center gap-1.5 rounded text-left text-xs font-medium",
+          "transition-colors duration-200 hover:text-violet-700 motion-reduce:transition-none dark:hover:text-violet-300",
+          // The UA default focus ring is blue; keep the panel's one accent.
+          "focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-violet-400 focus-visible:outline-offset-2",
+        )}
+      >
+        <span className="truncate">{readableText(value)}</span>
+        {/* The title reads as plain text, so the affordance has to be standing
+            — revealing it on hover only tells people who already guessed.
+            Muted at rest, firming up with the rest of the card on hover.
+            Decorative: the button's own label already carries the meaning. */}
+        <Pencil
+          className="h-3 w-3 shrink-0 text-muted-foreground/50 transition-colors duration-200 group-hover/card:text-muted-foreground motion-reduce:transition-none"
+          aria-hidden="true"
+        />
+      </button>
+    )
+  }
+  return (
+    <Textarea
+      ref={ref}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      rows={1}
+      aria-label={label}
+      className={cn(
+        "min-h-0 flex-1 resize-none px-2 py-1 text-xs leading-relaxed md:text-xs",
+        NO_INNER_RING,
+        mono && "font-mono",
+      )}
+    />
+  )
+}
+
+function SectionHeading({ children, count }: { children: ReactNode; count?: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      <h3 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+        {children}
+      </h3>
+      {count !== undefined && (
+        <Badge
+          variant="secondary"
+          className="px-1.5 py-0 text-[11px] font-medium tabular-nums"
+        >
+          {count}
+        </Badge>
+      )}
+    </div>
+  )
+}
+
+/**
+ * The answer key's storage key. Technical — the only way to correlate an
+ * editor row with the page markup when something looks wrong — so it's styled
+ * to recede. Deliberately not hover-revealed: in the flat answer list this
+ * chip is the row's only label.
+ */
+function ItemIdChip({ itemId, hint }: { itemId: string; hint: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Badge
+          variant="outline"
+          className="shrink-0 border-transparent bg-muted/60 px-1.5 font-mono text-[11px] font-normal text-muted-foreground/70"
+        >
+          {itemId}
+        </Badge>
+      </TooltipTrigger>
+      <TooltipContent>{hint}</TooltipContent>
+    </Tooltip>
+  )
+}
+
+function FieldLabel({ children }: { children: ReactNode }) {
+  return (
+    <Label className="text-[11px] font-medium text-muted-foreground">{children}</Label>
+  )
 }
 
 export function ClassicActivityPanel({
@@ -194,6 +561,11 @@ export function ClassicActivityPanel({
   onTextEdited,
   onAnswerEdited,
   onAnswersEdited,
+  linkedAnchor,
+  hoveredAnchor,
+  linkedFromPage,
+  onAnchorSelect,
+  onAnchorHover,
   dirty,
   saving,
   onSave,
@@ -286,83 +658,230 @@ export function ClassicActivityPanel({
     if (!dirty) setTexts(buildTextMap(leaves, structure, outline))
   }, [dirty, leaves, structure, outline])
 
+  // Desktop tool: the panel competes with the page preview for width, so the
+  // split is the user's to set. Persisted globally — it's a workspace
+  // preference, not per-book state.
+  const [panelWidth, setPanelWidth] = useState(() => {
+    const stored = Number(localStorage.getItem(PANEL_WIDTH_STORAGE_KEY))
+    if (!Number.isFinite(stored) || stored <= 0) return DEFAULT_PANEL_WIDTH
+    return Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, stored))
+  })
+  const startResize = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      e.preventDefault()
+      const startX = e.clientX
+      const startWidth = panelWidth
+      const clamp = (ev: PointerEvent) =>
+        Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, startWidth + (startX - ev.clientX)))
+      const onMove = (ev: PointerEvent) => setPanelWidth(clamp(ev))
+      const onUp = (ev: PointerEvent) => {
+        window.removeEventListener("pointermove", onMove)
+        window.removeEventListener("pointerup", onUp)
+        localStorage.setItem(PANEL_WIDTH_STORAGE_KEY, String(clamp(ev)))
+      }
+      window.addEventListener("pointermove", onMove)
+      window.addEventListener("pointerup", onUp)
+    },
+    [panelWidth],
+  )
+
+  const [hintDismissed, setHintDismissed] = useState(
+    () => localStorage.getItem(HINT_DISMISSED_STORAGE_KEY) === "1",
+  )
+  const dismissHint = useCallback(() => {
+    localStorage.setItem(HINT_DISMISSED_STORAGE_KEY, "1")
+    setHintDismissed(true)
+  }, [])
+
   const handleTextChange = (dataId: string, value: string) => {
     setTexts((prev) => ({ ...prev, [dataId]: value }))
     onTextEdited(dataId, value)
   }
 
-  const textField = (dataId: string, mono: boolean, label: string) => (
-    <textarea
-      value={texts[dataId] ?? ""}
-      onChange={(e) => handleTextChange(dataId, e.target.value)}
-      rows={Math.min(4, Math.max(1, Math.ceil((texts[dataId]?.length ?? 0) / 50)))}
-      className={`w-full rounded border bg-background p-2 text-xs ${mono ? "font-mono" : ""}`}
-      aria-label={label}
-    />
+  // ⌘S saves. Escape releases the selection first — that's what re-arms the
+  // hover preview — and only closes the panel once nothing is selected.
+  const panelRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!open) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault()
+        if (dirty && !saving) onSave()
+        return
+      }
+      if (e.key !== "Escape") return
+      // Releasing the selection doesn't require focus to be in the panel:
+      // clicking a card selects it without focusing anything, and that
+      // selection still has to be dismissable.
+      if (linkedAnchor) {
+        e.preventDefault()
+        ;(document.activeElement as HTMLElement | null)?.blur()
+        onAnchorSelect(null)
+      } else if (panelRef.current?.contains(document.activeElement)) {
+        onClose()
+      }
+    }
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [open, dirty, saving, onSave, onClose, linkedAnchor, onAnchorSelect])
+
+  const linkContext = useMemo<LinkContextValue>(
+    () => ({
+      linked: linkedAnchor,
+      hovered: hoveredAnchor,
+      fromPage: linkedFromPage,
+    }),
+    [linkedAnchor, hoveredAnchor, linkedFromPage],
   )
 
-  const caption = (label: string) => (
-    <span className="block text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-      {label}
-    </span>
+  /** One delegated listener set for the whole form — see {@link Anchored}. */
+  const anchorAt = (target: EventTarget | null): ActivityAnchor | null =>
+    parseAnchorKey(
+      (target as HTMLElement | null)?.closest?.("[data-anchor]")?.getAttribute("data-anchor"),
+    )
+  const linkDelegation = {
+    onMouseOver: (e: React.MouseEvent) => onAnchorHover(anchorAt(e.target)),
+    onMouseLeave: () => onAnchorHover(null),
+    // Clicking a card selects it and jumps the page there; clicking a field
+    // inside selects that field instead (closest() resolves the innermost).
+    // Clicking the gaps between cards releases the selection.
+    onClick: (e: React.MouseEvent) => onAnchorSelect(anchorAt(e.target)),
+    onFocusCapture: (e: React.FocusEvent) => {
+      if ((e.target as HTMLElement).dataset?.titleButton) return
+      const anchor = anchorAt(e.target)
+      if (anchor) onAnchorSelect(anchor)
+    },
+  }
+
+  const textField = (dataId: string, mono: boolean, label: string) => (
+    <Anchored anchor={textAnchor(dataId)}>
+      <AutoTextarea
+        value={texts[dataId] ?? ""}
+        onChange={(value) => handleTextChange(dataId, value)}
+        mono={mono}
+        label={label}
+      />
+    </Anchored>
   )
 
   const captionedText = (entry: ActivityOutlineText, label: string) => (
-    <div className="space-y-0.5">
-      {caption(label)}
+    <div className="space-y-1">
+      <FieldLabel>{label}</FieldLabel>
       {entry.dataId ? (
         textField(entry.dataId, false, label)
       ) : (
-        <p className="text-xs text-muted-foreground">{entry.text}</p>
+        <p className="text-xs leading-relaxed text-muted-foreground">{entry.text}</p>
       )}
     </div>
   )
 
+  const answerInput = (itemId: string) => (
+    <Input
+      value={String(answers?.[itemId] ?? "")}
+      onChange={(e) => onAnswerEdited(itemId, e.target.value)}
+      placeholder={t`Correct answer (alternatives separated by |)`}
+      aria-label={t`Correct answer`}
+      className={cn(
+        "h-7 border-emerald-300 bg-white text-xs dark:border-emerald-500/40 dark:bg-emerald-950/30",
+        NO_INNER_RING,
+      )}
+    />
+  )
+
+  /** The id chip sits OUTSIDE the anchor so the selection outline hugs the
+   *  field itself; wrapping the whole row made it bulge around the chip and
+   *  collide with the answer zone's edge. */
   const answerField = (itemId: string) => (
     <div key={itemId} className="flex items-center gap-2">
-      <Input
-        value={String(answers?.[itemId] ?? "")}
-        onChange={(e) => onAnswerEdited(itemId, e.target.value)}
-        placeholder={t`Correct answer (alternatives separated by |)`}
-        className="h-7 text-xs border-green-300 bg-green-50/60"
-      />
-      <span
-        className="text-[10px] font-mono text-muted-foreground shrink-0"
-        title={t`Blank reference`}
-      >
-        {itemId}
-      </span>
+      <Anchored anchor={answerAnchor(itemId)} className="flex-1">
+        {answerInput(itemId)}
+      </Anchored>
+      <ItemIdChip itemId={itemId} hint={t`Answer key reference`} />
     </div>
   )
 
-  const answersHeading = (count: number) => (
-    <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-green-700">
-      <Check className="h-3 w-3" aria-hidden="true" />
-      {count === 1 ? t`Answer` : t`Answers`}
+  const answersHeading = (label: ReactNode) => (
+    <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
+      <Check className="h-3.5 w-3.5" aria-hidden="true" />
+      {label}
     </span>
   )
 
+  /**
+   * Marks the answer key apart from the question. A left accent bar rather
+   * than a filled box: every item has one of these, and a stack of saturated
+   * green panels turned the whole panel green.
+   */
+  const answerZone = (children: ReactNode) => (
+    <div className="space-y-2 border-l-2 border-emerald-400 pl-2.5 dark:border-emerald-500/60">
+      {children}
+    </div>
+  )
+
   const imageThumb = (imageId: string, className: string) => (
-    <img
-      key={imageId}
-      src={`${BASE_URL}/books/${bookLabel}/images/${imageId}`}
-      alt=""
-      title={imageId}
-      className={className}
+    <Anchored key={imageId} anchor={imageAnchor(imageId)} className="inline-flex">
+      <img
+        src={`${BASE_URL}/books/${bookLabel}/images/${imageId}`}
+        alt=""
+        title={imageId}
+        className={className}
+      />
+    </Anchored>
+  )
+
+  const ANSWER_AREA_CLASS = "space-y-2 rounded-md border border-dashed bg-muted/40 p-2.5"
+
+  /** Writable-answer block for an outline input (open-ended, table cell…). */
+  const answerArea = (itemId: string | undefined, index: number, children: ReactNode) =>
+    itemId ? (
+      <Anchored key={itemId} anchor={answerAnchor(itemId)} className={ANSWER_AREA_CLASS}>
+        {children}
+      </Anchored>
+    ) : (
+      <div key={index} className={ANSWER_AREA_CLASS}>
+        {children}
+      </div>
+    )
+
+  /** A choice row is the answer's editing surface — anchoring it is what lets
+   *  a click on the option's box in the page land here. */
+  const optionRow = (itemId: string | undefined, index: number, children: ReactNode) =>
+    itemId ? (
+      <Anchored key={itemId} anchor={answerAnchor(itemId)} className="flex items-center gap-2">
+        {children}
+      </Anchored>
+    ) : (
+      <div key={index} className="flex items-center gap-2">
+        {children}
+      </div>
+    )
+
+  const correctRadio = (value: string) => (
+    <RadioGroupItem
+      value={value}
+      aria-label={t`Correct answer`}
+      className="shrink-0 border-emerald-500 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400"
     />
   )
+
+  /** The item-id currently flagged correct in a single-choice group. */
+  const correctOf = (ids: (string | undefined)[]) =>
+    ids.find((id) => id && isCorrectAnswer(answers?.[id])) ?? NO_CHOICE_ID
 
   const optionTextControl = (item: ActivityOutlineItem, optIndex: number) => {
     const o = item.options[optIndex]
     if (o.text?.dataId) {
       const dataId = o.text.dataId
       return (
-        <Input
-          value={texts[dataId] ?? ""}
-          onChange={(e) => handleTextChange(dataId, e.target.value)}
-          placeholder={t`Option text`}
-          className="h-7 text-xs"
-        />
+        <Anchored anchor={textAnchor(dataId)} className="flex-1">
+          <Input
+            value={texts[dataId] ?? ""}
+            onChange={(e) => handleTextChange(dataId, e.target.value)}
+            placeholder={t`Option text`}
+            aria-label={t`Option text`}
+            className={cn("h-7 text-xs", NO_INNER_RING)}
+          />
+        </Anchored>
       )
     }
     return (
@@ -372,161 +891,327 @@ export function ClassicActivityPanel({
     )
   }
 
+  /**
+   * Card shell. The card is itself the anchor for the item, and it *claims*
+   * that anchor so the field standing for it renders plain — hovering anywhere
+   * on the card rings the card, and only a genuinely different target (an
+   * answer, an option) rings a narrower box.
+   *
+   * The cursor override keeps text fields feeling like text fields even though
+   * their container is clickable.
+   */
+  const CARD_CLASS =
+    // Neutral on hover: violet is reserved for the page↔panel link, so a
+    // violet card border would compete with the outline that means "this is
+    // the element highlighted in the book".
+    "group/card space-y-2.5 rounded-lg border bg-card p-3 transition-colors duration-200 ease-out hover:border-muted-foreground/30 motion-reduce:transition-none"
+
+  const itemCard = (opts: {
+    key: string
+    index: number
+    label: string
+    /** The item's main text, edited in the header rather than repeated as a
+     *  field below it. Its dataId is normally also the card's anchor. */
+    titleField?: { dataId: string; label: string; mono?: boolean }
+    anchor?: ActivityAnchor
+    itemId?: string
+    /** Flags an item whose answer key is still blank. */
+    unanswered?: boolean
+    children: ReactNode
+  }) => {
+    const isSelected = Boolean(opts.anchor && sameAnchor(linkedAnchor, opts.anchor))
+    const editingTitle = Boolean(opts.titleField) && isSelected
+    const head = (
+      <>
+        <div className={cn("flex gap-2", editingTitle ? "items-start" : "items-center")}>
+          <span
+            className={cn(
+              "flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-muted text-[11px] font-semibold tabular-nums text-muted-foreground",
+              editingTitle && "mt-0.5",
+            )}
+          >
+            {opts.index}
+          </span>
+          {opts.titleField ? (
+            <InlineTitle
+              value={texts[opts.titleField.dataId] ?? ""}
+              onChange={(v) => handleTextChange(opts.titleField!.dataId, v)}
+              label={opts.titleField.label}
+              mono={opts.titleField.mono}
+              editing={editingTitle}
+            />
+          ) : (
+            <span className="min-w-0 flex-1 truncate text-xs font-medium">{opts.label}</span>
+          )}
+          {opts.unanswered && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span
+                  className="h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500"
+                  aria-label={t`No answer set`}
+                />
+              </TooltipTrigger>
+              <TooltipContent>{t`No answer set`}</TooltipContent>
+            </Tooltip>
+          )}
+          {opts.itemId && <ItemIdChip itemId={opts.itemId} hint={t`Answer key reference`} />}
+        </div>
+        {opts.children}
+      </>
+    )
+    if (!opts.anchor) {
+      return (
+        <div key={opts.key} className={CARD_CLASS}>
+          {head}
+        </div>
+      )
+    }
+    return (
+      <Anchored
+        key={opts.key}
+        anchor={opts.anchor}
+        className={cn(
+          CARD_CLASS,
+          "cursor-pointer [&_input]:cursor-auto [&_textarea]:cursor-auto [&_input[type=checkbox]]:cursor-pointer",
+        )}
+      >
+        {/* Inside the Anchored, not around it — the card must not read its own
+            claim and render itself inert. */}
+        <ClaimedAnchorContext.Provider value={anchorKey(opts.anchor)}>
+          {head}
+        </ClaimedAnchorContext.Provider>
+      </Anchored>
+    )
+  }
+
   const outlineItemCard = (item: ActivityOutlineItem, i: number) => {
     const valueItemId = item.choice === "value" ? item.options[0]?.itemId : undefined
-    return (
-      <div key={i} className="rounded border p-3 space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-xs font-medium">
-            {item.options.length > 0 ? t`Question ${i + 1}` : t`Item ${i + 1}`}
-          </span>
-          {(item.inputs[0]?.itemId ?? valueItemId) && (
-            <span className="text-[10px] font-mono text-muted-foreground shrink-0">
-              {item.inputs[0]?.itemId ?? valueItemId}
-            </span>
-          )}
-        </div>
-        {item.number?.dataId && (
-          <div className="space-y-0.5">
-            {caption(t`Label`)}
-            <Input
-              value={texts[item.number.dataId] ?? ""}
-              onChange={(e) => handleTextChange(item.number!.dataId!, e.target.value)}
-              className="h-7 w-24 text-xs"
-              aria-label={t`Label`}
-            />
-          </div>
-        )}
-        {item.prompts.length > 0 && (
-          <div className="space-y-1">
-            {caption(t`Instruction`)}
-            {item.prompts.map((p, pi) =>
-              p.dataId ? (
-                <div key={p.dataId}>{textField(p.dataId, false, t`Instruction`)}</div>
-              ) : (
-                <p key={pi} className="text-xs text-muted-foreground">
-                  {p.text}
-                </p>
-              ),
-            )}
-          </div>
-        )}
-        {item.imageIds.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {item.imageIds.map((id) => imageThumb(id, "max-h-24 rounded border object-contain"))}
-          </div>
-        )}
-        {/* Writable answer areas — visually distinct from the editable
-            question texts above. */}
-        {item.inputs.map((input, k) => (
-          <div key={input.itemId ?? k} className="rounded border border-dashed bg-muted/40 p-2 space-y-1.5">
-            <div className="flex items-center justify-between gap-2">
-              <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                <TextCursorInput className="h-3 w-3" aria-hidden="true" />
-                {t`Answer area`}
-              </span>
-              <span className="text-[10px] rounded bg-muted px-1.5 py-0.5 text-muted-foreground shrink-0">
-                {input.kind === "textarea"
-                  ? t`Long answer`
-                  : input.kind === "select"
-                    ? t`Dropdown`
-                    : t`Short answer`}
-              </span>
-            </div>
-            {input.itemId &&
-            answers &&
-            input.itemId in answers &&
-            typeof answers[input.itemId] !== "boolean" ? (
-              answerField(input.itemId)
-            ) : (
-              <p className="text-[10px] text-muted-foreground">{t`Accepts any answer`}</p>
-            )}
-          </div>
-        ))}
-        {/* True/false-style: options share one item-id, the answer is the
-            selected option's value. Options without value attributes can't
-            drive radios — fall back to the raw answer field. */}
-        {item.choice === "value" &&
-          item.options.length > 0 &&
-          valueItemId &&
-          (item.options.every((o) => o.value !== undefined) ? (
-            <div className="space-y-1.5">
-              {answersHeading(1)}
-              <div className="flex flex-wrap items-center gap-4">
-                {item.options.map((o, oi) => (
-                  <label key={oi} className="flex items-center gap-1.5">
-                    <input
-                      type="radio"
-                      name={`outline-value-${i}`}
-                      checked={
-                        String(answers?.[valueItemId] ?? "").toLowerCase() ===
-                        (o.value ?? "").toLowerCase()
-                      }
-                      onChange={() => onAnswersEdited({ [valueItemId]: o.value! })}
-                      title={t`Correct answer`}
-                      className="cursor-pointer accent-green-600"
-                    />
-                    {o.text?.dataId ? (
-                      <Input
-                        value={texts[o.text.dataId] ?? ""}
-                        onChange={(e) => handleTextChange(o.text!.dataId!, e.target.value)}
-                        className="h-7 w-16 text-xs"
-                        aria-label={t`Option text`}
-                      />
-                    ) : (
-                      <span className="text-xs">{o.text?.text ?? o.value}</span>
-                    )}
-                  </label>
-                ))}
-              </div>
-            </div>
-          ) : answers && valueItemId in answers && typeof answers[valueItemId] !== "boolean" ? (
-            <div className="space-y-1.5">
-              {answersHeading(1)}
-              {answerField(valueItemId)}
-            </div>
-          ) : null)}
-        {/* Single-choice (MC-style): the selected radio marks the correct
-            option. Multi-select: every checked option is correct. */}
-        {(item.choice === "single" || item.choice === "multi") && item.options.length > 0 && (
-          <div className="space-y-1.5">
-            <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-green-700">
-              <Check className="h-3 w-3" aria-hidden="true" />
-              {item.choice === "single"
-                ? t`Options — the selected radio marks the correct answer`
-                : t`Options — checked options are the correct answers`}
-            </span>
-            {item.options.map((o, oi) => (
-              <div key={o.itemId ?? oi} className="flex items-center gap-2">
-                <input
-                  type={item.choice === "single" ? "radio" : "checkbox"}
-                  name={item.choice === "single" ? `outline-single-${i}` : undefined}
-                  checked={isCorrectAnswer(answers?.[o.itemId ?? ""])}
-                  onChange={(e) => {
-                    if (!o.itemId) return
-                    if (item.choice === "single") {
-                      onAnswersEdited(
-                        Object.fromEntries(
-                          item.options
-                            .filter((x) => x.itemId)
-                            .map((x) => [x.itemId!, x.itemId === o.itemId]),
-                        ),
-                      )
-                    } else {
-                      onAnswersEdited({ [o.itemId]: e.target.checked })
-                    }
-                  }}
-                  title={t`Correct answer`}
-                  className="cursor-pointer accent-green-600"
+    const anchorItemId = item.inputs[0]?.itemId ?? valueItemId
+    // Prefer the question text over the bare "1)" marker: it's what the card
+    // is about, so it's both the better thing to light up in the page and the
+    // better thing to read in the header.
+    const cardAnchor = item.prompts[0]?.dataId
+      ? textAnchor(item.prompts[0].dataId)
+      : item.number?.dataId
+        ? textAnchor(item.number.dataId)
+        : anchorItemId
+          ? answerAnchor(anchorItemId)
+          : undefined
+
+    // Only flag items that actually have an answer unit — an open-ended
+    // question with no key isn't "missing" anything.
+    const filled: boolean[] = []
+    for (const input of item.inputs) {
+      const id = input.itemId
+      if (id && answers && id in answers && typeof answers[id] !== "boolean") {
+        filled.push(Boolean(String(answers[id] ?? "").trim()))
+      }
+    }
+    if (item.choice === "value" && valueItemId) {
+      filled.push(Boolean(String(answers?.[valueItemId] ?? "").trim()))
+    } else if (
+      (item.choice === "single" || item.choice === "multi") &&
+      item.options.length > 0
+    ) {
+      filled.push(item.options.some((o) => isCorrectAnswer(answers?.[o.itemId ?? ""])))
+    }
+
+    // The first prompt becomes the card title; any further prompts stay as
+    // fields so nothing is silently unreachable.
+    const titlePrompt = item.prompts[0]?.dataId ? item.prompts[0] : undefined
+    const bodyPrompts = item.prompts.filter((p) => p !== titlePrompt)
+
+    return itemCard({
+      key: String(i),
+      index: i + 1,
+      label: item.options.length > 0 ? t`Question` : t`Item`,
+      titleField: titlePrompt?.dataId
+        ? { dataId: titlePrompt.dataId, label: t`Instruction` }
+        : undefined,
+      unanswered: filled.length > 0 && filled.some((ok) => !ok),
+      anchor: cardAnchor,
+      itemId: anchorItemId,
+      children: (
+        <>
+          {item.number?.dataId && (
+            <div className="space-y-1">
+              <FieldLabel>{t`Label`}</FieldLabel>
+              <Anchored anchor={textAnchor(item.number.dataId)} className="w-24">
+                <Input
+                  value={texts[item.number.dataId] ?? ""}
+                  onChange={(e) => handleTextChange(item.number!.dataId!, e.target.value)}
+                  className={cn("h-7 text-xs", NO_INNER_RING)}
+                  aria-label={t`Label`}
                 />
-                {o.imageId && imageThumb(o.imageId, "h-8 w-8 rounded border object-cover shrink-0")}
-                {optionTextControl(item, oi)}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    )
+              </Anchored>
+            </div>
+          )}
+          {bodyPrompts.length > 0 && (
+            <div className="space-y-1">
+              <FieldLabel>{t`Instruction`}</FieldLabel>
+              {bodyPrompts.map((p, pi) =>
+                p.dataId ? (
+                  <div key={p.dataId}>{textField(p.dataId, false, t`Instruction`)}</div>
+                ) : (
+                  <p key={pi} className="text-xs leading-relaxed text-muted-foreground">
+                    {p.text}
+                  </p>
+                ),
+              )}
+            </div>
+          )}
+          {item.imageIds.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {item.imageIds.map((id) =>
+                imageThumb(id, "max-h-24 rounded border object-contain"),
+              )}
+            </div>
+          )}
+          {/* Writable answer areas — visually distinct from the editable
+              question texts above. Anchored even when the answer accepts
+              anything, so clicking the blank in the page still lands here. */}
+          {item.inputs.map((input, k) =>
+            answerArea(
+              input.itemId,
+              k,
+              <>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+                    <TextCursorInput className="h-3.5 w-3.5" aria-hidden="true" />
+                    {t`Answer area`}
+                  </span>
+                  <Badge variant="secondary" className="shrink-0 px-1.5 py-0 text-[11px] font-normal">
+                    {input.kind === "textarea"
+                      ? t`Long answer`
+                      : input.kind === "select"
+                        ? t`Dropdown`
+                        : t`Short answer`}
+                  </Badge>
+                </div>
+                {input.itemId &&
+                answers &&
+                input.itemId in answers &&
+                typeof answers[input.itemId] !== "boolean" ? (
+                  <div className="flex items-center gap-2">
+                    {answerInput(input.itemId)}
+                    <ItemIdChip itemId={input.itemId} hint={t`Answer key reference`} />
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">{t`Accepts any answer`}</p>
+                )}
+              </>,
+            ),
+          )}
+          {/* True/false-style: options share one item-id, the answer is the
+              selected option's value. Options without value attributes can't
+              drive radios — fall back to the raw answer field. */}
+          {item.choice === "value" &&
+            item.options.length > 0 &&
+            valueItemId &&
+            (item.options.every((o) => o.value !== undefined)
+              ? answerZone(
+                  <>
+                    {answersHeading(t`Answer`)}
+                    {/* The options share one item-id — the whole row is that
+                        single answer, so it anchors as one unit. */}
+                    <Anchored anchor={answerAnchor(valueItemId)}>
+                      <RadioGroup
+                        value={String(answers?.[valueItemId] ?? NO_CHOICE_ID)}
+                        onValueChange={(v) => onAnswersEdited({ [valueItemId]: v })}
+                        className="flex flex-wrap items-center gap-4"
+                      >
+                        {item.options.map((o, oi) => (
+                          <div key={oi} className="flex items-center gap-1.5">
+                            {correctRadio(o.value!)}
+                            {o.text?.dataId ? (
+                              <Anchored anchor={textAnchor(o.text.dataId)} className="w-16">
+                                <Input
+                                  value={texts[o.text.dataId] ?? ""}
+                                  onChange={(e) =>
+                                    handleTextChange(o.text!.dataId!, e.target.value)
+                                  }
+                                  className={cn("h-7 text-xs", NO_INNER_RING)}
+                                  aria-label={t`Option text`}
+                                />
+                              </Anchored>
+                            ) : (
+                              <span className="text-xs">{o.text?.text ?? o.value}</span>
+                            )}
+                          </div>
+                        ))}
+                      </RadioGroup>
+                    </Anchored>
+                  </>,
+                )
+              : answers &&
+                  valueItemId in answers &&
+                  typeof answers[valueItemId] !== "boolean"
+                ? answerZone(
+                    <>
+                      {answersHeading(t`Answer`)}
+                      {answerField(valueItemId)}
+                    </>,
+                  )
+                : null)}
+          {/* Single-choice (MC-style): the selected radio marks the correct
+              option. Multi-select: every checked option is correct. */}
+          {item.choice === "single" &&
+            item.options.length > 0 &&
+            answerZone(
+              <>
+                {answersHeading(t`Options — the selected radio marks the correct answer`)}
+                <RadioGroup
+                  value={correctOf(item.options.map((o) => o.itemId))}
+                  onValueChange={(id) =>
+                    onAnswersEdited(
+                      Object.fromEntries(
+                        item.options.filter((x) => x.itemId).map((x) => [x.itemId!, x.itemId === id]),
+                      ),
+                    )
+                  }
+                  className="gap-2"
+                >
+                  {item.options.map((o, oi) =>
+                    optionRow(o.itemId, oi, (
+                      <>
+                        {correctRadio(o.itemId ?? `${NO_CHOICE_ID}-${oi}`)}
+                        {o.imageId &&
+                          imageThumb(o.imageId, "h-8 w-8 rounded border object-cover shrink-0")}
+                        {optionTextControl(item, oi)}
+                      </>
+                    )),
+                  )}
+                </RadioGroup>
+              </>,
+            )}
+          {item.choice === "multi" &&
+            item.options.length > 0 &&
+            answerZone(
+              <>
+                {answersHeading(t`Options — checked options are the correct answers`)}
+                {item.options.map((o, oi) =>
+                  optionRow(o.itemId, oi, (
+                    <>
+                      <input
+                        type="checkbox"
+                        checked={isCorrectAnswer(answers?.[o.itemId ?? ""])}
+                        onChange={(e) => {
+                          if (o.itemId) onAnswersEdited({ [o.itemId]: e.target.checked })
+                        }}
+                        aria-label={t`Correct answer`}
+                        className="h-4 w-4 shrink-0 cursor-pointer accent-emerald-600"
+                      />
+                      {o.imageId &&
+                        imageThumb(o.imageId, "h-8 w-8 rounded border object-cover shrink-0")}
+                      {optionTextControl(item, oi)}
+                    </>
+                  )),
+                )}
+              </>,
+            )}
+        </>
+      ),
+    })
   }
 
   // Per-field fallback: whatever the outline missed but the extractor found
@@ -546,312 +1231,469 @@ export function ClassicActivityPanel({
     headerTexts.badges.length > 0 ||
     headerTexts.instructions.length > 0
 
+  const isEmpty =
+    !hasHeader &&
+    !structure &&
+    visibleOutlineItems.length === 0 &&
+    otherAnswerEntries.length === 0 &&
+    otherTextLeaves.length === 0 &&
+    otherImageLeaves.length === 0
+
   return (
     <div
+      ref={panelRef}
       // inert while closed — the panel is only moved off-screen by the
       // transform, so without it Tab still reaches its inputs and the browser
       // scrolls the hidden panel into view.
       inert={!open}
-      className={`absolute top-0 right-0 h-full w-[420px] flex flex-col bg-background border-l shadow-lg transition-transform duration-200 ease-in-out z-30 ${
-        open ? "translate-x-0" : "translate-x-full"
-      }`}
+      style={{ width: panelWidth }}
+      className={cn(
+        "absolute top-0 right-0 z-30 flex h-full flex-col border-l bg-background shadow-xl",
+        "transition-transform duration-200 ease-out motion-reduce:transition-none",
+        open ? "translate-x-0" : "translate-x-full",
+      )}
     >
+      {/* Drag-to-resize edge */}
+      <div
+        onPointerDown={startResize}
+        role="separator"
+        aria-orientation="vertical"
+        aria-label={t`Resize panel`}
+        className="absolute inset-y-0 left-0 z-40 w-1.5 cursor-col-resize bg-transparent transition-colors duration-200 hover:bg-violet-400/50 motion-reduce:transition-none"
+      />
+
       {/* Header */}
-      <div className="flex items-center justify-between border-b px-4 py-2.5">
-        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          {t`Activity content`}
+      <div className="flex shrink-0 items-center gap-2 border-b px-4 py-2.5">
+        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-violet-100 text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">
+          <Puzzle className="h-3.5 w-3.5" aria-hidden="true" />
         </span>
-        <button
+        <h2 className="flex-1 text-sm font-semibold">{t`Activity content`}</h2>
+        <Button
           type="button"
+          variant="ghost"
+          size="icon"
           onClick={onClose}
-          className="p-1 rounded hover:bg-accent cursor-pointer"
-          title={t`Close`}
+          className="h-7 w-7 text-muted-foreground"
+          aria-label={t`Close`}
         >
           <X className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
 
-      {/* Form */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-5">
-        <p className="text-[11px] text-muted-foreground leading-snug">
-          {t`Edits apply to the matching elements of the activity's layout. To change the layout itself, use "Edit layout" in the banner.`}
-        </p>
+      {/* Link affordance — the panel and the page are one surface. Explains
+          itself once, then gets out of the way; the pinned state always shows,
+          since that one is a mode the user needs a way out of. */}
+      {(linkedAnchor || !hintDismissed) && (
+        <div className="flex shrink-0 items-start gap-2 border-b bg-violet-50/60 px-4 py-2 dark:bg-violet-500/10">
+          <MousePointerClick
+            className="mt-px h-3.5 w-3.5 shrink-0 text-violet-600 dark:text-violet-300"
+            aria-hidden="true"
+          />
+          <p className="flex-1 text-[11px] leading-snug text-muted-foreground">
+            {linkedAnchor
+              ? t`Pinned to one element — press Esc to release it and go back to previewing on hover.`
+              : t`Hover a card to find it in the page and click to pin it — or click anything in the page to edit it here.`}
+          </p>
+          {!linkedAnchor && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              onClick={dismissHint}
+              className="-my-0.5 h-5 w-5 shrink-0 text-muted-foreground"
+              aria-label={t`Dismiss`}
+            >
+              <X className="h-3 w-3" />
+            </Button>
+          )}
+        </div>
+      )}
 
-        {/* Activity type + regenerate */}
-        {activityTypes && sectionType && (
-          <div className="space-y-1.5">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t`Activity type`}
-            </h3>
-            <div className="flex items-center gap-2">
-              <select
-                value={sectionType}
-                onChange={(e) => onChangeType(e.target.value)}
-                className="h-7 min-w-0 flex-1 rounded border bg-background px-2 text-xs"
-              >
+      {/* Activity type + regenerate — pinned so it stays reachable in long
+          activities. */}
+      {activityTypes && sectionType && (
+        <div className="shrink-0 space-y-1.5 border-b px-4 py-2.5">
+          <FieldLabel>{t`Activity type`}</FieldLabel>
+          <div className="flex items-center gap-2">
+            <Select value={sectionType} onValueChange={onChangeType}>
+              <SelectTrigger className="h-7 min-w-0 flex-1 text-xs" aria-label={t`Activity type`}>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
                 {!(sectionType in activityTypes) && (
-                  <option value={sectionType}>{getSectionTypeLabel(sectionType)}</option>
+                  <SelectItem value={sectionType} className="text-xs">
+                    {getSectionTypeLabel(sectionType)}
+                  </SelectItem>
                 )}
                 {/* The config values are LLM-facing descriptions — show the
                     human name and keep the description as a hover tooltip. */}
                 {Object.entries(activityTypes).map(([key, description]) => (
-                  <option key={key} value={key} title={description}>
+                  <SelectItem key={key} value={key} title={description} className="text-xs">
                     {getSectionTypeLabel(key)}
-                  </option>
+                  </SelectItem>
                 ))}
-              </select>
-              <button
-                type="button"
-                onClick={onRegenerate}
-                disabled={!canRegenerate}
-                title={t`Regenerate this activity with AI (requires a saved state and an API key)`}
-                className="flex items-center gap-1.5 h-7 px-2.5 rounded-md text-xs font-medium border border-violet-300 text-violet-700 hover:bg-violet-50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                {t`Regenerate`}
-              </button>
-            </div>
-            <p className="text-[10px] text-muted-foreground">
-              {t`Changing the type regenerates the activity when you save.`}
-            </p>
+              </SelectContent>
+            </Select>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="shrink-0">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onRegenerate}
+                    disabled={!canRegenerate}
+                    className="h-7 gap-1.5 border-violet-300 px-2.5 text-xs font-medium text-violet-700 hover:bg-violet-50 hover:text-violet-800 dark:border-violet-500/40 dark:text-violet-300 dark:hover:bg-violet-500/10"
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    {t`Regenerate`}
+                  </Button>
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>
+                {t`Regenerate this activity with AI (requires a saved state and an API key)`}
+              </TooltipContent>
+            </Tooltip>
           </div>
-        )}
+          <p className="text-[11px] text-muted-foreground">
+            {t`Changing the type regenerates the activity when you save.`}
+          </p>
+        </div>
+      )}
 
-        {/* Page header: title, badges, instructions — pinned at the top for
-            every activity type. */}
-        {hasHeader && (
-          <div className="space-y-2">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t`Header`}
-            </h3>
-            {headerTexts.title && captionedText(headerTexts.title, t`Title`)}
-            {headerTexts.badges.map((b, bi) => (
-              <div key={b.dataId ?? bi} className="space-y-0.5">
-                {caption(t`Badge`)}
-                {b.dataId ? (
-                  <Input
-                    value={texts[b.dataId] ?? ""}
-                    onChange={(e) => handleTextChange(b.dataId!, e.target.value)}
-                    className="h-7 w-40 text-xs"
-                    aria-label={t`Badge`}
-                  />
-                ) : (
-                  <p className="text-xs text-muted-foreground">{b.text}</p>
-                )}
-              </div>
-            ))}
-            {headerTexts.instructions.length > 0 && (
-              <div className="space-y-1">
-                {caption(t`Instructions`)}
-                {headerTexts.instructions.map((ins, ii) =>
-                  ins.dataId ? (
-                    <div key={ins.dataId}>{textField(ins.dataId, false, t`Instructions`)}</div>
-                  ) : (
-                    <p key={ii} className="text-xs text-muted-foreground">
-                      {ins.text}
-                    </p>
-                  ),
-                )}
+      {/* Form */}
+      <LinkContext.Provider value={linkContext}>
+        <ScrollArea className="min-h-0 flex-1" {...linkDelegation}>
+          <div className="space-y-5 p-4">
+            {isEmpty && (
+              <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-muted">
+                  <Puzzle className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                </span>
+                <p className="text-xs font-medium">{t`Nothing to edit yet`}</p>
+                <p className="text-[11px] leading-snug text-muted-foreground">
+                  {t`This activity has no addressable text or answers. Regenerate it, or use "Edit layout" to change the page directly.`}
+                </p>
               </div>
             )}
-          </div>
-        )}
 
-        {/* Grouped item cards — image, prompt/sentence, and answer together */}
-        {structure && structure.kind === "fill-in-the-blank" && (
-          <div className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t`Items`} ({structure.steps.length})
-            </h3>
-            {structure.steps.map((step, si) => (
-              <div key={step.id} className="rounded border p-3 space-y-2">
-                <span className="text-xs font-medium">{t`Item ${si + 1}`}</span>
-                {step.image && (
-                  <img
-                    src={imageSrc(bookLabel, step.image)}
-                    alt={step.image.alt ?? ""}
-                    className="max-h-24 rounded border object-contain"
-                  />
-                )}
-                {step.sentences.map((sentence, sni) =>
-                  sentence.dataId ? (
-                    <div key={sni}>{textField(sentence.dataId, true, t`Sentence with blank markers`)}</div>
-                  ) : (
-                    <p key={sni} className="text-xs font-mono text-muted-foreground">
-                      {sentence.text}
-                    </p>
-                  ),
-                )}
-                <div className="space-y-1.5">
-                  {answersHeading(step.blanks.length)}
-                  {step.blanks.map((blank) => answerField(blank.itemId))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {structure && structure.kind === "multiple-choice" && (
-          <div className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {t`Questions`} ({structure.steps.length})
-            </h3>
-            {structure.steps.map((step, si) => (
-              <div key={step.id} className="rounded border p-3 space-y-2">
-                <span className="text-xs font-medium">{t`Question ${si + 1}`}</span>
-                {step.image && (
-                  <img
-                    src={imageSrc(bookLabel, step.image)}
-                    alt={step.image.alt ?? ""}
-                    className="max-h-24 rounded border object-contain"
-                  />
-                )}
-                {step.prompt?.dataId && textField(step.prompt.dataId, false, t`Question prompt`)}
-                <div className="space-y-1.5">
-                  <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-green-700">
-                    <Check className="h-3 w-3" aria-hidden="true" />
-                    {t`Options — the selected radio marks the correct answer`}
-                  </span>
-                  {step.options.map((option) => (
-                    <div key={option.itemId} className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name={`classic-correct-${step.id}`}
-                        checked={isCorrectAnswer(answers?.[option.itemId])}
-                        onChange={() =>
-                          onAnswersEdited(
-                            Object.fromEntries(
-                              step.options.map((o) => [o.itemId, o.itemId === option.itemId]),
-                            ),
-                          )
-                        }
-                        title={t`Correct answer`}
-                        className="cursor-pointer accent-green-600"
-                      />
-                      {option.image && (
-                        <img
-                          src={imageSrc(bookLabel, option.image)}
-                          alt={option.image.alt ?? ""}
-                          className="h-8 w-8 rounded border object-cover shrink-0"
-                        />
-                      )}
-                      {option.text?.dataId ? (
+            {/* Page header: title, badges, instructions — pinned at the top for
+                every activity type. */}
+            {hasHeader && (
+              <div className="space-y-2">
+                <SectionHeading>{t`Header`}</SectionHeading>
+                {headerTexts.title && captionedText(headerTexts.title, t`Title`)}
+                {headerTexts.badges.map((b, bi) => (
+                  <div key={b.dataId ?? bi} className="space-y-1">
+                    <FieldLabel>{t`Badge`}</FieldLabel>
+                    {b.dataId ? (
+                      <Anchored anchor={textAnchor(b.dataId)} className="w-40">
                         <Input
-                          value={texts[option.text.dataId] ?? ""}
-                          onChange={(e) => handleTextChange(option.text!.dataId!, e.target.value)}
-                          placeholder={t`Option text`}
-                          className="h-7 text-xs"
+                          value={texts[b.dataId] ?? ""}
+                          onChange={(e) => handleTextChange(b.dataId!, e.target.value)}
+                          className={cn("h-7 text-xs", NO_INNER_RING)}
+                          aria-label={t`Badge`}
                         />
+                      </Anchored>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">{b.text}</p>
+                    )}
+                  </div>
+                ))}
+                {headerTexts.instructions.length > 0 && (
+                  <div className="space-y-1">
+                    <FieldLabel>{t`Instructions`}</FieldLabel>
+                    {headerTexts.instructions.map((ins, ii) =>
+                      ins.dataId ? (
+                        <div key={ins.dataId}>
+                          {textField(ins.dataId, false, t`Instructions`)}
+                        </div>
                       ) : (
-                        <span className="flex-1 text-xs text-muted-foreground">
-                          {option.text?.text ?? option.itemId}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                        <p key={ii} className="text-xs leading-relaxed text-muted-foreground">
+                          {ins.text}
+                        </p>
+                      ),
+                    )}
+                  </div>
+                )}
               </div>
-            ))}
-          </div>
-        )}
+            )}
 
-        {/* Outline item cards — every activity type the structure doesn't
-            cover (open-ended, true/false, multi-select, tables), plus answer
-            units a successful FITB/MC extraction missed. */}
-        {visibleOutlineItems.length > 0 && (
-          <div className="space-y-3">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {structure ? t`Other items` : t`Items`} ({visibleOutlineItems.length})
-            </h3>
-            {visibleOutlineItems.map((item, i) => outlineItemCard(item, i))}
-          </div>
-        )}
+            {/* Grouped item cards — image, prompt/sentence, and answer together */}
+            {structure && structure.kind === "fill-in-the-blank" && (
+              <div className="space-y-2.5">
+                <SectionHeading count={structure.steps.length}>{t`Items`}</SectionHeading>
+                <p className="text-[11px] leading-snug text-muted-foreground">
+                  {t`Select an item to edit its text — [[blank:…]] marks where a blank appears, so keep it to keep the blank.`}
+                </p>
+                {structure.steps.map((step, si) => {
+                  // The first addressable sentence becomes the card title; the
+                  // rest (rare — a two-line item) stay as fields below it.
+                  const titleSentence = step.sentences.find((s) => s.dataId)
+                  return itemCard({
+                    key: step.id,
+                    index: si + 1,
+                    label: t`Item`,
+                    titleField: titleSentence?.dataId
+                      ? {
+                          dataId: titleSentence.dataId,
+                          label: t`Sentence with blank markers`,
+                          mono: true,
+                        }
+                      : undefined,
+                    unanswered: step.blanks.some(
+                      (b) => !String(answers?.[b.itemId] ?? "").trim(),
+                    ),
+                    anchor: titleSentence?.dataId
+                      ? textAnchor(titleSentence.dataId)
+                      : step.blanks[0]
+                        ? answerAnchor(step.blanks[0].itemId)
+                        : undefined,
+                    children: (
+                      <>
+                        {step.image && (
+                          <img
+                            src={imageSrc(bookLabel, step.image)}
+                            alt={step.image.alt ?? ""}
+                            className="max-h-24 rounded border object-contain"
+                          />
+                        )}
+                        {step.sentences
+                          .filter((s) => s !== titleSentence)
+                          .map((sentence, sni) =>
+                            sentence.dataId ? (
+                              <div key={sni}>
+                                {textField(sentence.dataId, true, t`Sentence with blank markers`)}
+                              </div>
+                            ) : (
+                              <p key={sni} className="font-mono text-xs text-muted-foreground">
+                                {sentence.text}
+                              </p>
+                            ),
+                          )}
+                        {answerZone(
+                          <>
+                            {answersHeading(
+                              step.blanks.length === 1 ? t`Answer` : t`Answers`,
+                            )}
+                            {step.blanks.map((blank) => answerField(blank.itemId))}
+                          </>,
+                        )}
+                      </>
+                    ),
+                  })
+                })}
+              </div>
+            )}
 
-        {/* Ungrouped answers (flat — always shown when present). Boolean
-            entries are correctness flags: checked = correct. */}
-        {otherAnswerEntries.length > 0 && (
-          <div className="space-y-1.5">
-            {answersHeading(otherAnswerEntries.length)}
-            {otherAnswerEntries.map(([itemId, value]) =>
-              typeof value === "boolean" ? (
-                <label key={itemId} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={isCorrectAnswer(value)}
-                    onChange={(e) => onAnswersEdited({ [itemId]: e.target.checked })}
-                    title={t`Correct answer`}
-                    className="cursor-pointer accent-green-600"
-                  />
-                  <span className="text-[10px] font-mono text-muted-foreground">{itemId}</span>
-                </label>
-              ) : (
-                answerField(itemId)
-              ),
+            {structure && structure.kind === "multiple-choice" && (
+              <div className="space-y-2.5">
+                <SectionHeading count={structure.steps.length}>{t`Questions`}</SectionHeading>
+                {structure.steps.map((step, si) =>
+                  itemCard({
+                    key: step.id,
+                    index: si + 1,
+                    label: t`Question`,
+                    titleField: step.prompt?.dataId
+                      ? { dataId: step.prompt.dataId, label: t`Question prompt` }
+                      : undefined,
+                    unanswered: !step.options.some((o) =>
+                      isCorrectAnswer(answers?.[o.itemId]),
+                    ),
+                    anchor: step.prompt?.dataId
+                      ? textAnchor(step.prompt.dataId)
+                      : step.options[0]
+                        ? answerAnchor(step.options[0].itemId)
+                        : undefined,
+                    children: (
+                      <>
+                        {step.image && (
+                          <img
+                            src={imageSrc(bookLabel, step.image)}
+                            alt={step.image.alt ?? ""}
+                            className="max-h-24 rounded border object-contain"
+                          />
+                        )}
+                        {/* The prompt lives in the card title — see itemCard. */}
+                        {answerZone(
+                          <>
+                            {answersHeading(
+                              t`Options — the selected radio marks the correct answer`,
+                            )}
+                            <RadioGroup
+                              value={correctOf(step.options.map((o) => o.itemId))}
+                              onValueChange={(id) =>
+                                onAnswersEdited(
+                                  Object.fromEntries(
+                                    step.options.map((o) => [o.itemId, o.itemId === id]),
+                                  ),
+                                )
+                              }
+                              className="gap-2"
+                            >
+                              {step.options.map((option, oi) =>
+                                optionRow(option.itemId, oi, (
+                                  <>
+                                    {correctRadio(option.itemId)}
+                                    {option.image && (
+                                      <img
+                                        src={imageSrc(bookLabel, option.image)}
+                                        alt={option.image.alt ?? ""}
+                                        className="h-8 w-8 shrink-0 rounded border object-cover"
+                                      />
+                                    )}
+                                    {option.text?.dataId ? (
+                                      <Anchored
+                                        anchor={textAnchor(option.text.dataId)}
+                                        className="flex-1"
+                                      >
+                                        <Input
+                                          value={texts[option.text.dataId] ?? ""}
+                                          onChange={(e) =>
+                                            handleTextChange(
+                                              option.text!.dataId!,
+                                              e.target.value,
+                                            )
+                                          }
+                                          placeholder={t`Option text`}
+                                          aria-label={t`Option text`}
+                                          className={cn("h-7 text-xs", NO_INNER_RING)}
+                                        />
+                                      </Anchored>
+                                    ) : (
+                                      <span className="flex-1 text-xs text-muted-foreground">
+                                        {option.text?.text ?? option.itemId}
+                                      </span>
+                                    )}
+                                  </>
+                                )),
+                              )}
+                            </RadioGroup>
+                          </>,
+                        )}
+                      </>
+                    ),
+                  }),
+                )}
+              </div>
+            )}
+
+            {/* Outline item cards — every activity type the structure doesn't
+                cover (open-ended, true/false, multi-select, tables), plus answer
+                units a successful FITB/MC extraction missed. */}
+            {visibleOutlineItems.length > 0 && (
+              <div className="space-y-2.5">
+                <SectionHeading count={visibleOutlineItems.length}>
+                  {structure ? t`Other items` : t`Items`}
+                </SectionHeading>
+                {visibleOutlineItems.map((item, i) => outlineItemCard(item, i))}
+              </div>
+            )}
+
+            {/* Ungrouped answers (flat — always shown when present). Boolean
+                entries are correctness flags: checked = correct. */}
+            {otherAnswerEntries.length > 0 &&
+              answerZone(
+                <>
+                  {answersHeading(
+                    otherAnswerEntries.length === 1 ? t`Answer` : t`Answers`,
+                  )}
+                  {otherAnswerEntries.map(([itemId, value]) =>
+                    typeof value === "boolean" ? (
+                      <Anchored key={itemId} anchor={answerAnchor(itemId)}>
+                        <label className="flex cursor-pointer items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={isCorrectAnswer(value)}
+                            onChange={(e) => onAnswersEdited({ [itemId]: e.target.checked })}
+                            aria-label={t`Correct answer`}
+                            className="h-4 w-4 shrink-0 cursor-pointer accent-emerald-600"
+                          />
+                          <ItemIdChip itemId={itemId} hint={t`Answer key reference`} />
+                        </label>
+                      </Anchored>
+                    ) : (
+                      answerField(itemId)
+                    ),
+                  )}
+                </>,
+              )}
+
+            {/* Ungrouped texts */}
+            {otherTextLeaves.length > 0 && (
+              <div className="space-y-2">
+                <SectionHeading count={otherTextLeaves.length}>
+                  {structure || visibleOutlineItems.length > 0 ? t`Other text` : t`Text`}
+                </SectionHeading>
+                {otherTextLeaves.map((leaf) => (
+                  <div key={leaf.nodeId} className="space-y-1">
+                    {leaf.role && leaf.role !== "paragraph" && (
+                      <span className="font-mono text-[11px] text-muted-foreground">
+                        {leaf.role}
+                      </span>
+                    )}
+                    {textField(leaf.nodeId, false, t`Activity text`)}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Ungrouped images (read-only — swapping happens in the layout editor) */}
+            {otherImageLeaves.length > 0 && (
+              <div className="space-y-2">
+                <SectionHeading count={otherImageLeaves.length}>
+                  <span className="flex items-center gap-1.5">
+                    <ImageIcon className="h-3 w-3" aria-hidden="true" />
+                    {t`Images`}
+                  </span>
+                </SectionHeading>
+                <div className="grid grid-cols-3 gap-2">
+                  {otherImageLeaves.map((leaf) =>
+                    imageThumb(
+                      leaf.nodeId,
+                      "h-20 w-full rounded border bg-white object-contain",
+                    ),
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  {t`To replace an image, use "Edit layout" and click the image.`}
+                </p>
+              </div>
             )}
           </div>
-        )}
-
-        {/* Ungrouped texts */}
-        {otherTextLeaves.length > 0 && (
-          <div className="space-y-1.5">
-            <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              {structure || visibleOutlineItems.length > 0 ? t`Other text` : t`Text`} (
-              {otherTextLeaves.length})
-            </h3>
-            {otherTextLeaves.map((leaf) => (
-              <div key={leaf.nodeId} className="space-y-0.5">
-                {leaf.role && leaf.role !== "paragraph" && (
-                  <span className="text-[10px] font-mono text-muted-foreground">{leaf.role}</span>
-                )}
-                {textField(leaf.nodeId, false, t`Activity text`)}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Ungrouped images (read-only — swapping happens in the layout editor) */}
-        {otherImageLeaves.length > 0 && (
-          <div className="space-y-1.5">
-            <h3 className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              <ImageIcon className="h-3 w-3" aria-hidden="true" />
-              {t`Images`} ({otherImageLeaves.length})
-            </h3>
-            <div className="grid grid-cols-3 gap-2">
-              {otherImageLeaves.map((leaf) => (
-                <img
-                  key={leaf.nodeId}
-                  src={`${BASE_URL}/books/${bookLabel}/images/${leaf.nodeId}`}
-                  alt={leaf.text ?? ""}
-                  title={leaf.nodeId}
-                  className="h-20 w-full rounded border object-contain bg-white"
-                />
-              ))}
-            </div>
-            <p className="text-[10px] text-muted-foreground">
-              {t`To replace an image, use "Edit layout" and click the image.`}
-            </p>
-          </div>
-        )}
-      </div>
+        </ScrollArea>
+      </LinkContext.Provider>
 
       {/* Save bar */}
-      <div className="border-t bg-background p-3 flex items-center justify-end gap-2">
-        <button
+      <div className="flex shrink-0 items-center gap-2 border-t bg-background p-3">
+        <span className="flex flex-1 items-center gap-1.5 text-[11px] text-muted-foreground">
+          {dirty && <span className="h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true" />}
+          {dirty ? t`Unsaved changes` : t`All changes saved`}
+        </span>
+        <Button
           type="button"
+          variant="secondary"
           onClick={onDiscard}
           disabled={!dirty || saving}
-          className="h-8 px-3 rounded text-xs font-medium bg-muted hover:bg-accent disabled:opacity-40 transition-colors cursor-pointer"
+          className="h-8 px-3 text-xs"
         >
           {t`Discard`}
-        </button>
-        <button
-          type="button"
-          onClick={onSave}
-          disabled={!dirty || saving}
-          className="h-8 px-4 rounded text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-40 transition-colors cursor-pointer"
-        >
-          {saving ? t`Saving…` : t`Save activity`}
-        </button>
+        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span>
+              <Button
+                type="button"
+                onClick={onSave}
+                disabled={!dirty || saving}
+                className="h-8 gap-1.5 bg-violet-600 px-4 text-xs text-white hover:bg-violet-700"
+              >
+                {saving && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
+                {saving ? t`Saving…` : t`Save activity`}
+              </Button>
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{t`Save activity (⌘S)`}</TooltipContent>
+        </Tooltip>
       </div>
     </div>
   )

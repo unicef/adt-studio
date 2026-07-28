@@ -59,6 +59,8 @@ import { SectionEditPanel } from "./SectionEditPanel"
 import { StorySectionBanner } from "./StorySectionBanner"
 import { EditableActivityPanel } from "./EditableActivityPanel"
 import { ClassicActivityPanel } from "./ClassicActivityPanel"
+import type { ActivityAnchor } from "./activity-link"
+import { scrollBehavior } from "@/lib/utils"
 import { StepperActivityPreview } from "./StepperActivityPreview"
 import {
   useActivityStructure,
@@ -574,6 +576,20 @@ export function StoryboardSectionDetail({
     pageHasActivitySection,
   )
   const [editActivityPanelOpen, setEditActivityPanelOpen] = useState(false)
+  // Two-way link between the activity editor and the rendered page.
+  //
+  // `linkedAnchor` is the committed selection (a click in the page, a focused
+  // field, the panel's "show in page" button); `hoverAnchor` is a preview from
+  // whichever surface the pointer is over — only one can be hovered at a time,
+  // so a single slot serves both directions.
+  //
+  // The selection wins: `linkedAnchor ?? hoverAnchor`. With nothing selected,
+  // sweeping either surface previews the pairing; once something is selected
+  // the highlight is pinned and only another selection moves it, so the page
+  // holds still while the user edits. Escape releases it.
+  const [linkedAnchor, setLinkedAnchor] = useState<ActivityAnchor | null>(null)
+  const [linkedFromPage, setLinkedFromPage] = useState(false)
+  const [hoverAnchor, setHoverAnchor] = useState<ActivityAnchor | null>(null)
   // Read-only structure + outline of a classic activity — organizes the
   // classic activity editor. Works for all activity types, but is only
   // consumed by the edit panel, so don't fetch until it opens (the server
@@ -1306,6 +1322,37 @@ export function StoryboardSectionDetail({
     setSelectedElementClasses(previewFrameRef.current?.getElementClasses(dataId) ?? null)
   }, [])
 
+  // ── Activity editor ↔ page linking ──────────────────────────────────────
+  /** Scroll the preview so the anchored element is visible. The element lives
+   *  inside the iframe, which doesn't scroll in desktop view — the host's
+   *  scroll container is the one that has to move. */
+  const revealAnchorInPage = useCallback((anchor: ActivityAnchor) => {
+    const container = scrollContainerRef.current
+    const rect = previewFrameRef.current?.getAnchorViewportRect(anchor)
+    if (!container || !rect) return
+    const view = container.getBoundingClientRect()
+    const margin = 24
+    if (rect.top >= view.top + margin && rect.bottom <= view.bottom - margin) return
+    container.scrollBy({
+      top: rect.top - view.top - (view.height - rect.height) / 2,
+      behavior: scrollBehavior(),
+    })
+  }, [])
+
+  const handleAnchorSelectFromPanel = useCallback(
+    (anchor: ActivityAnchor | null) => {
+      setLinkedAnchor(anchor)
+      setLinkedFromPage(false)
+      if (anchor) revealAnchorInPage(anchor)
+    },
+    [revealAnchorInPage],
+  )
+
+  const handleLinkSelectFromPage = useCallback((anchor: ActivityAnchor | null) => {
+    setLinkedAnchor(anchor)
+    setLinkedFromPage(true)
+  }, [])
+
   const handleClassesChange = useCallback(
     (dataId: string, classes: string[]) => {
       if (!page.rendering) return
@@ -1955,6 +2002,26 @@ export function StoryboardSectionDetail({
   const editableBusy =
     convertEditableActivity.isPending || setEditablePresentation.isPending
 
+  // With the classic activity editor open the page becomes a click-to-locate
+  // map: inline editing is off (content is edited in the panel) and clicks
+  // report an anchor instead. The panel also forces the WYSIWYG preview, so
+  // edits appear immediately rather than after a save + re-render.
+  const activityLinkMode = isActivitySection && !stepperEnabled && editActivityPanelOpen
+
+  // Drop stale links when the panel toggles or the user moves to another
+  // section — an anchor from a different page would highlight nothing. Opening
+  // the panel also dismisses the style inspector: its element selection came
+  // from the layout editor, which link mode has just switched off.
+  useEffect(() => {
+    setLinkedAnchor(null)
+    setLinkedFromPage(false)
+    setHoverAnchor(null)
+    if (editActivityPanelOpen) {
+      setSelectedElement(null)
+      setSelectedElementClasses(null)
+    }
+  }, [editActivityPanelOpen, sectionIndex, pageId])
+
   const handleToggleStepper = () => {
     if (editableEntry) {
       const enabling = !editableEntry.enabled
@@ -2163,7 +2230,15 @@ export function StoryboardSectionDetail({
                             layout/style work. */}
                         <button
                           type="button"
-                          onClick={() => setEditActivityPanelOpen((v) => !v)}
+                          onClick={() => {
+                            // Editing content needs the WYSIWYG frame: it
+                            // updates live and carries the link channel, while
+                            // the interactive preview only reflects saves.
+                            setEditActivityPanelOpen((v) => {
+                              if (!v) setActivityPreviewMode(false)
+                              return !v
+                            })
+                          }}
                           className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors cursor-pointer"
                         >
                           <ListChecks className="h-3.5 w-3.5" />
@@ -2222,7 +2297,7 @@ export function StoryboardSectionDetail({
                   deviceView={deviceView}
                 />
               </>
-            ) : isActivitySection && activityPreviewMode ? (
+            ) : isActivitySection && activityPreviewMode && !editActivityPanelOpen ? (
               <>
                 {renderingDirty && (
                   <div className="mb-2 flex justify-center">
@@ -2252,6 +2327,11 @@ export function StoryboardSectionDetail({
                   selectedDataId={selectedElement?.dataId ?? null}
                   renderWidth={DEVICE_WIDTHS[deviceView]}
                   deviceView={deviceView}
+                  linkMode={activityLinkMode}
+                  linkedAnchor={linkedAnchor}
+                  previewAnchor={linkedAnchor ? null : hoverAnchor}
+                  onLinkSelect={handleLinkSelectFromPage}
+                  onLinkHover={setHoverAnchor}
                   onVisibleWidthChange={setPreviewVisibleWidth}
                   bodyFontFamily={pageDetail?.reflowableFontFamily ?? undefined}
                 />
@@ -2479,6 +2559,11 @@ export function StoryboardSectionDetail({
           onTextEdited={handleLeafTextEdited}
           onAnswerEdited={updateAnswer}
           onAnswersEdited={updateAnswers}
+          linkedAnchor={linkedAnchor}
+          hoveredAnchor={hoverAnchor}
+          linkedFromPage={linkedFromPage}
+          onAnchorSelect={handleAnchorSelectFromPanel}
+          onAnchorHover={setHoverAnchor}
           dirty={renderingDirty || dirty}
           saving={saving}
           onSave={() => {

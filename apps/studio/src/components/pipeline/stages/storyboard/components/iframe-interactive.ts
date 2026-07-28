@@ -1,6 +1,12 @@
 // Interactive editing script + styles injected into the BookPreviewFrame
 // iframe. The script is gated by `body[data-editable="true"]`, so toggling
 // editability does not require an iframe reload.
+//
+// A second, mutually exclusive gate — `body[data-link-mode="true"]` — powers
+// the activity editor's page↔panel linking: clicks resolve to an anchor and
+// are reported to the parent instead of opening an inline editor, and every
+// default action is suppressed so clicking a blank in the page never types
+// into the preview.
 
 export const INTERACTIVE_SCRIPT = `<script>
 (function() {
@@ -9,8 +15,67 @@ export const INTERACTIVE_SCRIPT = `<script>
   var savedDisplayHtml = null;
   var savedOriginalText = null;
   var containerIdCounter = 0;
+  var hoveredLink = null;
 
   function isEditable() { return document.body.dataset.editable === 'true'; }
+  function isLinkMode() { return document.body.dataset.linkMode === 'true'; }
+
+  // Answer controls are usually sr-only — the visible affordance is a styled
+  // sibling box. Outlining the control itself would draw nothing, so climb to
+  // the first ancestor that has a real box.
+  function visibleTarget(el) {
+    var node = el;
+    for (var d = 0; d < 4 && node; d++) {
+      var r = node.getBoundingClientRect();
+      if (r.width > 2 && r.height > 2) return node;
+      node = node.parentElement;
+    }
+    return el;
+  }
+
+  // Nearest addressable ancestor, resolved by intent rather than raw proximity:
+  //   • text or an image with actual content wins — the user clicked words or
+  //     a picture and means to edit them (this keeps a sentence with an inline
+  //     blank editable as text);
+  //   • otherwise the enclosing region owning exactly ONE answer control is
+  //     that answer, which is how clicking an empty checkbox box or an
+  //     option's letter selects the answer instead of a decorative span.
+  // Requiring exactly one control stops the walk from swallowing a whole
+  // question list once it reaches a shared container.
+  function findAnchor(target) {
+    var el = target;
+    var answerRegion = null;
+    while (el && el !== document.body) {
+      if (el.nodeType === 1) {
+        var itemId = el.getAttribute('data-activity-item');
+        if (itemId) return { el: visibleTarget(el), kind: 'answer', id: itemId };
+        var dataId = el.getAttribute('data-id');
+        if (dataId) {
+          if (el.tagName === 'IMG') return { el: el, kind: 'image', id: dataId };
+          if ((el.textContent || '').trim()) return { el: el, kind: 'text', id: dataId };
+        }
+        if (!answerRegion) {
+          var owned = el.querySelectorAll('[data-activity-item]');
+          if (owned.length === 1) {
+            answerRegion = {
+              el: el,
+              kind: 'answer',
+              id: owned[0].getAttribute('data-activity-item')
+            };
+          }
+        }
+      }
+      el = el.parentElement;
+    }
+    return answerRegion;
+  }
+
+  function setHoveredLink(el) {
+    if (hoveredLink === el) return;
+    if (hoveredLink) hoveredLink.removeAttribute('data-adt-link-hover');
+    hoveredLink = el;
+    if (hoveredLink) hoveredLink.setAttribute('data-adt-link-hover', 'true');
+  }
 
   // Walk up from target; preventDefault if any ancestor is a tag whose default
   // action would steal the click (navigate the iframe, submit a form, focus
@@ -132,6 +197,63 @@ export const INTERACTIVE_SCRIPT = `<script>
     }, '*');
   }
 
+  // ── Link mode ───────────────────────────────────────────────────────────
+  // Entering link mode must tear down any inline edit already in flight —
+  // contentEditable and the selection outline are set on the element itself,
+  // so flipping the body flag alone would leave the page typeable underneath
+  // the activity panel.
+  new MutationObserver(function() {
+    if (!isLinkMode()) return;
+    if (editing) finishEditing();
+    clearSelection();
+    setHoveredLink(null);
+  }).observe(document.body, { attributes: true, attributeFilter: ['data-link-mode'] });
+
+  // Capture phase so the page's own controls (inputs, labels, radios) never
+  // see the event: in link mode the page is a map, not a form.
+  document.addEventListener('mousedown', function(e) {
+    if (!isLinkMode()) return;
+    e.preventDefault();
+    e.stopPropagation();
+  }, true);
+
+  document.addEventListener('click', function(e) {
+    if (!isLinkMode()) return;
+    e.preventDefault();
+    e.stopPropagation();
+    var a = findAnchor(e.target);
+    parent.postMessage(
+      a ? { type: 'link-select', kind: a.kind, id: a.id } : { type: 'link-select' },
+      '*'
+    );
+  }, true);
+
+  // Hover outlines what a click would pick and reports it up, so the editor
+  // can preview the pairing. The parent decides whether to act on it — it
+  // ignores hover entirely while something is selected.
+  var lastHoverKey = null;
+  function reportHover(a) {
+    var key = a ? a.kind + ':' + a.id : '';
+    if (key === lastHoverKey) return;
+    lastHoverKey = key;
+    parent.postMessage(
+      a ? { type: 'link-hover', kind: a.kind, id: a.id } : { type: 'link-hover' },
+      '*'
+    );
+  }
+
+  document.addEventListener('mousemove', function(e) {
+    if (!isLinkMode()) { setHoveredLink(null); reportHover(null); return; }
+    var a = findAnchor(e.target);
+    setHoveredLink(a ? a.el : null);
+    reportHover(a);
+  });
+
+  document.documentElement.addEventListener('mouseleave', function() {
+    setHoveredLink(null);
+    reportHover(null);
+  });
+
   // Enter edit mode on mousedown (before the browser's default selection
   // behavior) so native drag-to-select works within the contentEditable
   // element. Handling this on 'click' was too late: the selection created
@@ -218,4 +340,26 @@ export const INTERACTIVE_STYLES = `body[data-editable="true"] *:hover:not(:has(*
     }
     body[data-editable="true"] img[data-id] { position: relative; z-index: 1; }
     [data-adt-selected] { outline: 2px solid rgb(124, 58, 237) !important; outline-offset: 2px !important; }
-    [data-adt-editing] { outline: 2px solid rgb(91, 33, 182) !important; outline-offset: 2px !important; }`
+    [data-adt-editing] { outline: 2px solid rgb(91, 33, 182) !important; outline-offset: 2px !important; }
+    body[data-link-mode="true"] [data-id],
+    body[data-link-mode="true"] [data-activity-item] { cursor: pointer; }
+    /* Preview — dashed. Either the pointer is over it in the page
+       (data-adt-link-hover, stamped locally for zero latency) or over its
+       field in the editor (data-adt-preview, driven by the parent). */
+    [data-adt-link-hover],
+    [data-adt-preview] {
+      outline: 2px dashed rgba(124, 58, 237, 0.6) !important;
+      outline-offset: 3px !important;
+      border-radius: 3px;
+    }
+    /* Selection — solid and filled. */
+    [data-adt-linked] {
+      outline: 2px solid rgb(124, 58, 237) !important;
+      outline-offset: 3px !important;
+      background-color: rgba(124, 58, 237, 0.1) !important;
+      border-radius: 3px;
+      transition: outline-color 200ms ease-out, background-color 200ms ease-out;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      [data-adt-linked] { transition: none; }
+    }`
