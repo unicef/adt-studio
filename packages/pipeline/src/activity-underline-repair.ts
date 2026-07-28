@@ -49,10 +49,6 @@ function hasUnderlineOptions(root: Node): boolean {
   )
 }
 
-function hasNestedTags(node: Node): boolean {
-  return (node.children ?? []).some((child: Node) => child.type === "tag")
-}
-
 function hasNestedDataId(node: Node): boolean {
   return DomUtils.findOne(
     (el) =>
