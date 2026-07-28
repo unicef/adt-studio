@@ -1428,7 +1428,12 @@ export function LanguageView({
             diff={{
               items: (d) => (d as { entries?: TextCatalogEntry[] } | null)?.entries ?? [],
               keyOf: (it) => (it as TextCatalogEntry).id,
-              renderItem: (it) => {
+              diffText: (it) => (it as TextCatalogEntry).text ?? "",
+              searchText: (it) => {
+                const e = it as TextCatalogEntry;
+                return `${e.id} ${sourceEntriesById.get(e.id) ?? ""} ${e.text ?? ""}`;
+              },
+              renderItem: (it, ctx) => {
                 const e = it as TextCatalogEntry;
                 const cat = getEntryCategory(e.id);
                 const catLabel =
@@ -1457,7 +1462,11 @@ export function LanguageView({
                     {source && source !== e.text ? (
                       <span className="line-clamp-2 text-[11px] text-muted-foreground">{source}</span>
                     ) : null}
-                    {e.text ? <span className="text-foreground">{e.text}</span> : null}
+                    {ctx?.diff ? (
+                      <span className="text-foreground">{ctx.diff}</span>
+                    ) : e.text ? (
+                      <span className="text-foreground">{e.text}</span>
+                    ) : null}
                   </span>
                 );
               },

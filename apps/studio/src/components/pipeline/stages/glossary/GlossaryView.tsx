@@ -199,7 +199,12 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
           diff={{
             items: (d) => (d as GlossaryData | null)?.items?.filter((i) => !i.pruned) ?? [],
             keyOf: (it) => (it as GlossaryItem).id ?? (it as GlossaryItem).word,
-            renderItem: (it) => {
+            diffText: (it) => (it as GlossaryItem).definition ?? "",
+            searchText: (it) => {
+              const item = it as GlossaryItem
+              return `${item.word} ${item.definition ?? ""}`
+            },
+            renderItem: (it, ctx) => {
               const item = it as GlossaryItem
               return (
                 <span>
@@ -207,7 +212,9 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
                     {item.emojis?.[0] ? `${item.emojis[0]} ` : ""}
                     {item.word}
                   </span>
-                  {item.definition ? (
+                  {ctx?.diff ? (
+                    <span className="text-muted-foreground"> — {ctx.diff}</span>
+                  ) : item.definition ? (
                     <span className="text-muted-foreground"> — {item.definition}</span>
                   ) : null}
                 </span>

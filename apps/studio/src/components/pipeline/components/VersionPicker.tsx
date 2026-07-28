@@ -18,6 +18,7 @@ import { useLingui } from "@lingui/react/macro"
 import { useQueryClient } from "@tanstack/react-query"
 import { STEP_TO_STAGE, type StageName } from "@adt/types"
 import { api } from "@/api/client"
+import { toast } from "@/components/ui/sonner"
 import type { VersionEntry } from "@/api/client"
 import {
   Popover,
@@ -244,16 +245,25 @@ export function VersionPicker({
 
   // Roll back to an existing version: move the pointer (no new version) and
   // refresh. Shared by the list rows and the compare dialog.
-  const restoreTo = async (version: number) => {
+  const doRestore = async (version: number, undoTo: number | null) => {
     setRestoring(true)
     try {
       await api.restoreVersion(bookLabel, step, itemId, version)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel] })
       onRestored?.()
+      // Confirm the (reversible) restore; offer one-click Undo back to the
+      // version that was current before.
+      toast.success(
+        t`Restored to v${version}`,
+        undoTo != null && undoTo !== version
+          ? { action: { label: t`Undo`, onClick: () => void doRestore(undoTo, null) } }
+          : undefined
+      )
     } finally {
       setRestoring(false)
     }
   }
+  const restoreTo = (version: number) => doRestore(version, currentVersion)
 
   // Pick a version. With onRestored, roll back to it. Otherwise fall back to
   // the legacy pending-edit flow.

@@ -229,6 +229,8 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
                 x.level === y.level
               )
             },
+            diffText: (e) => (e as TocEntry).title,
+            searchText: (e) => (e as TocEntry).title,
             renderItem: (e, ctx) => {
               const s = e as TocEntry
               const level = s.level ?? 1
@@ -247,7 +249,7 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
                   >
                     {t`L${level}`}
                   </span>
-                  <span className="truncate font-medium text-foreground">{s.title}</span>
+                  <span className="truncate font-medium text-foreground">{ctx?.diff ?? s.title}</span>
                 </span>
               )
             },

@@ -1,9 +1,10 @@
-import { useMemo, useState, type ReactNode } from "react"
-import { ArrowRight, CircleDot, type LucideIcon } from "lucide-react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { ArrowRight, CircleDot, Search, X, type LucideIcon } from "lucide-react"
 import { useLingui } from "@lingui/react/macro"
 import type { VersionEntry } from "@/api/client"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
+import { InlineDiff } from "./InlineDiff"
 import {
   diffById,
   stableEqual,
@@ -28,8 +29,16 @@ export interface VersionDiffDescriptor {
   isEqual?: (a: unknown, b: unknown) => boolean
   /** Render one item. `ctx.accentClass` is the section's chip class bundle
    *  (added/edited/removed color, neutral for unchanged) so small accents like
-   *  a level badge can match the item's change color. */
-  renderItem: (item: unknown, ctx?: { accentClass: string }) => ReactNode
+   *  a level badge can match the item's change color. `ctx.diff`, when present
+   *  (edited rows), is a pre-rendered inline word-diff to show *in place of* the
+   *  item's primary text — render your context (tags, source) around it. */
+  renderItem: (item: unknown, ctx?: { accentClass: string; diff?: ReactNode }) => ReactNode
+  /** Primary comparable text of an item. When provided, edited rows show a
+   *  shared inline word-diff (old → new) of this text via `ctx.diff`. */
+  diffText?: (item: unknown) => string
+  /** Free-text used to filter the compare list. When provided, the dialog shows
+   *  a search box that matches against this (case-insensitive). */
+  searchText?: (item: unknown) => string
 }
 
 /** Per-kind change counts between two versions. */
@@ -93,9 +102,23 @@ export function VersionCompareDialog({
   const { t } = useLingui()
   const [selected, setSelected] = useSelectedVersion(open, initialSelected)
   const [showUnchanged, setShowUnchanged] = useState(true)
+  const [query, setQuery] = useState("")
+  // Reset the search each time the dialog opens.
+  useEffect(() => {
+    if (open) setQuery("")
+  }, [open])
 
   const dataOf = (v: number) => versions.find((x) => x.version === v)?.data
   const isCurrent = selected === currentVersion
+
+  // Case-insensitive search over the descriptor's searchText (falls back to
+  // diffText). Applied to every section so the query narrows the whole list.
+  const q = query.trim().toLowerCase()
+  const matches = (item: unknown) => {
+    if (!q) return true
+    const text = descriptor.searchText?.(item) ?? descriptor.diffText?.(item) ?? ""
+    return text.toLowerCase().includes(q)
+  }
 
   // Group items by how restoring `selected` would change the current version.
   const groups = useMemo(() => {
@@ -146,6 +169,41 @@ export function VersionCompareDialog({
     )
   }
 
+  // Search-filtered views of each group; searching also reveals matching
+  // unchanged items regardless of the toggle.
+  const fChanged = groups.changed.filter((c) => matches(c.after) || matches(c.before))
+  const fAdded = groups.added.filter(matches)
+  const fRemoved = groups.removed.filter(matches)
+  const fUnchanged = groups.unchanged.filter(matches)
+  const fCurrent = currentItems.filter(matches)
+  const filteredTotal = fChanged.length + fAdded.length + fRemoved.length
+  const showSearch = descriptor.searchText != null
+  const unchangedVisible = showUnchanged || q.length > 0
+
+  // One edited row: a shared inline word-diff of the primary text when the
+  // descriptor exposes `diffText`, else the before → after two-column fallback.
+  const editedCard = (before: unknown, after: unknown) =>
+    descriptor.diffText
+      ? card(
+          KIND.edited.tint,
+          descriptor.renderItem(after, {
+            accentClass: KIND_CHIP_CLASS.edited,
+            diff: <InlineDiff before={descriptor.diffText(before)} after={descriptor.diffText(after)} />,
+          })
+        )
+      : card(
+          KIND.edited.tint,
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1 opacity-55">
+              {descriptor.renderItem(before, { accentClass: KIND_CHIP_CLASS.edited })}
+            </div>
+            <ArrowRight className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-hidden />
+            <div className="min-w-0 flex-1">
+              {descriptor.renderItem(after, { accentClass: KIND_CHIP_CLASS.edited })}
+            </div>
+          </div>
+        )
+
   return (
     <VersionCompareShell
       open={open}
@@ -166,105 +224,119 @@ export function VersionCompareDialog({
         </label>
       }
     >
-      {/* Fixed-height body scrolls internally so the header controls (chips +
-          toggle) and the footer stay put — toggling Unchanged / switching
-          versions never repositions the buttons under the cursor. */}
-      <div className="min-h-0 flex-1 space-y-4 overflow-auto bg-muted/10 p-4">
-        {isCurrent ? (
-          currentItems.length === 0 ? (
+      {/* Fixed-height body: the search row stays put and the sections scroll,
+          so the header controls and footer never move under the cursor. */}
+      <div className="flex min-h-0 flex-1 flex-col bg-muted/10">
+        {showSearch && (
+          <div className="flex items-center gap-2 border-b bg-background px-3 py-2">
+            <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t`Search…`}
+              className="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
+            />
+            {query ? (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="shrink-0 text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
+                aria-label={t`Clear search`}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
+          </div>
+        )}
+        <div className="min-h-0 flex-1 space-y-4 overflow-auto p-4">
+          {isCurrent ? (
+            fCurrent.length === 0 ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">
+                {q ? t`No matches.` : t`This version is empty.`}
+              </p>
+            ) : (
+              <>
+                {!q ? (
+                  <p className="text-[11px] text-muted-foreground">
+                    {t`This is the active version — pick another above to compare and restore it. Everything it contains:`}
+                  </p>
+                ) : null}
+                {section(
+                  accentColor,
+                  icon,
+                  t`Current version (v${currentVersion})`,
+                  fCurrent.length,
+                  fCurrent.map((it) => (
+                    <div key={descriptor.keyOf(it)}>
+                      {card(
+                        "border-border bg-background",
+                        descriptor.renderItem(it, { accentClass: NEUTRAL_CHIP_CLASS })
+                      )}
+                    </div>
+                  ))
+                )}
+              </>
+            )
+          ) : filteredTotal === 0 && (!unchangedVisible || fUnchanged.length === 0) ? (
             <p className="py-10 text-center text-sm text-muted-foreground">
-              {t`This version is empty.`}
+              {q
+                ? t`No matches.`
+                : showUnchanged && groups.unchanged.length === 0
+                  ? t`This version is empty.`
+                  : t`No differences from the current version.`}
             </p>
           ) : (
             <>
-              <p className="text-[11px] text-muted-foreground">
-                {t`This is the active version — pick another above to compare and restore it. Everything it contains:`}
-              </p>
               {section(
-                accentColor,
-                icon,
-                t`Current version (v${currentVersion})`,
-                currentItems.length,
-                currentItems.map((it) => (
+                KIND.edited.color,
+                KIND.edited.icon,
+                t`Edited`,
+                fChanged.length,
+                fChanged.map(({ before, after }) => (
+                  <div key={descriptor.keyOf(after)}>{editedCard(before, after)}</div>
+                ))
+              )}
+              {section(
+                KIND.added.color,
+                KIND.added.icon,
+                t`Added`,
+                fAdded.length,
+                fAdded.map((it) => (
                   <div key={descriptor.keyOf(it)}>
-                    {card(
-                      "border-border bg-background",
-                      descriptor.renderItem(it, { accentClass: NEUTRAL_CHIP_CLASS })
-                    )}
+                    {card(KIND.added.tint, descriptor.renderItem(it, { accentClass: KIND_CHIP_CLASS.added }))}
                   </div>
                 ))
               )}
-            </>
-          )
-        ) : groups.total === 0 && (!showUnchanged || groups.unchanged.length === 0) ? (
-          <p className="py-10 text-center text-sm text-muted-foreground">
-            {showUnchanged && groups.unchanged.length === 0
-              ? t`This version is empty.`
-              : t`No differences from the current version.`}
-          </p>
-        ) : (
-          <>
-            {section(
-              KIND.edited.color,
-              KIND.edited.icon,
-              t`Edited`,
-              groups.changed.length,
-              groups.changed.map(({ before, after }) => (
-                <div key={descriptor.keyOf(after)}>
-                  {card(
-                    KIND.edited.tint,
-                    <div className="flex items-center gap-2">
-                      <div className="min-w-0 flex-1 opacity-55">
-                        {descriptor.renderItem(before, { accentClass: KIND_CHIP_CLASS.edited })}
-                      </div>
-                      <ArrowRight className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-hidden />
-                      <div className="min-w-0 flex-1">
-                        {descriptor.renderItem(after, { accentClass: KIND_CHIP_CLASS.edited })}
-                      </div>
+              {section(
+                KIND.removed.color,
+                KIND.removed.icon,
+                t`Removed`,
+                fRemoved.length,
+                fRemoved.map((it) => (
+                  <div key={descriptor.keyOf(it)}>
+                    {card(KIND.removed.tint, descriptor.renderItem(it, { accentClass: KIND_CHIP_CLASS.removed }))}
+                  </div>
+                ))
+              )}
+              {unchangedVisible &&
+                section(
+                  "#94a3b8",
+                  CircleDot,
+                  t`Unchanged`,
+                  fUnchanged.length,
+                  fUnchanged.map((it) => (
+                    <div key={descriptor.keyOf(it)}>
+                      {card(
+                        "border-border bg-background text-muted-foreground",
+                        descriptor.renderItem(it, { accentClass: NEUTRAL_CHIP_CLASS })
+                      )}
                     </div>
-                  )}
-                </div>
-              ))
-            )}
-            {section(
-              KIND.added.color,
-              KIND.added.icon,
-              t`Added`,
-              groups.added.length,
-              groups.added.map((it) => (
-                <div key={descriptor.keyOf(it)}>
-                  {card(KIND.added.tint, descriptor.renderItem(it, { accentClass: KIND_CHIP_CLASS.added }))}
-                </div>
-              ))
-            )}
-            {section(
-              KIND.removed.color,
-              KIND.removed.icon,
-              t`Removed`,
-              groups.removed.length,
-              groups.removed.map((it) => (
-                <div key={descriptor.keyOf(it)}>
-                  {card(KIND.removed.tint, descriptor.renderItem(it, { accentClass: KIND_CHIP_CLASS.removed }))}
-                </div>
-              ))
-            )}
-            {showUnchanged &&
-              section(
-                "#94a3b8",
-                CircleDot,
-                t`Unchanged`,
-                groups.unchanged.length,
-                groups.unchanged.map((it) => (
-                  <div key={descriptor.keyOf(it)}>
-                    {card(
-                      "border-border bg-background text-muted-foreground",
-                      descriptor.renderItem(it, { accentClass: NEUTRAL_CHIP_CLASS })
-                    )}
-                  </div>
-                ))
-              )}
-          </>
-        )}
+                  ))
+                )}
+            </>
+          )}
+        </div>
       </div>
     </VersionCompareShell>
   )

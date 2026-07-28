@@ -240,7 +240,12 @@ export function EasyReadEditor({
               const y = b as EasyReadEntry
               return x.text === y.text && x.originalText === y.originalText
             },
-            renderItem: (it) => {
+            diffText: (e) => (e as EasyReadEntry).text ?? "",
+            searchText: (e) => {
+              const x = e as EasyReadEntry
+              return `${x.originalText ?? ""} ${x.text ?? ""}`
+            },
+            renderItem: (it, ctx) => {
               const e = it as EasyReadEntry
               const m = /^pg0*(\d+)/.exec(e.pageId ?? "")
               const pageRef = m ? t`p${m[1]}` : null
@@ -254,7 +259,11 @@ export function EasyReadEditor({
                   {e.originalText && e.originalText !== e.text ? (
                     <span className="line-clamp-2 text-[11px] text-muted-foreground">{e.originalText}</span>
                   ) : null}
-                  {e.text ? <span className="text-foreground">{e.text}</span> : null}
+                  {ctx?.diff ? (
+                    <span className="text-foreground">{ctx.diff}</span>
+                  ) : e.text ? (
+                    <span className="text-foreground">{e.text}</span>
+                  ) : null}
                 </span>
               )
             },
