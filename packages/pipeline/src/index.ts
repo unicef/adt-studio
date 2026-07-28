@@ -6,6 +6,12 @@ export {
 export { processWithConcurrency } from "./concurrency.js"
 export { extractPDF, type ExtractOptions } from "./pdf-extraction.js"
 export {
+  detectSpreads,
+  type SpreadEdgeSample,
+  type SpreadSuggestion,
+  type SpreadDetectionOptions,
+} from "./spread-detection.js"
+export {
   sectionPage,
   runValidator as validatePageSectioning,
   finalizePageSectioning,
@@ -64,6 +70,8 @@ export {
   renderPage,
   buildRenderStrategyResolver,
   buildRenderContext,
+  collectReferencedImageIds,
+  collectSourcePageImages,
   GROUP_CONTAINER_STRUCTURES,
   type RenderConfig,
   type VisualRefinementConfig,
@@ -112,6 +120,8 @@ export {
 export {
   captionPageImages,
   buildCaptionConfig,
+  collectCaptionImageIds,
+  groupGlossaryImageIdsByPage,
   extractImageIds,
   type CaptionConfig,
   type CaptionPageInput,
@@ -171,20 +181,33 @@ export {
   resolveProviderForLanguage,
   resolveSpeechModel,
   resolveSpeechFormat,
+  resolveGeminiTtsRateLimit,
+  getDocumentedGeminiTtsRpm,
+  type ResolvedGeminiTtsRateLimit,
   isSpeakableText,
   stripEmojis,
   loadVoicesConfig,
   loadSpeechInstructions,
   computeSpeechCacheKey,
   generateSpeechFile,
+  generatePageSpeechFiles,
   generateWordTimestamps,
   type VoiceMaps,
   type InstructionsMap,
   type GenerateSpeechFileOptions,
+  type GeneratePageSpeechFilesOptions,
   type GenerateWordTimestampsOptions,
   type GenerateWordTimestampsResult,
   type ProviderRouting,
 } from "./speech.js"
+export {
+  parseWavHeader,
+  wavDurationSeconds,
+  sliceWav,
+  findQuietCutSeconds,
+  type WavInfo,
+} from "./audio-wav.js"
+export { supportsPageBatchedSpeech } from "./speech-batch.js"
 export {
   translateCatalogBatch,
   buildCatalogTranslationConfig,
@@ -249,10 +272,12 @@ export {
 export {
   packageEpub,
   type PackageEpubOptions,
-} from "./package-epub.js"
+} from "./packaging/epub.js"
+export { packageWebpub } from "./packaging/webpub.js"
+export { buildPreviewTailwindCss } from "./tailwind.js"
+export { htmlToXhtml } from "./html-semantics.js"
 export {
   packageAdtWeb,
-  packageWebpub,
   computePackagingInputHash,
   type PackageAdtWebOptions,
   type ComputePackagingInputHashOptions,
@@ -260,18 +285,41 @@ export {
   resolveReflowableFontChain,
   NAV_HTML,
   type RenderPageOptions,
-  buildPreviewTailwindCss,
   buildGlossaryJson,
   buildImageMap,
   buildPreferredImageAltMap,
   buildDecorativeImageIdSet,
   rewriteImageUrls,
-  htmlToXhtml,
   renderQuizHtml,
+  type QuizStyle,
   buildQuizAnswers,
   pad3,
   convertLatexToMathml,
-} from "./package-web.js"
+} from "./packaging/web.js"
+export {
+  resolveQuizPalette,
+  deriveQuizPalette,
+  DEFAULT_QUIZ_PALETTE,
+  type QuizPalette,
+} from "./quiz-palette.js"
+export {
+  tallyFontSizes,
+  mergeTallies,
+  deriveTypeScale,
+  deriveTypeScaleFromHistogram,
+  readTypeScale,
+  TYPE_SCALE_NODE,
+  TYPE_SCALE_ITEM,
+} from "./type-scale.js"
+export {
+  readTypography,
+  resolveDetectedTypography,
+  buildTypographyCss,
+  resolveTypographyCss,
+  typographyPreservationErrors,
+  TYPOGRAPHY_NODE,
+  TYPOGRAPHY_ITEM,
+} from "./typography.js"
 export {
   runAccessibilityAssessment,
   type RunAccessibilityAssessmentOptions,
@@ -288,6 +336,7 @@ export { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rende
 export {
   getRenderSectioning,
   getRenderSectioningRow,
+  getSemanticSectioning,
   FIXED_LAYOUT_SECTIONING_NODE,
   PAGE_SECTIONING_NODE,
 } from "./render-sectioning.js"

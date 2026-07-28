@@ -115,12 +115,12 @@ function ledgerPath(bookDir: string): string {
 
 function readLedger(bookDir: string): PartsLedger {
   const p = ledgerPath(bookDir)
-  if (!fs.existsSync(p)) return { exported: [] }
+  if (!fs.existsSync(p)) return { exported: [], merged: [] }
   try {
     const parsed = PartsLedger.safeParse(JSON.parse(fs.readFileSync(p, "utf-8")))
-    return parsed.success ? parsed.data : { exported: [] }
+    return parsed.success ? parsed.data : { exported: [], merged: [] }
   } catch {
-    return { exported: [] }
+    return { exported: [], merged: [] }
   }
 }
 
@@ -131,12 +131,27 @@ function recordExportedRange(
   at: string,
   pageCount: number,
 ): void {
-  const exported = readLedger(bookDir).exported.filter(
+  const prev = readLedger(bookDir)
+  const exported = prev.exported.filter(
     (e) => !(e.startPage === range.startPage && e.endPage === range.endPage),
   )
   exported.push({ startPage: range.startPage, endPage: range.endPage, at })
   exported.sort((a, b) => a.startPage - b.startPage || a.endPage - b.endPage)
-  const ledger: PartsLedger = { exported, pageCount }
+  const ledger: PartsLedger = { exported, merged: prev.merged, pageCount }
+  fs.writeFileSync(ledgerPath(bookDir), JSON.stringify(ledger, null, 2) + "\n")
+}
+
+/** Record a merged page range in the coordinator's ledger. This is what marks a
+ *  book as genuinely assembled from parts — distinct from the pages-present
+ *  coverage, which every extracted book has. */
+function recordMergedRange(bookDir: string, range: PartRange, at: string): void {
+  const prev = readLedger(bookDir)
+  const merged = prev.merged.filter(
+    (e) => !(e.startPage === range.startPage && e.endPage === range.endPage),
+  )
+  merged.push({ startPage: range.startPage, endPage: range.endPage, at })
+  merged.sort((a, b) => a.startPage - b.startPage || a.endPage - b.endPage)
+  const ledger: PartsLedger = { exported: prev.exported, merged, pageCount: prev.pageCount }
   fs.writeFileSync(ledgerPath(bookDir), JSON.stringify(ledger, null, 2) + "\n")
 }
 
@@ -202,6 +217,10 @@ export interface SplitStatus {
   missingRanges: PartRange[]
   /** Every page is present. */
   fullyMerged: boolean
+  /** At least one part has actually been merged into this book (from the
+   *  ledger, not inferred from pages present). Distinguishes a genuinely
+   *  assembled coordinator book from a normally-extracted whole book. */
+  hasMergeActivity: boolean
 }
 
 export function computeSplitStatus(label: string, booksDir: string): SplitStatus {
@@ -209,7 +228,8 @@ export function computeSplitStatus(label: string, booksDir: string): SplitStatus
   const bookDir = path.join(path.resolve(booksDir), safeLabel)
   const pageCount = countPdfPages(readPdfBytes(bookDir, safeLabel))
 
-  const exported = readLedger(bookDir).exported.map((e) => ({
+  const ledger = readLedger(bookDir)
+  const exported = ledger.exported.map((e) => ({
     startPage: e.startPage,
     endPage: e.endPage,
   }))
@@ -227,6 +247,7 @@ export function computeSplitStatus(label: string, booksDir: string): SplitStatus
     mergedRanges,
     missingRanges,
     fullyMerged: pageCount > 0 && missingRanges.length === 0,
+    hasMergeActivity: ledger.merged.length > 0,
   }
 }
 
@@ -851,6 +872,10 @@ export function mergePart(
     } finally {
       targetDb.close()
     }
+
+    // Mark the coordinator as genuinely assembled from parts, so the split/merge
+    // panel stays visible for merge-only books (which carry no export ledger).
+    recordMergedRange(targetPaths.bookDir, manifest.range, manifest.createdAt)
 
     return {
       targetLabel: safeTarget,

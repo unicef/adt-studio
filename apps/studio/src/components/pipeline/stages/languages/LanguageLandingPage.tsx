@@ -6,11 +6,17 @@ import { Trans, useLingui } from "@lingui/react/macro"
 import { LandingPageShell } from "@/components/pipeline/components/LandingPageShell"
 import { PrereqGuard } from "@/components/pipeline/components/PrereqGuard"
 import {
+  FixedLayoutWarningBanner,
+  FixedLayoutWarningTitle,
+  FixedLayoutExtraLanguagesDescription,
+} from "@/components/pipeline/components/FixedLayoutWarning"
+import {
   SettingsCard,
   SettingsField,
 } from "@/components/pipeline/components/SettingsCard"
 import { LanguagePicker } from "@/components/LanguagePicker"
 import { useActiveConfig } from "@/hooks/use-debug"
+import { useIsFixedLayout } from "@/hooks/use-fixed-layout"
 import { useStageStatus } from "@/hooks/use-stage-status"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
@@ -39,6 +45,7 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
   const storyboardReady = storyboardStatus.isCompleted
   const captionsStatus = useStageStatus("captions")
   const captionsReady = captionsStatus.isCompleted
+  const isFixedLayout = useIsFixedLayout(bookLabel)
 
   const [outputLanguages, setOutputLanguages] = useState<Set<string>>(new Set())
   const [selectedImageIds, setSelectedImageIds] = useState<string[]>([])
@@ -151,6 +158,11 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const hasLanguages = outputLanguages.size > 0
+  // Fixed layout only breaks when translating the original into *additional*
+  // languages — running translation with just the original language is fine.
+  const hasAdditionalLanguages = Array.from(outputLanguages).some(
+    (code) => normalizeLocale(code) !== baseLanguage,
+  )
 
   const disabledReason = !hasApiKey ? (
     <Trans>Add an API key in Book settings to run translation.</Trans>
@@ -184,6 +196,14 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
           outputLanguages={Array.from(outputLanguages)}
           imageCount={selectedImageIds.length}
         />
+      }
+      runWarning={
+        isFixedLayout && hasAdditionalLanguages
+          ? {
+              title: <FixedLayoutWarningTitle />,
+              description: <FixedLayoutExtraLanguagesDescription />,
+            }
+          : null
       }
     >
       <div className="flex flex-col gap-2">
@@ -249,6 +269,10 @@ export function LanguageLandingPage({ bookLabel }: { bookLabel: string }) {
               multiple
               renderBadges={false}
               label={t`Add language`}
+            />
+            <FixedLayoutWarningBanner
+              show={isFixedLayout}
+              description={<FixedLayoutExtraLanguagesDescription />}
             />
           </div>
         </SettingsField>

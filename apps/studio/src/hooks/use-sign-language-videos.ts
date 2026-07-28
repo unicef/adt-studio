@@ -39,13 +39,3 @@ export function useDeleteSignLanguageVideo(label: string) {
     },
   })
 }
-
-export function useDeleteAllSignLanguageVideos(label: string) {
-  const queryClient = useQueryClient()
-  return useMutation({
-    mutationFn: () => api.deleteAllSignLanguageVideos(label),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["books", label, "sign-language-videos"] })
-    },
-  })
-}

@@ -3,6 +3,7 @@ import { ChevronLeft, Loader2, Locate } from "lucide-react"
 import { useState } from "react"
 import { Button } from "@/shared/ui/button"
 import { glossaryDataAtom } from "@/features/glossary/state/glossary.atoms"
+import { SignLanguageVideo } from "@/features/glossary/components/SignLanguageVideo"
 import { currentSectionIdAtom, pagesAtom } from "@/features/navigation/state/nav.atoms"
 import { dockMenuValueAtom, selectedGlossaryTermAtom } from "@/shared/state/ui.atoms"
 import { useTranslation } from "@/features/language/hooks/useTranslation"
@@ -22,6 +23,7 @@ export function TermDetails() {
   const pages = useAtomValue(pagesAtom)
   const currentSectionId = useAtomValue(currentSectionIdAtom)
   const [locating, setLocating] = useState(false)
+  const [playingVideo, setPlayingVideo] = useState(false)
 
   if (!selected) return null
   const entry = data[selected]
@@ -75,12 +77,40 @@ export function TermDetails() {
             {entry.emoji}
           </span>
         ) : null}
-        <h4 className="text-2xl font-bold leading-tight break-words">
+        <h4 className="flex-1 min-w-0 text-2xl font-bold leading-tight break-words">
           {entry.word}
         </h4>
+        {entry.image && (
+          <img
+            src={entry.image}
+            alt=""
+            draggable={false}
+            className="h-20 w-20 shrink-0 rounded-lg bg-muted object-contain p-1"
+          />
+        )}
       </div>
 
       <p className="text-base leading-relaxed">{entry.definition}</p>
+
+      {entry.video && (
+        <div>
+          <button
+            type="button"
+            aria-expanded={playingVideo}
+            onClick={() => setPlayingVideo((v) => !v)}
+            className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium hover:bg-accent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <i className="fa fa-sign-language text-sm leading-none" aria-hidden="true" />
+            {t("sign-language-label") || "Sign language"}
+          </button>
+          {playingVideo && (
+            <SignLanguageVideo
+              src={entry.video}
+              className="mt-2 w-full max-w-xs rounded-lg bg-black"
+            />
+          )}
+        </div>
+      )}
 
       {entry.variations && entry.variations.length > 0 ? (
         <div className="text-sm text-muted-foreground">

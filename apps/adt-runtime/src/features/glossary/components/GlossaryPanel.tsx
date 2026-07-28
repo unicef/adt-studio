@@ -1,9 +1,10 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { ScrollArea } from "@/shared/ui/scroll-area";
 import { ToggleRow } from "@/features/settings/components/ToggleRow";
 import { TermDetails } from "@/features/glossary/components/TermDetails";
+import { SignLanguageVideo } from "@/features/glossary/components/SignLanguageVideo";
 import {
   glossaryDataAtom,
   glossaryFilterAtom,
@@ -126,6 +127,8 @@ function ListItems({
   onSelect: (word: string) => void;
 }) {
   const { t } = useTranslation();
+  // Word whose sign-language video is currently expanded (one at a time).
+  const [playingWord, setPlayingWord] = useState<string | null>(null);
 
   if (entries.length === 0) {
     return (
@@ -140,27 +143,65 @@ function ListItems({
 
   return (
     <ul className="flex flex-col">
-      {entries.map((entry) => (
-        <li key={entry.word}>
-          <button
-            type="button"
-            onClick={() => onSelect(entry.word)}
-            className="w-full flex flex-col items-start gap-3 px-4 py-3 text-left hover:bg-accent transition-colors border-b border-border focus:outline-none focus:bg-accent"
-          >
-            {entry.emoji && (
-              <span className="text-2xl shrink-0" aria-hidden>
-                {entry.emoji}
-              </span>
+      {entries.map((entry) => {
+        const playing = playingWord === entry.word;
+        return (
+          <li key={entry.word} className="border-b border-border">
+            <div className="flex items-start gap-3 px-4 py-3">
+              <button
+                type="button"
+                onClick={() => onSelect(entry.word)}
+                className="flex-1 min-w-0 flex flex-col items-start gap-1.5 text-left rounded-md hover:bg-accent transition-colors focus:outline-none focus:bg-accent"
+              >
+                <span className="flex items-center gap-2">
+                  {entry.emoji && (
+                    <span className="text-2xl shrink-0" aria-hidden>
+                      {entry.emoji}
+                    </span>
+                  )}
+                  <span className="text-base font-medium capitalize">
+                    {entry.word}
+                  </span>
+                </span>
+                <span className="text-base font-medium">
+                  {entry.definition}
+                </span>
+              </button>
+              {entry.image && (
+                <img
+                  src={entry.image}
+                  alt=""
+                  draggable={false}
+                  loading="lazy"
+                  className="h-16 w-16 shrink-0 rounded-lg bg-muted object-contain p-1"
+                />
+              )}
+            </div>
+            {entry.video && (
+              <div className="px-4 pb-3">
+                <button
+                  type="button"
+                  aria-expanded={playing}
+                  onClick={() => setPlayingWord(playing ? null : entry.word)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/50 px-3 py-1 text-xs font-medium hover:bg-accent transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {/* FontAwesome ships with every book bundle (page <head>
+                      links all.min.css), so the classic signing-hands glyph
+                      is available here. */}
+                  <i className="fa fa-sign-language text-sm leading-none" aria-hidden="true" />
+                  {t("sign-language-label") || "Sign language"}
+                </button>
+                {playing && (
+                  <SignLanguageVideo
+                    src={entry.video}
+                    className="mt-2 w-full max-w-xs rounded-lg bg-black"
+                  />
+                )}
+              </div>
             )}
-            <span className="flex-1 text-base font-medium capitalize">
-              {entry.word}
-            </span>
-            <span className="flex-1 text-base font-medium">
-              {entry.definition}
-            </span>
-          </button>
-        </li>
-      ))}
+          </li>
+        );
+      })}
     </ul>
   );
 }

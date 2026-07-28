@@ -8,9 +8,9 @@
  *     fragment against the parsed glossary and shows a definition popover.
  *   - `glossary.xhtml` is a `<section epub:type="glossary" role="doc-glossary">`
  *     containing a `<dl>` of `<dt id="gl_NNN"><dfn>term</dfn></dt><dd>…</dd>`
- *     entries. The reader's glossary parser keys off this exact shape; the
- *     `<dd>` may carry a `<nav>` of `epub:type="backlink"` anchors pointing
- *     back at the in-text occurrences ("Used in").
+ *     entries. The reader's glossary parser keys off this exact shape and
+ *     renders the dt/dd fragment in its popover, so all presentation
+ *     (24px text, term picture, sign-language video) is inline styles.
  *   - A `<nav epub:type="landmarks">` entry of `epub:type="glossary"` in the
  *     navigation document is what surfaces the reader's Glossary tab.
  *
@@ -26,25 +26,43 @@ import { JSDOM } from "jsdom"
 export interface GlossaryEntry {
   /** Stable EPUB id used in href fragments + `<dt>` ids (`gl_001` …). */
   id: string
+  /**
+   * Storage/text-catalog id of the glossary item (`gl001` / `gl_manual_…`).
+   * Sign-language videos attach to it via `sign_language_videos.section_id`.
+   */
+  sourceId: string
   /** Canonical (already translated) headword. */
   word: string
   definition: string
   variations: string[]
   emoji: string
+  /** OEBPS-relative href of the term's picture (e.g. `images/img_0001.png`). */
+  image?: string
+  /** OEBPS-relative href of the term's sign-language video
+   *  (e.g. `content/i18n/en/video/sl_gl001.mp4`). */
+  video?: string
 }
 
 /** A reference to one in-text occurrence, used to build backlinks. */
 export interface GlossaryBacklink {
   /** Resolvable href to the occurrence, e.g. `pg002_sec001.xhtml#pg002_p0_w006`. */
   href: string
-  /** Human label for the link, e.g. `Page 3`. */
+  /** Human label for the link, e.g. `p. 3`. */
   label: string
 }
 
 /** Shape of `OEBPS/content/i18n/<lang>/glossary.json` (see buildGlossaryJson). */
 type GlossaryJson = Record<
   string,
-  { word: string; definition: string; variations: string[]; emoji: string }
+  {
+    word: string
+    definition: string
+    variations: string[]
+    emoji: string
+    id?: string
+    image?: string
+    video?: string
+  }
 >
 
 const XHTML_NS = "http://www.w3.org/1999/xhtml"
@@ -69,12 +87,16 @@ export function loadGlossaryEntries(json: GlossaryJson | undefined): GlossaryEnt
   let i = 0
   for (const [, raw] of Object.entries(json)) {
     i += 1
+    const id = `gl_${String(i).padStart(3, "0")}`
     entries.push({
-      id: `gl_${String(i).padStart(3, "0")}`,
+      id,
+      sourceId: raw.id ?? id,
       word: raw.word,
       definition: raw.definition,
       variations: raw.variations ?? [],
       emoji: raw.emoji ?? "",
+      image: raw.image,
+      video: raw.video,
     })
   }
   return entries
@@ -130,10 +152,15 @@ export interface GlossaryOccurrence {
  * Wrap glossary terms in each `[data-id]` paragraph of an XHTML page.
  * Returns the rewritten XHTML and the occurrences found on this page (one
  * per first-matched term), so the caller can build per-entry backlinks.
+ *
+ * `hrefForEntry` overrides the anchor target per entry — the default points
+ * at the non-linear `glossary.xhtml` (word mode); page mode points at the
+ * in-flow glossary page owning the entry instead.
  */
 export function wrapGlossaryTerms(
   xhtml: string,
   entries: GlossaryEntry[],
+  hrefForEntry: (entryId: string) => string = (entryId) => `glossary.xhtml#${entryId}`,
 ): { xhtml: string; occurrences: GlossaryOccurrence[] } {
   if (entries.length === 0) return { xhtml, occurrences: [] }
 
@@ -149,7 +176,7 @@ export function wrapGlossaryTerms(
   for (const para of Array.from(doc.querySelectorAll("[data-id]"))) {
     if (para.tagName.toLowerCase() === "img") continue
     if (para.closest(SKIP_PARENT_SELECTOR)) continue
-    wrapInParagraph(para, descriptors, seen, occurrences)
+    wrapInParagraph(para, descriptors, seen, occurrences, hrefForEntry)
   }
 
   if (occurrences.length > 0) ensureEpubNamespace(doc)
@@ -169,6 +196,7 @@ function wrapInParagraph(
   descriptors: TermDescriptor[],
   seen: Set<string>,
   occurrences: GlossaryOccurrence[],
+  hrefForEntry: (entryId: string) => string,
 ): void {
   const atoms = collectAtoms(para)
   if (atoms.length === 0) return
@@ -205,7 +233,12 @@ function wrapInParagraph(
   for (const w of wrapped) {
     const range = atomsCovering(atoms, w.start, w.end)
     if (range.length === 0) continue
-    const fragment = wrapAtomsWithGlossref(para.ownerDocument!, range, w.entryId)
+    const fragment = wrapAtomsWithGlossref(
+      para.ownerDocument!,
+      range,
+      w.entryId,
+      hrefForEntry(w.entryId),
+    )
     occurrences.push({ entryId: w.entryId, fragment })
   }
 }
@@ -246,7 +279,12 @@ function atomsCovering(atoms: Atom[], start: number, end: number): Atom[] {
  * id on a wrapped element (the word-span id emitted by `wrapWordSpans`);
  * falls back to stamping the anchor itself.
  */
-function wrapAtomsWithGlossref(doc: Document, atoms: Atom[], entryId: string): string {
+function wrapAtomsWithGlossref(
+  doc: Document,
+  atoms: Atom[],
+  entryId: string,
+  href: string,
+): string {
   const first = atoms[0].node
   const parent = first.parentNode
   const anchor = doc.createElementNS(XHTML_NS, "a")
@@ -260,7 +298,7 @@ function wrapAtomsWithGlossref(doc: Document, atoms: Atom[], entryId: string): s
   // and the reader keys its popover off `epub:type`, not the class. The CSS
   // rule (dotted underline) ships via injectWebpubStyles.
   anchor.setAttribute("class", "glossref")
-  anchor.setAttribute("href", `glossary.xhtml#${entryId}`)
+  anchor.setAttribute("href", href)
   if (parent) parent.insertBefore(anchor, first)
   for (const a of atoms) anchor.appendChild(a.node)
 
@@ -303,20 +341,28 @@ export interface BuildGlossaryDocumentInput {
   heading: string
   entries: GlossaryEntry[]
   /**
-   * Entry id → backlinks to its in-text occurrences. Only entries present
-   * as keys are emitted; an entry with an empty array still appears (it was
-   * referenced but we couldn't resolve a target).
+   * Entry id → in-text occurrences. Only entries present as keys are
+   * emitted (a term that never matched has nothing linking to it). The
+   * occurrence targets themselves are NOT rendered — the reader's popover
+   * would surface them as stray "p. N" links.
    */
   backlinksByEntry: Map<string, GlossaryBacklink[]>
+  /** Glossary item sourceId → OEBPS-relative sign-language video href. */
+  videoHrefBySourceId?: Map<string, string>
 }
 
 /**
  * Build the glossary content document: an EPUB 3 doc-glossary `<dl>` the
- * reader parses into entries, with each definition followed by a backlink
- * `<nav>` ("Used in"). Entries are sorted alphabetically by headword.
+ * reader parses into entries. Entries are sorted alphabetically by headword.
+ *
+ * The reader (BookFusion) extracts each dt/dd FRAGMENT into its definition
+ * popover, so document-level CSS never reaches it — all presentation must be
+ * inline `style` attributes: 24px term/definition text, the term's picture,
+ * and the sign-language video (muted autoplay + loop so the sign plays as
+ * soon as the popover opens; controls kept for replay/unmute).
  */
 export function buildGlossaryDocument(input: BuildGlossaryDocumentInput): string {
-  const { language, heading, entries, backlinksByEntry } = input
+  const { language, heading, entries, backlinksByEntry, videoHrefBySourceId } = input
 
   const used = entries.filter((e) => backlinksByEntry.has(e.id))
   used.sort((a, b) => a.word.localeCompare(b.word, language || undefined))
@@ -324,25 +370,20 @@ export function buildGlossaryDocument(input: BuildGlossaryDocumentInput): string
   const rows = used
     .map((e) => {
       const emoji = e.emoji
-        ? `<span class="gl-emoji" aria-hidden="true">${escapeXml(e.emoji)} </span>`
+        ? `<span class="gl-emoji" aria-hidden="true" style="font-size:24px">${escapeXml(e.emoji)} </span>`
         : ""
-      const backlinks = backlinksByEntry.get(e.id) ?? []
-      const backlinkNav =
-        backlinks.length > 0
-          ? `
-      <nav class="gl-backlinks">
-        <ol>
-${backlinks
-  .map(
-    (bl) =>
-      `          <li><a epub:type="backlink" href="${escapeXml(bl.href)}">${escapeXml(bl.label)}</a></li>`,
-  )
-  .join("\n")}
-        </ol>
-      </nav>`
-          : ""
-      return `      <dt id="${escapeXml(e.id)}"><dfn>${escapeXml(e.word)}</dfn></dt>
-      <dd><p>${emoji}${escapeXml(e.definition)}</p>${backlinkNav}
+      // The headword is right there in the popover; the picture is decorative.
+      const image = e.image
+        ? `
+      <img src="${escapeXml(e.image)}" alt="" style="display:block;max-width:100%;width:240px;margin:12px 0 0 0;border-radius:8px;background-color:#f4f4f4"/>`
+        : ""
+      const videoHref = videoHrefBySourceId?.get(e.sourceId)
+      const video = videoHref
+        ? `
+      <video src="${escapeXml(videoHref)}" controls="controls" autoplay="autoplay" muted="muted" loop="loop" playsinline="playsinline" style="display:block;width:100%;max-width:320px;margin:12px 0 0 0;border-radius:8px;background-color:#101010"></video>`
+        : ""
+      return `      <dt id="${escapeXml(e.id)}"><dfn style="font-size:24px;font-weight:bold;font-style:normal">${escapeXml(e.word)}</dfn></dt>
+      <dd><p style="font-size:24px;line-height:1.4;margin:0.4em 0 0 0">${emoji}${escapeXml(e.definition)}</p>${image}${video}
       </dd>`
     })
     .join("\n")

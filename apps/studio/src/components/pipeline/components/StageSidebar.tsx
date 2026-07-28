@@ -3,10 +3,12 @@ import { createPortal } from "react-dom"
 import { Link, useMatchRoute, useSearch } from "@tanstack/react-router"
 import { Trans } from "@lingui/react/macro"
 import {
+  AlertCircle,
   Loader2,
   RotateCcw,
   Settings,
   TriangleAlert,
+  X,
 } from "lucide-react"
 import { useVirtualizer } from "@tanstack/react-virtual"
 import { cn } from "@/lib/utils"
@@ -14,6 +16,7 @@ import { useLingui } from "@lingui/react"
 import { msg } from "@lingui/core/macro"
 import type { MessageDescriptor } from "@lingui/core"
 import { Button } from "@/components/ui/button"
+import { toast } from "@/components/ui/sonner"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useAccessibilityAssessment } from "@/hooks/use-debug"
 import { useBookTasks } from "@/hooks/use-book-tasks"
@@ -34,7 +37,7 @@ import {
 } from "../stage-config"
 import type { TaskInfoResponse } from "@/api/client"
 import { getStageLabelI18n, getStepLabelI18n, getStageStatusLabelI18n } from "../pipeline-i18n"
-import { ALL_STEP_NAMES } from "@adt/types"
+import { ALL_STEP_NAMES, STAGE_ORDER } from "@adt/types"
 
 const STAGE_GROUP_LABELS: Record<StageGroup, MessageDescriptor> = {
   convert: msg`Core Pipeline`,
@@ -73,7 +76,7 @@ export function StageSidebar({
   const { i18n } = useLingui()
   const matchRoute = useMatchRoute()
   const search = useSearch({ strict: false }) as { tab?: string }
-  const { stageState } = useBookRun()
+  const { stageState, cancelRun, isCancelling } = useBookRun()
   const { data: accessibilityAssessment } = useAccessibilityAssessment(bookLabel)
   const { data: signLanguageData } = useSignLanguageVideos(bookLabel)
   const { data: packageStatus } = usePackageAdtStatus(bookLabel)
@@ -176,7 +179,7 @@ export function StageSidebar({
     const stageNeedsRerun =
       (step.slug === "translate" && translateNeedsRerun) ||
       (step.slug === "speech" && speechNeedsRerun)
-    const ringState = stageNeedsRerun ? "idle" : state
+    const ringState = stageNeedsRerun || state === "error" ? "idle" : state
 
     // "book" is always filled; all other stages fill when their own completion signal is met.
     const iconFilled = step.slug === "book" ? true : stageCompleted
@@ -189,6 +192,7 @@ export function StageSidebar({
     const stepAriaLabel = statusKey
       ? i18n._(msg`${stepLabel}: ${getStageStatusLabelI18n(statusKey)}`)
       : stepLabel
+    const cancelStepLabel = i18n._(msg`Cancel ${stepLabel} step`)
 
     const nextStep = STAGES[index + 1]
     const nextGroup = nextStep && "group" in nextStep ? (nextStep as { group?: StageGroup }).group : undefined
@@ -203,7 +207,7 @@ export function StageSidebar({
         {/* Step row */}
         <div
           className={cn(
-            "group/row flex items-center py-2 text-sm transition-colors overflow-hidden",
+            "group/row relative flex items-center py-2 text-sm transition-colors overflow-hidden",
             x.gap,
             isActive
               ? cn(step.color, "text-white font-medium rounded-l-[14px] ml-0.5 pl-2 pr-2.5")
@@ -234,7 +238,16 @@ export function StageSidebar({
                 <Icon className="w-3.5 h-3.5" />
               </div>
               <StepProgressRing size={28} state={ringState} colorClass={isActive ? "bg-white" : step.color} />
-              {step.slug === "extract" && hasNoTextLayer && (
+              {state === "error" ? (
+                <span
+                  role="img"
+                  aria-label={stepAriaLabel}
+                  title={stepAriaLabel}
+                  className="absolute -top-1 -right-1 z-20 flex items-center justify-center w-3.5 h-3.5 rounded-full bg-red-600 ring-2 ring-background"
+                >
+                  <AlertCircle className="w-2.5 h-2.5 text-white" aria-hidden="true" />
+                </span>
+              ) : step.slug === "extract" && hasNoTextLayer ? (
                 <span
                   role="img"
                   aria-label={noTextLayerLabel}
@@ -243,12 +256,39 @@ export function StageSidebar({
                 >
                   <TriangleAlert className="w-2 h-2 text-white" aria-hidden="true" />
                 </span>
-              )}
+              ) : null}
             </div>
             <span className={cn("truncate hidden", x.showLabel)}>
               {stepLabel}
             </span>
           </Link>
+
+          {state === "running" && (
+            <button
+              type="button"
+              onClick={(event) => {
+                event.preventDefault()
+                event.stopPropagation()
+                if (isCancelling) return
+                cancelRun()
+                toast.info(i18n._(msg`Cancelling ${stepLabel} step`))
+              }}
+              disabled={isCancelling}
+              title={cancelStepLabel}
+              aria-label={cancelStepLabel}
+              className={cn(
+                "pointer-events-none absolute top-1/2 z-30 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-red-600 text-white opacity-0 shadow-sm ring-2 ring-background transition-opacity focus-visible:pointer-events-auto focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-red-300 group-hover/row:pointer-events-auto group-hover/row:opacity-100",
+                isActive ? "left-2" : "left-2.5",
+                isCancelling ? "cursor-default bg-red-500/80" : "cursor-pointer hover:bg-red-700",
+              )}
+            >
+              {isCancelling ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+              ) : (
+                <X className="size-3.5 stroke-3" aria-hidden="true" />
+              )}
+            </button>
+          )}
 
           {step.slug === "book" ? (
             <Link
@@ -364,7 +404,7 @@ export function StageSidebar({
 
         {/* Pages panel — only when pages are open and not in settings. */}
         {effectivePagesOpen && !isSettings && (
-          <div className="flex-1 min-w-0 flex flex-col overflow-hidden border-l">
+          <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
             {activeStep === "storyboard" ? (
               <StoryboardSidebarBridge
                 bookLabel={bookLabel}
@@ -398,7 +438,7 @@ export function StageSidebar({
 function TaskIndicator({ bookLabel }: { bookLabel: string }) {
   const { i18n } = useLingui()
   const { runningTasks, runningCount } = useBookTasks(bookLabel)
-  const { stepState, stepProgress } = useBookRun()
+  const { stepState, stageState, stepProgress, isCancelling, cancelRun } = useBookRun()
 
   // Running steps with visible progress (pages, entries, batches, etc.)
   const stageProgressRows: { step: string; label: string; progressLabel: string }[] = []
@@ -421,7 +461,27 @@ function TaskIndicator({ bookLabel }: { bookLabel: string }) {
     }
   }
 
-  const totalCount = runningCount + stageProgressRows.length + activeSteps.length
+  // Stages that have been kicked off but whose first step hasn't reported yet.
+  // A run is queued the moment the button is clicked (optimistically) and stays
+  // that way through the server's synchronous stage startup — for Extract that
+  // window is seconds (PDF read + WASM parse). Keying the indicator purely off
+  // running *steps* left it hidden for that whole gap, so a click looked like
+  // it had done nothing. Only shown while no step is reporting yet, so a
+  // running stage doesn't get counted twice.
+  const startingStages: { key: string; label: string }[] = []
+  if (stageProgressRows.length + activeSteps.length === 0) {
+    for (const stage of STAGE_ORDER) {
+      const state = stageState(stage)
+      if (state === "queued" || state === "running") {
+        startingStages.push({ key: stage, label: getStageLabelI18n(stage) })
+      }
+    }
+  }
+
+  const pipelineRowCount = stageProgressRows.length + activeSteps.length + startingStages.length
+  const totalCount = runningCount + pipelineRowCount
+  // A pipeline stage run (not just ad-hoc tasks) is active — offer to cancel it.
+  const pipelineActive = pipelineRowCount > 0
 
   if (totalCount === 0) return null
 
@@ -448,6 +508,17 @@ function TaskIndicator({ bookLabel }: { bookLabel: string }) {
             </p>
           </div>
         ))}
+        {startingStages.map((row) => (
+          <div key={row.key} className="flex items-center gap-2 px-1 py-1">
+            <Loader2 className="w-3 h-3 animate-spin text-violet-500 shrink-0" />
+            <p className="flex-1 min-w-0 text-xs font-medium truncate">
+              {row.label}
+            </p>
+            <span className="text-[10px] text-muted-foreground shrink-0">
+              {i18n._(msg`Starting…`)}
+            </span>
+          </div>
+        ))}
         {runningTasks.map((task) => (
           <TaskRow key={task.taskId} task={task} />
         ))}
@@ -464,6 +535,27 @@ function TaskIndicator({ bookLabel }: { bookLabel: string }) {
         <span className="text-xs font-medium text-muted-foreground whitespace-nowrap">
           {totalCount === 1 ? i18n._(msg`Task Running`) : i18n._(msg`Tasks Running`)}
         </span>
+        {pipelineActive && (
+          <button
+            type="button"
+            onClick={cancelRun}
+            disabled={isCancelling}
+            title={isCancelling ? i18n._(msg`Cancelling…`) : i18n._(msg`Cancel run`)}
+            aria-label={isCancelling ? i18n._(msg`Cancelling run`) : i18n._(msg`Cancel run`)}
+            className={cn(
+              "ml-auto shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors",
+              isCancelling
+                ? "text-muted-foreground/50 cursor-default"
+                : "text-muted-foreground hover:text-red-600 hover:bg-red-50 cursor-pointer",
+            )}
+          >
+            {isCancelling ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <X className="w-3.5 h-3.5" />
+            )}
+          </button>
+        )}
       </div>
     </div>
   )

@@ -58,6 +58,11 @@ export type ExportedPartEntry = z.infer<typeof ExportedPartEntry>
 
 export const PartsLedger = z.object({
   exported: z.array(ExportedPartEntry).default([]),
+  /** Page ranges merged into this book from completed parts. Recorded on merge
+   *  so the split/merge panel can tell a genuinely-assembled coordinator book
+   *  apart from a normally-extracted whole book (both have pages present, but
+   *  only merged books carry an entry here). */
+  merged: z.array(ExportedPartEntry).default([]),
   /** Total pages in the source PDF, recorded at export time so the book list
    *  can summarize split/merge coverage without re-parsing the PDF. */
   pageCount: z.number().int().min(0).optional(),

@@ -2,6 +2,7 @@ import { z } from "zod"
 import { ImageFilters } from "./image-filtering.js"
 import { SpeechConfig } from "./speech.js"
 import { ReviewerValidationConfig } from "./reviewer-validation-config.js"
+import { TranslationEvaluationConfig } from "./translation-evaluation.js"
 import { REFLOWABLE_FONT_SETTINGS } from "./reflowable-fonts.js"
 
 export const DEFAULT_LLM_MAX_RETRIES = 5
@@ -53,6 +54,9 @@ export type StepConfig = z.infer<typeof StepConfig>
 export const QuizGenerationConfig = StepConfig.extend({
   pages_per_quiz: z.number().int().min(1).optional(),
   quiz_section_types: z.array(z.string()).optional(),
+  /** Style quizzes to match the book (typography + derived color palette).
+   *  Defaults to ON when absent. */
+  match_book_style: z.boolean().optional(),
 })
 export type QuizGenerationConfig = z.infer<typeof QuizGenerationConfig>
 
@@ -136,6 +140,35 @@ export const AccessibilityAssessmentConfig = z.object({
 })
 export type AccessibilityAssessmentConfig = z.infer<typeof AccessibilityAssessmentConfig>
 
+/**
+ * How the glossary is realised in EPUB exports.
+ *
+ * - `word` (default) — EPUB 3 Dictionaries & Glossaries model only: in-text
+ *   `glossref` anchors resolved against a non-linear `glossary.xhtml`.
+ *   Spec-compliant readers (e.g. BookFusion) show definition popovers.
+ * - `page` — visible glossary pages inserted into the reading flow instead,
+ *   for readers that don't implement the glossary spec (Apple Books etc.).
+ *   In-text terms link to their entry on the glossary page; each entry links
+ *   back to the occurrences ("Page N") so the reader can return.
+ * - `both` — the spec surface plus the in-flow glossary pages.
+ */
+export const EpubGlossaryMode = z.enum(["word", "page", "both"])
+export type EpubGlossaryMode = z.infer<typeof EpubGlossaryMode>
+
+export const EpubGlossaryConfig = z.object({
+  mode: EpubGlossaryMode.optional(),
+  /**
+   * Where glossary pages are inserted (modes `page`/`both`): after the given
+   * 1-indexed physical page number, or `end` for the back of the book. Each
+   * glossary page collects the terms used since the previous placement; the
+   * last placement also collects everything after it. Defaults to `["end"]`.
+   */
+  page_placements: z
+    .array(z.union([z.number().int().min(1), z.literal("end")]))
+    .optional(),
+})
+export type EpubGlossaryConfig = z.infer<typeof EpubGlossaryConfig>
+
 export const AppConfig = z
   .object({
     default_model: LLMModelId.optional(),
@@ -197,6 +230,7 @@ export const AppConfig = z
         }),
       )
       .optional(),
+    epub_glossary: EpubGlossaryConfig.optional(),
     image_translation: ImageTranslationConfig.optional(),
     image_segmentation: StepConfig.extend({
       min_side: z.number().int().min(0).optional(),
@@ -204,6 +238,13 @@ export const AppConfig = z
     image_cropping: StepConfig.optional(),
     layout_type: LayoutType.optional(),
     spread_mode: z.boolean().optional(),
+    /**
+     * Manual spread overrides for a single-page (non-`spread_mode`) book:
+     * 1-indexed leading page numbers, each merged with the page that follows
+     * it into a two-page spread. Lets a mostly-single book carry a few real
+     * spreads. Ignored when `spread_mode` is true (that uses automatic pairing).
+     */
+    spread_pairs: z.array(z.number().int().min(1)).optional(),
     split_mode: z.boolean().optional(),
     vector_text_grouping: z.boolean().optional(),
     apply_body_background: z.boolean().optional(),
@@ -231,6 +272,7 @@ export const AppConfig = z
       .optional(),
     accessibility_assessment: AccessibilityAssessmentConfig.optional(),
     reviewer_validation: ReviewerValidationConfig.optional(),
+    translation_evaluation: TranslationEvaluationConfig.optional(),
   })
   .superRefine((value, ctx) => {
     if (

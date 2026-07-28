@@ -79,6 +79,9 @@ export {
   type PipelineNodeName,
   type PipelineCacheResource,
   STAGE_OUTPUT_NODES,
+  IMAGE_SET_CHANGE_CLEAR_NODE_TYPES,
+  IMAGE_SET_CHANGE_CLEAR_STEPS,
+  IMAGE_SET_CHANGE_CLEAR_STAGES,
   getStageClearOrder,
   getStageClearNodes,
   getStageRerunClearNodes,
@@ -96,6 +99,13 @@ export {
 export { PartRange, PartManifest, ExportedPartEntry, PartsLedger } from "./part.js"
 
 export { ProgressEvent } from "./progress.js"
+
+export {
+  PageErrorPolicy,
+  PageErrorAction,
+  PendingDecision,
+  DecisionBody,
+} from "./page-error.js"
 
 export {
   TaskKind,
@@ -126,6 +136,8 @@ export {
   VisualRefinementStrategyConfig,
   RenderStrategyConfig,
   AccessibilityAssessmentConfig,
+  EpubGlossaryMode,
+  EpubGlossaryConfig,
   AppConfig,
   type TypeDef,
 } from "./config.js"
@@ -161,6 +173,10 @@ export {
   addContainer,
   nestNode,
   unnestNode,
+  splitContainerBefore,
+  splitNodesBefore,
+  mergeContainerWithPrevious,
+  mergeAdjacentContainers,
   replaceNodeId,
   cloneNodeWithNewIds,
   collectPrunedLeafIds,
@@ -200,6 +216,7 @@ export { BookSummaryOutput } from "./book-summary.js"
 export { ExtractionWarning } from "./extraction-warning.js"
 
 export {
+  FIXED_LAYOUT_MAX_SCALE,
   SectionRendering,
   WebRenderingOutput,
   webRenderingLLMSchema,
@@ -242,6 +259,7 @@ export {
 
 export {
   TTSProviderConfig,
+  TTSRateLimitConfig,
   SpeechConfig,
   isSpeechWordHighlightingEnabled,
   type TtsExclusionConfig,
@@ -291,6 +309,10 @@ export {
   TextBlockBounds,
 } from "./positioned-text.js"
 
+export { TypeScale } from "./type-scale.js"
+
+export { TypographyStyle, BookTypography, DEFAULT_TYPOGRAPHY } from "./typography.js"
+
 export {
   ReviewerValidationStatus,
   ReviewerValidationFieldType,
@@ -303,6 +325,31 @@ export {
   ReviewerPageValidationResult,
   ReviewerPageValidationRecord,
 } from "./reviewer-validation.js"
+
+export {
+  DEFAULT_TRANSLATION_EVALUATION_CONTEXT_OPTIONS,
+  DEFAULT_TRANSLATION_EVALUATION_ISSUE_TYPES,
+  DEFAULT_TRANSLATION_EVALUATION_JUDGE_INSTRUCTIONS,
+  DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL,
+  DEFAULT_TRANSLATION_EVALUATION_MAX_RETRIES,
+  DEFAULT_TRANSLATION_EVALUATION_SEVERITY_THRESHOLD,
+  DEFAULT_TRANSLATION_EVALUATION_TEMPERATURE,
+  TranslationEvaluationConfig,
+  TranslationEvaluationContextOptions,
+  TranslationEvaluationIssueType,
+  TranslationEvaluationSeverity,
+  TranslationEvaluationSummary,
+  TranslationEvaluationItem,
+  TranslationEvaluationProvider,
+  TranslationEvaluationJudgeMetadata,
+  TranslationEvaluationMetadata,
+  TranslationEvaluationRunEntry,
+  TranslationEvaluationRunPage,
+  TranslationEvaluationRunRequest,
+  TranslationEvaluationResult,
+  type ResolvedTranslationEvaluationConfig,
+  resolveTranslationEvaluationConfig,
+} from "./translation-evaluation.js"
 
 export {
   screenshotIpcViewportSchema,

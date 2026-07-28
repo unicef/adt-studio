@@ -2,8 +2,10 @@ import fs from "node:fs"
 import path from "node:path"
 import { JSDOM } from "jsdom"
 import type { Storage } from "@adt/storage"
-import type { BookMetadata, TocGenerationOutput, WordTimestampOutput } from "@adt/types"
-import { type PackageAdtWebOptions, copyDirRecursive, injectWebpubStyles, htmlToXhtml, getWordTimestamps, pad3 } from "./package-web.js"
+import type { BookMetadata, EpubGlossaryConfig, TocGenerationOutput, WordTimestampOutput } from "@adt/types"
+import { type PackageAdtWebOptions, EXPORT_MIME_TYPES, NON_READER_FILES, copyDirRecursive, injectWebpubStyles, getWordTimestamps, pad3 } from "./web.js"
+import { htmlToXhtml } from "../html-semantics.js"
+import { stripRuntimeBundle } from "./strip-runtime-bundle.js"
 
 /**
  * Canonical word-id format used by SMIL fragment refs, EPUB packaging
@@ -13,27 +15,36 @@ import { type PackageAdtWebOptions, copyDirRecursive, injectWebpubStyles, htmlTo
 function wordIdFor(dataId: string, idx: number): string {
   return `${dataId}_w${pad3(idx)}`
 }
-import { buildSmil, formatMediaDuration, type SmilParagraph } from "./smil.js"
-import { tokenizeWords } from "./word-tokenize.js"
-import { styleMapToInline } from "./fixed-layout-rendering.js"
+import { buildSmil, formatMediaDuration, type SmilParagraph } from "../smil.js"
+import { tokenizeWords } from "../word-tokenize.js"
+import { styleMapToInline } from "../fixed-layout-rendering.js"
 import {
   buildGlossaryDocument,
   loadGlossaryEntries,
   wrapGlossaryTerms,
   type GlossaryBacklink,
   type GlossaryEntry,
-} from "./epub-glossary.js"
+} from "../epub-glossary.js"
+import {
+  buildGlossaryPages,
+  glossaryPageHrefPlaceholder,
+  planGlossaryBoundaries,
+  resolveGlossaryPageHrefs,
+  windowIndexForPage,
+  type GlossaryPageEntry,
+  type GlossaryPageFile,
+} from "../epub-glossary-pages.js"
 
-export type PackageEpubOptions = PackageAdtWebOptions
+export type PackageEpubOptions = PackageAdtWebOptions & {
+  /** EPUB glossary implementation (book config `epub_glossary`). */
+  epubGlossary?: EpubGlossaryConfig
+}
 
 interface PageEntry {
   section_id: string
   href: string
   page_number?: number
 }
-
-/** Files/dirs in adt/ root that are SCORM/offline-specific and not needed in EPUB. */
-const EPUB_SKIP = new Set(["imsmanifest.xml", "AGENTS.md"])
 
 /**
  * Visual affordance for in-text glossary references (EPUB only). The web
@@ -85,19 +96,12 @@ export function packageEpub(
   if (fs.existsSync(epubDir)) fs.rmSync(epubDir, { recursive: true })
 
   // Copy adt/ -> epub/OEBPS/, skipping SCORM-specific files
-  copyDirRecursive(adtDir, oebpsDir, EPUB_SKIP)
+  copyDirRecursive(adtDir, oebpsDir, NON_READER_FILES)
 
-  // Strip SCORM adapter from assets/
-  const scormJs = path.join(oebpsDir, "assets", "scorm.js")
-  if (fs.existsSync(scormJs)) fs.unlinkSync(scormJs)
-  const offlineJs = path.join(oebpsDir, "assets", "offline-preloader.js")
-  if (fs.existsSync(offlineJs)) fs.unlinkSync(offlineJs)
-
-  // Strip the web runtime bundle. EPUB readers provide TOC, page navigation,
-  // settings, and read-aloud playback (the latter via the SMIL media overlays
-  // generated below) natively, so the React dock chrome would just duplicate
-  // them. Audio + word highlighting comes from SMIL; the glossary is lowered
-  // to EPUB-native markup (glossref + doc-glossary + landmarks) below.
+  // EPUB readers provide nav/settings/playback natively (read-aloud via the
+  // SMIL overlays below), so drop the embedded runtime (React bundle, offline
+  // preloader, SCORM adapter). The glossary is lowered to EPUB-native markup
+  // (glossref + doc-glossary + landmarks) below.
   stripRuntimeBundle(oebpsDir)
 
   // ------------------------------------------------------------------
@@ -114,6 +118,14 @@ export function packageEpub(
   // Entry id → backlinks to each in-text occurrence ("Used in").
   const backlinksByEntry = new Map<string, GlossaryBacklink[]>()
 
+  // How the glossary is realised (config `epub_glossary.mode`):
+  // - `word` (default): doc-glossary popover model only (above).
+  // - `page`: in-flow glossary pages replace glossary.xhtml — for readers
+  //   that don't implement the glossary spec (Apple Books etc.). In-text
+  //   glossrefs link to the owning glossary page; entries link back.
+  // - `both`: spec surface for capable readers plus browsable pages.
+  const glossaryMode = glossaryEntries.length > 0 ? (options.epubGlossary?.mode ?? "word") : "word"
+
   // Inject reader-override CSS. The glossref affordance (dotted underline) is
   // EPUB-only — passed as extraCss here rather than baked into the shared
   // override blocks, so it never ships in the web/webpub output (which marks
@@ -121,6 +133,7 @@ export function packageEpub(
   // when the book actually has glossary terms.
   injectWebpubStyles(oebpsDir, {
     fixedLayout: options.fixedLayout,
+    neutralizeFixedLayoutFit: true,
     extraCss: glossaryEntries.length > 0 ? GLOSSREF_CSS : undefined,
   })
 
@@ -129,23 +142,90 @@ export function packageEpub(
   // ------------------------------------------------------------------
   const pagesJsonPath = path.join(oebpsDir, "content", "pages.json")
   const rawPages = JSON.parse(fs.readFileSync(pagesJsonPath, "utf-8")) as PageEntry[]
-  for (const page of rawPages) {
+  // Placement boundaries for in-flow glossary pages (page/both modes) and
+  // the per-window occurrence lists that populate them.
+  const glossaryBoundaries =
+    glossaryMode !== "word"
+      ? planGlossaryBoundaries(rawPages, options.epubGlossary?.page_placements ?? ["end"])
+      : []
+  const occurrencesByWindow = new Map<number, Map<string, GlossaryBacklink[]>>()
+  // Page files whose glossrefs carry placeholder hrefs (page mode) — the
+  // final `file#fragment` target is only known after the glossary pages are
+  // chunked, so those files get a resolve pass afterwards.
+  const glossaryHrefFixupFiles: string[] = []
+
+  // Quizzes run via the standalone activities bundle (the JS runtime), which
+  // works across EPUB readers (Apple Books, Thorium). Quiz pages are authored as
+  // reflowable HTML (device-width viewport, flow layout); in a fixed-layout book
+  // that leaves them uncentered and jarring across page turns, so give them the
+  // book's fixed viewport to render as proper pre-paginated pages — same layout
+  // type, size, and centering as every other page. `refViewport` is the most
+  // common fixed viewport across the book's content pages; the generated
+  // glossary pages (below) are sized from it too.
+  const refViewport = options.fixedLayout
+    ? findReferenceViewport(oebpsDir, rawPages)
+    : null
+  // Quiz pages carry the activities bundle, so they also need the OPF `scripted`
+  // property for the reading system to enable scripting.
+  const scriptedHrefs = new Set<string>()
+  for (const [pageIndex, page] of rawPages.entries()) {
     if (!page.href.endsWith(".html")) continue
     const htmlPath = path.join(oebpsDir, page.href)
     if (!fs.existsSync(htmlPath)) continue
 
-    const html = fs.readFileSync(htmlPath, "utf-8")
+    const rawHtml = fs.readFileSync(htmlPath, "utf-8")
+    const isQuizPage = rawHtml.includes('data-section-type="activity_quiz"')
+    let html = rawHtml
+    // Fixed-layout: swap the quiz page's responsive viewport for the book's fixed
+    // one so the reader lays it out (and centers it) like its pre-paginated
+    // neighbours instead of floating.
+    if (isQuizPage && refViewport) {
+      html = html.replace(
+        /(<meta name="viewport" content=")width=device-width[^"]*(")/,
+        `$1width=${refViewport.width}, height=${refViewport.height}$2`,
+      )
+    }
     let xhtml = convertPageToXhtml(html)
     const xhtmlHref = page.href.replace(/\.html$/, ".xhtml")
 
+    if (isQuizPage) {
+      // Ship the activities bundle so the reader runs the interactive quiz, and
+      // mark the page scripted in the OPF.
+      xhtml = xhtml.replace(
+        "</body>",
+        `    <script src="./assets/activities.bundle.local.js"></script>\n</body>`,
+      )
+      scriptedHrefs.add(xhtmlHref)
+    }
+
     if (glossaryEntries.length > 0) {
-      const result = wrapGlossaryTerms(xhtml, glossaryEntries)
+      const windowIdx =
+        glossaryBoundaries.length > 0 ? windowIndexForPage(glossaryBoundaries, pageIndex) : -1
+      // In page mode the in-text links target the owning glossary page; in
+      // word/both they keep the spec target (glossary.xhtml popovers).
+      const hrefForEntry =
+        glossaryMode === "page"
+          ? (entryId: string) => glossaryPageHrefPlaceholder(windowIdx, entryId)
+          : undefined
+      const result = hrefForEntry
+        ? wrapGlossaryTerms(xhtml, glossaryEntries, hrefForEntry)
+        : wrapGlossaryTerms(xhtml, glossaryEntries)
       xhtml = result.xhtml
-      const label = page.page_number != null ? `Page ${page.page_number}` : page.section_id
+      const label = page.page_number != null ? `p. ${page.page_number}` : page.section_id
       for (const occ of result.occurrences) {
         const list = backlinksByEntry.get(occ.entryId) ?? []
         list.push({ href: `${xhtmlHref}#${occ.fragment}`, label })
         backlinksByEntry.set(occ.entryId, list)
+        if (windowIdx >= 0) {
+          const window = occurrencesByWindow.get(windowIdx) ?? new Map<string, GlossaryBacklink[]>()
+          const windowList = window.get(occ.entryId) ?? []
+          windowList.push({ href: `${xhtmlHref}#${occ.fragment}`, label })
+          window.set(occ.entryId, windowList)
+          occurrencesByWindow.set(windowIdx, window)
+        }
+      }
+      if (glossaryMode === "page" && result.occurrences.length > 0) {
+        glossaryHrefFixupFiles.push(xhtmlHref)
       }
     }
 
@@ -153,25 +233,102 @@ export function packageEpub(
     fs.unlinkSync(htmlPath)
     page.href = xhtmlHref
   }
-  // Update pages.json with .xhtml hrefs
-  fs.writeFileSync(pagesJsonPath, JSON.stringify(rawPages, null, 2))
 
   // ------------------------------------------------------------------
-  // glossary.xhtml + dead-weight cleanup
+  // Glossary surfaces (glossary.xhtml and/or in-flow pages) + cleanup
   // ------------------------------------------------------------------
   let glossaryHref: string | undefined
   let glossaryHeading: string | undefined
+  // In-flow glossary pages surfaced in the TOC (first file per window).
+  let glossaryTocEntries: Array<{ href: string; label: string }> = []
+  // Landmark target for `epub:type="glossary"`: the spec document when it
+  // exists, otherwise the first in-flow glossary page.
+  let glossaryLandmarkHref: string | undefined
+  // Glossary pages carrying the sign-language toggle script — their OPF
+  // manifest items must declare the `scripted` property.
+  let glossaryScriptedHrefs = new Set<string>()
+
   if (backlinksByEntry.size > 0) {
-    glossaryHref = "glossary.xhtml"
     glossaryHeading = loadGlossaryHeading(oebpsDir, language)
+  }
+
+  // Sign-language videos attached to glossary terms feed every glossary
+  // surface: the doc-glossary popover (below) and the in-flow pages. The
+  // files already live in the bundle (packageAdtWeb copies them next to the
+  // page videos); glossary.json carries the per-entry href.
+  const glossaryVideoHrefs = new Map<string, string>()
+  for (const entry of glossaryEntries) {
+    if (entry.video) glossaryVideoHrefs.set(entry.sourceId, entry.video)
+  }
+
+  if (glossaryMode !== "page" && backlinksByEntry.size > 0) {
+    glossaryHref = "glossary.xhtml"
     const doc = buildGlossaryDocument({
       language,
-      heading: glossaryHeading,
+      heading: glossaryHeading!,
       entries: glossaryEntries,
       backlinksByEntry,
+      videoHrefBySourceId: glossaryVideoHrefs,
     })
     fs.writeFileSync(path.join(oebpsDir, glossaryHref), doc)
+    glossaryLandmarkHref = glossaryHref
   }
+
+  if (glossaryMode !== "word" && occurrencesByWindow.size > 0) {
+    const windows: GlossaryPageEntry[][] = glossaryBoundaries.map((_, w) => {
+      const window = occurrencesByWindow.get(w)
+      if (!window) return []
+      return glossaryEntries
+        .filter((e) => window.has(e.id))
+        .map((e) => ({ entry: e, backlinks: window.get(e.id)! }))
+    })
+    const built = buildGlossaryPages({
+      language,
+      heading: glossaryHeading!,
+      windows,
+      // Same reference viewport the quiz pages get, so generated glossary
+      // pages match the book's page size even when the cover or a spread is
+      // authored at different dimensions.
+      fixedViewport: refViewport ?? undefined,
+      videoHrefBySourceId: glossaryVideoHrefs,
+      signLanguageLabel: loadInterfaceLabel(oebpsDir, language, "sign-language-label", "Sign language"),
+    })
+    glossaryScriptedHrefs = new Set(built.files.filter((f) => f.hasScript).map((f) => f.filename))
+    for (const f of built.files) {
+      fs.writeFileSync(path.join(oebpsDir, f.filename), f.xhtml)
+    }
+    if (glossaryMode === "page") {
+      for (const href of glossaryHrefFixupFiles) {
+        const p = path.join(oebpsDir, href)
+        fs.writeFileSync(p, resolveGlossaryPageHrefs(fs.readFileSync(p, "utf-8"), built.hrefByWindowEntry))
+      }
+    }
+    // Splice into the reading order after each window's boundary page —
+    // descending so earlier splices don't shift later boundary indices.
+    const filesByWindow = new Map<number, GlossaryPageFile[]>()
+    for (const f of built.files) {
+      const list = filesByWindow.get(f.windowIndex) ?? []
+      list.push(f)
+      filesByWindow.set(f.windowIndex, list)
+    }
+    for (let w = glossaryBoundaries.length - 1; w >= 0; w--) {
+      const files = filesByWindow.get(w)
+      if (!files || files.length === 0) continue
+      rawPages.splice(
+        glossaryBoundaries[w] + 1,
+        0,
+        ...files.map((f) => ({ section_id: f.sectionId, href: f.filename })),
+      )
+    }
+    glossaryTocEntries = built.files
+      .filter((f) => f.isWindowStart)
+      .map((f) => ({ href: f.filename, label: glossaryHeading! }))
+    glossaryLandmarkHref = glossaryLandmarkHref ?? glossaryTocEntries[0]?.href
+  }
+
+  // Update pages.json with .xhtml hrefs (and any inserted glossary pages)
+  fs.writeFileSync(pagesJsonPath, JSON.stringify(rawPages, null, 2))
+
   // The runtime is stripped; per-language glossary.json files are now
   // orphaned. Drop them so the package isn't shipping dead weight.
   stripOrphanGlossaryJson(oebpsDir)
@@ -262,49 +419,34 @@ export function packageEpub(
       fixedLayout: options.fixedLayout,
       smilEntries,
       glossaryHref,
+      scriptedHrefs: new Set([...scriptedHrefs, ...glossaryScriptedHrefs]),
     }),
   )
 
   // OEBPS/toc.xhtml (EPUB 3 navigation document)
   fs.writeFileSync(
     path.join(oebpsDir, "toc.xhtml"),
-    buildNavDocument(language, title, pageList, llmToc, glossaryHref, glossaryHeading),
+    buildNavDocument(
+      language,
+      title,
+      pageList,
+      llmToc,
+      glossaryLandmarkHref,
+      glossaryHeading,
+      glossaryTocEntries,
+    ),
   )
 
   // OEBPS/toc.ncx (EPUB 2 fallback)
   fs.writeFileSync(
     path.join(oebpsDir, "toc.ncx"),
-    buildNcx(title, pageList),
+    buildNcx(title, pageList, glossaryTocEntries),
   )
 }
 
 // ---------------------------------------------------------------------------
 // File enumeration
 // ---------------------------------------------------------------------------
-
-const EPUB_MIME_TYPES: Record<string, string> = {
-  ".xhtml": "application/xhtml+xml",
-  ".html": "text/html",
-  ".css": "text/css",
-  ".js": "application/javascript",
-  ".json": "application/json",
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".svg": "image/svg+xml",
-  ".webp": "image/webp",
-  ".mp3": "audio/mpeg",
-  ".mp4": "video/mp4",
-  ".ogg": "audio/ogg",
-  ".wav": "audio/wav",
-  ".woff": "font/woff",
-  ".woff2": "font/woff2",
-  ".ttf": "font/ttf",
-  ".otf": "font/otf",
-  ".dic": "application/octet-stream",
-  ".smil": "application/smil+xml",
-}
 
 function collectFiles(
   baseDir: string,
@@ -320,7 +462,7 @@ function collectFiles(
       const ext = path.extname(entry.name).toLowerCase()
       out.push({
         href: relPath,
-        mediaType: EPUB_MIME_TYPES[ext] ?? "application/octet-stream",
+        mediaType: EXPORT_MIME_TYPES[ext] ?? "application/octet-stream",
       })
     }
   }
@@ -448,6 +590,42 @@ function parseParagraphs(xhtml: string): Array<{ paragraphId: string; wordIds: s
   return out
 }
 
+/**
+ * The most common fixed viewport (`width=W, height=H`) declared across the
+ * book's pages. Fixed-layout content pages carry an explicit pixel viewport;
+ * quiz pages (authored reflowable) ship `width=device-width` and are ignored.
+ * Returns null when no page declares a fixed viewport.
+ */
+function findReferenceViewport(
+  oebpsDir: string,
+  pages: PageEntry[],
+): { width: number; height: number } | null {
+  const counts = new Map<string, number>()
+  for (const page of pages) {
+    if (!page.href.endsWith(".html")) continue
+    const p = path.join(oebpsDir, page.href)
+    if (!fs.existsSync(p)) continue
+    const m = fs
+      .readFileSync(p, "utf-8")
+      .match(/content="width=(\d+), height=(\d+)"/)
+    if (m) {
+      const key = `${m[1]}x${m[2]}`
+      counts.set(key, (counts.get(key) ?? 0) + 1)
+    }
+  }
+  let best: string | null = null
+  let bestN = 0
+  for (const [key, n] of counts) {
+    if (n > bestN) {
+      bestN = n
+      best = key
+    }
+  }
+  if (!best) return null
+  const [w, h] = best.split("x").map(Number)
+  return { width: w, height: h }
+}
+
 function buildOpf(opts: {
   title: string
   authors: string[]
@@ -459,8 +637,11 @@ function buildOpf(opts: {
   fixedLayout?: boolean
   smilEntries?: SmilEntry[]
   glossaryHref?: string
+  /** Page hrefs whose manifest item needs the `scripted` property, including
+   *  quiz pages and fixed-layout glossary pages with sign-language controls. */
+  scriptedHrefs?: Set<string>
 }): string {
-  const { title, authors, publisher, language, pageList, allFiles, coverHref, fixedLayout, smilEntries, glossaryHref } = opts
+  const { title, authors, publisher, language, pageList, allFiles, coverHref, fixedLayout, scriptedHrefs, smilEntries, glossaryHref } = opts
   const smilByPage = new Map<string, SmilEntry>()
   for (const e of smilEntries ?? []) smilByPage.set(e.pageHref, e)
   const now = new Date().toISOString().replace(/\.\d{3}Z$/, "Z")
@@ -545,7 +726,15 @@ function buildOpf(opts: {
 
     const props: string[] = []
     if (file.href === coverHref) props.push("cover-image")
-    if (!fixedLayout && pageHrefs.has(file.href)) props.push("scripted")
+    // Reflowable page docs are `scripted` by default; JS-quiz pages are scripted
+    // regardless of the book's layout. Fixed-layout glossary pages with sign
+    // language controls are also included in scriptedHrefs.
+    if (
+      (!fixedLayout && pageHrefs.has(file.href)) ||
+      scriptedHrefs?.has(file.href)
+    ) {
+      props.push("scripted")
+    }
     const propsAttr = props.length > 0 ? ` properties="${props.join(" ")}"` : ""
     const overlayId = pageHrefToOverlayId.get(file.href)
     const overlayAttr = overlayId ? ` media-overlay="${escapeXml(overlayId)}"` : ""
@@ -590,15 +779,20 @@ function buildNavDocument(
   title: string,
   pageList: PageEntry[],
   llmToc?: TocGenerationOutput,
-  glossaryHref?: string,
+  glossaryLandmarkHref?: string,
   glossaryHeading?: string,
+  glossaryTocEntries: Array<{ href: string; label: string }> = [],
 ): string {
   let tocItems: string
+  // In-flow glossary pages: the first file of each placement gets a TOC
+  // entry; continuation chunks (fixed-layout) stay spine-only.
+  const glossaryTocByHref = new Map(glossaryTocEntries.map((e) => [e.href, e.label]))
+  const isGlossaryPage = (p: PageEntry) => /^glp\d+$/.test(p.section_id)
 
   if (llmToc && llmToc.entries.length > 0) {
     // Use LLM-generated TOC — map sectionIds to page hrefs
     const sectionMap = new Map(pageList.map((p) => [p.section_id, p.href]))
-    tocItems = llmToc.entries
+    const items = llmToc.entries
       .map((e) => {
         const href = sectionMap.get(e.sectionId)
         if (!href) return ""
@@ -606,26 +800,37 @@ function buildNavDocument(
         return `${indent}<li><a href="${escapeXml(href)}">${escapeXml(e.title)}</a></li>`
       })
       .filter(Boolean)
-      .join("\n")
+    // The LLM TOC predates the inserted glossary pages, so they are appended
+    // as top-level entries.
+    for (const e of glossaryTocEntries) {
+      items.push(`      <li><a href="${escapeXml(e.href)}">${escapeXml(e.label)}</a></li>`)
+    }
+    tocItems = items.join("\n")
   } else {
     // Fallback: one entry per page
     tocItems = pageList
       .map((p) => {
+        if (isGlossaryPage(p)) {
+          const label = glossaryTocByHref.get(p.href)
+          if (!label) return ""
+          return `      <li><a href="${escapeXml(p.href)}">${escapeXml(label)}</a></li>`
+        }
         const label = p.page_number != null ? `Page ${p.page_number}` : p.section_id
         return `      <li><a href="${escapeXml(p.href)}">${escapeXml(label)}</a></li>`
       })
+      .filter(Boolean)
       .join("\n")
   }
 
-  // The glossary is not part of the linear reading order, so it lives in a
-  // `landmarks` nav (below) rather than the TOC list. The reader keys its
-  // Glossary tab off the `epub:type="glossary"` landmark.
+  // The glossary landmark surfaces the reader's Glossary tab. It points at
+  // the non-linear glossary.xhtml when that exists (word/both modes) or at
+  // the first in-flow glossary page (page mode).
   const landmarksNav =
-    glossaryHref && glossaryHeading
+    glossaryLandmarkHref && glossaryHeading
       ? `
   <nav epub:type="landmarks" hidden="">
     <ol>
-      <li><a epub:type="glossary" href="${escapeXml(glossaryHref)}">${escapeXml(glossaryHeading)}</a></li>
+      <li><a epub:type="glossary" href="${escapeXml(glossaryLandmarkHref)}">${escapeXml(glossaryHeading)}</a></li>
     </ol>
   </nav>`
       : ""
@@ -648,15 +853,32 @@ ${tocItems}
 </html>`
 }
 
-function buildNcx(title: string, pageList: PageEntry[]): string {
+function buildNcx(
+  title: string,
+  pageList: PageEntry[],
+  glossaryTocEntries: Array<{ href: string; label: string }> = [],
+): string {
+  const glossaryTocByHref = new Map(glossaryTocEntries.map((e) => [e.href, e.label]))
+  let playOrder = 0
   const navPoints = pageList
-    .map((p, i) => {
-      const label = p.page_number != null ? `Page ${p.page_number}` : p.section_id
-      return `    <navPoint id="navpoint-${i + 1}" playOrder="${i + 1}">
+    .map((p) => {
+      let label: string
+      if (/^glp\d+$/.test(p.section_id)) {
+        // Only the first glossary page of a placement is navigable;
+        // continuation chunks (fixed-layout) stay spine-only.
+        const glossaryLabel = glossaryTocByHref.get(p.href)
+        if (!glossaryLabel) return ""
+        label = glossaryLabel
+      } else {
+        label = p.page_number != null ? `Page ${p.page_number}` : p.section_id
+      }
+      playOrder += 1
+      return `    <navPoint id="navpoint-${playOrder}" playOrder="${playOrder}">
       <navLabel><text>${escapeXml(label)}</text></navLabel>
       <content src="${escapeXml(p.href)}"/>
     </navPoint>`
     })
+    .filter(Boolean)
     .join("\n")
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -676,32 +898,6 @@ ${navPoints}
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-/**
- * Remove `base.bundle.{min,local}.js` and the `<script>` tags that load them
- * from every page. EPUB readers handle nav/settings/playback natively, so
- * the React runtime would only duplicate them.
- */
-function stripRuntimeBundle(oebpsDir: string): void {
-  for (const name of ["base.bundle.min.js", "base.bundle.local.js", "base.bundle.min.js.map"]) {
-    const p = path.join(oebpsDir, "assets", name)
-    if (fs.existsSync(p)) fs.unlinkSync(p)
-  }
-  const SCRIPT_RE = /\s*<script\b[^>]*src=["'][^"']*base\.bundle\.(min|local)\.js[^"']*["'][^>]*>\s*<\/script>/g
-  const walk = (dir: string): void => {
-    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-      const fullPath = path.join(dir, entry.name)
-      if (entry.isDirectory()) {
-        walk(fullPath)
-      } else if (entry.isFile() && /\.(html|xhtml)$/.test(entry.name)) {
-        const content = fs.readFileSync(fullPath, "utf-8")
-        const stripped = content.replace(SCRIPT_RE, "")
-        if (stripped !== content) fs.writeFileSync(fullPath, stripped)
-      }
-    }
-  }
-  walk(oebpsDir)
-}
 
 function escapeXml(str: string): string {
   return str
@@ -732,12 +928,15 @@ function loadGlossaryEntriesForLang(oebpsDir: string, language: string): Glossar
 }
 
 /**
- * Read the "Glossary" heading from interface_translations for the export
- * language, falling back to "Glossary" if the catalog is missing or the
- * key isn't translated.
+ * Read a UI label from interface_translations for the export language,
+ * falling back if the catalog is missing or the key isn't translated.
  */
-function loadGlossaryHeading(oebpsDir: string, language: string): string {
-  const fallback = "Glossary"
+function loadInterfaceLabel(
+  oebpsDir: string,
+  language: string,
+  key: string,
+  fallback: string,
+): string {
   const p = path.join(
     oebpsDir,
     "assets",
@@ -748,10 +947,14 @@ function loadGlossaryHeading(oebpsDir: string, language: string): string {
   if (!fs.existsSync(p)) return fallback
   try {
     const raw = JSON.parse(fs.readFileSync(p, "utf-8")) as Record<string, string>
-    return raw["glossary-label"]?.trim() || fallback
+    return raw[key]?.trim() || fallback
   } catch {
     return fallback
   }
+}
+
+function loadGlossaryHeading(oebpsDir: string, language: string): string {
+  return loadInterfaceLabel(oebpsDir, language, "glossary-label", "Glossary")
 }
 
 /**
@@ -927,9 +1130,48 @@ function wrapBySegments(
     wordIdx += 1
     const wrap = doc.createElement("span")
     wrap.setAttribute("id", wordIdFor(dataId, wordIdx))
+    // Fixed-layout words carry font-size only on the inner per-segment
+    // spans; the word wrapper itself would inherit the page's ~16px
+    // default. The media-overlay read-aloud highlight (media:active-class)
+    // paints the *wrapper's* inline background box, whose height is the
+    // wrapper's own font content-area — so without a matching font-size the
+    // yellow bar renders as a ~16px sliver behind a 48px word. Mirror the
+    // word's own (largest) segment size onto the wrapper so the highlight
+    // covers the whole word. Purely a paint-box hint: all glyphs live in the
+    // styled pieces, so the wrapper renders no text and its width/advance is
+    // unchanged. Emitted inline so the runtime auto-fit script shrinks it in
+    // lockstep with the pieces it also targets.
+    const wordFontSize = maxSegmentFontSize(segments, segOffsets, tok.start, tok.end)
+    if (wordFontSize !== undefined) wrap.setAttribute("style", `font-size:${wordFontSize}px`)
     for (const piece of buildPieces(tok.start, tok.end)) wrap.appendChild(piece)
     parent.appendChild(wrap)
   }
+}
+
+/**
+ * Largest `font-size` (in px) among the segments overlapping [start, end)
+ * in concat coordinates, or `undefined` when none of them declares one.
+ * Fixed-layout segment sizes are always authored in px by the renderer, so
+ * a bare number of px is a safe round-trip.
+ */
+function maxSegmentFontSize(
+  segments: { text?: string; style?: Record<string, string> }[],
+  segOffsets: number[],
+  start: number,
+  end: number,
+): number | undefined {
+  let max = 0
+  for (let i = 0; i < segments.length; i++) {
+    const segStart = segOffsets[i]
+    const segEnd = segStart + (segments[i]?.text ?? "").length
+    if (segEnd <= start) continue
+    if (segStart >= end) break
+    const fsRaw = segments[i]?.style?.["font-size"]
+    if (!fsRaw) continue
+    const fs = parseFloat(fsRaw)
+    if (Number.isFinite(fs) && fs > max) max = fs
+  }
+  return max > 0 ? max : undefined
 }
 
 function wrapTextNodes(

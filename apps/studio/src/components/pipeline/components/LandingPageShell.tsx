@@ -1,7 +1,8 @@
 import { useState, type CSSProperties, type ReactNode } from "react"
 import { Link } from "@tanstack/react-router"
-import { Play, Loader2, Settings } from "lucide-react"
+import { Play, Loader2, Settings, X } from "lucide-react"
 import { Trans } from "@lingui/react/macro"
+import { useBookRun } from "@/hooks/use-book-run"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,6 +17,7 @@ import { BOOK_LEVEL_STAGES, type StageName } from "@adt/types"
 import { PartialMergeNotice } from "@/components/parts/PartialMergeNotice"
 import { getStageLabelI18n } from "../pipeline-i18n"
 import { CascadeResetDialog } from "./CascadeResetDialog"
+import { RunWarningDialog } from "./RunWarningDialog"
 
 export function LandingPageShell({
   bookLabel,
@@ -37,6 +39,7 @@ export function LandingPageShell({
   previewBodyClassName,
   onRun,
   preview,
+  runWarning,
   hideRunButton = false,
   hideAdvancedSettings = false,
   hideFooter = false,
@@ -61,14 +64,22 @@ export function LandingPageShell({
   previewBodyClassName?: string
   onRun: () => void
   preview: ReactNode
+  /**
+   * When set, pressing Run first shows an advisory warning modal (e.g. the
+   * feature is incompatible with the book's fixed-layout mode). The user can
+   * cancel or proceed. Omit/leave null when there's nothing to warn about.
+   */
+  runWarning?: { title: ReactNode; description: ReactNode } | null
   hideRunButton?: boolean
   hideAdvancedSettings?: boolean
   hideFooter?: boolean
   children: ReactNode
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [warnOpen, setWarnOpen] = useState(false)
   const downstreamAffected = useDownstreamWithOutput(stageSlug)
   const needsConfirmation = isCompleted && downstreamAffected.length > 0
+  const { isCancelling, cancelRun } = useBookRun()
 
   const accentStyle: CSSProperties = {}
   if (accentColor) {
@@ -82,12 +93,27 @@ export function LandingPageShell({
   const isDisabled = isRunning || !canRun || extraDisabled
   const showTooltip = isDisabled && !isRunning && !!disabledReason
 
-  const handleRunClick = () => {
+  // Run gates, applied outermost-first: fixed-layout (or other) warning, then
+  // the cascade-reset confirmation, then the run itself.
+  const proceedRun = () => {
     if (needsConfirmation) {
       setConfirmOpen(true)
     } else {
       onRun()
     }
+  }
+
+  const handleRunClick = () => {
+    if (runWarning) {
+      setWarnOpen(true)
+    } else {
+      proceedRun()
+    }
+  }
+
+  const handleWarnConfirm = () => {
+    setWarnOpen(false)
+    proceedRun()
   }
 
   const handleConfirm = () => {
@@ -97,7 +123,29 @@ export function LandingPageShell({
 
   const stageLabel = getStageLabelI18n(stageSlug)
 
-  const runButton = (
+  const runButton = isRunning ? (
+    <Button
+      onClick={() => cancelRun()}
+      disabled={isCancelling}
+      className={cn(
+        "h-10 px-5 font-medium text-white transition-[background-color,opacity] border-0",
+        "disabled:opacity-60 disabled:cursor-default",
+        "bg-red-500 hover:bg-red-700"
+      )}
+    >
+      {isCancelling ? (
+        <>
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+          <Trans>Cancelling...</Trans>
+        </>
+      ) : (
+        <>
+          <X className="size-5 mr-2" />
+          <Trans>Cancel</Trans>
+        </>
+      )}
+    </Button>
+  ) : (
     <Button
       onClick={handleRunClick}
       disabled={isDisabled}
@@ -107,17 +155,8 @@ export function LandingPageShell({
         hasError ? errorColorClass : colorClass
       )}
     >
-      {isRunning ? (
-        <>
-          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-          <Trans>Running...</Trans>
-        </>
-      ) : (
-        <>
-          <Play className="w-4 h-4 mr-2" />
-          {isCompleted || hasError ? rerunLabel : runLabel}
-        </>
-      )}
+      <Play className="w-4 h-4 mr-2" />
+      {isCompleted || hasError ? rerunLabel : runLabel}
     </Button>
   )
 
@@ -204,6 +243,17 @@ export function LandingPageShell({
         confirmColorClass={hasError ? errorColorClass : colorClass}
         onConfirm={handleConfirm}
       />
+
+      {runWarning && (
+        <RunWarningDialog
+          open={warnOpen}
+          onOpenChange={setWarnOpen}
+          title={runWarning.title}
+          description={runWarning.description}
+          confirmColorClass={hasError ? errorColorClass : colorClass}
+          onConfirm={handleWarnConfirm}
+        />
+      )}
     </div>
   )
 }

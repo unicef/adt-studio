@@ -12,10 +12,12 @@ import type {
   StageRunOptions,
 } from "../services/stage-service.js"
 import { createBookEventBus } from "../services/book-event-bus.js"
+import { createPageErrorDecisions } from "../services/page-error-decisions.js"
 import { createBookRoutes } from "./books.js"
 import { createStageRoutes } from "./stages.js"
 
 const mockEventBus = createBookEventBus()
+const mockDecisions = createPageErrorDecisions(mockEventBus)
 
 let tmpDir: string
 
@@ -730,7 +732,7 @@ describe("POST /books/:label/stages/run", () => {
       },
     }
 
-    const app = createStageRoutes(stageService, mockEventBus, tmpDir, "", "")
+    const app = createStageRoutes(stageService, mockEventBus, mockDecisions, tmpDir, "", "")
     const res = await app.request(`/books/${label}/stages/run`, {
       method: "POST",
       headers: {
@@ -774,7 +776,7 @@ describe("POST /books/:label/stages/run", () => {
       },
     }
 
-    const app = createStageRoutes(stageService, mockEventBus, tmpDir, "", "")
+    const app = createStageRoutes(stageService, mockEventBus, mockDecisions, tmpDir, "", "")
     const res = await app.request(`/books/${label}/stages/run`, {
       method: "POST",
       headers: {
@@ -840,7 +842,7 @@ describe("GET /books/:label/step-status", () => {
   }
 
   it("returns all stages/steps idle when DB is missing and no run state exists", async () => {
-    const app = createStageRoutes(mockStageService(), mockEventBus, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
     const res = await app.request("/books/missing-db/step-status")
     expect(res.status).toBe(200)
     const body = await res.json()
@@ -860,6 +862,7 @@ describe("GET /books/:label/step-status", () => {
     const app = createStageRoutes(
       mockStageService({ queuedStages: ["extract", "storyboard"] }),
       mockEventBus,
+      mockDecisions,
       tmpDir,
       "",
       ""
@@ -880,6 +883,7 @@ describe("GET /books/:label/step-status", () => {
         active: makeActiveRun({ status: "failed", error: "pipeline failed" }),
       }),
       mockEventBus,
+      mockDecisions,
       tmpDir,
       "",
       ""
@@ -909,6 +913,7 @@ describe("GET /books/:label/step-status", () => {
         }),
       }),
       mockEventBus,
+      mockDecisions,
       tmpDir,
       "",
       ""
@@ -931,7 +936,7 @@ describe("GET /books/:label/step-status", () => {
     } finally {
       storage.close()
     }
-    const app = createStageRoutes(mockStageService(), mockEventBus, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
 
     const res = await app.request("/books/extract-incomplete/step-status")
     expect(res.status).toBe(200)
@@ -946,7 +951,7 @@ describe("GET /books/:label/step-status", () => {
   it("marks extract complete when all extract steps are done", async () => {
     createTestBook("extract-complete")
     markExtractStageComplete("extract-complete")
-    const app = createStageRoutes(mockStageService(), mockEventBus, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
 
     const res = await app.request("/books/extract-complete/step-status")
     expect(res.status).toBe(200)
@@ -962,6 +967,7 @@ describe("GET /books/:label/step-status", () => {
     const app = createStageRoutes(
       mockStageService({ queuedStages: ["extract"] }),
       mockEventBus,
+      mockDecisions,
       tmpDir,
       "",
       ""
@@ -983,7 +989,7 @@ describe("GET /books/:label/step-status", () => {
     } finally {
       storage.close()
     }
-    const app = createStageRoutes(mockStageService(), mockEventBus, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
 
     const res = await app.request("/books/step-error-test/step-status")
     expect(res.status).toBe(200)
@@ -1002,7 +1008,7 @@ describe("GET /books/:label/step-status", () => {
     } finally {
       storage.close()
     }
-    const app = createStageRoutes(mockStageService(), mockEventBus, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
 
     const res = await app.request("/books/step-running-test/step-status")
     expect(res.status).toBe(200)
@@ -1020,7 +1026,7 @@ describe("GET /books/:label/step-status", () => {
     } finally {
       storage.close()
     }
-    const app = createStageRoutes(mockStageService(), mockEventBus, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
 
     const res = await app.request("/books/step-message-test/step-status")
     expect(res.status).toBe(200)
@@ -1044,6 +1050,7 @@ describe("GET /books/:label/step-status", () => {
         active: makeActiveRun({ fromStage: "extract", toStage: "storyboard" }),
       }),
       mockEventBus,
+      mockDecisions,
       tmpDir,
       "",
       ""
@@ -1067,6 +1074,7 @@ describe("GET /books/:label/step-status", () => {
         active: makeActiveRun({ fromStage: "extract", toStage: "storyboard" }),
       }),
       mockEventBus,
+      mockDecisions,
       tmpDir,
       "",
       ""
@@ -1084,7 +1092,7 @@ describe("GET /books/:label/step-status", () => {
   it("returns null stepErrors when no errors exist", async () => {
     createTestBook("no-errors")
     markExtractStageComplete("no-errors")
-    const app = createStageRoutes(mockStageService(), mockEventBus, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
 
     const res = await app.request("/books/no-errors/step-status")
     expect(res.status).toBe(200)
@@ -1100,7 +1108,7 @@ describe("GET /books/:label/step-status", () => {
     } finally {
       storage.close()
     }
-    const app = createStageRoutes(mockStageService(), mockEventBus, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
 
     const res = await app.request("/books/derived-error/step-status")
     expect(res.status).toBe(200)
@@ -1122,7 +1130,7 @@ describe("GET /books/:label/step-status", () => {
     } finally {
       storage.close()
     }
-    const app = createStageRoutes(mockStageService(), mockEventBus, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
 
     const res = await app.request("/books/skipped-steps/step-status")
     expect(res.status).toBe(200)
@@ -1134,7 +1142,7 @@ describe("GET /books/:label/step-status", () => {
     createTestBook("preview-done")
     fs.mkdirSync(path.join(tmpDir, "preview-done", "adt"), { recursive: true })
 
-    const app = createStageRoutes(mockStageService(), mockEventBus, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
     const res = await app.request("/books/preview-done/step-status")
     expect(res.status).toBe(200)
     const body = await res.json()
@@ -1142,7 +1150,7 @@ describe("GET /books/:label/step-status", () => {
   })
 
   it("returns 400 for invalid book labels", async () => {
-    const app = createStageRoutes(mockStageService(), mockEventBus, tmpDir, "", "")
+    const app = createStageRoutes(mockStageService(), mockEventBus, mockDecisions, tmpDir, "", "")
     const res = await app.request("/books/-bad/step-status")
     expect(res.status).toBe(400)
   })

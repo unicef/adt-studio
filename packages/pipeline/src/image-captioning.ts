@@ -1,5 +1,5 @@
 import { parseDocument, DomUtils } from "htmlparser2"
-import type { AppConfig, ImageCaptioningOutput } from "@adt/types"
+import type { AppConfig, GlossaryOutput, ImageCaptioningOutput } from "@adt/types"
 import {
   imageCaptioningLLMSchema,
   DEFAULT_LLM_MAX_RETRIES,
@@ -43,6 +43,43 @@ export function extractImageIds(htmlSections: string[]): string[] {
     }
   }
   return [...ids]
+}
+
+/**
+ * Collect the images that should be captioned for a page. Glossary images may
+ * not appear in rendered page HTML, so callers can include their IDs here.
+ */
+export function collectCaptionImageIds(
+  htmlSections: string[],
+  additionalImageIds: readonly string[] = []
+): string[] {
+  const ids = new Set(extractImageIds(htmlSections))
+  for (const imageId of additionalImageIds) {
+    ids.add(imageId)
+  }
+  return [...ids]
+}
+
+/**
+ * Group active glossary image assignments by the page that owns each image.
+ * The page lookup is supplied by the caller so this stays independent of storage.
+ */
+export function groupGlossaryImageIdsByPage(
+  glossary: GlossaryOutput | undefined,
+  getImagePageId: (imageId: string) => string | undefined
+): Map<string, string[]> {
+  const imageIdsByPage = new Map<string, string[]>()
+  const seenImageIds = new Set<string>()
+  for (const item of glossary?.items ?? []) {
+    if (item.pruned || !item.imageId || seenImageIds.has(item.imageId)) continue
+    seenImageIds.add(item.imageId)
+    const pageId = getImagePageId(item.imageId)
+    if (!pageId) continue
+    const imageIds = imageIdsByPage.get(pageId) ?? []
+    imageIds.push(item.imageId)
+    imageIdsByPage.set(pageId, imageIds)
+  }
+  return imageIdsByPage
 }
 
 /**

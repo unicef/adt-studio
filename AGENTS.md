@@ -113,11 +113,16 @@ docker run -p 8080:80 -v ./books:/app/books adt-studio
 ```bash
 pnpm install       # Install dependencies
 pnpm dev           # Run API + Studio dev servers
-pnpm test          # Run tests
-pnpm typecheck     # TypeScript strict check
-pnpm lint          # Lint
+pnpm test          # Run tests (builds first via pretest)
+pnpm typecheck     # TypeScript strict check (tsc --build; excludes apps/adt-runtime)
+pnpm lint          # Lint apps/studio — the only package with an eslint config
 pnpm build         # Build all packages
 ```
+
+ESLint is configured for `apps/studio` only (`apps/studio/eslint.config.js`), so
+`pnpm lint` delegates to `pnpm --filter @adt/studio lint` — the same command the CI
+`i18n` job runs. `apps/adt-runtime` is not linted; it is covered by `pnpm test` and
+its own `pnpm --filter @adt/runtime typecheck`.
 
 ### Desktop Development
 
@@ -151,13 +156,26 @@ Key files:
 
 ### Releasing
 
-Pushing a version tag triggers a GitHub Actions workflow that builds a Windows installer and creates a GitHub Release with auto-generated changelog.
+Releases are cut from branches, never by pushing a hand-made tag. The
+[Release workflow](.github/workflows/release.yml) calculates the next version
+from the existing git tags, builds and signs the desktop installers, publishes
+the Docker image, then creates the tag and GitHub Release itself.
 
-```bash
-git tag v0.2.0 && git push --tags   # Creates next release
-```
+- `develop` ships beta releases (`beta`, `beta-minor`, `beta-major`).
+- `main` ships stable releases (`patch`, `minor`, `major`).
 
-Or create a new tag in the GitHub UI pointing at `main`.
+Trigger it from **Actions → Release → Run workflow** (pick the branch and a
+version increment) or by pushing a commit whose subject is a release type
+(e.g. `RELEASE: beta` on `develop`, `RELEASE: patch` on `main`).
+
+> **Never create a `v*` tag by hand.** Version numbers are derived from the
+> tags by [`scripts/calculate-release-version.mjs`](scripts/calculate-release-version.mjs),
+> so a manually pushed tag corrupts every future version calculation. The `v*`
+> tag namespace is protected so only the release automation (via `RELEASE_PAT`)
+> can create tags — see [`docs/RELEASING.md`](docs/RELEASING.md).
+
+See [`docs/RELEASING.md`](docs/RELEASING.md) for the full branch, staging, and
+version-calculation flow.
 
 ## Internationalization (i18n)
 

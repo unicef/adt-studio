@@ -23,7 +23,11 @@ import {
   renderPageHtml,
   NAV_HTML,
   buildPreviewTailwindCss,
+  resolveTypographyCss,
+  resolveQuizPalette,
   buildGlossaryJson,
+  buildImageMap,
+  getGlossaryItemTextId,
   getBaseLanguage,
   normalizeLocale,
   renderQuizHtml,
@@ -704,7 +708,7 @@ export function createAdtPreviewRoutes(
       // are picked up before the edit is persisted to the DB.
       if (extraHtml) allHtml += "\n" + extraHtml
 
-      return await buildPreviewTailwindCss(allHtml, webAssetsDir)
+      return await buildPreviewTailwindCss(allHtml, webAssetsDir, resolveTypographyCss(storage))
     } finally {
       storage.close()
     }
@@ -744,14 +748,45 @@ export function createAdtPreviewRoutes(
   // /content/i18n/:lang/glossary.json — Glossary data
   app.get("/books/:label/adt-preview/content/i18n/:lang/glossary.json", async (c) => {
     const lang = c.req.param("lang")
-    const glossaryJson = await withStorage(c.req.param("label"), async (storage) => {
+    const glossaryJson = await withStorage(c.req.param("label"), async (storage, _safeLabel, bookDir) => {
       const language = getBookLanguage(storage)
       const sourceLanguage = getBaseLanguage(language)
       const catalog = await getTextCatalog(storage)
       const glossary = getGlossary(storage)
       const textsMap = buildTextsMap(storage, lang, sourceLanguage, catalog)
       const baseLang = getBaseLanguage(lang)
-      return buildGlossaryJson(glossary, catalog, textsMap, baseLang === sourceLanguage)
+
+      // Mirror packaging: term pictures resolve through the images proxy
+      // (`images/<filename>`), sign-language videos through the video route
+      // (`content/i18n/<lang>/video/sl_<glId>.<ext>`, resolved back to the
+      // stored file by sectionId).
+      const imageMap = buildImageMap(path.join(bookDir, "images"))
+      const imageHrefs = new Map<string, string>()
+      for (const item of glossary?.items ?? []) {
+        if (item.pruned || !item.imageId || imageHrefs.has(item.imageId)) continue
+        const filename = imageMap.get(item.imageId)
+        if (filename) imageHrefs.set(item.imageId, `images/${filename}`)
+      }
+      const glossaryTextIds = new Set(
+        (glossary?.items ?? [])
+          .map((item, i) => (item.pruned ? null : getGlossaryItemTextId(item, i)))
+          .filter((id): id is string => id !== null),
+      )
+      const videoHrefs = new Map<string, string>()
+      for (const video of storage.getSignLanguageVideos()) {
+        if (!video.sectionId || !glossaryTextIds.has(video.sectionId)) continue
+        const ext = video.mimeType === "video/webm" ? ".webm" : ".mp4"
+        videoHrefs.set(video.sectionId, `content/i18n/${lang}/video/sl_${video.sectionId}${ext}`)
+      }
+
+      return buildGlossaryJson(
+        glossary,
+        catalog,
+        textsMap,
+        baseLang === sourceLanguage,
+        imageHrefs,
+        videoHrefs,
+      )
     })
     setNoStoreHeaders(c)
     c.header("Content-Type", "application/json")
@@ -932,7 +967,11 @@ export function createAdtPreviewRoutes(
         const quiz = quizData.quizzes[quizIndex]
         const catalog = await getTextCatalog(storage)
 
-        const quizHtmlContent = renderQuizHtml(quiz, pageId, catalog)
+        const quizPalette = (config.quiz_generation?.match_book_style ?? true)
+          ? resolveQuizPalette(storage)
+          : null
+        const quizStyle = quizPalette ? { palette: quizPalette } : null
+        const quizHtmlContent = renderQuizHtml(quiz, pageId, catalog, quizStyle)
         // Determine page index from the manifest
       const manifest = buildPagesManifest(storage)
       const manifestIndex = manifest.findIndex((e) => e.section_id === pageId)

@@ -9,8 +9,27 @@ export const INTERACTIVE_SCRIPT = `<script>
   var savedDisplayHtml = null;
   var savedOriginalText = null;
   var containerIdCounter = 0;
+  var ACTIVITY_INTERACTIVE_SELECTOR = [
+    '.activity-option',
+    '.activity-underline-option',
+    '[data-activity-item]',
+    '[data-activity-category]',
+    '.fitb-sentence input',
+    '.fitb-sentence textarea',
+    'input[type="radio"]',
+    'input[type="checkbox"]',
+    'textarea',
+    'select',
+    'button'
+  ].join(',');
 
   function isEditable() { return document.body.dataset.editable === 'true'; }
+
+  function isActivityInteractiveTarget(target) {
+    if (!target) return false;
+    var el = target.nodeType === Node.ELEMENT_NODE ? target : target.parentElement;
+    return !!(el && el.closest && el.closest(ACTIVITY_INTERACTIVE_SELECTOR));
+  }
 
   // Walk up from target; preventDefault if any ancestor is a tag whose default
   // action would steal the click (navigate the iframe, submit a form, focus
@@ -138,6 +157,7 @@ export const INTERACTIVE_SCRIPT = `<script>
   // during mousedown/drag was wiped when startEditing swapped innerHTML.
   document.addEventListener('mousedown', function(e) {
     if (!isEditable()) return;
+    if (isActivityInteractiveTarget(e.target)) return;
     suppressNativeAction(e);
     var el = findContainer(e.target);
     if (!el) return;
@@ -151,6 +171,15 @@ export const INTERACTIVE_SCRIPT = `<script>
 
   document.addEventListener('click', function(e) {
     if (!isEditable()) return;
+    if (isActivityInteractiveTarget(e.target)) {
+      // Activity controls are never selected or edited, but an edit in
+      // progress on some OTHER element still has to be committed here:
+      // finishEditing is what posts 'text-changed' to the parent, and there
+      // is no blur/focusout fallback. Without this, typing into a heading and
+      // then clicking a token in the activity below silently drops the edit.
+      if (editing) finishEditing();
+      return;
+    }
     suppressNativeAction(e);
     var el = findContainer(e.target);
     if (!el) {

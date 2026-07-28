@@ -1,5 +1,13 @@
 import { z } from "zod"
 
+/**
+ * Max upscale for a fixed-layout page filling its viewport. Shared by the
+ * storyboard editor (`BookPreviewFrame`) and the packaged reader's fit script
+ * (`renderPageHtml`) so the preview/export matches the size the user edits at.
+ * 2× keeps rasterised art from getting too soft.
+ */
+export const FIXED_LAYOUT_MAX_SCALE = 2
+
 export const SectionRendering = z.object({
   sectionIndex: z.number().int(),
   sectionType: z.string(),

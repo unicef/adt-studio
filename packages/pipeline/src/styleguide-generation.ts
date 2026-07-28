@@ -1,5 +1,5 @@
 import type { LLMModel } from "@adt/llm"
-import { DEFAULT_LLM_MODEL_ID, StyleguideGenerationOutput } from "@adt/types"
+import { DEFAULT_LLM_MODEL_ID, StyleguideGenerationOutput, type BookTypography } from "@adt/types"
 import type { BookFontPromptEntry } from "./fonts-bundle.js"
 export type { StyleguideGenerationOutput } from "@adt/types"
 
@@ -10,6 +10,9 @@ export interface StyleguideGenerationInput {
     imageBase64: string
   }>
   bookFonts?: BookFontPromptEntry[]
+  /** Book typography — folded into the Text Styles table so the styleguide maps
+   *  each role to the fixed size class rather than choosing sizes itself. */
+  typography?: BookTypography
 }
 
 export interface StyleguideGenerationConfig {
@@ -47,6 +50,7 @@ export async function generateStyleguide(
       image_base64: p.imageBase64,
     })),
     book_fonts: input.bookFonts ?? [],
+    typography: input.typography?.styles ?? [],
   }
 
   const result = await llmModel.generateObject<StyleguideGenerationOutput>({

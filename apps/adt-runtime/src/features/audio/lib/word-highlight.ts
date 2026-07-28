@@ -28,6 +28,30 @@ import { parseSegments, styleToInline, type Segment } from "@/shared/lib/fl-segm
 const ORIGINAL_HTML_ATTR = "data-tts-original-html"
 const WORD_HIGHLIGHT_CLASS = "bg-yellow-300"
 const BLOCK_HIGHLIGHT_CLASS = "tts-active-block"
+const FIT_ATTR = "data-adt-fit"
+
+/**
+ * Re-run the fixed-layout auto-fit pass (`assets/adt/auto-fit.js`, exposed as
+ * `window.__adtRunAutoFit`) after we rebuild a paragraph's innerHTML for word
+ * wrapping.
+ *
+ * On fixed-layout pages the auto-fit script shrinks each paragraph's inline
+ * `font-size` / `letter-spacing` so the text fits its absolutely-positioned
+ * block box. Wrapping words rebuilds the innerHTML from the original
+ * `data-segments` (and drops the per-span `data-adt-fs` cache), which
+ * reinstates the pre-fit sizes — so without this the text grows and reflows
+ * ("jumps around") the instant read-aloud starts, then snaps back on teardown
+ * when the stashed fitted HTML is restored. Re-fitting the freshly-wrapped
+ * spans keeps the layout stable. Guarded on `data-adt-fit`, so it's a no-op
+ * for reflowable pages (which have no fit targets). The translation-swap path
+ * in `i18n.ts` re-fits the same way after rebuilding segment spans.
+ */
+function refitFixedLayout(element: HTMLElement): void {
+  if (!element.hasAttribute(FIT_ATTR)) return
+  const runAutoFit = (window as Window & { __adtRunAutoFit?: () => void })
+    .__adtRunAutoFit
+  if (typeof runAutoFit === "function") runAutoFit()
+}
 
 /**
  * Fixed-layout word wrap: tokenise across the concatenated `data-segments`
@@ -73,7 +97,18 @@ function wrapWordsFromSegments(element: HTMLElement, segments: Segment[]): boole
   let charCursor = 0
   for (const seg of plan) {
     if (seg.type === "separator") {
-      if (seg.text.length > 0) fragment.appendChild(doc.createTextNode(seg.text))
+      // Separators stay OUTSIDE the word-index wrapper (so the highlight box
+      // hugs the word), but must still carry the surrounding segment's style:
+      // in fixed-layout the font-size lives only on the per-segment span and
+      // the paragraph itself has none, so a bare text node would inherit the
+      // page default (~16px) and change the spacing between words on play.
+      // Route the whitespace run through buildPieces so it keeps the segment's
+      // font metrics — mirrors wrapBySegments in packaging/epub.ts.
+      if (seg.text.length > 0) {
+        for (const piece of buildPieces(charCursor, charCursor + seg.text.length)) {
+          fragment.appendChild(piece)
+        }
+      }
       charCursor += seg.text.length
       continue
     }
@@ -81,6 +116,15 @@ function wrapWordsFromSegments(element: HTMLElement, segments: Segment[]): boole
     const end = start + seg.text.length
     const wrap = doc.createElement("span")
     wrap.setAttribute("data-word-index", String(seg.wordIndex))
+    // The wrapper carries NO font-size on purpose. The highlight is painted on
+    // the wrapper AND its inner pieces (see the .bg-yellow-300 rule), and the
+    // pieces already carry the word's real font-size/family — so the yellow
+    // covers the full word height without the wrapper needing a size. Sizing
+    // the wrapper (as we used to) inserts an extra inline box in the page's
+    // default font, whose metrics differ from the text's font and shift the
+    // line's baseline while read-aloud is active — the text "bobs". An unsized
+    // wrapper inherits the small page default (smaller than the text), so it
+    // contributes nothing to the line box and the baseline stays put.
     for (const piece of buildPieces(start, end)) wrap.appendChild(piece)
     fragment.appendChild(wrap)
     charCursor = end
@@ -102,7 +146,10 @@ export function wrapWordsForElement(element: HTMLElement, text: string): void {
 
   const segments = parseSegments(element.getAttribute("data-segments"))
   if (segments && segments.length > 0) {
-    if (wrapWordsFromSegments(element, segments)) return
+    if (wrapWordsFromSegments(element, segments)) {
+      refitFixedLayout(element)
+      return
+    }
     element.removeAttribute(ORIGINAL_HTML_ATTR)
     return
   }
@@ -127,6 +174,7 @@ export function wrapWordsForElement(element: HTMLElement, text: string): void {
     }
   }
   element.replaceChildren(fragment)
+  refitFixedLayout(element)
 }
 
 export function unwrapWordsForElement(element: HTMLElement): void {

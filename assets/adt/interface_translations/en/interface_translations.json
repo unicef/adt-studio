@@ -189,5 +189,10 @@
     "admin-popup-stub-message": "Admin tools will be ported in a follow-up.",
     "main-menu-label": "Main Menu",
     "cover-label": "Cover",
-    "print-page-label": "Print Page"
+    "print-page-label": "Print Page",
+    "underline-text-options-label": "Underline the correct text",
+    "underline-question-label": "Question ${n}",
+    "underline-all-correct": "All answers are correct!",
+    "underline-progress-summary": "${correct} correct, ${wrong} incorrect, ${missing} still to find.",
+    "activity-progress-remaining": "remaining"
 }

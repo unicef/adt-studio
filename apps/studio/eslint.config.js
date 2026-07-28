@@ -75,6 +75,9 @@ export default [
             "radioName",
             // Image processing preview pane focus key (ImageProcessingPreviewFocus — not user-visible)
             "previewFocus",
+            // Day.js unit / format tokens are API identifiers, never UI copy.
+            "dayjsUnit",
+            "dayjsFormat",
 
             // --- CSS inline style properties (el.style.* assignments) ---
             "transition",

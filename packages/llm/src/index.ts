@@ -40,7 +40,13 @@ export {
   type PromptResolution,
 } from "./prompt.js"
 
-export { createRateLimiter, type RateLimiter } from "./rate-limiter.js"
+export {
+  createRateLimiter,
+  createAdaptiveRateLimiter,
+  type RateLimiter,
+  type AdaptiveRateLimiter,
+  type AdaptiveRateLimiterOptions,
+} from "./rate-limiter.js"
 
 export { createLogger, type LogLevel, type Logger } from "./logger.js"
 
