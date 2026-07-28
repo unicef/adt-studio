@@ -1430,10 +1430,34 @@ export function LanguageView({
               keyOf: (it) => (it as TextCatalogEntry).id,
               renderItem: (it) => {
                 const e = it as TextCatalogEntry;
+                const cat = getEntryCategory(e.id);
+                const catLabel =
+                  cat === "captions"
+                    ? t`Caption`
+                    : cat === "answers"
+                      ? t`Answer`
+                      : cat === "glossary"
+                        ? t`Glossary`
+                        : cat === "easy-read"
+                          ? t`Easy Read`
+                          : t`Text`;
+                const pageMatch = /^pg0*(\d+)/.exec(e.id);
+                const pageRef = pageMatch ? t`p${pageMatch[1]}` : null;
+                // Original (source-language) text for this entry — shown as
+                // context so a translation change can be judged against it.
+                const source = sourceEntriesById.get(e.id);
                 return (
-                  <span>
-                    <span className="font-mono text-[10px] text-muted-foreground">{e.id}</span>
-                    {e.text ? <span className="text-foreground"> {e.text}</span> : null}
+                  <span className="flex min-w-0 flex-col gap-0.5">
+                    <span className="flex items-center gap-1.5 text-[9px] uppercase tracking-wide text-muted-foreground">
+                      <span className="rounded bg-muted px-1 py-0.5 font-semibold" title={e.id}>
+                        {catLabel}
+                      </span>
+                      {pageRef ? <span className="tabular-nums">{pageRef}</span> : null}
+                    </span>
+                    {source && source !== e.text ? (
+                      <span className="line-clamp-2 text-[11px] text-muted-foreground">{source}</span>
+                    ) : null}
+                    {e.text ? <span className="text-foreground">{e.text}</span> : null}
                   </span>
                 );
               },
