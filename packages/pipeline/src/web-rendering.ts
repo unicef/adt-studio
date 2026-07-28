@@ -7,6 +7,7 @@ import {
   type BookTypography,
   type WebRenderingOutput,
   DEFAULT_LLM_MAX_RETRIES,
+  DEFAULT_LLM_MODEL_ID,
 } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
 import type { BookFontPromptEntry } from "./fonts-bundle.js"
@@ -377,7 +378,7 @@ export async function renderPage(
 
 const DEFAULT_RENDER_CONFIG = {
   prompt: "web_generation_html",
-  model: "openai:gpt-5.4",
+  model: DEFAULT_LLM_MODEL_ID,
   max_retries: DEFAULT_LLM_MAX_RETRIES,
   timeout: 180,
   temperature: 0.3,
@@ -431,7 +432,7 @@ export function buildRenderStrategyResolver(
     const base: RenderConfig = {
       renderType: strategy?.render_type ?? "llm",
       promptName: cfg?.prompt ?? DEFAULT_RENDER_CONFIG.prompt,
-      modelId: cfg?.model ?? DEFAULT_RENDER_CONFIG.model,
+      modelId: cfg?.model ?? appConfig.default_model ?? DEFAULT_RENDER_CONFIG.model,
       maxRetries: cfg?.max_retries ?? DEFAULT_RENDER_CONFIG.max_retries,
       timeoutMs: (cfg?.timeout ?? DEFAULT_RENDER_CONFIG.timeout) * 1000,
       temperature: cfg?.temperature ?? DEFAULT_RENDER_CONFIG.temperature,

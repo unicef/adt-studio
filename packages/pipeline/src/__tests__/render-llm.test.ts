@@ -22,6 +22,26 @@ describe("collectOptionalTextIds", () => {
     expect(optional.has("n2")).toBe(false)
   })
 
+  it("marks enumeration-marker label leaves as optional, but not real labels", () => {
+    const optional = collectOptionalTextIds([
+      { text_id: "m1", text_type: "label", text: "1." },
+      { text_id: "m2", text_type: "label", text: "10." },
+      { text_id: "m3", text_type: "label", text: "(i)" },
+      { text_id: "m4", text_type: "label", text: "(vii)" },
+      { text_id: "m5", text_type: "label", text: "(a)" },
+      // Real content labels and non-label roles stay required.
+      { text_id: "r1", text_type: "label", text: "Sehemu A" },
+      { text_id: "r2", text_type: "text", text: "1." },
+    ])
+    expect(optional.has("m1")).toBe(true)
+    expect(optional.has("m2")).toBe(true)
+    expect(optional.has("m3")).toBe(true)
+    expect(optional.has("m4")).toBe(true)
+    expect(optional.has("m5")).toBe(true)
+    expect(optional.has("r1")).toBe(false)
+    expect(optional.has("r2")).toBe(false)
+  })
+
   it("marks footer/header/page_number roles as optional", () => {
     const optional = collectOptionalTextIds([
       { text_id: "f1", text_type: "footer", text: "Some footer text" },

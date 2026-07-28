@@ -4,6 +4,9 @@ import type { I18n, MessageDescriptor } from "@lingui/core"
 export const SETTINGS_TAB_MESSAGE: Record<string, MessageDescriptor> = {
   general: msg`General`,
   overview: msg`Overview`,
+  "api-keys": msg`API Keys`,
+  models: msg`Models`,
+  "global-prompts": msg`Global Prompts`,
   fonts: msg`Fonts`,
   "image-processing": msg`Image Processing`,
   "section-types": msg`Section Types`,
@@ -42,6 +45,10 @@ export function getSettingsTabs(
   showOverviewTab: boolean,
 ): { key: string; label: string }[] | undefined {
   const tabs: Record<string, { key: string; label: string }[]> = {
+    book: [
+      { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE["api-keys"]) },
+      { key: "models", label: i18n._(SETTINGS_TAB_MESSAGE.models) },
+    ],
     extract: [
       { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE.general) },
       { key: "metadata-prompt", label: i18n._(SETTINGS_TAB_MESSAGE["metadata-prompt"]) },

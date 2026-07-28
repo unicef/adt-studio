@@ -1,6 +1,6 @@
 import { createPortal } from "react-dom"
 import type { ReactNode } from "react"
-import { Loader2, Play, Save, X } from "lucide-react"
+import { Loader2, Play, RotateCcw, Save, X } from "lucide-react"
 import { useLingui } from "@lingui/react/macro"
 import { cn } from "@/lib/utils"
 import {
@@ -11,12 +11,14 @@ import {
 } from "@/components/ui/tooltip"
 
 interface FloatingSaveBarProps {
-  onDiscard: () => void
+  onDiscard?: () => void
   onSave?: () => void
   onSaveAndRerun?: () => void
+  onReset?: () => void
   saving?: boolean
   saveDisabledReason?: string
   rerunDisabledReason?: string
+  resetDisabledReason?: string
   /** Status content next to the pulse dot. Defaults to "Unsaved changes". */
   label?: ReactNode
   /** Play the exit animation (the host keeps it mounted until it finishes). */
@@ -27,15 +29,18 @@ export function FloatingSaveBar({
   onDiscard,
   onSave,
   onSaveAndRerun,
+  onReset,
   saving = false,
   saveDisabledReason,
   rerunDisabledReason,
+  resetDisabledReason,
   label,
   closing = false,
 }: FloatingSaveBarProps) {
   const { t } = useLingui()
   const saveDisabled = !!saveDisabledReason || saving
   const rerunDisabled = !!rerunDisabledReason || saving
+  const resetDisabled = !!resetDisabledReason || saving
 
   const saveButton = onSave && (
     <button
@@ -74,6 +79,22 @@ export function FloatingSaveBar({
     </button>
   )
 
+  const resetButton = onReset && (
+    <button
+      type="button"
+      onClick={onReset}
+      disabled={resetDisabled}
+      className="inline-flex items-center gap-1.5 rounded px-3 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {saving ? (
+        <Loader2 className="h-3 w-3 animate-spin" />
+      ) : (
+        <RotateCcw className="h-3 w-3" />
+      )}
+      {t`Reset`}
+    </button>
+  )
+
   return createPortal(
     <div
       className={cn(
@@ -102,15 +123,29 @@ export function FloatingSaveBar({
 
         {/* Actions */}
         <div className="flex items-center gap-1 pr-1">
-          <button
-            type="button"
-            onClick={onDiscard}
-            disabled={saving}
-            className="inline-flex items-center gap-1.5 rounded px-3 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer disabled:opacity-50"
-          >
-            <X className="h-3 w-3" />
-            {t`Discard`}
-          </button>
+          {onDiscard && (
+            <button
+              type="button"
+              onClick={onDiscard}
+              disabled={saving}
+              className="inline-flex items-center gap-1.5 rounded px-3 py-1 text-[11px] font-medium text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer disabled:opacity-50"
+            >
+              <X className="h-3 w-3" />
+              {t`Discard`}
+            </button>
+          )}
+          {resetButton && resetDisabledReason ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>{resetButton}</span>
+                </TooltipTrigger>
+                <TooltipContent>{resetDisabledReason}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            resetButton
+          )}
           {saveButton && saveDisabledReason ? (
             <TooltipProvider>
               <Tooltip>

@@ -406,7 +406,10 @@ export function createFontRoutes(
       const samples = Array.from({ length: sampleCount }, (_, i) => pages[Math.floor(i * stride)])
 
       const config = loadBookConfig(safeLabel, booksDir, configPath)
-      const assignmentConfig = buildFontAssignmentConfig(config.font_assignment)
+      const assignmentConfig = buildFontAssignmentConfig(
+        config.font_assignment,
+        config.default_model,
+      )
       const llmCacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
       const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])

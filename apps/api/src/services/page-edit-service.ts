@@ -138,7 +138,9 @@ export async function reRenderPage(
         visualRefinement = {
           screenshotRenderer,
           webAssetsDir,
-          llmModel: resolveRenderModel(DEFAULT_VISUAL_REVIEW_MODEL_ID),
+          llmModel: resolveRenderModel(
+            config.default_model ?? DEFAULT_VISUAL_REVIEW_MODEL_ID,
+          ),
           storeScreenshot: (base64: string) => {
             const hash = crypto.createHash("sha256").update(base64).digest("hex").slice(0, 16)
             storage.putDebugImage(hash, Buffer.from(base64, "base64"))
@@ -401,7 +403,7 @@ export async function aiEditSection(
       const assetsDir = webAssetsDir
       const desktopVp = SCREENSHOT_VIEWPORTS.find((v) => v.label === "desktop")!
       const verifyModel = createLLMModel({
-        modelId: DEFAULT_VISUAL_REVIEW_MODEL_ID,
+        modelId: config.default_model ?? DEFAULT_VISUAL_REVIEW_MODEL_ID,
         cacheDir,
         promptEngine,
         onLog: (entry) => storage.appendLlmLog(entry),

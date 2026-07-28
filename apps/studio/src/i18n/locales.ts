@@ -15,18 +15,69 @@ import { i18n } from "@lingui/core"
 export const LOCALES = ["en", "pt-BR", "es", "fr", "sq"] as const
 export type AppLocale = (typeof LOCALES)[number]
 
+/** localStorage key under which the user's chosen UI locale is persisted. */
+export const LOCALE_STORAGE_KEY = "adt:locale"
+
 /**
- * Activate a locale AND reflect it on `<html lang>`.
+ * Resolve arbitrary BCP-47 locale tag(s) — e.g. from the OS — to a supported
+ * AppLocale. Candidates are tried in order (the list expresses preference);
+ * for each, an exact match wins, otherwise a language-only match (so `es-MX`
+ * → `es`, `pt` → `pt-BR`). Returns `null` when nothing matches.
+ */
+export function matchSupportedLocale(
+  candidates: string | readonly string[],
+): AppLocale | null {
+  const list = typeof candidates === "string" ? [candidates] : candidates
+  for (const raw of list) {
+    if (!raw) continue
+    const exact = LOCALES.find((l) => l.toLowerCase() === raw.toLowerCase())
+    if (exact) return exact
+    const lang = raw.split("-")[0]?.toLowerCase()
+    if (!lang) continue
+    const byLang = LOCALES.find((l) => l.split("-")[0].toLowerCase() === lang)
+    if (byLang) return byLang
+  }
+  return null
+}
+
+/**
+ * Read the persisted UI locale, if any. Returns `null` when nothing valid is
+ * stored (first launch, cleared storage, or an unsupported value).
+ */
+export function getStoredLocale(): AppLocale | null {
+  if (typeof localStorage === "undefined") return null
+  try {
+    const stored = localStorage.getItem(LOCALE_STORAGE_KEY)
+    return stored && LOCALES.includes(stored as AppLocale) ? (stored as AppLocale) : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Activate a locale, persist it, AND reflect it on `<html lang>`.
  *
  * Always use this instead of calling `i18n.activate()` directly: screen readers
  * pick their pronunciation voice from the document language, so a stale `lang`
  * attribute makes Spanish/French/Portuguese content be read with an English
  * voice (WCAG 3.1.1 / 3.1.2). BCP-47 codes like "pt-BR" are valid `lang` values.
+ *
+ * The chosen locale is saved to localStorage so it survives app restarts.
  */
 export function activateLocale(locale: AppLocale): void {
+  const changed = i18n.locale !== locale
   i18n.activate(locale)
   if (typeof document !== "undefined") {
     document.documentElement.lang = locale
+  }
+  // Only touch storage on a real change: the router re-activates the current
+  // locale on every navigation, and we don't want a write per route change.
+  if (changed && typeof localStorage !== "undefined") {
+    try {
+      localStorage.setItem(LOCALE_STORAGE_KEY, locale)
+    } catch {
+      // Persisting is best-effort; ignore quota/privacy-mode failures.
+    }
   }
 }
 

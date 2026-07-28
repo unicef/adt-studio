@@ -7,6 +7,7 @@ export interface LlmLogEntry {
   taskType: string
   pageId?: string
   promptName: string
+  requestedPromptName?: string
   modelId: string
   cacheHit: boolean
   success: boolean

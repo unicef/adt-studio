@@ -12,6 +12,11 @@ export interface GlossaryEntry {
   definition: string
   variations: string[]
   emoji: string
+  /** Bundle-relative href of the term's picture (`images/<file>`). */
+  image?: string
+  /** Bundle-relative href of the term's sign-language video
+   *  (`content/i18n/<lang>/video/sl_<id>.<ext>`). */
+  video?: string
 }
 
 export type GlossaryData = Record<string, GlossaryEntry>

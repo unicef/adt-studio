@@ -44,26 +44,51 @@ if (workspaceLabel) {
   console.log(`[dev] Workspace: ${workspaceLabel}`)
 }
 
-const child = spawn(
-  "pnpm",
-  ["--parallel", "--filter", "@adt/api", "--filter", "@adt/studio", "dev"],
-  {
+const env = {
+  ...process.env,
+  ...extraEnv,
+}
+
+const children = [
+  spawn("pnpm", ["tsc", "--build", "--watch", "--preserveWatchOutput"], {
     stdio: "inherit",
     shell: process.platform === "win32",
-    env: {
-      ...process.env,
-      ...extraEnv,
-    },
-  },
-)
+    env,
+  }),
+  spawn("pnpm", ["--filter", "@adt/runtime", "build:watch"], {
+    stdio: "inherit",
+    shell: process.platform === "win32",
+    env,
+  }),
+  spawn("pnpm", ["--filter", "@adt/api", "dev"], {
+    stdio: "inherit",
+    shell: process.platform === "win32",
+    env,
+  }),
+  spawn("pnpm", ["--filter", "@adt/studio", "dev"], {
+    stdio: "inherit",
+    shell: process.platform === "win32",
+    env,
+  }),
+]
 
 const forward = (signal) => () => {
-  if (!child.killed) child.kill(signal)
+  for (const child of children) {
+    if (!child.killed) child.kill(signal)
+  }
 }
 process.on("SIGINT", forward("SIGINT"))
 process.on("SIGTERM", forward("SIGTERM"))
 
-child.on("exit", (code, signal) => {
-  if (signal) process.kill(process.pid, signal)
-  else process.exit(code ?? 0)
-})
+let exiting = false
+for (const child of children) {
+  child.on("exit", (code, signal) => {
+    if (exiting) return
+    exiting = true
+    for (const other of children) {
+      if (other !== child && !other.killed) other.kill("SIGTERM")
+    }
+    if (signal) process.kill(process.pid, signal)
+    else process.exit(code ?? 0)
+  })
+}

@@ -535,6 +535,32 @@ export async function packageAdtWeb(
   progress.emit({ type: "step-progress", step, message: "Packaging translations and audio..." })
 
   const sourceLanguage = getBaseLanguage(language)
+
+  // Glossary term pictures: copy each item's assigned image into the shared
+  // images/ dir (deduped against page images) and remember its bundle href
+  // for glossary.json. Language-neutral, so computed once outside the loop.
+  const glossaryImageHrefs = new Map<string, string>()
+  // Text-catalog ids of active glossary items — sign-language videos attach
+  // to terms via these ids (sign_language_videos.section_id).
+  const glossaryTextIds = new Set<string>()
+  if (features?.glossary !== false && glossary?.items) {
+    glossary.items.forEach((item, i) => {
+      if (item.pruned) return
+      glossaryTextIds.add(getGlossaryItemTextId(item, i))
+      if (!item.imageId || glossaryImageHrefs.has(item.imageId)) return
+      const filename = imageMap.get(item.imageId)
+      if (!filename) return
+      if (!copiedImages.has(item.imageId)) {
+        fs.copyFileSync(
+          path.join(bookDir, "images", filename),
+          path.join(imageDir, filename),
+        )
+        copiedImages.add(item.imageId)
+      }
+      glossaryImageHrefs.set(item.imageId, `images/${filename}`)
+    })
+  }
+
   const hasTTS = (features?.readAloud !== false) && outputLanguages.some(
     (lang) => {
       const legacyLang = lang.replace("-", "_")
@@ -623,24 +649,41 @@ export async function packageAdtWeb(
     // The ADT JS runtime expects keys prefixed with "video-" and files in a "video/" directory.
     // Each video is assigned to a sectionId which maps 1:1 to a pageIndex.
     const videosMap: Record<string, string> = {}
+    // Glossary term id → bundle-relative video href, surfaced through
+    // glossary.json so the runtime popover/panel can embed the sign video.
+    const glossaryVideoHrefs = new Map<string, string>()
     if (features?.signLanguage !== false) {
       const allVideos = storage.getSignLanguageVideos()
       const videoDir = path.join(localeDir, "video")
-      if (allVideos.some((v) => v.sectionId)) {
+      // Page-section videos feed the runtime PIP player (videos.json);
+      // glossary-item videos (sectionId = `gl001`…) feed the glossary
+      // popover/panel instead and stay out of the page map.
+      const pageVideos = allVideos.filter(
+        (v) => v.sectionId && sectionIdToPageIndex.has(v.sectionId),
+      )
+      const glossaryVideos = allVideos.filter(
+        (v) => v.sectionId && glossaryTextIds.has(v.sectionId),
+      )
+      if (pageVideos.length > 0 || glossaryVideos.length > 0) {
         fs.mkdirSync(videoDir, { recursive: true })
-        for (const video of allVideos) {
-          if (!video.sectionId) continue
-          const ext = video.mimeType === "video/webm" ? ".webm" : ".mp4"
-          // Use section-based naming (e.g. sl_pg001_sec001.mp4) matching audio file conventions
-          const filename = `sl_${video.sectionId}${ext}`
-          const srcPath = storage.getSignLanguageVideoPath(video.videoId)
-          if (srcPath && fs.existsSync(srcPath)) {
-            fs.copyFileSync(srcPath, path.join(videoDir, filename))
-            const idx = sectionIdToPageIndex.get(video.sectionId)
-            if (idx !== undefined) {
-              videosMap[`video-${idx}`] = filename
-            }
-          }
+      }
+      for (const video of pageVideos) {
+        const ext = video.mimeType === "video/webm" ? ".webm" : ".mp4"
+        // Use section-based naming (e.g. sl_pg001_sec001.mp4) matching audio file conventions
+        const filename = `sl_${video.sectionId}${ext}`
+        const srcPath = storage.getSignLanguageVideoPath(video.videoId)
+        if (srcPath && fs.existsSync(srcPath)) {
+          fs.copyFileSync(srcPath, path.join(videoDir, filename))
+          videosMap[`video-${sectionIdToPageIndex.get(video.sectionId!)}`] = filename
+        }
+      }
+      for (const video of glossaryVideos) {
+        const ext = video.mimeType === "video/webm" ? ".webm" : ".mp4"
+        const filename = `sl_${video.sectionId}${ext}`
+        const srcPath = storage.getSignLanguageVideoPath(video.videoId)
+        if (srcPath && fs.existsSync(srcPath)) {
+          fs.copyFileSync(srcPath, path.join(videoDir, filename))
+          glossaryVideoHrefs.set(video.sectionId!, `content/i18n/${lang}/video/${filename}`)
         }
       }
     }
@@ -667,7 +710,14 @@ export async function packageAdtWeb(
     writeJson(path.join(localeDir, "images.json"), imagesMap)
 
     if (features?.glossary !== false) {
-      const glossaryJson = buildGlossaryJson(glossary, catalog, textsMap, baseLang === sourceLanguage)
+      const glossaryJson = buildGlossaryJson(
+        glossary,
+        catalog,
+        textsMap,
+        baseLang === sourceLanguage,
+        glossaryImageHrefs,
+        glossaryVideoHrefs,
+      )
       writeJson(path.join(localeDir, "glossary.json"), glossaryJson)
     }
   }
@@ -679,7 +729,10 @@ export async function packageAdtWeb(
   const hasQuiz = (features?.quizzes !== false) && (quizData !== undefined && quizData.quizzes.length > 0)
   const hasEasyRead = easyReadEntries.length > 0
 
-  const hasSignLanguageVideos = (features?.signLanguage !== false) && storage.getSignLanguageVideos().some((v) => v.sectionId !== null)
+  // Only page-section videos light up the runtime PIP player; glossary-item
+  // videos (sectionId = `gl001`…) are an EPUB glossary-page concern.
+  const hasSignLanguageVideos = (features?.signLanguage !== false) &&
+    storage.getSignLanguageVideos().some((v) => v.sectionId !== null && sectionIdToPageIndex.has(v.sectionId))
 
   const configJson: Record<string, unknown> = {
     title,
@@ -1748,15 +1801,32 @@ export function rewriteImageUrls(
 // Glossary helpers
 // ---------------------------------------------------------------------------
 
+export interface GlossaryJsonEntry {
+  word: string
+  definition: string
+  variations: string[]
+  emoji: string
+  /** Text-catalog id (`gl001`…) — the stable cross-surface key (e.g. for
+   *  sign-language videos attached to the term). */
+  id: string
+  /** Bundle-relative href of the term's picture (`images/<file>`). */
+  image?: string
+  /** Bundle-relative href of the term's sign-language video
+   *  (`content/i18n/<lang>/video/sl_<id>.<ext>`). */
+  video?: string
+}
+
 export function buildGlossaryJson(
   glossary: GlossaryOutput | undefined,
   catalog: TextCatalogOutput | undefined,
   textsMap: Record<string, string>,
   isSourceLanguage: boolean,
-): Record<string, { word: string; definition: string; variations: string[]; emoji: string }> {
+  imageHrefByImageId?: Map<string, string>,
+  videoHrefByItemId?: Map<string, string>,
+): Record<string, GlossaryJsonEntry> {
   if (!glossary?.items) return {}
 
-  const result: Record<string, { word: string; definition: string; variations: string[]; emoji: string }> = {}
+  const result: Record<string, GlossaryJsonEntry> = {}
 
   for (let i = 0; i < glossary.items.length; i++) {
     const item = glossary.items[i]
@@ -1767,12 +1837,17 @@ export function buildGlossaryJson(
     // Use translated text if available, otherwise fall back to source
     const word = textsMap[glId] ?? item.word
     const definition = textsMap[defId] ?? item.definition
+    const image = item.imageId ? imageHrefByImageId?.get(item.imageId) : undefined
+    const video = videoHrefByItemId?.get(glId)
 
     result[word] = {
       word,
       definition,
       variations: item.variations,
       emoji: item.emojis.join(""),
+      id: glId,
+      ...(image ? { image } : {}),
+      ...(video ? { video } : {}),
     }
   }
 

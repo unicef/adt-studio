@@ -44,6 +44,12 @@ vi.mock("@/components/pipeline/stage-config", async () => {
   return {
     STAGES: [
       {
+        slug: "book",
+        label: "Book",
+        icon: () => React.createElement("svg", { "data-testid": "book-icon" }),
+        color: "bg-gray-600",
+      },
+      {
         slug: "validation",
         label: "Validation",
         icon: () => React.createElement("svg", { "data-testid": "validation-icon" }),
@@ -62,7 +68,7 @@ vi.mock("@/components/pipeline/stage-config", async () => {
         color: "bg-gray-600",
       },
     ],
-    isStageSlug: (slug: string) => slug === "validation" || slug === "easy-read" || slug === "preview",
+    isStageSlug: (slug: string) => slug === "book" || slug === "validation" || slug === "easy-read" || slug === "preview",
   }
 })
 
@@ -85,6 +91,11 @@ vi.mock("@/components/pipeline/stages/easy-read/EasyReadSettings", () => ({ Easy
 vi.mock("@/components/pipeline/stages/captions/CaptionsSettings", () => ({ CaptionsSettings: () => <div>captions-settings</div> }))
 vi.mock("@/components/pipeline/stages/languages/LanguageSettings", () => ({ LanguageSettings: () => <div>language-settings</div> }))
 vi.mock("@/components/pipeline/stages/speech/SpeechSettings", () => ({ SpeechSettings: () => <div>speech-settings</div> }))
+vi.mock("@/components/pipeline/stages/book/BookSettings", () => ({
+  BookSettings: ({ bookLabel, tab }: { bookLabel: string; tab?: string }) => (
+    <div data-testid="book-settings">book-settings:{bookLabel}:{tab ?? "general"}</div>
+  ),
+}))
 
 const validationSettingsMock = vi.fn(({ bookLabel, tab }: { bookLabel: string; tab?: string }) => (
   <div data-testid="validation-settings">
@@ -135,6 +146,16 @@ describe("books.$label.$step.settings route", () => {
     render(<StepSettingsPage />)
 
     expect(screen.getByText("easy-read-settings")).toBeTruthy()
+  })
+
+  it("renders Book settings", async () => {
+    useParamsMock.mockReturnValue({ label: "demo-book", step: "book" })
+    useSearchMock.mockReturnValue({ tab: "global-prompts" })
+
+    const { StepSettingsPage } = await import("./books.$label.$step.settings")
+    render(<StepSettingsPage />)
+
+    expect(screen.getByTestId("book-settings").textContent).toContain("book-settings:demo-book:global-prompts")
   })
 
   it("shows the unavailable message for non-settings stages", async () => {

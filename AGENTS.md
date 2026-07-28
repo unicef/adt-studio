@@ -113,11 +113,16 @@ docker run -p 8080:80 -v ./books:/app/books adt-studio
 ```bash
 pnpm install       # Install dependencies
 pnpm dev           # Run API + Studio dev servers
-pnpm test          # Run tests
-pnpm typecheck     # TypeScript strict check
-pnpm lint          # Lint
+pnpm test          # Run tests (builds first via pretest)
+pnpm typecheck     # TypeScript strict check (tsc --build; excludes apps/adt-runtime)
+pnpm lint          # Lint apps/studio — the only package with an eslint config
 pnpm build         # Build all packages
 ```
+
+ESLint is configured for `apps/studio` only (`apps/studio/eslint.config.js`), so
+`pnpm lint` delegates to `pnpm --filter @adt/studio lint` — the same command the CI
+`i18n` job runs. `apps/adt-runtime` is not linted; it is covered by `pnpm test` and
+its own `pnpm --filter @adt/runtime typecheck`.
 
 ### Desktop Development
 
@@ -216,6 +221,7 @@ See [`docs/I18N_ADD_LANGUAGE.md`](docs/I18N_ADD_LANGUAGE.md).
 - All types defined as Zod schemas in `packages/types/`, infer TS types with `z.infer<>`
 - All API calls from frontend go through `apps/studio/src/api/client.ts` + TanStack Query
 - Styling: Tailwind utility classes only — no CSS modules, no styled-components
+- Keep React component files focused. If a file grows multiple substantial components, split it into a folder with a primary component file plus focused child components, hooks, and helpers (for example `ComponentName/ComponentName.tsx`, `ComponentName/Child.tsx`, `ComponentName/helpers.ts`).
 - Server state: TanStack Query — no Redux, Zustand, or global stores; `useState` for UI-only state
 - Routing: TanStack Router (type-safe), Forms: TanStack Form, Tables: TanStack Table
 - Pipeline functions must be pure (no side effects, all deps as params)

@@ -83,6 +83,27 @@ describe("loadGlossaryEntries", () => {
     expect(loadGlossaryEntries(undefined)).toEqual([])
     expect(loadGlossaryEntries({})).toEqual([])
   })
+
+  it("carries the source id and image href when the JSON provides them", () => {
+    const entries = loadGlossaryEntries({
+      volcano: {
+        word: "volcano",
+        definition: "d",
+        variations: [],
+        emoji: "",
+        id: "gl007",
+        image: "images/img_042.png",
+      },
+    })
+    expect(entries[0].sourceId).toBe("gl007")
+    expect(entries[0].image).toBe("images/img_042.png")
+  })
+
+  it("falls back to the EPUB id as sourceId for legacy glossary.json", () => {
+    const entries = loadGlossaryEntries(VOLCANO_JSON)
+    expect(entries[0].sourceId).toBe("gl_001")
+    expect(entries[0].image).toBeUndefined()
+  })
 })
 
 describe("wrapGlossaryTerms", () => {
@@ -102,6 +123,20 @@ describe("wrapGlossaryTerms", () => {
     expect(out).toMatch(
       /<a[^>]*epub:type="glossref"[^>]*><span id="p1_w002">volcano<\/span><\/a>/,
     )
+  })
+
+  it("routes anchors through a custom href resolver (glossary page mode)", () => {
+    const entries = loadGlossaryEntries(VOLCANO_JSON)
+    const input = xhtml(
+      `<p data-id="p1"><span id="p1_w001">A</span> <span id="p1_w002">volcano</span>.</p>`,
+    )
+    const { xhtml: out } = wrapGlossaryTerms(
+      input,
+      entries,
+      (entryId) => `__glp:0:${entryId}__`,
+    )
+    expect(out).toContain(`href="__glp:0:gl_001__"`)
+    expect(out).not.toContain(`glossary.xhtml`)
   })
 
   it("reports the inner word-span id as the backlink fragment", () => {
@@ -241,15 +276,58 @@ describe("buildGlossaryDocument", () => {
     expect(xml).toContain(`xmlns:epub="http://www.idpf.org/2007/ops"`)
     expect(xml).toContain(`epub:type="glossary"`)
     expect(xml).toContain(`role="doc-glossary"`)
-    expect(xml).toContain(`<dt id="gl_001"><dfn>volcano</dfn></dt>`)
-    expect(xml).toContain(`<dt id="gl_002"><dfn>lava</dfn></dt>`)
+    expect(xml).toContain(`<dt id="gl_001"><dfn style="font-size:24px;font-weight:bold;font-style:normal">volcano</dfn></dt>`)
+    expect(xml).toContain(`<dt id="gl_002"><dfn style="font-size:24px;font-weight:bold;font-style:normal">lava</dfn></dt>`)
     expect(xml).not.toContain(`id="gl_003"`)
-    // Backlink nav with epub:type="backlink" so the reader extracts "Used in".
-    expect(xml).toContain(
-      `<a epub:type="backlink" href="pg002_sec001.xhtml#pg002_p3_w006">Page 3</a>`,
-    )
+    // The definition is popover content — 24px inline (document CSS never
+    // reaches the reader's extracted fragment).
+    expect(xml).toContain(`<p style="font-size:24px`)
+    // No backlinks: the reader's popover would show them as stray page links.
+    expect(xml).not.toContain(`epub:type="backlink"`)
+    expect(xml).not.toContain(`Page 3`)
     // Alphabetised: "lava" before "volcano" regardless of declaration order.
     expect(xml.indexOf(">lava<")).toBeLessThan(xml.indexOf(">volcano<"))
+  })
+
+  it("embeds the term picture and an autoplaying sign-language video in the dd", () => {
+    const entries = loadGlossaryEntries({
+      volcano: {
+        word: "volcano",
+        definition: "A mountain that erupts.",
+        variations: [],
+        emoji: "🌋",
+        id: "gl001",
+        image: "images/img_042.png",
+      },
+    })
+    const xml = buildGlossaryDocument({
+      language: "en",
+      heading: "Glossary",
+      entries,
+      backlinksByEntry: backlinks({ gl_001: [] }),
+      videoHrefBySourceId: new Map([["gl001", "content/video/glossary/sl_gl001.mp4"]]),
+    })
+    expect(xml).toContain(`<img src="images/img_042.png" alt=""`)
+    // Muted autoplay + loop: the sign plays as soon as the popover opens;
+    // controls stay for replay/unmute.
+    expect(xml).toContain(`<video src="content/video/glossary/sl_gl001.mp4"`)
+    expect(xml).toContain(`autoplay="autoplay"`)
+    expect(xml).toContain(`muted="muted"`)
+    expect(xml).toContain(`loop="loop"`)
+    expect(xml).toContain(`controls="controls"`)
+    expect(xmlParseError(xml)).toBeNull()
+  })
+
+  it("omits image and video markup when the entry has neither", () => {
+    const entries = loadGlossaryEntries(VOLCANO_JSON)
+    const xml = buildGlossaryDocument({
+      language: "en",
+      heading: "Glossary",
+      entries,
+      backlinksByEntry: backlinks({ gl_001: [] }),
+    })
+    expect(xml).not.toContain(`<img`)
+    expect(xml).not.toContain(`<video`)
   })
 
   it("is parseable by the reader's glossary contract (dl/dt[id]/dfn/dd)", () => {

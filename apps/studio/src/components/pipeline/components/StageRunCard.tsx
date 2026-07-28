@@ -97,6 +97,20 @@ export function StageRunCard({
     })
     .find((item) => item !== null)
 
+  // The run has been kicked off but no step has reported yet — the server is
+  // still in its synchronous stage startup (for Extract: reading and parsing
+  // the PDF, seconds on a large book). Spin the first pending sub-step so the
+  // card body doesn't sit inert and grey while the header already says
+  // "Running". Resolves into the real step state on the first step-start.
+  const anyStepRunning = subSteps.some(({ key }) => stepState(key) === "running")
+  const startingStepKey =
+    isRunning && !anyStepRunning
+      ? subSteps.find(({ key }) => {
+          const state = stepState(key)
+          return state !== "done" && state !== "skipped"
+        })?.key
+      : undefined
+
   return (
     <Card className={cn("overflow-hidden max-w-xl shadow-none", borderColor)}>
       {/* Colored header */}
@@ -132,7 +146,7 @@ export function StageRunCard({
               const numericProgressLabel = hasPages ? `${progress.page}/${progress.totalPages}` : null
               const messageProgressLabel = progress?.message?.trim()
               const progressLabel = messageProgressLabel || numericProgressLabel
-              const isSubRunning = state === "running"
+              const isSubRunning = state === "running" || key === startingStepKey
               const showInlineProgress = Boolean(
                 isSubRunning &&
                 progressLabel &&

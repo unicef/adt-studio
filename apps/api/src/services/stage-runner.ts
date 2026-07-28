@@ -30,7 +30,8 @@ import {
   // Proof step imports
   captionPageImages,
   buildCaptionConfig,
-  extractImageIds,
+  collectCaptionImageIds,
+  groupGlossaryImageIdsByPage,
   regenerateGlossaryPreservingEdits,
   buildGlossaryConfig,
   generateToc,
@@ -108,6 +109,7 @@ import type {
   StepName,
   StageName,
   BookSummaryOutput,
+  GlossaryOutput,
 } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
 import type { PageData } from "@adt/storage"
@@ -420,15 +422,30 @@ interface ConcurrencyControls {
   stopSignal?: AbortSignal
   /** Pause admission while a page-error decision is pending. */
   gate?: AdmissionGate
+  /** Delay between launches while filling the first wave (see LAUNCH_RAMP_MS).
+   *  Set to 0 to disable the ramp. Defaults to LAUNCH_RAMP_MS. */
+  rampMs?: number
 }
 
-async function processWithConcurrency<T>(
+/** Stagger between the first `concurrency` launches of a page-level step.
+ *  Firing the whole first wave at once opens that many cold TLS connections
+ *  simultaneously — a thundering herd the model provider/CDN resets (surfacing
+ *  as `write EPIPE` / `ECONNRESET` / "other side closed" bursts at step start).
+ *  Spacing the opening wave lets keep-alive sockets warm up and be reused; once
+ *  the pool is full, completions pace new launches so steady-state throughput is
+ *  unchanged. ~100ms × concurrency adds a few seconds once per step — far less
+ *  than the many multi-second failed-request retries it avoids. */
+const LAUNCH_RAMP_MS = 100
+
+export async function processWithConcurrency<T>(
   items: T[],
   concurrency: number,
   fn: (item: T) => Promise<void>,
   controls?: ConcurrencyControls
 ): Promise<void> {
   const executing = new Set<Promise<void>>()
+  const rampMs = controls?.rampMs ?? LAUNCH_RAMP_MS
+  let launched = 0
   try {
     for (const item of items) {
       if (controls?.runSignal?.aborted) throw new RunCancelledError()
@@ -436,10 +453,18 @@ async function processWithConcurrency<T>(
       // Re-check after the gate: a cancel or "stop" may have arrived while paused.
       if (controls?.runSignal?.aborted) throw new RunCancelledError()
       if (controls?.stopSignal?.aborted) break
+      // Space out only the opening wave (the cold-start connection burst). Once
+      // `concurrency` items are in flight, completions pace the rest, so no ramp.
+      if (rampMs > 0 && launched > 0 && launched < concurrency) {
+        await sleep(rampMs, controls?.runSignal)
+        if (controls?.runSignal?.aborted) throw new RunCancelledError()
+        if (controls?.stopSignal?.aborted) break
+      }
       const p = fn(item).finally(() => {
         executing.delete(p)
       })
       executing.add(p)
+      launched++
       if (executing.size >= concurrency) {
         await Promise.race(executing)
       }
@@ -1343,7 +1368,9 @@ async function runStoryboardStep(
         visualRefinement = {
           screenshotRenderer,
           webAssetsDir,
-          llmModel: resolveRenderModel(DEFAULT_VISUAL_REVIEW_MODEL_ID),
+          llmModel: resolveRenderModel(
+            config.default_model ?? DEFAULT_VISUAL_REVIEW_MODEL_ID,
+          ),
           storeScreenshot: (base64: string) => {
             const hash = crypto.createHash("sha256").update(base64).digest("hex").slice(0, 16)
             storage.putDebugImage(hash, Buffer.from(base64, "base64"))
@@ -1690,6 +1717,13 @@ async function runCaptionsStep(
     const summaryRow = storage.getLatestNodeData("book-summary", "book")
     const bookSummary = (summaryRow?.data as BookSummaryOutput | undefined)?.summary
 
+    const glossaryRow = storage.getLatestNodeData("glossary", "book")
+    const glossary = glossaryRow?.data as GlossaryOutput | undefined
+    const glossaryImageIdsByPage = groupGlossaryImageIdsByPage(
+      glossary,
+      (imageId) => storage.getImageMeta(imageId)?.pageId,
+    )
+
     const onLlmLog = (entry: LlmLogEntry) => {
       storage.appendLlmLog(entry)
       const step = entry.taskType as StepName
@@ -1771,7 +1805,10 @@ async function runCaptionsStep(
           const htmlSections = rendering.sections
             .filter((s) => !sectioning?.sections[s.sectionIndex]?.isPruned)
             .map((s) => s.html)
-          const imageIds = extractImageIds(htmlSections)
+          const imageIds = collectCaptionImageIds(
+            htmlSections,
+            glossaryImageIdsByPage.get(page.pageId),
+          )
 
           if (imageIds.length === 0) {
             storage.putNodeData("image-captioning", page.pageId, { captions: [] })
@@ -2555,7 +2592,8 @@ async function runSpeechStep(
     const voiceMaps = loadVoicesConfig(configDir)
     const instructionsMap = loadSpeechInstructions(configDir)
 
-    const speechModel = config.speech?.model
+    const speechModel =
+      config.speech?.model ?? config.default_speech_generation_model
     const defaultProvider = config.speech?.default_provider ?? "openai"
     const providerConfigs = config.speech?.providers ?? {}
     const routing: ProviderRouting = { providers: providerConfigs, defaultProvider }
