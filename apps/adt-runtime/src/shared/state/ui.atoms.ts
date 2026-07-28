@@ -20,7 +20,6 @@ export const dockWidthAtom = persistedStringAtom("dockWidth", "full")
 export const dockPositionAtom = persistedStringAtom("dockPosition", "bottom")
 export const dockAlignAtom = persistedStringAtom("dockAlign", "spread")
 
-
 export type IconSize = "sm" | "md" | "lg"
 export const iconSizeAtom = persistedStringAtom("iconSize", "md")
 export const reduceMotionAtom = persistedBoolAtom("reduceMotion", false)
@@ -28,28 +27,14 @@ export const reduceMotionAtom = persistedBoolAtom("reduceMotion", false)
 export type Theme = "light" | "dark" | "system"
 export const themeAtom = persistedStringAtom("theme", "dark")
 
-
 export const dockReadyAtom = ephemeralAtom(false)
 export const dockHiddenAtom = ephemeralAtom(false)
 
-/**
- * Embed mode is a property of the URL, so it resolves at module load instead
- * of waiting for `bootRuntime`. That matters: the glossary highlighter
- * decorates the page as soon as its data lands, which happens *before* the
- * async boot would have set this flag — leaving a window in which highlights
- * get painted into a preview that is meant to show none.
- */
 function readEmbedModeFromUrl(): boolean {
   if (typeof window === "undefined") return false
   return new URLSearchParams(window.location.search).get("embed") === "1"
 }
 
-/**
- * True when the runtime is mounted inside a `?embed=1` preview iframe (e.g.
- * the Studio storyboard activity preview). The page then shows book content
- * plus the activity controls and nothing else: no dock, no glossary
- * highlighting, no notepad / ELI5 / sign-language surfaces, no tutorial.
- */
 export const embedModeAtom = ephemeralAtom(readEmbedModeFromUrl())
 export const sidebarOpenAtom = ephemeralAtom(false)
 export const navOpenAtom = ephemeralAtom(false)

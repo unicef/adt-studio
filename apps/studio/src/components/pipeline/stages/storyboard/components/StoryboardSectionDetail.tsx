@@ -576,17 +576,6 @@ export function StoryboardSectionDetail({
     pageHasActivitySection,
   )
   const [editActivityPanelOpen, setEditActivityPanelOpen] = useState(false)
-  // Two-way link between the activity editor and the rendered page.
-  //
-  // `linkedAnchor` is the committed selection (a click in the page, a focused
-  // field, the panel's "show in page" button); `hoverAnchor` is a preview from
-  // whichever surface the pointer is over — only one can be hovered at a time,
-  // so a single slot serves both directions.
-  //
-  // The selection wins: `linkedAnchor ?? hoverAnchor`. With nothing selected,
-  // sweeping either surface previews the pairing; once something is selected
-  // the highlight is pinned and only another selection moves it, so the page
-  // holds still while the user edits. Escape releases it.
   const [linkedAnchor, setLinkedAnchor] = useState<ActivityAnchor | null>(null)
   const [linkedFromPage, setLinkedFromPage] = useState(false)
   const [hoverAnchor, setHoverAnchor] = useState<ActivityAnchor | null>(null)
@@ -1322,10 +1311,6 @@ export function StoryboardSectionDetail({
     setSelectedElementClasses(previewFrameRef.current?.getElementClasses(dataId) ?? null)
   }, [])
 
-  // ── Activity editor ↔ page linking ──────────────────────────────────────
-  /** Scroll the preview so the anchored element is visible. The element lives
-   *  inside the iframe, which doesn't scroll in desktop view — the host's
-   *  scroll container is the one that has to move. */
   const revealAnchorInPage = useCallback((anchor: ActivityAnchor) => {
     const container = scrollContainerRef.current
     const rect = previewFrameRef.current?.getAnchorViewportRect(anchor)
@@ -1353,12 +1338,6 @@ export function StoryboardSectionDetail({
     setLinkedFromPage(true)
   }, [])
 
-  /**
-   * Hover fires once per element the pointer crosses, and each report is a
-   * freshly allocated anchor — so a plain identity set would re-render this
-   * whole component (and every anchored field) on every mouse move, even when
-   * the resolved anchor has not actually changed. Collapse by value.
-   */
   const handleAnchorHover = useCallback((anchor: ActivityAnchor | null) => {
     setHoverAnchor((prev) => (sameAnchor(prev, anchor) || prev === anchor ? prev : anchor))
   }, [])
@@ -2012,16 +1991,8 @@ export function StoryboardSectionDetail({
   const editableBusy =
     convertEditableActivity.isPending || setEditablePresentation.isPending
 
-  // With the classic activity editor open the page becomes a click-to-locate
-  // map: inline editing is off (content is edited in the panel) and clicks
-  // report an anchor instead. The panel also forces the WYSIWYG preview, so
-  // edits appear immediately rather than after a save + re-render.
   const activityLinkMode = isActivitySection && !stepperEnabled && editActivityPanelOpen
 
-  // Drop stale links when the panel toggles or the user moves to another
-  // section — an anchor from a different page would highlight nothing. Opening
-  // the panel also dismisses the style inspector: its element selection came
-  // from the layout editor, which link mode has just switched off.
   useEffect(() => {
     setLinkedAnchor(null)
     setLinkedFromPage(false)
@@ -2240,12 +2211,6 @@ export function StoryboardSectionDetail({
                             layout/style work. */}
                         <button
                           type="button"
-                          // Only toggles the panel. The render gate below
-                          // already swaps in the WYSIWYG frame while it is
-                          // open — which is what content editing needs, since
-                          // that frame updates live and carries the link
-                          // channel — so the user's Try Activity preference
-                          // survives to when they close the panel again.
                           onClick={() => setEditActivityPanelOpen((v) => !v)}
                           className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors cursor-pointer"
                         >
@@ -2518,9 +2483,6 @@ export function StoryboardSectionDetail({
           </div>
         </div>
       )}
-
-
-
 
       {/* Slide-out step-by-step activity editor (CMS). The key MUST include
           book+page: the component instance survives page navigation, and a

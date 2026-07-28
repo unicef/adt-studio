@@ -21,15 +21,12 @@ export function isZipFile(f: File): boolean {
   )
 }
 
-/** True when the OS asks for reduced motion. Read at call time rather than
- *  cached — the setting can change while the app is open. */
 export function prefersReducedMotion(): boolean {
   if (typeof window === "undefined" || !window.matchMedia) return false
   /* eslint-disable-next-line lingui/no-unlocalized-strings -- CSS media query */
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches
 }
 
-/** `scrollIntoView`/`scrollTo` behavior honouring the reduced-motion setting. */
 export function scrollBehavior(): ScrollBehavior {
   return prefersReducedMotion() ? "auto" : "smooth"
 }

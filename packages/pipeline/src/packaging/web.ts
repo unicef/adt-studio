@@ -1140,7 +1140,6 @@ function injectOpacityClass(html: string): string {
   )
 }
 
-
 export function stripContentEditable(html: string): string {
   return html.replace(
     /\s+contenteditable(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/gi,
@@ -1223,20 +1222,6 @@ ${fallbackHeadingHtml}${contentBlock}
       ? ` style="background-color: ${escapeAttr(bgMatch[1])};"`
       : ""
   }
-
-  // Embed mode — showing just the section and its activity controls — is
-  // enforced entirely in the runtime: `embedModeAtom` makes ChromeRoot skip
-  // the glossary highlighter, tutorial, notepad, ELI5 and sign-language
-  // surfaces, and BottomDock render nothing.
-  //
-  // There used to be a stylesheet here hiding twelve element ids. Every one
-  // of them belonged to the pre-React reader and matched nothing, so it hid
-  // nothing; embed previews only looked clean because BottomDock opted out on
-  // its own. CSS could not have done this job anyway — the highlighter and
-  // the tutorial rewrite the page's own DOM, which no rule can undo.
-  //
-  // #nav-container stays visible: the runtime mounts the activity
-  // Submit/Reset pair into it.
 
   // Reflowable base-font override: re-declare the same elements fonts.css
   // targets with the chosen family, placed last in <head> so it wins. Omitted
@@ -1560,7 +1545,6 @@ export function buildImageMap(imagesDir: string): Map<string, string> {
   return map
 }
 
-
 function loadImageCaptionMap(storage: Storage, pageId: string): Map<string, string> {
   const row = storage.getLatestNodeData("image-captioning", pageId)
   if (!row) return new Map<string, string>()
@@ -1672,7 +1656,6 @@ export function buildPreferredImageAltMap(
   }
   return section ? applyDuplicateImageAltPolicy(section, preferredImageAltMap) : preferredImageAltMap
 }
-
 
 /** Rewrite image URLs from /api/books/{label}/images/{id} to images/{filename} */
 export function rewriteImageUrls(

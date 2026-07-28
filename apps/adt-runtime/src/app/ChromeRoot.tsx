@@ -33,8 +33,6 @@ export function ChromeRoot() {
   useThemeSync()
   const embed = useAtomValue(embedModeAtom)
 
-  // The toaster stays: activity feedback and load errors still need somewhere
-  // to surface, and it shows nothing until something is dispatched.
   if (embed) {
     return <Toaster position="top-center" richColors closeButton />
   }

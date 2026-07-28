@@ -22,12 +22,8 @@
  * [[blank:item-N]] markers) — editing through the tree text would silently
  * strip the markers and break the blanks.
  *
- * Controls are wrapped in `Anchored`, tying each to its element in the page
- * preview (see `activity-link.ts`). Two intensities, and the distinction is
- * the whole interaction model: with nothing selected, hovering either surface
- * *previews* the pairing; once something is selected the preview is muted and
- * only another selection moves the highlight, so the page stays put while you
- * type. Escape clears the selection and re-arms hover.
+ * Controls are wrapped in `Anchored`, which ties each to its element in the
+ * page preview — see `activity-link.ts`.
  */
 import {
   createContext,
@@ -96,17 +92,9 @@ const DEFAULT_PANEL_WIDTH = 460
 const PANEL_WIDTH_STORAGE_KEY = "adt:activity-panel-width"
 const HINT_DISMISSED_STORAGE_KEY = "adt:activity-panel-hint-dismissed"
 
-/** Sentinel item-id for "no option marked correct" — Radix RadioGroup
- *  cannot take an empty string as its value. */
 // eslint-disable-next-line lingui/no-unlocalized-strings -- sentinel value, never rendered
 const NO_CHOICE_ID = "__none__"
 
-/**
- * localStorage throws outright where site data is blocked (third-party
- * context, a locked-down Electron partition) and on quota. These reads happen
- * in render, so an unguarded throw would blank the whole storyboard stage
- * rather than fall back to a default width.
- */
 function readStoredWidth(): number {
   try {
     const stored = Number(localStorage.getItem(PANEL_WIDTH_STORAGE_KEY))
@@ -121,7 +109,6 @@ function writeStoredWidth(width: number): void {
   try {
     localStorage.setItem(PANEL_WIDTH_STORAGE_KEY, String(width))
   } catch {
-    // A non-persisted width is a cosmetic loss; never break the editor for it.
   }
 }
 
@@ -133,12 +120,6 @@ function readHintDismissed(): boolean {
   }
 }
 
-/**
- * Suppresses a control's own focus ring. Not a loss of affordance: a field can
- * only be focused when it is the selection, so `Anchored` is already drawing a
- * violet outline around it. Without this the answer inputs carry three
- * concentric rings — emerald border, blue focus ring, violet outline.
- */
 const NO_INNER_RING = "focus-visible:ring-0 focus-visible:ring-offset-0"
 
 interface ClassicActivityPanelProps {
@@ -285,15 +266,6 @@ function buildTextMap(
   return fromTree
 }
 
-/**
- * An item's wording as it reads in the printed exercise: blank markers become
- * underscores. Used for the resting state of a card title — the raw
- * `[[blank:…]]` source only appears once the title is being edited, which is
- * the only moment the marker can be broken.
- *
- * Not truncated here: the full string stays in the DOM (CSS clips it) so
- * assistive tech gets the whole sentence, not an ellipsis.
- */
 function readableText(text: string | undefined): string {
   if (!text) return ""
   return text
@@ -308,8 +280,6 @@ function imageSrc(bookLabel: string, image: { imageId?: string; src: string }): 
   return `${BASE_URL}/books/${bookLabel}/adt-preview/${image.src}`
 }
 
-// ── Page ↔ panel link plumbing ────────────────────────────────────────────
-
 interface LinkContextValue {
   linked: ActivityAnchor | null
   hovered: ActivityAnchor | null
@@ -322,23 +292,8 @@ const LinkContext = createContext<LinkContextValue>({
   fromPage: false,
 })
 
-/**
- * The anchor an enclosing card has already claimed. An item card highlights as
- * a whole, so the one field that stands for it must not re-anchor itself —
- * otherwise two nodes answer to the same anchor and the ring lands on the
- * inner input instead of the card the pointer is actually over.
- */
 const ClaimedAnchorContext = createContext<string | null>(null)
 
-/**
- * Ties one control to its element in the page. Hover and focus reporting is
- * delegated to the scroll container (see `linkDelegation`) rather than handled
- * here: anchors nest — a card owns the item, a row inside it owns the answer,
- * an input inside that owns the option text — and per-element enter/leave
- * handlers would drop the outer anchor the moment the pointer crossed into an
- * inner one. One delegated listener resolving `closest("[data-anchor]")`
- * always picks the innermost.
- */
 function Anchored({
   anchor,
   className,
@@ -351,21 +306,14 @@ function Anchored({
   const { linked, hovered, fromPage } = useContext(LinkContext)
   const claimed = useContext(ClaimedAnchorContext)
   const ref = useRef<HTMLDivElement>(null)
-  // Claimed by the card above: stay out of the way entirely — no anchor
-  // attribute, no ring, no reveal. The card owns all three.
   const isClaimed = claimed !== null && claimed === anchorKey(anchor)
   const isLinked = !isClaimed && sameAnchor(linked, anchor)
-  // A selection freezes the pairing: previewing something else while the user
-  // works in a field would drag the page out from under them.
   const isPreviewed = !isClaimed && !linked && sameAnchor(hovered, anchor)
 
   useEffect(() => {
     if (!isLinked || !fromPage) return
     const el = ref.current
     if (!el) return
-    // Scoped to the panel's own scroller. `scrollIntoView` walks every
-    // scrollable ancestor, so it would also drag the storyboard canvas — the
-    // Studio layout jumping while the user only meant to move within the list.
     const viewport = el.closest<HTMLElement>("[data-radix-scroll-area-viewport]")
     if (viewport) {
       const target = el.getBoundingClientRect()
@@ -377,8 +325,6 @@ function Anchored({
     } else {
       el.scrollIntoView({ block: "center", behavior: scrollBehavior() })
     }
-    // Hand over the caret so a page click lands the user ready to type, or on
-    // the choice control when the row has no text field.
     const focusable =
       el.querySelector<HTMLElement>("textarea, input, select") ??
       el.querySelector<HTMLElement>("[role=radio]")
@@ -392,13 +338,7 @@ function Anchored({
       ref={ref}
       data-anchor={anchorKey(anchor)}
       className={cn(
-        // No outline utilities in the base: `outline-solid` on its own resolves
-        // to the browser's default medium/currentColor outline, which would
-        // draw a black box around every field.
         "relative rounded-md outline-offset-2 transition-all duration-200 ease-out motion-reduce:transition-none",
-        // Both states are solid here and differ by weight — the dashed outline
-        // is the page's own preview vocabulary and stays there, where it reads
-        // against book content rather than against form controls.
         isLinked && "outline-2 outline-solid outline-violet-500 dark:outline-violet-400",
         isPreviewed && "outline-2 outline-solid outline-violet-300 dark:outline-violet-600",
         className,
@@ -409,8 +349,6 @@ function Anchored({
   )
 }
 
-/** Textarea that grows with its content — the row-count heuristic it replaces
- *  mis-sized wrapped text and jumped a full line at a time while typing. */
 function AutoTextarea({
   value,
   onChange,
@@ -447,17 +385,6 @@ function AutoTextarea({
   )
 }
 
-/**
- * A card's title, which is also the item's main text field — showing both
- * would print the same sentence twice.
- *
- * At rest it is a real `<button>`, not a `<p>`: that keeps it in the tab
- * order, announces as actionable, and carries the full untruncated sentence as
- * its accessible name. Activating it (click, Enter, Space) selects the card,
- * which is what flips `editing` — so the swap is a consequence of selection
- * rather than a second, separate mode. Focus is moved into the textarea on the
- * way in; Escape releases the selection and hands focus back.
- */
 function InlineTitle({
   value,
   onChange,
@@ -490,9 +417,6 @@ function InlineTitle({
     }
     if (!wasEditing.current) return
     wasEditing.current = false
-    // Leaving edit mode unmounts the textarea. If that orphaned the focus —
-    // Escape, rather than a click on some other control — put it back on the
-    // button so keyboard users keep their place.
     if (document.activeElement === document.body) {
       buttonRef.current?.focus({ preventScroll: true })
     }
@@ -503,16 +427,11 @@ function InlineTitle({
       <button
         ref={buttonRef}
         type="button"
-        // Focusing this button must NOT select the card: Escape restores focus
-        // here, and if that re-selected we would bounce straight back into the
-        // editor. Activating it (click / Enter / Space) still selects, via the
-        // container's click delegation.
         data-title-button="true"
         aria-label={`${label}: ${readableText(value)}`}
         className={cn(
           "flex min-w-0 flex-1 cursor-text items-center gap-1.5 rounded text-left text-xs font-medium",
           "transition-colors duration-200 hover:text-violet-700 motion-reduce:transition-none dark:hover:text-violet-300",
-          // The UA default focus ring is blue; keep the panel's one accent.
           "focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-violet-400 focus-visible:outline-offset-2",
         )}
       >
@@ -562,12 +481,6 @@ function SectionHeading({ children, count }: { children: ReactNode; count?: numb
   )
 }
 
-/**
- * The answer key's storage key. Technical — the only way to correlate an
- * editor row with the page markup when something looks wrong — so it's styled
- * to recede. Deliberately not hover-revealed: in the flat answer list this
- * chip is the row's only label.
- */
 function ItemIdChip({ itemId, hint }: { itemId: string; hint: string }) {
   return (
     <Tooltip>
@@ -703,9 +616,6 @@ export function ClassicActivityPanel({
     if (!dirty) setTexts(buildTextMap(leaves, structure, outline))
   }, [dirty, leaves, structure, outline])
 
-  // Desktop tool: the panel competes with the page preview for width, so the
-  // split is the user's to set. Persisted globally — it's a workspace
-  // preference, not per-book state.
   const [panelWidth, setPanelWidth] = useState(readStoredWidth)
   const startResize = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -726,10 +636,6 @@ export function ClassicActivityPanel({
         writeStoredWidth(clamp(ev))
       }
 
-      // Capture is what makes this survive the drag: the grip sits on the
-      // panel's left edge, so widening drags the pointer straight over the
-      // preview iframe, which would otherwise receive the events itself —
-      // freezing the drag and leaving the listeners attached for good.
       grip.setPointerCapture?.(pointerId)
       grip.addEventListener("pointermove", onMove)
       grip.addEventListener("pointerup", finish)
@@ -743,7 +649,6 @@ export function ClassicActivityPanel({
     try {
       localStorage.setItem(HINT_DISMISSED_STORAGE_KEY, "1")
     } catch {
-      // Dismissal just won't persist across reloads.
     }
     setHintDismissed(true)
   }, [])
@@ -753,8 +658,6 @@ export function ClassicActivityPanel({
     onTextEdited(dataId, value)
   }
 
-  // ⌘S saves. Escape releases the selection first — that's what re-arms the
-  // hover preview — and only closes the panel once nothing is selected.
   const panelRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
     if (!open) return
@@ -765,9 +668,6 @@ export function ClassicActivityPanel({
         return
       }
       if (e.key !== "Escape") return
-      // Releasing the selection doesn't require focus to be in the panel:
-      // clicking a card selects it without focusing anything, and that
-      // selection still has to be dismissable.
       if (linkedAnchor) {
         e.preventDefault()
         ;(document.activeElement as HTMLElement | null)?.blur()
@@ -789,7 +689,6 @@ export function ClassicActivityPanel({
     [linkedAnchor, hoveredAnchor, linkedFromPage],
   )
 
-  /** One delegated listener set for the whole form — see {@link Anchored}. */
   const anchorAt = (target: EventTarget | null): ActivityAnchor | null =>
     parseAnchorKey(
       (target as HTMLElement | null)?.closest?.("[data-anchor]")?.getAttribute("data-anchor"),
@@ -797,9 +696,6 @@ export function ClassicActivityPanel({
   const linkDelegation = {
     onMouseOver: (e: React.MouseEvent) => onAnchorHover(anchorAt(e.target)),
     onMouseLeave: () => onAnchorHover(null),
-    // Clicking a card selects it and jumps the page there; clicking a field
-    // inside selects that field instead (closest() resolves the innermost).
-    // Clicking the gaps between cards releases the selection.
     onClick: (e: React.MouseEvent) => onAnchorSelect(anchorAt(e.target)),
     onFocusCapture: (e: React.FocusEvent) => {
       if ((e.target as HTMLElement).dataset?.titleButton) return
@@ -843,9 +739,6 @@ export function ClassicActivityPanel({
     />
   )
 
-  /** The id chip sits OUTSIDE the anchor so the selection outline hugs the
-   *  field itself; wrapping the whole row made it bulge around the chip and
-   *  collide with the answer zone's edge. */
   const answerField = (itemId: string) => (
     <div key={itemId} className="flex items-center gap-2">
       <Anchored anchor={answerAnchor(itemId)} className="flex-1">
@@ -862,11 +755,6 @@ export function ClassicActivityPanel({
     </span>
   )
 
-  /**
-   * Marks the answer key apart from the question. A left accent bar rather
-   * than a filled box: every item has one of these, and a stack of saturated
-   * green panels turned the whole panel green.
-   */
   const answerZone = (children: ReactNode) => (
     <div className="space-y-2 border-l-2 border-emerald-400 pl-2.5 dark:border-emerald-500/60">
       {children}
@@ -877,9 +765,6 @@ export function ClassicActivityPanel({
     <Anchored key={imageId} anchor={imageAnchor(imageId)} className="inline-flex">
       <img
         src={`${BASE_URL}/books/${bookLabel}/images/${imageId}`}
-        // Decorative only when the caller has nothing to say about it —
-        // the ungrouped-images grid does, and dropping it left that whole
-        // section silent to a screen reader.
         alt={alt ?? ""}
         title={imageId}
         className={className}
@@ -889,7 +774,6 @@ export function ClassicActivityPanel({
 
   const ANSWER_AREA_CLASS = "space-y-2 rounded-md border border-dashed bg-muted/40 p-2.5"
 
-  /** Writable-answer block for an outline input (open-ended, table cell…). */
   const answerArea = (itemId: string | undefined, index: number, children: ReactNode) =>
     itemId ? (
       <Anchored key={itemId} anchor={answerAnchor(itemId)} className={ANSWER_AREA_CLASS}>
@@ -901,8 +785,6 @@ export function ClassicActivityPanel({
       </div>
     )
 
-  /** A choice row is the answer's editing surface — anchoring it is what lets
-   *  a click on the option's box in the page land here. */
   const optionRow = (itemId: string | undefined, index: number, children: ReactNode) =>
     itemId ? (
       <Anchored key={itemId} anchor={answerAnchor(itemId)} className="flex items-center gap-2">
@@ -924,18 +806,9 @@ export function ClassicActivityPanel({
     />
   )
 
-  /** The item-id currently flagged correct in a single-choice group. */
   const correctOf = (ids: (string | undefined)[]) =>
     ids.find((id) => id && isCorrectAnswer(answers?.[id])) ?? NO_CHOICE_ID
 
-  /**
-   * The stored value for a value-choice (true/false) group, matched back to
-   * the option that carries it. The answer key and the rendered `value`
-   * attribute come from different producers, so they drift in case — a key of
-   * "True" against `value="true"` must still read as selected, or the editor
-   * reports an answered item as unanswered and the author re-picks it,
-   * silently rewriting a correct key.
-   */
   const selectedValueOf = (item: ActivityOutlineItem, itemId: string): string => {
     const stored = String(answers?.[itemId] ?? "").trim().toLowerCase()
     if (!stored) return NO_CHOICE_ID
@@ -966,31 +839,16 @@ export function ClassicActivityPanel({
     )
   }
 
-  /**
-   * Card shell. The card is itself the anchor for the item, and it *claims*
-   * that anchor so the field standing for it renders plain — hovering anywhere
-   * on the card rings the card, and only a genuinely different target (an
-   * answer, an option) rings a narrower box.
-   *
-   * The cursor override keeps text fields feeling like text fields even though
-   * their container is clickable.
-   */
   const CARD_CLASS =
-    // Neutral on hover: violet is reserved for the page↔panel link, so a
-    // violet card border would compete with the outline that means "this is
-    // the element highlighted in the book".
     "group/card space-y-2.5 rounded-lg border bg-card p-3 transition-colors duration-200 ease-out hover:border-muted-foreground/30 motion-reduce:transition-none"
 
   const itemCard = (opts: {
     key: string
     index: number
     label: string
-    /** The item's main text, edited in the header rather than repeated as a
-     *  field below it. Its dataId is normally also the card's anchor. */
     titleField?: { dataId: string; label: string; mono?: boolean }
     anchor?: ActivityAnchor
     itemId?: string
-    /** Flags an item whose answer key is still blank. */
     unanswered?: boolean
     children: ReactNode
   }) => {
@@ -1062,9 +920,6 @@ export function ClassicActivityPanel({
   const outlineItemCard = (item: ActivityOutlineItem, i: number) => {
     const valueItemId = item.choice === "value" ? item.options[0]?.itemId : undefined
     const anchorItemId = item.inputs[0]?.itemId ?? valueItemId
-    // Prefer the question text over the bare "1)" marker: it's what the card
-    // is about, so it's both the better thing to light up in the page and the
-    // better thing to read in the header.
     const cardAnchor = item.prompts[0]?.dataId
       ? textAnchor(item.prompts[0].dataId)
       : item.number?.dataId
@@ -1073,8 +928,6 @@ export function ClassicActivityPanel({
           ? answerAnchor(anchorItemId)
           : undefined
 
-    // Only flag items that actually have an answer unit — an open-ended
-    // question with no key isn't "missing" anything.
     const filled: boolean[] = []
     for (const input of item.inputs) {
       const id = input.itemId
@@ -1091,8 +944,6 @@ export function ClassicActivityPanel({
       filled.push(item.options.some((o) => isCorrectAnswer(answers?.[o.itemId ?? ""])))
     }
 
-    // The first prompt becomes the card title; any further prompts stay as
-    // fields so nothing is silently unreachable.
     const titlePrompt = item.prompts[0]?.dataId ? item.prompts[0] : undefined
     const bodyPrompts = item.prompts.filter((p) => p !== titlePrompt)
 
@@ -1238,10 +1089,6 @@ export function ClassicActivityPanel({
                 <RadioGroup
                   value={correctOf(item.options.map((o) => o.itemId))}
                   onValueChange={(id) => {
-                    // An option the extractor could not resolve carries a
-                    // synthetic value. Selecting it must be inert: writing the
-                    // group would set every real option to false and wipe the
-                    // answer the author already had.
                     if (!item.options.some((x) => x.itemId === id)) return
                     onAnswersEdited(
                       Object.fromEntries(
@@ -1506,8 +1353,6 @@ export function ClassicActivityPanel({
                   {t`Select an item to edit its text — [[blank:…]] marks where a blank appears, so keep it to keep the blank.`}
                 </p>
                 {structure.steps.map((step, si) => {
-                  // The first addressable sentence becomes the card title; the
-                  // rest (rare — a two-line item) stay as fields below it.
                   const titleSentence = step.sentences.find((s) => s.dataId)
                   return itemCard({
                     key: step.id,

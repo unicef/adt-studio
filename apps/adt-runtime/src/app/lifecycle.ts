@@ -179,10 +179,6 @@ export async function bootRuntime(): Promise<void> {
     const isActivity = readIsActivityPage()
     store.set(isActivityPageAtom, isActivity)
     store.set(activityModeAtom, isActivity)
-    // embedModeAtom self-initialises from the URL at module load — writing it
-    // again here would be a second parser of the same query param, and the
-    // whole point of the module-load read is that DOM-mutating paths run
-    // before boot gets this far.
 
     applyDOMTranslations()
 
@@ -257,10 +253,6 @@ function applyDOMTranslations(): void {
   applyTranslationsToDOM(translations, { easyReadMode })
   applyImageVariants(images)
 
-  // Glossary mode is a persisted reader preference, so it follows the user
-  // into an embedded preview — where a storyboard-style view of the section
-  // is wanted, not their reading setup. ChromeRoot's highlighter is skipped
-  // in embed mode; this second, non-React path has to opt out as well.
   const glossaryEnabled =
     (store.get(glossaryModeAtom) as boolean) && !(store.get(embedModeAtom) as boolean)
   if (glossaryEnabled) {

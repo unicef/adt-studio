@@ -50,12 +50,6 @@ function previewAssetsUrl(bookLabel: string): string {
  *  actual panel width. */
 const DEFAULT_RENDER_WIDTH = 1280
 
-/**
- * Editor-only attributes that must never reach persisted HTML. Both style
- * edit paths serialize the live iframe DOM, so anything the editor stamped on
- * an element would otherwise be baked into the book's rendering and shipped
- * in the exported bundle.
- */
 const TRANSIENT_ATTRS = [
   "data-adt-selected",
   "data-adt-editing",
@@ -100,11 +94,6 @@ export interface BookPreviewFrameHandle {
    *  used by the Typography inspector. Returns nulls when the element isn't
    *  in the iframe yet or a value can't be parsed. */
   getComputedTypographyStyles: (dataId: string) => ComputedTypographyStyles
-  /** Bounding box of an activity anchor in HOST viewport coordinates — the
-   *  in-iframe rect scaled by the preview's fit-transform and offset by the
-   *  iframe's own position. Lets the host scroll its container to reveal an
-   *  element that lives inside the iframe. Null when the anchor isn't in the
-   *  document (yet). */
   getAnchorViewportRect: (anchor: ActivityAnchor) => DOMRect | null
 }
 
@@ -316,9 +305,6 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       if (!doc || !iframeRect) return null
       const el = doc.querySelector(anchorSelector(anchor))
       if (!el) return null
-      // The in-iframe rect is in unscaled document coordinates; the iframe
-      // element itself is drawn through the wrapper's fit-transform, so its
-      // own rect already carries the scale and the page offset.
       const r = resolveVisibleTarget(el).getBoundingClientRect()
       return new DOMRect(
         iframeRect.left + r.left * scale,
@@ -651,9 +637,6 @@ ${autoFitScript}
     if (el) el.setAttribute("data-adt-selected", "true")
   }, [selectedDataId, displayHtml, iframeReady])
 
-  // Toggle editability dynamically via data attribute (no iframe reload
-  // needed). Link mode wins: while the activity panel drives the page, inline
-  // editing must stay off so a click can never start a contentEditable session.
   useEffect(() => {
     const doc = iframeRef.current?.contentDocument
     if (!doc?.body) return
@@ -661,10 +644,6 @@ ${autoFitScript}
     doc.body.dataset.linkMode = linkMode ? "true" : "false"
   }, [editable, linkMode, iframeReady])
 
-  // Outline the selection (solid) and the preview (dashed). Re-runs after each
-  // body rebuild — a panel edit re-injects the HTML — so both survive live
-  // editing. Keyed on the anchor *values*, not the objects, which the parent
-  // rebuilds on every render.
   const linkedKey = linkedAnchor ? anchorKey(linkedAnchor) : ""
   const previewKey = previewAnchor ? anchorKey(previewAnchor) : ""
   useEffect(() => {
@@ -680,7 +659,6 @@ ${autoFitScript}
       const el = doc.querySelector(anchorSelector(anchor))
       if (el) resolveVisibleTarget(el).setAttribute(attr, "true")
     }
-    // Solid wins: a previewed element that is also selected reads as selected.
     if (previewKey && previewKey !== linkedKey) stamp(previewKey, "data-adt-preview")
     stamp(linkedKey, "data-adt-linked")
   }, [linkedKey, previewKey, displayHtml, iframeReady])
