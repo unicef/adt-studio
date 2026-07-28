@@ -3,6 +3,7 @@ import {
   BookOpen,
   Check,
   ChevronDown,
+  FileText,
   GitCompareArrows,
   HelpCircle,
   Image as ImageIcon,
@@ -41,6 +42,7 @@ export type VersionedStep =
   | "glossary"
   | "quiz-generation"
   | "text-catalog-translation"
+  | "easy-read"
   | "image-filtering"
   | "image-captioning"
   | "page-sectioning"
@@ -61,6 +63,7 @@ const STEP_STYLING: Record<VersionedStep, StepStyling> = {
   glossary: { variant: "header", triggerClass: HEADER_TRIGGER },
   "quiz-generation": { variant: "header", triggerClass: HEADER_TRIGGER },
   "text-catalog-translation": { variant: "header", triggerClass: HEADER_TRIGGER },
+  "easy-read": { variant: "header", triggerClass: HEADER_TRIGGER },
   "web-rendering": { variant: "header", triggerClass: HEADER_TRIGGER },
   "image-filtering": { variant: "muted", triggerClass: MUTED_TRIGGER },
   "image-captioning": { variant: "muted", triggerClass: MUTED_TRIGGER },
@@ -75,6 +78,7 @@ const STEP_PENDING: Partial<
   glossary: { icon: BookOpen, label: msg`Glossary` },
   "quiz-generation": { icon: HelpCircle, label: msg`Quizzes` },
   "text-catalog-translation": { icon: Languages, label: msg`Translation` },
+  "easy-read": { icon: FileText, label: msg`Easy Read` },
   "image-filtering": { icon: ImageIcon, label: msg`Image selection` },
   "image-captioning": { icon: ImageIcon, label: msg`Captions` },
 }
