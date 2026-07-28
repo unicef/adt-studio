@@ -47,13 +47,18 @@ const SOUND_VOLUMES: Partial<Record<ActivitySoundKey, number>> = {
 /**
  * Where to start playback, for clips whose useful part is not at the front.
  *
- * The page-turn clip opens with ~270ms of quiet build and only flicks at 360ms.
+ * The page-turn clip opens with ~300ms of silence and only flicks at 360ms.
  * A page turn tears the document down shortly after the tap, so playing from
  * zero means the child hears the build and never the flick. Seeking to the flick
  * keeps the supplied file untouched and still lands the sound on the tap.
  *
- * Seeking needs loaded metadata, and a `#t=` media fragment does NOT stand in
- * for it (Chromium ignores it and starts at zero). Hence `preloadSound`.
+ * An <audio> element cannot deliver this reliably: on a cold cache the clip
+ * reports `seekable = [0, 0]` even once fully buffered, so assigning
+ * `currentTime` is silently ignored and the cue plays from the silence. That
+ * made the sound depend on cache state — correct on some page turns, wrong on
+ * others. Offset clips therefore go through Web Audio (see `playDecoded`),
+ * which starts at an arbitrary offset without seeking or range requests, and
+ * leaves the supplied file untouched.
  */
 const SOUND_STARTS: Partial<Record<ActivitySoundKey, number>> = {
   page_turn: 0.3,
@@ -73,6 +78,60 @@ const DEFAULT_VOLUME = 0.5
 export const PAGE_TURN_LEAD_MS = 540
 
 let cache: Partial<Record<ActivitySoundKey, HTMLAudioElement>> | null = null
+
+/** Decoded buffers for offset clips, plus the context they belong to. */
+let audioContext: AudioContext | null = null
+const decoded = new Map<ActivitySoundKey, AudioBuffer>()
+const decoding = new Set<ActivitySoundKey>()
+
+function getContext(): AudioContext | null {
+  if (typeof window === "undefined") return null
+  const Ctor =
+    window.AudioContext ??
+    (window as unknown as { webkitAudioContext?: typeof AudioContext })
+      .webkitAudioContext
+  if (!Ctor) return null
+  if (!audioContext) {
+    try {
+      audioContext = new Ctor()
+    } catch {
+      return null
+    }
+  }
+  return audioContext
+}
+
+/** Fetches and decodes an offset clip so it can be started mid-file. */
+async function decode(key: ActivitySoundKey): Promise<void> {
+  if (decoded.has(key) || decoding.has(key)) return
+  const ctx = getContext()
+  if (!ctx) return
+  decoding.add(key)
+  try {
+    const res = await fetch(`./assets/sounds/${SOUND_FILES[key]}`)
+    const buf = await res.arrayBuffer()
+    decoded.set(key, await ctx.decodeAudioData(buf))
+  } catch {
+    // Falls back to the <audio> path, which plays from the start.
+  } finally {
+    decoding.delete(key)
+  }
+}
+
+/** Plays a decoded clip from `offset`. Returns false if it isn't ready. */
+function playDecoded(key: ActivitySoundKey, offset: number): boolean {
+  const ctx = getContext()
+  const buffer = decoded.get(key)
+  if (!ctx || !buffer) return false
+  if (ctx.state === "suspended") void ctx.resume()
+  const source = ctx.createBufferSource()
+  source.buffer = buffer
+  const gain = ctx.createGain()
+  gain.gain.value = SOUND_VOLUMES[key] ?? DEFAULT_VOLUME
+  source.connect(gain).connect(ctx.destination)
+  source.start(0, Math.min(offset, buffer.duration))
+  return true
+}
 
 function get(key: ActivitySoundKey): HTMLAudioElement | null {
   if (typeof Audio === "undefined") return null
@@ -100,15 +159,25 @@ export function soundEffectsEnabled(): boolean {
  * has no metadata yet and starts from zero — i.e. inaudibly.
  */
 export function preloadSound(key: ActivitySoundKey): void {
+  if ((SOUND_STARTS[key] ?? 0) > 0) {
+    void decode(key)
+    return
+  }
   const audio = get(key)
   audio?.load()
 }
 
 export function playActivitySound(key: ActivitySoundKey): void {
   if (!soundEffectsEnabled()) return
+  const start = SOUND_STARTS[key] ?? 0
+  // Offset clips play decoded, so the start point never depends on seekability.
+  if (start > 0) {
+    if (playDecoded(key, start)) return
+    void decode(key)
+  }
+
   const audio = get(key)
   if (!audio) return
-  const start = SOUND_STARTS[key] ?? 0
 
   const begin = () => {
     try {
