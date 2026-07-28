@@ -171,7 +171,15 @@ export const INTERACTIVE_SCRIPT = `<script>
 
   document.addEventListener('click', function(e) {
     if (!isEditable()) return;
-    if (isActivityInteractiveTarget(e.target)) return;
+    if (isActivityInteractiveTarget(e.target)) {
+      // Activity controls are never selected or edited, but an edit in
+      // progress on some OTHER element still has to be committed here:
+      // finishEditing is what posts 'text-changed' to the parent, and there
+      // is no blur/focusout fallback. Without this, typing into a heading and
+      // then clicking a token in the activity below silently drops the edit.
+      if (editing) finishEditing();
+      return;
+    }
     suppressNativeAction(e);
     var el = findContainer(e.target);
     if (!el) {
