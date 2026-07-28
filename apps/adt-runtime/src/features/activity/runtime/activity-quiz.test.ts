@@ -5,6 +5,7 @@ import { initializeQuizActivity } from "./activity-quiz"
 import {
   skipEnabledAtom,
   submitEnabledAtom,
+  submitHiddenAtom,
   submitStateAtom,
   validateHandlerAtom,
 } from "../state/activity.atoms"
@@ -150,23 +151,31 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
     expect(store.get(submitEnabledAtom)).toBe(true)
   })
 
-  it("applies a visible selection highlight on the picked option label", () => {
+  it("judges the option as soon as it is picked, with no submit step", () => {
     setupMultipleChoice()
     initializeQuizActivity()
+
+    // The dock's submit button is pointless when the click itself answers.
+    expect(store.get(submitHiddenAtom)).toBe(true)
 
     const opt1 = document
       .querySelector<HTMLInputElement>("input[data-activity-item='item-1']")!
       .closest<HTMLElement>(".activity-option")!
     opt1.click()
-    expect(opt1.getAttribute("data-mc-style-state") === "selected").toBe(true)
+    expect(opt1.getAttribute("data-mc-style-state")).toBe("correct")
+    // Solved, so the button returns as "Next" to move on.
+    expect(store.get(submitStateAtom)).toBe("next")
+    expect(store.get(submitHiddenAtom)).toBe(false)
 
-    // Switching to a different option moves the highlight, doesn't accumulate.
+    // Switching to a different option re-judges and doesn't accumulate state.
     const opt2 = document
       .querySelector<HTMLInputElement>("input[data-activity-item='item-2']")!
       .closest<HTMLElement>(".activity-option")!
     opt2.click()
-    expect(opt1.getAttribute("data-mc-style-state") === "selected").toBe(false)
-    expect(opt2.getAttribute("data-mc-style-state") === "selected").toBe(true)
+    expect(opt1.hasAttribute("data-mc-style-state")).toBe(false)
+    expect(opt2.getAttribute("data-mc-style-state")).toBe("incorrect")
+    expect(store.get(submitStateAtom)).toBe("submit")
+    expect(store.get(submitHiddenAtom)).toBe(true)
   })
 
   it("strips the selection highlight on validation and applies the correct/incorrect state class", () => {
@@ -207,12 +216,9 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
     radio2.checked = true
     radio2.dispatchEvent(new Event("change", { bubbles: true }))
 
+    // Arrow-key selection judges immediately, same as a click.
     const opt2 = radio2.closest<HTMLElement>(".activity-option")!
-    expect(opt2.getAttribute("data-mc-style-state") === "selected").toBe(true)
-    expect(store.get(submitEnabledAtom)).toBe(true)
-
-    // Validation runs against the keyboard-selected option.
-    store.get(validateHandlerAtom)?.()
+    expect(opt2.getAttribute("data-mc-style-state")).toBe("incorrect")
     expect(store.get(submitStateAtom)).toBe("submit") // item-2 is the wrong answer
   })
 
@@ -241,9 +247,7 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
       .querySelector<HTMLInputElement>("input[data-activity-item='item-1']")!
       .closest<HTMLElement>(".activity-option")!
     correctImgOpt.click()
-    expect(correctImgOpt.getAttribute("data-mc-style-state") === "selected").toBe(true)
-
-    store.get(validateHandlerAtom)?.()
+    expect(correctImgOpt.getAttribute("data-mc-style-state")).toBe("correct")
     expect(store.get(submitStateAtom)).toBe("next")
   })
 
@@ -302,16 +306,19 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
       .querySelector<HTMLInputElement>("input[data-activity-item='item-4']")!
       .closest<HTMLElement>(".activity-option")!
 
-    // Picking in q1 should NOT clear q2 and vice versa.
+    // Answering q1 judges q1 only — q2 must not be marked wrong for being blank.
     q1a.click()
-    expect(q1a.getAttribute("data-mc-style-state") === "selected").toBe(true)
-    q2b.click()
-    expect(q1a.getAttribute("data-mc-style-state") === "selected").toBe(true) // still selected
-    expect(q2b.getAttribute("data-mc-style-state") === "selected").toBe(true)
-    expect(store.get(submitEnabledAtom)).toBe(true)
+    expect(q1a.getAttribute("data-mc-style-state")).toBe("correct")
+    expect(q2b.hasAttribute("data-mc-style-state")).toBe(false)
+    expect(store.get(submitStateAtom)).toBe("submit") // q2 still unanswered
+    expect(store.get(submitHiddenAtom)).toBe(true)
 
-    store.get(validateHandlerAtom)?.()
+    // Picking in q2 must not clear q1's verdict.
+    q2b.click()
+    expect(q1a.getAttribute("data-mc-style-state")).toBe("correct")
+    expect(q2b.getAttribute("data-mc-style-state")).toBe("correct")
     expect(store.get(submitStateAtom)).toBe("next")
+    expect(store.get(submitHiddenAtom)).toBe(false)
   })
 
   it("requires every group to be answered correctly before flipping to next", () => {

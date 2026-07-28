@@ -3,6 +3,7 @@ import { Button } from "@/shared/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/shared/ui/tooltip";
 import {
   submitEnabledAtom,
+  submitHiddenAtom,
   submitLabelAtom,
   submitStateAtom,
   validateHandlerAtom,
@@ -15,7 +16,10 @@ export function DockActivityActions() {
   const validate = useAtomValue(validateHandlerAtom);
   const submitState = useAtomValue(submitStateAtom);
   const submitLabelOverride = useAtomValue(submitLabelAtom);
+  const submitHidden = useAtomValue(submitHiddenAtom);
   const { t } = useTranslation();
+
+  if (submitHidden) return null;
 
   const defaultLabel =
     submitState === "next"

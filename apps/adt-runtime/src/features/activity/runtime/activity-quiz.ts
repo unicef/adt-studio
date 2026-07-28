@@ -7,6 +7,7 @@ import {
   skipEnabledAtom,
   skipHandlerAtom,
   submitEnabledAtom,
+  submitHiddenAtom,
   submitLabelAtom,
   submitStateAtom,
   validateHandlerAtom,
@@ -430,60 +431,53 @@ export function initializeQuizActivity(): (() => void) | null {
     store.set(submitStateAtom, "submit")
     store.set(submitLabelAtom, null)
     store.set(submitEnabledAtom, false)
+    // Choosing an option judges it, so there is nothing left to submit. The
+    // button reappears as "Next" once every group is answered correctly.
+    store.set(submitHiddenAtom, true)
     store.set(skipEnabledAtom, hasNextPage)
   }
 
-  const handleSelect = (option: HTMLElement) => {
-    const group = findGroupForOption(groups, option)
-    if (!group) return
-    if (group.validated) clearGroupStyles(group, isStandaloneQuiz)
-    markSelection(option, group, isStandaloneQuiz)
-    playActivitySound("drop")
-    group.selected = option
-    group.validated = false
-    store.set(submitStateAtom, "submit")
-    store.set(submitLabelAtom, null)
-    store.set(submitEnabledAtom, anyGroupSelected())
-  }
-
-  const handleValidate = () => {
-    const state = store.get(submitStateAtom)
-    if (state === "next") {
-      // Post-correct: advance to the next page in reading order.
-      const href = findPostCorrectHref()
-      if (href) window.location.href = href
-      return
-    }
-    if (!anyGroupSelected()) return
-
-    // Validate every group that has a selection. The section flips to the
-    // post-correct state only when EVERY group is answered AND every selection
-    // is correct — partial successes stay in submit so the user can fix wrong
-    // picks or fill missing ones.
-    let allCorrect = true
-    let correctCount = 0
-    let unansweredCount = 0
-    for (const group of groups) {
-      if (!group.selected) {
-        allCorrect = false
-        unansweredCount++
-        continue
-      }
+  /**
+   * Judge the given groups and refresh the dock. Selecting an option judges
+   * only THAT question, so in a section with several question groups an
+   * unanswered sibling is never marked wrong just because a neighbour was
+   * answered. The section only flips to the post-correct "Next" state once
+   * every group is answered and every answer is right.
+   */
+  const judge = (targets: QuestionGroup[]) => {
+    for (const group of targets) {
+      if (!group.selected) continue
       const itemId = getOptionItemId(group.selected)
-      if (!itemId) {
-        allCorrect = false
-        continue
-      }
+      if (!itemId) continue
       const isCorrect = Boolean(correctAnswers[itemId])
       applyValidationStyle(group.selected, isCorrect, isStandaloneQuiz)
       showFeedback(group.selected, isCorrect, isStandaloneQuiz)
       group.validated = true
-      if (isCorrect) correctCount++
+    }
+
+    let correctCount = 0
+    let unansweredCount = 0
+    let allCorrect = true
+    for (const group of groups) {
+      if (!group.selected) {
+        unansweredCount++
+        allCorrect = false
+        continue
+      }
+      const itemId = getOptionItemId(group.selected)
+      if (itemId && Boolean(correctAnswers[itemId])) correctCount++
       else allCorrect = false
     }
 
-    playActivitySound(allCorrect ? "success" : "error")
-    emitActivityResult(allCorrect)
+    // Sound and buddy reaction follow the answer the reader just gave, not the
+    // whole section — otherwise a right answer sounds wrong while siblings are
+    // still blank.
+    const judgedCorrect = targets.every((group) => {
+      const itemId = group.selected ? getOptionItemId(group.selected) : null
+      return itemId !== null && Boolean(correctAnswers[itemId])
+    })
+    playActivitySound(judgedCorrect ? "success" : "error")
+    emitActivityResult(judgedCorrect)
 
     // Summary toast for multiple-choice. Standalone quiz keeps its
     // per-option text feedback ("Great job!") and skips the toast to avoid
@@ -502,11 +496,35 @@ export function initializeQuizActivity(): (() => void) | null {
       store.set(submitLabelAtom, null)
       // Submit becomes "Next" — enabled only when a next page exists.
       store.set(submitEnabledAtom, hasPostCorrectTarget)
+      store.set(submitHiddenAtom, false)
     } else {
       store.set(submitStateAtom, "submit")
       store.set(submitLabelAtom, null)
-      store.set(submitEnabledAtom, anyGroupSelected())
+      store.set(submitEnabledAtom, false)
+      store.set(submitHiddenAtom, true)
     }
+  }
+
+  const handleSelect = (option: HTMLElement) => {
+    const group = findGroupForOption(groups, option)
+    if (!group) return
+    if (group.validated) clearGroupStyles(group, isStandaloneQuiz)
+    markSelection(option, group, isStandaloneQuiz)
+    group.selected = option
+    group.validated = false
+    judge([group])
+  }
+
+  const handleValidate = () => {
+    const state = store.get(submitStateAtom)
+    if (state === "next") {
+      // Post-correct: advance to the next page in reading order.
+      const href = findPostCorrectHref()
+      if (href) window.location.href = href
+      return
+    }
+    if (!anyGroupSelected()) return
+    judge(groups)
   }
 
   const handleSkip = () => {
@@ -596,6 +614,7 @@ export function initializeQuizActivity(): (() => void) | null {
     store.set(validateHandlerAtom, () => null)
     store.set(skipHandlerAtom, () => null)
     store.set(submitEnabledAtom, false)
+    store.set(submitHiddenAtom, false)
     store.set(skipEnabledAtom, false)
   }
 }
