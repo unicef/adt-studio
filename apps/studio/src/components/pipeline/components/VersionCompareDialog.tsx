@@ -116,6 +116,10 @@ export function VersionCompareDialog({
 
   const dataOf = (v: number) => versions.find((x) => x.version === v)?.data
   const isCurrent = selected === currentVersion
+  // Item-level stages (captions) show only changes and are media-forward, so
+  // the dialog fits its content (no fixed height / blank space) rather than the
+  // book-diff's fixed, internally-scrolling frame.
+  const itemMode = Boolean(descriptor.hideUnchanged)
 
   // Case-insensitive search over the descriptor's searchText (falls back to
   // diffText). Applied to every section so the query narrows the whole list.
@@ -222,7 +226,11 @@ export function VersionCompareDialog({
       icon={icon}
       onRestore={onRestore}
       description={t`Review what restoring version ${selected} would change, grouped by edited, added, and removed.`}
-      contentClassName="flex h-[80vh] max-h-[720px] w-[95vw] max-w-3xl flex-col gap-0 overflow-hidden p-0"
+      contentClassName={
+        itemMode
+          ? "flex max-h-[88vh] w-[95vw] max-w-2xl flex-col gap-0 overflow-hidden p-0"
+          : "flex h-[80vh] max-h-[720px] w-[95vw] max-w-3xl flex-col gap-0 overflow-hidden p-0"
+      }
       controls={
         descriptor.hideUnchanged ? undefined : (
           <label className="flex cursor-pointer select-none items-center gap-2 text-[11px] text-muted-foreground">
@@ -234,7 +242,7 @@ export function VersionCompareDialog({
     >
       {/* Fixed-height body: the search row stays put and the sections scroll,
           so the header controls and footer never move under the cursor. */}
-      <div className="flex min-h-0 flex-1 flex-col bg-muted/10">
+      <div className={`flex flex-col bg-muted/10 ${itemMode ? "" : "min-h-0 flex-1"}`}>
         {showSearch && (
           <div className="border-b bg-background px-3 py-2.5">
             <div className="group relative flex items-center">
@@ -262,7 +270,11 @@ export function VersionCompareDialog({
             </div>
           </div>
         )}
-        <div className="min-h-0 flex-1 space-y-4 overflow-auto p-4">
+        <div
+          className={`space-y-4 overflow-auto p-4 ${
+            itemMode ? "max-h-[calc(88vh-8rem)]" : "min-h-0 flex-1"
+          }`}
+        >
           {isCurrent ? (
             fCurrent.length === 0 ? (
               <p className="py-10 text-center text-sm text-muted-foreground">

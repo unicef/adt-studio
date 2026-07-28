@@ -328,13 +328,13 @@ export function PageCaptions({
                 renderItem: (it, ctx) => {
                   const c = it as CaptionEntry
                   return (
-                    <span className="flex items-center gap-3">
+                    <span className="flex flex-col gap-2">
                       <img
                         src={`${BASE_URL}/books/${bookLabel}/images/${c.imageId}`}
                         alt=""
-                        className="h-20 w-24 shrink-0 rounded-md border bg-muted object-contain"
+                        className="max-h-[46vh] w-full rounded-md border bg-muted object-contain"
                       />
-                      <span className="flex min-w-0 flex-col gap-0.5">
+                      <span className="flex flex-col gap-0.5">
                         <span
                           className="text-[9px] font-semibold uppercase tracking-wide text-muted-foreground"
                           title={c.imageId}
