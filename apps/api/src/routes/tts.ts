@@ -15,6 +15,7 @@ import {
   type TextCatalogOutput,
   type WordTimestampEntry,
   type WordTimestampOutput,
+  MathSpeechEvaluationResult,
 } from "@adt/types"
 import { openBookDb, createBookStorage } from "@adt/storage"
 import {
@@ -36,6 +37,7 @@ import {
   resolveVoice,
   generateSpeechFile,
   generateWordTimestamps,
+  resolveSpokenText,
   type ProviderRouting,
 } from "@adt/pipeline"
 import { getLiveSpeechRun } from "../services/speech-progress.js"
@@ -126,6 +128,37 @@ function getOutputLanguages(
   )
 }
 
+/**
+ * Apply the maths speech review to catalog entries.
+ *
+ * `resolveSpokenText` returns the walker's conversion for every entry, and a
+ * reviewer's wording only where one was recorded — so an unreviewed judge
+ * suggestion never reaches a learner. A verdict whose LaTeX has since been
+ * edited is ignored: the reviewer approved wording for an expression that no
+ * longer exists.
+ *
+ * Entries with no maths come back untouched.
+ */
+function applyMathSpeechReview(
+  storage: ReturnType<typeof createBookStorage>,
+  language: string,
+  entries: TextCatalogEntry[]
+): TextCatalogEntry[] {
+  const row = storage.getLatestNodeData(
+    "math-speech-evaluation",
+    normalizeLocale(language)
+  )
+  const parsed = row ? MathSpeechEvaluationResult.safeParse(row.data) : null
+  const verdicts = new Map(
+    (parsed?.success ? parsed.data.items : []).map((item) => [item.entry_id, item])
+  )
+
+  return entries.map((entry) => {
+    const spoken = resolveSpokenText(entry.text, verdicts.get(entry.id))
+    return spoken === entry.text ? entry : { ...entry, text: spoken }
+  })
+}
+
 function getCatalogEntriesForLanguage(
   storage: ReturnType<typeof createBookStorage>,
   sourceLanguage: string,
@@ -140,7 +173,11 @@ function getCatalogEntriesForLanguage(
     if (!catalogRow) {
       throw new HTTPException(404, { message: "Text catalog not found" })
     }
-    return (catalogRow.data as TextCatalogOutput).entries
+    return applyMathSpeechReview(
+      storage,
+      normalizedLanguage,
+      (catalogRow.data as TextCatalogOutput).entries
+    )
   }
 
   const legacyLanguage = normalizedLanguage.replace("-", "_")
@@ -154,7 +191,11 @@ function getCatalogEntriesForLanguage(
     })
   }
 
-  return (translatedRow.data as TextCatalogOutput).entries
+  return applyMathSpeechReview(
+    storage,
+    normalizedLanguage,
+    (translatedRow.data as TextCatalogOutput).entries
+  )
 }
 
 function getLatestTtsEntries(
