@@ -18,7 +18,6 @@ import {
   playBarVisibleAtom,
 } from "@/features/audio/state/audio.atoms"
 import { useAudioPlayerContext } from "@/features/audio/hooks/AudioPlayerContext"
-import { type KidsSpeed } from "@/features/kids/components/KidsSpeedControl"
 import { KidsMenu } from "@/features/kids/components/menu/KidsMenu"
 import type {
   KidsMenuAction,
@@ -191,11 +190,11 @@ export function KidsBuddy() {
     say(isPlaying ? BUDDY_LINES.readBreak : BUDDY_LINES.readStart)
   }
 
-  const handleSpeed = (next: KidsSpeed) => {
+  const handleSpeed = (next: number) => {
     setSpeed(next)
-    if (next === 0.75) {
+    if (next < 1) {
       say(BUDDY_LINES.speedSlow)
-    } else if (next === 1.3) {
+    } else if (next > 1) {
       say(BUDDY_LINES.speedFast)
     } else {
       say(BUDDY_LINES.speedNormal)
@@ -439,6 +438,10 @@ export function KidsBuddy() {
     offLabel,
     closeLabel: tk("kids-dialog-close", "Close"),
     regionLabel: tk("kids-buddy-actions-region", "Buddy actions"),
+    backLabel: tk("kids-menu-back", "Go back"),
+    moreLabel: tk("kids-menu-more", "More"),
+    previousLabel: tk("kids-menu-scroll-previous", "Show earlier"),
+    nextLabel: tk("kids-menu-scroll-next", "Show more"),
     close: () => setOpen(false),
   }
 

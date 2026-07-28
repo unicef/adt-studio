@@ -50,10 +50,13 @@ export function KidsMenuShelf({
       tabIndex={-1}
       className="pointer-events-none fixed inset-0 z-[70]"
     >
-      <div
-        aria-hidden="true"
+      <button
+        type="button"
+        tabIndex={-1}
+        aria-label={model.closeLabel}
+        onClick={model.close}
         className={cn(
-          "absolute inset-0 bg-slate-950/25",
+          "pointer-events-auto absolute inset-0 cursor-default bg-slate-950/25",
           reduceMotion ? "transition-none" : "animate-in fade-in duration-200",
         )}
       />
@@ -187,12 +190,15 @@ function ActionGroup({
     if (!scroller) return
     measure()
     scroller.addEventListener("scroll", measure, { passive: true })
-    const observer = new ResizeObserver(measure)
-    observer.observe(scroller)
-    Array.from(scroller.children).forEach((child) => observer.observe(child))
+    const observer =
+      typeof ResizeObserver === "undefined"
+        ? null
+        : new ResizeObserver(measure)
+    observer?.observe(scroller)
+    Array.from(scroller.children).forEach((child) => observer?.observe(child))
     return () => {
       scroller.removeEventListener("scroll", measure)
-      observer.disconnect()
+      observer?.disconnect()
     }
   }, [measure, actions.length, showSpeed])
 
@@ -227,7 +233,7 @@ function ActionGroup({
             {!scrollState.atStart ? (
               <PagingButton
                 direction="previous"
-                label={`${title}: Previous`}
+                label={`${title}: ${model.previousLabel}`}
                 onClick={() => page(-1)}
               />
             ) : null}
@@ -257,7 +263,7 @@ function ActionGroup({
             {!scrollState.atEnd ? (
               <PagingButton
                 direction="next"
-                label={`${title}: Next`}
+                label={`${title}: ${model.nextLabel}`}
                 onClick={() => page(1)}
               />
             ) : null}
@@ -273,6 +279,7 @@ function ActionGroup({
             slowLabel={model.speedLabels.slow}
             normalLabel={model.speedLabels.normal}
             fastLabel={model.speedLabels.fast}
+            reduceMotion={reduceMotion}
           />
         </div>
       ) : null}

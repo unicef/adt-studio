@@ -294,8 +294,17 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
     radio2.checked = true
     radio2.dispatchEvent(new Event("change", { bubbles: true }))
 
-    // Arrow-key selection judges immediately, same as a click.
+    // Arrow keys check each radio as they traverse the group, so navigating
+    // must only move the selection — judging there would record a wrong answer
+    // for every option the child passes over.
     const opt2 = radio2.closest<HTMLElement>(".activity-option")!
+    expect(opt2.getAttribute("data-mc-style-state")).toBe("selected")
+    expect(store.get(activityResultAtom).token).toBe(0)
+
+    // Enter on the focused radio is how a keyboard user commits.
+    radio2.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+    )
     expect(opt2.getAttribute("data-mc-style-state")).toBe("incorrect")
     expect(store.get(submitStateAtom)).toBe("submit") // item-2 is the wrong answer
   })

@@ -7,7 +7,6 @@ import { KidsBuddyImage } from "@/features/kids/components/KidsBuddyImage"
 import { KidsScrollFade } from "@/features/kids/components/KidsScrollFade"
 import { KidsDialogClose } from "@/features/kids/components/kids-dialogs"
 import { KidsSpeedSlider } from "@/features/kids/components/KidsSpeedSlider"
-import type { KidsSpeed } from "@/features/kids/components/KidsSpeedControl"
 import {
   actionsInGroup,
   type KidsMenuGroup,
@@ -149,9 +148,7 @@ export function KidsMenuClassic({
                     <div className="md:col-span-2">
                       <KidsSpeedSlider
                         speed={model.speed}
-                        onChange={(speed) =>
-                          model.setSpeed(speed as KidsSpeed)
-                        }
+                        onChange={model.setSpeed}
                         groupLabel={model.speedLabels.group}
                         slowLabel={model.speedLabels.slow}
                         normalLabel={model.speedLabels.normal}
@@ -180,6 +177,11 @@ export function KidsMenuClassic({
               icon={action.icon}
               label={action.label}
               onClick={action.onSelect}
+              disabled={action.disabled}
+              active={action.active}
+              toggle={action.toggle}
+              onLabel={model.onLabel}
+              offLabel={model.offLabel}
               reduceMotion={reduceMotion}
             />
           ))}

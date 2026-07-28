@@ -9,7 +9,6 @@
  */
 import type { KidsAvatarConfig } from "@adt/types/kids"
 import type { BuddyImageSet } from "@/features/kids/assets/buddy-images"
-import type { KidsSpeed } from "@/features/kids/components/KidsSpeedControl"
 
 export type KidsMenuGroup = "reading" | "look" | "mine" | "footer"
 
@@ -56,13 +55,18 @@ export interface KidsMenuModel {
   actions: KidsMenuAction[]
   groups: KidsMenuGroupInfo[]
   speed: number
-  setSpeed: (speed: KidsSpeed) => void
+  setSpeed: (speed: number) => void
   speedLabels: { slow: string; normal: string; fast: string; group: string }
   showSpeed: boolean
   onLabel: string
   offLabel: string
   closeLabel: string
   regionLabel: string
+  /** Navigation labels for variants that page or drill down. */
+  backLabel: string
+  moreLabel: string
+  previousLabel: string
+  nextLabel: string
   close: () => void
 }
 

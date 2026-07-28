@@ -59,7 +59,11 @@ import {
 import { locateGlossaryTerm } from "@/features/glossary/lib/locate"
 import { initAnalytics } from "@/shared/lib/analytics"
 import { installShowContentFallback, showMainContent } from "@/shared/lib/errors"
-import { activityModeAtom, isActivityPageAtom } from "@/features/activity/state/activity.atoms"
+import {
+  activityModeAtom,
+  isActivityPageAtom,
+  submitHiddenAtom,
+} from "@/features/activity/state/activity.atoms"
 import { initializeQuizActivity } from "@/features/activity/runtime/activity-quiz"
 import { initializeMultiSelectActivity } from "@/features/activity/runtime/activity-multi-select"
 import { initializeFillInTheBlankActivity } from "@/features/activity/runtime/activity-fill-in-the-blank"
@@ -192,6 +196,9 @@ export async function bootRuntime(): Promise<void> {
     initAnalytics(config.analytics)
     showMainContent()
     processGlossaryLocateHint()
+    // Activity initializers share one dock and their cleanups are not retained,
+    // so clear the dock-hiding flag before any of them claims it.
+    store.set(submitHiddenAtom, false)
     initializeQuizActivity()
     initializeMultiSelectActivity()
     initializeFillInTheBlankActivity()

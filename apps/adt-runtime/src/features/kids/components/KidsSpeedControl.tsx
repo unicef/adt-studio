@@ -11,6 +11,7 @@ interface KidsSpeedControlProps {
   normalLabel: string
   fastLabel: string
   groupLabel: string
+  reduceMotion?: boolean
 }
 
 /**
@@ -25,6 +26,7 @@ export function KidsSpeedControl({
   normalLabel,
   fastLabel,
   groupLabel,
+  reduceMotion = false,
 }: KidsSpeedControlProps) {
   const segments: { value: KidsSpeed; label: string; icon: React.ReactNode }[] =
     [
@@ -52,7 +54,9 @@ export function KidsSpeedControl({
             className={cn(
               "flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2",
               "text-sm font-extrabold leading-tight text-slate-800",
-              "transition-[transform,box-shadow,background-color] duration-150 ease-out active:scale-[0.97]",
+              reduceMotion
+                ? "transition-none"
+                : "transition-[transform,box-shadow,background-color] duration-150 ease-out active:scale-[0.97]",
               "focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 focus-visible:ring-offset-2",
               active
                 ? "bg-[#FFF6D6] text-slate-950 shadow-[0_2px_0_#EFC94C] ring-2 ring-[#FFC800]"

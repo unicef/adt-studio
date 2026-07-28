@@ -1,10 +1,10 @@
 /**
  * Which buddy-menu design to render.
  *
- * Three interaction models are shipping side by side while we learn which one
- * children get on with. The choice is picked once during onboarding and can be
- * forced with `?kidsMenu=<id>` for review; it is stored per reader, never in
- * the book config.
+ * Three interaction models ship side by side while the team decides which one
+ * children get on with. The choice comes from the temporary dev switch in the
+ * reader and can be forced with `?kidsMenu=<id>` for review; it is stored per
+ * reader, never in the book config.
  */
 export const KIDS_MENU_VARIANTS = ["classic", "chat", "shelf"] as const
 
@@ -21,9 +21,22 @@ export function isKidsMenuVariant(
   )
 }
 
+/** Drops the query override so a stored choice can take effect again. */
+export function clearKidsMenuVariantOverride(): void {
+  if (typeof window === "undefined") return
+  try {
+    const url = new URL(window.location.href)
+    if (!url.searchParams.has("kidsMenu")) return
+    url.searchParams.delete("kidsMenu")
+    window.history.replaceState(null, "", url.toString())
+  } catch {
+    // A history failure just leaves the override in place for this page.
+  }
+}
+
 /**
  * A `?kidsMenu=` query parameter wins over the stored choice so a reviewer can
- * jump straight to one design without walking through onboarding.
+ * jump straight to one design.
  */
 export function getKidsMenuVariantOverride(): KidsMenuVariant | null {
   if (typeof window === "undefined") return null

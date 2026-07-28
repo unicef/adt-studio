@@ -58,7 +58,7 @@ export function KidsActionButton({
     <button
       type="button"
       data-testid={testId}
-      aria-pressed={active}
+      aria-pressed={toggle ? Boolean(active) : undefined}
       onClick={onClick}
       disabled={disabled}
       className={cn(

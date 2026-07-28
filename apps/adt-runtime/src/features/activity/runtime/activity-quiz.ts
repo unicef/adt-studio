@@ -513,14 +513,26 @@ export function initializeQuizActivity(): (() => void) | null {
     }
   }
 
-  const handleSelect = (option: HTMLElement) => {
+  /**
+   * Move the selection without judging. Arrow keys traverse a native radio
+   * group by *checking* each radio in turn, so committing there would mark
+   * every option a keyboard user passes over as a wrong answer. Browsing is
+   * free; committing is a deliberate act (pointer click, or Enter/Space).
+   */
+  const selectOnly = (option: HTMLElement) => {
     const group = findGroupForOption(groups, option)
-    if (!group) return
+    if (!group) return null
     if (group.validated) clearGroupStyles(group, isStandaloneQuiz)
     markSelection(option, group, isStandaloneQuiz)
     group.selected = option
     group.validated = false
-    judge([group])
+    if (!ownsDock) store.set(submitEnabledAtom, anyGroupSelected())
+    return group
+  }
+
+  const handleSelect = (option: HTMLElement) => {
+    const group = selectOnly(option)
+    if (group) judge([group])
   }
 
   const handleValidate = () => {
@@ -567,17 +579,42 @@ export function initializeQuizActivity(): (() => void) | null {
       )
 
       if (innerRadio) {
-        // Clicking the label forwards the click to the radio, so listening to
-        // both `click` and `change` judged a single gesture twice — doubling
-        // the sound, the buddy reaction and the confetti. `change` alone also
-        // covers arrow-key navigation between native radios.
-        const onChange = () => {
-          if (innerRadio.checked) handleSelect(option)
+        // Activating a label forwards a synthetic click to its control, which
+        // bubbles back through the label — so one tap arrived as two click
+        // events and judged the answer twice (doubling the sound, the buddy
+        // reaction and the confetti). Collapse a single gesture to one judge,
+        // whichever element the child actually hit.
+        let judging = false
+        const onClick = () => {
+          if (judging) return
+          judging = true
+          releaseGesture = window.setTimeout(() => {
+            judging = false
+          }, 0)
+          handleSelect(option)
         }
+        let releaseGesture = 0
+        // Arrow keys check radios as they traverse the group — select, but do
+        // not commit, or navigating would record wrong answers.
+        const onChange = () => {
+          if (innerRadio.checked) selectOnly(option)
+        }
+        // The sr-only radio is the option's tab stop, so this is where a
+        // keyboard user commits the browsed selection.
+        const onRadioKey = (event: KeyboardEvent) => {
+          if (event.key !== "Enter" && event.key !== " ") return
+          event.preventDefault()
+          handleSelect(option)
+        }
+        option.addEventListener("click", onClick)
         innerRadio.addEventListener("change", onChange)
-        listeners.push(() =>
-          innerRadio.removeEventListener("change", onChange),
-        )
+        innerRadio.addEventListener("keydown", onRadioKey)
+        listeners.push(() => {
+          window.clearTimeout(releaseGesture)
+          option.removeEventListener("click", onClick)
+          innerRadio.removeEventListener("change", onChange)
+          innerRadio.removeEventListener("keydown", onRadioKey)
+        })
       } else {
         // Standalone quiz options are plain labels with no inner control.
         const onClick = () => handleSelect(option)

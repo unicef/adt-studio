@@ -23,6 +23,7 @@ import {
 import { getKidsModePreviewOverride } from "@/features/kids/lib/kids-preview"
 import {
   DEFAULT_KIDS_MENU_VARIANT,
+  clearKidsMenuVariantOverride,
   getKidsMenuVariantOverride,
   isKidsMenuVariant,
   type KidsMenuVariant,
@@ -75,9 +76,9 @@ export const kidsReadingFontAtom = persistedStringAtom("kidsReadingFont", "defau
 // Whether the buddy chats unprompted while the child reads (idle chatter).
 export const kidsBuddyChatterAtom = persistedBoolAtom("kidsBuddyChatter", true)
 
-// Which buddy-menu design this reader sees. Three ship side by side while we
-// learn which one children get on with, so the child picks one during
-// onboarding. A `?kidsMenu=` query parameter overrides it for review.
+// Which buddy-menu design this reader sees. Three ship side by side while the
+// team decides which one children get on with; the temporary dev switch in the
+// reader writes it. A `?kidsMenu=` query parameter overrides it for review.
 const storedMenuVariantAtom = persistedStringAtom(
   "kidsMenuVariant",
   DEFAULT_KIDS_MENU_VARIANT,
@@ -92,7 +93,13 @@ export const kidsMenuVariantAtom = atom(
     const stored = get(storedMenuVariantAtom) as string
     return isKidsMenuVariant(stored) ? stored : DEFAULT_KIDS_MENU_VARIANT
   },
-  (_get, set, next: KidsMenuVariant) => set(storedMenuVariantAtom, next),
+  (_get, set, next: KidsMenuVariant) => {
+    // A `?kidsMenu=` override outranks stored state, so without dropping it the
+    // switch would appear to do nothing yet still change what the next page
+    // load renders.
+    clearKidsMenuVariantOverride()
+    set(storedMenuVariantAtom, next)
+  },
 )
 
 export const buddySpeechAtom = ephemeralAtom<string | null>(null)

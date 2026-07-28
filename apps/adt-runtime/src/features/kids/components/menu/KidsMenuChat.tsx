@@ -6,7 +6,7 @@ import {
   Rabbit,
   Turtle,
 } from "lucide-react"
-import { useEffect, useRef, useState, type ReactNode } from "react"
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react"
 import { KidsAvatar } from "@/features/kids/components/KidsAvatar"
 import { KidsBuddyImage } from "@/features/kids/components/KidsBuddyImage"
 import { KidsDialogClose } from "@/features/kids/components/kids-dialogs"
@@ -17,6 +17,7 @@ import {
   type KidsMenuGroup,
   type KidsMenuProps,
 } from "@/features/kids/components/menu/kids-menu-model"
+import { KIDS_SCROLLBAR_CLASS } from "@/features/kids/lib/kids-styles"
 import { cn } from "@/shared/lib/utils"
 
 type ChatLevel = KidsMenuGroup | "root" | "speed"
@@ -32,14 +33,6 @@ const GROUP_TONE: Record<KidsMenuGroup, string> = {
 
 const FOCUS =
   "focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500 focus-visible:ring-offset-2"
-const DIALOG_ACTIONS = new Set<KidsMenuAction["id"]>([
-  "comfort",
-  "avatar",
-  "story-map",
-  "eli5",
-  "notes",
-  "language",
-])
 // A young reader can hold about four choices at once; groups larger than this
 // paginate rather than growing the reply column.
 const CHOICES_PER_PAGE = 4
@@ -64,6 +57,8 @@ export function KidsMenuChat({
   const [direction, setDirection] = useState<Direction>("forward")
   const [leaving, setLeaving] = useState(false)
   const transitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const replyRef = useRef<HTMLDivElement>(null)
+  const initialView = useRef(true)
   const footer = actionsInGroup(model, "footer")
   const activeGroup = model.groups.find((group) => group.id === level)
   const groupActions = activeGroup ? actionsInGroup(model, activeGroup.id) : []
@@ -84,6 +79,17 @@ export function KidsMenuChat({
     },
     [],
   )
+
+  useLayoutEffect(() => {
+    if (initialView.current) {
+      initialView.current = false
+      return
+    }
+    const firstChoice = replyRef.current?.querySelector<HTMLElement>(
+      "[data-kids-menu-choice]:not(:disabled)",
+    )
+    ;(firstChoice ?? replyRef.current)?.focus()
+  }, [viewKey])
 
   const changeView = (
     nextLevel: ChatLevel,
@@ -113,7 +119,6 @@ export function KidsMenuChat({
 
   const selectAction = (action: KidsMenuAction) => {
     action.onSelect()
-    if (DIALOG_ACTIONS.has(action.id)) model.close()
   }
 
   const motionClass = reduceMotion
@@ -134,7 +139,7 @@ export function KidsMenuChat({
       aria-labelledby="kids-buddy-panel-message"
       tabIndex={-1}
       className={cn(
-        "relative mb-2 w-[min(42rem,calc(100vw-2rem))] rounded-[2rem] bg-white p-4 text-slate-950 shadow-2xl ring-2 ring-sky-100 sm:p-6 lg:p-7",
+        "relative mb-2 flex max-h-[min(calc(100dvh-7.75rem),46rem)] w-[min(42rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-[2rem] bg-white p-4 text-slate-950 shadow-2xl ring-2 ring-sky-100 sm:p-6 lg:p-7",
         "after:absolute after:-bottom-2 after:right-8 after:h-5 after:w-5 after:rotate-45 after:border-b-2 after:border-r-2 after:border-sky-100 after:bg-white",
         !reduceMotion && "animate-kidsPanelOpen",
       )}
@@ -150,12 +155,16 @@ export function KidsMenuChat({
       <BuddyLine
         model={model}
         detail={activeGroup?.title ?? (level === "speed" ? model.speedLabels.group : undefined)}
-        viewKey={viewKey}
         motionClass={motionClass}
         reduceMotion={reduceMotion}
       />
 
-      <div className="relative z-10 mt-5 sm:mt-6">
+      <div
+        className={cn(
+          "relative z-10 mt-5 min-h-0 overflow-y-auto overscroll-contain sm:mt-6",
+          KIDS_SCROLLBAR_CLASS,
+        )}
+      >
         <div className="flex items-start gap-3 sm:gap-4">
           {showReplyAvatar ? (
             <div className="relative mt-1 shrink-0">
@@ -173,9 +182,15 @@ export function KidsMenuChat({
 
           <div
             key={viewKey}
+            ref={replyRef}
+            role="region"
             aria-label={model.regionLabel}
+            aria-hidden={leaving || undefined}
+            inert={leaving || undefined}
+            tabIndex={-1}
             className={cn(
               "min-w-0 flex-1 rounded-[1.65rem] bg-sky-50/70 p-2.5 ring-2 ring-sky-100 sm:p-3",
+              leaving && "pointer-events-none",
               !reduceMotion &&
                 "transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]",
               motionClass,
@@ -208,6 +223,7 @@ export function KidsMenuChat({
 
               {level !== "root" && pages.length > 1 ? (
                 <PaginationControls
+                  model={model}
                   page={page}
                   pageCount={pages.length}
                   reduceMotion={reduceMotion}
@@ -219,6 +235,7 @@ export function KidsMenuChat({
 
               {level !== "root" ? (
                 <BackButton
+                  label={model.backLabel}
                   onClick={goBack}
                   reduceMotion={reduceMotion}
                   direction={direction}
@@ -243,13 +260,11 @@ export function KidsMenuChat({
 function BuddyLine({
   model,
   detail,
-  viewKey,
   motionClass,
   reduceMotion,
 }: {
   model: KidsMenuProps["model"]
   detail?: string
-  viewKey: string
   motionClass?: string
   reduceMotion: boolean
 }) {
@@ -267,7 +282,6 @@ function BuddyLine({
         />
       </span>
       <div
-        key={viewKey}
         className={cn(
           "min-w-0 rounded-2xl rounded-tl-sm bg-sky-50 px-4 py-3.5 ring-2 ring-sky-100 sm:px-5 sm:py-4",
           !reduceMotion &&
@@ -475,6 +489,7 @@ function FooterActions({
 }
 
 function PaginationControls({
+  model,
   page,
   pageCount,
   reduceMotion,
@@ -482,6 +497,7 @@ function PaginationControls({
   onPrevious,
   onNext,
 }: {
+  model: KidsMenuProps["model"]
   page: number
   pageCount: number
   reduceMotion: boolean
@@ -493,7 +509,7 @@ function PaginationControls({
     <>
       {page > 0 ? (
         <ReplyButton
-          label="Previous choices"
+          label={model.previousLabel}
           icon={<ArrowLeft />}
           tone="bg-white text-slate-900 ring-sky-300 hover:bg-sky-100"
           onClick={onPrevious}
@@ -504,7 +520,8 @@ function PaginationControls({
       ) : null}
       {page < pageCount - 1 ? (
         <ReplyButton
-          label="More choices"
+          label={model.moreLabel}
+          accessibleLabel={model.nextLabel}
           icon={<ArrowRight />}
           trailingIcon={<ArrowRight />}
           tone="bg-[#FFF6D6] text-slate-950 ring-[#FFC800] hover:bg-amber-100"
@@ -519,10 +536,12 @@ function PaginationControls({
 }
 
 function BackButton({
+  label,
   onClick,
   reduceMotion,
   direction,
 }: {
+  label: string
   onClick: () => void
   reduceMotion: boolean
   direction: Direction
@@ -530,7 +549,8 @@ function BackButton({
   return (
     <button
       type="button"
-      aria-label="Go back"
+      data-kids-menu-choice
+      aria-label={label}
       onClick={onClick}
       className={cn(
         "flex min-h-16 w-full items-center justify-center gap-3 rounded-[1.35rem] bg-white px-5 py-3 text-lg font-black text-sky-950 shadow-[0_3px_0_#D9EBF8] ring-2 ring-sky-300 hover:bg-sky-100 sm:min-h-[4.5rem] sm:text-xl",
@@ -550,7 +570,7 @@ function BackButton({
       >
         <ArrowLeft strokeWidth={3} />
       </span>
-      <span>Go back</span>
+      <span>{label}</span>
     </button>
   )
 }
@@ -589,6 +609,7 @@ function ReplyButton({
   return (
     <button
       type="button"
+      data-kids-menu-choice
       data-testid={testId}
       aria-label={accessibleLabel ?? label}
       aria-pressed={pressed}
