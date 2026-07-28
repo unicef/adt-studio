@@ -20,6 +20,20 @@ export const INTERACTIVE_SCRIPT = `<script>
   function isEditable() { return document.body.dataset.editable === 'true'; }
   function isLinkMode() { return document.body.dataset.linkMode === 'true'; }
 
+  // The page's answer controls, cached for the duration of a link-mode
+  // session. Invalidated whenever the body is rebuilt (a panel edit re-injects
+  // the HTML) or link mode is re-entered.
+  var answerControlCache = null;
+  function answerControls() {
+    if (!answerControlCache) {
+      answerControlCache = Array.prototype.slice.call(
+        document.querySelectorAll('[data-activity-item]')
+      );
+    }
+    return answerControlCache;
+  }
+  function invalidateAnswerControls() { answerControlCache = null; }
+
   // Answer controls are usually sr-only — the visible affordance is a styled
   // sibling box. Outlining the control itself would draw nothing, so climb to
   // the first ancestor that has a real box.
@@ -55,7 +69,12 @@ export const INTERACTIVE_SCRIPT = `<script>
           if ((el.textContent || '').trim()) return { el: el, kind: 'text', id: dataId };
         }
         if (!answerRegion) {
-          var owned = el.querySelectorAll('[data-activity-item]');
+          // Counted against a cached document-wide list rather than
+          // re-querying each ancestor's subtree: the walk runs on every
+          // mousemove, and scanning subtrees per level made the cost the sum
+          // of those subtrees — the whole page once the walk reached a
+          // top-level container.
+          var owned = answerControls().filter(function(input) { return el.contains(input); });
           if (owned.length === 1) {
             answerRegion = {
               el: el,
@@ -202,12 +221,21 @@ export const INTERACTIVE_SCRIPT = `<script>
   // contentEditable and the selection outline are set on the element itself,
   // so flipping the body flag alone would leave the page typeable underneath
   // the activity panel.
+  // Runs on both edges. Leaving link mode has to clear the hover stamp too:
+  // the outline it drives is not scoped to link mode, so a pointer resting on
+  // an element when the panel closes would strand a dashed outline on the
+  // page until the next mousemove inside the frame.
   new MutationObserver(function() {
+    invalidateAnswerControls();
+    setHoveredLink(null);
     if (!isLinkMode()) return;
     if (editing) finishEditing();
     clearSelection();
-    setHoveredLink(null);
   }).observe(document.body, { attributes: true, attributeFilter: ['data-link-mode'] });
+
+  // A panel edit re-injects the body, detaching every cached control.
+  new MutationObserver(invalidateAnswerControls)
+    .observe(document.body, { childList: true, subtree: true });
 
   // Capture phase so the page's own controls (inputs, labels, radios) never
   // see the event: in link mode the page is a map, not a form.
@@ -345,9 +373,11 @@ export const INTERACTIVE_STYLES = `body[data-editable="true"] *:hover:not(:has(*
     body[data-link-mode="true"] [data-activity-item] { cursor: pointer; }
     /* Preview — dashed. Either the pointer is over it in the page
        (data-adt-link-hover, stamped locally for zero latency) or over its
-       field in the editor (data-adt-preview, driven by the parent). */
-    [data-adt-link-hover],
-    [data-adt-preview] {
+       field in the editor (data-adt-preview, driven by the parent).
+       Both are scoped to link mode so a stamp that outlives it cannot paint
+       over the ordinary layout editor. */
+    body[data-link-mode="true"] [data-adt-link-hover],
+    body[data-link-mode="true"] [data-adt-preview] {
       outline: 2px dashed rgba(124, 58, 237, 0.6) !important;
       outline-offset: 3px !important;
       border-radius: 3px;

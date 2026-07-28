@@ -59,7 +59,7 @@ import { SectionEditPanel } from "./SectionEditPanel"
 import { StorySectionBanner } from "./StorySectionBanner"
 import { EditableActivityPanel } from "./EditableActivityPanel"
 import { ClassicActivityPanel } from "./ClassicActivityPanel"
-import type { ActivityAnchor } from "./activity-link"
+import { sameAnchor, type ActivityAnchor } from "./activity-link"
 import { scrollBehavior } from "@/lib/utils"
 import { StepperActivityPreview } from "./StepperActivityPreview"
 import {
@@ -1353,6 +1353,16 @@ export function StoryboardSectionDetail({
     setLinkedFromPage(true)
   }, [])
 
+  /**
+   * Hover fires once per element the pointer crosses, and each report is a
+   * freshly allocated anchor — so a plain identity set would re-render this
+   * whole component (and every anchored field) on every mouse move, even when
+   * the resolved anchor has not actually changed. Collapse by value.
+   */
+  const handleAnchorHover = useCallback((anchor: ActivityAnchor | null) => {
+    setHoverAnchor((prev) => (sameAnchor(prev, anchor) || prev === anchor ? prev : anchor))
+  }, [])
+
   const handleClassesChange = useCallback(
     (dataId: string, classes: string[]) => {
       if (!page.rendering) return
@@ -2230,15 +2240,13 @@ export function StoryboardSectionDetail({
                             layout/style work. */}
                         <button
                           type="button"
-                          onClick={() => {
-                            // Editing content needs the WYSIWYG frame: it
-                            // updates live and carries the link channel, while
-                            // the interactive preview only reflects saves.
-                            setEditActivityPanelOpen((v) => {
-                              if (!v) setActivityPreviewMode(false)
-                              return !v
-                            })
-                          }}
+                          // Only toggles the panel. The render gate below
+                          // already swaps in the WYSIWYG frame while it is
+                          // open — which is what content editing needs, since
+                          // that frame updates live and carries the link
+                          // channel — so the user's Try Activity preference
+                          // survives to when they close the panel again.
+                          onClick={() => setEditActivityPanelOpen((v) => !v)}
                           className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium bg-violet-600 text-white hover:bg-violet-700 transition-colors cursor-pointer"
                         >
                           <ListChecks className="h-3.5 w-3.5" />
@@ -2331,7 +2339,7 @@ export function StoryboardSectionDetail({
                   linkedAnchor={linkedAnchor}
                   previewAnchor={linkedAnchor ? null : hoverAnchor}
                   onLinkSelect={handleLinkSelectFromPage}
-                  onLinkHover={setHoverAnchor}
+                  onLinkHover={handleAnchorHover}
                   onVisibleWidthChange={setPreviewVisibleWidth}
                   bodyFontFamily={pageDetail?.reflowableFontFamily ?? undefined}
                 />
@@ -2563,7 +2571,7 @@ export function StoryboardSectionDetail({
           hoveredAnchor={hoverAnchor}
           linkedFromPage={linkedFromPage}
           onAnchorSelect={handleAnchorSelectFromPanel}
-          onAnchorHover={setHoverAnchor}
+          onAnchorHover={handleAnchorHover}
           dirty={renderingDirty || dirty}
           saving={saving}
           onSave={() => {

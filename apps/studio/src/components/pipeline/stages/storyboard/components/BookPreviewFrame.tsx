@@ -50,14 +50,25 @@ function previewAssetsUrl(bookLabel: string): string {
  *  actual panel width. */
 const DEFAULT_RENDER_WIDTH = 1280
 
+/**
+ * Editor-only attributes that must never reach persisted HTML. Both style
+ * edit paths serialize the live iframe DOM, so anything the editor stamped on
+ * an element would otherwise be baked into the book's rendering and shipped
+ * in the exported bundle.
+ */
+const TRANSIENT_ATTRS = [
+  "data-adt-selected",
+  "data-adt-editing",
+  "data-adt-linked",
+  "data-adt-preview",
+  "data-adt-link-hover",
+  "contenteditable",
+] as const
+
 function stripTransientAttributes(doc: Document): void {
-  doc
-    .querySelectorAll("[data-adt-selected], [data-adt-editing], [contenteditable]")
-    .forEach((el) => {
-      el.removeAttribute("data-adt-selected")
-      el.removeAttribute("data-adt-editing")
-      el.removeAttribute("contenteditable")
-    })
+  doc.querySelectorAll(TRANSIENT_ATTRS.map((a) => `[${a}]`).join(", ")).forEach((el) => {
+    for (const attr of TRANSIENT_ATTRS) el.removeAttribute(attr)
+  })
 }
 
 /** Parse a pixel value (e.g. "612px") to a number, or null for non-px values. */

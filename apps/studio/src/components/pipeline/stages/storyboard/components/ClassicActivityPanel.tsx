@@ -102,6 +102,38 @@ const HINT_DISMISSED_STORAGE_KEY = "adt:activity-panel-hint-dismissed"
 const NO_CHOICE_ID = "__none__"
 
 /**
+ * localStorage throws outright where site data is blocked (third-party
+ * context, a locked-down Electron partition) and on quota. These reads happen
+ * in render, so an unguarded throw would blank the whole storyboard stage
+ * rather than fall back to a default width.
+ */
+function readStoredWidth(): number {
+  try {
+    const stored = Number(localStorage.getItem(PANEL_WIDTH_STORAGE_KEY))
+    if (!Number.isFinite(stored) || stored <= 0) return DEFAULT_PANEL_WIDTH
+    return Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, stored))
+  } catch {
+    return DEFAULT_PANEL_WIDTH
+  }
+}
+
+function writeStoredWidth(width: number): void {
+  try {
+    localStorage.setItem(PANEL_WIDTH_STORAGE_KEY, String(width))
+  } catch {
+    // A non-persisted width is a cosmetic loss; never break the editor for it.
+  }
+}
+
+function readHintDismissed(): boolean {
+  try {
+    return localStorage.getItem(HINT_DISMISSED_STORAGE_KEY) === "1"
+  } catch {
+    return false
+  }
+}
+
+/**
  * Suppresses a control's own focus ring. Not a loss of affordance: a field can
  * only be focused when it is the selection, so `Anchored` is already drawing a
  * violet outline around it. Without this the answer inputs carry three
@@ -331,7 +363,20 @@ function Anchored({
     if (!isLinked || !fromPage) return
     const el = ref.current
     if (!el) return
-    el.scrollIntoView({ block: "center", behavior: scrollBehavior() })
+    // Scoped to the panel's own scroller. `scrollIntoView` walks every
+    // scrollable ancestor, so it would also drag the storyboard canvas — the
+    // Studio layout jumping while the user only meant to move within the list.
+    const viewport = el.closest<HTMLElement>("[data-radix-scroll-area-viewport]")
+    if (viewport) {
+      const target = el.getBoundingClientRect()
+      const view = viewport.getBoundingClientRect()
+      viewport.scrollBy({
+        top: target.top - view.top - (view.height - target.height) / 2,
+        behavior: scrollBehavior(),
+      })
+    } else {
+      el.scrollIntoView({ block: "center", behavior: scrollBehavior() })
+    }
     // Hand over the caret so a page click lands the user ready to type, or on
     // the choice control when the row has no text field.
     const focusable =
@@ -661,35 +706,45 @@ export function ClassicActivityPanel({
   // Desktop tool: the panel competes with the page preview for width, so the
   // split is the user's to set. Persisted globally — it's a workspace
   // preference, not per-book state.
-  const [panelWidth, setPanelWidth] = useState(() => {
-    const stored = Number(localStorage.getItem(PANEL_WIDTH_STORAGE_KEY))
-    if (!Number.isFinite(stored) || stored <= 0) return DEFAULT_PANEL_WIDTH
-    return Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, stored))
-  })
+  const [panelWidth, setPanelWidth] = useState(readStoredWidth)
   const startResize = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       e.preventDefault()
+      const grip = e.currentTarget
+      const pointerId = e.pointerId
       const startX = e.clientX
       const startWidth = panelWidth
       const clamp = (ev: PointerEvent) =>
         Math.min(MAX_PANEL_WIDTH, Math.max(MIN_PANEL_WIDTH, startWidth + (startX - ev.clientX)))
+
       const onMove = (ev: PointerEvent) => setPanelWidth(clamp(ev))
-      const onUp = (ev: PointerEvent) => {
-        window.removeEventListener("pointermove", onMove)
-        window.removeEventListener("pointerup", onUp)
-        localStorage.setItem(PANEL_WIDTH_STORAGE_KEY, String(clamp(ev)))
+      const finish = (ev: PointerEvent) => {
+        grip.removeEventListener("pointermove", onMove)
+        grip.removeEventListener("pointerup", finish)
+        grip.removeEventListener("pointercancel", finish)
+        grip.releasePointerCapture?.(pointerId)
+        writeStoredWidth(clamp(ev))
       }
-      window.addEventListener("pointermove", onMove)
-      window.addEventListener("pointerup", onUp)
+
+      // Capture is what makes this survive the drag: the grip sits on the
+      // panel's left edge, so widening drags the pointer straight over the
+      // preview iframe, which would otherwise receive the events itself —
+      // freezing the drag and leaving the listeners attached for good.
+      grip.setPointerCapture?.(pointerId)
+      grip.addEventListener("pointermove", onMove)
+      grip.addEventListener("pointerup", finish)
+      grip.addEventListener("pointercancel", finish)
     },
     [panelWidth],
   )
 
-  const [hintDismissed, setHintDismissed] = useState(
-    () => localStorage.getItem(HINT_DISMISSED_STORAGE_KEY) === "1",
-  )
+  const [hintDismissed, setHintDismissed] = useState(readHintDismissed)
   const dismissHint = useCallback(() => {
-    localStorage.setItem(HINT_DISMISSED_STORAGE_KEY, "1")
+    try {
+      localStorage.setItem(HINT_DISMISSED_STORAGE_KEY, "1")
+    } catch {
+      // Dismissal just won't persist across reloads.
+    }
     setHintDismissed(true)
   }, [])
 
@@ -818,11 +873,14 @@ export function ClassicActivityPanel({
     </div>
   )
 
-  const imageThumb = (imageId: string, className: string) => (
+  const imageThumb = (imageId: string, className: string, alt?: string) => (
     <Anchored key={imageId} anchor={imageAnchor(imageId)} className="inline-flex">
       <img
         src={`${BASE_URL}/books/${bookLabel}/images/${imageId}`}
-        alt=""
+        // Decorative only when the caller has nothing to say about it —
+        // the ungrouped-images grid does, and dropping it left that whole
+        // section silent to a screen reader.
+        alt={alt ?? ""}
         title={imageId}
         className={className}
       />
@@ -856,10 +914,12 @@ export function ClassicActivityPanel({
       </div>
     )
 
-  const correctRadio = (value: string) => (
+  const correctRadio = (value: string, disabled = false) => (
     <RadioGroupItem
       value={value}
+      disabled={disabled}
       aria-label={t`Correct answer`}
+      title={disabled ? t`This option has no answer key entry` : undefined}
       className="shrink-0 border-emerald-500 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400"
     />
   )
@@ -867,6 +927,21 @@ export function ClassicActivityPanel({
   /** The item-id currently flagged correct in a single-choice group. */
   const correctOf = (ids: (string | undefined)[]) =>
     ids.find((id) => id && isCorrectAnswer(answers?.[id])) ?? NO_CHOICE_ID
+
+  /**
+   * The stored value for a value-choice (true/false) group, matched back to
+   * the option that carries it. The answer key and the rendered `value`
+   * attribute come from different producers, so they drift in case — a key of
+   * "True" against `value="true"` must still read as selected, or the editor
+   * reports an answered item as unanswered and the author re-picks it,
+   * silently rewriting a correct key.
+   */
+  const selectedValueOf = (item: ActivityOutlineItem, itemId: string): string => {
+    const stored = String(answers?.[itemId] ?? "").trim().toLowerCase()
+    if (!stored) return NO_CHOICE_ID
+    const match = item.options.find((o) => (o.value ?? "").trim().toLowerCase() === stored)
+    return match?.value ?? NO_CHOICE_ID
+  }
 
   const optionTextControl = (item: ActivityOutlineItem, optIndex: number) => {
     const o = item.options[optIndex]
@@ -1116,7 +1191,7 @@ export function ClassicActivityPanel({
                         single answer, so it anchors as one unit. */}
                     <Anchored anchor={answerAnchor(valueItemId)}>
                       <RadioGroup
-                        value={String(answers?.[valueItemId] ?? NO_CHOICE_ID)}
+                        value={selectedValueOf(item, valueItemId)}
                         onValueChange={(v) => onAnswersEdited({ [valueItemId]: v })}
                         className="flex flex-wrap items-center gap-4"
                       >
@@ -1162,19 +1237,24 @@ export function ClassicActivityPanel({
                 {answersHeading(t`Options — the selected radio marks the correct answer`)}
                 <RadioGroup
                   value={correctOf(item.options.map((o) => o.itemId))}
-                  onValueChange={(id) =>
+                  onValueChange={(id) => {
+                    // An option the extractor could not resolve carries a
+                    // synthetic value. Selecting it must be inert: writing the
+                    // group would set every real option to false and wipe the
+                    // answer the author already had.
+                    if (!item.options.some((x) => x.itemId === id)) return
                     onAnswersEdited(
                       Object.fromEntries(
                         item.options.filter((x) => x.itemId).map((x) => [x.itemId!, x.itemId === id]),
                       ),
                     )
-                  }
+                  }}
                   className="gap-2"
                 >
                   {item.options.map((o, oi) =>
                     optionRow(o.itemId, oi, (
                       <>
-                        {correctRadio(o.itemId ?? `${NO_CHOICE_ID}-${oi}`)}
+                        {correctRadio(o.itemId ?? `${NO_CHOICE_ID}-${oi}`, !o.itemId)}
                         {o.imageId &&
                           imageThumb(o.imageId, "h-8 w-8 rounded border object-cover shrink-0")}
                         {optionTextControl(item, oi)}
@@ -1651,6 +1731,7 @@ export function ClassicActivityPanel({
                     imageThumb(
                       leaf.nodeId,
                       "h-20 w-full rounded border bg-white object-contain",
+                      leaf.text ?? "",
                     ),
                   )}
                 </div>

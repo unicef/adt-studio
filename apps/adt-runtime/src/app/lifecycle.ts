@@ -81,11 +81,6 @@ function readIsActivityPage(): boolean {
   return !!document.querySelector('section[data-section-type^="activity_"]')
 }
 
-function readIsEmbedMode(): boolean {
-  if (typeof window === "undefined") return false
-  return new URLSearchParams(window.location.search).get("embed") === "1"
-}
-
 function readCurrentPageNumber(): number | null {
   const meta = document
     .querySelector('meta[name="page-section-id"]')
@@ -184,7 +179,10 @@ export async function bootRuntime(): Promise<void> {
     const isActivity = readIsActivityPage()
     store.set(isActivityPageAtom, isActivity)
     store.set(activityModeAtom, isActivity)
-    store.set(embedModeAtom, readIsEmbedMode())
+    // embedModeAtom self-initialises from the URL at module load — writing it
+    // again here would be a second parser of the same query param, and the
+    // whole point of the module-load read is that DOM-mutating paths run
+    // before boot gets this far.
 
     applyDOMTranslations()
 
