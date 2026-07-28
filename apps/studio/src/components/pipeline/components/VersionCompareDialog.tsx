@@ -32,7 +32,17 @@ export interface VersionDiffDescriptor {
    *  a level badge can match the item's change color. `ctx.diff`, when present
    *  (edited rows), is a pre-rendered inline word-diff to show *in place of* the
    *  item's primary text — render your context (tags, source) around it. */
-  renderItem: (item: unknown, ctx?: { accentClass: string; diff?: ReactNode }) => ReactNode
+  renderItem: (
+    item: unknown,
+    ctx?: {
+      accentClass: string
+      /** Inline word-diff of `diffText` (edited rows) — for text stages. */
+      diff?: ReactNode
+      /** The previous version's item (edited rows) — for stages that want to
+       *  mark element-level changes themselves (e.g. which quiz option changed). */
+      before?: unknown
+    }
+  ) => ReactNode
   /** Primary comparable text of an item. When provided, edited rows show a
    *  shared inline word-diff (old → new) of this text via `ctx.diff`. */
   diffText?: (item: unknown) => string
@@ -252,13 +262,15 @@ export function VersionCompareDialog({
   }
   const unifiedRow = (row: (typeof unified)[number]) => {
     const meta = STATUS[row.status]
-    const body =
-      row.status === "edited" && descriptor.diffText
-        ? descriptor.renderItem(row.item, {
-            accentClass: meta.chip,
-            diff: <InlineDiff before={descriptor.diffText(row.before)} after={descriptor.diffText(row.item)} />,
-          })
-        : descriptor.renderItem(row.item, { accentClass: meta.chip })
+    const edited = row.status === "edited"
+    const body = descriptor.renderItem(row.item, {
+      accentClass: meta.chip,
+      before: edited ? row.before : undefined,
+      diff:
+        edited && descriptor.diffText ? (
+          <InlineDiff before={descriptor.diffText(row.before)} after={descriptor.diffText(row.item)} />
+        ) : undefined,
+    })
     return (
       <div
         key={row.key}
@@ -284,6 +296,7 @@ export function VersionCompareDialog({
           KIND.edited.tint,
           descriptor.renderItem(after, {
             accentClass: KIND_CHIP_CLASS.edited,
+            before,
             diff: <InlineDiff before={descriptor.diffText(before)} after={descriptor.diffText(after)} />,
           })
         )

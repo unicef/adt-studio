@@ -329,21 +329,44 @@ export function QuizzesView({
               return `${x.question} ${x.options?.map((o) => o.text).join(" ") ?? ""}`
             },
             searchPlaceholder: t`Search questions or answers…`,
-            renderItem: (it) => {
+            renderItem: (it, ctx) => {
               const q = it as QuizData["quizzes"][number]
+              const prev = ctx?.before as QuizData["quizzes"][number] | undefined
+              const questionChanged = prev != null && prev.question !== q.question
+              const answerMoved = prev != null && prev.answerIndex !== q.answerIndex
+              const changeTag = (label: string, cls: string) => (
+                <span
+                  className={`ml-1 shrink-0 rounded px-1 py-px text-[8px] font-semibold uppercase tracking-wide ring-1 ${cls}`}
+                >
+                  {label}
+                </span>
+              )
               return (
                 <span className="flex flex-col gap-1.5">
-                  <span className="font-medium text-foreground">{q.question}</span>
+                  <span className="flex flex-col">
+                    {questionChanged && prev ? (
+                      <span className="text-[11px] text-muted-foreground line-through decoration-rose-400/70">
+                        {prev.question}
+                      </span>
+                    ) : null}
+                    <span className="font-medium text-foreground">{q.question}</span>
+                  </span>
                   <span className="flex flex-col gap-1">
                     {q.options?.map((o, i) => {
                       const correct = i === q.answerIndex
+                      const prevOpt = prev?.options?.[i]
+                      const textChanged = prevOpt != null && prevOpt.text !== o.text
+                      const becameCorrect = answerMoved && correct
+                      const wasCorrect = answerMoved && prev != null && i === prev.answerIndex
                       return (
                         <span
                           key={i}
                           className={`flex items-start gap-1.5 rounded px-1.5 py-1 text-[11px] ${
                             correct
                               ? "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200"
-                              : "text-muted-foreground"
+                              : wasCorrect
+                                ? "text-muted-foreground ring-1 ring-amber-200"
+                                : "text-muted-foreground"
                           }`}
                         >
                           {correct ? (
@@ -351,7 +374,19 @@ export function QuizzesView({
                           ) : (
                             <span className="mt-0.5 h-3 w-3 shrink-0 rounded-full border border-muted-foreground/40" />
                           )}
-                          <span>{o.text}</span>
+                          <span className="min-w-0 flex-1">
+                            {textChanged && prevOpt ? (
+                              <span className="line-through decoration-rose-400/70">{prevOpt.text} </span>
+                            ) : null}
+                            {o.text}
+                          </span>
+                          {becameCorrect
+                            ? changeTag(t`now correct`, "bg-emerald-100 text-emerald-700 ring-emerald-300")
+                            : wasCorrect
+                              ? changeTag(t`was correct`, "bg-amber-100 text-amber-700 ring-amber-300")
+                              : textChanged
+                                ? changeTag(t`edited`, "bg-amber-100 text-amber-700 ring-amber-300")
+                                : null}
                         </span>
                       )
                     })}
