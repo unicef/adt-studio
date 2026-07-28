@@ -37,6 +37,7 @@ import {
   tocAtom,
   type TocEntry,
 } from "@/features/navigation/state/nav.atoms"
+import { KIDS_SCROLLBAR_CLASS } from "@/features/kids/lib/kids-styles"
 import { cn } from "@/shared/lib/utils"
 
 const RESUME_SESSION_KEY = "kidsLastSpotOfferChecked"
@@ -127,7 +128,11 @@ export function KidsStoryMapDialog() {
       wide
     >
       <div
-        className="grid max-h-[60vh] gap-2 overflow-y-auto px-1.5 py-2 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+        className={cn(
+          "grid max-h-[60vh] gap-2 overflow-y-auto px-1.5 py-2",
+          KIDS_SCROLLBAR_CLASS,
+          "focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-700",
+        )}
         role="region"
         aria-label={tk("kids-story-map-list-region", "Story map sections")}
         tabIndex={0}

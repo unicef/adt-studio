@@ -8,7 +8,10 @@ import {
   getAdjacentPages,
   navigateToHref,
 } from "@/features/navigation/lib/page-navigation"
-import { kidsFinishedAtom } from "@/features/kids/state/kids.atoms"
+import {
+  kidsBuddyPanelOpenAtom,
+  kidsFinishedAtom,
+} from "@/features/kids/state/kids.atoms"
 import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
 import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
 import { cn } from "@/shared/lib/utils"
@@ -19,10 +22,15 @@ export function KidsPageArrows() {
   const currentSectionId = useAtomValue(currentSectionIdAtom)
   const reduceMotion = usePrefersReducedMotion()
   const setFinished = useSetAtom(kidsFinishedAtom)
+  const buddyPanelOpen = useAtomValue(kidsBuddyPanelOpenAtom)
   const { prev, next } = getAdjacentPages(pages, currentSectionId)
   // On the final page of a multi-page book the "next" arrow becomes a
   // celebratory finish button that opens the end-of-book screen.
   const atEnd = !next && pages.length > 1
+
+  // The buddy menu can cover the whole screen, and a page arrow floating over
+  // it reads as a stray control — hide them while the menu is open.
+  if (buddyPanelOpen) return null
 
   return (
     <>

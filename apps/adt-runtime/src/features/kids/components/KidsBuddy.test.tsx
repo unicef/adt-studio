@@ -382,24 +382,29 @@ describe("KidsBuddy", () => {
     expect(action?.hasAttribute("disabled")).toBe(true)
   })
 
-  it("cycles reading speed and says confirmations", () => {
+  it("picks a reading speed on the slider and says confirmations", () => {
     const store = createKidsStore()
     store.set(audioSpeedAtom, 0.75)
     renderKidsChrome(store)
     openBuddy()
 
-    const speedButton = screen.getByTestId("kids-action-speed")
-    fireEvent.click(speedButton)
+    // The list menu offers speed as a snapping range slider, so a screen
+    // reader hears the speed's name rather than the raw step index.
+    const slider = screen.getByRole("slider", { name: "How fast I read" })
+    expect(slider.getAttribute("aria-valuetext")).toBe("Turtle")
+
+    fireEvent.change(slider, { target: { value: "2" } })
     expect(store.get(audioSpeedAtom)).toBe(1)
     expect(store.get(buddySpeechAtom)).toBe("Okay! Now I read at normal speed.")
 
-    fireEvent.click(speedButton)
+    fireEvent.change(slider, { target: { value: "4" } })
     expect(store.get(audioSpeedAtom)).toBe(1.3)
     expect(store.get(buddySpeechAtom)).toBe(
       "Okay! Now I read quickly, like a rabbit.",
     )
 
-    fireEvent.click(speedButton)
+    // Reversible: dragging back to the low end returns to turtle speed.
+    fireEvent.change(slider, { target: { value: "0" } })
     expect(store.get(audioSpeedAtom)).toBe(0.75)
     expect(store.get(buddySpeechAtom)).toBe(
       "Okay! Now I read slowly, like a turtle.",

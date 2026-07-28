@@ -21,6 +21,12 @@ import {
   type KidsCharacterId,
 } from "@/features/kids/lib/characters"
 import { getKidsModePreviewOverride } from "@/features/kids/lib/kids-preview"
+import {
+  DEFAULT_KIDS_MENU_VARIANT,
+  getKidsMenuVariantOverride,
+  isKidsMenuVariant,
+  type KidsMenuVariant,
+} from "@/features/kids/components/menu/kids-menu-variant"
 
 export const kidsOnboardingDoneAtom = persistedBoolAtom(
   "kidsOnboardingDone",
@@ -68,6 +74,26 @@ export const kidsReadingFontAtom = persistedStringAtom("kidsReadingFont", "defau
 
 // Whether the buddy chats unprompted while the child reads (idle chatter).
 export const kidsBuddyChatterAtom = persistedBoolAtom("kidsBuddyChatter", true)
+
+// Which buddy-menu design this reader sees. Three ship side by side while we
+// learn which one children get on with, so the child picks one during
+// onboarding. A `?kidsMenu=` query parameter overrides it for review.
+const storedMenuVariantAtom = persistedStringAtom(
+  "kidsMenuVariant",
+  DEFAULT_KIDS_MENU_VARIANT,
+)
+
+export const kidsMenuVariantAtom = atom(
+  (get) => {
+    const override = getKidsMenuVariantOverride()
+    if (override) return override
+    // `getOnInit` makes the storage atom resolve synchronously, so the value
+    // is always a plain string here even though the type is widened.
+    const stored = get(storedMenuVariantAtom) as string
+    return isKidsMenuVariant(stored) ? stored : DEFAULT_KIDS_MENU_VARIANT
+  },
+  (_get, set, next: KidsMenuVariant) => set(storedMenuVariantAtom, next),
+)
 
 export const buddySpeechAtom = ephemeralAtom<string | null>(null)
 export const kidsBuddyPanelOpenAtom = ephemeralAtom(false)
