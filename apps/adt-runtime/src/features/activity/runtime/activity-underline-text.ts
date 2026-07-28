@@ -17,6 +17,90 @@ import { announceToScreenReader } from "@/shared/lib/aria-live"
 const UNDERLINE_SELECTOR = 'section[data-section-type="activity_underline_text"]'
 const DEFAULT_GROUP_KEY = "__default__"
 const STYLE_ATTR = "data-underline-style-state"
+const MARK_ATTR = "data-underline-verdict-mark"
+const STYLE_ELEMENT_ID = "underline-text-activity-style"
+
+const OPTION_BASE =
+  'section[data-section-type="activity_underline_text"] .activity-underline-option[data-activity-item]'
+
+/**
+ * All option styling lives in this injected stylesheet, driven by attributes,
+ * so nothing the runtime does can move the surrounding words:
+ * - the base chip (border, padding) is applied once at init and never changes;
+ *   selection/validation only swap colors via `data-underline-style-state`
+ * - the verdict badge is absolutely positioned half over the token's top-right
+ *   corner (same convention as fill-in-the-blank) so it takes no flow space
+ * - hover feedback uses transform/box-shadow, which don't reflow
+ * State rules come after the hover rule on purpose: equal specificity, so
+ * source order keeps verdict colors stable under the cursor while the hover
+ * lift still applies.
+ */
+const OPTION_CSS = `
+${OPTION_BASE} {
+  position: relative;
+  display: inline-block;
+  border: 1.5px solid rgb(203, 213, 225);
+  border-radius: 0.375rem;
+  padding: 0.05rem 0.3rem;
+  cursor: pointer;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 0.18em;
+  transition: border-color 0.15s ease, background-color 0.15s ease,
+    box-shadow 0.15s ease, transform 0.15s ease;
+}
+${OPTION_BASE}:hover {
+  border-color: rgb(148, 163, 184);
+  background-color: rgb(248, 250, 252);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  transform: translateY(-1px);
+}
+${OPTION_BASE}[data-underline-style-state="selected"] {
+  text-decoration-line: underline;
+  text-decoration-color: rgb(37, 99, 235);
+  border-color: rgb(37, 99, 235);
+  background-color: rgb(239, 246, 255);
+}
+${OPTION_BASE}[data-underline-style-state="correct"] {
+  text-decoration-line: underline;
+  text-decoration-color: rgb(22, 163, 74);
+  border-color: rgb(22, 163, 74);
+  background-color: rgb(240, 253, 244);
+}
+${OPTION_BASE}[data-underline-style-state="incorrect"] {
+  text-decoration-line: underline;
+  text-decoration-color: rgb(220, 38, 38);
+  border-color: rgb(220, 38, 38);
+  background-color: rgb(254, 242, 242);
+}
+${OPTION_BASE} [${MARK_ATTR}] {
+  position: absolute;
+  top: 0;
+  right: 0;
+  transform: translate(50%, -50%);
+  font-size: 16px;
+  line-height: 1;
+  background: white;
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: 10;
+}
+${OPTION_BASE} [${MARK_ATTR}="correct"] {
+  color: rgb(22, 163, 74);
+}
+${OPTION_BASE} [${MARK_ATTR}="incorrect"] {
+  color: rgb(220, 38, 38);
+}
+`
+
+function injectStylesheet(doc: Document): HTMLStyleElement {
+  const existing = doc.getElementById(STYLE_ELEMENT_ID)
+  if (existing instanceof HTMLStyleElement) return existing
+  const style = doc.createElement("style")
+  style.id = STYLE_ELEMENT_ID
+  style.textContent = OPTION_CSS
+  doc.head.appendChild(style)
+  return style
+}
 
 function tr(key: string, fallback: string): string {
   const dict = getDefaultStore().get(translationsAtom)
@@ -120,34 +204,39 @@ function findGroup(groups: UnderlineGroup[], option: HTMLElement): UnderlineGrou
   return groups.find((g) => g.key === key) ?? null
 }
 
-function applyOptionStyle(option: HTMLElement, state: "selected" | "correct" | "incorrect"): void {
-  option.style.textDecorationLine = "underline"
-  option.style.textDecorationThickness = "3px"
-  option.style.textUnderlineOffset = "0.18em"
-  option.style.borderRadius = "0.25rem"
-  option.style.paddingInline = "0.05rem"
-  if (state === "selected") {
-    option.style.textDecorationColor = "rgb(37, 99, 235)"
-    option.style.backgroundColor = "transparent"
-  } else if (state === "correct") {
-    option.style.textDecorationColor = "rgb(22, 163, 74)"
-    option.style.backgroundColor = "rgba(240, 253, 244, 0.2)"
-  } else {
-    option.style.textDecorationColor = "rgb(220, 38, 38)"
-    option.style.backgroundColor = "rgba(254, 242, 242, 0.2)"
+/**
+ * Check/cross badge overhanging the token's top-right corner so the verdict is
+ * not conveyed by color alone (WCAG 1.4.1). aria-hidden — assistive tech gets
+ * the verdict from `aria-invalid` and the live-region summary, and the token's
+ * accessible name must stay just the visible word. Positioning and colors come
+ * from the injected stylesheet.
+ */
+function setVerdictMark(option: HTMLElement, verdict: "correct" | "incorrect" | null): void {
+  const existing = option.querySelector<HTMLElement>(`[${MARK_ATTR}]`)
+  if (!verdict) {
+    existing?.remove()
+    return
   }
+  const mark = existing ?? option.ownerDocument.createElement("span")
+  mark.setAttribute(MARK_ATTR, verdict)
+  mark.setAttribute("aria-hidden", "true")
+  // Solid circle glyphs on the stylesheet's white backdrop, matching the
+  // fill-in-the-blank corner badge.
+  mark.innerHTML =
+    verdict === "correct"
+      ? '<i class="fas fa-check-circle"></i>'
+      : '<i class="fas fa-times-circle"></i>'
+  if (!existing) option.appendChild(mark)
+}
+
+function applyOptionStyle(option: HTMLElement, state: "selected" | "correct" | "incorrect"): void {
+  setVerdictMark(option, state === "selected" ? null : state)
   option.setAttribute(STYLE_ATTR, state)
 }
 
 function clearOptionStyle(option: HTMLElement): void {
   if (!option.hasAttribute(STYLE_ATTR)) return
-  option.style.textDecorationLine = ""
-  option.style.textDecorationThickness = ""
-  option.style.textUnderlineOffset = ""
-  option.style.textDecorationColor = ""
-  option.style.backgroundColor = ""
-  option.style.borderRadius = ""
-  option.style.paddingInline = ""
+  setVerdictMark(option, null)
   option.removeAttribute(STYLE_ATTR)
 }
 
@@ -192,6 +281,7 @@ export function initializeUnderlineTextActivity(): (() => void) | null {
   if (!section) return null
 
   const store = getDefaultStore()
+  const styleElement = injectStylesheet(document)
   const correctAnswers = readCorrectAnswers(section)
   const groups = buildGroups(section)
   const hasNextPage = findNextPageHref() !== null
@@ -387,5 +477,6 @@ export function initializeUnderlineTextActivity(): (() => void) | null {
   return () => {
     listeners.forEach((off) => off())
     unsubTranslations()
+    styleElement.remove()
   }
 }

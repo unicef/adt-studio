@@ -102,7 +102,12 @@ function replaceTextPreservingUnderlineOptions(
     if (start > lastIndex) {
       fragment.append(doc.createTextNode(translatedText.slice(lastIndex, start)))
     }
+    // The activity runtime appends an aria-hidden check/cross mark inside the
+    // token after validation; re-attach it so the text swap doesn't strip the
+    // non-color verdict indicator while the inline verdict colors persist.
+    const verdictMark = options[i].querySelector("[data-underline-verdict-mark]")
     options[i].textContent = word
+    if (verdictMark) options[i].append(verdictMark)
     fragment.append(options[i])
     lastIndex = start + word.length
   }

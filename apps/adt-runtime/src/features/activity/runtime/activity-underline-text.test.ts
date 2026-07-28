@@ -120,6 +120,53 @@ describe("initializeUnderlineTextActivity", () => {
   })
 
   describe("accessibility semantics", () => {
+    it("appends an aria-hidden check/cross mark so the verdict is not color-only", () => {
+      setupSingleGroup()
+      initializeUnderlineTextActivity()
+      optionFor("item-1").click()
+      optionFor("item-2").click()
+      store.get(validateHandlerAtom)?.()
+      const correctMark = optionFor("item-1").querySelector<HTMLElement>(
+        "[data-underline-verdict-mark='correct']",
+      )!
+      const wrongMark = optionFor("item-2").querySelector<HTMLElement>(
+        "[data-underline-verdict-mark='incorrect']",
+      )!
+      expect(correctMark.getAttribute("aria-hidden")).toBe("true")
+      expect(correctMark.querySelector("i")!.className).toContain("fa-check-circle")
+      expect(wrongMark.getAttribute("aria-hidden")).toBe("true")
+      expect(wrongMark.querySelector("i")!.className).toContain("fa-times-circle")
+    })
+
+    it("never writes inline styles to tokens, so selection and verdicts cannot reflow text", () => {
+      setupSingleGroup()
+      initializeUnderlineTextActivity()
+      // Chip styling, state colors, and badge positioning all live in the
+      // injected stylesheet keyed off attributes — inline style mutations are
+      // what previously shifted the surrounding words.
+      expect(document.getElementById("underline-text-activity-style")).not.toBeNull()
+      optionFor("item-1").click()
+      optionFor("item-2").click()
+      store.get(validateHandlerAtom)?.()
+      for (const id of ["item-1", "item-2", "item-3"]) {
+        expect(optionFor(id).getAttribute("style")).toBeNull()
+      }
+    })
+
+    it("removes the verdict mark when the learner edits after submit", () => {
+      setupSingleGroup()
+      initializeUnderlineTextActivity()
+      optionFor("item-2").click()
+      store.get(validateHandlerAtom)?.()
+      expect(
+        optionFor("item-2").querySelector("[data-underline-verdict-mark]"),
+      ).not.toBeNull()
+      optionFor("item-1").click()
+      expect(
+        optionFor("item-2").querySelector("[data-underline-verdict-mark]"),
+      ).toBeNull()
+    })
+
     it("exposes each token as a focusable checkbox named by its text content", () => {
       setupSingleGroup()
       initializeUnderlineTextActivity()
