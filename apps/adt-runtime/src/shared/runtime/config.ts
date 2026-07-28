@@ -5,7 +5,7 @@
  * compatibility with anything that still reads it (third-party SCORM/EPUB
  * hosts), but the source of truth is `appConfigAtom`.
  */
-import { runtimeBase } from "./base-path.js"
+import { loadAdtData } from "./base-path.js"
 import type { AppConfig } from "@/shared/state/config.atoms"
 
 declare global {
@@ -20,21 +20,17 @@ const DEFAULT_CONFIG: AppConfig = {
 }
 
 export async function loadAppConfig(versionParam = ""): Promise<AppConfig> {
-  try {
-    const url = `${runtimeBase()}assets/config.json${versionParam ? `?v=${versionParam}` : ""}`
-    const res = await fetch(url)
-    if (!res.ok) return DEFAULT_CONFIG
-    const config = (await res.json()) as AppConfig
-    if (typeof window !== "undefined") window.appConfig = config
-    return {
-      ...DEFAULT_CONFIG,
-      ...config,
-      languages: { ...DEFAULT_CONFIG.languages, ...config.languages },
-      features: { ...DEFAULT_CONFIG.features, ...config.features },
-    }
-  } catch (err) {
-    console.warn("Failed to load config.json, using defaults", err)
+  const config = await loadAdtData<AppConfig>("assets/config.json", versionParam)
+  if (!config) {
+    console.warn("Failed to load config.json, using defaults")
     return DEFAULT_CONFIG
+  }
+  if (typeof window !== "undefined") window.appConfig = config
+  return {
+    ...DEFAULT_CONFIG,
+    ...config,
+    languages: { ...DEFAULT_CONFIG.languages, ...config.languages },
+    features: { ...DEFAULT_CONFIG.features, ...config.features },
   }
 }
 

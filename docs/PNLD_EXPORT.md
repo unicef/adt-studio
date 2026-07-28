@@ -24,9 +24,9 @@ the structural documents. The caller zips the result into `<book>.zip`.
 └── resources/
     ├── fonts/                    bundled webfonts + FontAwesome glyph fonts
     ├── images/                   page images
-    ├── scripts/                  auto-fit.js, activities-bundle-local.js
+    ├── scripts/                  auto-fit.js, activities-bundle-local.js, adt-data.js
     ├── styles/                   tailwind_output.css, fonts.css, fontawesome-all-min.css
-    └── adt/                      ADT feature sidecar (see "Features")
+    └── adt/                      ADT media only — audio/video/image assets (see "Features")
 ```
 
 Folder/file names are lowercase, ASCII, never start with a digit, and carry no
@@ -96,51 +96,57 @@ source), scales it to fit the spec size preserving aspect ratio, letterboxes the
 remainder on white, and re-encodes to `cover.jpeg` (`jpeg-js`). A non-decodable
 placeholder is left as-is rather than failing the export.
 
-## Features — `resources/adt/`
+## Features — data as `resources/scripts/adt-data.js`
 
-ADT features are **carried, not dropped**. The runtime feature data lives under
-`resources/adt/`, mirroring the adt/web layout so the reader (and the activities
-bundle) can consume every feature:
+ADT features are **carried, not dropped** — but VALIDE forbids `.json` files
+(and treats any `.js` as an executable script that must live in
+`resources/scripts/`). So the whole ADT data layer is **consolidated into one
+VALIDE-legal JS module**, `resources/scripts/adt-data.js`, that assigns a global
+keyed by each file's original adt-relative path:
 
+```js
+window.__ADT_DATA__ = {
+  "assets/config.json": { … },                       // feature flags, languages
+  "content/pages.json": [ … ], "content/toc.json": [ … ],   // navigation manifests
+  "assets/interface_translations/<lang>/interface_translations.json": { … },  // chrome strings
+  "content/i18n/<lang>/texts.json":  { … },           // per-language content
+  "content/i18n/<lang>/audios.json": { … }, /* videos, images, glossary, timecode … */
+};
 ```
-resources/adt/
-├── assets/
-│   ├── config.json                     feature flags, languages
-│   └── interface_translations/<lang>/  chrome strings
-└── content/
-    ├── pages.json  toc.json            navigation manifests
-    └── i18n/<lang>/                    read-aloud audio, sign-language video,
-                                        glossary/texts/timecode JSON
-```
 
-Locale folders (`<lang>`) are lowercased (`pt-BR` → `pt-br`) to satisfy the
-folder-naming rule; the locale codes in `config.languages` are lowercased in
-lockstep so the activities bundle (which derives its fetch language from that
-config) resolves them, while each page's `<html lang>` keeps the semantic
-locale. The activities runtime itself sits in `resources/scripts/`
-(`activities-bundle-local.js`), not here — the spec requires all scripts in that
-one folder.
+Media assets (audio `.mp3`, video `.mp4`, images) are already permitted formats,
+so they stay under `resources/adt/`; the data maps in `adt-data.js` point at
+them. If a book has no media, `resources/adt/` is dropped entirely.
+
+The shared `adt-runtime` loaders resolve each resource by its relative key: when
+`window.__ADT_DATA__` is present they read from the global (works offline / over
+`file://`, no fetch); otherwise they fetch the `.json` as before, so the adt/web,
+WebPub, and preview outputs are unchanged.
+
+Locale keys inside `content/i18n/<lang>/…` are lowercased (`pt-BR` → `pt-br`) to
+match the on-disk folder-naming rule for any media dirs, and `config.languages`
+is lowercased in lockstep so the runtime derives the same key; each page's
+`<html lang>` keeps the semantic locale.
 
 ### Interactive activities
 
-Activity pages (`data-section-type="activity_*"`) load the activities bundle so
-quizzes work like the WebPub export — Submit/Next control, answer validation,
-correct-answer confetti + toast, and advance to the next reading-order page.
-Because PNLD pages sit in `content/` and the data lives under `resources/adt/`,
-each activity page carries:
+Activity pages (`data-section-type="activity_*"`) load the activities runtime so
+quizzes work like the WebPub export — inline answer validation, correct-answer
+confetti + toast, and advance to the next reading-order page. Each activity page
+carries, in order:
 
 ```html
 <meta name="adt-base" content="../resources/adt/" />
+<script src="../resources/scripts/adt-data.js"></script>
 <script src="../resources/scripts/activities-bundle-local.js"></script>
 ```
 
-The shared `adt-runtime` loaders resolve `config.json` / manifests / i18n
-relative to `adt-base` (default `./`, so the adt/web and WebPub outputs are
-unchanged).
+`adt-data.js` loads first so `window.__ADT_DATA__` is populated before the bundle
+boots; `adt-base` still points media-path resolution at `resources/adt/`.
 
 ## Relation to the other exports
 
 - **WebPub** (`docs/WEBPUB_EXPORT.md`) — Readium manifest, reader owns the UI.
 - **EPUB** — EPUB-native SMIL media overlays + dictionary glossary.
-- **PNLD** — FNDE tree + EPUB3 packaging, feature data carried as an ADT sidecar
-  for a PNLD-aware reader (VALIDE / LIP).
+- **PNLD** — FNDE tree + EPUB3 packaging, feature data carried as a single
+  `resources/scripts/adt-data.js` global for a PNLD-aware reader (VALIDE / LIP).

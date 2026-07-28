@@ -180,6 +180,10 @@ function reorganize(pnldDir: string, rawPages: PageEntry[], language: string): P
   //     and the reader can reach every feature — before assets/ + content/ go.
   buildAdtSidecar(pnldDir)
 
+  // 5c. Fold the sidecar's JSON into a single VALIDE-legal JS data module
+  //     (resources/scripts/adt-data.js). VALIDE forbids .json.
+  consolidateAdtData(pnldDir)
+
   // 6. Remove everything that isn't part of the PNLD structure.
   if (fs.existsSync(adtContentDir)) fs.rmSync(adtContentDir, { recursive: true })
   if (fs.existsSync(assetsDir)) fs.rmSync(assetsDir, { recursive: true })
@@ -244,9 +248,11 @@ export function rewriteContentPage(
   }
 
   // Activity pages load the standalone activities bundle (submit/validate +
-  // confetti/toast + next-page nav), like WebPub. `adt-base` points the
-  // bundle's runtime loaders at the resources/adt sidecar (pages live in
-  // content/, so it resolves one level up).
+  // confetti/toast + next-page nav), like WebPub. `adt-data.js` (loaded first)
+  // populates `window.__ADT_DATA__` so the runtime loaders read config /
+  // manifests / i18n from the global instead of fetching `.json` (which VALIDE
+  // forbids). `adt-base` still points media-path resolution at the resources/adt
+  // sidecar (pages live in content/, so it resolves one level up).
   if (out.includes('data-section-type="activity_')) {
     out = out.replace(
       /<\/head>/i,
@@ -254,7 +260,8 @@ export function rewriteContentPage(
     )
     out = out.replace(
       /<\/body>/i,
-      '    <script src="../resources/scripts/activities-bundle-local.js"></script>\n</body>',
+      '    <script src="../resources/scripts/adt-data.js"></script>\n' +
+        '    <script src="../resources/scripts/activities-bundle-local.js"></script>\n</body>',
     )
   }
 
@@ -383,6 +390,58 @@ function lowercaseConfigLanguages(configPath: string): void {
   } catch {
     // Malformed config — leave as-is rather than failing the export.
   }
+}
+
+/**
+ * Fold the ADT JSON sidecar into a single VALIDE-legal JS data module.
+ *
+ * VALIDE forbids `.json`; a `.js` module in `resources/scripts/` is allowed. So
+ * every `resources/adt/**​/*.json` file is consolidated into one
+ * `resources/scripts/adt-data.js` that assigns `window.__ADT_DATA__`, keyed by
+ * each file's path relative to `resources/adt/` — the exact key the runtime
+ * loaders (and the LIP reader) resolve. Media files (mp3/mp4/png — already
+ * allowed formats) stay under `resources/adt/`; emptied dirs are pruned, and
+ * `resources/adt/` itself is dropped when only data lived there.
+ *
+ * A `<script src="…/adt-data.js">` is injected ahead of the activities bundle on
+ * activity pages (see `rewriteContentPage`), so the global is populated before
+ * the runtime boots — no fetch, works over `file://`.
+ */
+export function consolidateAdtData(pnldDir: string): void {
+  const adtDir = path.join(pnldDir, "resources", "adt")
+  if (!fs.existsSync(adtDir)) return
+
+  const data: Record<string, unknown> = {}
+  const collect = (dir: string): void => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name)
+      if (entry.isDirectory()) collect(full)
+      else if (entry.isFile() && entry.name.endsWith(".json")) {
+        const key = path.relative(adtDir, full).replace(/\\/g, "/")
+        data[key] = JSON.parse(fs.readFileSync(full, "utf-8"))
+        fs.rmSync(full)
+      }
+    }
+  }
+  collect(adtDir)
+
+  const scriptsDir = path.join(pnldDir, "resources", "scripts")
+  fs.mkdirSync(scriptsDir, { recursive: true })
+  fs.writeFileSync(
+    path.join(scriptsDir, "adt-data.js"),
+    `window.__ADT_DATA__ = ${JSON.stringify(data)};\n`,
+  )
+
+  pruneEmptyDirs(adtDir)
+}
+
+/** Remove empty directories bottom-up, including `dir` itself if it empties. */
+function pruneEmptyDirs(dir: string): void {
+  if (!fs.existsSync(dir)) return
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory()) pruneEmptyDirs(path.join(dir, entry.name))
+  }
+  if (fs.readdirSync(dir).length === 0) fs.rmSync(dir, { recursive: true })
 }
 
 function moveDir(src: string, dest: string): void {

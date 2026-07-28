@@ -8,7 +8,7 @@
  * and `fetchContentFiles`, restructured around atoms.
  */
 import { getDefaultStore } from "jotai"
-import { runtimeBase } from "@/shared/runtime/base-path.js"
+import { loadAdtData } from "@/shared/runtime/base-path.js"
 import {
   audioFilesAtom,
   imageFilesAtom,
@@ -66,29 +66,14 @@ function setEasyReadTextFormatting(element: HTMLElement, enabled: boolean): void
   }
 }
 
-async function safeJsonFetch<T = unknown>(
-  url: string,
-  context: string,
-): Promise<T | null> {
-  try {
-    const res = await fetch(url)
-    if (!res.ok) {
-      console.warn(`[i18n] ${context}: ${url} returned ${res.status}`)
-      return null
-    }
-    return (await res.json()) as T
-  } catch (err) {
-    console.warn(`[i18n] failed to load ${url}`, err)
-    return null
-  }
-}
-
 async function loadInterfaceTranslations(
   lang: string,
-  versionParam: string,
+  version: string,
 ): Promise<Record<string, string>> {
-  const url = `${runtimeBase()}assets/interface_translations/${lang}/interface_translations.json${versionParam}`
-  const data = await safeJsonFetch<Record<string, string>>(url, "interface translations")
+  const data = await loadAdtData<Record<string, string>>(
+    `assets/interface_translations/${lang}/interface_translations.json`,
+    version,
+  )
   return data ?? {}
 }
 
@@ -101,14 +86,14 @@ interface ContentBundle {
 
 async function loadContentFiles(
   lang: string,
-  versionParam: string,
+  version: string,
 ): Promise<ContentBundle> {
-  const base = `${runtimeBase()}content/i18n/${lang}`
+  const dir = `content/i18n/${lang}`
   const [texts, audios, videos, images] = await Promise.all([
-    safeJsonFetch<Record<string, string>>(`${base}/texts.json${versionParam}`, "texts.json"),
-    safeJsonFetch<Record<string, string>>(`${base}/audios.json${versionParam}`, "audios.json"),
-    safeJsonFetch<Record<string, string>>(`${base}/videos.json${versionParam}`, "videos.json"),
-    safeJsonFetch<Record<string, string>>(`${base}/images.json${versionParam}`, "images.json"),
+    loadAdtData<Record<string, string>>(`${dir}/texts.json`, version),
+    loadAdtData<Record<string, string>>(`${dir}/audios.json`, version),
+    loadAdtData<Record<string, string>>(`${dir}/videos.json`, version),
+    loadAdtData<Record<string, string>>(`${dir}/images.json`, version),
   ])
   return {
     texts: texts ?? {},
@@ -132,11 +117,11 @@ export async function loadTranslations(
   lang: string,
   bundleVersion?: string,
 ): Promise<LoadTranslationsResult> {
-  const versionParam = bundleVersion ? `?v=${bundleVersion}` : ""
+  const version = bundleVersion ?? ""
 
   const [interfaceData, content] = await Promise.all([
-    loadInterfaceTranslations(lang, versionParam),
-    loadContentFiles(lang, versionParam),
+    loadInterfaceTranslations(lang, version),
+    loadContentFiles(lang, version),
   ])
 
   const store = getDefaultStore()

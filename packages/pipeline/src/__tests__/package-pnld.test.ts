@@ -4,7 +4,7 @@ import os from "node:os"
 import path from "node:path"
 import { PNG } from "pngjs"
 import jpeg from "jpeg-js"
-import { buildOpf, buildNcx, buildIndex, rewriteContentPage, ensureJpegCover, buildAdtSidecar } from "../packaging/pnld.js"
+import { buildOpf, buildNcx, buildIndex, rewriteContentPage, ensureJpegCover, buildAdtSidecar, consolidateAdtData } from "../packaging/pnld.js"
 import type { PageEntry } from "../packaging/web.js"
 
 const PAGES: PageEntry[] = [
@@ -320,19 +320,88 @@ describe("buildAdtSidecar", () => {
   })
 })
 
+describe("consolidateAdtData", () => {
+  function parseAdtData(dir: string): Record<string, unknown> {
+    const js = fs.readFileSync(path.join(dir, "resources", "scripts", "adt-data.js"), "utf-8")
+    const json = js.replace(/^window\.__ADT_DATA__ = /, "").replace(/;\s*$/, "")
+    return JSON.parse(json) as Record<string, unknown>
+  }
+
+  function seed(dir: string): void {
+    const adt = path.join(dir, "resources", "adt")
+    fs.mkdirSync(path.join(adt, "content", "i18n", "pt-br", "audio"), { recursive: true })
+    fs.mkdirSync(path.join(adt, "assets"), { recursive: true })
+    fs.writeFileSync(path.join(adt, "assets", "config.json"), JSON.stringify({ ok: 1 }))
+    fs.writeFileSync(path.join(adt, "content", "pages.json"), "[]")
+    fs.writeFileSync(path.join(adt, "content", "i18n", "pt-br", "texts.json"), JSON.stringify({ a: "b" }))
+  }
+
+  it("folds every .json into a single resources/scripts/adt-data.js global", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-c-"))
+    seed(dir)
+    consolidateAdtData(dir)
+
+    const js = fs.readFileSync(path.join(dir, "resources", "scripts", "adt-data.js"), "utf-8")
+    expect(js.startsWith("window.__ADT_DATA__ = ")).toBe(true)
+    const data = parseAdtData(dir)
+    expect(data["assets/config.json"]).toEqual({ ok: 1 })
+    expect(data["content/pages.json"]).toEqual([])
+    expect(data["content/i18n/pt-br/texts.json"]).toEqual({ a: "b" })
+    // No .json survives anywhere.
+    const walk = (d: string): string[] =>
+      fs.readdirSync(d, { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)],
+      )
+    expect(walk(dir).filter((f) => f.endsWith(".json"))).toEqual([])
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("keeps media files and drops resources/adt when only data lived there", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-c-"))
+    seed(dir)
+    const mp3 = path.join(dir, "resources", "adt", "content", "i18n", "pt-br", "audio", "p1.mp3")
+    fs.writeFileSync(mp3, "audio")
+    consolidateAdtData(dir)
+
+    // Media survives; the data-only dir would have been pruned, but the mp3 keeps it.
+    expect(fs.existsSync(mp3)).toBe(true)
+    expect(fs.existsSync(path.join(dir, "resources", "adt"))).toBe(true)
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("removes resources/adt entirely when it holds no media", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-c-"))
+    seed(dir)
+    consolidateAdtData(dir)
+    expect(fs.existsSync(path.join(dir, "resources", "adt"))).toBe(false)
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
+  it("is a no-op when there is no adt sidecar", () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-c-"))
+    expect(() => consolidateAdtData(dir)).not.toThrow()
+    expect(fs.existsSync(path.join(dir, "resources", "scripts", "adt-data.js"))).toBe(false)
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+})
+
 describe("rewriteContentPage — activities bundle", () => {
   const activity = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /></head><body><main><section data-section-type="activity_multiple_choice"></section></main></body></html>`
   const plain = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /></head><body><main><section data-section-type="text_only"></section></main></body></html>`
 
-  it("injects the adt-base meta + bundle on activity pages", () => {
+  it("injects adt-data.js before the bundle (global populated before boot)", () => {
     const out = rewriteContentPage(activity, 1, "pt-BR")
     expect(out).toContain('<meta name="adt-base" content="../resources/adt/" />')
+    expect(out).toContain('<script src="../resources/scripts/adt-data.js"></script>')
     expect(out).toContain('<script src="../resources/scripts/activities-bundle-local.js"></script>')
+    // adt-data.js must load first so window.__ADT_DATA__ exists when the bundle boots.
+    expect(out.indexOf("adt-data.js")).toBeLessThan(out.indexOf("activities-bundle-local.js"))
   })
 
-  it("leaves non-activity pages without the bundle", () => {
+  it("leaves non-activity pages without the bundle or data script", () => {
     const out = rewriteContentPage(plain, 1, "pt-BR")
     expect(out).not.toContain("activities-bundle-local.js")
+    expect(out).not.toContain("adt-data.js")
     expect(out).not.toContain("adt-base")
   })
 })
