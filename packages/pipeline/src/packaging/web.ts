@@ -1224,19 +1224,19 @@ ${fallbackHeadingHtml}${contentBlock}
       : ""
   }
 
-  // In embed mode, hide non-essential chrome. The React runtime mounts the
-  // activity Submit/Skip buttons inside #nav-container, so it must stay
-  // visible — BottomDock self-hides via embedModeAtom (see ui.atoms.ts).
-  const embedStyles = opts.embed
-    ? `
-    <style>
-      /* Hide navigation, sidebar, and other chrome in embed mode */
-      #back-forward-buttons, #nav-popup,
-      #open-sidebar, #sidebar, #tts-quick-toggle-button, #play-bar,
-      #sl-quick-toggle-button, #sign-language-video,
-      #explain-me-button, #eli5-content, #notepad-button, #notepad-content { display: none !important; }
-    </style>`
-    : ""
+  // Embed mode — showing just the section and its activity controls — is
+  // enforced entirely in the runtime: `embedModeAtom` makes ChromeRoot skip
+  // the glossary highlighter, tutorial, notepad, ELI5 and sign-language
+  // surfaces, and BottomDock render nothing.
+  //
+  // There used to be a stylesheet here hiding twelve element ids. Every one
+  // of them belonged to the pre-React reader and matched nothing, so it hid
+  // nothing; embed previews only looked clean because BottomDock opted out on
+  // its own. CSS could not have done this job anyway — the highlighter and
+  // the tutorial rewrite the page's own DOM, which no rule can undo.
+  //
+  // #nav-container stays visible: the runtime mounts the activity
+  // Submit/Reset pair into it.
 
   // Reflowable base-font override: re-declare the same elements fonts.css
   // targets with the chosen family, placed last in <head> so it wins. Omitted
@@ -1281,7 +1281,7 @@ ${fallbackHeadingHtml}${contentBlock}
     <link href="./content/tailwind_output.css" rel="stylesheet">
     <link href="./assets/libs/fontawesome/css/all.min.css" rel="stylesheet">
     <link href="./assets/fonts.css" rel="stylesheet">${googleFontsLinks}
-${mathScript}${embedStyles}${bodyFontStyle}${flFit ? `${flFit.headStyle}\n` : ""}</head>
+${mathScript}${bodyFontStyle}${flFit ? `${flFit.headStyle}\n` : ""}</head>
 
 <body${opts.fixedViewport ? ` style="margin:0;overflow:hidden;width:100%;height:100%"` : ` class="min-h-screen flex items-center justify-center"${bodyStyle}`}>
 ${mainBlock}

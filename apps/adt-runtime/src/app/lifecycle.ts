@@ -259,7 +259,12 @@ function applyDOMTranslations(): void {
   applyTranslationsToDOM(translations, { easyReadMode })
   applyImageVariants(images)
 
-  const glossaryEnabled = store.get(glossaryModeAtom) as boolean
+  // Glossary mode is a persisted reader preference, so it follows the user
+  // into an embedded preview — where a storyboard-style view of the section
+  // is wanted, not their reading setup. ChromeRoot's highlighter is skipped
+  // in embed mode; this second, non-React path has to opt out as well.
+  const glossaryEnabled =
+    (store.get(glossaryModeAtom) as boolean) && !(store.get(embedModeAtom) as boolean)
   if (glossaryEnabled) {
     const glossaryData = store.get(glossaryDataAtom)
     // Always wipe stale spans first so a re-apply (e.g. on language change)
