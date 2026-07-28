@@ -130,6 +130,10 @@ msgstr "{0} decorativo"
 msgid "{0} entries"
 msgstr "{0} entradas"
 
+#. placeholder {0}: summary.not_evaluated ?? 0
+msgid "{0} expressions converted without needing review."
+msgstr "{0} expresiones convertidas sin necesidad de revisión."
+
 #. placeholder {0}: getStageLabelI18n(uiStage)
 msgid "{0} failed"
 msgstr "{0} falló"
@@ -398,6 +402,9 @@ msgstr "{pagesReviewed} {pagesReviewed, plural, one {página} other {páginas}} 
 
 msgid "{pdfFilename} · {pageCount} pages"
 msgstr "{pdfFilename} · {pageCount} páginas"
+
+msgid "{pending} to review"
+msgstr "{pending} por revisar"
 
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
@@ -1883,6 +1890,9 @@ msgstr "Gráfico / Tabla"
 
 #~ msgid "Check for updates"
 #~ msgstr "Buscar actualizaciones"
+
+msgid "Check maths"
+msgstr "Comprobar matemáticas"
 
 msgid "Checked"
 msgstr "Checked"
@@ -4241,6 +4251,9 @@ msgstr "Justificar"
 msgid "KB"
 msgstr "KB"
 
+msgid "Keep as generated"
+msgstr "Mantener como se generó"
+
 msgid "Keep output schemas and IDs unchanged when editing prompts."
 msgstr "Mantén los esquemas de salida y los ID sin cambios al editar prompts."
 
@@ -4252,6 +4265,9 @@ msgstr "Mantiene las páginas completas a menos que tipos mixtos de actividad re
 
 msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page. Best for textbooks with varied exercises."
 msgstr "Mantiene la página como una sección por defecto, pero divide inteligentemente cuando detecta múltiples actividades distintas - como una mezcla de ejercicios de opción múltiple, abiertos y de clasificación en la misma página. Mejor para libros de texto con ejercicios variados."
+
+msgid "Kept as generated"
+msgstr "Mantenido como se generó"
 
 msgid "Key must start with \"sk-\""
 msgstr "La clave debe comenzar con \"sk-\""
@@ -4495,6 +4511,9 @@ msgstr "Cargando imágenes..."
 msgid "Loading logs..."
 msgstr "Cargando registros..."
 
+msgid "Loading maths pronunciation review…"
+msgstr "Cargando revisión de pronunciación matemática…"
+
 msgid "Loading page-level findings"
 msgstr "Loading page-level findings"
 
@@ -4656,6 +4675,12 @@ msgstr "Coincidir con la Fuente"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Coincide con el diseño original del libro con cierta flexibilidad."
+
+msgid "Maths in this book has not been checked yet. Run the check to see anything that may be read aloud incorrectly."
+msgstr "Las matemáticas de este libro aún no se han comprobado. Ejecuta la comprobación para ver qué podría leerse en voz alta de forma incorrecta."
+
+msgid "Maths pronunciation"
+msgstr "Pronunciación de matemáticas"
 
 msgid "Max height"
 msgstr "Altura máx"
@@ -5423,6 +5448,9 @@ msgstr "Nota"
 
 msgid "Nothing important is missing or added"
 msgstr "No falta ni se añade nada importante"
+
+msgid "Nothing needs review. Every expression converted cleanly."
+msgstr "No hay nada que revisar. Todas las expresiones se convirtieron correctamente."
 
 msgid "Nothing to show"
 msgstr "Nada que mostrar"
@@ -8256,6 +8284,9 @@ msgstr "El sol calienta el agua en océanos, lagos y ríos, convirtiéndola en v
 msgid "The table of contents."
 msgstr "La tabla de contenidos."
 
+msgid "The text has changed since this check ran. Run it again to review the current maths."
+msgstr "El texto ha cambiado desde esta comprobación. Ejecútala de nuevo para revisar las matemáticas actuales."
+
 msgid "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "El TOC lista las secciones escritas colocadas por el Storyboard. Termina el Storyboard antes de ejecutar esta etapa."
 
@@ -8792,6 +8823,9 @@ msgstr "Uncategorized"
 msgid "Underline"
 msgstr "Subrayado"
 
+msgid "Undo"
+msgstr "Deshacer"
+
 msgid "UNICEF"
 msgstr "UNICEF"
 
@@ -8975,6 +9009,9 @@ msgstr "Usa este formato para respaldar el proyecto o moverlo a otra máquina."
 
 msgid "Use this picture"
 msgstr "Usar esta imagen"
+
+msgid "Use this wording"
+msgstr "Usar esta redacción"
 
 msgid "Use video"
 msgstr "Usar video"
@@ -9267,6 +9304,9 @@ msgstr "Amplia cobertura multilingüe con voces neuronales para muchos lugares."
 msgid "Width"
 msgstr "Ancho"
 
+msgid "Will be read as"
+msgstr "Se leerá como"
+
 msgid "Will be reset"
 msgstr "Será restablecido"
 
@@ -9290,6 +9330,12 @@ msgstr "Resaltado de palabras listo"
 
 msgid "Word-level highlighting"
 msgstr "Resaltado por palabra"
+
+msgid "Wording set"
+msgstr "Redacción establecida"
+
+msgid "Wording to speak instead"
+msgstr "Redacción para leer en su lugar"
 
 msgid "words"
 msgstr "palabras"

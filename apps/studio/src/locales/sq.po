@@ -131,6 +131,10 @@ msgstr "{0} dekorative"
 msgid "{0} entries"
 msgstr "{0} hyrje"
 
+#. placeholder {0}: summary.not_evaluated ?? 0
+msgid "{0} expressions converted without needing review."
+msgstr "{0} shprehje u konvertuan pa pasur nevojë për shqyrtim."
+
 #. placeholder {0}: getStageLabelI18n(uiStage)
 msgid "{0} failed"
 msgstr "{0} dështoi"
@@ -399,6 +403,9 @@ msgstr "{pagesReviewed} {pagesReviewed, plural, one {faqe} other {faqe}} të ris
 
 msgid "{pdfFilename} · {pageCount} pages"
 msgstr "{pdfFilename} · {pageCount} faqe"
+
+msgid "{pending} to review"
+msgstr "{pending} për shqyrtim"
 
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {rajon} other {rajone}} të zbuluar"
@@ -1884,6 +1891,9 @@ msgstr "Tabelë / Grafik"
 
 #~ msgid "Check for updates"
 #~ msgstr "Kontrollo për përditësime"
+
+msgid "Check maths"
+msgstr "Kontrollo matematikën"
 
 msgid "Checked"
 msgstr "Kontrolluar"
@@ -4242,6 +4252,9 @@ msgstr "Justify"
 msgid "KB"
 msgstr "KB"
 
+msgid "Keep as generated"
+msgstr "Ruaje siç u gjenerua"
+
 msgid "Keep output schemas and IDs unchanged when editing prompts."
 msgstr "Mbaji të pandryshuara skemat e daljes dhe ID-të kur redakton promptet."
 
@@ -4253,6 +4266,9 @@ msgstr "Mban faqet të plota nëse llojet e përziera të aktiviteteve nuk kërk
 
 msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page. Best for textbooks with varied exercises."
 msgstr "Mban faqen si një seksion si parazgjedhje, por ndan me inteligjencë kur zbulon aktivitete të shumta të dallueshme - si një kombinim pyetjesh me zgjedhje të shumëfishta, të hapura dhe ushtrime renditjeje në të njëjtën faqe. Më i miri për tekstet shkollore me ushtrime të ndryshme."
+
+msgid "Kept as generated"
+msgstr "U ruajt siç u gjenerua"
 
 msgid "Key must start with \"sk-\""
 msgstr "Çelësi duhet të fillojë me \"sk-\""
@@ -4496,6 +4512,9 @@ msgstr "Duke ngarkuar imazhet..."
 msgid "Loading logs..."
 msgstr "Duke ngarkuar regjistrat..."
 
+msgid "Loading maths pronunciation review…"
+msgstr "Po ngarkohet shqyrtimi i shqiptimit të matematikës…"
+
 msgid "Loading page-level findings"
 msgstr "Duke ngarkuar gjetjet në nivel faqeje"
 
@@ -4657,6 +4676,12 @@ msgstr "Përputhje me Burimin"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Përputhet me dizajnin origjinal të librit me pak fleksibilitet."
+
+msgid "Maths in this book has not been checked yet. Run the check to see anything that may be read aloud incorrectly."
+msgstr "Matematika e këtij libri nuk është kontrolluar ende. Nis kontrollin për të parë çfarë mund të lexohet me zë të lartë gabimisht."
+
+msgid "Maths pronunciation"
+msgstr "Shqiptimi i matematikës"
 
 msgid "Max height"
 msgstr "Lartësia maksimale"
@@ -5424,6 +5449,9 @@ msgstr "Shënim"
 
 msgid "Nothing important is missing or added"
 msgstr "Asgjë e rëndësishme nuk mungon ose nuk është shtuar"
+
+msgid "Nothing needs review. Every expression converted cleanly."
+msgstr "Asgjë për shqyrtim. Të gjitha shprehjet u konvertuan saktë."
 
 msgid "Nothing to show"
 msgstr "Nuk ka asgjë për të shfaqur"
@@ -8257,6 +8285,9 @@ msgstr "Dielli ngroh ujin në oqeane, liqene dhe lumenj, duke e kthyer në avull
 msgid "The table of contents."
 msgstr "Tabela e përmbajtjes."
 
+msgid "The text has changed since this check ran. Run it again to review the current maths."
+msgstr "Teksti ka ndryshuar që nga ky kontroll. Niseni sërish për të shqyrtuar matematikën aktuale."
+
 msgid "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "TOC liston seksionet e shtypura të vendosura nga Storyboard. Përfundo Storyboard para se të ekzekutosh këtë fazë."
 
@@ -8793,6 +8824,9 @@ msgstr "Pa kategori"
 msgid "Underline"
 msgstr "Nënvizim"
 
+msgid "Undo"
+msgstr "Zhbëj"
+
 msgid "UNICEF"
 msgstr "UNICEF"
 
@@ -8976,6 +9010,9 @@ msgstr "Përdor këtë format për të rezervuar projektin ose për ta zhvendosu
 
 msgid "Use this picture"
 msgstr "Përdor këtë figurë"
+
+msgid "Use this wording"
+msgstr "Përdor këtë formulim"
 
 msgid "Use video"
 msgstr "Përdor videon"
@@ -9268,6 +9305,9 @@ msgstr "Mbulim i gjerë shumëgjuhësh me zëra neural për shumë lokale."
 msgid "Width"
 msgstr "Gjerësi"
 
+msgid "Will be read as"
+msgstr "Do të lexohet si"
+
 msgid "Will be reset"
 msgstr "Do të rivendoset"
 
@@ -9291,6 +9331,12 @@ msgstr "Theksimi i fjalëve gati"
 
 msgid "Word-level highlighting"
 msgstr "Theksim në nivel fjale"
+
+msgid "Wording set"
+msgstr "Formulimi u caktua"
+
+msgid "Wording to speak instead"
+msgstr "Formulimi për t'u lexuar në vend të tij"
 
 msgid "words"
 msgstr "fjalë"

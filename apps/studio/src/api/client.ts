@@ -15,6 +15,7 @@ import type {
   ReviewerValidationSection,
   ReviewerValidationSession,
   TranslationEvaluationResult,
+  MathSpeechEvaluationResult,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 
@@ -491,6 +492,33 @@ export interface TranslationEvaluationRunResponse {
   label: string
   language: string
   version?: number | null
+}
+
+export interface MathSpeechEvaluationStatusResponse {
+  evaluation: MathSpeechEvaluationResult | null
+  version: number | null
+  currentCatalogVersion: number | null
+  /** Catalog entries containing maths. Zero means this book has none, so the
+   *  review has nothing to offer and hides itself. */
+  mathsEntries: number
+  /** Flagged entries with no reviewer decision yet. */
+  pending: number
+  /** The verdict was taken against an older text catalog. */
+  stale: boolean
+}
+
+export interface MathSpeechEvaluationRunResponse {
+  status: "queued" | "current"
+  taskId: string | null
+  label: string
+  language: string
+  candidates?: number
+  version?: number | null
+}
+
+export interface MathSpeechEvaluationMutationResponse {
+  version: number
+  evaluation: MathSpeechEvaluationResult
 }
 
 export interface EasyReadEntry {
@@ -1529,6 +1557,47 @@ export const api = {
   acceptTranslationEvaluationItemAnyway: (label: string, language: string, entryId: string) =>
     request<{ version: number; evaluation: TranslationEvaluationResult }>(
       `/books/${label}/evaluations/translations/${language}/items/${encodeURIComponent(entryId)}/accept-anyway`,
+      { method: "POST" },
+    ),
+
+  getMathSpeechEvaluation: (label: string, language: string) =>
+    request<MathSpeechEvaluationStatusResponse>(
+      `/books/${label}/evaluations/math-speech/${language}`,
+    ),
+
+  // The judge model is configurable, so send every provider credential the user
+  // has — the server picks the one matching the configured model.
+  runMathSpeechEvaluation: (
+    label: string,
+    language: string,
+    apiKey: string,
+    providerCredentials?: StageRunProviderCredentials,
+  ) =>
+    request<MathSpeechEvaluationRunResponse>(
+      `/books/${label}/evaluations/math-speech/${language}/run`,
+      { method: "POST", headers: buildApiHeaders(apiKey, providerCredentials) },
+    ),
+
+  acceptMathSpeechItemAnyway: (label: string, language: string, entryId: string) =>
+    request<MathSpeechEvaluationMutationResponse>(
+      `/books/${label}/evaluations/math-speech/${language}/items/${encodeURIComponent(entryId)}/accept-anyway`,
+      { method: "POST" },
+    ),
+
+  resolveMathSpeechItem: (
+    label: string,
+    language: string,
+    entryId: string,
+    resolvedText: string,
+  ) =>
+    request<MathSpeechEvaluationMutationResponse>(
+      `/books/${label}/evaluations/math-speech/${language}/items/${encodeURIComponent(entryId)}/resolve`,
+      { method: "POST", body: JSON.stringify({ resolved_text: resolvedText }) },
+    ),
+
+  clearMathSpeechItemDecision: (label: string, language: string, entryId: string) =>
+    request<MathSpeechEvaluationMutationResponse>(
+      `/books/${label}/evaluations/math-speech/${language}/items/${encodeURIComponent(entryId)}/clear`,
       { method: "POST" },
     ),
 

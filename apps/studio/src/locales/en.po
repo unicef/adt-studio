@@ -130,6 +130,10 @@ msgstr "{0} decorative"
 msgid "{0} entries"
 msgstr "{0} entries"
 
+#. placeholder {0}: summary.not_evaluated ?? 0
+msgid "{0} expressions converted without needing review."
+msgstr "{0} expressions converted without needing review."
+
 #. placeholder {0}: getStageLabelI18n(uiStage)
 msgid "{0} failed"
 msgstr "{0} failed"
@@ -398,6 +402,9 @@ msgstr "{pagesReviewed} {pagesReviewed, plural, one {page} other {pages}} review
 
 msgid "{pdfFilename} · {pageCount} pages"
 msgstr "{pdfFilename} · {pageCount} pages"
+
+msgid "{pending} to review"
+msgstr "{pending} to review"
 
 msgid "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
 msgstr "{regionCount} {regionCount, plural, one {region} other {regions}} detected"
@@ -1883,6 +1890,9 @@ msgstr "Chart / Graph"
 
 #~ msgid "Check for updates"
 #~ msgstr "Check for updates"
+
+msgid "Check maths"
+msgstr "Check maths"
 
 msgid "Checked"
 msgstr "Checked"
@@ -4241,6 +4251,9 @@ msgstr "Justify"
 msgid "KB"
 msgstr "KB"
 
+msgid "Keep as generated"
+msgstr "Keep as generated"
+
 msgid "Keep output schemas and IDs unchanged when editing prompts."
 msgstr "Keep output schemas and IDs unchanged when editing prompts."
 
@@ -4252,6 +4265,9 @@ msgstr "Keeps pages whole unless mixed activity types require splitting."
 
 msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page. Best for textbooks with varied exercises."
 msgstr "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page. Best for textbooks with varied exercises."
+
+msgid "Kept as generated"
+msgstr "Kept as generated"
 
 msgid "Key must start with \"sk-\""
 msgstr "Key must start with \"sk-\""
@@ -4495,6 +4511,9 @@ msgstr "Loading images..."
 msgid "Loading logs..."
 msgstr "Loading logs..."
 
+msgid "Loading maths pronunciation review…"
+msgstr "Loading maths pronunciation review…"
+
 msgid "Loading page-level findings"
 msgstr "Loading page-level findings"
 
@@ -4656,6 +4675,12 @@ msgstr "Match Source"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Matches the original book design with some flexibility."
+
+msgid "Maths in this book has not been checked yet. Run the check to see anything that may be read aloud incorrectly."
+msgstr "Maths in this book has not been checked yet. Run the check to see anything that may be read aloud incorrectly."
+
+msgid "Maths pronunciation"
+msgstr "Maths pronunciation"
 
 msgid "Max height"
 msgstr "Max height"
@@ -5423,6 +5448,9 @@ msgstr "Note"
 
 msgid "Nothing important is missing or added"
 msgstr "Nothing important is missing or added"
+
+msgid "Nothing needs review. Every expression converted cleanly."
+msgstr "Nothing needs review. Every expression converted cleanly."
 
 msgid "Nothing to show"
 msgstr "Nothing to show"
@@ -8256,6 +8284,9 @@ msgstr "The sun heats water in oceans, lakes, and rivers, turning it into vapor 
 msgid "The table of contents."
 msgstr "The table of contents."
 
+msgid "The text has changed since this check ran. Run it again to review the current maths."
+msgstr "The text has changed since this check ran. Run it again to review the current maths."
+
 msgid "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 msgstr "The TOC lists the typed sections placed by Storyboard. Finish Storyboard before running this stage."
 
@@ -8792,6 +8823,9 @@ msgstr "Uncategorized"
 msgid "Underline"
 msgstr "Underline"
 
+msgid "Undo"
+msgstr "Undo"
+
 msgid "UNICEF"
 msgstr "UNICEF"
 
@@ -8975,6 +9009,9 @@ msgstr "Use this format to back up the project or move it to another machine."
 
 msgid "Use this picture"
 msgstr "Use this picture"
+
+msgid "Use this wording"
+msgstr "Use this wording"
 
 msgid "Use video"
 msgstr "Use video"
@@ -9267,6 +9304,9 @@ msgstr "Wide multilingual coverage with neural voices for many locales."
 msgid "Width"
 msgstr "Width"
 
+msgid "Will be read as"
+msgstr "Will be read as"
+
 msgid "Will be reset"
 msgstr "Will be reset"
 
@@ -9290,6 +9330,12 @@ msgstr "Word highlighting ready"
 
 msgid "Word-level highlighting"
 msgstr "Word-level highlighting"
+
+msgid "Wording set"
+msgstr "Wording set"
+
+msgid "Wording to speak instead"
+msgstr "Wording to speak instead"
 
 msgid "words"
 msgstr "words"

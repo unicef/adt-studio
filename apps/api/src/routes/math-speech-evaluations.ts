@@ -125,8 +125,26 @@ export function createMathSpeechEvaluationRoutes(
     const safeLanguage = parseLanguage(c.req.param("language"))
     const stored = getMathSpeechEvaluation(safeLabel, booksDir, safeLanguage)
 
+    // How many entries contain maths at all. A book with none — most of them —
+    // can hide this review entirely rather than showing an empty panel.
+    let mathsEntries = 0
+    const storage = createBookStorage(safeLabel, booksDir)
+    try {
+      const row = storage.getLatestNodeData("text-catalog", "book")
+      const parsed = row ? TextCatalogOutput.safeParse(row.data) : null
+      if (parsed?.success) {
+        mathsEntries = collectMathSpeechEntries(
+          parsed.data.entries.map((e) => ({ id: e.id, text: e.text })),
+          { evaluateAll: true },
+        ).convertedCount
+      }
+    } finally {
+      storage.close()
+    }
+
     return c.json({
       ...stored,
+      mathsEntries,
       pending: pendingReviewItems(stored.evaluation).length,
       // A verdict taken against an older catalog may no longer describe the
       // current text, so the client can prompt for a re-run.

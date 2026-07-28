@@ -39,6 +39,7 @@ import {
 import { displayLang } from "./lib/display-lang";
 import { ImageLightbox } from "./components/ImageLightbox";
 import { WordHighlightPreview } from "./components/WordHighlightPreview";
+import { MathSpeechReviewPanel } from "../speech/components/MathSpeechReviewPanel";
 import { usePendingChanges } from "../../components/change-summary";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
@@ -1648,6 +1649,15 @@ export function LanguageView({
                 {runError}
               </AlertDescription>
             </Alert>
+          )}
+
+          {/* Hides itself unless the book actually contains maths. */}
+          {isSpeechStage && audioLang && (
+            <MathSpeechReviewPanel
+              bookLabel={bookLabel}
+              language={audioLang}
+              apiKey={apiKey}
+            />
           )}
 
           {showMissingBanner && (
