@@ -12,4 +12,11 @@ export function registerAppInfoIpc(): void {
   ipcMain.on("app:version", (event) => {
     event.returnValue = app.getVersion();
   });
+
+  // OS languages in the user's preference order (e.g. ["pt-BR", "en-US"]).
+  // Used by the renderer to pick a default UI locale on first launch.
+  ipcMain.on("app:system-locales", (event) => {
+    const preferred = app.getPreferredSystemLanguages();
+    event.returnValue = preferred.length > 0 ? preferred : [app.getLocale()];
+  });
 }

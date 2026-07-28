@@ -1,19 +1,12 @@
 import { draggable } from "@atlaskit/pragmatic-drag-and-drop/element/adapter"
 import { disableNativeDragPreview } from "@atlaskit/pragmatic-drag-and-drop/element/disable-native-drag-preview"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
-import { GripHorizontal, VideoOff } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { GripHorizontal } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 import { appConfigAtom } from "@/shared/state/config.atoms"
 import { signLanguageModeAtom, slVideoPositionAtom } from "@/shared/state/ui.atoms"
-import {
-  currentLanguageAtom,
-  videoFilesAtom,
-} from "@/features/language/state/language.atoms"
-import {
-  currentPageNumberAtom,
-  currentSectionIdAtom,
-  pagesAtom,
-} from "@/features/navigation/state/nav.atoms"
+import { currentLanguageAtom } from "@/features/language/state/language.atoms"
+import { currentPageSignLanguageVideoAtom } from "@/features/sign-language/state/sign-language.atoms"
 import { activeMediaAtom } from "@/features/audio/state/audio.atoms"
 import { useTranslation } from "@/features/language/hooks/useTranslation"
 import { cn } from "@/shared/lib/utils"
@@ -26,12 +19,9 @@ interface Position {
 export function SLVideo() {
   const features = useAtomValue(appConfigAtom).features
   const slMode = useAtomValue(signLanguageModeAtom)
-  const videoFiles = useAtomValue(videoFilesAtom)
+  const videoFilename = useAtomValue(currentPageSignLanguageVideoAtom)
   const activeMedia = useAtomValue(activeMediaAtom)
   const setActiveMedia = useSetAtom(activeMediaAtom)
-  const sectionId = useAtomValue(currentSectionIdAtom)
-  const pageNumber = useAtomValue(currentPageNumberAtom)
-  const pages = useAtomValue(pagesAtom)
   const lang = useAtomValue(currentLanguageAtom)
   const { t } = useTranslation()
 
@@ -42,17 +32,15 @@ export function SLVideo() {
   const [isDragging, setIsDragging] = useState(false)
   const [aspectRatio, setAspectRatio] = useState<number | null>(null)
 
-  const visible = features.signLanguage && slMode
-
-  const src = useMemo(() => {
-    if (!visible) return null
-    const idx =
-      pageNumber ??
-      (sectionId ? pages.findIndex((p) => p.section_id === sectionId) + 1 : 0)
-    const filename = videoFiles[`video-${idx}`]
-    if (!filename) return null
-    return `./content/i18n/${lang}/video/${filename}`
-  }, [visible, videoFiles, sectionId, pageNumber, pages, lang])
+  // `src` is the single source of truth: it is non-null exactly when the
+  // feature is enabled, the toggle is on, and the current page has a video.
+  // Deriving `visible` from it (rather than the other way round) lets the
+  // early return below narrow `src` to a string for the <video> element.
+  const src =
+    features.signLanguage && slMode && videoFilename !== null
+      ? `./content/i18n/${lang}/video/${videoFilename}`
+      : null
+  const visible = src !== null
 
   useEffect(() => {
     const el = containerRef.current
@@ -114,7 +102,7 @@ export function SLVideo() {
     videoRef.current?.pause()
   }, [activeMedia])
 
-  if (!visible) return null
+  if (src === null) return null
 
   const positioned = position !== null
   const baseWidth = 320
@@ -157,39 +145,22 @@ export function SLVideo() {
       >
         <GripHorizontal className="w-4 h-4" aria-hidden />
       </div>
-      {src ? (
-        <video
-          ref={videoRef}
-          key={src}
-          src={src}
-          autoPlay
-          playsInline
-          controls
-          onLoadedMetadata={(e) => {
-            const v = e.currentTarget
-            if (v.videoWidth && v.videoHeight) {
-              setAspectRatio(v.videoWidth / v.videoHeight)
-            }
-          }}
-          onPlay={() => setActiveMedia("sign-language")}
-          className="w-full h-[calc(100%-1.5rem)] object-contain bg-black"
-        />
-      ) : (
-        <div
-          role="status"
-          className={cn(
-            "w-full h-[calc(100%-1.5rem)]",
-            "flex flex-col items-center justify-center gap-2 px-4 text-center",
-            "bg-black/90 text-white/70",
-          )}
-        >
-          <VideoOff className="w-8 h-8 text-white/50" aria-hidden />
-          <p className="text-sm font-medium text-white/80">
-            {t("sign-language-no-video") ||
-              "No sign language video for this page"}
-          </p>
-        </div>
-      )}
+      <video
+        ref={videoRef}
+        key={src}
+        src={src}
+        autoPlay
+        playsInline
+        controls
+        onLoadedMetadata={(e) => {
+          const v = e.currentTarget
+          if (v.videoWidth && v.videoHeight) {
+            setAspectRatio(v.videoWidth / v.videoHeight)
+          }
+        }}
+        onPlay={() => setActiveMedia("sign-language")}
+        className="w-full h-[calc(100%-1.5rem)] object-contain bg-black"
+      />
     </div>
   )
 }

@@ -240,6 +240,15 @@ export function applyAutoRepairs(raw: LLMStructuringResult | null | undefined): 
 
 const SINGLE_LETTER_ROW = /^[A-Za-zÀ-ÿ](\s+[A-Za-zÀ-ÿ])+$/
 
+// Canonicalize structure values the model reliably invents but that aren't in
+// the allowed `structure_types`. The model frequently emits "boxed_text" for a
+// bordered callout/box; "panel" (generic bordered/boxed layout) is the closest
+// valid container. Mapping here (in the pre-validation repair pass) makes the
+// value valid AND flows into the stored tree, avoiding a wasted retry.
+const STRUCTURE_ALIASES: Record<string, string> = {
+  boxed_text: "panel",
+}
+
 function repairChildren(children: LLMNode[]): LLMNode[] {
   const out: LLMNode[] = []
   for (const original of children) {
@@ -252,6 +261,15 @@ function repairChildren(children: LLMNode[]): LLMNode[] {
     // Recurse first so deeper repairs propagate up.
     if (Array.isArray(child.children)) {
       child.children = repairChildren(child.children)
+    }
+
+    // Canonicalize known invented structure synonyms (e.g. "boxed_text" → "panel")
+    // so they pass validation instead of triggering a retry.
+    if (
+      typeof child.structure === "string" &&
+      STRUCTURE_ALIASES[child.structure] !== undefined
+    ) {
+      child.structure = STRUCTURE_ALIASES[child.structure]
     }
 
     // Repair (3) — run before image_group repairs so reordering can still

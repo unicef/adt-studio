@@ -20,6 +20,7 @@ import {
   TooltipTrigger,
 } from "@/shared/ui/tooltip"
 import { glossaryDataAtom } from "@/features/glossary/state/glossary.atoms"
+import { SignLanguageVideo } from "@/features/glossary/components/SignLanguageVideo"
 import {
   dockMenuValueAtom,
   glossaryModeAtom,
@@ -134,21 +135,57 @@ export function GlossaryTermPopover() {
           role="dialog"
           aria-label={`Definition for ${entry.word}`}
         >
-          <div className="flex flex-col items-start gap-3">
-            {entry.emoji ? (
-              <span className="text-3xl shrink-0" aria-hidden>
-                {entry.emoji}
-              </span>
-            ) : null}
-            <div className="flex-1 min-w-0">
-              <h4 className="font-bold text-lg leading-tight break-words">
-                {entry.word}
-              </h4>
-              <p className="text-sm leading-relaxed mt-1 text-foreground/80">
-                {entry.definition}
-              </p>
-            </div>
-          </div>
+          {(() => {
+            // The picture sits top-right, in line with the word and
+            // definition — unless the headword is long enough that it would
+            // get squeezed against the image (~16 chars fills the remaining
+            // column at text-lg in the w-80 popover); then the picture drops
+            // below the text at full reading width.
+            const imageBelowText = Boolean(entry.image) && entry.word.length > 16
+            return (
+              <>
+                <div className="flex items-start gap-3">
+                  <div className="flex-1 min-w-0 flex flex-col items-start gap-3">
+                    {entry.emoji ? (
+                      <span className="text-3xl shrink-0" aria-hidden>
+                        {entry.emoji}
+                      </span>
+                    ) : null}
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-lg leading-tight break-words">
+                        {entry.word}
+                      </h4>
+                      <p className="text-sm leading-relaxed mt-1 text-foreground/80">
+                        {entry.definition}
+                      </p>
+                    </div>
+                  </div>
+                  {entry.image && !imageBelowText && (
+                    <img
+                      src={entry.image}
+                      alt=""
+                      draggable={false}
+                      className="h-24 w-24 shrink-0 rounded-lg bg-muted object-contain p-1"
+                    />
+                  )}
+                </div>
+                {entry.image && imageBelowText && (
+                  <img
+                    src={entry.image}
+                    alt=""
+                    draggable={false}
+                    className="mt-3 h-24 w-24 rounded-lg bg-muted object-contain p-1"
+                  />
+                )}
+                {entry.video && (
+                  <SignLanguageVideo
+                    src={entry.video}
+                    className="mt-3 w-full aspect-video rounded-lg bg-black object-contain"
+                  />
+                )}
+              </>
+            )
+          })()}
           <div className="mt-3 pt-3 border-t border-border flex justify-end">
             <Tooltip>
               <TooltipTrigger

@@ -244,6 +244,18 @@ export const PRESETS: PresetConfig[] = [
             visual_refinement: { enabled: true, max_iterations: 3 },
           },
         },
+        activity_underline_text: {
+          render_type: "activity",
+          config: {
+            prompt: "activity_underline_text",
+            answer_prompt: "activity_underline_text_answers",
+            model: "openai:gpt-5.4",
+            max_retries: 5,
+            timeout: 180,
+            temperature: 0.3,
+            visual_refinement: { enabled: true, max_iterations: 3 },
+          },
+        },
         activity_true_false: {
           render_type: "activity",
           config: {
@@ -319,6 +331,7 @@ export const PRESETS: PresetConfig[] = [
       section_render_strategies: {
         activity_multiple_choice: "activity_multiple_choice",
         activity_multi_select: "activity_multi_select",
+        activity_underline_text: "activity_underline_text",
         activity_true_false: "activity_true_false",
         activity_fill_in_the_blank: "activity_fill_in_the_blank",
         activity_fill_in_a_table: "activity_fill_in_a_table",
@@ -326,7 +339,10 @@ export const PRESETS: PresetConfig[] = [
         activity_sorting: "activity_sorting",
         activity_open_ended_answer: "activity_open_ended_answer",
       },
-      pruned_role_types: ["header_text", "footer_text", "page_number"],
+      // Role keys must match the actual `role_types` the sectioning LLM assigns
+      // (config.yaml uses bare `header`/`footer`/`page_number`). The `_text`
+      // suffixed variants never match, so header/footer would leak in unpruned.
+      pruned_role_types: ["header", "footer", "page_number"],
       pruned_section_types: ["back_cover", "credits", "inside_cover"],
       image_filters: { min_stddev: 2 },
     },
@@ -400,13 +416,18 @@ export const PRESETS: PresetConfig[] = [
         },
       },
       section_render_strategies: {},
-      pruned_role_types: ["header_text", "footer_text", "page_number"],
+      // Role keys must match the actual `role_types` the sectioning LLM assigns
+      // (config.yaml uses bare `header`/`footer`/`page_number`). The `_text`
+      // suffixed variants never match, so header/footer would leak into the
+      // two-column-story layout unpruned.
+      pruned_role_types: ["header", "footer", "page_number"],
       pruned_section_types: [
         "back_cover",
         "credits",
         "inside_cover",
         "activity_multiple_choice",
         "activity_multi_select",
+        "activity_underline_text",
         "activity_true_false",
         "activity_fill_in_the_blank",
         "activity_fill_in_a_table",
@@ -487,13 +508,17 @@ export const PRESETS: PresetConfig[] = [
         },
       },
       section_render_strategies: {},
-      pruned_role_types: ["header_text", "footer_text", "page_number"],
+      // Role keys must match the actual `role_types` the sectioning LLM assigns
+      // (config.yaml uses bare `header`/`footer`/`page_number`). The `_text`
+      // suffixed variants never match, so header/footer would leak in unpruned.
+      pruned_role_types: ["header", "footer", "page_number"],
       pruned_section_types: [
         "back_cover",
         "credits",
         "inside_cover",
         "activity_multiple_choice",
         "activity_multi_select",
+        "activity_underline_text",
         "activity_true_false",
         "activity_fill_in_the_blank",
         "activity_fill_in_a_table",

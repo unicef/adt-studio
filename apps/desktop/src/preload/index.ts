@@ -93,6 +93,9 @@ const api = {
   get version(): string {
     return ipcRenderer.sendSync('app:version') as string
   },
+  get systemLocales(): string[] {
+    return ipcRenderer.sendSync('app:system-locales') as string[]
+  },
   windowControls,
   updates,
 }

@@ -17,6 +17,7 @@ import type {
   PageSectioningOutput,
   BookMetadata,
   BookSummaryOutput,
+  GlossaryOutput,
   TextCatalogOutput,
   TextCatalogEntry,
   EasyReadOutput,
@@ -45,7 +46,7 @@ import { segmentPageImages, applySegmentation, segmentBoundsOnPage, buildSegment
 import { renderPage, buildRenderStrategyResolver, collectReferencedImageIds, collectSourcePageImages } from "./web-rendering.js"
 import { translatePageTree, buildTranslationConfig } from "./translation.js"
 import { createTemplateEngine } from "./render-template.js"
-import { captionPageImages, buildCaptionConfig, extractImageIds } from "./image-captioning.js"
+import { captionPageImages, buildCaptionConfig, collectCaptionImageIds, groupGlossaryImageIdsByPage } from "./image-captioning.js"
 import { regenerateGlossaryPreservingEdits, buildGlossaryConfig } from "./glossary.js"
 import { generateToc, buildTocGenerationConfig } from "./toc-generation.js"
 import { generateAllQuizzes, buildQuizGenerationConfig, type QuizPageInput } from "./quiz-generation.js"
@@ -66,7 +67,7 @@ import {
 } from "./speech.js"
 import { packageAdtWeb } from "./packaging/web.js"
 import { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rendering.js"
-import { getRenderSectioning } from "./render-sectioning.js"
+import { getRenderSectioning, getSemanticSectioning } from "./render-sectioning.js"
 import { runAccessibilityAssessment } from "./accessibility-assessment.js"
 import { loadBookConfig } from "./config.js"
 import { nullProgress, type Progress } from "./progress.js"
@@ -639,7 +640,12 @@ export async function runFullPipeline(
       const quizPages: QuizPageInput[] = []
       for (const page of pages) {
         const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
-        const sectioning = getRenderSectioning(storage, page.pageId)
+        // Filter by the SEMANTIC sectioning (real section types like
+        // `text_and_single_image`), not the render sectioning — in fixed-layout
+        // the latter is the positioned tree whose only type is
+        // `fixed-layout-page`, which never matches `quiz_section_types`, so no
+        // quizzes would ever generate.
+        const sectioning = getSemanticSectioning(storage, page.pageId)
         if (!renderingRow || !sectioning) continue
         quizPages.push({
           pageId: page.pageId,
@@ -671,6 +677,12 @@ export async function runFullPipeline(
       const model = getModel(captionConfig.modelId)
       const summaryRow = storage.getLatestNodeData("book-summary", "book")
       const bookSummary = (summaryRow?.data as BookSummaryOutput | undefined)?.summary
+      const glossaryRow = storage.getLatestNodeData("glossary", "book")
+      const glossary = glossaryRow?.data as GlossaryOutput | undefined
+      const glossaryImageIdsByPage = groupGlossaryImageIdsByPage(
+        glossary,
+        (imageId) => storage.getImageMeta(imageId)?.pageId,
+      )
       const pages = storage.getPages()
       const totalPages = pages.length
       let completed = 0
@@ -682,7 +694,10 @@ export async function runFullPipeline(
         const htmlSections = rendering.sections
           .filter((s) => !sectioning?.sections[s.sectionIndex]?.isPruned)
           .map((s) => s.html)
-        const imageIds = extractImageIds(htmlSections)
+        const imageIds = collectCaptionImageIds(
+          htmlSections,
+          glossaryImageIdsByPage.get(page.pageId),
+        )
         if (imageIds.length === 0) {
           storage.putNodeData("image-captioning", page.pageId, { captions: [] })
         } else {
@@ -955,6 +970,8 @@ export async function runFullPipeline(
           cacheDir,
           ttsSynthesizer,
           provider,
+          geminiTemperature: config.speech?.temperature,
+          geminiSeed: config.speech?.seed,
         })
         if (entry) resultsByLang.get(item.language)!.push(entry)
         completedItems++

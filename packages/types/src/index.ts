@@ -77,6 +77,9 @@ export {
   type PipelineNodeName,
   type PipelineCacheResource,
   STAGE_OUTPUT_NODES,
+  IMAGE_SET_CHANGE_CLEAR_NODE_TYPES,
+  IMAGE_SET_CHANGE_CLEAR_STEPS,
+  IMAGE_SET_CHANGE_CLEAR_STAGES,
   getStageClearOrder,
   getStageClearNodes,
   getStageRerunClearNodes,
@@ -124,6 +127,8 @@ export {
   VisualRefinementStrategyConfig,
   RenderStrategyConfig,
   AccessibilityAssessmentConfig,
+  EpubGlossaryMode,
+  EpubGlossaryConfig,
   AppConfig,
   type TypeDef,
 } from "./config.js"

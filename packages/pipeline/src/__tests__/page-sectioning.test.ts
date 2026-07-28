@@ -1177,6 +1177,36 @@ describe("applyAutoRepairs", () => {
     expect(para.children).toHaveLength(1)
     expect(para.children[0]).toEqual({ role: "image", image_id: "pg001_im001" })
   })
+
+  it("canonicalizes the invented \"boxed_text\" structure to \"panel\" (at any depth)", () => {
+    const raw = {
+      reasoning: "",
+      sections: [
+        {
+          section_type: "text_only",
+          background_color: "#fff",
+          text_color: "#000",
+          page_number: 1,
+          nodes: [
+            { structure: "boxed_text", children: [{ role: "text", text: "Note." }] },
+            {
+              structure: "group",
+              children: [
+                { structure: "boxed_text", children: [{ role: "text", text: "Tip." }] },
+              ],
+            },
+          ],
+        },
+      ],
+    }
+    applyAutoRepairs(raw)
+    const nodes = raw.sections[0].nodes as Array<{
+      structure: string
+      children: Array<{ structure?: string }>
+    }>
+    expect(nodes[0].structure).toBe("panel")
+    expect(nodes[1].children[0].structure).toBe("panel")
+  })
 })
 
 // ── Shared fake LLM helper ──────────────────────────────────────

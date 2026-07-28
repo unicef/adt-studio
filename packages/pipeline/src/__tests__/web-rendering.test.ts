@@ -1043,6 +1043,73 @@ describe("renderPage", () => {
     expect(result.sections[0].activityAnswers).toBeUndefined()
   })
 
+  it("persists repaired underline activity html before saving", async () => {
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        if (opts.log?.taskType === "activity-answers") {
+          return {
+            object: {
+              reasoning: "answer reasoning",
+              answers: [{ id: "item-1", value: true }],
+            } as T,
+          } as GenerateObjectResult<T>
+        }
+
+        return {
+          object: {
+            reasoning: "underline reasoning",
+            content:
+              '<div id="content" class="container"><section data-section-type="activity_underline_text" data-section-id="pg001_sec001"><div data-id="t1">Mfano:</div><div data-id="t2">She reads books.</div><div data-id="t3">(i)</div><div data-id="t4">We sing songs.</div></section></div>',
+          } as T,
+        } as GenerateObjectResult<T>
+      },
+    }
+
+    const result = await renderPage(
+      {
+        label: "test-book",
+        pageId: "pg001",
+        pageImageBase64: "base64img",
+        sectioning: {
+          reasoning: "test",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "activity_underline_text",
+              nodes: [
+                groupNode("g1", "paragraph", [
+                  leafNode("t1", "instruction_text", "Mfano:"),
+                  leafNode("t2", "instruction_text", "She reads books."),
+                  leafNode("t3", "instruction_text", "(i)"),
+                  leafNode("t4", "instruction_text", "We sing songs."),
+                ]),
+              ],
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+        images: new Map(),
+      },
+      (): RenderConfig => ({
+        renderType: "activity",
+        promptName: "activity_underline_text",
+        modelId: "openai:gpt-5.4",
+        maxRetries: 5,
+        timeoutMs: 180000,
+        answerPromptName: "activity_underline_text_answers",
+        templateName: "",
+      }),
+      fakeLlm
+    )
+
+    expect(result.sections).toHaveLength(1)
+    expect(result.sections[0].html).toContain("activity-underline-option")
+    expect(result.sections[0].html).toContain('data-question-group="question-group-1"')
+  })
+
   it("skips pruned parts within a section", async () => {
     let capturedContext: Record<string, unknown> | undefined
 

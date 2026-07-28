@@ -110,6 +110,35 @@ export const AccessibilityAssessmentConfig = z.object({
 })
 export type AccessibilityAssessmentConfig = z.infer<typeof AccessibilityAssessmentConfig>
 
+/**
+ * How the glossary is realised in EPUB exports.
+ *
+ * - `word` (default) — EPUB 3 Dictionaries & Glossaries model only: in-text
+ *   `glossref` anchors resolved against a non-linear `glossary.xhtml`.
+ *   Spec-compliant readers (e.g. BookFusion) show definition popovers.
+ * - `page` — visible glossary pages inserted into the reading flow instead,
+ *   for readers that don't implement the glossary spec (Apple Books etc.).
+ *   In-text terms link to their entry on the glossary page; each entry links
+ *   back to the occurrences ("Page N") so the reader can return.
+ * - `both` — the spec surface plus the in-flow glossary pages.
+ */
+export const EpubGlossaryMode = z.enum(["word", "page", "both"])
+export type EpubGlossaryMode = z.infer<typeof EpubGlossaryMode>
+
+export const EpubGlossaryConfig = z.object({
+  mode: EpubGlossaryMode.optional(),
+  /**
+   * Where glossary pages are inserted (modes `page`/`both`): after the given
+   * 1-indexed physical page number, or `end` for the back of the book. Each
+   * glossary page collects the terms used since the previous placement; the
+   * last placement also collects everything after it. Defaults to `["end"]`.
+   */
+  page_placements: z
+    .array(z.union([z.number().int().min(1), z.literal("end")]))
+    .optional(),
+})
+export type EpubGlossaryConfig = z.infer<typeof EpubGlossaryConfig>
+
 export const AppConfig = z
   .object({
     structure_types: z.record(z.string(), z.string()),
@@ -168,6 +197,7 @@ export const AppConfig = z
         }),
       )
       .optional(),
+    epub_glossary: EpubGlossaryConfig.optional(),
     image_translation: ImageTranslationConfig.optional(),
     image_segmentation: StepConfig.extend({
       min_side: z.number().int().min(0).optional(),

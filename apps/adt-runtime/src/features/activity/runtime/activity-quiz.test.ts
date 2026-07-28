@@ -1,16 +1,30 @@
 // @vitest-environment jsdom
-import { beforeEach, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
 import { getDefaultStore } from "jotai"
 import { initializeQuizActivity } from "./activity-quiz"
 import {
+  confettiTriggerAtom,
   skipEnabledAtom,
   submitEnabledAtom,
   submitStateAtom,
+  submitVisibleAtom,
   validateHandlerAtom,
 } from "../state/activity.atoms"
 import { pagesAtom, currentSectionIdAtom } from "../../navigation/state/nav.atoms"
+import { dockMenuValueAtom, sidebarOpenAtom } from "../../../shared/state/ui.atoms"
 
 const store = getDefaultStore()
+
+// initializeQuizActivity registers a document-level keydown listener (for the
+// number-key shortcuts) that outlives DOM replacement. Capture the teardown so
+// each test starts from a clean slate — matching the real lifecycle, which runs
+// this cleanup on page unmount.
+let cleanup: (() => void) | null = null
+
+afterEach(() => {
+  cleanup?.()
+  cleanup = null
+})
 
 function setupStandaloneQuiz(): void {
   document.body.innerHTML = `
@@ -59,6 +73,10 @@ beforeEach(() => {
   store.set(submitEnabledAtom, false)
   store.set(skipEnabledAtom, false)
   store.set(submitStateAtom, "submit")
+  store.set(submitVisibleAtom, true)
+  store.set(confettiTriggerAtom, 0)
+  store.set(sidebarOpenAtom, false)
+  store.set(dockMenuValueAtom, "")
   store.set(validateHandlerAtom, () => null)
 })
 
@@ -73,33 +91,176 @@ describe("initializeQuizActivity — standalone activity_quiz", () => {
     store.set(currentSectionIdAtom, "qz001")
   })
 
-  it("validates the selected option against data-correct-answers", () => {
+  it("hides the submit button (quizzes validate on click)", () => {
     setupStandaloneQuiz()
-    initializeQuizActivity()
-
-    const option = document.querySelector<HTMLElement>(
-      ".activity-option[data-activity-item='item-1']",
-    )!
-    option.click()
-    expect(store.get(submitEnabledAtom)).toBe(true)
-
-    store.get(validateHandlerAtom)?.()
-    expect(store.get(submitStateAtom)).toBe("next")
-    expect(store.get(submitEnabledAtom)).toBe(true) // next page exists
+    cleanup = initializeQuizActivity()
+    expect(store.get(submitVisibleAtom)).toBe(false)
   })
 
-  it("disables next when this is the last page", () => {
+  it("validates immediately on click — no submit needed", () => {
+    setupStandaloneQuiz()
+    cleanup = initializeQuizActivity()
+
+    const correct = document.querySelector<HTMLElement>(
+      ".activity-option[data-activity-item='item-1']",
+    )!
+    correct.click()
+
+    // Verdict is applied straight away, without a second (submit) click.
+    expect(correct.classList.contains("bg-green-50")).toBe(true)
+    expect(correct.getAttribute("aria-invalid")).toBe("false")
+    // A correct answer celebrates.
+    expect(store.get(confettiTriggerAtom)).toBe(1)
+    // …and reveals the Next button (a next page exists in the manifest above).
+    expect(store.get(submitVisibleAtom)).toBe(true)
+    expect(store.get(submitStateAtom)).toBe("next")
+    expect(store.get(submitEnabledAtom)).toBe(true)
+  })
+
+  it("uses blue for focus, then green or red for the answer verdict", () => {
+    setupStandaloneQuiz()
+    cleanup = initializeQuizActivity()
+
+    const correct = document.querySelector<HTMLElement>(
+      ".activity-option[data-activity-item='item-1']",
+    )!
+    correct.focus()
+    expect(correct.style.outline).toContain("rgb(37, 99, 235)")
+
+    correct.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Enter",
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+    expect(correct.style.borderColor).toBe("rgb(22, 163, 74)")
+    expect(correct.style.outline).toContain("rgb(22, 163, 74)")
+
+    const wrong = document.querySelector<HTMLElement>(
+      ".activity-option[data-activity-item='item-2']",
+    )!
+    wrong.focus()
+    expect(wrong.style.outline).toContain("rgb(37, 99, 235)")
+    wrong.dispatchEvent(
+      new KeyboardEvent("keydown", {
+        key: "Enter",
+        bubbles: true,
+        cancelable: true,
+      }),
+    )
+    expect(wrong.style.borderColor).toBe("rgb(220, 38, 38)")
+    expect(wrong.style.outline).toContain("rgb(220, 38, 38)")
+  })
+
+  it("marks a wrong pick as incorrect immediately (no confetti, no Next)", () => {
+    setupStandaloneQuiz()
+    cleanup = initializeQuizActivity()
+
+    const wrong = document.querySelector<HTMLElement>(
+      ".activity-option[data-activity-item='item-2']",
+    )!
+    wrong.click()
+
+    expect(wrong.classList.contains("bg-red-50")).toBe(true)
+    expect(wrong.getAttribute("aria-invalid")).toBe("true")
+    expect(store.get(confettiTriggerAtom)).toBe(0)
+    // No button on a wrong pick — the reader just picks again.
+    expect(store.get(submitVisibleAtom)).toBe(false)
+    expect(store.get(submitStateAtom)).toBe("submit")
+  })
+
+  it("shows a disabled Next after a correct answer on the last page", () => {
     store.set(currentSectionIdAtom, "qz002") // last page
     setupStandaloneQuiz()
     document.querySelector("section")!.setAttribute("data-section-id", "qz002")
-    initializeQuizActivity()
+    cleanup = initializeQuizActivity()
 
     document
       .querySelector<HTMLElement>(".activity-option[data-activity-item='item-1']")!
       .click()
-    store.get(validateHandlerAtom)?.()
+
+    expect(store.get(submitVisibleAtom)).toBe(true)
     expect(store.get(submitStateAtom)).toBe("next")
-    expect(store.get(submitEnabledAtom)).toBe(false)
+    expect(store.get(submitEnabledAtom)).toBe(false) // nowhere to advance
+  })
+
+  it("lets the reader change their answer, updating the verdict and the Next button", () => {
+    setupStandaloneQuiz()
+    cleanup = initializeQuizActivity()
+
+    const wrong = document.querySelector<HTMLElement>(
+      ".activity-option[data-activity-item='item-2']",
+    )!
+    const correct = document.querySelector<HTMLElement>(
+      ".activity-option[data-activity-item='item-1']",
+    )!
+    wrong.click()
+    expect(wrong.classList.contains("bg-red-50")).toBe(true)
+    expect(store.get(submitVisibleAtom)).toBe(false)
+
+    correct.click()
+    // The wrong option's verdict is cleared; the new pick is marked correct and
+    // the Next button appears.
+    expect(wrong.classList.contains("bg-red-50")).toBe(false)
+    expect(correct.classList.contains("bg-green-50")).toBe(true)
+    expect(store.get(submitVisibleAtom)).toBe(true)
+    expect(store.get(submitStateAtom)).toBe("next")
+
+    // Switching back to a wrong answer retracts the Next button.
+    wrong.click()
+    expect(correct.classList.contains("bg-green-50")).toBe(false)
+    expect(wrong.classList.contains("bg-red-50")).toBe(true)
+    expect(store.get(submitVisibleAtom)).toBe(false)
+    expect(store.get(submitStateAtom)).toBe("submit")
+  })
+
+  it("answers via the number keys (1 → first option, 2 → second)", () => {
+    setupStandaloneQuiz()
+    cleanup = initializeQuizActivity()
+
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "2", bubbles: true }),
+    )
+    const second = document.querySelector<HTMLElement>(
+      ".activity-option[data-activity-item='item-2']",
+    )!
+    expect(second.classList.contains("bg-red-50")).toBe(true)
+    expect(store.get(submitVisibleAtom)).toBe(false)
+
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "1", bubbles: true }),
+    )
+    const first = document.querySelector<HTMLElement>(
+      ".activity-option[data-activity-item='item-1']",
+    )!
+    expect(first.classList.contains("bg-green-50")).toBe(true)
+    expect(store.get(confettiTriggerAtom)).toBe(1)
+    expect(store.get(submitVisibleAtom)).toBe(true)
+  })
+
+  it("ignores number keys while a modal/popover overlays the quiz", () => {
+    setupStandaloneQuiz()
+    cleanup = initializeQuizActivity()
+
+    // Simulate an open dialog (dock menu, settings, glossary popover, …).
+    const modal = document.createElement("div")
+    modal.setAttribute("role", "dialog")
+    modal.setAttribute("data-state", "open")
+    document.body.appendChild(modal)
+
+    document.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "1", bubbles: true }),
+    )
+
+    const first = document.querySelector<HTMLElement>(
+      ".activity-option[data-activity-item='item-1']",
+    )!
+    // The key was swallowed by the overlay guard — no answer registered.
+    expect(first.classList.contains("bg-green-50")).toBe(false)
+    expect(store.get(confettiTriggerAtom)).toBe(0)
+
+    modal.remove()
   })
 })
 
@@ -114,7 +275,7 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
 
   it("reads correct answers from window.correctAnswers", () => {
     setupMultipleChoice()
-    initializeQuizActivity()
+    cleanup = initializeQuizActivity()
 
     document
       .querySelector<HTMLInputElement>("input[data-activity-item='item-1']")!
@@ -126,7 +287,7 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
 
   it("treats a wrong pick as incorrect and stays in submit state", () => {
     setupMultipleChoice()
-    initializeQuizActivity()
+    cleanup = initializeQuizActivity()
 
     document
       .querySelector<HTMLInputElement>("input[data-activity-item='item-2']")!
@@ -138,7 +299,7 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
 
   it("post-correct, submit enables for the next sequential page (not the next quiz)", () => {
     setupMultipleChoice()
-    initializeQuizActivity()
+    cleanup = initializeQuizActivity()
 
     document
       .querySelector<HTMLInputElement>("input[data-activity-item='item-1']")!
@@ -152,7 +313,7 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
 
   it("applies a visible selection highlight on the picked option label", () => {
     setupMultipleChoice()
-    initializeQuizActivity()
+    cleanup = initializeQuizActivity()
 
     const opt1 = document
       .querySelector<HTMLInputElement>("input[data-activity-item='item-1']")!
@@ -171,7 +332,7 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
 
   it("strips the selection highlight on validation and applies the correct/incorrect state class", () => {
     setupMultipleChoice()
-    initializeQuizActivity()
+    cleanup = initializeQuizActivity()
 
     const opt = document
       .querySelector<HTMLInputElement>("input[data-activity-item='item-1']")!
@@ -184,7 +345,7 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
 
   it("injects a status badge for correct/incorrect verdicts (non-color cue)", () => {
     setupMultipleChoice()
-    initializeQuizActivity()
+    cleanup = initializeQuizActivity()
 
     const correctOpt = document
       .querySelector<HTMLInputElement>("input[data-activity-item='item-1']")!
@@ -199,7 +360,7 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
 
   it("syncs selection state when the inner radio fires `change` (arrow-key navigation)", () => {
     setupMultipleChoice()
-    initializeQuizActivity()
+    cleanup = initializeQuizActivity()
 
     const radio2 = document.querySelector<HTMLInputElement>(
       "input[data-activity-item='item-2']",
@@ -214,6 +375,28 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
     // Validation runs against the keyboard-selected option.
     store.get(validateHandlerAtom)?.()
     expect(store.get(submitStateAtom)).toBe("submit") // item-2 is the wrong answer
+  })
+
+  it("keeps option labels tabbable without consuming the reader's arrow keys", () => {
+    setupMultipleChoice()
+    cleanup = initializeQuizActivity()
+
+    const radio = document.querySelector<HTMLInputElement>(
+      "input[data-activity-item='item-1']",
+    )!
+    const option = radio.closest<HTMLElement>(".activity-option")!
+
+    expect(option.tabIndex).toBe(0)
+    expect(radio.tabIndex).toBe(-1)
+
+    option.focus()
+    const arrow = new KeyboardEvent("keydown", {
+      key: "ArrowRight",
+      bubbles: true,
+      cancelable: true,
+    })
+    option.dispatchEvent(arrow)
+    expect(arrow.defaultPrevented).toBe(false)
   })
 
   it("handles image-only option labels (no inner text)", () => {
@@ -235,7 +418,7 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
       </section>
     `
     window.correctAnswers = { "item-1": true, "item-2": false }
-    initializeQuizActivity()
+    cleanup = initializeQuizActivity()
 
     const correctImgOpt = document
       .querySelector<HTMLInputElement>("input[data-activity-item='item-1']")!
@@ -293,7 +476,7 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
       "item-3": false,
       "item-4": true,
     }
-    initializeQuizActivity()
+    cleanup = initializeQuizActivity()
 
     const q1a = document
       .querySelector<HTMLInputElement>("input[data-activity-item='item-1']")!
@@ -334,7 +517,7 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
       </section>
     `
     window.correctAnswers = { "item-1": true, "item-2": false }
-    initializeQuizActivity()
+    cleanup = initializeQuizActivity()
 
     // Answer q1 correctly, leave q2 unanswered — should stay in submit.
     document
@@ -374,7 +557,7 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
       </section>
     `
     window.correctAnswers = { "item-1": false, "item-2": true }
-    initializeQuizActivity()
+    cleanup = initializeQuizActivity()
 
     // Click on the image inside the label — should still register selection
     // on the parent .activity-option via event bubbling.
@@ -405,7 +588,7 @@ describe("initializeQuizActivity — embedded activity_multiple_choice", () => {
       </section>
     `
     window.correctAnswers = { "item-1": false, "item-2": true }
-    initializeQuizActivity()
+    cleanup = initializeQuizActivity()
 
     const winner = document
       .querySelector<HTMLInputElement>("input[data-activity-item='item-2']")!

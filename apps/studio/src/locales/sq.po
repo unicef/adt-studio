@@ -795,6 +795,9 @@ msgstr "Aktivitet: Renditje"
 msgid "Activity: True / False"
 msgstr "Aktivitet: E Vërtetë / E Gabuar"
 
+msgid "Activity: Underline Text"
+msgstr "Aktivitet: Nënvizo tekstin"
+
 msgid "Adaptive layouts generated per page (slower, uses API credits)"
 msgstr "Paraqitje adaptive të gjeneruara për faqe (më e ngadaltë, përdor kredite API)"
 
@@ -813,6 +816,9 @@ msgstr "Shto një familje nga Google Fonts"
 
 msgid "Add a language to see translations appear here."
 msgstr "Shto një gjuhë për të parë përkthimet këtu."
+
+msgid "Add a new picture from your disk"
+msgstr "Shto një figurë të re nga disku yt"
 
 msgid "Add a quiz"
 msgstr "Shto një kuiz"
@@ -883,6 +889,9 @@ msgstr "Shto element liste kontrolluese në këtë seksion"
 msgid "Add custom instructions"
 msgstr "Shto udhëzime të personalizuara"
 
+msgid "Add end of book"
+msgstr "Shto fundin e librit"
+
 msgid "Add entry"
 msgstr "Shto hyrje"
 
@@ -919,6 +928,9 @@ msgstr "Shto font të ri"
 #~ msgid "Add or create model prompt files"
 #~ msgstr "Shto ose krijo skedarë prompti për modelin"
 
+msgid "Add picture"
+msgstr "Shto figurë"
+
 msgid "Add quiz"
 msgstr "Shto kuiz"
 
@@ -930,6 +942,9 @@ msgstr "Shto udhëzime për rishikuesin."
 
 msgid "Add section"
 msgstr "Shto seksion"
+
+msgid "Add sign language video"
+msgstr "Shto video në gjuhën e shenjave"
 
 msgid "Add sizing field"
 msgstr "Shto fushë madhësie"
@@ -976,6 +991,9 @@ msgstr "E shtuar"
 msgid "Added manually"
 msgstr "Shtuar manualisht"
 
+msgid "Adding a new image resets downstream work"
+msgstr "Shtimi i një imazhi të ri rivendos punën e fazave pasuese"
+
 msgid "Adding languages beyond the original is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 msgstr "Shtimi i gjuhëve përtej origjinalit nuk është i pajtueshëm me Paraqitjen e fiksuar. Nëse vazhdoni, mund të merrni rezultate të padëshiruara."
 
@@ -984,6 +1002,9 @@ msgstr "Gjuhë Shtesë"
 
 msgid "Additional terminology may be introduced in later sections. All terms are listed in the glossary appendix at the end of this document for quick reference."
 msgstr "Terminologji shtesë mund të prezantohet në seksionet e mëvonshme. Të gjithë termat janë listuar në shtojcën e fjalorëzimit në fund të këtij dokumenti për referencë të shpejtë."
+
+msgid "Adds glossary pages to the book. Terms link to their entry and each entry links back to the text. Works in every reader."
+msgstr "Shton faqe glosari në libër. Termat lidhen me zërin e tyre dhe çdo zë të kthen te teksti. Funksionon në çdo lexues."
 
 msgid "ADT"
 msgstr "ADT"
@@ -1039,6 +1060,9 @@ msgstr "pas faqes {0}"
 
 msgid "After page {afterNumber}"
 msgstr "Pas faqes {afterNumber}"
+
+msgid "After page {placement}"
+msgstr "Pas faqes {placement}"
 
 #. placeholder {0}: String(page.pageNumber)
 msgid "after pg {0}"
@@ -1173,6 +1197,9 @@ msgstr "Sasia"
 
 msgid "An activity that does not fit the standard categories."
 msgstr "Një aktivitet që nuk i përshtatet kategorive standarde."
+
+msgid "An activity where the learner underlines one or more words, phrases, or sentences directly in the text."
+msgstr "Një aktivitet ku nxënësi nënvizon një ose më shumë fjalë, fraza ose fjali drejtpërdrejt në tekst."
 
 msgid "An AI image is being generated. Cancel it and navigate?"
 msgstr "Po gjenerohet një imazh me AI. Ta anulosh dhe të vazhdosh?"
@@ -1474,6 +1501,9 @@ msgstr "URL bazë"
 msgid "Basic Information"
 msgstr "Informacion bazë"
 
+msgid "Batch a whole page per request (experimental)"
+msgstr "Grumbullo një faqe të tërë për kërkesë (eksperimentale)"
+
 msgid "Batch size"
 msgstr "Madhësia e grupit"
 
@@ -1547,6 +1577,9 @@ msgstr "Të dhënat e librit janë të vjetruara dhe duhet të rindërtohen."
 msgid "Book Fonts"
 msgstr "Fontet e librit"
 
+msgid "Book images"
+msgstr "Figurat e librit"
+
 msgid "Book info"
 msgstr "Info libri"
 
@@ -1591,6 +1624,9 @@ msgstr "Titulli i librit"
 
 msgid "Borders"
 msgstr "Kufij"
+
+msgid "Both"
+msgstr "Të dyja"
 
 msgid "Boxed Text"
 msgstr "Tekst i inkuadruar"
@@ -1795,6 +1831,9 @@ msgstr "Ndrysho Presetin"
 msgid "Change the book language?"
 msgstr "Të ndryshohet gjuha e librit?"
 
+msgid "Change the picture for this term"
+msgstr "Ndrysho figurën e këtij termi"
+
 #~ msgid "Changes apply the next time you run Storyboard and Export."
 #~ msgstr "Ndryshimet zbatohen herën tjetër që ekzekutoni Storyboard dhe Eksportin."
 
@@ -1855,11 +1894,17 @@ msgstr "zgjedhje"
 msgid "Choose a beta release to install."
 msgstr "Zgjidhni një version beta për ta instaluar."
 
+msgid "Choose a picture for this term"
+msgstr "Zgjidh një figurë për këtë term"
+
 msgid "Choose a Preset"
 msgstr "Zgjidhni një Preset"
 
 msgid "Choose a preset that matches your content — textbook, storyboard, reference, or custom — and ADT Studio tailors the pipeline accordingly."
 msgstr "Zgjidhni një preset që përputhet me përmbajtjen tuaj — tekst shkollor, storyboard, referencë ose i personalizuar — dhe ADT Studio përshtat procesin në përputhje me rrethanat."
+
+msgid "Choose a previously uploaded video or upload a new one."
+msgstr "Zgjidh një video të ngarkuar më parë ose ngarko një të re."
 
 msgid "Choose an existing image from this project"
 msgstr "Zgjidhni një imazh ekzistues nga ky projekt"
@@ -1887,6 +1932,9 @@ msgstr "Zgjidhni imazhe..."
 
 msgid "Choose Provider"
 msgstr "Zgjidhni Ofruesin"
+
+msgid "Choose the page to crop from."
+msgstr "Zgjidh faqen nga e cila do të presësh."
 
 msgid "Choose the part file that was shared with you, or export it again."
 msgstr "Zgjidhni skedarin e pjesës që ju është ndarë, ose eksportojeni përsëri."
@@ -2143,6 +2191,12 @@ msgstr "Vazhdo faqen {0}"
 msgid "Continue reviewer validation on page {0}"
 msgstr "Vazhdo validimin e rishikuesit në faqen {0}"
 
+msgid "Continue to crop"
+msgstr "Vazhdo te prerja"
+
+msgid "Continue to upload"
+msgstr "Vazhdo te ngarkimi"
+
 msgid "Continuing will reset your current configuration."
 msgstr "Vazhdimi do të rivendosë konfigurimin tuaj aktual."
 
@@ -2196,6 +2250,9 @@ msgstr "Nuk u lexuan dot përmasat e imazhit"
 
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "Nuk u mund të lexohet ky PDF. Skedari mund të jetë i dëmtuar ose i mbrojtur me fjalëkalim."
+
+msgid "Could not remove {failed} of {total} videos. Please try again."
+msgstr "Nuk u hoqën dot {failed} nga {total} video — ju lutem provoni përsëri."
 
 msgid "Couldn't apply the spreads — please try again."
 msgstr "Nuk mund të aplikohej faqet e përbashkëta — ju lutem provoni përsëri."
@@ -2288,6 +2345,9 @@ msgstr "Krijuar {createdLabel}"
 msgid "Creates a ZIP archive of the full project — database, source PDF, and all pipeline outputs. Use it to back up or transfer the project to another machine."
 msgstr "Krijon një arkiv ZIP të projektit të plotë — bazën e të dhënave, PDF-in burimor dhe të gjitha rezultatet e pipeline-it. Përdore për të rezervuar ose transferuar projektin në një makinë tjetër."
 
+msgid "Creating a new glossary image changes the book's image set. The completed stages below will be cleared and need to run again."
+msgstr "Krijimi i një imazhi të ri të fjalorthit ndryshon grupin e imazheve të librit. Fazat e përfunduara më poshtë do të pastrohen dhe duhet të ekzekutohen përsëri."
+
 msgid "Creating..."
 msgstr "Po krijohet..."
 
@@ -2308,6 +2368,12 @@ msgstr "Kritik"
 
 msgid "Crop"
 msgstr "Prerje"
+
+msgid "Crop from a page"
+msgstr "Prit nga një faqe"
+
+msgid "Crop from page"
+msgstr "Prit nga faqja"
 
 msgid "Crop Image"
 msgstr "Preje imazhin"
@@ -2353,6 +2419,9 @@ msgstr "Interval i personalizuar"
 
 msgid "Custom section {index}"
 msgstr "Seksion i personalizuar {index}"
+
+msgid "Cut a region out of any page"
+msgstr "Prit një zonë nga çdo faqe"
 
 #~ msgid "Date unavailable"
 #~ msgstr "Data nuk është e disponueshme"
@@ -2516,6 +2585,9 @@ msgstr "Fshi këtë kuiz?"
 
 msgid "Delete video"
 msgstr "Fshi videon"
+
+msgid "Delete video from book"
+msgstr "Fshi videon nga libri"
 
 msgid "Deleting..."
 msgstr "Po fshihet..."
@@ -2796,6 +2868,9 @@ msgstr "p.sh., Bëje sfondin më të ndritshëm, shto më shumë pemë..."
 msgid "Each block was simplified by AI. Edit any Easy Read text to refine it against the original, then Save. Changes are stored as a new version, so you can always roll back or regenerate."
 msgstr "Çdo bllok u thjeshtua nga AI. Redakto çdo tekst Easy Read për ta rafinuar ndaj origjinalit, pastaj Ruaje. Ndryshimet ruhen si version i ri, kështu që mund të kthehesh gjithmonë ose të rigjenerohet."
 
+msgid "Each glossary page collects the terms used since the previous one."
+msgstr "Çdo faqe glosari mbledh termat e përdorur që nga faqja e mëparshme."
+
 msgid "Each iteration is one LLM call. Lower values are faster and cheaper; higher values give the reviewer more chances to fix problems."
 msgstr "Çdo iteracion është një thirrje LLM. Vlerat e ulëta janë më të shpejta dhe më të lira; vlerat e larta i japin rishikuesit më shumë mundësi për të korrigjuar problemet."
 
@@ -2963,6 +3038,9 @@ msgstr "Etiketat axe të aktivizuara"
 
 msgid "End"
 msgstr "Fundi"
+
+msgid "End of book"
+msgstr "Fundi i librit"
 
 msgid "End page"
 msgstr "Faqja e fundit"
@@ -3277,6 +3355,9 @@ msgstr "Veprimet e skedarit"
 msgid "Filter by image ID or caption..."
 msgstr "Filtro sipas ID-së ose titullit të imazhit..."
 
+msgid "Filter by image ID or page..."
+msgstr "Filtro sipas ID-së së figurës ose faqes..."
+
 msgid "Filter by image ID..."
 msgstr "Filtro sipas ID-së së imazhit..."
 
@@ -3451,8 +3532,17 @@ msgstr "Gemini"
 msgid "Gemini API key is required to generate audio."
 msgstr "Çelësi API i Gemini është i nevojshëm për të gjeneruar audio."
 
+#~ msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. A lower temperature (e.g. 0.4) reduces that variation and a fixed seed makes delivery reproducible. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
+#~ msgstr "Gemini e gjeneron çdo fjali në kërkesën e vet, prandaj toni mund të ndryshojë nga një fjali te tjetra. Një temperaturë më e ulët (p.sh. 0.4) e zvogëlon këtë variacion dhe një farë e fiksuar e bën leximin të riprodhueshëm. Prek vetëm gjuhët e drejtuara te Gemini — OpenAI dhe Azure i shpërfillin. Ndryshimi i secilës vlerë e rigjeneron audion e Gemini në ekzekutimin e ardhshëm."
+
+msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. Set a lower temperature (e.g. 0.4) to reduce that variation and a fixed seed to make delivery reproducible; leave both empty to disable them and use Gemini's own defaults. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
+msgstr "Gemini e gjeneron çdo fjali në kërkesën e vet, prandaj toni mund të ndryshojë nga një fjali te tjetra. Vendos një temperaturë më të ulët (p.sh. 0.4) për ta zvogëluar këtë variacion dhe një farë të fiksuar për ta bërë leximin të riprodhueshëm; lëri të dyja bosh për t'i çaktivizuar dhe për të përdorur vlerat e paracaktuara të Gemini-t. Prek vetëm gjuhët e drejtuara te Gemini — OpenAI dhe Azure i shpërfillin. Ndryshimi i secilës vlerë e rigjeneron audion e Gemini në ekzekutimin e ardhshëm."
+
 msgid "Gemini Voice"
 msgstr "Zëri Gemini"
+
+msgid "Gemini voice consistency"
+msgstr "Qëndrueshmëria e zërit të Gemini"
 
 msgid "General"
 msgstr "Të përgjithshme"
@@ -3600,8 +3690,17 @@ msgstr "Promptet globale"
 msgid "Glossary"
 msgstr "Glosarit"
 
+msgid "Glossary format"
+msgstr "Formati i glosarit"
+
 msgid "Glossary Generation"
 msgstr "Gjenerimi i Glosariumit"
+
+msgid "Glossary page placement"
+msgstr "Vendosja e faqeve të glosarit"
+
+msgid "Glossary pages"
+msgstr "Faqet e glosarit"
 
 msgid "Glossary Preview"
 msgstr "Pamje Paraprake e Glosariumit"
@@ -3704,6 +3803,9 @@ msgstr "Vlerat më të larta filtrojnë imazhet e thjeshta ose bosh."
 
 msgid "Highlight words"
 msgstr "Thekso fjalët"
+
+msgid "Highlighting failed"
+msgstr "Theksimi dështoi"
 
 msgid "Highlights each word as it's narrated. Adds a transcription step so audio aligns with text on the page."
 msgstr "Thekson çdo fjalë ndërsa narratohet. Shton një hap transkriptimi që audio të përputhet me tekstin në faqe."
@@ -4779,6 +4881,9 @@ msgstr "Botime me shumë formate"
 msgid "multiple choice"
 msgstr "me zgjedhje të shumëfishta"
 
+msgid "Mute all from read-aloud"
+msgstr "Heshtni të gjitha nga leximi me zë"
+
 msgid "Muted"
 msgstr "I heshtur"
 
@@ -4993,8 +5098,14 @@ msgstr "Pa imazh"
 msgid "No image available"
 msgstr "Nuk ka imazh të disponueshëm"
 
+msgid "No image selected"
+msgstr "Asnjë figurë e zgjedhur"
+
 msgid "No images in this book"
 msgstr "Nuk ka imazhe në këtë libër"
+
+msgid "No images in this book yet."
+msgstr "Ky libër ende nuk ka figura."
 
 msgid "No images in this section"
 msgstr "Nuk ka imazhe në këtë seksion"
@@ -5067,6 +5178,9 @@ msgstr "Nuk janë nxjerrë faqe ende. Ekzekuto zinxhirin e procesimit për të n
 
 msgid "No pages found"
 msgstr "Nuk u gjetën faqe"
+
+msgid "No pages in this book yet."
+msgstr "Ky libër ende nuk ka faqe."
 
 msgid "No PDF"
 msgstr "Nuk ka PDF"
@@ -5187,6 +5301,9 @@ msgstr "Nuk ka përkthime që kërkojnë vëmendje."
 
 msgid "No translations were accepted anyway in this view."
 msgstr "Nuk u pranuan përkthime gjithsesi në këtë pamje."
+
+msgid "No unassigned videos are available."
+msgstr "Nuk ka video të pacaktuara të disponueshme."
 
 msgid "No variables detected in the current template."
 msgstr "Nuk u zbuluan variabla në template-in aktual."
@@ -5647,6 +5764,12 @@ msgstr "Imazhi i faqes si sfond me tekst të pozicionuar sipër. Ruan kompozimin
 msgid "Page Mode"
 msgstr "Modaliteti i Faqes"
 
+msgid "Page number"
+msgstr "Numri i faqes"
+
+msgid "Page numbers detected — these will be read aloud: {pageNumberPreview}. Mute them all from text-to-speech?"
+msgstr "U zbuluan numra faqesh — do të lexohen me zë: {pageNumberPreview}. T'i heshtni të gjitha nga shndërrimi i tekstit në të folur?"
+
 msgid "Page preview"
 msgstr "Pamja paraprake e faqes"
 
@@ -5845,6 +5968,15 @@ msgstr "Zgjidhni nga Libri"
 msgid "Pick one layout approach."
 msgstr "Zgjidhni një qasje paraqitjeje."
 
+#~ msgid "Pick one of the book's images to illustrate this glossary term on the glossary page."
+#~ msgstr "Zgjidh një nga figurat e librit për të ilustruar këtë term në faqen e glosarit."
+
+msgid "Pick one of the book's images, crop a region from a page, or upload your own picture."
+msgstr "Zgjidh një nga figurat e librit, prit një zonë nga një faqe ose ngarko figurën tënde."
+
+#~ msgid "Pick page range"
+#~ msgstr "Zgjidhni intervalin e faqeve"
+
 msgid "Pick the languages you want to translate to. The book's original language stays as-is."
 msgstr "Zgjidhni gjuhët në të cilat dëshironi të përktheni. Gjuha origjinale e librit mbetet ashtu siç është."
 
@@ -5853,6 +5985,9 @@ msgstr "Zgjidhni cilën zë përdor secila gjuhë për tregimin, duke përfshir�
 
 msgid "Picture books and early readers"
 msgstr "Libra me ilustrime dhe lexues fillestarë"
+
+msgid "Picture for {word}"
+msgstr "Figura për {word}"
 
 msgid "Pinned"
 msgstr "E fiksuar"
@@ -5892,6 +6027,12 @@ msgstr "Polisim paragrafet deri në përsosmëri..."
 
 msgid "Polygon"
 msgstr "Poligon"
+
+msgid "Pop-up definitions"
+msgstr "Përkufizime kërcyese"
+
+msgid "Pop-ups where supported, plus browsable glossary pages in the book."
+msgstr "Përkufizime kërcyese aty ku mbështeten, plus faqe glosari të shfletueshme në libër."
 
 msgid "Popular"
 msgstr "Popullore"
@@ -5971,6 +6112,9 @@ msgstr "Faqja e mëparshme"
 
 msgid "Previous slide"
 msgstr "Sllajdi i mëparshëm"
+
+msgid "Previously uploaded videos"
+msgstr "Video të ngarkuara më parë"
 
 msgid "Print a variable"
 msgstr "Shfaq një variabël"
@@ -6385,8 +6529,17 @@ msgstr "Hiq faqen {0} nga kuizi"
 msgid "Remove PDF"
 msgstr "Hiq PDF-in"
 
+msgid "Remove picture"
+msgstr "Hiq figurën"
+
+msgid "Remove placement"
+msgstr "Hiq vendosjen"
+
 msgid "Remove section"
 msgstr "Hiq seksionin"
+
+msgid "Remove sign language video"
+msgstr "Hiq videon në gjuhën e shenjave"
 
 msgid "Remove term"
 msgstr "Hiq termin"
@@ -7017,6 +7170,9 @@ msgstr "Shiko shembuj"
 msgid "See the book & pick pages"
 msgstr "Shihni librin dhe zgjidhni faqet"
 
+msgid "Seed"
+msgstr "Fara"
+
 msgid "Segment"
 msgstr "Segment"
 
@@ -7507,6 +7663,9 @@ msgstr "E-book standard për lexues dhe biblioteka"
 msgid "Standard EPUB 3 file for e-readers, reading apps, and accessibility tools. Interactive features (quizzes, TTS) work in readers that support JavaScript."
 msgstr "Skedar standard EPUB 3 për lexues elektronikë, aplikacione leximi dhe mjete aksesueshmërie. Veçoritë interaktive (quiz-e, TTS) funksionojnë në lexues që mbështesin JavaScript."
 
+msgid "Standard EPUB glossary — tapping a term shows its definition. Needs reader support (not Apple Books)."
+msgstr "Glosar standard EPUB — duke prekur një term shfaqet përkufizimi i tij. Kërkon mbështetje nga lexuesi (jo Apple Books)."
+
 msgid "Start"
 msgstr "Fillo"
 
@@ -7530,6 +7689,9 @@ msgstr "Fillo të shkruash për të parë fjalë nga libri…"
 
 msgid "Start with a PDF"
 msgstr "Fillo me një PDF"
+
+msgid "Starting…"
+msgstr "Po fillon…"
 
 msgid "Stats"
 msgstr "Statistika"
@@ -7687,6 +7849,9 @@ msgstr "JP"
 
 msgid "Symbiosis"
 msgstr "Simbiozë"
+
+msgid "Synthesize each page's text in a single Gemini request so tone flows naturally across sentences, then split the audio back into per-sentence clips. Needs an OpenAI key (used to align the split). Gemini-routed languages only; Chinese and Thai remain per-entry."
+msgstr "E sintetizon tekstin e çdo faqeje në një kërkesë të vetme të Gemini-t që toni të rrjedhë natyrshëm nëpër fjali, pastaj e ndan audion sërish në klipe për çdo fjali. Kërkon një çelës të OpenAI-t (përdoret për të përafruar ndarjen). Vetëm për gjuhët e drejtuara te Gemini; kinezishtja dhe tajlandishtja mbeten për çdo hyrje veçmas."
 
 msgid "Synthesizes narration audio for each page."
 msgstr "Sintetizon audion e rrëfimit për çdo faqe."
@@ -8589,6 +8754,9 @@ msgstr "Ngarko imazh"
 msgid "Upload Image"
 msgstr "Ngarko imazh"
 
+msgid "Upload new video"
+msgstr "Ngarko video të re"
+
 msgid "Upload PDF or drag and drop"
 msgstr "Ngarko PDF ose tërhiq dhe lësho"
 
@@ -8664,6 +8832,12 @@ msgstr "Përdor këtë për kontrollet që dëshiron t'i fshehësh me qëllim, s
 
 msgid "Use this format to back up the project or move it to another machine."
 msgstr "Përdor këtë format për të rezervuar projektin ose për ta zhvendosur në një makinë tjetër."
+
+msgid "Use this picture"
+msgstr "Përdor këtë figurë"
+
+msgid "Use video"
+msgstr "Përdor videon"
 
 msgid "Used for"
 msgstr "Përdoret për"

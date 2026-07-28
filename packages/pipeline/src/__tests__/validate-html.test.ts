@@ -94,6 +94,26 @@ describe("validateSectionHtml", () => {
     )
   })
 
+  it("allows bare enumeration markers as text, but not bare prose", () => {
+    const markers = `
+      <section>
+        <span>1.</span><span>10.</span><span>(i)</span><span>(vii)</span><span>(a)</span>
+      </section>
+    `
+    expect(validateSectionHtml(markers, [], []).valid).toBe(true)
+
+    const prose = `
+      <section>
+        <span>Salamu</span>
+      </section>
+    `
+    const proseResult = validateSectionHtml(prose, [], [])
+    expect(proseResult.valid).toBe(false)
+    expect(proseResult.errors).toContainEqual(
+      expect.stringContaining("Text node outside any data-id element")
+    )
+  })
+
   it("exempts text inside style tags", () => {
     const html = `
       <section>
@@ -913,7 +933,7 @@ describe("validateSectionHtml", () => {
     )
   })
 
-  it("reports error when [[blank:item-N]] markers lack fitb-sentence class", () => {
+  it("auto-adds fitb-sentence class when [[blank:item-N]] markers lack it", () => {
     const html = `
       <section>
         <p data-id="tx001">The [[blank:item-1]] is a type of star.</p>
@@ -927,10 +947,13 @@ describe("validateSectionHtml", () => {
       undefined,
       { expectedTexts }
     )
-    expect(result.valid).toBe(false)
-    expect(result.errors).toContainEqual(
+    // Auto-healed instead of failing: the class is always the correct action
+    // when markers are present, so the validator adds it and passes.
+    expect(result.valid).toBe(true)
+    expect(result.errors).not.toContainEqual(
       expect.stringContaining('missing the "fitb-sentence" class')
     )
+    expect(result.sectionHtml).toContain("fitb-sentence")
   })
 
   it("accepts [[blank:item-N]] markers when fitb-sentence is on an ancestor", () => {

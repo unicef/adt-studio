@@ -201,6 +201,22 @@ function getRenderedSectionByIndex(
 }
 
 /**
+ * Selectable tokens, option markers, and writable fields the activity runtime
+ * binds to. A leaf whose rendered element contains any of these cannot have its
+ * text mirrored in place — flattening it to a text node destroys the activity
+ * (e.g. every `.activity-underline-option` span of an underline sentence, or
+ * the `<input>`s of a fill-in-the-blank). Mirrors the guard the pipeline uses
+ * before `replaceChildrenWithText` in `packages/pipeline/src/validate-html.ts`.
+ */
+const ACTIVITY_INTERACTIVE_DESCENDANT_SELECTOR =
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- CSS selector, not user-visible text
+  ".activity-underline-option, [data-activity-item], input, textarea, select"
+
+function hasActivityInteractiveDescendant(el: Element): boolean {
+  return el.querySelector(ACTIVITY_INTERACTIVE_DESCENDANT_SELECTOR) !== null
+}
+
+/**
  * Compare pending (edited) HTML against saved (original) HTML and produce
  * structured LLM instructions describing the user's manual edits.
  * Returns an empty string if there are no meaningful differences.
@@ -1060,8 +1076,12 @@ export function StoryboardSectionDetail({
       const parser = new DOMParser()
       const doc = parser.parseFromString(currentSection.html, "text/html")
       const el = doc.querySelector(`[data-id="${dataId}"]`)
-      if (!el) {
-        // Element not in HTML — re-render needed to sync
+      // Activity leaves can't be mirrored in place: `textContent` would replace
+      // the interactive children (underline option spans, blank inputs) with a
+      // bare text node and leave a dead activity in the saved HTML. Fall back to
+      // the same re-render path used when the element isn't in the HTML at all,
+      // so the activity is regenerated from the new text on save.
+      if (!el || hasActivityInteractiveDescendant(el)) {
         needsRerenderRef.current = true
         return
       }

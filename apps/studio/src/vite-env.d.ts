@@ -159,6 +159,8 @@ interface Window {
     platform?: ElectronPlatform
     /** Application version from the Electron main process. Undefined in the web build. */
     version?: string
+    /** OS languages in preference order (e.g. `["pt-BR", "en-US"]`). Undefined in the web build. */
+    systemLocales?: string[]
     /** IPC bridge for custom title bar controls. Undefined in the web build. */
     windowControls?: ElectronWindowControls
     /** IPC bridge for desktop auto-updater. Undefined in the web build. */

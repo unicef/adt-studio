@@ -794,6 +794,9 @@ msgstr "Atividade: Ordenação"
 msgid "Activity: True / False"
 msgstr "Atividade: Verdadeiro / Falso"
 
+msgid "Activity: Underline Text"
+msgstr "Atividade: Sublinhar texto"
+
 msgid "Adaptive layouts generated per page (slower, uses API credits)"
 msgstr "Layouts adaptativos gerados por página (mais lento, usa créditos de API)"
 
@@ -812,6 +815,9 @@ msgstr "Adicionar uma família do Google Fonts"
 
 msgid "Add a language to see translations appear here."
 msgstr "Adicione um idioma para ver as traduções aparecerem aqui."
+
+msgid "Add a new picture from your disk"
+msgstr "Adicione uma nova imagem do seu disco"
 
 msgid "Add a quiz"
 msgstr "Adicionar um questionário"
@@ -882,6 +888,9 @@ msgstr "Add checklist item to this section"
 msgid "Add custom instructions"
 msgstr "Adicionar instruções personalizadas"
 
+msgid "Add end of book"
+msgstr "Adicionar fim do livro"
+
 msgid "Add entry"
 msgstr "Adicionar entrada"
 
@@ -918,6 +927,9 @@ msgstr "Adicionar nova fonte"
 #~ msgid "Add or create model prompt files"
 #~ msgstr "Adicionar ou criar arquivos de prompt do modelo"
 
+msgid "Add picture"
+msgstr "Adicionar imagem"
+
 msgid "Add quiz"
 msgstr "Adicionar questionário"
 
@@ -929,6 +941,9 @@ msgstr "Add reviewer guidance."
 
 msgid "Add section"
 msgstr "Add section"
+
+msgid "Add sign language video"
+msgstr "Adicionar vídeo em língua de sinais"
 
 msgid "Add sizing field"
 msgstr "Adicionar campo de dimensionamento"
@@ -975,6 +990,9 @@ msgstr "Adicionada"
 msgid "Added manually"
 msgstr "Adicionado manualmente"
 
+msgid "Adding a new image resets downstream work"
+msgstr "Adicionar uma nova imagem redefine o trabalho das etapas posteriores"
+
 msgid "Adding languages beyond the original is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 msgstr "Adicionar idiomas além do original não é compatível com Layout Fixo. Se você continuar, poderá obter resultados indesejados."
 
@@ -983,6 +1001,9 @@ msgstr "Idiomas adicionais"
 
 msgid "Additional terminology may be introduced in later sections. All terms are listed in the glossary appendix at the end of this document for quick reference."
 msgstr "Terminologia adicional pode ser introduzida em seções posteriores. Todos os termos estão listados no apêndice do glossário no final deste documento para referência rápida."
+
+msgid "Adds glossary pages to the book. Terms link to their entry and each entry links back to the text. Works in every reader."
+msgstr "Adiciona páginas de glossário ao livro. Os termos levam à sua entrada e cada entrada leva de volta ao texto. Funciona em qualquer leitor."
 
 msgid "ADT"
 msgstr "ADT"
@@ -1038,6 +1059,9 @@ msgstr "após a página {0}"
 
 msgid "After page {afterNumber}"
 msgstr "Após a página {afterNumber}"
+
+msgid "After page {placement}"
+msgstr "Depois da página {placement}"
 
 #. placeholder {0}: String(page.pageNumber)
 msgid "after pg {0}"
@@ -1172,6 +1196,9 @@ msgstr "Quantidade"
 
 msgid "An activity that does not fit the standard categories."
 msgstr "Uma atividade que não se enquadra nas categorias padrão."
+
+msgid "An activity where the learner underlines one or more words, phrases, or sentences directly in the text."
+msgstr "Uma atividade em que o aluno sublinha uma ou mais palavras, expressões ou frases diretamente no texto."
 
 msgid "An AI image is being generated. Cancel it and navigate?"
 msgstr "Uma imagem com IA está sendo gerada. Cancelar e navegar?"
@@ -1473,6 +1500,9 @@ msgstr "URL base"
 msgid "Basic Information"
 msgstr "Informações Básicas"
 
+msgid "Batch a whole page per request (experimental)"
+msgstr "Agrupar uma página inteira por requisição (experimental)"
+
 msgid "Batch size"
 msgstr "Tamanho do lote"
 
@@ -1546,6 +1576,9 @@ msgstr "Os dados do livro estão desatualizados e precisam ser reconstruídos."
 msgid "Book Fonts"
 msgstr "Fontes do Livro"
 
+msgid "Book images"
+msgstr "Imagens do livro"
+
 msgid "Book info"
 msgstr "Informações do livro"
 
@@ -1590,6 +1623,9 @@ msgstr "Título do livro"
 
 msgid "Borders"
 msgstr "Bordas"
+
+msgid "Both"
+msgstr "Ambos"
 
 msgid "Boxed Text"
 msgstr "Texto em caixa"
@@ -1794,6 +1830,9 @@ msgstr "Alterar Predefinição"
 msgid "Change the book language?"
 msgstr "Alterar o idioma do livro?"
 
+msgid "Change the picture for this term"
+msgstr "Alterar a imagem deste termo"
+
 #~ msgid "Changes apply the next time you run Storyboard and Export."
 #~ msgstr "As alterações são aplicadas na próxima vez que você executar o Storyboard e a Exportação."
 
@@ -1854,11 +1893,17 @@ msgstr "escolha"
 msgid "Choose a beta release to install."
 msgstr "Escolha uma versão beta para instalar."
 
+msgid "Choose a picture for this term"
+msgstr "Escolher uma imagem para este termo"
+
 msgid "Choose a Preset"
 msgstr "Escolha uma Predefinição"
 
 msgid "Choose a preset that matches your content — textbook, storyboard, reference, or custom — and ADT Studio tailors the pipeline accordingly."
 msgstr "Escolha um preset que combine com seu conteúdo — livro didático, storyboard, referência ou personalizado — e o ADT Studio adapta o pipeline conforme necessário."
+
+msgid "Choose a previously uploaded video or upload a new one."
+msgstr "Escolha um vídeo enviado anteriormente ou envie um novo."
 
 msgid "Choose an existing image from this project"
 msgstr "Escolha uma imagem existente deste projeto"
@@ -1886,6 +1931,9 @@ msgstr "Escolher imagens..."
 
 msgid "Choose Provider"
 msgstr "Escolher provedor"
+
+msgid "Choose the page to crop from."
+msgstr "Escolha a página da qual recortar."
 
 msgid "Choose the part file that was shared with you, or export it again."
 msgstr "Escolha o arquivo de parte que foi compartilhado com você, ou exporte-o novamente."
@@ -2142,6 +2190,12 @@ msgstr "Continue page {0}"
 msgid "Continue reviewer validation on page {0}"
 msgstr "Continue reviewer validation on page {0}"
 
+msgid "Continue to crop"
+msgstr "Continuar para recortar"
+
+msgid "Continue to upload"
+msgstr "Continuar para enviar"
+
 msgid "Continuing will reset your current configuration."
 msgstr "Continuar irá redefinir sua configuração atual."
 
@@ -2195,6 +2249,9 @@ msgstr "Não foi possível ler as dimensões da imagem"
 
 msgid "Could not read this PDF. The file may be corrupted or password-protected."
 msgstr "Não foi possível ler este PDF. O arquivo pode estar corrompido ou protegido por senha."
+
+msgid "Could not remove {failed} of {total} videos. Please try again."
+msgstr "Não foi possível remover {failed} de {total} vídeos — tente novamente."
 
 msgid "Couldn't apply the spreads — please try again."
 msgstr "Não foi possível aplicar os spreads — tente novamente."
@@ -2287,6 +2344,9 @@ msgstr "Criado em {createdLabel}"
 msgid "Creates a ZIP archive of the full project — database, source PDF, and all pipeline outputs. Use it to back up or transfer the project to another machine."
 msgstr "Cria um arquivo ZIP do projeto completo — banco de dados, PDF de origem e todas as saídas do pipeline. Use para fazer backup ou transferir o projeto para outra máquina."
 
+msgid "Creating a new glossary image changes the book's image set. The completed stages below will be cleared and need to run again."
+msgstr "A criação de uma nova imagem de glossário altera o conjunto de imagens do livro. As etapas concluídas abaixo serão apagadas e precisarão ser executadas novamente."
+
 msgid "Creating..."
 msgstr "Criando..."
 
@@ -2307,6 +2367,12 @@ msgstr "Critical"
 
 msgid "Crop"
 msgstr "Recortar"
+
+msgid "Crop from a page"
+msgstr "Recortar de uma página"
+
+msgid "Crop from page"
+msgstr "Recortar da página"
 
 msgid "Crop Image"
 msgstr "Recortar imagem"
@@ -2352,6 +2418,9 @@ msgstr "Intervalo personalizado"
 
 msgid "Custom section {index}"
 msgstr "Custom section {index}"
+
+msgid "Cut a region out of any page"
+msgstr "Recorte uma região de qualquer página"
 
 #~ msgid "Date unavailable"
 #~ msgstr "Data indisponível"
@@ -2515,6 +2584,9 @@ msgstr "Excluir este questionário?"
 
 msgid "Delete video"
 msgstr "Excluir vídeo"
+
+msgid "Delete video from book"
+msgstr "Excluir vídeo do livro"
 
 msgid "Deleting..."
 msgstr "Excluindo..."
@@ -2795,6 +2867,9 @@ msgstr "ex.: Deixe o fundo mais claro, adicione mais árvores..."
 msgid "Each block was simplified by AI. Edit any Easy Read text to refine it against the original, then Save. Changes are stored as a new version, so you can always roll back or regenerate."
 msgstr "Cada bloco foi simplificado por IA. Edite qualquer texto de Leitura Fácil para refiná-lo em relação ao original e depois Salve. As alterações são armazenadas como uma nova versão, para que você sempre possa reverter ou regenerar."
 
+msgid "Each glossary page collects the terms used since the previous one."
+msgstr "Cada página de glossário reúne os termos usados desde a anterior."
+
 msgid "Each iteration is one LLM call. Lower values are faster and cheaper; higher values give the reviewer more chances to fix problems."
 msgstr "Cada iteração é uma chamada LLM. Valores menores são mais rápidos e baratos; valores maiores dão ao revisor mais chances de corrigir problemas."
 
@@ -2962,6 +3037,9 @@ msgstr "Enabled axe tags"
 
 msgid "End"
 msgstr "Fim"
+
+msgid "End of book"
+msgstr "Fim do livro"
 
 msgid "End page"
 msgstr "End page"
@@ -3276,6 +3354,9 @@ msgstr "Ações do arquivo"
 msgid "Filter by image ID or caption..."
 msgstr "Filtrar por ID da imagem ou legenda..."
 
+msgid "Filter by image ID or page..."
+msgstr "Filtrar por ID da imagem ou página..."
+
 msgid "Filter by image ID..."
 msgstr "Filtrar por ID da imagem..."
 
@@ -3450,8 +3531,17 @@ msgstr "Gemini"
 msgid "Gemini API key is required to generate audio."
 msgstr "É necessária uma chave de API do Gemini para gerar áudio."
 
+#~ msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. A lower temperature (e.g. 0.4) reduces that variation and a fixed seed makes delivery reproducible. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
+#~ msgstr "O Gemini gera cada frase em sua própria requisição, então o tom pode variar entre as frases. Uma temperatura mais baixa (ex.: 0,4) reduz essa variação e uma semente fixa torna a leitura reproduzível. Afeta apenas os idiomas roteados para o Gemini — o OpenAI e o Azure ignoram esses valores. Alterar qualquer um deles regenera o áudio do Gemini na próxima execução."
+
+msgid "Gemini generates each sentence in its own request, so its tone can drift between sentences. Set a lower temperature (e.g. 0.4) to reduce that variation and a fixed seed to make delivery reproducible; leave both empty to disable them and use Gemini's own defaults. Only affects languages routed to Gemini — OpenAI and Azure ignore these. Changing either value regenerates Gemini audio on the next run."
+msgstr "O Gemini gera cada frase em sua própria requisição, então o tom pode variar entre as frases. Defina uma temperatura mais baixa (ex.: 0,4) para reduzir essa variação e uma semente fixa para tornar a leitura reproduzível; deixe ambos vazios para desativá-los e usar os valores padrão do Gemini. Afeta apenas os idiomas roteados para o Gemini — o OpenAI e o Azure ignoram esses valores. Alterar qualquer um deles regenera o áudio do Gemini na próxima execução."
+
 msgid "Gemini Voice"
 msgstr "Voz do Gemini"
+
+msgid "Gemini voice consistency"
+msgstr "Consistência de voz do Gemini"
 
 msgid "General"
 msgstr "Geral"
@@ -3599,8 +3689,17 @@ msgstr "Prompts Globais"
 msgid "Glossary"
 msgstr "Glossário"
 
+msgid "Glossary format"
+msgstr "Formato do glossário"
+
 msgid "Glossary Generation"
 msgstr "Geração de glossário"
+
+msgid "Glossary page placement"
+msgstr "Posição das páginas de glossário"
+
+msgid "Glossary pages"
+msgstr "Páginas de glossário"
 
 msgid "Glossary Preview"
 msgstr "Pré-visualização do Glossário"
@@ -3703,6 +3802,9 @@ msgstr "Valores mais altos filtram imagens simples ou em branco."
 
 msgid "Highlight words"
 msgstr "Destacar palavras"
+
+msgid "Highlighting failed"
+msgstr "Falha no destaque"
 
 msgid "Highlights each word as it's narrated. Adds a transcription step so audio aligns with text on the page."
 msgstr "Destaca cada palavra à medida que é narrada. Adiciona uma etapa de transcrição para que o áudio se alinhe com o texto na página."
@@ -4778,6 +4880,9 @@ msgstr "Publicações multi-formato"
 msgid "multiple choice"
 msgstr "múltipla escolha"
 
+msgid "Mute all from read-aloud"
+msgstr "Silenciar tudo na leitura em voz alta"
+
 msgid "Muted"
 msgstr "Silenciado"
 
@@ -4992,8 +5097,14 @@ msgstr "Sem imagem"
 msgid "No image available"
 msgstr "Nenhuma imagem disponível"
 
+msgid "No image selected"
+msgstr "Nenhuma imagem selecionada"
+
 msgid "No images in this book"
 msgstr "Nenhuma imagem neste livro"
+
+msgid "No images in this book yet."
+msgstr "Este livro ainda não tem imagens."
 
 msgid "No images in this section"
 msgstr "Nenhuma imagem nesta seção"
@@ -5066,6 +5177,9 @@ msgstr "Nenhuma página extraída ainda. Execute o pipeline para extrair o conte
 
 msgid "No pages found"
 msgstr "Nenhuma página encontrada"
+
+msgid "No pages in this book yet."
+msgstr "Este livro ainda não tem páginas."
 
 msgid "No PDF"
 msgstr "Sem PDF"
@@ -5186,6 +5300,9 @@ msgstr "Nenhuma tradução precisa de atenção."
 
 msgid "No translations were accepted anyway in this view."
 msgstr "Nenhuma tradução foi aceita mesmo assim nesta visualização."
+
+msgid "No unassigned videos are available."
+msgstr "Não há vídeos não atribuídos disponíveis."
 
 msgid "No variables detected in the current template."
 msgstr "Nenhuma variável detectada no template atual."
@@ -5646,6 +5763,12 @@ msgstr "Imagem da página como fundo com texto posicionado sobreposto. Preserva 
 msgid "Page Mode"
 msgstr "Modo de Página"
 
+msgid "Page number"
+msgstr "Número da página"
+
+msgid "Page numbers detected — these will be read aloud: {pageNumberPreview}. Mute them all from text-to-speech?"
+msgstr "Números de página detectados — serão lidos em voz alta: {pageNumberPreview}. Silenciar todos na conversão de texto em fala?"
+
 msgid "Page preview"
 msgstr "Pré-visualização da página"
 
@@ -5844,6 +5967,15 @@ msgstr "Escolher do livro"
 msgid "Pick one layout approach."
 msgstr "Escolha uma abordagem de layout."
 
+#~ msgid "Pick one of the book's images to illustrate this glossary term on the glossary page."
+#~ msgstr "Escolha uma das imagens do livro para ilustrar este termo na página do glossário."
+
+msgid "Pick one of the book's images, crop a region from a page, or upload your own picture."
+msgstr "Escolha uma das imagens do livro, recorte uma região de uma página ou envie sua própria imagem."
+
+#~ msgid "Pick page range"
+#~ msgstr "Escolher intervalo de páginas"
+
 msgid "Pick the languages you want to translate to. The book's original language stays as-is."
 msgstr "Escolha os idiomas para os quais deseja traduzir. O idioma original do livro permanece como está."
 
@@ -5852,6 +5984,9 @@ msgstr "Escolha qual voz cada idioma usa para narração, incluindo sotaques reg
 
 msgid "Picture books and early readers"
 msgstr "Livros ilustrados e leitores iniciantes"
+
+msgid "Picture for {word}"
+msgstr "Imagem de {word}"
 
 msgid "Pinned"
 msgstr "Fixado"
@@ -5891,6 +6026,12 @@ msgstr "Polindo parágrafos até a perfeição..."
 
 msgid "Polygon"
 msgstr "Polígono"
+
+msgid "Pop-up definitions"
+msgstr "Definições pop-up"
+
+msgid "Pop-ups where supported, plus browsable glossary pages in the book."
+msgstr "Pop-ups onde houver suporte, além de páginas de glossário navegáveis no livro."
 
 msgid "Popular"
 msgstr "Populares"
@@ -5970,6 +6111,9 @@ msgstr "Página anterior"
 
 msgid "Previous slide"
 msgstr "Slide anterior"
+
+msgid "Previously uploaded videos"
+msgstr "Vídeos enviados anteriormente"
 
 msgid "Print a variable"
 msgstr "Exibir uma variável"
@@ -6384,8 +6528,17 @@ msgstr "Remover a página {0} do questionário"
 msgid "Remove PDF"
 msgstr "Remover PDF"
 
+msgid "Remove picture"
+msgstr "Remover imagem"
+
+msgid "Remove placement"
+msgstr "Remover posição"
+
 msgid "Remove section"
 msgstr "Remove section"
+
+msgid "Remove sign language video"
+msgstr "Remover vídeo em língua de sinais"
 
 msgid "Remove term"
 msgstr "Remover termo"
@@ -7016,6 +7169,9 @@ msgstr "Ver exemplos"
 msgid "See the book & pick pages"
 msgstr "Ver o livro e escolher páginas"
 
+msgid "Seed"
+msgstr "Semente"
+
 msgid "Segment"
 msgstr "Segmentar"
 
@@ -7506,6 +7662,9 @@ msgstr "E-book padrão para leitores e bibliotecas"
 msgid "Standard EPUB 3 file for e-readers, reading apps, and accessibility tools. Interactive features (quizzes, TTS) work in readers that support JavaScript."
 msgstr "Arquivo EPUB 3 padrão para leitores eletrônicos, aplicativos de leitura e ferramentas de acessibilidade. Recursos interativos (questionários, TTS) funcionam em leitores que suportam JavaScript."
 
+msgid "Standard EPUB glossary — tapping a term shows its definition. Needs reader support (not Apple Books)."
+msgstr "Glossário EPUB padrão — tocar em um termo mostra sua definição. Requer suporte do leitor (não Apple Books)."
+
 msgid "Start"
 msgstr "Início"
 
@@ -7529,6 +7688,9 @@ msgstr "Comece a digitar para ver palavras do livro…"
 
 msgid "Start with a PDF"
 msgstr "Selecione um PDF"
+
+msgid "Starting…"
+msgstr "Iniciando…"
 
 msgid "Stats"
 msgstr "Estatísticas"
@@ -7686,6 +7848,9 @@ msgstr "SW"
 
 msgid "Symbiosis"
 msgstr "Simbiose"
+
+msgid "Synthesize each page's text in a single Gemini request so tone flows naturally across sentences, then split the audio back into per-sentence clips. Needs an OpenAI key (used to align the split). Gemini-routed languages only; Chinese and Thai remain per-entry."
+msgstr "Sintetiza o texto de cada página em uma única requisição do Gemini para que o tom flua naturalmente entre as frases e depois divide o áudio de volta em clipes por frase. Precisa de uma chave da OpenAI (usada para alinhar a divisão). Apenas para idiomas roteados para o Gemini; chinês e tailandês permanecem por entrada."
 
 msgid "Synthesizes narration audio for each page."
 msgstr "Sintetiza áudio de narração para cada página."
@@ -8588,6 +8753,9 @@ msgstr "Enviar imagem"
 msgid "Upload Image"
 msgstr "Enviar imagem"
 
+msgid "Upload new video"
+msgstr "Enviar novo vídeo"
+
 msgid "Upload PDF or drag and drop"
 msgstr "Envie PDF ou arraste e solte"
 
@@ -8663,6 +8831,12 @@ msgstr "Use this for checks you intentionally want to suppress, such as known fa
 
 msgid "Use this format to back up the project or move it to another machine."
 msgstr "Use este formato para fazer backup do projeto ou movê-lo para outra máquina."
+
+msgid "Use this picture"
+msgstr "Usar esta imagem"
+
+msgid "Use video"
+msgstr "Usar vídeo"
 
 msgid "Used for"
 msgstr "Usada para"

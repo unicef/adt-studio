@@ -393,6 +393,8 @@ export interface GlossaryItem {
   variations: string[]
   emojis: string[]
   pruned?: boolean
+  /** Optional image from the book's images table illustrating the term. */
+  imageId?: string
 }
 
 export interface GlossaryOutput {
@@ -573,6 +575,9 @@ export interface WordTimestampEntry {
 export interface WordTimestampResponse {
   entries: Record<string, WordTimestampEntry>
   generatedAt: string | null
+  /** Per-item word-timestamp failures from the last run, so the Speech view can
+   * mark them for pruning or one-by-one regeneration. */
+  failed?: { textId: string; error: string }[]
 }
 
 // --- Debug types ---
@@ -1433,10 +1438,13 @@ export const api = {
     request<GlossaryOutput | null>(`/books/${label}/glossary`),
 
   updateGlossary: (label: string, data: unknown) =>
-    request<{ version: number }>(`/books/${label}/glossary`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    }),
+    request<{ version: number; imageRequirementsChanged: boolean }>(
+      `/books/${label}/glossary`,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+      },
+    ),
 
   generateGlossaryItem: (
     label: string,
@@ -1663,11 +1671,6 @@ export const api = {
 
   deleteSignLanguageVideo: (label: string, videoId: string) =>
     request<{ ok: boolean }>(`/books/${label}/sign-language-videos/${videoId}`, {
-      method: "DELETE",
-    }),
-
-  deleteAllSignLanguageVideos: (label: string) =>
-    request<{ ok: boolean }>(`/books/${label}/sign-language-videos`, {
       method: "DELETE",
     }),
 
