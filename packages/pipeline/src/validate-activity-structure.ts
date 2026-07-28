@@ -13,6 +13,13 @@
  * run and their errors concatenate.
  */
 import { DomUtils } from "htmlparser2"
+import {
+  collectUnderlineGroups,
+  containerExclusiveToGroup,
+  findGroupCommonContainer,
+  findUnwrappedWords,
+  isWordLevelGroup,
+} from "./activity-underline-repair.js"
 
 // htmlparser2 doesn't export its DOM node type ergonomically; treat nodes as
 // `any` inside this module — DomUtils is the typed surface we rely on.
@@ -282,6 +289,49 @@ function utOptionsMustHaveText(ctx: ActivityRuleContext): string[] {
   return errors
 }
 
+/**
+ * Word-level questions must make EVERY word selectable — learners of the
+ * printed book can underline any word, so a curated candidate subset both
+ * weakens the task and telegraphs the answer. Scoping mirrors the deterministic
+ * completion pass in activity-underline-repair.ts (which normally fixes this
+ * before validation): a group counts as word-level when all of its existing
+ * options are single words, and phrase/sentence-level groups are exempt.
+ */
+function utWordLevelGroupsFullyTokenized(ctx: ActivityRuleContext): string[] {
+  const errors: string[] = []
+  for (const group of collectUnderlineGroups(ctx.section)) {
+    if (!group.key) continue // question-group-present rule reports the missing attribute
+    if (!isWordLevelGroup(group.options)) continue
+    const container = findGroupCommonContainer(ctx.section, group.options)
+    if (!container) {
+      errors.push(
+        `The selectable segments of "${group.key}" do not share a wrapper element below the section. ` +
+          `Keep all of one question's segments inside that question's own text wrapper ` +
+          `(normally its data-id element) so the runtime can group and label them.`,
+      )
+      continue
+    }
+    if (!containerExclusiveToGroup(container, group.key)) {
+      errors.push(
+        `The wrapper containing all segments of "${group.key}" also contains segments of other ` +
+          `question groups. Give each question its own wrapper (normally the sentence's data-id ` +
+          `element) so questions stay independent.`,
+      )
+      continue
+    }
+    const missing = findUnwrappedWords(container)
+    if (missing.length > 0) {
+      errors.push(
+        `Word-level underline question "${group.key}" leaves these words unselectable: ` +
+          `${missing.map((w) => `"${w}"`).join(", ")}. When the answer unit is a word, EVERY word ` +
+          `in the sentence must be wrapped in its own .activity-underline-option span — number ` +
+          `markers like "(i)", example labels, and punctuation stay outside the spans.`,
+      )
+    }
+  }
+  return errors
+}
+
 // ---------------------------------------------------------------------------
 // True/false rules
 // ---------------------------------------------------------------------------
@@ -502,6 +552,7 @@ const UNDERLINE_TEXT_RULES: ActivityRule[] = [
   { name: "items-present", check: utOptionsMustHaveItemIds },
   { name: "question-group-present", check: utOptionsMustHaveQuestionGroup },
   { name: "options-have-text", check: utOptionsMustHaveText },
+  { name: "word-level-fully-tokenized", check: utWordLevelGroupsFullyTokenized },
   { name: "unique-items", check: uniqueDataActivityItems },
 ]
 

@@ -221,7 +221,22 @@ describe("validateActivityStructure — multi-select", () => {
 // ---------------------------------------------------------------------------
 
 describe("validateActivityStructure — underline text", () => {
-  it("accepts a well-formed underline-text section", () => {
+  it("accepts a fully tokenized word-level underline-text section", () => {
+    const errs = check(`
+      <section data-section-type="activity_underline_text">
+        <p>
+          <span data-id="text-1">
+            <span class="activity-underline-option" data-activity-item="item-1" data-question-group="question-group-1">Mimi</span>
+            <span class="activity-underline-option" data-activity-item="item-2" data-question-group="question-group-1">ninacheza</span>
+            <span class="activity-underline-option" data-activity-item="item-3" data-question-group="question-group-1">mpira</span>.
+          </span>
+        </p>
+      </section>
+    `)
+    expect(errs).toEqual([])
+  })
+
+  it("flags a word-level group that leaves words unselectable", () => {
     const errs = check(`
       <section data-section-type="activity_underline_text">
         <p>
@@ -232,7 +247,64 @@ describe("validateActivityStructure — underline text", () => {
         </p>
       </section>
     `)
+    expect(
+      errs.some((e) => e.includes("unselectable") && e.includes('"ninacheza"') && e.includes('"mpira"')),
+    ).toBe(true)
+  })
+
+  it("does not require tokenizing number markers or example labels", () => {
+    const errs = check(`
+      <section data-section-type="activity_underline_text">
+        <p>
+          <span data-id="text-1">(i)
+            <span class="activity-underline-option" data-activity-item="item-1" data-question-group="question-group-1">Wewe</span>
+            <span class="activity-underline-option" data-activity-item="item-2" data-question-group="question-group-1">unaimba</span>
+            <span class="activity-underline-option" data-activity-item="item-3" data-question-group="question-group-1">vizuri</span>.
+          </span>
+        </p>
+      </section>
+    `)
     expect(errs).toEqual([])
+  })
+
+  it("does not apply word-level tokenization to sentence-level groups", () => {
+    const errs = check(`
+      <section data-section-type="activity_underline_text">
+        <p>
+          <span data-id="text-1">
+            <span class="activity-underline-option" data-activity-item="item-1" data-question-group="question-group-1">She reads books.</span>
+            <span class="activity-underline-option" data-activity-item="item-2" data-question-group="question-group-1">She read books.</span>
+            Pick the correct sentence.
+          </span>
+        </p>
+      </section>
+    `)
+    expect(errs).toEqual([])
+  })
+
+  it("flags a word-level group whose segments do not share a wrapper below the section", () => {
+    const errs = check(`
+      <section data-section-type="activity_underline_text">
+        <p><span data-id="text-1"><span class="activity-underline-option" data-activity-item="item-1" data-question-group="question-group-1">She</span></span></p>
+        <p><span data-id="text-2"><span class="activity-underline-option" data-activity-item="item-2" data-question-group="question-group-1">reads</span></span></p>
+      </section>
+    `)
+    expect(errs.some((e) => e.includes("do not share a wrapper"))).toBe(true)
+  })
+
+  it("flags a word-level group whose wrapper also contains other groups", () => {
+    const errs = check(`
+      <section data-section-type="activity_underline_text">
+        <p>
+          <span data-id="text-1">
+            <span class="activity-underline-option" data-activity-item="item-1" data-question-group="question-group-1">She</span>
+            <span class="activity-underline-option" data-activity-item="item-2" data-question-group="question-group-2">reads</span>
+            <span class="activity-underline-option" data-activity-item="item-3" data-question-group="question-group-1">books</span>
+          </span>
+        </p>
+      </section>
+    `)
+    expect(errs.some((e) => e.includes("also contains segments of other"))).toBe(true)
   })
 
   it("flags a section with no selectable underline options", () => {

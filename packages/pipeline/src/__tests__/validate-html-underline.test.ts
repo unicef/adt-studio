@@ -10,7 +10,7 @@ describe("validateSectionHtml — underline activity preservation", () => {
             <span data-id="sent-1">
               <span class="activity-underline-option" data-activity-item="item-1" data-question-group="question-group-1">She</span>
               <span class="activity-underline-option" data-activity-item="item-2" data-question-group="question-group-1">reads</span>
-              books.
+              <span class="activity-underline-option" data-activity-item="item-3" data-question-group="question-group-1">books</span>.
             </span>
           </p>
         </section>
