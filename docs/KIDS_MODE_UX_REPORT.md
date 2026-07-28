@@ -30,7 +30,7 @@ decisions we have made:
 
 1. **Which buddy menu?** (§6–§9)
 2. **Are PNG buddies the right approach**, or should we invest in something richer? (§3)
-3. **Do our priorities match yours?** (§13)
+3. **Does our plan for what comes next make sense to you?** (§14)
 
 ---
 
@@ -105,11 +105,6 @@ The trade-off is honest:
   and a specialist to produce each character.
 - **3D** — the richest, and by far the most expensive to produce, license and
   run on the low-end devices this programme targets.
-
-Our recommendation is to **stay on PNGs until the interaction design settles**,
-then invest in animation for a chosen cast. But if you already know you want
-proper animated or 3D buddies, that changes the art commissioning schedule
-significantly and we should decide now rather than later.
 
 ### Planned: let users add their own buddies
 
@@ -262,11 +257,36 @@ network, no image requests, no per-child asset storage.
 | Features | freckles, blush, birthmark + none |
 | Background | 7 |
 
-**Over 361 million** base combinations, ~60 billion with accessories.
-
 The builder is deliberately low-vision friendly: colours come first, a large
 live preview, big tiles, icon-only section tabs with a sliding indicator, and a
 shuffle button for children who'd rather not make ten decisions.
+
+### The library, and the other styles available
+
+We render with **DiceBear**, an open avatar library. We chose its *Adventurer*
+style, but the same library ships **31 styles** — all already installed, so
+switching is a change of style name and part catalog, not a new dependency.
+
+| Style | Character |
+|---|---|
+| **Adventurer** *(in use)* | Illustrated, friendly, wide feature range |
+| **Avataaars** | The familiar flat-vector look; very large part catalog |
+| **Micah** | Clean, modern, softer palette |
+| **Dylan** | Bold, simple shapes, few but strong options |
+| **Big Ears** | Playful and cartoonish, reads well small |
+| **Lorelei** | Hand-drawn, delicate line work |
+| **Open Peeps** | Sketchy, hand-illustrated, very characterful |
+| **Notionists** | Minimal line-art |
+| **Personas** | Rounded, corporate-friendly |
+| **Pixel Art** | Retro game sprites |
+| **Bottts** | Robots — a possible route for *buddies*, not just child avatars |
+| **Fun Emoji** | Expressive faces, no body |
+
+Worth a look together: *Adventurer* was a reasonable first pick rather than a
+researched one, and a style like *Open Peeps* or *Big Ears* may sit better
+beside hand-illustrated buddies and storybook art. Two styles (**Bottts** for
+robots, **Fun Emoji** for faces) could also give us buddy characters from the
+same library.
 
 ### Customising or replacing it
 
@@ -319,11 +339,6 @@ The most conspicuous gap. The buddy *displays* "Hi Maya!" but **speaks** the
 generic "Hi! Tap me if you need help." Names are unbounded and clips are
 pre-generated offline, so there is no clip for "Maya".
 
-Options, none free:
-- Bake the most common regional names per locale (covers many children, not all)
-- Splice a separately generated name clip into the greeting
-- Use on-device speech for the name only — inconsistent voice, no offline guarantee
-
 Given the whole design rests on a personal relationship with the buddy, we think
 this is worth solving properly.
 
@@ -337,84 +352,52 @@ recognition path before committing to the feature.
 
 ### Also open
 
-| Issue | Notes |
-|---|---|
-| **Kids interface is English-only outside en / pt-BR** | The book text translates; the buddy doesn't. Scheduled, not hard. |
-| **No dark mode** | Cheapest real accessibility win on our list. |
-| **Branch unmerged** | This build is a long-lived branch; nothing has landed yet. |
-| **Ambient soundscapes** | Blocked: page turns are full document loads, so a background loop restarts every page. Needs soft navigation first. |
-| **No page-turn animation** | Same root cause as above. |
-| **Two menu designs untested** | Automated tests cover List; Chat and Shelf are verified by hand only. |
+**No dark mode yet.** A low-stimulation theme is something we'd like to add for
+children who find the bright sky palette tiring.
 
 ---
 
-## 14. Accessibility commitments
+## 14. Ideas for what comes next
 
-What this build guarantees today:
+Not a committed roadmap — this is what's on our minds, shared so you can tell us
+what sounds right, what sounds wrong, and what we've missed.
 
-- **Every control ≥ 44×44px**, verified automatically across all three menus
-- **Nothing hidden without a cue** — anything scrollable shows a fade and chevron
-- **`prefers-reduced-motion` respected** throughout; every animation has an inert path
-- **Visible focus rings** on every interactive element
-- **Toggles report state** via `aria-pressed`; command buttons deliberately don't
-- **Keyboard reachable** end to end, including quizzes
-- **Text comfort** — four text sizes and a dyslexia-friendly spaced font, applied to the book itself
-- **No unsolicited audio** — buddy chatter and sound effects are both switchable off, and turning effects off never silences the story
+### Things we think are close
 
-Still open: a screen-reader pass with real users, and the deaf/hard-of-hearing
-experience, which needs co-design rather than code.
+**Interface translations.** The book text translates today, but the buddy's own
+words only exist in a couple of languages. Everything is in place to fix it.
 
----
+**Dark mode.** A calmer, low-stimulation theme for children who find the bright
+sky palette tiring.
 
-## 15. What we plan next
+**A buddy who coaches.** After a couple of wrong answers, the buddy could offer a
+hint rather than just encouraging another try. The explanations already exist in
+the book — the buddy simply isn't using them yet.
 
-Graded by impact against effort. **S** = days, **M** = 1–2 weeks, **L** = multi-week.
+### Things we'd like to solve properly
 
-### Do first — high impact, low cost
+**The buddy saying the child's name.** The gap that bothers us most. It needs a
+real approach rather than a quick patch, and we have a few ideas we'd like to
+talk through.
 
-| # | Item | Impact | Effort |
-|---|---|---|---|
-| 1 | **Merge the branch** | Critical | M |
-| 2 | **Kids interface translations** (es, fr, sq, pt-BR) | Critical | S |
-| 3 | **Lint + CI coverage for the runtime** | High | S |
-| 4 | **Dark mode** | High | S–M |
-| 5 | **Buddy coaching after repeated wrong answers** | High | S |
-| 6 | **Tests for the Chat and Shelf menus** | High | S |
+**Turning pages more smoothly.** Right now each page is a fresh page load. If the
+reader swapped pages in place instead, we'd get a page-turn animation, background
+ambience, and read-aloud that doesn't stop at the page edge — all from one change.
 
-### Then
+**Better voices.** Covered in §12. The most interesting question here is whether
+believable creature and robot voices are worth a new provider.
 
-| # | Item | Impact | Effort |
-|---|---|---|---|
-| 7 | **Buddy speaks the child's name** | High | M — needs a strategy decision |
-| 8 | **Soft page navigation** | High | M — unlocks page-turn animation, ambient audio and uninterrupted narration together |
-| 9 | **Better voices (ElevenLabs)** | Medium | M |
-| 10 | **Voice-pack coverage beyond 2 languages** | Medium | M — mostly cost |
-| 11 | **Adaptive guidance** (stop repeating learned hints) | Medium | M |
+### Bigger, further out
 
-### Larger / gated
+**Letting people add their own buddies** (§3) — the natural next step for
+personalisation, and the piece we're most curious whether you want.
 
-| # | Item | Impact | Effort |
-|---|---|---|---|
-| 12 | **Custom buddies in Studio** (§3) | High | L |
-| 13 | **Voice input** (§13) | Medium | M — spike offline recognition first |
-| 14 | **Deaf / hard-of-hearing co-design** | High for that cohort | L — research-led |
-| 15 | **Ambient soundscapes** | Low | M–L — needs #8 |
-| 16 | **Stars and outfit rewards** | Low | L |
+**Talking to the buddy.** Children speaking to the buddy rather than tapping.
+Genuinely hard to do offline, so we'd want to test the idea before promising it.
 
-**Our recommendation:** land items 1–3 before building anything new. A
-99-commit branch, a half-translated interface and no CI guard are a worse risk
-than any missing feature. Items 4 and 5 on top of that give a complete enough
-accessibility story for a pilot.
+**A sign-forward experience for deaf and hard-of-hearing children.** This one we
+don't think we should design alone — it needs co-design with the children it's
+for.
 
----
-
-## 16. What we need from you
-
-1. **Pick a menu design** — List, Chat or Shelf (§6–§10)
-2. **Buddy art direction** — stay on PNGs, or commission animated/3D? (§3)
-3. **Voice direction** — is the current quality acceptable for a pilot, or should we pursue ElevenLabs? (§12)
-4. **Priority check** — does §15 match your ordering?
-5. **Anything that feels wrong for the age group**, however small
-
-Bugs are expected — please report them, but treat rough edges as rough edges
-rather than decisions.
+**Small delights** — earning things, decorating your buddy, ambient soundscapes.
+Fun, and firmly behind everything above.
