@@ -9,7 +9,7 @@ import {
   type Quiz,
   type WebRenderingOutput,
 } from "@adt/types"
-import { openBookDb, createBookStorage } from "@adt/storage"
+import { openBookDb, createBookStorage, readCurrentNodeRow } from "@adt/storage"
 import {
   buildQuizGenerationConfig,
   generateQuiz,
@@ -55,18 +55,16 @@ export function createQuizRoutes(
 
     const db = openBookDb(dbPath)
     try {
-      const rows = db.all(
-        "SELECT version, data FROM node_data WHERE node = ? AND item_id = ? ORDER BY version DESC LIMIT 1",
-        ["quiz-generation", "book"]
-      ) as Array<{ version: number; data: string }>
+      // Current-pointer version (falls back to MAX) so a rollback is reflected.
+      const row = readCurrentNodeRow(db, "quiz-generation", "book")
 
-      if (rows.length === 0) {
+      if (!row) {
         return c.json({ quizzes: null, version: null })
       }
 
       let parsed: unknown
       try {
-        parsed = JSON.parse(rows[0].data)
+        parsed = JSON.parse(row.data)
       } catch {
         throw new HTTPException(500, {
           message: `Stored quiz data is corrupted for book: ${safeLabel}`,
@@ -82,7 +80,7 @@ export function createQuizRoutes(
 
       return c.json({
         quizzes: validated.data,
-        version: rows[0].version,
+        version: row.version,
       })
     } finally {
       db.close()

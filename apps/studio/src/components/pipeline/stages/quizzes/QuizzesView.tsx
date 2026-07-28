@@ -308,9 +308,42 @@ export function QuizzesView({
           bookLabel={bookLabel}
           pendingLabel={pendingLabel}
           pendingLabelKey={pendingLabelKey}
-          onPreview={(d) => setPending(d as QuizData)}
+          onRestored={() => setPending(null)}
           onSave={() => saveRef.current()}
           onDiscard={() => setPending(null)}
+          diff={{
+            items: (d) => (d as QuizData | null)?.quizzes ?? [],
+            keyOf: (q) => String((q as QuizData["quizzes"][number]).quizIndex),
+            isEqual: (a, b) => {
+              const x = a as QuizData["quizzes"][number]
+              const y = b as QuizData["quizzes"][number]
+              return (
+                x.question === y.question &&
+                x.answerIndex === y.answerIndex &&
+                JSON.stringify(x.options) === JSON.stringify(y.options)
+              )
+            },
+            diffText: (q) => (q as QuizData["quizzes"][number]).question,
+            searchText: (q) => {
+              const x = q as QuizData["quizzes"][number]
+              return `${x.question} ${x.options?.map((o) => o.text).join(" ") ?? ""}`
+            },
+            searchPlaceholder: t`Search questions…`,
+            renderItem: (it, ctx) => {
+              const q = it as QuizData["quizzes"][number]
+              const answer = q.options?.[q.answerIndex]?.text
+              return (
+                <span className="flex flex-col gap-0.5">
+                  <span className="text-foreground">{ctx?.diff ?? q.question}</span>
+                  {answer ? (
+                    <span className="text-[11px] text-muted-foreground">
+                      <span className="font-semibold uppercase tracking-wide">{t`Answer`}</span> {answer}
+                    </span>
+                  ) : null}
+                </span>
+              )
+            },
+          }}
         />
       </div>,
     );
