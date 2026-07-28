@@ -229,7 +229,7 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
                 x.level === y.level
               )
             },
-            renderItem: (e) => {
+            renderItem: (e, ctx) => {
               const s = e as TocEntry
               const level = s.level ?? 1
               return (
@@ -237,10 +237,14 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
                   className="flex items-center gap-1.5"
                   style={{ paddingLeft: (Math.min(level, 3) - 1) * 20 }}
                 >
-                  {/* Neutral level chip — legible (AA) on the amber / emerald /
-                      rose / white section tints; the ring keeps it visible on
-                      white Unchanged rows without a heavy solid block. */}
-                  <span className="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-700 tabular-nums ring-1 ring-slate-300">
+                  {/* Level chip tinted to the item's change color (amber/emerald/
+                      rose, neutral when unchanged) via the section accent, with
+                      an AA-dark text shade so it stays legible on any tint. */}
+                  <span
+                    className={`shrink-0 rounded px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wider tabular-nums ring-1 ${
+                      ctx?.accentClass ?? "bg-slate-100 text-slate-700 ring-slate-300"
+                    }`}
+                  >
                     {t`L${level}`}
                   </span>
                   <span className="truncate font-medium text-foreground">{s.title}</span>

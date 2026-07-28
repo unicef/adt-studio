@@ -4,7 +4,14 @@ import { useLingui } from "@lingui/react/macro"
 import type { VersionEntry } from "@/api/client"
 import { Switch } from "@/components/ui/switch"
 import { Badge } from "@/components/ui/badge"
-import { diffById, stableEqual, KIND_COLOR, KIND_ICON } from "./change-summary"
+import {
+  diffById,
+  stableEqual,
+  KIND_COLOR,
+  KIND_ICON,
+  KIND_CHIP_CLASS,
+  NEUTRAL_CHIP_CLASS,
+} from "./change-summary"
 import { VersionCompareShell, useSelectedVersion } from "./VersionCompareShell"
 
 /**
@@ -19,7 +26,10 @@ export interface VersionDiffDescriptor {
   /** Item equality. Defaults to deep, key-order-insensitive {@link stableEqual}
    *  — override only for a cheaper/stricter comparison. */
   isEqual?: (a: unknown, b: unknown) => boolean
-  renderItem: (item: unknown) => ReactNode
+  /** Render one item. `ctx.accentClass` is the section's chip class bundle
+   *  (added/edited/removed color, neutral for unchanged) so small accents like
+   *  a level badge can match the item's change color. */
+  renderItem: (item: unknown, ctx?: { accentClass: string }) => ReactNode
 }
 
 /** Per-kind change counts between two versions. */
@@ -177,7 +187,10 @@ export function VersionCompareDialog({
                 currentItems.length,
                 currentItems.map((it) => (
                   <div key={descriptor.keyOf(it)}>
-                    {card("border-border bg-background", descriptor.renderItem(it))}
+                    {card(
+                      "border-border bg-background",
+                      descriptor.renderItem(it, { accentClass: NEUTRAL_CHIP_CLASS })
+                    )}
                   </div>
                 ))
               )}
@@ -201,9 +214,13 @@ export function VersionCompareDialog({
                   {card(
                     KIND.edited.tint,
                     <div className="flex items-center gap-2">
-                      <div className="min-w-0 flex-1 opacity-55">{descriptor.renderItem(before)}</div>
+                      <div className="min-w-0 flex-1 opacity-55">
+                        {descriptor.renderItem(before, { accentClass: KIND_CHIP_CLASS.edited })}
+                      </div>
                       <ArrowRight className="h-3.5 w-3.5 shrink-0 text-amber-500" aria-hidden />
-                      <div className="min-w-0 flex-1">{descriptor.renderItem(after)}</div>
+                      <div className="min-w-0 flex-1">
+                        {descriptor.renderItem(after, { accentClass: KIND_CHIP_CLASS.edited })}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -215,7 +232,9 @@ export function VersionCompareDialog({
               t`Added`,
               groups.added.length,
               groups.added.map((it) => (
-                <div key={descriptor.keyOf(it)}>{card(KIND.added.tint, descriptor.renderItem(it))}</div>
+                <div key={descriptor.keyOf(it)}>
+                  {card(KIND.added.tint, descriptor.renderItem(it, { accentClass: KIND_CHIP_CLASS.added }))}
+                </div>
               ))
             )}
             {section(
@@ -224,7 +243,9 @@ export function VersionCompareDialog({
               t`Removed`,
               groups.removed.length,
               groups.removed.map((it) => (
-                <div key={descriptor.keyOf(it)}>{card(KIND.removed.tint, descriptor.renderItem(it))}</div>
+                <div key={descriptor.keyOf(it)}>
+                  {card(KIND.removed.tint, descriptor.renderItem(it, { accentClass: KIND_CHIP_CLASS.removed }))}
+                </div>
               ))
             )}
             {showUnchanged &&
@@ -235,7 +256,10 @@ export function VersionCompareDialog({
                 groups.unchanged.length,
                 groups.unchanged.map((it) => (
                   <div key={descriptor.keyOf(it)}>
-                    {card("border-border bg-background text-muted-foreground", descriptor.renderItem(it))}
+                    {card(
+                      "border-border bg-background text-muted-foreground",
+                      descriptor.renderItem(it, { accentClass: NEUTRAL_CHIP_CLASS })
+                    )}
                   </div>
                 ))
               )}

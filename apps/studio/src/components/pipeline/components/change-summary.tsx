@@ -43,6 +43,21 @@ export const KIND_TEXT_CLASS: Record<ChangeKind, string> = {
   restored: "text-sky-500",
 }
 
+/** Tailwind chip classes (tinted bg + AA-dark text + ring) per change kind, for
+ *  small accent elements (e.g. a level badge) that should match their section's
+ *  color while staying legible. Use with a `ring-1` base class. */
+export const KIND_CHIP_CLASS: Record<ChangeKind, string> = {
+  added: "bg-emerald-100 text-emerald-800 ring-emerald-300",
+  edited: "bg-amber-100 text-amber-800 ring-amber-300",
+  removed: "bg-rose-100 text-rose-800 ring-rose-300",
+  pruned: "bg-neutral-100 text-neutral-700 ring-neutral-300",
+  restored: "bg-sky-100 text-sky-800 ring-sky-300",
+}
+
+/** Neutral chip classes for unchanged / no-kind contexts (pairs with
+ *  {@link KIND_CHIP_CLASS}). Use with a `ring-1` base class. */
+export const NEUTRAL_CHIP_CLASS = "bg-slate-100 text-slate-700 ring-slate-300"
+
 /**
  * Deterministic JSON string with object keys sorted recursively, so equality
  * checks aren't fooled by key-insertion-order differences between versions
