@@ -1,4 +1,7 @@
 import { Popover, PopoverContent } from "@/shared/ui/popover"
+import { Sheet, SheetContent } from "@/shared/ui/sheet"
+import { useIsMobile } from "@/shared/hooks/use-is-mobile"
+import { getChromePortalContainer } from "@/shared/lib/chrome-portal"
 
 interface DockPanelProps {
   open: boolean
@@ -15,6 +18,38 @@ function DockPanel({
   side = "top",
   children,
 }: DockPanelProps) {
+  const isMobile = useIsMobile()
+
+  // On phones the anchored popover is wider than the viewport and gets clipped
+  // off-screen. Present the same content as a full-width bottom sheet instead —
+  // it sits above the dock bar (z-[60] > dock z-[55]) and dismisses on backdrop
+  // tap / Escape / re-tapping the trigger.
+  if (isMobile) {
+    return (
+      <Sheet
+        open={open}
+        onOpenChange={(next) => {
+          if (!next) onClose()
+        }}
+      >
+        <SheetContent
+          data-dock-panel=""
+          side="bottom"
+          showCloseButton={false}
+          container={getChromePortalContainer() ?? undefined}
+          overlayClassName="z-[60]"
+          className="z-[60] max-h-[85dvh] gap-0 overflow-hidden rounded-t-2xl p-0 pb-[env(safe-area-inset-bottom)]"
+        >
+          <div
+            aria-hidden
+            className="mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/25"
+          />
+          {children}
+        </SheetContent>
+      </Sheet>
+    )
+  }
+
   return (
     <Popover
       open={open}
