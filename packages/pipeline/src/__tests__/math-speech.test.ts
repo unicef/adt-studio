@@ -201,6 +201,28 @@ describe("latexToSpeech — invisible characters", () => {
   })
 })
 
+describe("latexToSpeech — is idempotent", () => {
+  // The TTS routes apply the review (which converts) and `generateSpeechFile`
+  // converts again. Running twice must equal running once, or the second pass
+  // would mangle the first pass's output.
+  const SAMPLES = [
+    "$\\frac{2}{5} + \\frac{3}{9}$",
+    "$2\\frac{3}{4}$",
+    "= 616\\ \\mathrm{mm}^2",
+    "$a^m \\times a^n$",
+    "$\\sqrt{b^2 - 4ac}$",
+    "Where, $\\pi=\\frac{22}{7}$.",
+    "The elephant is the largest land animal.",
+  ]
+
+  for (const input of SAMPLES) {
+    it(`converting twice matches converting once for ${input.slice(0, 30)}…`, () => {
+      const once = latexToSpeech(input)
+      expect(latexToSpeech(once)).toBe(once)
+    })
+  }
+})
+
 describe("latexToSpeech — never loses content", () => {
   // The walker's failure mode must stay "left the LaTeX alone", which is
   // audible and reportable, rather than "quietly dropped text", which is not.
