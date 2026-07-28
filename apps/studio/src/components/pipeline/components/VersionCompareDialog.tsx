@@ -45,6 +45,11 @@ export interface VersionDiffDescriptor {
   /** Hide the "Show unchanged" toggle and never list unchanged items — for
    *  focused, item-level stages (e.g. captions) that only care about changes. */
   hideUnchanged?: boolean
+  /** Render one ordered list of every item (in the selected version's order,
+   *  removed items appended) tagged with its status, instead of grouping by
+   *  change kind — for sequence-oriented stages (e.g. quizzes) where seeing all
+   *  items in order matters more than grouping. */
+  unifiedList?: boolean
 }
 
 /** Per-kind change counts between two versions. */
@@ -145,6 +150,31 @@ export function VersionCompareDialog({
     return { added, removed, changed, unchanged, total: added.length + removed.length + changed.length }
   }, [descriptor, versions, currentVersion, selected])
 
+  // Ordered union for the unified list: selected version's items in order
+  // (tagged added/edited/unchanged), then current-only items (removed) appended.
+  const unified = useMemo(() => {
+    if (!descriptor.unifiedList) return []
+    const { keyOf, items } = descriptor
+    const isEqual = descriptor.isEqual ?? stableEqual
+    const current = items(dataOf(currentVersion))
+    const sel = items(dataOf(selected))
+    const curByKey = new Map(current.map((i) => [keyOf(i), i]))
+    const selKeys = new Set(sel.map(keyOf))
+    type Row = { key: string; status: "added" | "edited" | "removed" | "unchanged"; item: unknown; before?: unknown }
+    const rows: Row[] = []
+    for (const it of sel) {
+      const before = curByKey.get(keyOf(it))
+      rows.push({
+        key: keyOf(it),
+        status: before == null ? "added" : isEqual(before, it) ? "unchanged" : "edited",
+        item: it,
+        before,
+      })
+    }
+    for (const it of current) if (!selKeys.has(keyOf(it))) rows.push({ key: keyOf(it), status: "removed", item: it })
+    return rows
+  }, [descriptor, versions, currentVersion, selected])
+
   const currentItems = descriptor.items(dataOf(currentVersion))
 
   const card = (tint: string, body: ReactNode) => (
@@ -186,9 +216,46 @@ export function VersionCompareDialog({
   const fRemoved = groups.removed.filter(matches)
   const fUnchanged = groups.unchanged.filter(matches)
   const fCurrent = currentItems.filter(matches)
+  const fUnified = unified.filter((r) => matches(r.item) || (r.before != null && matches(r.before)))
   const filteredTotal = fChanged.length + fAdded.length + fRemoved.length
   const showSearch = descriptor.searchText != null
   const unchangedVisible = !descriptor.hideUnchanged && (showUnchanged || q.length > 0)
+
+  // Per-status visual identity for the unified list (chip + card tint).
+  const STATUS: Record<
+    "added" | "edited" | "removed" | "unchanged",
+    { chip: string; tint: string; label: string }
+  > = {
+    added: { chip: KIND_CHIP_CLASS.added, tint: KIND.added.tint, label: t`Added` },
+    edited: { chip: KIND_CHIP_CLASS.edited, tint: KIND.edited.tint, label: t`Edited` },
+    removed: { chip: KIND_CHIP_CLASS.removed, tint: KIND.removed.tint, label: t`Removed` },
+    unchanged: { chip: NEUTRAL_CHIP_CLASS, tint: "border-border bg-background", label: t`Unchanged` },
+  }
+  const unifiedRow = (row: (typeof unified)[number]) => {
+    const meta = STATUS[row.status]
+    const body =
+      row.status === "edited" && descriptor.diffText
+        ? descriptor.renderItem(row.item, {
+            accentClass: meta.chip,
+            diff: <InlineDiff before={descriptor.diffText(row.before)} after={descriptor.diffText(row.item)} />,
+          })
+        : descriptor.renderItem(row.item, { accentClass: meta.chip })
+    return (
+      <div
+        key={row.key}
+        className={`flex items-start gap-2.5 rounded-md border px-2.5 py-2 text-xs leading-snug ${meta.tint} ${
+          row.status === "removed" ? "opacity-70" : ""
+        }`}
+      >
+        <span
+          className={`mt-px shrink-0 rounded px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ring-1 ${meta.chip}`}
+        >
+          {meta.label}
+        </span>
+        <span className="min-w-0 flex-1">{body}</span>
+      </div>
+    )
+  }
 
   // One edited row: a shared inline word-diff of the primary text when the
   // descriptor exposes `diffText`, else the before → after two-column fallback.
@@ -232,7 +299,7 @@ export function VersionCompareDialog({
           : "flex h-[80vh] max-h-[720px] w-[95vw] max-w-3xl flex-col gap-0 overflow-hidden p-0"
       }
       controls={
-        descriptor.hideUnchanged ? undefined : (
+        descriptor.hideUnchanged || descriptor.unifiedList ? undefined : (
           <label className="flex cursor-pointer select-none items-center gap-2 text-[11px] text-muted-foreground">
             <Switch checked={showUnchanged} onCheckedChange={setShowUnchanged} />
             {t`Show unchanged`}
@@ -301,6 +368,30 @@ export function VersionCompareDialog({
                     </div>
                   ))
                 )}
+              </>
+            )
+          ) : descriptor.unifiedList ? (
+            fUnified.length === 0 ? (
+              <p className="py-10 text-center text-sm text-muted-foreground">
+                {q ? t`No matches.` : t`This version is empty.`}
+              </p>
+            ) : (
+              <>
+                <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold tabular-nums">
+                  {groups.added.length > 0 && (
+                    <span style={{ color: KIND.added.color }}>+{groups.added.length} {t`added`}</span>
+                  )}
+                  {groups.changed.length > 0 && (
+                    <span style={{ color: KIND.edited.color }}>~{groups.changed.length} {t`edited`}</span>
+                  )}
+                  {groups.removed.length > 0 && (
+                    <span style={{ color: KIND.removed.color }}>−{groups.removed.length} {t`removed`}</span>
+                  )}
+                  {groups.total === 0 && (
+                    <span className="text-muted-foreground">{t`No changes from the current version.`}</span>
+                  )}
+                </div>
+                <div className="space-y-1.5">{fUnified.map(unifiedRow)}</div>
               </>
             )
           ) : filteredTotal === 0 && (!unchangedVisible || fUnchanged.length === 0) ? (

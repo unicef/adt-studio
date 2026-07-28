@@ -312,6 +312,7 @@ export function QuizzesView({
           onSave={() => saveRef.current()}
           onDiscard={() => setPending(null)}
           diff={{
+            unifiedList: true,
             items: (d) => (d as QuizData | null)?.quizzes ?? [],
             keyOf: (q) => String((q as QuizData["quizzes"][number]).quizIndex),
             isEqual: (a, b) => {
