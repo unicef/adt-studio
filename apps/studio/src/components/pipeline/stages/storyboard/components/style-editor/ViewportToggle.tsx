@@ -10,9 +10,13 @@ interface ViewportToggleProps {
   className?: string
   /** Current iframe visible width in CSS pixels. Shown in a tooltip on the active button. */
   currentWidth?: number
+  /** Visual context.
+   *  - `dark` (default): white-on-transparent, for the storyboard's dark toolbar.
+   *  - `surface`: theme-aware segmented control, for light app surfaces (preview). */
+  variant?: "dark" | "surface"
 }
 
-export function ViewportToggle({ value, onChange, className, currentWidth }: ViewportToggleProps) {
+export function ViewportToggle({ value, onChange, className, currentWidth, variant = "dark" }: ViewportToggleProps) {
   const { t } = useLingui()
   const items: Array<{ value: DeviceView; icon: typeof Monitor; label: string }> = [
     { value: "desktop", icon: Monitor, label: t`Desktop` },
@@ -23,7 +27,8 @@ export function ViewportToggle({ value, onChange, className, currentWidth }: Vie
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-0.5 rounded bg-white/10 p-0.5",
+        "inline-flex items-center gap-0.5 rounded p-0.5",
+        variant === "surface" ? "bg-muted" : "bg-white/10",
         className
       )}
     >
@@ -39,9 +44,13 @@ export function ViewportToggle({ value, onChange, className, currentWidth }: Vie
             title={active ? undefined : label}
             className={cn(
               "inline-flex items-center gap-1 h-6 rounded px-1.5 text-[10px] cursor-pointer transition-colors",
-              active
-                ? "bg-white text-violet-700"
-                : "text-white/80 hover:bg-white/10 hover:text-white"
+              variant === "surface"
+                ? active
+                  ? "bg-background text-primary shadow-sm"
+                  : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
+                : active
+                  ? "bg-white text-violet-700"
+                  : "text-white/80 hover:bg-white/10 hover:text-white"
             )}
           >
             <Icon className="h-3.5 w-3.5" />

@@ -20,6 +20,11 @@ import {
 } from "@/lib/accessibility-summary"
 import { PreviewAccessibilityCard } from "./PreviewAccessibilityCard"
 import { PreviewValidationCard } from "./PreviewValidationCard"
+import { useDeviceView, DEVICE_WIDTHS } from "./storyboard/components/style-editor/device-breakpoint"
+import { getDeviceFrame, getTargetVisibleWidth } from "./storyboard/components/style-editor/device-chrome"
+import { ViewportToggle } from "./storyboard/components/style-editor/ViewportToggle"
+import { IPhoneFrame } from "./storyboard/components/style-editor/device-frames/iphone-frame"
+import { IPadFrame } from "./storyboard/components/style-editor/device-frames/ipad-frame"
 
 const HIGHLIGHT_STYLE_ID = "adt-preview-a11y-highlights"
 const HIGHLIGHT_ATTR = "data-adt-a11y-hover"
@@ -35,8 +40,15 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   const storyboardDone = stageState("storyboard") === "done"
   const { allPruned, isLoading: prunedLoading } = useAllPagesPruned(bookLabel)
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
   const ranRef = useRef(false)
   const { panelOpen } = useDebugPanelState()
+  // Shares the same localStorage scope as the storyboard editor
+  // (`adt-storyboard-device-view:<bookLabel>`), so the viewport selected while
+  // editing is inherited here — mobile/tablet responsive styles preview at the
+  // exact size the author designed at instead of always defaulting to desktop.
+  const [deviceView, setDeviceView] = useDeviceView(bookLabel, "desktop")
+  const [available, setAvailable] = useState({ width: 0, height: 0 })
   const [isSubmittingPackage, setIsSubmittingPackage] = useState(false)
   const [pendingTaskId, setPendingTaskId] = useState<string | null>(null)
   const [pendingVersion, setPendingVersion] = useState<string | null>(null)
@@ -248,6 +260,19 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     })
   }, [bookLabel, currentPreviewPage.href, navigate, navigatePreviewToHref, ready, search.previewHref])
 
+  // Track the preview pane size so the device frame (mobile/tablet) can be
+  // scaled to fit both width and height. Re-attaches when the pane mounts
+  // (`ready`) or the frame structure swaps (`deviceView`).
+  useEffect(() => {
+    const wrapper = wrapperRef.current
+    if (!wrapper) return
+    const update = () => setAvailable({ width: wrapper.clientWidth, height: wrapper.clientHeight })
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(wrapper)
+    return () => ro.disconnect()
+  }, [ready, deviceView])
+
   if (isStatusLoading || prunedLoading) {
     return <LoadingState stageSlug="preview" label={<Trans>Loading preview...</Trans>} />
   }
@@ -275,17 +300,76 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   }
 
   if (ready) {
-    // The iframe fills the pane; fixed-layout pages scale themselves to fit
-    // (see renderPageHtml's fit script in package-web.ts).
+    const previewSrc = `${getAdtUrl(bookLabel)}/v-${version}/`
+    const isDesktop = deviceView === "desktop"
+    // Mirror the storyboard editor's device sizing: render the iframe at the
+    // device's logical viewport width inside real phone/tablet chrome, then
+    // scale to fit the pane. `getTargetVisibleWidth` caps the scale so the
+    // frame reads at the same size the author edited at; the width/height fit
+    // keeps the whole device visible within the (bounded) preview pane.
+    const frame = getDeviceFrame(deviceView, DEVICE_WIDTHS[deviceView])
+    const cap = getTargetVisibleWidth(deviceView) / frame.chromeWidth
+    const fitScale = Math.min(
+      Math.max(0, available.width - 48) / frame.chromeWidth,
+      Math.max(0, available.height - 48) / frame.chromeHeight,
+    )
+    const scale = Number.isFinite(fitScale) ? Math.max(0, Math.min(cap, fitScale)) : 1
+    const measured = available.width > 0 && available.height > 0
+
+    // Fixed device screen with internal scrolling — the packaged pages scroll
+    // inside the frame exactly like a real device.
+    const framedIframe = (
+      <iframe
+        ref={iframeRef}
+        src={previewSrc}
+        title="ADT Preview"
+        onLoad={syncCurrentPreviewPage}
+        className="block border-0 bg-white"
+        style={{ width: frame.screenWidth, height: frame.screenHeight }}
+      />
+    )
+
     return (
       <div className="relative h-full w-full bg-muted/20 overflow-hidden">
-        <iframe
-          ref={iframeRef}
-          src={`${getAdtUrl(bookLabel)}/v-${version}/`}
-          className="h-full w-full border-0"
-          title="ADT Preview"
-          onLoad={syncCurrentPreviewPage}
-        />
+        <div ref={wrapperRef} className="absolute inset-0 flex items-center justify-center overflow-hidden">
+          {isDesktop ? (
+            // The iframe fills the pane; fixed-layout pages scale themselves to
+            // fit (see renderPageHtml's fit script in package-web.ts).
+            <iframe
+              ref={iframeRef}
+              src={previewSrc}
+              className="h-full w-full border-0"
+              title="ADT Preview"
+              onLoad={syncCurrentPreviewPage}
+            />
+          ) : (
+            <div
+              className="transition-[transform,opacity] duration-200 ease-out"
+              style={{
+                transform: `scale(${scale})`,
+                transformOrigin: "center",
+                opacity: measured ? 1 : 0,
+              }}
+            >
+              {deviceView === "mobile" ? (
+                <IPhoneFrame width={frame.chromeWidth}>{framedIframe}</IPhoneFrame>
+              ) : (
+                <IPadFrame screenWidth={frame.screenWidth} screenHeight={frame.screenHeight}>
+                  {framedIframe}
+                </IPadFrame>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="absolute left-4 top-4 z-30 rounded-2xl border bg-background/95 p-1 shadow-xl backdrop-blur-sm supports-[backdrop-filter]:bg-background/90">
+          <ViewportToggle
+            variant="surface"
+            value={deviceView}
+            onChange={setDeviceView}
+            currentWidth={isDesktop ? undefined : Math.round(frame.screenWidth * scale)}
+          />
+        </div>
 
         <PreviewAccessibilityCard
           label={bookLabel}
