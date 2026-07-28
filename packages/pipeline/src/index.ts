@@ -208,6 +208,7 @@ export {
   type WavInfo,
 } from "./audio-wav.js"
 export { supportsPageBatchedSpeech } from "./speech-batch.js"
+export { latexToSpeech } from "./math-speech.js"
 export {
   translateCatalogBatch,
   buildCatalogTranslationConfig,

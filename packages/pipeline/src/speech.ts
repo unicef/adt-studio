@@ -11,6 +11,7 @@ import {
 import type { RateLimiter, TTSSynthesizer, WhisperTranscriptionResult } from "@adt/llm"
 import { transcribeWithWhisper } from "@adt/llm"
 import { getBaseLanguage, normalizeLocale } from "./language-context.js"
+import { latexToSpeech } from "./math-speech.js"
 import { computeEntryTimeRanges, buildPageTranscript, type BatchEntry } from "./speech-batch.js"
 import { sliceWav, wavDurationSeconds, findQuietCutSeconds } from "./audio-wav.js"
 
@@ -351,8 +352,8 @@ export async function generateSpeechFile(
     signal,
   } = options
 
-  // Strip emojis and validate
-  const sanitized = stripEmojis(text).trim()
+  // Strip emojis, convert any LaTeX to a spoken form, and validate
+  const sanitized = latexToSpeech(stripEmojis(text)).trim()
   if (!isSpeakableText(sanitized)) return null
 
   const safeTextId = assertSafeSegment(textId, SAFE_TEXT_ID_RE, "text id")
@@ -495,7 +496,10 @@ export async function generatePageSpeechFiles(
 
   // Keep only speakable entries (mirrors generateSpeechFile's per-item skip).
   const usable = entries
-    .map((e) => ({ id: assertSafeSegment(e.id, SAFE_TEXT_ID_RE, "text id"), text: stripEmojis(e.text).trim() }))
+    .map((e) => ({
+      id: assertSafeSegment(e.id, SAFE_TEXT_ID_RE, "text id"),
+      text: latexToSpeech(stripEmojis(e.text)).trim(),
+    }))
     .filter((e) => isSpeakableText(e.text))
   if (usable.length === 0) return []
 
