@@ -211,6 +211,17 @@ function buildTextsMap(
       for (const e of translated.entries) textsMap[e.id] = e.text
     }
   }
+
+  // The runtime reapplies this catalog when an activity opens. Convert here as
+  // well as during packaging; otherwise activity mode replaces rendered MathML
+  // with the raw LaTex source (for example, `\\frac{1}{2}`).
+  for (const [id, text] of Object.entries(textsMap)) {
+    const wrapped = convertLatexToMathml(`<span>${text}</span>`)
+    textsMap[id] = wrapped
+      .replace(/^<span>/, "")
+      .replace(/<\/span>$/, "")
+  }
+
   return textsMap
 }
 

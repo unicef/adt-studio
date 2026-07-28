@@ -1877,7 +1877,12 @@ const MATH_INDICATORS = [
  * identifiers like `variable_name` — the base letter must not be preceded by
  * another letter, and the subscript char must not be followed by another letter.
  */
-const UNDELIMITED_LATEX_RE = /\\(?:text|mbox|hat|frac|sqrt|vec|bar|overline|underline|mathbf|mathrm|mathit|mathcal|mathbb|mathfrak|mathscr|circ|times|div|pm|mp|leq|geq|neq|approx|equiv|sim|in|notin|subset|supset|cup|cap|leftarrow|rightarrow|Leftarrow|Rightarrow|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|pi|sigma|omega|phi|psi|infty|partial|nabla|sum|prod|int|lim|log|ln|sin|cos|tan|sec|csc|cot|left|right|cdot|ldots|cdots|quad|qquad|binom|tag)\b|[_^]\{|(?<![A-Za-z])[A-Za-z][_^][A-Za-z0-9](?![A-Za-z])/
+// NOTE: longer alternatives must precede their prefixes (dfrac/tfrac before frac),
+// otherwise `\dfrac` never matches — the alternation is anchored right after the
+// backslash, so `frac` cannot match the `d`. `begin`/`end` are needed for bare
+// `\begin{array}` blocks (columnar sums, long division), which MATH_INDICATORS
+// recognises for gating but this pass must also match to actually convert them.
+const UNDELIMITED_LATEX_RE = /\\(?:begin|end|dfrac|tfrac|text|mbox|hat|frac|sqrt|vec|bar|overline|underline|mathbf|mathrm|mathit|mathcal|mathbb|mathfrak|mathscr|circ|times|div|pm|mp|leq|geq|neq|approx|equiv|sim|in|notin|subset|supset|cup|cap|leftarrow|rightarrow|Leftarrow|Rightarrow|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|pi|sigma|omega|phi|psi|infty|partial|nabla|sum|prod|int|lim|log|ln|sin|cos|tan|sec|csc|cot|left|right|cdot|ldots|cdots|quad|qquad|binom|tag)\b|[_^]\{|(?<![A-Za-z])[A-Za-z][_^][A-Za-z0-9](?![A-Za-z])/
 
 function containsMathContent(html: string): boolean {
   if (MATH_INDICATORS.some((indicator) => html.includes(indicator))) return true

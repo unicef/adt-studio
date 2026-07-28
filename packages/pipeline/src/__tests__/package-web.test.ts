@@ -2005,6 +2005,38 @@ describe("convertLatexToMathml", () => {
     const html = "<p>Just plain text here</p>"
     expect(convertLatexToMathml(html)).toBe(html)
   })
+
+  // Regression: UNDELIMITED_LATEX_RE anchors its alternation immediately after
+  // the backslash, so a shorter alternative listed first shadows every longer
+  // one sharing its suffix — `frac` cannot match the `d` in `\dfrac`. Both
+  // variants below rendered as literal LaTeX on the page before the fix.
+  it("converts undelimited \\dfrac (not shadowed by the \\frac alternative)", () => {
+    const html = '<p data-id="tx001">\\dfrac{2}{5} + \\dfrac{3}{9}</p>'
+    const result = convertLatexToMathml(html)
+    expect(result).toContain("<math")
+    expect(result).toContain("<mfrac>")
+    expect(result).not.toContain("\\dfrac")
+  })
+
+  it("converts undelimited \\tfrac (not shadowed by the \\frac alternative)", () => {
+    const html = '<p data-id="tx001">\\tfrac{1}{2}</p>'
+    const result = convertLatexToMathml(html)
+    expect(result).toContain("<math")
+    expect(result).toContain("<mfrac>")
+    expect(result).not.toContain("\\tfrac")
+  })
+
+  // Regression: `\begin{` is listed in MATH_INDICATORS, which only decides
+  // whether the converter runs at all. The converter's own gate never listed
+  // it, so columnar sums and long division were detected as "this page has
+  // maths" and then left unconverted.
+  it("converts a bare \\begin{array} block (columnar arithmetic)", () => {
+    const html = '<p data-id="tx002">\\begin{array}{r} 24 \\\\ + 18 \\\\ \\hline 42 \\end{array}</p>'
+    const result = convertLatexToMathml(html)
+    expect(result).toContain("<math")
+    expect(result).toContain("<mtable")
+    expect(result).not.toContain("\\begin{array}")
+  })
 })
 
 describe("convertLatexString", () => {
