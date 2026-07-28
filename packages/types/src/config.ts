@@ -3,6 +3,7 @@ import { ImageFilters } from "./image-filtering.js"
 import { SpeechConfig } from "./speech.js"
 import { ReviewerValidationConfig } from "./reviewer-validation-config.js"
 import { TranslationEvaluationConfig } from "./translation-evaluation.js"
+import { MathSpeechEvaluationConfig } from "./math-speech-evaluation.js"
 import { REFLOWABLE_FONT_SETTINGS } from "./reflowable-fonts.js"
 
 export const DEFAULT_LLM_MAX_RETRIES = 5
@@ -273,6 +274,7 @@ export const AppConfig = z
     accessibility_assessment: AccessibilityAssessmentConfig.optional(),
     reviewer_validation: ReviewerValidationConfig.optional(),
     translation_evaluation: TranslationEvaluationConfig.optional(),
+    math_speech_evaluation: MathSpeechEvaluationConfig.optional(),
   })
   .superRefine((value, ctx) => {
     if (

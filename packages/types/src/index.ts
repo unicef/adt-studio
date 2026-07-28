@@ -352,6 +352,27 @@ export {
 } from "./translation-evaluation.js"
 
 export {
+  DEFAULT_MATH_SPEECH_EVALUATION_ISSUE_TYPES,
+  DEFAULT_MATH_SPEECH_EVALUATION_JUDGE_INSTRUCTIONS,
+  DEFAULT_MATH_SPEECH_EVALUATION_JUDGE_MODEL,
+  DEFAULT_MATH_SPEECH_EVALUATION_MAX_RETRIES,
+  DEFAULT_MATH_SPEECH_EVALUATION_SEVERITY_THRESHOLD,
+  DEFAULT_MATH_SPEECH_EVALUATION_TEMPERATURE,
+  MathSpeechEvaluationConfig,
+  MathSpeechEvaluationIssueType,
+  MathSpeechEvaluationSeverity,
+  MathSpeechEvaluationSummary,
+  MathSpeechEvaluationItem,
+  MathSpeechEvaluationProvider,
+  MathSpeechEvaluationJudgeMetadata,
+  MathSpeechEvaluationRunEntry,
+  MathSpeechEvaluationRunRequest,
+  MathSpeechEvaluationResult,
+  type ResolvedMathSpeechEvaluationConfig,
+  resolveMathSpeechEvaluationConfig,
+} from "./math-speech-evaluation.js"
+
+export {
   screenshotIpcViewportSchema,
   screenshotIpcRequestSchema,
   screenshotIpcCloseSchema,

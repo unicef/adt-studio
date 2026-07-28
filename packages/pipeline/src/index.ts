@@ -210,6 +210,14 @@ export {
 export { supportsPageBatchedSpeech } from "./speech-batch.js"
 export { latexToSpeech } from "./math-speech.js"
 export {
+  needsMathSpeechReview,
+  collectMathSpeechEntries,
+  evaluateMathSpeech,
+  resolveSpokenText,
+  type MathSpeechCatalogEntry,
+  type EvaluateMathSpeechOptions,
+} from "./math-speech-evaluation.js"
+export {
   translateCatalogBatch,
   buildCatalogTranslationConfig,
   getTargetLanguages,
