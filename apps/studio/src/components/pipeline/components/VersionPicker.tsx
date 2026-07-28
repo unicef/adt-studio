@@ -252,6 +252,10 @@ export function VersionPicker({
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel] })
       onRestored?.()
       toast.success(t`Restored to v${version}`)
+    } catch {
+      // Never throw to callers (they close popovers/dialogs after this) — a
+      // failed restore surfaces as a toast, not an unhandled rejection.
+      toast.error(t`Couldn't restore v${version}. Please try again.`)
     } finally {
       setRestoring(false)
     }
@@ -269,8 +273,8 @@ export function VersionPicker({
       onPreview?.(v.data)
       return
     }
-    await restoreTo(v.version)
     setOpen(false)
+    void restoreTo(v.version)
   }
 
   const defaultCompare =
@@ -388,7 +392,10 @@ export function VersionPicker({
       </span>
       <button
         type="button"
-        onClick={() => restoreTo(latestVersion)}
+        onClick={() => {
+          setOpen(false)
+          void restoreTo(latestVersion)
+        }}
         className="rounded px-1.5 py-0.5 text-[10px] font-medium transition-colors hover:bg-accent cursor-pointer"
         style={{ color: accentColor }}
       >
@@ -517,7 +524,7 @@ export function VersionPicker({
         >
           {loadingVersions ? (
             loadingState
-          ) : loadError ? (
+          ) : loadError && !versions ? (
             <div className="flex flex-col items-center gap-1.5 px-3 py-3 text-center">
               <span className="text-xs text-muted-foreground">
                 {t`Couldn't load versions.`}

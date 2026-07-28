@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties, type ReactNode } from "react"
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from "react"
 import { Check, type LucideIcon } from "lucide-react"
 import { useLingui } from "@lingui/react/macro"
 import type { VersionEntry } from "@/api/client"
@@ -14,8 +14,13 @@ import {
  *  each time the dialog opens. Callers own it so they can memoize off it. */
 export function useSelectedVersion(open: boolean, initialSelected: number) {
   const [selected, setSelected] = useState(initialSelected)
+  const wasOpen = useRef(false)
   useEffect(() => {
-    if (open) setSelected(initialSelected)
+    // Preselect only when the dialog *opens*, not on every `initialSelected`
+    // change — otherwise a parent re-render (e.g. currentVersion updating) would
+    // snap the user's chosen chip back to the default while the dialog is open.
+    if (open && !wasOpen.current) setSelected(initialSelected)
+    wasOpen.current = open
   }, [open, initialSelected])
   return [selected, setSelected] as const
 }
@@ -130,9 +135,12 @@ export function VersionCompareShell({
             <button
               type="button"
               disabled={isCurrent}
-              onClick={async () => {
-                await onRestore(selected)
+              onClick={() => {
+                // Close first, then restore in the background: the picker shows
+                // its own pending spinner and the dialog exits cleanly instead
+                // of being torn down mid-restore.
                 onOpenChange(false)
+                void onRestore(selected)
               }}
               style={{ backgroundColor: accentColor }}
               className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"

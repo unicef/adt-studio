@@ -314,7 +314,12 @@ export function QuizzesView({
           diff={{
             unifiedList: true,
             items: (d) => (d as QuizData | null)?.quizzes ?? [],
-            keyOf: (q) => String((q as QuizData["quizzes"][number]).quizIndex),
+            // quizIndex is positional (renumbered 0..n on add/delete), so it's
+            // not a stable cross-version identity — a single delete would shift
+            // every index and mis-report the whole set as changed. Key by the
+            // question text instead so add/delete read correctly (trade-off: an
+            // edited question reads as remove+add rather than a single edit).
+            keyOf: (q) => (q as QuizData["quizzes"][number]).question,
             isEqual: (a, b) => {
               const x = a as QuizData["quizzes"][number]
               const y = b as QuizData["quizzes"][number]

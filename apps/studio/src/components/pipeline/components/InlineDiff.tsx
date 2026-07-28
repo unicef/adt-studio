@@ -40,6 +40,7 @@ export function InlineDiff({ before, after }: { before: string; after: string })
   return (
     <span className="leading-snug">
       {ops.map((op, i) => {
+        if (op.text === "") return null
         if (op.type === "same" || /^\s+$/.test(op.text)) return <span key={i}>{op.text}</span>
         if (op.type === "del")
           return (
