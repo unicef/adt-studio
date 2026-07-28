@@ -42,6 +42,9 @@ export interface VersionDiffDescriptor {
   /** Placeholder for the search box, naming what's searchable (e.g. "Search
    *  terms or definitions…"). Defaults to a generic "Search…". */
   searchPlaceholder?: string
+  /** Hide the "Show unchanged" toggle and never list unchanged items — for
+   *  focused, item-level stages (e.g. captions) that only care about changes. */
+  hideUnchanged?: boolean
 }
 
 /** Per-kind change counts between two versions. */
@@ -181,7 +184,7 @@ export function VersionCompareDialog({
   const fCurrent = currentItems.filter(matches)
   const filteredTotal = fChanged.length + fAdded.length + fRemoved.length
   const showSearch = descriptor.searchText != null
-  const unchangedVisible = showUnchanged || q.length > 0
+  const unchangedVisible = !descriptor.hideUnchanged && (showUnchanged || q.length > 0)
 
   // One edited row: a shared inline word-diff of the primary text when the
   // descriptor exposes `diffText`, else the before → after two-column fallback.
@@ -221,10 +224,12 @@ export function VersionCompareDialog({
       description={t`Review what restoring version ${selected} would change, grouped by edited, added, and removed.`}
       contentClassName="flex h-[80vh] max-h-[720px] w-[95vw] max-w-3xl flex-col gap-0 overflow-hidden p-0"
       controls={
-        <label className="flex cursor-pointer select-none items-center gap-2 text-[11px] text-muted-foreground">
-          <Switch checked={showUnchanged} onCheckedChange={setShowUnchanged} />
-          {t`Show unchanged`}
-        </label>
+        descriptor.hideUnchanged ? undefined : (
+          <label className="flex cursor-pointer select-none items-center gap-2 text-[11px] text-muted-foreground">
+            <Switch checked={showUnchanged} onCheckedChange={setShowUnchanged} />
+            {t`Show unchanged`}
+          </label>
+        )
       }
     >
       {/* Fixed-height body: the search row stays put and the sections scroll,

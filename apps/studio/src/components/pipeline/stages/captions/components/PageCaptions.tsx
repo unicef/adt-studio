@@ -322,19 +322,17 @@ export function PageCaptions({
                 items: (d) => (d as CaptioningData | null)?.captions ?? [],
                 keyOf: (it) => (it as CaptionEntry).imageId,
                 diffText: (it) => (it as CaptionEntry).caption ?? "",
-                searchText: (it) => {
-                  const c = it as CaptionEntry
-                  return `${c.imageId} ${c.caption ?? ""}`
-                },
-                searchPlaceholder: t`Search images or captions…`,
+                // Item-level stage: only changes matter, and the image is the
+                // anchor — so no "show unchanged" toggle and no search.
+                hideUnchanged: true,
                 renderItem: (it, ctx) => {
                   const c = it as CaptionEntry
                   return (
-                    <span className="flex items-start gap-2">
+                    <span className="flex items-center gap-3">
                       <img
                         src={`${BASE_URL}/books/${bookLabel}/images/${c.imageId}`}
                         alt=""
-                        className="h-10 w-10 shrink-0 rounded border bg-muted object-cover"
+                        className="h-20 w-24 shrink-0 rounded-md border bg-muted object-contain"
                       />
                       <span className="flex min-w-0 flex-col gap-0.5">
                         <span
