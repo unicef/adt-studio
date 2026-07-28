@@ -237,9 +237,10 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
                   className="flex items-center gap-1.5"
                   style={{ paddingLeft: (Math.min(level, 3) - 1) * 20 }}
                 >
-                  {/* Neutral, high-contrast level chip — reads on the amber /
-                      emerald / rose / white section tints alike. */}
-                  <span className="shrink-0 rounded bg-slate-700 px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white tabular-nums">
+                  {/* Neutral level chip — legible (AA) on the amber / emerald /
+                      rose / white section tints; the ring keeps it visible on
+                      white Unchanged rows without a heavy solid block. */}
+                  <span className="shrink-0 rounded bg-slate-100 px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-700 tabular-nums ring-1 ring-slate-300">
                     {t`L${level}`}
                   </span>
                   <span className="truncate font-medium text-foreground">{s.title}</span>
