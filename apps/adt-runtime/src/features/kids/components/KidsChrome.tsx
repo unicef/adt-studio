@@ -1,4 +1,6 @@
 import { useAtomValue } from "jotai"
+import { useEffect } from "react"
+import { preloadSound } from "@/features/activity/runtime/sounds"
 import { KidsActivityReaction } from "@/features/kids/components/KidsActivityReaction"
 import { KidsBuddy } from "@/features/kids/components/KidsBuddy"
 import { KidsEndingScreen } from "@/features/kids/components/KidsEndingScreen"
@@ -17,6 +19,12 @@ export function KidsChrome() {
   const kidsOnboardingDone = useAtomValue(kidsOnboardingDoneAtom)
 
   useKidsReadingComfort(kidsModeActive)
+
+  // The page-turn cue is seeked past its quiet build, which needs metadata
+  // loaded — fetch it up front so the very first turn is audible.
+  useEffect(() => {
+    if (kidsModeActive) preloadSound("page_turn")
+  }, [kidsModeActive])
 
   return (
     <div

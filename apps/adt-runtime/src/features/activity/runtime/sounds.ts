@@ -29,26 +29,47 @@ const SOUND_FILES: Record<ActivitySoundKey, string> = {
   // The legacy bundle aliased validate_error to drop.mp3 — keep the same so
   // existing books with the legacy sound mapping behave identically.
   validate_error: "drop.mp3",
-  // Derived from the shared ADT page-turn clip (the sibling quiz demo ships it
-  // but never plays it). The original front-loads 300ms of quiet build before
-  // the flick at 360ms, so a cue played on the tap was cut off by the page
-  // unload before the sound the child is meant to hear. Trimmed to the flick
-  // and levelled up from -17 dB; the untouched original is kept in
-  // .context/kids-sfx/ for reference.
+  // The shared ADT page-turn clip, used exactly as supplied (the sibling quiz
+  // demo ships it but never plays it).
   page_turn: "page_turn.mp3",
   finish: "finish.mp3",
 }
 
-/** A cue on every page should sit under the activity verdicts, not over them. */
+/**
+ * The page-turn clip is mastered well below the rest of the set (mean -42.6 dB
+ * against drop's -33.2 dB), so it needs full gain to be audible at all.
+ */
 const SOUND_VOLUMES: Partial<Record<ActivitySoundKey, number>> = {
-  page_turn: 0.55,
+  page_turn: 1,
   finish: 0.45,
+}
+
+/**
+ * Where to start playback, for clips whose useful part is not at the front.
+ *
+ * The page-turn clip opens with ~270ms of quiet build and only flicks at 360ms.
+ * A page turn tears the document down shortly after the tap, so playing from
+ * zero means the child hears the build and never the flick. Seeking to the flick
+ * keeps the supplied file untouched and still lands the sound on the tap.
+ *
+ * Seeking needs loaded metadata, and a `#t=` media fragment does NOT stand in
+ * for it (Chromium ignores it and starts at zero). Hence `preloadSound`.
+ */
+const SOUND_STARTS: Partial<Record<ActivitySoundKey, number>> = {
+  page_turn: 0.3,
 }
 
 const DEFAULT_VOLUME = 0.5
 
-/** How long a cue needs before a navigation tears the document down. */
-export const PAGE_TURN_LEAD_MS = 120
+/**
+ * How long the cue needs before a navigation tears the document down.
+ *
+ * Measured from the clip: dead air until 300ms, the flick peaks at 360ms and
+ * decays to the noise floor by ~480ms. Starting at 300ms, 180ms covers the
+ * whole gesture — long enough to hear the page turn, short enough to still
+ * feel like a response to the tap.
+ */
+export const PAGE_TURN_LEAD_MS = 180
 
 let cache: Partial<Record<ActivitySoundKey, HTMLAudioElement>> | null = null
 
@@ -72,14 +93,40 @@ export function soundEffectsEnabled(): boolean {
   }
 }
 
+/**
+ * Builds the element and starts loading it, so an offset clip can be seeked the
+ * moment it is first needed. Without this the first play of the page-turn cue
+ * has no metadata yet and starts from zero — i.e. inaudibly.
+ */
+export function preloadSound(key: ActivitySoundKey): void {
+  const audio = get(key)
+  audio?.load()
+}
+
 export function playActivitySound(key: ActivitySoundKey): void {
   if (!soundEffectsEnabled()) return
   const audio = get(key)
   if (!audio) return
+  const start = SOUND_STARTS[key] ?? 0
+
+  const begin = () => {
+    try {
+      audio.currentTime = start
+    } catch {
+      // A browser that refuses the seek still plays, just from the top.
+    }
+    void audio.play().catch(() => {})
+  }
+
   try {
     audio.pause()
-    audio.currentTime = 0
-    void audio.play().catch(() => {})
+    // Playing an offset clip from zero would be inaudible, so wait for the
+    // metadata that makes seeking possible rather than firing early.
+    if (start > 0 && audio.readyState < 1) {
+      audio.addEventListener("loadedmetadata", begin, { once: true })
+    } else {
+      begin()
+    }
   } catch {
     // ignore
   }
