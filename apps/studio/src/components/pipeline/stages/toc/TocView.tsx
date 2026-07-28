@@ -231,12 +231,20 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
             },
             renderItem: (e) => {
               const s = e as TocEntry
+              const level = s.level ?? 1
               return (
                 <span
-                  className="font-medium text-foreground"
-                  style={{ paddingLeft: Math.max(0, (s.level ?? 0) - 1) * 12 }}
+                  className="flex items-center gap-1.5"
+                  style={{ paddingLeft: (Math.min(level, 3) - 1) * 20 }}
                 >
-                  {s.title}
+                  <span
+                    aria-hidden
+                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${level === 1 ? "bg-amber-500" : "bg-amber-300"}`}
+                  />
+                  <span className="shrink-0 rounded bg-amber-50 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-700 tabular-nums">
+                    {t`L${level}`}
+                  </span>
+                  <span className="truncate font-medium text-foreground">{s.title}</span>
                 </span>
               )
             },
