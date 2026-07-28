@@ -257,11 +257,11 @@ export const KIDS_BUDDY_LINES = {
   },
   easyReadOn: {
     key: "kids-confirm-easy-read-on",
-    fallback: "Big letters are on!",
+    fallback: "Now I'll use easier words!",
   },
   easyReadOff: {
     key: "kids-confirm-easy-read-off",
-    fallback: "Big letters are off.",
+    fallback: "Okay, back to the book's own words.",
   },
   glossaryOn: {
     key: "kids-confirm-glossary-on",

@@ -1,13 +1,13 @@
 import {
   ArrowLeft,
   BookOpen,
-  CaseSensitive,
   Check,
   Gauge,
   Map,
   Pause,
   Play,
   Sparkles,
+  TextQuote,
   Volume2,
   type LucideIcon,
 } from "lucide-react"
@@ -1053,11 +1053,11 @@ function FeatureAbilitiesStep({
           {
             key: "easy-read",
             chip: "bg-violet-100 text-violet-700",
-            Icon: CaseSensitive,
+            Icon: TextQuote,
             label: tk("kids-onboarding-ability-easy-read-label", "Easy read"),
             description: tk(
               "kids-onboarding-ability-easy-read-description",
-              "I can make the words simpler and bigger.",
+              "I can tell the story with easier words.",
             ),
           },
         ]

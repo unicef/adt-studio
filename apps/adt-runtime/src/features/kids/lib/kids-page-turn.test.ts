@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { getDefaultStore } from "jotai"
 import { isPlayingAtom } from "@/features/audio/state/audio.atoms"
 import { soundEffectsAtom } from "@/shared/state/ui.atoms"
+import { PAGE_TURN_LEAD_MS } from "@/features/activity/runtime/sounds"
 import { navigateWithPageTurn } from "./kids-page-turn"
 
 const navMock = vi.hoisted(() => ({ navigateToHref: vi.fn() }))
@@ -41,7 +42,7 @@ describe("navigateWithPageTurn", () => {
     expect(soundMock.playActivitySound).toHaveBeenCalledWith("page_turn")
     expect(navMock.navigateToHref).not.toHaveBeenCalled()
 
-    vi.advanceTimersByTime(120)
+    vi.advanceTimersByTime(PAGE_TURN_LEAD_MS)
     expect(navMock.navigateToHref).toHaveBeenCalledWith("two.html")
   })
 

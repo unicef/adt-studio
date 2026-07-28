@@ -1,6 +1,5 @@
 import {
   BookOpen,
-  CaseSensitive,
   Hand,
   Languages,
   Map,
@@ -9,6 +8,7 @@ import {
   RotateCcw,
   Settings2,
   Sparkles,
+  TextQuote,
   Volume2,
 } from "lucide-react"
 import { useAtom, useAtomValue, useSetAtom } from "jotai"
@@ -305,7 +305,7 @@ export function KidsBuddy() {
       testId: "kids-action-easy-read",
       label: tk("kids-action-easy-read", "Easy read"),
       shortLabel: tk("kids-action-easy-read", "Easy read"),
-      icon: <CaseSensitive className="h-5 w-5" />,
+      icon: <TextQuote className="h-5 w-5" />,
       group: "look",
       onSelect: toggleEasyRead,
       toggle: true,

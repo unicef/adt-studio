@@ -422,7 +422,7 @@ describe("KidsBuddy", () => {
 
     fireEvent.click(screen.getByTestId("kids-action-easy-read"))
     expect(store.get(easyReadModeAtom)).toBe(true)
-    expect(store.get(buddySpeechAtom)).toBe("Big letters are on!")
+    expect(store.get(buddySpeechAtom)).toBe("Now I'll use easier words!")
 
     fireEvent.click(screen.getByTestId("kids-action-glossary"))
     expect(store.get(glossaryModeAtom)).toBe(true)
@@ -437,7 +437,7 @@ describe("KidsBuddy", () => {
     fireEvent.click(screen.getByTestId("kids-action-easy-read"))
 
     const message = screen.getByTestId("kids-buddy-panel-message")
-    expect(message.textContent).toBe("Big letters are on!")
+    expect(message.textContent).toBe("Now I'll use easier words!")
     expect(message.getAttribute("aria-live")).toBe("polite")
     expect(screen.queryByTestId("kids-speech-bubble")).toBeNull()
     expect(screen.queryByTestId("kids-buddy-panel")).not.toBeNull()
