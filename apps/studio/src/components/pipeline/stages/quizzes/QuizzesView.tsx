@@ -324,23 +324,38 @@ export function QuizzesView({
                 JSON.stringify(x.options) === JSON.stringify(y.options)
               )
             },
-            diffText: (q) => (q as QuizData["quizzes"][number]).question,
             searchText: (q) => {
               const x = q as QuizData["quizzes"][number]
               return `${x.question} ${x.options?.map((o) => o.text).join(" ") ?? ""}`
             },
-            searchPlaceholder: t`Search questions…`,
-            renderItem: (it, ctx) => {
+            searchPlaceholder: t`Search questions or answers…`,
+            renderItem: (it) => {
               const q = it as QuizData["quizzes"][number]
-              const answer = q.options?.[q.answerIndex]?.text
               return (
-                <span className="flex flex-col gap-0.5">
-                  <span className="text-foreground">{ctx?.diff ?? q.question}</span>
-                  {answer ? (
-                    <span className="text-[11px] text-muted-foreground">
-                      <span className="font-semibold uppercase tracking-wide">{t`Answer`}</span> {answer}
-                    </span>
-                  ) : null}
+                <span className="flex flex-col gap-1.5">
+                  <span className="font-medium text-foreground">{q.question}</span>
+                  <span className="flex flex-col gap-1">
+                    {q.options?.map((o, i) => {
+                      const correct = i === q.answerIndex
+                      return (
+                        <span
+                          key={i}
+                          className={`flex items-start gap-1.5 rounded px-1.5 py-1 text-[11px] ${
+                            correct
+                              ? "bg-emerald-50 text-emerald-900 ring-1 ring-emerald-200"
+                              : "text-muted-foreground"
+                          }`}
+                        >
+                          {correct ? (
+                            <CheckCircle2 className="mt-px h-3 w-3 shrink-0 text-emerald-600" aria-hidden />
+                          ) : (
+                            <span className="mt-0.5 h-3 w-3 shrink-0 rounded-full border border-muted-foreground/40" />
+                          )}
+                          <span>{o.text}</span>
+                        </span>
+                      )
+                    })}
+                  </span>
                 </span>
               )
             },

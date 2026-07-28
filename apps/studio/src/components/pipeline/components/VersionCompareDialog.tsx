@@ -114,9 +114,16 @@ export function VersionCompareDialog({
   const [selected, setSelected] = useSelectedVersion(open, initialSelected)
   const [showUnchanged, setShowUnchanged] = useState(true)
   const [query, setQuery] = useState("")
-  // Reset the search each time the dialog opens.
+  // Status filter for the unified list ("all" | added | edited | removed | unchanged).
+  const [statusFilter, setStatusFilter] = useState<
+    "all" | "added" | "edited" | "removed" | "unchanged"
+  >("all")
+  // Reset the search + filter each time the dialog opens.
   useEffect(() => {
-    if (open) setQuery("")
+    if (open) {
+      setQuery("")
+      setStatusFilter("all")
+    }
   }, [open])
 
   const dataOf = (v: number) => versions.find((x) => x.version === v)?.data
@@ -216,7 +223,19 @@ export function VersionCompareDialog({
   const fRemoved = groups.removed.filter(matches)
   const fUnchanged = groups.unchanged.filter(matches)
   const fCurrent = currentItems.filter(matches)
-  const fUnified = unified.filter((r) => matches(r.item) || (r.before != null && matches(r.before)))
+  const fUnified = unified.filter(
+    (r) =>
+      (statusFilter === "all" || r.status === statusFilter) &&
+      (matches(r.item) || (r.before != null && matches(r.before)))
+  )
+  // Status-filter chips for the unified list (only kinds with items, plus All).
+  const unifiedFilters = [
+    { key: "all" as const, label: t`All`, count: unified.length, color: "#64748b" },
+    { key: "edited" as const, label: t`Edited`, count: groups.changed.length, color: KIND.edited.color },
+    { key: "added" as const, label: t`Added`, count: groups.added.length, color: KIND.added.color },
+    { key: "removed" as const, label: t`Removed`, count: groups.removed.length, color: KIND.removed.color },
+    { key: "unchanged" as const, label: t`Unchanged`, count: groups.unchanged.length, color: "#64748b" },
+  ].filter((c) => c.key === "all" || c.count > 0)
   const filteredTotal = fChanged.length + fAdded.length + fRemoved.length
   const showSearch = descriptor.searchText != null
   const unchangedVisible = !descriptor.hideUnchanged && (showUnchanged || q.length > 0)
@@ -371,27 +390,36 @@ export function VersionCompareDialog({
               </>
             )
           ) : descriptor.unifiedList ? (
-            fUnified.length === 0 ? (
+            unified.length === 0 ? (
               <p className="py-10 text-center text-sm text-muted-foreground">
-                {q ? t`No matches.` : t`This version is empty.`}
+                {t`This version is empty.`}
               </p>
             ) : (
               <>
-                <div className="flex flex-wrap items-center gap-3 text-[11px] font-semibold tabular-nums">
-                  {groups.added.length > 0 && (
-                    <span style={{ color: KIND.added.color }}>+{groups.added.length} {t`added`}</span>
-                  )}
-                  {groups.changed.length > 0 && (
-                    <span style={{ color: KIND.edited.color }}>~{groups.changed.length} {t`edited`}</span>
-                  )}
-                  {groups.removed.length > 0 && (
-                    <span style={{ color: KIND.removed.color }}>−{groups.removed.length} {t`removed`}</span>
-                  )}
-                  {groups.total === 0 && (
-                    <span className="text-muted-foreground">{t`No changes from the current version.`}</span>
-                  )}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {unifiedFilters.map((c) => {
+                    const active = statusFilter === c.key
+                    return (
+                      <button
+                        key={c.key}
+                        type="button"
+                        onClick={() => setStatusFilter(c.key)}
+                        className={`flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors cursor-pointer ${
+                          active ? "" : "text-muted-foreground hover:bg-muted"
+                        }`}
+                        style={active ? { backgroundColor: `${c.color}1a`, color: c.color } : undefined}
+                      >
+                        {c.label}
+                        <span className="tabular-nums opacity-70">{c.count}</span>
+                      </button>
+                    )
+                  })}
                 </div>
-                <div className="space-y-1.5">{fUnified.map(unifiedRow)}</div>
+                {fUnified.length === 0 ? (
+                  <p className="py-10 text-center text-sm text-muted-foreground">{t`No matches.`}</p>
+                ) : (
+                  <div className="space-y-1.5">{fUnified.map(unifiedRow)}</div>
+                )}
               </>
             )
           ) : filteredTotal === 0 && (!unchangedVisible || fUnchanged.length === 0) ? (
