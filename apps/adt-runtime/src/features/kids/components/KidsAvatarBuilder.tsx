@@ -20,6 +20,7 @@ import {
   type KidsAvatarTabIconName,
 } from "@/features/kids/components/kids-avatar-tab-icons"
 import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
+import { KIDS_SCROLLBAR_CLASS } from "@/features/kids/lib/kids-styles"
 import { cn } from "@/shared/lib/utils"
 
 type Field = keyof KidsAvatarConfig
@@ -288,7 +289,8 @@ export function KidsAvatarBuilder({
         <div
           className={cn(
             "flex w-full min-w-0 flex-col gap-4 overflow-y-auto p-1",
-            dense ? "h-[min(42vh,17rem)]" : "h-[min(52vh,24rem)]",
+            KIDS_SCROLLBAR_CLASS,
+            dense ? "h-[min(42vh,22rem)]" : "h-[min(56vh,28rem)]",
           )}
         >
           {active.sections.map((section) => (

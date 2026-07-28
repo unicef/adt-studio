@@ -56,6 +56,7 @@ import {
 } from "@/features/kids/state/kids.atoms"
 import { KidsAvatarBuilder } from "@/features/kids/components/KidsAvatarBuilder"
 import { isTypingTarget } from "@/features/navigation/lib/typing-target"
+import { KIDS_SCROLLBAR_CLASS } from "@/features/kids/lib/kids-styles"
 import { cn } from "@/shared/lib/utils"
 import { appConfigAtom, type AppFeatures } from "@/shared/state/config.atoms"
 
@@ -87,6 +88,13 @@ const ONBOARDING_STEPS: OnboardingStep[] = [
   "feature-abilities",
   "start",
 ]
+
+// Steps whose content benefits from the full screen width (grids of options).
+const WIDE_STEPS = new Set<OnboardingStep>([
+  "pick",
+  "avatar",
+  "feature-abilities",
+])
 
 const STEP_LAYOUT_CLASS =
   "flex w-full flex-col items-center justify-center gap-6"
@@ -133,7 +141,6 @@ export function KidsOnboarding() {
   const { tk } = useKidsTranslation()
   const reduceMotion = usePrefersReducedMotion()
   const appConfig = useAtomValue(appConfigAtom)
-  const currentBuddy = useAtomValue(kidsBuddyAtom)
   const currentPlayerName = useAtomValue(kidsPlayerNameAtom)
   const setPlayerName = useSetAtom(kidsPlayerNameAtom)
   const setBuddy = useSetAtom(kidsBuddyAtom)
@@ -153,10 +160,10 @@ export function KidsOnboarding() {
     return filtered.length > 0 ? filtered : KIDS_CHARACTERS
   }, [appConfig.features.kidsBuddies])
   const [playerNameDraft, setPlayerNameDraft] = useState(currentPlayerName)
-  const [characterId, setCharacterId] = useState(() =>
-    roster.some((entry) => entry.id === currentBuddy.character)
-      ? currentBuddy.character
-      : roster[0].id,
+  // The onboarding always starts on a RANDOM buddy so every child meets a
+  // fresh face (rather than always defaulting to the same one).
+  const [characterId, setCharacterId] = useState(
+    () => roster[Math.floor(Math.random() * roster.length)].id,
   )
   const [hasPickedCharacter, setHasPickedCharacter] = useState(false)
   const [isPickConfirming, setIsPickConfirming] = useState(false)
@@ -349,7 +356,8 @@ export function KidsOnboarding() {
           key={step}
           data-testid="kids-onboarding-step"
           className={cn(
-            "mx-auto flex w-full max-w-[40rem] flex-1 flex-col items-center justify-between gap-3 py-3 text-center",
+            "mx-auto flex w-full flex-1 flex-col items-center justify-between gap-3 py-3 text-center",
+            WIDE_STEPS.has(step) ? "max-w-[64rem]" : "max-w-[40rem]",
             reduceMotion ? "transition-none" : "animate-kidsBuddyPop",
           )}
         >
@@ -1104,7 +1112,11 @@ function FeatureAbilitiesStep({
       </StepTitle>
 
       <div
-        className="flex max-h-[min(40vh,22rem)] w-full flex-col gap-2 overflow-y-auto px-1.5 py-1 focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-700"
+        className={cn(
+          "grid max-h-[min(62vh,34rem)] w-full grid-cols-1 gap-2.5 overflow-y-auto px-1.5 py-1 sm:grid-cols-2",
+          KIDS_SCROLLBAR_CLASS,
+          "focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-700",
+        )}
         role="region"
         aria-label={tk(
           "kids-onboarding-abilities-region",
@@ -1294,7 +1306,7 @@ function OnboardingPrimaryAction({
             ? tk("kids-onboarding-buddy-continue", "This is my buddy")
             : step === "reading-mode"
               ? tk("kids-onboarding-read-continue", "Keep going")
-              : tk("kids-onboarding-feature-continue", "Got it")
+                  : tk("kids-onboarding-feature-continue", "Got it")
 
   return <PrimaryButton onClick={onNext}>{label}</PrimaryButton>
 }
