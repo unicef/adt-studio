@@ -231,6 +231,7 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
             },
             diffText: (e) => (e as TocEntry).title,
             searchText: (e) => (e as TocEntry).title,
+            searchPlaceholder: t`Search entries…`,
             renderItem: (e, ctx) => {
               const s = e as TocEntry
               const level = s.level ?? 1

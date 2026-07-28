@@ -45,13 +45,13 @@ export function InlineDiff({ before, after }: { before: string; after: string })
           return (
             <span
               key={i}
-              className="rounded-sm bg-rose-100 text-rose-700 line-through decoration-rose-400"
+              className="mx-0.5 rounded bg-rose-100 px-1 text-rose-700 line-through decoration-rose-400"
             >
               {op.text}
             </span>
           )
         return (
-          <span key={i} className="rounded-sm bg-emerald-100 text-emerald-800">
+          <span key={i} className="mx-0.5 rounded bg-emerald-100 px-1 text-emerald-800">
             {op.text}
           </span>
         )

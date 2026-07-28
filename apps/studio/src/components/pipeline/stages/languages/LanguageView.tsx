@@ -1433,6 +1433,7 @@ export function LanguageView({
                 const e = it as TextCatalogEntry;
                 return `${e.id} ${sourceEntriesById.get(e.id) ?? ""} ${e.text ?? ""}`;
               },
+              searchPlaceholder: t`Search original or translation…`,
               renderItem: (it, ctx) => {
                 const e = it as TextCatalogEntry;
                 const cat = getEntryCategory(e.id);

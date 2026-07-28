@@ -39,6 +39,9 @@ export interface VersionDiffDescriptor {
   /** Free-text used to filter the compare list. When provided, the dialog shows
    *  a search box that matches against this (case-insensitive). */
   searchText?: (item: unknown) => string
+  /** Placeholder for the search box, naming what's searchable (e.g. "Search
+   *  terms or definitions…"). Defaults to a generic "Search…". */
+  searchPlaceholder?: string
 }
 
 /** Per-kind change counts between two versions. */
@@ -228,25 +231,30 @@ export function VersionCompareDialog({
           so the header controls and footer never move under the cursor. */}
       <div className="flex min-h-0 flex-1 flex-col bg-muted/10">
         {showSearch && (
-          <div className="flex items-center gap-2 border-b bg-background px-3 py-2">
-            <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t`Search…`}
-              className="min-w-0 flex-1 bg-transparent text-xs outline-none placeholder:text-muted-foreground"
-            />
-            {query ? (
-              <button
-                type="button"
-                onClick={() => setQuery("")}
-                className="shrink-0 text-muted-foreground transition-colors hover:text-foreground cursor-pointer"
-                aria-label={t`Clear search`}
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-            ) : null}
+          <div className="border-b bg-background px-3 py-2.5">
+            <div className="group relative flex items-center">
+              <Search
+                className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-muted-foreground/70 transition-colors group-focus-within:text-foreground"
+                aria-hidden
+              />
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={descriptor.searchPlaceholder ?? t`Search…`}
+                className="h-8 w-full rounded-full border border-transparent bg-muted/60 pl-8 pr-8 text-xs outline-none transition-colors placeholder:text-muted-foreground/70 hover:bg-muted focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/15"
+              />
+              {query ? (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  className="absolute right-2 flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted-foreground/15 hover:text-foreground cursor-pointer"
+                  aria-label={t`Clear search`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              ) : null}
+            </div>
           </div>
         )}
         <div className="min-h-0 flex-1 space-y-4 overflow-auto p-4">

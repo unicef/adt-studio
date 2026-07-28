@@ -204,6 +204,7 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
               const item = it as GlossaryItem
               return `${item.word} ${item.definition ?? ""}`
             },
+            searchPlaceholder: t`Search terms or definitions…`,
             renderItem: (it, ctx) => {
               const item = it as GlossaryItem
               return (

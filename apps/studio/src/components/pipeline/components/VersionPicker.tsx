@@ -245,25 +245,17 @@ export function VersionPicker({
 
   // Roll back to an existing version: move the pointer (no new version) and
   // refresh. Shared by the list rows and the compare dialog.
-  const doRestore = async (version: number, undoTo: number | null) => {
+  const restoreTo = async (version: number) => {
     setRestoring(true)
     try {
       await api.restoreVersion(bookLabel, step, itemId, version)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel] })
       onRestored?.()
-      // Confirm the (reversible) restore; offer one-click Undo back to the
-      // version that was current before.
-      toast.success(
-        t`Restored to v${version}`,
-        undoTo != null && undoTo !== version
-          ? { action: { label: t`Undo`, onClick: () => void doRestore(undoTo, null) } }
-          : undefined
-      )
+      toast.success(t`Restored to v${version}`)
     } finally {
       setRestoring(false)
     }
   }
-  const restoreTo = (version: number) => doRestore(version, currentVersion)
 
   // Pick a version. With onRestored, roll back to it. Otherwise fall back to
   // the legacy pending-edit flow.

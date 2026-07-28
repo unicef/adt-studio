@@ -245,6 +245,7 @@ export function EasyReadEditor({
               const x = e as EasyReadEntry
               return `${x.originalText ?? ""} ${x.text ?? ""}`
             },
+            searchPlaceholder: t`Search original or Easy Read text…`,
             renderItem: (it, ctx) => {
               const e = it as EasyReadEntry
               const m = /^pg0*(\d+)/.exec(e.pageId ?? "")
