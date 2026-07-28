@@ -29,13 +29,19 @@ const SOUND_FILES: Record<ActivitySoundKey, string> = {
   // The legacy bundle aliased validate_error to drop.mp3 — keep the same so
   // existing books with the legacy sound mapping behave identically.
   validate_error: "drop.mp3",
-  page_turn: "page-turn.mp3",
+  // Derived from the shared ADT page-turn clip (the sibling quiz demo ships it
+  // but never plays it). The original front-loads 300ms of quiet build before
+  // the flick at 360ms, so a cue played on the tap was cut off by the page
+  // unload before the sound the child is meant to hear. Trimmed to the flick
+  // and levelled up from -17 dB; the untouched original is kept in
+  // .context/kids-sfx/ for reference.
+  page_turn: "page_turn.mp3",
   finish: "finish.mp3",
 }
 
-/** Page turns happen constantly, so the cue sits well under the verdicts. */
+/** A cue on every page should sit under the activity verdicts, not over them. */
 const SOUND_VOLUMES: Partial<Record<ActivitySoundKey, number>> = {
-  page_turn: 0.3,
+  page_turn: 0.55,
   finish: 0.45,
 }
 
