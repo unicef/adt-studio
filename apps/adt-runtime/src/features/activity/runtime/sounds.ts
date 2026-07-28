@@ -64,12 +64,13 @@ const DEFAULT_VOLUME = 0.5
 /**
  * How long the cue needs before a navigation tears the document down.
  *
- * Measured from the clip: dead air until 300ms, the flick peaks at 360ms and
- * decays to the noise floor by ~480ms. Starting at 300ms, 180ms covers the
- * whole gesture — long enough to hear the page turn, short enough to still
- * feel like a response to the tap.
+ * Measured from the clip: silent until 300ms, the flick peaks at 360ms and
+ * decays to the noise floor by ~480ms, ending at 840ms. Playback starts at the
+ * 300ms mark (see SOUND_STARTS), so 540ms carries the sound through to its end
+ * rather than clipping the tail. That latency is the deliberate cost of hearing
+ * the whole page turn.
  */
-export const PAGE_TURN_LEAD_MS = 180
+export const PAGE_TURN_LEAD_MS = 540
 
 let cache: Partial<Record<ActivitySoundKey, HTMLAudioElement>> | null = null
 
