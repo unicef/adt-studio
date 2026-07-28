@@ -2,6 +2,7 @@ import { useAtomValue, useSetAtom } from "jotai"
 import { Check, RotateCcw } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { getKidsFinishPhrases } from "@adt/types/kids"
+import { playActivitySound } from "@/features/activity/runtime/sounds"
 import { getBuddyImages } from "@/features/kids/assets/buddy-images"
 import { KidsAvatar } from "@/features/kids/components/KidsAvatar"
 import { KidsBuddyImage } from "@/features/kids/components/KidsBuddyImage"
@@ -47,6 +48,7 @@ export function KidsEndingScreen() {
     const pool = getKidsFinishPhrases(buddy.character)
     const line = pool[Math.floor(Math.random() * pool.length)]
     setSpoken(tk(line.key, line.fallback, { name: playerName }))
+    playActivitySound("finish")
     void playBuddyLine(language, buddy.character, line.voiceKey ?? line.key)
     if (!reduceMotion) {
       const burst = () =>

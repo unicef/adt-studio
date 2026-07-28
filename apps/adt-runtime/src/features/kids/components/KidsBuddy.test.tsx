@@ -469,7 +469,12 @@ describe("KidsBuddy", () => {
     expect(await screen.findByText("Start")).not.toBeNull()
     fireEvent.click(await screen.findByText("Middle"))
 
-    expect(navMock.navigateToHref).toHaveBeenCalledWith("two.html")
+    // A page turn plays its cue on the tap and hands over to the navigation a
+    // beat later, so the clip is audible before the document unloads.
+    expect(navMock.navigateToHref).not.toHaveBeenCalled()
+    await waitFor(() =>
+      expect(navMock.navigateToHref).toHaveBeenCalledWith("two.html"),
+    )
   })
 
   it("lists configured languages and switches through the shared language atom", async () => {

@@ -4,10 +4,8 @@ import {
   currentSectionIdAtom,
   pagesAtom,
 } from "@/features/navigation/state/nav.atoms"
-import {
-  getAdjacentPages,
-  navigateToHref,
-} from "@/features/navigation/lib/page-navigation"
+import { getAdjacentPages } from "@/features/navigation/lib/page-navigation"
+import { navigateWithPageTurn } from "@/features/kids/lib/kids-page-turn"
 import {
   kidsBuddyPanelOpenAtom,
   kidsFinishedAtom,
@@ -39,7 +37,7 @@ export function KidsPageArrows() {
           side="left"
           label={tk("kids-previous-page", "Previous page")}
           reduceMotion={reduceMotion}
-          onClick={() => navigateToHref(prev.href)}
+          onClick={() => navigateWithPageTurn(prev.href)}
         >
           <ChevronLeft className="h-9 w-9" strokeWidth={3} aria-hidden="true" />
         </KidsArrow>
@@ -49,7 +47,7 @@ export function KidsPageArrows() {
           side="right"
           label={tk("kids-next-page", "Next page")}
           reduceMotion={reduceMotion}
-          onClick={() => navigateToHref(next.href)}
+          onClick={() => navigateWithPageTurn(next.href)}
         >
           <ChevronRight className="h-9 w-9" strokeWidth={3} aria-hidden="true" />
         </KidsArrow>

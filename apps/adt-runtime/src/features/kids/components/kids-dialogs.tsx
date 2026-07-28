@@ -1,4 +1,4 @@
-import { Check, MessageCircle, X } from "lucide-react"
+import { Check, MessageCircle, Volume2, X } from "lucide-react"
 import { useAtom, useAtomValue } from "jotai"
 import {
   useEffect,
@@ -15,6 +15,7 @@ import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
 import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
 import { KidsAvatarBuilder } from "@/features/kids/components/KidsAvatarBuilder"
 import { KidsScrollFade } from "@/features/kids/components/KidsScrollFade"
+import { navigateWithPageTurn } from "@/features/kids/lib/kids-page-turn"
 import { useScrollHint } from "@/features/kids/hooks/useScrollHint"
 import {
   kidsAccessibilityDialogOpenAtom,
@@ -32,6 +33,7 @@ import {
   type KidsTextScale,
 } from "@/features/kids/state/kids.atoms"
 import { currentLanguageAtom } from "@/features/language/state/language.atoms"
+import { soundEffectsAtom } from "@/shared/state/ui.atoms"
 import { navigateToHref } from "@/features/navigation/lib/page-navigation"
 import {
   currentPageNumberAtom,
@@ -151,7 +153,7 @@ export function KidsStoryMapDialog() {
               type="button"
               key={entry.section_id}
               aria-current={active ? "page" : undefined}
-              onClick={() => navigateToHref(entry.href)}
+              onClick={() => navigateWithPageTurn(entry.href)}
               className={cn(
                 "min-h-16 rounded-2xl bg-white px-4 py-3 text-left text-xl font-extrabold shadow-sm ring-1 ring-slate-200",
                 "transition-all duration-150 hover:bg-sky-50 active:scale-[0.99]",
@@ -178,6 +180,7 @@ export function KidsAccessibilityDialog() {
   const [scale, setScale] = useAtom(kidsTextScaleAtom)
   const [font, setFont] = useAtom(kidsReadingFontAtom)
   const [chatter, setChatter] = useAtom(kidsBuddyChatterAtom)
+  const [sounds, setSounds] = useAtom(soundEffectsAtom)
   const reduceMotion = usePrefersReducedMotion()
 
   const sizeOptions: { value: KidsTextScale; label: string; px: string }[] = [
@@ -291,36 +294,70 @@ export function KidsAccessibilityDialog() {
           </div>
         </fieldset>
 
-        <button
-          type="button"
-          aria-pressed={chatter}
-          onClick={() => setChatter((value) => !value)}
-          className={cn(
-            "flex min-h-16 items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-left shadow-sm ring-1 ring-slate-200",
-            "transition-all duration-150 hover:bg-sky-50 active:scale-[0.99]",
-            "focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500",
-            chatter && "bg-[#FFF6D6] ring-2 ring-[#FFC800]",
-          )}
-        >
-          <span className="flex items-center gap-3">
+        <ComfortToggle
+          label={tk("kids-comfort-sounds-label", "Sounds and beeps")}
+          icon={<Volume2 className="h-6 w-6 text-slate-700" aria-hidden="true" />}
+          value={sounds}
+          onChange={() => setSounds((value) => !value)}
+          onLabel={tk("kids-comfort-chatter-on", "On")}
+          offLabel={tk("kids-comfort-chatter-off", "Off")}
+        />
+
+        <ComfortToggle
+          label={tk("kids-comfort-chatter-label", "My buddy chats with me")}
+          icon={
             <MessageCircle className="h-6 w-6 text-slate-700" aria-hidden="true" />
-            <span className="text-lg font-extrabold text-slate-900">
-              {tk("kids-comfort-chatter-label", "My buddy chats with me")}
-            </span>
-          </span>
-          <span
-            className={cn(
-              "rounded-full px-3 py-1 text-sm font-black",
-              chatter ? "bg-[#FFC800] text-slate-950" : "bg-slate-200 text-slate-600",
-            )}
-          >
-            {chatter
-              ? tk("kids-comfort-chatter-on", "On")
-              : tk("kids-comfort-chatter-off", "Off")}
-          </span>
-        </button>
+          }
+          value={chatter}
+          onChange={() => setChatter((value) => !value)}
+          onLabel={tk("kids-comfort-chatter-on", "On")}
+          offLabel={tk("kids-comfort-chatter-off", "Off")}
+        />
       </div>
     </KidsModal>
+  )
+}
+
+function ComfortToggle({
+  label,
+  icon,
+  value,
+  onChange,
+  onLabel,
+  offLabel,
+}: {
+  label: string
+  icon: ReactNode
+  value: boolean
+  onChange: () => void
+  onLabel: string
+  offLabel: string
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={value}
+      onClick={onChange}
+      className={cn(
+        "flex min-h-16 items-center justify-between gap-3 rounded-2xl bg-white px-4 py-3 text-left shadow-sm ring-1 ring-slate-200",
+        "transition-all duration-150 hover:bg-sky-50 active:scale-[0.99]",
+        "focus:outline-none focus-visible:ring-4 focus-visible:ring-sky-500",
+        value && "bg-[#FFF6D6] ring-2 ring-[#FFC800]",
+      )}
+    >
+      <span className="flex items-center gap-3">
+        {icon}
+        <span className="text-lg font-extrabold text-slate-900">{label}</span>
+      </span>
+      <span
+        className={cn(
+          "rounded-full px-3 py-1 text-sm font-black",
+          value ? "bg-[#FFC800] text-slate-950" : "bg-slate-200 text-slate-600",
+        )}
+      >
+        {value ? onLabel : offLabel}
+      </span>
+    </button>
   )
 }
 

@@ -23,6 +23,13 @@ export const dockAlignAtom = persistedStringAtom("dockAlign", "spread")
 
 export type IconSize = "sm" | "md" | "lg"
 export const iconSizeAtom = persistedStringAtom("iconSize", "md")
+/**
+ * Whether non-speech sound effects play (page turns, activity verdicts, the
+ * end-of-book chord). Narration and buddy speech are separate — this is the
+ * control for incidental audio, which some children need off entirely.
+ */
+export const soundEffectsAtom = persistedBoolAtom("soundEffects", true)
+
 export const reduceMotionAtom = persistedBoolAtom("reduceMotion", false)
 
 export type Theme = "light" | "dark" | "system"
