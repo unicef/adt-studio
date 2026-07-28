@@ -1140,7 +1140,6 @@ function injectOpacityClass(html: string): string {
   )
 }
 
-
 export function stripContentEditable(html: string): string {
   return html.replace(
     /\s+contenteditable(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/gi,
@@ -1224,20 +1223,6 @@ ${fallbackHeadingHtml}${contentBlock}
       : ""
   }
 
-  // In embed mode, hide non-essential chrome. The React runtime mounts the
-  // activity Submit/Skip buttons inside #nav-container, so it must stay
-  // visible — BottomDock self-hides via embedModeAtom (see ui.atoms.ts).
-  const embedStyles = opts.embed
-    ? `
-    <style>
-      /* Hide navigation, sidebar, and other chrome in embed mode */
-      #back-forward-buttons, #nav-popup,
-      #open-sidebar, #sidebar, #tts-quick-toggle-button, #play-bar,
-      #sl-quick-toggle-button, #sign-language-video,
-      #explain-me-button, #eli5-content, #notepad-button, #notepad-content { display: none !important; }
-    </style>`
-    : ""
-
   // Reflowable base-font override: re-declare the same elements fonts.css
   // targets with the chosen family, placed last in <head> so it wins. Omitted
   // for fixed-layout / serif-default books (keeps the global Merriweather).
@@ -1281,7 +1266,7 @@ ${fallbackHeadingHtml}${contentBlock}
     <link href="./content/tailwind_output.css" rel="stylesheet">
     <link href="./assets/libs/fontawesome/css/all.min.css" rel="stylesheet">
     <link href="./assets/fonts.css" rel="stylesheet">${googleFontsLinks}
-${mathScript}${embedStyles}${bodyFontStyle}${flFit ? `${flFit.headStyle}\n` : ""}</head>
+${mathScript}${bodyFontStyle}${flFit ? `${flFit.headStyle}\n` : ""}</head>
 
 <body${opts.fixedViewport ? ` style="margin:0;overflow:hidden;width:100%;height:100%"` : ` class="min-h-screen flex items-center justify-center"${bodyStyle}`}>
 ${mainBlock}
@@ -1560,7 +1545,6 @@ export function buildImageMap(imagesDir: string): Map<string, string> {
   return map
 }
 
-
 function loadImageCaptionMap(storage: Storage, pageId: string): Map<string, string> {
   const row = storage.getLatestNodeData("image-captioning", pageId)
   if (!row) return new Map<string, string>()
@@ -1672,7 +1656,6 @@ export function buildPreferredImageAltMap(
   }
   return section ? applyDuplicateImageAltPolicy(section, preferredImageAltMap) : preferredImageAltMap
 }
-
 
 /** Rewrite image URLs from /api/books/{label}/images/{id} to images/{filename} */
 export function rewriteImageUrls(

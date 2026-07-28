@@ -59,6 +59,8 @@ import { SectionEditPanel } from "./SectionEditPanel"
 import { StorySectionBanner } from "./StorySectionBanner"
 import { EditableActivityPanel } from "./EditableActivityPanel"
 import { ClassicActivityPanel } from "./ClassicActivityPanel"
+import { sameAnchor, type ActivityAnchor } from "./activity-link"
+import { scrollBehavior } from "@/lib/utils"
 import { StepperActivityPreview } from "./StepperActivityPreview"
 import {
   useActivityStructure,
@@ -574,6 +576,9 @@ export function StoryboardSectionDetail({
     pageHasActivitySection,
   )
   const [editActivityPanelOpen, setEditActivityPanelOpen] = useState(false)
+  const [linkedAnchor, setLinkedAnchor] = useState<ActivityAnchor | null>(null)
+  const [linkedFromPage, setLinkedFromPage] = useState(false)
+  const [hoverAnchor, setHoverAnchor] = useState<ActivityAnchor | null>(null)
   // Read-only structure + outline of a classic activity — organizes the
   // classic activity editor. Works for all activity types, but is only
   // consumed by the edit panel, so don't fetch until it opens (the server
@@ -1306,6 +1311,37 @@ export function StoryboardSectionDetail({
     setSelectedElementClasses(previewFrameRef.current?.getElementClasses(dataId) ?? null)
   }, [])
 
+  const revealAnchorInPage = useCallback((anchor: ActivityAnchor) => {
+    const container = scrollContainerRef.current
+    const rect = previewFrameRef.current?.getAnchorViewportRect(anchor)
+    if (!container || !rect) return
+    const view = container.getBoundingClientRect()
+    const margin = 24
+    if (rect.top >= view.top + margin && rect.bottom <= view.bottom - margin) return
+    container.scrollBy({
+      top: rect.top - view.top - (view.height - rect.height) / 2,
+      behavior: scrollBehavior(),
+    })
+  }, [])
+
+  const handleAnchorSelectFromPanel = useCallback(
+    (anchor: ActivityAnchor | null) => {
+      setLinkedAnchor(anchor)
+      setLinkedFromPage(false)
+      if (anchor) revealAnchorInPage(anchor)
+    },
+    [revealAnchorInPage],
+  )
+
+  const handleLinkSelectFromPage = useCallback((anchor: ActivityAnchor | null) => {
+    setLinkedAnchor(anchor)
+    setLinkedFromPage(true)
+  }, [])
+
+  const handleAnchorHover = useCallback((anchor: ActivityAnchor | null) => {
+    setHoverAnchor((prev) => (sameAnchor(prev, anchor) || prev === anchor ? prev : anchor))
+  }, [])
+
   const handleClassesChange = useCallback(
     (dataId: string, classes: string[]) => {
       if (!page.rendering) return
@@ -1955,6 +1991,18 @@ export function StoryboardSectionDetail({
   const editableBusy =
     convertEditableActivity.isPending || setEditablePresentation.isPending
 
+  const activityLinkMode = isActivitySection && !stepperEnabled && editActivityPanelOpen
+
+  useEffect(() => {
+    setLinkedAnchor(null)
+    setLinkedFromPage(false)
+    setHoverAnchor(null)
+    if (editActivityPanelOpen) {
+      setSelectedElement(null)
+      setSelectedElementClasses(null)
+    }
+  }, [editActivityPanelOpen, sectionIndex, pageId])
+
   const handleToggleStepper = () => {
     if (editableEntry) {
       const enabling = !editableEntry.enabled
@@ -2222,7 +2270,7 @@ export function StoryboardSectionDetail({
                   deviceView={deviceView}
                 />
               </>
-            ) : isActivitySection && activityPreviewMode ? (
+            ) : isActivitySection && activityPreviewMode && !editActivityPanelOpen ? (
               <>
                 {renderingDirty && (
                   <div className="mb-2 flex justify-center">
@@ -2252,6 +2300,11 @@ export function StoryboardSectionDetail({
                   selectedDataId={selectedElement?.dataId ?? null}
                   renderWidth={DEVICE_WIDTHS[deviceView]}
                   deviceView={deviceView}
+                  linkMode={activityLinkMode}
+                  linkedAnchor={linkedAnchor}
+                  previewAnchor={linkedAnchor ? null : hoverAnchor}
+                  onLinkSelect={handleLinkSelectFromPage}
+                  onLinkHover={handleAnchorHover}
                   onVisibleWidthChange={setPreviewVisibleWidth}
                   bodyFontFamily={pageDetail?.reflowableFontFamily ?? undefined}
                 />
@@ -2431,9 +2484,6 @@ export function StoryboardSectionDetail({
         </div>
       )}
 
-
-
-
       {/* Slide-out step-by-step activity editor (CMS). The key MUST include
           book+page: the component instance survives page navigation, and a
           colliding key would keep another page's draft alive — saving it
@@ -2479,6 +2529,11 @@ export function StoryboardSectionDetail({
           onTextEdited={handleLeafTextEdited}
           onAnswerEdited={updateAnswer}
           onAnswersEdited={updateAnswers}
+          linkedAnchor={linkedAnchor}
+          hoveredAnchor={hoverAnchor}
+          linkedFromPage={linkedFromPage}
+          onAnchorSelect={handleAnchorSelectFromPanel}
+          onAnchorHover={handleAnchorHover}
           dirty={renderingDirty || dirty}
           saving={saving}
           onSave={() => {

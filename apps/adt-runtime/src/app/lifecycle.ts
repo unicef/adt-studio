@@ -81,11 +81,6 @@ function readIsActivityPage(): boolean {
   return !!document.querySelector('section[data-section-type^="activity_"]')
 }
 
-function readIsEmbedMode(): boolean {
-  if (typeof window === "undefined") return false
-  return new URLSearchParams(window.location.search).get("embed") === "1"
-}
-
 function readCurrentPageNumber(): number | null {
   const meta = document
     .querySelector('meta[name="page-section-id"]')
@@ -184,7 +179,6 @@ export async function bootRuntime(): Promise<void> {
     const isActivity = readIsActivityPage()
     store.set(isActivityPageAtom, isActivity)
     store.set(activityModeAtom, isActivity)
-    store.set(embedModeAtom, readIsEmbedMode())
 
     applyDOMTranslations()
 
@@ -259,7 +253,8 @@ function applyDOMTranslations(): void {
   applyTranslationsToDOM(translations, { easyReadMode })
   applyImageVariants(images)
 
-  const glossaryEnabled = store.get(glossaryModeAtom) as boolean
+  const glossaryEnabled =
+    (store.get(glossaryModeAtom) as boolean) && !(store.get(embedModeAtom) as boolean)
   if (glossaryEnabled) {
     const glossaryData = store.get(glossaryDataAtom)
     // Always wipe stale spans first so a re-apply (e.g. on language change)

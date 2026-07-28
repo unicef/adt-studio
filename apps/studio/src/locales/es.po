@@ -1122,6 +1122,9 @@ msgstr "Todas las categorías"
 msgid "All Categories"
 msgstr "All Categories"
 
+msgid "All changes saved"
+msgstr "Todos los cambios guardados"
+
 msgid "All issues and manual review items"
 msgstr "Todos los problemas y elementos de revisión manual"
 
@@ -1196,6 +1199,9 @@ msgstr "Respuesta"
 
 msgid "Answer area"
 msgstr "Área de respuesta"
+
+msgid "Answer key reference"
+msgstr "Referencia de la clave de respuestas"
 
 msgid "Answer Prompt"
 msgstr "Prompt de respuesta"
@@ -2784,8 +2790,8 @@ msgstr "La edición está deshabilitada mientras el storyboard se está ejecutan
 msgid "Editing Language"
 msgstr "Idioma de edición"
 
-msgid "Edits apply to the matching elements of the activity's layout. To change the layout itself, use \"Edit layout\" in the banner."
-msgstr "Los cambios se aplican a los elementos correspondientes del diseño de la actividad. Para cambiar el diseño en sí, usa \\\"Editar diseño\\\" en el banner."
+#~ msgid "Edits apply to the matching elements of the activity's layout. To change the layout itself, use \"Edit layout\" in the banner."
+#~ msgstr "Los cambios se aplican a los elementos correspondientes del diseño de la actividad. Para cambiar el diseño en sí, usa \\\"Editar diseño\\\" en el banner."
 
 msgid "Edits go to this Tailwind variant prefix"
 msgstr "Las ediciones van a este prefijo de variante Tailwind"
@@ -3599,6 +3605,9 @@ msgstr "Hit"
 msgid "Home / Chapter 1"
 msgstr "Inicio / Capítulo 1"
 
+msgid "Hover a card to find it in the page and click to pin it — or click anything in the page to edit it here."
+msgstr "Pasa el cursor sobre una tarjeta para localizarla en la página y haz clic para fijarla, o haz clic en cualquier elemento de la página para editarlo aquí."
+
 msgid "Hover a setting to see how LLM cropping, segmentation, or the size threshold changes extracted images."
 msgstr "Pasa el cursor sobre una configuración para ver cómo el recorte, segmentación o el umbral de tamaño del LLM cambian las imágenes extraídas."
 
@@ -3944,8 +3953,6 @@ msgid "Item"
 msgstr "Ítem"
 
 #. placeholder {0}: criterionIndex + 1
-#. placeholder {0}: i + 1
-#. placeholder {0}: si + 1
 msgid "Item {0}"
 msgstr "Item {0}"
 
@@ -4717,6 +4724,9 @@ msgstr "No accessibility findings were reported for this page."
 msgid "No AI edits yet for this section."
 msgstr "Aún no hay ediciones con IA para esta sección."
 
+msgid "No answer set"
+msgstr "Sin respuesta definida"
+
 #. placeholder {0}: linguiI18n._(PROVIDER_LABELS[provider])
 msgid "No API key for {0} yet. Add one in Book settings to enable this provider."
 msgstr "Aún no hay clave API para {0}. Añade una en la configuración del libro para habilitar este proveedor."
@@ -5059,6 +5069,9 @@ msgstr "Nota"
 
 msgid "Nothing important is missing or added"
 msgstr "No falta ni se añade nada importante"
+
+msgid "Nothing to edit yet"
+msgstr "Todavía no hay nada que editar"
 
 msgid "Nothing to show"
 msgstr "Nada que mostrar"
@@ -5663,6 +5676,9 @@ msgstr "Libros ilustrados y primeros lectores"
 msgid "Pinned"
 msgstr "Fijada"
 
+msgid "Pinned to one element — press Esc to release it and go back to previewing on hover."
+msgstr "Fijado a un elemento: pulsa Esc para soltarlo y volver a la vista previa al pasar el cursor."
+
 msgid "Pipeline · extract"
 msgstr "Pipeline · extracción"
 
@@ -5868,7 +5884,9 @@ msgstr "Parámetro de consulta"
 msgid "question"
 msgstr "pregunta"
 
-#. placeholder {0}: i + 1
+msgid "Question"
+msgstr "Pregunta"
+
 #. placeholder {0}: si + 1
 msgid "Question {0}"
 msgstr "Pregunta {0}"
@@ -6277,6 +6295,9 @@ msgstr "Restablecer al color de acento del libro"
 msgid "Reset zoom"
 msgstr "Restablecer zoom"
 
+msgid "Resize panel"
+msgstr "Redimensionar el panel"
+
 msgid "Resolving source language..."
 msgstr "Resolviendo idioma de origen..."
 
@@ -6575,6 +6596,9 @@ msgstr "Guardar y re-ejecutar"
 msgid "Save activity"
 msgstr "Guardar actividad"
 
+msgid "Save activity (⌘S)"
+msgstr "Guardar actividad (⌘S)"
+
 msgid "Save changes"
 msgstr "Guardar cambios"
 
@@ -6872,6 +6896,9 @@ msgstr "Seleccionar tipo de actividad..."
 
 msgid "Select all"
 msgstr "Seleccionar todo"
+
+msgid "Select an item to edit its text — [[blank:…]] marks where a blank appears, so keep it to keep the blank."
+msgstr "Selecciona un elemento para editar su texto: [[blank:…]] indica dónde aparece un espacio en blanco, así que consérvalo para mantener el espacio."
 
 msgid "Select images to translate"
 msgstr "Seleccionar imágenes para traducir"
@@ -7808,6 +7835,9 @@ msgstr "Producen flores para atraer polinizadores."
 msgid "They release oxygen directly into the air."
 msgstr "Liberan oxígeno directamente al aire."
 
+msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
+msgstr "Esta actividad no tiene textos ni respuestas direccionables. Vuelve a generarla o usa \"Editar diseño\" para modificar la página directamente."
+
 msgid "This archive can't be opened safely"
 msgstr "Este archivo no se puede abrir de forma segura"
 
@@ -7881,6 +7911,9 @@ msgstr "Este no es un proyecto válido de ADT Studio"
 
 msgid "This isn't a valid part file"
 msgstr "Este no es un archivo de parte válido"
+
+msgid "This option has no answer key entry"
+msgstr "Esta opción no tiene entrada en la clave de respuestas"
 
 msgid "This page has no captioned images"
 msgstr "Esta página no tiene imágenes con leyendas"

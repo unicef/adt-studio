@@ -1123,6 +1123,9 @@ msgstr "Të gjitha kategoritë"
 msgid "All Categories"
 msgstr "Të Gjitha Kategoritë"
 
+msgid "All changes saved"
+msgstr "Të gjitha ndryshimet u ruajtën"
+
 msgid "All issues and manual review items"
 msgstr "Të gjitha problemet dhe elementet e rishikimit manual"
 
@@ -1197,6 +1200,9 @@ msgstr "Përgjigje"
 
 msgid "Answer area"
 msgstr "Zona e përgjigjes"
+
+msgid "Answer key reference"
+msgstr "Referenca e çelësit të përgjigjeve"
 
 msgid "Answer Prompt"
 msgstr "Prompt përgjigjeje"
@@ -2785,8 +2791,8 @@ msgstr "Redaktimi është i çaktivizuar ndërsa storyboard-i është duke u ekz
 msgid "Editing Language"
 msgstr "Gjuha e redaktimit"
 
-msgid "Edits apply to the matching elements of the activity's layout. To change the layout itself, use \"Edit layout\" in the banner."
-msgstr "Ndryshimet zbatohen te elementet përkatëse të strukturës së aktivitetit. Për të ndryshuar vetë strukturën, përdorni \\\"Modifiko strukturën\\\" në banderolë."
+#~ msgid "Edits apply to the matching elements of the activity's layout. To change the layout itself, use \"Edit layout\" in the banner."
+#~ msgstr "Ndryshimet zbatohen te elementet përkatëse të strukturës së aktivitetit. Për të ndryshuar vetë strukturën, përdorni \\\"Modifiko strukturën\\\" në banderolë."
 
 msgid "Edits go to this Tailwind variant prefix"
 msgstr "Ndryshimet shkojnë tek ky prefiks i variantit Tailwind"
@@ -3600,6 +3606,9 @@ msgstr "Goditje"
 msgid "Home / Chapter 1"
 msgstr "Kryefaqja / Kapitulli 1"
 
+msgid "Hover a card to find it in the page and click to pin it — or click anything in the page to edit it here."
+msgstr "Kaloni kursorin mbi një kartë për ta gjetur në faqe dhe klikoni për ta fiksuar — ose klikoni çdo element në faqe për ta redaktuar këtu."
+
 msgid "Hover a setting to see how LLM cropping, segmentation, or the size threshold changes extracted images."
 msgstr "Vendos kursorin mbi një cilësim për të parë si ndryshon prerja LLM, segmentimi ose pragu i madhësisë imazhet e ekstraktuara."
 
@@ -3945,8 +3954,6 @@ msgid "Item"
 msgstr "Element"
 
 #. placeholder {0}: criterionIndex + 1
-#. placeholder {0}: i + 1
-#. placeholder {0}: si + 1
 msgid "Item {0}"
 msgstr "Elementi {0}"
 
@@ -4718,6 +4725,9 @@ msgstr "Nuk u raportuan gjetje aksesueshmërie për këtë faqe."
 msgid "No AI edits yet for this section."
 msgstr "Nuk ka redaktime të AI ende për këtë seksion."
 
+msgid "No answer set"
+msgstr "Pa përgjigje të caktuar"
+
 #. placeholder {0}: linguiI18n._(PROVIDER_LABELS[provider])
 msgid "No API key for {0} yet. Add one in Book settings to enable this provider."
 msgstr "Nuk ka ende çelës API për {0}. Shto një te cilësimet e Librit për të aktivizuar këtë ofrues."
@@ -5060,6 +5070,9 @@ msgstr "Shënim"
 
 msgid "Nothing important is missing or added"
 msgstr "Asgjë e rëndësishme nuk mungon ose nuk është shtuar"
+
+msgid "Nothing to edit yet"
+msgstr "Ende s'ka asgjë për të redaktuar"
 
 msgid "Nothing to show"
 msgstr "Nuk ka asgjë për të shfaqur"
@@ -5664,6 +5677,9 @@ msgstr "Libra me ilustrime dhe lexues fillestarë"
 msgid "Pinned"
 msgstr "E fiksuar"
 
+msgid "Pinned to one element — press Esc to release it and go back to previewing on hover."
+msgstr "I fiksuar te një element — shtypni Esc për ta liruar dhe për t'u kthyer te pamja paraprake me kalimin e kursorit."
+
 msgid "Pipeline · extract"
 msgstr "Pipeline · nxjerrje"
 
@@ -5869,7 +5885,9 @@ msgstr "Parametri i pyetjes"
 msgid "question"
 msgstr "pyetje"
 
-#. placeholder {0}: i + 1
+msgid "Question"
+msgstr "Pyetje"
+
 #. placeholder {0}: si + 1
 msgid "Question {0}"
 msgstr "Pyetja {0}"
@@ -6278,6 +6296,9 @@ msgstr "Rikthe ngjyrën e theksit të librit"
 msgid "Reset zoom"
 msgstr "Rivendos zmadhimin"
 
+msgid "Resize panel"
+msgstr "Ripërmasoni panelin"
+
 msgid "Resolving source language..."
 msgstr "Duke zgjidhur gjuhën burimore..."
 
@@ -6576,6 +6597,9 @@ msgstr "Ruaj dhe ri-ekzekuto"
 msgid "Save activity"
 msgstr "Ruaj aktivitetin"
 
+msgid "Save activity (⌘S)"
+msgstr "Ruaj aktivitetin (⌘S)"
+
 msgid "Save changes"
 msgstr "Ruaj ndryshimet"
 
@@ -6873,6 +6897,9 @@ msgstr "Zgjidhni llojin e aktivitetit..."
 
 msgid "Select all"
 msgstr "Zgjidhni të gjitha"
+
+msgid "Select an item to edit its text — [[blank:…]] marks where a blank appears, so keep it to keep the blank."
+msgstr "Zgjidhni një element për të redaktuar tekstin e tij — [[blank:…]] shënon vendin ku shfaqet një hapësirë bosh, prandaj ruajeni që të ruhet hapësira."
 
 msgid "Select images to translate"
 msgstr "Zgjidhni imazhet për të përkthyer"
@@ -7809,6 +7836,9 @@ msgstr "Ato prodhojnë lule për të tërhequr polenizuesit."
 msgid "They release oxygen directly into the air."
 msgstr "Ato lëshojnë oksigjen drejtpërdrejt në ajër."
 
+msgid "This activity has no addressable text or answers. Regenerate it, or use \"Edit layout\" to change the page directly."
+msgstr "Ky aktivitet nuk ka tekste apo përgjigje të adresueshme. Rigjeneroni atë ose përdorni \"Ndrysho paraqitjen\" për ta ndryshuar faqen drejtpërdrejt."
+
 msgid "This archive can't be opened safely"
 msgstr "Ky arkiv nuk mund të hapet në mënyrë të sigurt"
 
@@ -7882,6 +7912,9 @@ msgstr "Ky nuk është një projekt i vlefshëm i ADT Studio"
 
 msgid "This isn't a valid part file"
 msgstr "Ky nuk është një skedar i vlefshëm pjese"
+
+msgid "This option has no answer key entry"
+msgstr "Ky opsion nuk ka hyrje në çelësin e përgjigjeve"
 
 msgid "This page has no captioned images"
 msgstr "Kjo faqe nuk ka imazhe me tituj"
