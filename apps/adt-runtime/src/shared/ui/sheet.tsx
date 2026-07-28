@@ -41,14 +41,22 @@ function SheetContent({
   children,
   side = "right",
   showCloseButton = true,
+  container,
+  overlayClassName,
   ...props
 }: SheetPrimitive.Popup.Props & {
   side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
+  /** Portal target. Defaults to the base-ui portal (document.body). Pass the
+   *  chrome container to keep theme (`.dark`) inheritance consistent with the
+   *  reader's popovers/dialogs. */
+  container?: SheetPrimitive.Portal.Props["container"]
+  /** Extra classes for the backdrop — e.g. to raise its z-index above the dock. */
+  overlayClassName?: string
 }) {
   return (
-    <SheetPortal>
-      <SheetOverlay />
+    <SheetPortal container={container}>
+      <SheetOverlay className={overlayClassName} />
       <SheetPrimitive.Popup
         data-slot="sheet-content"
         data-side={side}

@@ -1,12 +1,21 @@
 import { cn } from "@/shared/lib/utils";
 import { useTranslation } from "@/features/language/hooks/useTranslation"
+import { useIsMobile } from "@/shared/hooks/use-is-mobile"
 import { Search as SearchIcon } from "lucide-react"
 
 interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> { }
 
 function Container({ children, className, ...props }: ContainerProps) {
+  const isMobile = useIsMobile()
+  // Mobile: fill the bottom sheet (full width, content-height capped to the
+  // sheet). Desktop: the fixed anchored-popover sizing. Branching on the hook
+  // (rather than `sm:` variants) lets panels that override width/height — Audio
+  // `w-fit`, Language `h-auto` — keep winning via cn/twMerge in BOTH modes.
+  const base = isMobile
+    ? "w-full max-w-none p-4 h-auto max-h-[85dvh] min-h-0 flex flex-col gap-2 overflow-hidden"
+    : "w-[var(--dock-width,30rem)] max-w-xl p-4 h-[clamp(20rem,calc(100vh-7rem),600px)] flex flex-col gap-2"
   return (
-    <div className={cn("w-[var(--dock-width,30rem)] max-w-xl p-4 h-[clamp(20rem,calc(100vh-7rem),600px)] flex flex-col gap-2", className)} {...props}>
+    <div className={cn(base, className)} {...props}>
       {children}
     </div>
   );
