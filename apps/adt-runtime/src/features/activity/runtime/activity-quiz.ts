@@ -29,6 +29,7 @@ import { showActivityProgressToast } from "@/features/activity/lib/progress-toas
  */
 const QUIZ_SELECTOR =
   'section[data-section-type="activity_quiz"], section[data-section-type="activity_multiple_choice"]'
+const ANY_ACTIVITY_SELECTOR = 'section[data-section-type^="activity_"]'
 const CORRECT_ANSWERS_SCRIPT_ID = "quiz-correct-answers"
 const DEFAULT_GROUP_KEY = "__default__"
 
@@ -419,6 +420,13 @@ export function initializeQuizActivity(): (() => void) | null {
   const hasNextPage = findNextPageHref() !== null
   const hasPostCorrectTarget = findPostCorrectHref() !== null
 
+  // Every activity initializer runs on every page and they all share one dock.
+  // Only take the submit button away when this quiz is the page's sole
+  // activity — otherwise a sibling activity that genuinely needs Submit (a
+  // fill-in-the-blank, say) would be left with no way to submit at all.
+  const ownsDock =
+    document.querySelectorAll(ANY_ACTIVITY_SELECTOR).length === 1
+
   function anyGroupSelected(): boolean {
     return groups.some((g) => g.selected !== null)
   }
@@ -433,7 +441,7 @@ export function initializeQuizActivity(): (() => void) | null {
     store.set(submitEnabledAtom, false)
     // Choosing an option judges it, so there is nothing left to submit. The
     // button reappears as "Next" once every group is answered correctly.
-    store.set(submitHiddenAtom, true)
+    store.set(submitHiddenAtom, ownsDock)
     store.set(skipEnabledAtom, hasNextPage)
   }
 
@@ -500,8 +508,8 @@ export function initializeQuizActivity(): (() => void) | null {
     } else {
       store.set(submitStateAtom, "submit")
       store.set(submitLabelAtom, null)
-      store.set(submitEnabledAtom, false)
-      store.set(submitHiddenAtom, true)
+      store.set(submitEnabledAtom, ownsDock ? false : anyGroupSelected())
+      store.set(submitHiddenAtom, ownsDock)
     }
   }
 
@@ -551,25 +559,18 @@ export function initializeQuizActivity(): (() => void) | null {
   const listeners: Array<() => void> = []
   for (const group of groups) {
     for (const option of group.options) {
-      const onClick = () => handleSelect(option)
-      const onKey = (e: KeyboardEvent) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault()
-          handleSelect(option)
-        }
-      }
-      option.addEventListener("click", onClick)
-      option.addEventListener("keydown", onKey)
       option.setAttribute("role", "radio")
       option.setAttribute("aria-checked", "false")
 
-      // Arrow-key navigation between native radios fires `change` on the new
-      // radio without firing `click` on its label. Listen here too so keyboard
-      // users actually see selection state update.
       const innerRadio = option.querySelector<HTMLInputElement>(
         'input[type="radio"]',
       )
+
       if (innerRadio) {
+        // Clicking the label forwards the click to the radio, so listening to
+        // both `click` and `change` judged a single gesture twice — doubling
+        // the sound, the buddy reaction and the confetti. `change` alone also
+        // covers arrow-key navigation between native radios.
         const onChange = () => {
           if (innerRadio.checked) handleSelect(option)
         }
@@ -577,12 +578,22 @@ export function initializeQuizActivity(): (() => void) | null {
         listeners.push(() =>
           innerRadio.removeEventListener("change", onChange),
         )
+      } else {
+        // Standalone quiz options are plain labels with no inner control.
+        const onClick = () => handleSelect(option)
+        const onKey = (e: KeyboardEvent) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault()
+            handleSelect(option)
+          }
+        }
+        option.addEventListener("click", onClick)
+        option.addEventListener("keydown", onKey)
+        listeners.push(() => {
+          option.removeEventListener("click", onClick)
+          option.removeEventListener("keydown", onKey)
+        })
       }
-
-      listeners.push(() => {
-        option.removeEventListener("click", onClick)
-        option.removeEventListener("keydown", onKey)
-      })
     }
   }
 

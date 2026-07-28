@@ -4,6 +4,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
   type ReactNode,
   type RefObject,
 } from "react"
@@ -13,6 +14,8 @@ import { BUDDY_LINES } from "@/features/kids/lib/buddy-lines"
 import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
 import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
 import { KidsAvatarBuilder } from "@/features/kids/components/KidsAvatarBuilder"
+import { KidsScrollFade } from "@/features/kids/components/KidsScrollFade"
+import { useScrollHint } from "@/features/kids/hooks/useScrollHint"
 import {
   kidsAccessibilityDialogOpenAtom,
   kidsAvatarAtom,
@@ -105,6 +108,8 @@ export function KidsStoryMapDialog() {
   const pages = useAtomValue(pagesAtom)
   const currentSectionId = useAtomValue(currentSectionIdAtom)
   const reduceMotion = usePrefersReducedMotion()
+  const [scroller, setScroller] = useState<HTMLDivElement | null>(null)
+  const moreBelow = useScrollHint(scroller)
   const entries = useMemo<TocEntry[]>(
     () =>
       toc.length > 0
@@ -127,16 +132,18 @@ export function KidsStoryMapDialog() {
       closeLabel={tk("kids-dialog-close", "Close")}
       wide
     >
-      <div
-        className={cn(
-          "grid max-h-[60vh] gap-2 overflow-y-auto px-1.5 py-2",
-          KIDS_SCROLLBAR_CLASS,
-          "focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-700",
-        )}
-        role="region"
-        aria-label={tk("kids-story-map-list-region", "Story map sections")}
-        tabIndex={0}
-      >
+      <div className="relative">
+        <div
+          ref={setScroller}
+          className={cn(
+            "grid max-h-[60vh] gap-2 overflow-y-auto px-1.5 py-2",
+            KIDS_SCROLLBAR_CLASS,
+            "focus-visible:outline focus-visible:outline-4 focus-visible:outline-offset-2 focus-visible:outline-sky-700",
+          )}
+          role="region"
+          aria-label={tk("kids-story-map-list-region", "Story map sections")}
+          tabIndex={0}
+        >
         {entries.map((entry) => {
           const active = entry.section_id === currentSectionId
           return (
@@ -153,11 +160,13 @@ export function KidsStoryMapDialog() {
                 entry.level === 2 && "ml-5",
                 entry.level === 3 && "ml-9",
               )}
-            >
-              {entry.title}
-            </button>
-          )
-        })}
+              >
+                {entry.title}
+              </button>
+            )
+          })}
+        </div>
+        <KidsScrollFade visible={moreBelow} reduceMotion={reduceMotion} />
       </div>
     </KidsModal>
   )

@@ -1,10 +1,10 @@
-import { ChevronDown } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import {
   KidsActionButton,
   type KidsActionTone,
 } from "@/features/kids/components/KidsActionButton"
 import { KidsBuddyImage } from "@/features/kids/components/KidsBuddyImage"
+import { KidsScrollFade } from "@/features/kids/components/KidsScrollFade"
 import { KidsDialogClose } from "@/features/kids/components/kids-dialogs"
 import { KidsSpeedSlider } from "@/features/kids/components/KidsSpeedSlider"
 import type { KidsSpeed } from "@/features/kids/components/KidsSpeedControl"
@@ -13,6 +13,7 @@ import {
   type KidsMenuGroup,
   type KidsMenuProps,
 } from "@/features/kids/components/menu/kids-menu-model"
+import { useScrollHint } from "@/features/kids/hooks/useScrollHint"
 import { KIDS_SCROLLBAR_CLASS } from "@/features/kids/lib/kids-styles"
 import { cn } from "@/shared/lib/utils"
 
@@ -165,18 +166,7 @@ export function KidsMenuClassic({
           })}
         </div>
 
-        <div
-          aria-hidden="true"
-          className={cn(
-            "pointer-events-none absolute inset-x-0 bottom-0 flex h-12 items-end justify-center bg-gradient-to-t from-white via-white/85 to-transparent",
-            "transition-opacity duration-200 ease-out",
-            moreBelow ? "opacity-100" : "opacity-0",
-          )}
-        >
-          <span className="mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-sky-100 text-sky-700 shadow-sm">
-            <ChevronDown className="h-5 w-5" />
-          </span>
-        </div>
+        <KidsScrollFade visible={moreBelow} reduceMotion={reduceMotion} />
       </div>
 
       {footer.length ? (
@@ -197,36 +187,4 @@ export function KidsMenuClassic({
       ) : null}
     </div>
   )
-}
-
-/**
- * Reports whether the scroller still has content below the fold, so the panel
- * can show a fade + chevron. Without it the list simply clips mid-card and a
- * young reader has no way to know the rest of the menu exists.
- */
-function useScrollHint(element: HTMLDivElement | null) {
-  const [moreBelow, setMoreBelow] = useState(false)
-
-  useEffect(() => {
-    if (!element) {
-      setMoreBelow(false)
-      return
-    }
-    const update = () => {
-      setMoreBelow(
-        element.scrollHeight - element.clientHeight - element.scrollTop > 8,
-      )
-    }
-    update()
-    element.addEventListener("scroll", update, { passive: true })
-    const observer =
-      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(update)
-    observer?.observe(element)
-    return () => {
-      element.removeEventListener("scroll", update)
-      observer?.disconnect()
-    }
-  }, [element])
-
-  return moreBelow
 }

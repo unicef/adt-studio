@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it } from "vitest"
 import { getDefaultStore } from "jotai"
 import { initializeQuizActivity } from "./activity-quiz"
 import {
+  activityResultAtom,
+  confettiTriggerAtom,
   skipEnabledAtom,
   submitEnabledAtom,
   submitHiddenAtom,
@@ -60,6 +62,9 @@ beforeEach(() => {
   store.set(submitEnabledAtom, false)
   store.set(skipEnabledAtom, false)
   store.set(submitStateAtom, "submit")
+  store.set(submitHiddenAtom, false)
+  store.set(confettiTriggerAtom, 0)
+  store.set(activityResultAtom, { correct: false, token: 0 })
   store.set(validateHandlerAtom, () => null)
 })
 
@@ -101,6 +106,79 @@ describe("initializeQuizActivity — standalone activity_quiz", () => {
     store.get(validateHandlerAtom)?.()
     expect(store.get(submitStateAtom)).toBe("next")
     expect(store.get(submitEnabledAtom)).toBe(false)
+  })
+})
+
+describe("initializeQuizActivity — judging fires exactly once", () => {
+  beforeEach(() => {
+    store.set(pagesAtom, [
+      { section_id: "pg002_sec001", href: "pg002_sec001.html" },
+      { section_id: "pg003_sec001", href: "pg003_sec001.html" },
+    ])
+    store.set(currentSectionIdAtom, "pg002_sec001")
+  })
+
+  // A label wrapping a radio forwards the click to it, so listening to both
+  // `click` and `change` judged one gesture twice — doubling the sound, the
+  // buddy reaction and the confetti burst.
+  it("judges a label click once, not twice", () => {
+    setupMultipleChoice()
+    initializeQuizActivity()
+
+    document
+      .querySelector<HTMLInputElement>("input[data-activity-item='item-1']")!
+      .closest<HTMLElement>(".activity-option")!
+      .click()
+
+    expect(store.get(activityResultAtom).token).toBe(1)
+    expect(store.get(confettiTriggerAtom)).toBe(1)
+  })
+
+  it("judges once when the click lands on content inside the label", () => {
+    setupMultipleChoice()
+    initializeQuizActivity()
+
+    document.querySelector<HTMLElement>("[data-id='text-1']")!.click()
+
+    expect(store.get(activityResultAtom).token).toBe(1)
+  })
+
+  it("judges once when the radio itself is clicked", () => {
+    setupMultipleChoice()
+    initializeQuizActivity()
+
+    document
+      .querySelector<HTMLInputElement>("input[data-activity-item='item-1']")!
+      .click()
+
+    expect(store.get(activityResultAtom).token).toBe(1)
+  })
+
+  it("keeps the submit button when a sibling activity also needs it", () => {
+    // All activity initializers run on every page and share one dock, so the
+    // quiz must not take Submit away from a fill-in-the-blank next to it.
+    document.body.innerHTML = `
+      <section data-section-type="activity_multiple_choice">
+        <label class="activity-option">
+          <input type="radio" name="q1" value="item-1" data-activity-item="item-1" class="sr-only" />
+          <div data-id="text-1">Option 1</div>
+        </label>
+      </section>
+      <section data-section-type="activity_fill_in_the_blank">
+        <input type="text" data-activity-item="b1" />
+      </section>
+    `
+    window.correctAnswers = { "item-1": true, b1: "x" }
+    initializeQuizActivity()
+
+    expect(store.get(submitHiddenAtom)).toBe(false)
+  })
+
+  it("hides the submit button when the quiz is the only activity", () => {
+    setupMultipleChoice()
+    initializeQuizActivity()
+
+    expect(store.get(submitHiddenAtom)).toBe(true)
   })
 })
 
