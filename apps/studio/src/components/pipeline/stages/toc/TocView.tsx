@@ -237,11 +237,9 @@ export function TocView({ bookLabel }: { bookLabel: string }) {
                   className="flex items-center gap-1.5"
                   style={{ paddingLeft: (Math.min(level, 3) - 1) * 20 }}
                 >
-                  <span
-                    aria-hidden
-                    className={`h-1.5 w-1.5 shrink-0 rounded-full ${level === 1 ? "bg-amber-500" : "bg-amber-300"}`}
-                  />
-                  <span className="shrink-0 rounded bg-amber-50 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-amber-700 tabular-nums">
+                  {/* Neutral, high-contrast level chip — reads on the amber /
+                      emerald / rose / white section tints alike. */}
+                  <span className="shrink-0 rounded bg-slate-700 px-1 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-white tabular-nums">
                     {t`L${level}`}
                   </span>
                   <span className="truncate font-medium text-foreground">{s.title}</span>
