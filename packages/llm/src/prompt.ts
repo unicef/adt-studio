@@ -279,9 +279,14 @@ class ImageTag extends Tag {
 
   *render(ctx: Context, emitter: Emitter): Generator<unknown, void, unknown> {
     const val = yield this.liquid.evalValue(this.value, ctx)
-    // Skip empty/undefined values — emitting them would produce an image
-    // content part with garbage data that providers reject.
-    if (typeof val !== "string" || val.length === 0) return
+    // Only emit an image marker for a real, non-empty string. A missing or
+    // empty Liquid expression would otherwise inject the literal string
+    // "undefined" (or "") as the image payload — which the LLM SDK rejects
+    // with the cryptic "Content string is not a base64-encoded media." Skipping
+    // lets templates reference optional images (e.g. `{% image page_image_base64 %}`)
+    // without wrapping every use in an `{% if %}`. `.trim()` also drops
+    // whitespace-only values, which are equally invalid base64.
+    if (typeof val !== "string" || val.trim() === "") return
     emitter.write(`${IMAGE_MARKER_START}${val}${IMAGE_MARKER_END}`)
   }
 }

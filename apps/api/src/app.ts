@@ -33,6 +33,7 @@ import { createSpeechConfigRoutes } from "./routes/speech-config.js"
 import { createReviewerValidationRoutes } from "./routes/reviewer-validation.js"
 import { createTocRoutes } from "./routes/toc.js"
 import { createSignLanguageVideoRoutes } from "./routes/sign-language-videos.js"
+import { createAgentRoutes } from "./routes/agents.js"
 import { createTranslationEvaluationRoutes } from "./routes/translation-evaluations.js"
 import { createMathSpeechEvaluationRoutes } from "./routes/math-speech-evaluations.js"
 
@@ -118,6 +119,7 @@ app.route("/api", createAdtPreviewRoutes(booksDir, webAssetsDir, configPath))
 app.route("/api", createSpeechConfigRoutes(configPath))
 app.route("/api", createReviewerValidationRoutes(booksDir, configFolderPath, configPath))
 app.route("/api", createSignLanguageVideoRoutes(booksDir))
+app.route("/api", createAgentRoutes(booksDir, promptsDir, configPath, taskService))
 app.route("/api", createTranslationEvaluationRoutes(booksDir, configPath, taskService))
 app.route("/api", createMathSpeechEvaluationRoutes(booksDir, promptsDir, configPath, taskService))
 

@@ -64,17 +64,45 @@ describe("createPromptEngine", () => {
     expect(content[1]).toEqual({ type: "image", image: "abc123" })
   })
 
-  it("skips image tags whose value is undefined or empty", async () => {
+  it("skips image tags whose value is missing or empty", async () => {
     const dir = tmpDir()
     fs.writeFileSync(
       path.join(dir, "img_missing.liquid"),
+      `{% chat role: "user" %}Images:
+{% for image in images %}ID: {{ image.id }}
+{% image image.base64 %}{% endfor %}
+{% image missing_top_level %}{% endchat %}`
+    )
+
+    const engine = createPromptEngine(dir)
+    const messages = await engine.renderPrompt("img_missing", {
+      images: [
+        { id: "good", base64: "aGVsbG8=" }, // present
+        { id: "missing" }, // no `base64` → tag must emit nothing, not "undefined"
+      ],
+    })
+
+    const content = messages[0].content as Array<
+      { type: "text"; text: string } | { type: "image"; image: string }
+    >
+    const imageParts = content.filter((p) => p.type === "image")
+    // Only the one real image survives; the missing per-item value and the
+    // missing top-level value are skipped rather than emitted as "undefined".
+    expect(imageParts).toEqual([{ type: "image", image: "aGVsbG8=" }])
+    expect(JSON.stringify(content)).not.toContain("undefined")
+  })
+
+  it("skips image tags whose value is undefined or empty", async () => {
+    const dir = tmpDir()
+    fs.writeFileSync(
+      path.join(dir, "img_undefined.liquid"),
       `{% chat role: "user" %}Before.
 {% image page.missing %}
 After.{% endchat %}`
     )
 
     const engine = createPromptEngine(dir)
-    const messages = await engine.renderPrompt("img_missing", {
+    const messages = await engine.renderPrompt("img_undefined", {
       page: {},
     })
 

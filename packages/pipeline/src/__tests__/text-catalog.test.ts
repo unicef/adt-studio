@@ -421,6 +421,96 @@ describe("buildTextCatalog", () => {
     expect(result.entries.some((e) => e.id.includes("_ans_"))).toBe(false)
   })
 
+  it("extracts leaf data-id text from custom-activity sections", async () => {
+    const storage = createMockStorage({
+      "web-rendering": {
+        pg001: {
+          sections: [
+            {
+              sectionIndex: 0,
+              sectionType: "activity_custom_drag_drop",
+              reasoning: "",
+              html:
+                '<section data-section-type="activity_custom_drag_drop" data-id="pg001_s0" role="activity">' +
+                '<h3 data-id="text-pg001-30">Drag and Drop</h3>' +
+                '<p data-id="text-pg001-31">Drag each item.</p>' +
+                '<div data-id="text-pg001-32">Autonomous</div>' +
+                "</section>",
+            },
+          ],
+        },
+      },
+    })
+
+    const result = await buildTextCatalog(storage, [pages[0]])
+
+    expect(result.entries).toEqual([
+      { id: "text-pg001-30", text: "Drag and Drop" },
+      { id: "text-pg001-31", text: "Drag each item." },
+      { id: "text-pg001-32", text: "Autonomous" },
+    ])
+  })
+
+  it("does not leak inline <script> source into custom-activity catalog entries", async () => {
+    const storage = createMockStorage({
+      "web-rendering": {
+        pg001: {
+          sections: [
+            {
+              sectionIndex: 0,
+              sectionType: "activity_custom_drag_drop",
+              reasoning: "",
+              html:
+                '<section data-section-type="activity_custom_drag_drop" data-id="pg001_s0" role="activity">' +
+                '<p data-id="text-pg001-1">Visible prompt</p>' +
+                '<script>window.adtRegisterCustomActivity(section, { validate: () => true, reset: () => {} });</script>' +
+                "</section>",
+            },
+          ],
+        },
+      },
+    })
+
+    const result = await buildTextCatalog(storage, [pages[0]])
+
+    expect(result.entries).toEqual([
+      { id: "text-pg001-1", text: "Visible prompt" },
+    ])
+    for (const entry of result.entries) {
+      expect(entry.text).not.toMatch(/adtRegisterCustomActivity/)
+      expect(entry.text).not.toMatch(/window\./)
+    }
+  })
+
+  it("skips wrapper data-id elements that contain other data-id descendants", async () => {
+    const storage = createMockStorage({
+      "web-rendering": {
+        pg001: {
+          sections: [
+            {
+              sectionIndex: 0,
+              sectionType: "activity_custom_drag_drop",
+              reasoning: "",
+              html:
+                '<section data-id="pg001_s0">' +
+                '<div data-id="text-pg001-1">Outer wrapper text leaf</div>' +
+                '<div data-id="text-pg001-2">Another leaf</div>' +
+                "</section>",
+            },
+          ],
+        },
+      },
+    })
+
+    const result = await buildTextCatalog(storage, [pages[0]])
+
+    expect(result.entries.find((e) => e.id === "pg001_s0")).toBeUndefined()
+    expect(result.entries).toEqual([
+      { id: "text-pg001-1", text: "Outer wrapper text leaf" },
+      { id: "text-pg001-2", text: "Another leaf" },
+    ])
+  })
+
   it("produces unique answer IDs for multiple sections with same item keys", async () => {
     const storage = createMockStorage({
       "web-rendering": {

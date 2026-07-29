@@ -4,6 +4,8 @@ export const TaskKind = z.enum([
   "image-generate",
   "re-render",
   "ai-edit",
+  "layout-mirror",
+  "generate-activity",
   "package-adt",
   "prepare-export",
   "transcribe-timestamps",
