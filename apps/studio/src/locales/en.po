@@ -5585,6 +5585,9 @@ msgstr "Open this section to tune the model, judge prompt, retry behavior, and e
 msgid "Open Validation"
 msgstr "Open Validation"
 
+msgid "Open-ended — learners write a free response; there is no fixed answer."
+msgstr "Open-ended — learners write a free response; there is no fixed answer."
+
 msgid "Open-source license"
 msgstr "Open-source license"
 
@@ -6249,6 +6252,9 @@ msgstr "Project Name"
 msgid "Prompt"
 msgstr "Prompt"
 
+msgid "Prompt (optional)"
+msgstr "Prompt (optional)"
+
 msgid "Prompt file created from template."
 msgstr "Prompt file created from template."
 
@@ -6531,6 +6537,24 @@ msgstr "Realistic / Photo"
 
 msgid "Rearranging atoms of HTML..."
 msgstr "Rearranging atoms of HTML..."
+
+msgid "Rebuild failed"
+msgstr "Rebuild failed"
+
+msgid "Rebuild from page"
+msgstr "Rebuild from page"
+
+msgid "Rebuild the steps from the page's current content"
+msgstr "Rebuild the steps from the page's current content"
+
+msgid "Rebuild this step-by-step activity from the page? Any manual edits to the steps, answers, or feedback will be replaced."
+msgstr "Rebuild this step-by-step activity from the page? Any manual edits to the steps, answers, or feedback will be replaced."
+
+msgid "Rebuilding…"
+msgstr "Rebuilding…"
+
+msgid "Rebuilt from the page"
+msgstr "Rebuilt from the page"
 
 msgid "Recommended"
 msgstr "Recommended"
@@ -7425,6 +7449,10 @@ msgstr "Self-contained ADT web app"
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Send this project archive back to the coordinator to merge into the source book."
 
+#. placeholder {0}: si + 1
+msgid "Sentence {0}"
+msgstr "Sentence {0}"
+
 msgid "Sentence with blank markers"
 msgstr "Sentence with blank markers"
 
@@ -8024,6 +8052,9 @@ msgstr "Tailwind classes"
 msgid "Takes liberties and produces something similar."
 msgstr "Takes liberties and produces something similar."
 
+msgid "Tap the words that should be underlined"
+msgstr "Tap the words that should be underlined"
+
 msgid "Target"
 msgstr "Target"
 
@@ -8296,8 +8327,11 @@ msgstr "The river meets the sea"
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "The saved translation review is stale. Run Review again for the visible translations."
 
-msgid "The section was edited after conversion — switch back to classic and convert again to refresh the steps."
-msgstr "The section was edited after conversion — switch back to classic and convert again to refresh the steps."
+#~ msgid "The section was edited after conversion — switch back to classic and convert again to refresh the steps."
+#~ msgstr "The section was edited after conversion — switch back to classic and convert again to refresh the steps."
+
+msgid "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
+msgstr "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
@@ -9288,6 +9322,12 @@ msgstr "Word"
 
 msgid "Word and definition are required."
 msgstr "Word and definition are required."
+
+msgid "Word bank"
+msgstr "Word bank"
+
+msgid "Word bank — words to choose from, separated by commas (shown on every step)"
+msgstr "Word bank — words to choose from, separated by commas (shown on every step)"
 
 msgid "Word Highlighting"
 msgstr "Word Highlighting"

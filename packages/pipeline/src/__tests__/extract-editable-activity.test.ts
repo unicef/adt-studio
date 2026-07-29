@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import {
   extractEditableActivity,
   supportsEditableActivity,
+  isIndexLabel,
 } from "../extract-editable-activity.js"
 import { buildActivityOutline, applyActivityHeader } from "../activity-outline.js"
 import {
@@ -124,10 +125,66 @@ const FITB_MIXED = `
   <input type="text" data-aria-id="aria-2-0-0" data-activity-item="item-2" tabindex="0" />
 </section>`
 
+// A cloze passage with a word bank (mirrors pg014): an instruction, a box of
+// words, then a passage whose blanks are all drawn from the box.
+const FITB_WORD_BANK = `
+<section data-section-type="activity_fill_in_the_blank" data-section-id="sec-wb">
+  <div><span data-id="wb-num">C.</span><p><span data-id="wb-instr">Complete the passage using the words in the box.</span></p></div>
+  <div class="bg-orange-100 border"><span data-id="wb-bank">swam, muddy, filled, sank</span></div>
+  <div class="sr-only"><span data-id="wb-sr">FOR ONLINE READING ONLY</span></div>
+  <div>
+    <p><span data-id="wb-s1" class="fitb-sentence">The children (i) [[blank:item-1]] in the pond.</span></p>
+    <p><span data-id="wb-s2" class="fitb-sentence">The water was (ii) [[blank:item-2]].</span> <span data-id="wb-narr">They had fun.</span> <span data-id="wb-s3" class="fitb-sentence">Their bodies (iii) [[blank:item-3]] with mud.</span></p>
+    <p><span data-id="wb-s4" class="fitb-sentence">Then they (iv) [[blank:item-4]] under water.</span></p>
+  </div>
+</section>`
+
+// Grouped form-style FITB (mirrors pg035 activity E): sections with a heading
+// and worked example above numbered "(i) ___" lines. The blanks are standalone
+// inputs whose only per-line label is a roman-numeral caption.
+const FITB_GROUPED_FORM = `
+<section data-section-type="activity_fill_in_the_blank" data-section-id="sec-grp">
+  <span data-id="g-instr" class="block font-semibold">Match each to its group.</span>
+  <div class="space-y-8">
+    <div>
+      <span data-id="g-h1" class="block font-bold">Methali</span>
+      <span data-id="g-e1" class="block">Mfano: Asiyeuliza hana ajifunzalo.</span>
+      <div class="space-y-2">
+        <div class="flex"><label data-id="g-l1">(i)</label><input type="text" data-aria-id="a-1" data-activity-item="item-1" aria-label="Methali (i)"></div>
+        <div class="flex"><label data-id="g-l2">(ii)</label><input type="text" data-aria-id="a-2" data-activity-item="item-2" aria-label="Methali (ii)"></div>
+      </div>
+    </div>
+    <div>
+      <span data-id="g-h2" class="block font-bold">Nahau</span>
+      <span data-id="g-e2" class="block">Mfano: Watu wa damu moja.</span>
+      <div class="space-y-2">
+        <div class="flex"><label data-id="g-l3">(i)</label><input type="text" data-aria-id="a-3" data-activity-item="item-3" aria-label="Nahau (i)"></div>
+        <div class="flex"><label data-id="g-l4">(ii)</label><input type="text" data-aria-id="a-4" data-activity-item="item-4" aria-label="Nahau (ii)"></div>
+      </div>
+    </div>
+  </div>
+</section>`
+
+describe("isIndexLabel", () => {
+  it("treats numbers, single letters, and roman numerals as captions", () => {
+    for (const s of ["1.", "2)", "(b)", "a:", "(i)", "(ii)", "iii.", "(iv)", "v", "(x)", "xiv"]) {
+      expect(isIndexLabel(s)).toBe(true)
+    }
+  })
+  it("does not treat real words (even all-roman-letter ones) as captions", () => {
+    for (const s of ["mill", "civil", "Methali", "Mfano", "Nahau", "cat"]) {
+      expect(isIndexLabel(s)).toBe(false)
+    }
+  })
+})
+
 describe("supportsEditableActivity", () => {
-  it("accepts FITB and MC, rejects others", () => {
+  it("accepts FITB, MC, true/false, open-ended, and underline; rejects others", () => {
     expect(supportsEditableActivity("activity_fill_in_the_blank")).toBe(true)
     expect(supportsEditableActivity("activity_multiple_choice")).toBe(true)
+    expect(supportsEditableActivity("activity_true_false")).toBe(true)
+    expect(supportsEditableActivity("activity_open_ended_answer")).toBe(true)
+    expect(supportsEditableActivity("activity_underline_text")).toBe(true)
     expect(supportsEditableActivity("activity_sorting")).toBe(false)
     expect(supportsEditableActivity("activity_fill_in_a_table")).toBe(false)
   })
@@ -575,6 +632,66 @@ describe("extractEditableActivity — fill in the blank", () => {
     expect(activity.steps[1].blanks[0].itemId).toBe("item-2")
   })
 
+  it("captures a word bank shared across all blanks, keeping the directive as instructions", () => {
+    const { activity, errors } = extractEditableActivity({
+      html: FITB_WORD_BANK,
+      sectionType: "activity_fill_in_the_blank",
+      activityAnswers: {
+        "item-1": "swam",
+        "item-2": "muddy",
+        "item-3": "filled",
+        "item-4": "sank",
+      },
+    })
+    expect(errors).toEqual([])
+    if (activity?.kind !== "fill-in-the-blank") throw new Error("wrong kind")
+    // The box of words is detected as the word bank (by overlap with the
+    // answer key) — not mistaken for the instruction; the sr-only banner is
+    // ignored entirely.
+    expect(activity.wordBank).toEqual({ text: "swam, muddy, filled, sank", dataId: "wb-bank" })
+    expect(activity.instructions).toEqual({
+      text: "Complete the passage using the words in the box.",
+      dataId: "wb-instr",
+    })
+    expect(activity.steps).toHaveLength(4)
+  })
+
+  it("does not invent a word bank when there is no shared word list", () => {
+    const { activity } = extractEditableActivity({
+      html: FITB_PLAIN,
+      sectionType: "activity_fill_in_the_blank",
+      activityAnswers: { "item-1": "east", "item-2": "100" },
+    })
+    if (activity?.kind !== "fill-in-the-blank") throw new Error("wrong kind")
+    expect(activity.wordBank).toBeUndefined()
+  })
+
+  it("gives grouped form blanks their section heading + worked example", () => {
+    const { activity, errors } = extractEditableActivity({
+      html: FITB_GROUPED_FORM,
+      sectionType: "activity_fill_in_the_blank",
+      activityAnswers: {
+        "item-1": "Beba wazazi",
+        "item-2": "Kaza macho",
+        "item-3": "Mtu kwao",
+        "item-4": "Mkono kwa mkono",
+      },
+    })
+    expect(errors).toEqual([])
+    if (activity?.kind !== "fill-in-the-blank") throw new Error("wrong kind")
+    expect(activity.instructions?.text).toBe("Match each to its group.")
+    // No box listing the answers → not a word bank.
+    expect(activity.wordBank).toBeUndefined()
+    expect(activity.steps).toHaveLength(4)
+    // Every blank in a group carries that group's heading + example — including
+    // the (ii) line, whose roman-numeral label is treated as a caption.
+    const ctx = (i: number) => activity.steps[i].sentences.map((s) => s.text)
+    expect(ctx(0)).toEqual(["Methali", "Mfano: Asiyeuliza hana ajifunzalo."])
+    expect(ctx(1)).toEqual(["Methali", "Mfano: Asiyeuliza hana ajifunzalo."])
+    expect(ctx(2)).toEqual(["Nahau", "Mfano: Watu wa damu moja."])
+    expect(ctx(3)).toEqual(["Nahau", "Mfano: Watu wa damu moja."])
+  })
+
   it("rejects activities containing math notation", () => {
     const html = `
 <section data-section-type="activity_fill_in_the_blank">
@@ -596,5 +713,223 @@ describe("extractEditableActivity — fill in the blank", () => {
     })
     expect(activity).toBeNull()
     expect(errors[0]).toContain("doesn't support")
+  })
+})
+
+// ---------------------------------------------------------------------------
+// True/false — mirrors prompts/activity_true_false.liquid: per-statement
+// <fieldset> with a <legend> prompt and two radios that share one
+// data-activity-item, differing by value="true"|"false".
+// ---------------------------------------------------------------------------
+
+const tfGroup = (name: string, itemId: string, sid: string, statement: string) => `
+  <fieldset>
+    <legend><span data-id="${sid}">${statement}</span></legend>
+    <label for="${name}-t"><input name="${name}" type="radio" value="true" data-activity-item="${itemId}"><div><span data-id="${sid}-t">KWELI</span></div></label>
+    <label for="${name}-f"><input name="${name}" type="radio" value="false" data-activity-item="${itemId}"><div><span data-id="${sid}-f">SI KWELI</span></div></label>
+  </fieldset>`
+
+const TRUE_FALSE = `
+<section data-section-type="activity_true_false" data-section-id="sec-tf">
+  <h1 data-id="tf-title">Andika KWELI au SI KWELI</h1>
+  ${tfGroup("q1", "item-1", "tf-s1", "(i) The lion is a mammal.")}
+  ${tfGroup("q2", "item-2", "tf-s2", "(ii) Fish can fly.")}
+</section>`
+
+describe("extractEditableActivity — true/false", () => {
+  it("maps each statement onto a two-option multiple-choice step", () => {
+    const { activity, errors, warnings } = extractEditableActivity({
+      html: TRUE_FALSE,
+      sectionType: "activity_true_false",
+      activityAnswers: { "item-1": "true", "item-2": "false" },
+    })
+    expect(errors).toEqual([])
+    expect(warnings).toEqual([])
+    // True/false reuses the multiple-choice kind, keeping its source type.
+    if (activity?.kind !== "multiple-choice") throw new Error("wrong kind")
+    expect(activity.sectionType).toBe("activity_true_false")
+    expect(activity.title).toEqual({ text: "Andika KWELI au SI KWELI", dataId: "tf-title" })
+    expect(activity.steps).toHaveLength(2)
+
+    const [s1, s2] = activity.steps
+    expect(s1.id).toBe("q1")
+    expect(s1.prompt).toEqual({ text: "(i) The lion is a mammal.", dataId: "tf-s1" })
+    expect(s1.options).toEqual([
+      { itemId: "item-1-true", text: { text: "KWELI", dataId: "tf-s1-t" }, correct: true },
+      { itemId: "item-1-false", text: { text: "SI KWELI", dataId: "tf-s1-f" }, correct: false },
+    ])
+    // Statement 2's answer is false → the "SI KWELI" option is correct.
+    expect(s2.options.map((o) => o.correct)).toEqual([false, true])
+  })
+
+  it("accepts a boolean answer key", () => {
+    const { activity, errors } = extractEditableActivity({
+      html: TRUE_FALSE,
+      sectionType: "activity_true_false",
+      activityAnswers: { "item-1": false, "item-2": true },
+    })
+    expect(errors).toEqual([])
+    if (activity?.kind !== "multiple-choice") throw new Error("wrong kind")
+    expect(activity.steps[0].options.map((o) => o.correct)).toEqual([false, true])
+  })
+
+  it("errors when a statement has no answer in the key", () => {
+    const { activity, errors } = extractEditableActivity({
+      html: TRUE_FALSE,
+      sectionType: "activity_true_false",
+      activityAnswers: { "item-1": "true" },
+    })
+    expect(activity).toBeNull()
+    expect(errors.some((e) => e.includes("exactly one correct answer"))).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Open-ended — mirrors prompts/activity_open_ended_answer.liquid: a styled-span
+// header, per-question cards with a number caption, one or more prompt lines,
+// and a textarea with data-aria-id (no answer key).
+// ---------------------------------------------------------------------------
+
+const OPEN_ENDED = `
+<section data-section-type="activity_open_ended_answer" data-section-id="sec-oe">
+  <span class="adt-h3 font-bold" data-id="oe-title">Comprehension</span>
+  <div class="space-y-5">
+    <div class="rounded-2xl p-4">
+      <span class="w-8 shrink-0" data-id="oe-n1">1.</span>
+      <div class="flex-1">
+        <div class="adt-body" data-id="oe-q1">Why did the animals raid the farms?</div>
+        <textarea data-aria-id="aria-1-0-0" aria-label="Answer to question 1" tabindex="0"></textarea>
+      </div>
+    </div>
+    <div class="px-1 py-2">
+      <span class="w-8 shrink-0" data-id="oe-n2">2.</span>
+      <div class="flex-1">
+        <div class="adt-body" data-id="oe-q2a">What two gifts were promised?</div>
+        <div class="adt-body" data-id="oe-q2b">Why?</div>
+        <textarea data-aria-id="aria-1-0-1" aria-label="Answer to question 2" tabindex="0"></textarea>
+      </div>
+    </div>
+  </div>
+</section>`
+
+describe("extractEditableActivity — open-ended", () => {
+  it("extracts one step per writing field with its prompt and no answer key", () => {
+    const { activity, errors } = extractEditableActivity({
+      html: OPEN_ENDED,
+      sectionType: "activity_open_ended_answer",
+    })
+    expect(errors).toEqual([])
+    if (activity?.kind !== "open-ended") throw new Error("wrong kind")
+
+    // The styled-span header (no h1-h6) is recovered as the title.
+    expect(activity.title).toEqual({ text: "Comprehension", dataId: "oe-title" })
+    expect(activity.instructions).toBeUndefined()
+    expect(activity.steps).toHaveLength(2)
+
+    const [s1, s2] = activity.steps
+    expect(s1.prompt).toEqual({
+      text: "Why did the animals raid the farms?",
+      dataId: "oe-q1",
+    })
+    expect(s1.ariaId).toBe("aria-1-0-0")
+    expect(s1.multiline).toBe(true)
+    // Two prompt lines join; a joined text can't map to one catalog id.
+    expect(s2.prompt).toEqual({ text: "What two gifts were promised? Why?" })
+    expect(s2.ariaId).toBe("aria-1-0-1")
+  })
+
+  it("errors when there are no writable fields", () => {
+    const { activity, errors } = extractEditableActivity({
+      html: `<section data-section-type="activity_open_ended_answer"><p data-id="x">Read the story.</p></section>`,
+      sectionType: "activity_open_ended_answer",
+    })
+    expect(activity).toBeNull()
+    expect(errors.some((e) => e.includes("writable answer fields"))).toBe(true)
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Underline — mirrors prompts/activity_underline_text.liquid: every word of an
+// interactive sentence is wrapped in .activity-underline-option with a unique
+// data-activity-item and a data-question-group; correctness is a boolean map.
+// ---------------------------------------------------------------------------
+
+const opt = (id: string, group: string, text: string) =>
+  `<span class="activity-underline-option" data-activity-item="${id}" data-question-group="${group}">${text}</span>`
+
+const UNDERLINE = `
+<section data-section-type="activity_underline_text" data-section-id="sec-ul">
+  <h1 data-id="ul-title">Grammar</h1>
+  <p data-id="ul-instr">Underline the pronouns.</p>
+  <p data-id="ul-s1">${opt("item-1", "question-group-1", "I")} ${opt("item-2", "question-group-1", "like")} ${opt("item-3", "question-group-1", "bananas")}.</p>
+  <p data-id="ul-s2">${opt("item-4", "question-group-2", "She")} ${opt("item-5", "question-group-2", "runs")}.</p>
+</section>`
+
+describe("extractEditableActivity — underline", () => {
+  it("tokenizes each sentence into words with the answer key applied", () => {
+    const { activity, errors, warnings } = extractEditableActivity({
+      html: UNDERLINE,
+      sectionType: "activity_underline_text",
+      activityAnswers: {
+        "item-1": true,
+        "item-2": false,
+        "item-3": false,
+        "item-4": true,
+        "item-5": false,
+      },
+    })
+    expect(errors).toEqual([])
+    expect(warnings).toEqual([])
+    if (activity?.kind !== "underline-text") throw new Error("wrong kind")
+
+    expect(activity.title).toEqual({ text: "Grammar", dataId: "ul-title" })
+    expect(activity.instructions).toEqual({
+      text: "Underline the pronouns.",
+      dataId: "ul-instr",
+    })
+    expect(activity.steps).toHaveLength(2)
+
+    const [s1, s2] = activity.steps
+    expect(s1.id).toBe("question-group-1")
+    expect(s1.dataId).toBe("ul-s1")
+    // Words are selectable tokens; spaces/punctuation are plain connective text.
+    expect(s1.tokens).toEqual([
+      { itemId: "item-1", text: "I", correct: true },
+      { text: " " },
+      { itemId: "item-2", text: "like", correct: false },
+      { text: " " },
+      { itemId: "item-3", text: "bananas", correct: false },
+      { text: "." },
+    ])
+    expect(s2.tokens.filter((t) => t.itemId && t.correct).map((t) => t.text)).toEqual(["She"])
+  })
+
+  it("drops sentences whose answer key marks nothing (unwinnable), warning about it", () => {
+    const { activity, errors, warnings } = extractEditableActivity({
+      html: UNDERLINE,
+      sectionType: "activity_underline_text",
+      // group-1 has a correct word; group-2 has none → group-2 is dropped.
+      activityAnswers: {
+        "item-1": true,
+        "item-2": false,
+        "item-3": false,
+        "item-4": false,
+        "item-5": false,
+      },
+    })
+    expect(errors).toEqual([])
+    if (activity?.kind !== "underline-text") throw new Error("wrong kind")
+    expect(activity.steps.map((s) => s.id)).toEqual(["question-group-1"])
+    expect(warnings.some((w) => w.includes("no correct word"))).toBe(true)
+  })
+
+  it("errors when no sentence has a correct word", () => {
+    const { activity, errors } = extractEditableActivity({
+      html: UNDERLINE,
+      sectionType: "activity_underline_text",
+      activityAnswers: {},
+    })
+    expect(activity).toBeNull()
+    expect(errors.some((e) => e.includes("No answerable underline"))).toBe(true)
   })
 })

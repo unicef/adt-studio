@@ -175,10 +175,17 @@ function collectStructureTexts(activity: EditableActivity | null): Map<string, s
     for (const step of activity.steps) {
       for (const s of step.sentences) if (s.dataId) map.set(s.dataId, s.text)
     }
-  } else {
+  } else if (activity.kind === "multiple-choice") {
     for (const step of activity.steps) {
       add(step.prompt)
       for (const o of step.options) add(o.text)
+    }
+  } else if (activity.kind === "open-ended") {
+    for (const step of activity.steps) add(step.prompt)
+  } else {
+    for (const step of activity.steps) {
+      add(step.prompt)
+      if (step.dataId) map.set(step.dataId, step.tokens.map((tk) => tk.text).join(""))
     }
   }
   return map
@@ -509,7 +516,7 @@ export function ClassicActivityPanel({
   bookLabel,
   leaves,
   answers,
-  structure,
+  structure: rawStructure,
   outline,
   sectionType,
   activityTypes,
@@ -530,6 +537,16 @@ export function ClassicActivityPanel({
   onDiscard,
 }: ClassicActivityPanelProps) {
   const { t } = useLingui()
+
+  // Only FITB/MC get the structure's richer cards. Open-ended and underline now
+  // extract into an EditableActivity too, but the classic editor renders them
+  // entirely through the outline (as it did before they were extractable) — so
+  // treat a structure of those kinds as "no rich structure" here.
+  const structure =
+    rawStructure &&
+    (rawStructure.kind === "fill-in-the-blank" || rawStructure.kind === "multiple-choice")
+      ? rawStructure
+      : null
 
   const structureTextIds = useMemo(
     () => new Set(collectStructureTexts(structure).keys()),

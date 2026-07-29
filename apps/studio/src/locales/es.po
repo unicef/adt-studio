@@ -5585,6 +5585,9 @@ msgstr "Abre esta sección para ajustar el modelo, el prompt del juez, el compor
 msgid "Open Validation"
 msgstr "Open Validation"
 
+msgid "Open-ended — learners write a free response; there is no fixed answer."
+msgstr "Respuesta abierta: los estudiantes escriben una respuesta libre; no hay una respuesta fija."
+
 msgid "Open-source license"
 msgstr "Licencia open source"
 
@@ -6249,6 +6252,9 @@ msgstr "Nombre del Proyecto"
 msgid "Prompt"
 msgstr "Prompt"
 
+msgid "Prompt (optional)"
+msgstr "Enunciado (opcional)"
+
 msgid "Prompt file created from template."
 msgstr "Archivo de prompt creado desde la plantilla."
 
@@ -6531,6 +6537,24 @@ msgstr "Realista / Foto"
 
 msgid "Rearranging atoms of HTML..."
 msgstr "Reorganizando los átomos de HTML..."
+
+msgid "Rebuild failed"
+msgstr "Error al reconstruir"
+
+msgid "Rebuild from page"
+msgstr "Reconstruir desde la página"
+
+msgid "Rebuild the steps from the page's current content"
+msgstr "Reconstruir los pasos a partir del contenido actual de la página"
+
+msgid "Rebuild this step-by-step activity from the page? Any manual edits to the steps, answers, or feedback will be replaced."
+msgstr "¿Reconstruir esta actividad paso a paso desde la página? Se reemplazarán los cambios manuales en los pasos, las respuestas o la retroalimentación."
+
+msgid "Rebuilding…"
+msgstr "Reconstruyendo…"
+
+msgid "Rebuilt from the page"
+msgstr "Reconstruido desde la página"
 
 msgid "Recommended"
 msgstr "Recomendado"
@@ -7425,6 +7449,10 @@ msgstr "Aplicación web ADT autónoma"
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Envía este archivo de proyecto al coordinador para combinarlo en el libro de origen."
 
+#. placeholder {0}: si + 1
+msgid "Sentence {0}"
+msgstr "Oración {0}"
+
 msgid "Sentence with blank markers"
 msgstr "Oración con marcadores de espacios"
 
@@ -8024,6 +8052,9 @@ msgstr "Clases de Tailwind"
 msgid "Takes liberties and produces something similar."
 msgstr "Toma libertades y produce algo similar."
 
+msgid "Tap the words that should be underlined"
+msgstr "Toca las palabras que se deben subrayar"
+
 msgid "Target"
 msgstr "Destino"
 
@@ -8296,8 +8327,11 @@ msgstr "El río se encuentra con el mar"
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "La revisión de traducción guardada está obsoleta. Vuelve a ejecutar Revisar para las traducciones visibles."
 
-msgid "The section was edited after conversion — switch back to classic and convert again to refresh the steps."
-msgstr "La sección se editó después de la conversión — vuelve a la versión clásica y conviértela de nuevo para actualizar los pasos."
+#~ msgid "The section was edited after conversion — switch back to classic and convert again to refresh the steps."
+#~ msgstr "La sección se editó después de la conversión — vuelve a la versión clásica y conviértela de nuevo para actualizar los pasos."
+
+msgid "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
+msgstr "La sección se editó después de la conversión: usa «Reconstruir desde la página» para actualizar los pasos."
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "El storyboard debe completarse antes de generar {stageName}. Ejecuta la etapa de Storyboard primero."
@@ -9288,6 +9322,12 @@ msgstr "Palabra"
 
 msgid "Word and definition are required."
 msgstr "La palabra y la definición son obligatorias."
+
+msgid "Word bank"
+msgstr "Banco de palabras"
+
+msgid "Word bank — words to choose from, separated by commas (shown on every step)"
+msgstr "Banco de palabras: palabras para elegir, separadas por comas (se muestra en cada paso)"
 
 msgid "Word Highlighting"
 msgstr "Resaltado de palabras"

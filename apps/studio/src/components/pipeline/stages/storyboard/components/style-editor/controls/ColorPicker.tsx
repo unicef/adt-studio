@@ -1,5 +1,12 @@
 import Color from "color";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useMemo,
+  useState,
+  type ComponentPropsWithoutRef,
+  type ReactNode,
+} from "react";
 import { Check, Search } from "lucide-react";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { cn } from "@/lib/utils";
@@ -350,24 +357,34 @@ function TransparentButton({ onClick }: { onClick: () => void }) {
   );
 }
 
-function SwatchButton({ color }: { color: string }) {
+// Must forward the ref and spread injected props: when no custom trigger is
+// passed, `<PopoverTrigger asChild>` renders this as the trigger and needs to
+// attach its ref + onClick here. Dropping them (the previous bug) left the
+// swatch inert, so the picker never opened (e.g. the activity editor's accent).
+const SwatchButton = forwardRef<
+  HTMLButtonElement,
+  { color: string } & ComponentPropsWithoutRef<"button">
+>(function SwatchButton({ color, style, ...props }, ref) {
   return (
     <button
+      ref={ref}
       type="button"
+      {...props}
       className="relative inline-block h-5 w-5 shrink-0 overflow-hidden rounded border border-border/60 cursor-pointer"
       aria-label={color}
-      style={
-        color === "transparent"
+      style={{
+        ...(color === "transparent"
           ? {
               backgroundImage: TRANSPARENT_PATTERN,
               backgroundSize: "6px 6px",
               backgroundPosition: "0 0, 3px 3px",
             }
-          : { backgroundColor: color }
-      }
+          : { backgroundColor: color }),
+        ...style,
+      }}
     />
   );
-}
+});
 
 function isHex(s: string): boolean {
   // 6-digit (#abcdef) or 8-digit (#abcdefab — RGBA) hex.

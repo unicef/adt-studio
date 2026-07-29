@@ -14,6 +14,7 @@ import type {
   FitbSentence,
   FitbStep,
   McStep,
+  UnderlineStep,
 } from "@adt/types"
 
 export interface StepperPalette {
@@ -114,6 +115,14 @@ export function blankWidthCh(answers: string[], hint?: string): number {
 export function isMcStepCorrect(step: McStep, selectedItemId: string | null): boolean {
   if (!selectedItemId) return false
   return step.options.some((o) => o.itemId === selectedItemId && o.correct)
+}
+
+/** Underline step is correct when the selected words match the answer key
+ *  exactly: every word that should be underlined is selected, and none that
+ *  shouldn't. Plain (non-selectable) tokens are ignored. */
+export function isUnderlineStepCorrect(step: UnderlineStep, selected: Iterable<string>): boolean {
+  const sel = new Set(selected)
+  return step.tokens.every((t) => !t.itemId || sel.has(t.itemId) === Boolean(t.correct))
 }
 
 /**

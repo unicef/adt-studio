@@ -19,7 +19,13 @@ import React, {
 } from "react"
 import { createRoot } from "react-dom/client"
 import { Provider as JotaiProvider, getDefaultStore, useAtomValue } from "jotai"
-import type { EditableActivity, FitbStep, McStep } from "@adt/types"
+import type {
+  EditableActivity,
+  FitbStep,
+  McStep,
+  OpenEndedStep,
+  UnderlineStep,
+} from "@adt/types"
 import { translationsAtom } from "@/features/language/state/language.atoms"
 import {
   pagesAtom,
@@ -42,12 +48,14 @@ import {
   resolveSentenceText,
   isBlankCorrect,
   isMcStepCorrect,
+  isUnderlineStepCorrect,
   blankWidthCh,
   standaloneBlanks,
   readableOnWhite,
   clampStageHeight,
   IMAGE_UPSCALE_CAP,
 } from "./stepper-logic"
+import { containsProfanity } from "../lib/profanity-detector"
 
 const GREEN = "rgb(22, 163, 74)"
 /** Darker green/red for text — the mid tones pass AA only as borders/badges. */
@@ -131,7 +139,7 @@ type StepStatus = "correct" | "incorrect"
 function StepperActivity({ payload }: { payload: StepperPayload }): React.ReactElement {
   const { activity, palette } = payload
   const dict = useAtomValue(translationsAtom)
-  const steps = activity.steps as Array<FitbStep | McStep>
+  const steps = activity.steps as Array<FitbStep | McStep | OpenEndedStep | UnderlineStep>
   const slug = useMemo(pageSlug, [])
 
   const [stepIndex, setStepIndex] = useState<number>(() => {
@@ -143,6 +151,14 @@ function StepperActivity({ payload }: { payload: StepperPayload }): React.ReactE
   )
   const [mcSelected, setMcSelected] = useState<Record<string, string>>(() =>
     loadStored(`${slug}_stepper_selected`, {}),
+  )
+  // Open-ended free text, keyed by step id.
+  const [openEndedValues, setOpenEndedValues] = useState<Record<string, string>>(() =>
+    loadStored(`${slug}_stepper_open`, {}),
+  )
+  // Underline: the selected word item-ids per step.
+  const [underlineSelected, setUnderlineSelected] = useState<Record<string, string[]>>(() =>
+    loadStored(`${slug}_stepper_underline`, {}),
   )
   const [statuses, setStatuses] = useState<Record<string, StepStatus>>({})
 
@@ -182,12 +198,17 @@ function StepperActivity({ payload }: { payload: StepperPayload }): React.ReactE
 
   // Every blank must have something in it before Check unlocks — grading a
   // half-entered multi-blank step as "wrong" would just punish slow typing.
+  // Each kind has its own "ready to check" rule.
   const filled =
     activity.kind === "fill-in-the-blank"
       ? (currentStep as FitbStep).blanks.every(
           (b) => (fitbValues[b.itemId] ?? "").trim() !== "",
         )
-      : Boolean(mcSelected[currentStep.id])
+      : activity.kind === "multiple-choice"
+        ? Boolean(mcSelected[currentStep.id])
+        : activity.kind === "open-ended"
+          ? (openEndedValues[currentStep.id] ?? "").trim() !== ""
+          : (underlineSelected[currentStep.id]?.length ?? 0) > 0
   // Once checked (right OR wrong) the learner may always continue. In the
   // storyboard's embedded preview the last "Next" would navigate the iframe
   // out of the section, so it's disabled there (same rule the dock used).
@@ -208,10 +229,21 @@ function StepperActivity({ payload }: { payload: StepperPayload }): React.ReactE
     }
     if (!filled) return
 
-    const correct =
-      activity.kind === "fill-in-the-blank"
-        ? fitbStepCorrect(currentStep as FitbStep, fitbValues)
-        : isMcStepCorrect(currentStep as McStep, mcSelected[currentStep.id] ?? null)
+    let correct: boolean
+    if (activity.kind === "fill-in-the-blank") {
+      correct = fitbStepCorrect(currentStep as FitbStep, fitbValues)
+    } else if (activity.kind === "multiple-choice") {
+      correct = isMcStepCorrect(currentStep as McStep, mcSelected[currentStep.id] ?? null)
+    } else if (activity.kind === "open-ended") {
+      // No answer key — any non-empty, non-profane response is accepted.
+      const value = openEndedValues[currentStep.id] ?? ""
+      correct = value.trim() !== "" && !containsProfanity(value)
+    } else {
+      correct = isUnderlineStepCorrect(
+        currentStep as UnderlineStep,
+        underlineSelected[currentStep.id] ?? [],
+      )
+    }
 
     setStatuses((prev) => ({ ...prev, [currentStep.id]: correct ? "correct" : "incorrect" }))
     playActivitySound(correct ? "success" : "error")
@@ -242,6 +274,8 @@ function StepperActivity({ payload }: { payload: StepperPayload }): React.ReactE
     currentStep,
     fitbValues,
     mcSelected,
+    openEndedValues,
+    underlineSelected,
     goToStep,
     fitbStepCorrect,
   ])
@@ -258,8 +292,16 @@ function StepperActivity({ payload }: { payload: StepperPayload }): React.ReactE
         return next
       })
       for (const id of itemIds) delete prevBlankValidity.current[id]
-    } else {
+    } else if (activity.kind === "multiple-choice") {
       setMcSelected((prev) =>
+        Object.fromEntries(Object.entries(prev).filter(([k]) => k !== step.id)),
+      )
+    } else if (activity.kind === "open-ended") {
+      setOpenEndedValues((prev) =>
+        Object.fromEntries(Object.entries(prev).filter(([k]) => k !== step.id)),
+      )
+    } else {
+      setUnderlineSelected((prev) =>
         Object.fromEntries(Object.entries(prev).filter(([k]) => k !== step.id)),
       )
     }
@@ -268,7 +310,7 @@ function StepperActivity({ payload }: { payload: StepperPayload }): React.ReactE
     )
     window.setTimeout(() => {
       stepContainer.current
-        ?.querySelector<HTMLElement>('input, textarea, [role="radio"]')
+        ?.querySelector<HTMLElement>('input, textarea, [role="radio"], [role="checkbox"]')
         ?.focus()
     }, 0)
   }, [activity.kind, currentStep])
@@ -303,8 +345,12 @@ function StepperActivity({ payload }: { payload: StepperPayload }): React.ReactE
         return
       }
       if (e.key !== "Enter") return
+      // A textarea (open-ended writing area) keeps Enter for newlines.
+      if (target?.tagName === "TEXTAREA") return
       if (target?.closest?.("[data-stepper-primary]")) return
       if (target?.closest?.("[data-stepper-nav]")) return
+      // An underline word toggles its own selection on Enter.
+      if (target?.closest?.('[role="checkbox"]')) return
       const radio = target?.closest?.('[role="radio"]')
       if (radio && radio.getAttribute("aria-checked") !== "true") return
       e.preventDefault()
@@ -321,6 +367,12 @@ function StepperActivity({ payload }: { payload: StepperPayload }): React.ReactE
   useEffect(() => {
     saveStored(`${slug}_stepper_selected`, mcSelected)
   }, [slug, mcSelected])
+  useEffect(() => {
+    saveStored(`${slug}_stepper_open`, openEndedValues)
+  }, [slug, openEndedValues])
+  useEffect(() => {
+    saveStored(`${slug}_stepper_underline`, underlineSelected)
+  }, [slug, underlineSelected])
 
   // Announce + focus on step change (not on initial mount). Focus lands on
   // the answer field (or first option) so type → Enter → Enter flows without
@@ -335,7 +387,7 @@ function StepperActivity({ payload }: { payload: StepperPayload }): React.ReactE
       template.replace("${n}", String(stepIndex + 1)).replace("${m}", String(steps.length)),
     )
     const focusTarget = stepContainer.current?.querySelector<HTMLElement>(
-      'input, textarea, [role="radio"]',
+      'input, textarea, [role="radio"], [role="checkbox"]',
     )
     ;(focusTarget ?? stepContainer.current)?.focus()
   }, [stepIndex, steps.length])
@@ -368,8 +420,41 @@ function StepperActivity({ payload }: { payload: StepperPayload }): React.ReactE
     playActivitySound("drop")
   }
 
+  const onOpenEndedChange = (stepId: string, value: string): void => {
+    setOpenEndedValues((prev) => ({ ...prev, [stepId]: value }))
+    // Editing re-arms the check — the verdict belongs to the checked text.
+    setStatuses((prev) =>
+      prev[stepId] !== undefined
+        ? Object.fromEntries(Object.entries(prev).filter(([k]) => k !== stepId))
+        : prev,
+    )
+  }
+
+  const onToggleToken = (stepId: string, itemId: string): void => {
+    setUnderlineSelected((prev) => {
+      const current = prev[stepId] ?? []
+      const next = current.includes(itemId)
+        ? current.filter((id) => id !== itemId)
+        : [...current, itemId]
+      return { ...prev, [stepId]: next }
+    })
+    // Toggling re-arms the check so verdicts never show for an unchecked pick.
+    setStatuses((prev) =>
+      Object.fromEntries(Object.entries(prev).filter(([k]) => k !== stepId)),
+    )
+    playActivitySound("drop")
+  }
+
   const titleText = resolveText(activity.title, dict)
   const instructionsText = resolveText(activity.instructions, dict)
+  const wordBankText = resolveText(activity.wordBank, dict)
+  // A cloze word bank is comma-separated in the source; show each word as a
+  // chip. Persistent (in the card header) so it's visible on every step —
+  // learners draw every answer from it.
+  const wordBankWords = wordBankText
+    .split(/[,،]/)
+    .map((w) => w.trim())
+    .filter(Boolean)
   const imageMaxHeight = IMAGE_MAX_HEIGHT[activity.theme?.imageSize ?? "medium"]
   // Book accents are often mid-tone (pink, orange) and fail AA as text color —
   // headings/controls use a contrast-safe darkened accent; the raw accent only
@@ -436,6 +521,18 @@ function StepperActivity({ payload }: { payload: StepperPayload }): React.ReactE
         )?.explanation
       : undefined
 
+  // Open-ended has no right answer, so its default messages are encouraging
+  // rather than "Correct!"/"Try again" (the incorrect state only appears when
+  // a response is flagged as inappropriate).
+  const defaultCorrect =
+    activity.kind === "open-ended"
+      ? tr("stepper-open-ended-saved", "Nice work — your answer is saved.")
+      : tr("multiple-choice-correct-answer", "Correct!")
+  const defaultIncorrect =
+    activity.kind === "open-ended"
+      ? tr("stepper-open-ended-rephrase", "Let's keep it kind — try rephrasing your answer.")
+      : tr("multiple-choice-try-again", "Try again")
+
   return (
     <div
       ref={cardRef}
@@ -450,7 +547,11 @@ function StepperActivity({ payload }: { payload: StepperPayload }): React.ReactE
       aria-label={
         activity.kind === "fill-in-the-blank"
           ? tr("fitb-activity-label", "Fill in the blank activity")
-          : tr("activity-options-label", "Answer options")
+          : activity.kind === "open-ended"
+            ? tr("open-ended-activity-label", "Open-ended answer activity")
+            : activity.kind === "underline-text"
+              ? tr("underline-text-options-label", "Underline the correct text")
+              : tr("activity-options-label", "Answer options")
       }
     >
       <style>{FOCUS_CSS}</style>
@@ -487,6 +588,35 @@ function StepperActivity({ payload }: { payload: StepperPayload }): React.ReactE
             {instructionsText}
           </p>
         ) : null}
+        {wordBankWords.length > 0 ? (
+          <div
+            className="mx-auto mt-4 max-w-2xl rounded-2xl px-4 py-3"
+            style={{ backgroundColor: palette.accentSoft, border: "1px solid rgba(0,0,0,0.08)" }}
+            role="group"
+            aria-label={tr("stepper-word-bank", "Words to choose from")}
+          >
+            <p
+              className="mb-2 text-center text-sm font-bold uppercase tracking-wide"
+              style={{ color: accentDark }}
+            >
+              {tr("stepper-word-bank", "Words to choose from")}
+            </p>
+            <div
+              className="flex flex-wrap justify-center gap-2"
+              {...(activity.wordBank?.dataId ? { "data-id": activity.wordBank.dataId } : {})}
+            >
+              {wordBankWords.map((word, i) => (
+                <span
+                  key={i}
+                  className="rounded-full bg-white px-3 py-1 text-base font-medium md:text-lg"
+                  style={{ border: `2px solid ${accentDark}`, color: INK }}
+                >
+                  {word}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {/* Step body */}
         <div ref={stepContainer} tabIndex={-1} className="mt-7 outline-none">
@@ -502,7 +632,7 @@ function StepperActivity({ payload }: { payload: StepperPayload }): React.ReactE
               accentDark={accentDark}
               onChange={onBlankChange}
             />
-          ) : (
+          ) : activity.kind === "multiple-choice" ? (
             <McStepView
               step={currentStep as McStep}
               dict={dict}
@@ -516,6 +646,31 @@ function StepperActivity({ payload }: { payload: StepperPayload }): React.ReactE
               accentSoft={palette.accentSoft}
               optionColumns={activity.theme?.optionColumns}
               onSelect={onSelectOption}
+            />
+          ) : activity.kind === "open-ended" ? (
+            <OpenEndedStepView
+              step={currentStep as OpenEndedStep}
+              dict={dict}
+              value={openEndedValues[currentStep.id] ?? ""}
+              status={currentStatus}
+              stageHeight={stageHeight}
+              imageNaturalHeight={currentNaturalHeight}
+              reserveImageSpace={reserveImageSpace}
+              accentDark={accentDark}
+              onChange={onOpenEndedChange}
+            />
+          ) : (
+            <UnderlineStepView
+              step={currentStep as UnderlineStep}
+              dict={dict}
+              selected={underlineSelected[currentStep.id] ?? []}
+              status={currentStatus}
+              stageHeight={stageHeight}
+              imageNaturalHeight={currentNaturalHeight}
+              reserveImageSpace={reserveImageSpace}
+              accentDark={accentDark}
+              accentSoft={palette.accentSoft}
+              onToggle={onToggleToken}
             />
           )}
 
@@ -531,9 +686,7 @@ function StepperActivity({ payload }: { payload: StepperPayload }): React.ReactE
               >
                 <i className="fas fa-check-circle shrink-0" aria-hidden="true" />
                 <span>
-                  {currentStep.feedback?.correct ||
-                    mcExplanation ||
-                    tr("multiple-choice-correct-answer", "Correct!")}
+                  {currentStep.feedback?.correct || mcExplanation || defaultCorrect}
                 </span>
               </p>
             ) : currentStatus === "incorrect" ? (
@@ -543,8 +696,7 @@ function StepperActivity({ payload }: { payload: StepperPayload }): React.ReactE
               >
                 <i className="fas fa-times-circle shrink-0" aria-hidden="true" />
                 <span>
-                  {currentStep.feedback?.incorrect ||
-                    tr("multiple-choice-try-again", "Try again")}
+                  {currentStep.feedback?.incorrect || defaultIncorrect}
                 </span>
               </p>
             ) : null}
@@ -1010,6 +1162,207 @@ function McStepView({
           )
         })}
       </div>
+    </div>
+  )
+}
+
+function OpenEndedStepView({
+  step,
+  dict,
+  value,
+  status,
+  stageHeight,
+  imageNaturalHeight,
+  reserveImageSpace,
+  accentDark,
+  onChange,
+}: {
+  step: OpenEndedStep
+  dict: Record<string, string>
+  value: string
+  status: StepStatus | undefined
+  stageHeight: number
+  imageNaturalHeight: number | undefined
+  reserveImageSpace: boolean
+  accentDark: string
+  onChange: (stepId: string, value: string) => void
+}): React.ReactElement {
+  const promptText = resolveText(step.prompt, dict)
+  // Open-ended sources are almost always multi-line writing areas; a single
+  // short input is the exception, kept only when explicitly extracted as one.
+  const multiline = step.multiline ?? true
+  const borderColor = status === "incorrect" ? RED : status === "correct" ? GREEN : accentDark
+  const shared = {
+    value,
+    placeholder: step.hint,
+    "aria-label": tr("open-ended-answer-label", "Your answer"),
+    onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
+      onChange(step.id, e.target.value),
+  }
+  return (
+    <div>
+      {reserveImageSpace ? (
+        <div
+          className="mb-6 flex items-center justify-center"
+          style={{ height: `min(${stageHeight}px, 38vh)` }}
+        >
+          {step.image ? (
+            <img
+              src={step.image.src}
+              alt={step.image.decorative ? "" : (step.image.alt ?? "")}
+              {...(step.image.decorative ? { "aria-hidden": true } : {})}
+              className="rounded-xl object-contain"
+              style={{
+                height: imageNaturalHeight
+                  ? `min(100%, ${imageNaturalHeight * IMAGE_UPSCALE_CAP}px)`
+                  : undefined,
+                maxHeight: "100%",
+                maxWidth: "100%",
+              }}
+            />
+          ) : null}
+        </div>
+      ) : null}
+      {promptText ? (
+        <p
+          className="mb-5 text-center text-xl font-semibold md:text-2xl"
+          {...(step.prompt?.dataId ? { "data-id": step.prompt.dataId } : {})}
+        >
+          {promptText}
+        </p>
+      ) : null}
+      {multiline ? (
+        <textarea
+          {...shared}
+          rows={4}
+          autoComplete="off"
+          className="w-full rounded-2xl bg-white px-5 py-3 text-lg leading-relaxed md:text-xl focus:outline-none focus:ring-4 focus:ring-blue-200"
+          style={{ border: `3px solid ${borderColor}` }}
+        />
+      ) : (
+        <input
+          {...shared}
+          type="text"
+          autoComplete="off"
+          className="w-full rounded-2xl bg-white px-5 py-3 text-lg md:text-xl focus:outline-none focus:ring-4 focus:ring-blue-200"
+          style={{ border: `3px solid ${borderColor}` }}
+        />
+      )}
+    </div>
+  )
+}
+
+function UnderlineStepView({
+  step,
+  dict,
+  selected,
+  status,
+  stageHeight,
+  imageNaturalHeight,
+  reserveImageSpace,
+  accentDark,
+  accentSoft,
+  onToggle,
+}: {
+  step: UnderlineStep
+  dict: Record<string, string>
+  selected: string[]
+  status: StepStatus | undefined
+  stageHeight: number
+  imageNaturalHeight: number | undefined
+  reserveImageSpace: boolean
+  accentDark: string
+  accentSoft: string
+  onToggle: (stepId: string, itemId: string) => void
+}): React.ReactElement {
+  const selectedSet = new Set(selected)
+  const promptText = resolveText(step.prompt, dict)
+  const checked = status !== undefined
+  return (
+    <div>
+      {reserveImageSpace ? (
+        <div
+          className="mb-6 flex items-center justify-center"
+          style={{ height: `min(${stageHeight}px, 38vh)` }}
+        >
+          {step.image ? (
+            <img
+              src={step.image.src}
+              alt={step.image.decorative ? "" : (step.image.alt ?? "")}
+              {...(step.image.decorative ? { "aria-hidden": true } : {})}
+              className="rounded-xl object-contain"
+              style={{
+                height: imageNaturalHeight
+                  ? `min(100%, ${imageNaturalHeight * IMAGE_UPSCALE_CAP}px)`
+                  : undefined,
+                maxHeight: "100%",
+                maxWidth: "100%",
+              }}
+            />
+          ) : null}
+        </div>
+      ) : null}
+      {promptText ? (
+        <p
+          className="mb-5 text-center text-xl font-semibold md:text-2xl"
+          {...(step.prompt?.dataId ? { "data-id": step.prompt.dataId } : {})}
+        >
+          {promptText}
+        </p>
+      ) : null}
+      <p
+        className="text-center text-2xl leading-relaxed md:text-3xl"
+        style={{ color: INK }}
+        {...(step.dataId ? { "data-id": step.dataId } : {})}
+      >
+        {step.tokens.map((token, i) => {
+          if (!token.itemId) {
+            return <React.Fragment key={i}>{token.text}</React.Fragment>
+          }
+          const itemId = token.itemId
+          const isSelected = selectedSet.has(itemId)
+          // Verdict shows only after checking, and only on the learner's own
+          // picks — a missed correct word stays neutral so the answer is never
+          // revealed on a wrong attempt (same rule as multiple-choice).
+          const verdict = checked && isSelected ? Boolean(token.correct) : null
+          // Distinct shapes, not color alone (WCAG 1.4.1): underline = right
+          // pick, strike-through = wrong pick, plain = unselected.
+          const decoration = !isSelected
+            ? "none"
+            : verdict === false
+              ? "line-through"
+              : "underline"
+          const lineColor = verdict === null ? accentDark : verdict ? GREEN : RED
+          const textColor = verdict === null ? INK : verdict ? GREEN_TEXT : RED_TEXT
+          return (
+            <button
+              key={i}
+              type="button"
+              role="checkbox"
+              aria-checked={isSelected}
+              aria-invalid={verdict === false}
+              onClick={() => onToggle(step.id, itemId)}
+              className="mx-0.5 inline cursor-pointer rounded px-1 transition-colors"
+              style={{
+                textDecorationLine: decoration,
+                textDecorationColor: lineColor,
+                textDecorationThickness: "3px",
+                textUnderlineOffset: "0.18em",
+                color: textColor,
+                backgroundColor: isSelected
+                  ? verdict === null
+                    ? accentSoft
+                    : verdict
+                      ? "rgba(22,163,74,0.12)"
+                      : "rgba(220,38,38,0.12)"
+                  : "transparent",
+              }}
+            >
+              {token.text}
+            </button>
+          )
+        })}
+      </p>
     </div>
   )
 }

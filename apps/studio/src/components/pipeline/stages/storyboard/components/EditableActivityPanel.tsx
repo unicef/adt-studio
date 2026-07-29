@@ -78,10 +78,22 @@ function nextItemNumber(activity: EditableActivity): number {
       for (const b of step.blanks) scan(b.itemId)
       for (const s of step.sentences) for (const id of blankItemIdsInText(s.text)) scan(id)
     }
-  } else {
+  } else if (activity.kind === "multiple-choice") {
     for (const step of activity.steps) for (const o of step.options) scan(o.itemId)
   }
+  // open-ended / underline don't mint new item-N ids in the editor.
   return max + 1
+}
+
+/** Next `step-N` id not already used by a step (keeps ids unique across
+ *  add/delete/reorder). */
+function nextStepId(steps: Array<{ id: string }>): string {
+  let max = 0
+  for (const s of steps) {
+    const m = /^step-(\d+)$/.exec(s.id)
+    if (m) max = Math.max(max, Number(m[1]))
+  }
+  return `step-${max + 1}`
 }
 
 function moveItem<T>(list: T[], from: number, to: number): T[] {
@@ -214,6 +226,15 @@ export function EditableActivityPanel({
     }))
   }
 
+  // Word bank (fill-in-the-blank cloze) — the shared list of words shown on
+  // every step. dataId dropped on edit, same as setText.
+  const setWordBank = (value: string) => {
+    setDraft((d) => ({
+      ...d,
+      wordBank: value.trim() === "" ? undefined : { text: value },
+    }))
+  }
+
   // ---------------------------------------------------------------------------
   // FITB editing
   // ---------------------------------------------------------------------------
@@ -339,6 +360,84 @@ export function EditableActivityPanel({
       ],
     }
     setDraft((d) => (d.kind === "multiple-choice" ? { ...d, steps: [...d.steps, step] } : d))
+  }
+
+  // ---------------------------------------------------------------------------
+  // Open-ended editing
+  // ---------------------------------------------------------------------------
+
+  const updateOpenEndedPrompt = (index: number, value: string) => {
+    setDraft((d) =>
+      d.kind === "open-ended"
+        ? {
+            ...d,
+            steps: d.steps.map((s, i) =>
+              i === index
+                ? // dataId dropped on edit — see the note on setText.
+                  { ...s, prompt: value.trim() === "" ? undefined : { text: value } }
+                : s,
+            ),
+          }
+        : d,
+    )
+  }
+
+  const addOpenEndedStep = () => {
+    if (draft.kind !== "open-ended") return
+    setDraft((d) =>
+      d.kind === "open-ended"
+        ? {
+            ...d,
+            steps: [
+              ...d.steps,
+              { id: nextStepId(d.steps), prompt: { text: "" }, multiline: true },
+            ],
+          }
+        : d,
+    )
+  }
+
+  // ---------------------------------------------------------------------------
+  // Underline editing — the only editable field is the answer key (which words
+  // should be underlined); the sentence/token structure comes from extraction.
+  // ---------------------------------------------------------------------------
+
+  const updateUnderlinePrompt = (index: number, value: string) => {
+    setDraft((d) =>
+      d.kind === "underline-text"
+        ? {
+            ...d,
+            steps: d.steps.map((s, i) =>
+              i === index
+                ? { ...s, prompt: value.trim() === "" ? undefined : { text: value } }
+                : s,
+            ),
+          }
+        : d,
+    )
+  }
+
+  const toggleUnderlineCorrect = (index: number, itemId: string) => {
+    setDraft((d) => {
+      if (d.kind !== "underline-text") return d
+      return {
+        ...d,
+        steps: d.steps.map((s, i) => {
+          if (i !== index) return s
+          const correctCount = s.tokens.filter((tk) => tk.itemId && tk.correct).length
+          return {
+            ...s,
+            tokens: s.tokens.map((tk) => {
+              if (tk.itemId !== itemId) return tk
+              // Keep at least one correct word — a sentence with none can't be
+              // completed and fails validation on save.
+              if (tk.correct && correctCount <= 1) return tk
+              return { ...tk, correct: !tk.correct }
+            }),
+          }
+        }),
+      }
+    })
   }
 
   const deleteStep = (index: number) => {
@@ -576,6 +675,16 @@ export function EditableActivityPanel({
             placeholder={t`Instructions`}
             className="h-8 text-sm"
           />
+          {draft.kind === "fill-in-the-blank" && (
+            <textarea
+              value={draft.wordBank?.text ?? ""}
+              onChange={(e) => setWordBank(e.target.value)}
+              placeholder={t`Word bank — words to choose from, separated by commas (shown on every step)`}
+              aria-label={t`Word bank`}
+              rows={2}
+              className="w-full rounded border bg-background p-2 text-sm"
+            />
+          )}
         </div>
 
         {/* Steps */}
@@ -643,7 +752,8 @@ export function EditableActivityPanel({
                   {feedbackFields(si, step.feedback)}
                 </div>
               ))
-            : draft.steps.map((step, si) => (
+            : draft.kind === "multiple-choice"
+            ? draft.steps.map((step, si) => (
                 <div key={step.id} className="rounded border p-3 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-medium">{t`Question ${si + 1}`}</span>
@@ -723,16 +833,93 @@ export function EditableActivityPanel({
                   </button>
                   {feedbackFields(si, step.feedback)}
                 </div>
+              ))
+            : draft.kind === "open-ended"
+            ? draft.steps.map((step, si) => (
+                <div key={step.id} className="rounded border p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium">{t`Question ${si + 1}`}</span>
+                    {stepControls(si)}
+                  </div>
+                  <textarea
+                    value={step.prompt?.text ?? ""}
+                    onChange={(e) => updateOpenEndedPrompt(si, e.target.value)}
+                    rows={2}
+                    className="w-full rounded border bg-background p-2 text-xs"
+                    placeholder={t`Question prompt`}
+                    aria-label={t`Question prompt`}
+                  />
+                  {stepImageControls(si, step.image)}
+                  <p className="text-[10px] italic text-muted-foreground">
+                    {t`Open-ended — learners write a free response; there is no fixed answer.`}
+                  </p>
+                  {feedbackFields(si, step.feedback)}
+                </div>
+              ))
+            : draft.steps.map((step, si) => (
+                <div key={step.id} className="rounded border p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium">{t`Sentence ${si + 1}`}</span>
+                    {stepControls(si)}
+                  </div>
+                  <Input
+                    value={step.prompt?.text ?? ""}
+                    onChange={(e) => updateUnderlinePrompt(si, e.target.value)}
+                    placeholder={t`Prompt (optional)`}
+                    className="h-8 text-sm"
+                  />
+                  {stepImageControls(si, step.image)}
+                  <div className="space-y-1.5">
+                    <span className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-green-700">
+                      <Check className="h-3 w-3" aria-hidden="true" />
+                      {t`Tap the words that should be underlined`}
+                    </span>
+                    <div className="flex flex-wrap items-baseline gap-1">
+                      {step.tokens.map((tk, ti) =>
+                        tk.itemId ? (
+                          <button
+                            key={ti}
+                            type="button"
+                            onClick={() => toggleUnderlineCorrect(si, tk.itemId!)}
+                            className={`rounded border px-1.5 py-0.5 text-xs cursor-pointer transition-colors ${
+                              tk.correct
+                                ? "border-green-500 bg-green-50 text-green-800 underline"
+                                : "border-slate-300 bg-background hover:border-slate-400"
+                            }`}
+                            aria-pressed={tk.correct ?? false}
+                          >
+                            {tk.text}
+                          </button>
+                        ) : tk.text.trim() ? (
+                          <span key={ti} className="px-0.5 text-xs text-muted-foreground">
+                            {tk.text}
+                          </span>
+                        ) : (
+                          <span key={ti}> </span>
+                        ),
+                      )}
+                    </div>
+                  </div>
+                  {feedbackFields(si, step.feedback)}
+                </div>
               ))}
 
-          <button
-            type="button"
-            onClick={draft.kind === "fill-in-the-blank" ? addFitbStep : addMcStep}
-            className="flex items-center gap-1.5 rounded border border-dashed px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-solid transition-colors cursor-pointer w-full justify-center"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            {draft.kind === "fill-in-the-blank" ? t`Add step` : t`Add question`}
-          </button>
+          {draft.kind !== "underline-text" && (
+            <button
+              type="button"
+              onClick={
+                draft.kind === "fill-in-the-blank"
+                  ? addFitbStep
+                  : draft.kind === "multiple-choice"
+                    ? addMcStep
+                    : addOpenEndedStep
+              }
+              className="flex items-center gap-1.5 rounded border border-dashed px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:border-solid transition-colors cursor-pointer w-full justify-center"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              {draft.kind === "fill-in-the-blank" ? t`Add step` : t`Add question`}
+            </button>
+          )}
         </div>
       </div>
 

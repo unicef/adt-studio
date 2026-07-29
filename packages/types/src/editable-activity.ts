@@ -147,6 +147,79 @@ export const McStep = z
   })
 export type McStep = z.infer<typeof McStep>
 
+// ── Open-ended (free-text) ─────────────────────────────────────────────────
+
+export const OpenEndedStep = z.object({
+  /** Stable id for editing/rendering (extraction uses `step-N`). */
+  id: z.string(),
+  image: ActivityImage.optional(),
+  /** Question/prompt shown above the writing area. */
+  prompt: ActivityText.optional(),
+  /** `data-aria-id` from the source field — stable identity/provenance. */
+  ariaId: z.string().optional(),
+  /** Multi-line writing area (textarea) vs single-line input. */
+  multiline: z.boolean().optional(),
+  /** Placeholder hint shown inside the field. */
+  hint: z.string().optional(),
+  feedback: StepFeedback.optional(),
+})
+export type OpenEndedStep = z.infer<typeof OpenEndedStep>
+
+// ── Underline the text ─────────────────────────────────────────────────────
+
+export const UnderlineToken = z.object({
+  /** `item-N` for a selectable word; absent for the plain text/whitespace
+   *  between words (rendered but not clickable). */
+  itemId: z.string().optional(),
+  /** The token's visible text. */
+  text: z.string(),
+  /** Answer key: whether this word should be underlined. Only meaningful when
+   *  `itemId` is set. */
+  correct: z.boolean().optional(),
+})
+export type UnderlineToken = z.infer<typeof UnderlineToken>
+
+export const UnderlineStep = z
+  .object({
+    /** question-group key from the source HTML (unique per step). */
+    id: z.string(),
+    image: ActivityImage.optional(),
+    /** Optional prompt/instruction shown above the sentence. */
+    prompt: ActivityText.optional(),
+    /** The sentence, tokenized in reading order. Selectable words carry
+     *  `itemId` (+`correct`); the rest is plain connective text. */
+    tokens: z.array(UnderlineToken).min(1),
+    /** `data-id` of the source sentence wrapper (read-aloud/provenance). */
+    dataId: z.string().optional(),
+    feedback: StepFeedback.optional(),
+  })
+  .superRefine((step, ctx) => {
+    const selectable = step.tokens.filter((t) => t.itemId)
+    if (selectable.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Step "${step.id}" has no selectable words`,
+      })
+    }
+    const ids = selectable.map((t) => t.itemId)
+    if (new Set(ids).size !== ids.length) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Step "${step.id}" has duplicate token item ids`,
+      })
+    }
+    // A step where nothing should be underlined is unwinnable (the learner
+    // must select ≥1 word to check) — extraction drops such groups, and this
+    // guards against a bad edit re-introducing one.
+    if (selectable.length > 0 && !selectable.some((t) => t.correct)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Step "${step.id}" has no word marked correct in its answer key`,
+      })
+    }
+  })
+export type UnderlineStep = z.infer<typeof UnderlineStep>
+
 export const EditableActivityTheme = z.object({
   /** Accent hex (#rrggbb). Absent = derive from the book's quiz palette. */
   accent: z
@@ -166,6 +239,10 @@ const editableActivityBase = {
   enabled: z.boolean(),
   title: ActivityText.optional(),
   instructions: ActivityText.optional(),
+  /** Shared word list the learner draws answers from (fill-in-the-blank cloze
+   *  activities). Shown persistently on every step. Comma-separated source
+   *  text; rendered as chips. Only fill-in-the-blank populates this today. */
+  wordBank: ActivityText.optional(),
   theme: EditableActivityTheme.optional(),
   /** web-rendering version the structure was extracted from (transparency). */
   sourceRenderingVersion: z.number().int().optional(),
@@ -182,6 +259,16 @@ export const EditableActivity = z.discriminatedUnion("kind", [
     kind: z.literal("multiple-choice"),
     ...editableActivityBase,
     steps: z.array(McStep).min(1),
+  }),
+  z.object({
+    kind: z.literal("open-ended"),
+    ...editableActivityBase,
+    steps: z.array(OpenEndedStep).min(1),
+  }),
+  z.object({
+    kind: z.literal("underline-text"),
+    ...editableActivityBase,
+    steps: z.array(UnderlineStep).min(1),
   }),
 ])
 export type EditableActivity = z.infer<typeof EditableActivity>

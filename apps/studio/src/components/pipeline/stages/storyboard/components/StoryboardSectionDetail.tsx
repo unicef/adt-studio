@@ -16,6 +16,7 @@ import {
   PanelRightOpen,
   PenLine,
   Play,
+  RotateCcw,
   Sparkles,
   Type,
   X,
@@ -2007,7 +2008,10 @@ export function StoryboardSectionDetail({
   const stepperEnabled = Boolean(editableEntry?.enabled)
   const canBeStepByStep =
     section?.sectionType === "activity_fill_in_the_blank" ||
-    section?.sectionType === "activity_multiple_choice"
+    section?.sectionType === "activity_multiple_choice" ||
+    section?.sectionType === "activity_true_false" ||
+    section?.sectionType === "activity_open_ended_answer" ||
+    section?.sectionType === "activity_underline_text"
   const editableBusy =
     convertEditableActivity.isPending || setEditablePresentation.isPending
 
@@ -2045,6 +2049,30 @@ export function StoryboardSectionDetail({
           toast.error(err instanceof Error ? err.message : t`Conversion failed`),
       })
     }
+  }
+
+  // Re-run extraction from the section's current HTML, overwriting the stored
+  // step-by-step activity. Toggling the presentation only flips `enabled` and
+  // never re-reads the page, so this is the way to pull in edits made to the
+  // classic activity (or extraction improvements like the word bank) after the
+  // first conversion. It discards manual edits to the steps, so confirm first.
+  const handleReExtract = () => {
+    if (
+      !window.confirm(
+        t`Rebuild this step-by-step activity from the page? Any manual edits to the steps, answers, or feedback will be replaced.`,
+      )
+    ) {
+      return
+    }
+    convertEditableActivity.mutate(sectionIndex, {
+      onSuccess: (result) => {
+        toast.success(t`Rebuilt from the page`)
+        if (result.warnings.length > 0) toast.warning(result.warnings.join(" "))
+        setEditActivityPanelOpen(true)
+      },
+      onError: (err) =>
+        toast.error(err instanceof Error ? err.message : t`Rebuild failed`),
+    })
   }
 
   // Header controls rendered via portal into the purple step header
@@ -2216,6 +2244,16 @@ export function StoryboardSectionDetail({
                         </button>
                         <button
                           type="button"
+                          onClick={handleReExtract}
+                          disabled={editableBusy}
+                          title={t`Rebuild the steps from the page's current content`}
+                          className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer disabled:opacity-50"
+                        >
+                          <RotateCcw className="h-3.5 w-3.5" />
+                          {editableBusy ? t`Rebuilding…` : t`Rebuild from page`}
+                        </button>
+                        <button
+                          type="button"
                           onClick={handleToggleStepper}
                           disabled={editableBusy}
                           className="flex items-center gap-1.5 h-7 px-3 rounded-md text-xs font-medium border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors cursor-pointer disabled:opacity-50"
@@ -2280,7 +2318,7 @@ export function StoryboardSectionDetail({
                   (page.versions.rendering ?? 0) !== editableEntry.sourceRenderingVersion && (
                     <div className="mb-2 flex justify-center">
                       <span className="text-[10px] text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded">
-                        {t`The section was edited after conversion — switch back to classic and convert again to refresh the steps.`}
+                        {t`The section was edited after conversion — use "Rebuild from page" to refresh the steps.`}
                       </span>
                     </div>
                   )}

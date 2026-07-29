@@ -6,6 +6,7 @@ import {
   resolveSentenceText,
   isBlankCorrect,
   isMcStepCorrect,
+  isUnderlineStepCorrect,
   blankWidthCh,
   parseStepperPayload,
   standaloneBlanks,
@@ -13,7 +14,7 @@ import {
   readableOnWhite,
   clampStageHeight,
 } from "./stepper-logic"
-import type { FitbStep, McStep } from "@adt/types"
+import type { FitbStep, McStep, UnderlineStep } from "@adt/types"
 
 describe("parseSentenceParts", () => {
   it("splits text around blank markers", () => {
@@ -98,6 +99,31 @@ describe("isMcStepCorrect", () => {
     expect(isMcStepCorrect(step, "item-1")).toBe(true)
     expect(isMcStepCorrect(step, "item-2")).toBe(false)
     expect(isMcStepCorrect(step, null)).toBe(false)
+  })
+})
+
+describe("isUnderlineStepCorrect", () => {
+  const step: UnderlineStep = {
+    id: "question-group-1",
+    tokens: [
+      { itemId: "item-1", text: "I", correct: true },
+      { text: " " },
+      { itemId: "item-2", text: "like", correct: false },
+      { text: " " },
+      { itemId: "item-3", text: "bananas", correct: false },
+      { text: "." },
+    ],
+  }
+
+  it("is correct only when the selection matches the answer key exactly", () => {
+    // Exactly the correct word.
+    expect(isUnderlineStepCorrect(step, ["item-1"])).toBe(true)
+    // Missing the correct word.
+    expect(isUnderlineStepCorrect(step, [])).toBe(false)
+    // Correct word plus a wrong one.
+    expect(isUnderlineStepCorrect(step, ["item-1", "item-2"])).toBe(false)
+    // Only a wrong word.
+    expect(isUnderlineStepCorrect(step, ["item-3"])).toBe(false)
   })
 })
 

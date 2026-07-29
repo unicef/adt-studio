@@ -5586,6 +5586,9 @@ msgstr "Hapni këtë seksion për të rregulluar modelin, nxitjen e gjykatësit,
 msgid "Open Validation"
 msgstr "Hapni Vërtetimin"
 
+msgid "Open-ended — learners write a free response; there is no fixed answer."
+msgstr "Përgjigje e hapur — nxënësit shkruajnë një përgjigje të lirë; nuk ka përgjigje të fiksuar."
+
 msgid "Open-source license"
 msgstr "Licencë open-source"
 
@@ -6250,6 +6253,9 @@ msgstr "Emri i Projektit"
 msgid "Prompt"
 msgstr "Prompt"
 
+msgid "Prompt (optional)"
+msgstr "Udhëzim (opsional)"
+
 msgid "Prompt file created from template."
 msgstr "Skedari i promptit u krijua nga shablloni."
 
@@ -6532,6 +6538,24 @@ msgstr "Realist / Foto"
 
 msgid "Rearranging atoms of HTML..."
 msgstr "Duke riorganizuar atomet e HTML-it..."
+
+msgid "Rebuild failed"
+msgstr "Rindërtimi dështoi"
+
+msgid "Rebuild from page"
+msgstr "Rindërto nga faqja"
+
+msgid "Rebuild the steps from the page's current content"
+msgstr "Rindërto hapat nga përmbajtja aktuale e faqes"
+
+msgid "Rebuild this step-by-step activity from the page? Any manual edits to the steps, answers, or feedback will be replaced."
+msgstr "Të rindërtohet kjo veprimtari hap pas hapi nga faqja? Çdo ndryshim manual te hapat, përgjigjet ose reagimet do të zëvendësohet."
+
+msgid "Rebuilding…"
+msgstr "Po rindërtohet…"
+
+msgid "Rebuilt from the page"
+msgstr "U rindërtua nga faqja"
 
 msgid "Recommended"
 msgstr "I rekomanduar"
@@ -7426,6 +7450,10 @@ msgstr "Aplikacion web ADT i pavarur"
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Dërgojeni këtë arkiv projekti te koordinatori për ta bashkuar në librin burim."
 
+#. placeholder {0}: si + 1
+msgid "Sentence {0}"
+msgstr "Fjalia {0}"
+
 msgid "Sentence with blank markers"
 msgstr "Fjali me shënues të vendeve bosh"
 
@@ -8025,6 +8053,9 @@ msgstr "Klasa Tailwind"
 msgid "Takes liberties and produces something similar."
 msgstr "Merr liri dhe prodhon diçka të ngjashme."
 
+msgid "Tap the words that should be underlined"
+msgstr "Trokit fjalët që duhen nënvizuar"
+
 msgid "Target"
 msgstr "Objektivi"
 
@@ -8297,8 +8328,11 @@ msgstr "Lumi takon detin"
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "Rishikimi i ruajtur i përkthimit është i vjetëruar. Ekzekutoni Rishikimin përsëri për përkthimet e dukshme."
 
-msgid "The section was edited after conversion — switch back to classic and convert again to refresh the steps."
-msgstr "Seksioni u modifikua pas konvertimit — kthehuni te versioni klasik dhe konvertojeni sërish për të rifreskuar hapat."
+#~ msgid "The section was edited after conversion — switch back to classic and convert again to refresh the steps."
+#~ msgstr "Seksioni u modifikua pas konvertimit — kthehuni te versioni klasik dhe konvertojeni sërish për të rifreskuar hapat."
+
+msgid "The section was edited after conversion — use \"Rebuild from page\" to refresh the steps."
+msgstr "Seksioni u ndryshua pas konvertimit — përdor «Rindërto nga faqja» për të rifreskuar hapat."
 
 msgid "The storyboard must be completed before generating {stageName}. Run the Storyboard stage first."
 msgstr "Storyboard duhet të plotësohet para gjenerimit të {stageName}. Ekzekuto fazën Storyboard fillimisht."
@@ -9289,6 +9323,12 @@ msgstr "Fjalë"
 
 msgid "Word and definition are required."
 msgstr "Fjala dhe përkufizimi kërkohen."
+
+msgid "Word bank"
+msgstr "Banka e fjalëve"
+
+msgid "Word bank — words to choose from, separated by commas (shown on every step)"
+msgstr "Banka e fjalëve — fjalët për të zgjedhur, të ndara me presje (shfaqet në çdo hap)"
 
 msgid "Word Highlighting"
 msgstr "Theksim fjalësh"

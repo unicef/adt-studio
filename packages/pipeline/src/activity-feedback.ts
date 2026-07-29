@@ -36,15 +36,32 @@ function summarizeSteps(activity: EditableActivity): unknown[] {
       answers: step.blanks.map((b) => ({ blank: b.itemId, accepted: b.answers })),
     }))
   }
+  if (activity.kind === "multiple-choice") {
+    return activity.steps.map((step) => ({
+      id: step.id,
+      question: step.prompt?.text,
+      image_alt: step.image?.alt || undefined,
+      options: step.options.map((o) => ({
+        text: o.text?.text,
+        image_alt: o.image?.alt || undefined,
+        correct: o.correct,
+      })),
+    }))
+  }
+  if (activity.kind === "open-ended") {
+    return activity.steps.map((step) => ({
+      id: step.id,
+      question: step.prompt?.text,
+      image_alt: step.image?.alt || undefined,
+      answer: "open-ended — any thoughtful response is accepted, there is no fixed answer",
+    }))
+  }
+  // underline-text: the learner underlines the marked words in the sentence.
   return activity.steps.map((step) => ({
     id: step.id,
-    question: step.prompt?.text,
-    image_alt: step.image?.alt || undefined,
-    options: step.options.map((o) => ({
-      text: o.text?.text,
-      image_alt: o.image?.alt || undefined,
-      correct: o.correct,
-    })),
+    prompt: step.prompt?.text,
+    sentence: step.tokens.map((t) => t.text).join(""),
+    words_to_underline: step.tokens.filter((t) => t.itemId && t.correct).map((t) => t.text),
   }))
 }
 

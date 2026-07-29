@@ -95,12 +95,7 @@ export function resolveEditableActivityImages(
   }
 
   let resolved: EditableActivity
-  if (activity.kind === "fill-in-the-blank") {
-    resolved = {
-      ...activity,
-      steps: activity.steps.map((s) => ({ ...s, image: resolveImage(s.image) })),
-    }
-  } else {
+  if (activity.kind === "multiple-choice") {
     resolved = {
       ...activity,
       steps: activity.steps.map((s) => ({
@@ -109,6 +104,12 @@ export function resolveEditableActivityImages(
         options: s.options.map((o) => ({ ...o, image: resolveImage(o.image) })),
       })),
     }
+  } else {
+    // fill-in-the-blank / open-ended / underline-text: only a per-step image.
+    resolved = {
+      ...activity,
+      steps: activity.steps.map((s) => ({ ...s, image: resolveImage(s.image) })),
+    } as EditableActivity
   }
   return { activity: resolved, referencedImages: [...referenced] }
 }
@@ -159,6 +160,14 @@ export function renderEditableActivityStaticHtml(activity: EditableActivity): st
   parts.push(`<section data-section-type="${escapeAttr(activity.sectionType)}" class="section w-full" style="max-width:48rem;margin:0 auto;padding:16px;">`)
   parts.push(staticText(activity.title, "h2", "adt-h2 font-bold"))
   parts.push(staticText(activity.instructions, "p", "adt-caption"))
+  if (activity.wordBank?.text?.trim()) {
+    const dataId = activity.wordBank.dataId
+      ? ` data-id="${escapeAttr(activity.wordBank.dataId)}"`
+      : ""
+    parts.push(
+      `<p${dataId} class="adt-body" style="border:1px solid #94A3B8;border-radius:12px;padding:8px 12px;margin-top:8px;background:#FFF7ED;">${escapeHtml(activity.wordBank.text)}</p>`,
+    )
+  }
   parts.push(`<ol style="list-style:decimal;padding-left:1.5rem;display:flex;flex-direction:column;gap:24px;margin-top:16px;">`)
   for (const step of activity.steps) {
     parts.push(`<li>`)
@@ -183,7 +192,7 @@ export function renderEditableActivityStaticHtml(activity: EditableActivity): st
           parts.push(`<p class="adt-body">${STATIC_BLANK}</p>`)
         }
       }
-    } else {
+    } else if (activity.kind === "multiple-choice") {
       const mc = step as Extract<EditableActivity, { kind: "multiple-choice" }>["steps"][number]
       parts.push(staticText(mc.prompt, "p", "adt-body font-semibold"))
       parts.push(`<ol style="list-style:none;padding-left:0;display:flex;flex-direction:column;gap:8px;margin-top:8px;">`)
@@ -196,6 +205,21 @@ export function renderEditableActivityStaticHtml(activity: EditableActivity): st
         )
       })
       parts.push(`</ol>`)
+    } else if (activity.kind === "open-ended") {
+      const oe = step as Extract<EditableActivity, { kind: "open-ended" }>["steps"][number]
+      parts.push(staticText(oe.prompt, "p", "adt-body font-semibold"))
+      // A ruled writing area to answer on (worksheet-style).
+      parts.push(
+        `<div style="border:2px solid #CBD5E1;border-radius:12px;min-height:72px;margin-top:8px;"></div>`,
+      )
+    } else {
+      const ul = step as Extract<EditableActivity, { kind: "underline-text" }>["steps"][number]
+      parts.push(staticText(ul.prompt, "p", "adt-body font-semibold"))
+      // Render the sentence so it can be underlined by hand; keep the source
+      // data-id for read-aloud coverage.
+      const dataId = ul.dataId ? ` data-id="${escapeAttr(ul.dataId)}"` : ""
+      const sentence = ul.tokens.map((tk) => tk.text).join("")
+      parts.push(`<p${dataId} class="adt-body">${escapeHtml(sentence)}</p>`)
     }
     parts.push(`</li>`)
   }
