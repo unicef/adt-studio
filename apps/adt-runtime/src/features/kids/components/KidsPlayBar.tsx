@@ -1,6 +1,9 @@
-import { useAtom } from "jotai"
+import { useAtom, useSetAtom } from "jotai"
 import { Pause, Play, Rewind, FastForward, X } from "lucide-react"
-import { playBarVisibleAtom } from "@/features/audio/state/audio.atoms"
+import {
+  playBarVisibleAtom,
+  readAloudModeAtom,
+} from "@/features/audio/state/audio.atoms"
 import { useAudioPlayerContext } from "@/features/audio/hooks/AudioPlayerContext"
 import { useKidsTranslation } from "@/features/kids/hooks/useKidsTranslation"
 import { usePrefersReducedMotion } from "@/features/kids/hooks/usePrefersReducedMotion"
@@ -11,8 +14,12 @@ import { cn } from "@/shared/lib/utils"
  *
  * Kids mode replaces the whole `BottomDock`, and the audio player lived inside
  * it — so narration could be playing with nothing on screen to stop it. This is
- * the kid-facing equivalent: big targets, the same sky styling as the rest of
- * the chrome, and it only appears once there is something to control.
+ * the kid-facing equivalent: big targets and the same sky styling as the rest of
+ * the chrome.
+ *
+ * Visible whenever read-aloud is ON, not merely while audio happens to be
+ * running. Gating it on playback hid the controls exactly when a child needs
+ * them — paused, or at the start of a fresh page.
  *
  * Sits bottom-centre, clear of the page arrows at the sides and the buddy in
  * the corner.
@@ -20,15 +27,19 @@ import { cn } from "@/shared/lib/utils"
 export function KidsPlayBar() {
   const { tk } = useKidsTranslation()
   const reduceMotion = usePrefersReducedMotion()
-  const [visible, setVisible] = useAtom(playBarVisibleAtom)
+  const [readAloud, setReadAloud] = useAtom(readAloudModeAtom)
+  const setVisible = useSetAtom(playBarVisibleAtom)
   const { isPlaying, hasItems, togglePlayPause, playNext, playPrevious, stop } =
     useAudioPlayerContext()
 
-  if (!visible || !hasItems) return null
+  if (!readAloud || !hasItems) return null
 
+  // The cross is "turn reading off", not "hide the controls" — otherwise the
+  // child would dismiss the panel and read-aloud would silently stay on.
   const close = () => {
     stop()
     setVisible(false)
+    setReadAloud(false)
   }
 
   return (

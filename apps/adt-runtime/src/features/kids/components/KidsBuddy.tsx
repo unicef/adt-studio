@@ -16,6 +16,7 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import {
   audioSpeedAtom,
   playBarVisibleAtom,
+  readAloudModeAtom,
 } from "@/features/audio/state/audio.atoms"
 import { useAudioPlayerContext } from "@/features/audio/hooks/AudioPlayerContext"
 import { KidsMenu } from "@/features/kids/components/menu/KidsMenu"
@@ -85,6 +86,7 @@ export function KidsBuddy() {
   const [open, setOpen] = useAtom(kidsBuddyPanelOpenAtom)
   const [speed, setSpeed] = useAtom(audioSpeedAtom)
   const setPlayBarVisible = useSetAtom(playBarVisibleAtom)
+  const setReadAloudMode = useSetAtom(readAloudModeAtom)
   const [signLanguage, setSignLanguage] = useAtom(signLanguageModeAtom)
   const [easyRead, setEasyRead] = useAtom(easyReadModeAtom)
   const [glossary, setGlossary] = useAtom(glossaryModeAtom)
@@ -196,6 +198,7 @@ export function KidsBuddy() {
     // Starting waits for the buddy to finish its line first, so the book's
     // narration doesn't talk over it.
     setPlayBarVisible(true)
+    setReadAloudMode(true)
     const token = ++readIntentRef.current
     void say(BUDDY_LINES.readStart).then(() => {
       // A second tap, or anything else that started or stopped playback while
