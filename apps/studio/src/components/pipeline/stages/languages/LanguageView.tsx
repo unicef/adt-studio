@@ -40,7 +40,7 @@ import { displayLang } from "./lib/display-lang";
 import { ImageLightbox } from "./components/ImageLightbox";
 import { WordHighlightPreview } from "./components/WordHighlightPreview";
 import { MathSpeechReviewPanel } from "../speech/components/MathSpeechReviewPanel";
-import { containsMathNotation } from "@adt/types";
+import { containsMathNotation, type MathSpeechEvaluationItem } from "@adt/types";
 import { usePendingChanges } from "../../components/change-summary";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
@@ -532,6 +532,22 @@ export function LanguageView({
     (hasExplicitOutputLanguages
       ? (outputLanguages[0] ?? editingLanguage)
       : editingLanguage);
+  // Spoken forms and any review verdicts for maths entries. Shares its query key
+  // with the review panel so a decision made there updates this list too.
+  const { data: mathSpeech } = useQuery({
+    queryKey: ["math-speech-evaluation", bookLabel, audioLang],
+    queryFn: () => api.getMathSpeechEvaluation(bookLabel, audioLang!),
+    enabled: !!bookLabel && !!audioLang,
+  });
+  const mathSpokenByEntryId = mathSpeech?.spoken;
+  const mathVerdictsByEntryId = useMemo(
+    () =>
+      new Map(
+        (mathSpeech?.evaluation?.items ?? []).map((item) => [item.entry_id, item]),
+      ),
+    [mathSpeech],
+  );
+
   const currentLanguageUsesGemini =
     !!audioLang &&
     languageUsesSpeechProvider(audioLang, "gemini", speechConfig);
@@ -2305,6 +2321,16 @@ export function LanguageView({
                                   <p className="text-sm leading-relaxed mt-0.5">
                                     {entry.text}
                                   </p>
+                                  {/* Stored maths is LaTeX, which says nothing
+                                      about how it will sound. Show the spoken
+                                      form beneath it, and the reviewer's
+                                      wording once one has been chosen. */}
+                                  {containsMathNotation(entry.text) && (
+                                    <MathSpokenPreview
+                                      spoken={mathSpokenByEntryId?.[entry.id]}
+                                      verdict={mathVerdictsByEntryId.get(entry.id)}
+                                    />
+                                  )}
                                 </div>
                               </div>
                               {isSpeechStage &&
@@ -2730,6 +2756,49 @@ function WaveformPlayer({
         {duration > 0 ? formatTime(playing ? progress : duration) : ""}
       </span>
     </div>
+  );
+}
+
+/**
+ * What a maths entry will actually be read as.
+ *
+ * The stored text is LaTeX, which tells a reviewer nothing about how it will
+ * sound — `c = \pi d` gives no hint that the voice says "c = πd". Shows the
+ * converter's output, or the reviewer's wording once one has been chosen.
+ */
+function MathSpokenPreview({
+  spoken,
+  verdict,
+}: {
+  spoken?: string;
+  verdict?: MathSpeechEvaluationItem;
+}) {
+  const { t } = useLingui();
+  const resolved = verdict?.resolved_text;
+  const text = resolved ?? spoken;
+  if (!text) return null;
+
+  const flagged = verdict && !verdict.acceptable && !verdict.accepted_anyway && !resolved;
+
+  return (
+    <p
+      className={cn(
+        "mt-1 flex items-start gap-1.5 text-xs",
+        flagged ? "text-destructive" : "text-muted-foreground",
+      )}
+    >
+      <Volume2 className="mt-0.5 h-3 w-3 shrink-0" aria-hidden />
+      <span>
+        <span className="sr-only">{t`Will be read as:`} </span>
+        {text}
+        {resolved && (
+          <span className="ml-1.5 opacity-60">{t`(reviewed)`}</span>
+        )}
+        {flagged && (
+          <span className="ml-1.5 opacity-80">{t`(needs review)`}</span>
+        )}
+      </span>
+    </p>
   );
 }
 

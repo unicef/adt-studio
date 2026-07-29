@@ -34,7 +34,7 @@ export const SETTINGS_TAB_MESSAGE: Record<string, MessageDescriptor> = {
   "image-translation": msg`Image Translation`,
   speech: msg`Speech Settings`,
   "speech-prompts": msg`Speech Prompts`,
-  "maths-speech": msg`Maths Speech`,
+  "maths-speech": msg`Maths Pronunciation`,
   voices: msg`Voices`,
   "toc-prompt": msg`Generation Prompt`,
   "easy-read-prompt": msg`Easy Read Prompt`,
@@ -94,11 +94,11 @@ export function getSettingsTabs(
       { key: "prompt", label: i18n._(SETTINGS_TAB_MESSAGE["translation-prompt"]) },
       { key: "translation-review", label: i18n._(SETTINGS_TAB_MESSAGE["translation-review"]) },
       { key: "image-translation", label: i18n._(SETTINGS_TAB_MESSAGE["image-translation"]) },
+      { key: "maths-speech", label: i18n._(SETTINGS_TAB_MESSAGE["maths-speech"]) },
     ],
     speech: [
       { key: "general", label: i18n._(SETTINGS_TAB_MESSAGE.speech) },
       { key: "speech-prompts", label: i18n._(SETTINGS_TAB_MESSAGE["speech-prompts"]) },
-      { key: "maths-speech", label: i18n._(SETTINGS_TAB_MESSAGE["maths-speech"]) },
       { key: "voices", label: i18n._(SETTINGS_TAB_MESSAGE.voices) },
     ],
     validation: [

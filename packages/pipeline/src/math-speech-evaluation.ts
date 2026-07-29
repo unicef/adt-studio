@@ -88,6 +88,11 @@ export function collectMathSpeechEntries(
   return { candidates, convertedCount }
 }
 
+/**
+ * Structured outputs require every property to appear in `required`, so a
+ * field the judge may not have an answer for is nullable rather than optional.
+ * Nulls are normalised away when the verdict is assembled.
+ */
 const judgeSchema = z.object({
   reasoning: z.string(),
   results: z.array(
@@ -95,9 +100,9 @@ const judgeSchema = z.object({
       entry_id: z.string(),
       acceptable: z.boolean(),
       rationale: z.string(),
-      issue_type: MathSpeechEvaluationIssueType.optional(),
-      severity: MathSpeechEvaluationSeverity.optional(),
-      suggested_text: z.string().optional(),
+      issue_type: MathSpeechEvaluationIssueType.nullable(),
+      severity: MathSpeechEvaluationSeverity.nullable(),
+      suggested_text: z.string().nullable(),
     }),
   ),
 })

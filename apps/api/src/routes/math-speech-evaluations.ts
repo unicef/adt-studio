@@ -9,6 +9,7 @@ import {
   loadBookConfig,
   collectMathSpeechEntries,
   evaluateMathSpeech,
+  latexToSpeech,
 } from "@adt/pipeline"
 import {
   TextCatalogOutput,
@@ -125,18 +126,23 @@ export function createMathSpeechEvaluationRoutes(
     const safeLanguage = parseLanguage(c.req.param("language"))
     const stored = getMathSpeechEvaluation(safeLabel, booksDir, safeLanguage)
 
-    // How many entries contain maths at all. A book with none — most of them —
-    // can hide this review entirely rather than showing an empty panel.
+    // The stored text is LaTeX, which tells a reviewer nothing about how it
+    // will sound. The conversion only exists in the pipeline, so the spoken
+    // form is computed here and sent with the verdict — the Studio cannot
+    // import the converter itself.
     let mathsEntries = 0
+    const spoken: Record<string, string> = {}
     const storage = createBookStorage(safeLabel, booksDir)
     try {
       const row = storage.getLatestNodeData("text-catalog", "book")
       const parsed = row ? TextCatalogOutput.safeParse(row.data) : null
       if (parsed?.success) {
-        mathsEntries = collectMathSpeechEntries(
-          parsed.data.entries.map((e) => ({ id: e.id, text: e.text })),
-          { evaluateAll: true },
-        ).convertedCount
+        for (const entry of parsed.data.entries) {
+          const converted = latexToSpeech(entry.text)
+          if (converted === entry.text) continue
+          mathsEntries++
+          spoken[entry.id] = converted
+        }
       }
     } finally {
       storage.close()
@@ -145,6 +151,7 @@ export function createMathSpeechEvaluationRoutes(
     return c.json({
       ...stored,
       mathsEntries,
+      spoken,
       pending: pendingReviewItems(stored.evaluation).length,
       // A verdict taken against an older catalog may no longer describe the
       // current text, so the client can prompt for a re-run.
@@ -258,6 +265,27 @@ export function createMathSpeechEvaluationRoutes(
       storage.close()
     }
 
+    const evalConfigHash = buildEvalConfigHash(resolved)
+
+    // Nothing has changed since the stored verdict, so re-judging would spend
+    // tokens to reach the same answer and would discard reviewer decisions.
+    const stored = getMathSpeechEvaluation(safeLabel, booksDir, safeLanguage)
+    const force = c.req.query("force") === "true"
+    if (
+      !force &&
+      stored.evaluation &&
+      stored.evaluation.catalog_version === catalogVersion &&
+      stored.evaluation.eval_config_hash === evalConfigHash
+    ) {
+      return c.json({
+        status: "current",
+        taskId: null,
+        label: safeLabel,
+        language: safeLanguage,
+        version: stored.version,
+      })
+    }
+
     const { candidates, convertedCount } = collectMathSpeechEntries(
       entries.map((e) => ({ id: e.id, text: e.text })),
       { evaluateAll: resolved.evaluate_all_entries },
@@ -271,7 +299,7 @@ export function createMathSpeechEvaluationRoutes(
         provider: "adt-llm",
         language: safeLanguage,
         catalog_version: catalogVersion,
-        eval_config_hash: buildEvalConfigHash(resolved),
+        eval_config_hash: evalConfigHash,
         summary: {
           total: 0,
           acceptable: 0,
@@ -317,7 +345,7 @@ export function createMathSpeechEvaluationRoutes(
             config: resolved,
             language: safeLanguage,
             catalogVersion,
-            evalConfigHash: buildEvalConfigHash(resolved),
+            evalConfigHash,
             bookLanguage: safeLanguage,
             notEvaluated: convertedCount - candidates.length,
           })

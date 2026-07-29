@@ -54,6 +54,9 @@ msgstr "(par défaut)"
 msgid "(empty)"
 msgstr "(vide)"
 
+msgid "(needs review)"
+msgstr "(à relire)"
+
 msgid "(no instruction text)"
 msgstr "(aucun texte d'instruction)"
 
@@ -63,6 +66,9 @@ msgstr "(non cible)"
 #. placeholder {0}: sections[0].pageNumber
 msgid "(p.{0})"
 msgstr "(p.{0})"
+
+msgid "(reviewed)"
+msgstr "(relu)"
 
 msgid "(template)"
 msgstr "(modèle)"
@@ -4705,11 +4711,14 @@ msgstr "Les maths sont converties en forme parlée avant la narration. Ce juge v
 msgid "Maths pronunciation"
 msgstr "Prononciation des maths"
 
+msgid "Maths Pronunciation"
+msgstr "Prononciation des maths"
+
 msgid "Maths Pronunciation Judge Prompt"
 msgstr "Prompt du juge de prononciation des maths"
 
-msgid "Maths Speech"
-msgstr "Voix des maths"
+#~ msgid "Maths Speech"
+#~ msgstr "Voix des maths"
 
 msgid "Max height"
 msgstr "Hauteur max"
@@ -9347,6 +9356,9 @@ msgstr "Largeur"
 
 msgid "Will be read as"
 msgstr "Sera lu comme"
+
+msgid "Will be read as:"
+msgstr "Sera lu comme :"
 
 msgid "Will be reset"
 msgstr "Sera réinitialisé"

@@ -150,6 +150,27 @@ describe("evaluateMathSpeech", () => {
     expect(result.summary.unacceptable).toBe(0)
   })
 
+  it("accepts nulls for fields the judge had no answer for", async () => {
+    // Structured outputs require every property in `required`, so the judge
+    // returns null rather than omitting a field.
+    const result = await run(
+      fakeJudge([
+        {
+          entry_id: "tx001",
+          acceptable: true,
+          rationale: "Reads correctly.",
+          issue_type: null,
+          severity: null,
+          suggested_text: null,
+        },
+      ]),
+    )
+    expect(result.items[0].acceptable).toBe(true)
+    expect(result.items[0].issue_type).toBeUndefined()
+    expect(result.items[0].severity).toBeUndefined()
+    expect(result.items[0].suggested_text).toBeUndefined()
+  })
+
   it("keeps an entry the judge skipped rather than dropping it", async () => {
     const result = await run(fakeJudge([]))
     expect(result.items).toHaveLength(1)

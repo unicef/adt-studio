@@ -501,6 +501,9 @@ export interface MathSpeechEvaluationStatusResponse {
   /** Catalog entries containing maths. Zero means this book has none, so the
    *  review has nothing to offer and hides itself. */
   mathsEntries: number
+  /** entryId → what the converter will hand to the voice. Computed server-side
+   *  because the conversion lives in the pipeline. */
+  spoken: Record<string, string>
   /** Flagged entries with no reviewer decision yet. */
   pending: number
   /** The verdict was taken against an older text catalog. */

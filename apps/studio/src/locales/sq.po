@@ -53,6 +53,9 @@ msgstr "(parazgjedhje)"
 msgid "(empty)"
 msgstr "(bosh)"
 
+msgid "(needs review)"
+msgstr "(kërkon shqyrtim)"
+
 msgid "(no instruction text)"
 msgstr "(pa tekst udhëzimi)"
 
@@ -62,6 +65,9 @@ msgstr "(pa objektiv)"
 #. placeholder {0}: sections[0].pageNumber
 msgid "(p.{0})"
 msgstr "(f.{0})"
+
+msgid "(reviewed)"
+msgstr "(u shqyrtua)"
 
 msgid "(template)"
 msgstr "(shabllon)"
@@ -4704,11 +4710,14 @@ msgstr "Matematika konvertohet në formë të folur para narracionit. Ky vlerës
 msgid "Maths pronunciation"
 msgstr "Shqiptimi i matematikës"
 
+msgid "Maths Pronunciation"
+msgstr "Shqiptimi i matematikës"
+
 msgid "Maths Pronunciation Judge Prompt"
 msgstr "Prompti i vlerësuesit të shqiptimit të matematikës"
 
-msgid "Maths Speech"
-msgstr "Ligjërimi i matematikës"
+#~ msgid "Maths Speech"
+#~ msgstr "Ligjërimi i matematikës"
 
 msgid "Max height"
 msgstr "Lartësia maksimale"
@@ -9346,6 +9355,9 @@ msgstr "Gjerësi"
 
 msgid "Will be read as"
 msgstr "Do të lexohet si"
+
+msgid "Will be read as:"
+msgstr "Do të lexohet si:"
 
 msgid "Will be reset"
 msgstr "Do të rivendoset"
