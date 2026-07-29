@@ -41,6 +41,10 @@ export function VolumeMenu() {
         side="top"
         align="center"
         sideOffset={8}
+        // The read-aloud bar is `position: fixed`; anchor with fixed
+        // positioning too, or the popup is placed at document coordinates and
+        // focusing it scrolls the page back to the top.
+        positionMethod="fixed"
         className={cn(
           "p-2 px-3 border-0",
           "bg-popover/95 text-popover-foreground backdrop-blur-md",
