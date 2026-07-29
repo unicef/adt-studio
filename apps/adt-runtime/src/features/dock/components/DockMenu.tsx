@@ -15,6 +15,8 @@ import {
 } from "@/features/audio/state/audio.atoms";
 import {
   dockMenuValueAtom,
+  easyReadModeAtom,
+  glossaryModeAtom,
   signLanguageModeAtom,
   type DockMenuValue,
 } from "@/shared/state/ui.atoms";
@@ -25,6 +27,7 @@ import { cn } from "@/shared/lib/utils";
 import { useIsMobile } from "@/shared/hooks/use-is-mobile";
 import { DockIconButton } from "@/features/dock/components/DockIconButton";
 import { DockMobileTools, type DockTool } from "@/features/dock/components/DockMobileTools";
+import { ActiveFeatureIndicators } from "@/features/dock/components/ActiveFeatureIndicators";
 import { useDockContext } from "@/features/dock/context/dock-context";
 import { GlossaryContent } from "@/features/glossary/components/GlossaryDockContent";
 import { AudioContent } from "@/features/audio/components/AudioDockContent";
@@ -41,6 +44,8 @@ export function DockMenu({ className }: DockMenuProps) {
   const features = useAtomValue(appConfigAtom).features;
   const [value, setValue] = useAtom(dockMenuValueAtom);
   const [signLanguage, setSignLanguage] = useAtom(signLanguageModeAtom);
+  const glossaryHighlight = useAtomValue(glossaryModeAtom);
+  const easyRead = useAtomValue(easyReadModeAtom);
   const hasPageSignLanguageVideo = Boolean(
     useAtomValue(currentPageSignLanguageVideoAtom),
   );
@@ -76,13 +81,17 @@ export function DockMenu({ className }: DockMenuProps) {
     setSignLanguage(next);
   };
 
+  // `active` reflects the persistent feature STATE (is it on?), not whether the
+  // panel is open — so the Tools grid shows, at a glance, what's currently
+  // enabled. Settings/Language have no on/off state of their own; Language is
+  // tinted when Easy Read (which lives in its panel) is on.
   const tools: DockTool[] = [];
   if (features.glossary) {
     tools.push({
       key: "glossary",
       label: t("glossary-label") || "Glossary",
       icon: BookOpen,
-      active: value === "glossary",
+      active: glossaryHighlight,
       onSelect: () => toggle("glossary"),
     });
   }
@@ -91,7 +100,7 @@ export function DockMenu({ className }: DockMenuProps) {
       key: "audio",
       label: t("tts-label") || "Text to speech",
       icon: readAloud ? Volume2 : VolumeX,
-      active: value === "audio",
+      active: readAloud,
       onSelect: openAudio,
     });
   }
@@ -109,21 +118,24 @@ export function DockMenu({ className }: DockMenuProps) {
     key: "language",
     label: t("language-label") || "Language",
     icon: Languages,
-    active: value === "language",
+    active: easyRead,
     onSelect: () => toggle("language"),
   });
   tools.push({
     key: "settings",
     label: t("sidebar-settings") || "Settings",
     icon: Settings,
-    active: value === "settings",
+    active: false,
     onSelect: () => toggle("settings"),
   });
 
   return (
     <>
       {isMobile ? (
-        <DockMobileTools tools={tools} label={t("sidebar-title") || "Accessibility menu"} />
+        <div className="flex items-center gap-1">
+          <ActiveFeatureIndicators />
+          <DockMobileTools tools={tools} label={t("sidebar-title") || "Accessibility menu"} />
+        </div>
       ) : (
         <div className={cn("flex items-center justify-end gap-2 pl-1", className)}>
           {features.glossary ? (
@@ -202,6 +214,7 @@ export function DockMenu({ className }: DockMenuProps) {
           onClose={() => setValue("")}
           anchor={audioBtnRef}
           side={side}
+          mobileVariant="inline"
         >
           <AudioContent />
         </DockPanel>
