@@ -1,6 +1,8 @@
+import { createPortal } from "react-dom"
 import { Popover, PopoverContent } from "@/shared/ui/popover"
 import { Sheet, SheetContent } from "@/shared/ui/sheet"
 import { useIsMobile } from "@/shared/hooks/use-is-mobile"
+import { useDockContext } from "@/features/dock/context/dock-context"
 import { getChromePortalContainer } from "@/shared/lib/chrome-portal"
 
 interface DockPanelProps {
@@ -27,23 +29,28 @@ function DockPanel({
   mobileVariant = "sheet",
 }: DockPanelProps) {
   const isMobile = useIsMobile()
+  const { isTop } = useDockContext()
 
-  // Non-modal floating control (read-aloud): pinned just above the dock, no
+  // Non-modal floating control (read-aloud): pinned just past the dock, no
   // backdrop, so the reader can still see and scroll the book while listening.
+  // Portaled into the chrome container (a plain, non-transformed div) so its
+  // `position: fixed` resolves against the viewport — the dock bar itself has
+  // `will-change: transform`, which would otherwise make it the containing
+  // block and mis-place the bar (badly so when the dock sits at the top).
   if (isMobile && mobileVariant === "inline") {
     if (!open) return null
-    return (
+    const offset = "calc(env(safe-area-inset-bottom) + var(--dock-height, 80px) + 0.75rem)"
+    const topOffset = "calc(env(safe-area-inset-top) + var(--dock-height, 80px) + 0.75rem)"
+    const bar = (
       <div
-        role="group"
-        className="fixed left-1/2 z-[54] flex -translate-x-1/2 items-center justify-center rounded-full border bg-popover/95 text-popover-foreground shadow-lg ring-1 ring-border backdrop-blur-md supports-[backdrop-filter]:bg-popover/85"
-        style={{
-          bottom:
-            "calc(env(safe-area-inset-bottom) + var(--dock-height, 80px) + 0.5rem)",
-        }}
+        className="fixed left-1/2 z-[54] flex max-w-[calc(100vw-1rem)] -translate-x-1/2 items-center justify-center rounded-full border bg-popover/95 text-popover-foreground shadow-lg ring-1 ring-border backdrop-blur-md supports-[backdrop-filter]:bg-popover/85"
+        style={isTop ? { top: topOffset } : { bottom: offset }}
       >
         {children}
       </div>
     )
+    const container = getChromePortalContainer()
+    return container ? createPortal(bar, container) : bar
   }
 
   // On phones the anchored popover is wider than the viewport and gets clipped
