@@ -2216,6 +2216,14 @@ export function LanguageView({
                                 }
                                 isPlaying={playingEntryId === entry.id}
                               />
+                              {/* Stored maths is LaTeX, which says nothing about
+                                  how it will sound. */}
+                              {containsMathNotation(entry.text) && (
+                                <MathSpokenPreview
+                                  spoken={mathSpokenByEntryId?.[entry.id]}
+                                  verdict={mathVerdictsByEntryId.get(entry.id)}
+                                />
+                              )}
                             </div>
                           </div>
                           {isSpeechStage &&
