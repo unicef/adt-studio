@@ -26,8 +26,23 @@ const MATHS_DOLLAR = /(?<!\\)\$[^$\s][^$]*[\\^_{][^$]*\$/
  */
 const PATH_LIKE = /(?:[A-Za-z]:\\)|(?:\\\\[A-Za-z])/
 
+/**
+ * A `$…$` span holding nothing but a sub/superscript — `$^{1,2}$`, `$^{3}$`,
+ * `$^{*}$` — is a footnote or affiliation marker attached to a name, not an
+ * expression. Converting it reads "caret one comma two" over an author list.
+ * A real superscript has a base to sit on.
+ */
+const MARKER_ONLY = /(?<!\\)\$\s*[\^_]\s*\{?[\d\s,*†‡§¶a-z]{0,8}\}?\s*\$/gi
+
+function withoutMarkers(text: string): string {
+  return text.replace(MARKER_ONLY, " ")
+}
+
 export function containsMathNotation(text: string | null | undefined): boolean {
   if (!text) return false
   if (PATH_LIKE.test(text)) return false
-  return LATEX_COMMAND.test(text) || MATHS_DOLLAR.test(text)
+  // Markers are stripped before either test — `^{1,2}` satisfies the bare
+  // superscript pattern, so an author list would otherwise register as maths.
+  const stripped = withoutMarkers(text)
+  return LATEX_COMMAND.test(stripped) || MATHS_DOLLAR.test(stripped)
 }

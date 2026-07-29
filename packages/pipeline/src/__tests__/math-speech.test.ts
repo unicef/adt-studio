@@ -98,6 +98,28 @@ describe("latexToSpeech — currency is not maths", () => {
   })
 })
 
+describe("latexToSpeech — footnote markers are not maths", () => {
+  // From a research paper in the corpus: a bare superscript with no base is an
+  // affiliation or footnote marker attached to a name. Converting it reads
+  // "Dong Xu caret one comma two" across an author list.
+  const MARKERS: Array<[string, string]> = [
+    ["author affiliations", "Dong Xu$^{1,2}$ Zhangfan Yang$^{3}$ Ka-Chun Wong$^{4}$"],
+    ["a starred footnote", "Junkai Ji$^{*}$"],
+    ["a dagger footnote", "Ka-Chun Wong$^{†}$"],
+    ["a subscripted label", "Ratio$_{cm}$"],
+  ]
+
+  for (const [label, input] of MARKERS) {
+    it(label, () => {
+      expect(latexToSpeech(input)).toBe(input)
+    })
+  }
+
+  it("still converts a superscript that has a base", () => {
+    expect(latexToSpeech("Area of a circle = $\\pi r^2$")).toBe("Area of a circle = πr²")
+  })
+})
+
 describe("latexToSpeech — fractions", () => {
   it("converts a simple fraction", () => {
     expect(latexToSpeech("$\\frac{2}{5}$")).toBe("2/5")
