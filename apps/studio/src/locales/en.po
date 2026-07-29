@@ -1155,6 +1155,10 @@ msgstr "Aligns narration with text to enable word-level highlighting."
 msgid "All"
 msgstr "All"
 
+#. placeholder {0}: decidedItems.length
+msgid "All {0} flagged expressions have been reviewed."
+msgstr "All {0} flagged expressions have been reviewed."
+
 #. placeholder {0}: status.pageCount
 msgid "All {0} pages merged in"
 msgstr "All {0} pages merged in"
@@ -7531,6 +7535,10 @@ msgstr "Ship"
 msgid "Short, simple sentences for kindergarten through 5th grade."
 msgstr "Short, simple sentences for kindergarten through 5th grade."
 
+#. placeholder {0}: decidedItems.length
+msgid "Show {0} already reviewed"
+msgstr "Show {0} already reviewed"
+
 msgid "Show accessibility summary"
 msgstr "Show accessibility summary"
 
@@ -7573,6 +7581,9 @@ msgstr "Show review rationale"
 
 msgid "Show reviewer validation"
 msgstr "Show reviewer validation"
+
+msgid "Show what I decided"
+msgstr "Show what I decided"
 
 msgid "Show:"
 msgstr "Show:"

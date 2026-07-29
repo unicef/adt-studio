@@ -249,16 +249,21 @@ export function MathSpeechReviewPanel({
 
   // Flagged entries first, and among those the undecided ones — a reviewer
   // should not have to hunt for what still needs them.
-  const flagged = useMemo(() => {
-    const items = data?.evaluation?.items ?? []
-    return items
-      .filter((item) => !item.acceptable)
-      .sort((a, b) => {
-        const decided = (i: MathSpeechEvaluationItem) =>
-          i.accepted_anyway || i.resolved_text ? 1 : 0
-        return decided(a) - decided(b)
-      })
+  // Split rather than sort: an entry still awaiting a decision is work, an
+  // entry already decided is a record. Only the first kind should occupy the
+  // page — once the queue is empty this panel has to get out of the way, or it
+  // buries the entry list it sits above.
+  const { pendingItems, decidedItems } = useMemo(() => {
+    const items = (data?.evaluation?.items ?? []).filter((i) => !i.acceptable)
+    const isDecided = (i: MathSpeechEvaluationItem) =>
+      Boolean(i.accepted_anyway || i.resolved_text)
+    return {
+      pendingItems: items.filter((i) => !isDecided(i)),
+      decidedItems: items.filter(isDecided),
+    }
   }, [data])
+
+  const [showDecided, setShowDecided] = useState(false)
 
   if (isLoading) {
     return (
@@ -377,7 +382,7 @@ export function MathSpeechReviewPanel({
         </p>
       )}
 
-      {summary && flagged.length === 0 && (
+      {summary && pendingItems.length === 0 && decidedItems.length === 0 && (
         <p className="text-sm text-muted-foreground">
           <Trans>
             Nothing needs review. Every expression converted cleanly.
@@ -385,9 +390,26 @@ export function MathSpeechReviewPanel({
         </p>
       )}
 
-      {flagged.length > 0 && (
+      {/* Everything decided: state it in one line and stay out of the way. The
+          decided entries remain reachable, because a reviewer may want to
+          revisit a choice — but not at the cost of burying the entry list. */}
+      {summary && pendingItems.length === 0 && decidedItems.length > 0 && (
+        <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <Check className="size-4 shrink-0 text-foreground" />
+          <span>{t`All ${decidedItems.length} flagged expressions have been reviewed.`}</span>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setShowDecided((v) => !v)}
+          >
+            {showDecided ? <Trans>Hide</Trans> : <Trans>Show what I decided</Trans>}
+          </Button>
+        </p>
+      )}
+
+      {pendingItems.length > 0 && (
         <div className="space-y-3">
-          {flagged.map((item) => (
+          {pendingItems.map((item) => (
             <ItemCard
               key={item.entry_id}
               item={item}
@@ -400,7 +422,35 @@ export function MathSpeechReviewPanel({
         </div>
       )}
 
-      {summary && (
+      {/* Decided entries are collapsed by default whether or not the queue is
+          empty, so finishing one never pushes the remaining work down. */}
+      {decidedItems.length > 0 && showDecided && (
+        <div className="space-y-3">
+          {decidedItems.map((item) => (
+            <ItemCard
+              key={item.entry_id}
+              item={item}
+              isPending={isPending}
+              onAcceptAnyway={(id) => acceptAnyway.mutate(id)}
+              onResolve={(id, text) => resolve.mutate({ entryId: id, text })}
+              onClear={(id) => clear.mutate(id)}
+            />
+          ))}
+        </div>
+      )}
+
+      {pendingItems.length > 0 && decidedItems.length > 0 && !showDecided && (
+        <Button
+          size="sm"
+          variant="ghost"
+          className="self-start"
+          onClick={() => setShowDecided(true)}
+        >
+          {t`Show ${decidedItems.length} already reviewed`}
+        </Button>
+      )}
+
+      {summary && pendingItems.length > 0 && (
         <p className="text-xs text-muted-foreground">
           {t`${summary.not_evaluated ?? 0} expressions converted without needing review.`}
         </p>

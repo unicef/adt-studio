@@ -1157,6 +1157,10 @@ msgstr "Aligne la narration avec le texte pour permettre la mise en surbrillance
 msgid "All"
 msgstr "Tout"
 
+#. placeholder {0}: decidedItems.length
+msgid "All {0} flagged expressions have been reviewed."
+msgstr "Les {0} expressions signalées ont toutes été relues."
+
 #. placeholder {0}: status.pageCount
 msgid "All {0} pages merged in"
 msgstr "Les {0} pages sont fusionnées"
@@ -7533,6 +7537,10 @@ msgstr "Livrer"
 msgid "Short, simple sentences for kindergarten through 5th grade."
 msgstr "Phrases courtes et simples pour la maternelle jusqu'à la 5e année."
 
+#. placeholder {0}: decidedItems.length
+msgid "Show {0} already reviewed"
+msgstr "Afficher les {0} déjà relues"
+
 msgid "Show accessibility summary"
 msgstr "Afficher le résumé d'accessibilité"
 
@@ -7575,6 +7583,9 @@ msgstr "Afficher la justification de la révision"
 
 msgid "Show reviewer validation"
 msgstr "Afficher la validation du réviseur"
+
+msgid "Show what I decided"
+msgstr "Voir mes décisions"
 
 msgid "Show:"
 msgstr "Afficher:"

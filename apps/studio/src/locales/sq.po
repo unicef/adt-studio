@@ -1156,6 +1156,10 @@ msgstr "Rreshtimi i tregimit me tekstin për të aktivizuar theksimin në nivel 
 msgid "All"
 msgstr "Të gjitha"
 
+#. placeholder {0}: decidedItems.length
+msgid "All {0} flagged expressions have been reviewed."
+msgstr "Të {0} shprehjet e shënuara janë shqyrtuar."
+
 #. placeholder {0}: status.pageCount
 msgid "All {0} pages merged in"
 msgstr "Të {0} faqet janë bashkuar"
@@ -7532,6 +7536,10 @@ msgstr "Dërgo"
 msgid "Short, simple sentences for kindergarten through 5th grade."
 msgstr "Fjali të shkurtra dhe të thjeshta për klasën e parë deri në të pestën."
 
+#. placeholder {0}: decidedItems.length
+msgid "Show {0} already reviewed"
+msgstr "Shfaq {0} të shqyrtuara tashmë"
+
 msgid "Show accessibility summary"
 msgstr "Shfaq përmbledhjen e aksesueshmërisë"
 
@@ -7574,6 +7582,9 @@ msgstr "Shfaq arsyetimin e rishikimit"
 
 msgid "Show reviewer validation"
 msgstr "Shfaq validimin e rishikuesit"
+
+msgid "Show what I decided"
+msgstr "Shih çfarë vendosa"
 
 msgid "Show:"
 msgstr "Shfaq:"
