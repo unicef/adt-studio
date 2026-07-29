@@ -37,8 +37,11 @@ export function KidsPlayBar() {
       role="group"
       aria-label={tk("kids-player-region", "Reading controls")}
       className={cn(
-        "pointer-events-auto fixed bottom-5 left-1/2 z-[58] -translate-x-1/2",
-        "flex items-center gap-2 rounded-full bg-white p-2 pl-3",
+        // Centred once there is room; on a narrow screen it would sit under the
+        // buddy in the corner, so it shifts left of it instead.
+        "pointer-events-auto fixed bottom-5 z-[58]",
+        "left-3 right-[6.5rem] sm:left-1/2 sm:right-auto sm:-translate-x-1/2",
+        "flex items-center justify-center gap-2 rounded-full bg-white p-2",
         "shadow-2xl ring-2 ring-sky-100",
         reduceMotion ? "transition-none" : "animate-kidsPanelOpen",
       )}
