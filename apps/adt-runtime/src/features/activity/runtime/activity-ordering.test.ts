@@ -9,6 +9,7 @@ import {
   validateHandlerAtom,
 } from "../state/activity.atoms"
 import { currentSectionIdAtom, pagesAtom } from "../../navigation/state/nav.atoms"
+import { translationsAtom } from "../../language/state/language.atoms"
 
 const dragMocks = vi.hoisted(() => ({
   dropTargets: [] as Array<{
@@ -58,6 +59,7 @@ beforeEach(() => {
   store.set(submitStateAtom, "submit")
   store.set(validateHandlerAtom, () => null)
   store.set(confettiTriggerAtom, 0)
+  store.set(translationsAtom, {})
   store.set(pagesAtom, [{ section_id: "pg045_sec001", href: "pg045_sec001.html" }])
   store.set(currentSectionIdAtom, "pg045_sec001")
 })
@@ -77,6 +79,22 @@ describe("initializeOrderingActivity", () => {
     expect(item("item-4").getAttribute("aria-setsize")).toBe("4")
     expect(item("item-1").querySelector<HTMLButtonElement>('[data-order-move="up"]')?.disabled).toBe(true)
     expect(item("item-4").querySelector<HTMLButtonElement>('[data-order-move="down"]')?.disabled).toBe(true)
+  })
+
+  it("updates control labels when the book-language translations load", () => {
+    setup()
+    initializeOrderingActivity()
+
+    store.set(translationsAtom, {
+      "ordering-label": "Panga vitu kwa mpangilio sahihi",
+      "ordering-move-up": "Sogeza juu",
+      "ordering-move-down": "Sogeza chini",
+      "ordering-reset": "Weka upya mpangilio",
+    })
+
+    expect(document.querySelector("section")?.getAttribute("aria-label")).toBe("Panga vitu kwa mpangilio sahihi")
+    expect(item("item-1").querySelector('[data-order-move="up"]')?.getAttribute("aria-label")).toBe("Sogeza juu")
+    expect(document.querySelector("[data-order-reset]")?.textContent).toBe("Weka upya mpangilio")
   })
 
   it("moves a focused item with Arrow Up and Arrow Down", () => {

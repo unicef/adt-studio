@@ -208,7 +208,6 @@ export function initializeOrderingActivity(): (() => void) | null {
 
   const resetButton = document.createElement("button")
   resetButton.type = "button"
-  resetButton.textContent = tr("ordering-reset", "Reset order")
   resetButton.className = "mt-4 rounded-md border border-slate-400 bg-transparent px-4 py-2 font-medium"
   resetButton.setAttribute("data-order-reset", "")
   resetButton.addEventListener("click", resetOrder)
@@ -260,9 +259,25 @@ export function initializeOrderingActivity(): (() => void) | null {
     if (href) window.location.href = href
   }
 
+  const applyLocalizedText = () => {
+    section.setAttribute("aria-label", tr("ordering-label", "Put the items in the correct order"))
+    resetButton.textContent = tr("ordering-reset", "Reset order")
+    for (const item of currentItems()) {
+      item.querySelector<HTMLButtonElement>('[data-order-move="up"]')?.setAttribute(
+        "aria-label",
+        tr("ordering-move-up", "Move up"),
+      )
+      item.querySelector<HTMLButtonElement>('[data-order-move="down"]')?.setAttribute(
+        "aria-label",
+        tr("ordering-move-down", "Move down"),
+      )
+    }
+  }
+
   section.setAttribute("role", "group")
-  section.setAttribute("aria-label", tr("ordering-label", "Put the items in the correct order"))
   list.setAttribute("role", "list")
+  applyLocalizedText()
+  const unsubTranslations = store.sub(translationsAtom, applyLocalizedText)
   refreshControls()
   store.set(validateHandlerAtom, () => handleValidate)
   store.set(skipHandlerAtom, () => handleSkip)
@@ -272,6 +287,7 @@ export function initializeOrderingActivity(): (() => void) | null {
   store.set(skipEnabledAtom, hasNextPage)
 
   return () => {
+    unsubTranslations()
     combine(...cleanups)()
     store.set(validateHandlerAtom, () => null)
     store.set(skipHandlerAtom, () => null)
