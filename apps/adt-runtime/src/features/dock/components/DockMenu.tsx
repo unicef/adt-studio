@@ -27,7 +27,6 @@ import { cn } from "@/shared/lib/utils";
 import { useIsMobile } from "@/shared/hooks/use-is-mobile";
 import { DockIconButton } from "@/features/dock/components/DockIconButton";
 import { DockMobileTools, type DockTool } from "@/features/dock/components/DockMobileTools";
-import { ActiveFeatureIndicators } from "@/features/dock/components/ActiveFeatureIndicators";
 import { useDockContext } from "@/features/dock/context/dock-context";
 import { GlossaryContent } from "@/features/glossary/components/GlossaryDockContent";
 import { AudioContent } from "@/features/audio/components/AudioDockContent";
@@ -132,10 +131,7 @@ export function DockMenu({ className }: DockMenuProps) {
   return (
     <>
       {isMobile ? (
-        <div className="flex items-center gap-1">
-          <ActiveFeatureIndicators />
-          <DockMobileTools tools={tools} label={t("sidebar-title") || "Accessibility menu"} />
-        </div>
+        <DockMobileTools tools={tools} label={t("sidebar-title") || "Accessibility menu"} />
       ) : (
         <div className={cn("flex items-center justify-end gap-2 pl-1", className)}>
           {features.glossary ? (
