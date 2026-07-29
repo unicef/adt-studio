@@ -248,6 +248,7 @@ const PROMPT_VARIABLES: Record<string, string[]> = {
     "nodes",
     "leaf_texts",
     "viewports",
+    "user_instructions",
   ],
   html_edit: [
     "current_html",
