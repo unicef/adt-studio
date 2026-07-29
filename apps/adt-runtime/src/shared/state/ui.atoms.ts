@@ -1,5 +1,6 @@
 import {
   ephemeralAtom,
+  migratePersistedKey,
   persistedBoolAtom,
   persistedJsonAtom,
   persistedStringAtom,
@@ -29,6 +30,27 @@ export const iconSizeAtom = persistedStringAtom("iconSize", "md")
  * control for incidental audio, which some children need off entirely.
  */
 export const soundEffectsAtom = persistedBoolAtom("soundEffects", true)
+
+/**
+ * Reading comfort — text size and letter style, applied to the book content
+ * itself rather than the interface.
+ *
+ * Built for kids mode, but deliberately not kids-only: the regular reader has
+ * no text-size or font control yet (`useZoomController` is still a stub), so
+ * when it gains one it should adopt these rather than adding a second pair.
+ * Previously stored as `kidsTextScale` / `kidsReadingFont`; the old values are
+ * migrated so nobody mid-test loses their setting.
+ */
+migratePersistedKey("kidsTextScale", "textScale")
+migratePersistedKey("kidsReadingFont", "readingFont")
+
+/** Drives a CSS `zoom` on the book content; "1" = no change. */
+export type TextScale = "1" | "1.25" | "1.5" | "2"
+export const textScaleAtom = persistedStringAtom("textScale", "1")
+
+/** The book's own font, a plain sans-serif, or spaced dyslexia-friendly. */
+export type ReadingFont = "default" | "plain" | "spaced"
+export const readingFontAtom = persistedStringAtom("readingFont", "default")
 
 export const reduceMotionAtom = persistedBoolAtom("reduceMotion", false)
 

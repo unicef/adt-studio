@@ -4,11 +4,13 @@ import { createStore, Provider } from "jotai"
 import { afterEach, describe, expect, it } from "vitest"
 import type { ReactNode } from "react"
 import {
-  kidsReadingFontAtom,
-  kidsTextScaleAtom,
-  type KidsReadingFont,
-  type KidsTextScale,
 } from "@/features/kids/state/kids.atoms"
+import {
+  readingFontAtom,
+  textScaleAtom,
+  type ReadingFont,
+  type TextScale,
+} from "@/shared/state/ui.atoms"
 import { useKidsReadingComfort } from "./useKidsReadingComfort"
 
 function styleTag() {
@@ -17,11 +19,11 @@ function styleTag() {
 
 function renderComfort(
   active: boolean,
-  opts: { scale?: KidsTextScale; font?: KidsReadingFont } = {},
+  opts: { scale?: TextScale; font?: ReadingFont } = {},
 ) {
   const store = createStore()
-  if (opts.scale) store.set(kidsTextScaleAtom, opts.scale)
-  if (opts.font) store.set(kidsReadingFontAtom, opts.font)
+  if (opts.scale) store.set(textScaleAtom, opts.scale)
+  if (opts.font) store.set(readingFontAtom, opts.font)
   const wrapper = ({ children }: { children: ReactNode }) => (
     <Provider store={store}>{children}</Provider>
   )

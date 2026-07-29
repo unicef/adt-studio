@@ -63,15 +63,9 @@ export const kidsAvatarAtom = persistedJsonAtom<KidsAvatarConfig>(
   DEFAULT_KIDS_AVATAR,
 )
 
-// Reading-comfort (accessibility) preferences, persisted per reader.
-// Text scale drives a CSS `zoom` on the book content; "1" = no change.
-export type KidsTextScale = "1" | "1.25" | "1.5" | "2"
-export const kidsTextScaleAtom = persistedStringAtom("kidsTextScale", "1")
-
-// Font style for the book content: the book's own font, a plain sans-serif,
-// or a spaced dyslexia-friendly treatment.
-export type KidsReadingFont = "default" | "plain" | "spaced"
-export const kidsReadingFontAtom = persistedStringAtom("kidsReadingFont", "default")
+// Reading comfort (text scale, font) is NOT kids-only — it now lives in shared
+// state as `textScaleAtom` / `readingFontAtom`, so the regular reader can adopt
+// the same settings rather than growing a parallel pair.
 
 // Whether the buddy chats unprompted while the child reads (idle chatter).
 export const kidsBuddyChatterAtom = persistedBoolAtom("kidsBuddyChatter", true)

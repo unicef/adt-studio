@@ -24,16 +24,18 @@ import {
   kidsBuddyChatterAtom,
   kidsLanguageDialogOpenAtom,
   kidsLastSpotAtom,
-  kidsReadingFontAtom,
   kidsResumeChipDismissedAtom,
   kidsStoryMapDialogOpenAtom,
-  kidsTextScaleAtom,
   type KidsLastSpot,
-  type KidsReadingFont,
-  type KidsTextScale,
 } from "@/features/kids/state/kids.atoms"
 import { currentLanguageAtom } from "@/features/language/state/language.atoms"
-import { soundEffectsAtom } from "@/shared/state/ui.atoms"
+import {
+  readingFontAtom,
+  soundEffectsAtom,
+  textScaleAtom,
+  type ReadingFont,
+  type TextScale,
+} from "@/shared/state/ui.atoms"
 import { navigateToHref } from "@/features/navigation/lib/page-navigation"
 import {
   currentPageNumberAtom,
@@ -177,13 +179,13 @@ export function KidsStoryMapDialog() {
 export function KidsAccessibilityDialog() {
   const { tk } = useKidsTranslation()
   const [open, setOpen] = useAtom(kidsAccessibilityDialogOpenAtom)
-  const [scale, setScale] = useAtom(kidsTextScaleAtom)
-  const [font, setFont] = useAtom(kidsReadingFontAtom)
+  const [scale, setScale] = useAtom(textScaleAtom)
+  const [font, setFont] = useAtom(readingFontAtom)
   const [chatter, setChatter] = useAtom(kidsBuddyChatterAtom)
   const [sounds, setSounds] = useAtom(soundEffectsAtom)
   const reduceMotion = usePrefersReducedMotion()
 
-  const sizeOptions: { value: KidsTextScale; label: string; px: string }[] = [
+  const sizeOptions: { value: TextScale; label: string; px: string }[] = [
     { value: "1", label: tk("kids-comfort-size-normal", "Normal"), px: "text-lg" },
     { value: "1.25", label: tk("kids-comfort-size-big", "Big"), px: "text-2xl" },
     { value: "1.5", label: tk("kids-comfort-size-bigger", "Bigger"), px: "text-3xl" },
@@ -191,7 +193,7 @@ export function KidsAccessibilityDialog() {
   ]
 
   const fontOptions: {
-    value: KidsReadingFont
+    value: ReadingFont
     label: string
     className: string
   }[] = [

@@ -11,18 +11,20 @@
 import { useAtomValue } from "jotai"
 import { useLayoutEffect } from "react"
 import {
-  kidsReadingFontAtom,
-  kidsTextScaleAtom,
-  type KidsReadingFont,
-  type KidsTextScale,
 } from "@/features/kids/state/kids.atoms"
+import {
+  readingFontAtom,
+  textScaleAtom,
+  type ReadingFont,
+  type TextScale,
+} from "@/shared/state/ui.atoms"
 
 const STYLE_TAG_ID = "kids-reading-comfort"
 
 const PLAIN_FONT_STACK =
   'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif'
 
-function fontRules(font: KidsReadingFont): string {
+function fontRules(font: ReadingFont): string {
   if (font === "plain") {
     return `#content, #content * { font-family: ${PLAIN_FONT_STACK} !important; }`
   }
@@ -36,7 +38,7 @@ function fontRules(font: KidsReadingFont): string {
   return ""
 }
 
-function buildCss(scale: KidsTextScale, font: KidsReadingFont): string {
+function buildCss(scale: TextScale, font: ReadingFont): string {
   const rules: string[] = []
   if (scale !== "1") rules.push(`#content { zoom: ${scale}; }`)
   const font_ = fontRules(font)
@@ -60,8 +62,8 @@ function applyCss(css: string): void {
 }
 
 export function useKidsReadingComfort(active: boolean): void {
-  const scale = useAtomValue(kidsTextScaleAtom) as KidsTextScale
-  const font = useAtomValue(kidsReadingFontAtom) as KidsReadingFont
+  const scale = useAtomValue(textScaleAtom) as TextScale
+  const font = useAtomValue(readingFontAtom) as ReadingFont
 
   useLayoutEffect(() => {
     if (!active) {

@@ -21,8 +21,6 @@ import {
   kidsLastSpotAtom,
   kidsOnboardingDoneAtom,
   kidsPlayerNameAtom,
-  kidsReadingFontAtom,
-  kidsTextScaleAtom,
 } from "@/features/kids/state/kids.atoms"
 import {
   currentLanguageAtom,
@@ -32,8 +30,10 @@ import { appConfigAtom, type AppFeatures } from "@/shared/state/config.atoms"
 import {
   easyReadModeAtom,
   glossaryModeAtom,
+  readingFontAtom,
   reduceMotionAtom,
   signLanguageModeAtom,
+  textScaleAtom,
 } from "@/shared/state/ui.atoms"
 import { KidsChrome } from "./KidsChrome"
 
@@ -234,10 +234,10 @@ describe("KidsBuddy", () => {
     expect(screen.getByText("My buddy chats with me")).not.toBeNull()
 
     fireEvent.click(screen.getByText("Bigger"))
-    expect(store.get(kidsTextScaleAtom)).toBe("1.5")
+    expect(store.get(textScaleAtom)).toBe("1.5")
 
     fireEvent.click(screen.getByText("Spaced"))
-    expect(store.get(kidsReadingFontAtom)).toBe("spaced")
+    expect(store.get(readingFontAtom)).toBe("spaced")
 
     const css =
       document.getElementById("kids-reading-comfort")?.textContent ?? ""
