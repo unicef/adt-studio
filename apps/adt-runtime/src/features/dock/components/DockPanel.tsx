@@ -18,6 +18,11 @@ interface DockPanelProps {
    *    book stays visible and interactive — for read-aloud, where the user
    *    follows along in the text while it plays. */
   mobileVariant?: "sheet" | "inline"
+  /** When true, the desktop popover never auto-closes on outside-press or
+   *  Escape — it stays open until `open` goes false. Used by read-aloud, which
+   *  must remain visible for the whole session (only Stop / the TTS toggle
+   *  dismiss it). */
+  persistent?: boolean
 }
 
 function DockPanel({
@@ -27,6 +32,7 @@ function DockPanel({
   side = "top",
   children,
   mobileVariant = "sheet",
+  persistent = false,
 }: DockPanelProps) {
   const isMobile = useIsMobile()
   const { isTop } = useDockContext()
@@ -89,6 +95,9 @@ function DockPanel({
       open={open}
       onOpenChange={(next, eventDetails) => {
         if (next) return
+        // Persistent panels (read-aloud) stay open until their own control
+        // turns them off — ignore outside-press / Escape dismissals.
+        if (persistent) return
         // Clicks on a dock trigger button (prev/next page, panel toggles)
         // are handled by the button's own onClick — don't also treat them as
         // an outside-press dismissal, or the panel would flicker/toggle. Any

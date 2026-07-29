@@ -53,8 +53,9 @@ export function DockMenu({ className }: DockMenuProps) {
   const isMobile = useIsMobile();
 
   const readAloud = useAtomValue(readAloudModeAtom);
+  const setReadAloud = useSetAtom(readAloudModeAtom);
   const setPlayBarVisible = useSetAtom(playBarVisibleAtom);
-  const { isPlaying, play } = useAudioPlayerContext();
+  const { isPlaying, play, stop } = useAudioPlayerContext();
 
   // Anchors for the desktop popovers. On mobile the buttons aren't rendered and
   // the panels present as bottom sheets (which ignore the anchor).
@@ -66,11 +67,20 @@ export function DockMenu({ className }: DockMenuProps) {
   const toggle = (next: DockMenuValue) =>
     setValue((prev) => (prev === next ? "" : next));
 
-  const openAudio = () => {
-    setPlayBarVisible(true);
-    const wasOpen = value === "audio";
-    toggle("audio");
-    if (!wasOpen) play();
+  // Read-aloud isn't a dock-menu panel: its controls stay visible for the whole
+  // session (across page navigations) as long as TTS is on. So toggle the
+  // persistent `readAloud` state — turning it off stops playback (a useAudioPlayer
+  // effect tears down when readAloud goes false) and hides the controls.
+  const toggleReadAloud = () => {
+    if (readAloud) {
+      stop();
+      setReadAloud(false);
+      setPlayBarVisible(false);
+    } else {
+      setPlayBarVisible(true);
+      setReadAloud(true);
+      play();
+    }
   };
 
   const showSignLanguage = features.signLanguage && hasPageSignLanguageVideo;
@@ -100,7 +110,7 @@ export function DockMenu({ className }: DockMenuProps) {
       label: t("tts-label") || "Text to speech",
       icon: readAloud ? Volume2 : VolumeX,
       active: readAloud,
-      onSelect: openAudio,
+      onSelect: toggleReadAloud,
     });
   }
   if (showSignLanguage) {
@@ -153,7 +163,8 @@ export function DockMenu({ className }: DockMenuProps) {
                   ? t("deactivate-tts-label") || "Deactivate text to speech"
                   : t("activate-tts-label") || "Activate text to speech"
               }
-              onClick={openAudio}
+              pressed={readAloud}
+              onClick={toggleReadAloud}
             >
               {readAloud ? (
                 <Volume2 className={cn(isPlaying && "animate-pulse")} />
@@ -206,11 +217,16 @@ export function DockMenu({ className }: DockMenuProps) {
 
       {features.readAloud ? (
         <DockPanel
-          open={value === "audio"}
-          onClose={() => setValue("")}
+          open={readAloud}
+          onClose={() => {
+            stop();
+            setReadAloud(false);
+            setPlayBarVisible(false);
+          }}
           anchor={audioBtnRef}
           side={side}
           mobileVariant="inline"
+          persistent
         >
           <AudioContent />
         </DockPanel>
