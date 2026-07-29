@@ -9,6 +9,7 @@ import {
   loadBookConfig,
   collectMathSpeechEntries,
   evaluateMathSpeech,
+  hashMathSpeechInputs,
   latexToSpeech,
 } from "@adt/pipeline"
 import {
@@ -266,16 +267,25 @@ export function createMathSpeechEvaluationRoutes(
     }
 
     const evalConfigHash = buildEvalConfigHash(resolved)
-
-    // Nothing has changed since the stored verdict, so re-judging would spend
-    // tokens to reach the same answer and would discard reviewer decisions.
     const stored = getMathSpeechEvaluation(safeLabel, booksDir, safeLanguage)
     const force = c.req.query("force") === "true"
+
+    const { candidates, convertedCount } = collectMathSpeechEntries(
+      entries.map((e) => ({ id: e.id, text: e.text })),
+      { evaluateAll: resolved.evaluate_all_entries },
+    )
+    const inputHash = hashMathSpeechInputs(candidates)
+
+    // Re-judging identical inputs spends tokens to reach the same answer and
+    // discards reviewer decisions. The input hash covers the converter's actual
+    // output, so a change to the conversion invalidates the verdict even though
+    // the catalog version and judge config are untouched.
     if (
       !force &&
       stored.evaluation &&
       stored.evaluation.catalog_version === catalogVersion &&
-      stored.evaluation.eval_config_hash === evalConfigHash
+      stored.evaluation.eval_config_hash === evalConfigHash &&
+      stored.evaluation.input_hash === inputHash
     ) {
       return c.json({
         status: "current",
@@ -286,11 +296,6 @@ export function createMathSpeechEvaluationRoutes(
       })
     }
 
-    const { candidates, convertedCount } = collectMathSpeechEntries(
-      entries.map((e) => ({ id: e.id, text: e.text })),
-      { evaluateAll: resolved.evaluate_all_entries },
-    )
-
     // Nothing the walker was unsure about — record that rather than leaving a
     // stale verdict from an earlier catalog in place.
     if (candidates.length === 0) {
@@ -300,6 +305,7 @@ export function createMathSpeechEvaluationRoutes(
         language: safeLanguage,
         catalog_version: catalogVersion,
         eval_config_hash: evalConfigHash,
+        input_hash: inputHash,
         summary: {
           total: 0,
           acceptable: 0,
@@ -346,6 +352,7 @@ export function createMathSpeechEvaluationRoutes(
             language: safeLanguage,
             catalogVersion,
             evalConfigHash,
+            inputHash,
             bookLanguage: safeLanguage,
             notEvaluated: convertedCount - candidates.length,
           })

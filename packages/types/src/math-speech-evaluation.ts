@@ -232,6 +232,13 @@ export const MathSpeechEvaluationResult = z.object({
   language: z.string().min(1),
   catalog_version: z.number().int().min(1),
   eval_config_hash: z.string().min(1),
+  /**
+   * Hash of the converter's actual output for the judged entries. The catalog
+   * version and judge config can both be unchanged while the converter itself
+   * has changed, which alters what is being judged — without this a verdict
+   * would be reused for text that no longer exists.
+   */
+  input_hash: z.string().min(1).optional(),
   judge: MathSpeechEvaluationJudgeMetadata.optional(),
   summary: MathSpeechEvaluationSummary,
   items: z.array(MathSpeechEvaluationItem),

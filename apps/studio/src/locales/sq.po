@@ -1199,6 +1199,9 @@ msgstr "Alegori"
 msgid "Alphabetical"
 msgstr "Alfabetik"
 
+msgid "Already checked — nothing has changed since the last run."
+msgstr "Tashmë e kontrolluar — asgjë nuk ka ndryshuar që nga hera e fundit."
+
 msgid "Already handed out"
 msgstr "Tashmë të shpërndara"
 
@@ -1900,6 +1903,9 @@ msgstr "Titulli i kapitullit"
 
 msgid "Chart / Graph"
 msgstr "Tabelë / Grafik"
+
+msgid "Check again anyway"
+msgstr "Kontrollo sërish gjithsesi"
 
 msgid "Check every expression"
 msgstr "Kontrollo çdo shprehje"

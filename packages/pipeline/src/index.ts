@@ -213,6 +213,7 @@ export {
   needsMathSpeechReview,
   collectMathSpeechEntries,
   evaluateMathSpeech,
+  hashMathSpeechInputs,
   resolveSpokenText,
   type MathSpeechCatalogEntry,
   type EvaluateMathSpeechOptions,

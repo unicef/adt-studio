@@ -107,6 +107,21 @@ const judgeSchema = z.object({
   ),
 })
 
+/**
+ * Fingerprint of what is about to be judged — entry ids paired with the
+ * converter's current output. Changes whenever the conversion changes, which
+ * the catalog version and judge config cannot capture.
+ */
+export function hashMathSpeechInputs(
+  entries: MathSpeechEvaluationRunEntry[],
+): string {
+  const material = entries
+    .map((e) => `${e.entry_id}\u0000${e.walker_text}`)
+    .sort()
+    .join("\u0001")
+  return crypto.createHash("sha256").update(material).digest("hex").slice(0, 32)
+}
+
 export interface EvaluateMathSpeechOptions {
   entries: MathSpeechEvaluationRunEntry[]
   config: ResolvedMathSpeechEvaluationConfig
@@ -115,6 +130,7 @@ export interface EvaluateMathSpeechOptions {
   evalConfigHash: string
   bookLanguage?: string
   promptName?: string
+  inputHash?: string
   /** Entries the walker converted but that were never sent to the judge. */
   notEvaluated?: number
   signal?: AbortSignal
@@ -206,6 +222,7 @@ export async function evaluateMathSpeech(
     language,
     catalog_version: catalogVersion,
     eval_config_hash: evalConfigHash,
+    ...(options.inputHash ? { input_hash: options.inputHash } : {}),
     judge: {
       model: config.judge_model,
       instructions: config.judge_instructions,

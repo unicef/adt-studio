@@ -1575,9 +1575,10 @@ export const api = {
     language: string,
     apiKey: string,
     providerCredentials?: StageRunProviderCredentials,
+    force = false,
   ) =>
     request<MathSpeechEvaluationRunResponse>(
-      `/books/${label}/evaluations/math-speech/${language}/run`,
+      `/books/${label}/evaluations/math-speech/${language}/run${force ? "?force=true" : ""}`,
       { method: "POST", headers: buildApiHeaders(apiKey, providerCredentials) },
     ),
 

@@ -1200,6 +1200,9 @@ msgstr "Allégorie"
 msgid "Alphabetical"
 msgstr "Alphabétique"
 
+msgid "Already checked — nothing has changed since the last run."
+msgstr "Déjà vérifié — rien n'a changé depuis la dernière exécution."
+
 msgid "Already handed out"
 msgstr "Déjà distribuées"
 
@@ -1901,6 +1904,9 @@ msgstr "Titre de chapitre"
 
 msgid "Chart / Graph"
 msgstr "Graphique / Diagramme"
+
+msgid "Check again anyway"
+msgstr "Vérifier quand même"
 
 msgid "Check every expression"
 msgstr "Vérifier toutes les expressions"

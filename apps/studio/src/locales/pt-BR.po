@@ -1198,6 +1198,9 @@ msgstr "Alegoria"
 msgid "Alphabetical"
 msgstr "Alfabético"
 
+msgid "Already checked — nothing has changed since the last run."
+msgstr "Já verificado — nada mudou desde a última execução."
+
 msgid "Already handed out"
 msgstr "Já distribuídas"
 
@@ -1899,6 +1902,9 @@ msgstr "Título do capítulo"
 
 msgid "Chart / Graph"
 msgstr "Gráfico / Tabela"
+
+msgid "Check again anyway"
+msgstr "Verificar novamente mesmo assim"
 
 msgid "Check every expression"
 msgstr "Verificar todas as expressões"

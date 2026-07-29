@@ -236,10 +236,13 @@ export function MathSpeechReviewPanel({
   })
 
   const run = useMutation({
-    mutationFn: () =>
-      api.runMathSpeechEvaluation(bookLabel, language, apiKey, providerCredentials),
+    mutationFn: (force: boolean = false) =>
+      api.runMathSpeechEvaluation(bookLabel, language, apiKey, providerCredentials, force),
     onSuccess: invalidate,
   })
+  // A run whose inputs are unchanged returns without judging anything. Saying so
+  // is the difference between "already up to date" and "the button is broken".
+  const skippedAsCurrent = run.data?.status === "current"
 
   const isPending =
     acceptAnyway.isPending || resolve.isPending || clear.isPending
@@ -296,7 +299,7 @@ export function MathSpeechReviewPanel({
               ? undefined
               : t`A ${judgeProvider} key is required for the configured judge model. Add one in Book settings.`
           }
-          onClick={() => run.mutate()}
+          onClick={() => run.mutate(false)}
         >
           {(run.isPending || checkRunning) && (
             <Loader2 className="size-3.5 animate-spin" />
@@ -334,6 +337,24 @@ export function MathSpeechReviewPanel({
           <span className="text-muted-foreground">
             {run.error instanceof Error ? run.error.message : String(run.error)}
           </span>
+        </p>
+      )}
+
+      {skippedAsCurrent && !checkRunning && (
+        <p className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/40 p-2 text-sm">
+          <span>
+            <Trans>
+              Already checked — nothing has changed since the last run.
+            </Trans>
+          </span>
+          <Button
+            size="sm"
+            variant="ghost"
+            disabled={run.isPending || !hasJudgeKey}
+            onClick={() => run.mutate(true)}
+          >
+            <Trans>Check again anyway</Trans>
+          </Button>
         </p>
       )}
 
