@@ -10,6 +10,7 @@ import {
   ChevronDown,
   EyeOff,
   Hash,
+  ImagePlus,
   ListOrdered,
   Loader2,
   MapPin,
@@ -19,13 +20,22 @@ import {
   Search,
   Sparkles,
   Trash2,
+  Video,
   X,
   type LucideIcon,
 } from "lucide-react"
 import { useQueryClient } from "@tanstack/react-query"
-import { api } from "@/api/client"
-import type { GlossaryItem, GlossaryOutput, VersionEntry } from "@/api/client"
+import { api, BASE_URL, getSignLanguageVideoUrl } from "@/api/client"
+import type { GlossaryItem, GlossaryOutput, SignLanguageVideo, VersionEntry } from "@/api/client"
 import { useGlossary } from "@/hooks/use-glossary"
+import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
+import {
+  useSignLanguageVideos,
+  useUploadSignLanguageVideo,
+  useAssignSignLanguageVideo,
+  useDeleteSignLanguageVideo,
+} from "@/hooks/use-sign-language-videos"
+import { getGlossaryItemTextId } from "@/lib/glossary-video"
 import { useStepHeader } from "../../components/StepViewRouter"
 import { useBookRun } from "@/hooks/use-book-run"
 import { useApiKey } from "@/hooks/use-api-key"
@@ -35,8 +45,17 @@ import { FilteredEmptyState } from "../../components/FilteredEmptyState"
 import { VersionPicker } from "../../components/VersionPicker"
 import { usePendingChanges } from "../../components/change-summary"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { useLingui } from "@lingui/react/macro"
 import { AddGlossaryDialog } from "./AddGlossaryDialog"
+import { GlossaryImagePickerDialog } from "./components/GlossaryImagePickerDialog"
 import { GlossaryHintBanner } from "./components/GlossaryHintBanner"
 import { useGlossaryOccurrences, type TermOccurrence } from "./lib/occurrences"
 
@@ -99,6 +118,7 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
       a.definition === b.definition &&
       a.emojis.join("|") === b.emojis.join("|") &&
       a.variations.join("|") === b.variations.join("|") &&
+      (a.imageId ?? "") === (b.imageId ?? "") &&
       !!a.pruned === !!b.pruned,
     classifyChanged: (before, after) =>
       !!after.pruned && !before.pruned ? "pruned" : "edited",
@@ -112,6 +132,24 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
     bookLabel,
     items,
   )
+  const { data: signVideosData } = useSignLanguageVideos(bookLabel)
+
+  // Text-catalog id per item, computed over the FULL items array (including
+  // pruned items) to match the pipeline's getGlossaryItemTextId. Sign-language
+  // videos attach to glossary items via this id.
+  const textIdByItem = useMemo(() => {
+    const map = new Map<GlossaryItem, string>()
+    items.forEach((item, index) => map.set(item, getGlossaryItemTextId(item, index)))
+    return map
+  }, [items])
+
+  const signVideoBySectionId = useMemo(() => {
+    const map = new Map<string, SignLanguageVideo>()
+    for (const video of signVideosData?.videos ?? []) {
+      if (video.sectionId) map.set(video.sectionId, video)
+    }
+    return map
+  }, [signVideosData])
 
   // Don't strand the "Manual only" filter active-but-disabled when the last
   // manual term is removed — turn it off so the list isn't stuck empty.
@@ -165,8 +203,12 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
     if (!pending) return
     setSaving(true)
     const minDelay = new Promise((r) => setTimeout(r, 400))
-    await api.updateGlossary(bookLabel, pending)
+    const result = await api.updateGlossary(bookLabel, pending)
     setPending(null)
+    if (result.imageRequirementsChanged) {
+      queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
+      invalidateStoryboardDependents(queryClient, bookLabel)
+    }
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "glossary"] }),
       queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "text-catalog"] }),
@@ -225,6 +267,20 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
       items: base.items.map((item) =>
         (item.id ?? item.word) === itemId
           ? { ...item, emojis: newEmojis, source: "manual" }
+          : item
+      ),
+    })
+  }
+
+  const updateImageId = (itemId: string, newImageId: string | undefined) => {
+    const base = pending ?? data ?? createEmptyGlossary()
+    if (!base) return
+    setPending({
+      ...base,
+      generatedAt: base.generatedAt || new Date().toISOString(),
+      items: base.items.map((item) =>
+        (item.id ?? item.word) === itemId
+          ? { ...item, imageId: newImageId }
           : item
       ),
     })
@@ -430,18 +486,26 @@ export function GlossaryView({ bookLabel }: { bookLabel: string }) {
               clearLabel={searchQuery ? t`Clear search` : t`Clear filters`}
             />
           ) : (
-            displayItems.map((item) => (
-              <GlossaryItemCard
-                key={item.id ?? item.word}
-                item={item}
-                occurrence={occurrences.get(item.id ?? item.word)}
-                occurrenceLoading={occurrencesLoading}
-                onDefinitionChange={updateDefinition}
-                onEmojisChange={updateEmojis}
-                onRemoveManual={removeManualItem}
-                onTogglePruned={togglePruned}
-              />
-            ))
+            displayItems.map((item) => {
+              const textId = textIdByItem.get(item) ?? ""
+              return (
+                <GlossaryItemCard
+                  key={item.id ?? item.word}
+                  item={item}
+                  bookLabel={bookLabel}
+                  textId={textId}
+                  signVideo={signVideoBySectionId.get(textId) ?? null}
+                  signVideos={signVideosData?.videos ?? []}
+                  occurrence={occurrences.get(item.id ?? item.word)}
+                  occurrenceLoading={occurrencesLoading}
+                  onDefinitionChange={updateDefinition}
+                  onEmojisChange={updateEmojis}
+                  onImageIdChange={updateImageId}
+                  onRemoveManual={removeManualItem}
+                  onTogglePruned={togglePruned}
+                />
+              )
+            })
           )}
         </div>
 
@@ -569,18 +633,28 @@ function SortMenu({
 
 function GlossaryItemCard({
   item,
+  bookLabel,
+  textId,
+  signVideo,
+  signVideos,
   occurrence,
   occurrenceLoading,
   onDefinitionChange,
   onEmojisChange,
+  onImageIdChange,
   onRemoveManual,
   onTogglePruned,
 }: {
   item: GlossaryItem
+  bookLabel: string
+  textId: string
+  signVideo: SignLanguageVideo | null
+  signVideos: SignLanguageVideo[]
   occurrence?: TermOccurrence
   occurrenceLoading: boolean
   onDefinitionChange: (itemId: string, definition: string) => void
   onEmojisChange: (itemId: string, emojis: string[]) => void
+  onImageIdChange: (itemId: string, imageId: string | undefined) => void
   onRemoveManual: (itemId: string) => void
   onTogglePruned: (itemId: string, pruned: boolean) => void
 }) {
@@ -684,8 +758,311 @@ function GlossaryItemCard({
         ariaLabel={t`Definition for ${item.word}`}
       />
 
-      <TermOccurrenceMeta occurrence={occurrence} loading={occurrenceLoading} />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <TermOccurrenceMeta occurrence={occurrence} loading={occurrenceLoading} />
+        {/* Pruned items are excluded from output — hide the media affordances. */}
+        {!isPruned && (
+          <div className="ml-auto flex shrink-0 items-center gap-1.5">
+            <GlossaryItemPicture
+              bookLabel={bookLabel}
+              imageId={item.imageId}
+              word={item.word}
+              onChange={(imageId) => onImageIdChange(itemId, imageId)}
+            />
+            <GlossarySignVideo
+              bookLabel={bookLabel}
+              textId={textId}
+              video={signVideo}
+              videos={signVideos}
+            />
+          </div>
+        )}
+      </div>
     </div>
+  )
+}
+
+/** Compact picture affordance for a glossary item: thumbnail with a remove
+ * (×) affordance when an image is set, otherwise an "Add picture" button that
+ * opens the single-select image picker. */
+function GlossaryItemPicture({
+  bookLabel,
+  imageId,
+  word,
+  onChange,
+}: {
+  bookLabel: string
+  imageId: string | undefined
+  word: string
+  onChange: (imageId: string | undefined) => void
+}) {
+  const { t } = useLingui()
+  const [pickerOpen, setPickerOpen] = useState(false)
+
+  return (
+    <>
+      {imageId ? (
+        <span className="group/pic relative inline-flex">
+          <button
+            type="button"
+            onClick={() => setPickerOpen(true)}
+            title={t`Change the picture for this term`}
+            className="inline-flex h-9 w-9 items-center justify-center overflow-hidden rounded-md border border-border/70 bg-muted/30 transition-all hover:ring-2 hover:ring-lime-300 cursor-pointer"
+          >
+            <img
+              src={`${BASE_URL}/books/${bookLabel}/images/${imageId}`}
+              alt={t`Picture for ${word}`}
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
+          </button>
+          <button
+            type="button"
+            onClick={() => onChange(undefined)}
+            aria-label={t`Remove picture`}
+            title={t`Remove picture`}
+            className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full border border-border bg-background text-muted-foreground opacity-0 shadow-sm transition-opacity hover:text-destructive group-hover/pic:opacity-100 focus-visible:opacity-100 cursor-pointer"
+          >
+            <X className="h-2.5 w-2.5" strokeWidth={3} />
+          </button>
+        </span>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setPickerOpen(true)}
+          className="inline-flex h-7 items-center gap-1 rounded-md border border-dashed border-border/70 px-2 text-[11px] font-medium text-muted-foreground transition-colors hover:border-lime-300 hover:bg-lime-50 hover:text-lime-700 cursor-pointer"
+        >
+          <ImagePlus className="h-3 w-3" aria-hidden />
+          {t`Add picture`}
+        </button>
+      )}
+      {pickerOpen && (
+        <GlossaryImagePickerDialog
+          bookLabel={bookLabel}
+          initialSelected={imageId}
+          onConfirm={(nextImageId) => {
+            onChange(nextImageId)
+            setPickerOpen(false)
+          }}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
+    </>
+  )
+}
+
+/** Compact sign-language-video affordance for a glossary item: upload +
+ * assign to the item's text-catalog id when missing, otherwise a popover
+ * preview with a remove (delete) button. */
+function GlossarySignVideo({
+  bookLabel,
+  textId,
+  video,
+  videos,
+}: {
+  bookLabel: string
+  textId: string
+  video: SignLanguageVideo | null
+  videos: SignLanguageVideo[]
+}) {
+  const { t } = useLingui()
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const uploadMutation = useUploadSignLanguageVideo(bookLabel)
+  const assignMutation = useAssignSignLanguageVideo(bookLabel)
+  const deleteMutation = useDeleteSignLanguageVideo(bookLabel)
+  const busy = uploadMutation.isPending || assignMutation.isPending
+  const unassignedVideos = videos.filter((candidate) => !candidate.sectionId)
+
+  const assignVideo = (videoId: string) => {
+    assignMutation.mutate(
+      { videoId, sectionId: textId },
+      { onSuccess: () => setPickerOpen(false) },
+    )
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ""
+    if (!file) return
+    uploadMutation.mutate(file, {
+      onSuccess: (data) => {
+        if (data?.videoId) {
+          assignVideo(data.videoId)
+        }
+      },
+    })
+  }
+
+  return (
+    <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="video/mp4,video/webm"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+      {video ? (
+        <span className="inline-flex items-center gap-0.5">
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                title={video.originalName}
+                className="inline-flex h-7 max-w-44 items-center gap-1 rounded-md border border-cyan-200 bg-cyan-50 px-2 text-[11px] font-medium text-cyan-800 transition-colors hover:border-cyan-300 hover:bg-cyan-100 cursor-pointer"
+              >
+                <Video className="h-3 w-3 shrink-0 text-cyan-600" aria-hidden />
+                <span className="truncate">{video.originalName}</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-80 p-2" align="end">
+              <video
+                src={getSignLanguageVideoUrl(bookLabel, video.videoId)}
+                className="w-full rounded"
+                controls
+                preload="metadata"
+              />
+              <p className="mt-1.5 truncate text-[11px] text-muted-foreground" title={video.originalName}>
+                {video.originalName}
+              </p>
+            </PopoverContent>
+          </Popover>
+          <button
+            type="button"
+            onClick={() => deleteMutation.mutate(video.videoId)}
+            disabled={deleteMutation.isPending}
+            aria-label={t`Remove sign language video`}
+            title={t`Remove sign language video`}
+            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-muted-foreground/70 transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50 cursor-pointer"
+          >
+            {deleteMutation.isPending ? (
+              <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+            ) : (
+              <Trash2 className="h-3 w-3" aria-hidden />
+            )}
+          </button>
+        </span>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setPickerOpen(true)}
+          disabled={busy}
+          className="inline-flex h-7 items-center gap-1 rounded-md border border-dashed border-border/70 px-2 text-[11px] font-medium text-muted-foreground transition-colors hover:border-cyan-300 hover:bg-cyan-50 hover:text-cyan-700 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
+        >
+          {busy ? (
+            <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+          ) : (
+            <Video className="h-3 w-3" aria-hidden />
+          )}
+          {t`Add sign language video`}
+        </button>
+      )}
+
+      <Dialog
+        open={!video && pickerOpen}
+        onOpenChange={(open) => {
+          if (!busy) setPickerOpen(open)
+        }}
+      >
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle>{t`Add sign language video`}</DialogTitle>
+            <DialogDescription>
+              {t`Choose a previously uploaded video or upload a new one.`}
+            </DialogDescription>
+          </DialogHeader>
+
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={busy}
+            className="inline-flex h-9 w-fit items-center gap-1.5 rounded-md bg-cyan-600 px-3 text-xs font-medium text-white transition-colors hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {uploadMutation.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+            ) : (
+              <Plus className="h-3.5 w-3.5" aria-hidden />
+            )}
+            {t`Upload new video`}
+          </button>
+
+          <div className="space-y-2">
+            <h4 className="text-xs font-semibold text-foreground">
+              {t`Previously uploaded videos`}
+            </h4>
+            {unassignedVideos.length === 0 ? (
+              <p className="rounded-md border border-dashed px-3 py-6 text-center text-xs text-muted-foreground">
+                {t`No unassigned videos are available.`}
+              </p>
+            ) : (
+              <ul className="max-h-80 space-y-2 overflow-y-auto pr-1">
+                {unassignedVideos.map((candidate) => {
+                  const assigning =
+                    assignMutation.isPending &&
+                    assignMutation.variables?.videoId === candidate.videoId
+                  const deleting =
+                    deleteMutation.isPending &&
+                    deleteMutation.variables === candidate.videoId
+                  return (
+                    <li
+                      key={candidate.videoId}
+                      className="flex items-center gap-3 rounded-lg border bg-card p-2"
+                    >
+                      <video
+                        src={getSignLanguageVideoUrl(bookLabel, candidate.videoId)}
+                        className="h-16 w-24 shrink-0 rounded bg-black object-contain"
+                        controls
+                        muted
+                        preload="metadata"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className="truncate text-xs font-medium text-foreground"
+                          title={candidate.originalName}
+                        >
+                          {candidate.originalName}
+                        </p>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          {t`Unassigned`}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => assignVideo(candidate.videoId)}
+                        disabled={busy || deleteMutation.isPending}
+                        className="inline-flex h-8 items-center gap-1 rounded-md bg-cyan-600 px-2.5 text-[11px] font-medium text-white transition-colors hover:bg-cyan-700 disabled:opacity-50"
+                      >
+                        {assigning ? (
+                          <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
+                        ) : (
+                          <Check className="h-3 w-3" aria-hidden />
+                        )}
+                        {t`Use video`}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteMutation.mutate(candidate.videoId)}
+                        disabled={busy || deleteMutation.isPending}
+                        aria-label={t`Delete video from book`}
+                        title={t`Delete video from book`}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:opacity-50"
+                      >
+                        {deleting ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                        )}
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 

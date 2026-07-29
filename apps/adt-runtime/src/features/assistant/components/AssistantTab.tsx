@@ -15,6 +15,7 @@ import {
   signLanguageModeAtom,
 } from "@/shared/state/ui.atoms"
 import { useTranslation } from "@/features/language/hooks/useTranslation"
+import { currentPageSignLanguageVideoAtom } from "@/features/sign-language/state/sign-language.atoms"
 import { trackToggleEvent } from "@/shared/lib/analytics"
 
 /**
@@ -32,6 +33,9 @@ export function AssistantTab() {
   const [describeImages, setDescribeImages] = useAtom(describeImagesModeAtom)
   const [wordHighlight, setWordHighlight] = useAtom(wordHighlightModeAtom)
   const [signLanguage, setSignLanguage] = useAtom(signLanguageModeAtom)
+  const hasPageSignLanguageVideo = Boolean(
+    useAtomValue(currentPageSignLanguageVideoAtom),
+  )
   const [eli5, setEli5] = useAtom(eli5ModeAtom)
   const setGlossaryListOpen = useSetAtom(glossaryListOpenAtom)
 
@@ -97,7 +101,7 @@ export function AssistantTab() {
         </>
       ) : null}
 
-      {features.signLanguage ? (
+      {features.signLanguage && hasPageSignLanguageVideo ? (
         <ToggleRow
           label={t("sign-language-label") || "Sign language"}
           checked={signLanguage}

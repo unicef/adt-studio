@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, type CSSProperties } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { Eye, ArrowLeft, ArrowRight, Zap, Loader2 } from "lucide-react"
 import { useStore } from "@tanstack/react-form"
+import { useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { Button } from "@/components/ui/button"
 import { api } from "@/api/client"
@@ -203,6 +204,7 @@ function PreviewContainer({
 export function BookCreationWizard() {
   const { t, i18n } = useLingui()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const { phase, currentStep, setCurrentStep, stepDirection, previewFocus } = useWizard()
   const form = useWizardForm()
   const createMutation = useCreateBook()
@@ -307,6 +309,16 @@ export function BookCreationWizard() {
       // so extracting the full book on this machine would be the very cost the
       // split feature avoids.
       if (values.scope !== "split" && hasApiKey) {
+        // Seed the run status the book page reads, so it paints "Extract
+        // queued" on first render. Without this the page mounts with a cold
+        // cache and shows an idle pipeline until its own step-status fetch
+        // round-trips — several seconds while the server is busy opening the
+        // PDF, which reads as "the run never started".
+        queryClient.setQueryData(["books", book.label, "step-status"], {
+          stages: { extract: "queued" },
+          steps: {},
+          error: null,
+        })
         try {
           await api.runStages(
             book.label,
@@ -323,6 +335,8 @@ export function BookCreationWizard() {
           )
         } catch (pipelineError) {
           console.error("[wizard] extract kickoff failed:", pipelineError)
+          // Roll the seeded status back — nothing is running.
+          queryClient.removeQueries({ queryKey: ["books", book.label, "step-status"] })
         }
       }
 

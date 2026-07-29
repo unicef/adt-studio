@@ -14,7 +14,7 @@ import type { LLMModel } from "@adt/llm"
 import type { Storage, PageData } from "@adt/storage"
 import { buildLanguageContext } from "./language-context.js"
 import { stripHtml } from "./glossary.js"
-import { getRenderSectioning } from "./render-sectioning.js"
+import { getRenderSectioning, getSemanticSectioning } from "./render-sectioning.js"
 
 /** Role values (leaves) whose text acts as a section heading for TOC. */
 const HEADING_ROLE_TYPES = new Set(["heading"])
@@ -36,6 +36,7 @@ export function buildTocGenerationConfig(
     modelId:
       appConfig.toc_generation?.model ??
       appConfig.page_sectioning?.model ??
+      appConfig.default_model ??
       "openai:gpt-4.1",
     maxRetries: appConfig.toc_generation?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,
     language,
@@ -107,11 +108,26 @@ function collectHeadingsAndToc(
     )
 
     // Collect first heading per non-pruned, rendered section.
+    let semanticSections: PageSectioningSection[] | null | undefined
     for (let i = 0; i < sectioning.sections.length; i++) {
       const section = sectioning.sections[i]
       if (section.isPruned || !renderedIndices.has(i)) continue
 
-      const heading = findFirstHeading(section)
+      let heading = findFirstHeading(section)
+      if (!heading && section.sectionType === "fixed-layout-page") {
+        // Fixed-layout pages render from a positioned tree that has no heading
+        // roles; read the semantic page-sectioning tree for the page instead.
+        if (semanticSections === undefined) {
+          semanticSections = getSemanticSectioning(storage, page.pageId)?.sections ?? null
+        }
+        for (const s of semanticSections ?? []) {
+          const h = findFirstHeading(s)
+          if (h) {
+            heading = h
+            break
+          }
+        }
+      }
       if (!heading) continue
 
       headings.push({

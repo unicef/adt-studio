@@ -4,6 +4,7 @@ import { X } from "lucide-react"
 import { SettingsRemountProvider } from "@/hooks/use-settings-remount"
 import { STAGES, isStageSlug } from "@/components/pipeline/stage-config"
 import { resolveSettingsStageSlug } from "@/components/pipeline/settings-routing"
+import { BookSettings } from "@/components/pipeline/stages/book/BookSettings"
 import { ExtractSettings } from "@/components/pipeline/stages/extract/ExtractSettings"
 import { ExtractLandingPage } from "@/components/pipeline/stages/extract/ExtractLandingPage"
 import { SectioningSettings } from "@/components/pipeline/stages/sectioning/SectioningSettings"
@@ -126,6 +127,8 @@ export function StepSettingsPage() {
           }
 
           switch (settingsStage) {
+            case "book":
+              return <BookSettings bookLabel={label} tab={tab} />
             case "extract":
               return <ExtractSettings bookLabel={label} headerTarget={headerTarget} tab={tab} />
             case "sectioning":

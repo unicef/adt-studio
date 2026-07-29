@@ -2,11 +2,13 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  merge_group:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   test:
@@ -31,6 +33,8 @@ jobs:
 
   i18n:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -62,7 +66,7 @@ jobs:
       - name: Check translations are up to date
         id: compile
         run: pnpm --filter @adt/studio compile --strict
-        continue-on-error: true
+        continue-on-error: ${{ github.event_name == 'pull_request' }}
       - name: Warn about missing translations
         if: steps.compile.outcome == 'failure'
         run: |

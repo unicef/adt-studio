@@ -81,11 +81,27 @@ apps/desktop/release/
   - `CSC_LINK` and `CSC_KEY_PASSWORD` for the Developer ID certificate
   - `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` for notarytool
 
-To skip signing in CI or local tests:
+To skip signing in CI or local tests, use the single `SKIP_NOTARIZE` variable.
+It accepts one or more targets — `ALL`, `MAC`, `WIN`, `LINUX` — separated by
+commas or spaces (case-insensitive). `true` is treated as `ALL`.
 
 ```bash
-SKIP_NOTARIZE=true pnpm --filter @adt/desktop build:win
+# Skip signing for every platform
+SKIP_NOTARIZE=ALL pnpm --filter @adt/desktop build:win
+
+# Skip a single platform, leaving the others signed
+SKIP_NOTARIZE=WIN pnpm --filter @adt/desktop build:win   # Azure code signing
+SKIP_NOTARIZE=MAC pnpm --filter @adt/desktop build:mac   # Developer ID + notarization
+
+# Skip more than one
+SKIP_NOTARIZE="MAC,WIN" pnpm --filter @adt/desktop build
 ```
+
+In CI this is read from a repository/environment **variable** (`vars.SKIP_NOTARIZE`),
+so setting it to `WIN` lets a release build Windows unsigned (e.g. while the
+Azure signing credentials are unavailable) while macOS still signs and
+notarizes. Linux builds are never signed, so `LINUX` is accepted but has no
+effect.
 
 ### Sign and release mac version
 

@@ -24,6 +24,7 @@ import { useWindowControls } from "@/hooks/use-window-controls"
 import { usePageTitle } from "@/hooks/use-page-title"
 import { getStageLabelI18n } from "@/components/pipeline/pipeline-i18n"
 import { MacOSTrafficLightSpacer } from "@/components/title-bar"
+import { BookApiKeyDialogProvider } from "@/components/settings/BookApiKeyDialogProvider"
 
 interface SectionNavContext {
   sectionIndex: number
@@ -46,10 +47,12 @@ function BookLayout() {
   const bookRun = useBookRunStatus(label)
 
   return (
-    <BookRunProvider value={bookRun}>
-      <BookLayoutInner label={label} isRunning={bookRun.isRunning} />
-      <PageErrorDecisionDialog />
-    </BookRunProvider>
+    <BookApiKeyDialogProvider>
+      <BookRunProvider value={bookRun}>
+        <BookLayoutInner label={label} isRunning={bookRun.isRunning} />
+        <PageErrorDecisionDialog />
+      </BookRunProvider>
+    </BookApiKeyDialogProvider>
   )
 }
 

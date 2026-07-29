@@ -49,9 +49,11 @@ export interface FloatingSaveEntry {
   onSave?: () => void
   onSaveAndRerun?: () => void
   onSaveStay?: () => void | Promise<void>
-  onDiscard: () => void
+  onReset?: () => void
+  onDiscard?: () => void
   saveDisabledReason?: string
   rerunDisabledReason?: string
+  resetDisabledReason?: string
   /**
    * Primitive that changes when `label` content changes. Required only for
    * entries with a dynamic label (e.g. storyboard's category chips) so the bar
@@ -68,8 +70,10 @@ function signature(e: FloatingSaveEntry): string {
     e.onSave ? "1" : "0",
     e.onSaveAndRerun ? "1" : "0",
     e.onSaveStay ? "1" : "0",
+    e.onReset ? "1" : "0",
     e.saveDisabledReason ?? "",
     e.rerunDisabledReason ?? "",
+    e.resetDisabledReason ?? "",
     e.labelKey ?? "",
     e.stage ?? "",
   ].join("|")
@@ -137,9 +141,11 @@ interface BarProps {
   saving: boolean
   onSave?: () => void
   onSaveAndRerun?: () => void
-  onDiscard: () => void
+  onReset?: () => void
+  onDiscard?: () => void
   saveDisabledReason?: string
   rerunDisabledReason?: string
+  resetDisabledReason?: string
 }
 
 const EXIT_MS = 200
@@ -162,9 +168,11 @@ function FloatingSaveHost({ store }: { store: FloatingSaveStore }) {
       saving: e.saving,
       onSave: e.onSave ? () => store.get(e.id)?.onSave?.() : undefined,
       onSaveAndRerun: e.onSaveAndRerun ? () => store.get(e.id)?.onSaveAndRerun?.() : undefined,
-      onDiscard: () => store.get(e.id)?.onDiscard(),
+      onReset: e.onReset ? () => store.get(e.id)?.onReset?.() : undefined,
+      onDiscard: e.onDiscard ? () => store.get(e.id)?.onDiscard?.() : undefined,
       saveDisabledReason: e.saveDisabledReason,
       rerunDisabledReason: e.rerunDisabledReason,
+      resetDisabledReason: e.resetDisabledReason,
     }
   } else if (entries.length > 1) {
     barProps = {
@@ -177,7 +185,9 @@ function FloatingSaveHost({ store }: { store: FloatingSaveStore }) {
       onSave: entries.some((e) => e.onSave)
         ? () => store.active().forEach((e) => e.onSave?.())
         : undefined,
-      onDiscard: () => store.active().forEach((e) => e.onDiscard()),
+      onDiscard: entries.some((e) => e.onDiscard)
+        ? () => store.active().forEach((e) => e.onDiscard?.())
+        : undefined,
       saveDisabledReason: entries.find((e) => e.saveDisabledReason)?.saveDisabledReason,
     }
   }

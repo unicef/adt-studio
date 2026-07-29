@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import React from "react"
-import { afterEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { cleanup, fireEvent, render, screen } from "@testing-library/react"
 
 const defaultStageState = (slug: string) => {
@@ -51,8 +51,17 @@ vi.mock("@lingui/react", () => ({
 }))
 
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children, title, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
-    <a title={title} {...props}>{children}</a>
+  Link: ({
+    children,
+    title,
+    to,
+    search,
+    ...props
+  }: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
+    to?: string
+    search?: { tab?: string }
+  }) => (
+    <a title={title} data-to={to} data-tab={search?.tab} {...props}>{children}</a>
   ),
   useMatchRoute: () => matchRouteMock,
   useSearch: () => searchMock,
@@ -118,13 +127,13 @@ vi.mock("@/hooks/use-quizzes", () => ({
   useQuizzes: () => ({ data: null }),
 }))
 
-vi.mock("@/routes/__root", () => ({
-  useSettingsDialog: () => ({ openSettings: vi.fn() }),
-}))
-
 vi.mock("@/routes/books.$label", () => ({
   useSectionNav: () => ({ skipNextResetRef: { current: false } }),
 }))
+
+beforeEach(() => {
+  matchRouteMock.mockReturnValue(true)
+})
 
 afterEach(() => {
   cleanup()
@@ -133,6 +142,26 @@ afterEach(() => {
 })
 
 describe("StageSidebar", () => {
+  it("routes the book settings button to the API Keys section", async () => {
+    matchRouteMock.mockReturnValue(true)
+    const { StageSidebar } = await import("./components/StageSidebar")
+    render(
+      <StageSidebar
+        bookLabel="demo-book"
+        activeStep="book"
+      />,
+    )
+
+    const settingsLink = screen.getByTitle("API Key Settings")
+    expect(settingsLink.getAttribute("data-to")).toBe(
+      "/books/$label/$step/settings",
+    )
+    expect(settingsLink.getAttribute("data-tab")).toBe("general")
+    expect(screen.getByText("API Keys")).toBeTruthy()
+    expect(screen.getByText("Models")).toBeTruthy()
+    expect(screen.queryByText("Global Prompts")).toBeNull()
+  })
+
   it("shows Validation before Preview and exposes Validation settings tabs", async () => {
     const { StageSidebar } = await import("./components/StageSidebar")
     const { container } = render(

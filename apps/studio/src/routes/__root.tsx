@@ -1,17 +1,18 @@
-import { useState, createContext, useContext, useCallback, useMemo } from "react"
+import { createContext, useCallback, useContext } from "react"
 import {
   createRootRoute,
   Outlet,
-  useRouterState,
+  useNavigate,
   type ErrorComponentProps,
 } from "@tanstack/react-router"
-import { ApiKeyDialog } from "@/components/settings/ApiKeyDialog"
+import { ErrorScreen } from "@/components/ErrorScreen"
+import type { SettingsSection } from "@/components/settings/settingsSections"
 import { Toaster } from "@/components/ui/sonner"
 import { UpdateDialogProvider } from "@/components/updates"
-import { useApiKey } from "@/hooks/use-api-key"
-import { ErrorScreen } from "@/components/ErrorScreen"
 
-const SettingsContext = createContext<{ openSettings: () => void }>({
+const SettingsContext = createContext<{
+  openSettings: (section?: SettingsSection) => void
+}>({
   openSettings: () => {},
 })
 
@@ -29,57 +30,21 @@ export const Route = createRootRoute({
 })
 
 function RootLayout() {
-  const {
-    apiKey,
-    setApiKey,
-    hasApiKey,
-    anthropicKey,
-    setAnthropicKey,
-    googleKey,
-    setGoogleKey,
-    customBaseUrl,
-    setCustomBaseUrl,
-    customApiKey,
-    setCustomApiKey,
-    azureKey,
-    setAzureKey,
-    azureRegion,
-    setAzureRegion,
-    setGeminiKey,
-  } = useApiKey()
-  const pathname = useRouterState({ select: (s) => s.location.pathname })
-  const isOnboarding = pathname.startsWith("/onboarding")
-  const [showKeyDialog, setShowKeyDialog] = useState(!hasApiKey && !isOnboarding)
-  const openSettings = useCallback(() => setShowKeyDialog(true), [])
-  // Google and Gemini TTS use the same API key — save to both storage keys
-  const saveGoogleKey = useMemo(() => (key: string) => { setGoogleKey(key); setGeminiKey(key) }, [setGoogleKey, setGeminiKey])
+  const navigate = useNavigate()
+  const openSettings = useCallback(
+    (section: SettingsSection = "default-model") => {
+      void navigate({ to: "/settings", search: { section } })
+    },
+    [navigate],
+  )
 
   return (
     <SettingsContext value={{ openSettings }}>
       <UpdateDialogProvider>
-        <div className="flex flex-col h-screen bg-background text-foreground">
-          <main className="flex-1 min-h-0 flex flex-col overflow-hidden">
+        <div className="flex h-screen flex-col bg-background text-foreground">
+          <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <Outlet />
           </main>
-
-          <ApiKeyDialog
-            open={showKeyDialog}
-            onOpenChange={setShowKeyDialog}
-            apiKey={apiKey}
-            onSaveApiKey={setApiKey}
-            anthropicKey={anthropicKey}
-            onSaveAnthropicKey={setAnthropicKey}
-            googleKey={googleKey}
-            onSaveGoogleKey={saveGoogleKey}
-            customBaseUrl={customBaseUrl}
-            onSaveCustomBaseUrl={setCustomBaseUrl}
-            customApiKey={customApiKey}
-            onSaveCustomApiKey={setCustomApiKey}
-            azureKey={azureKey}
-            onSaveAzureKey={setAzureKey}
-            azureRegion={azureRegion}
-            onSaveAzureRegion={setAzureRegion}
-          />
           <Toaster position="top-center" richColors closeButton />
         </div>
       </UpdateDialogProvider>

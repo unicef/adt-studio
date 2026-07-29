@@ -9,6 +9,7 @@ export const TaskKind = z.enum([
   "package-adt",
   "prepare-export",
   "transcribe-timestamps",
+  "translation-evaluation",
   "book-summary",
   "font-assignment",
 ])

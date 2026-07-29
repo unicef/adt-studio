@@ -9,8 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from "./routes/__root"
+import { Route as SettingsRouteImport } from "./routes/settings"
 import { Route as OnboardingRouteImport } from "./routes/onboarding"
 import { Route as IndexRouteImport } from "./routes/index"
+import { Route as PromptsSettingsRouteImport } from "./routes/prompts.settings"
 import { Route as BooksNewRouteImport } from "./routes/books.new"
 import { Route as BooksImportRouteImport } from "./routes/books.import"
 import { Route as BooksLabelRouteImport } from "./routes/books.$label"
@@ -21,6 +23,11 @@ import { Route as BooksLabelStepIndexRouteImport } from "./routes/books.$label.$
 import { Route as BooksLabelStepSettingsRouteImport } from "./routes/books.$label.$step.settings"
 import { Route as BooksLabelStepPageIdRouteImport } from "./routes/books.$label.$step.$pageId"
 
+const SettingsRoute = SettingsRouteImport.update({
+  id: "/settings",
+  path: "/settings",
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OnboardingRoute = OnboardingRouteImport.update({
   id: "/onboarding",
   path: "/onboarding",
@@ -29,6 +36,11 @@ const OnboardingRoute = OnboardingRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: "/",
   path: "/",
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PromptsSettingsRoute = PromptsSettingsRouteImport.update({
+  id: "/prompts/settings",
+  path: "/prompts/settings",
   getParentRoute: () => rootRouteImport,
 } as any)
 const BooksNewRoute = BooksNewRouteImport.update({
@@ -80,9 +92,11 @@ const BooksLabelStepPageIdRoute = BooksLabelStepPageIdRouteImport.update({
 export interface FileRoutesByFullPath {
   "/": typeof IndexRoute
   "/onboarding": typeof OnboardingRoute
+  "/settings": typeof SettingsRoute
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
+  "/prompts/settings": typeof PromptsSettingsRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/books/$label/": typeof BooksLabelIndexRoute
@@ -93,8 +107,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   "/": typeof IndexRoute
   "/onboarding": typeof OnboardingRoute
+  "/settings": typeof SettingsRoute
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
+  "/prompts/settings": typeof PromptsSettingsRoute
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/books/$label": typeof BooksLabelIndexRoute
   "/books/$label/$step/$pageId": typeof BooksLabelStepPageIdRoute
@@ -105,9 +121,11 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   "/": typeof IndexRoute
   "/onboarding": typeof OnboardingRoute
+  "/settings": typeof SettingsRoute
   "/books/$label": typeof BooksLabelRouteWithChildren
   "/books/import": typeof BooksImportRoute
   "/books/new": typeof BooksNewRoute
+  "/prompts/settings": typeof PromptsSettingsRoute
   "/books/$label/$step": typeof BooksLabelStepRouteWithChildren
   "/books/$label/debug": typeof BooksLabelDebugRoute
   "/books/$label/": typeof BooksLabelIndexRoute
@@ -120,9 +138,11 @@ export interface FileRouteTypes {
   fullPaths:
     | "/"
     | "/onboarding"
+    | "/settings"
     | "/books/$label"
     | "/books/import"
     | "/books/new"
+    | "/prompts/settings"
     | "/books/$label/$step"
     | "/books/$label/debug"
     | "/books/$label/"
@@ -133,8 +153,10 @@ export interface FileRouteTypes {
   to:
     | "/"
     | "/onboarding"
+    | "/settings"
     | "/books/import"
     | "/books/new"
+    | "/prompts/settings"
     | "/books/$label/debug"
     | "/books/$label"
     | "/books/$label/$step/$pageId"
@@ -144,9 +166,11 @@ export interface FileRouteTypes {
     | "__root__"
     | "/"
     | "/onboarding"
+    | "/settings"
     | "/books/$label"
     | "/books/import"
     | "/books/new"
+    | "/prompts/settings"
     | "/books/$label/$step"
     | "/books/$label/debug"
     | "/books/$label/"
@@ -158,13 +182,22 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   OnboardingRoute: typeof OnboardingRoute
+  SettingsRoute: typeof SettingsRoute
   BooksLabelRoute: typeof BooksLabelRouteWithChildren
   BooksImportRoute: typeof BooksImportRoute
   BooksNewRoute: typeof BooksNewRoute
+  PromptsSettingsRoute: typeof PromptsSettingsRoute
 }
 
 declare module "@tanstack/react-router" {
   interface FileRoutesByPath {
+    "/settings": {
+      id: "/settings"
+      path: "/settings"
+      fullPath: "/settings"
+      preLoaderRoute: typeof SettingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     "/onboarding": {
       id: "/onboarding"
       path: "/onboarding"
@@ -177,6 +210,13 @@ declare module "@tanstack/react-router" {
       path: "/"
       fullPath: "/"
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    "/prompts/settings": {
+      id: "/prompts/settings"
+      path: "/prompts/settings"
+      fullPath: "/prompts/settings"
+      preLoaderRoute: typeof PromptsSettingsRouteImport
       parentRoute: typeof rootRouteImport
     }
     "/books/new": {
@@ -280,9 +320,11 @@ const BooksLabelRouteWithChildren = BooksLabelRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   OnboardingRoute: OnboardingRoute,
+  SettingsRoute: SettingsRoute,
   BooksLabelRoute: BooksLabelRouteWithChildren,
   BooksImportRoute: BooksImportRoute,
   BooksNewRoute: BooksNewRoute,
+  PromptsSettingsRoute: PromptsSettingsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

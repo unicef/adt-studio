@@ -78,6 +78,7 @@ export function buildQuizGenerationConfig(
     modelId:
       appConfig.quiz_generation?.model ??
       appConfig.page_sectioning?.model ??
+      appConfig.default_model ??
       "openai:gpt-5.4",
     maxRetries:
       appConfig.quiz_generation?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,

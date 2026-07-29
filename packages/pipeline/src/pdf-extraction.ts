@@ -38,6 +38,18 @@ export async function extractPDF(
 
   progress.emit({ type: "step-start", step: "extract" })
 
+  // Let the event loop turn once so `step-start` (already written to step_runs
+  // and queued on the SSE stream) can reach the client before the synchronous
+  // setup below — readFileSync of the whole PDF, then mupdf WASM open/metadata/
+  // page-count — blocks it. setImmediate rather than setTimeout: resuming from
+  // the check phase means the poll phase in between has serviced pending socket
+  // reads. Measured on a 5.7MB book this cuts the first GET /step-status from
+  // ~640ms to ~380ms (warm) and ~2.2s to ~1.9s (cold); it does not close the
+  // gap on its own, since extraction keeps the loop busy afterwards. The
+  // client-side optimistic "queued" state is what actually makes the UI
+  // immediate — this just gets the authoritative status out sooner.
+  await new Promise((resolve) => setImmediate(resolve))
+
   try {
     if (fontsCacheDir) {
       progress.emit({ type: "step-progress", step: "extract", message: "Caching book fonts..." })

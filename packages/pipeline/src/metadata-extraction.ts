@@ -2,6 +2,7 @@ import {
   BookMetadata,
   type AppConfig,
   DEFAULT_LLM_MAX_RETRIES,
+  DEFAULT_LLM_MODEL_ID,
 } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
 
@@ -57,7 +58,7 @@ export async function extractMetadata(
 export function buildMetadataConfig(appConfig: AppConfig): MetadataConfig {
   return {
     promptName: appConfig.metadata?.prompt ?? "metadata_extraction",
-    modelId: appConfig.metadata?.model ?? "openai:gpt-5.4",
+    modelId: appConfig.metadata?.model ?? appConfig.default_model ?? DEFAULT_LLM_MODEL_ID,
     maxRetries: appConfig.metadata?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,
   }
 }

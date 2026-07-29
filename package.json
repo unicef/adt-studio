@@ -10,7 +10,7 @@
     "test": "vitest run",
     "test:watch": "pnpm build && vitest",
     "typecheck": "tsc --build",
-    "lint": "eslint",
+    "lint": "pnpm --filter @adt/studio lint",
     "clean": "tsc --build --clean",
     "build": "pnpm tsc --build && pnpm --filter @adt/runtime build",
     "dev": "node scripts/dev.mjs",

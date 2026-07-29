@@ -14,6 +14,7 @@ import type {
   ReviewerValidationInstruction,
   ReviewerValidationSection,
   ReviewerValidationSession,
+  TranslationEvaluationResult,
 } from "@adt/types"
 import type { ExportFormat } from "@/components/pipeline/stages/export/export-formats"
 
@@ -392,6 +393,8 @@ export interface GlossaryItem {
   variations: string[]
   emojis: string[]
   pruned?: boolean
+  /** Optional image from the book's images table illustrating the term. */
+  imageId?: string
 }
 
 export interface GlossaryOutput {
@@ -467,6 +470,27 @@ export interface TextCatalogResponse {
   generatedAt: string
   version: number
   translations: Record<string, { entries: TextCatalogEntry[]; version: number }>
+}
+
+export interface TranslationEvaluationStatusResponse {
+  language: string
+  currentSourceCatalogVersion: number | null
+  currentTranslationVersion: number | null
+  evaluationVersion: number | null
+  evaluation: TranslationEvaluationResult | null
+  isStale: boolean
+}
+
+export interface TranslationEvaluationStatusesResponse {
+  evaluations: TranslationEvaluationStatusResponse[]
+}
+
+export interface TranslationEvaluationRunResponse {
+  status: "submitted" | "current"
+  taskId: string | null
+  label: string
+  language: string
+  version?: number | null
 }
 
 export interface EasyReadEntry {
@@ -551,6 +575,9 @@ export interface WordTimestampEntry {
 export interface WordTimestampResponse {
   entries: Record<string, WordTimestampEntry>
   generatedAt: string | null
+  /** Per-item word-timestamp failures from the last run, so the Speech view can
+   * mark them for pruning or one-by-one regeneration. */
+  failed?: { textId: string; error: string }[]
 }
 
 // --- Debug types ---
@@ -562,6 +589,7 @@ export interface LlmLogEntry {
   itemId: string
   data: {
     promptName: string
+    requestedPromptName?: string
     modelId: string
     cacheHit: boolean
     durationMs: number
@@ -616,9 +644,59 @@ export interface BookConfigResponse {
   config: Record<string, unknown>
 }
 
+export interface SpecializedModelDefaultsResponse {
+  imageGeneration: string
+  speechGeneration: string
+}
+
 export interface ActiveConfigResponse {
   merged: Record<string, unknown>
   hasBookOverride: boolean
+}
+
+export interface PromptResponse {
+  name: string
+  resolvedName?: string
+  content: string
+  source?: "book" | "global"
+  modelId?: string | null
+  version?: string
+}
+
+export interface PromptSummary {
+  name: string
+  variants: string[]
+  variantSources?: Record<string, "file" | "version" | "file+version">
+}
+
+export interface PromptListResponse {
+  prompts: PromptSummary[]
+}
+
+export interface PromptModelsResponse {
+  models: string[]
+}
+
+export interface PromptVersionSummary {
+  version: string
+  createdAt: string | null
+  content: string
+  isCurrent: boolean
+}
+
+export interface PromptVersionsResponse {
+  name: string
+  resolvedName: string
+  modelId: string | null
+  fallbackContent: string | null
+  fallbackResolvedName: string | null
+  currentVersion: string | null
+  versions: PromptVersionSummary[]
+}
+
+function promptModelQuery(modelId?: string | null): string {
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- API query string, not user-visible copy.
+  return modelId ? `?model=${encodeURIComponent(modelId)}` : ""
 }
 
 export interface VersionEntry {
@@ -1307,16 +1385,60 @@ export const api = {
       body: JSON.stringify({ config }),
     }),
 
-  getPrompt: (name: string, bookLabel?: string) =>
-    request<{ name: string; content: string; source?: string }>(
-      bookLabel ? `/books/${bookLabel}/prompts/${name}` : `/prompts/${name}`
-    ),
+  listPrompts: () => request<PromptListResponse>("/prompts"),
 
-  updatePrompt: (name: string, content: string, bookLabel?: string) =>
-    request<{ name: string; content: string; source?: string }>(
-      bookLabel ? `/books/${bookLabel}/prompts/${name}` : `/prompts/${name}`,
+  listPromptModels: () => request<PromptModelsResponse>("/prompt-models"),
+
+  updatePromptModels: (models: string[]) =>
+    request<PromptModelsResponse>("/prompt-models", {
+      method: "PUT",
+      body: JSON.stringify({ models }),
+    }),
+
+  getPrompt: (name: string, bookLabel?: string, modelId?: string | null) => {
+    const query = promptModelQuery(modelId)
+    return request<PromptResponse>(
+      bookLabel ? `/books/${bookLabel}/prompts/${name}${query}` : `/prompts/${name}${query}`
+    )
+  },
+
+  updatePrompt: (name: string, content: string, bookLabel?: string, modelId?: string | null) => {
+    const query = promptModelQuery(modelId)
+    return request<PromptResponse>(
+      bookLabel ? `/books/${bookLabel}/prompts/${name}${query}` : `/prompts/${name}${query}`,
       { method: "PUT", body: JSON.stringify({ content }) },
-    ),
+    )
+  },
+
+  listPromptVersions: (name: string, modelId?: string | null, bookLabel?: string) => {
+    const query = promptModelQuery(modelId)
+    return request<PromptVersionsResponse>(
+      bookLabel ? `/books/${bookLabel}/prompts/${name}/versions${query}` : `/prompts/${name}/versions${query}`,
+    )
+  },
+
+  setPromptVersionCurrent: (
+    name: string,
+    version: string,
+    modelId?: string | null,
+    bookLabel?: string,
+  ) => {
+    const query = promptModelQuery(modelId)
+    return request<PromptResponse>(
+      bookLabel
+        ? `/books/${bookLabel}/prompts/${name}/versions/${encodeURIComponent(version)}/current${query}`
+        : `/prompts/${name}/versions/${encodeURIComponent(version)}/current${query}`,
+      { method: "PUT" },
+    )
+  },
+
+  resetPrompt: (name: string, modelId?: string | null, bookLabel?: string) => {
+    const query = promptModelQuery(modelId)
+    return request<PromptResponse>(
+      bookLabel ? `/books/${bookLabel}/prompts/${name}${query}` : `/prompts/${name}${query}`,
+      { method: "DELETE" },
+    )
+  },
 
   getTemplate: (name: string, bookLabel?: string) =>
     request<{ name: string; content: string; source?: string }>(
@@ -1362,10 +1484,13 @@ export const api = {
     request<GlossaryOutput | null>(`/books/${label}/glossary`),
 
   updateGlossary: (label: string, data: unknown) =>
-    request<{ version: number }>(`/books/${label}/glossary`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    }),
+    request<{ version: number; imageRequirementsChanged: boolean }>(
+      `/books/${label}/glossary`,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+      },
+    ),
 
   generateGlossaryItem: (
     label: string,
@@ -1417,6 +1542,36 @@ export const api = {
       method: "PUT",
       body: JSON.stringify(data),
     }),
+
+  getTranslationEvaluations: (label: string) =>
+    request<TranslationEvaluationStatusesResponse>(`/books/${label}/evaluations/translations`),
+
+  getTranslationEvaluation: (label: string, language: string) =>
+    request<TranslationEvaluationStatusResponse>(`/books/${label}/evaluations/translations/${language}`),
+
+  // The judge model is configurable, so send every provider credential the user
+  // has — the server picks the one matching the configured model.
+  runTranslationEvaluation: (
+    label: string,
+    language: string,
+    apiKey: string,
+    scope: { pageId?: string; entryIds?: string[] } = {},
+    providerCredentials?: StageRunProviderCredentials,
+  ) =>
+    request<TranslationEvaluationRunResponse>(`/books/${label}/evaluations/translations/${language}/run`, {
+      method: "POST",
+      headers: buildApiHeaders(apiKey, providerCredentials),
+      body: JSON.stringify({
+        ...(scope.pageId ? { page_id: scope.pageId } : {}),
+        ...(scope.entryIds && scope.entryIds.length > 0 ? { entry_ids: scope.entryIds } : {}),
+      }),
+    }),
+
+  acceptTranslationEvaluationItemAnyway: (label: string, language: string, entryId: string) =>
+    request<{ version: number; evaluation: TranslationEvaluationResult }>(
+      `/books/${label}/evaluations/translations/${language}/items/${encodeURIComponent(entryId)}/accept-anyway`,
+      { method: "POST" },
+    ),
 
   getStepStatus: (label: string) =>
     request<{
@@ -1565,13 +1720,33 @@ export const api = {
       method: "DELETE",
     }),
 
-  deleteAllSignLanguageVideos: (label: string) =>
-    request<{ ok: boolean }>(`/books/${label}/sign-language-videos`, {
-      method: "DELETE",
-    }),
-
   getGlobalConfig: () =>
     request<{ config: Record<string, unknown> }>(`/config`),
+
+  getDefaultModel: () =>
+    request<{ model: string }>(`/config/default-model`),
+
+  updateDefaultModel: (model: string) =>
+    request<{ model: string }>(`/config/default-model`, {
+      method: "PUT",
+      body: JSON.stringify({ model }),
+    }),
+
+  getSpecializedModelDefaults: () =>
+    request<SpecializedModelDefaultsResponse>(
+      `/config/specialized-model-defaults`,
+    ),
+
+  updateSpecializedModelDefaults: (
+    defaults: SpecializedModelDefaultsResponse,
+  ) =>
+    request<SpecializedModelDefaultsResponse>(
+      `/config/specialized-model-defaults`,
+      {
+        method: "PUT",
+        body: JSON.stringify(defaults),
+      },
+    ),
 
   getSpeechInstructions: () =>
     request<Record<string, string>>("/speech-config/instructions"),

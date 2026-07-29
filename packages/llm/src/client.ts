@@ -53,11 +53,14 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
   const log = createLogger(logLevel)
 
   return {
-    async renderPrompt(name: string, context: Record<string, unknown>): Promise<Message[]> {
+    async renderPrompt(
+      name: string,
+      context: Record<string, unknown>,
+    ): Promise<Message[]> {
       if (!promptEngine) {
         throw new Error("promptEngine required for renderPrompt")
       }
-      return promptEngine.renderPrompt(name, context)
+      return promptEngine.renderPrompt(name, context, { modelId })
     },
 
     async generateObject<T>(
@@ -66,6 +69,7 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
       // Resolve prompt to system + messages if needed
       let system = opts.system
       let messages = opts.messages ?? []
+      let resolvedPromptName = opts.prompt
 
       const context = opts.context ?? {}
       // Per-call signal wins over the model-level signal; either one cancels.
@@ -75,9 +79,11 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
         if (!promptEngine) {
           throw new Error("promptEngine required when using prompt option")
         }
+        resolvedPromptName = promptEngine.resolvePrompt(opts.prompt, { modelId }).resolvedName
         const allMessages = await promptEngine.renderPrompt(
           opts.prompt,
-          context
+          context,
+          { modelId },
         )
         const systemMsg = allMessages.find((m) => m.role === "system")
         system =
@@ -99,6 +105,11 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
       const label = opts.log
         ? `${opts.log.taskType}${opts.log.pageId ? ` ${opts.log.pageId}` : ""}`
         : modelId
+      const logPromptName = resolvedPromptName ?? opts.log?.promptName
+      const requestedPromptName =
+        opts.log?.promptName && logPromptName && opts.log.promptName !== logPromptName
+          ? opts.log.promptName
+          : opts.log?.requestedPromptName
 
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         const hash = computeHash({
@@ -173,7 +184,8 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
                   timestamp: new Date().toISOString(),
                   taskType: opts.log.taskType,
                   pageId: opts.log.pageId,
-                  promptName: opts.log.promptName,
+                  promptName: logPromptName ?? opts.log.promptName,
+                  requestedPromptName,
                   sectionIndex: opts.log.sectionIndex,
                   correlationId: opts.log.correlationId,
                   modelId,
@@ -216,7 +228,8 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
               timestamp: new Date().toISOString(),
               taskType: opts.log.taskType,
               pageId: opts.log.pageId,
-              promptName: opts.log.promptName,
+              promptName: logPromptName ?? opts.log.promptName,
+              requestedPromptName,
               sectionIndex: opts.log.sectionIndex,
               correlationId: opts.log.correlationId,
               modelId,
@@ -266,7 +279,8 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
                 timestamp: new Date().toISOString(),
                 taskType: opts.log.taskType,
                 pageId: opts.log.pageId,
-                promptName: opts.log.promptName,
+                promptName: logPromptName ?? opts.log.promptName,
+                requestedPromptName,
                 sectionIndex: opts.log.sectionIndex,
                 correlationId: opts.log.correlationId,
                 modelId,
@@ -304,7 +318,8 @@ export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
               timestamp: new Date().toISOString(),
               taskType: opts.log.taskType,
               pageId: opts.log.pageId,
-              promptName: opts.log.promptName,
+              promptName: logPromptName ?? opts.log.promptName,
+              requestedPromptName,
               sectionIndex: opts.log.sectionIndex,
               correlationId: opts.log.correlationId,
               modelId,

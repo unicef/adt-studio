@@ -14,6 +14,7 @@ export function useStageSettingsBar({
   dirtyTabs,
   saving,
   save,
+  showSaveOnly = false,
 }: {
   stage: StageName
   bookLabel: string
@@ -21,6 +22,7 @@ export function useStageSettingsBar({
   dirtyTabs: string[]
   saving: boolean
   save: () => Promise<void>
+  showSaveOnly?: boolean
 }) {
   const { t } = useLingui()
   const remount = useSettingsRemount()
@@ -34,6 +36,7 @@ export function useStageSettingsBar({
     id: `settings:${stage}`,
     dirty,
     saving,
+    onSave: showSaveOnly ? save : undefined,
     onSaveAndRerun: async () => {
       await save()
       queueRun({ fromStage: stage, toStage: stage, apiKey })

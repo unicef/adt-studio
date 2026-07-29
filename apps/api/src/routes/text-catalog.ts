@@ -3,7 +3,7 @@ import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import { z } from "zod"
-import { parseBookLabel } from "@adt/types"
+import { TextCatalogOutput, parseBookLabel } from "@adt/types"
 import { openBookDb, createBookStorage } from "@adt/storage"
 import { buildTextCatalog } from "@adt/pipeline"
 
@@ -12,6 +12,7 @@ const TranslationBody = z
     entries: z.array(
       z.object({ id: z.string(), text: z.string() })
     ),
+    generatedAt: z.string().optional(),
   })
   .strict()
 
@@ -113,10 +114,20 @@ export function createTextCatalogRoutes(booksDir: string): Hono {
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
+      const previous = storage.getLatestNodeData("text-catalog-translation", language)
+      const previousData = previous?.data && typeof previous.data === "object"
+        ? previous.data as { generatedAt?: unknown }
+        : null
+      const data = TextCatalogOutput.parse({
+        entries: parsed.data.entries,
+        generatedAt: parsed.data.generatedAt
+          ?? (typeof previousData?.generatedAt === "string" ? previousData.generatedAt : undefined)
+          ?? new Date().toISOString(),
+      })
       const version = storage.putNodeData(
         "text-catalog-translation",
         language,
-        parsed.data
+        data
       )
       return c.json({ version })
     } finally {

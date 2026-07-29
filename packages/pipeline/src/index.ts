@@ -120,6 +120,8 @@ export {
 export {
   captionPageImages,
   buildCaptionConfig,
+  collectCaptionImageIds,
+  groupGlossaryImageIdsByPage,
   extractImageIds,
   type CaptionConfig,
   type CaptionPageInput,
@@ -188,14 +190,24 @@ export {
   loadSpeechInstructions,
   computeSpeechCacheKey,
   generateSpeechFile,
+  generatePageSpeechFiles,
   generateWordTimestamps,
   type VoiceMaps,
   type InstructionsMap,
   type GenerateSpeechFileOptions,
+  type GeneratePageSpeechFilesOptions,
   type GenerateWordTimestampsOptions,
   type GenerateWordTimestampsResult,
   type ProviderRouting,
 } from "./speech.js"
+export {
+  parseWavHeader,
+  wavDurationSeconds,
+  sliceWav,
+  findQuietCutSeconds,
+  type WavInfo,
+} from "./audio-wav.js"
+export { supportsPageBatchedSpeech } from "./speech-batch.js"
 export {
   translateCatalogBatch,
   buildCatalogTranslationConfig,
@@ -260,10 +272,12 @@ export {
 export {
   packageEpub,
   type PackageEpubOptions,
-} from "./package-epub.js"
+} from "./packaging/epub.js"
+export { packageWebpub } from "./packaging/webpub.js"
+export { buildPreviewTailwindCss } from "./tailwind.js"
+export { htmlToXhtml } from "./html-semantics.js"
 export {
   packageAdtWeb,
-  packageWebpub,
   computePackagingInputHash,
   type PackageAdtWebOptions,
   type ComputePackagingInputHashOptions,
@@ -271,19 +285,17 @@ export {
   resolveReflowableFontChain,
   NAV_HTML,
   type RenderPageOptions,
-  buildPreviewTailwindCss,
   buildGlossaryJson,
   buildImageMap,
   buildPreferredImageAltMap,
   buildDecorativeImageIdSet,
   rewriteImageUrls,
-  htmlToXhtml,
   renderQuizHtml,
   type QuizStyle,
   buildQuizAnswers,
   pad3,
   convertLatexToMathml,
-} from "./package-web.js"
+} from "./packaging/web.js"
 export {
   resolveQuizPalette,
   deriveQuizPalette,
@@ -324,6 +336,7 @@ export { processFixedLayoutPages, isFixedLayoutBook } from "./fixed-layout-rende
 export {
   getRenderSectioning,
   getRenderSectioningRow,
+  getSemanticSectioning,
   FIXED_LAYOUT_SECTIONING_NODE,
   PAGE_SECTIONING_NODE,
 } from "./render-sectioning.js"

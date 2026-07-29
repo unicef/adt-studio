@@ -70,7 +70,7 @@ export function StudioTopBar({
   return (
     <header
       className={cn(
-        "shrink-0 min-h-10 flex items-center bg-gray-700 text-white select-none",
+        "shrink-0 h-10 flex items-center bg-gray-700 text-white select-none",
         !hasWindowControls && "py-1",
       )}
       style={DRAG_REGION}
@@ -123,9 +123,9 @@ export function StudioTopBar({
           variant="ghost"
           size="icon"
           className="size-8 shrink-0 text-white/70 hover:text-white hover:bg-gray-600"
-          onClick={openSettings}
-          aria-label={t`API Key Settings`}
-          title={t`API Key Settings`}
+          onClick={() => openSettings()}
+          aria-label={t`Settings`}
+          title={t`Settings`}
         >
           <Settings className="h-3.5 w-3.5" />
         </Button>

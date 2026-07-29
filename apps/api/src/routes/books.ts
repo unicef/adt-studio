@@ -1,8 +1,15 @@
 import fs from "node:fs"
 import path from "node:path"
+import { z } from "zod"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel, PIPELINE, BookMetadata } from "@adt/types"
+import {
+  parseBookLabel,
+  PIPELINE,
+  BookMetadata,
+  LLMModelId,
+  SpeechGenerationModelId,
+} from "@adt/types"
 import { openBookDb, createBookStorage } from "@adt/storage"
 import { countPdfPages, renderPdfCover } from "@adt/pdf"
 import { normalizeLocale, getBaseLanguage } from "@adt/pipeline"
@@ -37,6 +44,16 @@ import {
   computeSplitStatus,
 } from "../services/part-service.js"
 import type { TaskService } from "../services/task-service.js"
+
+const BookConfigUpdateRequest = z.object({
+  config: z
+    .object({
+      default_model: LLMModelId.optional(),
+      default_image_generation_model: LLMModelId.optional(),
+      default_speech_generation_model: SpeechGenerationModelId.optional(),
+    })
+    .passthrough(),
+})
 
 const MIME_TYPES: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -277,11 +294,11 @@ export function createBookRoutes(
   // PUT /books/:label/config — Update book-level config overrides
   app.put("/books/:label/config", async (c) => {
     const { label } = c.req.param()
-    const body = await c.req.json<{ config: Record<string, unknown> }>()
-
-    if (!body.config || typeof body.config !== "object") {
+    const parsed = BookConfigUpdateRequest.safeParse(await c.req.json())
+    if (!parsed.success) {
       throw new HTTPException(400, { message: "config object is required" })
     }
+    const body = parsed.data
 
     try {
       // A part's page window is fixed — never let a config update move it.

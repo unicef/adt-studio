@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { mirrorDataIdToId, wrapWordSpans } from "../package-epub.js"
+import { mirrorDataIdToId, wrapWordSpans } from "../packaging/epub.js"
 
 describe("mirrorDataIdToId", () => {
   it("adds id= matching data-id when id is absent", () => {
@@ -106,6 +106,33 @@ describe("wrapWordSpans", () => {
     )
   })
 
+  it("sizes each word wrapper to its largest segment font-size so the read-aloud highlight covers the word", () => {
+    // The media-overlay active class paints the word wrapper's own inline
+    // background box, whose height follows the wrapper's font-size. In
+    // fixed-layout the size lives only on the inner styled spans, so an
+    // unsized wrapper would inherit the ~16px page default and highlight a
+    // thin sliver behind a 48px word. The wrapper must mirror the word's
+    // size — the largest segment size when a word straddles two sizes.
+    const segments = [
+      { text: "big ", style: { "font-size": "48px", color: "#000000" } },
+      // "wo|rd" straddles a 24px → 48px style boundary; the wrapper takes 48.
+      { text: "wo", style: { "font-size": "24px", color: "#000000" } },
+      { text: "rd", style: { "font-size": "48px", color: "#000000" } },
+    ]
+    const dataSegments = JSON.stringify(segments).replace(/"/g, "&quot;")
+    const html =
+      `<html><body><p data-id="pg001_p000" data-segments="${dataSegments}">` +
+      `<span style="font-size:48px;color:#000000">big </span>` +
+      `<span style="font-size:24px;color:#000000">wo</span>` +
+      `<span style="font-size:48px;color:#000000">rd</span>` +
+      `</p></body></html>`
+    const out = wrapWordSpans(html)
+    // Single-size word takes that size.
+    expect(out).toContain(`<span id="pg001_p000_w001" style="font-size:48px">`)
+    // Straddling word takes the largest of its two segment sizes.
+    expect(out).toContain(`<span id="pg001_p000_w002" style="font-size:48px">`)
+  })
+
   it("styles inter-word separators with the surrounding segment so spaces keep the display font-size", () => {
     // Regression: in fixed-layout the font-size lives only on the per-segment
     // span and the <p> has none, so a bare-text-node space inherits the page
@@ -122,9 +149,10 @@ describe("wrapWordSpans", () => {
       `</p></body></html>`
     const out = wrapWordSpans(html)
     // The space between the two words is wrapped in a font-sized span, not a
-    // bare text node directly under <p>.
+    // bare text node directly under <p>. The word wrappers also carry the
+    // word's font-size so the media-overlay highlight box covers the glyphs.
     expect(out).toMatch(
-      /<span id="pg001_p000_w001"><span style="font-size:48px;color:#000000">I<\/span><\/span><span style="font-size:48px;color:#000000"> <\/span><span id="pg001_p000_w002">/,
+      /<span id="pg001_p000_w001" style="font-size:48px"><span style="font-size:48px;color:#000000">I<\/span><\/span><span style="font-size:48px;color:#000000"> <\/span><span id="pg001_p000_w002" style="font-size:48px">/,
     )
     // And no bare space sits directly between the closing word span and the
     // next word span.

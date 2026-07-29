@@ -274,3 +274,29 @@ export function normalizeHtmlSectionSemantics(html: string): string {
 
   return DomUtils.getOuterHTML(doc)
 }
+
+export function promoteFirstHeadingToH1(html: string): string {
+  if (/<h1\b/i.test(html)) return html
+  return html.replace(/<h([2-6])(\b[^>]*)>([\s\S]*?)<\/h\1>/i, '<h1$2>$3</h1>')
+}
+
+export function normalizeSectionRoles(html: string): string {
+  return normalizeHtmlSectionSemantics(html)
+}
+
+export function htmlToXhtml(html: string): string {
+  const doc = parseDocument(html)
+  let xhtml = DomUtils.getOuterHTML(doc, { xmlMode: true })
+  // Replace common HTML named entities not valid in XML
+  xhtml = xhtml.replace(/&nbsp;/g, "&#160;")
+  xhtml = xhtml.replace(/&mdash;/g, "&#8212;")
+  xhtml = xhtml.replace(/&ndash;/g, "&#8211;")
+  xhtml = xhtml.replace(/&lsquo;/g, "&#8216;")
+  xhtml = xhtml.replace(/&rsquo;/g, "&#8217;")
+  xhtml = xhtml.replace(/&ldquo;/g, "&#8220;")
+  xhtml = xhtml.replace(/&rdquo;/g, "&#8221;")
+  xhtml = xhtml.replace(/&hellip;/g, "&#8230;")
+  xhtml = xhtml.replace(/&bull;/g, "&#8226;")
+  xhtml = xhtml.replace(/&copy;/g, "&#169;")
+  return xhtml
+}

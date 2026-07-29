@@ -65,6 +65,59 @@ function setEasyReadTextFormatting(element: HTMLElement, enabled: boolean): void
   }
 }
 
+function hasUnderlineOptionDescendants(element: HTMLElement): boolean {
+  return !!element.querySelector(".activity-underline-option[data-activity-item]")
+}
+
+function replaceTextPreservingUnderlineOptions(
+  element: HTMLElement,
+  translatedText: string,
+): void {
+  const options = Array.from(
+    element.querySelectorAll<HTMLElement>(".activity-underline-option[data-activity-item]"),
+  )
+  if (options.length === 0) {
+    element.innerHTML = translatedText.replace(/\n/g, "<br>")
+    return
+  }
+
+  const wordMatches = Array.from(
+    translatedText.matchAll(/\p{L}[\p{L}\p{M}'’‘-]*/gu),
+  )
+
+  // If the translated text no longer maps cleanly to the existing clickable
+  // word count, keep the authored interactive DOM intact instead of flattening
+  // it into plain text and breaking the activity.
+  if (wordMatches.length !== options.length) return
+
+  const doc = element.ownerDocument
+  if (!doc) return
+
+  const fragment = doc.createDocumentFragment()
+  let lastIndex = 0
+  for (let i = 0; i < wordMatches.length; i += 1) {
+    const match = wordMatches[i]
+    const word = match[0]
+    const start = match.index ?? 0
+    if (start > lastIndex) {
+      fragment.append(doc.createTextNode(translatedText.slice(lastIndex, start)))
+    }
+    // The activity runtime appends an aria-hidden check/cross mark inside the
+    // token after validation; re-attach it so the text swap doesn't strip the
+    // non-color verdict indicator while the inline verdict colors persist.
+    const verdictMark = options[i].querySelector("[data-underline-verdict-mark]")
+    options[i].textContent = word
+    if (verdictMark) options[i].append(verdictMark)
+    fragment.append(options[i])
+    lastIndex = start + word.length
+  }
+  if (lastIndex < translatedText.length) {
+    fragment.append(doc.createTextNode(translatedText.slice(lastIndex)))
+  }
+
+  element.replaceChildren(fragment)
+}
+
 async function safeJsonFetch<T = unknown>(
   url: string,
   context: string,
@@ -217,6 +270,10 @@ export function applyTranslationsToDOM(
       // size, weight, and stroke survive the text swap — straight innerHTML
       // assignment would flatten them.
       const segmentsAttr = htmlElement.getAttribute("data-segments")
+      if (!segmentsAttr && hasUnderlineOptionDescendants(htmlElement)) {
+        replaceTextPreservingUnderlineOptions(htmlElement, text)
+        return
+      }
       const html = segmentsAttr
         ? rebuildSegmentedInnerHtml(segmentsAttr, renderedHtml)
         : renderedHtml
