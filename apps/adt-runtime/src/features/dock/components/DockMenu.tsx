@@ -89,7 +89,7 @@ export function DockMenu({ className }: DockMenuProps) {
   if (features.readAloud) {
     tools.push({
       key: "audio",
-      label: t("read-aloud-label") || "Read aloud",
+      label: t("tts-label") || "Text to speech",
       icon: readAloud ? Volume2 : VolumeX,
       active: value === "audio",
       onSelect: openAudio,
@@ -114,7 +114,7 @@ export function DockMenu({ className }: DockMenuProps) {
   });
   tools.push({
     key: "settings",
-    label: t("sidebar-title") || "Settings",
+    label: t("sidebar-settings") || "Settings",
     icon: Settings,
     active: value === "settings",
     onSelect: () => toggle("settings"),
@@ -123,7 +123,7 @@ export function DockMenu({ className }: DockMenuProps) {
   return (
     <>
       {isMobile ? (
-        <DockMobileTools tools={tools} label={t("tools-label") || "Tools"} />
+        <DockMobileTools tools={tools} label={t("sidebar-title") || "Accessibility menu"} />
       ) : (
         <div className={cn("flex items-center justify-end gap-2 pl-1", className)}>
           {features.glossary ? (
