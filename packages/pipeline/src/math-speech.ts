@@ -182,14 +182,18 @@ function walk(node: MathNode): string {
         ? `${walk(kids[0])}${superscript(walk(kids[1]))}`
         : kids.map(walk).join("")
 
-    // "_" has no spoken form — read aloud it becomes "y underscore 2". A short
-    // identifier subscript is simply appended instead, so `y_2` is "y2" and
-    // `S_n` is "Sn", which both read correctly. Longer or compound subscripts
-    // keep a separator rather than silently fusing into one token.
+    // "_" has no spoken form — read aloud it becomes "y underscore 2".
+    //
+    // A NUMERIC subscript can be appended: "y2" reads as "y two". A LETTER one
+    // cannot, because appending manufactures a word — `U_K` becomes "UK"
+    // (United Kingdom), `S_n` becomes "Sn" (tin), `g_t` becomes "gt". Those
+    // read as confidently wrong and nothing downstream can tell, so letters
+    // keep a separating space instead.
     case "msub": {
       if (kids.length !== 2) return kids.map(walk).join("")
       const [base, sub] = [walk(kids[0]).trim(), walk(kids[1]).trim()]
-      return /^[\p{L}\p{N}]{1,3}$/u.test(sub) ? `${base}${sub}` : `${base} ${group(sub)}`
+      if (/^\p{N}{1,3}$/u.test(sub)) return `${base}${sub}`
+      return `${base} ${/^[\p{L}\p{N}]{1,4}$/u.test(sub) ? sub : group(sub)}`
     }
 
     case "msubsup":
