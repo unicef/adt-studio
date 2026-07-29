@@ -307,6 +307,17 @@ export const PRESETS: PresetConfig[] = [
             visual_refinement: { enabled: true, max_iterations: 3 },
           },
         },
+        activity_ordering: {
+          render_type: "activity",
+          config: {
+            prompt: "activity_ordering",
+            answer_prompt: "activity_ordering_answers",
+            max_retries: 5,
+            timeout: 180,
+            temperature: 0.3,
+            visual_refinement: { enabled: true, max_iterations: 3 },
+          },
+        },
         activity_open_ended_answer: {
           render_type: "activity",
           config: {
@@ -327,6 +338,7 @@ export const PRESETS: PresetConfig[] = [
         activity_fill_in_a_table: "activity_fill_in_a_table",
         activity_matching: "activity_matching",
         activity_sorting: "activity_sorting",
+        activity_ordering: "activity_ordering",
         activity_open_ended_answer: "activity_open_ended_answer",
       },
       // Role keys must match the actual `role_types` the sectioning LLM assigns
@@ -421,6 +433,7 @@ export const PRESETS: PresetConfig[] = [
         "activity_fill_in_a_table",
         "activity_matching",
         "activity_sorting",
+        "activity_ordering",
         "activity_open_ended_answer",
       ],
       image_filters: { min_stddev: 2 },
@@ -510,6 +523,7 @@ export const PRESETS: PresetConfig[] = [
         "activity_fill_in_a_table",
         "activity_matching",
         "activity_sorting",
+        "activity_ordering",
         "activity_open_ended_answer",
       ],
       image_filters: { min_stddev: 2 },

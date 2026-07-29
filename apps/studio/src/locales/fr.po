@@ -805,6 +805,9 @@ msgstr "Activité : Choix multiple"
 msgid "Activity: Open-Ended Answer"
 msgstr "Activité : Réponse ouverte"
 
+msgid "Activity: Ordering"
+msgstr "Activité : Mise en ordre"
+
 msgid "Activity: Other"
 msgstr "Activité : Autre"
 
@@ -1228,6 +1231,9 @@ msgstr "Montant"
 
 msgid "An activity that does not fit the standard categories."
 msgstr "Une activité qui ne correspond pas aux catégories standard."
+
+msgid "An activity where learners arrange items into the correct order."
+msgstr "Une activité dans laquelle les élèves placent des éléments dans le bon ordre."
 
 msgid "An activity where the learner underlines one or more words, phrases, or sentences directly in the text."
 msgstr "Une activité où l'apprenant souligne un ou plusieurs mots, expressions ou phrases directement dans le texte."

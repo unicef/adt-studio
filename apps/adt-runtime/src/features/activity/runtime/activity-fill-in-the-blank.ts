@@ -53,7 +53,7 @@ declare global {
      * Map of item id → correct answer (pipe-separated string for alternatives).
      * Injected by `packages/pipeline/src/package-web.ts:renderPageHtml`.
      */
-    correctAnswers?: Record<string, string>
+    correctAnswers?: Record<string, unknown>
     /**
      * Legacy: pairs of interchangeable items (e.g. "the same two answers in
      * either order"). The pipeline doesn't currently emit this, but the legacy
@@ -81,7 +81,8 @@ function findNextPageHref(): string | null {
 }
 
 function getCorrectAnswer(itemId: string): string | undefined {
-  return window.correctAnswers?.[itemId]
+  const answer = window.correctAnswers?.[itemId]
+  return typeof answer === "string" ? answer : undefined
 }
 
 function getInterchangeable(itemId: string): string[] | undefined {

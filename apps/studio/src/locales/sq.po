@@ -804,6 +804,9 @@ msgstr "Aktivitet: Zgjedhje e Shumëfishtë"
 msgid "Activity: Open-Ended Answer"
 msgstr "Aktivitet: Përgjigje e Hapur"
 
+msgid "Activity: Ordering"
+msgstr "Aktivitet: Renditje"
+
 msgid "Activity: Other"
 msgstr "Aktivitet: Tjetër"
 
@@ -1227,6 +1230,9 @@ msgstr "Sasia"
 
 msgid "An activity that does not fit the standard categories."
 msgstr "Një aktivitet që nuk i përshtatet kategorive standarde."
+
+msgid "An activity where learners arrange items into the correct order."
+msgstr "Një aktivitet ku nxënësit i vendosin elementet në rendin e duhur."
 
 msgid "An activity where the learner underlines one or more words, phrases, or sentences directly in the text."
 msgstr "Një aktivitet ku nxënësi nënvizon një ose më shumë fjalë, fraza ose fjali drejtpërdrejt në tekst."

@@ -67,6 +67,7 @@ import { initializeFillInTheBlankActivity } from "@/features/activity/runtime/ac
 import { initializeOpenEndedActivity } from "@/features/activity/runtime/activity-open-ended"
 import { initializeTrueFalseActivity } from "@/features/activity/runtime/activity-true-false"
 import { initializeSortingActivity } from "@/features/activity/runtime/activity-sorting"
+import { initializeOrderingActivity } from "@/features/activity/runtime/activity-ordering"
 import { initializeMatchingActivity } from "@/features/activity/runtime/activity-matching"
 import { initializeCustomActivity } from "@/features/activity/runtime/activity-custom"
 
@@ -109,7 +110,7 @@ function applyConfiguredSettings(config: AppConfig): void {
   const seed = <T>(
     key: LockableSetting,
     storageKey: string,
-    atom: Parameters<typeof store.set>[0],
+    atom: object,
     value: T | undefined,
   ): void => {
     const locked = isSettingLocked(config, key)
@@ -199,6 +200,7 @@ export async function bootRuntime(): Promise<void> {
     initializeOpenEndedActivity()
     initializeTrueFalseActivity()
     initializeSortingActivity()
+    initializeOrderingActivity()
     initializeMatchingActivity()
     initializeCustomActivity()
   } finally {
