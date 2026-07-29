@@ -296,6 +296,49 @@ describe("PUT /books/:label/config", () => {
     ).toBe(true)
   })
 
+  it("validates and normalizes book-level model overrides", async () => {
+    createTestBook("model-overrides")
+    const app = createBookRoutes(tmpDir)
+    const res = await app.request("/books/model-overrides/config", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        config: {
+          default_model: " Anthropic:Claude-Sonnet-4-6 ",
+          default_image_generation_model: " OpenAI:DALL-E-3 ",
+          default_speech_generation_model: " TTS-1-HD ",
+        },
+      }),
+    })
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({
+      config: {
+        default_model: "anthropic:claude-sonnet-4-6",
+        default_image_generation_model: "openai:dall-e-3",
+        default_speech_generation_model: "tts-1-hd",
+      },
+    })
+  })
+
+  it("rejects invalid book-level model overrides", async () => {
+    createTestBook("invalid-model-overrides")
+    const app = createBookRoutes(tmpDir)
+    const res = await app.request("/books/invalid-model-overrides/config", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        config: {
+          default_model: "../invalid",
+          default_image_generation_model: "gpt-image-2",
+          default_speech_generation_model: "../invalid",
+        },
+      }),
+    })
+
+    expect(res.status).toBe(400)
+  })
+
   it("persists image meaningfulness settings", async () => {
     createTestBook("meaningful-config")
     const app = createBookRoutes(tmpDir)

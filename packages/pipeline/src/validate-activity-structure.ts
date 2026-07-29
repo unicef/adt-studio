@@ -13,6 +13,13 @@
  * run and their errors concatenate.
  */
 import { DomUtils } from "htmlparser2"
+import {
+  collectUnderlineGroups,
+  containerExclusiveToGroup,
+  findGroupCommonContainer,
+  findUnwrappedWords,
+  isWordLevelGroup,
+} from "./activity-underline-repair.js"
 
 // htmlparser2 doesn't export its DOM node type ergonomically; treat nodes as
 // `any` inside this module — DomUtils is the typed surface we rely on.
@@ -91,6 +98,13 @@ function isCheckboxWithItem(el: Element): boolean {
     tag(el, "input") &&
     (attr(el, "type") ?? "").toLowerCase() === "checkbox" &&
     typeof attr(el, "data-activity-item") === "string"
+  )
+}
+
+function isUnderlineOption(el: Element): boolean {
+  return (
+    el.type === "tag" &&
+    hasClass(el, "activity-underline-option")
   )
 }
 
@@ -209,6 +223,109 @@ function msLabelMustWrapCheckbox(ctx: ActivityRuleContext): string[] {
         `A <label class="activity-option"> in a multi-select section contains no ` +
           `<input type="checkbox" data-activity-item="..."> descendant. Every option label ` +
           `must wrap a checkbox with a unique data-activity-item.`,
+      )
+    }
+  }
+  return errors
+}
+
+// ---------------------------------------------------------------------------
+// Underline-text rules (inline selectable words / phrases / sentences)
+// ---------------------------------------------------------------------------
+
+function utSectionMustContainOptions(ctx: ActivityRuleContext): string[] {
+  const options = findAll(ctx.section, isUnderlineOption)
+  if (options.length > 0) return []
+  return [
+    `Underline-text activity sections must include at least one element with class="activity-underline-option". ` +
+      `Wrap each selectable word, phrase, or sentence in an inline element carrying that class.`,
+  ]
+}
+
+function utOptionsMustHaveItemIds(ctx: ActivityRuleContext): string[] {
+  const errors: string[] = []
+  for (const option of findAll(ctx.section, isUnderlineOption)) {
+    if (!attr(option, "data-activity-item")) {
+      errors.push(
+        `Each .activity-underline-option must have a unique data-activity-item attribute so the runtime can score selections.`,
+      )
+    }
+  }
+  return errors
+}
+
+function utOptionsMustHaveQuestionGroup(ctx: ActivityRuleContext): string[] {
+  const errors: string[] = []
+  for (const option of findAll(ctx.section, isUnderlineOption)) {
+    const item = attr(option, "data-activity-item") ?? "(missing item id)"
+    if (!attr(option, "data-question-group")) {
+      errors.push(
+        `The .activity-underline-option with data-activity-item="${item}" is missing data-question-group. ` +
+          `Underline activities use question groups to keep multiple prompts independent within one section.`,
+      )
+    }
+  }
+  return errors
+}
+
+/**
+ * A selectable token gets its accessible name from its own text content (the
+ * runtime deliberately sets no aria-label so the name follows the visible word
+ * across language switches). An empty token is therefore an unnamed control —
+ * a screen reader announces a bare "checkbox".
+ */
+function utOptionsMustHaveText(ctx: ActivityRuleContext): string[] {
+  const errors: string[] = []
+  for (const option of findAll(ctx.section, isUnderlineOption)) {
+    if (DomUtils.getText(option).trim() === "") {
+      const item = attr(option, "data-activity-item") ?? "(missing item id)"
+      errors.push(
+        `The .activity-underline-option with data-activity-item="${item}" has no text ` +
+          `content. Each selectable segment takes its accessible name from its text, so ` +
+          `an empty segment is announced as an unlabeled checkbox.`,
+      )
+    }
+  }
+  return errors
+}
+
+/**
+ * Word-level questions must make EVERY word selectable — learners of the
+ * printed book can underline any word, so a curated candidate subset both
+ * weakens the task and telegraphs the answer. Scoping mirrors the deterministic
+ * completion pass in activity-underline-repair.ts (which normally fixes this
+ * before validation): a group counts as word-level when all of its existing
+ * options are single words, and phrase/sentence-level groups are exempt.
+ */
+function utWordLevelGroupsFullyTokenized(ctx: ActivityRuleContext): string[] {
+  const errors: string[] = []
+  for (const group of collectUnderlineGroups(ctx.section)) {
+    if (!group.key) continue // question-group-present rule reports the missing attribute
+    if (!isWordLevelGroup(group.options)) continue
+    const container = findGroupCommonContainer(ctx.section, group.options)
+    if (!container) {
+      errors.push(
+        `The selectable segments of "${group.key}" do not share a wrapper element below the section. ` +
+          `Keep all of one question's segments inside that question's own text wrapper ` +
+          `(normally its data-id element) so the runtime can group and label them.`,
+      )
+      continue
+    }
+    if (!containerExclusiveToGroup(container, group.key)) {
+      errors.push(
+        `The wrapper containing all segments of "${group.key}" also contains segments of other ` +
+          `question groups. Give each question its own wrapper (normally the sentence's data-id ` +
+          `element) so questions stay independent.`,
+      )
+      continue
+    }
+    const missing = findUnwrappedWords(container)
+    if (missing.length > 0) {
+      errors.push(
+        `Word-level underline question "${group.key}" leaves these words unselectable: ` +
+          `${missing.map((w) => `"${w}"`).join(", ")}. When the answer unit is a word, EVERY word ` +
+          `in the sentence must be wrapped in its own .activity-underline-option span — number ` +
+          `markers like "(i)", example labels, and punctuation stay outside the spans.`,
       )
     }
   }
@@ -430,6 +547,15 @@ const MULTI_SELECT_RULES: ActivityRule[] = [
   { name: "unique-items", check: uniqueDataActivityItems },
 ]
 
+const UNDERLINE_TEXT_RULES: ActivityRule[] = [
+  { name: "has-options", check: utSectionMustContainOptions },
+  { name: "items-present", check: utOptionsMustHaveItemIds },
+  { name: "question-group-present", check: utOptionsMustHaveQuestionGroup },
+  { name: "options-have-text", check: utOptionsMustHaveText },
+  { name: "word-level-fully-tokenized", check: utWordLevelGroupsFullyTokenized },
+  { name: "unique-items", check: uniqueDataActivityItems },
+]
+
 const TRUE_FALSE_RULES: ActivityRule[] = [
   { name: "fieldset-paired-radios", check: tfFieldsetMustHavePairedRadios },
   { name: "validation-mark-present", check: tfLabelShouldHaveValidationMark },
@@ -450,6 +576,7 @@ export const ACTIVITY_RULES: Record<string, ActivityRule[]> = {
   activity_multiple_choice: MC_RULES,
   activity_quiz: MC_RULES,
   activity_multi_select: MULTI_SELECT_RULES,
+  activity_underline_text: UNDERLINE_TEXT_RULES,
   activity_true_false: TRUE_FALSE_RULES,
   activity_fill_in_the_blank: FITB_RULES,
   activity_fill_in_a_table: FITB_RULES,

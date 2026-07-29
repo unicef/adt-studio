@@ -33,7 +33,10 @@ export function buildSegmentationConfig(
 
   return {
     promptName: appConfig.image_segmentation?.prompt ?? "image_segmentation",
-    modelId: appConfig.image_segmentation?.model || DEFAULT_SEGMENTATION_MODEL,
+    modelId:
+      appConfig.image_segmentation?.model
+      || appConfig.default_model
+      || DEFAULT_SEGMENTATION_MODEL,
     maxRetries:
       appConfig.image_segmentation?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,
     minSide: appConfig.image_segmentation?.min_side,

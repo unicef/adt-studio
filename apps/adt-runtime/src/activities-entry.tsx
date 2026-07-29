@@ -33,9 +33,10 @@ import {
   currentSectionIdAtom,
   pagesAtom,
 } from "@/features/navigation/state/nav.atoms"
-import { activityModeAtom, isActivityPageAtom } from "@/features/activity/state/activity.atoms"
+import { activityModeAtom, isActivityPageAtom, submitStateAtom } from "@/features/activity/state/activity.atoms"
 import { initializeQuizActivity } from "@/features/activity/runtime/activity-quiz"
 import { initializeMultiSelectActivity } from "@/features/activity/runtime/activity-multi-select"
+import { initializeUnderlineTextActivity } from "@/features/activity/runtime/activity-underline-text"
 import { initializeFillInTheBlankActivity } from "@/features/activity/runtime/activity-fill-in-the-blank"
 import { initializeOpenEndedActivity } from "@/features/activity/runtime/activity-open-ended"
 import { initializeTrueFalseActivity } from "@/features/activity/runtime/activity-true-false"
@@ -52,7 +53,12 @@ const store = getDefaultStore()
  */
 function ActivityControls() {
   const activityMode = useAtomValue(activityModeAtom)
+  const submitState = useAtomValue(submitStateAtom)
   if (!activityMode) return null
+  // Host readers (EPUB in Apple Books/Thorium, WebPub) have their own page
+  // navigation, so we don't surface the post-answer "Next" button the full web
+  // reader shows — only the "Submit" control that activities need to validate.
+  if (submitState === "next") return null
   return (
     <div
       style={{
@@ -112,6 +118,7 @@ async function bootActivities(): Promise<void> {
   initializeStepperActivity()
   initializeQuizActivity()
   initializeMultiSelectActivity()
+  initializeUnderlineTextActivity()
   initializeFillInTheBlankActivity()
   initializeOpenEndedActivity()
   initializeTrueFalseActivity()

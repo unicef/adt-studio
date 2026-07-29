@@ -1,4 +1,4 @@
-import type { AppConfig } from "@adt/types"
+import { DEFAULT_IMAGE_GENERATION_MODEL_ID, type AppConfig } from "@adt/types"
 import { generateImageWithCache, pngDimensions, type LlmLogEntry } from "@adt/llm"
 import { normalizeLocale } from "./language-context.js"
 
@@ -17,7 +17,10 @@ export function buildImageTranslationConfig(appConfig: AppConfig): {
   const cfg = appConfig.image_translation
   return {
     enabled: cfg?.enabled === true,
-    modelId: cfg?.image_model ?? "openai:gpt-image-2",
+    modelId:
+      cfg?.image_model ??
+      appConfig.default_image_generation_model ??
+      DEFAULT_IMAGE_GENERATION_MODEL_ID,
     selectedImageIds: cfg?.selected_image_ids ?? [],
   }
 }

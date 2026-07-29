@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import type { AppConfig } from "@adt/types"
+import type { AppConfig, GlossaryOutput } from "@adt/types"
 import type {
   GenerateObjectOptions,
   GenerateObjectResult,
@@ -7,6 +7,8 @@ import type {
 } from "@adt/llm"
 import {
   extractImageIds,
+  collectCaptionImageIds,
+  groupGlossaryImageIdsByPage,
   buildCaptionConfig,
   captionPageImages,
 } from "../image-captioning.js"
@@ -86,6 +88,53 @@ describe("extractImageIds", () => {
     expect(ids).toContain("im1")
     expect(ids).toContain("im2")
     expect(ids).toHaveLength(2)
+  })
+})
+
+describe("collectCaptionImageIds", () => {
+  it("includes glossary images that are not present in rendered HTML", () => {
+    const html = ['<section><img data-id="pg001_im001" src="x" /></section>']
+
+    expect(collectCaptionImageIds(html, ["pg001_glossary001"])).toEqual([
+      "pg001_im001",
+      "pg001_glossary001",
+    ])
+  })
+
+  it("deduplicates glossary images already present in rendered HTML", () => {
+    const html = ['<section><img data-id="pg001_im001" src="x" /></section>']
+
+    expect(collectCaptionImageIds(html, ["pg001_im001", "pg001_im001"])).toEqual([
+      "pg001_im001",
+    ])
+  })
+})
+
+describe("groupGlossaryImageIdsByPage", () => {
+  it("groups active glossary images by their owning page", () => {
+    const glossary: GlossaryOutput = {
+      items: [
+        { word: "One", definition: "", variations: [], emojis: [], imageId: "im1" },
+        { word: "Two", definition: "", variations: [], emojis: [], imageId: "im2" },
+        { word: "Pruned", definition: "", variations: [], emojis: [], imageId: "im3", pruned: true },
+        { word: "Duplicate", definition: "", variations: [], emojis: [], imageId: "im1" },
+        { word: "Missing", definition: "", variations: [], emojis: [], imageId: "missing" },
+      ],
+      pageCount: 1,
+      generatedAt: "2026-07-26T00:00:00.000Z",
+    }
+    const pageIds = new Map([
+      ["im1", "pg001"],
+      ["im2", "pg002"],
+      ["im3", "pg003"],
+    ])
+
+    expect(groupGlossaryImageIdsByPage(glossary, (imageId) => pageIds.get(imageId))).toEqual(
+      new Map([
+        ["pg001", ["im1"]],
+        ["pg002", ["im2"]],
+      ])
+    )
   })
 })
 

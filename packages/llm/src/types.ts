@@ -1,7 +1,13 @@
+import type { PromptRenderOptions } from "./prompt.js"
+
 export interface LLMModel {
   generateObject<T>(options: GenerateObjectOptions): Promise<GenerateObjectResult<T>>
   /** Render a Liquid prompt template to messages (system + user/assistant). */
-  renderPrompt(name: string, context: Record<string, unknown>): Promise<Message[]>
+  renderPrompt(
+    name: string,
+    context: Record<string, unknown>,
+    options?: PromptRenderOptions,
+  ): Promise<Message[]>
 }
 
 export interface GenerateObjectOptions {
@@ -39,6 +45,7 @@ export interface GenerateObjectOptions {
     taskType: string
     pageId?: string
     promptName: string
+    requestedPromptName?: string
     sectionIndex?: number
     correlationId?: string
   }

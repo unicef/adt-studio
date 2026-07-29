@@ -35,10 +35,9 @@ import {
   toCamelLabel,
   type StageGroup,
 } from "../stage-config"
-import { useSettingsDialog } from "@/routes/__root"
 import type { TaskInfoResponse } from "@/api/client"
 import { getStageLabelI18n, getStepLabelI18n, getStageStatusLabelI18n } from "../pipeline-i18n"
-import { ALL_STEP_NAMES } from "@adt/types"
+import { ALL_STEP_NAMES, STAGE_ORDER } from "@adt/types"
 
 const STAGE_GROUP_LABELS: Record<StageGroup, MessageDescriptor> = {
   convert: msg`Core Pipeline`,
@@ -82,7 +81,6 @@ export function StageSidebar({
   const { data: signLanguageData } = useSignLanguageVideos(bookLabel)
   const { data: packageStatus } = usePackageAdtStatus(bookLabel)
   const { tasks } = useBookTasks(bookLabel)
-  const { openSettings } = useSettingsDialog()
   const stageMissing = useStageMissingCounts(bookLabel)
   const translateNeedsRerun = stageMissing.translate > 0
   const speechNeedsRerun = stageMissing.speech > 0
@@ -292,7 +290,22 @@ export function StageSidebar({
             </button>
           )}
 
-          {settingsTabs ? (
+          {step.slug === "book" ? (
+            <Link
+              to="/books/$label/$step/settings"
+              params={{ label: bookLabel, step: step.slug }}
+              search={{ tab: "general" }}
+              title={i18n._(msg`API Key Settings`)}
+              className={cn(
+                "shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors",
+                isActive
+                  ? "text-white/60 hover:text-white hover:bg-white/20"
+                  : "opacity-0 group-hover/row:opacity-100 text-muted-foreground/50 group-hover/row:bg-muted hover:text-foreground hover:bg-muted-foreground/20"
+              )}
+            >
+              <Settings className="w-3.5 h-3.5" />
+            </Link>
+          ) : settingsTabs ? (
             <Link
               to="/books/$label/$step/settings"
               params={{ label: bookLabel, step: step.slug }}
@@ -307,20 +320,6 @@ export function StageSidebar({
             >
               <Settings className="w-3.5 h-3.5" />
             </Link>
-          ) : step.slug === "book" ? (
-            <button
-              type="button"
-              onClick={openSettings}
-              title={i18n._(msg`API Key Settings`)}
-              className={cn(
-                "shrink-0 inline-flex items-center justify-center w-6 h-6 rounded-full transition-colors cursor-pointer",
-                isActive
-                  ? "text-white/60 hover:text-white hover:bg-white/20"
-                  : "opacity-0 group-hover/row:opacity-100 text-muted-foreground/50 group-hover/row:bg-muted hover:text-foreground hover:bg-muted-foreground/20"
-              )}
-            >
-              <Settings className="w-3.5 h-3.5" />
-            </button>
           ) : step.slug === "preview" ? (
             <button
               type="button"
@@ -439,7 +438,7 @@ export function StageSidebar({
 function TaskIndicator({ bookLabel }: { bookLabel: string }) {
   const { i18n } = useLingui()
   const { runningTasks, runningCount } = useBookTasks(bookLabel)
-  const { stepState, stepProgress, isCancelling, cancelRun } = useBookRun()
+  const { stepState, stageState, stepProgress, isCancelling, cancelRun } = useBookRun()
 
   // Running steps with visible progress (pages, entries, batches, etc.)
   const stageProgressRows: { step: string; label: string; progressLabel: string }[] = []
@@ -462,9 +461,27 @@ function TaskIndicator({ bookLabel }: { bookLabel: string }) {
     }
   }
 
-  const totalCount = runningCount + stageProgressRows.length + activeSteps.length
+  // Stages that have been kicked off but whose first step hasn't reported yet.
+  // A run is queued the moment the button is clicked (optimistically) and stays
+  // that way through the server's synchronous stage startup — for Extract that
+  // window is seconds (PDF read + WASM parse). Keying the indicator purely off
+  // running *steps* left it hidden for that whole gap, so a click looked like
+  // it had done nothing. Only shown while no step is reporting yet, so a
+  // running stage doesn't get counted twice.
+  const startingStages: { key: string; label: string }[] = []
+  if (stageProgressRows.length + activeSteps.length === 0) {
+    for (const stage of STAGE_ORDER) {
+      const state = stageState(stage)
+      if (state === "queued" || state === "running") {
+        startingStages.push({ key: stage, label: getStageLabelI18n(stage) })
+      }
+    }
+  }
+
+  const pipelineRowCount = stageProgressRows.length + activeSteps.length + startingStages.length
+  const totalCount = runningCount + pipelineRowCount
   // A pipeline stage run (not just ad-hoc tasks) is active — offer to cancel it.
-  const pipelineActive = stageProgressRows.length + activeSteps.length > 0
+  const pipelineActive = pipelineRowCount > 0
 
   if (totalCount === 0) return null
 
@@ -489,6 +506,17 @@ function TaskIndicator({ bookLabel }: { bookLabel: string }) {
             <p className="flex-1 min-w-0 text-xs font-medium truncate">
               {row.label}
             </p>
+          </div>
+        ))}
+        {startingStages.map((row) => (
+          <div key={row.key} className="flex items-center gap-2 px-1 py-1">
+            <Loader2 className="w-3 h-3 animate-spin text-violet-500 shrink-0" />
+            <p className="flex-1 min-w-0 text-xs font-medium truncate">
+              {row.label}
+            </p>
+            <span className="text-[10px] text-muted-foreground shrink-0">
+              {i18n._(msg`Starting…`)}
+            </span>
           </div>
         ))}
         {runningTasks.map((task) => (

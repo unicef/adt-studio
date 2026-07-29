@@ -39,6 +39,7 @@ export function buildTranslationConfig(
     modelId:
       appConfig.translation?.model ??
       appConfig.page_sectioning?.model ??
+      appConfig.default_model ??
       "openai:gpt-4.1",
     maxRetries: appConfig.translation?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,
   }

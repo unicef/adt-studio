@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Mjetet e administrimit do të shtohen në një përditësim të mëvonshëm.",
     "main-menu-label": "Menyja kryesore",
     "cover-label": "Kopertina",
-    "print-page-label": "Printo faqen"
+    "print-page-label": "Printo faqen",
+    "underline-text-options-label": "Nënvizo tekstin e saktë",
+    "underline-question-label": "Pyetja ${n}",
+    "underline-all-correct": "Të gjitha përgjigjet janë të sakta!",
+    "underline-progress-summary": "${correct} të sakta, ${wrong} të pasakta, ${missing} ende për t'u gjetur.",
+    "activity-progress-remaining": "të mbetura"
 }

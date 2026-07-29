@@ -600,10 +600,14 @@ export function useBookRunStatus(label: string): BookRunContextValue {
       // Optimistically mark target stage(s) as queued and clear downstream
       const stagesToClear = new Set(getStageClearOrder(fromStage as StageName))
       queryClient.setQueryData<StepStatusResponse>(stepStatusKey(label), (old) => {
-        if (!old) return old
-        const stages = { ...old.stages }
-        const steps = { ...old.steps }
-        const stepMessages = old.stepMessages ? { ...old.stepMessages } : null
+        // Seed a base when the initial step-status fetch hasn't resolved yet
+        // (e.g. a run kicked off right after landing on the book). Bailing out
+        // on a cold cache would drop the optimistic "queued" state entirely and
+        // leave the UI idle until the first poll lands.
+        const base: StepStatusResponse = old ?? { stages: {}, steps: {}, error: null }
+        const stages = { ...base.stages }
+        const steps = { ...base.steps }
+        const stepMessages = base.stepMessages ? { ...base.stepMessages } : null
 
         for (const stage of stagesToClear) {
           const stageDef = PIPELINE.find((s) => s.name === stage)
@@ -896,6 +900,7 @@ function invalidateStageData(qc: ReturnType<typeof useQueryClient>, label: strin
       break
     case "glossary":
       qc.invalidateQueries({ queryKey: ["books", label, "glossary"] })
+      qc.invalidateQueries({ queryKey: ["books", label, "sign-language-videos"] })
       break
     case "easy-read":
       qc.invalidateQueries({ queryKey: ["books", label, "easy-read"] })

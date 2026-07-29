@@ -8,6 +8,7 @@ describe("settings-routing", () => {
   })
 
   it("resolves known settings stages", () => {
+    expect(resolveSettingsStageSlug("book")).toBe("book")
     expect(resolveSettingsStageSlug("extract")).toBe("extract")
     expect(resolveSettingsStageSlug("translate")).toBe("translate")
     expect(resolveSettingsStageSlug("easy-read")).toBe("easy-read")
@@ -15,7 +16,6 @@ describe("settings-routing", () => {
   })
 
   it("returns null for stages without settings views", () => {
-    expect(resolveSettingsStageSlug("book")).toBeNull()
     expect(resolveSettingsStageSlug("not-a-stage")).toBeNull()
   })
 

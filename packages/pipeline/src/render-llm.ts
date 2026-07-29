@@ -1,7 +1,8 @@
 import type { SectionRendering } from "@adt/types"
 import { webRenderingLLMSchema, activityAnswersLLMSchema } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
-import { validateSectionHtml } from "./validate-html.js"
+import { autoRepairUnderlineActivityHtml } from "./activity-underline-repair.js"
+import { validateSectionHtml, isEnumerationMarker } from "./validate-html.js"
 import { getViewportBreakpoints, type ScreenshotRenderer } from "./screenshot.js"
 import type { RenderConfig, RenderExecutionOptions, RenderSectionInput } from "./web-rendering.js"
 import { runVisualReviewLoop } from "./visual-review.js"
@@ -145,6 +146,11 @@ export async function renderSectionLlm(
     generatedHtml = review.html
   }
 
+  // Persist the same deterministic repair that validation sees. Without this,
+  // underline-text sections can validate against repaired HTML while the saved
+  // web-rendering node still contains the unrepaired LLM output.
+  generatedHtml = autoRepairUnderlineActivityHtml(generatedHtml, section.sectionType)
+
   // Optional: generate activity answers via a second LLM call
   let activityReasoning: string | undefined
   let activityAnswers: Record<string, string | boolean | number> | undefined
@@ -205,9 +211,10 @@ function validateWebRendering(
   const imageUrlPrefix = `/api/books/${label}/images`
   const expectedTexts = new Map(leaf_texts.map((t) => [t.text_id, t.text]))
   const optionalTextIds = collectOptionalTextIds(leaf_texts)
+  const candidateHtml = autoRepairUnderlineActivityHtml(r.content, sectionType)
 
   const check = validateSectionHtml(
-    r.content,
+    candidateHtml,
     allowedTextIds,
     allowedImageIds,
     imageUrlPrefix,
@@ -227,6 +234,7 @@ function validateWebRendering(
       cleaned: { reasoning: r.reasoning, content: check.sectionHtml },
     }
   }
+
   return { valid: check.valid, errors: check.errors }
 }
 
@@ -264,6 +272,15 @@ export function collectOptionalTextIds(
   const optional = new Set<string>()
   for (const leaf of leafTexts) {
     if (OPTIONAL_TEXT_ROLES.has(leaf.text_type)) {
+      optional.add(leaf.text_id)
+      continue
+    }
+    // Standalone enumeration-marker labels ("1.", "(i)", "(a)"). Matching
+    // activities auto-number their items and reliably drop these provided
+    // marker labels even when the prompt asks to keep them; treat them as
+    // optional so a drop doesn't fail validation and force retries. The LLM is
+    // still free to render them (encouraged by the render prompts).
+    if (leaf.text_type === "label" && isEnumerationMarker(leaf.text ?? "")) {
       optional.add(leaf.text_id)
       continue
     }

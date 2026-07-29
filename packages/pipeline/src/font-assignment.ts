@@ -1,5 +1,9 @@
 import type { LLMModel } from "@adt/llm"
-import { FontAssignmentOutput, type BookFont } from "@adt/types"
+import {
+  DEFAULT_LLM_MODEL_ID,
+  FontAssignmentOutput,
+  type BookFont,
+} from "@adt/types"
 export type { FontAssignmentOutput } from "@adt/types"
 
 export interface FontAssignmentInput {
@@ -22,10 +26,11 @@ export interface FontAssignmentConfig {
 
 export function buildFontAssignmentConfig(
   stepConfig?: { prompt?: string; model?: string; max_retries?: number; temperature?: number },
+  defaultModelId = DEFAULT_LLM_MODEL_ID,
 ): FontAssignmentConfig {
   return {
     promptName: stepConfig?.prompt ?? "font_assignment",
-    modelId: stepConfig?.model ?? "openai:gpt-5.4",
+    modelId: stepConfig?.model ?? defaultModelId,
     maxRetries: stepConfig?.max_retries ?? 3,
     temperature: stepConfig?.temperature,
   }

@@ -36,6 +36,7 @@ export function buildTocGenerationConfig(
     modelId:
       appConfig.toc_generation?.model ??
       appConfig.page_sectioning?.model ??
+      appConfig.default_model ??
       "openai:gpt-4.1",
     maxRetries: appConfig.toc_generation?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,
     language,

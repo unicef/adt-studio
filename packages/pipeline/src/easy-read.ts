@@ -57,6 +57,7 @@ export function buildEasyReadConfig(appConfig: AppConfig, language: string): Eas
       appConfig.easy_read?.model ??
       appConfig.translation?.model ??
       appConfig.page_sectioning?.model ??
+      appConfig.default_model ??
       DEFAULT_EASY_READ_MODEL_ID,
     maxRetries: appConfig.easy_read?.max_retries ?? DEFAULT_LLM_MAX_RETRIES,
     batchSize: appConfig.easy_read?.batch_size ?? 50,

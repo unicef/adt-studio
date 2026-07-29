@@ -30,7 +30,8 @@ import {
   // Proof step imports
   captionPageImages,
   buildCaptionConfig,
-  extractImageIds,
+  collectCaptionImageIds,
+  groupGlossaryImageIdsByPage,
   regenerateGlossaryPreservingEdits,
   buildGlossaryConfig,
   generateToc,
@@ -39,6 +40,7 @@ import {
   buildQuizGenerationConfig,
   // Master step imports
   getRenderSectioning,
+  getSemanticSectioning,
   buildTextCatalog,
   buildEasyReadConfig,
   buildEasyReadSourceBlocks,
@@ -107,6 +109,7 @@ import type {
   StepName,
   StageName,
   BookSummaryOutput,
+  GlossaryOutput,
 } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
 import type { PageData } from "@adt/storage"
@@ -419,15 +422,30 @@ interface ConcurrencyControls {
   stopSignal?: AbortSignal
   /** Pause admission while a page-error decision is pending. */
   gate?: AdmissionGate
+  /** Delay between launches while filling the first wave (see LAUNCH_RAMP_MS).
+   *  Set to 0 to disable the ramp. Defaults to LAUNCH_RAMP_MS. */
+  rampMs?: number
 }
 
-async function processWithConcurrency<T>(
+/** Stagger between the first `concurrency` launches of a page-level step.
+ *  Firing the whole first wave at once opens that many cold TLS connections
+ *  simultaneously — a thundering herd the model provider/CDN resets (surfacing
+ *  as `write EPIPE` / `ECONNRESET` / "other side closed" bursts at step start).
+ *  Spacing the opening wave lets keep-alive sockets warm up and be reused; once
+ *  the pool is full, completions pace new launches so steady-state throughput is
+ *  unchanged. ~100ms × concurrency adds a few seconds once per step — far less
+ *  than the many multi-second failed-request retries it avoids. */
+const LAUNCH_RAMP_MS = 100
+
+export async function processWithConcurrency<T>(
   items: T[],
   concurrency: number,
   fn: (item: T) => Promise<void>,
   controls?: ConcurrencyControls
 ): Promise<void> {
   const executing = new Set<Promise<void>>()
+  const rampMs = controls?.rampMs ?? LAUNCH_RAMP_MS
+  let launched = 0
   try {
     for (const item of items) {
       if (controls?.runSignal?.aborted) throw new RunCancelledError()
@@ -435,10 +453,18 @@ async function processWithConcurrency<T>(
       // Re-check after the gate: a cancel or "stop" may have arrived while paused.
       if (controls?.runSignal?.aborted) throw new RunCancelledError()
       if (controls?.stopSignal?.aborted) break
+      // Space out only the opening wave (the cold-start connection burst). Once
+      // `concurrency` items are in flight, completions pace the rest, so no ramp.
+      if (rampMs > 0 && launched > 0 && launched < concurrency) {
+        await sleep(rampMs, controls?.runSignal)
+        if (controls?.runSignal?.aborted) throw new RunCancelledError()
+        if (controls?.stopSignal?.aborted) break
+      }
       const p = fn(item).finally(() => {
         executing.delete(p)
       })
       executing.add(p)
+      launched++
       if (executing.size >= concurrency) {
         await Promise.race(executing)
       }
@@ -1342,7 +1368,9 @@ async function runStoryboardStep(
         visualRefinement = {
           screenshotRenderer,
           webAssetsDir,
-          llmModel: resolveRenderModel(DEFAULT_VISUAL_REVIEW_MODEL_ID),
+          llmModel: resolveRenderModel(
+            config.default_model ?? DEFAULT_VISUAL_REVIEW_MODEL_ID,
+          ),
           storeScreenshot: (base64: string) => {
             const hash = crypto.createHash("sha256").update(base64).digest("hex").slice(0, 16)
             storage.putDebugImage(hash, Buffer.from(base64, "base64"))
@@ -1579,19 +1607,39 @@ async function runQuizzesStep(
 
     progress.emit({ type: "step-start", step: "quiz-generation" })
 
-    // Gather page data for quiz generation
+    // Gather page data for quiz generation. A page is eligible only when it has
+    // BOTH a web-rendering and a render-sectioning node — the quiz LLM reads
+    // rendered text, and batching counts sectioned content pages.
     const pages = storage.getPages()
     const quizPages: QuizPageInput[] = []
+    let missingRendering = 0
+    let missingSectioning = 0
     for (const page of pages) {
       const renderingRow = storage.getLatestNodeData("web-rendering", page.pageId)
-      const sectioning = getRenderSectioning(storage, page.pageId)
-      if (!renderingRow || !sectioning) continue
+      // Filter by the SEMANTIC sectioning (real types like `text_and_single_image`),
+      // not the render sectioning — in fixed-layout the render tree is positioned
+      // and its only section type is `fixed-layout-page`, which never matches
+      // `quiz_section_types`, so no page would qualify and no quiz would generate.
+      const sectioning = getSemanticSectioning(storage, page.pageId)
+      if (!renderingRow) {
+        missingRendering++
+        continue
+      }
+      if (!sectioning) {
+        missingSectioning++
+        continue
+      }
       quizPages.push({
         pageId: page.pageId,
         rendering: renderingRow.data as WebRenderingOutput,
         sectioning,
       })
     }
+    console.log(
+      `[stage-run] ${label}: quiz input — ${quizPages.length}/${pages.length} pages ready ` +
+        `(missing web-rendering: ${missingRendering}, missing sectioning: ${missingSectioning}); ` +
+        `pages_per_quiz=${quizConfig.pagesPerQuiz}`
+    )
 
     if (quizPages.length > 0) {
       const quizResult = await generateAllQuizzes(quizPages, quizConfig, quizModel, {
@@ -1607,10 +1655,26 @@ async function runQuizzesStep(
         },
       })
       storage.putNodeData("quiz-generation", "book", quizResult)
+      console.log(
+        `[stage-run] ${label}: generated ${quizResult.quizzes.length} quiz(zes) from ${quizPages.length} page(s)`
+      )
       progress.emit({
         type: "step-progress",
         step: "quiz-generation",
         message: `${quizResult.quizzes.length} quizzes from ${quizPages.length} pages`,
+      })
+    } else {
+      // Nothing to generate. This is the silent "finished instantly, no quizzes"
+      // case — surface it loudly instead of completing green with no output.
+      console.warn(
+        `[stage-run] ${label}: quiz-generation produced NOTHING — 0 of ${pages.length} pages ` +
+          `had both web-rendering and render-sectioning. Re-run the Storyboard stage first ` +
+          `(fixed-layout writes both there), then Quizzes.`
+      )
+      progress.emit({
+        type: "step-progress",
+        step: "quiz-generation",
+        message: `No quizzes: 0/${pages.length} pages had rendering + sectioning`,
       })
     }
 
@@ -1652,6 +1716,13 @@ async function runCaptionsStep(
     // Load book summary for captioning context
     const summaryRow = storage.getLatestNodeData("book-summary", "book")
     const bookSummary = (summaryRow?.data as BookSummaryOutput | undefined)?.summary
+
+    const glossaryRow = storage.getLatestNodeData("glossary", "book")
+    const glossary = glossaryRow?.data as GlossaryOutput | undefined
+    const glossaryImageIdsByPage = groupGlossaryImageIdsByPage(
+      glossary,
+      (imageId) => storage.getImageMeta(imageId)?.pageId,
+    )
 
     const onLlmLog = (entry: LlmLogEntry) => {
       storage.appendLlmLog(entry)
@@ -1734,7 +1805,10 @@ async function runCaptionsStep(
           const htmlSections = rendering.sections
             .filter((s) => !sectioning?.sections[s.sectionIndex]?.isPruned)
             .map((s) => s.html)
-          const imageIds = extractImageIds(htmlSections)
+          const imageIds = collectCaptionImageIds(
+            htmlSections,
+            glossaryImageIdsByPage.get(page.pageId),
+          )
 
           if (imageIds.length === 0) {
             storage.putNodeData("image-captioning", page.pageId, { captions: [] })
@@ -2518,7 +2592,8 @@ async function runSpeechStep(
     const voiceMaps = loadVoicesConfig(configDir)
     const instructionsMap = loadSpeechInstructions(configDir)
 
-    const speechModel = config.speech?.model
+    const speechModel =
+      config.speech?.model ?? config.default_speech_generation_model
     const defaultProvider = config.speech?.default_provider ?? "openai"
     const providerConfigs = config.speech?.providers ?? {}
     const routing: ProviderRouting = { providers: providerConfigs, defaultProvider }

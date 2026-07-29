@@ -28,6 +28,7 @@ import { GlossaryContent } from "@/features/glossary/components/GlossaryDockCont
 import { AudioContent } from "@/features/audio/components/AudioDockContent";
 import { LanguageContent } from "@/features/language/components/LanguageDockContent";
 import { SettingsContent } from "@/features/settings/components/SettingsDockContent";
+import { currentPageSignLanguageVideoAtom } from "@/features/sign-language/state/sign-language.atoms";
 import { DockPanel } from "./DockPanel";
 
 interface DockMenuProps {
@@ -38,6 +39,9 @@ export function DockMenu({ className }: DockMenuProps) {
   const features = useAtomValue(appConfigAtom).features;
   const [value, setValue] = useAtom(dockMenuValueAtom);
   const [signLanguage, setSignLanguage] = useAtom(signLanguageModeAtom);
+  const hasPageSignLanguageVideo = Boolean(
+    useAtomValue(currentPageSignLanguageVideoAtom),
+  );
   const { t } = useTranslation();
   const { popoverSide: side } = useDockContext();
 
@@ -64,7 +68,7 @@ export function DockMenu({ className }: DockMenuProps) {
 
         <TTSDockButton />
 
-        {features.signLanguage ? (
+        {features.signLanguage && hasPageSignLanguageVideo ? (
           <DockIconButton
             ariaLabel={t("sign-language-label") || "Sign language"}
             pressed={signLanguage}

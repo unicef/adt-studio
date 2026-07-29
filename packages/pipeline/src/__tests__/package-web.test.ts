@@ -413,6 +413,8 @@ describe("renderQuizHtml", () => {
     // Options are a fixed width so they don't resize when feedback appears.
     expect(html).toContain("w-[34rem]")
     expect(html).not.toContain("w-full max-w-xl")
+    expect(html).toContain("outline: 3px solid #2563eb")
+    expect(html).not.toContain("focus:ring-green-300")
   })
 
   it("themes the quiz as a callout when a style is given, preserving the interactive contract", () => {
@@ -433,6 +435,7 @@ describe("renderQuizHtml", () => {
     expect(html).toContain('data-correct-answers=')
     expect(html).toContain('data-activity-item="qz001_o0"')
     expect(html).toContain('class="option-text block adt-body"')
+    expect(html).toContain("outline: 3px solid #2563eb")
   })
 })
 
@@ -1196,7 +1199,43 @@ describe("packageAdtWeb", () => {
         definition: "La couche superieure de la terre",
         variations: ["soils"],
         emoji: "🪨",
+        id: "gl_manual_soil",
       },
+    })
+  })
+
+  it("carries the term picture and sign-language video hrefs into glossary json", () => {
+    const glossaryJson = buildGlossaryJson(
+      {
+        items: [
+          {
+            id: "gl001",
+            source: "ai",
+            word: "volcano",
+            definition: "A mountain that erupts",
+            variations: [],
+            emojis: ["🌋"],
+            imageId: "pg003_im001",
+          },
+        ],
+        pageCount: 1,
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      },
+      undefined,
+      {},
+      true,
+      new Map([["pg003_im001", "images/pg003_im001.png"]]),
+      new Map([["gl001", "content/i18n/en/video/sl_gl001.mp4"]]),
+    )
+
+    expect(glossaryJson["volcano"]).toEqual({
+      word: "volcano",
+      definition: "A mountain that erupts",
+      variations: [],
+      emoji: "🌋",
+      id: "gl001",
+      image: "images/pg003_im001.png",
+      video: "content/i18n/en/video/sl_gl001.mp4",
     })
   })
 

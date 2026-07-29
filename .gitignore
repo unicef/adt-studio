@@ -87,3 +87,6 @@ packages/pipeline/src/__tests__/fixtures/raven-cache/tts/*.mp3
 # Others
 apps/desktop/electron.vite.config*.mjs
 PLAN*.md
+prompts/.versions
+prompts/.models.json
+.codex

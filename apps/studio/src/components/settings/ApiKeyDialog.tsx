@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
+import { toast } from "@/components/ui/sonner"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
 
@@ -20,6 +21,7 @@ type TabKey = "openai" | "anthropic" | "google" | "custom" | "azure"
 interface ApiKeyDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  embedded?: boolean
   apiKey: string
   onSaveApiKey: (key: string) => void
   anthropicKey: string
@@ -43,6 +45,7 @@ function isValidOpenAIKey(key: string): boolean {
 export function ApiKeyDialog({
   open,
   onOpenChange,
+  embedded = false,
   apiKey,
   onSaveApiKey,
   anthropicKey,
@@ -94,7 +97,7 @@ export function ApiKeyDialog({
   }, [open, apiKey, anthropicKey, googleKey, customBaseUrl, customApiKey, azureKey, azureRegion])
 
   function handleSave() {
-    // Save all tabs — not just the active one
+    // Save all tabs, not just the active one.
     const trimmedOpenai = openaiDraft.trim()
     if (isValidOpenAIKey(trimmedOpenai) || trimmedOpenai === "") onSaveApiKey(trimmedOpenai)
 
@@ -105,7 +108,8 @@ export function ApiKeyDialog({
     onSaveAzureKey(azureKeyDraft.trim())
     onSaveAzureRegion(azureRegionDraft.trim())
 
-    onOpenChange(false)
+    if (embedded) toast.success(t`API keys saved.`)
+    if (!embedded) onOpenChange(false)
   }
 
   // Check if there are any meaningful changes to save
@@ -122,15 +126,16 @@ export function ApiKeyDialog({
   const openaiValid = openaiDraft.trim() === "" || openaiDraft.trim() === apiKey.trim() || isValidOpenAIKey(openaiDraft)
   const canSave = hasChanges && openaiValid
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle><Trans>API Keys</Trans></DialogTitle>
-          <DialogDescription>
-            <Trans>Configure API keys for AI pipeline features.</Trans>
-          </DialogDescription>
-        </DialogHeader>
+  const content = (
+    <>
+        {!embedded && (
+          <DialogHeader>
+            <DialogTitle><Trans>API Keys</Trans></DialogTitle>
+            <DialogDescription>
+              <Trans>Configure API keys for AI pipeline features.</Trans>
+            </DialogDescription>
+          </DialogHeader>
+        )}
 
         <div className="flex gap-1 border-b mb-3">
           {tabs.map((item) => {
@@ -142,10 +147,11 @@ export function ApiKeyDialog({
                       : azureKey.length > 0
             return (
               <button
+                type="button"
                 key={item.key}
                 onClick={() => { setTab(item.key); setShowKey(false) }}
                 className={cn(
-                  "flex items-center gap-1 px-2 py-1.5 text-xs font-medium border-b-2 -mb-px transition-colors whitespace-nowrap",
+                  "flex min-h-11 items-center gap-1 px-3 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors whitespace-nowrap",
                   tab === item.key
                     ? "border-foreground text-foreground"
                     : "border-transparent text-muted-foreground hover:text-foreground"
@@ -179,7 +185,8 @@ export function ApiKeyDialog({
                 size="icon"
                 className="absolute right-0 top-0 h-10 w-10"
                 onClick={() => setShowKey(!showKey)}
-                tabIndex={-1}
+                aria-label={showKey ? t`Hide API key` : t`Show API key`}
+                title={showKey ? t`Hide API key` : t`Show API key`}
               >
                 {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
@@ -213,7 +220,8 @@ export function ApiKeyDialog({
                 size="icon"
                 className="absolute right-0 top-0 h-10 w-10"
                 onClick={() => setShowKey(!showKey)}
-                tabIndex={-1}
+                aria-label={showKey ? t`Hide API key` : t`Show API key`}
+                title={showKey ? t`Hide API key` : t`Show API key`}
               >
                 {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
@@ -247,7 +255,8 @@ export function ApiKeyDialog({
                 size="icon"
                 className="absolute right-0 top-0 h-10 w-10"
                 onClick={() => setShowKey(!showKey)}
-                tabIndex={-1}
+                aria-label={showKey ? t`Hide API key` : t`Show API key`}
+                title={showKey ? t`Hide API key` : t`Show API key`}
               >
                 {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </Button>
@@ -294,7 +303,8 @@ export function ApiKeyDialog({
                   size="icon"
                   className="absolute right-0 top-0 h-10 w-10"
                   onClick={() => setShowKey(!showKey)}
-                  tabIndex={-1}
+                  aria-label={showKey ? t`Hide API key` : t`Show API key`}
+                  title={showKey ? t`Hide API key` : t`Show API key`}
                 >
                   {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
@@ -330,7 +340,8 @@ export function ApiKeyDialog({
                   size="icon"
                   className="absolute right-0 top-0 h-10 w-10"
                   onClick={() => setShowKey(!showKey)}
-                  tabIndex={-1}
+                  aria-label={showKey ? t`Hide API key` : t`Show API key`}
+                  title={showKey ? t`Hide API key` : t`Show API key`}
                 >
                   {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </Button>
@@ -355,14 +366,29 @@ export function ApiKeyDialog({
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            <Trans>Cancel</Trans>
-          </Button>
+          {!embedded && (
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              <Trans>Cancel</Trans>
+            </Button>
+          )}
           <Button onClick={handleSave} disabled={!canSave}>
             <Trans>Save</Trans>
           </Button>
         </DialogFooter>
-      </DialogContent>
+    </>
+  )
+
+  if (embedded) {
+    return (
+      <div className="rounded-xl border bg-card p-5">
+        {content}
+      </div>
+    )
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-lg">{content}</DialogContent>
     </Dialog>
   )
 }
