@@ -1,8 +1,10 @@
-import { generateObject } from "ai"
+import path from "node:path"
+import { randomUUID } from "node:crypto"
 import { z } from "zod"
 import type { Storage } from "@adt/storage"
 import { WebRenderingOutput, PageSectioningOutput } from "@adt/types"
-import { resolveAgentModel, type AgentCredentials } from "./resolve-model.js"
+import { createLLMModel } from "@adt/llm"
+import type { AgentCredentials } from "./resolve-model.js"
 import { buildSectioningSectionFromHtml } from "./tools/build-sectioning.js"
 import {
   LAYOUT_MIRROR_SYSTEM_PROMPT,
@@ -16,6 +18,8 @@ export interface LayoutMirrorTarget {
 
 export interface LayoutMirrorOptions {
   storage: Storage
+  bookLabel: string
+  booksDir: string
   source: LayoutMirrorTarget
   targets: LayoutMirrorTarget[]
   /** Free-text refinement (e.g. "keep the image on the right"). Optional. */
@@ -120,7 +124,18 @@ export async function mirrorLayout(
     source.sectionIndex,
   )
 
-  const model = resolveAgentModel(modelId, credentials)
+  // Go through @adt/llm rather than the AI SDK directly: it writes every call
+  // to the book's LLM log (so the run is inspectable in Debug → LLM Logs like
+  // every other LLM path), caches on an input hash, and retries transient API
+  // errors instead of failing the target outright.
+  const model = createLLMModel({
+    modelId,
+    cacheDir: path.join(path.resolve(opts.booksDir), opts.bookLabel, ".cache"),
+    onLog: (entry) => storage.appendLlmLog(entry),
+    credentials,
+  })
+  // One correlationId groups every target's call under a single mirror run.
+  const correlationId = randomUUID()
   const results: LayoutMirrorTargetResult[] = []
 
   // Process targets sequentially: each target write produces a new version,
@@ -138,17 +153,30 @@ export async function mirrorLayout(
       )
       const targetIds = extractDataIds(targetHtml)
 
-      const { object } = await generateObject({
-        model,
+      const { object } = await model.generateObject<
+        z.infer<typeof LAYOUT_MIRROR_LLM_SCHEMA>
+      >({
         schema: LAYOUT_MIRROR_LLM_SCHEMA,
         system: LAYOUT_MIRROR_SYSTEM_PROMPT,
-        prompt: buildLayoutMirrorUserPrompt({
-          sourceHtml,
-          targetHtml,
-          extraInstruction: instruction,
-        }),
-        maxRetries: 0,
-        abortSignal: AbortSignal.timeout(opts.timeoutMs ?? 90_000),
+        messages: [
+          {
+            role: "user",
+            content: buildLayoutMirrorUserPrompt({
+              sourceHtml,
+              targetHtml,
+              extraInstruction: instruction,
+            }),
+          },
+        ],
+        maxRetries: 2,
+        timeoutMs: opts.timeoutMs ?? 90_000,
+        log: {
+          taskType: "layout-mirror",
+          pageId: target.pageId,
+          promptName: "layout-mirror",
+          sectionIndex: target.sectionIndex,
+          correlationId,
+        },
       })
 
       const cleaned = stripHtmlFence(object.content)
@@ -202,6 +230,10 @@ export async function mirrorLayout(
         html: cleaned,
         sectionId,
         sectionType,
+        // A mirror rewrites an existing section — carry its pageNumber,
+        // palette, source pages, placement, and leaf roles across rather than
+        // rebuilding from defaults (that dropped TOC entries and page numbers).
+        base: oldSection,
       })
       const updatedSectioning: PageSectioningOutput = {
         ...sectioning,

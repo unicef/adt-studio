@@ -206,6 +206,30 @@ function getRenderedSectionByIndex(
 }
 
 /**
+ * Pull the sectionIndex the generate-activity agent actually wrote to out of a
+ * completed task's result. The agent's create tools return it directly, which
+ * is the only reliable source — rendering skips pruned sections, so the new
+ * section's index can exceed the rendered array's length. Returns undefined
+ * when no create call landed, which just hides the banner's "View" button.
+ */
+function createdSectionIndexOf(result: unknown): number | undefined {
+  const toolCalls = (result as { toolCalls?: unknown })?.toolCalls
+  if (!Array.isArray(toolCalls)) return undefined
+  for (const call of [...toolCalls].reverse()) {
+    const { name, result: callResult } =
+      (call ?? {}) as { name?: string; result?: unknown }
+    if (name !== "createTemplatedActivity" && name !== "createCustomSection") {
+      continue
+    }
+    const index = (callResult as { sectionIndex?: unknown })?.sectionIndex
+    if (typeof index === "number" && Number.isInteger(index) && index >= 0) {
+      return index
+    }
+  }
+  return undefined
+}
+
+/**
  * Selectable tokens, option markers, and writable fields the activity runtime
  * binds to. A leaf whose rendered element contains any of these cannot have its
  * text mirrored in place — flattening it to a text node destroys the activity
@@ -631,13 +655,15 @@ export function StoryboardSectionDetail({
       ) {
         announcedCompletionIds.current.add(task.taskId)
 
-        // generate-activity appends one section — the new index is the LAST
-        // one in the page's rendering list. The page-detail query has been
-        // refetched by use-book-run by the time this fires.
-        const renderedSections = page.rendering?.sections ?? []
+        // Take the new section's index from the task result, not from the
+        // page query: this effect runs on the synchronous setQueryData that
+        // marks the task complete, before the page-detail refetch lands. The
+        // agent's own sectionIndex is also the only correct value — rendering
+        // skips pruned sections, so its array length doesn't track the index
+        // the agent assigned.
         const target =
           task.kind === "generate-activity"
-            ? Math.max(0, renderedSections.length - 1)
+            ? createdSectionIndexOf(task.result)
             : sectionIndex // layout-mirror writes the same section the user was viewing
 
         setCompletionBanner({
@@ -650,7 +676,7 @@ export function StoryboardSectionDetail({
         })
       }
     }
-  }, [bookTasks, pageId, page.rendering?.sections?.length, sectionIndex, t])
+  }, [bookTasks, pageId, sectionIndex, t])
 
   // Auto-dismiss the banner after 10s.
   useEffect(() => {

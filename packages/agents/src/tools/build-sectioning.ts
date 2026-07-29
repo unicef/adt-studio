@@ -26,13 +26,26 @@ import type {
  *     still has a valid tree shape (the existing pipeline uses nested
  *     structure containers, but a flat container is sufficient for editing
  *     and for text-catalog/TTS, which walk HTML directly).
+ *
+ * When `base` is supplied (every caller that REPLACES an existing section
+ * passes it), the section's non-content metadata is carried over rather than
+ * reset to defaults: `pageNumber` feeds the TOC and the packaged nav's
+ * `page_number`, `backgroundColor`/`textColor` feed the quiz palette and
+ * re-rendering, and `sourcePageIds`/`viewport`/`placement` are needed by
+ * cross-page merges and fixed-layout output. Prior leaf `role`s are also
+ * carried across by nodeId so a `heading` leaf doesn't silently become `text`
+ * (which would drop the section's TOC entry — see `findHeadingText` in
+ * packaging/web.ts).
  */
 export function buildSectioningSectionFromHtml(args: {
   html: string
   sectionId: string
   sectionType: string
+  /** The section being replaced, when this is a rewrite rather than a create. */
+  base?: PageSectioningSection
 }): PageSectioningSection {
   const doc = parseDocument(args.html)
+  const priorRoles = collectRolesByNodeId(args.base)
   const elements = DomUtils.findAll(
     (el) => el.type === "tag" && el.attribs?.["data-id"] !== undefined,
     doc.children,
@@ -62,10 +75,16 @@ export function buildSectioningSectionFromHtml(args: {
     } else {
       const text = textContentExcludingScripts(el).replace(/\s+/g, " ").trim()
       if (!text) continue
+      // Keep the leaf's prior semantic role when it survived the rewrite;
+      // "text" is the fallback for nodes this section didn't have before.
+      // "image" is never carried onto a non-<img> element — buildRenderContext
+      // resolves image leaves through the image store by nodeId, so a text node
+      // wearing role="image" would be dropped from the render entirely.
+      const priorRole = priorRoles.get(dataId)
       leaves.push({
         nodeId: dataId,
         isPruned: false,
-        role: "text",
+        role: priorRole && priorRole !== "image" ? priorRole : "text",
         text,
       })
     }
@@ -79,14 +98,35 @@ export function buildSectioningSectionFromHtml(args: {
   }
 
   return {
+    // Spread the replaced section first so everything the rewrite doesn't own
+    // (pageNumber, colors, sourcePageIds, viewport, placement, …) survives.
+    ...args.base,
     sectionId: args.sectionId,
     sectionType: args.sectionType,
-    backgroundColor: "#ffffff",
-    textColor: "#000000",
-    pageNumber: null,
+    backgroundColor: args.base?.backgroundColor ?? "#ffffff",
+    textColor: args.base?.textColor ?? "#000000",
+    pageNumber: args.base?.pageNumber ?? null,
     isPruned: false,
     nodes: [container],
   }
+}
+
+/**
+ * Flatten a section's prior tree into nodeId → role so a rewrite can keep the
+ * semantic role of every leaf that survived. Only leaves (nodes with a `role`)
+ * are collected; containers carry `structure` instead.
+ */
+function collectRolesByNodeId(
+  section: PageSectioningSection | undefined,
+): Map<string, NonNullable<ContentNodeData["role"]>> {
+  const roles = new Map<string, NonNullable<ContentNodeData["role"]>>()
+  if (!section) return roles
+  const walk = (node: ContentNodeData): void => {
+    if (node.role) roles.set(node.nodeId, node.role)
+    for (const child of node.children ?? []) walk(child)
+  }
+  for (const node of section.nodes) walk(node)
+  return roles
 }
 
 /**

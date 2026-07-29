@@ -30,6 +30,9 @@ function toCredentials(keys: AgentApiKeys): AgentCredentials {
   }
 }
 
+/** Model the agent prompts are tuned for. Used when a book sets no override. */
+const DEFAULT_AGENT_MODEL = "openai:gpt-5.5"
+
 /**
  * Resolve the model id for the agents from book config, falling back to a
  * sensible default. Mirrors how page-edit-service derives the editing model
@@ -40,19 +43,13 @@ function resolveAgentModelId(
   booksDir: string,
   configPath: string | undefined,
 ): string {
-  const config = loadBookConfig(label, booksDir, configPath) as Record<
-    string,
-    unknown
-  >
-  const agents = (config.agents ?? {}) as Record<string, unknown>
-  // Default to GPT-5.5 since that's the model the agent prompts are tuned for
-  // and where the user's free credits live. Override per-book by setting
-  // `agents.model` in the book's config.yaml — e.g. `openai:gpt-4o`,
-  // `anthropic:claude-sonnet-4-6`, or `google:gemini-2.5-pro`. The matching
-  // provider key must be sent with the request (X-OpenAI-Key /
-  // X-Anthropic-API-Key / X-Google-API-Key) or the call fails to authenticate.
-  const defaultModel = (agents.model as string | undefined) ?? "openai:gpt-5.5"
-  return defaultModel
+  const config = loadBookConfig(label, booksDir, configPath)
+  // Override per-book by setting `agents.model` in the book's config.yaml —
+  // e.g. `openai:gpt-4o`, `anthropic:claude-sonnet-4-6`, or
+  // `google:gemini-2.5-pro`. The matching provider key must be sent with the
+  // request (X-OpenAI-Key / X-Anthropic-API-Key / X-Google-API-Key) or the
+  // call fails to authenticate.
+  return config.agents?.model ?? DEFAULT_AGENT_MODEL
 }
 
 function resolveStyleguide(
@@ -96,6 +93,8 @@ export async function layoutMirrorService(
     const modelId = resolveAgentModelId(label, booksDir, configPath)
     const result = await mirrorLayout({
       storage,
+      bookLabel: label,
+      booksDir,
       source,
       targets,
       instruction,

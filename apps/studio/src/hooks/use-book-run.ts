@@ -542,9 +542,11 @@ export function useBookRunStatus(label: string): BookRunContextValue {
             // list (which drives the storyboard sidebar) needs to refetch.
             // refetchQueries (not invalidate) makes the update deterministic —
             // it doesn't depend on the sidebar's query being marked stale or
-            // active when the SSE event fires.
+            // active when the SSE event fires. `exact` is required: without it
+            // this prefix-matches every cached ["books", label, "pages", pageId]
+            // detail query and refetches them all, active or not.
             if (completedTask.kind === "generate-activity") {
-              void queryClient.refetchQueries({ queryKey: ["books", label, "pages"] })
+              void queryClient.refetchQueries({ queryKey: ["books", label, "pages"], exact: true })
             }
           }
           if (

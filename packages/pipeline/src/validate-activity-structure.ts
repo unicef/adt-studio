@@ -589,6 +589,9 @@ function hasExplicitLabel(section: Element, el: Element): boolean {
 function hasAccessibleName(section: Element, el: Element): boolean {
   if (hasExplicitLabel(section, el)) return true
   if (DomUtils.textContent(el).replace(/\s+/g, " ").trim()) return true
+  // The element may BE the image (a picture card in a jigsaw or picture-match
+  // activity) — findAll only walks descendants, so check the node itself first.
+  if (tag(el, "img") && (attr(el, "alt") ?? "").trim().length > 0) return true
   return findAll(el, (n) => tag(n, "img")).some(
     (img) => (attr(img, "alt") ?? "").trim().length > 0,
   )

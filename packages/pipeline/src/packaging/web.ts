@@ -1868,6 +1868,39 @@ export function buildGlossaryJson(
 // Math detection
 // ---------------------------------------------------------------------------
 
+/**
+ * `<script>`/`<style>` blocks, whose contents are raw text rather than markup.
+ * The LaTeX passes must not touch these — see `convertLatexToMathml`.
+ *
+ * Built fresh per call rather than shared: these are `/g` regexes driven by
+ * `lastIndex`, so a single shared instance would corrupt an outer scan if a
+ * callback ever reached one of these helpers again.
+ */
+function rawTextBlockRe(): RegExp {
+  return /<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi
+}
+
+/**
+ * Apply `fn` to every part of `html` that is NOT inside a `<script>`/`<style>`
+ * block, leaving those blocks byte-identical.
+ */
+function mapOutsideRawText(html: string, fn: (part: string) => string): string {
+  const re = rawTextBlockRe()
+  let out = ""
+  let last = 0
+  let match: RegExpExecArray | null
+  while ((match = re.exec(html)) !== null) {
+    out += fn(html.slice(last, match.index)) + match[0]
+    last = match.index + match[0].length
+  }
+  return out + fn(html.slice(last))
+}
+
+/** Remove `<script>`/`<style>` blocks so their contents can't be scanned. */
+function stripRawTextBlocks(html: string): string {
+  return html.replace(rawTextBlockRe(), "")
+}
+
 const MATH_INDICATORS = [
   "$",
   "\\(",
@@ -1889,9 +1922,13 @@ const MATH_INDICATORS = [
  */
 const UNDELIMITED_LATEX_RE = /\\(?:text|mbox|hat|frac|sqrt|vec|bar|overline|underline|mathbf|mathrm|mathit|mathcal|mathbb|mathfrak|mathscr|circ|times|div|pm|mp|leq|geq|neq|approx|equiv|sim|in|notin|subset|supset|cup|cap|leftarrow|rightarrow|Leftarrow|Rightarrow|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|pi|sigma|omega|phi|psi|infty|partial|nabla|sum|prod|int|lim|log|ln|sin|cos|tan|sec|csc|cot|left|right|cdot|ldots|cdots|quad|qquad|binom|tag)\b|[_^]\{|(?<![A-Za-z])[A-Za-z][_^][A-Za-z0-9](?![A-Za-z])/
 
-function containsMathContent(html: string): boolean {
-  if (MATH_INDICATORS.some((indicator) => html.includes(indicator))) return true
-  return UNDELIMITED_LATEX_RE.test(html)
+export function containsMathContent(html: string): boolean {
+  // Scan markup only: a `$` or `\(` inside an inline grading script is JS, not
+  // math, and would otherwise flag the whole section as math (loading the
+  // MathML stylesheet on a page that has none).
+  const scannable = stripRawTextBlocks(html)
+  if (MATH_INDICATORS.some((indicator) => scannable.includes(indicator))) return true
+  return UNDELIMITED_LATEX_RE.test(scannable)
 }
 
 /**
@@ -2058,8 +2095,18 @@ function convertDelimitedLatex(text: string): string {
 /**
  * Replace LaTeX math in HTML content with MathML rendered by Temml.
  * Handles delimited math ($, $$, \(, \[) and undelimited LaTeX in text nodes.
+ *
+ * `<script>`/`<style>` bodies are left untouched — custom-activity sections
+ * (`activity_custom_*`) ship an inline grading script, and JS routinely
+ * contains `$` (template literals) and `\(`…`\)` (regex literals) that this
+ * pass would otherwise rewrite into MathML, breaking the script at package
+ * time while the studio preview still looked fine.
  */
 export function convertLatexToMathml(html: string): string {
+  return mapOutsideRawText(html, convertLatexInFragment)
+}
+
+function convertLatexInFragment(html: string): string {
   html = decodeDollarEntities(html)
 
   // First pass: convert delimited math anywhere in the string

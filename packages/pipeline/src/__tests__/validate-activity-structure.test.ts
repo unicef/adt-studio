@@ -640,6 +640,28 @@ describe("validateActivityStructure — custom activities", () => {
     expect(errs.some((e) => e.includes("i1") && e.includes("operable by keyboard"))).toBe(true)
   })
 
+  it("accepts a card that IS an image, named by its own alt", () => {
+    const errs = check(`
+      <section data-section-type="activity_custom_jigsaw" aria-labelledby="h1">
+        <h3 id="h1">Puzzle</h3>
+        <div data-activity-target="slot-1" role="group" tabindex="0" aria-label="Top left"></div>
+        <img data-activity-item="i1" alt="Puzzle tile A" role="button" tabindex="0">
+        <div data-activity-status aria-live="polite"></div>
+      </section>`)
+    expect(errs.some((e) => e.includes("i1") && e.includes("no accessible name"))).toBe(false)
+  })
+
+  it("still flags an image card whose alt is empty", () => {
+    const errs = check(`
+      <section data-section-type="activity_custom_jigsaw" aria-labelledby="h1">
+        <h3 id="h1">Puzzle</h3>
+        <div data-activity-target="slot-1" role="group" tabindex="0" aria-label="Top left"></div>
+        <img data-activity-item="i1" alt="  " role="button" tabindex="0">
+        <div data-activity-status aria-live="polite"></div>
+      </section>`)
+    expect(errs.some((e) => e.includes("i1") && e.includes("no accessible name"))).toBe(true)
+  })
+
   it("accepts a native <button> card with no explicit role/tabindex", () => {
     const errs = check(`
       <section data-section-type="activity_custom_connect_dots" aria-labelledby="h1">
