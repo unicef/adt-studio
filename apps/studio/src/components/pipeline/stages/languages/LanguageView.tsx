@@ -1651,8 +1651,10 @@ export function LanguageView({
             </Alert>
           )}
 
-          {/* Hides itself unless the book actually contains maths. */}
-          {isSpeechStage && audioLang && (
+          {/* Shown on Language as well as Speech: the LaTeX lives in the text
+              catalog, so this is reviewable before the speech stage is
+              reachable. Hides itself unless the book contains maths. */}
+          {audioLang && (
             <MathSpeechReviewPanel
               bookLabel={bookLabel}
               language={audioLang}
