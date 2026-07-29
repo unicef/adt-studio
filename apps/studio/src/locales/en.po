@@ -1712,6 +1712,9 @@ msgstr "But the team kept walking up the mountain."
 msgid "Button"
 msgstr "Button"
 
+msgid "By default only expressions the converter was unsure about are checked, which is a handful per book. Checking everything also finds problems we have not anticipated, at the cost of one request per expression."
+msgstr "By default only expressions the converter was unsure about are checked, which is a handful per book. Checking everything also finds problems we have not anticipated, at the cost of one request per expression."
+
 msgid "By Page"
 msgstr "By Page"
 
@@ -1887,6 +1890,9 @@ msgstr "Chapter title"
 
 msgid "Chart / Graph"
 msgstr "Chart / Graph"
+
+msgid "Check every expression"
+msgstr "Check every expression"
 
 #~ msgid "Check for updates"
 #~ msgstr "Check for updates"
@@ -3056,6 +3062,9 @@ msgstr "EN"
 #. placeholder {0}: section.label
 msgid "Enable {0}"
 msgstr "Enable {0}"
+
+msgid "Enable maths pronunciation checks"
+msgstr "Enable maths pronunciation checks"
 
 msgid "Enable or disable reviewer-authored checklist reviews for this book. Automated accessibility assessment remains available either way."
 msgstr "Enable or disable reviewer-authored checklist reviews for this book. Automated accessibility assessment remains available either way."
@@ -4679,8 +4688,17 @@ msgstr "Matches the original book design with some flexibility."
 msgid "Maths in this book has not been checked yet. Run the check to see anything that may be read aloud incorrectly."
 msgstr "Maths in this book has not been checked yet. Run the check to see anything that may be read aloud incorrectly."
 
+msgid "Maths is converted to a spoken form before narration. This judge checks that conversion against the original expression and flags anything a reviewer should decide."
+msgstr "Maths is converted to a spoken form before narration. This judge checks that conversion against the original expression and flags anything a reviewer should decide."
+
 msgid "Maths pronunciation"
 msgstr "Maths pronunciation"
+
+msgid "Maths Pronunciation Judge Prompt"
+msgstr "Maths Pronunciation Judge Prompt"
+
+msgid "Maths Speech"
+msgstr "Maths Speech"
 
 msgid "Max height"
 msgstr "Max height"
@@ -7420,6 +7438,9 @@ msgstr "Self-contained ADT web app"
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Send this project archive back to the coordinator to merge into the source book."
 
+msgid "Sent the original LaTeX beside the spoken form prepared for the voice. It decides whether they state the same mathematics."
+msgstr "Sent the original LaTeX beside the spoken form prepared for the voice. It decides whether they state the same mathematics."
+
 msgid "Separator"
 msgstr "Separator"
 
@@ -9267,6 +9288,9 @@ msgstr "What's new in this release"
 
 msgid "When describing images, mention any culturally specific objects, locations, or recurring characters by name."
 msgstr "When describing images, mention any culturally specific objects, locations, or recurring characters by name."
+
+msgid "When disabled, maths is still converted for narration but never sent to a judge."
+msgstr "When disabled, maths is still converted for narration but never sent to a judge."
 
 msgid "When enabled, background colors from the styleguide are applied to the full page body."
 msgstr "When enabled, background colors from the styleguide are applied to the full page body."

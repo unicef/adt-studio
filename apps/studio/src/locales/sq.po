@@ -1713,6 +1713,9 @@ msgstr "Por ekipi vazhdoi të ngjitej në mal."
 msgid "Button"
 msgstr "Buton"
 
+msgid "By default only expressions the converter was unsure about are checked, which is a handful per book. Checking everything also finds problems we have not anticipated, at the cost of one request per expression."
+msgstr "Si parazgjedhje kontrollohen vetëm shprehjet për të cilat konvertuesi nuk ishte i sigurt, që janë pak për çdo libër. Kontrolli i të gjithave gjen edhe probleme që nuk i kemi parashikuar, me koston e një kërkese për çdo shprehje."
+
 msgid "By Page"
 msgstr "Sipas faqes"
 
@@ -1888,6 +1891,9 @@ msgstr "Titulli i kapitullit"
 
 msgid "Chart / Graph"
 msgstr "Tabelë / Grafik"
+
+msgid "Check every expression"
+msgstr "Kontrollo çdo shprehje"
 
 #~ msgid "Check for updates"
 #~ msgstr "Kontrollo për përditësime"
@@ -3057,6 +3063,9 @@ msgstr "EN"
 #. placeholder {0}: section.label
 msgid "Enable {0}"
 msgstr "Aktivizo {0}"
+
+msgid "Enable maths pronunciation checks"
+msgstr "Aktivizo kontrollet e shqiptimit të matematikës"
 
 msgid "Enable or disable reviewer-authored checklist reviews for this book. Automated accessibility assessment remains available either way."
 msgstr "Aktivizo ose çaktivizo rishikimet e listës së kontrollit të bëra nga rishikuesi për këtë libër. Vlerësimi i automatizuar i aksesueshmërisë mbetet i disponueshëm në çdo rast."
@@ -4680,8 +4689,17 @@ msgstr "Përputhet me dizajnin origjinal të librit me pak fleksibilitet."
 msgid "Maths in this book has not been checked yet. Run the check to see anything that may be read aloud incorrectly."
 msgstr "Matematika e këtij libri nuk është kontrolluar ende. Nis kontrollin për të parë çfarë mund të lexohet me zë të lartë gabimisht."
 
+msgid "Maths is converted to a spoken form before narration. This judge checks that conversion against the original expression and flags anything a reviewer should decide."
+msgstr "Matematika konvertohet në formë të folur para narracionit. Ky vlerësues kontrollon këtë konvertim kundrejt shprehjes origjinale dhe shënon çdo gjë që duhet vendosur nga një person."
+
 msgid "Maths pronunciation"
 msgstr "Shqiptimi i matematikës"
+
+msgid "Maths Pronunciation Judge Prompt"
+msgstr "Prompti i vlerësuesit të shqiptimit të matematikës"
+
+msgid "Maths Speech"
+msgstr "Ligjërimi i matematikës"
 
 msgid "Max height"
 msgstr "Lartësia maksimale"
@@ -7421,6 +7439,9 @@ msgstr "Aplikacion web ADT i pavarur"
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Dërgojeni këtë arkiv projekti te koordinatori për ta bashkuar në librin burim."
 
+msgid "Sent the original LaTeX beside the spoken form prepared for the voice. It decides whether they state the same mathematics."
+msgstr "I dërgohet LaTeX-i origjinal krahas formës së folur të përgatitur për zërin. Ai vendos nëse shprehin të njëjtën matematikë."
+
 msgid "Separator"
 msgstr "Ndarës"
 
@@ -9268,6 +9289,9 @@ msgstr "Çfarë ka të re në këtë version"
 
 msgid "When describing images, mention any culturally specific objects, locations, or recurring characters by name."
 msgstr "Kur përshkruan imazhet, përmend çdo objekt specifik kulturor, vendndodhje ose personazh të përsëritur me emër."
+
+msgid "When disabled, maths is still converted for narration but never sent to a judge."
+msgstr "Kur çaktivizohet, matematika prapë konvertohet për narracionin, por nuk i dërgohet kurrë një vlerësuesi."
 
 msgid "When enabled, background colors from the styleguide are applied to the full page body."
 msgstr "Kur aktivizohet, ngjyrat e sfondit nga udhëzuesi i stilit aplikohen në të gjithë trupin e faqes."

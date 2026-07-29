@@ -1712,6 +1712,9 @@ msgstr "Pero el equipo siguió subiendo la montaña."
 msgid "Button"
 msgstr "Botón"
 
+msgid "By default only expressions the converter was unsure about are checked, which is a handful per book. Checking everything also finds problems we have not anticipated, at the cost of one request per expression."
+msgstr "De forma predeterminada solo se comprueban las expresiones sobre las que el conversor tuvo dudas, que son unas pocas por libro. Comprobarlas todas también detecta problemas que no habíamos previsto, a costa de una solicitud por expresión."
+
 msgid "By Page"
 msgstr "Por página"
 
@@ -1887,6 +1890,9 @@ msgstr "Título de capítulo"
 
 msgid "Chart / Graph"
 msgstr "Gráfico / Tabla"
+
+msgid "Check every expression"
+msgstr "Comprobar todas las expresiones"
 
 #~ msgid "Check for updates"
 #~ msgstr "Buscar actualizaciones"
@@ -3056,6 +3062,9 @@ msgstr "EN"
 #. placeholder {0}: section.label
 msgid "Enable {0}"
 msgstr "Enable {0}"
+
+msgid "Enable maths pronunciation checks"
+msgstr "Activar las comprobaciones de pronunciación matemática"
 
 msgid "Enable or disable reviewer-authored checklist reviews for this book. Automated accessibility assessment remains available either way."
 msgstr "Enable or disable reviewer-authored checklist reviews for this book. Automated accessibility assessment remains available either way."
@@ -4679,8 +4688,17 @@ msgstr "Coincide con el diseño original del libro con cierta flexibilidad."
 msgid "Maths in this book has not been checked yet. Run the check to see anything that may be read aloud incorrectly."
 msgstr "Las matemáticas de este libro aún no se han comprobado. Ejecuta la comprobación para ver qué podría leerse en voz alta de forma incorrecta."
 
+msgid "Maths is converted to a spoken form before narration. This judge checks that conversion against the original expression and flags anything a reviewer should decide."
+msgstr "Las matemáticas se convierten a una forma hablada antes de la narración. Este evaluador comprueba esa conversión frente a la expresión original y marca todo lo que deba decidir una persona."
+
 msgid "Maths pronunciation"
 msgstr "Pronunciación de matemáticas"
+
+msgid "Maths Pronunciation Judge Prompt"
+msgstr "Prompt del evaluador de pronunciación matemática"
+
+msgid "Maths Speech"
+msgstr "Voz de matemáticas"
 
 msgid "Max height"
 msgstr "Altura máx"
@@ -7420,6 +7438,9 @@ msgstr "Aplicación web ADT autónoma"
 msgid "Send this project archive back to the coordinator to merge into the source book."
 msgstr "Envía este archivo de proyecto al coordinador para combinarlo en el libro de origen."
 
+msgid "Sent the original LaTeX beside the spoken form prepared for the voice. It decides whether they state the same mathematics."
+msgstr "Se le envía el LaTeX original junto a la forma hablada preparada para la voz. Decide si expresan las mismas matemáticas."
+
 msgid "Separator"
 msgstr "Separador"
 
@@ -9267,6 +9288,9 @@ msgstr "Novedades de esta versión"
 
 msgid "When describing images, mention any culturally specific objects, locations, or recurring characters by name."
 msgstr "Al describir imágenes, menciona cualquier objeto, ubicación o personaje recurrente específico de la cultura por su nombre."
+
+msgid "When disabled, maths is still converted for narration but never sent to a judge."
+msgstr "Si se desactiva, las matemáticas se siguen convirtiendo para la narración pero nunca se envían a un evaluador."
 
 msgid "When enabled, background colors from the styleguide are applied to the full page body."
 msgstr "Cuando está activado, los colores de fondo de la guía de estilo se aplican al cuerpo completo de la página."

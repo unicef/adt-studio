@@ -29,7 +29,7 @@ import { WordHighlightPreview } from "./components/WordHighlightPreview"
 import { useLingui } from "@lingui/react/macro"
 import { displayLang } from "./lib/display-lang"
 
-const PROMPT_TABS = ["prompt", "image-translation"]
+const PROMPT_TABS = ["prompt", "image-translation", "maths-speech"]
 
 type TranslationEvaluationIssueType =
   | "meaning"
@@ -128,6 +128,12 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
 
   // Translation review settings
   const [reviewEnabled, setReviewEnabled] = useState(true)
+  const [mathsSpeechEnabled, setMathsSpeechEnabled] = useState(true)
+  const [mathsSpeechModel, setMathsSpeechModel] = useState("")
+  const [mathsSpeechRetries, setMathsSpeechRetries] = useState("")
+  const [mathsSpeechEvaluateAll, setMathsSpeechEvaluateAll] = useState(false)
+  const [mathsSpeechPromptDraft, setMathsSpeechPromptDraft] =
+    useState<PromptDraft | null>(null)
   const [reviewModel, setReviewModel] = useState(DEFAULT_TRANSLATION_EVALUATION_JUDGE_MODEL)
   const [reviewRetries, setReviewRetries] = useState(String(DEFAULT_TRANSLATION_EVALUATION_MAX_RETRIES))
   const [reviewTemperature, setReviewTemperature] = useState(String(DEFAULT_TRANSLATION_EVALUATION_TEMPERATURE))
@@ -209,6 +215,13 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
       setImageTranslationEnabled(false)
       setImageModel("")
       setSelectedImageIds([])
+    }
+    if (m.math_speech_evaluation && typeof m.math_speech_evaluation === "object") {
+      const ms = m.math_speech_evaluation as Record<string, unknown>
+      setMathsSpeechEnabled(ms.enable_math_speech_evaluation !== false)
+      if (ms.judge_model) setMathsSpeechModel(String(ms.judge_model))
+      if (ms.max_retries != null) setMathsSpeechRetries(String(ms.max_retries))
+      setMathsSpeechEvaluateAll(ms.evaluate_all_entries === true)
     }
     if (m.translation_evaluation && typeof m.translation_evaluation === "object") {
       const te = m.translation_evaluation as Record<string, unknown>
@@ -377,6 +390,17 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
         excluded_categories: Array.from(excludedCategories),
       }
     }
+    if (shouldWrite("math_speech_evaluation")) {
+      overrides.math_speech_evaluation = {
+        ...((bookConfigData?.config?.math_speech_evaluation ?? {}) as Record<string, unknown>),
+        enable_math_speech_evaluation: mathsSpeechEnabled,
+        ...(mathsSpeechModel.trim() ? { judge_model: mathsSpeechModel.trim() } : {}),
+        ...(mathsSpeechRetries.trim()
+          ? { max_retries: parseNonNegativeInt(mathsSpeechRetries, 3) }
+          : {}),
+        evaluate_all_entries: mathsSpeechEvaluateAll,
+      }
+    }
     if (shouldWrite("translation_evaluation")) {
       const existing = {
         ...((bookConfigData?.config?.translation_evaluation ?? {}) as Record<string, unknown>),
@@ -434,12 +458,18 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
     if (imagePromptDraft != null) {
       promptSaves.push(savePromptDraft(queryClient, "image_translation", bookLabel, imagePromptDraft))
     }
+    if (mathsSpeechPromptDraft != null) {
+      promptSaves.push(
+        savePromptDraft(queryClient, "math_speech_evaluation", bookLabel, mathsSpeechPromptDraft),
+      )
+    }
     if (promptSaves.length > 0) await Promise.all(promptSaves)
 
     await updateConfig.mutateAsync({ label: bookLabel, config: buildOverrides() })
     setDirty({})
     setPromptDraft(null)
     setImagePromptDraft(null)
+    setMathsSpeechPromptDraft(null)
     resetMarkedTabs()
   }
 
@@ -456,11 +486,13 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
     tab === "prompt" ||
     tab === "speech" ||
     tab === "image-translation" ||
-    tab === "translation-review"
+    tab === "translation-review" ||
+    tab === "maths-speech"
   const dirtyTabs = [
     ...markedTabs,
     ...(promptDraft != null ? ["prompt"] : []),
     ...(imagePromptDraft != null ? ["image-translation"] : []),
+    ...(mathsSpeechPromptDraft != null ? ["maths-speech"] : []),
   ].filter((tabKey, i, all) => all.indexOf(tabKey) === i)
   useStageSettingsBar({
     stage: stageSlug as StageName,
@@ -473,7 +505,15 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
   })
 
   return (
-    <div className={tab === "prompt" ? "h-full w-full" : "p-4 max-w-2xl space-y-6"}>
+    <div
+      className={
+        tab === "prompt"
+          ? "h-full w-full"
+          : tab === "maths-speech"
+            ? "flex h-full w-full flex-col p-4"
+            : "p-4 max-w-2xl space-y-6"
+      }
+    >
       {tab === "general" && !isSpeechStage && (
         <div className="space-y-4">
           {/* Base language (non-removable) */}
@@ -1128,6 +1168,77 @@ export function LanguageSettings({ bookLabel, tab = "general", stageSlug = "tran
 
       {tab === "speech-prompts" && (
         <SpeechPromptsEditor bookLabel={bookLabel} />
+      )}
+
+      {tab === "maths-speech" && (
+        <div className="flex h-full w-full flex-col gap-4">
+          <div>
+            <h3 className="text-sm font-semibold">{t`Maths pronunciation`}</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {t`Maths is converted to a spoken form before narration. This judge checks that conversion against the original expression and flags anything a reviewer should decide.`}
+            </p>
+          </div>
+
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={mathsSpeechEnabled}
+              onChange={(e) => {
+                setMathsSpeechEnabled(e.target.checked)
+                markDirty("math_speech_evaluation")
+              }}
+              className="mt-0.5 h-4 w-4 rounded border-input"
+            />
+            <div>
+              <span className="text-sm font-medium">{t`Enable maths pronunciation checks`}</span>
+              <p className="text-xs text-muted-foreground">
+                {t`When disabled, maths is still converted for narration but never sent to a judge.`}
+              </p>
+            </div>
+          </label>
+
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={mathsSpeechEvaluateAll}
+              onChange={(e) => {
+                setMathsSpeechEvaluateAll(e.target.checked)
+                markDirty("math_speech_evaluation")
+              }}
+              className="mt-0.5 h-4 w-4 rounded border-input"
+            />
+            <div>
+              <span className="text-sm font-medium">{t`Check every expression`}</span>
+              <p className="text-xs text-muted-foreground">
+                {t`By default only expressions the converter was unsure about are checked, which is a handful per book. Checking everything also finds problems we have not anticipated, at the cost of one request per expression.`}
+              </p>
+            </div>
+          </label>
+
+          <div className="min-h-0 flex-1">
+            <PromptViewer
+              promptName="math_speech_evaluation"
+              bookLabel={bookLabel}
+              title={t`Maths Pronunciation Judge Prompt`}
+              description={t`Sent the original LaTeX beside the spoken form prepared for the voice. It decides whether they state the same mathematics.`}
+              draft={mathsSpeechPromptDraft}
+              model={mathsSpeechModel}
+              onModelChange={(v) => {
+                setMathsSpeechModel(v)
+                markDirty("math_speech_evaluation")
+              }}
+              maxRetries={mathsSpeechRetries || "3"}
+              onMaxRetriesChange={(v) => {
+                setMathsSpeechRetries(v)
+                markDirty("math_speech_evaluation")
+              }}
+              onContentChange={(content, modelId) =>
+                setMathsSpeechPromptDraft(toPromptDraft(content, modelId))
+              }
+              enabled={tab === "maths-speech"}
+            />
+          </div>
+        </div>
       )}
 
       {tab === "voices" && (
