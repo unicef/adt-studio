@@ -8,6 +8,7 @@ import {
   currentAudioIndexAtom,
   describeImagesModeAtom,
   isPlayingAtom,
+  playBarVisibleAtom,
   readAloudModeAtom,
   timecodeMapAtom,
   wordHighlightModeAtom,
@@ -137,6 +138,11 @@ export function useAudioPlayer(): UseAudioPlayer {
   const speedRef = useRef(speed)
   const volumeRef = useRef(volume)
   const initialResumeRef = useRef<boolean>(isPlaying || autoplayMode)
+  // Snapshot at first render, before any effect clears it: was narration mid
+  // playback when the previous page unloaded? Every page turn is a full
+  // document load, so this is the only trace that the child had read-aloud on.
+  const wasPlayingBeforeLoadRef = useRef<boolean>(isPlaying)
+  const setPlayBarVisible = useSetAtom(playBarVisibleAtom)
 
   wordHighlightModeRef.current = wordHighlightMode
   speedRef.current = speed
@@ -360,12 +366,24 @@ export function useAudioPlayer(): UseAudioPlayer {
     if (items.length === 0) return
     if (!readAloudMode) return
     if (!initialResumeRef.current) return
-    // Kids mode: never auto-start narration. The buddy reads only when the
-    // child asks (taps "Read to me"), so TTS must not blast on page load.
-    if (kidsModeActive) return
+    // Kids mode must never blast narration at a child who has not asked for it,
+    // but once they tap "Read to me" it should keep reading page after page
+    // until they stop it. Resume only when narration was actually playing as
+    // the previous page unloaded — on a first visit that flag is false, so the
+    // book still opens silently.
+    if (kidsModeActive) {
+      if (!wasPlayingBeforeLoadRef.current) return
+      setPlayBarVisible(true)
+    }
     hasAutoStartedRef.current = true
     playAtIndex(0)
-  }, [items.length, readAloudMode, kidsModeActive, playAtIndex])
+  }, [
+    items.length,
+    readAloudMode,
+    kidsModeActive,
+    playAtIndex,
+    setPlayBarVisible,
+  ])
 
   useEffect(() => {
     if (readAloudMode) return
