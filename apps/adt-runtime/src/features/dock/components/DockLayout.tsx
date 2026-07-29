@@ -7,12 +7,14 @@ interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> { }
 
 function Container({ children, className, ...props }: ContainerProps) {
   const isMobile = useIsMobile()
-  // Mobile: fill the bottom sheet (full width, content-height capped to the
-  // sheet). Desktop: the fixed anchored-popover sizing. Branching on the hook
-  // (rather than `sm:` variants) lets panels that override width/height — Audio
+  // Mobile: full-width, height-flexible content. The parent bottom sheet owns
+  // the max-height + overflow cap; `min-h-0` here lets a panel's inner
+  // `flex-1 min-h-0` ScrollArea shrink and scroll instead of overflowing.
+  // Desktop: the fixed anchored-popover sizing. Branching on the hook (rather
+  // than `sm:` variants) lets panels that override width/height — Audio
   // `w-fit`, Language `h-auto` — keep winning via cn/twMerge in BOTH modes.
   const base = isMobile
-    ? "w-full max-w-none p-4 h-auto max-h-[85dvh] min-h-0 flex flex-col gap-2 overflow-hidden"
+    ? "w-full max-w-none p-4 min-h-0 flex flex-col gap-2"
     : "w-[var(--dock-width,30rem)] max-w-xl p-4 h-[clamp(20rem,calc(100vh-7rem),600px)] flex flex-col gap-2"
   return (
     <div className={cn(base, className)} {...props}>

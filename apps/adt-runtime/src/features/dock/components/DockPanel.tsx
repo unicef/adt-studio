@@ -9,6 +9,13 @@ interface DockPanelProps {
   anchor?: React.RefObject<HTMLElement | null>
   side?: "top" | "bottom"
   children: React.ReactNode
+  /** Mobile presentation:
+   *  - `sheet` (default): modal bottom sheet with backdrop — for look-up tasks
+   *    (TOC, glossary, language, settings) where covering the book is fine.
+   *  - `inline`: a non-modal floating bar above the dock, NO backdrop, so the
+   *    book stays visible and interactive — for read-aloud, where the user
+   *    follows along in the text while it plays. */
+  mobileVariant?: "sheet" | "inline"
 }
 
 function DockPanel({
@@ -17,13 +24,33 @@ function DockPanel({
   anchor,
   side = "top",
   children,
+  mobileVariant = "sheet",
 }: DockPanelProps) {
   const isMobile = useIsMobile()
+
+  // Non-modal floating control (read-aloud): pinned just above the dock, no
+  // backdrop, so the reader can still see and scroll the book while listening.
+  if (isMobile && mobileVariant === "inline") {
+    if (!open) return null
+    return (
+      <div
+        role="group"
+        className="fixed left-1/2 z-[54] flex -translate-x-1/2 items-center justify-center rounded-full border bg-popover/95 text-popover-foreground shadow-lg ring-1 ring-border backdrop-blur-md supports-[backdrop-filter]:bg-popover/85"
+        style={{
+          bottom:
+            "calc(env(safe-area-inset-bottom) + var(--dock-height, 80px) + 0.5rem)",
+        }}
+      >
+        {children}
+      </div>
+    )
+  }
 
   // On phones the anchored popover is wider than the viewport and gets clipped
   // off-screen. Present the same content as a full-width bottom sheet instead —
   // it sits above the dock bar (z-[60] > dock z-[55]) and dismisses on backdrop
-  // tap / Escape / re-tapping the trigger.
+  // tap / Escape / re-tapping the trigger. The sheet owns the height cap so the
+  // panel's inner ScrollArea scrolls.
   if (isMobile) {
     return (
       <Sheet
@@ -38,7 +65,7 @@ function DockPanel({
           showCloseButton={false}
           container={getChromePortalContainer() ?? undefined}
           overlayClassName="z-[60]"
-          className="z-[60] max-h-[85dvh] gap-0 overflow-hidden rounded-t-2xl p-0 pb-[env(safe-area-inset-bottom)]"
+          className="z-[60] flex max-h-[85dvh] flex-col gap-0 overflow-hidden rounded-t-2xl p-0 pb-[env(safe-area-inset-bottom)]"
         >
           <div
             aria-hidden
