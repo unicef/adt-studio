@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import type { MathSpeechEvaluationItem } from "@adt/types"
@@ -7,6 +7,9 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { api } from "@/api/client"
+import { useApiKey } from "@/hooks/use-api-key"
+import { useActiveConfig } from "@/hooks/use-debug"
+import { useBookTasks } from "@/hooks/use-book-tasks"
 import { cn } from "@/lib/utils"
 
 /**
@@ -139,14 +142,65 @@ function ItemCard({
 export function MathSpeechReviewPanel({
   bookLabel,
   language,
-  apiKey,
 }: {
   bookLabel: string
   language: string
-  apiKey: string
 }) {
   const { t } = useLingui()
   const queryClient = useQueryClient()
+  const { tasks, isTaskRunning } = useBookTasks(bookLabel)
+  const {
+    apiKey,
+    anthropicKey,
+    googleKey,
+    customBaseUrl,
+    customApiKey,
+    azureKey,
+    azureRegion,
+    geminiKey,
+  } = useApiKey()
+  const { data: activeConfigData } = useActiveConfig(bookLabel)
+
+  // The judge model is configurable, so the key that matters is whichever
+  // provider it names — not always OpenAI.
+  const judgeModel =
+    ((
+      (activeConfigData?.merged as Record<string, unknown> | undefined)
+        ?.math_speech_evaluation as Record<string, unknown> | undefined
+    )?.judge_model as string | undefined) ?? "openai:gpt-5.4"
+  const judgeProvider = judgeModel.split(":")[0]?.toLowerCase() ?? "openai"
+
+  const providerCredentials = {
+    anthropicApiKey: anthropicKey || undefined,
+    googleApiKey: googleKey || undefined,
+    customBaseUrl: customBaseUrl || undefined,
+    customApiKey: customApiKey || undefined,
+    geminiApiKey: geminiKey || undefined,
+    ...(azureKey && azureRegion
+      ? { azure: { key: azureKey, region: azureRegion } }
+      : {}),
+  }
+
+  const keyForProvider: Record<string, string> = {
+    openai: apiKey,
+    anthropic: anthropicKey,
+    google: googleKey || geminiKey,
+    gemini: geminiKey || googleKey,
+    azure: azureKey,
+    custom: customApiKey || customBaseUrl,
+  }
+  const hasJudgeKey = Boolean(keyForProvider[judgeProvider] ?? apiKey)
+
+  // The check runs as a background task, so the response to the POST says
+  // nothing about the outcome. Watch the task instead.
+  const checkRunning = isTaskRunning("math-speech-evaluation")
+  const lastCheck = useMemo(
+    () =>
+      [...tasks]
+        .filter((task) => task.kind === "math-speech-evaluation")
+        .sort((a, b) => (b.startedAt ?? 0) - (a.startedAt ?? 0))[0],
+    [tasks],
+  )
 
   const { data, isLoading } = useQuery({
     queryKey: [QUERY_KEY, bookLabel, language],
@@ -155,6 +209,13 @@ export function MathSpeechReviewPanel({
 
   const invalidate = () =>
     queryClient.invalidateQueries({ queryKey: [QUERY_KEY, bookLabel, language] })
+
+  useEffect(() => {
+    if (checkRunning) return
+    // Re-reads once the run settles; `checkRunning` flipping false is the edge
+    // that matters, so it is the only dependency.
+    invalidate()
+  }, [checkRunning])
 
   const acceptAnyway = useMutation({
     mutationFn: (entryId: string) =>
@@ -175,7 +236,8 @@ export function MathSpeechReviewPanel({
   })
 
   const run = useMutation({
-    mutationFn: () => api.runMathSpeechEvaluation(bookLabel, language, apiKey),
+    mutationFn: () =>
+      api.runMathSpeechEvaluation(bookLabel, language, apiKey, providerCredentials),
     onSuccess: invalidate,
   })
 
@@ -228,13 +290,52 @@ export function MathSpeechReviewPanel({
         <Button
           size="sm"
           variant="outline"
-          disabled={run.isPending || !apiKey}
+          disabled={run.isPending || checkRunning || !hasJudgeKey}
+          title={
+            hasJudgeKey
+              ? undefined
+              : t`A ${judgeProvider} key is required for the configured judge model. Add one in Book settings.`
+          }
           onClick={() => run.mutate()}
         >
-          {run.isPending && <Loader2 className="size-3.5 animate-spin" />}
-          <Trans>Check maths</Trans>
+          {(run.isPending || checkRunning) && (
+            <Loader2 className="size-3.5 animate-spin" />
+          )}
+          {checkRunning ? <Trans>Checking…</Trans> : <Trans>Check maths</Trans>}
         </Button>
       </header>
+
+      {/* Without this the button simply does nothing when no key is set, with
+          no indication why. */}
+      {!hasJudgeKey && (
+        <p className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-sm">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+          <span>
+            {t`The judge model ${judgeModel} needs a ${judgeProvider} key. Add one in Book settings, or pick a different model under Speech settings.`}
+          </span>
+        </p>
+      )}
+
+      {/* The check runs in the background, so a failure surfaces on the task
+          rather than on the request that started it. */}
+      {lastCheck?.status === "failed" && !checkRunning && (
+        <p className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-2 text-sm">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+          <span>
+            <Trans>The maths check failed.</Trans>{" "}
+            <span className="text-muted-foreground">{lastCheck.error}</span>
+          </span>
+        </p>
+      )}
+
+      {run.isError && (
+        <p className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-2 text-sm">
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+          <span className="text-muted-foreground">
+            {run.error instanceof Error ? run.error.message : String(run.error)}
+          </span>
+        </p>
+      )}
 
       {data?.stale && (
         <p className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/5 p-2 text-sm">

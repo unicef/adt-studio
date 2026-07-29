@@ -547,6 +547,9 @@ msgstr "42 figura"
 msgid "72 panels"
 msgstr "72 panele"
 
+msgid "A {judgeProvider} key is required for the configured judge model. Add one in Book settings."
+msgstr "Kërkohet një çelës {judgeProvider} për modelin vlerësues të konfiguruar. Shto një te cilësimet e librit."
+
 msgid "A → Z"
 msgstr "A → Z"
 
@@ -1909,6 +1912,9 @@ msgstr "Po kontrollohet aksesueshmëria"
 
 msgid "Checking for updates…"
 msgstr "Po kontrollohet për përditësime…"
+
+msgid "Checking…"
+msgstr "Po kontrollohet…"
 
 msgid "Checklist item"
 msgstr "Artikull liste kontrolli"
@@ -4685,6 +4691,9 @@ msgstr "Përputhje me Burimin"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Përputhet me dizajnin origjinal të librit me pak fleksibilitet."
+
+msgid "Maths"
+msgstr "Matematikë"
 
 msgid "Maths in this book has not been checked yet. Run the check to see anything that may be read aloud incorrectly."
 msgstr "Matematika e këtij libri nuk është kontrolluar ende. Nis kontrollin për të parë çfarë mund të lexohet me zë të lartë gabimisht."
@@ -8237,11 +8246,17 @@ msgstr "Zgjedhja ideale për romane, e fokusuar në një përvojë leximi të pa
 msgid "The inside cover of the book."
 msgstr "Kapaku i brendshëm i librit."
 
+msgid "The judge model {judgeModel} needs a {judgeProvider} key. Add one in Book settings, or pick a different model under Speech settings."
+msgstr "Modeli vlerësues {judgeModel} ka nevojë për një çelës {judgeProvider}. Shto një te cilësimet e librit, ose zgjidh një model tjetër te cilësimet e ligjërimit."
+
 msgid "The last translation review failed before producing reliable item-level results. Run Review again for the visible translations."
 msgstr "Rishikimi i fundit i përkthimit dështoi para se të prodhonte rezultate të besueshme në nivel artikulli. Ekzekutoni Rishikimin përsëri për përkthimet e dukshme."
 
 msgid "The Lost Forest"
 msgstr "Pylli i Humbur"
+
+msgid "The maths check failed."
+msgstr "Kontrolli i matematikës dështoi."
 
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "Modeli zbulон kufijtë e elementeve vizualë që çdo element mund të ruhet dhe të vendoset veçmas."

@@ -546,6 +546,9 @@ msgstr "42 figs"
 msgid "72 panels"
 msgstr "72 paneles"
 
+msgid "A {judgeProvider} key is required for the configured judge model. Add one in Book settings."
+msgstr "Se necesita una clave de {judgeProvider} para el modelo evaluador configurado. Añade una en los ajustes del libro."
+
 msgid "A → Z"
 msgstr "A → Z"
 
@@ -1908,6 +1911,9 @@ msgstr "Checking accessibility"
 
 msgid "Checking for updates…"
 msgstr "Buscando actualizaciones…"
+
+msgid "Checking…"
+msgstr "Comprobando…"
 
 msgid "Checklist item"
 msgstr "Checklist item"
@@ -4684,6 +4690,9 @@ msgstr "Coincidir con la Fuente"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Coincide con el diseño original del libro con cierta flexibilidad."
+
+msgid "Maths"
+msgstr "Matemáticas"
 
 msgid "Maths in this book has not been checked yet. Run the check to see anything that may be read aloud incorrectly."
 msgstr "Las matemáticas de este libro aún no se han comprobado. Ejecuta la comprobación para ver qué podría leerse en voz alta de forma incorrecta."
@@ -8236,11 +8245,17 @@ msgstr "La elección ideal para novelas, enfocada en una experiencia de lectura 
 msgid "The inside cover of the book."
 msgstr "La portada interior del libro."
 
+msgid "The judge model {judgeModel} needs a {judgeProvider} key. Add one in Book settings, or pick a different model under Speech settings."
+msgstr "El modelo evaluador {judgeModel} necesita una clave de {judgeProvider}. Añade una en los ajustes del libro o elige otro modelo en los ajustes de voz."
+
 msgid "The last translation review failed before producing reliable item-level results. Run Review again for the visible translations."
 msgstr "La última revisión de traducción falló antes de producir resultados fiables por elemento. Vuelve a ejecutar Revisar para las traducciones visibles."
 
 msgid "The Lost Forest"
 msgstr "El Bosque Perdido"
+
+msgid "The maths check failed."
+msgstr "La comprobación de matemáticas falló."
 
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "El modelo detecta cajas delimitadoras para que cada elemento visual pueda almacenarse y disponerse por separado."

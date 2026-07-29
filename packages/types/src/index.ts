@@ -351,6 +351,8 @@ export {
   resolveTranslationEvaluationConfig,
 } from "./translation-evaluation.js"
 
+export { containsMathNotation } from "./math-notation.js"
+
 export {
   DEFAULT_MATH_SPEECH_EVALUATION_ISSUE_TYPES,
   DEFAULT_MATH_SPEECH_EVALUATION_JUDGE_INSTRUCTIONS,

@@ -40,6 +40,7 @@ import { displayLang } from "./lib/display-lang";
 import { ImageLightbox } from "./components/ImageLightbox";
 import { WordHighlightPreview } from "./components/WordHighlightPreview";
 import { MathSpeechReviewPanel } from "../speech/components/MathSpeechReviewPanel";
+import { containsMathNotation } from "@adt/types";
 import { usePendingChanges } from "../../components/change-summary";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
@@ -414,7 +415,9 @@ export function LanguageView({
   const hasExplicitOutputLanguages = outputLanguages.length > 0;
 
   const [selectedLang, setSelectedLang] = useState<string | null>(null);
-  const [categoryFilter, setCategoryFilter] = useState<CatalogCategory>("all");
+  // "maths" is a content filter, not an id-derived category — an entry
+  // qualifies by containing notation, so it cuts across the other chips.
+  const [categoryFilter, setCategoryFilter] = useState<CatalogCategory | "maths">("all");
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("all");
   const [appliedSuggestionEntryIds, setAppliedSuggestionEntryIds] = useState<
     Set<string>
@@ -503,7 +506,9 @@ export function LanguageView({
     ? entries.filter((e) => e.id.startsWith(selectedPageId + "_"))
     : entries;
   const categoryFilteredEntries =
-    categoryFilter === "all"
+    categoryFilter === "maths"
+      ? pageFilteredEntries.filter((e) => containsMathNotation(e.text))
+      : categoryFilter === "all"
       ? pageFilteredEntries
       : pageFilteredEntries.filter(
           (e) => getEntryCategory(e.id) === categoryFilter,
@@ -1655,11 +1660,7 @@ export function LanguageView({
               catalog, so this is reviewable before the speech stage is
               reachable. Hides itself unless the book contains maths. */}
           {audioLang && (
-            <MathSpeechReviewPanel
-              bookLabel={bookLabel}
-              language={audioLang}
-              apiKey={apiKey}
-            />
+            <MathSpeechReviewPanel bookLabel={bookLabel} language={audioLang} />
           )}
 
           {showMissingBanner && (
@@ -1791,14 +1792,19 @@ export function LanguageView({
                   ["answers", t`Answers`],
                   ["glossary", t`Glossary`],
                   ["easy-read", t`Easy Read`],
+                  ["maths", t`Maths`],
                 ] as const
               ).map(([key, label]) => {
                 const count =
                   key === "all"
                     ? pageFilteredEntries.length
-                    : pageFilteredEntries.filter(
-                        (e) => getEntryCategory(e.id) === key,
-                      ).length;
+                    : key === "maths"
+                      ? pageFilteredEntries.filter((e) =>
+                          containsMathNotation(e.text),
+                        ).length
+                      : pageFilteredEntries.filter(
+                          (e) => getEntryCategory(e.id) === key,
+                        ).length;
                 if (key !== "all" && count === 0) return null;
                 return (
                   <button

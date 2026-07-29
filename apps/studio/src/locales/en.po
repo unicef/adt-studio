@@ -546,6 +546,9 @@ msgstr "42 figs"
 msgid "72 panels"
 msgstr "72 panels"
 
+msgid "A {judgeProvider} key is required for the configured judge model. Add one in Book settings."
+msgstr "A {judgeProvider} key is required for the configured judge model. Add one in Book settings."
+
 msgid "A → Z"
 msgstr "A → Z"
 
@@ -1908,6 +1911,9 @@ msgstr "Checking accessibility"
 
 msgid "Checking for updates…"
 msgstr "Checking for updates…"
+
+msgid "Checking…"
+msgstr "Checking…"
 
 msgid "Checklist item"
 msgstr "Checklist item"
@@ -4684,6 +4690,9 @@ msgstr "Match Source"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Matches the original book design with some flexibility."
+
+msgid "Maths"
+msgstr "Maths"
 
 msgid "Maths in this book has not been checked yet. Run the check to see anything that may be read aloud incorrectly."
 msgstr "Maths in this book has not been checked yet. Run the check to see anything that may be read aloud incorrectly."
@@ -8236,11 +8245,17 @@ msgstr "The ideal choice for novels, focused on a clean and continuous reading e
 msgid "The inside cover of the book."
 msgstr "The inside cover of the book."
 
+msgid "The judge model {judgeModel} needs a {judgeProvider} key. Add one in Book settings, or pick a different model under Speech settings."
+msgstr "The judge model {judgeModel} needs a {judgeProvider} key. Add one in Book settings, or pick a different model under Speech settings."
+
 msgid "The last translation review failed before producing reliable item-level results. Run Review again for the visible translations."
 msgstr "The last translation review failed before producing reliable item-level results. Run Review again for the visible translations."
 
 msgid "The Lost Forest"
 msgstr "The Lost Forest"
+
+msgid "The maths check failed."
+msgstr "The maths check failed."
 
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "The model detects bounding boxes so each visual element can be stored and laid out separately."

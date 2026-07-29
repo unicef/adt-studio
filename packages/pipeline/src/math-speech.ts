@@ -1,4 +1,5 @@
 import { parseDocument } from "htmlparser2"
+import { containsMathNotation } from "@adt/types"
 import { convertLatexString } from "./packaging/web.js"
 
 /**
@@ -34,25 +35,9 @@ interface MathNode {
  * keyed by language.
  */
 
-/** A backslash command, or a `$…$` span whose contents actually look like
- *  maths. A bare `$5 … $10` price pair is deliberately excluded: converting it
- *  strips the currency markers and turns "five dollars" into "five". */
-const LATEX_HINT = /\\[a-zA-Z]+|[_^]\{/
-const MATHS_DOLLAR = /(?<!\\)\$[^$\s][^$]*[\\^_{][^$]*\$/
-
-/** File paths contain backslash runs that collide with command names —
- *  `C:\text\notes.txt` and `D:\times\backup` both parse as maths and lose a
- *  path segment. Nothing that looks like a path is worth converting. */
-// Only a drive prefix or a UNC root. A bare `\word\word` is NOT enough:
-// consecutive commands (`\pi\frac`, `\times\frac`) have exactly that shape,
-// and treating them as a path rejects perfectly good maths. Paths without a
-// drive letter are left to the dropped-word check instead.
-const PATH_LIKE = /(?:[A-Za-z]:\\)|(?:\\\\[A-Za-z])/
-
-function looksLikeMaths(text: string): boolean {
-  if (PATH_LIKE.test(text)) return false
-  return LATEX_HINT.test(text) || MATHS_DOLLAR.test(text)
-}
+/** Detection lives in `@adt/types` so the Studio's maths filter and this
+ *  conversion cannot drift apart. */
+const looksLikeMaths = containsMathNotation
 
 /**
  * Maths mode discards literal spaces, so a sentence that reaches temml whole

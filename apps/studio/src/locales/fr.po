@@ -548,6 +548,9 @@ msgstr "42 figs"
 msgid "72 panels"
 msgstr "72 panneaux"
 
+msgid "A {judgeProvider} key is required for the configured judge model. Add one in Book settings."
+msgstr "Une clé {judgeProvider} est requise pour le modèle juge configuré. Ajoutez-en une dans les paramètres du livre."
+
 msgid "A → Z"
 msgstr "A → Z"
 
@@ -1910,6 +1913,9 @@ msgstr "Checking accessibilité"
 
 msgid "Checking for updates…"
 msgstr "Vérification des mises à jour…"
+
+msgid "Checking…"
+msgstr "Vérification…"
 
 msgid "Checklist item"
 msgstr "Élément de liste de contrôle"
@@ -4686,6 +4692,9 @@ msgstr "Correspondre à la source"
 
 msgid "Matches the original book design with some flexibility."
 msgstr "Correspond au design original du livre avec une certaine flexibilité."
+
+msgid "Maths"
+msgstr "Maths"
 
 msgid "Maths in this book has not been checked yet. Run the check to see anything that may be read aloud incorrectly."
 msgstr "Les maths de ce livre n'ont pas encore été vérifiées. Lancez la vérification pour voir ce qui pourrait être lu à voix haute de façon incorrecte."
@@ -8238,11 +8247,17 @@ msgstr "Le choix idéal pour les romans, axé sur une expérience de lecture flu
 msgid "The inside cover of the book."
 msgstr "La page de garde du livre."
 
+msgid "The judge model {judgeModel} needs a {judgeProvider} key. Add one in Book settings, or pick a different model under Speech settings."
+msgstr "Le modèle juge {judgeModel} a besoin d'une clé {judgeProvider}. Ajoutez-en une dans les paramètres du livre, ou choisissez un autre modèle dans les paramètres de voix."
+
 msgid "The last translation review failed before producing reliable item-level results. Run Review again for the visible translations."
 msgstr "La dernière révision de traduction a échoué avant de produire des résultats fiables par élément. Relancez Réviser pour les traductions visibles."
 
 msgid "The Lost Forest"
 msgstr "La forêt perdue"
+
+msgid "The maths check failed."
+msgstr "La vérification des maths a échoué."
 
 msgid "The model detects bounding boxes so each visual element can be stored and laid out separately."
 msgstr "Le modèle détecte les zones de délimitation afin que chaque élément visuel puisse être stocké et disposé séparément."
