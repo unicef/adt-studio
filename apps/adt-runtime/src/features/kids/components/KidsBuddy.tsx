@@ -106,6 +106,8 @@ export function KidsBuddy() {
   const panelRef = useRef<HTMLDivElement>(null)
   const panelCloseRef = useRef<HTMLButtonElement>(null)
   const wasOpenRef = useRef(false)
+  // Guards the gap between the buddy's line and the narration starting.
+  const readIntentRef = useRef(0)
   const menuVariant = useAtomValue(kidsMenuVariantAtom)
 
   useBuddyIdleChatter({
@@ -185,9 +187,22 @@ export function KidsBuddy() {
   }
 
   const handleRead = () => {
+    // Pausing takes effect at once — the child asked for quiet.
+    if (isPlaying) {
+      togglePlayPause()
+      void say(BUDDY_LINES.readBreak)
+      return
+    }
+    // Starting waits for the buddy to finish its line first, so the book's
+    // narration doesn't talk over it.
     setPlayBarVisible(true)
-    togglePlayPause()
-    say(isPlaying ? BUDDY_LINES.readBreak : BUDDY_LINES.readStart)
+    const token = ++readIntentRef.current
+    void say(BUDDY_LINES.readStart).then(() => {
+      // A second tap, or anything else that started or stopped playback while
+      // the buddy was talking, supersedes this one.
+      if (token !== readIntentRef.current) return
+      togglePlayPause()
+    })
   }
 
   const handleSpeed = (next: number) => {

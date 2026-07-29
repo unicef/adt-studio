@@ -61,6 +61,25 @@ export function clearKidsVoiceCache(): void {
  * Fire-and-forget clip playback. Resolves `true` only when a clip was found
  * and playback started; any failure resolves `false` without throwing.
  */
+/**
+ * Play one clip and resolve when it actually finishes — not when playback
+ * merely starts, which is all `audio.play()` promises. Resolves immediately on
+ * a playback error so a caller sequencing work after speech can never hang.
+ */
+function playToEnd(audio: HTMLAudioElement): Promise<void> {
+  return new Promise<void>((resolve) => {
+    let settled = false
+    const done = () => {
+      if (settled) return
+      settled = true
+      resolve()
+    }
+    audio.addEventListener("ended", done, { once: true })
+    audio.addEventListener("error", done, { once: true })
+    Promise.resolve(audio.play()).catch(() => done())
+  })
+}
+
 export async function playBuddyLine(
   lang: string,
   characterId: string,
@@ -86,6 +105,31 @@ export async function playBuddyLine(
 }
 
 /**
+ * Like `playBuddyLine`, but resolves once the buddy has stopped talking.
+ * Used when something else must not start until the buddy is done — the book's
+ * own narration, for one, which would otherwise talk over the buddy.
+ */
+export async function playBuddyLineToEnd(
+  lang: string,
+  characterId: string,
+  lineKey: string,
+): Promise<void> {
+  if (typeof window === "undefined" || typeof Audio === "undefined") return
+  const token = ++playbackToken
+  try {
+    const manifest = await loadKidsVoiceManifest(lang)
+    const file = manifest?.characters?.[characterId]?.[lineKey]
+    if (!file || token !== playbackToken) return
+    currentAudio?.pause()
+    const audio = new Audio(`${voiceBase(lang)}/${file}`)
+    currentAudio = audio
+    await playToEnd(audio)
+  } catch {
+    // A missing or unplayable clip must not block the caller.
+  }
+}
+
+/**
  * Play several clips back-to-back for one character (e.g. a step's title then
  * its description), waiting for each to finish. A newer `playBuddyLine`,
  * another sequence, or `stopBuddyLine` supersedes an in-flight sequence.
@@ -106,17 +150,7 @@ export async function playBuddyLineSequence(
     currentAudio?.pause()
     const audio = new Audio(`${voiceBase(lang)}/${file}`)
     currentAudio = audio
-    await new Promise<void>((resolve) => {
-      let settled = false
-      const done = () => {
-        if (settled) return
-        settled = true
-        resolve()
-      }
-      audio.addEventListener("ended", done, { once: true })
-      audio.addEventListener("error", done, { once: true })
-      Promise.resolve(audio.play()).catch(() => done())
-    })
+    await playToEnd(audio)
   }
 }
 

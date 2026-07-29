@@ -351,7 +351,7 @@ describe("KidsBuddy", () => {
     expect(screen.queryByTestId("kids-action-story-map")).not.toBeNull()
   })
 
-  it("reflects and controls the shared read-aloud player state", () => {
+  it("reflects and controls the shared read-aloud player state", async () => {
     const store = createKidsStore()
     const view = renderKidsChrome(store)
     openBuddy()
@@ -359,7 +359,12 @@ describe("KidsBuddy", () => {
     let action = view.getByText("Read to me").closest("button")
     expect(action?.hasAttribute("disabled")).toBe(false)
     fireEvent.click(action as HTMLButtonElement)
-    expect(audioMock.player.togglePlayPause).toHaveBeenCalledTimes(1)
+    // Narration waits for the buddy's line to finish, so it must NOT have
+    // started yet — otherwise the two talk over each other.
+    expect(audioMock.player.togglePlayPause).not.toHaveBeenCalled()
+    await waitFor(() =>
+      expect(audioMock.player.togglePlayPause).toHaveBeenCalledTimes(1),
+    )
 
     audioMock.player.isPlaying = true
     view.rerender(

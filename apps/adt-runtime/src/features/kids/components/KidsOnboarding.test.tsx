@@ -37,6 +37,7 @@ const audioMock = vi.hoisted(() => ({
 
 const buddyVoiceMock = vi.hoisted(() => ({
   playBuddyLine: vi.fn().mockResolvedValue(true),
+  playBuddyLineToEnd: vi.fn().mockResolvedValue(undefined),
   playBuddyLineSequence: vi.fn().mockResolvedValue(undefined),
   stopBuddyLine: vi.fn(),
 }))
@@ -51,6 +52,7 @@ vi.mock("@/shared/lib/analytics", () => ({
 
 vi.mock("@/features/kids/lib/buddy-voice", () => ({
   playBuddyLine: buddyVoiceMock.playBuddyLine,
+  playBuddyLineToEnd: buddyVoiceMock.playBuddyLineToEnd,
   playBuddyLineSequence: buddyVoiceMock.playBuddyLineSequence,
   stopBuddyLine: buddyVoiceMock.stopBuddyLine,
 }))

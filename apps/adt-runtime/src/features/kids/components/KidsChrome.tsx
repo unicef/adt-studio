@@ -7,6 +7,7 @@ import { KidsEndingScreen } from "@/features/kids/components/KidsEndingScreen"
 import { KidsOnboarding } from "@/features/kids/components/KidsOnboarding"
 import { KidsMenuVariantSwitch } from "@/features/kids/components/menu/KidsMenuVariantSwitch"
 import { KidsPageArrows } from "@/features/kids/components/KidsPageArrows"
+import { KidsPlayBar } from "@/features/kids/components/KidsPlayBar"
 import { KidsSpeechBubble } from "@/features/kids/components/KidsSpeechBubble"
 import { useKidsReadingComfort } from "@/features/kids/hooks/useKidsReadingComfort"
 import {
@@ -38,6 +39,7 @@ export function KidsChrome() {
         <>
           <KidsMenuVariantSwitch />
           <KidsPageArrows />
+          <KidsPlayBar />
           <KidsSpeechBubble />
           <KidsActivityReaction />
           <KidsBuddy />
