@@ -22,6 +22,28 @@ function pad3(n: number): string {
 }
 
 /**
+ * Like DomUtils.textContent but skips the children of any <script>/<style>
+ * descendants. Used so a stray inline script inside a data-id element doesn't
+ * leak its source into the catalogued text (and from there into the runtime's
+ * innerHTML replacement on translation).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function textContentExcludingScripts(node: any): string {
+  if (!node) return ""
+  if (node.type === "text") return node.data ?? ""
+  const tagName = (node.name ?? node.type ?? "").toLowerCase()
+  if (tagName === "script" || tagName === "style") return ""
+  if (Array.isArray(node.children)) {
+    let out = ""
+    for (const child of node.children) {
+      out += textContentExcludingScripts(child)
+    }
+    return out
+  }
+  return ""
+}
+
+/**
  * Extract text catalog entries from a single page's rendered HTML sections.
  * Walks the DOM looking for elements with data-id attributes.
  * - Non-img elements: extract text content
@@ -40,11 +62,27 @@ function extractPageEntries(
 
   for (const section of rendering.sections) {
     if (prunedSectionIndices?.has(section.sectionIndex)) continue
+
     const doc = parseDocument(section.html)
 
+    // Only catalog leaves of the data-id tree. A wrapper element with a
+    // data-id whose descendants also have data-ids would otherwise emit an
+    // entry whose text is the concatenation of every leaf — and a translation
+    // replacing that wrapper's innerHTML at runtime would wipe the leaves'
+    // structure. Custom-activity sections in particular put data-id on both
+    // the outer <section> and inner text elements; leaves-only handles them
+    // correctly without a section-type special case.
     const elements = DomUtils.findAll(
-      (el) => el.type === "tag" && el.attribs?.["data-id"] !== undefined,
-      doc.children
+      (el) =>
+        el.type === "tag" &&
+        el.attribs?.["data-id"] !== undefined &&
+        !DomUtils.findOne(
+          (child) =>
+            child.type === "tag" && child.attribs?.["data-id"] !== undefined,
+          el.children ?? [],
+          true,
+        ),
+      doc.children,
     )
 
     for (const el of elements) {
@@ -63,7 +101,11 @@ function extractPageEntries(
           ? `${pageId}_ac${pad3(++activityCounter)}`
           : dataId
 
-        const text = DomUtils.textContent(el).replace(/\s+/g, " ").trim()
+        // Belt-and-braces: even for non-custom sections, exclude any inline
+        // <script>/<style> bodies from the catalogued text. Authors shouldn't
+        // be using them here, but a stray bit of inline JS shouldn't corrupt
+        // the catalog.
+        const text = textContentExcludingScripts(el).replace(/\s+/g, " ").trim()
         if (text.length > 0) {
           entries.push({ id, text })
         }

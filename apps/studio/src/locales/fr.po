@@ -30,6 +30,9 @@ msgstr "_page"
 msgid "-"
 msgstr "-"
 
+msgid "— none —"
+msgstr "— aucune —"
+
 msgid ", "
 msgstr ", "
 
@@ -66,6 +69,9 @@ msgstr "(p.{0})"
 
 msgid "(template)"
 msgstr "(modèle)"
+
+msgid "(this section)"
+msgstr "(cette section)"
 
 #. placeholder {0}: preview.addedPageNumbers.length
 #. placeholder {0}: result.addedPages
@@ -577,6 +583,9 @@ msgstr "Une activité d'appariement où les élèves relient des éléments conn
 msgid "A multiple choice activity."
 msgstr "Une activité à choix multiple."
 
+msgid "A new activity section will be appended to page {anchorPageNumber} ({anchorPageId}). The agent may read other pages in the book to mirror their layout."
+msgstr "Une nouvelle section d'activité sera ajoutée à la page {anchorPageNumber} ({anchorPageId}). L'agent peut lire d'autres pages du livre pour reproduire leur mise en page."
+
 #~ msgid "A new version is available for download."
 #~ msgstr "Une nouvelle version est disponible au téléchargement."
 
@@ -754,8 +763,14 @@ msgstr "Réponses des activités"
 msgid "Activity Converter"
 msgstr "Convertisseur d'activités"
 
+msgid "Activity created on this page"
+msgstr "Activité créée sur cette page"
+
 msgid "Activity Detection"
 msgstr "Détection d'activité"
+
+msgid "Activity generation failed"
+msgstr "Échec de la génération de l'activité"
 
 msgid "Activity Rendering"
 msgstr "Rendu d'activité"
@@ -765,6 +780,9 @@ msgstr "Les types de section d'activité sont disponibles pour la classification
 
 msgid "Activity section types are hidden from the classifier and skipped during rendering."
 msgstr "Les types de section d'activité sont masqués du classifieur et ignorés pendant le rendu."
+
+msgid "Activity style"
+msgstr "Style d'activité"
 
 msgid "Activity Types"
 msgstr "Types d'activité"
@@ -968,6 +986,9 @@ msgstr "Ajoutez la clé API du fournisseur sélectionné dans les paramètres du
 msgid "Add this provider's API key in Book settings."
 msgstr "Ajoutez la clé API de ce fournisseur dans les paramètres du livre."
 
+msgid "Add tile"
+msgstr "Ajouter une pièce"
+
 msgid "Add Translations"
 msgstr "Ajouter des traductions"
 
@@ -998,6 +1019,9 @@ msgstr "L’ajout d’une nouvelle image réinitialise le travail en aval"
 msgid "Adding languages beyond the original is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 msgstr "Ajouter des langues en plus de l'original n'est pas compatible avec la mise en page fixe. Si vous continuez, vous pourriez obtenir des résultats indésirables."
 
+msgid "Additional instruction (optional)"
+msgstr "Instruction supplémentaire (facultative)"
+
 msgid "Additional Languages"
 msgstr "Langues supplémentaires"
 
@@ -1006,6 +1030,9 @@ msgstr "Des termes supplémentaires pourront être introduits dans les sections 
 
 msgid "Adds glossary pages to the book. Terms link to their entry and each entry links back to the text. Works in every reader."
 msgstr "Ajoute des pages de glossaire au livre. Les termes renvoient à leur entrée et chaque entrée renvoie au texte. Fonctionne dans tous les lecteurs."
+
+msgid "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
+msgstr "Ajoute des recommandations de Conception Universelle de l'Apprentissage (langage clair, alternative au glisser-déposer par clavier et clic, retour de correction via aria-live, pas de retour uniquement par la couleur). Désactivez pour comparer le résultat sans cette orientation."
 
 msgid "ADT"
 msgstr "ADT"
@@ -1071,6 +1098,9 @@ msgstr "après p. {0}"
 
 msgid "age 8"
 msgstr "8 ans"
+
+msgid "Agent task failed"
+msgstr "Échec de la tâche de l'agent"
 
 msgid "AI"
 msgstr "AI"
@@ -1305,6 +1335,9 @@ msgstr "Appliquer"
 msgid "Apply filters"
 msgstr "Appliquer des filtres"
 
+msgid "Apply layout"
+msgstr "Appliquer la mise en page"
+
 msgid "Apply page background colors"
 msgstr "Appliquer page background colors"
 
@@ -1528,6 +1561,9 @@ msgstr "Avant"
 
 msgid "Beneath Earth's crust, molten rock builds pressure over millennia until it finds a path to the surface."
 msgstr "Sous la croûte terrestre, la roche en fusion accumule de la pression pendant des millénaires jusqu'à ce qu'elle trouve un chemin vers la surface."
+
+msgid "Bespoke, freeform interactive activity"
+msgstr "Activité interactive personnalisée et libre"
 
 #. placeholder {0}: i18n._(presetLabel)
 msgid "Best for {0}"
@@ -2626,6 +2662,9 @@ msgstr "Livré"
 msgid "Dense text, tables, glossaries. Best for technical material and documentation."
 msgstr "Texte dense, tableaux, glossaires. Idéal pour les documents techniques et la documentation."
 
+msgid "Describe the activity"
+msgstr "Décrivez l'activité"
+
 msgid "Describe the image"
 msgstr "Décrivez l'image"
 
@@ -2878,8 +2917,14 @@ msgstr "e.g. http://localhost:11434/v1"
 msgid "e.g. keep a warm children's-book tone"
 msgstr "p. ex. conserver un ton chaleureux de livre pour enfants"
 
+msgid "e.g. keep the image on the right"
+msgstr "ex. garder l'image à droite"
+
 msgid "e.g. Kore"
 msgstr "e.g. Kore"
+
+msgid "e.g. multiple-choice question about photosynthesis with 4 options"
+msgstr "ex. question à choix multiples sur la photosynthèse avec 4 options"
 
 msgid "e.g., A cheerful leopard family in a green forest, children's book style..."
 msgstr "ex., Une joyeuse famille de léopards dans une forêt verte, style livre pour enfants..."
@@ -3383,6 +3428,9 @@ msgstr "Fichier accepté"
 msgid "File actions"
 msgstr "Actions du fichier"
 
+msgid "Fill in the blank"
+msgstr "Compléter le texte"
+
 msgid "Filter by image ID or caption..."
 msgstr "Filtrer par ID d'image ou légende..."
 
@@ -3587,11 +3635,29 @@ msgstr "Paramètres généraux"
 msgid "Generate"
 msgstr "Générer"
 
+msgid "Generate 3 true/false statements about the content of this page."
+msgstr "Générer 3 affirmations vrai/faux sur le contenu de cette page."
+
+msgid "Generate a 4-option multiple-choice question testing comprehension of this page."
+msgstr "Générer une question à choix multiples à 4 options évaluant la compréhension de cette page."
+
+msgid "Generate a fill-in-the-blank activity with 3 sentences based on this page."
+msgstr "Générer une activité à trous avec 3 phrases basées sur cette page."
+
+msgid "Generate a new activity from a description"
+msgstr "Générer une nouvelle activité à partir d'une description"
+
 msgid "Generate a simplified, easier-to-read version of every text block in the book. Readers turn it on with the Easy Read toggle in the ADT; you can review and edit each simplified block before packaging."
 msgstr "Générez une version simplifiée et plus facile à lire de chaque bloc de texte du livre. Les lecteurs l'activent avec le bouton Lecture Facile dans l'ADT ; vous pouvez relire et modifier chaque bloc simplifié avant l'empaquetage."
 
 msgid "Generate a single quiz from specific pages and place it at a chosen location."
 msgstr "Générez un seul quiz à partir de pages spécifiques et placez-le à l'endroit de votre choix."
+
+msgid "Generate activity"
+msgstr "Générer une activité"
+
+msgid "Generate an open-ended reflection question about this page."
+msgstr "Générer une question ouverte de réflexion sur cette page."
 
 msgid "Generate and customize the table of contents for the book navigation."
 msgstr "Générez et personnalisez la table des matières pour la navigation du livre."
@@ -3672,6 +3738,9 @@ msgstr "Génère le HTML interactif pour ce type d'activité."
 #. placeholder {1}: String(ttsProgress.totalPages)
 msgid "Generating {0}/{1}"
 msgstr "Génération {0}/{1}"
+
+msgid "Generating activity..."
+msgstr "Génération de l'activité..."
 
 msgid "Generating Easy Read..."
 msgstr "Génération de Lecture Facile..."
@@ -4107,6 +4176,9 @@ msgstr "Inclure dans le rendu"
 msgid "Includes:"
 msgstr "Comprend :"
 
+msgid "Inclusive design"
+msgstr "Conception inclusive"
+
 msgid "Increase {label}"
 msgstr "Augmenter {label}"
 
@@ -4329,6 +4401,12 @@ msgstr "Mise en page des doubles pages"
 msgid "Layout"
 msgstr "Disposition"
 
+msgid "Layout mirror failed"
+msgstr "Échec de la copie de mise en page"
+
+msgid "Layout mirrored onto this section"
+msgstr "Mise en page reproduite sur cette section"
+
 msgid "Leading"
 msgstr "Interligne"
 
@@ -4364,6 +4442,9 @@ msgstr "Légende"
 
 msgid "Lenient"
 msgstr "Souple"
+
+msgid "Let the agent choose"
+msgstr "Laisser l'agent choisir"
 
 msgid "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 msgstr "Laissez le modèle écrire des titres de chapitres descriptifs basés sur le contenu de chaque section. Idéal pour les livres d'histoires ou lorsque les titres manquent."
@@ -4855,6 +4936,15 @@ msgstr "mineur"
 msgid "Minor"
 msgstr "Mineur"
 
+msgid "Mirror layout"
+msgstr "Copier la mise en page"
+
+msgid "Mirror layout from another section"
+msgstr "Copier la mise en page d'une autre section"
+
+msgid "Mirroring layout..."
+msgstr "Reproduction de la mise en page..."
+
 msgid "Mirrors the original book's activity layout as closely as possible."
 msgstr "Reflète la disposition des activités du livre original aussi fidèlement que possible."
 
@@ -4932,6 +5022,9 @@ msgstr "Publications multi-format"
 
 msgid "multiple choice"
 msgstr "choix multiple"
+
+msgid "Multiple choice"
+msgstr "Choix multiple"
 
 msgid "Mute all from read-aloud"
 msgstr "Tout couper de la lecture à voix haute"
@@ -5279,6 +5372,9 @@ msgstr "Aucun contenu rendu pour cette section"
 msgid "No rendered pages yet. Run Storyboard first."
 msgstr "Aucune page rendue pour l'instant. Exécutez d'abord Scénarimage."
 
+msgid "no rendering"
+msgstr "pas de rendu"
+
 msgid "No review areas are currently flagged in this reviewer session."
 msgstr "Aucune zone de révision n'est actuellement signalée dans cette session de révision."
 
@@ -5569,6 +5665,9 @@ msgstr "Ouvrez cette section pour régler le modèle, le prompt du juge, le comp
 
 msgid "Open Validation"
 msgstr "Ouvrir la validation"
+
+msgid "Open-ended question"
+msgstr "Question ouverte"
 
 msgid "Open-source license"
 msgstr "Licence open source"
@@ -6014,8 +6113,14 @@ msgstr "photosynthétique, en train de faire la photosynthèse"
 msgid "Pick a family to attach to the book. It is downloaded when extraction runs and embedded in the final bundle."
 msgstr "Choisissez une famille à joindre au livre. Elle est téléchargée lors de l'extraction et intégrée au paquet final."
 
+msgid "Pick a page to see its sections."
+msgstr "Choisissez une page pour voir ses sections."
+
 msgid "Pick a preset"
 msgstr "Choisissez un préréglage"
+
+msgid "Pick a source section. Its layout will be applied to this section while keeping this section's content and data-ids."
+msgstr "Choisissez une section source. Sa mise en page sera appliquée à cette section tout en conservant le contenu et les data-ids de cette section."
 
 msgid "Pick from book"
 msgstr "Choisir dans le livre"
@@ -6318,6 +6423,9 @@ msgstr "en file d’attente"
 msgid "Queued"
 msgstr "En file d'attente"
 
+msgid "Quick fill"
+msgstr "Remplissage rapide"
+
 msgid "Quit anyway"
 msgstr "Quitter quand même"
 
@@ -6401,6 +6509,9 @@ msgstr "Re-rendu (vos modifications seront conservées)"
 
 msgid "Re-render failed"
 msgstr "Le re-rendu a échoué"
+
+msgid "Re-render is disabled for custom activities — it would discard the interactive script. Use \"View HTML source\" or AI edit instead."
+msgstr "La régénération est désactivée pour les activités personnalisées : elle supprimerait le script interactif. Utilisez « Voir la source HTML » ou la modification par IA à la place."
 
 msgid "Re-render section"
 msgstr "Re-rendre la section"
@@ -7754,6 +7865,9 @@ msgstr "Les étapes sont réexécutables et chaque résultat est versionné, don
 msgid "Standard"
 msgstr "Standard"
 
+msgid "Standard built-in activity types"
+msgstr "Types d'activités intégrés standard"
+
 msgid "Standard e-book for readers & libraries"
 msgstr "Livre électronique standard pour liseuses et bibliothèques"
 
@@ -8043,6 +8157,9 @@ msgstr "Rendu par modèle"
 
 msgid "Template-based"
 msgstr "Basé sur un modèle"
+
+msgid "Templated"
+msgstr "Modèle"
 
 msgid "term"
 msgstr "terme"
@@ -8386,6 +8503,12 @@ msgstr "Ce n'est pas un projet ADT Studio valide"
 msgid "This isn't a valid part file"
 msgstr "Ce n'est pas un fichier de partie valide"
 
+msgid "This merges a custom activity. The combined section is re-rendered, which will discard the custom activity's interactive grading script. To keep it, edit via \"View HTML source\" instead of merging."
+msgstr "Cette opération fusionne une activité personnalisée. La section combinée est régénérée, ce qui supprimera le script de notation interactif de l'activité personnalisée. Pour le conserver, modifiez-la via « Voir la source HTML » au lieu de fusionner."
+
+msgid "This merges an activity. The combined section is re-rendered, so the activity's layout and answer key may change."
+msgstr "Cette opération fusionne une activité. La section combinée est régénérée, de sorte que la mise en page et le corrigé de l'activité peuvent changer."
+
 msgid "This model already has prompt files for every base prompt."
 msgstr "Ce modèle possède déjà des fichiers de prompt pour chaque prompt de base."
 
@@ -8658,6 +8781,9 @@ msgstr "Traite chaque page comme une seule section."
 
 msgid "Tries hard to match the original book design."
 msgstr "S'efforce de correspondre au design original du livre."
+
+msgid "True / false"
+msgstr "Vrai / faux"
 
 msgid "Try a different search or filter"
 msgstr "Essayez une autre recherche ou un autre filtre"
@@ -9063,6 +9189,9 @@ msgstr "vidéos"
 
 msgid "Videos"
 msgstr "Vidéos"
+
+msgid "View"
+msgstr "Voir"
 
 #~ msgid "View all changes"
 #~ msgstr "Voir toutes les modifications"

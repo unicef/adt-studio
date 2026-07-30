@@ -29,6 +29,9 @@ msgstr "_faqe"
 msgid "-"
 msgstr "-"
 
+msgid "— none —"
+msgstr "— asnjë —"
+
 msgid ", "
 msgstr ", "
 
@@ -65,6 +68,9 @@ msgstr "(f.{0})"
 
 msgid "(template)"
 msgstr "(shabllon)"
+
+msgid "(this section)"
+msgstr "(ky seksion)"
 
 #. placeholder {0}: preview.addedPageNumbers.length
 #. placeholder {0}: result.addedPages
@@ -576,6 +582,9 @@ msgstr "Një aktivitet çiftëzimi ku nxënësit lidhin elementet e lidhura."
 msgid "A multiple choice activity."
 msgstr "Një aktivitet me zgjedhje të shumëfishtë."
 
+msgid "A new activity section will be appended to page {anchorPageNumber} ({anchorPageId}). The agent may read other pages in the book to mirror their layout."
+msgstr "Një seksion i ri aktiviteti do të shtohet në faqen {anchorPageNumber} ({anchorPageId}). Agjenti mund të lexojë faqe të tjera të librit për të pasqyruar strukturën e tyre."
+
 #~ msgid "A new version is available for download."
 #~ msgstr "Një version i ri është i disponueshëm për shkarkim."
 
@@ -753,8 +762,14 @@ msgstr "Përgjigjet e aktiviteteve"
 msgid "Activity Converter"
 msgstr "Konvertues Aktivitetesh"
 
+msgid "Activity created on this page"
+msgstr "Aktiviteti u krijua në këtë faqe"
+
 msgid "Activity Detection"
 msgstr "Zbulimi i Aktivitetit"
+
+msgid "Activity generation failed"
+msgstr "Gjenerimi i aktivitetit dështoi"
 
 msgid "Activity Rendering"
 msgstr "Renderimi i Aktivitetit"
@@ -764,6 +779,9 @@ msgstr "Llojet e seksioneve të aktiviteteve janë të disponueshme për klasifi
 
 msgid "Activity section types are hidden from the classifier and skipped during rendering."
 msgstr "Llojet e seksioneve të aktiviteteve janë të fshehura nga klasifikuesi dhe anashkalohen gjatë renderimit."
+
+msgid "Activity style"
+msgstr "Stili i aktivitetit"
 
 msgid "Activity Types"
 msgstr "Llojet e Aktivitetit"
@@ -967,6 +985,9 @@ msgstr "Shto çelësin API të ofruesit të zgjedhur në cilësimet e Librit pë
 msgid "Add this provider's API key in Book settings."
 msgstr "Shto çelësin API të këtij ofruesi në cilësimet e Librit."
 
+msgid "Add tile"
+msgstr "Shto pllakëz"
+
 msgid "Add Translations"
 msgstr "Shto Përkthime"
 
@@ -997,6 +1018,9 @@ msgstr "Shtimi i një imazhi të ri rivendos punën e fazave pasuese"
 msgid "Adding languages beyond the original is not compatible with Fixed Layout. If you proceed, you may get undesirable results."
 msgstr "Shtimi i gjuhëve përtej origjinalit nuk është i pajtueshëm me Paraqitjen e fiksuar. Nëse vazhdoni, mund të merrni rezultate të padëshiruara."
 
+msgid "Additional instruction (optional)"
+msgstr "Udhëzim shtesë (opsional)"
+
 msgid "Additional Languages"
 msgstr "Gjuhë Shtesë"
 
@@ -1005,6 +1029,9 @@ msgstr "Terminologji shtesë mund të prezantohet në seksionet e mëvonshme. T�
 
 msgid "Adds glossary pages to the book. Terms link to their entry and each entry links back to the text. Works in every reader."
 msgstr "Shton faqe glosari në libër. Termat lidhen me zërin e tyre dhe çdo zë të kthen te teksti. Funksionon në çdo lexues."
+
+msgid "Adds Universal Design for Learning guidance (plain language, keyboard + click fallback for drag, aria-live grading, no color-only feedback). Turn off to compare output without this guidance."
+msgstr "Shton udhëzime për Dizajnin Universal për të Nxënit (gjuhë e thjeshtë, alternativë me tastierë + klikim për tërheqjen, vlerësim aria-live, pa reagime vetëm me ngjyra). Çaktivizoje për të krahasuar rezultatin pa këto udhëzime."
 
 msgid "ADT"
 msgstr "ADT"
@@ -1070,6 +1097,9 @@ msgstr "pas f. {0}"
 
 msgid "age 8"
 msgstr "mosha 8"
+
+msgid "Agent task failed"
+msgstr "Detyra e agjentit dështoi"
 
 msgid "AI"
 msgstr "AI"
@@ -1304,6 +1334,9 @@ msgstr "Apliko"
 msgid "Apply filters"
 msgstr "Zbato filtrat"
 
+msgid "Apply layout"
+msgstr "Zbato strukturën"
+
 msgid "Apply page background colors"
 msgstr "Apliko ngjyrat e sfondit të faqes"
 
@@ -1527,6 +1560,9 @@ msgstr "Para"
 
 msgid "Beneath Earth's crust, molten rock builds pressure over millennia until it finds a path to the surface."
 msgstr "Nën koren e Tokës, shkëmbi i shkrirë grumbullon presion për mijëvjeçarë derisa gjen një rrugë drejt sipërfaqes."
+
+msgid "Bespoke, freeform interactive activity"
+msgstr "Aktivitet interaktiv i personalizuar, në formë të lirë"
 
 #. placeholder {0}: i18n._(presetLabel)
 msgid "Best for {0}"
@@ -2625,6 +2661,9 @@ msgstr "Dorëzuar"
 msgid "Dense text, tables, glossaries. Best for technical material and documentation."
 msgstr "Tekst i dendur, tabela, glosare. Më i mirë për materiale teknike dhe dokumentacion."
 
+msgid "Describe the activity"
+msgstr "Përshkruani aktivitetin"
+
 msgid "Describe the image"
 msgstr "Përshkruaj imazhin"
 
@@ -2877,8 +2916,14 @@ msgstr "p.sh. http://localhost:11434/v1"
 msgid "e.g. keep a warm children's-book tone"
 msgstr "p.sh. mbani një ton të ngrohtë të librit për fëmijë"
 
+msgid "e.g. keep the image on the right"
+msgstr "p.sh. mbaje imazhin në të djathtë"
+
 msgid "e.g. Kore"
 msgstr "p.sh. Kore"
+
+msgid "e.g. multiple-choice question about photosynthesis with 4 options"
+msgstr "p.sh. pyetje me zgjedhje të shumëfishtë për fotosintezën me 4 opsione"
 
 msgid "e.g., A cheerful leopard family in a green forest, children's book style..."
 msgstr "p.sh., Një familje leopardësh të gëzuar në një pyll të gjelbër, stil libri për fëmijë..."
@@ -3382,6 +3427,9 @@ msgstr "Skedari u pranua"
 msgid "File actions"
 msgstr "Veprimet e skedarit"
 
+msgid "Fill in the blank"
+msgstr "Plotëso vendin bosh"
+
 msgid "Filter by image ID or caption..."
 msgstr "Filtro sipas ID-së ose titullit të imazhit..."
 
@@ -3586,11 +3634,29 @@ msgstr "Cilësimet e Përgjithshme"
 msgid "Generate"
 msgstr "Gjenero"
 
+msgid "Generate 3 true/false statements about the content of this page."
+msgstr "Gjenero 3 pohime të vërteta/të gabuara për përmbajtjen e kësaj faqeje."
+
+msgid "Generate a 4-option multiple-choice question testing comprehension of this page."
+msgstr "Gjenero një pyetje me zgjedhje të shumëfishtë me 4 opsione që teston kuptimin e kësaj faqeje."
+
+msgid "Generate a fill-in-the-blank activity with 3 sentences based on this page."
+msgstr "Gjenero një aktivitet plotësimi të vendeve bosh me 3 fjali bazuar në këtë faqe."
+
+msgid "Generate a new activity from a description"
+msgstr "Gjenero një aktivitet të ri nga një përshkrim"
+
 msgid "Generate a simplified, easier-to-read version of every text block in the book. Readers turn it on with the Easy Read toggle in the ADT; you can review and edit each simplified block before packaging."
 msgstr "Gjenero një version të thjeshtësuar, më të lehtë për t'u lexuar të çdo blloku teksti në libër. Lexuesit e aktivizojnë me çelësin Easy Read në ADT; mund të rishikoni dhe modifikoni çdo bllok të thjeshtësuar para paketimit."
 
 msgid "Generate a single quiz from specific pages and place it at a chosen location."
 msgstr "Gjenero një kuiz të vetëm nga faqe specifike dhe vendoseni në një vend të zgjedhur."
+
+msgid "Generate activity"
+msgstr "Gjenero aktivitet"
+
+msgid "Generate an open-ended reflection question about this page."
+msgstr "Gjenero një pyetje reflektimi me përgjigje të hapur për këtë faqe."
 
 msgid "Generate and customize the table of contents for the book navigation."
 msgstr "Gjenero dhe personalizo tabelën e përmbajtjes për navigimin e librit."
@@ -3671,6 +3737,9 @@ msgstr "Gjeneron HTML interaktiv për këtë lloj aktiviteti."
 #. placeholder {1}: String(ttsProgress.totalPages)
 msgid "Generating {0}/{1}"
 msgstr "Duke gjeneruar {0}/{1}"
+
+msgid "Generating activity..."
+msgstr "Duke gjeneruar aktivitetin..."
 
 msgid "Generating Easy Read..."
 msgstr "Duke gjeneruar Easy Read..."
@@ -4106,6 +4175,9 @@ msgstr "Përfshi në paraqitje"
 msgid "Includes:"
 msgstr "Përfshin:"
 
+msgid "Inclusive design"
+msgstr "Dizajn gjithëpërfshirës"
+
 msgid "Increase {label}"
 msgstr "Rrit {label}"
 
@@ -4328,6 +4400,12 @@ msgstr "Duke paraqitur faqet e dyfishta"
 msgid "Layout"
 msgstr "Paraqitje"
 
+msgid "Layout mirror failed"
+msgstr "Pasqyrimi i strukturës dështoi"
+
+msgid "Layout mirrored onto this section"
+msgstr "Struktura u pasqyrua në këtë seksion"
+
 msgid "Leading"
 msgstr "Hapësira ndër-rreshta"
 
@@ -4363,6 +4441,9 @@ msgstr "Legjenda"
 
 msgid "Lenient"
 msgstr "I butë"
+
+msgid "Let the agent choose"
+msgstr "Lëre agjentin të zgjedhë"
 
 msgid "Let the model write descriptive chapter titles based on each section's contents. Best for storybooks or when headings are missing."
 msgstr "Lëre modelin të shkruajë tituj përshkrues kapitujsh bazuar në përmbajtjen e çdo seksioni. Më i miri për libra tregimesh ose kur titujt mungojnë."
@@ -4854,6 +4935,15 @@ msgstr "i vogël"
 msgid "Minor"
 msgstr "I vogël"
 
+msgid "Mirror layout"
+msgstr "Pasqyro strukturën"
+
+msgid "Mirror layout from another section"
+msgstr "Pasqyro strukturën nga një seksion tjetër"
+
+msgid "Mirroring layout..."
+msgstr "Duke pasqyruar strukturën..."
+
 msgid "Mirrors the original book's activity layout as closely as possible."
 msgstr "Pasqyron sa më shumë të jetë e mundur strukturën e aktiviteteve të librit origjinal."
 
@@ -4931,6 +5021,9 @@ msgstr "Botime me shumë formate"
 
 msgid "multiple choice"
 msgstr "me zgjedhje të shumëfishta"
+
+msgid "Multiple choice"
+msgstr "Zgjedhje e shumëfishtë"
 
 msgid "Mute all from read-aloud"
 msgstr "Heshtni të gjitha nga leximi me zë"
@@ -5278,6 +5371,9 @@ msgstr "Nuk ka përmbajtje të gjeneruar për këtë seksion"
 msgid "No rendered pages yet. Run Storyboard first."
 msgstr "Nuk ka ende faqe të gjeneruara. Ekzekutoni Storyboard-in fillimisht."
 
+msgid "no rendering"
+msgstr "pa renderim"
+
 msgid "No review areas are currently flagged in this reviewer session."
 msgstr "Nuk ka zona të shënuara aktualisht në këtë sesion rishikimi."
 
@@ -5568,6 +5664,9 @@ msgstr "Hapni këtë seksion për të rregulluar modelin, nxitjen e gjykatësit,
 
 msgid "Open Validation"
 msgstr "Hapni Vërtetimin"
+
+msgid "Open-ended question"
+msgstr "Pyetje me përgjigje të hapur"
 
 msgid "Open-source license"
 msgstr "Licencë open-source"
@@ -6013,8 +6112,14 @@ msgstr "fotosintetik, duke kryer fotosintezo"
 msgid "Pick a family to attach to the book. It is downloaded when extraction runs and embedded in the final bundle."
 msgstr "Zgjidhni një familje për ta bashkëngjitur në libër. Ajo shkarkohet kur ekzekutohet nxjerrja dhe futet në paketën përfundimtare."
 
+msgid "Pick a page to see its sections."
+msgstr "Zgjidhni një faqe për të parë seksionet e saj."
+
 msgid "Pick a preset"
 msgstr "Zgjidhni një konfigurim paraprak"
+
+msgid "Pick a source section. Its layout will be applied to this section while keeping this section's content and data-ids."
+msgstr "Zgjidhni një seksion burimor. Struktura e tij do të zbatohet në këtë seksion duke ruajtur përmbajtjen dhe data-id-të e këtij seksioni."
 
 msgid "Pick from book"
 msgstr "Zgjidhni nga libri"
@@ -6317,6 +6422,9 @@ msgstr "në radhë"
 msgid "Queued"
 msgstr "Në radhë"
 
+msgid "Quick fill"
+msgstr "Plotësim i shpejtë"
+
 msgid "Quit anyway"
 msgstr "Dil gjithsesi"
 
@@ -6400,6 +6508,9 @@ msgstr "Ri-renderizo (redaktimet tuaja do të ruhen)"
 
 msgid "Re-render failed"
 msgstr "Ri-renderizimi dështoi"
+
+msgid "Re-render is disabled for custom activities — it would discard the interactive script. Use \"View HTML source\" or AI edit instead."
+msgstr "Ri-renderimi është i çaktivizuar për aktivitetet e personalizuara — do të hidhte poshtë skriptin interaktiv. Përdorni \"Shiko burimin HTML\" ose redaktimin me AI në vend të kësaj."
 
 msgid "Re-render section"
 msgstr "Ri-renderizo seksionin"
@@ -7753,6 +7864,9 @@ msgstr "Fazat mund të ri-ekzekutohen dhe çdo rezultat versionohet, kështu që
 msgid "Standard"
 msgstr "Standard"
 
+msgid "Standard built-in activity types"
+msgstr "Llojet standarde të integruara të aktiviteteve"
+
 msgid "Standard e-book for readers & libraries"
 msgstr "E-book standard për lexues dhe biblioteka"
 
@@ -8042,6 +8156,9 @@ msgstr "Renderimi i Shabllonit"
 
 msgid "Template-based"
 msgstr "Bazuar në shabllon"
+
+msgid "Templated"
+msgstr "Me shabllon"
 
 msgid "term"
 msgstr "term"
@@ -8385,6 +8502,12 @@ msgstr "Ky nuk është një projekt i vlefshëm i ADT Studio"
 msgid "This isn't a valid part file"
 msgstr "Ky nuk është një skedar i vlefshëm pjese"
 
+msgid "This merges a custom activity. The combined section is re-rendered, which will discard the custom activity's interactive grading script. To keep it, edit via \"View HTML source\" instead of merging."
+msgstr "Kjo bashkon një aktivitet të personalizuar. Seksioni i kombinuar ri-renderohet, gjë që do të hedhë poshtë skriptin interaktiv të vlerësimit të aktivitetit të personalizuar. Për ta ruajtur, redaktoni përmes \"Shiko burimin HTML\" në vend që të bashkoni."
+
+msgid "This merges an activity. The combined section is re-rendered, so the activity's layout and answer key may change."
+msgstr "Kjo bashkon një aktivitet. Seksioni i kombinuar ri-renderohet, kështu që struktura e aktivitetit dhe çelësi i përgjigjeve mund të ndryshojnë."
+
 msgid "This model already has prompt files for every base prompt."
 msgstr "Ky model tashmë ka skedarë prompti për çdo prompt bazë."
 
@@ -8657,6 +8780,9 @@ msgstr "Trajton çdo faqe si një seksion të vetëm."
 
 msgid "Tries hard to match the original book design."
 msgstr "Përpiqet fort të përputhet me dizajnin origjinal të librit."
+
+msgid "True / false"
+msgstr "E vërtetë / e gabuar"
 
 msgid "Try a different search or filter"
 msgstr "Provo një kërkim ose filtër tjetër"
@@ -9062,6 +9188,9 @@ msgstr "video"
 
 msgid "Videos"
 msgstr "Video"
+
+msgid "View"
+msgstr "Shiko"
 
 #~ msgid "View all changes"
 #~ msgstr "Shiko të gjitha ndryshimet"

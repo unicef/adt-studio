@@ -457,3 +457,41 @@ describe("two_column_story.liquid", () => {
     expect(result.html).toContain('data-id="pg001_im001"')
   })
 })
+
+describe("buildRenderContext image availability", () => {
+  function section(nodes: ContentNodeData[]): PageSectioningSection {
+    return {
+      sectionId: "pg008_sec001",
+      sectionType: "images_only",
+      nodes,
+      backgroundColor: "#ffffff",
+      textColor: "#000000",
+      pageNumber: 8,
+      isPruned: false,
+    }
+  }
+
+  it("drops image nodes whose bytes aren't available", () => {
+    // Mirrors the stale-sectioning bug: the tree references `..._seg003_v1`
+    // but image-filtering superseded it with the crop `..._seg003_v1_crop1`,
+    // so only the crop has bytes in the images map. The orphaned node must be
+    // dropped, not emitted as a base64-less ref (which crashes the prompt).
+    const ctx = buildRenderContext(
+      section([
+        imageNode("pg008_n1", "pg008_im001_seg001_v1"),
+        imageNode("pg008_n2", "pg008_im001_seg003_v1"), // orphaned — no bytes
+      ]),
+      new Map([
+        ["pg008_im001_seg001_v1", { base64: "aaa" }],
+        ["pg008_im001_seg003_v1_crop1", { base64: "bbb" }],
+      ]),
+      "book",
+    )
+
+    expect(ctx.image_refs.map((r) => r.image_id)).toEqual([
+      "pg008_im001_seg001_v1",
+    ])
+    // Every emitted ref carries real bytes — never an undefined payload.
+    expect(ctx.image_refs.every((r) => Boolean(r.image_base64))).toBe(true)
+  })
+})

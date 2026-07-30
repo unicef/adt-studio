@@ -42,6 +42,7 @@ import { initializeOpenEndedActivity } from "@/features/activity/runtime/activit
 import { initializeTrueFalseActivity } from "@/features/activity/runtime/activity-true-false"
 import { initializeSortingActivity } from "@/features/activity/runtime/activity-sorting"
 import { initializeMatchingActivity } from "@/features/activity/runtime/activity-matching"
+import { initializeCustomActivity } from "@/features/activity/runtime/activity-custom"
 
 const store = getDefaultStore()
 
@@ -119,6 +120,11 @@ async function bootActivities(): Promise<void> {
   initializeTrueFalseActivity()
   initializeSortingActivity()
   initializeMatchingActivity()
+  // Custom (`activity_custom_*`) sections register their grader through
+  // window.adtRegisterCustomActivity. injectActivitiesBundle ships this bundle
+  // to those pages too, so it must drain the buffer here as well — otherwise
+  // Submit renders but stays disabled in EPUB/WebPub exports.
+  initializeCustomActivity()
 }
 
 function ensureContainer(id: string): HTMLElement {

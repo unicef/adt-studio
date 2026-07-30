@@ -14,6 +14,7 @@ import {
   rewriteImageUrls,
   convertLatexToMathml,
   convertLatexString,
+  containsMathContent,
 } from "../packaging/web.js"
 import { packageWebpub, nestTocEntries, injectActivitiesBundle } from "../packaging/webpub.js"
 import { deriveQuizPalette } from "../quiz-palette.js"
@@ -244,6 +245,44 @@ describe("renderPageHtml", () => {
     expect(html).toContain("base.bundle.min.js")
     expect(html).not.toContain("offline-preloader.js")
     expect(html).not.toContain("scorm.js")
+  })
+
+  it("injects the custom-activity registration stub in <head> for activity_custom pages", () => {
+    const html = renderPageHtml({
+      content:
+        '<section data-section-type="activity_custom_jigsaw" data-id="pg008_s2"><div>tiles</div><script>window.adtRegisterCustomActivity(section,{validate:()=>true});</script></section>',
+      language: "en",
+      sectionId: "pg008",
+      pageTitle: "Test",
+      pageIndex: 8,
+      hasMath: false,
+      bundleVersion: "1",
+    })
+
+    // The stub defines the registration hook and a pending queue...
+    expect(html).toContain("window.adtRegisterCustomActivity=function")
+    expect(html).toContain("__adtPendingCustomActivities")
+    // ...and it MUST live in <head>, before the section's parse-time script runs.
+    const headEnd = html.indexOf("</head>")
+    const stubAt = html.indexOf("__adtPendingCustomActivities")
+    const sectionAt = html.indexOf("activity_custom_jigsaw")
+    expect(stubAt).toBeGreaterThan(0)
+    expect(stubAt).toBeLessThan(headEnd)
+    expect(stubAt).toBeLessThan(sectionAt)
+  })
+
+  it("does not inject the custom-activity stub for non-custom pages", () => {
+    const html = renderPageHtml({
+      content: '<section data-section-type="activity_multiple_choice"><p>Pick one</p></section>',
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Test",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+    })
+
+    expect(html).not.toContain("__adtPendingCustomActivities")
   })
 
   it("does not reference woff2 fonts directly (they are declared in fonts.css)", () => {
@@ -1985,6 +2024,48 @@ describe("convertLatexToMathml", () => {
     const result = convertLatexToMathml("<p>$a$ and $b$</p>")
     const mathCount = (result.match(/<math/g) ?? []).length
     expect(mathCount).toBe(2)
+  })
+
+  it("leaves a custom activity's inline <script> byte-identical", () => {
+    // A grading script's regex literals (\( … \)) and template literals ($…$)
+    // look exactly like delimited LaTeX. Rewriting them into MathML would turn
+    // the script into a SyntaxError in the packaged book.
+    const script =
+      "<script>const re = /\\(([^)]+)\\)/; const msg = `${correct}/${total} right`;</script>"
+    const result = convertLatexToMathml(`<section><p>Sort them</p>${script}</section>`)
+    expect(result).toContain(script)
+    expect(result).not.toContain("<math")
+  })
+
+  it("still converts math outside a script in the same section", () => {
+    const script = "<script>const re = /\\(x\\)/;</script>"
+    const result = convertLatexToMathml(`<section><p>The value $x^2$ here</p>${script}</section>`)
+    expect(result).toContain("<math")
+    expect(result).toContain(script)
+  })
+})
+
+describe("containsMathContent", () => {
+  it("ignores $ and \\( that only appear inside an inline script", () => {
+    const html =
+      "<section><p>Sort the animals</p>" +
+      "<script>const msg = `${n}/${total}`; const re = /\\(a\\)/;</script></section>"
+    expect(containsMathContent(html)).toBe(false)
+  })
+
+  it("ignores LaTeX-looking commands inside a <style> block", () => {
+    const html = "<section><p>Plain text</p><style>.x{content:'\\\\frac{1}{2}'}</style></section>"
+    expect(containsMathContent(html)).toBe(false)
+  })
+
+  it("still detects math in markup alongside a script", () => {
+    const html =
+      "<section><p>The value $x^2$ here</p><script>const a = 1;</script></section>"
+    expect(containsMathContent(html)).toBe(true)
+  })
+
+  it("still detects undelimited LaTeX in markup", () => {
+    expect(containsMathContent('<p data-id="t1">6\\ \\text{cubos}</p>')).toBe(true)
   })
 
   it("converts undelimited LaTeX with \\text{} in text nodes", () => {

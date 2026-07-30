@@ -22,6 +22,7 @@
     { "path": "packages/llm" },
     { "path": "packages/storage" },
     { "path": "packages/pipeline" },
+    { "path": "packages/agents" },
     { "path": "apps/api" },
     { "path": "apps/studio" }
   ]
