@@ -40,7 +40,7 @@ describe("resolveEffectiveModelId", () => {
     expect(resolveEffectiveModelId("openai:gpt-5.4", {
       openaiApiKey: "openai-key",
       defaultModelId: "openai:gpt-4.1",
-      explicitModelIds: ["openai:gpt-5.4"],
-    })).toBe("openai:gpt-5.4")
+      explicitModelIds: { "glossary": "openai:gpt-5.4" },
+    }, "glossary")).toBe("openai:gpt-5.4")
   })
 })

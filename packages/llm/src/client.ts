@@ -23,8 +23,8 @@ export interface LLMProviderCredentials {
   customBaseUrl?: string
   customApiKey?: string
   defaultModelId?: string
-  /** Model IDs explicitly selected for individual steps. */
-  explicitModelIds?: string[]
+  /** Model IDs explicitly selected for individual steps (step name → model ID). */
+  explicitModelIds?: Record<string, string>
 }
 
 const FALLBACK_MODELS = {
@@ -38,6 +38,7 @@ const FALLBACK_MODELS = {
 export function resolveEffectiveModelId(
   modelId: string,
   credentials?: LLMProviderCredentials,
+  stepName?: string,
 ): string {
   if (!credentials) return modelId
   const requestedProvider = modelId.includes(":") ? modelId.slice(0, modelId.indexOf(":")) : "openai"
@@ -50,7 +51,7 @@ export function resolveEffectiveModelId(
   if (available.length === 0 || available.includes(requestedProvider as keyof typeof FALLBACK_MODELS)) {
     if (
       credentials.defaultModelId &&
-      !credentials.explicitModelIds?.includes(modelId)
+      !(stepName && credentials.explicitModelIds?.[stepName])
     ) {
       const defaultProvider = credentials.defaultModelId.includes(":")
         ? credentials.defaultModelId.slice(0, credentials.defaultModelId.indexOf(":"))
@@ -79,6 +80,8 @@ export interface CreateLLMModelOptions {
   credentials?: LLMProviderCredentials
   /** Console log level. Defaults to "info" (show all). Use "silent" to suppress. */
   logLevel?: LogLevel
+  /** Step name used to look up explicit model overrides in credentials. */
+  stepName?: string
 }
 
 /**
@@ -92,7 +95,7 @@ export interface CreateLLMModelOptions {
  */
 export function createLLMModel(options: CreateLLMModelOptions): LLMModel {
   const { cacheDir, promptEngine, onLog, rateLimiter, credentials, logLevel } = options
-  const modelId = resolveEffectiveModelId(options.modelId, credentials)
+  const modelId = resolveEffectiveModelId(options.modelId, credentials, options.stepName)
   const log = createLogger(logLevel)
 
   return {

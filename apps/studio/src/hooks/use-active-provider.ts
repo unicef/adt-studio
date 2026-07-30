@@ -149,15 +149,6 @@ export function useActiveProvider(): ActiveProviderState {
     [persisted, configuredSet]
   )
 
-  // Property 3: If persisted value references an unconfigured provider, clear it
-  // and update to the resolved default
-  useEffect(() => {
-    if (persisted && !configuredSet.has(persisted)) {
-      // Persisted provider is no longer configured — clear stale value
-      setPersisted(resolvedType ?? "")
-    }
-  }, [persisted, configuredSet, resolvedType, setPersisted])
-
   // Build allProviders list
   const allProviders: ProviderInfo[] = useMemo(
     () =>

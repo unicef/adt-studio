@@ -26,7 +26,6 @@ import { usePackageAdtStatus } from "@/hooks/use-books"
 import { useSignLanguageVideos } from "@/hooks/use-sign-language-videos"
 import { StepProgressRing } from "./StepProgressRing"
 import { StoryboardIndex } from "./StoryboardIndex"
-import { ProviderSelector } from "./ProviderSelector"
 import { useSectionNav } from "@/routes/books.$label"
 import { usePages, usePageImage } from "@/hooks/use-pages"
 import {
@@ -175,22 +174,22 @@ export function StageSidebar({
     <div
       key="selected-model"
       data-testid="selected-model-card"
-      className="mb-1 ml-[42px] mr-2 flex min-h-10 items-center gap-2 overflow-hidden rounded-lg border bg-muted/40 px-2 py-1.5"
+      className="mb-1 mx-2 flex min-h-8 items-start gap-2 overflow-hidden rounded-md border border-border/60 bg-muted/30 px-2.5 py-1.5"
     >
-      <Sparkles className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+      <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden />
       <div className={cn(
-        "min-w-0 whitespace-nowrap transition-opacity duration-150",
-        railCollapsed ? "opacity-0 delay-150 group-hover/rail:opacity-100" : "opacity-100",
-      )}>
-        <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-          <Trans>Selected model</Trans>
+        "min-w-0 flex-1 whitespace-nowrap transition-opacity duration-150",
+        railCollapsed ? "opacity-0 pointer-events-none delay-150 group-hover/rail:opacity-100 group-hover/rail:pointer-events-auto" : "opacity-100",
+      )} inert={railCollapsed || undefined}>
+        <div className="text-[10px] font-medium text-muted-foreground">
+          {activeProvider.charAt(0).toUpperCase() + activeProvider.slice(1)}
         </div>
-        <div className="mt-1 min-w-0">
-          <ProviderSelector />
+        <div className="truncate text-xs font-mono text-foreground/80">
+          {effectiveStepModel ?? defaultModel}
         </div>
         {stepModelOverride && (
-          <div className="mt-0.5 truncate text-[10px] text-amber-700 dark:text-amber-400" title={stepModelOverride}>
-            <Trans>This step uses</Trans> <span className="font-mono">{stepModelOverride}</span>
+          <div className="mt-0.5 truncate text-[10px] text-amber-600 dark:text-amber-400" title={stepModelOverride}>
+            <Trans>Step override: {stepModelOverride}</Trans>
           </div>
         )}
       </div>

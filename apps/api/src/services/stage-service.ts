@@ -46,7 +46,7 @@ export interface StageRunOptions {
   customBaseUrl?: string
   customApiKey?: string
   defaultModelId?: string
-  explicitModelIds?: string[]
+  explicitModelIds?: Record<string, string>
   azureSpeechKey?: string
   azureSpeechRegion?: string
   geminiApiKey?: string

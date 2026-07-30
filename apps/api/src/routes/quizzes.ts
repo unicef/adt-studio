@@ -132,16 +132,20 @@ export function createQuizRoutes(
     const { label } = c.req.param()
     const safeLabel = safeParseLabel(label)
 
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
-      throw new HTTPException(400, { message: "Missing X-OpenAI-Key header" })
+    const apiKey = c.req.header("X-OpenAI-Key") || undefined
+    const anthropicApiKey = c.req.header("X-Anthropic-API-Key") || undefined
+    const googleApiKey = c.req.header("X-Google-API-Key") || undefined
+    const customBaseUrl = c.req.header("X-Custom-Base-URL") || undefined
+    const customApiKey = c.req.header("X-Custom-API-Key") || undefined
+    if (!apiKey && !anthropicApiKey && !googleApiKey && !customBaseUrl) {
+      throw new HTTPException(400, { message: "At least one LLM provider API key is required." })
     }
     const credentials = {
       openaiApiKey: apiKey,
-      anthropicApiKey: c.req.header("X-Anthropic-API-Key") || undefined,
-      googleApiKey: c.req.header("X-Google-API-Key") || undefined,
-      customBaseUrl: c.req.header("X-Custom-Base-URL") || undefined,
-      customApiKey: c.req.header("X-Custom-API-Key") || undefined,
+      anthropicApiKey,
+      googleApiKey,
+      customBaseUrl,
+      customApiKey,
     }
 
     const body = await c.req.json()

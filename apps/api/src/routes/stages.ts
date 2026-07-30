@@ -76,12 +76,16 @@ export function createStageRoutes(
     const customApiKey = c.req.header("X-Custom-API-Key") || undefined
     const defaultModelId = c.req.header("X-Default-LLM-Model") || undefined
     const rawExplicitModels = c.req.header("X-Step-Model-Overrides")
-    let explicitModelIds: string[] | undefined
+    let explicitModelIds: Record<string, string> | undefined
     if (rawExplicitModels) {
       try {
         const parsedModels: unknown = JSON.parse(rawExplicitModels)
-        if (Array.isArray(parsedModels)) {
-          explicitModelIds = parsedModels.filter((model): model is string => typeof model === "string")
+        if (parsedModels && typeof parsedModels === "object" && !Array.isArray(parsedModels)) {
+          const obj: Record<string, string> = {}
+          for (const [key, val] of Object.entries(parsedModels as Record<string, unknown>)) {
+            if (typeof val === "string") obj[key] = val
+          }
+          if (Object.keys(obj).length > 0) explicitModelIds = obj
         }
       } catch {
         throw new HTTPException(400, { message: "Invalid step model overrides header." })

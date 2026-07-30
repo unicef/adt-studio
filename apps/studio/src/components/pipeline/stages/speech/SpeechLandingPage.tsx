@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useRef } from "react"
 import { AlertCircle, Pencil, Settings2 } from "lucide-react"
 import { Link } from "@tanstack/react-router"
 import { Trans, useLingui } from "@lingui/react/macro"
@@ -63,6 +63,8 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   const firstAvailableSpeechProvider: ProviderKey =
     hasOpenAIKey ? "openai" : hasAzureKey ? "azure" : hasGeminiKey ? "gemini" : "openai"
 
+  const providerInitRef = useRef(false)
+
   useEffect(() => {
     if (!activeConfigData) return
     const m = activeConfigData.merged as Record<string, unknown>
@@ -77,8 +79,10 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
       speech.default_provider === "gemini"
     ) {
       setProvider(speech.default_provider)
-    } else {
+      providerInitRef.current = true
+    } else if (!providerInitRef.current) {
       setProvider(firstAvailableSpeechProvider)
+      providerInitRef.current = true
     }
   }, [activeConfigData, firstAvailableSpeechProvider])
 
@@ -101,20 +105,24 @@ export function SpeechLandingPage({ bookLabel }: { bookLabel: string }) {
   }
 
   const handleRun = async () => {
-    if (!providerKeyAvailable[provider] || !translateReady || status.isRunning) return
+    if (!providerKeyAvailable[provider] || !translateReady || status.isRunning || updateConfig.isPending) return
     const base = bookConfigData?.config ?? {}
     const existingSpeech = (base.speech ?? {}) as Record<string, unknown>
     if (existingSpeech.default_provider !== provider) {
-      await updateConfig.mutateAsync({
-        label: bookLabel,
-        config: {
-          ...base,
-          speech: {
-            ...existingSpeech,
-            default_provider: provider,
+      try {
+        await updateConfig.mutateAsync({
+          label: bookLabel,
+          config: {
+            ...base,
+            speech: {
+              ...existingSpeech,
+              default_provider: provider,
+            },
           },
-        },
-      })
+        })
+      } catch {
+        return
+      }
     }
     queueRun({ fromStage: "speech", toStage: "speech", apiKey, viewAfter: true })
   }

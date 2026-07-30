@@ -199,7 +199,7 @@ export interface StageRunProviderCredentials {
   azure?: AzureCredentials
   geminiApiKey?: string
   defaultModelId?: string
-  explicitModelIds?: string[]
+  explicitModelIds?: Record<string, string>
 }
 
 export interface RunStagesOptions {
@@ -238,7 +238,7 @@ function buildApiHeaders(
     headers["X-Gemini-API-Key"] = providerCredentials.geminiApiKey
   }
   if (providerCredentials?.defaultModelId) headers["X-Default-LLM-Model"] = providerCredentials.defaultModelId
-  if (providerCredentials?.explicitModelIds?.length) {
+  if (providerCredentials?.explicitModelIds && Object.keys(providerCredentials.explicitModelIds).length > 0) {
     headers["X-Step-Model-Overrides"] = JSON.stringify(providerCredentials.explicitModelIds)
   }
   return headers

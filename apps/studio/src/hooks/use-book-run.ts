@@ -23,24 +23,18 @@ import { useApiKey } from "./use-api-key"
 import { useBookConfig } from "./use-book-config"
 import { useActiveProvider, type ProviderType } from "./use-active-provider"
 
-function collectExplicitModelIds(value: unknown): string[] {
-  const models = new Set<string>()
-  const visit = (current: unknown) => {
-    if (!current || typeof current !== "object") return
-    if (Array.isArray(current)) {
-      current.forEach(visit)
-      return
-    }
-    const record = current as Record<string, unknown>
+function collectExplicitModelIds(value: unknown): Record<string, string> {
+  const models: Record<string, string> = {}
+  if (!value || typeof value !== "object" || Array.isArray(value)) return models
+  const root = value as Record<string, unknown>
+  for (const [key, section] of Object.entries(root)) {
+    if (!section || typeof section !== "object" || Array.isArray(section)) continue
+    const record = section as Record<string, unknown>
     if (record.model_override === true && typeof record.model === "string") {
-      models.add(record.model)
-    }
-    for (const child of Object.values(record)) {
-      visit(child)
+      models[key] = record.model
     }
   }
-  visit(value)
-  return [...models]
+  return models
 }
 
 // ---------------------------------------------------------------------------

@@ -496,7 +496,7 @@ export function ApiKeyDialog({
           </div>
         )}
 
-        {tab !== "azure" && tab !== "custom" && <div className="space-y-2 rounded-md border p-3">
+        {tab !== "azure" && <div className="space-y-2 rounded-md border p-3">
           <Label><Trans>Default AI model</Trans></Label>
           <ModelSelect
             value={defaultModelDrafts[tab]}

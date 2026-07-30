@@ -1151,10 +1151,13 @@ export function createPageRoutes(
     }
     const { sectionIndex } = queryParsed.data
 
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
+    const apiKey = c.req.header("X-OpenAI-Key") || undefined
+    const anthropicApiKey = c.req.header("X-Anthropic-API-Key") || undefined
+    const googleApiKey = c.req.header("X-Google-API-Key") || undefined
+    const customBaseUrl = c.req.header("X-Custom-Base-URL") || undefined
+    if (!apiKey && !anthropicApiKey && !googleApiKey && !customBaseUrl) {
       throw new HTTPException(400, {
-        message: "Missing X-OpenAI-Key header",
+        message: "At least one LLM provider API key is required.",
       })
     }
 
@@ -1218,7 +1221,11 @@ export function createPageRoutes(
             promptsDir,
             webAssetsDir,
             configPath,
-            apiKey,
+            apiKey: apiKey ?? "",
+            anthropicApiKey,
+            googleApiKey,
+            customBaseUrl,
+            defaultModelId: c.req.header("X-Default-LLM-Model") || undefined,
           })
         },
         { pageId, url: `/books/${safeLabel}/storyboard/${pageId}` }
@@ -1236,7 +1243,11 @@ export function createPageRoutes(
       promptsDir,
       webAssetsDir,
       configPath,
-      apiKey,
+      apiKey: apiKey ?? "",
+      anthropicApiKey,
+      googleApiKey,
+      customBaseUrl,
+      defaultModelId: c.req.header("X-Default-LLM-Model") || undefined,
     })
 
     return c.json(result)
@@ -1252,9 +1263,12 @@ export function createPageRoutes(
       throw new HTTPException(400, { message: "Invalid section index" })
     }
 
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
-      throw new HTTPException(400, { message: "Missing X-OpenAI-Key header" })
+    const apiKey = c.req.header("X-OpenAI-Key") || undefined
+    const anthropicApiKey = c.req.header("X-Anthropic-API-Key") || undefined
+    const googleApiKey = c.req.header("X-Google-API-Key") || undefined
+    const customBaseUrl = c.req.header("X-Custom-Base-URL") || undefined
+    if (!apiKey && !anthropicApiKey && !googleApiKey && !customBaseUrl) {
+      throw new HTTPException(400, { message: "At least one LLM provider API key is required." })
     }
 
     const body = await c.req.json()
@@ -1281,7 +1295,11 @@ export function createPageRoutes(
             promptsDir,
             webAssetsDir,
             configPath,
-            apiKey,
+            apiKey: apiKey ?? "",
+            anthropicApiKey,
+            googleApiKey,
+            customBaseUrl,
+            defaultModelId: c.req.header("X-Default-LLM-Model") || undefined,
           })
 
           // Save the edited HTML as a new rendering version
@@ -1319,7 +1337,11 @@ export function createPageRoutes(
       promptsDir,
       webAssetsDir,
       configPath,
-      apiKey,
+      apiKey: apiKey ?? "",
+      anthropicApiKey,
+      googleApiKey,
+      customBaseUrl,
+      defaultModelId: c.req.header("X-Default-LLM-Model") || undefined,
     })
 
     return c.json(result)
@@ -1947,9 +1969,12 @@ export function createPageRoutes(
         return c.json({ error: `Book not found: ${safeLabel}` }, 404)
       }
 
-      const apiKey = c.req.header("X-OpenAI-Key")
-      if (!apiKey) {
-        return c.json({ error: "Missing X-OpenAI-Key header" }, 400)
+      const apiKey = c.req.header("X-OpenAI-Key") || undefined
+      const anthropicApiKey = c.req.header("X-Anthropic-API-Key") || undefined
+      const googleApiKey = c.req.header("X-Google-API-Key") || undefined
+      const customBaseUrl = c.req.header("X-Custom-Base-URL") || undefined
+      if (!apiKey && !anthropicApiKey && !googleApiKey && !customBaseUrl) {
+        return c.json({ error: "At least one LLM provider API key is required." }, 400)
       }
 
       const pageId = c.req.query("pageId")
@@ -2005,7 +2030,7 @@ export function createPageRoutes(
           desc,
           async () => {
             return await executeAiImageGeneration({
-              safeLabel, bookDir, dbPath, apiKey, pageId,
+              safeLabel, bookDir, dbPath, apiKey: apiKey ?? "", pageId,
               prompt, referenceImageId, targetImageId,
               style, imageType, styleImageId, promptsDir,
               sectionIndex, mode, booksDir,
@@ -2018,7 +2043,7 @@ export function createPageRoutes(
 
       // Fallback: run synchronously
       const result = await executeAiImageGeneration({
-        safeLabel, bookDir, dbPath, apiKey, pageId,
+        safeLabel, bookDir, dbPath, apiKey: apiKey ?? "", pageId,
         prompt, referenceImageId, targetImageId,
         style, imageType, styleImageId, promptsDir,
         sectionIndex, mode, booksDir,
@@ -2225,13 +2250,16 @@ export function createPageRoutes(
     }
     validateImageId(pageId)
 
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
-      return c.json({ error: "Missing X-OpenAI-Key header" }, 400)
+    const apiKey = c.req.header("X-OpenAI-Key") || undefined
+    const anthropicApiKey = c.req.header("X-Anthropic-API-Key") || undefined
+    const googleApiKey = c.req.header("X-Google-API-Key") || undefined
+    const customBaseUrl = c.req.header("X-Custom-Base-URL") || undefined
+    if (!apiKey && !anthropicApiKey && !googleApiKey && !customBaseUrl) {
+      return c.json({ error: "At least one LLM provider API key is required." }, 400)
     }
 
     const previousKey = process.env.OPENAI_API_KEY
-    process.env.OPENAI_API_KEY = apiKey
+    process.env.OPENAI_API_KEY = apiKey ?? ""
 
     const storage = createBookStorage(safeLabel, booksDir)
     try {
@@ -2403,9 +2431,12 @@ export function createPageRoutes(
     const { label } = c.req.param()
     const safeLabel = parseBookLabel(label)
 
-    const apiKey = c.req.header("X-OpenAI-Key")
-    if (!apiKey) {
-      throw new HTTPException(400, { message: "Missing X-OpenAI-Key header" })
+    const apiKey = c.req.header("X-OpenAI-Key") || undefined
+    const anthropicApiKey = c.req.header("X-Anthropic-API-Key") || undefined
+    const googleApiKey = c.req.header("X-Google-API-Key") || undefined
+    const customBaseUrl = c.req.header("X-Custom-Base-URL") || undefined
+    if (!apiKey && !anthropicApiKey && !googleApiKey && !customBaseUrl) {
+      throw new HTTPException(400, { message: "At least one LLM provider API key is required." })
     }
 
     const body = await c.req.json()
@@ -2453,7 +2484,7 @@ export function createPageRoutes(
 
     // Set API key for LLM
     const previousKey = process.env.OPENAI_API_KEY
-    process.env.OPENAI_API_KEY = apiKey
+    process.env.OPENAI_API_KEY = apiKey ?? ""
 
     try {
       const bookPromptsDir = path.join(bookDir, "prompts")

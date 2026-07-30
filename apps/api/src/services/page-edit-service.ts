@@ -19,6 +19,11 @@ export interface ReRenderOptions {
   webAssetsDir?: string
   configPath?: string
   apiKey: string
+  anthropicApiKey?: string
+  googleApiKey?: string
+  customBaseUrl?: string
+  customApiKey?: string
+  defaultModelId?: string
 }
 
 export interface ReRenderResult {
@@ -38,6 +43,11 @@ export interface AiEditSectionOptions {
   webAssetsDir?: string
   configPath?: string
   apiKey: string
+  anthropicApiKey?: string
+  googleApiKey?: string
+  customBaseUrl?: string
+  customApiKey?: string
+  defaultModelId?: string
 }
 
 export interface AiEditSectionResult {
@@ -48,11 +58,11 @@ export interface AiEditSectionResult {
 export async function reRenderPage(
   options: ReRenderOptions
 ): Promise<ReRenderResult> {
-  const { label, pageId, sectionIndex, prompt, booksDir, promptsDir, webAssetsDir, configPath, apiKey } = options
+  const { label, pageId, sectionIndex, prompt, booksDir, promptsDir, webAssetsDir, configPath, apiKey, anthropicApiKey, googleApiKey, customBaseUrl, customApiKey, defaultModelId } = options
 
-  // Set API key
+  // Set API key for legacy global provider fallback
   const previousKey = process.env.OPENAI_API_KEY
-  process.env.OPENAI_API_KEY = apiKey
+  if (apiKey) process.env.OPENAI_API_KEY = apiKey
 
   const storage = createBookStorage(label, booksDir)
   let visualRefinement: VisualRefinementDeps | undefined
@@ -123,6 +133,14 @@ export async function reRenderPage(
         cacheDir,
         promptEngine,
         onLog: (entry) => storage.appendLlmLog(entry),
+        credentials: {
+          openaiApiKey: apiKey || undefined,
+          anthropicApiKey,
+          googleApiKey,
+          customBaseUrl,
+          customApiKey,
+          defaultModelId,
+        },
       })
       renderModels.set(modelId, model)
       return model
@@ -250,10 +268,10 @@ export async function reRenderPage(
 export async function aiEditSection(
   options: AiEditSectionOptions
 ): Promise<AiEditSectionResult> {
-  const { label, pageId, sectionIndex, instruction, currentHtml: providedHtml, booksDir, promptsDir, webAssetsDir, configPath, apiKey } = options
+  const { label, pageId, sectionIndex, instruction, currentHtml: providedHtml, booksDir, promptsDir, webAssetsDir, configPath, apiKey, anthropicApiKey, googleApiKey, customBaseUrl, customApiKey, defaultModelId } = options
 
   const previousKey = process.env.OPENAI_API_KEY
-  process.env.OPENAI_API_KEY = apiKey
+  if (apiKey) process.env.OPENAI_API_KEY = apiKey
 
   const storage = createBookStorage(label, booksDir)
 
@@ -293,6 +311,14 @@ export async function aiEditSection(
       cacheDir,
       promptEngine,
       onLog: (entry) => storage.appendLlmLog(entry),
+      credentials: {
+        openaiApiKey: apiKey || undefined,
+        anthropicApiKey,
+        googleApiKey,
+        customBaseUrl,
+        customApiKey,
+        defaultModelId,
+      },
     })
 
     // Gather the imageIds referenced in the HTML so screenshots render their
