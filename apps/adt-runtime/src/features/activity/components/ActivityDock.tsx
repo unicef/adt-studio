@@ -1,6 +1,7 @@
 import { DockActivityActions } from "./DockActivityActions";
 import { cn } from "@/shared/lib/utils";
 import { useTranslation } from "@/features/language/hooks/useTranslation";
+import { useEffect } from "react";
 import { useAtomValue } from "jotai";
 import {
   activityModeAtom,
@@ -22,18 +23,21 @@ export function ActivityDock() {
   const topClassname = embed ? "top-3" : isCompact ? "top-21" : "top-18";
   const bottomClassname = embed ? "bottom-3" : isCompact ? "bottom-21" : "bottom-18";
 
-  if (!activityMode) return null;
+  // The pill only shows when there's an activity AND a Submit/Next button.
+  // Standalone quizzes hide the button (they validate on click); the storyboard
+  // preview hides the navigating "Next" (its own arrows advance).
+  const showPill =
+    activityMode && submitVisible && !(embed && submitState === "next");
 
-  // The dock only hosts the Submit/Next button. Standalone quizzes hide that
-  // button (they validate on click), so drop the whole pill rather than leave
-  // an empty floating container.
-  if (!submitVisible) return null;
+  // Reserve extra bottom (or top) space so the last line of a quiz isn't
+  // covered by the pill, which floats above the dock band.
+  useEffect(() => {
+    if (embed || !showPill) return;
+    document.body.setAttribute("data-activity-dock", isTop ? "top" : "bottom");
+    return () => document.body.removeAttribute("data-activity-dock");
+  }, [embed, showPill, isTop]);
 
-  // Storyboard preview (`?embed=1`): once the activity is answered correctly the
-  // button would flip to a navigating "Next", but advancing only swaps the
-  // iframe while the storyboard chrome stays put. Hide the dock instead — the
-  // storyboard's own arrows move between items. The full reader keeps "Next".
-  if (embed && submitState === "next") return null;
+  if (!showPill) return null;
 
 
   return (
