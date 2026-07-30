@@ -119,7 +119,9 @@ export function DockMenu({ className }: DockMenuProps) {
       label: t("sign-language-label") || "Sign language",
       icon: Hand,
       active: signLanguage,
-      keepOpen: true,
+      // Close the Tools sheet on toggle: turning sign language on reveals the
+      // draggable video overlay, and a still-open sheet backdrop would sit on
+      // top of it and block interaction.
       onSelect: toggleSignLanguage,
     });
   }
