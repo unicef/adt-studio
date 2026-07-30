@@ -7,14 +7,15 @@ interface ContainerProps extends React.HTMLAttributes<HTMLDivElement> { }
 
 function Container({ children, className, ...props }: ContainerProps) {
   const isMobile = useIsMobile()
-  // Mobile: full-width, height-flexible content. The parent bottom sheet owns
-  // the max-height + overflow cap; `min-h-0` here lets a panel's inner
-  // `flex-1 min-h-0` ScrollArea shrink and scroll instead of overflowing.
-  // Desktop: the fixed anchored-popover sizing. Branching on the hook (rather
-  // than `sm:` variants) lets panels that override width/height — Audio
-  // `w-fit`, Language `h-auto` — keep winning via cn/twMerge in BOTH modes.
+  // Mobile: full width + a DEFINITE height so panels' inner scroll regions
+  // resolve. Percentage/flex height chains (e.g. TOC/Glossary use a `h-full`
+  // ScrollArea inside tabs) only bound against a definite ancestor — desktop
+  // gets that from the `clamp()` height, so mobile needs one too, or the list
+  // overflows the sheet and can't be scrolled. Panels that want to hug their
+  // content (Audio, Language) override with `h-auto` via cn/twMerge.
+  // Desktop: the fixed anchored-popover sizing.
   const base = isMobile
-    ? "w-full max-w-none p-4 min-h-0 flex flex-col gap-2"
+    ? "w-full max-w-none p-4 h-[72dvh] flex flex-col gap-2"
     : "w-[var(--dock-width,30rem)] max-w-xl p-4 h-[clamp(20rem,calc(100vh-7rem),600px)] flex flex-col gap-2"
   return (
     <div className={cn(base, className)} {...props}>
