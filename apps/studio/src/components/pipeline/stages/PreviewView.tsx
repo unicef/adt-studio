@@ -18,6 +18,8 @@ import {
   normalizeAccessibilityHref,
   summarizeAccessibilityPage,
 } from "@/lib/accessibility-summary"
+import { createPortal } from "react-dom"
+import { useStepHeader } from "@/components/pipeline/components/StepViewRouter"
 import { PreviewAccessibilityCard } from "./PreviewAccessibilityCard"
 import { PreviewValidationCard } from "./PreviewValidationCard"
 import { useDeviceView, DEVICE_WIDTHS } from "./storyboard/components/style-editor/device-breakpoint"
@@ -43,6 +45,9 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const ranRef = useRef(false)
   const { panelOpen } = useDebugPanelState()
+  // Render the device selector into the step's top bar (via portal) instead of
+  // floating it over the preview.
+  const { headerSlotEl } = useStepHeader()
   // Shares the same localStorage scope as the storyboard editor
   // (`adt-storyboard-device-view:<bookLabel>`), so the viewport selected while
   // editing is inherited here — mobile/tablet responsive styles preview at the
@@ -362,14 +367,15 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
           )}
         </div>
 
-        <div className="absolute left-4 top-4 z-30 rounded-2xl border bg-background/95 p-1 shadow-xl backdrop-blur-sm supports-[backdrop-filter]:bg-background/90">
-          <ViewportToggle
-            variant="surface"
-            value={deviceView}
-            onChange={setDeviceView}
-            currentWidth={isDesktop ? undefined : Math.round(frame.screenWidth * scale)}
-          />
-        </div>
+        {headerSlotEl &&
+          createPortal(
+            <ViewportToggle
+              value={deviceView}
+              onChange={setDeviceView}
+              currentWidth={isDesktop ? undefined : Math.round(frame.screenWidth * scale)}
+            />,
+            headerSlotEl,
+          )}
 
         <PreviewAccessibilityCard
           label={bookLabel}
