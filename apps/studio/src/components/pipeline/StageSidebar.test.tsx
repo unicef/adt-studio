@@ -64,6 +64,7 @@ vi.mock("@tanstack/react-router", () => ({
     <a title={title} data-to={to} data-tab={search?.tab} {...props}>{children}</a>
   ),
   useMatchRoute: () => matchRouteMock,
+  useNavigate: () => vi.fn(),
   useSearch: () => searchMock,
 }))
 

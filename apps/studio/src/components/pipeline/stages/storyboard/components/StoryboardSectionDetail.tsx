@@ -52,7 +52,11 @@ import { invalidateStoryboardDependents } from "@/hooks/use-page-mutations"
 import { useStepHeader } from "../../../components/StepViewRouter"
 import { LoadingState } from "../../../components/LoadingState"
 import { StageEmptyState } from "../../../components/StageEmptyState"
-import { useFloatingSave, PendingChip } from "../../../components/floating-save"
+import {
+  useFloatingSave,
+  useFloatingSaveDirtyEntries,
+  PendingChip,
+} from "../../../components/floating-save"
 import {
   BookPreviewFrame,
   type BookPreviewFrameHandle,
@@ -626,6 +630,10 @@ export function StoryboardSectionDetail({
     pageHasActivitySection,
   )
   const [editActivityPanelOpen, setEditActivityPanelOpen] = useState(false)
+  const floatingDirtyEntries = useFloatingSaveDirtyEntries()
+  const activityDraftDirty = floatingDirtyEntries.some(
+    (entry) => entry.id === `editable-activity:${bookLabel}:${pageId}:${sectionIndex}`,
+  )
   const [linkedAnchor, setLinkedAnchor] = useState<ActivityAnchor | null>(null)
   const [linkedFromPage, setLinkedFromPage] = useState(false)
   const [hoverAnchor, setHoverAnchor] = useState<ActivityAnchor | null>(null)
@@ -2280,6 +2288,12 @@ export function StoryboardSectionDetail({
   }, [editActivityPanelOpen, sectionIndex, pageId])
 
   const handleToggleStepper = () => {
+    if (
+      activityDraftDirty &&
+      !window.confirm(t`If you leave now, your unsaved changes will be lost.`)
+    ) {
+      return
+    }
     if (editableEntry) {
       const enabling = !editableEntry.enabled
       if (!enabling) setEditActivityPanelOpen(false)

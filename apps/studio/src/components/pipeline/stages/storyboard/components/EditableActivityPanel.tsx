@@ -15,6 +15,7 @@ import {
   ArrowUp,
   Check,
   ImageIcon,
+  ListChecks,
   Plus,
   Sparkles,
   Trash2,
@@ -36,6 +37,10 @@ import {
 } from "@/hooks/use-editable-activities"
 import { useApiKey } from "@/hooks/use-api-key"
 import { Input } from "@/components/ui/input"
+import {
+  PendingChip,
+  useFloatingSave,
+} from "@/components/pipeline/components/floating-save"
 import { ReplaceFromBookDialog } from "./ReplaceFromBookDialog"
 import { ColorPicker } from "./style-editor/controls/ColorPicker"
 import { Select } from "./style-editor/controls/Select"
@@ -177,7 +182,7 @@ export function EditableActivityPanel({
     }) as EditableActivity)
   }
 
-  const handleSave = () => {
+  const saveDraft = async () => {
     // Sentences cleared to empty in the editor are dropped on save (kept while
     // editing so the textarea doesn't vanish mid-edit).
     const cleaned: EditableActivity =
@@ -190,14 +195,28 @@ export function EditableActivityPanel({
             })),
           }
         : draft
-    save.mutate(
-      { ...activities, [String(sectionIndex)]: cleaned },
-      {
-        onSuccess: () => toast.success(t`Activity saved`),
-        onError: (err) => toast.error(err instanceof Error ? err.message : t`Save failed`),
-      },
-    )
+    try {
+      await save.mutateAsync({ ...activities, [String(sectionIndex)]: cleaned })
+      toast.success(t`Activity saved`)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : t`Save failed`)
+      throw err
+    }
   }
+
+  const handleSave = () => {
+    void saveDraft().catch(() => {})
+  }
+
+  useFloatingSave({
+    id: `editable-activity:${bookLabel}:${pageId}:${sectionIndex}`,
+    stage: "storyboard",
+    dirty,
+    saving: save.isPending,
+    label: <PendingChip icon={ListChecks}>{t`Activity`}</PendingChip>,
+    onSave: saveDraft,
+    onDiscard: () => setDraft(activity),
+  })
 
   const setTheme = (patch: Partial<NonNullable<EditableActivity["theme"]>>) => {
     setDraft((d) => ({ ...d, theme: { ...d.theme, ...patch } }))
