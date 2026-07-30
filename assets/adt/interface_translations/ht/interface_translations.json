@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Zouti administratè yo ap mete nan yon mizajou pita.",
     "main-menu-label": "Meni prensipal",
     "cover-label": "Kouvèti",
-    "print-page-label": "Enprime paj"
+    "print-page-label": "Enprime paj",
+    "stepper-progress-n-of-m": "Etap ${n} sou ${m}",
+    "stepper-word-bank": "Mo pou chwazi",
+    "stepper-open-ended-saved": "Bon travay — repons ou anrejistre.",
+    "stepper-open-ended-rephrase": "Ann rete janti — eseye reekri repons ou yon lòt fason.",
+    "open-ended-answer-label": "Repons ou"
 }

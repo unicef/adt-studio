@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Narzędzia administracyjne zostaną dodane w przyszłej aktualizacji.",
     "main-menu-label": "Menu główne",
     "cover-label": "Okładka",
-    "print-page-label": "Drukuj stronę"
+    "print-page-label": "Drukuj stronę",
+    "stepper-progress-n-of-m": "Krok ${n} z ${m}",
+    "stepper-word-bank": "Słowa do wyboru",
+    "stepper-open-ended-saved": "Brawo — twoja odpowiedź została zapisana.",
+    "stepper-open-ended-rephrase": "Bądźmy mili — spróbuj inaczej sformułować swoją odpowiedź.",
+    "open-ended-answer-label": "Twoja odpowiedź"
 }

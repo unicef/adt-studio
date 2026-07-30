@@ -720,7 +720,7 @@ function StepperActivity({ payload }: { payload: StepperPayload }): React.ReactE
                   style={{ backgroundColor: accentDark, boxShadow: "0 4px 0 rgba(0,0,0,0.18)" }}
                 >
                   <i className="fas fa-undo" aria-hidden="true" />
-                  {tr("stepper-try-again", "Try again")}
+                  {tr("multiple-choice-try-again", "Try again")}
                 </button>
                 <button
                   type="button"
@@ -762,7 +762,7 @@ function StepperActivity({ payload }: { payload: StepperPayload }): React.ReactE
                 style={{ border: `3px solid ${accentDark}`, color: accentDark }}
               >
                 <i className="fas fa-arrow-left" aria-hidden="true" />
-                {tr("stepper-back", "Back")}
+                {tr("previous", "Back")}
               </button>
             ) : (
               <span aria-hidden="true" />

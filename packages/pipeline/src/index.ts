@@ -350,6 +350,8 @@ export { buildActivityOutline, applyActivityHeader } from "./activity-outline.js
 export {
   readEditableActivities,
   enabledEditableActivity,
+  remapEditableActivities,
+  maskStepperPayloads,
   resolveEditableActivityImages,
   renderEditableActivityHtml,
   renderEditableActivityStaticHtml,

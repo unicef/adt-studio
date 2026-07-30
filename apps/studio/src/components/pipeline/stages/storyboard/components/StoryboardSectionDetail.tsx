@@ -997,6 +997,7 @@ export function StoryboardSectionDetail({
       const result = await api.cloneSection(bookLabel, pageId, sectionIndex)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
+      await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, pageId] })
       invalidateStoryboardDependents(queryClient, bookLabel)
       onNavigateSection?.(result.clonedSectionIndex)
     } catch (err) {
@@ -1013,6 +1014,7 @@ export function StoryboardSectionDetail({
       const result = await api.mergeSection(bookLabel, pageId, sectionIndex, direction)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
+      await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, pageId] })
       invalidateStoryboardDependents(queryClient, bookLabel)
       onNavigateSection?.(result.mergedSectionIndex)
 
@@ -1035,6 +1037,8 @@ export function StoryboardSectionDetail({
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", result.sourcePageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", result.targetPageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
+      await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, result.sourcePageId] })
+      await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, result.targetPageId] })
       invalidateStoryboardDependents(queryClient, bookLabel)
       // Navigate to the previous section or 0 since the current section was removed
       onNavigateSection?.(Math.max(0, sectionIndex - 1))
@@ -1105,6 +1109,7 @@ export function StoryboardSectionDetail({
       const result = await api.deleteSection(bookLabel, pageId, sectionIndex)
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages", pageId] })
       await queryClient.invalidateQueries({ queryKey: ["books", bookLabel, "pages"] })
+      await queryClient.invalidateQueries({ queryKey: ["editable-activities", bookLabel, pageId] })
       invalidateStoryboardDependents(queryClient, bookLabel)
       onNavigateSection?.(Math.max(0, Math.min(sectionIndex, result.remainingSections - 1)))
     } catch (err) {
@@ -1275,13 +1280,16 @@ export function StoryboardSectionDetail({
     [pendingRendering, page.rendering, sectionIndex, markPending]
   )
 
-  // Replace textContent of a single [data-id="..."] element in the rendered HTML.
+  // Replace textContent of a single [data-id="..."] element in the rendered
+  // HTML. Returns false when the edit could NOT be mirrored in place (element
+  // missing or an activity leaf) — only the re-render flag was set, so the
+  // caller must create pending state some other way or the edit is lost.
   const updateElementTextInRendering = useCallback(
-    (dataId: string, newText: string) => {
+    (dataId: string, newText: string): boolean => {
       const rBase = pendingRendering ?? page.rendering
-      if (!rBase) return
+      if (!rBase) return false
       const currentSection = getRenderedSectionByIndex(rBase, sectionIndex)
-      if (!currentSection?.html) return
+      if (!currentSection?.html) return false
       const parser = new DOMParser()
       const doc = parser.parseFromString(currentSection.html, "text/html")
       const el = doc.querySelector(`[data-id="${dataId}"]`)
@@ -1292,7 +1300,7 @@ export function StoryboardSectionDetail({
       // so the activity is regenerated from the new text on save.
       if (!el || hasActivityInteractiveDescendant(el)) {
         needsRerenderRef.current = true
-        return
+        return false
       }
       el.textContent = newText
       const newHtml = doc.body.innerHTML
@@ -1305,6 +1313,7 @@ export function StoryboardSectionDetail({
       }
       setPendingRendering(updated)
       markPending("text")
+      return true
     },
     [pendingRendering, page.rendering, sectionIndex, markPending]
   )
@@ -1442,11 +1451,31 @@ export function StoryboardSectionDetail({
   )
 
   // SectionTreeEditor callbacks — mirror tree changes into the preview HTML.
+  // (The tree editor updates the section tree itself, so the mirror result
+  // can be ignored: pending sectioning state already makes the edit savable.)
   const handleLeafTextEdited = useCallback(
     (nodeId: string, newText: string) => {
       updateElementTextInRendering(nodeId, newText)
     },
     [updateElementTextInRendering]
+  )
+
+  // ClassicActivityPanel text edits — unlike the tree editor, the panel edits
+  // nothing else, so when the edit can't be mirrored into the rendered HTML
+  // (activity leaves with interactive children) it must go into the section
+  // tree instead: that creates pending state (Save enables) and the save path
+  // regenerates the activity HTML from the new text.
+  const handleActivityPanelTextEdited = useCallback(
+    (nodeId: string, newText: string) => {
+      if (updateElementTextInRendering(nodeId, newText)) return
+      const base = pendingSectioning ?? (page.sectioningTree as SectioningData | null)
+      const currentSection = base?.sections[sectionIndex]
+      if (!base || !currentSection) return
+      const nextNodes = editLeafText(currentSection.nodes, nodeId, newText)
+      if (nextNodes === currentSection.nodes) return
+      setPendingSectioning(withSectionNodes(base, sectionIndex, nextNodes))
+    },
+    [updateElementTextInRendering, pendingSectioning, page.sectioningTree, sectionIndex]
   )
 
   const handleLeafDuplicated = useCallback(
@@ -2219,7 +2248,14 @@ export function StoryboardSectionDetail({
   // Editable (step-by-step) state for this section. Conversion extracts the
   // rendered HTML into structured steps stored in the separate
   // `editable-activity` node; the classic HTML is never modified.
-  const editableEntry = editableActivitiesQuery.data?.activities?.[String(sectionIndex)]
+  // A stored entry whose sectionType no longer matches the section is ignored
+  // — the same gate packaging applies (enabledEditableActivity), so the editor
+  // never claims stepper mode for a section the export renders classic.
+  const editableEntryRaw = editableActivitiesQuery.data?.activities?.[String(sectionIndex)]
+  const editableEntry =
+    editableEntryRaw && editableEntryRaw.sectionType === section?.sectionType
+      ? editableEntryRaw
+      : undefined
   const editableVersion = editableActivitiesQuery.data?.version ?? 0
   const stepperEnabled = Boolean(editableEntry?.enabled)
   const canBeStepByStep =
@@ -2877,7 +2913,7 @@ export function StoryboardSectionDetail({
           canRegenerate={
             hasApiKey && !hasActiveTask && !storyboardRunning && !saving && !renderingDirty && !dirty
           }
-          onTextEdited={handleLeafTextEdited}
+          onTextEdited={handleActivityPanelTextEdited}
           onAnswerEdited={updateAnswer}
           onAnswersEdited={updateAnswers}
           linkedAnchor={linkedAnchor}

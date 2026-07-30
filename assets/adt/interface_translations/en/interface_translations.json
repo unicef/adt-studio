@@ -194,5 +194,10 @@
     "underline-question-label": "Question ${n}",
     "underline-all-correct": "All answers are correct!",
     "underline-progress-summary": "${correct} correct, ${wrong} incorrect, ${missing} still to find.",
-    "activity-progress-remaining": "remaining"
+    "activity-progress-remaining": "remaining",
+    "stepper-progress-n-of-m": "Step ${n} of ${m}",
+    "stepper-word-bank": "Words to choose from",
+    "stepper-open-ended-saved": "Nice work — your answer is saved.",
+    "stepper-open-ended-rephrase": "Let's keep it kind — try rephrasing your answer.",
+    "open-ended-answer-label": "Your answer"
 }

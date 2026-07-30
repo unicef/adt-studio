@@ -57,6 +57,32 @@ export function enabledEditableActivity(
   return activity
 }
 
+/**
+ * Remap the sectionIndex-keyed activities map after a section operation
+ * (clone/split/merge/delete renumber sections). `mapIndex` returns an entry's
+ * new index, or null to drop it — the section was removed, or its content
+ * changed enough that the stored extraction no longer applies. Returns null
+ * when nothing moved or dropped, so callers can skip writing a new version.
+ */
+export function remapEditableActivities(
+  activities: Record<string, EditableActivity>,
+  mapIndex: (index: number) => number | null,
+): Record<string, EditableActivity> | null {
+  const remapped: Record<string, EditableActivity> = {}
+  let changed = false
+  for (const [key, activity] of Object.entries(activities)) {
+    const index = Number(key)
+    const next = Number.isInteger(index) && index >= 0 ? mapIndex(index) : null
+    if (next === null) {
+      changed = true
+      continue
+    }
+    if (next !== index) changed = true
+    remapped[String(next)] = activity
+  }
+  return changed ? remapped : null
+}
+
 export interface ResolveEditableActivityImageOptions {
   /** Curated alt text from image captioning, keyed by imageId. */
   preferredAltMap?: Map<string, string>
@@ -197,11 +223,16 @@ export function renderEditableActivityStaticHtml(activity: EditableActivity): st
       parts.push(staticText(mc.prompt, "p", "adt-body font-semibold"))
       parts.push(`<ol style="list-style:none;padding-left:0;display:flex;flex-direction:column;gap:8px;margin-top:8px;">`)
       mc.options.forEach((option, i) => {
-        const text = option.text
-          ? staticText(option.text, "span", "adt-body")
-          : staticImage(option.image)
+        // An option may carry both an image and a text label — render both,
+        // image first, matching the interactive stepper.
+        const content = [
+          staticImage(option.image),
+          staticText(option.text, "span", "adt-body"),
+        ]
+          .filter(Boolean)
+          .join("")
         parts.push(
-          `<li style="border:2px solid #CBD5E1;border-radius:12px;padding:8px 12px;">${i + 1}. ${text}</li>`,
+          `<li style="border:2px solid #CBD5E1;border-radius:12px;padding:8px 12px;">${i + 1}. ${content}</li>`,
         )
       })
       parts.push(`</ol>`)
@@ -231,6 +262,33 @@ const STEPPER_SHELL_RE =
   /<section[^>]*data-activity-variant="stepper"[\s\S]*?<\/section>/g
 const STEPPER_PAYLOAD_RE =
   /<script type="application\/json" data-editable-activity>([\s\S]*?)<\/script>/
+const STEPPER_PAYLOAD_SCRIPT_RE =
+  /<script type="application\/json" data-editable-activity>[\s\S]*?<\/script>/g
+const STEPPER_PAYLOAD_MASK_RE =
+  /<script type="application\/json" data-editable-activity data-masked="(\d+)"><\/script>/g
+
+/**
+ * Mask stepper JSON payloads while page-level regex passes run over the
+ * assembled HTML (contenteditable stripping, the body background-color scan).
+ * Only `<` is escaped in the payload, so activity text containing e.g.
+ * " contenteditable" would otherwise be mutated inside the JSON. `restore`
+ * puts the original scripts back after the transforms.
+ */
+export function maskStepperPayloads(html: string): {
+  masked: string
+  restore: (html: string) => string
+} {
+  const payloads: string[] = []
+  const masked = html.replace(STEPPER_PAYLOAD_SCRIPT_RE, (script) => {
+    payloads.push(script)
+    return `<script type="application/json" data-editable-activity data-masked="${payloads.length - 1}"></script>`
+  })
+  const restore = (out: string): string =>
+    payloads.length === 0
+      ? out
+      : out.replace(STEPPER_PAYLOAD_MASK_RE, (m, i) => payloads[Number(i)] ?? m)
+  return { masked, restore }
+}
 
 /**
  * Replace interactive stepper shells in a packaged page with the static

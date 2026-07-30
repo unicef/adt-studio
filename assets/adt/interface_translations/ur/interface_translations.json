@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "ایڈمن ٹولز آنے والے اپ ڈیٹ میں شامل کیے جائیں گے۔",
     "main-menu-label": "مرکزی مینو",
     "cover-label": "سرورق",
-    "print-page-label": "صفحہ پرنٹ کریں"
+    "print-page-label": "صفحہ پرنٹ کریں",
+    "stepper-progress-n-of-m": "مرحلہ ${n} از ${m}",
+    "stepper-word-bank": "انتخاب کے لیے الفاظ",
+    "stepper-open-ended-saved": "شاباش — آپ کا جواب محفوظ کر لیا گیا ہے۔",
+    "stepper-open-ended-rephrase": "آئیے شائستہ رہیں — اپنا جواب دوسرے انداز میں لکھنے کی کوشش کریں۔",
+    "open-ended-answer-label": "آپ کا جواب"
 }

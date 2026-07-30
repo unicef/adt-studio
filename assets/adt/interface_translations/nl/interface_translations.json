@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Beheertools worden toegevoegd in een volgende update.",
     "main-menu-label": "Hoofdmenu",
     "cover-label": "Omslag",
-    "print-page-label": "Pagina afdrukken"
+    "print-page-label": "Pagina afdrukken",
+    "stepper-progress-n-of-m": "Stap ${n} van ${m}",
+    "stepper-word-bank": "Woorden om uit te kiezen",
+    "stepper-open-ended-saved": "Goed gedaan — je antwoord is opgeslagen.",
+    "stepper-open-ended-rephrase": "Laten we vriendelijk blijven — probeer je antwoord anders te formuleren.",
+    "open-ended-answer-label": "Jouw antwoord"
 }

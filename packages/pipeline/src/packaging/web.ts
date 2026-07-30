@@ -43,6 +43,7 @@ import {
   enabledEditableActivity,
   resolveEditableActivityImages,
   renderEditableActivityHtml,
+  maskStepperPayloads,
 } from "../render-editable-activity.js"
 import type { Progress } from "../progress.js"
 import { nullProgress } from "../progress.js"
@@ -1231,7 +1232,12 @@ export function renderPageHtml(opts: RenderPageOptions): string {
       ? `\n    <script type="text/javascript">\n        window.correctAnswers = JSON.parse('${escapeInlineScriptJson(JSON.stringify(opts.activityAnswers))}');\n    </script>`
       : ""
 
-  const normalizedContent = stripContentEditable(promoteFirstHeadingToH1(opts.content))
+  // Stepper JSON payloads are masked for the whole assembly below — the
+  // regex passes over the page HTML (contenteditable strip, background-color
+  // scan, heading probes) must not match inside the embedded activity JSON.
+  const { masked: maskedContent, restore: restoreStepperPayloads } =
+    maskStepperPayloads(opts.content)
+  const normalizedContent = stripContentEditable(promoteFirstHeadingToH1(maskedContent))
 
   // Custom activities (`activity_custom_*`) ship an inline <script> that calls
   // window.adtRegisterCustomActivity(section, {validate, reset}) during parse —
@@ -1331,7 +1337,7 @@ ${fallbackHeadingHtml}${contentBlock}
   // 96 is the first-paint dock-band fallback; 0 in embed mode (dock hidden).
   const flFit = opts.fixedViewport ? fixedLayoutWebFit(opts.embed ? 0 : 96) : null
 
-  return `<!DOCTYPE html>
+  return restoreStepperPayloads(`<!DOCTYPE html>
 <html lang="${escapeAttr(opts.language)}">
 
 <head>
@@ -1358,7 +1364,7 @@ ${opts.embed
 </body>
 
 </html>
-`
+`)
 }
 
 // ---------------------------------------------------------------------------
