@@ -1112,7 +1112,7 @@ async function runExtractStep(
     const metadataConfig = buildMetadataConfig(config)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+    const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }), { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -1347,7 +1347,7 @@ async function runSectioningStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+    const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }), { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -1565,7 +1565,7 @@ async function runStoryboardStep(
     // Shared infrastructure for LLM calls
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+    const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }), { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -1817,7 +1817,7 @@ async function runQuizzesStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+    const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }), { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -1970,7 +1970,7 @@ async function runCaptionsStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+    const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }), { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -2169,7 +2169,7 @@ async function runGlossaryStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+    const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }), { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -2262,7 +2262,7 @@ async function runTocStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+    const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }), { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -2343,7 +2343,7 @@ async function runEasyReadStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+    const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }), { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined
@@ -2483,7 +2483,7 @@ async function runTranslateStep(
     const config = loadBookConfig(label, booksDir, configPath)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+    const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }), { basePromptModelId: config.base_prompt_model })
     const rateLimiter = config.rate_limit
       ? createRateLimiter(config.rate_limit.requests_per_minute)
       : undefined

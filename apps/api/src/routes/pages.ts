@@ -63,6 +63,7 @@ import {
   writeStyleguideFiles,
 } from "../services/styleguide.js"
 import type { TaskService } from "../services/task-service.js"
+import { resolvePromptRoots } from "../services/prompt-roots.js"
 import {
   segmentPageImages,
   getSegmentedImageId,
@@ -3229,7 +3230,7 @@ export function createPageRoutes(
         config.image_segmentation?.max_retries ?? DEFAULT_LLM_MAX_RETRIES
 
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: config.base_prompt_model })
+      const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }), { basePromptModelId: config.base_prompt_model })
       const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
       const llmModel = createLLMModel({
         modelId,
@@ -3429,7 +3430,7 @@ export function createPageRoutes(
 
     const bookPromptsDir = path.join(bookDir, "prompts")
     const appConfig = loadBookConfig(safeLabel, booksDir, configPath)
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: appConfig.base_prompt_model })
+    const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }), { basePromptModelId: appConfig.base_prompt_model })
     const cacheDir = path.join(bookDir, ".cache")
     const config = buildStyleguideGenerationConfig(
       undefined,

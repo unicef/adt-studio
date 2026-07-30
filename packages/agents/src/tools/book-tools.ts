@@ -30,7 +30,7 @@ export interface BookToolsContext {
   storage: Storage
   bookLabel: string
   booksDir: string
-  promptsDir: string
+  promptRoots: string[]
   configPath?: string
   /**
    * Book styleguide markdown. Used only when invoking the renderer for the
@@ -493,7 +493,7 @@ export function createBookTools(ctx: BookToolsContext): BookToolsResult {
               storage: ctx.storage,
               bookLabel: ctx.bookLabel,
               booksDir: ctx.booksDir,
-              promptsDir: ctx.promptsDir,
+              promptRoots: ctx.promptRoots,
               configPath: ctx.configPath,
               anchorPageId: pageId,
               sectionIndex: nextIndex,

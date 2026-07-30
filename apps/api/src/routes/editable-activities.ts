@@ -332,7 +332,7 @@ export function createEditableActivitiesRoutes(
 
         const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
         const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-        const promptEngine = createPromptEngine([bookPromptsDir, promptsDir], { basePromptModelId: appConfig.base_prompt_model })
+        const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }), { basePromptModelId: appConfig.base_prompt_model })
         const llmModel = createLLMModel({
           modelId:
             appConfig.quiz_generation?.model ??
