@@ -45,8 +45,25 @@ describe("resolveReviewerFixStage", () => {
 
   it("supports section metadata, legacy catalogs, and safe custom defaults", () => {
     expect(resolveReviewerFixStage(section({ fix_stage: "captions" }), criterion())).toBe("captions")
-    expect(resolveReviewerFixStage(section(), criterion())).toBe("sectioning")
     expect(resolveReviewerFixStage(section({ id: "custom", fix_stage: undefined }), criterion())).toBe("storyboard")
+  })
+
+  it.each([
+    ["text-extracted-accuracy", "sectioning"],
+    ["visual-media-image-description", "captions"],
+    ["audio-voice-over", "speech"],
+    ["easy-read", "easy-read"],
+    ["glossary", "glossary"],
+    ["interactivity", "storyboard"],
+    ["typography-layout-visual-readability", "storyboard"],
+    ["instructional-content-design", "sectioning"],
+    ["translation", "translate"],
+    ["sign-language", "sign-language"],
+  ] as const)("routes historical default section %s to %s", (sectionId, expectedStage) => {
+    expect(resolveReviewerFixStage(
+      section({ id: sectionId, fix_stage: undefined }),
+      criterion({ fix_stage: undefined }),
+    )).toBe(expectedStage)
   })
 })
 

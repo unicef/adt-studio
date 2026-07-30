@@ -47,6 +47,12 @@ const ACCESSIBILITY_CATEGORY_STAGES: Record<AccessibilityCategoryKey, Validation
 }
 
 const LEGACY_REVIEWER_SECTION_STAGES: Partial<Record<string, ValidationFixStage>> = {
+  "text-extracted-accuracy": "sectioning",
+  "visual-media-image-description": "captions",
+  "audio-voice-over": "speech",
+  "typography-layout-visual-readability": "storyboard",
+  "instructional-content-design": "sectioning",
+  // Retain aliases for customized catalogs created before fix-stage metadata.
   text: "sectioning",
   "visual-media": "captions",
   audio: "speech",
