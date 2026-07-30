@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
-import type { ReviewerValidationSection } from "@adt/types"
+import type { ReviewerValidationSection, ValidationFixStage } from "@adt/types"
 import { ListChecks, Plus, RotateCcw, Save, Trash2 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -18,12 +18,14 @@ interface EditableCriterion {
   guidance: string
   requires_comment_on_failure: boolean
   requires_suggested_modification_on_failure: boolean
+  fix_stage?: ValidationFixStage
   enabled: boolean
 }
 
 interface EditableSection {
   id: string
   label: string
+  fix_stage?: ValidationFixStage
   enabled: boolean
   criteria: EditableCriterion[]
 }
@@ -68,6 +70,7 @@ function toEditableSections(sections: ReviewerValidationSection[]): EditableSect
   return sections.map((section) => ({
     id: section.id,
     label: section.label,
+    fix_stage: section.fix_stage,
     enabled: true,
     criteria: section.criteria.map((criterion) => ({
       ...criterion,
@@ -82,12 +85,14 @@ function serializeSections(sections: EditableSection[], defaultGuidance: string)
     .map((section) => ({
       id: section.id,
       label: section.label.trim() || section.id,
+      fix_stage: section.fix_stage,
       criteria: section.criteria
         .filter((criterion) => criterion.enabled)
         .map((criterion) => ({
           id: criterion.id,
           label: criterion.label.trim() || criterion.id,
           guidance: criterion.guidance.trim() || defaultGuidance,
+          fix_stage: criterion.fix_stage,
           requires_comment_on_failure: criterion.requires_comment_on_failure,
           requires_suggested_modification_on_failure: criterion.requires_suggested_modification_on_failure,
         })),
