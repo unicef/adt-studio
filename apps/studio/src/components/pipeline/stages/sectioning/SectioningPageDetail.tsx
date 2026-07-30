@@ -32,6 +32,7 @@ import {
 } from "@/lib/section-constants"
 import { useStepHeader } from "../../components/StepViewRouter"
 import type { BookStepSearch } from "@/lib/book-step-search"
+import { toast } from "@/components/ui/sonner"
 
 export function SectioningPageDetail({
   bookLabel,
@@ -132,6 +133,7 @@ export function SectioningPageDetail({
       setFocusedSectionId(search.sectionId)
     } else {
       setFocusedSectionId(null)
+      toast.warning(t`The requested section is no longer available. Opened the page instead.`)
     }
 
     void navigate({
@@ -140,7 +142,7 @@ export function SectioningPageDetail({
       search: { ...search, sectionId: undefined },
       replace: true,
     })
-  }, [bookLabel, mergedSections.length, navigate, pageId, search])
+  }, [bookLabel, mergedSections.length, navigate, pageId, search, t])
 
   useEffect(() => {
     if (!focusedSectionId) return

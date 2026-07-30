@@ -1481,6 +1481,9 @@ msgstr "Plotëso automatikisht nga konteksti i librit"
 msgid "Auto-scroll"
 msgstr "Lëvizje automatike"
 
+msgid "Automatic routing"
+msgstr "Drejtim automatik"
+
 msgid "Automatically adapts the layout based on each page's content using AI."
 msgstr "Përshtaton automatikisht paraqitjen bazuar në përmbajtjen e çdo faqeje duke përdorur AI."
 
@@ -3503,6 +3506,12 @@ msgstr "Gjuha e parë është e parazgjedhur"
 
 msgid "Fit"
 msgstr "Përshtat"
+
+msgid "Fix destination"
+msgstr "Destinacioni i korrigjimit"
+
+msgid "Fix in {fixStageLabel}"
+msgstr "Korrigjo në {fixStageLabel}"
 
 msgid "Fixed layout"
 msgstr "Strukturë fikse"
@@ -5625,6 +5634,10 @@ msgstr "Transparenca"
 msgid "Open"
 msgstr "Hapni"
 
+#. placeholder {0}: formatFindingPageLabel(i18n, page)
+msgid "Open {0} in {fixStageLabel}"
+msgstr "Hap {0} në {fixStageLabel}"
+
 msgid "Open a page in Preview to show its page-specific accessibility findings here."
 msgstr "Hapni një faqe në Pamjen Paraprake për të shfaqur këtu gjetjet e aksesueshmërisë specifike të faqes."
 
@@ -5656,6 +5669,10 @@ msgstr "Hapni panelin e redaktimit"
 
 msgid "Open image preview"
 msgstr "Hapni pamjen paraprake të imazhit"
+
+#. placeholder {0}: i18n._(STAGE_LABEL_MESSAGES[entry.fixStage])
+msgid "Open in {0}"
+msgstr "Hap në {0}"
 
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Hapeni në çdo lexues EPUB 3, e-reader, ose mjet aksesueshmërie."
@@ -8442,6 +8459,12 @@ msgstr "Dhelpra e shpejtë kafe kërcen mbi qenin dembel."
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "Strategjia e renderimit e përdorur për seksionet pa një hartëzim eksplicit."
 
+msgid "The requested section is no longer available. Opened the first section instead."
+msgstr "Seksioni i kërkuar nuk është më i disponueshëm. Në vend të tij u hap seksioni i parë."
+
+msgid "The requested section is no longer available. Opened the page instead."
+msgstr "Seksioni i kërkuar nuk është më i disponueshëm. Në vend të tij u hap faqja."
+
 msgid "The river meets the sea"
 msgstr "Lumi takon detin"
 
@@ -9131,6 +9154,9 @@ msgstr "Përdor sintaksën Liquid për të interpoluar variabla, për të iterua
 #. placeholder {0}: page.pageNumber
 msgid "Use page {0} for the quiz"
 msgstr "Përdor faqen {0} për kuizin"
+
+msgid "Use section destination"
+msgstr "Përdor destinacionin e seksionit"
 
 msgid "Use section headings verbatim. Fast, deterministic, and preserves the original wording from the book."
 msgstr "Përdor titujt e seksioneve fjalë për fjalë. I shpejtë, deterministik dhe ruan formulimin origjinal të librit."

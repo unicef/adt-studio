@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState } from "react"
 import { Trans, useLingui } from "@lingui/react/macro"
 import { useQueries } from "@tanstack/react-query"
-import { ClipboardCheck, ExternalLink, FileWarning, SkipForward } from "lucide-react"
-import type { ReviewerValidationCatalogSnapshot, ReviewerValidationStatus } from "@adt/types"
+import { useNavigate } from "@tanstack/react-router"
+import { ArrowRight, ClipboardCheck, ExternalLink, FileWarning, SkipForward } from "lucide-react"
+import type {
+  ReviewerValidationCatalogSnapshot,
+  ReviewerValidationCriterion,
+  ReviewerValidationSection,
+  ReviewerValidationStatus,
+} from "@adt/types"
 import { api, type ReviewerPageValidationRecordEntry } from "@/api/client"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -21,6 +27,11 @@ import {
 import { findResumeReviewerPage } from "@/lib/reviewer-validation-progress"
 import { getReviewerSessionStorageKey } from "@/lib/reviewer-validation-session"
 import { cn } from "@/lib/utils"
+import { STAGE_LABEL_MESSAGES } from "@/components/pipeline/pipeline-i18n"
+import {
+  resolveReviewerFixStage,
+  resolveValidationFixDestination,
+} from "@/lib/validation-fix-routing"
 
 
 function normalizeChecklistSnapshot(snapshot: ReviewerValidationCatalogSnapshot | null | undefined) {
@@ -149,7 +160,8 @@ export function ReviewerValidationSummaryTab({
   onOpenPreview,
   onOpenPreviewToPage,
 }: ReviewerValidationSummaryTabProps) {
-  const { t } = useLingui()
+  const { t, i18n } = useLingui()
+  const navigate = useNavigate()
   const catalog = useReviewerValidationCatalog(label)
   const sessions = useReviewerValidationSessions(label)
   const accessibilityAssessment = useAccessibilityAssessment(label)
@@ -230,10 +242,17 @@ export function ReviewerValidationSummaryTab({
   )
 
   const criterionMeta = useMemo(() => {
-    const map = new Map<string, { sectionLabel: string; criterionLabel: string }>()
+    const map = new Map<string, {
+      section: ReviewerValidationSection
+      criterion: ReviewerValidationCriterion
+      sectionLabel: string
+      criterionLabel: string
+    }>()
     for (const section of activePageSections) {
       for (const criterion of section.criteria) {
         map.set(criterion.id, {
+          section,
+          criterion,
           sectionLabel: section.label,
           criterionLabel: criterion.label,
         })
@@ -341,14 +360,20 @@ export function ReviewerValidationSummaryTab({
     return activeSessionRecords.flatMap((entry) =>
       entry.record.results
         .filter((result) => result.status === "needs-changes")
-        .map((result) => ({
-          pageId: entry.record.page_id,
-          pageNumber: entry.record.page_number,
-          href: entry.record.href,
-          comment: result.comment,
-          suggestedModification: result.suggested_modification,
-          ...criterionMeta.get(result.criterion_id),
-        })),
+        .map((result) => {
+          const meta = criterionMeta.get(result.criterion_id)
+          return {
+            pageId: entry.record.page_id,
+            sectionId: entry.record.section_id,
+            pageNumber: entry.record.page_number,
+            href: entry.record.href,
+            comment: result.comment,
+            suggestedModification: result.suggested_modification,
+            fixStage: meta ? resolveReviewerFixStage(meta.section, meta.criterion) : "storyboard" as const,
+            sectionLabel: meta?.sectionLabel,
+            criterionLabel: meta?.criterionLabel,
+          }
+        }),
     )
   }, [activeSessionRecords, criterionMeta])
 
@@ -367,6 +392,29 @@ export function ReviewerValidationSummaryTab({
   const anyRecordQueryLoading = sessionRecordQueries.some((query) => query.isLoading)
   const anyRecordQueryError = sessionRecordQueries.find((query) => query.error)?.error
   const pagesReviewed = activeMetrics.pagesReviewed
+
+  const openReviewerFix = (entry: (typeof flaggedEntries)[number]) => {
+    const destination = resolveValidationFixDestination({
+      stage: entry.fixStage,
+      pageId: entry.pageId,
+      sectionId: entry.sectionId,
+      href: entry.href,
+    })
+
+    if (destination.kind === "stage") {
+      void navigate({
+        to: "/books/$label/$step",
+        params: { label, step: destination.stage },
+      })
+      return
+    }
+
+    void navigate({
+      to: "/books/$label/$step/$pageId",
+      params: { label, step: destination.stage, pageId: destination.pageId },
+      search: destination.sectionId ? { sectionId: destination.sectionId } : {},
+    })
+  }
 
   if (sessions.isLoading || anyRecordQueryLoading || (!activeCatalog && catalog.isLoading)) {
     return <LoadingState message={t`Loading reviewer validation summary...`} />
@@ -612,6 +660,17 @@ export function ReviewerValidationSummaryTab({
                             <span className="font-medium text-foreground"><Trans>Suggested modification:</Trans></span> {entry.suggestedModification}
                           </div>
                         ) : null}
+                        <div className="mt-3 flex justify-end">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 text-[11px]"
+                            onClick={() => openReviewerFix(entry)}
+                          >
+                            {t`Open in ${i18n._(STAGE_LABEL_MESSAGES[entry.fixStage])}`}
+                            <ArrowRight className="ml-1.5 h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>

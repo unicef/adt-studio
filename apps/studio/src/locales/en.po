@@ -1480,6 +1480,9 @@ msgstr "Auto-fill from book context"
 msgid "Auto-scroll"
 msgstr "Auto-scroll"
 
+msgid "Automatic routing"
+msgstr "Automatic routing"
+
 msgid "Automatically adapts the layout based on each page's content using AI."
 msgstr "Automatically adapts the layout based on each page's content using AI."
 
@@ -3502,6 +3505,12 @@ msgstr "First language is the default"
 
 msgid "Fit"
 msgstr "Fit"
+
+msgid "Fix destination"
+msgstr "Fix destination"
+
+msgid "Fix in {fixStageLabel}"
+msgstr "Fix in {fixStageLabel}"
 
 msgid "Fixed layout"
 msgstr "Fixed layout"
@@ -5624,6 +5633,10 @@ msgstr "Opacity"
 msgid "Open"
 msgstr "Open"
 
+#. placeholder {0}: formatFindingPageLabel(i18n, page)
+msgid "Open {0} in {fixStageLabel}"
+msgstr "Open {0} in {fixStageLabel}"
+
 msgid "Open a page in Preview to show its page-specific accessibility findings here."
 msgstr "Open a page in Preview to show its page-specific accessibility findings here."
 
@@ -5655,6 +5668,10 @@ msgstr "Open edit panel"
 
 msgid "Open image preview"
 msgstr "Open image preview"
+
+#. placeholder {0}: i18n._(STAGE_LABEL_MESSAGES[entry.fixStage])
+msgid "Open in {0}"
+msgstr "Open in {0}"
 
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Open in any EPUB 3 reader, e-reader, or accessibility tool."
@@ -8441,6 +8458,12 @@ msgstr "The quick brown fox jumps over the lazy dog."
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "The rendering strategy used for sections without an explicit mapping."
 
+msgid "The requested section is no longer available. Opened the first section instead."
+msgstr "The requested section is no longer available. Opened the first section instead."
+
+msgid "The requested section is no longer available. Opened the page instead."
+msgstr "The requested section is no longer available. Opened the page instead."
+
 msgid "The river meets the sea"
 msgstr "The river meets the sea"
 
@@ -9130,6 +9153,9 @@ msgstr "Use Liquid syntax to interpolate variables, loop over arrays, and condit
 #. placeholder {0}: page.pageNumber
 msgid "Use page {0} for the quiz"
 msgstr "Use page {0} for the quiz"
+
+msgid "Use section destination"
+msgstr "Use section destination"
 
 msgid "Use section headings verbatim. Fast, deterministic, and preserves the original wording from the book."
 msgstr "Use section headings verbatim. Fast, deterministic, and preserves the original wording from the book."

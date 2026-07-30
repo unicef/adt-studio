@@ -16,6 +16,7 @@ import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
 import { useHasUnsavedChanges } from "../../components/floating-save"
 import type { BookStepSearch } from "@/lib/book-step-search"
+import { toast } from "@/components/ui/sonner"
 
 
 export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
@@ -101,6 +102,9 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
     const targetIndex = page.sectioningTree.sections.findIndex(
       (section) => section.sectionId === search.sectionId,
     )
+    if (targetIndex < 0) {
+      toast.warning(t`The requested section is no longer available. Opened the first section instead.`)
+    }
     setOverviewMode(false)
     setSectionIndex(targetIndex >= 0 ? targetIndex : 0)
     void navigate({
@@ -109,7 +113,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
       search: { ...search, sectionId: undefined },
       replace: true,
     })
-  }, [bookLabel, navigate, page?.sectioningTree, search, selectedPageId, setSectionIndex])
+  }, [bookLabel, navigate, page?.sectioningTree, search, selectedPageId, setSectionIndex, t])
 
   const confirmUnsavedNavigation = useCallback(
     () =>
