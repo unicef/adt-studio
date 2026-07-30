@@ -19,7 +19,7 @@ export interface RenderSyntheticActivityInput {
   storage: Storage
   bookLabel: string
   booksDir: string
-  promptsDir: string
+  promptRoots: string[]
   configPath?: string
   /** The page this activity will live on — used as visual anchor for the renderer. */
   anchorPageId: string
@@ -125,12 +125,7 @@ export async function renderSyntheticActivity(
     input.bookLabel,
     ".cache",
   )
-  const bookPromptsDir = path.join(
-    path.resolve(input.booksDir),
-    input.bookLabel,
-    "prompts",
-  )
-  const promptEngine = createPromptEngine([bookPromptsDir, input.promptsDir])
+  const promptEngine = createPromptEngine(input.promptRoots)
   const llmModel = createLLMModel({
     modelId: renderConfig.modelId,
     cacheDir,

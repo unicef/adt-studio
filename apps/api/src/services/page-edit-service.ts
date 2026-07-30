@@ -7,6 +7,7 @@ import { renderPage, buildRenderStrategyResolver, buildBookFontsPromptContext, r
 import type { VisualRefinementDeps } from "@adt/pipeline"
 import { PageSectioningOutput, WebRenderingOutput, webRenderingLLMSchema, editVerifyLLMSchema } from "@adt/types"
 import { loadStyleguideContent } from "./styleguide.js"
+import { resolvePromptRoots } from "./prompt-roots.js"
 
 export interface ReRenderOptions {
   label: string
@@ -97,7 +98,7 @@ export async function reRenderPage(
     // Create LLM model resolver (model-specific, cached)
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }))
     const templatesDir = path.join(path.dirname(promptsDir), "templates")
     const templateEngine = createTemplateEngine(templatesDir)
     const renderModels = new Map<string, LLMModel>()
@@ -286,7 +287,7 @@ export async function aiEditSection(
     // Build LLM model
     const cacheDir = path.join(path.resolve(booksDir), label, ".cache")
     const bookPromptsDir = path.join(path.resolve(booksDir), label, "prompts")
-    const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+    const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }))
     const model = createLLMModel({
       modelId,
       cacheDir,

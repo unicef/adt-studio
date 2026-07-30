@@ -1,13 +1,18 @@
 import path from "node:path"
 import fs from "node:fs"
+import { createHash, randomUUID } from "node:crypto"
 import { Hono } from "hono"
 import { resolvePromptModelId } from "@adt/llm"
+import { parseBookLabel } from "@adt/types"
+import type { PromptResponse, PromptVersionSummary, PromptSource, PromptSaveTarget } from "@adt/types"
 
 const VALID_NAME = /^[a-zA-Z0-9_]+$/
 const VALID_MODEL_ID = /^[a-zA-Z][a-zA-Z0-9]*:[a-zA-Z0-9][a-zA-Z0-9_.-]{0,159}$/
 const PROMPT_VERSIONS_DIR = ".versions"
 const PROMPT_MODELS_FILE = ".models.json"
 const PROMPT_CURRENT_VERSION_FILE = ".current"
+const PROMPT_FALLBACK_VERSION = "fallback"
+const PROMPT_DEFAULT_VERSION = "default"
 const VALID_VERSION_FILE = /^\d{8}T\d{9}Z-\d{3}\.liquid$/
 const BUILT_IN_PROMPT_MODEL_OWNERS = new Map<string, string>([
   ["openai_gpt_5_6_sol", "openai:gpt-5.6-sol"],
@@ -20,23 +25,19 @@ interface PromptSummary {
   variantSources: Record<string, "file" | "version" | "file+version">
 }
 
-interface PromptVersionSummary {
-  version: string
-  createdAt: string | null
-  content: string
-  isCurrent: boolean
-}
-
 export function createPromptRoutes(
   promptsDir: string,
   booksDir: string,
+  promptOverridesDir: string = promptsDir,
 ) {
   const app = new Hono()
   const templatesDir = path.join(path.dirname(promptsDir), "templates")
+  const globalRoots = uniqueRoots(promptOverridesDir, promptsDir)
+  migrateLegacyPromptOverrides(promptsDir, promptOverridesDir)
 
   // GET /prompt-models - list additional globally configured prompt model IDs
   app.get("/prompt-models", (c) => {
-    return c.json({ models: readPromptModels(promptsDir) })
+    return c.json({ models: readPromptModels(globalRoots) })
   })
 
   // PUT /prompt-models - replace additional globally configured prompt model IDs
@@ -66,13 +67,13 @@ export function createPromptRoutes(
       if (!models.includes(modelId)) models.push(modelId)
     }
 
-    writePromptModels(promptsDir, models)
+    writePromptModels(promptOverridesDir, models)
     return c.json({ models })
   })
 
   // GET /prompts - list global prompt template names and model variants
   app.get("/prompts", (c) => {
-    return c.json({ prompts: listPrompts(promptsDir) })
+    return c.json({ prompts: listPrompts(globalRoots) })
   })
 
   // GET /prompts/:name/versions - list versioned global prompt overrides
@@ -82,15 +83,20 @@ export function createPromptRoutes(
       return c.json({ error: "Invalid prompt name" }, 400)
     }
     const modelId = resolvePromptModelId(c.req.query("model"))
-    if (!isValidPromptModelId(promptsDir, modelId)) {
+    if (!isValidPromptModelId(globalRoots, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
 
-    if (!basePromptExists(promptsDir, name)) {
+    if (!basePromptExists(globalRoots, name)) {
       return c.json({ error: "Prompt not found" }, 404)
     }
 
-    return c.json(listPromptVersions({ root: promptsDir, promptsDir, name, modelId }))
+    return c.json(listPromptVersions({
+      root: promptOverridesDir,
+      fallbackRoots: [promptsDir],
+      name,
+      modelId,
+    }))
   })
 
   // PUT /prompts/:name/versions/:version/current - select active global prompt version
@@ -104,23 +110,23 @@ export function createPromptRoutes(
       return c.json({ error: "Invalid prompt version" }, 400)
     }
     const modelId = resolvePromptModelId(c.req.query("model"))
-    if (!isValidPromptModelId(promptsDir, modelId)) {
+    if (!isValidPromptModelId(globalRoots, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
 
-    if (!basePromptExists(promptsDir, name)) {
+    if (!basePromptExists(globalRoots, name)) {
       return c.json({ error: "Prompt not found" }, 404)
     }
 
     const resolvedName = promptNameForResolvedModel(name, modelId)
-    const versionDir = path.join(promptsDir, PROMPT_VERSIONS_DIR, resolvedName)
+    const versionDir = path.join(promptOverridesDir, PROMPT_VERSIONS_DIR, resolvedName)
     const versionPath = path.join(versionDir, version)
     if (!fs.existsSync(versionPath)) {
       return c.json({ error: "Prompt version not found" }, 404)
     }
 
     writeCurrentPromptVersion(versionDir, version)
-    const prompt = readPrompt({ promptsDir, name, modelId })
+    const prompt = readPrompt({ globalRoots, promptOverridesDir, name, modelId })
     if (!prompt) {
       return c.json({ error: "Prompt not found" }, 404)
     }
@@ -135,11 +141,11 @@ export function createPromptRoutes(
       return c.json({ error: "Invalid prompt name" }, 400)
     }
     const modelId = resolvePromptModelId(c.req.query("model"))
-    if (!isValidPromptModelId(promptsDir, modelId)) {
+    if (!isValidPromptModelId(globalRoots, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
 
-    const prompt = readPrompt({ promptsDir, name, modelId })
+    const prompt = readPrompt({ globalRoots, promptOverridesDir, name, modelId })
     if (!prompt) {
       return c.json({ error: "Prompt not found" }, 404)
     }
@@ -154,26 +160,35 @@ export function createPromptRoutes(
       return c.json({ error: "Invalid prompt name" }, 400)
     }
     const modelId = resolvePromptModelId(c.req.query("model"))
-    if (!isValidPromptModelId(promptsDir, modelId)) {
+    if (!isValidPromptModelId(globalRoots, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
 
-    const body = await c.req.json<{ content: string }>()
+    const body = await c.req.json<{ content: string; revision?: unknown }>()
     if (typeof body.content !== "string") {
       return c.json({ error: "Missing content field" }, 400)
     }
 
-    if (!basePromptExists(promptsDir, name)) {
+    if (!basePromptExists(globalRoots, name)) {
       return c.json({ error: "Prompt not found" }, 404)
     }
 
+    const currentPrompt = readPrompt({ globalRoots, promptOverridesDir, name, modelId })
+    if (!currentPrompt) return c.json({ error: "Prompt not found" }, 404)
+    if (body.content === currentPrompt.content) return c.json(currentPrompt)
+    if (body.revision != null && body.revision !== currentPrompt.revision) {
+      return c.json({
+        error: "Prompt changed since it was loaded",
+        code: "PROMPT_CONFLICT",
+        current: currentPrompt,
+      }, 409)
+    }
+
     const resolvedName = promptNameForResolvedModel(name, modelId)
-    const versionDir = path.join(promptsDir, PROMPT_VERSIONS_DIR, resolvedName)
-    fs.mkdirSync(versionDir, { recursive: true })
-    const version = createPromptVersionName(versionDir)
-    fs.writeFileSync(path.join(versionDir, version), body.content, "utf-8")
-    writeCurrentPromptVersion(versionDir, version)
-    return c.json({ name, resolvedName, content: body.content, source: "global", modelId, version })
+    writePromptVersion(promptOverridesDir, resolvedName, body.content)
+    const saved = readPrompt({ globalRoots, promptOverridesDir, name, modelId })
+    if (!saved) return c.json({ error: "Prompt not found" }, 404)
+    return c.json(saved)
   })
 
   // DELETE /prompts/:name - reset global prompt to its shipped flat-file default
@@ -183,21 +198,20 @@ export function createPromptRoutes(
       return c.json({ error: "Invalid prompt name" }, 400)
     }
     const modelId = resolvePromptModelId(c.req.query("model"))
-    if (!isValidPromptModelId(promptsDir, modelId)) {
+    if (!isValidPromptModelId(globalRoots, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
 
-    if (!basePromptExists(promptsDir, name)) {
+    if (!basePromptExists(globalRoots, name)) {
       return c.json({ error: "Prompt not found" }, 404)
     }
 
     const resolvedName = promptNameForResolvedModel(name, modelId)
-    const versionDir = path.join(promptsDir, PROMPT_VERSIONS_DIR, resolvedName)
-    if (fs.existsSync(versionDir)) {
-      fs.rmSync(versionDir, { recursive: true, force: true })
-    }
+    const versionDir = path.join(promptOverridesDir, PROMPT_VERSIONS_DIR, resolvedName)
+    fs.mkdirSync(versionDir, { recursive: true })
+    writeCurrentPromptVersion(versionDir, PROMPT_DEFAULT_VERSION)
 
-    const prompt = readPrompt({ promptsDir, name, modelId })
+    const prompt = readPrompt({ globalRoots, promptOverridesDir, name, modelId })
     if (!prompt) {
       return c.json({ error: "Prompt not found" }, 404)
     }
@@ -207,26 +221,25 @@ export function createPromptRoutes(
 
   // GET /books/:label/prompts/:name/versions - list versioned book prompt overrides
   app.get("/books/:label/prompts/:name/versions", (c) => {
-    const label = c.req.param("label")
+    const label = validBookLabel(c.req.param("label"))
+    if (!label) return c.json({ error: "Invalid book label" }, 400)
     const name = c.req.param("name")
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
     const modelId = resolvePromptModelId(c.req.query("model"))
-    if (!isValidPromptModelId(promptsDir, modelId)) {
+    if (!isValidPromptModelId(globalRoots, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
 
-    if (!basePromptExists(promptsDir, name)) {
+    if (!basePromptExists(globalRoots, name)) {
       return c.json({ error: "Prompt not found" }, 404)
     }
 
     const bookPromptsDir = path.join(booksDir, label, "prompts")
     return c.json(listPromptVersions({
       root: bookPromptsDir,
-      promptsDir,
-      booksDir,
-      label,
+      fallbackRoots: globalRoots,
       name,
       modelId,
     }))
@@ -234,7 +247,8 @@ export function createPromptRoutes(
 
   // PUT /books/:label/prompts/:name/versions/:version/current - select active book prompt version
   app.put("/books/:label/prompts/:name/versions/:version/current", (c) => {
-    const label = c.req.param("label")
+    const label = validBookLabel(c.req.param("label"))
+    if (!label) return c.json({ error: "Invalid book label" }, 400)
     const name = c.req.param("name")
     const version = c.req.param("version")
     if (!VALID_NAME.test(name)) {
@@ -244,11 +258,11 @@ export function createPromptRoutes(
       return c.json({ error: "Invalid prompt version" }, 400)
     }
     const modelId = resolvePromptModelId(c.req.query("model"))
-    if (!isValidPromptModelId(promptsDir, modelId)) {
+    if (!isValidPromptModelId(globalRoots, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
 
-    if (!basePromptExists(promptsDir, name)) {
+    if (!basePromptExists(globalRoots, name)) {
       return c.json({ error: "Prompt not found" }, 404)
     }
 
@@ -260,7 +274,7 @@ export function createPromptRoutes(
     }
 
     writeCurrentPromptVersion(versionDir, version)
-    const prompt = readPrompt({ promptsDir, booksDir, label, name, modelId })
+    const prompt = readPrompt({ globalRoots, promptOverridesDir, booksDir, label, name, modelId })
     if (!prompt) {
       return c.json({ error: "Prompt not found" }, 404)
     }
@@ -270,17 +284,18 @@ export function createPromptRoutes(
 
   // GET /books/:label/prompts/:name - read book override, fall back to global
   app.get("/books/:label/prompts/:name", (c) => {
-    const label = c.req.param("label")
+    const label = validBookLabel(c.req.param("label"))
+    if (!label) return c.json({ error: "Invalid book label" }, 400)
     const name = c.req.param("name")
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
     const modelId = resolvePromptModelId(c.req.query("model"))
-    if (!isValidPromptModelId(promptsDir, modelId)) {
+    if (!isValidPromptModelId(globalRoots, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
 
-    const prompt = readPrompt({ promptsDir, booksDir, label, name, modelId })
+    const prompt = readPrompt({ globalRoots, promptOverridesDir, booksDir, label, name, modelId })
     if (!prompt) {
       return c.json({ error: "Prompt not found" }, 404)
     }
@@ -290,40 +305,28 @@ export function createPromptRoutes(
 
   // DELETE /books/:label/prompts/:name - reset book prompt override to global fallback
   app.delete("/books/:label/prompts/:name", (c) => {
-    const label = c.req.param("label")
+    const label = validBookLabel(c.req.param("label"))
+    if (!label) return c.json({ error: "Invalid book label" }, 400)
     const name = c.req.param("name")
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
     const modelId = resolvePromptModelId(c.req.query("model"))
-    if (!isValidPromptModelId(promptsDir, modelId)) {
+    if (!isValidPromptModelId(globalRoots, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
 
-    if (!basePromptExists(promptsDir, name)) {
+    if (!basePromptExists(globalRoots, name)) {
       return c.json({ error: "Prompt not found" }, 404)
     }
 
     const resolvedName = promptNameForResolvedModel(name, modelId)
     const bookPromptsDir = path.join(booksDir, label, "prompts")
     const versionDir = path.join(bookPromptsDir, PROMPT_VERSIONS_DIR, resolvedName)
-    if (fs.existsSync(versionDir)) {
-      fs.rmSync(versionDir, { recursive: true, force: true })
-    }
+    fs.mkdirSync(versionDir, { recursive: true })
+    writeCurrentPromptVersion(versionDir, PROMPT_FALLBACK_VERSION)
 
-    const legacyFlatPath = path.join(bookPromptsDir, `${resolvedName}.liquid`)
-    if (fs.existsSync(legacyFlatPath)) {
-      fs.rmSync(legacyFlatPath, { force: true })
-    }
-
-    if (modelId) {
-      const folderPath = path.join(bookPromptsDir, promptModelFolderName(modelId), `${name}.liquid`)
-      if (fs.existsSync(folderPath)) {
-        fs.rmSync(folderPath, { force: true })
-      }
-    }
-
-    const prompt = readPrompt({ promptsDir, booksDir, label, name, modelId })
+    const prompt = readPrompt({ globalRoots, promptOverridesDir, booksDir, label, name, modelId })
     if (!prompt) {
       return c.json({ error: "Prompt not found" }, 404)
     }
@@ -333,37 +336,45 @@ export function createPromptRoutes(
 
   // PUT /books/:label/prompts/:name - save book-level override
   app.put("/books/:label/prompts/:name", async (c) => {
-    const label = c.req.param("label")
+    const label = validBookLabel(c.req.param("label"))
+    if (!label) return c.json({ error: "Invalid book label" }, 400)
     const name = c.req.param("name")
     if (!VALID_NAME.test(name)) {
       return c.json({ error: "Invalid prompt name" }, 400)
     }
     const modelId = resolvePromptModelId(c.req.query("model"))
-    if (!isValidPromptModelId(promptsDir, modelId)) {
+    if (!isValidPromptModelId(globalRoots, modelId)) {
       return c.json({ error: "Invalid model id" }, 400)
     }
 
-    const body = await c.req.json<{ content: string }>()
+    const body = await c.req.json<{ content: string; revision?: unknown }>()
     if (typeof body.content !== "string") {
       return c.json({ error: "Missing content field" }, 400)
     }
 
-    // Verify the prompt exists globally (so we don't create random files)
-    const globalPath = path.join(promptsDir, `${name}.liquid`)
-    if (!fs.existsSync(globalPath)) {
+    if (!basePromptExists(globalRoots, name)) {
       return c.json({ error: "Prompt not found" }, 404)
+    }
+
+    const currentPrompt = readPrompt({ globalRoots, promptOverridesDir, booksDir, label, name, modelId })
+    if (!currentPrompt) return c.json({ error: "Prompt not found" }, 404)
+    if (body.content === currentPrompt.content) return c.json(currentPrompt)
+    if (body.revision != null && body.revision !== currentPrompt.revision) {
+      return c.json({
+        error: "Prompt changed since it was loaded",
+        code: "PROMPT_CONFLICT",
+        current: currentPrompt,
+      }, 409)
     }
 
     // Write an immutable book-level prompt version. Existing flat overrides are
     // still read for compatibility, but new saves are versioned.
     const bookPromptsDir = path.join(booksDir, label, "prompts")
     const resolvedName = promptNameForResolvedModel(name, modelId)
-    const versionDir = path.join(bookPromptsDir, PROMPT_VERSIONS_DIR, resolvedName)
-    fs.mkdirSync(versionDir, { recursive: true })
-    const version = createPromptVersionName(versionDir)
-    fs.writeFileSync(path.join(versionDir, version), body.content, "utf-8")
-    writeCurrentPromptVersion(versionDir, version)
-    return c.json({ name, resolvedName, content: body.content, source: "book", modelId, version })
+    writePromptVersion(bookPromptsDir, resolvedName, body.content)
+    const saved = readPrompt({ globalRoots, promptOverridesDir, booksDir, label, name, modelId })
+    if (!saved) return c.json({ error: "Prompt not found" }, 404)
+    return c.json(saved)
   })
 
   // --- Render templates (Liquid layout templates used by template-based strategies) ---
@@ -468,7 +479,7 @@ export function createPromptRoutes(
   return app
 }
 
-function listPrompts(promptsDir: string): PromptSummary[] {
+function listPrompts(roots: string[]): PromptSummary[] {
   const names = new Set<string>()
   const variantMap = new Map<string, Set<string>>()
   const variantSourceMap = new Map<string, Map<string, Set<"file" | "version">>>()
@@ -482,42 +493,34 @@ function listPrompts(promptsDir: string): PromptSummary[] {
     sources.get(variantName)!.add(source)
   }
 
-  if (fs.existsSync(promptsDir)) {
-    for (const file of fs.readdirSync(promptsDir, { withFileTypes: true })) {
+  for (const root of roots) {
+    if (!fs.existsSync(root)) continue
+    for (const file of fs.readdirSync(root, { withFileTypes: true })) {
       if (!file.isFile() || !file.name.endsWith(".liquid")) continue
       const name = file.name.replace(/\.liquid$/, "")
       const [baseName] = name.split("__")
       if (!baseName) continue
-      if (name.includes("__")) {
-        addVariant(baseName, name, "file")
-      } else {
-        names.add(name)
+      if (name.includes("__")) addVariant(baseName, name, "file")
+      else names.add(name)
+    }
+
+    const versionsRoot = path.join(root, PROMPT_VERSIONS_DIR)
+    if (fs.existsSync(versionsRoot)) {
+      for (const name of fs.readdirSync(versionsRoot)) {
+        if (promptVersionSelection(root, name).kind !== "version") continue
+        const [baseName] = name.split("__")
+        if (!baseName) continue
+        if (name.includes("__")) addVariant(baseName, name, "version")
+        else names.add(name)
       }
     }
 
-  }
-
-  const versionsRoot = path.join(promptsDir, PROMPT_VERSIONS_DIR)
-  if (fs.existsSync(versionsRoot)) {
-    for (const name of fs.readdirSync(versionsRoot)) {
-      const [baseName] = name.split("__")
-      if (!baseName) continue
-      if (name.includes("__")) {
-        addVariant(baseName, name, "version")
-      } else {
-        names.add(name)
-      }
-    }
-  }
-
-  if (fs.existsSync(promptsDir)) {
-    const rootPromptNames = new Set(names)
-    for (const entry of fs.readdirSync(promptsDir, { withFileTypes: true })) {
+    for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
       if (!entry.isDirectory() || !isPromptModelFolder(entry.name)) continue
-      for (const file of fs.readdirSync(path.join(promptsDir, entry.name), { withFileTypes: true })) {
+      for (const file of fs.readdirSync(path.join(root, entry.name), { withFileTypes: true })) {
         if (!file.isFile() || !file.name.endsWith(".liquid")) continue
         const promptName = file.name.replace(/\.liquid$/, "")
-        if (!VALID_NAME.test(promptName) || !rootPromptNames.has(promptName)) continue
+        if (!VALID_NAME.test(promptName)) continue
         const variantName = `${promptName}__${entry.name}`
         addVariant(promptName, variantName, "file")
       }
@@ -544,7 +547,7 @@ function normalizePromptModelId(value: string): string {
   return value.trim().toLowerCase()
 }
 
-function isValidPromptModelId(promptsDir: string, modelId: string | null): boolean {
+function isValidPromptModelId(roots: string[], modelId: string | null): boolean {
   if (modelId == null) return true
   if (!VALID_MODEL_ID.test(modelId)) return false
 
@@ -552,7 +555,7 @@ function isValidPromptModelId(promptsDir: string, modelId: string | null): boole
   const builtInOwner = BUILT_IN_PROMPT_MODEL_OWNERS.get(folderName)
   if (builtInOwner && builtInOwner !== modelId) return false
 
-  for (const existingModelId of readPromptModels(promptsDir)) {
+  for (const existingModelId of readPromptModels(roots)) {
     if (
       existingModelId !== modelId
       && promptModelFolderName(existingModelId) === folderName
@@ -564,45 +567,44 @@ function isValidPromptModelId(promptsDir: string, modelId: string | null): boole
   return true
 }
 
-function readPromptModels(promptsDir: string): string[] {
-  const filePath = path.join(promptsDir, PROMPT_MODELS_FILE)
-  if (!fs.existsSync(filePath)) return []
-
-  try {
-    const data = JSON.parse(fs.readFileSync(filePath, "utf-8")) as { models?: unknown }
-    if (!Array.isArray(data.models)) return []
-    const models: string[] = []
-    const modelFolders = new Map(BUILT_IN_PROMPT_MODEL_OWNERS)
-    for (const value of data.models) {
-      if (typeof value !== "string") continue
-      const modelId = normalizePromptModelId(value)
-      if (!modelId || !VALID_MODEL_ID.test(modelId) || models.includes(modelId)) continue
-      const folderName = promptModelFolderName(modelId)
-      const existingModel = modelFolders.get(folderName)
-      if (existingModel && existingModel !== modelId) continue
-      modelFolders.set(folderName, modelId)
-      models.push(modelId)
+function readPromptModels(roots: string[]): string[] {
+  for (const root of roots) {
+    const filePath = path.join(root, PROMPT_MODELS_FILE)
+    if (!fs.existsSync(filePath)) continue
+    try {
+      const data = JSON.parse(fs.readFileSync(filePath, "utf-8")) as { models?: unknown }
+      if (!Array.isArray(data.models)) return []
+      const models: string[] = []
+      const modelFolders = new Map(BUILT_IN_PROMPT_MODEL_OWNERS)
+      for (const value of data.models) {
+        if (typeof value !== "string") continue
+        const modelId = normalizePromptModelId(value)
+        if (!modelId || !VALID_MODEL_ID.test(modelId) || models.includes(modelId)) continue
+        const folderName = promptModelFolderName(modelId)
+        const existingModel = modelFolders.get(folderName)
+        if (existingModel && existingModel !== modelId) continue
+        modelFolders.set(folderName, modelId)
+        models.push(modelId)
+      }
+      return models
+    } catch {
+      return []
     }
-    return models
-  } catch {
-    return []
   }
+  return []
 }
 
 function writePromptModels(promptsDir: string, models: string[]) {
   fs.mkdirSync(promptsDir, { recursive: true })
-  fs.writeFileSync(
+  writeFileAtomic(
     path.join(promptsDir, PROMPT_MODELS_FILE),
     `${JSON.stringify({ models }, null, 2)}\n`,
-    "utf-8",
   )
 }
 
 function listPromptVersions(options: {
   root: string
-  promptsDir: string
-  booksDir?: string
-  label?: string
+  fallbackRoots: string[]
   name: string
   modelId: string | null
 }): {
@@ -612,13 +614,16 @@ function listPromptVersions(options: {
   fallbackContent: string | null
   fallbackResolvedName: string | null
   currentVersion: string | null
+  isFallbackCurrent: boolean
   versions: PromptVersionSummary[]
 } {
-  const { root, promptsDir, booksDir, label, name, modelId } = options
+  const { root, fallbackRoots, name, modelId } = options
   const resolvedName = promptNameForResolvedModel(name, modelId)
-  const fallback = readPromptVersionFallback({ root, promptsDir, booksDir, label, name, modelId })
+  const fallback = resolvePromptFromRoots(fallbackRoots, name, modelId)
   const versionDir = path.join(root, PROMPT_VERSIONS_DIR, resolvedName)
-  const currentVersion = readCurrentPromptVersion(versionDir) ?? latestVersionFile(root, resolvedName)
+  const selection = promptVersionSelection(root, resolvedName)
+  const currentVersion = selection.kind === "version" ? selection.version : null
+  const isFallbackCurrent = selection.kind === "fallback" || selection.kind === "default"
   if (!fs.existsSync(versionDir)) {
     return {
       name,
@@ -627,6 +632,7 @@ function listPromptVersions(options: {
       fallbackContent: fallback?.content ?? null,
       fallbackResolvedName: fallback?.resolvedName ?? null,
       currentVersion: null,
+      isFallbackCurrent: false,
       versions: [],
     }
   }
@@ -650,243 +656,151 @@ function listPromptVersions(options: {
     fallbackContent: fallback?.content ?? null,
     fallbackResolvedName: fallback?.resolvedName ?? null,
     currentVersion,
+    isFallbackCurrent,
     versions,
   }
 }
 
-function basePromptExists(promptsDir: string, name: string): boolean {
-  return fs.existsSync(path.join(promptsDir, `${name}.liquid`))
-    || latestVersionFile(promptsDir, name) != null
+function basePromptExists(roots: string[], name: string): boolean {
+  return resolvePromptFromRoots(roots, name, null) != null
 }
 
 function readPrompt(options: {
-  promptsDir: string
+  globalRoots: string[]
+  promptOverridesDir: string
   booksDir?: string
   label?: string
   name: string
   modelId: string | null
-}): {
-  name: string
-  resolvedName: string
-  content: string
-  source: "book" | "global"
-  modelId: string | null
-  version?: string
-} | null {
-  const { promptsDir, booksDir, label, name, modelId } = options
-  const resolvedName = promptNameForResolvedModel(name, modelId)
-  if (resolvedName !== name) {
-    const variant = readModelPrompt({ promptsDir, booksDir, label, name, resolvedName, modelId })
-    if (variant) {
-      return { ...variant, name, resolvedName }
-    }
-  }
+}): PromptResponse | null {
+  const { globalRoots, promptOverridesDir, booksDir, label, name, modelId } = options
+  const bookRoot = booksDir && label ? path.join(booksDir, label, "prompts") : null
+  const roots = bookRoot ? uniqueRoots(bookRoot, ...globalRoots) : globalRoots
+  const resolved = resolvePromptFromRoots(roots, name, modelId)
+  if (!resolved) return null
 
-  return readBasePrompt({ promptsDir, booksDir, label, name, modelId: null })
+  const source: PromptSource = bookRoot && resolved.root === bookRoot
+    ? "book"
+    : resolved.root === promptOverridesDir
+      ? "global"
+      : "bundled"
+  const saveTarget: PromptSaveTarget = bookRoot ? "book" : "global"
+  const logicalPath = saveTarget === "book"
+    ? `prompts/${PROMPT_VERSIONS_DIR}/${resolved.resolvedName}`
+    : `${PROMPT_VERSIONS_DIR}/${resolved.resolvedName}`
+  const revision = createHash("sha256")
+    .update(JSON.stringify({
+      name,
+      resolvedName: resolved.resolvedName,
+      content: resolved.content,
+      source,
+      version: resolved.version ?? null,
+    }))
+    .digest("hex")
+
+  return {
+    name,
+    resolvedName: resolved.resolvedName,
+    content: resolved.content,
+    source,
+    modelId: resolved.resolvedName === name ? null : modelId,
+    ...(resolved.version ? { version: resolved.version } : {}),
+    revision,
+    persistence: { source, saveTarget, logicalPath },
+  }
 }
 
-function readPromptVersionFallback(options: {
+interface ResolvedPromptFile {
   root: string
-  promptsDir: string
-  booksDir?: string
-  label?: string
-  name: string
-  modelId: string | null
-}): { content: string; resolvedName: string } | null {
-  const { root, promptsDir, booksDir, label, name, modelId } = options
+  resolvedName: string
+  content: string
+  version?: string
+}
+
+function resolvePromptFromRoots(
+  roots: string[],
+  name: string,
+  modelId: string | null,
+): ResolvedPromptFile | null {
   const resolvedName = promptNameForResolvedModel(name, modelId)
-
   if (modelId && resolvedName !== name) {
-    const rootModelPrompt = readModelPromptFallbackFromRoot(root, name, resolvedName, modelId)
-    if (rootModelPrompt) return { ...rootModelPrompt, resolvedName }
-    const modelPrompt = root === promptsDir
-      ? null
-      : readModelPromptFallbackFromRoot(promptsDir, name, resolvedName, modelId)
-    if (modelPrompt) return { ...modelPrompt, resolvedName }
-  }
-
-  const rootFlatPath = path.join(root, `${name}.liquid`)
-  if (fs.existsSync(rootFlatPath)) {
-    return { content: fs.readFileSync(rootFlatPath, "utf-8"), resolvedName: name }
-  }
-
-  if (booksDir && label) {
-    const globalPrompt = readPrompt({ promptsDir, name, modelId })
-    if (globalPrompt) {
-      return { content: globalPrompt.content, resolvedName: globalPrompt.resolvedName }
-    }
-  }
-
-  const flatPath = path.join(promptsDir, `${name}.liquid`)
-  if (!fs.existsSync(flatPath)) return null
-  return { content: fs.readFileSync(flatPath, "utf-8"), resolvedName: name }
-}
-
-function readModelPrompt(options: {
-  promptsDir: string
-  booksDir?: string
-  label?: string
-  name: string
-  resolvedName: string
-  modelId: string | null
-}): {
-  name: string
-  resolvedName: string
-  content: string
-  source: "book" | "global"
-  modelId: string | null
-  version?: string
-} | null {
-  const { promptsDir, booksDir, label, name, resolvedName, modelId } = options
-  if (booksDir && label) {
-    const bookPrompt = readModelPromptFromRoot(path.join(booksDir, label, "prompts"), name, resolvedName, modelId)
-    if (bookPrompt) {
-      return {
-        name,
-        resolvedName,
-        content: bookPrompt.content,
-        source: "book",
-        modelId,
-        version: bookPrompt.version,
+    let ignoreVersions = false
+    for (const root of roots) {
+      const variant = readPromptFromRoot(root, name, resolvedName, modelId, ignoreVersions)
+      if (variant === "default") {
+        ignoreVersions = true
+        continue
       }
+      if (variant === "fallback") continue
+      if (variant) return { root, resolvedName, ...variant }
     }
   }
 
-  const globalPrompt = readModelPromptFromRoot(promptsDir, name, resolvedName, modelId)
-  if (globalPrompt) {
-    return {
-      name,
-      resolvedName,
-      content: globalPrompt.content,
-      source: "global",
-      modelId,
-      version: globalPrompt.version,
+  let ignoreVersions = false
+  for (const root of roots) {
+    const base = readPromptFromRoot(root, name, name, null, ignoreVersions)
+    if (base === "default") {
+      ignoreVersions = true
+      continue
     }
+    if (base === "fallback") continue
+    if (base) return { root, resolvedName: name, ...base }
   }
-
-  return null
-}
-
-function readBasePrompt(options: {
-  promptsDir: string
-  booksDir?: string
-  label?: string
-  name: string
-  modelId: string | null
-}): {
-  name: string
-  resolvedName: string
-  content: string
-  source: "book" | "global"
-  modelId: string | null
-  version?: string
-} | null {
-  const { promptsDir, booksDir, label, name, modelId } = options
-  if (booksDir && label) {
-    const bookPrompt = readPromptFromRoot(path.join(booksDir, label, "prompts"), name)
-    if (bookPrompt) {
-      return {
-        name,
-        resolvedName: name,
-        content: bookPrompt.content,
-        source: "book",
-        modelId,
-        version: bookPrompt.version,
-      }
-    }
-  }
-
-  const globalPrompt = readPromptFromRoot(promptsDir, name)
-  if (globalPrompt) {
-    return {
-      name,
-      resolvedName: name,
-      content: globalPrompt.content,
-      source: "global",
-      modelId,
-      version: globalPrompt.version,
-    }
-  }
-
   return null
 }
 
 function readPromptFromRoot(
   root: string,
   promptName: string,
-): { content: string; version?: string } | null {
-  const version = latestVersionFile(root, promptName)
-  if (version) {
-    return {
-      content: fs.readFileSync(path.join(root, PROMPT_VERSIONS_DIR, promptName, version), "utf-8"),
-      version,
-    }
-  }
-
-  const flatPath = path.join(root, `${promptName}.liquid`)
-  if (!fs.existsSync(flatPath)) return null
-  return { content: fs.readFileSync(flatPath, "utf-8") }
-}
-
-function readModelPromptFromRoot(
-  root: string,
-  promptName: string,
   resolvedName: string,
   modelId: string | null,
-): { content: string; version?: string } | null {
-  const version = latestVersionFile(root, resolvedName)
-  if (version) {
+  ignoreVersions = false,
+): { content: string; version?: string } | "fallback" | "default" | null {
+  const selection = ignoreVersions
+    ? { kind: "none" } as const
+    : promptVersionSelection(root, resolvedName)
+  if (selection.kind === "fallback") return "fallback"
+  if (selection.kind === "default") return "default"
+  if (selection.kind === "version") {
     return {
-      content: fs.readFileSync(path.join(root, PROMPT_VERSIONS_DIR, resolvedName, version), "utf-8"),
-      version,
+      content: fs.readFileSync(selection.filePath, "utf-8"),
+      version: selection.version,
     }
   }
 
   if (modelId) {
     const folderPath = path.join(root, promptModelFolderName(modelId), `${promptName}.liquid`)
-    if (fs.existsSync(folderPath)) {
-      return { content: fs.readFileSync(folderPath, "utf-8") }
-    }
+    if (fs.existsSync(folderPath)) return { content: fs.readFileSync(folderPath, "utf-8") }
   }
 
-  const legacyFlatPath = path.join(root, `${resolvedName}.liquid`)
-  if (fs.existsSync(legacyFlatPath)) {
-    return { content: fs.readFileSync(legacyFlatPath, "utf-8") }
-  }
-
-  return null
+  const flatPath = path.join(root, `${resolvedName}.liquid`)
+  return fs.existsSync(flatPath)
+    ? { content: fs.readFileSync(flatPath, "utf-8") }
+    : null
 }
 
-function readModelPromptFallbackFromRoot(
-  root: string,
-  promptName: string,
-  resolvedName: string,
-  modelId: string,
-): { content: string } | null {
-  const folderPath = path.join(root, promptModelFolderName(modelId), `${promptName}.liquid`)
-  if (fs.existsSync(folderPath)) {
-    return { content: fs.readFileSync(folderPath, "utf-8") }
-  }
+type PromptVersionSelection =
+  | { kind: "none" }
+  | { kind: "fallback" }
+  | { kind: "default" }
+  | { kind: "version"; version: string; filePath: string }
 
-  const legacyFlatPath = path.join(root, `${resolvedName}.liquid`)
-  if (fs.existsSync(legacyFlatPath)) {
-    return { content: fs.readFileSync(legacyFlatPath, "utf-8") }
-  }
-
-  return null
-}
-
-function latestVersionFile(root: string, promptName: string): string | null {
+function promptVersionSelection(root: string, promptName: string): PromptVersionSelection {
   const versionDir = path.join(root, PROMPT_VERSIONS_DIR, promptName)
-  if (!fs.existsSync(versionDir)) return null
+  if (!fs.existsSync(versionDir)) return { kind: "none" }
+
+  const current = readCurrentPromptVersion(versionDir)
+  if (current === PROMPT_FALLBACK_VERSION) return { kind: "fallback" }
+  if (current === PROMPT_DEFAULT_VERSION) return { kind: "default" }
 
   const versions = fs
     .readdirSync(versionDir)
     .filter((file) => file.endsWith(".liquid"))
     .sort()
-  const currentVersion = readCurrentPromptVersion(versionDir)
-  if (currentVersion && versions.includes(currentVersion)) return currentVersion
-  return versions.at(-1) ?? null
+  const version = current && versions.includes(current) ? current : versions.at(-1)
+  return version
+    ? { kind: "version", version, filePath: path.join(versionDir, version) }
+    : { kind: "none" }
 }
 
 function readCurrentPromptVersion(versionDir: string): string | null {
@@ -894,13 +808,90 @@ function readCurrentPromptVersion(versionDir: string): string | null {
   if (!fs.existsSync(currentPath)) return null
 
   const currentVersion = fs.readFileSync(currentPath, "utf-8").trim()
+  if (currentVersion === PROMPT_FALLBACK_VERSION) return currentVersion
+  if (currentVersion === PROMPT_DEFAULT_VERSION) return currentVersion
   if (!VALID_VERSION_FILE.test(currentVersion)) return null
   if (!fs.existsSync(path.join(versionDir, currentVersion))) return null
   return currentVersion
 }
 
 function writeCurrentPromptVersion(versionDir: string, version: string) {
-  fs.writeFileSync(path.join(versionDir, PROMPT_CURRENT_VERSION_FILE), `${version}\n`, "utf-8")
+  writeFileAtomic(path.join(versionDir, PROMPT_CURRENT_VERSION_FILE), `${version}\n`)
+}
+
+function writePromptVersion(root: string, resolvedName: string, content: string): string {
+  const versionDir = path.join(root, PROMPT_VERSIONS_DIR, resolvedName)
+  fs.mkdirSync(versionDir, { recursive: true })
+  const version = createPromptVersionName(versionDir)
+  fs.writeFileSync(path.join(versionDir, version), content, { encoding: "utf-8", flag: "wx" })
+  writeCurrentPromptVersion(versionDir, version)
+  return version
+}
+
+function writeFileAtomic(filePath: string, content: string) {
+  const tempPath = `${filePath}.${process.pid}.${randomUUID()}.tmp`
+  fs.writeFileSync(tempPath, content, { encoding: "utf-8", flag: "wx" })
+  fs.renameSync(tempPath, filePath)
+}
+
+function uniqueRoots(...roots: string[]): string[] {
+  const seen = new Set<string>()
+  return roots.filter((root) => {
+    const key = path.resolve(root)
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+function validBookLabel(label: string): string | null {
+  try {
+    return parseBookLabel(label)
+  } catch {
+    return null
+  }
+}
+
+function migrateLegacyPromptOverrides(promptsDir: string, promptOverridesDir: string) {
+  if (path.resolve(promptsDir) === path.resolve(promptOverridesDir)) return
+
+  const legacyVersionsRoot = path.join(promptsDir, PROMPT_VERSIONS_DIR)
+  if (fs.existsSync(legacyVersionsRoot)) {
+    for (const entry of fs.readdirSync(legacyVersionsRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory() || !VALID_NAME.test(entry.name)) continue
+      const legacyVersionDir = path.join(legacyVersionsRoot, entry.name)
+      const targetVersionDir = path.join(promptOverridesDir, PROMPT_VERSIONS_DIR, entry.name)
+      fs.mkdirSync(targetVersionDir, { recursive: true })
+
+      for (const file of fs.readdirSync(legacyVersionDir)) {
+        if (!VALID_VERSION_FILE.test(file)) continue
+        const targetPath = path.join(targetVersionDir, file)
+        if (!fs.existsSync(targetPath)) {
+          fs.copyFileSync(path.join(legacyVersionDir, file), targetPath, fs.constants.COPYFILE_EXCL)
+        }
+      }
+
+      const legacyCurrentPath = path.join(legacyVersionDir, PROMPT_CURRENT_VERSION_FILE)
+      const targetCurrentPath = path.join(targetVersionDir, PROMPT_CURRENT_VERSION_FILE)
+      if (fs.existsSync(legacyCurrentPath) && !fs.existsSync(targetCurrentPath)) {
+        const current = fs.readFileSync(legacyCurrentPath, "utf-8").trim()
+        if (
+          current === PROMPT_FALLBACK_VERSION
+          || current === PROMPT_DEFAULT_VERSION
+          || VALID_VERSION_FILE.test(current)
+        ) {
+          writeCurrentPromptVersion(targetVersionDir, current)
+        }
+      }
+    }
+  }
+
+  const legacyModelsPath = path.join(promptsDir, PROMPT_MODELS_FILE)
+  const targetModelsPath = path.join(promptOverridesDir, PROMPT_MODELS_FILE)
+  if (fs.existsSync(legacyModelsPath) && !fs.existsSync(targetModelsPath)) {
+    fs.mkdirSync(promptOverridesDir, { recursive: true })
+    fs.copyFileSync(legacyModelsPath, targetModelsPath, fs.constants.COPYFILE_EXCL)
+  }
 }
 
 function createPromptVersionName(versionDir: string): string {

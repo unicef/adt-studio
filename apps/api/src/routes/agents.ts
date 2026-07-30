@@ -1,3 +1,4 @@
+import path from "node:path"
 import { Hono } from "hono"
 import type { Context } from "hono"
 import { HTTPException } from "hono/http-exception"
@@ -8,6 +9,7 @@ import {
   type AgentApiKeys,
 } from "../services/agents-service.js"
 import type { TaskService } from "../services/task-service.js"
+import { resolvePromptRoots } from "../services/prompt-roots.js"
 
 /**
  * Read the per-provider API keys from the request headers. Mirrors the header
@@ -231,7 +233,11 @@ export function createAgentRoutes(
       generateActivityService({
         label: safeLabel,
         booksDir,
-        promptsDir,
+        promptRoots: resolvePromptRoots({
+          booksDir,
+          promptsDir,
+          bookPromptsDir: path.join(path.resolve(booksDir), safeLabel, "prompts"),
+        }),
         configPath,
         anchorPageId,
         description,

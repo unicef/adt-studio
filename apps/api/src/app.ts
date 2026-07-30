@@ -36,6 +36,7 @@ import { createSignLanguageVideoRoutes } from "./routes/sign-language-videos.js"
 import { createEditableActivitiesRoutes } from "./routes/editable-activities.js"
 import { createAgentRoutes } from "./routes/agents.js"
 import { createTranslationEvaluationRoutes } from "./routes/translation-evaluations.js"
+import { resolvePromptOverridesDir } from "./services/prompt-roots.js"
 
 // Resolve paths relative to monorepo root (2 levels up from apps/api/)
 const projectRoot = path.resolve(
@@ -43,6 +44,7 @@ const projectRoot = path.resolve(
 )
 const booksDir = path.resolve(process.env.BOOKS_DIR ?? path.join(projectRoot, "books"))
 const promptsDir = path.resolve(process.env.PROMPTS_DIR ?? path.join(projectRoot, "prompts"))
+const promptOverridesDir = resolvePromptOverridesDir(booksDir)
 const configPath = path.resolve(
   process.env.CONFIG_PATH ?? path.join(projectRoot, "config.yaml")
 )
@@ -102,7 +104,7 @@ app.route("/api", createTocRoutes(booksDir))
 app.route("/api", createDebugRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createQuizRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createPackageRoutes(booksDir, webAssetsDir, configPath, taskService))
-app.route("/api", createPromptRoutes(promptsDir, booksDir))
+app.route("/api", createPromptRoutes(promptsDir, booksDir, promptOverridesDir))
 app.route("/api", createTextCatalogRoutes(booksDir))
 app.route("/api", createEasyReadRoutes(booksDir, promptsDir, configPath))
 app.route("/api", createBookSummaryRoutes(booksDir, promptsDir, configPath, taskService))

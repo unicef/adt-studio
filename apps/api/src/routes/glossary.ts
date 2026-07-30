@@ -20,6 +20,7 @@ import {
   normalizeLocale,
 } from "@adt/pipeline"
 import { createLLMModel, createPromptEngine } from "@adt/llm"
+import { resolvePromptRoots } from "../services/prompt-roots.js"
 
 function safeParseLabel(label: string): string {
   try {
@@ -214,7 +215,7 @@ export function createGlossaryRoutes(
 
       const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+      const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }))
       const llmModel = createLLMModel({
         modelId: glossaryConfig.modelId,
         cacheDir,

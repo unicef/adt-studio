@@ -123,7 +123,7 @@ export async function layoutMirrorService(
 export interface GenerateActivityServiceOptions extends AgentApiKeys {
   label: string
   booksDir: string
-  promptsDir: string
+  promptRoots: string[]
   configPath?: string
   anchorPageId: string
   description: string
@@ -141,7 +141,7 @@ export async function generateActivityService(
   const {
     label,
     booksDir,
-    promptsDir,
+    promptRoots,
     configPath,
     anchorPageId,
     description,
@@ -158,7 +158,7 @@ export async function generateActivityService(
       storage,
       bookLabel: label,
       booksDir,
-      promptsDir,
+      promptRoots,
       configPath,
       anchorPageId,
       description,

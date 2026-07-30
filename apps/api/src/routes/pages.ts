@@ -39,6 +39,7 @@ import {
 import { samplePageEdges, extractPages, computeGroups, countPdfPages } from "@adt/pdf"
 import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
 import type { TaskService } from "../services/task-service.js"
+import { resolvePromptRoots } from "../services/prompt-roots.js"
 import {
   segmentPageImages,
   getSegmentedImageId,
@@ -2648,7 +2649,7 @@ export function createPageRoutes(
         config.image_segmentation?.max_retries ?? DEFAULT_LLM_MAX_RETRIES
 
       const bookPromptsDir = path.join(path.resolve(booksDir), safeLabel, "prompts")
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+      const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }))
       const cacheDir = path.join(path.resolve(booksDir), safeLabel, ".cache")
       const llmModel = createLLMModel({
         modelId,
@@ -2859,7 +2860,7 @@ export function createPageRoutes(
     try {
       const bookPromptsDir = path.join(bookDir, "prompts")
       const appConfig = loadBookConfig(safeLabel, booksDir, configPath)
-      const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
+      const promptEngine = createPromptEngine(resolvePromptRoots({ booksDir, promptsDir, bookPromptsDir }))
       const cacheDir = path.join(bookDir, ".cache")
       const config = buildStyleguideGenerationConfig(
         undefined,
