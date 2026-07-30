@@ -25,6 +25,7 @@ export interface AccessibilityCategorySummary {
 }
 
 export interface AccessibilityFindingPageSummary {
+  pageId: string | null
   sectionId: string
   href: string
   title: string | null
@@ -244,6 +245,7 @@ export function buildFrequentAccessibilityFindings(
       }
       entry.count += 1
       const pageEntry = entry.pages.get(page.sectionId) ?? {
+        pageId: page.pageId,
         sectionId: page.sectionId,
         href: page.href,
         title: page.title,
@@ -271,6 +273,7 @@ export function buildFrequentAccessibilityFindings(
       }
       entry.count += 1
       const pageEntry = entry.pages.get(page.sectionId) ?? {
+        pageId: page.pageId,
         sectionId: page.sectionId,
         href: page.href,
         title: page.title,
