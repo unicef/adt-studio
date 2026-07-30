@@ -2053,12 +2053,22 @@ function convertDelimitedLatex(text: string): string {
 /**
  * Replace LaTeX math in HTML content with MathML rendered by Temml.
  * Handles delimited math ($, $$, \(, \[) and undelimited LaTeX in text nodes.
+ *
+ * Both passes only touch text-node content (between > and <), never tag
+ * attributes. Generated activity HTML sometimes echoes the expression into an
+ * attribute (e.g. `<input aria-label="c. $5(2x)$" class="…">`); converting it
+ * there injects MathML whose own quoted attributes (`fence="true"`) terminate
+ * the attribute value early and split the tag open — the input disappears and
+ * its attribute tail renders as page text.
  */
 export function convertLatexToMathml(html: string): string {
   html = decodeDollarEntities(html)
 
-  // First pass: convert delimited math anywhere in the string
-  html = convertDelimitedLatex(html)
+  // First pass: convert delimited math in text nodes
+  html = html.replace(/(>)([^<]+)(<)/g, (_match, open: string, text: string, close: string) => {
+    const converted = convertDelimitedLatex(text)
+    return converted !== text ? `${open}${converted}${close}` : _match
+  })
 
   // Second pass: convert undelimited LaTeX in text nodes (content between > and <).
   // For pure math nodes, render the entire text as a single expression.

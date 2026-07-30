@@ -2026,6 +2026,28 @@ describe("convertLatexToMathml", () => {
     expect(result).not.toContain("\\tfrac")
   })
 
+  // Regression: the delimited pass used to run over the raw HTML string, so a
+  // `$…$` pair inside a tag attribute (activity inputs echoing the expression
+  // in aria-label) was replaced with MathML. For parenthesized expressions the
+  // MathML carries quoted attributes (`fence="true"`), whose first embedded
+  // quote truncated the attribute value and split the tag open — the input
+  // vanished and its attribute tail rendered as page text.
+  it("never converts LaTeX inside tag attributes", () => {
+    const input =
+      '<input type="text" aria-label="c. $5(2x)$" class="mt-4 w-full rounded border border-gray-300 bg-white p-2">'
+    const html = `<p data-id="tx001">c. $5(2x)$</p>${input}`
+    const result = convertLatexToMathml(html)
+    expect(result).toContain(input)
+    expect(result).toContain("<math")
+    expect(result).not.toContain("$5(2x)$</p>")
+  })
+
+  it("converts delimited math in text nodes on both sides of a tag boundary", () => {
+    const result = convertLatexToMathml("<p>$a + b$</p><p>$c + d$</p>")
+    const mathCount = (result.match(/<math/g) ?? []).length
+    expect(mathCount).toBe(2)
+  })
+
   // Regression: `\begin{` is listed in MATH_INDICATORS, which only decides
   // whether the converter runs at all. The converter's own gate never listed
   // it, so columnar sums and long division were detected as "this page has
