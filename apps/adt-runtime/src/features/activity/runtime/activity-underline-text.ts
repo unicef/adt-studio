@@ -107,11 +107,8 @@ function tr(key: string, fallback: string): string {
   return dict[key] || fallback
 }
 
-declare global {
-  interface Window {
-    correctAnswers?: Record<string, unknown>
-  }
-}
+// `window.correctAnswers` is declared once in ./activity-globals.d.ts.
+// For underline-text, `true` means the word should be underlined.
 
 interface UnderlineGroup {
   key: string

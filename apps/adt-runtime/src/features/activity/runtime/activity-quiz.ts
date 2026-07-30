@@ -40,16 +40,9 @@ function tr(key: string, fallback: string): string {
   return dict[key] || fallback
 }
 
-declare global {
-  interface Window {
-    /**
-     * Map of item id → correctness. Multiple-choice ships boolean values;
-     * other text-input activities ship strings. Injected by
-     * `packages/pipeline/src/package-web.ts:renderPageHtml`.
-     */
-    correctAnswers?: Record<string, unknown>
-  }
-}
+// `window.correctAnswers` is declared once in ./activity-globals.d.ts.
+// Multiple-choice ships boolean values; other text-input activities ship
+// strings.
 
 function readCorrectAnswers(section: HTMLElement): Record<string, boolean> {
   const attr = section.getAttribute("data-correct-answers")

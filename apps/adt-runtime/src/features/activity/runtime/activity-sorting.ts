@@ -48,15 +48,9 @@ function tr(key: string, fallback: string): string {
   return dict[key] || fallback
 }
 
-declare global {
-  interface Window {
-    /**
-     * For sorting, maps each item id (`data-activity-item`) to the id of the
-     * category (`data-activity-category`) it belongs in.
-     */
-    correctAnswers?: Record<string, unknown>
-  }
-}
+// `window.correctAnswers` is declared once in ./activity-globals.d.ts. For
+// sorting, it maps each item id (`data-activity-item`) to the id of the
+// category (`data-activity-category`) it belongs in.
 
 function readCorrectAnswers(section: HTMLElement): Record<string, string> {
   const attr = section.getAttribute("data-correct-answers")
