@@ -26,6 +26,13 @@ export async function savePromptDraft(
     if (error instanceof ApiError && error.status === 409) {
       const current = (error.body as { current?: PromptResponse } | null)?.current
       if (current) queryClient.setQueryData(queryKey, current)
+      toast.error(i18n._(msg`This prompt changed after you loaded it. Your draft was not overwritten.`), {
+        id: "book-prompt-conflict",
+      })
+    } else {
+      toast.error(i18n._(msg`Save failed`), {
+        id: "book-prompt-save-error",
+      })
     }
     throw error
   }
