@@ -186,6 +186,8 @@ export {
   type ResolvedGeminiTtsRateLimit,
   isSpeakableText,
   stripEmojis,
+  prepareTextForSpeech,
+  prepareInstructionsForSpeech,
   loadVoicesConfig,
   loadSpeechInstructions,
   computeSpeechCacheKey,
