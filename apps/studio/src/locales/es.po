@@ -1701,6 +1701,9 @@ msgstr "Autocompletar desde el contexto del libro"
 msgid "Auto-scroll"
 msgstr "Desplazamiento automático"
 
+msgid "Automatic routing"
+msgstr "Enrutamiento automático"
+
 msgid "Automatically adapts the layout based on each page's content using AI."
 msgstr "Adapta automáticamente el diseño según el contenido de cada página usando IA."
 
@@ -4032,11 +4035,19 @@ msgstr "El primer idioma es el predeterminado"
 msgid "Fit"
 msgstr "Ajustar"
 
+<<<<<<< HEAD
 msgid "Fit to panel · showing {display}% of full size"
 msgstr "Ajustado al panel · mostrando el {display}% del tamaño original"
 
 msgid "Fix"
 msgstr "Arreglar"
+=======
+msgid "Fix destination"
+msgstr "Destino de la corrección"
+
+msgid "Fix in {fixStageLabel}"
+msgstr "Corregir en {fixStageLabel}"
+>>>>>>> 3fb10367 (feat(validation): open findings in fix stages)
 
 msgid "Fixed layout"
 msgstr "Diseño fijo"
@@ -6549,6 +6560,10 @@ msgstr "abrir"
 msgid "Open"
 msgstr "Abrir"
 
+#. placeholder {0}: formatFindingPageLabel(i18n, page)
+msgid "Open {0} in {fixStageLabel}"
+msgstr "Abrir {0} en {fixStageLabel}"
+
 msgid "Open a page in Preview to show its page-specific accessibility findings here."
 msgstr "Abra una página en la Vista previa para mostrar aquí sus hallazgos de accesibilidad específicos."
 
@@ -6586,6 +6601,10 @@ msgstr "Abrir panel de edición"
 
 msgid "Open image preview"
 msgstr "Abrir vista previa de la imagen"
+
+#. placeholder {0}: i18n._(STAGE_LABEL_MESSAGES[entry.fixStage])
+msgid "Open in {0}"
+msgstr "Abrir en {0}"
 
 msgid "Open in any EPUB 3 reader, e-reader, or accessibility tool."
 msgstr "Ábrelo en cualquier lector EPUB 3, lector electrónico o herramienta de accesibilidad."
@@ -9784,8 +9803,19 @@ msgstr "La experiencia del lector"
 msgid "The rendering strategy used for sections without an explicit mapping."
 msgstr "La estrategia de renderización usada para secciones sin un mapeo explícito."
 
+<<<<<<< HEAD
 msgid "The same edition in every language."
 msgstr "La misma edición en cada idioma."
+=======
+msgid "The requested section is no longer available. Opened the first section instead."
+msgstr "La sección solicitada ya no está disponible. Se abrió la primera sección en su lugar."
+
+msgid "The requested section is no longer available. Opened the page instead."
+msgstr "La sección solicitada ya no está disponible. Se abrió la página en su lugar."
+
+msgid "The river meets the sea"
+msgstr "El río se encuentra con el mar"
+>>>>>>> 3fb10367 (feat(validation): open findings in fix stages)
 
 msgid "The saved translation review is stale. Run Review again for the visible translations."
 msgstr "La revisión de traducción guardada está obsoleta. Vuelve a ejecutar Revisar para las traducciones visibles."
@@ -10579,6 +10609,9 @@ msgstr "Usa la sintaxis de Liquid para interpolar variables, recorrer arrays e i
 #. placeholder {0}: page.pageNumber
 msgid "Use page {0} for the quiz"
 msgstr "Usar la página {0} para el cuestionario"
+
+msgid "Use section destination"
+msgstr "Usar el destino de la sección"
 
 msgid "Use section headings verbatim. Fast, deterministic, and preserves the original wording from the book."
 msgstr "Usa los encabezados de sección textualmente. Rápido, determinista y preserva el texto original del libro."

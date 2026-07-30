@@ -2,8 +2,8 @@ import { useEffect, useMemo, useState } from "react"
 import type { I18n } from "@lingui/core"
 import { msg } from "@lingui/core/macro"
 import { Trans, useLingui } from "@lingui/react/macro"
-import type { AccessibilityCategoryKey, AccessibilitySeverity } from "@/lib/accessibility-summary"
-import { ExternalLink } from "lucide-react"
+import type { AccessibilityCategoryKey, AccessibilityFindingPageSummary, AccessibilitySeverity } from "@/lib/accessibility-summary"
+import { ArrowRight, ExternalLink } from "lucide-react"
 import { useNavigate } from "@tanstack/react-router"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,12 @@ import { useAccessibilityAssessment } from "@/hooks/use-debug"
 import { buildAccessibilityOverview, buildFrequentAccessibilityFindings, getAccessibilityCategoryLabel } from "@/lib/accessibility-summary"
 import { useAxeRuleTranslator } from "@/lib/axe-rule-locale"
 import { cn } from "@/lib/utils"
+import { STAGE_LABEL_MESSAGES } from "@/components/pipeline/pipeline-i18n"
+import {
+  resolveAccessibilityFixStage,
+  resolveValidationFixDestination,
+} from "@/lib/validation-fix-routing"
+import type { ValidationFixStage } from "@adt/types"
 
 interface AccessibilityTabProps {
   label: string
@@ -147,18 +153,24 @@ function formatFindingPageLabel(i18n: I18n, page: { pageNumber: number | null; t
 
 function FindingPageLinks({
   pages,
+  fixStage,
   onOpenPage,
 }: {
-  pages: Array<{ sectionId: string; href: string; title: string | null; pageNumber: number | null; count: number }>
-  onOpenPage: (href: string) => void
+  pages: AccessibilityFindingPageSummary[]
+  fixStage: ValidationFixStage
+  onOpenPage: (page: AccessibilityFindingPageSummary) => void
 }) {
   const { t, i18n } = useLingui()
   const [expanded, setExpanded] = useState(false)
   const visiblePages = expanded ? pages : pages.slice(0, 6)
+  const fixStageLabel = i18n._(STAGE_LABEL_MESSAGES[fixStage])
 
   return (
     <div className="mt-3 space-y-2">
-      <div className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground"><Trans>Affected pages</Trans></div>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        <Trans>Affected pages</Trans>
+        <span>{t`Fix in ${fixStageLabel}`}</span>
+      </div>
       <div className="flex flex-wrap gap-2">
         {visiblePages.map((page) => (
           <Button
@@ -166,10 +178,12 @@ function FindingPageLinks({
             variant="outline"
             size="sm"
             className="h-7 px-2.5 text-[11px]"
-            onClick={() => onOpenPage(page.href)}
+            onClick={() => onOpenPage(page)}
+            title={t`Open ${formatFindingPageLabel(i18n, page)} in ${fixStageLabel}`}
           >
             {formatFindingPageLabel(i18n, page)}
             {page.count > 1 ? <span className="ml-1 text-muted-foreground">({page.count})</span> : null}
+            <ArrowRight className="ml-1.5 h-3 w-3" />
           </Button>
         ))}
         {pages.length > 6 ? (
@@ -189,14 +203,12 @@ function FindingPageLinks({
 
 function FrequentFindingCard({
   finding,
-  pageCount,
   onOpenPage,
   onFilterSeverity,
   onFilterCategory,
 }: {
   finding: ReturnType<typeof buildFrequentAccessibilityFindings>[number]
-  pageCount: number
-  onOpenPage: (href: string) => void
+  onOpenPage: (page: AccessibilityFindingPageSummary) => void
   onFilterSeverity: (severity: AccessibilitySeverity) => void
   onFilterCategory: (category: AccessibilityCategoryKey) => void
 }) {
@@ -204,6 +216,7 @@ function FrequentFindingCard({
   const axeRules = useAxeRuleTranslator()
   const coveragePercent = Math.round(finding.pageCoverage * 100)
   const count = finding.count
+  const fixStage = resolveAccessibilityFixStage(finding.id, finding.categoryKey)
 
   return (
     <div className="rounded-lg border px-3 py-3">
@@ -271,7 +284,7 @@ function FrequentFindingCard({
         </div>
       </div>
 
-      <FindingPageLinks pages={finding.pages} onOpenPage={onOpenPage} />
+      <FindingPageLinks pages={finding.pages} fixStage={fixStage} onOpenPage={onOpenPage} />
     </div>
   )
 }
@@ -338,11 +351,29 @@ export function AccessibilityOverviewTab({ label }: AccessibilityTabProps) {
 
   const hasActiveFilter = severityFilter !== null || categoryFilter !== null
 
-  const openPreviewToPage = (href: string) => {
+  const openFindingFix = (
+    finding: ReturnType<typeof buildFrequentAccessibilityFindings>[number],
+    page: AccessibilityFindingPageSummary,
+  ) => {
+    const destination = resolveValidationFixDestination({
+      stage: resolveAccessibilityFixStage(finding.id, finding.categoryKey),
+      pageId: page.pageId,
+      sectionId: page.sectionId,
+      href: page.href,
+    })
+
+    if (destination.kind === "stage") {
+      void navigate({
+        to: "/books/$label/$step",
+        params: { label, step: destination.stage },
+      })
+      return
+    }
+
     void navigate({
-      to: "/books/$label/$step",
-      params: { label, step: "preview" },
-      search: { previewHref: href },
+      to: "/books/$label/$step/$pageId",
+      params: { label, step: destination.stage, pageId: destination.pageId },
+      search: destination.sectionId ? { sectionId: destination.sectionId } : {},
     })
   }
 
@@ -477,8 +508,7 @@ export function AccessibilityOverviewTab({ label }: AccessibilityTabProps) {
             <FrequentFindingCard
               key={`${finding.reviewOnly ? "review" : "violation"}:${finding.id}`}
               finding={finding}
-              pageCount={assessment.summary.pageCount}
-              onOpenPage={openPreviewToPage}
+              onOpenPage={(page) => openFindingFix(finding, page)}
               onFilterSeverity={(severity) => setSeverityFilter(severity)}
               onFilterCategory={(category) => setCategoryFilter(category)}
             />
