@@ -1659,6 +1659,9 @@ msgstr "Substituições de modelos do livro atualizadas."
 msgid "Book order"
 msgstr "Ordem do livro"
 
+msgid "Book override"
+msgstr "Substituição do livro"
+
 msgid "Book package ready"
 msgstr "Pacote do livro pronto"
 
@@ -1745,6 +1748,9 @@ msgstr "Cria um glossário de termos-chave e definições encontrados no texto."
 
 msgid "Builds the table of contents from the book's sections."
 msgstr "Cria o índice a partir das seções do livro."
+
+msgid "Bundled default"
+msgstr "Padrão incluído"
 
 msgid "Bundles the rendered book into a deployable web package."
 msgstr "Agrupa o livro renderizado em um pacote web implantável."
@@ -1891,6 +1897,17 @@ msgstr "Alterar a imagem deste termo"
 
 #~ msgid "Changes apply the next time you run Storyboard and Export."
 #~ msgstr "As alterações são aplicadas na próxima vez que você executar o Storyboard e a Exportação."
+
+#. placeholder {0}: promptData.persistence.logicalPath
+msgid "Changes save to global overrides at {0}."
+msgstr "As alterações são salvas nas substituições globais em {0}."
+
+msgid "Changes save to global overrides at {logicalPath}."
+msgstr "As alterações são salvas nas substituições globais em {logicalPath}."
+
+#. placeholder {0}: promptData.persistence.logicalPath
+msgid "Changes save to this book at {0}."
+msgstr "As alterações são salvas neste livro em {0}."
 
 msgid "Changing fonts affects how pages are rendered — re-run Storyboard and Export to apply the new fonts."
 msgstr "Alterar as fontes afeta como as páginas são renderizadas — execute novamente o Storyboard e a Exportação para aplicar as novas fontes."
@@ -3814,11 +3831,14 @@ msgstr "Prompt de geração"
 msgid "Get started"
 msgstr "Começar"
 
+msgid "Global override"
+msgstr "Substituição global"
+
 msgid "Global prompt reset to default."
 msgstr "Prompt global resetado para o padrão."
 
-msgid "Global prompt saved."
-msgstr "Prompt global salvo."
+#~ msgid "Global prompt saved."
+#~ msgstr "Prompt global salvo."
 
 msgid "Global prompts"
 msgstr "Prompts globais"
@@ -6375,6 +6395,13 @@ msgstr "Arquivo de prompt excluído."
 msgid "Prompt folder deleted."
 msgstr "Pasta de prompts excluída."
 
+#. placeholder {0}: saved.persistence.logicalPath
+msgid "Prompt saved to global overrides at {0}."
+msgstr "Prompt salvo nas substituições globais em {0}."
+
+msgid "Prompt saved to this book."
+msgstr "Prompt salvo neste livro."
+
 #~ msgid "Prompt Settings"
 #~ msgstr "Configurações de prompts"
 
@@ -6742,6 +6769,9 @@ msgstr "Solte para enviar"
 
 msgid "Reload app"
 msgstr "Recarregar aplicativo"
+
+msgid "Reload latest"
+msgstr "Recarregar versão mais recente"
 
 msgid "Remove"
 msgstr "Remover"
@@ -8656,6 +8686,9 @@ msgstr "Esta posição já tem {occupiedCount} questionários. Adicione outro de
 msgid "This position already has a quiz. Add another right after it, or replace it."
 msgstr "Esta posição já tem um questionário. Adicione outro logo depois ou substitua-o."
 
+msgid "This prompt changed after you loaded it. Your draft was not overwritten."
+msgstr "Este prompt mudou depois que você o carregou. Seu rascunho não foi sobrescrito."
+
 msgid "This prompt instructs the LLM how to evaluate the rendered HTML against the original page. Selection above controls which template is used."
 msgstr "Este prompt instrui o LLM sobre como avaliar o HTML renderizado em relação à página original. A seleção acima controla qual modelo é usado."
 
@@ -9006,6 +9039,9 @@ msgstr "Restaurar imagem"
 
 msgid "Unsaved changes"
 msgstr "Alterações não salvas"
+
+msgid "Unsaved draft"
+msgstr "Rascunho não salvo"
 
 msgid "Untangling nested divs with care..."
 msgstr "Desembaraçando divs aninhadas com cuidado..."
