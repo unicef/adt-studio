@@ -52,7 +52,11 @@ export function DockMobileTools({
             className="mx-auto h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/25"
           />
           <SheetTitle className="text-base">{label}</SheetTitle>
-          <div className="grid grid-cols-4 gap-2">
+          {/* Two per row, wrapping and centered — 4 features read as a clean
+              2×2; an odd count (e.g. 5 with Language) centers its last tile
+              instead of orphaning it to the left. Tiles stay well above the
+              44px touch-target minimum. */}
+          <div className="flex flex-wrap justify-center gap-2">
             {tools.map((tool) => {
               const Icon = tool.icon
               return (
@@ -65,14 +69,14 @@ export function DockMobileTools({
                     if (!tool.keepOpen) setOpen(false)
                   }}
                   className={cn(
-                    "flex flex-col items-center justify-center gap-1.5 rounded-xl p-3 text-center transition-colors",
+                    "flex w-[calc(50%-0.25rem)] min-h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-xl p-3 text-center transition-colors",
                     "text-foreground/80 hover:bg-accent hover:text-accent-foreground",
                     "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     tool.active && "bg-accent text-accent-foreground",
                   )}
                 >
                   <Icon className="size-6" />
-                  <span className="text-xs font-medium leading-tight">
+                  <span className="text-sm font-medium leading-tight">
                     {tool.label}
                   </span>
                 </button>
