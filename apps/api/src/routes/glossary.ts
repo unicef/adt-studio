@@ -1,3 +1,4 @@
+import { resolvePromptRoots } from "../services/prompt-roots.js"
 import fs from "node:fs"
 import path from "node:path"
 import { Hono } from "hono"

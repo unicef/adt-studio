@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { FileText, GitCompare } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/api/client";
+import { api, ApiError } from "@/api/client";
 import type { PromptResponse } from "@/api/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -186,6 +186,7 @@ export function GlobalPromptsSettings({
         displayContent,
         undefined,
         promptModelId,
+        promptQuery.data?.revision,
       ),
     onSuccess: async (saved) => {
       setDraft(null);
@@ -194,9 +195,22 @@ export function GlobalPromptsSettings({
         queryClient.invalidateQueries({ queryKey: ["prompts"] }),
         queryClient.invalidateQueries({ queryKey: ["prompt-versions", selectedPrompt, promptModelId] }),
       ]);
-      toast.success(t`Global prompt saved.`);
+      toast.success(t`Prompt saved to global overrides at ${saved.persistence.logicalPath}.`);
     },
     onError: (error) => {
+      if (error instanceof ApiError && error.status === 409) {
+        const current = (error.body as { current?: PromptResponse } | null)?.current;
+        toast.error(t`This prompt changed after you loaded it. Your draft was not overwritten.`, {
+          action: current ? {
+            label: t`Reload latest`,
+            onClick: () => {
+              updatePromptCaches(queryClient, selectedPrompt, promptModelId, current);
+              setDraft(null);
+            },
+          } : undefined,
+        });
+        return;
+      }
       toast.error(
         error instanceof Error
           ? error.message
@@ -524,7 +538,9 @@ export function GlobalPromptsSettings({
                     <>
                       <PromptStatusBadges
                         isUsingFallback={isUsingFallback}
-                        isEditedGlobalVersion={isEditedGlobalVersion}
+                        isDirty={isDirty}
+                        source={promptQuery.data?.source}
+                        logicalPath={promptQuery.data?.persistence.logicalPath}
                       />
                       <Button
                         type="button"
