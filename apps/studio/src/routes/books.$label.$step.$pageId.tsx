@@ -1,8 +1,10 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useCallback } from "react"
 import { StepViewRouter } from "@/components/pipeline/components/StepViewRouter"
+import { parseBookStepSearch } from "@/lib/book-step-search"
 
 export const Route = createFileRoute("/books/$label/$step/$pageId")({
+  validateSearch: parseBookStepSearch,
   component: StepPageDetailPage,
 })
 

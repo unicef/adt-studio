@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback, useState } from "react"
+import { useNavigate, useSearch } from "@tanstack/react-router"
 import { ArrowLeft, ArrowRight, LayoutGrid, Table2 } from "lucide-react"
 import { usePages, usePage } from "@/hooks/use-pages"
 import { useStepHeader } from "../../components/StepViewRouter"
@@ -14,10 +15,13 @@ import { useSectionNav } from "@/routes/books.$label"
 import { Trans } from "@lingui/react/macro"
 import { useLingui } from "@lingui/react/macro"
 import { useHasUnsavedChanges } from "../../components/floating-save"
+import type { BookStepSearch } from "@/lib/book-step-search"
 
 
 export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, onSelectPage }: { bookLabel: string; selectedPageId?: string; onSelectPage?: (pageId: string | null) => void }) {
   const { t } = useLingui()
+  const navigate = useNavigate()
+  const search = useSearch({ strict: false }) as BookStepSearch
   const { data: pages, isLoading: pagesLoading } = usePages(bookLabel)
   const setSelectedPageId = onSelectPage ?? (() => {})
   const [overviewMode, setOverviewMode] = useState(false)
@@ -47,6 +51,7 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
 
   const pageList = pages ?? []
   const { sectionIndex, setSectionIndex, skipNextResetRef } = useSectionNav()
+  const consumedSectionFocusRef = useRef<string | null>(null)
   // When navigating backward across page boundary, resolve to last section
   const pendingLastSection = useRef(false)
   // Guard: prevent silent navigation while AI image is generating
@@ -83,6 +88,28 @@ export function StoryboardView({ bookLabel, selectedPageId: selectedPageIdProp, 
   )
 
   const sectionCount = page?.sectioningTree?.sections.length ?? 0
+
+  // Validation deep links target a stable section id. Consume the search value
+  // once the requested page has loaded, then remove it so later navigation does
+  // not unexpectedly re-apply the focus.
+  useEffect(() => {
+    if (!search.sectionId || !selectedPageId || !page?.sectioningTree) return
+    const focusKey = `${selectedPageId}:${search.sectionId}`
+    if (consumedSectionFocusRef.current === focusKey) return
+    consumedSectionFocusRef.current = focusKey
+
+    const targetIndex = page.sectioningTree.sections.findIndex(
+      (section) => section.sectionId === search.sectionId,
+    )
+    setOverviewMode(false)
+    setSectionIndex(targetIndex >= 0 ? targetIndex : 0)
+    void navigate({
+      to: "/books/$label/$step/$pageId",
+      params: { label: bookLabel, step: "storyboard", pageId: selectedPageId },
+      search: { ...search, sectionId: undefined },
+      replace: true,
+    })
+  }, [bookLabel, navigate, page?.sectioningTree, search, selectedPageId, setSectionIndex])
 
   const confirmUnsavedNavigation = useCallback(
     () =>
