@@ -530,6 +530,177 @@ function uniqueDataActivityItems(ctx: ActivityRuleContext): string[] {
 }
 
 // ---------------------------------------------------------------------------
+// Custom activity (activity_custom_*) accessibility rules
+//
+// Custom activities are LLM-authored free-form HTML, so unlike the templated
+// types there's no fixed structure to validate — but the runtime still shows a
+// Submit button and learners still operate the activity, including by keyboard
+// and screen reader. These rules enforce the accessibility floor the generation
+// prompt asks for: drop zones and cards must be named, focusable, and have a
+// role; the section must be labelled and announce results via a live region.
+// ---------------------------------------------------------------------------
+
+const NATIVE_INTERACTIVE = new Set([
+  "button",
+  "a",
+  "input",
+  "select",
+  "textarea",
+])
+
+function isNativeInteractive(el: Element): boolean {
+  return NATIVE_INTERACTIVE.has((el.name ?? "").toLowerCase())
+}
+
+function hasRoleSemantics(el: Element): boolean {
+  return isNativeInteractive(el) || typeof attr(el, "role") === "string"
+}
+
+function isFocusable(el: Element): boolean {
+  return isNativeInteractive(el) || typeof attr(el, "tabindex") === "string"
+}
+
+function elementById(root: Element, id: string): Element | null {
+  return findAll(root, (n) => attr(n, "id") === id)[0] ?? null
+}
+
+/** Resolve aria-labelledby to the concatenated text of the referenced ids. */
+function labelledByText(section: Element, el: Element): string {
+  const ref = attr(el, "aria-labelledby")
+  if (!ref) return ""
+  return ref
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((id) => {
+      const target = elementById(section, id)
+      return target ? DomUtils.textContent(target) : ""
+    })
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+/** True when the element carries an explicit, non-empty ARIA label. */
+function hasExplicitLabel(section: Element, el: Element): boolean {
+  return Boolean(attr(el, "aria-label")?.trim() || labelledByText(section, el))
+}
+
+/** True when the element exposes any accessible name (label, text, or img alt). */
+function hasAccessibleName(section: Element, el: Element): boolean {
+  if (hasExplicitLabel(section, el)) return true
+  if (DomUtils.textContent(el).replace(/\s+/g, " ").trim()) return true
+  // The element may BE the image (a picture card in a jigsaw or picture-match
+  // activity) — findAll only walks descendants, so check the node itself first.
+  if (tag(el, "img") && (attr(el, "alt") ?? "").trim().length > 0) return true
+  return findAll(el, (n) => tag(n, "img")).some(
+    (img) => (attr(img, "alt") ?? "").trim().length > 0,
+  )
+}
+
+function answerKeyId(el: Element): string {
+  return (
+    attr(el, "data-activity-target") ||
+    attr(el, "data-activity-item") ||
+    attr(el, "data-id") ||
+    `<${el.name}>`
+  )
+}
+
+function customDropZonesAreAccessible(ctx: ActivityRuleContext): string[] {
+  const errors: string[] = []
+  for (const zone of findAll(
+    ctx.section,
+    (n) => typeof attr(n, "data-activity-target") === "string",
+  )) {
+    const id = answerKeyId(zone)
+    if (!hasExplicitLabel(ctx.section, zone)) {
+      errors.push(
+        `Drop zone data-activity-target="${id}" has no accessible label. ` +
+          `Add aria-label="..." or aria-labelledby="<id>" naming the zone (e.g. "Top left space").`,
+      )
+    }
+    if (!hasRoleSemantics(zone)) {
+      errors.push(
+        `Drop zone data-activity-target="${id}" has no role. ` +
+          `Add role="group" (or "region") so screen readers announce it as a target.`,
+      )
+    }
+    if (!isFocusable(zone)) {
+      errors.push(
+        `Drop zone data-activity-target="${id}" is not keyboard-focusable. ` +
+          `Add tabindex="0" so keyboard users can place items into it.`,
+      )
+    }
+  }
+  return errors
+}
+
+function customCardsAreAccessible(ctx: ActivityRuleContext): string[] {
+  const errors: string[] = []
+  for (const card of findAll(
+    ctx.section,
+    (n) => typeof attr(n, "data-activity-item") === "string",
+  )) {
+    const id = answerKeyId(card)
+    if (!hasAccessibleName(ctx.section, card)) {
+      errors.push(
+        `Card data-activity-item="${id}" has no accessible name. ` +
+          `Give it visible text, an <img alt="...">, or aria-label="...".`,
+      )
+    }
+    if (!hasRoleSemantics(card) || !isFocusable(card)) {
+      errors.push(
+        `Card data-activity-item="${id}" is not operable by keyboard. ` +
+          `Use a <button>, or add role="button" and tabindex="0".`,
+      )
+    }
+  }
+  return errors
+}
+
+function customInputsHaveAccessibleLabel(ctx: ActivityRuleContext): string[] {
+  const errors: string[] = []
+  for (const input of findAll(ctx.section, isWritableTextInput)) {
+    if (
+      !attr(input, "aria-label") &&
+      !attr(input, "aria-labelledby") &&
+      !attr(input, "title")
+    ) {
+      errors.push(
+        `An <${input.name}> in this custom activity has no accessible label. ` +
+          `Add aria-label="..." describing what the learner must enter (a placeholder is not enough).`,
+      )
+    }
+  }
+  return errors
+}
+
+function customSectionHasLabel(ctx: ActivityRuleContext): string[] {
+  if (hasExplicitLabel(ctx.section, ctx.section)) return []
+  return [
+    `The activity <section> has no accessible name. Add aria-labelledby="<heading-id>" ` +
+      `(or aria-label) so screen readers announce the activity by name.`,
+  ]
+}
+
+function customHasLiveRegion(ctx: ActivityRuleContext): string[] {
+  const hasLive =
+    findAll(
+      ctx.section,
+      (n) =>
+        typeof attr(n, "aria-live") === "string" ||
+        attr(n, "role") === "status" ||
+        attr(n, "role") === "alert" ||
+        typeof attr(n, "data-activity-status") === "string",
+    ).length > 0
+  if (hasLive) return []
+  return [
+    `This custom activity has no live region for feedback. Add an aria-live="polite" ` +
+      `status element (e.g. <div data-activity-status role="status" aria-live="polite">) and write the result into it.`,
+  ]
+}
+
+// ---------------------------------------------------------------------------
 // Rule registry
 // ---------------------------------------------------------------------------
 
@@ -572,6 +743,14 @@ const OPEN_ENDED_RULES: ActivityRule[] = [
   { name: "inputs-have-aria-label", check: openEndedInputsShouldHaveAriaLabel },
 ]
 
+const CUSTOM_RULES: ActivityRule[] = [
+  { name: "drop-zones-accessible", check: customDropZonesAreAccessible },
+  { name: "cards-accessible", check: customCardsAreAccessible },
+  { name: "inputs-have-label", check: customInputsHaveAccessibleLabel },
+  { name: "section-has-label", check: customSectionHasLabel },
+  { name: "has-live-region", check: customHasLiveRegion },
+]
+
 export const ACTIVITY_RULES: Record<string, ActivityRule[]> = {
   activity_multiple_choice: MC_RULES,
   activity_quiz: MC_RULES,
@@ -592,7 +771,11 @@ export function validateActivityStructure(
   section: Element,
   sectionType: string,
 ): string[] {
-  const rules = ACTIVITY_RULES[sectionType]
+  // Custom activities share one rule set, keyed by the `activity_custom` prefix
+  // (the suffix — _jigsaw, _crossword, … — is free-form).
+  const rules = sectionType.startsWith("activity_custom")
+    ? CUSTOM_RULES
+    : ACTIVITY_RULES[sectionType]
   if (!rules) return []
   const ctx: ActivityRuleContext = { section, sectionType }
   return rules.flatMap((rule) => rule.check(ctx))

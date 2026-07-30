@@ -69,6 +69,7 @@ import { initializeTrueFalseActivity } from "@/features/activity/runtime/activit
 import { initializeSortingActivity } from "@/features/activity/runtime/activity-sorting"
 import { initializeMatchingActivity } from "@/features/activity/runtime/activity-matching"
 import { initializeStepperActivity } from "@/features/activity/runtime/activity-stepper"
+import { initializeCustomActivity } from "@/features/activity/runtime/activity-custom"
 
 function readCurrentSectionId(): string | null {
   if (typeof document === "undefined") return null
@@ -197,6 +198,7 @@ export async function bootRuntime(): Promise<void> {
     initializeTrueFalseActivity()
     initializeSortingActivity()
     initializeMatchingActivity()
+    initializeCustomActivity()
   } finally {
     // Always clear the dock skeleton — even on partial-load failures the dock
     // should reveal whatever data DID make it into atoms.

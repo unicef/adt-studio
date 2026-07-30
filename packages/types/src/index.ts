@@ -138,6 +138,7 @@ export {
   AccessibilityAssessmentConfig,
   EpubGlossaryMode,
   EpubGlossaryConfig,
+  AgentsConfig,
   AppConfig,
   type TypeDef,
 } from "./config.js"
