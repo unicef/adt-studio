@@ -15,6 +15,7 @@ services:
       - PROJECT_ROOT=/app
       - BOOKS_DIR=/app/books
       - PROMPTS_DIR=/app/prompts
+      - PROMPT_OVERRIDES_DIR=/app/books/.adt-studio/prompt-overrides
       - TEMPLATES_DIR=/app/templates
       - CONFIG_PATH=/app/config.yaml
     networks:

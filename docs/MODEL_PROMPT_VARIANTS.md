@@ -7,11 +7,22 @@ prompt variants for a new model, and which prompt templates should be reviewed.
 
 Prompt templates are Liquid files on disk. They are not stored in the database.
 
-Global prompts live in:
+Bundled, read-only prompt defaults live in:
 
 ```text
 prompts/
 ```
+
+Global edits made in Studio are immutable versions in the writable override
+directory:
+
+```text
+books/.adt-studio/prompt-overrides/.versions/
+```
+
+Set `PROMPT_OVERRIDES_DIR` to move this application-level data. The Electron
+app uses its `userData/prompt-overrides` directory. Bundled defaults are never
+modified at runtime.
 
 Book-level prompt edits made from Studio live inside the book directory:
 
@@ -71,18 +82,18 @@ books/<book-label>/prompts/.versions/page_sectioning__openai_gpt_5_5/<timestamp>
 Prompt resolution is exact-model based, not family based.
 
 When a pipeline step renders `page_sectioning` with model
-`openai:gpt-5.5`, the prompt engine tries:
+`openai:gpt-5.5`, the prompt engine tries model-specific files in this root
+order, then repeats the same root order for the base prompt:
 
-1. `books/<book-label>/prompts/.versions/page_sectioning__openai_gpt_5_5/<latest>.liquid`
-2. `books/<book-label>/prompts/openai_gpt_5_5/page_sectioning.liquid`
-3. `books/<book-label>/prompts/page_sectioning__openai_gpt_5_5.liquid`
-4. `prompts/.versions/page_sectioning__openai_gpt_5_5/<latest>.liquid`
-5. `prompts/openai_gpt_5_5/page_sectioning.liquid`
-6. `prompts/page_sectioning__openai_gpt_5_5.liquid`
-7. `books/<book-label>/prompts/.versions/page_sectioning/<latest>.liquid`
-8. `books/<book-label>/prompts/page_sectioning.liquid`
-9. `prompts/.versions/page_sectioning/<latest>.liquid`
-10. `prompts/page_sectioning.liquid`
+1. `books/<book-label>/prompts/` — book versions and legacy files
+2. `PROMPT_OVERRIDES_DIR/` — writable global versions
+3. `PROMPTS_DIR/` — bundled defaults and model folders
+
+Within each root, resolution checks the selected immutable version, the model
+folder, and the legacy flat variant. A `.current` pointer containing `fallback`
+skips a book root; `default` skips global versions and reaches the bundled
+file. Neither operation deletes version history. Versions created by older
+releases under `PROMPTS_DIR/.versions` are copied forward automatically.
 
 If no model-specific prompt exists, the base prompt is used.
 
