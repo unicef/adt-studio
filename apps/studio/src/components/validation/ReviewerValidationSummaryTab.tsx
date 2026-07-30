@@ -45,10 +45,12 @@ function normalizeChecklistSnapshot(snapshot: ReviewerValidationCatalogSnapshot 
     pageSections: snapshot.pageSections.map((section) => ({
       id: section.id,
       label: section.label,
+      fix_stage: section.fix_stage ?? null,
       criteria: section.criteria.map((criterion) => ({
         id: criterion.id,
         label: criterion.label,
         guidance: criterion.guidance,
+        fix_stage: criterion.fix_stage ?? null,
         requires_comment_on_failure: criterion.requires_comment_on_failure,
         requires_suggested_modification_on_failure: criterion.requires_suggested_modification_on_failure,
       })),

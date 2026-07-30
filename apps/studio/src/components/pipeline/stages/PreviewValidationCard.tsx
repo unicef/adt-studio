@@ -536,6 +536,7 @@ export function PreviewValidationCard({
     const record: ReviewerPageValidationRecord = {
       session_id: activeSession.session.session_id,
       page_id: currentPage.pageId,
+      section_id: currentPage.sectionId ?? undefined,
       page_number: currentPage.pageNumber ?? undefined,
       href: currentPage.href,
       language: activeSession.session.language,

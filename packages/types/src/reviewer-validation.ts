@@ -11,6 +11,20 @@ export type ReviewerValidationStatus = z.infer<typeof ReviewerValidationStatus>
 export const ReviewerValidationFieldType = z.enum(["text", "number", "date", "textarea"])
 export type ReviewerValidationFieldType = z.infer<typeof ReviewerValidationFieldType>
 
+export const ValidationFixStage = z.enum([
+  "extract",
+  "sectioning",
+  "storyboard",
+  "captions",
+  "quizzes",
+  "glossary",
+  "easy-read",
+  "translate",
+  "speech",
+  "sign-language",
+])
+export type ValidationFixStage = z.infer<typeof ValidationFixStage>
+
 export const ReviewerValidationIdentificationField = z.object({
   id: z.string().regex(/^[a-z0-9-]+$/),
   label: z.string().min(1),
@@ -32,6 +46,7 @@ export const ReviewerValidationCriterion = z.object({
   id: z.string().regex(/^[a-z0-9-]+$/),
   label: z.string().min(1),
   guidance: z.string().min(1),
+  fix_stage: ValidationFixStage.optional(),
   requires_comment_on_failure: z.boolean().default(true),
   requires_suggested_modification_on_failure: z.boolean().default(false),
 })
@@ -40,6 +55,7 @@ export type ReviewerValidationCriterion = z.infer<typeof ReviewerValidationCrite
 export const ReviewerValidationSection = z.object({
   id: z.string().regex(/^[a-z0-9-]+$/),
   label: z.string().min(1),
+  fix_stage: ValidationFixStage.optional(),
   criteria: z.array(ReviewerValidationCriterion).min(1),
 })
 export type ReviewerValidationSection = z.infer<typeof ReviewerValidationSection>
@@ -90,6 +106,7 @@ export type ReviewerPageValidationResult = z.infer<typeof ReviewerPageValidation
 export const ReviewerPageValidationRecord = z.object({
   session_id: z.string().min(1),
   page_id: z.string().min(1),
+  section_id: z.string().min(1).optional(),
   page_number: z.number().int().min(1).optional(),
   href: z.string().min(1),
   language: z.string().min(1).optional(),

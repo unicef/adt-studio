@@ -139,6 +139,7 @@ describe("Reviewer validation routes", () => {
     const initial: ReviewerPageValidationRecord = {
       session_id: "session-1",
       page_id: "pg001",
+      section_id: "pg001_sec001",
       page_number: 1,
       href: "content/pages/pg001.html",
       language: "sw",
@@ -188,6 +189,7 @@ describe("Reviewer validation routes", () => {
     expect(listBody.records[0].version).toBe(2)
 
     expect(listBody.records[0].record.overall_comment).toBe("Fixed after template update.")
+    expect(listBody.records[0].record.section_id).toBe("pg001_sec001")
   })
 
   it("validates required sessionId query params for page-result listings", async () => {
@@ -240,10 +242,12 @@ describe("Reviewer validation routes", () => {
       "  sections:",
       "    - id: custom-checks",
       "      label: Custom checks",
+      "      fix_stage: sectioning",
       "      criteria:",
       "        - id: custom-criterion",
       "          label: Custom criterion",
       "          guidance: Check this custom requirement.",
+      "          fix_stage: storyboard",
       "  instructions:",
       "    - id: custom-workflow",
       "      title: Custom workflow",
@@ -265,6 +269,8 @@ describe("Reviewer validation routes", () => {
     expect(body.enabled).toBe(true)
     expect(body.pageSections).toHaveLength(1)
     expect(body.pageSections[0].id).toBe("custom-checks")
+    expect(body.pageSections[0].fix_stage).toBe("sectioning")
+    expect(body.pageSections[0].criteria[0].fix_stage).toBe("storyboard")
     expect(body.instructions[0].id).toBe("custom-workflow")
     expect(body.identificationFields).toHaveLength(1)
   })
