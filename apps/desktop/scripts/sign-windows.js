@@ -38,12 +38,16 @@ module.exports = async function (configuration) {
 
   const selfSignedPfx = process.env.WIN_SELFSIGN_PFX;
   if (selfSignedPfx) {
+    console.log(`Found self-signed certificate`);
+
     const selfSignedPassword = process.env.WIN_SELFSIGN_PASSWORD;
+
     if (!selfSignedPassword) {
       throw new Error(
         "Missing WIN_SELFSIGN_PASSWORD env var for self-signed Windows signing",
       );
     }
+
     console.log(`Signing Windows file with self-signed certificate: ${target}`);
     runJsign(
       [
@@ -56,6 +60,8 @@ module.exports = async function (configuration) {
     );
     return;
   }
+
+  console.log(`No self-signed certificate found, falling back to Azure Trusted Signing: ${target}`);
 
   const AZ_TOKEN = process.env.AZ_TOKEN;
   if (!AZ_TOKEN) {
