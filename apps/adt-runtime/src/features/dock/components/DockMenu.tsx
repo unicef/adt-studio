@@ -130,7 +130,7 @@ export function DockMenu({ className }: DockMenuProps) {
   return (
     <>
       {isMobile ? (
-        <DockMobileTools tools={tools} label={t("sidebar-title") || "Accessibility menu"} />
+        <DockMobileTools tools={tools} label={t("tutorial-smart-utility-sidebar-label") || "Accessibility menu"} />
       ) : (
         <div className={cn("flex items-center justify-end gap-2 pl-1", className)}>
           {features.glossary ? (
@@ -184,7 +184,7 @@ export function DockMenu({ className }: DockMenuProps) {
 
           <DockIconButton
             ref={settingsBtnRef}
-            ariaLabel={t("sidebar-title") || "Settings"}
+            ariaLabel={t("sidebar-settings") || "Settings"}
             pressed={value === "settings"}
             onClick={() => toggle("settings")}
           >
