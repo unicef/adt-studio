@@ -65,6 +65,50 @@ describe("global default model", () => {
   })
 })
 
+describe("styleguide upload preview invalidation", () => {
+  it("deletes a stale cached preview when the styleguide is re-uploaded", async () => {
+    const styleguidesDir = path.join(tmpDir, "assets", "styleguides")
+    fs.mkdirSync(styleguidesDir, { recursive: true })
+    fs.writeFileSync(path.join(styleguidesDir, "custom.md"), "# Custom\n", "utf-8")
+    const stalePreviewPath = path.join(styleguidesDir, "custom-preview.html")
+    fs.writeFileSync(stalePreviewPath, "<html>stale</html>", "utf-8")
+
+    const app = createPresetRoutes(configPath)
+    const formData = new FormData()
+    formData.append(
+      "file",
+      new File(["# Custom v2\n"], "custom.md", { type: "text/markdown" }),
+    )
+    const response = await app.request("/styleguides/upload", {
+      method: "POST",
+      body: formData,
+    })
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ name: "custom" })
+    expect(fs.existsSync(stalePreviewPath)).toBe(false)
+    expect(fs.readFileSync(path.join(styleguidesDir, "custom.md"), "utf-8")).toBe(
+      "# Custom v2\n",
+    )
+  })
+
+  it("does nothing special when there is no cached preview yet", async () => {
+    const app = createPresetRoutes(configPath)
+    const formData = new FormData()
+    formData.append(
+      "file",
+      new File(["# Brand New\n"], "brand-new.md", { type: "text/markdown" }),
+    )
+    const response = await app.request("/styleguides/upload", {
+      method: "POST",
+      body: formData,
+    })
+
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({ name: "brand-new" })
+  })
+})
+
 describe("global specialized model defaults", () => {
   it("returns built-in defaults when no overrides are configured", async () => {
     const response = await createPresetRoutes(configPath).request(

@@ -1299,6 +1299,17 @@ ${fallbackHeadingHtml}${contentBlock}
       : ""
   }
 
+  // `data-text-color` is a semantic marker the styleguide/LLM stamps onto
+  // headings/paragraphs — by itself it has no visual effect. Apply it as a
+  // real, cascading color at runtime: force it (!important) on every
+  // element carrying the attribute, and force any descendant that does NOT
+  // have its own `data-text-color` to inherit it (!important) too, so it
+  // wins over incidental Tailwind color utility classes (e.g. `text-black`)
+  // the LLM may have added on its own.
+  const textColorScript = /data-text-color="[^"]*"/.test(normalizedContent)
+    ? `\n    <script>(function(){function apply(){document.querySelectorAll("[data-text-color]").forEach(function(el){var c=el.getAttribute("data-text-color");if(!c)return;el.style.setProperty("color",c,"important");el.querySelectorAll("*").forEach(function(d){if(d.closest("[data-text-color]")===el){d.style.setProperty("color","inherit","important")}})})}if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",apply)}else{apply()}})();</script>`
+    : ""
+
   // In embed mode, hide non-essential chrome. The React runtime mounts the
   // activity Submit/Skip buttons inside #nav-container, so it must stay
   // visible — BottomDock self-hides via embedModeAtom (see ui.atoms.ts).
@@ -1359,7 +1370,7 @@ ${fallbackHeadingHtml}${contentBlock}
 ${mathScript}${embedStyles}${bodyFontStyle}${flFit ? `${flFit.headStyle}\n` : ""}</head>
 
 <body${opts.fixedViewport ? ` style="margin:0;overflow:hidden;width:100%;height:100%"` : ` class="min-h-screen flex items-center justify-center"${bodyStyle}`}>
-${mainBlock}
+${mainBlock}${textColorScript}
 ${flFit ? `${flFit.bodyScript}\n` : ""}${answersScript}
     <div class="relative z-50" id="interface-container"></div>
     <div class="relative z-50" id="nav-container"></div>

@@ -28,7 +28,7 @@ The content tree is the current saved user state. Its depth-first order is the R
 10. Do NOT use any `data-id` values other than the ones provided
 11. Text color must be readable against the background color
 12. Text must NEVER be hidden behind images — if positioning text near or on top of images, always use `z-10` on text containers
-13. Preserve the original text alignment — most body text and headings are LEFT-ALIGNED. Do NOT center text unless it is clearly centered in the original page image. When in doubt, default to left alignment.
+13. Preserve the original text alignment — most body text and headings are LEFT-ALIGNED. Do NOT center text unless it is clearly centered in the original page image. When in doubt, default to left alignment. **Exception:** if the STYLEGUIDE section below defines an explicit default text alignment, use that alignment instead — it overrides this "preserve the original" default, since it is a deliberate book-wide design choice.
 14. Output natural-language text as literal Unicode characters. Do NOT encode letters as numeric or hex HTML entities (for example, avoid `&#...;` and `&#x...;`). Only use standard HTML escaping where required for markup syntax (for example `&amp;`, `&lt;`, `&gt;`, and quotes in attributes).
 15. Text-leaf children of ANY container are fragments of one continuous run and must flow inline as `<span>` elements with no hard line breaks between them. Never wrap a leaf in its own `<p>`, and never emit `<br>` between sibling leaves. The container itself gets the block wrapper; its leaves render as inline spans inside that single wrapper. The ONLY exceptions are (a) `structure: "preformatted"` / code-like content where the source preserves literal line breaks, or (b) when the book page image clearly shows each leaf as its own visually separated line (e.g. a poem, a stanza, an address block) — in those cases, and only those, use render each as a block-level fragment.
 16. Leaves with `role: "math"` hold LaTeX which is converted to MathML during packaging. Emit the LaTeX VERBATIM as the element's text — never rewrite, re-escape, or "fix" it, and never try to reproduce the maths as HTML tables, spans, or unicode art. Wrap it in a plain block element (`<div data-id="...">`); a display-level expression may also use `<p>`. NEVER use `<pre>`, and never apply `whitespace-pre`, `whitespace-pre-wrap`, `font-mono`, or a tightened `leading-*` class to a math leaf — the generated MathML inherits those and its `<mtable>` rows collapse into each other. For a wide expression, put `overflow-x-auto` on the wrapper so it scrolls rather than overflowing the column. Inline maths that sits inside a sentence stays inside that sentence's `<span>` with its `$…$` delimiters intact.
@@ -52,7 +52,9 @@ The base (no-prefix) classes are the DESKTOP design. Use `max-lg:` to override s
 Example: `class="flex flex-row max-lg:flex-col"` or `class="gap-8 max-lg:gap-4 max-sm:gap-2"`
 {% if styleguide != "" %}
 
-## STYLEGUIDE (FOLLOW EXACTLY)
+## STYLEGUIDE (FOLLOW EXACTLY — OVERRIDES CONFLICTING DEFAULTS ABOVE)
+
+The styleguide below defines the required colors, typography, alignment, and component classes for this book. If it specifies a default text alignment, font styling (bold/italic/underline usage), max line width, line-height, or paragraph spacing, those values take precedence over any generic default or example elsewhere in this prompt. When the styleguide's Visual Defaults give separate values for headings and body text, apply each value only to its own role — a heading setting must never leak onto body paragraphs, and vice versa.
 
 {{ styleguide }}
 {% endif %}

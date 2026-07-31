@@ -43,7 +43,7 @@ This section combines content merged from MORE THAN ONE original page (for examp
 - Images that are missing, broken, wildly misplaced, or distorted (stretched to the wrong aspect ratio — keep `h-auto` so proportions are preserved)
 - Content images (photos, diagrams, illustrations) rendered as small thumbnails when the original shows them filling much of the page — enlarge them to fill the content column (`w-full h-auto`); modest upscaling of a low-resolution source is fine and preferable to a tiny image
 - A header/banner whose title or badge is misaligned or clipped — the banner background may span the full width, but its text must sit in the same centered `max-w-5xl` reading column as the body and must never be cut off
-- Text alignment that differs from the original — body text and headings that are left-aligned in the original should NOT be centered (and vice versa)
+- Text alignment that differs from the original — body text and headings that are left-aligned in the original should NOT be centered (and vice versa){% if styleguide != "" %}, UNLESS the styleguide below defines an explicit default text alignment for this book — in that case the styleguide's alignment is a deliberate book-wide design choice and must be kept even if it differs from this original page{% endif %}
 - Layout that fundamentally differs from the original (e.g., wrong number of columns, completely wrong ordering)
 - A large empty gap or dead whitespace beside a callout/sidebar panel — this happens when the body text is placed in a side-by-side row next to a tall sidebar and the remaining text continues below the whole row. Fix it by FLOATING the panel (`float-right w-[34%] ml-8 mb-6 max-lg:float-none max-lg:w-full max-lg:ml-0`) and letting all body paragraphs flow as ONE continuous column, so text wraps beside the panel and then continues full-width below it with no gap
 - Content that doesn't reflow at smaller viewports (overflowing, horizontal scroll)
@@ -78,6 +78,13 @@ The base (no-prefix) classes are the DESKTOP design — overlay and side-by-side
 - Do NOT add <script>, <iframe>, <object>, or <embed> tags
 - Do NOT add event handler attributes (onclick, onload, etc.)
 - Use only Tailwind CSS utility classes for styling changes
+{% if styleguide != "" %}
+- If the STYLEGUIDE below defines a book-wide default (e.g. text alignment, bold/italic/underline usage, max line width, line-height, or paragraph spacing), keep the rendering consistent with that default — do NOT revert it to match the original page image, since it is a deliberate design choice for the whole book. When the styleguide gives separate values for headings and body text, verify each role against its own value only.
+
+## STYLEGUIDE (for reference — deliberate book-wide defaults take precedence over matching the original page)
+
+{{ styleguide }}
+{% endif %}
 
 ## RESPONSE FORMAT
 - "approved": true if the rendering is visually acceptable, false if it needs changes

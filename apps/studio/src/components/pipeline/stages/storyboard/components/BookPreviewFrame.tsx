@@ -528,6 +528,30 @@ ${autoFitScript}
     if (h > 0) setContentHeight(h)
   }
 
+  /**
+   * `data-text-color` is a semantic marker the styleguide/LLM stamps onto
+   * headings/paragraphs — by itself it has no visual effect. Apply it as a
+   * real, cascading color: force it (!important) on every element carrying
+   * the attribute, and force any descendant that does NOT have its own
+   * `data-text-color` to inherit it (!important) too, so it wins over
+   * incidental Tailwind color utility classes (e.g. `text-black`) the LLM
+   * may have added on its own.
+   */
+  function applyTextColors(doc: Document) {
+    const colorEls = doc.querySelectorAll<HTMLElement>("[data-text-color]")
+    for (const el of colorEls) {
+      const color = el.getAttribute("data-text-color")
+      if (!color) continue
+      el.style.setProperty("color", color, "important")
+      const descendants = el.querySelectorAll<HTMLElement>("*")
+      for (const d of descendants) {
+        if (d.closest("[data-text-color]") === el) {
+          d.style.setProperty("color", "inherit", "important")
+        }
+      }
+    }
+  }
+
   /** Inject HTML into the iframe body (preserving the interactive script). */
   function injectContent(newHtml: string) {
     const iframe = iframeRef.current
@@ -564,6 +588,8 @@ ${autoFitScript}
     } else {
       doc.body.style.backgroundColor = ""
     }
+
+    applyTextColors(doc)
 
     // Force synchronous reflow so the browser repaints the scaled iframe
     // immediately after innerHTML changes (fixes delayed style rendering).
