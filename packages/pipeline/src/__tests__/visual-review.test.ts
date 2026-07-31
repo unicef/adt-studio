@@ -247,6 +247,60 @@ describe("runVisualReviewLoop", () => {
     expect(warn).toHaveBeenCalled()
   })
 
+  it("skips refinement when one viewport fails permanently and the others succeed", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {})
+    let generateCalls = 0
+    const fakeModel: LLMModel = {
+      renderPrompt: async () => [{ role: "system", content: "You are a reviewer." }],
+      generateObject: async <T>() => {
+        generateCalls++
+        return {
+          object: { approved: true, reasoning: "unused", content: "" } as T,
+        } as GenerateObjectResult<T>
+      },
+    }
+
+    const initialHtml = '<section data-section-id="s1">Initial</section>'
+    const attemptsByWidth = new Map<number, number>()
+    const result = await runVisualReviewLoop({
+      initialHtml,
+      label: "book",
+      pageId: "pg001",
+      images: new Map(),
+      deps: {
+        llmModel: fakeModel,
+        screenshotRenderer: {
+          screenshot: async (_html, viewport) => {
+            const width = viewport?.width ?? 0
+            attemptsByWidth.set(width, (attemptsByWidth.get(width) ?? 0) + 1)
+            // Only the desktop viewport is broken — tablet and mobile capture fine.
+            if (width === 1280) throw new Error("page.screenshot: Timeout 60000ms exceeded.")
+            return "aGVsbG8="
+          },
+          close: async () => {},
+        },
+        webAssetsDir: "/tmp/nonexistent",
+      },
+      promptName: "visual_review",
+      maxIterations: 3,
+      timeoutMs: 1000,
+      firstIterationScreenshotsText: "first set",
+      nextIterationScreenshotsText: "next set",
+      trailingContextText: "Section type: text_only",
+      validateHtml: () => ({ valid: true, errors: [] }),
+    })
+
+    // The reviewer prompt needs all three viewports, so a partial set is no more
+    // usable than an empty one — skip refinement and keep the generated HTML.
+    expect(result.html).toBe(initialHtml)
+    expect(result.approved).toBe(false)
+    expect(generateCalls).toBe(0)
+    // The broken viewport retried once; the healthy ones were not re-captured.
+    expect(attemptsByWidth.get(1280)).toBe(2)
+    expect(attemptsByWidth.get(768)).toBe(1)
+    expect(attemptsByWidth.get(390)).toBe(1)
+  })
+
   it("retries a transient screenshot failure before giving up", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {})
     const fakeModel: LLMModel = {

@@ -90,9 +90,10 @@ function throwIfAborted(signal?: AbortSignal): void {
 }
 
 /**
- * Chromium budget per capture. Longer than the shared default because this is a
- * background pass: a dense page can legitimately take a while to lay out, and
- * waiting is cheaper than throwing away a rendering the LLM already paid for.
+ * Chromium budget for one whole capture — page load, fonts, and the screenshot
+ * itself share it. Longer than the shared default because this is a background
+ * pass: a dense page can legitimately take a while to lay out, and waiting is
+ * cheaper than throwing away a rendering the LLM already paid for.
  */
 const SCREENSHOT_TIMEOUT_MS = 60_000
 /** One retry — enough for a transient browser hiccup, bounded for a real hang. */

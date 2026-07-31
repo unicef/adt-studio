@@ -34,9 +34,9 @@ export function getViewportBreakpoints() {
 }
 
 /**
- * Per-operation Chromium budget, matching Playwright's own default. Interactive
- * callers (thumbnail route, AI-edit previews) want to fail fast; background
- * callers that can afford to wait pass a longer `timeoutMs`.
+ * Whole-capture Chromium budget, matching Playwright's own per-operation default.
+ * Interactive callers (thumbnail route, AI-edit previews) want to fail fast;
+ * background callers that can afford to wait pass a longer `timeoutMs`.
  */
 export const DEFAULT_SCREENSHOT_TIMEOUT_MS = 30_000
 
@@ -47,7 +47,7 @@ export interface ScreenshotRenderer {
     viewport?: { width: number; height: number },
     options?: {
       signal?: AbortSignal
-      /** Per-operation timeout. Honored by the Playwright renderer. */
+      /** Budget for the whole capture, not per step. Honored by the Playwright renderer. */
       timeoutMs?: number
     },
   ): Promise<string>
@@ -82,7 +82,11 @@ export async function _createScreenshotRenderer(): Promise<ScreenshotRenderer> {
       options: { signal?: AbortSignal; timeoutMs?: number } = {},
     ): Promise<string> {
       throwIfAborted(options.signal)
-      const timeout = options.timeoutMs ?? DEFAULT_SCREENSHOT_TIMEOUT_MS
+      // One budget for the whole capture. Passing the same `timeout` to each
+      // Playwright call instead would let a slow page spend it three times over.
+      // Floor at 1ms: Playwright reads `timeout: 0` as "wait forever".
+      const deadline = Date.now() + (options.timeoutMs ?? DEFAULT_SCREENSHOT_TIMEOUT_MS)
+      const remaining = () => Math.max(1, deadline - Date.now())
       const context = await browser.newContext({ viewport })
       const onAbort = () => {
         void context.close().catch(() => {})
@@ -91,18 +95,21 @@ export async function _createScreenshotRenderer(): Promise<ScreenshotRenderer> {
       try {
         throwIfAborted(options.signal)
         const page = await context.newPage()
-        await page.setContent(html, { waitUntil: "load", timeout })
+        await page.setContent(html, { waitUntil: "load", timeout: remaining() })
         throwIfAborted(options.signal)
         // Wait for web fonts to finish loading before screenshotting
-        await page.waitForFunction("document.fonts.ready", undefined, { timeout })
+        await page.waitForFunction("document.fonts.ready", undefined, { timeout: remaining() })
         throwIfAborted(options.signal)
-        // `animations: "disabled"` finishes CSS animations/transitions instead of
-        // waiting them out — an infinite animation would otherwise hang the capture.
+        // `animations: "disabled"` fast-forwards finite CSS animations and transitions
+        // to their end state (and pauses infinite ones), so the capture shows a settled
+        // page rather than whatever frame it happened to land on. Playwright's default
+        // leaves animations untouched. This applies to every caller, review captures
+        // and the thumbnail route alike — both want a deterministic image.
         const buffer = await page.screenshot({
           fullPage: true,
           type: "png",
           animations: "disabled",
-          timeout,
+          timeout: remaining(),
         })
         throwIfAborted(options.signal)
         return buffer.toString("base64")
