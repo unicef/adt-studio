@@ -9,6 +9,8 @@ import { runVisualReviewLoop } from "./visual-review.js"
 import { buildTypographyCss, typographyPreservationErrors } from "./typography.js"
 import { DEFAULT_TYPOGRAPHY } from "@adt/types"
 
+const USER_DIRECTED_REVIEW_PROMPT = "visual_review_flexible"
+
 /** Dependencies for the optional visual refinement loop. */
 export interface VisualRefinementDeps {
   screenshotRenderer: ScreenshotRenderer
@@ -89,6 +91,8 @@ export async function renderSectionLlm(
   // Optional: visual refinement loop — screenshot the HTML and ask an LLM to review
   if (visualRefinement && config.visualRefinement?.enabled) {
     const vr = config.visualRefinement
+    const hasUserPrompt = (input.userPrompt ?? "").trim().length > 0
+    const reviewPromptName = hasUserPrompt ? USER_DIRECTED_REVIEW_PROMPT : vr.promptName
     const imagesForScreenshot = new Map<string, { base64: string }>()
     for (const img of renderContext.image_refs) {
       if (img.image_base64) {
@@ -108,7 +112,7 @@ export async function renderSectionLlm(
         storeScreenshot: visualRefinement.storeScreenshot,
         typographyCss: buildTypographyCss(input.typography ?? DEFAULT_TYPOGRAPHY),
       },
-      promptName: vr.promptName,
+      promptName: reviewPromptName,
       maxIterations: vr.maxIterations,
       timeoutMs: vr.timeoutMs,
       temperature: vr.temperature,
@@ -121,6 +125,7 @@ export async function renderSectionLlm(
         nodes: renderContext.nodes,
         leaf_texts: renderContext.leaf_texts,
         has_merged_content: sourcePages.length > 0,
+        user_instructions: input.userPrompt ?? "",
       },
       originalImageIntroText: "Here is the original page image (this is what the rendered page should resemble):",
       firstIterationScreenshotsText: "\nHere are screenshots of the current rendered HTML at three viewport sizes:\n",
