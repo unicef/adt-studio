@@ -4,7 +4,7 @@ import os from "node:os"
 import path from "node:path"
 import { PNG } from "pngjs"
 import jpeg from "jpeg-js"
-import { buildOpf, buildNcx, buildIndex, rewriteContentPage, ensureJpegCover, buildAdtSidecar, consolidateAdtData } from "../packaging/pnld.js"
+import { buildOpf, buildNcx, buildIndex, rewriteContentPage, ensureJpegCover, buildAdtSidecar, relocateMedia } from "../packaging/pnld.js"
 import type { PageEntry } from "../packaging/web.js"
 
 const PAGES: PageEntry[] = [
@@ -262,7 +262,7 @@ describe("ensureJpegCover", () => {
 })
 
 describe("buildAdtSidecar", () => {
-  it("preserves config, manifests, and feature data under resources/adt", () => {
+  it("preserves config, manifests, and feature data under resources/data", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-adt-"))
     fs.mkdirSync(path.join(dir, "assets", "interface_translations", "pt-BR"), { recursive: true })
     fs.mkdirSync(path.join(dir, "content", "i18n", "pt-BR", "audio"), { recursive: true })
@@ -274,11 +274,11 @@ describe("buildAdtSidecar", () => {
 
     buildAdtSidecar(dir)
 
-    const adt = path.join(dir, "resources", "adt")
-    expect(fs.existsSync(path.join(adt, "assets", "config.json"))).toBe(true)
-    expect(fs.existsSync(path.join(adt, "assets", "interface_translations", "pt-br", "interface_translations.json"))).toBe(true)
-    expect(fs.existsSync(path.join(adt, "content", "pages.json"))).toBe(true)
-    expect(fs.existsSync(path.join(adt, "content", "i18n", "pt-br", "audio", "pg001.mp3"))).toBe(true)
+    const dataDir = path.join(dir, "resources", "data")
+    expect(fs.existsSync(path.join(dataDir, "assets", "config.json"))).toBe(true)
+    expect(fs.existsSync(path.join(dataDir, "assets", "interface_translations", "pt-br", "interface_translations.json"))).toBe(true)
+    expect(fs.existsSync(path.join(dataDir, "content", "pages.json"))).toBe(true)
+    expect(fs.existsSync(path.join(dataDir, "content", "i18n", "pt-br", "audio", "pg001.mp3"))).toBe(true)
     fs.rmSync(dir, { recursive: true, force: true })
   })
 
@@ -289,9 +289,9 @@ describe("buildAdtSidecar", () => {
 
     buildAdtSidecar(dir)
 
-    const adt = path.join(dir, "resources", "adt")
-    expect(fs.readdirSync(path.join(adt, "assets", "interface_translations"))).toEqual(["pt-br"])
-    expect(fs.readdirSync(path.join(adt, "content", "i18n"))).toEqual(["en-us"])
+    const dataDir = path.join(dir, "resources", "data")
+    expect(fs.readdirSync(path.join(dataDir, "assets", "interface_translations"))).toEqual(["pt-br"])
+    expect(fs.readdirSync(path.join(dataDir, "content", "i18n"))).toEqual(["en-us"])
     fs.rmSync(dir, { recursive: true, force: true })
   })
 
@@ -306,7 +306,7 @@ describe("buildAdtSidecar", () => {
     buildAdtSidecar(dir)
 
     const config = JSON.parse(
-      fs.readFileSync(path.join(dir, "resources", "adt", "assets", "config.json"), "utf-8"),
+      fs.readFileSync(path.join(dir, "resources", "data", "assets", "config.json"), "utf-8"),
     )
     expect(config.languages.default).toBe("pt-br")
     expect(config.languages.available).toEqual(["pt-br", "en-us"])
@@ -320,67 +320,55 @@ describe("buildAdtSidecar", () => {
   })
 })
 
-describe("consolidateAdtData", () => {
-  function parseAdtData(dir: string): Record<string, unknown> {
-    const js = fs.readFileSync(path.join(dir, "resources", "scripts", "adt-data.js"), "utf-8")
-    const json = js.replace(/^window\.__ADT_DATA__ = /, "").replace(/;\s*$/, "")
-    return JSON.parse(json) as Record<string, unknown>
+describe("relocateMedia", () => {
+  function readJson(p: string): Record<string, unknown> {
+    return JSON.parse(fs.readFileSync(p, "utf-8")) as Record<string, unknown>
   }
 
-  function seed(dir: string): void {
-    const adt = path.join(dir, "resources", "adt")
-    fs.mkdirSync(path.join(adt, "content", "i18n", "pt-br", "audio"), { recursive: true })
-    fs.mkdirSync(path.join(adt, "assets"), { recursive: true })
-    fs.writeFileSync(path.join(adt, "assets", "config.json"), JSON.stringify({ ok: 1 }))
-    fs.writeFileSync(path.join(adt, "content", "pages.json"), "[]")
-    fs.writeFileSync(path.join(adt, "content", "i18n", "pt-br", "texts.json"), JSON.stringify({ a: "b" }))
-  }
-
-  it("folds every .json into a single resources/scripts/adt-data.js global", () => {
+  it("moves media to resources/{audios,videos}, keeps the JSON, rewrites map values", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-c-"))
-    seed(dir)
-    consolidateAdtData(dir)
+    const dataDir = path.join(dir, "resources", "data")
+    // Same media filename in two languages — must not collide once flattened.
+    for (const lang of ["pt-br", "en-us"]) {
+      fs.mkdirSync(path.join(dataDir, "content", "i18n", lang, "audio"), { recursive: true })
+      fs.mkdirSync(path.join(dataDir, "content", "i18n", lang, "video"), { recursive: true })
+      fs.writeFileSync(path.join(dataDir, "content", "i18n", lang, "audio", "p1.mp3"), lang)
+      fs.writeFileSync(path.join(dataDir, "content", "i18n", lang, "video", "sl1.mp4"), lang)
+      fs.writeFileSync(path.join(dataDir, "content", "i18n", lang, "audios.json"), JSON.stringify({ a1: "p1.mp3" }))
+      fs.writeFileSync(path.join(dataDir, "content", "i18n", lang, "videos.json"), JSON.stringify({ v1: "sl1.mp4" }))
+      fs.writeFileSync(path.join(dataDir, "content", "i18n", lang, "texts.json"), JSON.stringify({ t: "x" }))
+    }
+    relocateMedia(dir)
 
-    const js = fs.readFileSync(path.join(dir, "resources", "scripts", "adt-data.js"), "utf-8")
-    expect(js.startsWith("window.__ADT_DATA__ = ")).toBe(true)
-    const data = parseAdtData(dir)
-    expect(data["assets/config.json"]).toEqual({ ok: 1 })
-    expect(data["content/pages.json"]).toEqual([])
-    expect(data["content/i18n/pt-br/texts.json"]).toEqual({ a: "b" })
-    // No .json survives anywhere.
-    const walk = (d: string): string[] =>
-      fs.readdirSync(d, { withFileTypes: true }).flatMap((e) =>
-        e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)],
-      )
-    expect(walk(dir).filter((f) => f.endsWith(".json"))).toEqual([])
+    // Media lands in the flat per-type folders, disambiguated by language.
+    expect(fs.existsSync(path.join(dir, "resources", "audios", "pt-br__p1.mp3"))).toBe(true)
+    expect(fs.existsSync(path.join(dir, "resources", "audios", "en-us__p1.mp3"))).toBe(true)
+    expect(fs.existsSync(path.join(dir, "resources", "videos", "pt-br__sl1.mp4"))).toBe(true)
+    expect(fs.existsSync(path.join(dir, "resources", "videos", "en-us__sl1.mp4"))).toBe(true)
+    // The JSON stays in resources/data, with map values rewritten to the new names.
+    expect(readJson(path.join(dataDir, "content", "i18n", "pt-br", "audios.json")).a1).toBe("pt-br__p1.mp3")
+    expect(readJson(path.join(dataDir, "content", "i18n", "en-us", "videos.json")).v1).toBe("en-us__sl1.mp4")
+    expect(readJson(path.join(dataDir, "content", "i18n", "pt-br", "texts.json")).t).toBe("x")
+    // resources/data survives (it still holds the JSON); the emptied audio/video dirs are gone.
+    expect(fs.existsSync(dataDir)).toBe(true)
+    expect(fs.existsSync(path.join(dataDir, "content", "i18n", "pt-br", "audio"))).toBe(false)
     fs.rmSync(dir, { recursive: true, force: true })
   })
 
-  it("keeps media files and drops resources/adt when only data lived there", () => {
+  it("leaves resources/data untouched when there is no media", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-c-"))
-    seed(dir)
-    const mp3 = path.join(dir, "resources", "adt", "content", "i18n", "pt-br", "audio", "p1.mp3")
-    fs.writeFileSync(mp3, "audio")
-    consolidateAdtData(dir)
-
-    // Media survives; the data-only dir would have been pruned, but the mp3 keeps it.
-    expect(fs.existsSync(mp3)).toBe(true)
-    expect(fs.existsSync(path.join(dir, "resources", "adt"))).toBe(true)
-    fs.rmSync(dir, { recursive: true, force: true })
-  })
-
-  it("removes resources/adt entirely when it holds no media", () => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-c-"))
-    seed(dir)
-    consolidateAdtData(dir)
-    expect(fs.existsSync(path.join(dir, "resources", "adt"))).toBe(false)
+    const dataDir = path.join(dir, "resources", "data")
+    fs.mkdirSync(path.join(dataDir, "content"), { recursive: true })
+    fs.writeFileSync(path.join(dataDir, "content", "pages.json"), "[]")
+    relocateMedia(dir)
+    expect(fs.existsSync(path.join(dataDir, "content", "pages.json"))).toBe(true)
+    expect(fs.existsSync(path.join(dir, "resources", "videos"))).toBe(false)
     fs.rmSync(dir, { recursive: true, force: true })
   })
 
   it("is a no-op when there is no adt sidecar", () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "pnld-c-"))
-    expect(() => consolidateAdtData(dir)).not.toThrow()
-    expect(fs.existsSync(path.join(dir, "resources", "scripts", "adt-data.js"))).toBe(false)
+    expect(() => relocateMedia(dir)).not.toThrow()
     fs.rmSync(dir, { recursive: true, force: true })
   })
 })
@@ -389,19 +377,15 @@ describe("rewriteContentPage — activities bundle", () => {
   const activity = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /></head><body><main><section data-section-type="activity_multiple_choice"></section></main></body></html>`
   const plain = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /></head><body><main><section data-section-type="text_only"></section></main></body></html>`
 
-  it("injects adt-data.js before the bundle (global populated before boot)", () => {
+  it("injects the adt-base meta + bundle on activity pages", () => {
     const out = rewriteContentPage(activity, 1, "pt-BR")
-    expect(out).toContain('<meta name="adt-base" content="../resources/adt/" />')
-    expect(out).toContain('<script src="../resources/scripts/adt-data.js"></script>')
+    expect(out).toContain('<meta name="adt-base" content="../resources/data/" />')
     expect(out).toContain('<script src="../resources/scripts/activities-bundle-local.js"></script>')
-    // adt-data.js must load first so window.__ADT_DATA__ exists when the bundle boots.
-    expect(out.indexOf("adt-data.js")).toBeLessThan(out.indexOf("activities-bundle-local.js"))
   })
 
-  it("leaves non-activity pages without the bundle or data script", () => {
+  it("leaves non-activity pages without the bundle", () => {
     const out = rewriteContentPage(plain, 1, "pt-BR")
     expect(out).not.toContain("activities-bundle-local.js")
-    expect(out).not.toContain("adt-data.js")
     expect(out).not.toContain("adt-base")
   })
 })

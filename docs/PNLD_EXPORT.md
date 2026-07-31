@@ -24,9 +24,10 @@ the structural documents. The caller zips the result into `<book>.zip`.
 └── resources/
     ├── fonts/                    bundled webfonts + FontAwesome glyph fonts
     ├── images/                   page images
-    ├── scripts/                  auto-fit.js, activities-bundle-local.js, adt-data.js
+    ├── audios/  videos/          ADT media (see "Features")
+    ├── scripts/                  auto-fit.js, activities-bundle-local.js
     ├── styles/                   tailwind_output.css, fonts.css, fontawesome-all-min.css
-    └── adt/                      ADT media only — audio/video/image assets (see "Features")
+    └── adt/                      ADT data sidecar — JSON, mirrors the adt layout (see "Features")
 ```
 
 Folder/file names are lowercase, ASCII, never start with a digit, and carry no
@@ -96,35 +97,37 @@ source), scales it to fit the spec size preserving aspect ratio, letterboxes the
 remainder on white, and re-encodes to `cover.jpeg` (`jpeg-js`). A non-decodable
 placeholder is left as-is rather than failing the export.
 
-## Features — data as `resources/scripts/adt-data.js`
+## Features — JSON data in `resources/data/` + media in `resources/{audios,videos}/`
 
-ADT features are **carried, not dropped** — but VALIDE forbids `.json` files
-(and treats any `.js` as an executable script that must live in
-`resources/scripts/`). So the whole ADT data layer is **consolidated into one
-VALIDE-legal JS module**, `resources/scripts/adt-data.js`, that assigns a global
-keyed by each file's original adt-relative path:
+ADT features are **carried, not dropped**. The ADT data layer ships as plain
+`.json` (VALIDE permits it) in a `resources/data/` sidecar that **mirrors the adt
+layout** — same `assets/` + `content/` structure adt/web uses at its root:
 
-```js
-window.__ADT_DATA__ = {
-  "assets/config.json": { … },                       // feature flags, languages
-  "content/pages.json": [ … ], "content/toc.json": [ … ],   // navigation manifests
-  "assets/interface_translations/<lang>/interface_translations.json": { … },  // chrome strings
-  "content/i18n/<lang>/texts.json":  { … },           // per-language content
-  "content/i18n/<lang>/audios.json": { … }, /* videos, images, glossary, timecode … */
-};
+```
+resources/data/
+├── assets/
+│   ├── config.json                     feature flags, languages
+│   └── interface_translations/<lang>/  chrome strings
+└── content/
+    ├── pages.json  toc.json            navigation manifests
+    └── i18n/<lang>/                    texts, glossary, timecode, and the
+                                        audios/videos/images maps
 ```
 
-Media assets (audio `.mp3`, video `.mp4`, images) are already permitted formats,
-so they stay under `resources/adt/`; the data maps in `adt-data.js` point at
-them. If a book has no media, `resources/adt/` is dropped entirely.
+Because the structure matches adt exactly, the shared `adt-runtime` loaders reach
+it with the **same code** — only the base differs: adt/web fetch under `./`, PNLD
+fetches under `resources/data/` (via the `adt-base` meta / `runtimeBase()`). So the
+reader shares one data-loading path across adt/web, WebPub, and PNLD.
 
-The shared `adt-runtime` loaders resolve each resource by its relative key: when
-`window.__ADT_DATA__` is present they read from the global (works offline / over
-`file://`, no fetch); otherwise they fetch the `.json` as before, so the adt/web,
-WebPub, and preview outputs are unchanged.
+**Media is the one divergence.** The edital mandates a flat folder per media type
+(`resources/audios/`, `resources/videos/`, `resources/images/`), so `.mp3`/`.mp4`/
+images are moved out of `content/i18n/<lang>/{audio,video}/` into those folders.
+The same filename can exist per language (sign-language video differs pt-br vs
+en-us), so files are renamed `<lang>__<original>` to avoid collisions, and the
+`audios.json`/`videos.json` maps in `resources/data/` are rewritten so the reader
+resolves `resources/<type>/<value>`.
 
-Locale keys inside `content/i18n/<lang>/…` are lowercased (`pt-BR` → `pt-br`) to
-match the on-disk folder-naming rule for any media dirs, and `config.languages`
+Locale folders/keys are lowercased (`pt-BR` → `pt-br`), and `config.languages`
 is lowercased in lockstep so the runtime derives the same key; each page's
 `<html lang>` keeps the semantic locale.
 
@@ -133,20 +136,22 @@ is lowercased in lockstep so the runtime derives the same key; each page's
 Activity pages (`data-section-type="activity_*"`) load the activities runtime so
 quizzes work like the WebPub export — inline answer validation, correct-answer
 confetti + toast, and advance to the next reading-order page. Each activity page
-carries, in order:
+carries:
 
 ```html
-<meta name="adt-base" content="../resources/adt/" />
-<script src="../resources/scripts/adt-data.js"></script>
+<meta name="adt-base" content="../resources/data/" />
 <script src="../resources/scripts/activities-bundle-local.js"></script>
 ```
 
-`adt-data.js` loads first so `window.__ADT_DATA__` is populated before the bundle
-boots; `adt-base` still points media-path resolution at `resources/adt/`.
+`adt-base` points the runtime loaders at the `resources/data/` data sidecar; the
+bundle fetches config / manifests / translations there just like adt/web fetch
+under `./`. (A host reader — served over http — is required; the bundle fetches
+its data.)
 
 ## Relation to the other exports
 
 - **WebPub** (`docs/WEBPUB_EXPORT.md`) — Readium manifest, reader owns the UI.
 - **EPUB** — EPUB-native SMIL media overlays + dictionary glossary.
-- **PNLD** — FNDE tree + EPUB3 packaging, feature data carried as a single
-  `resources/scripts/adt-data.js` global for a PNLD-aware reader (VALIDE / LIP).
+- **PNLD** — FNDE tree + EPUB3 packaging, feature data carried as JSON in a
+  `resources/data/` sidecar that mirrors the adt layout, media in
+  `resources/{audios,videos,images}/`, for a PNLD-aware reader (VALIDE / LIP).
