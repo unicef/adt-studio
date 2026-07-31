@@ -101,13 +101,6 @@ body[nav-position="bottom"] {
   padding-bottom: var(--nav-height);
 }
 
-/*
- * Activity pages float a Submit/Next pill ABOVE the dock (see ActivityDock,
- * `bottom-18`/`top-18`). The dock band alone (`--nav-height`) doesn't reserve
- * enough room, so the last line of a quiz could sit behind the pill. When the
- * pill is showing, ActivityDock sets `data-activity-dock` and we reserve the
- * extra band. Placed after the base rules so it wins on source order.
- */
 body[data-activity-dock="bottom"] {
   padding-bottom: calc(var(--nav-height) + 3.75rem);
 }

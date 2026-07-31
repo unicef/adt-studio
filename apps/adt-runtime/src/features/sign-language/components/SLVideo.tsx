@@ -26,8 +26,6 @@ export function SLVideo() {
 
   const containerRef = useRef<HTMLDivElement>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
-  // Offset from the container's top-left to the pointer at drag start; non-null
-  // only while a drag is in progress.
   const dragOffsetRef = useRef<Position | null>(null)
   const [position, setPosition] = useAtom(slVideoPositionAtom)
   const [isDragging, setIsDragging] = useState(false)
@@ -56,8 +54,6 @@ export function SLVideo() {
   const videoHeight = aspectRatio
     ? Math.round(baseWidth / aspectRatio)
     : Math.round(baseWidth * (3 / 5))
-  // A taller grab bar on phones (>= 44px touch target); slim on desktop where a
-  // cursor is precise.
   const handleHeight = isMobile ? 44 : 24
   const containerHeight = videoHeight + handleHeight
 
@@ -71,11 +67,6 @@ export function SLVideo() {
     }
   }
 
-  // Pointer Events drive the drag so it works with touch AND mouse (the old
-  // native HTML5 drag API never fired on touch devices). `setPointerCapture`
-  // keeps events flowing to the handle even when the finger/cursor leaves it,
-  // and `touch-action: none` on the handle stops the page from scrolling while
-  // the user drags.
   const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     const el = containerRef.current
     if (!el) return
@@ -145,7 +136,6 @@ export function SLVideo() {
           isDragging ? "cursor-grabbing" : "active:cursor-grabbing",
         )}
       >
-        {/* Grabber pill — a familiar "drag me" affordance, chunkier on mobile. */}
         <span
           aria-hidden
           className={cn(

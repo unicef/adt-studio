@@ -27,9 +27,6 @@ function SheetOverlay({ className, ...props }: SheetPrimitive.Backdrop.Props) {
   return (
     <SheetPrimitive.Backdrop
       data-slot="sheet-overlay"
-      // Fully transparent, no blur: the reader's bottom sheets should keep the
-      // book fully visible behind them. The backdrop still captures taps so an
-      // outside tap dismisses the sheet.
       className={cn(
         "fixed inset-0 z-50 bg-transparent transition-opacity duration-150 data-ending-style:opacity-0 data-starting-style:opacity-0",
         className
@@ -50,11 +47,7 @@ function SheetContent({
 }: SheetPrimitive.Popup.Props & {
   side?: "top" | "right" | "bottom" | "left"
   showCloseButton?: boolean
-  /** Portal target. Defaults to the base-ui portal (document.body). Pass the
-   *  chrome container to keep theme (`.dark`) inheritance consistent with the
-   *  reader's popovers/dialogs. */
   container?: SheetPrimitive.Portal.Props["container"]
-  /** Extra classes for the backdrop — e.g. to raise its z-index above the dock. */
   overlayClassName?: string
 }) {
   return (

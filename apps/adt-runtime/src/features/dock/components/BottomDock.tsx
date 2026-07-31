@@ -16,9 +16,6 @@ function ReaderDockContents() {
   const { t } = useTranslation();
   const isMobile = useIsMobile();
 
-  // Mobile: a compact bar — contents (icon) · page nav (centered) · tools.
-  // The five feature icons collapse into the Tools launcher (bottom sheet) so
-  // full-size touch targets fit within a phone width.
   if (isMobile) {
     return (
       <>

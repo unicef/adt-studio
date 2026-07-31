@@ -23,14 +23,9 @@ export function ActivityDock() {
   const topClassname = embed ? "top-3" : isCompact ? "top-21" : "top-18";
   const bottomClassname = embed ? "bottom-3" : isCompact ? "bottom-21" : "bottom-18";
 
-  // The pill only shows when there's an activity AND a Submit/Next button.
-  // Standalone quizzes hide the button (they validate on click); the storyboard
-  // preview hides the navigating "Next" (its own arrows advance).
   const showPill =
     activityMode && submitVisible && !(embed && submitState === "next");
 
-  // Reserve extra bottom (or top) space so the last line of a quiz isn't
-  // covered by the pill, which floats above the dock band.
   useEffect(() => {
     if (embed || !showPill) return;
     document.body.setAttribute("data-activity-dock", isTop ? "top" : "bottom");

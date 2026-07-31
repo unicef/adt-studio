@@ -57,8 +57,6 @@ export function DockMenu({ className }: DockMenuProps) {
   const setPlayBarVisible = useSetAtom(playBarVisibleAtom);
   const { isPlaying, play, stop } = useAudioPlayerContext();
 
-  // Anchors for the desktop popovers. On mobile the buttons aren't rendered and
-  // the panels present as bottom sheets (which ignore the anchor).
   const glossaryBtnRef = useRef<HTMLButtonElement>(null);
   const audioBtnRef = useRef<HTMLButtonElement>(null);
   const languageBtnRef = useRef<HTMLButtonElement>(null);
@@ -67,10 +65,6 @@ export function DockMenu({ className }: DockMenuProps) {
   const toggle = (next: DockMenuValue) =>
     setValue((prev) => (prev === next ? "" : next));
 
-  // Read-aloud isn't a dock-menu panel: its controls stay visible for the whole
-  // session (across page navigations) as long as TTS is on. So toggle the
-  // persistent `readAloud` state — turning it off stops playback (a useAudioPlayer
-  // effect tears down when readAloud goes false) and hides the controls.
   const toggleReadAloud = () => {
     if (readAloud) {
       stop();
@@ -90,10 +84,6 @@ export function DockMenu({ className }: DockMenuProps) {
     setSignLanguage(next);
   };
 
-  // `active` reflects the persistent feature STATE (is it on?), not whether the
-  // panel is open — so the Tools grid shows, at a glance, what's currently
-  // enabled. Settings/Language have no on/off state of their own; Language is
-  // tinted when Easy Read (which lives in its panel) is on.
   const tools: DockTool[] = [];
   if (features.glossary) {
     tools.push({
@@ -119,9 +109,6 @@ export function DockMenu({ className }: DockMenuProps) {
       label: t("sign-language-label") || "Sign language",
       icon: Hand,
       active: signLanguage,
-      // Close the Tools sheet on toggle: turning sign language on reveals the
-      // draggable video overlay, and a still-open sheet backdrop would sit on
-      // top of it and block interaction.
       onSelect: toggleSignLanguage,
     });
   }

@@ -10,16 +10,10 @@ export interface DockTool {
   label: string
   icon: LucideIcon
   active?: boolean
-  /** Keep the sheet open after activating — for in-place toggles (sign language)
-   *  where the user should see the state flip. Panels close the sheet so their
-   *  own bottom sheet can take over. */
   keepOpen?: boolean
   onSelect: () => void
 }
 
-/** Mobile replacement for the dock's feature-icon row: a single launcher that
- *  opens a bottom sheet grid of every feature, keeping full-size touch targets
- *  on phones where five inline icons wouldn't fit alongside nav + contents. */
 export function DockMobileTools({
   tools,
   label,
@@ -52,10 +46,6 @@ export function DockMobileTools({
             className="mx-auto h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/25"
           />
           <SheetTitle className="text-base">{label}</SheetTitle>
-          {/* Two per row, wrapping and centered — 4 features read as a clean
-              2×2; an odd count (e.g. 5 with Language) centers its last tile
-              instead of orphaning it to the left. Tiles stay well above the
-              44px touch-target minimum. */}
           <div className="flex flex-wrap justify-center gap-2">
             {tools.map((tool) => {
               const Icon = tool.icon
