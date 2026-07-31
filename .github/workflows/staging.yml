@@ -177,29 +177,20 @@ jobs:
           esac
           echo "win=$skip" >> "$GITHUB_OUTPUT"
 
-      - name: Acquire Azure code signing token
+      - name: Prepare self-signed certificate
         if: matrix.os == 'windows-latest' && steps.skip.outputs.win != 'true'
         shell: bash
         env:
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          WIN_SELFSIGN_PFX_BASE64: ${{ secrets.WIN_SELFSIGN_PFX_BASE64 }}
+          WIN_SELFSIGN_PASSWORD: ${{ secrets.WIN_SELFSIGN_PASSWORD }}
         run: |
-          if [ -z "${AZURE_TENANT_ID:-}" ] || [ -z "${AZURE_CLIENT_ID:-}" ] || [ -z "${AZURE_CLIENT_SECRET:-}" ]; then
-            echo "::error::Missing Azure credentials (AZURE_TENANT_ID / AZURE_CLIENT_ID / AZURE_CLIENT_SECRET)."
+          if [ -z "${WIN_SELFSIGN_PFX_BASE64:-}" ] || [ -z "${WIN_SELFSIGN_PASSWORD:-}" ]; then
+            echo "::error::Missing self-signed signing secrets (WIN_SELFSIGN_PFX_BASE64 / WIN_SELFSIGN_PASSWORD)."
             exit 1
           fi
-          TOKEN=$(curl -fsS -X POST \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "grant_type=client_credentials&client_id=${AZURE_CLIENT_ID}&client_secret=${AZURE_CLIENT_SECRET}&resource=https%3A%2F%2Fcodesigning.azure.net" \
-            "https://login.microsoftonline.com/${AZURE_TENANT_ID}/oauth2/token" \
-            | jq -r '.access_token')
-          if [ -z "$TOKEN" ] || [ "$TOKEN" = "null" ]; then
-            echo "::error::Failed to obtain AZ_TOKEN from Azure OAuth endpoint."
-            exit 1
-          fi
-          echo "::add-mask::$TOKEN"
-          echo "AZ_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+          PFX_PATH="$(echo "$RUNNER_TEMP" | tr '\\' '/')/adt-selfsign.pfx"
+          echo "$WIN_SELFSIGN_PFX_BASE64" | tr -d '\n' | base64 -d > "$PFX_PATH"
+          echo "WIN_SELFSIGN_PFX=$PFX_PATH" >> "$GITHUB_ENV"
 
       - name: Set up Java
         if: matrix.os == 'windows-latest'
@@ -226,6 +217,8 @@ jobs:
       - name: Package Windows
         if: matrix.os == 'windows-latest'
         run: pnpm --filter @adt/desktop exec electron-builder --win --publish never
+        env:
+          WIN_SELFSIGN_PASSWORD: ${{ secrets.WIN_SELFSIGN_PASSWORD }}
 
       - name: Package Linux
         if: matrix.os == 'ubuntu-latest'

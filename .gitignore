@@ -83,6 +83,9 @@ packages/pipeline/src/__tests__/fixtures/raven-cache/tts/*.mp3
 
 # Electron cerificates
 *.p12
+*.pfx
+*.pfx.b64
+*.cer
 
 # Others
 apps/desktop/electron.vite.config*.mjs
