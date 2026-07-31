@@ -22,6 +22,8 @@ export function DockMobileTools({
   label: string
 }) {
   const [open, setOpen] = useState(false)
+  const tileWidth =
+    tools.length === 3 ? "w-[calc(33.333%-0.4rem)]" : "w-[calc(50%-0.25rem)]"
 
   return (
     <>
@@ -59,7 +61,8 @@ export function DockMobileTools({
                     if (!tool.keepOpen) setOpen(false)
                   }}
                   className={cn(
-                    "flex w-[calc(50%-0.25rem)] min-h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-xl p-3 text-center transition-colors",
+                    "flex min-h-[4.5rem] flex-col items-center justify-center gap-1.5 rounded-xl p-3 text-center transition-colors",
+                    tileWidth,
                     "text-foreground/80 hover:bg-accent hover:text-accent-foreground",
                     "focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     tool.active && "bg-accent text-accent-foreground",
