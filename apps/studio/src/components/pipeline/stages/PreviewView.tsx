@@ -45,13 +45,7 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const ranRef = useRef(false)
   const { panelOpen } = useDebugPanelState()
-  // Render the device selector into the step's top bar (via portal) instead of
-  // floating it over the preview.
   const { headerSlotEl } = useStepHeader()
-  // Shares the same localStorage scope as the storyboard editor
-  // (`adt-storyboard-device-view:<bookLabel>`), so the viewport selected while
-  // editing is inherited here — mobile/tablet responsive styles preview at the
-  // exact size the author designed at instead of always defaulting to desktop.
   const [deviceView, setDeviceView] = useDeviceView(bookLabel, "desktop")
   const [available, setAvailable] = useState({ width: 0, height: 0 })
   const [isSubmittingPackage, setIsSubmittingPackage] = useState(false)
@@ -265,9 +259,6 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     })
   }, [bookLabel, currentPreviewPage.href, navigate, navigatePreviewToHref, ready, search.previewHref])
 
-  // Track the preview pane size so the device frame (mobile/tablet) can be
-  // scaled to fit both width and height. Re-attaches when the pane mounts
-  // (`ready`) or the frame structure swaps (`deviceView`).
   useEffect(() => {
     const wrapper = wrapperRef.current
     if (!wrapper) return
@@ -307,11 +298,6 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
   if (ready) {
     const previewSrc = `${getAdtUrl(bookLabel)}/v-${version}/`
     const isDesktop = deviceView === "desktop"
-    // Mirror the storyboard editor's device sizing: render the iframe at the
-    // device's logical viewport width inside real phone/tablet chrome, then
-    // scale to fit the pane. `getTargetVisibleWidth` caps the scale so the
-    // frame reads at the same size the author edited at; the width/height fit
-    // keeps the whole device visible within the (bounded) preview pane.
     const frame = getDeviceFrame(deviceView, DEVICE_WIDTHS[deviceView])
     const cap = getTargetVisibleWidth(deviceView) / frame.chromeWidth
     const fitScale = Math.min(
@@ -321,8 +307,6 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
     const scale = Number.isFinite(fitScale) ? Math.max(0, Math.min(cap, fitScale)) : 1
     const measured = available.width > 0 && available.height > 0
 
-    // Fixed device screen with internal scrolling — the packaged pages scroll
-    // inside the frame exactly like a real device.
     const framedIframe = (
       <iframe
         ref={iframeRef}
@@ -338,8 +322,6 @@ export function PreviewView({ bookLabel }: { bookLabel: string }) {
       <div className="relative h-full w-full bg-muted/20 overflow-hidden">
         <div ref={wrapperRef} className="absolute inset-0 flex items-center justify-center overflow-hidden">
           {isDesktop ? (
-            // The iframe fills the pane; fixed-layout pages scale themselves to
-            // fit (see renderPageHtml's fit script in package-web.ts).
             <iframe
               ref={iframeRef}
               src={previewSrc}

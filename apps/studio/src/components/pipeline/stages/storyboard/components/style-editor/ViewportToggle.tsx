@@ -10,9 +10,6 @@ interface ViewportToggleProps {
   className?: string
   /** Current iframe visible width in CSS pixels. Shown in a tooltip on the active button. */
   currentWidth?: number
-  /** Visual context.
-   *  - `dark` (default): white-on-transparent, for the storyboard's dark toolbar.
-   *  - `surface`: theme-aware segmented control, for light app surfaces (preview). */
   variant?: "dark" | "surface"
 }
 
