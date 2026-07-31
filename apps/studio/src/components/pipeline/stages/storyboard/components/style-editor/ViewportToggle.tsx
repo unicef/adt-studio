@@ -10,10 +10,9 @@ interface ViewportToggleProps {
   className?: string
   /** Current iframe visible width in CSS pixels. Shown in a tooltip on the active button. */
   currentWidth?: number
-  variant?: "dark" | "surface"
 }
 
-export function ViewportToggle({ value, onChange, className, currentWidth, variant = "dark" }: ViewportToggleProps) {
+export function ViewportToggle({ value, onChange, className, currentWidth }: ViewportToggleProps) {
   const { t } = useLingui()
   const items: Array<{ value: DeviceView; icon: typeof Monitor; label: string }> = [
     { value: "desktop", icon: Monitor, label: t`Desktop` },
@@ -24,8 +23,7 @@ export function ViewportToggle({ value, onChange, className, currentWidth, varia
   return (
     <div
       className={cn(
-        "inline-flex items-center gap-0.5 rounded p-0.5",
-        variant === "surface" ? "bg-muted" : "bg-white/10",
+        "inline-flex items-center gap-0.5 rounded bg-white/10 p-0.5",
         className
       )}
     >
@@ -41,13 +39,9 @@ export function ViewportToggle({ value, onChange, className, currentWidth, varia
             title={active ? undefined : label}
             className={cn(
               "inline-flex items-center gap-1 h-6 rounded px-1.5 text-[10px] cursor-pointer transition-colors",
-              variant === "surface"
-                ? active
-                  ? "bg-background text-primary shadow-sm"
-                  : "text-muted-foreground hover:bg-background/60 hover:text-foreground"
-                : active
-                  ? "bg-white text-violet-700"
-                  : "text-white/80 hover:bg-white/10 hover:text-white"
+              active
+                ? "bg-white text-neutral-900"
+                : "text-white/80 hover:bg-white/10 hover:text-white"
             )}
           >
             <Icon className="h-3.5 w-3.5" />
