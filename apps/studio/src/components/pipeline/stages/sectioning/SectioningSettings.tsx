@@ -412,7 +412,7 @@ export function SectioningSettings({ bookLabel, tab = "section-types" }: { bookL
                   Icon: DynamicModeIcon,
                   title: <Trans>Dynamic</Trans>,
                   description: (
-                    <Trans>Keeps pages whole unless mixed activity types require splitting.</Trans>
+                    <Trans>Keeps pages whole unless mixed activity types, or a passage too long for one screen, require splitting.</Trans>
                   ),
                 },
                 {

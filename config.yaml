@@ -156,6 +156,15 @@ metadata:
 page_sectioning:
   prompt: page_sectioning
   max_refinements: 0
+  # Characters of body text a reading section may hold before it is split so it
+  # fits a 1280x800 viewport without vertical scrolling. Measured against real
+  # rendered sections: ~1,200 chars of prose fills that viewport. Cuts fall only
+  # between top-level nodes, so paragraphs are never broken. 0 disables.
+  # Only applies in `dynamic` mode.
+  section_char_budget: 1200
+  # Upper bound on sections per page, counting the model's own activity splits.
+  # Each section costs one storyboard render and one Easy Read call downstream.
+  max_sections_per_page: 3
 
 image_meaningfulness:
   prompt: image_meaningfulness

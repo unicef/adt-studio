@@ -4369,14 +4369,32 @@ msgstr "KB"
 msgid "Keep output schemas and IDs unchanged when editing prompts."
 msgstr "Keep output schemas and IDs unchanged when editing prompts."
 
-msgid "Keep pages whole by default, but split when distinct activity types are detected on the same page."
-msgstr "Keep pages whole by default, but split when distinct activity types are detected on the same page."
+#~ msgid "Keep pages whole by default, but split when distinct activity types are detected on the same page."
+#~ msgstr "Keep pages whole by default, but split when distinct activity types are detected on the same page."
 
-msgid "Keeps pages whole unless mixed activity types require splitting."
-msgstr "Keeps pages whole unless mixed activity types require splitting."
+#~ msgid "Keep pages whole by default, but split when distinct activity types share a page, or when a long reading passage crosses into a new scene or topic."
+#~ msgstr "Keep pages whole by default, but split when distinct activity types share a page, or when a long reading passage crosses into a new scene or topic."
 
-msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page. Best for textbooks with varied exercises."
-msgstr "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page. Best for textbooks with varied exercises."
+msgid "Keep pages whole by default, but split when distinct activity types share a page, or when a reading passage is too long to fit on one screen."
+msgstr "Keep pages whole by default, but split when distinct activity types share a page, or when a reading passage is too long to fit on one screen."
+
+#~ msgid "Keeps pages whole unless mixed activity types require splitting."
+#~ msgstr "Keeps pages whole unless mixed activity types require splitting."
+
+#~ msgid "Keeps pages whole unless mixed activity types, or a long passage changing scene or topic, require splitting."
+#~ msgstr "Keeps pages whole unless mixed activity types, or a long passage changing scene or topic, require splitting."
+
+msgid "Keeps pages whole unless mixed activity types, or a passage too long for one screen, require splitting."
+msgstr "Keeps pages whole unless mixed activity types, or a passage too long for one screen, require splitting."
+
+#~ msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page - or when a long reading passage moves into a new scene or topic. Best for textbooks with varied exercises and text-heavy books."
+#~ msgstr "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page - or when a long reading passage moves into a new scene or topic. Best for textbooks with varied exercises and text-heavy books."
+
+msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page - or when a reading passage is longer than one screen. Long passages are divided between paragraphs, never inside one. Best for textbooks with varied exercises and text-heavy books."
+msgstr "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page - or when a reading passage is longer than one screen. Long passages are divided between paragraphs, never inside one. Best for textbooks with varied exercises and text-heavy books."
+
+#~ msgid "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page. Best for textbooks with varied exercises."
+#~ msgstr "Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page. Best for textbooks with varied exercises."
 
 msgid "Key must start with \"sk-\""
 msgstr "Key must start with \"sk-\""

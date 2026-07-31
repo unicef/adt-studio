@@ -165,7 +165,8 @@ export function SectioningLandingPage({ bookLabel }: { bookLabel: string }) {
             ) : (
               <Trans>
                 Keep pages whole by default, but split when distinct activity
-                types are detected on the same page.
+                types share a page, or when a reading passage is too long to
+                fit on one screen.
               </Trans>
             )
           }

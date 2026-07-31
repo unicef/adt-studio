@@ -15,7 +15,7 @@ const CAROUSEL_PAGE_TITLE = msg`Page Mode`
 const CAROUSEL_PAGE_DESCRIPTION = msg`The entire page is treated as a single section - all text and images stay together as one unit. Best for storybooks, reference books, and any content where each page is self-contained.`
 
 const CAROUSEL_DYNAMIC_TITLE = msg`Dynamic Mode`
-const CAROUSEL_DYNAMIC_DESCRIPTION = msg`Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page. Best for textbooks with varied exercises.`
+const CAROUSEL_DYNAMIC_DESCRIPTION = msg`Keeps the page as one section by default, but intelligently splits when it detects multiple distinct activities - such as a mix of multiple-choice, open-ended, and sorting exercises on the same page - or when a reading passage is longer than one screen. Long passages are divided between paragraphs, never inside one. Best for textbooks with varied exercises and text-heavy books.`
 
 function PageDiagram() {
   return (

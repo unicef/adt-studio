@@ -23,6 +23,14 @@ export {
   type PageSectioningInput,
 } from "./page-sectioning.js"
 export {
+  splitOversizedReadingSections,
+  sectionTextLength,
+  nodeTextLength,
+  DEFAULT_SECTION_CHAR_BUDGET,
+  DEFAULT_MAX_SECTIONS_PER_PAGE,
+  READING_SECTION_TYPES,
+} from "./section-length-split.js"
+export {
   classifyPageImages,
   buildImageClassifyConfig,
   type ImageClassifyConfig,

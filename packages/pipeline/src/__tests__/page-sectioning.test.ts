@@ -15,6 +15,10 @@ import {
   type PageSectioningConfig,
   type PageSectioningInput,
 } from "../page-sectioning.js"
+import {
+  DEFAULT_MAX_SECTIONS_PER_PAGE,
+  DEFAULT_SECTION_CHAR_BUDGET,
+} from "../section-length-split.js"
 
 // ── Test helpers ────────────────────────────────────────────────
 
@@ -72,6 +76,8 @@ function makeConfig(
     maxRetries: 5,
     maxRefinements: 0,
     mode: "dynamic",
+    sectionCharBudget: DEFAULT_SECTION_CHAR_BUDGET,
+    maxSectionsPerPage: DEFAULT_MAX_SECTIONS_PER_PAGE,
     ...overrides,
   }
 }
@@ -795,6 +801,89 @@ describe("sectionPage", () => {
     await expect(
       sectionPage(makeInput(), makeConfig({ sectionTypes: [] }), fakeLlm)
     ).rejects.toThrow("No section types configured")
+  })
+
+  it("splits an oversized reading section and renumbers the section IDs", async () => {
+    const longPage = () => ({
+      reasoning: "One continuous passage",
+      sections: [
+        {
+          section_type: "text_only",
+          background_color: "#fff",
+          text_color: "#000",
+          page_number: 1,
+          nodes: ["a", "b", "c"].map((m) => ({
+            structure: "paragraph",
+            children: [{ role: "text", text: m.repeat(900) }],
+          })),
+        },
+      ],
+    })
+
+    const output = await sectionPage(makeInput(), makeConfig(), makeFakeLlm(longPage))
+
+    expect(output.sections.length).toBeGreaterThan(1)
+    expect(output.sections.map((s) => s.sectionId)).toEqual(
+      output.sections.map((_, i) => `pg001_sec${String(i + 1).padStart(3, "0")}`)
+    )
+    // Node IDs stay unique and page-scoped across the new section boundary.
+    const nodeIds = output.sections.flatMap((s) => s.nodes.map((n) => n.nodeId))
+    expect(new Set(nodeIds).size).toBe(nodeIds.length)
+    // Every paragraph survived whole — none was cut in half.
+    expect(flattenTreeToText(output)).toBe(
+      ["a", "b", "c"].map((m) => m.repeat(900)).join(" ")
+    )
+  })
+
+  it("page mode never length-splits — the page stays one section", async () => {
+    const longPage = () => ({
+      reasoning: "One continuous passage",
+      sections: [
+        {
+          section_type: "text_only",
+          background_color: "#fff",
+          text_color: "#000",
+          page_number: 1,
+          nodes: ["a", "b", "c"].map((m) => ({
+            structure: "paragraph",
+            children: [{ role: "text", text: m.repeat(900) }],
+          })),
+        },
+      ],
+    })
+
+    const output = await sectionPage(
+      makeInput(),
+      makeConfig({ mode: "page" }),
+      makeFakeLlm(longPage)
+    )
+
+    expect(output.sections).toHaveLength(1)
+    expect(output.sections[0].nodes).toHaveLength(3)
+  })
+
+  it("a zero char budget disables length splitting", async () => {
+    const output = await sectionPage(
+      makeInput(),
+      makeConfig({ sectionCharBudget: 0 }),
+      makeFakeLlm(() => ({
+        reasoning: "",
+        sections: [
+          {
+            section_type: "text_only",
+            background_color: "#fff",
+            text_color: "#000",
+            page_number: 1,
+            nodes: ["a", "b", "c"].map((m) => ({
+              structure: "paragraph",
+              children: [{ role: "text", text: m.repeat(900) }],
+            })),
+          },
+        ],
+      }))
+    )
+
+    expect(output.sections).toHaveLength(1)
   })
 
   it("happy path: returns finalized tree with assigned IDs", async () => {
