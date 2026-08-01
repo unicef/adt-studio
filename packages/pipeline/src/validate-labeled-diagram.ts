@@ -96,6 +96,32 @@ function isHidden(node: HtmlNode): boolean {
   return false
 }
 
+function endpointCoordinates(node: HtmlNode): { start: [number, number]; end: [number, number] } | undefined {
+  if (node.name === "line") {
+    const values = ["x1", "y1", "x2", "y2"].map((name) => Number(node.attribs?.[name]))
+    if (values.every(Number.isFinite)) return { start: [values[0], values[1]], end: [values[2], values[3]] }
+  }
+  if (node.name === "polyline") {
+    const values = (node.attribs?.points ?? "").trim().split(/[\s,]+/).map(Number)
+    if (values.length >= 4 && values.length % 2 === 0 && values.every(Number.isFinite)) {
+      return { start: [values[0], values[1]], end: [values.at(-2)!, values.at(-1)!] }
+    }
+  }
+  return undefined
+}
+
+function pointMatchesMarker(point: [number, number], marker: HtmlNode): boolean {
+  const x = Number(marker.attribs?.cx)
+  const y = Number(marker.attribs?.cy)
+  return Number.isFinite(x) && Number.isFinite(y) && point[0] === x && point[1] === y
+}
+
+function hasLabelBackground(node: HtmlNode | undefined): boolean {
+  const classes = node?.attribs?.class?.split(/\s+/) ?? []
+  const style = node?.attribs?.style ?? ""
+  return classes.some((name) => /^bg-(?!transparent(?:$|\/))/.test(name)) || /background(?:-color)?\s*:/i.test(style)
+}
+
 /** Structural guard for diagrams whose labels are separate from the image crop. */
 export function validateLabeledDiagrams(html: string, nodes: RenderNode[]): string[] {
   const diagrams = collectLabeledDiagrams(nodes)
@@ -156,6 +182,7 @@ export function validateLabeledDiagrams(html: string, nodes: RenderNode[]): stri
         for (const labelId of diagram.labelIds) {
           const label = findByDataId(root, labelId)
           const link = closest(label, "a")
+          const linkId = link?.attribs?.id ?? ""
           const href = link?.attribs?.href ?? ""
           const targetId = href.startsWith("#") ? href.slice(1) : ""
           const target = targetId
@@ -169,6 +196,40 @@ export function validateLabeledDiagrams(html: string, nodes: RenderNode[]): stri
             errors.push(
               `Diagram label "${labelId}" must link to a focusable, accessibly named leader endpoint marker in the same <figure>.`,
             )
+          }
+
+          const leaders = leaderPrimitives.filter((node) => node.attribs?.["data-label-id"] === labelId)
+          if (leaders.length !== 1 || !linkId) {
+            errors.push(
+              `Diagram label "${labelId}" must have one explicitly associated SVG leader and a named label-side anchor.`,
+            )
+            continue
+          }
+          if (!hasLabelBackground(link)) {
+            errors.push(
+              `Diagram label "${labelId}" must have an opaque background where its leader underlaps the label edge.`,
+            )
+          }
+
+          const leader = leaders[0]
+          const labelContact = leader.attribs?.["data-label-contact"]
+          const labelledBy = leader.attribs?.["aria-labelledby"]?.split(/\s+/) ?? []
+          if (
+            !["start", "end"].includes(labelContact ?? "") ||
+            !labelledBy.includes(linkId) ||
+            !labelledBy.includes(targetId)
+          ) {
+            errors.push(
+              `Diagram leader for "${labelId}" must identify its label-side contact and reference both named endpoints.`,
+            )
+          }
+
+          const endpoints = endpointCoordinates(leader)
+          if (endpoints && target) {
+            const featurePoint = labelContact === "end" ? endpoints.start : endpoints.end
+            if (!pointMatchesMarker(featurePoint, target)) {
+              errors.push(`Diagram leader for "${labelId}" must terminate exactly on its named feature marker.`)
+            }
           }
         }
       }

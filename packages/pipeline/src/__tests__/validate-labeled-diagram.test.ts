@@ -45,8 +45,18 @@ describe("validateLabeledDiagrams", () => {
     ]))
   })
 
-  it("accepts SVG leaders whose labels link to named keyboard-focusable endpoints", () => {
-    const html = `<section><figure><img data-id="digestive-system" alt="The digestive system"><a href="#mouth-target"><span data-id="mouth">Mouth</span></a><a href="#stomach-target"><span data-id="stomach">Stomach</span></a><svg><line x1="0" y1="0" x2="10" y2="10"/><circle id="mouth-target" tabindex="0" aria-label="Mouth"/><line x1="0" y1="5" x2="10" y2="15"/><circle id="stomach-target" tabindex="0" aria-label="Stomach"/></svg><figcaption data-id="caption">The digestive system</figcaption></figure></section>`
+  it("accepts SVG leaders explicitly connecting named label and feature endpoints", () => {
+    const html = `<section><figure><img data-id="digestive-system" alt="The digestive system"><a id="mouth-label" href="#mouth-target" class="bg-white"><span data-id="mouth">Mouth</span></a><a id="stomach-label" href="#stomach-target" class="bg-white"><span data-id="stomach">Stomach</span></a><svg><line data-label-id="mouth" data-label-contact="start" aria-labelledby="mouth-label mouth-target" x1="0" y1="0" x2="10" y2="10"/><circle id="mouth-target" tabindex="0" aria-label="Mouth" cx="10" cy="10"/><polyline data-label-id="stomach" data-label-contact="end" aria-labelledby="stomach-label stomach-target" points="10,15 5,10 0,5"/><circle id="stomach-target" tabindex="0" aria-label="Stomach" cx="10" cy="15"/></svg><figcaption data-id="caption">The digestive system</figcaption></figure></section>`
     expect(validateLabeledDiagrams(html, nodes)).toEqual([])
+  })
+
+  it("rejects leaders that are not associated with the label side or miss the feature marker", () => {
+    const html = `<section><figure><img data-id="digestive-system" alt="The digestive system"><a id="mouth-label" href="#mouth-target"><span data-id="mouth">Mouth</span></a><a id="stomach-label" href="#stomach-target"><span data-id="stomach">Stomach</span></a><svg><line data-label-id="mouth" x1="0" y1="0" x2="8" y2="8"/><circle id="mouth-target" tabindex="0" aria-label="Mouth" cx="10" cy="10"/><line data-label-id="stomach" data-label-contact="start" aria-labelledby="stomach-label stomach-target" x1="0" y1="5" x2="8" y2="12"/><circle id="stomach-target" tabindex="0" aria-label="Stomach" cx="10" cy="15"/></svg><figcaption data-id="caption">The digestive system</figcaption></figure></section>`
+    expect(validateLabeledDiagrams(html, nodes)).toEqual(expect.arrayContaining([
+      expect.stringContaining('label "mouth" must have an opaque background'),
+      expect.stringContaining('leader for "mouth" must identify its label-side contact'),
+      expect.stringContaining('leader for "mouth" must terminate exactly'),
+      expect.stringContaining('leader for "stomach" must terminate exactly'),
+    ]))
   })
 })
