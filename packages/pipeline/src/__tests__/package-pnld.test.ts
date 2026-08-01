@@ -377,9 +377,10 @@ describe("rewriteContentPage — activities bundle", () => {
   const activity = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /></head><body><main><section data-section-type="activity_multiple_choice"></section></main></body></html>`
   const plain = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" /></head><body><main><section data-section-type="text_only"></section></main></body></html>`
 
-  it("injects the adt-base meta + bundle on activity pages", () => {
+  it("injects the adt-base + adt-sounds-base metas + bundle on activity pages", () => {
     const out = rewriteContentPage(activity, 1, "pt-BR")
     expect(out).toContain('<meta name="adt-base" content="../resources/data/" />')
+    expect(out).toContain('<meta name="adt-sounds-base" content="../resources/audios/" />')
     expect(out).toContain('<script src="../resources/scripts/activities-bundle-local.js"></script>')
   })
 

@@ -156,6 +156,10 @@ function reorganize(pnldDir: string, rawPages: PageEntry[], language: string): P
     path.join(scriptsDir, "activities-bundle-local.js"),
   )
 
+  // 3b. Activity sound effects (.mp3) → resources/audios (edital: audio there).
+  //     The activities bundle finds them via <meta name="adt-sounds-base">.
+  moveDirContents(path.join(assetsDir, "sounds"), path.join(resourcesDir, "audios"))
+
   // 4. Images → resources/images
   moveDirContents(path.join(pnldDir, "images"), imagesDir)
 
@@ -256,7 +260,8 @@ export function rewriteContentPage(
   if (out.includes('data-section-type="activity_')) {
     out = out.replace(
       /<\/head>/i,
-      '    <meta name="adt-base" content="../resources/data/" />\n</head>',
+      '    <meta name="adt-base" content="../resources/data/" />\n' +
+        '    <meta name="adt-sounds-base" content="../resources/audios/" />\n</head>',
     )
     out = out.replace(
       /<\/body>/i,
