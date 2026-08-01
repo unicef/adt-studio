@@ -159,6 +159,8 @@ describe("web rendering reading-order prompts", () => {
     expect(prompt).toContain("A short horizontal rule that stops in empty space")
     expect(prompt).toContain("numbered high-contrast markers")
     expect(prompt).toContain("preserving those connections is REQUIRED")
+    expect(prompt).toContain("timelines, cycles, phase wheels, maps, and charts")
+    expect(prompt).toContain("detached legend or stack of label cards")
     expect(prompt).toContain("must not contain trailing borders")
     expect(prompt).toContain("Required unified structure example")
     expect(prompt).toContain("BOTH ends must visibly touch")
@@ -192,6 +194,7 @@ describe("web rendering reading-order prompts", () => {
     expect(prompt).toContain("one unified SVG")
     expect(prompt).toContain("Check desktop and tablet widths")
     expect(prompt).toContain("reject replacing them with an unconnected parts list")
+    expect(prompt).toContain("detached label cards")
   })
 
   it("preserves recurring page chrome without exposing decoration to assistive technology", async () => {
