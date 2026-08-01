@@ -45,6 +45,11 @@ This is one physical textbook page containing several different exercise mechani
 - Preserve section headings and continuation content in source reading order. A question that continues from the previous printed page must remain visible and operable here; do not invent a missing stem.
 - Native controls must remain keyboard operable and visibly focusable. Do not use custom click-only divs, scripts, or pointer-only interactions.
 {% endif %}
+
+## EMBEDDED EXERCISES — REQUIRED INTERACTIVITY ON EVERY PAGE TYPE
+The provided page may contain an exercise, activity, question box, or writing prompt even when the outer `section_type` describes another dominant structure (for example a table, experiment, image, or ordinary text). Inspect the ENTIRE content tree and reference page. Never leave an embedded exercise as static question text merely because it is nested inside a differently typed section.
+
+For every standalone short-answer or explanation question anywhere on the page, place its own full-width `<input type="text">` or `<textarea>` directly BELOW that question inside the same `data-question-response="item-N"` wrapper. Use a textarea for multi-sentence explanations. Give every field a unique `data-activity-item`, unique `data-aria-id`, `tabindex="0"`, and an accessible label that identifies the exact question. This rule also applies to instructions such as “write a description”, “explain”, “suggest”, “list”, or “give reasons”. Never collect the fields elsewhere and never omit them because another activity (such as a fillable table) already appears on the page.
 {% if section_type == "table_of_contents" %}
 
 ## TABLE OF CONTENTS — REQUIRED ROW GEOMETRY

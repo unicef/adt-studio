@@ -233,6 +233,19 @@ describe("web rendering reading-order prompts", () => {
     expect(prompt).toContain("200% zoom")
   })
 
+  it("requires nested writing exercises to stay interactive on other page types", async () => {
+    const messages = await promptEngine.renderPrompt("web_generation_html", {
+      ...generationContext(),
+      section_type: "activity_fill_in_a_table",
+    })
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain("EMBEDDED EXERCISES — REQUIRED INTERACTIVITY ON EVERY PAGE TYPE")
+    expect(prompt).toContain("Never leave an embedded exercise as static question text")
+    expect(prompt).toContain("directly BELOW that question")
+    expect(prompt).toContain("another activity (such as a fillable table)")
+  })
+
   it("keeps meaningful images legible on mobile and content discoverable downstream", async () => {
     const messages = await promptEngine.renderPrompt(
       "web_generation_html",
