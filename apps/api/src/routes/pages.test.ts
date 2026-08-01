@@ -393,6 +393,114 @@ describe("Page routes", () => {
     })
   })
 
+  describe("editable-activity migration on section operations", () => {
+    // Minimal schema-valid multiple-choice activity — an invalid stored
+    // entity would silently skip migration (readEditableActivities bails).
+    const mcActivity = (title: string) => ({
+      kind: "multiple-choice",
+      sectionType: "activity_multiple_choice",
+      enabled: true,
+      title: { text: title },
+      steps: [
+        {
+          id: `${title}-q1`,
+          prompt: { text: "Which one?" },
+          options: [
+            { itemId: "item-1", correct: true, text: { text: "Right" } },
+            { itemId: "item-2", correct: false, text: { text: "Wrong" } },
+          ],
+        },
+      ],
+    })
+
+    const section = (n: number) => ({
+      sectionId: `${label}_p1_sec${String(n).padStart(3, "0")}`,
+      sectionType: "activity_multiple_choice",
+      backgroundColor: "#ffffff",
+      textColor: "#000000",
+      pageNumber: 1,
+      isPruned: false,
+      nodes: [
+        {
+          nodeId: `${label}_p1_n${String(n).padStart(3, "0")}`,
+          isPruned: false,
+          role: "text",
+          text: `Activity ${n}`,
+        },
+      ],
+    })
+
+    it("deleting a section drops its entry and shifts the rest down", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("page-sectioning", `${label}_p1`, {
+          reasoning: "two same-type activities",
+          sections: [section(1), section(2)],
+        })
+        storage.putNodeData("editable-activity", `${label}_p1`, {
+          activities: { "0": mcActivity("first"), "1": mcActivity("second") },
+        })
+      } finally {
+        storage.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0`,
+        { method: "DELETE" }
+      )
+      expect(res.status).toBe(200)
+
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        const row = verify.getLatestNodeData("editable-activity", `${label}_p1`)
+        const activities = (row?.data as {
+          activities: Record<string, { title?: { text: string } }>
+        }).activities
+        // The deleted section's entry is gone; the surviving activity moved to
+        // index 0 with the section it belongs to — it must NOT keep key "1",
+        // and the stale key "0" must not point at the first activity anymore.
+        expect(Object.keys(activities)).toEqual(["0"])
+        expect(activities["0"]?.title?.text).toBe("second")
+      } finally {
+        verify.close()
+      }
+    })
+
+    it("cloning a section copies its entry and shifts later entries up", async () => {
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("page-sectioning", `${label}_p1`, {
+          reasoning: "activity then activity",
+          sections: [section(1), section(2)],
+        })
+        storage.putNodeData("editable-activity", `${label}_p1`, {
+          activities: { "0": mcActivity("first"), "1": mcActivity("second") },
+        })
+      } finally {
+        storage.close()
+      }
+
+      const res = await app.request(
+        `/api/books/${label}/pages/${label}_p1/sections/0/clone`,
+        { method: "POST" }
+      )
+      expect(res.status).toBe(200)
+
+      const verify = createBookStorage(label, tmpDir)
+      try {
+        const row = verify.getLatestNodeData("editable-activity", `${label}_p1`)
+        const activities = (row?.data as {
+          activities: Record<string, { title?: { text: string } }>
+        }).activities
+        expect(activities["0"]?.title?.text).toBe("first")
+        expect(activities["1"]?.title?.text).toBe("first")
+        expect(activities["2"]?.title?.text).toBe("second")
+      } finally {
+        verify.close()
+      }
+    })
+  })
+
   describe("POST /api/books/:label/pages/:pageId/sections/:sectionIndex/split", () => {
     /** Seed page 1 with one section of three top-level nodes (last one nested). */
     function seedThreeNodeSection(options?: { placement?: boolean; rendering?: boolean }) {

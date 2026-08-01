@@ -7,6 +7,8 @@ import type {
   BookMetadata,
   BookSummary,
   BookTypography,
+  ActivityOutline,
+  EditableActivity,
   FontAssignmentOutput,
   ExtractionWarning,
   ReviewerPageValidationRecord,
@@ -850,6 +852,68 @@ export const api = {
 
   getBookFonts: (label: string) => request<BookFontsResponse>(`/books/${label}/fonts`),
 
+  getEditableActivities: (label: string, pageId: string) =>
+    request<{
+      activities: Record<string, EditableActivity>
+      version: number
+      /** Book-derived accent used when an activity has no override. */
+      paletteAccent: string
+    }>(`/books/${label}/pages/${pageId}/editable-activities`),
+
+  updateEditableActivities: (
+    label: string,
+    pageId: string,
+    activities: Record<string, EditableActivity>,
+  ) =>
+    request<{ version: number }>(`/books/${label}/pages/${pageId}/editable-activities`, {
+      method: "PUT",
+      body: JSON.stringify({ activities }),
+    }),
+
+  getActivityStructure: (label: string, pageId: string, sectionIndex: number) =>
+    request<{
+      activity: EditableActivity | null
+      outline: ActivityOutline | null
+      errors: string[]
+      renderingVersion?: number
+    }>(`/books/${label}/pages/${pageId}/sections/${sectionIndex}/activity-structure`),
+
+  convertEditableActivity: (label: string, pageId: string, sectionIndex: number) =>
+    request<{ activity: EditableActivity; warnings: string[]; version: number }>(
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/editable-activity/convert`,
+      { method: "POST" },
+    ),
+
+  setEditableActivityPresentation: (
+    label: string,
+    pageId: string,
+    sectionIndex: number,
+    enabled: boolean,
+  ) =>
+    request<{ version: number; enabled: boolean }>(
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/editable-activity/presentation`,
+      { method: "POST", body: JSON.stringify({ enabled }) },
+    ),
+
+  generateEditableActivityFeedback: (
+    label: string,
+    pageId: string,
+    sectionIndex: number,
+    apiKey: string,
+    providerCredentials?: StageRunProviderCredentials,
+    // The unsaved draft, so feedback reflects what the user is editing —
+    // the server falls back to the last saved entity when omitted.
+    activity?: EditableActivity,
+  ) =>
+    request<{ feedback: Record<string, { correct?: string; incorrect?: string }> }>(
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/editable-activity/generate-feedback`,
+      {
+        method: "POST",
+        headers: buildApiHeaders(apiKey, providerCredentials),
+        body: JSON.stringify(activity ? { activity } : {}),
+      },
+    ),
+
   getTypography: (label: string) =>
     request<{ data: BookTypography; version: number; isDefault: boolean; detected: BookTypography }>(
       `/books/${label}/typography`
@@ -1153,6 +1217,47 @@ export const api = {
   aiEditHistory: (label: string, pageId: string, sectionIndex: number) =>
     request<{ history: AiEditHistoryTurn[] }>(
       `/books/${label}/pages/${pageId}/sections/${sectionIndex}/ai-edit-history`,
+    ),
+
+  agentLayoutMirror: (
+    label: string,
+    source: { pageId: string; sectionIndex: number },
+    targets: Array<{ pageId: string; sectionIndex: number }>,
+    apiKey: string,
+    instruction?: string,
+    providerCredentials?: StageRunProviderCredentials,
+  ) =>
+    request<{ taskId?: string; status?: string; results?: Array<{ pageId: string; sectionIndex: number; ok: boolean; version?: number; reasoning?: string; error?: string }> }>(
+      `/books/${label}/agents/layout-mirror`,
+      {
+        method: "POST",
+        headers: buildApiHeaders(apiKey, providerCredentials),
+        body: JSON.stringify({ source, targets, instruction }),
+        signal: AbortSignal.timeout(30_000),
+      },
+    ),
+
+  agentGenerateActivity: (
+    label: string,
+    anchorPageId: string,
+    description: string,
+    apiKey: string,
+    options?: { inclusiveDesign?: boolean; mode?: "auto" | "templated" | "custom" },
+    providerCredentials?: StageRunProviderCredentials,
+  ) =>
+    request<{ taskId?: string; status?: string; text?: string; touchedPageIds?: string[]; toolCalls?: Array<{ name: string; args: unknown; result: unknown; error?: string }>; stepCount?: number; finishReason?: string }>(
+      `/books/${label}/agents/generate-activity`,
+      {
+        method: "POST",
+        headers: buildApiHeaders(apiKey, providerCredentials),
+        body: JSON.stringify({
+          anchorPageId,
+          description,
+          inclusiveDesign: options?.inclusiveDesign ?? true,
+          mode: options?.mode ?? "auto",
+        }),
+        signal: AbortSignal.timeout(30_000),
+      },
     ),
 
   listBookImages: (label: string) =>

@@ -8,6 +8,7 @@ import {
   type DockWidth,
 } from "@/shared/state/ui.atoms"
 import { useTranslation } from "@/features/language/hooks/useTranslation"
+import { useIsMobile } from "@/shared/hooks/use-is-mobile"
 import { trackToggleEvent } from "@/shared/lib/analytics"
 import { cn } from "@/shared/lib/utils"
 import { SegmentedRow } from "@/features/settings/components/SegmentedRow"
@@ -15,6 +16,7 @@ import { SegmentedRow } from "@/features/settings/components/SegmentedRow"
 
 export function DockLayoutPicker() {
   const { t } = useTranslation()
+  const isMobile = useIsMobile()
   const [position, setPosition] = useAtom(dockPositionAtom)
   const [width, setWidth] = useAtom(dockWidthAtom)
   const [align, setAlign] = useAtom(dockAlignAtom)
@@ -48,24 +50,28 @@ export function DockLayoutPicker() {
           ]}
           onChange={setPos}
         />
-        <SegmentedRow
-          label={t("dock-width-label") || "Width"}
-          value={dockWidth}
-          options={[
-            { value: "compact", label: t("dock-width-compact") || "Compact" },
-            { value: "full", label: t("dock-width-full") || "Full" },
-          ]}
-          onChange={setW}
-        />
-        <SegmentedRow
-          label={t("dock-align-label") || "Alignment"}
-          value={dockAlign}
-          options={[
-            { value: "center", label: t("dock-align-center") || "Center" },
-            { value: "spread", label: t("dock-align-spread") || "Spread" },
-          ]}
-          onChange={setA}
-        />
+        {!isMobile ? (
+          <>
+            <SegmentedRow
+              label={t("dock-width-label") || "Width"}
+              value={dockWidth}
+              options={[
+                { value: "compact", label: t("dock-width-compact") || "Compact" },
+                { value: "full", label: t("dock-width-full") || "Full" },
+              ]}
+              onChange={setW}
+            />
+            <SegmentedRow
+              label={t("dock-align-label") || "Alignment"}
+              value={dockAlign}
+              options={[
+                { value: "center", label: t("dock-align-center") || "Center" },
+                { value: "spread", label: t("dock-align-spread") || "Spread" },
+              ]}
+              onChange={setA}
+            />
+          </>
+        ) : null}
       </div>
     </div>
   )

@@ -249,6 +249,10 @@ export function applyTranslationsToDOM(
     const isEasyRead = translationKey.endsWith("_easy_read")
     const renderedHtml = text.replace(/\n/g, "<br>")
     elements.forEach((el) => {
+      // Step-by-step activities render their own React-managed DOM (with
+      // inputs inside sentence texts) and translate through the same dict —
+      // rewriting their innerHTML here would destroy the inputs.
+      if (el.closest("[data-stepper-root]")) return
       if (el.tagName === "IMG") {
         el.setAttribute("alt", text)
         return

@@ -17,6 +17,7 @@ function wordIdFor(dataId: string, idx: number): string {
 }
 import { buildSmil, formatMediaDuration, type SmilParagraph } from "../smil.js"
 import { tokenizeWords } from "../word-tokenize.js"
+import { replaceStepperShellsWithStaticHtml } from "../render-editable-activity.js"
 import { styleMapToInline } from "../fixed-layout-rendering.js"
 import {
   buildGlossaryDocument,
@@ -103,6 +104,12 @@ export function packageEpub(
   // preloader, SCORM adapter). The glossary is lowered to EPUB-native markup
   // (glossref + doc-glossary + landmarks) below.
   stripRuntimeBundle(oebpsDir)
+
+  // Step-by-step activity shells are hydrated by the (now stripped) runtime
+  // bundle — replace them with a static worksheet rendering so the pages
+  // aren't blank in EPUB readers. Runs before SMIL generation so the restored
+  // data-id texts get media overlays.
+  replaceStepperShells(oebpsDir)
 
   // ------------------------------------------------------------------
   // Glossary (load once before the page loop)
@@ -898,6 +905,23 @@ ${navPoints}
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/** Swap interactive stepper shells for static worksheet HTML in every page. */
+function replaceStepperShells(oebpsDir: string): void {
+  const walk = (dir: string): void => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, entry.name)
+      if (entry.isDirectory()) {
+        walk(fullPath)
+      } else if (entry.isFile() && /\.(html|xhtml)$/.test(entry.name)) {
+        const content = fs.readFileSync(fullPath, "utf-8")
+        const replaced = replaceStepperShellsWithStaticHtml(content)
+        if (replaced !== content) fs.writeFileSync(fullPath, replaced)
+      }
+    }
+  }
+  walk(oebpsDir)
+}
 
 function escapeXml(str: string): string {
   return str

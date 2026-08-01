@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Алатките за администрација ќе бидат додадени во следно ажурирање.",
     "main-menu-label": "Главно мени",
     "cover-label": "Корица",
-    "print-page-label": "Печати страница"
+    "print-page-label": "Печати страница",
+    "stepper-progress-n-of-m": "Чекор ${n} од ${m}",
+    "stepper-word-bank": "Зборови за избор",
+    "stepper-open-ended-saved": "Браво — твојот одговор е зачуван.",
+    "stepper-open-ended-rephrase": "Да бидеме љубезни — обиди се поинаку да го напишеш одговорот.",
+    "open-ended-answer-label": "Твојот одговор"
 }

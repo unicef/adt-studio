@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "පරිපාලන මෙවලම් ඉදිරි යාවත්කාලීනයේදී එකතු කරනු ලැබේ.",
     "main-menu-label": "ප්‍රධාන මෙනුව",
     "cover-label": "කවරය",
-    "print-page-label": "පිටුව මුද්‍රණය"
+    "print-page-label": "පිටුව මුද්‍රණය",
+    "stepper-progress-n-of-m": "පියවර ${n} / ${m}",
+    "stepper-word-bank": "තෝරා ගැනීමට වචන",
+    "stepper-open-ended-saved": "නියමයි — ඔබේ පිළිතුර සුරැකිණි.",
+    "stepper-open-ended-rephrase": "කරුණාවෙන් සිටිමු — පිළිතුර වෙනත් ආකාරයකින් ලියන්න උත්සාහ කරන්න.",
+    "open-ended-answer-label": "ඔබේ පිළිතුර"
 }

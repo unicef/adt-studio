@@ -126,5 +126,10 @@
     "underline-question-label": "Swali la ${n}",
     "underline-all-correct": "Majibu yote ni sahihi!",
     "underline-progress-summary": "${correct} sahihi, ${wrong} si sahihi, ${missing} bado hayajapatikana.",
-    "activity-progress-remaining": "zimebaki"
+    "activity-progress-remaining": "zimebaki",
+    "stepper-progress-n-of-m": "Hatua ya ${n} kati ya ${m}",
+    "stepper-word-bank": "Maneno ya kuchagua",
+    "stepper-open-ended-saved": "Hongera — jibu lako limehifadhiwa.",
+    "stepper-open-ended-rephrase": "Tuwe wema — jaribu kuandika jibu lako kwa njia nyingine.",
+    "open-ended-answer-label": "Jibu lako"
 }

@@ -11,6 +11,7 @@
     "build:electron-server": "node scripts/bundle-electron-server.mjs && node scripts/install-server-runtime.mjs"
   },
   "dependencies": {
+    "@adt/agents": "workspace:*",
     "@adt/llm": "workspace:*",
     "@adt/pdf": "workspace:*",
     "@adt/pipeline": "workspace:*",

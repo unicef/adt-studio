@@ -37,8 +37,10 @@ import { announceToScreenReader } from "../../../shared/lib/aria-live"
 import { containsProfanity } from "../lib/profanity-detector"
 import { getSharedTextValidator } from "../lib/text-validator"
 
+// :not([data-activity-variant="stepper"]) — sections converted to the
+// step-by-step presentation are rendered by activity-stepper.tsx instead.
 const OPEN_ENDED_SELECTOR =
-  'section[data-section-type="activity_open_ended_answer"]'
+  'section[data-section-type="activity_open_ended_answer"]:not([data-activity-variant="stepper"])'
 
 type TextInput = HTMLInputElement | HTMLTextAreaElement
 type InputVerdict = "empty" | "clean" | "gibberish" | "profanity"

@@ -196,6 +196,61 @@ describe("renderPage", () => {
     content: '<div id="content" class="container"><section data-section-type="text_only" data-section-id="pg001_sec001"><p data-id="pg001_gp001_tx001">Hello</p></section></div>',
   }
 
+  it("passes authoritative text order to LLM output validation", async () => {
+    let validation: { valid: boolean; errors: string[] } | undefined
+    const outOfOrderResponse = {
+      reasoning: "restored the page-image order",
+      content:
+        '<div id="content" class="container"><section data-section-type="text_only" data-section-id="pg001_sec001"><h2 data-id="sense_heading">Sense</h2><h2 data-id="rescue_heading">Rescue</h2></section></div>',
+    }
+    const fakeLlm: LLMModel = {
+      generateObject: async <T>(opts: GenerateObjectOptions) => {
+        validation = opts.validate?.(
+          outOfOrderResponse,
+          opts.context ?? {},
+        )
+        return {
+          object: outOfOrderResponse as T,
+        } as GenerateObjectResult<T>
+      },
+    }
+
+    await renderPage(
+      {
+        label: "test-book",
+        pageId: "pg001",
+        pageImageBase64: "base64img",
+        sectioning: {
+          reasoning: "user reordered Rescue before Sense",
+          sections: [
+            {
+              sectionId: "pg001_sec001",
+              sectionType: "text_only",
+              nodes: [
+                leafNode("rescue_heading", "heading", "Rescue"),
+                leafNode("sense_heading", "heading", "Sense"),
+              ],
+              backgroundColor: "#ffffff",
+              textColor: "#000000",
+              pageNumber: 1,
+              isPruned: false,
+            },
+          ],
+        },
+        images: new Map(),
+      },
+      defaultResolveConfig,
+      fakeLlm,
+    )
+
+    expect(validation?.valid).toBe(false)
+    expect(validation?.errors).toContainEqual(
+      expect.stringContaining(
+        'expected "rescue_heading" but found "sense_heading"',
+      ),
+    )
+  })
+
   it("passes the cancellation signal to LLM calls and stops between sections", async () => {
     const controller = new AbortController()
     const seenSignals: Array<AbortSignal | undefined> = []

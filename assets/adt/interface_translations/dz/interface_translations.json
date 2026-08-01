@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "དོ་དམ་གྱི་ལག་ཆ་ཚུ་འོང་འགྱུར་ནང་བསྐྲུན་འགྱུར།",
     "main-menu-label": "གཙོ་བོའི་ཐོ་འགྲེམ",
     "cover-label": "ལེབ་ཤོག",
-    "print-page-label": "ཤོག་ལེབ་པར་སྐྲུན"
+    "print-page-label": "ཤོག་ལེབ་པར་སྐྲུན",
+    "stepper-progress-n-of-m": "རིམ་པ ${n} / ${m}",
+    "stepper-word-bank": "གདམ་ཁའི་མིང་ཚིག",
+    "stepper-open-ended-saved": "ལེགས་སོ — ཁྱོད་ཀྱི་ལན་དེ་བསགས་ཡོད།",
+    "stepper-open-ended-rephrase": "ཞི་དུལ་སྦེ་སྡོད་གེ — ཁྱོད་ཀྱི་ལན་དེ་ལོག་བྲི་ཐབས་འབད།",
+    "open-ended-answer-label": "ཁྱོད་ཀྱི་ལན"
 }

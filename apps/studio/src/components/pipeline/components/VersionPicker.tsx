@@ -167,27 +167,27 @@ export function VersionPicker({
   const [open, setOpen] = useState(false)
   const [versions, setVersions] = useState<VersionEntry[] | null>(null)
   const [loadingVersions, setLoadingVersions] = useState(false)
+  const [hoverCandidate, setHoverCandidate] = useState<number | null>(null)
   const [hovered, setHovered] = useState<number | null>(null)
-  const [previewed, setPreviewed] = useState<number | null>(null)
   const [restoring, setRestoring] = useState(false)
   const [loadError, setLoadError] = useState(false)
   // Reserve the first hovered preview's height for later ones so switching
   // versions doesn't grow the flyout from the skeleton up (same page ≈ same
   // height).
-  const [previewPaneRef, previewHeight] = useReservedHeight<HTMLDivElement>(previewed != null)
+  const [previewPaneRef, previewHeight] = useReservedHeight<HTMLDivElement>(hovered != null)
   const [compareOpen, setCompareOpen] = useState(false)
 
   // Full storyboard previews trigger a Tailwind compilation. Delay mounting
   // until the pointer settles so moving across the version list does not start
   // one expensive request per row.
   useEffect(() => {
-    if (hovered == null) {
-      setPreviewed(null)
+    if (hoverCandidate == null) {
+      setHovered(null)
       return
     }
-    const timer = window.setTimeout(() => setPreviewed(hovered), 180)
+    const timer = window.setTimeout(() => setHovered(hoverCandidate), 180)
     return () => window.clearTimeout(timer)
-  }, [hovered])
+  }, [hoverCandidate])
 
   const stepPending = STEP_PENDING[step]
   const defaultLabel = stepPending ? (
@@ -241,8 +241,8 @@ export function VersionPicker({
 
   const handleOpenChange = async (next: boolean) => {
     setOpen(next)
-    setHovered(null) // don't carry a stale hover-preview across open/close
-    setPreviewed(null)
+    setHoverCandidate(null) // don't carry a stale hover-preview across open/close
+    setHovered(null)
     if (next) {
       if (versions == null) setLoadingVersions(true)
       setLoadError(false)
@@ -320,14 +320,14 @@ export function VersionPicker({
   // A single thumbnail-chip row in the visual (renderPreview) popover.
   const visualRow = (v: VersionEntry) => {
     const isCurrent = v.version === currentVersion
-    const isActive = hovered === v.version
+    const isActive = hoverCandidate === v.version
     return (
       <button
         key={v.version}
         type="button"
         onClick={() => handlePick(v)}
-        onMouseEnter={() => setHovered(v.version)}
-        onFocus={() => setHovered(v.version)}
+        onMouseEnter={() => setHoverCandidate(v.version)}
+        onFocus={() => setHoverCandidate(v.version)}
         className={`flex w-full items-center gap-2.5 rounded-lg p-1.5 text-left transition-colors cursor-pointer ${
           !isCurrent && isActive ? "bg-accent" : !isCurrent ? "hover:bg-accent/60" : ""
         }`}
@@ -568,24 +568,24 @@ export function VersionPicker({
                 scrollClassName: "max-h-72 overflow-auto p-1.5",
                 scrollProps: {
                   "data-thumb-scroll": true,
-                  onMouseLeave: () => setHovered(null),
+                  onMouseLeave: () => setHoverCandidate(null),
                 },
                 overlay:
-                  previewed != null ? (
+                  hovered != null ? (
                     <div className="absolute left-full top-0 ml-2 w-[24rem] overflow-hidden rounded-lg border bg-white shadow-xl animate-in fade-in-0 zoom-in-95 slide-in-from-left-2 duration-200 ease-out motion-reduce:animate-none">
                       <div className="border-b px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
-                        {t`v${previewed} preview`}
+                        {t`v${hovered} preview`}
                       </div>
                       <div ref={previewPaneRef} className="max-h-[26rem] overflow-auto">
                         {/* key by version so each switch gets its own loading
                             skeleton instead of flashing an empty frame */}
                         <PreviewSkeleton
-                          key={previewed}
+                          key={hovered}
                           reservedClassName="h-64"
                           reservedHeight={previewHeight ?? undefined}
                           render={(onReady) =>
                             renderPreview(
-                              versions.find((v) => v.version === previewed)?.data,
+                              versions.find((v) => v.version === hovered)?.data,
                               onReady
                             )
                           }

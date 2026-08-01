@@ -12,9 +12,12 @@ import { pagesAtom, currentSectionIdAtom } from "../../navigation/state/nav.atom
 
 const store = getDefaultStore()
 
+// Matches the canonical declaration in ./activity-globals.d.ts (identical
+// declarations merge; a narrower one here would be a type error). Test files are
+// excluded from the package tsconfig, so this keeps the file self-contained.
 declare global {
   interface Window {
-    correctAnswers?: Record<string, string>
+    correctAnswers?: Record<string, unknown>
   }
 }
 

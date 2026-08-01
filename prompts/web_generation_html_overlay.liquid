@@ -12,6 +12,13 @@ Recreate the original textbook page as closely as possible by using the page ima
 3. Images with their IDs
 4. Section type
 
+## AUTHORITATIVE CONTENT ORDER
+The content tree is the current saved user state. Its depth-first order is the REQUIRED reading order and may intentionally differ from the original page image after a user edit.
+- Treat the original page image only as a visual style and layout reference. If its apparent order conflicts with the content tree, the content tree wins.
+- Emit all content-bearing elements in the HTML DOM in content-tree order.
+- Assign overlay positions so the visual reading order follows that same order at every viewport. When necessary, move a group away from its original position rather than restoring the image's older order.
+- Never restore or infer an older order from the page image.
+
 ## FUNDAMENTAL RULES
 1. Each text ID must appear EXACTLY ONCE — no duplicates
 2. Use the EXACT text provided — no modifications
@@ -287,8 +294,8 @@ Image ID: {{ image.image_id }}
 {% image image.image_base64 %}
 {% endfor %}
 
-Page content in DOCUMENT FLOW ORDER (top-to-bottom as they appear on the page).
-Use this ordering plus the page image to determine the vertical position of each group.
+Page content in AUTHORITATIVE DOCUMENT FLOW ORDER.
+Use this ordering for both DOM order and visual reading order. Use the page image only to guide style and the available layout positions.
 
 Content tree (indentation shows hierarchy):
 {% include "_render_node", nodes: nodes, depth: 0 %}

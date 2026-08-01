@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Stjórnandatólunum verður bætt við í síðari uppfærslu.",
     "main-menu-label": "Aðalvalmynd",
     "cover-label": "Forsíða",
-    "print-page-label": "Prenta síðu"
+    "print-page-label": "Prenta síðu",
+    "stepper-progress-n-of-m": "Skref ${n} af ${m}",
+    "stepper-word-bank": "Orð til að velja úr",
+    "stepper-open-ended-saved": "Vel gert — svarið þitt hefur verið vistað.",
+    "stepper-open-ended-rephrase": "Verum vinsamleg — reyndu að umorða svarið þitt.",
+    "open-ended-answer-label": "Svarið þitt"
 }

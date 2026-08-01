@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Administratora rīki tiks pievienoti turpmākā atjauninājumā.",
     "main-menu-label": "Galvenā izvēlne",
     "cover-label": "Vāks",
-    "print-page-label": "Drukāt lapu"
+    "print-page-label": "Drukāt lapu",
+    "stepper-progress-n-of-m": "Solis ${n} no ${m}",
+    "stepper-word-bank": "Vārdi izvēlei",
+    "stepper-open-ended-saved": "Lieliski — tava atbilde ir saglabāta.",
+    "stepper-open-ended-rephrase": "Būsim laipni — mēģini pārformulēt savu atbildi.",
+    "open-ended-answer-label": "Tava atbilde"
 }

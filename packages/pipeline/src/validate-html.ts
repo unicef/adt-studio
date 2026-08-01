@@ -128,6 +128,13 @@ export interface HtmlValidationOptions {
    * suppressed if it doesn't.
    */
   optionalTextIds?: Set<string>
+  /**
+   * Leaf data-ids (text and images) in the authoritative content-tree reading
+   * order. When provided, rendered content elements must appear in the same
+   * DOM order. Optional text ids and omitted images may be absent, but any ids
+   * that are present must keep their relative order.
+   */
+  expectedContentIdOrder?: string[]
 }
 
 export function validateSectionHtml(
@@ -195,6 +202,10 @@ export function validateSectionHtml(
         errors.push(`Missing required text data-id: "${textId}"`)
       }
     }
+  }
+
+  if (options?.expectedContentIdOrder?.length) {
+    validateContentDataIdOrder(section, options.expectedContentIdOrder, errors)
   }
 
   if (imageUrlPrefix) {
@@ -372,7 +383,14 @@ function walkNode(
   ) {
     const tagName = (node.name ?? node.type ?? "").toLowerCase()
     if (DISALLOWED_TAGS.has(tagName)) {
-      errors.push(`Disallowed tag: <${tagName}>`)
+      // Script tags are permitted inside a custom-activity section (the only
+      // path where the agent ships its own interaction logic). Everywhere
+      // else they remain disallowed — including iframe/object/embed.
+      if (tagName === "script" && isInsideCustomActivitySection(node)) {
+        // Custom-activity scripts can carry behavior; allow.
+      } else {
+        errors.push(`Disallowed tag: <${tagName}>`)
+      }
     }
 
     const attribs = node.attribs ?? {}
@@ -574,6 +592,47 @@ function collectDataIds(node: any, ids: Set<string>): void {
   }
 }
 
+/** Validate that rendered text and image leaves preserve the tree's DFS order. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function validateContentDataIdOrder(
+  section: any,
+  expectedOrder: string[],
+  errors: string[],
+): void {
+  const expectedIds = new Set(expectedOrder)
+  const renderedOrder: string[] = []
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function collect(node: any): void {
+    if (node.type === "tag") {
+      const dataId = node.attribs?.["data-id"]
+      if (typeof dataId === "string" && expectedIds.has(dataId)) {
+        renderedOrder.push(dataId)
+      }
+    }
+    if (node.children) {
+      for (const child of node.children) collect(child)
+    }
+  }
+
+  collect(section)
+  const renderedIds = new Set(renderedOrder)
+  const expectedRenderedOrder = expectedOrder.filter((id) => renderedIds.has(id))
+  const mismatchIndex = renderedOrder.findIndex(
+    (id, index) => id !== expectedRenderedOrder[index],
+  )
+  const hasLengthMismatch = renderedOrder.length !== expectedRenderedOrder.length
+
+  if (mismatchIndex !== -1 || hasLengthMismatch) {
+    const index = mismatchIndex === -1
+      ? Math.min(renderedOrder.length, expectedRenderedOrder.length)
+      : mismatchIndex
+    errors.push(
+      `Content data-id order does not match the authoritative content tree at position ${index + 1}: expected "${expectedRenderedOrder[index] ?? "<end>"}" but found "${renderedOrder[index] ?? "<end>"}"`,
+    )
+  }
+}
+
 /**
  * Rewrite src attributes on elements whose data-id matches an image ID.
  */
@@ -590,6 +649,24 @@ function rewriteImageSrcs(node: any, imageIds: Set<string>, urlPrefix: string): 
       rewriteImageSrcs(child, imageIds, urlPrefix)
     }
   }
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function isInsideCustomActivitySection(node: any): boolean {
+  let current = node.parent
+  while (current) {
+    if (current.type === "tag" && (current.name ?? "").toLowerCase() === "section") {
+      const sectionType = current.attribs?.["data-section-type"]
+      if (
+        typeof sectionType === "string" &&
+        (sectionType === "activity_custom" || sectionType.startsWith("activity_custom_"))
+      ) {
+        return true
+      }
+    }
+    current = current.parent
+  }
+  return false
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

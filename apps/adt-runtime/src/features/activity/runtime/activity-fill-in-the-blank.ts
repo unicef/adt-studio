@@ -44,24 +44,13 @@ import {
 import { showActivityProgressToast } from "../lib/progress-toast"
 import { announceToScreenReader } from "../../../shared/lib/aria-live"
 
+// :not([data-activity-variant="stepper"]) — sections converted to the
+// step-by-step presentation are rendered by activity-stepper.tsx instead.
 const FITB_SELECTOR =
-  'section[data-section-type="activity_fill_in_the_blank"], section[data-section-type="activity_fill_in_a_table"]'
+  'section[data-section-type="activity_fill_in_the_blank"]:not([data-activity-variant="stepper"]), section[data-section-type="activity_fill_in_a_table"]:not([data-activity-variant="stepper"])'
 
-declare global {
-  interface Window {
-    /**
-     * Map of item id → correct answer (pipe-separated string for alternatives).
-     * Injected by `packages/pipeline/src/package-web.ts:renderPageHtml`.
-     */
-    correctAnswers?: Record<string, string>
-    /**
-     * Legacy: pairs of interchangeable items (e.g. "the same two answers in
-     * either order"). The pipeline doesn't currently emit this, but the legacy
-     * runtime supported it — kept so older books still work.
-     */
-    interchangeablePairs?: Record<string, string[]>
-  }
-}
+// `window.correctAnswers` / `window.interchangeablePairs` are declared once in
+// ./activity-globals.d.ts (shared by every activity initializer).
 
 type TextInput = HTMLInputElement | HTMLTextAreaElement
 
@@ -81,7 +70,14 @@ function findNextPageHref(): string | null {
 }
 
 function getCorrectAnswer(itemId: string): string | undefined {
-  return window.correctAnswers?.[itemId]
+  // The injected map is typed `unknown` per entry (activities disagree on what
+  // a value means — see activity-globals.d.ts). Blanks compare text, so coerce
+  // non-null primitives: a numeric answer arrives as `100`, not `"100"`. An
+  // empty string is meaningful here (open-ended blank: accept any input), so it
+  // must survive rather than collapse to undefined.
+  const raw = window.correctAnswers?.[itemId]
+  if (raw === undefined || raw === null) return undefined
+  return typeof raw === "string" ? raw : String(raw)
 }
 
 function getInterchangeable(itemId: string): string[] | undefined {

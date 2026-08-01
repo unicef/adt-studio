@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Админ хэрэгслүүд дараагийн шинэчлэлд нэмэгдэх болно.",
     "main-menu-label": "Үндсэн цэс",
     "cover-label": "Хавтас",
-    "print-page-label": "Хуудас хэвлэх"
+    "print-page-label": "Хуудас хэвлэх",
+    "stepper-progress-n-of-m": "Алхам ${n}/${m}",
+    "stepper-word-bank": "Сонгох үгс",
+    "stepper-open-ended-saved": "Сайн байна — таны хариулт хадгалагдлаа.",
+    "stepper-open-ended-rephrase": "Эелдэг байцгаая — хариултаа өөрөөр бичээд үзээрэй.",
+    "open-ended-answer-label": "Таны хариулт"
 }

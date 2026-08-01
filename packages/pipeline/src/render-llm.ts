@@ -4,7 +4,7 @@ import type { LLMModel, ValidationResult } from "@adt/llm"
 import { autoRepairUnderlineActivityHtml } from "./activity-underline-repair.js"
 import { validateSectionHtml, isEnumerationMarker } from "./validate-html.js"
 import { getViewportBreakpoints, type ScreenshotRenderer } from "./screenshot.js"
-import type { RenderConfig, RenderExecutionOptions, RenderSectionInput } from "./web-rendering.js"
+import type { RenderConfig, RenderExecutionOptions, RenderNode, RenderSectionInput } from "./web-rendering.js"
 import { runVisualReviewLoop } from "./visual-review.js"
 import { buildTypographyCss, typographyPreservationErrors } from "./typography.js"
 import { DEFAULT_TYPOGRAPHY } from "@adt/types"
@@ -202,6 +202,7 @@ function validateWebRendering(
   const label = context.label as string
   const leaf_texts = context.leaf_texts as Array<{ text_id: string; text_type: string; text: string }>
   const images = context.images as Array<{ image_id: string }>
+  const nodes = context.nodes as RenderNode[]
   const group_ids = context.group_ids as string[]
   const isActivity = context._isActivity as boolean | undefined
   const sectionId = context.section_id as string
@@ -225,6 +226,7 @@ function validateWebRendering(
       expectedSectionType: sectionType,
       expectedSectionId: sectionId,
       optionalTextIds,
+      expectedContentIdOrder: collectLeafDataIdOrder(nodes),
     }
   )
   if (check.valid && check.sectionHtml) {
@@ -236,6 +238,19 @@ function validateWebRendering(
   }
 
   return { valid: check.valid, errors: check.errors }
+}
+
+function collectLeafDataIdOrder(nodes: RenderNode[]): string[] {
+  const ids: string[] = []
+  function walk(node: RenderNode): void {
+    if (node.role) {
+      ids.push(node.node_id)
+      return
+    }
+    for (const child of node.children ?? []) walk(child)
+  }
+  for (const node of nodes) walk(node)
+  return ids
 }
 
 // Recognize underscore runs of any length (single-cell crossword blanks emit

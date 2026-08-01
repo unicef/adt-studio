@@ -3,6 +3,7 @@ import fs from "node:fs"
 import path from "node:path"
 import os from "node:os"
 import { createBookStorage } from "@adt/storage"
+import { DEFAULT_LLM_MODEL_ID } from "@adt/types"
 
 const llmMocks = vi.hoisted(() => ({
   generateObject: vi.fn(),
@@ -313,6 +314,88 @@ describe("page-edit-service", () => {
       expect(capturedHtml).toContain("img-dup")
       expect(capturedHtml).not.toContain("img-first")
       expect(result.html).toContain("img-dup")
+    })
+
+    it.each([
+      {
+        name: "uses page_sectioning.model when configured",
+        defaultModelId: "openai:gpt-4.1",
+        pageSectioningModelId: "openai:gpt-4o",
+        expectedModelId: "openai:gpt-4o",
+      },
+      {
+        // Regression: `page_sectioning` present without a `model` key used to
+        // yield `modelId: undefined`, which blew up inside resolveModel.
+        name: "falls back to default_model when page_sectioning has no model",
+        defaultModelId: "openai:gpt-4.1",
+        pageSectioningModelId: undefined,
+        expectedModelId: "openai:gpt-4.1",
+      },
+      {
+        name: "falls back to DEFAULT_LLM_MODEL_ID when no model is configured",
+        defaultModelId: undefined,
+        pageSectioningModelId: undefined,
+        expectedModelId: DEFAULT_LLM_MODEL_ID,
+      },
+    ])("$name", async ({
+      defaultModelId,
+      pageSectioningModelId,
+      expectedModelId,
+    }) => {
+      const pageId = `${label}_p1`
+      const storage = createBookStorage(label, tmpDir)
+      try {
+        storage.putNodeData("web-rendering", pageId, {
+          sections: [
+            {
+              sectionIndex: 0,
+              sectionType: "content",
+              reasoning: "ok",
+              html: `<section data-id="first">hello</section>`,
+            },
+          ],
+        })
+      } finally {
+        storage.close()
+      }
+
+      const configPath = path.join(tmpDir, "config.yaml")
+      fs.writeFileSync(
+        configPath,
+        [
+          ...(defaultModelId ? [`default_model: "${defaultModelId}"`] : []),
+          "structure_types: {}",
+          "role_types: {}",
+          "page_sectioning:",
+          "  prompt: page_sectioning",
+          "  max_refinements: 0",
+          ...(pageSectioningModelId
+            ? [`  model: "${pageSectioningModelId}"`]
+            : []),
+        ].join("\n")
+      )
+
+      llmMocks.generateObject.mockImplementation(async (opts: unknown) => {
+        const context = (opts as { context: { current_html: string } }).context
+        return {
+          object: { reasoning: "ok", content: context.current_html },
+        } as never
+      })
+
+      await aiEditSection({
+        label,
+        pageId,
+        sectionIndex: 0,
+        instruction: "Keep layout and wording",
+        booksDir: tmpDir,
+        promptsDir: tmpDir,
+        configPath,
+        apiKey: "test-key",
+      })
+
+      expect(llmMocks.createLLMModel).toHaveBeenCalledWith(
+        expect.objectContaining({ modelId: expectedModelId })
+      )
     })
   })
 })

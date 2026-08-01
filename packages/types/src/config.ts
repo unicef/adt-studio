@@ -169,6 +169,17 @@ export const EpubGlossaryConfig = z.object({
 })
 export type EpubGlossaryConfig = z.infer<typeof EpubGlossaryConfig>
 
+/** Config for the generative agents (activity generation, layout mirror). */
+export const AgentsConfig = z.object({
+  /**
+   * Model the agents run on, as `provider:model`. Defaults to the agents'
+   * built-in model when unset. The request must carry the matching provider
+   * key — agents never cross-wire credentials between providers.
+   */
+  model: LLMModelId.optional(),
+})
+export type AgentsConfig = z.infer<typeof AgentsConfig>
+
 export const AppConfig = z
   .object({
     default_model: LLMModelId.optional(),
@@ -273,6 +284,12 @@ export const AppConfig = z
     accessibility_assessment: AccessibilityAssessmentConfig.optional(),
     reviewer_validation: ReviewerValidationConfig.optional(),
     translation_evaluation: TranslationEvaluationConfig.optional(),
+    /**
+     * Generative agents (activity generation, layout mirror). `model` accepts
+     * any `provider:model` id — the matching provider key must be sent with the
+     * request (X-OpenAI-Key / X-Anthropic-API-Key / X-Google-API-Key).
+     */
+    agents: AgentsConfig.optional(),
   })
   .superRefine((value, ctx) => {
     if (

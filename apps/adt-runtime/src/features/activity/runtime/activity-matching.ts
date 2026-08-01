@@ -50,12 +50,8 @@ function tr(key: string, fallback: string): string {
   return dict[key] || fallback
 }
 
-declare global {
-  interface Window {
-    /** For matching, maps each item id to the slot id (`dropzone-N`) it belongs in. */
-    correctAnswers?: Record<string, unknown>
-  }
-}
+// `window.correctAnswers` is declared once in ./activity-globals.d.ts.
+// For matching, it maps each item id to the slot id (`dropzone-N`) it belongs in.
 
 function readCorrectAnswers(section: HTMLElement): Record<string, string> {
   const attr = section.getAttribute("data-correct-answers")
