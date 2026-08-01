@@ -382,10 +382,12 @@ describe("validateActivityStructure — true/false", () => {
         <fieldset>
           <label>
             <input type="radio" name="q1" value="true" data-activity-item="item-1" />
+            <span>TRUE</span>
             <span class="validation-mark hidden"></span>
           </label>
           <label>
             <input type="radio" name="q1" value="false" data-activity-item="item-1" />
+            <span>FALSE</span>
             <span class="validation-mark hidden"></span>
           </label>
         </fieldset>
@@ -452,20 +454,24 @@ describe("validateActivityStructure — true/false", () => {
         <fieldset>
           <label>
             <input type="radio" name="q1" value="true" data-activity-item="item-1" />
+            <span>TRUE</span>
             <span class="validation-mark hidden"></span>
           </label>
           <label>
             <input type="radio" name="q1" value="false" data-activity-item="item-1" />
+            <span>FALSE</span>
             <span class="validation-mark hidden"></span>
           </label>
         </fieldset>
         <fieldset>
           <label>
             <input type="radio" name="q2" value="true" data-activity-item="item-2" />
+            <span>TRUE</span>
             <span class="validation-mark hidden"></span>
           </label>
           <label>
             <input type="radio" name="q2" value="false" data-activity-item="item-2" />
+            <span>FALSE</span>
             <span class="validation-mark hidden"></span>
           </label>
         </fieldset>

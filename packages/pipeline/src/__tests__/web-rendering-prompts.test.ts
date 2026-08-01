@@ -122,6 +122,18 @@ describe("web rendering reading-order prompts", () => {
     expect(reviewPrompt).toContain("Scientific experiment callouts flattened")
   })
 
+  it("requires full-width dotted leaders on every table-of-contents page", async () => {
+    const messages = await promptEngine.renderPrompt("web_generation_html", {
+      ...generationContext(),
+      section_type: "table_of_contents",
+    })
+    const prompt = messages.map(messageText).join("\n")
+    expect(prompt).toContain("TABLE OF CONTENTS — REQUIRED ROW GEOMETRY")
+    expect(prompt).toContain("flexible dotted leader filling ALL remaining space")
+    expect(prompt).toContain("continuation pages")
+    expect(prompt).toContain("border-dotted")
+  })
+
   it("preserves separated labels as an accessible labeled diagram", async () => {
     const diagramNodes = [{
       node_id: "diagram_group",
