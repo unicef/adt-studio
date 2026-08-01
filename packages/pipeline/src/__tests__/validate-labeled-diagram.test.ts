@@ -35,4 +35,18 @@ describe("validateLabeledDiagrams", () => {
       expect.stringContaining("semantic <figcaption>"),
     ]))
   })
+
+  it("rejects disconnected rules and leaders without accessible endpoints", () => {
+    const html = `<section><figure><img data-id="digestive-system" alt="The digestive system"><span data-id="mouth">Mouth</span><span class="h-px w-12"></span><span data-id="stomach">Stomach</span><svg><line x1="0" y1="0" x2="10" y2="10"/></svg><figcaption data-id="caption">The digestive system</figcaption></figure></section>`
+    expect(validateLabeledDiagrams(html, nodes)).toEqual(expect.arrayContaining([
+      expect.stringContaining("disconnected HTML rules"),
+      expect.stringContaining('"mouth" must link to a focusable'),
+      expect.stringContaining('"stomach" must link to a focusable'),
+    ]))
+  })
+
+  it("accepts SVG leaders whose labels link to named keyboard-focusable endpoints", () => {
+    const html = `<section><figure><img data-id="digestive-system" alt="The digestive system"><a href="#mouth-target"><span data-id="mouth">Mouth</span></a><a href="#stomach-target"><span data-id="stomach">Stomach</span></a><svg><line x1="0" y1="0" x2="10" y2="10"/><circle id="mouth-target" tabindex="0" aria-label="Mouth"/><line x1="0" y1="5" x2="10" y2="15"/><circle id="stomach-target" tabindex="0" aria-label="Stomach"/></svg><figcaption data-id="caption">The digestive system</figcaption></figure></section>`
+    expect(validateLabeledDiagrams(html, nodes)).toEqual([])
+  })
 })

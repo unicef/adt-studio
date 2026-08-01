@@ -68,6 +68,14 @@ function closest(node: HtmlNode | undefined, name: string): HtmlNode | undefined
   return undefined
 }
 
+function descendants(root: HtmlNode, predicate: (node: HtmlNode) => boolean): HtmlNode[] {
+  const matches: HtmlNode[] = []
+  walk(root, (node) => {
+    if (predicate(node)) matches.push(node)
+  })
+  return matches
+}
+
 function isHidden(node: HtmlNode): boolean {
   let current: HtmlNode | undefined = node
   while (current) {
@@ -124,6 +132,45 @@ export function validateLabeledDiagrams(html: string, nodes: RenderNode[]): stri
       const caption = findByDataId(root, captionId)
       if (caption && caption.name !== "figcaption" && !closest(caption, "figcaption")) {
         errors.push(`Diagram caption "${captionId}" must use a semantic <figcaption>.`)
+      }
+    }
+
+    if (figure) {
+      const leaderPrimitives = descendants(
+        figure,
+        (node) => ["line", "polyline", "path"].includes(node.name ?? "") && Boolean(closest(node, "svg")),
+      )
+      const htmlLineDecorations = descendants(figure, (node) => {
+        if (closest(node, "svg")) return false
+        const classes = node.attribs?.class?.split(/\s+/) ?? []
+        return classes.includes("h-px") || classes.some((name) => /^border-[bt]$/.test(name))
+      })
+
+      if (htmlLineDecorations.length > 0) {
+        errors.push(
+          "Labeled diagram callouts must not use disconnected HTML rules; use one SVG leader ending at a named feature marker.",
+        )
+      }
+
+      if (leaderPrimitives.length > 0) {
+        for (const labelId of diagram.labelIds) {
+          const label = findByDataId(root, labelId)
+          const link = closest(label, "a")
+          const href = link?.attribs?.href ?? ""
+          const targetId = href.startsWith("#") ? href.slice(1) : ""
+          const target = targetId
+            ? descendants(figure, (node) => node.attribs?.id === targetId)[0]
+            : undefined
+          if (
+            !target ||
+            target.attribs?.tabindex !== "0" ||
+            !target.attribs?.["aria-label"]?.trim()
+          ) {
+            errors.push(
+              `Diagram label "${labelId}" must link to a focusable, accessibly named leader endpoint marker in the same <figure>.`,
+            )
+          }
+        }
       }
     }
   }
