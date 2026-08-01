@@ -46,7 +46,7 @@ describe("validateLabeledDiagrams", () => {
   })
 
   it("accepts SVG leaders explicitly connecting named label and feature endpoints", () => {
-    const html = `<section><figure><img data-id="digestive-system" alt="The digestive system"><a id="mouth-label" href="#mouth-target" class="bg-white"><span data-id="mouth">Mouth</span></a><a id="stomach-label" href="#stomach-target" class="bg-white"><span data-id="stomach">Stomach</span></a><svg><line data-label-id="mouth" data-label-contact="start" aria-labelledby="mouth-label mouth-target" x1="0" y1="0" x2="10" y2="10"/><circle id="mouth-target" tabindex="0" aria-label="Mouth" cx="10" cy="10"/><polyline data-label-id="stomach" data-label-contact="end" aria-labelledby="stomach-label stomach-target" points="10,15 5,10 0,5"/><circle id="stomach-target" tabindex="0" aria-label="Stomach" cx="10" cy="15"/></svg><figcaption data-id="caption">The digestive system</figcaption></figure></section>`
+    const html = `<section><figure><img data-id="digestive-system" alt="The digestive system"><ul><li data-diagram-callout class="flex gap-0"><a id="mouth-label" href="#mouth-target" class="bg-white"><span data-id="mouth">Mouth</span></a><svg viewBox="0 0 20 20"><line data-label-id="mouth" data-label-contact="start" aria-labelledby="mouth-label mouth-target" x1="0" y1="0" x2="10" y2="10"/><circle id="mouth-target" tabindex="0" aria-label="Mouth" cx="10" cy="10"/></svg></li><li data-diagram-callout class="flex gap-0"><svg viewBox="0 0 20 20"><polyline data-label-id="stomach" data-label-contact="end" aria-labelledby="stomach-label stomach-target" points="10,15 15,10 20,5"/><circle id="stomach-target" tabindex="0" aria-label="Stomach" cx="10" cy="15"/></svg><a id="stomach-label" href="#stomach-target" class="bg-white"><span data-id="stomach">Stomach</span></a></li></ul><figcaption data-id="caption">The digestive system</figcaption></figure></section>`
     expect(validateLabeledDiagrams(html, nodes)).toEqual([])
   })
 
@@ -54,7 +54,9 @@ describe("validateLabeledDiagrams", () => {
     const html = `<section><figure><img data-id="digestive-system" alt="The digestive system"><a id="mouth-label" href="#mouth-target"><span data-id="mouth">Mouth</span></a><a id="stomach-label" href="#stomach-target"><span data-id="stomach">Stomach</span></a><svg><line data-label-id="mouth" x1="0" y1="0" x2="8" y2="8"/><circle id="mouth-target" tabindex="0" aria-label="Mouth" cx="10" cy="10"/><line data-label-id="stomach" data-label-contact="start" aria-labelledby="stomach-label stomach-target" x1="0" y1="5" x2="8" y2="12"/><circle id="stomach-target" tabindex="0" aria-label="Stomach" cx="10" cy="15"/></svg><figcaption data-id="caption">The digestive system</figcaption></figure></section>`
     expect(validateLabeledDiagrams(html, nodes)).toEqual(expect.arrayContaining([
       expect.stringContaining('label "mouth" must have an opaque background'),
+      expect.stringContaining('label "mouth" and its leader must share one zero-gap'),
       expect.stringContaining('leader for "mouth" must identify its label-side contact'),
+      expect.stringContaining('leader for "mouth" must meet its label at the inline SVG boundary'),
       expect.stringContaining('leader for "mouth" must terminate exactly'),
       expect.stringContaining('leader for "stomach" must terminate exactly'),
     ]))

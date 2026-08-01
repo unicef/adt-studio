@@ -68,6 +68,15 @@ function closest(node: HtmlNode | undefined, name: string): HtmlNode | undefined
   return undefined
 }
 
+function closestWithAttribute(node: HtmlNode | undefined, attribute: string): HtmlNode | undefined {
+  let current = node
+  while (current) {
+    if (current.attribs?.[attribute] !== undefined) return current
+    current = current.parent ?? undefined
+  }
+  return undefined
+}
+
 function descendants(root: HtmlNode, predicate: (node: HtmlNode) => boolean): HtmlNode[] {
   const matches: HtmlNode[] = []
   walk(root, (node) => {
@@ -114,6 +123,17 @@ function pointMatchesMarker(point: [number, number], marker: HtmlNode): boolean 
   const x = Number(marker.attribs?.cx)
   const y = Number(marker.attribs?.cy)
   return Number.isFinite(x) && Number.isFinite(y) && point[0] === x && point[1] === y
+}
+
+function touchesSvgHorizontalBoundary(point: [number, number], svg: HtmlNode | undefined): boolean {
+  const viewBox = (svg?.attribs?.viewBox ?? svg?.attribs?.viewbox ?? "")
+    .trim()
+    .split(/[\s,]+/)
+    .map(Number)
+  if (viewBox.length !== 4 || !viewBox.every(Number.isFinite)) return false
+  const minX = viewBox[0]
+  const maxX = viewBox[0] + viewBox[2]
+  return Math.abs(point[0] - minX) < 0.001 || Math.abs(point[0] - maxX) < 0.001
 }
 
 function hasLabelBackground(node: HtmlNode | undefined): boolean {
@@ -212,6 +232,19 @@ export function validateLabeledDiagrams(html: string, nodes: RenderNode[]): stri
           }
 
           const leader = leaders[0]
+          const callout = closestWithAttribute(label, "data-diagram-callout")
+          const leaderCallout = closestWithAttribute(leader, "data-diagram-callout")
+          const calloutClasses = callout?.attribs?.class?.split(/\s+/) ?? []
+          if (
+            !callout ||
+            leaderCallout !== callout ||
+            (!calloutClasses.includes("flex") && !calloutClasses.includes("grid")) ||
+            !calloutClasses.includes("gap-0")
+          ) {
+            errors.push(
+              `Diagram label "${labelId}" and its leader must share one zero-gap callout container.`,
+            )
+          }
           const labelContact = leader.attribs?.["data-label-contact"]
           const labelledBy = leader.attribs?.["aria-labelledby"]?.split(/\s+/) ?? []
           if (
@@ -226,7 +259,11 @@ export function validateLabeledDiagrams(html: string, nodes: RenderNode[]): stri
 
           const endpoints = endpointCoordinates(leader)
           if (endpoints && target) {
+            const labelPoint = labelContact === "end" ? endpoints.end : endpoints.start
             const featurePoint = labelContact === "end" ? endpoints.start : endpoints.end
+            if (!touchesSvgHorizontalBoundary(labelPoint, closest(leader, "svg"))) {
+              errors.push(`Diagram leader for "${labelId}" must meet its label at the inline SVG boundary.`)
+            }
             if (!pointMatchesMarker(featurePoint, target)) {
               errors.push(`Diagram leader for "${labelId}" must terminate exactly on its named feature marker.`)
             }
