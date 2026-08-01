@@ -50,6 +50,11 @@ describe("validateLabeledDiagrams", () => {
     expect(validateLabeledDiagrams(html, nodes)).toEqual([])
   })
 
+  it("accepts labels and leaders sharing one preserved SVG coordinate system", () => {
+    const html = `<section><figure><svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"><foreignObject x="25" y="0" width="50" height="100"><img data-id="digestive-system" alt="The digestive system"></foreignObject><a id="mouth-label" href="#mouth-target"><text data-id="mouth" x="0" y="20" paint-order="stroke" stroke="white" stroke-width="3">Mouth</text></a><line data-label-id="mouth" data-label-contact="start" aria-labelledby="mouth-label mouth-target" x1="20" y1="20" x2="40" y2="25"/><circle id="mouth-target" tabindex="0" aria-label="Mouth" cx="40" cy="25"/><a id="stomach-label" href="#stomach-target"><text data-id="stomach" x="80" y="60" paint-order="stroke" stroke="white" stroke-width="3">Stomach</text></a><line data-label-id="stomach" data-label-contact="end" aria-labelledby="stomach-label stomach-target" x1="60" y1="55" x2="80" y2="60"/><circle id="stomach-target" tabindex="0" aria-label="Stomach" cx="60" cy="55"/></svg><figcaption data-id="caption">The digestive system</figcaption></figure></section>`
+    expect(validateLabeledDiagrams(html, nodes)).toEqual([])
+  })
+
   it("rejects leaders that are not associated with the label side or miss the feature marker", () => {
     const html = `<section><figure><img data-id="digestive-system" alt="The digestive system"><a id="mouth-label" href="#mouth-target"><span data-id="mouth">Mouth</span></a><a id="stomach-label" href="#stomach-target"><span data-id="stomach">Stomach</span></a><svg><line data-label-id="mouth" x1="0" y1="0" x2="8" y2="8"/><circle id="mouth-target" tabindex="0" aria-label="Mouth" cx="10" cy="10"/><line data-label-id="stomach" data-label-contact="start" aria-labelledby="stomach-label stomach-target" x1="0" y1="5" x2="8" y2="12"/><circle id="stomach-target" tabindex="0" aria-label="Stomach" cx="10" cy="15"/></svg><figcaption data-id="caption">The digestive system</figcaption></figure></section>`
     expect(validateLabeledDiagrams(html, nodes)).toEqual(expect.arrayContaining([

@@ -142,6 +142,13 @@ function hasLabelBackground(node: HtmlNode | undefined): boolean {
   return classes.some((name) => /^bg-(?!transparent(?:$|\/))/.test(name)) || /background(?:-color)?\s*:/i.test(style)
 }
 
+function hasSvgTextHalo(node: HtmlNode | undefined): boolean {
+  if (!node || !["text", "tspan"].includes(node.name ?? "")) return false
+  const paintOrder = `${node.attribs?.["paint-order"] ?? ""} ${node.attribs?.style ?? ""}`.toLowerCase()
+  const strokeWidth = Number(node.attribs?.["stroke-width"] ?? 0)
+  return paintOrder.includes("stroke") && strokeWidth > 0
+}
+
 /** Structural guard for diagrams whose labels are separate from the image crop. */
 export function validateLabeledDiagrams(html: string, nodes: RenderNode[]): string[] {
   const diagrams = collectLabeledDiagrams(nodes)
@@ -240,25 +247,30 @@ export function validateLabeledDiagrams(html: string, nodes: RenderNode[]): stri
             )
             continue
           }
-          if (!hasLabelBackground(link)) {
+          const leader = leaders[0]
+          const leaderSvg = closest(leader, "svg")
+          const labelSvg = closest(label, "svg")
+          const unifiedSvg = Boolean(leaderSvg && labelSvg === leaderSvg)
+          if (!hasLabelBackground(link) && !(unifiedSvg && hasSvgTextHalo(label))) {
             errors.push(
               `Diagram label "${labelId}" must have an opaque background where its leader underlaps the label edge.`,
             )
           }
 
-          const leader = leaders[0]
-          const callout = closestWithAttribute(label, "data-diagram-callout")
-          const leaderCallout = closestWithAttribute(leader, "data-diagram-callout")
-          const calloutClasses = callout?.attribs?.class?.split(/\s+/) ?? []
-          if (
-            !callout ||
-            leaderCallout !== callout ||
-            (!calloutClasses.includes("flex") && !calloutClasses.includes("grid")) ||
-            !calloutClasses.includes("gap-0")
-          ) {
-            errors.push(
-              `Diagram label "${labelId}" and its leader must share one zero-gap callout container.`,
-            )
+          if (!unifiedSvg) {
+            const callout = closestWithAttribute(label, "data-diagram-callout")
+            const leaderCallout = closestWithAttribute(leader, "data-diagram-callout")
+            const calloutClasses = callout?.attribs?.class?.split(/\s+/) ?? []
+            if (
+              !callout ||
+              leaderCallout !== callout ||
+              (!calloutClasses.includes("flex") && !calloutClasses.includes("grid")) ||
+              !calloutClasses.includes("gap-0")
+            ) {
+              errors.push(
+                `Diagram label "${labelId}" and its leader must share one zero-gap callout container or one unified SVG coordinate system.`,
+              )
+            }
           }
           const labelContact = leader.attribs?.["data-label-contact"]
           const labelledBy = leader.attribs?.["aria-labelledby"]?.split(/\s+/) ?? []
@@ -276,7 +288,7 @@ export function validateLabeledDiagrams(html: string, nodes: RenderNode[]): stri
           if (endpoints && target) {
             const labelPoint = labelContact === "end" ? endpoints.end : endpoints.start
             const featurePoint = labelContact === "end" ? endpoints.start : endpoints.end
-            if (!touchesSvgHorizontalBoundary(labelPoint, closest(leader, "svg"))) {
+            if (!unifiedSvg && !touchesSvgHorizontalBoundary(labelPoint, leaderSvg)) {
               errors.push(`Diagram leader for "${labelId}" must meet its label at the inline SVG boundary.`)
             }
             if (!pointMatchesMarker(featurePoint, target)) {
