@@ -93,6 +93,8 @@ describe("web rendering reading-order prompts", () => {
     expect(prompt).toContain("data-activity-kind")
     expect(prompt).toContain("one `<fieldset>` per question")
     expect(prompt).toContain("exactly two labelled radios")
+    expect(prompt).toContain("MUST visibly spell out")
+    expect(prompt).toContain("Never show only initials")
     expect(prompt).toContain("data-question-response")
     expect(prompt).toContain("immediately follows the question")
   })

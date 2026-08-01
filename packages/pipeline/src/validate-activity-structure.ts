@@ -395,6 +395,37 @@ function tfLabelShouldHaveValidationMark(
   return errors
 }
 
+/** A screen-reader name is necessary but not sufficient: sighted learners must
+ * also see a word label on each choice. Ignore hidden helper/validation text
+ * and require a real multi-letter word in the rendered button face. */
+function tfLabelsMustShowWords(ctx: ActivityRuleContext): string[] {
+  const errors: string[] = []
+  for (const radio of findAll(ctx.section, isRadioWithItem)) {
+    const label = findAncestor(radio, (el) => tag(el, "label"))
+    if (!label) continue
+    const visible = visibleText(label).replace(/\s+/g, " ").trim()
+    if (!/\p{L}{2}/u.test(visible)) {
+      errors.push(
+        `True/false option (item="${attr(radio, "data-activity-item")}", value="${attr(radio, "value")}") ` +
+          `has no visible word label. Spell out the localized TRUE/FALSE (or Yes/No) word on the button; ` +
+          `do not rely on an icon, a one-letter initial, CSS pseudo-content, aria-label, or sr-only text.`,
+      )
+    }
+  }
+  return errors
+}
+
+function visibleText(node: Element): string {
+  if (node.type === "text") return typeof node.data === "string" ? node.data : ""
+  if (node.type !== "tag") return ""
+  if (
+    hasClass(node, "sr-only") ||
+    hasClass(node, "hidden") ||
+    attr(node, "aria-hidden") === "true"
+  ) return ""
+  return (node.children ?? []).map((child: Element) => visibleText(child)).join("")
+}
+
 // ---------------------------------------------------------------------------
 // Fill-in-the-blank / fill-in-a-table rules
 // ---------------------------------------------------------------------------
@@ -807,6 +838,7 @@ const UNDERLINE_TEXT_RULES: ActivityRule[] = [
 
 const TRUE_FALSE_RULES: ActivityRule[] = [
   { name: "fieldset-paired-radios", check: tfFieldsetMustHavePairedRadios },
+  { name: "visible-word-labels", check: tfLabelsMustShowWords },
   { name: "validation-mark-present", check: tfLabelShouldHaveValidationMark },
   { name: "unique-items", check: uniqueDataActivityItems },
 ]

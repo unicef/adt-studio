@@ -52,7 +52,7 @@ IMPORTANT: Your reasoning MUST be written in English, regardless of the activity
 
 **Required attributes:**
 - Each question needs one statement identifier (e.g., `item-1`) and BOTH radio inputs for that question must share that same `data-activity-item`
-- Only render "Yes"/"No" text if matching provided text IDs exist; otherwise use non-text markers/icons plus an in-label `<span class="sr-only">…</span>` for the accessible label
+- Every button MUST visibly spell out the localized word for "TRUE" or "FALSE" (or the exact Yes/No wording used by the source). Never replace the visible words with T/F initials, icons, empty badges, CSS pseudo-content, or screen-reader-only text. When no matching source text ID exists, use a unique generated ID such as `<span data-id="activity_gen_tf_item1_true">TRUE</span>`.
 - Do not use `aria-label` on the radio inputs; the wrapping label must provide the accessible name
 - Proper `name` attributes to group radio buttons per question
 
@@ -96,12 +96,14 @@ Example true/false activity:
             <span class="validation-mark absolute right-0 top-0 transform translate-x-1/2 -translate-y-1/2 hidden"></span>
           </div>
         </label>
-        <!-- If no Yes/No text IDs are available, keep the visual badge decorative and add a hidden label: -->
+        <!-- If no Yes/No text IDs are available, generate a visible word label: -->
         <label for="question1-yes-icon" class="relative flex items-center cursor-pointer group">
           <input id="question1-yes-icon" name="question1" tabindex="0" type="radio" value="true"
                  data-activity-item="item-1" class="sr-only peer">
-          <div aria-hidden="true" class="px-4 py-2 rounded-full bg-gray-200 peer-checked:bg-blue-500 peer-checked:text-white peer-focus:ring-2 peer-focus:ring-blue-400 peer-focus:ring-offset-2 transition-colors min-w-[60px] text-center relative font-semibold after:content-['T']"></div>
-          <span class="sr-only">True</span>
+          <div class="px-4 py-2 rounded-full bg-gray-200 peer-checked:bg-blue-500 peer-checked:text-white peer-focus:ring-2 peer-focus:ring-blue-400 peer-focus:ring-offset-2 transition-colors min-w-[88px] text-center relative font-semibold">
+            <span data-id="activity_gen_tf_item1_true">TRUE</span>
+            <span class="validation-mark hidden"></span>
+          </div>
         </label>
       </div>
     </fieldset>
@@ -124,6 +126,7 @@ Example true/false activity:
 - Add accessibility announcements at the end
 - Use consistent spacing with `ml-8` for radio button indentation
 - Include proper focus and hover states for accessibility
+- TRUE/FALSE (or localized equivalent) must be visible on every button at every viewport; an accessible name alone is not sufficient
 {% endchat %}
 
 {% chat role: "user" %}

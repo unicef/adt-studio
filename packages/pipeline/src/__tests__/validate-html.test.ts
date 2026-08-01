@@ -1774,3 +1774,33 @@ describe("mixed activity pages", () => {
     expect(result.errors.join("\n")).toContain("contains no interactive form control")
   })
 })
+
+describe("true/false visible labels", () => {
+  it("rejects icon-only buttons even when screen readers have names", () => {
+    const html = `
+      <section data-section-type="activity_true_false" data-section-id="tf">
+        <fieldset><legend data-id="q">Statement</legend>
+          <label><input type="radio" name="q" value="true" data-activity-item="item-1"><span aria-hidden="true">✓</span><span class="sr-only">True</span><span class="validation-mark hidden"></span></label>
+          <label><input type="radio" name="q" value="false" data-activity-item="item-1"><span aria-hidden="true">✕</span><span class="sr-only">False</span><span class="validation-mark hidden"></span></label>
+        </fieldset>
+      </section>`
+    const result = validateSectionHtml(html, ["q"], [])
+    expect(result.valid).toBe(false)
+    expect(result.errors.join("\n")).toContain("has no visible word label")
+  })
+
+  it("accepts visibly spelled localized choice words", () => {
+    const html = `
+      <section data-section-type="activity_true_false" data-section-id="tf">
+        <fieldset><legend data-id="q">Statement</legend>
+          <label><input type="radio" name="q" value="true" data-activity-item="item-1"><span data-id="activity_gen_true">TRUE</span><span class="validation-mark hidden"></span></label>
+          <label><input type="radio" name="q" value="false" data-activity-item="item-1"><span data-id="activity_gen_false">FALSE</span><span class="validation-mark hidden"></span></label>
+        </fieldset>
+      </section>`
+    const result = validateSectionHtml(html, ["q"], [], undefined, {
+      allowActivityGeneratedIds: true,
+    })
+    expect(result.valid).toBe(true)
+    expect(result.errors).toEqual([])
+  })
+})
