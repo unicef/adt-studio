@@ -1,5 +1,5 @@
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
-import { useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import {
   BookOpen,
   Hand,
@@ -62,10 +62,12 @@ export function DockMenu({ className }: DockMenuProps) {
   const languageBtnRef = useRef<HTMLButtonElement>(null);
   const settingsBtnRef = useRef<HTMLButtonElement>(null);
 
-  const toggle = (next: DockMenuValue) =>
-    setValue((prev) => (prev === next ? "" : next));
+  const toggle = useCallback(
+    (next: DockMenuValue) => setValue((prev) => (prev === next ? "" : next)),
+    [setValue],
+  );
 
-  const toggleReadAloud = () => {
+  const toggleReadAloud = useCallback(() => {
     if (readAloud) {
       stop();
       setReadAloud(false);
@@ -75,57 +77,68 @@ export function DockMenu({ className }: DockMenuProps) {
       setReadAloud(true);
       play();
     }
-  };
+  }, [readAloud, stop, setReadAloud, setPlayBarVisible, play]);
 
   const showSignLanguage = features.signLanguage && hasPageSignLanguageVideo;
-  const toggleSignLanguage = () => {
+  const toggleSignLanguage = useCallback(() => {
     const next = !signLanguage;
     trackToggleEvent("SignLanguage", next);
     setSignLanguage(next);
-  };
+  }, [signLanguage, setSignLanguage]);
 
-  const tools: DockTool[] = [];
-  if (features.glossary) {
-    tools.push({
-      key: "glossary",
-      label: t("glossary-label") || "Glossary",
-      icon: BookOpen,
-      active: glossaryHighlight,
-      onSelect: () => toggle("glossary"),
-    });
-  }
-  if (features.readAloud) {
-    tools.push({
-      key: "audio",
-      label: t("tts-label") || "Text to speech",
-      icon: readAloud ? Volume2 : VolumeX,
-      active: readAloud,
-      onSelect: toggleReadAloud,
-    });
-  }
-  if (showSignLanguage) {
-    tools.push({
-      key: "sign-language",
-      label: t("sign-language-label") || "Sign language",
-      icon: Hand,
-      active: signLanguage,
-      onSelect: toggleSignLanguage,
-    });
-  }
-  tools.push({
-    key: "language",
-    label: t("language-label") || "Language",
-    icon: Languages,
-    active: easyRead,
-    onSelect: () => toggle("language"),
-  });
-  tools.push({
-    key: "settings",
-    label: t("sidebar-settings") || "Settings",
-    icon: Settings,
-    active: false,
-    onSelect: () => toggle("settings"),
-  });
+  const tools = useMemo<DockTool[]>(
+    () =>
+      [
+        features.glossary && {
+          key: "glossary",
+          label: t("glossary-label") || "Glossary",
+          icon: BookOpen,
+          active: glossaryHighlight,
+          onSelect: () => toggle("glossary"),
+        },
+        features.readAloud && {
+          key: "audio",
+          label: t("tts-label") || "Text to speech",
+          icon: readAloud ? Volume2 : VolumeX,
+          active: readAloud,
+          onSelect: toggleReadAloud,
+        },
+        showSignLanguage && {
+          key: "sign-language",
+          label: t("sign-language-label") || "Sign language",
+          icon: Hand,
+          active: signLanguage,
+          onSelect: toggleSignLanguage,
+        },
+        {
+          key: "language",
+          label: t("language-label") || "Language",
+          icon: Languages,
+          active: easyRead,
+          onSelect: () => toggle("language"),
+        },
+        {
+          key: "settings",
+          label: t("sidebar-settings") || "Settings",
+          icon: Settings,
+          active: false,
+          onSelect: () => toggle("settings"),
+        },
+      ].filter(Boolean) as DockTool[],
+    [
+      features.glossary,
+      features.readAloud,
+      showSignLanguage,
+      glossaryHighlight,
+      readAloud,
+      signLanguage,
+      easyRead,
+      t,
+      toggle,
+      toggleReadAloud,
+      toggleSignLanguage,
+    ],
+  );
 
   return (
     <>

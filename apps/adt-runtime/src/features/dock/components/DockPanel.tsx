@@ -15,6 +15,21 @@ interface DockPanelProps {
   persistent?: boolean
 }
 
+function InlineBar({ children }: { children: React.ReactNode }) {
+  const { isTop } = useDockContext()
+  const offset = "calc(env(safe-area-inset-bottom) + var(--dock-height, 80px) + 0.75rem)"
+  const topOffset = "calc(env(safe-area-inset-top) + var(--dock-height, 80px) + 0.75rem)"
+
+  return (
+    <div
+      className="fixed left-1/2 z-[54] flex max-w-[calc(100vw-1rem)] -translate-x-1/2 items-center justify-center rounded-full border bg-popover/95 text-popover-foreground shadow-lg ring-1 ring-border backdrop-blur-md supports-[backdrop-filter]:bg-popover/85"
+      style={isTop ? { top: topOffset } : { bottom: offset }}
+    >
+      {children}
+    </div>
+  )
+}
+
 function DockPanel({
   open,
   onClose,
@@ -25,22 +40,13 @@ function DockPanel({
   persistent = false,
 }: DockPanelProps) {
   const isMobile = useIsMobile()
-  const { isTop } = useDockContext()
 
   if (isMobile && mobileVariant === "inline") {
     if (!open) return null
-    const offset = "calc(env(safe-area-inset-bottom) + var(--dock-height, 80px) + 0.75rem)"
-    const topOffset = "calc(env(safe-area-inset-top) + var(--dock-height, 80px) + 0.75rem)"
-    const bar = (
-      <div
-        className="fixed left-1/2 z-[54] flex max-w-[calc(100vw-1rem)] -translate-x-1/2 items-center justify-center rounded-full border bg-popover/95 text-popover-foreground shadow-lg ring-1 ring-border backdrop-blur-md supports-[backdrop-filter]:bg-popover/85"
-        style={isTop ? { top: topOffset } : { bottom: offset }}
-      >
-        {children}
-      </div>
-    )
     const container = getChromePortalContainer()
-    return container ? createPortal(bar, container) : bar
+    return container
+      ? createPortal(<InlineBar>{children}</InlineBar>, container)
+      : <InlineBar>{children}</InlineBar>
   }
 
   if (isMobile) {
