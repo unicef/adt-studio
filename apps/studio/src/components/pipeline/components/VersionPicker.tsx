@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 import {
   BookOpen,
   Check,
@@ -168,13 +168,26 @@ export function VersionPicker({
   const [versions, setVersions] = useState<VersionEntry[] | null>(null)
   const [loadingVersions, setLoadingVersions] = useState(false)
   const [hovered, setHovered] = useState<number | null>(null)
+  const [previewed, setPreviewed] = useState<number | null>(null)
   const [restoring, setRestoring] = useState(false)
   const [loadError, setLoadError] = useState(false)
   // Reserve the first hovered preview's height for later ones so switching
   // versions doesn't grow the flyout from the skeleton up (same page ≈ same
   // height).
-  const [previewPaneRef, previewHeight] = useReservedHeight<HTMLDivElement>(hovered != null)
+  const [previewPaneRef, previewHeight] = useReservedHeight<HTMLDivElement>(previewed != null)
   const [compareOpen, setCompareOpen] = useState(false)
+
+  // Full storyboard previews trigger a Tailwind compilation. Delay mounting
+  // until the pointer settles so moving across the version list does not start
+  // one expensive request per row.
+  useEffect(() => {
+    if (hovered == null) {
+      setPreviewed(null)
+      return
+    }
+    const timer = window.setTimeout(() => setPreviewed(hovered), 180)
+    return () => window.clearTimeout(timer)
+  }, [hovered])
 
   const stepPending = STEP_PENDING[step]
   const defaultLabel = stepPending ? (
@@ -229,6 +242,7 @@ export function VersionPicker({
   const handleOpenChange = async (next: boolean) => {
     setOpen(next)
     setHovered(null) // don't carry a stale hover-preview across open/close
+    setPreviewed(null)
     if (next) {
       if (versions == null) setLoadingVersions(true)
       setLoadError(false)
@@ -249,7 +263,17 @@ export function VersionPicker({
     setRestoring(true)
     try {
       await api.restoreVersion(bookLabel, step, itemId, version)
-      await queryClient.invalidateQueries({ queryKey: ["books", bookLabel] })
+      const invalidations = [
+        queryClient.invalidateQueries({ queryKey: ["books", bookLabel] }),
+      ]
+      if (step === "text-catalog-translation") {
+        invalidations.push(
+          queryClient.invalidateQueries({
+            queryKey: ["evaluations", "translations", bookLabel, itemId],
+          })
+        )
+      }
+      await Promise.all(invalidations)
       onRestored?.()
       toast.success(t`Restored to v${version}`)
     } catch {
@@ -547,21 +571,21 @@ export function VersionPicker({
                   onMouseLeave: () => setHovered(null),
                 },
                 overlay:
-                  hovered != null ? (
+                  previewed != null ? (
                     <div className="absolute left-full top-0 ml-2 w-[24rem] overflow-hidden rounded-lg border bg-white shadow-xl animate-in fade-in-0 zoom-in-95 slide-in-from-left-2 duration-200 ease-out motion-reduce:animate-none">
                       <div className="border-b px-3 py-1.5 text-[11px] font-medium text-muted-foreground">
-                        {t`v${hovered} preview`}
+                        {t`v${previewed} preview`}
                       </div>
                       <div ref={previewPaneRef} className="max-h-[26rem] overflow-auto">
                         {/* key by version so each switch gets its own loading
                             skeleton instead of flashing an empty frame */}
                         <PreviewSkeleton
-                          key={hovered}
+                          key={previewed}
                           reservedClassName="h-64"
                           reservedHeight={previewHeight ?? undefined}
                           render={(onReady) =>
                             renderPreview(
-                              versions.find((v) => v.version === hovered)?.data,
+                              versions.find((v) => v.version === previewed)?.data,
                               onReady
                             )
                           }

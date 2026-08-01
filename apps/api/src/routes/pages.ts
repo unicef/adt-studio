@@ -429,6 +429,87 @@ function clearCaptionData(storage: Storage): void {
   storage.clearStepRuns([...IMAGE_SET_CHANGE_CLEAR_STEPS])
 }
 
+const RestorableNode = z.enum([
+  "toc-generation",
+  "glossary",
+  "quiz-generation",
+  "text-catalog-translation",
+  "easy-read",
+  "image-filtering",
+  "image-captioning",
+  "page-sectioning",
+  "web-rendering",
+])
+type RestorableNode = z.infer<typeof RestorableNode>
+
+/**
+ * Invalidate outputs derived from a restored entity. A pointer move is still a
+ * data mutation: keeping outputs generated from the abandoned version would
+ * leave the book in a mixed state. The policies follow each node's actual
+ * catalog, translation, speech, and packaging dependencies.
+ */
+function clearRestoredNodeDependents(storage: Storage, node: RestorableNode): void {
+  switch (node) {
+    case "image-filtering":
+    case "page-sectioning":
+    case "web-rendering":
+      clearCaptionData(storage)
+      return
+
+    case "image-captioning":
+    case "glossary":
+    case "quiz-generation":
+      storage.clearNodesByType([
+        "text-catalog",
+        "text-catalog-translation",
+        "tts",
+        "tts-timestamps",
+        "accessibility-assessment",
+      ])
+      storage.clearStepRuns([
+        "text-catalog",
+        "catalog-translation",
+        "image-translation",
+        "tts",
+        "word-timestamps",
+        "package-web",
+        "accessibility-assessment",
+      ])
+      return
+
+    case "easy-read":
+      storage.clearNodesByType([
+        "text-catalog-translation",
+        "tts",
+        "tts-timestamps",
+        "accessibility-assessment",
+      ])
+      storage.clearStepRuns([
+        "catalog-translation",
+        "image-translation",
+        "tts",
+        "word-timestamps",
+        "package-web",
+        "accessibility-assessment",
+      ])
+      return
+
+    case "text-catalog-translation":
+      storage.clearNodesByType(["tts", "tts-timestamps", "accessibility-assessment"])
+      storage.clearStepRuns([
+        "tts",
+        "word-timestamps",
+        "package-web",
+        "accessibility-assessment",
+      ])
+      return
+
+    case "toc-generation":
+      storage.clearNodesByType(["accessibility-assessment"])
+      storage.clearStepRuns(["package-web", "accessibility-assessment"])
+  }
+}
+
 /**
  * Save storyboard (web-rendering) node data and clear stale downstream data.
  * Use for all user-initiated storyboard saves (NOT pipeline stage runs).
@@ -1228,6 +1309,7 @@ export function createPageRoutes(
       }
 
       const version = storage.putNodeData("image-filtering", pageId, parsed.data)
+      clearCaptionData(storage)
       return c.json({ version })
     } finally {
       storage.close()
@@ -1264,11 +1346,17 @@ export function createPageRoutes(
 
   // POST /books/:label/versions/:node/:itemId/restore — roll an entity back to
   // an existing version by moving its current-version pointer (no new version
-  // is created). Generic across steps (node = step name, itemId = page id /
-  // "book" / language code).
+  // is created). Supports the nodes exposed by the shared version picker
+  // (itemId = page id / "book" / language code).
   app.post("/books/:label/versions/:node/:itemId/restore", async (c) => {
-    const { label, node, itemId } = c.req.param()
+    const { label, itemId } = c.req.param()
     const safeLabel = parseBookLabel(label)
+
+    const parsedNode = RestorableNode.safeParse(c.req.param("node"))
+    if (!parsedNode.success) {
+      throw new HTTPException(400, { message: "Unsupported versioned node" })
+    }
+    const node = parsedNode.data
 
     const parsed = z
       .object({ version: z.number().int().positive() })
@@ -1294,6 +1382,7 @@ export function createPageRoutes(
           message: `Version ${version} not found for ${node}/${itemId}`,
         })
       }
+      clearRestoredNodeDependents(storage, node)
       return c.json({ node, itemId, version })
     } finally {
       storage.close()

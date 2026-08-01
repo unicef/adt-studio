@@ -1965,7 +1965,7 @@ export function StoryboardSectionDetail({
               html={sec.html}
               bookLabel={bookLabel}
               editable={false}
-              thumbnail
+              thumbnail={Boolean(opts?.lite)}
               // Skip the per-version Tailwind recompile for the tiny list chips
               // (base CSS is enough at chip size); keep it for the full-size
               // hover preview and compare panes where missing classes show.

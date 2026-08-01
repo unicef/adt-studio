@@ -168,7 +168,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   // present in the static tailwind_output.css (e.g. classes unique to another
   // version) still get styled. Called imperatively by the live editor, and
   // self-triggered by preview frames via `autoRefreshCss`.
-  const refreshCssInternal = useCallback(async (extraHtml: string) => {
+  const refreshCssInternal = useCallback(async (extraHtml: string, signal?: AbortSignal) => {
     const id = ++refreshIdRef.current
     const doc = iframeRef.current?.contentDocument
     if (!doc?.head) return
@@ -176,6 +176,7 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ extraHtml }),
+      signal,
     })
     if (id !== refreshIdRef.current || !res.ok) return
     const css = await res.text()
@@ -859,11 +860,20 @@ ${selectors}:hover {
       return
     }
     let cancelled = false
-    void Promise.resolve(refreshCssInternal(sanitizedHtmlRef.current)).then(() => {
-      if (!cancelled) onReadyRef.current?.()
-    })
+    const controller = new AbortController()
+    void (async () => {
+      try {
+        await refreshCssInternal(sanitizedHtmlRef.current, controller.signal)
+      } catch {
+        // The base stylesheet is still usable. Revealing it is preferable to
+        // leaving a compare pane stuck when the preview CSS request disconnects.
+      } finally {
+        if (!cancelled) onReadyRef.current?.()
+      }
+    })()
     return () => {
       cancelled = true
+      controller.abort()
     }
   }, [iframeReady, autoRefreshCss, refreshCssInternal])
 
