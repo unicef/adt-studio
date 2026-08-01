@@ -1,0 +1,132 @@
+import { parseDocument } from "htmlparser2"
+import type { RenderNode } from "./web-rendering.js"
+
+interface HtmlNode {
+  type?: string
+  name?: string
+  attribs?: Record<string, string>
+  parent?: HtmlNode | null
+  children?: HtmlNode[]
+}
+
+interface LabeledDiagram {
+  imageId: string
+  labelIds: string[]
+  captionIds: string[]
+}
+
+function collectLabeledDiagrams(nodes: RenderNode[]): LabeledDiagram[] {
+  const diagrams: LabeledDiagram[] = []
+
+  function visit(node: RenderNode): void {
+    if (node.structure === "image_group") {
+      const leaves: RenderNode[] = []
+      const collectLeaves = (candidate: RenderNode): void => {
+        if (candidate.role) leaves.push(candidate)
+        for (const child of candidate.children ?? []) collectLeaves(child)
+      }
+      collectLeaves(node)
+
+      const image = leaves.find((leaf) => leaf.role === "image" && leaf.image_id)
+      const labels = leaves.filter((leaf) => leaf.role === "label")
+      if (image?.image_id && labels.length >= 2) {
+        diagrams.push({
+          imageId: image.image_id,
+          labelIds: labels.map((label) => label.node_id),
+          captionIds: leaves
+            .filter((leaf) => leaf.role === "caption")
+            .map((caption) => caption.node_id),
+        })
+      }
+    }
+    for (const child of node.children ?? []) visit(child)
+  }
+
+  for (const node of nodes) visit(node)
+  return diagrams
+}
+
+function walk(node: HtmlNode, callback: (node: HtmlNode) => void): void {
+  callback(node)
+  for (const child of node.children ?? []) walk(child, callback)
+}
+
+function findByDataId(root: HtmlNode, id: string): HtmlNode | undefined {
+  let match: HtmlNode | undefined
+  walk(root, (node) => {
+    if (!match && node.attribs?.["data-id"] === id) match = node
+  })
+  return match
+}
+
+function closest(node: HtmlNode | undefined, name: string): HtmlNode | undefined {
+  let current = node
+  while (current) {
+    if (current.name === name) return current
+    current = current.parent ?? undefined
+  }
+  return undefined
+}
+
+function isHidden(node: HtmlNode): boolean {
+  let current: HtmlNode | undefined = node
+  while (current) {
+    const classes = current.attribs?.class?.split(/\s+/) ?? []
+    const style = current.attribs?.style?.replace(/\s+/g, "").toLowerCase() ?? ""
+    if (
+      classes.includes("sr-only") ||
+      classes.includes("hidden") ||
+      current.attribs?.hidden !== undefined ||
+      current.attribs?.["aria-hidden"] === "true" ||
+      style.includes("display:none") ||
+      style.includes("visibility:hidden")
+    ) {
+      return true
+    }
+    current = current.parent ?? undefined
+  }
+  return false
+}
+
+/** Structural guard for diagrams whose labels are separate from the image crop. */
+export function validateLabeledDiagrams(html: string, nodes: RenderNode[]): string[] {
+  const diagrams = collectLabeledDiagrams(nodes)
+  if (diagrams.length === 0) return []
+
+  const root = parseDocument(html) as unknown as HtmlNode
+  const errors: string[] = []
+
+  for (const diagram of diagrams) {
+    const image = findByDataId(root, diagram.imageId)
+    const figure = closest(image, "figure")
+    if (!image || image.name !== "img") continue // Base HTML validation reports this.
+    if (!figure) {
+      errors.push(`Labeled diagram image "${diagram.imageId}" must be inside a semantic <figure>.`)
+    }
+    if (!image.attribs?.alt?.trim()) {
+      errors.push(`Labeled diagram image "${diagram.imageId}" must have non-empty alt text.`)
+    }
+
+    for (const labelId of diagram.labelIds) {
+      const label = findByDataId(root, labelId)
+      if (!label) continue // Base HTML validation reports this.
+      if (isHidden(label)) {
+        errors.push(
+          `Diagram label "${labelId}" must be visibly rendered; do not place extracted labels in sr-only or hidden content.`,
+        )
+      }
+      if (figure && closest(label, "figure") !== figure) {
+        errors.push(`Diagram label "${labelId}" must be associated with its image inside the same <figure>.`)
+      }
+    }
+
+    for (const captionId of diagram.captionIds) {
+      const caption = findByDataId(root, captionId)
+      if (caption && caption.name !== "figcaption" && !closest(caption, "figcaption")) {
+        errors.push(`Diagram caption "${captionId}" must use a semantic <figcaption>.`)
+      }
+    }
+  }
+
+  return errors
+}

@@ -41,6 +41,7 @@ This section combines content merged from MORE THAN ONE original page (for examp
 - Content that is cut off or accidentally hidden (EXCEPTION: text intentionally hidden with `sr-only` — e.g. a transcription of words already baked into an image — is NOT a defect; leave it hidden, do not surface it)
 - Text that is genuinely unreadable — but do NOT treat the book's large accessible type as a defect, and NEVER shrink it (see the typography rule under RULES). The intentionally large text is required, even if the original page used smaller text
 - Images that are missing, broken, wildly misplaced, or distorted (stretched to the wrong aspect ratio — keep `h-auto` so proportions are preserved)
+- Labeled diagrams whose labels/callouts appear in the original page but disappear from the rendering. Compare the PROVIDED extracted image crop with the original page: when labels exist only on the page and not inside the crop, reject any rendering that hides those label leaves with `sr-only`. Require visible responsive labels plus a semantic figure, caption, non-empty image alternative, and a screen-reader-readable parts list. Keyboard label-to-region links are encouraged only when the hotspot can be positioned reliably; never approve a misleading hotspot.
 - Content images (photos, diagrams, illustrations) rendered as small thumbnails when the original shows them filling much of the page — enlarge them to fill the content column (`w-full h-auto`); modest upscaling of a low-resolution source is fine and preferable to a tiny image
 - A header/banner whose title or badge is misaligned or clipped — the banner background may span the full width, but its text must sit in the same centered `max-w-5xl` reading column as the body and must never be cut off
 - Text alignment that differs from the original — body text and headings that are left-aligned in the original should NOT be centered (and vice versa)
@@ -53,6 +54,7 @@ This section combines content merged from MORE THAN ONE original page (for examp
 - Minor differences in spacing, padding, or margins vs the original
 - The book's fixed, large accessible typography (the `adt-*` classes) — this is intentional and REQUIRED; accept it as-is and never reduce it or swap it for smaller `text-*` sizes, even if the original page used smaller text
 - Text hidden with `sr-only` because it is already legible inside an image — this is intentional (kept for screen readers / read-aloud, not shown on screen); keep it `sr-only` and do NOT make it visible or treat it as missing
+- For a labeled diagram, the rule above applies only when the exact labels are visibly legible inside the PROVIDED EXTRACTED IMAGE, not merely visible in the original full-page reference. Extracted diagrams commonly omit vector labels; in that case the labels must be visible HTML.
 - Content images upscaled modestly to fill the reading column (do NOT reject or shrink them for this)
 - Responsive adaptations (e.g., a two-column layout stacking to single column on mobile, or overlay text flowing below the image on mobile instead of on top of it)
 - Color or background differences that maintain the overall feel

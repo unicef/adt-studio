@@ -8,6 +8,7 @@ import type { RenderConfig, RenderExecutionOptions, RenderNode, RenderSectionInp
 import { runVisualReviewLoop } from "./visual-review.js"
 import { buildTypographyCss, typographyPreservationErrors } from "./typography.js"
 import { DEFAULT_TYPOGRAPHY } from "@adt/types"
+import { validateLabeledDiagrams } from "./validate-labeled-diagram.js"
 
 /** Dependencies for the optional visual refinement loop. */
 export interface VisualRefinementDeps {
@@ -229,7 +230,8 @@ function validateWebRendering(
       expectedContentIdOrder: collectLeafDataIdOrder(nodes),
     }
   )
-  if (check.valid && check.sectionHtml) {
+  const diagramErrors = validateLabeledDiagrams(check.sectionHtml ?? candidateHtml, nodes)
+  if (check.valid && diagramErrors.length === 0 && check.sectionHtml) {
     return {
       valid: true,
       errors: [],
@@ -237,7 +239,7 @@ function validateWebRendering(
     }
   }
 
-  return { valid: check.valid, errors: check.errors }
+  return { valid: false, errors: [...check.errors, ...diagramErrors] }
 }
 
 function collectLeafDataIdOrder(nodes: RenderNode[]): string[] {

@@ -108,6 +108,7 @@ Use these to disambiguate activity types:
      - a label on or near the image (e.g. "A", "Figure 1"),
      - text visually overlaid ON TOP of the image (image acts as a visual background behind title text, headings, or any other text). If text sits over an image, it is an `image_group` — not a bare image with the text as a sibling.
    - OMIT an available image entirely when it is not visible on the page or is not relevant to its content (e.g. a decorative crop from another page, an OCR artifact, or an image that has been replaced by text). Do not invent a placement for it.
+   - LABELED DIAGRAMS: when callout words name parts of one diagram, wrap the diagram image, EVERY part-label leaf, and its caption in the SAME `image_group`, in logical reading order. This remains required when the extracted image crop contains the illustration but not the labels/leader lines visible on the full page. Use `role: "label"` for each part name so rendering can reconstruct visible and accessible callouts; never discard labels as duplicate OCR merely because they sit close to the image.
 4. Multi-sentence visual paragraphs: when two or more sibling text leaves together form a single visual paragraph (or any visual unit), wrap them in a `structure: "group"` container. Do NOT wrap a single standalone leaf in a needless `group`.
 5. Activities:
    - An entire activity is a `structure: "activity"` container.

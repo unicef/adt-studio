@@ -81,4 +81,42 @@ describe("web rendering reading-order prompts", () => {
       prompt.indexOf('heading id=sense_heading "Sense"'),
     )
   })
+
+  it("preserves separated labels as an accessible labeled diagram", async () => {
+    const diagramNodes = [{
+      node_id: "diagram_group",
+      structure: "image_group",
+      children: [
+        { node_id: "diagram_image", role: "image", image_id: "diagram_image" },
+        { node_id: "label_1", role: "label", text: "Mouth cavity" },
+        { node_id: "label_2", role: "label", text: "Pharynx" },
+        { node_id: "caption_1", role: "caption", text: "The digestive system" },
+      ],
+    }]
+    const messages = await promptEngine.renderPrompt("web_generation_html", {
+      ...generationContext(),
+      nodes: diagramNodes,
+    })
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain("LABELED DIAGRAMS (VISUAL FIDELITY + INCLUSIVE ACCESS)")
+    expect(prompt).toContain("PROVIDED EXTRACTED IMAGE itself")
+    expect(prompt).toContain("Never put those labels in `sr-only`")
+    expect(prompt).toContain('<figure data-labeled-diagram>')
+    expect(prompt).toContain('<ul aria-label="Diagram parts">')
+    expect(prompt).toContain("keyboard and screen-reader users")
+  })
+
+  it("requires visual review to reject labels lost during image extraction", async () => {
+    const messages = await promptEngine.renderPrompt("visual_review", {
+      nodes,
+      has_merged_content: false,
+      viewports: [{ label: "Desktop", width: 1280, tailwind_prefix: "" }],
+    })
+    const prompt = messages.map(messageText).join("\n")
+
+    expect(prompt).toContain("Labeled diagrams whose labels/callouts")
+    expect(prompt).toContain("not inside the crop")
+    expect(prompt).toContain("screen-reader-readable parts list")
+  })
 })
