@@ -301,6 +301,9 @@ Classify the following text:
 
 Edit these files to change prompt wording, add examples, or adjust instructions — no code changes required.
 
+For model-specific prompt variants, exact-model naming, storage rules, and the
+full prompt inventory, see [`MODEL_PROMPT_VARIANTS.md`](MODEL_PROMPT_VARIANTS.md).
+
 ### Rendering Templates (`templates/`)
 
 HTML layout templates used by template-based render strategies (e.g., `two_column`, `two_column_story`). These are standard HTML files with template variables. Add new templates here to create new layout options.

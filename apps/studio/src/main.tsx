@@ -15,14 +15,23 @@ import { messages as frMessages } from "./locales/fr.po"
 import { messages as sqMessages } from "./locales/sq.po"
 import { routeTree } from "./routeTree.gen"
 import "./styles/globals.css"
-import { LOCALES, activateLocale } from "./i18n/locales"
+import { LOCALES, activateLocale, getStoredLocale, matchSupportedLocale } from "./i18n/locales"
 import type { AppLocale } from "./i18n/locales"
 export { LOCALES, type AppLocale } from "./i18n/locales"
 
+// In Electron, match the OS languages against our supported locales for a
+// sensible first-launch default. Returns null on the web (no `systemLocales`).
+function detectOsLocale(): AppLocale | null {
+  const osLocales = window.api?.systemLocales
+  if (!osLocales || osLocales.length === 0) return null
+  return matchSupportedLocale(osLocales)
+}
+
+// Priority: web ?lang override → stored preference → OS language → English.
 function detectLocale(): AppLocale {
   const urlLang = new URLSearchParams(window.location.search).get("lang")
   if (urlLang && LOCALES.includes(urlLang as AppLocale)) return urlLang as AppLocale
-  return "en"
+  return getStoredLocale() ?? detectOsLocale() ?? "en"
 }
 
 i18n.load({ en: enMessages, "pt-BR": ptBRMessages, es: esMessages, fr: frMessages, sq: sqMessages })

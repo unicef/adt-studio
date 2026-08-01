@@ -23,6 +23,14 @@ import {
   weightToToken,
 } from "./iframe-computed-styles"
 import { INTERACTIVE_SCRIPT, INTERACTIVE_STYLES } from "./iframe-interactive"
+import {
+  anchorKey,
+  anchorSelector,
+  parseAnchor,
+  parseAnchorKey,
+  resolveVisibleTarget,
+  type ActivityAnchor,
+} from "./activity-link"
 import { primaryFontFamily, googleFontsCss2Url, FIXED_LAYOUT_MAX_SCALE } from "@adt/types"
 
 export type { ComputedTypographyStyles }
@@ -42,14 +50,19 @@ function previewAssetsUrl(bookLabel: string): string {
  *  actual panel width. */
 const DEFAULT_RENDER_WIDTH = 1280
 
+const TRANSIENT_ATTRS = [
+  "data-adt-selected",
+  "data-adt-editing",
+  "data-adt-linked",
+  "data-adt-preview",
+  "data-adt-link-hover",
+  "contenteditable",
+] as const
+
 function stripTransientAttributes(doc: Document): void {
-  doc
-    .querySelectorAll("[data-adt-selected], [data-adt-editing], [contenteditable]")
-    .forEach((el) => {
-      el.removeAttribute("data-adt-selected")
-      el.removeAttribute("data-adt-editing")
-      el.removeAttribute("contenteditable")
-    })
+  doc.querySelectorAll(TRANSIENT_ATTRS.map((a) => `[${a}]`).join(", ")).forEach((el) => {
+    for (const attr of TRANSIENT_ATTRS) el.removeAttribute(attr)
+  })
 }
 
 /** Parse a pixel value (e.g. "612px") to a number, or null for non-px values. */
@@ -81,6 +94,7 @@ export interface BookPreviewFrameHandle {
    *  used by the Typography inspector. Returns nulls when the element isn't
    *  in the iframe yet or a value can't be parsed. */
   getComputedTypographyStyles: (dataId: string) => ComputedTypographyStyles
+  getAnchorViewportRect: (anchor: ActivityAnchor) => DOMRect | null
 }
 
 export interface BookPreviewFrameProps {
@@ -110,6 +124,21 @@ export interface BookPreviewFrameProps {
   /** Reports the iframe's current on-screen width in CSS pixels (renderWidth × scale).
    *  Updates whenever the canvas resizes — useful for showing the active viewport size. */
   onVisibleWidthChange?: (width: number) => void
+  /** Link mode — clicks resolve to an activity anchor and are reported via
+   *  `onLinkSelect` instead of opening the inline editor. Mutually exclusive
+   *  with `editable`; the page becomes a click-to-locate map. */
+  linkMode?: boolean
+  /** Anchor to outline solid — the editor's committed selection. */
+  linkedAnchor?: ActivityAnchor | null
+  /** Anchor to outline dashed — a transient preview (the editor's pointer is
+   *  over the matching field). Ignored when it equals `linkedAnchor`. */
+  previewAnchor?: ActivityAnchor | null
+  /** Fired when an element is clicked in link mode; null when the click
+   *  landed on nothing addressable. */
+  onLinkSelect?: (anchor: ActivityAnchor | null) => void
+  /** Fired as the pointer crosses addressable elements in link mode. Purely a
+   *  preview signal — the consumer decides whether to act on it. */
+  onLinkHover?: (anchor: ActivityAnchor | null) => void
   /** Resolved reflowable base-font CSS chain (e.g. `'Atkinson
    *  Hyperlegible','Merriweather',sans-serif`). When set, the shell loads the
    *  family from Google Fonts and overrides the global Merriweather, matching
@@ -143,6 +172,11 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
   renderWidth = DEFAULT_RENDER_WIDTH,
   deviceView,
   onVisibleWidthChange,
+  linkMode = false,
+  linkedAnchor,
+  previewAnchor,
+  onLinkSelect,
+  onLinkHover,
   bodyFontFamily,
 }, ref) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
@@ -264,6 +298,20 @@ export const BookPreviewFrame = forwardRef<BookPreviewFrameHandle, BookPreviewFr
         fontFamily: family || null,
         inlineFontFamily: inlineFamily || null,
       }
+    },
+    getAnchorViewportRect: (anchor: ActivityAnchor): DOMRect | null => {
+      const doc = iframeRef.current?.contentDocument
+      const iframeRect = iframeRef.current?.getBoundingClientRect()
+      if (!doc || !iframeRect) return null
+      const el = doc.querySelector(anchorSelector(anchor))
+      if (!el) return null
+      const r = resolveVisibleTarget(el).getBoundingClientRect()
+      return new DOMRect(
+        iframeRect.left + r.left * scale,
+        iframeRect.top + r.top * scale,
+        r.width * scale,
+        r.height * scale,
+      )
     },
   }))
   const [iframeReady, setIframeReady] = useState(false)
@@ -411,16 +459,20 @@ ${autoFitScript}
   )
 
   // Listen for postMessage from iframe
-  const callbacksRef = useRef({ onSelectElement, onTextChanged })
-  callbacksRef.current = { onSelectElement, onTextChanged }
+  const callbacksRef = useRef({ onSelectElement, onTextChanged, onLinkSelect, onLinkHover })
+  callbacksRef.current = { onSelectElement, onTextChanged, onLinkSelect, onLinkHover }
 
   const handleMessage = useCallback((e: MessageEvent) => {
     const iframe = iframeRef.current
     if (!iframe || e.source !== iframe.contentWindow) return
     const data = e.data ?? {}
     if (typeof data !== "object" || !data.type) return
-    const { type, dataId, rect, newText, editedInnerHtml, tagName } = data
-    if (type === "select" || type === "select-image" || type === "select-container") {
+    const { type, dataId, rect, newText, editedInnerHtml, tagName, kind, id } = data
+    if (type === "link-select") {
+      callbacksRef.current.onLinkSelect?.(parseAnchor(kind, id))
+    } else if (type === "link-hover") {
+      callbacksRef.current.onLinkHover?.(parseAnchor(kind, id))
+    } else if (type === "select" || type === "select-image" || type === "select-container") {
       callbacksRef.current.onSelectElement?.(dataId, rect, tagName)
     } else if (type === "text-changed") {
       // Splice the edited element's innerHTML into the original LaTeX-form HTML
@@ -585,12 +637,31 @@ ${autoFitScript}
     if (el) el.setAttribute("data-adt-selected", "true")
   }, [selectedDataId, displayHtml, iframeReady])
 
-  // Toggle editability dynamically via data attribute (no iframe reload needed)
   useEffect(() => {
     const doc = iframeRef.current?.contentDocument
     if (!doc?.body) return
-    doc.body.dataset.editable = editable ? "true" : "false"
-  }, [editable, iframeReady])
+    doc.body.dataset.editable = editable && !linkMode ? "true" : "false"
+    doc.body.dataset.linkMode = linkMode ? "true" : "false"
+  }, [editable, linkMode, iframeReady])
+
+  const linkedKey = linkedAnchor ? anchorKey(linkedAnchor) : ""
+  const previewKey = previewAnchor ? anchorKey(previewAnchor) : ""
+  useEffect(() => {
+    const doc = iframeRef.current?.contentDocument
+    if (!doc) return
+    doc.querySelectorAll("[data-adt-linked], [data-adt-preview]").forEach((el) => {
+      el.removeAttribute("data-adt-linked")
+      el.removeAttribute("data-adt-preview")
+    })
+    const stamp = (key: string, attr: string) => {
+      const anchor = parseAnchorKey(key)
+      if (!anchor) return
+      const el = doc.querySelector(anchorSelector(anchor))
+      if (el) resolveVisibleTarget(el).setAttribute(attr, "true")
+    }
+    if (previewKey && previewKey !== linkedKey) stamp(previewKey, "data-adt-preview")
+    stamp(linkedKey, "data-adt-linked")
+  }, [linkedKey, previewKey, displayHtml, iframeReady])
 
   // Suppress the iframe's own scrollbar in desktop view (where the iframe is
   // sized to its content and the host container provides the scroll). Phone

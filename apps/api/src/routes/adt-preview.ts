@@ -26,6 +26,8 @@ import {
   resolveTypographyCss,
   resolveQuizPalette,
   buildGlossaryJson,
+  buildImageMap,
+  getGlossaryItemTextId,
   getBaseLanguage,
   normalizeLocale,
   renderQuizHtml,
@@ -41,6 +43,11 @@ import {
   isFixedLayoutBook,
   resolveReflowableFontChain,
   getRenderSectioning,
+  readEditableActivities,
+  enabledEditableActivity,
+  renderEditableActivityHtml,
+  resolveEditableActivityImages,
+  DEFAULT_QUIZ_PALETTE,
 } from "@adt/pipeline"
 
 // ---------------------------------------------------------------------------
@@ -209,6 +216,17 @@ function buildTextsMap(
       for (const e of translated.entries) textsMap[e.id] = e.text
     }
   }
+
+  // The runtime reapplies this catalog when an activity opens. Convert here as
+  // well as during packaging; otherwise activity mode replaces rendered MathML
+  // with the raw LaTex source (for example, `\\frac{1}{2}`).
+  for (const [id, text] of Object.entries(textsMap)) {
+    const wrapped = convertLatexToMathml(`<span>${text}</span>`)
+    textsMap[id] = wrapped
+      .replace(/^<span>/, "")
+      .replace(/<\/span>$/, "")
+  }
+
   return textsMap
 }
 
@@ -746,14 +764,45 @@ export function createAdtPreviewRoutes(
   // /content/i18n/:lang/glossary.json — Glossary data
   app.get("/books/:label/adt-preview/content/i18n/:lang/glossary.json", async (c) => {
     const lang = c.req.param("lang")
-    const glossaryJson = await withStorage(c.req.param("label"), async (storage) => {
+    const glossaryJson = await withStorage(c.req.param("label"), async (storage, _safeLabel, bookDir) => {
       const language = getBookLanguage(storage)
       const sourceLanguage = getBaseLanguage(language)
       const catalog = await getTextCatalog(storage)
       const glossary = getGlossary(storage)
       const textsMap = buildTextsMap(storage, lang, sourceLanguage, catalog)
       const baseLang = getBaseLanguage(lang)
-      return buildGlossaryJson(glossary, catalog, textsMap, baseLang === sourceLanguage)
+
+      // Mirror packaging: term pictures resolve through the images proxy
+      // (`images/<filename>`), sign-language videos through the video route
+      // (`content/i18n/<lang>/video/sl_<glId>.<ext>`, resolved back to the
+      // stored file by sectionId).
+      const imageMap = buildImageMap(path.join(bookDir, "images"))
+      const imageHrefs = new Map<string, string>()
+      for (const item of glossary?.items ?? []) {
+        if (item.pruned || !item.imageId || imageHrefs.has(item.imageId)) continue
+        const filename = imageMap.get(item.imageId)
+        if (filename) imageHrefs.set(item.imageId, `images/${filename}`)
+      }
+      const glossaryTextIds = new Set(
+        (glossary?.items ?? [])
+          .map((item, i) => (item.pruned ? null : getGlossaryItemTextId(item, i)))
+          .filter((id): id is string => id !== null),
+      )
+      const videoHrefs = new Map<string, string>()
+      for (const video of storage.getSignLanguageVideos()) {
+        if (!video.sectionId || !glossaryTextIds.has(video.sectionId)) continue
+        const ext = video.mimeType === "video/webm" ? ".webm" : ".mp4"
+        videoHrefs.set(video.sectionId, `content/i18n/${lang}/video/sl_${video.sectionId}${ext}`)
+      }
+
+      return buildGlossaryJson(
+        glossary,
+        catalog,
+        textsMap,
+        baseLang === sourceLanguage,
+        imageHrefs,
+        videoHrefs,
+      )
     })
     setNoStoreHeaders(c)
     c.header("Content-Type", "application/json")
@@ -1003,25 +1052,51 @@ export function createAdtPreviewRoutes(
       const sectionMeta = sectioning
         ? sectioning.sections[targetSectionIndex]
         : undefined
-      const preferredImageAltMap = buildPreferredImageAltMap(storage, ownerPageId, sectionMeta)
-      const decorativeImageIds = buildDecorativeImageIdSet(storage, ownerPageId)
-      const { html: previewSectionHtml } = rewriteImageUrls(
-        renderedSection.html,
-        label,
-        new Map<string, string>(),
-        preferredImageAltMap,
-        decorativeImageIds,
+
+      // Step-by-step override: an enabled editable activity replaces the
+      // stored LLM HTML with the stepper shell, matching packaged output.
+      const stepperActivity = enabledEditableActivity(
+        readEditableActivities(storage, ownerPageId),
+        targetSectionIndex,
+        renderedSection.sectionType,
       )
 
-      const previewHasMath = /(?:\\\(|\\\)|\\\[|\\\]|\$[^$]+\$|\\frac|\\sqrt|\\sum|\\int|\\text\{|\\hat\{|\\circ)/.test(previewSectionHtml)
+      const preferredImageAltMap = buildPreferredImageAltMap(storage, ownerPageId, sectionMeta)
+      const decorativeImageIds = buildDecorativeImageIdSet(storage, ownerPageId)
+      let previewSectionHtml: string
+      if (stepperActivity) {
+        const stepperPalette =
+          ((config.quiz_generation?.match_book_style ?? true)
+            ? resolveQuizPalette(storage)
+            : null) ?? DEFAULT_QUIZ_PALETTE
+        // Empty image map (preview serves stored srcs directly) but the same
+        // curated alt/decorative handling as packaged output.
+        const resolved = resolveEditableActivityImages(stepperActivity, new Map(), {
+          preferredAltMap: preferredImageAltMap,
+          decorativeImageIds,
+        })
+        previewSectionHtml = renderEditableActivityHtml(resolved.activity, {
+          palette: stepperPalette,
+        })
+      } else {
+        ;({ html: previewSectionHtml } = rewriteImageUrls(
+          renderedSection.html,
+          label,
+          new Map<string, string>(),
+          preferredImageAltMap,
+          decorativeImageIds,
+        ))
+      }
+
+      const previewHasMath = !stepperActivity && /(?:\\\(|\\\)|\\\[|\\\]|\$[^$]+\$|\\frac|\\sqrt|\\sum|\\int|\\text\{|\\hat\{|\\circ)/.test(previewSectionHtml)
 
       const html = renderPageHtml({
-        content: convertLatexToMathml(previewSectionHtml),
+        content: stepperActivity ? previewSectionHtml : convertLatexToMathml(previewSectionHtml),
         language,
         sectionId: pageId,
         pageTitle: title,
         pageIndex: manifestIndex >= 0 ? manifestIndex + 1 : 1,
-        activityAnswers: renderedSection.activityAnswers,
+        activityAnswers: stepperActivity ? undefined : renderedSection.activityAnswers,
         hasMath: previewHasMath,
         bundleVersion: previewBundleVersion,
         applyBodyBackground,

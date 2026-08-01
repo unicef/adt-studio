@@ -7,6 +7,8 @@ import type {
   BookMetadata,
   BookSummary,
   BookTypography,
+  ActivityOutline,
+  EditableActivity,
   FontAssignmentOutput,
   ExtractionWarning,
   ReviewerPageValidationRecord,
@@ -393,6 +395,8 @@ export interface GlossaryItem {
   variations: string[]
   emojis: string[]
   pruned?: boolean
+  /** Optional image from the book's images table illustrating the term. */
+  imageId?: string
 }
 
 export interface GlossaryOutput {
@@ -587,6 +591,7 @@ export interface LlmLogEntry {
   itemId: string
   data: {
     promptName: string
+    requestedPromptName?: string
     modelId: string
     cacheHit: boolean
     durationMs: number
@@ -641,9 +646,59 @@ export interface BookConfigResponse {
   config: Record<string, unknown>
 }
 
+export interface SpecializedModelDefaultsResponse {
+  imageGeneration: string
+  speechGeneration: string
+}
+
 export interface ActiveConfigResponse {
   merged: Record<string, unknown>
   hasBookOverride: boolean
+}
+
+export interface PromptResponse {
+  name: string
+  resolvedName?: string
+  content: string
+  source?: "book" | "global"
+  modelId?: string | null
+  version?: string
+}
+
+export interface PromptSummary {
+  name: string
+  variants: string[]
+  variantSources?: Record<string, "file" | "version" | "file+version">
+}
+
+export interface PromptListResponse {
+  prompts: PromptSummary[]
+}
+
+export interface PromptModelsResponse {
+  models: string[]
+}
+
+export interface PromptVersionSummary {
+  version: string
+  createdAt: string | null
+  content: string
+  isCurrent: boolean
+}
+
+export interface PromptVersionsResponse {
+  name: string
+  resolvedName: string
+  modelId: string | null
+  fallbackContent: string | null
+  fallbackResolvedName: string | null
+  currentVersion: string | null
+  versions: PromptVersionSummary[]
+}
+
+function promptModelQuery(modelId?: string | null): string {
+  // eslint-disable-next-line lingui/no-unlocalized-strings -- API query string, not user-visible copy.
+  return modelId ? `?model=${encodeURIComponent(modelId)}` : ""
 }
 
 export interface VersionEntry {
@@ -796,6 +851,68 @@ export const api = {
     ),
 
   getBookFonts: (label: string) => request<BookFontsResponse>(`/books/${label}/fonts`),
+
+  getEditableActivities: (label: string, pageId: string) =>
+    request<{
+      activities: Record<string, EditableActivity>
+      version: number
+      /** Book-derived accent used when an activity has no override. */
+      paletteAccent: string
+    }>(`/books/${label}/pages/${pageId}/editable-activities`),
+
+  updateEditableActivities: (
+    label: string,
+    pageId: string,
+    activities: Record<string, EditableActivity>,
+  ) =>
+    request<{ version: number }>(`/books/${label}/pages/${pageId}/editable-activities`, {
+      method: "PUT",
+      body: JSON.stringify({ activities }),
+    }),
+
+  getActivityStructure: (label: string, pageId: string, sectionIndex: number) =>
+    request<{
+      activity: EditableActivity | null
+      outline: ActivityOutline | null
+      errors: string[]
+      renderingVersion?: number
+    }>(`/books/${label}/pages/${pageId}/sections/${sectionIndex}/activity-structure`),
+
+  convertEditableActivity: (label: string, pageId: string, sectionIndex: number) =>
+    request<{ activity: EditableActivity; warnings: string[]; version: number }>(
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/editable-activity/convert`,
+      { method: "POST" },
+    ),
+
+  setEditableActivityPresentation: (
+    label: string,
+    pageId: string,
+    sectionIndex: number,
+    enabled: boolean,
+  ) =>
+    request<{ version: number; enabled: boolean }>(
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/editable-activity/presentation`,
+      { method: "POST", body: JSON.stringify({ enabled }) },
+    ),
+
+  generateEditableActivityFeedback: (
+    label: string,
+    pageId: string,
+    sectionIndex: number,
+    apiKey: string,
+    providerCredentials?: StageRunProviderCredentials,
+    // The unsaved draft, so feedback reflects what the user is editing —
+    // the server falls back to the last saved entity when omitted.
+    activity?: EditableActivity,
+  ) =>
+    request<{ feedback: Record<string, { correct?: string; incorrect?: string }> }>(
+      `/books/${label}/pages/${pageId}/sections/${sectionIndex}/editable-activity/generate-feedback`,
+      {
+        method: "POST",
+        headers: buildApiHeaders(apiKey, providerCredentials),
+        body: JSON.stringify(activity ? { activity } : {}),
+      },
+    ),
 
   getTypography: (label: string) =>
     request<{ data: BookTypography; version: number; isDefault: boolean; detected: BookTypography }>(
@@ -1102,6 +1219,47 @@ export const api = {
       `/books/${label}/pages/${pageId}/sections/${sectionIndex}/ai-edit-history`,
     ),
 
+  agentLayoutMirror: (
+    label: string,
+    source: { pageId: string; sectionIndex: number },
+    targets: Array<{ pageId: string; sectionIndex: number }>,
+    apiKey: string,
+    instruction?: string,
+    providerCredentials?: StageRunProviderCredentials,
+  ) =>
+    request<{ taskId?: string; status?: string; results?: Array<{ pageId: string; sectionIndex: number; ok: boolean; version?: number; reasoning?: string; error?: string }> }>(
+      `/books/${label}/agents/layout-mirror`,
+      {
+        method: "POST",
+        headers: buildApiHeaders(apiKey, providerCredentials),
+        body: JSON.stringify({ source, targets, instruction }),
+        signal: AbortSignal.timeout(30_000),
+      },
+    ),
+
+  agentGenerateActivity: (
+    label: string,
+    anchorPageId: string,
+    description: string,
+    apiKey: string,
+    options?: { inclusiveDesign?: boolean; mode?: "auto" | "templated" | "custom" },
+    providerCredentials?: StageRunProviderCredentials,
+  ) =>
+    request<{ taskId?: string; status?: string; text?: string; touchedPageIds?: string[]; toolCalls?: Array<{ name: string; args: unknown; result: unknown; error?: string }>; stepCount?: number; finishReason?: string }>(
+      `/books/${label}/agents/generate-activity`,
+      {
+        method: "POST",
+        headers: buildApiHeaders(apiKey, providerCredentials),
+        body: JSON.stringify({
+          anchorPageId,
+          description,
+          inclusiveDesign: options?.inclusiveDesign ?? true,
+          mode: options?.mode ?? "auto",
+        }),
+        signal: AbortSignal.timeout(30_000),
+      },
+    ),
+
   listBookImages: (label: string) =>
     request<{
       images: Array<{
@@ -1291,16 +1449,60 @@ export const api = {
       body: JSON.stringify({ config }),
     }),
 
-  getPrompt: (name: string, bookLabel?: string) =>
-    request<{ name: string; content: string; source?: string }>(
-      bookLabel ? `/books/${bookLabel}/prompts/${name}` : `/prompts/${name}`
-    ),
+  listPrompts: () => request<PromptListResponse>("/prompts"),
 
-  updatePrompt: (name: string, content: string, bookLabel?: string) =>
-    request<{ name: string; content: string; source?: string }>(
-      bookLabel ? `/books/${bookLabel}/prompts/${name}` : `/prompts/${name}`,
+  listPromptModels: () => request<PromptModelsResponse>("/prompt-models"),
+
+  updatePromptModels: (models: string[]) =>
+    request<PromptModelsResponse>("/prompt-models", {
+      method: "PUT",
+      body: JSON.stringify({ models }),
+    }),
+
+  getPrompt: (name: string, bookLabel?: string, modelId?: string | null) => {
+    const query = promptModelQuery(modelId)
+    return request<PromptResponse>(
+      bookLabel ? `/books/${bookLabel}/prompts/${name}${query}` : `/prompts/${name}${query}`
+    )
+  },
+
+  updatePrompt: (name: string, content: string, bookLabel?: string, modelId?: string | null) => {
+    const query = promptModelQuery(modelId)
+    return request<PromptResponse>(
+      bookLabel ? `/books/${bookLabel}/prompts/${name}${query}` : `/prompts/${name}${query}`,
       { method: "PUT", body: JSON.stringify({ content }) },
-    ),
+    )
+  },
+
+  listPromptVersions: (name: string, modelId?: string | null, bookLabel?: string) => {
+    const query = promptModelQuery(modelId)
+    return request<PromptVersionsResponse>(
+      bookLabel ? `/books/${bookLabel}/prompts/${name}/versions${query}` : `/prompts/${name}/versions${query}`,
+    )
+  },
+
+  setPromptVersionCurrent: (
+    name: string,
+    version: string,
+    modelId?: string | null,
+    bookLabel?: string,
+  ) => {
+    const query = promptModelQuery(modelId)
+    return request<PromptResponse>(
+      bookLabel
+        ? `/books/${bookLabel}/prompts/${name}/versions/${encodeURIComponent(version)}/current${query}`
+        : `/prompts/${name}/versions/${encodeURIComponent(version)}/current${query}`,
+      { method: "PUT" },
+    )
+  },
+
+  resetPrompt: (name: string, modelId?: string | null, bookLabel?: string) => {
+    const query = promptModelQuery(modelId)
+    return request<PromptResponse>(
+      bookLabel ? `/books/${bookLabel}/prompts/${name}${query}` : `/prompts/${name}${query}`,
+      { method: "DELETE" },
+    )
+  },
 
   getTemplate: (name: string, bookLabel?: string) =>
     request<{ name: string; content: string; source?: string }>(
@@ -1346,10 +1548,13 @@ export const api = {
     request<GlossaryOutput | null>(`/books/${label}/glossary`),
 
   updateGlossary: (label: string, data: unknown) =>
-    request<{ version: number }>(`/books/${label}/glossary`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    }),
+    request<{ version: number; imageRequirementsChanged: boolean }>(
+      `/books/${label}/glossary`,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+      },
+    ),
 
   generateGlossaryItem: (
     label: string,
@@ -1579,13 +1784,33 @@ export const api = {
       method: "DELETE",
     }),
 
-  deleteAllSignLanguageVideos: (label: string) =>
-    request<{ ok: boolean }>(`/books/${label}/sign-language-videos`, {
-      method: "DELETE",
-    }),
-
   getGlobalConfig: () =>
     request<{ config: Record<string, unknown> }>(`/config`),
+
+  getDefaultModel: () =>
+    request<{ model: string }>(`/config/default-model`),
+
+  updateDefaultModel: (model: string) =>
+    request<{ model: string }>(`/config/default-model`, {
+      method: "PUT",
+      body: JSON.stringify({ model }),
+    }),
+
+  getSpecializedModelDefaults: () =>
+    request<SpecializedModelDefaultsResponse>(
+      `/config/specialized-model-defaults`,
+    ),
+
+  updateSpecializedModelDefaults: (
+    defaults: SpecializedModelDefaultsResponse,
+  ) =>
+    request<SpecializedModelDefaultsResponse>(
+      `/config/specialized-model-defaults`,
+      {
+        method: "PUT",
+        body: JSON.stringify(defaults),
+      },
+    ),
 
   getSpeechInstructions: () =>
     request<Record<string, string>>("/speech-config/instructions"),

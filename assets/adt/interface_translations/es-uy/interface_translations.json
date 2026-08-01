@@ -117,5 +117,10 @@
     "admin-popup-stub-message": "Las herramientas de administración se agregarán en una actualización posterior.",
     "main-menu-label": "Menú principal",
     "cover-label": "Portada",
-    "print-page-label": "Imprimir página"
+    "print-page-label": "Imprimir página",
+    "stepper-progress-n-of-m": "Paso ${n} de ${m}",
+    "stepper-word-bank": "Palabras para elegir",
+    "stepper-open-ended-saved": "¡Muy bien! Tu respuesta se ha guardado.",
+    "stepper-open-ended-rephrase": "Seamos amables: intentá escribir tu respuesta de otra manera.",
+    "open-ended-answer-label": "Tu respuesta"
 }

@@ -90,18 +90,6 @@ export function createSignLanguageVideoRoutes(booksDir: string): Hono {
     }
   })
 
-  // DELETE /books/:label/sign-language-videos — Delete all videos
-  app.delete("/books/:label/sign-language-videos", (c) => {
-    const { label } = c.req.param()
-    const storage = createBookStorage(label, booksDir)
-    try {
-      storage.deleteAllSignLanguageVideos()
-      return c.json({ ok: true })
-    } finally {
-      storage.close()
-    }
-  })
-
   // GET /books/:label/sign-language-videos/:videoId — Serve video binary
   app.get("/books/:label/sign-language-videos/:videoId", (c) => {
     const { label, videoId } = c.req.param()

@@ -3,7 +3,27 @@ import path from "node:path"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
 import yaml from "js-yaml"
-import { StyleguideName } from "@adt/types"
+import {
+  AppConfig,
+  DEFAULT_IMAGE_GENERATION_MODEL_ID,
+  DEFAULT_LLM_MODEL_ID,
+  DEFAULT_OPENAI_TTS_MODEL_ID,
+  DefaultModelConfig,
+  SpecializedModelDefaultsConfig,
+  StyleguideName,
+} from "@adt/types"
+
+function setTopLevelYamlValue(
+  content: string,
+  key: string,
+  value: string,
+): string {
+  const line = `${key}: ${JSON.stringify(value)}`
+  const matcher = new RegExp(`^${key}:\\s*.*$`, "m")
+  return matcher.test(content)
+    ? content.replace(matcher, line)
+    : `${line}\n${content}`
+}
 
 export function createPresetRoutes(configPath: string): Hono {
   const app = new Hono()
@@ -99,6 +119,96 @@ table{border-collapse:collapse;width:100%;margin:0.75rem 0;}th,td{border:1px sol
     const content = fs.readFileSync(configPath, "utf-8")
     const parsed = yaml.load(content) as Record<string, unknown>
     return c.json({ config: parsed })
+  })
+
+  // Return the global fallback text-generation model.
+  app.get("/config/default-model", (c) => {
+    if (!fs.existsSync(configPath)) {
+      throw new HTTPException(404, { message: "Global config not found" })
+    }
+
+    const content = fs.readFileSync(configPath, "utf-8")
+    const parsed = AppConfig.parse(yaml.load(content))
+    return c.json({ model: parsed.default_model ?? DEFAULT_LLM_MODEL_ID })
+  })
+
+  // Update only the fallback model while preserving config.yaml formatting.
+  app.put("/config/default-model", async (c) => {
+    if (!fs.existsSync(configPath)) {
+      throw new HTTPException(404, { message: "Global config not found" })
+    }
+
+    const result = DefaultModelConfig.safeParse(await c.req.json())
+    if (!result.success) {
+      throw new HTTPException(400, { message: "Invalid default model id" })
+    }
+
+    const content = fs.readFileSync(configPath, "utf-8")
+    const parsed = yaml.load(content) as Record<string, unknown>
+    AppConfig.parse({ ...parsed, default_model: result.data.model })
+
+    const updated = setTopLevelYamlValue(
+      content,
+      "default_model",
+      result.data.model,
+    )
+    fs.writeFileSync(configPath, updated, "utf-8")
+
+    return c.json(result.data)
+  })
+
+  // Return the global defaults used by image and OpenAI speech generation.
+  app.get("/config/specialized-model-defaults", (c) => {
+    if (!fs.existsSync(configPath)) {
+      throw new HTTPException(404, { message: "Global config not found" })
+    }
+
+    const content = fs.readFileSync(configPath, "utf-8")
+    const parsed = AppConfig.parse(yaml.load(content))
+    return c.json({
+      imageGeneration:
+        parsed.default_image_generation_model ??
+        DEFAULT_IMAGE_GENERATION_MODEL_ID,
+      speechGeneration:
+        parsed.default_speech_generation_model ??
+        DEFAULT_OPENAI_TTS_MODEL_ID,
+    })
+  })
+
+  // Update only specialized defaults while preserving the rest of config.yaml.
+  app.put("/config/specialized-model-defaults", async (c) => {
+    if (!fs.existsSync(configPath)) {
+      throw new HTTPException(404, { message: "Global config not found" })
+    }
+
+    const result = SpecializedModelDefaultsConfig.safeParse(await c.req.json())
+    if (!result.success) {
+      throw new HTTPException(400, {
+        message: "Invalid specialized model defaults",
+      })
+    }
+
+    const content = fs.readFileSync(configPath, "utf-8")
+    const parsed = yaml.load(content) as Record<string, unknown>
+    AppConfig.parse({
+      ...parsed,
+      default_image_generation_model: result.data.imageGeneration,
+      default_speech_generation_model: result.data.speechGeneration,
+    })
+
+    const withImageModel = setTopLevelYamlValue(
+      content,
+      "default_image_generation_model",
+      result.data.imageGeneration,
+    )
+    const updated = setTopLevelYamlValue(
+      withImageModel,
+      "default_speech_generation_model",
+      result.data.speechGeneration,
+    )
+    fs.writeFileSync(configPath, updated, "utf-8")
+
+    return c.json(result.data)
   })
 
   return app

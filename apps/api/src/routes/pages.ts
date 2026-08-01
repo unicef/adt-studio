@@ -4,13 +4,38 @@ import path from "node:path"
 import { z } from "zod"
 import { Hono } from "hono"
 import { HTTPException } from "hono/http-exception"
-import { parseBookLabel, ImageClassificationOutput, PageSectioningOutput, WebRenderingOutput, ImageCaptioningOutput, ImageSegmentRegion, DEFAULT_LLM_MAX_RETRIES, primaryFontFamily, reflowableFontChain, BookFontRegistry, bookBodyFont, bookFontFamilyChain, splitNodesBefore } from "@adt/types"
+import {
+  parseBookLabel,
+  ImageClassificationOutput,
+  PageSectioningOutput,
+  WebRenderingOutput,
+  ImageCaptioningOutput,
+  ImageSegmentRegion,
+  DEFAULT_IMAGE_GENERATION_MODEL_ID,
+  DEFAULT_LLM_MAX_RETRIES,
+  primaryFontFamily,
+  reflowableFontChain,
+  BookFontRegistry,
+  bookBodyFont,
+  bookFontFamilyChain,
+  splitNodesBefore,
+  IMAGE_SET_CHANGE_CLEAR_NODE_TYPES,
+  IMAGE_SET_CHANGE_CLEAR_STEPS,
+  EDITABLE_ACTIVITY_NODE,
+} from "@adt/types"
 import type { ContentNodeData, ExtractionWarning } from "@adt/types"
 import { classifyExtractionWarning, flattenVisibleSectioningText } from "../services/extraction-warning.js"
 import { openBookDb } from "@adt/storage"
 import { createBookStorage } from "@adt/storage"
 import type { Storage } from "@adt/storage"
-import { detectSpreads, type SpreadEdgeSample, classifyPageImages, buildImageClassifyConfig } from "@adt/pipeline"
+import {
+  detectSpreads,
+  type SpreadEdgeSample,
+  classifyPageImages,
+  buildImageClassifyConfig,
+  readEditableActivities,
+  remapEditableActivities,
+} from "@adt/pipeline"
 import { samplePageEdges, extractPages, computeGroups, countPdfPages } from "@adt/pdf"
 import { reRenderPage, aiEditSection } from "../services/page-edit-service.js"
 import type { TaskService } from "../services/task-service.js"
@@ -192,6 +217,7 @@ interface AiImageGenParams {
   /** "swap" replaces targetImageId, "add" appends to section */
   mode?: "swap" | "add"
   booksDir: string
+  modelId: string
 }
 
 async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
@@ -200,6 +226,7 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
   const {
     bookDir, dbPath, apiKey, pageId, prompt,
     referenceImageId, targetImageId, style, imageType, styleImageId, promptsDir,
+    modelId,
   } = params
 
   // Choose the correct prompt template: edit vs generate
@@ -288,7 +315,7 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
   try {
     generated = await generateImageWithCache({
       apiKey,
-      modelId: "openai:gpt-image-2",
+      modelId,
       prompt: finalPrompt,
       size: size as `${number}x${number}`,
       referenceImages,
@@ -405,26 +432,8 @@ async function executeAiImageGeneration(params: AiImageGenParams): Promise<{
 
 /** Clear storyboard-dependent data when page text, rendering, or images change. */
 function clearCaptionData(storage: Storage): void {
-  storage.clearNodesByType([
-    "image-captioning",
-    "text-catalog",
-    "easy-read",
-    "text-catalog-translation",
-    "tts",
-    "tts-timestamps",
-    "accessibility-assessment",
-  ])
-  storage.clearStepRuns([
-    "image-captioning",
-    "text-catalog",
-    "easy-read",
-    "catalog-translation",
-    "image-translation",
-    "tts",
-    "word-timestamps",
-    "package-web",
-    "accessibility-assessment",
-  ])
+  storage.clearNodesByType([...IMAGE_SET_CHANGE_CLEAR_NODE_TYPES])
+  storage.clearStepRuns([...IMAGE_SET_CHANGE_CLEAR_STEPS])
 }
 
 /**
@@ -440,6 +449,36 @@ function saveStoryboardNode(
   const version = storage.putNodeData(node, itemId, data)
   clearCaptionData(storage)
   return version
+}
+
+/**
+ * Editable (step-by-step) activities are keyed by sectionIndex, so every
+ * operation that renumbers sections must remap that map in lockstep — a stale
+ * key would attach one section's steps to whatever section occupies the index
+ * afterwards. `mapIndex` mirrors the operation's index shift (null = drop the
+ * entry: its section was removed or its content changed). `cloneIndex`
+ * additionally copies the entry at that original index to `cloneIndex + 1`
+ * (section clone). Writes a new version only when something actually changed.
+ */
+function migrateEditableActivities(
+  storage: Storage,
+  pageId: string,
+  opts: { mapIndex: (index: number) => number | null; cloneIndex?: number }
+): number | null {
+  const row = readEditableActivities(storage, pageId)
+  if (!row) return null
+  const remapped = remapEditableActivities(row.activities, opts.mapIndex)
+  let activities = remapped ?? row.activities
+  let changed = remapped !== null
+  if (opts.cloneIndex !== undefined) {
+    const source = row.activities[String(opts.cloneIndex)]
+    if (source) {
+      activities = { ...activities, [String(opts.cloneIndex + 1)]: structuredClone(source) }
+      changed = true
+    }
+  }
+  if (!changed) return null
+  return storage.putNodeData(EDITABLE_ACTIVITY_NODE, pageId, { activities })
 }
 
 /** Renumber sectionIds to the canonical `${pageId}_sec${NNN}` sequence. */
@@ -1682,6 +1721,10 @@ export function createPageRoutes(
       if (updatedRendering) {
         renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
       }
+      migrateEditableActivities(storage, pageId, {
+        mapIndex: (i) => (i > idx ? i + 1 : i),
+        cloneIndex: idx,
+      })
 
       return c.json({
         clonedSectionIndex: idx + 1,
@@ -1863,6 +1906,11 @@ export function createPageRoutes(
       if (updatedRendering) {
         renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
       }
+      // The split section's entry is dropped (like its rendering) — the stored
+      // extraction covered the whole section and matches neither half.
+      migrateEditableActivities(storage, pageId, {
+        mapIndex: (i) => (i === idx ? null : i > idx ? i + 1 : i),
+      })
 
       return c.json({
         splitSectionIndex: idx + 1,
@@ -2009,6 +2057,12 @@ export function createPageRoutes(
       if (updatedRendering) {
         renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
       }
+      // Both merged sections' entries are dropped: the kept section's content
+      // changed (the stored extraction is stale) and the removed one is gone.
+      migrateEditableActivities(storage, pageId, {
+        mapIndex: (i) =>
+          i === keepIdx || i === removeIdx ? null : i > removeIdx ? i - 1 : i,
+      })
 
       return c.json({
         mergedSectionIndex: keepIdx,
@@ -2153,6 +2207,15 @@ export function createPageRoutes(
         tgtRenderVersion = saveStoryboardNode(storage, "web-rendering", targetPageId, { sections: [] })
       }
 
+      // Source: the moved section's entry goes away and later entries shift.
+      // Target: the receiving section's content changed, so its entry is stale.
+      migrateEditableActivities(storage, pageId, {
+        mapIndex: (i) => (i === idx ? null : i > idx ? i - 1 : i),
+      })
+      migrateEditableActivities(storage, targetPageId, {
+        mapIndex: (i) => (i === tgtIdx ? null : i),
+      })
+
       return c.json({
         sourcePageId: pageId,
         targetPageId,
@@ -2247,6 +2310,9 @@ export function createPageRoutes(
       if (updatedRendering) {
         renderingVersion = saveStoryboardNode(storage, "web-rendering", pageId, updatedRendering)
       }
+      migrateEditableActivities(storage, pageId, {
+        mapIndex: (i) => (i === idx ? null : i > idx ? i - 1 : i),
+      })
 
       return c.json({
         sectioningVersion,
@@ -2258,7 +2324,7 @@ export function createPageRoutes(
     }
   })
 
-  // POST /books/:label/images/ai-generate — Generate image via gpt-image-2
+  // POST /books/:label/images/ai-generate — Generate or edit an image.
   app.post("/books/:label/images/ai-generate", async (c) => {
     try {
       const { label } = c.req.param()
@@ -2320,6 +2386,10 @@ export function createPageRoutes(
       const desc = referenceImageId
         ? `Editing image ${referenceImageId}`
         : `Generating image for ${pageId}`
+      const modelId = configPath
+        ? loadBookConfig(safeLabel, booksDir, configPath)
+            .default_image_generation_model ?? DEFAULT_IMAGE_GENERATION_MODEL_ID
+        : DEFAULT_IMAGE_GENERATION_MODEL_ID
 
       // Submit as task if TaskService is available
       if (taskService) {
@@ -2333,6 +2403,7 @@ export function createPageRoutes(
               prompt, referenceImageId, targetImageId,
               style, imageType, styleImageId, promptsDir,
               sectionIndex, mode, booksDir,
+              modelId,
             })
           },
           { pageId, url: `/books/${safeLabel}/storyboard/${pageId}` }
@@ -2346,6 +2417,7 @@ export function createPageRoutes(
         prompt, referenceImageId, targetImageId,
         style, imageType, styleImageId, promptsDir,
         sectionIndex, mode, booksDir,
+        modelId,
       })
       return c.json(result)
     } catch (err) {
@@ -2567,7 +2639,10 @@ export function createPageRoutes(
 
       // Build segmentation config — always use default model for manual segmentation
       const config = loadBookConfig(safeLabel, booksDir, configPath)
-      const modelId = config.image_segmentation?.model || "openai:gpt-5.4"
+      const modelId =
+        config.image_segmentation?.model
+        || config.default_model
+        || "openai:gpt-5.4"
       const promptName = config.image_segmentation?.prompt ?? "image_segmentation"
       const maxRetries =
         config.image_segmentation?.max_retries ?? DEFAULT_LLM_MAX_RETRIES
@@ -2783,9 +2858,13 @@ export function createPageRoutes(
 
     try {
       const bookPromptsDir = path.join(bookDir, "prompts")
+      const appConfig = loadBookConfig(safeLabel, booksDir, configPath)
       const promptEngine = createPromptEngine([bookPromptsDir, promptsDir])
       const cacheDir = path.join(bookDir, ".cache")
-      const config = buildStyleguideGenerationConfig()
+      const config = buildStyleguideGenerationConfig(
+        undefined,
+        appConfig.default_model,
+      )
       const llmModel = createLLMModel({
         modelId: config.modelId,
         cacheDir,

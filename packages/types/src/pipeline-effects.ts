@@ -64,6 +64,42 @@ const STAGE_DIRECT_DEPENDENTS: Record<StageName, StageName[]> = {
   "package": [],
 }
 
+/** Node data invalidated when the book's image set changes. Shared by the API
+ * mutation and the Studio warning so the reset behavior and user-facing stage
+ * list cannot drift apart. */
+export const IMAGE_SET_CHANGE_CLEAR_NODE_TYPES = [
+  "image-captioning",
+  "text-catalog",
+  "easy-read",
+  "text-catalog-translation",
+  "tts",
+  "tts-timestamps",
+  "accessibility-assessment",
+] as const
+
+/** Pipeline step results invalidated by an image-set change. */
+export const IMAGE_SET_CHANGE_CLEAR_STEPS = [
+  "image-captioning",
+  "text-catalog",
+  "easy-read",
+  "catalog-translation",
+  "image-translation",
+  "tts",
+  "word-timestamps",
+  "package-web",
+  "accessibility-assessment",
+] as const satisfies readonly StepName[]
+
+/** Ordered stages shown in the confirmation before an image-set change. */
+export const IMAGE_SET_CHANGE_CLEAR_STAGES: readonly StageName[] = STAGE_ORDER.filter(
+  (stageName) => {
+    const stage = PIPELINE.find((candidate) => candidate.name === stageName)
+    return stage?.steps.some((step) =>
+      IMAGE_SET_CHANGE_CLEAR_STEPS.includes(step.name as (typeof IMAGE_SET_CHANGE_CLEAR_STEPS)[number]),
+    )
+  },
+)
+
 for (const stage of PIPELINE) {
   STAGE_OUTPUT_NODES[stage.name] = [
     ...stage.steps.map((step) => step.name),

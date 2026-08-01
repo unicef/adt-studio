@@ -153,6 +153,8 @@ export async function prepareExport(
       fixedLayout: isFixedLayoutBook(config),
       reflowableFont: config.reflowable_font,
       quizMatchBookStyle: config.quiz_generation?.match_book_style ?? true,
+      // EPUB glossary implementation (word-level spec / in-flow pages / both).
+      epubGlossary: config.epub_glossary,
     }
 
     await packageAdtWeb(storage, opts)

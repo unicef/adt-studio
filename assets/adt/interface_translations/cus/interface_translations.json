@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Aaladaha maamulaha waxaa lagu darayaa cusboonaysiin soo socota.",
     "main-menu-label": "Liiska weyn",
     "cover-label": "Daboolka",
-    "print-page-label": "Daabac boggii"
+    "print-page-label": "Daabac boggii",
+    "stepper-progress-n-of-m": "Tarkaanfii ${n} kan ${m} keessaa",
+    "stepper-word-bank": "Jechoota filachuuf",
+    "stepper-open-ended-saved": "Hojii gaarii — deebiin kee kuufameera.",
+    "stepper-open-ended-rephrase": "Gaarummaan haa turru — deebii kee haala biraatiin barreessuu yaali.",
+    "open-ended-answer-label": "Deebii kee"
 }

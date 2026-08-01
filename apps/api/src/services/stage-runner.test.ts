@@ -7,6 +7,8 @@ import { createBookStorage } from "@adt/storage"
 import {
   buildStageRunnerImageClassifyConfig,
   createStageRunner,
+  processWithConcurrency,
+  RunCancelledError,
 } from "./stage-runner.js"
 
 const {
@@ -1577,5 +1579,79 @@ speech:
     } finally {
       storage.close()
     }
+  })
+})
+
+describe("processWithConcurrency launch ramp", () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it("staggers the opening wave by rampMs (one launch per interval)", async () => {
+    vi.useFakeTimers()
+    const started: number[] = []
+    // 4 items, concurrency 4 → whole wave would fire at once without a ramp.
+    const done = processWithConcurrency(
+      [0, 1, 2, 3],
+      4,
+      async (i) => {
+        started.push(i)
+      },
+      { rampMs: 100 }
+    )
+
+    // Synchronously, only the first item has launched; the loop is parked at the
+    // ramp sleep before launching #2.
+    expect(started).toEqual([0])
+    await vi.advanceTimersByTimeAsync(100)
+    expect(started).toEqual([0, 1])
+    await vi.advanceTimersByTimeAsync(100)
+    expect(started).toEqual([0, 1, 2])
+    await vi.advanceTimersByTimeAsync(100)
+    expect(started).toEqual([0, 1, 2, 3])
+    await done
+  })
+
+  it("does not ramp once the pool is full (steady state) or at concurrency 1", async () => {
+    vi.useFakeTimers()
+    const started: number[] = []
+    let resolved = false
+    // concurrency 1 → pool is full after the first launch, so the ramp guard
+    // (launched < concurrency) never fires. The run completes with only
+    // microtask flushing — no timers to advance.
+    processWithConcurrency(
+      [0, 1, 2],
+      1,
+      async (i) => {
+        started.push(i)
+      },
+      { rampMs: 100 }
+    ).then(() => {
+      resolved = true
+    })
+
+    await vi.advanceTimersByTimeAsync(0)
+    expect(started).toEqual([0, 1, 2])
+    expect(resolved).toBe(true)
+  })
+
+  it("aborts promptly during the ramp instead of waiting it out", async () => {
+    vi.useFakeTimers()
+    const controller = new AbortController()
+    const started: number[] = []
+    const done = processWithConcurrency(
+      [0, 1, 2, 3],
+      4,
+      async (i) => {
+        started.push(i)
+      },
+      { rampMs: 100, runSignal: controller.signal }
+    )
+
+    expect(started).toEqual([0]) // parked at the ramp sleep before #2
+    controller.abort()
+    await expect(done).rejects.toBeInstanceOf(RunCancelledError)
+    // The remaining wave never launched — no need to advance the ramp timer.
+    expect(started).toEqual([0])
   })
 })

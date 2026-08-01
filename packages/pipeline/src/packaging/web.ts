@@ -37,7 +37,14 @@ import {
   resolveFontsCacheDir,
 } from "../fonts-bundle.js"
 import { resolveTypographyCss } from "../typography.js"
-import { resolveQuizPalette, type QuizPalette } from "../quiz-palette.js"
+import { resolveQuizPalette, DEFAULT_QUIZ_PALETTE, type QuizPalette } from "../quiz-palette.js"
+import {
+  readEditableActivities,
+  enabledEditableActivity,
+  resolveEditableActivityImages,
+  renderEditableActivityHtml,
+  maskStepperPayloads,
+} from "../render-editable-activity.js"
 import type { Progress } from "../progress.js"
 import { nullProgress } from "../progress.js"
 import { getGlossaryItemTextId } from "../glossary.js"
@@ -200,16 +207,23 @@ export function computePackagingInputHash(options: ComputePackagingInputHashOpti
   // 3. Book config (affects rendering, accessibility, etc.)
   hash.update(JSON.stringify(options.config))
 
-  // 4. Web assets directory fingerprint (file names + sizes + mtimes)
+  // 4. Sign-language metadata. Assigning or reassigning a video only updates
+  // SQLite, so the videos directory fingerprint below does not detect it.
+  const signLanguageVideos = options.storage.getSignLanguageVideos()
+    .map(({ videoId, sectionId, mimeType }) => ({ videoId, sectionId, mimeType }))
+    .sort((a, b) => a.videoId.localeCompare(b.videoId))
+  hash.update(JSON.stringify(signLanguageVideos))
+
+  // 5. Web assets directory fingerprint (file names + sizes + mtimes)
   const assetEntries = collectDirectoryFingerprint(options.webAssetsDir).sort((a, b) => a[0].localeCompare(b[0]))
   hash.update(JSON.stringify(assetEntries))
 
-  // 5. Images directory fingerprint
+  // 6. Images directory fingerprint
   const imagesDir = path.join(options.bookDir, "images")
   const imageEntries = collectDirectoryFingerprint(imagesDir).sort((a, b) => a[0].localeCompare(b[0]))
   hash.update(JSON.stringify(imageEntries))
 
-  // 6. Videos directory fingerprint
+  // 7. Videos directory fingerprint
   const videosDir = path.join(options.bookDir, "videos")
   const videoEntries = collectDirectoryFingerprint(videosDir).sort((a, b) => a[0].localeCompare(b[0]))
   hash.update(JSON.stringify(videoEntries))
@@ -266,6 +280,9 @@ export async function packageAdtWeb(
   // the book has a detectable accent color; otherwise keep the clean white default.
   const quizPalette = (quizMatchBookStyle ?? true) ? resolveQuizPalette(storage) : null
   const quizStyle = quizPalette ? { palette: quizPalette } : null
+  // Step-by-step activities always need a palette (their UI is deterministic,
+  // not LLM-styled) — fall back to the neutral default when the book has none.
+  const stepperBasePalette = quizPalette ?? DEFAULT_QUIZ_PALETTE
 
   const step = "package-web" as const
   progress.emit({ type: "step-start", step })
@@ -347,6 +364,7 @@ export async function packageAdtWeb(
     const decorativeImageIds = buildDecorativeImageIdSet(storage, page.pageId)
 
     const renderRow = storage.getLatestNodeData("web-rendering", page.pageId)
+    const editableActivities = readEditableActivities(storage, page.pageId)
     if (renderRow) {
       const parsed = WebRenderingOutputSchema.safeParse(renderRow.data)
       if (parsed.success) {
@@ -363,15 +381,36 @@ export async function packageAdtWeb(
             hasActivitySections = true
           }
 
+          // Step-by-step override: an enabled editable activity replaces the
+          // stored LLM HTML with the stepper shell (structured JSON + palette).
+          const stepperActivity = enabledEditableActivity(
+            editableActivities,
+            rs.sectionIndex,
+            rs.sectionType,
+          )
+
           // Rewrite image URLs and copy referenced images
           const preferredImageAltMap = buildPreferredImageAltMap(storage, page.pageId, sectionMeta)
-          let { html: rewrittenHtml, referencedImages } = rewriteImageUrls(
-            rs.html,
-            label,
-            imageMap,
-            preferredImageAltMap,
-            decorativeImageIds,
-          )
+          let rewrittenHtml: string
+          let referencedImages: string[]
+          if (stepperActivity) {
+            const resolved = resolveEditableActivityImages(stepperActivity, imageMap, {
+              preferredAltMap: preferredImageAltMap,
+              decorativeImageIds,
+            })
+            rewrittenHtml = renderEditableActivityHtml(resolved.activity, {
+              palette: stepperBasePalette,
+            })
+            referencedImages = resolved.referencedImages
+          } else {
+            ;({ html: rewrittenHtml, referencedImages } = rewriteImageUrls(
+              rs.html,
+              label,
+              imageMap,
+              preferredImageAltMap,
+              decorativeImageIds,
+            ))
+          }
 
           for (const imageId of referencedImages) {
             if (!copiedImages.has(imageId)) {
@@ -386,8 +425,8 @@ export async function packageAdtWeb(
             }
           }
 
-          // Convert LaTeX math to MathML
-          const sectionHasMath = containsMathContent(rewrittenHtml)
+          // Convert LaTeX math to MathML (stepper shells are JSON — leave untouched)
+          const sectionHasMath = !stepperActivity && containsMathContent(rewrittenHtml)
           if (sectionHasMath) {
             hasMath = true
             rewrittenHtml = convertLatexToMathml(rewrittenHtml)
@@ -416,7 +455,8 @@ export async function packageAdtWeb(
             pageTitle: title,
             pageHeading: headingText?.text ?? title,
             pageIndex: pageList.length + 1,
-            activityAnswers: rs.activityAnswers,
+            // Stepper answers travel inside the embedded JSON payload.
+            activityAnswers: stepperActivity ? undefined : rs.activityAnswers,
             hasMath: sectionHasMath,
             bundleVersion,
             applyBodyBackground,
@@ -535,6 +575,32 @@ export async function packageAdtWeb(
   progress.emit({ type: "step-progress", step, message: "Packaging translations and audio..." })
 
   const sourceLanguage = getBaseLanguage(language)
+
+  // Glossary term pictures: copy each item's assigned image into the shared
+  // images/ dir (deduped against page images) and remember its bundle href
+  // for glossary.json. Language-neutral, so computed once outside the loop.
+  const glossaryImageHrefs = new Map<string, string>()
+  // Text-catalog ids of active glossary items — sign-language videos attach
+  // to terms via these ids (sign_language_videos.section_id).
+  const glossaryTextIds = new Set<string>()
+  if (features?.glossary !== false && glossary?.items) {
+    glossary.items.forEach((item, i) => {
+      if (item.pruned) return
+      glossaryTextIds.add(getGlossaryItemTextId(item, i))
+      if (!item.imageId || glossaryImageHrefs.has(item.imageId)) return
+      const filename = imageMap.get(item.imageId)
+      if (!filename) return
+      if (!copiedImages.has(item.imageId)) {
+        fs.copyFileSync(
+          path.join(bookDir, "images", filename),
+          path.join(imageDir, filename),
+        )
+        copiedImages.add(item.imageId)
+      }
+      glossaryImageHrefs.set(item.imageId, `images/${filename}`)
+    })
+  }
+
   const hasTTS = (features?.readAloud !== false) && outputLanguages.some(
     (lang) => {
       const legacyLang = lang.replace("-", "_")
@@ -623,24 +689,41 @@ export async function packageAdtWeb(
     // The ADT JS runtime expects keys prefixed with "video-" and files in a "video/" directory.
     // Each video is assigned to a sectionId which maps 1:1 to a pageIndex.
     const videosMap: Record<string, string> = {}
+    // Glossary term id → bundle-relative video href, surfaced through
+    // glossary.json so the runtime popover/panel can embed the sign video.
+    const glossaryVideoHrefs = new Map<string, string>()
     if (features?.signLanguage !== false) {
       const allVideos = storage.getSignLanguageVideos()
       const videoDir = path.join(localeDir, "video")
-      if (allVideos.some((v) => v.sectionId)) {
+      // Page-section videos feed the runtime PIP player (videos.json);
+      // glossary-item videos (sectionId = `gl001`…) feed the glossary
+      // popover/panel instead and stay out of the page map.
+      const pageVideos = allVideos.filter(
+        (v) => v.sectionId && sectionIdToPageIndex.has(v.sectionId),
+      )
+      const glossaryVideos = allVideos.filter(
+        (v) => v.sectionId && glossaryTextIds.has(v.sectionId),
+      )
+      if (pageVideos.length > 0 || glossaryVideos.length > 0) {
         fs.mkdirSync(videoDir, { recursive: true })
-        for (const video of allVideos) {
-          if (!video.sectionId) continue
-          const ext = video.mimeType === "video/webm" ? ".webm" : ".mp4"
-          // Use section-based naming (e.g. sl_pg001_sec001.mp4) matching audio file conventions
-          const filename = `sl_${video.sectionId}${ext}`
-          const srcPath = storage.getSignLanguageVideoPath(video.videoId)
-          if (srcPath && fs.existsSync(srcPath)) {
-            fs.copyFileSync(srcPath, path.join(videoDir, filename))
-            const idx = sectionIdToPageIndex.get(video.sectionId)
-            if (idx !== undefined) {
-              videosMap[`video-${idx}`] = filename
-            }
-          }
+      }
+      for (const video of pageVideos) {
+        const ext = video.mimeType === "video/webm" ? ".webm" : ".mp4"
+        // Use section-based naming (e.g. sl_pg001_sec001.mp4) matching audio file conventions
+        const filename = `sl_${video.sectionId}${ext}`
+        const srcPath = storage.getSignLanguageVideoPath(video.videoId)
+        if (srcPath && fs.existsSync(srcPath)) {
+          fs.copyFileSync(srcPath, path.join(videoDir, filename))
+          videosMap[`video-${sectionIdToPageIndex.get(video.sectionId!)}`] = filename
+        }
+      }
+      for (const video of glossaryVideos) {
+        const ext = video.mimeType === "video/webm" ? ".webm" : ".mp4"
+        const filename = `sl_${video.sectionId}${ext}`
+        const srcPath = storage.getSignLanguageVideoPath(video.videoId)
+        if (srcPath && fs.existsSync(srcPath)) {
+          fs.copyFileSync(srcPath, path.join(videoDir, filename))
+          glossaryVideoHrefs.set(video.sectionId!, `content/i18n/${lang}/video/${filename}`)
         }
       }
     }
@@ -667,7 +750,14 @@ export async function packageAdtWeb(
     writeJson(path.join(localeDir, "images.json"), imagesMap)
 
     if (features?.glossary !== false) {
-      const glossaryJson = buildGlossaryJson(glossary, catalog, textsMap, baseLang === sourceLanguage)
+      const glossaryJson = buildGlossaryJson(
+        glossary,
+        catalog,
+        textsMap,
+        baseLang === sourceLanguage,
+        glossaryImageHrefs,
+        glossaryVideoHrefs,
+      )
       writeJson(path.join(localeDir, "glossary.json"), glossaryJson)
     }
   }
@@ -679,7 +769,10 @@ export async function packageAdtWeb(
   const hasQuiz = (features?.quizzes !== false) && (quizData !== undefined && quizData.quizzes.length > 0)
   const hasEasyRead = easyReadEntries.length > 0
 
-  const hasSignLanguageVideos = (features?.signLanguage !== false) && storage.getSignLanguageVideos().some((v) => v.sectionId !== null)
+  // Only page-section videos light up the runtime PIP player; glossary-item
+  // videos (sectionId = `gl001`…) are an EPUB glossary-page concern.
+  const hasSignLanguageVideos = (features?.signLanguage !== false) &&
+    storage.getSignLanguageVideos().some((v) => v.sectionId !== null && sectionIdToPageIndex.has(v.sectionId))
 
   const configJson: Record<string, unknown> = {
     title,
@@ -1108,7 +1201,6 @@ function injectOpacityClass(html: string): string {
   )
 }
 
-
 export function stripContentEditable(html: string): string {
   return html.replace(
     /\s+contenteditable(?:\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+))?/gi,
@@ -1147,7 +1239,22 @@ export function renderPageHtml(opts: RenderPageOptions): string {
       ? `\n    <script type="text/javascript">\n        window.correctAnswers = JSON.parse('${escapeInlineScriptJson(JSON.stringify(opts.activityAnswers))}');\n    </script>`
       : ""
 
-  const normalizedContent = stripContentEditable(promoteFirstHeadingToH1(opts.content))
+  // Stepper JSON payloads are masked for the whole assembly below — the
+  // regex passes over the page HTML (contenteditable strip, background-color
+  // scan, heading probes) must not match inside the embedded activity JSON.
+  const { masked: maskedContent, restore: restoreStepperPayloads } =
+    maskStepperPayloads(opts.content)
+  const normalizedContent = stripContentEditable(promoteFirstHeadingToH1(maskedContent))
+
+  // Custom activities (`activity_custom_*`) ship an inline <script> that calls
+  // window.adtRegisterCustomActivity(section, {validate, reset}) during parse —
+  // BEFORE base.bundle (end of <body>) can define it. Inject a tiny buffering
+  // stub into <head> so that call lands in a queue the runtime drains on boot
+  // (see apps/adt-runtime/src/features/activity/runtime/activity-custom.ts).
+  // Without this the call throws and the activity's Submit button never enables.
+  const customActivityStub = /data-section-type="activity_custom/.test(normalizedContent)
+    ? `\n    <script>(function(){if(window.adtRegisterCustomActivity)return;var q=(window.__adtPendingCustomActivities=window.__adtPendingCustomActivities||[]);window.adtRegisterCustomActivity=function(section,handlers){q.push({section:section,handlers:handlers})}})();</script>`
+    : ""
 
   // INVARIANT: every page MUST render all TTS-scannable content inside
   // <div id="content">. The reader's gatherAudioElements scans #content for
@@ -1237,7 +1344,7 @@ ${fallbackHeadingHtml}${contentBlock}
   // 96 is the first-paint dock-band fallback; 0 in embed mode (dock hidden).
   const flFit = opts.fixedViewport ? fixedLayoutWebFit(opts.embed ? 0 : 96) : null
 
-  return `<!DOCTYPE html>
+  return restoreStepperPayloads(`<!DOCTYPE html>
 <html lang="${escapeAttr(opts.language)}">
 
 <head>
@@ -1248,7 +1355,7 @@ ${fallbackHeadingHtml}${contentBlock}
     <meta name="page-section-id" content="${opts.pageIndex}" />
     <link href="./content/tailwind_output.css" rel="stylesheet">
     <link href="./assets/libs/fontawesome/css/all.min.css" rel="stylesheet">
-    <link href="./assets/fonts.css" rel="stylesheet">${googleFontsLinks}
+    <link href="./assets/fonts.css" rel="stylesheet">${googleFontsLinks}${customActivityStub}
 ${mathScript}${embedStyles}${bodyFontStyle}${flFit ? `${flFit.headStyle}\n` : ""}</head>
 
 <body${opts.fixedViewport ? ` style="margin:0;overflow:hidden;width:100%;height:100%"` : ` class="min-h-screen flex items-center justify-center"${bodyStyle}`}>
@@ -1264,7 +1371,7 @@ ${opts.embed
 </body>
 
 </html>
-`
+`)
 }
 
 // ---------------------------------------------------------------------------
@@ -1540,7 +1647,6 @@ export function buildImageMap(imagesDir: string): Map<string, string> {
   return map
 }
 
-
 function loadImageCaptionMap(storage: Storage, pageId: string): Map<string, string> {
   const row = storage.getLatestNodeData("image-captioning", pageId)
   if (!row) return new Map<string, string>()
@@ -1653,7 +1759,6 @@ export function buildPreferredImageAltMap(
   return section ? applyDuplicateImageAltPolicy(section, preferredImageAltMap) : preferredImageAltMap
 }
 
-
 /** Rewrite image URLs from /api/books/{label}/images/{id} to images/{filename} */
 export function rewriteImageUrls(
   html: string,
@@ -1748,15 +1853,32 @@ export function rewriteImageUrls(
 // Glossary helpers
 // ---------------------------------------------------------------------------
 
+export interface GlossaryJsonEntry {
+  word: string
+  definition: string
+  variations: string[]
+  emoji: string
+  /** Text-catalog id (`gl001`…) — the stable cross-surface key (e.g. for
+   *  sign-language videos attached to the term). */
+  id: string
+  /** Bundle-relative href of the term's picture (`images/<file>`). */
+  image?: string
+  /** Bundle-relative href of the term's sign-language video
+   *  (`content/i18n/<lang>/video/sl_<id>.<ext>`). */
+  video?: string
+}
+
 export function buildGlossaryJson(
   glossary: GlossaryOutput | undefined,
   catalog: TextCatalogOutput | undefined,
   textsMap: Record<string, string>,
   isSourceLanguage: boolean,
-): Record<string, { word: string; definition: string; variations: string[]; emoji: string }> {
+  imageHrefByImageId?: Map<string, string>,
+  videoHrefByItemId?: Map<string, string>,
+): Record<string, GlossaryJsonEntry> {
   if (!glossary?.items) return {}
 
-  const result: Record<string, { word: string; definition: string; variations: string[]; emoji: string }> = {}
+  const result: Record<string, GlossaryJsonEntry> = {}
 
   for (let i = 0; i < glossary.items.length; i++) {
     const item = glossary.items[i]
@@ -1767,12 +1889,17 @@ export function buildGlossaryJson(
     // Use translated text if available, otherwise fall back to source
     const word = textsMap[glId] ?? item.word
     const definition = textsMap[defId] ?? item.definition
+    const image = item.imageId ? imageHrefByImageId?.get(item.imageId) : undefined
+    const video = videoHrefByItemId?.get(glId)
 
     result[word] = {
       word,
       definition,
       variations: item.variations,
       emoji: item.emojis.join(""),
+      id: glId,
+      ...(image ? { image } : {}),
+      ...(video ? { video } : {}),
     }
   }
 
@@ -1782,6 +1909,39 @@ export function buildGlossaryJson(
 // ---------------------------------------------------------------------------
 // Math detection
 // ---------------------------------------------------------------------------
+
+/**
+ * `<script>`/`<style>` blocks, whose contents are raw text rather than markup.
+ * The LaTeX passes must not touch these — see `convertLatexToMathml`.
+ *
+ * Built fresh per call rather than shared: these are `/g` regexes driven by
+ * `lastIndex`, so a single shared instance would corrupt an outer scan if a
+ * callback ever reached one of these helpers again.
+ */
+function rawTextBlockRe(): RegExp {
+  return /<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>/gi
+}
+
+/**
+ * Apply `fn` to every part of `html` that is NOT inside a `<script>`/`<style>`
+ * block, leaving those blocks byte-identical.
+ */
+function mapOutsideRawText(html: string, fn: (part: string) => string): string {
+  const re = rawTextBlockRe()
+  let out = ""
+  let last = 0
+  let match: RegExpExecArray | null
+  while ((match = re.exec(html)) !== null) {
+    out += fn(html.slice(last, match.index)) + match[0]
+    last = match.index + match[0].length
+  }
+  return out + fn(html.slice(last))
+}
+
+/** Remove `<script>`/`<style>` blocks so their contents can't be scanned. */
+function stripRawTextBlocks(html: string): string {
+  return html.replace(rawTextBlockRe(), "")
+}
 
 const MATH_INDICATORS = [
   "$",
@@ -1802,11 +1962,20 @@ const MATH_INDICATORS = [
  * identifiers like `variable_name` — the base letter must not be preceded by
  * another letter, and the subscript char must not be followed by another letter.
  */
-const UNDELIMITED_LATEX_RE = /\\(?:text|mbox|hat|frac|sqrt|vec|bar|overline|underline|mathbf|mathrm|mathit|mathcal|mathbb|mathfrak|mathscr|circ|times|div|pm|mp|leq|geq|neq|approx|equiv|sim|in|notin|subset|supset|cup|cap|leftarrow|rightarrow|Leftarrow|Rightarrow|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|pi|sigma|omega|phi|psi|infty|partial|nabla|sum|prod|int|lim|log|ln|sin|cos|tan|sec|csc|cot|left|right|cdot|ldots|cdots|quad|qquad|binom|tag)\b|[_^]\{|(?<![A-Za-z])[A-Za-z][_^][A-Za-z0-9](?![A-Za-z])/
+// NOTE: longer alternatives must precede their prefixes (dfrac/tfrac before frac),
+// otherwise `\dfrac` never matches — the alternation is anchored right after the
+// backslash, so `frac` cannot match the `d`. `begin`/`end` are needed for bare
+// `\begin{array}` blocks (columnar sums, long division), which MATH_INDICATORS
+// recognises for gating but this pass must also match to actually convert them.
+const UNDELIMITED_LATEX_RE = /\\(?:begin|end|dfrac|tfrac|text|mbox|hat|frac|sqrt|vec|bar|overline|underline|mathbf|mathrm|mathit|mathcal|mathbb|mathfrak|mathscr|circ|times|div|pm|mp|leq|geq|neq|approx|equiv|sim|in|notin|subset|supset|cup|cap|leftarrow|rightarrow|Leftarrow|Rightarrow|alpha|beta|gamma|delta|epsilon|theta|lambda|mu|pi|sigma|omega|phi|psi|infty|partial|nabla|sum|prod|int|lim|log|ln|sin|cos|tan|sec|csc|cot|left|right|cdot|ldots|cdots|quad|qquad|binom|tag)\b|[_^]\{|(?<![A-Za-z])[A-Za-z][_^][A-Za-z0-9](?![A-Za-z])/
 
-function containsMathContent(html: string): boolean {
-  if (MATH_INDICATORS.some((indicator) => html.includes(indicator))) return true
-  return UNDELIMITED_LATEX_RE.test(html)
+export function containsMathContent(html: string): boolean {
+  // Scan markup only: a `$` or `\(` inside an inline grading script is JS, not
+  // math, and would otherwise flag the whole section as math (loading the
+  // MathML stylesheet on a page that has none).
+  const scannable = stripRawTextBlocks(html)
+  if (MATH_INDICATORS.some((indicator) => scannable.includes(indicator))) return true
+  return UNDELIMITED_LATEX_RE.test(scannable)
 }
 
 /**
@@ -1973,12 +2142,32 @@ function convertDelimitedLatex(text: string): string {
 /**
  * Replace LaTeX math in HTML content with MathML rendered by Temml.
  * Handles delimited math ($, $$, \(, \[) and undelimited LaTeX in text nodes.
+ *
+ * Both passes only touch text-node content (between > and <), never tag
+ * attributes. Generated activity HTML sometimes echoes the expression into an
+ * attribute (e.g. `<input aria-label="c. $5(2x)$" class="…">`); converting it
+ * there injects MathML whose own quoted attributes (`fence="true"`) terminate
+ * the attribute value early and split the tag open — the input disappears and
+ * its attribute tail renders as page text.
+ *
+ * `<script>`/`<style>` bodies are left untouched — custom-activity sections
+ * (`activity_custom_*`) ship an inline grading script, and JS routinely
+ * contains `$` (template literals) and `\(`…`\)` (regex literals) that this
+ * pass would otherwise rewrite into MathML, breaking the script at package
+ * time while the studio preview still looked fine.
  */
 export function convertLatexToMathml(html: string): string {
+  return mapOutsideRawText(html, convertLatexInFragment)
+}
+
+function convertLatexInFragment(html: string): string {
   html = decodeDollarEntities(html)
 
-  // First pass: convert delimited math anywhere in the string
-  html = convertDelimitedLatex(html)
+  // First pass: convert delimited math in text nodes
+  html = html.replace(/(>)([^<]+)(<)/g, (_match, open: string, text: string, close: string) => {
+    const converted = convertDelimitedLatex(text)
+    return converted !== text ? `${open}${converted}${close}` : _match
+  })
 
   // Second pass: convert undelimited LaTeX in text nodes (content between > and <).
   // For pure math nodes, render the entire text as a single expression.

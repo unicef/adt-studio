@@ -14,6 +14,7 @@ import {
   rewriteImageUrls,
   convertLatexToMathml,
   convertLatexString,
+  containsMathContent,
 } from "../packaging/web.js"
 import { packageWebpub, nestTocEntries, injectActivitiesBundle } from "../packaging/webpub.js"
 import { deriveQuizPalette } from "../quiz-palette.js"
@@ -244,6 +245,44 @@ describe("renderPageHtml", () => {
     expect(html).toContain("base.bundle.min.js")
     expect(html).not.toContain("offline-preloader.js")
     expect(html).not.toContain("scorm.js")
+  })
+
+  it("injects the custom-activity registration stub in <head> for activity_custom pages", () => {
+    const html = renderPageHtml({
+      content:
+        '<section data-section-type="activity_custom_jigsaw" data-id="pg008_s2"><div>tiles</div><script>window.adtRegisterCustomActivity(section,{validate:()=>true});</script></section>',
+      language: "en",
+      sectionId: "pg008",
+      pageTitle: "Test",
+      pageIndex: 8,
+      hasMath: false,
+      bundleVersion: "1",
+    })
+
+    // The stub defines the registration hook and a pending queue...
+    expect(html).toContain("window.adtRegisterCustomActivity=function")
+    expect(html).toContain("__adtPendingCustomActivities")
+    // ...and it MUST live in <head>, before the section's parse-time script runs.
+    const headEnd = html.indexOf("</head>")
+    const stubAt = html.indexOf("__adtPendingCustomActivities")
+    const sectionAt = html.indexOf("activity_custom_jigsaw")
+    expect(stubAt).toBeGreaterThan(0)
+    expect(stubAt).toBeLessThan(headEnd)
+    expect(stubAt).toBeLessThan(sectionAt)
+  })
+
+  it("does not inject the custom-activity stub for non-custom pages", () => {
+    const html = renderPageHtml({
+      content: '<section data-section-type="activity_multiple_choice"><p>Pick one</p></section>',
+      language: "en",
+      sectionId: "pg001",
+      pageTitle: "Test",
+      pageIndex: 1,
+      hasMath: false,
+      bundleVersion: "1",
+    })
+
+    expect(html).not.toContain("__adtPendingCustomActivities")
   })
 
   it("does not reference woff2 fonts directly (they are declared in fonts.css)", () => {
@@ -1199,7 +1238,43 @@ describe("packageAdtWeb", () => {
         definition: "La couche superieure de la terre",
         variations: ["soils"],
         emoji: "🪨",
+        id: "gl_manual_soil",
       },
+    })
+  })
+
+  it("carries the term picture and sign-language video hrefs into glossary json", () => {
+    const glossaryJson = buildGlossaryJson(
+      {
+        items: [
+          {
+            id: "gl001",
+            source: "ai",
+            word: "volcano",
+            definition: "A mountain that erupts",
+            variations: [],
+            emojis: ["🌋"],
+            imageId: "pg003_im001",
+          },
+        ],
+        pageCount: 1,
+        generatedAt: "2026-01-01T00:00:00.000Z",
+      },
+      undefined,
+      {},
+      true,
+      new Map([["pg003_im001", "images/pg003_im001.png"]]),
+      new Map([["gl001", "content/i18n/en/video/sl_gl001.mp4"]]),
+    )
+
+    expect(glossaryJson["volcano"]).toEqual({
+      word: "volcano",
+      definition: "A mountain that erupts",
+      variations: [],
+      emoji: "🌋",
+      id: "gl001",
+      image: "images/pg003_im001.png",
+      video: "content/i18n/en/video/sl_gl001.mp4",
     })
   })
 
@@ -1951,6 +2026,48 @@ describe("convertLatexToMathml", () => {
     expect(mathCount).toBe(2)
   })
 
+  it("leaves a custom activity's inline <script> byte-identical", () => {
+    // A grading script's regex literals (\( … \)) and template literals ($…$)
+    // look exactly like delimited LaTeX. Rewriting them into MathML would turn
+    // the script into a SyntaxError in the packaged book.
+    const script =
+      "<script>const re = /\\(([^)]+)\\)/; const msg = `${correct}/${total} right`;</script>"
+    const result = convertLatexToMathml(`<section><p>Sort them</p>${script}</section>`)
+    expect(result).toContain(script)
+    expect(result).not.toContain("<math")
+  })
+
+  it("still converts math outside a script in the same section", () => {
+    const script = "<script>const re = /\\(x\\)/;</script>"
+    const result = convertLatexToMathml(`<section><p>The value $x^2$ here</p>${script}</section>`)
+    expect(result).toContain("<math")
+    expect(result).toContain(script)
+  })
+})
+
+describe("containsMathContent", () => {
+  it("ignores $ and \\( that only appear inside an inline script", () => {
+    const html =
+      "<section><p>Sort the animals</p>" +
+      "<script>const msg = `${n}/${total}`; const re = /\\(a\\)/;</script></section>"
+    expect(containsMathContent(html)).toBe(false)
+  })
+
+  it("ignores LaTeX-looking commands inside a <style> block", () => {
+    const html = "<section><p>Plain text</p><style>.x{content:'\\\\frac{1}{2}'}</style></section>"
+    expect(containsMathContent(html)).toBe(false)
+  })
+
+  it("still detects math in markup alongside a script", () => {
+    const html =
+      "<section><p>The value $x^2$ here</p><script>const a = 1;</script></section>"
+    expect(containsMathContent(html)).toBe(true)
+  })
+
+  it("still detects undelimited LaTeX in markup", () => {
+    expect(containsMathContent('<p data-id="t1">6\\ \\text{cubos}</p>')).toBe(true)
+  })
+
   it("converts undelimited LaTeX with \\text{} in text nodes", () => {
     const html = '<p data-id="tx001">V_{\\text{empilhamento I}} = 6\\ \\text{cubos}</p>'
     const result = convertLatexToMathml(html)
@@ -1968,6 +2085,60 @@ describe("convertLatexToMathml", () => {
   it("does not modify text nodes without LaTeX", () => {
     const html = "<p>Just plain text here</p>"
     expect(convertLatexToMathml(html)).toBe(html)
+  })
+
+  // Regression: UNDELIMITED_LATEX_RE anchors its alternation immediately after
+  // the backslash, so a shorter alternative listed first shadows every longer
+  // one sharing its suffix — `frac` cannot match the `d` in `\dfrac`. Both
+  // variants below rendered as literal LaTeX on the page before the fix.
+  it("converts undelimited \\dfrac (not shadowed by the \\frac alternative)", () => {
+    const html = '<p data-id="tx001">\\dfrac{2}{5} + \\dfrac{3}{9}</p>'
+    const result = convertLatexToMathml(html)
+    expect(result).toContain("<math")
+    expect(result).toContain("<mfrac>")
+    expect(result).not.toContain("\\dfrac")
+  })
+
+  it("converts undelimited \\tfrac (not shadowed by the \\frac alternative)", () => {
+    const html = '<p data-id="tx001">\\tfrac{1}{2}</p>'
+    const result = convertLatexToMathml(html)
+    expect(result).toContain("<math")
+    expect(result).toContain("<mfrac>")
+    expect(result).not.toContain("\\tfrac")
+  })
+
+  // Regression: the delimited pass used to run over the raw HTML string, so a
+  // `$…$` pair inside a tag attribute (activity inputs echoing the expression
+  // in aria-label) was replaced with MathML. For parenthesized expressions the
+  // MathML carries quoted attributes (`fence="true"`), whose first embedded
+  // quote truncated the attribute value and split the tag open — the input
+  // vanished and its attribute tail rendered as page text.
+  it("never converts LaTeX inside tag attributes", () => {
+    const input =
+      '<input type="text" aria-label="c. $5(2x)$" class="mt-4 w-full rounded border border-gray-300 bg-white p-2">'
+    const html = `<p data-id="tx001">c. $5(2x)$</p>${input}`
+    const result = convertLatexToMathml(html)
+    expect(result).toContain(input)
+    expect(result).toContain("<math")
+    expect(result).not.toContain("$5(2x)$</p>")
+  })
+
+  it("converts delimited math in text nodes on both sides of a tag boundary", () => {
+    const result = convertLatexToMathml("<p>$a + b$</p><p>$c + d$</p>")
+    const mathCount = (result.match(/<math/g) ?? []).length
+    expect(mathCount).toBe(2)
+  })
+
+  // Regression: `\begin{` is listed in MATH_INDICATORS, which only decides
+  // whether the converter runs at all. The converter's own gate never listed
+  // it, so columnar sums and long division were detected as "this page has
+  // maths" and then left unconverted.
+  it("converts a bare \\begin{array} block (columnar arithmetic)", () => {
+    const html = '<p data-id="tx002">\\begin{array}{r} 24 \\\\ + 18 \\\\ \\hline 42 \\end{array}</p>'
+    const result = convertLatexToMathml(html)
+    expect(result).toContain("<math")
+    expect(result).toContain("<mtable")
+    expect(result).not.toContain("\\begin{array}")
   })
 })
 

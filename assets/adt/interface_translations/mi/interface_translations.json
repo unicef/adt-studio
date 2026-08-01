@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "Ka tāpirihia ngā taputapu kaiwhakahaere i te whakahōutanga whai muri.",
     "main-menu-label": "Tahua matua",
     "cover-label": "Uhi",
-    "print-page-label": "Tā te whārangi"
+    "print-page-label": "Tā te whārangi",
+    "stepper-progress-n-of-m": "Hipanga ${n} o ${m}",
+    "stepper-word-bank": "Ngā kupu hei kōwhiri",
+    "stepper-open-ended-saved": "Ka pai — kua tiakina tō whakautu.",
+    "stepper-open-ended-rephrase": "Kia atawhai tātou — ngana ki te tuhi anō i tō whakautu.",
+    "open-ended-answer-label": "Tō whakautu"
 }

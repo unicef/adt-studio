@@ -6,6 +6,36 @@ import { TranslationEvaluationConfig } from "./translation-evaluation.js"
 import { REFLOWABLE_FONT_SETTINGS } from "./reflowable-fonts.js"
 
 export const DEFAULT_LLM_MAX_RETRIES = 5
+export const DEFAULT_LLM_MODEL_ID = "openai:gpt-5.4"
+export const DEFAULT_IMAGE_GENERATION_MODEL_ID = "openai:gpt-image-2"
+export const DEFAULT_OPENAI_TTS_MODEL_ID = "gpt-4o-mini-tts"
+
+export const LLMModelId = z
+  .string()
+  .trim()
+  .regex(/^[a-zA-Z][a-zA-Z0-9]*:[a-zA-Z0-9][a-zA-Z0-9_.-]{0,159}$/)
+  .transform((value) => value.toLowerCase())
+export type LLMModelId = z.infer<typeof LLMModelId>
+
+export const SpeechGenerationModelId = z
+  .string()
+  .trim()
+  .regex(/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,159}$/)
+  .transform((value) => value.toLowerCase())
+export type SpeechGenerationModelId = z.infer<typeof SpeechGenerationModelId>
+
+export const DefaultModelConfig = z.object({
+  model: LLMModelId,
+})
+export type DefaultModelConfig = z.infer<typeof DefaultModelConfig>
+
+export const SpecializedModelDefaultsConfig = z.object({
+  imageGeneration: LLMModelId,
+  speechGeneration: SpeechGenerationModelId,
+})
+export type SpecializedModelDefaultsConfig = z.infer<
+  typeof SpecializedModelDefaultsConfig
+>
 
 export const RateLimitConfig = z.object({
   requests_per_minute: z.number().int().min(1),
@@ -45,7 +75,7 @@ export type PageSectioningConfig = z.infer<typeof PageSectioningConfig>
 
 export const ImageTranslationConfig = StepConfig.extend({
   enabled: z.boolean().optional(),
-  /** Image model id (e.g. "openai:gpt-image-2"). When unset, the step is a no-op. */
+  /** Step-specific image model id. When unset, the book/platform default is used. */
   image_model: z.string().optional(),
   /** Image IDs the user has chosen to translate. Empty = no images regenerated. */
   selected_image_ids: z.array(z.string()).optional(),
@@ -110,8 +140,51 @@ export const AccessibilityAssessmentConfig = z.object({
 })
 export type AccessibilityAssessmentConfig = z.infer<typeof AccessibilityAssessmentConfig>
 
+/**
+ * How the glossary is realised in EPUB exports.
+ *
+ * - `word` (default) — EPUB 3 Dictionaries & Glossaries model only: in-text
+ *   `glossref` anchors resolved against a non-linear `glossary.xhtml`.
+ *   Spec-compliant readers (e.g. BookFusion) show definition popovers.
+ * - `page` — visible glossary pages inserted into the reading flow instead,
+ *   for readers that don't implement the glossary spec (Apple Books etc.).
+ *   In-text terms link to their entry on the glossary page; each entry links
+ *   back to the occurrences ("Page N") so the reader can return.
+ * - `both` — the spec surface plus the in-flow glossary pages.
+ */
+export const EpubGlossaryMode = z.enum(["word", "page", "both"])
+export type EpubGlossaryMode = z.infer<typeof EpubGlossaryMode>
+
+export const EpubGlossaryConfig = z.object({
+  mode: EpubGlossaryMode.optional(),
+  /**
+   * Where glossary pages are inserted (modes `page`/`both`): after the given
+   * 1-indexed physical page number, or `end` for the back of the book. Each
+   * glossary page collects the terms used since the previous placement; the
+   * last placement also collects everything after it. Defaults to `["end"]`.
+   */
+  page_placements: z
+    .array(z.union([z.number().int().min(1), z.literal("end")]))
+    .optional(),
+})
+export type EpubGlossaryConfig = z.infer<typeof EpubGlossaryConfig>
+
+/** Config for the generative agents (activity generation, layout mirror). */
+export const AgentsConfig = z.object({
+  /**
+   * Model the agents run on, as `provider:model`. Defaults to the agents'
+   * built-in model when unset. The request must carry the matching provider
+   * key — agents never cross-wire credentials between providers.
+   */
+  model: LLMModelId.optional(),
+})
+export type AgentsConfig = z.infer<typeof AgentsConfig>
+
 export const AppConfig = z
   .object({
+    default_model: LLMModelId.optional(),
+    default_image_generation_model: LLMModelId.optional(),
+    default_speech_generation_model: SpeechGenerationModelId.optional(),
     structure_types: z.record(z.string(), z.string()),
     role_types: z.record(z.string(), z.string()),
     section_types: z.record(z.string(), z.string()).optional(),
@@ -168,6 +241,7 @@ export const AppConfig = z
         }),
       )
       .optional(),
+    epub_glossary: EpubGlossaryConfig.optional(),
     image_translation: ImageTranslationConfig.optional(),
     image_segmentation: StepConfig.extend({
       min_side: z.number().int().min(0).optional(),
@@ -210,6 +284,12 @@ export const AppConfig = z
     accessibility_assessment: AccessibilityAssessmentConfig.optional(),
     reviewer_validation: ReviewerValidationConfig.optional(),
     translation_evaluation: TranslationEvaluationConfig.optional(),
+    /**
+     * Generative agents (activity generation, layout mirror). `model` accepts
+     * any `provider:model` id — the matching provider key must be sent with the
+     * request (X-OpenAI-Key / X-Anthropic-API-Key / X-Google-API-Key).
+     */
+    agents: AgentsConfig.optional(),
   })
   .superRefine((value, ctx) => {
     if (

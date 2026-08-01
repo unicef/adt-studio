@@ -267,13 +267,18 @@ function getSingleItemFallbackAttempts(options: {
   language: string
   providerConfigs: Record<string, TTSProviderConfig>
   voiceMaps: ReturnType<typeof loadVoicesConfig>
+  defaultOpenAIModel?: string
 }): SingleItemFallbackAttempt[] {
   const attempts: SingleItemFallbackAttempt[] = []
 
   if (options.openaiApiKey) {
     attempts.push({
       provider: "openai",
-      model: resolveSpeechModel("openai", options.providerConfigs),
+      model: resolveSpeechModel(
+        "openai",
+        options.providerConfigs,
+        options.defaultOpenAIModel,
+      ),
       voice: resolveVoice("openai", options.language, options.voiceMaps),
     })
   }
@@ -747,7 +752,13 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
       const configDir = getConfigDir(configPath)
       const voiceMaps = loadVoicesConfig(configDir)
       const instructionsMap = loadSpeechInstructions(configDir)
-      const model = resolveSpeechModel(provider, providerConfigs, config.speech?.model)
+      const defaultSpeechModel =
+        config.speech?.model ?? config.default_speech_generation_model
+      const model = resolveSpeechModel(
+        provider,
+        providerConfigs,
+        defaultSpeechModel,
+      )
       const format = resolveSpeechFormat(provider, config.speech?.format)
       const voice = resolveVoice(
         provider,
@@ -762,6 +773,7 @@ export function createTTSRoutes(booksDir: string, configPath?: string, taskServi
         language: normalizedLanguage,
         providerConfigs,
         voiceMaps,
+        defaultOpenAIModel: defaultSpeechModel,
       })
       const bookDir = path.join(path.resolve(booksDir), safeLabel)
       const cacheDir = path.join(bookDir, ".cache")

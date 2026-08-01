@@ -122,7 +122,6 @@
     "dock-label": "Controlos do leitor",
     "dock-align-spread": "Espaçado",
     "dock-layout-preview": "Posição da barra de ferramentas",
-    "exit-activity-mode": "Sair do modo atividade",
     "settings-section-reading": "Leitura",
     "settings-section-toolbar": "Barra de ferramentas",
     "settings-section-toolbar-hint": "Clique na pré-visualização para escolher onde fica a barra.",
@@ -161,5 +160,10 @@
     "admin-popup-stub-message": "As ferramentas de administração serão adicionadas numa atualização posterior.",
     "main-menu-label": "Menu principal",
     "cover-label": "Capa",
-    "print-page-label": "Imprimir página"
+    "print-page-label": "Imprimir página",
+    "stepper-progress-n-of-m": "Passo ${n} de ${m}",
+    "stepper-word-bank": "Palavras à escolha",
+    "stepper-open-ended-saved": "Muito bem — a tua resposta foi guardada.",
+    "stepper-open-ended-rephrase": "Vamos ser simpáticos — tenta reformular a tua resposta.",
+    "open-ended-answer-label": "A tua resposta"
 }

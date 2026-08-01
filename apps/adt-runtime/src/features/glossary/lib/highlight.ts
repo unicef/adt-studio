@@ -139,6 +139,12 @@ export function applyGlossaryHighlights(data: GlossaryData): boolean {
       } else {
         const span = document.createElement("span")
         span.className = HIGHLIGHT_TAILWIND
+        // fonts.css applies the reading font to every bare `span` (a direct
+        // element rule beats inheritance), which would flip the highlighted
+        // word out of its fixed-layout segment font into the default serif.
+        // Inline `font: inherit` restores inheritance with inline-style
+        // precedence, keeping the wrap typographically invisible.
+        span.style.font = "inherit"
         span.setAttribute("role", "button")
         span.setAttribute("tabindex", "0")
         span.setAttribute("data-glossary-key", seg.termKey)

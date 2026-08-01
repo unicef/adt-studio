@@ -7,6 +7,7 @@ import {
   type BookTypography,
   type WebRenderingOutput,
   DEFAULT_LLM_MAX_RETRIES,
+  DEFAULT_LLM_MODEL_ID,
 } from "@adt/types"
 import type { LLMModel } from "@adt/llm"
 import type { BookFontPromptEntry } from "./fonts-bundle.js"
@@ -231,14 +232,22 @@ export function buildRenderContext(
 
     if (node.role === "image") {
       const imageId = node.nodeId
-      const url = imageUrlFor(label, imageId)
       const img = images.get(imageId)
+      // Drop image nodes whose bytes aren't available. This happens when the
+      // sectioning tree references an id that a later crop/segment step
+      // superseded in image-filtering (the tree still points at the pre-crop
+      // id, e.g. `..._seg003_v1` after it became `..._seg003_v1_crop1`).
+      // Emitting a base64-less ref would send the literal string "undefined"
+      // to the render prompt and crash the whole storyboard step; the missing
+      // id was pruned by image-filtering anyway, so it should not render.
+      if (!img?.base64) return null
+      const url = imageUrlFor(label, imageId)
       image_refs.push({
         image_id: imageId,
         image_url: url,
-        ...(img?.base64 && { image_base64: img.base64 }),
-        ...(img?.width != null && { width: img.width }),
-        ...(img?.height != null && { height: img.height }),
+        image_base64: img.base64,
+        ...(img.width != null && { width: img.width }),
+        ...(img.height != null && { height: img.height }),
       })
       return {
         node_id: imageId,
@@ -377,7 +386,7 @@ export async function renderPage(
 
 const DEFAULT_RENDER_CONFIG = {
   prompt: "web_generation_html",
-  model: "openai:gpt-5.4",
+  model: DEFAULT_LLM_MODEL_ID,
   max_retries: DEFAULT_LLM_MAX_RETRIES,
   timeout: 180,
   temperature: 0.3,
@@ -431,7 +440,7 @@ export function buildRenderStrategyResolver(
     const base: RenderConfig = {
       renderType: strategy?.render_type ?? "llm",
       promptName: cfg?.prompt ?? DEFAULT_RENDER_CONFIG.prompt,
-      modelId: cfg?.model ?? DEFAULT_RENDER_CONFIG.model,
+      modelId: cfg?.model ?? appConfig.default_model ?? DEFAULT_RENDER_CONFIG.model,
       maxRetries: cfg?.max_retries ?? DEFAULT_RENDER_CONFIG.max_retries,
       timeoutMs: (cfg?.timeout ?? DEFAULT_RENDER_CONFIG.timeout) * 1000,
       temperature: cfg?.temperature ?? DEFAULT_RENDER_CONFIG.temperature,

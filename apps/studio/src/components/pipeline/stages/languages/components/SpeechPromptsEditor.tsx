@@ -79,6 +79,7 @@ export function SpeechPromptsEditor({ bookLabel }: SpeechPromptsEditorProps) {
     id: "settings:speech-prompts",
     dirty,
     saving,
+    onSave: handleSave,
     onSaveAndRerun: async () => {
       await handleSave()
       queueRun({ fromStage: "speech", toStage: "speech", apiKey })

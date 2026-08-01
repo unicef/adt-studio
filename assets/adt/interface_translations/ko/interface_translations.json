@@ -121,5 +121,10 @@
     "admin-popup-stub-message": "관리자 도구는 후속 업데이트에서 추가될 예정입니다.",
     "main-menu-label": "주 메뉴",
     "cover-label": "표지",
-    "print-page-label": "페이지 인쇄"
+    "print-page-label": "페이지 인쇄",
+    "stepper-progress-n-of-m": "단계 ${n}/${m}",
+    "stepper-word-bank": "고를 수 있는 낱말",
+    "stepper-open-ended-saved": "잘했어요 — 답이 저장되었습니다.",
+    "stepper-open-ended-rephrase": "고운 말을 써요 — 답을 다시 써 보세요.",
+    "open-ended-answer-label": "내 답"
 }

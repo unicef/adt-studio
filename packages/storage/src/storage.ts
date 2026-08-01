@@ -132,8 +132,6 @@ export interface Storage {
   assignSignLanguageVideo(videoId: string, sectionId: string | null): void
   /** Delete a sign language video. */
   deleteSignLanguageVideo(videoId: string): void
-  /** Delete all sign language videos. */
-  deleteAllSignLanguageVideos(): void
   /** Get the file path for a sign language video (for serving). */
   getSignLanguageVideoPath(videoId: string): string | null
 

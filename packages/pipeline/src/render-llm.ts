@@ -1,9 +1,10 @@
 import type { SectionRendering } from "@adt/types"
 import { webRenderingLLMSchema, activityAnswersLLMSchema } from "@adt/types"
 import type { LLMModel, ValidationResult } from "@adt/llm"
-import { validateSectionHtml } from "./validate-html.js"
+import { autoRepairUnderlineActivityHtml } from "./activity-underline-repair.js"
+import { validateSectionHtml, isEnumerationMarker } from "./validate-html.js"
 import { getViewportBreakpoints, type ScreenshotRenderer } from "./screenshot.js"
-import type { RenderConfig, RenderExecutionOptions, RenderSectionInput } from "./web-rendering.js"
+import type { RenderConfig, RenderExecutionOptions, RenderNode, RenderSectionInput } from "./web-rendering.js"
 import { runVisualReviewLoop } from "./visual-review.js"
 import { buildTypographyCss, typographyPreservationErrors } from "./typography.js"
 import { DEFAULT_TYPOGRAPHY } from "@adt/types"
@@ -145,6 +146,11 @@ export async function renderSectionLlm(
     generatedHtml = review.html
   }
 
+  // Persist the same deterministic repair that validation sees. Without this,
+  // underline-text sections can validate against repaired HTML while the saved
+  // web-rendering node still contains the unrepaired LLM output.
+  generatedHtml = autoRepairUnderlineActivityHtml(generatedHtml, section.sectionType)
+
   // Optional: generate activity answers via a second LLM call
   let activityReasoning: string | undefined
   let activityAnswers: Record<string, string | boolean | number> | undefined
@@ -196,6 +202,7 @@ function validateWebRendering(
   const label = context.label as string
   const leaf_texts = context.leaf_texts as Array<{ text_id: string; text_type: string; text: string }>
   const images = context.images as Array<{ image_id: string }>
+  const nodes = context.nodes as RenderNode[]
   const group_ids = context.group_ids as string[]
   const isActivity = context._isActivity as boolean | undefined
   const sectionId = context.section_id as string
@@ -205,9 +212,10 @@ function validateWebRendering(
   const imageUrlPrefix = `/api/books/${label}/images`
   const expectedTexts = new Map(leaf_texts.map((t) => [t.text_id, t.text]))
   const optionalTextIds = collectOptionalTextIds(leaf_texts)
+  const candidateHtml = autoRepairUnderlineActivityHtml(r.content, sectionType)
 
   const check = validateSectionHtml(
-    r.content,
+    candidateHtml,
     allowedTextIds,
     allowedImageIds,
     imageUrlPrefix,
@@ -218,6 +226,7 @@ function validateWebRendering(
       expectedSectionType: sectionType,
       expectedSectionId: sectionId,
       optionalTextIds,
+      expectedContentIdOrder: collectLeafDataIdOrder(nodes),
     }
   )
   if (check.valid && check.sectionHtml) {
@@ -227,7 +236,21 @@ function validateWebRendering(
       cleaned: { reasoning: r.reasoning, content: check.sectionHtml },
     }
   }
+
   return { valid: check.valid, errors: check.errors }
+}
+
+function collectLeafDataIdOrder(nodes: RenderNode[]): string[] {
+  const ids: string[] = []
+  function walk(node: RenderNode): void {
+    if (node.role) {
+      ids.push(node.node_id)
+      return
+    }
+    for (const child of node.children ?? []) walk(child)
+  }
+  for (const node of nodes) walk(node)
+  return ids
 }
 
 // Recognize underscore runs of any length (single-cell crossword blanks emit
@@ -264,6 +287,15 @@ export function collectOptionalTextIds(
   const optional = new Set<string>()
   for (const leaf of leafTexts) {
     if (OPTIONAL_TEXT_ROLES.has(leaf.text_type)) {
+      optional.add(leaf.text_id)
+      continue
+    }
+    // Standalone enumeration-marker labels ("1.", "(i)", "(a)"). Matching
+    // activities auto-number their items and reliably drop these provided
+    // marker labels even when the prompt asks to keep them; treat them as
+    // optional so a drop doesn't fail validation and force retries. The LLM is
+    // still free to render them (encouraged by the render prompts).
+    if (leaf.text_type === "label" && isEnumerationMarker(leaf.text ?? "")) {
       optional.add(leaf.text_id)
       continue
     }
